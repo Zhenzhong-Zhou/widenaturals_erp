@@ -1,0 +1,81 @@
+services:
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    ports:
+      - '8080:8080'
+    volumes:
+      - ./server:/app
+    env_file:
+      - ./env/.env.server
+    secrets:
+      - server_jwt_secret
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app_network
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    ports:
+      - '3001:3000'
+    volumes:
+      - ./client:/app
+    env_file:
+      - ./env/.env.client
+    networks:
+      - app_network
+
+  database:
+    image: postgres:17-alpine
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    env_file:
+      - ./env/.env.database
+    secrets:
+      - db_password
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app_network
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"
+
+secrets:
+  server_jwt_secret:
+    file: secrets/secrets/server_jwt_secret.txt
+  db_password:
+    file: ./secrets/db_password.txt
+
+volumes:
+  pgdata:
+    driver: local
+
+networks:
+  app_network:
+    driver: bridge
