@@ -8,7 +8,7 @@ services:
     volumes:
       - ./server:/app
     env_file:
-      - ./env/.env.server
+      - ./env/${NODE_ENV}/.env.server
     secrets:
       - server_jwt_secret
     healthcheck:
@@ -36,7 +36,7 @@ services:
     volumes:
       - ./client:/app
     env_file:
-      - ./env/.env.client
+      - ./env/${NODE_ENV}/.env.client
     networks:
       - app_network
 
@@ -47,7 +47,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     env_file:
-      - ./env/.env.database
+      - ./env/${NODE_ENV}/.env.database
     secrets:
       - db_password
     healthcheck:
