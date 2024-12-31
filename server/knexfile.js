@@ -8,10 +8,10 @@ module.exports = {
   development: {
     client: 'postgresql', // Use PostgreSQL for local development
     connection: {
-      host: process.env.DEV_DB_HOST || '127.0.0.1', // Default to localhost
-      database: process.env.DEV_DB_NAME || 'my_dev_db', // Replace with your database name
+      host: process.env.DEV_DB_HOST || 'localhost', // Default to localhost
+      database: process.env.DEV_DB_NAME || 'widenaturals_erp_develiopment', // Replace with your database name
       user: process.env.DEV_DB_USER || 'postgres', // Replace with your username
-      password: process.env.DEV_DB_PASSWORD || 'password', // Replace with your password
+      password: process.env.DEV_DB_PASSWORD || 'Apple0823', // Replace with your password
       port: process.env.DEV_DB_PORT || 5432, // Default PostgreSQL port
     },
     pool: {
