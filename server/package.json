@@ -1,0 +1,31 @@
+{
+  "name": "widenaturals_erp_server",
+  "version": "1.0.0",
+  "description": "The backend server for WideNaturals Inc, ERP.",
+  "keywords": [
+    "erp"
+  ],
+  "homepage": "https://github.com/Zhenzhong-Zhou/widenaturals_erp#readme",
+  "bugs": {
+    "url": "https://github.com/Zhenzhong-Zhou/widenaturals_erp/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/Zhenzhong-Zhou/widenaturals_erp.git"
+  },
+  "license": "MIT",
+  "author": "Zhenzhong 'Bob' Zhou",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "knex": "^3.1.0",
+    "pg": "^8.13.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
+}
