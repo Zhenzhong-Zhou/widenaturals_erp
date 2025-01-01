@@ -46,7 +46,7 @@ const baseConfig = {
     tableName: 'knex_migrations',
   },
   seeds: {
-    directory: path.resolve(__dirname, './src/database/seeds'),
+    directory: path.resolve(__dirname, `./src/database/seeds/${env}`),
   },
 };
 

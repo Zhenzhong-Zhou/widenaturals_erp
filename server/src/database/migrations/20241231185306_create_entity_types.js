@@ -3,14 +3,14 @@
  * @returns {Knex.SchemaBuilder}
  */
 exports.up = function(knex) {
-  return knex.schema.createTable('entity_types', table => {
-    table.uuid('id').primary();
-    table.string('name', 50).notNullable().unique().index();
-    table.text('description').nullable();
-    table.timestamp('status_date').defaultTo(knex.fn.now());
-    table.timestamp('created_at').defaultTo(knex.fn.now());
-    table.timestamp('updated_at').defaultTo(knex.fn.now());
-  });
+  return knex.schema.createTable('entity_types', (table) => {
+    table.uuid('id').defaultTo(knex.raw('uuid_generate_v4()')).primary(); // Primary key with UUID
+    table.string('name', 50).notNullable().unique().index(); // Unique name with an index
+    table.text('description').nullable(); // Optional description
+    table.timestamp('status_date').defaultTo(knex.fn.now()); // Status date
+    table.timestamp('created_at').defaultTo(knex.fn.now()); // Creation timestamp
+    table.timestamp('updated_at').defaultTo(knex.fn.now()); // Update timestamp
+  })
 };
 
 /**
