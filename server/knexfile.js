@@ -1,94 +1,87 @@
-// Update with your config settings.
-require('dotenv').config(); // Load environment variables from .env
+const path = require('path');
 
-/**
- * @type { Object.<string, import("knex").Knex.Config> }
- */
+// Load NODE_ENV and default to 'development'
+const env = process.env.NODE_ENV?.trim().toLowerCase() || 'development';
+
+// Load environment-specific variables
+require('dotenv').config({ path: path.resolve(__dirname, `../env/${env}/.env.server`) });
+require('dotenv').config({ path: path.resolve(__dirname, `../env/${env}/.env.database`)});
+
+// Allowed environments
+const allowedEnvs = ['development', 'test', 'staging', 'production'];
+if (!allowedEnvs.includes(env)) {
+  throw new Error(`Invalid NODE_ENV value: ${env}. Allowed values: ${allowedEnvs.join(', ')}`);
+}
+
+// Map environment to prefixes
+const getEnvPrefix = (env) => {
+  const envMapping = {
+    development: 'DEV',
+    test: 'TEST',
+    staging: 'STAGING',
+    production: 'PROD',
+  };
+  return envMapping[env] || 'UNKNOWN';
+};
+const envPrefix = getEnvPrefix(env);
+
+// Validate required variables
+const validateEnvVars = () => {
+  const requiredVars = [
+    `${envPrefix}_DB_HOST`,
+    `${envPrefix}_DB_NAME`,
+    `${envPrefix}_DB_USER`,
+    `${envPrefix}_DB_PASSWORD`,
+    `${envPrefix}_DB_PORT`,
+  ];
+  const missingVars = requiredVars.filter((key) => !process.env[key]);
+  if (missingVars.length > 0) {
+    throw new Error(`Missing environment variables: ${missingVars.join(', ')}`);
+  }
+};
+validateEnvVars();
+
+// Pool configuration
+const poolConfig = {
+  min: parseInt(process.env.DB_POOL_MIN, 10) || 2,
+  max: parseInt(process.env.DB_POOL_MAX, 10) || 10,
+};
+
+// Debug logging
+if (env !== 'production') {
+  console.log(`Environment: ${env}`);
+  console.log(`Database Host: ${process.env[`${envPrefix}_DB_HOST`]}`);
+  console.log(`Database Name: ${process.env[`${envPrefix}_DB_NAME`]}`);
+  console.log(`Database User: ${process.env[`${envPrefix}_DB_USER`]}`);
+  console.log(`Pool Min: ${poolConfig.min}, Max: ${poolConfig.max}`);
+}
+
+// Base Knex configuration
+const baseConfig = {
+  client: 'postgresql',
+  pool: poolConfig,
+  migrations: {
+    directory: path.resolve(__dirname, './src/database/migrations'),
+    tableName: 'knex_migrations',
+  },
+  seeds: {
+    directory: path.resolve(__dirname, './src/database/seeds'),
+  },
+};
+
+// Connection configurations
+const getConnectionConfig = (prefix) => ({
+  host: process.env[`${prefix}_DB_HOST`],
+  database: process.env[`${prefix}_DB_NAME`],
+  user: process.env[`${prefix}_DB_USER`],
+  password: process.env[`${prefix}_DB_PASSWORD`],
+  port: process.env[`${prefix}_DB_PORT`],
+});
+
+// Export Knex configurations
 module.exports = {
-  development: {
-    client: 'postgresql', // Use PostgreSQL for local development
-    connection: {
-      host: process.env.DEV_DB_HOST || 'localhost', // Default to localhost
-      database: process.env.DEV_DB_NAME || 'widenaturals_erp_develiopment', // Replace with your database name
-      user: process.env.DEV_DB_USER || 'postgres', // Replace with your username
-      password: process.env.DEV_DB_PASSWORD || 'Apple0823', // Replace with your password
-      port: process.env.DEV_DB_PORT || 5432, // Default PostgreSQL port
-    },
-    pool: {
-      min: 2,
-      max: 10, // Adjust connection pooling as needed
-    },
-    migrations: {
-      directory: './src/database/migrations', // Directory for migration files
-    },
-    seeds: {
-      directory: './src/database/seeds', // Directory for seed files
-    },
-  },
-  
-  test: {
-    client: 'postgresql',
-    connection: {
-      host: process.env.TEST_DB_HOST || '127.0.0.1',
-      database: process.env.TEST_DB_NAME || 'test_db',
-      user: process.env.TEST_DB_USER || 'postgres',
-      password: process.env.TEST_DB_PASSWORD || 'testpassword',
-      port: process.env.TEST_DB_PORT || 5432,
-    },
-    pool: {
-      min: 1,
-      max: 5,
-    },
-    migrations: {
-      directory: './db/migrations',
-      tableName: 'knex_migrations_test',
-    },
-    seeds: {
-      directory: './db/seeds/test',
-    },
-  },
-  
-  staging: {
-    client: 'postgresql', // PostgreSQL for staging environment
-    connection: {
-      host: process.env.STAGING_DB_HOST || '127.0.0.1',
-      database: process.env.STAGING_DB_NAME || 'staging_db',
-      user: process.env.STAGING_DB_USER || 'staging_user',
-      password: process.env.STAGING_DB_PASSWORD || 'staging_password',
-      port: process.env.STAGING_DB_PORT || 5432,
-    },
-    pool: {
-      min: 2,
-      max: 10,
-    },
-    migrations: {
-      directory: './db/migrations',
-      tableName: 'knex_migrations', // Ensure consistent migration tracking
-    },
-    seeds: {
-      directory: './db/seeds',
-    },
-  },
-  
-  production: {
-    client: 'postgresql', // PostgreSQL for production
-    connection: {
-      host: process.env.PROD_DB_HOST || '127.0.0.1',
-      database: process.env.PROD_DB_NAME || 'prod_db',
-      user: process.env.PROD_DB_USER || 'prod_user',
-      password: process.env.PROD_DB_PASSWORD || 'prod_password',
-      port: process.env.PROD_DB_PORT || 5432,
-    },
-    pool: {
-      min: 5, // Higher pooling for production workloads
-      max: 20,
-    },
-    migrations: {
-      directory: './db/migrations',
-      tableName: 'knex_migrations',
-    },
-    seeds: {
-      directory: './db/seeds',
-    },
-  },
+  development: { ...baseConfig, connection: getConnectionConfig('DEV') },
+  test: { ...baseConfig, connection: getConnectionConfig('TEST') },
+  staging: { ...baseConfig, connection: getConnectionConfig('STAGING') },
+  production: { ...baseConfig, connection: getConnectionConfig('PROD') },
 };
