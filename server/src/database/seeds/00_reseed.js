@@ -3,6 +3,15 @@ const { loadEnv } = require('../../config/env');
 const env = loadEnv();
 const knex = require('knex')(require('../../../knexfile')[env]);
 
+// Abstract process.exit for testability
+const exitProcess = (code) => {
+  if (process.env.NODE_ENV === 'test') {
+    console.log(`Mocked process.exit with code: ${code}`);
+    return;
+  }
+  process.exit(code);
+};
+
 /**
  * Reseeds the database by rolling back all migrations, reapplying them, and rerunning seed files.
  * - Skips reseeding in production.
@@ -11,35 +20,28 @@ const knex = require('knex')(require('../../../knexfile')[env]);
 const reseedDatabase = async () => {
   if (env === 'production') {
     console.error('Reseeding is not allowed in the production environment!');
-    process.exit(1);
+    exitProcess(1); // Use the wrapper
   }
-
+  
   console.log(`Starting reseed process for the '${env}' environment...`);
-
+  
   try {
     // Rollback all migrations
     console.log('Rolling back all migrations...');
     await knex.migrate.rollback(null, true);
-
+    
     // Reapply migrations
     console.log('Reapplying migrations...');
     await knex.migrate.latest();
-
+    
     // Run seeds
     console.log('Running seed files...');
-    const specificSeed = process.argv[2]; // Optional specific seed file
-    if (specificSeed) {
-      console.log(`Running specific seed file: ${specificSeed}`);
-      await knex.seed.run({ specific: specificSeed });
-    } else {
-      console.log('Running all seed files...');
-      await knex.seed.run();
-    }
-
+    await knex.seed.run();
+    
     console.log('Database reseeded successfully.');
   } catch (err) {
     console.error('Error during reseed process:', err.message);
-    process.exit(1); // Exit with failure
+    exitProcess(1); // Use the wrapper
   } finally {
     // Ensure Knex connection is closed
     await knex.destroy();
@@ -57,7 +59,7 @@ const startReseeding = async () => {
         input: process.stdin,
         output: process.stdout,
       });
-
+      
       // Await user confirmation for staging
       const confirmation = await new Promise((resolve) => {
         rl.question(
@@ -68,13 +70,13 @@ const startReseeding = async () => {
           }
         );
       });
-
+      
       if (confirmation === 'yes') {
         console.log('Proceeding with reseeding...');
         await reseedDatabase();
       } else {
         console.log('Reseeding canceled.');
-        process.exit(0); // Exit cleanly
+        exitProcess(0); // Use the wrapper
       }
     } else {
       // Directly reseed for development and test environments
@@ -82,9 +84,12 @@ const startReseeding = async () => {
     }
   } catch (err) {
     console.error('Error during startReseeding:', err.message);
-    process.exit(1);
+    exitProcess(1); // Use the wrapper
   }
 };
+
+// Export for testing
+module.exports = { reseedDatabase, startReseeding, exitProcess };
 
 // Call the async function
 (async () => {
@@ -92,6 +97,6 @@ const startReseeding = async () => {
     await startReseeding();
   } catch (err) {
     console.error('Unexpected error:', err.message);
-    process.exit(1);
+    exitProcess(1); // Use the wrapper
   }
 })();

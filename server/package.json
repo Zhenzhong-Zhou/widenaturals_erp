@@ -18,9 +18,19 @@
   "type": "commonjs",
   "main": "index.js",
   "scripts": {
+    "devStart": "nodemon src/index.js",
+    "migrate:dev": "NODE_ENV=development knex migrate:latest",
+    "rollback:dev": "NODE_ENV=development knex migrate:rollback",
+    "seed:dev": "NODE_ENV=development knex seed:run",
+    "cleanup:dev": "NODE_ENV=development node src/database/seeds/00_cleanup.js",
+    "reseed:dev": "NODE_ENV=development node src/database/seeds/00_reseed.js",
+    
     "test": "jest",
-    "cleanup": "node src/database/seeds/00_cleanup.js",
-    "reseed": "node src/database/seeds/00_reseed.js"
+    "test:watch": "jest --watch",
+    "migrate:test": "NODE_ENV=test knex migrate:latest",
+    "rollback:test": "NODE_ENV=test knex migrate:rollback",
+    "seed:test": "NODE_ENV=test knex seed:run",
+    "cleanup:test": "NODE_ENV=test node src/database/seeds/00_cleanup.js"
   },
   "dependencies": {
     "dotenv": "^16.4.7",
