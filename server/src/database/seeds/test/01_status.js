@@ -1,29 +1,27 @@
 exports.seed = async function (knex) {
-  const permissions = [
+  // Insert seed data into the 'status' table
+  const statuses = [
     {
       id: knex.raw('uuid_generate_v4()'),
-      permission: 'view_dashboard',
+      name: 'active',
+      is_active: true,
       created_at: knex.fn.now(),
       updated_at: knex.fn.now(),
     },
     {
       id: knex.raw('uuid_generate_v4()'),
-      permission: 'manage_users',
+      name: 'inactive',
+      is_active: false,
       created_at: knex.fn.now(),
       updated_at: knex.fn.now(),
     },
     {
       id: knex.raw('uuid_generate_v4()'),
-      permission: 'edit_profile',
-      created_at: knex.fn.now(),
-      updated_at: knex.fn.now(),
-    },
-    {
-      id: knex.raw('uuid_generate_v4()'),
-      permission: 'view_reports',
+      name: 'pending',
+      is_active: true,
       created_at: knex.fn.now(),
       updated_at: knex.fn.now(),
     },
   ];
-  await knex('permissions').insert(permissions);
+  await knex('status').insert(statuses);
 };
