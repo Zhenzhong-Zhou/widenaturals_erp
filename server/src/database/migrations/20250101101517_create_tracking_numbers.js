@@ -2,17 +2,23 @@
  * @param { import("knex").Knex } knex
  * @returns {Knex.SchemaBuilder}
  */
-exports.up = function(knex) {
+exports.up = function (knex) {
   return knex.schema.createTable('tracking_numbers', (table) => {
     table.uuid('id').primary();
     table.uuid('order_id').references('id').inTable('orders');
     table.string('tracking_number', 255).unique().notNullable();
-    table.string('carrier', 100).notNullable().checkIn(['UPS', 'Canada Post', 'FedEx', 'DHL', 'Purolator']);
+    table
+      .string('carrier', 100)
+      .notNullable()
+      .checkIn(['UPS', 'Canada Post', 'FedEx', 'DHL', 'Purolator']);
     table.string('service_name', 100).nullable();
     table.date('shipped_date').nullable();
     table.uuid('status_id').notNullable().references('id').inTable('status');
     table.timestamp('status_date').defaultTo(knex.fn.now());
-    table.uuid('delivery_method_id').references('id').inTable('delivery_methods');
+    table
+      .uuid('delivery_method_id')
+      .references('id')
+      .inTable('delivery_methods');
     table.timestamp('created_at').defaultTo(knex.fn.now());
     table.timestamp('updated_at').defaultTo(knex.fn.now());
     table.uuid('created_by').references('id').inTable('users');
@@ -24,6 +30,6 @@ exports.up = function(knex) {
  * @param { import("knex").Knex } knex
  * @returns {Knex.SchemaBuilder}
  */
-exports.down = function(knex) {
+exports.down = function (knex) {
   return knex.schema.dropTableIfExists('tracking_numbers');
 };

@@ -2,7 +2,7 @@
  * @param { import("knex").Knex } knex
  * @returns {Knex.Raw<TResult>}
  */
-exports.up = function(knex) {
+exports.up = function (knex) {
   return knex.raw(`
    -- Attach updated_at trigger to status table
     CREATE TRIGGER set_status_updated_at
@@ -40,7 +40,7 @@ exports.up = function(knex) {
  * @param { import("knex").Knex } knex
  * @returns {Knex.Raw<TResult>}
  */
-exports.down = function(knex) {
+exports.down = function (knex) {
   return knex.raw(`
     -- Drop triggers
     DROP TRIGGER IF EXISTS set_status_updated_at ON status;

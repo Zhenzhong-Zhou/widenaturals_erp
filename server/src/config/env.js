@@ -25,17 +25,23 @@ const dotenv = require('dotenv');
 const loadEnv = () => {
   // Load NODE_ENV and default to 'development' if undefined
   const env = process.env.NODE_ENV?.trim().toLowerCase() || 'development';
-  
+
   // Load environment-specific variables
-  dotenv.config({ path: path.resolve(__dirname, `../../../env/${env}/.env.server`) });
-  dotenv.config({ path: path.resolve(__dirname, `../../../env/${env}/.env.database`) });
+  dotenv.config({
+    path: path.resolve(__dirname, `../../../env/${env}/.env.server`),
+  });
+  dotenv.config({
+    path: path.resolve(__dirname, `../../../env/${env}/.env.database`),
+  });
 
   // Validate that NODE_ENV is one of the allowed environments
   const allowedEnvs = ['development', 'test', 'staging', 'production'];
   if (!allowedEnvs.includes(env)) {
-    throw new Error(`Invalid NODE_ENV value: ${env}. Allowed values: ${allowedEnvs.join(', ')}`);
+    throw new Error(
+      `Invalid NODE_ENV value: ${env}. Allowed values: ${allowedEnvs.join(', ')}`
+    );
   }
-  
+
   return env;
 };
 

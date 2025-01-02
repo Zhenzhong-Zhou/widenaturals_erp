@@ -24,7 +24,7 @@ const { getEnvPrefix } = require('./env');
 // Validate required database environment variables
 const validateEnvVars = (env) => {
   const envPrefix = getEnvPrefix(env);
-  
+
   // Check that all required variables are present
   const requiredVars = [
     `${envPrefix}_DB_HOST`,

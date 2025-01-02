@@ -2,11 +2,19 @@
  * @param { import("knex").Knex } knex
  * @returns {Knex.SchemaBuilder}
  */
-exports.up = function(knex) {
+exports.up = function (knex) {
   return knex.schema.createTable('order_items', (table) => {
     table.uuid('id').primary();
-    table.uuid('order_id').notNullable().references('id').inTable('sales_orders');
-    table.uuid('inventory_id').notNullable().references('id').inTable('inventory');
+    table
+      .uuid('order_id')
+      .notNullable()
+      .references('id')
+      .inTable('sales_orders');
+    table
+      .uuid('inventory_id')
+      .notNullable()
+      .references('id')
+      .inTable('inventory');
     table.integer('quantity_ordered').notNullable();
     table.integer('quantity_fulfilled').defaultTo(0);
     table.uuid('price_id').notNullable().references('id').inTable('pricing');
@@ -24,6 +32,6 @@ exports.up = function(knex) {
  * @param { import("knex").Knex } knex
  * @returns {Knex.SchemaBuilder}
  */
-exports.down = function(knex) {
+exports.down = function (knex) {
   return knex.schema.dropTableIfExists('order_items');
 };

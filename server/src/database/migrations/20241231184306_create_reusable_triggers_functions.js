@@ -2,7 +2,7 @@
  * @param { import("knex").Knex } knex
  * @returns {Knex.Raw<TResult>}
  */
-exports.up = function(knex) {
+exports.up = function (knex) {
   return knex.raw(`
     CREATE OR REPLACE FUNCTION set_default_status_id()
     RETURNS TRIGGER AS $$
@@ -28,7 +28,7 @@ exports.up = function(knex) {
  * @param { import("knex").Knex } knex
  * @returns {Knex.Raw<TResult>}
  */
-exports.down = function(knex) {
+exports.down = function (knex) {
   return knex.raw(`
     DROP FUNCTION IF EXISTS set_default_status_id;
     DROP FUNCTION IF EXISTS update_updated_at_column;

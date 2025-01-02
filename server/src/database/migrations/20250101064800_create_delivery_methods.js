@@ -2,7 +2,7 @@
  * @param { import("knex").Knex } knex
  * @returns {Knex.SchemaBuilder}
  */
-exports.up = function(knex) {
+exports.up = function (knex) {
   return knex.schema.createTable('delivery_methods', (table) => {
     table.uuid('id').primary();
     table.string('method_name', 100).unique().notNullable();
@@ -21,6 +21,6 @@ exports.up = function(knex) {
  * @param { import("knex").Knex } knex
  * @returns {Knex.SchemaBuilder}
  */
-exports.down = function(knex) {
+exports.down = function (knex) {
   return knex.schema.dropTableIfExists('delivery_methods');
 };

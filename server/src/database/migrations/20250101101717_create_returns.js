@@ -2,11 +2,15 @@
  * @param { import("knex").Knex } knex
  * @returns {Knex.SchemaBuilder}
  */
-exports.up = function(knex) {
+exports.up = function (knex) {
   return knex.schema.createTable('returns', (table) => {
     table.uuid('id').primary().references('id').inTable('orders');
     table.uuid('order_id').notNullable().references('id').inTable('orders');
-    table.uuid('order_type_id').notNullable().references('id').inTable('order_types');
+    table
+      .uuid('order_type_id')
+      .notNullable()
+      .references('id')
+      .inTable('order_types');
     table.timestamp('return_date').defaultTo(knex.fn.now()).notNullable();
     table.uuid('status_id').notNullable().references('id').inTable('status');
     table.timestamp('status_date').defaultTo(knex.fn.now());
@@ -24,6 +28,6 @@ exports.up = function(knex) {
  * @param { import("knex").Knex } knex
  * @returns {Knex.SchemaBuilder}
  */
-exports.down = function(knex) {
+exports.down = function (knex) {
   return knex.schema.dropTableIfExists('returns');
 };

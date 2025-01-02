@@ -2,11 +2,19 @@
  * @param { import("knex").Knex } knex
  * @returns {Knex.SchemaBuilder}
  */
-exports.up = function(knex) {
+exports.up = function (knex) {
   return knex.schema.createTable('inventory_activity_log', (table) => {
     table.uuid('id').primary();
-    table.uuid('inventory_id').notNullable().references('id').inTable('inventory');
-    table.uuid('inventory_action_type_id').notNullable().references('id').inTable('inventory_action_types');
+    table
+      .uuid('inventory_id')
+      .notNullable()
+      .references('id')
+      .inTable('inventory');
+    table
+      .uuid('inventory_action_type_id')
+      .notNullable()
+      .references('id')
+      .inTable('inventory_action_types');
     table.integer('quantity_change').notNullable();
     table.integer('previous_quantity').notNullable();
     table.integer('new_quantity').notNullable();
@@ -24,6 +32,6 @@ exports.up = function(knex) {
  * @param { import("knex").Knex } knex
  * @returns {Knex.SchemaBuilder}
  */
-exports.down = function(knex) {
+exports.down = function (knex) {
   return knex.schema.dropTableIfExists('inventory_activity_log');
 };

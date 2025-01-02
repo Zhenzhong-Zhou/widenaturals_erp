@@ -2,8 +2,8 @@
  * @param { import("knex").Knex } knex
  * @returns {Knex.SchemaBuilder}
  */
-exports.up = function(knex) {
-  return knex.schema.createTable('users', table => {
+exports.up = function (knex) {
+  return knex.schema.createTable('users', (table) => {
     table.uuid('id').primary();
     table.string('email', 255).notNullable().unique().index();
     table.uuid('role_id').references('id').inTable('roles').index();
@@ -25,6 +25,6 @@ exports.up = function(knex) {
  * @param { import("knex").Knex } knex
  * @returns {Knex.SchemaBuilder}
  */
-exports.down = function(knex) {
+exports.down = function (knex) {
   return knex.schema.dropTableIfExists('users');
 };

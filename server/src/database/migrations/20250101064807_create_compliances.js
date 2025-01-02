@@ -2,7 +2,7 @@
  * @param { import("knex").Knex } knex
  * @returns {Knex.SchemaBuilder}
  */
-exports.up = function(knex) {
+exports.up = function (knex) {
   return knex.schema.createTable('compliances', (table) => {
     table.uuid('id').primary();
     table.uuid('product_id').references('id').inTable('products');
@@ -17,7 +17,7 @@ exports.up = function(knex) {
     table.timestamp('updated_at').defaultTo(knex.fn.now());
     table.uuid('created_by').references('id').inTable('users');
     table.uuid('updated_by').references('id').inTable('users');
-    
+
     // Indexes
     table.index(['product_id', 'type'], 'idx_compliances_product_type');
   });
@@ -27,6 +27,6 @@ exports.up = function(knex) {
  * @param { import("knex").Knex } knex
  * @returns {Knex.SchemaBuilder}
  */
-exports.down = function(knex) {
+exports.down = function (knex) {
   return knex.schema.dropTableIfExists('compliances');
 };

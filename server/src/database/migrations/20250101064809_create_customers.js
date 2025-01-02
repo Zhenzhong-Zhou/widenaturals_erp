@@ -2,13 +2,21 @@
  * @param { import("knex").Knex } knex
  * @returns {Knex.SchemaBuilder}
  */
-exports.up = function(knex) {
+exports.up = function (knex) {
   return knex.schema.createTable('customers', (table) => {
     table.uuid('id').primary();
     table.string('firstname', 100).notNullable();
     table.string('lastname', 100).notNullable();
-    table.string('email', 255).unique().nullable().checkRegex('^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$');
-    table.string('phone_number', 15).unique().nullable().checkRegex('^\(\d{3}\)-\d{3}-\d{4}$');
+    table
+      .string('email', 255)
+      .unique()
+      .nullable()
+      .checkRegex('^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$');
+    table
+      .string('phone_number', 15)
+      .unique()
+      .nullable()
+      .checkRegex('^\(\d{3}\)-\d{3}-\d{4}$');
     table.text('address').nullable();
     table.uuid('status_id').notNullable().references('id').inTable('status');
     table.text('note').nullable();
@@ -24,6 +32,6 @@ exports.up = function(knex) {
  * @param { import("knex").Knex } knex
  * @returns {Knex.SchemaBuilder}
  */
-exports.down = function(knex) {
+exports.down = function (knex) {
   return knex.schema.dropTableIfExists('customers');
 };

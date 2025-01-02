@@ -2,7 +2,7 @@
  * @param { import("knex").Knex } knex
  * @returns {Knex.SchemaBuilder}
  */
-exports.up = async function(knex) {
+exports.up = async function (knex) {
   await knex.schema.createTable('products', (table) => {
     table.uuid('id').primary();
     table.string('product_name', 255).notNullable();
@@ -23,11 +23,11 @@ exports.up = async function(knex) {
     table.timestamp('updated_at').defaultTo(knex.fn.now());
     table.uuid('created_by').references('id').inTable('users');
     table.uuid('updated_by').references('id').inTable('users');
-    
+
     // Indexes
     table.index(['product_name', 'SKU'], 'idx_products_name_sku');
   });
-  
+
   // Add generated columns using raw SQL
   await knex.raw(`
     ALTER TABLE products
@@ -42,7 +42,7 @@ exports.up = async function(knex) {
  * @param { import("knex").Knex } knex
  * @returns {Knex.SchemaBuilder}
  */
-exports.down = async function(knex) {
+exports.down = async function (knex) {
   await knex.raw(`
     ALTER TABLE products
     DROP COLUMN IF EXISTS length_inch,

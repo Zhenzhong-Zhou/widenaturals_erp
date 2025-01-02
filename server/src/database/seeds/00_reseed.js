@@ -13,18 +13,18 @@ const reseedDatabase = async () => {
     console.error('Reseeding is not allowed in the production environment!');
     process.exit(1);
   }
-  
+
   console.log(`Starting reseed process for the '${env}' environment...`);
-  
+
   try {
     // Rollback all migrations
     console.log('Rolling back all migrations...');
     await knex.migrate.rollback(null, true);
-    
+
     // Reapply migrations
     console.log('Reapplying migrations...');
     await knex.migrate.latest();
-    
+
     // Run seeds
     console.log('Running seed files...');
     const specificSeed = process.argv[2]; // Optional specific seed file
@@ -35,7 +35,7 @@ const reseedDatabase = async () => {
       console.log('Running all seed files...');
       await knex.seed.run();
     }
-    
+
     console.log('Database reseeded successfully.');
   } catch (err) {
     console.error('Error during reseed process:', err.message);
@@ -53,16 +53,22 @@ const reseedDatabase = async () => {
 const startReseeding = async () => {
   try {
     if (env === 'staging') {
-      const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-      
+      const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+      });
+
       // Await user confirmation for staging
       const confirmation = await new Promise((resolve) => {
-        rl.question('Are you sure you want to reseed the database in staging? (yes/no): ', (answer) => {
-          rl.close(); // Close the readline interface
-          resolve(answer.toLowerCase());
-        });
+        rl.question(
+          'Are you sure you want to reseed the database in staging? (yes/no): ',
+          (answer) => {
+            rl.close(); // Close the readline interface
+            resolve(answer.toLowerCase());
+          }
+        );
       });
-      
+
       if (confirmation === 'yes') {
         console.log('Proceeding with reseeding...');
         await reseedDatabase();

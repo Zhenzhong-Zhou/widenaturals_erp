@@ -1,11 +1,11 @@
-exports.seed = async function(knex) {
+exports.seed = async function (knex) {
   // Fetch the 'Active' status ID from the 'status' table
   const activeStatusId = await knex('status')
     .where({ name: 'active' })
     .select('id')
     .first()
     .then((row) => row.id);
-  
+
   // Seed roles
   const roles = [
     {
@@ -36,6 +36,6 @@ exports.seed = async function(knex) {
       updated_at: knex.fn.now(),
     },
   ];
-  
+
   await knex('roles').insert(roles);
 };

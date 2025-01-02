@@ -2,8 +2,8 @@
  * @param { import("knex").Knex } knex
  * @returns {Knex.SchemaBuilder}
  */
-exports.up = function(knex) {
-  return knex.schema.createTable('permissions', table => {
+exports.up = function (knex) {
+  return knex.schema.createTable('permissions', (table) => {
     table.uuid('id').primary();
     table.string('permission', 100).notNullable();
     table.timestamp('created_at').defaultTo(knex.fn.now());
@@ -15,6 +15,6 @@ exports.up = function(knex) {
  * @param { import("knex").Knex } knex
  * @returns {Knex.SchemaBuilder}
  */
-exports.down = function(knex) {
+exports.down = function (knex) {
   return knex.schema.dropTableIfExists('permissions');
 };

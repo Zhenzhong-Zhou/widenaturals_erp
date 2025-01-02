@@ -12,16 +12,16 @@ const cleanTables = async () => {
       console.warn('Skipping cleanup in production.');
       return;
     }
-    
+
     console.log(`Starting cleanup for environment: ${env}`);
-    
+
     // List of tables to clean
     const tables = ['users', 'roles', 'permissions', 'status']; // Add/remove table names here as needed
-    
+
     // Dynamically disable foreign key checks if required
     console.log('Disabling foreign key constraints...');
     await knex.raw('SET session_replication_role = replica');
-    
+
     for (const table of tables) {
       const exists = await knex.schema.hasTable(table);
       if (exists) {
@@ -31,15 +31,17 @@ const cleanTables = async () => {
         console.warn(`Table does not exist: ${table}`);
       }
     }
-    
+
     // Re-enable foreign key constraints
     console.log('Re-enabling foreign key constraints...');
     await knex.raw('SET session_replication_role = DEFAULT');
-    
+
     // Optionally reset table identities and cascade
     console.log('Resetting table identities...');
-    await knex.raw(`TRUNCATE TABLE ${tables.join(', ')} RESTART IDENTITY CASCADE`);
-    
+    await knex.raw(
+      `TRUNCATE TABLE ${tables.join(', ')} RESTART IDENTITY CASCADE`
+    );
+
     console.log('Cleanup completed successfully.');
   } catch (err) {
     console.error('Error during cleanup:', err.message);
@@ -56,16 +58,22 @@ const cleanTables = async () => {
 const startCleanup = async () => {
   try {
     if (env === 'staging') {
-      const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-      
+      const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+      });
+
       // Await user confirmation for staging
       const confirmation = await new Promise((resolve) => {
-        rl.question('Are you sure you want to clean up the database in staging? (yes/no): ', (answer) => {
-          rl.close(); // Close the readline interface
-          resolve(answer.toLowerCase());
-        });
+        rl.question(
+          'Are you sure you want to clean up the database in staging? (yes/no): ',
+          (answer) => {
+            rl.close(); // Close the readline interface
+            resolve(answer.toLowerCase());
+          }
+        );
       });
-      
+
       if (confirmation === 'yes') {
         console.log('Proceeding with cleanup...');
         await cleanTables();

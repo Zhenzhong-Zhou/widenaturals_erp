@@ -2,11 +2,21 @@
  * @param { import("knex").Knex } knex
  * @returns {Knex.SchemaBuilder}
  */
-exports.up = function(knex) {
-  return knex.schema.createTable('status_entity_types', table => {
+exports.up = function (knex) {
+  return knex.schema.createTable('status_entity_types', (table) => {
     table.uuid('id').primary(); // Unique identifier for the record
-    table.uuid('status_id').notNullable().references('id').inTable('status').index();
-    table.uuid('entity_type_id').notNullable().references('id').inTable('entity_types').index();
+    table
+      .uuid('status_id')
+      .notNullable()
+      .references('id')
+      .inTable('status')
+      .index();
+    table
+      .uuid('entity_type_id')
+      .notNullable()
+      .references('id')
+      .inTable('entity_types')
+      .index();
     table.timestamp('created_at').defaultTo(knex.fn.now());
     table.timestamp('updated_at').defaultTo(knex.fn.now());
     table.uuid('created_by').references('id').inTable('users');
@@ -19,6 +29,6 @@ exports.up = function(knex) {
  * @param { import("knex").Knex } knex
  * @returns {Knex.SchemaBuilder}
  */
-exports.down = function(knex) {
+exports.down = function (knex) {
   return knex.schema.dropTableIfExists('status_entity_types');
 };
