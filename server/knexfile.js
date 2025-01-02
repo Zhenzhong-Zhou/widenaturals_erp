@@ -15,27 +15,24 @@
  *
  * Example Usage:
  * ```
+ * # Run migrations for the current environment
  * npx knex --knexfile knexfile.js migrate:latest
+ *
+ * # Seed the database for the current environment
+ * npx knex --knexfile knexfile.js seed:run
+ *
+ * # Specify an environment explicitly
+ * NODE_ENV=staging npx knex --knexfile knexfile.js migrate:latest
  * ```
  */
 
 const path = require('path');
-const { loadEnv, getEnvPrefix } = require('./src/config/env');
-const { validateEnvVars, getPoolConfig, getConnectionConfig } = require('./src/config/db-config');
+const { loadEnv } = require('./src/config/env');
+const { getPoolConfig, getConnectionConfig } = require('./src/config/db-config');
 
-// Load environment and validate variables
+// Load environment
 const env = loadEnv();
-validateEnvVars(env);
-
-// Debug logging
-if (env !== 'production') {
-  const envPrefix = getEnvPrefix(env);
-  console.log(`Environment: ${env}`);
-  console.log(`Database Host: ${process.env[`${envPrefix}_DB_HOST`]}`);
-  console.log(`Database Name: ${process.env[`${envPrefix}_DB_NAME`]}`);
-  console.log(`Database User: ${process.env[`${envPrefix}_DB_USER`]}`);
-  console.log(`Pool Min: ${getPoolConfig().min}, Max: ${getPoolConfig().max}`);
-}
+const seedsDirectory = (env) => path.resolve(__dirname, `./src/database/seeds/${env}`);
 
 // Base Knex configuration
 const baseConfig = {
@@ -45,15 +42,12 @@ const baseConfig = {
     directory: path.resolve(__dirname, './src/database/migrations'),
     tableName: 'knex_migrations',
   },
-  seeds: {
-    directory: path.resolve(__dirname, `./src/database/seeds/${env}`),
-  },
 };
 
 // Export Knex configurations
 module.exports = {
-  development: { ...baseConfig, connection: getConnectionConfig('DEV') },
-  test: { ...baseConfig, connection: getConnectionConfig('TEST') },
-  staging: { ...baseConfig, connection: getConnectionConfig('STAGING') },
-  production: { ...baseConfig, connection: getConnectionConfig('PROD') },
+  development: { ...baseConfig, connection: getConnectionConfig('DEV'), seeds: { directory: seedsDirectory('development') } },
+  test: { ...baseConfig, connection: getConnectionConfig('TEST'), seeds: { directory: seedsDirectory('test') } },
+  staging: { ...baseConfig, connection: getConnectionConfig('STAGING'), seeds: { directory: seedsDirectory('staging') } },
+  production: { ...baseConfig, connection: getConnectionConfig('PROD'), seeds: { directory: seedsDirectory('production') } },
 };
