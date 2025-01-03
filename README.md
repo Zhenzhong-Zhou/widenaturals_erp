@@ -49,35 +49,57 @@ Before starting, ensure you have the following installed:
    npm install
    ```
 3. **Set up environment variables**:
-   - Create a .env file in the project root.
-   - Add the following variables:
+   - Create `.env` files for each environment (e.g., `.env.development`, `.env.test`).
+   - Add the following variables to each file:
      ```env
-        NODE_ENV=development
-        DB_HOST=localhost
-        DB_PORT=5432
-        DB_USER=your_database_user
-        DB_PASSWORD=your_database_password
-        DB_NAME=your_database_name
+     NODE_ENV=development
+     DEV_DB_HOST=localhost
+     DEV_DB_PORT=5432
+     DEV_DB_USER=your_database_user
+     DEV_DB_PASSWORD=your_database_password
+     DEV_DB_NAME=your_database_name
      ```
-
+   - For the test environment, use:
+     ```env
+     NODE_ENV=test
+     TEST_DB_HOST=localhost
+     TEST_DB_PORT=5432
+     TEST_DB_USER=your_test_database_user
+     TEST_DB_PASSWORD=your_test_database_password
+     TEST_DB_NAME=your_test_database_name
+     ```
 4. **Initialize the database**:
-   ```bash
-    npx knex migrate:latest
-    npx knex seed:run
-   ```
+    - Run the following command to create the database, apply migrations, and seed data:
+      ```bash
+      npm run setup
+      ```
+    - If needed, run individual steps:
+        - Create the database:
+          ```bash
+          npm run create-db
+          ```
+        - Run migrations:
+          ```bash
+          npm run migrate
+          ```
+        - Seed the database:
+          ```bash
+          npm run seed
+          ```
 5. **Running the Project**:
    ```bash
    npm run devStart
    ```
 6. **Running Tests**:
-   - Run the entire test suite:
-     ```bash
+    - Ensure you have a `.env.test` file configured for the test database.
+    - Run the entire test suite:
+      ```bash
       npm test
-     ```
-   - Run specific tests:
-     ```bash
-     npm test -- path/to/your/test-file.test.js
-     ```
+      ```
+    - Run specific tests:
+      ```bash
+      npm test -- path/to/your/test-file.test.js
+      ```
 7. **Directory Structure**:
    ```plaintext
      project root/
@@ -114,37 +136,22 @@ Before starting, ensure you have the following installed:
       ```bash
       npx knex init
       ```
-   2. **Migrations**:
+   2. **Common Knex Operations**:
       - Create a migration:
         ```bash
         npx knex migrate:make create_entity_types --env development
-        npx knex migrate:make create_entity_types --env test
-        npx knex migrate:make create_entity_types --env staging
-        npx knex migrate:make create_entity_types --env production
         ```
       - Run migrations:
         ```bash
-        NODE_ENV=test npx knex migrate:latest
-        npx knex migrate:latest --env development
-        npx knex migrate:latest --env test
-        npx knex migrate:latest --env staging
-        npx knex migrate:latest --env production
+        npm run migrate
         ```
-      - Rollback migrations:
+      - Rollback the last migration::
         ```bash
-        NODE_ENV=test npx knex migrate:rollback
-        npx knex migrate:latest --env development
-        npx knex migrate:latest --env test
-        npx knex migrate:latest --env staging
-        npx knex migrate:latest --env production
+        npm run rollback
         ```
       - Rollback all migrations:
         ```bash
-        NODE_ENV=test npx knex migrate:rollback --all
         npx knex migrate:rollback --all --env development
-        npx knex migrate:rollback --all --env test
-        npx knex migrate:rollback --all --env staging
-        npx knex migrate:rollback --all --env production
         ```
    3. **Seeds**:
       - Create a seed file:
@@ -153,10 +160,8 @@ Before starting, ensure you have the following installed:
          ```
       - Run seed files:
           ```bash
-         npx knex seed:run --env development
-         NODE_ENV=development npx knex seed:run
-         ```
-
+          npm run seed
+          ```
 **Run with Docker**
 1. **Build and start the containers**:
    ```bash
