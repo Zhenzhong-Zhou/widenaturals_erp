@@ -6,10 +6,11 @@
 
 const { Pool } = require('pg');
 const { getConnectionConfig } = require('../config/db-config');
-const { getEnvPrefix } = require('../config/env');
+const { getEnvPrefix, loadEnv } = require('../config/env');
 
 // Get environment-specific connection configuration
-const envPrefix = getEnvPrefix(process.env.NODE_ENV || 'development');
+const env = loadEnv();
+const envPrefix = getEnvPrefix(env);
 const connectionConfig = getConnectionConfig(envPrefix);
 
 // Configure the database connection pool
