@@ -4,35 +4,20 @@
  */
 
 const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const morgan = require('morgan');
+const applyGlobalMiddleware = require('./middlewares/middleware');
+const applyErrorHandlers = require('./middlewares/error-handlers/apply-error-handlers');
 const routes = require('./routes/routes');
 
 const app = express();
 
-// Middleware setup
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(cors());
-app.use(helmet());
-if (process.env.NODE_ENV === 'development') {
-  app.use(morgan('dev'));
-}
+// Apply global middleware
+applyGlobalMiddleware(app);
 
 // Routes
-const API_PREFIX = process.env.API_PREFIX;
+const API_PREFIX = process.env.API_PREFIX || '/api/v1';
 app.use(API_PREFIX, routes);
 
-// 404 error handler
-app.use((req, res) => {
-  res.status(404).json({ error: 'Route not found' });
-});
-
-// Centralized error handling middleware
-app.use((err, req, res, next) => {
-  console.error('❌ Error:', err.message);
-  res.status(err.status || 500).json({ error: 'Internal Server Error', message: err.message });
-});
+// Apply error-handling middleware
+applyErrorHandlers(app); // Catch 404 and other errors
 
 module.exports = app;

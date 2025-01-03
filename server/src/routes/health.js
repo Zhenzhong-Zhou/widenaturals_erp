@@ -4,18 +4,11 @@
  */
 
 const express = require('express');
-const { testConnection } = require('../database/db'); // Database utility for health checks
+const { getHealthStatus } = require('../controllers/health-controller');
 
 const router = express.Router();
 
 // Health check route
-router.get('/', async (req, res) => {
-  try {
-    await testConnection(); // Test database connectivity
-    res.status(200).json({ status: 'Healthy', timestamp: new Date().toISOString() });
-  } catch (error) {
-    res.status(500).json({ status: 'Unhealthy', error: error.message });
-  }
-});
+router.get('/', getHealthStatus);
 
 module.exports = router;
