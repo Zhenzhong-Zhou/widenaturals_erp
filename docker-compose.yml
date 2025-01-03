@@ -1,18 +1,18 @@
 services:
   server:
     build:
-      context: ./server
+      context: .
       dockerfile: Dockerfile
     ports:
       - '8080:8080'
     volumes:
       - ./server:/app
     env_file:
-      - ./env/${NODE_ENV}/.env.server
+      - ./env/${NODE_ENV:-development}//.env.server
     secrets:
       - server_jwt_secret
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/api/vihealth" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -29,14 +29,14 @@ services:
 
   client:
     build:
-      context: ./client
+      context: .
       dockerfile: Dockerfile
     ports:
       - '3001:3000'
     volumes:
       - ./client:/app
     env_file:
-      - ./env/${NODE_ENV}/.env.client
+      - ./env/${NODE_ENV:-development}//.env.client
     networks:
       - app_network
 
@@ -47,7 +47,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     env_file:
-      - ./env/${NODE_ENV}/.env.database
+      - ./env/${NODE_ENV:-development}//.env.database
     secrets:
       - db_password
     healthcheck:
