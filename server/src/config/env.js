@@ -4,8 +4,25 @@
  * Dynamically loads `.env.server` and `.env.database` based on `NODE_ENV`.
  */
 
+const fs = require('fs');
 const path = require('path');
 const dotenv = require('dotenv');
+
+/**
+ * Load a secret value from Docker secrets if available.
+ * Fallback to the environment variable.
+ *
+ * @param {string} secretName - The name of the Docker secret.
+ * @param {string} envVarName - The corresponding environment variable name.
+ * @returns {string} - The secret value or environment variable value.
+ */
+const loadSecret = (secretName, envVarName) => {
+  const secretPath = `/run/secrets/${secretName}`;
+  if (fs.existsSync(secretPath)) {
+    return fs.readFileSync(secretPath, 'utf-8').trim();
+  }
+  return process.env[envVarName] || null;
+};
 
 /**
  * Loads environment variables from `.env` files based on the `NODE_ENV` value.
@@ -22,28 +39,52 @@ const loadEnv = () => {
   
   // Validate `NODE_ENV`
   if (!allowedEnvs.includes(env)) {
+    console.log(`Invalid NODE_ENV value: ${env}. Allowed values: ${allowedEnvs.join(', ')}`);
     throw new Error(
       `Invalid NODE_ENV value: ${env}. Allowed values: ${allowedEnvs.join(', ')}`
     );
   }
   
   // Paths to `.env` files
+  const defaultEnvPath = path.resolve(__dirname, `../../../env/.env.defaults`);
   const serverEnvPath = path.resolve(__dirname, `../../../env/${env}/.env.server`);
   const databaseEnvPath = path.resolve(__dirname, `../../../env/${env}/.env.database`);
   
-  // Load `.env` files
-  const serverEnvLoaded = dotenv.config({ path: serverEnvPath });
-  const databaseEnvLoaded = dotenv.config({ path: databaseEnvPath });
-  
-  // Check if `.env` files were loaded successfully
-  if (serverEnvLoaded.error) {
-    console.warn(`Warning: Could not load ${serverEnvPath}`);
-  }
-  if (databaseEnvLoaded.error) {
-    console.warn(`Warning: Could not load ${databaseEnvPath}`);
+  const defaultEnvLoaded = dotenv.config({ path: defaultEnvPath });
+  if (defaultEnvLoaded.error) {
+    console.warn(`Warning: Could not load default .env file: ${defaultEnvPath}`);
   }
   
-  return env; // Return the current environment
+  dotenv.config({ path: serverEnvPath });
+  dotenv.config({ path: databaseEnvPath });
+  
+  if (env === 'production' && (!process.env.ALLOWED_ORIGINS || !process.env.PORT)) {
+    console.log('Critical environment variables are missing in production.');
+    throw new Error('Critical environment variables are missing in production.');
+  }
+  
+  return env;
+};
+
+/**
+ * Validates critical environment variables or Docker secrets.
+ *
+ * @param {Array<{ envVar: string, secret: string, required: boolean, defaultValue?: string }>} config
+ */
+const validateEnv = (config) => {
+  const missingVars = config.filter(({ envVar, secret, required, defaultValue }) => {
+    const value =
+      loadSecret(secret, envVar) ||
+      (process.env.NODE_ENV !== 'production' && defaultValue) ||
+      null;
+    return required && !value;
+  });
+  
+  if (missingVars.length > 0) {
+    const missingNames = missingVars.map(({ envVar, secret }) => secret || envVar).join(', ');
+    console.log(`Missing required environment variables or secrets: ${missingNames}`);
+    throw new Error(`Missing required environment variables or secrets: ${missingNames}`);
+  }
 };
 
 /**
@@ -62,4 +103,4 @@ const getEnvPrefix = (env) => {
   return envMapping[env] || 'UNKNOWN';
 };
 
-module.exports = { loadEnv, getEnvPrefix };
+module.exports = { loadEnv, validateEnv, getEnvPrefix };

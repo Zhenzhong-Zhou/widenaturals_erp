@@ -6,21 +6,34 @@ jest.mock('dotenv');
 
 describe('Environment Variables', () => {
   let originalEnv;
+  let logSpy;
+  let warnSpy;
   
   beforeEach(() => {
-    // Save the original NODE_ENV
+    // Save original NODE_ENV
     originalEnv = process.env.NODE_ENV;
-    dotenv.config.mockClear(); // Clear mock history for each test
     
-    // Default mock implementation
+    // Set default required variables
+    process.env.ALLOWED_ORIGINS = 'http://localhost:3000';
+    process.env.PORT = '3000';
+    
+    // Mock console and dotenv
+    logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    dotenv.config.mockClear();
     dotenv.config.mockImplementation(({ path }) => {
+      if (path.includes('.env.server') || path.includes('.env.database')) {
+        return { error: new Error(`File not found: ${path}`) }; // Simulate missing file
+      }
       return { parsed: { TEST_VAR: 'test' } }; // Simulate successful loading
     });
   });
   
   afterEach(() => {
-    // Restore the original NODE_ENV
+    // Restore NODE_ENV and console
     process.env.NODE_ENV = originalEnv;
+    logSpy.mockRestore();
+    warnSpy.mockRestore();
   });
   
   it('should load the correct environment for development', () => {
@@ -52,10 +65,16 @@ describe('Environment Variables', () => {
     expect(() => loadEnv()).toThrow(
       'Invalid NODE_ENV value: invalid_env. Allowed values: development, test, staging, production'
     );
+    expect(logSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Invalid NODE_ENV value')
+    );
   });
   
   it('should load the correct environment for production', () => {
     process.env.NODE_ENV = 'production';
+    process.env.ALLOWED_ORIGINS = 'http://example.com';
+    process.env.PORT = '3000';
+    
     const env = loadEnv();
     expect(env).toBe('production');
     expect(dotenv.config).toHaveBeenCalledWith({
@@ -81,20 +100,17 @@ describe('Environment Variables', () => {
   it('should log warnings if .env files are missing', () => {
     // Mock dotenv.config to return an error for .env.server
     dotenv.config.mockImplementation(({ path }) => {
-      if (path.includes('.env.server')) {
-        return { error: new Error('File not found') }; // Simulate a failure
+      if (path.includes('.env.server') || path.includes('.env.defaults')) {
+        return { error: new Error(`File not found: ${path}`) }; // Simulate missing files
       }
       return { parsed: { TEST_VAR: 'test' } }; // Simulate successful parsing
     });
     
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
     process.env.NODE_ENV = 'development';
-    
     const env = loadEnv();
     expect(env).toBe('development');
     expect(warnSpy).toHaveBeenCalledWith(
       expect.stringContaining('Warning: Could not load')
     );
-    warnSpy.mockRestore();
   });
 });

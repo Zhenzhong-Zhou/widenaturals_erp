@@ -13,6 +13,6 @@ const router = express.Router();
  * GET /
  * Public route to display the welcome message.
  */
-router.get('/', wrapAsync(getWelcomeMessage));
+router.get('/welcome', wrapAsync(getWelcomeMessage));
 
 module.exports = router;

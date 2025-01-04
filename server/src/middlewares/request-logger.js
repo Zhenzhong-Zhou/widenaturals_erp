@@ -3,7 +3,7 @@
  * @description Middleware for logging incoming HTTP requests with additional context.
  */
 
-const { logInfo, logWarn } = require('../utils/loggerHelper');
+const { logInfo, logWarn, logWithLevel } = require('../utils/loggerHelper');
 
 /**
  * Logs HTTP requests, including method, URL, IP, status code, and response time.
@@ -26,7 +26,7 @@ const requestLogger = (req, res, next) => {
     const responseTime = (duration[0] * 1e3 + duration[1] * 1e-6).toFixed(2); // Convert to ms
     
     const statusCode = res.statusCode;
-    const logLevel = statusCode >= 500 ? logWarn : (statusCode >= 400 ? logInfo : logInfo); // Dynamic log level
+    const logLevel = statusCode >= 500 ? 'warn' : statusCode >= 400 ? 'info' : 'info';
     
     const message = `Request: ${req.method} ${req.originalUrl} from ${req.ip}`;
     const metadata = {
@@ -40,7 +40,7 @@ const requestLogger = (req, res, next) => {
       metadata.headers = req.headers;
     }
     
-    logLevel(message, req, metadata);
+    logWithLevel(logLevel, message, req, metadata);
   });
   
   next();
