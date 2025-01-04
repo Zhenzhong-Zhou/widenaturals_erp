@@ -3,14 +3,24 @@
  * @description Middleware for handling unexpected or global errors.
  */
 
+const { logError } = require('../../utils/loggerHelper');
+
+/**
+ * General error handler middleware.
+ * Logs the error and sends an appropriate response.
+ *
+ * @param {Object} err - Error object
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
 const generalErrorHandler = (err, req, res, next) => {
-  console.error('❌ Error:', err.message);
+  logError(err, req);
   
-  if (err.isOperational) {
-    return res.status(err.statusCode || 500).json({ error: err.message });
-  }
+  const message =
+    process.env.NODE_ENV === 'production' ? 'An unexpected error occurred' : err.message;
   
-  res.status(500).json({ error: 'Internal Server Error' });
+  res.status(err.status || 500).json({ error: message });
 };
 
 module.exports = generalErrorHandler;

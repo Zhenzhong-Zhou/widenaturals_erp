@@ -4,6 +4,7 @@
  */
 
 require('dotenv').config(); // Load environment variables
+const { logFatal } = require('./utils/loggerHelper');
 const { startServer } = require('./server');
 
 // Start the server
@@ -11,7 +12,7 @@ const { startServer } = require('./server');
   try {
     await startServer();
   } catch (error) {
-    console.error('❌ Error starting server:', error.message);
+    logFatal(error.message);
     process.exit(1); // Exit with failure code
   }
 })();

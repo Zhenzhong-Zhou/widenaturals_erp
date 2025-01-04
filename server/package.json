@@ -22,16 +22,13 @@
     "migrate": "NODE_ENV=${NODE_ENV:-development} dotenv -e .env npx knex migrate:latest",
     "rollback": "NODE_ENV=${NODE_ENV:-development} dotenv -e .env npx knex migrate:rollback",
     "seed": "NODE_ENV=${NODE_ENV:-development} dotenv -e .env npx knex seed:run",
-    
     "setup": "npm run create-db && npm run migrate || npm run rollback && npm run seed",
-    
     "devStart": "NODE_ENV=development nodemon src/index.js",
     "migrate:dev": "NODE_ENV=development npm run migrate",
     "rollback:dev": "NODE_ENV=development npm run rollback",
     "seed:dev": "NODE_ENV=development npm run seed",
     "cleanup:dev": "NODE_ENV=development dotenv -e .env node src/database/seeds/00_cleanup.js",
     "reseed:dev": "NODE_ENV=development dotenv -e .env node src/database/seeds/00_reseed.js",
-    
     "test": "jest",
     "test:watch": "jest --watch",
     "create-db:test": "NODE_ENV=test npm run create-db",
@@ -43,13 +40,17 @@
     "setup:test": "NODE_ENV=test npm run setup"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.721.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "express-async-handler": "^1.2.0",
     "helmet": "^8.0.0",
     "knex": "^3.1.0",
     "morgan": "^1.10.0",
-    "pg": "^8.13.1"
+    "pg": "^8.13.1",
+    "winston": "^3.17.0",
+    "winston-daily-rotate-file": "^5.0.0"
   },
   "devDependencies": {
     "dotenv-cli": "^8.0.0",

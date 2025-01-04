@@ -4,16 +4,17 @@
  */
 
 const http = require('http');
-const { loadEnv } = require('./config/env'); // Load environment variables
+const { logInfo, logError } = require('./utils/loggerHelper');
+const { loadEnv } = require('./config/env');
 const app = require('./app');
 const { closePool, testConnection } = require('./database/db');
 
 // Load environment variables
-loadEnv(); // Ensure environment variables are loaded
+loadEnv();
 
 const PORT = process.env.PORT;
 if (!PORT) {
-  console.error('❌ PORT environment variable is missing or undefined.');
+  logError(new Error('PORT environment variable is missing or undefined'));
   process.exit(1);
 }
 
@@ -25,19 +26,16 @@ const server = http.createServer(app);
  */
 const startServer = async () => {
   try {
-    console.log('🔄 Testing database connection...');
-    // await testConnection(); // Test database connection
-    testConnection()
-      .then(() => console.log('Database is connected'))
-      .catch((err) => console.error('Database connection failed:', err));
-    console.log('✅ Database connected successfully');
+    logInfo('Testing database connection...');
+    await testConnection();
+    logInfo('Database connected successfully');
     
     server.listen(PORT, () => {
-      console.log(`[${new Date().toISOString()}] 🚀 Server running on http://localhost:${PORT}`);
+      logInfo(`Server running on http://localhost:${PORT}`);
     });
   } catch (error) {
-    console.error(`❌ Failed to connect to the database: ${error.message}`);
-    process.exit(1); // Exit with failure code if the database connection fails
+    logError(error);
+    process.exit(1); // Exit with failure code
   }
 };
 
@@ -45,11 +43,11 @@ const startServer = async () => {
  * Gracefully shuts down the server and cleans up resources.
  */
 const shutdown = async () => {
-  console.log('🔄 Shutting down server...');
+  logInfo('Shutting down server...');
   server.close(async () => {
-    console.log('✅ Server closed');
+    logInfo('Server closed');
     await closePool();
-    console.log('✅ Database connections closed');
+    logInfo('Database connections closed');
     process.exit(0);
   });
 };
@@ -58,8 +56,9 @@ const shutdown = async () => {
  * Stops the server manually (for development/testing purposes).
  */
 const stopServer = () => {
+  logInfo('Stopping server manually');
   server.close(() => {
-    console.log('❌ Server stopped manually.');
+    logInfo('Server stopped');
   });
 };
 

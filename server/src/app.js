@@ -14,7 +14,7 @@ const app = express();
 applyGlobalMiddleware(app);
 
 // Routes
-const API_PREFIX = process.env.API_PREFIX || '/api/v1';
+const API_PREFIX = process.env.API_PREFIX;
 app.use(API_PREFIX, routes);
 
 // Apply error-handling middleware
