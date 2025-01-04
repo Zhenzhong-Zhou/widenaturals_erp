@@ -1,12 +1,18 @@
+/**
+ * @file reseedDatabase.js
+ * @description Reseeds the database by rolling back all migrations, reapplying them, and rerunning seed files.
+ */
+
 const readline = require('readline');
 const { loadEnv } = require('../../config/env');
+const { logInfo, logWarn, logError } = require('../../utils/loggerHelper');
 const env = loadEnv();
 const knex = require('knex')(require('../../../knexfile')[env]);
 
 // Abstract process.exit for testability
 const exitProcess = (code) => {
   if (process.env.NODE_ENV === 'test') {
-    console.log(`Mocked process.exit with code: ${code}`);
+    logInfo(`Mocked process.exit with code: ${code}`);
     return;
   }
   process.exit(code);
@@ -19,33 +25,33 @@ const exitProcess = (code) => {
  */
 const reseedDatabase = async () => {
   if (env === 'production') {
-    console.error('Reseeding is not allowed in the production environment!');
+    logError(new Error('Reseeding is not allowed in the production environment!'));
     exitProcess(1); // Use the wrapper
   }
   
-  console.log(`Starting reseed process for the '${env}' environment...`);
+  logInfo(`Starting reseed process for the '${env}' environment...`);
   
   try {
     // Rollback all migrations
-    console.log('Rolling back all migrations...');
+    logInfo('Rolling back all migrations...');
     await knex.migrate.rollback(null, true);
     
     // Reapply migrations
-    console.log('Reapplying migrations...');
+    logInfo('Reapplying migrations...');
     await knex.migrate.latest();
     
     // Run seeds
-    console.log('Running seed files...');
+    logInfo('Running seed files...');
     await knex.seed.run();
     
-    console.log('Database reseeded successfully.');
+    logInfo('Database reseeded successfully.');
   } catch (err) {
-    console.error('Error during reseed process:', err.message);
+    logError(err, null, { additionalInfo: 'Error during reseed process' });
     exitProcess(1); // Use the wrapper
   } finally {
     // Ensure Knex connection is closed
     await knex.destroy();
-    console.log('Knex connection destroyed.');
+    logInfo('Knex connection destroyed.');
   }
 };
 
@@ -72,10 +78,10 @@ const startReseeding = async () => {
       });
       
       if (confirmation === 'yes') {
-        console.log('Proceeding with reseeding...');
+        logInfo('Proceeding with reseeding...');
         await reseedDatabase();
       } else {
-        console.log('Reseeding canceled.');
+        logInfo('Reseeding canceled.');
         exitProcess(0); // Use the wrapper
       }
     } else {
@@ -83,7 +89,7 @@ const startReseeding = async () => {
       await reseedDatabase();
     }
   } catch (err) {
-    console.error('Error during startReseeding:', err.message);
+    logError(err, null, { additionalInfo: 'Error during startReseeding' });
     exitProcess(1); // Use the wrapper
   }
 };
@@ -96,7 +102,7 @@ module.exports = { reseedDatabase, startReseeding, exitProcess };
   try {
     await startReseeding();
   } catch (err) {
-    console.error('Unexpected error:', err.message);
+    logError(err, null, { additionalInfo: 'Unexpected error during script execution' });
     exitProcess(1); // Use the wrapper
   }
 })();

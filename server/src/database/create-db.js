@@ -5,6 +5,7 @@
  */
 
 const { Pool } = require('pg'); // Use Pool for direct DB connection
+const { logInfo, logError } = require('../utils/loggerHelper');
 const { loadEnv, getEnvPrefix } = require('../config/env');
 const { getConnectionConfig } = require('../config/db-config');
 
@@ -33,10 +34,6 @@ const adminConnectionConfig = {
 
 const targetDatabase = process.env[`${envPrefix}_DB_NAME`]; // Target database name
 
-const log = (message) => {
-  console.log(`[${new Date().toISOString()}] ${message}`);
-};
-
 /**
  * Checks if the target database exists and creates it if necessary.
  */
@@ -44,7 +41,7 @@ const createDatabase = async () => {
   const pool = new Pool(adminConnectionConfig); // Temporary pool for administrative operations
   
   try {
-    log(`🔄 Checking for database: '${targetDatabase}' in '${env}' environment`);
+    logInfo(`Checking for database: '${targetDatabase}' in '${env}' environment`);
     
     // Query to check if the database exists
     const result = await pool.query(
@@ -53,21 +50,22 @@ const createDatabase = async () => {
     );
     
     if (result.rowCount === 0) {
-      console.log(`❌ Database '${targetDatabase}' does not exist. Creating...`);
+      logInfo(`Database '${targetDatabase}' does not exist. Creating...`);
       await pool.query(`CREATE DATABASE "${targetDatabase}"`);
-      console.log(`✅ Database '${targetDatabase}' created successfully.`);
+      logInfo(`Database '${targetDatabase}' created successfully.`);
     } else {
-      console.log(`✅ Database '${targetDatabase}' already exists.`);
+      logInfo(`Database '${targetDatabase}' already exists.`);
     }
   } catch (error) {
     if (error.code === '3D000') {
-      log(`❌ Database '${targetDatabase}' does not exist: ${error.message}`);
+      logError(error, null, { additionalInfo: `Database '${targetDatabase}' does not exist` });
     } else {
-      log(`❌ Unexpected error: ${error.message}`);
+      logError(error, null, { additionalInfo: 'Unexpected error during database creation process' });
     }
     process.exit(1); // Exit process with failure code
   } finally {
     await pool.end(); // Close the pool to release resources
+    logInfo('Database creation process completed.');
   }
 };
 
@@ -78,10 +76,10 @@ module.exports = { createDatabase };
 if (require.main === module) {
   createDatabase()
     .then(() => {
-      console.log('✅ Database check and creation process completed successfully.');
+      logInfo('Database check and creation process completed successfully.');
     })
     .catch((error) => {
-      console.error(`❌ Failed to create database: ${error.message}`);
+      logError(error, null, { additionalInfo: 'Failed to create database' });
       process.exit(1);
     });
 }

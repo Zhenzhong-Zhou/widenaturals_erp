@@ -1,5 +1,11 @@
+/**
+ * @file cleanTables.js
+ * @description Cleans up specified tables in the database using TRUNCATE with CASCADE.
+ */
+
 const readline = require('readline');
 const { loadEnv } = require('../../config/env');
+const { logInfo, logWarn, logError } = require('../../utils/loggerHelper');
 const env = loadEnv();
 const knex = require('knex')(require('../../../knexfile')[env]);
 
@@ -10,33 +16,33 @@ const knex = require('knex')(require('../../../knexfile')[env]);
  */
 const cleanTables = async (tableList = []) => {
   if (!['development', 'test', 'staging'].includes(env)) {
-    console.warn('Skipping cleanup in production.');
+    logWarn('Skipping cleanup in production.');
     return 0; // Indicate success
   }
   
-  console.log(`Starting cleanup for environment: ${env}`);
+  logInfo(`Starting cleanup for environment: ${env}`);
   if (tableList.length === 0) {
-    console.error('No tables specified for cleanup.');
+    logError(new Error('No tables specified for cleanup.'));
     return 1; // Indicate failure
   }
   
   const trx = await knex.transaction(); // Start transaction
   try {
-    console.log('Cleaning tables with TRUNCATE CASCADE...');
+    logInfo('Cleaning tables with TRUNCATE CASCADE...');
     await trx.raw(`TRUNCATE TABLE ${tableList.join(', ')} RESTART IDENTITY CASCADE`);
-    console.log('Tables cleaned successfully.');
+    logInfo('Tables cleaned successfully.');
     
     await trx.commit(); // Commit transaction
-    console.log('Transaction committed.');
+    logInfo('Transaction committed.');
     return 0; // Indicate success
   } catch (err) {
-    console.error('Error during cleanup:', err.message);
+    logError(err, null, { additionalInfo: 'Error during cleanup' });
     await trx.rollback(); // Rollback transaction
-    console.log('Transaction rolled back.');
+    logWarn('Transaction rolled back.');
     return 1; // Indicate failure
   } finally {
     await knex.destroy();
-    console.log('Knex connection destroyed.');
+    logInfo('Knex connection destroyed.');
   }
 };
 
@@ -62,7 +68,7 @@ const startCleanup = async (tableList = []) => {
     });
     
     if (confirmation !== 'yes') {
-      console.log('Cleanup canceled.');
+      logInfo('Cleanup canceled.');
       return 0; // Indicate success without performing cleanup
     }
   }

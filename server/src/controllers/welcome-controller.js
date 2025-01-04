@@ -4,6 +4,7 @@
  * Provides general information about the API, including health status and documentation links.
  */
 
+const { logInfo } = require('../utils/loggerHelper');
 const { version } = require('../../package.json'); // Dynamically fetch version from package.json
 
 /**
@@ -28,13 +29,14 @@ const getWelcomeMessage = (req, res) => {
   // Load API prefix from environment variables
   const API_PREFIX = process.env.API_PREFIX;
   
-  // Construct response
+  logInfo('Serving welcome message to the client', req);
+  
   res.status(200).json({
     message: 'Welcome to WIDE Naturals Inc. ERP API!',
     documentation: '/docs', // Link to API documentation
     statusEndpoint: `${API_PREFIX}/health`, // Endpoint to check API health
     version, // Dynamically fetched API version
-    frontendVersion: process.env.FRONTEND_VERSION || '1.0.0', // Frontend version from environment
+    frontendVersion: process.env.FRONTEND_VERSION, // Frontend version from environment
     system: 'WIDE Naturals Inc. ERP', // Identify the system/application
     timestamp: new Date().toISOString(), // Current timestamp
   });

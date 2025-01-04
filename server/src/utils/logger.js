@@ -7,6 +7,10 @@ const fs = require('fs');
 const { createLogger, format, transports } = require('winston');
 const DailyRotateFile = require('winston-daily-rotate-file');
 const { uploadToS3 } = require('./s3Uploader');
+const { loadEnv } = require('./../config/env');
+
+// Load environment variables
+loadEnv();
 
 // Environment variables
 const isDevelopment = process.env.NODE_ENV === 'development';

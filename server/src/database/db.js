@@ -5,6 +5,7 @@
  */
 
 const { Pool } = require('pg');
+const { logInfo, logError, logWarn } = require('../utils/loggerHelper');
 const { getConnectionConfig } = require('../config/db-config');
 const { getEnvPrefix, loadEnv } = require('../config/env');
 
@@ -20,6 +21,9 @@ const pool = new Pool({
   idleTimeoutMillis: 30000, // Time a client must sit idle before being closed
   connectionTimeoutMillis: 2000, // Time to wait for a connection before timing out
 });
+
+pool.on('connect', () => logInfo('Connected to the database'));
+pool.on('error', (err) => logError(err, null, { additionalInfo: 'Database connection error' }));
 
 /**
  * Execute a query on the database.
@@ -42,8 +46,13 @@ const query = async (text, params = []) => {
  * @returns {Promise<void>}
  */
 const testConnection = async () => {
-  await query('SELECT 1'); // Simple query to ensure connectivity
-  console.log('✅ Database is reachable');
+  try {
+    await query('SELECT 1'); // Simple query to ensure connectivity
+    logInfo('Database connection is healthy.');
+  } catch (error) {
+    logError(error, null, { additionalInfo: 'Database connection test failed' });
+    throw error;
+  }
 };
 
 /**
@@ -51,7 +60,7 @@ const testConnection = async () => {
  * Logs the current state of the connection pool.
  */
 const monitorPool = () => {
-  console.log(`🔄 Pool Status:
+  logInfo(`Pool Status:
   - Total Clients: ${pool.totalCount}
   - Idle Clients: ${pool.idleCount}
   - Waiting Requests: ${pool.waitingCount}`);
@@ -63,9 +72,13 @@ const monitorPool = () => {
  * @returns {Promise<void>}
  */
 const closePool = async () => {
-  console.log('🔄 Closing database connection pool...');
-  await pool.end(); // Close all connections in the pool
-  console.log('✅ Database connection pool closed');
+  try {
+    logInfo('Closing database connection pool...');
+    await pool.end(); // Close all connections in the pool
+    logInfo('Database connection pool closed.');
+  } catch (error) {
+    logError(error, null, { additionalInfo: 'Error closing database connection pool' });
+  }
 };
 
 /**
@@ -85,7 +98,7 @@ const retry = async (fn, retries = 3) => {
     } catch (error) {
       attempt++;
       if (attempt === retries) throw error; // Throw error if max retries reached
-      console.error(`Retry ${attempt}/${retries} failed: ${error.message}`);
+      logWarn(`Retry ${attempt}/${retries} failed: ${error.message}`);
       await delay(1000 * Math.pow(2, attempt)); // Exponential backoff
     }
   }

@@ -3,7 +3,8 @@
  * @description Contains the logic for the health check route.
  */
 
-const { testConnection } = require('../database/db'); // Database utility for health checks
+const { testConnection } = require('../database/db');
+const { logInfo, logError } = require('../utils/loggerHelper');
 
 /**
  * GET /
@@ -13,12 +14,14 @@ const { testConnection } = require('../database/db'); // Database utility for he
  */
 const getHealthStatus = async (req, res) => {
   try {
-    await testConnection(); // Test database connectivity
+    logInfo('Checking API health status...');
+    await testConnection();
     res.status(200).json({
       status: 'Healthy',
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
+    logError(error, req, { route: '/health' });
     res.status(500).json({
       status: 'Unhealthy',
       error: error.message,

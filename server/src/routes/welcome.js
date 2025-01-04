@@ -5,6 +5,7 @@
 
 const express = require('express');
 const { getWelcomeMessage } = require('../controllers/welcome-controller');
+const wrapAsync = require('../utils/wrapAsync');
 
 const router = express.Router();
 
@@ -12,6 +13,6 @@ const router = express.Router();
  * GET /
  * Public route to display the welcome message.
  */
-router.get('/', getWelcomeMessage);
+router.get('/', wrapAsync(getWelcomeMessage));
 
 module.exports = router;
