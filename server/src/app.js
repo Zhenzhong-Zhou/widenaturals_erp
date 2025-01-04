@@ -1,6 +1,6 @@
 /**
  * @file app.js
- * @description Configures and exports the Express application.
+ * @description Main application setup, including middleware, routes, and error handling.
  */
 
 const express = require('express');

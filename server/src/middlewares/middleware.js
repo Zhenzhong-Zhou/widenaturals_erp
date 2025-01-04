@@ -9,6 +9,7 @@ const corsMiddleware = require('./cors');
 const requestLogger = require('./request-logger');
 const morgan = require('morgan');
 const { logWarn } = require('../utils/loggerHelper');
+const { createGlobalRateLimiter } = require('./rate-limiter');
 
 /**
  * Applies global middleware to the application.
@@ -25,7 +26,10 @@ const applyGlobalMiddleware = (app) => {
     })
   );
   
-  // 2. CORS Middleware
+  // 2. Global Rate Limiter
+  app.use(createGlobalRateLimiter);
+  
+  // 3. CORS Middleware
   app.use((req, res, next) => {
     corsMiddleware(req, res, (err) => {
       if (err) {
@@ -36,14 +40,14 @@ const applyGlobalMiddleware = (app) => {
     });
   });
   
-  // 3. Request Logging
+  // 4. Request Logging
   app.use(requestLogger);
   
-  // 4. Body Parsing Middleware
+  // 5. Body Parsing Middleware
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
   
-  // 5. Development Tools
+  // 6. Development Tools
   if (process.env.NODE_ENV === 'development') {
     app.use(morgan('dev')); // Use 'dev' logging format in development
   }
