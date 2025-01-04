@@ -1,51 +1,57 @@
 /**
  * @file env.js
- * @description Handles the loading of environment variables for the application.
- * Dynamically loads `.env.server` and `.env.database` based on the `NODE_ENV` value.
- * Validates the `NODE_ENV` and ensures that required environment variables are available.
- *
- * Dependencies:
- * - dotenv: Used to load environment variables from `.env` files.
- * - path: Provides utilities for working with file and directory paths.
- *
- * Exports:
- * - `env`: The current environment (`development`, `test`, `staging`, `production`).
- *
- * Example Usage:
- * ```
- * const { env } = require('./env');
- * console.log(env); // 'development'
- * ```
+ * @description Handles loading and validation of environment variables.
+ * Dynamically loads `.env.server` and `.env.database` based on `NODE_ENV`.
  */
 
 const path = require('path');
 const dotenv = require('dotenv');
 
-// Load NODE_ENV and default to 'development'
+/**
+ * Loads environment variables from `.env` files based on the `NODE_ENV` value.
+ * Validates that the `NODE_ENV` is one of the allowed environments.
+ *
+ * @returns {string} - The current environment (`development`, `test`, `staging`, `production`).
+ */
 const loadEnv = () => {
-  // Load NODE_ENV and default to 'development' if undefined
+  // Determine the current environment (default to 'development')
   const env = process.env.NODE_ENV?.trim().toLowerCase() || 'development';
-
-  // Load environment-specific variables
-  dotenv.config({
-    path: path.resolve(__dirname, `../../../env/${env}/.env.server`),
-  });
-  dotenv.config({
-    path: path.resolve(__dirname, `../../../env/${env}/.env.database`),
-  });
-
-  // Validate that NODE_ENV is one of the allowed environments
+  
+  // Allowed environments
   const allowedEnvs = ['development', 'test', 'staging', 'production'];
+  
+  // Validate `NODE_ENV`
   if (!allowedEnvs.includes(env)) {
     throw new Error(
       `Invalid NODE_ENV value: ${env}. Allowed values: ${allowedEnvs.join(', ')}`
     );
   }
-
-  return env;
+  
+  // Paths to `.env` files
+  const serverEnvPath = path.resolve(__dirname, `../../../env/${env}/.env.server`);
+  const databaseEnvPath = path.resolve(__dirname, `../../../env/${env}/.env.database`);
+  
+  // Load `.env` files
+  const serverEnvLoaded = dotenv.config({ path: serverEnvPath });
+  const databaseEnvLoaded = dotenv.config({ path: databaseEnvPath });
+  
+  // Check if `.env` files were loaded successfully
+  if (serverEnvLoaded.error) {
+    console.warn(`Warning: Could not load ${serverEnvPath}`);
+  }
+  if (databaseEnvLoaded.error) {
+    console.warn(`Warning: Could not load ${databaseEnvPath}`);
+  }
+  
+  return env; // Return the current environment
 };
 
-// Map environment to prefixes (e.g., 'development' -> 'DEV')
+/**
+ * Maps the environment to a prefix for convenience (e.g., 'development' -> 'DEV').
+ *
+ * @param {string} env - The current environment.
+ * @returns {string} - The prefix corresponding to the environment.
+ */
 const getEnvPrefix = (env) => {
   const envMapping = {
     development: 'DEV',
