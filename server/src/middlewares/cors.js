@@ -4,11 +4,7 @@
  */
 
 const cors = require('cors');
-const { logWarn, logError } = require('../utils/loggerHelper');
-const { loadEnv } = require('../config/env');
-
-// Load environment variables
-loadEnv();
+const { logWarn } = require('../utils/loggerHelper');
 
 /**
  * Configures CORS middleware with allowed origins and other settings.

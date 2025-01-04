@@ -5,12 +5,8 @@
 
 const http = require('http');
 const { logInfo, logError } = require('./utils/loggerHelper');
-const { loadEnv } = require('./config/env');
 const app = require('./app');
 const { closePool, testConnection } = require('./database/db');
-
-// Load environment variables
-loadEnv();
 
 const PORT = process.env.PORT;
 if (!PORT) {
