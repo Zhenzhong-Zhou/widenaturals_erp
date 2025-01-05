@@ -5,7 +5,7 @@
 
 const express = require('express');
 const { getWelcomeMessage, getHealthStatus } = require('../controllers/public-controller');
-const wrapAsync = require('../utils/wrapAsync');
+const wrapAsync = require('../utils/wrap-async');
 
 const router = express.Router();
 

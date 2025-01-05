@@ -3,7 +3,7 @@
  * @description Contains the logic for the public routes: Welcome and Health Check.
  */
 
-const { logInfo, logError, logDebug } = require('../utils/loggerHelper');
+const { logInfo, logError, logDebug } = require('../utils/logger-helper');
 const { version } = require('../../package.json'); // Dynamically fetch version from package.json
 const { testConnection } = require('../database/db');
 

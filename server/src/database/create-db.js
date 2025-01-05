@@ -5,7 +5,7 @@
  */
 
 const { Pool } = require('pg'); // Use Pool for direct DB connection
-const { logInfo, logError } = require('../utils/loggerHelper');
+const { logInfo, logError } = require('../utils/logger-helper');
 const { loadEnv, getEnvPrefix } = require('../config/env');
 const { getConnectionConfig } = require('../config/db-config');
 

@@ -3,7 +3,7 @@
  * @description Middleware for handling 404 errors.
  */
 
-const { logWarn } = require('../../utils/loggerHelper');
+const { logWarn } = require('../../utils/logger-helper');
 
 /**
  * Not found handler middleware.

@@ -3,7 +3,7 @@
  * @description Middleware for handling CSRF token errors.
  */
 
-const { logError } = require('../../utils/loggerHelper');
+const { logError } = require('../../utils/logger-helper');
 
 /**
  * Middleware for handling CSRF token errors.

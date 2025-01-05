@@ -3,7 +3,7 @@
  * @description Middleware for handling unexpected or global errors.
  */
 
-const { logError } = require('../../utils/loggerHelper');
+const { logError } = require('../../utils/logger-helper');
 
 /**
  * General error handler middleware.

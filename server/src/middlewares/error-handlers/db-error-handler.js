@@ -3,7 +3,7 @@
  * @description Middleware for handling database-related errors.
  */
 
-const { logError } = require('../../utils/loggerHelper');
+const { logError } = require('../../utils/logger-helper');
 
 /**
  * Database error handler middleware.

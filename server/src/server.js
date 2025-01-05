@@ -4,7 +4,7 @@
  */
 
 const http = require('http');
-const { logInfo, logError } = require('./utils/loggerHelper');
+const { logInfo, logError } = require('./utils/logger-helper');
 const app = require('./app');
 const { closePool, testConnection } = require('./database/db');
 

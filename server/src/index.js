@@ -3,7 +3,7 @@
  * @description Application entry point.
  */
 
-const { logInfo, logFatal } = require('./utils/loggerHelper');
+const { logInfo, logFatal } = require('./utils/logger-helper');
 const { startServer } = require('./server');
 const { loadEnv, validateEnv, getEnvPrefix } = require('./config/env'); // Load and validate environment variables
 

@@ -3,7 +3,7 @@
  * @description Middleware for logging incoming HTTP requests with additional context.
  */
 
-const { logInfo, logWarn, logWithLevel } = require('../utils/loggerHelper');
+const { logInfo, logWarn, logWithLevel } = require('../utils/logger-helper');
 
 /**
  * Logs HTTP requests, including method, URL, IP, status code, and response time.

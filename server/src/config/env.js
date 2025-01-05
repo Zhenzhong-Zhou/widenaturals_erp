@@ -8,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const dotenv = require('dotenv');
 const { getLogger } = require('../utils/logger');
-const { logWarn } = require('../utils/loggerHelper'); // Lazy import the logger
+const { logWarn } = require('../utils/logger-helper'); // Lazy import the logger
 
 /**
  * Load a secret value from Docker secrets if available.

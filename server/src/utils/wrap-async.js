@@ -4,7 +4,7 @@
  */
 
 const asyncHandler = require('express-async-handler');
-const { logDebug, logError } = require('../utils/loggerHelper');
+const { logDebug, logError } = require('./logger-helper');
 
 /**
  * Wraps route handlers with asyncHandler for consistent error handling.

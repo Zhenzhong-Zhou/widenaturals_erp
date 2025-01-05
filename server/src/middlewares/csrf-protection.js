@@ -9,7 +9,7 @@
  */
 
 const csrf = require('csurf');
-const { logWarn } = require('../utils/loggerHelper');
+const { logWarn } = require('../utils/logger-helper');
 const { ONE_HOUR } = require('../utils/constants/general/time');
 
 /**

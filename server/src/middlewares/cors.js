@@ -4,7 +4,7 @@
  */
 
 const cors = require('cors');
-const { logWarn } = require('../utils/loggerHelper');
+const { logWarn } = require('../utils/logger-helper');
 
 /**
  * Configures CORS middleware with allowed origins and other settings.

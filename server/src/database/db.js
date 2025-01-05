@@ -5,7 +5,7 @@
  */
 
 const { Pool } = require('pg');
-const { logInfo, logError, logWarn } = require('../utils/loggerHelper');
+const { logInfo, logError, logWarn } = require('../utils/logger-helper');
 const { getConnectionConfig } = require('../config/db-config');
 const { getEnvPrefix, loadEnv } = require('../config/env');
 

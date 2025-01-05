@@ -1,5 +1,5 @@
 const rateLimit = require('express-rate-limit');
-const { logWarn } = require('./loggerHelper');
+const { logWarn } = require('./logger-helper');
 const RATE_LIMIT = require('../utils/constants/domain/rate-limit');
 
 /**
