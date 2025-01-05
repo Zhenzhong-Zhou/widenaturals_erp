@@ -4,19 +4,21 @@
  */
 
 const express = require('express');
-const welcomeRoute = require('./welcome');
-const healthRoutes = require('./health');
+const welcomeRoute = require('./public');
 const authRoutes = require('./auth');
 const { createApiRateLimiter } = require('../middlewares/rate-limiter');
 
 const router = express.Router();
 
+/**
+ * @returns {Function} - API-specific rate-limiting middleware.
+ */
 // Apply API rate limiter globally to all routes in this router
-router.use(createApiRateLimiter);
+const apiRateLimiter = createApiRateLimiter();
+router.use(apiRateLimiter);
 
 // Attach sub-routes
-router.use('/', welcomeRoute);
-router.use('/health', healthRoutes);
+router.use('/public', welcomeRoute);
 router.use('/auth', authRoutes);
 
 // Export the router

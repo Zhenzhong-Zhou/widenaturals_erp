@@ -9,7 +9,9 @@ const corsMiddleware = require('./cors');
 const requestLogger = require('./request-logger');
 const morgan = require('morgan');
 const { logWarn } = require('../utils/loggerHelper');
-const { createGlobalRateLimiter } = require('./rate-limiter');
+const { csrfProtection } = require('./csrf-protection');
+const { createRateLimiter } = require('../utils/rate-limit-helper');
+const cookieParser = require('cookie-parser');
 
 /**
  * Applies global middleware to the application.
@@ -26,8 +28,8 @@ const applyGlobalMiddleware = (app) => {
     })
   );
   
-  // 2. Global Rate Limiter
-  app.use(createGlobalRateLimiter);
+  // 2. Cookie Parser Middleware
+  app.use(cookieParser());
   
   // 3. CORS Middleware
   app.use((req, res, next) => {
@@ -40,14 +42,20 @@ const applyGlobalMiddleware = (app) => {
     });
   });
   
-  // 4. Request Logging
-  app.use(requestLogger);
+  // 4. CSRF Protection
+  app.use(csrfProtection());
   
-  // 5. Body Parsing Middleware
+  // 5. Global Rate Limiter
+  app.use(createRateLimiter());
+  
+  // 6. Body Parsing Middleware
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
   
-  // 6. Development Tools
+  // 7. Request Logging
+  app.use(requestLogger);
+  
+  // 8. Development Tools
   if (process.env.NODE_ENV === 'development') {
     app.use(morgan('dev')); // Use 'dev' logging format in development
   }

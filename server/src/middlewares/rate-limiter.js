@@ -1,128 +1,147 @@
 /**
- * @file rateLimiter.js
- * @description Middleware for rate limiting to prevent abuse and DDoS attacks.
+ * @file rate-limiters.js
+ * @description Factory functions for creating specific rate limiters using the `createRateLimiter` utility.
  */
 
-const rateLimit = require('express-rate-limit');
-const { logWarn } = require('../utils/loggerHelper'); // Assuming loggerHelper is implemented
+const { createRateLimiter } = require('../utils/rate-limit-helper');
+const RATE_LIMIT = require('../utils/constants/domain/rate-limit');
 
 /**
- * Configures and returns a rate-limiting middleware instance.
+ * Creates a global rate limiter applied to all routes.
+ * Prevents abuse across the entire application.
  *
- * @param {Object} options - Customization options for rate limiting.
- * @param {number} options.windowMs - Time window in milliseconds for rate limiting.
- * @param {number} options.max - Maximum number of requests allowed in the time window.
- * @param {string} [options.message] - Message returned when rate limit is exceeded.
- * @returns {Function} - The configured rate-limiting middleware.
+ * @returns {Function} Express middleware for rate limiting.
  */
-const createRateLimiter = (options = {}) => {
-  const {
-    windowMs,
-    max,
-    message = 'Too many requests. Please try again later.',
-  } = options;
-  
-  return rateLimit({
-    windowMs,
-    max,
-    message,
-    handler: (req, res, next, options) => {
-      const clientIp = req.ip || req.connection.remoteAddress;
-      logWarn(`Rate limit exceeded: ${clientIp}`);
-      res.status(429).json({ error: options.message });
-    },
-    onLimitReached: (req, res, options) => {
-      const clientIp = req.ip || req.connection.remoteAddress;
-      logWarn(`Rate limit reached for IP: ${clientIp}`);
-    },
-    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-  });
-};
-
-/**
- * Factory functions for preconfigured rate limiters.
- */
-
 const createGlobalRateLimiter = () =>
   createRateLimiter({
-    windowMs: parseInt(process.env.RATE_LIMIT_GLOBAL_WINDOW_MS, 10), // Default: 15 minutes
-    max: parseInt(process.env.RATE_LIMIT_GLOBAL_MAX, 10),           // Default: 200 requests
-    message: process.env.RATE_LIMIT_GLOBAL_MESSAGE || 'Too many requests. Please try again later.',
+    windowMs: RATE_LIMIT.GLOBAL.WINDOW_MS,
+    max: RATE_LIMIT.GLOBAL.MAX,
+    message: RATE_LIMIT.GLOBAL.MESSAGE,
   });
 
+/**
+ * Creates an API-specific rate limiter for `/api` routes.
+ * Provides fine-grained control over API traffic.
+ *
+ * @returns {Function} Express middleware for rate limiting.
+ */
 const createApiRateLimiter = () =>
   createRateLimiter({
-    windowMs: parseInt(process.env.RATE_LIMIT_API_WINDOW_MS, 10), // Default: 1 minute
-    max: parseInt(process.env.RATE_LIMIT_API_MAX, 10),           // Default: 50 API requests
-    message: process.env.RATE_LIMIT_API_MESSAGE || 'API rate limit exceeded. Please try again later.',
+    windowMs: RATE_LIMIT.API.WINDOW_MS,
+    max: RATE_LIMIT.API.MAX,
+    message: RATE_LIMIT.API.MESSAGE,
   });
 
-const authenticationRateLimiter = () => {
-  createRateLimiter( {
-    windowMs: parseInt(process.env.RATE_LIMIT_AUTHENTICATION_WINDOW_MS, 10),
-    max: parseInt(process.env.RATE_LIMIT_AUTHENTICATION_MAX, 10),
-    message: process.env.RATE_LIMIT_AUTHENTICATION_MESSAGE || 'Too many login attempts. Please try again later.',
-  });
-}
-
-const authorizationRateLimiter = () => {
-  createRateLimiter({
-    windowMs: parseInt(process.env.RATE_LIMIT_AUTHORIZATION_WINDOW_MS, 10),
-    max: parseInt(process.env.RATE_LIMIT_AUTHORIZATION_MAX, 10),
-    message: process.env.RATE_LIMIT_AUTHORIZATION_MESSAGE || 'Too many authorization requests. Please wait.',
-  });
-}
-
+/**
+ * Creates a login-specific rate limiter to limit login attempts.
+ * Protects against brute-force login attacks.
+ *
+ * @returns {Function} Express middleware for rate limiting.
+ */
 const createLoginRateLimiter = () =>
   createRateLimiter({
-    windowMs: parseInt(process.env.RATE_LIMIT_LOGIN_WINDOW_MS, 10), // Default: 5 minutes
-    max: parseInt(process.env.RATE_LIMIT_LOGIN_MAX, 10),           // Default: 10 login attempts
-    message: process.env.RATE_LIMIT_LOGIN_MESSAGE || 'Too many login attempts. Please try again later.',
+    windowMs: RATE_LIMIT.LOGIN.WINDOW_MS,
+    max: RATE_LIMIT.LOGIN.MAX,
+    message: RATE_LIMIT.LOGIN.MESSAGE,
   });
 
+/**
+ * Creates an authentication-specific rate limiter.
+ * Ensures authentication actions are rate-limited.
+ *
+ * @returns {Function} Express middleware for rate limiting.
+ */
+const createAuthenticationRateLimiter = () =>
+  createRateLimiter({
+    windowMs: RATE_LIMIT.AUTHENTICATION.WINDOW_MS,
+    max: RATE_LIMIT.AUTHENTICATION.MAX,
+    message: RATE_LIMIT.AUTHENTICATION.MESSAGE,
+  });
+
+/**
+ * Creates an authorization-specific rate limiter.
+ * Ensures authorization-related requests are rate-limited.
+ *
+ * @returns {Function} Express middleware for rate limiting.
+ */
+const createAuthorizationRateLimiter = () =>
+  createRateLimiter({
+    windowMs: RATE_LIMIT.AUTHORIZATION.WINDOW_MS,
+    max: RATE_LIMIT.AUTHORIZATION.MAX,
+    message: RATE_LIMIT.AUTHORIZATION.MESSAGE,
+  });
+
+/**
+ * Creates a password reset rate limiter to limit reset attempts.
+ * Protects against abuse of password reset functionality.
+ *
+ * @returns {Function} Express middleware for rate limiting.
+ */
 const createPasswordResetRateLimiter = () =>
   createRateLimiter({
-    windowMs: parseInt(process.env.RATE_LIMIT_PASSWORD_RESET_WINDOW_MS, 10), // Default: 10 minutes
-    max: parseInt(process.env.RATE_LIMIT_PASSWORD_RESET_MAX, 10),           // Default: 5 password reset requests
-    message: process.env.RATE_LIMIT_PASSWORD_RESET_MESSAGE || 'Too many password reset requests. Please try again later.',
+    windowMs: RATE_LIMIT.PASSWORD_RESET.WINDOW_MS,
+    max: RATE_LIMIT.PASSWORD_RESET.MAX,
+    message: RATE_LIMIT.PASSWORD_RESET.MESSAGE,
   });
 
+/**
+ * Creates a signup-specific rate limiter to limit signup attempts.
+ * Prevents abuse of user registration.
+ *
+ * @returns {Function} Express middleware for rate limiting.
+ */
 const createSignupRateLimiter = () =>
   createRateLimiter({
-    windowMs: parseInt(process.env.RATE_LIMIT_SIGNUP_WINDOW_MS, 10), // Default: 10 minutes
-    max: parseInt(process.env.RATE_LIMIT_SIGNUP_MAX, 10),           // Default: 5 signup attempts
-    message: process.env.RATE_LIMIT_SIGNUP_MESSAGE || 'Too many signup attempts. Please try again later.',
+    windowMs: RATE_LIMIT.SIGNUP.WINDOW_MS,
+    max: RATE_LIMIT.SIGNUP.MAX,
+    message: RATE_LIMIT.SIGNUP.MESSAGE,
   });
 
+/**
+ * Creates an admin-specific rate limiter for admin routes.
+ * Protects critical admin functionalities from overuse or abuse.
+ *
+ * @returns {Function} Express middleware for rate limiting.
+ */
 const createAdminRateLimiter = () =>
   createRateLimiter({
-    windowMs: parseInt(process.env.RATE_LIMIT_ADMIN_WINDOW_MS, 10), // Default: 5 minutes
-    max: parseInt(process.env.RATE_LIMIT_ADMIN_MAX, 10),           // Default: 20 admin requests
-    message: process.env.RATE_LIMIT_ADMIN_MESSAGE || 'Too many admin requests. Please try again later.',
+    windowMs: RATE_LIMIT.ADMIN.WINDOW_MS,
+    max: RATE_LIMIT.ADMIN.MAX,
+    message: RATE_LIMIT.ADMIN.MESSAGE,
   });
 
+/**
+ * Creates a file upload-specific rate limiter to control file uploads.
+ * Prevents overuse of upload functionality.
+ *
+ * @returns {Function} Express middleware for rate limiting.
+ */
 const createFileUploadRateLimiter = () =>
   createRateLimiter({
-    windowMs: parseInt(process.env.RATE_LIMIT_FILE_UPLOAD_WINDOW_MS, 10), // Default: 10 minutes
-    max: parseInt(process.env.RATE_LIMIT_FILE_UPLOAD_MAX, 10),           // Default: 10 file uploads
-    message: process.env.RATE_LIMIT_FILE_UPLOAD_MESSAGE || 'Too many file upload requests. Please try again later.',
+    windowMs: RATE_LIMIT.FILE_UPLOAD.WINDOW_MS,
+    max: RATE_LIMIT.FILE_UPLOAD.MAX,
+    message: RATE_LIMIT.FILE_UPLOAD.MESSAGE,
   });
 
+/**
+ * Creates a rate limiter for "forgot username" requests.
+ * Prevents abuse of the "forgot username" functionality.
+ *
+ * @returns {Function} Express middleware for rate limiting.
+ */
 const createForgotUsernameRateLimiter = () =>
   createRateLimiter({
-    windowMs: parseInt(process.env.RATE_LIMIT_FORGOT_USERNAME_WINDOW_MS, 10), // Default: 10 minutes
-    max: parseInt(process.env.RATE_LIMIT_FORGOT_USERNAME_MAX, 10),           // Default: 5 requests
-    message: process.env.RATE_LIMIT_FORGOT_USERNAME_MESSAGE || 'Too many forgot username requests. Please try again later.',
+    windowMs: RATE_LIMIT.FORGOT_USERNAME.WINDOW_MS,
+    max: RATE_LIMIT.FORGOT_USERNAME.MAX,
+    message: RATE_LIMIT.FORGOT_USERNAME.MESSAGE,
   });
 
 module.exports = {
-  createRateLimiter,
   createGlobalRateLimiter,
   createApiRateLimiter,
-  authenticationRateLimiter,
-  authorizationRateLimiter,
   createLoginRateLimiter,
+  createAuthenticationRateLimiter,
+  createAuthorizationRateLimiter,
   createPasswordResetRateLimiter,
   createSignupRateLimiter,
   createAdminRateLimiter,

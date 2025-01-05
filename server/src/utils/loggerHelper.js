@@ -113,20 +113,31 @@ const logFatal = (message, req = null, meta = {}) => {
 
 /**
  * Logs error messages conditionally based on the environment.
+ * Supports both error objects and string messages.
  * Includes stack trace in development and sanitized messages in production.
  *
- * @param {Error} err - The error object to log.
+ * @param {string|Error} errOrMessage - The error object or message to log.
  * @param {Object} [req=null] - Optional Express request object for context.
  * @param {Object} [meta={}] - Additional metadata to include in the log.
  */
-const logError = (err, req = null, meta = {}) => {
-  const message = err.message || 'An unknown error occurred';
+const logError = (errOrMessage, req = null, meta = {}) => {
+  let message;
+  let stack;
+  
+  // Check if the input is an Error object or a string
+  if (errOrMessage instanceof Error) {
+    message = errOrMessage.message || 'An unknown error occurred';
+    stack = process.env.NODE_ENV === 'production' ? undefined : errOrMessage.stack;
+  } else {
+    message = errOrMessage; // Assume it's a string
+    stack = undefined; // No stack for string messages
+  }
   
   logWithLevel(
     'error',
     message,
     req,
-    { stack: process.env.NODE_ENV === 'production' ? undefined : err.stack, ...meta },
+    { stack, ...meta },
     true // Always sanitize error messages
   );
 };
