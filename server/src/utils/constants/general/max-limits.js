@@ -22,10 +22,13 @@ const MAX_LIMITS = {
     MAX_PAGE_SIZE: 100, // Maximum items allowed per page
   },
   INPUT_LENGTH: {
-    USERNAME: 50, // Maximum length for usernames
-    PASSWORD: 128, // Maximum length for passwords
-    EMAIL: 254, // Maximum length for email addresses
+    MAX_USERNAME: 50, // Maximum length for usernames
+    MAX_FIRSTNAME: 50, // Maximum length for firstname
+    MAX_LASTNAME: 50, // Maximum length for lastname
+    MAX_PASSWORD: 128, // Maximum length for passwords
+    MAX_EMAIL: 254, // Maximum length for email addresses
     GENERIC_FIELD: 255, // Maximum length for generic text fields
+    DEFAULT_MAX_LENGTH: 255,
   },
 };
 
