@@ -158,11 +158,11 @@ Before starting, ensure you have the following installed:
       ```
 3.  **Seeds**: - Create a seed file:
     `bash
-         npx knex seed:make seed_name
-         ` - Run seed files:
+     npx knex seed:make seed_name
+     ` - Run seed files:
     `bash
-          npm run seed
-          `
+      npm run seed
+      `
     **Run with Docker**
 4.  **Build and start the containers**:
     ```bash
@@ -176,7 +176,11 @@ Before starting, ensure you have the following installed:
     ```bash
     NODE_ENV=development docker compose up
     ```
-
+7.  **Rebuild Docker Containers**
+    ```bash
+        docker compose down
+    ```
+    
 ---
 
 ## **License**

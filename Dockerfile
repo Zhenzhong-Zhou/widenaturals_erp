@@ -4,14 +4,14 @@ FROM node:23.0-alpine
 # Set working directory
 WORKDIR /app
 
-# Copy package.json and install dependencies
-COPY package*.json ./
+# Copy package.json and package-lock.json from the server directory
+COPY ./server/package*.json ./
 
 # Install only production dependencies
-RUN npm install --production
+RUN npm install --omit=dev
 
-# Copy the rest of the app
-COPY . .
+# Copy the server code and the `env` directory
+COPY ./server /app
 
 # Create a non-root user
 RUN adduser --system appuser
