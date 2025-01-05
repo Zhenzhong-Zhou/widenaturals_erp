@@ -15,9 +15,14 @@ const envPrefix = getEnvPrefix(env);
 
 // Validate required environment variables
 const validateEnvVars = () => {
-  const requiredVars = [`${envPrefix}_DB_NAME`, `${envPrefix}_DB_HOST`, `${envPrefix}_DB_USER`, `${envPrefix}_DB_PASSWORD`];
+  const requiredVars = [
+    `${envPrefix}_DB_NAME`,
+    `${envPrefix}_DB_HOST`,
+    `${envPrefix}_DB_USER`,
+    `${envPrefix}_DB_PASSWORD`,
+  ];
   const missingVars = requiredVars.filter((key) => !process.env[key]);
-  
+
   if (missingVars.length > 0) {
     throw new Error(`Missing environment variables: ${missingVars.join(', ')}`);
   }
@@ -39,16 +44,18 @@ const targetDatabase = process.env[`${envPrefix}_DB_NAME`]; // Target database n
  */
 const createDatabase = async () => {
   const pool = new Pool(adminConnectionConfig); // Temporary pool for administrative operations
-  
+
   try {
-    logInfo(`Checking for database: '${targetDatabase}' in '${env}' environment`);
-    
+    logInfo(
+      `Checking for database: '${targetDatabase}' in '${env}' environment`
+    );
+
     // Query to check if the database exists
     const result = await pool.query(
       `SELECT 1 FROM pg_database WHERE datname = $1`,
       [targetDatabase]
     );
-    
+
     if (result.rowCount === 0) {
       logInfo(`Database '${targetDatabase}' does not exist. Creating...`);
       await pool.query(`CREATE DATABASE "${targetDatabase}"`);
@@ -58,9 +65,13 @@ const createDatabase = async () => {
     }
   } catch (error) {
     if (error.code === '3D000') {
-      logError(error, null, { additionalInfo: `Database '${targetDatabase}' does not exist` });
+      logError(error, null, {
+        additionalInfo: `Database '${targetDatabase}' does not exist`,
+      });
     } else {
-      logError(error, null, { additionalInfo: 'Unexpected error during database creation process' });
+      logError(error, null, {
+        additionalInfo: 'Unexpected error during database creation process',
+      });
     }
     process.exit(1); // Exit process with failure code
   } finally {

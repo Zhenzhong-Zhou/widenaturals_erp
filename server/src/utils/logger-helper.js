@@ -15,7 +15,7 @@ const logger = require('./logger');
  */
 const sanitizeMessage = (message, maskIp = false) => {
   if (!message) return message;
-  
+
   let sanitizedMessage = message
     // Mask passwords (e.g., password=1234)
     .replace(/password=[^& ]+/g, 'password=****')
@@ -24,13 +24,19 @@ const sanitizeMessage = (message, maskIp = false) => {
     // Mask email addresses (e.g., user@example.com)
     .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, 'EMAIL')
     // Mask phone numbers (e.g., 123-456-7890, (123) 456-7890)
-    .replace(/(?:\+\d{1,3}[- ]?)?(?:\(\d{1,4}\)|\d{1,4})[- ]?\d{1,4}[- ]?\d{1,4}[- ]?\d{1,9}/g, 'PHONE_NUMBER');
-  
+    .replace(
+      /(?:\+\d{1,3}[- ]?)?(?:\(\d{1,4}\)|\d{1,4})[- ]?\d{1,4}[- ]?\d{1,4}[- ]?\d{1,9}/g,
+      'PHONE_NUMBER'
+    );
+
   // Conditionally mask IP addresses (e.g., 192.168.1.1)
   if (maskIp) {
-    sanitizedMessage = sanitizedMessage.replace(/\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g, 'IP_ADDRESS');
+    sanitizedMessage = sanitizedMessage.replace(
+      /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g,
+      'IP_ADDRESS'
+    );
   }
-  
+
   return sanitizedMessage;
 };
 
@@ -45,20 +51,29 @@ const sanitizeMessage = (message, maskIp = false) => {
  * @param {boolean} [sanitize=false] - Whether to sanitize the message.
  * @param {boolean} [maskIp=false] - Whether to mask IP addresses in the message.
  */
-const logWithLevel = (level, message, req = null, meta = {}, sanitize = false, maskIp = false) => {
-  const sanitizedMessage = sanitize ? sanitizeMessage(message, maskIp) : message;
-  
+const logWithLevel = (
+  level,
+  message,
+  req = null,
+  meta = {},
+  sanitize = false,
+  maskIp = false
+) => {
+  const sanitizedMessage = sanitize
+    ? sanitizeMessage(message, maskIp)
+    : message;
+
   // Construct context data from request object or use provided metadata
   const context = req
     ? {
-      method: req.method || 'N/A',
-      url: req.originalUrl || 'N/A',
-      ip: maskIp ? '***.***.***.***' : req.ip || 'N/A',
-      userAgent: req.headers?.['user-agent'] || 'N/A',
-      ...meta,
-    }
+        method: req.method || 'N/A',
+        url: req.originalUrl || 'N/A',
+        ip: maskIp ? '***.***.***.***' : req.ip || 'N/A',
+        userAgent: req.headers?.['user-agent'] || 'N/A',
+        ...meta,
+      }
     : meta;
-  
+
   // Log the message with context
   logger.log({ level, message: sanitizedMessage, ...context });
 };
@@ -123,16 +138,17 @@ const logFatal = (message, req = null, meta = {}) => {
 const logError = (errOrMessage, req = null, meta = {}) => {
   let message;
   let stack;
-  
+
   // Check if the input is an Error object or a string
   if (errOrMessage instanceof Error) {
     message = errOrMessage.message || 'An unknown error occurred';
-    stack = process.env.NODE_ENV === 'production' ? undefined : errOrMessage.stack;
+    stack =
+      process.env.NODE_ENV === 'production' ? undefined : errOrMessage.stack;
   } else {
     message = errOrMessage; // Assume it's a string
     stack = undefined; // No stack for string messages
   }
-  
+
   logWithLevel(
     'error',
     message,
@@ -142,4 +158,12 @@ const logError = (errOrMessage, req = null, meta = {}) => {
   );
 };
 
-module.exports = { logInfo, logDebug, logWarn, logFatal, logError, logWithLevel, sanitizeMessage };
+module.exports = {
+  logInfo,
+  logDebug,
+  logWarn,
+  logFatal,
+  logError,
+  logWithLevel,
+  sanitizeMessage,
+};

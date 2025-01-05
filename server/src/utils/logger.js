@@ -36,7 +36,7 @@ class S3Transport extends transports.Stream {
     this.bucketName = process.env.AWS_S3_BUCKET_NAME;
     this.folder = opts.folder || 'logs';
   }
-  
+
   log(info, callback) {
     const fileBuffer = Buffer.from(JSON.stringify(info));
     uploadToS3({
@@ -69,10 +69,10 @@ const logger = createLogger({
         ? format.combine(format.colorize(), format.simple())
         : format.json(),
     }),
-    
+
     // File Transport
     createFileTransport(),
-    
+
     // AWS S3 Transport (Production Only)
     ...(process.env.NODE_ENV === 'production' && process.env.AWS_S3_BUCKET_NAME
       ? [new S3Transport({ folder: 'logs' })]

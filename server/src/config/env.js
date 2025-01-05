@@ -35,38 +35,53 @@ const loadSecret = (secretName, envVarName) => {
 const loadEnv = () => {
   // Determine the current environment (default to 'development')
   const env = process.env.NODE_ENV?.trim().toLowerCase() || 'development';
-  
+
   // Allowed environments
   const allowedEnvs = ['development', 'test', 'staging', 'production'];
-  
+
   // Validate `NODE_ENV`
   if (!allowedEnvs.includes(env)) {
     const logger = getLogger(); // Get logger only when necessary
     if (env === 'production') {
-      throw new Error(`Invalid NODE_ENV value: ${env}. Allowed values: ${allowedEnvs.join(', ')}`);
+      throw new Error(
+        `Invalid NODE_ENV value: ${env}. Allowed values: ${allowedEnvs.join(', ')}`
+      );
     } else {
-      logger.error(`Invalid NODE_ENV value: ${env}. Allowed values: ${allowedEnvs.join(', ')}`);
+      logger.error(
+        `Invalid NODE_ENV value: ${env}. Allowed values: ${allowedEnvs.join(', ')}`
+      );
     }
   }
-  
+
   const defaultEnvPath = path.resolve(__dirname, '../../../env/.env.defaults');
-  const serverEnvPath = path.resolve(__dirname, `../../../env/${env}/.env.server`);
-  const databaseEnvPath = path.resolve(__dirname, `../../../env/${env}/.env.database`);
-  
+  const serverEnvPath = path.resolve(
+    __dirname,
+    `../../../env/${env}/.env.server`
+  );
+  const databaseEnvPath = path.resolve(
+    __dirname,
+    `../../../env/${env}/.env.database`
+  );
+
   dotenv.config({ path: defaultEnvPath });
   logMissingFileWarning(defaultEnvPath);
-  
+
   dotenv.config({ path: serverEnvPath });
   logMissingFileWarning(serverEnvPath);
-  
+
   dotenv.config({ path: databaseEnvPath });
   logMissingFileWarning(databaseEnvPath);
-  
-  if (env === 'production' && (!process.env.ALLOWED_ORIGINS || !process.env.PORT)) {
+
+  if (
+    env === 'production' &&
+    (!process.env.ALLOWED_ORIGINS || !process.env.PORT)
+  ) {
     logWarn('Critical environment variables are missing in production.');
-    throw new Error('Critical environment variables are missing in production.');
+    throw new Error(
+      'Critical environment variables are missing in production.'
+    );
   }
-  
+
   return env;
 };
 
@@ -87,19 +102,27 @@ const logMissingFileWarning = (filePath) => {
  * @param {Array<{ envVar: string, secret: string, required: boolean, defaultValue?: string }>} config
  */
 const validateEnv = (config) => {
-  const missingVars = config.filter(({ envVar, secret, required, defaultValue }) => {
-    const value =
-      loadSecret(secret, envVar) ||
-      (process.env.NODE_ENV !== 'production' && defaultValue) ||
-      null;
-    return required && !value;
-  });
-  
+  const missingVars = config.filter(
+    ({ envVar, secret, required, defaultValue }) => {
+      const value =
+        loadSecret(secret, envVar) ||
+        (process.env.NODE_ENV !== 'production' && defaultValue) ||
+        null;
+      return required && !value;
+    }
+  );
+
   if (missingVars.length > 0) {
     const logger = getLogger(); // Get logger only when necessary
-    const missingNames = missingVars.map(({ envVar, secret }) => secret || envVar).join(', ');
-    logger.error(`Missing required environment variables or secrets: ${missingNames}`);
-    throw new Error(`Missing required environment variables or secrets: ${missingNames}`);
+    const missingNames = missingVars
+      .map(({ envVar, secret }) => secret || envVar)
+      .join(', ');
+    logger.error(
+      `Missing required environment variables or secrets: ${missingNames}`
+    );
+    throw new Error(
+      `Missing required environment variables or secrets: ${missingNames}`
+    );
   }
 };
 

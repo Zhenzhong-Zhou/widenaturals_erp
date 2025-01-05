@@ -15,7 +15,7 @@ const { logWarn } = require('../../utils/logger-helper');
  */
 const notFoundHandler = (req, res, next) => {
   logWarn('Route not found', req);
-  
+
   res.status(404).json({
     error: 'Route not found',
     path: req.originalUrl,

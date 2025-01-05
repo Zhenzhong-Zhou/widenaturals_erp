@@ -19,9 +19,9 @@ const { testConnection } = require('../database/db');
 const getWelcomeMessage = (req, res) => {
   // Load API prefix from environment variables
   const API_PREFIX = process.env.API_PREFIX;
-  
+
   logInfo('Serving welcome message to the client', req);
-  
+
   res.status(200).json({
     message: 'Welcome to WIDE Naturals Inc. ERP API!',
     documentation: '/docs', // Link to API documentation

@@ -20,7 +20,11 @@ validateEnv([
   { envVar: 'AWS_ACCESS_KEY_ID', secret: null, required: true },
   { envVar: 'AWS_SECRET_ACCESS_KEY', secret: null, required: true },
   { envVar: 'AWS_S3_BUCKET_NAME', secret: null, required: true },
-  { envVar: `${getEnvPrefix(env)}_DB_PASSWORD`, secret: 'db_password', required: true },
+  {
+    envVar: `${getEnvPrefix(env)}_DB_PASSWORD`,
+    secret: 'db_password',
+    required: true,
+  },
   { envVar: `${getEnvPrefix(env)}_DB_HOST`, secret: null, required: true },
   { envVar: `${getEnvPrefix(env)}_DB_USER`, secret: null, required: true },
   { envVar: `${getEnvPrefix(env)}_DB_PORT`, secret: null, required: true },

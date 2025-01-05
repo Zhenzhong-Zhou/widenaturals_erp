@@ -14,19 +14,19 @@ describe('Environment Variables', () => {
   let originalEnv;
   let logSpy;
   let warnSpy;
-  
+
   beforeEach(() => {
     // Save original NODE_ENV
     originalEnv = process.env.NODE_ENV;
-    
+
     // Set default required variables
     process.env.ALLOWED_ORIGINS = 'http://localhost:3000';
     process.env.PORT = '3000';
-    
+
     // Mock console methods
     logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
     warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    
+
     // Clear and mock dotenv
     dotenv.config.mockClear();
     dotenv.config.mockImplementation(({ path }) => {
@@ -36,14 +36,14 @@ describe('Environment Variables', () => {
       return { parsed: { TEST_VAR: 'test' } }; // Simulate successful loading
     });
   });
-  
+
   afterEach(() => {
     // Restore original NODE_ENV and console methods
     process.env.NODE_ENV = originalEnv;
     logSpy.mockRestore();
     warnSpy.mockRestore();
   });
-  
+
   it('should load the correct environment for development', () => {
     process.env.NODE_ENV = 'development';
     const env = loadEnv();
@@ -52,10 +52,13 @@ describe('Environment Variables', () => {
       path: path.resolve(__dirname, '../../../../env/development/.env.server'),
     });
     expect(dotenv.config).toHaveBeenCalledWith({
-      path: path.resolve(__dirname, '../../../../env/development/.env.database'),
+      path: path.resolve(
+        __dirname,
+        '../../../../env/development/.env.database'
+      ),
     });
   });
-  
+
   it('should load the correct environment for test', () => {
     process.env.NODE_ENV = 'test';
     const env = loadEnv();
@@ -77,12 +80,12 @@ describe('Environment Variables', () => {
       'Invalid NODE_ENV value: invalid_env. Allowed values: development, test, staging, production'
     );
   });
-  
+
   it('should load the correct environment for production', () => {
     process.env.NODE_ENV = 'production';
     process.env.ALLOWED_ORIGINS = 'http://example.com';
     process.env.PORT = '3000';
-    
+
     const env = loadEnv();
     expect(env).toBe('production');
     expect(dotenv.config).toHaveBeenCalledWith({
@@ -92,7 +95,7 @@ describe('Environment Variables', () => {
       path: path.resolve(__dirname, '../../../../env/production/.env.database'),
     });
   });
-  
+
   it('should default to development if NODE_ENV is undefined', () => {
     delete process.env.NODE_ENV;
     const env = loadEnv();
@@ -101,10 +104,13 @@ describe('Environment Variables', () => {
       path: path.resolve(__dirname, '../../../../env/development/.env.server'),
     });
     expect(dotenv.config).toHaveBeenCalledWith({
-      path: path.resolve(__dirname, '../../../../env/development/.env.database'),
+      path: path.resolve(
+        __dirname,
+        '../../../../env/development/.env.database'
+      ),
     });
   });
-  
+
   it.skip('should log warnings if .env files are missing', () => {
     // Mock dotenv.config to return an error for .env.server
     dotenv.config.mockImplementation(({ path }) => {
@@ -113,12 +119,14 @@ describe('Environment Variables', () => {
       }
       return { parsed: { TEST_VAR: 'test' } }; // Simulate successful parsing
     });
-    
+
     process.env.NODE_ENV = 'development';
     const env = loadEnv();
     expect(env).toBe('development');
     expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining(`Warning: Could not load environment file at ${path}`)
+      expect.stringContaining(
+        `Warning: Could not load environment file at ${path}`
+      )
     );
   });
 });

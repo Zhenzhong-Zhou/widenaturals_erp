@@ -23,7 +23,9 @@ const pool = new Pool({
 });
 
 pool.on('connect', () => logInfo('Connected to the database'));
-pool.on('error', (err) => logError(err, null, { additionalInfo: 'Database connection error' }));
+pool.on('error', (err) =>
+  logError(err, null, { additionalInfo: 'Database connection error' })
+);
 
 /**
  * Execute a query on the database.
@@ -50,7 +52,9 @@ const testConnection = async () => {
     await query('SELECT 1'); // Simple query to ensure connectivity
     logInfo('Database connection is healthy.');
   } catch (error) {
-    logError(error, null, { additionalInfo: 'Database connection test failed' });
+    logError(error, null, {
+      additionalInfo: 'Database connection test failed',
+    });
     throw error;
   }
 };
@@ -77,7 +81,9 @@ const closePool = async () => {
     await pool.end(); // Close all connections in the pool
     logInfo('Database connection pool closed.');
   } catch (error) {
-    logError(error, null, { additionalInfo: 'Error closing database connection pool' });
+    logError(error, null, {
+      additionalInfo: 'Error closing database connection pool',
+    });
   }
 };
 
@@ -91,7 +97,7 @@ const closePool = async () => {
 const retry = async (fn, retries = 3) => {
   let attempt = 0;
   const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-  
+
   while (attempt < retries) {
     try {
       return await fn();

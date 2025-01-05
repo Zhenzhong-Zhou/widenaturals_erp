@@ -19,29 +19,30 @@ const { ONE_HOUR } = require('../utils/constants/general/time');
 const csrfProtection = () => {
   // Skip CSRF for certain API paths or methods in development mode
   const shouldBypassCSRF = (req) => {
-    if (process.env.NODE_ENV === 'development' && !process.env.CSRF_TESTING) return true; // Bypass unless explicitly testing
-    
+    if (process.env.NODE_ENV === 'development' && !process.env.CSRF_TESTING)
+      return true; // Bypass unless explicitly testing
+
     const exemptMethods = ['GET', 'HEAD', 'OPTIONS']; // Read-only methods
     const exemptPaths = process.env.CSRF_EXEMPT_PATHS
       ? process.env.CSRF_EXEMPT_PATHS.split(',')
       : [
-        '/api/v1/public', // Example: Public APIs
-        '/api/v1/auth/login', // Example: Token-based API
-        '/api/v1/auth/refresh', // Example: Token refresh
-      ];
-    
+          '/api/v1/public', // Example: Public APIs
+          '/api/v1/auth/login', // Example: Token-based API
+          '/api/v1/auth/refresh', // Example: Token refresh
+        ];
+
     return (
       exemptMethods.includes(req.method) ||
       exemptPaths.some((path) => req.path.startsWith(path))
     );
   };
-  
+
   return (req, res, next) => {
     if (shouldBypassCSRF(req)) {
       logWarn(`CSRF bypassed for ${req.method} ${req.path}`);
       return next(); // Skip CSRF validation
     }
-    
+
     // Apply CSRF protection for all other cases
     csrf({
       cookie: {
@@ -61,11 +62,11 @@ const csrfProtection = () => {
 const csrfTokenHandler = (req, res) => {
   const csrfToken = req.csrfToken(); // Generate CSRF token
   const tokenTransportMethod = process.env.CSRF_TOKEN_TRANSPORT || 'header';
-  
+
   if (tokenTransportMethod === 'header') {
     res.set('X-CSRF-Token', csrfToken);
   }
-  
+
   res.json({ csrfToken });
 };
 

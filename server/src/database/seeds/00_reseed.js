@@ -25,25 +25,27 @@ const exitProcess = (code) => {
  */
 const reseedDatabase = async () => {
   if (env === 'production') {
-    logError(new Error('Reseeding is not allowed in the production environment!'));
+    logError(
+      new Error('Reseeding is not allowed in the production environment!')
+    );
     exitProcess(1); // Use the wrapper
   }
-  
+
   logInfo(`Starting reseed process for the '${env}' environment...`);
-  
+
   try {
     // Rollback all migrations
     logInfo('Rolling back all migrations...');
     await knex.migrate.rollback(null, true);
-    
+
     // Reapply migrations
     logInfo('Reapplying migrations...');
     await knex.migrate.latest();
-    
+
     // Run seeds
     logInfo('Running seed files...');
     await knex.seed.run();
-    
+
     logInfo('Database reseeded successfully.');
   } catch (err) {
     logError(err, null, { additionalInfo: 'Error during reseed process' });
@@ -65,7 +67,7 @@ const startReseeding = async () => {
         input: process.stdin,
         output: process.stdout,
       });
-      
+
       // Await user confirmation for staging
       const confirmation = await new Promise((resolve) => {
         rl.question(
@@ -76,7 +78,7 @@ const startReseeding = async () => {
           }
         );
       });
-      
+
       if (confirmation === 'yes') {
         logInfo('Proceeding with reseeding...');
         await reseedDatabase();
@@ -102,7 +104,9 @@ module.exports = { reseedDatabase, startReseeding, exitProcess };
   try {
     await startReseeding();
   } catch (err) {
-    logError(err, null, { additionalInfo: 'Unexpected error during script execution' });
+    logError(err, null, {
+      additionalInfo: 'Unexpected error during script execution',
+    });
     exitProcess(1); // Use the wrapper
   }
 })();

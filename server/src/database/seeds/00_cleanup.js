@@ -19,19 +19,21 @@ const cleanTables = async (tableList = []) => {
     logWarn('Skipping cleanup in production.');
     return 0; // Indicate success
   }
-  
+
   logInfo(`Starting cleanup for environment: ${env}`);
   if (tableList.length === 0) {
     logError(new Error('No tables specified for cleanup.'));
     return 1; // Indicate failure
   }
-  
+
   const trx = await knex.transaction(); // Start transaction
   try {
     logInfo('Cleaning tables with TRUNCATE CASCADE...');
-    await trx.raw(`TRUNCATE TABLE ${tableList.join(', ')} RESTART IDENTITY CASCADE`);
+    await trx.raw(
+      `TRUNCATE TABLE ${tableList.join(', ')} RESTART IDENTITY CASCADE`
+    );
     logInfo('Tables cleaned successfully.');
-    
+
     await trx.commit(); // Commit transaction
     logInfo('Transaction committed.');
     return 0; // Indicate success
@@ -56,7 +58,7 @@ const startCleanup = async (tableList = []) => {
       input: process.stdin,
       output: process.stdout,
     });
-    
+
     const confirmation = await new Promise((resolve) => {
       rl.question(
         'Are you sure you want to clean up the database in staging? (yes/no): ',
@@ -66,13 +68,13 @@ const startCleanup = async (tableList = []) => {
         }
       );
     });
-    
+
     if (confirmation !== 'yes') {
       logInfo('Cleanup canceled.');
       return 0; // Indicate success without performing cleanup
     }
   }
-  
+
   return await cleanTables(tableList);
 };
 

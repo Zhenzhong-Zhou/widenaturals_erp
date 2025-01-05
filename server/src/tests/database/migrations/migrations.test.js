@@ -35,18 +35,18 @@ describe('Database Migrations', () => {
     'return_items',
     'inventory_activity_log',
   ];
-  
+
   const knexTables = ['knex_migrations', 'knex_migrations_lock'];
-  
+
   beforeEach(async () => {
     await db.migrate.rollback(null, true); // Rollback all migrations
     await db.migrate.latest(); // Reapply migrations
   });
-  
+
   afterAll(async () => {
     await db.destroy(); // Close the database connection
   });
-  
+
   it('should create all expected tables', async () => {
     for (const table of expectedTables.concat(knexTables)) {
       const exists = await db.schema.hasTable(table);
@@ -54,33 +54,33 @@ describe('Database Migrations', () => {
       expect(exists).toBe(true);
     }
   });
-  
+
   it('should rollback all migrations without errors', async () => {
     await db.migrate.rollback(null, true);
-    
+
     for (const table of expectedTables) {
       const exists = await db.schema.hasTable(table);
       console.log(`Table after rollback: ${table} - Exists: ${exists}`);
       expect(exists).toBe(false); // User-defined tables should not exist
     }
-    
+
     for (const table of knexTables) {
       const exists = await db.schema.hasTable(table);
       console.log(`Knex-specific table: ${table} - Exists: ${exists}`);
       expect(exists).toBe(true); // Knex tables should persist
     }
   });
-  
+
   it('should reapply migrations without errors', async () => {
     await db.migrate.latest();
-    
+
     for (const table of expectedTables.concat(knexTables)) {
       const exists = await db.schema.hasTable(table);
       console.log(`Table after reapply: ${table} - Exists: ${exists}`);
       expect(exists).toBe(true);
     }
   });
-  
+
   it('should have the correct schema for the users table', async () => {
     const columns = await db('users').columnInfo();
     expect(columns).toHaveProperty('id');

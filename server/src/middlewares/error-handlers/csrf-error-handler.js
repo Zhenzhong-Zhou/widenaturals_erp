@@ -24,13 +24,13 @@ const csrfErrorHandler = (err, req, res, next) => {
       userAgent: req.headers['user-agent'] || 'unknown',
       referrer: req.headers.referer || 'none',
     });
-    
+
     // Respond with a 403 Forbidden status and a generic error message
     return res.status(403).json({
       error: 'Invalid or missing CSRF token',
     });
   }
-  
+
   // Pass the error to the next middleware if it's not a CSRF error
   next(err);
 };

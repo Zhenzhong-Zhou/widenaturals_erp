@@ -16,12 +16,14 @@ const corsMiddleware = cors({
     if (process.env.NODE_ENV === 'production' && !process.env.ALLOWED_ORIGINS) {
       throw new Error('ALLOWED_ORIGINS must be defined in production');
     }
-    
+
     const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || []; // Read from .env
     if (!allowedOrigins.length) {
-      logWarn('No allowed origins specified in ALLOWED_ORIGINS. CORS may be overly permissive.');
+      logWarn(
+        'No allowed origins specified in ALLOWED_ORIGINS. CORS may be overly permissive.'
+      );
     }
-    
+
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true); // Allow request
     } else {
@@ -30,7 +32,13 @@ const corsMiddleware = cors({
       callback(error); // Reject request
     }
   },
-  methods: process.env.ALLOWED_METHODS?.split(',') || ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Allowed HTTP methods
+  methods: process.env.ALLOWED_METHODS?.split(',') || [
+    'GET',
+    'POST',
+    'PUT',
+    'DELETE',
+    'OPTIONS',
+  ], // Allowed HTTP methods
   allowedHeaders: process.env.ALLOWED_HEADERS?.split(',') || [
     'Content-Type',
     'Authorization',

@@ -16,10 +16,12 @@ const { logError } = require('../../utils/logger-helper');
  */
 const generalErrorHandler = (err, req, res, next) => {
   logError(err, req);
-  
+
   const message =
-    process.env.NODE_ENV === 'production' ? 'An unexpected error occurred' : err.message;
-  
+    process.env.NODE_ENV === 'production'
+      ? 'An unexpected error occurred'
+      : err.message;
+
   res.status(err.status || 500).json({ error: message });
 };
 

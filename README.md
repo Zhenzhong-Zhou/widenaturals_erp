@@ -13,7 +13,7 @@ A web-based ERP system designed to streamline the management of inventory, order
 5. [Running Tests](#running-tests)
 6. [Directory Structure](#directory-structure)
 7. [Development Commands](#development-commands)
-9. [License](#license)
+8. [License](#license)
 
 ---
 
@@ -69,37 +69,37 @@ Before starting, ensure you have the following installed:
      TEST_DB_NAME=your_test_database_name
      ```
 4. **Initialize the database**:
-    - Run the following command to create the database, apply migrations, and seed data:
-      ```bash
-      npm run setup
-      ```
-    - If needed, run individual steps:
-        - Create the database:
-          ```bash
-          npm run create-db
-          ```
-        - Run migrations:
-          ```bash
-          npm run migrate
-          ```
-        - Seed the database:
-          ```bash
-          npm run seed
-          ```
+   - Run the following command to create the database, apply migrations, and seed data:
+     ```bash
+     npm run setup
+     ```
+   - If needed, run individual steps:
+     - Create the database:
+       ```bash
+       npm run create-db
+       ```
+     - Run migrations:
+       ```bash
+       npm run migrate
+       ```
+     - Seed the database:
+       ```bash
+       npm run seed
+       ```
 5. **Running the Project**:
    ```bash
    npm run devStart
    ```
 6. **Running Tests**:
-    - Ensure you have a `.env.test` file configured for the test database.
-    - Run the entire test suite:
-      ```bash
-      npm test
-      ```
-    - Run specific tests:
-      ```bash
-      npm test -- path/to/your/test-file.test.js
-      ```
+   - Ensure you have a `.env.test` file configured for the test database.
+   - Run the entire test suite:
+     ```bash
+     npm test
+     ```
+   - Run specific tests:
+     ```bash
+     npm test -- path/to/your/test-file.test.js
+     ```
 7. **Directory Structure**:
    ```plaintext
      project root/
@@ -120,60 +120,61 @@ Before starting, ensure you have the following installed:
 ## **Development Commands**
 
 **Code Quality**
-   - Lint the codebase:
-      ```bash
-      npx eslint .
-      ```
-   - Format the codebase:
-      ```bash
-      npx prettier --write .
-      ```
+
+- Lint the codebase:
+  ```bash
+  npx eslint .
+  npx eslint . --fix
+  ```
+- Format the codebase:
+  ```bash
+  npx prettier --write .
+  ```
 
 **Database Management**
 
 **Knex Commands**
-   1. **Initialize Knex Configuration**:
-      ```bash
-      npx knex init
-      ```
-   2. **Common Knex Operations**:
-      - Create a migration:
-        ```bash
-        npx knex migrate:make create_entity_types --env development
-        ```
-      - Run migrations:
-        ```bash
-        npm run migrate
-        ```
-      - Rollback the last migration::
-        ```bash
-        npm run rollback
-        ```
-      - Rollback all migrations:
-        ```bash
-        npx knex migrate:rollback --all --env development
-        ```
-   3. **Seeds**:
-      - Create a seed file:
-         ```bash
-         npx knex seed:make seed_name
-         ```
-      - Run seed files:
-          ```bash
-          npm run seed
-          ```
-**Run with Docker**
-1. **Build and start the containers**:
-   ```bash
-   docker-compose up --build
-   ```
-2. **Start the containers (without rebuild)**:
+
+1.  **Initialize Knex Configuration**:
     ```bash
-   docker-compose up
+    npx knex init
     ```
-3. **Run the development environment in Docker**:
+2.  **Common Knex Operations**:
+    - Create a migration:
+      ```bash
+      npx knex migrate:make create_entity_types --env development
+      ```
+    - Run migrations:
+      ```bash
+      npm run migrate
+      ```
+    - Rollback the last migration::
+      ```bash
+      npm run rollback
+      ```
+    - Rollback all migrations:
+      ```bash
+      npx knex migrate:rollback --all --env development
+      ```
+3.  **Seeds**: - Create a seed file:
+    `bash
+         npx knex seed:make seed_name
+         ` - Run seed files:
+    `bash
+          npm run seed
+          `
+    **Run with Docker**
+4.  **Build and start the containers**:
     ```bash
-    NODE_ENV=development docker-compose up
+    docker compose up --build
+    ```
+5.  **Start the containers (without rebuild)**:
+    ```bash
+    docker compose up
+    ```
+6.  **Run the development environment in Docker**:
+    ```bash
+    NODE_ENV=development docker compose up
     ```
 
 ---

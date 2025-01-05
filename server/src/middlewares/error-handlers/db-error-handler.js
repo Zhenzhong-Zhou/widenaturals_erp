@@ -15,11 +15,14 @@ const { logError } = require('../../utils/logger-helper');
  * @param {Function} next - Express next middleware function
  */
 const dbErrorHandler = (err, req, res, next) => {
-  if (err.code === '23505') { // Example: Unique constraint violation
-    logError(err, req, { additionalInfo: 'Database unique constraint violation' });
+  if (err.code === '23505') {
+    // Example: Unique constraint violation
+    logError(err, req, {
+      additionalInfo: 'Database unique constraint violation',
+    });
     return res.status(400).json({ error: 'Duplicate entry detected' });
   }
-  
+
   next(err);
 };
 

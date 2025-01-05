@@ -25,7 +25,7 @@ const startServer = async () => {
     logInfo('Testing database connection...');
     await testConnection();
     logInfo('Database connected successfully');
-    
+
     server.listen(PORT, () => {
       logInfo(`Server running on http://localhost:${PORT}`);
     });

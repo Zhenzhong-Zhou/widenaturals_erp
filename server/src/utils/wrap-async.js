@@ -23,13 +23,15 @@ const wrapAsync = (routes, options = { debug: false }) => {
     }
     return asyncHandler(routes);
   }
-  
+
   if (typeof routes !== 'object' || routes === null) {
-    const error = new Error('wrapAsync expects a function or an object of route handlers');
+    const error = new Error(
+      'wrapAsync expects a function or an object of route handlers'
+    );
     logError(error); // Log the error
     throw error;
   }
-  
+
   const wrappedRoutes = {};
   Object.keys(routes).forEach((key) => {
     if (typeof routes[key] === 'function') {
@@ -43,7 +45,7 @@ const wrapAsync = (routes, options = { debug: false }) => {
       wrappedRoutes[key] = routes[key]; // Preserve non-function values
     }
   });
-  
+
   return wrappedRoutes;
 };
 

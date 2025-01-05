@@ -2,7 +2,13 @@ const { PutObjectCommand } = require('@aws-sdk/client-s3');
 const s3Client = require('../config/awsS3Config');
 
 // Upload file to S3
-const uploadToS3 = async ({ bucketName, folder, fileName, fileBuffer, contentType }) => {
+const uploadToS3 = async ({
+  bucketName,
+  folder,
+  fileName,
+  fileBuffer,
+  contentType,
+}) => {
   try {
     const params = {
       Bucket: bucketName,
@@ -12,7 +18,7 @@ const uploadToS3 = async ({ bucketName, folder, fileName, fileBuffer, contentTyp
     };
     const command = new PutObjectCommand(params);
     await s3Client.send(command);
-    
+
     // Return the S3 file URL
     return `https://${bucketName}.s3.${process.env.AWS_REGION}.amazonaws.com/${folder}/${fileName}`;
   } catch (error) {

@@ -16,18 +16,18 @@ const RATE_LIMIT = require('../utils/constants/domain/rate-limit');
  * @returns {Function} - Middleware for rate limiting.
  */
 const createRateLimiter = ({
-                             windowMs = RATE_LIMIT.DEFAULT_WINDOW_MS,
-                             max = RATE_LIMIT.DEFAULT_MAX,
-                             message = RATE_LIMIT.DEFAULT_MESSAGE,
-                             headers = true,
-                             statusCode = 429,
-                             keyGenerator = (req) => req.ip,
-                             skip = () => false,
-                             handler = (req, res) => {
-                               logWarn(`Rate limit exceeded for ${req.ip} for ${req.originalUrl}`);
-                               res.status(statusCode).json({ message });
-                             },
-                           } = {}) => {
+  windowMs = RATE_LIMIT.DEFAULT_WINDOW_MS,
+  max = RATE_LIMIT.DEFAULT_MAX,
+  message = RATE_LIMIT.DEFAULT_MESSAGE,
+  headers = true,
+  statusCode = 429,
+  keyGenerator = (req) => req.ip,
+  skip = () => false,
+  handler = (req, res) => {
+    logWarn(`Rate limit exceeded for ${req.ip} for ${req.originalUrl}`);
+    res.status(statusCode).json({ message });
+  },
+} = {}) => {
   return rateLimit({
     windowMs,
     max,

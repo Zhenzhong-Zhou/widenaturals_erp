@@ -16,33 +16,34 @@ const { logInfo, logWarn, logWithLevel } = require('../utils/logger-helper');
 const requestLogger = (req, res, next) => {
   const startTime = process.hrtime(); // Start timer for response time
   const ignoredRoutes = ['/health']; // Routes to skip logging
-  
+
   // Skip logging for ignored routes
   if (ignoredRoutes.includes(req.originalUrl)) return next();
-  
+
   // Hook into the response finish event to log details
   res.on('finish', () => {
     const duration = process.hrtime(startTime);
     const responseTime = (duration[0] * 1e3 + duration[1] * 1e-6).toFixed(2); // Convert to ms
-    
+
     const statusCode = res.statusCode;
-    const logLevel = statusCode >= 500 ? 'warn' : statusCode >= 400 ? 'info' : 'info';
-    
+    const logLevel =
+      statusCode >= 500 ? 'warn' : statusCode >= 400 ? 'info' : 'info';
+
     const message = `Request: ${req.method} ${req.originalUrl} from ${req.ip}`;
     const metadata = {
       userAgent: req.headers['user-agent'] || 'Unknown',
       statusCode,
       responseTime: `${responseTime}ms`,
     };
-    
+
     // Add headers or body in development mode
     if (process.env.NODE_ENV === 'development') {
       metadata.headers = req.headers;
     }
-    
+
     logWithLevel(logLevel, message, req, metadata);
   });
-  
+
   next();
 };
 

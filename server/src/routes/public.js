@@ -4,7 +4,10 @@
  */
 
 const express = require('express');
-const { getWelcomeMessage, getHealthStatus } = require('../controllers/public-controller');
+const {
+  getWelcomeMessage,
+  getHealthStatus,
+} = require('../controllers/public-controller');
 const wrapAsync = require('../utils/wrap-async');
 
 const router = express.Router();
