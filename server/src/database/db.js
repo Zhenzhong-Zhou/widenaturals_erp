@@ -7,12 +7,11 @@
 const { Pool } = require('pg');
 const { logInfo, logError, logWarn } = require('../utils/logger-helper');
 const { getConnectionConfig } = require('../config/db-config');
-const { getEnvPrefix, loadEnv } = require('../config/env');
+const { loadEnv } = require('../config/env');
 
 // Get environment-specific connection configuration
-const env = loadEnv();
-const envPrefix = getEnvPrefix(env);
-const connectionConfig = getConnectionConfig(envPrefix);
+loadEnv();
+const connectionConfig = getConnectionConfig();
 
 // Configure the database connection pool
 const pool = new Pool({

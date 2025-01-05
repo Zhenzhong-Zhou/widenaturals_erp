@@ -19,19 +19,15 @@
  * ```
  */
 
-const { getEnvPrefix } = require('./env');
-
 // Validate required database environment variables
 const validateEnvVars = (env) => {
-  const envPrefix = getEnvPrefix(env);
-
   // Check that all required variables are present
   const requiredVars = [
-    `${envPrefix}_DB_HOST`,
-    `${envPrefix}_DB_NAME`,
-    `${envPrefix}_DB_USER`,
-    `${envPrefix}_DB_PASSWORD`,
-    `${envPrefix}_DB_PORT`,
+    'DB_HOST',
+    'DB_NAME',
+    'DB_USER',
+    'DB_PASSWORD',
+    'DB_PORT',
   ];
   const missingVars = requiredVars.filter((key) => !process.env[key]);
   if (missingVars.length > 0) {
@@ -46,12 +42,12 @@ const getPoolConfig = () => ({
 });
 
 // Retrieve the connection configuration for a given prefix
-const getConnectionConfig = (prefix) => ({
-  host: process.env[`${prefix}_DB_HOST`],
-  database: process.env[`${prefix}_DB_NAME`],
-  user: process.env[`${prefix}_DB_USER`],
-  password: process.env[`${prefix}_DB_PASSWORD`],
-  port: process.env[`${prefix}_DB_PORT`],
+const getConnectionConfig = () => ({
+  host: process.env['DB_HOST'],
+  database: process.env['DB_NAME'],
+  user: process.env['DB_USER'],
+  password: process.env['DB_PASSWORD'],
+  port: process.env['DB_PORT'],
 });
 
 module.exports = { validateEnvVars, getPoolConfig, getConnectionConfig };

@@ -6,45 +6,29 @@
 
 const { Pool } = require('pg'); // Use Pool for direct DB connection
 const { logInfo, logError } = require('../utils/logger-helper');
-const { loadEnv, getEnvPrefix } = require('../config/env');
-const { getConnectionConfig } = require('../config/db-config');
+const { loadEnv } = require('../config/env');
+const { getConnectionConfig, validateEnvVars } = require('../config/db-config');
 
 // Load environment variables
 const env = loadEnv();
-const envPrefix = getEnvPrefix(env);
-
-// Validate required environment variables
-const validateEnvVars = () => {
-  const requiredVars = [
-    `${envPrefix}_DB_NAME`,
-    `${envPrefix}_DB_HOST`,
-    `${envPrefix}_DB_USER`,
-    `${envPrefix}_DB_PASSWORD`,
-  ];
-  const missingVars = requiredVars.filter((key) => !process.env[key]);
-
-  if (missingVars.length > 0) {
-    throw new Error(`Missing environment variables: ${missingVars.join(', ')}`);
-  }
-};
 
 // Ensure all required environment variables are present
 validateEnvVars();
 
 // Connection configuration for the default administrative database
 const adminConnectionConfig = {
-  ...getConnectionConfig(envPrefix),
+  ...getConnectionConfig(),
   database: 'postgres', // Ensure connection to 'postgres'
 };
 
-const targetDatabase = process.env[`${envPrefix}_DB_NAME`]; // Target database name
+const targetDatabase = process.env.DB_NAME; // Target database name
 
 /**
  * Checks if the target database exists and creates it if necessary.
  */
 const createDatabase = async () => {
   const pool = new Pool(adminConnectionConfig); // Temporary pool for administrative operations
-
+  
   try {
     logInfo(
       `Checking for database: '${targetDatabase}' in '${env}' environment`

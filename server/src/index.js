@@ -5,7 +5,7 @@
 
 const { logInfo, logFatal } = require('./utils/logger-helper');
 const { startServer } = require('./server');
-const { loadEnv, validateEnv, getEnvPrefix } = require('./config/env'); // Load and validate environment variables
+const { loadEnv, validateEnv } = require('./config/env'); // Load and validate environment variables
 
 // Load environment variables once
 const env = loadEnv(); // Logs warnings if `.env` files are missing
@@ -21,13 +21,13 @@ validateEnv([
   { envVar: 'AWS_SECRET_ACCESS_KEY', secret: null, required: true },
   { envVar: 'AWS_S3_BUCKET_NAME', secret: null, required: true },
   {
-    envVar: `${getEnvPrefix(env)}_DB_PASSWORD`,
+    envVar: 'DB_PASSWORD',
     secret: 'db_password',
     required: true,
   },
-  { envVar: `${getEnvPrefix(env)}_DB_HOST`, secret: null, required: true },
-  { envVar: `${getEnvPrefix(env)}_DB_USER`, secret: null, required: true },
-  { envVar: `${getEnvPrefix(env)}_DB_PORT`, secret: null, required: true },
+  { envVar: 'DB_HOST', secret: null, required: true },
+  { envVar: 'DB_USER', secret: null, required: true },
+  { envVar: 'DB_PORT', secret: null, required: true },
   { envVar: 'API_PREFIX', secret: null, required: true },
 ]);
 

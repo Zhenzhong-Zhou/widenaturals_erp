@@ -126,20 +126,4 @@ const validateEnv = (config) => {
   }
 };
 
-/**
- * Maps the environment to a prefix for convenience (e.g., 'development' -> 'DEV').
- *
- * @param {string} env - The current environment.
- * @returns {string} - The prefix corresponding to the environment.
- */
-const getEnvPrefix = (env) => {
-  const envMapping = {
-    development: 'DEV',
-    test: 'TEST',
-    staging: 'STAGING',
-    production: 'PROD',
-  };
-  return envMapping[env] || 'UNKNOWN';
-};
-
-module.exports = { loadEnv, validateEnv, getEnvPrefix };
+module.exports = { loadEnv, validateEnv };

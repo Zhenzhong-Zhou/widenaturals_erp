@@ -6,6 +6,7 @@
 const http = require('http');
 const { logInfo, logError } = require('./utils/logger-helper');
 const app = require('./app');
+const { createDatabase } = require('./database/create-db');
 const { closePool, testConnection } = require('./database/db');
 
 const PORT = process.env.PORT;
@@ -22,6 +23,8 @@ const server = http.createServer(app);
  */
 const startServer = async () => {
   try {
+    await createDatabase()
+    
     logInfo('Testing database connection...');
     await testConnection();
     logInfo('Database connected successfully');
