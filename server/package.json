@@ -55,8 +55,10 @@
     "knex": "^3.1.0",
     "morgan": "^1.10.0",
     "pg": "^8.13.1",
+    "sanitize-html": "^2.14.0",
     "winston": "^3.17.0",
     "winston-daily-rotate-file": "^5.0.0",
+    "xss-clean": "^0.1.4",
     "zxcvbn": "^4.4.2"
   },
   "devDependencies": {

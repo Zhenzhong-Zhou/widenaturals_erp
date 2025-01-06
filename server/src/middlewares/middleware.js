@@ -8,10 +8,10 @@ const helmet = require('helmet');
 const corsMiddleware = require('./cors');
 const requestLogger = require('./request-logger');
 const morgan = require('morgan');
-const { logWarn } = require('../utils/logger-helper');
 const { csrfProtection } = require('./csrf-protection');
 const { createRateLimiter } = require('../utils/rate-limit-helper');
 const cookieParser = require('cookie-parser');
+const xssClean = require('xss-clean');
 
 /**
  * Applies global middleware to the application.
@@ -27,35 +27,30 @@ const applyGlobalMiddleware = (app) => {
         process.env.NODE_ENV === 'production' ? undefined : false, // Disable CSP in development
     })
   );
-
-  // 2. Cookie Parser Middleware
-  app.use(cookieParser());
-
-  // 3. CORS Middleware
-  app.use((req, res, next) => {
-    corsMiddleware(req, res, (err) => {
-      if (err) {
-        logWarn(`CORS error: ${err.message}`);
-        return next(err); // Pass error to centralized error handler
-      }
-      next();
-    });
-  });
-
-  // 4. CSRF Protection
-  app.use(csrfProtection());
-
-  // 5. Global Rate Limiter
+  
+  // 2. Global Rate Limiter
   app.use(createRateLimiter());
-
+  
+  // 3. Cookie Parser Middleware
+  app.use(cookieParser());
+  
+  // 4. CORS Middleware
+  app.use(corsMiddleware);
+  
+  // 5. CSRF Protection
+  app.use(csrfProtection());
+  
   // 6. Body Parsing Middleware
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
-
-  // 7. Request Logging
+  
+  // 7. XSS Protection Middleware
+  app.use(xssClean());
+  
+  // 8. Request Logging
   app.use(requestLogger);
-
-  // 8. Development Tools
+  
+  // 9. Development Tools
   if (process.env.NODE_ENV === 'development') {
     app.use(morgan('dev')); // Use 'dev' logging format in development
   }

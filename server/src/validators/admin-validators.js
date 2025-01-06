@@ -1,7 +1,7 @@
 const Joi = require('joi');
 const validatePassword = require('../validators/password-validators');
-const { MIN_FIRSTNAME, MIN_LASTNAME } = require('../utils/constants/general/min-limits'); // Reuse the password validator
-const { MAX_FIRSTNAME, MAX_LASTNAME, MAX_JOB_TITLE, MAX_NOTE } = require('../utils/constants/general/max-limits'); // Reuse the password validator
+const { MIN_FIRSTNAME, MIN_LASTNAME } = require('../utils/constants/general/min-limits');
+const { MAX_FIRSTNAME, MAX_LASTNAME, MAX_JOB_TITLE, MAX_NOTE } = require('../utils/constants/general/max-limits');
 
 /**
  * Joi schema for admin creation validation.
@@ -53,6 +53,10 @@ const adminSchema = Joi.object({
   }),
   
   // Optional status ID validation
+  status: Joi.string().valid('active', 'inactive', 'suspended').required().messages({
+    'any.only': 'Invalid status. Allowed values: "active", "inactive", "suspended".',
+    'any.required': 'Status is required.',
+  }),
   statusId: Joi.string().uuid().allow(null).messages({
     'string.guid': 'Status ID must be a valid UUID.',
   }),
