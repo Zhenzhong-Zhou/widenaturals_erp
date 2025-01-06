@@ -4,10 +4,11 @@
  */
 
 class AppError extends Error {
-  constructor(message, statusCode) {
+  constructor(message, status = 500, options = {}) {
     super(message);
-    this.statusCode = statusCode;
-    this.isOperational = true; // Used to differentiate operational vs. programming errors
+    this.status = status;
+    this.type = options.type || 'Unexpected'; // Default type
+    this.isExpected = options.isExpected || false; // Expected by default
     Error.captureStackTrace(this, this.constructor);
   }
 }

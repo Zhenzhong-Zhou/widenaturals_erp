@@ -1,6 +1,7 @@
 const wrapAsync = require('../utils/wrap-async');
 const { getAdminsFromDB, updateAdminInDB, deleteAdminFromDB } = require('../repositories/user-repository');
 const { createAdmin } = require('../services/admin-service');
+const { logError } = require('../utils/logger-helper');
 
 /**
  * Handles admin creation.
@@ -9,12 +10,30 @@ const { createAdmin } = require('../services/admin-service');
  * @param {object} res - Express response object
  */
 const createAdminController = wrapAsync(async (req, res) => {
+  try {
     const adminData = req.body;
     
     // Call the service layer to handle business logic
     const newAdmin = await createAdmin(adminData);
     
     res.status(201).json({ message: 'Admin created successfully', admin: newAdmin });
+  } catch (error) {
+    // Handle validation errors specifically
+    if (error.message.includes('Validation')) {
+      return res.status(400).json({ error: error.message });
+    }
+    
+    // Log the error for debugging purposes
+    logError('Error creating admin:', error);
+    
+    // Handle other expected errors
+    if (error.isExpected) {
+      return res.status(400).json({ error: 'Failed to create admin. Please try again later.' });
+    }
+    
+    // Pass unexpected errors to the global error handler
+    throw error;
+  }
 });
 
 /**

@@ -5,7 +5,7 @@ const { query } = require('../database/db');
  * Fetches the ID of a role by its name or ID.
  *
  * @param {string} field - The field to search by ('name' or 'id').
- * @param {string} value - The value to search for (role name or ID).
+ * @param {Joi.StringSchema.uuid} value - The value to search for (role name or ID).
  * @returns {Promise<uuid|null>} - The role ID if found, or null if not found.
  */
 const getRoleIdByField = async (field, value) => {

@@ -3,117 +3,95 @@ const { logError, logWarn } = require('../utils/logger-helper');
 const { maskSensitiveInfo } = require('../utils/mask');
 
 /**
- * Inserts a new user into the database and their authentication details into the user_auth table.
+ * Inserts a new user into the `users` table.
  *
- * @param {object} user - User details.
- * @param {string} user.email - The user's email.
- * @param {string} user.passwordHash - The user's hashed password.
- * @param {uuid} user.roleId - The role ID associated with the user.
- * @param {uuid} user.statusId - The status ID associated with the user.
- * @param {uuid} user.createdBy - The ID of the user who created this record (optional).
+ * @param client
+ * @param {object} userDetails - User details.
  * @returns {Promise<object>} - The inserted user details.
  */
-const createUser = async ({
-                            email,
-                            passwordHash,
-                            passwordSalt,
-                            roleId,
-                            statusId,
-                            firstname = null,
-                            lastname = null,
-                            phoneNumber = null,
-                            jobTitle = null,
-                            note = null,
-                            statusDate = new Date(),
-                            createdBy = null,
-                          }) => {
-  const client = await getClient(); // Connect to the database for transactions
+const insertUser = async (client, userDetails) => {
+  const { email, roleId, statusId, firstname, lastname, phoneNumber, jobTitle, note, statusDate, createdBy } = userDetails;
+  
+  const query = `
+    INSERT INTO users (
+      email, role_id, status_id, firstname, lastname, phone_number,
+      job_title, note, status_date, created_by
+    )
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+    ON CONFLICT (email) DO NOTHING
+    RETURNING id, email, role_id, status_id, created_at;
+  `;
+  const params = [email, roleId, statusId, firstname, lastname, phoneNumber, jobTitle, note, statusDate, createdBy];
+  
+  const result = await client.query(query, params);
+  if (result.rows.length === 0) {
+    const maskedEmail = maskSensitiveInfo(email, 'email');
+    logWarn(`User with email ${maskedEmail} already exists.`);
+    return null; // No new user created
+  }
+  
+  return result.rows[0];
+};
+
+/**
+ * Inserts authentication details into the `user_auth` table.
+ *
+ * @param client
+ * @param {object} authDetails - Authentication details.
+ * @returns {Promise<void>}
+ */
+const insertUserAuth = async (client, authDetails) => {
+  const { userId, passwordHash, passwordSalt } = authDetails;
+  
+  const query = `
+    INSERT INTO user_auth (
+      user_id, password_hash, password_salt, created_at
+    )
+    VALUES ($1, $2, $3, $4);
+  `;
+  const params = [userId, passwordHash, passwordSalt, new Date()];
+  
+  await client.query(query, params);
+};
+
+/**
+ * Creates a new user with authentication details.
+ *
+ * @param {object} userDetails - User and authentication details.
+ * @returns {Promise<object>} - The created user details.
+ */
+const createUser = async (userDetails) => {
+  const client = await getClient();
   
   try {
-    await client.query('BEGIN'); // Start a transaction
+    await client.query('BEGIN'); // Start transaction
     
-    // Insert the user into the `users` table
-    const userQuery = `
-      INSERT INTO users (
-        email, role_id, status_id, firstname, lastname, phone_number,
-        job_title, note, status_date, created_by
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-      ON CONFLICT (email) DO NOTHING
-      RETURNING id, email, role_id, status_id, created_at;
-    `;
-    const userParams = [
-      email,
-      roleId,
-      statusId,
-      firstname,
-      lastname,
-      phoneNumber,
-      jobTitle,
-      note,
-      statusDate,
-      createdBy,
-    ];
-    
-    let userResult;
-    try {
-      userResult = await client.query(userQuery, userParams);
-    } catch (queryError) {
-      logError('Error executing user INSERT query:', {
-        query: userQuery,
-        params: userParams,
-        error: queryError.message,
-      });
-      throw new Error('Failed to insert user into the database.');
+    // Insert user into the `users` table
+    const user = await insertUser(client, userDetails);
+    if (!user) {
+      await client.query('ROLLBACK'); // Rollback transaction if user already exists
+      return null; // No new user created
     }
-    
-    const maskedEmail = maskSensitiveInfo(email, 'email');
-    if (userResult.rows.length === 0) {
-      // User already exists
-      logWarn(`User with email ${maskedEmail} already exists.`);
-      await client.query('ROLLBACK');
-      return null; // Indicate no new user was created
-    }
-    
-    const userId = userResult.rows[0].id;
     
     // Insert authentication details into the `user_auth` table
-    const authQuery = `
-      INSERT INTO user_auth (
-        user_id, password_hash, password_salt, created_at
-      )
-      VALUES ($1, $2, $3, $4)
-    `;
-    const authParams = [userId, passwordHash, passwordSalt, new Date()];
-    
-    try {
-      await client.query(authQuery, authParams);
-    } catch (authError) {
-      logError('Error executing user_auth INSERT query:', {
-        query: authQuery,
-        params: authParams,
-        error: authError.message,
-      });
-      throw new Error('Failed to insert user authentication details.');
-    }
-    
-    await client.query('COMMIT'); // Commit the transaction
-    
-    return userResult.rows[0]; // Return the inserted user details
-  } catch (error) {
-    await client.query('ROLLBACK'); // Rollback the transaction on error
-    logError('Error in createUser function:', {
-      error: error.message,
-      stack: error.stack,
-      email,
-      roleId,
-      statusId,
-      firstname,
-      lastname,
+    await insertUserAuth(client, {
+      userId: user.id,
+      passwordHash: userDetails.passwordHash,
+      passwordSalt: userDetails.passwordSalt,
     });
-    throw error;
+    
+    await client.query('COMMIT'); // Commit transaction
+    return user; // Return the created user
+  } catch (error) {
+    await client.query('ROLLBACK'); // Rollback transaction on error
+    logError('Error creating user:', {
+      message: error.message,
+      stack: error.stack,
+      userDetails,
+    });
+    throw new Error('Failed to create user.'); // Throw a generic error to avoid leaking details
   } finally {
-    client.release(); // Release the client
+    client.release(); // Release database client
   }
 };
 

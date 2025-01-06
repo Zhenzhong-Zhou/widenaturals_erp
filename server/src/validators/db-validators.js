@@ -2,6 +2,7 @@ const { query } = require('../database/db');
 const {  getRoleIdByField } = require('../repositories/role-repository');
 const { getStatusIdByName } = require('../repositories/status-repository');
 const { logError } = require('../utils/logger-helper');
+const AppError = require('../utils/app-error');
 
 /**
  * Check if an email exists in the database
@@ -40,7 +41,11 @@ const validateRoleByName = async (roleName) => {
 const validateRoleById = async (roleId) => {
   const validRoleId = await getRoleIdByField('id', roleId);
   if (!validRoleId) {
-    throw new Error(`Role with ID "${roleId}" does not exist.`);
+    throw new AppError(
+      `Validation: Role with ID "${roleId}" does not exist.`,
+      400, // HTTP status code
+      { type: 'Validation', isExpected: true } // Additional error metadata
+    );
   }
   return validRoleId;
 };
