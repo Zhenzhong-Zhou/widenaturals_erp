@@ -27,6 +27,8 @@ const MAX_LIMITS = {
     MAX_LASTNAME: 50, // Maximum length for lastname
     MAX_PASSWORD: 128, // Maximum length for passwords
     MAX_EMAIL: 254, // Maximum length for email addresses
+    MAX_JOB_TITLE: 100, // Maximum length for job_title addresses
+    MAX_NOTE: 500, // Maximum length for job_title addresses
     GENERIC_FIELD: 255, // Maximum length for generic text fields
     DEFAULT_MAX_LENGTH: 255,
   },

@@ -6,6 +6,7 @@
 const express = require('express');
 const welcomeRoute = require('./public');
 const authRoutes = require('./auth');
+const adminRoutes = require('./admin');
 const { createApiRateLimiter } = require('../middlewares/rate-limiter');
 
 const router = express.Router();
@@ -20,6 +21,8 @@ router.use(apiRateLimiter);
 // Attach sub-routes
 router.use('/public', welcomeRoute);
 router.use('/auth', authRoutes);
+
+router.use('/admin', adminRoutes);
 
 // Export the router
 module.exports = router;

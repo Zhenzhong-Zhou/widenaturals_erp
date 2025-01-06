@@ -19,7 +19,7 @@ const { ONE_HOUR } = require('../utils/constants/general/time');
 const csrfProtection = () => {
   // Skip CSRF for certain API paths or methods in development mode
   const shouldBypassCSRF = (req) => {
-    if (process.env.NODE_ENV === 'development' && !process.env.CSRF_TESTING)
+    if (process.env.NODE_ENV === 'development' && process.env.CSRF_TESTING !== true)
       return true; // Bypass unless explicitly testing
 
     const exemptMethods = ['GET', 'HEAD', 'OPTIONS']; // Read-only methods
