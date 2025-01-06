@@ -1,13 +1,13 @@
 /**
  * @file create-db.js
- * @description Script to check the existence of the target database and create it if it does not exist.
- * Uses the default administrative database (postgres) to perform database-level operations.
+ * @description Script to check the existence of the target database, create it if necessary, and run migrations/seeds.
  */
 
 const { Pool } = require('pg'); // Use Pool for direct DB connection
 const { logInfo, logError } = require('../utils/logger-helper');
 const { loadEnv } = require('../config/env');
 const { getConnectionConfig, validateEnvVars } = require('../config/db-config');
+const knex = require('knex')(require('../../knexfile').development); // Import Knex with configuration
 
 // Load environment variables
 const env = loadEnv();
@@ -18,28 +18,28 @@ validateEnvVars();
 // Connection configuration for the default administrative database
 const adminConnectionConfig = {
   ...getConnectionConfig(),
-  database: 'postgres', // Ensure connection to 'postgres'
+  database: 'postgres', // Connect to 'postgres' for database-level operations
 };
 
 const targetDatabase = process.env.DB_NAME; // Target database name
 
 /**
- * Checks if the target database exists and creates it if necessary.
+ * Initializes the database: checks existence, creates if necessary, and runs migrations/seeds.
  */
-const createDatabase = async () => {
-  const pool = new Pool(adminConnectionConfig); // Temporary pool for administrative operations
+const createDatabaseAndInitialize = async () => {
+  const pool = new Pool(adminConnectionConfig);
   
   try {
     logInfo(
       `Checking for database: '${targetDatabase}' in '${env}' environment`
     );
-
+    
     // Query to check if the database exists
     const result = await pool.query(
       `SELECT 1 FROM pg_database WHERE datname = $1`,
       [targetDatabase]
     );
-
+    
     if (result.rowCount === 0) {
       logInfo(`Database '${targetDatabase}' does not exist. Creating...`);
       await pool.query(`CREATE DATABASE "${targetDatabase}"`);
@@ -47,6 +47,16 @@ const createDatabase = async () => {
     } else {
       logInfo(`Database '${targetDatabase}' already exists.`);
     }
+    
+    // Run migrations
+    logInfo('Running database migrations...');
+    await knex.migrate.latest();
+    logInfo('Database migrations completed successfully.');
+    
+    // Run seeds
+    logInfo('Running database seeds...');
+    await knex.seed.run();
+    logInfo('Database seeds executed successfully.');
   } catch (error) {
     if (error.code === '3D000') {
       logError(error, null, {
@@ -54,27 +64,28 @@ const createDatabase = async () => {
       });
     } else {
       logError(error, null, {
-        additionalInfo: 'Unexpected error during database creation process',
+        additionalInfo: 'Unexpected error during database creation process or initialization process',
       });
     }
     process.exit(1); // Exit process with failure code
   } finally {
-    await pool.end(); // Close the pool to release resources
-    logInfo('Database creation process completed.');
+    await pool.end(); // Close the administrative pool
+    await knex.destroy(); // Close Knex connection
+    logInfo('Database setup process completed.');
   }
 };
 
 // Export the function for reusability
-module.exports = { createDatabase };
+module.exports = { createDatabaseAndInitialize };
 
 // Self-executing script for standalone use
 if (require.main === module) {
-  createDatabase()
+  createDatabaseAndInitialize()
     .then(() => {
-      logInfo('Database check and creation process completed successfully.');
+      logInfo('Database creation and initialization process completed successfully.');
     })
     .catch((error) => {
-      logError(error, null, { additionalInfo: 'Failed to create database' });
+      logError(error, null, { additionalInfo: 'Failed to set up database' });
       process.exit(1);
     });
 }

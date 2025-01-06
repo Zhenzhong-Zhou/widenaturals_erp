@@ -4,7 +4,7 @@
  */
 exports.up = function (knex) {
   return knex.schema.createTable('users', (table) => {
-    table.uuid('id').primary();
+    table.uuid('id').primary().defaultTo(knex.raw('uuid_generate_v4()'));
     table.string('email', 255).notNullable().unique().index();
     table.uuid('role_id').references('id').inTable('roles').index();
     table.string('firstname', 100).nullable();

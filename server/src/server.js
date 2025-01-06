@@ -6,8 +6,9 @@
 const http = require('http');
 const { logInfo, logError } = require('./utils/logger-helper');
 const app = require('./app');
-const { createDatabase } = require('./database/create-db');
+const { createDatabaseAndInitialize } = require('./database/create-db');
 const { closePool, testConnection } = require('./database/db');
+const { initializeRootAdmin } = require('./config/initialize-root');
 
 const PORT = process.env.PORT;
 if (!PORT) {
@@ -19,21 +20,27 @@ if (!PORT) {
 const server = http.createServer(app);
 
 /**
- * Starts the server after verifying the database connection.
+ * Starts the server after verifying the database connection and performing initializations.
  */
 const startServer = async () => {
   try {
-    await createDatabase()
+    logInfo('Initializing database...');
+    await createDatabaseAndInitialize()
     
     logInfo('Testing database connection...');
     await testConnection();
     logInfo('Database connected successfully');
-
+    
+    logInfo('Initializing root admin...');
+    await initializeRootAdmin(); // Call the initialization function
+    logInfo('Root admin initialization completed.');
+    
+    logInfo('Starting server...');
     server.listen(PORT, () => {
       logInfo(`Server running on http://localhost:${PORT}`);
     });
   } catch (error) {
-    logError(error);
+    logError('Failed to start server:', error);
     process.exit(1); // Exit with failure code
   }
 };

@@ -23,5 +23,14 @@ exports.seed = async function (knex) {
       updated_at: knex.fn.now(),
     },
   ];
-  await knex('status').insert(statuses);
+  
+  // Use ON CONFLICT to avoid duplicates
+  for (const status of statuses) {
+    await knex('status')
+      .insert(status)
+      .onConflict('name') // Specify the column with the unique constraint
+      .ignore(); // Ignore if the name already exists
+  }
+  
+  console.log('Status seeded successfully.');
 };

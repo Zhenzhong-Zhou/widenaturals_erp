@@ -25,5 +25,13 @@ exports.seed = async function (knex) {
       updated_at: knex.fn.now(),
     },
   ];
-  await knex('permissions').insert(permissions);
+  
+  for (const permission of permissions) {
+    await knex('permissions')
+      .insert(permission)
+      .onConflict('permission') // Specify the column with the unique constraint
+      .ignore(); // Ignore the insertion if a conflict occurs
+  }
+  
+  console.log('Permissions seeded successfully.');
 };

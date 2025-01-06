@@ -42,6 +42,14 @@ const query = async (text, params = []) => {
 };
 
 /**
+ * Directly acquire a client for managing transactions.
+ * @returns {Promise<object>} - The connected client.
+ */
+const getClient = async () => {
+  return await pool.connect();
+};
+
+/**
  * Test the database connection.
  * Useful for health checks or startup validation.
  * @returns {Promise<void>}
@@ -110,4 +118,4 @@ const retry = async (fn, retries = 3) => {
 };
 
 // Export the utilities
-module.exports = { pool, query, closePool, testConnection, monitorPool, retry };
+module.exports = { pool, query, getClient, closePool, testConnection, monitorPool, retry };
