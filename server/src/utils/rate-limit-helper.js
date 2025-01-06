@@ -41,14 +41,15 @@ const defaultRateLimitHandler = (req, res) => {
  * @returns {Function} - Middleware for rate limiting.
  */
 const createRateLimiter = ({
-                             // windowMs = RATE_LIMIT.DEFAULT_WINDOW_MS,
-                             // max = RATE_LIMIT.DEFAULT_MAX,
-                             windowMs = process.env.RATE_LIMIT_WINDOW_MS
-                               ? parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10)
-                               : RATE_LIMIT.DEFAULT_WINDOW_MS,
-                             max = process.env.RATE_LIMIT_MAX
-                               ? parseInt(process.env.RATE_LIMIT_MAX, 10)
-                               : RATE_LIMIT.DEFAULT_MAX,
+                             windowMs = RATE_LIMIT.DEFAULT_WINDOW_MS,
+                             max = RATE_LIMIT.DEFAULT_MAX,
+                               //todo
+                             // windowMs = process.env.RATE_LIMIT_WINDOW_MS
+                             //   ? parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10)
+                             //   : RATE_LIMIT.DEFAULT_WINDOW_MS,
+                             // max = process.env.RATE_LIMIT_MAX
+                             //   ? parseInt(process.env.RATE_LIMIT_MAX, 10)
+                             //   : RATE_LIMIT.DEFAULT_MAX,
                              headers = true,
                              statusCode = 429,
                              keyGenerator = (req) => req.ip,

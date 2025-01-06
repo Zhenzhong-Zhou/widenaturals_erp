@@ -1,6 +1,7 @@
 const { getClient, query } = require('../database/db');
 const { logError, logWarn } = require('../utils/logger-helper');
 const { maskSensitiveInfo } = require('../utils/mask');
+const { insertUserAuth } = require('./user-auth-repository');
 
 /**
  * Inserts a new user into the `users` table.
@@ -31,27 +32,6 @@ const insertUser = async (client, userDetails) => {
   }
   
   return result.rows[0];
-};
-
-/**
- * Inserts authentication details into the `user_auth` table.
- *
- * @param client
- * @param {object} authDetails - Authentication details.
- * @returns {Promise<void>}
- */
-const insertUserAuth = async (client, authDetails) => {
-  const { userId, passwordHash, passwordSalt } = authDetails;
-  
-  const query = `
-    INSERT INTO user_auth (
-      user_id, password_hash, password_salt, created_at
-    )
-    VALUES ($1, $2, $3, $4);
-  `;
-  const params = [userId, passwordHash, passwordSalt, new Date()];
-  
-  await client.query(query, params);
 };
 
 /**
