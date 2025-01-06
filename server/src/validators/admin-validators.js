@@ -2,7 +2,7 @@ const Joi = require('joi');
 const validatePassword = require('../validators/password-validators');
 const { MIN_FIRSTNAME, MIN_LASTNAME } = require('../utils/constants/general/min-limits'); // Reuse the password validator
 const { MAX_FIRSTNAME, MAX_LASTNAME, MAX_JOB_TITLE, MAX_NOTE } = require('../utils/constants/general/max-limits'); // Reuse the password validator
-// todo fix error
+
 /**
  * Joi schema for admin creation validation.
  * Ensures all required fields are present and meet specific criteria.
@@ -18,20 +18,19 @@ const adminSchema = Joi.object({
   password: validatePassword,
   
   // Validate first name with custom length and error messages
-  firstName: Joi.string().min(2).max(50).required().messages({
+  firstname: Joi.string().min(2).max(50).required().messages({
     'string.min': `First name must be at least ${MIN_FIRSTNAME} characters.`,
     'string.max': `First name must be at most ${MAX_FIRSTNAME} characters.`,
     'any.required': 'First name is required.',
   }),
 
   // Validate last name with custom length and error messages
-  lastName: Joi.string().min(2).max(50).required().messages({
+  lastname: Joi.string().min(2).max(50).required().messages({
     'string.min': `Last name must be at least ${MIN_LASTNAME} characters.`,
     'string.max': `Last name must be at most ${MAX_LASTNAME} characters.`,
     'any.required': 'Last name is required.',
   }),
-  //
-  // todo anther role like: manager
+  
   // Restrict role to specific allowed values
   role: Joi.string().valid('admin', 'super_admin').required().messages({
     'any.only': 'Invalid role. Only "admin" or "super_admin" roles are allowed.',

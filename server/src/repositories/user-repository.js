@@ -55,7 +55,17 @@ const createUser = async ({
       createdBy,
     ];
     
-    const userResult = await client.query(userQuery, userParams);
+    let userResult;
+    try {
+      userResult = await client.query(userQuery, userParams);
+    } catch (queryError) {
+      logError('Error executing user INSERT query:', {
+        query: userQuery,
+        params: userParams,
+        error: queryError.message,
+      });
+      throw new Error('Failed to insert user into the database.');
+    }
     
     const maskedEmail = maskSensitiveInfo(email, 'email');
     if (userResult.rows.length === 0) {
@@ -75,15 +85,33 @@ const createUser = async ({
       VALUES ($1, $2, $3, $4)
     `;
     const authParams = [userId, passwordHash, passwordSalt, new Date()];
-    await client.query(authQuery, authParams);
+    
+    try {
+      await client.query(authQuery, authParams);
+    } catch (authError) {
+      logError('Error executing user_auth INSERT query:', {
+        query: authQuery,
+        params: authParams,
+        error: authError.message,
+      });
+      throw new Error('Failed to insert user authentication details.');
+    }
     
     await client.query('COMMIT'); // Commit the transaction
     
     return userResult.rows[0]; // Return the inserted user details
   } catch (error) {
     await client.query('ROLLBACK'); // Rollback the transaction on error
-    logError('Error creating user:', error);
-    throw new Error('Failed to create user.');
+    logError('Error in createUser function:', {
+      error: error.message,
+      stack: error.stack,
+      email,
+      roleId,
+      statusId,
+      firstname,
+      lastname,
+    });
+    throw error;
   } finally {
     client.release(); // Release the client
   }

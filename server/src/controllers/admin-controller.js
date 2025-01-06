@@ -1,4 +1,5 @@
-const { createUser, getAdminsFromDB, updateAdminInDB, deleteAdminFromDB } = require('../repositories/user-repository');
+const wrapAsync = require('../utils/wrap-async');
+const { getAdminsFromDB, updateAdminInDB, deleteAdminFromDB } = require('../repositories/user-repository');
 const { createAdmin } = require('../services/admin-service');
 
 /**
@@ -7,14 +8,14 @@ const { createAdmin } = require('../services/admin-service');
  * @param {object} req - Express request object
  * @param {object} res - Express response object
  */
-const createAdminController = async (req, res) => {
+const createAdminController = wrapAsync(async (req, res) => {
     const adminData = req.body;
-    console.log(adminData);
+    
     // Call the service layer to handle business logic
     const newAdmin = await createAdmin(adminData);
     
     res.status(201).json({ message: 'Admin created successfully', admin: newAdmin });
-};
+});
 
 /**
  * Fetches all admin users from the database.
