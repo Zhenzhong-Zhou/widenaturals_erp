@@ -3,11 +3,12 @@
  * @description Middleware for handling CSRF token errors.
  */
 
+const AppError = require('../../utils/app-error');
 const { logError } = require('../../utils/logger-helper');
 
 /**
  * Middleware for handling CSRF token errors.
- * Logs the error details and responds with a 403 status code.
+ * Logs the error details and responds with a structured response.
  *
  * @param {Error} err - The error object caught by middleware.
  * @param {Object} req - The Express request object.
@@ -16,21 +17,26 @@ const { logError } = require('../../utils/logger-helper');
  */
 const csrfErrorHandler = (err, req, res, next) => {
   if (err.code === 'EBADCSRFTOKEN') {
-    // Log the CSRF error as an error-level log
-    logError('CSRF token validation failed', {
-      path: req.originalUrl,
+    // Create a structured AppError for CSRF violations
+    const csrfError = new AppError('Invalid or missing CSRF token', 403, {
+      type: 'CSRFError',
+      isExpected: true, // CSRF errors are expected in certain scenarios
+    });
+    
+    // Log the CSRF error with detailed metadata
+    logError('CSRF Token Validation Failed', {
+      message: csrfError.message,
+      route: req.originalUrl,
       method: req.method,
       ip: req.ip,
-      userAgent: req.headers['user-agent'] || 'unknown',
-      referrer: req.headers.referer || 'none',
+      userAgent: req.headers['user-agent'] || 'Unknown',
+      referrer: req.headers.referer || 'None',
     });
-
-    // Respond with a 403 Forbidden status and a generic error message
-    return res.status(403).json({
-      error: 'Invalid or missing CSRF token',
-    });
+    
+    // Respond with a structured error response
+    return res.status(csrfError.status).json(csrfError.toJSON());
   }
-
+  
   // Pass the error to the next middleware if it's not a CSRF error
   next(err);
 };

@@ -3,6 +3,7 @@
  * @description Middleware to handle rate limiting errors.
  */
 
+const AppError = require('../../utils/app-error');
 const { logWarn } = require('../../utils/logger-helper');
 
 /**
@@ -16,18 +17,27 @@ const { logWarn } = require('../../utils/logger-helper');
 const rateLimitErrorHandler = (err, req, res, next) => {
   // Check if the error is related to rate limiting
   if (err.name === 'RateLimitError' || err.message.includes('Rate limit exceeded')) {
-    logWarn(`Rate Limit Exceeded: ${err.message}`, {
+    // Create a structured AppError for rate limit violations
+    const rateLimitError = new AppError('Too Many Requests', 429, {
+      type: 'RateLimitError',
+      isExpected: true,
+      code: 'RATE_LIMIT_EXCEEDED',
+      details: {
+        retryAfter: err.retryAfter || null, // Include retry-after time if available
+      },
+    });
+    
+    // Log the rate limit error with metadata
+    logWarn('Rate Limit Exceeded', {
+      message: rateLimitError.message,
       ip: req.ip,
       method: req.method,
       url: req.originalUrl,
+      userAgent: req.headers['user-agent'] || 'Unknown',
     });
     
-    // Respond with a 429 Too Many Requests status
-    return res.status(429).json({
-      error: 'Too Many Requests',
-      message: 'You have exceeded the allowed number of requests. Please try again later.',
-      retryAfter: err.retryAfter || null, // Include retry-after time if available
-    });
+    // Respond with a structured error response
+    return res.status(rateLimitError.status).json(rateLimitError.toJSON());
   }
   
   // Pass other errors to the next middleware
