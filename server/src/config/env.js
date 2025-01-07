@@ -7,8 +7,7 @@
 const fs = require('fs');
 const path = require('path');
 const dotenv = require('dotenv');
-const { getLogger } = require('../utils/logger');
-const { logWarn } = require('../utils/logger-helper'); // Lazy import the logger
+const { logWarn, logError } = require('../utils/logger-helper'); // Lazy import the logger
 
 /**
  * Load a secret value from Docker secrets if available.
@@ -41,13 +40,12 @@ const loadEnv = () => {
 
   // Validate `NODE_ENV`
   if (!allowedEnvs.includes(env)) {
-    const logger = getLogger(); // Get logger only when necessary
     if (env === 'production') {
       throw new Error(
         `Invalid NODE_ENV value: ${env}. Allowed values: ${allowedEnvs.join(', ')}`
       );
     } else {
-      logger.error(
+      logError(
         `Invalid NODE_ENV value: ${env}. Allowed values: ${allowedEnvs.join(', ')}`
       );
     }
@@ -113,11 +111,10 @@ const validateEnv = (config) => {
   );
 
   if (missingVars.length > 0) {
-    const logger = getLogger(); // Get logger only when necessary
     const missingNames = missingVars
       .map(({ envVar, secret }) => secret || envVar)
       .join(', ');
-    logger.error(
+    logError(
       `Missing required environment variables or secrets: ${missingNames}`
     );
     throw new Error(

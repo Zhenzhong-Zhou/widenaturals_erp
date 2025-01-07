@@ -5,13 +5,14 @@
 
 const express = require('express');
 const helmet = require('helmet');
-const corsMiddleware = require('./cors');
-const requestLogger = require('./request-logger');
-const morgan = require('morgan');
-const { csrfProtection } = require('./csrf-protection');
-const { createRateLimiter } = require('../utils/rate-limit-helper');
 const cookieParser = require('cookie-parser');
+const morgan = require('morgan');
 const xssClean = require('xss-clean');
+const corsMiddleware = require('./cors'); // Custom CORS configuration
+const { csrfProtection } = require('./csrf-protection');
+const requestLogger = require('./request-logger');
+const { createRateLimiter } = require('../utils/rate-limit-helper');
+const authenticate = require('./auth'); // Authentication middleware
 
 /**
  * Applies global middleware to the application.
@@ -47,10 +48,13 @@ const applyGlobalMiddleware = (app) => {
   // 7. XSS Protection Middleware
   app.use(xssClean());
   
-  // 8. Request Logging
+  // 8. Authentication Middleware (Global)
+  app.use(authenticate()); // Authenticate all routes by default
+  
+  // 9. Request Logging
   app.use(requestLogger);
   
-  // 9. Development Tools
+  // 10. Development Tools
   if (process.env.NODE_ENV === 'development') {
     app.use(morgan('dev')); // Use 'dev' logging format in development
   }

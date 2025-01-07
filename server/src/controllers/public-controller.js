@@ -6,6 +6,7 @@
 const { logInfo, logError, logDebug } = require('../utils/logger-helper');
 const { version } = require('../../package.json'); // Dynamically fetch version from package.json
 const { testConnection } = require('../database/db');
+const { generateSecret } = require('../utils/crypto-utils');
 
 /**
  * GET /public/welcome
@@ -21,7 +22,7 @@ const getWelcomeMessage = (req, res) => {
   const API_PREFIX = process.env.API_PREFIX;
 
   logInfo('Serving welcome message to the client', req);
-
+  
   res.status(200).json({
     message: 'Welcome to WIDE Naturals Inc. ERP API!',
     documentation: '/docs', // Link to API documentation

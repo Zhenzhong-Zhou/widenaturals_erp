@@ -8,6 +8,7 @@ const welcomeRoute = require('./public');
 const authRoutes = require('./auth');
 const adminRoutes = require('./admin');
 const { createApiRateLimiter } = require('../middlewares/rate-limiter');
+const markAsPublic = require('../middlewares/mark-as-public');
 
 const router = express.Router();
 
@@ -19,8 +20,8 @@ const apiRateLimiter = createApiRateLimiter();
 router.use(apiRateLimiter);
 
 // Attach sub-routes
-router.use('/public', welcomeRoute);
-router.use('/auth', authRoutes);
+router.use('/public', markAsPublic, welcomeRoute);
+router.use('/auth', markAsPublic, authRoutes);
 
 router.use('/admin', adminRoutes);
 

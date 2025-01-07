@@ -1,6 +1,16 @@
 const crypto = require('crypto');
 
 /**
+ * Generates a secure random string to use as a secret.
+ *
+ * @param {number} length - The length of the generated secret.
+ * @returns {string} - A secure random string.
+ */
+const generateSecret = (length = 64) => {
+  return crypto.randomBytes(length).toString('hex');
+};
+
+/**
  * Generates a random token.
  * @param {number} length - The length of the token.
  * @returns {string} - The generated token.
@@ -44,4 +54,4 @@ const hashData = (data) => {
   return crypto.createHash('sha256').update(data).digest('hex');
 };
 
-module.exports = { generateRandomToken, encryptData, decryptData, hashData };
+module.exports = { generateSecret, generateRandomToken, encryptData, decryptData, hashData };

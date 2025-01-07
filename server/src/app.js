@@ -14,9 +14,6 @@ const app = express();
 // Apply global middleware
 applyGlobalMiddleware(app);
 
-/**
- * @returns {Function} - Global rate-limiting middleware.
- */
 // Apply the global rate limiter
 const globalRateLimiter = createGlobalRateLimiter();
 app.use(globalRateLimiter);
