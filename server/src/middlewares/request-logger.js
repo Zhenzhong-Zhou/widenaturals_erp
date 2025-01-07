@@ -3,7 +3,8 @@
  * @description Middleware for logging HTTP requests with enhanced non-2xx response handling.
  */
 
-const {  logWithLevel } = require('../utils/logger-helper');
+const { logWithLevel } = require('../utils/logger-helper');
+const AppError = require('../utils/app-error');
 
 /**
  * Middleware for logging incoming HTTP requests and responses.
@@ -40,9 +41,8 @@ const requestLogger = (req, res, next) => {
     
     // Include error details for server errors
     if (isServerError) {
-      const error = res.locals.error || 'Unknown server error';
-      metadata.error = error.message || error;
-      metadata.stack = error.stack || 'No stack trace available';
+      const error = res.locals.error || new AppError('Unknown server error', 500, { type: 'ServerError' });
+      metadata.error = error.toJSON();
     }
     
     logWithLevel(logLevel, message, metadata);

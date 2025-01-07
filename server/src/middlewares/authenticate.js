@@ -1,5 +1,6 @@
 const { verifyToken, signToken } = require('../utils/token-helper');
 const { logWarn, logError } = require('../utils/logger-helper');
+const AppError = require('../utils/app-error');
 
 /**
  * Middleware to authenticate users using JWT tokens.
@@ -14,7 +15,10 @@ const authenticate = () => {
       const refreshToken = req.cookies?.refreshToken;
       
       if (!accessToken) {
-        return res.status(401).json({ error: 'Access token is missing. Please log in.' });
+        throw new AppError('Access token is missing. Please log in.', 401, {
+          type: 'AuthenticationError',
+          isExpected: true,
+        });
       }
       
       try {
@@ -23,7 +27,6 @@ const authenticate = () => {
         req.user = user; // Attach user details to the request
         return next();
       } catch (error) {
-        // Handle expired access token with refresh token
         if (error.name === 'TokenExpiredError' && refreshToken) {
           logWarn('Access token expired. Attempting to refresh.');
           
@@ -42,18 +45,22 @@ const authenticate = () => {
             req.user = refreshPayload; // Attach refreshed user details
             return next();
           } catch (refreshError) {
-            logWarn('Invalid or expired refresh token.');
-            return res.status(401).json({ error: 'Session expired. Please log in again.' });
+            throw new AppError('Invalid or expired refresh token. Please log in again.', 401, {
+              type: 'AuthenticationError',
+              isExpected: true,
+            });
           }
         }
         
         // Handle invalid or other access token errors
-        logWarn('Invalid access token.');
-        return res.status(401).json({ error: 'Invalid or expired token.' });
+        throw new AppError('Invalid or expired access token.', 401, {
+          type: 'AuthenticationError',
+          isExpected: true,
+        });
       }
     } catch (error) {
       logError('Authentication middleware encountered an error:', error);
-      return res.status(500).json({ error: 'Internal Server Error' });
+      next(error); // Pass to the error handler
     }
   };
 };
