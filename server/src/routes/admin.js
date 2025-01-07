@@ -1,9 +1,10 @@
 const express = require('express');
 const validate = require('../middlewares/validate');
-// const authorize = require('../middlewares/authorize');
-const { getAdmins, updateAdmin, deleteAdmin, createAdminController } = require('../controllers/admin-controller');
+const authorize = require('../middlewares/authorize');
 const adminSchema = require('../validators/admin-validators');
 const { sanitizeInput, sanitizeDescription  } = require('../middlewares/sanitize');
+const { getAdmins, updateAdmin, deleteAdmin, createAdminController } = require('../controllers/admin-controller');
+const { ADMIN } = require('../utils/constants/domain/permissions');
 
 const router = express.Router();
 
@@ -14,7 +15,7 @@ const router = express.Router();
  */
 router.post(
   '/create',
-  // authorize(['root_admin', 'admin']), // Restrict access to specific roles
+  authorize([ADMIN.CREATE]), // Restrict access to specific roles
   validate(adminSchema),  // Validate input with Joi
   sanitizeInput,
   sanitizeDescription,    // Sanitize specific fields

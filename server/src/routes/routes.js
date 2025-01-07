@@ -9,7 +9,7 @@ const loginRoute = require('./login');
 const authRoutes = require('./auth');
 const adminRoutes = require('./admin');
 const { createApiRateLimiter } = require('../middlewares/rate-limiter');
-const authenticate = require('../middlewares/auth');
+const authenticate = require('../middlewares/authenticate');
 
 const router = express.Router();
 

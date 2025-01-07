@@ -30,7 +30,7 @@ const authenticate = () => {
           try {
             // Verify the refresh token
             const refreshPayload = verifyToken(refreshToken, true); // `true` indicates it's a refresh token
-            const newAccessToken = signToken({ id: refreshPayload.id, role: refreshPayload.role });
+            const newAccessToken = signToken({ id: refreshPayload.id, role_id: refreshPayload.role_id });
             
             // Set the new access token in the cookie
             res.cookie('accessToken', newAccessToken, {

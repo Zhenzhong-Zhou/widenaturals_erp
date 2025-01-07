@@ -65,7 +65,6 @@ const validateStatus = async (statusName) => {
   return statusId;
 };
 
-
 module.exports = {
   emailExists,
   validateRoleByName,

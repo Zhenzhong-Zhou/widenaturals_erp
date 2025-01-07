@@ -1,26 +1,54 @@
 exports.seed = async function (knex) {
+  // Fetch the active status ID dynamically
+  const activeStatusId = await knex('status')
+    .select('id')
+    .where('name', 'active')
+    .first()
+    .then((row) => row.id);
+  
   const permissions = [
     {
       id: knex.raw('uuid_generate_v4()'),
-      permission: 'view_dashboard',
+      name: 'View Dashboard',
+      key: 'view_dashboard',
+      description: 'Allows viewing the dashboard',
+      status_id: activeStatusId,
       created_at: knex.fn.now(),
       updated_at: knex.fn.now(),
     },
     {
       id: knex.raw('uuid_generate_v4()'),
-      permission: 'manage_users',
+      name: 'Manage Users',
+      key: 'manage_users',
+      description: 'Allows managing user accounts',
+      status_id: activeStatusId,
       created_at: knex.fn.now(),
       updated_at: knex.fn.now(),
     },
     {
       id: knex.raw('uuid_generate_v4()'),
-      permission: 'edit_profile',
+      name: 'Edit Profile',
+      key: 'edit_profile',
+      description: 'Allows editing user profiles',
+      status_id: activeStatusId,
       created_at: knex.fn.now(),
       updated_at: knex.fn.now(),
     },
     {
       id: knex.raw('uuid_generate_v4()'),
-      permission: 'view_reports',
+      name: 'View Reports',
+      key: 'view_reports',
+      description: 'Allows viewing reports',
+      status_id: activeStatusId,
+      created_at: knex.fn.now(),
+      updated_at: knex.fn.now(),
+    },
+    {
+      id: knex.raw('uuid_generate_v4()'),
+      name: 'Create Admin',
+      key: 'create_admin',
+      description: 'Allows creating admin users',
+      status_id: activeStatusId,
       created_at: knex.fn.now(),
       updated_at: knex.fn.now(),
     },
@@ -29,7 +57,7 @@ exports.seed = async function (knex) {
   for (const permission of permissions) {
     await knex('permissions')
       .insert(permission)
-      .onConflict('permission') // Specify the column with the unique constraint
+      .onConflict('key') // Use the `key` field for conflict resolution
       .ignore(); // Ignore the insertion if a conflict occurs
   }
   

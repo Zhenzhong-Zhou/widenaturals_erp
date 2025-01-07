@@ -1,6 +1,5 @@
 const { query } = require('../database/db');
 
-
 /**
  * Fetches the ID of a role by its name or ID.
  *

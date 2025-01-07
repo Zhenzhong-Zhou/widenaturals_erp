@@ -26,8 +26,8 @@ const loginUser = async (email, password) => {
   }
   
   // Generate tokens
-  const accessToken = signToken({ id: user.id, role: user.role });
-  const refreshToken = signToken({ id: user.id, role: user.role }, true); // Refresh token
+  const accessToken = signToken({ id: user.id, role_id: user.role_id });
+  const refreshToken = signToken({ id: user.id, role_id: user.role_id }, true); // Refresh token
   
   return { accessToken, refreshToken };
 };

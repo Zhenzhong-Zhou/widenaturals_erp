@@ -37,12 +37,11 @@ const getUserAuthByEmail = async (email) => {
     SELECT
       u.id,
       u.email,
+      u.role_id,
       ua.password_hash AS passwordHash,
-      ua.password_salt AS passwordSalt,
-      r.name AS roleName
+      ua.password_salt AS passwordSalt
     FROM users u
     INNER JOIN user_auth ua ON u.id = ua.user_id
-    INNER JOIN roles r ON u.role_id = r.id
     INNER JOIN status s ON u.status_id = s.id
     WHERE u.email = $1
       AND s.name = 'active';
