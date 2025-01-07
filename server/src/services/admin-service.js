@@ -1,4 +1,4 @@
-const { hashPasswordWithSalt } = require('../utils/hash-password');
+const { hashPasswordWithSalt } = require('../utils/password-helper');
 const { createUser } = require('../repositories/user-repository');
 const { validateRoleByName, validateStatus } = require('../validators/db-validators');
 const { logError } = require('../utils/logger-helper');

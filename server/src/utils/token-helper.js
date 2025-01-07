@@ -1,17 +1,27 @@
 const jwt = require('jsonwebtoken');
 const { logError } = require('./logger-helper');
+const { loadEnv } = require('../config/env');
 
-const SECRET = process.env.JWT_SECRET;
+loadEnv()
+const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
+const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
 
 /**
  * Signs a payload to generate a JWT token.
  *
  * @param {object} payload - The payload to sign.
- * @param {string} expiresIn - Expiration time for the token (e.g., '1h').
+ * @param {boolean} [isRefreshToken=false] - Whether to generate a refresh token.
  * @returns {string} - The signed JWT token.
  */
-const signToken = (payload, expiresIn = '1h') => {
-  return jwt.sign(payload, SECRET, { expiresIn });
+const signToken = (payload, isRefreshToken = false) => {
+  const secret = isRefreshToken ? REFRESH_SECRET : ACCESS_SECRET;
+  const expiresIn = isRefreshToken ? '7d' : '15m'; // 7 days for refresh tokens, 15 minutes for access tokens
+  
+  if (!secret) {
+    throw new Error(`JWT secret is not defined for ${isRefreshToken ? 'refresh' : 'access'} token`);
+  }
+  
+  return jwt.sign(payload, secret, { expiresIn });
 };
 
 /**
@@ -21,12 +31,21 @@ const signToken = (payload, expiresIn = '1h') => {
  * @returns {object} - The decoded token payload.
  * @throws {Error} - If the token is invalid or expired.
  */
-const verifyToken = (token) => {
+/**
+ * Verifies a JWT and returns the decoded payload.
+ *
+ * @param {string} token - The JWT to verify.
+ * @param {boolean} [isRefresh=false] - Whether to verify a refresh token.
+ * @returns {object} - The decoded payload.
+ * @throws {Error} - If the token is invalid or expired.
+ */
+const verifyToken = (token, isRefresh = false) => {
   try {
-    return jwt.verify(token, SECRET);
+    const secret = isRefresh ? REFRESH_SECRET : ACCESS_SECRET;
+    return jwt.verify(token, secret);
   } catch (error) {
-    logError('Invalid or expired token', error);
-    throw new Error('Invalid or expired token');
+    logError(`Invalid or expired ${isRefresh ? 'refresh' : 'access'} token`, error);
+    throw new Error(`Invalid or expired ${isRefresh ? 'refresh' : 'access'} token`);
   }
 };
 

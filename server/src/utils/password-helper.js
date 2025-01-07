@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const argon2 = require('argon2');
+const { logError } = require('./logger-helper');
 
 /**
  * Hashes a password with a unique salt using Argon2.
@@ -31,7 +32,20 @@ const hashPasswordWithSalt = async (password) => {
  * @returns {Promise<boolean>} - True if the password matches the hash, otherwise false.
  */
 const verifyPassword = async (password, passwordHash, passwordSalt) => {
-  return argon2.verify(passwordHash, password + passwordSalt);
+  if (!password || !passwordHash || !passwordSalt) {
+    throw new Error('Invalid password, hash, or salt provided.');
+  }
+  
+  try {
+    // Concatenate the password with the salt
+    const combinedPassword = password + passwordSalt;
+    
+    // Verify the hash
+    return await argon2.verify(passwordHash, combinedPassword);
+  } catch (error) {
+    logError('Password verification failed:', error.message);
+    throw new Error('Failed to verify password.');
+  }
 };
 
 module.exports = { hashPasswordWithSalt, verifyPassword };
