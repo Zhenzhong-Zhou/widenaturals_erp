@@ -1,3 +1,4 @@
+const AppError = require('../utils/app-error');
 const { query } = require('../database/db');
 const paginateQuery = require('./query-pagination');
 
@@ -6,25 +7,26 @@ const paginateQuery = require('./query-pagination');
  *
  * @param {string} statusName - The name of the status.
  * @returns {Promise<uuid|null>} - The status ID or null if not found.
+ * @throws {AppError} - Throws an error if the name is missing or the query fails.
  */
 const getStatusIdByName = async (statusName) => {
   if (!statusName) {
-    throw new Error('Status name is required');
+    throw new AppError('Status name is required', 400, { type: 'ValidationError', isExpected: true });
   }
   const result = await queryStatus('LOWER(name) = LOWER($1)', [statusName]);
   return result ? result.id : null;
 };
-
 
 /**
  * Fetches the ID and name of a status by its ID.
  *
  * @param {uuid} id - The ID of the status.
  * @returns {Promise<{ id: uuid, name: string } | null>} - The status object (ID and name) or null if not found.
+ * @throws {AppError} - Throws an error if the ID is missing or the query fails.
  */
 const getStatusNameById = async (id) => {
   if (!id) {
-    throw new Error('Status ID is required');
+    throw new AppError('Status ID is required', 400, { type: 'ValidationError', isExpected: true });
   }
   return queryStatus('id = $1', [id]);
 };
@@ -35,6 +37,7 @@ const getStatusNameById = async (id) => {
  * @param {string} whereClause - SQL condition for the query.
  * @param {Array} params - Parameters for the query.
  * @returns {Promise<{ id: uuid, name: string } | null>} - The status object or null if not found.
+ * @throws {AppError} - Throws an error if the query fails.
  */
 const queryStatus = async (whereClause, params) => {
   const text = `
@@ -47,8 +50,10 @@ const queryStatus = async (whereClause, params) => {
     const result = await query(text, params);
     return result.rows[0] || null;
   } catch (error) {
-    console.error(`Error executing query for condition (${whereClause}):`, error.message);
-    throw new Error('Database query error');
+    throw new AppError('Database query error while fetching status', 500, {
+      type: 'DatabaseError',
+      isExpected: false,
+    });
   }
 };
 
@@ -57,7 +62,8 @@ const queryStatus = async (whereClause, params) => {
  *
  * @param {number} page - Current page number (1-based index).
  * @param {number} limit - Number of records per page.
- * @returns {Promise<{ data: Array<{ id: uuid, name: string, description: string, is_active: boolean, created_at: timestamp }>, pagination: { page: number, limit: number, totalRecords: number, totalPages: number } }>}
+ * @returns {Promise<{ data: Array, pagination: Object }>} - Paginated data and metadata.
+ * @throws {AppError} - Throws an error if the query fails.
  */
 const getAllStatuses = async (page = 1, limit = 10) => {
   const baseQuery = `
@@ -71,8 +77,7 @@ const getAllStatuses = async (page = 1, limit = 10) => {
   `;
   
   try {
-    // Use paginateQuery to handle pagination
-    const result = await paginateQuery({
+    return await paginateQuery({
       queryText: baseQuery,
       countQueryText: countQuery,
       page,
@@ -80,10 +85,11 @@ const getAllStatuses = async (page = 1, limit = 10) => {
       sortBy: 'created_at',
       sortOrder: 'DESC',
     });
-    return result; // Return paginated data and pagination metadata
   } catch (error) {
-    console.error('Error fetching paginated statuses:', error.message);
-    throw new Error('Failed to fetch statuses from the database.');
+    throw new AppError('Failed to fetch statuses from the database', 500, {
+      type: 'DatabaseError',
+      isExpected: false,
+    });
   }
 };
 
@@ -93,7 +99,8 @@ const getAllStatuses = async (page = 1, limit = 10) => {
  * @param {boolean|null} isActive - Filter by active status (true/false). Pass `null` for no filter.
  * @param {string} sortBy - Column to sort by (e.g., "name" or "created_at").
  * @param {string} sortOrder - Order of sorting ("ASC" or "DESC").
- * @returns {Promise<Array<{ id: uuid, name: string, description: string, is_active: boolean, created_at: timestamp }>>}
+ * @returns {Promise<Array>} - Array of filtered statuses.
+ * @throws {AppError} - Throws an error if the query fails.
  */
 const getFilteredStatuses = async (isActive = null, sortBy = 'created_at', sortOrder = 'DESC') => {
   const filters = [];
@@ -116,23 +123,23 @@ const getFilteredStatuses = async (isActive = null, sortBy = 'created_at', sortO
     const result = await query(text, params);
     return result.rows || [];
   } catch (error) {
-    console.error('Error fetching filtered statuses:', error.message);
-    throw new Error('Failed to fetch filtered statuses from the database.');
+    throw new AppError('Failed to fetch filtered statuses from the database', 500, {
+      type: 'DatabaseError',
+      isExpected: false,
+    });
   }
 };
-
 
 /**
  * Fetches the details of a status by its ID.
  *
  * @param {uuid} id - The ID of the status to fetch.
- * @returns {Promise<{ id: uuid, name: string, description: string, is_active: boolean, created_at: timestamp } | null>}
- * - Returns the status object if found, otherwise null.
- * @throws {Error} - Throws an error if the query fails or if the ID is not provided.
+ * @returns {Promise<Object|null>} - The status object if found, otherwise null.
+ * @throws {AppError} - Throws an error if the query fails or if the ID is not provided.
  */
 const getStatusById = async (id) => {
   if (!id) {
-    throw new Error('Status ID is required');
+    throw new AppError('Status ID is required', 400, { type: 'ValidationError', isExpected: true });
   }
   
   const text = `
@@ -140,14 +147,15 @@ const getStatusById = async (id) => {
     FROM status
     WHERE id = $1;
   `;
-  const params = [id];
   
   try {
-    const result = await query(text, params);
-    return result.rows[0] || null; // Return the status object or null if not found
+    const result = await query(text, [id]);
+    return result.rows[0] || null;
   } catch (error) {
-    console.error('Error fetching status by ID:', error.message);
-    throw new Error('Failed to fetch the status from the database.');
+    throw new AppError('Failed to fetch the status from the database', 500, {
+      type: 'DatabaseError',
+      isExpected: false,
+    });
   }
 };
 
@@ -156,5 +164,5 @@ module.exports = {
   getStatusNameById,
   getAllStatuses,
   getFilteredStatuses,
-  getStatusById
+  getStatusById,
 };

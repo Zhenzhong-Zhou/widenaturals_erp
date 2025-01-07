@@ -1,3 +1,6 @@
+const AppError = require('../utils/app-error');
+const { query } = require('../database/db');
+
 /**
  * Executes a paginated SQL query with optional sorting and filtering.
  *
@@ -10,7 +13,7 @@
  * @param {string} [options.sortBy='id'] - Column to sort by (default: 'id').
  * @param {string} [options.sortOrder='ASC'] - Sorting order ('ASC' or 'DESC').
  * @returns {Promise<Object>} - Returns an object with `data` (records) and `pagination` (metadata).
- * @throws {Error} - Throws an error if the query execution fails.
+ * @throws {AppError} - Throws an error if the query execution fails.
  */
 const paginateQuery = async ({
                                queryText,
@@ -21,19 +24,27 @@ const paginateQuery = async ({
                                sortBy = 'id',
                                sortOrder = 'ASC',
                              }) => {
-  // Input validation
+  // Validate inputs
   if (!Number.isInteger(page) || page < 1) {
-    throw new Error('Page number must be a positive integer.');
+    throw new AppError('Page number must be a positive integer.', 400, {
+      type: 'ValidationError',
+      isExpected: true,
+    });
   }
   
   if (!Number.isInteger(limit) || limit < 1) {
-    throw new Error('Limit must be a positive integer.');
+    throw new AppError('Limit must be a positive integer.', 400, {
+      type: 'ValidationError',
+      isExpected: true,
+    });
   }
   
   const offset = (page - 1) * limit;
   
   // Ensure valid sort order
-  const validSortOrder = sortOrder.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+  const validSortOrder = ['ASC', 'DESC'].includes(sortOrder.toUpperCase())
+    ? sortOrder.toUpperCase()
+    : 'ASC';
   
   // Append ORDER BY, LIMIT, and OFFSET to the query
   const paginatedQuery = `
@@ -49,25 +60,38 @@ const paginateQuery = async ({
       query(countQueryText, params),
     ]);
     
-    const totalRecords = parseInt(countResult.rows[0].count, 10); // Total number of records
-    const totalPages = Math.ceil(totalRecords / limit); // Calculate total pages
+    if (!countResult.rows.length) {
+      throw new AppError('Failed to fetch total record count.', 500, {
+        type: 'DatabaseError',
+      });
+    }
+    
+    const totalRecords = parseInt(countResult.rows[0].count, 10);
+    const totalPages = Math.ceil(totalRecords / limit);
     
     return {
-      data: dataResult.rows, // Paginated records
+      data: dataResult.rows,
       pagination: {
-        page, // Current page number
-        limit, // Records per page
-        totalRecords, // Total number of records
-        totalPages, // Total number of pages
+        page,
+        limit,
+        totalRecords,
+        totalPages,
       },
     };
   } catch (error) {
-    console.error('Error executing paginated query:', {
-      message: error.message,
-      query: queryText,
-      params,
-    });
-    throw new Error('Failed to fetch paginated results.');
+    throw new AppError(
+      'Failed to execute paginated query.',
+      500,
+      {
+        type: 'DatabaseError',
+        isExpected: false,
+        details: {
+          query: queryText,
+          params,
+          errorMessage: error.message,
+        },
+      }
+    );
   }
 };
 

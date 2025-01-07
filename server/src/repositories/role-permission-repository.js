@@ -1,10 +1,13 @@
 const { query } = require('../database/db');
+const AppError = require('../utils/app-error');
+const { logError } = require('../utils/logger-helper');
 
 /**
  * Fetches all permissions for a given role ID.
  *
  * @param {uuid} roleId - The ID of the role.
  * @returns {Promise<Array>} - Array of permissions associated with the role.
+ * @throws {AppError} - Throws an error if the query fails or no permissions are found.
  */
 const getRolePermissionsByRoleId = async (roleId) => {
   const text = `
@@ -22,26 +25,60 @@ const getRolePermissionsByRoleId = async (roleId) => {
       AND srp.name = 'active'
     GROUP BY r.name;
   `;
-  const params = [roleId];
-  const result = await query(text, params);
-  return result.rows[0];
+  
+  try {
+    const params = [roleId];
+    const result = await query(text, params);
+    
+    if (!result.rows.length || !result.rows[0].permissions) {
+      throw new AppError('No permissions found for the specified role.', 404, {
+        type: 'DatabaseError',
+        isExpected: true,
+      });
+    }
+    
+    return result.rows[0].permissions;
+  } catch (error) {
+    logError('Error fetching permissions for role:', {
+      roleId,
+      error: error.message,
+    });
+    throw new AppError('Failed to fetch permissions for the specified role.', 500, {
+      type: 'DatabaseError',
+      isExpected: false,
+    });
+  }
 };
 
 /**
  * Adds a permission to a role.
  *
  * @param {uuid} roleId - The ID of the role.
- * @param {string} permission - The permission to add.
+ * @param {uuid} permissionId - The ID of the permission to add.
  * @returns {Promise<void>}
+ * @throws {AppError} - Throws an error if the query fails.
  */
-const addPermissionToRole = async (roleId, permission) => {
+const addPermissionToRole = async (roleId, permissionId) => {
   const text = `
-    INSERT INTO role_permissions (role_id, permission)
-    VALUES ($1, $2)
+    INSERT INTO role_permissions (role_id, permission_id, status_id, created_at, updated_at)
+    VALUES ($1, $2, (SELECT id FROM status WHERE name = 'active'), NOW(), NOW())
     ON CONFLICT DO NOTHING;
   `;
-  const params = [roleId, permission];
-  await query(text, params);
+  
+  try {
+    const params = [roleId, permissionId];
+    await query(text, params);
+  } catch (error) {
+    logError('Error adding permission to role:', {
+      roleId,
+      permissionId,
+      error: error.message,
+    });
+    throw new AppError('Failed to add permission to the role.', 500, {
+      type: 'DatabaseError',
+      isExpected: false,
+    });
+  }
 };
 
 module.exports = {

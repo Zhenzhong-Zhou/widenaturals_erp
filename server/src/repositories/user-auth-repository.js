@@ -1,3 +1,4 @@
+const AppError = require('../utils/app-error');
 const { query } = require('../database/db');
 const { logError } = require('../utils/logger-helper');
 
@@ -12,7 +13,7 @@ const { logError } = require('../utils/logger-helper');
  * @param {string} authDetails.passwordHash - The hashed password.
  * @param {string} authDetails.passwordSalt - The salt used for hashing the password.
  * @returns {Promise<void>} Resolves when the insertion is successful.
- * @throws {Error} If the query fails.
+ * @throws {AppError} If the query fails.
  */
 const insertUserAuth = async (client, { userId, passwordHash, passwordSalt }) => {
   const sql = `
@@ -23,7 +24,15 @@ const insertUserAuth = async (client, { userId, passwordHash, passwordSalt }) =>
   `;
   const params = [userId, passwordHash, passwordSalt, new Date()];
   
-  await client.query(sql, params);
+  try {
+    await client.query(sql, params);
+  } catch (error) {
+    logError(`Error inserting user authentication details for user ID ${userId}:`, error);
+    throw new AppError('Failed to insert user authentication details', 500, {
+      type: 'DatabaseError',
+      isExpected: false,
+    });
+  }
 };
 
 /**
@@ -31,6 +40,7 @@ const insertUserAuth = async (client, { userId, passwordHash, passwordSalt }) =>
  *
  * @param {string} email - The user's email.
  * @returns {Promise<object>} - The user record with authentication details.
+ * @throws {AppError} If the query fails or the user is not active.
  */
 const getUserAuthByEmail = async (email) => {
   const text = `
@@ -52,14 +62,19 @@ const getUserAuthByEmail = async (email) => {
     const result = await query(text, params);
     
     if (result.rows.length === 0) {
-      logError(`User not found for email: ${email}`); // Log user not found
-      return null; // Return null if user is not found
+      throw new AppError('User not found or inactive', 404, {
+        type: 'AuthenticationError',
+        isExpected: true,
+      });
     }
     
     return result.rows[0];
   } catch (error) {
-    logError(`Error fetching user authentication details: ${error.message}`); // Log query error
-    throw new Error('Failed to fetch user authentication details');
+    logError(`Error fetching user authentication details for email ${email}:`, error);
+    throw new AppError('Failed to fetch user authentication details', 500, {
+      type: 'DatabaseError',
+      isExpected: false,
+    });
   }
 };
 
