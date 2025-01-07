@@ -10,65 +10,50 @@
  * @param {Response} res - Express response object.
  */
 const { signToken, verifyToken } = require('../utils/token-helper');
-const { loginUser } = require('../services/auth-service');
-const { logError, logWarn } = require('../utils/logger-helper');
+const { logError, logWarn, logInfo } = require('../utils/logger-helper');
 
 /**
- * Controller to handle user login.
+ * Handles user logout by clearing authentication cookies and invalidating tokens.
  *
  * @param {object} req - Express request object.
  * @param {object} res - Express response object.
  */
-const loginController = async (req, res) => {
-  const { email, password } = req.body;
-  
+const logoutController = (req, res) => {
   try {
-    // Call the service layer for business logic
-    const { accessToken, refreshToken } = await loginUser(email, password);
+    const isProduction = process.env.NODE_ENV === 'production';
     
-    // Set tokens in cookies
-    res.cookie('accessToken', accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 15 * 60 * 1000, // 15 minutes
-    });
-    
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
-    
-    res.status(200).json({ message: 'Login successful' });
-  } catch (error) {
-    console.error('Error during login:', error);
-    
-    if (error.message.includes('Invalid email or password')) {
-      return res.status(401).json({ error: 'Invalid email or password.' });
+    // Log user details for auditing (only in development and test environments)
+    if (!isProduction && req.user) {
+      logInfo(`User ${req.user.id} logged out at ${new Date().toISOString()}`);
     }
     
-    res.status(500).json({ error: 'Internal server error.' });
+    // Clear cookies storing the access and refresh tokens
+    res.clearCookie('accessToken', {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'strict' : 'lax',
+    });
+    
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'strict' : 'lax',
+    });
+    
+    if (!req.cookies.accessToken && !req.cookies.refreshToken) {
+      return res.status(200).json({ message: 'No active session found' });
+    }
+    
+    // Optionally clear additional cookies if used
+    res.status(200).json({
+      success: true,
+      message: 'Logout successful',
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('Error during logout:', error);
+    res.status(500).json({ error: 'Failed to log out. Please try again later.' });
   }
-};
-
-/**
- * POST /signup
- * Handles user registration.
- * @param {Request} req - Express request object.
- * @param {Response} res - Express response object.
- */
-const signup = (req, res) => {
-  const { username, email, password } = req.body;
-
-  // Logic to register a new user
-  if (!username || !email || !password) {
-    return res
-      .status(400)
-      .json({ error: 'Username, email, and password are required.' });
-  }
-
-  // Example: Mock registration logic (Replace with database insertion)
-  res.status(201).json({ message: 'Signup successful', username });
 };
 
 /**
@@ -123,4 +108,4 @@ const refreshTokenController = async (req, res) => {
   }
 };
 
-module.exports = { loginController, signup, refreshTokenController };
+module.exports = {  logoutController, refreshTokenController };

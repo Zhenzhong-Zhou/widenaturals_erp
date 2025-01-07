@@ -4,26 +4,30 @@
  */
 
 const express = require('express');
-const welcomeRoute = require('./public');
+const publicRoute = require('./public');
+const loginRoute = require('./login');
 const authRoutes = require('./auth');
 const adminRoutes = require('./admin');
 const { createApiRateLimiter } = require('../middlewares/rate-limiter');
-const markAsPublic = require('../middlewares/mark-as-public');
+const authenticate = require('../middlewares/auth');
 
 const router = express.Router();
 
 /**
  * @returns {Function} - API-specific rate-limiting middleware.
  */
-// Apply API rate limiter globally to all routes in this router
 const apiRateLimiter = createApiRateLimiter();
 router.use(apiRateLimiter);
 
-// Attach sub-routes
-router.use('/public', markAsPublic, welcomeRoute);
-router.use('/auth', markAsPublic, authRoutes);
+// Public routes
+router.use('/public', publicRoute);
 
-router.use('/admin', adminRoutes);
+// Authentication routes
+router.use('/auth',  loginRoute);
+router.use('/auth', authenticate(), authRoutes);
+
+// Admin routes
+router.use('/admin', authenticate(), adminRoutes);
 
 // Export the router
 module.exports = router;

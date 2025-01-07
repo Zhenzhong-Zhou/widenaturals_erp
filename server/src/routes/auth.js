@@ -4,15 +4,12 @@
  */
 
 const express = require('express');
-const { signup, loginController, refreshTokenController } = require('../controllers/auth-controller');
+const { logoutController, refreshTokenController } = require('../controllers/auth-controller');
 
 const router = express.Router();
 
-// Login route
-router.post('/login', loginController);
-
-// Signup route
-router.post('/signup', signup);
+// Logout route
+router.post('/logout', logoutController);
 
 // Refresh token route
 router.post('/refresh', refreshTokenController);
