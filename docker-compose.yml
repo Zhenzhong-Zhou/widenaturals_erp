@@ -26,6 +26,13 @@ services:
     restart: on-failure
     networks:
       - app_network
+#    command: ["node", "--trace-warnings", "./src/index.js"]
+#    healthcheck:
+#      test: [ "CMD-SHELL", "curl -f http://localhost:8082/example/health || exit 1" ]
+#      interval: 30s
+#      timeout: 10s
+#      retries: 5
+#      start_period: 30s
 
   database:
     image: postgres:17-alpine
@@ -55,6 +62,28 @@ services:
     networks:
       - app_network
     restart: on-failure
+
+#  nginx:
+#    image: nginx:latest
+#    ports:
+#      - "443:443" # HTTPS
+#      - "80:80"   # Redirect HTTP to HTTPS
+#    volumes:
+#      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+#      - ./nginx/ssl:/etc/ssl:ro
+#    depends_on:
+#      server:
+#        condition: service_healthy
+#    networks:
+#      - app_network
+#    restart: on-failure
+
+#  certbot:
+#    image: certbot/certbot
+#    volumes:
+#      - ./nginx/ssl:/etc/letsencrypt
+#      - ./nginx/conf:/etc/nginx/conf.d
+#    entrypoint: sh -c 'certbot certonly --webroot -w /var/www/certbot --email your-email@example.com --agree-tos --no-eff-email -d example.com'
 
 volumes:
   pgdata:
