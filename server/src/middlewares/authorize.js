@@ -31,7 +31,7 @@ const authorize = (requiredPermissions = []) => {
         });
       }
       
-      const userPermissions = rolePermissions.permissions.map((perm) => perm); // Use the `key` field
+      const userPermissions = rolePermissions.map((perm) => perm); // Use the `key` field
       
       // Check if the user has all required permissions
       const hasPermission = requiredPermissions.every((perm) => userPermissions.includes(perm));

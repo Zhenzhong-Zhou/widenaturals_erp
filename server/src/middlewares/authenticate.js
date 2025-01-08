@@ -28,11 +28,13 @@ const authenticate = () => {
         return next();
       } catch (error) {
         if (error.name === 'TokenExpiredError' && refreshToken) {
-          logWarn('Access token expired. Attempting to refresh.');
+          logWarn('Access token expired. Attempting to refresh with a valid refresh token.');
           
           try {
             // Verify the refresh token
             const refreshPayload = verifyToken(refreshToken, true); // `true` indicates it's a refresh token
+            
+            // Issue a new access token
             const newAccessToken = signToken({ id: refreshPayload.id, role_id: refreshPayload.role_id });
             
             // Set the new access token in the cookie
@@ -60,7 +62,7 @@ const authenticate = () => {
       }
     } catch (error) {
       logError('Authentication middleware encountered an error:', error);
-      next(error); // Pass to the error handler
+      next(error); // Pass to the global error handler
     }
   };
 };

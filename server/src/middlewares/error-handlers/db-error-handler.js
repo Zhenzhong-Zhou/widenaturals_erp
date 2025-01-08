@@ -16,10 +16,19 @@ const { logError } = require('../../utils/logger-helper');
  * @param {Function} next - Express next middleware function
  */
 const dbErrorHandler = (err, req, res, next) => {
+  // Check if the error is a database error (identified by `err.code`)
+  if (!err.code) {
+    return next(err); // Not a database error, pass it to the next middleware
+  }
+  
+  // Ensure defaults for error properties
+  const message = err.message || 'Unknown database error occurred.';
+  const code = err.code || 'UNKNOWN_DB_ERROR';
+  
   // Handle unique constraint violation
-  if (err.code === '23505') {
+  if (code === '23505') {
     logError('Database Error: Unique constraint violation', {
-      message: err.message,
+      message,
       table: err.table || 'unknown',
       constraint: err.constraint || 'unknown',
       route: req.originalUrl,
@@ -37,9 +46,9 @@ const dbErrorHandler = (err, req, res, next) => {
   }
   
   // Handle foreign key constraint violation
-  if (err.code === '23503') {
+  if (code === '23503') {
     logError('Database Error: Foreign key constraint violation', {
-      message: err.message,
+      message,
       table: err.table || 'unknown',
       constraint: err.constraint || 'unknown',
       route: req.originalUrl,
@@ -56,28 +65,17 @@ const dbErrorHandler = (err, req, res, next) => {
     return res.status(errorResponse.status).json(errorResponse.toJSON());
   }
   
-  // Handle other known database errors
-  if (err.code) {
-    logError('Database Error:', {
-      message: err.message,
-      code: err.code,
-      table: err.table || 'unknown',
-      route: req.originalUrl,
-      method: req.method,
-      ip: req.ip,
-    });
-    
-    const errorResponse = new AppError('Database error occurred.', 500, {
-      type: 'DatabaseError',
-      code: `DB_ERROR_${err.code}`,
-      isExpected: false,
-    });
-    
-    return res.status(errorResponse.status).json(errorResponse.toJSON());
-  }
+  // Log and propagate other database errors
+  logError('Unexpected Database Error:', {
+    message,
+    code,
+    table: err.table || 'unknown',
+    route: req.originalUrl,
+    method: req.method,
+    ip: req.ip,
+  });
   
-  // Pass other errors to the next middleware
-  next(err);
+  return next(err); // Pass to the general error handler
 };
 
 module.exports = dbErrorHandler;
