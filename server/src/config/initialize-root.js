@@ -1,7 +1,8 @@
-const { hashPasswordWithSalt } = require('../utils/password-helper');
-const { createUser } = require('../repositories/user-repository');
-const { getClient } = require('../database/db');
 const { logError, logInfo, logWarn, logFatal } = require('../utils/logger-helper');
+const { hashPasswordWithSalt } = require('../utils/password-helper');
+const { createUser, getUserByEmail } = require('../repositories/user-repository');
+const { validateRoleByName, validateStatus } = require('../validators/db-validators');
+const AppError = require('../utils/app-error');
 
 /**
  * Initializes the root admin account if it doesn't already exist.
@@ -15,43 +16,48 @@ const initializeRootAdmin = async () => {
     process.exit(1); // Terminate if credentials are missing
   }
   
-  // Hash the password with a unique salt
-  const { passwordHash, passwordSalt } = await hashPasswordWithSalt(password);
-  
-  const client = await getClient()
   try {
-    await client.query('BEGIN');
+    // Check if root admin already exists
+    const existingUser = await getUserByEmail(email);
+    if (existingUser) {
+      logWarn('Root admin already exists. Skipping initialization.');
+      return;
+    }
+    
+    // Validate role and status
+    const roleId = await validateRoleByName('root_admin');
+    const statusId = await validateStatus('active');
+    
+    // Hash the password
+    const { passwordHash, passwordSalt } = await hashPasswordWithSalt(password);
     
     // Create the root admin user
     const user = await createUser({
       email,
       passwordHash,
       passwordSalt,
-      roleId: (await client.query(`SELECT id FROM roles WHERE name = 'root_admin'`)).rows[0].id,
-      statusId: (await client.query(`SELECT id FROM status WHERE name = 'active'`)).rows[0].id,
-      firstname: 'Root', // Optional, can be null
-      lastname: 'Admin', // Optional, can be null
-      phoneNumber: null, // Optional
-      jobTitle: 'System Administrator', // Optional, can be null
-      note: 'Initial root admin account', // Optional
-      statusDate: new Date(), // Default to current date
-      createdBy: null, // No creator for the root admin
+      roleId,
+      statusId,
+      firstname: 'Root',
+      lastname: 'Admin',
+      phoneNumber: null,
+      jobTitle: 'System Administrator',
+      note: 'Initial root admin account',
+      statusDate: new Date(),
+      createdBy: null,
     });
     
-    if (!user) {
-      logWarn('Root admin already exists.');
-      await client.query('ROLLBACK');
-      return;
+    logInfo(`Root admin initialized successfully: ${user.email}`);
+  } catch (error) {
+    logError('Error initializing root admin:', error);
+    
+    if (error instanceof AppError) {
+      logFatal(`Root admin initialization failed due to: ${error.message}`);
+    } else {
+      logFatal('An unexpected error occurred during root admin initialization.');
     }
     
-    await client.query('COMMIT');
-    logInfo('Root admin initialized successfully.');
-  } catch (error) {
-    await client.query('ROLLBACK');
-    logError('Error initializing root admin:', error);
-    throw error;
-  } finally {
-    client.release();
+    throw error; // Re-throw to allow server start process to handle it
   }
 };
 

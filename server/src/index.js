@@ -30,6 +30,8 @@ validateEnv([
   { envVar: 'DB_USER', secret: null, required: true },
   { envVar: 'DB_PORT', secret: null, required: true },
   { envVar: 'API_PREFIX', secret: null, required: true },
+  { envVar: 'ROOT_ADMIN_EMAIL', secret: null, required: true },
+  { envVar: 'ROOT_ADMIN_PASSWORD', secret: null, required: true },
 ]);
 
 // Start the server

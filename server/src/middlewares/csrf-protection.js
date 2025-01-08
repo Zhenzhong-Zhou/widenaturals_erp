@@ -20,7 +20,7 @@ const AppError = require('../utils/app-error');
 const csrfProtection = () => {
   // Skip CSRF for certain API paths or methods
   const shouldBypassCSRF = (req) => {
-    if (process.env.NODE_ENV === 'development' && process.env.CSRF_TESTING !== 'true') {
+    if (process.env.NODE_ENV === 'development' && process.env.CSRF_TESTING !== true) {
       return true; // Bypass CSRF in development unless explicitly testing
     }
     
