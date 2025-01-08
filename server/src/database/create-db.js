@@ -11,7 +11,7 @@ const { retryDatabaseConnection } = require('./db');
 const knex = require('knex')(require('../../knexfile').development);
 
 // Load environment variables
-const env = loadEnv();
+const { env } = loadEnv();
 
 // Ensure all required environment variables are present
 validateEnvVars();
