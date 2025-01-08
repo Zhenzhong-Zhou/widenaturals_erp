@@ -7,7 +7,7 @@
 const fs = require('fs');
 const path = require('path');
 const dotenv = require('dotenv');
-const { logWarn, logError } = require('../utils/logger-helper'); // Lazy import the logger
+const { logWarn, logError, logFatal } = require('../utils/logger-helper'); // Lazy import the logger
 
 /**
  * Load a secret value from Docker secrets if available.
@@ -29,69 +29,45 @@ const loadSecret = (secretName, envVarName) => {
  * Loads environment variables from `.env` files based on the `NODE_ENV` value.
  * Validates that the `NODE_ENV` is one of the allowed environments.
  *
- * @returns {string} - The current environment (`development`, `test`, `staging`, `production`).
+ * @returns {{jwtRefreshSecret: string, jwtAccessSecret: string, env: (string|string), dbPassword: string}} - The current environment (`development`, `test`, `staging`, `production`).
  */
 const loadEnv = () => {
-  // Determine the current environment (default to 'development')
   const env = process.env.NODE_ENV?.trim().toLowerCase() || 'development';
-
+  
   // Allowed environments
   const allowedEnvs = ['development', 'test', 'staging', 'production'];
-
-  // Validate `NODE_ENV`
+  
   if (!allowedEnvs.includes(env)) {
-    if (env === 'production') {
-      throw new Error(
-        `Invalid NODE_ENV value: ${env}. Allowed values: ${allowedEnvs.join(', ')}`
-      );
-    } else {
-      logError(
-        `Invalid NODE_ENV value: ${env}. Allowed values: ${allowedEnvs.join(', ')}`
-      );
-    }
+    const errorMessage = `Invalid NODE_ENV value: ${env}. Allowed values: ${allowedEnvs.join(', ')}`;
+    logError(errorMessage);
+    throw new Error(errorMessage);
   }
-
+  
   const defaultEnvPath = path.resolve(__dirname, '../../../env/.env.defaults');
-  const serverEnvPath = path.resolve(
-    __dirname,
-    `../../../env/${env}/.env.server`
-  );
-  const databaseEnvPath = path.resolve(
-    __dirname,
-    `../../../env/${env}/.env.database`
-  );
-
-  dotenv.config({ path: defaultEnvPath });
-  logMissingFileWarning(defaultEnvPath);
-
-  dotenv.config({ path: serverEnvPath });
-  logMissingFileWarning(serverEnvPath);
-
-  dotenv.config({ path: databaseEnvPath });
-  logMissingFileWarning(databaseEnvPath);
-
-  if (
-    env === 'production' &&
-    (!process.env.ALLOWED_ORIGINS || !process.env.PORT)
-  ) {
-    logWarn('Critical environment variables are missing in production.');
-    throw new Error(
-      'Critical environment variables are missing in production.'
-    );
+  const serverEnvPath = path.resolve(__dirname, `../../../env/${env}/.env.server`);
+  const databaseEnvPath = path.resolve(__dirname, `../../../env/${env}/.env.database`);
+  
+  // Load dotenv files and log missing file warnings
+  [defaultEnvPath, serverEnvPath, databaseEnvPath].forEach((filePath) => {
+    dotenv.config({ path: filePath });
+    if (!fs.existsSync(filePath)) {
+      logWarn(`Warning: Could not load environment file at ${filePath}`);
+    }
+  });
+  
+  // Load critical secrets
+  const jwtAccessSecret = loadSecret('server_jwt_access_secret', 'JWT_ACCESS_SECRET');
+  const jwtRefreshSecret = loadSecret('server_jwt_refresh_secret', 'JWT_REFRESH_SECRET');
+  const dbPassword = loadSecret('db_password', 'DB_PASSWORD');
+  
+  // Validate critical secrets in production
+  if (env === 'production' && (!jwtAccessSecret || !jwtRefreshSecret || !dbPassword)) {
+    const errorMessage = 'Critical secrets are missing in production.';
+    logFatal(errorMessage);
+    throw new Error(errorMessage);
   }
-
-  return env;
-};
-
-/**
- * Logs a warning if the specified file does not exist.
- *
- * @param {string} filePath - The path of the file to check.
- */
-const logMissingFileWarning = (filePath) => {
-  if (!fs.existsSync(filePath)) {
-    logWarn(`Warning: Could not load environment file at ${filePath}`);
-  }
+  
+  return { env, jwtAccessSecret, jwtRefreshSecret, dbPassword };
 };
 
 /**
@@ -123,4 +99,4 @@ const validateEnv = (config) => {
   }
 };
 
-module.exports = { loadEnv, validateEnv };
+module.exports = { loadEnv, validateEnv, loadSecret };

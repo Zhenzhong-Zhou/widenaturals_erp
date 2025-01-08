@@ -117,5 +117,33 @@ const retry = async (fn, retries = 3) => {
   }
 };
 
+/**
+ * Retry database connection using a pool.
+ * @param {Object} config - Database configuration.
+ * @param {number} retries - Maximum number of retry attempts.
+ */
+const retryDatabaseConnection = async (config, retries = 5) => {
+  const pool = new Pool(config);
+  let attempts = 0;
+  
+  while (attempts < retries) {
+    try {
+      const client = await pool.connect(); // Attempt to connect using the pool
+      console.log('Database connected successfully!');
+      client.release(); // Release the client back to the pool
+      await pool.end(); // Close the pool after success
+      return;
+    } catch (error) {
+      attempts++;
+      console.error(`Database connection attempt ${attempts} failed:`, error.message);
+      if (attempts === retries) {
+        await pool.end(); // Ensure the pool is closed after the final attempt
+        throw new Error('Failed to connect to the database after multiple attempts.');
+      }
+      await new Promise((res) => setTimeout(res, 5000)); // Wait 5 seconds before retrying
+    }
+  }
+};
+
 // Export the utilities
-module.exports = { pool, query, getClient, closePool, testConnection, monitorPool, retry };
+module.exports = { pool, query, getClient, closePool, testConnection, monitorPool, retry, retryDatabaseConnection };

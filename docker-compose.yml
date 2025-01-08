@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8080:8080"
+      - "8082:8082"
     volumes:
       - ./server:/app
       - ./env:/env
@@ -14,16 +14,25 @@ services:
       - ./env/${NODE_ENV:-development}/.env.server  # Load non-sensitive environment variables
     environment:
       NODE_ENV: ${NODE_ENV:-development}
+      DB_HOST: database
       DB_PASSWORD_FILE: /run/secrets/db_password
     secrets:
-      - server_jwt_secret
+      - server_jwt_access_secret
+      - server_jwt_refresh_secret
     depends_on:
-      - database
+      database:
+        condition: service_healthy
+    mem_limit: 512m
     networks:
       - app_network
 
   database:
     image: postgres:17-alpine
+    healthcheck:
+      test: [ "CMD", "pg_isready", "-U", "postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     ports:
       - "5432:5432"
     environment:
@@ -40,11 +49,14 @@ services:
 volumes:
   pgdata:
 
-networks:
-  app_network:
-
 secrets:
-  server_jwt_secret:
-    file: ./secrets/${NODE_ENV:-development}/server_jwt_secret.txt
+  server_jwt_access_secret:
+    file: ./secrets/${NODE_ENV:-development}/server_jwt_access_secret.txt
+  server_jwt_refresh_secret:
+    file: ./secrets/${NODE_ENV:-development}/server_jwt_refresh_secret.txt
   db_password:
     file: ./secrets/${NODE_ENV:-development}/db_password.txt
+
+networks:
+  app_network:
+    driver: bridge

@@ -3,11 +3,12 @@
  * @description Script to check the existence of the target database, create it if necessary, and run migrations/seeds.
  */
 
-const { Pool } = require('pg'); // Use Pool for direct DB connection
+const { Pool } = require('pg');
 const { logInfo, logError } = require('../utils/logger-helper');
 const { loadEnv } = require('../config/env');
 const { getConnectionConfig, validateEnvVars } = require('../config/db-config');
-const knex = require('knex')(require('../../knexfile').development); // Import Knex with configuration
+const { retryDatabaseConnection } = require('./db');
+const knex = require('knex')(require('../../knexfile').development);
 
 // Load environment variables
 const env = loadEnv();
@@ -27,12 +28,18 @@ const targetDatabase = process.env.DB_NAME; // Target database name
  * Initializes the database: checks existence, creates if necessary, and runs migrations/seeds.
  */
 const createDatabaseAndInitialize = async () => {
+  if (!targetDatabase) {
+    logError('Environment variable DB_NAME is missing.');
+    process.exit(1);
+  }
+  
   const pool = new Pool(adminConnectionConfig);
   
   try {
-    logInfo(
-      `Checking for database: '${targetDatabase}' in '${env}' environment`
-    );
+    logInfo(`Checking for database: '${targetDatabase}' in '${env}' environment`);
+    
+    // Ensure admin connection is ready
+    await retryDatabaseConnection(adminConnectionConfig, 5);
     
     // Query to check if the database exists
     const result = await pool.query(
@@ -58,15 +65,11 @@ const createDatabaseAndInitialize = async () => {
     await knex.seed.run();
     logInfo('Database seeds executed successfully.');
   } catch (error) {
-    if (error.code === '3D000') {
-      logError(error, null, {
-        additionalInfo: `Database '${targetDatabase}' does not exist`,
-      });
-    } else {
-      logError(error, null, {
-        additionalInfo: 'Unexpected error during database creation process or initialization process',
-      });
-    }
+    logError(error, null, {
+      additionalInfo: error.code === '3D000'
+        ? `Database '${targetDatabase}' does not exist`
+        : 'Unexpected error during database creation or initialization',
+    });
     process.exit(1); // Exit process with failure code
   } finally {
     await pool.end(); // Close the administrative pool
@@ -81,9 +84,7 @@ module.exports = { createDatabaseAndInitialize };
 // Self-executing script for standalone use
 if (require.main === module) {
   createDatabaseAndInitialize()
-    .then(() => {
-      logInfo('Database creation and initialization process completed successfully.');
-    })
+    .then(() => logInfo('Database creation and initialization completed successfully.'))
     .catch((error) => {
       logError(error, null, { additionalInfo: 'Failed to set up database' });
       process.exit(1);

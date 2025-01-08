@@ -99,7 +99,7 @@ const getUserByEmail = async (email) => {
     const result = await query(sql, params);
     
     if (result.rows.length === 0) {
-      throw new AppError('User not found', 404, { type: 'NotFoundError', isExpected: true });
+      return null; // Return null if no user is found
     }
     
     return result.rows[0];

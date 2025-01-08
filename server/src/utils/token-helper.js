@@ -2,9 +2,8 @@ const jwt = require('jsonwebtoken');
 const { logError } = require('./logger-helper');
 const { loadEnv } = require('../config/env');
 
-loadEnv()
-const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
-const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
+// Load environment and secrets
+const { jwtAccessSecret, jwtRefreshSecret } = loadEnv();
 
 /**
  * Signs a payload to generate a JWT token.
@@ -14,7 +13,7 @@ const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
  * @returns {string} - The signed JWT token.
  */
 const signToken = (payload, isRefreshToken = false) => {
-  const secret = isRefreshToken ? REFRESH_SECRET : ACCESS_SECRET;
+  const secret = isRefreshToken ? jwtRefreshSecret : jwtAccessSecret;
   const expiresIn = isRefreshToken ? '7d' : '15m'; // 7 days for refresh tokens, 15 minutes for access tokens
   
   if (!secret) {
@@ -25,7 +24,7 @@ const signToken = (payload, isRefreshToken = false) => {
 };
 
 /**
- * Verifies a JWT token.
+ * Verifies a JWT token and returns the decoded payload.
  *
  * @param {string} token - The token to verify.
  * @returns {object} - The decoded token payload.
@@ -41,7 +40,7 @@ const signToken = (payload, isRefreshToken = false) => {
  */
 const verifyToken = (token, isRefresh = false) => {
   try {
-    const secret = isRefresh ? REFRESH_SECRET : ACCESS_SECRET;
+    const secret = isRefresh ? jwtRefreshSecret : jwtAccessSecret;
     return jwt.verify(token, secret);
   } catch (error) {
     logError(`Invalid or expired ${isRefresh ? 'refresh' : 'access'} token`, error);
