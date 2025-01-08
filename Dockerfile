@@ -46,21 +46,25 @@ EXPOSE 3000
 # Start the React development server
 CMD ["npm", "start"]
 
-# Build stage
-FROM node:22.12.0-alpine AS build
+# Base stage
+FROM node:22.12.0-alpine AS base
 WORKDIR /app
-
-# Copy package.json and package-lock.json
 COPY package*.json ./
-
-# Install dependencies
 RUN npm install
 
-# Copy the rest of the application
+# Build stage (for React apps)
+FROM base AS build
 COPY . .
+RUN if [ -f "package.json" ] && grep -q '"build":' package.json; then npm run build; else mkdir build && echo "Skipping build step (no React app detected)."; fi
 
-# Build the React application
-RUN npm run build
+# Final stage (for running Express server)
+FROM node:22.12.0-alpine AS server
+WORKDIR /app
+COPY --from=base /app/node_modules ./node_modules
+COPY --from=build /app/build ./build
+COPY . .
+EXPOSE 8082
+CMD ["node", "server.js"]
 
 # Serve stage
 FROM nginx:stable-alpine

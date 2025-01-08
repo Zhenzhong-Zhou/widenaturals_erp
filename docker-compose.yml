@@ -7,7 +7,7 @@ services:
       - "8082:8082"
     volumes:
       - ./server:/app
-      - ./env:/env
+      - ./env:/env:ro
     env_file:
       - ./env/.env.defaults  # Load non-sensitive environment variables
       - ./env/${NODE_ENV:-development}/.env.database  # Load non-sensitive environment variables
@@ -23,13 +23,14 @@ services:
       database:
         condition: service_healthy
     mem_limit: 512m
+    restart: on-failure
     networks:
       - app_network
 
   database:
     image: postgres:17-alpine
     healthcheck:
-      test: [ "CMD", "pg_isready", "-U", "postgres" ]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d widenaturals_erp_development"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -43,8 +44,17 @@ services:
       - pgdata:/var/lib/postgresql/data
     secrets:
       - db_password
+    mem_limit: 1g
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: "1g"
+        reservations:
+          memory: "512m"
     networks:
       - app_network
+    restart: on-failure
 
 volumes:
   pgdata:
@@ -60,3 +70,4 @@ secrets:
 networks:
   app_network:
     driver: bridge
+#    internal: true // todo when has client try it again
