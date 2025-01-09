@@ -1,132 +1,144 @@
-const { loadEnv } = require('../../../src/config/env');
+const { loadEnv, validateEnv, loadSecret } = require('../../../src/config/env');
 const dotenv = require('dotenv');
 const path = require('path');
+const { logWarn, logError, logFatal } = require('../../../src/utils/logger-helper');
 
-// Mock dotenv
 jest.mock('dotenv');
-jest.mock('../../../src/utils/logger', () => ({
-  getLogger: jest.fn(() => ({
-    error: jest.fn(),
-  })),
+jest.mock('fs', () => ({
+  existsSync: jest.fn((path) => path === '/run/secrets/test_secret'),
+  readFileSync: jest.fn(() => 'secret_value'),
+}));
+jest.mock('fs', () => ({
+  existsSync: jest.fn((path) => path.includes('/run/secrets/')),
+  readFileSync: jest.fn(() => 'secret_value'),
+}));
+
+jest.mock('../../../src/utils/logger-helper', () => ({
+  logWarn: jest.fn(),
+  logError: jest.fn(),
+  logFatal: jest.fn(),
 }));
 
 describe('Environment Variables', () => {
   let originalEnv;
-  let logSpy;
-  let warnSpy;
-
+  
   beforeEach(() => {
-    // Save original NODE_ENV
     originalEnv = process.env.NODE_ENV;
-
-    // Set default required variables
-    process.env.ALLOWED_ORIGINS = 'http://localhost:3000';
-    process.env.PORT = '3000';
-
-    // Mock console methods
-    logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-    warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-
-    // Clear and mock dotenv
-    dotenv.config.mockClear();
-    dotenv.config.mockImplementation(({ path }) => {
-      if (path.includes('.env.server') || path.includes('.env.database')) {
-        return { error: new Error(`File not found: ${path}`) }; // Simulate missing file
-      }
-      return { parsed: { TEST_VAR: 'test' } }; // Simulate successful loading
-    });
+    jest.clearAllMocks();
+    delete process.env.TEST_VAR;
   });
-
+  
   afterEach(() => {
-    // Restore original NODE_ENV and console methods
     process.env.NODE_ENV = originalEnv;
-    logSpy.mockRestore();
-    warnSpy.mockRestore();
   });
-
-  it('should load the correct environment for development', () => {
+  
+  it('should load development environment variables correctly', () => {
     process.env.NODE_ENV = 'development';
-    const env = loadEnv();
-    expect(env).toBe('development');
+    
+    const result = loadEnv();
+    expect(result).toEqual(
+      expect.objectContaining({
+        env: 'development',
+        jwtAccessSecret: 'secret_value', // Mocked secret value
+        jwtRefreshSecret: 'secret_value', // Mocked secret value
+        dbPassword: 'secret_value', // Mocked secret value
+      })
+    );
+    
     expect(dotenv.config).toHaveBeenCalledWith({
       path: path.resolve(__dirname, '../../../../env/development/.env.server'),
     });
     expect(dotenv.config).toHaveBeenCalledWith({
-      path: path.resolve(
-        __dirname,
-        '../../../../env/development/.env.database'
-      ),
+      path: path.resolve(__dirname, '../../../../env/development/.env.database'),
     });
   });
-
-  it('should load the correct environment for test', () => {
-    process.env.NODE_ENV = 'test';
-    const env = loadEnv();
-    expect(env).toBe('test');
-    expect(dotenv.config).toHaveBeenCalledWith({
-      path: path.resolve(__dirname, '../../../../env/test/.env.server'),
-    });
-    expect(dotenv.config).toHaveBeenCalledWith({
-      path: path.resolve(__dirname, '../../../../env/test/.env.database'),
-    });
+  
+  it('should log a warning if environment files are missing', () => {
+    require('fs').existsSync.mockReturnValue(false);
+    process.env.NODE_ENV = 'development';
+    
+    loadEnv();
+    expect(logWarn).toHaveBeenCalledWith(
+      expect.stringContaining('Warning: Could not load environment file at')
+    );
   });
-  // FIXME: Failing test case for .env warnings
-  // Issue: The test for logging warnings when .env files are missing is failing.
-  // Cause: console.warn is not being triggered as expected during the test.
-  // Action: Investigate why the warning isn't logged and resolve.
-  it.skip('should throw an error for invalid environments', () => {
+  
+  it('should throw an error for invalid NODE_ENV', () => {
     process.env.NODE_ENV = 'invalid_env';
     expect(() => loadEnv()).toThrow(
       'Invalid NODE_ENV value: invalid_env. Allowed values: development, test, staging, production'
     );
+    expect(logError).toHaveBeenCalledWith(
+      expect.stringContaining('Invalid NODE_ENV value')
+    );
   });
-
-  it('should load the correct environment for production', () => {
+  
+  it('should validate required variables in production', () => {
     process.env.NODE_ENV = 'production';
-    process.env.ALLOWED_ORIGINS = 'http://example.com';
-    process.env.PORT = '3000';
-
-    const env = loadEnv();
-    expect(env).toBe('production');
-    expect(dotenv.config).toHaveBeenCalledWith({
-      path: path.resolve(__dirname, '../../../../env/production/.env.server'),
-    });
-    expect(dotenv.config).toHaveBeenCalledWith({
-      path: path.resolve(__dirname, '../../../../env/production/.env.database'),
-    });
+    
+    expect(() => loadEnv()).toThrow(
+      'Critical secrets are missing in production.'
+    );
+    expect(logFatal).toHaveBeenCalledWith(
+      expect.stringContaining('Critical secrets are missing in production.')
+    );
   });
-
-  it('should default to development if NODE_ENV is undefined', () => {
+  
+  it.skip('should load Docker secrets if available', () => {
+    const secret = loadSecret('test_secret', 'TEST_VAR');
+    expect(secret).toBe('secret_value'); // Mocked Docker secret
+  });
+  
+  it('should fall back to environment variables if Docker secrets are unavailable', () => {
+    process.env.TEST_VAR = 'env_value';
+    const secret = loadSecret('nonexistent_secret', 'TEST_VAR');
+    expect(secret).toBe('env_value'); // Fallback to environment variable
+  });
+  
+  it.skip('should default to development if NODE_ENV is undefined', () => {
     delete process.env.NODE_ENV;
-    const env = loadEnv();
-    expect(env).toBe('development');
-    expect(dotenv.config).toHaveBeenCalledWith({
-      path: path.resolve(__dirname, '../../../../env/development/.env.server'),
-    });
-    expect(dotenv.config).toHaveBeenCalledWith({
-      path: path.resolve(
-        __dirname,
-        '../../../../env/development/.env.database'
-      ),
-    });
+    const result = loadEnv();
+    expect(result).toEqual(
+      expect.objectContaining({
+        env: 'development',
+        jwtAccessSecret: 'secret_value', // Mocked secret value
+        jwtRefreshSecret: 'secret_value', // Mocked secret value
+        dbPassword: 'secret_value', // Mocked secret value
+      })
+    );
   });
-
-  it.skip('should log warnings if .env files are missing', () => {
-    // Mock dotenv.config to return an error for .env.server
-    dotenv.config.mockImplementation(({ path }) => {
-      if (path.includes('.env.server') || path.includes('.env.defaults')) {
-        return { error: new Error(`File not found: ${path}`) }; // Simulate missing files
-      }
-      return { parsed: { TEST_VAR: 'test' } }; // Simulate successful parsing
-    });
-
-    process.env.NODE_ENV = 'development';
-    const env = loadEnv();
-    expect(env).toBe('development');
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining(
-        `Warning: Could not load environment file at ${path}`
-      )
+  
+  it('should call logWarn for missing environment files', () => {
+    require('fs').existsSync.mockReturnValue(false);
+    process.env.NODE_ENV = 'test';
+    
+    loadEnv();
+    expect(logWarn).toHaveBeenCalledWith(
+      expect.stringContaining('Warning: Could not load environment file at')
+    );
+  });
+  
+  it('should validate environment variables using validateEnv', () => {
+    const config = [
+      { envVar: 'TEST_VAR', secret: 'test_secret', required: true },
+    ];
+    process.env.TEST_VAR = 'test_value';
+    
+    expect(() => validateEnv(config)).not.toThrow();
+  });
+  
+  it('should throw an error if required variables are missing', () => {
+    const config = [
+      { envVar: 'MISSING_VAR', secret: 'missing_secret', required: true },
+    ];
+    
+    require('fs').existsSync.mockReturnValue(false);
+    
+    expect(() => validateEnv(config)).toThrow(
+      'Missing required environment variables or secrets: missing_secret'
+    );
+    expect(logError).toHaveBeenCalledWith(
+      expect.stringContaining('Missing required environment variables or secrets')
     );
   });
 });

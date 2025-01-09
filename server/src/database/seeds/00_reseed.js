@@ -6,7 +6,7 @@
 const readline = require('readline');
 const { loadEnv } = require('../../config/env');
 const { logInfo, logWarn, logError } = require('../../utils/logger-helper');
-const env = loadEnv();
+const { env } = loadEnv();
 const knex = require('knex')(require('../../../knexfile')[env]);
 
 // Abstract process.exit for testability

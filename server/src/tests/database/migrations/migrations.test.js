@@ -50,7 +50,7 @@ describe('Database Migrations', () => {
   it('should create all expected tables', async () => {
     for (const table of expectedTables.concat(knexTables)) {
       const exists = await db.schema.hasTable(table);
-      console.log(`Checking table: ${table} - Exists: ${exists}`);
+      // console.log(`Checking table: ${table} - Exists: ${exists}`);
       expect(exists).toBe(true);
     }
   });
@@ -60,13 +60,13 @@ describe('Database Migrations', () => {
 
     for (const table of expectedTables) {
       const exists = await db.schema.hasTable(table);
-      console.log(`Table after rollback: ${table} - Exists: ${exists}`);
+      // console.log(`Table after rollback: ${table} - Exists: ${exists}`);
       expect(exists).toBe(false); // User-defined tables should not exist
     }
 
     for (const table of knexTables) {
       const exists = await db.schema.hasTable(table);
-      console.log(`Knex-specific table: ${table} - Exists: ${exists}`);
+      // console.log(`Knex-specific table: ${table} - Exists: ${exists}`);
       expect(exists).toBe(true); // Knex tables should persist
     }
   });
@@ -76,7 +76,7 @@ describe('Database Migrations', () => {
 
     for (const table of expectedTables.concat(knexTables)) {
       const exists = await db.schema.hasTable(table);
-      console.log(`Table after reapply: ${table} - Exists: ${exists}`);
+      // console.log(`Table after reapply: ${table} - Exists: ${exists}`);
       expect(exists).toBe(true);
     }
   });
