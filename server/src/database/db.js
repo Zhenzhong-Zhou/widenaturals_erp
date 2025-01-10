@@ -8,6 +8,7 @@ const { Pool } = require('pg');
 const { logInfo, logError, logWarn, logDebug } = require('../utils/logger-helper');
 const { getConnectionConfig } = require('../config/db-config');
 const { loadEnv } = require('../config/env');
+const { stopPoolMonitoring } = require('../monitors/pool-health');
 
 // Get environment-specific connection configuration
 loadEnv();
@@ -22,25 +23,42 @@ const pool = new Pool({
 });
 
 pool.on('connect', () => logInfo('Connected to the database'));
-pool.on('error', (err) =>
-  logError(err, null, { additionalInfo: 'Database connection error' })
-);
+pool.on('error', (err) => {
+  logError('Database connection error', err, { additionalInfo: 'Database connection error' });
+});
 
 /**
- * Execute a query on the database.
+ * Execute a query on the database and monitor for slow execution times.
  * @param {string} text - The SQL query string.
  * @param {Array} [params] - Query parameters (optional).
  * @returns {Promise<object>} - The query result.
  */
 const query = async (text, params = []) => {
   const client = await pool.connect(); // Acquire a client from the pool
+  const startTime = Date.now(); // Start timer for query execution
   try {
-    return await client.query(text, params); // Execute the query
+    const result = await client.query(text, params); // Execute the query
+    const duration = Date.now() - startTime;
+    
+    // Log slow queries
+    const slowQueryThreshold = parseInt(process.env.SLOW_QUERY_THRESHOLD, 10) || 1000; // Default: 1000ms
+    if (duration > slowQueryThreshold) {
+      logWarn('Slow query detected', {
+        query: text,
+        params,
+        duration: `${duration}ms`,
+      });
+    }
+    
+    logInfo('Query executed', { query: text, duration: `${duration}ms` });
+    return result;
   } catch (error) {
-    logError(error, null, {
-      additionalInfo: 'Database connection error', // Ensure consistency here
+    logError('Query execution failed', {
+      query: text,
+      params,
+      error: error.message,
     });
-    throw error; // Re-throw the error for upstream handling
+    throw error;
   } finally {
     client.release(); // Release the client back to the pool
   }
@@ -72,14 +90,24 @@ const testConnection = async () => {
 };
 
 /**
- * Monitor connection pool statistics.
- * Logs the current state of the connection pool.
+ * Logs current pool statistics.
+ * Useful for monitoring pool health.
+ * @returns {Promise<object>} - The current pool metrics.
  */
-const monitorPool = () => {
-  logInfo(`Pool Status:
-  - Total Clients: ${pool.totalCount}
-  - Idle Clients: ${pool.idleCount}
-  - Waiting Requests: ${pool.waitingCount}`);
+const monitorPool = async () => {
+  try {
+    const metrics = {
+      totalClients: pool.totalCount,
+      idleClients: pool.idleCount,
+      waitingRequests: pool.waitingCount,
+    };
+    
+    logInfo('Pool health metrics:', metrics);
+    return metrics;
+  } catch (error) {
+    logError('Failed to retrieve pool metrics:', error.message);
+    throw error;
+  }
 };
 
 /**
@@ -95,9 +123,12 @@ const closePool = async () => {
     return; // Prevent multiple calls
   }
   
+  logInfo('Stopping database monitoring...');
+  stopPoolMonitoring();
+  
+  logInfo('Closing database connection pool...');
+  
   try {
-    logDebug('closePool called.');
-    logInfo('Closing database connection pool...');
     await pool.end(); // Close all connections in the pool
     logInfo('Database connection pool closed.');
     poolClosed = true; // Mark the pool as closed

@@ -7,6 +7,7 @@ const { logWarn } = require('../../utils/logger-helper');
 const express = require('express');
 const request = require('supertest');
 const corsMiddleware = require('../../middlewares/cors');
+const generalErrorHandler = require('../../middlewares/error-handlers/general-error-handler');
 
 describe('CORS Middleware', () => {
   let app;
@@ -16,11 +17,7 @@ describe('CORS Middleware', () => {
     app = express();
     app.use(corsMiddleware);
     app.use((req, res) => res.status(200).send('CORS Test Passed'));
-    
-    // Error-handling middleware
-    app.use((err, req, res, next) => {
-      res.status(err.status || 500).send(err.message);
-    });
+    app.use(generalErrorHandler); // Use custom error handler
   });
   
   test('should allow requests from allowed origins', async () => {
@@ -42,8 +39,10 @@ describe('CORS Middleware', () => {
       .get('/')
       .set('Origin', 'http://disallowed.com');
     
-    expect(response.status).toBe(500); // CORS rejection triggers server error
-    expect(response.text).toContain("CORS error: Origin 'http://disallowed.com' is not allowed");
+    expect(response.status).toBe(500);
+    const responseBody = JSON.parse(response.text);
+    expect(responseBody.message).toBe("CORS error: Origin 'http://disallowed.com' is not allowed");
+    expect(responseBody.status).toBe(500);
   });
   
   test('should allow requests when origin is undefined (non-browser clients)', async () => {
@@ -61,8 +60,6 @@ describe('CORS Middleware', () => {
     
     const response = await request(app).get('/'); // No Origin header sent
     expect(response.status).toBe(200); // Should still allow the request
-    
-    // Assert the correct warning message was logged
     expect(logWarn).toHaveBeenCalledWith(
       'No allowed origins specified in ALLOWED_ORIGINS. CORS may be overly permissive.'
     );
@@ -75,30 +72,32 @@ describe('CORS Middleware', () => {
     const response = await request(app).get('/');
     
     expect(response.status).toBe(500);
-    expect(response.text).toContain('CORS configuration failed');
+    const responseBody = JSON.parse(response.text);
+    expect(responseBody.message).toContain('CORS configuration failed');
   });
   
   test('should allow preflight requests with correct status', async () => {
-    process.env.ALLOWED_ORIGINS = 'http://example.com'; // Allow only specific origins
+    process.env.ALLOWED_ORIGINS = 'http://example.com';
     
     const response = await request(app)
       .options('/')
       .set('Origin', 'http://example.com')
-      .set('Access-Control-Request-Method', 'GET'); // Simulate a preflight request
+      .set('Access-Control-Request-Method', 'GET');
     
-    expect(response.status).toBe(204); // Preflight success status
+    expect(response.status).toBe(204);
     expect(response.header['access-control-allow-origin']).toBe('http://example.com');
     expect(response.header['access-control-allow-methods']).toBeDefined();
   });
   
   test('should handle preflight requests when no allowed origins are specified', async () => {
-    process.env.ALLOWED_ORIGINS = ''; // Simulate no allowed origins
+    process.env.ALLOWED_ORIGINS = '';
     
     const response = await request(app)
       .options('/')
-      .set('Access-Control-Request-Method', 'GET'); // Simulate preflight request
+      .set('Access-Control-Request-Method', 'GET');
     
-    expect(response.status).toBe(204); // Should allow preflight requests
+    expect(response.status).toBe(204);
+    expect(response.header['access-control-allow-origin']).toBeUndefined();
     expect(logWarn).toHaveBeenCalledWith(
       'No allowed origins specified in ALLOWED_ORIGINS. CORS may be overly permissive.'
     );

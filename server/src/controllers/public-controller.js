@@ -5,8 +5,7 @@
 
 const { logInfo, logError, logDebug } = require('../utils/logger-helper');
 const { version } = require('../../package.json'); // Dynamically fetch version from package.json
-const { testConnection } = require('../database/db');
-const { generateSecret } = require('../utils/crypto-utils');
+const { checkServerHealth } = require('../monitors/server-health');
 
 /**
  * GET /public/welcome
@@ -41,22 +40,18 @@ const getWelcomeMessage = (req, res) => {
  * @function getHealthStatus
  * @param {Request} req - Express request object.
  * @param {Response} res - Express response object.
+ * @param next
  * @returns {Object} JSON response with API health status.
  */
-const getHealthStatus = async (req, res) => {
+const getHealthStatus = async (req, res, next) => {
   try {
     logInfo('Checking API health status...');
-    await testConnection(); // Ensures database connectivity
-    res.status(200).json({
-      status: 'Healthy',
-      timestamp: new Date().toISOString(),
-    });
+    const healthStatus = await checkServerHealth();
+    const statusCode = healthStatus.server === 'healthy' ? 200 : 503;
+    res.status(statusCode).json(healthStatus);
   } catch (error) {
     logError('API health check failed', req, { error: error.message });
-    res.status(500).json({
-      status: 'Unhealthy',
-      error: error.message,
-    });
+    next(error);
   }
 };
 

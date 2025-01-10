@@ -1,7 +1,8 @@
 /**
  * @file loggerHelper.js
- * @description Utility functions for centralized logging and sensitive data sanitization.
+ * @description Centralized logging utility with contextual metadata and sensitive data sanitization.
  */
+
 const { sanitizeMessage } = require('./sensitive-data-utils');
 const AppError = require('./app-error');
 
@@ -15,34 +16,22 @@ const getLogger = () => {
 };
 
 /**
- * Centralized logger function with log level control.
- * Includes optional sanitization of messages and contextual metadata.
+ * Centralized logging function with dynamic log levels and optional sanitization.
  *
- * @param {string} level - The log level (e.g., 'info', 'error', 'debug', 'warn', 'fatal').
- * @param {string} message - The log message to record.
- * @param {Object} [req=null] - Optional Express request object for contextual data.
- * @param {Object} [meta={}] - Additional metadata to include in the log.
+ * @param {string} level - Log level (e.g., 'info', 'warn', 'error', 'debug').
+ * @param {string} message - Log message.
+ * @param {Object} [req=null] - Optional Express request object for context.
+ * @param {Object} [meta={}] - Additional metadata.
  * @param {boolean} [sanitize=false] - Whether to sanitize the message.
- * @param {boolean} [maskIp=false] - Whether to mask IP addresses in the message.
  */
-const logWithLevel = (
-  level,
-  message,
-  req = null,
-  meta = {},
-  sanitize = false,
-  maskIp = false
-) => {
-  const sanitizedMessage = sanitize
-    ? sanitizeMessage(message, maskIp)
-    : message;
-
-  // Construct context data from request object or use provided metadata
+const logWithLevel = (level, message, req = null, meta = {}, sanitize = false) => {
+  const sanitizedMessage = sanitize ? sanitizeMessage(message) : message;
+  
   const context = req
     ? {
       method: req.method || 'N/A',
       url: req.originalUrl || 'N/A',
-      ip: maskIp ? '***.***.***.***' : req.ip || 'N/A',
+      ip: req.ip || 'N/A',
       userAgent: req.headers?.['user-agent'] || 'N/A',
       ...meta,
     }
@@ -51,68 +40,23 @@ const logWithLevel = (
   getLogger().log({ level, message: sanitizedMessage, ...context });
 };
 
-/**
- * Logs informational messages.
- * Adds request-related details if provided.
- *
- * @param {string} message - The informational message to log.
- * @param {Object} [req=null] - Optional Express request object for context.
- * @param {Object} [meta={}] - Additional metadata to include in the log.
- */
-const logInfo = (message, req = null, meta = {}) => {
-  logWithLevel('info', message, req, meta);
-};
+// Individual log level wrappers
+const logInfo = (message, req = null, meta = {}) => logWithLevel('info', message, req, meta);
+const logDebug = (message, req = null, meta = {}) => logWithLevel('debug', message, req, meta);
+const logWarn = (message, req = null, meta = {}) => logWithLevel('warn', message, req, meta);
+const logFatal = (message, req = null, meta = {}) => logWithLevel('fatal', message, req, meta);
 
 /**
- * Logs debug messages.
- * Useful for tracing application behavior in development.
+ * Logs error messages with support for `Error` and `AppError` types.
  *
- * @param {string} message - The debug message to log.
+ * @param {string|Error|AppError} errOrMessage - The error object or message to log.
  * @param {Object} [req=null] - Optional Express request object for context.
- * @param {Object} [meta={}] - Additional metadata to include in the log.
- */
-const logDebug = (message, req = null, meta = {}) => {
-  logWithLevel('debug', message, req, meta);
-};
-
-/**
- * Logs warning messages.
- * Highlights non-critical issues or potential problems.
- *
- * @param {string} message - The warning message to log.
- * @param {Object} [req=null] - Optional Express request object for context.
- * @param {Object} [meta={}] - Additional metadata to include in the log.
- */
-const logWarn = (message, req = null, meta = {}) => {
-  logWithLevel('warn', message, req, meta);
-};
-
-/**
- * Logs fatal error messages.
- * Represents critical issues requiring immediate attention.
- *
- * @param {string} message - The fatal error message to log.
- * @param {Object} [req=null] - Optional Express request object for context.
- * @param {Object} [meta={}] - Additional metadata to include in the log.
- */
-const logFatal = (message, req = null, meta = {}) => {
-  logWithLevel('fatal', message, req, meta);
-};
-
-/**
- * Logs error messages conditionally based on the environment.
- * Supports both error objects and string messages.
- * Includes stack trace in development and sanitized messages in production.
- *
- * @param {string|Error} errOrMessage - The error object or message to log.
- * @param {Object} [req=null] - Optional Express request object for context.
- * @param {Object} [meta={}] - Additional metadata to include in the log.
+ * @param {Object} [meta={}] - Additional metadata.
  */
 const logError = (errOrMessage, req = null, meta = {}) => {
   let message, stack, logLevel, errorMeta;
   
   if (errOrMessage instanceof AppError) {
-    // Handle AppError
     message = errOrMessage.message || 'An unknown error occurred';
     stack = process.env.NODE_ENV !== 'production' ? errOrMessage.stack : undefined;
     logLevel = errOrMessage.logLevel || 'error';
@@ -123,23 +67,18 @@ const logError = (errOrMessage, req = null, meta = {}) => {
       isExpected: errOrMessage.isExpected,
     };
   } else if (errOrMessage instanceof Error) {
-    // Handle standard Error
     message = errOrMessage.message || 'An unknown error occurred';
     stack = process.env.NODE_ENV !== 'production' ? errOrMessage.stack : undefined;
     logLevel = 'error';
     errorMeta = {};
   } else {
-    // Handle string messages
     message = errOrMessage;
     stack = undefined;
     logLevel = 'error';
     errorMeta = {};
   }
   
-  // Merge additional metadata
   const combinedMeta = { ...errorMeta, ...meta, stack };
-  
-  // Log the error with the appropriate level
   logWithLevel(logLevel, message, req, combinedMeta, true);
 };
 
@@ -150,5 +89,4 @@ module.exports = {
   logFatal,
   logError,
   logWithLevel,
-  sanitizeMessage,
 };
