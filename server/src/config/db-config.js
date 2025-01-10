@@ -19,28 +19,7 @@
  * ```
  */
 
-const { loadEnv } = require('./env');
-
-// Load environment and secrets
-const { dbPassword } = loadEnv();
-
-/**
- * Validates required database environment variables.
- */
-const validateEnvVars = () => {
-  const requiredVars = [
-    'DB_HOST',
-    'DB_NAME',
-    'DB_USER',
-    'DB_PORT',
-  ];
-  const missingVars = requiredVars.filter((key) => !process.env[key]);
-  if (!dbPassword) missingVars.push('DB_PASSWORD');
-  
-  if (missingVars.length > 0) {
-    throw new Error(`Missing environment variables: ${missingVars.join(', ')}`);
-  }
-};
+const { loadSecret } = require('./env');
 
 /**
  * Retrieves the database pool configuration.
@@ -57,8 +36,8 @@ const getConnectionConfig = () => ({
   host: process.env.DB_HOST,
   database: process.env.DB_NAME,
   user: process.env.DB_USER,
-  password: dbPassword,
+  password: loadSecret('db_password', 'DB_PASSWORD'),
   port: process.env.DB_PORT,
 });
 
-module.exports = { validateEnvVars, getPoolConfig, getConnectionConfig };
+module.exports = { getPoolConfig, getConnectionConfig };

@@ -14,7 +14,7 @@ const { uploadToS3 } = require('./s3-upload');
 const { env } = loadEnv();
 const isDevelopment = env === 'development';
 const logLevel = process.env.LOG_LEVEL || (isDevelopment ? 'debug' : 'info');
-const logsDir = path.resolve(__dirname, process.env.LOGS_DIR || '../../../dev_logs'); // Default to `../../dev_logs'`
+const logsDir = path.resolve(__dirname, process.env.LOGS_DIR || './server/dev_logs'); // Default to `../../dev_logs'`
 
 // Ensure logs directory exists
 if (!fs.existsSync(logsDir)) {

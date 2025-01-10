@@ -14,9 +14,6 @@ const knex = require('knex')(require('../../knexfile').development);
 // Load environment variables
 const { env } = loadEnv();
 
-// Ensure all required environment variables are present
-validateEnvVars();
-
 // Connection configuration for the default administrative database
 const adminConnectionConfig = {
   ...getConnectionConfig(),

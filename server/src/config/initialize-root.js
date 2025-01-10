@@ -1,9 +1,22 @@
+const AppError = require('../utils/app-error');
 const { handleExit } = require('../utils/on-exit');
 const { logError, logInfo, logWarn, logFatal } = require('../utils/logger-helper');
 const { hashPasswordWithSalt } = require('../utils/password-helper');
 const { createUser, getUserByEmail } = require('../repositories/user-repository');
 const { validateRoleByName, validateStatus } = require('../validators/db-validators');
-const AppError = require('../utils/app-error');
+const { ROOT_ADMIN_ROLE, ACTIVE_STATUS, JOB_TITLE } = require('../utils/constants/general/root-admin');
+
+/**
+ * Validates and hashes the password.
+ * @param {string} password - Plaintext password.
+ * @returns {Object} - Hashed password and salt.
+ */
+const validateAndHashPassword = async (password) => {
+  if (password.length < 8) {
+    throw new AppError('Password must be at least 8 characters long.', 400);
+  }
+  return await hashPasswordWithSalt(password);
+};
 
 /**
  * Initializes the root admin account if it doesn't already exist.
@@ -14,10 +27,12 @@ const initializeRootAdmin = async () => {
   
   if (!email || !password) {
     logFatal('Root admin credentials are missing in environment variables.');
-    await handleExit(1) // Terminate if credentials are missing
+    await handleExit(1); // Terminate if credentials are missing
   }
   
   try {
+    logInfo('Initializing root admin account...');
+    
     // Check if root admin already exists
     const existingUser = await getUserByEmail(email);
     if (existingUser) {
@@ -26,11 +41,11 @@ const initializeRootAdmin = async () => {
     }
     
     // Validate role and status
-    const roleId = await validateRoleByName('root_admin');
-    const statusId = await validateStatus('active');
+    const roleId = await validateRoleByName(ROOT_ADMIN_ROLE);
+    const statusId = await validateStatus(ACTIVE_STATUS);
     
-    // Hash the password
-    const { passwordHash, passwordSalt } = await hashPasswordWithSalt(password);
+    // Validate and hash the password
+    const { passwordHash, passwordSalt } = await validateAndHashPassword(password);
     
     // Create the root admin user
     const user = await createUser({
@@ -42,7 +57,7 @@ const initializeRootAdmin = async () => {
       firstname: 'Root',
       lastname: 'Admin',
       phoneNumber: null,
-      jobTitle: 'System Administrator',
+      jobTitle: JOB_TITLE,
       note: 'Initial root admin account',
       statusDate: new Date(),
       createdBy: null,
@@ -58,7 +73,8 @@ const initializeRootAdmin = async () => {
       logFatal('An unexpected error occurred during root admin initialization.');
     }
     
-    throw error; // Re-throw to allow server start process to handle it
+    // Terminate with cleanup on critical error
+    await handleExit(1);
   }
 };
 
