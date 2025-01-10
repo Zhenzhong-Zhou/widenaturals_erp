@@ -203,17 +203,13 @@ artillery report -o report.html results.json
 
 Track Updates
 Use migrations for schema changes (add/remove columns, modify constraints).
-Maintain a clear naming convention for migration files (e.g., add_column_to_table).
-Always write rollback logic in exports.down for consistency.
+
 
 add foc string to all file: AppError and controller, middlewares, routes
 
 
-psql -U postgres -d inventory -h localhost -p 5432 -f /Users/zhenzhongzhou/WebstormProjects/inventory/server/backup/backup_2025_01_03T17_16_08.155Z.sql
-
-
 utils/
 ├── id-utils.js         # ID generation, hashing, masking
-├── mask.js             # Masking sensitive information
+├── sensitive-data-utils.js             # Masking sensitive information
 ├── crypto-utils.js     # Encryption, decryption, general cryptography
 ├── password-helper.js    # Password-specific hashing and verification

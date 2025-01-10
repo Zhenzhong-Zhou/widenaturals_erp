@@ -3,9 +3,10 @@
  * @description Application entry point.
  */
 
-const { logInfo, logFatal } = require('./utils/logger-helper');
+const { logInfo, logFatal, logDebug } = require('./utils/logger-helper');
 const { startServer } = require('./server');
-const { loadEnv, validateEnv } = require('./config/env'); // Load and validate environment variables
+const { loadEnv, validateEnv } = require('./config/env');
+const { setServer, handleExit } = require('./utils/on-exit'); // Load and validate environment variables
 
 // Load environment variables once
 const { env, dbPassword, jwtAccessSecret, jwtRefreshSecret } = loadEnv(); // Logs warnings if `.env` files are missing
@@ -33,10 +34,15 @@ validateEnv([
 // Start the server
 (async () => {
   try {
-    logInfo(`Starting application in ${env} mode...`);
-    await startServer();
+    logInfo('Starting application...');
+    const serverInstance = await startServer();
+    setServer(serverInstance);
+    
+    // Register signal handlers
+    process.on('SIGINT', () => handleExit(0));
+    process.on('SIGTERM', () => handleExit(0));
   } catch (error) {
-    logFatal(`Server startup failed: ${error.message}`);
-    process.exit(1); // Exit with failure code
+    logFatal(`Startup failed: ${error.message}`);
+    await handleExit(1); // Trigger cleanup on startup failure
   }
 })();

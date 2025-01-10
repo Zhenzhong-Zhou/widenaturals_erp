@@ -2,42 +2,16 @@
  * @file loggerHelper.js
  * @description Utility functions for centralized logging and sensitive data sanitization.
  */
+const { sanitizeMessage } = require('./sensitive-data-utils');
+const AppError = require('./app-error');
 
-const logger = require('./logger');
+let logger; // Lazy-loaded logger instance
 
-/**
- * Sanitizes sensitive data from messages or payloads.
- * Includes optional masking for IP addresses.
- *
- * @param {string} message - The original message to sanitize.
- * @param {boolean} [maskIp=false] - Whether to mask IP addresses.
- * @returns {string} - Sanitized message with sensitive data masked.
- */
-const sanitizeMessage = (message, maskIp = false) => {
-  if (!message) return message;
-
-  let sanitizedMessage = message
-    // Mask passwords (e.g., password=1234)
-    .replace(/password=[^& ]+/g, 'password=****')
-    // Mask tokens (e.g., token=abcd1234)
-    .replace(/token=[^& ]+/g, 'token=****')
-    // Mask email addresses (e.g., user@example.com)
-    .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, 'EMAIL')
-    // Mask phone numbers (e.g., 123-456-7890, (123) 456-7890)
-    .replace(
-      /(?:\+\d{1,3}[- ]?)?(?:\(\d{1,4}\)|\d{1,4})[- ]?\d{1,4}[- ]?\d{1,4}[- ]?\d{1,9}/g,
-      'PHONE_NUMBER'
-    );
-
-  // Conditionally mask IP addresses (e.g., 192.168.1.1)
-  if (maskIp) {
-    sanitizedMessage = sanitizedMessage.replace(
-      /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g,
-      'IP_ADDRESS'
-    );
+const getLogger = () => {
+  if (!logger) {
+    logger = require('./logger'); // Lazy import
   }
-
-  return sanitizedMessage;
+  return logger;
 };
 
 /**
@@ -66,16 +40,15 @@ const logWithLevel = (
   // Construct context data from request object or use provided metadata
   const context = req
     ? {
-        method: req.method || 'N/A',
-        url: req.originalUrl || 'N/A',
-        ip: maskIp ? '***.***.***.***' : req.ip || 'N/A',
-        userAgent: req.headers?.['user-agent'] || 'N/A',
-        ...meta,
-      }
+      method: req.method || 'N/A',
+      url: req.originalUrl || 'N/A',
+      ip: maskIp ? '***.***.***.***' : req.ip || 'N/A',
+      userAgent: req.headers?.['user-agent'] || 'N/A',
+      ...meta,
+    }
     : meta;
-
-  // Log the message with context
-  logger.log({ level, message: sanitizedMessage, ...context });
+  
+  getLogger().log({ level, message: sanitizedMessage, ...context });
 };
 
 /**
@@ -136,26 +109,38 @@ const logFatal = (message, req = null, meta = {}) => {
  * @param {Object} [meta={}] - Additional metadata to include in the log.
  */
 const logError = (errOrMessage, req = null, meta = {}) => {
-  let message;
-  let stack;
-
-  // Check if the input is an Error object or a string
-  if (errOrMessage instanceof Error) {
+  let message, stack, logLevel, errorMeta;
+  
+  if (errOrMessage instanceof AppError) {
+    // Handle AppError
     message = errOrMessage.message || 'An unknown error occurred';
-    stack =
-      process.env.NODE_ENV === 'production' ? undefined : errOrMessage.stack;
+    stack = process.env.NODE_ENV !== 'production' ? errOrMessage.stack : undefined;
+    logLevel = errOrMessage.logLevel || 'error';
+    errorMeta = {
+      status: errOrMessage.status,
+      type: errOrMessage.type,
+      code: errOrMessage.code,
+      isExpected: errOrMessage.isExpected,
+    };
+  } else if (errOrMessage instanceof Error) {
+    // Handle standard Error
+    message = errOrMessage.message || 'An unknown error occurred';
+    stack = process.env.NODE_ENV !== 'production' ? errOrMessage.stack : undefined;
+    logLevel = 'error';
+    errorMeta = {};
   } else {
-    message = errOrMessage; // Assume it's a string
-    stack = undefined; // No stack for string messages
+    // Handle string messages
+    message = errOrMessage;
+    stack = undefined;
+    logLevel = 'error';
+    errorMeta = {};
   }
-
-  logWithLevel(
-    'error',
-    message,
-    req,
-    { stack, ...meta },
-    true // Always sanitize error messages
-  );
+  
+  // Merge additional metadata
+  const combinedMeta = { ...errorMeta, ...meta, stack };
+  
+  // Log the error with the appropriate level
+  logWithLevel(logLevel, message, req, combinedMeta, true);
 };
 
 module.exports = {

@@ -1,3 +1,4 @@
+const { handleExit } = require('../utils/on-exit');
 const { logError, logInfo, logWarn, logFatal } = require('../utils/logger-helper');
 const { hashPasswordWithSalt } = require('../utils/password-helper');
 const { createUser, getUserByEmail } = require('../repositories/user-repository');
@@ -13,7 +14,7 @@ const initializeRootAdmin = async () => {
   
   if (!email || !password) {
     logFatal('Root admin credentials are missing in environment variables.');
-    process.exit(1); // Terminate if credentials are missing
+    await handleExit(1) // Terminate if credentials are missing
   }
   
   try {

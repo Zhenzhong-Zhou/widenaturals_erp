@@ -5,7 +5,7 @@
  */
 
 const { Pool } = require('pg');
-const { logInfo, logError, logWarn } = require('../utils/logger-helper');
+const { logInfo, logError, logWarn, logDebug } = require('../utils/logger-helper');
 const { getConnectionConfig } = require('../config/db-config');
 const { loadEnv } = require('../config/env');
 
@@ -78,18 +78,28 @@ const monitorPool = () => {
 };
 
 /**
- * Gracefully shutdown the database connection pool.
- * Should be called during application shutdown to release resources.
+ * Gracefully shuts down the database connection pool.
+ * Ensures that `pool.end()` is only called once to avoid errors.
  * @returns {Promise<void>}
  */
+let poolClosed = false; // Flag to track if the pool has already been closed
+
 const closePool = async () => {
+  if (poolClosed) {
+    logWarn('Attempted to close the database connection pool, but it is already closed.');
+    return; // Prevent multiple calls
+  }
+  
   try {
+    logDebug('closePool called.');
     logInfo('Closing database connection pool...');
     await pool.end(); // Close all connections in the pool
     logInfo('Database connection pool closed.');
+    poolClosed = true; // Mark the pool as closed
   } catch (error) {
-    logError(error, null, {
-      additionalInfo: 'Error closing database connection pool',
+    logError('Error closing database connection pool:', null, {
+      additionalInfo: error.message,
+      stack: error.stack,
     });
   }
 };
@@ -123,23 +133,26 @@ const retry = async (fn, retries = 3) => {
  * @param {number} retries - Maximum number of retry attempts.
  */
 const retryDatabaseConnection = async (config, retries = 5) => {
-  const pool = new Pool(config);
+  const tempPool = new Pool(config); // Temporary pool for retrying
   let attempts = 0;
   
   while (attempts < retries) {
     try {
-      const client = await pool.connect(); // Attempt to connect using the pool
-      console.log('Database connected successfully!');
+      const client = await tempPool.connect(); // Attempt to connect using the pool
+      logInfo('Database connected successfully!');
       client.release(); // Release the client back to the pool
-      await pool.end(); // Close the pool after success
+      
+      await tempPool.end(); // Close the temporary pool after success
       return;
     } catch (error) {
       attempts++;
-      console.error(`Database connection attempt ${attempts} failed:`, error.message);
+      logError(`Database connection attempt ${attempts} failed:`, error.message);
+      
       if (attempts === retries) {
-        await pool.end(); // Ensure the pool is closed after the final attempt
+        await tempPool.end(); // Ensure the temporary pool is closed after the final attempt
         throw new Error('Failed to connect to the database after multiple attempts.');
       }
+      
       await new Promise((res) => setTimeout(res, 5000)); // Wait 5 seconds before retrying
     }
   }
