@@ -1,13 +1,12 @@
 const {
-  validateEnvVars,
   getPoolConfig,
   getConnectionConfig,
 } = require('../../../src/config/db-config');
 
+const { loadSecret } = require('../../../src/config/env');
+
 jest.mock('../../../src/config/env', () => ({
-  loadEnv: jest.fn(() => ({
-    dbPassword: 'test_password', // Mocked password
-  })),
+  loadSecret: jest.fn(),
 }));
 
 describe('Database Configuration', () => {
@@ -37,41 +36,11 @@ describe('Database Configuration', () => {
   
   beforeEach(() => {
     setEnvVars(); // Default mock environment variables
+    jest.clearAllMocks(); // Clear mocks before each test
   });
   
   afterEach(() => {
     clearEnvVars(); // Clear environment variables after each test
-  });
-  
-  // Test validateEnvVars
-  describe('validateEnvVars', () => {
-    it('should validate environment variables without errors', () => {
-      expect(() => validateEnvVars()).not.toThrow();
-    });
-    
-    it('should throw an error if a required environment variable is missing', () => {
-      delete process.env.DB_HOST;
-      expect(() => validateEnvVars()).toThrow(
-        'Missing environment variables: DB_HOST'
-      );
-    });
-    
-    it('should throw an error if multiple required variables are missing', () => {
-      delete process.env.DB_HOST;
-      delete process.env.DB_NAME;
-      expect(() => validateEnvVars()).toThrow(
-        'Missing environment variables: DB_HOST, DB_NAME'
-      );
-    });
-    
-    it.skip('should throw an error if DB_PASSWORD is missing', () => {
-      const mockLoadEnv = require('../../../src/config/env').loadEnv;
-      mockLoadEnv.mockReturnValueOnce({ dbPassword: null }); // Simulate missing password
-      
-      expect(() => validateEnvVars()).toThrow(
-        'Missing environment variables: DB_PASSWORD'
-      );
-    });
   });
   
   // Test getPoolConfig
@@ -98,6 +67,13 @@ describe('Database Configuration', () => {
   // Test getConnectionConfig
   describe('getConnectionConfig', () => {
     it('should return the correct connection configuration', () => {
+      loadSecret.mockImplementation((secretName, envVarName) => {
+        if (secretName === 'db_password' && envVarName === 'DB_PASSWORD') {
+          return 'test_password';
+        }
+        return null;
+      });
+      
       const connectionConfig = getConnectionConfig();
       expect(connectionConfig).toEqual({
         host: 'localhost',
@@ -110,14 +86,34 @@ describe('Database Configuration', () => {
     
     it('should return undefined for missing environment variables', () => {
       delete process.env.DB_NAME;
+      loadSecret.mockReturnValue('test_password');
+      
       const connectionConfig = getConnectionConfig();
       expect(connectionConfig.database).toBeUndefined();
     });
     
     it('should handle non-numeric port values gracefully', () => {
       setEnvVars({ DB_PORT: 'invalid' });
+      loadSecret.mockReturnValue('test_password');
+      
       const connectionConfig = getConnectionConfig();
       expect(connectionConfig.port).toBe('invalid'); // Raw invalid value
+    });
+    
+    it('should call loadSecret for the database password', () => {
+      loadSecret.mockReturnValue('test_password');
+      
+      const connectionConfig = getConnectionConfig();
+      expect(loadSecret).toHaveBeenCalledWith('db_password', 'DB_PASSWORD');
+      expect(connectionConfig.password).toBe('test_password');
+    });
+    
+    it('should throw an error if loadSecret returns null for DB_PASSWORD', () => {
+      loadSecret.mockReturnValue(null); // Simulate loadSecret returning null
+      
+      expect(() => getConnectionConfig()).toThrow(
+        'Database password (DB_PASSWORD) is required but was not provided.'
+      );
     });
   });
 });

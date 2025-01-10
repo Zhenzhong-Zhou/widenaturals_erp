@@ -36,6 +36,11 @@ const query = async (text, params = []) => {
   const client = await pool.connect(); // Acquire a client from the pool
   try {
     return await client.query(text, params); // Execute the query
+  } catch (error) {
+    logError(error, null, {
+      additionalInfo: 'Database connection error', // Ensure consistency here
+    });
+    throw error; // Re-throw the error for upstream handling
   } finally {
     client.release(); // Release the client back to the pool
   }
@@ -56,7 +61,7 @@ const getClient = async () => {
  */
 const testConnection = async () => {
   try {
-    await query('SELECT 1'); // Simple query to ensure connectivity
+    await query('SELECT 1'); // Simple query to test connectivity
     logInfo('Database connection is healthy.');
   } catch (error) {
     logError(error, null, {
@@ -114,14 +119,14 @@ const closePool = async () => {
 const retry = async (fn, retries = 3) => {
   let attempt = 0;
   const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
+  
   while (attempt < retries) {
     try {
-      return await fn();
+      return await fn(); // Attempt to execute the function
     } catch (error) {
       attempt++;
-      if (attempt === retries) throw error; // Throw error if max retries reached
-      logWarn(`Retry ${attempt}/${retries} failed: ${error.message}`);
+      logWarn(`Retry ${attempt}/${retries} failed: ${error.message}`); // Log warning for every failure
+      if (attempt === retries) throw error; // Exhaust retries, throw error
       await delay(1000 * Math.pow(2, attempt)); // Exponential backoff
     }
   }

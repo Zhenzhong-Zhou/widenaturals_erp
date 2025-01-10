@@ -61,8 +61,7 @@ const loadEnv = () => {
 
 /**
  * Validates required environment variables or Docker secrets.
- *
- * @param {{general: [{envVar: string, required: boolean},{envVar: string, required: boolean},{envVar: string, required: boolean, defaultValue: string},{envVar: string, required: boolean}], jwt: [{envVar: string, secret: (function(): *), required: boolean},{envVar: string, secret: (function(): *), required: boolean}], aws: [{envVar: string, required: boolean},{envVar: string, required: boolean},{envVar: string, required: boolean},{envVar: string, required: boolean}], db: [{envVar: string, secret: (function(): *), required: boolean},{envVar: string, required: boolean},{envVar: string, required: boolean},{envVar: string, required: boolean}], rootAdmin: [{envVar: string, required: boolean},{envVar: string, required: boolean}]}} groups
+ * @param {Object} groups - The environment groups to validate.
  */
 const validateEnv = (groups) => {
   const missingVars = [];
@@ -83,7 +82,9 @@ const validateEnv = (groups) => {
   }
   
   if (missingVars.length > 0) {
-    throw new AppError(`Missing required environment variables or secrets: ${missingVars.join(', ')}`);
+    const errorMsg = `Missing required environment variables or secrets: ${missingVars.join(', ')}`;
+    logError(errorMsg);
+    throw new AppError(errorMsg);
   }
 };
 

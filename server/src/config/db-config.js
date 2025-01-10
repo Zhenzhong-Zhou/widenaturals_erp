@@ -32,12 +32,18 @@ const getPoolConfig = () => ({
 /**
  * Retrieves the connection configuration.
  */
-const getConnectionConfig = () => ({
-  host: process.env.DB_HOST,
-  database: process.env.DB_NAME,
-  user: process.env.DB_USER,
-  password: loadSecret('db_password', 'DB_PASSWORD'),
-  port: process.env.DB_PORT,
-});
+const getConnectionConfig = () => {
+  const dbPassword = loadSecret('db_password', 'DB_PASSWORD');
+  if (!dbPassword) {
+    throw new Error('Database password (DB_PASSWORD) is required but was not provided.');
+  }
+  return {
+    host: process.env.DB_HOST,
+    database: process.env.DB_NAME,
+    user: process.env.DB_USER,
+    password: dbPassword,
+    port: process.env.DB_PORT,
+  };
+};
 
 module.exports = { getPoolConfig, getConnectionConfig };
