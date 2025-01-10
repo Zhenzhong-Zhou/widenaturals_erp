@@ -4,16 +4,26 @@
  */
 
 const logger = require('../utils/logger');
-const checkDatabaseHealth = require('./db-health');
+const { checkDatabaseHealth } = require('./db-health');
 const { monitorPool } = require('../database/db');
+const { ONE_MINUTE } = require('../utils/constants/general/time');
 
 let healthCheckInterval = null;
+
+/**
+ * Health check registry.
+ * Add new health checks here for dynamic extensibility.
+ */
+const healthChecks = [
+  { name: 'Database Health', check: checkDatabaseHealth },
+  { name: 'Pool Monitoring', check: monitorPool },
+];
 
 /**
  * Starts periodic health checks.
  * @param {number} interval - Interval in milliseconds between health checks.
  */
-const startHealthCheck = (interval = 60000) => {
+const startHealthCheck = (interval = ONE_MINUTE) => {
   if (healthCheckInterval) {
     logger.warn('Health check already running. Restarting...');
     clearInterval(healthCheckInterval);
@@ -24,19 +34,31 @@ const startHealthCheck = (interval = 60000) => {
       const startTime = Date.now();
       
       // Perform multiple health checks concurrently
-      const [databaseHealth, poolMetrics] = await Promise.all([
-        checkDatabaseHealth(),
-        monitorPool(), // Retrieve pool metrics
-      ]);
+      const results = await Promise.all(
+        healthChecks.map(async (healthCheck) => {
+          try {
+            const result = await healthCheck.check();
+            return { name: healthCheck.name, status: 'healthy', details: result };
+          } catch (error) {
+            logger.error(`Health check failed: ${healthCheck.name}`, {
+              error: error.message,
+              stack: error.stack,
+            });
+            return { name: healthCheck.name, status: 'unhealthy', error: error.message };
+          }
+        })
+      );
       
       const duration = Date.now() - startTime;
       
-      logger.info(`Scheduled health check succeeded in ${duration}ms`, {
-        databaseHealth,
-        poolMetrics,
+      logger.info(`Scheduled health check completed in ${duration}ms`, {
+        results,
       });
     } catch (error) {
-      logger.error('Scheduled health check failed', { error: error.message });
+      logger.error('Scheduled health check failed unexpectedly', {
+        error: error.message,
+        stack: error.stack,
+      });
     }
   }, interval);
   

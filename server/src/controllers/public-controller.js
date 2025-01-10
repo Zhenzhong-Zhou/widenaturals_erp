@@ -40,18 +40,52 @@ const getWelcomeMessage = (req, res) => {
  * @function getHealthStatus
  * @param {Request} req - Express request object.
  * @param {Response} res - Express response object.
- * @param next
+ * @param {Function} next - Express next middleware function.
  * @returns {Object} JSON response with API health status.
  */
 const getHealthStatus = async (req, res, next) => {
   try {
-    logInfo('Checking API health status...');
+    logInfo('Checking API health status...', {
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+      timestamp: new Date().toISOString(),
+    });
+    
+    // Perform server health check
     const healthStatus = await checkServerHealth();
+    
+    // Sanitize the response for public exposure
+    const publicHealthStatus = {
+      server: healthStatus.server,
+      services: {
+        database: { status: healthStatus.services.database.status },
+        pool: { status: healthStatus.services.pool.status },
+      },
+      timestamp: healthStatus.metrics.timestamp, // Include a timestamp for transparency
+    };
+    
     const statusCode = healthStatus.server === 'healthy' ? 200 : 503;
-    res.status(statusCode).json(healthStatus);
+    
+    res.status(statusCode).json(publicHealthStatus);
   } catch (error) {
-    logError('API health check failed', req, { error: error.message });
-    next(error);
+    logError('API health check failed', {
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+      error: error.message,
+      timestamp: new Date().toISOString(),
+    });
+    
+    // Fallback response in case of unexpected failure
+    res.status(503).json({
+      server: 'unhealthy',
+      message: 'The server is currently experiencing issues. Please try again later.',
+      timestamp: new Date().toISOString(),
+    });
+    
+    // Call next middleware with the error for additional processing (optional)
+    if (next) {
+      next(error);
+    }
   }
 };
 

@@ -4,8 +4,12 @@
  */
 
 const { logInfo, logError, logWarn } = require('../utils/logger-helper');
-const { monitorPool } = require('../database/db');
 const { ONE_MINUTE } = require('../utils/constants/general/time');
+
+let monitorPool;
+setImmediate(() => {
+  monitorPool = require('../database/db').monitorPool;
+});
 
 let monitoringIntervalId = null;
 
@@ -17,7 +21,7 @@ let monitoringIntervalId = null;
 const startPoolMonitoring = (interval = parseInt(process.env.POOL_MONITOR_INTERVAL, 10) || ONE_MINUTE) => {
   if (isNaN(interval) || interval <= 0) {
     logError(`Invalid monitoring interval: ${interval}. Defaulting to 60000ms.`);
-    interval = 60000; // Default to 1 minute
+    interval = ONE_MINUTE; // Default to 1 minute
   }
   
   if (monitoringIntervalId) {
@@ -29,7 +33,7 @@ const startPoolMonitoring = (interval = parseInt(process.env.POOL_MONITOR_INTERV
   
   monitoringIntervalId = setInterval(() => {
     try {
-      const metrics= monitorPool();
+      const metrics = monitorPool();
       logInfo('Periodic pool monitoring metrics:', metrics);
     } catch (error) {
       logError('Error during pool monitoring:', { error: error.message });
@@ -41,13 +45,19 @@ const startPoolMonitoring = (interval = parseInt(process.env.POOL_MONITOR_INTERV
  * Stops monitoring the database connection pool.
  */
 const stopPoolMonitoring = () => {
-  if (poolMonitorIntervalId) {
-    clearInterval(poolMonitorIntervalId);
-    poolMonitorIntervalId = null;
+  if (monitoringIntervalId) {
+    clearInterval(monitoringIntervalId);
+    monitoringIntervalId = null;
     logInfo('Pool monitoring stopped.');
   } else {
-    logWarn('Pool monitoring is not running');
+    logWarn('Pool monitoring was not running; no action taken.');
   }
 };
 
-module.exports = { startPoolMonitoring, stopPoolMonitoring };
+/**
+ * Checks if pool monitoring is running.
+ * @returns {boolean} - True if monitoring is active.
+ */
+const isPoolMonitoringRunning = () => monitoringIntervalId !== null;
+
+module.exports = { startPoolMonitoring, stopPoolMonitoring, isPoolMonitoringRunning };

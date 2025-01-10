@@ -5,10 +5,10 @@
  */
 
 const { Pool } = require('pg');
-const { logInfo, logError, logWarn, logDebug } = require('../utils/logger-helper');
+const { logInfo, logError, logWarn } = require('../utils/logger-helper');
 const { getConnectionConfig } = require('../config/db-config');
 const { loadEnv } = require('../config/env');
-const { stopPoolMonitoring } = require('../monitors/pool-health');
+const AppError = require('../utils/app-error');
 
 // Get environment-specific connection configuration
 loadEnv();
@@ -105,8 +105,8 @@ const monitorPool = async () => {
     logInfo('Pool health metrics:', metrics);
     return metrics;
   } catch (error) {
-    logError('Failed to retrieve pool metrics:', error.message);
-    throw error;
+    logError('Error during pool monitoring:', { error: error.message });
+    throw new AppError('Failed to retrieve pool metrics');
   }
 };
 
@@ -122,9 +122,6 @@ const closePool = async () => {
     logWarn('Attempted to close the database connection pool, but it is already closed.');
     return; // Prevent multiple calls
   }
-  
-  logInfo('Stopping database monitoring...');
-  stopPoolMonitoring();
   
   logInfo('Closing database connection pool...');
   

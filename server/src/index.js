@@ -3,13 +3,10 @@
  * @description Application entry point.
  */
 
-const { logInfo, logFatal, logDebug } = require('./utils/logger-helper');
+const { logInfo, logFatal } = require('./utils/logger-helper');
 const { startServer, shutdownServer } = require('./server');
-const { loadEnv, validateEnv, loadSecret } = require('./config/env');
 const { setServer, handleExit } = require('./utils/on-exit');
 const { loadAndValidateEnv } = require('./config/env-manager'); // Load and validate environment variables
-
-
 
 /**
  * Initializes and starts the application.
@@ -29,8 +26,14 @@ const initializeApp = async () => {
     setServer(serverInstance); // Pass server reference for cleanup
     
     // Register signal handlers for graceful shutdown
-    process.on('SIGINT', () => handleShutdown(0));
-    process.on('SIGTERM', () => handleShutdown(0));
+    process.on('SIGINT', async () => {
+      logInfo('SIGINT received. Shutting down gracefully...');
+      await handleShutdown(0)
+    });
+    process.on('SIGTERM', async () => {
+      logInfo('SIGTERM received. Shutting down gracefully...');
+      await handleShutdown(0)
+    });
     
     logInfo('Application started successfully.');
     return serverInstance;

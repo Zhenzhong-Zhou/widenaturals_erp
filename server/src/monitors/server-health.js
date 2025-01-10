@@ -5,6 +5,11 @@
 
 const { checkDatabaseHealth } = require('../monitors/db-health');
 
+let monitorPool;
+setImmediate(() => {
+  monitorPool = require('../database/db').monitorPool;
+});
+
 /**
  * Performs a comprehensive server health check.
  * @returns {Promise<object>} - Server health status.
@@ -14,6 +19,7 @@ const checkServerHealth = async () => {
     server: 'healthy',
     services: {
       database: null,
+      pool: null,
     },
     metrics: {
       uptime: process.uptime(),
@@ -22,12 +28,21 @@ const checkServerHealth = async () => {
     },
   };
   
+  // Perform database health check
   try {
-    // Perform database health check
     status.services.database = await checkDatabaseHealth();
   } catch (error) {
     status.server = 'unhealthy';
     status.services.database = { status: 'unhealthy', error: error.message };
+  }
+  
+  // Perform pool health check
+  try {
+    const poolMetrics = await monitorPool();
+    status.services.pool = { status: 'healthy', metrics: poolMetrics };
+  } catch (error) {
+    status.server = 'unhealthy';
+    status.services.pool = { status: 'unhealthy', error: error.message };
   }
   
   return status;

@@ -1,19 +1,18 @@
 /**
  * @file server.js
- * @description Initializes and starts the server, including database monitoring.
+ * @description Initializes and starts the server, including database monitoring and health checks.
  */
 
 const http = require('http');
-const { logInfo, logError } = require('./utils/logger-helper');
+const { logInfo, logError, logDebug } = require('./utils/logger-helper');
 const app = require('./app');
 const { createDatabaseAndInitialize } = require('./database/create-db');
 const { testConnection } = require('./database/db');
 const { initializeRootAdmin } = require('./config/initialize-root');
-const { handleExit } = require('./utils/on-exit');
-const { startPoolMonitoring, stopPoolMonitoring } = require('./monitors/pool-health');
+const { startPoolMonitoring, stopPoolMonitoring, isPoolMonitoringRunning } = require('./monitors/pool-health');
 const { startHealthCheck, stopHealthCheck } = require('./monitors/health-check');
+const { ONE_MINUTE } = require('./utils/constants/general/time');
 
-// Create the server
 let server;
 
 /**
@@ -24,7 +23,7 @@ const startServer = async () => {
   const PORT = process.env.PORT;
   if (!PORT) {
     logError(new Error('PORT environment variable is missing or undefined'));
-    await handleExit(1);
+    process.exit(1);
   }
   
   try {
@@ -41,21 +40,25 @@ const startServer = async () => {
     
     logInfo('Starting server...');
     server = http.createServer(app);
-    await startHealthCheck(60000); // Schedule health checks every 1 minute
+    
+    const healthCheckInterval = parseInt(process.env.HEALTH_CHECK_INTERVAL, 10) || ONE_MINUTE;
+    await startHealthCheck(healthCheckInterval); // Schedule health checks
+    
     server.listen(PORT, () => {
       logInfo(`Server running at http://localhost:${PORT}`);
     });
     
-    // Start pool monitoring
-    startPoolMonitoring();
-    
+    startPoolMonitoring(); // Start pool monitoring
     return server;
   } catch (error) {
-    logError('Failed to start server:', error);
+    logError('Failed to start server:', { error: error.message });
     throw error;
   }
 };
 
+/**
+ * Gracefully shuts down the server and performs cleanup tasks.
+ */
 const shutdownServer = async () => {
   logInfo('Shutting down server...');
   try {
@@ -63,7 +66,7 @@ const shutdownServer = async () => {
       await new Promise((resolve, reject) => {
         server.close((err) => {
           if (err) {
-            logError('Error during server shutdown:', err.message);
+            logError('Error during server shutdown:', { error: err.message });
             reject(err);
           } else {
             logInfo('Server shutdown successfully.');
@@ -72,10 +75,30 @@ const shutdownServer = async () => {
         });
       });
     }
-    stopHealthCheck(); // Stop scheduled health checks
-    stopPoolMonitoring(); // Stop database pool monitoring
+    
+    // Stop health checks
+    try {
+      logInfo('Stopping health checks...');
+      stopHealthCheck();
+    } catch (error) {
+      logError('Error stopping health checks:', { error: error.message });
+    }
+    
+    // Stop pool monitoring
+    try {
+      logInfo('Stopping database monitoring...');
+      if (isPoolMonitoringRunning()) {
+        stopPoolMonitoring();
+      } else {
+        logDebug('Pool monitoring was not running.');
+      }
+    } catch (error) {
+      logError('Error stopping database monitoring:', { error: error.message });
+    }
+    
+    logInfo('Server and associated services shut down successfully.');
   } catch (error) {
-    logError('Error during shutdown:', error.message);
+    logError('Error during shutdown process:', { error: error.message });
     throw error;
   }
 };
