@@ -4,6 +4,7 @@
  */
 
 const cors = require('cors');
+const AppError = require('../utils/app-error');
 const { logWarn, logError } = require('../utils/logger-helper');
 
 /**
@@ -15,30 +16,35 @@ const corsMiddleware = cors({
     try {
       // Fail fast in production if ALLOWED_ORIGINS is not defined
       if (process.env.NODE_ENV === 'production' && !process.env.ALLOWED_ORIGINS) {
-        throw new Error('ALLOWED_ORIGINS must be defined in production');
+        throw new AppError('ALLOWED_ORIGINS must be defined in production');
       }
       
       // Read allowed origins from environment variables
-      const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
-      if (!allowedOrigins.length) {
-        logWarn(
-          'No allowed origins specified in ALLOWED_ORIGINS. CORS may be overly permissive.'
-        );
+      const allowedOrigins = process.env.ALLOWED_ORIGINS
+        ? process.env.ALLOWED_ORIGINS.split(',').filter(Boolean)
+        : [];
+      
+      if (!origin) {
+        // Allow requests with no origin (e.g., preflight or server-to-server communication)
+        if (allowedOrigins.length === 0) {
+          logWarn('No allowed origins specified in ALLOWED_ORIGINS. CORS may be overly permissive.');
+        }
+        return callback(null, true); // Allow the request
       }
       
       // Allow requests from allowed origins or when origin is undefined (e.g., non-browser clients)
-      if (!origin || allowedOrigins.includes(origin)) {
-        return callback(null, true);
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true); // Allow the request
       }
       
       // Reject requests from disallowed origins
-      const error = new Error(`CORS error: Origin '${origin}' is not allowed`);
+      const error = new AppError(`CORS error: Origin '${origin}' is not allowed`);
       error.name = 'CorsError';
       logWarn(error.message);
-      callback(error);
+      return callback(error);
     } catch (error) {
       logError('Error configuring CORS:', error);
-      callback(new Error('CORS configuration failed'));
+      callback(new AppError('CORS configuration failed'));
     }
   },
   methods: process.env.ALLOWED_METHODS?.split(',') || [

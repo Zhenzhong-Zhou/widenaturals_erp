@@ -4,14 +4,15 @@
  */
 
 const express = require('express');
-const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const morgan = require('morgan');
 const xssClean = require('xss-clean');
+const configureHelmet = require('./helmet');
 const corsMiddleware = require('./cors'); // Custom CORS configuration
 const { csrfProtection } = require('./csrf-protection');
 const requestLogger = require('./request-logger');
 const { createRateLimiter } = require('../utils/rate-limit-helper');
+
 
 /**
  * Applies global middleware to the application.
@@ -20,13 +21,9 @@ const { createRateLimiter } = require('../utils/rate-limit-helper');
  * @param {Object} app - The Express application instance.
  */
 const applyGlobalMiddleware = (app) => {
-  // 1. Security Headers
-  app.use(
-    helmet({
-      contentSecurityPolicy:
-        process.env.NODE_ENV === 'production' ? undefined : false, // Disable CSP in development
-    })
-  );
+  // 1. Helmet Security Headers
+  const isProduction = process.env.NODE_ENV === 'production';
+  app.use(configureHelmet(isProduction))
   
   // 2. Global Rate Limiter
   app.use(createRateLimiter());

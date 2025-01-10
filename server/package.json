@@ -65,6 +65,7 @@
   "devDependencies": {
     "dotenv-cli": "^8.0.0",
     "jest": "^29.7.0",
-    "nodemon": "^3.1.9"
+    "nodemon": "^3.1.9",
+    "supertest": "^7.0.0"
   }
 }

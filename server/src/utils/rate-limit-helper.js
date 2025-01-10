@@ -8,9 +8,8 @@ const RATE_LIMIT = require('../utils/constants/domain/rate-limit');
  *
  * @param {object} req - Express request object.
  * @param {object} res - Express response object.
- * @param {function} next - Express next middleware function.
  */
-const defaultRateLimitHandler = (req, res, next) => {
+const defaultRateLimitHandler = (req, res) => {
   const logDetails = {
     ip: req.ip,
     userAgent: req.headers['user-agent'] || 'Unknown',
@@ -21,14 +20,13 @@ const defaultRateLimitHandler = (req, res, next) => {
   // Log the rate limit event
   logWarn('Rate limit exceeded:', logDetails);
   
-  // Use AppError for structured error response
-  const rateLimitError = new AppError(
-    'You have exceeded the allowed number of requests. Please try again later.',
-    429,
-    { type: 'RateLimitError', isExpected: true }
-  );
-  
-  next(rateLimitError);
+  // Return a structured JSON response
+  res.status(429).json({
+    message: 'You have exceeded the allowed number of requests. Please try again later.',
+    status: 429,
+    type: 'RateLimitError',
+    isExpected: true,
+  });
 };
 
 /**

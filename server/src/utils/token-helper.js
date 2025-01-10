@@ -1,9 +1,5 @@
 const jwt = require('jsonwebtoken');
 const { logError } = require('./logger-helper');
-const { loadEnv } = require('../config/env');
-
-// Load environment and secrets
-const { jwtAccessSecret, jwtRefreshSecret } = loadEnv();
 
 /**
  * Signs a payload to generate a JWT token.
@@ -13,7 +9,7 @@ const { jwtAccessSecret, jwtRefreshSecret } = loadEnv();
  * @returns {string} - The signed JWT token.
  */
 const signToken = (payload, isRefreshToken = false) => {
-  const secret = isRefreshToken ? jwtRefreshSecret : jwtAccessSecret;
+  const secret = isRefreshToken ? process.env.JWT_ACCESS_SECRET : process.env.JWT_REFRESH_SECRET;
   const expiresIn = isRefreshToken ? '7d' : '15m'; // 7 days for refresh tokens, 15 minutes for access tokens
   
   if (!secret) {
@@ -40,7 +36,7 @@ const signToken = (payload, isRefreshToken = false) => {
  */
 const verifyToken = (token, isRefresh = false) => {
   try {
-    const secret = isRefresh ? jwtRefreshSecret : jwtAccessSecret;
+    const secret = isRefresh ? process.env.JWT_ACCESS_SECRET : process.env.JWT_REFRESH_SECRET;
     return jwt.verify(token, secret);
   } catch (error) {
     logError(`Invalid or expired ${isRefresh ? 'refresh' : 'access'} token`, error);
