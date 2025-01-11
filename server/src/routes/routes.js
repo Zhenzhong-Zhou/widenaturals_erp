@@ -1,11 +1,12 @@
 /**
  * @file routes.js
- * @description  Centralized router configuration for the application.
+ * @description Centralized router configuration for the application.
  */
 
 const express = require('express');
 const publicRoute = require('./public');
 const internalRoute = require('./internal');
+const systemRoute = require('./system');
 const loginRoute = require('./login');
 const authRoutes = require('./auth');
 const adminRoutes = require('./admin');
@@ -14,22 +15,39 @@ const authenticate = require('../middlewares/authenticate');
 
 const router = express.Router();
 
-/**
- * @returns {Function} - API-specific rate-limiting middleware.
- */
+// API-specific rate-limiting middleware
 const apiRateLimiter = createApiRateLimiter();
 router.use(apiRateLimiter);
 
-// Public routes
+// Public routes (no authentication required)
+/**
+ * Routes under `/public` are open to everyone.
+ */
 router.use('/public', publicRoute);
 
+// Internal routes (system-level operations)
+/**
+ * Routes under `/internal` are for internal services and require proper authorization.
+ */
+router.use('/internal', authenticate(), internalRoute);
+
+// System routes (health checks, monitoring, etc.)
+/**
+ * Routes under `/system` handle operational tasks such as status and monitoring.
+ */
+router.use('/system', authenticate(), systemRoute);
+
 // Authentication routes
-router.use('/internal',  internalRoute);
-router.use('/auth',  loginRoute);
-router.use('/auth', authenticate(), authRoutes);
+/**
+ * Routes under `/auth` manage user login and authentication flows.
+ */
+router.use('/auth', loginRoute); // Public login
+router.use('/auth', authenticate(), authRoutes); // Authenticated routes
 
 // Admin routes
+/**
+ * Routes under `/admin` handle administrative operations and require authentication.
+ */
 router.use('/admin', authenticate(), adminRoutes);
 
-// Export the router
 module.exports = router;

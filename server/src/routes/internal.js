@@ -1,14 +1,22 @@
+/**
+ * @file internal.js
+ * @description Defines routes for internal system operations, such as status checks.
+ * These routes are intended for authorized internal use only.
+ */
+
 const express = require('express');
 const { getInternalStatus } = require('../controllers/internal-controller');
-const authenticate = require('../middlewares/authenticate');
-
 
 const router = express.Router();
 
 /**
- * Internal system status route.
- * Restricted to authorized users (e.g., admins or internal tools).
+ * GET /internal/status
+ * Provides the internal system status for monitoring and diagnostics.
+ *
+ * This endpoint is restricted to authorized internal users, such as admins or internal tools.
+ * Authorization middleware should be applied at a higher level or added here if required.
+ *
  */
-router.get('/status', authenticate(), getInternalStatus);
+router.get('/status', getInternalStatus);
 
 module.exports = router;
