@@ -9,19 +9,31 @@ const { createLogger, format, transports } = require('winston');
 const DailyRotateFile = require('winston-daily-rotate-file');
 const { loadEnv } = require('../config/env');
 const { uploadToS3 } = require('./s3-upload');
+const { logError } = require('./logger-helper');
+const AppError = require('./app-error');
 
-// Environment variables
+// Load environment variables
 const { env } = loadEnv();
 const isDevelopment = env === 'development';
 const logLevel = process.env.LOG_LEVEL || (isDevelopment ? 'debug' : 'info');
-const logsDir = path.resolve(__dirname, process.env.LOGS_DIR || './server/dev_logs'); // Default to `../../dev_logs'`
+const logsDir = path.join(__dirname, process.env.LOGS_DIR || './server/dev_logs');
 
 // Ensure logs directory exists
-if (!fs.existsSync(logsDir)) {
-  fs.mkdirSync(logsDir, { recursive: true });
+try {
+  if (!fs.existsSync(logsDir)) {
+    fs.mkdirSync(logsDir, { recursive: true });
+  }
+} catch (err) {
+  logError('Failed to create logs directory:', err);
+  throw AppError.serviceError('Logging setup failed due to directory creation issues.', {
+    details: {
+      directory: logsDir,
+      error: err.message,
+    },
+  });
 }
 
-// Custom log levels including 'fatal'
+// Custom log levels
 const customLevels = {
   levels: {
     fatal: 0,
@@ -41,7 +53,7 @@ const customLevels = {
 
 // Create the logger
 const logger = createLogger({
-  levels: customLevels.levels, // Use custom levels
+  levels: customLevels.levels,
   level: logLevel,
   format: format.combine(
     format.timestamp(),
@@ -93,7 +105,7 @@ const logger = createLogger({
 // Apply colors to custom levels
 require('winston').addColors(customLevels.colors);
 
-// Handle uncaught exceptions and unhandled rejections
+// Exception and rejection handling
 logger.exceptions.handle(
   new DailyRotateFile({
     filename: path.join(logsDir, 'exceptions-%DATE%.log'),

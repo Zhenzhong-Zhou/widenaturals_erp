@@ -55,6 +55,10 @@ class AppError extends Error {
     return new AppError(message, 400, { type: 'ValidationError', code: 'VALIDATION_ERROR', isExpected: true, ...options });
   }
   
+  static hashError(message, options = {}) {
+    return new AppError(message, 429, { type: 'HashError', code: 'HASH_ERROR', logLevel: 'error', isExpected: false, ...options });
+  }
+  
   static rateLimitError(message, options = {}) {
     return new AppError(message, 429, { type: 'RateLimitError', code: 'RATE_LIMIT_EXCEEDED', logLevel: 'warn', isExpected: true, ...options });
   }

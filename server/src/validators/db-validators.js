@@ -14,9 +14,12 @@ const emailExists = async (email) => {
     const result = await query('SELECT 1 FROM users WHERE email = $1', [email]);
     return result.rowCount > 0;
   } catch (error) {
-    logError(`Error checking email existence for ${email}:`, error);
-    throw new AppError('Failed to check email existence', 500, {
-      type: 'DatabaseError',
+    logError(`Error checking email existence for ${email}:`, {
+      error: error.message,
+      stack: error.stack,
+    });
+    throw AppError.databaseError('Failed to check email existence', {
+      details: { email },
     });
   }
 };
@@ -25,24 +28,26 @@ const emailExists = async (email) => {
  * Validates the existence of a role by its name.
  * @param {string} roleName - The name of the role.
  * @returns {Promise<uuid>} - The role ID if valid.
- * @throws {AppError} - If the role does not exist.
+ * @throws {AppError} - If the role does not exist or database operation fails.
  */
 const validateRoleByName = async (roleName) => {
   try {
     const roleId = await getRoleIdByField('name', roleName);
     if (!roleId) {
-      throw new AppError(`Invalid role: "${roleName}"`, 400, {
-        type: 'ValidationError',
-        isExpected: true,
+      throw AppError.validationError(`Invalid role: "${roleName}"`, {
+        details: { roleName },
       });
     }
     return roleId;
   } catch (error) {
-    logError(`Error validating role by name "${roleName}":`, error);
+    logError(`Error validating role by name "${roleName}":`, {
+      error: error.message,
+      stack: error.stack,
+    });
     throw error instanceof AppError
       ? error
-      : new AppError('Failed to validate role by name', 500, {
-        type: 'DatabaseError',
+      : AppError.databaseError('Failed to validate role by name', {
+        details: { roleName },
       });
   }
 };
@@ -51,24 +56,26 @@ const validateRoleByName = async (roleName) => {
  * Validates the existence of a role by its ID.
  * @param {uuid} roleId - The ID of the role.
  * @returns {Promise<uuid>} - The role ID if valid.
- * @throws {AppError} - If the role does not exist.
+ * @throws {AppError} - If the role does not exist or database operation fails.
  */
 const validateRoleById = async (roleId) => {
   try {
     const validRoleId = await getRoleIdByField('id', roleId);
     if (!validRoleId) {
-      throw new AppError(`Invalid role ID: "${roleId}"`, 400, {
-        type: 'ValidationError',
-        isExpected: true,
+      throw AppError.validationError(`Invalid role ID: "${roleId}"`, {
+        details: { roleId },
       });
     }
     return validRoleId;
   } catch (error) {
-    logError(`Error validating role by ID "${roleId}":`, error);
+    logError(`Error validating role by ID "${roleId}":`, {
+      error: error.message,
+      stack: error.stack,
+    });
     throw error instanceof AppError
       ? error
-      : new AppError('Failed to validate role by ID', 500, {
-        type: 'DatabaseError',
+      : AppError.databaseError('Failed to validate role by ID', {
+        details: { roleId },
       });
   }
 };
@@ -77,24 +84,26 @@ const validateRoleById = async (roleId) => {
  * Validates the existence of a status by name.
  * @param {string} statusName - The name of the status.
  * @returns {Promise<uuid>} - The status ID if valid.
- * @throws {AppError} - If the status is invalid.
+ * @throws {AppError} - If the status does not exist or database operation fails.
  */
 const validateStatus = async (statusName) => {
   try {
     const statusId = await getStatusIdByName(statusName);
     if (!statusId) {
-      throw new AppError(`Invalid status: "${statusName}"`, 400, {
-        type: 'ValidationError',
-        isExpected: true,
+      throw AppError.validationError(`Invalid status: "${statusName}"`, {
+        details: { statusName },
       });
     }
     return statusId;
   } catch (error) {
-    logError(`Error validating status by name "${statusName}":`, error);
+    logError(`Error validating status by name "${statusName}":`, {
+      error: error.message,
+      stack: error.stack,
+    });
     throw error instanceof AppError
       ? error
-      : new AppError('Failed to validate status', 500, {
-        type: 'DatabaseError',
+      : AppError.databaseError('Failed to validate status', {
+        details: { statusName },
       });
   }
 };

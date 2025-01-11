@@ -24,7 +24,10 @@ const pool = new Pool({
 
 pool.on('connect', () => logInfo('Connected to the database'));
 pool.on('error', (err) => {
-  logError('Database connection error', err, { additionalInfo: 'Database connection error' });
+  logError('Database connection error', err);
+  throw AppError.databaseError('Unexpected database connection error', {
+    details: { error: err.message },
+  });
 });
 
 /**
@@ -58,7 +61,9 @@ const query = async (text, params = []) => {
       params,
       error: error.message,
     });
-    throw error;
+    throw AppError.databaseError('Database query failed', {
+      details: { query: text, params, error: error.message },
+    });
   } finally {
     client.release(); // Release the client back to the pool
   }
@@ -69,7 +74,13 @@ const query = async (text, params = []) => {
  * @returns {Promise<object>} - The connected client.
  */
 const getClient = async () => {
-  return await pool.connect();
+  try {
+    return await pool.connect();
+  } catch (error) {
+    throw AppError.databaseError('Failed to acquire a database client', {
+      details: { error: error.message },
+    });
+  }
 };
 
 /**
@@ -82,10 +93,10 @@ const testConnection = async () => {
     await query('SELECT 1'); // Simple query to test connectivity
     logInfo('Database connection is healthy.');
   } catch (error) {
-    logError(error, null, {
-      additionalInfo: 'Database connection test failed',
+    logError('Database connection test failed', error);
+    throw AppError.healthCheckError('Database connection test failed', {
+      details: { error: error.message },
     });
-    throw error;
   }
 };
 
@@ -105,8 +116,10 @@ const monitorPool = async () => {
     logInfo('Pool health metrics:', metrics);
     return metrics;
   } catch (error) {
-    logError('Error during pool monitoring:', { error: error.message });
-    throw new AppError('Failed to retrieve pool metrics');
+    logError('Error during pool monitoring:', error.message);
+    throw AppError.serviceError('Failed to retrieve pool metrics', {
+      details: { error: error.message },
+    });
   }
 };
 
@@ -130,9 +143,9 @@ const closePool = async () => {
     logInfo('Database connection pool closed.');
     poolClosed = true; // Mark the pool as closed
   } catch (error) {
-    logError('Error closing database connection pool:', null, {
-      additionalInfo: error.message,
-      stack: error.stack,
+    logError('Error closing database connection pool:', error.message);
+    throw AppError.databaseError('Failed to close the database connection pool', {
+      details: { error: error.message },
     });
   }
 };
@@ -153,8 +166,12 @@ const retry = async (fn, retries = 3) => {
       return await fn(); // Attempt to execute the function
     } catch (error) {
       attempt++;
-      logWarn(`Retry ${attempt}/${retries} failed: ${error.message}`); // Log warning for every failure
-      if (attempt === retries) throw error; // Exhaust retries, throw error
+      logWarn(`Retry ${attempt}/${retries} failed: ${error.message}`);
+      if (attempt === retries) {
+        throw AppError.serviceError('Function execution failed after retries', {
+          details: { error: error.message, attempts: attempt, retries },
+        });
+      }
       await delay(1000 * Math.pow(2, attempt)); // Exponential backoff
     }
   }
@@ -183,7 +200,9 @@ const retryDatabaseConnection = async (config, retries = 5) => {
       
       if (attempts === retries) {
         await tempPool.end(); // Ensure the temporary pool is closed after the final attempt
-        throw new Error('Failed to connect to the database after multiple attempts.');
+        throw AppError.databaseError('Failed to connect to the database after multiple attempts.', {
+          details: { attempts, retries, error: error.message },
+        });
       }
       
       await new Promise((res) => setTimeout(res, 5000)); // Wait 5 seconds before retrying
