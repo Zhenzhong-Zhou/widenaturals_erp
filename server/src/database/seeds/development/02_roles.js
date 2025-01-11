@@ -5,11 +5,11 @@ exports.seed = async function (knex) {
     .select('id')
     .first()
     .then((row) => row?.id);
-  
+
   if (!activeStatusId) {
     throw new Error("The 'active' status is not found in the 'status' table.");
   }
-  
+
   // Define roles
   const roles = [
     {
@@ -49,7 +49,7 @@ exports.seed = async function (knex) {
       updated_at: knex.fn.now(),
     },
   ];
-  
+
   // Insert roles using ON CONFLICT to avoid duplicates
   for (const role of roles) {
     await knex('roles')
@@ -57,6 +57,6 @@ exports.seed = async function (knex) {
       .onConflict('name') // Use 'name' column to detect duplicates
       .ignore(); // Skip insertion if role already exists
   }
-  
+
   console.log('Roles seeded successfully.');
 };

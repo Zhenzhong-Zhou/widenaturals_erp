@@ -21,7 +21,7 @@ const getWelcomeMessage = (req, res) => {
   const API_PREFIX = process.env.API_PREFIX;
 
   logInfo('Serving welcome message to the client', req);
-  
+
   res.status(200).json({
     message: 'Welcome to WIDE Naturals Inc. ERP API!',
     documentation: '/docs', // Link to API documentation
@@ -50,10 +50,10 @@ const getHealthStatus = async (req, res, next) => {
       userAgent: req.headers['user-agent'],
       timestamp: new Date().toISOString(),
     });
-    
+
     // Perform server health check
     const healthStatus = await checkServerHealth();
-    
+
     // Sanitize the response for public exposure
     const publicHealthStatus = {
       server: healthStatus.server,
@@ -63,9 +63,9 @@ const getHealthStatus = async (req, res, next) => {
       },
       timestamp: healthStatus.metrics.timestamp, // Include a timestamp for transparency
     };
-    
+
     const statusCode = healthStatus.server === 'healthy' ? 200 : 503;
-    
+
     res.status(statusCode).json(publicHealthStatus);
   } catch (error) {
     logError('API health check failed', {
@@ -74,14 +74,15 @@ const getHealthStatus = async (req, res, next) => {
       error: error.message,
       timestamp: new Date().toISOString(),
     });
-    
+
     // Fallback response in case of unexpected failure
     res.status(503).json({
       server: 'unhealthy',
-      message: 'The server is currently experiencing issues. Please try again later.',
+      message:
+        'The server is currently experiencing issues. Please try again later.',
       timestamp: new Date().toISOString(),
     });
-    
+
     // Call next middleware with the error for additional processing (optional)
     if (next) {
       next(error);

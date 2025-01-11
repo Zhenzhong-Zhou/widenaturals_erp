@@ -24,28 +24,28 @@ describe('Database Seeds', () => {
     await db.migrate.rollback(null, true);
     await db.destroy();
   });
-  
+
   it('should seed the status table with default values', async () => {
     const statuses = await db('status').select('*');
     expect(statuses).toBeDefined();
     expect(statuses.some((status) => status.name === 'active')).toBe(true);
   });
-  
+
   it('should seed roles table with predefined roles', async () => {
     const roles = await db('roles').select('*');
     expect(roles).toBeDefined();
     expect(roles.length).toBeGreaterThan(0);
     expect(roles.some((role) => role.name === 'admin')).toBe(true);
   });
-  
+
   it('should seed permissions table with default permissions', async () => {
     const permissions = await db('permissions').select('*');
     // console.log(`Seeded permissions: ${JSON.stringify(permissions)}`);
-    
+
     // Validate number of permissions
     expect(permissions).toBeDefined();
     expect(permissions.length).toBe(5); // Adjusted to match seed data
-    
+
     // Validate specific keys
     const permissionKeys = permissions.map((p) => p.key);
     expect(permissionKeys).toContain('view_dashboard');
@@ -54,16 +54,19 @@ describe('Database Seeds', () => {
     expect(permissionKeys).toContain('view_reports');
     expect(permissionKeys).toContain('create_admin');
   });
-  
+
   it('should seed permissions table with correct status references', async () => {
     const permissions = await db('permissions').select('status_id');
     for (const { status_id } of permissions) {
-      const status = await db('status').select('name').where('id', status_id).first();
+      const status = await db('status')
+        .select('name')
+        .where('id', status_id)
+        .first();
       expect(status).toBeDefined();
       expect(status.name).toBe('active');
     }
   });
-  
+
   it('should seed permissions table with correct structure', async () => {
     const permissions = await db('permissions').select(
       'id',
@@ -77,7 +80,7 @@ describe('Database Seeds', () => {
       'updated_at'
     );
     // console.log(`Seeded permissions: permissions`, permissions);
-    
+
     permissions.forEach((permission) => {
       expect(permission.id).toMatch(
         /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
@@ -98,7 +101,7 @@ describe('Database Seeds', () => {
       expect(permission.updated_at).not.toBeNull();
     });
   });
-  
+
   it('should seed users table with test data', async () => {
     const users = await db('users').select('*');
     // console.log(`Seeded users: ${JSON.stringify(users)}`);
@@ -107,7 +110,7 @@ describe('Database Seeds', () => {
     expect(users[0]).toHaveProperty('email');
     expect(users[0]).toHaveProperty('role_id');
   });
-  
+
   it('should have correct schema for users table', async () => {
     const columns = await db('users').columnInfo();
     expect(columns).toHaveProperty('email');

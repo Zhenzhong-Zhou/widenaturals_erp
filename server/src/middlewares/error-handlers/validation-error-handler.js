@@ -17,10 +17,13 @@ const { logError } = require('../../utils/logger-helper');
 const validationErrorHandler = (err, req, res, next) => {
   if (err.name === 'ValidationError' || err.type === 'ValidationError') {
     // Use the AppError factory method for validation errors
-    const validationError = AppError.validationError(err.message || 'Validation failed.', {
-      details: err.details || null, // Include validation details if available
-    });
-    
+    const validationError = AppError.validationError(
+      err.message || 'Validation failed.',
+      {
+        details: err.details || null, // Include validation details if available
+      }
+    );
+
     // Log the validation error with detailed metadata
     logError('Validation Error:', {
       message: validationError.message,
@@ -30,11 +33,11 @@ const validationErrorHandler = (err, req, res, next) => {
       userAgent: req.headers['user-agent'] || 'Unknown',
       ip: req.ip,
     });
-    
+
     // Respond with a structured error response
     return res.status(validationError.status).json(validationError.toJSON());
   }
-  
+
   // If it's not a validation error, pass it to the next middleware
   next(err);
 };

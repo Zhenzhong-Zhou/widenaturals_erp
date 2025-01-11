@@ -14,29 +14,36 @@ const { signToken } = require('../utils/token-helper');
 const loginUser = async (email, password) => {
   try {
     const user = await getUserAuthByEmail(email);
-    
+
     if (!user) {
       throw new AppError('Invalid email or password.', 401, {
         type: 'AuthenticationError',
         isExpected: true,
       });
     }
-    
+
     const { passwordhash, passwordsalt } = user;
-    
+
     // Verify the password
-    const isValidPassword = await verifyPassword(password, passwordhash, passwordsalt);
+    const isValidPassword = await verifyPassword(
+      password,
+      passwordhash,
+      passwordsalt
+    );
     if (!isValidPassword) {
       throw new AppError('Invalid email or password.', 401, {
         type: 'AuthenticationError',
         isExpected: true,
       });
     }
-    
+
     // Generate tokens
     const accessToken = signToken({ id: user.id, role_id: user.role_id });
-    const refreshToken = signToken({ id: user.id, role_id: user.role_id }, true); // Refresh token
-    
+    const refreshToken = signToken(
+      { id: user.id, role_id: user.role_id },
+      true
+    ); // Refresh token
+
     return { accessToken, refreshToken };
   } catch (error) {
     if (!(error instanceof AppError)) {

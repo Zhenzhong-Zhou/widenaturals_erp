@@ -13,12 +13,12 @@ const checkDatabaseHealth = async () => {
     const startTime = Date.now();
     await query(queryText); // Lightweight query
     const duration = Date.now() - startTime;
-    
+
     logInfo('Database health check passed', {
       query: queryText,
       duration: `${duration}ms`,
     });
-    
+
     return {
       status: 'healthy',
       dbConnectionStatus: 'connected',
@@ -31,7 +31,7 @@ const checkDatabaseHealth = async () => {
       query: queryText,
       error: error.message,
     });
-    
+
     throw new AppError('Database is not healthy', 500, {
       type: 'DatabaseHealthError',
       details: error.message,

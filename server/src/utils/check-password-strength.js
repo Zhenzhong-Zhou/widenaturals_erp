@@ -15,10 +15,10 @@ const checkPasswordStrength = (password) => {
       isExpected: true,
     });
   }
-  
+
   const result = zxcvbn(password);
   const strengthLevels = ['Weak', 'Fair', 'Good', 'Strong', 'Very Strong'];
-  
+
   const customFeedback = {
     0: 'Your password is too weak. Avoid using common words or patterns.',
     1: 'Your password is weak. Use a mix of upper and lowercase letters.',
@@ -26,7 +26,7 @@ const checkPasswordStrength = (password) => {
     3: 'Your password is strong. Ensure it’s unique and not used elsewhere.',
     4: 'Your password is very strong. Great job!',
   };
-  
+
   return {
     score: result.score, // 0 (weak) to 4 (very strong)
     strength: strengthLevels[result.score],

@@ -29,26 +29,26 @@ const applyErrorHandlers = (app) => {
   app.use(csrfErrorHandler); // CSRF token errors
   app.use(corsErrorHandler); // CORS-related errors
   app.use(rateLimitErrorHandler); // Rate limit violations
-  
+
   // Authentication and authorization errors
   app.use(authErrorHandler); // Authentication-related errors
   app.use(authorizationErrorHandler); // Authorization errors
-  
+
   // Input validation and sanitization errors
   app.use(validationErrorHandler); // Validation errors
   app.use(sanitizationErrorHandler); // Sanitization errors
-  
+
   // File upload errors
   app.use(fileUploadErrorHandler); // File upload-related errors
-  
+
   // Service and database-related error handlers
   app.use(healthErrorHandler); // Health-check-related errors
   app.use(serviceErrorHandler); // Service-level errors
   app.use(dbErrorHandler); // Database-related errors
-  
+
   // 404 Not Found handler
   app.use(notFoundHandler); // Handle 404 errors last
-  
+
   // Global error handler (catch-all)
   app.use(globalErrorHandler); // Catch-all for uncaught errors
 };

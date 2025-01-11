@@ -17,15 +17,18 @@ const defaultRateLimitHandler = (req, res, next) => {
     method: req.method,
     route: req.originalUrl,
   };
-  
+
   // Log the rate limit event
   logWarn('Rate limit exceeded:', logDetails);
-  
+
   // Return a structured JSON response using AppError
   next(
-    AppError.rateLimitError('You have exceeded the allowed number of requests. Please try again later.', {
-      details: logDetails,
-    })
+    AppError.rateLimitError(
+      'You have exceeded the allowed number of requests. Please try again later.',
+      {
+        details: logDetails,
+      }
+    )
   );
 };
 
@@ -44,27 +47,27 @@ const defaultRateLimitHandler = (req, res, next) => {
  * @returns {Function} - Middleware for rate limiting.
  */
 const createRateLimiter = ({
-                             windowMs = RATE_LIMIT.DEFAULT_WINDOW_MS,
-                             max = RATE_LIMIT.DEFAULT_MAX,
-                               //todo
-                             // windowMs = process.env.RATE_LIMIT_WINDOW_MS
-                             //   ? parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10)
-                             //   : RATE_LIMIT.DEFAULT_WINDOW_MS,
-                             // max = process.env.RATE_LIMIT_MAX
-                             //   ? parseInt(process.env.RATE_LIMIT_MAX, 10)
-                             //   : RATE_LIMIT.DEFAULT_MAX,
-                             headers = true,
-                             statusCode = 429,
-                             keyGenerator = (req) => req.ip,
-                             skip = () => false,
-                             handler = defaultRateLimitHandler, // Use default handler if none is provided
-                             disableInDev = false,
-                           } = {}) => {
+  windowMs = RATE_LIMIT.DEFAULT_WINDOW_MS,
+  max = RATE_LIMIT.DEFAULT_MAX,
+  //todo
+  // windowMs = process.env.RATE_LIMIT_WINDOW_MS
+  //   ? parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10)
+  //   : RATE_LIMIT.DEFAULT_WINDOW_MS,
+  // max = process.env.RATE_LIMIT_MAX
+  //   ? parseInt(process.env.RATE_LIMIT_MAX, 10)
+  //   : RATE_LIMIT.DEFAULT_MAX,
+  headers = true,
+  statusCode = 429,
+  keyGenerator = (req) => req.ip,
+  skip = () => false,
+  handler = defaultRateLimitHandler, // Use default handler if none is provided
+  disableInDev = false,
+} = {}) => {
   if (disableInDev && process.env.NODE_ENV === 'development') {
     // Bypass rate limiting in development mode
     return (req, res, next) => next();
   }
-  
+
   return rateLimit({
     windowMs,
     max,

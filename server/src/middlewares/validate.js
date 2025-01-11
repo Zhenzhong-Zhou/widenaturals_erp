@@ -10,11 +10,16 @@ const { logError } = require('../utils/logger-helper');
  * @param {string} [errorMessage='Validation failed.'] - Custom error message.
  * @returns {function} - Middleware function.
  */
-const validate = (schema, target = 'body', options = {}, errorMessage = 'Validation failed.') => {
+const validate = (
+  schema,
+  target = 'body',
+  options = {},
+  errorMessage = 'Validation failed.'
+) => {
   // Default Joi validation options
   const defaultOptions = { abortEarly: false, allowUnknown: false };
   const validationOptions = { ...defaultOptions, ...options };
-  
+
   return (req, res, next) => {
     try {
       // Validate the target
@@ -24,9 +29,9 @@ const validate = (schema, target = 'body', options = {}, errorMessage = 'Validat
           isExpected: false,
         });
       }
-      
+
       const { error, value } = schema.validate(req[target], validationOptions);
-      
+
       if (error) {
         const errorDetails = error.details.map((detail) => ({
           message: detail.message,
@@ -34,7 +39,7 @@ const validate = (schema, target = 'body', options = {}, errorMessage = 'Validat
           type: detail.type, // Include the Joi validation error type
           context: detail.context, // Include additional context
         }));
-        
+
         // Log the validation error in non-production environments
         if (process.env.NODE_ENV !== 'production') {
           logError('Validation Error:', {
@@ -44,13 +49,13 @@ const validate = (schema, target = 'body', options = {}, errorMessage = 'Validat
             details: errorDetails,
           });
         }
-        
+
         // Throw structured validation error
         throw AppError.validationError(errorMessage, {
           details: errorDetails,
         });
       }
-      
+
       req[target] = value; // Sanitize and normalize input
       next();
     } catch (error) {

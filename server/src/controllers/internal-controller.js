@@ -15,7 +15,7 @@ const getInternalStatus = async (req, res, next) => {
   try {
     // Perform server health checks
     const healthMetrics = await checkServerHealth();
-    
+
     res.status(200).json({
       server: healthMetrics.server,
       services: healthMetrics.services,
@@ -23,10 +23,12 @@ const getInternalStatus = async (req, res, next) => {
     });
   } catch (error) {
     // Pass the error to the next middleware
-    return next(AppError.healthCheckError('Health check failed', {
-      details: error.message,
-      code: 'HEALTH_CHECK_FAILURE',
-    }));
+    return next(
+      AppError.healthCheckError('Health check failed', {
+        details: error.message,
+        code: 'HEALTH_CHECK_FAILURE',
+      })
+    );
   }
 };
 

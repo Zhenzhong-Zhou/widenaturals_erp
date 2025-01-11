@@ -15,7 +15,10 @@ const { logError } = require('../utils/logger-helper');
  * @returns {Promise<void>} Resolves when the insertion is successful.
  * @throws {AppError} If the query fails.
  */
-const insertUserAuth = async (client, { userId, passwordHash, passwordSalt }) => {
+const insertUserAuth = async (
+  client,
+  { userId, passwordHash, passwordSalt }
+) => {
   const sql = `
     INSERT INTO user_auth (
       user_id, password_hash, password_salt, created_at
@@ -23,11 +26,14 @@ const insertUserAuth = async (client, { userId, passwordHash, passwordSalt }) =>
     VALUES ($1, $2, $3, $4);
   `;
   const params = [userId, passwordHash, passwordSalt, new Date()];
-  
+
   try {
     await client.query(sql, params);
   } catch (error) {
-    logError(`Error inserting user authentication details for user ID ${userId}:`, error);
+    logError(
+      `Error inserting user authentication details for user ID ${userId}:`,
+      error
+    );
     throw new AppError('Failed to insert user authentication details', 500, {
       type: 'DatabaseError',
       isExpected: false,
@@ -57,20 +63,23 @@ const getUserAuthByEmail = async (email) => {
       AND s.name = 'active';
   `;
   const params = [email];
-  
+
   try {
     const result = await query(text, params);
-    
+
     if (result.rows.length === 0) {
       throw new AppError('User not found or inactive', 404, {
         type: 'AuthenticationError',
         isExpected: true,
       });
     }
-    
+
     return result.rows[0];
   } catch (error) {
-    logError(`Error fetching user authentication details for email ${email}:`, error);
+    logError(
+      `Error fetching user authentication details for email ${email}:`,
+      error
+    );
     throw new AppError('Failed to fetch user authentication details', 500, {
       type: 'DatabaseError',
       isExpected: false,

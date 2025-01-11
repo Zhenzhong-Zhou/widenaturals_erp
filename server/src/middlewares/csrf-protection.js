@@ -21,18 +21,21 @@ const AppError = require('../utils/app-error');
  * @returns {boolean} - Whether to bypass CSRF validation.
  */
 const shouldBypassCSRF = (req) => {
-  if (process.env.NODE_ENV === 'development' && process.env.CSRF_TESTING !== true) {
+  if (
+    process.env.NODE_ENV === 'development' &&
+    process.env.CSRF_TESTING !== true
+  ) {
     return true; // Bypass CSRF in development unless explicitly testing
   }
-  
+
   const exemptMethods = ['GET', 'HEAD', 'OPTIONS']; // Read-only methods
   const exemptPaths = process.env.CSRF_EXEMPT_PATHS
     ? process.env.CSRF_EXEMPT_PATHS.split(',')
     : [
-      '/api/v1/public', // Example: Public APIs
-      '/api/v1/auth/login', // Example: Login endpoint
-    ];
-  
+        '/api/v1/public', // Example: Public APIs
+        '/api/v1/auth/login', // Example: Login endpoint
+      ];
+
   return (
     exemptMethods.includes(req.method) ||
     exemptPaths.some((path) => req.path.startsWith(path))
@@ -51,7 +54,7 @@ const csrfProtection = () => {
       logWarn(`CSRF bypassed for ${req.method} ${req.path}`);
       return next(); // Skip CSRF validation
     }
-    
+
     try {
       // Apply CSRF protection
       csrf({
@@ -67,7 +70,11 @@ const csrfProtection = () => {
         message: error.message,
         stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined,
       });
-      next(AppError.csrfError('CSRF token validation failed.', { details: error.message }));
+      next(
+        AppError.csrfError('CSRF token validation failed.', {
+          details: error.message,
+        })
+      );
     }
   };
 };
@@ -84,18 +91,22 @@ const csrfTokenHandler = (req, res, next) => {
   try {
     const csrfToken = req.csrfToken(); // Generate CSRF token
     const tokenTransportMethod = process.env.CSRF_TOKEN_TRANSPORT || 'header';
-    
+
     if (tokenTransportMethod === 'header') {
       res.set('X-CSRF-Token', csrfToken);
     }
-    
+
     res.json({ csrfToken });
   } catch (error) {
     logError('CSRF Token Generation Error:', {
       message: error.message,
       stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined,
     });
-    next(AppError.csrfError('Failed to generate CSRF token.', { details: error.message }));
+    next(
+      AppError.csrfError('Failed to generate CSRF token.', {
+        details: error.message,
+      })
+    );
   }
 };
 

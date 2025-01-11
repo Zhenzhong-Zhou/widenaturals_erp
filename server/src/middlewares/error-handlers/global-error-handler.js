@@ -18,13 +18,16 @@ const { logError } = require('../../utils/logger-helper');
 const globalErrorHandler = (err, req, res, next) => {
   // Normalize the error to an AppError instance if it's not already
   if (!(err instanceof AppError)) {
-    err = AppError.generalError(err.message || 'An unexpected error occurred.', {
-      status: err.status || 500,
-      type: 'GeneralError',
-      isExpected: false,
-    });
+    err = AppError.generalError(
+      err.message || 'An unexpected error occurred.',
+      {
+        status: err.status || 500,
+        type: 'GeneralError',
+        isExpected: false,
+      }
+    );
   }
-  
+
   // Prepare additional metadata for logging
   const errorMetadata = {
     ip: req.ip || 'N/A',
@@ -34,13 +37,13 @@ const globalErrorHandler = (err, req, res, next) => {
     timestamp: new Date().toISOString(),
     stack: process.env.NODE_ENV !== 'production' ? err.stack : undefined,
   };
-  
+
   // Log the error with metadata
   logError('Global Error:', {
     ...err.toJSON(),
     ...errorMetadata,
   });
-  
+
   // Send structured error response
   res.status(err.status).json({
     ...err.toJSON(),

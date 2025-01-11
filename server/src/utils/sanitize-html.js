@@ -15,13 +15,13 @@ const sanitizeRichText = (input, options = {}) => {
     },
     allowedSchemes: ['http', 'https'],
   };
-  
+
   const finalOptions = { ...defaultOptions, ...options };
-  
+
   if (!input || typeof input !== 'string') {
     return ''; // Return an empty string for invalid input
   }
-  
+
   return sanitizeHtml(input, finalOptions);
 };
 

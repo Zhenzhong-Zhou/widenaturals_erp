@@ -1,5 +1,7 @@
 const { logError } = require('../utils/logger-helper');
-const { getRolePermissionsByRoleId } = require('../repositories/role-permission-repository');
+const {
+  getRolePermissionsByRoleId,
+} = require('../repositories/role-permission-repository');
 const AppError = require('../utils/app-error');
 
 /**
@@ -13,33 +15,42 @@ const authorize = (requiredPermissions = []) => {
     try {
       // Ensure the user is authenticated
       if (!req.user) {
-        throw AppError.authenticationError('Unauthorized: User not authenticated.');
+        throw AppError.authenticationError(
+          'Unauthorized: User not authenticated.'
+        );
       }
-      
+
       const { role_id } = req.user;
-      
+
       // Fetch role permissions
       const rolePermissions = await getRolePermissionsByRoleId(role_id);
-      
+
       if (!rolePermissions) {
         throw AppError.authorizationError('Role permissions not found.', {
           details: { role_id },
         });
       }
-      
+
       const userPermissions = rolePermissions.map((perm) => perm); // Use the permissions field
-      
+
       // Check if the user has all required permissions
-      const hasPermission = requiredPermissions.every((perm) => userPermissions.includes(perm));
-      
+      const hasPermission = requiredPermissions.every((perm) =>
+        userPermissions.includes(perm)
+      );
+
       if (!hasPermission) {
-        throw AppError.authorizationError('Forbidden: Insufficient permissions.', {
-          details: {
-            missingPermissions: requiredPermissions.filter((perm) => !userPermissions.includes(perm)),
-          },
-        });
+        throw AppError.authorizationError(
+          'Forbidden: Insufficient permissions.',
+          {
+            details: {
+              missingPermissions: requiredPermissions.filter(
+                (perm) => !userPermissions.includes(perm)
+              ),
+            },
+          }
+        );
       }
-      
+
       // User is authorized, proceed to the next middleware or controller
       next();
     } catch (error) {
@@ -49,7 +60,9 @@ const authorize = (requiredPermissions = []) => {
           stack: error.stack,
         });
         return next(
-          AppError.authorizationError('An unexpected error occurred during authorization.')
+          AppError.authorizationError(
+            'An unexpected error occurred during authorization.'
+          )
         );
       }
       next(error); // Pass AppError to error handlers

@@ -54,4 +54,10 @@ const hashData = (data) => {
   return crypto.createHash('sha256').update(data).digest('hex');
 };
 
-module.exports = { generateSecret, generateRandomToken, encryptData, decryptData, hashData };
+module.exports = {
+  generateSecret,
+  generateRandomToken,
+  encryptData,
+  decryptData,
+  hashData,
+};

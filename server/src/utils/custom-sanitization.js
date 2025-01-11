@@ -13,19 +13,19 @@ const customSanitization = (input, options = {}) => {
     allowedAttributes: {}, // No attributes allowed
   };
   const finalOptions = { ...defaultOptions, ...options };
-  
+
   if (input === null || input === undefined) {
     return input; // Return as is for null or undefined
   }
-  
+
   if (typeof input === 'string') {
     return sanitizeHtml(input, finalOptions);
   }
-  
+
   if (Array.isArray(input)) {
     return input.map((item) => customSanitization(item, finalOptions));
   }
-  
+
   if (typeof input === 'object') {
     const sanitizedObject = {};
     for (const key in input) {
@@ -35,7 +35,7 @@ const customSanitization = (input, options = {}) => {
     }
     return sanitizedObject;
   }
-  
+
   return input; // Return non-string, non-object, and non-array values as is
 };
 

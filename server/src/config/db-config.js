@@ -36,10 +36,13 @@ const getPoolConfig = () => ({
 const getConnectionConfig = () => {
   const dbPassword = loadSecret('db_password', 'DB_PASSWORD');
   if (!dbPassword) {
-    throw AppError.validationError('Database password (DB_PASSWORD) is required but was not provided.', {
-      type: 'ConfigurationError',
-      isExpected: true,
-    });
+    throw AppError.validationError(
+      'Database password (DB_PASSWORD) is required but was not provided.',
+      {
+        type: 'ConfigurationError',
+        isExpected: true,
+      }
+    );
   }
   return {
     host: process.env.DB_HOST,

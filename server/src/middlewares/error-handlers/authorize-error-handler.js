@@ -24,7 +24,7 @@ const authorizationErrorHandler = (err, req, res, next) => {
         logLevel: 'warn',
       }
     );
-    
+
     // Log the authorization error as a warning
     logWarn('Authorization Error:', {
       message: errorResponse.message,
@@ -34,11 +34,11 @@ const authorizationErrorHandler = (err, req, res, next) => {
       ip: req.ip,
       details: errorResponse.details,
     });
-    
+
     // Send structured error response
     return res.status(errorResponse.status).json(errorResponse.toJSON());
   }
-  
+
   // Pass to the next error handler if not an authorization error
   next(err);
 };

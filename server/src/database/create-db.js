@@ -31,21 +31,23 @@ const createDatabaseAndInitialize = async () => {
     await onExit(1);
     return;
   }
-  
+
   const adminPool = new Pool(adminConnectionConfig); // Temporary admin pool
-  
+
   try {
-    logInfo(`Checking for database: '${targetDatabase}' in '${env}' environment`);
-    
+    logInfo(
+      `Checking for database: '${targetDatabase}' in '${env}' environment`
+    );
+
     // Ensure admin connection is ready
     await retryDatabaseConnection(adminConnectionConfig, 5);
-    
+
     // Query to check if the database exists
     const result = await adminPool.query(
       `SELECT 1 FROM pg_database WHERE datname = $1`,
       [targetDatabase]
     );
-    
+
     if (result.rowCount === 0) {
       logInfo(`Database '${targetDatabase}' does not exist. Creating...`);
       await adminPool.query(`CREATE DATABASE "${targetDatabase}"`);
@@ -53,21 +55,22 @@ const createDatabaseAndInitialize = async () => {
     } else {
       logInfo(`Database '${targetDatabase}' already exists.`);
     }
-    
+
     // Run migrations
     logInfo('Running database migrations...');
     await knex.migrate.latest();
     logInfo('Database migrations completed successfully.');
-    
+
     // Run seeds
     logInfo('Running database seeds...');
     await knex.seed.run();
     logInfo('Database seeds executed successfully.');
   } catch (error) {
     logError(error, null, {
-      additionalInfo: error.code === '3D000'
-        ? `Database '${targetDatabase}' does not exist`
-        : 'Unexpected error during database creation or initialization',
+      additionalInfo:
+        error.code === '3D000'
+          ? `Database '${targetDatabase}' does not exist`
+          : 'Unexpected error during database creation or initialization',
     });
     await onExit(1); // Exits with proper cleanup
   } finally {
@@ -83,7 +86,9 @@ module.exports = { createDatabaseAndInitialize };
 // Self-executing script for standalone use
 if (require.main === module) {
   createDatabaseAndInitialize()
-    .then(() => logInfo('Database creation and initialization completed successfully.'))
+    .then(() =>
+      logInfo('Database creation and initialization completed successfully.')
+    )
     .catch(async (error) => {
       logError(error, null, { additionalInfo: 'Failed to set up database' });
       await onExit(1); // Handles errors and exits cleanly

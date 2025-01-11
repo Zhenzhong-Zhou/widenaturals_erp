@@ -32,14 +32,16 @@ const setServer = (serverInstance) => {
  */
 const cleanupLogic = async () => {
   if (cleanupCalled) {
-    getLoggerHelper().logWarn('Cleanup already in progress. Skipping redundant call.');
+    getLoggerHelper().logWarn(
+      'Cleanup already in progress. Skipping redundant call.'
+    );
     return;
   }
   cleanupCalled = true;
-  
+
   const logger = getLoggerHelper();
   logger.logInfo('Starting cleanup logic...');
-  
+
   try {
     // Close server connections
     if (server) {
@@ -53,18 +55,21 @@ const cleanupLogic = async () => {
     } else {
       logger.logInfo('No active server instance to close.');
     }
-    
+
     // Close database pool
     logger.logInfo('Closing database pool...');
     await closePool();
-    
+
     // Remove signal handlers
     process.removeAllListeners('SIGINT');
     process.removeAllListeners('SIGTERM');
-    
+
     logger.logInfo('Database pool closed.');
   } catch (error) {
-    logger.logFatal('Error during cleanup:', null, { error: error.message, stack: error.stack });
+    logger.logFatal('Error during cleanup:', null, {
+      error: error.message,
+      stack: error.stack,
+    });
   }
 };
 
@@ -75,22 +80,25 @@ const cleanupLogic = async () => {
  */
 const handleExit = async (code = 0) => {
   const logger = getLoggerHelper();
-  
+
   try {
     logger.logInfo('Initiating exit process...');
-    
+
     // Set a timeout for the cleanup process
     const timeout = setTimeout(() => {
       logger.logFatal('Cleanup exceeded timeout. Forcing exit.');
       process.exit(code);
     }, 10000); // 10 seconds timeout
-    
+
     await cleanupLogic();
     clearTimeout(timeout);
-    
+
     logger.logInfo('Cleanup completed successfully.');
   } catch (error) {
-    logger.logFatal('Unexpected error during exit:', null, { error: error.message, stack: error.stack });
+    logger.logFatal('Unexpected error during exit:', null, {
+      error: error.message,
+      stack: error.stack,
+    });
   } finally {
     logger.logInfo(`Exiting with code: ${code}`);
     process.exit(code);

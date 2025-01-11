@@ -16,7 +16,10 @@ const { logWarn } = require('../../utils/logger-helper');
  */
 const rateLimitErrorHandler = (err, req, res, next) => {
   // Check if the error is related to rate limiting
-  if (err.name === 'RateLimitError' || err.message.includes('Rate limit exceeded')) {
+  if (
+    err.name === 'RateLimitError' ||
+    err.message.includes('Rate limit exceeded')
+  ) {
     // Use AppError factory method to create a structured error
     const rateLimitError = AppError.rateLimitError('Too Many Requests', {
       code: 'RATE_LIMIT_EXCEEDED',
@@ -25,7 +28,7 @@ const rateLimitErrorHandler = (err, req, res, next) => {
         retryAfter: err.retryAfter || null, // Include retry-after time if available
       },
     });
-    
+
     // Log the rate limit error with metadata
     logWarn('Rate Limit Exceeded', {
       message: rateLimitError.message,
@@ -35,11 +38,11 @@ const rateLimitErrorHandler = (err, req, res, next) => {
       userAgent: req.headers['user-agent'] || 'Unknown',
       retryAfter: rateLimitError.details.retryAfter,
     });
-    
+
     // Respond with a structured error response
     return res.status(rateLimitError.status).json(rateLimitError.toJSON());
   }
-  
+
   // Pass other errors to the next middleware
   next(err);
 };

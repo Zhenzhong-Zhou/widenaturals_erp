@@ -46,35 +46,35 @@ const { logError } = require('../utils/logger-helper');
  */
 const loginController = async (req, res) => {
   const { email, password } = req.body;
-  
+
   try {
     // Call the service layer for business logic
     const { accessToken, refreshToken } = await loginUser(email, password);
-    
+
     // Set tokens in cookies
     res.cookie('accessToken', accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       maxAge: 15 * 60 * 1000, // 15 minutes
     });
-    
+
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
-    
+
     // Return success response
     res.status(200).json({ message: 'Login successful' });
   } catch (error) {
     // Log the error
     logError('Error during login:', error);
-    
+
     // Handle invalid credentials error
     if (error.message.includes('Invalid email or password')) {
       return res.status(401).json({ error: 'Invalid email or password.' });
     }
-    
+
     // Handle unexpected server errors
     res.status(500).json({ error: 'Internal server error.' });
   }

@@ -17,10 +17,13 @@ const { logError } = require('../../utils/logger-helper');
 const sanitizationErrorHandler = (err, req, res, next) => {
   if (err.name === 'SanitizationError' || err.type === 'SanitizationError') {
     // Use the AppError factory method to create a structured sanitization error
-    const sanitizationError = AppError.sanitizationError(err.message || 'Sanitization failed.', {
-      details: err.details || null, // Include sanitization details if available
-    });
-    
+    const sanitizationError = AppError.sanitizationError(
+      err.message || 'Sanitization failed.',
+      {
+        details: err.details || null, // Include sanitization details if available
+      }
+    );
+
     // Log the sanitization error with metadata for debugging
     logError('Sanitization Error:', {
       message: sanitizationError.message,
@@ -30,11 +33,13 @@ const sanitizationErrorHandler = (err, req, res, next) => {
       userAgent: req.headers['user-agent'] || 'Unknown',
       ip: req.ip,
     });
-    
+
     // Respond with a structured error response
-    return res.status(sanitizationError.status).json(sanitizationError.toJSON());
+    return res
+      .status(sanitizationError.status)
+      .json(sanitizationError.toJSON());
   }
-  
+
   // Pass non-sanitization errors to the next middleware
   next(err);
 };

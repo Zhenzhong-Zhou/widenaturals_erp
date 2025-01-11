@@ -25,28 +25,32 @@ const getRolePermissionsByRoleId = async (roleId) => {
       AND srp.name = 'active'
     GROUP BY r.name;
   `;
-  
+
   try {
     const params = [roleId];
     const result = await query(text, params);
-    
+
     if (!result.rows.length || !result.rows[0].permissions) {
       throw new AppError('No permissions found for the specified role.', 404, {
         type: 'DatabaseError',
         isExpected: true,
       });
     }
-    
+
     return result.rows[0].permissions;
   } catch (error) {
     logError('Error fetching permissions for role:', {
       roleId,
       error: error.message,
     });
-    throw new AppError('Failed to fetch permissions for the specified role.', 500, {
-      type: 'DatabaseError',
-      isExpected: false,
-    });
+    throw new AppError(
+      'Failed to fetch permissions for the specified role.',
+      500,
+      {
+        type: 'DatabaseError',
+        isExpected: false,
+      }
+    );
   }
 };
 
@@ -64,7 +68,7 @@ const addPermissionToRole = async (roleId, permissionId) => {
     VALUES ($1, $2, (SELECT id FROM status WHERE name = 'active'), NOW(), NOW())
     ON CONFLICT DO NOTHING;
   `;
-  
+
   try {
     const params = [roleId, permissionId];
     await query(text, params);

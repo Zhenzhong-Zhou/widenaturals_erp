@@ -18,15 +18,18 @@ const corsErrorHandler = (err, req, res, next) => {
   // Check if the error is CORS-related
   if (err.name === 'CorsError' || err.message.includes('CORS policy')) {
     // Use the AppError factory method for CORS violations
-    const corsError = AppError.corsError('CORS policy does not allow this request.', {
-      details: {
-        origin: req.headers.origin || 'Unknown',
-        method: req.method,
-        route: req.originalUrl,
-      },
-      logLevel: 'warn',
-    });
-    
+    const corsError = AppError.corsError(
+      'CORS policy does not allow this request.',
+      {
+        details: {
+          origin: req.headers.origin || 'Unknown',
+          method: req.method,
+          route: req.originalUrl,
+        },
+        logLevel: 'warn',
+      }
+    );
+
     // Log the CORS error with detailed metadata
     logError(corsError.logLevel, 'CORS Error:', {
       message: corsError.message,
@@ -35,11 +38,11 @@ const corsErrorHandler = (err, req, res, next) => {
       route: req.originalUrl,
       userAgent: req.headers['user-agent'] || 'Unknown',
     });
-    
+
     // Respond with a structured error response
     return res.status(corsError.status).json(corsError.toJSON());
   }
-  
+
   // If it's not a CORS error, pass it to the next middleware
   next(err);
 };

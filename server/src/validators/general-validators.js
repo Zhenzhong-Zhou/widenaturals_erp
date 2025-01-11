@@ -18,14 +18,22 @@ const validateUUID = Joi.string().uuid().required().messages({
   'any.required': 'ID is required',
 });
 
-
-const validateString = (fieldName, minLength = DEFAULT_MIN_LENGTH, maxLength = DEFAULT_MAX_LENGTH) =>
-  Joi.string().trim().min(minLength).max(maxLength).required().messages({
-    'string.base': `${fieldName} must be a string`,
-    'string.min': `${fieldName} must be at least ${minLength} characters`,
-    'string.max': `${fieldName} must be at most ${maxLength} characters`,
-    'any.required': `${fieldName} is required`,
-  });
+const validateString = (
+  fieldName,
+  minLength = DEFAULT_MIN_LENGTH,
+  maxLength = DEFAULT_MAX_LENGTH
+) =>
+  Joi.string()
+    .trim()
+    .min(minLength)
+    .max(maxLength)
+    .required()
+    .messages({
+      'string.base': `${fieldName} must be a string`,
+      'string.min': `${fieldName} must be at least ${minLength} characters`,
+      'string.max': `${fieldName} must be at most ${maxLength} characters`,
+      'any.required': `${fieldName} is required`,
+    });
 
 module.exports = {
   validateEmail,

@@ -11,7 +11,7 @@ const MIN_LIMITS = {
     MIN_LASTNAME: 2, // Minimum length for lastname
     MIN_PASSWORD: 128, // Minimum length for passwords
     MIN_EMAIL: 8, // Minimum length for email addresses
-  }
+  },
 };
 
 module.exports = MIN_LIMITS;

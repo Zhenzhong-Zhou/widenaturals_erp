@@ -42,9 +42,10 @@ const query = async (text, params = []) => {
   try {
     const result = await client.query(text, params); // Execute the query
     const duration = Date.now() - startTime;
-    
+
     // Log slow queries
-    const slowQueryThreshold = parseInt(process.env.SLOW_QUERY_THRESHOLD, 10) || 1000; // Default: 1000ms
+    const slowQueryThreshold =
+      parseInt(process.env.SLOW_QUERY_THRESHOLD, 10) || 1000; // Default: 1000ms
     if (duration > slowQueryThreshold) {
       logWarn('Slow query detected', {
         query: text,
@@ -52,7 +53,7 @@ const query = async (text, params = []) => {
         duration: `${duration}ms`,
       });
     }
-    
+
     logInfo('Query executed', { query: text, duration: `${duration}ms` });
     return result;
   } catch (error) {
@@ -112,7 +113,7 @@ const monitorPool = async () => {
       idleClients: pool.idleCount,
       waitingRequests: pool.waitingCount,
     };
-    
+
     logInfo('Pool health metrics:', metrics);
     return metrics;
   } catch (error) {
@@ -132,21 +133,26 @@ let poolClosed = false; // Flag to track if the pool has already been closed
 
 const closePool = async () => {
   if (poolClosed) {
-    logWarn('Attempted to close the database connection pool, but it is already closed.');
+    logWarn(
+      'Attempted to close the database connection pool, but it is already closed.'
+    );
     return; // Prevent multiple calls
   }
-  
+
   logInfo('Closing database connection pool...');
-  
+
   try {
     await pool.end(); // Close all connections in the pool
     logInfo('Database connection pool closed.');
     poolClosed = true; // Mark the pool as closed
   } catch (error) {
     logError('Error closing database connection pool:', error.message);
-    throw AppError.databaseError('Failed to close the database connection pool', {
-      details: { error: error.message },
-    });
+    throw AppError.databaseError(
+      'Failed to close the database connection pool',
+      {
+        details: { error: error.message },
+      }
+    );
   }
 };
 
@@ -160,7 +166,7 @@ const closePool = async () => {
 const retry = async (fn, retries = 3) => {
   let attempt = 0;
   const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-  
+
   while (attempt < retries) {
     try {
       return await fn(); // Attempt to execute the function
@@ -185,30 +191,45 @@ const retry = async (fn, retries = 3) => {
 const retryDatabaseConnection = async (config, retries = 5) => {
   const tempPool = new Pool(config); // Temporary pool for retrying
   let attempts = 0;
-  
+
   while (attempts < retries) {
     try {
       const client = await tempPool.connect(); // Attempt to connect using the pool
       logInfo('Database connected successfully!');
       client.release(); // Release the client back to the pool
-      
+
       await tempPool.end(); // Close the temporary pool after success
       return;
     } catch (error) {
       attempts++;
-      logError(`Database connection attempt ${attempts} failed:`, error.message);
-      
+      logError(
+        `Database connection attempt ${attempts} failed:`,
+        error.message
+      );
+
       if (attempts === retries) {
         await tempPool.end(); // Ensure the temporary pool is closed after the final attempt
-        throw AppError.databaseError('Failed to connect to the database after multiple attempts.', {
-          details: { attempts, retries, error: error.message },
-        });
+        throw AppError.databaseError(
+          'Failed to connect to the database after multiple attempts.',
+          {
+            details: { attempts, retries, error: error.message },
+          }
+        );
       }
-      
+
       await new Promise((res) => setTimeout(res, 5000)); // Wait 5 seconds before retrying
     }
   }
 };
 
 // Export the utilities
-module.exports = { pool, query, getClient, closePool, testConnection, monitorPool, retry, retryDatabaseConnection };
+module.exports = {
+  pool,
+  query,
+  getClient,
+  closePool,
+  testConnection,
+  monitorPool,
+  retry,
+  retryDatabaseConnection,
+};

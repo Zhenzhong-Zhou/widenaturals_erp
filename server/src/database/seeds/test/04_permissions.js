@@ -5,18 +5,20 @@ exports.seed = async function (knex) {
     .where('name', 'active')
     .first()
     .then((row) => row.id);
-  
+
   // Fetch the admin user ID
   const adminUserId = await knex('users')
     .select('id')
     .where('email', 'admin@example.com') // Adjust to match seeded user
     .first()
     .then((row) => row.id);
-  
+
   if (!adminUserId) {
-    throw new Error('Admin user is not seeded. Please seed the users table first.');
+    throw new Error(
+      'Admin user is not seeded. Please seed the users table first.'
+    );
   }
-  
+
   const permissions = [
     {
       id: knex.raw('uuid_generate_v4()'),
@@ -74,13 +76,13 @@ exports.seed = async function (knex) {
       updated_at: knex.fn.now(),
     },
   ];
-  
+
   for (const permission of permissions) {
     await knex('permissions')
       .insert(permission)
       .onConflict('key') // Use the `key` field for conflict resolution
       .ignore(); // Ignore the insertion if a conflict occurs
   }
-  
+
   console.log('Permissions seeded successfully.');
 };

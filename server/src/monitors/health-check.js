@@ -28,29 +28,37 @@ const startHealthCheck = (interval = ONE_MINUTE) => {
     logger.warn('Health check already running. Restarting...');
     clearInterval(healthCheckInterval);
   }
-  
+
   healthCheckInterval = setInterval(async () => {
     try {
       const startTime = Date.now();
-      
+
       // Perform multiple health checks concurrently
       const results = await Promise.all(
         healthChecks.map(async (healthCheck) => {
           try {
             const result = await healthCheck.check();
-            return { name: healthCheck.name, status: 'healthy', details: result };
+            return {
+              name: healthCheck.name,
+              status: 'healthy',
+              details: result,
+            };
           } catch (error) {
             logger.error(`Health check failed: ${healthCheck.name}`, {
               error: error.message,
               stack: error.stack,
             });
-            return { name: healthCheck.name, status: 'unhealthy', error: error.message };
+            return {
+              name: healthCheck.name,
+              status: 'unhealthy',
+              error: error.message,
+            };
           }
         })
       );
-      
+
       const duration = Date.now() - startTime;
-      
+
       logger.info(`Scheduled health check completed in ${duration}ms`, {
         results,
       });
@@ -61,7 +69,7 @@ const startHealthCheck = (interval = ONE_MINUTE) => {
       });
     }
   }, interval);
-  
+
   logger.info(`Health check started with an interval of ${interval} ms`);
 };
 

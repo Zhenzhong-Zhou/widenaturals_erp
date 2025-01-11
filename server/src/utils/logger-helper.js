@@ -24,27 +24,37 @@ const getLogger = () => {
  * @param {Object} [meta={}] - Additional metadata.
  * @param {boolean} [sanitize=false] - Whether to sanitize the message.
  */
-const logWithLevel = (level, message, req = null, meta = {}, sanitize = false) => {
+const logWithLevel = (
+  level,
+  message,
+  req = null,
+  meta = {},
+  sanitize = false
+) => {
   const sanitizedMessage = sanitize ? sanitizeMessage(message) : message;
-  
+
   const context = req
     ? {
-      method: req.method || 'N/A',
-      url: req.originalUrl || 'N/A',
-      ip: req.ip || 'N/A',
-      userAgent: req.headers?.['user-agent'] || 'N/A',
-      ...meta,
-    }
+        method: req.method || 'N/A',
+        url: req.originalUrl || 'N/A',
+        ip: req.ip || 'N/A',
+        userAgent: req.headers?.['user-agent'] || 'N/A',
+        ...meta,
+      }
     : meta;
-  
+
   getLogger().log({ level, message: sanitizedMessage, ...context });
 };
 
 // Individual log level wrappers
-const logInfo = (message, req = null, meta = {}) => logWithLevel('info', message, req, meta);
-const logDebug = (message, req = null, meta = {}) => logWithLevel('debug', message, req, meta);
-const logWarn = (message, req = null, meta = {}) => logWithLevel('warn', message, req, meta);
-const logFatal = (message, req = null, meta = {}) => logWithLevel('fatal', message, req, meta);
+const logInfo = (message, req = null, meta = {}) =>
+  logWithLevel('info', message, req, meta);
+const logDebug = (message, req = null, meta = {}) =>
+  logWithLevel('debug', message, req, meta);
+const logWarn = (message, req = null, meta = {}) =>
+  logWithLevel('warn', message, req, meta);
+const logFatal = (message, req = null, meta = {}) =>
+  logWithLevel('fatal', message, req, meta);
 
 /**
  * Logs error messages with support for `Error` and `AppError` types.
@@ -55,10 +65,11 @@ const logFatal = (message, req = null, meta = {}) => logWithLevel('fatal', messa
  */
 const logError = (errOrMessage, req = null, meta = {}) => {
   let message, stack, logLevel, errorMeta;
-  
+
   if (errOrMessage instanceof AppError) {
     message = errOrMessage.message || 'An unknown error occurred';
-    stack = process.env.NODE_ENV !== 'production' ? errOrMessage.stack : undefined;
+    stack =
+      process.env.NODE_ENV !== 'production' ? errOrMessage.stack : undefined;
     logLevel = errOrMessage.logLevel || 'error';
     errorMeta = {
       status: errOrMessage.status,
@@ -68,7 +79,8 @@ const logError = (errOrMessage, req = null, meta = {}) => {
     };
   } else if (errOrMessage instanceof Error) {
     message = errOrMessage.message || 'An unknown error occurred';
-    stack = process.env.NODE_ENV !== 'production' ? errOrMessage.stack : undefined;
+    stack =
+      process.env.NODE_ENV !== 'production' ? errOrMessage.stack : undefined;
     logLevel = 'error';
     errorMeta = {};
   } else {
@@ -77,7 +89,7 @@ const logError = (errOrMessage, req = null, meta = {}) => {
     logLevel = 'error';
     errorMeta = {};
   }
-  
+
   const combinedMeta = { ...errorMeta, ...meta, stack };
   logWithLevel(logLevel, message, req, combinedMeta, true);
 };

@@ -12,7 +12,7 @@ const { query } = require('../database/db');
  */
 const getRoleIdByField = async (field, value) => {
   const validFields = ['name', 'id'];
-  
+
   if (!validFields.includes(field)) {
     const errorMessage = `Invalid field: '${field}'. Must be one of ${validFields.join(', ')}`;
     logError(errorMessage, { field, value });
@@ -21,7 +21,7 @@ const getRoleIdByField = async (field, value) => {
       isExpected: true,
     });
   }
-  
+
   const text = `
     SELECT r.id
     FROM roles r
@@ -30,19 +30,19 @@ const getRoleIdByField = async (field, value) => {
       AND s.name = 'active'
     LIMIT 1;
   `;
-  
+
   const params = [field === 'name' ? value.toLowerCase() : value];
-  
+
   try {
     const result = await query(text, params);
-    
+
     if (result.rows.length === 0) {
       throw new AppError(`Role with ${field} '${value}' not found.`, 404, {
         type: 'DatabaseError',
         isExpected: true,
       });
     }
-    
+
     return result.rows[0].id;
   } catch (error) {
     logError('Error fetching role ID by field:', {

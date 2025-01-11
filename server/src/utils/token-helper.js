@@ -15,14 +15,14 @@ const signToken = (payload, isRefreshToken = false) => {
     ? process.env.JWT_REFRESH_SECRET
     : process.env.JWT_ACCESS_SECRET;
   const expiresIn = isRefreshToken ? '7d' : '15m'; // 7 days for refresh tokens, 15 minutes for access tokens
-  
+
   if (!secret) {
     throw AppError.serviceError(
       `JWT secret is not defined for ${isRefreshToken ? 'refresh' : 'access'} token`,
       { details: { isRefreshToken } }
     );
   }
-  
+
   return jwt.sign(payload, secret, { expiresIn });
 };
 
@@ -39,17 +39,20 @@ const verifyToken = (token, isRefresh = false) => {
     const secret = isRefresh
       ? process.env.JWT_REFRESH_SECRET
       : process.env.JWT_ACCESS_SECRET;
-    
+
     if (!secret) {
       throw AppError.serviceError(
         `JWT secret is not defined for ${isRefresh ? 'refresh' : 'access'} token`,
         { details: { isRefresh } }
       );
     }
-    
+
     return jwt.verify(token, secret);
   } catch (error) {
-    logError(`Invalid or expired ${isRefresh ? 'refresh' : 'access'} token`, error);
+    logError(
+      `Invalid or expired ${isRefresh ? 'refresh' : 'access'} token`,
+      error
+    );
     throw AppError.authenticationError(
       `Invalid or expired ${isRefresh ? 'refresh' : 'access'} token`,
       { details: { error: error.message } }

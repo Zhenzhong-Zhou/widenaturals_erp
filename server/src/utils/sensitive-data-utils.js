@@ -27,7 +27,7 @@ const maskSensitiveInfo = (data, type) => {
  */
 const sanitizeMessage = (message, maskIp = false) => {
   if (!message) return message;
-  
+
   let sanitizedMessage = message
     // Mask passwords (e.g., password=1234)
     .replace(/password=[^& ]+/g, 'password=****')
@@ -40,7 +40,7 @@ const sanitizeMessage = (message, maskIp = false) => {
       /(?:\+\d{1,3}[- ]?)?(?:\(\d{1,4}\)|\d{1,4})[- ]?\d{1,4}[- ]?\d{1,4}[- ]?\d{1,9}/g,
       'PHONE_NUMBER'
     );
-  
+
   // Conditionally mask IP addresses (e.g., 192.168.1.1)
   if (maskIp) {
     sanitizedMessage = sanitizedMessage.replace(
@@ -48,7 +48,7 @@ const sanitizeMessage = (message, maskIp = false) => {
       'IP_ADDRESS'
     );
   }
-  
+
   return sanitizedMessage;
 };
 

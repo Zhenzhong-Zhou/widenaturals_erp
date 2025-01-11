@@ -17,11 +17,14 @@ const { logWarn } = require('../../utils/logger-helper');
 const healthErrorHandler = (err, req, res, next) => {
   if (err.type === 'HealthCheckError') {
     // Normalize to an AppError instance if not already
-    const healthError = AppError.healthCheckError(err.message || 'Service Unavailable', {
-      code: err.code || 'SERVICE_UNAVAILABLE',
-      status: err.status || 503,
-    });
-    
+    const healthError = AppError.healthCheckError(
+      err.message || 'Service Unavailable',
+      {
+        code: err.code || 'SERVICE_UNAVAILABLE',
+        status: err.status || 503,
+      }
+    );
+
     // Log the health-check error as a warning
     logWarn('Health-Check Error Detected:', {
       message: healthError.message,
@@ -33,14 +36,14 @@ const healthErrorHandler = (err, req, res, next) => {
       userAgent: req.headers['user-agent'] || 'Unknown',
       ip: req.ip,
     });
-    
+
     // Return a structured 503 Service Unavailable response
     return res.status(healthError.status).json({
       ...healthError.toJSON(),
       timestamp: new Date().toISOString(),
     });
   }
-  
+
   // Pass to the next error handler if not a health-check specific error
   next(err);
 };

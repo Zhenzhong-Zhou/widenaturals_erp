@@ -16,6 +16,10 @@ const router = express.Router();
  * This route is intended for monitoring system-level operations,
  * providing detailed health and status information.
  */
-router.get('/status', authorize(['view_system', 'view_system_status']), getSystemStatus);
+router.get(
+  '/status',
+  authorize(['view_system', 'view_system_status']),
+  getSystemStatus
+);
 
 module.exports = router;

@@ -27,7 +27,7 @@ const checkServerHealth = async () => {
       timestamp: new Date().toISOString(),
     },
   };
-  
+
   // Perform database health check
   try {
     status.services.database = await checkDatabaseHealth();
@@ -35,7 +35,7 @@ const checkServerHealth = async () => {
     status.server = 'unhealthy';
     status.services.database = { status: 'unhealthy', error: error.message };
   }
-  
+
   // Perform pool health check
   try {
     const poolMetrics = await monitorPool();
@@ -44,7 +44,7 @@ const checkServerHealth = async () => {
     status.server = 'unhealthy';
     status.services.pool = { status: 'unhealthy', error: error.message };
   }
-  
+
   return status;
 };
 

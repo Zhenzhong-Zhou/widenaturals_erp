@@ -11,7 +11,10 @@ const paginateQuery = require('./query-pagination');
  */
 const getStatusIdByName = async (statusName) => {
   if (!statusName) {
-    throw new AppError('Status name is required', 400, { type: 'ValidationError', isExpected: true });
+    throw new AppError('Status name is required', 400, {
+      type: 'ValidationError',
+      isExpected: true,
+    });
   }
   const result = await queryStatus('LOWER(name) = LOWER($1)', [statusName]);
   return result ? result.id : null;
@@ -26,7 +29,10 @@ const getStatusIdByName = async (statusName) => {
  */
 const getStatusNameById = async (id) => {
   if (!id) {
-    throw new AppError('Status ID is required', 400, { type: 'ValidationError', isExpected: true });
+    throw new AppError('Status ID is required', 400, {
+      type: 'ValidationError',
+      isExpected: true,
+    });
   }
   return queryStatus('id = $1', [id]);
 };
@@ -70,12 +76,12 @@ const getAllStatuses = async (page = 1, limit = 10) => {
     SELECT id, name, description, is_active, created_at
     FROM status
   `;
-  
+
   const countQuery = `
     SELECT COUNT(*) AS count
     FROM status
   `;
-  
+
   try {
     return await paginateQuery({
       queryText: baseQuery,
@@ -102,31 +108,40 @@ const getAllStatuses = async (page = 1, limit = 10) => {
  * @returns {Promise<Array>} - Array of filtered statuses.
  * @throws {AppError} - Throws an error if the query fails.
  */
-const getFilteredStatuses = async (isActive = null, sortBy = 'created_at', sortOrder = 'DESC') => {
+const getFilteredStatuses = async (
+  isActive = null,
+  sortBy = 'created_at',
+  sortOrder = 'DESC'
+) => {
   const filters = [];
   const params = [];
-  
+
   if (isActive !== null) {
     filters.push('is_active = $1');
     params.push(isActive);
   }
-  
-  const whereClause = filters.length > 0 ? `WHERE ${filters.join(' AND ')}` : '';
+
+  const whereClause =
+    filters.length > 0 ? `WHERE ${filters.join(' AND ')}` : '';
   const text = `
     SELECT id, name, description, is_active, created_at
     FROM status
     ${whereClause}
     ORDER BY ${sortBy} ${sortOrder};
   `;
-  
+
   try {
     const result = await query(text, params);
     return result.rows || [];
   } catch (error) {
-    throw new AppError('Failed to fetch filtered statuses from the database', 500, {
-      type: 'DatabaseError',
-      isExpected: false,
-    });
+    throw new AppError(
+      'Failed to fetch filtered statuses from the database',
+      500,
+      {
+        type: 'DatabaseError',
+        isExpected: false,
+      }
+    );
   }
 };
 
@@ -139,15 +154,18 @@ const getFilteredStatuses = async (isActive = null, sortBy = 'created_at', sortO
  */
 const getStatusById = async (id) => {
   if (!id) {
-    throw new AppError('Status ID is required', 400, { type: 'ValidationError', isExpected: true });
+    throw new AppError('Status ID is required', 400, {
+      type: 'ValidationError',
+      isExpected: true,
+    });
   }
-  
+
   const text = `
     SELECT id, name, description, is_active, created_at
     FROM status
     WHERE id = $1;
   `;
-  
+
   try {
     const result = await query(text, [id]);
     return result.rows[0] || null;

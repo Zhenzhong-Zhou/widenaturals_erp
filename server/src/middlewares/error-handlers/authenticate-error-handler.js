@@ -23,7 +23,7 @@ const authenticateErrorHandler = (err, req, res, next) => {
       isExpected: true, // Authentication errors are expected in certain scenarios
       logLevel: 'warn',
     });
-    
+
     // Log the authentication error with detailed metadata
     logError(authError.logLevel, 'Authentication Error', {
       message: authError.message,
@@ -32,11 +32,11 @@ const authenticateErrorHandler = (err, req, res, next) => {
       ip: req.ip,
       userAgent: req.headers['user-agent'] || 'Unknown',
     });
-    
+
     // Respond with a structured error response
     return res.status(authError.status).json(authError.toJSON());
   }
-  
+
   // Pass the error to the next middleware if it's not an authentication error
   next(err);
 };

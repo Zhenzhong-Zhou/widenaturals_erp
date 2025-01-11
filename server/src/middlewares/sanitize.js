@@ -12,17 +12,17 @@ const sanitizeInput = (req, res, next) => {
     if (req.body) {
       req.body = customSanitization(req.body);
     }
-    
+
     // Sanitize query parameters
     if (req.query) {
       req.query = customSanitization(req.query);
     }
-    
+
     // Sanitize URL parameters
     if (req.params) {
       req.params = customSanitization(req.params);
     }
-    
+
     next();
   } catch (error) {
     logError('Input sanitization failed:', {
@@ -30,7 +30,7 @@ const sanitizeInput = (req, res, next) => {
       route: req.originalUrl,
       error: error.message,
     });
-    
+
     next(
       AppError.sanitizationError('Input sanitization failed.', {
         details: error.message,
@@ -56,7 +56,7 @@ const sanitizeFields = (fields, isRichText = false) => {
             : customSanitization(req.body[field]);
         }
       });
-      
+
       next();
     } catch (error) {
       logError('Field sanitization failed:', {
@@ -65,7 +65,7 @@ const sanitizeFields = (fields, isRichText = false) => {
         fields,
         error: error.message,
       });
-      
+
       next(
         AppError.sanitizationError('Field sanitization failed.', {
           details: error.message,

@@ -47,8 +47,8 @@ const validateRoleByName = async (roleName) => {
     throw error instanceof AppError
       ? error
       : AppError.databaseError('Failed to validate role by name', {
-        details: { roleName },
-      });
+          details: { roleName },
+        });
   }
 };
 
@@ -75,8 +75,8 @@ const validateRoleById = async (roleId) => {
     throw error instanceof AppError
       ? error
       : AppError.databaseError('Failed to validate role by ID', {
-        details: { roleId },
-      });
+          details: { roleId },
+        });
   }
 };
 
@@ -103,8 +103,8 @@ const validateStatus = async (statusName) => {
     throw error instanceof AppError
       ? error
       : AppError.databaseError('Failed to validate status', {
-        details: { statusName },
-      });
+          details: { statusName },
+        });
   }
 };
 

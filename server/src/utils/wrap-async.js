@@ -24,7 +24,7 @@ const wrapAsync = (routes, options = { debug: false }) => {
     }
     return asyncHandler(routes);
   }
-  
+
   if (typeof routes !== 'object' || routes === null) {
     const error = new AppError(
       'wrapAsync expects a function or an object of route handlers',
@@ -38,7 +38,7 @@ const wrapAsync = (routes, options = { debug: false }) => {
     logError('Invalid input to wrapAsync:', error.toJSON());
     throw error;
   }
-  
+
   return Object.entries(routes).reduce((wrappedRoutes, [key, value]) => {
     if (typeof value === 'function') {
       if (options.debug) {

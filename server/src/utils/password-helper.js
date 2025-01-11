@@ -14,13 +14,13 @@ const hashPasswordWithSalt = async (password) => {
     if (!password) {
       throw AppError.validationError('Password is required for hashing.');
     }
-    
+
     // Generate a unique salt
     const salt = crypto.randomBytes(16).toString('hex');
-    
+
     // Combine the password and salt before hashing
     const hash = await argon2.hash(password + salt);
-    
+
     return {
       passwordHash: hash,
       passwordSalt: salt,
@@ -44,14 +44,17 @@ const hashPasswordWithSalt = async (password) => {
 const verifyPassword = async (password, passwordHash, passwordSalt) => {
   try {
     if (!password || !passwordHash || !passwordSalt) {
-      throw AppError.validationError('Invalid password, hash, or salt provided.', {
-        details: { password, passwordHash, passwordSalt },
-      });
+      throw AppError.validationError(
+        'Invalid password, hash, or salt provided.',
+        {
+          details: { password, passwordHash, passwordSalt },
+        }
+      );
     }
-    
+
     // Concatenate the password with the salt
     const combinedPassword = password + passwordSalt;
-    
+
     // Verify the hash
     return await argon2.verify(passwordHash, combinedPassword);
   } catch (error) {
