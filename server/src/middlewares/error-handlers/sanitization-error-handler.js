@@ -16,11 +16,8 @@ const { logError } = require('../../utils/logger-helper');
  */
 const sanitizationErrorHandler = (err, req, res, next) => {
   if (err.name === 'SanitizationError' || err.type === 'SanitizationError') {
-    // Normalize to an AppError for sanitization violations
-    const sanitizationError = new AppError(err.message || 'Sanitization failed.', 400, {
-      type: 'SanitizationError',
-      isExpected: true,
-      code: 'SANITIZATION_ERROR',
+    // Use the AppError factory method to create a structured sanitization error
+    const sanitizationError = AppError.sanitizationError(err.message || 'Sanitization failed.', {
       details: err.details || null, // Include sanitization details if available
     });
     

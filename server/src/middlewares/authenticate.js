@@ -15,10 +15,7 @@ const authenticate = () => {
       const refreshToken = req.cookies?.refreshToken;
       
       if (!accessToken) {
-        throw new AppError('Access token is missing. Please log in.', 401, {
-          type: 'AuthenticationError',
-          isExpected: true,
-        });
+        throw AppError.authenticationError('Access token is missing. Please log in.');
       }
       
       try {
@@ -28,14 +25,20 @@ const authenticate = () => {
         return next();
       } catch (error) {
         if (error.name === 'TokenExpiredError' && refreshToken) {
-          logWarn('Access token expired. Attempting to refresh with a valid refresh token.');
+          logWarn('Access token expired. Attempting to refresh with a valid refresh token.', {
+            ip: req.ip || 'N/A',
+            route: req.originalUrl || 'N/A',
+          });
           
           try {
             // Verify the refresh token
             const refreshPayload = verifyToken(refreshToken, true); // `true` indicates it's a refresh token
             
             // Issue a new access token
-            const newAccessToken = signToken({ id: refreshPayload.id, role_id: refreshPayload.role_id });
+            const newAccessToken = signToken({
+              id: refreshPayload.id,
+              role_id: refreshPayload.role_id,
+            });
             
             // Set the new access token in the cookie
             res.cookie('accessToken', newAccessToken, {
@@ -47,22 +50,38 @@ const authenticate = () => {
             req.user = refreshPayload; // Attach refreshed user details
             return next();
           } catch (refreshError) {
-            throw new AppError('Invalid or expired refresh token. Please log in again.', 401, {
-              type: 'AuthenticationError',
-              isExpected: true,
+            logError('Invalid or expired refresh token encountered.', {
+              ip: req.ip || 'N/A',
+              route: req.originalUrl || 'N/A',
+              error: refreshError.message,
             });
+            throw AppError.authenticationError('Invalid or expired refresh token. Please log in again.');
           }
         }
         
         // Handle invalid or other access token errors
-        throw new AppError('Invalid or expired access token.', 401, {
-          type: 'AuthenticationError',
-          isExpected: true,
+        logError('Invalid or expired access token encountered.', {
+          ip: req.ip || 'N/A',
+          route: req.originalUrl || 'N/A',
+          error: error.message,
         });
+        throw AppError.authenticationError('Invalid or expired access token.');
       }
     } catch (error) {
-      logError('Authentication middleware encountered an error:', error);
-      next(error); // Pass to the global error handler
+      logError('Authentication middleware encountered an error:', {
+        ip: req.ip || 'N/A',
+        method: req.method || 'N/A',
+        url: req.originalUrl || 'N/A',
+        userAgent: req.headers['user-agent'] || 'N/A',
+        timestamp: new Date().toISOString(),
+        error: error.message,
+      });
+      
+      if (!(error instanceof AppError)) {
+        error = AppError.authenticationError(error.message || 'Authentication failed.');
+      }
+      
+      return next(error); // Pass to the global error handler
     }
   };
 };

@@ -14,7 +14,9 @@ const requestLogger = (req, res, next) => {
   const ignoredRoutes = ['/health']; // Routes to skip logging
   
   // Skip logging for ignored routes
-  if (ignoredRoutes.includes(req.originalUrl)) return next();
+  if (ignoredRoutes.includes(req.originalUrl)) {
+    return next();
+  }
   
   // Hook into the response finish event to log details
   res.on('finish', () => {
@@ -30,6 +32,9 @@ const requestLogger = (req, res, next) => {
     const metadata = {
       statusCode,
       responseTime: `${responseTime}ms`,
+      method: req.method,
+      route: req.originalUrl,
+      ip: req.ip,
       userAgent: req.headers['user-agent'] || 'Unknown',
       queryParams: req.query,
     };
@@ -41,7 +46,10 @@ const requestLogger = (req, res, next) => {
     
     // Include error details for server errors
     if (isServerError) {
-      const error = res.locals.error || new AppError('Unknown server error', 500, { type: 'ServerError' });
+      const error = res.locals.error || AppError.generalError('Unknown server error', {
+        status: 500,
+        type: 'ServerError',
+      });
       metadata.error = error.toJSON();
     }
     

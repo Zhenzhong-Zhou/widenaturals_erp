@@ -1,9 +1,10 @@
 const customSanitization = require('../utils/custom-sanitization');
 const sanitizeRichText = require('../utils/sanitize-html');
 const AppError = require('../utils/app-error');
+const { logError } = require('../utils/logger-helper');
 
 /**
- * Middleware to sanitize inputs.
+ * Middleware to sanitize all inputs (body, query, and params).
  */
 const sanitizeInput = (req, res, next) => {
   try {
@@ -24,22 +25,54 @@ const sanitizeInput = (req, res, next) => {
     
     next();
   } catch (error) {
-    next(new AppError('Input sanitization failed', 400, { type: 'SanitizationError', details: error.message }));
+    logError('Input sanitization failed:', {
+      method: req.method,
+      route: req.originalUrl,
+      error: error.message,
+    });
+    
+    next(
+      AppError.sanitizationError('Input sanitization failed.', {
+        details: error.message,
+      })
+    );
   }
 };
 
 /**
- * Middleware to sanitize specific fields.
+ * Middleware to sanitize specific fields dynamically.
+ * Supports sanitizing rich text or custom fields based on the configuration.
+ *
+ * @param {Array<string>} fields - List of fields to sanitize.
+ * @param {boolean} [isRichText=false] - Whether the fields contain rich text (HTML).
  */
-const sanitizeDescription = (req, res, next) => {
-  try {
-    if (req.body.description) {
-      req.body.description = sanitizeRichText(req.body.description);
+const sanitizeFields = (fields, isRichText = false) => {
+  return (req, res, next) => {
+    try {
+      fields.forEach((field) => {
+        if (req.body[field]) {
+          req.body[field] = isRichText
+            ? sanitizeRichText(req.body[field])
+            : customSanitization(req.body[field]);
+        }
+      });
+      
+      next();
+    } catch (error) {
+      logError('Field sanitization failed:', {
+        method: req.method,
+        route: req.originalUrl,
+        fields,
+        error: error.message,
+      });
+      
+      next(
+        AppError.sanitizationError('Field sanitization failed.', {
+          details: error.message,
+        })
+      );
     }
-    next();
-  } catch (error) {
-    next(new AppError('Description sanitization failed', 400, { type: 'SanitizationError', details: error.message }));
-  }
+  };
 };
 
-module.exports = { sanitizeInput, sanitizeDescription };
+module.exports = { sanitizeInput, sanitizeFields };

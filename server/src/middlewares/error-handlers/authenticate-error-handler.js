@@ -16,16 +16,16 @@ const { logError } = require('../../utils/logger-helper');
  * @param {Function} next - The Express next middleware function.
  */
 const authenticateErrorHandler = (err, req, res, next) => {
+  // Check if the error is related to authentication
   if (err.name === 'UnauthorizedError' || err.code === 'UNAUTHORIZED') {
-    // Create a structured AppError for authentication violations
-    const authError = new AppError('Unauthorized access', 401, {
-      type: 'AuthenticationError',
+    // Use the AppError static factory method to create an AuthenticationError
+    const authError = AppError.authenticationError('Unauthorized access', {
       isExpected: true, // Authentication errors are expected in certain scenarios
-      code: 'UNAUTHORIZED_ACCESS',
+      logLevel: 'warn',
     });
     
     // Log the authentication error with detailed metadata
-    logError('Authentication Error', {
+    logError(authError.logLevel, 'Authentication Error', {
       message: authError.message,
       route: req.originalUrl,
       method: req.method,

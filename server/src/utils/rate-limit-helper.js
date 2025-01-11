@@ -8,8 +8,9 @@ const RATE_LIMIT = require('../utils/constants/domain/rate-limit');
  *
  * @param {object} req - Express request object.
  * @param {object} res - Express response object.
+ * @param {Function} next - Express next middleware function.
  */
-const defaultRateLimitHandler = (req, res) => {
+const defaultRateLimitHandler = (req, res, next) => {
   const logDetails = {
     ip: req.ip,
     userAgent: req.headers['user-agent'] || 'Unknown',
@@ -20,27 +21,26 @@ const defaultRateLimitHandler = (req, res) => {
   // Log the rate limit event
   logWarn('Rate limit exceeded:', logDetails);
   
-  // Return a structured JSON response
-  res.status(429).json({
-    message: 'You have exceeded the allowed number of requests. Please try again later.',
-    status: 429,
-    type: 'RateLimitError',
-    isExpected: true,
-  });
+  // Return a structured JSON response using AppError
+  next(
+    AppError.rateLimitError('You have exceeded the allowed number of requests. Please try again later.', {
+      details: logDetails,
+    })
+  );
 };
 
 /**
  * Creates a rate limiter with reusable defaults and customizable options.
  *
  * @param {Object} options - Configuration options for rate limiting.
- * @param {number} options.windowMs - Time window in milliseconds.
- * @param {number} options.max - Maximum number of requests allowed in the time window.
- * @param {boolean} [options.headers] - Include rate limit headers in responses.
- * @param {number} [options.statusCode] - HTTP status code for rate limit exceeded.
- * @param {Function} [options.keyGenerator] - Function to identify clients (default: IP).
- * @param {Function} [options.skip] - Function to skip rate limiting for certain requests.
- * @param {Function} [options.handler] - Custom handler for rate-limited responses.
- * @param {boolean} [options.disableInDev] - Disable rate limiting in development mode.
+ * @param {number} [options.windowMs=RATE_LIMIT.DEFAULT_WINDOW_MS] - Time window in milliseconds.
+ * @param {number} [options.max=RATE_LIMIT.DEFAULT_MAX] - Maximum number of requests allowed in the time window.
+ * @param {boolean} [options.headers=true] - Include rate limit headers in responses.
+ * @param {number} [options.statusCode=429] - HTTP status code for rate limit exceeded.
+ * @param {Function} [options.keyGenerator=(req) => req.ip] - Function to identify clients (default: IP).
+ * @param {Function} [options.skip=() => false] - Function to skip rate limiting for certain requests.
+ * @param {Function} [options.handler=defaultRateLimitHandler] - Custom handler for rate-limited responses.
+ * @param {boolean} [options.disableInDev=false] - Disable rate limiting in development mode.
  * @returns {Function} - Middleware for rate limiting.
  */
 const createRateLimiter = ({

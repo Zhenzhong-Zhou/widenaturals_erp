@@ -16,19 +16,12 @@ const { logWarn } = require('../../utils/logger-helper');
  */
 const serviceErrorHandler = (err, req, res, next) => {
   if (err.name === 'ServiceError') {
-    // Create a structured error response using AppError
-    const errorResponse = new AppError(
-      err.message || 'A business rule was violated.',
-      400,
-      {
-        type: 'ServiceError',
-        isExpected: true,
-        code: 'BUSINESS_LOGIC_ERROR',
-        details: err.details || null, // Include additional details if provided
-      }
-    );
+    // Use the AppError factory method for service errors with explicit fields
+    const errorResponse = AppError.serviceError(err.message || 'A business rule was violated.', {
+      details: err.details || null, // Include additional details if provided
+    });
     
-    // Log the service-level error as a warning
+    // Log the service-level error with metadata
     logWarn('Service-Level Error:', {
       message: errorResponse.message,
       route: req.originalUrl,

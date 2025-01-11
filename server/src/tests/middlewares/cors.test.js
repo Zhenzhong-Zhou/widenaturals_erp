@@ -7,7 +7,7 @@ const { logWarn } = require('../../utils/logger-helper');
 const express = require('express');
 const request = require('supertest');
 const corsMiddleware = require('../../middlewares/cors');
-const generalErrorHandler = require('../../middlewares/error-handlers/general-error-handler');
+const generalErrorHandler = require('../../middlewares/error-handlers/global-error-handler');
 
 describe('CORS Middleware', () => {
   let app;

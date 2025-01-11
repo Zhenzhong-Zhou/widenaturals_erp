@@ -13,10 +13,7 @@ const authorize = (requiredPermissions = []) => {
     try {
       // Ensure the user is authenticated
       if (!req.user) {
-        throw new AppError('Unauthorized: User not authenticated.', 401, {
-          type: 'AuthenticationError',
-          isExpected: true,
-        });
+        throw AppError.authenticationError('Unauthorized: User not authenticated.');
       }
       
       const { role_id } = req.user;
@@ -25,21 +22,18 @@ const authorize = (requiredPermissions = []) => {
       const rolePermissions = await getRolePermissionsByRoleId(role_id);
       
       if (!rolePermissions) {
-        throw new AppError('Role permissions not found.', 403, {
-          type: 'AuthorizationError',
-          isExpected: true,
+        throw AppError.authorizationError('Role permissions not found.', {
+          details: { role_id },
         });
       }
       
-      const userPermissions = rolePermissions.map((perm) => perm); // Use the `key` field
+      const userPermissions = rolePermissions.map((perm) => perm); // Use the permissions field
       
       // Check if the user has all required permissions
       const hasPermission = requiredPermissions.every((perm) => userPermissions.includes(perm));
       
       if (!hasPermission) {
-        throw new AppError('Forbidden: Insufficient permissions.', 403, {
-          type: 'AuthorizationError',
-          isExpected: true,
+        throw AppError.authorizationError('Forbidden: Insufficient permissions.', {
           details: {
             missingPermissions: requiredPermissions.filter((perm) => !userPermissions.includes(perm)),
           },
@@ -50,11 +44,12 @@ const authorize = (requiredPermissions = []) => {
       next();
     } catch (error) {
       if (!(error instanceof AppError)) {
-        logError('Unexpected error in authorization middleware:', error);
+        logError('Unexpected error in authorization middleware:', {
+          message: error.message,
+          stack: error.stack,
+        });
         return next(
-          new AppError('An unexpected error occurred during authorization.', 500, {
-            type: 'AuthorizationError',
-          })
+          AppError.authorizationError('An unexpected error occurred during authorization.')
         );
       }
       next(error); // Pass AppError to error handlers

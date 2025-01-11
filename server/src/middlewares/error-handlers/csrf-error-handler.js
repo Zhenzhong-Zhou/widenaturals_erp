@@ -17,14 +17,15 @@ const { logError } = require('../../utils/logger-helper');
  */
 const csrfErrorHandler = (err, req, res, next) => {
   if (err.code === 'EBADCSRFTOKEN') {
-    // Create a structured AppError for CSRF violations
-    const csrfError = new AppError('Invalid or missing CSRF token', 403, {
+    // Use the AppError factory method for CSRF violations
+    const csrfError = AppError.validationError('Invalid or missing CSRF token', {
       type: 'CSRFError',
       isExpected: true, // CSRF errors are expected in certain scenarios
+      logLevel: 'warn',
     });
     
     // Log the CSRF error with detailed metadata
-    logError('CSRF Token Validation Failed', {
+    logError(csrfError.logLevel, 'CSRF Token Validation Failed', {
       message: csrfError.message,
       route: req.originalUrl,
       method: req.method,

@@ -17,11 +17,10 @@ const { logWarn } = require('../../utils/logger-helper');
 const rateLimitErrorHandler = (err, req, res, next) => {
   // Check if the error is related to rate limiting
   if (err.name === 'RateLimitError' || err.message.includes('Rate limit exceeded')) {
-    // Create a structured AppError for rate limit violations
-    const rateLimitError = new AppError('Too Many Requests', 429, {
-      type: 'RateLimitError',
-      isExpected: true,
+    // Use AppError factory method to create a structured error
+    const rateLimitError = AppError.rateLimitError('Too Many Requests', {
       code: 'RATE_LIMIT_EXCEEDED',
+      type: 'RateLimitError',
       details: {
         retryAfter: err.retryAfter || null, // Include retry-after time if available
       },
@@ -34,6 +33,7 @@ const rateLimitErrorHandler = (err, req, res, next) => {
       method: req.method,
       url: req.originalUrl,
       userAgent: req.headers['user-agent'] || 'Unknown',
+      retryAfter: rateLimitError.details.retryAfter,
     });
     
     // Respond with a structured error response

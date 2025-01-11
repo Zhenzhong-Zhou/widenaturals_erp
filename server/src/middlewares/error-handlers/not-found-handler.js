@@ -15,14 +15,16 @@ const { logWarn } = require('../../utils/logger-helper');
  * @param {Function} next - Express next middleware function
  */
 const notFoundHandler = (req, res, next) => {
-  const error = new AppError(`Route not found: ${req.originalUrl}`, 404, {
+  // Create a structured AppError for 404 Not Found
+  const notFoundError = AppError.notFoundError(`Route not found: ${req.originalUrl}`, {
+    code: 'NOT_FOUND',
     type: 'NotFoundError',
     isExpected: true, // 404 errors are generally expected
   });
   
-  // Log the 404 error
+  // Log the 404 error with relevant metadata
   logWarn('404 Error:', {
-    message: error.message,
+    message: notFoundError.message,
     route: req.originalUrl,
     method: req.method,
     ip: req.ip,
@@ -30,7 +32,7 @@ const notFoundHandler = (req, res, next) => {
   });
   
   // Send structured error response
-  res.status(error.status).json(error.toJSON());
+  res.status(notFoundError.status).json(notFoundError.toJSON());
 };
 
 module.exports = notFoundHandler;

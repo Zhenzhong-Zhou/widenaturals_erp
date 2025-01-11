@@ -17,20 +17,18 @@ const { logError } = require('../../utils/logger-helper');
 const corsErrorHandler = (err, req, res, next) => {
   // Check if the error is CORS-related
   if (err.name === 'CorsError' || err.message.includes('CORS policy')) {
-    // Create a structured AppError for CORS violations
-    const corsError = new AppError('CORS policy does not allow this request.', 403, {
-      type: 'CorsError',
-      isExpected: true,
-      code: 'CORS_POLICY_VIOLATION',
+    // Use the AppError factory method for CORS violations
+    const corsError = AppError.corsError('CORS policy does not allow this request.', {
       details: {
         origin: req.headers.origin || 'Unknown',
         method: req.method,
         route: req.originalUrl,
       },
+      logLevel: 'warn',
     });
     
     // Log the CORS error with detailed metadata
-    logError('CORS Error:', {
+    logError(corsError.logLevel, 'CORS Error:', {
       message: corsError.message,
       origin: req.headers.origin || 'Unknown',
       method: req.method,

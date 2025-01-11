@@ -16,11 +16,8 @@ const { logError } = require('../../utils/logger-helper');
  */
 const validationErrorHandler = (err, req, res, next) => {
   if (err.name === 'ValidationError' || err.type === 'ValidationError') {
-    // Create a structured AppError for validation violations
-    const validationError = new AppError(err.message || 'Validation failed.', 400, {
-      type: 'ValidationError',
-      isExpected: true,
-      code: 'VALIDATION_ERROR',
+    // Use the AppError factory method for validation errors
+    const validationError = AppError.validationError(err.message || 'Validation failed.', {
       details: err.details || null, // Include validation details if available
     });
     

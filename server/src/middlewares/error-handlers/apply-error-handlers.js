@@ -3,6 +3,7 @@
  * @description Combines and applies all error-handling middleware.
  */
 
+const helmetErrorHandler = require('./helmet-error-handler');
 const csrfErrorHandler = require('./csrf-error-handler');
 const authErrorHandler = require('./authenticate-error-handler');
 const authorizationErrorHandler = require('./authorize-error-handler');
@@ -15,7 +16,7 @@ const healthErrorHandler = require('./health-error-handler');
 const serviceErrorHandler = require('./service-error-handler');
 const dbErrorHandler = require('./db-error-handler');
 const notFoundHandler = require('./not-found-handler');
-const generalErrorHandler = require('./general-error-handler');
+const globalErrorHandler = require('./global-error-handler');
 
 /**
  * Applies error-handling middleware to the application.
@@ -24,6 +25,7 @@ const generalErrorHandler = require('./general-error-handler');
  */
 const applyErrorHandlers = (app) => {
   // Security and input-related error handlers
+  app.use(helmetErrorHandler); // Helmet-related errors
   app.use(csrfErrorHandler); // CSRF token errors
   app.use(corsErrorHandler); // CORS-related errors
   app.use(rateLimitErrorHandler); // Rate limit violations
@@ -47,8 +49,8 @@ const applyErrorHandlers = (app) => {
   // 404 Not Found handler
   app.use(notFoundHandler); // Handle 404 errors last
   
-  // General error handler (catch-all)
-  app.use(generalErrorHandler); // Catch-all for uncaught errors
+  // Global error handler (catch-all)
+  app.use(globalErrorHandler); // Catch-all for uncaught errors
 };
 
 module.exports = applyErrorHandlers;

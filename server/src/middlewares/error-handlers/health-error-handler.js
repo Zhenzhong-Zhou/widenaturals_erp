@@ -3,6 +3,7 @@
  * @description Middleware for handling health-check specific errors.
  */
 
+const AppError = require('../../utils/app-error');
 const { logWarn } = require('../../utils/logger-helper');
 
 /**
@@ -15,12 +16,18 @@ const { logWarn } = require('../../utils/logger-helper');
  */
 const healthErrorHandler = (err, req, res, next) => {
   if (err.type === 'HealthCheckError') {
+    // Normalize to an AppError instance if not already
+    const healthError = AppError.healthCheckError(err.message || 'Service Unavailable', {
+      code: err.code || 'SERVICE_UNAVAILABLE',
+      status: err.status || 503,
+    });
+    
     // Log the health-check error as a warning
     logWarn('Health-Check Error Detected:', {
-      message: err.message,
-      type: err.type,
-      code: err.code,
-      status: err.status,
+      message: healthError.message,
+      type: healthError.type,
+      code: healthError.code,
+      status: healthError.status,
       route: req.originalUrl,
       method: req.method,
       userAgent: req.headers['user-agent'] || 'Unknown',
@@ -28,10 +35,8 @@ const healthErrorHandler = (err, req, res, next) => {
     });
     
     // Return a structured 503 Service Unavailable response
-    return res.status(err.status || 503).json({
-      message: err.message || 'Service Unavailable',
-      type: err.type || 'HealthCheckError',
-      code: err.code || 'SERVICE_UNAVAILABLE',
+    return res.status(healthError.status).json({
+      ...healthError.toJSON(),
       timestamp: new Date().toISOString(),
     });
   }

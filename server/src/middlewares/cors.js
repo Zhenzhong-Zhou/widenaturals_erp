@@ -16,7 +16,9 @@ const corsMiddleware = cors({
     try {
       // Fail fast in production if ALLOWED_ORIGINS is not defined
       if (process.env.NODE_ENV === 'production' && !process.env.ALLOWED_ORIGINS) {
-        throw new AppError('ALLOWED_ORIGINS must be defined in production');
+        throw AppError.corsError('ALLOWED_ORIGINS must be defined in production.', {
+          details: { environment: 'production' },
+        });
       }
       
       // Read allowed origins from environment variables
@@ -32,19 +34,26 @@ const corsMiddleware = cors({
         return callback(null, true); // Allow the request
       }
       
-      // Allow requests from allowed origins or when origin is undefined (e.g., non-browser clients)
+      // Allow requests from allowed origins
       if (allowedOrigins.includes(origin)) {
         return callback(null, true); // Allow the request
       }
       
       // Reject requests from disallowed origins
-      const error = new AppError(`CORS error: Origin '${origin}' is not allowed`);
-      error.name = 'CorsError';
-      logWarn(error.message);
-      return callback(error);
+      const corsError = AppError.corsError(`CORS error: Origin '${origin}' is not allowed.`, {
+        details: { origin },
+      });
+      logWarn(corsError.message, { origin });
+      return callback(corsError);
     } catch (error) {
-      logError('Error configuring CORS:', error);
-      callback(new AppError('CORS configuration failed'));
+      logError('Error configuring CORS:', {
+        message: error.message,
+        stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined,
+      });
+      const corsError = AppError.corsError('CORS configuration failed.', {
+        details: { error: error.message },
+      });
+      callback(corsError);
     }
   },
   methods: process.env.ALLOWED_METHODS?.split(',') || [

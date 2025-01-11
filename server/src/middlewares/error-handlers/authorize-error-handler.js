@@ -16,15 +16,12 @@ const { logWarn } = require('../../utils/logger-helper');
  */
 const authorizationErrorHandler = (err, req, res, next) => {
   if (err.name === 'AuthorizationError') {
-    // Create a structured error response using AppError
-    const errorResponse = new AppError(
+    // Use AppError static factory method for consistency
+    const errorResponse = AppError.authorizationError(
       err.message || 'You are not authorized to perform this action.',
-      403,
       {
-        type: 'AuthorizationError',
-        isExpected: true,
-        code: 'FORBIDDEN',
         details: err.details || null, // Include additional details if provided
+        logLevel: 'warn',
       }
     );
     
