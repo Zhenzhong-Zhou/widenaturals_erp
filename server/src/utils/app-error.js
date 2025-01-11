@@ -16,17 +16,47 @@ class AppError extends Error {
     Error.captureStackTrace(this, this.constructor);
   }
   
+  static validationError(message, options = {}) {
+    return new AppError(message, 400, {
+      type: 'ValidationError',
+      code: 'VALIDATION_ERROR', // Default error code for validation errors
+      isExpected: true, // Mark as an expected error
+      ...options,
+    });
+  }
+  
+  /**
+   * Static factory method for health-check errors.
+   * @param {string} message - Error message.
+   * @param {object} options - Additional error options.
+   * @returns {AppError}
+   */
+  static healthCheckError(message, options = {}) {
+    return new AppError(message, 503, {
+      type: 'HealthCheckError',
+      logLevel: 'warn',
+      ...options,
+    });
+  }
+  
   /**
    * Serialize error for structured API responses.
+   * Includes optional debug info in non-production environments.
    */
   toJSON() {
-    return {
+    const serialized = {
       message: this.message,
       status: this.status,
       type: this.type,
       code: this.code,
       isExpected: this.isExpected,
     };
+    
+    if (process.env.NODE_ENV !== 'production') {
+      serialized.stack = this.stack; // Include stack trace for non-production environments
+    }
+    
+    return serialized;
   }
 }
 

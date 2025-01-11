@@ -5,6 +5,7 @@
 
 const express = require('express');
 const publicRoute = require('./public');
+const internalRoute = require('./internal');
 const loginRoute = require('./login');
 const authRoutes = require('./auth');
 const adminRoutes = require('./admin');
@@ -23,6 +24,7 @@ router.use(apiRateLimiter);
 router.use('/public', publicRoute);
 
 // Authentication routes
+router.use('/internal',  internalRoute);
 router.use('/auth',  loginRoute);
 router.use('/auth', authenticate(), authRoutes);
 

@@ -5,12 +5,13 @@
 
 const csrfErrorHandler = require('./csrf-error-handler');
 const authErrorHandler = require('./authenticate-error-handler');
+const authorizationErrorHandler = require('./authorize-error-handler');
 const rateLimitErrorHandler = require('./rate-limit-error-handler');
 const corsErrorHandler = require('./cors-error-handler');
 const validationErrorHandler = require('./validation-error-handler');
 const sanitizationErrorHandler = require('./sanitization-error-handler');
 const fileUploadErrorHandler = require('./file-upload-error-handler');
-const authorizationErrorHandler = require('./authorize-error-handler');
+const healthErrorHandler = require('./health-error-handler');
 const serviceErrorHandler = require('./service-error-handler');
 const dbErrorHandler = require('./db-error-handler');
 const notFoundHandler = require('./not-found-handler');
@@ -22,20 +23,31 @@ const generalErrorHandler = require('./general-error-handler');
  * @param {object} app - The Express application instance.
  */
 const applyErrorHandlers = (app) => {
-  // Specific error handlers
-  app.use(csrfErrorHandler); // CSRF token errors (specific and high-priority)
-  app.use(authErrorHandler); // Authentication-related errors
-  app.use(rateLimitErrorHandler); // Rate limit violations
+  // Security and input-related error handlers
+  app.use(csrfErrorHandler); // CSRF token errors
   app.use(corsErrorHandler); // CORS-related errors
-  app.use(validationErrorHandler); // Validation errors (specific to input validation)
-  app.use(sanitizationErrorHandler); // Sanitization errors (specific to input sanitization)
-  app.use(fileUploadErrorHandler); // File upload errors
+  app.use(rateLimitErrorHandler); // Rate limit violations
+  
+  // Authentication and authorization errors
+  app.use(authErrorHandler); // Authentication-related errors
   app.use(authorizationErrorHandler); // Authorization errors
+  
+  // Input validation and sanitization errors
+  app.use(validationErrorHandler); // Validation errors
+  app.use(sanitizationErrorHandler); // Sanitization errors
+  
+  // File upload errors
+  app.use(fileUploadErrorHandler); // File upload-related errors
+  
+  // Service and database-related error handlers
+  app.use(healthErrorHandler); // Health-check-related errors
   app.use(serviceErrorHandler); // Service-level errors
   app.use(dbErrorHandler); // Database-related errors
   
-  // Catch-all error handlers
-  app.use(notFoundHandler); // Handle 404 errors last (after route processing)
+  // 404 Not Found handler
+  app.use(notFoundHandler); // Handle 404 errors last
+  
+  // General error handler (catch-all)
   app.use(generalErrorHandler); // Catch-all for uncaught errors
 };
 
