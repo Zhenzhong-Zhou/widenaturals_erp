@@ -8,14 +8,13 @@ import { headerStyles, userInfoStyles, typographyStyles } from './headerStyles';
 interface HeaderProps {
   username: string;
   onLogout: () => void;
-  isOpenSidebar: boolean; // Sidebar state
 }
 
-const Header: FC<HeaderProps> = ({ username, onLogout, isOpenSidebar }) => {
+const Header: FC<HeaderProps> = ({ username, onLogout }) => {
   const { theme, toggleTheme } = useThemeContext(); // Access theme and toggle function
   
   return (
-    <Box sx={headerStyles(theme, isOpenSidebar)}> {/* Apply header styles */}
+    <Box sx={headerStyles(theme)}> {/* Apply header styles */}
       <Typography variant="h6" sx={{ flexGrow: 1 }}>
         ERP System
       </Typography>

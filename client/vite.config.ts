@@ -8,6 +8,7 @@ export default defineConfig({
     alias: {
       '@styles': resolve(__dirname, './src/styles'), // Map @styles to src/styles
       '@context': resolve(__dirname, './src/context'),
+      '@components': resolve(__dirname, './src/components'),
     },
   },
 });

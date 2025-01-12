@@ -1,11 +1,9 @@
 import { SxProps, Theme } from '@mui/material/styles';
 
-export const headerStyles = (theme: Theme, isSidebarOpen: boolean): SxProps<Theme> => ({
+export const headerStyles = (theme: Theme): SxProps<Theme> => ({
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
-  marginLeft: isSidebarOpen ? '240px' : '0px', // Align with sidebar
-  transition: 'margin-left 0.3s ease', // Smooth transition
   width: '100%', // Adjust width dynamically
   height: '60px', // Example height
   backgroundColor: theme.palette.background.default, // Dynamic background color

@@ -3,6 +3,7 @@ import { Sidebar, Header, Footer } from '../index';
 import { useThemeContext } from '../../context/ThemeContext'; // Import the context
 import Box from '@mui/material/Box';
 import { layoutStyles, contentContainerStyles, mainContentStyles } from './layoutStyles';
+import { FallbackUI, ModuleErrorBoundary } from '@components/index.ts';
 
 interface MainLayoutProps {
   children: ReactNode;  // Allow any React elements to be passed as children
@@ -19,18 +20,57 @@ const MainLayout: FC<MainLayoutProps> = ({ children, username, onLogout }) => {
   return (
     <Box className="layout" sx={layoutStyles(theme)}>
       {/* Sidebar */}
-      <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
+      <ModuleErrorBoundary
+        fallback={
+          <FallbackUI
+            title="Sidebar Error"
+            description="The sidebar failed to load. Please try refreshing the page or contact support."
+            onRetry={() => window.location.reload()} // Retry logic
+          />
+        }
+      >
+        <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
+      </ModuleErrorBoundary>
       
       {/* Content Container */}
       <Box className="content-container" sx={contentContainerStyles(theme)}>
         {/* Header */}
-        <Header username={username} onLogout={onLogout} isOpenSidebar={false} />
+        <ModuleErrorBoundary
+          fallback={
+            <FallbackUI
+              title="Header Error"
+              description="The header failed to load. Please try refreshing the page or contact support."
+              onRetry={() => window.location.reload()} // Retry logic
+            />
+          }
+        >
+          <Header username={username} onLogout={onLogout} />
+        </ModuleErrorBoundary>
         
         {/* Main Content */}
-        <Box sx={mainContentStyles(theme)}>{children}</Box>
+        <ModuleErrorBoundary
+          fallback={
+            <FallbackUI
+              title="Content Error"
+              description="The main content failed to load. Please try again later."
+            />
+          }
+        >
+          <Box sx={mainContentStyles(theme)}>{children}</Box>
+        </ModuleErrorBoundary>
         
         {/* Footer */}
-        <Footer isSidebarOpen={false} />
+        <ModuleErrorBoundary
+          fallback={
+            <FallbackUI
+              title="Footer Error"
+              description="The footer failed to load. Please try refreshing the page."
+              onRetry={() => window.location.reload()} // Retry logic
+            />
+          }
+        >
+          <Footer isSidebarOpen={isSidebarOpen} />
+        </ModuleErrorBoundary>
       </Box>
     </Box>
   );
