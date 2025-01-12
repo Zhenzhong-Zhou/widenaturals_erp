@@ -13,7 +13,7 @@ interface SidebarProps {
 }
 
 const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
-  const { darkMode } = useThemeContext();
+  const { theme, darkMode } = useThemeContext();
   
   return (
     <>
@@ -23,10 +23,10 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
         open={isOpen}
         onClose={toggleSidebar}
         variant="persistent"
-        sx={sidebarStyles(darkMode, isOpen)}
+        sx={sidebarStyles(theme, darkMode, isOpen)}
       >
         {/* Sidebar Header */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px' }}>
+        <Box  sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px' }}>
           <Box sx={{ fontSize: '1.5rem', fontWeight: 'bold' }}>Company Name</Box>
           <IconButton onClick={toggleSidebar}>
             <FontAwesomeIcon icon={faTimes} style={{ color: darkMode ? 'white' : 'black' }} />
@@ -34,13 +34,16 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
         </Box>
         
         {/* Sidebar Navigation */}
-        <ul>
-          <li><a href="/dashboard">Dashboard</a></li>
-          <li><a href="/inventory">Inventory</a></li>
-          <li><a href="/orders">Orders</a></li>
-          <li><a href="/reports">Reports</a></li>
-          <li><a href="/settings">Settings</a></li>
-        </ul>
+        {/* Sidebar Navigation */}
+        <Box className="sidebar">
+          <ul>
+            <li><a href="/dashboard">Dashboard</a></li>
+            <li><a href="/inventory">Inventory</a></li>
+            <li><a href="/orders">Orders</a></li>
+            <li><a href="/reports">Reports</a></li>
+            <li><a href="/settings">Settings</a></li>
+          </ul>
+        </Box>
       </Drawer>
       
       {/* Open Button */}

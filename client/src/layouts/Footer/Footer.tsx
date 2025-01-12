@@ -5,15 +5,20 @@ import Typography from '@mui/material/Typography';
 import { footerStyles, footerTextStyle } from './footerStyles'; // Import the abstracted styles
 import { useThemeContext } from '../../context/ThemeContext.tsx'; // Import Theme Context
 
-const Footer: FC = () => {
-  const { darkMode } = useThemeContext(); // Access dark mode from context
+interface FooterProps {
+  darkMode: boolean;
+  isSidebarOpen: boolean;
+}
+
+const Footer: FC<FooterProps> = ({ isSidebarOpen }) => {
+  const { theme, darkMode } = useThemeContext(); // Access dark mode from context
   
   return (
     <footer>
       <Container maxWidth="lg">
-        <Box sx={footerStyles(darkMode)}> {/* Apply styles dynamically based on dark mode */}
+        <Box sx={footerStyles(theme, darkMode, isSidebarOpen)}>
           {/* Copyright Information */}
-          <Box sx={footerTextStyle}>
+          <Box sx={footerTextStyle(theme)}>
             <Typography variant="body2" color="textSecondary">
               &copy; 2022 - 2024 Wide Naturals Inc. All Rights Reserved.
             </Typography>

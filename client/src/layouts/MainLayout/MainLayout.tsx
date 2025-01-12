@@ -11,26 +11,26 @@ interface MainLayoutProps {
 }
 
 const MainLayout: FC<MainLayoutProps> = ({ children, username, onLogout }) => {
-  const { darkMode } = useThemeContext(); // Access dark mode from context
+  const { darkMode, theme } = useThemeContext(); // Access dark mode from context
   const [isSidebarOpen, setSidebarOpen] = useState(true); // Sidebar state
   
   const toggleSidebar = () => setSidebarOpen((prev) => !prev); // Toggle sidebar state
   
   return (
-    <Box className="layout" sx={layoutStyles(darkMode)}>
+    <Box className={"layout"} sx={layoutStyles(theme, darkMode)}>
       {/* Sidebar */}
       <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
       
       {/* Content Container */}
       <Box
         className="content-container"
-        sx={contentContainerStyles(darkMode)}
+        sx={contentContainerStyles(theme, darkMode)}
       >
         {/* Header */}
         <Header username={username} onLogout={onLogout} />
         
         {/* Main Content */}
-        <Box sx={mainContentStyles()}>
+        <Box sx={mainContentStyles(theme)}>
           {children}
         </Box>
         

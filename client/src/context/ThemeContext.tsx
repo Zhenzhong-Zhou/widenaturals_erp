@@ -8,11 +8,13 @@ import {
 } from 'react';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import { lightTheme, darkTheme } from '../styles/theme';
+import { Theme } from '@mui/material/styles';
 
 // Define the shape of the context
 interface ThemeContextProps {
   darkMode: boolean;
   toggleTheme: () => void;
+  theme: Theme; // Include the current theme in the context
 }
 
 // Create the context
@@ -35,6 +37,9 @@ export const ThemeProviderWrapper: FC<{ children: ReactNode }> = ({
                                                                     children,
                                                                   }) => {
   const [darkMode, setDarkMode] = useState<boolean>(getInitialTheme);
+  
+  // Dynamically set the theme
+  const theme = darkMode ? darkTheme : lightTheme;
   
   // Toggle theme and persist user preference
   const toggleTheme = () => {
@@ -61,8 +66,8 @@ export const ThemeProviderWrapper: FC<{ children: ReactNode }> = ({
   }, []);
   
   return (
-    <ThemeContext.Provider value={{ darkMode, toggleTheme }}>
-      <ThemeProvider theme={darkMode ? darkTheme : lightTheme}>
+    <ThemeContext.Provider value={{ darkMode, toggleTheme, theme }}>
+      <ThemeProvider theme={theme}>
         <CssBaseline />
         {children}
       </ThemeProvider>

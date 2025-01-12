@@ -1,6 +1,6 @@
 import { SxProps, Theme } from '@mui/material/styles';
 
-export const headerStyles = (darkMode: boolean, isSidebarOpen: boolean): SxProps<Theme> => ({
+export const headerStyles = (theme: Theme, darkMode: boolean, isSidebarOpen: boolean): SxProps<Theme> => ({
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
@@ -12,17 +12,21 @@ export const headerStyles = (darkMode: boolean, isSidebarOpen: boolean): SxProps
   color: darkMode ? 'white' : 'black', // Dynamic text color
   padding: 2, // Dynamic padding
   flexDirection: 'row',
-  '@media (max-width: 768px)': {
-    flexDirection: 'column', // Responsive stacking
-    textAlign: 'center', // Responsive text alignment
+  [theme.breakpoints.down('md')]: {
+    flexDirection: 'column', // Responsive stacking for medium screens
+    textAlign: 'center', // Center-align text on smaller screens
   },
 });
 
-export const userInfoStyles = {
+export const userInfoStyles = (theme: Theme): SxProps<Theme> => ({
   display: 'flex',
   alignItems: 'center',
-};
+  [theme.breakpoints.down('sm')]: {
+    flexDirection: 'column', // Stack user info vertically on small screens
+    textAlign: 'center', // Center-align text
+  },
+});
 
-export const typographyStyles = {
-  marginRight: 2,
-};
+export const typographyStyles = (theme: Theme): SxProps<Theme> => ({
+  marginRight: theme.spacing(2), // Use theme spacing for margins
+});

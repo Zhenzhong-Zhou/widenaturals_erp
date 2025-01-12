@@ -8,26 +8,27 @@ import { headerStyles, userInfoStyles, typographyStyles } from './headerStyles';
 interface HeaderProps {
   username: string;
   onLogout: () => void;
+  isOpenSidebar: boolean; // Sidebar state
 }
 
-const Header: FC<HeaderProps> = ({ username, onLogout }) => {
-  const { darkMode, toggleTheme } = useThemeContext(); // Access dark mode from context
+const Header: FC<HeaderProps> = ({ username, onLogout, isOpenSidebar }) => {
+  const { theme, darkMode, toggleTheme } = useThemeContext(); // Access dark mode from context
   
   return (
-    <Box sx={headerStyles(darkMode)}> {/* Apply header styles based on dark mode */}
+    <Box sx={headerStyles(theme, darkMode, isOpenSidebar)}> {/* Apply header styles */}
       <Typography variant="h6" sx={{ flexGrow: 1 }}>
         ERP System
       </Typography>
       
-      <Box sx={userInfoStyles}>
-        <Typography variant="body1" sx={typographyStyles}>
+      <Box sx={userInfoStyles(theme)}>
+        <Typography variant="body1" sx={typographyStyles(theme)}>
           User: {username}
         </Typography>
         
         {/* Toggle Theme Button */}
         <Button
           variant="outlined"
-          onClick={toggleTheme} // Toggle dark mode
+          onClick={toggleTheme}
           sx={{
             marginLeft: 2,
             color: darkMode ? 'white' : 'black',
