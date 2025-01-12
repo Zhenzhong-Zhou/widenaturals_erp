@@ -1,0 +1,43 @@
+/* === Layout Containers === */
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.header {
+  background-color: var(--primary-color); /* Reference global variable */
+  color: white;
+  padding: var(--spacing-medium);
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Add subtle shadow */
+}
+
+.footer {
+  background-color: var(--secondary-color); /* Reference global variable */
+  color: white;
+  padding: var(--spacing-medium);
+  text-align: center;
+  border-top: 2px solid rgba(255, 255, 255, 0.2); /* Add border for separation */
+}
+
+.main {
+  flex: 1;
+  padding: var(--spacing-large);
+  background-color: var(--bg-light); /* Reference global variable */
+  color: var(--text-light); /* Reference global variable */
+  overflow-y: auto; /* Ensure scrolling for overflow content */
+}
+
+/* === Responsive Layout === */
+@media (max-width: 768px) {
+  .main {
+    padding: var(--spacing-medium);
+  }
+
+  .header,
+  .footer {
+    padding: var(--spacing-small); /* Adjust padding for smaller screens */
+    font-size: 0.875rem; /* Reduce font size for smaller screens */
+  }
+}

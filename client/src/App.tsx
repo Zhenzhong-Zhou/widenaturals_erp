@@ -1,11 +1,12 @@
-import { BrowserRouter } from 'react-router-dom';
-import AppRoutes from './routes';
+import { FC } from 'react';
+import { ThemeProviderWrapper } from './context/ThemeContext.tsx';
+import './styles/App.css';
 
-const App = () => (
-  <BrowserRouter>
-    <AppRoutes />
-  </BrowserRouter>
+const App: FC = () => (
+  <ThemeProviderWrapper>
+    <div className="app">
+    </div>
+  </ThemeProviderWrapper>
 );
 
 export default App;
-
