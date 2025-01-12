@@ -5,39 +5,45 @@
   min-height: 100vh;
 }
 
-.header {
-  background-color: var(--primary-color); /* Reference global variable */
-  color: white;
-  padding: var(--spacing-medium);
-  text-align: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Add subtle shadow */
+.layout {
+  display: flex;
+  flex-direction: row;
+  min-height: 100vh;
 }
 
-.footer {
-  background-color: var(--secondary-color); /* Reference global variable */
-  color: white;
-  padding: var(--spacing-medium);
-  text-align: center;
-  border-top: 2px solid rgba(255, 255, 255, 0.2); /* Add border for separation */
+.content-container {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
 }
 
-.main {
-  flex: 1;
-  padding: var(--spacing-large);
-  background-color: var(--bg-light); /* Reference global variable */
-  color: var(--text-light); /* Reference global variable */
-  overflow-y: auto; /* Ensure scrolling for overflow content */
+/* Sidebar */
+.sidebar {
+  list-style: none;
+  padding: 16px;
+  margin: 0;
+  width: 240px;
+  height: 100vh;
 }
 
-/* === Responsive Layout === */
+.sidebar ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sidebar li {
+  margin: 12px 0;
+}
+
+.sidebar a {
+  text-decoration: none;
+  font-size: 1.1rem;
+}
+
+/* Responsive */
 @media (max-width: 768px) {
-  .main {
-    padding: var(--spacing-medium);
-  }
-
-  .header,
-  .footer {
-    padding: var(--spacing-small); /* Adjust padding for smaller screens */
-    font-size: 0.875rem; /* Reduce font size for smaller screens */
+  .sidebar {
+    width: 200px;
   }
 }

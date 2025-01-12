@@ -1,0 +1,34 @@
+import { FC } from 'react';
+import Box from '@mui/material/Box';
+import Container from '@mui/material/Container';
+import Typography from '@mui/material/Typography';
+import { footerStyles, footerTextStyle } from './footerStyles'; // Import the abstracted styles
+import { useThemeContext } from '../../context/ThemeContext.tsx'; // Import Theme Context
+
+const Footer: FC = () => {
+  const { darkMode } = useThemeContext(); // Access dark mode from context
+  
+  return (
+    <footer>
+      <Container maxWidth="lg">
+        <Box sx={footerStyles(darkMode)}> {/* Apply styles dynamically based on dark mode */}
+          {/* Copyright Information */}
+          <Box sx={footerTextStyle}>
+            <Typography variant="body2" color="textSecondary">
+              &copy; 2022 - 2024 Wide Naturals Inc. All Rights Reserved.
+            </Typography>
+          </Box>
+          
+          {/* Powered By */}
+          <Box>
+            <Typography variant="body2" color="textSecondary">
+              Powered By Bob Dev
+            </Typography>
+          </Box>
+        </Box>
+      </Container>
+    </footer>
+  );
+};
+
+export default Footer;
