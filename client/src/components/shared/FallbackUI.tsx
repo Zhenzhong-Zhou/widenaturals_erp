@@ -2,6 +2,7 @@ import { FC, useState } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
+import { useThemeContext } from '../../context/ThemeContext.tsx';
 
 interface FallbackUIProps {
   title?: string;        // Error title
@@ -19,16 +20,17 @@ const FallbackUI: FC<FallbackUIProps> = ({
                                            onRetry,
                                          }) => {
   const [showDetails, setShowDetails] = useState(false);
+  const { theme } = useThemeContext();
   
   return (
     <Box
       sx={{
         textAlign: 'center',
-        padding: 4,
-        backgroundColor: 'background.default',
-        color: 'text.primary',
-        borderRadius: 1,
-        boxShadow: 2,
+        padding: theme.spacing(4),
+        backgroundColor: theme.palette.background.default,
+        color: theme.palette.text.primary,
+        borderRadius: theme.spacing(1),
+        boxShadow: theme.shadows[2],
       }}
       role="alert"
       aria-live="assertive"
@@ -43,7 +45,7 @@ const FallbackUI: FC<FallbackUIProps> = ({
       {errorCode && (
         <Typography
           variant="body2"
-          sx={{ color: 'text.secondary', marginBottom: 2 }}
+          sx={{ color: theme.palette.text.secondary, marginBottom: theme.spacing(2) }}
         >
           Error Code: <strong>{errorCode}</strong>
         </Typography>
@@ -53,7 +55,7 @@ const FallbackUI: FC<FallbackUIProps> = ({
         <Box>
           <Button
             onClick={() => setShowDetails(!showDetails)}
-            sx={{ marginBottom: 2 }}
+            sx={{ marginBottom: theme.spacing(2) }}
             size="small"
           >
             {showDetails ? 'Hide Details' : 'Show Details'}
@@ -63,15 +65,15 @@ const FallbackUI: FC<FallbackUIProps> = ({
               component="pre"
               sx={{
                 textAlign: 'left',
-                padding: 2,
-                backgroundColor: 'background.paper',
-                color: 'text.secondary',
-                borderRadius: 1,
+                padding: theme.spacing(2),
+                backgroundColor: theme.palette.background.paper,
+                color: theme.palette.text.secondary,
+                borderRadius: theme.spacing(1),
                 maxHeight: '200px',
                 overflow: 'auto',
                 whiteSpace: 'pre-wrap',
-                fontSize: '0.9rem',
-                marginTop: 2,
+                fontSize: theme.typography.body2.fontSize,
+                marginTop: theme.spacing(2),
               }}
             >
               {errorLog}
@@ -85,7 +87,7 @@ const FallbackUI: FC<FallbackUIProps> = ({
           variant="contained"
           color="primary"
           onClick={onRetry}
-          sx={{ marginTop: 2 }}
+          sx={{ marginTop: theme.spacing(2) }}
         >
           Retry
         </Button>

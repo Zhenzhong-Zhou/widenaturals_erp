@@ -25,6 +25,8 @@ const MainLayout: FC<MainLayoutProps> = ({ children, username, onLogout }) => {
           <FallbackUI
             title="Sidebar Error"
             description="The sidebar failed to load. Please try refreshing the page or contact support."
+            errorCode="SIDEBAR-001"
+            errorLog="Sidebar module failed to initialize due to a dependency error."
             onRetry={() => window.location.reload()} // Retry logic
           />
         }
@@ -40,6 +42,8 @@ const MainLayout: FC<MainLayoutProps> = ({ children, username, onLogout }) => {
             <FallbackUI
               title="Header Error"
               description="The header failed to load. Please try refreshing the page or contact support."
+              errorCode="HEADER-001"
+              errorLog="Header component could not render due to missing props."
               onRetry={() => window.location.reload()} // Retry logic
             />
           }
@@ -53,6 +57,8 @@ const MainLayout: FC<MainLayoutProps> = ({ children, username, onLogout }) => {
             <FallbackUI
               title="Content Error"
               description="The main content failed to load. Please try again later."
+              errorCode="CONTENT-001"
+              errorLog="The main content area encountered a data fetch error from the API."
             />
           }
         >
@@ -65,6 +71,8 @@ const MainLayout: FC<MainLayoutProps> = ({ children, username, onLogout }) => {
             <FallbackUI
               title="Footer Error"
               description="The footer failed to load. Please try refreshing the page."
+              errorCode="FOOTER-001"
+              errorLog="Footer component experienced a rendering issue."
               onRetry={() => window.location.reload()} // Retry logic
             />
           }

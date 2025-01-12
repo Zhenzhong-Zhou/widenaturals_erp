@@ -1,5 +1,6 @@
 import { FC } from 'react';
 import Box from '@mui/material/Box';
+import { useThemeContext } from '../../context/ThemeContext.tsx';
 
 interface ErrorMessageProps {
   message: string;
@@ -7,18 +8,19 @@ interface ErrorMessageProps {
 }
 
 const ErrorMessage: FC<ErrorMessageProps> = ({ message, severity = 'error' }) => {
+  const { theme } = useThemeContext();
   const severityColorMap = {
-    error: 'error.main',
-    warning: 'warning.main',
-    info: 'info.main',
+    error: theme.palette.error.main,
+    warning: theme.palette.warning.main,
+    info: theme.palette.info.main,
   };
   
   return (
     <Box
       sx={{
         color: severityColorMap[severity],
-        fontSize: 14,
-        margin: '10px 0',
+        fontSize: theme.typography.body2.fontSize,
+        margin: theme.spacing(1, 0),
       }}
       role="alert"
       aria-live="polite"

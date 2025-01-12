@@ -12,6 +12,7 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
           title="Critical Error"
           description="An unexpected error occurred. Please refresh the page or contact support."
           errorCode="APP-5001"
+          errorLog="Error: App initialization failed due to missing configuration."
           onRetry={() => window.location.reload()} // Retry logic
         />
       }

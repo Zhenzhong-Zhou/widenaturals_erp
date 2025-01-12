@@ -5,17 +5,13 @@ import Typography from '@mui/material/Typography';
 import { footerStyles, footerTextStyle } from './footerStyles'; // Import the abstracted styles
 import { useThemeContext } from '../../context/ThemeContext.tsx'; // Import Theme Context
 
-interface FooterProps {
-  isSidebarOpen: boolean;
-}
-
-const Footer: FC<FooterProps> = ({ isSidebarOpen }) => {
+const Footer: FC = () => {
   const { theme } = useThemeContext(); // Access the current theme from context
   
   return (
     <footer>
       <Container maxWidth="lg">
-        <Box sx={footerStyles(theme, isSidebarOpen)}>
+        <Box sx={footerStyles(theme)}>
           {/* Copyright Information */}
           <Box sx={footerTextStyle(theme)}>
             <Typography variant="body2" color="textSecondary">
