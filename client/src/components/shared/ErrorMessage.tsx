@@ -5,9 +5,10 @@ import { useThemeContext } from '../../context/ThemeContext.tsx';
 interface ErrorMessageProps {
   message: string;
   severity?: 'error' | 'warning' | 'info';
+  color?: string; // Optional custom color
 }
 
-const ErrorMessage: FC<ErrorMessageProps> = ({ message, severity = 'error' }) => {
+const ErrorMessage: FC<ErrorMessageProps> = ({ message, severity = 'error', color }) => {
   const { theme } = useThemeContext();
   const severityColorMap = {
     error: theme.palette.error.main,
@@ -18,7 +19,7 @@ const ErrorMessage: FC<ErrorMessageProps> = ({ message, severity = 'error' }) =>
   return (
     <Box
       sx={{
-        color: severityColorMap[severity],
+        color: color || severityColorMap[severity], // Use custom color if provided
         fontSize: theme.typography.body2.fontSize,
         margin: theme.spacing(1, 0),
       }}
