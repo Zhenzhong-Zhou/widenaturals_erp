@@ -6,17 +6,16 @@ import { footerStyles, footerTextStyle } from './footerStyles'; // Import the ab
 import { useThemeContext } from '../../context/ThemeContext.tsx'; // Import Theme Context
 
 interface FooterProps {
-  darkMode: boolean;
   isSidebarOpen: boolean;
 }
 
 const Footer: FC<FooterProps> = ({ isSidebarOpen }) => {
-  const { theme, darkMode } = useThemeContext(); // Access dark mode from context
+  const { theme } = useThemeContext(); // Access the current theme from context
   
   return (
     <footer>
       <Container maxWidth="lg">
-        <Box sx={footerStyles(theme, darkMode, isSidebarOpen)}>
+        <Box sx={footerStyles(theme, isSidebarOpen)}>
           {/* Copyright Information */}
           <Box sx={footerTextStyle(theme)}>
             <Typography variant="body2" color="textSecondary">

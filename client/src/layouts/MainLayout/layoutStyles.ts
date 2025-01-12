@@ -1,19 +1,19 @@
 import { SxProps, Theme } from '@mui/material/styles';
 
-export const layoutStyles = (theme: Theme, darkMode: boolean): SxProps<Theme> => ({
+export const layoutStyles = (theme: Theme): SxProps<Theme> => ({
   display: 'flex',
   flexDirection: 'row',
   minHeight: '100vh',
-  backgroundColor: darkMode ? '#121212' : '#f4f4f4',
+  backgroundColor: theme.palette.background.default,
   [theme.breakpoints.down('sm')]: {
     flexDirection: 'column', // Stack layout on smaller screens
   },
 });
 
-export const contentContainerStyles = (theme: Theme, darkMode: boolean): SxProps<Theme> => ({
+export const contentContainerStyles = (theme: Theme): SxProps<Theme> => ({
   flex: 1,
   width: '100%',
-  backgroundColor: darkMode ? '#121212' : '#ffffff',
+  backgroundColor: theme.palette.background.paper,
   display: 'flex',
   flexDirection: 'column',
   minHeight: '100vh', // Ensure full height of the viewport
@@ -24,9 +24,9 @@ export const contentContainerStyles = (theme: Theme, darkMode: boolean): SxProps
 
 export const mainContentStyles = (theme: Theme): SxProps<Theme> => ({
   flex: 1,
-  padding: (theme) => theme.spacing(2), // Use Material-UI's theme spacing
+  padding: theme.spacing(2), // Use Material-UI's theme spacing
   overflow: 'auto', // Ensure scrollability for long content
   [theme.breakpoints.down('sm')]: {
-    padding: (theme) => theme.spacing(1), // Reduced padding on small screens
+    padding: theme.spacing(1), // Reduced padding on small screens
   },
 });

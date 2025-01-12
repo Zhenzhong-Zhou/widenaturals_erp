@@ -12,10 +12,10 @@ interface HeaderProps {
 }
 
 const Header: FC<HeaderProps> = ({ username, onLogout, isOpenSidebar }) => {
-  const { theme, darkMode, toggleTheme } = useThemeContext(); // Access dark mode from context
+  const { theme, toggleTheme } = useThemeContext(); // Access theme and toggle function
   
   return (
-    <Box sx={headerStyles(theme, darkMode, isOpenSidebar)}> {/* Apply header styles */}
+    <Box sx={headerStyles(theme, isOpenSidebar)}> {/* Apply header styles */}
       <Typography variant="h6" sx={{ flexGrow: 1 }}>
         ERP System
       </Typography>
@@ -31,17 +31,17 @@ const Header: FC<HeaderProps> = ({ username, onLogout, isOpenSidebar }) => {
           onClick={toggleTheme}
           sx={{
             marginLeft: 2,
-            color: darkMode ? 'white' : 'black',
-            borderColor: darkMode ? 'secondary.main' : 'primary.main'
+            color: theme.palette.text.primary,
+            borderColor: theme.palette.primary.main,
           }}
         >
-          Switch to {darkMode ? 'Light' : 'Dark'} Mode
+          Switch to {theme.palette.mode === 'dark' ? 'Light' : 'Dark'} Mode
         </Button>
         
         {/* Logout Button */}
         <Button
           variant="contained"
-          color={darkMode ? 'secondary' : 'primary'}
+          color="primary"
           onClick={onLogout}
           sx={{ marginLeft: 2 }}
         >

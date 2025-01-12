@@ -13,7 +13,7 @@ interface SidebarProps {
 }
 
 const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
-  const { theme, darkMode } = useThemeContext();
+  const { theme } = useThemeContext();
   
   return (
     <>
@@ -23,25 +23,44 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
         open={isOpen}
         onClose={toggleSidebar}
         variant="persistent"
-        sx={sidebarStyles(theme, darkMode, isOpen)}
+        sx={sidebarStyles(theme, isOpen)}
       >
         {/* Sidebar Header */}
-        <Box  sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px' }}>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '16px',
+            backgroundColor: theme.palette.background.paper,
+            color: theme.palette.text.primary,
+          }}
+        >
           <Box sx={{ fontSize: '1.5rem', fontWeight: 'bold' }}>Company Name</Box>
           <IconButton onClick={toggleSidebar}>
-            <FontAwesomeIcon icon={faTimes} style={{ color: darkMode ? 'white' : 'black' }} />
+            <FontAwesomeIcon
+              icon={faTimes}
+              style={{ color: theme.palette.text.primary }}
+            />
           </IconButton>
         </Box>
         
         {/* Sidebar Navigation */}
-        {/* Sidebar Navigation */}
-        <Box className="sidebar">
-          <ul>
-            <li><a href="/dashboard">Dashboard</a></li>
-            <li><a href="/inventory">Inventory</a></li>
-            <li><a href="/orders">Orders</a></li>
-            <li><a href="/reports">Reports</a></li>
-            <li><a href="/settings">Settings</a></li>
+        <Box
+          className="sidebar"
+          sx={{
+            padding: '16px',
+            backgroundColor: theme.palette.background.default,
+            height: '100%',
+            color: theme.palette.text.primary,
+          }}
+        >
+          <ul style={{ listStyle: 'none', padding: 0 }}>
+            <li><a href="/dashboard" style={{ color: theme.palette.text.primary }}>Dashboard</a></li>
+            <li><a href="/inventory" style={{ color: theme.palette.text.primary }}>Inventory</a></li>
+            <li><a href="/orders" style={{ color: theme.palette.text.primary }}>Orders</a></li>
+            <li><a href="/reports" style={{ color: theme.palette.text.primary }}>Reports</a></li>
+            <li><a href="/settings" style={{ color: theme.palette.text.primary }}>Settings</a></li>
           </ul>
         </Box>
       </Drawer>
@@ -50,9 +69,16 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
       {!isOpen && (
         <IconButton
           onClick={toggleSidebar}
-          sx={{ position: 'absolute', top: '16px', left: '16px', zIndex: 1300 }}
+          sx={{
+            position: 'absolute',
+            top: '16px',
+            left: '16px',
+            zIndex: 1300,
+            backgroundColor: theme.palette.background.paper,
+            color: theme.palette.text.primary,
+          }}
         >
-          <FontAwesomeIcon icon={faBars} style={{ color: darkMode ? 'white' : 'black' }} />
+          <FontAwesomeIcon icon={faBars} />
         </IconButton>
       )}
     </>

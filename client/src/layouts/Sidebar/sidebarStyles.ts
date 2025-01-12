@@ -1,12 +1,15 @@
 import { SxProps, Theme } from '@mui/material/styles';
 
-export const sidebarStyles = (theme: Theme, darkMode: boolean, isSidebarOpen: boolean): SxProps<Theme> => ({
+export const sidebarStyles = (
+  theme: Theme,
+  isSidebarOpen: boolean
+): SxProps<Theme> => ({
   width: isSidebarOpen ? '240px' : '0px', // Sidebar disappears when closed
   transition: 'width 0.3s ease', // Smooth transition for the width
   flexShrink: 0,
   height: '100vh', // Full height
-  backgroundColor: darkMode ? '#121212' : '#f4f4f4', // Dark/light mode background
-  color: darkMode ? 'white' : 'black', // Text color
+  backgroundColor: theme.palette.background.default, // Dynamic background color
+  color: theme.palette.text.primary, // Dynamic text color
   display: 'flex',
   flexDirection: 'column',
   boxShadow: isSidebarOpen ? '2px 0 5px rgba(0, 0, 0, 0.1)' : 'none', // Box shadow only when open
@@ -39,10 +42,10 @@ export const sidebarStyles = (theme: Theme, darkMode: boolean, isSidebarOpen: bo
   
   '& a': {
     textDecoration: 'none',
-    color: darkMode ? theme.palette.common.white : theme.palette.text.primary,
+    color: theme.palette.text.primary, // Dynamic link color
     fontSize: '1rem',
     '&:hover': {
-      color: darkMode ? theme.palette.secondary.main : theme.palette.primary.main,
+      color: theme.palette.primary.main, // Dynamic hover color
     },
   },
 });

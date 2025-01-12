@@ -1,6 +1,6 @@
 import { SxProps, Theme } from '@mui/material/styles';
 
-export const headerStyles = (theme: Theme, darkMode: boolean, isSidebarOpen: boolean): SxProps<Theme> => ({
+export const headerStyles = (theme: Theme, isSidebarOpen: boolean): SxProps<Theme> => ({
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
@@ -8,9 +8,9 @@ export const headerStyles = (theme: Theme, darkMode: boolean, isSidebarOpen: boo
   transition: 'margin-left 0.3s ease', // Smooth transition
   width: '100%', // Adjust width dynamically
   height: '60px', // Example height
-  backgroundColor: darkMode ? 'primary.main' : '#f4f4f4', // Dynamic background color
-  color: darkMode ? 'white' : 'black', // Dynamic text color
-  padding: 2, // Dynamic padding
+  backgroundColor: theme.palette.background.default, // Dynamic background color
+  color: theme.palette.text.primary, // Dynamic text color
+  padding: theme.spacing(2), // Use theme.spacing for consistent padding
   flexDirection: 'row',
   [theme.breakpoints.down('md')]: {
     flexDirection: 'column', // Responsive stacking for medium screens
@@ -28,5 +28,5 @@ export const userInfoStyles = (theme: Theme): SxProps<Theme> => ({
 });
 
 export const typographyStyles = (theme: Theme): SxProps<Theme> => ({
-  marginRight: theme.spacing(2), // Use theme spacing for margins
+  marginRight: theme.spacing(2), // Use theme.spacing for margins
 });
