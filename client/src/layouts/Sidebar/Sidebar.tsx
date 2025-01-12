@@ -1,22 +1,58 @@
 import { FC } from 'react';
-import { Link } from 'react-router-dom';
-import { useThemeContext } from '../../context/ThemeContext'; // Access dark mode from context
 import Box from '@mui/material/Box';
+import IconButton from '@mui/material/IconButton';
+import Drawer from '@mui/material/Drawer';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faBars, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { sidebarStyles } from './sidebarStyles';
+import { useThemeContext } from '../../context/ThemeContext';
 
-const Sidebar: FC = () => {
-  const { darkMode } = useThemeContext(); // Access dark mode from context
+interface SidebarProps {
+  isOpen: boolean;
+  toggleSidebar: () => void;
+}
+
+const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
+  const { darkMode } = useThemeContext();
   
   return (
-    <Box sx={sidebarStyles(darkMode)} className="sidebar"> {/* Apply global and dynamic styles */}
-      <ul>
-        <li><Link to="/dashboard">Dashboard</Link></li>
-        <li><Link to="/inventory">Inventory</Link></li>
-        <li><Link to="/orders">Orders</Link></li>
-        <li><Link to="/reports">Reports</Link></li>
-        <li><Link to="/settings">Settings</Link></li>
-      </ul>
-    </Box>
+    <>
+      {/* Sidebar Drawer */}
+      <Drawer
+        anchor="left"
+        open={isOpen}
+        onClose={toggleSidebar}
+        variant="persistent"
+        sx={sidebarStyles(darkMode, isOpen)}
+      >
+        {/* Sidebar Header */}
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px' }}>
+          <Box sx={{ fontSize: '1.5rem', fontWeight: 'bold' }}>Company Name</Box>
+          <IconButton onClick={toggleSidebar}>
+            <FontAwesomeIcon icon={faTimes} style={{ color: darkMode ? 'white' : 'black' }} />
+          </IconButton>
+        </Box>
+        
+        {/* Sidebar Navigation */}
+        <ul>
+          <li><a href="/dashboard">Dashboard</a></li>
+          <li><a href="/inventory">Inventory</a></li>
+          <li><a href="/orders">Orders</a></li>
+          <li><a href="/reports">Reports</a></li>
+          <li><a href="/settings">Settings</a></li>
+        </ul>
+      </Drawer>
+      
+      {/* Open Button */}
+      {!isOpen && (
+        <IconButton
+          onClick={toggleSidebar}
+          sx={{ position: 'absolute', top: '16px', left: '16px', zIndex: 1300 }}
+        >
+          <FontAwesomeIcon icon={faBars} style={{ color: darkMode ? 'white' : 'black' }} />
+        </IconButton>
+      )}
+    </>
   );
 };
 

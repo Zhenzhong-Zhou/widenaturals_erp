@@ -14,11 +14,11 @@ const syncGlobalVariables = (theme: Theme) => {
 const sharedTokens: ThemeOptions = {
   typography: {
     fontFamily: "'Roboto', sans-serif",
-    fontSize: 14,
-    h1: { fontSize: '2.25rem', fontWeight: 700 },
-    h2: { fontSize: '1.75rem', fontWeight: 700 },
-    body1: { fontSize: '1rem', lineHeight: 1.6 },
-    body2: { fontSize: '0.875rem', lineHeight: 1.5 },
+    fontSize: 16, // Base font size
+    h1: { fontSize: '2.5rem', fontWeight: 700 },
+    h2: { fontSize: '2rem', fontWeight: 700 },
+    body1: { fontSize: '1rem', lineHeight: 1.7 },
+    body2: { fontSize: '0.875rem', lineHeight: 1.6 },
   },
   spacing: 8,
 };
@@ -28,11 +28,15 @@ const lightTheme = createTheme({
   ...sharedTokens,
   palette: {
     mode: 'light',
-    primary: { main: '#4caf50' },
-    secondary: { main: '#ff5722' },
+    primary: { main: '#4caf50', light: '#81c784', dark: '#388e3c' },
+    secondary: { main: '#ff5722', light: '#ff8a50', dark: '#e64a19' },
     background: { default: '#f4f4f4', paper: '#ffffff' },
     text: { primary: '#333', secondary: '#555' },
-    divider: '#e0e0e0',
+    divider: '#dcdcdc',
+    success: { main: '#28a745' },
+    warning: { main: '#ffc107' },
+    error: { main: '#dc3545' },
+    info: { main: '#17a2b8' },
   },
 });
 
@@ -41,11 +45,15 @@ const darkTheme = createTheme({
   ...sharedTokens,
   palette: {
     mode: 'dark',
-    primary: { main: '#4caf50' },
-    secondary: { main: '#ff5722' },
+    primary: { main: '#4caf50', light: '#81c784', dark: '#388e3c' },
+    secondary: { main: '#ff5722', light: '#ff8a50', dark: '#e64a19' },
     background: { default: '#121212', paper: '#1e1e1e' },
     text: { primary: '#f4f4f4', secondary: '#ccc' },
     divider: '#333',
+    success: { main: '#28a745' },
+    warning: { main: '#ffc107' },
+    error: { main: '#dc3545' },
+    info: { main: '#17a2b8' },
   },
 });
 

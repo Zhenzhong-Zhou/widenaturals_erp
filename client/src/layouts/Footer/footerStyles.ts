@@ -1,6 +1,10 @@
 import { SxProps, Theme } from '@mui/material/styles';
 
-export const footerStyles = (darkMode: boolean): SxProps<Theme> => ({
+export const footerStyles = (darkMode: boolean, isSidebarOpen: boolean): SxProps<Theme> => ({
+  marginLeft: isSidebarOpen ? '240px' : '0px', // Align with sidebar
+  transition: 'margin-left 0.3s ease', // Smooth transition
+  width: '100%', // Adjust width dynamically
+  height: '40px', // Example height
   display: 'flex', // Flexbox layout
   flexDirection: { xs: 'column', md: 'row' }, // Responsive layout
   justifyContent: 'space-between', // Spacing between items
