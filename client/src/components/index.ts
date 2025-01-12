@@ -1,7 +1,8 @@
 export { default as GlobalErrorBoundary } from '../components/GlobalErrorBoundary';
 export { default as ModuleErrorBoundary } from './shared/ModuleErrorBoundary';
 export { default as FallbackUI } from './shared/FallbackUI';
-export { default as ErrorMessage } from './shared/ErrorMessage';
+export { default as ErrorDisplay } from './shared/ErrorDisplay';
+export { default as ErrorMessage } from './common/ErrorMessage.tsx';
 export { default as Typography } from './common/Typography';
 export { default as CustomButton } from './common/CustomButton';
 export { default as BaseInput } from './common/BaseInput';
