@@ -20,7 +20,7 @@
  */
 
 const { loadSecret } = require('./env');
-const AppError = require('../utils/app-error');
+const AppError = require('../utils/AppError');
 
 /**
  * Retrieves the database pool configuration.

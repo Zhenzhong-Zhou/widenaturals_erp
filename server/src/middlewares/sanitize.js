@@ -1,6 +1,6 @@
 const customSanitization = require('../utils/custom-sanitization');
 const sanitizeRichText = require('../utils/sanitize-html');
-const AppError = require('../utils/app-error');
+const AppError = require('../utils/AppError');
 const { logError } = require('../utils/logger-helper');
 
 /**

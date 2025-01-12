@@ -1,5 +1,5 @@
 const { checkServerHealth } = require('../monitors/server-health');
-const AppError = require('../utils/app-error');
+const AppError = require('../utils/AppError');
 
 /**
  * GET /internal/status

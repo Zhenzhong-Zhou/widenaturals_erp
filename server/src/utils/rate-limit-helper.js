@@ -1,6 +1,6 @@
 const rateLimit = require('express-rate-limit');
 const { logWarn } = require('./logger-helper');
-const AppError = require('../utils/app-error');
+const AppError = require('./AppError');
 const RATE_LIMIT = require('../utils/constants/domain/rate-limit');
 
 /**

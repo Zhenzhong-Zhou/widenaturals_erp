@@ -1,4 +1,4 @@
-const AppError = require('../utils/app-error');
+const AppError = require('../utils/AppError');
 const { query } = require('../database/db');
 const { logError } = require('../utils/logger-helper');
 

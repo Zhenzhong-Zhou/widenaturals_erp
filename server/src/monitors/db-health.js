@@ -1,6 +1,6 @@
 const { query } = require('../database/db');
 const { logInfo, logError } = require('../utils/logger-helper');
-const AppError = require('../utils/app-error');
+const AppError = require('../utils/AppError');
 
 /**
  * Check database health by running a lightweight query.

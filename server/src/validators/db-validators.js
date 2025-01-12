@@ -2,7 +2,7 @@ const { query } = require('../database/db');
 const { getRoleIdByField } = require('../repositories/role-repository');
 const { getStatusIdByName } = require('../repositories/status-repository');
 const { logError } = require('../utils/logger-helper');
-const AppError = require('../utils/app-error');
+const AppError = require('../utils/AppError');
 
 /**
  * Check if an email exists in the database.

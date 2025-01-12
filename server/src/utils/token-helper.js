@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const { logError } = require('./logger-helper');
-const AppError = require('./app-error');
+const AppError = require('./AppError');
 
 /**
  * Signs a payload to generate a JWT token.

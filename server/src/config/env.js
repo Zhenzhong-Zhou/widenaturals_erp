@@ -8,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const dotenv = require('dotenv');
 const { logWarn, logError } = require('../utils/logger-helper');
-const AppError = require('../utils/app-error');
+const AppError = require('../utils/AppError');
 
 /**
  * Load a secret value from Docker secrets if available.

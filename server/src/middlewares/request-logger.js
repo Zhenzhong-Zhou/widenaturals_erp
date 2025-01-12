@@ -4,7 +4,7 @@
  */
 
 const { logWithLevel } = require('../utils/logger-helper');
-const AppError = require('../utils/app-error');
+const AppError = require('../utils/AppError');
 
 /**
  * Middleware for logging incoming HTTP requests and responses.

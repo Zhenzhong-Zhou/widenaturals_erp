@@ -1,4 +1,4 @@
-const AppError = require('../utils/app-error');
+const AppError = require('../utils/AppError');
 const { hashPasswordWithSalt } = require('../utils/password-helper');
 const { createUser } = require('../repositories/user-repository');
 const {

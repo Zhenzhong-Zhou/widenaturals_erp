@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 const argon2 = require('argon2');
 const { logError } = require('./logger-helper');
-const AppError = require('./app-error');
+const AppError = require('./AppError');
 
 /**
  * Hashes a password with a unique salt using Argon2.

@@ -1,5 +1,5 @@
 const zxcvbn = require('zxcvbn');
-const AppError = require('../utils/app-error');
+const AppError = require('./AppError');
 
 /**
  * Analyzes the strength of a password using zxcvbn.

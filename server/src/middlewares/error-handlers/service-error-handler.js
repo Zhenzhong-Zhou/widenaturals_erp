@@ -3,7 +3,7 @@
  * @description Middleware to handle service-level (business logic) errors.
  */
 
-const AppError = require('../../utils/app-error');
+const AppError = require('../../utils/AppError');
 const { logWarn } = require('../../utils/logger-helper');
 
 /**

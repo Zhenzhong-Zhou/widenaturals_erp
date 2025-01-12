@@ -11,7 +11,7 @@
 const csrf = require('csurf');
 const { logWarn, logError } = require('../utils/logger-helper');
 const { ONE_HOUR } = require('../utils/constants/general/time');
-const AppError = require('../utils/app-error');
+const AppError = require('../utils/AppError');
 
 /**
  * Determines if a request should bypass CSRF protection.

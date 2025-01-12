@@ -10,7 +10,7 @@ const DailyRotateFile = require('winston-daily-rotate-file');
 const { loadEnv } = require('../config/env');
 const { uploadToS3 } = require('./s3-upload');
 const { logError } = require('./logger-helper');
-const AppError = require('./app-error');
+const AppError = require('./AppError');
 
 // Load environment variables
 const { env } = loadEnv();

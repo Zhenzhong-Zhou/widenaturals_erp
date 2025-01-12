@@ -4,7 +4,7 @@
  */
 
 const cors = require('cors');
-const AppError = require('../utils/app-error');
+const AppError = require('../utils/AppError');
 const { logWarn, logError } = require('../utils/logger-helper');
 
 /**

@@ -3,7 +3,7 @@
  * @description Middleware to handle authorization errors.
  */
 
-const AppError = require('../../utils/app-error');
+const AppError = require('../../utils/AppError');
 const { logWarn } = require('../../utils/logger-helper');
 
 /**

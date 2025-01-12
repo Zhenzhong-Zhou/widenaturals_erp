@@ -4,7 +4,7 @@
  */
 
 const asyncHandler = require('express-async-handler');
-const AppError = require('../utils/app-error');
+const AppError = require('./AppError');
 const { logDebug, logError } = require('./logger-helper');
 
 /**

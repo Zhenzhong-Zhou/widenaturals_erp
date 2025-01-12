@@ -2,7 +2,7 @@ const { logError } = require('../utils/logger-helper');
 const {
   getRolePermissionsByRoleId,
 } = require('../repositories/role-permission-repository');
-const AppError = require('../utils/app-error');
+const AppError = require('../utils/AppError');
 
 /**
  * Middleware to authorize users based on their role and required permissions.

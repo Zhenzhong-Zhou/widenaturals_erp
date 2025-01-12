@@ -1,7 +1,7 @@
 const { getClient, query } = require('../database/db');
 const { logError, logWarn } = require('../utils/logger-helper');
 const { maskSensitiveInfo } = require('../utils/sensitive-data-utils');
-const AppError = require('../utils/app-error');
+const AppError = require('../utils/AppError');
 const { insertUserAuth } = require('./user-auth-repository');
 
 /**

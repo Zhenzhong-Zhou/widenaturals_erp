@@ -1,4 +1,4 @@
-const AppError = require('../utils/app-error');
+const AppError = require('../utils/AppError');
 const { getUserAuthByEmail } = require('../repositories/user-auth-repository');
 const { verifyPassword } = require('../utils/password-helper');
 const { signToken } = require('../utils/token-helper');

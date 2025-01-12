@@ -1,4 +1,4 @@
-const AppError = require('../utils/app-error');
+const AppError = require('../utils/AppError');
 const validatePassword = require('../validators/password-validators');
 const checkPasswordStrength = require('../utils/check-password-strength');
 const { logError } = require('../utils/logger-helper');

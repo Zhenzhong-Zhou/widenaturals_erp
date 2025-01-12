@@ -3,7 +3,7 @@
  * @description Middleware for handling health-check specific errors.
  */
 
-const AppError = require('../../utils/app-error');
+const AppError = require('../../utils/AppError');
 const { logWarn } = require('../../utils/logger-helper');
 
 /**

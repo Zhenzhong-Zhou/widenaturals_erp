@@ -1,6 +1,6 @@
 const { verifyToken, signToken } = require('../utils/token-helper');
 const { logWarn, logError } = require('../utils/logger-helper');
-const AppError = require('../utils/app-error');
+const AppError = require('../utils/AppError');
 
 /**
  * Middleware to authenticate users using JWT tokens.

@@ -3,7 +3,7 @@
  * @description Middleware for handling 404 errors.
  */
 
-const AppError = require('../../utils/app-error');
+const AppError = require('../../utils/AppError');
 const { logWarn } = require('../../utils/logger-helper');
 
 /**

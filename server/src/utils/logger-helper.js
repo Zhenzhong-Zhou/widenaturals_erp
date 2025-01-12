@@ -4,7 +4,7 @@
  */
 
 const { sanitizeMessage } = require('./sensitive-data-utils');
-const AppError = require('./app-error');
+const AppError = require('./AppError');
 
 let logger; // Lazy-loaded logger instance
 

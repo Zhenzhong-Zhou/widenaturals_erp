@@ -3,7 +3,7 @@ const dotenv = require('dotenv');
 const path = require('path');
 const fs = require('fs');
 const { logWarn, logError } = require('../../../src/utils/logger-helper');
-const AppError = require('../../../src/utils/app-error');
+const AppError = require('../../utils/AppError');
 
 jest.mock('dotenv');
 jest.mock('fs');
