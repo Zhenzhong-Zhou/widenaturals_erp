@@ -1,35 +1,44 @@
-import { createContext, FC, ReactNode, useContext, useState } from 'react';
-import { Loading } from '@components/index.ts';
+import { createContext, FC, ReactNode, useContext, useState, useCallback } from 'react';
+import { Loading } from '@components/index';
 
 interface LoadingContextType {
-  showLoading: (message?: string) => void;
+  showLoading: (message?: string, variant?: 'spinner' | 'linear' | 'dotted') => void;
   hideLoading: () => void;
 }
 
+interface LoadingState {
+  loading: boolean;
+  message?: string;
+  variant?: 'spinner' | 'linear' | 'dotted';
+}
+
 interface LoadingProviderProps {
-  children: ReactNode; // Define the children prop
+  children: ReactNode;
 }
 
 const LoadingContext = createContext<LoadingContextType | undefined>(undefined);
 
 export const LoadingProvider: FC<LoadingProviderProps> = ({ children }) => {
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<string | undefined>();
+  const [loadingState, setLoadingState] = useState<LoadingState>({ loading: false });
   
-  const showLoading = (msg?: string) => {
-    setMessage(msg);
-    setLoading(true);
-  };
+  const showLoading = useCallback((message?: string, variant: 'spinner' | 'linear' | 'dotted' = 'spinner') => {
+    setLoadingState({ loading: true, message, variant });
+  }, []);
   
-  const hideLoading = () => {
-    setLoading(false);
-    setMessage(undefined);
-  };
+  const hideLoading = useCallback(() => {
+    setLoadingState({ loading: false, message: undefined, variant: undefined });
+  }, []);
   
   return (
     <LoadingContext.Provider value={{ showLoading, hideLoading }}>
       {children}
-      {loading && <Loading fullPage message={message} />}
+      {loadingState.loading && (
+        <Loading
+          fullPage
+          message={loadingState.message}
+          variant={loadingState.variant}
+        />
+      )}
     </LoadingContext.Provider>
   );
 };

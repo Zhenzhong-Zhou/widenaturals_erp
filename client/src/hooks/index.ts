@@ -1,0 +1,1 @@
+export { useInitializeApp } from './useInitializeApp';

@@ -1,19 +1,15 @@
 import { FC } from 'react';
 import { BrowserRouter } from 'react-router-dom';
-import Box from '@mui/material/Box';
-import { ThemeProviderWrapper } from './context/ThemeContext.tsx';
-import { MainLayout } from './layouts';
-import './styles/App.css';
+import { ThemeProviderWrapper } from './context/ThemeContext';
+import { LoadingProvider } from './context/LoadingContext';
+import { AppContent } from './pages';
 
 const App: FC = () => (
   <BrowserRouter>
     <ThemeProviderWrapper>
-      <Box className={"app"}>
-        <MainLayout
-          children={undefined} username={''} onLogout={function(): void {
-          throw new Error('Function not implemented.');
-        }}  />
-      </Box>
+      <LoadingProvider>
+        <AppContent />
+      </LoadingProvider>
     </ThemeProviderWrapper>
   </BrowserRouter>
 );

@@ -2,18 +2,68 @@ import { FC } from 'react';
 import CircularProgress from '@mui/material/CircularProgress';
 import LinearProgress from '@mui/material/LinearProgress';
 import Box from '@mui/material/Box';
-import { useThemeContext } from '../../context/ThemeContext.tsx';
+import { useThemeContext } from '../../context/ThemeContext';
 
 interface LoadingProps {
   size?: number; // Customize size for CircularProgress
   message?: string; // Optional message
   color?: 'primary' | 'secondary' | 'inherit'; // Color customization
-  variant?: 'spinner' | 'linear'| 'dotted'; // Loader variant
+  variant?: 'spinner' | 'linear' | 'dotted'; // Loader variant
   fullPage?: boolean; // Whether to display as a full-page loader
 }
 
-const Loading: FC<LoadingProps> = ({ size = 40, message, color = 'primary', variant, fullPage = false }) => {
+const Loading: FC<LoadingProps> = ({
+                                     size = 40,
+                                     message,
+                                     color = 'primary',
+                                     variant = 'spinner',
+                                     fullPage = false,
+                                   }) => {
   const { theme } = useThemeContext();
+  
+  // Utility function to generate full-page styles
+  const fullPageStyles = fullPage
+    ? {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      zIndex: theme.zIndex.modal,
+      backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    }
+    : {};
+  
+  // Dotted Loader Styles
+  const dottedLoader = (
+    <Box
+      sx={{
+        width: size,
+        height: size,
+        border: `4px dotted ${theme.palette.primary.main}`,
+        borderRadius: '50%',
+        animation: 'spin 1s linear infinite',
+      }}
+    />
+  );
+  
+  // Loader content based on variant
+  const renderLoader = () => {
+    switch (variant) {
+      case 'spinner':
+        return <CircularProgress size={size} color={color} />;
+      case 'linear':
+        return (
+          <Box sx={{ width: '100%' }}>
+            <LinearProgress color={color} />
+          </Box>
+        );
+      case 'dotted':
+        return dottedLoader;
+      default:
+        return <CircularProgress size={size} color={color} />; // Fallback to spinner
+    }
+  };
   
   return (
     <Box
@@ -22,40 +72,12 @@ const Loading: FC<LoadingProps> = ({ size = 40, message, color = 'primary', vari
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        ...(fullPage && {
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          zIndex: theme.zIndex.modal,
-          backgroundColor: 'rgba(255, 255, 255, 0.8)',
-        }),
-        ...(variant === 'dotted' && {
-          // Example for a custom dotted loader
-          '& > .MuiCircularProgress-root': {
-            animation: 'spin 1s linear infinite',
-            border: `4px dotted ${theme.palette.primary.main}`,
-            borderRadius: '50%',
-            height: size,
-            width: size,
-          },
-        }),
+        ...fullPageStyles,
       }}
       aria-busy="true"
       aria-live="polite"
     >
-      {variant === 'spinner' ? (
-        <CircularProgress size={size} color={color} />
-      ) : variant === 'dotted' ? (
-        <div> {/* Custom loader for 'dotted' */}
-          Loading...
-        </div>
-      ) : (
-        <Box sx={{ width: '100%' }}>
-          <LinearProgress color={color} />
-        </Box>
-      )}
+      {renderLoader()}
       {message && (
         <Box mt={2} sx={{ typography: 'body2', color: 'text.secondary' }}>
           {message}
