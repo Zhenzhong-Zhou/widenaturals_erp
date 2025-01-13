@@ -9,7 +9,7 @@ export const routes = [
   },
   {
     path: '/login',
-    component: () => import('../pages/LoginPage'),
+    component: () => import('../features/auth/pages/LoginPage.tsx'),
     meta: {
       requiresAuth: true,
       title: 'Login',

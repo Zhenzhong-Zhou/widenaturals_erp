@@ -1,7 +1,7 @@
 import { FC } from 'react';
-import CustomCard from './CustomCard';
-import LoginForm from './LoginForm';
-import { authService } from '../../services';
+import CustomCard from '@components/common/CustomCard.tsx';
+import LoginForm from './LoginForm.tsx';
+import { authService } from '../../../services';
 import { handleError, mapErrorMessage } from '@utils/errorUtils.ts';
 
 const LoginCard: FC = () => {

@@ -1,5 +1,5 @@
 import { FC, useState } from 'react';
-import TypeRestrictedInput from './TypeRestrictedInput';
+import { TypeRestrictedInput } from '@components/index.ts';
 import InputAdornment from '@mui/material/InputAdornment';
 import IconButton from '@mui/material/IconButton';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';

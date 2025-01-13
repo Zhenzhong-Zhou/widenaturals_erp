@@ -1,6 +1,7 @@
 import { FC, useState } from 'react';
 import { Box } from '@mui/material';
-import { BaseInput, PasswordInput, CustomButton } from '@components/index';
+import { BaseInput, CustomButton } from '@components/index.ts';
+import { PasswordInput } from '../index.ts';
 
 interface LoginFormProps {
   onSubmit: (data: { email: string; password: string }) => void;
