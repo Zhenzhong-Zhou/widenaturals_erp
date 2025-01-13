@@ -1,13 +1,13 @@
 import axios, { AxiosRequestConfig, AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
-import Cookies from 'js-cookie'; // Library to manage cookies
+import Cookies from 'js-cookie';
+import AppError from './AppError'; // Import AppError class
 
 interface ErrorResponse {
   message?: string;
   [key: string]: any; // Optional for additional properties
 }
 
-// Base URL from environment variables
-const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3000'; // Fallback for local development
+const baseURL = import.meta.env.VITE_BASE_URL || 'http://localhost:3000';
 
 // Create Axios instance
 const axiosInstance = axios.create({
@@ -37,21 +37,24 @@ const processQueue = (error: AxiosError | null, token: string | null) => {
 // Request interceptor: Add auth token and CSRF token
 axiosInstance.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const accessToken = Cookies.get('accessToken');
-    const csrfToken = Cookies.get('csrfToken');
-    
-    if (accessToken && config.headers) {
-      config.headers.Authorization = `Bearer ${accessToken}`;
+    try {
+      const accessToken = Cookies.get('accessToken');
+      const csrfToken = Cookies.get('csrfToken');
+      
+      if (accessToken && config.headers) {
+        config.headers.Authorization = `Bearer ${accessToken}`;
+      }
+      if (csrfToken && config.headers) {
+        config.headers['X-CSRF-Token'] = csrfToken;
+      }
+      
+      return config;
+    } catch (error) {
+      throw AppError.fromNetworkError('Error in request interceptor');
     }
-    if (csrfToken && config.headers) {
-      config.headers['X-CSRF-Token'] = csrfToken;
-    }
-    
-    return config;
   },
   (error: AxiosError) => {
-    console.error('Request Error:', error.message);
-    return Promise.reject(error);
+    return Promise.reject(AppError.fromNetworkError(error.message));
   }
 );
 
@@ -61,29 +64,27 @@ axiosInstance.interceptors.response.use(
   async (error: AxiosError<ErrorResponse>) => {
     const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
     
-    // Handle token expiration (401 Unauthorized)
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      if (isRefreshing) {
-        // Queue failed requests while refreshing
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        })
-          .then((token) => {
-            if (originalRequest.headers) {
-              originalRequest.headers.Authorization = `Bearer ${token}`;
-            }
-            return axiosInstance(originalRequest);
+    try {
+      if (error.response?.status === 401 && !originalRequest._retry) {
+        if (isRefreshing) {
+          return new Promise((resolve, reject) => {
+            failedQueue.push({ resolve, reject });
           })
-          .catch((err) => Promise.reject(err));
-      }
-      
-      originalRequest._retry = true;
-      isRefreshing = true;
-      
-      try {
-        const refreshToken = Cookies.get('refreshToken'); // Refresh token from cookies
+            .then((token) => {
+              if (originalRequest.headers) {
+                originalRequest.headers.Authorization = `Bearer ${token}`;
+              }
+              return axiosInstance(originalRequest);
+            })
+            .catch((err) => Promise.reject(err));
+        }
+        
+        originalRequest._retry = true;
+        isRefreshing = true;
+        
+        const refreshToken = Cookies.get('refreshToken');
         if (!refreshToken) {
-          throw new Error('Refresh token missing');
+          throw AppError.fromValidationError('Refresh token is missing');
         }
         
         // Request new access token
@@ -101,32 +102,44 @@ axiosInstance.interceptors.response.use(
         };
         
         return axiosInstance(originalRequest);
-      } catch (refreshError) {
-        processQueue(refreshError as AxiosError, null);
-        localStorage.removeItem('accessToken'); // Optional cleanup
-        Cookies.remove('accessToken');
-        Cookies.remove('refreshToken');
-        window.location.href = '/login'; // Redirect to login
-        return Promise.reject(refreshError);
-      } finally {
+      }
+      
+      if (error.response?.status === 429 || !error.response) {
+        const retryAfter = parseInt(error.response?.headers['retry-after'] || '1000', 10);
+        console.warn('Rate limited or network error, retrying...');
+        await new Promise((resolve) => setTimeout(resolve, retryAfter));
+        return axiosInstance(originalRequest);
+      }
+      
+      if (error.response?.status >= 500) {
+        throw new AppError(
+          error.response.data?.message || 'Server Error',
+          error.response.status,
+          'GlobalError',
+          'An unexpected server error occurred.'
+        );
+      }
+      
+      if (error.response?.status === 400) {
+        throw AppError.fromValidationError(error.response.data?.message || 'Validation error occurred.');
+      }
+      
+      throw new AppError(
+        error.response?.data?.message || 'Unknown Error',
+        error.response?.status || 500,
+        'UnknownError',
+        'An unexpected error occurred.'
+      );
+    } catch (appError) {
+      if (appError instanceof AppError) {
+        AppError.reportError(appError); // Optional: Log error to external service
+      }
+      return Promise.reject(appError);
+    } finally {
+      if (isRefreshing) {
         isRefreshing = false;
       }
     }
-    
-    // Retry Logic for network errors or 429 (Too Many Requests)
-    if (error.response?.status === 429 || !error.response) {
-      const retryAfter = error.response?.headers['retry-after'] || 1000; // Default retry after 1 second
-      console.warn('Rate limited or network error, retrying...');
-      await new Promise((resolve) => setTimeout(resolve, retryAfter));
-      return axiosInstance(originalRequest);
-    }
-    
-    // Handle server errors (500+)
-    if (error.response?.status >= 500) {
-      console.error('Server Error:', error.message || 'An error occurred.');
-    }
-    
-    return Promise.reject(error);
   }
 );
 

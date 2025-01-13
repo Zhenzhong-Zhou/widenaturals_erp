@@ -1,4 +1,4 @@
-import { FC, useState } from 'react';
+import { FC } from 'react';
 import {
   Select,
   MenuItem,
@@ -9,6 +9,7 @@ import {
   Box,
   FormHelperText,
 } from '@mui/material';
+import { useForm, Controller } from 'react-hook-form';
 import { CustomButton, BaseInput } from '@components/index';
 import { useThemeContext } from '../../context/ThemeContext.tsx';
 
@@ -29,41 +30,16 @@ interface FormProps {
 
 const Form: FC<FormProps> = ({ fields, onSubmit, submitButtonLabel = 'Submit' }) => {
   const { theme } = useThemeContext();
-  const [formData, setFormData] = useState<Record<string, any>>(
-    fields.reduce((acc, field) => {
-      acc[field.id] = field.defaultValue || (field.type === 'checkbox' ? false : '');
-      return acc;
-    }, {} as Record<string, any>)
-  );
-  
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  
-  const handleChange = (fieldId: string, value: any) => {
-    setFormData((prev) => ({ ...prev, [fieldId]: value }));
-  };
-  
-  const validate = () => {
-    const newErrors: Record<string, string> = {};
-    fields.forEach((field) => {
-      if (field.required && !formData[field.id]) {
-        newErrors[field.id] = `${field.label} is required`;
-      }
-    });
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-  
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (validate()) {
-      onSubmit(formData);
-    }
-  };
+  const {
+    handleSubmit,
+    control,
+    formState: { errors },
+  } = useForm();
   
   return (
     <Box
       component="form"
-      onSubmit={handleSubmit}
+      onSubmit={handleSubmit(onSubmit)}
       sx={{
         display: 'flex',
         flexDirection: 'column',
@@ -79,50 +55,73 @@ const Form: FC<FormProps> = ({ fields, onSubmit, submitButtonLabel = 'Submit' })
       {fields.map((field) => (
         <Box key={field.id}>
           {field.type === 'text' && (
-            <BaseInput
-              fullWidth
-              id={field.id}
-              label={field.label}
-              value={formData[field.id]}
-              onChange={(e) => handleChange(field.id, e.target.value)}
-              error={!!errors[field.id]}
-              helperText={errors[field.id]}
+            <Controller
+              name={field.id}
+              control={control}
+              defaultValue={field.defaultValue || ''}
+              rules={{ required: field.required ? `${field.label} is required` : false }}
+              render={({ field: { onChange, value } }) => (
+                <BaseInput
+                  fullWidth
+                  id={field.id}
+                  label={field.label}
+                  value={value}
+                  onChange={onChange}
+                  error={!!errors[field.id]}
+                  helperText={errors[field.id]?.message as string}
+                />
+              )}
             />
           )}
           {field.type === 'select' && (
-            <FormControl
-              fullWidth
-              error={!!errors[field.id]}
-              sx={{ marginBottom: theme.spacing(2) }}
-            >
-              <InputLabel>{field.label}</InputLabel>
-              <Select
-                id={field.id}
-                value={formData[field.id]}
-                onChange={(e) => handleChange(field.id, e.target.value)}
-              >
-                {field.options?.map((option) => (
-                  <MenuItem key={option.value} value={option.value}>
-                    {option.label}
-                  </MenuItem>
-                ))}
-              </Select>
-              <FormHelperText>{errors[field.id]}</FormHelperText>
-            </FormControl>
+            <Controller
+              name={field.id}
+              control={control}
+              defaultValue={field.defaultValue || ''}
+              rules={{ required: field.required ? `${field.label} is required` : false }}
+              render={({ field: { onChange, value } }) => (
+                <FormControl
+                  fullWidth
+                  error={!!errors[field.id]}
+                  sx={{ marginBottom: theme.spacing(2) }}
+                >
+                  <InputLabel>{field.label}</InputLabel>
+                  <Select
+                    id={field.id}
+                    value={value}
+                    onChange={onChange}
+                  >
+                    {field.options?.map((option) => (
+                      <MenuItem key={option.value} value={option.value}>
+                        {option.label}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                  <FormHelperText>{errors[field.id]?.message as string}</FormHelperText>
+                </FormControl>
+              )}
+            />
           )}
           {field.type === 'checkbox' && (
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={formData[field.id]}
-                  onChange={(e) => handleChange(field.id, e.target.checked)}
-                  sx={{
-                    color: theme.palette.primary.main,
-                    '&.Mui-checked': { color: theme.palette.primary.main },
-                  }}
+            <Controller
+              name={field.id}
+              control={control}
+              defaultValue={field.defaultValue || false}
+              render={({ field: { onChange, value } }) => (
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={value}
+                      onChange={(e) => onChange(e.target.checked)}
+                      sx={{
+                        color: theme.palette.primary.main,
+                        '&.Mui-checked': { color: theme.palette.primary.main },
+                      }}
+                    />
+                  }
+                  label={field.label}
                 />
-              }
-              label={field.label}
+              )}
             />
           )}
         </Box>
