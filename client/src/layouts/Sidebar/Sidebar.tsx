@@ -8,10 +8,10 @@ import ListItemButton from '@mui/material/ListItemButton';
 import ListItemText from '@mui/material/ListItemText';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBars, faTimes } from '@fortawesome/free-solid-svg-icons';
-// import { Typography } from '@components/index';
 import { sidebarStyles } from './sidebarStyles';
 import { useThemeContext } from '../../context/ThemeContext';
-import logo from '../../assets/wide-logo.png';
+import logoDark from '../../assets/wide-logo-dark.png';
+import logoLight from '../../assets/wide-logo-light.png';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -20,6 +20,7 @@ interface SidebarProps {
 
 const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
   const { theme } = useThemeContext();
+  const logo = theme.palette.mode === 'dark' ? logoDark : logoLight;
   
   const menuItems = [
     { label: 'Dashboard', path: '/dashboard' },
@@ -43,54 +44,63 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
         <Box
           sx={{
             display: 'flex',
-            justifyContent: 'space-between',
             alignItems: 'center',
+            justifyContent: 'space-between',
             height: '80px',
             padding: theme.spacing(2),
             backgroundColor: theme.palette.background.paper,
           }}
         >
-          
-          {isOpen ? (
-            <>
-            </>
-          ) : (
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%', // Ensure it takes up the full height
+              width: '100%',  // Ensure it takes up the full width
+            }}
+          >
             <img
               src={logo}
               alt="Company Logo"
               style={{
-                width: '500px',
-                height: '500px',
+                width: '100%',
+                height: '100%',
+                maxHeight: isOpen ? '50px' : '80px', // Adjust maximum height dynamically
+                objectFit: 'contain', // Ensures the image maintains aspect ratio
               }}
             />
-          )}
+          </Box>
+          
           {isOpen && (
-            <IconButton onClick={toggleSidebar} aria-label="Close Sidebar">
+            <IconButton
+              onClick={toggleSidebar}
+              aria-label="Close Sidebar"
+              sx={{
+                marginLeft: 'auto',
+              }}
+            >
               <FontAwesomeIcon
                 icon={faTimes}
-                style={{ color: theme.palette.text.primary }}
+                style={{
+                  color: theme.palette.text.primary,
+                }}
               />
             </IconButton>
           )}
-          {/*<Box sx={{ fontSize: theme.typography.h6.fontSize, fontWeight: 'bold' }}>*/}
-          {/*  WIDE Naturals Inc.*/}
-          {/*</Box>*/}
-          {/*<IconButton onClick={toggleSidebar} aria-label="Close Sidebar">*/}
-          {/*  <FontAwesomeIcon*/}
-          {/*    icon={faTimes}*/}
-          {/*    style={{ color: theme.palette.text.primary }}*/}
-          {/*  />*/}
-          {/*</IconButton>*/}
         </Box>
         
         {/* Sidebar Navigation */}
         <Box
-          className="sidebar"
           sx={{
             padding: theme.spacing(2),
             backgroundColor: theme.palette.background.default,
             height: '100%',
+            width: '240px',
             color: theme.palette.text.primary,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
           }}
         >
           <List>
@@ -119,13 +129,13 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
         <IconButton
           onClick={toggleSidebar}
           sx={{
-            position: 'fixed', // Use fixed positioning to avoid layout interference
+            position: 'fixed',
             top: theme.spacing(2),
             left: theme.spacing(2),
-            zIndex: theme.zIndex.drawer + 1, // Ensure it stays above other elements
+            zIndex: theme.zIndex.drawer + 1,
             backgroundColor: theme.palette.background.paper,
             color: theme.palette.text.primary,
-            boxShadow: theme.shadows[1], // Optional: Add a subtle shadow
+            boxShadow: theme.shadows[1],
           }}
           aria-label="Open Sidebar"
         >

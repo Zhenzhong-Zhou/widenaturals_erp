@@ -19,7 +19,7 @@ const Header: FC<HeaderProps> = ({ username, onLogout, isSidebarOpen }) => {
       <Typography sx={{
         fontSize: theme.typography.h3,
         flexGrow: 1,
-        marginLeft: isSidebarOpen ? '10px' : theme.spacing(7),
+        marginLeft: isSidebarOpen ? '10px' : theme.spacing(1),
       }}>
         WIDE Naturals Inc.
       </Typography>

@@ -5,7 +5,7 @@ export const headerStyles = (theme: Theme): SxProps<Theme> => ({
   justifyContent: 'space-between',
   alignItems: 'center',
   width: '100%',
-  height: '77px',
+  height: '81px',
   backgroundColor: theme.palette.background.default, // Dynamic background color
   color: theme.palette.text.primary, // Dynamic text color
   padding: theme.spacing(2), // Use theme.spacing for consistent padding
