@@ -2,6 +2,10 @@ import { FC } from 'react';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import Drawer from '@mui/material/Drawer';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemButton from '@mui/material/ListItemButton';
+import ListItemText from '@mui/material/ListItemText';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBars, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { sidebarStyles } from './sidebarStyles';
@@ -14,6 +18,14 @@ interface SidebarProps {
 
 const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
   const { theme } = useThemeContext();
+  
+  const menuItems = [
+    { label: 'Dashboard', path: '/dashboard' },
+    { label: 'Inventory', path: '/inventory' },
+    { label: 'Orders', path: '/orders' },
+    { label: 'Reports', path: '/reports' },
+    { label: 'Settings', path: '/settings' },
+  ];
   
   return (
     <>
@@ -31,13 +43,14 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            padding: '16px',
+            padding: theme.spacing(2),
             backgroundColor: theme.palette.background.paper,
-            color: theme.palette.text.primary,
           }}
         >
-          <Box sx={{ fontSize: '1.5rem', fontWeight: 'bold' }}>Company Name</Box>
-          <IconButton onClick={toggleSidebar}>
+          <Box sx={{ fontSize: theme.typography.h6.fontSize, fontWeight: 'bold' }}>
+            Company Name
+          </Box>
+          <IconButton onClick={toggleSidebar} aria-label="Close Sidebar">
             <FontAwesomeIcon
               icon={faTimes}
               style={{ color: theme.palette.text.primary }}
@@ -49,19 +62,30 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
         <Box
           className="sidebar"
           sx={{
-            padding: '16px',
+            padding: theme.spacing(2),
             backgroundColor: theme.palette.background.default,
             height: '100%',
             color: theme.palette.text.primary,
           }}
         >
-          <ul style={{ listStyle: 'none', padding: 0 }}>
-            <li><a href="/dashboard" style={{ color: theme.palette.text.primary }}>Dashboard</a></li>
-            <li><a href="/inventory" style={{ color: theme.palette.text.primary }}>Inventory</a></li>
-            <li><a href="/orders" style={{ color: theme.palette.text.primary }}>Orders</a></li>
-            <li><a href="/reports" style={{ color: theme.palette.text.primary }}>Reports</a></li>
-            <li><a href="/settings" style={{ color: theme.palette.text.primary }}>Settings</a></li>
-          </ul>
+          <List>
+            {menuItems.map((item) => (
+              <ListItem key={item.path} disablePadding>
+                <ListItemButton
+                  component="a"
+                  href={item.path}
+                  sx={{
+                    borderRadius: theme.shape.borderRadius,
+                    '&:hover': {
+                      backgroundColor: theme.palette.action.hover,
+                    },
+                  }}
+                >
+                  <ListItemText primary={item.label} />
+                </ListItemButton>
+              </ListItem>
+            ))}
+          </List>
         </Box>
       </Drawer>
       
@@ -71,12 +95,13 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
           onClick={toggleSidebar}
           sx={{
             position: 'absolute',
-            top: '16px',
-            left: '16px',
-            zIndex: 1300,
+            top: theme.spacing(2),
+            left: theme.spacing(2),
+            zIndex: theme.zIndex.drawer + 1,
             backgroundColor: theme.palette.background.paper,
             color: theme.palette.text.primary,
           }}
+          aria-label="Open Sidebar"
         >
           <FontAwesomeIcon icon={faBars} />
         </IconButton>

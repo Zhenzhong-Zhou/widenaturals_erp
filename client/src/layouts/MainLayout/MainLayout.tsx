@@ -1,13 +1,14 @@
 import { FC, ReactNode, useState } from 'react';
 import { Sidebar, Header, Footer } from '../index';
-import { useThemeContext } from '../../context/ThemeContext'; // Import the context
+import { useThemeContext } from '../../context/ThemeContext';
 import Box from '@mui/material/Box';
 import { layoutStyles, contentContainerStyles, mainContentStyles } from './layoutStyles';
 import { FallbackUI, ModuleErrorBoundary } from '@components/index.ts';
+import AppError from '@utils/AppError.tsx';
 
 interface MainLayoutProps {
-  children: ReactNode;  // Allow any React elements to be passed as children
-  username: string;     // Passing username to the layout
+  children: ReactNode; // Allow any React elements to be passed as children
+  username: string; // Passing username to the layout
   onLogout: () => void; // Passing logout handler to the layout
 }
 
@@ -26,7 +27,7 @@ const MainLayout: FC<MainLayoutProps> = ({ children, username, onLogout }) => {
             title="Sidebar Error"
             description="The sidebar failed to load. Please try refreshing the page or contact support."
             errorCode="SIDEBAR-001"
-            errorLog="Sidebar module failed to initialize due to a dependency error."
+            errorLog={AppError.fromNetworkError('Sidebar API request failed').details}
             onRetry={() => window.location.reload()} // Retry logic
           />
         }
@@ -43,7 +44,7 @@ const MainLayout: FC<MainLayoutProps> = ({ children, username, onLogout }) => {
               title="Header Error"
               description="The header failed to load. Please try refreshing the page or contact support."
               errorCode="HEADER-001"
-              errorLog="Header component could not render due to missing props."
+              errorLog={AppError.fromValidationError('Header props are missing').details}
               onRetry={() => window.location.reload()} // Retry logic
             />
           }
@@ -58,7 +59,7 @@ const MainLayout: FC<MainLayoutProps> = ({ children, username, onLogout }) => {
               title="Content Error"
               description="The main content failed to load. Please try again later."
               errorCode="CONTENT-001"
-              errorLog="The main content area encountered a data fetch error from the API."
+              errorLog={AppError.fromNetworkError('Failed to fetch content data').details}
             />
           }
         >
@@ -72,7 +73,7 @@ const MainLayout: FC<MainLayoutProps> = ({ children, username, onLogout }) => {
               title="Footer Error"
               description="The footer failed to load. Please try refreshing the page."
               errorCode="FOOTER-001"
-              errorLog="Footer component experienced a rendering issue."
+              errorLog={AppError.fromNetworkError('Footer API request failed').details}
               onRetry={() => window.location.reload()} // Retry logic
             />
           }

@@ -1,9 +1,8 @@
 import { FC } from 'react';
 import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
-import Button from '@mui/material/Button';
-import { useThemeContext } from '../../context/ThemeContext'; // Assuming the ThemeContext is correctly set up
-import { headerStyles, userInfoStyles, typographyStyles } from './headerStyles'; // Assuming headerStyles is abstracted properly
+import { Typography, CustomButton } from '@components/index';
+import { useThemeContext } from '../../context/ThemeContext';
+import { headerStyles, userInfoStyles, typographyStyles } from './headerStyles';
 
 interface HeaderProps {
   username: string;
@@ -15,37 +14,38 @@ const Header: FC<HeaderProps> = ({ username, onLogout }) => {
   
   return (
     <Box sx={headerStyles(theme)}> {/* Apply header styles */}
+      {/* Application Title */}
       <Typography variant="h6" sx={{ flexGrow: 1 }}>
         ERP System
       </Typography>
       
+      {/* User Information and Actions */}
       <Box sx={userInfoStyles(theme)}>
         <Typography variant="body1" sx={typographyStyles(theme)}>
-          User: {username}
+          User: <strong>{username}</strong>
         </Typography>
         
-        {/* Toggle Theme Button */}
-        <Button
+        {/* Theme Toggle Button */}
+        <CustomButton
           variant="outlined"
           onClick={toggleTheme}
           sx={{
-            marginLeft: 2,
-            color: theme.palette.text.primary,
+            marginLeft: theme.spacing(2),
             borderColor: theme.palette.primary.main,
           }}
         >
           Switch to {theme.palette.mode === 'dark' ? 'Light' : 'Dark'} Mode
-        </Button>
+        </CustomButton>
         
         {/* Logout Button */}
-        <Button
+        <CustomButton
           variant="contained"
           color="primary"
           onClick={onLogout}
-          sx={{ marginLeft: 2 }}
+          sx={{ marginLeft: theme.spacing(2) }}
         >
           Logout
-        </Button>
+        </CustomButton>
       </Box>
     </Box>
   );
