@@ -4,7 +4,7 @@ import { CustomButton, DataTable, Form } from '@components/index';
 import { FieldConfig } from '../components/common/Form';
 import CustomModal from '@components/common/CustomModal.tsx';
 
-const Dashboard: FC = () => {
+const DashboardPage: FC = () => {
   const [open, setOpen] = useState(false);
   
   const handleOpen = () => setOpen(true);
@@ -131,4 +131,4 @@ const Dashboard: FC = () => {
   );
 };
 
-export default Dashboard;
+export default DashboardPage;

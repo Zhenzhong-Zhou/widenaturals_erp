@@ -1,6 +1,6 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
 import { ErrorDisplay } from '@components/index.ts';
-import AppError from '../utils/AppError';
+import AppError from '@utils/AppError.tsx';
 
 interface Props {
   children: ReactNode;
