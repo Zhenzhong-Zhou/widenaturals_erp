@@ -1,16 +1,16 @@
-type ErrorType = 'NetworkError' | 'ValidationError' | 'UnknownError';
+type ErrorType = 'NetworkError' | 'ValidationError' | 'UnknownError' | 'GlobalError';
 
 class AppError extends Error {
   status: number;
   details?: string;
   type: ErrorType;
   
-  constructor(message: string, status: number = 500, type: ErrorType = 'UnknownError', details?: string) {
+  constructor(message: string, status: number = 500, type: ErrorType = 'UnknownError', details?: string | null | undefined) {
     super(message);
     this.name = 'AppError';
     this.status = status;
     this.type = type;
-    this.details = details;
+    this.details = details || 'No additional details provided'; // Default to a generic message
     
     Object.setPrototypeOf(this, AppError.prototype);
   }

@@ -77,7 +77,7 @@ const MainLayout: FC<MainLayoutProps> = ({ children, username, onLogout }) => {
             />
           }
         >
-          <Footer isSidebarOpen={isSidebarOpen} />
+          <Footer />
         </ModuleErrorBoundary>
       </Box>
     </Box>

@@ -1,8 +1,6 @@
 import { FC, useState } from 'react';
 import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
-import Typography from '@mui/material/Typography';
-import { useThemeContext } from '../../context/ThemeContext.tsx';
+import { CustomButton, ErrorMessage, Typography } from '@components/index.ts'; // Reuse common Typography
 
 interface FallbackUIProps {
   title?: string;        // Error title
@@ -20,60 +18,61 @@ const FallbackUI: FC<FallbackUIProps> = ({
                                            onRetry,
                                          }) => {
   const [showDetails, setShowDetails] = useState(false);
-  const { theme } = useThemeContext();
   
   return (
     <Box
       sx={{
         textAlign: 'center',
-        padding: theme.spacing(4),
-        backgroundColor: theme.palette.background.default,
-        color: theme.palette.text.primary,
-        borderRadius: theme.spacing(1),
-        boxShadow: theme.shadows[2],
+        padding: 4,
+        borderRadius: 1,
+        boxShadow: 2,
+        backgroundColor: 'background.default',
+        color: 'text.primary',
       }}
-      role="alert"
-      aria-live="assertive"
     >
-      <Typography variant="h4" gutterBottom>
+      {/* Error Title */}
+      <Typography variant="h4" color="error" gutterBottom>
         {title}
       </Typography>
+      
+      {/* Error Description */}
       <Typography variant="body1" gutterBottom>
         {description}
       </Typography>
       
+      {/* Error Code */}
       {errorCode && (
-        <Typography
-          variant="body2"
-          sx={{ color: theme.palette.text.secondary, marginBottom: theme.spacing(2) }}
-        >
-          Error Code: <strong>{errorCode}</strong>
-        </Typography>
+        <ErrorMessage
+          message={`Error Code: ${errorCode}`}
+          severity="info"
+          sx={{ marginBottom: 2 }}
+        />
       )}
       
+      {/* Error Details */}
       {errorLog && (
         <Box>
-          <Button
-            onClick={() => setShowDetails(!showDetails)}
-            sx={{ marginBottom: theme.spacing(2) }}
+          <CustomButton
+            variant="text"
             size="small"
+            onClick={() => setShowDetails(!showDetails)}
+            sx={{ marginBottom: 2 }}
           >
             {showDetails ? 'Hide Details' : 'Show Details'}
-          </Button>
+          </CustomButton>
           {showDetails && (
             <Box
               component="pre"
               sx={{
                 textAlign: 'left',
-                padding: theme.spacing(2),
-                backgroundColor: theme.palette.background.paper,
-                color: theme.palette.text.secondary,
-                borderRadius: theme.spacing(1),
+                padding: 2,
+                backgroundColor: 'background.paper',
+                color: 'text.secondary',
+                borderRadius: 1,
                 maxHeight: '200px',
                 overflow: 'auto',
                 whiteSpace: 'pre-wrap',
-                fontSize: theme.typography.body2.fontSize,
-                marginTop: theme.spacing(2),
+                fontSize: 'body2.fontSize',
               }}
             >
               {errorLog}
@@ -82,15 +81,16 @@ const FallbackUI: FC<FallbackUIProps> = ({
         </Box>
       )}
       
+      {/* Retry Button */}
       {onRetry && (
-        <Button
+        <CustomButton
           variant="contained"
           color="primary"
           onClick={onRetry}
-          sx={{ marginTop: theme.spacing(2) }}
+          sx={{ marginTop: 2 }}
         >
           Retry
-        </Button>
+        </CustomButton>
       )}
     </Box>
   );

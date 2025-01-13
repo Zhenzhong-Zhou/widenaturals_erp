@@ -1,7 +1,6 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
-import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
-import Button from '@mui/material/Button';
+import { ErrorDisplay } from '@components/index.ts';
+import AppError from '../utils/AppError';
 
 interface Props {
   children: ReactNode;
@@ -11,45 +10,52 @@ interface Props {
 
 interface State {
   hasError: boolean;
+  errorMessage?: string; // Store error message for display
 }
 
 class GlobalErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false };
+    this.state = { hasError: false, errorMessage: undefined };
   }
   
   // Update the error state when an error is caught
-  static getDerivedStateFromError(): State {
-    return { hasError: true };
+  static getDerivedStateFromError(error: Error): State {
+    return { hasError: true, errorMessage: error.message || 'An unexpected error occurred.' };
   }
   
   // Log the error or handle it as needed
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Global error caught:', error, errorInfo);
     
-    // Check if onError is provided, otherwise default to console logging
+    const appError = new AppError(
+      error.message,
+      500,
+      'GlobalError',
+      errorInfo.componentStack
+    );
+    
     if (this.props.onError) {
-      this.props.onError(error, errorInfo);
+      this.props.onError(appError, errorInfo);
     } else {
-      this.logErrorToServer(error, errorInfo);
+      this.logErrorToServer(appError);
     }
   }
   
   // Reset error state to allow retry without reloading
   resetError = () => {
-    this.setState({ hasError: false });
+    this.setState({ hasError: false, errorMessage: undefined });
   };
   
-  // Placeholder for Node.js server logging
-  logErrorToServer(error: Error, errorInfo: ErrorInfo) {
+  // Log the error to the server or external service
+  logErrorToServer(error: AppError) {
     fetch('/api/log-error', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        error: error.toString(),
+        error: error.message,
         stack: error.stack,
-        componentStack: errorInfo.componentStack,
+        type: error.type,
         timestamp: new Date().toISOString(),
       }),
     }).catch((serverError) => {
@@ -61,34 +67,10 @@ class GlobalErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         this.props.fallback || (
-          <Box
-            sx={{
-              textAlign: 'center',
-              padding: 4,
-              backgroundColor: 'background.default',
-              color: 'text.primary',
-              borderRadius: 1,
-              boxShadow: 1,
-              margin: 2,
-            }}
-            role="alert"
-            aria-live="assertive"
-          >
-            <Typography variant="h4" gutterBottom>
-              Critical Error
-            </Typography>
-            <Typography variant="body1" gutterBottom>
-              Something went wrong. Please reload the app or contact support.
-            </Typography>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={this.resetError}
-              sx={{ marginTop: 2 }}
-            >
-              Retry
-            </Button>
-          </Box>
+          <ErrorDisplay
+            message={this.state.errorMessage || 'Something went wrong. Please try again.'}
+            onRetry={this.resetError}
+          />
         )
       );
     }

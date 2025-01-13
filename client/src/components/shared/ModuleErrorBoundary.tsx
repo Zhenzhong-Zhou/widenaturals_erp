@@ -1,27 +1,33 @@
 import { Component, ReactNode, ErrorInfo } from 'react';
 import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
-import Button from '@mui/material/Button';
+import { CustomButton, ErrorDisplay, Typography } from '@components/index.ts';
+import AppError from '../../utils/AppError';
 
 interface Props {
-  children: ReactNode;            // The component's children
-  fallback?: ReactNode;           // Custom fallback UI
-  onError?: (error: Error, errorInfo: ErrorInfo) => void; // Optional error logging callback
+  children: ReactNode; // The component's children
+  fallback?: ReactNode; // Custom fallback UI
+  onError?: (error: AppError | Error, errorInfo: ErrorInfo) => void; // Optional error logging callback
 }
 
 interface State {
   hasError: boolean;
+  errorMessage?: string; // Store error message for display
+  errorType?: string; // Error type for more detailed messaging
 }
 
 class ModuleErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false };
+    this.state = { hasError: false, errorMessage: undefined, errorType: undefined };
   }
   
   // Update the error state when an error is caught
-  static getDerivedStateFromError(): State {
-    return { hasError: true };
+  static getDerivedStateFromError(error: Error): State {
+    return {
+      hasError: true,
+      errorMessage: error instanceof AppError ? error.message : 'An unexpected error occurred.',
+      errorType: error instanceof AppError ? error.type : 'UnknownError',
+    };
   }
   
   // Log the error or handle it as needed
@@ -30,45 +36,60 @@ class ModuleErrorBoundary extends Component<Props, State> {
     
     if (this.props.onError) {
       this.props.onError(error, errorInfo); // Log errors via callback
+    } else if (error instanceof AppError) {
+      AppError.reportError(error); // Log AppError to external service
+    } else {
+      console.error('Unhandled error:', error); // Default logging for non-AppError instances
     }
   }
   
   // Reset the error state to recover
   resetError = () => {
-    this.setState({ hasError: false });
+    this.setState({ hasError: false, errorMessage: undefined, errorType: undefined });
   };
   
   render() {
-    if (this.state.hasError) {
+    const { hasError, errorMessage, errorType } = this.state;
+    const { fallback } = this.props;
+    
+    if (hasError) {
       return (
-        this.props.fallback || (
-          <Box
-            sx={{
-              textAlign: 'center',
-              padding: 4,
-              backgroundColor: 'background.default',
-              color: 'text.primary',
-              borderRadius: 1,
-              boxShadow: 1,
-            }}
-            role="alert"
-            aria-live="assertive"
+        fallback || (
+          <ErrorDisplay
+            message={errorMessage || 'Something went wrong in this module. Please try again later.'}
+            onRetry={this.resetError}
           >
-            <Typography variant="h4" gutterBottom>
-              Module Error
-            </Typography>
-            <Typography variant="body1" gutterBottom>
-              Something went wrong in this module. Please try again later.
-            </Typography>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={this.resetError}
-              sx={{ marginTop: 2 }}
+            <Box
+              sx={{
+                textAlign: 'center',
+                padding: 4,
+                backgroundColor: 'background.default',
+                color: 'text.primary',
+                borderRadius: 1,
+                boxShadow: 1,
+              }}
             >
-              Retry
-            </Button>
-          </Box>
+              <Typography variant="h4" color="error" gutterBottom>
+                Module Error
+              </Typography>
+              <Typography variant="body1" gutterBottom>
+                {errorMessage || 'Something went wrong in this module. Please try again later.'}
+              </Typography>
+              {errorType && (
+                <Typography variant="body2" color="textSecondary" gutterBottom>
+                  Error Type: {errorType}
+                </Typography>
+              )}
+              <CustomButton
+                variant="contained"
+                color="primary"
+                onClick={this.resetError}
+                sx={{ marginTop: 2 }}
+              >
+                Retry
+              </CustomButton>
+            </Box>
+          </ErrorDisplay>
         )
       );
     }
