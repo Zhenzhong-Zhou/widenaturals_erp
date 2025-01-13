@@ -2,13 +2,16 @@ import { FC } from 'react';
 import Box from '@mui/material/Box';
 import { MainLayout } from '../layouts';
 import { useInitializeApp } from '../hooks';
+import AppRoutes from '../routes/AppRoutes'; // Import AppRoutes
 
 const AppContent: FC = () => {
-  useInitializeApp({ message: 'Loading app...', delay: 3000 });
+  useInitializeApp({ message: 'Initializing application...', delay: 3000 });
   
   return (
     <Box className="app">
-      <MainLayout username="" onLogout={() => console.log('Logged out')} children={undefined} />
+      <MainLayout username="John Doe" onLogout={() => console.log('Logged out')}>
+        <AppRoutes /> {/* Routes are rendered inside the MainLayout */}
+      </MainLayout>
     </Box>
   );
 };

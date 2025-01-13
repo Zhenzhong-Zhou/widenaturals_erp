@@ -3,8 +3,8 @@ import { Sidebar, Header, Footer } from '../index';
 import { useThemeContext } from '../../context/ThemeContext';
 import Box from '@mui/material/Box';
 import { layoutStyles, contentContainerStyles, mainContentStyles } from './layoutStyles';
-import { FallbackUI, ModuleErrorBoundary } from '@components/index.ts';
-import AppError from '@utils/AppError.tsx';
+import { FallbackUI, ModuleErrorBoundary } from '@components/index';
+import AppError from '@utils/AppError';
 
 interface MainLayoutProps {
   children: ReactNode; // Allow any React elements to be passed as children
