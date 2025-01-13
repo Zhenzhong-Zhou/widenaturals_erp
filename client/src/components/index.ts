@@ -9,3 +9,5 @@ export { default as BaseInput } from './common/BaseInput';
 export { default as TypeRestrictedInput } from './common/TypeRestrictedInput';
 export { default as PasswordInput } from './common/PasswordInput';
 export { default as Loading } from './common/Loading';
+export { default as DataTable } from './common/DataTable';
+export { default as Form } from './common/Form';
