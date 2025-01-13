@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { handleError, mapErrorMessage } from '../utils/errorUtils';
 
-const useErrorHandler = () => {
+export const useErrorHandler = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
   const handle = (error: unknown) => {

@@ -1,7 +1,7 @@
 import axios, { AxiosRequestConfig, AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
-import Cookies from 'js-cookie';
 import AppError from './AppError'; // Custom AppError class
 import { handleError, mapErrorMessage } from './errorUtils'; // Import global error utilities
+import { setTokens, getToken, clearTokens } from './tokenManager'; // Token manager for centralized handling
 
 interface ErrorResponse {
   message?: string;
@@ -44,8 +44,8 @@ const processQueue = (error: AxiosError | null, token: string | null) => {
 axiosInstance.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     try {
-      const accessToken = Cookies.get('accessToken');
-      const csrfToken = Cookies.get('csrfToken');
+      const accessToken = getToken('accessToken');
+      const csrfToken = getToken('csrfToken');
       
       if (accessToken && config.headers) {
         config.headers.Authorization = `Bearer ${accessToken}`;
@@ -91,17 +91,17 @@ axiosInstance.interceptors.response.use(
         originalRequest._retry = true;
         isRefreshing = true;
         
-        const refreshToken = Cookies.get('refreshToken');
+        const refreshToken = getToken('refreshToken');
         if (!refreshToken) {
+          clearTokens();
           throw AppError.fromValidationError('Refresh token is missing');
         }
         
         // Request new access token
         const { data } = await axios.post(`${baseURL}/auth/refresh`, { refreshToken });
         
-        // Save new tokens in cookies
-        Cookies.set('accessToken', data.accessToken, { secure: true, sameSite: 'Strict' });
-        Cookies.set('refreshToken', data.refreshToken, { secure: true, sameSite: 'Strict' });
+        // Save new tokens using tokenManager
+        setTokens(data.accessToken, data.refreshToken);
         
         // Process queued requests with the new token
         processQueue(null, data.accessToken);
