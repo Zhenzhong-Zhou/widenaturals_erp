@@ -38,7 +38,7 @@ const refreshToken = async (): Promise<{ accessToken: string }> => {
     const storedRefreshToken = getToken('refreshToken');
     if (!storedRefreshToken) {
       clearTokens();
-      window.location.href = '/login';
+      window.location.href = '/login?expired=true';
       throw new AppError('Refresh token is missing', 401, 'ValidationError');
     }
     const response = await axiosInstance.post<{ accessToken: string }>(API_ENDPOINTS.REFRESH_TOKEN, { refreshToken: storedRefreshToken });
@@ -46,8 +46,8 @@ const refreshToken = async (): Promise<{ accessToken: string }> => {
     return response.data;
   } catch (error: unknown) {
     handleError(error);
-    clearTokens(); // Clear tokens on failure
-    window.location.href = '/login'; // Redirect user to login page
+    clearTokens();
+    window.location.href = '/login?expired=true';
     throw new AppError(mapErrorMessage(error), 401, 'GlobalError');
   }
 };
@@ -58,6 +58,9 @@ const logout = async (): Promise<void> => {
     clearTokens();
   } catch (error: unknown) {
     handleError(error);
+    clearTokens(); // Ensure client tokens are cleared
+    // Inform the user if needed
+    console.warn('Server logout failed, clearing client tokens only.');
     throw new AppError(mapErrorMessage(error), 500, 'UnknownError');
   }
 };
