@@ -1,13 +1,14 @@
 import axios, { AxiosRequestConfig, AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import Cookies from 'js-cookie';
-import AppError from './AppError'; // Import AppError class
+import AppError from './AppError'; // Custom AppError class
+import { handleError, mapErrorMessage } from './errorUtils'; // Import global error utilities
 
 interface ErrorResponse {
   message?: string;
   [key: string]: any; // Optional for additional properties
 }
 
-const baseURL = import.meta.env.VITE_BASE_URL || 'http://localhost:3000';
+const baseURL = import.meta.env.VITE_BASE_URL;
 
 // Create Axios instance
 const axiosInstance = axios.create({
@@ -22,7 +23,12 @@ const axiosInstance = axios.create({
 let isRefreshing = false;
 let failedQueue: { resolve: (value: unknown) => void; reject: (reason?: any) => void }[] = [];
 
-// Function to process queued requests during token refresh
+/**
+ * Process queued requests during token refresh.
+ *
+ * @param error - The error if token refresh fails.
+ * @param token - The new token if refresh is successful.
+ */
 const processQueue = (error: AxiosError | null, token: string | null) => {
   failedQueue.forEach((promise) => {
     if (error) {
@@ -50,10 +56,12 @@ axiosInstance.interceptors.request.use(
       
       return config;
     } catch (error) {
+      handleError(error); // Log error using handleError
       throw AppError.fromNetworkError('Error in request interceptor');
     }
   },
   (error: AxiosError) => {
+    handleError(error);
     return Promise.reject(AppError.fromNetworkError(error.message));
   }
 );
@@ -65,6 +73,7 @@ axiosInstance.interceptors.response.use(
     const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
     
     try {
+      // Handle token expiration (401)
       if (error.response?.status === 401 && !originalRequest._retry) {
         if (isRefreshing) {
           return new Promise((resolve, reject) => {
@@ -104,36 +113,36 @@ axiosInstance.interceptors.response.use(
         return axiosInstance(originalRequest);
       }
       
+      // Retry logic for rate-limiting (429) or network errors
       if (error.response?.status === 429 || !error.response) {
-        const retryAfter = parseInt(error.response?.headers['retry-after'] || '1000', 10);
+        const retryAfter = parseInt(error.response?.headers?.['retry-after'] || '1000', 10);
         console.warn('Rate limited or network error, retrying...');
         await new Promise((resolve) => setTimeout(resolve, retryAfter));
         return axiosInstance(originalRequest);
       }
       
+      // Handle server errors (500+)
       if (error.response?.status >= 500) {
         throw new AppError(
-          error.response.data?.message || 'Server Error',
+          mapErrorMessage(error), // Use mapErrorMessage for user-friendly messages
           error.response.status,
-          'GlobalError',
-          'An unexpected server error occurred.'
+          'GlobalError'
         );
       }
       
+      // Handle validation errors (400)
       if (error.response?.status === 400) {
-        throw AppError.fromValidationError(error.response.data?.message || 'Validation error occurred.');
+        throw AppError.fromValidationError(mapErrorMessage(error));
       }
       
+      // Unknown error
       throw new AppError(
-        error.response?.data?.message || 'Unknown Error',
+        mapErrorMessage(error),
         error.response?.status || 500,
-        'UnknownError',
-        'An unexpected error occurred.'
+        'UnknownError'
       );
     } catch (appError) {
-      if (appError instanceof AppError) {
-        AppError.reportError(appError); // Optional: Log error to external service
-      }
+      handleError(appError); // Log the appError
       return Promise.reject(appError);
     } finally {
       if (isRefreshing) {

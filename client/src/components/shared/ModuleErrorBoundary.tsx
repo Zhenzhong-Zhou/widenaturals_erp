@@ -2,6 +2,7 @@ import { Component, ReactNode, ErrorInfo } from 'react';
 import Box from '@mui/material/Box';
 import { CustomButton, ErrorDisplay, Typography } from '@components/index.ts';
 import AppError from '../../utils/AppError';
+import { handleError, mapErrorMessage } from '@utils/errorUtils.ts'; // Import error utilities
 
 interface Props {
   children: ReactNode; // The component's children
@@ -21,29 +22,35 @@ class ModuleErrorBoundary extends Component<Props, State> {
     this.state = { hasError: false, errorMessage: undefined, errorType: undefined };
   }
   
-  // Update the error state when an error is caught
+  /**
+   * Update the error state when an error is caught.
+   */
   static getDerivedStateFromError(error: Error): State {
     return {
       hasError: true,
-      errorMessage: error instanceof AppError ? error.message : 'An unexpected error occurred.',
+      errorMessage: mapErrorMessage(error), // Use mapErrorMessage for user-friendly error messages
       errorType: error instanceof AppError ? error.type : 'UnknownError',
     };
   }
   
-  // Log the error or handle it as needed
+  /**
+   * Log the error or handle it as needed.
+   */
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Module error caught:', error, errorInfo);
     
     if (this.props.onError) {
-      this.props.onError(error, errorInfo); // Log errors via callback
-    } else if (error instanceof AppError) {
-      AppError.reportError(error); // Log AppError to external service
+      this.props.onError(error, errorInfo); // Pass error to parent-defined handler
     } else {
-      console.error('Unhandled error:', error); // Default logging for non-AppError instances
+      handleError(error, (loggedError) => {
+        console.error('Error logged:', loggedError);
+      }); // Log the error using handleError
     }
   }
   
-  // Reset the error state to recover
+  /**
+   * Reset the error state to recover.
+   */
   resetError = () => {
     this.setState({ hasError: false, errorMessage: undefined, errorType: undefined });
   };

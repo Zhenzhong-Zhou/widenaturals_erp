@@ -1,6 +1,7 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
-import { ErrorDisplay } from '@components/index.ts';
-import AppError from '@utils/AppError.tsx';
+import { ErrorDisplay } from '@components/index.ts'; // Replace with actual import path
+import AppError from '@utils/AppError.tsx'; // Replace with actual import path
+import { handleError, mapErrorMessage } from '@utils/errorUtils.ts'; // Import global error utilities
 
 interface Props {
   children: ReactNode;
@@ -19,42 +20,53 @@ class GlobalErrorBoundary extends Component<Props, State> {
     this.state = { hasError: false, errorMessage: undefined };
   }
   
-  // Update the error state when an error is caught
+  /**
+   * Update the error state when an error is caught.
+   */
   static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, errorMessage: error.message || 'An unexpected error occurred.' };
+    const errorMessage = mapErrorMessage(error); // Use mapErrorMessage for user-friendly messages
+    return { hasError: true, errorMessage };
   }
   
-  // Log the error or handle it as needed
+  /**
+   * Log the error or handle it as needed.
+   */
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Global error caught:', error, errorInfo);
     
     const appError = new AppError(
-      error.message,
+      error.message || 'An unknown error occurred.',
       500,
       'GlobalError',
-      errorInfo.componentStack
+      errorInfo.componentStack || 'No stack trace available.'
     );
     
+    // Log the error using errorUtils or a custom handler
     if (this.props.onError) {
       this.props.onError(appError, errorInfo);
     } else {
-      this.logErrorToServer(appError);
+      handleError(appError); // Log the error using handleError
+      this.logErrorToServer(appError); // Log error to the server
     }
   }
   
-  // Reset error state to allow retry without reloading
+  /**
+   * Reset error state to allow retry without reloading.
+   */
   resetError = () => {
     this.setState({ hasError: false, errorMessage: undefined });
   };
   
-  // Log the error to the server or external service
+  /**
+   * Log the error to the server or external service.
+   */
   logErrorToServer(error: AppError) {
     fetch('/api/log-error', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        error: error.message,
-        stack: error.stack,
+        error: error.message || 'Unknown error',
+        stack: error.stack || 'No stack trace available',
         type: error.type,
         timestamp: new Date().toISOString(),
       }),
