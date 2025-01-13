@@ -17,6 +17,8 @@ const sharedTokens: ThemeOptions = {
     fontSize: 16, // Base font size
     h1: { fontSize: '2.5rem', fontWeight: 700 },
     h2: { fontSize: '2rem', fontWeight: 700 },
+    h3: { fontSize: '1.5rem', fontWeight: 900 },
+    h6: { fontSize: '1.3rem', fontWeight: 700 },
     body1: { fontSize: '1rem', lineHeight: 1.7 },
     body2: { fontSize: '0.875rem', lineHeight: 1.6 },
   },

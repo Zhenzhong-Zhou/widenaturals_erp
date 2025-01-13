@@ -7,16 +7,21 @@ import { headerStyles, userInfoStyles, typographyStyles } from './headerStyles';
 interface HeaderProps {
   username: string;
   onLogout: () => void;
+  isSidebarOpen: boolean;
 }
 
-const Header: FC<HeaderProps> = ({ username, onLogout }) => {
+const Header: FC<HeaderProps> = ({ username, onLogout, isSidebarOpen }) => {
   const { theme, toggleTheme } = useThemeContext(); // Access theme and toggle function
   
   return (
     <Box sx={headerStyles(theme)}> {/* Apply header styles */}
       {/* Application Title */}
-      <Typography variant="h6" sx={{ flexGrow: 1 }}>
-        ERP System
+      <Typography sx={{
+        fontSize: theme.typography.h3,
+        flexGrow: 1,
+        marginLeft: isSidebarOpen ? '10px' : theme.spacing(7),
+      }}>
+        WIDE Naturals Inc.
       </Typography>
       
       {/* User Information and Actions */}

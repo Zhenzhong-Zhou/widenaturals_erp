@@ -49,7 +49,7 @@ const MainLayout: FC<MainLayoutProps> = ({ children, username, onLogout }) => {
             />
           }
         >
-          <Header username={username} onLogout={onLogout} />
+          <Header username={username} onLogout={onLogout} isSidebarOpen={isSidebarOpen}  />
         </ModuleErrorBoundary>
         
         {/* Main Content */}

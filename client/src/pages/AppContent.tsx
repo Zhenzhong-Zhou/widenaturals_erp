@@ -5,7 +5,7 @@ import { useInitializeApp } from '../hooks';
 import AppRoutes from '../routes/AppRoutes'; // Import AppRoutes
 
 const AppContent: FC = () => {
-  useInitializeApp({ message: 'Initializing application...', delay: 3000 });
+  useInitializeApp({ message: 'Initializing application...', delay: 500 });
   
   return (
     <Box className="app">
