@@ -1,8 +1,8 @@
 import { FC } from 'react';
 import Box from '@mui/material/Box';
-import { MainLayout } from '../layouts';
-import { useInitializeApp } from '../hooks';
-import AppRoutes from '../routes/AppRoutes'; // Import AppRoutes
+import { MainLayout } from '../src/layouts';
+import { useInitializeApp } from '../src/hooks';
+import AppRoutes from '../src/routes/AppRoutes'; // Import AppRoutes
 
 const AppContent: FC = () => {
   useInitializeApp({ message: 'Initializing application...', delay: 500 });

@@ -2,7 +2,7 @@ import { FC } from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import { ThemeProviderWrapper } from './context/ThemeContext';
 import { LoadingProvider } from './context/LoadingContext';
-import { AppContent } from './pages';
+import { AppContent } from '../core';
 
 const App: FC = () => (
   <BrowserRouter>
