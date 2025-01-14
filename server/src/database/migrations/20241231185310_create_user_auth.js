@@ -12,7 +12,7 @@ exports.up = function (knex) {
     table.integer('failed_attempts').defaultTo(0);
     table.timestamp('lockout_time').nullable();
     table.timestamp('last_login').nullable();
-    table.json('metadata').nullable();
+    table.jsonb('metadata').nullable();
     table.timestamp('created_at').defaultTo(knex.fn.now());
     table.timestamp('updated_at').defaultTo(knex.fn.now());
     table.timestamp('last_changed_at').defaultTo(knex.fn.now());

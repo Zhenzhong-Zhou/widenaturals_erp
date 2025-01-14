@@ -51,7 +51,34 @@ class AppError extends Error {
       ...options,
     });
   }
-
+  
+  static accountLockedError(message, options = {}) {
+    return new AppError(message, 403, {
+      type: 'AccountLockedError',
+      code: 'ACCOUNT_LOCKED',
+      isExpected: true,
+      ...options,
+    });
+  }
+  
+  static sessionExpiredError(message, options = {}) {
+    return new AppError(message, 401, {
+      type: 'SessionExpiredError',
+      code: 'SESSION_EXPIRED',
+      isExpected: true,
+      ...options,
+    });
+  }
+  
+  static tokenRevokedError(message, options = {}) {
+    return new AppError(message, 401, {
+      type: 'TokenRevokedError',
+      code: 'TOKEN_REVOKED',
+      isExpected: true,
+      ...options,
+    });
+  }
+  
   static authenticationError(message, options = {}) {
     return new AppError(message, 401, {
       type: 'AuthenticationError',

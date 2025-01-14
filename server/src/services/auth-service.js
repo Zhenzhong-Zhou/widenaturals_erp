@@ -1,7 +1,11 @@
-const AppError = require('../utils/AppError');
-const { getUserAuthByEmail } = require('../repositories/user-auth-repository');
+const {
+  getUserAuthByEmail,
+  incrementFailedAttempts,
+  resetFailedAttemptsAndUpdateLastLogin,
+} = require('../repositories/user-auth-repository');
 const { verifyPassword } = require('../utils/password-helper');
 const { signToken } = require('../utils/token-helper');
+const AppError = require('../utils/AppError');
 
 /**
  * Handles user login business logic.
@@ -9,21 +13,26 @@ const { signToken } = require('../utils/token-helper');
  * @param {string} email - The user's email.
  * @param {string} password - The user's password.
  * @returns {Promise<object>} - Access and refresh tokens.
- * @throws {AppError} - If authentication fails.
+ * @throws {AppError} - If authentication fails or account is locked.
  */
 const loginUser = async (email, password) => {
   try {
+    // Fetch user authentication details
     const user = await getUserAuthByEmail(email);
-
     if (!user) {
-      throw new AppError('Invalid email or password.', 401, {
-        type: 'AuthenticationError',
-        isExpected: true,
+      throw AppError.authenticationError('Invalid email or password.');
+    }
+    
+    const { user_id, role_id, passwordhash, passwordsalt, failed_attempts, lockout_time } =
+      user;
+    
+    // Check if account is locked
+    if (lockout_time && new Date(lockout_time) > new Date()) {
+      throw AppError.authenticationError('Account locked. Try again later.', {
+        code: 'ACCOUNT_LOCKED',
       });
     }
-
-    const { passwordhash, passwordsalt } = user;
-
+    
     // Verify the password
     const isValidPassword = await verifyPassword(
       password,
@@ -31,28 +40,27 @@ const loginUser = async (email, password) => {
       passwordsalt
     );
     if (!isValidPassword) {
-      throw new AppError('Invalid email or password.', 401, {
-        type: 'AuthenticationError',
-        isExpected: true,
-      });
+      // Increment failed attempts and handle lockout
+      await incrementFailedAttempts(user_id, failed_attempts);
+      throw AppError.authenticationError('Invalid email or password.');
     }
-
+    
+    // Successful login: Reset failed attempts and update last login
+    await resetFailedAttemptsAndUpdateLastLogin(user_id);
+    
     // Generate tokens
-    const accessToken = signToken({ id: user.id, role_id: user.role_id });
+    const accessToken = signToken({ id: user_id, role_id: role_id });
     const refreshToken = signToken(
-      { id: user.id, role_id: user.role_id },
-      true
-    ); // Refresh token
-
+      { id: user_id, role_id: role_id },
+      true // Refresh token flag
+    );
+    
     return { accessToken, refreshToken };
   } catch (error) {
     if (!(error instanceof AppError)) {
-      throw new AppError(error.message || 'Login failed.', 500, {
-        type: 'UnexpectedError',
-        isExpected: false,
-      });
+      throw AppError.generalError(error.message || 'Login failed.');
     }
-    throw error; // Re-throw AppError for middleware handling
+    throw error; // Re-throw expected AppError for middleware handling
   }
 };
 
