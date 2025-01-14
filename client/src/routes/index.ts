@@ -15,12 +15,12 @@ export const routes = [
       title: 'Login',
     },
   },
-  // {
-  //   path: '*',
-  //   component: () => import('../pages/NotFoundPage'),
-  //   meta: {
-  //     requiresAuth: false,
-  //     title: '404 - Page Not Found',
-  //   },
-  // }
+  {
+    path: '*',
+    component: () => import('../pages/NotFoundPage'),
+    meta: {
+      requiresAuth: false,
+      title: '404 - Page Not Found',
+    },
+  }
 ];
