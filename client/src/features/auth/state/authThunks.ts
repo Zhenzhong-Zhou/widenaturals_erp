@@ -1,16 +1,34 @@
 import { AppDispatch, RootState } from '../../../store/store';
 import { loginSuccess, logout } from './authSlice.ts';
-import { refreshToken } from '../../../services/authenticateService.ts';
+import { authService } from '../../../services';
+import { createAsyncThunk } from '@reduxjs/toolkit';
+
+export const loginThunk = createAsyncThunk(
+  'auth/login',
+  async ({ email, password }: { email: string; password: string }, { dispatch }) => {
+    try {
+      const response = await authService.login(email, password); // Call login service
+      console.log(response)
+      const { user, accessToken } = response;
+      dispatch(loginSuccess({ user, accessToken })); // Update Redux state
+      return response; // Optionally return response for further use
+    } catch (error) {
+      throw error; // Let the component handle errors
+    }
+  }
+);
 
 export const refreshTokenThunk = () => async (dispatch: AppDispatch, getState: () => RootState) => {
   try {
-    const tokens = await refreshToken(); // Call the standalone function
-    const { user } = getState().auth; // Preserve user state if available
+    // Call the refresh endpoint to get a new access token
+    const { accessToken } = await authService.refreshToken();
+    
+    const { user } = getState().auth; // Preserve the user state
     
     dispatch(
       loginSuccess({
         user,
-        tokens,
+        accessToken,
       })
     );
   } catch (error) {

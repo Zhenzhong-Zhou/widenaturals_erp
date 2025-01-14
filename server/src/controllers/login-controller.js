@@ -52,12 +52,6 @@ const loginController = async (req, res) => {
     const { accessToken, refreshToken } = await loginUser(email, password);
 
     // Set tokens in cookies
-    res.cookie('accessToken', accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      maxAge: 15 * 60 * 1000, // 15 minutes
-    });
-
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -65,7 +59,7 @@ const loginController = async (req, res) => {
     });
 
     // Return success response
-    res.status(200).json({ message: 'Login successful' });
+    res.status(200).json({ message: 'Login successful', accessToken });
   } catch (error) {
     // Log the error
     logError('Error during login:', error);

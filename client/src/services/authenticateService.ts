@@ -33,7 +33,7 @@ const login = async (email: string, password: string): Promise<LoginResponse> =>
   }
 };
 
-export const refreshToken = async (): Promise<{ accessToken: string; refreshToken: string }> => {
+const refreshToken = async (): Promise<{ accessToken: string; refreshToken: string }> => {
   try {
     const storedRefreshToken = getToken('refreshToken');
     if (!storedRefreshToken) {
