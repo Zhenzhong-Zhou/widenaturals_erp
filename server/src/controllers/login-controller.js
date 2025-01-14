@@ -28,8 +28,15 @@ const loginController = async (req, res, next) => {
   const { email, password } = req.body;
   
   try {
+    // Validate inputs (optional: use a middleware for this)
+    if (!email || !password) {
+      throw AppError.validationError('Email and password are required.', {
+        code: 'VALIDATION_ERROR',
+      });
+    }
+    
     // Call the service layer for business logic
-    const { accessToken, refreshToken } = await loginUser(email, password);
+    const { accessToken, refreshToken, last_login } = await loginUser(email, password);
     
     // Set tokens in cookies
     res.cookie('refreshToken', refreshToken, {
@@ -39,21 +46,26 @@ const loginController = async (req, res, next) => {
     });
     
     // Return success response
-    res.status(200).json({ message: 'Login successful', accessToken });
+    res.status(200).json({
+      message: 'Login successful',
+      accessToken,
+      lastLogin: last_login || null,
+    });
   } catch (error) {
-    // Log the error
-    logError('Error during login:', error);
-    
-    // Use AppError for structured error handling
-    if (error instanceof AppError) {
-      return res.status(error.status).json(error.toJSON());
+    // Log unexpected errors
+    if (!(error instanceof AppError)) {
+      logError('Unexpected error during login:', error);
+      return next(new AppError('Internal server error', 500, {
+        type: 'UnexpectedError',
+        isExpected: false,
+      }));
     }
     
-    // Handle unexpected server errors
-    next(new AppError('Internal server error', 500, {
-      type: 'UnexpectedError',
-      isExpected: false,
-    }));
+    // Log expected errors for debugging (if necessary)
+    logError('Handled error during login:', error);
+    
+    // Return structured error response
+    res.status(error.status).json(error.toJSON());
   }
 };
 

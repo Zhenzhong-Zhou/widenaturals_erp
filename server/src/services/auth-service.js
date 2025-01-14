@@ -23,13 +23,21 @@ const loginUser = async (email, password) => {
       throw AppError.authenticationError('Invalid email or password.');
     }
     
-    const { user_id, role_id, passwordhash, passwordsalt, failed_attempts, lockout_time } =
-      user;
+    const {
+      user_id,
+      role_id,
+      passwordhash,
+      passwordsalt,
+      last_login,
+      failed_attempts,
+      lockout_time
+    } = user;
     
     // Check if account is locked
     if (lockout_time && new Date(lockout_time) > new Date()) {
-      throw AppError.authenticationError('Account locked. Try again later.', {
+      throw AppError.accountLockedError('Account locked. Try again later.', {
         code: 'ACCOUNT_LOCKED',
+        lockoutEndsAt: lockout_time,
       });
     }
     
@@ -55,7 +63,8 @@ const loginUser = async (email, password) => {
       true // Refresh token flag
     );
     
-    return { accessToken, refreshToken };
+    // Optionally include metadata in the response (if needed for UI or debugging)
+    return { accessToken, refreshToken, last_login };
   } catch (error) {
     if (!(error instanceof AppError)) {
       throw AppError.generalError(error.message || 'Login failed.');
