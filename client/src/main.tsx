@@ -1,6 +1,10 @@
 import { StrictMode } from 'react';
 import ReactDOM from 'react-dom/client';
+import { Provider } from 'react-redux';
+import { PersistGate } from 'redux-persist/integration/react';
 import { FallbackUI, GlobalErrorBoundary } from '@components/index.ts';
+import { LoadingProvider } from './context/LoadingContext.tsx';
+import { store, persistor } from './store/store';
 import App from './App';
 import './styles/global.css';
 
@@ -20,7 +24,13 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
         console.error('Logged Error:', error, errorInfo); // Optional custom logging logic
       }}
     >
-      <App />
+      <Provider store={store}>
+        <PersistGate loading={null} persistor={persistor}>
+          <LoadingProvider>
+            <App />
+          </LoadingProvider>
+        </PersistGate>
+      </Provider>
     </GlobalErrorBoundary>
   </StrictMode>
 );

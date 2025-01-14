@@ -1,5 +1,5 @@
 import { FC } from 'react';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter } from 'react-router';
 import { ThemeProviderWrapper } from './context/ThemeContext';
 import { LoadingProvider } from './context/LoadingContext';
 import { AppContent } from '../core';

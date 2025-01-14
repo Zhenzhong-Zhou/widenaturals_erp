@@ -33,7 +33,7 @@ const login = async (email: string, password: string): Promise<LoginResponse> =>
   }
 };
 
-const refreshToken = async (): Promise<{ accessToken: string }> => {
+export const refreshToken = async (): Promise<{ accessToken: string; refreshToken: string }> => {
   try {
     const storedRefreshToken = getToken('refreshToken');
     if (!storedRefreshToken) {
@@ -41,8 +41,13 @@ const refreshToken = async (): Promise<{ accessToken: string }> => {
       window.location.href = '/login?expired=true';
       throw new AppError('Refresh token is missing', 401, 'ValidationError');
     }
-    const response = await axiosInstance.post<{ accessToken: string }>(API_ENDPOINTS.REFRESH_TOKEN, { refreshToken: storedRefreshToken });
-    setTokens(response.data.accessToken, storedRefreshToken);
+    
+    const response = await axiosInstance.post<{ accessToken: string; refreshToken: string }>(
+      API_ENDPOINTS.REFRESH_TOKEN,
+      { refreshToken: storedRefreshToken }
+    );
+    
+    setTokens(response.data.accessToken, response.data.refreshToken);
     return response.data;
   } catch (error: unknown) {
     handleError(error);
