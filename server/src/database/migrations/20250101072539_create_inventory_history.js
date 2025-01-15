@@ -19,8 +19,8 @@ exports.up = function (knex) {
     table.integer('quantity_change').notNullable();
     table.integer('new_quantity').notNullable();
     table.uuid('status_id').notNullable().references('id').inTable('status');
-    table.timestamp('status_date').defaultTo(knex.fn.now());
-    table.timestamp('timestamp').defaultTo(knex.fn.now());
+    table.timestamp('status_date', { useTz: true }).defaultTo(knex.fn.now()); // Auto-set on creation in UTC
+    table.timestamp('timestamp', { useTz: true }).defaultTo(knex.fn.now());
     table
       .uuid('source_action_id')
       .references('id')
@@ -29,7 +29,7 @@ exports.up = function (knex) {
     table.text('comments');
     table.text('checksum').notNullable();
     table.json('metadata');
-    table.timestamp('created_at').defaultTo(knex.fn.now());
+    table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now()); // Auto-set on creation in UTC
     table.uuid('created_by').references('id').inTable('users');
 
     // Indexes

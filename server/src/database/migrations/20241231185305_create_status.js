@@ -8,8 +8,8 @@ exports.up = function (knex) {
     table.string('name', 50).notNullable().unique().index(); // Name column with index for faster lookups
     table.text('description').nullable(); // Optional description
     table.boolean('is_active').defaultTo(true).index(); // Boolean column with index
-    table.timestamp('created_at').defaultTo(knex.fn.now()); // Auto-set on creation
-    table.timestamp('updated_at').defaultTo(knex.fn.now()); // Auto-set on creation
+    table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now()); // Auto-set on creation in UTC
+    table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now()); // Auto-set on creation in UTC
   });
 };
 

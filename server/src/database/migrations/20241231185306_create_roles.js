@@ -13,9 +13,9 @@ exports.up = function (knex) {
     table.boolean('is_active').defaultTo(true); // Active status
     table.json('metadata').nullable(); // Optional metadata column
     table.uuid('status_id').notNullable().references('id').inTable('status'); // Foreign key to 'status'
-    table.timestamp('status_date').defaultTo(knex.fn.now()); // Status date
-    table.timestamp('created_at').defaultTo(knex.fn.now()); // Creation timestamp
-    table.timestamp('updated_at').defaultTo(knex.fn.now()); // Update timestamp
+    table.timestamp('status_date', { useTz: true }).defaultTo(knex.fn.now()); // Auto-set on creation in UTC
+    table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now()); // Auto-set on creation in UTC
+    table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now()); // Auto-set on creation in UTC
   });
 };
 

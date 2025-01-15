@@ -26,11 +26,11 @@ exports.up = function (knex) {
       .inTable('status')
       .comment('Status of the permission');
     table
-      .timestamp('created_at')
+      .timestamp('created_at', { useTz: true })
       .defaultTo(knex.fn.now())
       .comment('Timestamp when the record was created');
     table
-      .timestamp('updated_at')
+      .timestamp('updated_at', { useTz: true })
       .defaultTo(knex.fn.now())
       .comment('Timestamp when the record was last updated');
     table

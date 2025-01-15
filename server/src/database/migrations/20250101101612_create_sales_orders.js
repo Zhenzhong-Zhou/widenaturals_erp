@@ -29,10 +29,10 @@ exports.up = async function (knex) {
         .references('id')
         .inTable('delivery_methods');
       table.uuid('status_id').notNullable().references('id').inTable('status');
-      table.timestamp('status_date').defaultTo(knex.fn.now());
+      table.timestamp('status_date',{ useTz: true }).defaultTo(knex.fn.now());
       table.text('note');
-      table.timestamp('created_at').defaultTo(knex.fn.now());
-      table.timestamp('updated_at').defaultTo(knex.fn.now());
+      table.timestamp('created_at',{ useTz: true }).defaultTo(knex.fn.now());
+      table.timestamp('updated_at',{ useTz: true }).defaultTo(knex.fn.now());
       table.uuid('created_by').references('id').inTable('users');
       table.uuid('updated_by').references('id').inTable('users');
     });
