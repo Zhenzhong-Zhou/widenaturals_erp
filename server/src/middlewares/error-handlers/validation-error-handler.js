@@ -23,7 +23,7 @@ const validationErrorHandler = (err, req, res, next) => {
         details: err.details || null, // Include validation details if available
       }
     );
-
+    
     // Log the validation error with detailed metadata
     logError('Validation Error:', {
       message: validationError.message,

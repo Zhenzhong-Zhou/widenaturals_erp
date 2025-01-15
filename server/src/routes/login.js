@@ -5,6 +5,7 @@
  */
 
 const express = require('express');
+const validateAuthInputs = require('../validators/auth-validators');
 const { loginController } = require('../controllers/login-controller');
 
 const router = express.Router();
@@ -17,6 +18,6 @@ const router = express.Router();
  *       - Returns a JSON response with success message and tokens.
  * @access Public
  */
-router.post('/login', loginController);
+router.post('/login', validateAuthInputs, loginController);
 
 module.exports = router;

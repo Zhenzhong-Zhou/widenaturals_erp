@@ -28,13 +28,6 @@ const loginController = async (req, res, next) => {
   const { email, password } = req.body;
   
   try {
-    // Validate inputs (optional: use a middleware for this)
-    if (!email || !password) {
-      throw AppError.validationError('Email and password are required.', {
-        code: 'VALIDATION_ERROR',
-      });
-    }
-    
     // Call the service layer for business logic
     const { accessToken, refreshToken, last_login } = await loginUser(email, password);
     
