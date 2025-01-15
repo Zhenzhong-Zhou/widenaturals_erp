@@ -17,7 +17,11 @@ const { logError } = require('../../utils/logger-helper');
  */
 const authenticateErrorHandler = (err, req, res, next) => {
   // Check if the error is related to authentication
-  if (err.name === 'UnauthorizedError' || err.code === 'UNAUTHORIZED') {
+  if (
+    err.name === 'UnauthorizedError' ||
+    err.code === 'AUTHENTICATION_ERROR' ||
+    err.type === 'AuthenticationError'
+  ) {
     // Use the AppError static factory method to create an AuthenticationError
     const authError = AppError.authenticationError('Unauthorized access', {
       isExpected: true, // Authentication errors are expected in certain scenarios

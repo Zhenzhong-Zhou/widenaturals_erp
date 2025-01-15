@@ -50,7 +50,7 @@ const globalErrorHandler = (err, req, res, next) => {
   // Send structured error response
   res.status(err.status || 500).json({
     ...err.toJSON(),
-    ...(process.env.NODE_ENV !== 'production' && { debugHint: 'Check server logs for more details.' }),
+    ...(process.env.NODE_ENV !== 'production' && { stack: err.stack }),
   });
 };
 
