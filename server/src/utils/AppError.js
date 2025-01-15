@@ -18,6 +18,7 @@ class AppError extends Error {
     this.isExpected = options.isExpected || false; // Flag for expected errors
     this.code = options.code || 'UNKNOWN_ERROR'; // Custom error code
     this.logLevel = options.logLevel || 'error'; // Log level (info, warn, error)
+    this.details = options.details || null;
 
     Error.captureStackTrace(this, this.constructor);
   }
@@ -27,19 +28,14 @@ class AppError extends Error {
    * Includes optional debug info in non-production environments.
    */
   toJSON() {
-    const serialized = {
+    return {
       message: this.message,
       status: this.status,
       type: this.type,
       code: this.code,
       isExpected: this.isExpected,
+      details: this.details,
     };
-
-    if (process.env.NODE_ENV !== 'production') {
-      serialized.stack = this.stack;
-    }
-
-    return serialized;
   }
 
   // Common Errors

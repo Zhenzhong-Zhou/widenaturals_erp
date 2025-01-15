@@ -8,7 +8,6 @@ const path = require('path');
 const { createLogger, format, transports } = require('winston');
 const DailyRotateFile = require('winston-daily-rotate-file');
 const { loadEnv } = require('../config/env');
-const { uploadToS3 } = require('./s3-upload');
 const { logError } = require('./logger-helper');
 const AppError = require('./AppError');
 
@@ -73,7 +72,7 @@ const logger = createLogger({
         ? format.combine(format.colorize({ all: true }), format.simple())
         : format.json(),
     }),
-
+    
     // File Transport
     new DailyRotateFile({
       filename: path.join(logsDir, 'app-%DATE%.log'),
@@ -82,29 +81,6 @@ const logger = createLogger({
       maxSize: '20m',
       maxFiles: '14d',
     }),
-
-    // AWS S3 Transport (Production Only)
-    ...(process.env.NODE_ENV === 'production' && process.env.AWS_S3_BUCKET_NAME
-      ? [
-          new transports.Stream({
-            log: (info, callback) => {
-              const fileBuffer = Buffer.from(JSON.stringify(info));
-              uploadToS3({
-                bucketName: process.env.AWS_S3_BUCKET_NAME,
-                folder: 'logs',
-                fileName: `${new Date().toISOString()}.log`,
-                fileBuffer,
-                contentType: 'application/json',
-              })
-                .then(() => callback(null, true))
-                .catch((err) => {
-                  console.error('Failed to upload log to S3:', err);
-                  callback(err || true);
-                });
-            },
-          }),
-        ]
-      : []),
   ],
 });
 
