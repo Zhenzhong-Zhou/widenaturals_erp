@@ -42,7 +42,7 @@ router.use('/system', authenticate(), systemRoute);
  * Routes under `/auth` manage user login and authentication flows.
  */
 router.use('/auth', loginRoute); // Public login
-router.use('/auth', authenticate(), authRoutes); // Authenticated routes
+router.use('/auth', authRoutes); // Authenticated routes
 
 // Admin routes
 /**

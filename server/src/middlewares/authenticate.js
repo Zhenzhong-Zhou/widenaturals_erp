@@ -16,9 +16,12 @@ const authenticate = () => {
       const refreshToken = req.cookies?.refreshToken; // Refresh token remains in the cookies
       
       if (!accessToken) {
-        throw AppError.authenticationError(
-          'Access token is missing. Please log in.'
-        );
+        logWarn('Access token is missing. Please log in.', {
+          ip: req.ip || 'N/A',
+          route: req.originalUrl || 'N/A',
+          userAgent: req.headers['user-agent'] || 'N/A',
+        });
+        return next(AppError.accessTokenError('Access token is missing. Please log in.'));
       }
       
       try {
@@ -29,13 +32,11 @@ const authenticate = () => {
       } catch (error) {
         // If the access token is expired and a refresh token is available
         if (error.name === 'TokenExpiredError' && refreshToken) {
-          logWarn(
-            'Access token expired. Attempting to refresh with a valid refresh token.',
-            {
-              ip: req.ip || 'N/A',
-              route: req.originalUrl || 'N/A',
-            }
-          );
+          logWarn('Access token expired. Attempting to refresh with a valid refresh token.', {
+            ip: req.ip || 'N/A',
+            route: req.originalUrl || 'N/A',
+            userAgent: req.headers['user-agent'] || 'N/A',
+          });
           
           try {
             // Verify the refresh token
@@ -44,7 +45,7 @@ const authenticate = () => {
             // Issue a new access token
             const newAccessToken = signToken({
               id: refreshPayload.id,
-              role_id: refreshPayload.role_id,
+              role: refreshPayload.role,
             });
             
             // Send the new access token to the client in the response body
@@ -58,9 +59,17 @@ const authenticate = () => {
               route: req.originalUrl || 'N/A',
               error: refreshError.message,
             });
-            throw AppError.authenticationError(
-              'Invalid or expired refresh token. Please log in again.'
-            );
+            
+            // Handle refresh token expiration or invalidation
+            if (refreshError.name === 'TokenExpiredError') {
+              throw AppError.refreshTokenExpiredError(
+                'Refresh token expired. Please log in again.'
+              );
+            } else {
+              throw AppError.refreshTokenError(
+                'Invalid refresh token. Please log in again.'
+              );
+            }
           }
         }
         
@@ -70,7 +79,9 @@ const authenticate = () => {
           route: req.originalUrl || 'N/A',
           error: error.message,
         });
-        throw AppError.authenticationError('Invalid or expired access token.');
+        throw AppError.accessTokenExpiredError(
+          'Access token expired. Please use your refresh token.'
+        );
       }
     } catch (error) {
       logError('Authentication middleware encountered an error:', {

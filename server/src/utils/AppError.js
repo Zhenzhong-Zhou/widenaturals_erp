@@ -66,6 +66,42 @@ class AppError extends Error {
     });
   }
   
+  static accessTokenExpiredError(message, options = {}) {
+    return new AppError(message, 401, {
+      type: 'AccessTokenExpiredError',
+      code: 'ACCESS_TOKEN_EXPIRED',
+      isExpected: true,
+      ...options,
+    });
+  }
+  
+  static accessTokenError(message, options = {}) {
+    return new AppError(message, 401, {
+      type: 'AccessTokenError',
+      code: 'ACCESS_TOKEN_MISSING',
+      isExpected: true,
+      ...options,
+    });
+  }
+  
+  static refreshTokenExpiredError(message, options = {}) {
+    return new AppError(message, 401, {
+      type: 'RefreshTokenExpiredError',
+      code: 'REFRESH_TOKEN_EXPIRED',
+      isExpected: true,
+      ...options,
+    });
+  }
+  
+  static refreshTokenError(message, options = {}) {
+    return new AppError(message, 401, {
+      type: 'RefreshTokenError',
+      code: 'REFRESH_TOKEN_MISSING',
+      isExpected: true,
+      ...options,
+    });
+  }
+  
   static tokenRevokedError(message, options = {}) {
     return new AppError(message, 401, {
       type: 'TokenRevokedError',
