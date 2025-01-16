@@ -7,7 +7,7 @@ const express = require('express');
 const publicRoute = require('./public');
 const internalRoute = require('./internal');
 const systemRoute = require('./system');
-const loginRoute = require('./login');
+const sessionRoute = require('./session');
 const authRoutes = require('./auth');
 const adminRoutes = require('./admin');
 const { createApiRateLimiter } = require('../middlewares/rate-limiter');
@@ -39,10 +39,10 @@ router.use('/system', authenticate(), systemRoute);
 
 // Authentication routes
 /**
- * Routes under `/auth` manage user login and authentication flows.
+ * Routes under `/session` manage user login and authentication flows.
  */
-router.use('/auth', loginRoute); // Public login
-router.use('/auth', authRoutes); // Authenticated routes
+router.use('/session', sessionRoute); // Public login
+router.use('/auth', authenticate(), authRoutes); // Authenticated routes
 
 // Admin routes
 /**

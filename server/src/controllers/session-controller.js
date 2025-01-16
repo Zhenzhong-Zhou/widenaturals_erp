@@ -24,7 +24,7 @@ const AppError = require('../utils/AppError');
  * @returns {void} - Sends HTTP response with success or error message.
  * @throws {Error} - Logs and handles unexpected server errors.
  */
-const loginController = async (req, res, next) => {
+const sessionController = async (req, res, next) => {
   const { email, password } = req.body;
   
   try {
@@ -62,4 +62,4 @@ const loginController = async (req, res, next) => {
   }
 };
 
-module.exports = { loginController };
+module.exports = { loginController: sessionController };

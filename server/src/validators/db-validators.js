@@ -4,6 +4,7 @@ const { getStatusIdByName } = require('../repositories/status-repository');
 const { logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
 const { getUser, userExists } = require('../repositories/user-repository');
+const { isPasswordReused } = require('../repositories/user-auth-repository');
 
 /**
  * Check if an email exists in the database.
@@ -125,10 +126,45 @@ const validateUserExists = async (userId) => {
   return user;
 };
 
+/**
+ * Validates if a given password has been reused by the user.
+ *
+ * This function checks the password history in the database to prevent
+ * users from reusing any of their previous passwords.
+ *
+ * @param {string} userId - The ID of the user to check.
+ * @param {string} passwordHash - The hashed password to validate against the user's password history.
+ * @returns {Promise<boolean>} - True if the password is reused, false otherwise.
+ * @throws {AppError} - Throws a structured error if the query fails.
+ */
+const validatePasswordReused = async (userId, passwordHash) => {
+  try {
+    // Check if the password has been reused
+    const isReused = await isPasswordReused(userId, passwordHash);
+    
+    if (isReused) {
+      throw new AppError('New password cannot be the same as a previous password.', 400, {
+        type: 'ValidationError',
+        isExpected: true,
+      });
+    }
+    
+    // Return the result from isPasswordReused
+    return isReused;
+  } catch (error) {
+    // Log the error and throw a structured AppError for better error handling
+    logError('Error validating password reuse:', error);
+    throw new AppError('Failed to validate password reuse.', 500, {
+      type: 'DatabaseError',
+    });
+  }
+};
+
 module.exports = {
   emailExists,
   validateRoleByName,
   validateRoleById,
   validateStatus,
-  validateUserExists
+  validateUserExists,
+  validatePasswordReused
 };

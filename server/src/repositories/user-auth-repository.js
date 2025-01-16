@@ -159,57 +159,79 @@ const resetFailedAttemptsAndUpdateLastLogin = async (userId) => {
   }
 };
 
+/**
+ * Checks if a given password has been used by the user in the past.
+ *
+ * @param {string} userId - The ID of the user.
+ * @param {string} hashedPassword - The hashed password to check.
+ * @returns {Promise<boolean>} - True if the password is reused, false otherwise.
+ * @throws {AppError} - Throws an error if the query fails.
+ */
 const isPasswordReused = async (userId, hashedPassword) => {
   const sql = `
     SELECT 1
     FROM user_auth
     WHERE user_id = $1
-      AND $2 = ANY(ARRAY(SELECT jsonb_array_elements_text(metadata->'password_history')))
+      AND $2 = ANY(
+        ARRAY(
+          SELECT jsonb_array_elements_text(metadata->'password_history')
+        )
+      )
   `;
-  const result = await query(sql, [userId, hashedPassword]);
-  return result.rowCount > 0;
-};
-
-
-/**
- * Updates a user's password by their ID.
- *
- * @param {string} userId - The ID of the user.
- * @param {string} hashedPassword - The new hashed password.
- * @param passwordSalt
- * @returns {boolean} - True if the update was successful, false otherwise.
- */
-const updatePasswordById = async (userId, hashedPassword, passwordSalt) => {
-  if (!userId || !hashedPassword || !passwordSalt) {
-    throw new AppError('Missing required parameters for password update', 400, {
-      type: 'ValidationError',
-      isExpected: true,
+  
+  try {
+    // Execute the query to check if the hashed password exists in the password history
+    const result = await query(sql, [userId, hashedPassword]);
+    
+    // Return true if the password is reused, otherwise false
+    return result.rowCount > 0;
+  } catch (error) {
+    // Log the error and throw a structured AppError for better error handling
+    logError('Error checking password reuse:', error);
+    throw new AppError('Failed to check password reuse', 500, {
+      type: 'DatabaseError',
     });
   }
-  
+};
+
+/**
+ * Updates a user's password in the database and appends the old password to the history.
+ *
+ * @param {string} userId - The ID of the user whose password is being updated.
+ * @param {string} hashedPassword - The new hashed password.
+ * @param {string} passwordSalt - The salt used for hashing the password.
+ * @returns {Promise<boolean>} - True if the update was successful, false otherwise.
+ * @throws {AppError} - Throws an error if the update fails or the user is not found.
+ */
+const updatePasswordById = async (userId, hashedPassword, passwordSalt) => {
   const sql = `
+    WITH password_history AS (
+      SELECT jsonb_agg(value) AS limited_history
+      FROM (
+        SELECT jsonb_array_elements_text(metadata->'password_history') AS value
+        FROM user_auth
+        WHERE user_id = $3
+        LIMIT 4
+      ) sub
+    )
     UPDATE user_auth
     SET
       password_hash = $1,
       password_salt = $2,
-      metadata = COALESCE(
-        jsonb_set(
-          metadata,
-          '{password_history}',
-          COALESCE(
-            (metadata->'password_history') || to_jsonb(password_hash),
-            '[]'::jsonb
-          )
-        ),
-        '{"password_history": []}'::jsonb
+      metadata = jsonb_set(
+        COALESCE(metadata, '{}'),
+        '{password_history}',
+        COALESCE((SELECT limited_history FROM password_history), '[]'::jsonb) || to_jsonb($1::text)
       ),
       updated_at = NOW()
-    WHERE user_id = $3
+    WHERE user_id = $3;
   `;
   
   try {
+    // Execute the query to update the user's password
     const result = await query(sql, [hashedPassword, passwordSalt, userId]);
     
+    // Throw an error if no rows were updated (user not found or update failed)
     if (result.rowCount === 0) {
       throw new AppError('User not found or password update failed', 404, {
         type: 'NotFoundError',
@@ -217,8 +239,10 @@ const updatePasswordById = async (userId, hashedPassword, passwordSalt) => {
       });
     }
     
+    // Return true if the update was successful
     return result.rowCount > 0;
   } catch (error) {
+    // Log the error and throw a structured AppError for better error handling
     logError('Error updating user password:', error);
     throw new AppError('Failed to update password', 500, {
       type: 'DatabaseError',

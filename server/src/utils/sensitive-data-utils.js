@@ -56,4 +56,17 @@ const sanitizeMessage = (message, maskIp = false) => {
   return sanitizedMessage;
 };
 
-module.exports = { maskSensitiveInfo, sanitizeMessage };
+/**
+ * Sanitizes Joi validation errors to return user-friendly and secure responses.
+ *
+ * @param {object} error - Joi validation error object.
+ * @returns {Array} - Sanitized array of error details.
+ */
+const sanitizeValidationError = (error) => {
+  return error.details.map((detail) => ({
+    message: detail.message, // High-level error message
+    path: detail.path.join('.'), // Simplified path for readability
+  }));
+};
+
+module.exports = { maskSensitiveInfo, sanitizeMessage, sanitizeValidationError };
