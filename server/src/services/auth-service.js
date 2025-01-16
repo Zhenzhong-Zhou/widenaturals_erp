@@ -1,11 +1,12 @@
 const {
   getUserAuthByEmail,
   incrementFailedAttempts,
-  resetFailedAttemptsAndUpdateLastLogin,
+  resetFailedAttemptsAndUpdateLastLogin, updatePasswordById,
 } = require('../repositories/user-auth-repository');
-const { verifyPassword } = require('../utils/password-helper');
+const { verifyPassword, hashPasswordWithSalt } = require('../utils/password-helper');
 const { signToken } = require('../utils/token-helper');
 const AppError = require('../utils/AppError');
+const { validateUserExists } = require('../validators/db-validators');
 
 /**
  * Handles user login business logic.
@@ -73,4 +74,25 @@ const loginUser = async (email, password) => {
   }
 };
 
-module.exports = { loginUser };
+/**
+ * Resets the password for a user.
+ *
+ * @param {string} userId - The ID of the user.
+ * @param {string} newPassword - The new password to set.
+ * @throws {AppError} - If the user does not exist or other issues occur.
+ */
+const resetPassword = async (userId, newPassword) => {
+  // Find the user by ID
+  await validateUserExists(userId);
+  // console.log("Resets the password for a user",newPassword);
+  // Hash the new password
+  const { passwordHash, passwordSalt } = await hashPasswordWithSalt(newPassword);
+  
+  // Update the password in the database
+  const result = await updatePasswordById(userId, passwordHash, passwordSalt);
+  if (!result) {
+    throw AppError.serviceError('Failed to reset the password.');
+  }
+};
+
+module.exports = { loginUser, resetPassword };

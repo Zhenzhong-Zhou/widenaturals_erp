@@ -11,9 +11,10 @@
  */
 const { signToken, verifyToken } = require('../utils/token-helper');
 const { logError, logWarn, logInfo } = require('../utils/logger-helper');
-const { authenticationError, tokenRevokedError, refreshTokenError, accessTokenExpiredError, refreshTokenExpiredError,
-  generalError
+const { authenticationError, tokenRevokedError, refreshTokenError, refreshTokenExpiredError,
+  generalError, validationError
 } = require('../utils/AppError');
+const { resetPassword } = require('../services/auth-service');
 
 /**
  * Handles user logout by clearing authentication cookies and invalidating tokens.
@@ -146,7 +147,41 @@ const refreshTokenController = async (req, res, next) => {
   }
 };
 
-// todo /auth/reset-password
+/**
+ * POST /auth/reset-password
+ * Handles password reset requests.
+ * @param {Object} req - Express request object.
+ * @param {Object} res - Express response object.
+ * @param {Function} next - Express next middleware function.
+ */
+const resetPasswordController = async (req, res, next) => {
+  try {
+    const { userId, newPassword } = req.body;
+    
+    if (!userId || !newPassword) {
+      throw validationError('User ID and new password are required.');
+    }
+    
+    // Call the service layer to reset the password
+    await resetPassword(userId, newPassword);
+    
+    // Clear the refresh token cookie
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+    });
+    
+    res.status(200).json({
+      success: true,
+      message: 'Password reset successfully.',
+    });
+  } catch (error) {
+    logError('Error resetting password:', error);
+    next(error); // Pass to global error handler
+  }
+};
+
 // todo /auth/forgot-password
 
-module.exports = { logoutController, refreshTokenController };
+module.exports = { logoutController, refreshTokenController, resetPasswordController};

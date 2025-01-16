@@ -3,6 +3,7 @@ const { getRoleIdByField } = require('../repositories/role-repository');
 const { getStatusIdByName } = require('../repositories/status-repository');
 const { logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
+const { getUser, userExists } = require('../repositories/user-repository');
 
 /**
  * Check if an email exists in the database.
@@ -108,9 +109,26 @@ const validateStatus = async (statusName) => {
   }
 };
 
+/**
+ * Validates if a user exists by their ID.
+ *
+ * @param {string} userId - The ID of the user to validate.
+ * @returns {Promise<Object>} - The user record if it exists.
+ * @throws {AppError} - If the user does not exist.
+ */
+const validateUserExists = async (userId) => {
+  const user = await userExists('id', userId);
+  
+  if (!user) {
+    throw AppError.notFoundError(`User with ID ${userId} not found.`);
+  }
+  return user;
+};
+
 module.exports = {
   emailExists,
   validateRoleByName,
   validateRoleById,
   validateStatus,
+  validateUserExists
 };

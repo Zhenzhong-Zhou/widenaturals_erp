@@ -159,9 +159,78 @@ const resetFailedAttemptsAndUpdateLastLogin = async (userId) => {
   }
 };
 
+const isPasswordReused = async (userId, hashedPassword) => {
+  const sql = `
+    SELECT 1
+    FROM user_auth
+    WHERE user_id = $1
+      AND $2 = ANY(ARRAY(SELECT jsonb_array_elements_text(metadata->'password_history')))
+  `;
+  const result = await query(sql, [userId, hashedPassword]);
+  return result.rowCount > 0;
+};
+
+
+/**
+ * Updates a user's password by their ID.
+ *
+ * @param {string} userId - The ID of the user.
+ * @param {string} hashedPassword - The new hashed password.
+ * @param passwordSalt
+ * @returns {boolean} - True if the update was successful, false otherwise.
+ */
+const updatePasswordById = async (userId, hashedPassword, passwordSalt) => {
+  if (!userId || !hashedPassword || !passwordSalt) {
+    throw new AppError('Missing required parameters for password update', 400, {
+      type: 'ValidationError',
+      isExpected: true,
+    });
+  }
+  
+  const sql = `
+    UPDATE user_auth
+    SET
+      password_hash = $1,
+      password_salt = $2,
+      metadata = COALESCE(
+        jsonb_set(
+          metadata,
+          '{password_history}',
+          COALESCE(
+            (metadata->'password_history') || to_jsonb(password_hash),
+            '[]'::jsonb
+          )
+        ),
+        '{"password_history": []}'::jsonb
+      ),
+      updated_at = NOW()
+    WHERE user_id = $3
+  `;
+  
+  try {
+    const result = await query(sql, [hashedPassword, passwordSalt, userId]);
+    
+    if (result.rowCount === 0) {
+      throw new AppError('User not found or password update failed', 404, {
+        type: 'NotFoundError',
+        isExpected: true,
+      });
+    }
+    
+    return result.rowCount > 0;
+  } catch (error) {
+    logError('Error updating user password:', error);
+    throw new AppError('Failed to update password', 500, {
+      type: 'DatabaseError',
+    });
+  }
+};
+
 module.exports = {
   insertUserAuth,
   getUserAuthByEmail,
   incrementFailedAttempts,
   resetFailedAttemptsAndUpdateLastLogin,
+  isPasswordReused,
+  updatePasswordById
 };

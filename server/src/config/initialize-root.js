@@ -9,7 +9,7 @@ const {
 const { hashPasswordWithSalt } = require('../utils/password-helper');
 const {
   createUser,
-  getUserByEmail,
+  userExists,
 } = require('../repositories/user-repository');
 const {
   validateRoleByName,
@@ -39,31 +39,31 @@ const validateAndHashPassword = async (password) => {
 const initializeRootAdmin = async () => {
   const email = process.env.ROOT_ADMIN_EMAIL;
   const password = process.env.ROOT_ADMIN_PASSWORD;
-
+  
   if (!email || !password) {
     logFatal('Root admin credentials are missing in environment variables.');
     await handleExit(1); // Terminate if credentials are missing
   }
-
+  
   try {
     logInfo('Initializing root admin account...');
-
-    // Check if root admin already exists
-    const existingUser = await getUserByEmail(email);
+    
+    // Ensure `userExists` is asynchronous
+    const existingUser = await userExists('email', email);
     if (existingUser) {
       logWarn('Root admin already exists. Skipping initialization.');
       return;
     }
-
-    // Validate role and status
+    
+    // Ensure these functions are also asynchronous
     const roleId = await validateRoleByName(ROOT_ADMIN_ROLE);
     const statusId = await validateStatus(ACTIVE_STATUS);
-
-    // Validate and hash the password
+    
+    // Ensure this function is asynchronous and returns a Promise
     const { passwordHash, passwordSalt } =
       await validateAndHashPassword(password);
-
-    // Create the root admin user
+    
+    // Ensure `createUser` is asynchronous
     const user = await createUser({
       email,
       passwordHash,
@@ -78,11 +78,11 @@ const initializeRootAdmin = async () => {
       statusDate: new Date(),
       createdBy: null,
     });
-
+    
     logInfo(`Root admin initialized successfully: ${user.email}`);
   } catch (error) {
     logError('Error initializing root admin:', error);
-
+    
     if (error instanceof AppError) {
       logFatal(`Root admin initialization failed due to: ${error.message}`);
     } else {
@@ -90,7 +90,7 @@ const initializeRootAdmin = async () => {
         'An unexpected error occurred during root admin initialization.'
       );
     }
-
+    
     // Terminate with cleanup on critical error
     await handleExit(1);
   }

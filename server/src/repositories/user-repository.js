@@ -93,9 +93,21 @@ const createUser = async (userDetails) => {
 };
 
 /**
- * Fetches a user by their email.
+ * Fetches a user by a specific field (ID or email).
+ *
+ * @param {string} field - The field to search by (`id` or `email`).
+ * @param {string} value - The value of the field.
+ * @returns {Object|null} - The user record or null if not found.
+ * @throws {AppError} - For database or query errors.
  */
-const getUserByEmail = async (email) => {
+const getUser = async (field, value) => {
+  if (!['id', 'email'].includes(field)) {
+    throw new AppError('Invalid field for user query', 400, {
+      type: 'ValidationError',
+      isExpected: true,
+    });
+  }
+  
   const sql = `
     SELECT
       u.id,
@@ -115,21 +127,21 @@ const getUserByEmail = async (email) => {
     FROM users u
     LEFT JOIN roles r ON u.role_id = r.id
     LEFT JOIN status s ON u.status_id = s.id
-    WHERE u.email = $1
+    WHERE u.${field} = $1
   `;
-  const params = [email];
-
+  const params = [value];
+  
   try {
     const result = await query(sql, params);
-
+    
     if (result.rows.length === 0) {
       return null; // Return null if no user is found
     }
-
+    
     return result.rows[0];
   } catch (error) {
-    logError('Error fetching user by email:', error);
-    throw new AppError('Failed to fetch user by email', 500, {
+    logError(`Error fetching user by ${field}:`, error);
+    throw new AppError(`Failed to fetch user by ${field}`, 500, {
       type: 'DatabaseError',
     });
   }
@@ -173,46 +185,37 @@ const getAllUsers = async () => {
 };
 
 /**
- * Fetches a user by their ID.
+ * Checks if a user exists by a specific field (ID or email).
+ *
+ * @param {string} field - The field to search by (`id` or `email`).
+ * @param {string} value - The value of the field.
+ * @returns {boolean} - True if the user exists, false otherwise.
  */
-const getUserById = async (id) => {
-  const sql = `
-    SELECT
-      u.id,
-      u.email,
-      u.role_id,
-      r.name AS role_name,
-      u.status_id,
-      s.name AS status_name,
-      u.firstname,
-      u.lastname,
-      u.phone_number,
-      u.job_title,
-      u.note,
-      u.status_date,
-      u.created_at,
-      u.updated_at
-    FROM users u
-    LEFT JOIN roles r ON u.role_id = r.id
-    LEFT JOIN status s ON u.status_id = s.id
-    WHERE u.id = $1;
-  `;
-  const params = [id];
-
+const userExists = async (field, value) => {
+  if (!['id', 'email'].includes(field)) {
+    throw new AppError('Invalid field for user existence check', 400, {
+      type: 'ValidationError',
+      isExpected: true,
+    });
+  }
+  
+  const sql = `SELECT 1 FROM users WHERE ${field} = $1 LIMIT 1`;
+  const params = [value];
+  
   try {
     const result = await query(sql, params);
-
+    
     if (result.rows.length === 0) {
       throw new AppError('User not found', 404, {
         type: 'NotFoundError',
         isExpected: true,
       });
     }
-
-    return result.rows[0];
+    
+    return result.rowCount;
   } catch (error) {
-    logError('Error fetching user by ID:', error);
-    throw new AppError('Failed to fetch user by ID', 500, {
+    logError(`Error checking user existence by ${field}:`, error);
+    throw new AppError(`Failed to check user existence by ${field}`, 500, {
       type: 'DatabaseError',
     });
   }
@@ -287,9 +290,9 @@ const deleteUser = async (id) => {
 
 module.exports = {
   createUser,
-  getUserByEmail,
+  getUser,
   getAllUsers,
-  getUserById,
+  userExists,
   updateUserPartial,
   deleteUser,
 };
