@@ -1,20 +1,75 @@
 /**
- * Masks sensitive information like emails or API keys.
+ * Masks sensitive information based on type.
+ *
  * @param {string} data - The data to mask.
- * @param {string} type - The type of data (e.g., 'email', 'apiKey').
+ * @param {string} type - The type of data (e.g., 'email', 'apiKey', 'uuid').
  * @returns {string} - The masked data.
  */
 const maskSensitiveInfo = (data, type) => {
-  if (type === 'email') {
-    return data.replace(/(.{2})(.*)(?=@)/, (match, p1, p2) => `${p1}***`);
+  if (!data || typeof data !== 'string') return data;
+  
+  switch (type) {
+    case 'email':
+      return data.replace(/(.{2})(.*)(?=@)/, (match, p1) => `${p1}***`);
+    case 'apiKey':
+      return data.slice(0, 4) + '****' + data.slice(-4);
+    case 'uuid':
+      return data.slice(0, 8) + '-****-****-' + data.slice(-4);
+    default:
+      return data; // Default: return unmodified data
   }
-  if (type === 'apiKey') {
-    return data.slice(0, 4) + '****' + data.slice(-4);
+};
+
+/**
+ * Masks table names for logging or debugging purposes.
+ *
+ * @param {string} tableName - The table name to mask.
+ * @returns {string} - The masked table name.
+ */
+const maskTableName = (tableName) => {
+  if (!tableName || typeof tableName !== 'string') return tableName;
+  return tableName.slice(0, 2) + '***'; // Example: 'users' -> 'us***'
+};
+
+const maskingRules = {
+  users: {
+    email: (data) => data.replace(/(.{2})(.*)(?=@)/, (match, p1) => `${p1}***`),
+    user_id: (data) => data.slice(0, 8) + '-****-****-' + data.slice(-4),
+  },
+  user_auth: {
+    user_id: (data) => data.slice(0, 8) + '-****-****-' + data.slice(-4),
+    password_hash: () => '****',
+  },
+  orders: {
+    order_id: (data) => data.slice(0, 4) + '****' + data.slice(-4),
+  },
+};
+
+/**
+ * Masks data based on table and field rules.
+ *
+ * @param {string} table - The table name.
+ * @param {string} field - The field to mask (`id`, `email`, etc.).
+ * @param {string} data - The data to mask.
+ * @returns {string} - The masked data.
+ */
+const maskField = (table, field, data) => {
+  if (!table || !field || !data) return data; // Return unmodified if no masking is needed
+  
+  const tableRules = maskingRules[table];
+  if (tableRules && tableRules[field]) {
+    return tableRules[field](data); // Apply field-specific masking rule
   }
-  if (type === 'userId') {
-    return data.slice(0, 2) + '***' + data.slice(-2);
+  
+  return data; // Return unmodified if no rule exists
+};
+
+const maskRow = (table, row) => {
+  const maskedRow = {};
+  for (const column in row) {
+    maskedRow[column] = maskField(table, column, row[column]);
   }
-  return data; // Default: return unmodified data
+  return maskedRow;
 };
 
 /**
@@ -69,4 +124,4 @@ const sanitizeValidationError = (error) => {
   }));
 };
 
-module.exports = { maskSensitiveInfo, sanitizeMessage, sanitizeValidationError };
+module.exports = { maskSensitiveInfo, maskTableName, maskField, maskRow, sanitizeMessage, sanitizeValidationError };

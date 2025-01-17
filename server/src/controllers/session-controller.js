@@ -62,4 +62,4 @@ const sessionController = async (req, res, next) => {
   }
 };
 
-module.exports = { loginController: sessionController };
+module.exports = { sessionController };

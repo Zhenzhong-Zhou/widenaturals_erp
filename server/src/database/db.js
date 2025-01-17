@@ -9,6 +9,7 @@ const { logInfo, logError, logWarn } = require('../utils/logger-helper');
 const { getConnectionConfig } = require('../config/db-config');
 const { loadEnv } = require('../config/env');
 const AppError = require('../utils/AppError');
+const { maskSensitiveInfo, maskTableName } = require('../utils/sensitive-data-utils');
 
 // Get environment-specific connection configuration
 loadEnv();
@@ -277,6 +278,9 @@ const paginateQuery = async (sql, params, page, limit, clientOrPool = pool) => {
  * @throws {AppError} - Throws an error if the table name or lock mode is invalid.
  */
 const lockRow = async (client, table, id, lockMode = 'FOR UPDATE') => {
+  const maskedId = maskSensitiveInfo(id, 'uuid');
+  const maskTable = maskTableName(table);
+  
   const tablePrimaryKeys = {
     users: 'id',
     user_auth: 'user_id',
@@ -287,7 +291,7 @@ const lockRow = async (client, table, id, lockMode = 'FOR UPDATE') => {
   
   const column = tablePrimaryKeys[table];
   if (!column) {
-    throw AppError.validationError(`Primary key not defined for table: ${table}`);
+    throw AppError.validationError(`Primary key not defined for table: ${maskTable}`);
   }
   if (!allowedLockModes.includes(lockMode)) {
     throw AppError.validationError(`Invalid lock mode: ${lockMode}`);
@@ -299,11 +303,11 @@ const lockRow = async (client, table, id, lockMode = 'FOR UPDATE') => {
     try {
       const result = await client.query(sql, [id]);
       if (result.rows.length === 0) {
-        throw AppError.notFoundError(`Row with ID "${id}" not found in table "${table}"`);
+        throw AppError.notFoundError(`Row with ID "${maskedId}" not found in table "${maskTable}"`);
       }
       return result.rows[0];
     } catch (error) {
-      logError(`Error locking row in table "${table}" with ID "${id}" using lock mode "${lockMode}":`, {
+      logError(`Error locking row in table "${maskTable}" with ID "${maskedId}" using lock mode "${lockMode}":`, {
         query: sql,
         params: [id],
         error: error.message,

@@ -2,20 +2,19 @@ const AppError = require('../utils/AppError');
 const { query, retry, lockRow } = require('../database/db');
 const { logError } = require('../utils/logger-helper');
 const { verifyPassword } = require('../utils/password-helper');
-const result = require('pg/lib/query');
 
 /**
- * Inserts authentication details into the `user_auth` table.
+ * Inserts authentication details into the `user_auth` table with retry and optional row locking.
  *
  * @async
  * @function
  * @param {object} client - The database client used for executing queries.
  * @param {object} authDetails - Authentication details.
- * @param {uuid} authDetails.userId - The user ID.
+ * @param {string} authDetails.userId - The user ID.
  * @param {string} authDetails.passwordHash - The hashed password.
  * @param {string} authDetails.passwordSalt - The salt used for hashing the password.
  * @returns {Promise<void>} Resolves when the insertion is successful.
- * @throws {AppError} If the query fails due to a database error.
+ * @throws {AppError} If the query fails due to a database error or row locking issues.
  */
 const insertUserAuth = async (client, { userId, passwordHash, passwordSalt }) => {
   const sql = `
@@ -25,11 +24,18 @@ const insertUserAuth = async (client, { userId, passwordHash, passwordSalt }) =>
   const params = [userId, passwordHash, passwordSalt, new Date()];
   
   try {
-    await client.query(sql, params);
+    // Retry logic for transient issues
+    await retry(async () => {
+      // Lock the row in the `users` table to ensure consistency
+      await lockRow(client, 'users', userId, 'FOR UPDATE');
+      
+      // Perform the insertion
+      await client.query(sql, params);
+    });
   } catch (error) {
     logError(`Database error inserting user auth for user ID ${userId}:`, error);
-    throw AppError.databaseError('Failed to insert user authentication details', {
-      isExpected: false,
+    throw new AppError('Failed to insert user authentication details', 500, {
+      type: 'DatabaseError',
     });
   }
 };
@@ -297,25 +303,30 @@ const verifyCurrentPassword = async (client, userId, plainPassword) => {
 /**
  * Checks if a given password has been reused by the user.
  *
- * This function retrieves the user's password history from the `user_auth` table and compares
- * the new plain-text password against each stored hash in the history to ensure it has not been reused.
- * It is intended to be used within a transaction for atomicity.
+ * This function fetches the user's password history, locks the relevant row for updates,
+ * and verifies the new plain-text password against each stored hash in the history.
  *
  * @param {object} client - The database client used in the transaction.
- * @param {string} userId - The unique identifier of the user whose password is being validated.
- * @param {string} newPassword - The plain-text password to check against the user's password history.
- * @returns {Promise<boolean>} - Resolves to `true` if the password has been reused, otherwise `false`.
- * @throws {AppError} - Throws a structured `AppError` if a database or validation error occurs.
+ * @param {string} userId - The unique identifier of the user.
+ * @param {string} newPassword - The plain-text password to validate against the user's password history.
+ * @returns {Promise<boolean>} - Returns true if the password has been reused, otherwise false.
+ * @throws {AppError} - Throws an AppError if a database or validation error occurs.
  */
 const isPasswordReused = async (client, userId, newPassword) => {
-  const passwordHistory = await fetchPasswordHistory(client, userId);
-  
   try {
+    // Lock the user's row in the `user_auth` table to ensure consistent read during password reuse check
+    await retry(async () => {
+      await lockRow(client, 'user_auth', userId, 'FOR UPDATE');
+    });
+    
+    // Fetch the user's password history
+    const passwordHistory = await fetchPasswordHistory(client, userId);
+    
     // Compare the provided plain-text password with each stored hash
     for (const historyEntry of passwordHistory) {
       const { password_hash, password_salt } = historyEntry;
-      const isMatch = await verifyPassword(newPassword, password_hash, password_salt);
       
+      const isMatch = await verifyPassword(newPassword, password_hash, password_salt);
       if (isMatch) {
         return true; // Password matches a previously used password
       }
@@ -327,15 +338,13 @@ const isPasswordReused = async (client, userId, newPassword) => {
     logError('Error checking password reuse:', error);
     throw new AppError('Failed to check password reuse', 500, {
       type: 'DatabaseError',
+      details: { userId },
     });
   }
 };
 
 /**
- * Updates the password history for a user in the `user_auth` table.
- *
- * This function updates the `password_history` array stored in the `metadata` column
- * for the specified user. It is designed to be used within a transaction for atomic updates.
+ * Updates the password history for a user in the `user_auth` table with retry and row locking.
  *
  * @param {object} client - The database client used in the transaction.
  * @param {string} userId - The unique identifier of the user whose password history is being updated.
@@ -359,8 +368,16 @@ const updatePasswordHistory = async (client, userId, updatedHistory) => {
   `;
   
   try {
-    const result = await query(sql, [JSON.stringify(updatedHistory), userId], client);
-    return result.rowCount > 0;
+    // Retry and lock the row before updating
+    await retry(async () => {
+      await lockRow(client, 'user_auth', userId, 'FOR UPDATE');
+      const result = await query(sql, [JSON.stringify(updatedHistory), userId], client);
+      if (result.rowCount === 0) {
+        throw AppError.notFoundError(`Failed to update password history for user ${userId}`);
+      }
+    });
+    
+    return true;
   } catch (error) {
     logError('Error updating password history:', error);
     throw new AppError('Failed to update password history', 500, {
@@ -370,11 +387,7 @@ const updatePasswordHistory = async (client, userId, updatedHistory) => {
 };
 
 /**
- * Updates the user's password hash and salt in the `user_auth` table.
- *
- * This function is part of the repository layer and updates the user's `password_hash`
- * and `password_salt` fields to reflect the new password. It is designed to be used
- * within a transaction for atomicity.
+ * Updates the user's password hash and salt in the `user_auth` table with retry and row locking.
  *
  * @param {object} client - The database client used in the transaction.
  * @param {string} userId - The unique identifier of the user whose password is being updated.
@@ -394,8 +407,16 @@ const updatePasswordHashAndSalt = async (client, userId, hashedPassword, passwor
   `;
   
   try {
-    const result = await query(sql, [hashedPassword, passwordSalt, userId], client);
-    return result.rowCount > 0;
+    // Retry and lock the row before updating
+    await retry(async () => {
+      await lockRow(client, 'user_auth', userId, 'FOR UPDATE');
+      const result = await query(sql, [hashedPassword, passwordSalt, userId], client);
+      if (result.rowCount === 0) {
+        throw AppError.notFoundError(`Failed to update password hash and salt for user ${userId}`);
+      }
+    });
+    
+    return true;
   } catch (error) {
     logError('Error updating password hash and salt:', error);
     throw new AppError('Failed to update password hash and salt', 500, {

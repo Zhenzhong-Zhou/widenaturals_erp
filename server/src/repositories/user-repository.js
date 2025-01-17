@@ -1,10 +1,15 @@
-const { query } = require('../database/db');
+const { query, retry, lockRow } = require('../database/db');
 const { logError, logWarn } = require('../utils/logger-helper');
-const { maskSensitiveInfo } = require('../utils/sensitive-data-utils');
+const { maskSensitiveInfo, maskField } = require('../utils/sensitive-data-utils');
 const AppError = require('../utils/AppError');
 
 /**
- * Inserts a new user into the `users` table.
+ * Inserts a new user into the `users` table with retry logic for transient errors.
+ *
+ * @param {object} client - The database client.
+ * @param {object} userDetails - User details to be inserted.
+ * @returns {Promise<object>} - The inserted user details.
+ * @throws {AppError} - Throws an error if the insertion fails or user already exists.
  */
 const insertUser = async (client, userDetails) => {
   const {
@@ -19,7 +24,7 @@ const insertUser = async (client, userDetails) => {
     statusDate,
     createdBy,
   } = userDetails;
-
+  
   const sql = `
     INSERT INTO users (
       email, role_id, status_id, firstname, lastname, phone_number,
@@ -41,20 +46,22 @@ const insertUser = async (client, userDetails) => {
     statusDate,
     createdBy,
   ];
-
+  
   try {
-    const result = await client.query(sql, params);
-
-    if (result.rows.length === 0) {
-      const maskedEmail = maskSensitiveInfo(email, 'email');
-      logWarn(`User with email ${maskedEmail} already exists.`);
-      throw new AppError('User already exists', 409, {
-        type: 'ConflictError',
-        isExpected: true,
-      });
-    }
-
-    return result.rows[0];
+    return await retry(async () => {
+      const result = await client.query(sql, params);
+      
+      if (result.rows.length === 0) {
+        const maskedEmail = maskSensitiveInfo(email, 'email');
+        logWarn(`User with email ${maskedEmail} already exists.`);
+        throw new AppError('User already exists', 409, {
+          type: 'ConflictError',
+          isExpected: true,
+        });
+      }
+      
+      return result.rows[0];
+    });
   } catch (error) {
     logError('Error inserting user:', error);
     throw new AppError('Failed to insert user', 500, { type: 'DatabaseError' });
@@ -62,14 +69,17 @@ const insertUser = async (client, userDetails) => {
 };
 
 /**
- * Fetches a user by a specific field (ID or email).
+ * Fetches a user by a specific field (ID or email) and optionally locks the row.
  *
+ * @param {object} client - The database client.
  * @param {string} field - The field to search by (`id` or `email`).
  * @param {string} value - The value of the field.
- * @returns {Object|null} - The user record or null if not found.
- * @throws {AppError} - For database or query errors.
+ * @param {boolean} shouldLock - Whether to lock the row for update (default: false).
+ * @returns {Promise<object|null>} - The user record or null if not found.
+ * @throws {AppError} - Throws an error for invalid fields or database issues.
  */
-const getUser = async (field, value) => {
+const getUser = async (client, field, value, shouldLock = false) => {
+  const maskedField = maskField(field, value);
   if (!['id', 'email'].includes(field)) {
     throw new AppError('Invalid field for user query', 400, {
       type: 'ValidationError',
@@ -101,16 +111,25 @@ const getUser = async (field, value) => {
   const params = [value];
   
   try {
-    const result = await query(sql, params);
+    const user = await retry(async () => {
+      const result = await client.query(sql, params);
+      
+      if (result.rows.length === 0) {
+        return null;
+      }
+      
+      return result.rows[0];
+    });
     
-    if (result.rows.length === 0) {
-      return null; // Return null if no user is found
+    // Optionally lock the user's row to ensure consistency
+    if (shouldLock && user) {
+      await lockRow(client, 'users', user.id, 'FOR UPDATE');
     }
     
-    return result.rows[0];
+    return user;
   } catch (error) {
-    logError(`Error fetching user by ${field}:`, error);
-    throw new AppError(`Failed to fetch user by ${field}`, 500, {
+    logError(`Error fetching user by ${maskedField}:`, error);
+    throw new AppError(`Failed to fetch user by ${maskedField}`, 500, {
       type: 'DatabaseError',
     });
   }
@@ -162,6 +181,7 @@ const getAllUsers = async () => {
  * @throws {AppError} - If the field is invalid or the query fails.
  */
 const userExists = async (field, value) => {
+  const maskedField = maskField(field, value);
   if (!['id', 'email'].includes(field)) {
     throw new AppError('Invalid field for user existence check', 400, {
       type: 'ValidationError',
@@ -176,8 +196,8 @@ const userExists = async (field, value) => {
     const result = await query(sql, params);
     return result.rowCount > 0; // Return true if the user exists
   } catch (error) {
-    logError(`Error checking user existence by ${field}:`, error);
-    throw new AppError(`Failed to check user existence by ${field}`, 500, {
+    logError(`Error checking user existence by ${maskedField}:`, error);
+    throw new AppError(`Failed to check user existence by ${maskedField}`, 500, {
       type: 'DatabaseError',
     });
   }
