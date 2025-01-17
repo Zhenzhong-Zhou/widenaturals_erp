@@ -156,14 +156,14 @@ const refreshTokenController = async (req, res, next) => {
  */
 const resetPasswordController = async (req, res, next) => {
   try {
-    const { userId, newPassword } = req.body;
+    const { userId, currentPassword, newPassword } = req.body;
     
     if (!userId || !newPassword) {
       throw validationError('User ID and new password are required.');
     }
     
     // Call the service layer to reset the password
-    await resetPassword(userId, newPassword);
+    await resetPassword(userId, currentPassword, newPassword);
     
     // Clear the refresh token cookie
     res.clearCookie('refreshToken', {

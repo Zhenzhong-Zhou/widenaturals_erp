@@ -8,7 +8,6 @@ const {
 } = require('../utils/logger-helper');
 const { hashPasswordWithSalt } = require('../utils/password-helper');
 const {
-  createUser,
   userExists,
 } = require('../repositories/user-repository');
 const {
@@ -20,6 +19,7 @@ const {
   ACTIVE_STATUS,
   JOB_TITLE,
 } = require('../utils/constants/general/root-admin');
+const { createUser } = require('../services/user-service');
 
 /**
  * Validates and hashes the password.

@@ -1,8 +1,7 @@
-const { getClient, query } = require('../database/db');
+const { query } = require('../database/db');
 const { logError, logWarn } = require('../utils/logger-helper');
 const { maskSensitiveInfo } = require('../utils/sensitive-data-utils');
 const AppError = require('../utils/AppError');
-const { insertUserAuth } = require('./user-auth-repository');
 
 /**
  * Inserts a new user into the `users` table.
@@ -59,36 +58,6 @@ const insertUser = async (client, userDetails) => {
   } catch (error) {
     logError('Error inserting user:', error);
     throw new AppError('Failed to insert user', 500, { type: 'DatabaseError' });
-  }
-};
-
-/**
- * Creates a new user with authentication details.
- */
-const createUser = async (userDetails) => {
-  const client = await getClient();
-
-  try {
-    await client.query('BEGIN'); // Start transaction
-
-    const user = await insertUser(client, userDetails);
-
-    await insertUserAuth(client, {
-      userId: user.id,
-      passwordHash: userDetails.passwordHash,
-      passwordSalt: userDetails.passwordSalt,
-    });
-
-    await client.query('COMMIT'); // Commit transaction
-    return user;
-  } catch (error) {
-    await client.query('ROLLBACK'); // Rollback transaction on error
-    logError('Error creating user:', error);
-    throw error instanceof AppError
-      ? error
-      : new AppError('Failed to create user', 500, { type: 'DatabaseError' });
-  } finally {
-    client.release();
   }
 };
 
@@ -185,11 +154,12 @@ const getAllUsers = async () => {
 };
 
 /**
- * Checks if a user exists by a specific field (ID or email).
+ * Checks if a user exists in the database by a specific field and value.
  *
- * @param {string} field - The field to search by (`id` or `email`).
+ * @param {string} field - The field to search by (e.g., 'id' or 'email').
  * @param {string} value - The value of the field.
- * @returns {boolean} - True if the user exists, false otherwise.
+ * @returns {Promise<boolean>} - True if the user exists, false otherwise.
+ * @throws {AppError} - If the field is invalid or the query fails.
  */
 const userExists = async (field, value) => {
   if (!['id', 'email'].includes(field)) {
@@ -204,15 +174,7 @@ const userExists = async (field, value) => {
   
   try {
     const result = await query(sql, params);
-    
-    if (result.rows.length === 0) {
-      throw new AppError('User not found', 404, {
-        type: 'NotFoundError',
-        isExpected: true,
-      });
-    }
-    
-    return result.rowCount;
+    return result.rowCount > 0; // Return true if the user exists
   } catch (error) {
     logError(`Error checking user existence by ${field}:`, error);
     throw new AppError(`Failed to check user existence by ${field}`, 500, {
@@ -289,7 +251,7 @@ const deleteUser = async (id) => {
 };
 
 module.exports = {
-  createUser,
+  insertUser,
   getUser,
   getAllUsers,
   userExists,

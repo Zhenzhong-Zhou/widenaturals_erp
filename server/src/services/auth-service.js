@@ -2,12 +2,12 @@ const {
   getUserAuthByEmail,
   incrementFailedAttempts,
   resetFailedAttemptsAndUpdateLastLogin, updatePasswordHistory,
-  updatePasswordHashAndSalt, fetchPasswordHistory,
+  updatePasswordHashAndSalt, fetchPasswordHistory, isPasswordReused, verifyCurrentPassword,
 } = require('../repositories/user-auth-repository');
 const { verifyPassword, hashPasswordWithSalt } = require('../utils/password-helper');
 const { signToken } = require('../utils/token-helper');
 const AppError = require('../utils/AppError');
-const { validateUserExists, validatePasswordReused } = require('../validators/db-validators');
+const { validateUserExists, validatePasswordReused, validateCurrentPassword } = require('../validators/db-validators');
 const { logError } = require('../utils/logger-helper');
 const { getClient } = require('../database/db');
 
@@ -80,11 +80,21 @@ const loginUser = async (email, password) => {
 /**
  * Resets the password for a user.
  *
- * @param {string} userId - The ID of the user.
- * @param {string} newPassword - The new password to set.
- * @throws {AppError} - If the user does not exist, password is reused, or other issues occur.
+ * This function ensures secure password reset by validating the user, verifying the
+ * current password, checking for password reuse, and updating both the password
+ * and password history in the database. The operation is executed within a
+ * transaction to maintain atomicity.
+ *
+ * @param {string} userId - The ID of the user whose password is being reset.
+ * @param {string} currentPassword - The user's current password for validation.
+ * @param {string} newPassword - The new password to set for the user.
+ * @throws {AppError} - Throws an error if:
+ *                      - The user does not exist.
+ *                      - The current password is invalid.
+ *                      - The new password matches a previous password.
+ *                      - Any database operation fails.
  */
-const resetPassword = async (userId, newPassword) => {
+const resetPassword = async (userId, currentPassword, newPassword) => {
   // Acquire a client for the transaction
   const client = await getClient();
   
@@ -94,8 +104,11 @@ const resetPassword = async (userId, newPassword) => {
     // Validate the user exists
     await validateUserExists(userId);
     
+    // Verify the current password
+    await verifyCurrentPassword(userId, currentPassword);
+    
     // Validate password reuse
-    await validatePasswordReused(userId, newPassword);
+    await isPasswordReused(userId, newPassword);
     
     // Hash the new password
     const { passwordHash, passwordSalt } = await hashPasswordWithSalt(newPassword);

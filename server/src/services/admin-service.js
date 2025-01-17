@@ -1,6 +1,6 @@
 const AppError = require('../utils/AppError');
 const { hashPasswordWithSalt } = require('../utils/password-helper');
-const { createUser } = require('../repositories/user-repository');
+const { createUser } = require('./user-service');
 const {
   validateRoleByName,
   validateStatus,

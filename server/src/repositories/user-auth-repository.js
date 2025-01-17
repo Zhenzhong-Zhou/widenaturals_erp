@@ -2,6 +2,7 @@ const AppError = require('../utils/AppError');
 const { query } = require('../database/db');
 const { logError } = require('../utils/logger-helper');
 const { verifyPassword } = require('../utils/password-helper');
+const { validateUserExists } = require('../validators/db-validators');
 
 /**
  * Inserts authentication details into the `user_auth` table.
@@ -200,6 +201,46 @@ const fetchPasswordHistory = async (userId) => {
 };
 
 /**
+ * Verifies if the provided plain-text password matches the current password
+ * stored in the database for a given user.
+ *
+ * This function retrieves the user's current password hash and salt from the database,
+ * then uses a secure hashing algorithm to validate the provided plain-text password.
+ *
+ * @param {string} userId - The ID of the user whose password is being verified.
+ * @param {string} plainPassword - The plain-text password to verify.
+ * @returns {Promise<boolean>} - True if the password matches, false otherwise.
+ * @throws {AppError} - Throws an error if the user is not found or if there is
+ *                      an issue querying the database.
+ */
+const verifyCurrentPassword = async (userId, plainPassword) => {
+  const sql = `
+    SELECT password_hash, password_salt
+    FROM user_auth
+    WHERE user_id = $1
+  `;
+  
+  try {
+    // Fetch the current password hash and salt from the database
+    const result = await query(sql, [userId]);
+    
+    const { password_hash: passwordHash, password_salt: passwordSalt } = result.rows[0];
+    
+    // Verify the plain-text password against the stored hash and salt
+    const isMatch = await verifyPassword(plainPassword, passwordHash, passwordSalt);
+    
+    // Return whether the passwords match
+    return isMatch;
+  } catch (error) {
+    // Log the error and throw a structured AppError for better error handling
+    logError('Error verifying current password:', error);
+    throw new AppError('Failed to verify current password', 500, {
+      type: 'DatabaseError',
+    });
+  }
+};
+
+/**
  * Checks if a given password has been reused by the user.
  *
  * This function fetches the user's password history and verifies the new plain-text password
@@ -218,7 +259,6 @@ const isPasswordReused = async (userId, newPassword) => {
     for (const historyEntry of passwordHistory) {
       const { password_hash, password_salt } = historyEntry;
       const isMatch = await verifyPassword(newPassword, password_hash, password_salt);
-      console.log(isMatch);
       if (isMatch) {
         return true; // Password matches a previously used password
       }
@@ -306,6 +346,7 @@ module.exports = {
   getUserAuthByEmail,
   incrementFailedAttempts,
   resetFailedAttemptsAndUpdateLastLogin,
+  verifyCurrentPassword,
   isPasswordReused,
   fetchPasswordHistory,
   updatePasswordHistory,
