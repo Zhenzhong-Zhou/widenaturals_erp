@@ -7,9 +7,9 @@ const {
 const { verifyPassword, hashPasswordWithSalt } = require('../utils/password-helper');
 const { signToken } = require('../utils/token-helper');
 const AppError = require('../utils/AppError');
-const { validateUserExists, validatePasswordReused, validateCurrentPassword } = require('../validators/db-validators');
+const { validateUserExists } = require('../validators/db-validators');
 const { logError } = require('../utils/logger-helper');
-const { getClient } = require('../database/db');
+const { withTransaction } = require('../database/db');
 
 /**
  * Handles user login business logic.
@@ -95,53 +95,53 @@ const loginUser = async (email, password) => {
  *                      - Any database operation fails.
  */
 const resetPassword = async (userId, currentPassword, newPassword) => {
-  // Acquire a client for the transaction
-  const client = await getClient();
-  
   try {
-    await client.query('BEGIN'); // Start transaction
-    
-    // Validate the user exists
-    await validateUserExists(userId);
-    
-    // Verify the current password
-    await verifyCurrentPassword(userId, currentPassword);
-    
-    // Validate password reuse
-    await isPasswordReused(userId, newPassword);
-    
-    // Hash the new password
-    const { passwordHash, passwordSalt } = await hashPasswordWithSalt(newPassword);
-    
-    // Fetch the existing password history
-    const passwordHistory = await fetchPasswordHistory(userId);
-    
-    // Prepare the new password entry
-    const newPasswordEntry = {
-      password_hash: passwordHash,
-      password_salt: passwordSalt,
-      timestamp: new Date().toISOString(),
-    };
-    
-    // Limit history to the latest 4 entries + the new entry
-    const updatedHistory = [newPasswordEntry, ...passwordHistory].slice(0, 5);
-    
-    // Update the password history
-    await updatePasswordHistory(userId, updatedHistory);
-    
-    // Update the password hash and salt
-    await updatePasswordHashAndSalt(userId, passwordHash, passwordSalt);
-    
-    // Commit the transaction after successful operations
-    await client.query('COMMIT');
+    return await withTransaction(async (client) => {
+      // Validate the user exists
+      await validateUserExists(userId);
+      
+      // Verify the current password
+      await verifyCurrentPassword(userId, currentPassword);
+      
+      // Validate password reuse
+      const isReused = await isPasswordReused(client, userId, newPassword);
+      if (isReused) {
+        throw new AppError('New password cannot be the same as a previously used password.', 400, {
+            type: 'ValidationError',
+            isExpected: true,
+          }
+        );
+      }
+      
+      // Hash the new password
+      const { passwordHash, passwordSalt } = await hashPasswordWithSalt(newPassword);
+      
+      // Fetch the existing password history
+      const passwordHistory = await fetchPasswordHistory(client, userId);
+      
+      // Prepare the new password entry
+      const newPasswordEntry = {
+        password_hash: passwordHash,
+        password_salt: passwordSalt,
+        timestamp: new Date().toISOString(),
+      };
+      
+      // Limit history to the latest 4 entries + the new entry
+      const updatedHistory = [newPasswordEntry, ...passwordHistory].slice(0, 5);
+      
+      // Update the password history
+      await updatePasswordHistory(client, userId, updatedHistory);
+      
+      // Update the password hash and salt
+      await updatePasswordHashAndSalt(client, userId, passwordHash, passwordSalt);
+      
+      return { success: true };
+    });
   } catch (error) {
-    // Rollback the transaction in case of errors
-    await client.query('ROLLBACK');
     logError('Error resetting password:', error);
-    throw error;
-  } finally {
-    // Always release the client
-    client.release();
+    throw error instanceof AppError
+      ? error
+      : new AppError('Failed to reset password', 500, { type: 'DatabaseError' });
   }
 };
 

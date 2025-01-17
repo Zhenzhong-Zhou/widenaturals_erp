@@ -34,12 +34,16 @@ pool.on('error', (err) => {
  * Execute a query on the database and monitor for slow execution times.
  * @param {string} text - The SQL query string.
  * @param {Array} [params] - Query parameters (optional).
+ * @param clientOrPool
  * @returns {Promise<object>} - The query result.
  */
-const query = async (text, params = []) => {
-  const client = await pool.connect(); // Acquire a client from the pool
+const query = async (text, params = [], clientOrPool = null) => {
+  const client = clientOrPool || (await pool.connect()); // Use the provided client or acquire a new one
   const startTime = Date.now(); // Start timer for query execution
+  let shouldRelease = false;
+  
   try {
+    if (!clientOrPool) shouldRelease = true; // Mark for release only if acquired here
     const result = await client.query(text, params); // Execute the query
     const duration = Date.now() - startTime;
     
@@ -53,7 +57,7 @@ const query = async (text, params = []) => {
         duration: `${duration}ms`,
       });
     }
-
+    
     logInfo('Query executed', { query: text, duration: `${duration}ms` });
     return result;
   } catch (error) {
@@ -66,7 +70,7 @@ const query = async (text, params = []) => {
       details: { query: text, params, error: error.message },
     });
   } finally {
-    client.release(); // Release the client back to the pool
+    if (shouldRelease) client.release(); // Release the client back to the pool only if acquired here
   }
 };
 
@@ -81,6 +85,29 @@ const getClient = async () => {
     throw AppError.databaseError('Failed to acquire a database client', {
       details: { error: error.message },
     });
+  }
+};
+
+/**
+ * Wraps a database operation in a transaction.
+ *
+ * @param {Function} callback - The function to execute within the transaction.
+ *                              It receives the database client as an argument.
+ * @returns {Promise<any>} - The result of the transaction.
+ * @throws {Error} - Rethrows any errors encountered during the transaction.
+ */
+const withTransaction = async (callback) => {
+  const client = await getClient();
+  try {
+    await client.query('BEGIN');
+    const result = await callback(client);
+    await client.query('COMMIT');
+    return result;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
   }
 };
 
@@ -227,6 +254,7 @@ module.exports = {
   pool,
   query,
   getClient,
+  withTransaction,
   closePool,
   testConnection,
   monitorPool,

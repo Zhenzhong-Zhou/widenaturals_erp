@@ -162,18 +162,18 @@ const resetFailedAttemptsAndUpdateLastLogin = async (userId) => {
 };
 
 /**
- * Fetches the latest password history for a user.
+ * Fetches a limited password history for a user, ordered by the most recent entry.
  *
- * This function retrieves up to the last 4 password entries from a user's
- * password history stored in the `metadata` JSONB column of the `user_auth` table.
+ * This function retrieves the `password_history` from the `metadata` column of the `user_auth` table,
+ * ensuring only the latest entries (e.g., limited to 4 or 5) are returned.
  *
- * @param {string} userId - The ID of the user.
- * @returns {Promise<object[]>} - An array of password history objects containing
- *                                the password hash, salt, and timestamp.
- *                                Example: [{ password_hash: '...', password_salt: '...', timestamp: '...' }]
- * @throws {AppError} - Throws a structured error if the query fails.
+ * @param {object} client - The database client used in the transaction.
+ * @param {string} userId - The unique identifier of the user whose password history is being retrieved.
+ * @returns {Promise<Array<object>>} - Resolves to an array of password history objects containing keys like
+ *                                     `password_hash`, `password_salt`, and `timestamp`.
+ * @throws {AppError} - Throws a structured `AppError` if the query fails or an unexpected error occurs.
  */
-const fetchPasswordHistory = async (userId) => {
+const fetchPasswordHistory = async (client, userId) => {
   const sql = `
     SELECT jsonb_agg(value) AS limited_history
     FROM (
@@ -190,10 +190,15 @@ const fetchPasswordHistory = async (userId) => {
   `;
   
   try {
-    const result = await query(sql, [userId]);
+    // const result = await query(sql, [userId]);
+    const result = await client.query(sql, [userId]);
+    
+    // Return the limited history or an empty array if none exists
     return result.rows[0]?.limited_history || [];
   } catch (error) {
     logError('Error fetching password history:', error);
+    
+    // Throw a structured AppError for better error handling
     throw new AppError('Failed to fetch password history', 500, {
       type: 'DatabaseError',
     });
@@ -243,22 +248,25 @@ const verifyCurrentPassword = async (userId, plainPassword) => {
 /**
  * Checks if a given password has been reused by the user.
  *
- * This function fetches the user's password history and verifies the new plain-text password
- * against each stored hash in the history to ensure it has not been reused.
+ * This function retrieves the user's password history from the `user_auth` table and compares
+ * the new plain-text password against each stored hash in the history to ensure it has not been reused.
+ * It is intended to be used within a transaction for atomicity.
  *
- * @param {string} userId - The ID of the user.
- * @param {string} newPassword - The plain-text password to validate against the user's password history.
- * @returns {Promise<boolean>} - Returns true if the password has been reused, otherwise false.
- * @throws {AppError} - Throws an AppError if a database or validation error occurs.
+ * @param {object} client - The database client used in the transaction.
+ * @param {string} userId - The unique identifier of the user whose password is being validated.
+ * @param {string} newPassword - The plain-text password to check against the user's password history.
+ * @returns {Promise<boolean>} - Resolves to `true` if the password has been reused, otherwise `false`.
+ * @throws {AppError} - Throws a structured `AppError` if a database or validation error occurs.
  */
-const isPasswordReused = async (userId, newPassword) => {
-  const passwordHistory = await fetchPasswordHistory(userId);
+const isPasswordReused = async (client, userId, newPassword) => {
+  const passwordHistory = await fetchPasswordHistory(client, userId);
   
   try {
     // Compare the provided plain-text password with each stored hash
     for (const historyEntry of passwordHistory) {
       const { password_hash, password_salt } = historyEntry;
       const isMatch = await verifyPassword(newPassword, password_hash, password_salt);
+      
       if (isMatch) {
         return true; // Password matches a previously used password
       }
@@ -275,18 +283,22 @@ const isPasswordReused = async (userId, newPassword) => {
 };
 
 /**
- * Updates the password history for a user.
+ * Updates the password history for a user in the `user_auth` table.
  *
- * This function updates the `password_history` array in the `metadata` column of the `user_auth` table.
+ * This function updates the `password_history` array stored in the `metadata` column
+ * for the specified user. It is designed to be used within a transaction for atomic updates.
  *
- * @param {string} userId - The ID of the user.
- * @param {object[]} updatedHistory - The updated password history array containing
- *                                     objects with keys: `password_hash`, `password_salt`, and `timestamp`.
- *                                     Example: [{ password_hash: '...', password_salt: '...', timestamp: '...' }]
- * @returns {Promise<boolean>} - True if the update was successful, false otherwise.
- * @throws {AppError} - Throws a structured error if the update fails.
+ * @param {object} client - The database client used in the transaction.
+ * @param {string} userId - The unique identifier of the user whose password history is being updated.
+ * @param {object[]} updatedHistory - An array of password history entries, each containing:
+ *   - `password_hash`: The hashed password (string).
+ *   - `password_salt`: The salt used for hashing the password (string).
+ *   - `timestamp`: The timestamp when the password was set (string).
+ *   Example: [{ password_hash: '...', password_salt: '...', timestamp: '...' }]
+ * @returns {Promise<boolean>} - Resolves to `true` if the update was successful, otherwise `false`.
+ * @throws {AppError} - Throws a structured `AppError` if the update fails.
  */
-const updatePasswordHistory = async (userId, updatedHistory) => {
+const updatePasswordHistory = async (client, userId, updatedHistory) => {
   const sql = `
     UPDATE user_auth
     SET metadata = jsonb_set(
@@ -298,7 +310,7 @@ const updatePasswordHistory = async (userId, updatedHistory) => {
   `;
   
   try {
-    const result = await query(sql, [JSON.stringify(updatedHistory), userId]);
+    const result = await query(sql, [JSON.stringify(updatedHistory), userId], client);
     return result.rowCount > 0;
   } catch (error) {
     logError('Error updating password history:', error);
@@ -309,18 +321,20 @@ const updatePasswordHistory = async (userId, updatedHistory) => {
 };
 
 /**
- * Updates the user's password hash and salt.
+ * Updates the user's password hash and salt in the `user_auth` table.
  *
- * This function updates the `password_hash` and `password_salt` fields in the `user_auth` table
- * to reflect the user's new password.
+ * This function is part of the repository layer and updates the user's `password_hash`
+ * and `password_salt` fields to reflect the new password. It is designed to be used
+ * within a transaction for atomicity.
  *
- * @param {string} userId - The ID of the user.
- * @param {string} hashedPassword - The new hashed password to store.
- * @param {string} passwordSalt - The new password salt used during hashing.
- * @returns {Promise<boolean>} - True if the update was successful, false otherwise.
- * @throws {AppError} - Throws a structured error if the update fails.
+ * @param {object} client - The database client used in the transaction.
+ * @param {string} userId - The unique identifier of the user whose password is being updated.
+ * @param {string} hashedPassword - The newly hashed password to store.
+ * @param {string} passwordSalt - The salt used to hash the new password.
+ * @returns {Promise<boolean>} - Resolves to `true` if the update was successful, otherwise `false`.
+ * @throws {AppError} - Throws a structured `AppError` if the update fails.
  */
-const updatePasswordHashAndSalt = async (userId, hashedPassword, passwordSalt) => {
+const updatePasswordHashAndSalt = async (client, userId, hashedPassword, passwordSalt) => {
   const sql = `
     UPDATE user_auth
     SET
@@ -331,7 +345,7 @@ const updatePasswordHashAndSalt = async (userId, hashedPassword, passwordSalt) =
   `;
   
   try {
-    const result = await query(sql, [hashedPassword, passwordSalt, userId]);
+    const result = await query(sql, [hashedPassword, passwordSalt, userId], client);
     return result.rowCount > 0;
   } catch (error) {
     logError('Error updating password hash and salt:', error);
