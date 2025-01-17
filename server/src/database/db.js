@@ -42,7 +42,7 @@ const query = async (text, params = []) => {
   try {
     const result = await client.query(text, params); // Execute the query
     const duration = Date.now() - startTime;
-
+    
     // Log slow queries
     const slowQueryThreshold =
       parseInt(process.env.SLOW_QUERY_THRESHOLD, 10) || 1000; // Default: 1000ms

@@ -1,6 +1,7 @@
 const AppError = require('../utils/AppError');
 const { query } = require('../database/db');
 const { logError } = require('../utils/logger-helper');
+const { verifyPassword } = require('../utils/password-helper');
 
 /**
  * Inserts authentication details into the `user_auth` table.
@@ -160,31 +161,70 @@ const resetFailedAttemptsAndUpdateLastLogin = async (userId) => {
 };
 
 /**
- * Checks if a given password has been used by the user in the past.
+ * Fetches the latest password history for a user.
+ *
+ * This function retrieves up to the last 4 password entries from a user's
+ * password history stored in the `metadata` JSONB column of the `user_auth` table.
  *
  * @param {string} userId - The ID of the user.
- * @param {string} hashedPassword - The hashed password to check.
- * @returns {Promise<boolean>} - True if the password is reused, false otherwise.
- * @throws {AppError} - Throws an error if the query fails.
+ * @returns {Promise<object[]>} - An array of password history objects containing
+ *                                the password hash, salt, and timestamp.
+ *                                Example: [{ password_hash: '...', password_salt: '...', timestamp: '...' }]
+ * @throws {AppError} - Throws a structured error if the query fails.
  */
-const isPasswordReused = async (userId, hashedPassword) => {
+const fetchPasswordHistory = async (userId) => {
   const sql = `
-    SELECT 1
-    FROM user_auth
-    WHERE user_id = $1
-      AND $2 = ANY(
-        ARRAY(
-          SELECT jsonb_array_elements_text(metadata->'password_history')
+    SELECT jsonb_agg(value) AS limited_history
+    FROM (
+      SELECT value
+      FROM jsonb_array_elements(
+        COALESCE(
+          (SELECT metadata->'password_history' FROM user_auth WHERE user_id = $1),
+          '[]'::jsonb
         )
-      )
+      ) AS value
+      ORDER BY value->>'timestamp' DESC
+      LIMIT 4
+    ) sub;
   `;
   
   try {
-    // Execute the query to check if the hashed password exists in the password history
-    const result = await query(sql, [userId, hashedPassword]);
+    const result = await query(sql, [userId]);
+    return result.rows[0]?.limited_history || [];
+  } catch (error) {
+    logError('Error fetching password history:', error);
+    throw new AppError('Failed to fetch password history', 500, {
+      type: 'DatabaseError',
+    });
+  }
+};
+
+/**
+ * Checks if a given password has been reused by the user.
+ *
+ * This function fetches the user's password history and verifies the new plain-text password
+ * against each stored hash in the history to ensure it has not been reused.
+ *
+ * @param {string} userId - The ID of the user.
+ * @param {string} newPassword - The plain-text password to validate against the user's password history.
+ * @returns {Promise<boolean>} - Returns true if the password has been reused, otherwise false.
+ * @throws {AppError} - Throws an AppError if a database or validation error occurs.
+ */
+const isPasswordReused = async (userId, newPassword) => {
+  const passwordHistory = await fetchPasswordHistory(userId);
+  
+  try {
+    // Compare the provided plain-text password with each stored hash
+    for (const historyEntry of passwordHistory) {
+      const { password_hash, password_salt } = historyEntry;
+      const isMatch = await verifyPassword(newPassword, password_hash, password_salt);
+      console.log(isMatch);
+      if (isMatch) {
+        return true; // Password matches a previously used password
+      }
+    }
     
-    // Return true if the password is reused, otherwise false
-    return result.rowCount > 0;
+    return false; // No match found
   } catch (error) {
     // Log the error and throw a structured AppError for better error handling
     logError('Error checking password reuse:', error);
@@ -195,56 +235,67 @@ const isPasswordReused = async (userId, hashedPassword) => {
 };
 
 /**
- * Updates a user's password in the database and appends the old password to the history.
+ * Updates the password history for a user.
  *
- * @param {string} userId - The ID of the user whose password is being updated.
- * @param {string} hashedPassword - The new hashed password.
- * @param {string} passwordSalt - The salt used for hashing the password.
+ * This function updates the `password_history` array in the `metadata` column of the `user_auth` table.
+ *
+ * @param {string} userId - The ID of the user.
+ * @param {object[]} updatedHistory - The updated password history array containing
+ *                                     objects with keys: `password_hash`, `password_salt`, and `timestamp`.
+ *                                     Example: [{ password_hash: '...', password_salt: '...', timestamp: '...' }]
  * @returns {Promise<boolean>} - True if the update was successful, false otherwise.
- * @throws {AppError} - Throws an error if the update fails or the user is not found.
+ * @throws {AppError} - Throws a structured error if the update fails.
  */
-const updatePasswordById = async (userId, hashedPassword, passwordSalt) => {
+const updatePasswordHistory = async (userId, updatedHistory) => {
   const sql = `
-    WITH password_history AS (
-      SELECT jsonb_agg(value) AS limited_history
-      FROM (
-        SELECT jsonb_array_elements_text(metadata->'password_history') AS value
-        FROM user_auth
-        WHERE user_id = $3
-        LIMIT 4
-      ) sub
+    UPDATE user_auth
+    SET metadata = jsonb_set(
+      COALESCE(metadata, '{}'),
+      '{password_history}',
+      $1::jsonb
     )
+    WHERE user_id = $2
+  `;
+  
+  try {
+    const result = await query(sql, [JSON.stringify(updatedHistory), userId]);
+    return result.rowCount > 0;
+  } catch (error) {
+    logError('Error updating password history:', error);
+    throw new AppError('Failed to update password history', 500, {
+      type: 'DatabaseError',
+    });
+  }
+};
+
+/**
+ * Updates the user's password hash and salt.
+ *
+ * This function updates the `password_hash` and `password_salt` fields in the `user_auth` table
+ * to reflect the user's new password.
+ *
+ * @param {string} userId - The ID of the user.
+ * @param {string} hashedPassword - The new hashed password to store.
+ * @param {string} passwordSalt - The new password salt used during hashing.
+ * @returns {Promise<boolean>} - True if the update was successful, false otherwise.
+ * @throws {AppError} - Throws a structured error if the update fails.
+ */
+const updatePasswordHashAndSalt = async (userId, hashedPassword, passwordSalt) => {
+  const sql = `
     UPDATE user_auth
     SET
       password_hash = $1,
       password_salt = $2,
-      metadata = jsonb_set(
-        COALESCE(metadata, '{}'),
-        '{password_history}',
-        COALESCE((SELECT limited_history FROM password_history), '[]'::jsonb) || to_jsonb($1::text)
-      ),
       updated_at = NOW()
-    WHERE user_id = $3;
+    WHERE user_id = $3
   `;
   
   try {
-    // Execute the query to update the user's password
     const result = await query(sql, [hashedPassword, passwordSalt, userId]);
-    
-    // Throw an error if no rows were updated (user not found or update failed)
-    if (result.rowCount === 0) {
-      throw new AppError('User not found or password update failed', 404, {
-        type: 'NotFoundError',
-        isExpected: true,
-      });
-    }
-    
-    // Return true if the update was successful
     return result.rowCount > 0;
   } catch (error) {
-    // Log the error and throw a structured AppError for better error handling
-    logError('Error updating user password:', error);
-    throw new AppError('Failed to update password', 500, {
+    logError('Error updating password hash and salt:', error);
+    throw new AppError('Failed to update password hash and salt', 500, {
       type: 'DatabaseError',
     });
   }
@@ -256,5 +307,7 @@ module.exports = {
   incrementFailedAttempts,
   resetFailedAttemptsAndUpdateLastLogin,
   isPasswordReused,
-  updatePasswordById
+  fetchPasswordHistory,
+  updatePasswordHistory,
+  updatePasswordHashAndSalt,
 };

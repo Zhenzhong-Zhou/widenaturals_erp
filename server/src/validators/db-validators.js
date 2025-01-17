@@ -4,7 +4,7 @@ const { getStatusIdByName } = require('../repositories/status-repository');
 const { logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
 const { getUser, userExists } = require('../repositories/user-repository');
-const { isPasswordReused } = require('../repositories/user-auth-repository');
+const { isPasswordReused, fetchPasswordHistory } = require('../repositories/user-auth-repository');
 
 /**
  * Check if an email exists in the database.
@@ -133,30 +133,24 @@ const validateUserExists = async (userId) => {
  * users from reusing any of their previous passwords.
  *
  * @param {string} userId - The ID of the user to check.
- * @param {string} passwordHash - The hashed password to validate against the user's password history.
- * @returns {Promise<boolean>} - True if the password is reused, false otherwise.
- * @throws {AppError} - Throws a structured error if the query fails.
+ * @param {string} newPassword - The plain-text password to validate.
+ * @returns {Promise<void>} - Throws an error if the password is reused.
+ * @throws {AppError} - Throws a validation error if the password is reused.
  */
-const validatePasswordReused = async (userId, passwordHash) => {
+const validatePasswordReused = async (userId, newPassword) => {
   try {
-    // Check if the password has been reused
-    const isReused = await isPasswordReused(userId, passwordHash);
+    const isReused = await isPasswordReused(userId, newPassword);
     
     if (isReused) {
       throw new AppError('New password cannot be the same as a previous password.', 400, {
-        type: 'ValidationError',
-        isExpected: true,
+          type: 'ValidationError',
+          isExpected: true,
       });
     }
-    
-    // Return the result from isPasswordReused
-    return isReused;
+    return true;
   } catch (error) {
-    // Log the error and throw a structured AppError for better error handling
     logError('Error validating password reuse:', error);
-    throw new AppError('Failed to validate password reuse.', 500, {
-      type: 'DatabaseError',
-    });
+    throw error;
   }
 };
 
