@@ -20,61 +20,59 @@ const { withTransaction } = require('../database/db');
  * @throws {AppError} - If authentication fails or account is locked.
  */
 const loginUser = async (email, password) => {
-  try {
-    // Fetch user authentication details
-    const user = await getUserAuthByEmail(email);
-    if (!user) {
-      throw AppError.authenticationError('Invalid email or password.');
+  return await withTransaction(async (client) => {
+    try {
+      // Fetch user authentication details
+      const user = await getUserAuthByEmail(client, email);
+      if (!user) {
+        throw AppError.authenticationError('Invalid email or password.');
+      }
+      
+      const {
+        user_id,
+        role_id,
+        passwordhash,
+        passwordsalt,
+        last_login,
+        failed_attempts,
+        lockout_time,
+      } = user;
+      
+      // Check if account is locked
+      if (lockout_time && new Date(lockout_time) > new Date()) {
+        throw AppError.accountLockedError('Account locked. Try again later.', {
+          code: 'ACCOUNT_LOCKED',
+          lockoutEndsAt: lockout_time,
+        });
+      }
+      
+      // Verify the password
+      const isValidPassword = await verifyPassword(password, passwordhash, passwordsalt);
+      if (!isValidPassword) {
+        // Increment failed attempts and handle lockout
+        await incrementFailedAttempts(client, user_id, failed_attempts);
+        throw AppError.authenticationError('Invalid email or password.');
+      }
+      
+      // Successful login: Reset failed attempts and update last login
+      await resetFailedAttemptsAndUpdateLastLogin(client, user_id);
+      
+      // Generate tokens
+      const accessToken = signToken({ id: user_id, role_id });
+      const refreshToken = signToken({ id: user_id, role_id }, true);
+      
+      return { accessToken, refreshToken, last_login };
+    } catch (error) {
+      // Log unexpected errors for debugging
+      logError('Error during user login:', { email, error });
+      
+      if (error instanceof AppError) {
+        throw error; // Re-throw expected AppError
+      } else {
+        throw AppError.generalError(error.message || 'Login failed.');
+      }
     }
-    
-    const {
-      user_id,
-      role_id,
-      passwordhash,
-      passwordsalt,
-      last_login,
-      failed_attempts,
-      lockout_time
-    } = user;
-    
-    // Check if account is locked
-    if (lockout_time && new Date(lockout_time) > new Date()) {
-      throw AppError.accountLockedError('Account locked. Try again later.', {
-        code: 'ACCOUNT_LOCKED',
-        lockoutEndsAt: lockout_time,
-      });
-    }
-    
-    // Verify the password
-    const isValidPassword = await verifyPassword(
-      password,
-      passwordhash,
-      passwordsalt
-    );
-    if (!isValidPassword) {
-      // Increment failed attempts and handle lockout
-      await incrementFailedAttempts(user_id, failed_attempts);
-      throw AppError.authenticationError('Invalid email or password.');
-    }
-    
-    // Successful login: Reset failed attempts and update last login
-    await resetFailedAttemptsAndUpdateLastLogin(user_id);
-    
-    // Generate tokens
-    const accessToken = signToken({ id: user_id, role_id: role_id });
-    const refreshToken = signToken(
-      { id: user_id, role_id: role_id },
-      true // Refresh token flag
-    );
-    
-    // Optionally include metadata in the response (if needed for UI or debugging)
-    return { accessToken, refreshToken, last_login };
-  } catch (error) {
-    if (!(error instanceof AppError)) {
-      throw AppError.generalError(error.message || 'Login failed.');
-    }
-    throw error; // Re-throw expected AppError for middleware handling
-  }
+  });
 };
 
 /**
@@ -101,7 +99,7 @@ const resetPassword = async (userId, currentPassword, newPassword) => {
       await validateUserExists(userId);
       
       // Verify the current password
-      await verifyCurrentPassword(userId, currentPassword);
+      await verifyCurrentPassword(client, userId, currentPassword);
       
       // Validate password reuse
       const isReused = await isPasswordReused(client, userId, newPassword);

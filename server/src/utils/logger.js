@@ -17,7 +17,7 @@ const isDevelopment = env === 'development';
 const logLevel = process.env.LOG_LEVEL || (isDevelopment ? 'debug' : 'info');
 const logsDir = path.join(
   __dirname,
-  process.env.LOGS_DIR || './server/dev_logs'
+  process.env.LOGS_DIR || '../../dev_logs'
 );
 
 // Ensure logs directory exists

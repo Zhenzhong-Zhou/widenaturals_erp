@@ -185,27 +185,38 @@ const closePool = async () => {
 
 /**
  * Retry a function with exponential backoff.
- * Useful for handling transient database issues.
- * @param {Function} fn - The function to execute (e.g., a query function).
- * @param {number} retries - Maximum number of retry attempts.
- * @returns {Promise<any>} - The result of the function call.
+ *
+ * This utility is designed to handle transient issues, such as temporary database connectivity problems or external service failures.
+ * It retries the provided function a specified number of times, with an exponentially increasing delay between attempts.
+ *
+ * @param {Function} fn - The function to execute. It should return a Promise (e.g., a database query or API call).
+ * @param {number} [retries=3] - The maximum number of retry attempts before giving up.
+ * @param {number} [backoffFactor=1000] - The base delay (in milliseconds) for the exponential backoff. Default is 1000ms.
+ * @returns {Promise<any>} - Resolves with the result of the function if successful within the allowed retries.
+ * @throws {Error} - Throws the last error encountered if all retries are exhausted.
  */
-const retry = async (fn, retries = 3) => {
+const retry = async (fn, retries = 3, backoffFactor = 1000) => {
   let attempt = 0;
+  
   const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
+  
   while (attempt < retries) {
     try {
       return await fn(); // Attempt to execute the function
     } catch (error) {
       attempt++;
-      logWarn(`Retry ${attempt}/${retries} failed: ${error.message}`);
+      logWarn(`Retry ${attempt}/${retries} failed: ${error.message}`, {
+        attempt,
+        retries,
+      });
+      
       if (attempt === retries) {
         throw AppError.serviceError('Function execution failed after retries', {
           details: { error: error.message, attempts: attempt, retries },
         });
       }
-      await delay(1000 * Math.pow(2, attempt)); // Exponential backoff
+      
+      await delay(backoffFactor * Math.pow(2, attempt)); // Configurable exponential backoff
     }
   }
 };
@@ -249,6 +260,96 @@ const retryDatabaseConnection = async (config, retries = 5) => {
   }
 };
 
+const paginateQuery = async (sql, params, page, limit, clientOrPool = pool) => {
+  const offset = (page - 1) * limit;
+  const paginatedSql = `${sql} LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+  return query(paginatedSql, [...params, limit, offset], clientOrPool);
+};
+
+/**
+ * Locks a specific row in the given table using the specified lock mode.
+ *
+ * @param {object} client - The database client.
+ * @param {string} table - The name of the table.
+ * @param {string} id - The ID of the row to lock.
+ * @param {string} [lockMode='FOR UPDATE'] - The lock mode (e.g., 'FOR UPDATE', 'FOR SHARE').
+ * @returns {Promise<object>} - The locked row data.
+ * @throws {AppError} - Throws an error if the table name or lock mode is invalid.
+ */
+const lockRow = async (client, table, id, lockMode = 'FOR UPDATE') => {
+  const tablePrimaryKeys = {
+    users: 'id',
+    user_auth: 'user_id',
+    orders: 'id',
+    inventory: 'id',
+  };
+  const allowedLockModes = ['FOR UPDATE', 'FOR NO KEY UPDATE', 'FOR SHARE', 'FOR KEY SHARE'];
+  
+  const column = tablePrimaryKeys[table];
+  if (!column) {
+    throw AppError.validationError(`Primary key not defined for table: ${table}`);
+  }
+  if (!allowedLockModes.includes(lockMode)) {
+    throw AppError.validationError(`Invalid lock mode: ${lockMode}`);
+  }
+  
+  const sql = `SELECT * FROM ${table} WHERE ${column} = $1 ${lockMode}`;
+  
+  return await retry(async () => {
+    try {
+      const result = await client.query(sql, [id]);
+      if (result.rows.length === 0) {
+        throw AppError.notFoundError(`Row with ID "${id}" not found in table "${table}"`);
+      }
+      return result.rows[0];
+    } catch (error) {
+      logError(`Error locking row in table "${table}" with ID "${id}" using lock mode "${lockMode}":`, {
+        query: sql,
+        params: [id],
+        error: error.message,
+      });
+      throw error; // Keep original error for retry logic
+    }
+  });
+};
+
+/**
+ * Inserts multiple rows into a table in bulk.
+ *
+ * @param {string} tableName - The name of the target table.
+ * @param {string[]} columns - An array of column names to insert values into.
+ * @param {Array<Array<any>>} rows - An array of row values to insert.
+ * @param {object} clientOrPool - The database client or pool to execute the query.
+ * @returns {Promise<number>} - The number of rows successfully inserted.
+ * @throws {AppError} - Throws an error if the query fails.
+ */
+const bulkInsert = async (tableName, columns, rows, clientOrPool = pool) => {
+  if (!rows.length) return 0;
+  
+  const columnNames = columns.join(', ');
+  const valuePlaceholders = rows
+    .map((_, rowIndex) => `(${columns.map((_, colIndex) => `$${rowIndex * columns.length + colIndex + 1}`).join(', ')})`)
+    .join(', ');
+  
+  const sql = `
+    INSERT INTO ${tableName} (${columnNames})
+    VALUES ${valuePlaceholders}
+    RETURNING *;
+  `;
+  
+  const flattenedValues = rows.flat();
+  
+  try {
+    const result = await clientOrPool.query(sql, flattenedValues);
+    return result.rowCount;
+  } catch (error) {
+    logError('Bulk insert failed:', { tableName, columns, rows, error: error.message });
+    throw AppError.databaseError('Bulk insert failed', {
+      details: { tableName, columns, error: error.message },
+    });
+  }
+};
+
 // Export the utilities
 module.exports = {
   pool,
@@ -260,4 +361,7 @@ module.exports = {
   monitorPool,
   retry,
   retryDatabaseConnection,
+  paginateQuery,
+  lockRow,
+  bulkInsert
 };
