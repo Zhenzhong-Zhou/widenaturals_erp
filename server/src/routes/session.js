@@ -7,8 +7,7 @@
 const express = require('express');
 const validate = require('../middlewares/validate');
 const validateAuthInputs = require('../validators/auth-validators');
-const { sessionController } = require('../controllers/session-controller');
-const { refreshTokenController } = require('../controllers/auth-controller');
+const { sessionController, refreshTokenController } = require('../controllers/session-controller');
 
 const router = express.Router();
 
