@@ -1,12 +1,12 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
-import { ErrorDisplay } from '@components/index.ts'; // Replace with actual import path
-import AppError from '@utils/AppError.tsx'; // Replace with actual import path
-import { handleError, mapErrorMessage } from '@utils/errorUtils.ts'; // Import global error utilities
+import { ErrorDisplay } from '@components/index.ts';
+import { AppError, ErrorType } from '@utils/AppError.tsx';
+import { handleError, mapErrorMessage } from '@utils/errorUtils.ts';
 
 interface Props {
   children: ReactNode;
   fallback?: ReactNode; // Custom fallback UI
-  onError?: (error: Error, errorInfo: ErrorInfo) => void; // Optional error logging function
+  onError?: (error: AppError, errorInfo: ErrorInfo) => void; // Optional error logging function
 }
 
 interface State {
@@ -34,12 +34,14 @@ class GlobalErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Global error caught:', error, errorInfo);
     
-    const appError = new AppError(
-      error.message || 'An unknown error occurred.',
-      500,
-      'GlobalError',
-      errorInfo.componentStack || 'No stack trace available.'
-    );
+    // Normalize error into AppError
+    const appError = new AppError('An error occurred.', 500, {
+      type: ErrorType.GlobalError,
+      details: {
+        originalError: error.message || 'Unknown error',
+        componentStack: errorInfo.componentStack || 'No stack trace available',
+      },
+    });
     
     // Log the error using errorUtils or a custom handler
     if (this.props.onError) {
@@ -65,9 +67,10 @@ class GlobalErrorBoundary extends Component<Props, State> {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        error: error.message || 'Unknown error',
-        stack: error.stack || 'No stack trace available',
+        message: error.message || 'Unknown error',
         type: error.type,
+        status: error.status,
+        details: error.details,
         timestamp: new Date().toISOString(),
       }),
     }).catch((serverError) => {

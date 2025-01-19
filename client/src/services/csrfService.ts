@@ -1,5 +1,5 @@
 import axiosInstance from '@utils/axiosConfig';
-import AppError from '@utils/AppError';
+import { AppError, ErrorType } from '@utils/AppError';
 
 /**
  * Fetches the CSRF token from the backend.
@@ -14,27 +14,25 @@ const fetchCsrfToken = async (): Promise<string> => {
     // Validate response structure
     if (!response.data || !response.data.csrfToken) {
       throw new AppError('Invalid CSRF token response', 500, {
-        type: 'ServerError',
+        type: ErrorType.ServerError,
         details: response.data,
       });
     }
     
     return response.data.csrfToken;
   } catch (error: unknown) {
-    // Parse and log error
-    const errorMessage =
-      error instanceof Error
-        ? error.message
-        : 'An unknown error occurred while fetching CSRF token';
-    
+    // Log the error for debugging purposes
     console.error('CSRF Token Fetch Error:', {
-      message: errorMessage,
-      ...(import.meta.env.NODE_ENV !== 'production' && { stack: error instanceof Error ? error.stack : undefined }),
+      message: error instanceof Error ? error.message : 'Unknown error occurred',
+      ...(import.meta.env.NODE_ENV !== 'production' && {
+        stack: error instanceof Error ? error.stack : undefined,
+      }),
     });
     
-    // Re-throw as AppError for consistency
+    // Re-throw as AppError for consistent error handling
     throw new AppError('Failed to fetch CSRF token', 500, {
-      type: 'ServerError',
+      type: ErrorType.ServerError,
+      details: error instanceof Error ? error.message : 'Unknown error occurred',
     });
   }
 };
@@ -52,32 +50,32 @@ const initializeCsrfToken = async (): Promise<void> => {
       axiosInstance.defaults.headers.common['X-CSRF-Token'] = csrfToken;
       console.info('CSRF token successfully initialized and set in Axios headers.');
     } else {
-      // This case shouldn't occur if `fetchCsrfToken` works correctly, but handle it defensively
+      // Handle unexpected behavior defensively
       console.warn('CSRF token could not be retrieved or is invalid.');
     }
   } catch (error: unknown) {
-    // Normalize the error for consistent handling
-    const errorDetails =
-      error instanceof Error
-        ? { message: error.message, stack: error.stack }
-        : { message: 'An unknown error occurred during CSRF initialization', details: error };
+    // Normalize and log the error
+    const errorDetails = error instanceof Error
+      ? { message: error.message, stack: error.stack }
+      : { message: 'Unknown error during CSRF initialization', details: error };
     
     console.error('Failed to initialize CSRF token:', errorDetails);
     
-    // Optionally log to an external monitoring service
-    // AppError.reportError(new AppError('CSRF Initialization Error', 500, { type: 'SevereError', details: errorDetails }));
-    
-    // Rethrow error to propagate to the calling context
+    // Re-throw error to propagate to the calling context
     throw new AppError('Failed to initialize CSRF token', 500, {
-      type: 'SevereError',
+      type: ErrorType.SevereError,
       details: errorDetails,
     });
   }
 };
 
-const getCsrfToken = async () => {
+/**
+ * Retrieves the CSRF token from sessionStorage.
+ * @returns {string | null} The CSRF token.
+ */
+const getCsrfToken = (): string | null => {
   return sessionStorage.getItem('csrfToken');
-}
+};
 
 export const csrfService = {
   fetchCsrfToken,

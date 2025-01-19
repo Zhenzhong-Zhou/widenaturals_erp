@@ -1,6 +1,6 @@
 import axiosInstance from '../utils/axiosConfig';
 import { handleError, mapErrorMessage } from '../utils/errorUtils';
-import AppError from '../utils/AppError';
+import { AppError, ErrorType } from '../utils/AppError';
 import { setTokens, clearTokens, getToken } from '../utils/tokenManager';
 
 const API_ENDPOINTS = {
@@ -21,7 +21,10 @@ interface LoginResponse {
 
 const login = async (email: string, password: string): Promise<LoginResponse> => {
   if (!email || !password) {
-    throw new AppError('Email and password are required', 400, 'ValidationError');
+    throw new AppError('Email and password are required', 400, {
+      type: ErrorType.ValidationError,
+      details: 'Both email and password must be provided',
+    });
   }
   try {
     const response = await axiosInstance.post<LoginResponse>(API_ENDPOINTS.LOGIN, { email, password });
@@ -29,7 +32,10 @@ const login = async (email: string, password: string): Promise<LoginResponse> =>
     return response.data;
   } catch (error: unknown) {
     handleError(error);
-    throw new AppError(mapErrorMessage(error), 400, 'ValidationError');
+    throw new AppError('Login failed', 400, {
+      type: ErrorType.ValidationError,
+      details: mapErrorMessage(error),
+    });
   }
 };
 
@@ -39,7 +45,10 @@ const refreshToken = async (): Promise<{ accessToken: string; refreshToken: stri
     if (!storedRefreshToken) {
       clearTokens();
       window.location.href = '/login?expired=true';
-      throw new AppError('Refresh token is missing', 401, 'ValidationError');
+      throw new AppError('Refresh token is missing', 401, {
+        type: ErrorType.ValidationError,
+        details: 'No refresh token found in storage',
+      });
     }
     
     const response = await axiosInstance.post<{ accessToken: string; refreshToken: string }>(
@@ -53,7 +62,10 @@ const refreshToken = async (): Promise<{ accessToken: string; refreshToken: stri
     handleError(error);
     clearTokens();
     window.location.href = '/login?expired=true';
-    throw new AppError(mapErrorMessage(error), 401, 'GlobalError');
+    throw new AppError('Token refresh failed', 401, {
+      type: ErrorType.GlobalError,
+      details: mapErrorMessage(error),
+    });
   }
 };
 
@@ -64,9 +76,11 @@ const logout = async (): Promise<void> => {
   } catch (error: unknown) {
     handleError(error);
     clearTokens(); // Ensure client tokens are cleared
-    // Inform the user if needed
     console.warn('Server logout failed, clearing client tokens only.');
-    throw new AppError(mapErrorMessage(error), 500, 'UnknownError');
+    throw new AppError('Logout failed', 500, {
+      type: ErrorType.UnknownError,
+      details: mapErrorMessage(error),
+    });
   }
 };
 

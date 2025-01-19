@@ -1,7 +1,7 @@
 import { useCallback, useEffect } from 'react';
 import { useLoading } from '../context/LoadingContext';
 import { handleError, mapErrorMessage } from '../utils/errorUtils';
-import AppError from '../utils/AppError';
+import { AppError, ErrorType } from '../utils/AppError';
 import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
 import { getCsrfTokenThunk } from '../features/csrf/state/csrfThunk.ts';
 import { selectCsrfStatus } from '../features/csrf/state/csrfSelector.ts';
@@ -25,7 +25,11 @@ export const useInitializeApp = ({
       Promise.race([
         promise,
         new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new AppError('Initialization timed out', 408, { type: 'TimeoutError' })), timeout)
+          setTimeout(() => {
+            reject(
+              AppError.create(ErrorType.TimeoutError, 'Initialization timed out', 408, { timeout })
+            );
+          }, timeout)
         ),
       ]),
     []
@@ -41,15 +45,24 @@ export const useInitializeApp = ({
           await dispatch(getCsrfTokenThunk()).unwrap();
           console.info('CSRF token initialized successfully');
         }
-        console.info('CSRF token initialized successfully');
         return;
       } catch (error) {
-        console.warn(`CSRF token initialization failed. Attempts remaining: ${attempts - 1}`, error);
+        console.warn(
+          `CSRF token initialization failed. Attempts remaining: ${attempts - 1}`,
+          error
+        );
         attempts -= 1;
-        if (attempts === 0) throw new AppError('Failed to initialize CSRF token', 500, { type: 'GlobalError' });
+        if (attempts === 0) {
+          throw AppError.create(
+            ErrorType.GlobalError,
+            'Failed to initialize CSRF token',
+            500,
+            error instanceof Error ? { message: error.message } : undefined
+          );
+        }
       }
     }
-  }, [dispatch]);
+  }, [dispatch, csrfStatus]);
   
   // Main initialization logic
   const initialize = useCallback(async () => {
@@ -57,19 +70,29 @@ export const useInitializeApp = ({
       showLoading(message);
       
       // Simulate delay for initialization tasks
-      await withTimeout(new Promise((resolve) => setTimeout(resolve, delay)), 10000); // 10s timeout
+      await withTimeout(
+        new Promise((resolve) => setTimeout(resolve, delay)),
+        10000 // 10s timeout
+      );
       
       console.info('App initialization completed');
     } catch (error) {
-      handleError(error);
+      const appError = error instanceof AppError ? error : AppError.create(
+        ErrorType.GlobalError,
+        mapErrorMessage(error),
+        500,
+        { details: error }
+      );
+      handleError(appError);
       
       const userMessage = mapErrorMessage(error);
       console.error(`Initialization error: ${userMessage}`);
       
-      throw new AppError(userMessage, 500, { type: 'GlobalError' });
+      throw appError; // Re-throw for higher-level handling
     }
   }, [showLoading, message, delay, withTimeout]);
   
+  // Hook lifecycle
   useEffect(() => {
     (async () => {
       try {
@@ -83,8 +106,16 @@ export const useInitializeApp = ({
         
         console.info('Application initialized successfully');
       } catch (error) {
-        handleError(error);
-        console.error('Error during app initialization:', error);
+        const appError = error instanceof AppError
+          ? error
+          : AppError.create(
+            ErrorType.GlobalError,
+            'Error during app initialization',
+            500,
+            { details: error }
+          );
+        handleError(appError);
+        console.error('Error during app initialization:', appError);
       } finally {
         hideLoading();
       }

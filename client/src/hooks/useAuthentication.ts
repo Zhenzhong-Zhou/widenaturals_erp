@@ -27,7 +27,7 @@ const useAuth = () => {
         }
         
         const data = await response.json();
-        dispatch(loginSuccess({ user: data.user, tokens: data.tokens }));
+        dispatch(loginSuccess({ user: data.user, accessToken: data.accessToken }));
       } catch (error) {
         console.error('Login error:', error);
       }

@@ -1,9 +1,14 @@
-import axios, { AxiosRequestConfig, AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
-import AppError from './AppError'; // Custom AppError class
-import { handleError, mapErrorMessage } from './errorUtils'; // Import global error utilities
+import axios, {
+  AxiosRequestConfig,
+  AxiosResponse,
+  AxiosError,
+  InternalAxiosRequestConfig,
+} from 'axios';
+import { AppError, ErrorType } from './AppError'; // Updated AppError
+import { handleError, mapErrorMessage } from './errorUtils'; // Error utilities
 import { setTokens, getToken, clearTokens } from './tokenManager';
-import { selectCsrfToken } from '../features/csrf/state/csrfSelector.ts';
-import { store } from '../store/store.ts';
+import { selectCsrfToken } from '../features/csrf/state/csrfSelector';
+import { store } from '../store/store';
 
 interface ErrorResponse {
   message?: string;
@@ -61,12 +66,20 @@ axiosInstance.interceptors.request.use(
       return config;
     } catch (error) {
       handleError(error); // Log error using handleError
-      throw AppError.fromNetworkError('Error in request interceptor');
+      throw new AppError('Error in request interceptor', 500, {
+        type: ErrorType.NetworkError,
+        details: error instanceof Error ? error.message : 'Unknown error',
+      });
     }
   },
   (error: AxiosError) => {
     handleError(error);
-    return Promise.reject(AppError.fromNetworkError(error.message));
+    return Promise.reject(
+      new AppError('Request interceptor error', 500, {
+        type: ErrorType.NetworkError,
+        details: error.message,
+      })
+    );
   }
 );
 
@@ -98,14 +111,17 @@ axiosInstance.interceptors.response.use(
         const refreshToken = getToken('refreshToken');
         if (!refreshToken) {
           clearTokens();
-          throw AppError.fromValidationError('Refresh token is missing');
+          throw new AppError('Refresh token is missing', 401, {
+            type: ErrorType.ValidationError,
+            details: 'No refresh token found in storage',
+          });
         }
         
         // Request new access token
-        const { data } = await axios.post(`${baseURL}/auth/refresh`, { refreshToken });
+        const { data } = await axios.post(`${baseURL}/session/refresh`, { refreshToken });
         
         // Save new tokens using tokenManager
-        setTokens(data.accessToken, data.refreshToken);
+        setTokens(data.accessToken);
         
         // Process queued requests with the new token
         processQueue(null, data.accessToken);
@@ -127,26 +143,27 @@ axiosInstance.interceptors.response.use(
       
       // Handle server errors (500+)
       if (error.response?.status >= 500) {
-        throw new AppError(
-          mapErrorMessage(error), // Use mapErrorMessage for user-friendly messages
-          error.response.status,
-          'GlobalError'
-        );
+        throw new AppError('Server error', error.response.status, {
+          type: ErrorType.GlobalError,
+          details: mapErrorMessage(error),
+        });
       }
       
       // Handle validation errors (400)
       if (error.response?.status === 400) {
-        throw AppError.fromValidationError(mapErrorMessage(error));
+        throw new AppError('Validation error', 400, {
+          type: ErrorType.ValidationError,
+          details: mapErrorMessage(error),
+        });
       }
       
       // Unknown error
-      throw new AppError(
-        mapErrorMessage(error),
-        error.response?.status || 500,
-        'UnknownError'
-      );
+      throw new AppError('Unknown error occurred', error.response?.status || 500, {
+        type: ErrorType.UnknownError,
+        details: mapErrorMessage(error),
+      });
     } catch (appError) {
-      handleError(appError); // Log the appError
+      handleError(appError); // Log the AppError
       return Promise.reject(appError);
     } finally {
       if (isRefreshing) {
