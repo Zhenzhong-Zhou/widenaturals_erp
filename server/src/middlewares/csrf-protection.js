@@ -8,10 +8,22 @@
  * - Use in conjunction with a session or cookie parser.
  */
 
+const { loadEnv } = require('../config/env');
 const csrf = require('csurf');
 const { logWarn, logError } = require('../utils/logger-helper');
 const { ONE_HOUR } = require('../utils/constants/general/time');
 const AppError = require('../utils/AppError');
+
+loadEnv();
+
+const csrfMiddleware = csrf({
+  cookie: {
+    httpOnly: true, // Prevent client-side access to the cookie (enhances security)
+    secure: process.env.COOKIE_SECURE === 'true', // Use secure cookies in production
+    sameSite: process.env.COOKIE_SAMESITE || 'strict', // Enforce same-site policy
+    maxAge: parseInt(process.env.CSRF_COOKIE_MAXAGE, 10) || ONE_HOUR, // Set cookie expiration
+  },
+});
 
 /**
  * Determines if a request should bypass CSRF protection.
@@ -28,18 +40,20 @@ const shouldBypassCSRF = (req) => {
     return true; // Bypass CSRF in development unless explicitly testing
   }
 
-  const exemptMethods = ['GET', 'HEAD', 'OPTIONS']; // Read-only methods
+  const exemptMethods = ['HEAD', 'OPTIONS']; // Read-only methods
   const exemptPaths = process.env.CSRF_EXEMPT_PATHS
     ? process.env.CSRF_EXEMPT_PATHS.split(',')
     : [
-        '/api/v1/public', // Example: Public APIs
-        '/api/v1/auth/login', // Example: Login endpoint
+        `${process.env.API_PREFIX}/public`, // Example: Public APIs
+        `${process.env.API_PREFIX}/session/login`, // Example: Login endpoint
       ];
-
-  return (
-    exemptMethods.includes(req.method) ||
-    exemptPaths.some((path) => req.path.startsWith(path))
-  );
+  
+  if (exemptMethods.includes(req.method) || exemptPaths.some((path) => req.path.startsWith(path))) {
+    logWarn(`CSRF validation bypassed for ${req.method} ${req.path}`);
+    return true;
+  }
+  
+  return false;
 };
 
 /**
@@ -50,21 +64,18 @@ const shouldBypassCSRF = (req) => {
  */
 const csrfProtection = () => {
   return (req, res, next) => {
+    // Allow token generation for non-state-changing requests like GET
+    if (req.method === 'GET' && req.path === `${process.env.API_PREFIX}/csrf/token`) {
+      return csrfMiddleware(req, res, next);
+    }
+    
     if (shouldBypassCSRF(req)) {
       logWarn(`CSRF bypassed for ${req.method} ${req.path}`);
       return next(); // Skip CSRF validation
     }
 
     try {
-      // Apply CSRF protection
-      csrf({
-        cookie: {
-          httpOnly: true, // Prevent client-side scripts from accessing the cookie
-          secure: process.env.COOKIE_SECURE === 'true', // Use secure cookies in production
-          sameSite: process.env.COOKIE_SAMESITE || 'strict', // Enforce same-site policy
-          maxAge: ONE_HOUR, // Default: 1 hour
-        },
-      })(req, res, next);
+      csrfMiddleware(req, res, next);
     } catch (error) {
       logError('CSRF Middleware Error:', {
         message: error.message,
@@ -79,38 +90,6 @@ const csrfProtection = () => {
   };
 };
 
-/**
- * Middleware to generate a CSRF token for frontend usage.
- * Supports sending tokens via headers or JSON response.
- *
- * @param {object} req - The Express request object.
- * @param {object} res - The Express response object.
- * @param {function} next - The Express next middleware function.
- */
-const csrfTokenHandler = (req, res, next) => {
-  try {
-    const csrfToken = req.csrfToken(); // Generate CSRF token
-    const tokenTransportMethod = process.env.CSRF_TOKEN_TRANSPORT || 'header';
-
-    if (tokenTransportMethod === 'header') {
-      res.set('X-CSRF-Token', csrfToken);
-    }
-
-    res.json({ csrfToken });
-  } catch (error) {
-    logError('CSRF Token Generation Error:', {
-      message: error.message,
-      stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined,
-    });
-    next(
-      AppError.csrfError('Failed to generate CSRF token.', {
-        details: error.message,
-      })
-    );
-  }
-};
-
 module.exports = {
   csrfProtection,
-  csrfTokenHandler,
 };

@@ -7,7 +7,7 @@
 const express = require('express');
 const validate = require('../middlewares/validate');
 const validateAuthInputs = require('../validators/auth-validators');
-const { sessionController, refreshTokenController } = require('../controllers/session-controller');
+const { loginController, refreshTokenController } = require('../controllers/session-controller');
 
 const router = express.Router();
 
@@ -19,7 +19,7 @@ const router = express.Router();
  *       - Returns a JSON response with success message and tokens.
  * @access Public
  */
-router.post('/login', validate(validateAuthInputs), sessionController);
+router.post('/login', validate(validateAuthInputs), loginController);
 
 // Refresh token route
 router.post('/refresh', refreshTokenController);

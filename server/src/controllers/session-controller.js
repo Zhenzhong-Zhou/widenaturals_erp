@@ -2,6 +2,7 @@ const { loginUser } = require('../services/auth-service');
 const { logError, logWarn } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
 const { signToken, verifyToken } = require('../utils/token-helper');
+const wrapAsync = require('../utils/wrap-async');
 
 /**
  * Handles user login by validating credentials and issuing tokens.
@@ -25,7 +26,7 @@ const { signToken, verifyToken } = require('../utils/token-helper');
  * @returns {void} - Sends HTTP response with success or error message.
  * @throws {Error} - Logs and handles unexpected server errors.
  */
-const sessionController = async (req, res, next) => {
+const loginController = wrapAsync(async (req, res, next) => {
   const { email, password } = req.body;
   
   try {
@@ -61,7 +62,7 @@ const sessionController = async (req, res, next) => {
     // Return structured error response
     res.status(error.status).json(error.toJSON());
   }
-};
+});
 
 /**
  * Controller to handle token refresh requests.
@@ -71,7 +72,7 @@ const sessionController = async (req, res, next) => {
  * @param {object} res - Express response object.
  * @param next
  */
-const refreshTokenController = async (req, res, next) => {
+const refreshTokenController = wrapAsync(async (req, res, next) => {
   try {
     const refreshToken = req.cookies?.refreshToken;
     
@@ -150,6 +151,6 @@ const refreshTokenController = async (req, res, next) => {
     logError('Error refreshing token:', error);
     return next(error); // Pass any unexpected errors to the global error handler
   }
-};
+});
 
-module.exports = { sessionController, refreshTokenController };
+module.exports = { loginController, refreshTokenController };

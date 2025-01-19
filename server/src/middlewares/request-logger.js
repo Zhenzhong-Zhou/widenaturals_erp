@@ -22,7 +22,7 @@ const requestLogger = (req, res, next) => {
   res.on('finish', () => {
     const duration = process.hrtime(startTime);
     const responseTime = (duration[0] * 1e3 + duration[1] * 1e-6).toFixed(2); // Convert to ms
-
+    
     const statusCode = res.statusCode;
     const isClientError = statusCode >= 400 && statusCode < 500;
     const isServerError = statusCode >= 500;
@@ -54,7 +54,7 @@ const requestLogger = (req, res, next) => {
         });
       metadata.error = error.toJSON();
     }
-
+    
     logWithLevel(logLevel, message, metadata);
   });
 

@@ -5,6 +5,7 @@
 
 const express = require('express');
 const publicRoute = require('./public');
+const csrfRoute = require('./csrf');
 const internalRoute = require('./internal');
 const systemRoute = require('./system');
 const sessionRoute = require('./session');
@@ -24,6 +25,8 @@ router.use(apiRateLimiter);
  * Routes under `/public` are open to everyone.
  */
 router.use('/public', publicRoute);
+
+router.use('/csrf', csrfRoute);
 
 // Internal routes (system-level operations)
 /**

@@ -13,6 +13,7 @@ const { logError, logInfo } = require('../utils/logger-helper');
 const { authenticationError, validationError
 } = require('../utils/AppError');
 const { resetPassword } = require('../services/auth-service');
+const wrapAsync = require('../utils/wrap-async');
 
 /**
  * Handles user logout by clearing authentication cookies and invalidating tokens.
@@ -63,7 +64,7 @@ const logoutController = (req, res, next) => {
  * @param {Object} res - Express response object.
  * @param {Function} next - Express next middleware function.
  */
-const resetPasswordController = async (req, res, next) => {
+const resetPasswordController = wrapAsync(async (req, res, next) => {
   try {
     const { userId, currentPassword, newPassword } = req.body;
     
@@ -89,7 +90,7 @@ const resetPasswordController = async (req, res, next) => {
     logError('Error resetting password:', error);
     next(error); // Pass to global error handler
   }
-};
+});
 
 // todo /auth/forgot-password
 
