@@ -6,7 +6,7 @@ import AppRoutes from '../src/routes/AppRoutes';
 
 const AppContent: FC = () => {
   // Initialize the app with global loading
-  useInitializeApp({ message: 'Initializing application...', delay: 500 });
+  useInitializeApp({ message: 'Initializing application...', delay: 500, retryAttempts: 3 });
   
   return (
     <Box className="app">

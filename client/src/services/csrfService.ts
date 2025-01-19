@@ -1,5 +1,8 @@
 import axiosInstance from '@utils/axiosConfig';
 import { AppError, ErrorType } from '@utils/AppError';
+import { withRetry } from '@utils/retryUtils.ts';
+import { getCsrfTokenThunk } from '../features/csrf/state/csrfThunk.ts';
+import type { AppDispatch } from '../store/store.ts';
 
 /**
  * Fetches the CSRF token from the backend.
@@ -32,53 +35,49 @@ const fetchCsrfToken = async (): Promise<string> => {
     // Re-throw as AppError for consistent error handling
     throw new AppError('Failed to fetch CSRF token', 500, {
       type: ErrorType.ServerError,
-      details: error instanceof Error ? error.message : 'Unknown error occurred',
+      details: error instanceof Error ? error.message : undefined,
     });
   }
 };
 
 /**
- * Initializes CSRF token by fetching it from the backend and setting it in Axios headers.
+ * Initializes CSRF token using Redux Thunk.
+ * @param {AppDispatch} dispatch - The Redux dispatch function.
  * @returns {Promise<void>}
  */
-const initializeCsrfToken = async (): Promise<void> => {
+const initializeCsrfToken = async (dispatch: AppDispatch): Promise<void> => {
   try {
-    const csrfToken = await fetchCsrfToken();
-    
-    if (csrfToken) {
-      // Set CSRF token in Axios defaults for all subsequent requests
-      axiosInstance.defaults.headers.common['X-CSRF-Token'] = csrfToken;
-      console.info('CSRF token successfully initialized and set in Axios headers.');
-    } else {
-      // Handle unexpected behavior defensively
-      console.warn('CSRF token could not be retrieved or is invalid.');
-    }
-  } catch (error: unknown) {
-    // Normalize and log the error
-    const errorDetails = error instanceof Error
-      ? { message: error.message, stack: error.stack }
-      : { message: 'Unknown error during CSRF initialization', details: error };
-    
-    console.error('Failed to initialize CSRF token:', errorDetails);
-    
-    // Re-throw error to propagate to the calling context
-    throw new AppError('Failed to initialize CSRF token', 500, {
-      type: ErrorType.SevereError,
-      details: errorDetails,
+    await withRetry(
+      () => dispatch(getCsrfTokenThunk()).unwrap(),
+      3, // Retry attempts
+      'Failed to initialize CSRF token'
+    );
+  } catch (error) {
+    throw new AppError('CSRF Initialization Failed', 500, {
+      type: ErrorType.GlobalError,
+      details: error instanceof Error ? error.message : undefined,
     });
   }
 };
 
 /**
- * Retrieves the CSRF token from sessionStorage.
- * @returns {string | null} The CSRF token.
+ * Fetches and initializes the CSRF token with retry logic.
+ * @param {AppDispatch} dispatch - The Redux dispatch function.
+ * @returns {Promise<void>}
  */
-const getCsrfToken = (): string | null => {
-  return sessionStorage.getItem('csrfToken');
+const fetchCsrfTokenWithRetry = async (dispatch: AppDispatch): Promise<void> => {
+  try {
+    await initializeCsrfToken(dispatch);
+  } catch (error) {
+    throw new AppError('Failed to fetch CSRF token after retries', 500, {
+      type: ErrorType.GlobalError,
+      details: error instanceof Error ? error.message : undefined,
+    });
+  }
 };
 
 export const csrfService = {
   fetchCsrfToken,
   initializeCsrfToken,
-  getCsrfToken,
+  fetchCsrfTokenWithRetry,
 };

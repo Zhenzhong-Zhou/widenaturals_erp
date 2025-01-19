@@ -2,67 +2,24 @@ import { useCallback, useEffect } from 'react';
 import { useLoading } from '../context/LoadingContext';
 import { handleError, mapErrorMessage } from '../utils/errorUtils';
 import { AppError, ErrorType } from '../utils/AppError';
-import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
-import { getCsrfTokenThunk } from '../features/csrf/state/csrfThunk.ts';
-import { selectCsrfStatus } from '../features/csrf/state/csrfSelector.ts';
+import { csrfService } from '../services';
+import { withTimeout } from '../utils/timeoutUtils';
+import { useAppDispatch } from '../store/storeHooks.ts';
+import { withRetry } from '@utils/retryUtils.ts';
 
 interface InitializeAppOptions {
   message?: string; // Custom loading message
   delay?: number;   // Simulated delay (default: 2000ms)
+  retryAttempts?: number; // Number of retry attempts (default: 3)
 }
 
 export const useInitializeApp = ({
                                    message = 'Initializing application...',
                                    delay = 2000,
+                                   retryAttempts = 3,
                                  }: InitializeAppOptions = {}) => {
   const { showLoading, hideLoading } = useLoading();
   const dispatch = useAppDispatch();
-  const csrfStatus = useAppSelector(selectCsrfStatus);
-  
-  // Utility to handle timeouts
-  const withTimeout = useCallback(
-    (promise: Promise<void>, timeout: number) =>
-      Promise.race([
-        promise,
-        new Promise<never>((_, reject) =>
-          setTimeout(() => {
-            reject(
-              AppError.create(ErrorType.TimeoutError, 'Initialization timed out', 408, { timeout })
-            );
-          }, timeout)
-        ),
-      ]),
-    []
-  );
-  
-  // Initialize CSRF Token
-  // todo add retry and make more modular
-  const initializeCsrfToken = useCallback(async () => {
-    let attempts = 3; // Retry up to 3 times
-    while (attempts > 0) {
-      try {
-        if (csrfStatus === 'idle') {
-          await dispatch(getCsrfTokenThunk()).unwrap();
-          console.info('CSRF token initialized successfully');
-        }
-        return;
-      } catch (error) {
-        console.warn(
-          `CSRF token initialization failed. Attempts remaining: ${attempts - 1}`,
-          error
-        );
-        attempts -= 1;
-        if (attempts === 0) {
-          throw AppError.create(
-            ErrorType.GlobalError,
-            'Failed to initialize CSRF token',
-            500,
-            error instanceof Error ? { message: error.message } : undefined
-          );
-        }
-      }
-    }
-  }, [dispatch, csrfStatus]);
   
   // Main initialization logic
   const initialize = useCallback(async () => {
@@ -72,25 +29,30 @@ export const useInitializeApp = ({
       // Simulate delay for initialization tasks
       await withTimeout(
         new Promise((resolve) => setTimeout(resolve, delay)),
-        10000 // 10s timeout
+        10000,
+        'Initialization timed out'
       );
       
       console.info('App initialization completed');
     } catch (error) {
-      const appError = error instanceof AppError ? error : AppError.create(
-        ErrorType.GlobalError,
-        mapErrorMessage(error),
-        500,
-        { details: error }
-      );
+      const appError = error instanceof AppError
+        ? error
+        : AppError.create(
+          ErrorType.GlobalError,
+          mapErrorMessage(error),
+          500,
+          { details: error }
+        );
       handleError(appError);
       
-      const userMessage = mapErrorMessage(error);
-      console.error(`Initialization error: ${userMessage}`);
-      
+      console.error(`Initialization error: ${appError.message}`);
       throw appError; // Re-throw for higher-level handling
     }
-  }, [showLoading, message, delay, withTimeout]);
+  }, [showLoading, message, delay]);
+  
+  const retryInitializeApp = useCallback(async () => {
+    await withRetry(initialize, retryAttempts, 'Failed to initialize app after multiple attempts');
+  }, [initialize, retryAttempts]);
   
   // Hook lifecycle
   useEffect(() => {
@@ -98,11 +60,14 @@ export const useInitializeApp = ({
       try {
         showLoading(message);
         
+        // Retry initialization if it fails
+        await retryInitializeApp();
+        
         // Perform main initialization tasks
         await initialize();
         
-        // Perform CSRF token initialization
-        await initializeCsrfToken();
+        // Perform CSRF token initialization with dispatch
+        await csrfService.initializeCsrfToken(dispatch);
         
         console.info('Application initialized successfully');
       } catch (error) {
@@ -120,5 +85,5 @@ export const useInitializeApp = ({
         hideLoading();
       }
     })();
-  }, [initialize, initializeCsrfToken, showLoading, hideLoading, message]);
+  }, [initialize, showLoading, hideLoading, message]);
 };

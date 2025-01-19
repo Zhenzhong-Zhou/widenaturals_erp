@@ -1,11 +1,18 @@
-import { createSlice } from '@reduxjs/toolkit';
-import { getCsrfTokenThunk } from './csrfThunk.ts'; // Ensure this points to the correct file
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { getCsrfTokenThunk } from './csrfThunk';
 
-// Define the initial state with strict typing
-const initialState = {
-  token: null as string | null,
-  status: 'idle' as 'idle' | 'loading' | 'succeeded' | 'failed',
-  error: null as string | null,
+// Define a type for the state
+interface CSRFState {
+  token: string | null;
+  status: 'idle' | 'loading' | 'succeeded' | 'failed';
+  error: string | null;
+}
+
+// Strictly type the initial state
+const initialState: CSRFState = {
+  token: null,
+  status: 'idle',
+  error: null,
 };
 
 // Create the CSRF slice
@@ -16,11 +23,7 @@ const csrfSlice = createSlice({
     /**
      * Resets the CSRF token state to its initial values.
      */
-    resetCsrfToken: (state) => {
-      state.token = null;
-      state.status = 'idle';
-      state.error = null;
-    },
+    resetCsrfToken: () => initialState, // Resets state to the initial state
   },
   extraReducers: (builder) => {
     builder
@@ -30,7 +33,7 @@ const csrfSlice = createSlice({
         state.error = null; // Clear any previous errors
       })
       // Handle fulfilled state when the CSRF token is successfully fetched
-      .addCase(getCsrfTokenThunk.fulfilled, (state, action) => {
+      .addCase(getCsrfTokenThunk.fulfilled, (state, action: PayloadAction<string>) => {
         state.status = 'succeeded';
         state.token = action.payload;
       })
