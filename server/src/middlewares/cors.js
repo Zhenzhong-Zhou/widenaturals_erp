@@ -75,8 +75,10 @@ const corsMiddleware = cors({
   },
   methods: process.env.ALLOWED_METHODS?.split(',') || [
     'GET',
+    'HEAD',
     'POST',
     'PUT',
+    'PATCH',
     'DELETE',
     'OPTIONS',
   ], // Allowed HTTP methods
@@ -86,6 +88,7 @@ const corsMiddleware = cors({
     'X-Requested-With',
     'Accept',
     'Origin',
+    'X-CSRF-Token',
   ], // Allowed headers
   exposedHeaders: process.env.EXPOSED_HEADERS?.split(',') || [], // Exposed headers
   credentials: process.env.ALLOW_CREDENTIALS === 'true', // Allow credentials (cookies, Authorization header, etc.)

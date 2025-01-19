@@ -4,8 +4,8 @@ import AppError from '../utils/AppError';
 import { setTokens, clearTokens, getToken } from '../utils/tokenManager';
 
 const API_ENDPOINTS = {
-  LOGIN: '/auth/login',
-  REFRESH_TOKEN: '/auth/refresh',
+  LOGIN: '/session/login',
+  REFRESH_TOKEN: '/session/refresh',
   LOGOUT: '/auth/logout',
 };
 
@@ -25,7 +25,7 @@ const login = async (email: string, password: string): Promise<LoginResponse> =>
   }
   try {
     const response = await axiosInstance.post<LoginResponse>(API_ENDPOINTS.LOGIN, { email, password });
-    setTokens(response.data.accessToken, response.data.refreshToken);
+    setTokens(response.data.accessToken);
     return response.data;
   } catch (error: unknown) {
     handleError(error);
@@ -47,7 +47,7 @@ const refreshToken = async (): Promise<{ accessToken: string; refreshToken: stri
       { refreshToken: storedRefreshToken }
     );
     
-    setTokens(response.data.accessToken, response.data.refreshToken);
+    setTokens(response.data.accessToken);
     return response.data;
   } catch (error: unknown) {
     handleError(error);

@@ -1,4 +1,4 @@
-import { FC, useState } from 'react';
+import { FC, FormEvent, useState } from 'react';
 import { Box } from '@mui/material';
 import { BaseInput, CustomButton } from '@components/index.ts';
 import { PasswordInput } from '../index.ts';
@@ -29,7 +29,7 @@ const LoginForm: FC<LoginFormProps> = ({ onSubmit }) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
   
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (validate()) {
       onSubmit(formData);

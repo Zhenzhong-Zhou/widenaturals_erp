@@ -4,7 +4,7 @@ import { authService } from '../../../services';
 import { createAsyncThunk } from '@reduxjs/toolkit';
 
 export const loginThunk = createAsyncThunk(
-  'auth/login',
+  'session/login',
   async ({ email, password }: { email: string; password: string }, { dispatch }) => {
     try {
       const response = await authService.login(email, password); // Call login service

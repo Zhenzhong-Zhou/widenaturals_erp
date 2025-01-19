@@ -47,7 +47,7 @@ const useAuth = () => {
       dispatch(
         loginSuccess({
           user, // Preserve the current user state
-          tokens: newTokens,
+          accessToken: newTokens,
         })
       );
     } catch (error) {
