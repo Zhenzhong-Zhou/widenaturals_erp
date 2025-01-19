@@ -1,12 +1,9 @@
-const { loadEnv } = require('../config/env');
 const { logError } = require('../utils/logger-helper');
 const { csrfError } = require('../utils/AppError');
 
-loadEnv();
-
 /**
  * Middleware to generate a CSRF token for frontend usage.
- * Supports sending tokens via headers or JSON response.
+ * Sends tokens via JSON response.
  *
  * @param {object} req - The Express request object.
  * @param {object} res - The Express response object.
@@ -15,18 +12,22 @@ loadEnv();
 const generateCsrfTokenController = (req, res, next) => {
   try {
     const newCsrfToken = req.csrfToken(); // Generate CSRF token
-    const tokenTransportMethod = process.env.CSRF_TOKEN_TRANSPORT || 'header';
     
-    if (tokenTransportMethod === 'header') {
-      res.set('X-CSRF-Token', newCsrfToken);
-    }
+    // Set cache-control headers to prevent token caching
+    res.set({
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      Pragma: 'no-cache',
+      Expires: '0',
+    });
     
-    res.json({ newCsrfToken });
+    // Return CSRF token in the response body
+    res.json({ csrfToken: newCsrfToken });
   } catch (error) {
     logError('CSRF Token Generation Error:', {
       message: error.message,
-      stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined,
+      ...(process.env.NODE_ENV !== 'production' && { stack: error.stack }),
     });
+    
     next(
       csrfError('Failed to generate CSRF token.', {
         details: error.message,

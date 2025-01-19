@@ -43,7 +43,6 @@ const shouldBypassCSRF = (req) => {
   const exemptMethods = ['HEAD', 'OPTIONS']; // Only include non-state-changing methods
   const exemptPaths = [
     `${process.env.API_PREFIX}/public`, // Public APIs
-    `${process.env.API_PREFIX}/csrf/token`, // CSRF token generation
   ];
   
   // Allow exempt methods or explicitly exempt paths
