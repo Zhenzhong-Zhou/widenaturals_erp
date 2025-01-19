@@ -4,8 +4,11 @@ import { handleError, mapErrorMessage } from '../utils/errorUtils';
 import { AppError, ErrorType } from '../utils/AppError';
 import { csrfService } from '../services';
 import { withTimeout } from '../utils/timeoutUtils';
-import { useAppDispatch } from '../store/storeHooks.ts';
+import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
+import { selectCsrfStatus, selectCsrfError } from '../features/csrf/state/csrfSelector.ts';
 import { withRetry } from '@utils/retryUtils.ts';
+import { monitorCsrfStatus } from '@utils/monitorCsrfStatus.ts';
+import { resetCsrfToken } from '../features/csrf/state/csrfSlice.ts';
 
 interface InitializeAppOptions {
   message?: string; // Custom loading message
@@ -20,6 +23,8 @@ export const useInitializeApp = ({
                                  }: InitializeAppOptions = {}) => {
   const { showLoading, hideLoading } = useLoading();
   const dispatch = useAppDispatch();
+  const csrfStatus = useAppSelector(selectCsrfStatus); // CSRF loading status
+  const csrfError = useAppSelector(selectCsrfError); // CSRF error
   
   // Main initialization logic
   const initialize = useCallback(async () => {
@@ -50,9 +55,19 @@ export const useInitializeApp = ({
     }
   }, [showLoading, message, delay]);
   
+  // Retry logic for app initialization
   const retryInitializeApp = useCallback(async () => {
-    await withRetry(initialize, retryAttempts, 'Failed to initialize app after multiple attempts');
-  }, [initialize, retryAttempts]);
+    try {
+      await withRetry(initialize, retryAttempts, 'Failed to initialize app after multiple attempts');
+    } catch (error) {
+      const appError = error instanceof AppError
+        ? error
+        : AppError.create(ErrorType.GlobalError, 'Failed to initialize app', 500, { details: error });
+      console.error('Initialization retry failed:', appError);
+      dispatch(resetCsrfToken());
+      throw appError; // Re-throw for higher-level handling
+    }
+  }, [initialize, retryAttempts, dispatch]);
   
   // Hook lifecycle
   useEffect(() => {
@@ -68,6 +83,9 @@ export const useInitializeApp = ({
         
         // Perform CSRF token initialization with dispatch
         await csrfService.initializeCsrfToken(dispatch);
+        
+        // Monitor CSRF token status and errors
+        monitorCsrfStatus(csrfStatus, csrfError);
         
         console.info('Application initialized successfully');
       } catch (error) {
@@ -85,5 +103,5 @@ export const useInitializeApp = ({
         hideLoading();
       }
     })();
-  }, [initialize, showLoading, hideLoading, message]);
+  }, [initialize, retryInitializeApp, showLoading, hideLoading, message, monitorCsrfStatus]);
 };

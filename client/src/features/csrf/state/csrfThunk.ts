@@ -1,5 +1,6 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { csrfService } from '../../../services';
+import { resetCsrfToken } from './csrfSlice'; // Import the reset action
 
 export const getCsrfTokenThunk = createAsyncThunk<string, void, { rejectValue: string }>(
   'csrf/fetchCsrfToken',
@@ -15,7 +16,9 @@ export const getCsrfTokenThunk = createAsyncThunk<string, void, { rejectValue: s
       
       return csrfToken;
     } catch (error) {
-      // Inspect and log the error appropriately
+      // Dispatch reset action on error
+      thunkAPI.dispatch(resetCsrfToken());
+      
       console.error('Error fetching CSRF token:', {
         message: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,

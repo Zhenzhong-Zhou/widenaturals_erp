@@ -7,8 +7,9 @@ import axios, {
 import { AppError, ErrorType } from './AppError'; // Updated AppError
 import { handleError, mapErrorMessage } from './errorUtils'; // Error utilities
 import { setTokens, getToken, clearTokens } from './tokenManager';
-import { selectCsrfToken } from '../features/csrf/state/csrfSelector';
+import { selectCsrfToken, selectCsrfError, selectCsrfStatus } from '../features/csrf/state/csrfSelector';
 import { store } from '../store/store';
+import { resetCsrfToken } from '../features/csrf/state/csrfSlice';
 
 interface ErrorResponse {
   message?: string;
@@ -88,8 +89,21 @@ axiosInstance.interceptors.response.use(
   (response: AxiosResponse) => response,
   async (error: AxiosError<ErrorResponse>) => {
     const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
+    const state = store.getState(); // Access the Redux state
+    const csrfError = selectCsrfError(state); // Retrieve CSRF error state
+    const csrfStatus = selectCsrfStatus(state); // Retrieve CSRF status state
     
     try {
+      // Handle CSRF-specific errors
+      if (csrfStatus === 'failed' && csrfError) {
+        console.error('CSRF Error detected:', csrfError);
+        store.dispatch(resetCsrfToken()); // Reset CSRF state
+        throw new AppError('CSRF token error', 403, {
+          type: ErrorType.GlobalError,
+          details: csrfError,
+        });
+      }
+      
       // Handle token expiration (401)
       if (error.response?.status === 401 && !originalRequest._retry) {
         if (isRefreshing) {
