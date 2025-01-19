@@ -16,6 +16,7 @@ const AppError = require('../utils/AppError');
 
 loadEnv();
 
+// Configure CSRF Middleware
 const csrfMiddleware = csrf({
   cookie: {
     httpOnly: true, // Prevent client-side access to the cookie (enhances security)
@@ -33,23 +34,24 @@ const csrfMiddleware = csrf({
  * @returns {boolean} - Whether to bypass CSRF validation.
  */
 const shouldBypassCSRF = (req) => {
-  if (
-    process.env.NODE_ENV === 'development' &&
-    process.env.CSRF_TESTING !== true
-  ) {
-    return true; // Bypass CSRF in development unless explicitly testing
+  // Allow bypass in development for testing purposes
+  if (process.env.NODE_ENV === 'development' && process.env.CSRF_TESTING === 'true') {
+    return true;
   }
-
-  const exemptMethods = ['HEAD', 'OPTIONS']; // Read-only methods
-  const exemptPaths = process.env.CSRF_EXEMPT_PATHS
-    ? process.env.CSRF_EXEMPT_PATHS.split(',')
-    : [
-        `${process.env.API_PREFIX}/public`, // Example: Public APIs
-        `${process.env.API_PREFIX}/session/login`, // Example: Login endpoint
-      ];
   
-  if (exemptMethods.includes(req.method) || exemptPaths.some((path) => req.path.startsWith(path))) {
-    logWarn(`CSRF validation bypassed for ${req.method} ${req.path}`);
+  // Define exempt methods and paths
+  const exemptMethods = ['HEAD', 'OPTIONS']; // Only include non-state-changing methods
+  const exemptPaths = [
+    `${process.env.API_PREFIX}/public`, // Public APIs
+    `${process.env.API_PREFIX}/csrf/token`, // CSRF token generation
+  ];
+  
+  // Allow exempt methods or explicitly exempt paths
+  if (exemptMethods.includes(req.method) || (req.method === 'GET' && exemptPaths.includes(req.path))) {
+    logWarn(`CSRF validation bypassed for ${req.method} ${req.path}`, {
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
     return true;
   }
   
@@ -64,16 +66,10 @@ const shouldBypassCSRF = (req) => {
  */
 const csrfProtection = () => {
   return (req, res, next) => {
-    // Allow token generation for non-state-changing requests like GET
-    if (req.method === 'GET' && req.path === `${process.env.API_PREFIX}/csrf/token`) {
-      return csrfMiddleware(req, res, next);
-    }
-    
     if (shouldBypassCSRF(req)) {
-      logWarn(`CSRF bypassed for ${req.method} ${req.path}`);
       return next(); // Skip CSRF validation
     }
-
+    
     try {
       csrfMiddleware(req, res, next);
     } catch (error) {
@@ -83,7 +79,7 @@ const csrfProtection = () => {
       });
       next(
         AppError.csrfError('CSRF token validation failed.', {
-          details: error.message,
+          details: process.env.NODE_ENV !== 'production' ? error.message : null,
         })
       );
     }

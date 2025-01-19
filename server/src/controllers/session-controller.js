@@ -28,6 +28,7 @@ const wrapAsync = require('../utils/wrap-async');
  */
 const loginController = wrapAsync(async (req, res, next) => {
   const { email, password } = req.body;
+  const csrfToken = req.csrfToken();
   
   try {
     // Call the service layer for business logic
@@ -44,6 +45,7 @@ const loginController = wrapAsync(async (req, res, next) => {
     res.status(200).json({
       message: 'Login successful',
       accessToken,
+      csrfToken,
       lastLogin: last_login || null,
     });
   } catch (error) {
