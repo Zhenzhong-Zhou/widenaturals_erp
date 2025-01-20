@@ -7,7 +7,7 @@
  */
 const maskSensitiveInfo = (data, type) => {
   if (!data || typeof data !== 'string') return data;
-  
+
   switch (type) {
     case 'email':
       return data.replace(/(.{2})(.*)(?=@)/, (match, p1) => `${p1}***`);
@@ -55,12 +55,12 @@ const maskingRules = {
  */
 const maskField = (table, field, data) => {
   if (!table || !field || !data) return data; // Return unmodified if no masking is needed
-  
+
   const tableRules = maskingRules[table];
   if (tableRules && tableRules[field]) {
     return tableRules[field](data); // Apply field-specific masking rule
   }
-  
+
   return data; // Return unmodified if no rule exists
 };
 
@@ -82,7 +82,7 @@ const maskRow = (table, row) => {
  */
 const sanitizeMessage = (message, maskIp = false) => {
   if (!message || typeof message !== 'string') return message;
-  
+
   let sanitizedMessage = message
     // Mask passwords (e.g., password=1234 or "password": "1234")
     .replace(/(password\s*[:=]\s*)(["']?)[^"&', ]+\2/g, '$1****')
@@ -95,7 +95,7 @@ const sanitizeMessage = (message, maskIp = false) => {
       /(?:\+\d{1,3}[- ]?)?(?:\(\d{1,4}\)|\d{1,4})[- ]?\d{1,4}[- ]?\d{1,4}[- ]?\d{1,9}/g,
       'PHONE_NUMBER'
     );
-  
+
   // Conditionally mask IP addresses (e.g., 192.168.1.1 or 2001:0db8::/32)
   if (maskIp) {
     sanitizedMessage = sanitizedMessage.replace(
@@ -107,7 +107,7 @@ const sanitizeMessage = (message, maskIp = false) => {
       'IP_ADDRESS'
     );
   }
-  
+
   return sanitizedMessage;
 };
 
@@ -124,4 +124,11 @@ const sanitizeValidationError = (error) => {
   }));
 };
 
-module.exports = { maskSensitiveInfo, maskTableName, maskField, maskRow, sanitizeMessage, sanitizeValidationError };
+module.exports = {
+  maskSensitiveInfo,
+  maskTableName,
+  maskField,
+  maskRow,
+  sanitizeMessage,
+  sanitizeValidationError,
+};

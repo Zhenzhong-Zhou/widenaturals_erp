@@ -14,13 +14,13 @@ interface CustomFields {
 type TypeRestrictedInputProps = TextFieldProps & CustomFields;
 
 const TypeRestrictedInput: FC<TypeRestrictedInputProps> = ({
-                                                             label,
-                                                             type,
-                                                             placeholder,
-                                                             errorText,
-                                                             slotProps,
-                                                             ...props
-                                                           }) => (
+  label,
+  type,
+  placeholder,
+  errorText,
+  slotProps,
+  ...props
+}) => (
   <BaseInput
     label={label}
     type={type}

@@ -19,7 +19,7 @@ class GlobalErrorBoundary extends Component<Props, State> {
     super(props);
     this.state = { hasError: false, errorMessage: undefined };
   }
-  
+
   /**
    * Update the error state when an error is caught.
    */
@@ -27,13 +27,13 @@ class GlobalErrorBoundary extends Component<Props, State> {
     const errorMessage = mapErrorMessage(error); // Use mapErrorMessage for user-friendly messages
     return { hasError: true, errorMessage };
   }
-  
+
   /**
    * Log the error or handle it as needed.
    */
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Global error caught:', error, errorInfo);
-    
+
     // Normalize error into AppError
     const appError = new AppError('An error occurred.', 500, {
       type: ErrorType.GlobalError,
@@ -42,7 +42,7 @@ class GlobalErrorBoundary extends Component<Props, State> {
         componentStack: errorInfo.componentStack || 'No stack trace available',
       },
     });
-    
+
     // Log the error using errorUtils or a custom handler
     if (this.props.onError) {
       this.props.onError(appError, errorInfo);
@@ -51,14 +51,14 @@ class GlobalErrorBoundary extends Component<Props, State> {
       this.logErrorToServer(appError); // Log error to the server
     }
   }
-  
+
   /**
    * Reset error state to allow retry without reloading.
    */
   resetError = () => {
     this.setState({ hasError: false, errorMessage: undefined });
   };
-  
+
   /**
    * Log the error to the server or external service.
    */
@@ -77,19 +77,22 @@ class GlobalErrorBoundary extends Component<Props, State> {
       console.error('Failed to log error to server:', serverError);
     });
   }
-  
+
   render() {
     if (this.state.hasError) {
       return (
         this.props.fallback || (
           <ErrorDisplay
-            message={this.state.errorMessage || 'Something went wrong. Please try again.'}
+            message={
+              this.state.errorMessage ||
+              'Something went wrong. Please try again.'
+            }
             onRetry={this.resetError}
           />
         )
       );
     }
-    
+
     return this.props.children;
   }
 }

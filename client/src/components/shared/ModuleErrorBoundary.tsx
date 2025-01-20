@@ -19,40 +19,47 @@ interface State {
 class ModuleErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false, errorMessage: undefined, errorType: undefined };
+    this.state = {
+      hasError: false,
+      errorMessage: undefined,
+      errorType: undefined,
+    };
   }
-  
+
   /**
    * Update the error state when an error is caught.
    */
   static getDerivedStateFromError(error: Error): State {
     const errorMessage = mapErrorMessage(error); // Map user-friendly error message
-    const errorType = error instanceof AppError ? error.type : ErrorType.UnknownError; // Use ErrorType enum for consistency
-    
+    const errorType =
+      error instanceof AppError ? error.type : ErrorType.UnknownError; // Use ErrorType enum for consistency
+
     return {
       hasError: true,
       errorMessage,
       errorType,
     };
   }
-  
+
   /**
    * Log the error or handle it as needed.
    */
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Module error caught:', error, errorInfo);
-    
+
     // Normalize the error into an AppError
-    const appError = error instanceof AppError
-      ? error
-      : new AppError('An unknown error occurred.', 500, {
-        type: ErrorType.UnknownError,
-        details: {
-          originalError: error.message || 'Unknown error',
-          componentStack: errorInfo.componentStack || 'No stack trace available',
-        },
-      });
-    
+    const appError =
+      error instanceof AppError
+        ? error
+        : new AppError('An unknown error occurred.', 500, {
+            type: ErrorType.UnknownError,
+            details: {
+              originalError: error.message || 'Unknown error',
+              componentStack:
+                errorInfo.componentStack || 'No stack trace available',
+            },
+          });
+
     if (this.props.onError) {
       this.props.onError(appError, errorInfo); // Pass error to parent-defined handler
     } else {
@@ -61,23 +68,30 @@ class ModuleErrorBoundary extends Component<Props, State> {
       }); // Log the normalized error
     }
   }
-  
+
   /**
    * Reset the error state to recover.
    */
   resetError = () => {
-    this.setState({ hasError: false, errorMessage: undefined, errorType: undefined });
+    this.setState({
+      hasError: false,
+      errorMessage: undefined,
+      errorType: undefined,
+    });
   };
-  
+
   render() {
     const { hasError, errorMessage, errorType } = this.state;
     const { fallback } = this.props;
-    
+
     if (hasError) {
       return (
         fallback || (
           <ErrorDisplay
-            message={errorMessage || 'Something went wrong in this module. Please try again later.'}
+            message={
+              errorMessage ||
+              'Something went wrong in this module. Please try again later.'
+            }
             onRetry={this.resetError}
           >
             <Box
@@ -94,7 +108,8 @@ class ModuleErrorBoundary extends Component<Props, State> {
                 Module Error
               </Typography>
               <Typography variant="body1" gutterBottom>
-                {errorMessage || 'Something went wrong in this module. Please try again later.'}
+                {errorMessage ||
+                  'Something went wrong in this module. Please try again later.'}
               </Typography>
               {errorType && (
                 <Typography variant="body2" color="textSecondary" gutterBottom>
@@ -114,7 +129,7 @@ class ModuleErrorBoundary extends Component<Props, State> {
         )
       );
     }
-    
+
     return this.props.children;
   }
 }

@@ -12,14 +12,14 @@ const { csrfError } = require('../utils/AppError');
 const generateCsrfTokenController = (req, res, next) => {
   try {
     const newCsrfToken = req.csrfToken(); // Generate CSRF token
-    
+
     // Set cache-control headers to prevent token caching
     res.set({
       'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
       Pragma: 'no-cache',
       Expires: '0',
     });
-    
+
     // Return CSRF token in the response body
     res.json({ csrfToken: newCsrfToken });
   } catch (error) {
@@ -27,7 +27,7 @@ const generateCsrfTokenController = (req, res, next) => {
       message: error.message,
       ...(process.env.NODE_ENV !== 'production' && { stack: error.stack }),
     });
-    
+
     next(
       csrfError('Failed to generate CSRF token.', {
         details: error.message,

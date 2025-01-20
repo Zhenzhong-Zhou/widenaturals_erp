@@ -3,22 +3,22 @@ import Box from '@mui/material/Box';
 import { CustomButton, ErrorMessage, Typography } from '@components/index.ts'; // Reuse common Typography
 
 interface FallbackUIProps {
-  title?: string;        // Error title
-  description?: string;  // User-friendly description
-  errorCode?: string;    // Optional error code for debugging
-  errorLog?: string;     // Optional detailed error log
-  onRetry?: () => void;  // Retry action callback
+  title?: string; // Error title
+  description?: string; // User-friendly description
+  errorCode?: string; // Optional error code for debugging
+  errorLog?: string; // Optional detailed error log
+  onRetry?: () => void; // Retry action callback
 }
 
 const FallbackUI: FC<FallbackUIProps> = ({
-                                           title = 'Oops! Something went wrong.',
-                                           description = 'Please try again later or contact support.',
-                                           errorCode,
-                                           errorLog,
-                                           onRetry,
-                                         }) => {
+  title = 'Oops! Something went wrong.',
+  description = 'Please try again later or contact support.',
+  errorCode,
+  errorLog,
+  onRetry,
+}) => {
   const [showDetails, setShowDetails] = useState(false);
-  
+
   return (
     <Box
       sx={{
@@ -34,12 +34,12 @@ const FallbackUI: FC<FallbackUIProps> = ({
       <Typography variant="h4" color="error" gutterBottom>
         {title}
       </Typography>
-      
+
       {/* Error Description */}
       <Typography variant="body1" gutterBottom>
         {description}
       </Typography>
-      
+
       {/* Error Code */}
       {errorCode && (
         <ErrorMessage
@@ -48,7 +48,7 @@ const FallbackUI: FC<FallbackUIProps> = ({
           sx={{ marginBottom: 2 }}
         />
       )}
-      
+
       {/* Error Details */}
       {errorLog && (
         <Box>
@@ -80,7 +80,7 @@ const FallbackUI: FC<FallbackUIProps> = ({
           )}
         </Box>
       )}
-      
+
       {/* Retry Button */}
       {onRetry && (
         <CustomButton

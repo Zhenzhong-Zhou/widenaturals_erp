@@ -5,7 +5,10 @@ import { AppError, ErrorType } from '@utils/AppError';
  * @param status - The CSRF loading status.
  * @param error - The CSRF error message, if any.
  */
-export const monitorCsrfStatus = (status: 'idle' | 'loading' | 'succeeded' | 'failed', error?: string | null): void => {
+export const monitorCsrfStatus = (
+  status: 'idle' | 'loading' | 'succeeded' | 'failed',
+  error?: string | null
+): void => {
   if (status === 'failed' && error) {
     console.error('CSRF Error:', error);
     throw AppError.create(ErrorType.GlobalError, error, 500);

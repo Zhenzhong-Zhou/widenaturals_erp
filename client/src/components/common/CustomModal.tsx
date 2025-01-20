@@ -22,7 +22,13 @@ const modalStyles = {
   borderRadius: '8px',
 };
 
-const CustomModal: FC<ModalProps> = ({ open, onClose, title, children, actions }) => {
+const CustomModal: FC<ModalProps> = ({
+  open,
+  onClose,
+  title,
+  children,
+  actions,
+}) => {
   return (
     <Modal
       open={open}

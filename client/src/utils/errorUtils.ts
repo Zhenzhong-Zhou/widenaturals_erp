@@ -8,11 +8,16 @@ import { AxiosError } from 'axios';
  * @param error - The error to handle.
  * @param logCallback - Optional callback for custom logging (e.g., Sentry).
  */
-export const handleError = (error: unknown, logCallback?: (error: AppError | Error) => void): void => {
+export const handleError = (
+  error: unknown,
+  logCallback?: (error: AppError | Error) => void
+): void => {
   const shouldReportError = import.meta.env.MODE === 'production';
-  
+
   if (error instanceof AppError) {
-    console.error(`[AppError] Type: ${error.type}, Status: ${error.status}, Message: ${error.message}`);
+    console.error(
+      `[AppError] Type: ${error.type}, Status: ${error.status}, Message: ${error.message}`
+    );
     if (logCallback) logCallback(error);
     if (shouldReportError) AppError.reportError(error);
   } else if (error instanceof AxiosError) {
@@ -22,10 +27,10 @@ export const handleError = (error: unknown, logCallback?: (error: AppError | Err
       method: error.config?.method || 'Unknown Method',
       response: error.response?.data || {},
     };
-    
+
     console.error(`[AxiosError] Status: ${status}, Message: ${error.message}`);
     if (logCallback) logCallback(error);
-    
+
     if (shouldReportError && status >= 500) {
       const appError = new AppError('Network error occurred', status, {
         type: ErrorType.NetworkError,
@@ -36,7 +41,7 @@ export const handleError = (error: unknown, logCallback?: (error: AppError | Err
   } else if (error instanceof Error) {
     console.error(`[Error] Name: ${error.name}, Message: ${error.message}`);
     if (logCallback) logCallback(error);
-    
+
     if (shouldReportError) {
       const appError = new AppError(error.message, 500, {
         type: ErrorType.UnknownError,
@@ -69,14 +74,20 @@ export const handleError = (error: unknown, logCallback?: (error: AppError | Err
 export const mapErrorMessage = (error: unknown): string => {
   if (error instanceof AppError) {
     // Check if details is an object and has a 'message' property
-    if (typeof error.details === 'object' && error.details !== null && 'message' in error.details) {
+    if (
+      typeof error.details === 'object' &&
+      error.details !== null &&
+      'message' in error.details
+    ) {
       return (error.details as { message: string }).message;
     }
     return error.message || 'An error occurred. Please try again.';
   }
   if (error instanceof AxiosError) {
     const status = error.response?.status ?? 'unknown'; // Default to 'unknown' if undefined
-    return error.response?.data?.message || `Request failed with status ${status}`;
+    return (
+      error.response?.data?.message || `Request failed with status ${status}`
+    );
   }
   if (error instanceof Error) {
     return error.message;
@@ -92,7 +103,9 @@ export const mapErrorMessage = (error: unknown): string => {
  * @param details - The error details to process.
  * @returns A stringified version of the details or undefined if details are not provided.
  */
-export const getErrorLog = (details: string | Record<string, unknown> | undefined): string | undefined => {
+export const getErrorLog = (
+  details: string | Record<string, unknown> | undefined
+): string | undefined => {
   if (!details) return undefined;
   return typeof details === 'string' ? details : JSON.stringify(details);
 };
@@ -103,9 +116,13 @@ export const getErrorLog = (details: string | Record<string, unknown> | undefine
  * @param error - The error to categorize.
  * @returns One of: 'critical', 'warning', 'info'.
  */
-export const categorizeError = (error: unknown): 'critical' | 'warning' | 'info' => {
+export const categorizeError = (
+  error: unknown
+): 'critical' | 'warning' | 'info' => {
   if (error instanceof AppError) {
-    return error.type === ErrorType.SevereError || error.status >= 500 ? 'critical' : 'warning';
+    return error.type === ErrorType.SevereError || error.status >= 500
+      ? 'critical'
+      : 'warning';
   }
   if (error instanceof AxiosError) {
     const status = error.response?.status ?? 0; // Default to 0 if undefined

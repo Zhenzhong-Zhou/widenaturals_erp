@@ -29,23 +29,24 @@ const authenticateErrorHandler = (err, req, res, next) => {
   ) {
     // Define custom messages for specific error types
     const errorMessages = {
-      AccessTokenExpiredError: 'Access token expired. Please use your refresh token.',
+      AccessTokenExpiredError:
+        'Access token expired. Please use your refresh token.',
       AccessTokenError: 'Access token is missing or invalid.',
       RefreshTokenExpiredError: 'Refresh token expired. Please log in again.',
       RefreshTokenError: 'Refresh token is missing or invalid.',
       TokenRevokedError: 'Token has been revoked. Please log in again.',
     };
-    
+
     // Use the specific message or default to the error's message
     const message = errorMessages[err.type] || err.message;
-    
+
     // Create the custom authentication error
     const authError = AppError.authenticationError(message, {
       isExpected: true,
       logLevel: err.logLevel || 'warn', // Use the original log level if available
       ...err, // Include other properties like `code` or `details`
     });
-    
+
     // Log the error with metadata
     logError(authError.logLevel, 'Authentication Error', {
       message: authError.message,
@@ -54,11 +55,11 @@ const authenticateErrorHandler = (err, req, res, next) => {
       ip: req.ip || 'Unknown',
       userAgent: req.headers['user-agent'] || 'Unknown',
     });
-    
+
     // Send a structured error response
     return res.status(authError.status).json(authError.toJSON());
   }
-  
+
   // Pass the error to the next middleware if it's not an authentication error
   next(err);
 };

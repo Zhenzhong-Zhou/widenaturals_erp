@@ -13,14 +13,14 @@ interface CustomCardProps {
 }
 
 const CustomCard: FC<CustomCardProps> = ({
-                                           title,
-                                           subtitle,
-                                           children,
-                                           sx,
-                                           contentSx,
-                                           ariaLabel,
-                                           role = 'region',
-                                         }) => {
+  title,
+  subtitle,
+  children,
+  sx,
+  contentSx,
+  ariaLabel,
+  role = 'region',
+}) => {
   return (
     <Card
       aria-label={ariaLabel}
@@ -41,7 +41,10 @@ const CustomCard: FC<CustomCardProps> = ({
             variant="h5"
             align="center"
             gutterBottom
-            sx={{ fontWeight: 'bold', color: (theme) => theme.palette.text.primary }}
+            sx={{
+              fontWeight: 'bold',
+              color: (theme) => theme.palette.text.primary,
+            }}
           >
             {title}
           </Typography>

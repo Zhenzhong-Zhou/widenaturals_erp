@@ -14,12 +14,15 @@ interface LoginCardProps {
   subtitle?: string; // Optional subtitle
 }
 
-const LoginCard: FC<LoginCardProps> = ({ title = 'Login', subtitle = 'Sign in to your account.' }) => {
+const LoginCard: FC<LoginCardProps> = ({
+  title = 'Login',
+  subtitle = 'Sign in to your account.',
+}) => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { showLoading, hideLoading } = useLoading(); // Use correct functions from the context
   const loginError = useAppSelector(selectLoginError);
-  
+
   const handleSubmit = async (data: { email: string; password: string }) => {
     try {
       showLoading('Logging in...', 'spinner'); // Show loading spinner with a message
@@ -35,10 +38,11 @@ const LoginCard: FC<LoginCardProps> = ({ title = 'Login', subtitle = 'Sign in to
       hideLoading(); // Always hide loading spinner
     }
   };
-  
+
   return (
     <CustomCard title={title} subtitle={subtitle}>
-      {loginError && <ErrorDisplay message={loginError} />} {/* Show login errors */}
+      {loginError && <ErrorDisplay message={loginError} />}{' '}
+      {/* Show login errors */}
       <LoginForm onSubmit={handleSubmit} />
     </CustomCard>
   );

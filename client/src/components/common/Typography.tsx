@@ -9,14 +9,14 @@ interface CustomTypographyProps extends TypographyProps {
 }
 
 const Typography: FC<CustomTypographyProps> = ({
-                                                 children,
-                                                 variant = 'body1', // Default variant
-                                                 color = 'textPrimary', // Default text color
-                                                 align = 'inherit', // Default alignment
-                                                 ...props
-                                               }) => {
+  children,
+  variant = 'body1', // Default variant
+  color = 'textPrimary', // Default text color
+  align = 'inherit', // Default alignment
+  ...props
+}) => {
   const { theme } = useThemeContext();
-  
+
   return (
     <MuiTypography
       variant={variant}

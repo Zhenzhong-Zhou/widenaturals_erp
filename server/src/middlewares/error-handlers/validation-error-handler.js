@@ -23,14 +23,14 @@ const validationErrorHandler = (err, req, res, next) => {
         details: err.details || null, // Include validation details if available
       }
     );
-    
+
     // Log the validation error with detailed metadata
     if (process.env.NODE_ENV !== 'production') {
       logError(validationError, req, {
         additionalContext: 'Validation middleware encountered an error.',
       });
     }
-    
+
     // Respond with a structured error response
     return res.status(validationError.status).json(validationError.toJSON());
   }

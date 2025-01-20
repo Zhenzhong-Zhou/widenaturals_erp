@@ -1,6 +1,9 @@
 const { query, retry, lockRow } = require('../database/db');
 const { logError, logWarn } = require('../utils/logger-helper');
-const { maskSensitiveInfo, maskField } = require('../utils/sensitive-data-utils');
+const {
+  maskSensitiveInfo,
+  maskField,
+} = require('../utils/sensitive-data-utils');
 const AppError = require('../utils/AppError');
 
 /**
@@ -24,7 +27,7 @@ const insertUser = async (client, userDetails) => {
     statusDate,
     createdBy,
   } = userDetails;
-  
+
   const sql = `
     INSERT INTO users (
       email, role_id, status_id, firstname, lastname, phone_number,
@@ -46,11 +49,11 @@ const insertUser = async (client, userDetails) => {
     statusDate,
     createdBy,
   ];
-  
+
   try {
     return await retry(async () => {
       const result = await client.query(sql, params);
-      
+
       if (result.rows.length === 0) {
         const maskedEmail = maskSensitiveInfo(email, 'email');
         logWarn(`User with email ${maskedEmail} already exists.`);
@@ -59,7 +62,7 @@ const insertUser = async (client, userDetails) => {
           isExpected: true,
         });
       }
-      
+
       return result.rows[0];
     });
   } catch (error) {
@@ -86,7 +89,7 @@ const getUser = async (client, field, value, shouldLock = false) => {
       isExpected: true,
     });
   }
-  
+
   const sql = `
     SELECT
       u.id,
@@ -109,23 +112,23 @@ const getUser = async (client, field, value, shouldLock = false) => {
     WHERE u.${field} = $1
   `;
   const params = [value];
-  
+
   try {
     const user = await retry(async () => {
       const result = await client.query(sql, params);
-      
+
       if (result.rows.length === 0) {
         return null;
       }
-      
+
       return result.rows[0];
     });
-    
+
     // Optionally lock the user's row to ensure consistency
     if (shouldLock && user) {
       await lockRow(client, 'users', user.id, 'FOR UPDATE');
     }
-    
+
     return user;
   } catch (error) {
     logError(`Error fetching user by ${maskedField}:`, error);
@@ -188,18 +191,22 @@ const userExists = async (field, value) => {
       isExpected: true,
     });
   }
-  
+
   const sql = `SELECT 1 FROM users WHERE ${field} = $1 LIMIT 1`;
   const params = [value];
-  
+
   try {
     const result = await query(sql, params);
     return result.rowCount > 0; // Return true if the user exists
   } catch (error) {
     logError(`Error checking user existence by ${maskedField}:`, error);
-    throw new AppError(`Failed to check user existence by ${maskedField}`, 500, {
-      type: 'DatabaseError',
-    });
+    throw new AppError(
+      `Failed to check user existence by ${maskedField}`,
+      500,
+      {
+        type: 'DatabaseError',
+      }
+    );
   }
 };
 

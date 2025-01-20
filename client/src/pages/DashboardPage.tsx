@@ -9,10 +9,10 @@ import { refreshTokenThunk } from '../features/session';
 const DashboardPage: FC = () => {
   const [open, setOpen] = useState(false);
   const dispatch = useAppDispatch();
-  
+
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
-  
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Pending':
@@ -25,15 +25,15 @@ const DashboardPage: FC = () => {
         return 'default';
     }
   };
-  
+
   const handleApprove = (row: any) => {
     console.log(`Approved: ${row.name}`);
   };
-  
+
   const handleCancel = (row: any) => {
     console.log(`Cancelled: ${row.name}`);
   };
-  
+
   const fields: FieldConfig[] = [
     { id: 'name', label: 'Name', type: 'text', required: true }, // Text field
     {
@@ -48,11 +48,11 @@ const DashboardPage: FC = () => {
     },
     { id: 'newsletter', label: 'Subscribe to Newsletter', type: 'checkbox' }, // Checkbox
   ];
-  
+
   const handleSubmit = (formData: Record<string, any>) => {
     console.log('Form Data:', formData);
   };
-  
+
   useEffect(() => {
     const handleRefreshToken = async () => {
       try {
@@ -63,10 +63,10 @@ const DashboardPage: FC = () => {
         console.error('Dashboard: Token refresh failed', error);
       }
     };
-    
+
     handleRefreshToken();
   }, [dispatch]); // Add dispatch to dependencies
-  
+
   return (
     <>
       <DataTable
@@ -76,7 +76,9 @@ const DashboardPage: FC = () => {
             id: 'status',
             label: 'Status',
             sortable: true,
-            format: (value) => <Chip label={value} color={getStatusColor(value)} />,
+            format: (value) => (
+              <Chip label={value} color={getStatusColor(value)} />
+            ),
           },
           {
             id: 'actions',
@@ -109,19 +111,18 @@ const DashboardPage: FC = () => {
             ),
           },
         ]}
-        
         data={[
           { id: 1, name: 'Alice', status: 'Pending' },
           { id: 2, name: 'Bob', status: 'Approved' },
           { id: 3, name: 'Charlie', status: 'Cancelled' },
         ]}
       />
-      
+
       <div>
         <h1>Dynamic Form</h1>
         <Form fields={fields} onSubmit={handleSubmit} />
       </div>
-      
+
       <div>
         <CustomButton variant="contained" color="primary" onClick={handleOpen}>
           Open Modal
@@ -132,16 +133,27 @@ const DashboardPage: FC = () => {
           title="Example Modal"
           actions={
             <>
-              <CustomButton onClick={handleClose} color="secondary" variant="outlined">
+              <CustomButton
+                onClick={handleClose}
+                color="secondary"
+                variant="outlined"
+              >
                 Cancel
               </CustomButton>
-              <CustomButton onClick={handleClose} color="primary" variant="contained">
+              <CustomButton
+                onClick={handleClose}
+                color="primary"
+                variant="contained"
+              >
                 Confirm
               </CustomButton>
             </>
           }
         >
-          <p>This is the content inside the modal. You can customize it as needed.</p>
+          <p>
+            This is the content inside the modal. You can customize it as
+            needed.
+          </p>
         </CustomModal>
       </div>
     </>

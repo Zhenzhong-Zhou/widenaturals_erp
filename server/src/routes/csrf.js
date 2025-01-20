@@ -1,5 +1,7 @@
 const express = require('express');
-const { generateCsrfTokenController } = require('../controllers/csrf-controller');
+const {
+  generateCsrfTokenController,
+} = require('../controllers/csrf-controller');
 
 const router = express.Router();
 

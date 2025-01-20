@@ -20,7 +20,7 @@ const validate = (
   // Default Joi validation options
   const defaultOptions = { abortEarly: false, allowUnknown: false };
   const validationOptions = { ...defaultOptions, ...options };
-  
+
   return (req, res, next) => {
     try {
       // Validate the target
@@ -30,13 +30,13 @@ const validate = (
           isExpected: false,
         });
       }
-      
+
       const { error, value } = schema.validate(req[target], validationOptions);
-      
+
       if (error) {
         // Sanitize the error details
         const sanitizedDetails = sanitizeValidationError(error);
-        
+
         // Log the sanitized error in non-production environments
         if (process.env.NODE_ENV !== 'production') {
           logError('Validation Error:', {
@@ -46,13 +46,13 @@ const validate = (
             details: sanitizedDetails,
           });
         }
-        
+
         // Throw sanitized validation error
         throw AppError.validationError(errorMessage, {
           details: sanitizedDetails,
         });
       }
-      
+
       req[target] = value; // Sanitize and normalize input
       next();
     } catch (error) {

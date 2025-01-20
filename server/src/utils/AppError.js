@@ -47,7 +47,7 @@ class AppError extends Error {
       ...options,
     });
   }
-  
+
   static accountLockedError(message, options = {}) {
     return new AppError(message, 403, {
       type: 'AccountLockedError',
@@ -56,7 +56,7 @@ class AppError extends Error {
       ...options,
     });
   }
-  
+
   static sessionExpiredError(message, options = {}) {
     return new AppError(message, 401, {
       type: 'SessionExpiredError',
@@ -65,7 +65,7 @@ class AppError extends Error {
       ...options,
     });
   }
-  
+
   static accessTokenExpiredError(message, options = {}) {
     return new AppError(message, 401, {
       type: 'AccessTokenExpiredError',
@@ -74,7 +74,7 @@ class AppError extends Error {
       ...options,
     });
   }
-  
+
   static accessTokenError(message, options = {}) {
     return new AppError(message, 401, {
       type: 'AccessTokenError',
@@ -83,7 +83,7 @@ class AppError extends Error {
       ...options,
     });
   }
-  
+
   static refreshTokenExpiredError(message, options = {}) {
     return new AppError(message, 401, {
       type: 'RefreshTokenExpiredError',
@@ -92,7 +92,7 @@ class AppError extends Error {
       ...options,
     });
   }
-  
+
   static refreshTokenError(message, options = {}) {
     return new AppError(message, 401, {
       type: 'RefreshTokenError',
@@ -101,7 +101,7 @@ class AppError extends Error {
       ...options,
     });
   }
-  
+
   static tokenRevokedError(message, options = {}) {
     return new AppError(message, 401, {
       type: 'TokenRevokedError',
@@ -110,7 +110,7 @@ class AppError extends Error {
       ...options,
     });
   }
-  
+
   static authenticationError(message, options = {}) {
     return new AppError(message, 401, {
       type: 'AuthenticationError',

@@ -118,7 +118,7 @@ const validateStatus = async (statusName) => {
  */
 const validateUserExists = async (userId) => {
   const user = await userExists('id', userId);
-  
+
   if (!user) {
     throw AppError.notFoundError(`User with ID ${userId} not found.`);
   }

@@ -1,8 +1,18 @@
-import { createContext, FC, ReactNode, useContext, useState, useCallback } from 'react';
+import {
+  createContext,
+  FC,
+  ReactNode,
+  useContext,
+  useState,
+  useCallback,
+} from 'react';
 import { Loading } from '@components/index';
 
 interface LoadingContextType {
-  showLoading: (message?: string, variant?: 'spinner' | 'linear' | 'dotted') => void;
+  showLoading: (
+    message?: string,
+    variant?: 'spinner' | 'linear' | 'dotted'
+  ) => void;
   hideLoading: () => void;
   disableGlobalLoading: () => void;
   enableGlobalLoading: () => void;
@@ -26,16 +36,22 @@ export const LoadingProvider: FC<LoadingProviderProps> = ({ children }) => {
     loading: false,
     globalEnabled: true, // Default: Global loading is enabled
   });
-  
-  const showLoading = useCallback((message?: string, variant: 'spinner' | 'linear' | 'dotted' = 'spinner') => {
-    setLoadingState((prevState) => ({
-      ...prevState,
-      loading: true,
-      message,
-      variant,
-    }));
-  }, []);
-  
+
+  const showLoading = useCallback(
+    (
+      message?: string,
+      variant: 'spinner' | 'linear' | 'dotted' = 'spinner'
+    ) => {
+      setLoadingState((prevState) => ({
+        ...prevState,
+        loading: true,
+        message,
+        variant,
+      }));
+    },
+    []
+  );
+
   const hideLoading = useCallback(() => {
     setLoadingState((prevState) => ({
       ...prevState,
@@ -44,23 +60,30 @@ export const LoadingProvider: FC<LoadingProviderProps> = ({ children }) => {
       variant: undefined,
     }));
   }, []);
-  
+
   const disableGlobalLoading = useCallback(() => {
     setLoadingState((prevState) => ({
       ...prevState,
       globalEnabled: false, // Disable global loading
     }));
   }, []);
-  
+
   const enableGlobalLoading = useCallback(() => {
     setLoadingState((prevState) => ({
       ...prevState,
       globalEnabled: true, // Enable global loading
     }));
   }, []);
-  
+
   return (
-    <LoadingContext.Provider value={{ showLoading, hideLoading, disableGlobalLoading, enableGlobalLoading }}>
+    <LoadingContext.Provider
+      value={{
+        showLoading,
+        hideLoading,
+        disableGlobalLoading,
+        enableGlobalLoading,
+      }}
+    >
       {children}
       {loadingState.globalEnabled && loadingState.loading && (
         <Loading

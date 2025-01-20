@@ -7,7 +7,10 @@
 const express = require('express');
 const validate = require('../middlewares/validate');
 const validateAuthInputs = require('../validators/auth-validators');
-const { loginController, refreshTokenController } = require('../controllers/session-controller');
+const {
+  loginController,
+  refreshTokenController,
+} = require('../controllers/session-controller');
 
 const router = express.Router();
 
@@ -24,22 +27,26 @@ router.post('/login', validate(validateAuthInputs), loginController);
 // Refresh token route
 router.post('/refresh', refreshTokenController);
 
-
 // Placeholder for session tracking routes
 // To track an active session (e.g., metadata like IP, device).
 router.post('/track', (req, res) => {
-  res.status(501).json({ message: 'Session tracking route not implemented yet.' });
+  res
+    .status(501)
+    .json({ message: 'Session tracking route not implemented yet.' });
 });
 
 // To terminate a specific session.
 router.post('/terminate', (req, res) => {
-  res.status(501).json({ message: 'Session termination route not implemented yet.' });
+  res
+    .status(501)
+    .json({ message: 'Session termination route not implemented yet.' });
 });
 
 // To terminate all active sessions for a user.
 router.post('/terminate-all', (req, res) => {
-  res.status(501).json({ message: 'Terminate all sessions route not implemented yet.' });
+  res
+    .status(501)
+    .json({ message: 'Terminate all sessions route not implemented yet.' });
 });
-
 
 module.exports = router;

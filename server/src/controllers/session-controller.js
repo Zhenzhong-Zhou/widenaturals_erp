@@ -29,18 +29,21 @@ const wrapAsync = require('../utils/wrap-async');
 const loginController = wrapAsync(async (req, res, next) => {
   const { email, password } = req.body;
   const csrfToken = req.csrfToken();
-  
+
   try {
     // Call the service layer for business logic
-    const { accessToken, refreshToken, last_login } = await loginUser(email, password);
-    
+    const { accessToken, refreshToken, last_login } = await loginUser(
+      email,
+      password
+    );
+
     // Set tokens in cookies
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
-    
+
     // Return success response
     res.status(200).json({
       message: 'Login successful',
@@ -52,15 +55,17 @@ const loginController = wrapAsync(async (req, res, next) => {
     // Log unexpected errors
     if (!(error instanceof AppError)) {
       logError('Unexpected error during login:', error);
-      return next(new AppError('Internal server error', 500, {
-        type: 'UnexpectedError',
-        isExpected: false,
-      }));
+      return next(
+        new AppError('Internal server error', 500, {
+          type: 'UnexpectedError',
+          isExpected: false,
+        })
+      );
     }
-    
+
     // Log expected errors for debugging (if necessary)
     logError('Handled error during login:', error);
-    
+
     // Return structured error response
     res.status(error.status).json(error.toJSON());
   }
@@ -77,7 +82,7 @@ const loginController = wrapAsync(async (req, res, next) => {
 const refreshTokenController = wrapAsync(async (req, res, next) => {
   try {
     const refreshToken = req.cookies?.refreshToken;
-    
+
     // Check if the refresh token exists
     if (!refreshToken) {
       logWarn('Refresh token is missing. User needs to log in again.', {
@@ -86,28 +91,31 @@ const refreshTokenController = wrapAsync(async (req, res, next) => {
         userAgent: req.headers['user-agent'] || 'Unknown',
       });
       return next(
-        AppError.refreshTokenError('Refresh token is required. Please log in again.', {
-          logLevel: 'warn',
-        })
+        AppError.refreshTokenError(
+          'Refresh token is required. Please log in again.',
+          {
+            logLevel: 'warn',
+          }
+        )
       );
     }
-    
+
     try {
       // Verify the refresh token
       const payload = verifyToken(refreshToken, true); // `true` indicates this is a refresh token
-      
+
       // Rotate the refresh token
       const newRefreshToken = signToken(
         { id: payload.id, role: payload.role },
         true
       ); // Pass `true` for refresh token
-      
+
       // Generate a new access token
       const newAccessToken = signToken({
         id: payload.id,
         role: payload.role,
       });
-      
+
       // Set the new refresh token in a secure cookie
       res.cookie('refreshToken', newRefreshToken, {
         httpOnly: true,
@@ -115,7 +123,7 @@ const refreshTokenController = wrapAsync(async (req, res, next) => {
         sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       });
-      
+
       // Return the access token in the response body
       return res.status(200).json({
         success: true,

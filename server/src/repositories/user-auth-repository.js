@@ -16,24 +16,30 @@ const { verifyPassword } = require('../utils/password-helper');
  * @returns {Promise<void>} Resolves when the insertion is successful.
  * @throws {AppError} If the query fails due to a database error or row locking issues.
  */
-const insertUserAuth = async (client, { userId, passwordHash, passwordSalt }) => {
+const insertUserAuth = async (
+  client,
+  { userId, passwordHash, passwordSalt }
+) => {
   const sql = `
     INSERT INTO user_auth (user_id, password_hash, password_salt, created_at)
     VALUES ($1, $2, $3, $4);
   `;
   const params = [userId, passwordHash, passwordSalt, new Date()];
-  
+
   try {
     // Retry logic for transient issues
     await retry(async () => {
       // Lock the row in the `users` table to ensure consistency
       await lockRow(client, 'users', userId, 'FOR UPDATE');
-      
+
       // Perform the insertion
       await client.query(sql, params);
     });
   } catch (error) {
-    logError(`Database error inserting user auth for user ID ${userId}:`, error);
+    logError(
+      `Database error inserting user auth for user ID ${userId}:`,
+      error
+    );
     throw new AppError('Failed to insert user authentication details', 500, {
       type: 'DatabaseError',
     });
@@ -64,28 +70,33 @@ const getUserAuthByEmail = async (client, email) => {
     INNER JOIN status s ON u.status_id = s.id
     WHERE u.email = $1 AND s.name = 'active';
   `;
-  
+
   try {
     // Retry fetching user details in case of transient errors
     const user = await retry(async () => {
       const result = await query(sql, [email], client);
       if (result.rows.length === 0) {
-        throw AppError.notFoundError('User not found or inactive', { isExpected: true });
+        throw AppError.notFoundError('User not found or inactive', {
+          isExpected: true,
+        });
       }
       return result.rows[0];
     });
-    
+
     // Lock the user's row in the `users` table for subsequent updates
     await lockRow(client, 'users', user.user_id, 'FOR UPDATE');
     await lockRow(client, 'user_auth', user.user_id, 'FOR UPDATE');
-    
+
     return user;
   } catch (error) {
     logError(`Error fetching user auth for email "${email}":`, error);
-    throw AppError.databaseError('Failed to fetch user authentication details', {
-      isExpected: false,
-      details: { email },
-    });
+    throw AppError.databaseError(
+      'Failed to fetch user authentication details',
+      {
+        isExpected: false,
+        details: { email },
+      }
+    );
   }
 };
 
@@ -106,13 +117,13 @@ const incrementFailedAttempts = async (client, userId, currentAttempts) => {
   const newAttempts = currentAttempts + 1;
   let lockoutTime = null;
   let notes = null;
-  
+
   // Apply lockout if the threshold is reached
   if (newAttempts >= 5) {
     lockoutTime = new Date(Date.now() + 15 * 60 * 1000); // Lock for 15 minutes
     notes = 'Account locked due to multiple failed attempts.';
   }
-  
+
   // SQL query for updating failed attempts and metadata
   const sql = `
     UPDATE user_auth
@@ -133,18 +144,25 @@ const incrementFailedAttempts = async (client, userId, currentAttempts) => {
       updated_at = NOW()
     WHERE user_id = $5;
   `;
-  
+
   try {
     // Retry logic for transient errors
     await retry(async () => {
       // Lock the user's row to ensure consistency during the update
       await lockRow(client, 'user_auth', userId);
-      
+
       // Execute the update query
-      await query(sql, [newAttempts, lockoutTime, lockoutTime, notes, userId], client);
+      await query(
+        sql,
+        [newAttempts, lockoutTime, lockoutTime, notes, userId],
+        client
+      );
     });
   } catch (error) {
-    logError(`Error incrementing failed attempts for user ID ${userId}:`, error);
+    logError(
+      `Error incrementing failed attempts for user ID ${userId}:`,
+      error
+    );
     throw AppError.accountLockedError('Failed to update failed attempts', {
       isExpected: false,
     });
@@ -179,12 +197,12 @@ const resetFailedAttemptsAndUpdateLastLogin = async (client, userId) => {
       updated_at = NOW()
     WHERE user_id = $1
   `;
-  
+
   try {
     await retry(async () => {
       // Lock the user's row to ensure consistency
       await lockRow(client, 'user_auth', userId);
-      
+
       // Execute the update query
       await query(sql, [userId], client);
     });
@@ -193,9 +211,12 @@ const resetFailedAttemptsAndUpdateLastLogin = async (client, userId) => {
       `Error resetting failed attempts and updating last login for user ID ${userId}:`,
       error
     );
-    throw AppError.databaseError('Failed to reset failed attempts or update last login', {
-      isExpected: false,
-    });
+    throw AppError.databaseError(
+      'Failed to reset failed attempts or update last login',
+      {
+        isExpected: false,
+      }
+    );
   }
 };
 
@@ -227,21 +248,21 @@ const fetchPasswordHistory = async (client, userId) => {
       LIMIT 4
     ) sub;
   `;
-  
+
   try {
     return await retry(async () => {
       // Optionally lock the row to ensure consistency
       await lockRow(client, 'user_auth', userId);
-      
+
       // Execute the query to fetch password history
       const result = await client.query(sql, [userId]);
-      
+
       // Return the limited history or an empty array if none exists
       return result.rows[0]?.limited_history || [];
     });
   } catch (error) {
     logError('Error fetching password history:', error);
-    
+
     // Throw a structured AppError for better error handling
     throw new AppError('Failed to fetch password history', 500, {
       type: 'DatabaseError',
@@ -270,24 +291,29 @@ const verifyCurrentPassword = async (client, userId, plainPassword) => {
     FROM user_auth
     WHERE user_id = $1
   `;
-  
+
   try {
     return await retry(async () => {
       // Lock the user's row for consistency
       await lockRow(client, 'user_auth', userId);
-      
+
       // Fetch the current password hash and salt from the database
       const result = await client.query(sql, [userId]);
-      
+
       if (result.rows.length === 0) {
         throw AppError.notFoundError('User not found', { isExpected: true });
       }
-      
-      const { password_hash: passwordHash, password_salt: passwordSalt } = result.rows[0];
-      
+
+      const { password_hash: passwordHash, password_salt: passwordSalt } =
+        result.rows[0];
+
       // Verify the plain-text password against the stored hash and salt
-      const isMatch = await verifyPassword(plainPassword, passwordHash, passwordSalt);
-      
+      const isMatch = await verifyPassword(
+        plainPassword,
+        passwordHash,
+        passwordSalt
+      );
+
       // Return whether the passwords match
       return isMatch;
     });
@@ -318,20 +344,24 @@ const isPasswordReused = async (client, userId, newPassword) => {
     await retry(async () => {
       await lockRow(client, 'user_auth', userId, 'FOR UPDATE');
     });
-    
+
     // Fetch the user's password history
     const passwordHistory = await fetchPasswordHistory(client, userId);
-    
+
     // Compare the provided plain-text password with each stored hash
     for (const historyEntry of passwordHistory) {
       const { password_hash, password_salt } = historyEntry;
-      
-      const isMatch = await verifyPassword(newPassword, password_hash, password_salt);
+
+      const isMatch = await verifyPassword(
+        newPassword,
+        password_hash,
+        password_salt
+      );
       if (isMatch) {
         return true; // Password matches a previously used password
       }
     }
-    
+
     return false; // No match found
   } catch (error) {
     // Log the error and throw a structured AppError for better error handling
@@ -366,17 +396,23 @@ const updatePasswordHistory = async (client, userId, updatedHistory) => {
     )
     WHERE user_id = $2
   `;
-  
+
   try {
     // Retry and lock the row before updating
     await retry(async () => {
       await lockRow(client, 'user_auth', userId, 'FOR UPDATE');
-      const result = await query(sql, [JSON.stringify(updatedHistory), userId], client);
+      const result = await query(
+        sql,
+        [JSON.stringify(updatedHistory), userId],
+        client
+      );
       if (result.rowCount === 0) {
-        throw AppError.notFoundError(`Failed to update password history for user ${userId}`);
+        throw AppError.notFoundError(
+          `Failed to update password history for user ${userId}`
+        );
       }
     });
-    
+
     return true;
   } catch (error) {
     logError('Error updating password history:', error);
@@ -396,7 +432,12 @@ const updatePasswordHistory = async (client, userId, updatedHistory) => {
  * @returns {Promise<boolean>} - Resolves to `true` if the update was successful, otherwise `false`.
  * @throws {AppError} - Throws a structured `AppError` if the update fails.
  */
-const updatePasswordHashAndSalt = async (client, userId, hashedPassword, passwordSalt) => {
+const updatePasswordHashAndSalt = async (
+  client,
+  userId,
+  hashedPassword,
+  passwordSalt
+) => {
   const sql = `
     UPDATE user_auth
     SET
@@ -405,17 +446,23 @@ const updatePasswordHashAndSalt = async (client, userId, hashedPassword, passwor
       updated_at = NOW()
     WHERE user_id = $3
   `;
-  
+
   try {
     // Retry and lock the row before updating
     await retry(async () => {
       await lockRow(client, 'user_auth', userId, 'FOR UPDATE');
-      const result = await query(sql, [hashedPassword, passwordSalt, userId], client);
+      const result = await query(
+        sql,
+        [hashedPassword, passwordSalt, userId],
+        client
+      );
       if (result.rowCount === 0) {
-        throw AppError.notFoundError(`Failed to update password hash and salt for user ${userId}`);
+        throw AppError.notFoundError(
+          `Failed to update password hash and salt for user ${userId}`
+        );
       }
     });
-    
+
     return true;
   } catch (error) {
     logError('Error updating password hash and salt:', error);

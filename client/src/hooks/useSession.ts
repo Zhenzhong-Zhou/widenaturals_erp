@@ -1,6 +1,10 @@
 import { useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
-import { selectAccessToken, selectIsAuthenticated, selectUser } from '../features/session/state/sessionSelectors.ts';
+import {
+  selectAccessToken,
+  selectIsAuthenticated,
+  selectUser,
+} from '../features/session/state/sessionSelectors.ts';
 import { refreshTokenThunk } from '../features/session';
 
 /**
@@ -12,7 +16,7 @@ const useSession = () => {
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const user = useAppSelector(selectUser);
   const accessToken = useAppSelector(selectAccessToken);
-  
+
   /**
    * Refresh the access token.
    * This function handles calling the refresh token logic
@@ -27,7 +31,7 @@ const useSession = () => {
       throw error; // Re-throw the error for the caller to handle
     }
   }, [dispatch]);
-  
+
   // Return the session state and actions
   return {
     isAuthenticated,

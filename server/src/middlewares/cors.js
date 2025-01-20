@@ -29,12 +29,12 @@ const corsMiddleware = cors({
           }
         );
       }
-      
+
       // Read allowed origins from environment variables
       const allowedOrigins = process.env.ALLOWED_ORIGINS
         ? process.env.ALLOWED_ORIGINS.split(',').filter(Boolean)
         : [];
-      
+
       if (!origin) {
         // Handle requests without an Origin header
         if (allowedOrigins.length === 0) {
@@ -42,17 +42,17 @@ const corsMiddleware = cors({
             'No allowed origins specified in ALLOWED_ORIGINS. CORS may be overly permissive.'
           );
         }
-        
+
         // Log and allow requests without an origin (e.g., server-to-server or preflight)
         logWarn('CORS request received without an Origin header.');
         return callback(null, true);
       }
-      
+
       // Allow requests from allowed origins
       if (allowedOrigins.includes(origin)) {
         return callback(null, true); // Allow the request
       }
-      
+
       // Reject requests from disallowed origins
       const corsError = AppError.corsError(
         `CORS error: Origin '${origin}' is not allowed.`,

@@ -35,25 +35,31 @@ const csrfMiddleware = csrf({
  */
 const shouldBypassCSRF = (req) => {
   // Allow bypass in development for testing purposes
-  if (process.env.NODE_ENV === 'development' && process.env.CSRF_TESTING === 'true') {
+  if (
+    process.env.NODE_ENV === 'development' &&
+    process.env.CSRF_TESTING === 'true'
+  ) {
     return true;
   }
-  
+
   // Define exempt methods and paths
   const exemptMethods = ['HEAD', 'OPTIONS']; // Only include non-state-changing methods
   const exemptPaths = [
     `${process.env.API_PREFIX}/public`, // Public APIs
   ];
-  
+
   // Allow exempt methods or explicitly exempt paths
-  if (exemptMethods.includes(req.method) || (req.method === 'GET' && exemptPaths.includes(req.path))) {
+  if (
+    exemptMethods.includes(req.method) ||
+    (req.method === 'GET' && exemptPaths.includes(req.path))
+  ) {
     logWarn(`CSRF validation bypassed for ${req.method} ${req.path}`, {
       ip: req.ip,
       userAgent: req.headers['user-agent'],
     });
     return true;
   }
-  
+
   return false;
 };
 
@@ -68,7 +74,7 @@ const csrfProtection = () => {
     if (shouldBypassCSRF(req)) {
       return next(); // Skip CSRF validation
     }
-    
+
     try {
       csrfMiddleware(req, res, next);
     } catch (error) {

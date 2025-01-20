@@ -7,7 +7,11 @@ import axios, {
 import { AppError, ErrorType } from './AppError'; // Updated AppError
 import { handleError, mapErrorMessage } from './errorUtils'; // Error utilities
 import { setTokens, getToken, clearTokens } from './tokenManager';
-import { selectCsrfToken, selectCsrfError, selectCsrfStatus } from '../features/csrf/state/csrfSelector';
+import {
+  selectCsrfToken,
+  selectCsrfError,
+  selectCsrfStatus,
+} from '../features/csrf/state/csrfSelector';
 import { store } from '../store/store';
 import { resetCsrfToken } from '../features/csrf/state/csrfSlice';
 
@@ -30,7 +34,10 @@ const axiosInstance = axios.create({
 
 // Refreshing tokens and retry logic
 let isRefreshing = false;
-let failedQueue: { resolve: (value: unknown) => void; reject: (reason?: any) => void }[] = [];
+let failedQueue: {
+  resolve: (value: unknown) => void;
+  reject: (reason?: any) => void;
+}[] = [];
 
 /**
  * Process queued requests during token refresh.
@@ -56,14 +63,14 @@ axiosInstance.interceptors.request.use(
       const accessToken = getToken('accessToken');
       const state = store.getState(); // Access the Redux store directly
       const csrfToken = selectCsrfToken(state); // Get the CSRF token from the store
-      
+
       if (accessToken && config.headers) {
         config.headers.Authorization = `Bearer ${accessToken}`;
       }
       if (csrfToken && config.headers) {
         config.headers['X-CSRF-Token'] = csrfToken;
       }
-      
+
       return config;
     } catch (error) {
       handleError(error); // Log error using handleError
@@ -88,11 +95,13 @@ axiosInstance.interceptors.request.use(
 axiosInstance.interceptors.response.use(
   (response: AxiosResponse) => response,
   async (error: AxiosError<ErrorResponse>) => {
-    const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
+    const originalRequest = error.config as AxiosRequestConfig & {
+      _retry?: boolean;
+    };
     const state = store.getState(); // Access the Redux state
     const csrfError = selectCsrfError(state); // Retrieve CSRF error state
     const csrfStatus = selectCsrfStatus(state); // Retrieve CSRF status state
-    
+
     try {
       // Handle CSRF-specific errors
       if (csrfStatus === 'failed' && csrfError) {
@@ -103,7 +112,7 @@ axiosInstance.interceptors.response.use(
           details: csrfError,
         });
       }
-      
+
       // Handle token expiration (401)
       if (error.response?.status === 401 && !originalRequest._retry) {
         if (isRefreshing) {
@@ -118,10 +127,10 @@ axiosInstance.interceptors.response.use(
             })
             .catch((err) => Promise.reject(err));
         }
-        
+
         originalRequest._retry = true;
         isRefreshing = true;
-        
+
         const refreshToken = getToken('refreshToken');
         if (!refreshToken) {
           clearTokens();
@@ -130,31 +139,36 @@ axiosInstance.interceptors.response.use(
             details: 'No refresh token found in storage',
           });
         }
-        
+
         // Request new access token
-        const { data } = await axios.post(`${baseURL}/session/refresh`, { refreshToken });
-        
+        const { data } = await axios.post(`${baseURL}/session/refresh`, {
+          refreshToken,
+        });
+
         // Save new tokens using tokenManager
         setTokens(data.accessToken);
-        
+
         // Process queued requests with the new token
         processQueue(null, data.accessToken);
         originalRequest.headers = {
           ...originalRequest.headers,
           Authorization: `Bearer ${data.accessToken}`,
         };
-        
+
         return axiosInstance(originalRequest);
       }
-      
+
       // Retry logic for rate-limiting (429) or network errors
       if (error.response?.status === 429 || !error.response) {
-        const retryAfter = parseInt(error.response?.headers?.['retry-after'] || '1000', 10);
+        const retryAfter = parseInt(
+          error.response?.headers?.['retry-after'] || '1000',
+          10
+        );
         console.warn('Rate limited or network error, retrying...');
         await new Promise((resolve) => setTimeout(resolve, retryAfter));
         return axiosInstance(originalRequest);
       }
-      
+
       // Handle server errors (500+)
       if (error.response?.status >= 500) {
         throw new AppError('Server error', error.response.status, {
@@ -162,7 +176,7 @@ axiosInstance.interceptors.response.use(
           details: mapErrorMessage(error),
         });
       }
-      
+
       // Handle validation errors (400)
       if (error.response?.status === 400) {
         throw new AppError('Validation error', 400, {
@@ -170,12 +184,16 @@ axiosInstance.interceptors.response.use(
           details: mapErrorMessage(error),
         });
       }
-      
+
       // Unknown error
-      throw new AppError('Unknown error occurred', error.response?.status || 500, {
-        type: ErrorType.UnknownError,
-        details: mapErrorMessage(error),
-      });
+      throw new AppError(
+        'Unknown error occurred',
+        error.response?.status || 500,
+        {
+          type: ErrorType.UnknownError,
+          details: mapErrorMessage(error),
+        }
+      );
     } catch (appError) {
       handleError(appError); // Log the AppError
       return Promise.reject(appError);

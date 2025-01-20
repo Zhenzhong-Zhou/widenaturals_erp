@@ -9,7 +9,7 @@ import logoLight from '../../../assets/wide-logo-light.png';
 const LoginPage: FC = () => {
   const { theme } = useThemeContext();
   const logo = theme.palette.mode === 'dark' ? logoDark : logoLight;
-  
+
   return (
     <Box
       sx={{
@@ -18,9 +18,10 @@ const LoginPage: FC = () => {
         justifyContent: 'flex-start', // Push content closer to the top
         alignItems: 'center',
         height: '100vh',
-        background: theme.palette.mode === 'dark'
-          ? 'linear-gradient(135deg, #1c1c1c, #333333)'
-          : 'linear-gradient(135deg, #f9f9f9, #e0e0e0)',
+        background:
+          theme.palette.mode === 'dark'
+            ? 'linear-gradient(135deg, #1c1c1c, #333333)'
+            : 'linear-gradient(135deg, #f9f9f9, #e0e0e0)',
         padding: { xs: '10px', sm: '100px 20px' }, // More padding for top alignment
         animation: 'fadeIn 0.5s ease-in-out', // Apply fade-in animation
         '@keyframes fadeIn': {
@@ -66,7 +67,7 @@ const LoginPage: FC = () => {
           Your trusted platform for managing inventory, sales, and more.
         </Typography>
       </Box>
-      
+
       {/* Login Card */}
       <Box
         sx={{
@@ -80,7 +81,7 @@ const LoginPage: FC = () => {
           subtitle="Access your Wide Naturals dashboard to streamline operations."
         />
       </Box>
-      
+
       {/* Support Links */}
       <Box
         sx={{

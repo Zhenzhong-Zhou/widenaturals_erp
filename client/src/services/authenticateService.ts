@@ -23,5 +23,5 @@ const logout = async (): Promise<void> => {
 };
 
 export const authService = {
-  logout
+  logout,
 };

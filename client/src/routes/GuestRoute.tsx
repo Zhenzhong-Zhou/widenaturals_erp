@@ -9,8 +9,8 @@ interface GuestRouteProps {
 
 const GuestRoute: FC<GuestRouteProps> = ({ children = <Outlet /> }) => {
   const { isAuthenticated } = useSession(); // Fetch authentication status
-  
-  return isAuthenticated ? (<Navigate to="/dashboard" replace />) : (children);
+
+  return isAuthenticated ? <Navigate to="/dashboard" replace /> : children;
 };
 
 export default GuestRoute;

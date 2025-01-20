@@ -14,7 +14,7 @@ const AppContent: FC = () => {
     delay: 500,
     retryAttempts: 3,
   });
-  
+
   // Show loading during initialization
   if (isInitializing) {
     return (
@@ -32,19 +32,22 @@ const AppContent: FC = () => {
       </Box>
     );
   }
-  
+
   // Show error if initialization fails
   if (hasError) {
     return (
       <ErrorDisplay
-        message={initializationError?.message || 'An unexpected error occurred during initialization.'}
+        message={
+          initializationError?.message ||
+          'An unexpected error occurred during initialization.'
+        }
         onRetry={() => window.location.reload()}
       >
         Additional debugging information can go here.
       </ErrorDisplay>
     );
   }
-  
+
   // Render routes
   return (
     <Box className="app">

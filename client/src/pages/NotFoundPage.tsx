@@ -11,7 +11,7 @@ interface NotFoundPageProps {
 const NotFoundPage: FC<NotFoundPageProps> = ({ isAuthenticated }) => {
   const { theme } = useThemeContext(); // Get theme from context
   const navigate = useNavigate();
-  
+
   const handleRedirect = () => {
     if (isAuthenticated) {
       navigate('/dashboard'); // Redirect to the dashboard for authenticated users
@@ -19,7 +19,7 @@ const NotFoundPage: FC<NotFoundPageProps> = ({ isAuthenticated }) => {
       navigate('/'); // Redirect to the home for unauthenticated users
     }
   };
-  
+
   return (
     <Container
       maxWidth="md"
@@ -51,8 +51,8 @@ const NotFoundPage: FC<NotFoundPageProps> = ({ isAuthenticated }) => {
         }}
       >
         {isAuthenticated
-          ? "Sorry, we couldn’t find the page you’re looking for."
-          : "Oops! The page you are looking for doesn’t exist."}
+          ? 'Sorry, we couldn’t find the page you’re looking for.'
+          : 'Oops! The page you are looking for doesn’t exist.'}
       </Typography>
       <CustomButton
         variant="contained"
@@ -67,7 +67,7 @@ const NotFoundPage: FC<NotFoundPageProps> = ({ isAuthenticated }) => {
           },
         }}
       >
-        {isAuthenticated ? "Go Back to Dashboard" : "Go Back to Home"}
+        {isAuthenticated ? 'Go Back to Dashboard' : 'Go Back to Home'}
       </CustomButton>
     </Container>
   );

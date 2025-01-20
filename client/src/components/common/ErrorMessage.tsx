@@ -7,14 +7,19 @@ interface ErrorMessageProps extends BoxProps {
   severity?: 'error' | 'warning' | 'info'; // Severity levels
 }
 
-const ErrorMessage: FC<ErrorMessageProps> = ({ message, severity = 'error', sx, ...props }) => {
+const ErrorMessage: FC<ErrorMessageProps> = ({
+  message,
+  severity = 'error',
+  sx,
+  ...props
+}) => {
   const { theme } = useThemeContext();
   const severityColorMap = {
     error: theme.palette.error.main,
     warning: theme.palette.warning.main,
     info: theme.palette.info.main,
   };
-  
+
   return (
     <Box
       sx={{

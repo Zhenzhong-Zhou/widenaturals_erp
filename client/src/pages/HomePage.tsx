@@ -7,11 +7,11 @@ import { useThemeContext } from '../context/ThemeContext.tsx';
 const HomePage: FC = () => {
   const { theme } = useThemeContext(); // Get theme from context
   const navigate = useNavigate();
-  
+
   const handleRedirect = () => {
     navigate('/login');
   };
-  
+
   return (
     <Box>
       <Typography>Welcome</Typography>

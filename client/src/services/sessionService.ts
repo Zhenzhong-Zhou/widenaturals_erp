@@ -30,33 +30,40 @@ interface LoginResponse {
  * @returns {Promise<LoginResponse>} A promise resolving to the user's session details, including access token, csrf token, and user information.
  * @throws {AppError} Throws an AppError for validation errors or failed login attempts.
  */
-const login = async (email: string, password: string): Promise<LoginResponse> => {
+const login = async (
+  email: string,
+  password: string
+): Promise<LoginResponse> => {
   if (!email || !password) {
     throw new AppError('Email and password are required', 400, {
       type: ErrorType.ValidationError,
       details: 'Both email and password must be provided',
     });
   }
-  
+
   try {
-    const response = await axiosInstance.post<LoginResponse>(API_ENDPOINTS.LOGIN, { email, password });
-    
+    const response = await axiosInstance.post<LoginResponse>(
+      API_ENDPOINTS.LOGIN,
+      { email, password }
+    );
+
     // Set the access token in the Authorization header for subsequent requests
-    axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${response.data.accessToken}`;
-    
+    axiosInstance.defaults.headers.common['Authorization'] =
+      `Bearer ${response.data.accessToken}`;
+
     // Update CSRF token with the new token from login response
     csrfToken = response.data.csrfToken;
-    
+
     // Replace the CSRF token in axios headers for subsequent requests
     axiosInstance.defaults.headers.common['X-CSRF-Token'] = csrfToken;
-    
+
     return response.data;
   } catch (error: unknown) {
     const appError = new AppError('Login failed', 401, {
       type: ErrorType.NetworkError,
       details: mapErrorMessage(error),
     });
-    
+
     handleError(appError);
     throw appError; // Re-throw to let the caller handle it
   }
@@ -75,10 +82,11 @@ const refreshToken = async (): Promise<{ accessToken: string }> => {
         withCredentials: true, // Ensure cookies are sent with the request
       }
     );
-    
+
     // Update Axios headers to use the new access token for subsequent requests
-    axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${response.data.accessToken}`;
-    
+    axiosInstance.defaults.headers.common['Authorization'] =
+      `Bearer ${response.data.accessToken}`;
+
     return { accessToken: response.data.accessToken };
   } catch (error: unknown) {
     // Log the error and handle session expiration

@@ -2,7 +2,11 @@ import { FC, ReactNode, useState } from 'react';
 import { Sidebar, Header, Footer } from '../index';
 import { useThemeContext } from '../../context/ThemeContext';
 import Box from '@mui/material/Box';
-import { layoutStyles, contentContainerStyles, mainContentStyles } from './layoutStyles';
+import {
+  layoutStyles,
+  contentContainerStyles,
+  mainContentStyles,
+} from './layoutStyles';
 import { FallbackUI, ModuleErrorBoundary } from '@components/index';
 import { AppError } from '@utils/AppError';
 import { getErrorLog } from '@utils/errorUtils';
@@ -18,9 +22,9 @@ const MainLayout: FC<MainLayoutProps> = ({ children, username }) => {
   const { theme } = useThemeContext(); // Access the current theme from context
   const [isSidebarOpen, setSidebarOpen] = useState(true); // Sidebar state
   const { logout } = useLogout();
-  
+
   const toggleSidebar = () => setSidebarOpen((prev) => !prev); // Toggle sidebar state
-  
+
   return (
     <Box className="layout" sx={layoutStyles(theme)}>
       {/* Sidebar */}
@@ -42,7 +46,7 @@ const MainLayout: FC<MainLayoutProps> = ({ children, username }) => {
       >
         <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
       </ModuleErrorBoundary>
-      
+
       {/* Content Container */}
       <Box className="content-container" sx={contentContainerStyles(theme)}>
         {/* Header */}
@@ -62,9 +66,13 @@ const MainLayout: FC<MainLayoutProps> = ({ children, username }) => {
             />
           }
         >
-          <Header username={username} onLogout={logout} isSidebarOpen={isSidebarOpen} />
+          <Header
+            username={username}
+            onLogout={logout}
+            isSidebarOpen={isSidebarOpen}
+          />
         </ModuleErrorBoundary>
-        
+
         {/* Main Content */}
         <ModuleErrorBoundary
           fallback={
@@ -83,7 +91,7 @@ const MainLayout: FC<MainLayoutProps> = ({ children, username }) => {
         >
           <Box sx={mainContentStyles(theme)}>{children}</Box>
         </ModuleErrorBoundary>
-        
+
         {/* Footer */}
         <ModuleErrorBoundary
           fallback={

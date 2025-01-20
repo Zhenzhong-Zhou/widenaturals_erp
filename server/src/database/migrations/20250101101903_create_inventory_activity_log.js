@@ -20,7 +20,7 @@ exports.up = function (knex) {
     table.integer('new_quantity').notNullable();
     table.uuid('order_id').references('id').inTable('orders');
     table.uuid('user_id').notNullable().references('id').inTable('users');
-    table.timestamp('timestamp',{ useTz: true }).defaultTo(knex.fn.now());
+    table.timestamp('timestamp', { useTz: true }).defaultTo(knex.fn.now());
     table.text('comments').nullable();
     table.json('metadata').nullable();
     table.uuid('created_by').references('id').inTable('users');

@@ -51,7 +51,7 @@ const verifyPassword = async (password, passwordHash, passwordSalt) => {
         }
       );
     }
-    
+
     // Concatenate the password with the salt
     const combinedPassword = password + passwordSalt;
 

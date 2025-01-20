@@ -9,7 +9,10 @@ const { logInfo, logError, logWarn } = require('../utils/logger-helper');
 const { getConnectionConfig } = require('../config/db-config');
 const { loadEnv } = require('../config/env');
 const AppError = require('../utils/AppError');
-const { maskSensitiveInfo, maskTableName } = require('../utils/sensitive-data-utils');
+const {
+  maskSensitiveInfo,
+  maskTableName,
+} = require('../utils/sensitive-data-utils');
 
 // Get environment-specific connection configuration
 loadEnv();
@@ -42,12 +45,12 @@ const query = async (text, params = [], clientOrPool = null) => {
   const client = clientOrPool || (await pool.connect()); // Use the provided client or acquire a new one
   const startTime = Date.now(); // Start timer for query execution
   let shouldRelease = false;
-  
+
   try {
     if (!clientOrPool) shouldRelease = true; // Mark for release only if acquired here
     const result = await client.query(text, params); // Execute the query
     const duration = Date.now() - startTime;
-    
+
     // Log slow queries
     const slowQueryThreshold =
       parseInt(process.env.SLOW_QUERY_THRESHOLD, 10) || 1000; // Default: 1000ms
@@ -58,7 +61,7 @@ const query = async (text, params = [], clientOrPool = null) => {
         duration: `${duration}ms`,
       });
     }
-    
+
     logInfo('Query executed', { query: text, duration: `${duration}ms` });
     return result;
   } catch (error) {
@@ -198,9 +201,9 @@ const closePool = async () => {
  */
 const retry = async (fn, retries = 3, backoffFactor = 1000) => {
   let attempt = 0;
-  
+
   const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-  
+
   while (attempt < retries) {
     try {
       return await fn(); // Attempt to execute the function
@@ -210,13 +213,13 @@ const retry = async (fn, retries = 3, backoffFactor = 1000) => {
         attempt,
         retries,
       });
-      
+
       if (attempt === retries) {
         throw AppError.serviceError('Function execution failed after retries', {
           details: { error: error.message, attempts: attempt, retries },
         });
       }
-      
+
       await delay(backoffFactor * Math.pow(2, attempt)); // Configurable exponential backoff
     }
   }
@@ -276,24 +279,28 @@ const retryDatabaseConnection = async (config, retries = 5) => {
  * @throws {AppError} - Throws an error if the query execution fails.
  */
 const paginateQuery = async ({
-                               queryText,
-                               countQueryText = null,
-                               params = [],
-                               page = 1,
-                               limit = 10,
-                               sortBy = null,
-                               sortOrder = 'ASC',
-                               clientOrPool = pool,
-                             }) => {
+  queryText,
+  countQueryText = null,
+  params = [],
+  page = 1,
+  limit = 10,
+  sortBy = null,
+  sortOrder = 'ASC',
+  clientOrPool = pool,
+}) => {
   if (page < 1 || limit < 1) {
-    throw new AppError.validationError('Page and limit must be positive integers.', 400, {
-      type: 'ValidationError',
-      isExpected: true,
-    });
+    throw new AppError.validationError(
+      'Page and limit must be positive integers.',
+      400,
+      {
+        type: 'ValidationError',
+        isExpected: true,
+      }
+    );
   }
-  
+
   const offset = (page - 1) * limit;
-  
+
   // Construct the paginated query
   let paginatedQuery = queryText;
   if (sortBy) {
@@ -303,26 +310,27 @@ const paginateQuery = async ({
     paginatedQuery += ` ORDER BY ${sortBy} ${validSortOrder}`;
   }
   paginatedQuery += ` LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
-  
+
   // Default the count query if not provided
-  const effectiveCountQueryText = countQueryText || `SELECT COUNT(*) FROM (${queryText}) AS count_query`;
-  
+  const effectiveCountQueryText =
+    countQueryText || `SELECT COUNT(*) FROM (${queryText}) AS count_query`;
+
   try {
     // Execute both the paginated query and the count query in parallel
     const [dataResult, countResult] = await Promise.all([
       query(paginatedQuery, [...params, limit, offset], clientOrPool),
       query(effectiveCountQueryText, params, clientOrPool),
     ]);
-    
+
     if (!countResult.rows.length) {
       throw new AppError('Failed to fetch total record count.', 500, {
         type: 'DatabaseError',
       });
     }
-    
+
     const totalRecords = parseInt(countResult.rows[0].count, 10);
     const totalPages = Math.ceil(totalRecords / limit);
-    
+
     return {
       data: dataResult.rows,
       pagination: {
@@ -354,38 +362,50 @@ const paginateQuery = async ({
 const lockRow = async (client, table, id, lockMode = 'FOR UPDATE') => {
   const maskedId = maskSensitiveInfo(id, 'uuid');
   const maskTable = maskTableName(table);
-  
+
   const tablePrimaryKeys = {
     users: 'id',
     user_auth: 'user_id',
     orders: 'id',
     inventory: 'id',
   };
-  const allowedLockModes = ['FOR UPDATE', 'FOR NO KEY UPDATE', 'FOR SHARE', 'FOR KEY SHARE'];
-  
+  const allowedLockModes = [
+    'FOR UPDATE',
+    'FOR NO KEY UPDATE',
+    'FOR SHARE',
+    'FOR KEY SHARE',
+  ];
+
   const column = tablePrimaryKeys[table];
   if (!column) {
-    throw AppError.validationError(`Primary key not defined for table: ${maskTable}`);
+    throw AppError.validationError(
+      `Primary key not defined for table: ${maskTable}`
+    );
   }
   if (!allowedLockModes.includes(lockMode)) {
     throw AppError.validationError(`Invalid lock mode: ${lockMode}`);
   }
-  
+
   const sql = `SELECT * FROM ${table} WHERE ${column} = $1 ${lockMode}`;
-  
+
   return await retry(async () => {
     try {
       const result = await client.query(sql, [id]);
       if (result.rows.length === 0) {
-        throw AppError.notFoundError(`Row with ID "${maskedId}" not found in table "${maskTable}"`);
+        throw AppError.notFoundError(
+          `Row with ID "${maskedId}" not found in table "${maskTable}"`
+        );
       }
       return result.rows[0];
     } catch (error) {
-      logError(`Error locking row in table "${maskTable}" with ID "${maskedId}" using lock mode "${lockMode}":`, {
-        query: sql,
-        params: [id],
-        error: error.message,
-      });
+      logError(
+        `Error locking row in table "${maskTable}" with ID "${maskedId}" using lock mode "${lockMode}":`,
+        {
+          query: sql,
+          params: [id],
+          error: error.message,
+        }
+      );
       throw error; // Keep original error for retry logic
     }
   });
@@ -403,25 +423,33 @@ const lockRow = async (client, table, id, lockMode = 'FOR UPDATE') => {
  */
 const bulkInsert = async (tableName, columns, rows, clientOrPool = pool) => {
   if (!rows.length) return 0;
-  
+
   const columnNames = columns.join(', ');
   const valuePlaceholders = rows
-    .map((_, rowIndex) => `(${columns.map((_, colIndex) => `$${rowIndex * columns.length + colIndex + 1}`).join(', ')})`)
+    .map(
+      (_, rowIndex) =>
+        `(${columns.map((_, colIndex) => `$${rowIndex * columns.length + colIndex + 1}`).join(', ')})`
+    )
     .join(', ');
-  
+
   const sql = `
     INSERT INTO ${tableName} (${columnNames})
     VALUES ${valuePlaceholders}
     RETURNING *;
   `;
-  
+
   const flattenedValues = rows.flat();
-  
+
   try {
     const result = await clientOrPool.query(sql, flattenedValues);
     return result.rowCount;
   } catch (error) {
-    logError('Bulk insert failed:', { tableName, columns, rows, error: error.message });
+    logError('Bulk insert failed:', {
+      tableName,
+      columns,
+      rows,
+      error: error.message,
+    });
     throw AppError.databaseError('Bulk insert failed', {
       details: { tableName, columns, error: error.message },
     });
@@ -441,5 +469,5 @@ module.exports = {
   retryDatabaseConnection,
   paginateQuery,
   lockRow,
-  bulkInsert
+  bulkInsert,
 };

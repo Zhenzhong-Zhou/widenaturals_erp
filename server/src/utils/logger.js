@@ -15,10 +15,7 @@ const AppError = require('./AppError');
 const { env } = loadEnv();
 const isDevelopment = env === 'development';
 const logLevel = process.env.LOG_LEVEL || (isDevelopment ? 'debug' : 'info');
-const logsDir = path.join(
-  __dirname,
-  process.env.LOGS_DIR || '../../dev_logs'
-);
+const logsDir = path.join(__dirname, process.env.LOGS_DIR || '../../dev_logs');
 
 // Ensure logs directory exists
 try {
@@ -72,7 +69,7 @@ const logger = createLogger({
         ? format.combine(format.colorize({ all: true }), format.simple())
         : format.json(),
     }),
-    
+
     // File Transport
     new DailyRotateFile({
       filename: path.join(logsDir, 'app-%DATE%.log'),

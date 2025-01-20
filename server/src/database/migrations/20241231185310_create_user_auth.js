@@ -15,7 +15,9 @@ exports.up = function (knex) {
     table.jsonb('metadata').nullable();
     table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now()); // Auto-set on creation in UTC
     table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now()); // Auto-set on creation in UTC
-    table.timestamp('last_changed_at', { useTz: true }).defaultTo(knex.fn.now());
+    table
+      .timestamp('last_changed_at', { useTz: true })
+      .defaultTo(knex.fn.now());
   });
 };
 

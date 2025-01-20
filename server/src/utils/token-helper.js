@@ -15,7 +15,7 @@ const signToken = (payload, isRefreshToken = false) => {
     ? process.env.JWT_REFRESH_SECRET
     : process.env.JWT_ACCESS_SECRET;
   const expiresIn = isRefreshToken ? '7d' : '15m'; // 7 days for refresh tokens, 15 minutes for access tokens
-  
+
   if (!secret) {
     logError(
       `JWT secret is missing for ${isRefreshToken ? 'refresh' : 'access'} token.`
@@ -25,7 +25,7 @@ const signToken = (payload, isRefreshToken = false) => {
       { details: { isRefreshToken } }
     );
   }
-  
+
   return jwt.sign(payload, secret, { expiresIn });
 };
 
@@ -42,7 +42,7 @@ const verifyToken = (token, isRefresh = false) => {
     const secret = isRefresh
       ? process.env.JWT_REFRESH_SECRET
       : process.env.JWT_ACCESS_SECRET;
-    
+
     if (!secret) {
       logError(
         `JWT secret is missing for ${isRefresh ? 'refresh' : 'access'} token.`
@@ -52,7 +52,7 @@ const verifyToken = (token, isRefresh = false) => {
         { details: { isRefresh } }
       );
     }
-    
+
     return jwt.verify(token, secret);
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
@@ -60,7 +60,7 @@ const verifyToken = (token, isRefresh = false) => {
       const errorType = isRefresh
         ? AppError.refreshTokenExpiredError
         : AppError.accessTokenExpiredError;
-      
+
       throw errorType(
         `${isRefresh ? 'Refresh' : 'Access'} token has expired.`,
         { details: { error: error.message } }
@@ -70,13 +70,12 @@ const verifyToken = (token, isRefresh = false) => {
       const errorType = isRefresh
         ? AppError.refreshTokenError
         : AppError.accessTokenError;
-      
-      throw errorType(
-        `Invalid ${isRefresh ? 'refresh' : 'access'} token.`,
-        { details: { error: error.message } }
-      );
+
+      throw errorType(`Invalid ${isRefresh ? 'refresh' : 'access'} token.`, {
+        details: { error: error.message },
+      });
     }
-    
+
     // Handle unexpected errors
     logError(
       `Unexpected error verifying ${isRefresh ? 'refresh' : 'access'} token.`,

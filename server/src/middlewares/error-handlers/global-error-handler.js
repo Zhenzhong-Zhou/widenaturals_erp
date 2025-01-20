@@ -28,7 +28,7 @@ const globalErrorHandler = (err, req, res, next) => {
       }
     );
   }
-  
+
   // Prepare additional metadata for logging
   const errorMetadata = {
     ip: req.ip || 'N/A',
@@ -40,13 +40,13 @@ const globalErrorHandler = (err, req, res, next) => {
     timestamp: new Date().toISOString(),
     stack: process.env.NODE_ENV !== 'production' ? err.stack : undefined,
   };
-  
+
   // Log the error with metadata
   logError('Global Error:', {
     ...err.toJSON(),
     ...errorMetadata,
   });
-  
+
   // Send structured error response
   res.status(err.status || 500).json({
     ...err.toJSON(),

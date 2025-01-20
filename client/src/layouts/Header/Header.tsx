@@ -12,24 +12,27 @@ interface HeaderProps {
 
 const Header: FC<HeaderProps> = ({ username, onLogout, isSidebarOpen }) => {
   const { theme, toggleTheme } = useThemeContext(); // Access theme and toggle function
-  
+
   return (
-    <Box sx={headerStyles(theme)}> {/* Apply header styles */}
+    <Box sx={headerStyles(theme)}>
+      {' '}
+      {/* Apply header styles */}
       {/* Application Title */}
-      <Typography sx={{
-        fontSize: theme.typography.h3,
-        flexGrow: 1,
-        marginLeft: isSidebarOpen ? '10px' : theme.spacing(1),
-      }}>
+      <Typography
+        sx={{
+          fontSize: theme.typography.h3,
+          flexGrow: 1,
+          marginLeft: isSidebarOpen ? '10px' : theme.spacing(1),
+        }}
+      >
         WIDE Naturals Inc.
       </Typography>
-      
       {/* User Information and Actions */}
       <Box sx={userInfoStyles(theme)}>
         <Typography variant="body1" sx={typographyStyles(theme)}>
           User: <strong>{username}</strong>
         </Typography>
-        
+
         {/* Theme Toggle Button */}
         <CustomButton
           variant="outlined"
@@ -41,15 +44,15 @@ const Header: FC<HeaderProps> = ({ username, onLogout, isSidebarOpen }) => {
         >
           Switch to {theme.palette.mode === 'dark' ? 'Light' : 'Dark'} Mode
         </CustomButton>
-        
+
         {/* Logout Button */}
         <CustomButton
           variant="contained"
           color="primary"
           onClick={() => {
-            console.log("Logout button clicked");
+            console.log('Logout button clicked');
             onLogout(); // Call the logout function
-            console.log("Logout function executed");
+            console.log('Logout function executed');
           }}
           sx={{ marginLeft: theme.spacing(2) }}
         >

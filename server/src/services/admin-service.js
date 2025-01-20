@@ -16,18 +16,18 @@ const { logError } = require('../utils/logger-helper');
 const createAdmin = async (adminDetails) => {
   try {
     const { role, status, ...userDetails } = adminDetails;
-    
+
     // Validate role and status
     const roleId = await validateRoleByName(role);
     const statusId = await validateStatus(status);
-    
+
     // Add validated role and status to userDetails
     userDetails.roleId = roleId;
     userDetails.statusId = statusId;
-    
+
     // Call the user service to create the admin
     const admin = await createUser(userDetails);
-    
+
     return admin.id;
   } catch (error) {
     logError('Error creating admin user:', error);

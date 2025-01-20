@@ -21,7 +21,7 @@ class AppError extends Error {
   details?: AppErrorDetails;
   type: ErrorType;
   correlationId: string;
-  
+
   constructor(
     message: string,
     status: number = 500,
@@ -33,42 +33,50 @@ class AppError extends Error {
     this.type = options.type;
     this.details = options.details || 'No additional details provided';
     this.correlationId = options.correlationId || 'N/A';
-    
+
     Object.setPrototypeOf(this, AppError.prototype);
   }
-  
-  static create(type: ErrorType, message: string, status: number, details?: AppErrorDetails) {
+
+  static create(
+    type: ErrorType,
+    message: string,
+    status: number,
+    details?: AppErrorDetails
+  ) {
     return new AppError(message, status, { type, details });
   }
-  
+
   static fromNetworkError(details: AppErrorDetails = 'Network unreachable') {
     return new AppError('Network request failed', 503, {
       type: ErrorType.NetworkError,
       details,
     });
   }
-  
+
   static fromValidationError(details?: AppErrorDetails) {
     return new AppError('Validation error occurred', 400, {
       type: ErrorType.ValidationError,
       details,
     });
   }
-  
+
   static reportError(error: AppError) {
     console.error('Logging error to external service:', error);
   }
-  
+
   toJSON() {
     return {
       message: this.message,
       status: this.status,
       type: this.type,
-      details: typeof this.details === 'object' ? this.details : { description: this.details },
+      details:
+        typeof this.details === 'object'
+          ? this.details
+          : { description: this.details },
       correlationId: this.correlationId,
     };
   }
-  
+
   log() {
     const logLevel = this.status >= 500 ? 'error' : 'warn';
     console[logLevel](`AppError: ${this.message}`, {
@@ -78,7 +86,7 @@ class AppError extends Error {
       correlationId: this.correlationId,
     });
   }
-  
+
   getRecoverySuggestion(): string {
     switch (this.type) {
       case ErrorType.NetworkError:

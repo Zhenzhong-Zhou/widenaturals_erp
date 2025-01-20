@@ -17,9 +17,14 @@ const insertLargeDataset = async (tableName, columns, rows, client) => {
  * @param {number} [retryAttempts=3] - Number of retry attempts for each chunk.
  * @returns {Promise<void>} - Resolves when all chunks are processed.
  */
-const processLargeDatasetWithRetry = async (dataset, processChunkFn, chunkSize = 100, retryAttempts = 3) => {
+const processLargeDatasetWithRetry = async (
+  dataset,
+  processChunkFn,
+  chunkSize = 100,
+  retryAttempts = 3
+) => {
   const chunks = chunkArray(dataset, chunkSize);
-  
+
   for (const chunk of chunks) {
     await retry(async () => {
       await processChunkFn(chunk);

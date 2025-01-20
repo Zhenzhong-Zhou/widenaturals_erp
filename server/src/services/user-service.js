@@ -17,15 +17,17 @@ const createUser = async (userDetails) => {
     try {
       // Insert the user into the database
       const user = await insertUser(client, userDetails);
-      const { passwordHash, passwordSalt } = await hashPasswordWithSalt(userDetails.password)
-      
+      const { passwordHash, passwordSalt } = await hashPasswordWithSalt(
+        userDetails.password
+      );
+
       // Insert authentication details for the user
       await insertUserAuth(client, {
         userId: user.id,
         passwordHash,
         passwordSalt,
       });
-      
+
       // Return the created user
       return user;
     } catch (error) {

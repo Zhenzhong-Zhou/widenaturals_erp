@@ -11,7 +11,10 @@ const appReducer = combineReducers({
 });
 
 // Root reducer with logout handling
-const rootReducer = (state: ReturnType<typeof appReducer> | undefined, action: PayloadAction<any>) => {
+const rootReducer = (
+  state: ReturnType<typeof appReducer> | undefined,
+  action: PayloadAction<any>
+) => {
   if (action.type === 'auth/logout') {
     console.info('Resetting state on logout...');
     // Reset the entire state except for specific slices, if needed

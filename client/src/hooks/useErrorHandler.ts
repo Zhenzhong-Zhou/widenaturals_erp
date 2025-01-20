@@ -8,7 +8,6 @@ interface ErrorHandler {
   clearError: () => void;
 }
 
-
 /**
  * Custom hook for centralized error handling in React components.
  *
@@ -19,7 +18,7 @@ interface ErrorHandler {
  */
 const useErrorHandler = (): ErrorHandler => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  
+
   /**
    * Handles an error by logging it, wrapping it in an AppError if necessary,
    * and extracting a user-friendly message.
@@ -28,15 +27,16 @@ const useErrorHandler = (): ErrorHandler => {
    */
   const handle = (error: unknown) => {
     try {
-      const appError = error instanceof AppError
-        ? error
-        : AppError.create(
-          ErrorType.UnknownError,
-          mapErrorMessage(error),
-          500,
-          { details: error }
-        );
-      
+      const appError =
+        error instanceof AppError
+          ? error
+          : AppError.create(
+              ErrorType.UnknownError,
+              mapErrorMessage(error),
+              500,
+              { details: error }
+            );
+
       handleError(appError); // Log the error using a centralized logging utility
       setErrorMessage(appError.message); // Update error message state
     } catch (internalError) {
@@ -44,12 +44,12 @@ const useErrorHandler = (): ErrorHandler => {
       setErrorMessage('An unexpected error occurred. Please try again.');
     }
   };
-  
+
   /**
    * Clears the current error message.
    */
   const clearError = () => setErrorMessage(null);
-  
+
   return { errorMessage, handle, clearError };
 };
 

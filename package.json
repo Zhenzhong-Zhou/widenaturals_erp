@@ -1,6 +1,7 @@
 {
   "name": "widenaturals_erp",
   "version": "1.0.0",
+  "type": "module",
   "lint-staged": {
     "**/*.{js,jsx,ts,tsx,json,css,scss,md}": [
       "prettier --write",

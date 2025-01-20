@@ -28,14 +28,18 @@ interface FormProps {
   submitButtonLabel?: string;
 }
 
-const Form: FC<FormProps> = ({ fields, onSubmit, submitButtonLabel = 'Submit' }) => {
+const Form: FC<FormProps> = ({
+  fields,
+  onSubmit,
+  submitButtonLabel = 'Submit',
+}) => {
   const { theme } = useThemeContext();
   const {
     handleSubmit,
     control,
     formState: { errors },
   } = useForm();
-  
+
   return (
     <Box
       component="form"
@@ -59,7 +63,9 @@ const Form: FC<FormProps> = ({ fields, onSubmit, submitButtonLabel = 'Submit' })
               name={field.id}
               control={control}
               defaultValue={field.defaultValue || ''}
-              rules={{ required: field.required ? `${field.label} is required` : false }}
+              rules={{
+                required: field.required ? `${field.label} is required` : false,
+              }}
               render={({ field: { onChange, value } }) => (
                 <BaseInput
                   fullWidth
@@ -78,7 +84,9 @@ const Form: FC<FormProps> = ({ fields, onSubmit, submitButtonLabel = 'Submit' })
               name={field.id}
               control={control}
               defaultValue={field.defaultValue || ''}
-              rules={{ required: field.required ? `${field.label} is required` : false }}
+              rules={{
+                required: field.required ? `${field.label} is required` : false,
+              }}
               render={({ field: { onChange, value } }) => (
                 <FormControl
                   fullWidth
@@ -86,18 +94,16 @@ const Form: FC<FormProps> = ({ fields, onSubmit, submitButtonLabel = 'Submit' })
                   sx={{ marginBottom: theme.spacing(2) }}
                 >
                   <InputLabel>{field.label}</InputLabel>
-                  <Select
-                    id={field.id}
-                    value={value}
-                    onChange={onChange}
-                  >
+                  <Select id={field.id} value={value} onChange={onChange}>
                     {field.options?.map((option) => (
                       <MenuItem key={option.value} value={option.value}>
                         {option.label}
                       </MenuItem>
                     ))}
                   </Select>
-                  <FormHelperText>{errors[field.id]?.message as string}</FormHelperText>
+                  <FormHelperText>
+                    {errors[field.id]?.message as string}
+                  </FormHelperText>
                 </FormControl>
               )}
             />

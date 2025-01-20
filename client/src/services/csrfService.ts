@@ -24,7 +24,7 @@ const fetchCsrfToken = async (): Promise<string> => {
       5000, // Timeout in milliseconds
       'CSRF token fetch timed out' // Timeout error message
     );
-    
+
     // Validate response structure
     if (!response.data || !response.data.csrfToken) {
       throw new AppError('Invalid CSRF token response', 500, {
@@ -32,17 +32,18 @@ const fetchCsrfToken = async (): Promise<string> => {
         details: response.data,
       });
     }
-    
+
     return response.data.csrfToken;
   } catch (error: unknown) {
     // Log the error for debugging purposes
     console.error('CSRF Token Fetch Error:', {
-      message: error instanceof Error ? error.message : 'Unknown error occurred',
+      message:
+        error instanceof Error ? error.message : 'Unknown error occurred',
       ...(import.meta.env.NODE_ENV !== 'production' && {
         stack: error instanceof Error ? error.stack : undefined,
       }),
     });
-    
+
     // Re-throw as AppError for consistent error handling
     throw new AppError('Failed to fetch CSRF token', 500, {
       type: ErrorType.ServerError,
@@ -83,7 +84,9 @@ const initializeCsrfToken = async (dispatch: AppDispatch): Promise<void> => {
  * @param {AppDispatch} dispatch - The Redux dispatch function.
  * @returns {Promise<void>}
  */
-const fetchCsrfTokenWithRetry = async (dispatch: AppDispatch): Promise<void> => {
+const fetchCsrfTokenWithRetry = async (
+  dispatch: AppDispatch
+): Promise<void> => {
   try {
     await initializeCsrfToken(dispatch);
   } catch (error) {

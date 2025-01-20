@@ -13,38 +13,38 @@ const configureHelmet = (isProduction) => {
     return helmet({
       contentSecurityPolicy: isProduction
         ? {
-          directives: {
-            defaultSrc: ["'self'"], // Allow resources from the same origin
-            scriptSrc: ["'self'"], // Avoid inline scripts in production
-            styleSrc: ["'self'"], // Avoid inline styles in production
-            imgSrc: ["'self'", 'data:'], // Allow images from the same origin and data URIs
-            connectSrc: ["'self'", 'https://api.example.com'], // Allow connections to specific APIs
-            fontSrc: [
-              "'self'",
-              'https://fonts.googleapis.com',
-              'https://fonts.gstatic.com',
-            ], // Allow fonts
-            objectSrc: ["'none'"], // Disallow object elements
-            frameSrc: ["'none'"], // Disallow frames
-            upgradeInsecureRequests: [], // Enforce HTTPS
-          },
-        }
+            directives: {
+              defaultSrc: ["'self'"], // Allow resources from the same origin
+              scriptSrc: ["'self'"], // Avoid inline scripts in production
+              styleSrc: ["'self'"], // Avoid inline styles in production
+              imgSrc: ["'self'", 'data:'], // Allow images from the same origin and data URIs
+              connectSrc: ["'self'", 'https://api.example.com'], // Allow connections to specific APIs
+              fontSrc: [
+                "'self'",
+                'https://fonts.googleapis.com',
+                'https://fonts.gstatic.com',
+              ], // Allow fonts
+              objectSrc: ["'none'"], // Disallow object elements
+              frameSrc: ["'none'"], // Disallow frames
+              upgradeInsecureRequests: [], // Enforce HTTPS
+            },
+          }
         : {
-          directives: {
-            defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'"], // Allow inline scripts only in development
-            styleSrc: ["'self'", "'unsafe-inline'"], // Allow inline styles only in development
-            imgSrc: ["'self'", 'data:'],
-            connectSrc: ["'self'", 'https://api.example.com'],
-            fontSrc: [
-              "'self'",
-              'https://fonts.googleapis.com',
-              'https://fonts.gstatic.com',
-            ],
-            objectSrc: ["'none'"],
-            frameSrc: ["'none'"],
-          },
-        }, // Relaxed CSP in development
+            directives: {
+              defaultSrc: ["'self'"],
+              scriptSrc: ["'self'", "'unsafe-inline'"], // Allow inline scripts only in development
+              styleSrc: ["'self'", "'unsafe-inline'"], // Allow inline styles only in development
+              imgSrc: ["'self'", 'data:'],
+              connectSrc: ["'self'", 'https://api.example.com'],
+              fontSrc: [
+                "'self'",
+                'https://fonts.googleapis.com',
+                'https://fonts.gstatic.com',
+              ],
+              objectSrc: ["'none'"],
+              frameSrc: ["'none'"],
+            },
+          }, // Relaxed CSP in development
       crossOriginEmbedderPolicy: true, // Mitigate Spectre-like vulnerabilities
       crossOriginOpenerPolicy: { policy: 'same-origin' }, // Enhance isolation for the browser
       crossOriginResourcePolicy: { policy: 'same-origin' }, // Restrict resource sharing
@@ -53,10 +53,10 @@ const configureHelmet = (isProduction) => {
       hidePoweredBy: true, // Hide the X-Powered-By header
       hsts: isProduction
         ? {
-          maxAge: 31536000, // 1 year in seconds
-          includeSubDomains: true, // Apply to subdomains
-          preload: true, // Preload in HSTS preload list
-        }
+            maxAge: 31536000, // 1 year in seconds
+            includeSubDomains: true, // Apply to subdomains
+            preload: true, // Preload in HSTS preload list
+          }
         : false, // Disable HSTS in development
       ieNoOpen: true, // Prevent MIME-sniffing
       noSniff: true, // Prevent content type sniffing

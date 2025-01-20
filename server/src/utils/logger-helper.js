@@ -32,27 +32,28 @@ const logWithLevel = (
   sanitize = false
 ) => {
   // Sanitize the message if requested
-  const sanitizedMessage = sanitize && typeof message === 'string'
-    ? sanitizeMessage(message)
-    : typeof message === 'string'
-      ? message
-      : JSON.stringify(message);
-  
+  const sanitizedMessage =
+    sanitize && typeof message === 'string'
+      ? sanitizeMessage(message)
+      : typeof message === 'string'
+        ? message
+        : JSON.stringify(message);
+
   // Safely extract context from the request object if available
   const context = req
     ? {
-      method: req?.method || 'N/A',
-      url: req?.originalUrl || req?.url || 'N/A',
-      ip: req?.ip || 'N/A',
-      userAgent: req?.headers?.['user-agent'] || 'N/A',
-      timestamp: new Date().toISOString(),
-      ...meta,
-    }
+        method: req?.method || 'N/A',
+        url: req?.originalUrl || req?.url || 'N/A',
+        ip: req?.ip || 'N/A',
+        userAgent: req?.headers?.['user-agent'] || 'N/A',
+        timestamp: new Date().toISOString(),
+        ...meta,
+      }
     : {
-      timestamp: new Date().toISOString(),
-      ...meta,
-    };
-  
+        timestamp: new Date().toISOString(),
+        ...meta,
+      };
+
   // Log the structured message
   getLogger().log({
     level,
@@ -80,7 +81,7 @@ const logFatal = (message, req = null, meta = {}) =>
  */
 const logError = (errOrMessage, req = null, meta = {}) => {
   let message, stack, logLevel, errorMeta;
-  
+
   if (errOrMessage instanceof AppError) {
     message = errOrMessage.message || 'An unknown error occurred';
     stack =
@@ -105,21 +106,21 @@ const logError = (errOrMessage, req = null, meta = {}) => {
     logLevel = 'error';
     errorMeta = {};
   }
-  
+
   // Extract metadata from the request object
   const reqMeta = req
     ? {
-      method: req?.method || 'Unknown',
-      route: req?.originalUrl || req?.url || 'Unknown',
-      userAgent: req?.headers?.['user-agent'] || 'Unknown',
-      ip: req?.ip || 'Unknown',
-      timestamp: new Date().toISOString(),
-    }
+        method: req?.method || 'Unknown',
+        route: req?.originalUrl || req?.url || 'Unknown',
+        userAgent: req?.headers?.['user-agent'] || 'Unknown',
+        ip: req?.ip || 'Unknown',
+        timestamp: new Date().toISOString(),
+      }
     : {};
-  
+
   // Merge all metadata
   const combinedMeta = { ...errorMeta, ...meta, ...reqMeta, stack };
-  
+
   // Pass to the logging function
   logWithLevel(logLevel, message, null, combinedMeta);
 };

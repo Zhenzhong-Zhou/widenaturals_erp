@@ -11,12 +11,16 @@ interface PasswordInputProps extends Omit<TextFieldProps, 'type'> {
   errorText?: string;
 }
 
-const PasswordInput: FC<PasswordInputProps> = ({ label, errorText, ...props }) => {
+const PasswordInput: FC<PasswordInputProps> = ({
+  label,
+  errorText,
+  ...props
+}) => {
   const [showPassword, setShowPassword] = useState(false);
-  
+
   // Toggle password visibility
   const toggleVisibility = () => setShowPassword((prev) => !prev);
-  
+
   return (
     <TypeRestrictedInput
       label={label}

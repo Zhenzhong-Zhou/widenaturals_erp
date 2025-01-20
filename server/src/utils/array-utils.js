@@ -6,4 +6,4 @@ const chunkArray = (array, size) => {
   return result;
 };
 
-module.exports = { chunkArray}
+module.exports = { chunkArray };

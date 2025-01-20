@@ -33,10 +33,13 @@ const csrfSlice = createSlice({
         state.error = null; // Clear any previous errors
       })
       // Handle fulfilled state when the CSRF token is successfully fetched
-      .addCase(getCsrfTokenThunk.fulfilled, (state, action: PayloadAction<string>) => {
-        state.status = 'succeeded';
-        state.token = action.payload;
-      })
+      .addCase(
+        getCsrfTokenThunk.fulfilled,
+        (state, action: PayloadAction<string>) => {
+          state.status = 'succeeded';
+          state.token = action.payload;
+        }
+      )
       // Handle rejected state when fetching the CSRF token fails
       .addCase(getCsrfTokenThunk.rejected, (state, action) => {
         state.status = 'failed';
