@@ -1,6 +1,7 @@
 const { verifyToken, signToken } = require('../utils/token-helper');
 const { logWarn, logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
+const { validateUserExists } = require('../validators/db-validators');
 
 /**
  * Middleware to authenticate users using JWT tokens.
@@ -25,11 +26,15 @@ const authenticate = () => {
           AppError.accessTokenError('Access token is missing. Please log in.')
         );
       }
-
+      
       try {
         // Verify the access token
         const user = verifyToken(accessToken); // Throws if the token is invalid or expired
-        req.user = user; // Attach user details to the request
+        
+        // Validate if the user exists in the database
+        await validateUserExists('id', user.id);
+        
+        req.user = user; // Attach validated user to the request
         return next();
       } catch (error) {
         // If the access token is expired and a refresh token is available

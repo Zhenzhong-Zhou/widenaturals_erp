@@ -1,4 +1,4 @@
-const { query, retry, lockRow } = require('../database/db');
+const { query, retry, lockRow, getClient } = require('../database/db');
 const { logError, logWarn } = require('../utils/logger-helper');
 const {
   maskSensitiveInfo,
@@ -83,13 +83,14 @@ const insertUser = async (client, userDetails) => {
  */
 const getUser = async (client, field, value, shouldLock = false) => {
   const maskedField = maskField(field, value);
+  
   if (!['id', 'email'].includes(field)) {
     throw new AppError('Invalid field for user query', 400, {
       type: 'ValidationError',
       isExpected: true,
     });
   }
-
+  
   const sql = `
     SELECT
       u.id,
@@ -112,29 +113,40 @@ const getUser = async (client, field, value, shouldLock = false) => {
     WHERE u.${field} = $1
   `;
   const params = [value];
-
+  
+  let isExternalClient = !!client; // Determine if the client was passed in
+  let internalClient;
+  
   try {
+    // Use the provided client or create a new one
+    internalClient = client || await getClient();
+    
     const user = await retry(async () => {
-      const result = await client.query(sql, params);
-
+      const result = await internalClient.query(sql, params);
+      
       if (result.rows.length === 0) {
         return null;
       }
-
+      
       return result.rows[0];
     });
-
+    
     // Optionally lock the user's row to ensure consistency
     if (shouldLock && user) {
-      await lockRow(client, 'users', user.id, 'FOR UPDATE');
+      await lockRow(internalClient, 'users', user.id, 'FOR UPDATE');
     }
-
+    
     return user;
   } catch (error) {
     logError(`Error fetching user by ${maskedField}:`, error);
     throw new AppError(`Failed to fetch user by ${maskedField}`, 500, {
       type: 'DatabaseError',
     });
+  } finally {
+    // Release the client if it was created internally
+    if (!isExternalClient && internalClient) {
+      internalClient.release();
+    }
   }
 };
 
@@ -178,26 +190,40 @@ const getAllUsers = async () => {
 /**
  * Checks if a user exists in the database by a specific field and value.
  *
+ * The function filters by the user's status (default is 'active').
+ *
  * @param {string} field - The field to search by (e.g., 'id' or 'email').
  * @param {string} value - The value of the field.
- * @returns {Promise<boolean>} - True if the user exists, false otherwise.
+ * @param {string} [status='active'] - The status to filter by (default is 'active').
+ * @returns {Promise<boolean>} - True if the user exists and matches the status, false otherwise.
  * @throws {AppError} - If the field is invalid or the query fails.
  */
-const userExists = async (field, value) => {
+const userExists = async (field, value, status = 'active') => {
   const maskedField = maskField(field, value);
+  
+  // Validate the field
   if (!['id', 'email'].includes(field)) {
     throw new AppError('Invalid field for user existence check', 400, {
       type: 'ValidationError',
       isExpected: true,
     });
   }
-
-  const sql = `SELECT 1 FROM users WHERE ${field} = $1 LIMIT 1`;
-  const params = [value];
-
+  
+  // SQL query with dynamic field and status filter
+  const sql = `
+    SELECT 1
+    FROM users u
+    LEFT JOIN status s ON u.status_id = s.id
+    WHERE u.${field} = $1
+      AND s.name = $2
+    LIMIT 1
+  `;
+  
+  const params = [value, status];
+  
   try {
     const result = await query(sql, params);
-    return result.rowCount > 0; // Return true if the user exists
+    return result.rowCount > 0; // Return true if the user exists and matches the status
   } catch (error) {
     logError(`Error checking user existence by ${maskedField}:`, error);
     throw new AppError(

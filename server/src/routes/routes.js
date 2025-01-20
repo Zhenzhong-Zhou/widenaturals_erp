@@ -10,6 +10,7 @@ const internalRoute = require('./internal');
 const systemRoute = require('./system');
 const sessionRoute = require('./session');
 const authRoutes = require('./auth');
+const userRoutes = require('./users');
 const adminRoutes = require('./admin');
 const { createApiRateLimiter } = require('../middlewares/rate-limiter');
 const authenticate = require('../middlewares/authenticate');
@@ -46,6 +47,9 @@ router.use('/system', authenticate(), systemRoute);
  */
 router.use('/session', sessionRoute); // Public login
 router.use('/auth', authenticate(), authRoutes); // Authenticated routes
+
+// Users routes
+router.use('/users', authenticate(), userRoutes);
 
 // Admin routes
 /**

@@ -1,4 +1,3 @@
-const { query } = require('../database/db');
 const { getRoleIdByField } = require('../repositories/role-repository');
 const { getStatusIdByName } = require('../repositories/status-repository');
 const { logError } = require('../utils/logger-helper');
@@ -6,23 +5,26 @@ const AppError = require('../utils/AppError');
 const { userExists } = require('../repositories/user-repository');
 
 /**
- * Check if an email exists in the database.
- * @param {string} email - Email to validate.
- * @returns {Promise<boolean>} - True if email exists, otherwise false.
+ * Validates if a user exists by a specific field and value.
+ *
+ * @param {string} field - The field to check (e.g., 'id', 'email').
+ * @param {string} value - The value of the field to validate.
+ * @returns {Promise<Object>} - The user record if it exists.
+ * @throws {AppError} - If the user does not exist.
  */
-const emailExists = async (email) => {
-  try {
-    const result = await query('SELECT 1 FROM users WHERE email = $1', [email]);
-    return result.rowCount > 0;
-  } catch (error) {
-    logError(`Error checking email existence for ${email}:`, {
-      error: error.message,
-      stack: error.stack,
-    });
-    throw AppError.databaseError('Failed to check email existence', {
-      details: { email },
-    });
+const validateUserExists = async (field, value) => {
+  // Validate input
+  if (!field || !value) {
+    throw AppError.validationError('Both field and value are required for user validation.');
   }
+  
+  // Check if the user exists
+  const user = await userExists(field, value);
+  
+  if (!user) {
+    throw AppError.notFoundError(`User with ${value} not found.`);
+  }
+  return user;
 };
 
 /**
@@ -109,26 +111,9 @@ const validateStatus = async (statusName) => {
   }
 };
 
-/**
- * Validates if a user exists by their ID.
- *
- * @param {string} userId - The ID of the user to validate.
- * @returns {Promise<Object>} - The user record if it exists.
- * @throws {AppError} - If the user does not exist.
- */
-const validateUserExists = async (userId) => {
-  const user = await userExists('id', userId);
-
-  if (!user) {
-    throw AppError.notFoundError(`User with ID ${userId} not found.`);
-  }
-  return user;
-};
-
 module.exports = {
-  emailExists,
+  validateUserExists,
   validateRoleByName,
   validateRoleById,
   validateStatus,
-  validateUserExists,
 };
