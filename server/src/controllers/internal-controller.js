@@ -1,5 +1,6 @@
 const { checkServerHealth } = require('../monitors/server-health');
 const AppError = require('../utils/AppError');
+const wrapAsync = require('../utils/wrap-async');
 
 /**
  * GET /internal/status
@@ -11,7 +12,7 @@ const AppError = require('../utils/AppError');
  * @param {Function} next - Express next middleware function.
  * @returns {Object} JSON response with system and service status.
  */
-const getInternalStatus = async (req, res, next) => {
+const getInternalStatus = wrapAsync(async (req, res, next) => {
   try {
     // Perform server health checks
     const healthMetrics = await checkServerHealth();
@@ -30,6 +31,6 @@ const getInternalStatus = async (req, res, next) => {
       })
     );
   }
-};
+});
 
 module.exports = { getInternalStatus };

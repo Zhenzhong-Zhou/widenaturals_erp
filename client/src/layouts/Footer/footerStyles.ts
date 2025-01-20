@@ -11,7 +11,7 @@ export const footerStyles = (theme: Theme): SxProps<Theme> => ({
   borderTop: `1px solid ${theme.palette.divider}`, // Dynamic border color
   backgroundColor: theme.palette.background.default, // Dynamic background color
   color: theme.palette.text.primary, // Dynamic text color
-  
+
   // Responsive styles
   [theme.breakpoints.down('md')]: {
     flexDirection: 'column', // Stack items vertically on medium and smaller screens

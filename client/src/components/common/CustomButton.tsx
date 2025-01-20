@@ -9,14 +9,14 @@ interface CustomButtonProps extends ButtonProps {
 }
 
 const CustomButton: FC<CustomButtonProps> = ({
-                                               children,
-                                               variant = 'contained', // Default to 'contained' for primary actions
-                                               color = 'primary', // Default to primary color
-                                               size = 'medium', // Default size
-                                               ...props
-                                             }) => {
+  children,
+  variant = 'contained', // Default to 'contained' for primary actions
+  color = 'primary', // Default to primary color
+  size = 'medium', // Default size
+  ...props
+}) => {
   const { theme } = useThemeContext();
-  
+
   return (
     <Button
       variant={variant}

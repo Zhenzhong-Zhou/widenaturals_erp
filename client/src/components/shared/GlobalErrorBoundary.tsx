@@ -1,12 +1,12 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
-import { ErrorDisplay } from '@components/index.ts'; // Replace with actual import path
-import AppError from '@utils/AppError.tsx'; // Replace with actual import path
-import { handleError, mapErrorMessage } from '@utils/errorUtils.ts'; // Import global error utilities
+import { ErrorDisplay } from '@components/index.ts';
+import { AppError, ErrorType } from '@utils/AppError.tsx';
+import { handleError, mapErrorMessage } from '@utils/errorUtils.ts';
 
 interface Props {
   children: ReactNode;
   fallback?: ReactNode; // Custom fallback UI
-  onError?: (error: Error, errorInfo: ErrorInfo) => void; // Optional error logging function
+  onError?: (error: AppError, errorInfo: ErrorInfo) => void; // Optional error logging function
 }
 
 interface State {
@@ -19,7 +19,7 @@ class GlobalErrorBoundary extends Component<Props, State> {
     super(props);
     this.state = { hasError: false, errorMessage: undefined };
   }
-  
+
   /**
    * Update the error state when an error is caught.
    */
@@ -27,20 +27,22 @@ class GlobalErrorBoundary extends Component<Props, State> {
     const errorMessage = mapErrorMessage(error); // Use mapErrorMessage for user-friendly messages
     return { hasError: true, errorMessage };
   }
-  
+
   /**
    * Log the error or handle it as needed.
    */
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Global error caught:', error, errorInfo);
-    
-    const appError = new AppError(
-      error.message || 'An unknown error occurred.',
-      500,
-      'GlobalError',
-      errorInfo.componentStack || 'No stack trace available.'
-    );
-    
+
+    // Normalize error into AppError
+    const appError = new AppError('An error occurred.', 500, {
+      type: ErrorType.GlobalError,
+      details: {
+        originalError: error.message || 'Unknown error',
+        componentStack: errorInfo.componentStack || 'No stack trace available',
+      },
+    });
+
     // Log the error using errorUtils or a custom handler
     if (this.props.onError) {
       this.props.onError(appError, errorInfo);
@@ -49,14 +51,14 @@ class GlobalErrorBoundary extends Component<Props, State> {
       this.logErrorToServer(appError); // Log error to the server
     }
   }
-  
+
   /**
    * Reset error state to allow retry without reloading.
    */
   resetError = () => {
     this.setState({ hasError: false, errorMessage: undefined });
   };
-  
+
   /**
    * Log the error to the server or external service.
    */
@@ -65,28 +67,32 @@ class GlobalErrorBoundary extends Component<Props, State> {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        error: error.message || 'Unknown error',
-        stack: error.stack || 'No stack trace available',
+        message: error.message || 'Unknown error',
         type: error.type,
+        status: error.status,
+        details: error.details,
         timestamp: new Date().toISOString(),
       }),
     }).catch((serverError) => {
       console.error('Failed to log error to server:', serverError);
     });
   }
-  
+
   render() {
     if (this.state.hasError) {
       return (
         this.props.fallback || (
           <ErrorDisplay
-            message={this.state.errorMessage || 'Something went wrong. Please try again.'}
+            message={
+              this.state.errorMessage ||
+              'Something went wrong. Please try again.'
+            }
             onRetry={this.resetError}
           />
         )
       );
     }
-    
+
     return this.props.children;
   }
 }

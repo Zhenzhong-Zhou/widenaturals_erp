@@ -4,14 +4,17 @@ import {
   selectIsAuthenticated,
   selectUser,
 } from '../features/auth/state/authSelectors';
-import { loginSuccess, logout as logoutAction } from '../features/auth/state/authSlice';
-import { refreshToken as refreshTokenService } from '../services/authenticateService.ts';
+import {
+  loginSuccess,
+  logout as logoutAction,
+} from '../features/auth/state/authSlice';
+import { refreshToken as refreshTokenService } from '../services/sessionService.ts';
 
 const useAuth = () => {
   const dispatch = useAppDispatch();
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const user = useAppSelector(selectUser);
-  
+
   // Login Function
   const login = useCallback(
     async (username: string, password: string) => {
@@ -21,25 +24,27 @@ const useAuth = () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, password }),
         });
-        
+
         if (!response.ok) {
           throw new Error('Login failed');
         }
-        
+
         const data = await response.json();
-        dispatch(loginSuccess({ user: data.user, tokens: data.tokens }));
+        dispatch(
+          loginSuccess({ user: data.user, accessToken: data.accessToken })
+        );
       } catch (error) {
         console.error('Login error:', error);
       }
     },
     [dispatch]
   );
-  
+
   // Logout Function
   const logout = useCallback(() => {
     dispatch(logoutAction());
   }, [dispatch]);
-  
+
   // Refresh Token Function
   const refreshToken = useCallback(async () => {
     try {
@@ -47,7 +52,7 @@ const useAuth = () => {
       dispatch(
         loginSuccess({
           user, // Preserve the current user state
-          tokens: newTokens,
+          accessToken: newTokens,
         })
       );
     } catch (error) {
@@ -55,7 +60,7 @@ const useAuth = () => {
       logout(); // Logout if refresh fails
     }
   }, [dispatch, user, logout]);
-  
+
   return {
     isAuthenticated,
     user,

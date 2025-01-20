@@ -2,9 +2,15 @@ import { FC, ReactNode, useState } from 'react';
 import { Sidebar, Header, Footer } from '../index';
 import { useThemeContext } from '../../context/ThemeContext';
 import Box from '@mui/material/Box';
-import { layoutStyles, contentContainerStyles, mainContentStyles } from './layoutStyles';
+import {
+  layoutStyles,
+  contentContainerStyles,
+  mainContentStyles,
+} from './layoutStyles';
 import { FallbackUI, ModuleErrorBoundary } from '@components/index';
-import AppError from '@utils/AppError';
+import { AppError } from '@utils/AppError';
+import { getErrorLog } from '@utils/errorUtils';
+import { useLogout } from '../../hooks'; // Import getErrorLog utility
 
 interface MainLayoutProps {
   children: ReactNode; // Allow any React elements to be passed as children
@@ -12,12 +18,13 @@ interface MainLayoutProps {
   onLogout: () => void; // Passing logout handler to the layout
 }
 
-const MainLayout: FC<MainLayoutProps> = ({ children, username, onLogout }) => {
+const MainLayout: FC<MainLayoutProps> = ({ children, username }) => {
   const { theme } = useThemeContext(); // Access the current theme from context
   const [isSidebarOpen, setSidebarOpen] = useState(true); // Sidebar state
-  
+  const { logout } = useLogout();
+
   const toggleSidebar = () => setSidebarOpen((prev) => !prev); // Toggle sidebar state
-  
+
   return (
     <Box className="layout" sx={layoutStyles(theme)}>
       {/* Sidebar */}
@@ -27,14 +34,19 @@ const MainLayout: FC<MainLayoutProps> = ({ children, username, onLogout }) => {
             title="Sidebar Error"
             description="The sidebar failed to load. Please try refreshing the page or contact support."
             errorCode="SIDEBAR-001"
-            errorLog={AppError.fromNetworkError('Sidebar API request failed').details}
+            errorLog={getErrorLog(
+              AppError.fromNetworkError({
+                url: '/api/sidebar',
+                message: 'Sidebar API request failed',
+              }).details
+            )}
             onRetry={() => window.location.reload()} // Retry logic
           />
         }
       >
         <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
       </ModuleErrorBoundary>
-      
+
       {/* Content Container */}
       <Box className="content-container" sx={contentContainerStyles(theme)}>
         {/* Header */}
@@ -44,14 +56,23 @@ const MainLayout: FC<MainLayoutProps> = ({ children, username, onLogout }) => {
               title="Header Error"
               description="The header failed to load. Please try refreshing the page or contact support."
               errorCode="HEADER-001"
-              errorLog={AppError.fromValidationError('Header props are missing').details}
+              errorLog={getErrorLog(
+                AppError.fromValidationError({
+                  message: 'Header props are missing',
+                  component: 'Header',
+                }).details
+              )}
               onRetry={() => window.location.reload()} // Retry logic
             />
           }
         >
-          <Header username={username} onLogout={onLogout} isSidebarOpen={isSidebarOpen}  />
+          <Header
+            username={username}
+            onLogout={logout}
+            isSidebarOpen={isSidebarOpen}
+          />
         </ModuleErrorBoundary>
-        
+
         {/* Main Content */}
         <ModuleErrorBoundary
           fallback={
@@ -59,13 +80,18 @@ const MainLayout: FC<MainLayoutProps> = ({ children, username, onLogout }) => {
               title="Content Error"
               description="The main content failed to load. Please try again later."
               errorCode="CONTENT-001"
-              errorLog={AppError.fromNetworkError('Failed to fetch content data').details}
+              errorLog={getErrorLog(
+                AppError.fromNetworkError({
+                  url: '/api/content',
+                  message: 'Failed to fetch content data',
+                }).details
+              )}
             />
           }
         >
           <Box sx={mainContentStyles(theme)}>{children}</Box>
         </ModuleErrorBoundary>
-        
+
         {/* Footer */}
         <ModuleErrorBoundary
           fallback={
@@ -73,7 +99,12 @@ const MainLayout: FC<MainLayoutProps> = ({ children, username, onLogout }) => {
               title="Footer Error"
               description="The footer failed to load. Please try refreshing the page."
               errorCode="FOOTER-001"
-              errorLog={AppError.fromNetworkError('Footer API request failed').details}
+              errorLog={getErrorLog(
+                AppError.fromNetworkError({
+                  url: '/api/footer',
+                  message: 'Footer API request failed',
+                }).details
+              )}
               onRetry={() => window.location.reload()} // Retry logic
             />
           }

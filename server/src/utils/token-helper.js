@@ -17,6 +17,9 @@ const signToken = (payload, isRefreshToken = false) => {
   const expiresIn = isRefreshToken ? '7d' : '15m'; // 7 days for refresh tokens, 15 minutes for access tokens
 
   if (!secret) {
+    logError(
+      `JWT secret is missing for ${isRefreshToken ? 'refresh' : 'access'} token.`
+    );
     throw AppError.serviceError(
       `JWT secret is not defined for ${isRefreshToken ? 'refresh' : 'access'} token`,
       { details: { isRefreshToken } }
@@ -32,7 +35,7 @@ const signToken = (payload, isRefreshToken = false) => {
  * @param {string} token - The JWT to verify.
  * @param {boolean} [isRefresh=false] - Whether to verify a refresh token.
  * @returns {object} - The decoded payload.
- * @throws {AppError} - If the token is invalid or expired.
+ * @throws {AppError} - Specific errors based on the issue with the token.
  */
 const verifyToken = (token, isRefresh = false) => {
   try {
@@ -41,6 +44,9 @@ const verifyToken = (token, isRefresh = false) => {
       : process.env.JWT_ACCESS_SECRET;
 
     if (!secret) {
+      logError(
+        `JWT secret is missing for ${isRefresh ? 'refresh' : 'access'} token.`
+      );
       throw AppError.serviceError(
         `JWT secret is not defined for ${isRefresh ? 'refresh' : 'access'} token`,
         { details: { isRefresh } }
@@ -49,12 +55,34 @@ const verifyToken = (token, isRefresh = false) => {
 
     return jwt.verify(token, secret);
   } catch (error) {
+    if (error.name === 'TokenExpiredError') {
+      // Handle token expiration
+      const errorType = isRefresh
+        ? AppError.refreshTokenExpiredError
+        : AppError.accessTokenExpiredError;
+
+      throw errorType(
+        `${isRefresh ? 'Refresh' : 'Access'} token has expired.`,
+        { details: { error: error.message } }
+      );
+    } else if (error.name === 'JsonWebTokenError') {
+      // Handle invalid token (e.g., tampered or malformed)
+      const errorType = isRefresh
+        ? AppError.refreshTokenError
+        : AppError.accessTokenError;
+
+      throw errorType(`Invalid ${isRefresh ? 'refresh' : 'access'} token.`, {
+        details: { error: error.message },
+      });
+    }
+
+    // Handle unexpected errors
     logError(
-      `Invalid or expired ${isRefresh ? 'refresh' : 'access'} token`,
+      `Unexpected error verifying ${isRefresh ? 'refresh' : 'access'} token.`,
       error
     );
-    throw AppError.authenticationError(
-      `Invalid or expired ${isRefresh ? 'refresh' : 'access'} token`,
+    throw AppError.generalError(
+      `Unexpected error verifying ${isRefresh ? 'refresh' : 'access'} token.`,
       { details: { error: error.message } }
     );
   }

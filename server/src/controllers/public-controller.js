@@ -6,6 +6,7 @@
 const { logInfo, logError, logDebug } = require('../utils/logger-helper');
 const { version } = require('../../package.json'); // Dynamically fetch version from package.json
 const { checkServerHealth } = require('../monitors/server-health');
+const wrapAsync = require('../utils/wrap-async');
 
 /**
  * GET /public/welcome
@@ -43,7 +44,7 @@ const getWelcomeMessage = (req, res) => {
  * @param {Function} next - Express next middleware function.
  * @returns {Object} JSON response with API health status.
  */
-const getHealthStatus = async (req, res, next) => {
+const getHealthStatus = wrapAsync(async (req, res, next) => {
   try {
     logInfo('Checking API health status...', {
       ip: req.ip,
@@ -88,6 +89,6 @@ const getHealthStatus = async (req, res, next) => {
       next(error);
     }
   }
-};
+});
 
 module.exports = { getWelcomeMessage, getHealthStatus };

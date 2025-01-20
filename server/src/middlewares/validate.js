@@ -1,5 +1,6 @@
 const AppError = require('../utils/AppError');
 const { logError } = require('../utils/logger-helper');
+const { sanitizeValidationError } = require('../utils/sensitive-data-utils');
 
 /**
  * Middleware to validate request data against a Joi schema.
@@ -33,26 +34,22 @@ const validate = (
       const { error, value } = schema.validate(req[target], validationOptions);
 
       if (error) {
-        const errorDetails = error.details.map((detail) => ({
-          message: detail.message,
-          path: detail.path.join('.'), // Flatten the path for better readability
-          type: detail.type, // Include the Joi validation error type
-          context: detail.context, // Include additional context
-        }));
+        // Sanitize the error details
+        const sanitizedDetails = sanitizeValidationError(error);
 
-        // Log the validation error in non-production environments
+        // Log the sanitized error in non-production environments
         if (process.env.NODE_ENV !== 'production') {
           logError('Validation Error:', {
             method: req.method,
             route: req.originalUrl,
             target,
-            details: errorDetails,
+            details: sanitizedDetails,
           });
         }
 
-        // Throw structured validation error
+        // Throw sanitized validation error
         throw AppError.validationError(errorMessage, {
-          details: errorDetails,
+          details: sanitizedDetails,
         });
       }
 

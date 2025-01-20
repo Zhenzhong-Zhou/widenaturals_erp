@@ -1,6 +1,5 @@
 const AppError = require('../utils/AppError');
 const { query } = require('../database/db');
-const paginateQuery = require('./query-pagination');
 
 /**
  * Fetches the ID of a status by its name.

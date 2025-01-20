@@ -13,9 +13,9 @@ exports.up = function (knex) {
     table.string('job_title', 100).nullable();
     table.uuid('status_id').notNullable().references('id').inTable('status');
     table.text('note').nullable();
-    table.timestamp('created_at').defaultTo(knex.fn.now());
-    table.timestamp('updated_at').defaultTo(knex.fn.now());
-    table.timestamp('status_date').defaultTo(knex.fn.now());
+    table.timestamp('status_date', { useTz: true }).defaultTo(knex.fn.now()); // Auto-set on creation in UTC
+    table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now()); // Auto-set on creation in UTC
+    table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now()); // Auto-set on creation in UTC
     table.uuid('created_by').references('id').inTable('users');
     table.uuid('updated_by').references('id').inTable('users');
   });

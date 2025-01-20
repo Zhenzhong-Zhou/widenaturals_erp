@@ -1,15 +1,28 @@
-import { createContext, FC, ReactNode, useContext, useState, useCallback } from 'react';
+import {
+  createContext,
+  FC,
+  ReactNode,
+  useContext,
+  useState,
+  useCallback,
+} from 'react';
 import { Loading } from '@components/index';
 
 interface LoadingContextType {
-  showLoading: (message?: string, variant?: 'spinner' | 'linear' | 'dotted') => void;
+  showLoading: (
+    message?: string,
+    variant?: 'spinner' | 'linear' | 'dotted'
+  ) => void;
   hideLoading: () => void;
+  disableGlobalLoading: () => void;
+  enableGlobalLoading: () => void;
 }
 
 interface LoadingState {
   loading: boolean;
   message?: string;
   variant?: 'spinner' | 'linear' | 'dotted';
+  globalEnabled: boolean; // Tracks whether global loading is enabled
 }
 
 interface LoadingProviderProps {
@@ -19,20 +32,60 @@ interface LoadingProviderProps {
 const LoadingContext = createContext<LoadingContextType | undefined>(undefined);
 
 export const LoadingProvider: FC<LoadingProviderProps> = ({ children }) => {
-  const [loadingState, setLoadingState] = useState<LoadingState>({ loading: false });
-  
-  const showLoading = useCallback((message?: string, variant: 'spinner' | 'linear' | 'dotted' = 'spinner') => {
-    setLoadingState({ loading: true, message, variant });
-  }, []);
-  
+  const [loadingState, setLoadingState] = useState<LoadingState>({
+    loading: false,
+    globalEnabled: true, // Default: Global loading is enabled
+  });
+
+  const showLoading = useCallback(
+    (
+      message?: string,
+      variant: 'spinner' | 'linear' | 'dotted' = 'spinner'
+    ) => {
+      setLoadingState((prevState) => ({
+        ...prevState,
+        loading: true,
+        message,
+        variant,
+      }));
+    },
+    []
+  );
+
   const hideLoading = useCallback(() => {
-    setLoadingState({ loading: false, message: undefined, variant: undefined });
+    setLoadingState((prevState) => ({
+      ...prevState,
+      loading: false,
+      message: undefined,
+      variant: undefined,
+    }));
   }, []);
-  
+
+  const disableGlobalLoading = useCallback(() => {
+    setLoadingState((prevState) => ({
+      ...prevState,
+      globalEnabled: false, // Disable global loading
+    }));
+  }, []);
+
+  const enableGlobalLoading = useCallback(() => {
+    setLoadingState((prevState) => ({
+      ...prevState,
+      globalEnabled: true, // Enable global loading
+    }));
+  }, []);
+
   return (
-    <LoadingContext.Provider value={{ showLoading, hideLoading }}>
+    <LoadingContext.Provider
+      value={{
+        showLoading,
+        hideLoading,
+        disableGlobalLoading,
+        enableGlobalLoading,
+      }}
+    >
       {children}
-      {loadingState.loading && (
+      {loadingState.globalEnabled && loadingState.loading && (
         <Loading
           fullPage
           message={loadingState.message}

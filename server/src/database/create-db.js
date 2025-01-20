@@ -6,9 +6,9 @@
 const { Pool } = require('pg');
 const { logInfo, logError } = require('../utils/logger-helper');
 const { loadEnv } = require('../config/env');
-const { getConnectionConfig, validateEnvVars } = require('../config/db-config');
-const { retryDatabaseConnection, closePool } = require('./db');
-const { onExit } = require('../utils/on-exit');
+const { getConnectionConfig } = require('../config/db-config');
+const { retryDatabaseConnection } = require('./db');
+const { handleExit } = require('../utils/on-exit');
 const knex = require('knex')(require('../../knexfile').development);
 
 // Load environment variables
@@ -28,7 +28,7 @@ const targetDatabase = process.env.DB_NAME; // Target database name
 const createDatabaseAndInitialize = async () => {
   if (!targetDatabase) {
     logError('Environment variable DB_NAME is missing.');
-    await onExit(1);
+    await handleExit(1);
     return;
   }
 
@@ -72,7 +72,7 @@ const createDatabaseAndInitialize = async () => {
           ? `Database '${targetDatabase}' does not exist`
           : 'Unexpected error during database creation or initialization',
     });
-    await onExit(1); // Exits with proper cleanup
+    await handleExit(1); // Exits with proper cleanup
   } finally {
     await adminPool.end(); // Close the temporary admin pool
     await knex.destroy(); // Close Knex connection
@@ -91,6 +91,6 @@ if (require.main === module) {
     )
     .catch(async (error) => {
       logError(error, null, { additionalInfo: 'Failed to set up database' });
-      await onExit(1); // Handles errors and exits cleanly
+      await handleExit(1); // Handles errors and exits cleanly
     });
 }

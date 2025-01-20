@@ -21,7 +21,7 @@ interface SidebarProps {
 const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
   const { theme } = useThemeContext();
   const logo = theme.palette.mode === 'dark' ? logoDark : logoLight;
-  
+
   const menuItems = [
     { label: 'Dashboard', path: '/dashboard' },
     { label: 'Inventory', path: '/inventory' },
@@ -29,7 +29,7 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
     { label: 'Reports', path: '/reports' },
     { label: 'Settings', path: '/settings' },
   ];
-  
+
   return (
     <>
       {/* Sidebar Drawer */}
@@ -57,12 +57,12 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
               alignItems: 'center',
               justifyContent: 'center',
               height: '100%', // Ensure it takes up the full height
-              width: '100%',  // Ensure it takes up the full width
+              width: '100%', // Ensure it takes up the full width
             }}
           >
             <img
               src={logo}
-              alt="Company Logo"
+              alt="WIDE Naturals Inc."
               style={{
                 width: '100%',
                 height: '100%',
@@ -71,7 +71,7 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
               }}
             />
           </Box>
-          
+
           {isOpen && (
             <IconButton
               onClick={toggleSidebar}
@@ -89,7 +89,7 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
             </IconButton>
           )}
         </Box>
-        
+
         {/* Sidebar Navigation */}
         <Box
           sx={{
@@ -123,7 +123,7 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
           </List>
         </Box>
       </Drawer>
-      
+
       {/* Open Button */}
       {!isOpen && (
         <IconButton

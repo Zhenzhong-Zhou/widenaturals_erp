@@ -29,7 +29,7 @@ const getInitialTheme = (): Theme => {
   if (savedTheme === 'light') {
     return lightTheme;
   }
-  
+
   // Fallback to system preference
   return window.matchMedia('(prefers-color-scheme: dark)').matches
     ? darkTheme
@@ -38,10 +38,10 @@ const getInitialTheme = (): Theme => {
 
 // Create a provider component
 export const ThemeProviderWrapper: FC<{ children: ReactNode }> = ({
-                                                                    children,
-                                                                  }) => {
+  children,
+}) => {
   const [theme, setTheme] = useState<Theme>(getInitialTheme);
-  
+
   // Toggle theme and persist user preference
   const toggleTheme = () => {
     setTheme((prevTheme) => {
@@ -50,7 +50,7 @@ export const ThemeProviderWrapper: FC<{ children: ReactNode }> = ({
       return newTheme;
     });
   };
-  
+
   // Listen for system theme changes
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -60,11 +60,11 @@ export const ThemeProviderWrapper: FC<{ children: ReactNode }> = ({
         setTheme(mediaQuery.matches ? darkTheme : lightTheme);
       }
     };
-    
+
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
-  
+
   return (
     <ThemeContext.Provider value={{ toggleTheme, theme }}>
       <ThemeProvider theme={theme}>
@@ -79,7 +79,9 @@ export const ThemeProviderWrapper: FC<{ children: ReactNode }> = ({
 export const useThemeContext = (): ThemeContextProps => {
   const context = useContext(ThemeContext);
   if (!context) {
-    throw new Error('useThemeContext must be used within a ThemeProviderWrapper');
+    throw new Error(
+      'useThemeContext must be used within a ThemeProviderWrapper'
+    );
   }
   return context;
 };

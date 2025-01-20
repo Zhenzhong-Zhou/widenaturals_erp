@@ -7,9 +7,9 @@ exports.up = function (knex) {
     table.uuid('id').defaultTo(knex.raw('uuid_generate_v4()')).primary(); // Primary key with UUID
     table.string('name', 50).notNullable().unique().index(); // Unique name with an index
     table.text('description').nullable(); // Optional description
-    table.timestamp('status_date').defaultTo(knex.fn.now()); // Status date
-    table.timestamp('created_at').defaultTo(knex.fn.now()); // Creation timestamp
-    table.timestamp('updated_at').defaultTo(knex.fn.now()); // Update timestamp
+    table.timestamp('status_date', { useTz: true }).defaultTo(knex.fn.now()); // Auto-set on creation in UTC
+    table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now()); // Auto-set on creation in UTC
+    table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now()); // Auto-set on creation in UTC
   });
 };
 

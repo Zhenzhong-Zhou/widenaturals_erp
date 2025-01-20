@@ -1,20 +1,75 @@
 /**
- * Masks sensitive information like emails or API keys.
+ * Masks sensitive information based on type.
+ *
  * @param {string} data - The data to mask.
- * @param {string} type - The type of data (e.g., 'email', 'apiKey').
+ * @param {string} type - The type of data (e.g., 'email', 'apiKey', 'uuid').
  * @returns {string} - The masked data.
  */
 const maskSensitiveInfo = (data, type) => {
-  if (type === 'email') {
-    return data.replace(/(.{2})(.*)(?=@)/, (match, p1, p2) => `${p1}***`);
+  if (!data || typeof data !== 'string') return data;
+
+  switch (type) {
+    case 'email':
+      return data.replace(/(.{2})(.*)(?=@)/, (match, p1) => `${p1}***`);
+    case 'apiKey':
+      return data.slice(0, 4) + '****' + data.slice(-4);
+    case 'uuid':
+      return data.slice(0, 8) + '-****-****-' + data.slice(-4);
+    default:
+      return data; // Default: return unmodified data
   }
-  if (type === 'apiKey') {
-    return data.slice(0, 4) + '****' + data.slice(-4);
+};
+
+/**
+ * Masks table names for logging or debugging purposes.
+ *
+ * @param {string} tableName - The table name to mask.
+ * @returns {string} - The masked table name.
+ */
+const maskTableName = (tableName) => {
+  if (!tableName || typeof tableName !== 'string') return tableName;
+  return tableName.slice(0, 2) + '***'; // Example: 'users' -> 'us***'
+};
+
+const maskingRules = {
+  users: {
+    email: (data) => data.replace(/(.{2})(.*)(?=@)/, (match, p1) => `${p1}***`),
+    user_id: (data) => data.slice(0, 8) + '-****-****-' + data.slice(-4),
+  },
+  user_auth: {
+    user_id: (data) => data.slice(0, 8) + '-****-****-' + data.slice(-4),
+    password_hash: () => '****',
+  },
+  orders: {
+    order_id: (data) => data.slice(0, 4) + '****' + data.slice(-4),
+  },
+};
+
+/**
+ * Masks data based on table and field rules.
+ *
+ * @param {string} table - The table name.
+ * @param {string} field - The field to mask (`id`, `email`, etc.).
+ * @param {string} data - The data to mask.
+ * @returns {string} - The masked data.
+ */
+const maskField = (table, field, data) => {
+  if (!table || !field || !data) return data; // Return unmodified if no masking is needed
+
+  const tableRules = maskingRules[table];
+  if (tableRules && tableRules[field]) {
+    return tableRules[field](data); // Apply field-specific masking rule
   }
-  if (type === 'userId') {
-    return data.slice(0, 2) + '***' + data.slice(-2);
+
+  return data; // Return unmodified if no rule exists
+};
+
+const maskRow = (table, row) => {
+  const maskedRow = {};
+  for (const column in row) {
+    maskedRow[column] = maskField(table, column, row[column]);
   }
-  return data; // Default: return unmodified data
+  return maskedRow;
 };
 
 /**
@@ -26,25 +81,29 @@ const maskSensitiveInfo = (data, type) => {
  * @returns {string} - Sanitized message with sensitive data masked.
  */
 const sanitizeMessage = (message, maskIp = false) => {
-  if (!message) return message;
+  if (!message || typeof message !== 'string') return message;
 
   let sanitizedMessage = message
-    // Mask passwords (e.g., password=1234)
-    .replace(/password=[^& ]+/g, 'password=****')
-    // Mask tokens (e.g., token=abcd1234)
-    .replace(/token=[^& ]+/g, 'token=****')
+    // Mask passwords (e.g., password=1234 or "password": "1234")
+    .replace(/(password\s*[:=]\s*)(["']?)[^"&', ]+\2/g, '$1****')
+    // Mask tokens (e.g., token=abcd1234 or "token": "abcd1234")
+    .replace(/(token\s*[:=]\s*)(["']?)[^"&', ]+\2/g, '$1****')
     // Mask email addresses (e.g., user@example.com)
     .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, 'EMAIL')
-    // Mask phone numbers (e.g., 123-456-7890, (123) 456-7890)
+    // Mask phone numbers (e.g., 123-456-7890, (123) 456-7890, or international formats)
     .replace(
       /(?:\+\d{1,3}[- ]?)?(?:\(\d{1,4}\)|\d{1,4})[- ]?\d{1,4}[- ]?\d{1,4}[- ]?\d{1,9}/g,
       'PHONE_NUMBER'
     );
 
-  // Conditionally mask IP addresses (e.g., 192.168.1.1)
+  // Conditionally mask IP addresses (e.g., 192.168.1.1 or 2001:0db8::/32)
   if (maskIp) {
     sanitizedMessage = sanitizedMessage.replace(
-      /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b/g,
+      /\b(?:\d{1,3}\.){3}\d{1,3}\b/g, // IPv4
+      'IP_ADDRESS'
+    );
+    sanitizedMessage = sanitizedMessage.replace(
+      /\b([a-fA-F0-9]{1,4}:){7}[a-fA-F0-9]{1,4}\b/g, // IPv6
       'IP_ADDRESS'
     );
   }
@@ -52,4 +111,24 @@ const sanitizeMessage = (message, maskIp = false) => {
   return sanitizedMessage;
 };
 
-module.exports = { maskSensitiveInfo, sanitizeMessage };
+/**
+ * Sanitizes Joi validation errors to return user-friendly and secure responses.
+ *
+ * @param {object} error - Joi validation error object.
+ * @returns {Array} - Sanitized array of error details.
+ */
+const sanitizeValidationError = (error) => {
+  return error.details.map((detail) => ({
+    message: detail.message, // High-level error message
+    path: detail.path.join('.'), // Simplified path for readability
+  }));
+};
+
+module.exports = {
+  maskSensitiveInfo,
+  maskTableName,
+  maskField,
+  maskRow,
+  sanitizeMessage,
+  sanitizeValidationError,
+};

@@ -7,7 +7,7 @@
     "lib": ["ES2023", "DOM"], // Use modern JS and DOM features
     "module": "ESNext", // Use ESNext module system
     "skipLibCheck": true, // Skip type checks for third-party libraries
-    
+
     /* Bundler Mode */
     "moduleResolution": "bundler", // Optimize for Vite's bundler
     "allowImportingTsExtensions": true, // Allow importing with .ts/.tsx extensions
@@ -15,7 +15,7 @@
     "moduleDetection": "force", // Force TypeScript to treat the file as a module
     "noEmit": true, // Prevent TypeScript from emitting JavaScript files
     "jsx": "react-jsx", // Use React JSX runtime
-    
+
     /* Linting and Strictness */
     "strict": true, // Enable strict type-checking
     "noUnusedLocals": true, // Warn about unused variables
@@ -23,7 +23,7 @@
     "noFallthroughCasesInSwitch": true, // Disallow fallthrough in switch cases
     "noUncheckedSideEffectImports": true, // Warn about unchecked imports
     "noImplicitReturns": true, // Ensure all code paths in a function return a value
-    
+
     /* Path Aliases */
     "baseUrl": "./src", // Set base directory for imports
     "paths": {
@@ -31,7 +31,7 @@
       "@utils/*": ["utils/*"], // Alias for utility functions
       "@styles/*": ["styles/*"] // Alias for shared styles
     },
-    
+
     /* Type Definitions */
     "types": ["vite/client"] // Include Vite-specific global types
   },

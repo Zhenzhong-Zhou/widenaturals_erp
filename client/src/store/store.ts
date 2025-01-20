@@ -1,17 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit';
-import { persistStore, persistReducer } from 'redux-persist';
-import storage from 'redux-persist/lib/storage';
-import rootReducer from './rootReducer';
-
-// Persistence configuration
-const persistConfig = {
-  key: 'root',
-  storage,
-  whitelist: ['auth'], // Specify slices to persist
-};
-
-// Apply persistence to the root reducer
-const persistedReducer = persistReducer(persistConfig, rootReducer);
+import { persistStore } from 'redux-persist';
+import persistedReducer from './persistConfig'; // Move persistence logic to a separate file
 
 // Configure the store
 export const store = configureStore({
@@ -22,9 +11,9 @@ export const store = configureStore({
     }),
 });
 
-// Persistor
+// Create the persistor for Redux persist
 export const persistor = persistStore(store);
 
-// Infer types for state and dispatch
+// Export centralized types for state and dispatch
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;

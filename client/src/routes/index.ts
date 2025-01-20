@@ -1,15 +1,15 @@
 export const routes = [
   {
     path: '/',
-    component: () => import('../pages/DashboardPage'),
+    component: () => import('../pages/HomePage.tsx'),
     meta: {
-      requiresAuth: true,
-      title: 'Dashboard',
+      requiresAuth: false,
+      title: 'Home',
     },
   },
   {
     path: '/login',
-    component: () => import('../features/auth/pages/LoginPage.tsx'),
+    component: () => import('../features/session/pages/LoginPage.tsx'),
     meta: {
       requiresAuth: false,
       title: 'Login',
@@ -22,5 +22,13 @@ export const routes = [
       requiresAuth: false,
       title: '404 - Page Not Found',
     },
-  }
+  },
+  {
+    path: '/dashboard',
+    component: () => import('../pages/DashboardPage'),
+    meta: {
+      requiresAuth: true,
+      title: 'Dashboard',
+    },
+  },
 ];

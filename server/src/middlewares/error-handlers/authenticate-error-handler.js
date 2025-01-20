@@ -17,23 +17,46 @@ const { logError } = require('../../utils/logger-helper');
  */
 const authenticateErrorHandler = (err, req, res, next) => {
   // Check if the error is related to authentication
-  if (err.name === 'UnauthorizedError' || err.code === 'UNAUTHORIZED') {
-    // Use the AppError static factory method to create an AuthenticationError
-    const authError = AppError.authenticationError('Unauthorized access', {
-      isExpected: true, // Authentication errors are expected in certain scenarios
-      logLevel: 'warn',
+  if (
+    err.type === 'AuthenticationError' ||
+    err.type === 'AccessTokenExpiredError' ||
+    err.type === 'AccessTokenError' ||
+    err.type === 'RefreshTokenExpiredError' ||
+    err.type === 'RefreshTokenError' ||
+    err.type === 'TokenRevokedError' ||
+    err.code === 'AUTHENTICATION_ERROR' ||
+    err.name === 'UnauthorizedError'
+  ) {
+    // Define custom messages for specific error types
+    const errorMessages = {
+      AccessTokenExpiredError:
+        'Access token expired. Please use your refresh token.',
+      AccessTokenError: 'Access token is missing or invalid.',
+      RefreshTokenExpiredError: 'Refresh token expired. Please log in again.',
+      RefreshTokenError: 'Refresh token is missing or invalid.',
+      TokenRevokedError: 'Token has been revoked. Please log in again.',
+    };
+
+    // Use the specific message or default to the error's message
+    const message = errorMessages[err.type] || err.message;
+
+    // Create the custom authentication error
+    const authError = AppError.authenticationError(message, {
+      isExpected: true,
+      logLevel: err.logLevel || 'warn', // Use the original log level if available
+      ...err, // Include other properties like `code` or `details`
     });
 
-    // Log the authentication error with detailed metadata
+    // Log the error with metadata
     logError(authError.logLevel, 'Authentication Error', {
       message: authError.message,
-      route: req.originalUrl,
-      method: req.method,
-      ip: req.ip,
+      route: req.originalUrl || 'Unknown',
+      method: req.method || 'Unknown',
+      ip: req.ip || 'Unknown',
       userAgent: req.headers['user-agent'] || 'Unknown',
     });
 
-    // Respond with a structured error response
+    // Send a structured error response
     return res.status(authError.status).json(authError.toJSON());
   }
 

@@ -33,12 +33,12 @@ const applyGlobalMiddleware = (app) => {
   // 4. CORS Middleware
   app.use(corsMiddleware);
 
-  // 5. CSRF Protection
-  app.use(csrfProtection());
-
-  // 6. Body Parsing Middleware
+  // 5. Body Parsing Middleware
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
+
+  // 6. CSRF Protection
+  app.use(csrfProtection());
 
   // 7. XSS Protection Middleware
   app.use(xssClean());

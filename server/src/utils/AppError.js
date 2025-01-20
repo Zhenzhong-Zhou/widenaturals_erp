@@ -18,6 +18,7 @@ class AppError extends Error {
     this.isExpected = options.isExpected || false; // Flag for expected errors
     this.code = options.code || 'UNKNOWN_ERROR'; // Custom error code
     this.logLevel = options.logLevel || 'error'; // Log level (info, warn, error)
+    this.details = options.details || null;
 
     Error.captureStackTrace(this, this.constructor);
   }
@@ -27,19 +28,14 @@ class AppError extends Error {
    * Includes optional debug info in non-production environments.
    */
   toJSON() {
-    const serialized = {
+    return {
       message: this.message,
       status: this.status,
       type: this.type,
       code: this.code,
       isExpected: this.isExpected,
+      details: this.details,
     };
-
-    if (process.env.NODE_ENV !== 'production') {
-      serialized.stack = this.stack;
-    }
-
-    return serialized;
   }
 
   // Common Errors
@@ -47,6 +43,69 @@ class AppError extends Error {
     return new AppError(message, 403, {
       type: 'AuthorizationError',
       code: 'AUTHORIZATION_ERROR',
+      isExpected: true,
+      ...options,
+    });
+  }
+
+  static accountLockedError(message, options = {}) {
+    return new AppError(message, 403, {
+      type: 'AccountLockedError',
+      code: 'ACCOUNT_LOCKED',
+      isExpected: true,
+      ...options,
+    });
+  }
+
+  static sessionExpiredError(message, options = {}) {
+    return new AppError(message, 401, {
+      type: 'SessionExpiredError',
+      code: 'SESSION_EXPIRED',
+      isExpected: true,
+      ...options,
+    });
+  }
+
+  static accessTokenExpiredError(message, options = {}) {
+    return new AppError(message, 401, {
+      type: 'AccessTokenExpiredError',
+      code: 'ACCESS_TOKEN_EXPIRED',
+      isExpected: true,
+      ...options,
+    });
+  }
+
+  static accessTokenError(message, options = {}) {
+    return new AppError(message, 401, {
+      type: 'AccessTokenError',
+      code: 'ACCESS_TOKEN_MISSING',
+      isExpected: true,
+      ...options,
+    });
+  }
+
+  static refreshTokenExpiredError(message, options = {}) {
+    return new AppError(message, 401, {
+      type: 'RefreshTokenExpiredError',
+      code: 'REFRESH_TOKEN_EXPIRED',
+      isExpected: true,
+      ...options,
+    });
+  }
+
+  static refreshTokenError(message, options = {}) {
+    return new AppError(message, 401, {
+      type: 'RefreshTokenError',
+      code: 'REFRESH_TOKEN_MISSING',
+      isExpected: true,
+      ...options,
+    });
+  }
+
+  static tokenRevokedError(message, options = {}) {
+    return new AppError(message, 401, {
+      type: 'TokenRevokedError',
+      code: 'TOKEN_REVOKED',
       isExpected: true,
       ...options,
     });

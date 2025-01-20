@@ -3,9 +3,12 @@
  * @description Configures and applies CORS middleware for handling cross-origin requests.
  */
 
+const { loadEnv } = require('../config/env');
 const cors = require('cors');
 const AppError = require('../utils/AppError');
 const { logWarn, logError } = require('../utils/logger-helper');
+
+loadEnv();
 
 /**
  * Configures CORS middleware with allowed origins and other settings.
@@ -33,13 +36,16 @@ const corsMiddleware = cors({
         : [];
 
       if (!origin) {
-        // Allow requests with no origin (e.g., preflight or server-to-server communication)
+        // Handle requests without an Origin header
         if (allowedOrigins.length === 0) {
           logWarn(
             'No allowed origins specified in ALLOWED_ORIGINS. CORS may be overly permissive.'
           );
         }
-        return callback(null, true); // Allow the request
+
+        // Log and allow requests without an origin (e.g., server-to-server or preflight)
+        logWarn('CORS request received without an Origin header.');
+        return callback(null, true);
       }
 
       // Allow requests from allowed origins
@@ -69,8 +75,10 @@ const corsMiddleware = cors({
   },
   methods: process.env.ALLOWED_METHODS?.split(',') || [
     'GET',
+    'HEAD',
     'POST',
     'PUT',
+    'PATCH',
     'DELETE',
     'OPTIONS',
   ], // Allowed HTTP methods
@@ -80,6 +88,7 @@ const corsMiddleware = cors({
     'X-Requested-With',
     'Accept',
     'Origin',
+    'X-CSRF-Token',
   ], // Allowed headers
   exposedHeaders: process.env.EXPOSED_HEADERS?.split(',') || [], // Exposed headers
   credentials: process.env.ALLOW_CREDENTIALS === 'true', // Allow credentials (cookies, Authorization header, etc.)

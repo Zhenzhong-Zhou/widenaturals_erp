@@ -13,27 +13,27 @@ interface LoadingProps {
 }
 
 const Loading: FC<LoadingProps> = ({
-                                     size = 40,
-                                     message,
-                                     color = 'primary',
-                                     variant = 'spinner',
-                                     fullPage = false,
-                                   }) => {
+  size = 40,
+  message,
+  color = 'primary',
+  variant = 'spinner',
+  fullPage = false,
+}) => {
   const { theme } = useThemeContext();
-  
+
   // Utility function to generate full-page styles
   const fullPageStyles = fullPage
     ? {
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      width: '100%',
-      height: '100%',
-      zIndex: theme.zIndex.modal,
-      backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    }
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        zIndex: theme.zIndex.modal,
+        backgroundColor: 'rgba(255, 255, 255, 0.8)',
+      }
     : {};
-  
+
   // Dotted Loader Styles
   const dottedLoader = (
     <Box
@@ -46,7 +46,7 @@ const Loading: FC<LoadingProps> = ({
       }}
     />
   );
-  
+
   // Loader content based on variant
   const renderLoader = () => {
     switch (variant) {
@@ -64,7 +64,7 @@ const Loading: FC<LoadingProps> = ({
         return <CircularProgress size={size} color={color} />; // Fallback to spinner
     }
   };
-  
+
   return (
     <Box
       sx={{

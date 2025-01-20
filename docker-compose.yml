@@ -4,14 +4,14 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8082:8082"
+      - '8082:8082'
     volumes:
       - ./server:/app
       - ./env:/env:ro
     env_file:
-      - ./env/.env.defaults  # Load non-sensitive environment variables
-      - ./env/${NODE_ENV:-development}/.env.database  # Load non-sensitive environment variables
-      - ./env/${NODE_ENV:-development}/.env.server  # Load non-sensitive environment variables
+      - ./env/.env.defaults # Load non-sensitive environment variables
+      - ./env/${NODE_ENV:-development}/.env.database # Load non-sensitive environment variables
+      - ./env/${NODE_ENV:-development}/.env.server # Load non-sensitive environment variables
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       DB_HOST: database
@@ -26,23 +26,24 @@ services:
     restart: on-failure
     networks:
       - app_network
-#    command: ["node", "--trace-warnings", "./src/index.js"]
-#    healthcheck:
-#      test: [ "CMD-SHELL", "curl -f http://localhost:8082/example/health || exit 1" ]
-#      interval: 30s
-#      timeout: 10s
-#      retries: 5
-#      start_period: 30s
+  #    command: ["node", "--trace-warnings", "./src/index.js"]
+  #    healthcheck:
+  #      test: [ "CMD-SHELL", "curl -f http://localhost:8082/example/health || exit 1" ]
+  #      interval: 30s
+  #      timeout: 10s
+  #      retries: 5
+  #      start_period: 30s
 
   database:
     image: postgres:17-alpine
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d widenaturals_erp_development"]
+      test:
+        ['CMD-SHELL', 'pg_isready -U postgres -d widenaturals_erp_development']
       interval: 10s
       timeout: 5s
       retries: 5
     ports:
-      - "5432:5432"
+      - '5432:5432'
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD_FILE: /run/secrets/db_password # Securely load password
@@ -55,10 +56,10 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "1.0"
-          memory: "1g"
+          cpus: '1.0'
+          memory: '1g'
         reservations:
-          memory: "512m"
+          memory: '512m'
     networks:
       - app_network
     restart: on-failure

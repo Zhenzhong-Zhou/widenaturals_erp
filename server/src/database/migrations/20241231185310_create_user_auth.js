@@ -10,12 +10,14 @@ exports.up = function (knex) {
     table.string('password_salt', 255).nullable();
     table.integer('attempts').defaultTo(0);
     table.integer('failed_attempts').defaultTo(0);
-    table.timestamp('lockout_time').nullable();
-    table.timestamp('last_login').nullable();
-    table.json('metadata').nullable();
-    table.timestamp('created_at').defaultTo(knex.fn.now());
-    table.timestamp('updated_at').defaultTo(knex.fn.now());
-    table.timestamp('last_changed_at').defaultTo(knex.fn.now());
+    table.timestamp('lockout_time', { useTz: true }).nullable();
+    table.timestamp('last_login', { useTz: true }).nullable();
+    table.jsonb('metadata').nullable();
+    table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now()); // Auto-set on creation in UTC
+    table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now()); // Auto-set on creation in UTC
+    table
+      .timestamp('last_changed_at', { useTz: true })
+      .defaultTo(knex.fn.now());
   });
 };
 

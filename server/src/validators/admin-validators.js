@@ -1,5 +1,5 @@
 const Joi = require('joi');
-const validatePassword = require('../validators/password-validators');
+const { basePasswordValidation } = require('../validators/password-validators');
 const {
   MIN_FIRSTNAME,
   MIN_LASTNAME,
@@ -22,8 +22,8 @@ const adminSchema = Joi.object({
     'any.required': 'Email is required.',
   }),
 
-  // Reuse the password validation logic
-  password: validatePassword,
+  // Reuse basePasswordValidation for password validation
+  password: basePasswordValidation.required(),
 
   // Validate first name with custom length and error messages
   firstname: Joi.string()
@@ -88,19 +88,10 @@ const adminSchema = Joi.object({
         'Invalid status. Allowed values: "active", "inactive", "suspended".',
       'any.required': 'Status is required.',
     }),
-  statusId: Joi.string().uuid().allow(null).messages({
-    'string.guid': 'Status ID must be a valid UUID.',
-  }),
 
-  // Optional created by user ID validation
   createdBy: Joi.string().uuid().allow(null).messages({
     'string.guid': 'Created by must be a valid UUID.',
   }),
-
-  // Optional status date validation
-  // statusDate: Joi.date().iso().default(() => new Date(), 'Current date as default').messages({
-  //   'date.base': 'Status date must be a valid ISO date.',
-  // }),
 });
 
 module.exports = adminSchema;

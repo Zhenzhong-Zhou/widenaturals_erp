@@ -11,28 +11,35 @@ const AppError = require('../utils/AppError');
 const authenticate = () => {
   return async (req, res, next) => {
     try {
-      const accessToken =
-        req.cookies?.accessToken || req.headers.authorization?.split(' ')[1];
-      const refreshToken = req.cookies?.refreshToken;
+      // Access token should come from the Authorization header
+      const accessToken = req.headers.authorization?.split(' ')[1];
+      const refreshToken = req.cookies?.refreshToken; // Refresh token remains in the cookies
 
       if (!accessToken) {
-        throw AppError.authenticationError(
-          'Access token is missing. Please log in.'
+        logWarn('Access token is missing. Please log in.', {
+          ip: req.ip || 'N/A',
+          route: req.originalUrl || 'N/A',
+          userAgent: req.headers['user-agent'] || 'N/A',
+        });
+        return next(
+          AppError.accessTokenError('Access token is missing. Please log in.')
         );
       }
 
       try {
         // Verify the access token
-        const user = verifyToken(accessToken);
+        const user = verifyToken(accessToken); // Throws if the token is invalid or expired
         req.user = user; // Attach user details to the request
         return next();
       } catch (error) {
+        // If the access token is expired and a refresh token is available
         if (error.name === 'TokenExpiredError' && refreshToken) {
           logWarn(
             'Access token expired. Attempting to refresh with a valid refresh token.',
             {
               ip: req.ip || 'N/A',
               route: req.originalUrl || 'N/A',
+              userAgent: req.headers['user-agent'] || 'N/A',
             }
           );
 
@@ -43,15 +50,11 @@ const authenticate = () => {
             // Issue a new access token
             const newAccessToken = signToken({
               id: refreshPayload.id,
-              role_id: refreshPayload.role_id,
+              role: refreshPayload.role,
             });
 
-            // Set the new access token in the cookie
-            res.cookie('accessToken', newAccessToken, {
-              httpOnly: true,
-              secure: true,
-              maxAge: 15 * 60 * 1000, // 15 minutes
-            });
+            // Send the new access token to the client in the response body
+            res.setHeader('X-New-Access-Token', newAccessToken);
 
             req.user = refreshPayload; // Attach refreshed user details
             return next();
@@ -61,19 +64,29 @@ const authenticate = () => {
               route: req.originalUrl || 'N/A',
               error: refreshError.message,
             });
-            throw AppError.authenticationError(
-              'Invalid or expired refresh token. Please log in again.'
-            );
+
+            // Handle refresh token expiration or invalidation
+            if (refreshError.name === 'TokenExpiredError') {
+              throw AppError.refreshTokenExpiredError(
+                'Refresh token expired. Please log in again.'
+              );
+            } else {
+              throw AppError.refreshTokenError(
+                'Invalid refresh token. Please log in again.'
+              );
+            }
           }
         }
 
-        // Handle invalid or other access token errors
+        // Handle other access token errors
         logError('Invalid or expired access token encountered.', {
           ip: req.ip || 'N/A',
           route: req.originalUrl || 'N/A',
           error: error.message,
         });
-        throw AppError.authenticationError('Invalid or expired access token.');
+        throw AppError.accessTokenExpiredError(
+          'Access token expired. Please use your refresh token.'
+        );
       }
     } catch (error) {
       logError('Authentication middleware encountered an error:', {

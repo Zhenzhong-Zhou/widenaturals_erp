@@ -43,63 +43,63 @@ Before starting, ensure you have the following installed:
    cd widenaturals_erp
    ```
 2. **Install dependencies**:
-    - Server
+   - Server
    ```bash
    cd server
    npm install
    ```
 3. **Set up environment variables**:
-    - Create `.env` files for each environment (e.g., `.env.development`, `.env.test`).
-    - Add the following variables to each file:
-      ```env
-      NODE_ENV=development
-      DEV_DB_HOST=localhost
-      DEV_DB_PORT=5432
-      DEV_DB_USER=your_database_user
-      DEV_DB_PASSWORD=your_database_password
-      DEV_DB_NAME=your_database_name
-      ```
-    - For the test environment, use:
-      ```env
-      NODE_ENV=test
-      TEST_DB_HOST=localhost
-      TEST_DB_PORT=5432
-      TEST_DB_USER=your_test_database_user
-      TEST_DB_PASSWORD=your_test_database_password
-      TEST_DB_NAME=your_test_database_name
-      ```
+   - Create `.env` files for each environment (e.g., `.env.development`, `.env.test`).
+   - Add the following variables to each file:
+     ```env
+     NODE_ENV=development
+     DEV_DB_HOST=localhost
+     DEV_DB_PORT=5432
+     DEV_DB_USER=your_database_user
+     DEV_DB_PASSWORD=your_database_password
+     DEV_DB_NAME=your_database_name
+     ```
+   - For the test environment, use:
+     ```env
+     NODE_ENV=test
+     TEST_DB_HOST=localhost
+     TEST_DB_PORT=5432
+     TEST_DB_USER=your_test_database_user
+     TEST_DB_PASSWORD=your_test_database_password
+     TEST_DB_NAME=your_test_database_name
+     ```
 4. **Initialize the database**:
-    - Run the following command to create the database, apply migrations, and seed data:
-      ```bash
-      npm run setup
-      ```
-    - If needed, run individual steps:
-        - Create the database:
-          ```bash
-          npm run create-db
-          ```
-        - Run migrations:
-          ```bash
-          npm run migrate
-          ```
-        - Seed the database:
-          ```bash
-          npm run seed
-          ```
+   - Run the following command to create the database, apply migrations, and seed data:
+     ```bash
+     npm run setup
+     ```
+   - If needed, run individual steps:
+     - Create the database:
+       ```bash
+       npm run create-db
+       ```
+     - Run migrations:
+       ```bash
+       npm run migrate
+       ```
+     - Seed the database:
+       ```bash
+       npm run seed
+       ```
 5. **Running the Project**:
    ```bash
    npm run devStart
    ```
 6. **Running Tests**:
-    - Ensure you have a `.env.test` file configured for the test database.
-    - Run the entire test suite:
-      ```bash
-      npm test
-      ```
-    - Run specific tests:
-      ```bash
-      npm test -- path/to/your/test-file.test.js
-      ```
+   - Ensure you have a `.env.test` file configured for the test database.
+   - Run the entire test suite:
+     ```bash
+     npm test
+     ```
+   - Run specific tests:
+     ```bash
+     npm test -- path/to/your/test-file.test.js
+     ```
 7. **Directory Structure**:
    ```plaintext
      project root/
@@ -158,11 +158,11 @@ Before starting, ensure you have the following installed:
       ```
 3.  **Seeds**: - Create a seed file:
     `bash
-     npx knex seed:make seed_name
-     ` - Run seed files:
+ npx knex seed:make seed_name
+ ` - Run seed files:
     `bash
-      npm run seed
-      `
+  npm run seed
+  `
     **Run with Docker**
 4.  **Build and start the containers**:
     ```bash
@@ -188,22 +188,16 @@ Before starting, ensure you have the following installed:
 This project is licensed under the MIT License.
 
 ## Logging Results
+
 **Save test results to a file for later analysis**:
+
 ```
 artillery run real-time-test.yaml -o results.json
 ```
 
 **You can then generate a detailed HTML report**:
+
 ```
 artillery report -o report.html results.json
 ```
-
-
-
-utils/
-├── id-utils.js         # ID generation, hashing, masking
-├── sensitive-data-utils.js             # Masking sensitive information
-├── crypto-utils.js     # Encryption, decryption, general cryptography
-├── password-helper.js    # Password-specific hashing and verification
-
 

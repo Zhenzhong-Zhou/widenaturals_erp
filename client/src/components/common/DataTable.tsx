@@ -28,33 +28,35 @@ interface DataTableProps {
 }
 
 const DataTable: FC<DataTableProps> = ({
-                                         columns,
-                                         data,
-                                         rowsPerPageOptions = [5, 10, 25],
-                                         initialRowsPerPage = 5,
-                                       }) => {
+  columns,
+  data,
+  rowsPerPageOptions = [5, 10, 25],
+  initialRowsPerPage = 5,
+}) => {
   const [order, setOrder] = useState<'asc' | 'desc'>('asc');
   const [orderBy, setOrderBy] = useState<string | undefined>(undefined);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(initialRowsPerPage);
-  
+
   const { theme } = useThemeContext();
-  
+
   const handleSort = (columnId: string) => {
     const isAsc = orderBy === columnId && order === 'asc';
     setOrder(isAsc ? 'desc' : 'asc');
     setOrderBy(columnId);
   };
-  
+
   const handleChangePage = (_: unknown, newPage: number) => {
     setPage(newPage);
   };
-  
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+
+  const handleChangeRowsPerPage = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
-  
+
   const sortedData = [...data].sort((a, b) => {
     if (!orderBy) return 0;
     const aValue = a[orderBy];
@@ -63,9 +65,12 @@ const DataTable: FC<DataTableProps> = ({
     if (aValue > bValue) return order === 'asc' ? 1 : -1;
     return 0;
   });
-  
-  const paginatedData = sortedData.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
-  
+
+  const paginatedData = sortedData.slice(
+    page * rowsPerPage,
+    page * rowsPerPage + rowsPerPage
+  );
+
   return (
     <Paper
       sx={{
@@ -118,7 +123,9 @@ const DataTable: FC<DataTableProps> = ({
               >
                 {columns.map((column) => (
                   <TableCell key={column.id} align={column.align || 'left'}>
-                    {column.format ? column.format(row[column.id], row) : row[column.id]}
+                    {column.format
+                      ? column.format(row[column.id], row)
+                      : row[column.id]}
                   </TableCell>
                 ))}
               </TableRow>

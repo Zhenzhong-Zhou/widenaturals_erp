@@ -5,6 +5,7 @@
 
 const AppError = require('../../utils/AppError');
 const { logError } = require('../../utils/logger-helper');
+const { sanitizeMessage } = require('../../utils/sensitive-data-utils');
 
 /**
  * Global error handler middleware.
@@ -34,6 +35,8 @@ const globalErrorHandler = (err, req, res, next) => {
     method: req.method || 'N/A',
     route: req.originalUrl || 'N/A',
     userAgent: req.headers['user-agent'] || 'Unknown',
+    body: sanitizeMessage(req.body) || 'N/A', // Sanitize to avoid exposing sensitive data
+    headers: req.headers || {},
     timestamp: new Date().toISOString(),
     stack: process.env.NODE_ENV !== 'production' ? err.stack : undefined,
   };
@@ -45,9 +48,9 @@ const globalErrorHandler = (err, req, res, next) => {
   });
 
   // Send structured error response
-  res.status(err.status).json({
+  res.status(err.status || 500).json({
     ...err.toJSON(),
-    ...(process.env.NODE_ENV !== 'production' && { debug: err.stack }),
+    ...(process.env.NODE_ENV !== 'production' && { stack: err.stack }),
   });
 };
 
