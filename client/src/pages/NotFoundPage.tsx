@@ -1,15 +1,23 @@
-import React from 'react';
+import { FC } from 'react';
 import Container from '@mui/material/Container';
 import { useNavigate } from 'react-router-dom';
 import { Typography, CustomButton } from '@components/index';
 import { useThemeContext } from '../context/ThemeContext.tsx';
 
-const NotFoundPage: React.FC = () => {
+interface NotFoundPageProps {
+  isAuthenticated: boolean;
+}
+
+const NotFoundPage: FC<NotFoundPageProps> = ({ isAuthenticated }) => {
   const { theme } = useThemeContext(); // Get theme from context
   const navigate = useNavigate();
   
-  const handleGoHome = () => {
-    navigate('/'); // Redirect to the home or desired route
+  const handleRedirect = () => {
+    if (isAuthenticated) {
+      navigate('/dashboard'); // Redirect to the dashboard for authenticated users
+    } else {
+      navigate('/'); // Redirect to the home for unauthenticated users
+    }
   };
   
   return (
@@ -42,12 +50,14 @@ const NotFoundPage: React.FC = () => {
           color: theme.palette.text.secondary, // Use theme's text color
         }}
       >
-        Oops! The page you are looking for doesn’t exist.
+        {isAuthenticated
+          ? "Sorry, we couldn’t find the page you’re looking for."
+          : "Oops! The page you are looking for doesn’t exist."}
       </Typography>
       <CustomButton
         variant="contained"
         size="large"
-        onClick={handleGoHome}
+        onClick={handleRedirect}
         sx={{
           textTransform: 'none',
           color: theme.palette.text.primary, // Button text color
@@ -57,7 +67,7 @@ const NotFoundPage: React.FC = () => {
           },
         }}
       >
-        Go Back to Home
+        {isAuthenticated ? "Go Back to Dashboard" : "Go Back to Home"}
       </CustomButton>
     </Container>
   );

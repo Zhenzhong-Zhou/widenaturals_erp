@@ -1,10 +1,13 @@
 import { FC } from 'react';
 import Box from '@mui/material/Box';
-import { MainLayout } from '../layouts';
 import { useInitializeApp } from '../hooks';
 import AppRoutes from '../routes/AppRoutes.tsx';
 import { Loading, ErrorDisplay } from '@components/index.ts';
 
+/**
+ * AppContent Component
+ * Manages global initialization and renders routes based on authentication status.
+ */
 const AppContent: FC = () => {
   // Initialize the app with global loading
   const { isInitializing, hasError, initializationError } = useInitializeApp({
@@ -12,6 +15,7 @@ const AppContent: FC = () => {
     retryAttempts: 3,
   });
   
+  // Show loading during initialization
   if (isInitializing) {
     return (
       <Box
@@ -24,11 +28,12 @@ const AppContent: FC = () => {
           backgroundColor: 'background.default',
         }}
       >
-        <Loading message="Loading application..." />
+        <Loading message="Initializing application..." />
       </Box>
     );
   }
   
+  // Show error if initialization fails
   if (hasError) {
     return (
       <ErrorDisplay
@@ -40,11 +45,10 @@ const AppContent: FC = () => {
     );
   }
   
+  // Render routes
   return (
     <Box className="app">
-      <MainLayout username="John Doe" onLogout={() => console.log('Logged out')}>
-        <AppRoutes />
-      </MainLayout>
+      <AppRoutes />
     </Box>
   );
 };

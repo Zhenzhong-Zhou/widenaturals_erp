@@ -7,7 +7,7 @@ import { refreshTokenThunk } from '../features/session';
  * Custom hook for session management.
  * Focuses on login status and token refreshing.
  */
-export const useSession = () => {
+const useSession = () => {
   const dispatch = useAppDispatch();
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const user = useAppSelector(selectUser);
@@ -36,3 +36,5 @@ export const useSession = () => {
     refreshToken,
   };
 };
+
+export default useSession;
