@@ -1,11 +1,11 @@
 import { combineReducers } from '@reduxjs/toolkit';
 import { PayloadAction } from '@reduxjs/toolkit';
-import authReducer from '../features/auth/state/authSlice';
+import sessionReducer from '../features/session/state/sessionSlice.ts';
 import csrfReducer from '../features/csrf/state/csrfSlice';
 
 // Combine reducers
 const appReducer = combineReducers({
-  auth: authReducer,
+  session: sessionReducer,
   csrf: csrfReducer,
 });
 

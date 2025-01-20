@@ -1,7 +1,7 @@
 import { FC, ReactNode } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router';
-import { selectIsAuthenticated } from '../features/auth/state/authSelectors';
 import { useAppSelector } from '../store/storeHooks';
+import { selectIsAuthenticated } from '../features/session/state/sessionSelectors.ts';
 
 interface ProtectedRoutesProps {
   children?: ReactNode; // Optional children

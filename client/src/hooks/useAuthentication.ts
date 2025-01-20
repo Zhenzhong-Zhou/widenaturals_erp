@@ -5,7 +5,7 @@ import {
   selectUser,
 } from '../features/auth/state/authSelectors';
 import { loginSuccess, logout as logoutAction } from '../features/auth/state/authSlice';
-import { refreshToken as refreshTokenService } from '../services/authenticateService.ts';
+import { refreshToken as refreshTokenService } from '../services/sessionService.ts';
 
 const useAuth = () => {
   const dispatch = useAppDispatch();

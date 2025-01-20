@@ -6,7 +6,7 @@ export const setTokens = (accessToken: string): void => {
   Cookies.set('accessToken', accessToken, COOKIE_OPTIONS);
 };
 
-export const getToken = (tokenName: '_csrf' | 'accessToken' | 'refreshToken'): string | null => {
+export const getToken = (tokenName: 'accessToken' | 'refreshToken'): string | null => {
   return Cookies.get(tokenName) || null;
 };
 

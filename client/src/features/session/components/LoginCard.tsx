@@ -2,7 +2,7 @@ import { FC } from 'react';
 import CustomCard from '@components/common/CustomCard.tsx';
 import LoginForm from './LoginForm.tsx';
 import { handleError, mapErrorMessage } from '@utils/errorUtils.ts';
-import { loginThunk } from '../state/authThunks.ts';
+import { loginThunk } from '../state/sessionThunks.ts';
 import { useAppDispatch } from '../../../store/storeHooks.ts';
 
 const LoginCard: FC = () => {

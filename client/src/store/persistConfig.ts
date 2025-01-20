@@ -6,7 +6,7 @@ import rootReducer from './rootReducer';
 const persistConfig = {
   key: 'root',
   storage,
-  whitelist: ['auth'], // Specify slices to persist
+  whitelist: ['session'],
 };
 
 // Apply persistence to the root reducer
