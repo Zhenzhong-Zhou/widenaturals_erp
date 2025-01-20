@@ -8,7 +8,7 @@ import { useAppSelector } from '../../store/storeHooks';
 interface ErrorDisplayProps {
   message?: string; // Custom error message to display
   onRetry?: () => void; // Optional retry handler
-  children?: ReactNode; // Optional custom children
+  children?: ReactNode; // Optional custom children for additional error details
 }
 
 const ErrorDisplay: FC<ErrorDisplayProps> = ({ message, onRetry, children }) => {
@@ -16,12 +16,15 @@ const ErrorDisplay: FC<ErrorDisplayProps> = ({ message, onRetry, children }) => 
   const csrfStatus = useAppSelector(selectCsrfStatus);
   const csrfError = useAppSelector(selectCsrfError);
   
-  // Monitor CSRF status and handle any errors
-  try {
-    monitorCsrfStatus(csrfStatus, csrfError);
-  } catch (error) {
-    message = message || 'An error occurred during CSRF token initialization.';
-  }
+  // Monitor CSRF status and handle potential issues
+  const csrfErrorMessage = (() => {
+    try {
+      monitorCsrfStatus(csrfStatus, csrfError);
+      return null;
+    } catch (error) {
+      return 'An error occurred during CSRF token initialization.';
+    }
+  })();
   
   return (
     <Box
@@ -33,12 +36,27 @@ const ErrorDisplay: FC<ErrorDisplayProps> = ({ message, onRetry, children }) => 
         height: '100vh',
         textAlign: 'center',
         padding: 4,
+        backgroundColor: 'background.default',
+        color: 'text.primary',
       }}
     >
       <Typography variant="h4" color="error" gutterBottom>
-        {message || 'An unexpected error occurred.'}
+        {message || csrfErrorMessage || 'An unexpected error occurred.'}
       </Typography>
-      {children}
+      {children && (
+        <Box
+          sx={{
+            marginTop: 2,
+            padding: 2,
+            borderRadius: 1,
+            backgroundColor: 'background.paper',
+            color: 'text.secondary',
+            textAlign: 'left',
+          }}
+        >
+          {children}
+        </Box>
+      )}
       {onRetry && (
         <CustomButton variant="contained" color="primary" onClick={onRetry} sx={{ marginTop: 2 }}>
           Retry
