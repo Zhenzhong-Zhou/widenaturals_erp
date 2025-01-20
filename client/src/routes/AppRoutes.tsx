@@ -2,6 +2,7 @@ import { Suspense, lazy } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { routes } from './index';
 import ProtectedRoutes from './ProtectedRoutes.tsx';
+import GuestRoute from './GuestRoute.tsx';
 import { Loading } from '@components/index.ts';
 import { MainLayout } from '../layouts';
 import { useSession } from '../hooks';
@@ -38,6 +39,21 @@ const AppRoutes = () => {
             );
           }
           
+          if (path === '/login') {
+            // Wrap login page with GuestRoute
+            return (
+              <Route
+                key={index}
+                path={path}
+                element={
+                  <GuestRoute>
+                    <LazyComponent />
+                  </GuestRoute>
+                }
+              />
+            );
+          }
+          
           // Render public routes directly
           return <Route key={index} path={path} element={<LazyComponent />} />;
         })}
@@ -45,9 +61,7 @@ const AppRoutes = () => {
         {/* 404 Page for Invalid Routes */}
         <Route
           path="*"
-          element={
-            <LazyNotFoundPage isAuthenticated={isAuthenticated} />
-          }
+          element={<LazyNotFoundPage isAuthenticated={isAuthenticated} />}
         />
       </Routes>
     </Suspense>

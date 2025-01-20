@@ -46,7 +46,11 @@ const Header: FC<HeaderProps> = ({ username, onLogout, isSidebarOpen }) => {
         <CustomButton
           variant="contained"
           color="primary"
-          onClick={onLogout}
+          onClick={() => {
+            console.log("Logout button clicked");
+            onLogout(); // Call the logout function
+            console.log("Logout function executed");
+          }}
           sx={{ marginLeft: theme.spacing(2) }}
         >
           Logout

@@ -62,7 +62,7 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
           >
             <img
               src={logo}
-              alt="Company Logo"
+              alt="WIDE Naturals Inc."
               style={{
                 width: '100%',
                 height: '100%',

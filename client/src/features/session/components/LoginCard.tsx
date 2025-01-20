@@ -3,29 +3,42 @@ import CustomCard from '@components/common/CustomCard.tsx';
 import LoginForm from './LoginForm.tsx';
 import { handleError, mapErrorMessage } from '@utils/errorUtils.ts';
 import { loginThunk } from '../state/sessionThunks.ts';
-import { useAppDispatch } from '../../../store/storeHooks.ts';
+import { useAppDispatch, useAppSelector } from '../../../store/storeHooks.ts';
+import { selectLoginError } from '../state/sessionSelectors.ts';
+import { useNavigate } from 'react-router-dom';
+import { useLoading } from '../../../context/LoadingContext.tsx';
+import { ErrorDisplay } from '@components/index.ts';
 
-const LoginCard: FC = () => {
+interface LoginCardProps {
+  title?: string; // Optional title
+  subtitle?: string; // Optional subtitle
+}
+
+const LoginCard: FC<LoginCardProps> = ({ title = 'Login', subtitle = 'Sign in to your account.' }) => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const { showLoading, hideLoading } = useLoading(); // Use correct functions from the context
+  const loginError = useAppSelector(selectLoginError);
   
   const handleSubmit = async (data: { email: string; password: string }) => {
     try {
-      // const response = await authService.login(data.email, data.password);
-      await dispatch(loginThunk(data)).unwrap(); // Dispatch the thunk and unwrap the promise
+      showLoading('Logging in...', 'spinner'); // Show loading spinner with a message
+      await dispatch(loginThunk(data)).unwrap();
       console.log('Login successful');
-      // Navigate to the dashboard or save the token
+      navigate('/dashboard');
     } catch (error: unknown) {
       // Handle and log the error
       handleError(error);
       const errorMessage = mapErrorMessage(error);
       console.error('Login failed:', errorMessage);
-      // Optionally, show the error message to the user in the UI
-      alert(errorMessage); // Replace with a better UI mechanism for displaying errors
+    } finally {
+      hideLoading(); // Always hide loading spinner
     }
   };
   
   return (
-    <CustomCard title="Welcome Back" subtitle="Please log in to continue">
+    <CustomCard title={title} subtitle={subtitle}>
+      {loginError && <ErrorDisplay message={loginError} />} {/* Show login errors */}
       <LoginForm onSubmit={handleSubmit} />
     </CustomCard>
   );

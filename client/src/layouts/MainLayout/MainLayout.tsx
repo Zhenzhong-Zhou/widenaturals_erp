@@ -5,7 +5,8 @@ import Box from '@mui/material/Box';
 import { layoutStyles, contentContainerStyles, mainContentStyles } from './layoutStyles';
 import { FallbackUI, ModuleErrorBoundary } from '@components/index';
 import { AppError } from '@utils/AppError';
-import { getErrorLog } from '@utils/errorUtils'; // Import getErrorLog utility
+import { getErrorLog } from '@utils/errorUtils';
+import { useLogout } from '../../hooks'; // Import getErrorLog utility
 
 interface MainLayoutProps {
   children: ReactNode; // Allow any React elements to be passed as children
@@ -13,9 +14,10 @@ interface MainLayoutProps {
   onLogout: () => void; // Passing logout handler to the layout
 }
 
-const MainLayout: FC<MainLayoutProps> = ({ children, username, onLogout }) => {
+const MainLayout: FC<MainLayoutProps> = ({ children, username }) => {
   const { theme } = useThemeContext(); // Access the current theme from context
   const [isSidebarOpen, setSidebarOpen] = useState(true); // Sidebar state
+  const { logout } = useLogout();
   
   const toggleSidebar = () => setSidebarOpen((prev) => !prev); // Toggle sidebar state
   
@@ -60,7 +62,7 @@ const MainLayout: FC<MainLayoutProps> = ({ children, username, onLogout }) => {
             />
           }
         >
-          <Header username={username} onLogout={onLogout} isSidebarOpen={isSidebarOpen} />
+          <Header username={username} onLogout={logout} isSidebarOpen={isSidebarOpen} />
         </ModuleErrorBoundary>
         
         {/* Main Content */}
