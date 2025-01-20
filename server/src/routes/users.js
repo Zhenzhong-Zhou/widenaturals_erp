@@ -1,14 +1,17 @@
 /**
  * @file users.js
- * @description Users-related routes.
+ * @description Routes related to user operations.
  */
 
- const express = require('express');
+const express = require('express');
 const { getUserProfile } = require('../controllers/user-controller');
 
 const router = express.Router();
 
-// Profile route
+/**
+ * @route GET /users/me
+ * @description Fetch the authenticated user's profile.
+ */
 router.get('/me', getUserProfile);
 
 module.exports = router;
