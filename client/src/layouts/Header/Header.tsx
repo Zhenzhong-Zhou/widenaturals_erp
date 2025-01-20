@@ -3,14 +3,15 @@ import Box from '@mui/material/Box';
 import { Typography, CustomButton } from '@components/index';
 import { useThemeContext } from '../../context/ThemeContext';
 import { headerStyles, userInfoStyles, typographyStyles } from './headerStyles';
+import { UserProfile } from '../../features/user/state/userTypes.ts';
 
 interface HeaderProps {
-  username: string;
+  user?: UserProfile;
   onLogout: () => void;
   isSidebarOpen: boolean;
 }
 
-const Header: FC<HeaderProps> = ({ username, onLogout, isSidebarOpen }) => {
+const Header: FC<HeaderProps> = ({ user, onLogout, isSidebarOpen }) => {
   const { theme, toggleTheme } = useThemeContext(); // Access theme and toggle function
 
   return (
@@ -30,7 +31,7 @@ const Header: FC<HeaderProps> = ({ username, onLogout, isSidebarOpen }) => {
       {/* User Information and Actions */}
       <Box sx={userInfoStyles(theme)}>
         <Typography variant="body1" sx={typographyStyles(theme)}>
-          User: <strong>{username}</strong>
+          User: <strong>{user?.firstname}</strong>
         </Typography>
 
         {/* Theme Toggle Button */}

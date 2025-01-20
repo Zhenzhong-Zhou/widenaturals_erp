@@ -7,24 +7,26 @@ import {
   contentContainerStyles,
   mainContentStyles,
 } from './layoutStyles';
-import { FallbackUI, ModuleErrorBoundary } from '@components/index';
+import { ErrorDisplay, FallbackUI, Loading, ModuleErrorBoundary } from '@components/index';
 import { AppError } from '@utils/AppError';
 import { getErrorLog } from '@utils/errorUtils';
-import { useLogout } from '../../hooks'; // Import getErrorLog utility
+import { useLogout, useUserProfile } from '../../hooks';
 
 interface MainLayoutProps {
   children: ReactNode; // Allow any React elements to be passed as children
-  username: string; // Passing username to the layout
-  onLogout: () => void; // Passing logout handler to the layout
 }
 
-const MainLayout: FC<MainLayoutProps> = ({ children, username }) => {
+const MainLayout: FC<MainLayoutProps> = ({ children }) => {
   const { theme } = useThemeContext(); // Access the current theme from context
   const [isSidebarOpen, setSidebarOpen] = useState(true); // Sidebar state
-  const { logout } = useLogout();
-
+  const { user, loading, error } = useUserProfile(); // Fetch user profile
+  const { logout } = useLogout(); // Logout handler
+  
   const toggleSidebar = () => setSidebarOpen((prev) => !prev); // Toggle sidebar state
-
+  
+  if (loading) return <Loading/>;
+  if (error) return <ErrorDisplay/>;
+  
   return (
     <Box className="layout" sx={layoutStyles(theme)}>
       {/* Sidebar */}
@@ -46,7 +48,7 @@ const MainLayout: FC<MainLayoutProps> = ({ children, username }) => {
       >
         <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
       </ModuleErrorBoundary>
-
+      
       {/* Content Container */}
       <Box className="content-container" sx={contentContainerStyles(theme)}>
         {/* Header */}
@@ -67,12 +69,12 @@ const MainLayout: FC<MainLayoutProps> = ({ children, username }) => {
           }
         >
           <Header
-            username={username}
+            user={user?.data}
             onLogout={logout}
             isSidebarOpen={isSidebarOpen}
           />
         </ModuleErrorBoundary>
-
+        
         {/* Main Content */}
         <ModuleErrorBoundary
           fallback={
@@ -91,7 +93,7 @@ const MainLayout: FC<MainLayoutProps> = ({ children, username }) => {
         >
           <Box sx={mainContentStyles(theme)}>{children}</Box>
         </ModuleErrorBoundary>
-
+        
         {/* Footer */}
         <ModuleErrorBoundary
           fallback={

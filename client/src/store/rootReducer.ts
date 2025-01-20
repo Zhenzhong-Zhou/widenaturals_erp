@@ -1,13 +1,15 @@
 import { combineReducers } from '@reduxjs/toolkit';
 import { PayloadAction } from '@reduxjs/toolkit';
-import sessionReducer from '../features/session/state/sessionSlice.ts';
 import csrfReducer from '../features/csrf/state/csrfSlice';
+import sessionReducer from '../features/session/state/sessionSlice.ts';
+import userReducer from '../features/user/state/userSlice.ts';
 import { PURGE } from 'redux-persist';
 
 // Combine reducers
 const appReducer = combineReducers({
-  session: sessionReducer,
   csrf: csrfReducer,
+  session: sessionReducer,
+  user: userReducer,
 });
 
 // Root reducer with logout handling

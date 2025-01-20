@@ -6,7 +6,7 @@ import axios, {
 } from 'axios';
 import { AppError, ErrorType } from './AppError'; // Updated AppError
 import { handleError, mapErrorMessage } from './errorUtils'; // Error utilities
-import { setTokens, getToken, clearTokens } from './tokenManager';
+import { setTokens, getToken } from './tokenManager';
 import {
   selectCsrfToken,
   selectCsrfError,
@@ -14,6 +14,7 @@ import {
 } from '../features/csrf/state/csrfSelector';
 import { store } from '../store/store';
 import { resetCsrfToken } from '../features/csrf/state/csrfSlice';
+import { sessionService } from '../services';
 
 interface ErrorResponse {
   message?: string;
@@ -130,29 +131,19 @@ axiosInstance.interceptors.response.use(
 
         originalRequest._retry = true;
         isRefreshing = true;
-
-        const refreshToken = getToken('refreshToken');
-        if (!refreshToken) {
-          clearTokens();
-          throw new AppError('Refresh token is missing', 401, {
-            type: ErrorType.ValidationError,
-            details: 'No refresh token found in storage',
-          });
-        }
-
+        
         // Request new access token
-        const { data } = await axios.post(`${baseURL}/session/refresh`, {
-          refreshToken,
-        });
+        const { accessToken } = await sessionService.refreshToken();
+        console.log(`AccessToken token ${accessToken}`);
 
         // Save new tokens using tokenManager
-        setTokens(data.accessToken);
+        setTokens(accessToken);
 
         // Process queued requests with the new token
-        processQueue(null, data.accessToken);
+        processQueue(null, accessToken);
         originalRequest.headers = {
           ...originalRequest.headers,
-          Authorization: `Bearer ${data.accessToken}`,
+          Authorization: `Bearer ${accessToken}`,
         };
 
         return axiosInstance(originalRequest);

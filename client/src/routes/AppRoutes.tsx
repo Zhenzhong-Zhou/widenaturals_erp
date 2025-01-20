@@ -32,7 +32,7 @@ const AppRoutes = () => {
                 path={path}
                 element={
                   <ProtectedRoutes>
-                    <MainLayout username="John Doe" onLogout={() => console.log('Logged out')}>
+                    <MainLayout>
                       <LazyComponent />
                     </MainLayout>
                   </ProtectedRoutes>
