@@ -2,8 +2,10 @@ import axiosInstance from '@utils/axiosConfig.ts';
 import { clearTokens } from '@utils/tokenManager.ts';
 import { handleError, mapErrorMessage } from '@utils/errorUtils.ts';
 import { AppError, ErrorType } from '@utils/AppError.tsx';
-import { UserProfile } from '../features/user/state/userTypes.ts';
+import { UserResponse } from '../features/user/state/userTypes.ts';
 import { isCustomAxiosError } from '@utils/axiosUtils.ts';
+import { withTimeout } from '@utils/timeoutUtils.ts';
+import { withRetry } from '@utils/retryUtils.ts';
 
 const API_ENDPOINTS = {
   USER_PROFILE: '/users/me',
@@ -15,10 +17,16 @@ const API_ENDPOINTS = {
  * @returns {Promise<Object>} - The user's profile data.
  * @throws {AppError} - If the request fails or returns an unexpected response.
  */
-const fetchUserProfile = async (): Promise<UserProfile> => {
+const fetchUserProfile = async (): Promise<UserResponse> => {
   try {
-    const response = await axiosInstance.get(API_ENDPOINTS.USER_PROFILE);
-    // Validate the response structure
+    const fetchProfile = () => axiosInstance.get<UserResponse>(API_ENDPOINTS.USER_PROFILE);
+    // Add retry and timeout logic
+    const response = await withTimeout(
+      withRetry(fetchProfile, 3, 'Failed to fetch user profile after retries'),
+      5000, // Timeout in milliseconds
+      'Fetching user profile timed out'
+    );
+    
     if (!response.data || typeof response.data !== 'object') {
       throw new AppError('Unexpected response format', 400, {
         type: ErrorType.ValidationError,
@@ -27,20 +35,15 @@ const fetchUserProfile = async (): Promise<UserProfile> => {
     
     return response.data;
   } catch (err) {
-    if (isCustomAxiosError(err)) {
-      // Specific handling for unauthorized errors (401)
-      if (err.response?.status === 401) {
-        // Clear tokens and handle unauthorized error
-        clearTokens();
-        throw new AppError('Unauthorized. Please log in again.', 401, {
-          type: ErrorType.AuthenticationError,
-        });
-      }
+    if (isCustomAxiosError(err) && err.response?.status === 401) {
+      clearTokens();
+      throw new AppError('Unauthorized. Please log in again.', 401, {
+        type: ErrorType.AuthenticationError,
+      });
     }
     
-    // Map error and log it
-    const mappedError = mapErrorMessage(err); // Ensure no hooks in mapErrorMessage
-    handleError(mappedError); // Ensure no hooks in handleError
+    const mappedError = mapErrorMessage(err);
+    handleError(mappedError);
     throw mappedError;
   }
 };

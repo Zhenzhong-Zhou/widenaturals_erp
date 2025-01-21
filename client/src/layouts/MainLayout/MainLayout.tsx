@@ -19,7 +19,7 @@ interface MainLayoutProps {
 const MainLayout: FC<MainLayoutProps> = ({ children }) => {
   const { theme } = useThemeContext(); // Access the current theme from context
   const [isSidebarOpen, setSidebarOpen] = useState(true); // Sidebar state
-  const { user, loading, error } = useUserProfile(); // Fetch user profile
+  const { data, loading, error } = useUserProfile();
   const { logout } = useLogout(); // Logout handler
   useTokenRefresh();
   
@@ -28,12 +28,12 @@ const MainLayout: FC<MainLayoutProps> = ({ children }) => {
   if (loading) {
     return <Loading />;
   }
-  
+
   if (error) {
     return <ErrorDisplay />;
   }
-  
-  if (!user) {
+
+  if (!data) {
     return <div>No user profile available.</div>;
   }
   
@@ -78,7 +78,9 @@ const MainLayout: FC<MainLayoutProps> = ({ children }) => {
             />
           }
         >
-          <Header user={user?.data} onLogout={logout} />
+          <Header
+            user={data}
+                  onLogout={logout} />
         </ModuleErrorBoundary>
         
         {/* Main Content */}

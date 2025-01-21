@@ -1,17 +1,17 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { fetchUserProfileThunk } from './userThunks.ts';
-import { UserProfile } from './userTypes.ts';
+import { UserProfile, UserResponse } from './userTypes.ts';
 
 // Define the UserState interface
 interface UserState {
-  profile: UserProfile | null;
+  response: UserResponse | null;
   loading: boolean;
   error: string | null;
 }
 
 // Initial state
 const initialState: UserState = {
-  profile: null,
+  response: null,
   loading: false,
   error: null,
 };
@@ -22,13 +22,13 @@ const userSlice = createSlice({
   initialState,
   reducers: {
     resetUserState: (state) => {
-      state.profile = null;
+      state.response = null;
       state.loading = false;
       state.error = null;
     },
-    updateUserProfile: (state, action) => {
-      if (state.profile) {
-        state.profile = { ...state.profile, ...action.payload };
+    updateUserProfile: (state, action: { payload: Partial<UserProfile> }) => {
+      if (state.response && state.response.data) {
+        state.response.data = { ...state.response.data, ...action.payload };
       }
     },
   },
@@ -39,7 +39,7 @@ const userSlice = createSlice({
         state.error = null;
       })
       .addCase(fetchUserProfileThunk.fulfilled, (state, action) => {
-        state.profile = action.payload;
+        state.response = action.payload; // Full UserResponse
         state.loading = false;
       })
       .addCase(fetchUserProfileThunk.rejected, (state, action) => {

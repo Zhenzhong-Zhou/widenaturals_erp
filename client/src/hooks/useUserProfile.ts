@@ -1,25 +1,29 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/storeHooks';
 import { fetchUserProfileThunk } from '../features/user/state/userThunks';
-import { selectUserError, selectUserLoading, selectUserProfile } from '../features/user/state/userSelectors';
+import {
+  selectUserError,
+  selectUserLoading,
+  selectUserResponse,
+} from '../features/user/state/userSelectors';
+import { UserResponse } from '../features/user/state/userTypes.ts';
 
 /**
  * Custom hook to fetch and manage the user profile.
  *
- * @returns {{ user: Object | null, loading: boolean, error: string | null }}
+ * @returns {UserResponse & { loading: boolean; error: string | null }}
  */
-const useUserProfile = (): { user: object | null; loading: boolean; error: string | null; } => {
+const useUserProfile = (): UserResponse & { loading: boolean; error: string | null } => {
   const dispatch = useAppDispatch();
   
   // Selectors
-  const user = useAppSelector(selectUserProfile);
+  const userResponse = useAppSelector<UserResponse | null>(selectUserResponse);
   const loading = useAppSelector(selectUserLoading);
   const error = useAppSelector(selectUserError);
   
-  // todo fix this bug
   // Dispatch profile fetch
   useEffect(() => {
-    if (!user && !loading) {
+    if (!userResponse && !loading) {
       dispatch(fetchUserProfileThunk())
         .unwrap()
         .catch((err) => {
@@ -27,22 +31,40 @@ const useUserProfile = (): { user: object | null; loading: boolean; error: strin
           // Handle API-specific issues or debug
         });
     }
-  // }, [dispatch, user, loading]);
-  }, [dispatch]);
+  }, [dispatch, userResponse, loading]);
+  // }, [dispatch]);
   
   // Log errors if any
-  // useEffect(() => {
-  //   if (error) {
-  //     console.error('Failed to fetch user profile:', error);
-  //     // Optionally show a notification here
-  //   }
-  // }, [error]);
+  useEffect(() => {
+    if (error) {
+      console.error('Failed to fetch user profile:', error);
+      // Optionally show a notification here
+    }
+  }, [error]);
   
-  // Memoize the result to prevent unnecessary re-renders
-  return useMemo(
-    () => ({ user, loading, error }),
-    [user, loading, error]
-  );
+  // Default response structure
+  const defaultResponse: UserResponse = {
+    success: false,
+    message: '',
+    data: {
+      email: '',
+      role: '',
+      firstname: '',
+      lastname: '',
+      phone_number: null,
+      job_title: '',
+      created_at: '',
+      updated_at: '',
+    },
+    timestamp: '',
+  };
+  
+  return {
+    ...defaultResponse,
+    ...userResponse,
+    loading,
+    error,
+  };
 };
 
 export default useUserProfile;

@@ -6,7 +6,6 @@ import axios, {
 } from 'axios';
 import { AppError, ErrorType } from './AppError'; // Updated AppError
 import { handleError, mapErrorMessage } from './errorUtils'; // Error utilities
-import { getToken } from './tokenManager';
 import {
   selectCsrfToken,
   selectCsrfError,
@@ -17,6 +16,7 @@ import { resetCsrfToken } from '../features/csrf/state/csrfSlice';
 import { sessionService } from '../services';
 import { updateAccessToken } from '../features/session/state/sessionSlice.ts';
 import { useAppDispatch } from '../store/storeHooks.ts';
+import { selectAccessToken } from '../features/session/state/sessionSelectors.ts';
 
 interface ErrorResponse {
   message?: string;
@@ -63,17 +63,17 @@ const processQueue = (error: AxiosError | null, token: string | null) => {
 axiosInstance.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     try {
-      const accessToken = getToken('accessToken');
       const state = store.getState(); // Access the Redux store directly
       const csrfToken = selectCsrfToken(state); // Get the CSRF token from the store
-
+      const accessToken = selectAccessToken(state);
+      
       if (accessToken && config.headers) {
         config.headers.Authorization = `Bearer ${accessToken}`;
       }
       if (csrfToken && config.headers) {
         config.headers['X-CSRF-Token'] = csrfToken;
       }
-
+      
       return config;
     } catch (error) {
       handleError(error); // Log error using handleError

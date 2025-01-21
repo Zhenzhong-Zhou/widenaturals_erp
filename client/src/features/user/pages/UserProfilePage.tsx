@@ -4,10 +4,10 @@ import Avatar from '@mui/material/Avatar';
 import { Typography } from '@components/index.ts';
 import Divider from '@mui/material/Divider';
 import { useAppSelector } from '../../../store/storeHooks.ts';
-import { selectUserProfile } from '../state/userSelectors.ts';
+import { selectUserResponse } from '../state/userSelectors.ts';
 
 const UserProfilePage: FC = () => {
-  const response = useAppSelector(selectUserProfile);
+  const response = useAppSelector(selectUserResponse);
   const user = response?.data;
   
   if (!user) {
@@ -44,7 +44,7 @@ const UserProfilePage: FC = () => {
     >
       {/* User Avatar */}
       <Avatar
-        src={user.avatar || ''}
+        src={''}
         alt={user.firstname || 'User Avatar'}
         sx={{
           width: 100,
@@ -76,14 +76,24 @@ const UserProfilePage: FC = () => {
       <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
         Role: {user.role || 'N/A'}
       </Typography>
-      {user.department && (
+      {user.job_title && (
         <Typography variant="body2" sx={{ marginTop: 1 }}>
-          Department: {user.department}
+          Job Title: {user.job_title}
         </Typography>
       )}
-      {user.phone && (
+      {user.phone_number && (
         <Typography variant="body2" sx={{ marginTop: 1 }}>
-          Phone: {user.phone}
+          Phone: {user.phone_number}
+        </Typography>
+      )}
+      {user.created_at && (
+        <Typography variant="body2" sx={{ marginTop: 1 }}>
+          Created At: {user.created_at}
+        </Typography>
+      )}
+      {user.updated_at && (
+        <Typography variant="body2" sx={{ marginTop: 1 }}>
+          Updated At: {user.updated_at}
         </Typography>
       )}
     </Box>
