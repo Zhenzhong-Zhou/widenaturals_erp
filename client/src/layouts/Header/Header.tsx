@@ -1,4 +1,4 @@
-import { FC, useState } from 'react';
+import React, { FC, useState } from 'react';
 import Box from '@mui/material/Box';
 import Avatar from '@mui/material/Avatar';
 import IconButton from '@mui/material/IconButton';
@@ -9,18 +9,20 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSun, faMoon } from '@fortawesome/free-solid-svg-icons';
 import { Typography, CustomButton } from '@components/index';
 import { useThemeContext } from '../../context/ThemeContext';
-import { UserProfile } from '../../features/user/state/userTypes';
+import { UserProfile as UserProfileType } from '../../features/user/state/userTypes';
 import { headerStyles, typographyStyles } from './headerStyles';
 import { HealthStatus } from '../../features/health';
+import { useNavigate } from 'react-router-dom';
 
 interface HeaderProps {
-  user?: UserProfile;
+  user?: UserProfileType;
   onLogout: () => void;
 }
 
 const Header: FC<HeaderProps> = ({ user, onLogout }) => {
   const { theme, toggleTheme } = useThemeContext();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const navigate = useNavigate();
   
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -92,8 +94,13 @@ const Header: FC<HeaderProps> = ({ user, onLogout }) => {
           </Typography>
         </MenuItem>
         <Divider />
-        <MenuItem onClick={handleMenuClose}>
-          <Typography variant="body2">Profile</Typography>
+        <MenuItem
+          onClick={() => {
+            handleMenuClose();
+            navigate('/profile'); // Navigate to profile page
+          }}
+        >
+          Profile
         </MenuItem>
         <MenuItem onClick={() => { handleMenuClose(); onLogout(); }}>
           <Typography variant="body2">Logout</Typography>

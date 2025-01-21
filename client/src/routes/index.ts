@@ -31,4 +31,24 @@ export const routes = [
       title: 'Dashboard',
     },
   },
+  {
+    path: '/profile',
+    component: () => import('../features/user/pages/UserProfilePage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'User Profile',
+    },
+    children: [
+      {
+        path: '', // Default child route
+        // component: () => import('../features/user/pages/UserProfile.tsx'),
+        meta: { title: 'User Profile' },
+      },
+      {
+        path: 'edit',
+        // component: () => import('../features/user/pages/EditProfile.tsx'),
+        meta: { title: 'Edit Profile' },
+      },
+    ],
+  }
 ];
