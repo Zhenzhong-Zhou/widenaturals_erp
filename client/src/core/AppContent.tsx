@@ -6,7 +6,7 @@ import { Loading, ErrorDisplay } from '@components/index.ts';
 import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
 import { selectAccessToken } from '../features/session/state/sessionSelectors.ts';
 import { isTokenValid } from '@utils/tokenValidationUtils.ts';
-import { logout } from '../features/session/state/sessionSlice.ts';
+import { logoutThunk } from '../features/session/state/sessionThunks.ts';
 import { refreshTokenThunk } from '../features/session';
 
 /**
@@ -33,7 +33,7 @@ const AppContent: FC = () => {
           console.log('Access token refreshed successfully.');
         } catch (error) {
           console.error('Failed to refresh token:', error);
-          dispatch(logout()); // Clear session if refresh fails
+          await dispatch(logoutThunk()).unwrap(); // Clear session if refresh fails
         }
       } else {
         console.log('Access token is valid.');

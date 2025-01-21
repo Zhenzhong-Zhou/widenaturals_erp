@@ -6,6 +6,7 @@ import { clearTokens, getToken } from '../utils/tokenManager';
 const API_ENDPOINTS = {
   LOGIN: '/session/login',
   REFRESH_TOKEN: '/session/refresh',
+  LOGOUT: '/auth/logout',
 };
 
 // In-memory storage for the current CSRF token
@@ -100,7 +101,22 @@ const refreshToken = async (): Promise<{ accessToken: string }> => {
   }
 };
 
+export const logout = async (): Promise<void> => {
+  try {
+    await axiosInstance.post(API_ENDPOINTS.LOGOUT); // Call the backend logout endpoint
+    clearTokens(); // Clear tokens from local storage or cookies
+    console.log('Logout successful');
+  } catch (error) {
+    console.error('Logout failed:', error);
+    throw new AppError('Logout failed. Please try again.', 500, {
+      type: ErrorType.NetworkError,
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+};
+
 export const sessionService = {
   login,
   refreshToken,
+  logout,
 };

@@ -70,3 +70,24 @@ export const refreshTokenThunk = createAsyncThunk<string, void>(
     }
   }
 );
+
+export const logoutThunk = createAsyncThunk<string, void, { rejectValue: string }>(
+  'session/logout',
+  async (_, { dispatch, rejectWithValue }) => {
+    try {
+      // Call the logout API
+      await sessionService.logout();
+      
+      // Dispatch the logout action to clear Redux state
+      dispatch(logout());
+      
+      // Explicitly return a success message
+      return 'Logout successful';
+    } catch (error) {
+      console.error('Logout failed:', error);
+      
+      // Handle the error case by returning a rejected value
+      return rejectWithValue('Failed to log out. Please try again.');
+    }
+  }
+);
