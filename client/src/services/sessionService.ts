@@ -4,6 +4,8 @@ import { AppError, ErrorType } from '../utils/AppError';
 import { clearTokens, getToken } from '../utils/tokenManager';
 import { withRetry } from '../utils/retryUtils';
 import { withTimeout } from '../utils/timeoutUtils';
+import { selectCsrfToken } from '../features/csrf/state/csrfSelector.ts';
+import { store } from '../store/store.ts';
 
 const API_ENDPOINTS = {
   LOGIN: '/session/login',
@@ -12,7 +14,7 @@ const API_ENDPOINTS = {
 };
 
 // In-memory storage for the current CSRF token
-let csrfToken: string | null = null;
+// let csrfToken: string | null = null;
 
 interface LoginResponse {
   accessToken: string;
@@ -34,6 +36,7 @@ interface LoginResponse {
  * @throws {AppError} Throws an AppError for validation errors or failed login attempts.
  */
 const login = async (email: string, password: string): Promise<LoginResponse> => {
+  let csrfToken: string | null = null;
   if (!email || !password) {
     throw new AppError('Email and password are required', 400, {
       type: ErrorType.ValidationError,
@@ -80,14 +83,18 @@ const login = async (email: string, password: string): Promise<LoginResponse> =>
  */
 const refreshToken = async (): Promise<{ accessToken: string }> => {
   try {
+    const state = store.getState();
+    const csrfToken = selectCsrfToken(state);
+   
     const response = await withRetry(
       () =>
         withTimeout(
           axiosInstance.post<{ accessToken: string }>(
             API_ENDPOINTS.REFRESH_TOKEN,
-            {}, // Empty body
             {
               headers: {
+                'X-CSRF-Token': csrfToken,
+                "Content-Type": "application/json",
                 Authorization: `Bearer ${getToken('accessToken')}`,
               },
               withCredentials: true,
