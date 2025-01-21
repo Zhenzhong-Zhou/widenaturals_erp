@@ -52,7 +52,7 @@ export const refreshTokenThunk = createAsyncThunk<{ accessToken: string; csrfTok
     try {
       // Call the refresh token service
       const { accessToken } = await sessionService.refreshToken();
-
+      
       // Dispatch the updated access token to the Redux state
       dispatch(updateAccessToken(accessToken));
       
