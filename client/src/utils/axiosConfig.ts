@@ -15,7 +15,6 @@ import { store } from '../store/store';
 import { resetCsrfToken } from '../features/csrf/state/csrfSlice';
 import { sessionService } from '../services';
 import { updateAccessToken } from '../features/session/state/sessionSlice.ts';
-import { useAppDispatch } from '../store/storeHooks.ts';
 import { selectAccessToken } from '../features/session/state/sessionSelectors.ts';
 
 interface ErrorResponse {
@@ -102,9 +101,9 @@ axiosInstance.interceptors.response.use(
       _retry?: boolean;
     };
     const state = store.getState(); // Access the Redux state
+    const csrfToken = selectCsrfToken(state);
     const csrfError = selectCsrfError(state); // Retrieve CSRF error state
     const csrfStatus = selectCsrfStatus(state); // Retrieve CSRF status state
-    const dispatch = useAppDispatch();
 
     try {
       // Handle CSRF-specific errors
@@ -126,6 +125,7 @@ axiosInstance.interceptors.response.use(
             .then((token) => {
               if (originalRequest.headers) {
                 originalRequest.headers.Authorization = `Bearer ${token}`;
+                originalRequest.headers['X-CSRF-Token'] = csrfToken;
               }
               return axiosInstance(originalRequest);
             })
@@ -138,14 +138,15 @@ axiosInstance.interceptors.response.use(
         // Request new access token
         const { accessToken } = await sessionService.refreshToken();
         
-        dispatch(updateAccessToken(accessToken)); // Synchronize Redux state
+        store.dispatch(updateAccessToken(accessToken)); // Synchronize Redux state
         
         // Process queued requests with the new token
         processQueue(null, accessToken);
-        originalRequest.headers = {
-          ...originalRequest.headers,
-          Authorization: `Bearer ${accessToken}`,
-        };
+        // Retry the original request with updated tokens
+        if (originalRequest.headers) {
+          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+          originalRequest.headers['X-CSRF-Token'] = csrfToken;
+        }
 
         return axiosInstance(originalRequest);
       }
