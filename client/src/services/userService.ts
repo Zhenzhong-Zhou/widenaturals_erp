@@ -30,6 +30,7 @@ const fetchUserProfile = async (): Promise<UserProfile> => {
     if (isCustomAxiosError(err)) {
       // Specific handling for unauthorized errors (401)
       if (err.response?.status === 401) {
+        // Clear tokens and handle unauthorized error
         clearTokens();
         throw new AppError('Unauthorized. Please log in again.', 401, {
           type: ErrorType.AuthenticationError,
@@ -37,9 +38,9 @@ const fetchUserProfile = async (): Promise<UserProfile> => {
       }
     }
     
-    const mappedError = mapErrorMessage(err);
-    handleError(mappedError);
-    
+    // Map error and log it
+    const mappedError = mapErrorMessage(err); // Ensure no hooks in mapErrorMessage
+    handleError(mappedError); // Ensure no hooks in handleError
     throw mappedError;
   }
 };

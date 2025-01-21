@@ -43,9 +43,13 @@ const AppContent: FC = () => {
   
   // Run validation on initial load or when accessToken changes
   useEffect(() => {
-    validateAndRefreshToken().catch((err) =>
-      console.error('Error during token validation and refresh:', err)
-    );
+    (async () => {
+      try {
+        await validateAndRefreshToken();
+      } catch (err) {
+        console.error('Error during token validation and refresh:', err);
+      }
+    })();
   }, [validateAndRefreshToken]);
   
   // Show loading during initialization

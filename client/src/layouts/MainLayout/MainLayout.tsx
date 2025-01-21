@@ -21,13 +21,21 @@ const MainLayout: FC<MainLayoutProps> = ({ children }) => {
   const [isSidebarOpen, setSidebarOpen] = useState(true); // Sidebar state
   const { user, loading, error } = useUserProfile(); // Fetch user profile
   const { logout } = useLogout(); // Logout handler
-  
-  const toggleSidebar = () => setSidebarOpen((prev) => !prev); // Toggle sidebar state
-  
-  if (loading) return <Loading/>;
-  if (error) return <ErrorDisplay/>;
-  
   useTokenRefresh();
+  
+  const toggleSidebar = () => setSidebarOpen((prev) => !prev);
+  
+  if (loading) {
+    return <Loading />;
+  }
+  
+  if (error) {
+    return <ErrorDisplay />;
+  }
+  
+  if (!user) {
+    return <div>No user profile available.</div>;
+  }
   
   return (
     <Box className="layout" sx={layoutStyles(theme)}>
@@ -44,7 +52,7 @@ const MainLayout: FC<MainLayoutProps> = ({ children }) => {
                 message: 'Sidebar API request failed',
               }).details
             )}
-            onRetry={() => window.location.reload()} // Retry logic
+            onRetry={() => window.location.reload()}
           />
         }
       >
@@ -66,14 +74,11 @@ const MainLayout: FC<MainLayoutProps> = ({ children }) => {
                   component: 'Header',
                 }).details
               )}
-              onRetry={() => window.location.reload()} // Retry logic
+              onRetry={() => window.location.reload()}
             />
           }
         >
-          <Header
-            user={user?.data}
-            onLogout={logout}
-          />
+          <Header user={user?.data} onLogout={logout} />
         </ModuleErrorBoundary>
         
         {/* Main Content */}
@@ -108,7 +113,7 @@ const MainLayout: FC<MainLayoutProps> = ({ children }) => {
                   message: 'Footer API request failed',
                 }).details
               )}
-              onRetry={() => window.location.reload()} // Retry logic
+              onRetry={() => window.location.reload()}
             />
           }
         >
