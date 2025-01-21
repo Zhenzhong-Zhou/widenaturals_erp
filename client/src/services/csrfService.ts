@@ -38,16 +38,16 @@ const fetchCsrfToken = async (): Promise<string> => {
     // Log the error for debugging purposes
     console.error('CSRF Token Fetch Error:', {
       message:
-        error instanceof Error ? error.message : 'Unknown error occurred',
+        error instanceof AppError ? error.message : 'Unknown error occurred',
       ...(import.meta.env.NODE_ENV !== 'production' && {
-        stack: error instanceof Error ? error.stack : undefined,
+        stack: error instanceof AppError ? error.stack : undefined,
       }),
     });
 
     // Re-throw as AppError for consistent error handling
     throw new AppError('Failed to fetch CSRF token', 500, {
       type: ErrorType.ServerError,
-      details: error instanceof Error ? error.message : undefined,
+      details: error instanceof AppError ? error.message : undefined,
     });
   }
 };
@@ -74,7 +74,7 @@ const initializeCsrfToken = async (dispatch: AppDispatch): Promise<void> => {
     dispatch(resetCsrfToken());
     throw new AppError('CSRF Initialization Failed', 500, {
       type: ErrorType.GlobalError,
-      details: error instanceof Error ? error.message : undefined,
+      details: error instanceof AppError ? error.message : undefined,
     });
   }
 };

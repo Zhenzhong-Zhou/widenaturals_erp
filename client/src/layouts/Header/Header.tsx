@@ -1,65 +1,104 @@
-import { FC } from 'react';
+import { FC, useState } from 'react';
 import Box from '@mui/material/Box';
+import Avatar from '@mui/material/Avatar';
+import IconButton from '@mui/material/IconButton';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import Divider from '@mui/material/Divider';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faSun, faMoon } from '@fortawesome/free-solid-svg-icons';
 import { Typography, CustomButton } from '@components/index';
 import { useThemeContext } from '../../context/ThemeContext';
-import { headerStyles, userInfoStyles, typographyStyles } from './headerStyles';
-import { UserProfile } from '../../features/user/state/userTypes.ts';
+import { UserProfile } from '../../features/user/state/userTypes';
+import { headerStyles, typographyStyles } from './headerStyles';
+import { HealthStatus } from '../../features/health';
 
 interface HeaderProps {
   user?: UserProfile;
   onLogout: () => void;
-  isSidebarOpen: boolean;
 }
 
-const Header: FC<HeaderProps> = ({ user, onLogout, isSidebarOpen }) => {
-  const { theme, toggleTheme } = useThemeContext(); // Access theme and toggle function
-
+const Header: FC<HeaderProps> = ({ user, onLogout }) => {
+  const { theme, toggleTheme } = useThemeContext();
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+  
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+  
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'Online':
+        return 'success';
+      case 'Maintenance':
+        return 'warning';
+      case 'Offline':
+        return 'error';
+      default:
+        return 'default';
+    }
+  };
+  
   return (
     <Box sx={headerStyles(theme)}>
-      {' '}
-      {/* Apply header styles */}
       {/* Application Title */}
-      <Typography
-        sx={{
-          fontSize: theme.typography.h3,
-          flexGrow: 1,
-          marginLeft: isSidebarOpen ? '10px' : theme.spacing(1),
-        }}
-      >
+      <Typography variant="h6" sx={typographyStyles(theme)}>
         WIDE Naturals Inc.
       </Typography>
-      {/* User Information and Actions */}
-      <Box sx={userInfoStyles(theme)}>
-        <Typography variant="body1" sx={typographyStyles(theme)}>
-          User: <strong>{user?.firstname}</strong>
-        </Typography>
-
-        {/* Theme Toggle Button */}
-        <CustomButton
-          variant="outlined"
-          onClick={toggleTheme}
-          sx={{
-            marginLeft: theme.spacing(2),
-            borderColor: theme.palette.primary.main,
-          }}
+      
+      {/* Server Status */}
+      <HealthStatus getStatusColor={getStatusColor}/>
+      
+      {/* Theme Toggle Button */}
+      <CustomButton
+        variant="outlined"
+        onClick={toggleTheme}
+        sx={{ marginRight: 2 }}
+      >
+        <FontAwesomeIcon icon={theme.palette.mode === 'dark' ? faSun : faMoon} />
+        {theme.palette.mode === 'dark' ? ' Light' : ' Dark'} Mode
+      </CustomButton>
+      
+      {/* User Avatar and Menu */}
+      <IconButton onClick={handleMenuOpen}>
+        <Avatar
+          alt={user?.firstname || 'Guest'}
+          src={user?.avatar || ''}
+          sx={{ bgcolor: theme.palette.primary.main }}
         >
-          Switch to {theme.palette.mode === 'dark' ? 'Light' : 'Dark'} Mode
-        </CustomButton>
-
-        {/* Logout Button */}
-        <CustomButton
-          variant="contained"
-          color="primary"
-          onClick={() => {
-            console.log('Logout button clicked');
-            onLogout(); // Call the logout function
-            console.log('Logout function executed');
-          }}
-          sx={{ marginLeft: theme.spacing(2) }}
-        >
-          Logout
-        </CustomButton>
-      </Box>
+          {user?.firstname?.charAt(0) || 'G'}
+        </Avatar>
+      </IconButton>
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+        slotProps={{
+          paper: {
+            elevation: 3, // Apply elevation to the Paper component
+            sx: {
+              width: 200, // Set width for the menu
+            },
+          },
+        }}
+      >
+        <MenuItem>
+          <Typography variant="body1">
+            {user?.firstname || 'Guest'}
+          </Typography>
+        </MenuItem>
+        <Divider />
+        <MenuItem onClick={handleMenuClose}>
+          <Typography variant="body2">Profile</Typography>
+        </MenuItem>
+        <MenuItem onClick={() => { handleMenuClose(); onLogout(); }}>
+          <Typography variant="body2">Logout</Typography>
+        </MenuItem>
+      </Menu>
     </Box>
   );
 };

@@ -1,5 +1,6 @@
 import { combineReducers } from '@reduxjs/toolkit';
 import { PayloadAction } from '@reduxjs/toolkit';
+import healthReducer from '../features/health/state/healthStatusSlice.ts';
 import csrfReducer from '../features/csrf/state/csrfSlice';
 import sessionReducer from '../features/session/state/sessionSlice.ts';
 import userReducer from '../features/user/state/userSlice.ts';
@@ -7,6 +8,7 @@ import { PURGE } from 'redux-persist';
 
 // Combine reducers
 const appReducer = combineReducers({
+  health: healthReducer,
   csrf: csrfReducer,
   session: sessionReducer,
   user: userReducer,

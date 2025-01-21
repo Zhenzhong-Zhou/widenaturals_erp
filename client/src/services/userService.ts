@@ -2,16 +2,11 @@ import axiosInstance from '@utils/axiosConfig.ts';
 import { clearTokens } from '@utils/tokenManager.ts';
 import { handleError, mapErrorMessage } from '@utils/errorUtils.ts';
 import { AppError, ErrorType } from '@utils/AppError.tsx';
-import { AxiosError } from 'axios';
 import { UserProfile } from '../features/user/state/userTypes.ts';
+import { isCustomAxiosError } from '@utils/axiosUtils.ts';
 
 const API_ENDPOINTS = {
   USER_PROFILE: '/users/me',
-};
-
-// Type guard to check if error is an AxiosError
-const isAxiosError = (error: unknown): error is AxiosError => {
-  return (error as AxiosError).isAxiosError !== undefined;
 };
 
 /**
@@ -32,7 +27,7 @@ const fetchUserProfile = async (): Promise<UserProfile> => {
     
     return response.data;
   } catch (err) {
-    if (isAxiosError(err)) {
+    if (isCustomAxiosError(err)) {
       // Specific handling for unauthorized errors (401)
       if (err.response?.status === 401) {
         clearTokens();
