@@ -12,18 +12,24 @@ const API_ENDPOINTS = {
 /**
  * Fetches the public health status of the server.
  *
- * @returns {Promise<object>} The server's public health status response.
+ * @returns {Promise<HealthState>} The server's public health status response.
  * @throws {AppError} Throws an AppError for any issues during the request.
  */
-const fetchPublicHealthStatus = async (): Promise<HealthState>  => {
+const fetchPublicHealthStatus = async (): Promise<HealthState> => {
   try {
     const timeoutMessage = 'Request timed out while fetching public health status';
     const retryMessage = 'All retries failed while fetching public health status';
     
     const response = await withRetry(
-      () => withTimeout(axiosInstance.get(API_ENDPOINTS.PUBLIC_HEALTH), 5000, timeoutMessage),
-      3,
-      retryMessage
+      async () =>
+        await withTimeout(
+          axiosInstance.get<HealthState>(API_ENDPOINTS.PUBLIC_HEALTH),
+          5000, // Timeout in milliseconds
+          timeoutMessage // Timeout error message
+        ),
+      3, // Retry attempts
+      1000, // Delay in milliseconds between retries
+      retryMessage // Retry error message
     );
     
     if (!response || response.status !== 200) {
