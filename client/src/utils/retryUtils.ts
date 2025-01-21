@@ -3,6 +3,7 @@ import { AppError, ErrorType } from '@utils/AppError.tsx';
 export const withRetry = async <T>(
   fn: () => Promise<T>,
   retries: number,
+  delay: number, // Add delay parameter
   errorMessage: string
 ): Promise<T> => {
   while (retries > 0) {
@@ -18,7 +19,11 @@ export const withRetry = async <T>(
           error instanceof Error ? { message: error.message } : undefined
         );
       }
+      
+      // Add delay between retries
+      await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
+  
   throw AppError.create(ErrorType.GlobalError, errorMessage, 500); // Should never reach here
 };
