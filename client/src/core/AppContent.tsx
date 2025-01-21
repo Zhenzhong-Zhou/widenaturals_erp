@@ -18,6 +18,17 @@ const AppContent: FC = () => {
   // Validate and refresh token on initial load
   const { loading: isTokenRefreshing, error: tokenError } = useValidateAndRefreshToken();
   
+  // Helper function to determine error message
+  const getErrorMessage = (): string => {
+    if (initializationError) {
+      return initializationError.message || 'Failed to initialize the application.';
+    }
+    if (tokenError) {
+      return tokenError;
+    }
+    return 'An unexpected error occurred.';
+  };
+  
   // Show loading during initialization or token validation
   if (isInitializing || isTokenRefreshing) {
     return (
@@ -38,19 +49,26 @@ const AppContent: FC = () => {
   
   // Show error if initialization or token validation fails
   if (hasError || tokenError) {
+    const errorMessage = getErrorMessage();
+    
     return (
       <ErrorDisplay
-        message={
-          initializationError?.message ||
-          'An unexpected error occurred during initialization.'
-        }
+        message={errorMessage}
         onRetry={() => window.location.reload()}
       >
-        <ErrorMessage message={'Additional debugging information can go here.'}/>
+        {hasError && initializationError && (
+          <ErrorMessage message="Initialization failed. Please try reloading the page." />
+        )}
+        {tokenError && (
+          <ErrorMessage message="Token validation failed. You may need to log in again." />
+        )}
+        {!hasError && !tokenError && (
+          <ErrorMessage message="An unexpected error occurred. Please contact support." />
+        )}
       </ErrorDisplay>
     );
   }
-
+  
   // Render routes
   return (
     <Box className="app">

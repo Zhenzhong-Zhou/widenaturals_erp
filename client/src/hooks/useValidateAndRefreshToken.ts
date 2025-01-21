@@ -22,8 +22,14 @@ export const useValidateAndRefreshToken = (): UseValidateAndRefreshTokenResult =
   
   const validateAndRefreshToken = useCallback(async () => {
     if (!accessToken) {
-      setError('No access token available.');
-      return;
+      console.log('No access token available. Skipping token validation.');
+      
+      // Synchronize CSRF token if available
+      if (csrfToken) {
+        axiosInstance.defaults.headers['X-CSRF-Token'] = csrfToken;
+      }
+      
+      return; // Skip further token validation
     }
     
     if (!isTokenValid(accessToken)) {
