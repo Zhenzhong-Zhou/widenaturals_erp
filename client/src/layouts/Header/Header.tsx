@@ -53,7 +53,7 @@ const Header: FC<HeaderProps> = ({ user, onLogout }) => {
       </Typography>
       
       {/* Server Status */}
-      <HealthStatus getStatusColor={getStatusColor}/>
+      <HealthStatus getStatusColor={getStatusColor} />
       
       {/* Theme Toggle Button */}
       <CustomButton
@@ -102,7 +102,10 @@ const Header: FC<HeaderProps> = ({ user, onLogout }) => {
         >
           Profile
         </MenuItem>
-        <MenuItem onClick={() => { handleMenuClose(); onLogout(); }}>
+        <MenuItem onClick={() => {
+          handleMenuClose();
+          onLogout();
+        }}>
           <Typography variant="body2">Logout</Typography>
         </MenuItem>
       </Menu>

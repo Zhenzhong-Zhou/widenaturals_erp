@@ -10,7 +10,7 @@ import {
 import { ErrorDisplay, FallbackUI, Loading, ModuleErrorBoundary } from '@components/index';
 import { AppError } from '@utils/AppError';
 import { getErrorLog } from '@utils/errorUtils';
-import { useLogout, useUserProfile } from '../../hooks';
+import { useLogout, useTokenRefresh, useUserProfile } from '../../hooks';
 
 interface MainLayoutProps {
   children: ReactNode; // Allow any React elements to be passed as children
@@ -26,6 +26,8 @@ const MainLayout: FC<MainLayoutProps> = ({ children }) => {
   
   if (loading) return <Loading/>;
   if (error) return <ErrorDisplay/>;
+  
+  useTokenRefresh();
   
   return (
     <Box className="layout" sx={layoutStyles(theme)}>
@@ -71,7 +73,6 @@ const MainLayout: FC<MainLayoutProps> = ({ children }) => {
           <Header
             user={user?.data}
             onLogout={logout}
-            isSidebarOpen={isSidebarOpen}
           />
         </ModuleErrorBoundary>
         

@@ -6,7 +6,7 @@ import axios, {
 } from 'axios';
 import { AppError, ErrorType } from './AppError'; // Updated AppError
 import { handleError, mapErrorMessage } from './errorUtils'; // Error utilities
-import { setTokens, getToken } from './tokenManager';
+import { getToken } from './tokenManager';
 import {
   selectCsrfToken,
   selectCsrfError,
@@ -15,6 +15,8 @@ import {
 import { store } from '../store/store';
 import { resetCsrfToken } from '../features/csrf/state/csrfSlice';
 import { sessionService } from '../services';
+import { updateAccessToken } from '../features/session/state/sessionSlice.ts';
+import { useAppDispatch } from '../store/storeHooks.ts';
 
 interface ErrorResponse {
   message?: string;
@@ -102,6 +104,7 @@ axiosInstance.interceptors.response.use(
     const state = store.getState(); // Access the Redux state
     const csrfError = selectCsrfError(state); // Retrieve CSRF error state
     const csrfStatus = selectCsrfStatus(state); // Retrieve CSRF status state
+    const dispatch = useAppDispatch();
 
     try {
       // Handle CSRF-specific errors
@@ -134,11 +137,9 @@ axiosInstance.interceptors.response.use(
         
         // Request new access token
         const { accessToken } = await sessionService.refreshToken();
-        console.log(`AccessToken token ${accessToken}`);
-
-        // Save new tokens using tokenManager
-        setTokens(accessToken);
-
+        
+        dispatch(updateAccessToken(accessToken)); // Synchronize Redux state
+        
         // Process queued requests with the new token
         processQueue(null, accessToken);
         originalRequest.headers = {

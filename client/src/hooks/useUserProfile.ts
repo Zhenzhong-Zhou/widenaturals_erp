@@ -14,7 +14,8 @@ const useUserProfile = () => {
   // Dispatch profile fetch only if not loading and user data is missing
   useEffect(() => {
     if (!user && !loading) {
-      dispatch(fetchUserProfileThunk());
+      dispatch(fetchUserProfileThunk())
+        .catch((err) => console.error('Thunk failed:', err)); // Handle any unhandled rejections
     }
   }, [dispatch, user, loading]);
   
@@ -22,6 +23,7 @@ const useUserProfile = () => {
   useEffect(() => {
     if (error) {
       console.error('Failed to fetch user profile:', error);
+      // Optionally show a notification here
     }
   }, [error]);
   
