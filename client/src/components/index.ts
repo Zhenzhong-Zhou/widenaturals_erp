@@ -6,6 +6,7 @@ export { default as ErrorMessage } from './common/ErrorMessage.tsx';
 export { default as Typography } from './common/Typography';
 export { default as CustomButton } from './common/CustomButton';
 export { default as BaseInput } from './common/BaseInput';
+export { default as PasswordInput } from './common/PasswordInput.tsx';
 export { default as TypeRestrictedInput } from './common/TypeRestrictedInput';
 export { default as Loading } from './common/Loading';
 export { default as DataTable } from './common/DataTable';
