@@ -12,3 +12,6 @@ export { default as DataTable } from './common/DataTable';
 export { default as CustomModal } from './common/CustomModal';
 export { default as Form } from './common/Form';
 export { default as CustomCard } from './common/CustomCard';
+export { default as DetailPage } from './common/DetailPage.tsx';
+export { default as DetailHeader } from './common/DetailHeader.tsx';
+export { default as MetadataSection } from './common/MetadataSection.tsx';

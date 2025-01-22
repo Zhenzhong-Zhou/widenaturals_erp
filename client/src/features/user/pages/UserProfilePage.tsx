@@ -1,131 +1,38 @@
 import { FC } from 'react';
-import Box from '@mui/material/Box';
-import Avatar from '@mui/material/Avatar';
-import Divider from '@mui/material/Divider';
-import { Typography, Loading } from '@components/index.ts';
+import { DetailHeader, DetailPage, MetadataSection } from '@components/index.ts';
 import { useAppSelector } from '../../../store/storeHooks.ts';
 import { selectUserLoading, selectUserResponse } from '../state/userSelectors.ts';
 import { selectLastLogin } from '../../session/state/sessionSelectors.ts';
 
 const UserProfilePage: FC = () => {
   const response = useAppSelector(selectUserResponse);
-  const lastLogin = useAppSelector(selectLastLogin); // Last login timestamp
-  const loading = useAppSelector(selectUserLoading); // Last login timestamp
+  const lastLogin = useAppSelector(selectLastLogin);
+  const loading = useAppSelector(selectUserLoading);
   const user = response?.data;
   
-  // Handle loading state
-  if (loading) {
-    return (
-      <Box
-        sx={{
-          width: '100%',
-          height: '100vh',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          backgroundColor: 'background.default',
-        }}
-      >
-        <Loading message="Loading user profile..." />
-      </Box>
-    );
-  }
-  
-  // Handle case where user data is not available
-  if (!user) {
-    return (
-      <Box
-        sx={{
-          width: '100%',
-          maxWidth: 400,
-          margin: 'auto',
-          textAlign: 'center',
-          padding: 3,
-          backgroundColor: 'background.paper',
-          borderRadius: 2,
-          boxShadow: 2,
-        }}
-      >
-        <Typography variant="h6">No user information available</Typography>
-      </Box>
-    );
-  }
+  const metadata = {
+    'Role': user?.role || 'N/A',
+    'Job Title': user?.job_title || 'N/A',
+    'Phone': user?.phone_number || 'N/A',
+    'Last Login': lastLogin ? new Date(lastLogin).toLocaleString() : 'N/A',
+    'Created At': user?.created_at ? new Date(user.created_at).toLocaleString() : 'N/A',
+    'Updated At': user?.updated_at ? new Date(user.updated_at).toLocaleString() : 'N/A',
+  };
   
   return (
-    <Box
-      sx={{
-        width: '100%',
-        maxWidth: 400,
-        margin: 'auto',
-        textAlign: 'center',
-        padding: 3,
-        backgroundColor: 'background.paper',
-        borderRadius: 2,
-        boxShadow: 2,
-        position: 'relative',
-      }}
-    >
-      
-      {/* User Avatar */}
-      <Avatar
-        src={''}
-        alt={user.firstname || 'User Avatar'}
-        sx={{
-          width: 100,
-          height: 100,
-          margin: '0 auto',
-          bgcolor: 'primary.main',
-          fontSize: 36,
-        }}
-      >
-        {user.firstname?.charAt(0).toUpperCase() || 'U'}
-      </Avatar>
-      
-      {/* User Details */}
-      <Typography variant="h6" sx={{ marginTop: 2 }}>
-        {user.firstname} {user.lastname}
-      </Typography>
-      <Typography
-        variant="body2"
-        sx={{
-          color: 'text.secondary',
-          marginBottom: 2,
-        }}
-      >
-        {user.email}
-      </Typography>
-      <Divider sx={{ margin: '16px 0' }} />
-      
-      {/* Additional Information */}
-      <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-        Role: {user.role || 'N/A'}
-      </Typography>
-      {user.job_title && (
-        <Typography variant="body2" sx={{ marginTop: 1 }}>
-          Job Title: {user.job_title}
-        </Typography>
+    <DetailPage title="User Profile" isLoading={loading} error={user ? undefined : 'No user information available'}>
+      {user && (
+        <>
+          <DetailHeader
+            avatarSrc={''} // Replace with actual avatar URL if available
+            avatarFallback={user.firstname?.charAt(0).toUpperCase()}
+            name={`${user.firstname} ${user.lastname}`}
+            subtitle={user.email}
+          />
+          <MetadataSection data={metadata} />
+        </>
       )}
-      {user.phone_number && (
-        <Typography variant="body2" sx={{ marginTop: 1 }}>
-          Phone: {user.phone_number}
-        </Typography>
-      )}
-      {lastLogin && (
-        <Typography variant="body2" sx={{ marginTop: 1 }}>
-          Last Login: {new Date(lastLogin).toLocaleString()}
-        </Typography>
-      )}
-      {user.created_at && (
-        <Typography variant="body2" sx={{ marginTop: 1 }}>
-          Created At: {new Date(user.created_at).toLocaleString()}
-        </Typography>
-      )}
-      {user.updated_at && (
-        <Typography variant="body2" sx={{ marginTop: 1 }}>
-          Updated At: {new Date(user.updated_at).toLocaleString()}
-        </Typography>
-      )}
-    </Box>
+    </DetailPage>
   );
 };
 
