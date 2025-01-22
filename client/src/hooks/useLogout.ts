@@ -2,7 +2,6 @@ import { useAppDispatch } from '../store/storeHooks';
 import { useNavigate } from 'react-router-dom';
 import { clearTokens } from '../utils/tokenManager';
 import { logoutThunk } from '../features/session/state/sessionThunks';
-import { clearReduxState } from '../store/clearReduxState';
 import { useCallback } from 'react';
 
 /**
@@ -16,14 +15,13 @@ const useLogout = () => {
     try {
       console.log('Logout initiated');
       
-      // Perform API logout
+      // Perform API logout and unwrap to handle success or error
       await dispatch(logoutThunk()).unwrap();
       
       // Clear client-side data
       clearTokens();
       localStorage.clear();
       sessionStorage.clear();
-      dispatch(clearReduxState());
       
       console.log('Client data cleared. Redirecting to /login');
       navigate('/login');

@@ -10,6 +10,7 @@ import { createAsyncThunk } from '@reduxjs/toolkit';
 import { AppError, ErrorType } from '@utils/AppError.tsx';
 import { handleError } from '@utils/errorUtils.ts';
 import { updateCsrfToken } from '../../csrf/state/csrfSlice.ts';
+import { persistor } from '../../../store/store.ts';
 
 export const loginThunk = createAsyncThunk(
   'session/login',
@@ -88,6 +89,9 @@ export const logoutThunk = createAsyncThunk<string, void, { rejectValue: string 
     try {
       // Call the logout API
       await sessionService.logout();
+      
+      // Clear persisted state
+      await persistor.purge();
       
       // Dispatch the logout action to clear Redux state
       dispatch(logout());

@@ -8,6 +8,7 @@ import { selectLoginError } from '../state/sessionSelectors.ts';
 import { useNavigate } from 'react-router-dom';
 import { useLoading } from '../../../context/LoadingContext.tsx';
 import { ErrorDisplay } from '@components/index.ts';
+import { setMessage } from '../state/sessionSlice.ts';
 
 interface LoginCardProps {
   title?: string; // Optional title
@@ -34,6 +35,7 @@ const LoginCard: FC<LoginCardProps> = ({
       handleError(error);
       const errorMessage = mapErrorMessage(error);
       console.error('Login failed:', errorMessage);
+      dispatch(setMessage(errorMessage));
     } finally {
       hideLoading(); // Always hide loading spinner
     }

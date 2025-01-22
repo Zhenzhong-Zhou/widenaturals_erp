@@ -1,15 +1,37 @@
 import { FC } from 'react';
 import Box from '@mui/material/Box';
 import Avatar from '@mui/material/Avatar';
-import { Typography } from '@components/index.ts';
 import Divider from '@mui/material/Divider';
+import { Typography, Loading } from '@components/index.ts';
 import { useAppSelector } from '../../../store/storeHooks.ts';
-import { selectUserResponse } from '../state/userSelectors.ts';
+import { selectUserLoading, selectUserResponse } from '../state/userSelectors.ts';
+import { selectLastLogin } from '../../session/state/sessionSelectors.ts';
 
 const UserProfilePage: FC = () => {
   const response = useAppSelector(selectUserResponse);
+  const lastLogin = useAppSelector(selectLastLogin); // Last login timestamp
+  const loading = useAppSelector(selectUserLoading); // Last login timestamp
   const user = response?.data;
   
+  // Handle loading state
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          width: '100%',
+          height: '100vh',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: 'background.default',
+        }}
+      >
+        <Loading message="Loading user profile..." />
+      </Box>
+    );
+  }
+  
+  // Handle case where user data is not available
   if (!user) {
     return (
       <Box
@@ -40,8 +62,10 @@ const UserProfilePage: FC = () => {
         backgroundColor: 'background.paper',
         borderRadius: 2,
         boxShadow: 2,
+        position: 'relative',
       }}
     >
+      
       {/* User Avatar */}
       <Avatar
         src={''}
@@ -86,14 +110,19 @@ const UserProfilePage: FC = () => {
           Phone: {user.phone_number}
         </Typography>
       )}
+      {lastLogin && (
+        <Typography variant="body2" sx={{ marginTop: 1 }}>
+          Last Login: {new Date(lastLogin).toLocaleString()}
+        </Typography>
+      )}
       {user.created_at && (
         <Typography variant="body2" sx={{ marginTop: 1 }}>
-          Created At: {user.created_at}
+          Created At: {new Date(user.created_at).toLocaleString()}
         </Typography>
       )}
       {user.updated_at && (
         <Typography variant="body2" sx={{ marginTop: 1 }}>
-          Updated At: {user.updated_at}
+          Updated At: {new Date(user.updated_at).toLocaleString()}
         </Typography>
       )}
     </Box>
