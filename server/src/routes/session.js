@@ -11,6 +11,7 @@ const {
   loginController,
   refreshTokenController,
 } = require('../controllers/session-controller');
+const { createLoginRateLimiter, createRefreshRateLimiter } = require('../middlewares/rate-limiter');
 
 const router = express.Router();
 
@@ -22,10 +23,10 @@ const router = express.Router();
  *       - Returns a JSON response with success message and tokens.
  * @access Public
  */
-router.post('/login', validate(validateAuthInputs), loginController);
+router.post('/login', createLoginRateLimiter(), validate(validateAuthInputs), loginController);
 
 // Refresh token route
-router.post('/refresh', refreshTokenController);
+router.post('/refresh', createRefreshRateLimiter(), refreshTokenController);
 
 // Placeholder for session tracking routes
 // To track an active session (e.g., metadata like IP, device).

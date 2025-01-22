@@ -1,7 +1,12 @@
+const { loadEnv } = require('../config/env');
 const rateLimit = require('express-rate-limit');
 const { logWarn } = require('./logger-helper');
 const AppError = require('./AppError');
 const RATE_LIMIT = require('../utils/constants/domain/rate-limit');
+
+loadEnv();
+
+const trustedIPs = process.env.TRUSTED_IPS ? process.env.TRUSTED_IPS.split(',') : [];
 
 /**
  * Default custom handler for rate-limited requests.
@@ -10,21 +15,24 @@ const RATE_LIMIT = require('../utils/constants/domain/rate-limit');
  * @param {object} res - Express response object.
  * @param {Function} next - Express next middleware function.
  */
-const defaultRateLimitHandler = (req, res, next) => {
+const defaultRateLimitHandler = (req, res, next, options) => {
+  const retryAfter = Math.ceil(options.windowMs / 1000);
   const logDetails = {
     ip: req.ip,
     userAgent: req.headers['user-agent'] || 'Unknown',
     method: req.method,
     route: req.originalUrl,
+    retryAfter,
   };
 
   // Log the rate limit event
-  logWarn('Rate limit exceeded:', logDetails);
+  logWarn('Rate limit exceeded:', { timestamp: new Date().toISOString(), ...logDetails });
 
   // Return a structured JSON response using AppError
   next(
     AppError.rateLimitError(
       'You have exceeded the allowed number of requests. Please try again later.',
+      retryAfter,
       {
         details: logDetails,
       }
@@ -47,19 +55,16 @@ const defaultRateLimitHandler = (req, res, next) => {
  * @returns {Function} - Middleware for rate limiting.
  */
 const createRateLimiter = ({
-  windowMs = RATE_LIMIT.DEFAULT_WINDOW_MS,
-  max = RATE_LIMIT.DEFAULT_MAX,
-  //todo
-  // windowMs = process.env.RATE_LIMIT_WINDOW_MS
-  //   ? parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10)
-  //   : RATE_LIMIT.DEFAULT_WINDOW_MS,
-  // max = process.env.RATE_LIMIT_MAX
-  //   ? parseInt(process.env.RATE_LIMIT_MAX, 10)
-  //   : RATE_LIMIT.DEFAULT_MAX,
+  windowMs = process.env.RATE_LIMIT_WINDOW_MS
+    ? parseInt(process.env.RATE_LIMIT_WINDOW_MS, 10)
+    : RATE_LIMIT.DEFAULT_WINDOW_MS,
+  max = process.env.RATE_LIMIT_MAX
+    ? parseInt(process.env.RATE_LIMIT_MAX, 10)
+    : RATE_LIMIT.DEFAULT_MAX,
   headers = true,
   statusCode = 429,
-  keyGenerator = (req) => req.ip,
-  skip = () => false,
+   keyGenerator = (req) => req.ip,
+   skip = (req) => trustedIPs.includes(req.ip),
   handler = defaultRateLimitHandler, // Use default handler if none is provided
   disableInDev = false,
 } = {}) => {
@@ -67,7 +72,7 @@ const createRateLimiter = ({
     // Bypass rate limiting in development mode
     return (req, res, next) => next();
   }
-
+  
   return rateLimit({
     windowMs,
     max,
