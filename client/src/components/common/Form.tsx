@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import { FC, ReactNode } from 'react';
 import {
   Select,
   MenuItem,
@@ -23,23 +23,21 @@ export interface FieldConfig {
 }
 
 interface FormProps {
-  fields: FieldConfig[];
+  children?: ReactNode; // Make children optional
+  fields?: FieldConfig[]; // Make fields optional
   onSubmit: (formData: Record<string, any>) => void; // Callback for form submission
   submitButtonLabel?: string;
 }
 
 const Form: FC<FormProps> = ({
-  fields,
-  onSubmit,
-  submitButtonLabel = 'Submit',
-}) => {
+                               fields = [], // Default to an empty array
+                               children,
+                               onSubmit,
+                               submitButtonLabel = 'Submit',
+                             }) => {
   const { theme } = useThemeContext();
-  const {
-    handleSubmit,
-    control,
-    formState: { errors },
-  } = useForm();
-
+  const { handleSubmit, control, formState: { errors } } = useForm();
+  
   return (
     <Box
       component="form"
@@ -132,6 +130,7 @@ const Form: FC<FormProps> = ({
           )}
         </Box>
       ))}
+      {children}
       <CustomButton type="submit" variant="contained" color="primary">
         {submitButtonLabel}
       </CustomButton>

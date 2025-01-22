@@ -13,9 +13,6 @@ const API_ENDPOINTS = {
   LOGOUT: '/auth/logout',
 };
 
-// In-memory storage for the current CSRF token
-// let csrfToken: string | null = null;
-
 interface LoginResponse {
   accessToken: string;
   csrfToken: string;

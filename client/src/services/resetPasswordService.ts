@@ -1,0 +1,91 @@
+import axiosInstance from '@utils/axiosConfig.ts';
+import { AppError, ErrorType } from '@utils/AppError.tsx';
+import { withRetry } from '@utils/retryUtils.ts';
+import { withTimeout } from '@utils/timeoutUtils.ts';
+
+const API_ENDPOINTS = {
+  RESET_PASSWORD: '/auth/reset-password', // Correct endpoint
+};
+
+interface ResetPasswordResponse {
+  success: boolean;
+  message: string;
+  timestamp?: string;
+}
+
+interface ResetPasswordError {
+  success: false;
+  message: string;
+  code?: string;
+  details?: Array<{ message: string; path?: string }>;
+}
+
+/**
+ * Reset Password API Service
+ * Sends a request to reset the user's password with retry and timeout mechanisms.
+ *
+ * @param {string} currentPassword - The current password of the user (optional).
+ * @param {string} newPassword - The new password to be set.
+ * @returns {Promise<ResetPasswordResponse>} - Resolves with the reset password result.
+ * @throws {ResetPasswordError} - Returns structured error details if the request fails.
+ */
+const resetPassword = async (
+  currentPassword: string | null,
+  newPassword: string
+): Promise<ResetPasswordResponse> => {
+  const payload = { currentPassword, newPassword };
+  
+  try {
+    const response = await withRetry(
+      async () =>
+        withTimeout(
+          axiosInstance.post(API_ENDPOINTS.RESET_PASSWORD, payload),
+          5000, // 5 seconds timeout
+          'Request timed out while resetting password.'
+        ),
+      3, // Number of retries
+      1000, // Delay between retries (in ms)
+      'Failed to reset password after multiple attempts.'
+    );
+    
+    const { status, message, timestamp } = response.data;
+    
+    if (status === 200) {
+      return {
+        success: true,
+        message,
+        timestamp,
+      };
+    } else {
+      throw new AppError(
+        `Unexpected response status: ${status}`,
+        500,
+        { type: ErrorType.GeneralError }
+      );
+    }
+  } catch (error: any) {
+    
+    if (error.response) {
+      // Extract backend error response
+      const { message, code, details } = error.response.data;
+   
+      throw {
+        success: false,
+        message: message || 'Validation failed.',
+        code: code || 'VALIDATION_ERROR',
+        details: details || [],
+      } as ResetPasswordError;
+    }
+    
+    // Handle non-HTTP errors (e.g., network issues)
+    throw new AppError(
+      error.message || 'A network error occurred.',
+      500,
+      { type: ErrorType.NetworkError }
+    );
+  }
+};
+
+export const resetPasswordService = {
+  resetPassword,
+};
