@@ -1,8 +1,8 @@
-import { FC } from 'react';
-import Box from '@mui/material/Box';
-import { useInitializeApp, useValidateAndRefreshToken } from '../hooks';
-import AppRoutes from '../routes/AppRoutes.tsx';
-import { Loading, ErrorDisplay, ErrorMessage } from '@components/index.ts';
+import { FC } from "react";
+import Box from "@mui/material/Box";
+import { useInitializeApp, useValidateAndRefreshToken } from "../hooks";
+import AppRoutes from "../routes/AppRoutes.tsx";
+import { Loading, ErrorDisplay, ErrorMessage } from "@components/index.ts";
 
 /**
  * AppContent Component
@@ -21,57 +21,64 @@ const AppContent: FC = () => {
   // Helper function to determine error message
   const getErrorMessage = (): string => {
     if (initializationError) {
-      return initializationError.message || 'Failed to initialize the application.';
+      return initializationError.message || "Failed to initialize the application.";
     }
     if (tokenError) {
       return tokenError;
     }
-    return 'An unexpected error occurred.';
+    return "An unexpected error occurred.";
   };
   
-  // Show loading during initialization or token validation
-  if (isInitializing || isTokenRefreshing) {
-    return (
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          height: '100vh',
-          textAlign: 'center',
-          backgroundColor: 'background.default',
-        }}
-      >
-        <Loading message="Initializing application..." />
-      </Box>
-    );
-  }
-  
-  // Show error if initialization or token validation fails
-  if (hasError || tokenError) {
-    const errorMessage = getErrorMessage();
-    
+  // Show critical error for initialization failure
+  if (hasError) {
     return (
       <ErrorDisplay
-        message={errorMessage}
+        message={getErrorMessage()}
         onRetry={() => window.location.reload()}
       >
-        {hasError && initializationError && (
-          <ErrorMessage message="Initialization failed. Please try reloading the page." />
-        )}
-        {tokenError && (
-          <ErrorMessage message="Token validation failed. You may need to log in again." />
-        )}
-        {!hasError && !tokenError && (
-          <ErrorMessage message="An unexpected error occurred. Please contact support." />
-        )}
+        <ErrorMessage message="Initialization failed. Please try reloading the page." />
       </ErrorDisplay>
     );
   }
   
-  // Render routes
+  // Render the app while token refreshing happens in the background
   return (
     <Box className="app">
+      {isInitializing && (
+        <Box
+          sx={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: "background.default",
+            zIndex: 10,
+          }}
+        >
+          <Loading message="Initializing application..." />
+        </Box>
+      )}
+      
+      {isTokenRefreshing && (
+        <Box
+          sx={{
+            position: "absolute",
+            bottom: 16,
+            right: 16,
+            backgroundColor: "background.paper",
+            padding: "8px 16px",
+            borderRadius: "8px",
+            boxShadow: 3,
+          }}
+        >
+          <Loading message="Refreshing token..." variant="spinner" />
+        </Box>
+      )}
+      
       <AppRoutes />
     </Box>
   );

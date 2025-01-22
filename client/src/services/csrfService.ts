@@ -2,7 +2,7 @@ import axiosInstance from '@utils/axiosConfig';
 import { AppError, ErrorType } from '@utils/AppError';
 import { withTimeout } from '@utils/timeoutUtils.ts';
 import { withRetry } from '@utils/retryUtils.ts';
-import type { AppDispatch } from '../store/store.ts';
+import { AppDispatch } from '../store/store.ts';
 import { resetCsrfToken, updateCsrfToken } from '../features/csrf/state/csrfSlice.ts';
 
 /**
