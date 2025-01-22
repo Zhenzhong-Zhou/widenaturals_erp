@@ -4,6 +4,7 @@ import healthReducer from '../features/health/state/healthStatusSlice.ts';
 import csrfReducer from '../features/csrf/state/csrfSlice';
 import sessionReducer from '../features/session/state/sessionSlice.ts';
 import userReducer from '../features/user/state/userSlice.ts';
+import resetPasswordReducer from '../features/resetPassword/state/resetPasswordSlice.ts';
 import { PURGE } from 'redux-persist';
 
 // Combine reducers
@@ -12,6 +13,7 @@ const appReducer = combineReducers({
   csrf: csrfReducer,
   session: sessionReducer,
   user: userReducer,
+  resetPassword: resetPasswordReducer,
 });
 
 // Root reducer with logout handling

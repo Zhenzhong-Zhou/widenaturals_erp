@@ -2,23 +2,11 @@ import axiosInstance from '@utils/axiosConfig.ts';
 import { AppError, ErrorType } from '@utils/AppError.tsx';
 import { withRetry } from '@utils/retryUtils.ts';
 import { withTimeout } from '@utils/timeoutUtils.ts';
+import { ResetPasswordError, ResetPasswordResponse } from '../features/resetPassword/state/resetPasswordInterfaces.ts';
 
 const API_ENDPOINTS = {
   RESET_PASSWORD: '/auth/reset-password', // Correct endpoint
 };
-
-interface ResetPasswordResponse {
-  success: boolean;
-  message: string;
-  timestamp?: string;
-}
-
-interface ResetPasswordError {
-  success: false;
-  message: string;
-  code?: string;
-  details?: Array<{ message: string; path?: string }>;
-}
 
 /**
  * Reset Password API Service
@@ -47,14 +35,13 @@ const resetPassword = async (
       1000, // Delay between retries (in ms)
       'Failed to reset password after multiple attempts.'
     );
-    
-    const { status, message, timestamp } = response.data;
+   
+    const { data, status } = response;
     
     if (status === 200) {
       return {
         success: true,
-        message,
-        timestamp,
+        message: data.message,
       };
     } else {
       throw new AppError(

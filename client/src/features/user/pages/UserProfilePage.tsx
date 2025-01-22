@@ -1,11 +1,15 @@
 import { FC, useState } from 'react';
 import { CustomButton, DetailHeader, DetailPage, MetadataSection } from '@components/index.ts';
-import { useAppSelector } from '../../../store/storeHooks.ts';
+import { useAppDispatch, useAppSelector } from '../../../store/storeHooks.ts';
 import { selectUserLoading, selectUserResponse } from '../state/userSelectors.ts';
 import { selectLastLogin } from '../../session/state/sessionSelectors.ts';
 import { formatDate, formatDateTime} from '@utils/dateTimeUtils.ts';
 import { ResetPasswordModal } from '../../resetPassword';
-import { resetPasswordService } from '../../../services';
+import { resetPasswordThunk } from '../../resetPassword';
+import { useSelector } from 'react-redux';
+import {
+  selectResetPasswordErrorMessage,
+} from '../../resetPassword/state/resetPasswordSelectors.ts';
 
 const UserProfilePage: FC = () => {
   const response = useAppSelector(selectUserResponse);
@@ -13,7 +17,9 @@ const UserProfilePage: FC = () => {
   const loading = useAppSelector(selectUserLoading);
   const user = response?.data;
   const [isModalOpen, setModalOpen] = useState(false);
-  
+  const dispatch = useAppDispatch();
+  const error = useSelector(selectResetPasswordErrorMessage);
+  console.log(error)
   const metadata = {
     'Role': user?.role || 'N/A',
     'Job Title': user?.job_title || 'N/A',
@@ -30,14 +36,11 @@ const UserProfilePage: FC = () => {
   }) => {
     try {
       // Destructure fields from the data object
-      const { currentPassword, newPassword } = data;
-      
-      // Call the reset password service
-      const {success, message, timestamp} = await resetPasswordService.resetPassword(currentPassword, newPassword);
-      
+      const {success, message} = await dispatch(resetPasswordThunk(data)).unwrap()
+ 
       // Handle success response
       if (success) {
-        console.log(message, timestamp);
+        console.log(message);
         setModalOpen(false); // Close the modal
       } else {
         console.error('Failed to reset password:', message);
