@@ -37,8 +37,19 @@ const resetPassword = async (userId, currentPassword, newPassword) => {
       await validateUserExists('id', userId);
 
       // Verify the current password
-      await verifyCurrentPassword(client, userId, currentPassword);
-
+      const isMath = await verifyCurrentPassword(client, userId, currentPassword);
+      
+      if (!isMath) {
+        throw new AppError(
+          'Current password cannot be matched',
+          404,
+          {
+            type: 'NotFoundError',
+            isExpected: true,
+          }
+        );
+      }
+      
       // Validate password reuse
       const isReused = await isPasswordReused(client, userId, newPassword);
       if (isReused) {

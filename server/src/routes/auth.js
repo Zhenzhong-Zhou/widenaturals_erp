@@ -8,7 +8,7 @@ const {
   logoutController,
   resetPasswordController,
 } = require('../controllers/auth-controller');
-const validatePasswordSchema = require('../validators/password-validators');
+const { validatePasswordSchema } = require('../validators/password-validators');
 const validate = require('../middlewares/validate');
 
 const router = express.Router();
