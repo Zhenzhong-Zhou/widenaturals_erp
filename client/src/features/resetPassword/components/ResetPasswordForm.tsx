@@ -1,5 +1,7 @@
 import { FC, useState } from 'react';
 import { Form, PasswordInput } from '@components/index.ts';
+import { Box } from '@mui/material';
+import { validatePassword, PasswordValidationErrors } from '@utils/validation.ts';
 
 interface ResetPasswordFormProps {
   onSubmit: (data: { currentPassword: string; newPassword: string; confirmPassword: string }) => void;
@@ -12,58 +14,77 @@ const ResetPasswordForm: FC<ResetPasswordFormProps> = ({ onSubmit }) => {
     confirmPassword: '',
   });
   
-  const [error, setError] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<PasswordValidationErrors>({
+    currentPassword: null,
+    newPassword: null,
+    confirmPassword: null,
+  });
   
   const handleChange = (field: keyof typeof formData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    setValidationErrors((prev) => ({ ...prev, [field]: null })); // Clear field-specific error on change
   };
   
   const handleFormSubmit = () => {
     const { currentPassword, newPassword, confirmPassword } = formData;
     
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      setError('All fields are required.');
+    // Validate passwords
+    const validationErrors = validatePassword({ currentPassword, newPassword, confirmPassword });
+    if (validationErrors) {
+      setValidationErrors(validationErrors); // Set validation errors in state
       return;
     }
     
-    if (newPassword !== confirmPassword) {
-      setError('New password and confirm password do not match.');
-      return;
-    }
-    
-    setError(null);
+    // If no errors, proceed with form submission
     onSubmit({ currentPassword, newPassword, confirmPassword });
   };
   
   return (
-    <Form onSubmit={handleFormSubmit}>
+    <Form onSubmit={() => {
+      handleFormSubmit()
+    }}>
       <PasswordInput
         label="Current Password"
         value={formData.currentPassword}
         onChange={(e) => handleChange('currentPassword', e.target.value)}
-        errorText={error && !formData.currentPassword ? error : ''}
+        errorText={validationErrors.currentPassword || ''}
       />
+      {validationErrors.currentPassword ?
+        <Box style={{ color: 'red', marginTop: '5px' }}>
+          {validationErrors.currentPassword}
+        </Box>
+        :
+        ''
+      }
       <PasswordInput
         label="New Password"
         value={formData.newPassword}
         onChange={(e) => handleChange('newPassword', e.target.value)}
-        errorText={error && formData.newPassword ? error : ''}
+        errorText={validationErrors.newPassword || ''}
         helperText={
-          !error
-            ? 'Password must include at least one uppercase letter, one lowercase letter, one number, and at least two special characters. Minimum length: 8.'
-            : ''
+          'Password must be 8-64 characters long, with at least one uppercase letter, one lowercase letter, one number, and one special character.'
         }
       />
+      {validationErrors.newPassword ?
+        <Box style={{ color: 'red', marginTop: '5px' }}>
+          {validationErrors.newPassword}
+        </Box>
+        :
+        ''
+      }
       <PasswordInput
         label="Confirm New Password"
         value={formData.confirmPassword}
         onChange={(e) => handleChange('confirmPassword', e.target.value)}
-        errorText={
-          error && formData.newPassword !== formData.confirmPassword
-            ? 'Passwords do not match.'
-            : ''
-        }
+        errorText={validationErrors.confirmPassword || ''}
       />
+      {validationErrors.confirmPassword ?
+        <Box style={{ color: 'red', marginTop: '5px' }}>
+          {validationErrors.confirmPassword}
+        </Box>
+        :
+        ''
+      }
     </Form>
   );
 };

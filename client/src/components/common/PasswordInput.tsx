@@ -9,23 +9,26 @@ import { TextFieldProps } from '@mui/material/TextField';
 interface PasswordInputProps extends Omit<TextFieldProps, 'type'> {
   label: string;
   errorText?: string;
+  helperText?: string; // Add helperText as an optional prop
 }
 
 const PasswordInput: FC<PasswordInputProps> = ({
-  label,
-  errorText,
-  ...props
-}) => {
+                                                 label,
+                                                 errorText,
+                                                 helperText,
+                                                 ...props
+                                               }) => {
   const [showPassword, setShowPassword] = useState(false);
-
+  
   // Toggle password visibility
   const toggleVisibility = () => setShowPassword((prev) => !prev);
-
+  
   return (
     <TypeRestrictedInput
       label={label}
       type={showPassword ? 'text' : 'password'} // Toggle type dynamically
-      errorText={errorText} // Display error message
+      errorText={errorText || ''} // Only show errorText when it exists
+      helperText={errorText ? '' : helperText} // Show helperText only if no error
       slotProps={{
         input: {
           endAdornment: (
