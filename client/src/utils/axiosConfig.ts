@@ -104,7 +104,7 @@ axiosInstance.interceptors.response.use(
     const csrfToken = selectCsrfToken(state);
     const csrfError = selectCsrfError(state); // Retrieve CSRF error state
     const csrfStatus = selectCsrfStatus(state); // Retrieve CSRF status state
-
+    
     try {
       // Handle CSRF-specific errors
       if (csrfStatus === 'failed' && csrfError) {
@@ -169,7 +169,7 @@ axiosInstance.interceptors.response.use(
           details: mapErrorMessage(error),
         });
       }
-
+      
       // Handle validation errors (400)
       if (error.response?.status === 400) {
         throw new AppError('Validation error', 400, {

@@ -2,7 +2,7 @@ import { useAppDispatch } from '../store/storeHooks';
 import { useNavigate } from 'react-router-dom';
 import { clearTokens } from '../utils/tokenManager';
 import { logoutThunk } from '../features/session/state/sessionThunks';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 
 /**
  * Custom hook for user logout.
@@ -11,11 +11,18 @@ const useLogout = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   
-  const logout = useCallback(async () => {
+  // State for loading and error handling
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  
+  const logout = useCallback(async (): Promise<boolean> => {
+    setIsLoading(true);
+    setError(null); // Reset error state
+    
     try {
       console.log('Logout initiated');
       
-      // Perform API logout and unwrap to handle success or error
+      // Perform API logout
       await dispatch(logoutThunk()).unwrap();
       
       // Clear client-side data
@@ -25,12 +32,18 @@ const useLogout = () => {
       
       console.log('Client data cleared. Redirecting to /login');
       navigate('/login');
-    } catch (error) {
+      
+      setIsLoading(false);
+      return true; // Indicate success
+    } catch (error: any) {
       console.error('Error during logout:', error);
+      setError(error);
+      setIsLoading(false);
+      return false; // Indicate failure
     }
   }, [dispatch, navigate]);
   
-  return { logout };
+  return { logout, isLoading, error };
 };
 
 export default useLogout;

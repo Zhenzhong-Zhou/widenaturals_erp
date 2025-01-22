@@ -35,7 +35,7 @@ const resetPassword = async (
       1000, // Delay between retries (in ms)
       'Failed to reset password after multiple attempts.'
     );
-   
+    
     const { data, status } = response;
     
     if (status === 200) {
@@ -51,25 +51,27 @@ const resetPassword = async (
       );
     }
   } catch (error: any) {
-    
-    if (error.response) {
-      // Extract backend error response
-      const { message, code, details } = error.response.data;
-   
+    if (error.response?.data) {
+      // Extract error details from API response
       throw {
-        success: false,
-        message: message || 'Validation failed.',
-        code: code || 'VALIDATION_ERROR',
-        details: details || [],
+        message: error.response.data.message || 'An error occurred',
+        status: error.response.status,
+        type: error.response.data.type || 'UnknownError',
+        code: error.response.data.code || 'UNKNOWN_ERROR',
+        isExpected: error.response.data.isExpected || false,
+        details: error.response.data.details || [],
       } as ResetPasswordError;
     }
     
-    // Handle non-HTTP errors (e.g., network issues)
-    throw new AppError(
-      error.message || 'A network error occurred.',
-      500,
-      { type: ErrorType.NetworkError }
-    );
+    // Fallback for unexpected or network errors
+    throw {
+      message: error.message || 'A network error occurred',
+      status: 500,
+      type: 'NetworkError',
+      code: 'NETWORK_ERROR',
+      isExpected: false,
+      details: [],
+    } as ResetPasswordError;
   }
 };
 

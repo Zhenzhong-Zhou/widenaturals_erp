@@ -3,13 +3,10 @@ import { CustomButton, DetailHeader, DetailPage, MetadataSection } from '@compon
 import { useAppDispatch, useAppSelector } from '../../../store/storeHooks.ts';
 import { selectUserLoading, selectUserResponse } from '../state/userSelectors.ts';
 import { selectLastLogin } from '../../session/state/sessionSelectors.ts';
-import { formatDate, formatDateTime} from '@utils/dateTimeUtils.ts';
+import { formatDate, formatDateTime } from '@utils/dateTimeUtils.ts';
 import { ResetPasswordModal } from '../../resetPassword';
 import { resetPasswordThunk } from '../../resetPassword';
-import { useSelector } from 'react-redux';
-import {
-  selectResetPasswordErrorMessage,
-} from '../../resetPassword/state/resetPasswordSelectors.ts';
+import { useLogout } from '../../../hooks';
 
 const UserProfilePage: FC = () => {
   const response = useAppSelector(selectUserResponse);
@@ -18,41 +15,56 @@ const UserProfilePage: FC = () => {
   const user = response?.data;
   const [isModalOpen, setModalOpen] = useState(false);
   const dispatch = useAppDispatch();
-  const error = useSelector(selectResetPasswordErrorMessage);
-  console.log(error)
+  const { logout, isLoading: isLogoutLoading } = useLogout();
+  
   const metadata = {
-    'Role': user?.role || 'N/A',
+    Role: user?.role || 'N/A',
     'Job Title': user?.job_title || 'N/A',
-    'Phone': user?.phone_number || 'N/A',
+    Phone: user?.phone_number || 'N/A',
     'Last Login': lastLogin ? formatDateTime(lastLogin) : 'N/A',
     'Created At': user?.created_at ? formatDate(user?.created_at) : 'N/A',
     'Updated At': user?.updated_at ? formatDate(user?.updated_at) : 'N/A',
   };
   
+  /**
+   * Handles the password reset process and triggers a logout on success.
+   */
   const handleResetPassword = async (data: {
     currentPassword: string;
     newPassword: string;
-    confirmPassword: string;
   }) => {
     try {
-      // Destructure fields from the data object
-      const {success, message} = await dispatch(resetPasswordThunk(data)).unwrap()
- 
-      // Handle success response
+      console.log('Resetting password...');
+      const { success, message } = await dispatch(resetPasswordThunk(data)).unwrap();
+      
       if (success) {
-        console.log(message);
-        setModalOpen(false); // Close the modal
+        console.log('Password reset successful:', message);
+        
+        // Close the modal
+        setModalOpen(false);
+        
+        // Now proceed to logout
+        console.log('Initiating logout process after password reset...');
+        const logoutSuccess = await logout();
+        if (logoutSuccess) {
+          console.log('User successfully logged out after password reset.');
+        } else {
+          console.error('Failed to log out after password reset.');
+        }
       } else {
-        console.error('Failed to reset password:', message);
+        console.error('Password reset failed:', message);
       }
     } catch (error) {
-      // Handle errors (e.g., network issues, validation failures)
       console.error('Error resetting password:', error);
     }
   };
   
   return (
-    <DetailPage title="User Profile" isLoading={loading} error={user ? undefined : 'No user information available'}>
+    <DetailPage
+      title="User Profile"
+      isLoading={loading || isLogoutLoading} // Show a loading spinner during logout
+      error={user ? undefined : 'No user information available'}
+    >
       {user && (
         <>
           <DetailHeader

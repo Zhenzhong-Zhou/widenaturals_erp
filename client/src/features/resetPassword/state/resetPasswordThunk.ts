@@ -20,14 +20,27 @@ export const resetPasswordThunk = createAsyncThunk<
     try {
       return await resetPasswordService.resetPassword(currentPassword, newPassword);
     } catch (error: any) {
-      console.log(error);
-      if (error.response?.data) {
-        console.log('[Validation Error Response]', error.response.data); // Log the full error response
-        return rejectWithValue(error.response.data); // Reject with the detailed error response
+      console.error('Thunk Error:', error);
+      
+      if (
+        error?.message &&
+        error?.status &&
+        error?.type &&
+        error?.code &&
+        typeof error.isExpected === 'boolean'
+      ) {
+        return rejectWithValue(error as ResetPasswordError); // Reject structured error
       }
-      // Log unexpected errors
-      console.error('[Unexpected Error]', error);
-      throw error;
+      
+      // Fallback for unexpected error structures
+      return rejectWithValue({
+        message: error.message || 'An unexpected error occurred',
+        status: 500,
+        type: 'UnknownError',
+        code: 'UNKNOWN_ERROR',
+        isExpected: false,
+        details: [],
+      } as ResetPasswordError);
     }
   }
 );
