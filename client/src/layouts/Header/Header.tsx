@@ -34,11 +34,11 @@ const Header: FC<HeaderProps> = ({ user, onLogout }) => {
   
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Online':
+      case 'healthy':
         return 'success';
       case 'Maintenance':
         return 'warning';
-      case 'Offline':
+      case 'unhealthy':
         return 'error';
       default:
         return 'default';
@@ -69,7 +69,7 @@ const Header: FC<HeaderProps> = ({ user, onLogout }) => {
       <IconButton onClick={handleMenuOpen}>
         <Avatar
           alt={user?.firstname || 'Guest'}
-          src={user?.avatar || ''}
+          src={''}
           sx={{ bgcolor: theme.palette.primary.main }}
         >
           {user?.firstname?.charAt(0) || 'G'}

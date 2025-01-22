@@ -3,6 +3,7 @@ import { DetailHeader, DetailPage, MetadataSection } from '@components/index.ts'
 import { useAppSelector } from '../../../store/storeHooks.ts';
 import { selectUserLoading, selectUserResponse } from '../state/userSelectors.ts';
 import { selectLastLogin } from '../../session/state/sessionSelectors.ts';
+import { formatDate, formatDateTime} from '@utils/dateTimeUtils.ts';
 
 const UserProfilePage: FC = () => {
   const response = useAppSelector(selectUserResponse);
@@ -14,9 +15,9 @@ const UserProfilePage: FC = () => {
     'Role': user?.role || 'N/A',
     'Job Title': user?.job_title || 'N/A',
     'Phone': user?.phone_number || 'N/A',
-    'Last Login': lastLogin ? new Date(lastLogin).toLocaleString() : 'N/A',
-    'Created At': user?.created_at ? new Date(user.created_at).toLocaleString() : 'N/A',
-    'Updated At': user?.updated_at ? new Date(user.updated_at).toLocaleString() : 'N/A',
+    'Last Login': lastLogin ? formatDateTime(lastLogin) : 'N/A',
+    'Created At': user?.created_at ? formatDate(user?.created_at) : 'N/A',
+    'Updated At': user?.updated_at ? formatDate(user?.updated_at) : 'N/A',
   };
   
   return (

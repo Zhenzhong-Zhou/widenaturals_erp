@@ -10,6 +10,7 @@ import {
   selectHealthTimestamp,
 } from '../state/healthStatusSelectors';
 import { fetchHealthStatus } from '../state/healthStatusThunk';
+import { formatDateTime } from '@utils/dateTimeUtils.ts';
 
 interface HealthStatusProps {
   getStatusColor: (status: string) => 'success' | 'warning' | 'error' | 'default';
@@ -45,7 +46,7 @@ const HealthStatus: FC<HealthStatusProps> = ({ getStatusColor }) => {
             <Typography variant="body2">Database: {databaseStatus}</Typography>
             <Typography variant="body2">Pool: {poolStatus}</Typography>
             <Typography variant="body2">
-              Last Updated: {new Date(lastUpdated).toLocaleString()}
+              Last Updated: {lastUpdated ? formatDateTime(lastUpdated) : 'N/A'}
             </Typography>
           </Box>
         }

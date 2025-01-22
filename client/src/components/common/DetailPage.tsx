@@ -1,6 +1,7 @@
 import { FC, ReactNode } from 'react';
 import Box from '@mui/material/Box';
 import { Typography, Loading } from '@components/index.ts';
+import { useThemeContext } from '../../context/ThemeContext.tsx';
 
 interface DetailPageProps {
   title: string;
@@ -10,6 +11,8 @@ interface DetailPageProps {
 }
 
 const DetailPage: FC<DetailPageProps> = ({ title, isLoading, error, children }) => {
+  const { theme } = useThemeContext();
+  
   if (isLoading) {
     return (
       <Box
@@ -19,7 +22,7 @@ const DetailPage: FC<DetailPageProps> = ({ title, isLoading, error, children }) 
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
-          backgroundColor: 'background.default',
+          backgroundColor: theme.palette.background.default,
         }}
       >
         <Loading message={`Loading ${title.toLowerCase()}...`} />
@@ -32,10 +35,10 @@ const DetailPage: FC<DetailPageProps> = ({ title, isLoading, error, children }) 
       <Box
         sx={{
           textAlign: 'center',
-          padding: 3,
+          padding: theme.spacing(3),
         }}
       >
-        <Typography variant="h6" color="error">
+        <Typography variant="h6" color={theme.palette.error.main}>
           {error}
         </Typography>
       </Box>
@@ -43,8 +46,8 @@ const DetailPage: FC<DetailPageProps> = ({ title, isLoading, error, children }) 
   }
   
   return (
-    <Box sx={{ padding: 3, maxWidth: 600, margin: '0 auto' }}>
-      <Typography variant="h4" sx={{ marginBottom: 2 }}>
+    <Box sx={{ padding: theme.spacing(3), maxWidth: 600, margin: '0 auto' }}>
+      <Typography variant="h4" sx={{ marginBottom: theme.spacing(2) }}>
         {title}
       </Typography>
       {children}

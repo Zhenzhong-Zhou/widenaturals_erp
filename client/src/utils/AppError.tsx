@@ -7,6 +7,7 @@ enum ErrorType {
   GlobalError = 'GlobalError',
   SevereError = 'SevereError',
   ServerError = 'ServerError',
+  RuntimeError = 'RuntimeError',
 }
 
 type AppErrorDetails = string | Record<string, unknown>;
