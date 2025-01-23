@@ -12,6 +12,7 @@ import { sidebarStyles } from './sidebarStyles';
 import { useThemeContext } from '../../context/ThemeContext';
 import logoDark from '../../assets/wide-logo-dark.png';
 import logoLight from '../../assets/wide-logo-light.png';
+import { routes } from '../../routes';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -21,15 +22,12 @@ interface SidebarProps {
 const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
   const { theme } = useThemeContext();
   const logo = theme.palette.mode === 'dark' ? logoDark : logoLight;
-
-  const menuItems = [
-    { label: 'Dashboard', path: '/dashboard' },
-    { label: 'Inventory', path: '/inventory' },
-    { label: 'Orders', path: '/orders' },
-    { label: 'Reports', path: '/reports' },
-    { label: 'Settings', path: '/settings' },
-  ];
-
+  
+  // Filter routes for items to display in the sidebar
+  const menuItems = routes.filter(
+    (route) => route.meta?.showInSidebar && !route.path.includes('*')
+  );
+  
   return (
     <>
       {/* Sidebar Drawer */}
@@ -56,8 +54,8 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              height: '100%', // Ensure it takes up the full height
-              width: '100%', // Ensure it takes up the full width
+              height: '100%',
+              width: '100%',
             }}
           >
             <img
@@ -66,12 +64,12 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
               style={{
                 width: '100%',
                 height: '100%',
-                maxHeight: isOpen ? '50px' : '80px', // Adjust maximum height dynamically
-                objectFit: 'contain', // Ensures the image maintains aspect ratio
+                maxHeight: isOpen ? '50px' : '80px',
+                objectFit: 'contain',
               }}
             />
           </Box>
-
+          
           {isOpen && (
             <IconButton
               onClick={toggleSidebar}
@@ -89,7 +87,7 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
             </IconButton>
           )}
         </Box>
-
+        
         {/* Sidebar Navigation */}
         <Box
           sx={{
@@ -116,14 +114,14 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
                     },
                   }}
                 >
-                  <ListItemText primary={item.label} />
+                  <ListItemText primary={item.meta?.title} />
                 </ListItemButton>
               </ListItem>
             ))}
           </List>
         </Box>
       </Drawer>
-
+      
       {/* Open Button */}
       {!isOpen && (
         <IconButton

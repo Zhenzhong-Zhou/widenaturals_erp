@@ -8,7 +8,18 @@ import { withTimeout } from '@utils/timeoutUtils.ts';
 import { withRetry } from '@utils/retryUtils.ts';
 
 const API_ENDPOINTS = {
+  ALL_USERS: '/users',
   USER_PROFILE: '/users/me',
+};
+
+const fetchUsers = async () => {
+  try {
+    const response = await axiosInstance.get(API_ENDPOINTS.ALL_USERS);
+    console.log(response);
+    return response.data;
+  } catch (error) {
+  
+  }
 };
 
 /**
@@ -58,5 +69,6 @@ const fetchUserProfile = async (): Promise<UserResponse> => {
  * Exported user service object.
  */
 export const userService = {
+  fetchUsers,
   fetchUserProfile,
 };

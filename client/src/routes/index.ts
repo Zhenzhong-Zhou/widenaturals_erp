@@ -5,6 +5,7 @@ export const routes = [
     meta: {
       requiresAuth: false,
       title: 'Home',
+      showInSidebar: false,
     },
   },
   {
@@ -13,6 +14,7 @@ export const routes = [
     meta: {
       requiresAuth: false,
       title: 'Login',
+      showInSidebar: false,
     },
   },
   {
@@ -21,6 +23,7 @@ export const routes = [
     meta: {
       requiresAuth: false,
       title: '404 - Page Not Found',
+      showInSidebar: false, // Exclude from sidebar
     },
   },
   {
@@ -29,6 +32,16 @@ export const routes = [
     meta: {
       requiresAuth: true,
       title: 'Dashboard',
+      showInSidebar: true, // Include in sidebar
+    },
+  },
+  {
+    path: '/users',
+    component: () => import('../features/user/pages/UsersPage'),
+    meta: {
+      requiresAuth: true,
+      title: 'Users',
+      showInSidebar: true, // Include in sidebar
     },
   },
   {
@@ -37,6 +50,7 @@ export const routes = [
     meta: {
       requiresAuth: true,
       title: 'User Profile',
+      showInSidebar: false, // Exclude from sidebar
     },
     children: [
       {

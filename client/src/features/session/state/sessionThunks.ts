@@ -35,8 +35,7 @@ export const loginThunk = createAsyncThunk(
       );
       return response; // Return the response for further handling
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Login failed';
+      const errorMessage = error instanceof AppError ? error.message : 'Login failed';
       dispatch(loginFailure(errorMessage)); // Dispatch loginFailure action
       return rejectWithValue(errorMessage);
     }

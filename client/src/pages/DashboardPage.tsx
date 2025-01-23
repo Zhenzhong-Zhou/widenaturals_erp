@@ -1,14 +1,11 @@
-import { FC, useEffect, useState } from 'react';
+import { FC, useState } from 'react';
 import { Chip, Box } from '@mui/material';
 import { CustomButton, DataTable, Form } from '@components/index';
 import { FieldConfig } from '../components/common/Form';
 import CustomModal from '@components/common/CustomModal.tsx';
-import { useAppDispatch } from '../store/storeHooks.ts';
-import { refreshTokenThunk } from '../features/session';
 
 const DashboardPage: FC = () => {
   const [open, setOpen] = useState(false);
-  const dispatch = useAppDispatch();
 
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
@@ -52,20 +49,6 @@ const DashboardPage: FC = () => {
   const handleSubmit = (formData: Record<string, any>) => {
     console.log('Form Data:', formData);
   };
-
-  useEffect(() => {
-    const handleRefreshToken = async () => {
-      try {
-        // Await the resolved promise
-        const response = await dispatch(refreshTokenThunk()).unwrap();
-        console.log('Dashboard: Token refreshed successfully', response);
-      } catch (error) {
-        console.error('Dashboard: Token refresh failed', error);
-      }
-    };
-
-    handleRefreshToken();
-  }, [dispatch]); // Add dispatch to dependencies
 
   return (
     <>

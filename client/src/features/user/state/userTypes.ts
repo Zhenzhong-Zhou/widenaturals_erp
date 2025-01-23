@@ -1,3 +1,20 @@
+export interface User {
+  fullname: string;
+  email: string;
+  phone_number: string;
+  job_title: string;
+  role: string;
+  avatar?: string; // Optional avatar URL
+}
+
+export interface UsersCardProps {
+  user: User;
+}
+
+export interface UsersListProps {
+  users: User[];
+}
+
 export interface UserProfile {
   email: string;
   role: string;
