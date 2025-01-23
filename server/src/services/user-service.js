@@ -1,9 +1,33 @@
 const { withTransaction } = require('../database/db');
-const { insertUser, getUser } = require('../repositories/user-repository');
+const { insertUser, getUser, getAllUsers } = require('../repositories/user-repository');
 const { insertUserAuth } = require('../repositories/user-auth-repository');
 const { logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
 const { hashPasswordWithSalt } = require('../utils/password-helper');
+
+/**
+ * Service to fetch all users with pagination and sorting.
+ *
+ * @param {Object} options - Options for pagination and sorting.
+ * @param {number} options.page - The page number to fetch.
+ * @param {number} options.limit - The number of records per page.
+ * @param {string} options.sortBy - Column to sort by.
+ * @param {string} options.sortOrder - Sort order ('ASC' or 'DESC').
+ * @returns {Promise<Object>} - Paginated users and metadata.
+ */
+const fetchAllUsers = async ({ page, limit, sortBy, sortOrder }) => {
+  try {
+    // Call repository function
+    return await getAllUsers({ page, limit, sortBy, sortOrder });
+  } catch (error) {
+    logError('Error in fetchAllUsers service:', error);
+    throw new AppError('Failed to fetch users from service layer', 500, {
+      type: 'ServiceError',
+      details: error.message,
+    });
+  }
+};
+
 
 /**
  * Creates a new user with authentication details.
@@ -105,4 +129,4 @@ const mapUserProfile = (user) => ({
   updated_at: user.updated_at,
 });
 
-module.exports = { createUser, getUserProfileById };
+module.exports = { fetchAllUsers, createUser, getUserProfileById };

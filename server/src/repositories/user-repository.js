@@ -1,4 +1,4 @@
-const { query, retry, lockRow, getClient } = require('../database/db');
+const { query, retry, lockRow, getClient, paginateQuery } = require('../database/db');
 const { logError, logWarn } = require('../utils/logger-helper');
 const {
   maskSensitiveInfo,
@@ -151,38 +151,54 @@ const getUser = async (client, field, value, shouldLock = false) => {
 };
 
 /**
- * Fetches all users.
+ * Fetches all users with pagination.
+ *
+ * @param {Object} options - Options for pagination and filtering.
+ * @param {number} options.page - The page number to fetch.
+ * @param {number} options.limit - The number of records per page.
+ * @param {string} options.sortBy - Column to sort by.
+ * @param {string} options.sortOrder - Sort order ('ASC' or 'DESC').
+ * @returns {Promise<Object>} Paginated users and metadata.
  */
-const getAllUsers = async () => {
-  const sql = `
+const getAllUsers = async ({ page, limit, sortBy, sortOrder }) => {
+  // Construct SQL query parts
+  const queryText = `
     SELECT
-      u.id,
       u.email,
-      u.role_id,
       r.name AS role_name,
-      u.status_id,
-      s.name AS status_name,
-      u.firstname,
-      u.lastname,
+      CONCAT(COALESCE(u.firstname, ''), ' ', COALESCE(u.lastname, '')) AS fullname,
       u.phone_number,
-      u.job_title,
-      u.note,
-      u.status_date,
-      u.created_at,
-      u.updated_at
+      u.job_title
     FROM users u
     LEFT JOIN roles r ON u.role_id = r.id
     LEFT JOIN status s ON u.status_id = s.id
-    ORDER BY u.created_at DESC;
+    WHERE s.name = $1
   `;
-
+  
+  const countQueryText = `
+    SELECT COUNT(*) AS total
+    FROM users u
+    LEFT JOIN status s ON u.status_id = s.id
+    WHERE s.name = $1
+  `;
+  
   try {
-    const result = await query(sql);
-    return result.rows;
+    return await retry(async () =>
+      await paginateQuery({
+        queryText,
+        countQueryText,
+        params: ['active'],
+        page,
+        limit,
+        sortBy,
+        sortOrder,
+      })
+    );
   } catch (error) {
-    logError('Error fetching all users:', error);
-    throw new AppError('Failed to fetch all users', 500, {
+    logError('Error executing paginated query in repository:', error);
+    throw new AppError('Failed to fetch users from repository', 500, {
       type: 'DatabaseError',
+      details: error.message,
     });
   }
 };

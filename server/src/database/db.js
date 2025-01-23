@@ -279,15 +279,16 @@ const retryDatabaseConnection = async (config, retries = 5) => {
  * @throws {AppError} - Throws an error if the query execution fails.
  */
 const paginateQuery = async ({
-  queryText,
-  countQueryText = null,
-  params = [],
-  page = 1,
-  limit = 10,
-  sortBy = null,
-  sortOrder = 'ASC',
-  clientOrPool = pool,
-}) => {
+                               queryText,
+                               countQueryText = null,
+                               params = [],
+                               page = 1,
+                               limit = 10,
+                               sortBy = null,
+                               sortOrder = 'ASC',
+                               clientOrPool = pool,
+                               req = null, // Pass request context for logging
+                             }) => {
   if (page < 1 || limit < 1) {
     throw new AppError.validationError(
       'Page and limit must be positive integers.',
@@ -298,7 +299,7 @@ const paginateQuery = async ({
       }
     );
   }
-
+  
   const offset = (page - 1) * limit;
 
   // Construct the paginated query
@@ -314,23 +315,23 @@ const paginateQuery = async ({
   // Default the count query if not provided
   const effectiveCountQueryText =
     countQueryText || `SELECT COUNT(*) FROM (${queryText}) AS count_query`;
-
+  
   try {
     // Execute both the paginated query and the count query in parallel
     const [dataResult, countResult] = await Promise.all([
       query(paginatedQuery, [...params, limit, offset], clientOrPool),
       query(effectiveCountQueryText, params, clientOrPool),
     ]);
-
+    
     if (!countResult.rows.length) {
       throw new AppError('Failed to fetch total record count.', 500, {
         type: 'DatabaseError',
       });
     }
-
-    const totalRecords = parseInt(countResult.rows[0].count, 10);
+    
+    const totalRecords = parseInt(countResult.rows[0].total, 10);
     const totalPages = Math.ceil(totalRecords / limit);
-
+    
     return {
       data: dataResult.rows,
       pagination: {
@@ -341,7 +342,19 @@ const paginateQuery = async ({
       },
     };
   } catch (error) {
-    logError('Error executing paginated query:', error);
+    logError('Error executing paginated query:', {
+      queryText: paginatedQuery,
+      countQueryText: effectiveCountQueryText,
+      params: [...params, limit, offset],
+      error: error.message,
+      stack: error.stack,
+      context: req ? {
+        ip: req.ip,
+        method: req.method,
+        route: req.originalUrl,
+        userAgent: req.headers['user-agent'],
+      } : {},
+    });
     throw new AppError('Failed to execute paginated query.', 500, {
       type: 'DatabaseError',
       details: error.message,

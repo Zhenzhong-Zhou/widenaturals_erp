@@ -1,6 +1,41 @@
 const wrapAsync = require('../utils/wrap-async');
-const { getUserProfileById } = require('../services/user-service');
+const { getUserProfileById, fetchAllUsers } = require('../services/user-service');
 const AppError = require('../utils/AppError');
+
+/**
+ * Controller to handle fetching paginated users.
+ */
+const getAllUsersController = async (req, res, next) => {
+  try {
+    const { page = 1, limit = 10, sortBy = 'u.created_at', sortOrder = 'ASC' } = req.query;
+    
+    // Validate inputs
+    const paginationParams = {
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
+      sortBy,
+      sortOrder,
+    };
+    
+    if (paginationParams.page < 1 || paginationParams.limit < 1) {
+      return res.status(400).json({
+        success: false,
+        message: 'Page and limit must be positive integers.',
+      });
+    }
+    
+    // Call service
+    const users = await fetchAllUsers(paginationParams);
+    
+    res.status(200).json({
+      success: true,
+      data: users.data,
+      pagination: users.pagination,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 /**
  * Controller to fetch the authenticated user's profile.
@@ -30,5 +65,6 @@ const getUserProfile = wrapAsync(async (req, res) => {
 });
 
 module.exports = {
+  getAllUsersController,
   getUserProfile,
 };

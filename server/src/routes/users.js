@@ -4,10 +4,13 @@
  */
 
 const express = require('express');
-const { getUserProfile } = require('../controllers/user-controller');
+const { getAllUsersController, getUserProfile } = require('../controllers/user-controller');
 const { createUserProfileRateLimiter } = require('../middlewares/rate-limiter');
 
 const router = express.Router();
+
+// Route for getting all users
+router.get('/', getAllUsersController);
 
 /**
  * @route GET /users/me
