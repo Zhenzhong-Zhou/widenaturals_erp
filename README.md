@@ -163,20 +163,58 @@ Before starting, ensure you have the following installed:
     `bash
   npm run seed
   `
-    **Run with Docker**
-4.  **Build and start the containers**:
+  
+   **Cron**: - Backup Database:
+1. **Test the Backup Process Manually**:
+    ```bash 
+    node /path/to/backup-scheduler.js
+    ```
+2. **Find the absolute path**:
+    ```bash 
+    realpath /path/to/backup-scheduler.js
+    realpath /path/to/backup.log
+    ```
+3. **Node.js Path:**:
+   ```bash 
+   which node
+   ```
+4. **For system-wide crontab:**:
+   ```bash 
+   sudo crontab -e
+   ```
+5. *Update Cron Job:**:
+   ```bash 
+   PATH=/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin
+   NODE_ENV=development
+   0 2 * * * NODE_ENV=development /usr/bin/node /home/user/project/src/tasks/schedulers/backup-scheduler.js >> /home/user/project/dev_logs/backup.log 2>&1
+   ```
+6. **Test the Cron Job Run the script manually to ensure it works:**:
+   ```bash 
+   /usr/bin/node /path/to/backup-scheduler.js
+   ```
+7. **Run the following command to see if cron is restricted for your user:**:
+   ```bash 
+   sudo crontab -l
+   ```
+8. **Monitor Logs:**:
+   ```bash 
+   tail -f /path/to/backup.log
+   ```
+
+  **Run with Docker**
+  **Build and start the containers**:
     ```bash
     docker compose up --build
     ```
-5.  **Start the containers (without rebuild)**:
+1. **Start the containers (without rebuild)**:
     ```bash
     docker compose up
     ```
-6.  **Run the development environment in Docker**:
+2. **Run the development environment in Docker**:
     ```bash
     NODE_ENV=development docker compose up
     ```
-7.  **Rebuild Docker Containers**
+3. **Rebuild Docker Containers**
     ```bash
         docker compose down
     ```
