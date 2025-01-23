@@ -186,6 +186,7 @@ Before starting, ensure you have the following installed:
    ```bash 
    PATH=/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin
    NODE_ENV=development
+   TZ=UTC
    0 2 * * * NODE_ENV=development /usr/bin/node /home/user/project/src/tasks/schedulers/backup-scheduler.js >> /home/user/project/dev_logs/backup.log 2>&1
    ```
 6. **Test the Cron Job Run the script manually to ensure it works:**:
@@ -240,5 +241,6 @@ artillery report -o report.html results.json
 ```
 **generates a 32-byte hexadecimal key:**
 ```bash
-openssl rand -hex 32
+    openssl rand -hex 32
+    head -c 32 /dev/urandom | xxd -p -c 64
 ```

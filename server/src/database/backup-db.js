@@ -1,31 +1,45 @@
+/**
+ * @file backup-db.js
+ * @description Script to back up the target PostgreSQL database, encrypt the backup, and manage old backups.
+ */
+
 const fs = require('fs');
 const path = require('path');
-const crypto = require('crypto');
 const { loadEnv } = require('../config/env');
 const { runPgDump } = require('./pg-dump');
 const { ensureDirectory, generateHash, saveHashToFile, cleanupOldBackups } = require('./file-management');
 const { encryptFile } = require('./encryption');
 const { logInfo, logError } = require('../utils/logger-helper');
 
+// Load environment variables
 loadEnv();
 
-const targetDatabase = process.env.DB_NAME;
-const backupDir = process.env.BACKUP_DIR || './backups';
-const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-const baseFileName = `${targetDatabase}-${timestamp}`;
-const backupFile = path.join(backupDir, `${baseFileName}.sql`);
-const encryptedFile = `${backupFile}.enc`;
-const ivFile = `${encryptedFile}.iv`;
-const hashFile = `${encryptedFile}.sha256`;
-const pgDumpPath = process.env.PG_DUMP_PATH || 'pg_dump';
-const maxBackups = parseInt(process.env.MAX_BACKUPS, 10) || 5;
+// Configuration
+const targetDatabase = process.env.DB_NAME; // Name of the target database
+const backupDir = process.env.BACKUP_DIR || './backups'; // Directory to store backups
+const timestamp = new Date().toISOString().replace(/[:.]/g, '-'); // Timestamp for file naming
+const baseFileName = `${targetDatabase}-${timestamp}`; // Base name for backup files
+const backupFile = path.join(backupDir, `${baseFileName}.sql`); // Plain-text SQL file path
+const encryptedFile = `${backupFile}.enc`; // Encrypted file path
+const ivFile = `${encryptedFile}.iv`; // Initialization vector file path
+const hashFile = `${encryptedFile}.sha256`; // Hash file path
+const pgDumpPath = process.env.PG_DUMP_PATH || 'pg_dump'; // Path to the pg_dump binary
+const maxBackups = parseInt(process.env.MAX_BACKUPS, 10) || 5; // Maximum number of backups to keep
 
+// Validate maxBackups
 if (!Number.isInteger(maxBackups) || maxBackups <= 0) {
   throw new Error(`Invalid MAX_BACKUPS value: ${maxBackups}. Must be a positive integer.`);
 }
 
 /**
- * Backs up the database.
+ * Backs up the target PostgreSQL database.
+ * - Dumps the database using `pg_dump`.
+ * - Generates a hash for the backup file.
+ * - Encrypts the backup using AES-256-CBC.
+ * - Cleans up old backups, keeping only the most recent.
+ *
+ * @throws {Error} If the database name or critical environment variables are missing.
+ * @returns {Promise<void>}
  */
 const backupDatabase = async () => {
   if (!targetDatabase) {
@@ -33,7 +47,7 @@ const backupDatabase = async () => {
   }
   
   try {
-    // Ensure backup directory exists
+    // Ensure the backup directory exists
     ensureDirectory(backupDir);
     
     // Cleanup old backups
@@ -41,19 +55,25 @@ const backupDatabase = async () => {
     
     logInfo(`Starting backup for database: '${targetDatabase}'`);
     
-    // Run pg_dump
+    // Execute pg_dump to create a plain-text SQL backup
     const dumpCommand = `${pgDumpPath} --no-owner --no-comments --clean --if-exists -d ${targetDatabase} -f ${backupFile}`;
     await runPgDump(dumpCommand);
     
-    // Generate and save hash
+    // Generate a SHA-256 hash of the plain-text backup file
     const hash = generateHash(backupFile);
     saveHashToFile(hash, hashFile);
     
-    // Encrypt the SQL file
-    const encryptionKey = process.env.BACKUP_ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex');
+    // Encrypt the SQL backup file
+    const encryptionKey = process.env.BACKUP_ENCRYPTION_KEY;
+    if (!encryptionKey || Buffer.from(encryptionKey, 'hex').length !== 32) {
+      throw new Error(
+        'Invalid or missing BACKUP_ENCRYPTION_KEY. Ensure it is a 64-character hexadecimal string.'
+      );
+    }
+    
     await encryptFile(backupFile, encryptedFile, encryptionKey, ivFile);
     
-    // Delete plain-text SQL file
+    // Remove the plain-text backup file for security
     fs.unlinkSync(backupFile);
     logInfo(`Backup encrypted and saved: ${encryptedFile}`);
   } catch (error) {
@@ -62,14 +82,15 @@ const backupDatabase = async () => {
   }
 };
 
+// Export the backup function for reuse in other scripts
 module.exports = { backupDatabase };
 
-// Self-executing script
+// Self-executing script for standalone usage
 if (require.main === module) {
   backupDatabase()
     .then(() => logInfo('Database backup completed successfully.'))
     .catch((error) => {
       logError('Failed to back up the database.', { error: error.message });
-      process.exit(1);
+      process.exit(1); // Exit with an error code for monitoring
     });
 }
