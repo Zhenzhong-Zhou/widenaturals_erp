@@ -238,4 +238,7 @@ artillery run real-time-test.yaml -o results.json
 ```
 artillery report -o report.html results.json
 ```
-
+**generates a 32-byte hexadecimal key:**
+```bash
+openssl rand -hex 32
+```

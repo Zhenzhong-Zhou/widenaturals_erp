@@ -1,64 +1,57 @@
-/**
- * @file backup-db.js
- * @description Script to back up the target database to a file.
- */
-
-const { exec } = require('child_process');
-const path = require('path');
-const { logInfo, logError } = require('../utils/logger-helper');
-const { loadEnv } = require('../config/env');
 const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+const { runPgDump } = require('./pg-dump');
+const { ensureDirectory, generateHash, saveHashToFile, cleanupOldBackups } = require('./file-management');
+const { encryptFile } = require('./encryption');
+const { logInfo, logError } = require('../utils/logger-helper');
 
-// Load environment variables
-const { env } = loadEnv();
-
-const targetDatabase = process.env.DB_NAME; // Target database name
-const backupDir = process.env.BACKUP_DIR || './backups'; // Backup directory
-const timestamp = new Date().toISOString().replace(/[:.]/g, '-'); // Timestamp for the backup file
+const targetDatabase = process.env.DB_NAME;
+const backupDir = process.env.BACKUP_DIR || './backups';
+const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
 const backupFile = path.join(backupDir, `${targetDatabase}-${timestamp}.sql`);
+const encryptedFile = `${backupFile}.enc`;
+const pgDumpPath = process.env.PG_DUMP_PATH || 'pg_dump';
+const maxBackups = parseInt(process.env.MAX_BACKUPS, 10) || 5;
 
 /**
- * Creates a backup of the target database.
+ * Backs up the database.
  */
 const backupDatabase = async () => {
   if (!targetDatabase) {
-    logError('Environment variable DB_NAME is missing.');
-    return;
+    throw new Error('Environment variable DB_NAME is missing.');
   }
   
   try {
-    // Ensure the backup directory exists
-    if (!fs.existsSync(backupDir)) {
-      fs.mkdirSync(backupDir, { recursive: true });
-      logInfo(`Created backup directory at: ${backupDir}`);
-    }
+    ensureDirectory(backupDir);
+    cleanupOldBackups(backupDir, maxBackups);
     
     logInfo(`Starting backup for database: '${targetDatabase}'`);
-    const dumpCommand = `pg_dump --no-owner --no-comments --clean --if-exists -d ${targetDatabase} -f ${backupFile}`;
+    const dumpCommand = `${pgDumpPath} --no-owner --no-comments --clean --if-exists -d ${targetDatabase} -f ${backupFile}`;
+    await runPgDump(dumpCommand);
     
-    exec(dumpCommand, (error, stdout, stderr) => {
-      if (error) {
-        logError(`Backup failed: ${stderr}`);
-        process.exit(1); // Exit with error code
-      } else {
-        logInfo(`Database backup successful. Backup file: ${backupFile}`);
-      }
-    });
+    const hash = generateHash(backupFile);
+    saveHashToFile(hash, `${backupFile}.sha256`);
+    
+    const encryptionKey = process.env.BACKUP_ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex');
+    await encryptFile(backupFile, encryptedFile, encryptionKey);
+    
+    fs.unlinkSync(backupFile); // Delete plain-text file
+    logInfo(`Backup encrypted and saved: ${encryptedFile}`);
   } catch (error) {
-    logError('Unexpected error during backup operation.', error);
-    process.exit(1); // Exit with error code
+    logError('Error during backup operation:', { error: error.message });
+    throw error;
   }
 };
 
-// Export the function for reusability
 module.exports = { backupDatabase };
 
-// Self-executing script for standalone use
+// Self-executing script
 if (require.main === module) {
   backupDatabase()
     .then(() => logInfo('Database backup completed successfully.'))
     .catch((error) => {
-      logError('Failed to back up the database.', error);
-      process.exit(1); // Handles errors and exits cleanly
+      logError('Failed to back up the database.', { error: error.message });
+      process.exit(1);
     });
 }
