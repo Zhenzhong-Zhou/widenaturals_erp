@@ -13,6 +13,7 @@ const {
   maskSensitiveInfo,
   maskTableName,
 } = require('../utils/sensitive-data-utils');
+const { generateCountQuery } = require('../utils/db-utils');
 
 // Get environment-specific connection configuration
 loadEnv();
@@ -279,8 +280,10 @@ const retryDatabaseConnection = async (config, retries = 5) => {
  * @throws {AppError} - Throws an error if the query execution fails.
  */
 const paginateQuery = async ({
+                               tableName,
+                               joins = [],
+                               whereClause = '1=1',
                                queryText,
-                               countQueryText = null,
                                params = [],
                                page = 1,
                                limit = 10,
@@ -301,7 +304,10 @@ const paginateQuery = async ({
   }
   
   const offset = (page - 1) * limit;
-
+  
+  // Generate the COUNT query dynamically
+  const countQueryText = generateCountQuery(tableName, joins, whereClause);
+  
   // Construct the paginated query
   let paginatedQuery = queryText;
   if (sortBy) {
@@ -311,16 +317,12 @@ const paginateQuery = async ({
     paginatedQuery += ` ORDER BY ${sortBy} ${validSortOrder}`;
   }
   paginatedQuery += ` LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
-
-  // Default the count query if not provided
-  const effectiveCountQueryText =
-    countQueryText || `SELECT COUNT(*) FROM (${queryText}) AS count_query`;
   
   try {
     // Execute both the paginated query and the count query in parallel
     const [dataResult, countResult] = await Promise.all([
       query(paginatedQuery, [...params, limit, offset], clientOrPool),
-      query(effectiveCountQueryText, params, clientOrPool),
+      query(countQueryText, params, clientOrPool),
     ]);
     
     if (!countResult.rows.length) {
@@ -329,7 +331,7 @@ const paginateQuery = async ({
       });
     }
     
-    const totalRecords = parseInt(countResult.rows[0].total, 10);
+    const totalRecords = parseInt(countResult.rows[0]?.total || 0, 10);
     const totalPages = Math.ceil(totalRecords / limit);
     
     return {
@@ -344,7 +346,7 @@ const paginateQuery = async ({
   } catch (error) {
     logError('Error executing paginated query:', {
       queryText: paginatedQuery,
-      countQueryText: effectiveCountQueryText,
+      countQueryText,
       params: [...params, limit, offset],
       error: error.message,
       stack: error.stack,

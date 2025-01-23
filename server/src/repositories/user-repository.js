@@ -161,6 +161,10 @@ const getUser = async (client, field, value, shouldLock = false) => {
  * @returns {Promise<Object>} Paginated users and metadata.
  */
 const getAllUsers = async ({ page, limit, sortBy, sortOrder }) => {
+  const tableName = 'users u';
+  const joins = ['LEFT JOIN status s ON u.status_id = s.id'];
+  const whereClause = "s.name = 'active'";
+  
   // Construct SQL query parts
   const queryText = `
     SELECT
@@ -172,22 +176,17 @@ const getAllUsers = async ({ page, limit, sortBy, sortOrder }) => {
     FROM users u
     LEFT JOIN roles r ON u.role_id = r.id
     LEFT JOIN status s ON u.status_id = s.id
-    WHERE s.name = $1
-  `;
-  
-  const countQueryText = `
-    SELECT COUNT(*) AS total
-    FROM users u
-    LEFT JOIN status s ON u.status_id = s.id
-    WHERE s.name = $1
+    WHERE s.name = 'active'
   `;
   
   try {
     return await retry(async () =>
       await paginateQuery({
+        tableName,
+        joins,
+        whereClause,
         queryText,
-        countQueryText,
-        params: ['active'],
+        params: [],
         page,
         limit,
         sortBy,
