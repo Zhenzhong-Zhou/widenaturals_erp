@@ -88,8 +88,8 @@ const shutdownServer = async () => {
   // Set a timeout to force shutdown if it hangs
   const timeout = setTimeout(() => {
     logError('Shutdown timeout reached. Forcing exit.');
-    handleExit(1);
-  }, 10000);
+    process.exit(1); // Force exit with failure if timeout is reached
+  }, 10000); // Adjust timeout as needed
   
   try {
     // Perform a final backup
@@ -151,9 +151,9 @@ const shutdownServer = async () => {
       logError('Error stopping pool monitoring:', { error: error.message });
     }
     
-    clearTimeout(timeout); // Clear shutdown timeout
+    // Clear timeout to prevent force exit
+    clearTimeout(timeout);
     logInfo('Cleanup completed successfully.');
-    process.exit(0); // Exit successfully
   } catch (error) {
     clearTimeout(timeout);
     logError('Error during shutdown:', { error: error.message });

@@ -16,7 +16,7 @@ const MAX_LIMITS = {
     ADMIN: 20, // Maximum admin requests
     FILE_UPLOAD: 10, // Maximum file uploads
     FORGOT_USERNAME: 5, // Maximum forgot username requests
-    CSRF: 100,
+    CSRF: 150,
     REFRESH: 5,
     USER_PROFILE: 50,
   },
