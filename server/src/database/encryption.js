@@ -10,19 +10,28 @@ const { createReadStream, createWriteStream } = require('fs'); // For streaming
  * @param {string} ivFilePath - Path to save the initialization vector.
  * @returns {Promise<void>}
  */
-const encryptFile = async (filePath, encryptedFilePath, encryptionKey, ivFilePath) => {
+const encryptFile = async (
+  filePath,
+  encryptedFilePath,
+  encryptionKey,
+  ivFilePath
+) => {
   const iv = crypto.randomBytes(16); // Generate IV
-  
+
   // Save IV to a file asynchronously
   await fs.writeFile(ivFilePath, iv);
-  
-  const cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(encryptionKey, 'hex'), iv);
+
+  const cipher = crypto.createCipheriv(
+    'aes-256-cbc',
+    Buffer.from(encryptionKey, 'hex'),
+    iv
+  );
   const input = createReadStream(filePath);
   const output = createWriteStream(encryptedFilePath);
-  
+
   // Pipe the input through the cipher into the output
   input.pipe(cipher).pipe(output);
-  
+
   return new Promise((resolve, reject) => {
     output.on('finish', resolve);
     output.on('error', reject);
@@ -37,24 +46,33 @@ const encryptFile = async (filePath, encryptedFilePath, encryptionKey, ivFilePat
  * @param {string} ivFilePath - Path to the initialization vector file.
  * @returns {Promise<void>}
  */
-const decryptFile = async (encryptedFilePath, decryptedFilePath, encryptionKey, ivFilePath) => {
+const decryptFile = async (
+  encryptedFilePath,
+  decryptedFilePath,
+  encryptionKey,
+  ivFilePath
+) => {
   // Check if IV file exists asynchronously
   try {
     await fs.access(ivFilePath);
   } catch (err) {
     throw new Error(`Initialization Vector (IV) file not found: ${ivFilePath}`);
   }
-  
+
   // Load IV asynchronously
   const iv = await fs.readFile(ivFilePath);
-  
-  const decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(encryptionKey, 'hex'), iv);
+
+  const decipher = crypto.createDecipheriv(
+    'aes-256-cbc',
+    Buffer.from(encryptionKey, 'hex'),
+    iv
+  );
   const input = createReadStream(encryptedFilePath);
   const output = createWriteStream(decryptedFilePath);
-  
+
   // Pipe the input through the decipher into the output
   input.pipe(decipher).pipe(output);
-  
+
   return new Promise((resolve, reject) => {
     output.on('finish', resolve);
     output.on('error', reject);

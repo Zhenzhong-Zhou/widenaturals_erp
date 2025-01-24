@@ -9,7 +9,12 @@ interface ListProps<T> {
   sx?: object;
 }
 
-const CustomList: FC<ListProps<any>> = ({ items, renderItem, emptyMessage = "No items found.", sx }) => {
+const CustomList: FC<ListProps<any>> = ({
+  items,
+  renderItem,
+  emptyMessage = 'No items found.',
+  sx,
+}) => {
   return (
     <Box sx={{ ...sx }}>
       {items.length > 0 ? (

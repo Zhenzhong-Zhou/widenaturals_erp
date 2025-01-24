@@ -19,9 +19,13 @@ const { logError } = require('../utils/logger-helper');
  * // Fetch permissions with 'FOR UPDATE' lock mode
  * const permissions = await getRolePermissionsByRoleId('role-id-123', dbClient, 'FOR UPDATE');
  */
-const getRolePermissionsByRoleId = async (roleId, client, lockMode = 'FOR SHARE') => {
+const getRolePermissionsByRoleId = async (
+  roleId,
+  client,
+  lockMode = 'FOR SHARE'
+) => {
   await lockRow(client, 'role_permissions', roleId, lockMode);
-  
+
   const text = `
     SELECT
       ARRAY_AGG(p.key) AS permissions
@@ -38,18 +42,18 @@ const getRolePermissionsByRoleId = async (roleId, client, lockMode = 'FOR SHARE'
     GROUP BY r.name
     ${lockMode};
   `;
-  
+
   return await retry(async () => {
     try {
       const params = [roleId];
       const result = await client.query(text, params);
-      
+
       if (!result.rows.length || !result.rows[0].permissions) {
         throw AppError.notFoundError(
           `No permissions found for the specified role: ${roleId}`
         );
       }
-      
+
       return result.rows[0].permissions;
     } catch (error) {
       logError('Error fetching permissions for role:', {

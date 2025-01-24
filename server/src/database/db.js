@@ -270,7 +270,6 @@ const retryDatabaseConnection = async (config, retries = 5) => {
  *
  * @param {Object} options - The options for the paginated query.
  * @param {string} options.queryText - Base SQL query without pagination (e.g., "SELECT * FROM table_name WHERE condition").
- * @param {string} options.countQueryText - SQL query to count total records (e.g., "SELECT COUNT(*) FROM table_name WHERE condition").
  * @param {Array} [options.params=[]] - Query parameters for the base query.
  * @param {number} [options.page=1] - Current page number (1-based index).
  * @param {number} [options.limit=10] - Number of records per page.
@@ -280,18 +279,18 @@ const retryDatabaseConnection = async (config, retries = 5) => {
  * @throws {AppError} - Throws an error if the query execution fails.
  */
 const paginateQuery = async ({
-                               tableName,
-                               joins = [],
-                               whereClause = '1=1',
-                               queryText,
-                               params = [],
-                               page = 1,
-                               limit = 10,
-                               sortBy = null,
-                               sortOrder = 'ASC',
-                               clientOrPool = pool,
-                               req = null, // Pass request context for logging
-                             }) => {
+  tableName,
+  joins = [],
+  whereClause = '1=1',
+  queryText,
+  params = [],
+  page = 1,
+  limit = 10,
+  sortBy = null,
+  sortOrder = 'ASC',
+  clientOrPool = pool,
+  req = null, // Pass request context for logging
+}) => {
   if (page < 1 || limit < 1) {
     throw new AppError.validationError(
       'Page and limit must be positive integers.',
@@ -302,12 +301,12 @@ const paginateQuery = async ({
       }
     );
   }
-  
+
   const offset = (page - 1) * limit;
-  
+
   // Generate the COUNT query dynamically
   const countQueryText = generateCountQuery(tableName, joins, whereClause);
-  
+
   // Construct the paginated query
   let paginatedQuery = queryText;
   if (sortBy) {
@@ -317,23 +316,23 @@ const paginateQuery = async ({
     paginatedQuery += ` ORDER BY ${sortBy} ${validSortOrder}`;
   }
   paginatedQuery += ` LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
-  
+
   try {
     // Execute both the paginated query and the count query in parallel
     const [dataResult, countResult] = await Promise.all([
       query(paginatedQuery, [...params, limit, offset], clientOrPool),
       query(countQueryText, params, clientOrPool),
     ]);
-    
+
     if (!countResult.rows.length) {
       throw new AppError('Failed to fetch total record count.', 500, {
         type: 'DatabaseError',
       });
     }
-    
+
     const totalRecords = parseInt(countResult.rows[0]?.total || 0, 10);
     const totalPages = Math.ceil(totalRecords / limit);
-    
+
     return {
       data: dataResult.rows,
       pagination: {
@@ -350,12 +349,14 @@ const paginateQuery = async ({
       params: [...params, limit, offset],
       error: error.message,
       stack: error.stack,
-      context: req ? {
-        ip: req.ip,
-        method: req.method,
-        route: req.originalUrl,
-        userAgent: req.headers['user-agent'],
-      } : {},
+      context: req
+        ? {
+            ip: req.ip,
+            method: req.method,
+            route: req.originalUrl,
+            userAgent: req.headers['user-agent'],
+          }
+        : {},
     });
     throw new AppError('Failed to execute paginated query.', 500, {
       type: 'DatabaseError',

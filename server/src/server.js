@@ -36,42 +36,46 @@ const startServer = async () => {
     logError(new AppError('PORT environment variable is missing or undefined'));
     await handleExit(1);
   }
-  
+
   try {
     // Database initialization
     logInfo('Initializing database...');
     await createDatabaseAndInitialize();
-    
+
     logInfo('Testing database connection...');
     await testConnection();
     logInfo('Database connected successfully.');
-    
+
     // Root admin initialization
     logInfo('Initializing root admin...');
     await initializeRootAdmin();
     logInfo('Root admin initialization completed.');
-    
+
     // Starting the server
     logInfo('Starting server...');
     server = http.createServer(app);
-    
+
     // Health check scheduling
-    const healthCheckInterval = parseInt(process.env.HEALTH_CHECK_INTERVAL, 10) || ONE_MINUTE;
+    const healthCheckInterval =
+      parseInt(process.env.HEALTH_CHECK_INTERVAL, 10) || ONE_MINUTE;
 
     // Schedule health checks
     await startHealthCheck(healthCheckInterval);
 
     // Log health check at the same interval
-    const healthCheckId = setInterval(() => logInfo('Health check running...'), healthCheckInterval);
+    const healthCheckId = setInterval(
+      () => logInfo('Health check running...'),
+      healthCheckInterval
+    );
     activeIntervals.add(healthCheckId); // Track interval for cleanup
-    
+
     // Start pool monitoring
     startPoolMonitoring();
-    
+
     server.listen(PORT, () => {
       logInfo(`Server running at http://localhost:${PORT}`);
     });
-    
+
     return server;
   } catch (error) {
     logError('Failed to start server:', { error: error.message });
@@ -84,13 +88,13 @@ const startServer = async () => {
  */
 const shutdownServer = async () => {
   logInfo('Shutting down server...');
-  
+
   // Set a timeout to force shutdown if it hangs
   const timeout = setTimeout(() => {
     logError('Shutdown timeout reached. Forcing exit.');
     process.exit(1); // Force exit with failure if timeout is reached
   }, 10000); // Adjust timeout as needed
-  
+
   try {
     // Perform a final backup
     try {
@@ -100,12 +104,12 @@ const shutdownServer = async () => {
     } catch (error) {
       logError('Error during final backup:', { error: error.message });
     }
-    
+
     // Clear active intervals
     logInfo('Clearing active intervals...');
     activeIntervals.forEach((intervalId) => clearInterval(intervalId));
     logInfo('All active intervals cleared.');
-    
+
     // Check active connections
     if (server) {
       server.getConnections((err, count) => {
@@ -115,7 +119,7 @@ const shutdownServer = async () => {
           logInfo(`Active connections: ${count}`);
         }
       });
-      
+
       // Close the HTTP server
       logInfo('Closing HTTP server...');
       await new Promise((resolve, reject) => {
@@ -130,7 +134,7 @@ const shutdownServer = async () => {
         });
       });
     }
-    
+
     // Stop health checks
     try {
       logInfo('Stopping health checks...');
@@ -138,7 +142,7 @@ const shutdownServer = async () => {
     } catch (error) {
       logError('Error stopping health checks:', { error: error.message });
     }
-    
+
     // Stop pool monitoring
     try {
       logInfo('Stopping pool monitoring...');
@@ -150,7 +154,7 @@ const shutdownServer = async () => {
     } catch (error) {
       logError('Error stopping pool monitoring:', { error: error.message });
     }
-    
+
     // Clear timeout to prevent force exit
     clearTimeout(timeout);
     logInfo('Cleanup completed successfully.');

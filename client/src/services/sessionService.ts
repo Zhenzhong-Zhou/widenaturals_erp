@@ -32,7 +32,10 @@ interface LoginResponse {
  * @returns {Promise<LoginResponse>} A promise resolving to the user's session details, including access token, csrf token, and user information.
  * @throws {AppError} Throws an AppError for validation errors or failed login attempts.
  */
-const login = async (email: string, password: string): Promise<LoginResponse> => {
+const login = async (
+  email: string,
+  password: string
+): Promise<LoginResponse> => {
   let csrfToken: string | null = null;
   if (!email || !password) {
     throw new AppError('Email and password are required', 400, {
@@ -40,12 +43,15 @@ const login = async (email: string, password: string): Promise<LoginResponse> =>
       details: 'Both email and password must be provided',
     });
   }
-  
+
   try {
     const response = await withRetry(
       () =>
         withTimeout(
-          axiosInstance.post<LoginResponse>(API_ENDPOINTS.LOGIN, { email, password }),
+          axiosInstance.post<LoginResponse>(API_ENDPOINTS.LOGIN, {
+            email,
+            password,
+          }),
           5000, // Timeout in milliseconds
           'Login request timed out'
         ),
@@ -53,23 +59,24 @@ const login = async (email: string, password: string): Promise<LoginResponse> =>
       1000, // Delay between retries in milliseconds
       'Failed to login after retries'
     );
-    
+
     // Set the access token in the Authorization header for subsequent requests
-    axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${response.data.accessToken}`;
-    
+    axiosInstance.defaults.headers.common['Authorization'] =
+      `Bearer ${response.data.accessToken}`;
+
     // Update CSRF token
     csrfToken = response.data.csrfToken;
 
     // Replace the CSRF token in axios headers for subsequent requests
     axiosInstance.defaults.headers.common['X-CSRF-Token'] = csrfToken;
-    
+
     return response.data;
   } catch (error: unknown) {
     const appError = new AppError('Login failed', 401, {
       type: ErrorType.NetworkError,
       details: mapErrorMessage(error),
     });
-    
+
     handleError(appError);
     throw appError;
   }
@@ -82,7 +89,7 @@ const refreshToken = async (): Promise<{ accessToken: string }> => {
   try {
     const state = store.getState();
     const csrfToken = selectCsrfToken(state);
-   
+
     const response = await withRetry(
       () =>
         withTimeout(
@@ -91,7 +98,7 @@ const refreshToken = async (): Promise<{ accessToken: string }> => {
             {
               headers: {
                 'X-CSRF-Token': csrfToken,
-                "Content-Type": "application/json",
+                'Content-Type': 'application/json',
                 Authorization: `Bearer ${getToken('accessToken')}`,
               },
               withCredentials: true,
@@ -104,10 +111,11 @@ const refreshToken = async (): Promise<{ accessToken: string }> => {
       1000, // Delay between retries in milliseconds
       'Failed to refresh token after retries'
     );
-    
+
     // Update Axios headers to use the new access token
-    axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${response.data.accessToken}`;
-    
+    axiosInstance.defaults.headers.common['Authorization'] =
+      `Bearer ${response.data.accessToken}`;
+
     return { accessToken: response.data.accessToken };
   } catch (error: unknown) {
     // Log the error and handle session expiration
@@ -131,7 +139,7 @@ const logout = async (): Promise<void> => {
       5000, // Timeout in milliseconds
       'Logout request timed out'
     );
-    
+
     clearTokens();
     console.log('Logout successful');
   } catch (error) {

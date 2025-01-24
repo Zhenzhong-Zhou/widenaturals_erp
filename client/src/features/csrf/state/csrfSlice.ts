@@ -24,7 +24,7 @@ const csrfSlice = createSlice({
      * Resets the CSRF token state to its initial values.
      */
     resetCsrfToken: () => initialState, // Resets state to the initial state
-    
+
     /**
      * Manually updates the CSRF token in the Redux state.
      */

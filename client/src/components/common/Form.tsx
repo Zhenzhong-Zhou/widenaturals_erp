@@ -30,14 +30,18 @@ interface FormProps {
 }
 
 const Form: FC<FormProps> = ({
-                               fields = [], // Default to an empty array
-                               children,
-                               onSubmit,
-                               submitButtonLabel = 'Submit',
-                             }) => {
+  fields = [], // Default to an empty array
+  children,
+  onSubmit,
+  submitButtonLabel = 'Submit',
+}) => {
   const { theme } = useThemeContext();
-  const { handleSubmit, control, formState: { errors } } = useForm();
-  
+  const {
+    handleSubmit,
+    control,
+    formState: { errors },
+  } = useForm();
+
   return (
     <Box
       component="form"

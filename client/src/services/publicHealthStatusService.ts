@@ -17,9 +17,11 @@ const API_ENDPOINTS = {
  */
 const fetchPublicHealthStatus = async (): Promise<HealthState> => {
   try {
-    const timeoutMessage = 'Request timed out while fetching public health status';
-    const retryMessage = 'All retries failed while fetching public health status';
-    
+    const timeoutMessage =
+      'Request timed out while fetching public health status';
+    const retryMessage =
+      'All retries failed while fetching public health status';
+
     const response = await withRetry(
       async () =>
         await withTimeout(
@@ -31,24 +33,28 @@ const fetchPublicHealthStatus = async (): Promise<HealthState> => {
       1000, // Delay in milliseconds between retries
       retryMessage // Retry error message
     );
-    
+
     if (!response || response.status !== 200) {
       throw new AppError('Unexpected response from server', 502, {
         type: ErrorType.NetworkError,
         details: `Response status: ${response?.status || 'unknown'}`,
       });
     }
-    
+
     return response.data;
   } catch (error) {
     if (isCustomAxiosError(error)) {
       // Handle Axios-specific errors
-      throw new AppError('Failed to fetch public health status', error.response?.status || 500, {
-        type: ErrorType.NetworkError,
-        details: error.message,
-      });
+      throw new AppError(
+        'Failed to fetch public health status',
+        error.response?.status || 500,
+        {
+          type: ErrorType.NetworkError,
+          details: error.message,
+        }
+      );
     }
-    
+
     // Re-throw unknown errors as AppError
     throw new AppError('Unexpected error occurred', 500, {
       type: ErrorType.UnknownError,

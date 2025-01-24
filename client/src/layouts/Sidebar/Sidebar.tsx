@@ -22,12 +22,12 @@ interface SidebarProps {
 const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
   const { theme } = useThemeContext();
   const logo = theme.palette.mode === 'dark' ? logoDark : logoLight;
-  
+
   // Filter routes for items to display in the sidebar
   const menuItems = routes.filter(
     (route) => route.meta?.showInSidebar && !route.path.includes('*')
   );
-  
+
   return (
     <>
       {/* Sidebar Drawer */}
@@ -69,7 +69,7 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
               }}
             />
           </Box>
-          
+
           {isOpen && (
             <IconButton
               onClick={toggleSidebar}
@@ -87,7 +87,7 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
             </IconButton>
           )}
         </Box>
-        
+
         {/* Sidebar Navigation */}
         <Box
           sx={{
@@ -121,7 +121,7 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
           </List>
         </Box>
       </Drawer>
-      
+
       {/* Open Button */}
       {!isOpen && (
         <IconButton

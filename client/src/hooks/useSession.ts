@@ -19,7 +19,7 @@ const useSession = () => {
   const user = useAppSelector(selectUser);
   const accessToken = useAppSelector(selectAccessToken);
   const csrfToken = useAppSelector(selectCsrfToken);
-  
+
   /**
    * Refresh the tokens (accessToken and csrfToken).
    * Updates the Redux state and Axios instance headers.
@@ -27,21 +27,22 @@ const useSession = () => {
   const refreshToken = useCallback(async () => {
     try {
       // Dispatch the refreshTokenThunk and unwrap its result
-      const { accessToken: newAccessToken, csrfToken: newCsrfToken } = await dispatch(refreshTokenThunk()).unwrap();
-      
+      const { accessToken: newAccessToken, csrfToken: newCsrfToken } =
+        await dispatch(refreshTokenThunk()).unwrap();
+
       console.log('Tokens refreshed successfully.');
-      
+
       // Update Axios instance with the new tokens
       axiosInstance.defaults.headers.Authorization = `Bearer ${newAccessToken}`;
       axiosInstance.defaults.headers['X-CSRF-Token'] = newCsrfToken;
-      
+
       return { accessToken: newAccessToken, csrfToken: newCsrfToken };
     } catch (error) {
       console.error('Failed to refresh tokens:', error);
       throw error;
     }
   }, [dispatch]);
-  
+
   /**
    * Synchronize the current accessToken and csrfToken with Axios on token change.
    */
@@ -52,7 +53,7 @@ const useSession = () => {
     } else {
       delete axiosInstance.defaults.headers.Authorization;
     }
-    
+
     // Sync csrfToken
     if (csrfToken) {
       axiosInstance.defaults.headers['X-CSRF-Token'] = csrfToken;
@@ -60,7 +61,7 @@ const useSession = () => {
       delete axiosInstance.defaults.headers['X-CSRF-Token'];
     }
   }, [accessToken, csrfToken]);
-  
+
   // Return the session state and actions
   return {
     isAuthenticated,

@@ -11,7 +11,7 @@ const UsersCard: FC<UsersCardProps> = ({ user }) => {
     { label: 'Job Title', value: user.job_title },
     { label: 'Role', value: user.role },
   ];
-  
+
   return (
     <CustomCard
       sx={{
@@ -43,7 +43,7 @@ const UsersCard: FC<UsersCardProps> = ({ user }) => {
           {user.fullname?.[0]}
         </Avatar>
       </Box>
-      
+
       {/* User Information */}
       <Typography variant="h6" gutterBottom align="center">
         {user.fullname}

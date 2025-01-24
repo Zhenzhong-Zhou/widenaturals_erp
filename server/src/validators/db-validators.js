@@ -15,12 +15,14 @@ const { userExists } = require('../repositories/user-repository');
 const validateUserExists = async (field, value) => {
   // Validate input
   if (!field || !value) {
-    throw AppError.validationError('Both field and value are required for user validation.');
+    throw AppError.validationError(
+      'Both field and value are required for user validation.'
+    );
   }
-  
+
   // Check if the user exists
   const user = await userExists(field, value);
-  
+
   if (!user) {
     throw AppError.notFoundError(`User with ${value} not found.`);
   }

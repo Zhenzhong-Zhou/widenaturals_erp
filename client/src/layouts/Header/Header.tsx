@@ -23,15 +23,15 @@ const Header: FC<HeaderProps> = ({ user, onLogout }) => {
   const { theme, toggleTheme } = useThemeContext();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const navigate = useNavigate();
-  
+
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
   };
-  
+
   const handleMenuClose = () => {
     setAnchorEl(null);
   };
-  
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'healthy':
@@ -44,27 +44,29 @@ const Header: FC<HeaderProps> = ({ user, onLogout }) => {
         return 'default';
     }
   };
-  
+
   return (
     <Box sx={headerStyles(theme)}>
       {/* Application Title */}
       <Typography variant="h6" sx={typographyStyles(theme)}>
         WIDE Naturals Inc.
       </Typography>
-      
+
       {/* Server Status */}
       <HealthStatus getStatusColor={getStatusColor} />
-      
+
       {/* Theme Toggle Button */}
       <CustomButton
         variant="outlined"
         onClick={toggleTheme}
         sx={{ marginRight: 2 }}
       >
-        <FontAwesomeIcon icon={theme.palette.mode === 'dark' ? faSun : faMoon} />
+        <FontAwesomeIcon
+          icon={theme.palette.mode === 'dark' ? faSun : faMoon}
+        />
         {theme.palette.mode === 'dark' ? ' Light' : ' Dark'} Mode
       </CustomButton>
-      
+
       {/* User Avatar and Menu */}
       <IconButton onClick={handleMenuOpen}>
         <Avatar
@@ -89,9 +91,7 @@ const Header: FC<HeaderProps> = ({ user, onLogout }) => {
         }}
       >
         <MenuItem>
-          <Typography variant="body1">
-            {user?.firstname || 'Guest'}
-          </Typography>
+          <Typography variant="body1">{user?.firstname || 'Guest'}</Typography>
         </MenuItem>
         <Divider />
         <MenuItem
@@ -102,10 +102,12 @@ const Header: FC<HeaderProps> = ({ user, onLogout }) => {
         >
           Profile
         </MenuItem>
-        <MenuItem onClick={() => {
-          handleMenuClose();
-          onLogout();
-        }}>
+        <MenuItem
+          onClick={() => {
+            handleMenuClose();
+            onLogout();
+          }}
+        >
           <Typography variant="body2">Logout</Typography>
         </MenuItem>
       </Menu>

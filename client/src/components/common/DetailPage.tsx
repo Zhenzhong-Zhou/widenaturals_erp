@@ -10,9 +10,14 @@ interface DetailPageProps {
   children: ReactNode;
 }
 
-const DetailPage: FC<DetailPageProps> = ({ title, isLoading, error, children }) => {
+const DetailPage: FC<DetailPageProps> = ({
+  title,
+  isLoading,
+  error,
+  children,
+}) => {
   const { theme } = useThemeContext();
-  
+
   if (isLoading) {
     return (
       <Box
@@ -29,7 +34,7 @@ const DetailPage: FC<DetailPageProps> = ({ title, isLoading, error, children }) 
       </Box>
     );
   }
-  
+
   if (error) {
     return (
       <Box
@@ -44,7 +49,7 @@ const DetailPage: FC<DetailPageProps> = ({ title, isLoading, error, children }) 
       </Box>
     );
   }
-  
+
   return (
     <Box sx={{ padding: theme.spacing(3), maxWidth: 600, margin: '0 auto' }}>
       <Typography variant="h4" sx={{ marginBottom: theme.spacing(2) }}>

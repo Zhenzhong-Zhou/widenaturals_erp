@@ -6,7 +6,9 @@ const RATE_LIMIT = require('../utils/constants/domain/rate-limit');
 
 loadEnv();
 
-const trustedIPs = process.env.TRUSTED_IPS ? process.env.TRUSTED_IPS.split(',') : [];
+const trustedIPs = process.env.TRUSTED_IPS
+  ? process.env.TRUSTED_IPS.split(',')
+  : [];
 
 /**
  * Default custom handler for rate-limited requests.
@@ -26,7 +28,10 @@ const defaultRateLimitHandler = (req, res, next, options) => {
   };
 
   // Log the rate limit event
-  logWarn('Rate limit exceeded:', { timestamp: new Date().toISOString(), ...logDetails });
+  logWarn('Rate limit exceeded:', {
+    timestamp: new Date().toISOString(),
+    ...logDetails,
+  });
 
   // Return a structured JSON response using AppError
   next(
@@ -63,8 +68,8 @@ const createRateLimiter = ({
     : RATE_LIMIT.DEFAULT_MAX,
   headers = true,
   statusCode = 429,
-   keyGenerator = (req) => req.ip,
-   skip = (req) => trustedIPs.includes(req.ip),
+  keyGenerator = (req) => req.ip,
+  skip = (req) => trustedIPs.includes(req.ip),
   handler = defaultRateLimitHandler, // Use default handler if none is provided
   disableInDev = false,
 } = {}) => {
@@ -72,7 +77,7 @@ const createRateLimiter = ({
     // Bypass rate limiting in development mode
     return (req, res, next) => next();
   }
-  
+
   return rateLimit({
     windowMs,
     max,

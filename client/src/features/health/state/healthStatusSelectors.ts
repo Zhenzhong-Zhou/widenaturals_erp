@@ -3,7 +3,8 @@ import { RootState } from '../../../store/store';
 import { HealthState } from './HealthStatusState';
 
 // Base selector to access the health slice
-export const selectHealthState = (state: RootState): HealthState => state.health;
+export const selectHealthState = (state: RootState): HealthState =>
+  state.health;
 
 // Selector to get the overall server status
 export const selectServerStatus = createSelector(

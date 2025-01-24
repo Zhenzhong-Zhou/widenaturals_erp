@@ -1,8 +1,8 @@
-import { FC } from "react";
-import Box from "@mui/material/Box";
-import { useInitializeApp, useValidateAndRefreshToken } from "../hooks";
-import AppRoutes from "../routes/AppRoutes.tsx";
-import { Loading, ErrorDisplay, ErrorMessage } from "@components/index.ts";
+import { FC } from 'react';
+import Box from '@mui/material/Box';
+import { useInitializeApp, useValidateAndRefreshToken } from '../hooks';
+import AppRoutes from '../routes/AppRoutes.tsx';
+import { Loading, ErrorDisplay, ErrorMessage } from '@components/index.ts';
 
 /**
  * AppContent Component
@@ -14,21 +14,24 @@ const AppContent: FC = () => {
     delay: 500,
     retryAttempts: 3,
   });
-  
+
   // Validate and refresh token on initial load
-  const { loading: isTokenRefreshing, error: tokenError } = useValidateAndRefreshToken();
-  
+  const { loading: isTokenRefreshing, error: tokenError } =
+    useValidateAndRefreshToken();
+
   // Helper function to determine error message
   const getErrorMessage = (): string => {
     if (initializationError) {
-      return initializationError.message || "Failed to initialize the application.";
+      return (
+        initializationError.message || 'Failed to initialize the application.'
+      );
     }
     if (tokenError) {
       return tokenError;
     }
-    return "An unexpected error occurred.";
+    return 'An unexpected error occurred.';
   };
-  
+
   // Show critical error for initialization failure
   if (hasError) {
     return (
@@ -40,45 +43,45 @@ const AppContent: FC = () => {
       </ErrorDisplay>
     );
   }
-  
+
   // Render the app while token refreshing happens in the background
   return (
     <Box className="app">
       {isInitializing && (
         <Box
           sx={{
-            position: "absolute",
+            position: 'absolute',
             top: 0,
             left: 0,
-            width: "100%",
-            height: "100%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: "background.default",
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'background.default',
             zIndex: 10,
           }}
         >
           <Loading message="Initializing application..." />
         </Box>
       )}
-      
+
       {isTokenRefreshing && (
         <Box
           sx={{
-            position: "absolute",
+            position: 'absolute',
             bottom: 16,
             right: 16,
-            backgroundColor: "background.paper",
-            padding: "8px 16px",
-            borderRadius: "8px",
+            backgroundColor: 'background.paper',
+            padding: '8px 16px',
+            borderRadius: '8px',
             boxShadow: 3,
           }}
         >
           <Loading message="Refreshing token..." variant="spinner" />
         </Box>
       )}
-      
+
       <AppRoutes />
     </Box>
   );

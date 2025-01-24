@@ -26,11 +26,15 @@ const fetchUsers = async (): Promise<User[] | null> => {
     return response.data;
   } catch (error: any) {
     console.error('Error fetching users:', error.message);
-    
+
     // Optionally rethrow the error or handle it based on the application logic
     if (error.response) {
       // Server responded with a status code outside the 2xx range
-      console.error('Server Error:', error.response.status, error.response.data);
+      console.error(
+        'Server Error:',
+        error.response.status,
+        error.response.data
+      );
     } else if (error.request) {
       // Request was made but no response received
       console.error('No Response:', error.request);
@@ -38,7 +42,7 @@ const fetchUsers = async (): Promise<User[] | null> => {
       // Something happened while setting up the request
       console.error('Request Error:', error.message);
     }
-    
+
     // Return null or throw error based on your requirements
     return null;
   }
@@ -54,14 +58,19 @@ const fetchUserProfile = async (): Promise<UserProfileResponse> => {
   try {
     const fetchProfile = () =>
       axiosInstance.get<UserProfileResponse>(API_ENDPOINTS.USER_PROFILE);
-    
+
     // Add retry and timeout logic
     const response = await withTimeout(
-      withRetry(fetchProfile, 3, 1000, 'Failed to fetch user profile after retries'), // Retry with delay
+      withRetry(
+        fetchProfile,
+        3,
+        1000,
+        'Failed to fetch user profile after retries'
+      ), // Retry with delay
       5000, // Timeout in milliseconds
       'Fetching user profile timed out'
     );
-    
+
     // Validate response structure
     if (!response.data || typeof response.data !== 'object') {
       throw new AppError('Unexpected response format', 400, {
@@ -69,7 +78,7 @@ const fetchUserProfile = async (): Promise<UserProfileResponse> => {
         details: response.data,
       });
     }
-    
+
     return response.data;
   } catch (err: unknown) {
     // Handle 401 Unauthorized
@@ -79,7 +88,7 @@ const fetchUserProfile = async (): Promise<UserProfileResponse> => {
         type: ErrorType.AuthenticationError,
       });
     }
-    
+
     // Handle all other errors
     const mappedError = mapErrorMessage(err);
     handleError(mappedError);

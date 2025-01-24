@@ -67,7 +67,7 @@ const resetPasswordController = wrapAsync(async (req, res, next) => {
   try {
     const userId = req.user.id;
     const { currentPassword, newPassword } = req.body;
-    
+
     if (!userId || !newPassword) {
       throw validationError('User ID and new password are required.');
     }

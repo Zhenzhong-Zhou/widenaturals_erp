@@ -21,7 +21,7 @@ export async function withTimeout<T>(
 ): Promise<T> {
   const promise =
     typeof promiseOrFn === 'function' ? promiseOrFn() : promiseOrFn;
-  
+
   return Promise.race([
     promise,
     new Promise<never>((_, reject) =>

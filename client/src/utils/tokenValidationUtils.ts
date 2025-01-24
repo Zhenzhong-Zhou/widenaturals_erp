@@ -11,14 +11,14 @@ export const isTokenValid = (accessToken: string): boolean => {
   try {
     // Decode the token to extract the expiration time
     const decoded = jwtDecode<{ exp: number }>(accessToken);
-    
+
     // Ensure the `exp` field exists and is a number
     if (!decoded.exp) {
       throw new AppError('Invalid token: Missing or invalid expiration', 400, {
         type: ErrorType.ValidationError,
       });
     }
-    
+
     // Compare expiration time with the current time
     return decoded.exp * 1000 > Date.now();
   } catch (error) {

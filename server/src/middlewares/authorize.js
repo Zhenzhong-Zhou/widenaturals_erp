@@ -20,42 +20,47 @@ const authorize = (requiredPermissions = []) => {
           'Unauthorized: User not authenticated.'
         );
       }
-      
+
       const { role_id } = req.user;
-      
+
       // Try to fetch permissions from cache
       let rolePermissions;
       const cacheKey = `role_permissions:${role_id}`;
       const cachedPermissions = await redisClient.get(cacheKey);
-      
+
       if (cachedPermissions) {
         rolePermissions = JSON.parse(cachedPermissions);
       } else {
         // Fetch permissions from the database if not in cache
         rolePermissions = await getRolePermissionsByRoleId(role_id);
-        
+
         if (!rolePermissions) {
           throw AppError.authorizationError('Role permissions not found.', {
             details: { role_id },
           });
         }
-        
+
         // Cache the permissions with a 1-hour expiration time
-        await redisClient.set(cacheKey, JSON.stringify(rolePermissions), 'EX', 3600);
+        await redisClient.set(
+          cacheKey,
+          JSON.stringify(rolePermissions),
+          'EX',
+          3600
+        );
       }
-      
+
       const userPermissions = rolePermissions.map((perm) => perm);
-      
+
       // Allow if the user has `root_access`
       if (userPermissions.includes('root_access')) {
         return next();
       }
-      
+
       // Check if the user has all required permissions
       const hasPermission = requiredPermissions.every((perm) =>
         userPermissions.includes(perm)
       );
-      
+
       if (!hasPermission) {
         throw AppError.authorizationError(
           'Forbidden: Insufficient permissions.',
@@ -68,7 +73,7 @@ const authorize = (requiredPermissions = []) => {
           }
         );
       }
-      
+
       // User is authorized, proceed to the next middleware or controller
       next();
     } catch (error) {

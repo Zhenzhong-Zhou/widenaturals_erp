@@ -15,35 +15,33 @@ export const fetchUsersThunk = createAsyncThunk<
   User[], // Return type on success
   void, // Argument type
   { rejectValue: string } // Type for rejectWithValue
->(
-  'users/fetchAll',
-  async (_, { rejectWithValue }) => {
-    try {
-      const response = await userService.fetchUsers();
-      return response as User[];
-    } catch (error: any) {
-      const errorMessage = error.response?.data || 'Failed to fetch users';
-      console.error('Error fetching users:', errorMessage);
-      return rejectWithValue(errorMessage);
-    }
+>('users/fetchAll', async (_, { rejectWithValue }) => {
+  try {
+    const response = await userService.fetchUsers();
+    return response as User[];
+  } catch (error: any) {
+    const errorMessage = error.response?.data || 'Failed to fetch users';
+    console.error('Error fetching users:', errorMessage);
+    return rejectWithValue(errorMessage);
   }
-);
+});
 
 // Define the Thunk
-export const fetchUserProfileThunk = createAsyncThunk<UserProfileResponse, void, { rejectValue: string }>(
-  'user/fetchUserProfile',
-  async (_, { rejectWithValue }) => {
-    try {
-      const response = await userService.fetchUserProfile(); // Fetch the full response
-      if (!response || !response.data) {
-        throw new AppError('Unexpected response structure', 400);
-      }
-      return response; // Return the full UserResponse
-    } catch (err) {
-      if (err instanceof AppError) {
-        return rejectWithValue(err.message);
-      }
-      return rejectWithValue('An unexpected error occurred');
+export const fetchUserProfileThunk = createAsyncThunk<
+  UserProfileResponse,
+  void,
+  { rejectValue: string }
+>('user/fetchUserProfile', async (_, { rejectWithValue }) => {
+  try {
+    const response = await userService.fetchUserProfile(); // Fetch the full response
+    if (!response || !response.data) {
+      throw new AppError('Unexpected response structure', 400);
     }
+    return response; // Return the full UserResponse
+  } catch (err) {
+    if (err instanceof AppError) {
+      return rejectWithValue(err.message);
+    }
+    return rejectWithValue('An unexpected error occurred');
   }
-);
+});

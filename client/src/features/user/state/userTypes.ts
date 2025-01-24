@@ -34,7 +34,7 @@ export interface UserProfile {
 
 export interface UserProfileResponse {
   success: boolean; // Indicates whether the request was successful
-  message: string;  // Message describing the operation's result
+  message: string; // Message describing the operation's result
   data: UserProfile; // The user profile object
   timestamp: string; // ISO timestamp when the response was generated
 }

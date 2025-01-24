@@ -8,12 +8,20 @@ import { useThemeContext } from '../../../context/ThemeContext.tsx';
 interface ResetPasswordModalProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (data: { currentPassword: string; newPassword: string; confirmPassword: string }) => void;
+  onSubmit: (data: {
+    currentPassword: string;
+    newPassword: string;
+    confirmPassword: string;
+  }) => void;
 }
 
-const ResetPasswordModal: FC<ResetPasswordModalProps> = ({ open, onClose, onSubmit }) => {
+const ResetPasswordModal: FC<ResetPasswordModalProps> = ({
+  open,
+  onClose,
+  onSubmit,
+}) => {
   const { theme } = useThemeContext();
-  
+
   return (
     <Backdrop
       open={open}
@@ -33,7 +41,14 @@ const ResetPasswordModal: FC<ResetPasswordModalProps> = ({ open, onClose, onSubm
           zIndex: 1400, // Ensure the modal content is above the backdrop
         }}
       >
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            mb: 2,
+          }}
+        >
           <Typography variant="h6" component="h2">
             Reset Password
           </Typography>
@@ -46,12 +61,13 @@ const ResetPasswordModal: FC<ResetPasswordModalProps> = ({ open, onClose, onSubm
             />
           </IconButton>
         </Box>
-        
+
         {/* Add a warning or hint */}
         <Alert severity="info" sx={{ mb: 2 }}>
-          Please note: After successfully resetting your password, you will be logged out and required to log in again with your new password.
+          Please note: After successfully resetting your password, you will be
+          logged out and required to log in again with your new password.
         </Alert>
-        
+
         <ResetPasswordForm onSubmit={onSubmit} />
       </Box>
     </Backdrop>

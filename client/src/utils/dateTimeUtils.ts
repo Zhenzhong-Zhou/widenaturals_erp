@@ -25,7 +25,7 @@ const convertToLocalTime = (
 ): { date: Date; timezoneAbbreviation: string } => {
   const date = new Date(timestamp);
   validateDate(date);
-  
+
   const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone: timezone,
     year: 'numeric',
@@ -36,7 +36,7 @@ const convertToLocalTime = (
     second: '2-digit',
     hour12: false,
   });
-  
+
   const parts = formatter.formatToParts(date);
   const year = Number(parts.find((p) => p.type === 'year')?.value);
   const month = Number(parts.find((p) => p.type === 'month')?.value) - 1; // Months are 0-based
@@ -44,7 +44,7 @@ const convertToLocalTime = (
   const hour = Number(parts.find((p) => p.type === 'hour')?.value);
   const minute = Number(parts.find((p) => p.type === 'minute')?.value);
   const second = Number(parts.find((p) => p.type === 'second')?.value);
-  
+
   // Determine the timezone abbreviation (PST or PDT)
   const isDST = new Intl.DateTimeFormat('en-US', {
     timeZone: timezone,
@@ -52,10 +52,13 @@ const convertToLocalTime = (
   })
     .formatToParts(date)
     .find((p) => p.type === 'timeZoneName')?.value;
-  
+
   const timezoneAbbreviation = isDST || 'PST';
-  
-  return { date: new Date(year, month, day, hour, minute, second), timezoneAbbreviation };
+
+  return {
+    date: new Date(year, month, day, hour, minute, second),
+    timezoneAbbreviation,
+  };
 };
 
 /**
@@ -79,7 +82,10 @@ export const formatTime = (
   timestamp: string | number | Date,
   timezone: string = 'America/Vancouver'
 ): string => {
-  const { date, timezoneAbbreviation } = convertToLocalTime(timestamp, timezone);
+  const { date, timezoneAbbreviation } = convertToLocalTime(
+    timestamp,
+    timezone
+  );
   const hour = String(date.getHours()).padStart(2, '0');
   const minute = String(date.getMinutes()).padStart(2, '0');
   const second = String(date.getSeconds()).padStart(2, '0');
@@ -93,7 +99,10 @@ export const formatDateTime = (
   timestamp: string | number | Date,
   timezone: string = 'America/Vancouver'
 ): string => {
-  const { date, timezoneAbbreviation } = convertToLocalTime(timestamp, timezone);
+  const { date, timezoneAbbreviation } = convertToLocalTime(
+    timestamp,
+    timezone
+  );
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');

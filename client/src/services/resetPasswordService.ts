@@ -2,7 +2,10 @@ import axiosInstance from '@utils/axiosConfig.ts';
 import { AppError, ErrorType } from '@utils/AppError.tsx';
 import { withRetry } from '@utils/retryUtils.ts';
 import { withTimeout } from '@utils/timeoutUtils.ts';
-import { ResetPasswordError, ResetPasswordResponse } from '../features/resetPassword/state/resetPasswordInterfaces.ts';
+import {
+  ResetPasswordError,
+  ResetPasswordResponse,
+} from '../features/resetPassword/state/resetPasswordInterfaces.ts';
 
 const API_ENDPOINTS = {
   RESET_PASSWORD: '/auth/reset-password', // Correct endpoint
@@ -22,7 +25,7 @@ const resetPassword = async (
   newPassword: string
 ): Promise<ResetPasswordResponse> => {
   const payload = { currentPassword, newPassword };
-  
+
   try {
     const response = await withRetry(
       async () =>
@@ -35,20 +38,18 @@ const resetPassword = async (
       1000, // Delay between retries (in ms)
       'Failed to reset password after multiple attempts.'
     );
-    
+
     const { data, status } = response;
-    
+
     if (status === 200) {
       return {
         success: true,
         message: data.message,
       };
     } else {
-      throw new AppError(
-        `Unexpected response status: ${status}`,
-        500,
-        { type: ErrorType.GeneralError }
-      );
+      throw new AppError(`Unexpected response status: ${status}`, 500, {
+        type: ErrorType.GeneralError,
+      });
     }
   } catch (error: any) {
     if (error.response?.data) {
@@ -62,7 +63,7 @@ const resetPassword = async (
         details: error.response.data.details || [],
       } as ResetPasswordError;
     }
-    
+
     // Fallback for unexpected or network errors
     throw {
       message: error.message || 'A network error occurred',

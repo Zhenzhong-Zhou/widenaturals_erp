@@ -26,14 +26,14 @@ const authenticate = () => {
           AppError.accessTokenError('Access token is missing. Please log in.')
         );
       }
-      
+
       try {
         // Verify the access token
         const user = verifyToken(accessToken); // Throws if the token is invalid or expired
-        
+
         // Validate if the user exists in the database
         await validateUserExists('id', user.id);
-        
+
         req.user = user; // Attach validated user to the request
         return next();
       } catch (error) {

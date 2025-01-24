@@ -65,14 +65,14 @@ axiosInstance.interceptors.request.use(
       const state = store.getState(); // Access the Redux store directly
       const csrfToken = selectCsrfToken(state); // Get the CSRF token from the store
       const accessToken = selectAccessToken(state);
-      
+
       if (accessToken && config.headers) {
         config.headers.Authorization = `Bearer ${accessToken}`;
       }
       if (csrfToken && config.headers) {
         config.headers['X-CSRF-Token'] = csrfToken;
       }
-      
+
       return config;
     } catch (error) {
       handleError(error); // Log error using handleError
@@ -104,7 +104,7 @@ axiosInstance.interceptors.response.use(
     const csrfToken = selectCsrfToken(state);
     const csrfError = selectCsrfError(state); // Retrieve CSRF error state
     const csrfStatus = selectCsrfStatus(state); // Retrieve CSRF status state
-    
+
     try {
       // Handle CSRF-specific errors
       if (csrfStatus === 'failed' && csrfError) {
@@ -134,12 +134,12 @@ axiosInstance.interceptors.response.use(
 
         originalRequest._retry = true;
         isRefreshing = true;
-        
+
         // Request new access token
         const { accessToken } = await sessionService.refreshToken();
-        
+
         store.dispatch(updateAccessToken(accessToken)); // Synchronize Redux state
-        
+
         // Process queued requests with the new token
         processQueue(null, accessToken);
         // Retry the original request with updated tokens
@@ -169,7 +169,7 @@ axiosInstance.interceptors.response.use(
           details: mapErrorMessage(error),
         });
       }
-      
+
       // Handle validation errors (400)
       if (error.response?.status === 400) {
         throw new AppError('Validation error', 400, {

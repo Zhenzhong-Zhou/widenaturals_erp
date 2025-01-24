@@ -14,7 +14,7 @@ const appReducer = combineReducers({
   session: sessionReducer,
   userProfile: userProfileReducer,
   resetPassword: resetPasswordReducer,
-  users: usersReducer
+  users: usersReducer,
 });
 
 // Root reducer with logout handling
@@ -27,7 +27,7 @@ const rootReducer = (
     // Reset the entire state except for specific slices, if needed
     state = undefined;
   }
-  
+
   return appReducer(state, action);
 };
 

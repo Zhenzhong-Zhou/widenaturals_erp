@@ -91,24 +91,24 @@ const useInitializeApp = ({
       try {
         console.info('Starting app initialization...');
         await retryInitializeApp(); // Retry if initialization fails
-        
+
         console.info('Performing CSRF initialization...');
         await csrfService.initializeCsrfToken(dispatch);
-        
+
         console.info('Monitoring CSRF status...');
         monitorCsrfStatus(csrfStatus, csrfError);
-        
+
         console.info('App initialized successfully');
       } catch (error) {
         const appError =
           error instanceof AppError
             ? error
             : AppError.create(
-              ErrorType.GlobalError,
-              'Error during app initialization',
-              500,
-              { details: error }
-            );
+                ErrorType.GlobalError,
+                'Error during app initialization',
+                500,
+                { details: error }
+              );
         console.error('Initialization error:', appError);
         setInitializationError(appError);
       } finally {
@@ -116,7 +116,7 @@ const useInitializeApp = ({
       }
     })();
   }, [retryInitializeApp, monitorCsrfStatus]);
-  
+
   return {
     isInitializing,
     hasError: Boolean(initializationError),

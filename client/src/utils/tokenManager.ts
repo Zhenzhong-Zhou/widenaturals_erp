@@ -8,7 +8,7 @@ export const getToken = (
 
 export const clearTokens = (): void => {
   // Remove access token
-  Cookies.remove('accessToken', { path: '/' , secure: false });
+  Cookies.remove('accessToken', { path: '/', secure: false });
   // Remove refresh token
-  Cookies.remove('refreshToken', { path: '/' ,secure: true});
+  Cookies.remove('refreshToken', { path: '/', secure: true });
 };

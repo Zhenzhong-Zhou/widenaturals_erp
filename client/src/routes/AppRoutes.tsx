@@ -23,7 +23,7 @@ const AppRoutes = () => {
           const LazyComponent = lazy(() =>
             component().then((module) => ({ default: module.default }))
           );
-          
+
           if (meta?.requiresAuth) {
             // Wrap protected routes
             return (
@@ -40,7 +40,7 @@ const AppRoutes = () => {
               />
             );
           }
-          
+
           if (path === '/login' || path === '/') {
             // Wrap login and homepage with GuestRoute
             return (
@@ -55,13 +55,16 @@ const AppRoutes = () => {
               />
             );
           }
-          
+
           // Render other public routes directly
           return <Route key={index} path={path} element={<LazyComponent />} />;
         })}
-        
+
         {/* 404 Page for Invalid Routes */}
-        <Route path="*" element={<LazyNotFoundPage isAuthenticated={isAuthenticated} />} />
+        <Route
+          path="*"
+          element={<LazyNotFoundPage isAuthenticated={isAuthenticated} />}
+        />
       </Routes>
     </Suspense>
   );

@@ -13,14 +13,19 @@ import { UserProfileResponse } from '../features/user/state/userTypes.ts';
  *
  * @returns {UserProfileResponse & { loading: boolean; error: string | null }}
  */
-const useUserProfile = (): UserProfileResponse & { loading: boolean; error: string | null } => {
+const useUserProfile = (): UserProfileResponse & {
+  loading: boolean;
+  error: string | null;
+} => {
   const dispatch = useAppDispatch();
-  
+
   // Selectors
-  const userResponse = useAppSelector<UserProfileResponse | null>(selectUserProfileResponse);
+  const userResponse = useAppSelector<UserProfileResponse | null>(
+    selectUserProfileResponse
+  );
   const loading = useAppSelector(selectUserProfileLoading);
   const error = useAppSelector(selectUserProfileError);
-  
+
   // Dispatch profile fetch
   useEffect(() => {
     if (!userResponse && !loading) {
@@ -33,7 +38,7 @@ const useUserProfile = (): UserProfileResponse & { loading: boolean; error: stri
     }
   }, [dispatch, userResponse, loading]);
   // }, [dispatch]);
-  
+
   // Log errors if any
   useEffect(() => {
     if (error) {
@@ -41,7 +46,7 @@ const useUserProfile = (): UserProfileResponse & { loading: boolean; error: stri
       // Optionally show a notification here
     }
   }, [error]);
-  
+
   // Default response structure
   const defaultResponse: UserProfileResponse = {
     success: false,
@@ -58,7 +63,7 @@ const useUserProfile = (): UserProfileResponse & { loading: boolean; error: stri
     },
     timestamp: '',
   };
-  
+
   return {
     ...defaultResponse,
     ...userResponse,

@@ -60,7 +60,7 @@ exports.seed = async function (knex) {
       status_id: activeStatusId,
       created_at: knex.fn.now(),
       updated_at: knex.fn.now(),
-    }
+    },
   ];
 
   for (const permission of permissions) {

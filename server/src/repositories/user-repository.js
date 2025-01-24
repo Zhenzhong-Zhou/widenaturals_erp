@@ -1,4 +1,10 @@
-const { query, retry, lockRow, getClient, paginateQuery } = require('../database/db');
+const {
+  query,
+  retry,
+  lockRow,
+  getClient,
+  paginateQuery,
+} = require('../database/db');
 const { logError, logWarn } = require('../utils/logger-helper');
 const {
   maskSensitiveInfo,
@@ -83,14 +89,14 @@ const insertUser = async (client, userDetails) => {
  */
 const getUser = async (client, field, value, shouldLock = false) => {
   const maskedField = maskField(field, value);
-  
+
   if (!['id', 'email'].includes(field)) {
     throw new AppError('Invalid field for user query', 400, {
       type: 'ValidationError',
       isExpected: true,
     });
   }
-  
+
   const sql = `
     SELECT
       u.id,
@@ -113,29 +119,29 @@ const getUser = async (client, field, value, shouldLock = false) => {
     WHERE u.${field} = $1
   `;
   const params = [value];
-  
+
   let isExternalClient = !!client; // Determine if the client was passed in
   let internalClient;
-  
+
   try {
     // Use the provided client or create a new one
-    internalClient = client || await getClient();
-    
+    internalClient = client || (await getClient());
+
     const user = await retry(async () => {
       const result = await internalClient.query(sql, params);
-      
+
       if (result.rows.length === 0) {
         return null;
       }
-      
+
       return result.rows[0];
     });
-    
+
     // Optionally lock the user's row to ensure consistency
     if (shouldLock && user) {
       await lockRow(internalClient, 'users', user.id, 'FOR UPDATE');
     }
-    
+
     return user;
   } catch (error) {
     logError(`Error fetching user by ${maskedField}:`, error);
@@ -164,7 +170,7 @@ const getAllUsers = async ({ page, limit, sortBy, sortOrder }) => {
   const tableName = 'users u';
   const joins = ['LEFT JOIN status s ON u.status_id = s.id'];
   const whereClause = "s.name = 'active'";
-  
+
   // Construct SQL query parts
   const queryText = `
     SELECT
@@ -178,20 +184,21 @@ const getAllUsers = async ({ page, limit, sortBy, sortOrder }) => {
     LEFT JOIN status s ON u.status_id = s.id
     WHERE s.name = 'active'
   `;
-  
+
   try {
-    return await retry(async () =>
-      await paginateQuery({
-        tableName,
-        joins,
-        whereClause,
-        queryText,
-        params: [],
-        page,
-        limit,
-        sortBy,
-        sortOrder,
-      })
+    return await retry(
+      async () =>
+        await paginateQuery({
+          tableName,
+          joins,
+          whereClause,
+          queryText,
+          params: [],
+          page,
+          limit,
+          sortBy,
+          sortOrder,
+        })
     );
   } catch (error) {
     logError('Error executing paginated query in repository:', error);
@@ -215,7 +222,7 @@ const getAllUsers = async ({ page, limit, sortBy, sortOrder }) => {
  */
 const userExists = async (field, value, status = 'active') => {
   const maskedField = maskField(field, value);
-  
+
   // Validate the field
   if (!['id', 'email'].includes(field)) {
     throw new AppError('Invalid field for user existence check', 400, {
@@ -223,7 +230,7 @@ const userExists = async (field, value, status = 'active') => {
       isExpected: true,
     });
   }
-  
+
   // SQL query with dynamic field and status filter
   const sql = `
     SELECT 1
@@ -233,9 +240,9 @@ const userExists = async (field, value, status = 'active') => {
       AND s.name = $2
     LIMIT 1
   `;
-  
+
   const params = [value, status];
-  
+
   try {
     const result = await query(sql, params);
     return result.rowCount > 0; // Return true if the user exists and matches the status

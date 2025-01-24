@@ -1,5 +1,9 @@
 const { withTransaction } = require('../database/db');
-const { insertUser, getUser, getAllUsers } = require('../repositories/user-repository');
+const {
+  insertUser,
+  getUser,
+  getAllUsers,
+} = require('../repositories/user-repository');
 const { insertUserAuth } = require('../repositories/user-auth-repository');
 const { logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
@@ -27,7 +31,6 @@ const fetchAllUsers = async ({ page, limit, sortBy, sortOrder }) => {
     });
   }
 };
-
 
 /**
  * Creates a new user with authentication details.
@@ -78,18 +81,18 @@ const getUserProfileById = async (userId) => {
       isExpected: true,
     });
   }
-  
+
   try {
     // Fetch user profile from the repository
     const user = await getUser(null, 'id', userId);
-    
+
     if (!user) {
       throw AppError.notFoundError(`User with ID ${userId} not found`, 404, {
         type: 'NotFoundError',
         isExpected: true,
       });
     }
-    
+
     // Map and return the user profile
     return mapUserProfile(user);
   } catch (error) {
@@ -99,15 +102,19 @@ const getUserProfileById = async (userId) => {
       error: error.message,
       stack: error.stack,
     });
-    
+
     // Rethrow known errors or wrap unknown errors
     if (error instanceof AppError) {
       throw error;
     }
-    
-    throw new AppError('An unexpected error occurred while fetching the user profile', 500, {
-      type: 'InternalError',
-    });
+
+    throw new AppError(
+      'An unexpected error occurred while fetching the user profile',
+      500,
+      {
+        type: 'InternalError',
+      }
+    );
   }
 };
 

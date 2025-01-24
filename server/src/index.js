@@ -36,11 +36,11 @@ const initializeApp = async () => {
       logInfo('SIGTERM received. Shutting down gracefully...');
       await handleShutdown(0);
     });
-    
+
     process.on('unhandledRejection', (reason, promise) => {
       console.error('Unhandled Rejection at:', promise, 'reason:', reason);
     });
-    
+
     logInfo('Application started successfully.');
     return serverInstance;
   } catch (error) {
@@ -61,7 +61,7 @@ const handleShutdown = async (exitCode) => {
 
     // Perform server-specific cleanup
     await shutdownServer(); // Call server-specific shutdown logic
-    
+
     logInfo('Application shutdown completed.');
     process.exit(0);
   } catch (error) {

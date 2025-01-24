@@ -9,7 +9,7 @@ import logoLight from '../../../assets/wide-logo-light.png';
 const LoginPage: FC = () => {
   const { theme } = useThemeContext();
   const logo = theme.palette.mode === 'dark' ? logoDark : logoLight;
-  
+
   return (
     <Box
       sx={{
@@ -28,25 +28,39 @@ const LoginPage: FC = () => {
     >
       {/* Branding */}
       <Box sx={{ textAlign: 'center', mb: 4 }}>
-        <Box component="img" src={logo} alt="Company Logo" sx={{ mb: 2, width: 100, height: 100 }} />
-        <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'text.primary' }}>
+        <Box
+          component="img"
+          src={logo}
+          alt="Company Logo"
+          sx={{ mb: 2, width: 100, height: 100 }}
+        />
+        <Typography
+          variant="h4"
+          sx={{ fontWeight: 'bold', color: 'text.primary' }}
+        >
           Welcome to Wide Naturals ERP
         </Typography>
         <Typography variant="body1" sx={{ color: 'text.secondary', mt: 1 }}>
           Manage your inventory, sales, and operations efficiently.
         </Typography>
       </Box>
-      
+
       {/* Login Card */}
       <Box sx={{ width: '100%', maxWidth: 400 }}>
-        <LoginCard title="Sign In" subtitle="Access your dashboard to streamline operations." />
+        <LoginCard
+          title="Sign In"
+          subtitle="Access your dashboard to streamline operations."
+        />
       </Box>
-      
+
       {/* Support Links */}
       <Box sx={{ mt: 3, textAlign: 'center' }}>
         <Typography variant="body2" sx={{ color: 'text.secondary' }}>
           Forgot your password?{' '}
-          <a href="/reset-password" style={{ color: 'primary.main', fontWeight: 'bold' }}>
+          <a
+            href="/reset-password"
+            style={{ color: 'primary.main', fontWeight: 'bold' }}
+          >
             Reset it here
           </a>
         </Typography>

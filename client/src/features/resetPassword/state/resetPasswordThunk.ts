@@ -1,6 +1,9 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { resetPasswordService } from '../../../services';
-import { ResetPasswordError, ResetPasswordResponse } from './resetPasswordInterfaces.ts';
+import {
+  ResetPasswordError,
+  ResetPasswordResponse,
+} from './resetPasswordInterfaces.ts';
 
 /**
  * Thunk for resetting the user's password using createAsyncThunk.
@@ -18,10 +21,13 @@ export const resetPasswordThunk = createAsyncThunk<
   'auth/resetPassword',
   async ({ currentPassword, newPassword }, { rejectWithValue }) => {
     try {
-      return await resetPasswordService.resetPassword(currentPassword, newPassword);
+      return await resetPasswordService.resetPassword(
+        currentPassword,
+        newPassword
+      );
     } catch (error: any) {
       console.error('Thunk Error:', error);
-      
+
       if (
         error?.message &&
         error?.status &&
@@ -31,7 +37,7 @@ export const resetPasswordThunk = createAsyncThunk<
       ) {
         return rejectWithValue(error as ResetPasswordError); // Reject structured error
       }
-      
+
       // Fallback for unexpected error structures
       return rejectWithValue({
         message: error.message || 'An unexpected error occurred',

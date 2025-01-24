@@ -14,7 +14,7 @@ const LoginForm: FC<LoginFormProps> = ({ onSubmit }) => {
     {}
   );
   const loading = useAppSelector(selectLoading);
-  
+
   const validate = () => {
     const newErrors: { email?: string; password?: string } = {};
     if (!formData.email) {
@@ -70,7 +70,7 @@ const LoginForm: FC<LoginFormProps> = ({ onSubmit }) => {
         disabled={loading} // Disable button if loading
       />
       <CustomButton type="submit" variant="contained" color="primary" fullWidth>
-        {loading ? "Logging in..." : "Login"}
+        {loading ? 'Logging in...' : 'Login'}
       </CustomButton>
     </Box>
   );

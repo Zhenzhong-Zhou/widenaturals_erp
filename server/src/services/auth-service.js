@@ -5,9 +5,7 @@ const {
   isPasswordReused,
   verifyCurrentPassword,
 } = require('../repositories/user-auth-repository');
-const {
-  hashPasswordWithSalt,
-} = require('../utils/password-helper');
+const { hashPasswordWithSalt } = require('../utils/password-helper');
 const AppError = require('../utils/AppError');
 const { validateUserExists } = require('../validators/db-validators');
 const { logError } = require('../utils/logger-helper');
@@ -37,19 +35,19 @@ const resetPassword = async (userId, currentPassword, newPassword) => {
       await validateUserExists('id', userId);
 
       // Verify the current password
-      const isMath = await verifyCurrentPassword(client, userId, currentPassword);
-      
+      const isMath = await verifyCurrentPassword(
+        client,
+        userId,
+        currentPassword
+      );
+
       if (!isMath) {
-        throw new AppError(
-          'Current password cannot be matched',
-          404,
-          {
-            type: 'NotFoundError',
-            isExpected: true,
-          }
-        );
+        throw new AppError('Current password cannot be matched', 404, {
+          type: 'NotFoundError',
+          isExpected: true,
+        });
       }
-      
+
       // Validate password reuse
       const isReused = await isPasswordReused(client, userId, newPassword);
       if (isReused) {

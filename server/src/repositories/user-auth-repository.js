@@ -313,11 +313,11 @@ const verifyCurrentPassword = async (client, userId, plainPassword) => {
         passwordHash,
         passwordSalt
       );
-      
+
       if (!isMatch) {
-        return false
+        return false;
       }
-      
+
       // Return whether the passwords match
       return true;
     });

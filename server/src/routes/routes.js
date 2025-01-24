@@ -12,7 +12,10 @@ const sessionRoute = require('./session');
 const authRoutes = require('./auth');
 const userRoutes = require('./users');
 const adminRoutes = require('./admin');
-const { createApiRateLimiter, createCsrfTokenRateLimiter } = require('../middlewares/rate-limiter');
+const {
+  createApiRateLimiter,
+  createCsrfTokenRateLimiter,
+} = require('../middlewares/rate-limiter');
 const authenticate = require('../middlewares/authenticate');
 
 const router = express.Router();

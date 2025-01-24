@@ -1,7 +1,15 @@
 import { FC, useState } from 'react';
-import { CustomButton, DetailHeader, DetailPage, MetadataSection } from '@components/index.ts';
+import {
+  CustomButton,
+  DetailHeader,
+  DetailPage,
+  MetadataSection,
+} from '@components/index.ts';
 import { useAppDispatch, useAppSelector } from '../../../store/storeHooks.ts';
-import { selectUserProfileLoading, selectUserProfileResponse } from '../state/userProfileSelectors.ts';
+import {
+  selectUserProfileLoading,
+  selectUserProfileResponse,
+} from '../state/userProfileSelectors.ts';
 import { selectLastLogin } from '../../session/state/sessionSelectors.ts';
 import { formatDate, formatDateTime } from '@utils/dateTimeUtils.ts';
 import { ResetPasswordModal } from '../../resetPassword';
@@ -16,7 +24,7 @@ const UserProfilePage: FC = () => {
   const [isModalOpen, setModalOpen] = useState(false);
   const dispatch = useAppDispatch();
   const { logout, isLoading: isLogoutLoading } = useLogout();
-  
+
   const metadata = {
     Role: user?.role || 'N/A',
     'Job Title': user?.job_title || 'N/A',
@@ -25,7 +33,7 @@ const UserProfilePage: FC = () => {
     'Created At': user?.created_at ? formatDate(user?.created_at) : 'N/A',
     'Updated At': user?.updated_at ? formatDate(user?.updated_at) : 'N/A',
   };
-  
+
   /**
    * Handles the password reset process and triggers a logout on success.
    */
@@ -35,14 +43,16 @@ const UserProfilePage: FC = () => {
   }) => {
     try {
       console.log('Resetting password...');
-      const { success, message } = await dispatch(resetPasswordThunk(data)).unwrap();
-      
+      const { success, message } = await dispatch(
+        resetPasswordThunk(data)
+      ).unwrap();
+
       if (success) {
         console.log('Password reset successful:', message);
-        
+
         // Close the modal
         setModalOpen(false);
-        
+
         // Now proceed to logout
         console.log('Initiating logout process after password reset...');
         const logoutSuccess = await logout();
@@ -58,7 +68,7 @@ const UserProfilePage: FC = () => {
       console.error('Error resetting password:', error);
     }
   };
-  
+
   return (
     <DetailPage
       title="User Profile"
@@ -74,7 +84,9 @@ const UserProfilePage: FC = () => {
             subtitle={user.email}
           />
           <MetadataSection data={metadata} />
-          <CustomButton onClick={() => setModalOpen(true)}>Reset Password</CustomButton>
+          <CustomButton onClick={() => setModalOpen(true)}>
+            Reset Password
+          </CustomButton>
           {isModalOpen && (
             <ResetPasswordModal
               open={isModalOpen}

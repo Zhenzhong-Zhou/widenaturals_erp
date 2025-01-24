@@ -13,21 +13,23 @@ import { fetchHealthStatus } from '../state/healthStatusThunk';
 import { formatDateTime } from '@utils/dateTimeUtils.ts';
 
 interface HealthStatusProps {
-  getStatusColor: (status: string) => 'success' | 'warning' | 'error' | 'default';
+  getStatusColor: (
+    status: string
+  ) => 'success' | 'warning' | 'error' | 'default';
 }
 
 const HealthStatus: FC<HealthStatusProps> = ({ getStatusColor }) => {
   const dispatch = useAppDispatch();
-  
+
   const serverStatus = useAppSelector(selectServerStatus);
   const databaseStatus = useAppSelector(selectDatabaseStatus);
   const poolStatus = useAppSelector(selectPoolStatus);
   const lastUpdated = useAppSelector(selectHealthTimestamp);
-  
+
   useEffect(() => {
     dispatch(fetchHealthStatus());
   }, [dispatch]);
-  
+
   return (
     <Box
       sx={{

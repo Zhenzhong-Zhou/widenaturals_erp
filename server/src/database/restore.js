@@ -33,10 +33,14 @@ const restoreDatabase = async (decryptedFilePath, databaseName) => {
  * @param {string} databaseName - Target database name.
  * @param {string} encryptionKey - Encryption key for decryption.
  */
-const restoreBackup = async (encryptedFilePath, databaseName, encryptionKey) => {
+const restoreBackup = async (
+  encryptedFilePath,
+  databaseName,
+  encryptionKey
+) => {
   const decryptedFilePath = encryptedFilePath.replace('.enc', ''); // Plain SQL file
   const ivFilePath = `${encryptedFilePath}.iv`; // Path to IV file
-  
+
   // Ensure all required files exist
   if (!fs.existsSync(encryptedFilePath)) {
     throw new Error(`Encrypted backup file not found: ${encryptedFilePath}`);
@@ -44,14 +48,19 @@ const restoreBackup = async (encryptedFilePath, databaseName, encryptionKey) => 
   if (!fs.existsSync(ivFilePath)) {
     throw new Error(`IV file not found: ${ivFilePath}`);
   }
-  
+
   try {
     console.log('Decrypting backup file...');
-    await decryptFile(encryptedFilePath, decryptedFilePath, encryptionKey, ivFilePath);
-    
+    await decryptFile(
+      encryptedFilePath,
+      decryptedFilePath,
+      encryptionKey,
+      ivFilePath
+    );
+
     console.log('Restoring database from decrypted file...');
     await restoreDatabase(decryptedFilePath, databaseName);
-    
+
     // Optionally, delete the decrypted file after successful restoration
     fs.unlinkSync(decryptedFilePath);
     console.log('Restoration complete. Decrypted file deleted.');

@@ -2,7 +2,12 @@ const fs = require('fs').promises;
 const path = require('path');
 const { loadEnv } = require('../config/env');
 const { runPgDump } = require('./pg-dump');
-const { ensureDirectory, generateHash, saveHashToFile, cleanupOldBackups } = require('./file-management');
+const {
+  ensureDirectory,
+  generateHash,
+  saveHashToFile,
+  cleanupOldBackups,
+} = require('./file-management');
 const { encryptFile } = require('./encryption');
 const { logInfo, logError } = require('../utils/logger-helper');
 
@@ -23,7 +28,9 @@ const maxBackups = parseInt(process.env.MAX_BACKUPS, 10) || 5; // Maximum number
 
 // Validate maxBackups
 if (!Number.isInteger(maxBackups) || maxBackups <= 0) {
-  throw new Error(`Invalid MAX_BACKUPS value: ${maxBackups}. Must be a positive integer.`);
+  throw new Error(
+    `Invalid MAX_BACKUPS value: ${maxBackups}. Must be a positive integer.`
+  );
 }
 
 /**
@@ -40,20 +47,20 @@ const backupDatabase = async () => {
   if (!targetDatabase) {
     throw new Error('Environment variable DB_NAME is missing.');
   }
-  
+
   try {
     // Ensure the backup directory exists
     await ensureDirectory(backupDir);
     logInfo(`Starting backup for database: '${targetDatabase}'`);
-    
+
     // Run pg_dump
     const dumpCommand = `${pgDumpPath} --no-owner --no-comments --clean --if-exists -d ${targetDatabase} -f ${backupFile}`;
     await runPgDump(dumpCommand);
-    
+
     // Generate a SHA-256 hash
     const hash = await generateHash(backupFile);
     await saveHashToFile(hash, hashFile);
-    
+
     // Encrypt the SQL backup file
     const encryptionKey = process.env.BACKUP_ENCRYPTION_KEY;
     if (!encryptionKey || Buffer.from(encryptionKey, 'hex').length !== 32) {
@@ -61,15 +68,15 @@ const backupDatabase = async () => {
         'Invalid or missing BACKUP_ENCRYPTION_KEY. Ensure it is a 64-character hexadecimal string.'
       );
     }
-    
+
     await encryptFile(backupFile, encryptedFile, encryptionKey, ivFile);
-    
+
     // Remove the plain-text backup file
     await fs.unlink(backupFile);
-    
+
     // Cleanup old backups
     await cleanupOldBackups(backupDir, maxBackups);
-    
+
     logInfo(`Backup encrypted and saved: ${encryptedFile}`);
   } catch (error) {
     logError('Error during backup operation:', { error: error.message });

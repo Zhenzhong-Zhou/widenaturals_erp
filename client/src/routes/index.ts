@@ -64,5 +64,5 @@ export const routes = [
         meta: { title: 'Edit Profile' },
       },
     ],
-  }
+  },
 ];

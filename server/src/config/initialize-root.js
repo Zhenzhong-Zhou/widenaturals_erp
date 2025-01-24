@@ -68,7 +68,7 @@ const initializeRootAdmin = async () => {
 
     // Hash the root admin password
     const validatedPassword = await validateAndHashRootPassword(password);
-    
+
     // Create the root admin user
     const user = await createUser({
       email,

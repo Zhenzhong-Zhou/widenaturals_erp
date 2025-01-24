@@ -1,6 +1,10 @@
 import { useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
-import { selectUsers, selectUsersError, selectUsersLoading } from '../features/user/state/userSelectors.ts';
+import {
+  selectUsers,
+  selectUsersError,
+  selectUsersLoading,
+} from '../features/user/state/userSelectors.ts';
 import { fetchUsersThunk } from '../features/user/state/userThunks.ts';
 
 /**
@@ -13,17 +17,17 @@ const useUsers = () => {
   const users = useAppSelector(selectUsers);
   const loading = useAppSelector(selectUsersLoading);
   const error = useAppSelector(selectUsersError);
-  
+
   // Fetch users on mount
   useEffect(() => {
     dispatch(fetchUsersThunk()).unwrap();
   }, [dispatch]);
-  
+
   // Expose a manual refetch function
   const refetchUsers = () => {
     dispatch(fetchUsersThunk());
   };
-  
+
   return { users, loading, error, refetchUsers };
 };
 

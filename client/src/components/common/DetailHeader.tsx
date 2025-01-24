@@ -11,9 +11,14 @@ interface DetailHeaderProps {
   subtitle?: string;
 }
 
-const DetailHeader: FC<DetailHeaderProps> = ({ avatarSrc, avatarFallback, name, subtitle }) => {
+const DetailHeader: FC<DetailHeaderProps> = ({
+  avatarSrc,
+  avatarFallback,
+  name,
+  subtitle,
+}) => {
   const { theme } = useThemeContext();
-  
+
   return (
     <Box sx={{ textAlign: 'center', marginBottom: theme.spacing(3) }}>
       <Avatar
@@ -29,7 +34,10 @@ const DetailHeader: FC<DetailHeaderProps> = ({ avatarSrc, avatarFallback, name, 
       >
         {avatarFallback}
       </Avatar>
-      <Typography variant="h6" sx={{ marginTop: theme.spacing(2), color: theme.palette.text.primary }}>
+      <Typography
+        variant="h6"
+        sx={{ marginTop: theme.spacing(2), color: theme.palette.text.primary }}
+      >
         {name}
       </Typography>
       {subtitle && (

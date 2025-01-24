@@ -54,11 +54,13 @@ const cleanupOldBackups = async (dir, maxFiles) => {
   try {
     // Validate maxFiles
     if (!Number.isInteger(maxFiles) || maxFiles <= 0) {
-      throw new Error(`Invalid maxFiles value: ${maxFiles}. Must be a positive integer.`);
+      throw new Error(
+        `Invalid maxFiles value: ${maxFiles}. Must be a positive integer.`
+      );
     }
-    
+
     const allFiles = await fs.readdir(dir);
-    
+
     // Collect file metadata for sorting
     const backupFiles = (
       await Promise.all(
@@ -71,22 +73,24 @@ const cleanupOldBackups = async (dir, maxFiles) => {
           })
       )
     ).sort((a, b) => b.time - a.time); // Sort files by modification time (newest first)
-    
+
     // If no files are found, log and exit
     if (backupFiles.length === 0) {
       logInfo('No backup files found for cleanup.');
       return;
     }
-    
+
     // Identify files to delete
     const filesToDelete = backupFiles.slice(maxFiles);
-    
+
     // If there are no files to delete, log and exit
     if (filesToDelete.length === 0) {
-      logInfo(`All backups are within the limit of ${maxFiles} files. No files deleted.`);
+      logInfo(
+        `All backups are within the limit of ${maxFiles} files. No files deleted.`
+      );
       return;
     }
-    
+
     // Delete files and associated metadata
     await Promise.all(
       filesToDelete.map(async (file) => {
@@ -94,27 +98,36 @@ const cleanupOldBackups = async (dir, maxFiles) => {
         try {
           await fs.unlink(filePath);
           logInfo(`Deleted old backup: ${file.name}`);
-          
+
           // Attempt to delete associated files
           const hashFilePath = `${filePath}.sha256`;
           const ivFilePath = `${filePath}.iv`;
-          await fs.unlink(hashFilePath).catch(() =>
-            logInfo(`No hash file to delete for: ${file.name}`)
-          );
-          await fs.unlink(ivFilePath).catch(() =>
-            logInfo(`No IV file to delete for: ${file.name}`)
-          );
+          await fs
+            .unlink(hashFilePath)
+            .catch(() => logInfo(`No hash file to delete for: ${file.name}`));
+          await fs
+            .unlink(ivFilePath)
+            .catch(() => logInfo(`No IV file to delete for: ${file.name}`));
         } catch (deleteError) {
-          logError(`Failed to delete file: ${file.name}`, { error: deleteError.message });
+          logError(`Failed to delete file: ${file.name}`, {
+            error: deleteError.message,
+          });
         }
       })
     );
-    
-    logInfo(`Cleanup of old backups completed. ${filesToDelete.length} files deleted.`);
+
+    logInfo(
+      `Cleanup of old backups completed. ${filesToDelete.length} files deleted.`
+    );
   } catch (error) {
     logError('Error during cleanup of old backups:', { error: error.message });
     throw error;
   }
 };
 
-module.exports = { ensureDirectory, generateHash, saveHashToFile, cleanupOldBackups };
+module.exports = {
+  ensureDirectory,
+  generateHash,
+  saveHashToFile,
+  cleanupOldBackups,
+};

@@ -4,7 +4,11 @@
  */
 
 const express = require('express');
-const { getAllUsersController, getUserProfile, getPermissions } = require('../controllers/user-controller');
+const {
+  getAllUsersController,
+  getUserProfile,
+  getPermissions,
+} = require('../controllers/user-controller');
 const { createUserProfileRateLimiter } = require('../middlewares/rate-limiter');
 
 const router = express.Router();

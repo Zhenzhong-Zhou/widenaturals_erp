@@ -23,7 +23,7 @@ const LoginCard: FC<LoginCardProps> = ({
   const navigate = useNavigate();
   const { showLoading, hideLoading } = useLoading(); // Use correct functions from the context
   const loginError = useAppSelector(selectLoginError);
-  
+
   const handleSubmit = async (data: { email: string; password: string }) => {
     try {
       showLoading('Logging in...', 'spinner'); // Show loading spinner with a message
