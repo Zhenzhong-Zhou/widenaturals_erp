@@ -1,10 +1,10 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { fetchUserProfileThunk } from './userThunks.ts';
-import { UserProfile, UserResponse } from './userTypes.ts';
+import { UserProfile, UserProfileResponse } from './userTypes.ts';
 
 // Define the UserState interface
 interface UserProfileState {
-  response: UserResponse | null;
+  response: UserProfileResponse | null;
   loading: boolean;
   error: string | null;
 }

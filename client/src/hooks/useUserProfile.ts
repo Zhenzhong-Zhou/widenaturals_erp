@@ -6,18 +6,18 @@ import {
   selectUserProfileLoading,
   selectUserProfileResponse,
 } from '../features/user/state/userProfileSelectors.ts';
-import { UserResponse } from '../features/user/state/userTypes.ts';
+import { UserProfileResponse } from '../features/user/state/userTypes.ts';
 
 /**
  * Custom hook to fetch and manage the user profile.
  *
- * @returns {UserResponse & { loading: boolean; error: string | null }}
+ * @returns {UserProfileResponse & { loading: boolean; error: string | null }}
  */
-const useUserProfile = (): UserResponse & { loading: boolean; error: string | null } => {
+const useUserProfile = (): UserProfileResponse & { loading: boolean; error: string | null } => {
   const dispatch = useAppDispatch();
   
   // Selectors
-  const userResponse = useAppSelector<UserResponse | null>(selectUserProfileResponse);
+  const userResponse = useAppSelector<UserProfileResponse | null>(selectUserProfileResponse);
   const loading = useAppSelector(selectUserProfileLoading);
   const error = useAppSelector(selectUserProfileError);
   
@@ -43,7 +43,7 @@ const useUserProfile = (): UserResponse & { loading: boolean; error: string | nu
   }, [error]);
   
   // Default response structure
-  const defaultResponse: UserResponse = {
+  const defaultResponse: UserProfileResponse = {
     success: false,
     message: '',
     data: {

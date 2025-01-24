@@ -1,10 +1,10 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { userService } from '../../../services/userService.ts';
 import { AppError } from '@utils/AppError.tsx';
-import { UserResponse } from './userTypes.ts';
+import { UserProfileResponse } from './userTypes.ts';
 
 // Define the Thunk
-export const fetchUserProfileThunk = createAsyncThunk<UserResponse, void, { rejectValue: string }>(
+export const fetchUserProfileThunk = createAsyncThunk<UserProfileResponse, void, { rejectValue: string }>(
   'user/fetchUserProfile',
   async (_, { rejectWithValue }) => {
     try {

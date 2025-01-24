@@ -2,7 +2,7 @@ import axiosInstance from '@utils/axiosConfig.ts';
 import { clearTokens } from '@utils/tokenManager.ts';
 import { handleError, mapErrorMessage } from '@utils/errorUtils.ts';
 import { AppError, ErrorType } from '@utils/AppError.tsx';
-import { UserResponse } from '../features/user/state/userTypes.ts';
+import { UserProfileResponse } from '../features/user/state/userTypes.ts';
 import { isCustomAxiosError } from '@utils/axiosUtils.ts';
 import { withTimeout } from '@utils/timeoutUtils.ts';
 import { withRetry } from '@utils/retryUtils.ts';
@@ -48,13 +48,13 @@ const fetchUsers = async (): Promise<Object[] | null> => {
 /**
  * Fetches the authenticated user's profile.
  *
- * @returns {Promise<UserResponse>} - The user's profile data.
+ * @returns {Promise<UserProfileResponse>} - The user's profile data.
  * @throws {AppError} - If the request fails or returns an unexpected response.
  */
-const fetchUserProfile = async (): Promise<UserResponse> => {
+const fetchUserProfile = async (): Promise<UserProfileResponse> => {
   try {
     const fetchProfile = () =>
-      axiosInstance.get<UserResponse>(API_ENDPOINTS.USER_PROFILE);
+      axiosInstance.get<UserProfileResponse>(API_ENDPOINTS.USER_PROFILE);
     
     // Add retry and timeout logic
     const response = await withTimeout(

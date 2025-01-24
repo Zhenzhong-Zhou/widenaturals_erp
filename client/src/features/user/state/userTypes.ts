@@ -26,7 +26,7 @@ export interface UserProfile {
   updated_at: string; // ISO timestamp for last update
 }
 
-export interface UserResponse {
+export interface UserProfileResponse {
   success: boolean; // Indicates whether the request was successful
   message: string;  // Message describing the operation's result
   data: UserProfile; // The user profile object
