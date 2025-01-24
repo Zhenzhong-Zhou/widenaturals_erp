@@ -27,10 +27,7 @@ const getAllUsersController = wrapAsync(async (req, res, next) => {
     };
 
     if (paginationParams.page < 1 || paginationParams.limit < 1) {
-      return res.status(400).json({
-        success: false,
-        message: 'Page and limit must be positive integers.',
-      });
+      return next(AppError.validationError('Page and limit must be positive integers.'));
     }
 
     // Call service
@@ -74,28 +71,28 @@ const getUserProfile = wrapAsync(async (req, res) => {
 });
 
 /**
- * Controller to get permissions for the authenticated user
+ * Controller to get permissions for the authenticated user.
+ *
  * @param {Request} req - Express request object
  * @param {Response} res - Express response object
+ * @param {Function} next - Express next middleware function
+ * @throws {AppError} - Throws if validation fails or if there's an error in fetching permissions.
  */
-const getPermissions = wrapAsync(async (req, res) => {
-  try {
-    const { role_id } = req.user;
+const getPermissions = wrapAsync(async (req, res, next) => {
+  const { role_id } = req.user;
 
-    if (!role_id) {
-      return res.status(400).json({ message: 'Role ID is required' });
-    }
-
-    // Fetch permissions from the service
-    const permissions = await fetchPermissions(role_id);
-
-    res.status(200).json({ permissions });
-  } catch (error) {
-    console.error('Error fetching permissions:', error.message);
-    res
-      .status(500)
-      .json({ message: 'Failed to fetch permissions', error: error.message });
+  if (!role_id) {
+    return next(AppError.notFoundError('Role ID is required'));
   }
+
+  // Fetch permissions from the service
+  const permissions = await fetchPermissions(role_id);
+  
+  res.status(200).json({
+    success: true,
+    message: 'Permissions retrieved successfully',
+    data: permissions,
+  });
 });
 
 module.exports = {
