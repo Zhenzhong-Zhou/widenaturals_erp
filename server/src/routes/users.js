@@ -4,7 +4,7 @@
  */
 
 const express = require('express');
-const { getAllUsersController, getUserProfile } = require('../controllers/user-controller');
+const { getAllUsersController, getUserProfile, getPermissions } = require('../controllers/user-controller');
 const { createUserProfileRateLimiter } = require('../middlewares/rate-limiter');
 
 const router = express.Router();
@@ -17,5 +17,7 @@ router.get('/', getAllUsersController);
  * @description Fetch the authenticated user's profile.
  */
 router.get('/me', createUserProfileRateLimiter(), getUserProfile);
+
+router.get('/me/permissions', getPermissions);
 
 module.exports = router;
