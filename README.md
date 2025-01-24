@@ -202,20 +202,79 @@ Before starting, ensure you have the following installed:
    tail -f /path/to/backup.log
    ```
 
-  **Run with Docker**
-  **Build and start the containers**:
+**Redis**
+1. **Using Homebrew (macOS):**
     ```bash
-    docker compose up --build
+    brew install redis
+    brew services start redis
     ```
-1. **Start the containers (without rebuild)**:
+2. **Using APT (Ubuntu/Debian):**
+    ```bash
+    sudo apt update
+    sudo apt install redis-server
+    sudo systemctl start redis
+    ```
+3. **Verify Redis Installation:**
+    ```bash
+    redis-cli ping
+    ```
+4. **Start Redis Locally:**
+    ```bash
+    redis-server
+    ```
+5. **Stop Redis (macOS):**
+    ```bash
+    brew services stop redis
+    ```
+6. **Stop Redis (Ubuntu/Debian):**
+    ```bash
+    sudo systemctl stop redis
+    ```
+7. **Edit the Redis Configuration:**
+    ```bash
+    /etc/redis/redis.conf
+    /opt/homebrew/var/db/redis
+    ```
+8. **Open the configuration file for editing:**
+    ```bash
+    sudo nano /etc/redis/redis.conf
+    ```
+9. **Add a user with a password and permissions:**
+    ```bash
+    user myuser on >my_secure_password ~* +@all
+    ```
+10. **Restart the Redis server to apply the changes:**
+     ```bash
+     sudo systemctl restart redis
+     brew services restart redis
+     ```
+11. **Connect to Redis::**
+     ```bash
+     redis-cli
+     ```
+12. **Authenticate with the password:**
+    ```bash
+     redis-cli
+     ```
+13. **Authenticate with the password:**
+     ```bash
+     AUTH your_secure_password
+     ```
+
+  **Run with Docker**
+1. **Build and start the containers**:
+   ```bash
+    docker compose up --build
+   ```
+2. **Start the containers (without rebuild)**:
     ```bash
     docker compose up
     ```
-2. **Run the development environment in Docker**:
+3. **Run the development environment in Docker**:
     ```bash
     NODE_ENV=development docker compose up
     ```
-3. **Rebuild Docker Containers**
+4. **Rebuild Docker Containers**
     ```bash
         docker compose down
     ```
