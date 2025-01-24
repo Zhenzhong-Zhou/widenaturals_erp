@@ -1,4 +1,4 @@
-const { query, retry, lockRow } = require('../database/db');
+const { query, retry, lockRow, getClient } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logError } = require('../utils/logger-helper');
 
@@ -6,10 +6,8 @@ const { logError } = require('../utils/logger-helper');
  * Fetches all permissions for a given role ID with optional row locking and retry mechanism.
  *
  * @param {string} roleId - The UUID of the role to fetch permissions for.
- * @param {object} client - The database client instance to execute the query.
- * @param {string} [lockMode='FOR SHARE'] - Optional SQL lock mode (e.g., 'FOR SHARE', 'FOR UPDATE').
  * @returns {Promise<string[]>} - Array of permission keys associated with the role.
- * @throws {AppError} - Throws an error if the query fails, no permissions are found, or retries are exhausted.
+ * @throws {AppError} - Throws an error if the query fails or no permissions are found.
  *
  * @example
  * // Fetch permissions with default lock mode
@@ -21,12 +19,8 @@ const { logError } = require('../utils/logger-helper');
  */
 const getRolePermissionsByRoleId = async (
   roleId,
-  client,
-  lockMode = 'FOR SHARE'
 ) => {
-  await lockRow(client, 'role_permissions', roleId, lockMode);
-
-  const text = `
+  const sql = `
     SELECT
       ARRAY_AGG(p.key) AS permissions
     FROM role_permissions rp
@@ -40,37 +34,37 @@ const getRolePermissionsByRoleId = async (
       AND sp.name = 'active'
       AND srp.name = 'active'
     GROUP BY r.name
-    ${lockMode};
   `;
-
-  return await retry(async () => {
-    try {
-      const params = [roleId];
-      const result = await client.query(text, params);
-
+  
+  const params = [roleId];
+  
+  try {
+    return await retry(async () => {
+      const result = await query(sql, params);
+      
       if (!result.rows.length || !result.rows[0].permissions) {
         throw AppError.notFoundError(
           `No permissions found for the specified role: ${roleId}`
         );
       }
-
+      
       return result.rows[0].permissions;
-    } catch (error) {
-      logError('Error fetching permissions for role:', {
-        roleId,
-        query: text,
-        error: error.message,
-      });
-      throw new AppError(
-        'Failed to fetch permissions for the specified role.',
-        500,
-        {
-          type: 'DatabaseError',
-          isExpected: false,
-        }
-      );
-    }
-  });
+    });
+  } catch (error) {
+    logError('Error fetching permissions for role:', {
+      roleId,
+      query: sql,
+      error: error.message,
+    });
+    throw new AppError(
+      'Failed to fetch permissions for the specified role.',
+      500,
+      {
+        type: 'DatabaseError',
+        isExpected: false,
+      }
+    );
+  }
 };
 
 /**
