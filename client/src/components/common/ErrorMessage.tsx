@@ -3,7 +3,7 @@ import Box, { BoxProps } from '@mui/material/Box';
 import { useThemeContext } from '../../context/ThemeContext.tsx';
 
 interface ErrorMessageProps extends BoxProps {
-  message: string; // Error message to display
+  message: string | null; // Error message to display
   severity?: 'error' | 'warning' | 'info'; // Severity levels
 }
 

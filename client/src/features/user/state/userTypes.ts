@@ -7,6 +7,12 @@ export interface User {
   avatar?: string; // Optional avatar URL
 }
 
+export interface UserState {
+  users: User[];
+  loading: boolean;
+  error: string | null;
+}
+
 export interface UsersCardProps {
   user: User;
 }

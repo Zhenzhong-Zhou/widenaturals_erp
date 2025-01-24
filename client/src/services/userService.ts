@@ -2,7 +2,7 @@ import axiosInstance from '@utils/axiosConfig.ts';
 import { clearTokens } from '@utils/tokenManager.ts';
 import { handleError, mapErrorMessage } from '@utils/errorUtils.ts';
 import { AppError, ErrorType } from '@utils/AppError.tsx';
-import { UserProfileResponse } from '../features/user/state/userTypes.ts';
+import { User, UserProfileResponse } from '../features/user/state/userTypes.ts';
 import { isCustomAxiosError } from '@utils/axiosUtils.ts';
 import { withTimeout } from '@utils/timeoutUtils.ts';
 import { withRetry } from '@utils/retryUtils.ts';
@@ -17,13 +17,12 @@ const API_ENDPOINTS = {
  *
  * @async
  * @function fetchUsers
- * @returns {Promise<Object[] | null>} - A promise that resolves to an array of user objects if successful, or null if an error occurs.
+ * @returns {Promise<User[] | null>} - A promise that resolves to an array of user objects if successful, or null if an error occurs.
  * @throws {Error} - Throws an error if the API request fails and cannot be handled.
  */
-const fetchUsers = async (): Promise<Object[] | null> => {
+const fetchUsers = async (): Promise<User[] | null> => {
   try {
-    const response = await axiosInstance.get(API_ENDPOINTS.ALL_USERS);
-    console.log('Fetch Users Response:', response.data);
+    const response = await axiosInstance.get<User[]>(API_ENDPOINTS.ALL_USERS);
     return response.data;
   } catch (error: any) {
     console.error('Error fetching users:', error.message);

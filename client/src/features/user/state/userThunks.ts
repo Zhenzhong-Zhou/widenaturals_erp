@@ -1,7 +1,33 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { userService } from '../../../services/userService.ts';
 import { AppError } from '@utils/AppError.tsx';
-import { UserProfileResponse } from './userTypes.ts';
+import { User, UserProfileResponse } from './userTypes.ts';
+
+/**
+ * Fetch all users from the API.
+ *
+ * @async
+ * @function fetchUsersThunk
+ * @returns {Promise<User[]>} - A promise resolving to an array of user objects.
+ * @throws {string} - Throws an error message if the API call fails.
+ */
+export const fetchUsersThunk = createAsyncThunk<
+  User[], // Return type on success
+  void, // Argument type
+  { rejectValue: string } // Type for rejectWithValue
+>(
+  'users/fetchAll',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await userService.fetchUsers();
+      return response as User[];
+    } catch (error: any) {
+      const errorMessage = error.response?.data || 'Failed to fetch users';
+      console.error('Error fetching users:', errorMessage);
+      return rejectWithValue(errorMessage);
+    }
+  }
+);
 
 // Define the Thunk
 export const fetchUserProfileThunk = createAsyncThunk<UserProfileResponse, void, { rejectValue: string }>(

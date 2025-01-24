@@ -1,30 +1,11 @@
-import { FC, useState, useEffect } from 'react';
-import { Box, Typography, Alert } from '@mui/material';
+import { FC} from 'react';
+import { Box, Alert } from '@mui/material';
 import UsersList from '../components/UserList.tsx';
-import { User } from '../state/userTypes.ts';
-import { userService } from '../../../services/userService.ts';
+import { useUsers } from '../../../hooks';
+import { CustomButton, ErrorMessage, Loading, Typography } from '@components/index.ts';
 
 const UsersPage: FC = () => {
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  
-  // Fetch users from API
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const response = await userService.fetchUsers();
-        console.log("user: ",response)
-        setUsers(response.data);
-      } catch (err) {
-        setError('Failed to load users. Please try again later.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchUsers();
-  }, []);
+  const { users, loading, error, refetchUsers } = useUsers();
   
   return (
     <Box sx={{ padding: 3 }}>
@@ -33,16 +14,16 @@ const UsersPage: FC = () => {
       </Typography>
       
       {/* Show Loading Spinner */}
-      {/*{loading && (*/}
-      {/*  <Box display="flex" justifyContent="center" alignItems="center" height="50vh">*/}
-      {/*    <CircularProgress />*/}
-      {/*  </Box>*/}
-      {/*)}*/}
+      {loading && (
+        <Box display="flex" justifyContent="center" alignItems="center" height="50vh">
+          <Loading message={"Loading All Users..."} />
+        </Box>
+      )}
       
       {/* Show Error Message */}
       {error && (
         <Alert severity="error" sx={{ marginBottom: 2 }}>
-          {error}
+          <ErrorMessage message={error} />
         </Alert>
       )}
       
@@ -56,6 +37,7 @@ const UsersPage: FC = () => {
           </Typography>
         )
       )}
+      <CustomButton onClick={refetchUsers}>Refetch Users</CustomButton>
     </Box>
   );
 };

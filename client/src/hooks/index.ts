@@ -5,3 +5,4 @@ export { default as useTokenRefresh } from './useTokenRefresh';
 export { default as useValidateAndRefreshToken } from './useValidateAndRefreshToken';
 export { default as useUserProfile } from './useUserProfile';
 export { default as useLogout } from './useLogout';
+export { default as useUsers } from './useUsers';

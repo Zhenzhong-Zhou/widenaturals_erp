@@ -5,7 +5,7 @@ import csrfReducer from '../features/csrf/state/csrfSlice';
 import sessionReducer from '../features/session/state/sessionSlice.ts';
 import userProfileReducer from '../features/user/state/userProfileSlice.ts';
 import resetPasswordReducer from '../features/resetPassword/state/resetPasswordSlice.ts';
-import { PURGE } from 'redux-persist';
+import usersReducer from '../features/user/state/userSlice.ts';
 
 // Combine reducers
 const appReducer = combineReducers({
@@ -14,6 +14,7 @@ const appReducer = combineReducers({
   session: sessionReducer,
   userProfile: userProfileReducer,
   resetPassword: resetPasswordReducer,
+  users: usersReducer
 });
 
 // Root reducer with logout handling
@@ -26,10 +27,7 @@ const rootReducer = (
     // Reset the entire state except for specific slices, if needed
     state = undefined;
   }
-  if (action.type === PURGE) {
-    // Reset the entire state
-    state = undefined;
-  }
+  
   return appReducer(state, action);
 };
 
