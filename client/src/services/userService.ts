@@ -12,13 +12,36 @@ const API_ENDPOINTS = {
   USER_PROFILE: '/users/me',
 };
 
-const fetchUsers = async () => {
+/**
+ * Fetches a list of all users from the API.
+ *
+ * @async
+ * @function fetchUsers
+ * @returns {Promise<Object[] | null>} - A promise that resolves to an array of user objects if successful, or null if an error occurs.
+ * @throws {Error} - Throws an error if the API request fails and cannot be handled.
+ */
+const fetchUsers = async (): Promise<Object[] | null> => {
   try {
     const response = await axiosInstance.get(API_ENDPOINTS.ALL_USERS);
-    console.log(response);
+    console.log('Fetch Users Response:', response.data);
     return response.data;
-  } catch (error) {
-  
+  } catch (error: any) {
+    console.error('Error fetching users:', error.message);
+    
+    // Optionally rethrow the error or handle it based on the application logic
+    if (error.response) {
+      // Server responded with a status code outside the 2xx range
+      console.error('Server Error:', error.response.status, error.response.data);
+    } else if (error.request) {
+      // Request was made but no response received
+      console.error('No Response:', error.request);
+    } else {
+      // Something happened while setting up the request
+      console.error('Request Error:', error.message);
+    }
+    
+    // Return null or throw error based on your requirements
+    return null;
   }
 };
 

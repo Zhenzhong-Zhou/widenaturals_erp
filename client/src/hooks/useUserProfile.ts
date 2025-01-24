@@ -2,10 +2,10 @@ import { useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/storeHooks';
 import { fetchUserProfileThunk } from '../features/user/state/userThunks';
 import {
-  selectUserError,
-  selectUserLoading,
-  selectUserResponse,
-} from '../features/user/state/userSelectors';
+  selectUserProfileError,
+  selectUserProfileLoading,
+  selectUserProfileResponse,
+} from '../features/user/state/userProfileSelectors.ts';
 import { UserResponse } from '../features/user/state/userTypes.ts';
 
 /**
@@ -17,9 +17,9 @@ const useUserProfile = (): UserResponse & { loading: boolean; error: string | nu
   const dispatch = useAppDispatch();
   
   // Selectors
-  const userResponse = useAppSelector<UserResponse | null>(selectUserResponse);
-  const loading = useAppSelector(selectUserLoading);
-  const error = useAppSelector(selectUserError);
+  const userResponse = useAppSelector<UserResponse | null>(selectUserProfileResponse);
+  const loading = useAppSelector(selectUserProfileLoading);
+  const error = useAppSelector(selectUserProfileError);
   
   // Dispatch profile fetch
   useEffect(() => {

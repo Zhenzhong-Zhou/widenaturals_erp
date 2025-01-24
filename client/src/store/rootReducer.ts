@@ -3,7 +3,7 @@ import { PayloadAction } from '@reduxjs/toolkit';
 import healthReducer from '../features/health/state/healthStatusSlice.ts';
 import csrfReducer from '../features/csrf/state/csrfSlice';
 import sessionReducer from '../features/session/state/sessionSlice.ts';
-import userReducer from '../features/user/state/userSlice.ts';
+import userProfileReducer from '../features/user/state/userProfileSlice.ts';
 import resetPasswordReducer from '../features/resetPassword/state/resetPasswordSlice.ts';
 import { PURGE } from 'redux-persist';
 
@@ -12,7 +12,7 @@ const appReducer = combineReducers({
   health: healthReducer,
   csrf: csrfReducer,
   session: sessionReducer,
-  user: userReducer,
+  userProfile: userProfileReducer,
   resetPassword: resetPasswordReducer,
 });
 

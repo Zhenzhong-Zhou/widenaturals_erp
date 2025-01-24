@@ -4,17 +4,18 @@ export const withRetry = async <T>(
   fn: () => Promise<T>,
   retries: number,
   delay: number,
-  retryErrorMessage: string
+  retryErrorMessage: string,
+  backoffFactor: number = 2 // Multiplier for backoff
 ): Promise<T> => {
-  let lastError: any = null; // Store the original error
+  let lastError: any = null;
   
   while (retries > 0) {
     try {
       return await fn(); // Attempt the function
     } catch (error) {
-      lastError = error; // Preserve the original error
+      lastError = error;
       retries -= 1;
-      // console.error(error);
+      
       if (retries === 0) {
         // Throw the original error after retries are exhausted
         if (lastError.response) {
@@ -34,8 +35,9 @@ export const withRetry = async <T>(
         }
       }
       
-      // Wait before retrying
+      // Wait with exponential backoff
       await new Promise((resolve) => setTimeout(resolve, delay));
+      delay *= backoffFactor; // Increase delay for the next attempt
     }
   }
   

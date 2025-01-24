@@ -3,25 +3,25 @@ import { fetchUserProfileThunk } from './userThunks.ts';
 import { UserProfile, UserResponse } from './userTypes.ts';
 
 // Define the UserState interface
-interface UserState {
+interface UserProfileState {
   response: UserResponse | null;
   loading: boolean;
   error: string | null;
 }
 
 // Initial state
-const initialState: UserState = {
+const initialState: UserProfileState = {
   response: null,
   loading: false,
   error: null,
 };
 
-// Create userSlice
-const userSlice = createSlice({
-  name: 'user',
+// Create userProfileSlice
+const userProfileSlice = createSlice({
+  name: 'userProfile',
   initialState,
   reducers: {
-    resetUserState: (state) => {
+    resetUserProfileState: (state) => {
       state.response = null;
       state.loading = false;
       state.error = null;
@@ -49,5 +49,5 @@ const userSlice = createSlice({
   },
 });
 
-export const { resetUserState, updateUserProfile } = userSlice.actions;
-export default userSlice.reducer;
+export const { resetUserProfileState, updateUserProfile } = userProfileSlice.actions;
+export default userProfileSlice.reducer;

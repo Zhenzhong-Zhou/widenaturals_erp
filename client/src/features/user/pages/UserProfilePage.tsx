@@ -1,7 +1,7 @@
 import { FC, useState } from 'react';
 import { CustomButton, DetailHeader, DetailPage, MetadataSection } from '@components/index.ts';
 import { useAppDispatch, useAppSelector } from '../../../store/storeHooks.ts';
-import { selectUserLoading, selectUserResponse } from '../state/userSelectors.ts';
+import { selectUserProfileLoading, selectUserProfileResponse } from '../state/userProfileSelectors.ts';
 import { selectLastLogin } from '../../session/state/sessionSelectors.ts';
 import { formatDate, formatDateTime } from '@utils/dateTimeUtils.ts';
 import { ResetPasswordModal } from '../../resetPassword';
@@ -9,9 +9,9 @@ import { resetPasswordThunk } from '../../resetPassword';
 import { useLogout } from '../../../hooks';
 
 const UserProfilePage: FC = () => {
-  const response = useAppSelector(selectUserResponse);
+  const response = useAppSelector(selectUserProfileResponse);
   const lastLogin = useAppSelector(selectLastLogin);
-  const loading = useAppSelector(selectUserLoading);
+  const loading = useAppSelector(selectUserProfileLoading);
   const user = response?.data;
   const [isModalOpen, setModalOpen] = useState(false);
   const dispatch = useAppDispatch();
