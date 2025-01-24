@@ -1,5 +1,5 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { userService } from '../../../services/userService.ts';
+import { userService } from '../../../services';
 import { AppError } from '@utils/AppError.tsx';
 import { User, UserProfileResponse } from './userTypes.ts';
 

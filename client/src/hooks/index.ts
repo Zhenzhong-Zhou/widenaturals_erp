@@ -6,3 +6,4 @@ export { default as useValidateAndRefreshToken } from './useValidateAndRefreshTo
 export { default as useUserProfile } from './useUserProfile';
 export { default as useLogout } from './useLogout';
 export { default as useUsers } from './useUsers';
+export { default as usePermissions } from './usePermissions';

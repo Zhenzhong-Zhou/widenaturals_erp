@@ -6,6 +6,7 @@ import sessionReducer from '../features/session/state/sessionSlice.ts';
 import userProfileReducer from '../features/user/state/userProfileSlice.ts';
 import resetPasswordReducer from '../features/resetPassword/state/resetPasswordSlice.ts';
 import usersReducer from '../features/user/state/userSlice.ts';
+import permissionsReducer from '../features/authorize/state/permissionSlice.ts';
 
 // Combine reducers
 const appReducer = combineReducers({
@@ -15,6 +16,7 @@ const appReducer = combineReducers({
   userProfile: userProfileReducer,
   resetPassword: resetPasswordReducer,
   users: usersReducer,
+  permissions: permissionsReducer,
 });
 
 // Root reducer with logout handling

@@ -3,10 +3,12 @@ import { Chip, Box } from '@mui/material';
 import { CustomButton, DataTable, Form } from '@components/index';
 import { FieldConfig } from '../components/common/Form';
 import CustomModal from '@components/common/CustomModal.tsx';
+import { usePermissions } from '../hooks';
 
 const DashboardPage: FC = () => {
   const [open, setOpen] = useState(false);
-
+  const {permissions} = usePermissions();
+  console.log(permissions)
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
 
@@ -49,7 +51,7 @@ const DashboardPage: FC = () => {
   const handleSubmit = (formData: Record<string, any>) => {
     console.log('Form Data:', formData);
   };
-
+  
   return (
     <>
       <DataTable
