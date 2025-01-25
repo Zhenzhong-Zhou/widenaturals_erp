@@ -1,7 +1,7 @@
 import { FC } from 'react';
 import Box from '@mui/material/Box';
 import { Typography } from '@components/index.ts';
-import { useThemeContext } from '../../context/ThemeContext.tsx';
+import { useThemeContext } from '../../context';
 
 interface MetadataSectionProps {
   data: Record<string, string | number>;

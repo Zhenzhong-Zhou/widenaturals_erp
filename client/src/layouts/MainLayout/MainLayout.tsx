@@ -1,6 +1,6 @@
 import { ReactNode, useState, Suspense, cloneElement, ReactElement } from 'react';
 import { Sidebar, Header, Footer } from '../index';
-import { useThemeContext } from '../../context/ThemeContext';
+import { useThemeContext } from '../../context';
 import Box from '@mui/material/Box';
 import {
   layoutStyles,

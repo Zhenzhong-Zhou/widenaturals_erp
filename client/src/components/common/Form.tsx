@@ -11,7 +11,7 @@ import {
 } from '@mui/material';
 import { useForm, Controller } from 'react-hook-form';
 import { CustomButton, BaseInput } from '@components/index';
-import { useThemeContext } from '../../context/ThemeContext.tsx';
+import { useThemeContext } from '../../context';
 
 export interface FieldConfig {
   id: string;

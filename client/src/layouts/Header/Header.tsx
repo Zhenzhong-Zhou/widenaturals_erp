@@ -8,7 +8,7 @@ import Divider from '@mui/material/Divider';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSun, faMoon } from '@fortawesome/free-solid-svg-icons';
 import { Typography, CustomButton } from '@components/index';
-import { useThemeContext } from '../../context/ThemeContext';
+import { useThemeContext } from '../../context';
 import { UserProfile as UserProfileType } from '../../features/user/state/userTypes';
 import { headerStyles, typographyStyles } from './headerStyles';
 import { HealthStatus } from '../../features/health';

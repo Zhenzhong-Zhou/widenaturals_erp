@@ -3,7 +3,7 @@ import { Box, IconButton, Typography, Alert, Backdrop } from '@mui/material';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import ResetPasswordForm from './ResetPasswordForm';
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
-import { useThemeContext } from '../../../context/ThemeContext.tsx';
+import { useThemeContext } from '../../../context';
 
 interface ResetPasswordModalProps {
   open: boolean;

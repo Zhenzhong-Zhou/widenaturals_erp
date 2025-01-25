@@ -1,6 +1,6 @@
 import { FC } from 'react';
 import Box, { BoxProps } from '@mui/material/Box';
-import { useThemeContext } from '../../context/ThemeContext.tsx';
+import { useThemeContext } from '../../context';
 
 interface ErrorMessageProps extends BoxProps {
   message: string | null; // Error message to display
