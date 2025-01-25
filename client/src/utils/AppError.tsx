@@ -62,11 +62,19 @@ class AppError extends Error {
       details,
     });
   }
-
+  
   static reportError(error: AppError) {
-    console.error('Logging error to external service:', error);
+    const reportPayload = {
+      message: error.message,
+      type: error.type,
+      details: error.details,
+      recoverySuggestion: error.getRecoverySuggestion(),
+      correlationId: error.correlationId,
+    };
+    console.error('Logging error to external service:', reportPayload);
+    // Send reportPayload to your logging service
   }
-
+  
   toJSON() {
     return {
       message: this.message,

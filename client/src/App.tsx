@@ -1,15 +1,12 @@
 import { FC } from 'react';
 import { BrowserRouter } from 'react-router';
-import { ThemeProviderWrapper } from './context/ThemeContext';
-import { LoadingProvider } from './context/LoadingContext';
+import { ThemeProviderWrapper } from './context';
 import { AppContent } from './core';
 
 const App: FC = () => (
   <BrowserRouter>
     <ThemeProviderWrapper>
-      <LoadingProvider>
-        <AppContent />
-      </LoadingProvider>
+      <AppContent />
     </ThemeProviderWrapper>
   </BrowserRouter>
 );
