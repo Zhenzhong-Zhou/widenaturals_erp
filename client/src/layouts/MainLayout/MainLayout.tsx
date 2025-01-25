@@ -1,4 +1,4 @@
-import { FC, ReactNode, useState, Suspense } from 'react';
+import { ReactNode, useState, Suspense, cloneElement, ReactElement } from 'react';
 import { Sidebar, Header, Footer } from '../index';
 import { useThemeContext } from '../../context/ThemeContext';
 import Box from '@mui/material/Box';
@@ -8,7 +8,8 @@ import {
   mainContentStyles,
 } from './layoutStyles';
 import {
-  ErrorDisplay, ErrorMessage,
+  ErrorDisplay,
+  ErrorMessage,
   FallbackUI,
   Loading,
   ModuleErrorBoundary,
@@ -16,14 +17,13 @@ import {
 import { AppError } from '@utils/AppError';
 import { getErrorLog } from '@utils/errorUtils';
 import { useLogout, useTokenRefresh, useUserProfile } from '../../hooks';
+import { usePermissionsContext } from '../../context';
 
 interface MainLayoutProps {
   children: ReactNode; // Allow any React elements to be passed as children
-  roleName: string; // Role name, a string
-  permissions: string[]; // Array of permissions as strings
 }
 
-const MainLayout: FC<MainLayoutProps> = ({ children }) => {
+const MainLayout = ({ children }: MainLayoutProps) => {
   const { theme } = useThemeContext(); // Access the current theme from context
   const [isSidebarOpen, setSidebarOpen] = useState(true); // Sidebar state
   const {
@@ -32,23 +32,29 @@ const MainLayout: FC<MainLayoutProps> = ({ children }) => {
     error: userProfileError,
   } = useUserProfile();
   const { logout } = useLogout(); // Logout handler
-  useTokenRefresh();
-
+  useTokenRefresh(); // Token refresh handling
+  const { roleName, permissions } = usePermissionsContext(); // Access role and permissions
+  
   const toggleSidebar = () => setSidebarOpen((prev) => !prev);
-
-  // Global loading for user profile fetch
+  
+  // Handle global loading for user profile
   if (userProfileLoading) {
     return <Loading message="Loading user profile..." />;
   }
-
+  
+  // Handle global error for user profile
   if (userProfileError) {
     return <ErrorDisplay message="Failed to load user profile." />;
   }
-
+  
   if (!userProfile) {
-    return <ErrorDisplay><ErrorMessage message={'No user profile available.'}/></ErrorDisplay>;
+    return (
+      <ErrorDisplay>
+        <ErrorMessage message="No user profile available." />
+      </ErrorDisplay>
+    );
   }
-
+  
   return (
     <Box className="layout" sx={layoutStyles(theme)}>
       {/* Sidebar */}
@@ -68,9 +74,14 @@ const MainLayout: FC<MainLayoutProps> = ({ children }) => {
           />
         }
       >
-        <Sidebar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
+        <Sidebar
+          isOpen={isSidebarOpen}
+          toggleSidebar={toggleSidebar}
+          roleName={roleName}
+          permissions={permissions}
+        />
       </ModuleErrorBoundary>
-
+      
       {/* Content Container */}
       <Box className="content-container" sx={contentContainerStyles(theme)}>
         {/* Header */}
@@ -94,7 +105,7 @@ const MainLayout: FC<MainLayoutProps> = ({ children }) => {
             <Header user={userProfile} onLogout={logout} />
           </Suspense>
         </ModuleErrorBoundary>
-
+        
         {/* Main Content */}
         <ModuleErrorBoundary
           fallback={
@@ -112,10 +123,15 @@ const MainLayout: FC<MainLayoutProps> = ({ children }) => {
           }
         >
           <Suspense fallback={<Loading message="Loading content..." />}>
-            <Box sx={mainContentStyles(theme)}>{children}</Box>
+            <Box sx={mainContentStyles(theme)}>
+              {cloneElement(children as ReactElement, {
+                roleName,
+                permissions,
+              })}
+            </Box>
           </Suspense>
         </ModuleErrorBoundary>
-
+        
         {/* Footer */}
         <ModuleErrorBoundary
           fallback={

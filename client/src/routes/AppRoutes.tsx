@@ -6,6 +6,7 @@ import GuestRoute from './GuestRoute.tsx';
 import { ErrorDisplay, ErrorMessage, Loading } from '@components/index.ts';
 import { MainLayout } from '../layouts';
 import { usePermissions, useSession } from '../hooks';
+import { PermissionsProvider } from '../context';
 
 const LazyNotFoundPage = lazy(() =>
   import('../pages/NotFoundPage').then((module) => ({
@@ -26,72 +27,74 @@ const AppRoutes = () => {
   }
   
   return (
-    <Suspense fallback={<Loading fullPage message="Loading page..." />}>
-      <Routes>
-        {routes.map(({ path, component, meta }, index) => {
-          const LazyComponent = lazy(() =>
-            component().then((module) => ({ default: module.default }))
-          );
-          
-          if (meta?.requiresAuth) {
-            if (meta.requiredPermission && !permissions.includes(meta.requiredPermission)) {
-              // Render "Access Denied" or a placeholder if the user lacks the required permission
+    <PermissionsProvider roleName={roleName} permissions={permissions} error={error}>
+      <Suspense fallback={<Loading fullPage message="Loading page..." />}>
+        <Routes>
+          {routes.map(({ path, component, meta }, index) => {
+            const LazyComponent = lazy(() =>
+              component().then((module) => ({ default: module.default }))
+            );
+            
+            if (meta?.requiresAuth) {
+              if (meta.requiredPermission && !permissions.includes(meta.requiredPermission)) {
+                // Render "Access Denied" or a placeholder if the user lacks the required permission
+                return (
+                  <Route
+                    key={index}
+                    path={path}
+                    element={
+                      <MainLayout>
+                        <ErrorDisplay>
+                          <ErrorMessage message="Access Denied" />
+                        </ErrorDisplay>
+                      </MainLayout>
+                    }
+                  />
+                );
+              }
+              
               return (
                 <Route
                   key={index}
                   path={path}
                   element={
-                    <MainLayout roleName={roleName} permissions={permissions}>
-                      <ErrorDisplay>
-                        <ErrorMessage message={"Access Deny"} />
-                      </ErrorDisplay>
-                    </MainLayout>
+                    <ProtectedRoutes>
+                      <MainLayout>
+                        <LazyComponent />
+                      </MainLayout>
+                    </ProtectedRoutes>
                   }
                 />
               );
             }
             
-            return (
-              <Route
-                key={index}
-                path={path}
-                element={
-                  <ProtectedRoutes>
-                    <MainLayout roleName={roleName} permissions={permissions}>
+            if (path === '/login' || path === '/') {
+              // Wrap login and homepage with GuestRoute
+              return (
+                <Route
+                  key={index}
+                  path={path}
+                  element={
+                    <GuestRoute>
                       <LazyComponent />
-                    </MainLayout>
-                  </ProtectedRoutes>
-                }
-              />
-            );
-          }
+                    </GuestRoute>
+                  }
+                />
+              );
+            }
+            
+            // Render other public routes directly
+            return <Route key={index} path={path} element={<LazyComponent />} />;
+          })}
           
-          if (path === '/login' || path === '/') {
-            // Wrap login and homepage with GuestRoute
-            return (
-              <Route
-                key={index}
-                path={path}
-                element={
-                  <GuestRoute>
-                    <LazyComponent />
-                  </GuestRoute>
-                }
-              />
-            );
-          }
-          
-          // Render other public routes directly
-          return <Route key={index} path={path} element={<LazyComponent />} />;
-        })}
-        
-        {/* 404 Page for Invalid Routes */}
-        <Route
-          path="*"
-          element={<LazyNotFoundPage isAuthenticated={isAuthenticated} />}
-        />
-      </Routes>
-    </Suspense>
+          {/* 404 Page for Invalid Routes */}
+          <Route
+            path="*"
+            element={<LazyNotFoundPage isAuthenticated={isAuthenticated} />}
+          />
+        </Routes>
+      </Suspense>
+    </PermissionsProvider>
   );
 };
 
