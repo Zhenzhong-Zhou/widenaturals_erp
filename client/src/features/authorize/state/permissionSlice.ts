@@ -2,13 +2,15 @@ import { createSlice } from '@reduxjs/toolkit';
 import { fetchPermissionsThunk } from './authorizeThunk.ts';
 
 // Initial state
-interface PermissionState {
+interface PermissionsState {
+  roleName: string;
   permissions: string[];
   loading: boolean;
   error: string | null;
 }
 
-const initialState: PermissionState = {
+const initialState: PermissionsState = {
+  roleName: '',
   permissions: [],
   loading: false,
   error: null,
@@ -27,11 +29,12 @@ const permissionSlice = createSlice({
       })
       .addCase(fetchPermissionsThunk.fulfilled, (state, action) => {
         state.loading = false;
-        state.permissions = action.payload;
+        state.roleName = action.payload.roleName;
+        state.permissions = action.payload.permissions;
       })
       .addCase(fetchPermissionsThunk.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload as string;
+        state.error = action.payload || 'Failed to fetch permissions.';
       });
   },
 });

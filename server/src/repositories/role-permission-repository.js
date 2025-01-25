@@ -22,6 +22,7 @@ const getRolePermissionsByRoleId = async (
 ) => {
   const sql = `
     SELECT
+      r.name as role_name,
       ARRAY_AGG(p.key) AS permissions
     FROM role_permissions rp
     INNER JOIN roles r ON rp.role_id = r.id
@@ -48,7 +49,7 @@ const getRolePermissionsByRoleId = async (
         );
       }
       
-      return result.rows[0].permissions;
+      return result.rows[0];
     });
   } catch (error) {
     logError('Error fetching permissions for role:', {

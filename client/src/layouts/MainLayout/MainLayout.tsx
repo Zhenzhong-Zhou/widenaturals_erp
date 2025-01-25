@@ -8,7 +8,7 @@ import {
   mainContentStyles,
 } from './layoutStyles';
 import {
-  ErrorDisplay,
+  ErrorDisplay, ErrorMessage,
   FallbackUI,
   Loading,
   ModuleErrorBoundary,
@@ -19,6 +19,8 @@ import { useLogout, useTokenRefresh, useUserProfile } from '../../hooks';
 
 interface MainLayoutProps {
   children: ReactNode; // Allow any React elements to be passed as children
+  roleName: string; // Role name, a string
+  permissions: string[]; // Array of permissions as strings
 }
 
 const MainLayout: FC<MainLayoutProps> = ({ children }) => {
@@ -44,7 +46,7 @@ const MainLayout: FC<MainLayoutProps> = ({ children }) => {
   }
 
   if (!userProfile) {
-    return <div>No user profile available.</div>;
+    return <ErrorDisplay><ErrorMessage message={'No user profile available.'}/></ErrorDisplay>;
   }
 
   return (

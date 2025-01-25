@@ -79,19 +79,19 @@ const getUserProfile = wrapAsync(async (req, res) => {
  * @throws {AppError} - Throws if validation fails or if there's an error in fetching permissions.
  */
 const getPermissions = wrapAsync(async (req, res, next) => {
-  const { role_id } = req.user;
+  const { role } = req.user;
 
-  if (!role_id) {
+  if (!role) {
     return next(AppError.notFoundError('Role ID is required'));
   }
 
   // Fetch permissions from the service
-  const permissions = await fetchPermissions(role_id);
+  const rolePermissions = await fetchPermissions(role);
   
   res.status(200).json({
     success: true,
     message: 'Permissions retrieved successfully',
-    data: permissions,
+    data: rolePermissions,
   });
 });
 

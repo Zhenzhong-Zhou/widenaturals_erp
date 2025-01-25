@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { UsePermissions } from '../features/authorize/state/authorzeTypes.ts';
 import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
 import { fetchPermissionsThunk } from '../features/authorize/state/authorizeThunk.ts';
@@ -6,10 +6,12 @@ import {
   selectPermissions,
   selectPermissionsError,
   selectPermissionsLoading,
+  selectRoleName,
 } from '../features/authorize/state/permissionSelector.ts';
 
 const usePermissions = (): UsePermissions => {
   const dispatch = useAppDispatch();
+  const roleName = useAppSelector(selectRoleName);
   const permissions = useAppSelector(selectPermissions);
   const loading = useAppSelector(selectPermissionsLoading);
   const error = useAppSelector(selectPermissionsError);
@@ -25,17 +27,19 @@ const usePermissions = (): UsePermissions => {
   
   // Fetch permissions on component mount
   useEffect(() => {
-    loadPermissions().catch((err) => {
-      console.error('Failed to load permissions:', err.message || err);
-    });
-  }, [loadPermissions]);
+    loadPermissions();
+  }, [dispatch, loadPermissions]); // Only depends on `dispatch`
   
   // Provide a way to refresh permissions manually
-  const refreshPermissions = useCallback(() => {
-    return loadPermissions();
-  }, [loadPermissions]);
+  const refreshPermissions = async () => {
+    try {
+      await dispatch(fetchPermissionsThunk()).unwrap();
+    } catch (err: any) {
+      console.error('Failed to refresh permissions:', err.message || err);
+    }
+  };
   
-  return { permissions, loading, error, refreshPermissions };
+  return { roleName, permissions, loading, error, refreshPermissions };
 };
 
 export default usePermissions;
