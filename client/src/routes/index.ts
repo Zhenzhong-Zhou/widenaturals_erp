@@ -19,7 +19,7 @@ export const routes = [
   },
   {
     path: '/dashboard',
-    component: () => import('../pages/DashboardPage.tsx'),
+    component: () => import('../features/dashboard/pages/DashboardPage.tsx'),
     meta: {
       requiresAuth: true,
       title: 'Dashboard',
