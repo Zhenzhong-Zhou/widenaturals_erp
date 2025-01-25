@@ -2,7 +2,7 @@ import axiosInstance from '@utils/axiosConfig.ts';
 import { clearTokens } from '@utils/tokenManager.ts';
 import { handleError, mapErrorMessage } from '@utils/errorUtils.ts';
 import { AppError, ErrorType } from '@utils/AppError.tsx';
-import { User, UserProfileResponse } from '../features/user/state/userTypes.ts';
+import { UserProfileResponse, UseUsersResponse } from '../features/user/state/userTypes.ts';
 import { isCustomAxiosError } from '@utils/axiosUtils.ts';
 import { withTimeout } from '@utils/timeoutUtils.ts';
 import { withRetry } from '@utils/retryUtils.ts';
@@ -20,31 +20,36 @@ const API_ENDPOINTS = {
  * @returns {Promise<User[] | null>} - A promise that resolves to an array of user objects if successful, or null if an error occurs.
  * @throws {Error} - Throws an error if the API request fails and cannot be handled.
  */
-const fetchUsers = async (): Promise<User[] | null> => {
+const fetchUsers =  async ({
+                             page = 1,
+                             limit = 10,
+                             sortBy = 'u.created_at',
+                             sortOrder = 'ASC',
+                           }: {
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: string;
+}): Promise<UseUsersResponse> => {
   try {
-    const response = await axiosInstance.get<User[]>(API_ENDPOINTS.ALL_USERS);
-    return response.data;
+    const response = await axiosInstance.get(API_ENDPOINTS.ALL_USERS, {
+      params: { page, limit, sortBy, sortOrder }, // Send query parameters
+    });
+    
+    const { data, pagination } = response.data;
+    console.log(response.data)
+    return {
+      data,
+      pagination: {
+        totalRecords: pagination.totalRecords,
+        page: pagination.page,
+        limit: pagination.limit,
+        totalPages: pagination.totalPages,
+      },
+    };
   } catch (error: any) {
     console.error('Error fetching users:', error.message);
-
-    // Optionally rethrow the error or handle it based on the application logic
-    if (error.response) {
-      // Server responded with a status code outside the 2xx range
-      console.error(
-        'Server Error:',
-        error.response.status,
-        error.response.data
-      );
-    } else if (error.request) {
-      // Request was made but no response received
-      console.error('No Response:', error.request);
-    } else {
-      // Something happened while setting up the request
-      console.error('Request Error:', error.message);
-    }
-
-    // Return null or throw error based on your requirements
-    return null;
+    throw error; // Re-throw the error for thunk to handle
   }
 };
 

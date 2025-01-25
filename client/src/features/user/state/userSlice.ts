@@ -1,9 +1,12 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { User, UserState } from './userTypes';
+import { PaginationInfo, User, UsersState } from './userTypes';
 import { fetchUsersThunk } from './userThunks';
 
-const initialState: UserState = {
-  users: [],
+const initialState: UsersState = {
+  users: {
+    data: [], // User list
+    pagination: { limit: 10, page: 1, totalPages: 0, totalRecords: 0 }, // Default pagination
+  },
   loading: false,
   error: null,
 };
@@ -13,7 +16,10 @@ const userSlice = createSlice({
   initialState,
   reducers: {
     clearUsers: (state) => {
-      state.users = [];
+      state.users = {
+        data: [],
+        pagination: { limit: 10, page: 1, totalPages: 0, totalRecords: 0 },
+      }; // Reset to initial structure
       state.error = null;
     },
   },
@@ -25,9 +31,12 @@ const userSlice = createSlice({
       })
       .addCase(
         fetchUsersThunk.fulfilled,
-        (state, action: PayloadAction<User[]>) => {
+        (
+          state,
+          action: PayloadAction<{ data: User[]; pagination: PaginationInfo }>
+        ) => {
           state.loading = false;
-          state.users = action.payload;
+          state.users = action.payload; // Expecting both data and pagination
         }
       )
       .addCase(fetchUsersThunk.rejected, (state, action) => {

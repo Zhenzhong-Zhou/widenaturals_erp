@@ -1,7 +1,7 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { userService } from '../../../services';
 import { AppError } from '@utils/AppError.tsx';
-import { User, UserProfileResponse } from './userTypes.ts';
+import { PaginationInfo, User, UserProfileResponse } from './userTypes.ts';
 
 /**
  * Fetch all users from the API.
@@ -12,13 +12,22 @@ import { User, UserProfileResponse } from './userTypes.ts';
  * @throws {string} - Throws an error message if the API call fails.
  */
 export const fetchUsersThunk = createAsyncThunk<
-  User[], // Return type on success
-  void, // Argument type
+  { data: User[]; pagination: PaginationInfo }, // Return type on success
+  { page?: number; limit?: number; sortBy?: string; sortOrder?: string },  // Argument type
   { rejectValue: string } // Type for rejectWithValue
->('users/fetchAll', async (_, { rejectWithValue }) => {
+>('users/fetchAll', async ({ page = 1, limit = 10, sortBy = 'u.created_at', sortOrder = 'ASC' }, { rejectWithValue }) => {
   try {
-    const response = await userService.fetchUsers();
-    return response as User[];
+    const response = await userService.fetchUsers({ page, limit, sortBy, sortOrder });
+   console.log(response);
+    if (!response) {
+      // Handle the case where response is null
+      return rejectWithValue('Failed to fetch users');
+    }
+    
+    return {
+      data: response.data, // Access response.data correctly
+      pagination: response.pagination, // Access response.pagination correctly
+    };
   } catch (error: any) {
     const errorMessage = error.response?.data || 'Failed to fetch users';
     console.error('Error fetching users:', errorMessage);

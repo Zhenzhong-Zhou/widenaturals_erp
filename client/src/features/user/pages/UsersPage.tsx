@@ -8,16 +8,27 @@ import {
   Loading,
   Typography,
 } from '@components/index.ts';
+import CustomPagination from '@components/common/CustomPagination.tsx';
 
 const UsersPage: FC = () => {
   const { users, loading, error, refetchUsers } = useUsers();
-
+  const usersList = users.data;
+  const usersPagination = users.pagination;
+  
+  // Extract pagination details
+  const { page, totalPages, totalRecords, limit } = usersPagination;
+  
+  // Handle page change
+  const handlePageChange = (newPage: number) => {
+    refetchUsers({ page: newPage, limit }); // Trigger data fetching for the new page
+  };
+  
   return (
     <Box sx={{ padding: 3 }}>
       <Typography variant="h4" gutterBottom>
         User Management
       </Typography>
-
+      
       {/* Show Loading Spinner */}
       {loading && (
         <Box
@@ -29,17 +40,25 @@ const UsersPage: FC = () => {
           <Loading message={'Loading All Users...'} />
         </Box>
       )}
-
+      
       {/* Show Error Message */}
       {error && (
         <Alert severity="error" sx={{ marginBottom: 2 }}>
           <ErrorMessage message={error} />
         </Alert>
       )}
-
+      
       {/* Show Users List */}
-      {!loading && !error && users.length > 0 ? (
-        <UsersList users={users} />
+      {!loading && !error && usersList.length > 0 ? (
+        <>
+          <UsersList users={usersList} />
+          <CustomPagination
+            page={page}
+            totalPages={totalPages}
+            totalRecords={totalRecords}
+            onPageChange={handlePageChange}
+          />
+        </>
       ) : (
         !loading &&
         !error && (
@@ -48,7 +67,10 @@ const UsersPage: FC = () => {
           </Typography>
         )
       )}
-      <CustomButton onClick={refetchUsers}>Refetch Users</CustomButton>
+      
+      <Box mt={3}>
+        <CustomButton onClick={() => refetchUsers()}>Refetch Users</CustomButton>
+      </Box>
     </Box>
   );
 };

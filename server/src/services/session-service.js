@@ -63,8 +63,8 @@ const loginUser = async (email, password) => {
       await resetFailedAttemptsAndUpdateLastLogin(client, user_id);
 
       // Generate tokens
-      const accessToken = signToken({ id: user_id, role_id });
-      const refreshToken = signToken({ id: user_id, role_id }, true);
+      const accessToken = signToken({ id: user_id, role: role_id });
+      const refreshToken = signToken({ id: user_id, role: role_id }, true);
 
       return { accessToken, refreshToken, last_login };
     } catch (error) {

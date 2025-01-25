@@ -35,10 +35,11 @@ const authenticate = () => {
         await validateUserExists('id', user.id);
         
         // Validate the role ID and get the validated value
-        const validatedRoleId= await validateRoleById(user.role_id);
+        const validatedRoleId= await validateRoleById(user.role);
+        
         req.user = {
           ...user, // Attach validated user to the request
-          role_id: validatedRoleId,
+          role: validatedRoleId,
         };
         return next();
       } catch (error) {
