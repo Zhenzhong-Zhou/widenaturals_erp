@@ -3,6 +3,7 @@ const { getStatusIdByName } = require('../repositories/status-repository');
 const { logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
 const { userExists } = require('../repositories/user-repository');
+const { checkProductExists } = require('../repositories/product-repository');
 
 /**
  * Validates if a user exists by a specific field and value.
@@ -113,9 +114,29 @@ const validateStatus = async (statusName) => {
   }
 };
 
+/**
+ * Validates product existence based on provided filters.
+ * Throws an error if the product does not exist.
+ * @param {Object} filters - Filters like id, barcode, product_name.
+ * @param {Object} options - Additional options (e.g., throwIfExists).
+ * @returns {Promise<void>}
+ */
+const validateProductExistence = async (filters, options = { throwIfExists: false }) => {
+  const exists = await checkProductExists(filters);
+  
+  if (options.throwIfExists && exists) {
+    throw new Error('A product with the provided details already exists.');
+  }
+  
+  if (!options.throwIfExists && !exists) {
+    throw new Error('No product found with the provided details.');
+  }
+};
+
 module.exports = {
   validateUserExists,
   validateRoleByName,
   validateRoleById,
   validateStatus,
+  validateProductExistence,
 };

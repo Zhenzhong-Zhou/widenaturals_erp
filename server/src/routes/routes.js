@@ -12,6 +12,7 @@ const sessionRoute = require('./session');
 const authRoutes = require('./auth');
 const userRoutes = require('./users');
 const adminRoutes = require('./admin');
+const productRoutes = require('./products');
 const {
   createApiRateLimiter,
   createCsrfTokenRateLimiter,
@@ -59,5 +60,9 @@ router.use('/users', authenticate(), userRoutes);
  * Routes under `/admin` handle administrative operations and require authentication.
  */
 router.use('/admin', authenticate(), adminRoutes);
+
+// Products route
+// router.use('/products', authenticate(), productRoutes);
+router.use('/products', productRoutes);
 
 module.exports = router;
