@@ -7,6 +7,7 @@ import { ErrorDisplay, ErrorMessage, Loading } from '@components/index.ts';
 import { MainLayout } from '../layouts';
 import { usePermissions, useSession } from '../hooks';
 import { PermissionsProvider } from '../context';
+import { hasPermission } from '@utils/permissionUtils.ts';
 
 const LazyNotFoundPage = lazy(() =>
   import('../pages/NotFoundPage').then((module) => ({
@@ -36,8 +37,8 @@ const AppRoutes = () => {
             );
             
             if (meta?.requiresAuth) {
-              if (meta.requiredPermission && !permissions.includes(meta.requiredPermission)) {
-                // Render "Access Denied" or a placeholder if the user lacks the required permission
+              if (!hasPermission(meta.requiredPermission, permissions, roleName)) {
+                // Render "Access Denied" if the user lacks permission
                 return (
                   <Route
                     key={index}

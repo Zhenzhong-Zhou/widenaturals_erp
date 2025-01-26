@@ -13,6 +13,7 @@ import { useThemeContext } from '../../context';
 import logoDark from '../../assets/wide-logo-dark.png';
 import logoLight from '../../assets/wide-logo-light.png';
 import { routes } from '../../routes';
+import { hasPermission } from '@utils/permissionUtils.ts';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -21,15 +22,17 @@ interface SidebarProps {
   permissions: string[];
 }
 
-const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
+const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar, roleName, permissions }) => {
   const { theme } = useThemeContext();
   const logo = theme.palette.mode === 'dark' ? logoDark : logoLight;
-
+  
   // Filter routes for items to display in the sidebar
-  const menuItems = routes.filter(
-    (route) => route.meta?.showInSidebar && !route.path.includes('*')
+  const menuItems = routes.filter((route) =>
+    route.meta?.showInSidebar && // Show only if marked for sidebar
+    !route.path.includes('*') && // Exclude wildcard routes
+    hasPermission(route.meta?.requiredPermission, permissions, roleName) // Check permission
   );
-
+  
   return (
     <>
       {/* Sidebar Drawer */}
@@ -37,7 +40,7 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
         anchor="left"
         open={isOpen}
         onClose={toggleSidebar}
-        variant="persistent" // Persistent drawer for desktop
+        variant="persistent"
         sx={sidebarStyles(theme, isOpen)}
       >
         {/* Sidebar Header */}
@@ -71,7 +74,7 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
               }}
             />
           </Box>
-
+          
           {isOpen && (
             <IconButton
               onClick={toggleSidebar}
@@ -89,7 +92,7 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
             </IconButton>
           )}
         </Box>
-
+        
         {/* Sidebar Navigation */}
         <Box
           sx={{
@@ -123,7 +126,7 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar }) => {
           </List>
         </Box>
       </Drawer>
-
+      
       {/* Open Button */}
       {!isOpen && (
         <IconButton
