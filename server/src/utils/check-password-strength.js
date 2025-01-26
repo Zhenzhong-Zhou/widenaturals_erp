@@ -34,9 +34,9 @@ const checkPasswordStrength = (password) => {
       suggestions: result.feedback.suggestions.length
         ? result.feedback.suggestions
         : [customFeedback[result.score]],
-      warning: result.feedback.warning || '',
+      warning: result.feedback.warning || 'Consider making your password stronger for better security.',
     },
-    meetsThreshold: result.score >= 3, // Example threshold for strong passwords
+    meetsThreshold: result.score >= 3,
   };
 };
 
