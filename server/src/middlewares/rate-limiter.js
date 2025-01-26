@@ -19,6 +19,13 @@ const createApiRateLimiter = () =>
     max: RATE_LIMIT.API.MAX,
   });
 
+// CSRF Token Route Rate Limiter
+const createCsrfTokenRateLimiter = () =>
+  createRateLimiter({
+    windowMs: RATE_LIMIT.CSRF.WINDOW_MS,
+    max: RATE_LIMIT.CSRF.MAX,
+  });
+
 /**
  * Creates a login-specific rate limiter to limit login attempts.
  */
@@ -26,6 +33,27 @@ const createLoginRateLimiter = () =>
   createRateLimiter({
     windowMs: RATE_LIMIT.LOGIN.WINDOW_MS,
     max: RATE_LIMIT.LOGIN.MAX,
+  });
+
+// Refresh Token Route Rate Limiter
+const createRefreshRateLimiter = () =>
+  createRateLimiter({
+    windowMs: RATE_LIMIT.REFRESH.WINDOW_MS,
+    max: RATE_LIMIT.REFRESH.MAX,
+  });
+
+// User Profile Route Rate Limiter
+const createUserProfileRateLimiter = () =>
+  createRateLimiter({
+    windowMs: RATE_LIMIT.USER_PROFILE.WINDOW_MS,
+    max: RATE_LIMIT.USER_PROFILE.MAX,
+  });
+
+// Reset Password Route Rate Limiter
+const createResetPasswordRateLimiter = () =>
+  createRateLimiter({
+    windowMs: RATE_LIMIT.PASSWORD_RESET.WINDOW_MS,
+    max: RATE_LIMIT.PASSWORD_RESET.MAX,
   });
 
 /**
@@ -40,6 +68,10 @@ const createAdminRateLimiter = () =>
 module.exports = {
   createGlobalRateLimiter,
   createApiRateLimiter,
+  createCsrfTokenRateLimiter,
   createLoginRateLimiter,
+  createRefreshRateLimiter,
+  createUserProfileRateLimiter,
+  createResetPasswordRateLimiter,
   createAdminRateLimiter,
 };

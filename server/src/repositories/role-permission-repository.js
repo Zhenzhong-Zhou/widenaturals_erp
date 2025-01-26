@@ -1,17 +1,28 @@
-const { query } = require('../database/db');
+const { query, retry, lockRow, getClient } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logError } = require('../utils/logger-helper');
 
 /**
- * Fetches all permissions for a given role ID.
+ * Fetches all permissions for a given role ID with optional row locking and retry mechanism.
  *
- * @param {uuid} roleId - The ID of the role.
- * @returns {Promise<Array>} - Array of permissions associated with the role.
+ * @param {string} roleId - The UUID of the role to fetch permissions for.
+ * @returns {Promise<string[]>} - Array of permission keys associated with the role.
  * @throws {AppError} - Throws an error if the query fails or no permissions are found.
+ *
+ * @example
+ * // Fetch permissions with default lock mode
+ * const permissions = await getRolePermissionsByRoleId('role-id-123', dbClient);
+ *
+ * @example
+ * // Fetch permissions with 'FOR UPDATE' lock mode
+ * const permissions = await getRolePermissionsByRoleId('role-id-123', dbClient, 'FOR UPDATE');
  */
-const getRolePermissionsByRoleId = async (roleId) => {
-  const text = `
+const getRolePermissionsByRoleId = async (
+  roleId,
+) => {
+  const sql = `
     SELECT
+      r.name as role_name,
       ARRAY_AGG(p.key) AS permissions
     FROM role_permissions rp
     INNER JOIN roles r ON rp.role_id = r.id
@@ -23,24 +34,27 @@ const getRolePermissionsByRoleId = async (roleId) => {
       AND sr.name = 'active'
       AND sp.name = 'active'
       AND srp.name = 'active'
-    GROUP BY r.name;
+    GROUP BY r.name
   `;
-
+  
+  const params = [roleId];
+  
   try {
-    const params = [roleId];
-    const result = await query(text, params);
-
-    if (!result.rows.length || !result.rows[0].permissions) {
-      throw new AppError('No permissions found for the specified role.', 404, {
-        type: 'DatabaseError',
-        isExpected: true,
-      });
-    }
-
-    return result.rows[0].permissions;
+    return await retry(async () => {
+      const result = await query(sql, params);
+      
+      if (!result.rows.length || !result.rows[0].permissions) {
+        throw AppError.notFoundError(
+          `No permissions found for the specified role: ${roleId}`
+        );
+      }
+      
+      return result.rows[0];
+    });
   } catch (error) {
     logError('Error fetching permissions for role:', {
       roleId,
+      query: sql,
       error: error.message,
     });
     throw new AppError(

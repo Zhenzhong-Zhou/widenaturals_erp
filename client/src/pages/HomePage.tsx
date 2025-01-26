@@ -2,7 +2,7 @@ import { FC } from 'react';
 import Box from '@mui/material/Box';
 import { useNavigate } from 'react-router-dom';
 import { CustomButton, Typography } from '@components/index.ts';
-import { useThemeContext } from '../context/ThemeContext.tsx';
+import { useThemeContext } from '../context';
 
 const HomePage: FC = () => {
   const { theme } = useThemeContext(); // Get theme from context

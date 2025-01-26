@@ -1,4 +1,4 @@
-const { loginUser } = require('../services/auth-service');
+const { loginUser } = require('../services/session-service');
 const { logError, logWarn } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
 const { signToken, verifyToken } = require('../utils/token-helper');

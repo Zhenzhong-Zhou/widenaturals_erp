@@ -52,6 +52,15 @@ exports.seed = async function (knex) {
       created_at: knex.fn.now(),
       updated_at: knex.fn.now(),
     },
+    {
+      id: knex.raw('uuid_generate_v4()'),
+      name: 'Root Access',
+      key: 'root_access',
+      description: 'Grants access to all routes and operations',
+      status_id: activeStatusId,
+      created_at: knex.fn.now(),
+      updated_at: knex.fn.now(),
+    },
   ];
 
   for (const permission of permissions) {

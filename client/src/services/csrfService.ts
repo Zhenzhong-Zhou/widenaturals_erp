@@ -2,9 +2,11 @@ import axiosInstance from '@utils/axiosConfig';
 import { AppError, ErrorType } from '@utils/AppError';
 import { withTimeout } from '@utils/timeoutUtils.ts';
 import { withRetry } from '@utils/retryUtils.ts';
-import { getCsrfTokenThunk } from '../features/csrf/state/csrfThunk.ts';
-import type { AppDispatch } from '../store/store.ts';
-import { resetCsrfToken } from '../features/csrf/state/csrfSlice.ts';
+import { AppDispatch } from '../store/store.ts';
+import {
+  resetCsrfToken,
+  updateCsrfToken,
+} from '../features/csrf/state/csrfSlice.ts';
 
 /**
  * Fetches the CSRF token from the backend with retry and timeout logic.
@@ -19,6 +21,7 @@ const fetchCsrfToken = async (): Promise<string> => {
             withCredentials: true, // Ensure cookies are included for CSRF protection
           }),
         3, // Retry attempts
+        1000, // Delay in milliseconds (1 second)
         'Failed to fetch CSRF token' // Error message for retries
       ),
       5000, // Timeout in milliseconds
@@ -38,16 +41,16 @@ const fetchCsrfToken = async (): Promise<string> => {
     // Log the error for debugging purposes
     console.error('CSRF Token Fetch Error:', {
       message:
-        error instanceof Error ? error.message : 'Unknown error occurred',
+        error instanceof AppError ? error.message : 'Unknown error occurred',
       ...(import.meta.env.NODE_ENV !== 'production' && {
-        stack: error instanceof Error ? error.stack : undefined,
+        stack: error instanceof AppError ? error.stack : undefined,
       }),
     });
 
     // Re-throw as AppError for consistent error handling
     throw new AppError('Failed to fetch CSRF token', 500, {
       type: ErrorType.ServerError,
-      details: error instanceof Error ? error.message : undefined,
+      details: error instanceof AppError ? error.message : undefined,
     });
   }
 };
@@ -59,40 +62,14 @@ const fetchCsrfToken = async (): Promise<string> => {
  */
 const initializeCsrfToken = async (dispatch: AppDispatch): Promise<void> => {
   try {
-    // Set a timeout for the initialization process
-    await withTimeout(
-      withRetry(
-        () => dispatch(getCsrfTokenThunk()).unwrap(),
-        3, // Retry attempts
-        'Failed to initialize CSRF token'
-      ),
-      5000, // Timeout duration in milliseconds
-      'CSRF token initialization timed out'
-    );
+    const csrfToken = await fetchCsrfToken();
+    dispatch(updateCsrfToken(csrfToken));
   } catch (error) {
     // Reset CSRF state on persistent error
     dispatch(resetCsrfToken());
     throw new AppError('CSRF Initialization Failed', 500, {
       type: ErrorType.GlobalError,
-      details: error instanceof Error ? error.message : undefined,
-    });
-  }
-};
-
-/**
- * Fetches and initializes the CSRF token with retry and timeout logic.
- * @param {AppDispatch} dispatch - The Redux dispatch function.
- * @returns {Promise<void>}
- */
-const fetchCsrfTokenWithRetry = async (
-  dispatch: AppDispatch
-): Promise<void> => {
-  try {
-    await initializeCsrfToken(dispatch);
-  } catch (error) {
-    throw new AppError('Failed to fetch CSRF token after retries', 500, {
-      type: ErrorType.GlobalError,
-      details: error instanceof Error ? error.message : undefined,
+      details: error instanceof AppError ? error.message : undefined,
     });
   }
 };
@@ -100,5 +77,4 @@ const fetchCsrfTokenWithRetry = async (
 export const csrfService = {
   fetchCsrfToken,
   initializeCsrfToken,
-  fetchCsrfTokenWithRetry,
 };

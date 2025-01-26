@@ -5,6 +5,7 @@ export const routes = [
     meta: {
       requiresAuth: false,
       title: 'Home',
+      showInSidebar: false,
     },
   },
   {
@@ -13,22 +14,61 @@ export const routes = [
     meta: {
       requiresAuth: false,
       title: 'Login',
-    },
-  },
-  {
-    path: '*',
-    component: () => import('../pages/NotFoundPage'),
-    meta: {
-      requiresAuth: false,
-      title: '404 - Page Not Found',
+      showInSidebar: false,
     },
   },
   {
     path: '/dashboard',
-    component: () => import('../pages/DashboardPage'),
+    component: () => import('../features/dashboard/pages/DashboardPage.tsx'),
     meta: {
       requiresAuth: true,
       title: 'Dashboard',
+      showInSidebar: true,
+      requiredPermission: '',
+    },
+  },
+  {
+    path: '/users',
+    component: () => import('../features/user/pages/UsersPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Users',
+      showInSidebar: true,
+    },
+  },
+  {
+    path: '/profile',
+    component: () => import('../features/user/pages/UserProfilePage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'User Profile',
+      showInSidebar: false,
+    },
+    children: [
+      {
+        path: '',
+        // component: () => import('../features/user/pages/UserProfile.tsx'),
+        meta: {
+          title: 'View Profile',
+        },
+      },
+      {
+        path: 'edit',
+        // component: () => import('../features/user/pages/EditProfile.tsx'),
+        meta: {
+          title: 'Edit Profile',
+          // requiredPermission: 'edit_profile', // Permission for edit access
+        },
+      },
+    ],
+  },
+  {
+    path: '*',
+    component: () => import('../pages/NotFoundPage.tsx'),
+    meta: {
+      requiresAuth: false,
+      title: '404 - Page Not Found',
+      showInSidebar: false,
     },
   },
 ];

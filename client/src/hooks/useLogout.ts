@@ -1,37 +1,49 @@
-import { useDispatch } from 'react-redux';
-import { clearReduxState } from '../store/clearReduxState.ts';
+import { useAppDispatch } from '../store/storeHooks';
 import { useNavigate } from 'react-router-dom';
+import { clearTokens } from '../utils/tokenManager';
+import { logoutThunk } from '../features/session/state/sessionThunks';
+import { useCallback, useState } from 'react';
 
+/**
+ * Custom hook for user logout.
+ */
 const useLogout = () => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
-  const logout = () => {
-    console.log('Logout initiated'); // Debugging
-    // 1. Clear cookies
-    document.cookie.split(';').forEach((cookie) => {
-      const [name] = cookie.split('=');
-      document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
-    });
-    console.log('Cookies cleared'); // Debugging
+  // State for loading and error handling
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
-    // 2. Clear localStorage
-    localStorage.clear();
+  const logout = useCallback(async (): Promise<boolean> => {
+    setIsLoading(true);
+    setError(null); // Reset error state
 
-    // 3. Clear sessionStorage
-    sessionStorage.clear();
-    console.log('Storage cleared'); // Debugging
+    try {
+      console.log('Logout initiated');
 
-    // 4. Clear Redux store (if using redux-persist)
-    dispatch(clearReduxState()); // Action to clear Redux state if using redux-persist
-    console.log('Redux state cleared'); // Debugging
+      // Perform API logout
+      await dispatch(logoutThunk()).unwrap();
 
-    // 5. Redirect to login page
-    navigate('/login');
-    console.log('Navigating to /login'); // Debugging
-  };
+      // Clear client-side data
+      clearTokens();
+      localStorage.clear();
+      sessionStorage.clear();
 
-  return { logout };
+      console.log('Client data cleared. Redirecting to /login');
+      navigate('/login');
+
+      setIsLoading(false);
+      return true; // Indicate success
+    } catch (error: any) {
+      console.error('Error during logout:', error);
+      setError(error);
+      setIsLoading(false);
+      return false; // Indicate failure
+    }
+  }, [dispatch, navigate]);
+
+  return { logout, isLoading, error };
 };
 
 export default useLogout;

@@ -1,6 +1,6 @@
 import { FC } from 'react';
 import TextField, { TextFieldProps } from '@mui/material/TextField';
-import { useThemeContext } from '../../context/ThemeContext.tsx';
+import { useThemeContext } from '../../context';
 
 const BaseInput: FC<TextFieldProps> = ({ sx, slotProps, ...props }) => {
   const { theme } = useThemeContext();

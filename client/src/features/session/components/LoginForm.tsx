@@ -1,7 +1,8 @@
 import { FC, FormEvent, useState } from 'react';
 import { Box } from '@mui/material';
-import { BaseInput, CustomButton } from '@components/index.ts';
-import { PasswordInput } from '../index.ts';
+import { BaseInput, CustomButton, PasswordInput } from '@components/index.ts';
+import { useAppSelector } from '../../../store/storeHooks.ts';
+import { selectLoading } from '../state/sessionSelectors.ts';
 
 interface LoginFormProps {
   onSubmit: (data: { email: string; password: string }) => void;
@@ -12,6 +13,7 @@ const LoginForm: FC<LoginFormProps> = ({ onSubmit }) => {
   const [errors, setErrors] = useState<{ email?: string; password?: string }>(
     {}
   );
+  const loading = useAppSelector(selectLoading);
 
   const validate = () => {
     const newErrors: { email?: string; password?: string } = {};
@@ -65,9 +67,10 @@ const LoginForm: FC<LoginFormProps> = ({ onSubmit }) => {
         onChange={(e) => handleChange('password', e.target.value)}
         errorText={errors.password}
         fullWidth
+        disabled={loading} // Disable button if loading
       />
       <CustomButton type="submit" variant="contained" color="primary" fullWidth>
-        Login
+        {loading ? 'Logging in...' : 'Login'}
       </CustomButton>
     </Box>
   );

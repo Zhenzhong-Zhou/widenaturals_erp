@@ -8,8 +8,11 @@ const {
   logoutController,
   resetPasswordController,
 } = require('../controllers/auth-controller');
-const validatePasswordSchema = require('../validators/password-validators');
+const { validatePasswordSchema } = require('../validators/password-validators');
 const validate = require('../middlewares/validate');
+const {
+  createResetPasswordRateLimiter,
+} = require('../middlewares/rate-limiter');
 
 const router = express.Router();
 
@@ -18,6 +21,7 @@ router.post('/logout', logoutController);
 
 router.post(
   '/reset-password',
+  createResetPasswordRateLimiter(),
   validate(validatePasswordSchema),
   resetPasswordController
 );

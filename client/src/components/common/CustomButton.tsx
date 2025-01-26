@@ -1,6 +1,6 @@
 import { FC } from 'react';
 import Button, { ButtonProps } from '@mui/material/Button';
-import { useThemeContext } from '../../context/ThemeContext.tsx';
+import { useThemeContext } from '../../context';
 
 interface CustomButtonProps extends ButtonProps {
   variant?: 'contained' | 'outlined' | 'text';
