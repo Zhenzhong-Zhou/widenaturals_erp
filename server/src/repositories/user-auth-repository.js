@@ -314,8 +314,12 @@ const verifyCurrentPassword = async (client, userId, plainPassword) => {
         passwordSalt
       );
 
+      if (!isMatch) {
+        return false;
+      }
+
       // Return whether the passwords match
-      return isMatch;
+      return true;
     });
   } catch (error) {
     // Log the error and throw a structured AppError for better error handling

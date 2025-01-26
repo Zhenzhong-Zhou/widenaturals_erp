@@ -18,7 +18,7 @@ interface InitializeAppOptions {
 }
 
 const useInitializeApp = ({
-  delay = 2000,
+  delay = 500,
   retryAttempts = 3,
 }: InitializeAppOptions = {}) => {
   const dispatch = useAppDispatch();
@@ -35,7 +35,7 @@ const useInitializeApp = ({
       // Simulate delay for initialization tasks
       await withTimeout(
         new Promise((resolve) => setTimeout(resolve, delay)),
-        10000,
+        1000,
         'Initialization timed out'
       );
 
@@ -63,6 +63,7 @@ const useInitializeApp = ({
       await withRetry(
         initialize,
         retryAttempts,
+        1000,
         'Failed to initialize app after multiple attempts'
       );
     } catch (error) {
@@ -88,19 +89,16 @@ const useInitializeApp = ({
     (async () => {
       setIsInitializing(true);
       try {
-        // Retry initialization if it fails
-        await retryInitializeApp();
+        console.info('Starting app initialization...');
+        await retryInitializeApp(); // Retry if initialization fails
 
-        // Perform main initialization tasks
-        await initialize();
-
-        // Perform CSRF token initialization with dispatch
+        console.info('Performing CSRF initialization...');
         await csrfService.initializeCsrfToken(dispatch);
 
-        // Monitor CSRF token status and errors
+        console.info('Monitoring CSRF status...');
         monitorCsrfStatus(csrfStatus, csrfError);
 
-        console.info('Application initialized successfully');
+        console.info('App initialized successfully');
       } catch (error) {
         const appError =
           error instanceof AppError
@@ -109,18 +107,15 @@ const useInitializeApp = ({
                 ErrorType.GlobalError,
                 'Error during app initialization',
                 500,
-                {
-                  details: error,
-                }
+                { details: error }
               );
-
+        console.error('Initialization error:', appError);
         setInitializationError(appError);
-        console.error('Error during app initialization:', appError);
       } finally {
         setIsInitializing(false);
       }
     })();
-  }, [initialize, retryInitializeApp, monitorCsrfStatus]);
+  }, [retryInitializeApp, monitorCsrfStatus]);
 
   return {
     isInitializing,

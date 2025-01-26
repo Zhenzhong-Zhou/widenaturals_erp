@@ -27,10 +27,6 @@ const basePasswordValidation = Joi.string().pattern(PASSWORD_PATTERN).messages({
  * Full password validation schema for updating passwords.
  */
 const validatePasswordSchema = Joi.object({
-  userId: Joi.string().uuid().required().messages({
-    'string.guid': 'Invalid user ID format.',
-    'any.required': 'User ID is required.',
-  }),
   currentPassword: basePasswordValidation.required().messages({
     'any.required': 'Current password is required.',
   }),

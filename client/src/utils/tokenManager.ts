@@ -1,11 +1,5 @@
 import Cookies from 'js-cookie';
 
-const COOKIE_OPTIONS = { secure: true, sameSite: 'Strict' as 'Strict' };
-
-export const setTokens = (accessToken: string): void => {
-  Cookies.set('accessToken', accessToken, COOKIE_OPTIONS);
-};
-
 export const getToken = (
   tokenName: 'accessToken' | 'refreshToken'
 ): string | null => {
@@ -13,6 +7,8 @@ export const getToken = (
 };
 
 export const clearTokens = (): void => {
-  Cookies.remove('accessToken');
-  Cookies.remove('refreshToken');
+  // Remove access token
+  Cookies.remove('accessToken', { path: '/', secure: false });
+  // Remove refresh token
+  Cookies.remove('refreshToken', { path: '/', secure: true });
 };

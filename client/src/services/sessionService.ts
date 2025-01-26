@@ -2,14 +2,16 @@ import axiosInstance from '../utils/axiosConfig';
 import { handleError, mapErrorMessage } from '../utils/errorUtils';
 import { AppError, ErrorType } from '../utils/AppError';
 import { clearTokens, getToken } from '../utils/tokenManager';
+import { withRetry } from '../utils/retryUtils';
+import { withTimeout } from '../utils/timeoutUtils';
+import { selectCsrfToken } from '../features/csrf/state/csrfSelector.ts';
+import { store } from '../store/store.ts';
 
 const API_ENDPOINTS = {
   LOGIN: '/session/login',
   REFRESH_TOKEN: '/session/refresh',
+  LOGOUT: '/auth/logout',
 };
-
-// In-memory storage for the current CSRF token
-let csrfToken: string | null = null;
 
 interface LoginResponse {
   accessToken: string;
@@ -34,6 +36,7 @@ const login = async (
   email: string,
   password: string
 ): Promise<LoginResponse> => {
+  let csrfToken: string | null = null;
   if (!email || !password) {
     throw new AppError('Email and password are required', 400, {
       type: ErrorType.ValidationError,
@@ -42,16 +45,26 @@ const login = async (
   }
 
   try {
-    const response = await axiosInstance.post<LoginResponse>(
-      API_ENDPOINTS.LOGIN,
-      { email, password }
+    const response = await withRetry(
+      () =>
+        withTimeout(
+          axiosInstance.post<LoginResponse>(API_ENDPOINTS.LOGIN, {
+            email,
+            password,
+          }),
+          5000, // Timeout in milliseconds
+          'Login request timed out'
+        ),
+      3, // Retry attempts
+      1000, // Delay between retries in milliseconds
+      'Failed to login after retries'
     );
 
     // Set the access token in the Authorization header for subsequent requests
     axiosInstance.defaults.headers.common['Authorization'] =
       `Bearer ${response.data.accessToken}`;
 
-    // Update CSRF token with the new token from login response
+    // Update CSRF token
     csrfToken = response.data.csrfToken;
 
     // Replace the CSRF token in axios headers for subsequent requests
@@ -65,25 +78,41 @@ const login = async (
     });
 
     handleError(appError);
-    throw appError; // Re-throw to let the caller handle it
+    throw appError;
   }
 };
 
+/**
+ * Refresh the user's access token.
+ */
 const refreshToken = async (): Promise<{ accessToken: string }> => {
   try {
-    // Attempt to refresh the access token
-    const response = await axiosInstance.post<{ accessToken: string }>(
-      API_ENDPOINTS.REFRESH_TOKEN,
-      {}, // Body is empty since the refresh token is in HttpOnly cookie
-      {
-        headers: {
-          Authorization: `Bearer ${getToken('accessToken')}`, // Include the current access token in the headers
-        },
-        withCredentials: true, // Ensure cookies are sent with the request
-      }
+    const state = store.getState();
+    const csrfToken = selectCsrfToken(state);
+
+    const response = await withRetry(
+      () =>
+        withTimeout(
+          axiosInstance.post<{ accessToken: string }>(
+            API_ENDPOINTS.REFRESH_TOKEN,
+            {
+              headers: {
+                'X-CSRF-Token': csrfToken,
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${getToken('accessToken')}`,
+              },
+              withCredentials: true,
+            }
+          ),
+          5000, // Timeout in milliseconds
+          'Token refresh request timed out'
+        ),
+      3, // Retry attempts
+      1000, // Delay between retries in milliseconds
+      'Failed to refresh token after retries'
     );
 
-    // Update Axios headers to use the new access token for subsequent requests
+    // Update Axios headers to use the new access token
     axiosInstance.defaults.headers.common['Authorization'] =
       `Bearer ${response.data.accessToken}`;
 
@@ -92,7 +121,7 @@ const refreshToken = async (): Promise<{ accessToken: string }> => {
     // Log the error and handle session expiration
     handleError(error);
     clearTokens(); // Clear any remaining tokens
-    window.location.href = '/login?expired=true'; // Redirect to login with an expired session indicator
+    window.location.href = '/login?expired=true'; // Redirect to login
     throw new AppError('Token refresh failed', 401, {
       type: ErrorType.GlobalError,
       details: mapErrorMessage(error),
@@ -100,7 +129,30 @@ const refreshToken = async (): Promise<{ accessToken: string }> => {
   }
 };
 
+/**
+ * Log out the user and clear session data.
+ */
+const logout = async (): Promise<void> => {
+  try {
+    await withTimeout(
+      axiosInstance.post(API_ENDPOINTS.LOGOUT),
+      5000, // Timeout in milliseconds
+      'Logout request timed out'
+    );
+
+    clearTokens();
+    console.log('Logout successful');
+  } catch (error) {
+    console.error('Logout failed:', error);
+    throw new AppError('Logout failed. Please try again.', 500, {
+      type: ErrorType.NetworkError,
+      details: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+};
+
 export const sessionService = {
   login,
   refreshToken,
+  logout,
 };

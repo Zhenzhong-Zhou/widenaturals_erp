@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import { FC, ReactNode } from 'react';
 import {
   Select,
   MenuItem,
@@ -11,7 +11,7 @@ import {
 } from '@mui/material';
 import { useForm, Controller } from 'react-hook-form';
 import { CustomButton, BaseInput } from '@components/index';
-import { useThemeContext } from '../../context/ThemeContext.tsx';
+import { useThemeContext } from '../../context';
 
 export interface FieldConfig {
   id: string;
@@ -23,13 +23,15 @@ export interface FieldConfig {
 }
 
 interface FormProps {
-  fields: FieldConfig[];
+  children?: ReactNode; // Make children optional
+  fields?: FieldConfig[]; // Make fields optional
   onSubmit: (formData: Record<string, any>) => void; // Callback for form submission
   submitButtonLabel?: string;
 }
 
 const Form: FC<FormProps> = ({
-  fields,
+  fields = [], // Default to an empty array
+  children,
   onSubmit,
   submitButtonLabel = 'Submit',
 }) => {
@@ -132,6 +134,7 @@ const Form: FC<FormProps> = ({
           )}
         </Box>
       ))}
+      {children}
       <CustomButton type="submit" variant="contained" color="primary">
         {submitButtonLabel}
       </CustomButton>

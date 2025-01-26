@@ -10,7 +10,7 @@ import {
   TableSortLabel,
   Paper,
 } from '@mui/material';
-import { useThemeContext } from '../../context/ThemeContext.tsx';
+import { useThemeContext } from '../../context';
 
 interface Column {
   id: string;

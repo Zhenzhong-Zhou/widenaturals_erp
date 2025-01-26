@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { FallbackUI, GlobalErrorBoundary } from '@components/index.ts';
-import { LoadingProvider } from './context/LoadingContext.tsx';
+import { LoadingProvider } from './context';
 import { store, persistor } from './store/store';
 import App from './App';
 import './styles/global.css';

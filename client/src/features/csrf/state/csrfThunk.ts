@@ -8,9 +8,7 @@ export const getCsrfTokenThunk = createAsyncThunk<
   { rejectValue: string }
 >('csrf/fetchCsrfToken', async (_, thunkAPI) => {
   try {
-    console.info('Fetching CSRF token...');
     const csrfToken = await csrfService.fetchCsrfToken();
-    console.info('CSRF token fetched:', csrfToken);
 
     if (!csrfToken) {
       throw new Error('CSRF token is empty or invalid');

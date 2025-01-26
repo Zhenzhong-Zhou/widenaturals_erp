@@ -10,8 +10,12 @@ const internalRoute = require('./internal');
 const systemRoute = require('./system');
 const sessionRoute = require('./session');
 const authRoutes = require('./auth');
+const userRoutes = require('./users');
 const adminRoutes = require('./admin');
-const { createApiRateLimiter } = require('../middlewares/rate-limiter');
+const {
+  createApiRateLimiter,
+  createCsrfTokenRateLimiter,
+} = require('../middlewares/rate-limiter');
 const authenticate = require('../middlewares/authenticate');
 
 const router = express.Router();
@@ -26,7 +30,7 @@ router.use(apiRateLimiter);
  */
 router.use('/public', publicRoute);
 
-router.use('/csrf', csrfRoute);
+router.use('/csrf', createCsrfTokenRateLimiter(), csrfRoute);
 
 // Internal routes (system-level operations)
 /**
@@ -46,6 +50,9 @@ router.use('/system', authenticate(), systemRoute);
  */
 router.use('/session', sessionRoute); // Public login
 router.use('/auth', authenticate(), authRoutes); // Authenticated routes
+
+// Users routes
+router.use('/users', authenticate(), userRoutes);
 
 // Admin routes
 /**

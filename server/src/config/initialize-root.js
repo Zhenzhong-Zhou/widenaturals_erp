@@ -37,7 +37,7 @@ const validateAndHashRootPassword = async (password) => {
     );
   }
 
-  return await hashPasswordWithSalt(password);
+  return password;
 };
 
 /**
@@ -67,14 +67,12 @@ const initializeRootAdmin = async () => {
     const statusId = await validateStatus(ACTIVE_STATUS); // Ensure 'active' status exists
 
     // Hash the root admin password
-    const { passwordHash, passwordSalt } =
-      await validateAndHashRootPassword(password);
+    const validatedPassword = await validateAndHashRootPassword(password);
 
     // Create the root admin user
     const user = await createUser({
       email,
-      passwordHash,
-      passwordSalt,
+      password: validatedPassword,
       roleId,
       statusId,
       firstname: 'Root',
