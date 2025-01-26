@@ -48,6 +48,24 @@ exports.seed = async function (knex) {
       created_at: knex.fn.now(),
       updated_at: knex.fn.now(),
     },
+    {
+      id: knex.raw('uuid_generate_v4()'),
+      name: 'sales',
+      description: 'Responsible for managing sales and customer relationships',
+      is_active: true,
+      status_id: activeStatusId,
+      created_at: knex.fn.now(),
+      updated_at: knex.fn.now(),
+    },
+    {
+      id: knex.raw('uuid_generate_v4()'),
+      name: 'operations',
+      description: 'Handles operational tasks and logistics',
+      is_active: true,
+      status_id: activeStatusId,
+      created_at: knex.fn.now(),
+      updated_at: knex.fn.now(),
+    },
   ];
 
   // Insert roles using ON CONFLICT to avoid duplicates
