@@ -53,7 +53,7 @@ const insertUserAuth = async (
  * @param {object} client - The database client used for the query.
  * @param {string} userId - The user_id to search for.
  * @returns {Promise<string>} - Resolves with the id from the user_auth table.
- * @throws {AppError} - Throws an error if no record is found.
+ * @throws {AppError} - Throws an error if no record is found or on database failure.
  */
 const getAuthIdByUserId = async (client, userId) => {
   const sql = `
@@ -67,15 +67,22 @@ const getAuthIdByUserId = async (client, userId) => {
     
     if (result.rows.length === 0) {
       throw AppError.notFoundError(
-        `No user_auth record found for user_id "${userId}".`
+        `No user_auth record found for user_id "${userId}".`,
+        { query: sql, parameters: [userId] }
       );
     }
     
     return result.rows[0].id;
   } catch (error) {
-    logError(`Error fetching user_auth ID for user_id "${userId}":`, error);
+    logError(`Error fetching user_auth ID for user_id "${userId}"`, {
+      query: sql,
+      parameters: [userId],
+      error: error.message,
+    });
+    
     throw AppError.databaseError('Failed to fetch user_auth ID.', {
       isExpected: false,
+      details: error.message,
     });
   }
 };
