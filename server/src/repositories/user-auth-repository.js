@@ -166,8 +166,8 @@ const incrementFailedAttempts = async (client, userId, newTotalAttempts, current
   let notes = null;
 
   // Apply lockout if the threshold is reached
-  if (newFailedAttempts >= 5) {
-    lockoutTime = new Date(Date.now() + 15 * 60 * 1000); // Lock for 15 minutes
+  if (newFailedAttempts >= 15) {
+    lockoutTime = new Date(Date.now() + 30 * 60 * 1000); // Lock for 30 minutes
     notes = 'Account locked due to multiple failed attempts.';
   }
 
