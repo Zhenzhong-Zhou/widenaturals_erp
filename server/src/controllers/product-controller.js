@@ -9,11 +9,20 @@ const getProductsController = wrapAsync(async (req, res, next) => {
   let { page = 1, limit = 10, category, name } = req.query;
   
   try {
-    const pageInt = parseInt(page, 10);
-    const limitInt = parseInt(limit, 10);
+    // Validate inputs
+    const paginationParams = {
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
+      category,
+      name
+    };
+    
+    if (paginationParams.page < 1 || paginationParams.limit < 1) {
+      return next(AppError.validationError('Page and limit must be positive integers.'));
+    }
     
     // Call the service layer
-    const products = await fetchAllProducts({ pageInt, limitInt, category, name });
+    const products = await fetchAllProducts(paginationParams);
     
     // Log the successful response
     logInfo('Products fetched successfully', {

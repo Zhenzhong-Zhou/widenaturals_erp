@@ -58,7 +58,7 @@ export interface UseProductsResult<T> {
   pagination: Pagination;
   loading: boolean;
   error: string | null;
-  fetchProductsByPage: (page: number) => Promise<void>;
+  fetchProductsByPage: (options?: { page?: number; limit?: number; category?: string; name?: string }) => Promise<void>;
 }
 
 // Define a subset type for general product info

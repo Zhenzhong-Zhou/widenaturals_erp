@@ -11,7 +11,6 @@ const fetchProducts = async <T>(page: number = 1, limit: number = 10): Promise<P
         limit,
       },
     });
-    console.log('products: ', response.data);
     return response.data; // Return the main data object
   } catch (error: any) {
     console.error('Failed to fetch products:', error);

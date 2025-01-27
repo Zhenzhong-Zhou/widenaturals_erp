@@ -2,21 +2,19 @@ import { useProducts } from "../../../hooks";
 import Container from "@mui/material/Container";
 import Grid from "@mui/material/Grid2";
 import { ProductCard } from "../index";
-import { CustomPagination } from "@components/index";
+import { CustomPagination, ErrorDisplay, ErrorMessage, Loading } from '@components/index';
 import { GeneralProductInfo } from '../state/productTypes.ts';
 
 const ProductsPage = () => {
-  const { products, pagination, loading, error, fetchProductsByPage } = useProducts<GeneralProductInfo>({
-    initialPage: 1,
-    itemsPerPage: 10,
-  });
+  const { products, pagination, loading, error, fetchProductsByPage } = useProducts<GeneralProductInfo>();
+  const { page, totalPages, totalRecords, limit } = pagination;
   
-  const handlePageChange = (newPage: number) => {
-    fetchProductsByPage(newPage);
+  const handlePageChange = async (newPage: number) => {
+    await fetchProductsByPage({ page: newPage, limit });
   };
   
-  if (loading) return <p>Loading...</p>;
-  if (error) return <p>Error: {error}</p>;
+  if (loading) return <Loading message={"Loading all products..."} />;
+  if (error) return <ErrorDisplay><ErrorMessage message={error}/></ErrorDisplay>;
   
   return (
     <Container>
@@ -29,11 +27,10 @@ const ProductsPage = () => {
       </Grid>
       
       <CustomPagination
-        page={pagination.page}
-        totalPages={pagination.totalPages}
-        totalRecords={pagination.totalRecords}
+        page={page}
+        totalPages={totalPages}
+        totalRecords={totalRecords}
         onPageChange={handlePageChange}
-        itemsPerPage={pagination.limit}
       />
     </Container>
   );

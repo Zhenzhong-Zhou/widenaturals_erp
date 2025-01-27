@@ -11,16 +11,8 @@ const AppError = require('../utils/AppError');
  * @param {string} [params.name] - The product name to filter products.
  * @returns {Promise<Object>} - The paginated list of products and metadata.
  */
-const fetchAllProducts = async ({ page = 1, limit = 10, category, name }) => {
+const fetchAllProducts = async ({ page, limit, category, name }) => {
   try {
-    // Validate and sanitize inputs
-    if (!Number.isInteger(page) || page < 1) {
-      throw new AppError.validationError('Page must be a positive integer.');
-    }
-    if (!Number.isInteger(limit) || limit < 1) {
-      throw new AppError.validationError('Limit must be a positive integer.');
-    }
-    
     // Construct filters dynamically
     const filters = {};
     if (category) filters.category = category.trim();
@@ -41,7 +33,6 @@ const fetchAllProducts = async ({ page = 1, limit = 10, category, name }) => {
       pagination, // Already calculated in the repository layer
     };
   } catch (error) {
-    console.error(error);
     logError('Error in fetchAllProducts', {
       message: error.message,
       stack: error.stack,

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "../store/storeHooks";
 import {
   selectError,
@@ -7,45 +7,45 @@ import {
   selectProducts,
 } from "../features/product/state/productSelectors";
 import { fetchProducts } from "../features/product/state/productThunks";
-import { UseProductsOptions, UseProductsResult } from '../features/product';
+import { UseProductsResult } from "../features/product";
 
-const useProducts = <T>({
-                          initialPage = 1,
-                          itemsPerPage = 10,
-                     }: UseProductsOptions = {}): UseProductsResult<T> => {
+const useProducts = <T>(): UseProductsResult<T> => {
   const dispatch = useAppDispatch();
   
   // Select data from Redux store
-  const products = useAppSelector(selectProducts) as T[];
+  const products = useAppSelector(selectProducts) as T[]; // Ensure products is an array
   const pagination = useAppSelector(selectPagination);
   const loading = useAppSelector(selectLoading);
   const error = useAppSelector(selectError);
   
-  const fetchProductsByPage = async (page: number) => {
-    try {
-      await dispatch(
-        fetchProducts({
-          page,
-          limit: itemsPerPage,
-        })
-      ).unwrap();
-    } catch (err) {
-      console.error("Failed to fetch products:", err);
-    }
-  };
+  // Local pagination state
+  const [paginationState, setPaginationState] = useState({
+    page: 1,
+    limit: 10,
+    category: "",
+    name: "",
+  });
   
+  // Fetch products whenever paginationState changes
   useEffect(() => {
-    (async () =>{
-      await fetchProductsByPage(initialPage); // Fetch products on initial render
-    })();
-  }, [dispatch, initialPage, itemsPerPage]);
+    dispatch(fetchProducts(paginationState))
+      .unwrap()
+      .catch((err) => {
+        console.error("Failed to fetch products:", err);
+      });
+  }, [dispatch, paginationState]);
+  
+  // Manual refetch function
+  const fetchProductsByPage = async (options?: { page?: number; limit?: number; category?: string; name?: string }) => {
+    setPaginationState((prev) => ({ ...prev, ...options }));
+  };
   
   return {
     products,
     pagination,
     loading,
     error,
-    fetchProductsByPage
+    fetchProductsByPage,
   };
 };
 
