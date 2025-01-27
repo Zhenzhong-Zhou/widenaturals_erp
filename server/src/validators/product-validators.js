@@ -16,4 +16,19 @@ const productSchema = Joi.object({
   status_id: Joi.string().uuid().required(),
 });
 
-module.exports = productSchema;
+const paginationSchema = Joi.object({
+  page: Joi.number().integer().positive().default(1).messages({
+    'number.base': 'Page must be a number.',
+    'number.integer': 'Page must be an integer.',
+    'number.positive': 'Page must be a positive integer.',
+  }),
+  limit: Joi.number().integer().positive().default(10).messages({
+    'number.base': 'Limit must be a number.',
+    'number.integer': 'Limit must be an integer.',
+    'number.positive': 'Limit must be a positive integer.',
+  }),
+  category: Joi.string().optional(),
+  name: Joi.string().optional(),
+});
+
+module.exports = { productSchema, paginationSchema };

@@ -82,14 +82,24 @@ const login = async (
   }
 };
 
+let refreshAttemptCount = 0;
+const MAX_REFRESH_ATTEMPTS = 3;
+
 /**
  * Refresh the user's access token.
  */
 const refreshToken = async (): Promise<{ accessToken: string }> => {
+  if (refreshAttemptCount >= MAX_REFRESH_ATTEMPTS) {
+    throw new AppError('Exceeded maximum token refresh attempts', 401, {
+      type: ErrorType.AuthenticationError,
+    });
+  }
+  
   try {
+    refreshAttemptCount += 1;
     const state = store.getState();
     const csrfToken = selectCsrfToken(state);
-
+    
     const response = await withRetry(
       () =>
         withTimeout(
@@ -111,21 +121,16 @@ const refreshToken = async (): Promise<{ accessToken: string }> => {
       1000, // Delay between retries in milliseconds
       'Failed to refresh token after retries'
     );
-
+    
     // Update Axios headers to use the new access token
     axiosInstance.defaults.headers.common['Authorization'] =
       `Bearer ${response.data.accessToken}`;
-
+    
+    refreshAttemptCount = 0; // Reset attempt count on success
     return { accessToken: response.data.accessToken };
-  } catch (error: unknown) {
-    // Log the error and handle session expiration
+  } catch (error) {
     handleError(error);
-    clearTokens(); // Clear any remaining tokens
-    window.location.href = '/login?expired=true'; // Redirect to login
-    throw new AppError('Token refresh failed', 401, {
-      type: ErrorType.GlobalError,
-      details: mapErrorMessage(error),
-    });
+    throw error;
   }
 };
 

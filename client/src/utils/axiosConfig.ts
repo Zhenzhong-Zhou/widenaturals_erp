@@ -1,16 +1,7 @@
-import axios, {
-  AxiosRequestConfig,
-  AxiosResponse,
-  AxiosError,
-  InternalAxiosRequestConfig,
-} from 'axios';
+import axios, { AxiosError, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import { AppError, ErrorType } from '@utils/AppError.tsx';
 import { handleError } from '@utils/errorUtils';
-import {
-  selectCsrfToken,
-  selectCsrfError,
-  selectCsrfStatus,
-} from '../features/csrf/state/csrfSelector';
+import { selectCsrfError, selectCsrfStatus, selectCsrfToken } from '../features/csrf/state/csrfSelector';
 import { store } from '../store/store';
 import { resetCsrfToken } from '../features/csrf/state/csrfSlice';
 import { sessionService } from '../services';

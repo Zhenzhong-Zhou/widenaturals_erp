@@ -1,6 +1,7 @@
 enum ErrorType {
   NetworkError = 'NetworkError',
   AuthenticationError = 'AuthenticationError',
+  AuthorizationError = 'AuthorizationError',
   ValidationError = 'ValidationError',
   TimeoutError = 'TimeoutError',
   UnknownError = 'UnknownError',

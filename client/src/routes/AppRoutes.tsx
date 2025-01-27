@@ -28,7 +28,7 @@ const AppRoutes = () => {
   }
   
   return (
-    <PermissionsProvider roleName={roleName} permissions={permissions} error={error}>
+    // <PermissionsProvider roleName={roleName} permissions={permissions} error={error}>
       <Suspense fallback={<Loading fullPage message="Loading page..." />}>
         <Routes>
           {routes.map(({ path, component, meta }, index) => {
@@ -95,7 +95,7 @@ const AppRoutes = () => {
           />
         </Routes>
       </Suspense>
-    </PermissionsProvider>
+    // </PermissionsProvider>
   );
 };
 

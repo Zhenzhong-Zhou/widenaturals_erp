@@ -1,6 +1,6 @@
 const { getRoleIdByField } = require('../repositories/role-repository');
 const { getStatusIdByName } = require('../repositories/status-repository');
-const { logError } = require('../utils/logger-helper');
+const { logError, logInfo } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
 const { userExists } = require('../repositories/user-repository');
 const { checkProductExists } = require('../repositories/product-repository');
@@ -115,21 +115,32 @@ const validateStatus = async (statusName) => {
 };
 
 /**
- * Validates product existence based on provided filters.
- * Throws an error if the product does not exist.
- * @param {Object} filters - Filters like id, barcode, product_name.
- * @param {Object} options - Additional options (e.g., throwIfExists).
- * @returns {Promise<void>}
+ * Validates the existence of a product based on provided filters.
+ *
+ * @param {Object} filters - The conditions to check for product existence.
+ * @param {Object} options - Additional options to control validation behavior.
+ * @param {boolean} [options.throwIfExists=false] - If `true`, throws an error if the product exists.
+ * @param {string} [options.errorMessage] - Custom error message to override the default.
+ *
+ * @throws {AppError} - Throws if validation fails.
  */
 const validateProductExistence = async (filters, options = { throwIfExists: false }) => {
   const exists = await checkProductExists(filters);
   
+  logInfo('Product existence validation', {
+    filters,
+    throwIfExists: options.throwIfExists,
+    exists,
+  });
+  
   if (options.throwIfExists && exists) {
-    throw new Error('A product with the provided details already exists.');
+    const message = options.errorMessage || 'A product with the provided details already exists.';
+    throw new AppError.validationError(message, 400, { filters });
   }
   
   if (!options.throwIfExists && !exists) {
-    throw new Error('No product found with the provided details.');
+    const message = options.errorMessage || 'No product found with the provided details.';
+    throw new AppError.validationError(message, 404, { filters });
   }
 };
 

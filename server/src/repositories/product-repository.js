@@ -1,4 +1,6 @@
 const { query, paginateQuery, retry } = require('../database/db');
+const AppError = require('../utils/AppError');
+const { logInfo, logError } = require('../utils/logger-helper');
 
 /**
  * Build WHERE clause dynamically based on filters.
@@ -26,16 +28,21 @@ const buildWhereClause = (filters) => {
 };
 
 /**
- * Fetch products with pagination and optional filters, using retry and pagination logic.
- * @param {Object} options - { page, limit, filters, sortBy, sortOrder }
- * @returns {Promise<Object>} - { data, pagination }
+ * Fetch paginated products with filtering and sorting.
+ * @param {Object} options - Options for query building.
+ * @param {number} options.page - Current page number.
+ * @param {number} options.limit - Number of items per page.
+ * @param {string} options.sortBy - Column to sort by.
+ * @param {string} options.sortOrder - Sort direction (ASC/DESC).
+ * @param {string} [options.status='active'] - Filter products by status.
+ * @returns {Promise<Object>} - Paginated product data.
  */
-const getProducts = async ({ page = 1, limit = 10, sortBy = 'created_at', sortOrder = 'DESC' }) => {
+const getProducts = async ({ page = 1, limit = 10, sortBy = 'created_at', sortOrder = 'DESC', status = 'active' }) => {
   const tableName = 'products p';
-  const joins = ['LEFT JOIN status s ON p.status_id = s.id'];
-  const whereClause = "s.name = 'active'";
+  const joins = ['INNER JOIN status s ON p.status_id = s.id'];
+  const whereClause = 's.name = $1'; // Use parameterized value
   
-  // Base query text for fetching products
+  // Base query text
   const queryText = `
     SELECT
       p.id,
@@ -54,35 +61,43 @@ const getProducts = async ({ page = 1, limit = 10, sortBy = 'created_at', sortOr
       p.status_date,
       p.created_at,
       p.updated_at
-    FROM products p
-    INNER JOIN status s ON p.status_id = s.id
-    WHERE s.name = 'active'
+    FROM ${tableName}
+    ${joins.join(' ')}
+    WHERE ${whereClause}
   `;
   
-  // Pagination logic using retry
-  const fetchPaginatedData = async () =>
-    paginateQuery({
+  const fetchPaginatedData = async () => {
+    logInfo('Fetching paginated products', { page, limit, sortBy, sortOrder, status });
+    return paginateQuery({
       tableName,
       joins,
       whereClause,
       queryText,
-      params: [],
+      params: [status], // Parameterize the status filter
       page,
       limit,
       sortBy,
       sortOrder,
     });
+  };
   
-  // Execute the function with retries
-  return await retry(fetchPaginatedData, 3, 1000);
+  try {
+    return await retry(fetchPaginatedData, 3, 1000);
+  } catch (error) {
+    logError('Error fetching paginated products', {
+      message: error.message,
+      stack: error.stack,
+    });
+    throw new AppError.serviceError('Failed to fetch products', { originalError: error.message });
+  }
 };
 
 /**
  * Checks if a product exists in the database based on provided filters.
  *
- * This function dynamically constructs a SQL query to check for the existence
- * of a product by combining the provided filters (`id`, `barcode`, `product_name`)
- * with the specified logical operator (`combineWith`).
+ * Dynamically constructs a SQL query to check for the existence of a product
+ * by combining the provided filters (`id`, `barcode`, `product_name`) with the
+ * specified logical operator (`combineWith`).
  *
  * @param {Object} filters - The conditions to check for product existence.
  *                           Can include one or more of the following properties:
@@ -95,39 +110,35 @@ const getProducts = async ({ page = 1, limit = 10, sortBy = 'created_at', sortOr
  * @returns {Promise<boolean>} - Resolves to `true` if a product matching the filters exists,
  *                               otherwise `false`.
  *
- * @throws {Error} - If no filters are provided or if there is an issue with the query execution.
- *
- * @example
- * // Check if a product exists with id or barcode
- * const exists = await checkProductExists({ id: '123', barcode: 'ABC123' });
- * console.log(exists); // true or false
- *
- * @example
- * // Check if a product exists with both id and barcode
- * const exists = await checkProductExists({ id: '123', barcode: 'ABC123' }, 'AND');
- * console.log(exists); // true or false
+ * @throws {AppError} - If no filters are provided or if there is an issue with the query execution.
  */
 const checkProductExists = async (filters, combineWith = 'OR') => {
+  if (!filters || typeof filters !== 'object' || Object.keys(filters).length === 0) {
+    throw new AppError.validationError(
+      'No valid filters provided for product existence check.',
+      400,
+      { providedFilters: filters }
+    );
+  }
+  
+  const allowedFilters = ['id', 'barcode', 'product_name'];
   const whereClauses = [];
   const queryParams = [];
   
-  if (filters.id) {
-    whereClauses.push('id = $' + (queryParams.length + 1));
-    queryParams.push(filters.id);
-  }
-  
-  if (filters.barcode) {
-    whereClauses.push('barcode = $' + (queryParams.length + 1));
-    queryParams.push(filters.barcode);
-  }
-  
-  if (filters.product_name) {
-    whereClauses.push('product_name = $' + (queryParams.length + 1));
-    queryParams.push(filters.product_name);
-  }
+  // Build WHERE clause dynamically
+  Object.entries(filters).forEach(([key, value]) => {
+    if (allowedFilters.includes(key) && value) {
+      whereClauses.push(`${key} = $${queryParams.length + 1}`);
+      queryParams.push(value);
+    }
+  });
   
   if (whereClauses.length === 0) {
-    throw new Error('No filters provided for product existence check.');
+    throw new AppError.validationError(
+      'No valid filters provided for product existence check.',
+      400,
+      { providedFilters: filters }
+    );
   }
   
   // Use AND or OR based on the combineWith parameter
@@ -142,8 +153,16 @@ const checkProductExists = async (filters, combineWith = 'OR') => {
     ) AS exists;
   `;
   
-  const result = await query(queryText, queryParams);
-  return result.rows[0].exists;
+  try {
+    const result = await query(queryText, queryParams);
+    return result.rows[0].exists;
+  } catch (error) {
+    throw new AppError.databaseError('Failed to execute product existence check.', {
+      query: queryText,
+      params: queryParams,
+      originalError: error.message,
+    });
+  }
 };
 
 module.exports = {
