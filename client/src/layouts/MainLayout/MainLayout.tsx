@@ -32,7 +32,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
     error: userProfileError,
   } = useUserProfile();
   const { logout } = useLogout(); // Logout handler
-  // useTokenRefresh(); // Token refresh handling
+  useTokenRefresh(); // Token refresh handling
   const { roleName, permissions } = usePermissionsContext(); // Access role and permissions
   
   const toggleSidebar = () => setSidebarOpen((prev) => !prev);

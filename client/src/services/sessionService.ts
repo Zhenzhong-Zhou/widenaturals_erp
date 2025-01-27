@@ -6,6 +6,7 @@ import { withRetry } from '../utils/retryUtils';
 import { withTimeout } from '../utils/timeoutUtils';
 import { selectCsrfToken } from '../features/csrf/state/csrfSelector.ts';
 import { store } from '../store/store.ts';
+import { logoutThunk } from '../features/session/state/sessionThunks.ts';
 
 const API_ENDPOINTS = {
   LOGIN: '/session/login',
@@ -100,27 +101,17 @@ const refreshToken = async (): Promise<{ accessToken: string }> => {
     const state = store.getState();
     const csrfToken = selectCsrfToken(state);
     
-    const response = await withRetry(
-      () =>
-        withTimeout(
-          axiosInstance.post<{ accessToken: string }>(
-            API_ENDPOINTS.REFRESH_TOKEN,
-            {
-              headers: {
-                'X-CSRF-Token': csrfToken,
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${getToken('accessToken')}`,
-              },
-              withCredentials: true,
-            }
-          ),
-          5000, // Timeout in milliseconds
-          'Token refresh request timed out'
-        ),
-      3, // Retry attempts
-      1000, // Delay between retries in milliseconds
-      'Failed to refresh token after retries'
-    );
+    const response =
+      await axiosInstance.post<{ accessToken: string }>(
+        API_ENDPOINTS.REFRESH_TOKEN,
+        {
+          headers: {
+            'X-CSRF-Token': csrfToken,
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${getToken('accessToken')}`,
+          },
+          withCredentials: true,
+      });
     
     // Update Axios headers to use the new access token
     axiosInstance.defaults.headers.common['Authorization'] =
@@ -128,9 +119,21 @@ const refreshToken = async (): Promise<{ accessToken: string }> => {
     
     refreshAttemptCount = 0; // Reset attempt count on success
     return { accessToken: response.data.accessToken };
-  } catch (error) {
+  } catch (error: unknown) {
+    // Log the error and handle session expiration
     handleError(error);
-    throw error;
+    
+    // Call logoutThunk via store.dispatch
+    await store.dispatch(logoutThunk());
+    
+    // Redirect to login
+    window.location.href = '/login?expired=true';
+    
+    // Throw an application-level error
+    throw new AppError('Token refresh failed', 401, {
+      type: ErrorType.GlobalError,
+      details: mapErrorMessage(error),
+    });
   }
 };
 

@@ -1,13 +1,13 @@
 import axios, { AxiosError, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import { AppError, ErrorType } from '@utils/AppError.tsx';
 import { handleError } from '@utils/errorUtils';
-import { selectCsrfError, selectCsrfStatus, selectCsrfToken } from '../features/csrf/state/csrfSelector';
+import { selectCsrfToken } from '../features/csrf/state/csrfSelector';
 import { store } from '../store/store';
-import { resetCsrfToken } from '../features/csrf/state/csrfSlice';
 import { sessionService } from '../services';
 import { updateAccessToken } from '../features/session/state/sessionSlice.ts';
 import { selectAccessToken } from '../features/session/state/sessionSelectors.ts';
 import { withRetry } from '@utils/retryUtils.ts';
+import { logoutThunk } from '../features/session/state/sessionThunks.ts';
 
 interface ErrorResponse {
   message?: string;
@@ -84,50 +84,35 @@ axiosInstance.interceptors.request.use(
 axiosInstance.interceptors.response.use(
   (response: AxiosResponse) => response,
   async (error: AxiosError<ErrorResponse>) => {
-    const originalRequest = error.config as AxiosRequestConfig & {
-      _retry?: boolean;
-    };
+    const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
     const state = store.getState();
     const csrfToken = selectCsrfToken(state);
-    const csrfError = selectCsrfError(state);
-    const csrfStatus = selectCsrfStatus(state);
     
     try {
-      // Handle CSRF errors
-      if (csrfStatus === 'failed' && csrfError) {
-        console.error('CSRF Error detected:', csrfError);
-        store.dispatch(resetCsrfToken());
-        throw new AppError('CSRF token error', 403, {
-          type: ErrorType.GlobalError,
-          details: csrfError,
-        });
-      }
-      
       // Handle token expiration (401)
       if (error.response?.status === 401 && !originalRequest._retry) {
         if (isRefreshing) {
+          // Add the failed request to the queue while refreshing is in progress
           return new Promise((resolve, reject) => {
             failedQueue.push({ resolve, reject });
-          })
-            .then((token) => {
-              if (originalRequest.headers) {
-                originalRequest.headers.Authorization = `Bearer ${token}`;
-                originalRequest.headers['X-CSRF-Token'] = csrfToken;
-              }
-              return axiosInstance(originalRequest);
-            })
-            .catch((err) => Promise.reject(err));
+          }).then((token) => {
+            if (originalRequest.headers) {
+              originalRequest.headers.Authorization = `Bearer ${token}`;
+              originalRequest.headers['X-CSRF-Token'] = csrfToken;
+            }
+            return axiosInstance(originalRequest);
+          });
         }
         
         originalRequest._retry = true;
         isRefreshing = true;
         
         try {
-          // Request new access token
+          // Request a new access token
           const { accessToken } = await sessionService.refreshToken();
           store.dispatch(updateAccessToken(accessToken));
           
-          // Process queued requests with the new token
+          // Replay queued requests with the new token
           processQueue(null, accessToken);
           
           // Retry the original request with updated tokens
@@ -138,18 +123,21 @@ axiosInstance.interceptors.response.use(
           
           return axiosInstance(originalRequest);
         } catch (refreshError) {
-          if (refreshError instanceof AxiosError) {
-            processQueue(refreshError, null); // Pass AxiosError
+          if (axios.isAxiosError(refreshError)) {
+            processQueue(refreshError, null); // Pass the AxiosError to processQueue
           } else {
+            console.error('Unexpected error during token refresh:', refreshError);
             processQueue(null, null); // Handle non-AxiosError scenarios gracefully
           }
-          throw new AppError('Token refresh failed, please log in again', 401);
+          
+          store.dispatch(logoutThunk()); // Log out the user
+          throw new AppError('Token refresh failed. Please log in again.', 401);
         } finally {
-          isRefreshing = false;
+          isRefreshing = false; // Reset the refreshing flag
         }
       }
       
-      // Retry logic using `withRetry`
+      // Retry logic for rate-limiting or network errors
       if (error.response?.status === 429 || !error.response) {
         const retryAfter = parseInt(
           error.response?.headers?.['retry-after'] || '1000',
