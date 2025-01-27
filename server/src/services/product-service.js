@@ -15,10 +15,10 @@ const fetchAllProducts = async ({ page = 1, limit = 10, category, name }) => {
   try {
     // Validate and sanitize inputs
     if (!Number.isInteger(page) || page < 1) {
-      throw new AppError.validationError('Page must be a positive integer.', 400);
+      throw new AppError.validationError('Page must be a positive integer.');
     }
     if (!Number.isInteger(limit) || limit < 1) {
-      throw new AppError.validationError('Limit must be a positive integer.', 400);
+      throw new AppError.validationError('Limit must be a positive integer.');
     }
     
     // Construct filters dynamically
@@ -41,6 +41,7 @@ const fetchAllProducts = async ({ page = 1, limit = 10, category, name }) => {
       pagination, // Already calculated in the repository layer
     };
   } catch (error) {
+    console.error(error);
     logError('Error in fetchAllProducts', {
       message: error.message,
       stack: error.stack,

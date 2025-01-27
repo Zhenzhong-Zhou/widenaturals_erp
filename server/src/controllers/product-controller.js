@@ -9,8 +9,11 @@ const getProductsController = wrapAsync(async (req, res, next) => {
   let { page = 1, limit = 10, category, name } = req.query;
   
   try {
+    const pageInt = parseInt(page, 10);
+    const limitInt = parseInt(limit, 10);
+    
     // Call the service layer
-    const products = await fetchAllProducts({ page, limit, category, name });
+    const products = await fetchAllProducts({ pageInt, limitInt, category, name });
     
     // Log the successful response
     logInfo('Products fetched successfully', {
