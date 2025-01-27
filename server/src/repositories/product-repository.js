@@ -179,7 +179,56 @@ const checkProductExists = async (filters, combineWith = 'OR') => {
   }
 };
 
+const getProductDetailsById = async (id) => {
+  const queryText = `
+    SELECT
+      p.product_name,
+      p.series,
+      p.brand,
+      p.category,
+      p.barcode,
+      p.market_region,
+      p.length_cm,
+      p.width_cm,
+      p.height_cm,
+      p.weight_g,
+      p.description,
+      s.name AS status_name,
+      pr.price AS retail_price,
+      pm.price AS msrp_price,
+      p.created_at,
+      p.updated_at
+    FROM products p
+    INNER JOIN status s ON p.status_id = s.id
+    LEFT JOIN (
+      SELECT pr.product_id, pr.price
+      FROM pricing pr
+      INNER JOIN pricing_types pt ON pr.price_type_id = pt.id
+      WHERE pt.name = 'Retail'
+    ) pr ON p.id = pr.product_id
+    LEFT JOIN (
+      SELECT pm.product_id, pm.price
+      FROM pricing pm
+      INNER JOIN pricing_types pt ON pm.price_type_id = pt.id
+      WHERE pt.name = 'MSRP'
+    ) pm ON p.id = pm.product_id
+    WHERE p.id = $1 AND s.name = 'active';
+  `;
+  
+  try {
+    const result = await query(queryText, [id]);
+    if (result.rows.length === 0) {
+      throw new Error('Product not found or inactive');
+    }
+    return result.rows[0]; // Return the product details
+  } catch (error) {
+    console.error('Error fetching product details:', error.message);
+    throw new Error('Error fetching product details');
+  }
+};
+
 module.exports = {
   getProducts,
   checkProductExists,
+  getProductDetailsById
 };

@@ -1,5 +1,5 @@
 const wrapAsync = require('../utils/wrap-async');
-const { fetchAllProducts } = require('../services/product-service');
+const { fetchAllProducts, fetchProductDetails } = require('../services/product-service');
 const { logInfo, logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
 
@@ -58,4 +58,20 @@ const getProductsController = wrapAsync(async (req, res, next) => {
   }
 });
 
-module.exports = { getProductsController };
+// Controller for fetching product details by ID
+const getProductDetailsById = wrapAsync(async (req, res, next) => {
+  const { id } = req.params;
+  
+  try {
+    const product = await fetchProductDetails(id);
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found or inactive' });
+    }
+    return res.status(200).json(product);
+  } catch (error) {
+    console.error('Error fetching product details:', error.message);
+    return res.status(500).json({ message: 'Error fetching product details' });
+  }
+});
+
+module.exports = { getProductsController, getProductDetailsById };

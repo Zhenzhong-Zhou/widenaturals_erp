@@ -1,4 +1,4 @@
-const { getProducts } = require('../repositories/product-repository');
+const { getProducts, getProductDetailsById } = require('../repositories/product-repository');
 const { logInfo, logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
 
@@ -43,6 +43,17 @@ const fetchAllProducts = async ({ page, limit, category, name }) => {
   }
 };
 
+// Service for fetching product details by ID
+const fetchProductDetails = async (id) => {
+  try {
+    return await getProductDetailsById(id);
+  } catch (error) {
+    console.error('Error in service layer:', error.message);
+    throw error;
+  }
+};
+
 module.exports = {
   fetchAllProducts,
+  fetchProductDetails
 };
