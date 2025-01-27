@@ -381,7 +381,7 @@ const lockRow = async (client, table, id, lockMode = 'FOR UPDATE') => {
 
   const tablePrimaryKeys = {
     users: 'id',
-    user_auth: 'user_id',
+    user_auth: 'id',
     orders: 'id',
     inventory: 'id',
   };
