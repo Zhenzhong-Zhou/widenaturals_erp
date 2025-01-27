@@ -63,6 +63,15 @@ export const routes = [
     ],
   },
   {
+    path: '/products',
+    component: () => import('../features/product/pages/ProductsPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Products',
+      showInSidebar: true,
+    },
+  },
+  {
     path: '*',
     component: () => import('../pages/NotFoundPage.tsx'),
     meta: {

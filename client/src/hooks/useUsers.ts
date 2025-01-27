@@ -21,7 +21,6 @@ const useUsers = (): {
 } => {
   const dispatch = useAppDispatch();
   const users = useAppSelector(selectUsers);
-  // const users = resposnse.data;
   const loading = useAppSelector(selectUsersLoading);
   const error = useAppSelector(selectUsersError);
   const [paginationState, setPaginationState] = useState({

@@ -8,3 +8,4 @@ export { default as useUserProfile } from './useUserProfile';
 export { default as useLogout } from './useLogout';
 export { default as useUsers } from './useUsers';
 export { default as usePermissions } from './usePermissions';
+export { default as useProducts } from './useProducts.ts';
