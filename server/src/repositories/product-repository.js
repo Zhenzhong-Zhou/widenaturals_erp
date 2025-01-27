@@ -37,7 +37,13 @@ const buildWhereClause = (filters) => {
  * @param {string} [options.status='active'] - Filter products by status.
  * @returns {Promise<Object>} - Paginated product data.
  */
-const getProducts = async ({ page = 1, limit = 10, sortBy = 'created_at', sortOrder = 'DESC', status = 'active' }) => {
+const getProducts = async ({
+                             page = 1,
+                             limit = 10,
+                             sortBy = 'p.created_at',
+                             sortOrder = 'DESC',
+                             status = 'active',
+                           }) => {
   const tableName = 'products p';
   const joins = ['INNER JOIN status s ON p.status_id = s.id'];
   const whereClause = 's.name = $1'; // Use parameterized value
@@ -52,18 +58,26 @@ const getProducts = async ({ page = 1, limit = 10, sortBy = 'created_at', sortOr
       p.category,
       p.barcode,
       p.market_region,
-      p.length_cm,
-      p.width_cm,
-      p.height_cm,
-      p.weight_g,
-      p.description,
-      p.status_id,
-      p.status_date,
-      p.created_at,
-      p.updated_at
+      s.name AS status_name,
+      COALESCE(
+        jsonb_agg(
+          jsonb_build_object(
+            'pricing_type', pricing.pricing_type,
+            'price', pricing.price
+          )
+        ) FILTER (WHERE pricing.pricing_type IN ('Retail', 'MSRP')), '[]'
+      ) AS prices
     FROM ${tableName}
-    ${joins.join(' ')}
+    INNER JOIN status s ON p.status_id = s.id
+    LEFT JOIN (
+      SELECT pr.product_id, pt.name AS pricing_type, pr.price
+        FROM pricing pr
+        INNER JOIN pricing_types pt ON pr.price_type_id = pt.id
+        INNER JOIN status ps ON pr.status_id = ps.id
+        WHERE ps.name = 'active'
+    ) pricing ON pricing.product_id = p.id
     WHERE ${whereClause}
+    GROUP BY p.id, s.name
   `;
   
   const fetchPaginatedData = async () => {
