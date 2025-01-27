@@ -7,6 +7,7 @@ enum ErrorType {
   GlobalError = 'GlobalError',
   SevereError = 'SevereError',
   ServerError = 'ServerError',
+  RateLimitError = 'RateLimitError',
   RuntimeError = 'RuntimeError',
   GeneralError = 'GeneralError',
 }

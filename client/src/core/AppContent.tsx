@@ -2,7 +2,7 @@ import { FC } from 'react';
 import Box from '@mui/material/Box';
 import { useInitializeApp, useValidateAndRefreshToken } from '../hooks';
 import AppRoutes from '../routes/AppRoutes.tsx';
-import { Loading, ErrorDisplay, ErrorMessage } from '@components/index.ts';
+import { Loading, ErrorDisplay } from '@components/index.ts';
 
 /**
  * AppContent Component
@@ -14,33 +14,17 @@ const AppContent: FC = () => {
     delay: 500,
     retryAttempts: 3,
   });
-
+  
   // Validate and refresh token on initial load
-  const { loading: isTokenRefreshing, error: tokenError } =
-    useValidateAndRefreshToken();
-
-  // Helper function to determine error message
-  const getErrorMessage = (): string => {
-    if (initializationError) {
-      return (
-        initializationError.message || 'Failed to initialize the application.'
-      );
-    }
-    if (tokenError) {
-      return tokenError;
-    }
-    return 'An unexpected error occurred.';
-  };
+  const { loading: isTokenRefreshing } = useValidateAndRefreshToken();
 
   // Show critical error for initialization failure
-  if (hasError) {
+  if (hasError && initializationError?.message.includes('Server is currently unavailable')) {
     return (
       <ErrorDisplay
-        message={getErrorMessage()}
+        message="The server is currently unavailable. Please try again later."
         onRetry={() => window.location.reload()}
-      >
-        <ErrorMessage message="Initialization failed. Please try reloading the page." />
-      </ErrorDisplay>
+      />
     );
   }
 

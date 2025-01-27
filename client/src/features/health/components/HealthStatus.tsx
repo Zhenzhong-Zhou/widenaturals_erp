@@ -1,15 +1,8 @@
-import { FC, useEffect } from 'react';
+import { FC } from 'react';
 import Box from '@mui/material/Box';
 import Badge from '@mui/material/Badge';
 import { Tooltip, Typography } from '@mui/material';
-import { useAppDispatch, useAppSelector } from '../../../store/storeHooks';
-import {
-  selectServerStatus,
-  selectDatabaseStatus,
-  selectPoolStatus,
-  selectHealthTimestamp,
-} from '../state/healthStatusSelectors';
-import { fetchHealthStatus } from '../state/healthStatusThunk';
+import { useHealthStatus } from '../../../hooks';
 import { formatDateTime } from '@utils/dateTimeUtils.ts';
 
 interface HealthStatusProps {
@@ -19,17 +12,18 @@ interface HealthStatusProps {
 }
 
 const HealthStatus: FC<HealthStatusProps> = ({ getStatusColor }) => {
-  const dispatch = useAppDispatch();
-
-  const serverStatus = useAppSelector(selectServerStatus);
-  const databaseStatus = useAppSelector(selectDatabaseStatus);
-  const poolStatus = useAppSelector(selectPoolStatus);
-  const lastUpdated = useAppSelector(selectHealthTimestamp);
-
-  useEffect(() => {
-    dispatch(fetchHealthStatus());
-  }, [dispatch]);
-
+  // Use the health status hook
+  const {
+    healthStatus,
+    loading,
+    isHealthy,
+    databaseStatus,
+    poolStatus,
+    timestamp,
+    refreshHealthStatus,
+    error,
+  } = useHealthStatus();
+  
   return (
     <Box
       sx={{
@@ -43,21 +37,29 @@ const HealthStatus: FC<HealthStatusProps> = ({ getStatusColor }) => {
         title={
           <Box sx={{ textAlign: 'left' }}>
             <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-              Server: {serverStatus}
+              Server: {healthStatus?.server || 'Unknown'}
             </Typography>
-            <Typography variant="body2">Database: {databaseStatus}</Typography>
-            <Typography variant="body2">Pool: {poolStatus}</Typography>
             <Typography variant="body2">
-              Last Updated: {lastUpdated ? formatDateTime(lastUpdated) : 'N/A'}
+              Database: {databaseStatus || 'Unknown'}
             </Typography>
+            <Typography variant="body2">Pool: {poolStatus || 'Unknown'}</Typography>
+            <Typography variant="body2">
+              Last Updated: {timestamp ? formatDateTime(timestamp) : 'N/A'}
+            </Typography>
+            {error && (
+              <Typography variant="body2" color="error">
+                Error: {error}
+              </Typography>
+            )}
           </Box>
         }
         arrow
       >
         <Badge
-          color={getStatusColor(serverStatus)}
+          color={getStatusColor(loading ? 'loading' : isHealthy ? 'success' : 'error')}
           variant="dot"
           sx={{ cursor: 'pointer' }}
+          onClick={refreshHealthStatus} // Refresh health status on click
         >
           <Typography
             variant="body2"

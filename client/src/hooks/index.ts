@@ -1,4 +1,5 @@
 export { default as useInitializeApp } from './useInitializeApp';
+export { default as useHealthStatus } from './useHealthStatus.ts';
 export { default as useErrorHandler } from './useErrorHandler';
 export { default as useSession } from './useSession';
 export { default as useTokenRefresh } from './useTokenRefresh';
