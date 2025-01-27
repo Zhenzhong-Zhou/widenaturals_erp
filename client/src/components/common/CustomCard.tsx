@@ -43,10 +43,13 @@ const CustomCard: FC<CustomCardProps> = ({
       {imageUrl && (
         <CardMedia
           component="img"
-          height="140"
+          height="340"
           image={imageUrl}
           alt={typeof title === 'string' ? title : 'Card Image'}
-          sx={{ borderRadius: 1 }}
+          sx={{
+            objectFit: "cover", // Correct usage of objectFit
+            borderRadius: 1,
+          }}
         />
       )}
       

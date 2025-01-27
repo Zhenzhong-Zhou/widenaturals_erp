@@ -1,6 +1,6 @@
 import { FC } from 'react';
-import { Button } from "@mui/material";
-import { CustomCard, PriceDisplay } from '@components/index';
+import Box from "@mui/material/Box";
+import { CustomButton, CustomCard, PriceDisplay, Typography } from '@components/index';
 import { GeneralProductInfo } from '../state/productTypes.ts';
 import productPlaceholder from '../../../assets/Virility_CA.jpg';
 
@@ -12,29 +12,39 @@ const ProductCard: FC<ProductCardProps> = ({ product }) => {
   const { product_name, series, brand, category, barcode, market_region, prices, status_name } = product;
   
   return (
-    <CustomCard
-      title={product_name}
-      imageUrl={productPlaceholder}
-      actions={
-        <>
-          <Button size="small" color="primary" variant="contained">
-            Add to Cart
-          </Button>
-          <Button size="small" color="secondary" variant="outlined">
-            View Details
-          </Button>
-        </>
-      }
+    <Box
+      sx={{
+        transition: "transform 0.3s, box-shadow 0.3s",
+        "&:hover": {
+          transform: "scale(1.05)",
+          boxShadow: "0 8px 16px rgba(0, 0, 0, 0.2)",
+        },
+      }}
     >
-      <p>Series: {series || 'N/A'}</p>
-      <p>Brand: {brand || 'N/A'}</p>
-      <p>Category: {category || 'N/A'}</p>
-      <p>Category: {barcode || 'N/A'}</p>
-      <p>market_region: {market_region || 'N/A'}</p>
-      <p>Status: {status_name}</p>
-      {/* Price Display */}
-      <PriceDisplay prices={prices} />
-    </CustomCard>
+      <CustomCard
+        title={product_name}
+        imageUrl={productPlaceholder}
+        actions={
+          <>
+            <CustomButton size="small" color="primary" variant="contained">
+              Add to Cart
+            </CustomButton>
+            <CustomButton size="small" color="secondary" variant="outlined">
+              View Details
+            </CustomButton>
+          </>
+        }
+      >
+        <Typography variant="body2">Series: {series || 'N/A'}</Typography>
+        <Typography variant="body2">Brand: {brand || 'N/A'}</Typography>
+        <Typography variant="body2">Category: {category || 'N/A'}</Typography>
+        <Typography variant="body2">Barcode: {barcode || 'N/A'}</Typography>
+        <Typography variant="body2">Region: {market_region || 'N/A'}</Typography>
+        <Typography variant="body2">Status: {status_name}</Typography>
+        {/* Price Display */}
+        <PriceDisplay prices={prices} />
+      </CustomCard>
+    </Box>
   );
 };
 
