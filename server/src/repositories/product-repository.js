@@ -203,25 +203,45 @@ const getProductDetailsById = async (id) => {
       p.weight_g,
       p.description,
       s.name AS status_name,
-      pr.price AS retail_price,
-      pm.price AS msrp_price,
+      COALESCE(
+        jsonb_agg(
+          jsonb_build_object(
+            'pricing_type', pricing.pricing_type,
+            'price', pricing.price
+          )
+        ) FILTER (WHERE pricing.pricing_type IN ('Retail', 'MSRP')), '[]'
+      ) AS prices,
+      p.status_date,
+      CONCAT(COALESCE(created_user.firstname, ''), ' ', COALESCE(created_user.lastname, '')) AS created_by_fullname,
       p.created_at,
+      CONCAT(COALESCE(updated_user.firstname, ''), ' ', COALESCE(updated_user.lastname, '')) AS updated_by_fullname,
       p.updated_at
     FROM products p
     INNER JOIN status s ON p.status_id = s.id
     LEFT JOIN (
-      SELECT pr.product_id, pr.price
+      SELECT
+        pr.product_id,
+        pt.name AS pricing_type,
+        pr.price
       FROM pricing pr
       INNER JOIN pricing_types pt ON pr.price_type_id = pt.id
-      WHERE pt.name = 'Retail'
-    ) pr ON p.id = pr.product_id
-    LEFT JOIN (
-      SELECT pm.product_id, pm.price
-      FROM pricing pm
-      INNER JOIN pricing_types pt ON pm.price_type_id = pt.id
-      WHERE pt.name = 'MSRP'
-    ) pm ON p.id = pm.product_id
-    WHERE p.id = $1 AND s.name = 'active';
+      INNER JOIN status ps ON pr.status_id = ps.id
+      WHERE ps.name = 'active'
+    ) pricing ON pricing.product_id = p.id
+    LEFT JOIN users created_user ON p.created_by = created_user.id
+    LEFT JOIN users updated_user ON p.updated_by = updated_user.id
+    WHERE p.id = $1
+      AND s.name = 'active'
+    GROUP BY
+      p.id,
+      s.name,
+      p.status_date,
+      created_user.firstname,
+      created_user.lastname,
+      p.created_at,
+      updated_user.firstname,
+      updated_user.lastname,
+      p.updated_at;
   `;
   
   try {
@@ -231,6 +251,7 @@ const getProductDetailsById = async (id) => {
       if (result.rows.length === 0) {
         throw AppError.notFoundError('Product not found or inactive');
       }
+      console.log(result.rows[0])
       return result.rows[0]; // Return the product details
     };
     
