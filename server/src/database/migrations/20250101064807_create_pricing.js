@@ -27,7 +27,7 @@ exports.up = async function (knex) {
   // Add unique constraint using raw SQL
   await knex.raw(`
     ALTER TABLE pricing
-    ADD CONSTRAINT uq_pricing_product_price_type UNIQUE (product_id, price_type_id);
+    ADD CONSTRAINT unique_pricing_product_price_type_location UNIQUE (product_id, price_type_id, location_id, valid_from);
   `);
 };
 

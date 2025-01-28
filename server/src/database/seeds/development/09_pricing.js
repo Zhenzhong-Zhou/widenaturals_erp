@@ -1,3 +1,5 @@
+const { fetchDynamicValue } = require('../03_utils');
+
 /**
  * @param { import("knex").Knex } knex
  * @returns {Promise<void>}
@@ -5,17 +7,8 @@
 exports.seed = async function (knex) {
   try {
     // Fetch dynamic IDs
-    const activeStatusId = await knex('status')
-      .select('id')
-      .where('name', 'active')
-      .first()
-      .then((row) => row?.id);
-    
-    const adminUserId = await knex('users')
-      .select('id')
-      .where('email', 'admin@example.com')
-      .first()
-      .then((row) => row?.id);
+    const activeStatusId = await fetchDynamicValue(knex, 'status', 'name', 'active', 'id');
+    const adminUserId = await fetchDynamicValue(knex, 'users', 'email', 'admin@example.com', 'id');
     
     const priceTypeIds = await knex('pricing_types')
       .select('id', 'name')
@@ -28,6 +21,7 @@ exports.seed = async function (knex) {
       ]);
     
     const productIds = await knex('products').select('id');
+    const locationIds = await knex('locations').select('id', 'name');
     
     // Validate required data
     if (!priceTypeIds.length) {
@@ -40,6 +34,11 @@ exports.seed = async function (knex) {
       return;
     }
     
+    if (!locationIds.length) {
+      console.log('No locations found. Seed the locations table first.');
+      return;
+    }
+    
     // Prepare pricing data
     const now = new Date();
     const validFrom = new Date(now);
@@ -48,19 +47,22 @@ exports.seed = async function (knex) {
     const pricing = [];
     productIds.forEach((product, index) => {
       priceTypeIds.forEach((priceType) => {
-        pricing.push({
-          id: knex.raw('uuid_generate_v4()'),
-          product_id: product.id,
-          price_type_id: priceType.id,
-          price: parseFloat(((index + 1) * 10 + Math.random() * 10).toFixed(2)), // Random prices
-          valid_from: knex.fn.now(),
-          valid_to: null, // No expiration by default
-          status_id: activeStatusId,
-          status_date: knex.fn.now(),
-          created_at: knex.fn.now(),
-          updated_at: knex.fn.now(),
-          created_by: adminUserId,
-          updated_by: adminUserId,
+        locationIds.forEach((location, locIndex) => {
+          pricing.push({
+            id: knex.raw('uuid_generate_v4()'),
+            product_id: product.id,
+            price_type_id: priceType.id,
+            location_id: location.id, // Add location_id to the pricing data
+            price: parseFloat(((index + 1) * 10 + (locIndex + 1) * 5 + Math.random() * 10).toFixed(2)), // Random prices
+            valid_from: knex.fn.now(),
+            valid_to: null, // No expiration by default
+            status_id: activeStatusId,
+            status_date: knex.fn.now(),
+            created_at: knex.fn.now(),
+            updated_at: knex.fn.now(),
+            created_by: adminUserId,
+            updated_by: adminUserId,
+          });
         });
       });
     });
@@ -69,7 +71,7 @@ exports.seed = async function (knex) {
     for (const price of pricing) {
       await knex('pricing')
         .insert(price)
-        .onConflict(['product_id', 'price_type_id']) // Ensure uniqueness for product and price type
+        .onConflict(['product_id', 'price_type_id', 'location_id', 'valid_from']) // Ensure uniqueness for product, price type, location, and valid_from
         .ignore(); // Ignore duplicates
     }
     
