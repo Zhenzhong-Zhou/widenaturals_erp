@@ -1,15 +1,4 @@
-/**
- * @param { import("knex").Knex } knex
- * @param {string} tableName - The table to fetch data from.
- * @param {string} columnName - The column to match the value.
- * @param {string} value - The value to match.
- * @param {string} returnColumn - The column to return.
- * @returns {Promise<any>} - The value of the return column.
- */
-async function fetchDynamicValue(knex, tableName, columnName, value, returnColumn) {
-  const result = await knex(tableName).select(returnColumn).where(columnName, value).first();
-  return result ? result[returnColumn] : null;
-}
+const { fetchDynamicValue } = require('../03_utils');
 
 /**
  * @param { import("knex").Knex } knex
