@@ -1,6 +1,7 @@
 import axiosInstance from '@utils/axiosConfig.ts';
 import { API_ENDPOINTS } from './apiEndponits.ts';
-import { ProductResponse } from '../features/product';
+import { Product, ProductResponse } from '../features/product';
+import { ProductDetailApiResponse } from '../features/product/state/productTypes.ts';
 
 const fetchProducts = async <T>(page: number = 1, limit: number = 10): Promise<ProductResponse<T>> => {
   try {
@@ -18,6 +19,28 @@ const fetchProducts = async <T>(page: number = 1, limit: number = 10): Promise<P
   }
 };
 
+
+/**
+ * Fetch product details by ID
+ *
+ * @param {string} productId - The ID of the product to fetch
+ * @returns {Promise<Product>} - Returns the product details
+ * @throws {Error} - Throws an error if the request fails
+ */
+export const fetchProductDetails = async (productId: string): Promise<Product> => {
+  try {
+    const response = await axiosInstance.get<ProductDetailApiResponse>(`/products/${productId}`);
+    if (!response.data.success) {
+      throw new Error('Failed to fetch product details');
+    }
+    return response.data.data;
+  } catch (error: any) {
+    console.error('Error fetching product details:', error.message);
+    throw new Error(error.response?.data?.message || 'Error fetching product details');
+  }
+};
+
 export const productService = {
- fetchProducts,
+  fetchProducts,
+  fetchProductDetails,
 };

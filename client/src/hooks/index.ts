@@ -9,3 +9,4 @@ export { default as useLogout } from './useLogout';
 export { default as useUsers } from './useUsers';
 export { default as usePermissions } from './usePermissions';
 export { default as useProducts } from './useProducts.ts';
+export { default as useProductDetail } from './useProductDetail.ts';

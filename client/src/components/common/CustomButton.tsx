@@ -1,37 +1,42 @@
-import { FC } from 'react';
-import Button, { ButtonProps } from '@mui/material/Button';
-import { useThemeContext } from '../../context';
+import { FC } from "react";
+import Button, { ButtonProps } from "@mui/material/Button";
+import { Link as RouterLink } from "react-router-dom";
+import { useThemeContext } from "../../context";
 
 interface CustomButtonProps extends ButtonProps {
-  variant?: 'contained' | 'outlined' | 'text';
-  color?: 'primary' | 'secondary' | 'success' | 'error' | 'info' | 'warning';
-  size?: 'small' | 'medium' | 'large';
+  to?: string; // Optional 'to' prop for routing
+  variant?: "contained" | "outlined" | "text";
+  color?: "primary" | "secondary" | "success" | "error" | "info" | "warning";
+  size?: "small" | "medium" | "large";
 }
 
 const CustomButton: FC<CustomButtonProps> = ({
-  children,
-  variant = 'contained', // Default to 'contained' for primary actions
-  color = 'primary', // Default to primary color
-  size = 'medium', // Default size
-  ...props
-}) => {
+                                               children,
+                                               to, // Link destination
+                                               variant = "contained", // Default to 'contained' for primary actions
+                                               color = "primary", // Default to primary color
+                                               size = "medium", // Default size
+                                               ...props
+                                             }) => {
   const { theme } = useThemeContext();
-
+  
   return (
     <Button
+      component={to ? RouterLink : "button"} // Use RouterLink when `to` is provided
+      to={to} // Pass `to` to RouterLink
       variant={variant}
       color={color}
       size={size}
       {...props}
       sx={{
-        textTransform: 'none', // Disable uppercase text for consistency
-        borderRadius: theme.shape.borderRadius, // Use theme's border radius
-        padding: theme.spacing(1, 2), // Consistent padding
-        boxShadow: variant === 'contained' ? theme.shadows[2] : 'none', // Add subtle shadow for contained buttons
-        '&:hover': {
-          boxShadow: variant === 'contained' ? theme.shadows[4] : 'none', // Enhanced shadow on hover
+        textTransform: "none",
+        borderRadius: theme.shape.borderRadius,
+        padding: theme.spacing(1, 2),
+        boxShadow: variant === "contained" ? theme.shadows[2] : "none",
+        "&:hover": {
+          boxShadow: variant === "contained" ? theme.shadows[4] : "none",
         },
-        ...props.sx, // Allow custom styles to override defaults
+        ...props.sx,
       }}
     >
       {children}

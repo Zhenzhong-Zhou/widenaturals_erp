@@ -9,7 +9,7 @@ interface ProductCardProps {
 }
 
 const ProductCard: FC<ProductCardProps> = ({ product }) => {
-  const { product_name, series, brand, category, barcode, market_region, prices, status_name } = product;
+  const { id, product_name, series, brand, category, barcode, market_region, prices, status_name } = product;
   
   return (
     <Box
@@ -29,7 +29,7 @@ const ProductCard: FC<ProductCardProps> = ({ product }) => {
             <CustomButton size="small" color="primary" variant="contained">
               Add to Cart
             </CustomButton>
-            <CustomButton size="small" color="secondary" variant="outlined">
+            <CustomButton size="small" color="secondary" variant="outlined" to={`/products/${id}`}>
               View Details
             </CustomButton>
           </>

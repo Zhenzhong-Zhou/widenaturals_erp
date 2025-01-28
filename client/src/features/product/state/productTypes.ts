@@ -17,8 +17,8 @@ export interface Product {
   status_date: string;
   created_at: string;
   updated_at: string;
-  created_by?: string;
-  updated_by?: string;
+  created_by_fullname?: string;
+  updated_by_fullname?: string;
   status_name: string; // Active, inactive, etc.
   prices: Array<{
     pricing_type: string; // Retail, MSRP, etc.
@@ -76,3 +76,14 @@ export type GeneralProductInfo = {
     price: number;
   }>;
 };
+
+export interface ProductDetailApiResponse {
+  success: boolean;
+  data: Product;
+}
+
+export interface ProductDetailState {
+  productDetail: Product | null;
+  loading: boolean;
+  error: string | null;
+}
