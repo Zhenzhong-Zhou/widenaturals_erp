@@ -179,6 +179,15 @@ const checkProductExists = async (filters, combineWith = 'OR') => {
   }
 };
 
+/**
+ * Fetch product details by ID from the database.
+ * Retrieves product information, including retail and MSRP prices,
+ * only if the product is active.
+ *
+ * @param {string} id - The ID of the product to fetch
+ * @returns {Promise<object>} - Returns an object containing product details
+ * @throws {AppError} - Throws not found or database error
+ */
 const getProductDetailsById = async (id) => {
   const queryText = `
     SELECT
@@ -216,14 +225,19 @@ const getProductDetailsById = async (id) => {
   `;
   
   try {
-    const result = await query(queryText, [id]);
-    if (result.rows.length === 0) {
-      throw new Error('Product not found or inactive');
-    }
-    return result.rows[0]; // Return the product details
+    // Use retry logic to handle transient database issues
+    const fetchProduct = async () => {
+      const result = await query(queryText, [id]);
+      if (result.rows.length === 0) {
+        throw AppError.notFoundError('Product not found or inactive');
+      }
+      return result.rows[0]; // Return the product details
+    };
+    
+    return await retry(fetchProduct, 3, 1000); // Retry 3 times with a 1-second delay
   } catch (error) {
-    console.error('Error fetching product details:', error.message);
-    throw new Error('Error fetching product details');
+    logError('Error fetching product details:', error.message);
+    throw new AppError.databaseError('Error fetching product details');
   }
 };
 

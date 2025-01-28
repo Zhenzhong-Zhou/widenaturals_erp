@@ -43,13 +43,25 @@ const fetchAllProducts = async ({ page, limit, category, name }) => {
   }
 };
 
-// Service for fetching product details by ID
+/**
+ * Service to fetch detailed product information by ID.
+ * Validates the input and retrieves product details from the repository layer.
+ *
+ * @param {string} id - The ID of the product to fetch
+ * @returns {Promise<object>} - Returns the product details if found
+ * @throws {AppError} - Throws a validation or internal server error if the operation fails
+ */
 const fetchProductDetails = async (id) => {
   try {
-    return await getProductDetailsById(id);
+    // Fetch product details from the repository
+    const product = await getProductDetailsById(id);
+    
+    return product;
   } catch (error) {
-    console.error('Error in service layer:', error.message);
-    throw error;
+    logError('Error in service layer:', error.message);
+    
+    // Wrap and rethrow error for consistent error handling
+    throw AppError.serviceError('Error fetching product details');
   }
 };
 

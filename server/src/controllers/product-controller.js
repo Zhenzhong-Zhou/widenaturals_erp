@@ -58,19 +58,41 @@ const getProductsController = wrapAsync(async (req, res, next) => {
   }
 });
 
-// Controller for fetching product details by ID
+/**
+ * Controller to fetch product details by ID.
+ * Validates the product ID and fetches product details using the service layer.
+ * Returns the product details if found, or an appropriate error response.
+ *
+ * @param {Object} req - Express request object
+ * @param {Object} req.params - Request parameters
+ * @param {string} req.params.id - The ID of the product to fetch
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ *
+ * @returns {Promise<void>} - Returns JSON response or passes error to the next middleware
+ */
 const getProductDetailsById = wrapAsync(async (req, res, next) => {
   const { id } = req.params;
   
+  // Validate the product ID
+  if (!id || typeof id !== 'string') {
+    return next(AppError.validationError('Invalid product ID'));
+  }
+  
   try {
+    // Fetch product details from the service
     const product = await fetchProductDetails(id);
-    if (!product) {
-      return res.status(404).json({ message: 'Product not found or inactive' });
-    }
-    return res.status(200).json(product);
+    
+    // Return product details
+    res.status(200).json({
+      success: true,
+      data: product,
+    });
   } catch (error) {
-    console.error('Error fetching product details:', error.message);
-    return res.status(500).json({ message: 'Error fetching product details' });
+    logError('Error fetching product details:', error.message);
+    
+    // Pass the error to centralized error handling
+    next(error);
   }
 });
 
