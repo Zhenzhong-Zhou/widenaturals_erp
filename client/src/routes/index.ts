@@ -90,6 +90,15 @@ export const routes = [
     },
   },
   {
+    path: '/pricing_types/:id',
+    component: () => import('../features/pricingTypes/pages/PricingTypeDetailsPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Pricing Type Details',
+      showInSidebar: false,
+    },
+  },
+  {
     path: '*',
     component: () => import('../pages/NotFoundPage.tsx'),
     meta: {

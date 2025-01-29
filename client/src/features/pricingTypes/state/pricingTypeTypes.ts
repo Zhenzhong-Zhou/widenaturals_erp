@@ -35,3 +35,43 @@ export interface PricingTypeTableProps {
   onPageChange: (newPage: number) => void;
   onRowsPerPageChange: (newRowsPerPage: number) => void;
 }
+
+// Pricing Type Interfaces
+export interface PricingTypeDetails {
+  pricing_type_id: string;
+  pricing_type_name: string;
+  pricing_type_description: string;
+  pricing_type_created_at: string;
+  pricing_type_updated_at: string;
+  pricing_id: string;
+  price: string;
+  valid_from: string;
+  valid_to: string | null;
+  status_date: string;
+  product_id: string;
+  product_name: string;
+  series: string;
+  brand: string;
+  category: string;
+  barcode: string;
+  market_region: string;
+  location_id: string;
+  location_name: string;
+  location_type_name: string;
+  pricing_status_name: string;
+}
+
+export interface PricingTypePagination {
+  page: number;
+  limit: number;
+  totalRecords: number;
+  totalPages: number;
+}
+
+export interface PricingTypeResponse {
+  success: boolean;
+  data: {
+    data: PricingTypeDetails[];
+    pagination: PricingTypePagination;
+  };
+}
