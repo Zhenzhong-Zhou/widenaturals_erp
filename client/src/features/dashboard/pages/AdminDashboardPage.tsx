@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Chip, Box } from '@mui/material';
-import { CustomButton, DataTable, Form, Typography } from '@components/index.ts';
+import { CustomButton, CustomTable, Form, Typography } from '@components/index.ts';
 import { FieldConfig } from '@components/common/Form.tsx';
 import CustomModal from '@components/common/CustomModal.tsx';
 
@@ -58,8 +58,8 @@ const AdminDashboardPage = ({ roleName, permissions }: { roleName: string; permi
       </Typography>
       
       {/* Access Control for DataTable */}
-      {['view_data_table', 'root_access'].some(permission => permissions.includes(permission)) && (
-        <DataTable
+      {permissions?.some((permission) => ['view_data_table', 'root_access'].includes(permission)) && (
+        <CustomTable
           columns={[
             { id: 'name', label: 'Name', sortable: true },
             {
@@ -67,7 +67,11 @@ const AdminDashboardPage = ({ roleName, permissions }: { roleName: string; permi
               label: 'Status',
               sortable: true,
               format: (value) => (
-                <Chip label={value} color={getStatusColor(value)} />
+                <Chip
+                  label={value}
+                  color={getStatusColor(value) || 'default'} // Ensure `getStatusColor` returns valid colors
+                  sx={{ textTransform: 'capitalize' }}
+                />
               ),
             },
             {
@@ -76,7 +80,7 @@ const AdminDashboardPage = ({ roleName, permissions }: { roleName: string; permi
               sortable: false,
               format: (_, row) => (
                 <Box>
-                  {row.status === 'Pending' && permissions.includes('approve_items') && (
+                  {row.status === 'Pending' && permissions?.includes('approve_items') && (
                     <CustomButton
                       variant="outlined"
                       color="primary"
@@ -87,7 +91,7 @@ const AdminDashboardPage = ({ roleName, permissions }: { roleName: string; permi
                       Approve
                     </CustomButton>
                   )}
-                  {row.status === 'Pending' && permissions.includes('cancel_items') && (
+                  {row.status === 'Pending' && permissions?.includes('cancel_items') && (
                     <CustomButton
                       variant="outlined"
                       color="secondary"
@@ -106,6 +110,13 @@ const AdminDashboardPage = ({ roleName, permissions }: { roleName: string; permi
             { id: 2, name: 'Bob', status: 'Approved' },
             { id: 3, name: 'Charlie', status: 'Cancelled' },
           ]}
+          rowsPerPageOptions={[5, 10, 25]}
+          initialRowsPerPage={10}
+          page={0}
+          onPageChange={(newPage) => console.log('Page Changed:', newPage)}
+          onRowsPerPageChange={(newRowsPerPage) =>
+            console.log('Rows Per Page Changed:', newRowsPerPage)
+          }
         />
       )}
       

@@ -28,6 +28,7 @@ export interface PricingTypesResponse {
 
 export interface PricingTypeTableProps {
   data: PricingType[];
+  totalPages: number;
   totalRecords: number;
   rowsPerPage: number;
   page: number;

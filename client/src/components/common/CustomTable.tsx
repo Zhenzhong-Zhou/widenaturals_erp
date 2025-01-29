@@ -25,38 +25,35 @@ interface CustomTableProps {
   data: Record<string, any>[];
   rowsPerPageOptions?: number[];
   initialRowsPerPage?: number;
+  totalPages?: number;
+  totalRecords?: number;
+  page: number;
+  onPageChange: (newPage: number) => void;
+  onRowsPerPageChange: (newRowsPerPage: number) => void;
 }
 
 const CustomTable: FC<CustomTableProps> = ({
-  columns,
-  data,
-  rowsPerPageOptions = [5, 10, 25],
-  initialRowsPerPage = 5,
-}) => {
+                                             columns,
+                                             data,
+                                             rowsPerPageOptions = [5, 10, 25],
+                                             initialRowsPerPage = 5,
+                                             totalPages,
+                                             totalRecords,
+                                             page,
+                                             onPageChange,
+                                             onRowsPerPageChange,
+                                           }) => {
   const [order, setOrder] = useState<'asc' | 'desc'>('asc');
   const [orderBy, setOrderBy] = useState<string | undefined>(undefined);
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(initialRowsPerPage);
-
+  
   const { theme } = useThemeContext();
-
+  
   const handleSort = (columnId: string) => {
     const isAsc = orderBy === columnId && order === 'asc';
     setOrder(isAsc ? 'desc' : 'asc');
     setOrderBy(columnId);
   };
-
-  const handleChangePage = (_: unknown, newPage: number) => {
-    setPage(newPage);
-  };
-
-  const handleChangeRowsPerPage = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
-
+  
   const sortedData = [...data].sort((a, b) => {
     if (!orderBy) return 0;
     const aValue = a[orderBy];
@@ -65,12 +62,10 @@ const CustomTable: FC<CustomTableProps> = ({
     if (aValue > bValue) return order === 'asc' ? 1 : -1;
     return 0;
   });
-
-  const paginatedData = sortedData.slice(
-    page * rowsPerPage,
-    page * rowsPerPage + rowsPerPage
-  );
-
+  
+  // Use totalPages directly to ensure the page stays in range
+  const safePage = Math.min(page, Math.max(0, (totalPages || 1) - 1));
+  
   return (
     <Paper
       sx={{
@@ -112,7 +107,7 @@ const CustomTable: FC<CustomTableProps> = ({
             </TableRow>
           </TableHead>
           <TableBody>
-            {paginatedData.map((row, rowIndex) => (
+            {sortedData.map((row, rowIndex) => (
               <TableRow
                 key={rowIndex}
                 sx={{
@@ -136,11 +131,13 @@ const CustomTable: FC<CustomTableProps> = ({
       <TablePagination
         rowsPerPageOptions={rowsPerPageOptions}
         component="div"
-        count={data.length}
-        rowsPerPage={rowsPerPage}
-        page={page}
-        onPageChange={handleChangePage}
-        onRowsPerPageChange={handleChangeRowsPerPage}
+        count={totalRecords || 0}
+        rowsPerPage={initialRowsPerPage}
+        page={safePage}
+        onPageChange={(_, newPage) => onPageChange(newPage)}
+        onRowsPerPageChange={(event) =>
+          onRowsPerPageChange(parseInt(event.target.value, 10))
+        }
         sx={{
           backgroundColor: theme.palette.background.default,
           color: theme.palette.text.primary,
