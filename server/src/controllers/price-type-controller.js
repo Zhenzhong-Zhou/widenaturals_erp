@@ -1,12 +1,13 @@
 const { fetchAllPriceTypes } = require('../services/price-type-service');
 const { logInfo, logError } = require('../utils/logger-helper');
+const wrapAsync = require('../utils/wrap-async');
 
 /**
  * Controller to handle fetching all price types.
  * @param {Object} req - Express request object.
  * @param {Object} res - Express response object.
  */
-const getPriceTypesController = async (req, res) => {
+const getPriceTypesController = wrapAsync(async (req, res, next) => {
   try {
     // Extract query parameters for pagination and filtering
     const { page = 1, limit = 10, name, status } = req.query;
@@ -29,13 +30,9 @@ const getPriceTypesController = async (req, res) => {
       stack: error.stack,
     });
     
-    res.status(error.statusCode || 500).json({
-      success: false,
-      message: error.message || 'Failed to fetch price types',
-      ...(error.details ? { details: error.details } : {}),
-    });
+    next(error);
   }
-};
+});
 
 module.exports = {
   getPriceTypesController,

@@ -19,6 +19,8 @@ export interface Product {
   updated_at: string;
   created_by_fullname?: string;
   updated_by_fullname?: string;
+  location_name?: string;
+  location_type_name?: string;
   status_name: string; // Active, inactive, etc.
   prices: Array<{
     pricing_type: string; // Retail, MSRP, etc.

@@ -1,5 +1,5 @@
 const express = require('express');
-const { getProductsController, getProductDetailsById } = require('../controllers/product-controller');
+const { getProductsController, getProductDetailsByIdController } = require('../controllers/product-controller');
 const validate = require('../middlewares/validate');
 const { paginationSchema } = require('../validators/product-validators');
 
@@ -9,6 +9,6 @@ const router = express.Router();
 router.get('/', validate(paginationSchema), getProductsController);
 
 // Route for fetching product details by ID
-router.get('/:id', getProductDetailsById);
+router.get('/:id', getProductDetailsByIdController);
 
 module.exports = router;

@@ -71,7 +71,7 @@ const getProductsController = wrapAsync(async (req, res, next) => {
  *
  * @returns {Promise<void>} - Returns JSON response or passes error to the next middleware
  */
-const getProductDetailsById = wrapAsync(async (req, res, next) => {
+const getProductDetailsByIdController = wrapAsync(async (req, res, next) => {
   const { id } = req.params;
   
   // Validate the product ID
@@ -96,4 +96,4 @@ const getProductDetailsById = wrapAsync(async (req, res, next) => {
   }
 });
 
-module.exports = { getProductsController, getProductDetailsById };
+module.exports = { getProductsController, getProductDetailsByIdController };

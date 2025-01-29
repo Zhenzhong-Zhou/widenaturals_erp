@@ -29,6 +29,8 @@ const ProductDetailPage: React.FC = () => {
       Weight: `${product.weight_g ?? "N/A"} g`,
       Description: product.description ?? "N/A",
       Status: product.status_name ?? "N/A",
+      "Location Type Name": product.location_type_name ?? "N/A",
+      "Location Name": product.location_name ?? "N/A",
       "Status Date": formatDate(product.status_date) ?? "N/A",
       "Created By": product.created_by_fullname ?? "N/A",
       "Created At": formatDate(product.created_at) ?? "N/A",

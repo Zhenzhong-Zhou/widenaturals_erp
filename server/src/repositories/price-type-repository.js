@@ -2,7 +2,11 @@ const { query, paginateQuery, retry } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logInfo, logError, logWarn } = require('../utils/logger-helper');
 
-const getAllPriceTypes = async ({ page, limit, filters }) => {
+const getAllPriceTypes = async ({ page, limit }) => {
+  const tableName = 'pricing_types pt';
+  const joins = []; // No joins needed for this query
+  const whereClause = '1=1'; // Ensures no filtering
+  
   const baseQuery = `
     SELECT
       pt.id,
@@ -20,28 +24,17 @@ const getAllPriceTypes = async ({ page, limit, filters }) => {
     LEFT JOIN users uu ON pt.updated_by = uu.id
   `;
   
-  const whereClauses = [];
   const params = [];
   
   try {
-    
-    if (filters.name) {
-      whereClauses.push(`pt.name ILIKE $${params.length + 1}`);
-      params.push(`%${filters.name}%`);
-    }
-    
-    if (filters.status) {
-      whereClauses.push(`s.name = $${params.length + 1}`);
-      params.push(filters.status);
-    }
-    
-    const whereClause = whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : '';
-    
     // Execute the paginated query with retry logic
     const result = await retry(
       () =>
         paginateQuery({
-          queryText: `${baseQuery} ${whereClause}`,
+          tableName,
+          joins,
+          whereClause,
+          queryText: baseQuery,
           params,
           page,
           limit,
