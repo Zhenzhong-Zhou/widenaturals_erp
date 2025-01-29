@@ -1,6 +1,7 @@
 const { fetchAllPriceTypes, fetchPricingTypeDetailsByPricingTypeId } = require('../services/price-type-service');
 const { logInfo, logError } = require('../utils/logger-helper');
 const wrapAsync = require('../utils/wrap-async');
+const AppError = require('../utils/AppError');
 
 /**
  * Controller to handle fetching all price types.
@@ -14,8 +15,19 @@ const getPriceTypesController = wrapAsync(async (req, res, next) => {
     
     logInfo('Handling request to fetch price types', { page, limit, name, status });
     
+    const paginationParams = {
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
+      name,
+      status,
+    };
+    
+    if (paginationParams.page < 1 || paginationParams.limit < 1) {
+      return next(AppError.validationError('Page and limit must be positive integers.'));
+    }
+    
     // Call the service layer to fetch price types
-    const result = await fetchAllPriceTypes({ page: +page, limit: +limit, name, status });
+    const result = await fetchAllPriceTypes(paginationParams);
     
     // Send successful response
     res.status(200).json({

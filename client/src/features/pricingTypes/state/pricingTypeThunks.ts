@@ -8,8 +8,7 @@ export const fetchPricingTypesThunk = createAsyncThunk<
   { rejectValue: string }
 >('pricingTypes/fetchPricingTypes', async ({ page, rowsPerPage }, thunkAPI) => {
   try {
-    const response = await pricingTypeService.fetchAllPricingTypes(page, rowsPerPage);
-    return response;
+    return await pricingTypeService.fetchAllPricingTypes(page, rowsPerPage);
   } catch (error: any) {
     return thunkAPI.rejectWithValue(error.message || 'Failed to fetch pricing types');
   }

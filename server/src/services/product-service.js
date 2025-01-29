@@ -54,9 +54,7 @@ const fetchAllProducts = async ({ page, limit, category, name }) => {
 const fetchProductDetails = async (id) => {
   try {
     // Fetch product details from the repository
-    const product = await getProductDetailsById(id);
-    
-    return product;
+    return await getProductDetailsById(id);
   } catch (error) {
     logError('Error in service layer:', error.message);
     

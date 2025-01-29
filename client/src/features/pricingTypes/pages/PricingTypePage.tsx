@@ -27,8 +27,8 @@ const PricingTypePage = () => {
         totalPages={totalPages}
         totalRecords={totalRecords}
         rowsPerPage={limit}
-        page={page}
-        onPageChange={(newPage) => setPage(newPage)}
+        page={page - 1} // Material-UI uses zero-based indexing for pages
+        onPageChange={(newPage) => setPage(newPage + 1)} // Convert back to one-based indexing
         onRowsPerPageChange={(newLimit) => setLimit(newLimit)}
       />
       <Box sx={{ marginTop: 2 }}>

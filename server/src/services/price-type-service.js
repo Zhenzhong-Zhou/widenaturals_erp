@@ -38,7 +38,7 @@ const fetchAllPriceTypes = async ({ page, limit, name, status }) => {
       stack: error.stack,
     });
     
-    throw new AppError('Failed to fetch price types', 500, {
+    throw AppError.serviceError('Failed to fetch price types', {
       originalError: error.message,
     });
   }
