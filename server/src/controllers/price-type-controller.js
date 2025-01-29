@@ -1,4 +1,4 @@
-const { fetchAllPriceTypes } = require('../services/price-type-service');
+const { fetchAllPriceTypes, fetchPricingTypeDetailsByPricingTypeId } = require('../services/price-type-service');
 const { logInfo, logError } = require('../utils/logger-helper');
 const wrapAsync = require('../utils/wrap-async');
 
@@ -34,6 +34,30 @@ const getPriceTypesController = wrapAsync(async (req, res, next) => {
   }
 });
 
+/**
+ * Controller to fetch pricing type details.
+ * @param {Object} req - Express request object.
+ * @param {Object} res - Express response object.
+ * @param next
+ */
+const getPricingTypeDetailsByIdController = wrapAsync(async (req, res, next) => {
+  const { id, page = 1, limit = 10 } = req.params;
+  
+  try {
+    logInfo('Handling request to fetch pricing type details');
+    const pricingDetails = await fetchPricingTypeDetailsByPricingTypeId(id, page, limit);
+    res.status(200).json({
+      success: true,
+      data: pricingDetails,
+    });
+  } catch (error) {
+    logError('Error in getPricingTypeDetails controller', error);
+    
+    next(error);
+  }
+});
+
 module.exports = {
   getPriceTypesController,
+  getPricingTypeDetailsByIdController,
 };

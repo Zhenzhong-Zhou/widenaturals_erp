@@ -1,4 +1,4 @@
-const { getAllPriceTypes } = require('../repositories/price-type-repository');
+const { getAllPriceTypes, getPricingDetailsByPricingTypeId } = require('../repositories/price-type-repository');
 const { logInfo, logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
 
@@ -11,7 +11,7 @@ const AppError = require('../utils/AppError');
  * @param {string} [params.status] - Optional filter for status.
  * @returns {Promise<Object>} - The paginated list of price types and metadata.
  */
-const fetchAllPriceTypes = async ({ page = 1, limit = 10, name, status }) => {
+const fetchAllPriceTypes = async ({ page, limit, name, status }) => {
   try {
     // Construct filters dynamically
     const filters = {};
@@ -44,6 +44,41 @@ const fetchAllPriceTypes = async ({ page = 1, limit = 10, name, status }) => {
   }
 };
 
+/**
+ * Service function to fetch pricing details by pricing type ID.
+ * @param {string} pricingTypeId - The ID of the pricing type to fetch details for.
+ * @param page
+ * @param limit
+ * @returns {Promise<Object[]>} - The list of pricing details.
+ */
+const fetchPricingTypeDetailsByPricingTypeId = async (pricingTypeId, page, limit) => {
+  if (!pricingTypeId) {
+    throw new AppError('Pricing type ID is required', 400, { type: 'ValidationError' });
+  }
+  
+  try {
+    logInfo(`Fetching pricing type details for ID: ${pricingTypeId}`);
+    
+    const pricingDetails = await getPricingDetailsByPricingTypeId({ pricingTypeId, page, limit });
+    
+    if (!pricingDetails || pricingDetails.length === 0) {
+      logInfo(`No pricing details found for pricing type ID: ${pricingTypeId}`);
+      return [];
+    }
+    
+    logInfo(`Fetched ${pricingDetails.length} pricing type details successfully`);
+    return pricingDetails;
+  } catch (error) {
+    logError('Error in fetchPricingTypeDetails service', {
+      pricingTypeId,
+      error: error.message,
+      stack: error.stack,
+    });
+    throw new AppError('Failed to fetch pricing type details', 500, { originalError: error.message });
+  }
+};
+
 module.exports = {
   fetchAllPriceTypes,
+  fetchPricingTypeDetailsByPricingTypeId,
 };

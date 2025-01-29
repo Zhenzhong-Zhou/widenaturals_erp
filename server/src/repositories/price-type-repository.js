@@ -52,6 +52,69 @@ const getAllPriceTypes = async ({ page, limit }) => {
   }
 };
 
+const getPricingDetailsByPricingTypeId = async ({ pricingTypeId, page, limit }) => {
+  const tableName = 'pricing pr';
+  const joins = [
+    'LEFT JOIN pricing_types pt ON pt.id = pr.price_type_id',
+    'LEFT JOIN products p ON pr.product_id = p.id',
+    'LEFT JOIN locations l ON pr.location_id = l.id',
+    'LEFT JOIN location_types lt ON l.location_type_id = lt.id',
+    'LEFT JOIN status s ON pr.status_id = s.id',
+  ];
+  const whereClause = 'pr.price_type_id = $1'; // Ensures no filtering
+  
+  // Fetch paginated pricing details
+  const baseQuery = `
+    SELECT
+      pt.id AS pricing_type_id,
+      pt.name AS pricing_type_name,
+      pt.description AS pricing_type_description,
+      pt.created_at AS pricing_type_created_at,
+      pt.updated_at AS pricing_type_updated_at,
+      pr.id AS pricing_id,
+      pr.price,
+      pr.valid_from,
+      pr.valid_to,
+      pr.status_date,
+      p.id AS product_id,
+      p.product_name,
+      p.series,
+      p.brand,
+      p.category,
+      p.barcode,
+      p.market_region,
+      l.id AS location_id,
+      l.name AS location_name,
+      lt.name AS location_type_name,
+      s.name AS pricing_status_name
+    FROM ${tableName}
+    ${joins.join(' ')}
+    WHERE ${whereClause}
+  `;
+  
+  try {
+      // Execute the paginated query with retry logic
+    return await retry(
+       () =>
+         paginateQuery({
+           tableName,
+           joins,
+           whereClause,
+           queryText: baseQuery,
+           params: [pricingTypeId],
+           page,
+           limit,
+           sortBy: 'p.product_name',
+           sortOrder: 'ASC',
+         }),
+       3 // Retry up to 3 times
+     );
+  } catch (error) {
+    throw new AppError('Failed to fetch pricing details', 500, { originalError: error.message });
+  }
+};
+
 module.exports = {
   getAllPriceTypes,
+  getPricingDetailsByPricingTypeId,
 };

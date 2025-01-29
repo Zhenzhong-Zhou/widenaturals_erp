@@ -316,11 +316,14 @@ const paginateQuery = async ({
     paginatedQuery += ` ORDER BY ${sortBy} ${validSortOrder}`;
   }
   paginatedQuery += ` LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
-
+  
+  // Append LIMIT and OFFSET to params
+  const queryParams = [...params, limit, offset];
+  
   try {
     // Execute both the paginated query and the count query in parallel
     const [dataResult, countResult] = await Promise.all([
-      query(paginatedQuery, [...params, limit, offset], clientOrPool),
+      query(paginatedQuery, queryParams, clientOrPool),
       query(countQueryText, params, clientOrPool),
     ]);
 
