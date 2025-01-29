@@ -9,10 +9,24 @@ exports.seed = async function (knex) {
   const adminUserId = await fetchDynamicValue(knex, 'users', 'email', 'admin@example.com', 'id');
   
   const locationTypes = await knex('location_types').select('id', 'code');
+  const officeTypeId = locationTypes.find((type) => type.code === 'VANCOUVER_OFFICE')?.id;
   const warehouseTypeId = locationTypes.find((type) => type.code === 'WAREHOUSE')?.id;
   const retailTypeId = locationTypes.find((type) => type.code === 'RETAIL')?.id;
   
   const locations = [
+    {
+      id: knex.raw('uuid_generate_v4()'),
+      name: 'Head Office',
+      location_type_id: officeTypeId, // Ensure this matches a valid ID in `location_types`
+      address: '1040 W Georgia St Unit 1050, Vancouver',
+      warehouse_fee: null, // Offices typically don't have warehouse fees
+      status_id: activeStatusId,
+      status_date: knex.fn.now(),
+      created_at: knex.fn.now(),
+      updated_at: knex.fn.now(),
+      created_by: adminUserId,
+      updated_by: adminUserId,
+    },
     {
       id: knex.raw('uuid_generate_v4()'),
       name: 'Central Warehouse',

@@ -70,14 +70,24 @@ const getProducts = async ({
     FROM ${tableName}
     INNER JOIN status s ON p.status_id = s.id
     LEFT JOIN (
-      SELECT pr.product_id, pt.name AS pricing_type, pr.price
-        FROM pricing pr
-        INNER JOIN pricing_types pt ON pr.price_type_id = pt.id
-        INNER JOIN status ps ON pr.status_id = ps.id
-        WHERE ps.name = 'active'
+      SELECT
+        pr.product_id,
+        pt.name AS pricing_type,
+        pr.price,
+        pr.location_id
+      FROM pricing pr
+      INNER JOIN pricing_types pt ON pr.price_type_id = pt.id
+      INNER JOIN status ps ON pr.status_id = ps.id
+      INNER JOIN locations l ON pr.location_id = l.id
+      INNER JOIN location_types lt ON l.location_type_id = lt.id
+      WHERE ps.name = 'active'
+        AND lt.name = 'Office'
+        AND pt.name IN ('Retail', 'MSRP')
     ) pricing ON pricing.product_id = p.id
+    LEFT JOIN locations loc ON pricing.location_id = loc.id
+    LEFT JOIN location_types lt ON loc.location_type_id = lt.id
     WHERE ${whereClause}
-    GROUP BY p.id, s.name
+    GROUP BY p.id, s.name, loc.name, lt.name
   `;
   
   const fetchPaginatedData = async () => {
@@ -202,6 +212,8 @@ const getProductDetailsById = async (id) => {
       p.height_cm,
       p.weight_g,
       p.description,
+      loc.name AS location_name,
+      lt.name AS location_type_name,
       s.name AS status_name,
       COALESCE(
         jsonb_agg(
@@ -222,12 +234,19 @@ const getProductDetailsById = async (id) => {
       SELECT
         pr.product_id,
         pt.name AS pricing_type,
-        pr.price
+        pr.price,
+        pr.location_id
       FROM pricing pr
       INNER JOIN pricing_types pt ON pr.price_type_id = pt.id
       INNER JOIN status ps ON pr.status_id = ps.id
+      INNER JOIN locations loc ON pr.location_id = loc.id
+      INNER JOIN location_types lt ON loc.location_type_id = lt.id
       WHERE ps.name = 'active'
+        AND lt.name = 'Office'
+        AND pt.name IN ('Retail', 'MSRP')
     ) pricing ON pricing.product_id = p.id
+    LEFT JOIN locations loc ON pricing.location_id = loc.id
+    LEFT JOIN location_types lt ON loc.location_type_id = lt.id
     LEFT JOIN users created_user ON p.created_by = created_user.id
     LEFT JOIN users updated_user ON p.updated_by = updated_user.id
     WHERE p.id = $1
@@ -236,12 +255,14 @@ const getProductDetailsById = async (id) => {
       p.id,
       s.name,
       p.status_date,
+      loc.name,
+      lt.name,
       created_user.firstname,
       created_user.lastname,
       p.created_at,
       updated_user.firstname,
       updated_user.lastname,
-      p.updated_at;
+      p.updated_at
   `;
   
   try {

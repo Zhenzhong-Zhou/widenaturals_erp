@@ -11,6 +11,18 @@ exports.seed = async function (knex) {
   const locationTypes = [
     {
       id: knex.raw('uuid_generate_v4()'),
+      code: 'VANCOUVER_OFFICE',
+      name: 'Office',
+      description: 'Main office location for administrative work.',
+      status_id: activeStatusId,
+      status_date: knex.fn.now(),
+      created_at: knex.fn.now(),
+      updated_at: knex.fn.now(),
+      created_by: adminUserId,
+      updated_by: adminUserId,
+    },
+    {
+      id: knex.raw('uuid_generate_v4()'),
       code: 'WAREHOUSE',
       name: 'Warehouse',
       description: 'Storage location for inventory',
