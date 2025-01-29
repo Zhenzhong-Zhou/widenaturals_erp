@@ -37,7 +37,6 @@ const fetchUsers =  async ({
     });
     
     const { data, pagination } = response.data;
-    console.log(response.data)
     return {
       data,
       pagination: {
