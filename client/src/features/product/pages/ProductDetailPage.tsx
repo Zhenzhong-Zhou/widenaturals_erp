@@ -1,6 +1,6 @@
 import React from "react";
 import { useParams } from "react-router-dom";
-import useProductDetail from "../../../hooks/useProductDetail";
+import { useProductDetail } from '../../../hooks';
 import { CustomButton, DetailPage, MetadataSection, PriceDisplay } from '@components/index.ts';
 import { Box, CardMedia } from "@mui/material";
 import productPlaceholder from "../../../assets/Virility_CA.jpg";

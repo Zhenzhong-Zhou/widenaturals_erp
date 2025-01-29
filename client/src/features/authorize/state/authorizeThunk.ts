@@ -7,9 +7,8 @@ export const fetchPermissionsThunk = createAsyncThunk<
   { rejectValue: string }                      // Reject value type
 >('permissions/fetch', async (_, { rejectWithValue }) => {
   try {
-    const result = await authorizeService.fetchPermissions(); // Call the adjusted function
-    console.log(result);
-    return result; // Already in the expected format
+     // Call the adjusted function
+    return await authorizeService.fetchPermissions();
   } catch (error: any) {
     // Handle errors and return a meaningful error message
     return rejectWithValue(error.response?.data?.message || 'Failed to fetch permissions.');

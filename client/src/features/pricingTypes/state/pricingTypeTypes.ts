@@ -25,3 +25,12 @@ export interface PricingTypesResponse {
   data: PricingType[];
   pagination: Pagination;
 }
+
+export interface PricingTypeTableProps {
+  data: PricingType[];
+  totalRecords: number;
+  rowsPerPage: number;
+  page: number;
+  onPageChange: (newPage: number) => void;
+  onRowsPerPageChange: (newRowsPerPage: number) => void;
+}

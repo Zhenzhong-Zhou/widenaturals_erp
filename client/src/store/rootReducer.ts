@@ -9,6 +9,7 @@ import usersReducer from '../features/user/state/userSlice.ts';
 import permissionsReducer from '../features/authorize/state/permissionSlice.ts';
 import productsReducer from '../features/product/state/productSlice.ts';
 import productReducer from '../features/product/state/productDetailSlice.ts';
+import pricingTypesReducer from '../features/pricingTypes/state/pricingTypeSlice.ts';
 
 // Combine reducers
 const appReducer = combineReducers({
@@ -21,6 +22,7 @@ const appReducer = combineReducers({
   permissions: permissionsReducer,
   products: productsReducer,
   product: productReducer,
+  pricingTypes: pricingTypesReducer,
 });
 
 // Root reducer with logout handling

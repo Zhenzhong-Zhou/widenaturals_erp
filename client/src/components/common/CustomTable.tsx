@@ -1,4 +1,4 @@
-import React, { FC, ReactNode, useState } from 'react';
+import { FC, ReactNode, useState } from 'react';
 import {
   Table,
   TableBody,
@@ -20,14 +20,14 @@ interface Column {
   format?: (value: any, row: Record<string, any>) => ReactNode;
 }
 
-interface DataTableProps {
+interface CustomTableProps {
   columns: Column[];
   data: Record<string, any>[];
   rowsPerPageOptions?: number[];
   initialRowsPerPage?: number;
 }
 
-const DataTable: FC<DataTableProps> = ({
+const CustomTable: FC<CustomTableProps> = ({
   columns,
   data,
   rowsPerPageOptions = [5, 10, 25],
@@ -150,4 +150,4 @@ const DataTable: FC<DataTableProps> = ({
   );
 };
 
-export default DataTable;
+export default CustomTable;

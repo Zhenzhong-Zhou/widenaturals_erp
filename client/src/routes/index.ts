@@ -81,6 +81,15 @@ export const routes = [
     },
   },
   {
+    path: '/pricing_types',
+    component: () => import('../features/pricingTypes/pages/PricingTypePage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Pricing Types',
+      showInSidebar: true,
+    },
+  },
+  {
     path: '*',
     component: () => import('../pages/NotFoundPage.tsx'),
     meta: {
