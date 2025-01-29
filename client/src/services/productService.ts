@@ -29,7 +29,8 @@ const fetchProducts = async <T>(page: number = 1, limit: number = 10): Promise<P
  */
 export const fetchProductDetails = async (productId: string): Promise<Product> => {
   try {
-    const response = await axiosInstance.get<ProductDetailApiResponse>(`/products/${productId}`);
+    const endpoint = API_ENDPOINTS.PRODUCT_DETAILS.replace(':id', productId);
+    const response = await axiosInstance.get<ProductDetailApiResponse>(endpoint);
     if (!response.data.success) {
       throw new Error('Failed to fetch product details');
     }
