@@ -1,4 +1,4 @@
-const { getAllPriceTypes, getPricingTypeById } = require('../repositories/price-type-repository');
+const { getAllPriceTypes, getPricingTypeById } = require('../repositories/pricing-type-repository');
 const { logInfo, logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
 const { getPricingDetailsByPricingTypeId } = require('../repositories/pricing-repository');
