@@ -4,6 +4,7 @@ import { CustomButton, Loading, ErrorDisplay, ErrorMessage, CustomTable, Typogra
 import { PricingTypeDetail, PricingRecord, PricingTypePagination } from '../state/pricingTypeTypes';
 import { formatDate, formatDateTime } from '@utils/dateTimeUtils.ts';
 import { capitalizeFirstLetter } from '@utils/textUtils.ts';
+import { Link } from 'react-router-dom';
 
 interface PricingTypeDetailsTableProps {
   pricingTypeDetails: PricingTypeDetail | null; // Added for pricing type metadata
@@ -30,7 +31,7 @@ const PricingTypeDetailsTable: FC<PricingTypeDetailsTableProps> = ({
                                                                      onLimitChange,
                                                                      refetch,
                                                                    }) => {
-  if (isLoading) return <Loading message="Loading Pricing Type Details..." />;
+  if (isLoading) return <Loading message={`Loading ${pricingTypeDetails?.pricing_type_name || ''} Pricing Type Details...`} />;
   if (error) return <ErrorDisplay><ErrorMessage message={error} /></ErrorDisplay>;
   
   const transformedData = data.map((item) => ({
@@ -59,7 +60,10 @@ const PricingTypeDetailsTable: FC<PricingTypeDetailsTableProps> = ({
     updated_by_name: item.updated_by?.full_name || 'Unknown',
     
     // Dates and Status
-    price: item.price || '0.00',
+    pricing: {  // This ensures the entire pricing object is passed
+      pricing_id: item.pricing_id || null,
+      price: item.price || '0.00',
+    },
     status: item.status || 'Unknown',
     status_date: item.status_date || null,
     valid_from: item.valid_from || null,
@@ -68,20 +72,18 @@ const PricingTypeDetailsTable: FC<PricingTypeDetailsTableProps> = ({
     updated_at: item.updated_at || null,
   }));
   
-  
   // Define columns for CustomTable
   const columns = [
-    { id: 'product_name', label: 'Product Name', sortable: true },
-    { id: 'product_brand', label: 'Brand', sortable: true },
-    // { id: 'product_series', label: 'Series', sortable: true },
-    // { id: 'product_category', label: 'Category', sortable: true },
-    { id: 'product_barcode', label: 'Barcode', sortable: true },
-    // { id: 'product_market_region', label: 'Market Region', sortable: true },
-    
-    { id: 'location_type', label: 'Location Type', sortable: true },
-    { id: 'location_name', label: 'Location', sortable: true },
-    
-    { id: 'price', label: 'Price', sortable: true },
+    {
+      id: 'pricing',
+      label: 'Price',
+      sortable: true,
+      format: (row: any) => (
+        <Link to={`/pricing/${row.pricing_id || 'unknown'}`} style={{ textDecoration: 'none', color: 'red' }}>
+          {row.price || '0.00'}
+        </Link>
+      )
+    },
     {
       id: 'valid_from',
       label: 'Valid From',
@@ -106,6 +108,16 @@ const PricingTypeDetailsTable: FC<PricingTypeDetailsTableProps> = ({
       sortable: true,
       format: (value: any) => formatDate(value),
     },
+    
+    { id: 'product_name', label: 'Product Name', sortable: true },
+    { id: 'product_brand', label: 'Brand', sortable: true },
+    // { id: 'product_series', label: 'Series', sortable: true },
+    // { id: 'product_category', label: 'Category', sortable: true },
+    { id: 'product_barcode', label: 'Barcode', sortable: true },
+    // { id: 'product_market_region', label: 'Market Region', sortable: true },
+    
+    { id: 'location_type', label: 'Location Type', sortable: true },
+    { id: 'location_name', label: 'Location', sortable: true },
     
     {
       id: 'created_by_name',
