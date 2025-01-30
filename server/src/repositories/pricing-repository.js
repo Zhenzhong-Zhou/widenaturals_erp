@@ -73,4 +73,63 @@ const getPricingDetailsByPricingTypeId = async ({ pricingTypeId, page, limit}) =
   }
 };
 
-module.exports = { getPricingDetailsByPricingTypeId };
+/**
+ * Fetches paginated pricing records with related entity names.
+ * @param {Object} options - Options for the paginated query.
+ * @param {number} [options.page=1] - Current page number (1-based index).
+ * @param {number} [options.limit=10] - Number of records per page.
+ * @returns {Promise<Object>} - Returns an object with `data` (records) and `pagination` (metadata).
+ */
+const getPricings = async ({ page, limit}) => {
+  const tableName = 'pricing p'; // Corrected alias
+  
+  const joins = [
+    'LEFT JOIN products pr ON p.product_id = pr.id',
+    'LEFT JOIN pricing_types pt ON p.price_type_id = pt.id',
+    'LEFT JOIN locations l ON p.location_id = l.id',
+    'LEFT JOIN status s ON p.status_id = s.id',
+    'LEFT JOIN users u1 ON p.created_by = u1.id',
+    'LEFT JOIN users u2 ON p.updated_by = u2.id',
+  ];
+  
+  const whereClause = '1=1'; // Default where clause
+  
+  const baseQuery = `
+    SELECT
+      p.id AS pricing_id,
+      pr.product_name AS product_name,
+      pt.name AS price_type,
+      l.name AS location_name,
+      p.price,
+      p.valid_from,
+      p.valid_to,
+      s.name AS status_name,
+      p.status_date,
+      p.created_at,
+      p.updated_at,
+      COALESCE(u1.firstname  || ' ' || u1.lastname, 'Unknown') AS created_by,
+      COALESCE(u2.firstname  || ' ' || u2.lastname, 'Unknown') AS updated_by
+    FROM ${tableName}
+    ${joins.join(' ')}
+  `;
+  
+  try {
+    return await retry(() =>
+      paginateQuery({
+        tableName,
+        joins,
+        whereClause,
+        queryText: baseQuery,
+        params: [],
+        page,
+        limit,
+        sortBy: 'pr.product_name',
+        sortOrder: 'ASC',
+      })
+    );
+  } catch (error) {
+    throw new AppError('Failed to fetch pricing data', 500, error);
+  }
+};
+
+module.exports = { getPricingDetailsByPricingTypeId, getPricings };

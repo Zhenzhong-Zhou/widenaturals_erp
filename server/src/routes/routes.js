@@ -14,7 +14,7 @@ const userRoutes = require('./users');
 const adminRoutes = require('./admin');
 const productRoutes = require('./products');
 const priceTypeRouts = require('./price_types');
-const pricingRouts = require('./pricing');
+const pricingRouts = require('./pricings');
 const {
   createApiRateLimiter,
   createCsrfTokenRateLimiter,
@@ -68,7 +68,13 @@ router.use('/admin', authenticate(), adminRoutes);
 router.use('/price-types',  priceTypeRouts);
 
 // Pricing route
-router.use('/pricing', authenticate(), pricingRouts);
+/**
+ * @route GET /api/pricings
+ * @desc Fetch paginated pricing records
+ * @access Protected
+ */
+// router.use('/pricings', authenticate(), pricingRouts);
+router.use('/pricings',  pricingRouts);
 
 // Products route
 router.use('/products', authenticate(), productRoutes);

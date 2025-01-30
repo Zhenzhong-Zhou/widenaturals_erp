@@ -3,13 +3,13 @@
  * @description Routes related to user operations.
  */
 
-const express = require('express');
+ const express = require('express');
+const { getPricingsController } = require('../controllers/pricing-controller');
 
 
 const router = express.Router();
 
 // Route for getting all users
-router.get('/');
-
+router.get('/', getPricingsController);
 
 module.exports = router;
