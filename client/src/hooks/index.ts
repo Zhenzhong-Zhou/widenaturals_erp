@@ -11,3 +11,4 @@ export { default as usePermissions } from './usePermissions';
 export { default as useProducts } from './useProducts.ts';
 export { default as useProductDetail } from './useProductDetail.ts';
 export { default as usePricingTypes } from './usePricingTypes.ts';
+export { default as usePricing } from './usePricing.ts';

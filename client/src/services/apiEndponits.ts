@@ -4,4 +4,5 @@ export const API_ENDPOINTS = {
   PRODUCT_DETAILS: '/products/:id',
   ALL_PRICING_TYPES: '/price-types',
   PRICING_TYPE_DETAILS: '/price-types/:id',
+  ALL_PRICINGS: '/pricings',
 };

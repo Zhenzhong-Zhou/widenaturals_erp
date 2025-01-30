@@ -99,6 +99,15 @@ export const routes = [
     },
   },
   {
+    path: '/pricings',
+    component: () => import('../features/pricing/pages/PricingPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Prices',
+      showInSidebar: true,
+    },
+  },
+  {
     path: '*',
     component: () => import('../pages/NotFoundPage.tsx'),
     meta: {
