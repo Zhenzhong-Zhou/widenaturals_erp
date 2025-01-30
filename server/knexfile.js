@@ -27,16 +27,9 @@
  */
 
 const path = require('path');
-const { loadEnv } = require('./src/config/env');
-const {
-  getPoolConfig,
-  getConnectionConfig,
-} = require('./src/config/db-config');
+const { getPoolConfig, getConnectionConfig } = require('./src/config/db-config');
 
-// Load environment
-const env = loadEnv();
-const seedsDirectory = (env) =>
-  path.resolve(__dirname, `./src/database/seeds/${env}`);
+const seedsDirectory = (env) => path.resolve(__dirname, `./src/database/seeds/${env}`);
 
 // Base Knex configuration
 const baseConfig = {
@@ -52,22 +45,22 @@ const baseConfig = {
 module.exports = {
   development: {
     ...baseConfig,
-    connection: getConnectionConfig('DEV'),
+    connection: getConnectionConfig(),
     seeds: { directory: seedsDirectory('development') },
   },
   test: {
     ...baseConfig,
-    connection: getConnectionConfig('TEST'),
+    connection: getConnectionConfig(),
     seeds: { directory: seedsDirectory('test') },
   },
   staging: {
     ...baseConfig,
-    connection: getConnectionConfig('STAGING'),
+    connection: getConnectionConfig(),
     seeds: { directory: seedsDirectory('staging') },
   },
   production: {
     ...baseConfig,
-    connection: getConnectionConfig('PROD'),
+    connection: getConnectionConfig(),
     seeds: { directory: seedsDirectory('production') },
   },
 };
