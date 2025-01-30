@@ -53,7 +53,8 @@ const getPriceTypesController = wrapAsync(async (req, res, next) => {
  * @param next
  */
 const getPricingTypeDetailsByIdController = wrapAsync(async (req, res, next) => {
-  const { id, page = 1, limit = 10 } = req.params;
+  const { id } = req.params;
+  const { page = 1, limit = 10 } = req.query;
   
   try {
     logInfo('Handling request to fetch pricing type details');

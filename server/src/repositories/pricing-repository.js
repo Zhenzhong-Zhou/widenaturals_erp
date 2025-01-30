@@ -2,7 +2,7 @@ const { query, paginateQuery, retry } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logInfo, logError } = require('../utils/logger-helper');
 
-const getPricingDetailsByPricingTypeId = async ({ pricingTypeId, page = 1, limit = 10 }) => {
+const getPricingDetailsByPricingTypeId = async ({ pricingTypeId, page, limit}) => {
   const tableName = 'pricing pr';
   const joins = [
     'LEFT JOIN products p ON pr.product_id = p.id',

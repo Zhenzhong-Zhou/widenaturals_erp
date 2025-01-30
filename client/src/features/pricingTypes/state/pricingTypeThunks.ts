@@ -22,8 +22,7 @@ export const fetchPricingTypeDetailsThunk = createAsyncThunk<
   'pricingTypes/fetchPricingTypeDetails',
   async ({ pricingTypeId, page, limit }, thunkAPI) => {
     try {
-      const response = await pricingTypeService.fetchPricingTypeDetailsById(pricingTypeId, page, limit);
-      return response;
+      return await pricingTypeService.fetchPricingTypeDetailsById(pricingTypeId, page, limit);
     } catch (error: any) {
       return thunkAPI.rejectWithValue(error.message || 'Failed to fetch pricing type details');
     }

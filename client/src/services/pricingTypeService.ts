@@ -20,9 +20,7 @@ export const fetchPricingTypeDetailsById = async (
 ): Promise<PricingTypeResponse> => {
   try {
     const endpoint = API_ENDPOINTS.PRICING_TYPE_DETAILS.replace(':id', pricingTypeId);
-    const response = await axiosInstance.get<PricingTypeResponse>(endpoint, {
-      params: { page, limit },
-    });
+    const response = await axiosInstance.get<PricingTypeResponse>(`${endpoint}?page=${page}&limit=${limit}`);
     return response.data; // Return the fetched data
   } catch (error) {
     throw new Error('Failed to fetch pricing type details');
