@@ -1,16 +1,18 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { fetchPricingTypeDetailsThunk } from './pricingTypeThunks';
-import { PricingTypeDetails, PricingTypePagination, PricingTypeResponse } from './pricingTypeTypes.ts';
+import { PricingTypeDetail, PricingRecord, PricingTypePagination, PricingTypeResponse } from './pricingTypeTypes';
 
 interface PricingTypeState {
-  data: PricingTypeDetails[];
+  pricingTypeDetails: PricingTypeDetail | null; // Now a single object instead of an array
+  pricingDetails: PricingRecord[]; // List of pricing records
   pagination: PricingTypePagination | null;
   isLoading: boolean;
   error: string | null;
 }
 
 const initialState: PricingTypeState = {
-  data: [],
+  pricingTypeDetails: null, // Single object instead of array
+  pricingDetails: [],
   pagination: null,
   isLoading: false,
   error: null,
@@ -21,7 +23,8 @@ const pricingTypeSlice = createSlice({
   initialState,
   reducers: {
     resetPricingTypeState: (state) => {
-      state.data = [];
+      state.pricingTypeDetails = null;
+      state.pricingDetails = [];
       state.pagination = null;
       state.isLoading = false;
       state.error = null;
@@ -35,8 +38,9 @@ const pricingTypeSlice = createSlice({
       })
       .addCase(fetchPricingTypeDetailsThunk.fulfilled, (state, action: PayloadAction<PricingTypeResponse>) => {
         state.isLoading = false;
-        state.data = action.payload.data.data; // Access the nested `data` array
-        state.pagination = action.payload.data.pagination; // Access the nested `pagination`
+        state.pricingTypeDetails = action.payload.data.pricingTypeDetails; // Correctly accessing single object
+        state.pricingDetails = action.payload.data.pricingDetails; // Correctly accessing the pricing details array
+        state.pagination = action.payload.data.pagination; // Correctly accessing pagination data
       })
       .addCase(fetchPricingTypeDetailsThunk.rejected, (state, action: PayloadAction<string | undefined>) => {
         state.isLoading = false;

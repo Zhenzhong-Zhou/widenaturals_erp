@@ -44,24 +44,24 @@ const usePricingTypes = ({
   const [page, setPage] = useState(initialPage);
   const [limit, setLimit] = useState(initialLimit);
   
-  // Ensure page does not exceed total pages on limit change
-  const adjustPageOnLimitChange = (newLimit: number) => {
-    const newPage = Math.min(Math.ceil(totalRecords / newLimit), page);
-    setPage(newPage || 1); // Reset to the first page if necessary
-  };
-  
+  // Fetch pricing types
   const fetchData = useCallback(() => {
-    dispatch(fetchPricingTypesThunk({ page, rowsPerPage: limit }));
+    dispatch(fetchPricingTypesThunk({ page, limit }));
   }, [dispatch, page, limit]);
   
   useEffect(() => {
     fetchData();
   }, [fetchData]);
   
+  // Adjust page number when `limit` changes
   useEffect(() => {
-    adjustPageOnLimitChange(limit);
-  }, [limit, totalRecords]); // Trigger when the limit or total records change
+    setPage((prevPage) => {
+      const maxPage = Math.ceil(totalRecords / limit) || 1;
+      return Math.min(prevPage, maxPage);
+    });
+  }, [limit, totalRecords]);
   
+  // Method to manually refetch data
   const refetch = () => {
     fetchData();
   };
@@ -75,8 +75,7 @@ const usePricingTypes = ({
     isLoading,
     error,
     setPage,
-    setLimit: (newLimit) => {
-      adjustPageOnLimitChange(newLimit);
+    setLimit: (newLimit: number) => {
       setLimit(newLimit);
     },
     refetch,

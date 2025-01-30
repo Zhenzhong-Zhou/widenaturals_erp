@@ -1,9 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/storeHooks';
-import { fetchPricingTypeDetailsThunk, PricingTypeDetails, PricingTypePagination } from '../features/pricingTypes';
 import {
-  selectPricingDetails, selectPricingDetailsError, selectPricingDetailsIsLoading,
-  selectPricingDetailsPagination,
+  fetchPricingTypeDetailsThunk,
+  PricingRecord,
+  PricingTypeDetail,
+  PricingTypePagination,
+} from '../features/pricingTypes';
+import {
+  selectPricingError,
+  selectPricingIsLoading, selectPricingPagination,
+  selectPricingRecords,
+  selectPricingTypeDetails,
 } from '../features/pricingTypes';
 
 interface UsePricingDetailsParams {
@@ -13,7 +20,8 @@ interface UsePricingDetailsParams {
 }
 
 interface UsePricingDetailsReturn {
-  data: PricingTypeDetails[];
+  pricingTypeDetails: PricingTypeDetail | null; // Updated to store single pricing type info
+  pricingRecords: PricingRecord[]; // Updated to store the array of pricing records
   pagination: PricingTypePagination;
   isLoading: boolean;
   error: string | null;
@@ -32,14 +40,13 @@ const usePricingDetails = ({
   const dispatch = useAppDispatch();
   
   // Redux state
-  const data = useAppSelector(selectPricingDetails);
-  const isLoading = useAppSelector(selectPricingDetailsIsLoading);
-  const error = useAppSelector(selectPricingDetailsError);
-  
-  // Default fallback for pagination if it's null
-  const pagination = useAppSelector(selectPricingDetailsPagination) || {
-    page: 1,
-    limit: 10,
+  const pricingTypeDetails = useAppSelector(selectPricingTypeDetails); // Fetches the pricing type info
+  const pricingRecords = useAppSelector(selectPricingRecords); // Fetches pricing records
+  const isLoading = useAppSelector(selectPricingIsLoading);
+  const error = useAppSelector(selectPricingError);
+  const pagination = useAppSelector(selectPricingPagination) || {
+    page: initialPage,
+    limit: initialLimit,
     totalRecords: 0,
     totalPages: 1,
   };
@@ -48,11 +55,9 @@ const usePricingDetails = ({
   const [page, setPage] = useState(initialPage);
   const [limit, setLimit] = useState(initialLimit);
   
+  // Fetch Data
   const fetchData = useCallback(() => {
-    if (!pricingTypeId) {
-      console.error('Pricing Type ID is required to fetch details.');
-      return;
-    }
+    if (!pricingTypeId) return;
     dispatch(fetchPricingTypeDetailsThunk({ pricingTypeId, page, limit }));
   }, [dispatch, pricingTypeId, page, limit]);
   
@@ -60,12 +65,9 @@ const usePricingDetails = ({
     fetchData();
   }, [fetchData]);
   
-  const refetch = () => {
-    fetchData();
-  };
-  
   return {
-    data,
+    pricingTypeDetails,
+    pricingRecords,
     pagination,
     isLoading,
     error,
@@ -73,7 +75,7 @@ const usePricingDetails = ({
     limit,
     setPage,
     setLimit,
-    refetch,
+    refetch: fetchData,
   };
 };
 

@@ -36,31 +36,60 @@ export interface PricingTypeTableProps {
   onRowsPerPageChange: (newRowsPerPage: number) => void;
 }
 
-// Pricing Type Interfaces
-export interface PricingTypeDetails {
+// Interface for Created/Updated By User Info
+export interface UserInfo {
+  id: string;
+  full_name: string;
+}
+
+// Interface for a single Pricing Type Detail
+export interface PricingTypeDetail {
   pricing_type_id: string;
   pricing_type_name: string;
   pricing_type_description: string;
-  pricing_type_created_at: string;
-  pricing_type_updated_at: string;
+  status: string;
+  status_date: string;
+  created_at: string;
+  updated_at: string;
+  created_by: UserInfo;
+  updated_by: UserInfo;
+}
+
+// Interface for a single Product Detail
+export interface ProductDetail {
+  id: string;
+  name: string;
+  brand: string;
+  series: string;
+  barcode: string;
+  category: string;
+  market_region: string;
+}
+
+// Interface for a single Location Detail
+export interface LocationDetail {
+  id: string;
+  name: string;
+  type: string;
+}
+
+// Interface for a single Pricing Record
+export interface PricingRecord {
   pricing_id: string;
   price: string;
   valid_from: string;
   valid_to: string | null;
   status_date: string;
-  product_id: string;
-  product_name: string;
-  series: string;
-  brand: string;
-  category: string;
-  barcode: string;
-  market_region: string;
-  location_id: string;
-  location_name: string;
-  location_type_name: string;
-  pricing_status_name: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  created_by: UserInfo;
+  updated_by: UserInfo;
+  product: ProductDetail;
+  location: LocationDetail;
 }
 
+// Pagination Interface
 export interface PricingTypePagination {
   page: number;
   limit: number;
@@ -68,10 +97,12 @@ export interface PricingTypePagination {
   totalPages: number;
 }
 
+// Interface for API Response
 export interface PricingTypeResponse {
   success: boolean;
   data: {
-    data: PricingTypeDetails[];
+    pricingTypeDetails: PricingTypeDetail;
+    pricingDetails: PricingRecord[];
     pagination: PricingTypePagination;
   };
 }

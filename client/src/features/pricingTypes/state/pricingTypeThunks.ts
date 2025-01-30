@@ -4,11 +4,11 @@ import { PricingTypeResponse, PricingTypesResponse } from './pricingTypeTypes';
 
 export const fetchPricingTypesThunk = createAsyncThunk<
   PricingTypesResponse,
-  { page: number; rowsPerPage: number },
+  { page: number; limit: number },
   { rejectValue: string }
->('pricingTypes/fetchPricingTypes', async ({ page, rowsPerPage }, thunkAPI) => {
+>('pricingTypes/fetchPricingTypes', async ({ page, limit }, thunkAPI) => {
   try {
-    return await pricingTypeService.fetchAllPricingTypes(page, rowsPerPage);
+    return await pricingTypeService.fetchAllPricingTypes(page, limit);
   } catch (error: any) {
     return thunkAPI.rejectWithValue(error.message || 'Failed to fetch pricing types');
   }
@@ -22,7 +22,8 @@ export const fetchPricingTypeDetailsThunk = createAsyncThunk<
   'pricingTypes/fetchPricingTypeDetails',
   async ({ pricingTypeId, page, limit }, thunkAPI) => {
     try {
-      return await pricingTypeService.fetchPricingTypeDetailsById(pricingTypeId, page, limit);
+      const response = await pricingTypeService.fetchPricingTypeDetailsById(pricingTypeId, page, limit);
+      return response;
     } catch (error: any) {
       return thunkAPI.rejectWithValue(error.message || 'Failed to fetch pricing type details');
     }

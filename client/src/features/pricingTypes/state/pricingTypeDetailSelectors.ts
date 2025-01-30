@@ -1,9 +1,16 @@
 import { RootState } from '../../../store/store';
 
-export const selectPricingDetails = (state: RootState) => state.pricingType.data;
+// Selects the single Pricing Type details object
+export const selectPricingTypeDetails = (state: RootState) => state.pricingType.pricingTypeDetails;
 
-export const selectPricingDetailsPagination = (state: RootState) => state.pricingType.pagination;
+// Selects the array of Pricing Records (list of product prices)
+export const selectPricingRecords = (state: RootState) => state.pricingType.pricingDetails;
 
-export const selectPricingDetailsIsLoading = (state: RootState) => state.pricingType.isLoading;
+// Selects pagination info
+export const selectPricingPagination = (state: RootState) => state.pricingType.pagination;
 
-export const selectPricingDetailsError = (state: RootState) => state.pricingType.error;
+// Selects the loading state
+export const selectPricingIsLoading = (state: RootState) => state.pricingType.isLoading;
+
+// Selects any error messages
+export const selectPricingError = (state: RootState) => state.pricingType.error;
