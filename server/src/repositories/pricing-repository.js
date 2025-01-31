@@ -157,36 +157,39 @@ const getPricingDetailsByPricingId = async ({ pricingId, page, limit }) => {
   
   const baseQuery = `
       SELECT
-          p.id AS pricing_id,
-          pt.name AS price_type_name,
-          p.price,
-          p.valid_from,
-          p.valid_to,
-          s.name AS status_name,
-          p.status_date,
-          p.created_at,
-          p.updated_at,
-          COALESCE(u1.firstname || ' ' || u1.lastname, 'Unknown') AS created_by,
-          COALESCE(u2.firstname || ' ' || u2.lastname, 'Unknown') AS updated_by,
-          jsonb_build_object(
-              'product_id', pr.id,
-              'name', pr.product_name,
-              'brand', pr.brand,
-              'category', pr.category,
-              'barcode', pr.barcode,
-              'market_region', pr.market_region
-          ) AS product,
-          jsonb_build_object(
-              'location_id', l.id,
-              'location_name', l.name,
-              'location_type', jsonb_build_object(
-                  'type_id', lt.id,
-                  'type_name', lt.name
-              )
-          ) AS location
+        p.id AS pricing_id,
+        pt.name AS price_type_name,
+        p.price,
+        p.valid_from,
+        p.valid_to,
+        s.name AS status_name,
+        p.status_date,
+        p.created_at,
+        p.updated_at,
+        COALESCE(u1.firstname || ' ' || u1.lastname, 'Unknown') AS created_by,
+        COALESCE(u2.firstname || ' ' || u2.lastname, 'Unknown') AS updated_by,
+        jsonb_agg(DISTINCT jsonb_build_object(
+            'product_id', pr.id,
+            'name', pr.product_name,
+            'brand', pr.brand,
+            'category', pr.category,
+            'barcode', pr.barcode,
+            'market_region', pr.market_region
+        )) AS products,
+        jsonb_agg(DISTINCT jsonb_build_object(
+            'location_id', l.id,
+            'location_name', l.name,
+            'location_type', jsonb_build_object(
+                'type_id', lt.id,
+                'type_name', lt.name
+            )
+        )) AS locations
       FROM ${tableName}
       ${joins.join(' ')}
       WHERE ${whereClause}
+      GROUP BY p.id, pt.name, p.price, p.valid_from, p.valid_to,
+      s.name, p.status_date, p.created_at, p.updated_at,
+      u1.firstname, u1.lastname, u2.firstname, u2.lastname
   `;
   
   try {
@@ -199,7 +202,7 @@ const getPricingDetailsByPricingId = async ({ pricingId, page, limit }) => {
         params: [pricingId], // Corrected parameter name
         page,
         limit,
-        sortBy: 'pr.product_name', // Sorting by created date instead of product_name
+        sortBy: 'pt.name',
         sortOrder: 'ASC',
       });
     });

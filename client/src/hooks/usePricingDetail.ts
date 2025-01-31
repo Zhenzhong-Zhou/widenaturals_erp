@@ -2,9 +2,9 @@ import { useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
 import {
   selectPricing,
-  selectProduct,
-  selectLocation,
-  selectLocationType,
+  selectProducts,
+  selectLocations,
+  selectLocationTypes,
   selectPagination,
   selectPricingLoading,
   selectPricingError,
@@ -22,23 +22,23 @@ const usePricing = (pricingId?: string, page: number = 1, limit: number = 10) =>
   
   // Selectors
   const pricing = useAppSelector(selectPricing);
-  const product = useAppSelector(selectProduct);
-  const location = useAppSelector(selectLocation);
-  const locationType = useAppSelector(selectLocationType);
+  const products = useAppSelector(selectProducts); // Supports multiple products
+  const locations = useAppSelector(selectLocations); // Supports multiple locations
+  const locationTypes = useAppSelector(selectLocationTypes);
   const pagination = useAppSelector(selectPagination);
   const loading = useAppSelector(selectPricingLoading);
   const error = useAppSelector(selectPricingError);
   
   useEffect(() => {
-    if (pricingId) {
+    if (pricingId && !pricing) {
       dispatch(getPricingDetails({ pricingId, page, limit }));
-    } else {
+    } else if (!pricingId && !products.length) {
       dispatch(fetchPricingData({ page, limit }));
     }
-  }, [dispatch, pricingId, page, limit]);
+  }, [dispatch, pricingId, page, limit, pricing, products.length]);
   
   /**
-   * Fetch paginated pricing records.
+   * Fetch pricing records dynamically for pagination.
    * @param newPage - The new page number.
    * @param newLimit - The new page limit.
    */
@@ -52,9 +52,9 @@ const usePricing = (pricingId?: string, page: number = 1, limit: number = 10) =>
   
   return {
     pricing,
-    product,
-    location,
-    locationType,
+    products, // Array of products
+    locations, // Array of locations
+    locationTypes, // Extracted location types
     pagination,
     loading,
     error,

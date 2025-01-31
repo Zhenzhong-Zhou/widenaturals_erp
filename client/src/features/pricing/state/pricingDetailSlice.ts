@@ -29,29 +29,16 @@ const pricingSlice = createSlice({
       .addCase(getPricingDetails.fulfilled, (state, action) => {
         state.loading = false;
         
-        // Ensure product, location, and location_type data are structured correctly
+        const { pricing, pagination } = action.payload.data;
+        
+        // Ensure correct structure for multiple products & locations
         state.pricing = {
-          ...action.payload.data.pricing,
-          product: action.payload.data.pricing.product ?? {
-            product_id: '',
-            name: 'Unknown',
-            brand: 'Unknown',
-            barcode: '',
-            category: 'Unknown',
-            market_region: 'Unknown',
-          },
-          location: action.payload.data.pricing.location ?? {
-            location_id: '',
-            location_name: 'Unknown',
-            location_type: {
-              type_id: '',
-              type_code: '',
-              type_name: 'Unknown',
-            },
-          },
+          ...pricing,
+          products: pricing.products ?? [], // Default to empty array if missing
+          locations: pricing.locations ?? [], // Default to empty array if missing
         };
         
-        state.pagination = action.payload.data.pagination;
+        state.pagination = pagination;
       })
       .addCase(getPricingDetails.rejected, (state, action) => {
         state.loading = false;

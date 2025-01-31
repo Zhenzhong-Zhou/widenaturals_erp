@@ -1,3 +1,4 @@
+import { createSelector } from '@reduxjs/toolkit';
 import { RootState } from '../../../store/store';
 
 /**
@@ -6,20 +7,44 @@ import { RootState } from '../../../store/store';
 export const selectPricing = (state: RootState) => state.pricing.pricing;
 
 /**
- * Selects the product details from the pricing data.
+ * Memoized selector for all products related to the pricing.
  */
-export const selectProduct = (state: RootState) => state.pricing.pricing?.product ?? null;
+export const selectProducts = createSelector(
+  (state: RootState) => state.pricing.pricing?.products,
+  (products) => products ?? [] // Ensures the same array reference if unchanged
+);
 
 /**
- * Selects the location details from the pricing data.
+ * Memoized selector for all locations related to the pricing.
  */
-export const selectLocation = (state: RootState) => state.pricing.pricing?.location ?? null;
+export const selectLocations = createSelector(
+  (state: RootState) => state.pricing.pricing?.locations,
+  (locations) => locations ?? [] // Ensures the same array reference if unchanged
+);
 
 /**
- * Selects the location type details from the location.
+ * Memoized selector for the first product (if needed for display).
  */
-export const selectLocationType = (state: RootState) =>
-  state.pricing.pricing?.location?.location_type ?? null;
+export const selectFirstProduct = createSelector(
+  (state: RootState) => state.pricing.pricing?.products,
+  (products) => products?.[0] ?? null
+);
+
+/**
+ * Memoized selector for the first location (if needed for display).
+ */
+export const selectFirstLocation = createSelector(
+  (state: RootState) => state.pricing.pricing?.locations,
+  (locations) => locations?.[0] ?? null
+);
+
+/**
+ * Memoized selector for all unique location types.
+ */
+export const selectLocationTypes = createSelector(
+  selectLocations,
+  (locations) => locations.map((loc) => loc.location_type) ?? [] // Ensures same reference
+);
 
 /**
  * Selects pagination details.

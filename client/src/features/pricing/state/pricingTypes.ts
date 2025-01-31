@@ -2,7 +2,7 @@
 export interface Pricing {
   pricing_id: string;
   product_name: string;
-  price_type_name: 'Product Cost' | 'Retail' | 'MSRP'; // Enum-like strict types
+  price_type_name: string;
   location_name: string;
   price: string;
   valid_from: string; // ISO Timestamp
@@ -44,7 +44,6 @@ export interface Product {
 
 export interface LocationType {
   type_id: string;
-  type_code: string;
   type_name: string;
 }
 
@@ -55,26 +54,12 @@ export interface Location {
 }
 
 /**
- * Extended interface for a detailed pricing record.
- * Adds product and location details.
+ * Extended interface for detailed pricing records.
+ * Now supports multiple products & locations.
  */
 export interface PricingDetails extends Pricing {
-  product: {
-    product_id: string;
-    name: string;
-    brand: string;
-    barcode: string;
-    category: string;
-    market_region: string;
-  };
-  location: {
-    location_id: string;
-    location_name: string;
-    location_type: {
-      type_id: string;
-      type_name: string;
-    };
-  };
+  products: Product[]; // Changed from single object to array
+  locations: Location[]; // Changed from single object to array
 }
 
 export interface PricingDetailsResponse {
