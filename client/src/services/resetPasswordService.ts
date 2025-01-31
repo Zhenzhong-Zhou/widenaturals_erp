@@ -6,10 +6,7 @@ import {
   ResetPasswordError,
   ResetPasswordResponse,
 } from '../features/resetPassword/state/resetPasswordInterfaces.ts';
-
-const API_ENDPOINTS = {
-  RESET_PASSWORD: '/auth/reset-password', // Correct endpoint
-};
+import { API_ENDPOINTS } from './apiEndponits.ts';
 
 /**
  * Reset Password API Service

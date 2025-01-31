@@ -7,12 +7,7 @@ import { withTimeout } from '../utils/timeoutUtils';
 import { selectCsrfToken } from '../features/csrf/state/csrfSelector.ts';
 import { store } from '../store/store.ts';
 import { logoutThunk } from '../features/session/state/sessionThunks.ts';
-
-const API_ENDPOINTS = {
-  LOGIN: '/session/login',
-  REFRESH_TOKEN: '/session/refresh',
-  LOGOUT: '/auth/logout',
-};
+import { API_ENDPOINTS } from './apiEndponits.ts';
 
 interface LoginResponse {
   accessToken: string;

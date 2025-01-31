@@ -13,7 +13,7 @@ const authRoutes = require('./auth');
 const userRoutes = require('./users');
 const adminRoutes = require('./admin');
 const productRoutes = require('./products');
-const priceTypeRouts = require('./price_types');
+const priceTypeRouts = require('./pricing_types');
 const pricingRouts = require('./pricings');
 const {
   createApiRateLimiter,
@@ -64,8 +64,8 @@ router.use('/users', authenticate(), userRoutes);
 router.use('/admin', authenticate(), adminRoutes);
 
 // Price Types route
-// router.use('/price-types', authenticate(), priceTypeRouts);
-router.use('/price-types',  priceTypeRouts);
+// router.use('/pricing-types', authenticate(), priceTypeRouts);
+router.use('/pricing-types',  priceTypeRouts);
 
 // Pricing route
 /**

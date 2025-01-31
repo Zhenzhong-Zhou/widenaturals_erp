@@ -1,8 +1,16 @@
 export const API_ENDPOINTS = {
+  CSRF_TOKEN: '/csrf/token',
   USER_PERMISSION: '/users/me/permissions',
+  PUBLIC_HEALTH: '/public/health',
+  LOGIN: '/session/login',
+  RESET_PASSWORD: '/auth/reset-password',
+  REFRESH_TOKEN: '/session/refresh',
+  LOGOUT: '/auth/logout',
+  ALL_USERS: '/users',
+  USER_PROFILE: '/users/me',
   ALL_PRODUCTS: '/products',
   PRODUCT_DETAILS: '/products/:id',
-  ALL_PRICING_TYPES: '/price-types',
-  PRICING_TYPE_DETAILS: '/price-types/:id',
+  ALL_PRICING_TYPES: '/pricing-types',
+  PRICING_TYPE_DETAILS: '/pricing-types/:id',
   ALL_PRICINGS: '/pricings',
 };

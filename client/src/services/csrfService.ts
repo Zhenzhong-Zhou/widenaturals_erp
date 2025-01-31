@@ -7,6 +7,7 @@ import {
   resetCsrfToken,
   updateCsrfToken,
 } from '../features/csrf/state/csrfSlice.ts';
+import { API_ENDPOINTS } from './apiEndponits.ts';
 
 /**
  * Fetches the CSRF token from the backend with retry and timeout logic.
@@ -17,7 +18,7 @@ const fetchCsrfToken = async (): Promise<string> => {
     const response = await withTimeout(
       withRetry(
         () =>
-          axiosInstance.get<{ csrfToken: string }>('/csrf/token', {
+          axiosInstance.get<{ csrfToken: string }>(API_ENDPOINTS.CSRF_TOKEN, {
             withCredentials: true, // Ensure cookies are included for CSRF protection
           }),
         3, // Retry attempts
