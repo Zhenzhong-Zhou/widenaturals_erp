@@ -2,7 +2,7 @@
 export interface Pricing {
   pricing_id: string;
   product_name: string;
-  price_type: 'Product Cost' | 'Retail' | 'MSRP'; // Enum-like strict types
+  price_type_name: 'Product Cost' | 'Retail' | 'MSRP'; // Enum-like strict types
   location_name: string;
   price: string;
   valid_from: string; // ISO Timestamp
@@ -72,7 +72,6 @@ export interface PricingDetails extends Pricing {
     location_name: string;
     location_type: {
       type_id: string;
-      type_code: string;
       type_name: string;
     };
   };

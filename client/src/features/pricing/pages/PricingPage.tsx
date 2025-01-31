@@ -23,7 +23,7 @@ const PricingPage = () => {
   
   if (loading) return <Loading message="Loading All Prices..." />;
   if (error) return <ErrorDisplay><ErrorMessage message={error} /></ErrorDisplay>;
-  
+  console.log(pricingData)
   return (
     <Box sx={{ padding: 2 }}>
       <Box sx={{ marginTop: 2 }}>

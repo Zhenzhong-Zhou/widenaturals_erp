@@ -7,7 +7,6 @@ const fetchAllPricings = async (page: number, limit: number): Promise<PricingRes
     const response = await axiosInstance.get<PricingResponse>(
       `${API_ENDPOINTS.ALL_PRICINGS}?page=${page}&limit=${limit}`
     );
-    console.log(response.data);
     return response.data;
   } catch (error) {
     throw new Error('Failed to fetch pricings');
@@ -24,7 +23,6 @@ const fetchAllPricings = async (page: number, limit: number): Promise<PricingRes
 export const fetchPricingDetails = async (pricingId: string, page = 1, limit = 10): Promise<PricingDetailsResponse> => {
   try {
     const endpoint = API_ENDPOINTS.PRICING_DETAILS.replace(':id', pricingId);
-    console.log(endpoint);
     const response = await axiosInstance.get<PricingDetailsResponse>(`${endpoint}?page=${page}&limit=${limit}`);
     return response.data;
   } catch (error) {

@@ -145,6 +145,7 @@ const getPricingDetailsByPricingId = async ({ pricingId, page, limit }) => {
   
   const joins = [
     'LEFT JOIN products pr ON p.product_id = pr.id',
+    'LEFT JOIN pricing_types pt ON p.price_type_id = pt.id',
     'LEFT JOIN locations l ON p.location_id = l.id',
     'LEFT JOIN location_types lt ON l.location_type_id = lt.id',
     'LEFT JOIN status s ON p.status_id = s.id',
@@ -157,6 +158,7 @@ const getPricingDetailsByPricingId = async ({ pricingId, page, limit }) => {
   const baseQuery = `
       SELECT
           p.id AS pricing_id,
+          pt.name AS price_type_name,
           p.price,
           p.valid_from,
           p.valid_to,
@@ -179,8 +181,7 @@ const getPricingDetailsByPricingId = async ({ pricingId, page, limit }) => {
               'location_name', l.name,
               'location_type', jsonb_build_object(
                   'type_id', lt.id,
-                  'type_name', lt.name,
-                  'type_code', lt.code
+                  'type_name', lt.name
               )
           ) AS location
       FROM ${tableName}

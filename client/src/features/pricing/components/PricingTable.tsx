@@ -3,6 +3,7 @@ import { Pricing } from '../state/pricingTypes.ts';
 import { capitalizeFirstLetter, formatCurrency } from '@utils/textUtils.ts';
 import { CustomTable } from '@components/index.ts';
 import { formatDateTime } from '@utils/dateTimeUtils.ts';
+import { Link } from 'react-router-dom';
 
 interface PricingTableProps {
   data: Pricing[];
@@ -31,7 +32,11 @@ const PricingTable: FC<PricingTableProps> = ({
       id: 'price',
       label: 'Price',
       sortable: true,
-      format: (value: string) => formatCurrency(value),
+      format: (value: string, row: any) => (
+        <Link to={`/pricings/${row.pricing_id}`} style={{ textDecoration: 'none', color: 'red' }}>
+          {formatCurrency(value)}
+        </Link>
+      )
     },
     {
       id: 'valid_from',
