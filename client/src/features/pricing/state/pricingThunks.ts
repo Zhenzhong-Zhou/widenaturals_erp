@@ -1,5 +1,5 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { PricingResponse } from './pricingTypes.ts';
+import { PricingDetailsResponse, PricingResponse } from './pricingTypes.ts';
 import { pricingService } from '../../../services';
 
 /**
@@ -17,6 +17,24 @@ export const fetchPricingData = createAsyncThunk<
       return response;
     } catch (error) {
       return rejectWithValue('Failed to fetch pricing data');
+    }
+  }
+);
+
+/**
+ * Thunk to fetch pricing details by ID.
+ */
+export const getPricingDetails = createAsyncThunk<
+  PricingDetailsResponse, // Return type
+  { pricingId: string; page?: number; limit?: number }, // Payload type
+  { rejectValue: string } // Rejected value type
+>(
+  'pricing/getPricingDetails',
+  async ({ pricingId, page = 1, limit = 10 }, { rejectWithValue }) => {
+    try {
+      return await pricingService.fetchPricingDetails(pricingId, page, limit);
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch pricing details');
     }
   }
 );

@@ -32,3 +32,57 @@ export interface PricingResponse {
     pagination: Pagination;
   };
 }
+
+export interface Product {
+  product_id: string;
+  name: string;
+  brand: string;
+  barcode: string;
+  category: string;
+  market_region: string;
+}
+
+export interface LocationType {
+  type_id: string;
+  type_code: string;
+  type_name: string;
+}
+
+export interface Location {
+  location_id: string;
+  location_name: string;
+  location_type: LocationType;
+}
+
+/**
+ * Extended interface for a detailed pricing record.
+ * Adds product and location details.
+ */
+export interface PricingDetails extends Pricing {
+  product: {
+    product_id: string;
+    name: string;
+    brand: string;
+    barcode: string;
+    category: string;
+    market_region: string;
+  };
+  location: {
+    location_id: string;
+    location_name: string;
+    location_type: {
+      type_id: string;
+      type_code: string;
+      type_name: string;
+    };
+  };
+}
+
+export interface PricingDetailsResponse {
+  success: boolean;
+  message: string;
+  data: {
+    pricing: PricingDetails;
+    pagination: Pagination;
+  };
+}

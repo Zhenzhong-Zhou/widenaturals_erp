@@ -108,6 +108,15 @@ export const routes = [
     },
   },
   {
+    path: '/pricings/:id',
+    component: () => import('../features/pricing/pages/PricingDetailPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Price Details',
+      showInSidebar: false,
+    },
+  },
+  {
     path: '*',
     component: () => import('../pages/NotFoundPage.tsx'),
     meta: {
