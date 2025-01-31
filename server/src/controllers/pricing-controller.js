@@ -1,4 +1,5 @@
-const { fetchAllPricings } = require('../services/pricing-service');
+const wrapAsync = require('../utils/wrap-async');
+const { fetchAllPricings, fetchPricingDetailsByPricingId } = require('../services/pricing-service');
 
 /**
  * Controller to handle the fetching of paginated pricing records.
@@ -6,7 +7,7 @@ const { fetchAllPricings } = require('../services/pricing-service');
  * @param {Response} res - Express response object.
  * @param {Function} next - Express next middleware function.
  */
-const getPricingsController = async (req, res, next) => {
+const getPricingsController = wrapAsync(async (req, res, next) => {
   try {
     const { page, limit } = req.query;
     
@@ -24,8 +25,30 @@ const getPricingsController = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
-};
+});
+
+/**
+ * API Controller to get pricing details by ID.
+ */
+const getPricingDetailsController = wrapAsync(async (req, res, next) => {
+    try {
+      const { id } = req.params;
+      const { page, limit } = req.query;
+      
+      const pricingDetails = await fetchPricingDetailsByPricingId(id, page, limit);
+      
+      return res.status(200).json({
+        success: true,
+        message: 'Pricing details fetched successfully',
+        data: pricingDetails
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
 
 module.exports = {
   getPricingsController,
+  getPricingDetailsController,
 }

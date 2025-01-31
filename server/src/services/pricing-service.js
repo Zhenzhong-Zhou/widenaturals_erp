@@ -1,5 +1,5 @@
 const AppError = require('../utils/AppError');
-const { getPricings } = require('../repositories/pricing-repository');
+const { getPricings, getPricingDetailsByPricingId } = require('../repositories/pricing-repository');
 
 /**
  * Service to fetch paginated pricing records.
@@ -51,6 +51,40 @@ const fetchAllPricings = async ({ page = 1, limit = 10 }) => {
   }
 };
 
+/**
+ * Fetch pricing details, including product, location, and pagination info.
+ * @param {string} pricingId - The UUID of the pricing record.
+ * @param {number} page - The page number for pagination.
+ * @param {number} limit - The number of records per page.
+ * @returns {Promise<Object>} - Returns pricing details with related product, location, and pagination info.
+ */
+const fetchPricingDetailsByPricingId = async (pricingId, page, limit) => {
+  // Validate input
+  if (!pricingId) {
+    throw new AppError('Pricing ID is required', 400);
+  }
+  
+  if (page < 1 || limit < 1) {
+    throw new AppError('Page and limit must be positive integers', 400);
+  }
+  
+  // Fetch pricing details from repository
+  const pricingData = await getPricingDetailsByPricingId({ pricingId, page, limit });
+  
+  if (!pricingData?.data?.length) {
+    throw new AppError('Pricing details not found', 404);
+  }
+  
+  const pricing = pricingData.data[0];
+  
+  // Format response
+  return {
+    pricing,
+    pagination: pricingData.pagination
+  };
+};
+
 module.exports = {
   fetchAllPricings,
+  fetchPricingDetailsByPricingId,
 }

@@ -132,4 +132,79 @@ const getPricings = async ({ page, limit}) => {
   }
 };
 
-module.exports = { getPricingDetailsByPricingTypeId, getPricings };
+/**
+ * Fetch pricing details with product, location, and created/updated user full names.
+ * @param {Object} params - The parameters.
+ * @param {string} params.pricingId - The UUID of the pricing record.
+ * @param {number} params.page - The current page number.
+ * @param {number} params.limit - The number of records per page.
+ * @returns {Promise<Object>} - Returns pricing details with related product and location.
+ */
+const getPricingDetailsByPricingId = async ({ pricingId, page, limit }) => {
+  const tableName = 'pricing p';
+  
+  const joins = [
+    'LEFT JOIN products pr ON p.product_id = pr.id',
+    'LEFT JOIN locations l ON p.location_id = l.id',
+    'LEFT JOIN location_types lt ON l.location_type_id = lt.id',
+    'LEFT JOIN status s ON p.status_id = s.id',
+    'LEFT JOIN users u1 ON p.created_by = u1.id',
+    'LEFT JOIN users u2 ON p.updated_by = u2.id'
+  ];
+  
+  const whereClause = 'p.id = $1';
+  
+  const baseQuery = `
+      SELECT
+          p.id AS pricing_id,
+          p.price,
+          p.valid_from,
+          p.valid_to,
+          s.name AS status_name,
+          p.status_date,
+          p.created_at,
+          p.updated_at,
+          COALESCE(u1.firstname || ' ' || u1.lastname, 'Unknown') AS created_by,
+          COALESCE(u2.firstname || ' ' || u2.lastname, 'Unknown') AS updated_by,
+          jsonb_build_object(
+              'product_id', pr.id,
+              'name', pr.product_name,
+              'brand', pr.brand,
+              'category', pr.category,
+              'barcode', pr.barcode,
+              'market_region', pr.market_region
+          ) AS product,
+          jsonb_build_object(
+              'location_id', l.id,
+              'location_name', l.name,
+              'location_type', jsonb_build_object(
+                  'type_id', lt.id,
+                  'type_name', lt.name,
+                  'type_code', lt.code
+              )
+          ) AS location
+      FROM ${tableName}
+      ${joins.join(' ')}
+      WHERE ${whereClause}
+  `;
+  
+  try {
+    return await retry(async () => {
+      return await paginateQuery({
+        tableName,
+        joins,
+        whereClause,
+        queryText: baseQuery, // Corrected variable name
+        params: [pricingId], // Corrected parameter name
+        page,
+        limit,
+        sortBy: 'pr.product_name', // Sorting by created date instead of product_name
+        sortOrder: 'ASC',
+      });
+    });
+  } catch (error) {
+    throw new Error(`Error fetching pricing details: ${error.message}`);
+  }
+};
+
+module.exports = { getPricingDetailsByPricingTypeId, getPricings, getPricingDetailsByPricingId };
