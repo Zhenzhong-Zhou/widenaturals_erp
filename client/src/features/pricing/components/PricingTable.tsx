@@ -25,9 +25,7 @@ const PricingTable: FC<PricingTableProps> = ({
                                                onRowsPerPageChange,
                                              }) => {
   const columns = [
-    { id: 'product_name', label: 'Product', sortable: true },
     { id: 'price_type', label: 'Price Type', sortable: true },
-    { id: 'location_name', label: 'Location', sortable: true },
     {
       id: 'price',
       label: 'Price',

@@ -84,9 +84,7 @@ const getPricings = async ({ page, limit}) => {
   const tableName = 'pricing p'; // Corrected alias
   
   const joins = [
-    'LEFT JOIN products pr ON p.product_id = pr.id',
     'LEFT JOIN pricing_types pt ON p.price_type_id = pt.id',
-    'LEFT JOIN locations l ON p.location_id = l.id',
     'LEFT JOIN status s ON p.status_id = s.id',
     'LEFT JOIN users u1 ON p.created_by = u1.id',
     'LEFT JOIN users u2 ON p.updated_by = u2.id',
@@ -97,9 +95,7 @@ const getPricings = async ({ page, limit}) => {
   const baseQuery = `
     SELECT
       p.id AS pricing_id,
-      pr.product_name AS product_name,
       pt.name AS price_type,
-      l.name AS location_name,
       p.price,
       p.valid_from,
       p.valid_to,
@@ -123,7 +119,7 @@ const getPricings = async ({ page, limit}) => {
         params: [],
         page,
         limit,
-        sortBy: 'pr.product_name',
+        sortBy: 'pt.name',
         sortOrder: 'ASC',
       })
     );

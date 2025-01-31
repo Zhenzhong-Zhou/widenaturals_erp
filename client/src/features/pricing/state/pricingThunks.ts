@@ -13,8 +13,7 @@ export const fetchPricingData = createAsyncThunk<
   'pricing/fetchPricingData',
   async ({ page, limit }, { rejectWithValue }) => {
     try {
-      const response = await pricingService.fetchAllPricings(page, limit);
-      return response;
+      return await pricingService.fetchAllPricings(page, limit);
     } catch (error) {
       return rejectWithValue('Failed to fetch pricing data');
     }

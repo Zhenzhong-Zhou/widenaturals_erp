@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 import { usePricing } from '../../../hooks';
 import { PricingTable } from '../index.ts';
-import { CustomButton, ErrorDisplay, ErrorMessage, Loading } from '@components/index.ts';
 import Box from '@mui/material/Box';
+import { CustomButton, ErrorDisplay, ErrorMessage, Loading } from '@components/index.ts';
 
 const PricingPage = () => {
   const { pricingData, pagination, loading, error, fetchPricings } = usePricing();
@@ -12,7 +12,7 @@ const PricingPage = () => {
   }, [pagination.page]);
   
   const handlePageChange = (newPage: number) => {
-    if (newPage > 0 && newPage <= pagination.totalPages) {
+    if (newPage >= 1 && newPage <= pagination.totalPages) {
       fetchPricings(newPage, pagination.limit);
     }
   };
@@ -31,11 +31,11 @@ const PricingPage = () => {
       </Box>
       <PricingTable
         data={pricingData}
-        page={pagination.page}
+        page={pagination.page - 1}
         rowsPerPage={pagination.limit}
         totalRecords={pagination.totalRecords}
         totalPages={pagination.totalPages}
-        onPageChange={handlePageChange}
+        onPageChange={(newPage) => handlePageChange(newPage + 1)}
         onRowsPerPageChange={handleRowsPerPageChange}
       />
     </Box>
