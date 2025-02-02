@@ -117,6 +117,15 @@ export const routes = [
     },
   },
   {
+    path: '/location_types',
+    component: () => import('../features/locationTypes/pages/LocationTypePage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Location Types',
+      showInSidebar: true,
+    },
+  },
+  {
     path: '*',
     component: () => import('../pages/NotFoundPage.tsx'),
     meta: {

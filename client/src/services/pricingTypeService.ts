@@ -13,7 +13,7 @@ const fetchAllPricingTypes = async (page: number, limit: number): Promise<Pricin
   }
 };
 
-export const fetchPricingTypeDetailsById = async (
+const fetchPricingTypeDetailsById = async (
   pricingTypeId: string,
   page: number,
   limit: number

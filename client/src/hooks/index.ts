@@ -13,3 +13,4 @@ export { default as useProductDetail } from './useProductDetail.ts';
 export { default as usePricingTypes } from './usePricingTypes.ts';
 export { default as usePricing } from './usePricing.ts';
 export { default as usePricingDetail } from './usePricingDetail.ts';
+export { default as useLocationTypes } from './useLocationTypes.ts';

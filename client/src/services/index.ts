@@ -7,3 +7,4 @@ export { authorizeService } from './authorizeService.ts';
 export { productService } from './productService.ts';
 export { pricingTypeService } from './pricingTypeService.ts';
 export { pricingService } from './pricingService.ts';
+export { locationTypeService } from './locationTypeService.ts';

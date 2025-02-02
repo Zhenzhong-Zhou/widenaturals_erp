@@ -20,7 +20,7 @@ const fetchAllPricings = async (page: number, limit: number): Promise<PricingRes
  * @param limit - Number of records per page.
  * @returns A promise that resolves to pricing details.
  */
-export const fetchPricingDetails = async (pricingId: string, page = 1, limit = 10): Promise<PricingDetailsResponse> => {
+const fetchPricingDetails = async (pricingId: string, page = 1, limit = 10): Promise<PricingDetailsResponse> => {
   try {
     const endpoint = API_ENDPOINTS.PRICING_DETAILS.replace(':id', pricingId);
     const response = await axiosInstance.get<PricingDetailsResponse>(`${endpoint}?page=${page}&limit=${limit}`);
