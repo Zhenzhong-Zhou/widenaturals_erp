@@ -96,18 +96,23 @@ export const formatTime = (
  * Format date and time as YYYY-MM-DD HH:mm:ss with timezone abbreviation.
  */
 export const formatDateTime = (
-  timestamp: string | number | Date,
+  timestamp: string | number | Date | null | undefined,
   timezone: string = 'America/Vancouver'
 ): string => {
-  const { date, timezoneAbbreviation } = convertToLocalTime(
-    timestamp,
-    timezone
-  );
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hour = String(date.getHours()).padStart(2, '0');
-  const minute = String(date.getMinutes()).padStart(2, '0');
-  const second = String(date.getSeconds()).padStart(2, '0');
+  if (!timestamp) return 'N/A'; // Handle null or undefined inputs gracefully
+  
+  const date = new Date(timestamp);
+  if (isNaN(date.getTime())) return 'Invalid Date'; // Handle invalid date values
+  
+  const { date: localDate, timezoneAbbreviation } = convertToLocalTime(date, timezone);
+  
+  // Format with zero-padded values for consistency
+  const year = localDate.getFullYear();
+  const month = String(localDate.getMonth() + 1).padStart(2, '0');
+  const day = String(localDate.getDate()).padStart(2, '0');
+  const hour = String(localDate.getHours()).padStart(2, '0');
+  const minute = String(localDate.getMinutes()).padStart(2, '0');
+  const second = String(localDate.getSeconds()).padStart(2, '0');
+  
   return `${year}-${month}-${day} ${hour}:${minute}:${second} ${timezoneAbbreviation}`;
 };

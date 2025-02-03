@@ -5,7 +5,7 @@
 exports.up = function (knex) {
   return knex.schema.createTable('user_auth', (table) => {
     table.uuid('id').primary().defaultTo(knex.raw('uuid_generate_v4()'));
-    table.uuid('user_id').notNullable().references('id').inTable('users');
+    table.uuid('user_id').notNullable().references('id').inTable('users').unique();
     table.text('password_hash').notNullable();
     table.string('password_salt', 255).nullable();
     table.integer('attempts').defaultTo(0);

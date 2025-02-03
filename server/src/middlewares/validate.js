@@ -3,13 +3,13 @@ const { logError } = require('../utils/logger-helper');
 const { sanitizeValidationError } = require('../utils/sensitive-data-utils');
 
 /**
- * Middleware to validate request data against a Joi schema.
+ * Middleware to validate request data using Joi schema.
  *
  * @param {object} schema - Joi validation schema.
  * @param {string} [target='body'] - The target to validate ('body', 'query', 'params').
  * @param {object} [options={}] - Joi validation options.
  * @param {string} [errorMessage='Validation failed.'] - Custom error message.
- * @returns {function} - Middleware function.
+ * @returns {function} - Express middleware function.
  */
 const validate = (
   schema,
@@ -17,46 +17,45 @@ const validate = (
   options = {},
   errorMessage = 'Validation failed.'
 ) => {
-  // Default Joi validation options
+  if (!schema || typeof schema.validate !== 'function') {
+    throw new Error('Invalid Joi schema provided.');
+  }
+  
+  if (!['body', 'query', 'params'].includes(target)) {
+    throw new Error(`Invalid validation target: ${target}`);
+  }
+  
   const defaultOptions = { abortEarly: false, allowUnknown: false };
   const validationOptions = { ...defaultOptions, ...options };
-
+  
   return (req, res, next) => {
     try {
-      // Validate the target
-      if (!['body', 'query', 'params'].includes(target)) {
-        throw new AppError(`Invalid validation target: ${target}`, 500, {
-          type: 'InternalError',
-          isExpected: false,
-        });
-      }
-
       const { error, value } = schema.validate(req[target], validationOptions);
-
+      
       if (error) {
         // Sanitize the error details
-        const sanitizedDetails = sanitizeValidationError(error);
-
+        const sanitizedDetails =
+          typeof sanitizeValidationError === 'function'
+            ? sanitizeValidationError(error)
+            : error.details.map(({ message, path }) => ({ message, path: path.join('.') }));
+        
         // Log the sanitized error in non-production environments
         if (process.env.NODE_ENV !== 'production') {
-          logError('Validation Error:', {
-            method: req.method,
-            route: req.originalUrl,
-            target,
+          const validationError = AppError.validationError(errorMessage, {
             details: sanitizedDetails,
+            additionalContext: 'Validation middleware encountered an error.',
           });
+          
+          logError('Validation Error:', req, validationError.toLog(req));
         }
-
-        // Throw sanitized validation error
-        throw AppError.validationError(errorMessage, {
-          details: sanitizedDetails,
-        });
+        
+        throw AppError.validationError(errorMessage, { details: sanitizedDetails });
       }
-
-      req[target] = value; // Sanitize and normalize input
+      
+      req[target] = value; // Attach sanitized input
       next();
-    } catch (error) {
-      next(error); // Pass error to global error handler
+    } catch (err) {
+      next(err); // Forward error to global error handler
     }
   };
 };

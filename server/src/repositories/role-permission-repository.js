@@ -1,4 +1,4 @@
-const { query, retry, lockRow, getClient } = require('../database/db');
+const { query, retry } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logError } = require('../utils/logger-helper');
 

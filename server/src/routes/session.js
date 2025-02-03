@@ -6,7 +6,7 @@
 
 const express = require('express');
 const validate = require('../middlewares/validate');
-const validateAuthInputs = require('../validators/auth-validators');
+const loginSchema = require('../validators/auth-validators');
 const {
   loginController,
   refreshTokenController,
@@ -29,7 +29,7 @@ const router = express.Router();
 router.post(
   '/login',
   createLoginRateLimiter(),
-  validate(validateAuthInputs),
+  validate(loginSchema),
   loginController
 );
 

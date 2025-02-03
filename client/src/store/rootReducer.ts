@@ -7,6 +7,14 @@ import userProfileReducer from '../features/user/state/userProfileSlice.ts';
 import resetPasswordReducer from '../features/resetPassword/state/resetPasswordSlice.ts';
 import usersReducer from '../features/user/state/userSlice.ts';
 import permissionsReducer from '../features/authorize/state/permissionSlice.ts';
+import productsReducer from '../features/product/state/productSlice.ts';
+import productReducer from '../features/product/state/productDetailSlice.ts';
+import pricingTypesReducer from '../features/pricingTypes/state/pricingTypeSlice.ts';
+import pricingTypeReducer from '../features/pricingTypes/state/pricingTypeDetailSlice.ts';
+import pricingsReducer from '../features/pricing/state/pricingSlice.ts';
+import pricingReducer from '../features/pricing/state/pricingDetailSlice.ts';
+import locationTypesReducer from '../features/locationTypes/state/locationTypesSlice.ts';
+import locationTypeReducer from '../features/locationTypes/state/locationTypeDetailSlice.ts';
 
 // Combine reducers
 const appReducer = combineReducers({
@@ -17,6 +25,14 @@ const appReducer = combineReducers({
   resetPassword: resetPasswordReducer,
   users: usersReducer,
   permissions: permissionsReducer,
+  products: productsReducer,
+  product: productReducer,
+  pricingTypes: pricingTypesReducer,
+  pricingType: pricingTypeReducer,
+  pricings: pricingsReducer,
+  pricing: pricingReducer,
+  locationTypes: locationTypesReducer,
+  locationType: locationTypeReducer,
 });
 
 // Root reducer with logout handling

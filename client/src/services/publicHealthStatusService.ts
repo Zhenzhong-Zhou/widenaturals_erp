@@ -4,10 +4,7 @@ import { withTimeout } from '@utils/timeoutUtils';
 import { withRetry } from '@utils/retryUtils';
 import { isCustomAxiosError } from '@utils/axiosUtils.ts';
 import { HealthState } from '../features/health/state/healthStatusState.ts';
-
-const API_ENDPOINTS = {
-  PUBLIC_HEALTH: '/public/health',
-};
+import { API_ENDPOINTS } from './apiEndponits.ts';
 
 /**
  * Fetches the public health status of the server.

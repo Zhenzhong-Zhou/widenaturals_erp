@@ -1,10 +1,9 @@
 import { createSelector } from '@reduxjs/toolkit';
 import { RootState } from '../../../store/store';
-import { HealthState } from './healthStatusState.ts';
+import { HealthState } from './healthStatusState';
 
 // Base selector to access the health slice
-export const selectHealthState = (state: RootState): HealthState =>
-  state.health;
+export const selectHealthState = (state: RootState): HealthState => state.health;
 
 // Selector to get the overall server status
 export const selectServerStatus = createSelector(
@@ -31,7 +30,19 @@ export const selectHealthTimestamp = createSelector(
 );
 
 // Selector to check if the server is healthy
-export const isServerHealthy = createSelector(
+export const selectIsServerHealthy = createSelector(
   selectServerStatus,
   (serverStatus) => serverStatus === 'healthy'
+);
+
+// Selector to get the error state
+export const selectHealthError = createSelector(
+  selectHealthState,
+  (healthState) => healthState.error
+);
+
+// Selector to check if health status is loading
+export const selectIsHealthLoading = createSelector(
+  selectHealthState,
+  (healthState) => healthState.server === 'unknown' && !healthState.error
 );

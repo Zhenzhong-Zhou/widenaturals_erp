@@ -1,26 +1,21 @@
 /**
  * @file db-config.js
  * @description Handles database-specific configuration.
- * Validates required database environment variables and provides connection and pool configurations.
+ * - Validates required database environment variables.
+ * - Provides connection and pool configurations.
  *
  * Dependencies:
- * - env.js: Used to fetch environment prefixes and validate the `NODE_ENV`.
+ * - env.js: Used to fetch environment prefixes and validate `NODE_ENV`.
  *
  * Exports:
- * - `validateEnvVars(env)`: Validates the presence of required database environment variables.
  * - `getPoolConfig()`: Provides the pool configuration for Knex.
- * - `getConnectionConfig(prefix)`: Generates the connection configuration for a given environment prefix.
- *
- * Example Usage:
- * ```
- * const { validateEnvVars, getConnectionConfig } = require('./db-config');
- * validateEnvVars('development');
- * const connection = getConnectionConfig('DEV');
- * ```
+ * - `getConnectionConfig()`: Generates the connection configuration.
  */
 
 const { loadSecret } = require('./env');
-const AppError = require('../utils/AppError');
+
+// Detect if running in production
+const isProduction = process.env.NODE_ENV === 'production';
 
 /**
  * Retrieves the database pool configuration.
@@ -34,22 +29,16 @@ const getPoolConfig = () => ({
  * Retrieves the connection configuration.
  */
 const getConnectionConfig = () => {
-  const dbPassword = loadSecret('db_password', 'DB_PASSWORD');
-  if (!dbPassword) {
-    throw AppError.validationError(
-      'Database password (DB_PASSWORD) is required but was not provided.',
-      {
-        type: 'ConfigurationError',
-        isExpected: true,
-      }
-    );
-  }
+  // Only load the password in non-production environments
+  const dbPassword = isProduction ? undefined : loadSecret('db_password', 'DB_PASSWORD');
+  
   return {
     host: process.env.DB_HOST,
     database: process.env.DB_NAME,
     user: process.env.DB_USER,
     password: dbPassword,
     port: process.env.DB_PORT,
+    ssl: isProduction ? { rejectUnauthorized: false } : false, // Enable SSL in production if needed
   };
 };
 

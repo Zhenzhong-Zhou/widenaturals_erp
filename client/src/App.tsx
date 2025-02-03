@@ -1,14 +1,32 @@
 import { FC } from 'react';
-import { BrowserRouter } from 'react-router';
-import { ThemeProviderWrapper } from './context';
-import { AppContent } from './core';
+import { BrowserRouter } from 'react-router-dom';
+import { GlobalErrorBoundary, FallbackUI } from '@components/index.ts';
+import { ThemeProviderWrapper, LoadingProvider } from './context';
+import AppContent from './core/AppContent';
 
 const App: FC = () => (
-  <BrowserRouter>
+  <GlobalErrorBoundary
+    fallback={
+      <FallbackUI
+        title="Critical Error"
+        description="An unexpected error occurred. Please refresh the page or contact support."
+        errorCode="APP-5001"
+        errorLog="Critical application failure during initialization."
+        onRetry={() => window.location.reload()} // Retry logic
+      />
+    }
+    onError={(error, errorInfo) => {
+      console.error('Global Error:', error, errorInfo); // Optional logging
+    }}
+  >
     <ThemeProviderWrapper>
-      <AppContent />
+      <LoadingProvider>
+        <BrowserRouter>
+          <AppContent />
+        </BrowserRouter>
+      </LoadingProvider>
     </ThemeProviderWrapper>
-  </BrowserRouter>
+  </GlobalErrorBoundary>
 );
 
 export default App;

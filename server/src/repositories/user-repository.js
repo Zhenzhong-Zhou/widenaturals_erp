@@ -114,8 +114,8 @@ const getUser = async (client, field, value, shouldLock = false) => {
       u.created_at,
       u.updated_at
     FROM users u
-    LEFT JOIN roles r ON u.role_id = r.id
-    LEFT JOIN status s ON u.status_id = s.id
+    INNER JOIN roles r ON u.role_id = r.id
+    INNER JOIN status s ON u.status_id = s.id
     WHERE u.${field} = $1
   `;
   const params = [value];
@@ -180,8 +180,8 @@ const getAllUsers = async ({ page, limit, sortBy, sortOrder }) => {
       u.phone_number,
       u.job_title
     FROM users u
-    LEFT JOIN roles r ON u.role_id = r.id
-    LEFT JOIN status s ON u.status_id = s.id
+    INNER JOIN roles r ON u.role_id = r.id
+    INNER JOIN status s ON u.status_id = s.id
     WHERE s.name = 'active'
   `;
 
@@ -235,7 +235,7 @@ const userExists = async (field, value, status = 'active') => {
   const sql = `
     SELECT 1
     FROM users u
-    LEFT JOIN status s ON u.status_id = s.id
+    INNER JOIN status s ON u.status_id = s.id
     WHERE u.${field} = $1
       AND s.name = $2
     LIMIT 1

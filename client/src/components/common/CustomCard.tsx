@@ -1,11 +1,13 @@
 import { FC, ReactNode } from 'react';
-import { Card, CardContent, Box, SxProps, Theme } from '@mui/material';
+import { Card, CardContent, Box, CardMedia, CardActions, SxProps, Theme } from '@mui/material';
 import { Typography } from '@components/index';
 
 interface CustomCardProps {
   title?: string | ReactNode;
   subtitle?: string | ReactNode;
-  children: ReactNode;
+  children?: ReactNode;
+  imageUrl?: string; // Optional media
+  actions?: ReactNode; // Optional actions
   sx?: SxProps<Theme>;
   contentSx?: SxProps<Theme>;
   ariaLabel?: string;
@@ -13,14 +15,16 @@ interface CustomCardProps {
 }
 
 const CustomCard: FC<CustomCardProps> = ({
-  title,
-  subtitle,
-  children,
-  sx,
-  contentSx,
-  ariaLabel,
-  role = 'region',
-}) => {
+                                           title,
+                                           subtitle,
+                                           children,
+                                           imageUrl,
+                                           actions,
+                                           sx,
+                                           contentSx,
+                                           ariaLabel,
+                                           role = 'region',
+                                         }) => {
   return (
     <Card
       aria-label={ariaLabel}
@@ -35,6 +39,20 @@ const CustomCard: FC<CustomCardProps> = ({
         ...sx,
       }}
     >
+      {/* Optional Media */}
+      {imageUrl && (
+        <CardMedia
+          component="img"
+          height="340"
+          image={imageUrl}
+          alt={typeof title === 'string' ? title : 'Card Image'}
+          sx={{
+            objectFit: "cover", // Correct usage of objectFit
+            borderRadius: 1,
+          }}
+        />
+      )}
+      
       <CardContent sx={{ ...contentSx }}>
         {title && (
           <Typography
@@ -59,8 +77,11 @@ const CustomCard: FC<CustomCardProps> = ({
             {subtitle}
           </Typography>
         )}
-        <Box mt={2}>{children}</Box>
+        {children && <Box mt={2}>{children}</Box>}
       </CardContent>
+      
+      {/* Optional Actions */}
+      {actions && <CardActions sx={{ justifyContent: 'center' }}>{actions}</CardActions>}
     </Card>
   );
 };

@@ -12,6 +12,10 @@ const sessionRoute = require('./session');
 const authRoutes = require('./auth');
 const userRoutes = require('./users');
 const adminRoutes = require('./admin');
+const productRoutes = require('./products');
+const priceTypeRouts = require('./pricing_types');
+const pricingRouts = require('./pricings');
+const locationTypeRouts = require('./locations_types');
 const {
   createApiRateLimiter,
   createCsrfTokenRateLimiter,
@@ -59,5 +63,23 @@ router.use('/users', authenticate(), userRoutes);
  * Routes under `/admin` handle administrative operations and require authentication.
  */
 router.use('/admin', authenticate(), adminRoutes);
+
+// Products route
+router.use('/products', authenticate(), productRoutes);
+
+// Price Types route
+router.use('/pricing-types', authenticate(), priceTypeRouts);
+
+// Pricing route
+/**
+ * @route GET /api/pricings
+ * @desc Fetch paginated pricing records
+ * @access Protected
+ */
+router.use('/pricings', authenticate(), pricingRouts);
+
+// Location Types route
+// router.use('/location-types', authenticate(), locationTypeRouts);
+router.use('/location-types',  locationTypeRouts);
 
 module.exports = router;

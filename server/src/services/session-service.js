@@ -35,6 +35,7 @@ const loginUser = async (email, password) => {
         passwordhash,
         passwordsalt,
         last_login,
+        attempts,
         failed_attempts,
         lockout_time,
       } = user;
@@ -53,14 +54,24 @@ const loginUser = async (email, password) => {
         passwordhash,
         passwordsalt
       );
+      
+      // Update total attempts regardless of success or failure
+      const newTotalAttempts = attempts + 1;
+      
       if (!isValidPassword) {
+        console.warn('Password verification failed. Incrementing failed attempts.');
+        
         // Increment failed attempts and handle lockout
-        await incrementFailedAttempts(client, user_id, failed_attempts);
+        await incrementFailedAttempts(client, user_id, newTotalAttempts, failed_attempts);
+        
+        // Commit the transaction before throwing
+        await client.query('COMMIT');
+        
         throw AppError.authenticationError('Invalid email or password.');
       }
 
       // Successful login: Reset failed attempts and update last login
-      await resetFailedAttemptsAndUpdateLastLogin(client, user_id);
+      await resetFailedAttemptsAndUpdateLastLogin(client, user_id, newTotalAttempts);
 
       // Generate tokens
       const accessToken = signToken({ id: user_id, role: role_id });

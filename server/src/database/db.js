@@ -316,11 +316,14 @@ const paginateQuery = async ({
     paginatedQuery += ` ORDER BY ${sortBy} ${validSortOrder}`;
   }
   paginatedQuery += ` LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
-
+  
+  // Append LIMIT and OFFSET to params
+  const queryParams = [...params, limit, offset];
+  
   try {
     // Execute both the paginated query and the count query in parallel
     const [dataResult, countResult] = await Promise.all([
-      query(paginatedQuery, [...params, limit, offset], clientOrPool),
+      query(paginatedQuery, queryParams, clientOrPool),
       query(countQueryText, params, clientOrPool),
     ]);
 
@@ -378,32 +381,38 @@ const paginateQuery = async ({
 const lockRow = async (client, table, id, lockMode = 'FOR UPDATE') => {
   const maskedId = maskSensitiveInfo(id, 'uuid');
   const maskTable = maskTableName(table);
-
-  const tablePrimaryKeys = {
-    users: 'id',
-    user_auth: 'user_id',
-    orders: 'id',
-    inventory: 'id',
-  };
+  
   const allowedLockModes = [
     'FOR UPDATE',
     'FOR NO KEY UPDATE',
     'FOR SHARE',
     'FOR KEY SHARE',
   ];
-
-  const column = tablePrimaryKeys[table];
-  if (!column) {
-    throw AppError.validationError(
-      `Primary key not defined for table: ${maskTable}`
-    );
-  }
+  
   if (!allowedLockModes.includes(lockMode)) {
     throw AppError.validationError(`Invalid lock mode: ${lockMode}`);
   }
-
-  const sql = `SELECT * FROM ${table} WHERE ${column} = $1 ${lockMode}`;
-
+  
+  // Fetch the primary key dynamically
+  const primaryKeySql = `
+    SELECT a.attname AS primary_key
+    FROM pg_index i
+    JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey)
+    WHERE i.indrelid = $1::regclass AND i.indisprimary;
+  `;
+  
+  const tablePrimaryKey = await retry(async () => {
+    const result = await client.query(primaryKeySql, [table]);
+    if (result.rows.length === 0) {
+      throw AppError.validationError(
+        `No primary key found for table: ${maskTable}`
+      );
+    }
+    return result.rows[0].primary_key;
+  });
+  
+  const sql = `SELECT * FROM ${table} WHERE ${tablePrimaryKey} = $1 ${lockMode}`;
+  
   return await retry(async () => {
     try {
       const result = await client.query(sql, [id]);
