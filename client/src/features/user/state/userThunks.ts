@@ -18,7 +18,7 @@ export const fetchUsersThunk = createAsyncThunk<
 >('users/fetchAll', async ({ page = 1, limit = 10, sortBy = 'u.created_at', sortOrder = 'ASC' }, { rejectWithValue }) => {
   try {
     const response = await userService.fetchUsers({ page, limit, sortBy, sortOrder });
-   console.log(response);
+   
     if (!response) {
       // Handle the case where response is null
       return rejectWithValue('Failed to fetch users');

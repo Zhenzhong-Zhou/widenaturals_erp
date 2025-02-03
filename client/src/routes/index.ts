@@ -63,6 +63,78 @@ export const routes = [
     ],
   },
   {
+    path: '/products',
+    component: () => import('../features/product/pages/ProductsPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Products',
+      showInSidebar: true,
+    },
+  },
+  {
+    path: '/products/:id',
+    component: () => import('../features/product/pages/ProductDetailPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Product Details',
+      showInSidebar: false,
+    },
+  },
+  {
+    path: '/pricing_types',
+    component: () => import('../features/pricingTypes/pages/PricingTypePage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Pricing Types',
+      showInSidebar: true,
+    },
+  },
+  {
+    path: '/pricing_types/:id',
+    component: () => import('../features/pricingTypes/pages/PricingTypeDetailsPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Pricing Type Details',
+      showInSidebar: false,
+    },
+  },
+  {
+    path: '/pricings',
+    component: () => import('../features/pricing/pages/PricingPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Prices',
+      showInSidebar: true,
+    },
+  },
+  {
+    path: '/pricings/:id',
+    component: () => import('../features/pricing/pages/PricingDetailPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Price Details',
+      showInSidebar: false,
+    },
+  },
+  {
+    path: '/location_types',
+    component: () => import('../features/locationTypes/pages/LocationTypePage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Location Types',
+      showInSidebar: true,
+    },
+  },
+  {
+    path: '/location_types/:id',
+    component: () => import('../features/locationTypes/pages/LocationTypeDetailPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Location Types Details',
+      showInSidebar: false,
+    },
+  },
+  {
     path: '*',
     component: () => import('../pages/NotFoundPage.tsx'),
     meta: {

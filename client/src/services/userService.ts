@@ -6,11 +6,7 @@ import { UserProfileResponse, UseUsersResponse } from '../features/user/state/us
 import { isCustomAxiosError } from '@utils/axiosUtils.ts';
 import { withTimeout } from '@utils/timeoutUtils.ts';
 import { withRetry } from '@utils/retryUtils.ts';
-
-const API_ENDPOINTS = {
-  ALL_USERS: '/users',
-  USER_PROFILE: '/users/me',
-};
+import { API_ENDPOINTS } from './apiEndponits.ts';
 
 /**
  * Fetches a list of all users from the API.
@@ -37,7 +33,6 @@ const fetchUsers =  async ({
     });
     
     const { data, pagination } = response.data;
-    console.log(response.data)
     return {
       data,
       pagination: {

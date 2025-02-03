@@ -17,6 +17,9 @@ exports.seed = async function (knex) {
   const rolePermissionsData = {
     root_admin: ['root_access'],
     admin: ['manage_users', 'view_dashboard', 'view_reports'],
+    manager: ['manage_users', 'view_dashboard', 'view_reports'],
+    sales: ['manage_users', 'view_dashboard', 'view_reports'],
+    operations: ['manage_users', 'view_dashboard', 'view_reports'],
     user: ['view_dashboard', 'edit_profile'],
   };
 

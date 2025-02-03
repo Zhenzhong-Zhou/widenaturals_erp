@@ -1,12 +1,14 @@
 enum ErrorType {
   NetworkError = 'NetworkError',
   AuthenticationError = 'AuthenticationError',
+  AuthorizationError = 'AuthorizationError',
   ValidationError = 'ValidationError',
   TimeoutError = 'TimeoutError',
   UnknownError = 'UnknownError',
   GlobalError = 'GlobalError',
   SevereError = 'SevereError',
   ServerError = 'ServerError',
+  RateLimitError = 'RateLimitError',
   RuntimeError = 'RuntimeError',
   GeneralError = 'GeneralError',
 }

@@ -22,7 +22,7 @@ const fetchPermissions = async (roleId) => {
     }
     
     // Fetch role name and permissions from the database
-    const { role_name, permissions } = await getRolePermissionsByRoleId(roleId); // Adjust DB query here
+    const { role_name, permissions } = await getRolePermissionsByRoleId(roleId);
     
     // Cache the data for 1 hour
     const dataToCache = { role_name, permissions };

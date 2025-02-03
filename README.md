@@ -306,3 +306,29 @@ artillery report -o report.html results.json
     openssl rand -hex 32
     head -c 32 /dev/urandom | xxd -p -c 64
 ```
+
+**Set Up .pgpass in Production**
+
+**Prevent Storing Passwords in Bash History**:
+```bash
+unset HISTFILE
+```
+**Disable history temporarily for the session**:
+```bash
+set +o history
+pg_dump -U your_user -h localhost -d your_db -f backup.sql
+set -o history
+```
+
+1. **Create .pgpass file**:
+    ```bash
+      nano ~/.pgpass
+    ```
+2. **Add database credentials**:
+    ```bash
+      localhost:5432:widenaturals_erp_production:your_user:your_password
+   ```
+3. **Set strict permissions**:
+    ```bash
+     chmod 600 ~/.pgpass
+   ```

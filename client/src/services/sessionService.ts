@@ -6,12 +6,8 @@ import { withRetry } from '../utils/retryUtils';
 import { withTimeout } from '../utils/timeoutUtils';
 import { selectCsrfToken } from '../features/csrf/state/csrfSelector.ts';
 import { store } from '../store/store.ts';
-
-const API_ENDPOINTS = {
-  LOGIN: '/session/login',
-  REFRESH_TOKEN: '/session/refresh',
-  LOGOUT: '/auth/logout',
-};
+import { logoutThunk } from '../features/session/state/sessionThunks.ts';
+import { API_ENDPOINTS } from './apiEndponits.ts';
 
 interface LoginResponse {
   accessToken: string;
@@ -82,46 +78,53 @@ const login = async (
   }
 };
 
+let refreshAttemptCount = 0;
+const MAX_REFRESH_ATTEMPTS = 3;
+
 /**
  * Refresh the user's access token.
  */
 const refreshToken = async (): Promise<{ accessToken: string }> => {
+  if (refreshAttemptCount >= MAX_REFRESH_ATTEMPTS) {
+    throw new AppError('Exceeded maximum token refresh attempts', 401, {
+      type: ErrorType.AuthenticationError,
+    });
+  }
+  
   try {
+    refreshAttemptCount += 1;
     const state = store.getState();
     const csrfToken = selectCsrfToken(state);
-
-    const response = await withRetry(
-      () =>
-        withTimeout(
-          axiosInstance.post<{ accessToken: string }>(
-            API_ENDPOINTS.REFRESH_TOKEN,
-            {
-              headers: {
-                'X-CSRF-Token': csrfToken,
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${getToken('accessToken')}`,
-              },
-              withCredentials: true,
-            }
-          ),
-          5000, // Timeout in milliseconds
-          'Token refresh request timed out'
-        ),
-      3, // Retry attempts
-      1000, // Delay between retries in milliseconds
-      'Failed to refresh token after retries'
-    );
-
+    
+    const response =
+      await axiosInstance.post<{ accessToken: string }>(
+        API_ENDPOINTS.REFRESH_TOKEN,
+        {
+          headers: {
+            'X-CSRF-Token': csrfToken,
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${getToken('accessToken')}`,
+          },
+          withCredentials: true,
+      });
+    
     // Update Axios headers to use the new access token
     axiosInstance.defaults.headers.common['Authorization'] =
       `Bearer ${response.data.accessToken}`;
-
+    
+    refreshAttemptCount = 0; // Reset attempt count on success
     return { accessToken: response.data.accessToken };
   } catch (error: unknown) {
     // Log the error and handle session expiration
     handleError(error);
-    clearTokens(); // Clear any remaining tokens
-    window.location.href = '/login?expired=true'; // Redirect to login
+    
+    // Call logoutThunk via store.dispatch
+    await store.dispatch(logoutThunk());
+    
+    // Redirect to login
+    window.location.href = '/login?expired=true';
+    
+    // Throw an application-level error
     throw new AppError('Token refresh failed', 401, {
       type: ErrorType.GlobalError,
       details: mapErrorMessage(error),

@@ -13,6 +13,7 @@ const validate = require('../middlewares/validate');
 const {
   createResetPasswordRateLimiter,
 } = require('../middlewares/rate-limiter');
+const validatePasswordStrength = require('../middlewares/validate-password-strength');
 
 const router = express.Router();
 
@@ -23,6 +24,7 @@ router.post(
   '/reset-password',
   createResetPasswordRateLimiter(),
   validate(validatePasswordSchema),
+  validatePasswordStrength,
   resetPasswordController
 );
 

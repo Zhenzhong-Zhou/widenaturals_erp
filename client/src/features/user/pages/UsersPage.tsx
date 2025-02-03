@@ -3,12 +3,11 @@ import { Box, Alert } from '@mui/material';
 import UsersList from '../components/UserList.tsx';
 import { useUsers } from '../../../hooks';
 import {
-  CustomButton,
+  CustomButton, CustomPagination,
   ErrorMessage,
   Loading,
   Typography,
 } from '@components/index.ts';
-import CustomPagination from '@components/common/CustomPagination.tsx';
 
 const UsersPage: FC = () => {
   const { users, loading, error, refetchUsers } = useUsers();

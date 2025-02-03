@@ -37,6 +37,23 @@ class AppError extends Error {
       details: this.details,
     };
   }
+  
+  /**
+   * Serialize error for structured logging.
+   * Includes additional context like stack trace.
+   */
+  toLog(req = null) {
+    return {
+      ...this.toJSON(),
+      stack: process.env.NODE_ENV !== 'production' ? this.stack : undefined,
+      method: req?.method || 'Unknown',
+      route: req?.originalUrl || 'Unknown',
+      userAgent: req?.headers?.['user-agent'] || 'Unknown',
+      ip: req?.ip || 'Unknown',
+      timestamp: new Date().toISOString(),
+      additionalContext: 'Error caught in global error handler',
+    };
+  }
 
   // Common Errors
   static authorizationError(message, options = {}) {

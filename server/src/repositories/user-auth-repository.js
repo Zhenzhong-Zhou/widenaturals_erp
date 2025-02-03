@@ -47,6 +47,47 @@ const insertUserAuth = async (
 };
 
 /**
+ * Fetches the primary key (id) from the user_auth table using the user_id.
+ *
+ * @async
+ * @param {object} client - The database client used for the query.
+ * @param {string} userId - The user_id to search for.
+ * @returns {Promise<string>} - Resolves with the id from the user_auth table.
+ * @throws {AppError} - Throws an error if no record is found or on database failure.
+ */
+const getAuthIdByUserId = async (client, userId) => {
+  const sql = `
+    SELECT id
+    FROM user_auth
+    WHERE user_id = $1;
+  `;
+  
+  try {
+    const result = await query(sql, [userId], client);
+    
+    if (result.rows.length === 0) {
+      throw AppError.notFoundError(
+        `No user_auth record found for user_id "${userId}".`,
+        { query: sql, parameters: [userId] }
+      );
+    }
+    
+    return result.rows[0].id;
+  } catch (error) {
+    logError(`Error fetching user_auth ID for user_id "${userId}"`, {
+      query: sql,
+      parameters: [userId],
+      error: error.message,
+    });
+    
+    throw AppError.databaseError('Failed to fetch user_auth ID.', {
+      isExpected: false,
+      details: error.message,
+    });
+  }
+};
+
+/**
  * Fetches user authentication details by email and optionally locks the corresponding row.
  *
  * @param {object} client - The database client.
@@ -63,6 +104,7 @@ const getUserAuthByEmail = async (client, email) => {
       ua.password_hash AS passwordHash,
       ua.password_salt AS passwordSalt,
       ua.last_login,
+      ua.attempts,
       ua.failed_attempts,
       ua.lockout_time
     FROM users u
@@ -70,7 +112,7 @@ const getUserAuthByEmail = async (client, email) => {
     INNER JOIN status s ON u.status_id = s.id
     WHERE u.email = $1 AND s.name = 'active';
   `;
-
+  
   try {
     // Retry fetching user details in case of transient errors
     const user = await retry(async () => {
@@ -82,10 +124,13 @@ const getUserAuthByEmail = async (client, email) => {
       }
       return result.rows[0];
     });
-
-    // Lock the user's row in the `users` table for subsequent updates
+    
+    // Fetch the `id` from the `user_auth` table
+    const authId = await getAuthIdByUserId(client, user.user_id);
+    
+    // Lock the user's row in the `users` and `user_auth` tables for subsequent updates
     await lockRow(client, 'users', user.user_id, 'FOR UPDATE');
-    await lockRow(client, 'user_auth', user.user_id, 'FOR UPDATE');
+    await lockRow(client, 'user_auth', authId, 'FOR UPDATE');
 
     return user;
   } catch (error) {
@@ -104,23 +149,25 @@ const getUserAuthByEmail = async (client, email) => {
  * Increments failed login attempts for a user and applies lockout if needed.
  *
  * This function locks the user's row to ensure consistent updates, increments the failed login attempts,
- * and sets a lockout time if the threshold is reached.
+ * and sets a lockout time if the threshold is reached. It also updates the cumulative total login attempts
+ * for auditing purposes.
  *
  * @async
  * @param {object} client - The database client used for the transaction.
  * @param {uuid} userId - The user's ID.
- * @param {number} currentAttempts - The current number of failed attempts.
+ * @param {number} newTotalAttempts - The cumulative number of total login attempts (successful and failed).
+ * @param {number} currentAttempts - The current number of failed login attempts.
  * @returns {Promise<void>} - Resolves when the update is successful.
  * @throws {AppError} - Throws an error if the update fails or retry limits are exceeded.
  */
-const incrementFailedAttempts = async (client, userId, currentAttempts) => {
-  const newAttempts = currentAttempts + 1;
+const incrementFailedAttempts = async (client, userId, newTotalAttempts, currentAttempts) => {
+  const newFailedAttempts = currentAttempts + 1;
   let lockoutTime = null;
   let notes = null;
 
   // Apply lockout if the threshold is reached
-  if (newAttempts >= 5) {
-    lockoutTime = new Date(Date.now() + 15 * 60 * 1000); // Lock for 15 minutes
+  if (newFailedAttempts >= 15) {
+    lockoutTime = new Date(Date.now() + 30 * 60 * 1000); // Lock for 30 minutes
     notes = 'Account locked due to multiple failed attempts.';
   }
 
@@ -128,33 +175,35 @@ const incrementFailedAttempts = async (client, userId, currentAttempts) => {
   const sql = `
     UPDATE user_auth
     SET
-      failed_attempts = $1,
-      lockout_time = $2,
+      attempts = $1,
+      failed_attempts = $2,
+      lockout_time = $3,
       metadata = jsonb_set(
         jsonb_set(
           COALESCE(metadata, '{}'),
           '{lastLockout}',
-          to_jsonb($3::timestamp),
+          to_jsonb($4::timestamp),
           true
         ),
         '{notes}',
-        to_jsonb($4::text),
+        to_jsonb($5::text),
         true
       ),
       updated_at = NOW()
-    WHERE user_id = $5;
+    WHERE user_id = $6;
   `;
 
   try {
     // Retry logic for transient errors
     await retry(async () => {
+      const authId = await getAuthIdByUserId(client, userId);
       // Lock the user's row to ensure consistency during the update
-      await lockRow(client, 'user_auth', userId);
-
+      await lockRow(client, 'user_auth', authId);
+      console.log('Updating failed attempts for user:', userId);
       // Execute the update query
-      await query(
+     await query(
         sql,
-        [newAttempts, lockoutTime, lockoutTime, notes, userId],
+        [newTotalAttempts, newFailedAttempts, lockoutTime, lockoutTime, notes, userId],
         client
       );
     });
@@ -170,21 +219,25 @@ const incrementFailedAttempts = async (client, userId, currentAttempts) => {
 };
 
 /**
- * Resets failed attempts and updates the last login for a user with retry and row locking.
+ * Resets failed login attempts, updates the last login time, and records the total attempts for a user.
  *
  * This function ensures consistency by locking the user's row during the update
- * and retrying on transient errors.
+ * and retrying on transient errors. It updates the `failed_attempts` field to 0,
+ * logs the last successful login time, and records the cumulative number of login attempts
+ * in the metadata for auditing purposes.
  *
  * @async
  * @param {object} client - The database client used in the transaction.
  * @param {string} userId - The user's ID.
+ * @param {number} newTotalAttempts - The cumulative number of total login attempts (successful and failed).
  * @returns {Promise<void>} Resolves when the update is successful.
  * @throws {AppError} If the query fails due to a database error or retry limits are exceeded.
  */
-const resetFailedAttemptsAndUpdateLastLogin = async (client, userId) => {
+const resetFailedAttemptsAndUpdateLastLogin = async (client, userId, newTotalAttempts) => {
   const sql = `
     UPDATE user_auth
     SET
+      attempts = $1,
       failed_attempts = 0,
       lockout_time = NULL,
       last_login = NOW(),
@@ -195,16 +248,17 @@ const resetFailedAttemptsAndUpdateLastLogin = async (client, userId) => {
         true
       ) || metadata,
       updated_at = NOW()
-    WHERE user_id = $1
+    WHERE user_id = $2
   `;
 
   try {
     await retry(async () => {
+      const authId = await getAuthIdByUserId(client, userId);
       // Lock the user's row to ensure consistency
-      await lockRow(client, 'user_auth', userId);
+      await lockRow(client, 'user_auth', authId);
 
       // Execute the update query
-      await query(sql, [userId], client);
+      await query(sql, [newTotalAttempts, userId], client);
     });
   } catch (error) {
     logError(
@@ -251,8 +305,9 @@ const fetchPasswordHistory = async (client, userId) => {
 
   try {
     return await retry(async () => {
+      const authId = await getAuthIdByUserId(client, userId);
       // Optionally lock the row to ensure consistency
-      await lockRow(client, 'user_auth', userId);
+      await lockRow(client, 'user_auth', authId);
 
       // Execute the query to fetch password history
       const result = await client.query(sql, [userId]);
@@ -294,8 +349,9 @@ const verifyCurrentPassword = async (client, userId, plainPassword) => {
 
   try {
     return await retry(async () => {
+      const authId = await getAuthIdByUserId(client, userId);
       // Lock the user's row for consistency
-      await lockRow(client, 'user_auth', userId);
+      await lockRow(client, 'user_auth', authId);
 
       // Fetch the current password hash and salt from the database
       const result = await client.query(sql, [userId]);
@@ -346,7 +402,8 @@ const isPasswordReused = async (client, userId, newPassword) => {
   try {
     // Lock the user's row in the `user_auth` table to ensure consistent read during password reuse check
     await retry(async () => {
-      await lockRow(client, 'user_auth', userId, 'FOR UPDATE');
+      const authId = await getAuthIdByUserId(client, userId);
+      await lockRow(client, 'user_auth', authId, 'FOR UPDATE');
     });
 
     // Fetch the user's password history
@@ -404,7 +461,8 @@ const updatePasswordHistory = async (client, userId, updatedHistory) => {
   try {
     // Retry and lock the row before updating
     await retry(async () => {
-      await lockRow(client, 'user_auth', userId, 'FOR UPDATE');
+      const authId = await getAuthIdByUserId(client, userId);
+      await lockRow(client, 'user_auth', authId, 'FOR UPDATE');
       const result = await query(
         sql,
         [JSON.stringify(updatedHistory), userId],
@@ -454,7 +512,8 @@ const updatePasswordHashAndSalt = async (
   try {
     // Retry and lock the row before updating
     await retry(async () => {
-      await lockRow(client, 'user_auth', userId, 'FOR UPDATE');
+      const authId = await getAuthIdByUserId(client, userId);
+      await lockRow(client, 'user_auth', authId, 'FOR UPDATE');
       const result = await query(
         sql,
         [hashedPassword, passwordSalt, userId],
