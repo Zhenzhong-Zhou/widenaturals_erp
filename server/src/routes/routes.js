@@ -17,6 +17,7 @@ const priceTypeRouts = require('./pricing_types');
 const pricingRouts = require('./pricings');
 const locationTypeRouts = require('./locations_types');
 const locationRouts = require('./locations');
+const inventoryRouts = require('./inventory');
 const {
   createApiRateLimiter,
   createCsrfTokenRateLimiter,
@@ -77,12 +78,14 @@ router.use('/pricing-types', authenticate(), priceTypeRouts);
  * @desc Fetch paginated pricing records
  * @access Protected
  */
-router.use('/pricings', authenticate(), pricingRouts);
+router.use('/pricings',  pricingRouts);
 
 // Location Types route
 router.use('/location-types', authenticate(), locationTypeRouts);
 
-// router.use('/locations', authenticate(), locationRouts);
-router.use('/locations', locationRouts);
+router.use('/locations', authenticate(), locationRouts);
+
+// router.use('/inventories', authenticate(), inventoryRouts);
+router.use('/inventories', inventoryRouts);
 
 module.exports = router;

@@ -6,10 +6,13 @@ const { fetchDynamicValue } = require('../03_utils');
  */
 exports.seed = async function (knex) {
   try {
-    // Fetch dynamic IDs
+    console.log('Seeding pricing data...');
+    
+    // Fetch dynamic values
     const activeStatusId = await fetchDynamicValue(knex, 'status', 'name', 'active', 'id');
     const adminUserId = await fetchDynamicValue(knex, 'users', 'email', 'admin@example.com', 'id');
     
+    // Fetch required IDs
     const priceTypeIds = await knex('pricing_types')
       .select('id', 'name')
       .whereIn('name', [
@@ -28,9 +31,13 @@ exports.seed = async function (knex) {
       return;
     }
     
-    const pricing = [];
-    const staticPrices = [49.99, 99.99]; // Static prices
+    // More static price options without affecting price type logic
+    const staticPrices = [
+      49.99, 99.99, 19.99, 79.99, 129.99, 39.99, 59.99, 89.99, 109.99
+    ];
+    
     const validFrom = '2025-01-01T00:00:00Z'; // Static valid_from timestamp
+    const pricing = [];
     
     for (const product of productIds) {
       for (const priceType of priceTypeIds) {
@@ -55,13 +62,17 @@ exports.seed = async function (knex) {
               });
           }
           
+          // Assign a static price based on product ID to maintain consistency
+          const priceIndex = productIds.indexOf(product) % staticPrices.length;
+          const selectedPrice = staticPrices[priceIndex];
+          
           // Add new price
           pricing.push({
             id: knex.raw('uuid_generate_v4()'),
             product_id: product.id,
             price_type_id: priceType.id,
             location_id: location.id,
-            price: staticPrices[priceTypeIds.indexOf(priceType) % staticPrices.length],
+            price: selectedPrice, // Assign different price from staticPrices array
             valid_from: validFrom,
             valid_to: null, // Active price
             status_id: activeStatusId,
@@ -79,7 +90,7 @@ exports.seed = async function (knex) {
     await knex('pricing')
       .insert(pricing)
       .onConflict(['product_id', 'price_type_id', 'location_id', 'valid_from'])
-      .ignore(); // Ignore duplicates
+      .ignore(); // Avoid duplicate entries
     
     console.log(`${pricing.length} pricing records seeded successfully.`);
   } catch (error) {

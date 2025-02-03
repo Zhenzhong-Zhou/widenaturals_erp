@@ -12,7 +12,9 @@
  * - `getConnectionConfig()`: Generates the connection configuration.
  */
 
-const { loadSecret } = require('./env');
+const { loadSecret, loadEnv } = require('./env');
+
+loadEnv();
 
 // Detect if running in production
 const isProduction = process.env.NODE_ENV === 'production';

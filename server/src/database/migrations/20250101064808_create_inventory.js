@@ -1,9 +1,9 @@
 /**
  * @param { import("knex").Knex } knex
- * @returns {Knex.SchemaBuilder}
+ * @returns {Promise<void>}
  */
-exports.up = function (knex) {
-  return knex.schema.createTable('inventory', (table) => {
+exports.up = async function (knex) {
+  await knex.schema.createTable('inventory', (table) => {
     table.uuid('id').primary();
     table.uuid('product_id').references('id').inTable('products');
     table.uuid('location_id').references('id').inTable('locations');
@@ -18,18 +18,24 @@ exports.up = function (knex) {
     table.timestamp('outbound_date', { useTz: true }).nullable();
     table.timestamp('last_update', { useTz: true }).defaultTo(knex.fn.now());
     table.uuid('status_id').notNullable().references('id').inTable('status');
-    table.timestamp('status_date', { useTz: true }).defaultTo(knex.fn.now()); // Auto-set on creation in UTC
-    table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now()); // Auto-set on creation in UTC
-    table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now()); // Auto-set on creation in UTC
+    table.timestamp('status_date', { useTz: true }).defaultTo(knex.fn.now());
+    table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
+    table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
     table.uuid('created_by').references('id').inTable('users');
     table.uuid('updated_by').references('id').inTable('users');
   });
+ 
+  // Add unique constraint using knex.raw()
+  await knex.raw(`
+    ALTER TABLE inventory
+    ADD CONSTRAINT inventory_unique_constraint UNIQUE (product_id, location_id, lot_number, expiry_date);
+  `);
 };
 
 /**
  * @param { import("knex").Knex } knex
- * @returns {Knex.SchemaBuilder}
+ * @returns {Promise<void>}
  */
-exports.down = function (knex) {
-  return knex.schema.dropTableIfExists('inventory');
+exports.down = async function (knex) {
+  await knex.schema.dropTableIfExists('inventory');
 };
