@@ -1,4 +1,4 @@
-const { getLocationTypes } = require('../repositories/location-type-repository');
+const { getLocationTypes, getLocationDetailById } = require('../repositories/location-type-repository');
 const AppError = require('../utils/AppError');
 const { logInfo, logError } = require('../utils/logger-helper');
 
@@ -29,6 +29,66 @@ const fetchAllLocationTypes = async ({ page = 1, limit = 10, sortBy = 'name', so
   }
 };
 
+/**
+ * Service function to fetch location type details by ID.
+ *
+ * This function:
+ * - Validates input parameters.
+ * - Calls the repository to fetch data.
+ * - Applies business logic such as role-based access checks.
+ * - Returns a structured response.
+ *
+ * @async
+ * @function fetchLocationTypeDetailByTypeId
+ * @param {Object} params - Query parameters.
+ * @param {string} params.id - The UUID of the location type to fetch.
+ * @param {number} [params.page=1] - The page number for paginated location results.
+ * @param {number} [params.limit=10] - The number of locations per page.
+ * @param {string} [params.sortBy='created_at'] - Column name to sort the results.
+ * @param {string} [params.sortOrder='ASC'] - Sort order (`ASC` or `DESC`).
+ * @returns {Promise<Object>} - A Promise resolving to an object containing location type details.
+ * @throws {AppError} - Throws an error if validation fails or data is not found.
+ */
+const fetchLocationTypeDetailByTypeId = async ({ id, page, limit, sortBy, sortOrder }) => {
+  try {
+    // Validate Required Parameters
+    if (!id) {
+      throw new AppError('Location type ID is required', 400);
+    }
+    
+    // Fetch Data from Repository
+    const locationTypeData = await getLocationDetailById({ id, page, limit, sortBy, sortOrder });
+    
+    // Handle Not Found Case
+    if (!locationTypeData) {
+      throw new AppError('Location type not found', 404);
+    }
+    
+    // Process Locations (Add Business Logic)
+    if (locationTypeData.locations) {
+      locationTypeData.locations = locationTypeData.locations.map(location => ({
+        ...location,
+        is_warehouse: location.warehouse_fee > 0,  // Mark warehouse locations
+      }));
+    }
+    
+    // Extract Location Type Details Pagination from Response
+    const locationTypeDetail = locationTypeData.data[0];
+    const { pagination } = locationTypeData;
+    
+    // Construct Final Response
+    return {
+      locationTypeDetail,
+      pagination
+    };
+    
+  } catch (error) {
+    logError('Error in fetchLocationTypeDetailByTypeId service:', error);
+    throw new AppError(error.message || 'Internal Server Error', error.statusCode || 500, error);
+  }
+};
+
 module.exports = {
   fetchAllLocationTypes,
+  fetchLocationTypeDetailByTypeId,
 };

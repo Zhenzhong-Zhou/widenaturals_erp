@@ -3,6 +3,7 @@ import { LocationType } from '../../locationTypes';
 import { CustomTable } from '@components/index.ts';
 import { capitalizeFirstLetter } from '@utils/textUtils.ts';
 import { formatDateTime } from '@utils/dateTimeUtils.ts';
+import { Link } from 'react-router-dom';
 
 interface LocationTypesTableProps {
   data: LocationType[];
@@ -22,7 +23,16 @@ const LocationTypeTable: FC<LocationTypesTableProps> = ({
                                                            onRowsPerPageChange,
                                                          }) => {
   const columns = [
-    { id: 'location_type_name', label: 'Name', sortable: true },
+    {
+      id: 'location_type_name',
+      label: 'Name',
+      sortable: true,
+      format: (value: string, row: any) => (
+        <Link to={`/location_types/${row.location_type_id}`} style={{ textDecoration: 'none', color: 'blue' }}>
+          {value}
+        </Link>
+      ),
+    },
     { id: 'location_type_description', label: 'Description', sortable: false },
     {
       id: 'status_name',

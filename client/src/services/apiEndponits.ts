@@ -15,4 +15,5 @@ export const API_ENDPOINTS = {
   ALL_PRICINGS: '/pricings',
   PRICING_DETAILS: '/pricings/:id',
   ALL_LOCATION_TYPES: '/location-types',
+  LOCATION_TYPE_DETAILS: '/location-types/:id',
 };

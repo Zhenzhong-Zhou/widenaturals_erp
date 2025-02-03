@@ -1,5 +1,5 @@
 const express = require('express');
-const { getLocationTypesController } = require('../controllers/location-type-controller');
+const { getLocationTypesController, getLocationTypeDetailController } = require('../controllers/location-type-controller');
 
 const router = express.Router();
 
@@ -9,5 +9,11 @@ const router = express.Router();
  * @access  Protected
  */
 router.get('/', getLocationTypesController);
+
+/**
+ * GET /location-types/:id
+ * Fetch location type details by ID.
+ */
+router.get('/:id', getLocationTypeDetailController);
 
 module.exports = router;
