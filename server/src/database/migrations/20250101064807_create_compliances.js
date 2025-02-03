@@ -4,7 +4,7 @@
  */
 exports.up = async function (knex) {
   await knex.schema.createTable('compliances', (table) => {
-    table.uuid('id').primary();
+    table.uuid('id').primary().defaultTo(knex.raw('uuid_generate_v4()'));
     table.uuid('product_id').references('id').inTable('products');
     table.string('type', 100).notNullable();
     table.string('compliance_id', 100).notNullable();

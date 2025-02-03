@@ -4,7 +4,7 @@
  */
 exports.up = async function (knex) {
   await knex.schema.createTable('pricing', (table) => {
-    table.uuid('id').primary();
+    table.uuid('id').primary().defaultTo(knex.raw('uuid_generate_v4()'));
     table.uuid('product_id').notNullable().references('id').inTable('products');
     table
       .uuid('price_type_id')

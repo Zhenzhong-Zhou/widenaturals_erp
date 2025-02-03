@@ -4,7 +4,7 @@
  */
 exports.up = function (knex) {
   return knex.schema.createTable('pricing_types', (table) => {
-    table.uuid('id').primary();
+    table.uuid('id').primary().defaultTo(knex.raw('uuid_generate_v4()'));
     table.string('name', 50).unique().notNullable();
     table.text('description').nullable();
     table.uuid('status_id').notNullable().references('id').inTable('status');

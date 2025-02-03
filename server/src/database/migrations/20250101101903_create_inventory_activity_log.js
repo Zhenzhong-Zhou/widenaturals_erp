@@ -11,6 +11,15 @@ exports.up = function (knex) {
       .references('id')
       .inTable('inventory');
     table
+      .uuid('warehouse_id')
+      .notNullable()
+      .references('id')
+      .inTable('warehouses');
+    table
+      .uuid('lot_id')
+      .references('id')
+      .inTable('warehouse_inventory_lots');
+    table
       .uuid('inventory_action_type_id')
       .notNullable()
       .references('id')
@@ -18,7 +27,16 @@ exports.up = function (knex) {
     table.integer('quantity_change').notNullable();
     table.integer('previous_quantity').notNullable();
     table.integer('new_quantity').notNullable();
-    table.uuid('order_id').references('id').inTable('orders');
+    table
+      .uuid('order_id')
+  .references('id')
+      .inTable('orders')
+      .nullable();
+    // table
+    //   .uuid('transaction_id')
+    //   .references('id')
+    //   .inTable('transactions')
+    //   .nullable();
     table.uuid('user_id').notNullable().references('id').inTable('users');
     table.timestamp('timestamp', { useTz: true }).defaultTo(knex.fn.now());
     table.text('comments').nullable();

@@ -11,12 +11,15 @@ exports.seed = async function (knex) {
   const activeStatusId = await fetchDynamicValue(knex, 'status', 'name', 'active', 'id');
   const adminUserId = await fetchDynamicValue(knex, 'users', 'email', 'admin@example.com', 'id');
   
-  // Fetch existing product and location IDs
+  // Fetch existing product, location, warehouse, and SKU IDs
   const products = await knex('products').select('id');
   const locations = await knex('locations').select('id');
+  const warehouses = await knex('warehouses').select('id'); // If warehouse tracking is needed
+  // const skus = await knex('skus').select('id'); // Fetch SKUs if SKU tracking is implemented
   
-  if (!products.length || !locations.length) {
-    console.error('Ensure products and locations tables are seeded first.');
+  // if (!products.length || !locations.length || !warehouses.length || !skus.length) {
+  if (!products.length || !locations.length || !warehouses.length) {
+    console.error('Ensure products, locations, warehouses, and SKUs tables are seeded first.');
     return;
   }
   
@@ -28,6 +31,9 @@ exports.seed = async function (knex) {
     "LOT-202504", "LOT-202505", "LOT-202506", "LOT-202507", "LOT-202508"
   ];
   
+  // **Predefined item categories**
+  const itemCategories = ['finished_goods', 'raw_material', 'packaging'];
+  
   // Define inventory entries
   const inventoryEntries = [];
   for (let i = 0; i < 20; i++) {
@@ -35,8 +41,12 @@ exports.seed = async function (knex) {
       id: knex.raw('uuid_generate_v4()'),
       product_id: products[i % products.length].id,
       location_id: locations[i % locations.length].id,
+      warehouse_id: warehouses[i % warehouses.length].id, // Assign warehouse
+      // sku_id: skus[i % skus.length].id, // Assign SKU
       item_type: ['standard', 'fragile', 'bulk'][i % 3],
+      item_category: itemCategories[i % itemCategories.length], // Assign item category
       lot_number: staticLotNumbers[i], // Using static lot numbers
+      // batch_number: `BATCH-${1000 + i}`, // Assign unique batch numbers
       identifier: knex.raw('uuid_generate_v4()'),
       quantity: Math.floor(Math.random() * 500) + 10,
       manufacture_date: knex.raw("CURRENT_DATE - INTERVAL '30 days' * FLOOR(RANDOM() * 12)"),
