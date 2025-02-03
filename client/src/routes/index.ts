@@ -144,6 +144,15 @@ export const routes = [
     },
   },
   {
+    path: '/inventories',
+    component: () => import('../features/inventory/pages/InventoryPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'All Inventories',
+      showInSidebar: true,
+    },
+  },
+  {
     path: '*',
     component: () => import('../pages/NotFoundPage.tsx'),
     meta: {

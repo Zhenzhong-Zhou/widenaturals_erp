@@ -16,6 +16,7 @@ import pricingReducer from '../features/pricing/state/pricingDetailSlice.ts';
 import locationTypesReducer from '../features/locationTypes/state/locationTypesSlice.ts';
 import locationTypeReducer from '../features/locationTypes/state/locationTypeDetailSlice.ts';
 import locationReducer from '../features/location/state/locationSlice.ts';
+import inventoryReducer from '../features/inventory/state/inventorySlice.ts';
 
 // Combine reducers
 const appReducer = combineReducers({
@@ -35,6 +36,7 @@ const appReducer = combineReducers({
   locationTypes: locationTypesReducer,
   locationType: locationTypeReducer,
   locations: locationReducer,
+  inventory: inventoryReducer,
 });
 
 // Root reducer with logout handling

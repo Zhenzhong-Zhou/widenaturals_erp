@@ -11,7 +11,7 @@ const { logInfo, logError } = require('../utils/logger-helper');
  * @param {string} [options.sortOrder='ASC'] - Sorting order (ASC/DESC)
  * @returns {Promise<{ data: Array, pagination: Object }>} Inventory data with pagination info
  */
-const getInventories = async ({ page = 1, limit = 10, sortBy = 'product_name', sortOrder = 'ASC' } = {}) => {
+const getInventories = async ({ page = 1, limit = 10, sortBy, sortOrder } = {}) => {
   const validSortColumns = [
     'product_name',    // Sort by product name
     'location_name',   // Sort by location name
@@ -27,10 +27,13 @@ const getInventories = async ({ page = 1, limit = 10, sortBy = 'product_name', s
     'created_at',      // Sort by record creation time
     'updated_at',      // Sort by record last updated time
   ];
-
+  
+  // Ensure sorting defaults to location_id then created_at if invalid
+  let defaultSortBy = 'location_id, created_at';
+  
   // Prevent SQL injection by ensuring sort column is valid
   if (!validSortColumns.includes(sortBy)) {
-    sortBy = 'created_at'; // Default to chronological order
+    sortBy = defaultSortBy;
   }
   
   const tableName = 'inventory i';
