@@ -10,6 +10,7 @@ exports.up = async function (knex) {
     table.uuid('warehouse_id').references('id').inTable('warehouses').index(); // New: Links to warehouse
     table.uuid('location_id').notNullable().references('id').inTable('locations').index();
     table.string('item_type', 50).notNullable();
+    table.string('lot_number', 100).notNullable();
     table.string('identifier', 100).unique().nullable();
     table.integer('quantity').notNullable().checkPositive();
     table.date('manufacture_date').nullable();
