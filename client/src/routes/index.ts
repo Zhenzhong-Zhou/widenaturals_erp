@@ -135,6 +135,15 @@ export const routes = [
     },
   },
   {
+    path: '/locations',
+    component: () => import('../features/location/pages/LocationPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Locations',
+      showInSidebar: true,
+    },
+  },
+  {
     path: '*',
     component: () => import('../pages/NotFoundPage.tsx'),
     meta: {

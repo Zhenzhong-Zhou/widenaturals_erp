@@ -16,6 +16,7 @@ const productRoutes = require('./products');
 const priceTypeRouts = require('./pricing_types');
 const pricingRouts = require('./pricings');
 const locationTypeRouts = require('./locations_types');
+const locationRouts = require('./locations');
 const {
   createApiRateLimiter,
   createCsrfTokenRateLimiter,
@@ -79,7 +80,9 @@ router.use('/pricing-types', authenticate(), priceTypeRouts);
 router.use('/pricings', authenticate(), pricingRouts);
 
 // Location Types route
-// router.use('/location-types', authenticate(), locationTypeRouts);
-router.use('/location-types',  locationTypeRouts);
+router.use('/location-types', authenticate(), locationTypeRouts);
+
+// router.use('/locations', authenticate(), locationRouts);
+router.use('/locations', locationRouts);
 
 module.exports = router;
