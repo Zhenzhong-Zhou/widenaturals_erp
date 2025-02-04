@@ -43,7 +43,10 @@ const getInventories = async ({ page = 1, limit = 10, sortBy, sortOrder } = {}) 
     'LEFT JOIN locations l ON i.location_id = l.id',
     'LEFT JOIN status s ON i.status_id = s.id',
     'LEFT JOIN users u1 ON i.created_by = u1.id',
-    'LEFT JOIN users u2 ON i.updated_by = u2.id'
+    'LEFT JOIN users u2 ON i.updated_by = u2.id',
+    'LEFT JOIN warehouse_inventory wi ON i.product_id = wi.product_id',
+    'LEFT JOIN warehouses w ON wi.warehouse_id = w.id',
+    'LEFT JOIN warehouse_inventory_lots wil ON wi.warehouse_id = wil.warehouse_id AND i.product_id = wil.product_id',
   ];
   
   const whereClause = '1=1';
@@ -55,13 +58,11 @@ const getInventories = async ({ page = 1, limit = 10, sortBy, sortOrder } = {}) 
       p.product_name AS product_name,
       i.location_id,
       l.name AS location_name,
+      w.id AS warehouse_id,
+      w.name AS warehouse_name,
       i.item_type,
-      i.lot_number,
       i.identifier,
       i.quantity,
-      i.manufacture_date,
-      i.expiry_date,
-      i.warehouse_fee,
       i.inbound_date,
       i.outbound_date,
       i.last_update,
@@ -71,9 +72,18 @@ const getInventories = async ({ page = 1, limit = 10, sortBy, sortOrder } = {}) 
       i.created_at,
       i.updated_at,
       COALESCE(u1.firstname || ' ' || u1.lastname, 'Unknown') AS created_by,
-      COALESCE(u2.firstname || ' ' || u2.lastname, 'Unknown') AS updated_by
+      COALESCE(u2.firstname || ' ' || u2.lastname, 'Unknown') AS updated_by,
+      wi.warehouse_fee,
+      COUNT(wil.id) AS total_lots,
+      SUM(wil.quantity) AS total_lot_quantity,
+      MIN(wil.manufacture_date) AS earliest_manufacture_date,
+      MIN(wil.expiry_date) AS nearest_expiry_date
     FROM ${tableName}
     ${joins.join(' ')}
+    GROUP BY
+      i.id, p.product_name, l.name, s.name,
+      u1.firstname, u1.lastname, u2.firstname, u2.lastname,
+      wi.warehouse_fee, w.id, w.name
   `;
   
   try {
