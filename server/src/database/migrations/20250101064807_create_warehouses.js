@@ -19,6 +19,7 @@ exports.up = async function (knex) {
   await knex.raw(`
     CREATE INDEX idx_warehouses_location ON warehouses (location_id);
     CREATE INDEX idx_warehouses_status ON warehouses (status_id);
+    CREATE INDEX idx_warehouses_capacity ON warehouses (storage_capacity);
   `);
 };
 
