@@ -29,14 +29,17 @@ const WarehouseTable: FC<WarehouseTableProps> = ({
       id: 'warehouse_name',
       label: 'Warehouse Name',
       sortable: true,
-      format: (_value: string, row: Warehouse) => (
-        <Link
-          to={`/warehouses/${row.id}`}
-          style={{ textDecoration: 'none', color: 'blue' }}
-        >
-          {row.warehouse_name}
-        </Link>
-      ),
+      format: (_value: string, row: Record<string, any>) => {
+        const warehouse = row as Warehouse;
+        return (
+          <Link
+            to={`/warehouses/${warehouse.id}`}
+            style={{ textDecoration: 'none', color: 'blue' }}
+          >
+            {warehouse.warehouse_name}
+          </Link>
+        );
+      },
     },
     {
       id: 'location_name',
