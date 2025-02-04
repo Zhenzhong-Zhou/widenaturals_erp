@@ -148,7 +148,16 @@ export const routes = [
     component: () => import('../features/inventory/pages/InventoryPage.tsx'),
     meta: {
       requiresAuth: true,
-      title: 'All Inventories',
+      title: 'Inventories',
+      showInSidebar: true,
+    },
+  },
+  {
+    path: '/warehouses',
+    component: () => import('../features/warehouse/pages/WarehousesPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Warehouses',
       showInSidebar: true,
     },
   },

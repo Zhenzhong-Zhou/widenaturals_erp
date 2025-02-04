@@ -18,4 +18,5 @@ export const API_ENDPOINTS = {
   LOCATION_TYPE_DETAILS: '/location-types/:id',
   ALL_LOCATIONS: '/locations',
   ALL_INVENTORIES: '/inventories',
+  ALL_WAREHOUSES: '/warehouses',
 };
