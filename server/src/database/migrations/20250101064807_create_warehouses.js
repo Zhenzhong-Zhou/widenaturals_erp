@@ -5,7 +5,7 @@
 exports.up = async function (knex) {
   await knex.schema.createTable('warehouses', (table) => {
     table.uuid('id').primary().defaultTo(knex.raw('uuid_generate_v4()'));
-    table.string('name', 255).notNullable();
+    table.string('name', 255).notNullable().unique();
     table.uuid('location_id').notNullable().references('id').inTable('locations');
     table.integer('storage_capacity').nullable().checkPositive(); // New: Capacity tracking
     table.uuid('status_id').notNullable().references('id').inTable('status');

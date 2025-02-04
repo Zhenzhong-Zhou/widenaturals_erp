@@ -17,7 +17,7 @@ exports.seed = async function (knex) {
   // Fetch existing warehouse locations
   let warehouseLocations = await knex('locations')
     .where('location_type_id', warehouseLocationTypeId)
-    .select('id');
+    .select('id', 'name');
   
   // Define warehouse names and capacities
   const warehouseData = [
@@ -28,39 +28,55 @@ exports.seed = async function (knex) {
     { name: 'North Distribution Center', storage_capacity: 12000 },
   ];
   
-  // If not enough warehouse locations exist, create new ones
-  while (warehouseLocations.length < warehouseData.length) {
-    const [newLocation] = await knex('locations')
-      .insert({
-        id: knex.raw('uuid_generate_v4()'),
-        location_type_id: warehouseLocationTypeId,
-        name: `Warehouse Location ${warehouseLocations.length + 1}`,
-        address: `Address for Warehouse Location ${warehouseLocations.length + 1}`,
-        status_id: activeStatusId,
-        created_at: knex.fn.now(),
-        updated_at: knex.fn.now(),
-        created_by: adminUserId,
-        updated_by: adminUserId,
-      })
-      .returning('id');
+  // Check and insert missing locations
+  for (const warehouse of warehouseData) {
+    const existingLocation = warehouseLocations.find((loc) => loc.name === warehouse.name);
     
-    warehouseLocations.push(newLocation);
+    if (!existingLocation) {
+      const [newLocation] = await knex('locations')
+        .insert({
+          id: knex.raw('uuid_generate_v4()'),
+          location_type_id: warehouseLocationTypeId,
+          name: warehouse.name,
+          address: `Address for ${warehouse.name}`,
+          status_id: activeStatusId,
+          created_at: knex.fn.now(),
+          updated_at: knex.fn.now(),
+          created_by: adminUserId,
+          updated_by: adminUserId,
+        })
+        .returning(['id', 'name']); // Ensure compatibility
+      
+      warehouseLocations.push(newLocation);
+    }
   }
   
-  // Assign warehouse locations dynamically (Ensuring each warehouse has a unique location)
-  const warehouseEntries = warehouseData.map((warehouse, index) => ({
-    id: knex.raw('uuid_generate_v4()'),
-    name: warehouse.name,
-    location_id: warehouseLocations[index].id,
-    storage_capacity: warehouse.storage_capacity,
-    status_id: activeStatusId,
-    created_at: knex.fn.now(),
-    updated_at: knex.fn.now(),
-    created_by: adminUserId,
-    updated_by: adminUserId,
-  }));
+  // Fetch updated warehouse locations again
+  warehouseLocations = await knex('locations')
+    .where('location_type_id', warehouseLocationTypeId)
+    .select('id', 'name');
   
-  await knex('warehouses').insert(warehouseEntries);
+  // Ensure each warehouse has a unique location
+  const warehouseEntries = warehouseData.map((warehouse) => {
+    const location = warehouseLocations.find((loc) => loc.name === warehouse.name);
+    return {
+      id: knex.raw('uuid_generate_v4()'),
+      name: warehouse.name,
+      location_id: location.id,
+      storage_capacity: warehouse.storage_capacity,
+      status_id: activeStatusId,
+      created_at: knex.fn.now(),
+      updated_at: knex.fn.now(),
+      created_by: adminUserId,
+      updated_by: adminUserId,
+    };
+  });
+  
+  // Insert warehouses & ignore duplicates
+  await knex('warehouses')
+    .insert(warehouseEntries)
+    .onConflict(['name'])
+    .ignore(); // Skip if exists
   
   console.log(`${warehouseEntries.length} warehouses seeded successfully.`);
 };
