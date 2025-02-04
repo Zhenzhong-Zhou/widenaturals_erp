@@ -75,7 +75,7 @@ exports.seed = async function (knex) {
   // Insert warehouses & ignore duplicates
   await knex('warehouses')
     .insert(warehouseEntries)
-    .onConflict(['name'])
+    .onConflict(['name', 'location_id'])
     .ignore(); // Skip if exists
   
   console.log(`${warehouseEntries.length} warehouses seeded successfully.`);
