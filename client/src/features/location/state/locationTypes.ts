@@ -3,7 +3,6 @@ export interface Location {
   location_id: string;
   location_name: string;
   address: string;
-  warehouse_fee: string | null;
   status_id: string;
   status_name: string;
   status_date: string; // ISO timestamp

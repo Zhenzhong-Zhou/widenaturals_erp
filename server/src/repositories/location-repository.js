@@ -33,7 +33,6 @@ const getLocations = async ({page, limit, sortBy, sortOrder } = {}) => {
         l.id AS location_id,
         l.name AS location_name,
         l.address,
-        l.warehouse_fee,
         l.status_id,
         s.name AS status_name,
         l.status_date,

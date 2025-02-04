@@ -8,7 +8,6 @@ exports.up = async function (knex) {
     table.uuid('location_type_id').notNullable().references('id').inTable('location_types');
     table.string('name', 100).notNullable();
     table.text('address');
-    table.decimal('warehouse_fee', 10, 2);
     table.uuid('status_id').notNullable().references('id').inTable('status');
     table.timestamp('status_date', { useTz: true }).defaultTo(knex.fn.now());
     table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());

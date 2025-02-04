@@ -19,7 +19,6 @@ exports.seed = async function (knex) {
       name: 'Head Office',
       location_type_id: officeTypeId, // Ensure this matches a valid ID in `location_types`
       address: '1040 W Georgia St Unit 1050, Vancouver',
-      warehouse_fee: null, // Offices typically don't have warehouse fees
       status_id: activeStatusId,
       status_date: knex.fn.now(),
       created_at: knex.fn.now(),

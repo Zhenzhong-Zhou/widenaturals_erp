@@ -7,20 +7,17 @@ const { fetchDynamicValue } = require('../03_utils');
 exports.seed = async function (knex) {
   console.log('Seeding warehouses...');
   
-  // Fetch active status ID
+  // Fetch required values dynamically
   const activeStatusId = await fetchDynamicValue(knex, 'status', 'name', 'active', 'id');
   const adminUserId = await fetchDynamicValue(knex, 'users', 'email', 'admin@example.com', 'id');
   
-  // Fetch warehouse-type location IDs
+  // Fetch warehouse location type ID
   const warehouseLocationTypeId = await fetchDynamicValue(knex, 'location_types', 'code', 'WAREHOUSE', 'id');
-  const warehouseLocations = await knex('locations')
+  
+  // Fetch existing warehouse locations
+  let warehouseLocations = await knex('locations')
     .where('location_type_id', warehouseLocationTypeId)
     .select('id');
-  
-  if (!warehouseLocations.length) {
-    console.error('No warehouse locations found. Ensure locations of type "WAREHOUSE" exist.');
-    return;
-  }
   
   // Define warehouse names and capacities
   const warehouseData = [
@@ -31,11 +28,30 @@ exports.seed = async function (knex) {
     { name: 'North Distribution Center', storage_capacity: 12000 },
   ];
   
-  // Assign warehouse locations dynamically
+  // If not enough warehouse locations exist, create new ones
+  while (warehouseLocations.length < warehouseData.length) {
+    const [newLocation] = await knex('locations')
+      .insert({
+        id: knex.raw('uuid_generate_v4()'),
+        location_type_id: warehouseLocationTypeId,
+        name: `Warehouse Location ${warehouseLocations.length + 1}`,
+        address: `Address for Warehouse Location ${warehouseLocations.length + 1}`,
+        status_id: activeStatusId,
+        created_at: knex.fn.now(),
+        updated_at: knex.fn.now(),
+        created_by: adminUserId,
+        updated_by: adminUserId,
+      })
+      .returning('id');
+    
+    warehouseLocations.push(newLocation);
+  }
+  
+  // Assign warehouse locations dynamically (Ensuring each warehouse has a unique location)
   const warehouseEntries = warehouseData.map((warehouse, index) => ({
     id: knex.raw('uuid_generate_v4()'),
     name: warehouse.name,
-    location_id: warehouseLocations[index % warehouseLocations.length].id, // Assign location in round-robin style
+    location_id: warehouseLocations[index].id,
     storage_capacity: warehouse.storage_capacity,
     status_id: activeStatusId,
     created_at: knex.fn.now(),
