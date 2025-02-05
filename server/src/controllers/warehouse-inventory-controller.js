@@ -1,11 +1,14 @@
-const { fetchAllWarehouseInventories } = require('../services/warehouse-inventory-service');
+const { fetchAllWarehouseInventories, fetchWarehouseProductSummary } = require('../services/warehouse-inventory-service');
+const { logError } = require('../utils/logger-helper');
+const wrapAsync = require('../utils/wrap-async');
 
 /**
  * Controller to fetch all warehouse inventories with pagination, sorting, and filtering.
  * @param {import('express').Request} req - Express request object.
  * @param {import('express').Response} res - Express response object.
+ * @param next
  */
-const getAllWarehouseInventoriesController = async (req, res, next) => {
+const getAllWarehouseInventoriesController = wrapAsync(async (req, res, next) => {
   try {
     const { page = 1, limit = 10, sortBy, sortOrder } = req.query;
     
@@ -25,7 +28,7 @@ const getAllWarehouseInventoriesController = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
-};
+});
 
 /**
  * Controller to fetch warehouse inventory for a specific warehouse.
@@ -53,7 +56,39 @@ const getWarehouseInventoryByWarehouse = async (req, res, next) => {
   }
 };
 
+/**
+ * Controller to get warehouse product summary.
+ *
+ * @param {Object} req - Express request object.
+ * @param {Object} res - Express response object.
+ * @param next
+ * @returns {Promise<void>}
+ */
+const getWarehouseProductSummaryController = wrapAsync(async (req, res, next) => {
+    try {
+      const { warehouseId } = req.params; // Get warehouse ID from URL params
+      const page = parseInt(req.query.page, 10) || 1;
+      const limit = parseInt(req.query.limit, 10) || 10;
+      
+      // Call the service function
+      const { productSummaryData, pagination } = await fetchWarehouseProductSummary(warehouseId, page, limit);
+      
+      // Return the response
+      return res.status(200).json({
+        success: true,
+        message: 'Warehouse product summary retrieved successfully.',
+        productSummaryData,
+        pagination
+      });
+    } catch (error) {
+      logError('Error in getWarehouseProductSummaryController:', error);
+      next(error);
+    }
+  }
+);
+
 module.exports = {
   getAllWarehouseInventoriesController,
   getWarehouseInventoryByWarehouse,
+  getWarehouseProductSummaryController,
 };

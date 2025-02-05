@@ -21,4 +21,5 @@ export const API_ENDPOINTS = {
   ALL_WAREHOUSES: '/warehouses',
   WAREHOUSE_INVENTORIES_SUMMARY: '/warehouses/inventory-overview',
   ALL_WAREHOUSE_INVENTORIES: '/warehouse-inventories',
+  WAREHOUSE_PRODUCTS_SUMMARY: '/warehouse-inventories/:id/products-summary',
 };

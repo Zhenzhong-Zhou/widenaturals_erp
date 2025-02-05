@@ -3,7 +3,7 @@ import { useWarehouseInventories, useWarehouseInventoriesSummary } from '../../.
 import WarehouseInventoryTable from '../components/WarehouseInventoryTable.tsx';
 import { Box, Paper } from '@mui/material';
 import { CustomButton, ErrorDisplay, ErrorMessage, Loading, Typography } from '@components/index.ts';
-import WarehouseInventorySummaryCard from '../components/WarehouseInventorySummaryCard';
+import { WarehouseInventorySummaryCard } from '../index.ts';
 
 const WarehouseInventoryPage = () => {
   const [page, setPage] = useState(1);

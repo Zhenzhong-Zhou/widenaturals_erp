@@ -1,5 +1,6 @@
-const { getWarehouseInventories } = require('../repositories/warehouse-inventory-repository');
+const { getWarehouseInventories, getWarehouseProductSummary } = require('../repositories/warehouse-inventory-repository');
 const AppError = require('../utils/AppError');
+const { logError } = require('../utils/logger-helper');
 
 /**
  * Fetch paginated warehouse inventories with sorting.
@@ -49,7 +50,65 @@ const fetchWarehouseInventoryByWarehouse = async (warehouseId, params) => {
   return fetchAllWarehouseInventories(params);
 };
 
+/**
+ * Service function to fetch warehouse product summary.
+ *
+ * @param {string} warehouseId - The ID of the warehouse.
+ * @param {number} page - The page number for pagination.
+ * @param {number} limit - The number of records per page.
+ * @returns {Promise<Object>} - Returns formatted warehouse product summary data.
+ */
+const fetchWarehouseProductSummary = async (warehouseId, page = 1, limit = 10) => {
+  try {
+    // Validate input parameters
+    if (!warehouseId) {
+      throw new AppError('Warehouse ID is required.', 400);
+    }
+    if (page < 1 || limit < 1) {
+      throw new AppError('Invalid pagination parameters. Page and limit must be positive numbers.', 400);
+    }
+    
+    // Call the repository function to get warehouse product summary
+    const { data, pagination } = await getWarehouseProductSummary({ warehouse_id: warehouseId, page, limit });
+    
+    if (!data || data.length === 0) {
+      return {
+        success: true,
+        message: 'No products found for the specified warehouse.',
+        data: [],
+        pagination: {
+          page,
+          limit,
+          totalRecords: 0,
+          totalPages: 0,
+        },
+      };
+    }
+    
+    const productSummaryData = data.map(product => ({
+      productId: product.product_id,
+      productName: product.product_name,
+      totalLots: product.total_lots,
+      totalReservedStock: product.total_reserved_stock,
+      totalAvailableStock: product.total_available_stock,
+      totalZeroStockLots: product.total_zero_stock_lots,
+      earliestExpiry: product.earliest_expiry,
+      latestExpiry: product.latest_expiry,
+    }));
+    
+    // Format the response for the API
+    return {
+      productSummaryData,
+      pagination,
+    };
+  } catch (error) {
+    logError(`Error fetching warehouse product summary (warehouseId: ${warehouseId}, page: ${page}, limit: ${limit}):`, error);
+    throw new AppError(error.message || 'Failed to fetch warehouse product summary.', error.statusCode || 500);
+  }
+};
+
 module.exports = {
   fetchAllWarehouseInventories,
   fetchWarehouseInventoryByWarehouse,
+  fetchWarehouseProductSummary,
 };

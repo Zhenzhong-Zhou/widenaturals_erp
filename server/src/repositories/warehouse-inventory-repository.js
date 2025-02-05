@@ -75,21 +75,59 @@ const getWarehouseInventories = async ({ page, limit, sortBy, sortOrder = 'ASC' 
   }
 };
 
-const getWarehouseProductSummary = async (warehouse_id) => {
-const baseQuery = `
-SELECT
-    p.id AS product_id,
-    p.product_name,
-    SUM(wil.quantity) AS total_available_stock,
-    SUM(wi.reserved_quantity) AS total_reserved_stock
-FROM warehouse_inventory wi
-JOIN warehouse_inventory_lots wil ON wi.warehouse_id = wil.warehouse_id AND wi.product_id = wil.product_id
-JOIN products p ON wi.product_id = p.id
-WHERE wi.warehouse_id = $1
-GROUP BY p.id, p.product_name
-ORDER BY p.product_name
-LIMIT 10 OFFSET 0; -- Pagination applied
-`;
+const getWarehouseProductSummary = async ({ warehouse_id, page = 1, limit = 10 }) => {
+  const tableName = 'warehouse_inventory wi';
+  
+  // Joins array for easy modifications
+  const joins = [
+    'INNER JOIN warehouse_inventory_lots wil ON wi.warehouse_id = wil.warehouse_id AND wi.product_id = wil.product_id',
+    'JOIN products p ON wi.product_id = p.id'
+  ];
+  
+  // Dynamic WHERE clause
+  const whereClause = 'wi.warehouse_id = $1';
+  const params = [warehouse_id];
+  
+  // Base Query
+  const baseQuery = `
+    SELECT
+        p.id AS product_id,
+        p.product_name,
+        COUNT(DISTINCT wil.lot_number) AS total_lots,
+        SUM(wi.reserved_quantity) AS total_reserved_stock,
+        COALESCE(SUM(CASE WHEN wil.quantity > 0 THEN wil.quantity ELSE 0 END), 0) AS total_available_stock,
+        COUNT(DISTINCT CASE WHEN wil.quantity = 0 THEN wil.lot_number END) AS total_zero_stock_lots,
+        MIN(CASE WHEN wil.quantity > 0 THEN wil.expiry_date ELSE NULL END) AS earliest_expiry,
+        MAX(CASE WHEN wil.quantity > 0 THEN wil.expiry_date ELSE NULL END) AS latest_expiry
+    FROM ${tableName}
+    ${joins.join(' ')}
+    WHERE ${whereClause}
+    GROUP BY p.id, p.product_name
+  `;
+  
+  try {
+    // Ensure pagination parameters are valid
+    if (page < 1 || limit < 1) {
+      throw new Error('Invalid pagination parameters: Page and limit must be positive numbers.');
+    }
+    
+    return await retry(async () => {
+      return await paginateQuery({
+        tableName,
+        joins,
+        whereClause,
+        queryText: baseQuery,
+        params,
+        page,
+        limit,
+        sortBy: 'p.product_name',
+        sortOrder: 'ASC',
+      });
+    });
+  } catch (error) {
+    logError(`Error fetching warehouse product summary (warehouse_id: ${warehouse_id}, page: ${page}, limit: ${limit}):`, error);
+    throw new AppError('Failed to fetch warehouse product summary.');
+  }
 };
 
 module.exports = {

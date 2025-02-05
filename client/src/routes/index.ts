@@ -171,6 +171,15 @@ export const routes = [
     },
   },
   {
+    path: '/warehouse_inventories/:warehouseId',
+    component: () => import('../features/warehouse-inventory/pages/WarehouseInventoryDetailPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Warehouse Inventories Details',
+      showInSidebar: false,
+    },
+  },
+  {
     path: '*',
     component: () => import('../pages/NotFoundPage.tsx'),
     meta: {

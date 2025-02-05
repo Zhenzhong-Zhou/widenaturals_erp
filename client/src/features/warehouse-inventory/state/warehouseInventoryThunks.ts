@@ -1,6 +1,10 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { warehouseInventoryService } from '../../../services';
-import { WarehouseInventoryResponse, WarehouseInventorySummaryResponse } from './warehouseInventoryTypes.ts';
+import {
+  WarehouseInventoryResponse,
+  WarehouseInventorySummaryResponse,
+  WarehouseProductSummaryResponse,
+} from './warehouseInventoryTypes.ts';
 
 /**
  * Thunk to fetch warehouse inventories with pagination
@@ -35,6 +39,29 @@ export const fetchWarehouseInventorySummaryThunk = createAsyncThunk<
     } catch (error) {
       console.error('Failed to fetch warehouse inventory summary:', error);
       return rejectWithValue('Failed to fetch warehouse inventory summary. Please try again.');
+    }
+  }
+);
+
+/**
+ * Thunk to fetch warehouse product summary.
+ *
+ * @param {Object} params - Parameters for fetching data.
+ * @param {string} params.warehouseId - The warehouse ID.
+ * @param {number} params.page - Page number for pagination.
+ * @param {number} params.limit - Number of records per page.
+ */
+export const fetchWarehouseProductSummaryThunk = createAsyncThunk<
+  WarehouseProductSummaryResponse,
+  { warehouseId: string; page: number; limit: number }
+>(
+  'warehouseProduct/fetchWarehouseProductSummary',
+  async ({ warehouseId, page, limit }, { rejectWithValue }) => {
+    try {
+      return await warehouseInventoryService.fetchWarehouseProductSummary(warehouseId, page, limit);
+    } catch (error) {
+      console.error('Failed to fetch warehouse products summary:', error);
+      return rejectWithValue('Failed to fetch warehouse products summary. Please try again.');
     }
   }
 );

@@ -46,7 +46,7 @@ const WarehouseInventorySummaryCard: FC<WarehouseInventorySummaryProps> = ({
             key={summary.warehouseId}
             title={
               <Link
-                to={`/warehouses/${summary.warehouseId}`}
+                to={`/warehouse_inventories/${summary.warehouseId}`}
                 style={{ textDecoration: 'none', color: '#1976d2', fontWeight: 'bold' }}
               >
                 {summary.warehouseName}

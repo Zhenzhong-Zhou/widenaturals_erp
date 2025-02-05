@@ -20,6 +20,7 @@ import inventoriesReducer from '../features/inventory/state/inventorySlice.ts';
 import warehouseReducer from '../features/warehouse/state/warehouseSlice.ts';
 import warehouseInventorySummaryReducer from '../features/warehouse-inventory/state/warehouseInventorySummarySlice.ts';
 import warehouseInventoriesReducer from '../features/warehouse-inventory/state/warehouseInventorySlice.ts';
+import warehouseProductsReducer from '../features/warehouse-inventory/state/warehouseProductSlice.ts';
 
 // Combine reducers
 const appReducer = combineReducers({
@@ -43,6 +44,7 @@ const appReducer = combineReducers({
   warehouses: warehouseReducer,
   warehouseInventoriesSummary: warehouseInventorySummaryReducer,
   warehouseInventories: warehouseInventoriesReducer,
+  warehouseProducts: warehouseProductsReducer,
 });
 
 // Root reducer with logout handling

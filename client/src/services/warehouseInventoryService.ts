@@ -1,6 +1,6 @@
 import axiosInstance from '@utils/axiosConfig.ts';
 import { API_ENDPOINTS } from './apiEndponits.ts';
-import { WarehouseInventoryResponse, WarehouseInventorySummaryResponse } from '../features/warehouse-inventory';
+import { WarehouseInventoryResponse, WarehouseInventorySummaryResponse, WarehouseProductSummaryResponse } from '../features/warehouse-inventory';
 import { AppError } from '@utils/AppError.tsx';
 
 /**
@@ -70,8 +70,34 @@ export const fetchWarehouseInventorySummary = async (
   }
 };
 
+/**
+ * Fetches the warehouse product summary from the backend.
+ *
+ * @param {string} warehouseId - The ID of the warehouse.
+ * @param {number} page - The page number for pagination (default: 1).
+ * @param {number} limit - The number of records per page (default: 10).
+ * @returns {Promise<WarehouseProductSummaryResponse>} - The warehouse product summary data.
+ */
+export const fetchWarehouseProductSummary = async (
+  warehouseId: string,
+  page: number = 1,
+  limit: number = 10
+): Promise<WarehouseProductSummaryResponse> => {
+  try {
+    const endpoint = API_ENDPOINTS.WAREHOUSE_PRODUCTS_SUMMARY.replace(':id', warehouseId);
+    const response = await axiosInstance.get<WarehouseProductSummaryResponse>(
+      `${endpoint}?page=${page}&limit=${limit}`
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching warehouse product summary:', error);
+    throw new AppError('Failed to fetch warehouse product summary. Please try again later.');
+  }
+};
+
 // Export the service
 export const warehouseInventoryService = {
   fetchAllWarehouseInventories,
   fetchWarehouseInventorySummary,
+  fetchWarehouseProductSummary,
 };

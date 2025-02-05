@@ -50,3 +50,24 @@ export interface WarehouseInventorySummaryResponse {
   formattedSummary: WarehouseInventorySummary[];
   pagination: Pagination;
 }
+
+// Interface for a single product summary in a warehouse
+export interface WarehouseProductSummary {
+  productId: string;
+  productName: string;
+  totalLots: number;
+  totalReservedStock: number;
+  totalAvailableStock: number;
+  totalZeroStockLots: number;
+  earliestExpiry: string | null; // Can be null if no expiry date is set
+  latestExpiry: string | null;
+}
+
+
+// Interface for the full API response
+export interface WarehouseProductSummaryResponse {
+  success: boolean;
+  message: string;
+  productSummaryData: WarehouseProductSummary[];
+  pagination: Pagination;
+}
