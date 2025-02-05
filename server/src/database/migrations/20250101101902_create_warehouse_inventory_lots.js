@@ -15,7 +15,7 @@ exports.up = async function (knex) {
     table.date('expiry_date').nullable();
     table.timestamp('inbound_date', { useTz: true }).defaultTo(knex.fn.now()).index(); // Actual batch arrival date
     table.timestamp('outbound_date', { useTz: true }).nullable().index(); // Actual batch departure date
-    table.uuid('status_id').notNullable().references('id').inTable('status').index();
+    table.uuid('status_id').notNullable().references('id').inTable('warehouse_lot_status').index();
     table.timestamp('status_date', { useTz: true }).defaultTo(knex.fn.now());
     table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now()).index();
     table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());

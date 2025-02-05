@@ -10,12 +10,12 @@ exports.seed = async function (knex) {
   // Ensure `warehouse_inventory` is populated first
   const warehouseInventory = await knex('warehouse_inventory').select('warehouse_id', 'product_id');
   if (!warehouseInventory.length) {
-    console.error('🚨 No data in warehouse_inventory. Ensure it is seeded before running this script.');
+    console.error('No data in warehouse_inventory. Ensure it is seeded before running this script.');
     return;
   }
   
   // Fetch required values dynamically
-  const activeStatusId = await fetchDynamicValue(knex, 'status', 'name', 'active', 'id');
+  const availableStatusId = await fetchDynamicValue(knex, 'warehouse_lot_status', 'name', 'available', 'id');
   const adminUserId = await fetchDynamicValue(knex, 'users', 'email', 'admin@example.com', 'id');
   
   // Predefined static lot numbers
@@ -32,7 +32,7 @@ exports.seed = async function (knex) {
     expiry_date: knex.raw("CURRENT_DATE + INTERVAL '30 days' * FLOOR(RANDOM() * 12)"),
     inbound_date: knex.fn.now(),
     outbound_date: Math.random() > 0.5 ? knex.fn.now() : null,
-    status_id: activeStatusId,
+    status_id: availableStatusId,
     created_at: knex.fn.now(),
     updated_at: knex.fn.now(),
     created_by: adminUserId,
