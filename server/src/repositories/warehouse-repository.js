@@ -62,6 +62,67 @@ const getWarehouses = async ({ page, limit, sortBy, sortOrder }) => {
   }
 };
 
+const getWarehouseInventorySummary = async ({ page, limit, statusFilter }) => {
+  const tableName = 'warehouses w';
+  
+  // Joins using an array (easier to modify in the future)
+  const joins = [
+    'LEFT JOIN status s ON w.status_id = s.id',
+  ];
+
+  // Dynamic status filtering
+  let whereClause = '';
+  const params = [];
+  
+  if (statusFilter && statusFilter !== 'all') {
+    whereClause = `s.name = $1`;
+    params.push(statusFilter);
+  }
+  
+  // Base Query
+  const baseQuery = `
+    SELECT
+        w.id AS warehouse_id,
+        w.name AS warehouse_name,
+        COALESCE(s.name, 'unknown') AS status_name,
+        COUNT(DISTINCT wi.product_id) AS total_products,
+        COALESCE(SUM(wi.reserved_quantity), 0) AS total_reserved_stock,
+        COALESCE(SUM(wil.quantity), 0) AS total_available_stock,
+        COALESCE(SUM(wi.warehouse_fee), 0) AS total_warehouse_fees,
+        MAX(wi.last_update) AS last_inventory_update,
+        COUNT(DISTINCT wil.lot_number) AS total_lots,
+        MIN(wil.expiry_date) AS earliest_expiry,
+        MAX(wil.expiry_date) AS latest_expiry
+    FROM ${tableName}
+    LEFT JOIN warehouse_inventory wi ON w.id = wi.warehouse_id
+    LEFT JOIN warehouse_inventory_lots wil ON w.id = wil.warehouse_id
+    LEFT JOIN status s ON w.status_id = s.id
+    WHERE ${whereClause}
+    GROUP BY w.id, w.name, s.name
+  `;
+  
+  try {
+    // Use pagination if required
+    return await retry(async () => {
+      return await paginateQuery({
+        tableName,
+        joins,
+        whereClause,
+        queryText: baseQuery,
+        params,
+        page,
+        limit,
+        sortBy: 'w.name',
+        sortOrder: 'ASC',
+      });
+    });
+  } catch (error) {
+    logError(`Error fetching warehouse inventory overview (page: ${page}, limit: ${limit}, status: ${statusFilter}):`, error);
+    throw new AppError('Failed to fetch warehouse inventory overview.');
+  }
+};
+
 module.exports = {
   getWarehouses,
+  getWarehouseInventorySummary,
 };

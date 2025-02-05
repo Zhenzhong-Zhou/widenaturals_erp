@@ -28,3 +28,24 @@ export interface WarehouseInventoryResponse {
   inventories: WarehouseInventory[];
   pagination: Pagination;
 }
+
+export interface WarehouseInventorySummary {
+  warehouseId: string;
+  warehouseName: string;
+  status: string;
+  totalProducts: number;
+  totalReservedStock: number;
+  totalAvailableStock: number;
+  totalWarehouseFees: number;
+  lastInventoryUpdate: string; // ISO Date String
+  totalLots: number;
+  earliestExpiry: string; // ISO Date String
+  latestExpiry: string; // ISO Date String
+}
+
+export interface WarehouseInventorySummaryResponse {
+  success: boolean;
+  message: string;
+  formattedSummary: WarehouseInventorySummary[];
+  pagination: Pagination;
+}

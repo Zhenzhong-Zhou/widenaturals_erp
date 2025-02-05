@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { useWarehouseInventories } from '../../../hooks';
+import { useWarehouseInventories, useWarehouseInventoriesSummary } from '../../../hooks';
 import WarehouseInventoryTable from '../components/WarehouseInventoryTable.tsx';
 import { Box, Paper } from '@mui/material';
 import { CustomButton, ErrorDisplay, ErrorMessage, Loading, Typography } from '@components/index.ts';
+import { WarehouseInventorySummaryCard } from '../index.ts';
 
 const WarehouseInventoryPage = () => {
   const [page, setPage] = useState(1);
@@ -16,6 +17,14 @@ const WarehouseInventoryPage = () => {
     refresh
   } = useWarehouseInventories(page, limit);
   
+  const {
+    inventoriesSummary,
+    summaryPagination,
+    summaryLoading,
+    summaryError,
+    refreshSummary
+  } = useWarehouseInventoriesSummary(page, limit, '');
+  console.log(inventoriesSummary)
   if (loading) return <Loading message={`Loading Warehouse Inventory...`}/>;
   if (error) return <ErrorDisplay><ErrorMessage message={error}/></ErrorDisplay>;
   if (!inventories) return <Typography variant={'h4'}>No warehouse inventory found.</Typography>;
@@ -25,11 +34,13 @@ const WarehouseInventoryPage = () => {
       {/* Page Header */}
       <Paper sx={{ padding: 2, marginBottom: 3 }}>
         <Typography variant="h4">Warehouse Inventory</Typography>
+        {inventories.length > 0 && <WarehouseInventorySummaryCard inventoriesSummary={inventoriesSummary} />}
       </Paper>
       
-      {/* Loading & Error Handling */}
-      {loading && <Typography>Loading...</Typography>}
-      {error && <Typography color="error">{error}</Typography>}
+      {/*{inventories.map((summary) => (*/}
+      {/*  // <WarehouseInventorySummaryCard key={summary.warehouseId} summary={summary} />*/}
+      {/*))}*/}
+      
       
       {/* Warehouse Inventory Table */}
       <WarehouseInventoryTable

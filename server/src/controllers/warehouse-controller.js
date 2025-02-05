@@ -1,5 +1,5 @@
 const wrapAsync = require('../utils/wrap-async');
-const { fetchAllWarehouses } = require('../services/warehouse-service');
+const { fetchAllWarehouses, fetchWarehouseInventorySummary } = require('../services/warehouse-service');
 
 /**
  * @desc Fetch all warehouses with pagination, sorting, and filtering
@@ -25,6 +25,27 @@ const getAllWarehousesController = wrapAsync(async (req, res) => {
   });
 });
 
+const getWarehouseInventorySummaryController = wrapAsync(async (req, res, next) => {
+  try {
+    const { page, limit, status } = req.query;
+    const { formattedSummary, pagination } = await fetchWarehouseInventorySummary({
+      page: page ? parseInt(page, 10) : undefined,
+      limit: limit ? parseInt(limit, 10) : undefined,
+      statusFilter: status || 'active',
+    });
+    
+    res.status(200).json({
+      success: true,
+      message: 'Warehouse inventory overview retrieved successfully',
+      formattedSummary,
+      pagination,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 module.exports = {
   getAllWarehousesController,
+  getWarehouseInventorySummaryController,
 };

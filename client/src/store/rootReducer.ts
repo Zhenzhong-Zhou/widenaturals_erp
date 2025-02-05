@@ -18,6 +18,7 @@ import locationTypeReducer from '../features/locationTypes/state/locationTypeDet
 import locationReducer from '../features/location/state/locationSlice.ts';
 import inventoriesReducer from '../features/inventory/state/inventorySlice.ts';
 import warehouseReducer from '../features/warehouse/state/warehouseSlice.ts';
+import warehouseInventorySummaryReducer from '../features/warehouse-inventory/state/warehouseInventorySummarySlice.ts';
 import warehouseInventoriesReducer from '../features/warehouse-inventory/state/warehouseInventorySlice.ts';
 
 // Combine reducers
@@ -40,6 +41,7 @@ const appReducer = combineReducers({
   locations: locationReducer,
   inventories: inventoriesReducer,
   warehouses: warehouseReducer,
+  warehouseInventoriesSummary: warehouseInventorySummaryReducer,
   warehouseInventories: warehouseInventoriesReducer,
 });
 
