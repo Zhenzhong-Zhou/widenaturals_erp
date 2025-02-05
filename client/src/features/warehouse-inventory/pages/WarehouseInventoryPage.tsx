@@ -3,27 +3,15 @@ import { useWarehouseInventories, useWarehouseInventoriesSummary } from '../../.
 import WarehouseInventoryTable from '../components/WarehouseInventoryTable.tsx';
 import { Box, Paper } from '@mui/material';
 import { CustomButton, ErrorDisplay, ErrorMessage, Loading, Typography } from '@components/index.ts';
-import { WarehouseInventorySummaryCard } from '../index.ts';
+import WarehouseInventorySummaryCard from '../components/WarehouseInventorySummaryCard';
 
 const WarehouseInventoryPage = () => {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   
-  const {
-    inventories,
-    pagination,
-    loading,
-    error,
-    refresh
-  } = useWarehouseInventories(page, limit);
+  const { inventories, pagination, loading, error, refresh } = useWarehouseInventories(page, limit);
   
-  const {
-    inventoriesSummary,
-    summaryPagination,
-    summaryLoading,
-    summaryError,
-    refreshSummary
-  } = useWarehouseInventoriesSummary(page, limit, '');
+  const { inventoriesSummary, summaryPagination, summaryPage, setSummaryPage, refreshSummary } = useWarehouseInventoriesSummary(1, 3, '');
   
   if (loading) return <Loading message={`Loading Warehouse Inventory...`} />;
   if (error) return <ErrorDisplay><ErrorMessage message={error} /></ErrorDisplay>;
@@ -36,7 +24,16 @@ const WarehouseInventoryPage = () => {
         <Typography variant="h4">Warehouse Inventory</Typography>
       </Paper>
       
-      {inventories.length > 0 && <WarehouseInventorySummaryCard inventoriesSummary={inventoriesSummary} />}
+      {/* Summary Card with Pagination */}
+      {inventoriesSummary.length > 0 && (
+        <WarehouseInventorySummaryCard
+          inventoriesSummary={inventoriesSummary}
+          summaryPage={summaryPage}
+          totalPages={summaryPagination.totalPages}
+          setSummaryPage={setSummaryPage}
+          refreshSummary={refreshSummary}
+        />
+      )}
       
       {/* Warehouse Inventory Table */}
       <WarehouseInventoryTable
@@ -50,7 +47,7 @@ const WarehouseInventoryPage = () => {
       />
       
       {/* Refresh Button */}
-      <CustomButton onClick={() => refresh()} sx={{ marginTop: 2 }}>Refresh Data</CustomButton>
+      <CustomButton onClick={refresh} sx={{ marginTop: 2 }}>Refresh Data</CustomButton>
     </Box>
   );
 };

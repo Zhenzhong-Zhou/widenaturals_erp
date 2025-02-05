@@ -1,58 +1,98 @@
 import { FC } from 'react';
 import { Link } from 'react-router-dom';
-import Box from '@mui/material/Box';
+import { Box, IconButton } from '@mui/material';
 import { WarehouseInventorySummary } from '../state/warehouseInventoryTypes.ts';
-import { CustomCard, Typography } from '@components/index.ts';
+import { CustomButton, CustomCard, Typography } from '@components/index.ts';
 import { capitalizeFirstLetter, formatCurrency } from '@utils/textUtils.ts';
 import { formatDate } from '@utils/dateTimeUtils.ts';
+import { ArrowBack, ArrowForward, Refresh } from '@mui/icons-material';
 
 interface WarehouseInventorySummaryProps {
   inventoriesSummary: WarehouseInventorySummary[];
+  summaryPage: number;
+  totalPages: number;
+  setSummaryPage: (page: number) => void;
+  refreshSummary: () => void;
 }
 
-const WarehouseInventorySummaryCard: FC<WarehouseInventorySummaryProps> = ({ inventoriesSummary }) => {
+const WarehouseInventorySummaryCard: FC<WarehouseInventorySummaryProps> = ({
+                                                                             inventoriesSummary,
+                                                                             summaryPage,
+                                                                             totalPages,
+                                                                             setSummaryPage,
+                                                                             refreshSummary,
+                                                                           }) => {
   return (
-    <Box sx={{
-      display: 'flex',
-      overflowX: 'auto', // Horizontal scrolling
-      gap: 2,
-      padding: 1,
-      scrollbarWidth: 'thin',
-      '&::-webkit-scrollbar': { height: '6px' }, // Custom scrollbar
-      '&::-webkit-scrollbar-thumb': { backgroundColor: '#ccc', borderRadius: '4px' },
-    }}>
-      {inventoriesSummary.map((summary) => (
-        <CustomCard
-          key={summary.warehouseId}
-          title={
-            <Link
-              to={`/warehouses/${summary.warehouseId}`}
-              style={{ textDecoration: 'none', color: '#1976d2', fontWeight: 'bold' }}
-            >
-              {summary.warehouseName}
-            </Link>
-          }
-          subtitle={`Status: ${capitalizeFirstLetter(summary.status)}`}
-          sx={{
-            minWidth: 250, // Responsive size
-            flex: '0 0 auto', // Prevent shrinking
-            transition: 'transform 0.3s ease-in-out',
-            '&:hover': { transform: 'scale(1.05)', boxShadow: 6 },
-          }}
-        >
-          {/* Main content inside CustomCard */}
-          <Box>
-            <Typography>Total Products: {summary.totalProducts}</Typography>
-            <Typography>Total Lots: {summary.totalLots}</Typography>
-            <Typography>Total Reserved Stock: {summary.totalReservedStock}</Typography>
-            <Typography>Total Available Stock: {summary.totalAvailableStock}</Typography>
-            <Typography>Total Warehouse Fees: {formatCurrency(summary.totalWarehouseFees)}</Typography>
-            <Typography>Latest Inventory Update: {formatDate(summary.lastInventoryUpdate)}</Typography>
-            <Typography>Earliest Expiry: {formatDate(summary.earliestExpiry)}</Typography>
-            <Typography>Latest Expiry: {formatDate(summary.latestExpiry)}</Typography>
-          </Box>
-        </CustomCard>
-      ))}
+    <Box sx={{ position: 'relative', width: '100%', textAlign: 'center' }}>
+      {/* Refresh Data Button */}
+      <CustomButton
+        variant="outlined"
+        startIcon={<Refresh />}
+        onClick={refreshSummary}
+        sx={{ marginBottom: 2, alignSelf: 'center' }}
+      >
+        Refresh Data
+      </CustomButton>
+      
+      {/* Summary Cards */}
+      <Box sx={{
+        display: 'flex',
+        gap: 2,
+        padding: 1,
+        justifyContent: 'center',
+      }}>
+        {inventoriesSummary.map((summary) => (
+          <CustomCard
+            key={summary.warehouseId}
+            title={
+              <Link
+                to={`/warehouses/${summary.warehouseId}`}
+                style={{ textDecoration: 'none', color: '#1976d2', fontWeight: 'bold' }}
+              >
+                {summary.warehouseName}
+              </Link>
+            }
+            subtitle={`Status: ${capitalizeFirstLetter(summary.status)}`}
+            sx={{
+              minWidth: 200,
+              flex: '0 0 auto',
+              padding: 2,
+              transition: 'transform 0.3s ease-in-out',
+              '&:hover': { transform: 'scale(1.05)', boxShadow: 6 },
+            }}
+          >
+            {/* Main content inside CustomCard */}
+            <Box>
+              <Typography variant="body2">Total Products: {summary.totalProducts}</Typography>
+              <Typography variant="body2">Total Lots: {summary.totalLots}</Typography>
+              <Typography variant="body2">Total Reserved Stock: {summary.totalReservedStock}</Typography>
+              <Typography variant="body2">Total Available Stock: {summary.totalAvailableStock}</Typography>
+              <Typography variant="body2">Total Warehouse Fees: {formatCurrency(summary.totalWarehouseFees)}</Typography>
+              <Typography variant="body2">Latest Inventory Update: {formatDate(summary.lastInventoryUpdate)}</Typography>
+              <Typography variant="body2">Earliest Expiry: {formatDate(summary.earliestExpiry)}</Typography>
+              <Typography variant="body2">Latest Expiry: {formatDate(summary.latestExpiry)}</Typography>
+            </Box>
+          </CustomCard>
+        ))}
+      </Box>
+      
+      {/* Pagination Buttons */}
+      {totalPages > 1 && (
+        <Box sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          marginTop: 2,
+          gap: 1,
+        }}>
+          <IconButton onClick={() => setSummaryPage(summaryPage - 1)} disabled={summaryPage === 1}>
+            <ArrowBack />
+          </IconButton>
+          <Typography variant="body2">{`Page ${summaryPage} of ${totalPages}`}</Typography>
+          <IconButton onClick={() => setSummaryPage(summaryPage + 1)} disabled={summaryPage === totalPages}>
+            <ArrowForward />
+          </IconButton>
+        </Box>
+      )}
     </Box>
   );
 };
