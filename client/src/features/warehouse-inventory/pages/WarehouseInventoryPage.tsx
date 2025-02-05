@@ -24,9 +24,9 @@ const WarehouseInventoryPage = () => {
     summaryError,
     refreshSummary
   } = useWarehouseInventoriesSummary(page, limit, '');
-  console.log(inventoriesSummary)
-  if (loading) return <Loading message={`Loading Warehouse Inventory...`}/>;
-  if (error) return <ErrorDisplay><ErrorMessage message={error}/></ErrorDisplay>;
+  
+  if (loading) return <Loading message={`Loading Warehouse Inventory...`} />;
+  if (error) return <ErrorDisplay><ErrorMessage message={error} /></ErrorDisplay>;
   if (!inventories) return <Typography variant={'h4'}>No warehouse inventory found.</Typography>;
   
   return (
@@ -34,13 +34,9 @@ const WarehouseInventoryPage = () => {
       {/* Page Header */}
       <Paper sx={{ padding: 2, marginBottom: 3 }}>
         <Typography variant="h4">Warehouse Inventory</Typography>
-        {inventories.length > 0 && <WarehouseInventorySummaryCard inventoriesSummary={inventoriesSummary} />}
       </Paper>
       
-      {/*{inventories.map((summary) => (*/}
-      {/*  // <WarehouseInventorySummaryCard key={summary.warehouseId} summary={summary} />*/}
-      {/*))}*/}
-      
+      {inventories.length > 0 && <WarehouseInventorySummaryCard inventoriesSummary={inventoriesSummary} />}
       
       {/* Warehouse Inventory Table */}
       <WarehouseInventoryTable
@@ -49,14 +45,12 @@ const WarehouseInventoryPage = () => {
         rowsPerPage={limit}
         totalRecords={pagination.totalRecords}
         totalPages={pagination.totalPages}
-        onPageChange={(newPage) => {setPage(newPage + 1);}}
-        onRowsPerPageChange={(newLimit) => {setLimit(newLimit)}}
+        onPageChange={(newPage) => setPage(newPage + 1)}
+        onRowsPerPageChange={(newLimit) => setLimit(newLimit)}
       />
       
       {/* Refresh Button */}
-      <CustomButton onClick={() => refresh()} sx={{ marginTop: 2 }}>
-        Refresh Data
-      </CustomButton>
+      <CustomButton onClick={() => refresh()} sx={{ marginTop: 2 }}>Refresh Data</CustomButton>
     </Box>
   );
 };
