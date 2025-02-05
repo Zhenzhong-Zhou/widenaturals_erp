@@ -82,20 +82,22 @@ const getWarehouseInventorySummary = async ({ page, limit, statusFilter }) => {
   // Base Query
   const baseQuery = `
     SELECT
-        w.id AS warehouse_id,
-        w.name AS warehouse_name,
-        COALESCE(s.name, 'unknown') AS status_name,
-        COUNT(DISTINCT wi.product_id) AS total_products,
-        COALESCE(SUM(wi.reserved_quantity), 0) AS total_reserved_stock,
-        COALESCE(SUM(wil.quantity), 0) AS total_available_stock,
-        COALESCE(SUM(wi.warehouse_fee), 0) AS total_warehouse_fees,
-        MAX(wi.last_update) AS last_inventory_update,
-        COUNT(DISTINCT wil.lot_number) AS total_lots,
-        MIN(wil.expiry_date) AS earliest_expiry,
-        MAX(wil.expiry_date) AS latest_expiry
+      w.id AS warehouse_id,
+      w.name AS warehouse_name,
+      COALESCE(s.name, 'unknown') AS status_name,
+      COUNT(DISTINCT wi.product_id) AS total_products,
+      COALESCE(SUM(wi.reserved_quantity), 0) AS total_reserved_stock,
+      COALESCE(SUM(CASE WHEN wil.quantity > 0 THEN wil.quantity ELSE 0 END), 0) AS total_available_stock,
+      COALESCE(SUM(wi.warehouse_fee), 0) AS total_warehouse_fees,
+      MAX(wi.last_update) AS last_inventory_update,
+      COUNT(DISTINCT wil.lot_number) AS total_lots,
+      MIN(CASE WHEN wil.quantity > 0 THEN wil.expiry_date ELSE NULL END) AS earliest_expiry,
+      MAX(CASE WHEN wil.quantity > 0 THEN wil.expiry_date ELSE NULL END) AS latest_expiry,
+      COUNT(DISTINCT CASE WHEN wil.quantity = 0 THEN wil.lot_number END) AS total_zero_stock_lots
     FROM ${tableName}
     LEFT JOIN warehouse_inventory wi ON w.id = wi.warehouse_id
-    LEFT JOIN warehouse_inventory_lots wil ON w.id = wil.warehouse_id
+    LEFT JOIN warehouse_inventory_lots wil ON w.id = wil.warehouse_id AND wi.product_id = wil.product_id
+    LEFT JOIN products p ON wi.product_id = p.id
     LEFT JOIN status s ON w.status_id = s.id
     WHERE ${whereClause}
     GROUP BY w.id, w.name, s.name

@@ -61,6 +61,7 @@ const fetchWarehouseInventorySummary = async ({ page, limit, statusFilter = 'act
       totalLots: warehouse.total_lots || 0,
       earliestExpiry: warehouse.earliest_expiry || 'N/A',
       latestExpiry: warehouse.latest_expiry || 'N/A',
+      totalZeroStockLots: warehouse.total_zero_stock_lots || 0,
     }));
     
     return {

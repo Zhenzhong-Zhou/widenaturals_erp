@@ -75,6 +75,24 @@ const getWarehouseInventories = async ({ page, limit, sortBy, sortOrder = 'ASC' 
   }
 };
 
+const getWarehouseProductSummary = async (warehouse_id) => {
+const baseQuery = `
+SELECT
+    p.id AS product_id,
+    p.product_name,
+    SUM(wil.quantity) AS total_available_stock,
+    SUM(wi.reserved_quantity) AS total_reserved_stock
+FROM warehouse_inventory wi
+JOIN warehouse_inventory_lots wil ON wi.warehouse_id = wil.warehouse_id AND wi.product_id = wil.product_id
+JOIN products p ON wi.product_id = p.id
+WHERE wi.warehouse_id = $1
+GROUP BY p.id, p.product_name
+ORDER BY p.product_name
+LIMIT 10 OFFSET 0; -- Pagination applied
+`;
+};
+
 module.exports = {
   getWarehouseInventories,
+  getWarehouseProductSummary,
 };

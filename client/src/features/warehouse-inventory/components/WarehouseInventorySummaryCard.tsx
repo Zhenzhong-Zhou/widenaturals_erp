@@ -62,7 +62,13 @@ const WarehouseInventorySummaryCard: FC<WarehouseInventorySummaryProps> = ({
             }}
           >
             {/* Main content inside CustomCard */}
-            <Box>
+            <Box
+              sx={{
+                textAlign: "left",
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
               <Typography variant="body2">Total Products: {summary.totalProducts}</Typography>
               <Typography variant="body2">Total Lots: {summary.totalLots}</Typography>
               <Typography variant="body2">Total Reserved Stock: {summary.totalReservedStock}</Typography>
@@ -71,6 +77,7 @@ const WarehouseInventorySummaryCard: FC<WarehouseInventorySummaryProps> = ({
               <Typography variant="body2">Latest Inventory Update: {formatDate(summary.lastInventoryUpdate)}</Typography>
               <Typography variant="body2">Earliest Expiry: {formatDate(summary.earliestExpiry)}</Typography>
               <Typography variant="body2">Latest Expiry: {formatDate(summary.latestExpiry)}</Typography>
+              <Typography variant="body2">Total Zero Stock Lots: {summary.totalZeroStockLots}</Typography>
             </Box>
           </CustomCard>
         ))}

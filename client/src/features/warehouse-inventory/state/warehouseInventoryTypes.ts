@@ -41,6 +41,7 @@ export interface WarehouseInventorySummary {
   totalLots: number;
   earliestExpiry: string; // ISO Date String
   latestExpiry: string; // ISO Date String
+  totalZeroStockLots: number;
 }
 
 export interface WarehouseInventorySummaryResponse {
