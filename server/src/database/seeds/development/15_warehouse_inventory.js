@@ -7,7 +7,8 @@ const { fetchDynamicValue } = require('../03_utils');
 exports.seed = async function (knex) {
   console.log('Seeding warehouse inventory data...');
   
-  // Fetch active user ID
+  // Fetch required values dynamically
+  const activeStatusId = await fetchDynamicValue(knex, 'status', 'name', 'active', 'id');
   const adminUserId = await fetchDynamicValue(knex, 'users', 'email', 'admin@example.com', 'id');
   
   // Fetch existing warehouse and product IDs
@@ -31,6 +32,8 @@ exports.seed = async function (knex) {
       reserved_quantity: Math.max(1, Math.floor(Math.random() * 50)),
       warehouse_fee: parseFloat((Math.random() * 50).toFixed(2)),
       last_update: knex.fn.now(),
+      status_id: activeStatusId,
+      status_date: knex.fn.now(),
       created_at: knex.fn.now(),
       updated_at: knex.fn.now(),
       created_by: adminUserId,

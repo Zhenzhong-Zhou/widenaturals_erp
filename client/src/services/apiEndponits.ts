@@ -19,4 +19,5 @@ export const API_ENDPOINTS = {
   ALL_LOCATIONS: '/locations',
   ALL_INVENTORIES: '/inventories',
   ALL_WAREHOUSES: '/warehouses',
+  ALL_WAREHOUSE_INVENTORIES: '/warehouse-inventories',
 };

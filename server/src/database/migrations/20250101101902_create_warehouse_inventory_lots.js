@@ -16,6 +16,7 @@ exports.up = async function (knex) {
     table.timestamp('inbound_date', { useTz: true }).defaultTo(knex.fn.now()).index(); // Actual batch arrival date
     table.timestamp('outbound_date', { useTz: true }).nullable().index(); // Actual batch departure date
     table.uuid('status_id').notNullable().references('id').inTable('status').index();
+    table.timestamp('status_date', { useTz: true }).defaultTo(knex.fn.now());
     table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now()).index();
     table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
     table.uuid('created_by').references('id').inTable('users');
@@ -29,7 +30,7 @@ exports.up = async function (knex) {
   await knex.raw(`
     CREATE INDEX idx_warehouse_inventory_lots_warehouse_product ON warehouse_inventory_lots (warehouse_id, product_id);
     CREATE INDEX idx_warehouse_inventory_lots_lot_number ON warehouse_inventory_lots (lot_number);
-     CREATE INDEX idx_warehouse_inventory_lots_expiry_date ON warehouse_inventory_lots (expiry_date);
+    CREATE INDEX idx_warehouse_inventory_lots_expiry_date ON warehouse_inventory_lots (expiry_date);
     CREATE INDEX idx_warehouse_inventory_lots_inbound_date ON warehouse_inventory_lots (inbound_date);
     CREATE INDEX idx_warehouse_inventory_lots_outbound_date ON warehouse_inventory_lots (outbound_date);
     CREATE INDEX idx_warehouse_inventory_lots_status ON warehouse_inventory_lots (status_id);

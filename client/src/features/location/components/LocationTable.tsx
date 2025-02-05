@@ -37,15 +37,6 @@ const LocationTable: FC<LocationTableProps> = ({
     },
     { id: 'address', label: 'Address', sortable: false },
     {
-      id: 'warehouse_fee',
-      label: 'Warehouse Fee ($)',
-      sortable: true,
-      format: (value: string | number) => {
-        const fee = parseFloat(value as string); // Ensure it's a float
-        return !isNaN(fee) ? fee.toFixed(2) : 'N/A';
-      },
-    },
-    {
       id: 'status_name',
       label: 'Status',
       sortable: true,

@@ -4,7 +4,7 @@ import { RootState } from '../../../store/store.ts';
 /**
  * Select raw inventory state
  */
-const selectInventoryState = (state: RootState) => state.inventory;
+const selectInventoryState = (state: RootState) => state.inventories;
 
 /**
  * Selects the inventory list.

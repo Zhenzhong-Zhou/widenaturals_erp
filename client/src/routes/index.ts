@@ -162,6 +162,15 @@ export const routes = [
     },
   },
   {
+    path: '/warehouse_inventories',
+    component: () => import('../features/warehouse-inventory/pages/WarehouseInventoryPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Warehouse Inventories',
+      showInSidebar: true,
+    },
+  },
+  {
     path: '*',
     component: () => import('../pages/NotFoundPage.tsx'),
     meta: {

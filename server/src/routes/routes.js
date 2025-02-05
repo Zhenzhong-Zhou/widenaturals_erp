@@ -19,6 +19,7 @@ const locationTypeRouts = require('./locations_types');
 const locationRouts = require('./locations');
 const inventoryRouts = require('./inventory');
 const warehouseRouts = require('./warehouses');
+const warehouseInventoryRouts = require('./warehouse-inventory');
 const {
   createApiRateLimiter,
   createCsrfTokenRateLimiter,
@@ -91,5 +92,8 @@ router.use('/inventories', inventoryRouts);
 
 // router.use('/warehouses', authenticate(), warehouseRouts);
 router.use('/warehouses', warehouseRouts);
+
+// router.use('/warehouse-inventories', authenticate(), warehouseInventoryRouts);
+router.use('/warehouse-inventories', warehouseInventoryRouts);
 
 module.exports = router;
