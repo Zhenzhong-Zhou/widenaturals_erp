@@ -9,6 +9,7 @@ import { Link } from 'react-router-dom';
 interface InventoryTableProps {
   data: InventoryItem[];
   page: number;
+  rowsPerPage: number;
   totalRecords: number;
   totalPages: number;
   onPageChange: (newPage: number) => void;
@@ -18,6 +19,7 @@ interface InventoryTableProps {
 const InventoryTable: FC<InventoryTableProps> = ({
                                                    data,
                                                    page,
+                                                   rowsPerPage,
                                                    totalRecords,
                                                    totalPages,
                                                    onPageChange,
@@ -83,6 +85,7 @@ const InventoryTable: FC<InventoryTableProps> = ({
         columns={columns}
         data={data}
         page={page}
+        initialRowsPerPage={rowsPerPage}
         totalRecords={totalRecords}
         totalPages={totalPages}
         onPageChange={onPageChange}

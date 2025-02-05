@@ -1,24 +1,24 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useWarehouseInventories } from '../../../hooks';
 import WarehouseInventoryTable from '../components/WarehouseInventoryTable.tsx';
-import { Box, Paper, Typography } from '@mui/material';
-import { CustomButton } from '@components/index.ts';
+import { Box, Paper } from '@mui/material';
+import { CustomButton, ErrorDisplay, ErrorMessage, Loading, Typography } from '@components/index.ts';
 
 const WarehouseInventoryPage = () => {
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10); // Initial limit: 10 items per page
+  const [limit, setLimit] = useState(10);
   
   const {
     inventories,
     pagination,
     loading,
     error,
-    refresh,
-  } = useWarehouseInventories(page, limit); // Hook with controlled pagination
+    refresh
+  } = useWarehouseInventories(page, limit);
   
-  useEffect(() => {
-    refresh();
-  }, [refresh, page, limit]);
+  if (loading) return <Loading message={`Loading Warehouse Inventory...`}/>;
+  if (error) return <ErrorDisplay><ErrorMessage message={error}/></ErrorDisplay>;
+  if (!inventories) return <Typography variant={'h4'}>No warehouse inventory found.</Typography>;
   
   return (
     <Box sx={{ padding: 3 }}>
@@ -34,11 +34,12 @@ const WarehouseInventoryPage = () => {
       {/* Warehouse Inventory Table */}
       <WarehouseInventoryTable
         data={inventories}
-        page={pagination.page}
+        page={page - 1}
+        rowsPerPage={limit}
         totalRecords={pagination.totalRecords}
         totalPages={pagination.totalPages}
-        onPageChange={(newPage) => setPage(newPage + 1)}
-        onRowsPerPageChange={setLimit}
+        onPageChange={(newPage) => {setPage(newPage + 1);}}
+        onRowsPerPageChange={(newLimit) => {setLimit(newLimit)}}
       />
       
       {/* Refresh Button */}

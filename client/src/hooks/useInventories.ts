@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
 import {
   selectInventories,
@@ -12,14 +12,8 @@ import {
 /**
  * Custom hook for fetching and managing inventory data.
  */
-const useInventories = (initialPage: number = 1, initialLimit: number = 10) => {
+const useInventories = (page: number, limit: number, sortBy: string = 'created_at', sortOrder: string = 'ASC') => {
   const dispatch = useAppDispatch();
-  
-  // Local state for pagination
-  const [page, setPage] = useState<number>(initialPage);
-  const [limit, setLimit] = useState<number>(initialLimit);
-  const [sortBy, setSortBy] = useState<string>('created_at');
-  const [sortOrder, setSortOrder] = useState<string>('ASC');
   
   // Redux state selectors
   const inventories = useAppSelector(selectInventories);
@@ -51,16 +45,8 @@ const useInventories = (initialPage: number = 1, initialLimit: number = 10) => {
     loading,
     error,
     isFetching,
-    page,
-    limit,
-    sortBy,
-    sortOrder,
-    setPage,
-    setLimit,
-    setSortBy,
-    setSortOrder,
     refresh, // Function to refresh inventory data
-  }), [inventories, pagination, loading, error, isFetching, page, limit, sortBy, sortOrder, refresh]);
+  }), [inventories, pagination, loading, error, isFetching, refresh]);
 };
 
 export default useInventories;

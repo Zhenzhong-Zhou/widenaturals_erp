@@ -9,6 +9,7 @@ import { Link } from 'react-router-dom';
 interface LocationTableProps {
   data: Location[];
   page: number;
+  rowsPerPage: number;
   totalRecords: number;
   totalPages: number;
   onPageChange: (newPage: number) => void;
@@ -18,6 +19,7 @@ interface LocationTableProps {
 const LocationTable: FC<LocationTableProps> = ({
                                                  data,
                                                  page = 1,
+                                                 rowsPerPage,
                                                  totalRecords = 0,
                                                  totalPages = 1,
                                                  onPageChange,
@@ -73,6 +75,7 @@ const LocationTable: FC<LocationTableProps> = ({
           columns={columns}
           data={data}
           page={page}
+          initialRowsPerPage={rowsPerPage}
           totalRecords={totalRecords}
           totalPages={totalPages}
           onPageChange={onPageChange}

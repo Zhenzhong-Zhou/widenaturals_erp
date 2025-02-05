@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
 import {
   selectLocationError,
@@ -11,10 +11,8 @@ import {
 /**
  * Custom hook for fetching and managing locations.
  */
-const useLocations = (initialPage: number = 1, initialLimit: number = 10) => {
+const useLocations = (page: number, limit: number) => {
   const dispatch = useAppDispatch();
-  const [page, setPage] = useState(initialPage);
-  const [limit, setLimit] = useState(initialLimit);
   
   // Selectors with memoization
   const locations = useAppSelector(selectLocations);
@@ -44,10 +42,6 @@ const useLocations = (initialPage: number = 1, initialLimit: number = 10) => {
     pagination,
     loading,
     error,
-    page,
-    limit,
-    setPage,
-    setLimit,
     refresh, // Exposed refresh function
   }), [locations, pagination, loading, error, page, limit, refresh]);
 };

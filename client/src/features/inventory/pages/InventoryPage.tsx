@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useInventories } from '../../../hooks';
 import InventoryTable from '../components/InventoryTable.tsx';
 import { Box, Paper } from '@mui/material';
-import { Typography, CustomButton } from '@components/index.ts';
+import { Typography, CustomButton, Loading, ErrorDisplay, ErrorMessage } from '@components/index.ts';
 
 const InventoryPage = () => {
   const [page, setPage] = useState(1);
@@ -16,9 +16,9 @@ const InventoryPage = () => {
     refresh,
   } = useInventories(page, limit); // Pass page & limit to hook
   
-  useEffect(() => {
-    refresh();
-  }, [refresh, page, limit]);
+  if (loading) return <Loading message={'Loading All Inventories...'}/>;
+  if (error) return <ErrorDisplay><ErrorMessage message={error}/></ErrorDisplay>;
+  if (!inventories) return <Typography variant={'h4'}>No inventory found.</Typography>;
   
   return (
     <Box sx={{ padding: 3 }}>
@@ -26,17 +26,20 @@ const InventoryPage = () => {
         <Typography variant="h4">Inventory List</Typography>
       </Paper>
       
-      {loading && <Typography>Loading...</Typography>}
-      {error && <Typography color="error">{error}</Typography>}
-      
       {/* Pass controlled pagination props */}
       <InventoryTable
         data={inventories}
-        page={pagination.page}
+        page={page - 1}
+        rowsPerPage={limit}
         totalRecords={pagination.totalRecords}
         totalPages={pagination.totalPages}
-        onPageChange={(newPage) => setPage(newPage + 1)}
-        onRowsPerPageChange={setLimit}
+        onPageChange={(newPage) => {
+          setPage(newPage + 1);
+        }}
+        onRowsPerPageChange={(newLimit) => {
+          setLimit(newLimit);
+          setPage(1); // Always reset to first page when changing rows per page
+        }}
       />
       
       {/* Refresh Button */}

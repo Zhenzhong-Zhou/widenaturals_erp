@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
 import {
   fetchWarehouseInventories,
@@ -10,23 +10,18 @@ import {
 /**
  * Custom hook to manage warehouse inventories with pagination.
  */
-const useWarehouseInventories = (initialPage: number = 1, initialLimit: number = 10) => {
+const useWarehouseInventories = (page: number, limit: number) => {
   const dispatch = useAppDispatch();
   
-  // Local state for pagination
-  const [page, setPage] = useState<number>(initialPage);
-  const [limit, setLimit] = useState<number>(initialLimit);
-  
-  // Redux state selectors
   const inventories = useAppSelector(selectWarehouseInventories);
   const pagination = useAppSelector(selectWarehouseInventoryPagination);
   const loading = useAppSelector(selectWarehouseInventoryLoading);
   const error = useAppSelector(selectWarehouseInventoryError);
   
-  // Fetch warehouse inventories
+  // Fetch warehouse inventories whenever `page` or `limit` changes
   useEffect(() => {
     dispatch(fetchWarehouseInventories({ page, limit }));
-  }, [dispatch, page, limit]);
+  }, [dispatch, page, limit]); // Ensure it reacts to state changes
   
   // Refresh function
   const refresh = useCallback(() => {
@@ -38,10 +33,6 @@ const useWarehouseInventories = (initialPage: number = 1, initialLimit: number =
     pagination,
     loading,
     error,
-    page,
-    limit,
-    setPage,
-    setLimit,
     refresh,
   }), [inventories, pagination, loading, error, page, limit, refresh]);
 };

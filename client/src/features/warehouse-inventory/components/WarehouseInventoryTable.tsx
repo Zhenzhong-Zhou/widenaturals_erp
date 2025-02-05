@@ -9,6 +9,7 @@ import { Link } from 'react-router-dom';
 interface WarehouseInventoryTableProps {
   data: WarehouseInventory[];
   page: number;
+  rowsPerPage: number,
   totalRecords: number;
   totalPages: number;
   onPageChange: (newPage: number) => void;
@@ -18,6 +19,7 @@ interface WarehouseInventoryTableProps {
 const WarehouseInventoryTable: FC<WarehouseInventoryTableProps> = ({
                                                                      data,
                                                                      page,
+                                                                     rowsPerPage,
                                                                      totalRecords,
                                                                      totalPages,
                                                                      onPageChange,
@@ -82,6 +84,7 @@ const WarehouseInventoryTable: FC<WarehouseInventoryTableProps> = ({
         columns={columns}
         data={data}
         page={page}
+        initialRowsPerPage={rowsPerPage}
         totalRecords={totalRecords}
         totalPages={totalPages}
         onPageChange={onPageChange}
