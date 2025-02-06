@@ -78,7 +78,7 @@ const WarehouseInventoryDetailPage = () => {
         />
       )}
       
-      {/* Inventory Details Table */}
+      {/* Inventory Details Section */}
       <Paper sx={{ padding: 2, marginTop: 3 }}>
         <Typography variant="h5">Product Lots in Warehouse</Typography>
         
@@ -93,8 +93,10 @@ const WarehouseInventoryDetailPage = () => {
         />
       </Paper>
       
-      {/* Refresh Button for Inventory Details */}
-      <CustomButton onClick={refreshWarehouseInventoryDetails} sx={{ marginTop: 2 }}>Refresh Inventory Details</CustomButton>
+      {/* Refresh Button */}
+      <Box sx={{ textAlign: 'center', marginTop: 3 }}>
+        <CustomButton onClick={refreshWarehouseInventoryDetails}>Refresh Inventory Details</CustomButton>
+      </Box>
     </Box>
   );
 };

@@ -21,7 +21,7 @@ const WarehouseProductSummaryCard = ({
                                        refreshSummary,
                                      }: WarehouseProductSummaryProps) => {
   return (
-    <Box sx={{ padding: 3 }}>
+    <Box>
       {/* Page Header */}
       <Paper sx={{ padding: 2, marginBottom: 3 }}>
         <Typography variant="h4">Warehouse Product Summary</Typography>

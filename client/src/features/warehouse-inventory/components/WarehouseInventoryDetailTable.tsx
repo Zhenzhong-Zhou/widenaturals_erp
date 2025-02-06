@@ -41,7 +41,6 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
     lotCreatedBy: row.lotCreated?.by ?? 'Unknown', // Extract "Created By"
     lotCreatedDate: row.lotCreated?.date ?? '', // Extract "Created Date"
   }));
-  console.log("transformedData: ", transformedData)
   
   // Define table columns
   const columns: Column<WarehouseInventoryDetailExtended>[]  = [
