@@ -12,26 +12,26 @@ const useWarehouseProductSummary = (warehouseId: string, initialPage: number = 1
   const dispatch = useAppDispatch();
   
   // Local pagination state
-  const [page, setPage] = useState<number>(initialPage);
-  const [limit, setLimit] = useState<number>(initialLimit);
+  const [productSummaryPage, setProductSummaryPage] = useState<number>(initialPage);
+  const [productSummaryLimit, setProductSummaryLimit] = useState<number>(initialLimit);
   
   // Redux state
   const productSummary = useAppSelector(selectWarehouseProductSummary);
-  const pagination = useAppSelector(selectWarehouseProductPagination);
-  const loading = useAppSelector(selectWarehouseProductLoading);
-  const error = useAppSelector(selectWarehouseProductError);
+  const productSummaryPagination = useAppSelector(selectWarehouseProductPagination);
+  const productSummaryLoading = useAppSelector(selectWarehouseProductLoading);
+  const productSummaryError = useAppSelector(selectWarehouseProductError);
   
   // Fetch data when warehouseId, page, or limit changes
   useEffect(() => {
     if (warehouseId) {
-      dispatch(fetchWarehouseProductSummaryThunk({ warehouseId, page, limit }));
+      dispatch(fetchWarehouseProductSummaryThunk({ warehouseId, productSummaryPage, productSummaryLimit }));
     }
-  }, [dispatch, warehouseId, page, limit]);
+  }, [dispatch, warehouseId, productSummaryPage, productSummaryLimit]);
   
   // Manual refresh function
-  const refresh = useMemo(() => () => {
-    dispatch(fetchWarehouseProductSummaryThunk({ warehouseId, page, limit }));
-  }, [dispatch, warehouseId, page, limit]);
+  const refreshProductSummary = useMemo(() => () => {
+    dispatch(fetchWarehouseProductSummaryThunk({ warehouseId, productSummaryPage, productSummaryLimit }));
+  }, [dispatch, warehouseId, productSummaryPage, productSummaryLimit]);
   
   // Cleanup on unmount
   useEffect(() => {
@@ -42,15 +42,15 @@ const useWarehouseProductSummary = (warehouseId: string, initialPage: number = 1
   
   return useMemo(() => ({
     productSummary,
-    pagination,
-    loading,
-    error,
-    page,
-    limit,
-    setPage,
-    setLimit,
-    refresh,
-  }), [productSummary, pagination, loading, error, page, limit, refresh]);
+    productSummaryPagination,
+    productSummaryLoading,
+    productSummaryError,
+    productSummaryPage,
+    productSummaryLimit,
+    setProductSummaryPage,
+    setProductSummaryLimit,
+    refreshProductSummary,
+  }), [productSummary, productSummaryPagination, productSummaryLoading, productSummaryError, productSummaryPage, productSummaryLimit, refreshProductSummary]);
 };
 
 export default useWarehouseProductSummary;

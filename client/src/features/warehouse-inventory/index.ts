@@ -1,4 +1,4 @@
-export type { WarehouseInventory, Pagination, WarehouseInventoryResponse, WarehouseInventorySummaryResponse, WarehouseProductSummaryResponse, WarehouseInventoryDetailsResponse } from './state/warehouseInventoryTypes.ts';
+export type { WarehouseInventory, Pagination, WarehouseInventoryResponse, WarehouseInventorySummaryResponse, WarehouseProductSummaryResponse, WarehouseInventoryDetailExtended, WarehouseInventoryDetailsResponse } from './state/warehouseInventoryTypes.ts';
 export { fetchWarehouseInventoriesThunk, fetchWarehouseInventorySummaryThunk, fetchWarehouseProductSummaryThunk, fetchWarehouseInventoryDetailsThunk } from './state/warehouseInventoryThunks.ts';
 export { selectWarehouseInventories, selectWarehouseInventoryPagination, selectWarehouseInventoryLoading, selectWarehouseInventoryError } from './state/warehouseInventorySelector.ts';
 export { selectWarehouseProductSummary, selectWarehouseProductLoading, selectWarehouseProductError, selectWarehouseProductPagination } from './state/warehouseProductSelectors.ts';

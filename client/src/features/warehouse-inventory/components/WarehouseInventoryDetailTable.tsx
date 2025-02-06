@@ -1,16 +1,9 @@
 import { FC } from 'react';
 import { Box, Paper, Typography } from '@mui/material';
 import { CustomTable } from '@components/index.ts';
-import { WarehouseInventoryDetail } from '../state/warehouseInventoryTypes.ts';
+import { WarehouseInventoryDetailExtended } from '../state/warehouseInventoryTypes.ts';
 import { capitalizeFirstLetter, formatCurrency } from '@utils/textUtils.ts';
 import { formatDate } from '@utils/dateTimeUtils.ts';
-
-interface WarehouseInventoryDetailExtended extends WarehouseInventoryDetail {
-  lotCreatedBy: string;
-  lotCreatedDate: string;
-  lotUpdatedBy: string;
-  lotUpdatedDate: string;
-}
 
 // Define Column Type explicitly
 interface Column<T> {

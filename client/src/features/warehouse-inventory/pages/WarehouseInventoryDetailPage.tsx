@@ -1,16 +1,16 @@
-import { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { useWarehouseProductSummary } from '../../../hooks';
 import { Box, Paper } from '@mui/material';
-import { CustomCard, Loading, ErrorDisplay, ErrorMessage, Typography, CustomButton } from '@components/index.ts';
-import { formatDate } from '@utils/dateTimeUtils.ts';
+import { CustomButton, ErrorDisplay, ErrorMessage, Loading, Typography } from '@components/index.ts';
+import useWarehouseProductSummary from '../../../hooks/useWarehouseProductSummary.ts';
 import useWarehouseInventoryDetails from '../../../hooks/useWarehouseInventoryDetails.ts';
-import { WarehouseInventoryDetailTable } from '../index.ts';
+import {
+  WarehouseInventoryDetailExtended,
+  WarehouseInventoryDetailTable,
+  WarehouseProductSummaryCard,
+} from '../index.ts';
 
 const WarehouseInventoryDetailPage = () => {
   const { warehouseId } = useParams<{ warehouseId: string }>();
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
   
   if (!warehouseId) {
     return <ErrorDisplay><ErrorMessage message="Warehouse Inventory ID is required." /></ErrorDisplay>;
@@ -19,19 +19,44 @@ const WarehouseInventoryDetailPage = () => {
   // Fetch product summary (overview of all products in warehouse)
   const {
     productSummary,
-    pagination: productPagination,
-    loading: productLoading,
-    error: productError,
-    refresh: refreshProductSummary
-  } = useWarehouseProductSummary(warehouseId, page, limit);
+    productSummaryPagination,
+    productSummaryLoading,
+    productSummaryError,
+    productSummaryPage,
+    setProductSummaryPage,
+    refreshProductSummary,
+  } = useWarehouseProductSummary(warehouseId, 1, 5);
   
+  // Fetch warehouse inventory details (product lots)
   const {
-    inventoryDetails,
-    pagination: detailPagination,
-    // loading: detailLoading,
-    // error: detailError,
-  } = useWarehouseInventoryDetails(warehouseId, page, limit);
-  console.log(productSummary)
+    warehouseInventoryDetails,
+    warehouseInventoryDetailPagination,
+    warehouseInventoryDetailLoading,
+    warehouseInventoryDetailError,
+    warehouseInventoryDetailPage,
+    warehouseInventoryDetailLimit,
+    setWarehouseInventoryDetailPage,
+    setWarehouseInventoryDetailLimit,
+    refreshWarehouseInventoryDetails,
+  } = useWarehouseInventoryDetails(warehouseId, 1, 5);
+  
+  const transformedWarehouseInventoryDetails: WarehouseInventoryDetailExtended[] =
+    warehouseInventoryDetails.map((detail) => ({
+      ...detail,
+      lotCreatedBy: detail.lotCreated.by,
+      lotCreatedDate: detail.lotCreated.date,
+      lotUpdatedBy: detail.lotUpdated.by,
+      lotUpdatedDate: detail.lotUpdated.date,
+    }));
+  
+  if (productSummaryLoading) return <Loading message={`Loading Warehouse Product Summary...`} />;
+  if (productSummaryError) return <ErrorDisplay><ErrorMessage message={productSummaryError} /></ErrorDisplay>;
+  if (!productSummary) return <Typography variant={'h4'}>No warehouse product found.</Typography>;
+  
+  if (warehouseInventoryDetailLoading) return <Loading message={`Loading Warehouse Inventory Details...`} />;
+  if (warehouseInventoryDetailError) return <ErrorDisplay><ErrorMessage message={warehouseInventoryDetailError} /></ErrorDisplay>;
+  if (!warehouseInventoryDetails) return <Typography variant={'h4'}>No warehouse inventory records found.</Typography>;
+  
   return (
     <Box sx={{ padding: 3 }}>
       {/* Page Header */}
@@ -42,50 +67,34 @@ const WarehouseInventoryDetailPage = () => {
         </Typography>
       </Paper>
       
-      {/* Loading & Error Handling for Product Summary */}
-      {productLoading && <Loading message="Loading product summary..." />}
-      {productError && <ErrorDisplay><ErrorMessage message={productError} /></ErrorDisplay>}
-      
-      {/* Product Summary Cards */}
+      {/* Product Summary Section */}
       {productSummary.length > 0 && (
-        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 2 }}>
-          {productSummary.map((product) => (
-            <CustomCard
-              key={product.productId}
-              title={product.productName}
-              subtitle={`Total Lots: ${product.totalLots}`}
-              sx={{ minWidth: 250 }}
-            >
-              <Typography variant="body2">Reserved Stock: {product.totalReservedStock}</Typography>
-              <Typography variant="body2">Available Stock: {product.totalAvailableStock}</Typography>
-              <Typography variant="body2">Zero Stock Lots: {product.totalZeroStockLots}</Typography>
-              <Typography variant="body2">Earliest Expiry: {formatDate(product.earliestExpiry)}</Typography>
-              <Typography variant="body2">Latest Expiry: {formatDate(product.latestExpiry)}</Typography>
-            </CustomCard>
-          ))}
-        </Box>
+        <WarehouseProductSummaryCard
+          productsSummary={productSummary}
+          summaryPage={productSummaryPage}
+          totalPages={productSummaryPagination.totalPages}
+          setSummaryPage={setProductSummaryPage}
+          refreshSummary={refreshProductSummary}
+        />
       )}
       
-      {/* Refresh Button for Product Summary */}
-      <CustomButton onClick={refreshProductSummary} sx={{ marginTop: 2 }}>Refresh Product Summary</CustomButton>
-      
-      {/* Product Lots Table */}
+      {/* Inventory Details Table */}
       <Paper sx={{ padding: 2, marginTop: 3 }}>
         <Typography variant="h5">Product Lots in Warehouse</Typography>
         
         <WarehouseInventoryDetailTable
-          data={inventoryDetails}
-          page={page - 1}
-          rowsPerPage={limit}
-          totalRecords={detailPagination.totalRecords}
-          totalPages={detailPagination.totalPages}
-          onPageChange={(newPage) => setPage(newPage + 1)}
-          onRowsPerPageChange={(newLimit) => setLimit(newLimit)}
+          data={transformedWarehouseInventoryDetails}
+          page={warehouseInventoryDetailPage - 1}
+          rowsPerPage={warehouseInventoryDetailLimit}
+          totalRecords={warehouseInventoryDetailPagination.totalRecords}
+          totalPages={warehouseInventoryDetailPagination.totalPages}
+          onPageChange={(newPage) => setWarehouseInventoryDetailPage(newPage + 1)}
+          onRowsPerPageChange={(newLimit) => setWarehouseInventoryDetailLimit(newLimit)}
         />
       </Paper>
       
-      {/* Refresh Button for Product Lots */}
-      {/*<Button onClick={refreshInventoryLots} sx={{ marginTop: 2 }}>Refresh Inventory Lots</Button>*/}
+      {/* Refresh Button for Inventory Details */}
+      <CustomButton onClick={refreshWarehouseInventoryDetails} sx={{ marginTop: 2 }}>Refresh Inventory Details</CustomButton>
     </Box>
   );
 };

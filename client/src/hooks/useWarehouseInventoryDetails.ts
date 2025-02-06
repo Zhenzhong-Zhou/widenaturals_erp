@@ -12,37 +12,37 @@ const useWarehouseInventoryDetails = (warehouseId: string, initialPage: number =
   const dispatch = useAppDispatch();
   
   // Local pagination state
-  const [page, setPage] = useState<number>(initialPage);
-  const [limit, setLimit] = useState<number>(initialLimit);
+  const [warehouseInventoryDetailPage, setWarehouseInventoryDetailPage] = useState<number>(initialPage);
+  const [warehouseInventoryDetailLimit, setWarehouseInventoryDetailLimit] = useState<number>(initialLimit);
   
   // Redux state selectors
-  const inventoryDetails = useAppSelector(selectWarehouseInventoryDetails);
-  const pagination = useAppSelector(selectWarehouseInventoryDetailPagination);
-  const loading = useAppSelector(selectWarehouseInventoryDetailLoading);
-  const error = useAppSelector(selectWarehouseInventoryDetailError);
-  console.log('useWarehouseInventoryDetails', inventoryDetails);
+  const warehouseInventoryDetails = useAppSelector(selectWarehouseInventoryDetails);
+  const warehouseInventoryDetailPagination = useAppSelector(selectWarehouseInventoryDetailPagination);
+  const warehouseInventoryDetailLoading = useAppSelector(selectWarehouseInventoryDetailLoading);
+  const warehouseInventoryDetailError = useAppSelector(selectWarehouseInventoryDetailError);
+  
   // Fetch warehouse inventory details on mount & when dependencies change
   useEffect(() => {
     if (warehouseId) {
-      dispatch(fetchWarehouseInventoryDetailsThunk({ warehouseId, page, limit }));
+      dispatch(fetchWarehouseInventoryDetailsThunk({ warehouseId, warehouseInventoryDetailPage, warehouseInventoryDetailLimit }));
     }
-  }, [dispatch, warehouseId, page, limit]);
+  }, [dispatch, warehouseId, warehouseInventoryDetailPage, warehouseInventoryDetailLimit]);
   
   // Manual refresh function
-  const refresh = () => {
-    dispatch(fetchWarehouseInventoryDetailsThunk({ warehouseId, page, limit }));
+  const refreshWarehouseInventoryDetails = () => {
+    dispatch(fetchWarehouseInventoryDetailsThunk({ warehouseId, warehouseInventoryDetailPage, warehouseInventoryDetailLimit }));
   };
   
   return {
-    inventoryDetails,
-    pagination,
-    loading,
-    error,
-    page,
-    limit,
-    setPage,
-    setLimit,
-    refresh,
+    warehouseInventoryDetails,
+    warehouseInventoryDetailPagination,
+    warehouseInventoryDetailLoading,
+    warehouseInventoryDetailError,
+    warehouseInventoryDetailPage,
+    warehouseInventoryDetailLimit,
+    setWarehouseInventoryDetailPage,
+    setWarehouseInventoryDetailLimit,
+    refreshWarehouseInventoryDetails,
   };
 };
 
