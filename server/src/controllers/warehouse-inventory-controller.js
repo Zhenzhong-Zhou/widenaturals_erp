@@ -1,4 +1,4 @@
-const { fetchAllWarehouseInventories, fetchWarehouseProductSummary } = require('../services/warehouse-inventory-service');
+const { fetchAllWarehouseInventories, fetchWarehouseProductSummary, fetchWarehouseInventoryDetailsByWarehouseId } = require('../services/warehouse-inventory-service');
 const { logError } = require('../utils/logger-helper');
 const wrapAsync = require('../utils/wrap-async');
 
@@ -66,12 +66,12 @@ const getWarehouseInventoryByWarehouse = async (req, res, next) => {
  */
 const getWarehouseProductSummaryController = wrapAsync(async (req, res, next) => {
     try {
-      const { warehouseId } = req.params; // Get warehouse ID from URL params
+      const { warehouse_id } = req.params; // Get warehouse ID from URL params
       const page = parseInt(req.query.page, 10) || 1;
       const limit = parseInt(req.query.limit, 10) || 10;
       
       // Call the service function
-      const { productSummaryData, pagination } = await fetchWarehouseProductSummary(warehouseId, page, limit);
+      const { productSummaryData, pagination } = await fetchWarehouseProductSummary(warehouse_id, page, limit);
       
       // Return the response
       return res.status(200).json({
@@ -87,8 +87,33 @@ const getWarehouseProductSummaryController = wrapAsync(async (req, res, next) =>
   }
 );
 
+/**
+ * Controller to get warehouse inventory details by warehouse ID.
+ * @route GET /api/warehouse-inventory/:warehouse_id
+ * @access Protected
+ */
+ const getWarehouseInventoryDetailsController = wrapAsync(async (req, res) => {
+  const { warehouse_id } = req.params;
+  const { page = 1, limit = 10 } = req.query; // Default pagination values
+  
+  // Fetch inventory details from service
+  const { inventoryDetails, pagination } = await fetchWarehouseInventoryDetailsByWarehouseId(
+    warehouse_id,
+    parseInt(page, 10),
+    parseInt(limit, 10)
+  );
+  
+  // Send JSON response
+  res.status(200).json({
+    success: true,
+    message: 'Warehouse inventory details retrieved successfully.',
+    inventoryDetails,
+    pagination,
+  });
+});
+
 module.exports = {
   getAllWarehouseInventoriesController,
-  getWarehouseInventoryByWarehouse,
   getWarehouseProductSummaryController,
+  getWarehouseInventoryDetailsController,
 };

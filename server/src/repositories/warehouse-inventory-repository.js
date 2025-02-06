@@ -130,7 +130,78 @@ const getWarehouseProductSummary = async ({ warehouse_id, page = 1, limit = 10 }
   }
 };
 
+const getWarehouseInventoryDetailsByWarehouseId = async ({ warehouse_id, page, limit }) => {
+  const tableName = 'warehouse_inventory wi';
+  
+  const joins = [
+    'JOIN warehouses w ON wi.warehouse_id = w.id',
+    'JOIN products p ON wi.product_id = p.id',
+    'LEFT JOIN warehouse_inventory_lots wil ON wi.product_id = wil.product_id AND wi.warehouse_id = wil.warehouse_id',
+    'LEFT JOIN warehouse_lot_status ws ON wil.status_id = ws.id',
+    'LEFT JOIN users u1 ON wi.created_by = u1.id',
+    'LEFT JOIN users u2 ON wi.updated_by = u2.id',
+    'LEFT JOIN users u3 ON wil.created_by = u3.id',
+    'LEFT JOIN users u4 ON wil.updated_by = u4.id'
+  ];
+  
+  const whereClause = 'wi.warehouse_id = $1';
+  
+  // Sorting
+  const defaultSort = 'p.product_name, wil.expiry_date';
+  
+  const baseQuery = `
+    SELECT
+        wi.id AS warehouse_inventory_id,
+        p.id AS product_id,
+        p.product_name,
+        wil.lot_number,
+        COALESCE(wil.quantity, 0) AS lot_quantity,
+        COALESCE(wi.reserved_quantity, 0) AS reserved_stock,
+        COALESCE(wi.warehouse_fee, 0) AS warehouse_fees,
+        COALESCE(ws.name, 'Unknown') AS lot_status,
+        wil.manufacture_date,
+        wil.expiry_date,
+        wil.inbound_date,
+        wil.outbound_date,
+        wi.last_update,
+        wi.created_at AS inventory_created_at,
+        wi.updated_at AS inventory_updated_at,
+        
+        COALESCE(u1.firstname, '') || ' ' || COALESCE(u1.lastname, 'Unknown') AS inventory_created_by,
+        COALESCE(u2.firstname, '') || ' ' || COALESCE(u2.lastname, 'Unknown') AS inventory_updated_by,
+    
+        wil.created_at AS lot_created_at,
+        wil.updated_at AS lot_updated_at,
+        COALESCE(u3.firstname, '') || ' ' || COALESCE(u3.lastname, 'Unknown') AS lot_created_by,
+        COALESCE(u4.firstname, '') || ' ' || COALESCE(u4.lastname, 'Unknown') AS lot_updated_by
+    FROM ${tableName}
+    ${joins.join(' ')}
+    WHERE ${whereClause}
+  `;
+  
+  try {
+    // Use pagination if required
+    return await retry(async () => {
+      return await paginateQuery({
+        tableName,
+        joins,
+        whereClause,
+        queryText: baseQuery,
+        params: [warehouse_id],
+        page,
+        limit,
+        sortBy: defaultSort,
+        sortOrder: 'ASC',
+      });
+    });
+  } catch (error) {
+    logError(`Error fetching warehouse inventory details (page: ${page}, limit: ${limit}):`, error);
+    throw new AppError('Failed to fetch warehouse inventory details.');
+  }
+};
+
 module.exports = {
   getWarehouseInventories,
   getWarehouseProductSummary,
+  getWarehouseInventoryDetailsByWarehouseId,
 };

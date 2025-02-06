@@ -71,3 +71,35 @@ export interface WarehouseProductSummaryResponse {
   productSummaryData: WarehouseProductSummary[];
   pagination: Pagination;
 }
+
+export interface InventoryCreatedUpdatedInfo {
+  date: string;
+  by: string;
+}
+
+export interface WarehouseInventoryDetail {
+  warehouseInventoryId: string;
+  productId: string;
+  productName: string;
+  lotNumber: string;
+  lotQuantity: number;
+  reservedStock: number;
+  warehouseFees: string;
+  lotStatus: string;
+  manufactureDate: string;
+  expiryDate: string;
+  inboundDate: string;
+  outboundDate: string | null;
+  lastUpdate: string;
+  inventoryCreated: InventoryCreatedUpdatedInfo;
+  inventoryUpdated: InventoryCreatedUpdatedInfo;
+  lotCreated: InventoryCreatedUpdatedInfo;
+  lotUpdated: InventoryCreatedUpdatedInfo;
+}
+
+export interface WarehouseInventoryDetailsResponse {
+  success: boolean;
+  message: string;
+  inventoryDetails: WarehouseInventoryDetail[];
+  pagination: Pagination;
+}

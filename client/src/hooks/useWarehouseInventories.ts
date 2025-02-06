@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
 import {
-  fetchWarehouseInventories,
+  fetchWarehouseInventoriesThunk,
   selectWarehouseInventories, selectWarehouseInventoryError,
   selectWarehouseInventoryLoading,
   selectWarehouseInventoryPagination,
@@ -20,12 +20,12 @@ const useWarehouseInventories = (page: number, limit: number) => {
   
   // Fetch warehouse inventories whenever `page` or `limit` changes
   useEffect(() => {
-    dispatch(fetchWarehouseInventories({ page, limit }));
+    dispatch(fetchWarehouseInventoriesThunk({ page, limit }));
   }, [dispatch, page, limit]); // Ensure it reacts to state changes
   
   // Refresh function
   const refresh = useCallback(() => {
-    dispatch(fetchWarehouseInventories({ page, limit }));
+    dispatch(fetchWarehouseInventoriesThunk({ page, limit }));
   }, [dispatch, page, limit]);
   
   return useMemo(() => ({

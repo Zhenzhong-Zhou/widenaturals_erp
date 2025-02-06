@@ -1,14 +1,20 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useWarehouseProductSummary } from '../../../hooks';
-import { Box, Paper, Typography, Button } from '@mui/material';
-import { CustomTable, CustomCard, Loading, ErrorDisplay, ErrorMessage } from '@components/index.ts';
+import { Box, Paper } from '@mui/material';
+import { CustomCard, Loading, ErrorDisplay, ErrorMessage, Typography, CustomButton } from '@components/index.ts';
 import { formatDate } from '@utils/dateTimeUtils.ts';
+import useWarehouseInventoryDetails from '../../../hooks/useWarehouseInventoryDetails.ts';
+import { WarehouseInventoryDetailTable } from '../index.ts';
 
 const WarehouseInventoryDetailPage = () => {
-  const { warehouseId } = useParams<{ warehouseId: string }>(); // Get warehouse ID from URL params
+  const { warehouseId } = useParams<{ warehouseId: string }>();
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  
+  if (!warehouseId) {
+    return <ErrorDisplay><ErrorMessage message="Warehouse Inventory ID is required." /></ErrorDisplay>;
+  }
   
   // Fetch product summary (overview of all products in warehouse)
   const {
@@ -19,13 +25,20 @@ const WarehouseInventoryDetailPage = () => {
     refresh: refreshProductSummary
   } = useWarehouseProductSummary(warehouseId, page, limit);
   
+  const {
+    inventoryDetails,
+    pagination: detailPagination,
+    // loading: detailLoading,
+    // error: detailError,
+  } = useWarehouseInventoryDetails(warehouseId, page, limit);
+  console.log(productSummary)
   return (
     <Box sx={{ padding: 3 }}>
       {/* Page Header */}
       <Paper sx={{ padding: 2, marginBottom: 3 }}>
         <Typography variant="h4">Warehouse Inventory Detail</Typography>
         <Typography variant="h6" color="textSecondary">
-          Warehouse ID: {warehouseId}
+          Warehouse Name: {warehouseId}
         </Typography>
       </Paper>
       
@@ -54,33 +67,21 @@ const WarehouseInventoryDetailPage = () => {
       )}
       
       {/* Refresh Button for Product Summary */}
-      <Button onClick={refreshProductSummary} sx={{ marginTop: 2 }}>Refresh Product Summary</Button>
+      <CustomButton onClick={refreshProductSummary} sx={{ marginTop: 2 }}>Refresh Product Summary</CustomButton>
       
       {/* Product Lots Table */}
       <Paper sx={{ padding: 2, marginTop: 3 }}>
         <Typography variant="h5">Product Lots in Warehouse</Typography>
         
-        {/*/!* Loading & Error Handling for Product Lots *!/*/}
-        {/*{lotsLoading && <Loading message="Loading product lots..." />}*/}
-        {/*{lotsError && <ErrorDisplay><ErrorMessage message={lotsError} /></ErrorDisplay>}*/}
-        
-        {/*<CustomTable*/}
-        {/*  columns={[*/}
-        {/*    { id: 'lotNumber', label: 'Lot Number', sortable: true },*/}
-        {/*    { id: 'productName', label: 'Product Name', sortable: true },*/}
-        {/*    { id: 'quantity', label: 'Quantity', sortable: true },*/}
-        {/*    { id: 'reservedQuantity', label: 'Reserved Stock', sortable: true },*/}
-        {/*    { id: 'expiryDate', label: 'Expiry Date', sortable: true, format: (value) => formatDate(value) },*/}
-        {/*    { id: 'status', label: 'Status', sortable: true }*/}
-        {/*  ]}*/}
-        {/*  data={inventoryLots}*/}
-        {/*  page={page - 1}*/}
-        {/*  rowsPerPage={limit}*/}
-        {/*  totalRecords={lotsPagination.totalRecords}*/}
-        {/*  totalPages={lotsPagination.totalPages}*/}
-        {/*  onPageChange={(newPage) => setPage(newPage + 1)}*/}
-        {/*  onRowsPerPageChange={(newLimit) => setLimit(newLimit)}*/}
-        {/*/>*/}
+        <WarehouseInventoryDetailTable
+          data={inventoryDetails}
+          page={page - 1}
+          rowsPerPage={limit}
+          totalRecords={detailPagination.totalRecords}
+          totalPages={detailPagination.totalPages}
+          onPageChange={(newPage) => setPage(newPage + 1)}
+          onRowsPerPageChange={(newLimit) => setLimit(newLimit)}
+        />
       </Paper>
       
       {/* Refresh Button for Product Lots */}

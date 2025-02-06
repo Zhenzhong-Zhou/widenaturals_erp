@@ -1,6 +1,6 @@
 import axiosInstance from '@utils/axiosConfig.ts';
 import { API_ENDPOINTS } from './apiEndponits.ts';
-import { WarehouseInventoryResponse, WarehouseInventorySummaryResponse, WarehouseProductSummaryResponse } from '../features/warehouse-inventory';
+import { WarehouseInventoryResponse, WarehouseInventorySummaryResponse, WarehouseProductSummaryResponse, WarehouseInventoryDetailsResponse } from '../features/warehouse-inventory';
 import { AppError } from '@utils/AppError.tsx';
 
 /**
@@ -95,9 +95,27 @@ export const fetchWarehouseProductSummary = async (
   }
 };
 
+export const fetchWarehouseInventoryDetails = async (
+  warehouseId: string,
+  page: number = 1,
+  limit: number = 10
+): Promise<WarehouseInventoryDetailsResponse> => {
+  try {
+    const endpoint = API_ENDPOINTS.WAREHOUSE_INVENTORY_DETAILS.replace(':id', warehouseId);
+    const response = await axiosInstance.get<WarehouseInventoryDetailsResponse>(
+      `${endpoint}?page=${page}&limit=${limit}`
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching warehouse inventory details:', error);
+    throw new AppError('Failed to fetch warehouse inventory details. Please try again later.');
+  }
+};
+
 // Export the service
 export const warehouseInventoryService = {
   fetchAllWarehouseInventories,
   fetchWarehouseInventorySummary,
   fetchWarehouseProductSummary,
+  fetchWarehouseInventoryDetails,
 };

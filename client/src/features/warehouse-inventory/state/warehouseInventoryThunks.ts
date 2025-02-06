@@ -1,6 +1,7 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { warehouseInventoryService } from '../../../services';
 import {
+  WarehouseInventoryDetailsResponse,
   WarehouseInventoryResponse,
   WarehouseInventorySummaryResponse,
   WarehouseProductSummaryResponse,
@@ -9,7 +10,7 @@ import {
 /**
  * Thunk to fetch warehouse inventories with pagination
  */
-export const fetchWarehouseInventories = createAsyncThunk<
+export const fetchWarehouseInventoriesThunk = createAsyncThunk<
   WarehouseInventoryResponse,
   { page: number; limit: number },
   { rejectValue: string }
@@ -62,6 +63,21 @@ export const fetchWarehouseProductSummaryThunk = createAsyncThunk<
     } catch (error) {
       console.error('Failed to fetch warehouse products summary:', error);
       return rejectWithValue('Failed to fetch warehouse products summary. Please try again.');
+    }
+  }
+);
+
+export const fetchWarehouseInventoryDetailsThunk = createAsyncThunk<
+  WarehouseInventoryDetailsResponse,
+  { warehouseId: string; page?: number; limit?: number }
+>(
+  'warehouseInventory/fetchDetails',
+  async ({ warehouseId, page = 1, limit = 10 }, { rejectWithValue }) => {
+    try {
+      return await warehouseInventoryService.fetchWarehouseInventoryDetails(warehouseId, page, limit);
+    } catch (error) {
+      console.error('Failed to fetch warehouse inventory details:', error);
+      return rejectWithValue('Failed to fetch warehouse inventory details. Please try again.');
     }
   }
 );

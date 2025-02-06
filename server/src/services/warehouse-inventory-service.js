@@ -1,4 +1,4 @@
-const { getWarehouseInventories, getWarehouseProductSummary } = require('../repositories/warehouse-inventory-repository');
+const { getWarehouseInventories, getWarehouseProductSummary, getWarehouseInventoryDetailsByWarehouseId } = require('../repositories/warehouse-inventory-repository');
 const AppError = require('../utils/AppError');
 const { logError } = require('../utils/logger-helper');
 
@@ -107,8 +107,72 @@ const fetchWarehouseProductSummary = async (warehouseId, page = 1, limit = 10) =
   }
 };
 
+/**
+ * Fetches warehouse inventory details by warehouse ID with pagination.
+ *
+ * @param {string} warehouse_id - The UUID of the warehouse.
+ * @param {number} page - The page number for pagination.
+ * @param {number} limit - The number of records per page.
+ * @returns {Promise<object>} - Returns formatted warehouse inventory details with pagination.
+ */
+const fetchWarehouseInventoryDetailsByWarehouseId = async (warehouse_id, page = 1, limit = 10) => {
+  try {
+    if (!warehouse_id) {
+      throw new AppError('Warehouse ID is required.', 400);
+    }
+    
+    // Fetch paginated inventory details from the repository
+    const { data, pagination } = await getWarehouseInventoryDetailsByWarehouseId({
+      warehouse_id,
+      page,
+      limit,
+    });
+    
+    // Transform the data if needed (e.g., formatting dates, structuring response)
+    const inventoryDetails = data.map(item => ({
+      warehouseInventoryId: item.warehouse_inventory_id,
+      productId: item.product_id,
+      productName: item.product_name,
+      lotNumber: item.lot_number,
+      lotQuantity: item.lot_quantity,
+      reservedStock: item.reserved_stock,
+      warehouseFees: item.warehouse_fees,
+      lotStatus: item.lot_status || 'Unknown',
+      manufactureDate: item.manufacture_date,
+      expiryDate: item.expiry_date,
+      inboundDate: item.inbound_date,
+      outboundDate: item.outbound_date,
+      lastUpdate: item.last_update,
+      
+      inventoryCreated: {
+        date: item.inventory_created_at,
+        by: item.inventory_created_by,
+      },
+      inventoryUpdated: {
+        date: item.inventory_updated_at,
+        by: item.inventory_updated_by,
+      },
+      lotCreated: {
+        date: item.lot_created_at,
+        by: item.lot_created_by,
+      },
+      lotUpdated: {
+        date: item.lot_updated_at,
+        by: item.lot_updated_by,
+      }
+    }));
+    
+    return {
+      inventoryDetails,
+      pagination,
+    };
+  } catch (error) {
+    throw new AppError(error.message || 'Failed to retrieve warehouse inventory details.', error.statusCode || 500);
+  }
+};
+
 module.exports = {
   fetchAllWarehouseInventories,
-  fetchWarehouseInventoryByWarehouse,
   fetchWarehouseProductSummary,
+  fetchWarehouseInventoryDetailsByWarehouseId,
 };

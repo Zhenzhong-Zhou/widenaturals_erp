@@ -1,5 +1,7 @@
 const express = require('express');
-const { getAllWarehouseInventoriesController, getWarehouseProductSummaryController } = require('../controllers/warehouse-inventory-controller');
+const { getAllWarehouseInventoriesController, getWarehouseProductSummaryController,
+  getWarehouseInventoryDetailsController
+} = require('../controllers/warehouse-inventory-controller');
 
 const router = express.Router();
 
@@ -7,10 +9,17 @@ const router = express.Router();
 router.get('/', getAllWarehouseInventoriesController);
 
 /**
- * @route GET /warehouse-inventories/:warehouseId/products-summary
+ * @route GET /warehouse-inventories/:warehouse_id/products-summary
  * @desc Get warehouse product summary with pagination
  * @access Private
  */
-router.get('/:warehouseId/products-summary', getWarehouseProductSummaryController);
+router.get('/:warehouse_id/products-summary', getWarehouseProductSummaryController);
+
+/**
+ * @route GET /api/warehouse-inventory/:warehouse_id
+ * @desc Get inventory details for a specific warehouse
+ * @access Protected
+ */
+router.get('/:warehouse_id', getWarehouseInventoryDetailsController);
 
 module.exports = router;

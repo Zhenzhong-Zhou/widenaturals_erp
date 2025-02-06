@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { fetchWarehouseInventories } from './warehouseInventoryThunks.ts';
+import { fetchWarehouseInventoriesThunk } from './warehouseInventoryThunks.ts';
 import {
   WarehouseInventoryResponse,
   WarehouseInventory,
@@ -33,16 +33,16 @@ const warehouseInventorySlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchWarehouseInventories.pending, (state) => {
+      .addCase(fetchWarehouseInventoriesThunk.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchWarehouseInventories.fulfilled, (state, action: PayloadAction<WarehouseInventoryResponse>) => {
+      .addCase(fetchWarehouseInventoriesThunk.fulfilled, (state, action: PayloadAction<WarehouseInventoryResponse>) => {
         state.inventories = action.payload.inventories;
         state.pagination = action.payload.pagination;
         state.loading = false;
       })
-      .addCase(fetchWarehouseInventories.rejected, (state, action: PayloadAction<string | undefined>) => {
+      .addCase(fetchWarehouseInventoriesThunk.rejected, (state, action: PayloadAction<string | undefined>) => {
         state.loading = false;
         state.error = action.payload || 'Failed to load warehouse inventories';
       });
