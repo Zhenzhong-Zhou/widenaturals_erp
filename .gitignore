@@ -31,6 +31,10 @@ env/
 .dockerignore
 pgdata/
 
+# nginx
+ssl
+nginx.conf
+
 # OS-specific files
 .DS_Store
 Thumbs.db

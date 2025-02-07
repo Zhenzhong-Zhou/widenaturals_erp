@@ -270,6 +270,7 @@ npx knex seed:make seed_name
 2. **Start the containers (without rebuild)**:
    ```bash
    docker compose up
+   docker compose up -d
    ```
 3. **Run the development environment in Docker**:
    ```bash
@@ -278,6 +279,7 @@ npx knex seed:make seed_name
 4. **Rebuild Docker Containers**
    ```bash
        docker compose down
+       docker compose down -v
    ```
 
 ---
