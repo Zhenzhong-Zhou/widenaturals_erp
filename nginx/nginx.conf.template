@@ -1,0 +1,59 @@
+worker_processes auto;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    include /etc/nginx/mime.types;
+    sendfile on;
+
+    # Enable Gzip Compression
+    gzip on;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
+    gzip_vary on;
+
+    server {
+        listen 80;
+        server_name ${NGINX_SERVER_NAME};
+
+        location / {
+            proxy_pass http://${FRONTEND_HOST}:${FRONTEND_PORT}/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+
+            # Enable caching for static files
+            location ~* \.(?:ico|css|js|gif|jpe?g|png|woff2?|eot|ttf|svg|mp4|webm|ogg|ogv|webp|avif)$ {
+                expires max;
+                log_not_found off;
+                access_log off;
+            }
+        }
+
+        location /${API_NAME} {
+            proxy_pass http://${BACKEND_HOST}:${BACKEND_PORT}/${API_NAME};
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+
+            # Security: Allow only specific methods
+            add_header Access-Control-Allow-Origin *;
+            add_header Access-Control-Allow-Methods "GET, POST, OPTIONS, PUT, DELETE";
+            add_header Access-Control-Allow-Headers "Authorization, Content-Type";
+
+            # Handle CORS preflight requests
+            if ($request_method = OPTIONS) {
+                return 204;
+            }
+        }
+
+        # Prevent Slow Clients from Wasting Resources
+        client_body_timeout 10s;
+        client_header_timeout 10s;
+        keepalive_timeout 30s;
+        send_timeout 10s;
+    }
+}

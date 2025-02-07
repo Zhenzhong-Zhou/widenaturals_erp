@@ -1,5 +1,5 @@
 # Dockerfile for the server
-FROM node:23.0-alpine
+FROM node:20-bullseye
 
 # Set working directory
 WORKDIR /app
@@ -26,55 +26,40 @@ CMD ["npm", "start"]
 
 # Dockerfile for the client
 # Development stage
-FROM node:23.0-alpine
+FROM node:20-bullseye
 
-# Set working directory
 WORKDIR /app
 
-# Copy package.json and install dependencies
-COPY package*.json ./
+# Copy package.json and package-lock.json first to leverage Docker cache
+COPY ./client/package*.json ./
 
-# Install dependencies
 RUN npm install
 
-# Copy the rest of the app
-COPY . .
+# Copy the entire client directory, ensuring tsconfig.json is included
+COPY ./client /app
 
-# Expose the development server port
-EXPOSE 3000
+# Ensure the frontend is built
+RUN npm run build
 
-# Start the React development server
+EXPOSE 5175
+
 CMD ["npm", "start"]
 
-# Base stage
-FROM node:22.12.0-alpine AS base
-WORKDIR /app
-COPY package*.json ./
-RUN npm install
-
-# Build stage (for React apps)
-FROM base AS build
-COPY . .
-RUN if [ -f "package.json" ] && grep -q '"build":' package.json; then npm run build; else mkdir build && echo "Skipping build step (no React app detected)."; fi
-
-# Final stage (for running Express server)
-FROM node:22.12.0-alpine AS server
-WORKDIR /app
-COPY --from=base /app/node_modules ./node_modules
-COPY --from=build /app/build ./build
-COPY . .
-EXPOSE 8082
-CMD ["node", "server.js"]
-
-# Serve stage
+# Use lightweight Nginx image
 FROM nginx:stable-alpine
+
+# Set working directory to Nginx default HTML folder
 WORKDIR /usr/share/nginx/html
 
-# Copy built files from the build stage
-COPY --from=build /app/build .
+# Copy built frontend files from the client build stage
+COPY ./client/dist .
 
-# Expose the port for the static files
+# Copy custom Nginx configuration
+COPY ./nginx/nginx.conf /etc/nginx/nginx.conf
+CMD envsubst < /etc/nginx/nginx.conf > /etc/nginx/nginx.conf && nginx -g "daemon off;"
+
+# Expose HTTP port
 EXPOSE 80
 
-# Start the Nginx server
+# Start Nginx
 CMD ["nginx", "-g", "daemon off;"]
