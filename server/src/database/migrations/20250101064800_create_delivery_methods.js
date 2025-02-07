@@ -4,7 +4,7 @@
  */
 exports.up = function (knex) {
   return knex.schema.createTable('delivery_methods', (table) => {
-    table.uuid('id').primary();
+    table.uuid('id').primary().defaultTo(knex.raw('uuid_generate_v4()'));
     table.string('method_name', 100).unique().notNullable();
     table.text('description').nullable();
     table.specificType('estimated_time', 'INTERVAL').nullable();

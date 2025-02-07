@@ -26,12 +26,6 @@ const LocationTypeTable: FC<LocationTypeTableProps> = ({
     { id: 'location_name', label: 'Location Name', sortable: true },
     { id: 'address', label: 'Address', sortable: false },
     {
-      id: 'warehouse_fee',
-      label: 'Warehouse Fee',
-      sortable: true,
-      format: (value: number) => value?.toFixed(2) || 'N/A',
-    },
-    {
       id: 'status_name',
       label: 'Status',
       sortable: true,

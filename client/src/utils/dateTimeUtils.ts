@@ -65,14 +65,22 @@ const convertToLocalTime = (
  * Format date as YYYY-MM-DD.
  */
 export const formatDate = (
-  timestamp: string | number | Date,
+  timestamp: string | number | Date | null,
   timezone: string = 'America/Vancouver'
 ): string => {
-  const { date } = convertToLocalTime(timestamp, timezone);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  if (!timestamp) return 'N/A';
+  
+  const localTime = convertToLocalTime(timestamp, timezone);
+  if (!localTime || !localTime.date || isNaN(localTime.date.getTime())) {
+    return 'N/A'; // Ensure valid date
+  }
+  
+  return new Intl.DateTimeFormat('en-CA', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    timeZone: timezone,
+  }).format(localTime.date);
 };
 
 /**

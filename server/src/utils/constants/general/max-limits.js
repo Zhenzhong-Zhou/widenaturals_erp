@@ -17,7 +17,7 @@ const MAX_LIMITS = {
     FILE_UPLOAD: 10, // Maximum file uploads
     FORGOT_USERNAME: 5, // Maximum forgot username requests
     CSRF: 150,
-    REFRESH: 20,
+    REFRESH: 200,
     USER_PROFILE: 50,
   },
   PAGINATION: {

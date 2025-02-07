@@ -16,7 +16,7 @@ const LocationTypeDetailPage: FC = () => {
   // Fetch location type details
   const { locationType, locations, pagination, loading, error, refresh } = useLocationTypeDetail(id!, page, rowsPerPage);
   
-  if (loading) return <Loading message={`Loading Detail...`}/>;
+  if (loading) return <Loading message={`Loading Location Type ${locationType?.location_type_name} Detail...`}/>;
   if (error) return <ErrorDisplay><ErrorMessage message={error}/></ErrorDisplay>;
   if (!locationType) return <Typography variant={'h4'}>No location type found.</Typography>;
   

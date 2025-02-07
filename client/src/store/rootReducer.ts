@@ -15,6 +15,13 @@ import pricingsReducer from '../features/pricing/state/pricingSlice.ts';
 import pricingReducer from '../features/pricing/state/pricingDetailSlice.ts';
 import locationTypesReducer from '../features/locationTypes/state/locationTypesSlice.ts';
 import locationTypeReducer from '../features/locationTypes/state/locationTypeDetailSlice.ts';
+import locationReducer from '../features/location/state/locationSlice.ts';
+import inventoriesReducer from '../features/inventory/state/inventorySlice.ts';
+import warehouseReducer from '../features/warehouse/state/warehouseSlice.ts';
+import warehouseInventorySummaryReducer from '../features/warehouse-inventory/state/warehouseInventorySummarySlice.ts';
+import warehouseInventoriesReducer from '../features/warehouse-inventory/state/warehouseInventorySlice.ts';
+import warehouseProductsReducer from '../features/warehouse-inventory/state/warehouseProductSlice.ts';
+import warehouseInventroyDetailsReducer from '../features/warehouse-inventory/state/warehouseInventoryDetailSlice.ts';
 
 // Combine reducers
 const appReducer = combineReducers({
@@ -33,6 +40,13 @@ const appReducer = combineReducers({
   pricing: pricingReducer,
   locationTypes: locationTypesReducer,
   locationType: locationTypeReducer,
+  locations: locationReducer,
+  inventories: inventoriesReducer,
+  warehouses: warehouseReducer,
+  warehouseInventoriesSummary: warehouseInventorySummaryReducer,
+  warehouseInventories: warehouseInventoriesReducer,
+  warehouseProducts: warehouseProductsReducer,
+  warehouseInventoryDetails: warehouseInventroyDetailsReducer,
 });
 
 // Root reducer with logout handling

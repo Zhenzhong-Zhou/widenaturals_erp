@@ -1,0 +1,97 @@
+import { FC } from 'react';
+import { CustomTable } from '@components/index.ts';
+import { WarehouseInventory } from '../state/warehouseInventoryTypes.ts';
+import { formatDateTime } from '@utils/dateTimeUtils.ts';
+import { capitalizeFirstLetter, formatCurrency } from '@utils/textUtils.ts';
+import Box from '@mui/material/Box';
+import { Link } from 'react-router-dom';
+
+interface WarehouseInventoryTableProps {
+  data: WarehouseInventory[];
+  page: number;
+  rowsPerPage: number,
+  totalRecords: number;
+  totalPages: number;
+  onPageChange: (newPage: number) => void;
+  onRowsPerPageChange: (newRowsPerPage: number) => void;
+}
+
+const WarehouseInventoryTable: FC<WarehouseInventoryTableProps> = ({
+                                                                     data,
+                                                                     page,
+                                                                     rowsPerPage,
+                                                                     totalRecords,
+                                                                     totalPages,
+                                                                     onPageChange,
+                                                                     onRowsPerPageChange,
+                                                                   }) => {
+  const columns = [
+    {
+      id: 'warehouse_name',
+      label: 'Warehouse',
+      sortable: true,
+      format: (value: any, row: Record<string, any>) => (
+        <Link to={`/warehouse_inventories/${(row as WarehouseInventory).warehouse_id}/inventory_records`} style={{ textDecoration: 'none', color: 'blue' }}>
+          {value}
+        </Link>
+      ),
+    },
+    { id: 'location_name', label: 'Location', sortable: true },
+    { id: 'product_name', label: 'Product Name', sortable: true },
+    {
+      id: 'reserved_quantity',
+      label: 'Reserved Qty',
+      sortable: true,
+      format: (value: any) => value.toLocaleString(),
+    },
+    {
+      id: 'warehouse_fee',
+      label: 'Warehouse Fee ($)',
+      sortable: true,
+      format: (value: string | number) => (value ? `${formatCurrency(value)}` : 'N/A'),
+    },
+    {
+      id: 'status_name',
+      label: 'Status',
+      sortable: true,
+      format: (value: any) => capitalizeFirstLetter(value),
+    },
+    {
+      id: 'last_update',
+      label: 'Last Update',
+      sortable: true,
+      format: (value: any) => formatDateTime(value),
+    },
+    {
+      id: 'created_at',
+      label: 'Created At',
+      sortable: true,
+      format: (value: any) => formatDateTime(value),
+    },
+    {
+      id: 'updated_at',
+      label: 'Updated At',
+      sortable: true,
+      format: (value: any) => formatDateTime(value),
+    },
+    { id: 'created_by', label: 'Created By', sortable: false },
+    { id: 'updated_by', label: 'Updated By', sortable: false },
+  ];
+  
+  return (
+    <Box>
+      <CustomTable
+        columns={columns}
+        data={data}
+        page={page}
+        initialRowsPerPage={rowsPerPage}
+        totalRecords={totalRecords}
+        totalPages={totalPages}
+        onPageChange={onPageChange}
+        onRowsPerPageChange={onRowsPerPageChange}
+      />
+    </Box>
+  );
+};
+
+export default WarehouseInventoryTable;

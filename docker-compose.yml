@@ -9,10 +9,11 @@ services:
       - ./server:/app
       - ./env:/env:ro
     env_file:
-      - ./env/.env.defaults # Load non-sensitive environment variables
-      - ./env/${NODE_ENV:-development}/.env.database # Load non-sensitive environment variables
-      - ./env/${NODE_ENV:-development}/.env.server # Load non-sensitive environment variables
+      - ./env/.env.defaults
+      - ./env/${NODE_ENV:-development}/.env.database
+      - ./env/${NODE_ENV:-development}/.env.server
     environment:
+      PORT: 8082
       NODE_ENV: ${NODE_ENV:-development}
       DB_HOST: database
       DB_PASSWORD_FILE: /run/secrets/db_password
@@ -22,23 +23,17 @@ services:
     depends_on:
       database:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     mem_limit: 512m
     restart: on-failure
     networks:
       - app_network
-  #    command: ["node", "--trace-warnings", "./src/index.js"]
-  #    healthcheck:
-  #      test: [ "CMD-SHELL", "curl -f http://localhost:8082/example/health || exit 1" ]
-  #      interval: 30s
-  #      timeout: 10s
-  #      retries: 5
-  #      start_period: 30s
 
   database:
     image: postgres:17-alpine
     healthcheck:
-      test:
-        ['CMD-SHELL', 'pg_isready -U postgres -d widenaturals_erp_development']
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d widenaturals_erp_development']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -46,7 +41,7 @@ services:
       - '5432:5432'
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD_FILE: /run/secrets/db_password # Securely load password
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
       POSTGRES_DB: widenaturals_erp_development
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -64,39 +59,63 @@ services:
       - app_network
     restart: on-failure
 
-#  redis:
-#    image: redis:6.2
-#    container_name: redis_cache
-#    ports:
-#      - "6379:6379"
-#    volumes:
-#      - ./redis.conf:/usr/local/etc/redis/redis.conf
-#    command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+  redis:
+    image: redis:7.0-alpine
+    container_name: redis_cache
+    restart: always
+    ports:
+      - "6379:6379"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - app_network
 
-#  nginx:
-#    image: nginx:latest
-#    ports:
-#      - "443:443" # HTTPS
-#      - "80:80"   # Redirect HTTP to HTTPS
-#    volumes:
-#      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-#      - ./nginx/ssl:/etc/ssl:ro
-#    depends_on:
-#      server:
-#        condition: service_healthy
-#    networks:
-#      - app_network
-#    restart: on-failure
+  client:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5175:5175"
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - VITE_BASE_URL=http://localhost:8082/api/v1
+      - VITE_PORT=5175
+    volumes:
+      - ./client:/app
+      - ./env:/env:ro
+    command: ["npm", "run", "start"]
+    depends_on:
+      - server
+    networks:
+      - app_network
 
-#  certbot:
-#    image: certbot/certbot
-#    volumes:
-#      - ./nginx/ssl:/etc/letsencrypt
-#      - ./nginx/conf:/etc/nginx/conf.d
-#    entrypoint: sh -c 'certbot certonly --webroot -w /var/www/certbot --email your-email@example.com --agree-tos --no-eff-email -d example.com'
+  nginx:
+    image: nginx:stable-alpine
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/ssl:ro
+    depends_on:
+      - client
+      - server
+    networks:
+      - app_network
+      - public_network
+    restart: on-failure
 
 volumes:
   pgdata:
+  redis_data:
 
 secrets:
   server_jwt_access_secret:
@@ -109,4 +128,6 @@ secrets:
 networks:
   app_network:
     driver: bridge
-#    internal: true // todo when has client try it again
+#    internal: true
+  public_network:
+    driver: bridge  # Public network for Nginx

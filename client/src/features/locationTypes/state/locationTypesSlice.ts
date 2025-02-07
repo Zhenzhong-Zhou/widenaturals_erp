@@ -31,8 +31,6 @@ const locationTypesSlice = createSlice({
       })
       .addCase(fetchLocationTypes.fulfilled, (state, action) => {
         state.loading = false;
-        console.log("slice: ", action.payload);
-        
         state.data = action.payload.data.data;
         state.pagination = action.payload.data.pagination;
       })

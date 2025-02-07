@@ -16,4 +16,11 @@ export const API_ENDPOINTS = {
   PRICING_DETAILS: '/pricings/:id',
   ALL_LOCATION_TYPES: '/location-types',
   LOCATION_TYPE_DETAILS: '/location-types/:id',
+  ALL_LOCATIONS: '/locations',
+  ALL_INVENTORIES: '/inventories',
+  ALL_WAREHOUSES: '/warehouses',
+  WAREHOUSE_INVENTORIES_SUMMARY: '/warehouses/inventory-overview',
+  ALL_WAREHOUSE_INVENTORIES: '/warehouse-inventories',
+  WAREHOUSE_PRODUCTS_SUMMARY: '/warehouse-inventories/:id/products-summary',
+  WAREHOUSE_INVENTORY_DETAILS: '/warehouse-inventories/:id',
 };

@@ -135,6 +135,51 @@ export const routes = [
     },
   },
   {
+    path: '/locations',
+    component: () => import('../features/location/pages/LocationPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Locations',
+      showInSidebar: true,
+    },
+  },
+  {
+    path: '/inventories',
+    component: () => import('../features/inventory/pages/InventoryPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Inventories',
+      showInSidebar: true,
+    },
+  },
+  {
+    path: '/warehouses',
+    component: () => import('../features/warehouse/pages/WarehousesPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Warehouses',
+      showInSidebar: true,
+    },
+  },
+  {
+    path: '/warehouse_inventories',
+    component: () => import('../features/warehouse-inventory/pages/WarehouseInventoryPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Warehouse Inventories',
+      showInSidebar: true,
+    },
+  },
+  {
+    path: '/warehouse_inventories/:warehouseId',
+    component: () => import('../features/warehouse-inventory/pages/WarehouseInventoryDetailPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Warehouse Inventories Details',
+      showInSidebar: false,
+    },
+  },
+  {
     path: '*',
     component: () => import('../pages/NotFoundPage.tsx'),
     meta: {
