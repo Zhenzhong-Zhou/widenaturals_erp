@@ -21,22 +21,21 @@ const authorize = (requiredPermissions = []) => {
         );
       }
 
-      const { role_id } = req.user;
+      const { role } = req.user;
 
       // Try to fetch permissions from cache
       let rolePermissions;
-      const cacheKey = `role_permissions:${role_id}`;
+      const cacheKey = `role_permissions:${role}`;
       const cachedPermissions = await redisClient.get(cacheKey);
 
       if (cachedPermissions) {
         rolePermissions = JSON.parse(cachedPermissions);
       } else {
         // Fetch permissions from the database if not in cache
-        rolePermissions = await getRolePermissionsByRoleId(role_id);
-
+        rolePermissions = await getRolePermissionsByRoleId(role);
         if (!rolePermissions) {
           throw AppError.authorizationError('Role permissions not found.', {
-            details: { role_id },
+            details: { role },
           });
         }
 
@@ -48,9 +47,9 @@ const authorize = (requiredPermissions = []) => {
           3600
         );
       }
-
-      const userPermissions = rolePermissions.map((perm) => perm);
-
+      
+      const userPermissions = rolePermissions.permissions.map((perm) => perm);
+      
       // Allow if the user has `root_access`
       if (userPermissions.includes('root_access')) {
         return next();
