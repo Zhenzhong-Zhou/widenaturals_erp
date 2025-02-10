@@ -24,7 +24,7 @@ export const routes = [
       requiresAuth: true,
       title: 'Dashboard',
       showInSidebar: true,
-      requiredPermission: '',
+      // requiredPermission: '',
     },
   },
   {
@@ -88,6 +88,7 @@ export const routes = [
       title: 'Pricing Types',
       showInSidebar: true,
     },
+    requiredPermission: 'view_prices',
   },
   {
     path: '/pricing_types/:id',
@@ -96,6 +97,7 @@ export const routes = [
       requiresAuth: true,
       title: 'Pricing Type Details',
       showInSidebar: false,
+      requiredPermission: 'view_prices',
     },
   },
   {
@@ -105,6 +107,7 @@ export const routes = [
       requiresAuth: true,
       title: 'Prices',
       showInSidebar: true,
+      requiredPermission: 'view_prices',
     },
   },
   {
@@ -114,6 +117,7 @@ export const routes = [
       requiresAuth: true,
       title: 'Price Details',
       showInSidebar: false,
+      requiredPermission: 'view_prices',
     },
   },
   {
@@ -123,6 +127,7 @@ export const routes = [
       requiresAuth: true,
       title: 'Location Types',
       showInSidebar: true,
+      requiredPermission: 'view_locations',
     },
   },
   {
@@ -132,6 +137,7 @@ export const routes = [
       requiresAuth: true,
       title: 'Location Types Details',
       showInSidebar: false,
+      requiredPermission: 'view_locations',
     },
   },
   {
@@ -141,6 +147,7 @@ export const routes = [
       requiresAuth: true,
       title: 'Locations',
       showInSidebar: true,
+      requiredPermission: 'view_locations',
     },
   },
   {
@@ -150,6 +157,7 @@ export const routes = [
       requiresAuth: true,
       title: 'Inventories',
       showInSidebar: true,
+      requiredPermission: 'view_inventories',
     },
   },
   {
@@ -159,6 +167,7 @@ export const routes = [
       requiresAuth: true,
       title: 'Warehouses',
       showInSidebar: true,
+      requiredPermission: 'view_warehouses',
     },
   },
   {
@@ -168,6 +177,7 @@ export const routes = [
       requiresAuth: true,
       title: 'Warehouse Inventories',
       showInSidebar: true,
+      requiredPermission: 'view_warehouses',
     },
   },
   {
@@ -177,6 +187,7 @@ export const routes = [
       requiresAuth: true,
       title: 'Warehouse Inventories Details',
       showInSidebar: false,
+      requiredPermission: 'view_warehouses',
     },
   },
   {

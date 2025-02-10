@@ -84,10 +84,20 @@ services:
       dockerfile: Dockerfile
     ports:
       - "5175:5175"
+    mem_limit: 1g
+    memswap_limit: 3g
+    mem_reservation: 512m
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+        reservations:
+          memory: 512m
     environment:
       - NODE_ENV=${NODE_ENV:-development}
       - VITE_BASE_URL=http://localhost:8082/api/v1
       - VITE_PORT=5175
+      - NODE_OPTIONS=--max-old-space-size=3072
     volumes:
       - ./client:/app
       - ./env:/env:ro
@@ -96,6 +106,7 @@ services:
       - server
     networks:
       - app_network
+    restart: always
 
   nginx:
     image: nginx:stable-alpine

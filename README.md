@@ -334,3 +334,35 @@ set -o history
     ```bash
      chmod 600 ~/.pgpass
    ```
+
+Set correct permissions:
+chmod 400 your-key.pem
+
+SSH into Amazon Linux:
+ssh -i your-key.pem ec2-user@your-ec2-public-ip
+
+SSH into Ubuntu:
+ssh -i your-key.pem ubuntu@r@your-ec2-public-ip
+
+For Amazon Linux 2023 (dnf package manager):
+sudo dnf install -y postgresql17-server postgresql15-contrib
+
+# Ensure www-data owns the entire frontend directory
+sudo chown -R www-data:www-data /home/ubuntu/apps/widenaturals_erp/client/dist
+
+# Ensure www-data has read + execute permissions
+sudo chmod -R 755 /home/ubuntu/apps/widenaturals_erp/client/dist
+
+# Allow execution (traversal) for all parent directories
+sudo chmod +x /home/ubuntu
+sudo chmod +x /home/ubuntu/apps
+sudo chmod +x /home/ubuntu/apps/widenaturals_erp
+sudo chmod +x /home/ubuntu/apps/widenaturals_erp/client
+
+sudo chown -R ubuntu:ubuntu /home/ubuntu/apps/widenaturals_erp/client
+
+cd /home/ubuntu/apps/widenaturals_erp/client
+npm run build
+
+
+sudo systemctl restart nginx

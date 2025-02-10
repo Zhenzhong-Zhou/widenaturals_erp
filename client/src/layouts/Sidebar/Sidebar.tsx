@@ -27,11 +27,15 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar, roleName, permission
   const logo = theme.palette.mode === 'dark' ? logoDark : logoLight;
   
   // Filter routes for items to display in the sidebar
-  const menuItems = routes.filter((route) =>
-    route.meta?.showInSidebar && // Show only if marked for sidebar
-    !route.path.includes('*') && // Exclude wildcard routes
-    hasPermission(route.meta?.requiredPermission, permissions, roleName) // Check permission
-  );
+  const menuItems = routes.filter((route) => {
+    const requiredPermission = route.meta?.requiredPermission || ''; // Ensure empty string if undefined
+    
+    return (
+      route.meta?.showInSidebar && // Show only if marked for sidebar
+      !route.path.includes('*') && // Exclude wildcard routes
+      (requiredPermission === '' || hasPermission(requiredPermission, permissions, roleName)) // Check permission only if needed
+    );
+  });
   
   return (
     <>

@@ -16,11 +16,29 @@ exports.seed = async function (knex) {
   // Define roles and their associated permissions (by `key`)
   const rolePermissionsData = {
     root_admin: ['root_access'],
-    admin: ['manage_users', 'view_dashboard', 'view_reports'],
-    manager: ['manage_users', 'view_dashboard', 'view_reports'],
-    sales: ['manage_users', 'view_dashboard', 'view_reports'],
-    operations: ['manage_users', 'view_dashboard', 'view_reports'],
-    user: ['view_dashboard', 'edit_profile'],
+    admin: [
+      'manage_users', 'view_prices', 'manage_prices', 'view_locations', 'manage_locations', 'view_warehouses', 'manage_warehouses'
+    ],
+    manager: [
+      'manage_users', 'view_prices', 'manage_prices', 'view_locations', 'manage_locations', 'view_warehouses'
+    ],
+    sales: [
+      'view_prices', 'view_locations', 'view_warehouses'
+    ],
+    marketing: [
+      'view_prices'
+    ],
+    qa: [],
+    product_manager: [
+      'view_prices'
+    ],
+    account: [
+      'view_prices', 'manage_prices'
+    ],
+    inventory: [
+      'view_locations', 'manage_locations', 'view_warehouses', 'manage_warehouses'
+    ],
+    user: [], // No explicit permissions needed, they already get basic access
   };
 
   // Insert role-permissions

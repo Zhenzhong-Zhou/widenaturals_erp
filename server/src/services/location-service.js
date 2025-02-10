@@ -1,5 +1,5 @@
 const { getLocations } = require('../repositories/location-repository');
-const { AppError } = require('../utils/appError');
+const { AppError } = require('../utils/AppError');
 const { logError } = require('../utils/logger-helper');
 
 /**

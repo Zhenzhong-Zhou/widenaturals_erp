@@ -5,17 +5,8 @@ exports.seed = async function (knex) {
     .where('name', 'active')
     .first()
     .then((row) => row.id);
-
+  
   const permissions = [
-    {
-      id: knex.raw('uuid_generate_v4()'),
-      name: 'View Dashboard',
-      key: 'view_dashboard',
-      description: 'Allows viewing the dashboard',
-      status_id: activeStatusId,
-      created_at: knex.fn.now(),
-      updated_at: knex.fn.now(),
-    },
     {
       id: knex.raw('uuid_generate_v4()'),
       name: 'Manage Users',
@@ -27,27 +18,54 @@ exports.seed = async function (knex) {
     },
     {
       id: knex.raw('uuid_generate_v4()'),
-      name: 'Edit Profile',
-      key: 'edit_profile',
-      description: 'Allows editing user profiles',
+      name: 'View Prices',
+      key: 'view_prices',
+      description: 'Allows viewing price details',
       status_id: activeStatusId,
       created_at: knex.fn.now(),
       updated_at: knex.fn.now(),
     },
     {
       id: knex.raw('uuid_generate_v4()'),
-      name: 'View Reports',
-      key: 'view_reports',
-      description: 'Allows viewing reports',
+      name: 'Manage Prices',
+      key: 'manage_prices',
+      description: 'Allows updating price details',
       status_id: activeStatusId,
       created_at: knex.fn.now(),
       updated_at: knex.fn.now(),
     },
     {
       id: knex.raw('uuid_generate_v4()'),
-      name: 'Create Admin',
-      key: 'create_admin',
-      description: 'Allows creating admin users',
+      name: 'View Locations',
+      key: 'view_locations',
+      description: 'Allows viewing location details',
+      status_id: activeStatusId,
+      created_at: knex.fn.now(),
+      updated_at: knex.fn.now(),
+    },
+    {
+      id: knex.raw('uuid_generate_v4()'),
+      name: 'Manage Locations',
+      key: 'manage_locations',
+      description: 'Allows updating location details',
+      status_id: activeStatusId,
+      created_at: knex.fn.now(),
+      updated_at: knex.fn.now(),
+    },
+    {
+      id: knex.raw('uuid_generate_v4()'),
+      name: 'View Warehouses',
+      key: 'view_warehouses',
+      description: 'Allows viewing warehouse details',
+      status_id: activeStatusId,
+      created_at: knex.fn.now(),
+      updated_at: knex.fn.now(),
+    },
+    {
+      id: knex.raw('uuid_generate_v4()'),
+      name: 'Manage Warehouses',
+      key: 'manage_warehouses',
+      description: 'Allows updating warehouse details',
       status_id: activeStatusId,
       created_at: knex.fn.now(),
       updated_at: knex.fn.now(),
@@ -62,7 +80,7 @@ exports.seed = async function (knex) {
       updated_at: knex.fn.now(),
     },
   ];
-
+  
   for (const permission of permissions) {
     await knex('permissions')
       .insert(permission)
@@ -70,5 +88,5 @@ exports.seed = async function (knex) {
       .ignore(); // Ignore the insertion if a conflict occurs
   }
 
-  console.log('Permissions seeded successfully.');
+  console.log(`${permissions.length} Permissions seeded successfully.`);
 };
