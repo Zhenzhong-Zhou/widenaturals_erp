@@ -12,3 +12,4 @@ export { locationService } from './locationService.ts';
 export { inventoryService } from './inventoryService.ts';
 export { warehouseService } from './warehouseService.ts';
 export { warehouseInventoryService } from './warehouseInventoryService.ts';
+export { lotAdjustmentTypeService } from './lotAdjustmentTypeService.ts';

@@ -4,6 +4,8 @@ import CustomForm from '@components/common/CustomForm';
 import { useForm } from 'react-hook-form';
 import { Typography } from '@components/index.ts';
 import Box from '@mui/material/Box';
+import { useLotAdjustmentTypes } from '../../../hooks';
+import { capitalizeFirstLetter } from '@utils/textUtils.ts';
 
 interface EditQuantityModalProps {
   open: boolean;
@@ -32,7 +34,10 @@ const EditQuantityModal: FC<EditQuantityModalProps> = ({
     },
   });
   
-  // Reset form when `warehouseInventoryId` or `quantity` changes
+  // Fetch lot adjustment types using the hook
+  const { types, loading } = useLotAdjustmentTypes();
+  
+  // Reset form when `warehouseInventoryId` or `currentQuantity` changes
   useEffect(() => {
     reset({
       currentQuantity,
@@ -65,11 +70,7 @@ const EditQuantityModal: FC<EditQuantityModalProps> = ({
             id: 'adjustmentType',
             label: 'Adjustment Type',
             type: 'select',
-            options: [
-              { value: 'manual_adjustment', label: 'Manual Adjustment' },
-              { value: 'restock', label: 'Restock' },
-              { value: 'damaged', label: 'Damaged' },
-            ],
+            options: types.map((type) => ({ value: type.id, label: capitalizeFirstLetter(type.name) })),
             required: true,
           },
           {

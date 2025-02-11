@@ -110,3 +110,12 @@ export interface WarehouseInventoryDetailsResponse {
   inventoryDetails: WarehouseInventoryDetail[];
   pagination: Pagination;
 }
+
+// Interface for Warehouse Lot Adjustment Type
+export interface LotAdjustmentType {
+  id: string;
+  name: string;
+}
+
+// Type for an array of Lot Adjustment Types
+export type LotAdjustmentTypeList = LotAdjustmentType[];

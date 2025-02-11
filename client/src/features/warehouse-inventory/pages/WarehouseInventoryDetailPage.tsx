@@ -1,8 +1,7 @@
 import { useParams } from 'react-router-dom';
 import { Box, Paper } from '@mui/material';
 import { CustomButton, ErrorDisplay, ErrorMessage, Loading, Typography } from '@components/index.ts';
-import useWarehouseProductSummary from '../../../hooks/useWarehouseProductSummary.ts';
-import useWarehouseInventoryDetails from '../../../hooks/useWarehouseInventoryDetails.ts';
+import { useWarehouseInventoryDetails, useWarehouseProductSummary } from '../../../hooks';
 import {
   WarehouseInventoryDetailExtended,
   WarehouseInventoryDetailTable,
@@ -57,6 +56,19 @@ const WarehouseInventoryDetailPage = () => {
   if (warehouseInventoryDetailError) return <ErrorDisplay><ErrorMessage message={warehouseInventoryDetailError} /></ErrorDisplay>;
   if (!warehouseInventoryDetails) return <Typography variant={'h4'}>No warehouse inventory records found.</Typography>;
   
+  // todo warehouse inventory id and some else
+  const handleQuantityUpdate = async (lotId: string, newQuantity: number) => {
+    try {
+      // Call API or dispatch Redux action to update quantity
+      console.log(`Updating lot ${lotId} with new quantity: ${newQuantity}`);
+      
+      // Refresh inventory details after update
+      refreshWarehouseInventoryDetails();
+    } catch (error) {
+      console.error('Failed to update quantity:', error);
+    }
+  };
+  
   return (
     <Box sx={{ padding: 3 }}>
       {/* Page Header */}
@@ -90,6 +102,7 @@ const WarehouseInventoryDetailPage = () => {
           totalPages={warehouseInventoryDetailPagination.totalPages}
           onPageChange={(newPage) => setWarehouseInventoryDetailPage(newPage + 1)}
           onRowsPerPageChange={(newLimit) => setWarehouseInventoryDetailLimit(newLimit)}
+          onQuantityUpdate={handleQuantityUpdate}
         />
       </Paper>
       

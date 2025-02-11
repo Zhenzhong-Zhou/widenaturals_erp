@@ -21,6 +21,7 @@ const inventoryRouts = require('./inventory');
 const warehouseRouts = require('./warehouses');
 const warehouseInventoryRouts = require('./warehouse-inventory');
 const warehouseInventoryLotRouts = require('./warehouse-invnetory-lot');
+const warehouseLotAdjustmentRoutes = require('./lot-adjustment-type');
 const {
   createApiRateLimiter,
   createCsrfTokenRateLimiter,
@@ -81,7 +82,7 @@ router.use('/pricing-types', authenticate(), priceTypeRouts);
  * @desc Fetch paginated pricing records
  * @access Protected
  */
-router.use('/pricings',  pricingRouts);
+router.use('/pricings', authenticate(), pricingRouts);
 
 // Location Types route
 router.use('/location-types', authenticate(), locationTypeRouts);
@@ -99,5 +100,8 @@ router.use('/warehouse-inventories', warehouseInventoryRouts);
 
 // router.use('/warehouse-inventory-lots', warehouseInventoryLotRouts);
 router.use('/warehouse-inventory-lots', authenticate(), warehouseInventoryLotRouts);
+
+// router.use('/lot-adjustment-types', authenticate(), warehouseLotAdjustmentRoutes);
+router.use('/lot-adjustment-types', warehouseLotAdjustmentRoutes);
 
 module.exports = router;

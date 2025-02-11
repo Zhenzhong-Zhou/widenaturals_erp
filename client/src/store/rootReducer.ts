@@ -21,7 +21,8 @@ import warehouseReducer from '../features/warehouse/state/warehouseSlice.ts';
 import warehouseInventorySummaryReducer from '../features/warehouse-inventory/state/warehouseInventorySummarySlice.ts';
 import warehouseInventoriesReducer from '../features/warehouse-inventory/state/warehouseInventorySlice.ts';
 import warehouseProductsReducer from '../features/warehouse-inventory/state/warehouseProductSlice.ts';
-import warehouseInventroyDetailsReducer from '../features/warehouse-inventory/state/warehouseInventoryDetailSlice.ts';
+import warehouseInventoryDetailsReducer from '../features/warehouse-inventory/state/warehouseInventoryDetailSlice.ts';
+import lotAdjustmentDropdownReducer from '../features/warehouse-inventory/state/lotAdjustmentDropdownSlice.ts';
 
 // Combine reducers
 const appReducer = combineReducers({
@@ -46,7 +47,8 @@ const appReducer = combineReducers({
   warehouseInventoriesSummary: warehouseInventorySummaryReducer,
   warehouseInventories: warehouseInventoriesReducer,
   warehouseProducts: warehouseProductsReducer,
-  warehouseInventoryDetails: warehouseInventroyDetailsReducer,
+  warehouseInventoryDetails: warehouseInventoryDetailsReducer,
+  lotAdjustmentsDropdown: lotAdjustmentDropdownReducer,
 });
 
 // Root reducer with logout handling
