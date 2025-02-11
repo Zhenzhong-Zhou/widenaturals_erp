@@ -29,7 +29,7 @@ interface FormProps {
   submitButtonLabel?: string;
 }
 
-const Form: FC<FormProps> = ({
+const CustomForm: FC<FormProps> = ({
   fields = [], // Default to an empty array
   children,
   onSubmit,
@@ -142,4 +142,4 @@ const Form: FC<FormProps> = ({
   );
 };
 
-export default Form;
+export default CustomForm;

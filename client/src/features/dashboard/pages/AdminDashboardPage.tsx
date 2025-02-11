@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Chip, Box } from '@mui/material';
-import { CustomButton, CustomTable, Form, Typography } from '@components/index.ts';
-import { FieldConfig } from '@components/common/Form.tsx';
+import { CustomButton, CustomTable, CustomForm, Typography } from '@components/index.ts';
+import { FieldConfig } from '@components/common/CustomForm.tsx';
 import CustomModal from '@components/common/CustomModal.tsx';
 
 const AdminDashboardPage = ({ roleName, permissions }: { roleName: string; permissions: string[] }) => {
@@ -124,7 +124,7 @@ const AdminDashboardPage = ({ roleName, permissions }: { roleName: string; permi
       {permissions.includes('create_user') && (
         <div>
           <h1>Dynamic Form</h1>
-          <Form fields={fields} onSubmit={handleSubmit} />
+          <CustomForm fields={fields} onSubmit={handleSubmit} />
         </div>
       )}
       

@@ -11,7 +11,7 @@ export { default as TypeRestrictedInput } from './common/TypeRestrictedInput';
 export { default as Loading } from './common/Loading';
 export { default as CustomTable } from './common/CustomTable.tsx';
 export { default as CustomModal } from './common/CustomModal';
-export { default as Form } from './common/Form';
+export { default as CustomForm } from './common/CustomForm.tsx';
 export { default as CustomCard } from './common/CustomCard';
 export { default as CustomList } from './common/CustomList';
 export { default as CustomPagination } from './common/CustomPagination.tsx';

@@ -15,7 +15,7 @@ exports.seed = async function (knex) {
   }
   
   // Fetch required values dynamically
-  const availableStatusId = await fetchDynamicValue(knex, 'warehouse_lot_status', 'name', 'in_stock', 'id');
+  const inStockStatusId = await fetchDynamicValue(knex, 'warehouse_lot_status', 'name', 'in_stock', 'id');
   const adminUserId = await fetchDynamicValue(knex, 'users', 'email', 'admin@example.com', 'id');
   
   // Predefined static lot numbers
@@ -32,7 +32,7 @@ exports.seed = async function (knex) {
     expiry_date: knex.raw("CURRENT_DATE + INTERVAL '30 days' * FLOOR(RANDOM() * 12)"),
     inbound_date: knex.fn.now(),
     outbound_date: Math.random() > 0.5 ? knex.fn.now() : null,
-    status_id: availableStatusId,
+    status_id: inStockStatusId,
     created_at: knex.fn.now(),
     updated_at: knex.fn.now(),
     created_by: adminUserId,
