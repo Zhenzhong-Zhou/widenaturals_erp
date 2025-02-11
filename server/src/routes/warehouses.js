@@ -12,6 +12,7 @@ router.get('/', authorize(['view_warehouses', 'manage_warehouses']), getAllWareh
  * @desc Get warehouse inventory summary with optional pagination & filtering
  * @access Private
  */
-router.get('/inventory-overview', authorize(['view_warehouses', 'manage_warehouses']), getWarehouseInventorySummaryController);
+// router.get('/inventory-overview', authorize(['view_warehouses', 'manage_warehouses']), getWarehouseInventorySummaryController);
+router.get('/inventory-overview',  getWarehouseInventorySummaryController);
 
 module.exports = router;

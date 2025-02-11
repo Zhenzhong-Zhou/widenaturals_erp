@@ -17,7 +17,7 @@ loadEnv();
 // Configuration
 const isProduction = process.env.NODE_ENV === "production";
 const targetDatabase = process.env.DB_NAME; // Name of the target database
-const backupDir = process.env.BACKUP_DIR || './server/backups'; // Directory to store backups
+const backupDir = process.env.BACKUP_DIR || '../server/backups'; // Directory to store backups
 const timestamp = new Date().toISOString().replace(/[:.]/g, '-'); // Timestamp for file naming
 const baseFileName = `${targetDatabase}-${timestamp}`; // Base name for backup files
 const backupFile = path.join(backupDir, `${baseFileName}.sql`); // Plain-text SQL file path

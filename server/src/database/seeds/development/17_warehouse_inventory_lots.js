@@ -15,7 +15,7 @@ exports.seed = async function (knex) {
   }
   
   // Fetch required values dynamically
-  const availableStatusId = await fetchDynamicValue(knex, 'warehouse_lot_status', 'name', 'available', 'id');
+  const availableStatusId = await fetchDynamicValue(knex, 'warehouse_lot_status', 'name', 'in_stock', 'id');
   const adminUserId = await fetchDynamicValue(knex, 'users', 'email', 'admin@example.com', 'id');
   
   // Predefined static lot numbers

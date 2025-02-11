@@ -12,9 +12,39 @@ exports.seed = async function (knex) {
   const warehouseStatus = [
     {
       id: knex.raw('uuid_generate_v4()'),
-      name: 'available',
-      description: 'Lot is in stock and ready for use.',
+      name: 'in_stock',
+      description: 'Lot is in stock and available for use.',
       is_active: true,
+      created_at: knex.fn.now(),
+      updated_at: knex.fn.now(),
+      created_by: adminUserId,
+      updated_by: adminUserId,
+    },
+    {
+      id: knex.raw('uuid_generate_v4()'),
+      name: 'out_of_stock',
+      description: 'Lot has been fully used or sold and is now depleted.',
+      is_active: true,
+      created_at: knex.fn.now(),
+      updated_at: knex.fn.now(),
+      created_by: adminUserId,
+      updated_by: adminUserId,
+    },
+    {
+      id: knex.raw('uuid_generate_v4()'),
+      name: 'unavailable',
+      description: 'Lot exists but cannot be used due to restrictions, quality checks, or pending approval.',
+      is_active: false,  // Marked as inactive if it should not be selectable in normal operations
+      created_at: knex.fn.now(),
+      updated_at: knex.fn.now(),
+      created_by: adminUserId,
+      updated_by: adminUserId,
+    },
+    {
+      id: knex.raw('uuid_generate_v4()'),
+      name: 'sold_out',
+      description: 'Lot is completely depleted and no further stock is expected.',
+      is_active: false,  // Marked as inactive if no adjustments or restocking are allowed
       created_at: knex.fn.now(),
       updated_at: knex.fn.now(),
       created_by: adminUserId,

@@ -106,6 +106,29 @@ const getInventories = async ({ page = 1, limit = 10, sortBy, sortOrder } = {}) 
   }
 };
 
+/**
+ * Fetch inventory ID using product ID.
+ * @param {string} productId - The ID of the product.
+ * @returns {Promise<string|null>} - The inventory ID if found, otherwise null.
+ */
+const getInventoryIdByProductId = async (productId) => {
+  const text = `
+    SELECT id AS inventory_id
+    FROM inventory
+    WHERE product_id = $1
+    LIMIT 1;
+  `;
+  
+  try {
+    const { rows } = await query(text, [productId]);
+    return rows.length > 0 ? rows[0].inventory_id : null;
+  } catch (error) {
+    logError('Error fetching inventory ID:', error);
+    throw AppError('Database query failed');
+  }
+};
+
 module.exports = {
   getInventories,
+  getInventoryIdByProductId
 };
