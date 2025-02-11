@@ -8,3 +8,4 @@ export { resetWarehouseProductSummary } from './state/warehouseProductSlice.ts';
 export { default as WarehouseInventorySummaryCard } from './components/WarehouseInventorySummaryCard.tsx';
 export { default as WarehouseProductSummaryCard } from './components/WarehouseProductSummaryCard.tsx';
 export { default as WarehouseInventoryDetailTable } from './components/WarehouseInventoryDetailTable.tsx';
+export { default as EditQuantityModal } from './components/EditQuantityModal.tsx';

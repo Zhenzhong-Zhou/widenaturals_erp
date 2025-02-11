@@ -12,12 +12,14 @@ import {
 } from '@mui/material';
 import { useThemeContext } from '../../context';
 
-interface Column {
-  id: string;
+interface Column<T = any> {
+  id: keyof T & string;
   label: string;
+  minWidth?: number;
   align?: 'left' | 'right' | 'center';
   sortable?: boolean;
-  format?: (value: any, row: Record<string, any>) => ReactNode;
+  format?: (value: any, row?: T) => string | number | null | undefined;
+  renderCell?: (row: T) => ReactNode;
 }
 
 interface CustomTableProps {
@@ -79,7 +81,7 @@ const CustomTable: FC<CustomTableProps> = ({
             <TableRow>
               {columns.map((column) => (
                 <TableCell
-                  key={column.id}
+                  key={String(column.id)}
                   align={column.align || 'left'}
                   sortDirection={orderBy === column.id ? order : false}
                   sx={{
@@ -117,10 +119,12 @@ const CustomTable: FC<CustomTableProps> = ({
                 }}
               >
                 {columns.map((column) => (
-                  <TableCell key={column.id} align={column.align || 'left'}>
-                    {column.format
-                      ? column.format(row[column.id], row)
-                      : row[column.id]}
+                  <TableCell key={String(column.id)} align={column.align || 'left'}>
+                    {column.renderCell
+                      ? column.renderCell(row)
+                      : column.format
+                        ? column.format(row[column.id as keyof typeof row], row)
+                        : row[column.id as keyof typeof row]}
                   </TableCell>
                 ))}
               </TableRow>

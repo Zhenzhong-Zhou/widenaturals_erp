@@ -1,18 +1,21 @@
-import { FC } from 'react';
-import { Box, Paper, Typography } from '@mui/material';
+import { FC, ReactNode, useState } from 'react';
+import { Box, Paper, Typography, IconButton } from '@mui/material';
 import { CustomTable } from '@components/index.ts';
+import EditIcon from '@mui/icons-material/Edit';
+import { EditQuantityModal } from '../index.ts';
 import { WarehouseInventoryDetailExtended } from '../state/warehouseInventoryTypes.ts';
 import { capitalizeFirstLetter, formatCurrency } from '@utils/textUtils.ts';
 import { formatDate } from '@utils/dateTimeUtils.ts';
 
 // Define Column Type explicitly
 interface Column<T> {
-  id: keyof T;
+  id: keyof T | 'actions';
   label: string;
   minWidth?: number;
   align?: 'right' | 'left' | 'center';
   sortable?: boolean;
-  format?: (value: any) => string | number | null | undefined;
+  format?: (value: any, row?: T) => string | number | null | undefined;
+  renderCell?: (row: T) => ReactNode;
 }
 
 interface WarehouseInventoryDetailTableProps {
@@ -23,6 +26,7 @@ interface WarehouseInventoryDetailTableProps {
   totalPages: number;
   onPageChange: (newPage: number) => void;
   onRowsPerPageChange: (newRowsPerPage: number) => void;
+  onQuantityUpdate: (lotId: string, newQuantity: number) => void; // Callback for quantity update
 }
 
 const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
@@ -33,13 +37,24 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
                                                                                  totalPages,
                                                                                  onPageChange,
                                                                                  onRowsPerPageChange,
+                                                                                 onQuantityUpdate,
                                                                                }) => {
+  const [selectedLot, setSelectedLot] = useState<{
+    warehouseInventoryId: string;
+    productName: string;
+    lotNumber: string;
+    quantity: number;
+  } | null>(null);
+  
   const transformedData = data.map((row) => ({
     ...row,
     lotUpdatedBy: row.lotUpdated?.by ?? 'Unknown', // Extract "Updated By"
     lotUpdatedDate: row.lotUpdated?.date ?? '', // Extract "Updated Date"
     lotCreatedBy: row.lotCreated?.by ?? 'Unknown', // Extract "Created By"
     lotCreatedDate: row.lotCreated?.date ?? '', // Extract "Created Date"
+    warehouseInventoryId: row.warehouseInventoryId, // Ensure this exists
+    productName: row.productName, // Ensure this exists
+    lotNumber: row.lotNumber, // Ensure this exists
   }));
   
   // Define table columns
@@ -58,6 +73,22 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
       id: 'lotQuantity',
       label: 'Quantity',
       sortable: true,
+      renderCell: (row) => (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {row.lotQuantity}
+          <IconButton
+            size="small"
+            onClick={() => setSelectedLot({
+              warehouseInventoryId: row.warehouseInventoryId,
+              productName: row.productName,
+              lotNumber: row.lotNumber,
+              quantity: row.lotQuantity,
+            })}
+          >
+            <EditIcon fontSize="small" />
+          </IconButton>
+        </Box>
+      ),
     },
     {
       id: 'reservedStock',
@@ -141,6 +172,22 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
         onPageChange={onPageChange}
         onRowsPerPageChange={onRowsPerPageChange}
       />
+      
+      {/* Edit Quantity Modal */}
+      {selectedLot && (
+        <EditQuantityModal
+          open={Boolean(selectedLot)}
+          onClose={() => setSelectedLot(null)}
+          warehouseInventoryId={selectedLot.warehouseInventoryId}
+          productName={selectedLot.productName}
+          lotNumber={selectedLot.lotNumber}
+          currentQuantity={selectedLot.quantity}
+          onSubmit={(data) => {
+            onQuantityUpdate(selectedLot.warehouseInventoryId, data.quantity);
+            setSelectedLot(null);
+          }}
+        />
+      )}
     </Box>
   );
 };
