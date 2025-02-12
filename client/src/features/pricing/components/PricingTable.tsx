@@ -30,11 +30,12 @@ const PricingTable: FC<PricingTableProps> = ({
       id: 'price',
       label: 'Price',
       sortable: true,
-      format: (value: string, row: any) => (
+      format: (value: string) => formatCurrency(value),
+      renderCell: (row: any) => (
         <Link to={`/pricings/${row.pricing_id}`} style={{ textDecoration: 'none', color: 'red' }}>
-          {formatCurrency(value)}
+          {formatCurrency(row.price)}
         </Link>
-      )
+      ),
     },
     {
       id: 'valid_from',

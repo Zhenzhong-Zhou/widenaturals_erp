@@ -13,12 +13,12 @@ import {
 import { useThemeContext } from '../../context';
 
 interface Column<T = any> {
-  id: keyof T & string;
+  id: Extract<keyof T, string>;
   label: string;
   minWidth?: number;
   align?: 'left' | 'right' | 'center';
   sortable?: boolean;
-  format?: (value: any, row?: T) => string | number | null | undefined;
+  format?: (value: T[Extract<keyof T, string>], row?: T) => string | number | null | undefined;
   renderCell?: (row: T) => ReactNode;
 }
 

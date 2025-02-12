@@ -126,7 +126,6 @@ const getLocationDetailById = async ({ id, page = 1, limit = 10, sortBy = 'creat
                   'location_id', l.id,
                   'location_name', l.name,
                   'address', l.address,
-                  'warehouse_fee', l.warehouse_fee,
                   'status_id', l.status_id,
                   'status_name', ls.name,
                   'status_date', l.status_date,

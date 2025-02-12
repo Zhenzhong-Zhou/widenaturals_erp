@@ -30,17 +30,15 @@ const InventoryTable: FC<InventoryTableProps> = ({
       id: 'product_name',
       label: 'Product Name',
       sortable: true,
-      format: (value: any, row: Record<string, any>) => {
-        const inventory = row as InventoryItem;
-        return (
-          <Link
-            to={`/inventory/${inventory.inventory_id}`}
-            style={{ textDecoration: 'none', color: 'blue' }}
-          >
-            {value}
-          </Link>
-        );
-      },
+      format: (value: any) => value,
+      renderCell: (row: Record<string, any>) => (
+        <Link
+          to={`/inventory/${row.inventory_id || 'unknown'}`}
+          style={{ textDecoration: 'none', color: 'blue' }}
+        >
+          {row.product_name}
+        </Link>
+      ),
     },
     { id: 'location_name', label: 'Location', sortable: true },
     { id: 'item_type', label: 'Item Type', sortable: true },

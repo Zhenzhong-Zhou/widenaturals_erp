@@ -27,9 +27,10 @@ const LocationTypeTable: FC<LocationTypesTableProps> = ({
       id: 'location_type_name',
       label: 'Name',
       sortable: true,
-      format: (value: string, row: any) => (
+      format: (value: string) => value,
+      renderCell: (row: any) => (
         <Link to={`/location_types/${row.location_type_id}`} style={{ textDecoration: 'none', color: 'blue' }}>
-          {value}
+          {row.location_type_name}
         </Link>
       ),
     },

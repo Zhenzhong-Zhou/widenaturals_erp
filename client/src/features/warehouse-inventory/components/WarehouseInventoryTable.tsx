@@ -30,9 +30,10 @@ const WarehouseInventoryTable: FC<WarehouseInventoryTableProps> = ({
       id: 'warehouse_name',
       label: 'Warehouse',
       sortable: true,
-      format: (value: any, row: Record<string, any>) => (
-        <Link to={`/warehouse_inventories/${(row as WarehouseInventory).warehouse_id}/inventory_records`} style={{ textDecoration: 'none', color: 'blue' }}>
-          {value}
+      format: (value: any) => value,
+      renderCell: (row: Record<string, any>) => (
+        <Link to={`/warehouse_inventories/${row.warehouse_id}/inventory_records`} style={{ textDecoration: 'none', color: 'blue' }}>
+          {row.warehouse_name}
         </Link>
       ),
     },

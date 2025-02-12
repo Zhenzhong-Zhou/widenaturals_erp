@@ -78,11 +78,12 @@ const PricingTypeDetailsTable: FC<PricingTypeDetailsTableProps> = ({
       id: 'pricing',
       label: 'Price',
       sortable: true,
-      format: (row: any) => (
+      format: (row: any) => row.price || '0.00',
+      renderCell: (row: any) => (
         <Link to={`/pricings/${row.pricing_id || 'unknown'}`} style={{ textDecoration: 'none', color: 'red' }}>
           {row.price || '0.00'}
         </Link>
-      )
+      ),
     },
     {
       id: 'valid_from',
