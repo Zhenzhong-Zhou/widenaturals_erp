@@ -2,6 +2,10 @@ import { FC, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { CustomForm, CustomModal, Typography } from '@components/index.ts';
 import Box from '@mui/material/Box';
+import Stack from '@mui/material/Stack';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import Divider from '@mui/material/Divider';
 import { useLotAdjustmentTypes } from '../../../hooks';
 import { capitalizeFirstLetter } from '@utils/textUtils.ts';
 
@@ -65,7 +69,7 @@ const BulkAdjustQuantityModal: FC<BulkAdjustQuantityModalProps> = ({
   
   const handleFormSubmit = () => handleSubmit((formData) => {
     if (!Array.isArray(formData.adjustments)) {
-      console.error("🚨 formData.adjustments is not an array", formData);
+      console.error('formData.adjustments is not an array', formData);
       return;
     }
     
@@ -74,63 +78,67 @@ const BulkAdjustQuantityModal: FC<BulkAdjustQuantityModalProps> = ({
       warehouse_inventory_id: adjustment.warehouseInventoryLotId,
       adjustment_type_id: adjustment.adjustmentType,
       adjusted_quantity: Number(adjustment.adjustedQuantity) || 0,
-      comments: adjustment.comment || "",
+      comments: adjustment.comment || '',
     }));
     onSubmit(backendFormattedData);
   })();
   
   return (
     <CustomModal open={open} onClose={onClose} title="Bulk Adjust Lot Quantities">
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 2 }}>
-        {selectedLots.map((lot, index) => (
-          <Box key={lot.warehouseInventoryLotId} sx={{ borderBottom: '1px solid #ddd', pb: 2 }}>
-            <Typography variant="subtitle1" fontWeight="bold">
-              {lot.productName}
-            </Typography>
-            <Typography variant="subtitle2" color="text.secondary">
-              Lot Number: <strong>{lot.lotNumber}</strong>
-            </Typography>
-            
-            <CustomForm
-              control={control}
-              fields={[
-                {
-                  id: `adjustments.${index}.currentQuantity`,
-                  label: 'Current Quantity',
-                  type: 'text',
-                  required: false,
-                  defaultValue: lot.currentQuantity,
-                  disabled: true,
-                },
-                {
-                  id: `adjustments.${index}.adjustedQuantity`,
-                  label: 'Adjustment Amount',
-                  type: 'number',
-                  required: true,
-                  defaultValue: 0,
-                  helperText: 'Use negative (-) for reducing stock, positive (+) for adding stock.',
-                },
-                {
-                  id: `adjustments.${index}.adjustmentType`,
-                  label: 'Adjustment Type',
-                  type: 'select',
-                  options: types.map((type) => ({ value: type.id, label: capitalizeFirstLetter(type.name) })),
-                  required: true,
-                  disabled: loading,
-                },
-                {
-                  id: `adjustments.${index}.comment`,
-                  label: 'Comment (Optional)',
-                  type: 'text',
-                  required: false,
-                },
-              ]}
-              onSubmit={handleFormSubmit}
-              submitButtonLabel="Apply Adjustments"
-              disabled={loading}
-            />
-          </Box>
-        ))}
+      <Box sx={{ maxHeight: '60vh', overflowY: 'auto', p: 2 }}>
+        <Stack spacing={3}>
+          {selectedLots.map((lot, index) => (
+            <Card key={lot.warehouseInventoryLotId} variant="outlined">
+              <CardContent>
+                <Typography variant="h6" fontWeight="bold">
+                  {lot.productName}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Lot Number: <strong>{lot.lotNumber}</strong>
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Current Quantity: <strong>{lot.currentQuantity}</strong>
+                </Typography>
+                
+                <Divider sx={{ my: 2 }} />
+                
+                <CustomForm
+                  control={control}
+                  fields={[
+                    {
+                      id: `adjustments.${index}.adjustedQuantity`,
+                      label: 'Adjustment Amount',
+                      type: 'number',
+                      required: true,
+                      defaultValue: 0,
+                      helperText: 'Use negative (-) for reducing stock, positive (+) for adding stock.',
+                    },
+                    {
+                      id: `adjustments.${index}.adjustmentType`,
+                      label: 'Adjustment Type',
+                      type: 'select',
+                      options: types.map((type) => ({
+                        value: type.id,
+                        label: capitalizeFirstLetter(type.name),
+                      })),
+                      required: true,
+                      disabled: loading,
+                    },
+                    {
+                      id: `adjustments.${index}.comment`,
+                      label: 'Comment (Optional)',
+                      type: 'text',
+                      required: false,
+                    },
+                  ]}
+                  onSubmit={handleFormSubmit}
+                  submitButtonLabel="Apply Adjustments"
+                  disabled={loading}
+                />
+              </CardContent>
+            </Card>
+          ))}
+        </Stack>
       </Box>
     </CustomModal>
   );
