@@ -81,8 +81,6 @@ const WarehouseInventoryDetailPage = () => {
       
       {/* Inventory Details Section */}
       <Paper sx={{ padding: 2, marginTop: 3 }}>
-        <Typography variant="h5">Product Lots in Warehouse</Typography>
-        
         <WarehouseInventoryDetailTable
           data={transformedWarehouseInventoryDetails}
           page={warehouseInventoryDetailPage - 1}

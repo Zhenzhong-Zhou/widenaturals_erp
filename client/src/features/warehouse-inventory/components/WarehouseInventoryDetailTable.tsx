@@ -163,7 +163,7 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
   ];
   
   return (
-    <Box sx={{ padding: 3 }}>
+    <Box>
       <Paper sx={{ padding: 2, marginBottom: 3 }}>
         <Typography variant="h5">Warehouse Inventory Lots</Typography>
       </Paper>

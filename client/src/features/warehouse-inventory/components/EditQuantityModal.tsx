@@ -28,7 +28,7 @@ const EditQuantityModal: FC<EditQuantityModalProps> = ({
                                                        }) => {
   const { control, handleSubmit, reset } = useForm({
     defaultValues: {
-      currentQuantity,
+      adjustedQuantity: 0,
       adjustmentType: '',
       comment: '',
     },
@@ -40,11 +40,20 @@ const EditQuantityModal: FC<EditQuantityModalProps> = ({
   // Reset form when `warehouseInventoryId` or `currentQuantity` changes
   useEffect(() => {
     reset({
-      currentQuantity,
+      adjustedQuantity: 0,
       adjustmentType: '',
       comment: '',
     });
   }, [warehouseInventoryLotId, currentQuantity, reset]);
+  
+  const handleFormSubmit = () => handleSubmit((formData) => {
+    onSubmit({
+      warehouseInventoryLotId,
+      adjustedQuantity: Number(formData.adjustedQuantity),
+      adjustmentType: formData.adjustmentType,
+      comment: formData.comment || '',
+    });
+  })();
   
   return (
     <CustomModal open={open} onClose={onClose} title="Edit Lot Quantity">
@@ -58,6 +67,7 @@ const EditQuantityModal: FC<EditQuantityModalProps> = ({
       </Box>
       
       <CustomForm
+        control={control}
         fields={[
           {
             id: 'currentQuantity',
@@ -90,16 +100,9 @@ const EditQuantityModal: FC<EditQuantityModalProps> = ({
             required: false,
           },
         ]}
-        onSubmit={(formData) =>
-          onSubmit({
-            warehouseInventoryLotId,
-            adjustedQuantity: Number(formData.adjustedQuantity),
-            adjustmentType: formData.adjustmentType,
-            comment: formData.comment || '',
-          })
-        }
-        
+        onSubmit={handleFormSubmit}
         submitButtonLabel="Update"
+        disabled={loading}
       />
     </CustomModal>
   );

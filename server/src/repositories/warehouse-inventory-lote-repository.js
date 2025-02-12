@@ -1,4 +1,4 @@
-const { query, withTransaction } = require('../database/db');
+const { query, withTransaction, lockRow } = require('../database/db');
 const { insertWarehouseLotAdjustment } = require('./warehouse-lot-adjustment-repository');
 const AppError = require('../utils/AppError');
 const { logError } = require('../utils/logger-helper');
@@ -12,19 +12,27 @@ const { getWarehouseLotStatusId } = require('./warehouse-lot-status-repository')
  * Checks if a lot exists in the warehouse inventory and locks it for update.
  * @param {string} warehouse_inventory_id - The ID of the warehouse inventory lot.
  * @param {boolean} lockForUpdate - Whether to apply FOR UPDATE locking (default: false)
+ * @param client
  * @returns {Promise<Object>} - Lot details including quantity, status_id, manufacture_date, expiry_date
  * @throws {Error} If the lot is not found
  */
 const checkLotExists = async (warehouse_inventory_id, lockForUpdate = false, client) => {
   try {
+    if (lockForUpdate) {
+      // Use lockRow for safe row locking
+      return await lockRow(client, 'warehouse_inventory_lots', warehouse_inventory_id, 'FOR UPDATE');
+    }
+    
+    // Fetch without locking
     const text = `
       SELECT id, warehouse_id, product_id, lot_number, quantity, status_id, manufacture_date, expiry_date
       FROM warehouse_inventory_lots
       WHERE id = $1
-      ${lockForUpdate ? 'FOR UPDATE' : ''}
     `;
     const { rows } = await query(text, [warehouse_inventory_id], client);
+    
     if (!rows.length) throw new AppError(`Lot with ID ${warehouse_inventory_id} not found.`);
+    
     return rows[0];
   } catch (error) {
     throw new AppError(`Error checking warehouse lot: ${error.message}`);

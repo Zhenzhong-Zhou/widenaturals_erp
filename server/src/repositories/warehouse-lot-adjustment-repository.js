@@ -1,6 +1,6 @@
 const { query } = require('../database/db');
 const { logError } = require('../utils/logger-helper');
-const AppError = require('../utils/AppError'); // Import the reusable query function
+const AppError = require('../utils/AppError');
 
 /**
  * Inserts a warehouse lot adjustment record.
@@ -28,13 +28,19 @@ const insertWarehouseLotAdjustment = async (
 ) => {
   const queryText = `
     INSERT INTO warehouse_lot_adjustments (
-     warehouse_id, product_id, lot_number, adjustment_type_id, previous_quantity, adjusted_quantity, new_quantity, adjustment_date, adjusted_by
+     warehouse_id, product_id, lot_number,
+     adjustment_type_id, previous_quantity,
+     adjusted_quantity, new_quantity, adjustment_date, adjusted_by
     )
     VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $8)
     RETURNING *;
   `;
   
-  const values = [warehouse_id, product_id, lot_number, adjustment_type_id, previous_quantity, adjusted_quantity, new_quantity, adjusted_by];
+  const values = [
+    warehouse_id, product_id, lot_number,
+    adjustment_type_id, previous_quantity,
+    adjusted_quantity, new_quantity, adjusted_by
+  ];
   
   try {
     // Use the query function instead of pool.query

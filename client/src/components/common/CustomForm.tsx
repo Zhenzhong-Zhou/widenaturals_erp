@@ -9,7 +9,7 @@ import {
   Box,
   FormHelperText,
 } from '@mui/material';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, Control } from 'react-hook-form';
 import { CustomButton, BaseInput } from '@components/index';
 import { useThemeContext } from '../../context';
 
@@ -25,25 +25,27 @@ export interface FieldConfig {
 }
 
 interface FormProps {
-  children?: ReactNode; // Make children optional
-  fields?: FieldConfig[]; // Make fields optional
-  onSubmit: (formData: Record<string, any>) => void; // Callback for form submission
+  children?: ReactNode;
+  fields?: FieldConfig[];
+  control?: Control<any>; // Make it optional if not always required
+  onSubmit: (formData: Record<string, any>) => void | Promise<void>;
   submitButtonLabel?: string;
+  disabled?: boolean;
 }
 
 const CustomForm: FC<FormProps> = ({
-  fields = [], // Default to an empty array
-  children,
-  onSubmit,
-  submitButtonLabel = 'Submit',
-}) => {
+                                     fields = [],
+                                     children,
+                                     onSubmit,
+                                     submitButtonLabel = 'Submit',
+                                     control,
+                                   }) => {
   const { theme } = useThemeContext();
   const {
     handleSubmit,
-    control,
     formState: { errors },
   } = useForm();
-
+  
   return (
     <Box
       component="form"
@@ -75,12 +77,12 @@ const CustomForm: FC<FormProps> = ({
                   fullWidth
                   id={field.id}
                   label={field.label}
-                  type={field.type} // Now supports 'text' and 'number'
+                  type={field.type}
                   value={value}
                   onChange={onChange}
                   error={!!errors[field.id]}
                   helperText={errors[field.id]?.message as string}
-                  disabled={field.disabled} // Support disabled fields
+                  disabled={field.disabled}
                 />
               )}
             />
@@ -94,11 +96,7 @@ const CustomForm: FC<FormProps> = ({
                 required: field.required ? `${field.label} is required` : false,
               }}
               render={({ field: { onChange, value } }) => (
-                <FormControl
-                  fullWidth
-                  error={!!errors[field.id]}
-                  sx={{ marginBottom: theme.spacing(2) }}
-                >
+                <FormControl fullWidth error={!!errors[field.id]} sx={{ marginBottom: theme.spacing(2) }}>
                   <InputLabel>{field.label}</InputLabel>
                   <Select id={field.id} value={value} onChange={onChange}>
                     {field.options?.map((option) => (
@@ -107,9 +105,7 @@ const CustomForm: FC<FormProps> = ({
                       </MenuItem>
                     ))}
                   </Select>
-                  <FormHelperText>
-                    {errors[field.id]?.message as string}
-                  </FormHelperText>
+                  <FormHelperText>{errors[field.id]?.message as string}</FormHelperText>
                 </FormControl>
               )}
             />

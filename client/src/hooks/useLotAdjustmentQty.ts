@@ -37,7 +37,7 @@ const useLotAdjustmentQty = (refreshInventoryCallback?: () => void) => {
         adjusted_quantity: adjustedQuantity,
         comments,
       };
-      console.log(payload);
+      
       await dispatch(adjustWarehouseInventoryLot({ warehouseInventoryLotId, payload })).unwrap();
       
       // Refresh inventory after successful update (if callback exists)
