@@ -1,6 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { LotAdjustmentQtyState } from './warehouseInventoryTypes.ts';
-import { adjustWarehouseInventoryLot } from './lotAdjustmentThunks.ts';
+import { adjustWarehouseInventoryLotThunk, bulkAdjustWarehouseInventoryLotsQtyThunk } from './lotAdjustmentThunks.ts';
 
 const initialState: LotAdjustmentQtyState = {
   loadingSingle: false,
@@ -27,34 +27,34 @@ const lotAdjustmentSlice = createSlice({
   extraReducers: (builder) => {
     builder
       // Single Lot Adjustment
-      .addCase(adjustWarehouseInventoryLot.pending, (state) => {
+      .addCase(adjustWarehouseInventoryLotThunk.pending, (state) => {
         state.loadingSingle = true;
         state.errorSingle = null;
         state.successSingle = false;
       })
-      .addCase(adjustWarehouseInventoryLot.fulfilled, (state) => {
+      .addCase(adjustWarehouseInventoryLotThunk.fulfilled, (state) => {
         state.loadingSingle = false;
         state.successSingle = true;
       })
-      .addCase(adjustWarehouseInventoryLot.rejected, (state, action) => {
+      .addCase(adjustWarehouseInventoryLotThunk.rejected, (state, action) => {
         state.loadingSingle = false;
         state.errorSingle = action.payload as string;
       })
       
-      // // Bulk Lot Adjustment
-      // .addCase(bulkAdjustWarehouseInventoryLots.pending, (state) => {
-      //   state.loadingBulk = true;
-      //   state.errorBulk = null;
-      //   state.successBulk = false;
-      // })
-      // .addCase(bulkAdjustWarehouseInventoryLots.fulfilled, (state) => {
-      //   state.loadingBulk = false;
-      //   state.successBulk = true;
-      // })
-      // .addCase(bulkAdjustWarehouseInventoryLots.rejected, (state, action) => {
-      //   state.loadingBulk = false;
-      //   state.errorBulk = action.payload as string;
-      // });
+      // Bulk Lot Adjustment
+      .addCase(bulkAdjustWarehouseInventoryLotsQtyThunk.pending, (state) => {
+        state.loadingBulk = true;
+        state.errorBulk = null;
+        state.successBulk = false;
+      })
+      .addCase(bulkAdjustWarehouseInventoryLotsQtyThunk.fulfilled, (state) => {
+        state.loadingBulk = false;
+        state.successBulk = true;
+      })
+      .addCase(bulkAdjustWarehouseInventoryLotsQtyThunk.rejected, (state, action) => {
+        state.loadingBulk = false;
+        state.errorBulk = action.payload as string;
+      });
   },
 });
 

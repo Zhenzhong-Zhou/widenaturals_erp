@@ -1,6 +1,7 @@
 const { adjustWarehouseInventory } = require('../services/warehouse-inventory-lot-service');
 const { logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
+const wrapAsync = require('../utils/wrap-async');
 
 /**
  * API route to adjust inventory.
@@ -8,7 +9,7 @@ const AppError = require('../utils/AppError');
  * @param {Object} res - Express response object.
  * @param {Function} next - Express next function.
  */
-async function adjustWarehouseInventoryLotsController(req, res, next) {
+ const adjustWarehouseInventoryLotsController = wrapAsync(async (req, res, next) => {
   try {
     let records = [];
     
@@ -49,7 +50,7 @@ async function adjustWarehouseInventoryLotsController(req, res, next) {
     logError('Error in adjustWarehouseInventoryLotsController:', error.message);
     next(error);
   }
-}
+});
 
 module.exports = {
   adjustWarehouseInventoryLotsController,

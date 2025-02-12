@@ -1,15 +1,16 @@
 import { FC, ReactNode, useState } from 'react';
-import { Box, Paper, Typography, IconButton } from '@mui/material';
-import { CustomTable } from '@components/index.ts';
+import { Box, Paper, IconButton, Checkbox } from '@mui/material';
+import { CustomButton, CustomTable, Typography } from '@components/index.ts';
 import EditIcon from '@mui/icons-material/Edit';
-import { EditQuantityModal } from '../index.ts';
+import InventoryIcon from '@mui/icons-material/Inventory'; // Ensure this import exists
+import { BulkAdjustQuantityModal, EditQuantityModal } from '../index.ts';
 import { WarehouseInventoryDetailExtended } from '../state/warehouseInventoryTypes.ts';
 import { capitalizeFirstLetter, formatCurrency } from '@utils/textUtils.ts';
 import { formatDate } from '@utils/dateTimeUtils.ts';
 
 // Define Column Type explicitly
 interface Column<T> {
-  id: keyof T | 'actions';
+  id: keyof T | 'actions' | 'select';
   label: string;
   minWidth?: number;
   align?: 'right' | 'left' | 'center';
@@ -26,12 +27,20 @@ interface WarehouseInventoryDetailTableProps {
   totalPages: number;
   onPageChange: (newPage: number) => void;
   onRowsPerPageChange: (newRowsPerPage: number) => void;
-  onQuantityUpdate: (
+  onSingleLotQuantityUpdate: (
     warehouseInventoryLotId: string,
     adjustedQuantity: number,
     adjustmentTypeId: string,
     comments: string
   ) => void; // Callback for quantity update
+  onBulkLotsQtyUpdate: (
+    bulkData: {
+      warehouse_inventory_id: string;
+      adjustment_type_id: string;
+      adjusted_quantity: number;
+      comments: string;
+    }[]
+  ) => void;
 }
 
 const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
@@ -42,7 +51,8 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
                                                                                  totalPages,
                                                                                  onPageChange,
                                                                                  onRowsPerPageChange,
-                                                                                 onQuantityUpdate,
+                                                                                 onSingleLotQuantityUpdate,
+                                                                                 onBulkLotsQtyUpdate,
                                                                                }) => {
   const [selectedLot, setSelectedLot] = useState<{
     warehouseInventoryLotId: string;
@@ -51,8 +61,15 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
     quantity: number;
   } | null>(null);
   
+  const [selectedLotIds, setSelectedLotIds] = useState<Set<string>>(new Set());
+  const [bulkAdjustOpen, setBulkAdjustOpen] = useState(false);
+  const [selectedLots, setSelectedLots] = useState<
+    { warehouseInventoryLotId: string; productName: string; lotNumber: string; currentQuantity: number }[]
+  >([]);
+  
   const transformedData = data.map((row) => ({
     ...row,
+    isSelect: false,
     lotUpdatedBy: row.lotUpdated?.by ?? 'Unknown', // Extract "Updated By"
     lotUpdatedDate: row.lotUpdated?.date ?? '', // Extract "Updated Date"
     lotCreatedBy: row.lotCreated?.by ?? 'Unknown', // Extract "Created By"
@@ -62,8 +79,40 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
     lotNumber: row.lotNumber, // Ensure this exists
   }));
   
+  const handleSelectLot = (lotId: string) => {
+    setSelectedLotIds((prevSelected) => {
+      const newSelected = new Set(prevSelected);
+      if (newSelected.has(lotId)) {
+        newSelected.delete(lotId);
+      } else {
+        newSelected.add(lotId);
+      }
+      return newSelected;
+    });
+  };
+  
+  const toggleSelectAll = () => {
+    setSelectedLotIds((prevSelected) => {
+      if (prevSelected.size === data.length) {
+        return new Set(); // Unselect all
+      }
+      return new Set(data.map((lot) => lot.warehouseInventoryLotId)); // Select all
+    });
+  };
+  
   // Define table columns
   const columns: Column<WarehouseInventoryDetailExtended>[]  = [
+    {
+      id: 'select',
+      label: 'Select',
+      renderCell: (row) => (
+        <Checkbox
+          checked={selectedLotIds.has(row.warehouseInventoryLotId)}
+          onChange={() => handleSelectLot(row.warehouseInventoryLotId)}
+          color="primary"
+        />
+      ),
+    },
     {
       id: 'productName',
       label: 'Product Name',
@@ -165,7 +214,40 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
   return (
     <Box>
       <Paper sx={{ padding: 2, marginBottom: 3 }}>
+        <Checkbox
+          checked={selectedLotIds.size > 0 && selectedLotIds.size === data.length}
+          onChange={toggleSelectAll}
+          color="primary"
+        />
         <Typography variant="h5">Warehouse Inventory Lots</Typography>
+        
+        <CustomButton
+          variant="contained"
+          color="primary"
+          startIcon={<InventoryIcon />}
+          onClick={() => {
+            const selected = data
+              .filter((lot) => selectedLotIds.has(lot.warehouseInventoryLotId))
+              .map((lot) => ({
+                warehouseInventoryLotId: lot.warehouseInventoryLotId,
+                productName: lot.productName,
+                lotNumber: lot.lotNumber,
+                currentQuantity: lot.lotQuantity || 0,
+              }));
+            
+            if (selected.length === 0) {
+              alert('Please select at least one lot.');
+              return;
+            }
+            
+            setSelectedLots(selected);
+            setBulkAdjustOpen(true);
+          }}
+          sx={{ marginTop: 2 }}
+        >
+          Bulk Adjust Quantities
+        </CustomButton>
+      
       </Paper>
       <CustomTable
         columns={columns}
@@ -188,7 +270,7 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
           lotNumber={selectedLot.lotNumber}
           currentQuantity={selectedLot.quantity}
           onSubmit={(data) => {
-            onQuantityUpdate(
+            onSingleLotQuantityUpdate(
               data.warehouseInventoryLotId,
               data.adjustedQuantity,
               data.adjustmentType,
@@ -198,6 +280,17 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
           }}
         />
       )}
+      
+      {/* Bulk Adjust Quantity Modal */}
+      <BulkAdjustQuantityModal
+        open={bulkAdjustOpen}
+        onClose={() => setBulkAdjustOpen(false)}
+        selectedLots={selectedLots}
+        onSubmit={(bulkData) => {
+          onBulkLotsQtyUpdate(bulkData);
+          setSelectedLots([]);
+        }}
+      />
     </Box>
   );
 };

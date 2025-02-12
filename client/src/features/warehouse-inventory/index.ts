@@ -17,7 +17,7 @@ export {
   fetchWarehouseProductSummaryThunk,
   fetchWarehouseInventoryDetailsThunk
 } from './state/warehouseInventoryThunks.ts';
-export { fetchAllDropdownLotAdjustmentTypesThunk, adjustWarehouseInventoryLot } from './state/lotAdjustmentThunks.ts';
+export { fetchAllDropdownLotAdjustmentTypesThunk, adjustWarehouseInventoryLotThunk, bulkAdjustWarehouseInventoryLotsQtyThunk } from './state/lotAdjustmentThunks.ts';
 export { selectWarehouseInventories, selectWarehouseInventoryPagination, selectWarehouseInventoryLoading, selectWarehouseInventoryError } from './state/warehouseInventorySelector.ts';
 export { selectWarehouseProductSummary, selectWarehouseProductLoading, selectWarehouseProductError, selectWarehouseProductPagination } from './state/warehouseProductSelectors.ts';
 export { selectWarehouseInventorySummary, selectWarehouseInventorySummaryPagination, selectWarehouseInventorySummaryLoading, selectWarehouseInventorySummaryError } from './state/warehouseInventorySummarySelectors.ts';
@@ -46,3 +46,4 @@ export { default as WarehouseInventorySummaryCard } from './components/Warehouse
 export { default as WarehouseProductSummaryCard } from './components/WarehouseProductSummaryCard.tsx';
 export { default as WarehouseInventoryDetailTable } from './components/WarehouseInventoryDetailTable.tsx';
 export { default as EditQuantityModal } from './components/EditQuantityModal.tsx';
+export { default as BulkAdjustQuantityModal } from './components/BulkAdjustQuantityModal.tsx';

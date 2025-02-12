@@ -448,36 +448,33 @@ const lockRow = async (client, table, id, lockMode = 'FOR UPDATE') => {
  */
 const bulkInsert = async (tableName, columns, rows, clientOrPool = pool) => {
   if (!rows.length) return 0;
-
+  
+  // Validate that rows are properly structured
+  if (!Array.isArray(rows) || !rows.every(row => Array.isArray(row) && row.length === columns.length)) {
+    throw new Error(`Invalid data format: Expected an array of arrays, each with ${columns.length} values`);
+  }
+  
   const columnNames = columns.join(', ');
   const valuePlaceholders = rows
-    .map(
-      (_, rowIndex) =>
-        `(${columns.map((_, colIndex) => `$${rowIndex * columns.length + colIndex + 1}`).join(', ')})`
+    .map((_, rowIndex) =>
+      `(${columns.map((_, colIndex) => `$${rowIndex * columns.length + colIndex + 1}`).join(', ')})`
     )
     .join(', ');
-
+  
   const sql = `
     INSERT INTO ${tableName} (${columnNames})
     VALUES ${valuePlaceholders}
     RETURNING *;
   `;
-
+  
   const flattenedValues = rows.flat();
-
+  
   try {
-    const result = await clientOrPool.query(sql, flattenedValues);
-    return result.rowCount;
+    const { rows } = await clientOrPool.query(sql, flattenedValues);
+    return rows[0];
   } catch (error) {
-    logError('Bulk insert failed:', {
-      tableName,
-      columns,
-      rows,
-      error: error.message,
-    });
-    throw AppError.databaseError('Bulk insert failed', {
-      details: { tableName, columns, error: error.message },
-    });
+    logError('SQL Execution Error:', error);
+    throw AppError.databaseError('Bulk insert failed', { details: { tableName, columns, error: error.message } });
   }
 };
 

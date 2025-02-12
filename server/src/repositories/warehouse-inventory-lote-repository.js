@@ -1,12 +1,13 @@
-const { query, withTransaction, lockRow } = require('../database/db');
+const { query, withTransaction, lockRow, bulkInsert } = require('../database/db');
 const { insertWarehouseLotAdjustment } = require('./warehouse-lot-adjustment-repository');
 const AppError = require('../utils/AppError');
 const { logError } = require('../utils/logger-helper');
 const { insertInventoryActivityLog } = require('./inventory-activity-log-repository');
 const { getActionTypeId } = require('./inventory-action-type-repository');
 const { getInventoryIdByProductId } = require('./inventory-repository');
-const { insertInventoryHistoryLog } = require('./inventory-history-repository');
+const { insertInventoryHistoryLog, generateChecksum } = require('./inventory-history-repository');
 const { getWarehouseLotStatusId } = require('./warehouse-lot-status-repository');
+const { getStatusIdByName } = require('./status-repository');
 
 /**
  * Checks if a lot exists in the warehouse inventory and locks it for update.
@@ -49,6 +50,11 @@ const adjustWarehouseInventoryLots = async (records, user_id) => {
   return withTransaction(async (client) => {
     const adjustedRecords = [];
     
+    // Prepare batch insert arrays
+    const warehouseLotAdjustments = [];
+    const inventoryActivityLogs = [];
+    const inventoryHistoryLogs = [];
+    
     for (const record of records) {
       const { warehouse_inventory_id, adjustment_type_id, adjusted_quantity, comments, order_id } = record;
       
@@ -62,9 +68,13 @@ const adjustWarehouseInventoryLots = async (records, user_id) => {
         throw new AppError(`Stock adjustment for lot ${lot_number} would result in negative stock.`);
       }
       
-      // Insert adjustment record
-      await insertWarehouseLotAdjustment(
-        client,
+      // Determine the correct action type (e.g., 'manual_adjustment', 'restock', 'sold')
+      const actionType = 'manual_adjustment'; // Modify dynamically if needed
+      const actionTypeId = await getActionTypeId(client, actionType);
+      const inventory_id = await getInventoryIdByProductId(product_id);
+      
+      // Add to batch insert arrays
+      warehouseLotAdjustments.push([
         warehouse_id,
         product_id,
         lot_number,
@@ -72,42 +82,50 @@ const adjustWarehouseInventoryLots = async (records, user_id) => {
         previous_quantity,
         adjusted_quantity,
         new_quantity,
-        user_id
-      );
+        user_id,
+      ]);
       
-      // Determine the correct action type (e.g., 'manual_adjustment', 'restock', 'sold')
-      const actionType = 'manual_adjustment'; // Change this dynamically if needed
-      const actionTypeId = await getActionTypeId(client, actionType);
-      
-      const inventory_id= await getInventoryIdByProductId(product_id);
-      
-      // Insert inventory activity log
-      await insertInventoryActivityLog(
-        client,
+      inventoryActivityLogs.push([
         inventory_id,
         warehouse_id,
-        warehouse_inventory_id, // Using same ID for now
-        actionTypeId, // Action Type ID for adjustment
+        warehouse_inventory_id,
+        actionTypeId,
         previous_quantity,
         adjusted_quantity,
         new_quantity,
         adjustment_type_id,
         order_id || null,
         user_id,
-        comments
-      );
+        comments,
+      ]);
+      const statusId = await getStatusIdByName('active');
       
-      // Insert into `inventory_history_log` (for long-term tracking)
-      await insertInventoryHistoryLog(
-        client,
+      const checksum = generateChecksum(
         inventory_id,
         actionTypeId,
         previous_quantity,
         adjusted_quantity,
         new_quantity,
         user_id,
-        comments,
+        comments
       );
+
+      // Push properly structured row
+      inventoryHistoryLogs.push([
+        inventory_id,          // inventory_id
+        actionTypeId,          // inventory_action_type_id
+        previous_quantity,     // previous_quantity
+        adjusted_quantity,     // quantity_change
+        new_quantity,          // new_quantity
+        statusId,              // status_id (retrieved before insertion)
+        new Date().toISOString(), // status_date
+        user_id,               // source_action_id
+        comments || null,      // comments
+        checksum,              // checksum
+        '{}',                  // metadata (default JSONB)
+        new Date().toISOString(), // created_at
+        user_id,               // created_by
+      ]);
       
       // Restrict based on status
       if (
@@ -121,22 +139,59 @@ const adjustWarehouseInventoryLots = async (records, user_id) => {
       
       // Determine new status
       let new_status_id = existingLot.status_id; // Default: keep the same status
-      
       if (new_quantity === 0) {
-        new_status_id = await getWarehouseLotStatusId(client, 'out_of_stock'); // Set to 'out_of_stock'
+        new_status_id = await getWarehouseLotStatusId(client, 'out_of_stock');
       } else if (previous_quantity === 0 && new_quantity > 0) {
-        new_status_id = await getWarehouseLotStatusId(client, 'in_stock'); // Set to 'in_stock'
+        new_status_id = await getWarehouseLotStatusId(client, 'in_stock');
       }
       
       // Update warehouse_inventory_lots quantity
-      await client.query(`
-        UPDATE warehouse_inventory_lots
-        SET quantity = $1, status_id = $2, updated_at = NOW()
-        WHERE id = $3
-      `, [new_quantity, new_status_id, warehouse_inventory_id]
+      await client.query(
+        `UPDATE warehouse_inventory_lots
+         SET quantity = $1, status_id = $2, updated_at = NOW()
+         WHERE id = $3`,
+        [new_quantity, new_status_id, warehouse_inventory_id]
       );
       
       adjustedRecords.push({ warehouse_inventory_id, warehouse_id, product_id, lot_number, new_quantity });
+    }
+    
+    // Perform bulk inserts
+    if (warehouseLotAdjustments.length > 0) {
+      await bulkInsert(
+        'warehouse_lot_adjustments',
+        ['warehouse_id', 'product_id', 'lot_number',
+          'adjustment_type_id', 'previous_quantity',
+          'adjusted_quantity', 'new_quantity', 'adjusted_by'],
+        warehouseLotAdjustments,
+        client
+      );
+    }
+    
+    if (inventoryActivityLogs.length > 0) {
+      await bulkInsert(
+        'inventory_activity_log',
+        ['inventory_id', 'warehouse_id', 'lot_id',
+          'inventory_action_type_id', 'previous_quantity',
+          'quantity_change', 'new_quantity', 'adjustment_type_id',
+          'order_id', 'user_id', 'comments'],
+        inventoryActivityLogs,
+        client
+      );
+    }
+    
+    if (inventoryHistoryLogs.length > 0) {
+      await bulkInsert(
+        'inventory_history',
+        [
+          'inventory_id', 'inventory_action_type_id', 'previous_quantity',
+          'quantity_change', 'new_quantity', 'status_id', 'status_date',
+          'source_action_id', 'comments', 'checksum', 'metadata',
+          'created_at', 'created_by',
+        ],
+        inventoryHistoryLogs,
+        client
+      );
     }
     
     return adjustedRecords;

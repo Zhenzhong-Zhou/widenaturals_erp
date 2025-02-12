@@ -1,6 +1,9 @@
 import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
 import {
-  adjustWarehouseInventoryLot, LotAdjustmentSinglePayload, resetLotAdjustmentState,
+  adjustWarehouseInventoryLotThunk,
+  bulkAdjustWarehouseInventoryLotsQtyThunk, BulkLotAdjustmentPayload,
+  LotAdjustmentSinglePayload,
+  resetLotAdjustmentState,
   selectLotAdjustmentQtyErrorBulk,
   selectLotAdjustmentQtyErrorSingle,
   selectLotAdjustmentQtyLoadingBulk,
@@ -38,7 +41,7 @@ const useLotAdjustmentQty = (refreshInventoryCallback?: () => void) => {
         comments,
       };
       
-      await dispatch(adjustWarehouseInventoryLot({ warehouseInventoryLotId, payload })).unwrap();
+      await dispatch(adjustWarehouseInventoryLotThunk({ warehouseInventoryLotId, payload })).unwrap();
       
       // Refresh inventory after successful update (if callback exists)
       if (refreshInventoryCallback) {
@@ -50,14 +53,21 @@ const useLotAdjustmentQty = (refreshInventoryCallback?: () => void) => {
   };
   
   /**
-   * Handles bulk lot adjustments (future use case)
+   * Handles bulk lot adjustments
    */
-  // const handleBulkLotAdjustment = async (payload: BulkLotAdjustmentPayload) => {
-  //   await dispatch(bulkAdjustWarehouseInventoryLots(payload));
-  //   if (refreshInventoryCallback) {
-  //     refreshInventoryCallback();
-  //   }
-  // };
+  const handleBulkLotAdjustment = async (bulkData: BulkLotAdjustmentPayload) => {
+    console.log("🔹 Bulk Data Received:", bulkData);
+    
+    try {
+      await dispatch(bulkAdjustWarehouseInventoryLotsQtyThunk(bulkData));
+      if (refreshInventoryCallback) {
+        refreshInventoryCallback();
+      }
+    } catch (error) {
+      console.error("Bulk adjustment failed:", error);
+      throw error;
+    }
+  };
   
   /**
    * Resets the adjustment state.
@@ -70,7 +80,7 @@ const useLotAdjustmentQty = (refreshInventoryCallback?: () => void) => {
     loadingSingle, successSingle, errorSingle,
     loadingBulk, successBulk, errorBulk,
     handleSingleLotAdjustment,
-    // handleBulkLotAdjustment,
+    handleBulkLotAdjustment,
     resetAdjustmentState
   };
 };

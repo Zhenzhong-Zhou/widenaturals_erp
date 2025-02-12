@@ -1,5 +1,5 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { LotAdjustmentSinglePayload, LotAdjustmentType } from './warehouseInventoryTypes.ts';
+import { BulkLotAdjustmentPayload, LotAdjustmentSinglePayload, LotAdjustmentType } from './warehouseInventoryTypes.ts';
 import { lotAdjustmentTypeService, warehouseInventoryService } from '../../../services';
 import { AppError } from '@utils/AppError.tsx';
 
@@ -16,7 +16,7 @@ export const fetchAllDropdownLotAdjustmentTypesThunk = createAsyncThunk<LotAdjus
 );
 
 // Adjust a single lot
-export const adjustWarehouseInventoryLot = createAsyncThunk<
+export const adjustWarehouseInventoryLotThunk = createAsyncThunk<
   LotAdjustmentSinglePayload,
   { warehouseInventoryLotId: string; payload: LotAdjustmentSinglePayload },
   { rejectValue: string }
@@ -24,7 +24,7 @@ export const adjustWarehouseInventoryLot = createAsyncThunk<
   'lotAdjustment/adjustSingle',
   async ({ warehouseInventoryLotId, payload }, { rejectWithValue }) => {
     try {
-      return await warehouseInventoryService.adjustSingleWarehouseInventoryLot(warehouseInventoryLotId, payload);
+      return await warehouseInventoryService.adjustSingleWarehouseInventoryLotQty(warehouseInventoryLotId, payload);
     } catch (error) {
       return rejectWithValue('Failed to adjust warehouse inventory lot.');
     }
@@ -32,17 +32,17 @@ export const adjustWarehouseInventoryLot = createAsyncThunk<
 );
 
 // Adjust multiple lots in bulk
-// export const bulkAdjustWarehouseInventoryLots = createAsyncThunk<
-//   void,
-//   BulkLotAdjustmentPayload,
-//   { rejectValue: string }
-// >(
-//   'lotAdjustment/adjustBulk',
-//   async (payload, { rejectWithValue }) => {
-//     try {
-//       // await bulkAdjustWarehouseInventoryLots(payload);
-//     } catch (error) {
-//       return rejectWithValue(error.response?.data?.message || 'Failed to adjust multiple lots.');
-//     }
-//   }
-// );
+export const bulkAdjustWarehouseInventoryLotsQtyThunk = createAsyncThunk<
+  void,
+  BulkLotAdjustmentPayload,
+  { rejectValue: string }
+>(
+  'lotAdjustment/adjustBulk',
+  async (payload, { rejectWithValue }) => {
+    try {
+      return await warehouseInventoryService.bulkAdjustWarehouseInventoryLotQty(payload);
+    } catch (error) {
+      return rejectWithValue('Failed to adjust multiple lots.');
+    }
+  }
+);

@@ -39,7 +39,7 @@ const WarehouseInventoryDetailPage = () => {
     refreshWarehouseInventoryDetails,
   } = useWarehouseInventoryDetails(warehouseId, 1, 5);
   
-  const { handleSingleLotAdjustment } = useLotAdjustmentQty(refreshWarehouseInventoryDetails);
+  const { handleSingleLotAdjustment, handleBulkLotAdjustment } = useLotAdjustmentQty(refreshWarehouseInventoryDetails);
   
   const transformedWarehouseInventoryDetails: WarehouseInventoryDetailExtended[] =
     warehouseInventoryDetails.map((detail) => ({
@@ -89,7 +89,8 @@ const WarehouseInventoryDetailPage = () => {
           totalPages={warehouseInventoryDetailPagination.totalPages}
           onPageChange={(newPage) => setWarehouseInventoryDetailPage(newPage + 1)}
           onRowsPerPageChange={(newLimit) => setWarehouseInventoryDetailLimit(newLimit)}
-          onQuantityUpdate={handleSingleLotAdjustment}
+          onSingleLotQuantityUpdate={handleSingleLotAdjustment}
+          onBulkLotsQtyUpdate={handleBulkLotAdjustment}
         />
       </Paper>
       

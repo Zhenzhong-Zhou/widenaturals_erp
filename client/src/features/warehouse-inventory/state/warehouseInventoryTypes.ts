@@ -127,14 +127,12 @@ export interface LotAdjustmentSinglePayload {
   comments?: string; // Optional comment for adjustment
 }
 
-export interface BulkLotAdjustmentPayload {
-  adjustments: Array<{
-    warehouseInventoryLotId: string;
-    adjustment_type_id: string;
-    adjusted_quantity: number;
-    comments: string;
-  }>;
-}
+export type BulkLotAdjustmentPayload = Array<{
+  warehouse_inventory_id: string;
+  adjustment_type_id: string;
+  adjusted_quantity: number;
+  comments: string;
+}>;
 
 export interface LotAdjustmentQtyState {
   loadingSingle: boolean;

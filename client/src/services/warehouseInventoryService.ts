@@ -5,7 +5,7 @@ import {
   WarehouseInventorySummaryResponse,
   WarehouseProductSummaryResponse,
   WarehouseInventoryDetailsResponse,
-  LotAdjustmentSinglePayload,
+  LotAdjustmentSinglePayload, BulkLotAdjustmentPayload,
 } from '../features/warehouse-inventory';
 import { AppError } from '@utils/AppError.tsx';
 
@@ -126,7 +126,7 @@ const fetchWarehouseInventoryDetails = async (
  * @param {number} payload.adjusted_quantity - The quantity change.
  * @param {string} payload.comments - Additional comments.
  */
-const adjustSingleWarehouseInventoryLot = async (
+const adjustSingleWarehouseInventoryLotQty = async (
   warehouseInventoryLotId: string,
   payload: LotAdjustmentSinglePayload
 ): Promise<LotAdjustmentSinglePayload> => {
@@ -135,11 +135,23 @@ const adjustSingleWarehouseInventoryLot = async (
   return response.data;
 };
 
+const bulkAdjustWarehouseInventoryLotQty = async (adjustments: BulkLotAdjustmentPayload) => {
+  try {
+    console.log(adjustments);
+    const response = await axiosInstance.patch(API_ENDPOINTS.WAREHOUSE_INVENTORY_LOT_BULK_ADJUST, adjustments);
+    return response.data;
+  } catch (error) {
+    console.error('Failed to adjust warehouse inventory:', error);
+    throw error;
+  }
+};
+
 // Export the service
 export const warehouseInventoryService = {
   fetchAllWarehouseInventories,
   fetchWarehouseInventorySummary,
   fetchWarehouseProductSummary,
   fetchWarehouseInventoryDetails,
-  adjustSingleWarehouseInventoryLot,
+  adjustSingleWarehouseInventoryLotQty,
+  bulkAdjustWarehouseInventoryLotQty,
 };

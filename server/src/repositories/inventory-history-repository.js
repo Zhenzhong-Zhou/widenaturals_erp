@@ -76,4 +76,7 @@ const insertInventoryHistoryLog = async (
   }
 };
 
-module.exports = { insertInventoryHistoryLog };
+module.exports = {
+  generateChecksum,
+  insertInventoryHistoryLog
+};

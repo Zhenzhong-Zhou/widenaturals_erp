@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import { FC, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { CustomForm, CustomModal, Typography } from '@components/index.ts';
 import Box from '@mui/material/Box';
@@ -8,9 +8,28 @@ import { capitalizeFirstLetter } from '@utils/textUtils.ts';
 interface BulkAdjustQuantityModalProps {
   open: boolean;
   onClose: () => void;
-  selectedLots: { warehouseInventoryLotId: string; productName: string; lotNumber: string; currentQuantity: number }[];
-  onSubmit: (data: { adjustments: { warehouseInventoryLotId: string; adjustedQuantity: number; adjustmentType: string; comment: string }[] }) => void;
+  selectedLots: {
+    warehouseInventoryLotId: string;
+    productName: string;
+    lotNumber: string;
+    currentQuantity: number;
+  }[];
+  onSubmit: (data: {
+    warehouse_inventory_id: string;
+    adjustment_type_id: string;
+    adjusted_quantity: number;
+    comments: string;
+  }[]) => void;
 }
+
+type AdjustmentFormData = {
+  adjustments: {
+    warehouseInventoryLotId: string;
+    adjustedQuantity: number;
+    adjustmentType: string;
+    comment: string;
+  }[];
+};
 
 const BulkAdjustQuantityModal: FC<BulkAdjustQuantityModalProps> = ({
                                                                      open,
@@ -18,7 +37,7 @@ const BulkAdjustQuantityModal: FC<BulkAdjustQuantityModalProps> = ({
                                                                      selectedLots,
                                                                      onSubmit,
                                                                    }) => {
-  const { control, handleSubmit, reset } = useForm({
+  const { control, handleSubmit, reset } = useForm<AdjustmentFormData>({
     defaultValues: {
       adjustments: selectedLots.map((lot) => ({
         warehouseInventoryLotId: lot.warehouseInventoryLotId,
@@ -31,6 +50,34 @@ const BulkAdjustQuantityModal: FC<BulkAdjustQuantityModalProps> = ({
   
   // Fetch lot adjustment types
   const { types, loading } = useLotAdjustmentTypes();
+  
+  // Reset form when selectedLots change
+  useEffect(() => {
+    reset({
+      adjustments: selectedLots.map((lot) => ({
+        warehouseInventoryLotId: lot.warehouseInventoryLotId,
+        adjustedQuantity: 0,
+        adjustmentType: '',
+        comment: '',
+      })),
+    });
+  }, [selectedLots, reset]);
+  
+  const handleFormSubmit = () => handleSubmit((formData) => {
+    if (!Array.isArray(formData.adjustments)) {
+      console.error("🚨 formData.adjustments is not an array", formData);
+      return;
+    }
+    
+    // Convert camelCase fields to snake_case for backend submission
+    const backendFormattedData = formData.adjustments.map((adjustment) => ({
+      warehouse_inventory_id: adjustment.warehouseInventoryLotId,
+      adjustment_type_id: adjustment.adjustmentType,
+      adjusted_quantity: Number(adjustment.adjustedQuantity) || 0,
+      comments: adjustment.comment || "",
+    }));
+    onSubmit(backendFormattedData);
+  })();
   
   return (
     <CustomModal open={open} onClose={onClose} title="Bulk Adjust Lot Quantities">
@@ -45,6 +92,7 @@ const BulkAdjustQuantityModal: FC<BulkAdjustQuantityModalProps> = ({
             </Typography>
             
             <CustomForm
+              control={control}
               fields={[
                 {
                   id: `adjustments.${index}.currentQuantity`,
@@ -77,15 +125,13 @@ const BulkAdjustQuantityModal: FC<BulkAdjustQuantityModalProps> = ({
                   required: false,
                 },
               ]}
+              onSubmit={handleFormSubmit}
+              submitButtonLabel="Apply Adjustments"
+              disabled={loading}
             />
           </Box>
         ))}
       </Box>
-      
-      <CustomForm
-        onSubmit={(formData) => onSubmit({ adjustments: formData.adjustments })}
-        submitButtonLabel="Apply Adjustments"
-      />
     </CustomModal>
   );
 };
