@@ -23,22 +23,24 @@ async function adjustWarehouseInventoryLotsController(req, res, next) {
     }
     
     const userId = req.user.id; // User making the request
-    
+    console.log(records);
     // Validate records before processing
     for (const record of records) {
+      console.log(record);
       if (
         !record.warehouse_inventory_id ||
         !record.adjustment_type_id ||
         typeof record.adjusted_quantity !== 'number' ||
         record.adjusted_quantity === 0
       ) {
-        return AppError.validationError(`Invalid adjustment record: ${JSON.stringify(record)}`);
+        logError(`Invalid adjustment record received: ${JSON.stringify(record)}`);
+        return next(AppError.validationError(`Invalid adjustment record: ${JSON.stringify(record)}`));
       }
     }
     
     // Call service layer
     const { data } = await adjustWarehouseInventory(records, userId);
-    
+    console.log(data);
     return res.status(200).json({
       message: 'Warehouse inventory adjusted successfully',
       success: true,

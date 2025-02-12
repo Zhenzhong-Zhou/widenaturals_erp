@@ -16,10 +16,12 @@ import { useThemeContext } from '../../context';
 export interface FieldConfig {
   id: string;
   label: string;
-  type: 'text' | 'select' | 'checkbox';
+  type: 'text' | 'select' | 'checkbox' | 'number'; // Added 'number'
   options?: { value: string | number; label: string }[]; // For select type
   required?: boolean; // Indicates if the field is required
   defaultValue?: any;
+  disabled?: boolean; // New property to disable input fields
+  helperText?: string;
 }
 
 interface FormProps {
@@ -60,7 +62,7 @@ const CustomForm: FC<FormProps> = ({
     >
       {fields.map((field) => (
         <Box key={field.id}>
-          {field.type === 'text' && (
+          {(field.type === 'text' || field.type === 'number') && (
             <Controller
               name={field.id}
               control={control}
@@ -73,10 +75,12 @@ const CustomForm: FC<FormProps> = ({
                   fullWidth
                   id={field.id}
                   label={field.label}
+                  type={field.type} // Now supports 'text' and 'number'
                   value={value}
                   onChange={onChange}
                   error={!!errors[field.id]}
                   helperText={errors[field.id]?.message as string}
+                  disabled={field.disabled} // Support disabled fields
                 />
               )}
             />

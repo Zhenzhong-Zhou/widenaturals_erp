@@ -10,17 +10,17 @@ import { capitalizeFirstLetter } from '@utils/textUtils.ts';
 interface EditQuantityModalProps {
   open: boolean;
   onClose: () => void;
-  warehouseInventoryId: string;
+  warehouseInventoryLotId: string;
   productName: string;
   lotNumber: string;
   currentQuantity: number;
-  onSubmit: (data: { warehouseInventoryId: string; quantity: number; adjustmentType: string; comment: string }) => void;
+  onSubmit: (data: { warehouseInventoryLotId: string; adjustedQuantity: number; adjustmentType: string; comment: string }) => void;
 }
 
 const EditQuantityModal: FC<EditQuantityModalProps> = ({
                                                          open,
                                                          onClose,
-                                                         warehouseInventoryId,
+                                                         warehouseInventoryLotId,
                                                          productName,
                                                          lotNumber,
                                                          currentQuantity,
@@ -44,7 +44,7 @@ const EditQuantityModal: FC<EditQuantityModalProps> = ({
       adjustmentType: '',
       comment: '',
     });
-  }, [warehouseInventoryId, currentQuantity, reset]);
+  }, [warehouseInventoryLotId, currentQuantity, reset]);
   
   return (
     <CustomModal open={open} onClose={onClose} title="Edit Lot Quantity">
@@ -60,11 +60,20 @@ const EditQuantityModal: FC<EditQuantityModalProps> = ({
       <CustomForm
         fields={[
           {
-            id: 'quantity',
-            label: 'New Quantity',
+            id: 'currentQuantity',
+            label: 'Current Quantity',
             type: 'text',
-            required: true,
+            required: false,
             defaultValue: currentQuantity,
+            disabled: true,
+          },
+          {
+            id: 'adjustedQuantity',
+            label: 'Adjustment Amount',
+            type: 'number',
+            required: true,
+            defaultValue: 0,
+            helperText: 'Use negative (-) for reducing stock, positive (+) for adding stock.',
           },
           {
             id: 'adjustmentType',
@@ -72,14 +81,24 @@ const EditQuantityModal: FC<EditQuantityModalProps> = ({
             type: 'select',
             options: types.map((type) => ({ value: type.id, label: capitalizeFirstLetter(type.name) })),
             required: true,
+            disabled: loading,
           },
           {
             id: 'comment',
-            label: 'Comment',
+            label: 'Comment (Optional)',
             type: 'text',
+            required: false,
           },
         ]}
-        onSubmit={(formData) => onSubmit({ ...formData, warehouseInventoryId })}
+        onSubmit={(formData) =>
+          onSubmit({
+            warehouseInventoryLotId,
+            adjustedQuantity: Number(formData.adjustedQuantity),
+            adjustmentType: formData.adjustmentType,
+            comment: formData.comment || '',
+          })
+        }
+        
         submitButtonLabel="Update"
       />
     </CustomModal>

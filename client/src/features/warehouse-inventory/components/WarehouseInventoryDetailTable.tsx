@@ -26,7 +26,12 @@ interface WarehouseInventoryDetailTableProps {
   totalPages: number;
   onPageChange: (newPage: number) => void;
   onRowsPerPageChange: (newRowsPerPage: number) => void;
-  onQuantityUpdate: (lotId: string, newQuantity: number) => void; // Callback for quantity update
+  onQuantityUpdate: (
+    warehouseInventoryLotId: string,
+    adjustedQuantity: number,
+    adjustmentTypeId: string,
+    comments: string
+  ) => void; // Callback for quantity update
 }
 
 const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
@@ -40,7 +45,7 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
                                                                                  onQuantityUpdate,
                                                                                }) => {
   const [selectedLot, setSelectedLot] = useState<{
-    warehouseInventoryId: string;
+    warehouseInventoryLotId: string;
     productName: string;
     lotNumber: string;
     quantity: number;
@@ -52,7 +57,7 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
     lotUpdatedDate: row.lotUpdated?.date ?? '', // Extract "Updated Date"
     lotCreatedBy: row.lotCreated?.by ?? 'Unknown', // Extract "Created By"
     lotCreatedDate: row.lotCreated?.date ?? '', // Extract "Created Date"
-    warehouseInventoryId: row.warehouseInventoryId, // Ensure this exists
+    warehouseInventoryLotId: row.warehouseInventoryLotId, // Ensure this exists
     productName: row.productName, // Ensure this exists
     lotNumber: row.lotNumber, // Ensure this exists
   }));
@@ -79,7 +84,7 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
           <IconButton
             size="small"
             onClick={() => setSelectedLot({
-              warehouseInventoryId: row.warehouseInventoryId,
+              warehouseInventoryLotId: row.warehouseInventoryLotId,
               productName: row.productName,
               lotNumber: row.lotNumber,
               quantity: row.lotQuantity,
@@ -178,12 +183,17 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
         <EditQuantityModal
           open={Boolean(selectedLot)}
           onClose={() => setSelectedLot(null)}
-          warehouseInventoryId={selectedLot.warehouseInventoryId}
+          warehouseInventoryLotId={selectedLot.warehouseInventoryLotId}
           productName={selectedLot.productName}
           lotNumber={selectedLot.lotNumber}
           currentQuantity={selectedLot.quantity}
           onSubmit={(data) => {
-            onQuantityUpdate(selectedLot.warehouseInventoryId, data.quantity);
+            onQuantityUpdate(
+              data.warehouseInventoryLotId,
+              data.adjustedQuantity,
+              data.adjustmentType,
+              data.comment || ''
+            );
             setSelectedLot(null);
           }}
         />

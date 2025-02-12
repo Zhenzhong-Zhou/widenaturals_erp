@@ -133,6 +133,7 @@ const fetchWarehouseInventoryDetailsByWarehouseId = async (warehouse_id, page = 
       warehouseInventoryId: item.warehouse_inventory_id,
       productId: item.product_id,
       productName: item.product_name,
+      warehouseInventoryLotId: item.warehouse_inventory_lot_id,
       lotNumber: item.lot_number,
       lotQuantity: item.lot_quantity,
       reservedStock: item.reserved_stock,

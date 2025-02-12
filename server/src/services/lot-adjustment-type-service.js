@@ -7,7 +7,6 @@ const { getWarehouseLotAdjustmentTypes } = require('../repositories/lot-adjustme
  */
 const fetchWarehouseLotAdjustmentTypes = async () => {
   const adjustmentTypes = await getWarehouseLotAdjustmentTypes();
-  console.log(adjustmentTypes);
   if (!adjustmentTypes.length) {
     throw new Error('No active warehouse lot adjustment types found.');
   }

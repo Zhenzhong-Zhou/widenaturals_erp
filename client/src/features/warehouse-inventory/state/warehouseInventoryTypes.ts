@@ -81,6 +81,7 @@ export interface WarehouseInventoryDetail {
   warehouseInventoryId: string;
   productId: string;
   productName: string;
+  warehouseInventoryLotId: string;
   lotNumber: string;
   lotQuantity: number;
   reservedStock: number;
@@ -119,3 +120,27 @@ export interface LotAdjustmentType {
 
 // Type for an array of Lot Adjustment Types
 export type LotAdjustmentTypeList = LotAdjustmentType[];
+
+export interface LotAdjustmentSinglePayload {
+  adjustment_type_id: string; // UUID of the adjustment type
+  adjusted_quantity: number; // Change in quantity (+ or -)
+  comments?: string; // Optional comment for adjustment
+}
+
+export interface BulkLotAdjustmentPayload {
+  adjustments: Array<{
+    warehouseInventoryLotId: string;
+    adjustment_type_id: string;
+    adjusted_quantity: number;
+    comments: string;
+  }>;
+}
+
+export interface LotAdjustmentQtyState {
+  loadingSingle: boolean;
+  loadingBulk: boolean;
+  errorSingle: string | null;
+  errorBulk: string | null;
+  successSingle: boolean;
+  successBulk: boolean;
+}

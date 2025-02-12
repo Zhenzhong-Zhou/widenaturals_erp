@@ -154,6 +154,7 @@ const getWarehouseInventoryDetailsByWarehouseId = async ({ warehouse_id, page, l
         wi.id AS warehouse_inventory_id,
         p.id AS product_id,
         p.product_name,
+        wil.id AS warehouse_inventory_lot_id,
         wil.lot_number,
         COALESCE(wil.quantity, 0) AS lot_quantity,
         COALESCE(wi.reserved_quantity, 0) AS reserved_stock,

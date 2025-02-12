@@ -1,7 +1,7 @@
 import { useParams } from 'react-router-dom';
 import { Box, Paper } from '@mui/material';
 import { CustomButton, ErrorDisplay, ErrorMessage, Loading, Typography } from '@components/index.ts';
-import { useWarehouseInventoryDetails, useWarehouseProductSummary } from '../../../hooks';
+import { useLotAdjustmentQty, useWarehouseInventoryDetails, useWarehouseProductSummary } from '../../../hooks';
 import {
   WarehouseInventoryDetailExtended,
   WarehouseInventoryDetailTable,
@@ -39,6 +39,8 @@ const WarehouseInventoryDetailPage = () => {
     refreshWarehouseInventoryDetails,
   } = useWarehouseInventoryDetails(warehouseId, 1, 5);
   
+  const { handleSingleLotAdjustment } = useLotAdjustmentQty(refreshWarehouseInventoryDetails);
+  
   const transformedWarehouseInventoryDetails: WarehouseInventoryDetailExtended[] =
     warehouseInventoryDetails.map((detail) => ({
       ...detail,
@@ -55,19 +57,6 @@ const WarehouseInventoryDetailPage = () => {
   if (warehouseInventoryDetailLoading) return <Loading message={`Loading Warehouse Inventory Details...`} />;
   if (warehouseInventoryDetailError) return <ErrorDisplay><ErrorMessage message={warehouseInventoryDetailError} /></ErrorDisplay>;
   if (!warehouseInventoryDetails) return <Typography variant={'h4'}>No warehouse inventory records found.</Typography>;
-  
-  // todo warehouse inventory id and some else
-  const handleQuantityUpdate = async (lotId: string, newQuantity: number) => {
-    try {
-      // Call API or dispatch Redux action to update quantity
-      console.log(`Updating lot ${lotId} with new quantity: ${newQuantity}`);
-      
-      // Refresh inventory details after update
-      refreshWarehouseInventoryDetails();
-    } catch (error) {
-      console.error('Failed to update quantity:', error);
-    }
-  };
   
   return (
     <Box sx={{ padding: 3 }}>
@@ -102,7 +91,7 @@ const WarehouseInventoryDetailPage = () => {
           totalPages={warehouseInventoryDetailPagination.totalPages}
           onPageChange={(newPage) => setWarehouseInventoryDetailPage(newPage + 1)}
           onRowsPerPageChange={(newLimit) => setWarehouseInventoryDetailLimit(newLimit)}
-          onQuantityUpdate={handleQuantityUpdate}
+          onQuantityUpdate={handleSingleLotAdjustment}
         />
       </Paper>
       

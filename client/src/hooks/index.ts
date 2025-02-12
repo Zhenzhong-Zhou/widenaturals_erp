@@ -23,3 +23,4 @@ export { default as useWarehouseInventoriesSummary } from './useWarehouseInvento
 export { default as useWarehouseProductSummary } from './useWarehouseProductSummary.ts';
 export { default as useWarehouseInventoryDetails } from './useWarehouseInventoryDetails.ts';
 export { default as useLotAdjustmentTypes } from './useLotAdjustmentTypes.ts';
+export { default as useLotAdjustmentQty } from './useLotAdjustmentQty.ts';

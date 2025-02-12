@@ -1,6 +1,12 @@
 import axiosInstance from '@utils/axiosConfig.ts';
 import { API_ENDPOINTS } from './apiEndponits.ts';
-import { WarehouseInventoryResponse, WarehouseInventorySummaryResponse, WarehouseProductSummaryResponse, WarehouseInventoryDetailsResponse } from '../features/warehouse-inventory';
+import {
+  WarehouseInventoryResponse,
+  WarehouseInventorySummaryResponse,
+  WarehouseProductSummaryResponse,
+  WarehouseInventoryDetailsResponse,
+  LotAdjustmentSinglePayload,
+} from '../features/warehouse-inventory';
 import { AppError } from '@utils/AppError.tsx';
 
 /**
@@ -35,7 +41,7 @@ const fetchAllWarehouseInventories = async (
  * @param {string} [status] - Optional filter by warehouse status (`active`, `inactive`, `all`).
  * @returns {Promise<WarehouseInventorySummaryResponse>} - The warehouse inventory summary data.
  */
-export const fetchWarehouseInventorySummary = async (
+const fetchWarehouseInventorySummary = async (
   page: number = 1,
   limit: number = 10,
   status?: string, // Optional status (default is no filter)
@@ -78,7 +84,7 @@ export const fetchWarehouseInventorySummary = async (
  * @param {number} limit - The number of records per page (default: 10).
  * @returns {Promise<WarehouseProductSummaryResponse>} - The warehouse product summary data.
  */
-export const fetchWarehouseProductSummary = async (
+const fetchWarehouseProductSummary = async (
   warehouseId: string,
   page: number = 1,
   limit: number = 10
@@ -95,7 +101,7 @@ export const fetchWarehouseProductSummary = async (
   }
 };
 
-export const fetchWarehouseInventoryDetails = async (
+const fetchWarehouseInventoryDetails = async (
   warehouseId: string,
   page: number = 1,
   limit: number = 10
@@ -112,10 +118,28 @@ export const fetchWarehouseInventoryDetails = async (
   }
 };
 
+/**
+ * Adjusts the quantity of a warehouse inventory lot.
+ * @param {string} warehouseInventoryLotId - The warehouse inventory lot ID to update.
+ * @param {Object} payload - The adjustment details.
+ * @param {string} payload.adjustment_type_id - The type of adjustment.
+ * @param {number} payload.adjusted_quantity - The quantity change.
+ * @param {string} payload.comments - Additional comments.
+ */
+const adjustSingleWarehouseInventoryLot = async (
+  warehouseInventoryLotId: string,
+  payload: LotAdjustmentSinglePayload
+): Promise<LotAdjustmentSinglePayload> => {
+  const endpoint = API_ENDPOINTS.WAREHOUSE_INVENTORY_LOT_SINGLE_ADJUST.replace(':id', warehouseInventoryLotId);
+  const response = await axiosInstance.patch<LotAdjustmentSinglePayload>(endpoint, payload);
+  return response.data;
+};
+
 // Export the service
 export const warehouseInventoryService = {
   fetchAllWarehouseInventories,
   fetchWarehouseInventorySummary,
   fetchWarehouseProductSummary,
   fetchWarehouseInventoryDetails,
+  adjustSingleWarehouseInventoryLot,
 };
