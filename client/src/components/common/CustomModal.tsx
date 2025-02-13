@@ -5,7 +5,7 @@ import { Typography } from '@components/index';
 interface ModalProps {
   open: boolean;
   onClose: () => void;
-  title?: string;
+  title?: ReactNode;
   children: ReactNode;
   actions?: ReactNode;
   sx?: SxProps<Theme>;

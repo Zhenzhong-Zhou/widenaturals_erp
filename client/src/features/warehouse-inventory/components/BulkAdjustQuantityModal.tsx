@@ -7,6 +7,7 @@ import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import IconButton from '@mui/material/IconButton';
 import Divider from '@mui/material/Divider';
+import CloseIcon from '@mui/icons-material/Close';
 import DeleteIcon from '@mui/icons-material/Delete';
 import TextField from '@mui/material/TextField';
 import MenuItem from '@mui/material/MenuItem';
@@ -82,7 +83,7 @@ const BulkAdjustQuantityModal: FC<BulkAdjustQuantityModalProps> = ({
     });
   }, [selectedLots, reset]);
   
-  // Remove specific lot by ID, not just by index
+  // Remove specific lot by ID
   const handleRemove = (warehouseInventoryLotId: string) => {
     const indexToRemove = fields.findIndex(
       (lot) => lot.warehouseInventoryLotId === warehouseInventoryLotId
@@ -124,7 +125,15 @@ const BulkAdjustQuantityModal: FC<BulkAdjustQuantityModalProps> = ({
     <CustomModal
       open={open}
       onClose={onClose}
-      title="Bulk Adjust Lot Quantities"
+      title={
+        <Box display="flex" justifyContent="space-between" alignItems="center">
+          <Typography variant="h6">Bulk Adjust Lot Quantities</Typography>
+          {/* Close Button */}
+          <IconButton onClick={onClose} color="inherit">
+            <CloseIcon />
+          </IconButton>
+        </Box>
+      }
       sx={{
         width: 'auto',
         minWidth: '60vw',
@@ -135,13 +144,24 @@ const BulkAdjustQuantityModal: FC<BulkAdjustQuantityModalProps> = ({
       }}
     >
       <Box sx={{ p: 2 }} component="form" onSubmit={handleFormSubmit}>
-        <Grid container spacing={2}>
+        <Grid container spacing={2} justifyContent="center">
           {fields.map((lot, index) => (
             <Grid container spacing={{ xs: 2, md: 3 }} columns={{ xs: 2, sm: 8, md: 12 }} key={lot.id}>
-              <Card variant="outlined" sx={{ height: '100%' }}>
-                <CardContent>
+              <Card
+                variant="outlined"
+                sx={{
+                  height: "100%",
+                  display: "flex",
+                  flexDirection: "column",
+                  maxWidth: "280px",
+                  flexGrow: 1, // Ensures consistency
+                }}
+              >
+              
+              <CardContent sx={{ flexGrow: 1, height: '100%', display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                  {/* Title + Delete Button */}
                   <Box display="flex" justifyContent="space-between" alignItems="center">
-                    <Typography variant="h6" fontWeight="bold" sx={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <Typography variant="h6" fontWeight="bold" sx={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                       {lot.productName}
                     </Typography>
                     {/* Remove Button for Each Lot */}
@@ -149,49 +169,54 @@ const BulkAdjustQuantityModal: FC<BulkAdjustQuantityModalProps> = ({
                       <DeleteIcon />
                     </IconButton>
                   </Box>
+                  
                   <Typography variant="body2" color="text.secondary">
                     Lot Number: <strong>{lot.lotNumber}</strong>
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Current Quantity: <strong>{lot.currentQuantity}</strong>
                   </Typography>
+                  
                   <Divider sx={{ my: 2 }} />
                   
-                  {/* Adjustment Amount Input */}
-                  <Controller
-                    name={`adjustments.${index}.adjustedQuantity`}
-                    control={control}
-                    defaultValue={0}
-                    render={({ field }) => (
-                      <TextField {...field} label="Adjustment Amount" type="number" fullWidth />
-                    )}
-                  />
-                  
-                  {/* Adjustment Type Select */}
-                  <Controller
-                    name={`adjustments.${index}.adjustmentType`}
-                    control={control}
-                    defaultValue=""
-                    render={({ field }) => (
-                      <TextField {...field} select label="Adjustment Type" fullWidth disabled={loading}>
-                        {types.map((type) => (
-                          <MenuItem key={type.id} value={type.id}>
-                            {capitalizeFirstLetter(type.name)}
-                          </MenuItem>
-                        ))}
-                      </TextField>
-                    )}
-                  />
-                  
-                  {/* Comment Input */}
-                  <Controller
-                    name={`adjustments.${index}.comment`}
-                    control={control}
-                    defaultValue=""
-                    render={({ field }) => (
-                      <TextField {...field} label="Comment (Optional)" fullWidth />
-                    )}
-                  />
+                  {/* Keep Forms Aligned */}
+                  <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                    {/* Adjustment Amount Input */}
+                    <Controller
+                      name={`adjustments.${index}.adjustedQuantity`}
+                      control={control}
+                      defaultValue={0}
+                      render={({ field }) => (
+                        <TextField {...field} label="Adjustment Amount" type="number" fullWidth />
+                      )}
+                    />
+                    
+                    {/* Adjustment Type Select */}
+                    <Controller
+                      name={`adjustments.${index}.adjustmentType`}
+                      control={control}
+                      defaultValue=""
+                      render={({ field }) => (
+                        <TextField {...field} select label="Adjustment Type" fullWidth disabled={loading}>
+                          {types.map((type) => (
+                            <MenuItem key={type.id} value={type.id}>
+                              {capitalizeFirstLetter(type.name)}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                      )}
+                    />
+                    
+                    {/* Comment Input */}
+                    <Controller
+                      name={`adjustments.${index}.comment`}
+                      control={control}
+                      defaultValue=""
+                      render={({ field }) => (
+                        <TextField {...field} label="Comment (Optional)" fullWidth />
+                      )}
+                    />
+                  </Box>
                 </CardContent>
               </Card>
             </Grid>
