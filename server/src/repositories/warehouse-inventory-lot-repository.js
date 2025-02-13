@@ -148,9 +148,9 @@ const adjustWarehouseInventoryLots = async (records, user_id) => {
       // Update warehouse_inventory_lots quantity
       await client.query(
         `UPDATE warehouse_inventory_lots
-         SET quantity = $1, status_id = $2, updated_at = NOW()
-         WHERE id = $3`,
-        [new_quantity, new_status_id, warehouse_inventory_id]
+         SET quantity = $1, status_id = $2, updated_at = NOW(), updated_by = $3
+         WHERE id = $4`,
+        [new_quantity, new_status_id, user_id, warehouse_inventory_id]
       );
       
       adjustedRecords.push({ warehouse_inventory_id, warehouse_id, product_id, lot_number, new_quantity });

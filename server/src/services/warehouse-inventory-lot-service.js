@@ -1,4 +1,4 @@
-const { adjustWarehouseInventoryLots } = require('../repositories/warehouse-inventory-lote-repository');
+const { adjustWarehouseInventoryLots } = require('../repositories/warehouse-inventory-lot-repository');
 const { logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
 
