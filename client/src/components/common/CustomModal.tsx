@@ -1,13 +1,14 @@
 import { FC, ReactNode } from 'react';
-import { Box, Modal } from '@mui/material';
+import { Box, Modal, SxProps, Theme } from '@mui/material';
 import { Typography } from '@components/index';
 
 interface ModalProps {
-  open: boolean; // Controls whether the modal is visible
-  onClose: () => void; // Function to close the modal
-  title?: string; // Optional title for the modal
-  children: ReactNode; // Content inside the modal
-  actions?: ReactNode; // Optional action buttons for the modal
+  open: boolean;
+  onClose: () => void;
+  title?: string;
+  children: ReactNode;
+  actions?: ReactNode;
+  sx?: SxProps<Theme>;
 }
 
 const modalStyles = {
@@ -23,12 +24,13 @@ const modalStyles = {
 };
 
 const CustomModal: FC<ModalProps> = ({
-  open,
-  onClose,
-  title,
-  children,
-  actions,
-}) => {
+                                       open,
+                                       onClose,
+                                       title,
+                                       children,
+                                       actions,
+                                       sx,
+                                     }) => {
   return (
     <Modal
       open={open}
@@ -36,7 +38,7 @@ const CustomModal: FC<ModalProps> = ({
       aria-labelledby="modal-title"
       aria-describedby="modal-description"
     >
-      <Box sx={modalStyles}>
+      <Box sx={{ ...modalStyles, ...sx }}>
         {title && (
           <Typography id="modal-title" variant="h6" sx={{ mb: 2 }}>
             {title}

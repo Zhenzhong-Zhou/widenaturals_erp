@@ -8,7 +8,7 @@ const AppError = require('../utils/AppError');
  * @param {String} user_id - The user making the adjustment.
  * @returns {Promise<Object>} - Result of the inventory adjustment.
  */
-async function adjustWarehouseInventory(records, user_id) {
+const adjustWarehouseInventory = async (records, user_id) => {
   try {
     // Process inventory adjustments using the repository function
     const result = await adjustWarehouseInventoryLots(records, user_id);
