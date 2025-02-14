@@ -6,7 +6,7 @@ const { insertInventoryActivityLog } = require('./inventory-activity-log-reposit
 const { getActionTypeId } = require('./inventory-action-type-repository');
 const { getInventoryIdByProductId } = require('./inventory-repository');
 const { insertInventoryHistoryLog, generateChecksum } = require('./inventory-history-repository');
-const { getWarehouseLotStatusId } = require('./warehouse-lot-status-repository');
+const { getWarehouseLotStatus } = require('./warehouse-lot-status-repository');
 const { getStatusIdByName } = require('./status-repository');
 
 /**
@@ -60,104 +60,120 @@ const adjustWarehouseInventoryLots = async (records, user_id) => {
       
       // Lock the existing lot and get details
       const existingLot = await checkLotExists(warehouse_inventory_id, true, client);
-      
       const { warehouse_id, inventory_id, lot_number, quantity: previous_quantity, status_id } = existingLot;
-      const new_quantity = previous_quantity + adjusted_quantity;
+      const statusName = await getWarehouseLotStatus(client, { id: status_id });
       
+      const new_quantity = previous_quantity + adjusted_quantity;
       if (new_quantity < 0) {
         throw new AppError(`Stock adjustment for lot ${lot_number} would result in negative stock.`);
       }
       
-      // Ensure total stock constraints are not violated
-      const warehouseInventory = await query(
-        `SELECT total_quantity, reserved_quantity, available_quantity
-         FROM warehouse_inventory WHERE warehouse_id = $1 AND inventory_id = $2 FOR UPDATE`,
-        [warehouse_id, inventory_id],
-        client
+      // Fetch warehouse inventory reserved and available quantities
+      const { rows: warehouseInventoryRows } = await client.query(`
+        SELECT reserved_quantity, available_quantity
+        FROM warehouse_inventory
+        WHERE warehouse_id = $1 AND inventory_id = $2 FOR UPDATE`,
+        [warehouse_id, inventory_id]
       );
       
-      if (!warehouseInventory.rows.length) {
+      if (!warehouseInventoryRows.length) {
         throw new AppError(`Warehouse inventory record not found for warehouse ${warehouse_id} and inventory ${inventory_id}`);
       }
       
-      let { total_quantity, available_quantity, reserved_quantity } = warehouseInventory.rows[0];
+      let { available_quantity } = warehouseInventoryRows[0];
       
-      // Update `warehouse_inventory` quantities
-      const updated_total_quantity = total_quantity + adjusted_quantity;
-      const updated_reserved_quantity = Math.min(reserved_quantity, updated_total_quantity);
-      const updated_available_quantity = Math.max(0, updated_total_quantity - updated_reserved_quantity);
-      
-      if (updated_available_quantity < reserved_quantity) {
-        throw new AppError(`Adjustment would cause available quantity to drop below reserved stock.`);
-      }
-
-      if (updated_available_quantity + reserved_quantity > updated_total_quantity) {
-        throw new AppError(`Adjustment exceeds total inventory capacity.`);
-      }
-      
-      // Prevent negative available stock
+      // Prevent over-adjustment: available_quantity should NEVER go below 0
+      let updated_available_quantity = available_quantity + adjusted_quantity;
       if (updated_available_quantity < 0) {
-        throw new AppError(`Available stock cannot be negative.`);
+        throw new AppError(
+          `Adjustment not allowed: Available stock cannot be negative. Current available: ${available_quantity}, Adjustment: ${adjusted_quantity}`
+        );
       }
       
-      // Restrict based on status
-      if (
-        existingLot.status_name === 'shipped' ||
-        existingLot.status_name === 'expired' ||
-        (existingLot.status_name === 'out_of_stock' && adjusted_quantity < 0) ||
-        existingLot.status_name === 'sold_out'
-      ) {
-        throw new Error(`Cannot adjust quantity for ${existingLot.status_name} lots.`);
+      // Update warehouse inventory quantities (reserved_quantity remains unchanged)
+      await client.query(`
+        UPDATE warehouse_inventory
+        SET available_quantity = GREATEST(0, $1),
+            updated_at = NOW(),
+            updated_by = $2
+        WHERE warehouse_id = $3 AND inventory_id = $4`,
+        [updated_available_quantity, user_id, warehouse_id, inventory_id]
+      );
+      
+      // Restrict Adjustments Based on Lot Status
+      if (['shipped', 'expired', 'sold_out'].includes(statusName) || (statusName === 'out_of_stock' && adjusted_quantity < 0)) {
+        throw new AppError(`Cannot adjust quantity for ${statusName} lots.`);
       }
       
-      // Determine new status
+      // Determine New Status for Warehouse Lot
       let new_status_id = status_id;
       if (new_quantity === 0) {
-        new_status_id = await getWarehouseLotStatusId(client, 'out_of_stock');
-      } else if (new_quantity > 0 && existingLot.status_name !== 'in_stock') {
-        new_status_id = await getWarehouseLotStatusId(client, 'in_stock');
+        const { id } = await getWarehouseLotStatus(client, { name: 'out_of_stock' });
+        new_status_id = id;
+      } else if (new_quantity > 0 && statusName !== 'in_stock') {
+        const { id } = await getWarehouseLotStatus(client, { name: 'in_stock' });
+        new_status_id = id;
       }
       
-      await client.query(
-        `UPDATE warehouse_inventory
-         SET total_quantity = $1,
-             reserved_quantity = $2,
-             available_quantity = $3,
-             last_update = NOW(),
-             updated_by = $4
-         WHERE warehouse_id = $5 AND inventory_id = $6`,
-        [updated_total_quantity, updated_reserved_quantity, updated_available_quantity, user_id, warehouse_id, inventory_id]
-      );
-      
-      // Update `inventory` table (aggregate total quantity across all warehouses)
-      await client.query(
-        `UPDATE inventory
-         SET quantity = (
-             SELECT COALESCE(SUM(total_quantity), 0)
-             FROM warehouse_inventory
-             WHERE inventory_id = $1
-         ), last_update = NOW()
-         WHERE id = $1`,
-         [inventory_id]
-      );
-      
-      // Update warehouse_inventory_lots quantity
-      await client.query(
-        `UPDATE warehouse_inventory_lots
-         SET quantity = $1, status_id = $2, updated_at = NOW(), updated_by = $3
-         WHERE id = $4`,
+      // Update Warehouse Inventory Lot
+      await client.query(`
+        UPDATE warehouse_inventory_lots
+        SET quantity = $1, status_id = $2, updated_at = NOW(), updated_by = $3
+        WHERE id = $4`,
         [new_quantity, new_status_id, user_id, warehouse_inventory_id]
       );
       
-      // Update warehouse_inventory available stock
-      await client.query(`
-        UPDATE warehouse_inventory
-        SET total_quantity = available_quantity + reserved_quantity,
-            last_update = NOW(), updated_by = $1
-        WHERE warehouse_id = $2 AND inventory_id = $3`,
-        [user_id, warehouse_id, inventory_id]
+      // Determine Warehouse Inventory Status Based on Lot Availability
+      const { rows: warehouseStatusRows } = await client.query(`
+        SELECT COALESCE(SUM(wil.quantity), 0) AS total_lot_quantity,
+               COALESCE(SUM(wi.reserved_quantity), 0) AS total_reserved
+        FROM warehouse_inventory wi
+        LEFT JOIN warehouse_inventory_lots wil
+          ON wi.warehouse_id = wil.warehouse_id
+          AND wi.inventory_id = wil.inventory_id
+        WHERE wi.inventory_id = $1
+        GROUP BY wi.inventory_id`,
+        [inventory_id]
       );
       
+      let warehouse_total_stock = warehouseStatusRows[0]?.total_lot_quantity || 0;
+      let warehouse_total_reserved = warehouseStatusRows[0]?.total_reserved || 0;
+      
+      let warehouse_new_status = warehouse_total_stock === 0 && warehouse_total_reserved === 0
+        ? await getWarehouseLotStatus(client, { name: 'out_of_stock' })
+        : await getWarehouseLotStatus(client, { name: 'in_stock' });
+      
+      // Update Warehouse Inventory Status
+      await client.query(`
+        UPDATE warehouse_inventory
+        SET status_id = $1, updated_at = NOW(), updated_by = $2
+        WHERE warehouse_id = $3 AND inventory_id = $4`,
+        [warehouse_new_status.id, user_id, warehouse_id, inventory_id]
+      );
+      
+      // Determine Global Inventory Status
+      const { rows: inventoryStatusRows } = await client.query(`
+        SELECT SUM(available_quantity) AS total_available, SUM(reserved_quantity) AS total_reserved
+        FROM warehouse_inventory WHERE inventory_id = $1`,
+        [inventory_id]
+      );
+      
+      let inventory_total_available = inventoryStatusRows[0]?.total_available || 0;
+      let inventory_total_reserved = inventoryStatusRows[0]?.total_reserved || 0;
+      
+      let inventory_new_status = inventory_total_available === 0 && inventory_total_reserved === 0
+        ? await getWarehouseLotStatus(client, { name: 'out_of_stock' })
+        : await getWarehouseLotStatus(client, { name: 'in_stock' });
+      
+      // Update Inventory Status
+      await client.query(`
+        UPDATE inventory
+        SET status_id = $1, updated_at = NOW(), updated_by = $2
+        WHERE id = $3`,
+        [inventory_new_status.id, user_id, inventory_id]
+      );
+      
+      // Log Adjustments
       adjustedRecords.push({
         warehouse_inventory_id,
         warehouse_id,
@@ -166,7 +182,6 @@ const adjustWarehouseInventoryLots = async (records, user_id) => {
         new_quantity,
       });
       
-      // Determine the correct action type (e.g., 'manual_adjustment', 'restock', 'sold')
       const actionType = 'manual_adjustment';
       const actionTypeId = await getActionTypeId(client, actionType);
       
@@ -211,7 +226,6 @@ const adjustWarehouseInventoryLots = async (records, user_id) => {
         comments
       );
       
-      // Push properly structured row
       inventoryHistoryLogs.push([
         inventory_id,
         actionTypeId,
@@ -229,7 +243,7 @@ const adjustWarehouseInventoryLots = async (records, user_id) => {
       ]);
     }
     
-    // Perform bulk inserts
+    // Bulk Inserts
     if (warehouseLotAdjustments.length > 0) {
       await bulkInsert(
         'warehouse_lot_adjustments',

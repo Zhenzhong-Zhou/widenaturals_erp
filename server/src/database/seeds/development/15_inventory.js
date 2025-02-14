@@ -24,7 +24,7 @@ exports.seed = async function (knex) {
   const itemTypes = ['finished_goods', 'raw_material', 'packaging'];
   
   // Define inventory entries
-  const inventoryEntries = Array.from({ length: 20 }, (_, i) => ({
+  const inventoryEntries = Array.from({ length: 100 }, (_, i) => ({
     id: knex.raw('uuid_generate_v4()'),
     product_id: products[i % products.length].id,
     location_id: locations[i % locations.length].id, // Assign location

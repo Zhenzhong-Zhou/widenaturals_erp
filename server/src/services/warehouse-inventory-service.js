@@ -18,7 +18,7 @@ const fetchAllWarehouseInventories = async ({ page, limit, sortBy, sortOrder }) 
   
   // Fetch inventories using repository
   const { data, pagination } = await getWarehouseInventories({ page, limit, sortBy, sortOrder });
-  
+  console.log(data);
   // Business logic: Post-processing (if needed)
   const inventories = data.map((inventory) => ({
     warehouseInventoryId: inventory.warehouse_inventory_id,

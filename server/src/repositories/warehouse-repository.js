@@ -81,28 +81,54 @@ const getWarehouseInventorySummary = async ({ page, limit, statusFilter }) => {
   
   // Base Query
   const baseQuery = `
+    WITH warehouse_lot_totals AS (
+      SELECT
+        warehouse_id,
+        inventory_id,
+        SUM(quantity) AS total_lot_quantity
+      FROM warehouse_inventory_lots
+      GROUP BY warehouse_id, inventory_id
+    )
     SELECT
       w.id AS warehouse_id,
       w.name AS warehouse_name,
       COALESCE(s.name, 'unknown') AS status_name,
       COUNT(DISTINCT wi.inventory_id) AS total_products,
-      COALESCE(SUM(wi.total_quantity), 0) AS total_quantity,
+      
+      -- Correctly using wlt.total_lot_quantity after joining
+      COALESCE(SUM(wlt.total_lot_quantity), 0) AS total_quantity,
       COALESCE(SUM(wi.reserved_quantity), 0) AS total_reserved_stock,
-      COALESCE(SUM(CASE WHEN wi.total_quantity > wi.reserved_quantity THEN (wi.total_quantity - wi.reserved_quantity) ELSE 0 END), 0) AS total_available_stock,
+  
+      -- Calculate available stock dynamically
+      COALESCE(SUM(GREATEST(wlt.total_lot_quantity - wi.reserved_quantity, 0)), 0) AS total_available_stock,
+  
       COALESCE(SUM(wi.warehouse_fee), 0) AS total_warehouse_fees,
       MAX(wi.last_update) AS last_inventory_update,
       COUNT(DISTINCT wil.lot_number) AS total_lots,
-      MIN(CASE WHEN wil.quantity > 0 THEN wil.expiry_date ELSE NULL END) AS earliest_expiry,
-      MAX(CASE WHEN wil.quantity > 0 THEN wil.expiry_date ELSE NULL END) AS latest_expiry,
+  
+      -- Expiry Date calculations (Ignore NULL values)
+      MIN(NULLIF(wil.expiry_date, NULL)) AS earliest_expiry,
+      MAX(NULLIF(wil.expiry_date, NULL)) AS latest_expiry,
+  
+      -- Count lots where quantity is zero
       COUNT(DISTINCT CASE WHEN wil.quantity = 0 THEN wil.lot_number END) AS total_zero_stock_lots
-    FROM ${tableName}
-    LEFT JOIN warehouse_inventory wi ON w.id = wi.warehouse_id
-    LEFT JOIN warehouse_inventory_lots wil ON wi.inventory_id = wil.inventory_id AND w.id = wil.warehouse_id
-    LEFT JOIN inventory i ON wi.inventory_id = i.id
-    LEFT JOIN status s ON w.status_id = s.id
-    WHERE ${whereClause}
-    GROUP BY w.id, w.name, s.name
-  `;
+  
+   FROM ${tableName}
+   LEFT JOIN warehouse_inventory wi ON w.id = wi.warehouse_id
+   LEFT JOIN warehouse_lot_totals wlt
+           ON wi.warehouse_id = wlt.warehouse_id
+           AND wi.inventory_id = wlt.inventory_id
+   LEFT JOIN warehouse_inventory_lots wil
+           ON wi.inventory_id = wil.inventory_id
+           AND w.id = wil.warehouse_id
+   LEFT JOIN inventory i ON wi.inventory_id = i.id
+   LEFT JOIN status s ON w.status_id = s.id
+    
+   -- Dynamic filtering
+   WHERE ${whereClause}
+    
+   GROUP BY w.id, w.name, s.name
+ `;
   
   try {
     // Use pagination if required
