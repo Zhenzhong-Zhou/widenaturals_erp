@@ -18,9 +18,14 @@ export const fetchWarehouseInventoriesThunk = createAsyncThunk<
   'warehouseInventory/fetchAll',
   async ({ page, limit }, { rejectWithValue }) => {
     try {
-      return await warehouseInventoryService.fetchAllWarehouseInventories(page, limit);
+      return await warehouseInventoryService.fetchAllWarehouseInventories(
+        page,
+        limit
+      );
     } catch (error: any) {
-      return rejectWithValue(error.message || 'Failed to fetch warehouse inventories');
+      return rejectWithValue(
+        error.message || 'Failed to fetch warehouse inventories'
+      );
     }
   }
 );
@@ -36,10 +41,16 @@ export const fetchWarehouseInventorySummaryThunk = createAsyncThunk<
   'warehouseInventory/fetchSummary',
   async ({ summaryPage, summaryLimit, summaryStatus }, { rejectWithValue }) => {
     try {
-      return await warehouseInventoryService.fetchWarehouseInventorySummary(summaryPage, summaryLimit, summaryStatus);
+      return await warehouseInventoryService.fetchWarehouseInventorySummary(
+        summaryPage,
+        summaryLimit,
+        summaryStatus
+      );
     } catch (error) {
       console.error('Failed to fetch warehouse inventory summary:', error);
-      return rejectWithValue('Failed to fetch warehouse inventory summary. Please try again.');
+      return rejectWithValue(
+        'Failed to fetch warehouse inventory summary. Please try again.'
+      );
     }
   }
 );
@@ -54,30 +65,60 @@ export const fetchWarehouseInventorySummaryThunk = createAsyncThunk<
  */
 export const fetchWarehouseProductSummaryThunk = createAsyncThunk<
   WarehouseProductSummaryResponse,
-  { warehouseId: string; productSummaryPage: number; productSummaryLimit: number }
+  {
+    warehouseId: string;
+    productSummaryPage: number;
+    productSummaryLimit: number;
+  }
 >(
   'warehouseProduct/fetchWarehouseProductSummary',
-  async ({ warehouseId, productSummaryPage, productSummaryLimit }, { rejectWithValue }) => {
+  async (
+    { warehouseId, productSummaryPage, productSummaryLimit },
+    { rejectWithValue }
+  ) => {
     try {
-      return await warehouseInventoryService.fetchWarehouseProductSummary(warehouseId, productSummaryPage, productSummaryLimit);
+      return await warehouseInventoryService.fetchWarehouseProductSummary(
+        warehouseId,
+        productSummaryPage,
+        productSummaryLimit
+      );
     } catch (error) {
       console.error('Failed to fetch warehouse products summary:', error);
-      return rejectWithValue('Failed to fetch warehouse products summary. Please try again.');
+      return rejectWithValue(
+        'Failed to fetch warehouse products summary. Please try again.'
+      );
     }
   }
 );
 
 export const fetchWarehouseInventoryDetailsThunk = createAsyncThunk<
   WarehouseInventoryDetailsResponse,
-  { warehouseId: string; warehouseInventoryDetailPage: number; warehouseInventoryDetailLimit: number }
+  {
+    warehouseId: string;
+    warehouseInventoryDetailPage: number;
+    warehouseInventoryDetailLimit: number;
+  }
 >(
   'warehouseInventory/fetchDetails',
-  async ({ warehouseId, warehouseInventoryDetailPage, warehouseInventoryDetailLimit }, { rejectWithValue }) => {
+  async (
+    {
+      warehouseId,
+      warehouseInventoryDetailPage,
+      warehouseInventoryDetailLimit,
+    },
+    { rejectWithValue }
+  ) => {
     try {
-      return await warehouseInventoryService.fetchWarehouseInventoryDetails(warehouseId, warehouseInventoryDetailPage, warehouseInventoryDetailLimit);
+      return await warehouseInventoryService.fetchWarehouseInventoryDetails(
+        warehouseId,
+        warehouseInventoryDetailPage,
+        warehouseInventoryDetailLimit
+      );
     } catch (error) {
       console.error('Failed to fetch warehouse inventory details:', error);
-      return rejectWithValue('Failed to fetch warehouse inventory details. Please try again.');
+      return rejectWithValue(
+        'Failed to fetch warehouse inventory details. Please try again.'
+      );
     }
   }
 );

@@ -12,19 +12,19 @@ import {
  */
 const useLotAdjustmentTypes = () => {
   const dispatch = useAppDispatch();
-  
+
   // Select data from Redux store
   const types = useAppSelector(selectLotAdjustmentTypes);
   const loading = useAppSelector(selectLotAdjustmentLoading);
   const error = useAppSelector(selectLotAdjustmentError);
-  
+
   // Fetch lot adjustment types on mount
   useEffect(() => {
     if (types.length === 0) {
       dispatch(fetchAllDropdownLotAdjustmentTypesThunk());
     }
   }, [dispatch, types.length]);
-  
+
   return { types, loading, error };
 };
 

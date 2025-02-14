@@ -28,31 +28,31 @@ interface UsePricingTypesReturn {
 }
 
 const usePricingTypes = ({
-                           initialPage = 1,
-                           initialLimit = 10,
-                         }: UsePricingTypesParams): UsePricingTypesReturn => {
+  initialPage = 1,
+  initialLimit = 10,
+}: UsePricingTypesParams): UsePricingTypesReturn => {
   const dispatch = useAppDispatch();
-  
+
   // Redux state
   const data = useAppSelector(selectPricingTypes);
   const totalRecords = useAppSelector(selectTotalRecords);
   const totalPages = useAppSelector(selectTotalPages);
   const isLoading = useAppSelector(selectIsLoading);
   const error = useAppSelector(selectError);
-  
+
   // Local state for pagination
   const [page, setPage] = useState(initialPage);
   const [limit, setLimit] = useState(initialLimit);
-  
+
   // Fetch pricing types
   const fetchData = useCallback(() => {
     dispatch(fetchPricingTypesThunk({ page, limit }));
   }, [dispatch, page, limit]);
-  
+
   useEffect(() => {
     fetchData();
   }, [fetchData]);
-  
+
   // Adjust page number when `limit` changes
   useEffect(() => {
     setPage((prevPage) => {
@@ -60,12 +60,12 @@ const usePricingTypes = ({
       return Math.min(prevPage, maxPage);
     });
   }, [limit, totalRecords]);
-  
+
   // Method to manually refetch data
   const refetch = () => {
     fetchData();
   };
-  
+
   return {
     data,
     totalRecords,

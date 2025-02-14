@@ -15,22 +15,22 @@ const execAsync = promisify(exec);
 const runPgDump = async (dumpCommand, isProduction, dbUser, dbPassword) => {
   try {
     logInfo('Starting pg_dump execution...');
-    
+
     const execOptions = {
       timeout: 300000, // 5-minute timeout
       env: {
         ...process.env, // Preserve existing env variables
       },
     };
-    
+
     // In production, rely on .pgpass, so do not pass PGPASSWORD
     if (!isProduction) {
       execOptions.env.PGUSER = dbUser;
       execOptions.env.PGPASSWORD = dbPassword;
     }
-    
+
     const { stdout, stderr } = await execAsync(dumpCommand, execOptions);
-    
+
     if (stdout) logInfo(`pg_dump output: ${stdout}`);
     if (stderr) logError(`pg_dump warnings: ${stderr}`);
   } catch (error) {

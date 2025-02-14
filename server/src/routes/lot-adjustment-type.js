@@ -1,5 +1,7 @@
 const express = require('express');
-const { getWarehouseLotAdjustmentTypesController } = require('../controllers/lot-adjustment-type-controller');
+const {
+  getWarehouseLotAdjustmentTypesController,
+} = require('../controllers/lot-adjustment-type-controller');
 
 const router = express.Router();
 

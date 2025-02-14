@@ -1,5 +1,8 @@
 const express = require('express');
-const { getProductsController, getProductDetailsByIdController } = require('../controllers/product-controller');
+const {
+  getProductsController,
+  getProductDetailsByIdController,
+} = require('../controllers/product-controller');
 const validate = require('../middlewares/validate');
 const { paginationSchema } = require('../validators/product-validators');
 

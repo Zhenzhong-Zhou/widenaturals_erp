@@ -1,5 +1,7 @@
 const express = require('express');
-const { getAllLocationsController } = require('../controllers/location-controller');
+const {
+  getAllLocationsController,
+} = require('../controllers/location-controller');
 const authorize = require('../middlewares/authorize');
 
 const router = express.Router();
@@ -9,6 +11,10 @@ const router = express.Router();
  * @desc Fetch all locations with pagination & sorting
  * @access Protected
  */
-router.get('/', authorize(['manage_locations', 'view_locations']), getAllLocationsController);
+router.get(
+  '/',
+  authorize(['manage_locations', 'view_locations']),
+  getAllLocationsController
+);
 
 module.exports = router;

@@ -13,7 +13,8 @@ export const selectPagination = (state: RootState) => state.pricings.pagination;
 /**
  * Selects loading state.
  */
-export const selectPricingLoading = (state: RootState) => state.pricings.loading;
+export const selectPricingLoading = (state: RootState) =>
+  state.pricings.loading;
 
 /**
  * Selects error message.

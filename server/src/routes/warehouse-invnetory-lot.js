@@ -1,6 +1,7 @@
 const express = require('express');
-const { adjustWarehouseInventoryLotsController } = require('../controllers/warehouse-inventory-lot-controller');
-
+const {
+  adjustWarehouseInventoryLotsController,
+} = require('../controllers/warehouse-inventory-lot-controller');
 
 const router = express.Router();
 

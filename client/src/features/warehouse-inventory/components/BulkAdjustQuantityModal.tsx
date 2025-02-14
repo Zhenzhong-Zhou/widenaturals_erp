@@ -23,12 +23,14 @@ interface BulkAdjustQuantityModalProps {
     lotNumber: string;
     currentQuantity: number;
   }[];
-  onSubmit: (data: {
-    warehouse_inventory_id: string;
-    adjustment_type_id: string;
-    adjusted_quantity: number;
-    comments: string;
-  }[]) => void;
+  onSubmit: (
+    data: {
+      warehouse_inventory_id: string;
+      adjustment_type_id: string;
+      adjusted_quantity: number;
+      comments: string;
+    }[]
+  ) => void;
 }
 
 type AdjustmentFormData = {
@@ -44,11 +46,11 @@ type AdjustmentFormData = {
 };
 
 const BulkAdjustQuantityModal: FC<BulkAdjustQuantityModalProps> = ({
-                                                                     open,
-                                                                     onClose,
-                                                                     selectedLots,
-                                                                     onSubmit,
-                                                                   }) => {
+  open,
+  onClose,
+  selectedLots,
+  onSubmit,
+}) => {
   const { control, handleSubmit, reset } = useForm<AdjustmentFormData>({
     defaultValues: {
       adjustments: selectedLots.map((lot) => ({
@@ -59,15 +61,15 @@ const BulkAdjustQuantityModal: FC<BulkAdjustQuantityModalProps> = ({
       })),
     },
   });
-  
+
   const { fields, remove } = useFieldArray({
     control,
     name: 'adjustments',
   });
-  
+
   // Fetch lot adjustment types
   const { types, loading } = useLotAdjustmentTypes();
-  
+
   // Reset form when selectedLots change
   useEffect(() => {
     reset({
@@ -82,7 +84,7 @@ const BulkAdjustQuantityModal: FC<BulkAdjustQuantityModalProps> = ({
       })),
     });
   }, [selectedLots, reset]);
-  
+
   // Remove specific lot by ID
   const handleRemove = (warehouseInventoryLotId: string) => {
     const indexToRemove = fields.findIndex(
@@ -92,24 +94,25 @@ const BulkAdjustQuantityModal: FC<BulkAdjustQuantityModalProps> = ({
       remove(indexToRemove);
     }
   };
-  
+
   // Handle form submission
   const handleFormSubmit = handleSubmit((formData) => {
     if (!Array.isArray(formData.adjustments)) {
       console.error('formData.adjustments is not an array', formData);
       return;
     }
-    
+
     // Remove unchanged adjustments and empty adjustment types
     const filteredAdjustments = formData.adjustments.filter(
-      (adjustment) => adjustment.adjustedQuantity !== 0 && adjustment.adjustmentType !== ''
+      (adjustment) =>
+        adjustment.adjustedQuantity !== 0 && adjustment.adjustmentType !== ''
     );
-    
+
     if (filteredAdjustments.length === 0) {
       console.warn('No changes detected, skipping submission.');
       return;
     }
-    
+
     // Convert camelCase fields to snake_case for backend submission
     const backendFormattedData = filteredAdjustments.map((adjustment) => ({
       warehouse_inventory_id: adjustment.warehouseInventoryLotId,
@@ -117,10 +120,10 @@ const BulkAdjustQuantityModal: FC<BulkAdjustQuantityModalProps> = ({
       adjusted_quantity: Number(adjustment.adjustedQuantity) || 0,
       comments: adjustment.comment || '',
     }));
-    
+
     onSubmit(backendFormattedData);
   });
-  
+
   return (
     <CustomModal
       open={open}
@@ -146,58 +149,103 @@ const BulkAdjustQuantityModal: FC<BulkAdjustQuantityModalProps> = ({
       <Box sx={{ p: 2 }} component="form" onSubmit={handleFormSubmit}>
         <Grid container spacing={2} justifyContent="center">
           {fields.map((lot, index) => (
-            <Grid container spacing={{ xs: 2, md: 3 }} columns={{ xs: 2, sm: 8, md: 12 }} key={lot.id}>
+            <Grid
+              container
+              spacing={{ xs: 2, md: 3 }}
+              columns={{ xs: 2, sm: 8, md: 12 }}
+              key={lot.id}
+            >
               <Card
                 variant="outlined"
                 sx={{
-                  height: "100%",
-                  display: "flex",
-                  flexDirection: "column",
-                  maxWidth: "280px",
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  maxWidth: '280px',
                   flexGrow: 1, // Ensures consistency
                 }}
               >
-              
-              <CardContent sx={{ flexGrow: 1, height: '100%', display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                <CardContent
+                  sx={{
+                    flexGrow: 1,
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                  }}
+                >
                   {/* Title + Delete Button */}
-                  <Box display="flex" justifyContent="space-between" alignItems="center">
-                    <Typography variant="h6" fontWeight="bold" sx={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  <Box
+                    display="flex"
+                    justifyContent="space-between"
+                    alignItems="center"
+                  >
+                    <Typography
+                      variant="h6"
+                      fontWeight="bold"
+                      sx={{
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
                       {lot.productName}
                     </Typography>
                     {/* Remove Button for Each Lot */}
-                    <IconButton onClick={() => handleRemove(lot.warehouseInventoryLotId)} color="error">
+                    <IconButton
+                      onClick={() => handleRemove(lot.warehouseInventoryLotId)}
+                      color="error"
+                    >
                       <DeleteIcon />
                     </IconButton>
                   </Box>
-                  
+
                   <Typography variant="body2" color="text.secondary">
                     Lot Number: <strong>{lot.lotNumber}</strong>
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Current Quantity: <strong>{lot.currentQuantity}</strong>
                   </Typography>
-                  
+
                   <Divider sx={{ my: 2 }} />
-                  
+
                   {/* Keep Forms Aligned */}
-                  <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+                  <Box
+                    sx={{
+                      flexGrow: 1,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                    }}
+                  >
                     {/* Adjustment Amount Input */}
                     <Controller
                       name={`adjustments.${index}.adjustedQuantity`}
                       control={control}
                       defaultValue={0}
                       render={({ field }) => (
-                        <TextField {...field} label="Adjustment Amount" type="number" fullWidth />
+                        <TextField
+                          {...field}
+                          label="Adjustment Amount"
+                          type="number"
+                          fullWidth
+                        />
                       )}
                     />
-                    
+
                     {/* Adjustment Type Select */}
                     <Controller
                       name={`adjustments.${index}.adjustmentType`}
                       control={control}
                       defaultValue=""
                       render={({ field }) => (
-                        <TextField {...field} select label="Adjustment Type" fullWidth disabled={loading}>
+                        <TextField
+                          {...field}
+                          select
+                          label="Adjustment Type"
+                          fullWidth
+                          disabled={loading}
+                        >
                           {types.map((type) => (
                             <MenuItem key={type.id} value={type.id}>
                               {capitalizeFirstLetter(type.name)}
@@ -206,14 +254,18 @@ const BulkAdjustQuantityModal: FC<BulkAdjustQuantityModalProps> = ({
                         </TextField>
                       )}
                     />
-                    
+
                     {/* Comment Input */}
                     <Controller
                       name={`adjustments.${index}.comment`}
                       control={control}
                       defaultValue=""
                       render={({ field }) => (
-                        <TextField {...field} label="Comment (Optional)" fullWidth />
+                        <TextField
+                          {...field}
+                          label="Comment (Optional)"
+                          fullWidth
+                        />
                       )}
                     />
                   </Box>
@@ -222,7 +274,7 @@ const BulkAdjustQuantityModal: FC<BulkAdjustQuantityModalProps> = ({
             </Grid>
           ))}
         </Grid>
-        
+
         {/* Single Submit Button for All Adjustments */}
         <Box mt={3} textAlign="center">
           <CustomButton type="submit" variant="contained" color="primary">

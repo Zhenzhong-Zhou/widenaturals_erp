@@ -1,4 +1,6 @@
-const { adjustWarehouseInventoryLots } = require('../repositories/warehouse-inventory-lot-repository');
+const {
+  adjustWarehouseInventoryLots,
+} = require('../repositories/warehouse-inventory-lot-repository');
 const { logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
 
@@ -17,7 +19,7 @@ const adjustWarehouseInventory = async (records, user_id) => {
     logError('Error in adjustWarehouseInventory service:', error.message);
     throw new AppError(`Inventory adjustment failed: ${error.message}`);
   }
-}
+};
 
 module.exports = {
   adjustWarehouseInventory,

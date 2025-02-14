@@ -2,25 +2,32 @@ const { query, paginateQuery, retry } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logInfo, logError } = require('../utils/logger-helper');
 
-const getWarehouseInventories = async ({ page, limit, sortBy, sortOrder = 'ASC' }) => {
+const getWarehouseInventories = async ({
+  page,
+  limit,
+  sortBy,
+  sortOrder = 'ASC',
+}) => {
   const validSortColumns = {
     warehouse_name: 'w.name',
     location_name: 'l.name',
     storage_capacity: 'w.storage_capacity',
     status_id: 'w.status_id',
     created_at: 'w.created_at',
-    updated_at: 'w.updated_at'
+    updated_at: 'w.updated_at',
   };
-  
+
   // Default sorting (by warehouse name & creation time)
   const defaultSortBy = 'w.name, w.created_at';
   sortBy = validSortColumns[sortBy] || defaultSortBy;
-  
+
   // Validate sortOrder, default to 'ASC'
-  sortOrder = ['ASC', 'DESC'].includes(sortOrder?.toUpperCase()) ? sortOrder.toUpperCase() : 'ASC';
-  
+  sortOrder = ['ASC', 'DESC'].includes(sortOrder?.toUpperCase())
+    ? sortOrder.toUpperCase()
+    : 'ASC';
+
   const tableName = 'warehouse_inventory wi';
-  
+
   const joins = [
     'LEFT JOIN warehouses w ON wi.warehouse_id = w.id',
     'LEFT JOIN inventory i ON wi.inventory_id = i.id',
@@ -28,11 +35,11 @@ const getWarehouseInventories = async ({ page, limit, sortBy, sortOrder = 'ASC' 
     'LEFT JOIN locations l ON w.location_id = l.id',
     'LEFT JOIN warehouse_lot_status ws ON wi.status_id = ws.id',
     'LEFT JOIN users u1 ON wi.created_by = u1.id',
-    'LEFT JOIN users u2 ON wi.updated_by = u2.id'
+    'LEFT JOIN users u2 ON wi.updated_by = u2.id',
   ];
-  
+
   const whereClause = '1=1'; // No filters by default
-  
+
   const baseQuery = `
     SELECT
       wi.id AS warehouse_inventory_id,
@@ -58,7 +65,7 @@ const getWarehouseInventories = async ({ page, limit, sortBy, sortOrder = 'ASC' 
     FROM ${tableName}
     ${joins.join(' ')}
   `;
-  
+
   try {
     return await retry(async () => {
       return await paginateQuery({
@@ -79,19 +86,23 @@ const getWarehouseInventories = async ({ page, limit, sortBy, sortOrder = 'ASC' 
   }
 };
 
-const getWarehouseProductSummary = async ({ warehouse_id, page = 1, limit = 10 }) => {
+const getWarehouseProductSummary = async ({
+  warehouse_id,
+  page = 1,
+  limit = 10,
+}) => {
   const tableName = 'warehouse_inventory wi';
-  
+
   const joins = [
     'INNER JOIN warehouse_inventory_lots wil ON wi.warehouse_id = wil.warehouse_id AND wi.inventory_id = wil.inventory_id',
     'JOIN inventory i ON wi.inventory_id = i.id', // Fetch from inventory
-    'JOIN products p ON i.product_id = p.id' // Referenced via inventory
+    'JOIN products p ON i.product_id = p.id', // Referenced via inventory
   ];
-  
+
   // Dynamic WHERE clause
   const whereClause = 'wi.warehouse_id = $1';
   const params = [warehouse_id];
-  
+
   // Base Query
   const baseQuery = `
     SELECT
@@ -109,7 +120,7 @@ const getWarehouseProductSummary = async ({ warehouse_id, page = 1, limit = 10 }
     WHERE ${whereClause}
     GROUP BY i.id, p.product_name
   `;
-  
+
   try {
     return await retry(async () => {
       return await paginateQuery({
@@ -125,14 +136,21 @@ const getWarehouseProductSummary = async ({ warehouse_id, page = 1, limit = 10 }
       });
     });
   } catch (error) {
-    logError(`Error fetching warehouse product summary (warehouse_id: ${warehouse_id}, page: ${page}, limit: ${limit}):`, error);
+    logError(
+      `Error fetching warehouse product summary (warehouse_id: ${warehouse_id}, page: ${page}, limit: ${limit}):`,
+      error
+    );
     throw new AppError('Failed to fetch warehouse product summary.');
   }
 };
 
-const getWarehouseInventoryDetailsByWarehouseId = async ({ warehouse_id, page, limit }) => {
+const getWarehouseInventoryDetailsByWarehouseId = async ({
+  warehouse_id,
+  page,
+  limit,
+}) => {
   const tableName = 'warehouse_inventory wi';
-  
+
   const joins = [
     'JOIN warehouses w ON wi.warehouse_id = w.id',
     'JOIN inventory i ON wi.inventory_id = i.id',
@@ -142,14 +160,14 @@ const getWarehouseInventoryDetailsByWarehouseId = async ({ warehouse_id, page, l
     'LEFT JOIN users u1 ON wi.created_by = u1.id',
     'LEFT JOIN users u2 ON wi.updated_by = u2.id',
     'LEFT JOIN users u3 ON wil.created_by = u3.id',
-    'LEFT JOIN users u4 ON wil.updated_by = u4.id'
+    'LEFT JOIN users u4 ON wil.updated_by = u4.id',
   ];
-  
+
   const whereClause = 'wi.warehouse_id = $1';
-  
+
   // Sorting
   const defaultSort = 'p.product_name, wil.expiry_date';
-  
+
   const baseQuery = `
     SELECT
         wi.id AS warehouse_inventory_id,
@@ -183,7 +201,7 @@ const getWarehouseInventoryDetailsByWarehouseId = async ({ warehouse_id, page, l
     ${joins.join(' ')}
     WHERE ${whereClause}
   `;
-  
+
   try {
     // Use pagination if required
     return await retry(async () => {
@@ -200,7 +218,10 @@ const getWarehouseInventoryDetailsByWarehouseId = async ({ warehouse_id, page, l
       });
     });
   } catch (error) {
-    logError(`Error fetching warehouse inventory details (page: ${page}, limit: ${limit}):`, error);
+    logError(
+      `Error fetching warehouse inventory details (page: ${page}, limit: ${limit}):`,
+      error
+    );
     throw new AppError('Failed to fetch warehouse inventory details.');
   }
 };

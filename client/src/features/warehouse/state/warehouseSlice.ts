@@ -29,11 +29,20 @@ const warehouseSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchWarehouses.fulfilled, (state, action: PayloadAction<{ warehouses: Warehouse[]; pagination: Pagination }>) => {
-        state.warehouses = action.payload.warehouses;
-        state.pagination = action.payload.pagination;
-        state.loading = false;
-      })
+      .addCase(
+        fetchWarehouses.fulfilled,
+        (
+          state,
+          action: PayloadAction<{
+            warehouses: Warehouse[];
+            pagination: Pagination;
+          }>
+        ) => {
+          state.warehouses = action.payload.warehouses;
+          state.pagination = action.payload.pagination;
+          state.loading = false;
+        }
+      )
       .addCase(fetchWarehouses.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;

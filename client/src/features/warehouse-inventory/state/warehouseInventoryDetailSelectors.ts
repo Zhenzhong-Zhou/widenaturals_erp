@@ -2,7 +2,8 @@ import { createSelector } from '@reduxjs/toolkit';
 import { RootState } from '../../../store/store.ts';
 
 // Base selectors
-const selectWarehouseInventoryDetailState = (state: RootState) => state.warehouseInventoryDetails;
+const selectWarehouseInventoryDetailState = (state: RootState) =>
+  state.warehouseInventoryDetails;
 
 export const selectWarehouseInventoryDetails = createSelector(
   selectWarehouseInventoryDetailState,

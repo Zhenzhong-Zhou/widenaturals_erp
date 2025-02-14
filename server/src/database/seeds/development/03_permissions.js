@@ -5,7 +5,7 @@ exports.seed = async function (knex) {
     .where('name', 'active')
     .first()
     .then((row) => row.id);
-  
+
   const permissions = [
     {
       id: knex.raw('uuid_generate_v4()'),
@@ -80,7 +80,7 @@ exports.seed = async function (knex) {
       updated_at: knex.fn.now(),
     },
   ];
-  
+
   for (const permission of permissions) {
     await knex('permissions')
       .insert(permission)

@@ -99,7 +99,11 @@ router.use('/warehouses', warehouseRouts);
 router.use('/warehouse-inventories', warehouseInventoryRouts);
 
 // router.use('/warehouse-inventory-lots', warehouseInventoryLotRouts);
-router.use('/warehouse-inventory-lots', authenticate(), warehouseInventoryLotRouts);
+router.use(
+  '/warehouse-inventory-lots',
+  authenticate(),
+  warehouseInventoryLotRouts
+);
 
 // router.use('/lot-adjustment-types', authenticate(), warehouseLotAdjustmentRoutes);
 router.use('/lot-adjustment-types', warehouseLotAdjustmentRoutes);

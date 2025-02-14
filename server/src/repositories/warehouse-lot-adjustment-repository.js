@@ -35,21 +35,28 @@ const insertWarehouseLotAdjustment = async (
     VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $8)
     RETURNING *;
   `;
-  
+
   const values = [
-    warehouse_id, product_id, lot_number,
-    adjustment_type_id, previous_quantity,
-    adjusted_quantity, new_quantity, adjusted_by
+    warehouse_id,
+    product_id,
+    lot_number,
+    adjustment_type_id,
+    previous_quantity,
+    adjusted_quantity,
+    new_quantity,
+    adjusted_by,
   ];
-  
+
   try {
     // Use the query function instead of pool.query
     const { rows } = await query(queryText, values, client);
     return rows[0]; // Return the inserted adjustment record
   } catch (error) {
     logError('Error inserting warehouse lot adjustment:', error);
-    throw new AppError('Database error: Failed to insert warehouse lot adjustment.');
+    throw new AppError(
+      'Database error: Failed to insert warehouse lot adjustment.'
+    );
   }
-}
+};
 
 module.exports = { insertWarehouseLotAdjustment };

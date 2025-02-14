@@ -1,8 +1,14 @@
 const { fetchDynamicValue } = require('../03_utils');
 
 exports.seed = async function (knex) {
-  const activeStatusId = await fetchDynamicValue(knex, 'status', 'name', 'active', 'id');
-  
+  const activeStatusId = await fetchDynamicValue(
+    knex,
+    'status',
+    'name',
+    'active',
+    'id'
+  );
+
   const inventoryActions = [
     {
       name: 'manual_adjustment',
@@ -71,7 +77,7 @@ exports.seed = async function (knex) {
       default_action: true,
     },
   ];
-  
+
   // Insert data while avoiding duplicates
   for (const action of inventoryActions) {
     await knex('inventory_action_types')
@@ -87,6 +93,8 @@ exports.seed = async function (knex) {
       .onConflict('name')
       .ignore();
   }
-  
-  console.log(`${inventoryActions.length} Inventory action types seeded successfully.`);
+
+  console.log(
+    `${inventoryActions.length} Inventory action types seeded successfully.`
+  );
 };

@@ -1,5 +1,7 @@
 const { query, withTransaction } = require('../database/db');
-const { insertWarehouseLotAdjustment } = require('./warehouse-lot-adjustment-repository');
+const {
+  insertWarehouseLotAdjustment,
+} = require('./warehouse-lot-adjustment-repository');
 const AppError = require('../utils/AppError');
 const { logError } = require('../utils/logger-helper');
 
@@ -31,18 +33,26 @@ const insertInventoryActivityLog = async (
     )
     RETURNING *;
   `;
-  
+
   const values = [
-    inventory_id, warehouse_id, lot_id, inventory_action_type_id,
-    previous_quantity, adjusted_quantity, new_quantity, adjustment_type_id,
-    order_id || null, user_id, comments
+    inventory_id,
+    warehouse_id,
+    lot_id,
+    inventory_action_type_id,
+    previous_quantity,
+    adjusted_quantity,
+    new_quantity,
+    adjustment_type_id,
+    order_id || null,
+    user_id,
+    comments,
   ];
-  
+
   try {
     const { rows } = await query(text, values, client);
     return rows[0]; // Return inserted record
   } catch (error) {
-    logError("Error inserting inventory activity log:", error.message);
+    logError('Error inserting inventory activity log:', error.message);
     throw error;
   }
 };

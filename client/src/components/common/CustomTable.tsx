@@ -18,7 +18,10 @@ interface Column<T = any> {
   minWidth?: number;
   align?: 'left' | 'right' | 'center';
   sortable?: boolean;
-  format?: (value: T[Extract<keyof T, string>], row?: T) => string | number | null | undefined;
+  format?: (
+    value: T[Extract<keyof T, string>],
+    row?: T
+  ) => string | number | null | undefined;
   renderCell?: (row: T) => ReactNode;
 }
 
@@ -35,27 +38,27 @@ interface CustomTableProps {
 }
 
 const CustomTable: FC<CustomTableProps> = ({
-                                             columns,
-                                             data,
-                                             rowsPerPageOptions = [5, 10, 25],
-                                             initialRowsPerPage = 5,
-                                             totalPages,
-                                             totalRecords,
-                                             page,
-                                             onPageChange,
-                                             onRowsPerPageChange,
-                                           }) => {
+  columns,
+  data,
+  rowsPerPageOptions = [5, 10, 25],
+  initialRowsPerPage = 5,
+  totalPages,
+  totalRecords,
+  page,
+  onPageChange,
+  onRowsPerPageChange,
+}) => {
   const [order, setOrder] = useState<'asc' | 'desc'>('asc');
   const [orderBy, setOrderBy] = useState<string | undefined>(undefined);
-  
+
   const { theme } = useThemeContext();
-  
+
   const handleSort = (columnId: string) => {
     const isAsc = orderBy === columnId && order === 'asc';
     setOrder(isAsc ? 'desc' : 'asc');
     setOrderBy(columnId);
   };
-  
+
   const sortedData = [...data].sort((a, b) => {
     if (!orderBy) return 0;
     const aValue = a[orderBy];
@@ -64,10 +67,10 @@ const CustomTable: FC<CustomTableProps> = ({
     if (aValue > bValue) return order === 'asc' ? 1 : -1;
     return 0;
   });
-  
+
   // Use totalPages directly to ensure the page stays in range
   const safePage = Math.min(page, Math.max(0, (totalPages || 1) - 1));
-  
+
   return (
     <Paper
       sx={{
@@ -119,7 +122,10 @@ const CustomTable: FC<CustomTableProps> = ({
                 }}
               >
                 {columns.map((column) => (
-                  <TableCell key={String(column.id)} align={column.align || 'left'}>
+                  <TableCell
+                    key={String(column.id)}
+                    align={column.align || 'left'}
+                  >
                     {column.renderCell
                       ? column.renderCell(row)
                       : column.format

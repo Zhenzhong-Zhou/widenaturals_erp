@@ -5,15 +5,27 @@ const { fetchDynamicValue } = require('../03_utils');
  * @returns {Promise<void>}
  */
 exports.seed = async function (knex) {
-  const activeStatusId = await fetchDynamicValue(knex, 'status', 'name', 'active', 'id');
-  const adminUserId = await fetchDynamicValue(knex, 'users', 'email', 'admin@example.com', 'id');
-  
+  const activeStatusId = await fetchDynamicValue(
+    knex,
+    'status',
+    'name',
+    'active',
+    'id'
+  );
+  const adminUserId = await fetchDynamicValue(
+    knex,
+    'users',
+    'email',
+    'admin@example.com',
+    'id'
+  );
+
   const productIds = await knex('products').select('id', 'product_name');
   if (!productIds.length) {
     console.log('No products found. Seed the products table first.');
     return;
   }
-  
+
   const complianceTypes = ['FDA', 'CE', 'ISO', 'RoHS', 'EcoCert', 'NPN'];
   const compliances = productIds.slice(0, 20).map((product, index) => ({
     id: knex.raw('uuid_generate_v4()'),
@@ -30,7 +42,7 @@ exports.seed = async function (knex) {
     created_by: adminUserId,
     updated_by: adminUserId,
   }));
-  
+
   const batchSize = 10; // Insert in batches
   try {
     for (let i = 0; i < compliances.length; i += batchSize) {
@@ -40,7 +52,9 @@ exports.seed = async function (knex) {
         .onConflict(['product_id', 'type'])
         .ignore();
     }
-    console.log(`${compliances.length} compliance records seeded successfully.`);
+    console.log(
+      `${compliances.length} compliance records seeded successfully.`
+    );
   } catch (error) {
     console.error('Error seeding compliances:', error.message);
   }

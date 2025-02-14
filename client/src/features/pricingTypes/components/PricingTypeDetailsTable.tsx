@@ -1,7 +1,18 @@
 import { FC } from 'react';
 import Box from '@mui/material/Box';
-import { CustomButton, Loading, ErrorDisplay, ErrorMessage, CustomTable, Typography } from '@components/index.ts';
-import { PricingTypeDetail, PricingRecord, PricingTypePagination } from '../state/pricingTypeTypes';
+import {
+  CustomButton,
+  Loading,
+  ErrorDisplay,
+  ErrorMessage,
+  CustomTable,
+  Typography,
+} from '@components/index.ts';
+import {
+  PricingTypeDetail,
+  PricingRecord,
+  PricingTypePagination,
+} from '../state/pricingTypeTypes';
 import { formatDate, formatDateTime } from '@utils/dateTimeUtils.ts';
 import { capitalizeFirstLetter } from '@utils/textUtils.ts';
 import { Link } from 'react-router-dom';
@@ -20,23 +31,33 @@ interface PricingTypeDetailsTableProps {
 }
 
 const PricingTypeDetailsTable: FC<PricingTypeDetailsTableProps> = ({
-                                                                     pricingTypeDetails,
-                                                                     data,
-                                                                     pagination,
-                                                                     isLoading,
-                                                                     error,
-                                                                     page,
-                                                                     limit,
-                                                                     onPageChange,
-                                                                     onLimitChange,
-                                                                     refetch,
-                                                                   }) => {
-  if (isLoading) return <Loading message={`Loading ${pricingTypeDetails?.pricing_type_name || ''} Pricing Type Details...`} />;
-  if (error) return <ErrorDisplay><ErrorMessage message={error} /></ErrorDisplay>;
-  
+  pricingTypeDetails,
+  data,
+  pagination,
+  isLoading,
+  error,
+  page,
+  limit,
+  onPageChange,
+  onLimitChange,
+  refetch,
+}) => {
+  if (isLoading)
+    return (
+      <Loading
+        message={`Loading ${pricingTypeDetails?.pricing_type_name || ''} Pricing Type Details...`}
+      />
+    );
+  if (error)
+    return (
+      <ErrorDisplay>
+        <ErrorMessage message={error} />
+      </ErrorDisplay>
+    );
+
   const transformedData = data.map((item) => ({
     ...item,
-    
+
     // Flatten Product Details
     product_id: item.product?.id || null,
     product_name: item.product?.name || 'No Product',
@@ -45,22 +66,23 @@ const PricingTypeDetailsTable: FC<PricingTypeDetailsTableProps> = ({
     product_category: item.product?.category || 'No Category',
     product_barcode: item.product?.barcode || 'No Barcode',
     product_market_region: item.product?.market_region || 'No Market Region',
-    
+
     // Flatten Location Details
     location_id: item.location?.id || null,
     location_name: item.location?.name || 'No Location',
     location_type: item.location?.type || 'No Location Type',
-    
+
     // Flatten Created By Details
     created_by_id: item.created_by?.id || null,
     created_by_name: item.created_by?.full_name || 'Unknown',
-    
+
     // Flatten Updated By Details
     updated_by_id: item.updated_by?.id || null,
     updated_by_name: item.updated_by?.full_name || 'Unknown',
-    
+
     // Dates and Status
-    pricing: {  // This ensures the entire pricing object is passed
+    pricing: {
+      // This ensures the entire pricing object is passed
       pricing_id: item.pricing_id || null,
       price: item.price || '0.00',
     },
@@ -71,7 +93,7 @@ const PricingTypeDetailsTable: FC<PricingTypeDetailsTableProps> = ({
     created_at: item.created_at || null,
     updated_at: item.updated_at || null,
   }));
-  
+
   // Define columns for CustomTable
   const columns = [
     {
@@ -80,7 +102,10 @@ const PricingTypeDetailsTable: FC<PricingTypeDetailsTableProps> = ({
       sortable: true,
       format: (row: any) => row.price || '0.00',
       renderCell: (row: any) => (
-        <Link to={`/pricings/${row.pricing_id || 'unknown'}`} style={{ textDecoration: 'none', color: 'red' }}>
+        <Link
+          to={`/pricings/${row.pricing_id || 'unknown'}`}
+          style={{ textDecoration: 'none', color: 'red' }}
+        >
           {row.price || '0.00'}
         </Link>
       ),
@@ -109,17 +134,17 @@ const PricingTypeDetailsTable: FC<PricingTypeDetailsTableProps> = ({
       sortable: true,
       format: (value: any) => formatDate(value),
     },
-    
+
     { id: 'product_name', label: 'Product Name', sortable: true },
     { id: 'product_brand', label: 'Brand', sortable: true },
     // { id: 'product_series', label: 'Series', sortable: true },
     // { id: 'product_category', label: 'Category', sortable: true },
     { id: 'product_barcode', label: 'Barcode', sortable: true },
     // { id: 'product_market_region', label: 'Market Region', sortable: true },
-    
+
     { id: 'location_type', label: 'Location Type', sortable: true },
     { id: 'location_name', label: 'Location', sortable: true },
-    
+
     {
       id: 'created_by_name',
       label: 'Created By',
@@ -143,7 +168,7 @@ const PricingTypeDetailsTable: FC<PricingTypeDetailsTableProps> = ({
       format: (value: any) => formatDate(value),
     },
   ];
-  
+
   return (
     <Box sx={{ padding: 2 }}>
       {/* Display Pricing Type Metadata */}
@@ -152,22 +177,29 @@ const PricingTypeDetailsTable: FC<PricingTypeDetailsTableProps> = ({
           <Typography variant="h4" gutterBottom>
             {pricingTypeDetails.pricing_type_name} - Price Type Details
           </Typography>
-          <Typography variant="h6">Description: {pricingTypeDetails.pricing_type_description}</Typography>
-          <Typography variant="body1">
-            Status: {pricingTypeDetails.status} | Status Date: {formatDateTime(pricingTypeDetails.status_date)}
+          <Typography variant="h6">
+            Description: {pricingTypeDetails.pricing_type_description}
           </Typography>
           <Typography variant="body1">
-            Created At: {formatDateTime(pricingTypeDetails.created_at)} | Last Updated: {formatDateTime(pricingTypeDetails.updated_at)}
+            Status: {pricingTypeDetails.status} | Status Date:{' '}
+            {formatDateTime(pricingTypeDetails.status_date)}
           </Typography>
           <Typography variant="body1">
-            Created By: {pricingTypeDetails.created_by.full_name} | Updated By: {pricingTypeDetails.updated_by.full_name}
+            Created At: {formatDateTime(pricingTypeDetails.created_at)} | Last
+            Updated: {formatDateTime(pricingTypeDetails.updated_at)}
+          </Typography>
+          <Typography variant="body1">
+            Created By: {pricingTypeDetails.created_by.full_name} | Updated By:{' '}
+            {pricingTypeDetails.updated_by.full_name}
           </Typography>
         </Box>
       )}
-      
+
       {/* Pricing Records Table */}
       {data.length === 0 ? (
-        <Typography variant="body1">No pricing records available for this pricing type.</Typography>
+        <Typography variant="body1">
+          No pricing records available for this pricing type.
+        </Typography>
       ) : (
         <>
           <CustomTable

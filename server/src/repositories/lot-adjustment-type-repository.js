@@ -13,13 +13,15 @@ const getWarehouseLotAdjustmentTypes = async () => {
     WHERE is_active = true
     ORDER BY name ASC;
   `;
-  
+
   try {
     const { rows } = await query(queryText);
     return rows;
   } catch (error) {
     logError('Error fetching warehouse lot adjustment types:', error);
-    throw new AppError('Database error: Failed to fetch warehouse lot adjustment types.');
+    throw new AppError(
+      'Database error: Failed to fetch warehouse lot adjustment types.'
+    );
   }
 };
 
@@ -36,13 +38,15 @@ const getActiveLotAdjustmentTypes = async () => {
       AND name NOT IN ('shipped', 'expired', 'sold_out', 'out_of_stock')
     ORDER BY name ASC;
   `;
-  
+
   try {
     const { rows } = await pool.query(queryText);
     return rows;
   } catch (error) {
     logError('Error fetching active warehouse lot adjustment types:', error);
-    throw new AppError('Database error: Failed to fetch active warehouse lot adjustment types.');
+    throw new AppError(
+      'Database error: Failed to fetch active warehouse lot adjustment types.'
+    );
   }
 };
 
@@ -58,13 +62,18 @@ const getWarehouseLotAdjustmentTypeById = async (adjustmentTypeId) => {
     WHERE id = $1
     LIMIT 1;
   `;
-  
+
   try {
     const { rows } = await query(queryText, [adjustmentTypeId]);
     return rows.length > 0 ? rows[0] : null;
   } catch (error) {
-    logError(`Error fetching warehouse lot adjustment type with ID: ${adjustmentTypeId}`, error);
-    throw new AppError(`Database error: Failed to fetch warehouse lot adjustment type with ID ${adjustmentTypeId}`);
+    logError(
+      `Error fetching warehouse lot adjustment type with ID: ${adjustmentTypeId}`,
+      error
+    );
+    throw new AppError(
+      `Database error: Failed to fetch warehouse lot adjustment type with ID ${adjustmentTypeId}`
+    );
   }
 };
 

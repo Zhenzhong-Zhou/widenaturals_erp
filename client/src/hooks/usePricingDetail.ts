@@ -9,7 +9,10 @@ import {
   selectPricingLoading,
   selectPricingError,
 } from '../features/pricing';
-import { getPricingDetails, fetchPricingData } from '../features/pricing/state/pricingThunks.ts';
+import {
+  getPricingDetails,
+  fetchPricingData,
+} from '../features/pricing/state/pricingThunks.ts';
 
 /**
  * Custom hook for fetching and managing pricing data.
@@ -17,9 +20,13 @@ import { getPricingDetails, fetchPricingData } from '../features/pricing/state/p
  * @param {number} [page] - The page number (for paginated pricing data).
  * @param {number} [limit] - The number of records per page.
  */
-const usePricing = (pricingId?: string, page: number = 1, limit: number = 10) => {
+const usePricing = (
+  pricingId?: string,
+  page: number = 1,
+  limit: number = 10
+) => {
   const dispatch = useAppDispatch();
-  
+
   // Selectors
   const pricing = useAppSelector(selectPricing);
   const products = useAppSelector(selectProducts); // Supports multiple products
@@ -28,7 +35,7 @@ const usePricing = (pricingId?: string, page: number = 1, limit: number = 10) =>
   const pagination = useAppSelector(selectPagination);
   const loading = useAppSelector(selectPricingLoading);
   const error = useAppSelector(selectPricingError);
-  
+
   useEffect(() => {
     if (pricingId && !pricing) {
       dispatch(getPricingDetails({ pricingId, page, limit }));
@@ -36,7 +43,7 @@ const usePricing = (pricingId?: string, page: number = 1, limit: number = 10) =>
       dispatch(fetchPricingData({ page, limit }));
     }
   }, [dispatch, pricingId, page, limit, pricing, products.length]);
-  
+
   /**
    * Fetch pricing records dynamically for pagination.
    * @param newPage - The new page number.
@@ -44,12 +51,14 @@ const usePricing = (pricingId?: string, page: number = 1, limit: number = 10) =>
    */
   const fetchPricings = (newPage: number, newLimit: number) => {
     if (pricingId) {
-      dispatch(getPricingDetails({ pricingId, page: newPage, limit: newLimit }));
+      dispatch(
+        getPricingDetails({ pricingId, page: newPage, limit: newLimit })
+      );
     } else {
       dispatch(fetchPricingData({ page: newPage, limit: newLimit }));
     }
   };
-  
+
   return {
     pricing,
     products, // Array of products

@@ -34,18 +34,18 @@ interface FormProps {
 }
 
 const CustomForm: FC<FormProps> = ({
-                                     fields = [],
-                                     children,
-                                     onSubmit,
-                                     submitButtonLabel = 'Submit',
-                                     control,
-                                   }) => {
+  fields = [],
+  children,
+  onSubmit,
+  submitButtonLabel = 'Submit',
+  control,
+}) => {
   const { theme } = useThemeContext();
   const {
     handleSubmit,
     formState: { errors },
   } = useForm();
-  
+
   return (
     <Box
       component="form"
@@ -96,7 +96,11 @@ const CustomForm: FC<FormProps> = ({
                 required: field.required ? `${field.label} is required` : false,
               }}
               render={({ field: { onChange, value } }) => (
-                <FormControl fullWidth error={!!errors[field.id]} sx={{ marginBottom: theme.spacing(2) }}>
+                <FormControl
+                  fullWidth
+                  error={!!errors[field.id]}
+                  sx={{ marginBottom: theme.spacing(2) }}
+                >
                   <InputLabel>{field.label}</InputLabel>
                   <Select id={field.id} value={value} onChange={onChange}>
                     {field.options?.map((option) => (
@@ -105,7 +109,9 @@ const CustomForm: FC<FormProps> = ({
                       </MenuItem>
                     ))}
                   </Select>
-                  <FormHelperText>{errors[field.id]?.message as string}</FormHelperText>
+                  <FormHelperText>
+                    {errors[field.id]?.message as string}
+                  </FormHelperText>
                 </FormControl>
               )}
             />

@@ -1,11 +1,18 @@
 const express = require('express');
-const { getAllWarehousesController, getWarehouseInventorySummaryController } = require('../controllers/warehouse-controller');
+const {
+  getAllWarehousesController,
+  getWarehouseInventorySummaryController,
+} = require('../controllers/warehouse-controller');
 const authorize = require('../middlewares/authorize');
 
 const router = express.Router();
 
 // GET /api/warehouses - Fetch all warehouses with pagination
-router.get('/', authorize(['view_warehouses', 'manage_warehouses']), getAllWarehousesController);
+router.get(
+  '/',
+  authorize(['view_warehouses', 'manage_warehouses']),
+  getAllWarehousesController
+);
 
 /**
  * @route GET /api/warehouses/inventory-overview
@@ -13,6 +20,6 @@ router.get('/', authorize(['view_warehouses', 'manage_warehouses']), getAllWareh
  * @access Private
  */
 // router.get('/inventory-overview', authorize(['view_warehouses', 'manage_warehouses']), getWarehouseInventorySummaryController);
-router.get('/inventory-overview',  getWarehouseInventorySummaryController);
+router.get('/inventory-overview', getWarehouseInventorySummaryController);
 
 module.exports = router;

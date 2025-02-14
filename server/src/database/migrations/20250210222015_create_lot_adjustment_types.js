@@ -8,11 +8,14 @@ exports.up = async function (knex) {
     table.boolean('is_active').notNullable().defaultTo(true);
     table.string('name', 50).unique().notNullable();
     table.text('description').nullable();
-    
+
     // Timestamps
-    table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now()).index();
+    table
+      .timestamp('created_at', { useTz: true })
+      .defaultTo(knex.fn.now())
+      .index();
     table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
-    
+
     // Foreign Keys
     table.uuid('created_by').references('id').inTable('users');
     table.uuid('updated_by').references('id').inTable('users');

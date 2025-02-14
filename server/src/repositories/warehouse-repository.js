@@ -4,29 +4,29 @@ const { logInfo, logError } = require('../utils/logger-helper');
 
 const getWarehouses = async ({ page, limit, sortBy, sortOrder }) => {
   const validSortColumns = [
-    'name',   // Sort by warehouse name
-    'location_name',    // Sort by location name
+    'name', // Sort by warehouse name
+    'location_name', // Sort by location name
     'storage_capacity', // Sort by storage capacity
-    'status_id',        // Sort by warehouse status
-    'created_at',       // Sort by record creation time
-    'updated_at',       // Sort by record last updated time
+    'status_id', // Sort by warehouse status
+    'created_at', // Sort by record creation time
+    'updated_at', // Sort by record last updated time
   ];
-  
+
   // Default sorting (by name & creation time if invalid sortBy is provided)
   const defaultSortBy = 'w.name, w.created_at';
   sortBy = validSortColumns.includes(sortBy) ? `w.${sortBy}` : defaultSortBy;
-  
+
   const tableName = 'warehouses w';
-  
+
   const joins = [
     'LEFT JOIN locations l ON w.location_id = l.id',
     'LEFT JOIN status s ON w.status_id = s.id',
     'LEFT JOIN users u1 ON w.created_by = u1.id',
     'LEFT JOIN users u2 ON w.updated_by = u2.id',
   ];
-  
+
   const whereClause = '1=1'; // No filters by default
-  
+
   const baseQuery = `
     SELECT
         w.id,
@@ -41,7 +41,7 @@ const getWarehouses = async ({ page, limit, sortBy, sortOrder }) => {
     FROM ${tableName}
     ${joins.join(' ')}
   `;
-  
+
   try {
     return await retry(async () => {
       return await paginateQuery({
@@ -64,21 +64,19 @@ const getWarehouses = async ({ page, limit, sortBy, sortOrder }) => {
 
 const getWarehouseInventorySummary = async ({ page, limit, statusFilter }) => {
   const tableName = 'warehouses w';
-  
+
   // Joins using an array (easier to modify in the future)
-  const joins = [
-    'LEFT JOIN status s ON w.status_id = s.id',
-  ];
-  
+  const joins = ['LEFT JOIN status s ON w.status_id = s.id'];
+
   // Dynamic status filtering
   let whereClause = '1=1'; // Default where clause
   const params = [];
-  
+
   if (statusFilter && statusFilter !== 'all') {
     whereClause += ` AND s.name = $1`;
     params.push(statusFilter);
   }
-  
+
   // Base Query
   const baseQuery = `
     WITH warehouse_lot_totals AS (
@@ -129,7 +127,7 @@ const getWarehouseInventorySummary = async ({ page, limit, statusFilter }) => {
     
    GROUP BY w.id, w.name, s.name
  `;
-  
+
   try {
     // Use pagination if required
     return await retry(async () => {
@@ -146,7 +144,10 @@ const getWarehouseInventorySummary = async ({ page, limit, statusFilter }) => {
       });
     });
   } catch (error) {
-    logError(`Error fetching warehouse inventory summary (page: ${page}, limit: ${limit}, status: ${statusFilter}):`, error);
+    logError(
+      `Error fetching warehouse inventory summary (page: ${page}, limit: ${limit}, status: ${statusFilter}):`,
+      error
+    );
     throw new AppError('Failed to fetch warehouse inventory summary.');
   }
 };

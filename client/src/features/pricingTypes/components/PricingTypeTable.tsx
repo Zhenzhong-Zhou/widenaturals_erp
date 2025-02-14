@@ -6,14 +6,14 @@ import { Link } from 'react-router-dom';
 import { capitalizeFirstLetter } from '@utils/textUtils.ts';
 
 const PricingTypeTable: FC<PricingTypeTableProps> = ({
-                                                       data,
-                                                       totalPages,
-                                                       totalRecords,
-                                                       rowsPerPage,
-                                                       page,
-                                                       onPageChange,
-                                                       onRowsPerPageChange,
-                                                     }) => {
+  data,
+  totalPages,
+  totalRecords,
+  rowsPerPage,
+  page,
+  onPageChange,
+  onRowsPerPageChange,
+}) => {
   // Define columns for the DataTable
   const columns = [
     {
@@ -22,7 +22,10 @@ const PricingTypeTable: FC<PricingTypeTableProps> = ({
       sortable: true,
       format: (value: string) => value,
       renderCell: (row: any) => (
-        <Link to={`/pricing_types/${row.id}`} style={{ textDecoration: 'none', color: 'blue' }}>
+        <Link
+          to={`/pricing_types/${row.id}`}
+          style={{ textDecoration: 'none', color: 'blue' }}
+        >
           {row.name}
         </Link>
       ),
@@ -55,7 +58,7 @@ const PricingTypeTable: FC<PricingTypeTableProps> = ({
     { id: 'created_by_fullname', label: 'Created By', sortable: true },
     { id: 'updated_by_fullname', label: 'Updated By', sortable: true },
   ];
-  
+
   return (
     <CustomTable
       columns={columns}

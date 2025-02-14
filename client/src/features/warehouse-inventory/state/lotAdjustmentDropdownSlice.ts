@@ -26,14 +26,20 @@ const lotAdjustmentDropdownSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchAllDropdownLotAdjustmentTypesThunk.fulfilled, (state, action) => {
-        state.loading = false;
-        state.types = action.payload;
-      })
-      .addCase(fetchAllDropdownLotAdjustmentTypesThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
-      });
+      .addCase(
+        fetchAllDropdownLotAdjustmentTypesThunk.fulfilled,
+        (state, action) => {
+          state.loading = false;
+          state.types = action.payload;
+        }
+      )
+      .addCase(
+        fetchAllDropdownLotAdjustmentTypesThunk.rejected,
+        (state, action) => {
+          state.loading = false;
+          state.error = action.payload as string;
+        }
+      );
   },
 });
 

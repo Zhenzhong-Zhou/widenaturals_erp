@@ -82,7 +82,8 @@ export const routes = [
   },
   {
     path: '/pricing_types',
-    component: () => import('../features/pricingTypes/pages/PricingTypePage.tsx'),
+    component: () =>
+      import('../features/pricingTypes/pages/PricingTypePage.tsx'),
     meta: {
       requiresAuth: true,
       title: 'Pricing Types',
@@ -92,7 +93,8 @@ export const routes = [
   },
   {
     path: '/pricing_types/:id',
-    component: () => import('../features/pricingTypes/pages/PricingTypeDetailsPage.tsx'),
+    component: () =>
+      import('../features/pricingTypes/pages/PricingTypeDetailsPage.tsx'),
     meta: {
       requiresAuth: true,
       title: 'Pricing Type Details',
@@ -122,7 +124,8 @@ export const routes = [
   },
   {
     path: '/location_types',
-    component: () => import('../features/locationTypes/pages/LocationTypePage.tsx'),
+    component: () =>
+      import('../features/locationTypes/pages/LocationTypePage.tsx'),
     meta: {
       requiresAuth: true,
       title: 'Location Types',
@@ -132,7 +135,8 @@ export const routes = [
   },
   {
     path: '/location_types/:id',
-    component: () => import('../features/locationTypes/pages/LocationTypeDetailPage.tsx'),
+    component: () =>
+      import('../features/locationTypes/pages/LocationTypeDetailPage.tsx'),
     meta: {
       requiresAuth: true,
       title: 'Location Types Details',
@@ -172,7 +176,10 @@ export const routes = [
   },
   {
     path: '/warehouse_inventories',
-    component: () => import('../features/warehouse-inventory/pages/WarehouseInventoryPage.tsx'),
+    component: () =>
+      import(
+        '../features/warehouse-inventory/pages/WarehouseInventoryPage.tsx'
+      ),
     meta: {
       requiresAuth: true,
       title: 'Warehouse Inventories',
@@ -182,7 +189,10 @@ export const routes = [
   },
   {
     path: '/warehouse_inventories/:warehouseId',
-    component: () => import('../features/warehouse-inventory/pages/WarehouseInventoryDetailPage.tsx'),
+    component: () =>
+      import(
+        '../features/warehouse-inventory/pages/WarehouseInventoryDetailPage.tsx'
+      ),
     meta: {
       requiresAuth: true,
       title: 'Warehouse Inventories Details',

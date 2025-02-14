@@ -6,23 +6,37 @@ const { fetchDynamicValue } = require('../03_utils');
  */
 exports.seed = async function (knex) {
   console.log('Seeding inventory data...');
-  
+
   // Fetch required values dynamically
-  const inStockStatusId = await fetchDynamicValue(knex, 'warehouse_lot_status', 'name', 'in_stock', 'id');
-  const adminUserId = await fetchDynamicValue(knex, 'users', 'email', 'admin@example.com', 'id');
-  
+  const inStockStatusId = await fetchDynamicValue(
+    knex,
+    'warehouse_lot_status',
+    'name',
+    'in_stock',
+    'id'
+  );
+  const adminUserId = await fetchDynamicValue(
+    knex,
+    'users',
+    'email',
+    'admin@example.com',
+    'id'
+  );
+
   // Fetch existing product, location, warehouse, and SKU IDs
   const products = await knex('products').select('id');
   const locations = await knex('locations').select('id');
-  
+
   if (!products.length || !locations.length) {
-    console.error('Ensure products, locations, and warehouses tables are seeded first.');
+    console.error(
+      'Ensure products, locations, and warehouses tables are seeded first.'
+    );
     return;
   }
-  
+
   // Predefined item categories
   const itemTypes = ['finished_goods', 'raw_material', 'packaging'];
-  
+
   // Define inventory entries
   const inventoryEntries = Array.from({ length: 100 }, (_, i) => ({
     id: knex.raw('uuid_generate_v4()'),
@@ -41,12 +55,14 @@ exports.seed = async function (knex) {
     created_by: adminUserId,
     updated_by: adminUserId,
   }));
-  
+
   // Insert into the inventory table
   await knex('inventory')
     .insert(inventoryEntries)
     .onConflict(['product_id', 'location_id'])
     .ignore(); // Avoid duplicate entries based on static lot_number
-  
-  console.log(`${inventoryEntries.length} inventory records seeded successfully.`);
+
+  console.log(
+    `${inventoryEntries.length} inventory records seeded successfully.`
+  );
 };

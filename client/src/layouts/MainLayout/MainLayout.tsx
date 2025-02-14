@@ -1,4 +1,10 @@
-import { ReactNode, useState, Suspense, cloneElement, ReactElement } from 'react';
+import {
+  ReactNode,
+  useState,
+  Suspense,
+  cloneElement,
+  ReactElement,
+} from 'react';
 import { Sidebar, Header, Footer } from '../index';
 import { useThemeContext } from '../../context';
 import Box from '@mui/material/Box';
@@ -34,19 +40,19 @@ const MainLayout = ({ children }: MainLayoutProps) => {
   const { logout } = useLogout(); // Logout handler
   useTokenRefresh(); // Token refresh handling
   const { roleName, permissions } = usePermissionsContext(); // Access role and permissions
-  
+
   const toggleSidebar = () => setSidebarOpen((prev) => !prev);
-  
+
   // Handle global loading for user profile
   if (userProfileLoading) {
     return <Loading message="Loading user profile..." />;
   }
-  
+
   // Handle global error for user profile
   if (userProfileError) {
     return <ErrorDisplay message="Failed to load user profile." />;
   }
-  
+
   if (!userProfile) {
     return (
       <ErrorDisplay>
@@ -54,7 +60,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
       </ErrorDisplay>
     );
   }
-  
+
   return (
     <Box className="layout" sx={layoutStyles(theme)}>
       {/* Sidebar */}
@@ -81,7 +87,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
           permissions={permissions}
         />
       </ModuleErrorBoundary>
-      
+
       {/* Content Container */}
       <Box className="content-container" sx={contentContainerStyles(theme)}>
         {/* Header */}
@@ -105,7 +111,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
             <Header user={userProfile} onLogout={logout} />
           </Suspense>
         </ModuleErrorBoundary>
-        
+
         {/* Main Content */}
         <ModuleErrorBoundary
           fallback={
@@ -131,7 +137,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
             </Box>
           </Suspense>
         </ModuleErrorBoundary>
-        
+
         {/* Footer */}
         <ModuleErrorBoundary
           fallback={

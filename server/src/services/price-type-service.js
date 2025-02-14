@@ -1,7 +1,12 @@
-const { getAllPriceTypes, getPricingTypeById } = require('../repositories/pricing-type-repository');
+const {
+  getAllPriceTypes,
+  getPricingTypeById,
+} = require('../repositories/pricing-type-repository');
 const { logInfo, logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
-const { getPricingDetailsByPricingTypeId } = require('../repositories/pricing-repository');
+const {
+  getPricingDetailsByPricingTypeId,
+} = require('../repositories/pricing-repository');
 
 /**
  * Service to fetch all price types with pagination and optional filtering.
@@ -18,17 +23,21 @@ const fetchAllPriceTypes = async ({ page, limit, name, status }) => {
     const filters = {};
     if (name) filters.name = name.trim();
     if (status) filters.status = status.trim();
-    
+
     logInfo('Fetching price types', { page, limit, filters });
-    
+
     // Call the repository layer, which handles pagination
-    const { data, pagination } = await getAllPriceTypes({ page, limit, filters });
-    
+    const { data, pagination } = await getAllPriceTypes({
+      page,
+      limit,
+      filters,
+    });
+
     logInfo('Price types fetched successfully', {
       resultCount: data.length,
       pagination,
     });
-    
+
     return {
       data,
       pagination,
@@ -38,7 +47,7 @@ const fetchAllPriceTypes = async ({ page, limit, name, status }) => {
       message: error.message,
       stack: error.stack,
     });
-    
+
     throw AppError.serviceError('Failed to fetch price types', {
       originalError: error.message,
     });
@@ -52,22 +61,32 @@ const fetchAllPriceTypes = async ({ page, limit, name, status }) => {
  * @param limit
  * @returns {Promise<Object[]>} - The list of pricing details.
  */
-const fetchPricingTypeDetailsByPricingTypeId = async (pricingTypeId, page, limit) => {
+const fetchPricingTypeDetailsByPricingTypeId = async (
+  pricingTypeId,
+  page,
+  limit
+) => {
   try {
     const pricingTypeDetails = await getPricingTypeById(pricingTypeId);
     if (!pricingTypeDetails) {
       throw new AppError('Pricing type not found', 404);
     }
-    
-    const pricingDetails = await getPricingDetailsByPricingTypeId({ pricingTypeId, page, limit });
-    
+
+    const pricingDetails = await getPricingDetailsByPricingTypeId({
+      pricingTypeId,
+      page,
+      limit,
+    });
+
     return {
       pricingTypeDetails,
       pricingDetails: pricingDetails.data,
       pagination: pricingDetails.pagination,
     };
   } catch (error) {
-    throw new AppError('Failed to fetch pricing type with details', 500, { originalError: error.message });
+    throw new AppError('Failed to fetch pricing type with details', 500, {
+      originalError: error.message,
+    });
   }
 };
 

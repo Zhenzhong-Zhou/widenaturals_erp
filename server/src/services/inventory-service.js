@@ -11,20 +11,27 @@ const { logError, logInfo } = require('../utils/logger-helper');
  * @param {string} [options.sortOrder='ASC'] - Sorting order.
  * @returns {Promise<{ data: Array, pagination: Object }>}
  */
-const fetchAllInventories = async ({ page, limit, sortBy, sortOrder}) => {
+const fetchAllInventories = async ({ page, limit, sortBy, sortOrder }) => {
   try {
-    logInfo(`Fetching inventory data: page=${page}, limit=${limit}, sortBy=${sortBy}, sortOrder=${sortOrder}`);
-    
+    logInfo(
+      `Fetching inventory data: page=${page}, limit=${limit}, sortBy=${sortBy}, sortOrder=${sortOrder}`
+    );
+
     // Fetch inventory records from repository
-    const { data, pagination } = await getInventories({ page, limit, sortBy, sortOrder });
-    
+    const { data, pagination } = await getInventories({
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+    });
+
     // Business Logic: Mark expired items
     const processedData = data.map((item) => ({
       ...item,
       is_expired: item.expiry_date && new Date(item.expiry_date) < new Date(), // If expiry_date is in the past, mark as expired
       warehouse_fee: parseFloat(item.warehouse_fee) || 0, // Ensure warehouse_fee is always a number
     }));
-    
+
     return { processedData, pagination };
   } catch (error) {
     logError('Error fetching inventory:', error);

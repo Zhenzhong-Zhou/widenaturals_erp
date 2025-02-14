@@ -17,14 +17,14 @@ interface InventoryTableProps {
 }
 
 const InventoryTable: FC<InventoryTableProps> = ({
-                                                   data,
-                                                   page,
-                                                   rowsPerPage,
-                                                   totalRecords,
-                                                   totalPages,
-                                                   onPageChange,
-                                                   onRowsPerPageChange,
-                                                 }) => {
+  data,
+  page,
+  rowsPerPage,
+  totalRecords,
+  totalPages,
+  onPageChange,
+  onRowsPerPageChange,
+}) => {
   const columns = [
     {
       id: 'product_name',
@@ -76,7 +76,7 @@ const InventoryTable: FC<InventoryTableProps> = ({
     { id: 'created_by', label: 'Created By', sortable: false },
     { id: 'updated_by', label: 'Updated By', sortable: false },
   ];
-  
+
   return (
     <Box>
       <CustomTable

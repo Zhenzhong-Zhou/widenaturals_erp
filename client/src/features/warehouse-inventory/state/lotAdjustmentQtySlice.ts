@@ -1,6 +1,9 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { LotAdjustmentQtyState } from './warehouseInventoryTypes.ts';
-import { adjustWarehouseInventoryLotThunk, bulkAdjustWarehouseInventoryLotsQtyThunk } from './lotAdjustmentThunks.ts';
+import {
+  adjustWarehouseInventoryLotThunk,
+  bulkAdjustWarehouseInventoryLotsQtyThunk,
+} from './lotAdjustmentThunks.ts';
 
 const initialState: LotAdjustmentQtyState = {
   loadingSingle: false,
@@ -40,7 +43,7 @@ const lotAdjustmentSlice = createSlice({
         state.loadingSingle = false;
         state.errorSingle = action.payload as string;
       })
-      
+
       // Bulk Lot Adjustment
       .addCase(bulkAdjustWarehouseInventoryLotsQtyThunk.pending, (state) => {
         state.loadingBulk = true;
@@ -51,10 +54,13 @@ const lotAdjustmentSlice = createSlice({
         state.loadingBulk = false;
         state.successBulk = true;
       })
-      .addCase(bulkAdjustWarehouseInventoryLotsQtyThunk.rejected, (state, action) => {
-        state.loadingBulk = false;
-        state.errorBulk = action.payload as string;
-      });
+      .addCase(
+        bulkAdjustWarehouseInventoryLotsQtyThunk.rejected,
+        (state, action) => {
+          state.loadingBulk = false;
+          state.errorBulk = action.payload as string;
+        }
+      );
   },
 });
 

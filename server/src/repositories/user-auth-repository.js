@@ -61,17 +61,17 @@ const getAuthIdByUserId = async (client, userId) => {
     FROM user_auth
     WHERE user_id = $1;
   `;
-  
+
   try {
     const result = await query(sql, [userId], client);
-    
+
     if (result.rows.length === 0) {
       throw AppError.notFoundError(
         `No user_auth record found for user_id "${userId}".`,
         { query: sql, parameters: [userId] }
       );
     }
-    
+
     return result.rows[0].id;
   } catch (error) {
     logError(`Error fetching user_auth ID for user_id "${userId}"`, {
@@ -79,7 +79,7 @@ const getAuthIdByUserId = async (client, userId) => {
       parameters: [userId],
       error: error.message,
     });
-    
+
     throw AppError.databaseError('Failed to fetch user_auth ID.', {
       isExpected: false,
       details: error.message,
@@ -112,7 +112,7 @@ const getUserAuthByEmail = async (client, email) => {
     INNER JOIN status s ON u.status_id = s.id
     WHERE u.email = $1 AND s.name = 'active';
   `;
-  
+
   try {
     // Retry fetching user details in case of transient errors
     const user = await retry(async () => {
@@ -124,10 +124,10 @@ const getUserAuthByEmail = async (client, email) => {
       }
       return result.rows[0];
     });
-    
+
     // Fetch the `id` from the `user_auth` table
     const authId = await getAuthIdByUserId(client, user.user_id);
-    
+
     // Lock the user's row in the `users` and `user_auth` tables for subsequent updates
     await lockRow(client, 'users', user.user_id, 'FOR UPDATE');
     await lockRow(client, 'user_auth', authId, 'FOR UPDATE');
@@ -160,7 +160,12 @@ const getUserAuthByEmail = async (client, email) => {
  * @returns {Promise<void>} - Resolves when the update is successful.
  * @throws {AppError} - Throws an error if the update fails or retry limits are exceeded.
  */
-const incrementFailedAttempts = async (client, userId, newTotalAttempts, currentAttempts) => {
+const incrementFailedAttempts = async (
+  client,
+  userId,
+  newTotalAttempts,
+  currentAttempts
+) => {
   const newFailedAttempts = currentAttempts + 1;
   let lockoutTime = null;
   let notes = null;
@@ -201,9 +206,16 @@ const incrementFailedAttempts = async (client, userId, newTotalAttempts, current
       await lockRow(client, 'user_auth', authId);
       console.log('Updating failed attempts for user:', userId);
       // Execute the update query
-     await query(
+      await query(
         sql,
-        [newTotalAttempts, newFailedAttempts, lockoutTime, lockoutTime, notes, userId],
+        [
+          newTotalAttempts,
+          newFailedAttempts,
+          lockoutTime,
+          lockoutTime,
+          notes,
+          userId,
+        ],
         client
       );
     });
@@ -233,7 +245,11 @@ const incrementFailedAttempts = async (client, userId, newTotalAttempts, current
  * @returns {Promise<void>} Resolves when the update is successful.
  * @throws {AppError} If the query fails due to a database error or retry limits are exceeded.
  */
-const resetFailedAttemptsAndUpdateLastLogin = async (client, userId, newTotalAttempts) => {
+const resetFailedAttemptsAndUpdateLastLogin = async (
+  client,
+  userId,
+  newTotalAttempts
+) => {
   const sql = `
     UPDATE user_auth
     SET

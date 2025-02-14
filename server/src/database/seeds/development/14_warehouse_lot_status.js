@@ -5,9 +5,14 @@ const { fetchDynamicValue } = require('../03_utils');
  * @returns {Promise<void>}
  */
 exports.seed = async function (knex) {
-  
-  const adminUserId = await fetchDynamicValue(knex, 'users', 'email', 'admin@example.com', 'id');
-  
+  const adminUserId = await fetchDynamicValue(
+    knex,
+    'users',
+    'email',
+    'admin@example.com',
+    'id'
+  );
+
   // Insert initial statuses
   const warehouseStatus = [
     {
@@ -33,8 +38,9 @@ exports.seed = async function (knex) {
     {
       id: knex.raw('uuid_generate_v4()'),
       name: 'unavailable',
-      description: 'Lot exists but cannot be used due to restrictions, quality checks, or pending approval.',
-      is_active: false,  // Marked as inactive if it should not be selectable in normal operations
+      description:
+        'Lot exists but cannot be used due to restrictions, quality checks, or pending approval.',
+      is_active: false, // Marked as inactive if it should not be selectable in normal operations
       created_at: knex.fn.now(),
       updated_at: knex.fn.now(),
       created_by: adminUserId,
@@ -43,8 +49,9 @@ exports.seed = async function (knex) {
     {
       id: knex.raw('uuid_generate_v4()'),
       name: 'sold_out',
-      description: 'Lot is completely depleted and no further stock is expected.',
-      is_active: false,  // Marked as inactive if no adjustments or restocking are allowed
+      description:
+        'Lot is completely depleted and no further stock is expected.',
+      is_active: false, // Marked as inactive if no adjustments or restocking are allowed
       created_at: knex.fn.now(),
       updated_at: knex.fn.now(),
       created_by: adminUserId,
@@ -63,7 +70,8 @@ exports.seed = async function (knex) {
     {
       id: knex.raw('uuid_generate_v4()'),
       name: 'quarantined',
-      description: 'Lot is under inspection (e.g., quality check, contamination).',
+      description:
+        'Lot is under inspection (e.g., quality check, contamination).',
       is_active: true,
       created_at: knex.fn.now(),
       updated_at: knex.fn.now(),
@@ -111,11 +119,13 @@ exports.seed = async function (knex) {
       updated_by: adminUserId,
     },
   ];
-  
+
   await knex('warehouse_lot_status')
     .insert(warehouseStatus)
     .onConflict(['name'])
     .ignore(); // Avoid duplicate entries
-  
-  console.log(`${warehouseStatus.length} warehouse lot status seeded successfully.`);
+
+  console.log(
+    `${warehouseStatus.length} warehouse lot status seeded successfully.`
+  );
 };

@@ -4,15 +4,23 @@
  */
 exports.seed = async function (knex) {
   // Fetch dynamic values for status and user IDs
-  const activeStatusId = await knex('status').select('id').where('name', 'active').first().then(row => row?.id);
-  const adminUserId = await knex('users').select('id').where('email', 'admin@example.com').first().then(row => row?.id);
-  
+  const activeStatusId = await knex('status')
+    .select('id')
+    .where('name', 'active')
+    .first()
+    .then((row) => row?.id);
+  const adminUserId = await knex('users')
+    .select('id')
+    .where('email', 'admin@example.com')
+    .first()
+    .then((row) => row?.id);
+
   // Define pricing types
   const pricingTypes = [
     {
       id: knex.raw('uuid_generate_v4()'),
       name: 'MSRP',
-      description: 'Manufacturer\'s Suggested Retail Price.',
+      description: "Manufacturer's Suggested Retail Price.",
       status_id: activeStatusId,
       status_date: knex.fn.now(),
       created_at: knex.fn.now(),
@@ -142,7 +150,7 @@ exports.seed = async function (knex) {
       updated_by: adminUserId,
     },
   ];
-  
+
   // Insert data with ON CONFLICT to avoid duplicates
   for (const pricingType of pricingTypes) {
     await knex('pricing_types')
@@ -150,6 +158,6 @@ exports.seed = async function (knex) {
       .onConflict('name') // Specify the column with the unique constraint
       .ignore(); // Ignore if the name already exists
   }
-  
+
   console.log(`${pricingTypes.length} pricing types seeded successfully.`);
 };

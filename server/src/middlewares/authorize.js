@@ -47,9 +47,9 @@ const authorize = (requiredPermissions = []) => {
           3600
         );
       }
-      
+
       const userPermissions = rolePermissions.permissions.map((perm) => perm);
-      
+
       // Allow if the user has `root_access`
       if (userPermissions.includes('root_access')) {
         return next();

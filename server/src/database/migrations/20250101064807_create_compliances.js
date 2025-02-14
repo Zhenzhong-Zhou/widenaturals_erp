@@ -17,11 +17,11 @@ exports.up = async function (knex) {
     table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
     table.uuid('created_by').references('id').inTable('users');
     table.uuid('updated_by').references('id').inTable('users');
-    
+
     // Indexes
     table.index(['product_id', 'type'], 'idx_compliances_product_type');
   });
-  
+
   // Add unique constraint using raw SQL
   await knex.raw(`
     ALTER TABLE compliances

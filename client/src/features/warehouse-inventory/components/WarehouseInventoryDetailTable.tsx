@@ -44,29 +44,34 @@ interface WarehouseInventoryDetailTableProps {
 }
 
 const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
-                                                                                 data,
-                                                                                 page,
-                                                                                 rowsPerPage,
-                                                                                 totalRecords,
-                                                                                 totalPages,
-                                                                                 onPageChange,
-                                                                                 onRowsPerPageChange,
-                                                                                 onSingleLotQuantityUpdate,
-                                                                                 onBulkLotsQtyUpdate,
-                                                                               }) => {
+  data,
+  page,
+  rowsPerPage,
+  totalRecords,
+  totalPages,
+  onPageChange,
+  onRowsPerPageChange,
+  onSingleLotQuantityUpdate,
+  onBulkLotsQtyUpdate,
+}) => {
   const [selectedLot, setSelectedLot] = useState<{
     warehouseInventoryLotId: string;
     productName: string;
     lotNumber: string;
     quantity: number;
   } | null>(null);
-  
+
   const [selectedLotIds, setSelectedLotIds] = useState<Set<string>>(new Set());
   const [bulkAdjustOpen, setBulkAdjustOpen] = useState(false);
   const [selectedLots, setSelectedLots] = useState<
-    { warehouseInventoryLotId: string; productName: string; lotNumber: string; currentQuantity: number }[]
+    {
+      warehouseInventoryLotId: string;
+      productName: string;
+      lotNumber: string;
+      currentQuantity: number;
+    }[]
   >([]);
-  
+
   const transformedData = data.map((row) => ({
     ...row,
     isSelect: false,
@@ -78,7 +83,7 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
     productName: row.productName, // Ensure this exists
     lotNumber: row.lotNumber, // Ensure this exists
   }));
-  
+
   const handleSelectLot = (lotId: string) => {
     setSelectedLotIds((prevSelected) => {
       const newSelected = new Set(prevSelected);
@@ -90,7 +95,7 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
       return newSelected;
     });
   };
-  
+
   const toggleSelectAll = () => {
     setSelectedLotIds((prevSelected) => {
       if (prevSelected.size === data.length) {
@@ -99,7 +104,7 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
       return new Set(data.map((lot) => lot.warehouseInventoryLotId)); // Select all
     });
   };
-  
+
   // Define table columns
   const columns: Column<WarehouseInventoryDetailExtended>[] = [
     // 1️⃣ Selection Checkbox
@@ -114,7 +119,7 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
         />
       ),
     },
-    
+
     // 2️⃣ Product & Lot Identification
     {
       id: 'productName',
@@ -138,7 +143,7 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
       sortable: true,
       format: (value: any) => capitalizeFirstLetter(value),
     },
-    
+
     // 3️⃣ Stock & Warehouse Information
     {
       id: 'lotQuantity',
@@ -149,12 +154,14 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
           {row.lotQuantity}
           <IconButton
             size="small"
-            onClick={() => setSelectedLot({
-              warehouseInventoryLotId: row.warehouseInventoryLotId,
-              productName: row.productName,
-              lotNumber: row.lotNumber,
-              quantity: row.lotQuantity,
-            })}
+            onClick={() =>
+              setSelectedLot({
+                warehouseInventoryLotId: row.warehouseInventoryLotId,
+                productName: row.productName,
+                lotNumber: row.lotNumber,
+                quantity: row.lotQuantity,
+              })
+            }
           >
             <EditIcon fontSize="small" />
           </IconButton>
@@ -177,7 +184,7 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
       sortable: true,
       format: (value: string) => capitalizeFirstLetter(value),
     },
-    
+
     // 4️⃣ Date Tracking (Manufacturing, Expiry, Inbound & Outbound)
     {
       id: 'manufactureDate',
@@ -201,9 +208,9 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
       id: 'outboundDate',
       label: 'Outbound Date',
       sortable: true,
-      format: (value: any) => value ? formatDate(value) : 'N/A',
+      format: (value: any) => (value ? formatDate(value) : 'N/A'),
     },
-    
+
     // 5️⃣ Warehouse Fees
     {
       id: 'warehouseFees',
@@ -211,7 +218,7 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
       sortable: true,
       format: (value: any) => formatCurrency(value),
     },
-    
+
     // 6️⃣ User & System Tracking
     {
       id: 'lotCreatedBy',
@@ -223,7 +230,7 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
       id: 'lotCreatedDate',
       label: 'Created Date',
       sortable: true,
-      format: (value: string) => value ? formatDate(value) : 'N/A',
+      format: (value: string) => (value ? formatDate(value) : 'N/A'),
     },
     {
       id: 'lotUpdatedBy',
@@ -235,21 +242,22 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
       id: 'lotUpdatedDate',
       label: 'Updated Date',
       sortable: true,
-      format: (value: string) => value ? formatDate(value) : 'N/A',
+      format: (value: string) => (value ? formatDate(value) : 'N/A'),
     },
   ];
-  
+
   return (
     <Box>
       <Paper sx={{ padding: 2, marginBottom: 3 }}>
         <Checkbox
-          checked={selectedLotIds.size > 0 && selectedLotIds.size === data.length}
+          checked={
+            selectedLotIds.size > 0 && selectedLotIds.size === data.length
+          }
           onChange={toggleSelectAll}
           color="primary"
         />
         Select All
         <Typography variant="h5">Warehouse Inventory Lots</Typography>
-        
         <CustomButton
           variant="contained"
           color="primary"
@@ -263,12 +271,12 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
                 lotNumber: lot.lotNumber,
                 currentQuantity: lot.lotQuantity || 0,
               }));
-            
+
             if (selected.length === 0) {
               alert('Please select at least one lot.');
               return;
             }
-            
+
             setSelectedLots(selected);
             setBulkAdjustOpen(true);
           }}
@@ -276,7 +284,6 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
         >
           Bulk Adjust Quantities
         </CustomButton>
-      
       </Paper>
       <CustomTable
         columns={columns}
@@ -288,7 +295,7 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
         onPageChange={onPageChange}
         onRowsPerPageChange={onRowsPerPageChange}
       />
-      
+
       {/* Edit Quantity Modal */}
       {selectedLot && (
         <EditQuantityModal
@@ -309,7 +316,7 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
           }}
         />
       )}
-      
+
       {/* Bulk Adjust Quantity Modal */}
       <BulkAdjustQuantityModal
         open={bulkAdjustOpen}

@@ -17,14 +17,14 @@ interface WarehouseInventoryTableProps {
 }
 
 const WarehouseInventoryTable: FC<WarehouseInventoryTableProps> = ({
-                                                                     data,
-                                                                     page,
-                                                                     rowsPerPage,
-                                                                     totalRecords,
-                                                                     totalPages,
-                                                                     onPageChange,
-                                                                     onRowsPerPageChange,
-                                                                   }) => {
+  data,
+  page,
+  rowsPerPage,
+  totalRecords,
+  totalPages,
+  onPageChange,
+  onRowsPerPageChange,
+}) => {
   const columns = [
     {
       id: 'warehouseName',
@@ -43,13 +43,12 @@ const WarehouseInventoryTable: FC<WarehouseInventoryTableProps> = ({
     {
       id: 'locationName',
       label: 'Location',
-      sortable: true
+      sortable: true,
     },
     {
       id: 'productName',
       label: 'Product Name',
-      sortable: true
-    
+      sortable: true,
     },
     {
       id: 'itemType',
@@ -79,7 +78,8 @@ const WarehouseInventoryTable: FC<WarehouseInventoryTableProps> = ({
       id: 'warehouseFee',
       label: 'Warehouse Fee ($)',
       sortable: true,
-      format: (value: string | number) => (value ? `${formatCurrency(value)}` : 'N/A'),
+      format: (value: string | number) =>
+        value ? `${formatCurrency(value)}` : 'N/A',
     },
     {
       id: 'statusName',
@@ -108,15 +108,15 @@ const WarehouseInventoryTable: FC<WarehouseInventoryTableProps> = ({
     {
       id: 'createdBy',
       label: 'Created By',
-      sortable: true
+      sortable: true,
     },
     {
       id: 'updatedBy',
       label: 'Updated By',
-      sortable: true
+      sortable: true,
     },
   ];
-  
+
   return (
     <Box>
       <CustomTable

@@ -14,18 +14,23 @@ interface EditQuantityModalProps {
   productName: string;
   lotNumber: string;
   currentQuantity: number;
-  onSubmit: (data: { warehouseInventoryLotId: string; adjustedQuantity: number; adjustmentType: string; comment: string }) => void;
+  onSubmit: (data: {
+    warehouseInventoryLotId: string;
+    adjustedQuantity: number;
+    adjustmentType: string;
+    comment: string;
+  }) => void;
 }
 
 const EditQuantityModal: FC<EditQuantityModalProps> = ({
-                                                         open,
-                                                         onClose,
-                                                         warehouseInventoryLotId,
-                                                         productName,
-                                                         lotNumber,
-                                                         currentQuantity,
-                                                         onSubmit,
-                                                       }) => {
+  open,
+  onClose,
+  warehouseInventoryLotId,
+  productName,
+  lotNumber,
+  currentQuantity,
+  onSubmit,
+}) => {
   const { control, handleSubmit, reset } = useForm({
     defaultValues: {
       adjustedQuantity: 0,
@@ -33,10 +38,10 @@ const EditQuantityModal: FC<EditQuantityModalProps> = ({
       comment: '',
     },
   });
-  
+
   // Fetch lot adjustment types using the hook
   const { types, loading } = useLotAdjustmentTypes();
-  
+
   // Reset form when `warehouseInventoryId` or `currentQuantity` changes
   useEffect(() => {
     reset({
@@ -45,16 +50,17 @@ const EditQuantityModal: FC<EditQuantityModalProps> = ({
       comment: '',
     });
   }, [warehouseInventoryLotId, currentQuantity, reset]);
-  
-  const handleFormSubmit = () => handleSubmit((formData) => {
-    onSubmit({
-      warehouseInventoryLotId,
-      adjustedQuantity: Number(formData.adjustedQuantity),
-      adjustmentType: formData.adjustmentType,
-      comment: formData.comment || '',
-    });
-  })();
-  
+
+  const handleFormSubmit = () =>
+    handleSubmit((formData) => {
+      onSubmit({
+        warehouseInventoryLotId,
+        adjustedQuantity: Number(formData.adjustedQuantity),
+        adjustmentType: formData.adjustmentType,
+        comment: formData.comment || '',
+      });
+    })();
+
   return (
     <CustomModal open={open} onClose={onClose} title="Edit Lot Quantity">
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 2 }}>
@@ -65,7 +71,7 @@ const EditQuantityModal: FC<EditQuantityModalProps> = ({
           Lot Number: <strong>{lotNumber}</strong>
         </Typography>
       </Box>
-      
+
       <CustomForm
         control={control}
         fields={[
@@ -83,13 +89,17 @@ const EditQuantityModal: FC<EditQuantityModalProps> = ({
             type: 'number',
             required: true,
             defaultValue: 0,
-            helperText: 'Use negative (-) for reducing stock, positive (+) for adding stock.',
+            helperText:
+              'Use negative (-) for reducing stock, positive (+) for adding stock.',
           },
           {
             id: 'adjustmentType',
             label: 'Adjustment Type',
             type: 'select',
-            options: types.map((type) => ({ value: type.id, label: capitalizeFirstLetter(type.name) })),
+            options: types.map((type) => ({
+              value: type.id,
+              label: capitalizeFirstLetter(type.name),
+            })),
             required: true,
             disabled: loading,
           },

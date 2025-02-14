@@ -11,33 +11,38 @@ const { logInfo, logError } = require('../utils/logger-helper');
  * @param {string} [options.sortOrder='ASC'] - Sorting order (ASC/DESC)
  * @returns {Promise<{ data: Array, pagination: Object }>} Inventory data with pagination info
  */
-const getInventories = async ({ page = 1, limit = 10, sortBy, sortOrder } = {}) => {
+const getInventories = async ({
+  page = 1,
+  limit = 10,
+  sortBy,
+  sortOrder,
+} = {}) => {
   const validSortColumns = [
-    'product_name',    // Sort by product name
-    'location_name',   // Sort by location name
-    'item_type',       // Sort by item type
-    'lot_number',      // Sort by lot number (useful for batch tracking)
-    'quantity',        // Sort by available quantity
-    'warehouse_fee',   // Sort by storage fee
-    'status_id',       // Sort by inventory status (instead of status_name)
-    'status_date',     // Sort by the last status update
-    'inbound_date',    // Sort by when the item was received
-    'outbound_date',   // Sort by when the item was shipped out
-    'last_update',     // Sort by the last modified date
-    'created_at',      // Sort by record creation time
-    'updated_at',      // Sort by record last updated time
+    'product_name', // Sort by product name
+    'location_name', // Sort by location name
+    'item_type', // Sort by item type
+    'lot_number', // Sort by lot number (useful for batch tracking)
+    'quantity', // Sort by available quantity
+    'warehouse_fee', // Sort by storage fee
+    'status_id', // Sort by inventory status (instead of status_name)
+    'status_date', // Sort by the last status update
+    'inbound_date', // Sort by when the item was received
+    'outbound_date', // Sort by when the item was shipped out
+    'last_update', // Sort by the last modified date
+    'created_at', // Sort by record creation time
+    'updated_at', // Sort by record last updated time
   ];
-  
+
   // Ensure sorting defaults to location_id then created_at if invalid
   let defaultSortBy = 'location_id, created_at';
-  
+
   // Prevent SQL injection by ensuring sort column is valid
   if (!validSortColumns.includes(sortBy)) {
     sortBy = defaultSortBy;
   }
-  
+
   const tableName = 'inventory i';
-  
+
   const joins = [
     'LEFT JOIN products p ON i.product_id = p.id',
     'LEFT JOIN locations l ON i.location_id = l.id',
@@ -48,9 +53,9 @@ const getInventories = async ({ page = 1, limit = 10, sortBy, sortOrder } = {}) 
     'LEFT JOIN warehouses w ON wi.warehouse_id = w.id',
     'LEFT JOIN warehouse_inventory_lots wil ON wi.warehouse_id = wil.warehouse_id AND i.product_id = wil.product_id',
   ];
-  
+
   const whereClause = '1=1';
-  
+
   const text = `
     SELECT
       i.id AS inventory_id,
@@ -85,7 +90,7 @@ const getInventories = async ({ page = 1, limit = 10, sortBy, sortOrder } = {}) 
       u1.firstname, u1.lastname, u2.firstname, u2.lastname,
       wi.warehouse_fee, w.id, w.name
   `;
-  
+
   try {
     return await retry(async () => {
       return await paginateQuery({
@@ -118,7 +123,7 @@ const getInventoryIdByProductId = async (productId) => {
     WHERE product_id = $1
     LIMIT 1;
   `;
-  
+
   try {
     const { rows } = await query(text, [productId]);
     return rows.length > 0 ? rows[0].inventory_id : null;
@@ -130,5 +135,5 @@ const getInventoryIdByProductId = async (productId) => {
 
 module.exports = {
   getInventories,
-  getInventoryIdByProductId
+  getInventoryIdByProductId,
 };

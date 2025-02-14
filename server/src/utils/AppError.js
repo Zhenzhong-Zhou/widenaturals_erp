@@ -37,7 +37,7 @@ class AppError extends Error {
       details: this.details,
     };
   }
-  
+
   /**
    * Serialize error for structured logging.
    * Includes additional context like stack trace.

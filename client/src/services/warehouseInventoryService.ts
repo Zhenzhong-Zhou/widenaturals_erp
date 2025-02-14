@@ -5,7 +5,8 @@ import {
   WarehouseInventorySummaryResponse,
   WarehouseProductSummaryResponse,
   WarehouseInventoryDetailsResponse,
-  LotAdjustmentSinglePayload, BulkLotAdjustmentPayload,
+  LotAdjustmentSinglePayload,
+  BulkLotAdjustmentPayload,
 } from '../features/warehouse-inventory';
 import { AppError } from '@utils/AppError.tsx';
 
@@ -18,7 +19,7 @@ import { AppError } from '@utils/AppError.tsx';
  */
 const fetchAllWarehouseInventories = async (
   page: number = 1,
-  limit: number = 10,
+  limit: number = 10
 ): Promise<WarehouseInventoryResponse> => {
   try {
     const response = await axiosInstance.get<WarehouseInventoryResponse>(
@@ -27,9 +28,11 @@ const fetchAllWarehouseInventories = async (
     return response.data;
   } catch (error) {
     console.error('Error fetching warehouse inventories:', error);
-    
+
     // Throw a custom error with a meaningful message
-    throw new AppError('Failed to fetch warehouse inventories. Please try again.');
+    throw new AppError(
+      'Failed to fetch warehouse inventories. Please try again.'
+    );
   }
 };
 
@@ -44,35 +47,37 @@ const fetchAllWarehouseInventories = async (
 const fetchWarehouseInventorySummary = async (
   page: number = 1,
   limit: number = 10,
-  status?: string, // Optional status (default is no filter)
+  status?: string // Optional status (default is no filter)
 ): Promise<WarehouseInventorySummaryResponse> => {
   try {
     // Validate pagination parameters
     if (page < 1 || limit < 1) {
       throw new Error('Page and limit must be positive numbers.');
     }
-    
+
     // Construct API URL with query parameters
     const queryParams = new URLSearchParams({
       page: page.toString(),
       limit: limit.toString(),
     });
-    
+
     // Only add status to the request if it's provided (avoids unnecessary filtering)
     if (status) {
       queryParams.append('status', status);
     }
-    
+
     const response = await axiosInstance.get<WarehouseInventorySummaryResponse>(
       `${API_ENDPOINTS.WAREHOUSE_INVENTORIES_SUMMARY}?${queryParams.toString()}`
     );
-    
+
     return response.data;
   } catch (error) {
     console.error('Error fetching warehouse inventory summary:', error);
-    
+
     // Return a safe default response or throw a custom error
-    throw new Error('Failed to fetch warehouse inventory summary. Please try again later.');
+    throw new Error(
+      'Failed to fetch warehouse inventory summary. Please try again later.'
+    );
   }
 };
 
@@ -90,14 +95,19 @@ const fetchWarehouseProductSummary = async (
   limit: number = 10
 ): Promise<WarehouseProductSummaryResponse> => {
   try {
-    const endpoint = API_ENDPOINTS.WAREHOUSE_PRODUCTS_SUMMARY.replace(':id', warehouseId);
+    const endpoint = API_ENDPOINTS.WAREHOUSE_PRODUCTS_SUMMARY.replace(
+      ':id',
+      warehouseId
+    );
     const response = await axiosInstance.get<WarehouseProductSummaryResponse>(
       `${endpoint}?page=${page}&limit=${limit}`
     );
     return response.data;
   } catch (error) {
     console.error('Error fetching warehouse product summary:', error);
-    throw new AppError('Failed to fetch warehouse product summary. Please try again later.');
+    throw new AppError(
+      'Failed to fetch warehouse product summary. Please try again later.'
+    );
   }
 };
 
@@ -107,14 +117,19 @@ const fetchWarehouseInventoryDetails = async (
   limit: number = 10
 ): Promise<WarehouseInventoryDetailsResponse> => {
   try {
-    const endpoint = API_ENDPOINTS.WAREHOUSE_INVENTORY_DETAILS.replace(':id', warehouseId);
+    const endpoint = API_ENDPOINTS.WAREHOUSE_INVENTORY_DETAILS.replace(
+      ':id',
+      warehouseId
+    );
     const response = await axiosInstance.get<WarehouseInventoryDetailsResponse>(
       `${endpoint}?page=${page}&limit=${limit}`
     );
     return response.data;
   } catch (error) {
     console.error('Error fetching warehouse inventory details:', error);
-    throw new AppError('Failed to fetch warehouse inventory details. Please try again later.');
+    throw new AppError(
+      'Failed to fetch warehouse inventory details. Please try again later.'
+    );
   }
 };
 
@@ -130,15 +145,26 @@ const adjustSingleWarehouseInventoryLotQty = async (
   warehouseInventoryLotId: string,
   payload: LotAdjustmentSinglePayload
 ): Promise<LotAdjustmentSinglePayload> => {
-  const endpoint = API_ENDPOINTS.WAREHOUSE_INVENTORY_LOT_SINGLE_ADJUST.replace(':id', warehouseInventoryLotId);
-  const response = await axiosInstance.patch<LotAdjustmentSinglePayload>(endpoint, payload);
+  const endpoint = API_ENDPOINTS.WAREHOUSE_INVENTORY_LOT_SINGLE_ADJUST.replace(
+    ':id',
+    warehouseInventoryLotId
+  );
+  const response = await axiosInstance.patch<LotAdjustmentSinglePayload>(
+    endpoint,
+    payload
+  );
   return response.data;
 };
 
-const bulkAdjustWarehouseInventoryLotQty = async (adjustments: BulkLotAdjustmentPayload) => {
+const bulkAdjustWarehouseInventoryLotQty = async (
+  adjustments: BulkLotAdjustmentPayload
+) => {
   try {
     console.log(adjustments);
-    const response = await axiosInstance.patch(API_ENDPOINTS.WAREHOUSE_INVENTORY_LOT_BULK_ADJUST, adjustments);
+    const response = await axiosInstance.patch(
+      API_ENDPOINTS.WAREHOUSE_INVENTORY_LOT_BULK_ADJUST,
+      adjustments
+    );
     return response.data;
   } catch (error) {
     console.error('Failed to adjust warehouse inventory:', error);

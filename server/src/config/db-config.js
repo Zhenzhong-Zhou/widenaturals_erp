@@ -32,8 +32,10 @@ const getPoolConfig = () => ({
  */
 const getConnectionConfig = () => {
   // Only load the password in non-production environments
-  const dbPassword = isProduction ? undefined : loadSecret('db_password', 'DB_PASSWORD');
-  
+  const dbPassword = isProduction
+    ? undefined
+    : loadSecret('db_password', 'DB_PASSWORD');
+
   return {
     host: process.env.DB_HOST,
     database: process.env.DB_NAME,

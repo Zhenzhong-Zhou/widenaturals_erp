@@ -1,6 +1,11 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { fetchPricingTypeDetailsThunk } from './pricingTypeThunks';
-import { PricingTypeDetail, PricingRecord, PricingTypePagination, PricingTypeResponse } from './pricingTypeTypes';
+import {
+  PricingTypeDetail,
+  PricingRecord,
+  PricingTypePagination,
+  PricingTypeResponse,
+} from './pricingTypeTypes';
 
 interface PricingTypeState {
   pricingTypeDetails: PricingTypeDetail | null; // Now a single object instead of an array
@@ -36,16 +41,23 @@ const pricingTypeSlice = createSlice({
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(fetchPricingTypeDetailsThunk.fulfilled, (state, action: PayloadAction<PricingTypeResponse>) => {
-        state.isLoading = false;
-        state.pricingTypeDetails = action.payload.data.pricingTypeDetails; // Correctly accessing single object
-        state.pricingDetails = action.payload.data.pricingDetails; // Correctly accessing the pricing details array
-        state.pagination = action.payload.data.pagination; // Correctly accessing pagination data
-      })
-      .addCase(fetchPricingTypeDetailsThunk.rejected, (state, action: PayloadAction<string | undefined>) => {
-        state.isLoading = false;
-        state.error = action.payload || 'Failed to fetch pricing type details.';
-      });
+      .addCase(
+        fetchPricingTypeDetailsThunk.fulfilled,
+        (state, action: PayloadAction<PricingTypeResponse>) => {
+          state.isLoading = false;
+          state.pricingTypeDetails = action.payload.data.pricingTypeDetails; // Correctly accessing single object
+          state.pricingDetails = action.payload.data.pricingDetails; // Correctly accessing the pricing details array
+          state.pagination = action.payload.data.pagination; // Correctly accessing pagination data
+        }
+      )
+      .addCase(
+        fetchPricingTypeDetailsThunk.rejected,
+        (state, action: PayloadAction<string | undefined>) => {
+          state.isLoading = false;
+          state.error =
+            action.payload || 'Failed to fetch pricing type details.';
+        }
+      );
   },
 });
 

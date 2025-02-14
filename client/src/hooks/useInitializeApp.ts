@@ -18,9 +18,9 @@ interface InitializeAppOptions {
 }
 
 const useInitializeApp = ({
-                            delay = 500,
-                            retryAttempts = 3,
-                          }: InitializeAppOptions = {}) => {
+  delay = 500,
+  retryAttempts = 3,
+}: InitializeAppOptions = {}) => {
   const dispatch = useAppDispatch();
   const csrfStatus = useAppSelector(selectCsrfStatus); // CSRF loading status
   const csrfError = useAppSelector(selectCsrfError); // CSRF error
@@ -36,7 +36,7 @@ const useInitializeApp = ({
       throw error;
     }
   }, [dispatch]);
-  
+
   const initialize = useCallback(async () => {
     try {
       // Simulate initialization delay
@@ -51,25 +51,25 @@ const useInitializeApp = ({
         error instanceof AppError
           ? error
           : AppError.create(
-            ErrorType.GlobalError,
-            mapErrorMessage(error),
-            500,
-            { details: error }
-          );
-      
+              ErrorType.GlobalError,
+              mapErrorMessage(error),
+              500,
+              { details: error }
+            );
+
       handleError(appError);
       setInitializationError(appError);
       dispatch(resetCsrfToken());
       throw appError;
     }
   }, [delay, dispatch]);
-  
+
   useEffect(() => {
     const initializeApp = async () => {
       setIsInitializing(true);
       try {
         console.info('Starting app initialization...');
-        
+
         // Step 1: Fetch and initialize CSRF token
         console.info('Fetching CSRF token...');
         await withRetry(
@@ -78,33 +78,33 @@ const useInitializeApp = ({
           1000,
           'Failed to fetch CSRF token after multiple attempts'
         );
-        
+
         // Step 2: Monitor CSRF status (after successful token initialization)
         console.info('Monitoring CSRF status...');
         monitorCsrfStatus(csrfStatus, csrfError);
-        
+
         // Step 3: General app initialization
         console.info('Initializing app...');
         await initialize();
-        
+
         console.info('App initialized successfully');
       } catch (error) {
         const appError =
           error instanceof AppError
             ? error
             : AppError.create(
-              ErrorType.GlobalError,
-              'Error during app initialization',
-              500,
-              { details: error }
-            );
+                ErrorType.GlobalError,
+                'Error during app initialization',
+                500,
+                { details: error }
+              );
         console.error('Initialization error:', appError);
         setInitializationError(appError);
       } finally {
         setIsInitializing(false);
       }
     };
-    
+
     initializeApp().catch();
   }, [
     dispatch,
@@ -114,7 +114,7 @@ const useInitializeApp = ({
     initialize,
     retryAttempts,
   ]);
-  
+
   return {
     isInitializing,
     hasError: Boolean(initializationError),

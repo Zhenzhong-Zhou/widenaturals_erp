@@ -11,14 +11,20 @@ const { logInfo, logError } = require('../utils/logger-helper');
  * @param {string} [options.sortOrder='ASC'] - Sorting order (ASC/DESC)
  * @returns {Promise<{ locations: Array, pagination: Object }>} Locations data with pagination info
  */
-const getLocations = async ({page, limit, sortBy, sortOrder } = {}) => {
-  const validSortColumns = ['name', 'created_at', 'updated_at', 'warehouse_fee', 'status_date'];
-  
+const getLocations = async ({ page, limit, sortBy, sortOrder } = {}) => {
+  const validSortColumns = [
+    'name',
+    'created_at',
+    'updated_at',
+    'warehouse_fee',
+    'status_date',
+  ];
+
   // Prevent SQL injection by ensuring sort column is valid
   if (!validSortColumns.includes(sortBy)) {
     sortBy = 'name'; // Default to safe column
   }
-  
+
   const tableName = 'locations l';
   const joins = [
     'LEFT JOIN status s ON l.status_id = s.id',
@@ -27,7 +33,7 @@ const getLocations = async ({page, limit, sortBy, sortOrder } = {}) => {
     'LEFT JOIN location_types lt ON l.location_type_id = lt.id',
   ];
   const whereClause = '1=1';
-  
+
   const baseQueryText = `
     SELECT
         l.id AS location_id,
@@ -45,7 +51,7 @@ const getLocations = async ({page, limit, sortBy, sortOrder } = {}) => {
     FROM ${tableName}
     ${joins.join(' ')}
   `;
-  
+
   try {
     return await retry(async () => {
       return await paginateQuery({

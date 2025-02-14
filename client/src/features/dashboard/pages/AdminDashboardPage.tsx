@@ -1,15 +1,26 @@
 import { useState } from 'react';
 import { Chip, Box } from '@mui/material';
-import { CustomButton, CustomTable, CustomForm, Typography } from '@components/index.ts';
+import {
+  CustomButton,
+  CustomTable,
+  CustomForm,
+  Typography,
+} from '@components/index.ts';
 import { FieldConfig } from '@components/common/CustomForm.tsx';
 import CustomModal from '@components/common/CustomModal.tsx';
 
-const AdminDashboardPage = ({ roleName, permissions }: { roleName: string; permissions: string[] }) => {
+const AdminDashboardPage = ({
+  roleName,
+  permissions,
+}: {
+  roleName: string;
+  permissions: string[];
+}) => {
   const [open, setOpen] = useState(false);
-  
+
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
-  
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Pending':
@@ -22,15 +33,15 @@ const AdminDashboardPage = ({ roleName, permissions }: { roleName: string; permi
         return 'default';
     }
   };
-  
+
   const handleApprove = (row: any) => {
     console.log(`Approved: ${row.name}`);
   };
-  
+
   const handleCancel = (row: any) => {
     console.log(`Cancelled: ${row.name}`);
   };
-  
+
   const fields: FieldConfig[] = [
     { id: 'name', label: 'Name', type: 'text', required: true },
     {
@@ -45,20 +56,22 @@ const AdminDashboardPage = ({ roleName, permissions }: { roleName: string; permi
     },
     { id: 'newsletter', label: 'Subscribe to Newsletter', type: 'checkbox' },
   ];
-  
+
   const handleSubmit = (formData: Record<string, any>) => {
     console.log('Form Data:', formData);
   };
-  
+
   return (
     <>
       {/* Render Header */}
       <Typography variant="h4" gutterBottom>
         Welcome, {roleName}!
       </Typography>
-      
+
       {/* Access Control for DataTable */}
-      {permissions?.some((permission) => ['view_data_table', 'root_access'].includes(permission)) && (
+      {permissions?.some((permission) =>
+        ['view_data_table', 'root_access'].includes(permission)
+      ) && (
         <CustomTable
           columns={[
             { id: 'name', label: 'Name', sortable: true },
@@ -80,27 +93,29 @@ const AdminDashboardPage = ({ roleName, permissions }: { roleName: string; permi
               sortable: false,
               format: (_, row) => (
                 <Box>
-                  {row.status === 'Pending' && permissions?.includes('approve_items') && (
-                    <CustomButton
-                      variant="outlined"
-                      color="primary"
-                      onClick={() => handleApprove(row)}
-                      size="small"
-                      sx={{ marginRight: 1 }}
-                    >
-                      Approve
-                    </CustomButton>
-                  )}
-                  {row.status === 'Pending' && permissions?.includes('cancel_items') && (
-                    <CustomButton
-                      variant="outlined"
-                      color="secondary"
-                      onClick={() => handleCancel(row)}
-                      size="small"
-                    >
-                      Cancel
-                    </CustomButton>
-                  )}
+                  {row.status === 'Pending' &&
+                    permissions?.includes('approve_items') && (
+                      <CustomButton
+                        variant="outlined"
+                        color="primary"
+                        onClick={() => handleApprove(row)}
+                        size="small"
+                        sx={{ marginRight: 1 }}
+                      >
+                        Approve
+                      </CustomButton>
+                    )}
+                  {row.status === 'Pending' &&
+                    permissions?.includes('cancel_items') && (
+                      <CustomButton
+                        variant="outlined"
+                        color="secondary"
+                        onClick={() => handleCancel(row)}
+                        size="small"
+                      >
+                        Cancel
+                      </CustomButton>
+                    )}
                 </Box>
               ),
             },
@@ -119,7 +134,7 @@ const AdminDashboardPage = ({ roleName, permissions }: { roleName: string; permi
           }
         />
       )}
-      
+
       {/* Access Control for Form */}
       {permissions.includes('create_user') && (
         <div>
@@ -127,11 +142,15 @@ const AdminDashboardPage = ({ roleName, permissions }: { roleName: string; permi
           <CustomForm fields={fields} onSubmit={handleSubmit} />
         </div>
       )}
-      
+
       {/* Modal Example */}
       {permissions.includes('view_modal') && (
         <div>
-          <CustomButton variant="contained" color="primary" onClick={handleOpen}>
+          <CustomButton
+            variant="contained"
+            color="primary"
+            onClick={handleOpen}
+          >
             Open Modal
           </CustomButton>
           <CustomModal

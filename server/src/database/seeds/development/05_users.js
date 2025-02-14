@@ -3,22 +3,22 @@ exports.seed = async function (knex) {
   const roles = await knex('roles')
     .select('id', 'name')
     .whereIn('name', ['admin', 'manager', 'sales', 'operations', 'user']);
-  
+
   const roleIds = roles.reduce((acc, role) => {
     acc[role.name] = role.id;
     return acc;
   }, {});
-  
+
   // Fetch status IDs
   const statuses = await knex('status')
     .select('id', 'name')
     .whereIn('name', ['active']);
-  
+
   const statusIds = statuses.reduce((acc, status) => {
     acc[status.name] = status.id;
     return acc;
   }, {});
-  
+
   // Define users
   const users = [
     {
@@ -176,7 +176,7 @@ exports.seed = async function (knex) {
       updated_at: knex.fn.now(),
     },
   ];
-  
+
   // Insert users and avoid duplicates
   for (const user of users) {
     await knex('users')

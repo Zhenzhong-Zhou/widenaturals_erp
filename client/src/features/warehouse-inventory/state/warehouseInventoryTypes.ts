@@ -108,7 +108,8 @@ export interface WarehouseInventoryDetail {
   lotUpdated: InventoryCreatedUpdatedInfo;
 }
 
-export interface WarehouseInventoryDetailExtended extends WarehouseInventoryDetail {
+export interface WarehouseInventoryDetailExtended
+  extends WarehouseInventoryDetail {
   lotCreatedBy: string;
   lotCreatedDate: string;
   lotUpdatedBy: string;

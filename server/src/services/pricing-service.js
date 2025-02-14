@@ -1,5 +1,8 @@
 const AppError = require('../utils/AppError');
-const { getPricings, getPricingDetailsByPricingId } = require('../repositories/pricing-repository');
+const {
+  getPricings,
+  getPricingDetailsByPricingId,
+} = require('../repositories/pricing-repository');
 
 /**
  * Service to fetch paginated pricing records.
@@ -12,15 +15,15 @@ const fetchAllPricings = async ({ page = 1, limit = 10 }) => {
   if (!Number.isInteger(page) || page < 1) {
     throw new AppError('Invalid page number. Must be a positive integer.', 400);
   }
-  
+
   if (!Number.isInteger(limit) || limit < 1) {
     throw new AppError('Invalid limit. Must be a positive integer.', 400);
   }
-  
+
   try {
     // Fetch data from the repository layer
     const pricingData = await getPricings({ page, limit });
-    
+
     // Business Logic: Validate response data
     if (!pricingData || !pricingData.data || pricingData.data.length === 0) {
       return {
@@ -35,13 +38,13 @@ const fetchAllPricings = async ({ page = 1, limit = 10 }) => {
         },
       };
     }
-    
+
     // Additional Business Logic: Example - Mask certain price values based on user role (if applicable)
     const sanitizedData = pricingData.data.map((item) => ({
       ...item,
       price: item.price ? parseFloat(item.price).toFixed(2) : 'N/A', // Ensures consistent price format
     }));
-    
+
     return {
       data: sanitizedData,
       pagination: pricingData.pagination,
@@ -63,28 +66,32 @@ const fetchPricingDetailsByPricingId = async (pricingId, page, limit) => {
   if (!pricingId) {
     throw new AppError('Pricing ID is required', 400);
   }
-  
+
   if (page < 1 || limit < 1) {
     throw new AppError('Page and limit must be positive integers', 400);
   }
-  
+
   // Fetch pricing details from repository
-  const pricingData = await getPricingDetailsByPricingId({ pricingId, page, limit });
-  
+  const pricingData = await getPricingDetailsByPricingId({
+    pricingId,
+    page,
+    limit,
+  });
+
   if (!pricingData?.data?.length) {
     throw new AppError('Pricing details not found', 404);
   }
-  
+
   const pricing = pricingData.data[0];
-  
+
   // Format response
   return {
     pricing,
-    pagination: pricingData.pagination
+    pagination: pricingData.pagination,
   };
 };
 
 module.exports = {
   fetchAllPricings,
   fetchPricingDetailsByPricingId,
-}
+};

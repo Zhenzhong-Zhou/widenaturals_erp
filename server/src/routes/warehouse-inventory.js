@@ -1,6 +1,8 @@
 const express = require('express');
-const { getAllWarehouseInventoriesController, getWarehouseProductSummaryController,
-  getWarehouseInventoryDetailsController
+const {
+  getAllWarehouseInventoriesController,
+  getWarehouseProductSummaryController,
+  getWarehouseInventoryDetailsController,
 } = require('../controllers/warehouse-inventory-controller');
 const authorize = require('../middlewares/authorize');
 
@@ -16,7 +18,10 @@ router.get('/', getAllWarehouseInventoriesController);
  * @access Private
  */
 // router.get('/:warehouse_id/products-summary', authorize(['view_warehouses', 'manage_warehouses']), getWarehouseProductSummaryController);
-router.get('/:warehouse_id/products-summary', getWarehouseProductSummaryController);
+router.get(
+  '/:warehouse_id/products-summary',
+  getWarehouseProductSummaryController
+);
 
 /**
  * @route GET /api/warehouse-inventory/:warehouse_id

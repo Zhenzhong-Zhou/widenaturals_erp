@@ -1,4 +1,6 @@
-const { getWarehouseLotAdjustmentTypes } = require('../repositories/lot-adjustment-type-repository');
+const {
+  getWarehouseLotAdjustmentTypes,
+} = require('../repositories/lot-adjustment-type-repository');
 
 /**
  * Fetch warehouse lot adjustment types.
@@ -10,7 +12,7 @@ const fetchWarehouseLotAdjustmentTypes = async () => {
   if (!adjustmentTypes.length) {
     throw new Error('No active warehouse lot adjustment types found.');
   }
-  
+
   return adjustmentTypes;
 };
 

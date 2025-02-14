@@ -103,7 +103,7 @@ exports.seed = async function (knex) {
       updated_at: knex.fn.now(),
     },
   ];
-  
+
   // Insert roles using ON CONFLICT to avoid duplicates
   for (const role of roles) {
     await knex('roles')

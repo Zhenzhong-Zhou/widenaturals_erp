@@ -10,7 +10,9 @@ export const fetchProducts = createAsyncThunk(
     try {
       return await productService.fetchProducts(page, limit);
     } catch (error: any) {
-      return thunkAPI.rejectWithValue(error.response?.data?.message || 'Failed to fetch products');
+      return thunkAPI.rejectWithValue(
+        error.response?.data?.message || 'Failed to fetch products'
+      );
     }
   }
 );
@@ -24,7 +26,9 @@ export const fetchProductDetailThunk = createAsyncThunk<Product, string>(
     try {
       return await fetchProductDetails(productId);
     } catch (error: any) {
-      return rejectWithValue(error.message || 'Failed to fetch product details');
+      return rejectWithValue(
+        error.message || 'Failed to fetch product details'
+      );
     }
   }
 );

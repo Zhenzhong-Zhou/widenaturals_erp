@@ -19,23 +19,32 @@ const fetchAllLocations = async ({ page, limit, sortBy, sortOrder }) => {
     if (page < 1 || limit < 1) {
       throw new AppError('Page and limit must be positive integers.');
     }
-    
+
     // Fetch data from repository
-    const { data, pagination } = await getLocations({ page, limit, sortBy, sortOrder });
-    
+    const { data, pagination } = await getLocations({
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+    });
+
     // Apply business logic (e.g., flagging high-fee warehouses)
-    const processedData = data.map(location => ({
+    const processedData = data.map((location) => ({
       ...location,
       is_high_fee_warehouse: location.warehouse_fee > 500, // Example: Mark as high-fee if over $500
     }));
-    
+
     return {
       locations: processedData,
       pagination,
     };
   } catch (error) {
     logError('Error fetching locations in service:', error);
-    throw new AppError(error.message || 'Failed to fetch locations', error.statusCode || 500, error);
+    throw new AppError(
+      error.message || 'Failed to fetch locations',
+      error.statusCode || 500,
+      error
+    );
   }
 };
 

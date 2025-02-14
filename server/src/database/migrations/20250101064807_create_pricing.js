@@ -23,7 +23,7 @@ exports.up = async function (knex) {
     table.uuid('created_by').references('id').inTable('users');
     table.uuid('updated_by').references('id').inTable('users');
   });
-  
+
   // Add unique constraint using raw SQL
   await knex.raw(`
     ALTER TABLE pricing

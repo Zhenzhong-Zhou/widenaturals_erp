@@ -6,14 +6,16 @@ interface PermissionsContextType {
   error: string | null;
 }
 
-const PermissionsContext = createContext<PermissionsContextType | undefined>(undefined);
+const PermissionsContext = createContext<PermissionsContextType | undefined>(
+  undefined
+);
 
 export const PermissionsProvider = ({
-                                      roleName,
-                                      permissions,
-                                      error,
-                                      children,
-                                    }: PermissionsContextType & { children: ReactNode }) => {
+  roleName,
+  permissions,
+  error,
+  children,
+}: PermissionsContextType & { children: ReactNode }) => {
   return (
     <PermissionsContext.Provider value={{ roleName, permissions, error }}>
       {children}
@@ -24,7 +26,9 @@ export const PermissionsProvider = ({
 export const usePermissionsContext = () => {
   const context = useContext(PermissionsContext);
   if (!context) {
-    throw new Error('usePermissionsContext must be used within PermissionsProvider');
+    throw new Error(
+      'usePermissionsContext must be used within PermissionsProvider'
+    );
   }
   return context;
 };

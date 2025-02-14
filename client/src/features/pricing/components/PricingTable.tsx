@@ -16,14 +16,14 @@ interface PricingTableProps {
 }
 
 const PricingTable: FC<PricingTableProps> = ({
-                                               data,
-                                               page,
-                                               rowsPerPage,
-                                               totalRecords,
-                                               totalPages,
-                                               onPageChange,
-                                               onRowsPerPageChange,
-                                             }) => {
+  data,
+  page,
+  rowsPerPage,
+  totalRecords,
+  totalPages,
+  onPageChange,
+  onRowsPerPageChange,
+}) => {
   const columns = [
     { id: 'price_type', label: 'Price Type', sortable: true },
     {
@@ -32,7 +32,10 @@ const PricingTable: FC<PricingTableProps> = ({
       sortable: true,
       format: (value: string) => formatCurrency(value),
       renderCell: (row: any) => (
-        <Link to={`/pricings/${row.pricing_id}`} style={{ textDecoration: 'none', color: 'red' }}>
+        <Link
+          to={`/pricings/${row.pricing_id}`}
+          style={{ textDecoration: 'none', color: 'red' }}
+        >
           {formatCurrency(row.price)}
         </Link>
       ),
@@ -84,7 +87,7 @@ const PricingTable: FC<PricingTableProps> = ({
       sortable: true,
     },
   ];
-  
+
   return (
     <CustomTable
       columns={columns}

@@ -12,7 +12,7 @@ interface ModalProps {
 }
 
 const modalStyles = {
-  position: 'absolute' as 'absolute',
+  position: 'absolute' as const,
   top: '50%',
   left: '50%',
   transform: 'translate(-50%, -50%)',
@@ -24,13 +24,13 @@ const modalStyles = {
 };
 
 const CustomModal: FC<ModalProps> = ({
-                                       open,
-                                       onClose,
-                                       title,
-                                       children,
-                                       actions,
-                                       sx,
-                                     }) => {
+  open,
+  onClose,
+  title,
+  children,
+  actions,
+  sx,
+}) => {
   return (
     <Modal
       open={open}

@@ -18,13 +18,18 @@ const fetchAllInventories = async (
   sortOrder: string = 'DESC'
 ): Promise<InventoryResponse> => {
   try {
-    const response = await axiosInstance.get<InventoryResponse>(API_ENDPOINTS.ALL_INVENTORIES, {
-      params: { page, limit, sortBy, sortOrder },
-    });
+    const response = await axiosInstance.get<InventoryResponse>(
+      API_ENDPOINTS.ALL_INVENTORIES,
+      {
+        params: { page, limit, sortBy, sortOrder },
+      }
+    );
     return response.data;
   } catch (error: any) {
     console.error('Error fetching inventories:', error);
-    throw new AppError(error.response?.data?.message || 'Failed to fetch inventories');
+    throw new AppError(
+      error.response?.data?.message || 'Failed to fetch inventories'
+    );
   }
 };
 

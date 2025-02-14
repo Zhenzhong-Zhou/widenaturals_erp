@@ -69,12 +69,12 @@ export const formatDate = (
   timezone: string = 'America/Vancouver'
 ): string => {
   if (!timestamp) return 'N/A';
-  
+
   const localTime = convertToLocalTime(timestamp, timezone);
   if (!localTime || !localTime.date || isNaN(localTime.date.getTime())) {
     return 'N/A'; // Ensure valid date
   }
-  
+
   return new Intl.DateTimeFormat('en-CA', {
     year: 'numeric',
     month: '2-digit',
@@ -108,12 +108,15 @@ export const formatDateTime = (
   timezone: string = 'America/Vancouver'
 ): string => {
   if (!timestamp) return 'N/A'; // Handle null or undefined inputs gracefully
-  
+
   const date = new Date(timestamp);
   if (isNaN(date.getTime())) return 'Invalid Date'; // Handle invalid date values
-  
-  const { date: localDate, timezoneAbbreviation } = convertToLocalTime(date, timezone);
-  
+
+  const { date: localDate, timezoneAbbreviation } = convertToLocalTime(
+    date,
+    timezone
+  );
+
   // Format with zero-padded values for consistency
   const year = localDate.getFullYear();
   const month = String(localDate.getMonth() + 1).padStart(2, '0');
@@ -121,6 +124,6 @@ export const formatDateTime = (
   const hour = String(localDate.getHours()).padStart(2, '0');
   const minute = String(localDate.getMinutes()).padStart(2, '0');
   const second = String(localDate.getSeconds()).padStart(2, '0');
-  
+
   return `${year}-${month}-${day} ${hour}:${minute}:${second} ${timezoneAbbreviation}`;
 };

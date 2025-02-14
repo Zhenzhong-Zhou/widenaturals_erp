@@ -1,23 +1,31 @@
-const { getWarehouses, getWarehouseInventorySummary } = require('../repositories/warehouse-repository');
+const {
+  getWarehouses,
+  getWarehouseInventorySummary,
+} = require('../repositories/warehouse-repository');
 const AppError = require('../utils/AppError');
 const { logInfo, logError } = require('../utils/logger-helper');
 
 const fetchAllWarehouses = async ({ page, limit, sortBy, sortOrder }) => {
   try {
     logInfo('Fetching warehouses with pagination...');
-    
+
     // **Ensure valid pagination input**
     page = parseInt(page, 10) > 0 ? parseInt(page, 10) : 1;
     limit = parseInt(limit, 10) > 0 ? parseInt(limit, 10) : 10;
     sortBy = sortBy || 'name';
     sortOrder = sortOrder === 'desc' ? 'desc' : 'asc';
-    
+
     // **Retrieve warehouse data**
-    const { data, pagination } = await getWarehouses({ page, limit, sortBy, sortOrder });
-    
+    const { data, pagination } = await getWarehouses({
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+    });
+
     // **Apply business logic** (e.g., filtering warehouses with zero storage capacity)
-    const filteredWarehouses = data.filter(wh => wh.storage_capacity > 0);
-    
+    const filteredWarehouses = data.filter((wh) => wh.storage_capacity > 0);
+
     return {
       warehouses: filteredWarehouses,
       pagination,
@@ -37,34 +45,55 @@ const fetchAllWarehouses = async ({ page, limit, sortBy, sortOrder }) => {
  * @param {string} options.statusFilter - Warehouse status filter ('active', 'inactive', 'all') (default: 'active')
  * @returns {Promise<Object>} Warehouse inventory summary response
  */
-const fetchWarehouseInventorySummary = async ({ page, limit, statusFilter = 'active' }) => {
+const fetchWarehouseInventorySummary = async ({
+  page,
+  limit,
+  statusFilter = 'active',
+}) => {
   try {
     // Validate status filter input
     const allowedStatuses = ['active', 'inactive', 'all'];
     if (!allowedStatuses.includes(statusFilter)) {
-      throw new AppError(`Invalid statusFilter: '${statusFilter}'. Allowed: ${allowedStatuses.join(', ')}`, 400);
+      throw new AppError(
+        `Invalid statusFilter: '${statusFilter}'. Allowed: ${allowedStatuses.join(', ')}`,
+        400
+      );
     }
-    
+
     // Fetch warehouse inventory summary from repository
-    const { data, pagination } = await getWarehouseInventorySummary({ page, limit, statusFilter });
-    
+    const { data, pagination } = await getWarehouseInventorySummary({
+      page,
+      limit,
+      statusFilter,
+    });
+
     // Transform response (Adding computed fields and handling defaults)
-    const formattedSummary = data.map(warehouse => ({
+    const formattedSummary = data.map((warehouse) => ({
       warehouseId: warehouse.warehouse_id,
       warehouseName: warehouse.warehouse_name,
       status: warehouse.status_name,
       totalProducts: warehouse.total_products || 0,
       totalLots: warehouse.total_lots || 0,
       totalQuantity: warehouse.total_quantity || 0,
-      totalReservedStock: Math.min(warehouse.total_reserved_stock || 0, warehouse.total_quantity || 0),
-      totalAvailableStock: Math.max((warehouse.total_quantity || 0) - (warehouse.total_reserved_stock || 0), 0),
-      totalWarehouseFees: warehouse.total_warehouse_fees ? parseFloat(warehouse.total_warehouse_fees).toFixed(2) : '0.00',
-      lastInventoryUpdate: warehouse.last_inventory_update ? warehouse.last_inventory_update : 'N/A',
+      totalReservedStock: Math.min(
+        warehouse.total_reserved_stock || 0,
+        warehouse.total_quantity || 0
+      ),
+      totalAvailableStock: Math.max(
+        (warehouse.total_quantity || 0) - (warehouse.total_reserved_stock || 0),
+        0
+      ),
+      totalWarehouseFees: warehouse.total_warehouse_fees
+        ? parseFloat(warehouse.total_warehouse_fees).toFixed(2)
+        : '0.00',
+      lastInventoryUpdate: warehouse.last_inventory_update
+        ? warehouse.last_inventory_update
+        : 'N/A',
       earliestExpiry: warehouse.earliest_expiry || 'N/A',
       latestExpiry: warehouse.latest_expiry || 'N/A',
       totalZeroStockLots: warehouse.total_zero_stock_lots || 0,
     }));
-    
+
     return {
       formattedSummary,
       pagination,
@@ -79,4 +108,4 @@ const fetchWarehouseInventorySummary = async ({ page, limit, statusFilter = 'act
 module.exports = {
   fetchAllWarehouses,
   fetchWarehouseInventorySummary,
-}
+};

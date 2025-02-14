@@ -20,38 +20,43 @@ const validate = (
   if (!schema || typeof schema.validate !== 'function') {
     throw new Error('Invalid Joi schema provided.');
   }
-  
+
   if (!['body', 'query', 'params'].includes(target)) {
     throw new Error(`Invalid validation target: ${target}`);
   }
-  
+
   const defaultOptions = { abortEarly: false, allowUnknown: false };
   const validationOptions = { ...defaultOptions, ...options };
-  
+
   return (req, res, next) => {
     try {
       const { error, value } = schema.validate(req[target], validationOptions);
-      
+
       if (error) {
         // Sanitize the error details
         const sanitizedDetails =
           typeof sanitizeValidationError === 'function'
             ? sanitizeValidationError(error)
-            : error.details.map(({ message, path }) => ({ message, path: path.join('.') }));
-        
+            : error.details.map(({ message, path }) => ({
+                message,
+                path: path.join('.'),
+              }));
+
         // Log the sanitized error in non-production environments
         if (process.env.NODE_ENV !== 'production') {
           const validationError = AppError.validationError(errorMessage, {
             details: sanitizedDetails,
             additionalContext: 'Validation middleware encountered an error.',
           });
-          
+
           logError('Validation Error:', req, validationError.toLog(req));
         }
-        
-        throw AppError.validationError(errorMessage, { details: sanitizedDetails });
+
+        throw AppError.validationError(errorMessage, {
+          details: sanitizedDetails,
+        });
       }
-      
+
       req[target] = value; // Attach sanitized input
       next();
     } catch (err) {
