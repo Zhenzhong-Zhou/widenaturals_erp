@@ -10,7 +10,6 @@ export interface WarehouseInventory {
   identifier: string;
   availableQuantity: number;
   reservedQuantity: number;
-  totalQuantity: number;
   warehouseFee: string;
   lastUpdate: string;
   createdAt: string;

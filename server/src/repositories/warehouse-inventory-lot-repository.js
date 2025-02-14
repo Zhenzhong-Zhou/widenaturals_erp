@@ -146,7 +146,7 @@ const adjustWarehouseInventoryLots = async (records, user_id) => {
       // Update Warehouse Inventory Status
       await client.query(`
         UPDATE warehouse_inventory
-        SET status_id = $1, updated_at = NOW(), updated_by = $2
+        SET status_id = $1, last_update = NOW(), updated_at = NOW(), updated_by = $2
         WHERE warehouse_id = $3 AND inventory_id = $4`,
         [warehouse_new_status.id, user_id, warehouse_id, inventory_id]
       );
@@ -168,7 +168,7 @@ const adjustWarehouseInventoryLots = async (records, user_id) => {
       // Update Inventory Status
       await client.query(`
         UPDATE inventory
-        SET status_id = $1, updated_at = NOW(), updated_by = $2
+        SET status_id = $1, last_update = NOW(), updated_at = NOW(), updated_by = $2
         WHERE id = $3`,
         [inventory_new_status.id, user_id, inventory_id]
       );

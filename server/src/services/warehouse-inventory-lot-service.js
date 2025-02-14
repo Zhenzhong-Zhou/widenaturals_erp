@@ -12,10 +12,8 @@ const adjustWarehouseInventory = async (records, user_id) => {
   try {
     // Process inventory adjustments using the repository function
     const result = await adjustWarehouseInventoryLots(records, user_id);
-    console.log(result);
     return { data: result };
   } catch (error) {
-    console.error(error);
     logError('Error in adjustWarehouseInventory service:', error.message);
     throw new AppError(`Inventory adjustment failed: ${error.message}`);
   }

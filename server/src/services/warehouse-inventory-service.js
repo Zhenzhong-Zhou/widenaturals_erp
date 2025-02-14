@@ -18,7 +18,7 @@ const fetchAllWarehouseInventories = async ({ page, limit, sortBy, sortOrder }) 
   
   // Fetch inventories using repository
   const { data, pagination } = await getWarehouseInventories({ page, limit, sortBy, sortOrder });
-  console.log(data);
+  
   // Business logic: Post-processing (if needed)
   const inventories = data.map((inventory) => ({
     warehouseInventoryId: inventory.warehouse_inventory_id,
@@ -29,7 +29,6 @@ const fetchAllWarehouseInventories = async ({ page, limit, sortBy, sortOrder }) 
     productName: inventory.product_name,
     itemType: inventory.item_type,
     identifier: inventory.identifier,
-    totalQuantity: inventory.total_quantity || 0,
     availableQuantity: inventory.available_quantity || 0,
     reservedQuantity: inventory.reserved_quantity || 0,
     warehouseFee: inventory.warehouse_fee ? `${parseFloat(inventory.warehouse_fee).toFixed(2)}` : 'N/A',

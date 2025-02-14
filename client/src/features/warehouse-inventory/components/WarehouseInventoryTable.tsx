@@ -64,12 +64,6 @@ const WarehouseInventoryTable: FC<WarehouseInventoryTableProps> = ({
       format: (value: any) => value || 'N/A',
     },
     {
-      id: 'totalQuantity',
-      label: 'Total Qty',
-      sortable: true,
-      format: (value: any) => value ?? 0,
-    },
-    {
       id: 'availableQuantity',
       label: 'Available Qty',
       sortable: true,
