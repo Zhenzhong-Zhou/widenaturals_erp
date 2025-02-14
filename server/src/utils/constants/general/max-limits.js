@@ -6,19 +6,19 @@
 
 const MAX_LIMITS = {
   RATE_LIMIT_MAX: {
-    GLOBAL: 500, // Maximum requests for global rate limiting
-    API: 100, // Maximum API requests per minute
+    GLOBAL: 700, // Maximum requests for global rate limiting
+    API: 200, // Maximum API requests per minute
     LOGIN: 20, // Maximum login attempts per window
-    AUTHENTICATION: 100, // Maximum authentication attempts
-    AUTHORIZATION: 100, // Maximum authorization attempts
+    AUTHENTICATION: 150, // Maximum authentication attempts
+    AUTHORIZATION: 150, // Maximum authorization attempts
     PASSWORD_RESET: 20, // Maximum password reset requests
     SIGNUP: 5, // Maximum signup attempts
     ADMIN: 20, // Maximum admin requests
     FILE_UPLOAD: 10, // Maximum file uploads
     FORGOT_USERNAME: 5, // Maximum forgot username requests
-    CSRF: 150,
-    REFRESH: 200,
-    USER_PROFILE: 50,
+    CSRF: 300,
+    REFRESH: 300,
+    USER_PROFILE: 100,
   },
   PAGINATION: {
     DEFAULT_PAGE_SIZE: 20, // Default number of items per page

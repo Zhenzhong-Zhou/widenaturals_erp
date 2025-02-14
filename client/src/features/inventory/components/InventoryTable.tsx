@@ -2,7 +2,7 @@ import { FC } from 'react';
 import { CustomTable } from '@components/index.ts';
 import { InventoryItem } from '../state/inventoryTypes.ts';
 import { capitalizeFirstLetter } from '@utils/textUtils.ts';
-import { formatDateTime } from '@utils/dateTimeUtils.ts';
+import { formatDate, formatDateTime } from '@utils/dateTimeUtils.ts';
 import Box from '@mui/material/Box';
 import { Link } from 'react-router-dom';
 
@@ -41,13 +41,31 @@ const InventoryTable: FC<InventoryTableProps> = ({
       ),
     },
     { id: 'location_name', label: 'Location', sortable: true },
-    { id: 'item_type', label: 'Item Type', sortable: true },
+    { id: 'warehouse_name', label: 'Warehouse', sortable: true },
+    {
+      id: 'item_type',
+      label: 'Item Type',
+      sortable: true,
+      format: (value: any) => capitalizeFirstLetter(value),
+    },
     { id: 'identifier', label: 'Identifier', sortable: false },
     {
-      id: 'quantity',
-      label: 'Quantity',
+      id: 'available_quantity',
+      label: 'Available Quantity',
       sortable: true,
-      format: (value: any) => value.toLocaleString(),
+      format: (value: any) => value,
+    },
+    {
+      id: 'reserved_quantity',
+      label: 'Reserved Quantity',
+      sortable: true,
+      format: (value: any) => value,
+    },
+    {
+      id: 'total_lot_quantity',
+      label: 'Total Lot Quantity',
+      sortable: true,
+      format: (value: any) => value,
     },
     {
       id: 'status_name',
@@ -60,6 +78,24 @@ const InventoryTable: FC<InventoryTableProps> = ({
       label: 'Status Date',
       sortable: true,
       format: (value: any) => formatDateTime(value),
+    },
+    {
+      id: 'earliest_manufacture_date',
+      label: 'Earliest Manufacture Date',
+      sortable: true,
+      format: (value: any) => formatDate(value),
+    },
+    {
+      id: 'nearest_expiry_date',
+      label: 'Nearest Expiry Date',
+      sortable: true,
+      format: (value: any) => formatDate(value),
+    },
+    {
+      id: 'warehouse_fee',
+      label: 'Storage Fee',
+      sortable: true,
+      format: (value: any) => `$${value.toFixed(2)}`,
     },
     {
       id: 'created_at',
@@ -75,8 +111,14 @@ const InventoryTable: FC<InventoryTableProps> = ({
     },
     { id: 'created_by', label: 'Created By', sortable: false },
     { id: 'updated_by', label: 'Updated By', sortable: false },
+    {
+      id: 'is_expired',
+      label: 'Expired',
+      sortable: false,
+      format: (value: boolean) => (value ? 'Yes' : 'No'),
+    },
   ];
-
+  
   return (
     <Box>
       <CustomTable
