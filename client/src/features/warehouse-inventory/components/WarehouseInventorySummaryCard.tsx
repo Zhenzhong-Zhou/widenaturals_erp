@@ -70,6 +70,7 @@ const WarehouseInventorySummaryCard: FC<WarehouseInventorySummaryProps> = ({
               }}
             >
               <Typography variant="body2">Total Products: {summary.totalProducts}</Typography>
+              <Typography variant="body2">Total Quantity: {summary.totalQuantity}</Typography>
               <Typography variant="body2">Total Lots: {summary.totalLots}</Typography>
               <Typography variant="body2">Total Reserved Stock: {summary.totalReservedStock}</Typography>
               <Typography variant="body2">Total Available Stock: {summary.totalAvailableStock}</Typography>

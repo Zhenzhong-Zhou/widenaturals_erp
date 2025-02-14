@@ -1,18 +1,21 @@
 export interface WarehouseInventory {
-  warehouse_inventory_id: string;
-  warehouse_id: string;
-  warehouse_name: string;
-  storage_capacity: number;
-  location_name: string;
-  product_id: string;
-  product_name: string;
-  reserved_quantity: number;
-  warehouse_fee: string;
-  last_update: string;
-  created_at: string;
-  updated_at: string;
-  created_by: string;
-  updated_by: string;
+  warehouseInventoryId: string;
+  warehouseId: string;
+  warehouseName: string;
+  storageCapacity: number;
+  locationName: string;
+  inventoryId: string;
+  productName: string;
+  itemType: string;
+  identifier: string;
+  reservedQuantity: number;
+  totalQuantity: number;
+  warehouseFee: string;
+  lastUpdate: string;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
+  updatedBy: string;
 }
 
 export interface Pagination {
@@ -34,6 +37,7 @@ export interface WarehouseInventorySummary {
   warehouseName: string;
   status: string;
   totalProducts: number;
+  totalQuantity: number;
   totalReservedStock: number;
   totalAvailableStock: number;
   totalWarehouseFees: number;
@@ -53,8 +57,10 @@ export interface WarehouseInventorySummaryResponse {
 
 // Interface for a single product summary in a warehouse
 export interface WarehouseProductSummary {
-  productId: string;
+  inventoryId: string;
   productName: string;
+  itemType: string;
+  identifier: string;
   totalLots: number;
   totalReservedStock: number;
   totalAvailableStock: number;
@@ -62,7 +68,6 @@ export interface WarehouseProductSummary {
   earliestExpiry: string | null; // Can be null if no expiry date is set
   latestExpiry: string | null;
 }
-
 
 // Interface for the full API response
 export interface WarehouseProductSummaryResponse {
@@ -79,8 +84,10 @@ export interface InventoryCreatedUpdatedInfo {
 
 export interface WarehouseInventoryDetail {
   warehouseInventoryId: string;
-  productId: string;
+  inventoryId: string;
   productName: string;
+  itemType: string;
+  identifier: string;
   warehouseInventoryLotId: string;
   lotNumber: string;
   lotQuantity: number;

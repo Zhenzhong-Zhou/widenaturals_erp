@@ -11,11 +11,11 @@ const getWarehouseInventories = async ({ page, limit, sortBy, sortOrder = 'ASC' 
     created_at: 'w.created_at',
     updated_at: 'w.updated_at'
   };
-
+  
   // Default sorting (by warehouse name & creation time)
   const defaultSortBy = 'w.name, w.created_at';
   sortBy = validSortColumns[sortBy] || defaultSortBy;
-
+  
   // Validate sortOrder, default to 'ASC'
   sortOrder = ['ASC', 'DESC'].includes(sortOrder?.toUpperCase()) ? sortOrder.toUpperCase() : 'ASC';
   
@@ -23,7 +23,8 @@ const getWarehouseInventories = async ({ page, limit, sortBy, sortOrder = 'ASC' 
   
   const joins = [
     'LEFT JOIN warehouses w ON wi.warehouse_id = w.id',
-    'LEFT JOIN products p ON wi.product_id = p.id',
+    'LEFT JOIN inventory i ON wi.inventory_id = i.id',
+    'LEFT JOIN products p ON i.product_id = p.id',
     'LEFT JOIN locations l ON w.location_id = l.id',
     'LEFT JOIN status s ON w.status_id = s.id',
     'LEFT JOIN users u1 ON wi.created_by = u1.id',
@@ -39,8 +40,11 @@ const getWarehouseInventories = async ({ page, limit, sortBy, sortOrder = 'ASC' 
       w.name AS warehouse_name,
       w.storage_capacity,
       l.name AS location_name,
-      wi.product_id,
+      wi.inventory_id,
       p.product_name,
+      i.item_type,
+      i.identifier,
+      wi.total_quantity,
       wi.reserved_quantity,
       wi.warehouse_fee,
       wi.last_update,
@@ -78,10 +82,11 @@ const getWarehouseInventories = async ({ page, limit, sortBy, sortOrder = 'ASC' 
 const getWarehouseProductSummary = async ({ warehouse_id, page = 1, limit = 10 }) => {
   const tableName = 'warehouse_inventory wi';
   
-  // Joins array for easy modifications
+  // Updated joins to use `inventory_id` instead of `product_id`
   const joins = [
-    'INNER JOIN warehouse_inventory_lots wil ON wi.warehouse_id = wil.warehouse_id AND wi.product_id = wil.product_id',
-    'JOIN products p ON wi.product_id = p.id'
+    'INNER JOIN warehouse_inventory_lots wil ON wi.warehouse_id = wil.warehouse_id AND wi.inventory_id = wil.inventory_id',
+    'JOIN inventory i ON wi.inventory_id = i.id', // Fetch from inventory
+    'JOIN products p ON i.product_id = p.id' // Referenced via inventory
   ];
   
   // Dynamic WHERE clause
@@ -91,7 +96,7 @@ const getWarehouseProductSummary = async ({ warehouse_id, page = 1, limit = 10 }
   // Base Query
   const baseQuery = `
     SELECT
-        p.id AS product_id,
+        i.id AS inventory_id,
         p.product_name,
         COUNT(DISTINCT wil.lot_number) AS total_lots,
         SUM(wi.reserved_quantity) AS total_reserved_stock,
@@ -102,15 +107,10 @@ const getWarehouseProductSummary = async ({ warehouse_id, page = 1, limit = 10 }
     FROM ${tableName}
     ${joins.join(' ')}
     WHERE ${whereClause}
-    GROUP BY p.id, p.product_name
+    GROUP BY i.id, p.product_name
   `;
   
   try {
-    // Ensure pagination parameters are valid
-    if (page < 1 || limit < 1) {
-      throw new Error('Invalid pagination parameters: Page and limit must be positive numbers.');
-    }
-    
     return await retry(async () => {
       return await paginateQuery({
         tableName,
@@ -135,8 +135,9 @@ const getWarehouseInventoryDetailsByWarehouseId = async ({ warehouse_id, page, l
   
   const joins = [
     'JOIN warehouses w ON wi.warehouse_id = w.id',
-    'JOIN products p ON wi.product_id = p.id',
-    'LEFT JOIN warehouse_inventory_lots wil ON wi.product_id = wil.product_id AND wi.warehouse_id = wil.warehouse_id',
+    'JOIN inventory i ON wi.inventory_id = i.id',
+    'JOIN products p ON i.product_id = p.id',
+    'LEFT JOIN warehouse_inventory_lots wil ON wi.inventory_id = wil.inventory_id AND wi.warehouse_id = wil.warehouse_id',
     'LEFT JOIN warehouse_lot_status ws ON wil.status_id = ws.id',
     'LEFT JOIN users u1 ON wi.created_by = u1.id',
     'LEFT JOIN users u2 ON wi.updated_by = u2.id',
@@ -152,8 +153,10 @@ const getWarehouseInventoryDetailsByWarehouseId = async ({ warehouse_id, page, l
   const baseQuery = `
     SELECT
         wi.id AS warehouse_inventory_id,
-        p.id AS product_id,
+        i.id AS inventory_id,
         p.product_name,
+        i.item_type,
+        i.identifier,
         wil.id AS warehouse_inventory_lot_id,
         wil.lot_number,
         COALESCE(wil.quantity, 0) AS lot_quantity,

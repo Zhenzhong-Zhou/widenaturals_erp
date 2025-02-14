@@ -9,7 +9,7 @@ import { Link } from 'react-router-dom';
 interface WarehouseInventoryTableProps {
   data: WarehouseInventory[];
   page: number;
-  rowsPerPage: number,
+  rowsPerPage: number;
   totalRecords: number;
   totalPages: number;
   onPageChange: (newPage: number) => void;
@@ -27,56 +27,94 @@ const WarehouseInventoryTable: FC<WarehouseInventoryTableProps> = ({
                                                                    }) => {
   const columns = [
     {
-      id: 'warehouse_name',
+      id: 'warehouseName',
       label: 'Warehouse',
       sortable: true,
       format: (value: any) => value,
-      renderCell: (row: Record<string, any>) => (
-        <Link to={`/warehouse_inventories/${row.warehouse_id}/inventory_records`} style={{ textDecoration: 'none', color: 'blue' }}>
-          {row.warehouse_name}
+      renderCell: (row: WarehouseInventory) => (
+        <Link
+          to={`/warehouse_inventories/${row.warehouseId}/inventory_records`}
+          style={{ textDecoration: 'none', color: 'blue' }}
+        >
+          {row.warehouseName}
         </Link>
       ),
     },
-    { id: 'location_name', label: 'Location', sortable: true },
-    { id: 'product_name', label: 'Product Name', sortable: true },
     {
-      id: 'reserved_quantity',
-      label: 'Reserved Qty',
-      sortable: true,
-      format: (value: any) => value.toLocaleString(),
+      id: 'locationName',
+      label: 'Location',
+      sortable: true
     },
     {
-      id: 'warehouse_fee',
+      id: 'productName',
+      label: 'Product Name',
+      sortable: true
+    
+    },
+    {
+      id: 'itemType',
+      label: 'Item Type',
+      sortable: true,
+      format: (value: any) => capitalizeFirstLetter(value) || 'N/A',
+    },
+    {
+      id: 'identifier',
+      label: 'Identifier',
+      sortable: true,
+      format: (value: any) => value || 'N/A',
+    },
+    {
+      id: 'totalQuantity',
+      label: 'Total Qty',
+      sortable: true,
+      format: (value: any) => value ?? 0,
+    },
+    {
+      id: 'reservedQuantity',
+      label: 'Reserved Qty',
+      sortable: true,
+      format: (value: any) => value ?? 0,
+    },
+    {
+      id: 'warehouseFee',
       label: 'Warehouse Fee ($)',
       sortable: true,
       format: (value: string | number) => (value ? `${formatCurrency(value)}` : 'N/A'),
     },
     {
-      id: 'status_name',
+      id: 'statusName',
       label: 'Status',
       sortable: true,
       format: (value: any) => capitalizeFirstLetter(value),
     },
     {
-      id: 'last_update',
+      id: 'lastUpdate',
       label: 'Last Update',
       sortable: true,
       format: (value: any) => formatDateTime(value),
     },
     {
-      id: 'created_at',
+      id: 'createdAt',
       label: 'Created At',
       sortable: true,
       format: (value: any) => formatDateTime(value),
     },
     {
-      id: 'updated_at',
+      id: 'updatedAt',
       label: 'Updated At',
       sortable: true,
       format: (value: any) => formatDateTime(value),
     },
-    { id: 'created_by', label: 'Created By', sortable: false },
-    { id: 'updated_by', label: 'Updated By', sortable: false },
+    {
+      id: 'createdBy',
+      label: 'Created By',
+      sortable: true
+    },
+    {
+      id: 'updatedBy',
+      label: 'Updated By',
+      sortable: true
+    },
   ];
   
   return (

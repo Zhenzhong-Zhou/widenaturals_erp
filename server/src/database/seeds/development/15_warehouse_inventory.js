@@ -11,25 +11,39 @@ exports.seed = async function (knex) {
   const activeStatusId = await fetchDynamicValue(knex, 'status', 'name', 'active', 'id');
   const adminUserId = await fetchDynamicValue(knex, 'users', 'email', 'admin@example.com', 'id');
   
-  // Fetch existing warehouse and product IDs
+  // Fetch existing warehouses
   const warehouses = await knex('warehouses').select('id');
-  const products = await knex('products').select('id');
+  if (warehouses.length === 0) {
+    console.error('No warehouses found! Ensure "warehouses" table is seeded first.');
+    return;
+  }
   
-  if (!warehouses.length || !products.length) {
-    console.error('Ensure "warehouses" and "products" tables are seeded first.');
+  // Fetch existing inventory
+  const inventories = await knex('inventory').select('id', 'item_type', 'identifier');
+  if (inventories.length === 0) {
+    console.error('No inventory records found! Ensure "inventory" table is seeded first.');
     return;
   }
   
   // Limit total records to prevent PostgreSQL parameter overflow
-  const totalEntries = Math.min(50, warehouses.length * products.length);
+  const totalEntries = Math.min(50, warehouses.length * inventories.length);
   const warehouseInventoryEntries = [];
+  const batchSize = 10; // Reduce batch size to avoid parameter overflow
   
   for (let i = 0; i < totalEntries; i++) {
+    const inventory = inventories[i % inventories.length]; // Fetch inventory record
+    const warehouse = warehouses[i % warehouses.length]; // Fetch warehouse record
+    
+    // Ensure `reserved_quantity` never exceeds `total_quantity`
+    const totalQuantity = Math.floor(Math.random() * 50) + 1; // Random value: 1 - 50
+    const reservedQuantity = Math.floor(Math.random() * (totalQuantity + 1)); // Ensure it's ≤ total_quantity
+    
     warehouseInventoryEntries.push({
       id: knex.raw('uuid_generate_v4()'),
-      warehouse_id: warehouses[i % warehouses.length].id,
-      product_id: products[i % products.length].id,
-      reserved_quantity: Math.max(1, Math.floor(Math.random() * 50)),
+      warehouse_id: warehouse.id,
+      inventory_id: inventory.id,
+      total_quantity: totalQuantity,
+      reserved_quantity: reservedQuantity, // Always valid
       warehouse_fee: parseFloat((Math.random() * 50).toFixed(2)),
       last_update: knex.fn.now(),
       status_id: activeStatusId,
@@ -40,14 +54,18 @@ exports.seed = async function (knex) {
       updated_by: adminUserId,
     });
     
-    // Insert in batches of 10 to avoid PostgreSQL parameter limits
-    if (warehouseInventoryEntries.length === 10 || i === totalEntries - 1) {
-      await knex('warehouse_inventory')
-        .insert(warehouseInventoryEntries)
-        .onConflict(['warehouse_id', 'product_id'])
-        .ignore();
+    // Insert in batches
+    if (warehouseInventoryEntries.length === batchSize || i === totalEntries - 1) {
+      try {
+        await knex('warehouse_inventory')
+          .insert(warehouseInventoryEntries)
+          .onConflict(['warehouse_id', 'inventory_id'])
+          .ignore();
+      } catch (error) {
+        console.error('Error inserting batch:', error.message);
+      }
       
-      warehouseInventoryEntries.length = 0; // Reset batch
+      warehouseInventoryEntries.length = 0; // Clear batch for next insert
     }
   }
   

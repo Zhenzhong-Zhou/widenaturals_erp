@@ -6,7 +6,7 @@ exports.up = async function (knex) {
   await knex.schema.createTable('warehouse_inventory_lots', (table) => {
     table.uuid('id').primary().defaultTo(knex.raw('uuid_generate_v4()'));
     table.uuid('warehouse_id').notNullable().references('id').inTable('warehouses');
-    table.uuid('product_id').notNullable().references('id').inTable('products');
+    table.uuid('inventory_id').notNullable().references('id').inTable('inventory');
     // table.uuid('sku_id').nullable().references('id').inTable('skus'); // New: SKU tracking
     table.string('lot_number', 100).notNullable();
     // table.string('batch_reference', 100).nullable(); // Optional Batch tracking
@@ -23,12 +23,12 @@ exports.up = async function (knex) {
     table.uuid('updated_by').references('id').inTable('users');
     
     // Unique constraint to prevent duplicate lot records for the same warehouse and product
-    table.unique(['warehouse_id', 'product_id', 'lot_number']);
+    table.unique(['warehouse_id', 'inventory_id', 'lot_number']);
   });
   
   // Add composite indexes for optimized queries
   await knex.raw(`
-    CREATE INDEX idx_warehouse_inventory_lots_warehouse_product ON warehouse_inventory_lots (warehouse_id, product_id);
+    CREATE INDEX idx_warehouse_inventory_lots_warehouse_inventory ON warehouse_inventory_lots (warehouse_id, inventory_id);
     CREATE INDEX idx_warehouse_inventory_lots_lot_number ON warehouse_inventory_lots (lot_number);
     CREATE INDEX idx_warehouse_inventory_lots_expiry_date ON warehouse_inventory_lots (expiry_date);
     CREATE INDEX idx_warehouse_inventory_lots_inbound_date ON warehouse_inventory_lots (inbound_date);

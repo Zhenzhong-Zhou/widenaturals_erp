@@ -101,7 +101,8 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
   };
   
   // Define table columns
-  const columns: Column<WarehouseInventoryDetailExtended>[]  = [
+  const columns: Column<WarehouseInventoryDetailExtended>[] = [
+    // 1️⃣ Selection Checkbox
     {
       id: 'select',
       label: 'Select',
@@ -113,6 +114,8 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
         />
       ),
     },
+    
+    // 2️⃣ Product & Lot Identification
     {
       id: 'productName',
       label: 'Product Name',
@@ -123,6 +126,20 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
       label: 'Lot Number',
       sortable: true,
     },
+    {
+      id: 'identifier',
+      label: 'Identifier',
+      sortable: true,
+      format: (value: any) => value || 'N/A',
+    },
+    {
+      id: 'itemType',
+      label: 'Item Type',
+      sortable: true,
+      format: (value: any) => capitalizeFirstLetter(value),
+    },
+    
+    // 3️⃣ Stock & Warehouse Information
     {
       id: 'lotQuantity',
       label: 'Quantity',
@@ -155,6 +172,8 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
       sortable: true,
       format: (value: string) => capitalizeFirstLetter(value),
     },
+    
+    // 4️⃣ Date Tracking (Manufacturing, Expiry, Inbound & Outbound)
     {
       id: 'manufactureDate',
       label: 'Manufactured Date',
@@ -177,14 +196,18 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
       id: 'outboundDate',
       label: 'Outbound Date',
       sortable: true,
-      format: (value: any) => formatDate(value),
+      format: (value: any) => value ? formatDate(value) : 'N/A',
     },
+    
+    // 5️⃣ Warehouse Fees
     {
       id: 'warehouseFees',
       label: 'Warehouse Fees ($)',
       sortable: true,
       format: (value: any) => formatCurrency(value),
     },
+    
+    // 6️⃣ User & System Tracking
     {
       id: 'lotCreatedBy',
       label: 'Created By',
@@ -219,6 +242,7 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
           onChange={toggleSelectAll}
           color="primary"
         />
+        Select All
         <Typography variant="h5">Warehouse Inventory Lots</Typography>
         
         <CustomButton

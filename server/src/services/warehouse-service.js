@@ -45,20 +45,21 @@ const fetchWarehouseInventorySummary = async ({ page, limit, statusFilter = 'act
       throw new AppError(`Invalid statusFilter: '${statusFilter}'. Allowed: ${allowedStatuses.join(', ')}`, 400);
     }
     
-    // Fetch warehouse inventory overview from repository
+    // Fetch warehouse inventory summary from repository
     const { data, pagination } = await getWarehouseInventorySummary({ page, limit, statusFilter });
     
-    // Transform response (Example: Add computed fields if needed)
+    // Transform response (Adding computed fields and handling defaults)
     const formattedSummary = data.map(warehouse => ({
       warehouseId: warehouse.warehouse_id,
       warehouseName: warehouse.warehouse_name,
       status: warehouse.status_name,
       totalProducts: warehouse.total_products || 0,
-      totalReservedStock: warehouse.total_reserved_stock || 0,
-      totalAvailableStock: warehouse.total_available_stock || 0,
-      totalWarehouseFees: warehouse.total_warehouse_fees || 0,
-      lastInventoryUpdate: warehouse.last_inventory_update,
       totalLots: warehouse.total_lots || 0,
+      totalQuantity: warehouse.total_quantity || 0,
+      totalReservedStock: Math.min(warehouse.total_reserved_stock || 0, warehouse.total_quantity || 0),
+      totalAvailableStock: Math.max((warehouse.total_quantity || 0) - (warehouse.total_reserved_stock || 0), 0),
+      totalWarehouseFees: warehouse.total_warehouse_fees ? parseFloat(warehouse.total_warehouse_fees).toFixed(2) : '0.00',
+      lastInventoryUpdate: warehouse.last_inventory_update ? warehouse.last_inventory_update : 'N/A',
       earliestExpiry: warehouse.earliest_expiry || 'N/A',
       latestExpiry: warehouse.latest_expiry || 'N/A',
       totalZeroStockLots: warehouse.total_zero_stock_lots || 0,
@@ -69,7 +70,8 @@ const fetchWarehouseInventorySummary = async ({ page, limit, statusFilter = 'act
       pagination,
     };
   } catch (error) {
-    console.error('Error in getWarehouseInventorySummary:', error);
+    console.log(error);
+    logError('Error in fetchWarehouseInventorySummary:', error);
     throw new AppError('Failed to retrieve warehouse inventory summary.', 500);
   }
 };
