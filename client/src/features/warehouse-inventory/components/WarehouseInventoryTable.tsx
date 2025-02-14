@@ -70,6 +70,12 @@ const WarehouseInventoryTable: FC<WarehouseInventoryTableProps> = ({
       format: (value: any) => value ?? 0,
     },
     {
+      id: 'availableQuantity',
+      label: 'Available Qty',
+      sortable: true,
+      format: (value: any) => value ?? 0,
+    },
+    {
       id: 'reservedQuantity',
       label: 'Reserved Qty',
       sortable: true,

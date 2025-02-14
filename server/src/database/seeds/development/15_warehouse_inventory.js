@@ -37,6 +37,7 @@ exports.seed = async function (knex) {
     // Ensure `reserved_quantity` never exceeds `total_quantity`
     const totalQuantity = Math.floor(Math.random() * 50) + 1; // Random value: 1 - 50
     const reservedQuantity = Math.floor(Math.random() * (totalQuantity + 1)); // Ensure it's ≤ total_quantity
+    const availableQuantity = totalQuantity - reservedQuantity;
     
     warehouseInventoryEntries.push({
       id: knex.raw('uuid_generate_v4()'),
@@ -44,6 +45,7 @@ exports.seed = async function (knex) {
       inventory_id: inventory.id,
       total_quantity: totalQuantity,
       reserved_quantity: reservedQuantity, // Always valid
+      available_quantity: availableQuantity,
       warehouse_fee: parseFloat((Math.random() * 50).toFixed(2)),
       last_update: knex.fn.now(),
       status_id: activeStatusId,

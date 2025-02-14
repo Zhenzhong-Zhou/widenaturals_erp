@@ -167,6 +167,16 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
       sortable: true,
     },
     {
+      id: 'availableStock',
+      label: 'Available Stock',
+      sortable: true,
+    },
+    {
+      id: 'totalStock',
+      label: 'Total Stock',
+      sortable: true,
+    },
+    {
       id: 'lotStatus',
       label: 'Status',
       sortable: true,

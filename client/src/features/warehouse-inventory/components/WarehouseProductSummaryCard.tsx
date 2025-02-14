@@ -37,7 +37,7 @@ const WarehouseProductSummaryCard = ({
       >
         {productsSummary.map((product) => (
           <CustomCard
-            key={product.productId}
+            key={product.inventoryId}
             title={product.productName}
             subtitle={`Total Lots: ${product.totalLots}`}
             sx={{
@@ -51,6 +51,7 @@ const WarehouseProductSummaryCard = ({
           >
             <Typography variant="body2">Reserved Stock: {product.totalReservedStock}</Typography>
             <Typography variant="body2">Available Stock: {product.totalAvailableStock}</Typography>
+            <Typography variant="body2">Total Stock: {product.totalQtyStock}</Typography>
             <Typography variant="body2">Zero Stock Lots: {product.totalZeroStockLots}</Typography>
             <Typography variant="body2">
               Earliest Expiry: {product.earliestExpiry ? formatDate(product.earliestExpiry) : 'N/A'}

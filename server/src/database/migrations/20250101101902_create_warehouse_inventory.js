@@ -10,6 +10,7 @@ exports.up = async function (knex) {
     
     table.integer('total_quantity').notNullable().checkPositive();
     table.integer('reserved_quantity').notNullable().defaultTo(0);
+    table.integer('available_quantity').notNullable().defaultTo(0);
     table.decimal('warehouse_fee', 10, 2).notNullable().defaultTo(0);
     
     table.timestamp('last_update', { useTz: true }).defaultTo(knex.fn.now());
@@ -30,6 +31,12 @@ exports.up = async function (knex) {
     ALTER TABLE warehouse_inventory
     ADD CONSTRAINT warehouse_inventory_reserved_check
     CHECK (reserved_quantity >= 0 AND reserved_quantity <= total_quantity);
+  `);
+  
+  await knex.raw(`
+    ALTER TABLE warehouse_inventory
+    ADD CONSTRAINT warehouse_inventory_available_check
+    CHECK (available_quantity >= 0 AND available_quantity + reserved_quantity <= total_quantity);
   `);
   
   // Indexes for performance

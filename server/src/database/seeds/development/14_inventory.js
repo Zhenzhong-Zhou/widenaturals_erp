@@ -8,7 +8,7 @@ exports.seed = async function (knex) {
   console.log('Seeding inventory data...');
   
   // Fetch required values dynamically
-  const activeStatusId = await fetchDynamicValue(knex, 'status', 'name', 'active', 'id');
+  const inStockStatusId = await fetchDynamicValue(knex, 'warehouse_lot_status', 'name', 'in_stock', 'id');
   const adminUserId = await fetchDynamicValue(knex, 'users', 'email', 'admin@example.com', 'id');
   
   // Fetch existing product, location, warehouse, and SKU IDs
@@ -34,7 +34,7 @@ exports.seed = async function (knex) {
     inbound_date: knex.fn.now(),
     outbound_date: Math.random() > 0.5 ? knex.fn.now() : null,
     last_update: knex.fn.now(),
-    status_id: activeStatusId,
+    status_id: inStockStatusId,
     status_date: knex.fn.now(),
     created_at: knex.fn.now(),
     updated_at: knex.fn.now(),

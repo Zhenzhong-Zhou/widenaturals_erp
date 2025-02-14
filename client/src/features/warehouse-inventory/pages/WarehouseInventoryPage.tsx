@@ -12,7 +12,7 @@ const WarehouseInventoryPage = () => {
   const { inventories, pagination, loading, error, refresh } = useWarehouseInventories(page, limit);
   
   const { inventoriesSummary, summaryPagination, summaryPage, setSummaryPage, refreshSummary } = useWarehouseInventoriesSummary(1, 3, '');
-  console.log(inventoriesSummary);
+  
   if (loading) return <Loading message={`Loading Warehouse Inventory...`} />;
   if (error) return <ErrorDisplay><ErrorMessage message={error} /></ErrorDisplay>;
   if (!inventories) return <Typography variant={'h4'}>No warehouse inventory found.</Typography>;

@@ -18,7 +18,7 @@ exports.up = function (knex) {
     table.integer('previous_quantity').notNullable();
     table.integer('quantity_change').notNullable();
     table.integer('new_quantity').notNullable();
-    table.uuid('status_id').notNullable().references('id').inTable('status');
+    table.uuid('status_id').notNullable().references('id').inTable('warehouse_lot_status');
     table.timestamp('status_date', { useTz: true }).defaultTo(knex.fn.now()); // Auto-set on creation in UTC
     table.timestamp('timestamp', { useTz: true }).defaultTo(knex.fn.now());
     table

@@ -8,6 +8,7 @@ export interface WarehouseInventory {
   productName: string;
   itemType: string;
   identifier: string;
+  availableQuantity: number;
   reservedQuantity: number;
   totalQuantity: number;
   warehouseFee: string;
@@ -64,6 +65,7 @@ export interface WarehouseProductSummary {
   totalLots: number;
   totalReservedStock: number;
   totalAvailableStock: number;
+  totalQtyStock: number;
   totalZeroStockLots: number;
   earliestExpiry: string | null; // Can be null if no expiry date is set
   latestExpiry: string | null;
@@ -92,6 +94,8 @@ export interface WarehouseInventoryDetail {
   lotNumber: string;
   lotQuantity: number;
   reservedStock: number;
+  availableStock: number;
+  totalStock: number;
   warehouseFees: string;
   lotStatus: string;
   manufactureDate: string;

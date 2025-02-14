@@ -13,6 +13,7 @@ exports.up = function (knex) {
     table.integer('quantity_change').notNullable();
     table.integer('previous_quantity').notNullable();
     table.integer('new_quantity').notNullable();
+    table.uuid('status_id').notNullable().references('id').inTable('warehouse_lot_status');
     
     table.uuid('adjustment_type_id').nullable().references('id').inTable('lot_adjustment_types');
     table.uuid('order_id').references('id').inTable('orders').nullable();

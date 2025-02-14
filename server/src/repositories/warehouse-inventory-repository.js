@@ -46,6 +46,7 @@ const getWarehouseInventories = async ({ page, limit, sortBy, sortOrder = 'ASC' 
       i.identifier,
       wi.total_quantity,
       wi.reserved_quantity,
+      wi.available_quantity,
       wi.warehouse_fee,
       wi.last_update,
       wi.status_id,
@@ -82,7 +83,6 @@ const getWarehouseInventories = async ({ page, limit, sortBy, sortOrder = 'ASC' 
 const getWarehouseProductSummary = async ({ warehouse_id, page = 1, limit = 10 }) => {
   const tableName = 'warehouse_inventory wi';
   
-  // Updated joins to use `inventory_id` instead of `product_id`
   const joins = [
     'INNER JOIN warehouse_inventory_lots wil ON wi.warehouse_id = wil.warehouse_id AND wi.inventory_id = wil.inventory_id',
     'JOIN inventory i ON wi.inventory_id = i.id', // Fetch from inventory
@@ -100,7 +100,8 @@ const getWarehouseProductSummary = async ({ warehouse_id, page = 1, limit = 10 }
         p.product_name,
         COUNT(DISTINCT wil.lot_number) AS total_lots,
         SUM(wi.reserved_quantity) AS total_reserved_stock,
-        COALESCE(SUM(CASE WHEN wil.quantity > 0 THEN wil.quantity ELSE 0 END), 0) AS total_available_stock,
+        SUM(wi.available_quantity) AS total_available_stock,
+        SUM(wi.total_quantity) AS total_quantity_stock,
         COUNT(DISTINCT CASE WHEN wil.quantity = 0 THEN wil.lot_number END) AS total_zero_stock_lots,
         MIN(CASE WHEN wil.quantity > 0 THEN wil.expiry_date ELSE NULL END) AS earliest_expiry,
         MAX(CASE WHEN wil.quantity > 0 THEN wil.expiry_date ELSE NULL END) AS latest_expiry
@@ -161,6 +162,8 @@ const getWarehouseInventoryDetailsByWarehouseId = async ({ warehouse_id, page, l
         wil.lot_number,
         COALESCE(wil.quantity, 0) AS lot_quantity,
         COALESCE(wi.reserved_quantity, 0) AS reserved_stock,
+        COALESCE(wi.available_quantity, 0) AS available_stock,
+        COALESCE(wi.total_quantity, 0) AS total_quantity,
         COALESCE(wi.warehouse_fee, 0) AS warehouse_fees,
         COALESCE(ws.name, 'Unknown') AS lot_status,
         wil.manufacture_date,
