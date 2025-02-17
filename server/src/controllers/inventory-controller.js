@@ -1,5 +1,7 @@
-const { fetchAllInventories } = require('../services/inventory-service');
+const { fetchAllInventories, createInventoryRecords } = require('../services/inventory-service');
 const wrapAsync = require('../utils/wrap-async');
+const { logError } = require('../utils/logger-helper');
+const { getUser } = require('../repositories/user-repository');
 
 const getAllInventoriesController = wrapAsync(async (req, res, next) => {
   try {
@@ -23,4 +25,31 @@ const getAllInventoriesController = wrapAsync(async (req, res, next) => {
   }
 });
 
-module.exports = { getAllInventoriesController };
+/**
+ * Express route handler to reposition inventory (handles both single and bulk insert).
+ */
+const createInventoryRecordsController = wrapAsync(async (req, res, next) => {
+  try {
+    const { inventoryData } = req.body;
+    console.log(inventoryData);
+    // const userId = req.user.id; // Extract from auth middleware
+    const result = await getUser(null, 'email', 'root@widenaturals.com');
+    const userId= result.id;
+    console.log(userId)
+    const response = await createInventoryRecords(inventoryData, userId);
+    
+    if (!response.success) {
+      return res.status(400).json({ success: false, error: response.error });
+    }
+    
+    return res.status(201).json({ success: true, message: response.message, data: response.data });
+  } catch (error) {
+    logError('Controller error:', error.message);
+    next(error);
+  }
+});
+
+module.exports = {
+  getAllInventoriesController,
+  createInventoryRecordsController,
+};
