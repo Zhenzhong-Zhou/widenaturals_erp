@@ -437,16 +437,49 @@ const lockRow = async (client, table, id, lockMode = 'FOR UPDATE') => {
 };
 
 /**
- * Inserts multiple rows into a table in bulk.
+ * Inserts multiple rows into a specified database table in bulk.
+ *
+ * This function dynamically generates an `INSERT` SQL statement for bulk insertion,
+ * with support for conflict handling (`ON CONFLICT`) to either **do nothing** or **update specific columns**.
  *
  * @param {string} tableName - The name of the target table.
- * @param {string[]} columns - An array of column names to insert values into.
- * @param {Array<Array<any>>} rows - An array of row values to insert.
- * @param {object} clientOrPool - The database client or pool to execute the query.
- * @returns {Promise<number>} - The number of rows successfully inserted.
- * @throws {AppError} - Throws an error if the query fails.
+ * @param {string[]} columns - An array of column names for inserting values.
+ * @param {Array<Array<any>>} rows - A 2D array where each inner array represents a row of values to insert.
+ * @param {string[]} [conflictColumns=[]] - An array of column names that define a unique conflict condition.
+ * @param {string[]} [updateColumns=[]] - An array of column names to update in case of conflict (if empty, `DO NOTHING` is applied).
+ * @param {object} clientOrPool - The database client or pool instance to execute the query.
+ * @returns {Promise<Array<Object>>} - A promise resolving to an array of inserted/updated rows.
+ * @throws {AppError} - Throws an error if the query execution fails.
+ *
+ * @example
+ * // Bulk insert without conflict handling
+ * await bulkInsert('inventory', ['product_id', 'location_id', 'quantity'], [
+ *   ['123', 'loc-1', 50],
+ *   ['124', 'loc-2', 30]
+ * ], [], [], pool);
+ *
+ * @example
+ * // Bulk insert with conflict handling (DO NOTHING)
+ * await bulkInsert('inventory', ['product_id', 'location_id', 'quantity'], [
+ *   ['123', 'loc-1', 50],
+ *   ['124', 'loc-2', 30]
+ * ], ['product_id', 'location_id'], [], pool);
+ *
+ * @example
+ * // Bulk insert with conflict handling (UPDATE quantity)
+ * await bulkInsert('inventory', ['product_id', 'location_id', 'quantity'], [
+ *   ['123', 'loc-1', 50],
+ *   ['124', 'loc-2', 30]
+ * ], ['product_id', 'location_id'], ['quantity'], pool);
  */
-const bulkInsert = async (tableName, columns, rows, clientOrPool = pool) => {
+const bulkInsert = async (
+  tableName,
+  columns,
+  rows,
+  conflictColumns = [],
+  updateColumns = [],  // Specify columns to update or leave empty for DO NOTHING
+  clientOrPool = pool
+) => {
   if (!rows.length) return 0;
 
   // Validate that rows are properly structured
@@ -454,11 +487,12 @@ const bulkInsert = async (tableName, columns, rows, clientOrPool = pool) => {
     !Array.isArray(rows) ||
     !rows.every((row) => Array.isArray(row) && row.length === columns.length)
   ) {
-    throw new Error(
+    throw new AppError.validationError(
       `Invalid data format: Expected an array of arrays, each with ${columns.length} values`
     );
   }
-
+  
+  // Generate column names and placeholders
   const columnNames = columns.join(', ');
   const valuePlaceholders = rows
     .map(
@@ -466,18 +500,33 @@ const bulkInsert = async (tableName, columns, rows, clientOrPool = pool) => {
         `(${columns.map((_, colIndex) => `$${rowIndex * columns.length + colIndex + 1}`).join(', ')})`
     )
     .join(', ');
-
+  
+  // Handle conflict dynamically: Either `DO NOTHING` or `DO UPDATE`
+  let conflictClause = '';
+  if (conflictColumns.length > 0) {
+    if (updateColumns.length > 0) {
+      // Construct dynamic UPDATE SET clause
+      const updateSet = updateColumns.map(col => `${col} = EXCLUDED.${col}`).join(', ');
+      conflictClause = `ON CONFLICT (${conflictColumns.join(', ')}) DO UPDATE SET ${updateSet}`;
+    } else {
+      conflictClause = `ON CONFLICT (${conflictColumns.join(', ')}) DO NOTHING`;
+    }
+  }
+  
+  // Construct SQL query
   const sql = `
     INSERT INTO ${tableName} (${columnNames})
     VALUES ${valuePlaceholders}
-    RETURNING *;
+    ${conflictClause}
+    RETURNING id;
   `;
-
+  
+  // Flatten values for bulk insert
   const flattenedValues = rows.flat();
 
   try {
-    const { rows } = await clientOrPool.query(sql, flattenedValues);
-    return rows[0];
+    const { rows: insertedRows } = await clientOrPool.query(sql, flattenedValues);
+    return insertedRows;
   } catch (error) {
     logError('SQL Execution Error:', error);
     throw AppError.databaseError('Bulk insert failed', {
