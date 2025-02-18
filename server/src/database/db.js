@@ -597,6 +597,74 @@ const bulkInsert = async (
   }
 };
 
+/**
+ * Generates a bulk update SQL query for updating multiple rows in a given table.
+ *
+ * @param {string} table - The name of the table to update.
+ * @param {Array<string>} columns - The columns to be updated.
+ * @param {Array<string>} whereColumns - The columns used for matching records (e.g., primary keys).
+ * @param {Object} data - An object mapping identifiers (UUIDs or composite keys) to new values.
+ *   - Example (Single Key): `{ "168bdc32-18a3-40f9-87c5-1ad77ad2258a": 6 }`
+ *   - Example (Composite Key): `{ "814cfc1d-e245-41be-b3f6-bcac548e1927-168bdc32-18a3-40f9-87c5-1ad77ad2258a": 6 }`
+ * @param {string} userId - The UUID of the user performing the update (stored in `updated_by`).
+ * @returns {Object|null} - An object containing:
+ *   - `baseQuery` (string): The generated SQL query.
+ *   - `params` (Array): The list of query parameters.
+ *   Returns `null` if no data is provided.
+ *
+ * @throws {Error} - Throws an error if query generation fails.
+ *
+ * @example
+ * const { baseQuery, params } = formatBulkUpdateQuery(
+ *   "inventory",
+ *   ["quantity"],
+ *   ["id"],
+ *   { "168bdc32-18a3-40f9-87c5-1ad77ad2258a": 6, "a430cacf-d7b5-4915-a01a-aa1715476300": 40 },
+ *   "e9a62a2a-0350-4e36-95cc-86237a394fe0"
+ * );
+ * console.log(baseQuery); // Generated SQL Query
+ * console.log(params); // Corresponding parameters
+ */
+const formatBulkUpdateQuery = (table, columns, whereColumns, data, userId) => {
+  if (!Object.keys(data).length) return null;
+  
+  let indexCounter = 2; // Start from 2 since $1 is for userId
+  
+  const values = Object.entries(data)
+    .map(([key, value]) => {
+      const keyArray = key.match(/([a-f0-9-]{36})-([a-f0-9-]{36})/)
+        ? key.split(/-(?=[a-f0-9-]{36}$)/)  // Splits only at the last occurrence for correct parsing
+        : [key];
+      
+      const placeholders = keyArray.map(() => `$${indexCounter++}::uuid`);
+      placeholders.push(`$${indexCounter++}::integer`); // For quantity
+      
+      return `(${placeholders.join(", ")})`;
+    })
+    .join(", ");
+  
+  const baseQuery = `
+      UPDATE ${table}
+      SET ${columns.map((col) => `${col} = data.${col}`).join(", ")},
+          updated_at = NOW(),
+          updated_by = $1
+      FROM (VALUES ${values})
+        AS data(${[...whereColumns, ...columns].join(", ")})
+      WHERE ${whereColumns.map((col) => `${table}.${col} = data.${col}`).join(" AND ")}
+      RETURNING ${whereColumns.map(col => `${table}.${col}`).join(", ")};
+  `;
+  
+  const params = [userId, ...Object.entries(data).flatMap(([key, value]) => {
+    const keyArray = key.match(/([a-f0-9-]{36})-([a-f0-9-]{36})/)
+      ? key.split(/-(?=[a-f0-9-]{36}$)/)
+      : [key];
+    
+    return [...keyArray, Number(value)];
+  })];
+  
+  return { baseQuery, params };
+};
+
 // Export the utilities
 module.exports = {
   pool,
@@ -612,4 +680,5 @@ module.exports = {
   lockRow,
   lockRows,
   bulkInsert,
+  formatBulkUpdateQuery,
 };

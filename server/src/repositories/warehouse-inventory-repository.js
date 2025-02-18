@@ -1,4 +1,4 @@
-const { query, paginateQuery, retry, withTransaction, bulkInsert, lockRow, lockRows } = require('../database/db');
+const { query, paginateQuery, retry, withTransaction, bulkInsert, lockRow, lockRows, formatBulkUpdateQuery } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logInfo, logError } = require('../utils/logger-helper');
 
@@ -236,10 +236,10 @@ const getWarehouseInventoryDetailsByWarehouseId = async ({
  */
 const insertWarehouseInventoryRecords = async (trx, inventoryData) => {
   if (!Array.isArray(inventoryData) || inventoryData.length === 0) {
-    throw new AppError("❌ Invalid inventory data. Expected a non-empty array.");
+    throw new AppError("Invalid inventory data. Expected a non-empty array.");
   }
   
-  // ✅ Step 1: Lock Existing Rows Before Insert/Update
+  // Step 1: Lock Existing Rows Before Insert/Update
   await retry(() =>
       lockRows(
         trx,
@@ -250,7 +250,7 @@ const insertWarehouseInventoryRecords = async (trx, inventoryData) => {
     3, 1000
   );
   
-  // ✅ Step 2: Prepare Data for Bulk Insert
+  // Step 2: Prepare Data for Bulk Insert
   const columns = [
     "warehouse_id", "inventory_id", "reserved_quantity", "available_quantity",
     "warehouse_fee", "status_id", "status_date", "created_at", "created_by", "updated_at", "updated_by", "last_update"
@@ -261,7 +261,7 @@ const insertWarehouseInventoryRecords = async (trx, inventoryData) => {
     status_id, new Date(), new Date(), userId, null, null, null
   ]);
   
-  // ✅ Step 3: Bulk Insert with Conflict Handling
+  // Step 3: Bulk Insert with Conflict Handling
   return await bulkInsert(
     "warehouse_inventory",
     columns,
@@ -271,9 +271,49 @@ const insertWarehouseInventoryRecords = async (trx, inventoryData) => {
   ) || [];
 };
 
+/**
+ * Updates the available quantity of multiple inventory items across different warehouses in bulk using transactions.
+ *
+ * @param {Object} trx - Database transaction object used to execute queries.
+ * @param {Object} warehouseUpdates - An object mapping composite keys (`warehouse_id-inventory_id`) to the new quantity.
+ *   - Example:
+ *     ```js
+ *     {
+ *       "814cfc1d-e245-41be-b3f6-bcac548e1927-168bdc32-18a3-40f9-87c5-1ad77ad2258a": 6,
+ *       "814cfc1d-e245-41be-b3f6-bcac548e1927-a430cacf-d7b5-4915-a01a-aa1715476300": 40
+ *     }
+ *     ```
+ * @param {string} userId - The UUID of the user performing the update (stored in `updated_by`).
+ * @returns {Promise<void>} - Resolves when the update operation completes successfully.
+ *
+ * @throws {Error} - Throws an error if the update query fails.
+ *
+ * @example
+ * await updateWarehouseInventoryQuantity(trx, {
+ *   "814cfc1d-e245-41be-b3f6-bcac548e1927-168bdc32-18a3-40f9-87c5-1ad77ad2258a": 6,
+ *   "814cfc1d-e245-41be-b3f6-bcac548e1927-a430cacf-d7b5-4915-a01a-aa1715476300": 40
+ * }, "e9a62a2a-0350-4e36-95cc-86237a394fe0");
+ */
+const updateWarehouseInventoryQuantity = async (trx, warehouseUpdates, userId) => {
+  const { baseQuery, params } = formatBulkUpdateQuery(
+    "warehouse_inventory",
+    ["available_quantity"],
+    ["warehouse_id", "inventory_id"],
+    warehouseUpdates,
+    userId
+  );
+  if (baseQuery) {
+    const { rows } = await trx.query(baseQuery, params);
+    return rows; // Return the updated inventory IDs
+  }
+  
+  return []; // Return empty array if no updates were made
+};
+
 module.exports = {
   getWarehouseInventories,
   getWarehouseProductSummary,
   getWarehouseInventoryDetailsByWarehouseId,
   insertWarehouseInventoryRecords,
+  updateWarehouseInventoryQuantity,
 };

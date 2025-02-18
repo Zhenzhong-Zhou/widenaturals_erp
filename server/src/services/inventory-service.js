@@ -1,9 +1,9 @@
-const { getInventories, insertInventoryRecords } = require('../repositories/inventory-repository');
+const { getInventories, insertInventoryRecords, updateInventoryQuantity } = require('../repositories/inventory-repository');
 const AppError = require('../utils/AppError');
 const { logError, logInfo } = require('../utils/logger-helper');
 const { getWarehouseLotStatus } = require('../repositories/warehouse-lot-status-repository');
 const { withTransaction } = require('../database/db');
-const { insertWarehouseInventoryRecords } = require('../repositories/warehouse-inventory-repository');
+const { insertWarehouseInventoryRecords, updateWarehouseInventoryQuantity } = require('../repositories/warehouse-inventory-repository');
 const { geLocationIdByWarehouseId } = require('../repositories/warehouse-repository');
 const { insertWarehouseInventoryLots } = require('../repositories/warehouse-inventory-lot-repository');
 
@@ -45,10 +45,15 @@ const fetchAllInventories = async ({ page, limit, sortBy, sortOrder }) => {
 };
 
 /**
- * Service to create multiple inventory records and add warehouse tracking.
- * @param {Array<Object>} inventoryData - Array of inventory objects.
- * @param {string} userId - The user performing the action.
- * @returns {Promise<Object>} - Result of the operation.
+ * Creates multiple inventory records and adds warehouse tracking.
+ *
+ * @param {Array<Object>} inventoryData - List of inventory objects to be created.
+ * @param {string} inventoryData[].location_id - The ID of the inventory location.
+ * @param {string|null} [inventoryData[].product_id] - The optional product ID (UUID).
+ * @param {string|null} [inventoryData[].identifier] - The optional inventory identifier.
+ * @param {number} inventoryData[].quantity - The quantity of the inventory item.
+ * @param {string} userId - The ID of the user performing the action.
+ * @returns {Promise<Object>} - A promise resolving to the result of the operation.
  */
 const createInventoryRecords = async (inventoryData, userId) => {
   try {
@@ -93,27 +98,18 @@ const createInventoryRecords = async (inventoryData, userId) => {
       
       const { success, inventoryRecords } = await insertInventoryRecords(trx, formattedInventoryData);
       
-      console.log("🔄 Inventory records inserted:", JSON.stringify(inventoryRecords, null, 2));
-      
-      // ✅ Step 2: Map `inventory_id` for Warehouse Inventory Lots
+      // Step 2: Map `inventory_id` for Warehouse Inventory Lots
       const warehouseLots = [...products, ...otherTypes].map((item, index) => {
         const matchingInventory = inventoryRecords[index]; // Match by index instead of find()
-        console.log("✅ Matching inventory found:", matchingInventory);
         
         if (!matchingInventory || !matchingInventory.id) {
-          logError(`❌ Missing inventory_id for item:`, item);
-          throw new AppError(`❌ Missing inventory_id for item: ${JSON.stringify(item)}`);
+          logError(`Missing inventory_id for item:`, item);
+          throw new AppError(`Missing inventory_id for item: ${JSON.stringify(item)}`);
         }
         
-        console.log("🔍 Checking inventory match:", {
-          item,
-          matchingInventory,
-          inventoryRecords: JSON.stringify(inventoryRecords, null, 2),
-        });
-        
         if (!matchingInventory || !matchingInventory.id) {
-          logError(`❌ Missing inventory_id for item:`, item);
-          throw new AppError(`❌ Missing inventory_id for item: ${JSON.stringify(item)}`);
+          logError(`Missing inventory_id for item:`, item);
+          throw new AppError(`Missing inventory_id for item: ${JSON.stringify(item)}`);
         }
         
         return {
@@ -128,15 +124,29 @@ const createInventoryRecords = async (inventoryData, userId) => {
         };
       });
       
-      console.log("✅ Warehouse Lots to Insert:", JSON.stringify(warehouseLots, null, 2));
-      console.log("✅ products:", products);
-      console.log("✅ otherTypes:", otherTypes);
-      
       const warehouseInventoryRecords = await insertWarehouseInventoryRecords(trx, warehouseLots);
       
       const warehouseLotsInventoryRecords = await insertWarehouseInventoryLots(trx, warehouseLots);
       
-      console.log(warehouseLotsInventoryRecords)
+      // Aggregate total quantity per inventory_id
+      const inventoryUpdates = warehouseLots.reduce((acc, { inventory_id, quantity }) => {
+        acc[inventory_id] = (acc[inventory_id] || 0) + quantity;
+        return acc;
+      }, {});
+      
+      // Aggregate available quantity per warehouse_id & inventory_id
+      const warehouseUpdates = warehouseLots.reduce((acc, { warehouse_id, inventory_id, quantity }) => {
+        const key = `${warehouse_id}-${inventory_id}`;
+        acc[key] = (acc[key] || 0) + quantity;
+        return acc;
+      }, {});
+      
+      // Update inventory first
+      const inventoryIds= await updateInventoryQuantity(trx, inventoryUpdates, userId);
+      console.log("inventoryIds: ",inventoryIds);
+      // Update warehouse inventory next
+      const warehouseInventoryIds = await updateWarehouseInventoryQuantity(trx, warehouseUpdates, userId);
+      console.log("warehouseInventoryIds: ",warehouseInventoryIds);
       
       return {
         success,
@@ -145,7 +155,6 @@ const createInventoryRecords = async (inventoryData, userId) => {
       };
     });
   } catch (error) {
-    console.log(error);
     logError("Error in inventory service:", error.message);
     return { success: false, error: error.message };
   }

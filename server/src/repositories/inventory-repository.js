@@ -1,4 +1,4 @@
-const { query, paginateQuery, retry, bulkInsert, lockRow, withTransaction } = require('../database/db');
+const { query, paginateQuery, retry, bulkInsert, lockRow, withTransaction, formatBulkUpdateQuery } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logInfo, logError, logWarn } = require('../utils/logger-helper');
 const { insertWarehouseInventoryLots } = require('./warehouse-inventory-lot-repository');
@@ -135,39 +135,47 @@ const getInventoryIdByProductId = async (productId) => {
 };
 
 /**
- * Checks if any product_id or identifier exists for the given location_id.
- * @param {Array} inventoryItems - List of inventory objects [{ location_id, product_id, identifier }]
- * @returns {Promise<Array>} - List of existing items [{ location_id, product_id, identifier }]
+ * Checks if any inventory items exist for the given location(s), based on product_id or identifier.
+ *
+ * @param {Array<Object>} inventoryItems - List of inventory objects containing location_id, product_id, and/or identifier.
+ * @param {string} inventoryItems[].location_id - The ID of the inventory location.
+ * @param {string|null} [inventoryItems[].product_id] - The optional product ID (UUID).
+ * @param {string|null} [inventoryItems[].identifier] - The optional inventory identifier.
+ * @returns {Promise<Array<Object>>} - List of existing inventory records with location_id, product_id, and identifier.
  */
 const checkInventoryExists = async (inventoryItems) => {
-  if (!inventoryItems || typeof inventoryItems !== "object") return [];
+  if (!Array.isArray(inventoryItems) || inventoryItems.length === 0) return [];
   
-  // Flatten `products` and `otherTypes` into a single array
-  const flatInventory = [...(inventoryItems.products || []), ...(inventoryItems.otherTypes || [])];
+  let locationIds = new Set();
+  let productIds = new Set();
+  let identifiers = new Set();
   
-  if (flatInventory.length === 0) return [];
-  
-  // Extract unique location_id + product_id / identifier combinations
-  const values = [];
-  const conditions = flatInventory.map(({ location_id, product_id, identifier }) => {
-    values.push(location_id);
-    if (product_id) {
-      values.push(product_id);
-      return `(location_id = $${values.length - 1} AND product_id = $${values.length})`;
-    } else {
-      values.push(identifier);
-      return `(location_id = $${values.length - 1} AND identifier = $${values.length})`;
-    }
+  inventoryItems.forEach(({ location_id, product_id, identifier }) => {
+    if (location_id) locationIds.add(location_id);
+    if (product_id) productIds.add(product_id);
+    if (identifier) identifiers.add(identifier);
   });
   
-  const queryText = `
+  if (locationIds.size === 0) return []; // Ensure at least one location_id exists
+  
+  let queryText = `
     SELECT location_id, product_id, identifier
     FROM inventory
-    WHERE ${conditions.join(" OR ")}
+    WHERE location_id = ANY($1::uuid[])
+    AND (
+      (CARDINALITY($2::text[]) > 0 AND identifier = ANY($2::text[]))
+      OR ($3::uuid[] IS NOT NULL AND CARDINALITY($3::uuid[]) > 0 AND product_id = ANY($3::uuid[]))
+    )
   `;
   
+  let params = [
+    Array.from(locationIds),
+    identifiers.size > 0 ? Array.from(identifiers) : [],
+    productIds.size > 0 ? Array.from(productIds) : null // Ensure it does not pass an empty array
+  ];
+  
   try {
-    const { rows } = await query(queryText, values);
+    const { rows } = await query(queryText, params);
     return rows;
   } catch (error) {
     logError("Error checking inventory existence:", error);
@@ -198,11 +206,31 @@ const checkAndLockInventory = async (client, inventoryItems, lockMode = 'FOR UPD
   // Step 2: Lock existing rows
   const lockedRecords = [];
   for (const item of existingInventory) {
-    const rowId = item.product_id || item.identifier; // Use `product_id` if available, otherwise `identifier`
     const table = "inventory"; // Inventory table
+    let inventoryId;
     
+    // Fetch `inventory_id` if only `identifier` is available
+    if (!item.product_id) {
+      try {
+        const queryText = `SELECT id FROM inventory WHERE identifier = $1 LIMIT 1 FOR UPDATE SKIP LOCKED;`;
+        const { rows } = await client.query(queryText, [item.identifier]);
+        if (rows.length > 0) {
+          inventoryId = rows[0].id;
+        } else {
+          logError(`No inventory record found for identifier: ${item.identifier}`);
+          continue; // Skip this record if no matching inventory_id is found
+        }
+      } catch (error) {
+        logError(`Error fetching inventory ID:`, error);
+        throw error;
+      }
+    } else {
+      inventoryId = item.product_id; // Assume product_id is the inventory_id
+    }
+    
+    // Now lock the row using inventoryId
     try {
-      const lockedRow = await lockRow(client, table, rowId, lockMode);
+      const lockedRow = await lockRow(client, table, inventoryId, lockMode);
       lockedRecords.push(lockedRow);
     } catch (error) {
       logError(`Failed to lock row in inventory:`, error);
@@ -214,9 +242,11 @@ const checkAndLockInventory = async (client, inventoryItems, lockMode = 'FOR UPD
 };
 
 /**
- * Inserts inventory records with `product_id` (Products).
- * @param {Array} productEntries - List of inventory objects with `product_id`
- * @returns {Promise<Array>} - List of inserted product records
+ * Inserts inventory records associated with a `product_id` from the `Products` table.
+ *
+ * @param {Object} trx - Database transaction object.
+ * @param {Array<Object>} productEntries - Array of inventory objects containing `product_id` and other relevant fields.
+ * @returns {Promise<Array<Object>>} - A promise that resolves to an array of inserted inventory records.
  */
 const insertProducts = async (trx, productEntries) => {
   if (!productEntries.length) return [];
@@ -226,23 +256,21 @@ const insertProducts = async (trx, productEntries) => {
     "status_id", "status_date", "created_at", "created_by", "updated_at", "updated_by", "last_update"
   ];
   
-  // ✅ Set `quantity = 0`, since actual quantity comes from `warehouse_inventory_lots`
-  const rows = productEntries.map(({ product_id, location_id, item_type, status_id, created_by }) => [
+  // Set `quantity = 0`, since actual quantity comes from `warehouse_inventory_lots`
+  const rows = productEntries.map(({ product_id, location_id, item_type, status_id, userId }) => [
     product_id, location_id, item_type, null, 0, new Date(),
-    status_id, new Date(), new Date(), created_by, null, null, null
+    status_id, new Date(), new Date(), userId, null, null, null
   ]);
   
   try {
     // Insert into inventory
-    const result =  await bulkInsert(
+    return await bulkInsert(
       "inventory",
       columns,
       rows,
       ["location_id", "product_id"], // Conflict columns
       [] // DO NOTHING on conflict
     ) || [];
-    console.log(result);
-    return result;
   } catch (error) {
     logError("Error inserting product inventory records:", error);
     throw error;
@@ -250,9 +278,11 @@ const insertProducts = async (trx, productEntries) => {
 };
 
 /**
- * Inserts inventory records without `product_id` (Non-Products: raw materials, packaging, samples, etc.).
- * @param {Array} otherEntries - List of inventory objects without `product_id`
- * @returns {Promise<Array>} - List of inserted non-product records
+ * Inserts inventory records that do not have a `product_id`, such as raw materials, packaging, samples, and other non-product items.
+ *
+ * @param {Object} trx - Database transaction object.
+ * @param {Array<Object>} otherEntries - Array of inventory objects that do not include a `product_id`.
+ * @returns {Promise<Array<Object>>} - A promise that resolves to an array of inserted non-product inventory records.
  */
 const insertNonProducts = async (trx, otherEntries) => {
   if (!otherEntries.length) return [];
@@ -262,9 +292,9 @@ const insertNonProducts = async (trx, otherEntries) => {
     "status_id", "status_date", "created_at", "created_by", "updated_at", "updated_by", "last_update"
   ];
   
-  const rows = otherEntries.map(({ location_id, type, identifier, status_id, created_by }) => [
+  const rows = otherEntries.map(({ location_id, type, identifier, status_id, userId }) => [
     null, location_id, type, identifier, 0, new Date(),
-    status_id, new Date(), new Date(), created_by, null, null, null
+    status_id, new Date(), new Date(), userId, null, null, null
   ]);
   
   try {
@@ -282,14 +312,19 @@ const insertNonProducts = async (trx, otherEntries) => {
 };
 
 /**
- * Inserts inventory records with locking & transactions.
- * @param client
- * @param {Array} inventoryData - List of inventory objects [{ location_id, product_id, identifier, quantity }]
- * @returns {Promise<Object>} - Response with inserted records
+ * Inserts inventory records with row-level locking and database transactions to ensure data consistency.
+ *
+ * @param {Object} client - Database client or transaction object for executing queries.
+ * @param {Array<Object>} inventoryData - Array of inventory objects containing:
+ *   - `location_id` (UUID): The location where the inventory is stored.
+ *   - `product_id` (UUID | null): The associated product ID, or null for non-product inventory.
+ *   - `identifier` (String): Unique identifier for the inventory item.
+ *   - `quantity` (Integer): The number of units available.
+ * @returns {Promise<Object>} - A promise resolving to an object containing the inserted inventory records.
  */
 const insertInventoryRecords = async (client, inventoryData) => {
   if (!inventoryData || typeof inventoryData !== "object") {
-    logError("❌ No inventory data to insert.");
+    logError("No inventory data to insert.");
     return { success: false, message: "No inventory data provided." };
   }
   
@@ -297,7 +332,7 @@ const insertInventoryRecords = async (client, inventoryData) => {
   const flatInventory = [...(inventoryData.products || []), ...(inventoryData.otherTypes || [])];
   
   if (!Array.isArray(flatInventory) || flatInventory.length === 0) {
-    logWarn("⚠️ No valid inventory data to insert.");
+    logWarn("No valid inventory data to insert.");
     return { success: false, message: "No valid inventory records provided." };
   }
   
@@ -318,11 +353,11 @@ const insertInventoryRecords = async (client, inventoryData) => {
     : [];
   
   if (newItems.length === 0) {
-    logWarn("⚠️ No new inventory to insert, all items already exist.");
+    logWarn("No new inventory to insert, all items already exist.");
     return { success: false, message: "No new records to insert." };
   }
   
-  // ✅ Step 3: Separate Products & Other Types
+  // Step 3: Separate Products & Other Types
   const productEntries = newItems
     .filter(e => e.product_id)
     .map(e => ({ ...e, item_type: "product" })) || [];
@@ -331,17 +366,46 @@ const insertInventoryRecords = async (client, inventoryData) => {
     .filter(e => !e.product_id && e.identifier)
     .map(e => ({ ...e, item_type: e.type })) || [];
   
-  // ✅ Step 4: Insert Products & Other Types with Transaction
+  // Step 4: Insert Products & Other Types with Transaction
   const productResults = productEntries.length > 0 ? await insertProducts(client, productEntries) : [];
   const otherTypeResults = otherEntries.length > 0 ? await insertNonProducts(client, otherEntries) : [];
+  
   return {
     success: true,
     inventoryRecords: [...productResults, ...otherTypeResults],
   };
 };
 
+/**
+ * Updates the quantity of multiple inventory records in bulk using transactions.
+ *
+ * @param {Object} trx - Database transaction object used to execute queries.
+ * @param {Object} inventoryUpdates - An object mapping `inventory_id` (UUID) to the new quantity.
+ *   Example: `{ "168bdc32-18a3-40f9-87c5-1ad77ad2258a": 6, "a430cacf-d7b5-4915-a01a-aa1715476300": 40 }`
+ * @param {string} userId - The UUID of the user performing the update (stored in `updated_by`).
+ * @returns {Promise<void>} - Resolves when the update operation completes successfully.
+ *
+ * @throws {Error} - Throws an error if the update query fails.
+ */
+const updateInventoryQuantity = async (trx, inventoryUpdates, userId) => {
+  const { baseQuery, params } = formatBulkUpdateQuery(
+    "inventory",
+    ["quantity"],
+    ["id"],
+    inventoryUpdates,
+    userId
+  );
+  if (baseQuery) {
+    const { rows } = await trx.query(baseQuery, params);
+    return rows; // Return the updated inventory IDs
+  }
+  
+  return []; // Return empty array if no updates were made
+};
+
 module.exports = {
   getInventories,
   getInventoryIdByProductId,
   insertInventoryRecords,
+  updateInventoryQuantity,
 };
