@@ -1,4 +1,4 @@
-const { query, paginateQuery, retry } = require('../database/db');
+const { query, paginateQuery, retry, withTransaction, bulkInsert, lockRow, lockRows } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logInfo, logError } = require('../utils/logger-helper');
 
@@ -226,8 +226,54 @@ const getWarehouseInventoryDetailsByWarehouseId = async ({
   }
 };
 
+/**
+ * Inserts records into the warehouse_inventory table using transactions.
+ * Handles conflicts and ensures existing records are locked before updating.
+ *
+ * @param {Object} trx - Transaction client.
+ * @param {Array} inventoryData - List of inventory records to insert.
+ * @returns {Promise<Array>} - List of inserted or updated warehouse inventory records.
+ */
+const insertWarehouseInventoryRecords = async (trx, inventoryData) => {
+  if (!Array.isArray(inventoryData) || inventoryData.length === 0) {
+    throw new AppError("❌ Invalid inventory data. Expected a non-empty array.");
+  }
+  
+  // ✅ Step 1: Lock Existing Rows Before Insert/Update
+  await retry(() =>
+      lockRows(
+        trx,
+        "warehouse_inventory",
+        inventoryData.map(({ warehouse_id, inventory_id }) => ({ warehouse_id, inventory_id })),
+        "FOR UPDATE"
+      ),
+    3, 1000
+  );
+  
+  // ✅ Step 2: Prepare Data for Bulk Insert
+  const columns = [
+    "warehouse_id", "inventory_id", "reserved_quantity", "available_quantity",
+    "warehouse_fee", "status_id", "status_date", "created_at", "created_by", "updated_at", "updated_by", "last_update"
+  ];
+  
+  const rows = inventoryData.map(({ warehouse_id, inventory_id, available_quantity, warehouse_fee, status_id, userId }) => [
+    warehouse_id, inventory_id, 0, available_quantity || 0, warehouse_fee || 0,
+    status_id, new Date(), new Date(), userId, null, null, null
+  ]);
+  
+  // ✅ Step 3: Bulk Insert with Conflict Handling
+  return await bulkInsert(
+    "warehouse_inventory",
+    columns,
+    rows,
+    ["warehouse_id", "inventory_id"],  // Conflict Columns
+    []  // Fields to do nothing on conflict
+  ) || [];
+};
+
 module.exports = {
   getWarehouseInventories,
   getWarehouseProductSummary,
   getWarehouseInventoryDetailsByWarehouseId,
+  insertWarehouseInventoryRecords,
 };

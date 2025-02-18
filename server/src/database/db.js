@@ -437,6 +437,68 @@ const lockRow = async (client, table, id, lockMode = 'FOR UPDATE') => {
 };
 
 /**
+ * Dynamically verifies if a table exists before locking rows.
+ * Locks rows in a table using a specified lock mode.
+ * Supports single ID, multiple IDs, or composite keys.
+ *
+ * @param {object} client - Database transaction client.
+ * @param {string} table - The name of the table.
+ * @param {Array|object} conditions - Either an array of IDs or an array of key-value conditions.
+ * @param {string} [lockMode='FOR UPDATE'] - The lock mode.
+ * @returns {Promise<object[]>} - The locked rows.
+ * @throws {AppError} - Throws an error if table name or lock mode is invalid.
+ */
+const lockRows = async (client, table, conditions, lockMode = 'FOR UPDATE') => {
+  if (!Array.isArray(conditions) || conditions.length === 0) {
+    throw new AppError.validationError("Invalid conditions for row locking. Expected a non-empty array.");
+  }
+  
+  // 🔹 Validate lock mode
+  const validLockModes = ['FOR UPDATE', 'FOR NO KEY UPDATE', 'FOR SHARE', 'FOR KEY SHARE'];
+  if (!validLockModes.includes(lockMode)) {
+    throw new AppError.validationError(`Invalid lock mode: ${lockMode}. Allowed: ${validLockModes.join(", ")}`);
+  }
+  
+  // 🔹 Dynamically check if the table exists in PostgreSQL
+  const tableExistsQuery = `SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE schemaname = 'public' AND tablename = $1)`;
+  const { rows: tableCheck } = await client.query(tableExistsQuery, [table]);
+  
+  if (!tableCheck[0].exists) {
+    throw new AppError.notFoundError(`Table "${table}" does not exist in the database.`);
+  }
+  
+  let query, values;
+  
+  if (typeof conditions[0] === 'string') {
+    // 🛠 Case 1: Simple ID Locking (e.g., `lockRows(client, 'inventory', [uuid1, uuid2])`)
+    const placeholders = conditions.map((_, i) => `$${i + 1}`).join(", ");
+    query = `SELECT * FROM ${table} WHERE id IN (${placeholders}) ${lockMode}`;
+    values = conditions;
+  } else {
+    // 🛠 Case 2: Composite Key Locking (e.g., `lockRows(client, 'warehouse_inventory', [{ warehouse_id, inventory_id }])`)
+    const whereClauses = conditions.map((cond, i) =>
+      `(${Object.keys(cond).map((key, j) => `${key} = $${i * Object.keys(cond).length + j + 1}`).join(" AND ")})`
+    ).join(" OR ");
+    
+    values = conditions.flatMap(Object.values);
+    query = `SELECT * FROM ${table} WHERE ${whereClauses} ${lockMode}`;
+  }
+  
+  try {
+    const { rows } = await client.query(query, values);
+    // 🔍 Log missing rows
+    if (rows.length !== conditions.length) {
+      logWarn(`Some rows were not found in "${table}". Found: ${rows.length}, Expected: ${conditions.length}`);
+    }
+    
+    return rows;
+  } catch (error) {
+    logError(`Error locking rows in table "${table}":`, error);
+    throw new AppError.databaseError(`Database error while locking rows in "${table}".`);
+  }
+};
+
+/**
  * Inserts multiple rows into a specified database table in bulk.
  *
  * This function dynamically generates an `INSERT` SQL statement for bulk insertion,
@@ -525,8 +587,8 @@ const bulkInsert = async (
   const flattenedValues = rows.flat();
 
   try {
-    const { rows: insertedRows } = await clientOrPool.query(sql, flattenedValues);
-    return insertedRows;
+    const { rows } = await clientOrPool.query(sql, flattenedValues);
+    return rows;
   } catch (error) {
     logError('SQL Execution Error:', error);
     throw AppError.databaseError('Bulk insert failed', {
@@ -548,5 +610,6 @@ module.exports = {
   retryDatabaseConnection,
   paginateQuery,
   lockRow,
+  lockRows,
   bulkInsert,
 };

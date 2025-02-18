@@ -13,7 +13,7 @@ exports.up = async function (knex) {
     table.uuid('location_id').notNullable().references('id').inTable('locations').index();
     table.string('item_type', 50).notNullable();
     table.string('identifier', 100).nullable(); // Made non-unique at table level (handled by index)
-    table.integer('quantity').notNullable().checkPositive();
+    table.integer('quantity').notNullable().defaultTo(0);
     table.timestamp('inbound_date', { useTz: true }).notNullable().index();
     table.timestamp('outbound_date', { useTz: true }).nullable().index();
     table.timestamp('last_update', { useTz: true }).defaultTo(knex.fn.now());
@@ -29,6 +29,11 @@ exports.up = async function (knex) {
     table.unique(['location_id', 'product_id']);
     table.unique(['location_id', 'identifier']);
   });
+  
+  await knex.raw(`
+    ALTER TABLE inventory
+    ADD CONSTRAINT inventory_quantity_check CHECK (quantity >= 0);
+  `);
   
   // Optimized Indexes for Query Performance
   await knex.raw(`

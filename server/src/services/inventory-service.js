@@ -2,6 +2,10 @@ const { getInventories, insertInventoryRecords } = require('../repositories/inve
 const AppError = require('../utils/AppError');
 const { logError, logInfo } = require('../utils/logger-helper');
 const { getWarehouseLotStatus } = require('../repositories/warehouse-lot-status-repository');
+const { withTransaction } = require('../database/db');
+const { insertWarehouseInventoryRecords } = require('../repositories/warehouse-inventory-repository');
+const { geLocationIdByWarehouseId } = require('../repositories/warehouse-repository');
+const { insertWarehouseInventoryLots } = require('../repositories/warehouse-inventory-lot-repository');
 
 /**
  * Fetch all inventory records with pagination, sorting, and business logic.
@@ -41,67 +45,108 @@ const fetchAllInventories = async ({ page, limit, sortBy, sortOrder }) => {
 };
 
 /**
- * Service to create multiple inventory records and reposition them between warehouses if needed.
+ * Service to create multiple inventory records and add warehouse tracking.
  * @param {Array<Object>} inventoryData - Array of inventory objects.
  * @param {string} userId - The user performing the action.
  * @returns {Promise<Object>} - Result of the operation.
  */
 const createInventoryRecords = async (inventoryData, userId) => {
   try {
-    // Ensure inventoryData is an array
     if (!Array.isArray(inventoryData) || inventoryData.length === 0) {
-      throw new AppError('Invalid inventory data. Expected a non-empty array.');
+      throw new AppError("Invalid inventory data. Expected a non-empty array.");
     }
     
-    const {id} = await getWarehouseLotStatus(null, { name : 'in_stock'});
-    const status_id = id;
-    // Prepare records for insertion
-    const formattedInventory = inventoryData.map((data) => {
-      const { type, identifier, product_id, location_id, quantity } = data;
+    return await withTransaction(async (trx) => {
+      const { id: status_id } = await getWarehouseLotStatus(null, { name: "in_stock" });
       
-      // Validate required fields
-      if (!type || !location_id || !quantity || !status_id) {
-        throw new AppError('Missing required fields in inventory record.');
+      const warehouseIds = [...new Set(inventoryData.map((item) => item.warehouse_id))].filter(Boolean); // Ensure no null values
+      const warehouseLocations = await geLocationIdByWarehouseId(trx, warehouseIds);
+      
+      const products = [];
+      const otherTypes = [];
+      
+      for (const data of inventoryData) {
+        const { type, identifier, product_id, warehouse_id, quantity, lot_number, expiry_date, manufacture_date } = data;
+        const location_id = warehouseLocations[warehouse_id];
+        
+        if (!location_id) {
+          throw new AppError(`Warehouse ID ${warehouse_id} does not have a valid location.`);
+        }
+        
+        if (!type || !warehouse_id || !quantity || !status_id) {
+          throw new AppError("Missing required fields in inventory record.");
+        }
+        
+        if (type === "product") {
+          if (!product_id) throw new AppError.validationError("Product must have a product_id.");
+          products.push({ product_id, warehouse_id, location_id, quantity, lot_number, expiry_date, manufacture_date, status_id, userId });
+        } else {
+          if (!identifier) throw new AppError.validationError("Non-product items must have an identifier.");
+          otherTypes.push({ identifier, type, warehouse_id, location_id, quantity, lot_number, expiry_date, manufacture_date, status_id, userId });
+        }
       }
       
-      if (type === 'product' && !product_id) {
-        throw new AppError('Product must have a product_id.');
-      }
+      const formattedInventoryData = {
+        products,
+        otherTypes
+      };
       
-      if (type !== 'product' && !identifier) {
-        throw new AppError('Non-product items must have an identifier.');
-      }
+      const { success, inventoryRecords } = await insertInventoryRecords(trx, formattedInventoryData);
       
-      if (quantity <= 0) {
-        throw new AppError('Quantity must be greater than zero.');
-      }
+      console.log("🔄 Inventory records inserted:", JSON.stringify(inventoryRecords, null, 2));
+      
+      // ✅ Step 2: Map `inventory_id` for Warehouse Inventory Lots
+      const warehouseLots = [...products, ...otherTypes].map((item, index) => {
+        const matchingInventory = inventoryRecords[index]; // Match by index instead of find()
+        console.log("✅ Matching inventory found:", matchingInventory);
+        
+        if (!matchingInventory || !matchingInventory.id) {
+          logError(`❌ Missing inventory_id for item:`, item);
+          throw new AppError(`❌ Missing inventory_id for item: ${JSON.stringify(item)}`);
+        }
+        
+        console.log("🔍 Checking inventory match:", {
+          item,
+          matchingInventory,
+          inventoryRecords: JSON.stringify(inventoryRecords, null, 2),
+        });
+        
+        if (!matchingInventory || !matchingInventory.id) {
+          logError(`❌ Missing inventory_id for item:`, item);
+          throw new AppError(`❌ Missing inventory_id for item: ${JSON.stringify(item)}`);
+        }
+        
+        return {
+          warehouse_id: item.warehouse_id,
+          inventory_id: matchingInventory.id,
+          lot_number: item.lot_number || null,
+          quantity: item.quantity,
+          expiry_date: item.expiry_date || null,
+          manufacture_date: item.manufacture_date || null,
+          status_id: item.status_id,
+          created_by: userId,
+        };
+      });
+      
+      console.log("✅ Warehouse Lots to Insert:", JSON.stringify(warehouseLots, null, 2));
+      console.log("✅ products:", products);
+      console.log("✅ otherTypes:", otherTypes);
+      
+      const warehouseInventoryRecords = await insertWarehouseInventoryRecords(trx, warehouseLots);
+      
+      const warehouseLotsInventoryRecords = await insertWarehouseInventoryLots(trx, warehouseLots);
+      
+      console.log(warehouseLotsInventoryRecords)
       
       return {
-        inventoryId: null, // Let the repository handle ID generation
-        type,
-        identifier: type !== 'product' ? identifier : null,
-        product_id: type === 'product' ? product_id : null,
-        location_id,
-        quantity,
-        status_id,
-        created_by: userId,
+        success,
+        message: "Inventory records successfully created.",
+        data: { inventoryRecords, warehouseInventoryRecords, warehouseLotsInventoryRecords },
       };
     });
-    
-    // Insert records using repository function
-    const result = await insertInventoryRecords(formattedInventory);
-    console.log("serveice resulte: ",result);
-    if (result.length === 0) {
-      throw new AppError('Failed to create inventory records.');
-    }
-    
-    if (!result.success) {
-      throw new AppError('Failed to create inventory records.');
-    }
-    
-    return { success: true, message: 'Inventory records successfully created.', data: result.data };
   } catch (error) {
-    logError('Error in inventory service:', error.message);
+    console.log(error);
+    logError("Error in inventory service:", error.message);
     return { success: false, error: error.message };
   }
 };

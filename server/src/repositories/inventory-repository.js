@@ -1,6 +1,7 @@
 const { query, paginateQuery, retry, bulkInsert, lockRow, withTransaction } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logInfo, logError, logWarn } = require('../utils/logger-helper');
+const { insertWarehouseInventoryLots } = require('./warehouse-inventory-lot-repository');
 
 /**
  * Fetch all inventory items with pagination & sorting.
@@ -139,11 +140,16 @@ const getInventoryIdByProductId = async (productId) => {
  * @returns {Promise<Array>} - List of existing items [{ location_id, product_id, identifier }]
  */
 const checkInventoryExists = async (inventoryItems) => {
-  if (!inventoryItems || inventoryItems.length === 0) return [];
+  if (!inventoryItems || typeof inventoryItems !== "object") return [];
+  
+  // Flatten `products` and `otherTypes` into a single array
+  const flatInventory = [...(inventoryItems.products || []), ...(inventoryItems.otherTypes || [])];
+  
+  if (flatInventory.length === 0) return [];
   
   // Extract unique location_id + product_id / identifier combinations
   const values = [];
-  const conditions = inventoryItems.map(({ location_id, product_id, identifier }) => {
+  const conditions = flatInventory.map(({ location_id, product_id, identifier }) => {
     values.push(location_id);
     if (product_id) {
       values.push(product_id);
@@ -212,7 +218,7 @@ const checkAndLockInventory = async (client, inventoryItems, lockMode = 'FOR UPD
  * @param {Array} productEntries - List of inventory objects with `product_id`
  * @returns {Promise<Array>} - List of inserted product records
  */
-const insertProducts = async (productEntries) => {
+const insertProducts = async (trx, productEntries) => {
   if (!productEntries.length) return [];
   
   const columns = [
@@ -220,19 +226,23 @@ const insertProducts = async (productEntries) => {
     "status_id", "status_date", "created_at", "created_by", "updated_at", "updated_by", "last_update"
   ];
   
-  const rows = productEntries.map(({ product_id, location_id, type, quantity, status_id, created_by }) => [
-    product_id, location_id, type, null, quantity, new Date(),
+  // ✅ Set `quantity = 0`, since actual quantity comes from `warehouse_inventory_lots`
+  const rows = productEntries.map(({ product_id, location_id, item_type, status_id, created_by }) => [
+    product_id, location_id, item_type, null, 0, new Date(),
     status_id, new Date(), new Date(), created_by, null, null, null
   ]);
   
   try {
-    return await bulkInsert(
+    // Insert into inventory
+    const result =  await bulkInsert(
       "inventory",
       columns,
       rows,
-      ["location_id", "product_id"],  // Conflict columns
-      []  // Empty array means DO NOTHING on conflict
+      ["location_id", "product_id"], // Conflict columns
+      [] // DO NOTHING on conflict
     ) || [];
+    console.log(result);
+    return result;
   } catch (error) {
     logError("Error inserting product inventory records:", error);
     throw error;
@@ -244,7 +254,7 @@ const insertProducts = async (productEntries) => {
  * @param {Array} otherEntries - List of inventory objects without `product_id`
  * @returns {Promise<Array>} - List of inserted non-product records
  */
-const insertNonProducts = async (otherEntries) => {
+const insertNonProducts = async (trx, otherEntries) => {
   if (!otherEntries.length) return [];
   
   const columns = [
@@ -252,8 +262,8 @@ const insertNonProducts = async (otherEntries) => {
     "status_id", "status_date", "created_at", "created_by", "updated_at", "updated_by", "last_update"
   ];
   
-  const rows = otherEntries.map(({ location_id, type, identifier, quantity, status_id, created_by }) => [
-    null, location_id, type, identifier, quantity, new Date(),
+  const rows = otherEntries.map(({ location_id, type, identifier, status_id, created_by }) => [
+    null, location_id, type, identifier, 0, new Date(),
     status_id, new Date(), new Date(), created_by, null, null, null
   ]);
   
@@ -262,8 +272,8 @@ const insertNonProducts = async (otherEntries) => {
       "inventory",
       columns,
       rows,
-      ["location_id", "identifier"],  // Conflict columns for non-product items
-      []  // Empty array means DO NOTHING on conflict
+      ["location_id", "identifier"], // Conflict columns for non-product items
+      [] // DO NOTHING on conflict
     ) || [];
   } catch (error) {
     logError("Error inserting non-product inventory records:", error);
@@ -273,49 +283,61 @@ const insertNonProducts = async (otherEntries) => {
 
 /**
  * Inserts inventory records with locking & transactions.
+ * @param client
  * @param {Array} inventoryData - List of inventory objects [{ location_id, product_id, identifier, quantity }]
  * @returns {Promise<Object>} - Response with inserted records
  */
-const insertInventoryRecords = async (inventoryData) => {
-  if (!inventoryData || inventoryData.length === 0) {
-    logError("No inventory data to insert.");
+const insertInventoryRecords = async (client, inventoryData) => {
+  if (!inventoryData || typeof inventoryData !== "object") {
+    logError("❌ No inventory data to insert.");
     return { success: false, message: "No inventory data provided." };
   }
   
-  return await withTransaction(async (client) => {
-    // Step 1: Check & Lock Existing Inventory
-    const existingItems = await retry(() => checkAndLockInventory(client, inventoryData, "FOR UPDATE"), 3, 1000);
-    
-    // Step 2: Filter Out Existing Items Before Insert
-    const newItems = inventoryData.filter(
+  // Flatten `products` and `otherTypes` into a single array
+  const flatInventory = [...(inventoryData.products || []), ...(inventoryData.otherTypes || [])];
+  
+  if (!Array.isArray(flatInventory) || flatInventory.length === 0) {
+    logWarn("⚠️ No valid inventory data to insert.");
+    return { success: false, message: "No valid inventory records provided." };
+  }
+  
+  // Step 1: Check & Lock Existing Inventory
+  const existingItems = await retry(() => checkAndLockInventory(client, flatInventory, "FOR UPDATE"), 3, 1000);
+  
+  // Step 2: Filter Out Existing Items Before Insert
+  const newItems = Array.isArray(flatInventory)
+    ? flatInventory.filter(
       ({ location_id, product_id, identifier }) =>
         !existingItems.some(
           (item) =>
             item.location_id === location_id &&
-            (
-              (product_id !== null && item.product_id === product_id) ||
-              (identifier !== null && item.identifier === identifier)
-            )
+            (product_id && item.product_id === product_id && item.type === "product") ||
+            (identifier && item.identifier === identifier && item.type !== "product")
         )
-    );
-    
-    if (newItems.length === 0) {
-      logWarn("No new inventory to insert, all items already exist.");
-      return { success: false, message: "No new records to insert." };
-    }
-    
-    // Step 3: Separate Products & Other Types
-    const productEntries = newItems.filter(e => e.product_id);
-    const otherEntries = newItems.filter(e => !e.product_id && e.identifier);
-    
-    // Step 4: Insert Products & Other Types with Transaction
-    const productResults = await insertProducts(productEntries);
-    const otherTypeResults = await insertNonProducts(otherEntries);
-    return {
-      success: true,
-      inserted_records: [...productResults, ...otherTypeResults],
-    };
-  });
+    )
+    : [];
+  
+  if (newItems.length === 0) {
+    logWarn("⚠️ No new inventory to insert, all items already exist.");
+    return { success: false, message: "No new records to insert." };
+  }
+  
+  // ✅ Step 3: Separate Products & Other Types
+  const productEntries = newItems
+    .filter(e => e.product_id)
+    .map(e => ({ ...e, item_type: "product" })) || [];
+  
+  const otherEntries = newItems
+    .filter(e => !e.product_id && e.identifier)
+    .map(e => ({ ...e, item_type: e.type })) || [];
+  
+  // ✅ Step 4: Insert Products & Other Types with Transaction
+  const productResults = productEntries.length > 0 ? await insertProducts(client, productEntries) : [];
+  const otherTypeResults = otherEntries.length > 0 ? await insertNonProducts(client, otherEntries) : [];
+  return {
+    success: true,
+    inventoryRecords: [...productResults, ...otherTypeResults],
+  };
 };
 
 module.exports = {

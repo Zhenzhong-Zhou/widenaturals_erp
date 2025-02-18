@@ -376,6 +376,29 @@ const adjustWarehouseInventoryLots = async (records, user_id) => {
   });
 };
 
+const insertWarehouseInventoryLots = async (trx, warehouseLots) => {
+  if (!warehouseLots.length) return [];
+  
+  const columns = [
+    "warehouse_id", "inventory_id", "lot_number", "quantity",
+    "expiry_date", "manufacture_date", "outbound_date", "status_id", "created_by",
+    "updated_at", "updated_by"
+  ];
+  
+  const rows = warehouseLots.map(({ warehouse_id, inventory_id, lot_number, quantity, expiry_date, manufacture_date, status_id, created_by }) => [
+    warehouse_id, inventory_id, lot_number, quantity, expiry_date, manufacture_date, null, status_id, created_by,
+    null, null
+  ]);
+  return await bulkInsert(
+    "warehouse_inventory_lots",
+    columns,
+    rows,
+    ["warehouse_id", "inventory_id", "lot_number"], // Conflict handling
+    [] // DO NOTHING on conflict
+  );
+};
+
 module.exports = {
   adjustWarehouseInventoryLots,
+  insertWarehouseInventoryLots,
 };

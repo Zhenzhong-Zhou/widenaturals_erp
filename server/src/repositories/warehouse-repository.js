@@ -1,6 +1,6 @@
-const { query, paginateQuery, retry } = require('../database/db');
+const { query, paginateQuery, retry, lockRow } = require('../database/db');
 const AppError = require('../utils/AppError');
-const { logInfo, logError } = require('../utils/logger-helper');
+const { logInfo, logError, logWarn } = require('../utils/logger-helper');
 
 const getWarehouses = async ({ page, limit, sortBy, sortOrder }) => {
   const validSortColumns = [
@@ -152,7 +152,65 @@ const getWarehouseInventorySummary = async ({ page, limit, statusFilter }) => {
   }
 };
 
+/**
+ * Fetches location IDs based on warehouse IDs.
+ * @param {object} trx - Transaction client.
+ * @param {Array<string>} warehouseIds - List of warehouse UUIDs.
+ * @returns {Promise<object>} - Mapping of warehouse_id → location_id.
+ */
+const geLocationIdByWarehouseId = async (trx, warehouseIds) => {
+  if (!Array.isArray(warehouseIds) || warehouseIds.length === 0) {
+    throw new Error("Invalid warehouse IDs input. Expected a non-empty array.");
+  }
+  
+  const query = `
+    SELECT id AS warehouse_id, location_id
+    FROM warehouses
+    WHERE id = ANY($1::uuid[]);
+  `;
+  
+  try {
+    const { rows } = await trx.query(query, [warehouseIds]); // ✅ Pass warehouseIds as array
+    return Object.fromEntries(rows.map(({ warehouse_id, location_id }) => [warehouse_id, location_id]));
+  } catch (error) {
+    logError("Error fetching location IDs for warehouses:", error);
+    throw error;
+  }
+};
+
+/**
+ * Checks if a warehouse exists and locks the row to prevent concurrent modifications.
+ *
+ * @param {object} client - Database client (transaction connection).
+ * @param {string|null} warehouseId - The warehouse ID to check (optional).
+ * @param {string|null} locationId - The location ID to check (optional).
+ * @returns {Promise<Object|null>} - Returns the locked warehouse row or null if not found.
+ */
+const checkAndLockWarehouse = async (client, warehouseId, locationId) => {
+  if (!warehouseId && !locationId) {
+    throw new AppError.validationError("Either warehouseId or locationId must be provided.");
+  }
+  
+  let warehouseToLock = warehouseId;
+  
+  // Step 1: Fetch warehouse ID if only location ID is provided
+  if (!warehouseId && locationId) {
+    const warehouse = await geLocationIdByWarehouseId(client, locationId);
+    if (!warehouse) {
+      logWarn(`No warehouse found for location_id: ${locationId}`);
+      return null;
+    }
+    warehouseToLock = warehouse;
+  }
+  
+  // Step 2: Lock the warehouse row using lockRow function
+  return await lockRow(client, "warehouses", warehouseToLock, "FOR UPDATE");
+};
+
+
 module.exports = {
   getWarehouses,
   getWarehouseInventorySummary,
+  checkAndLockWarehouse,
+  geLocationIdByWarehouseId,
 };
