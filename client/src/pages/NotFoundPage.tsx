@@ -2,7 +2,7 @@ import { FC } from 'react';
 import Container from '@mui/material/Container';
 import { useNavigate } from 'react-router-dom';
 import { Typography, CustomButton } from '@components/index';
-import { useThemeContext } from '../context';
+import { useThemeContext } from '../context/ThemeContext';
 
 interface NotFoundPageProps {
   isAuthenticated: boolean;

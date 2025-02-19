@@ -1,5 +1,5 @@
 import { FC, useState } from 'react';
-import { Form, PasswordInput } from '@components/index.ts';
+import { CustomForm, PasswordInput } from '@components/index.ts';
 import { Box } from '@mui/material';
 import {
   validatePassword,
@@ -52,7 +52,7 @@ const ResetPasswordForm: FC<ResetPasswordFormProps> = ({ onSubmit }) => {
   };
 
   return (
-    <Form
+    <CustomForm
       onSubmit={() => {
         handleFormSubmit();
       }}
@@ -99,7 +99,7 @@ const ResetPasswordForm: FC<ResetPasswordFormProps> = ({ onSubmit }) => {
       ) : (
         ''
       )}
-    </Form>
+    </CustomForm>
   );
 };
 

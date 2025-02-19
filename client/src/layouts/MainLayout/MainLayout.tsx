@@ -6,7 +6,7 @@ import {
   ReactElement,
 } from 'react';
 import { Sidebar, Header, Footer } from '../index';
-import { useThemeContext } from '../../context';
+import { useThemeContext } from '../../context/ThemeContext';
 import Box from '@mui/material/Box';
 import {
   layoutStyles,
@@ -23,7 +23,7 @@ import {
 import { AppError } from '@utils/AppError';
 import { getErrorLog } from '@utils/errorUtils';
 import { useLogout, useTokenRefresh, useUserProfile } from '../../hooks';
-import { usePermissionsContext } from '../../context';
+import { usePermissionsContext } from '../../context/PermissionsContext';
 
 interface MainLayoutProps {
   children: ReactNode; // Allow any React elements to be passed as children

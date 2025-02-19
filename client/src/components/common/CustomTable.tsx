@@ -10,7 +10,7 @@ import {
   TableSortLabel,
   Paper,
 } from '@mui/material';
-import { useThemeContext } from '../../context';
+import { useThemeContext } from '../../context/ThemeContext';
 
 interface Column<T = any> {
   id: Extract<keyof T, string>;

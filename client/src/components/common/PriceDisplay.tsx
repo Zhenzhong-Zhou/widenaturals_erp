@@ -1,5 +1,5 @@
 import { FC } from 'react';
-import { Typography } from '@mui/material';
+import { Typography } from '@components/index.ts';
 import { Box } from '@mui/material';
 
 interface Price {

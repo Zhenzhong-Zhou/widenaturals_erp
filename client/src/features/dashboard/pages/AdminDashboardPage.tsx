@@ -79,10 +79,10 @@ const AdminDashboardPage = ({
               id: 'status',
               label: 'Status',
               sortable: true,
-              format: (value) => (
+              renderCell: (value: any) => (
                 <Chip
                   label={value}
-                  color={getStatusColor(value) || 'default'} // Ensure `getStatusColor` returns valid colors
+                  color={getStatusColor(value) || 'default'} // Ensure this returns a valid color
                   sx={{ textTransform: 'capitalize' }}
                 />
               ),
@@ -91,7 +91,7 @@ const AdminDashboardPage = ({
               id: 'actions',
               label: 'Actions',
               sortable: false,
-              format: (_, row) => (
+              renderCell: (row: any) => (
                 <Box>
                   {row.status === 'Pending' &&
                     permissions?.includes('approve_items') && (
