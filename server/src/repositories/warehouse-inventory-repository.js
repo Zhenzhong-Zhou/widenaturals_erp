@@ -310,10 +310,73 @@ const updateWarehouseInventoryQuantity = async (trx, warehouseUpdates, userId) =
   return []; // Return empty array if no updates were made
 };
 
+const getRecentInsertWarehouseInventoryRecords = async (warehouseLotIds) => {
+  const queryText = `
+    WITH lots_data AS (
+        SELECT
+            wil.id AS warehouse_lot_id,
+            wil.warehouse_id,
+            wil.inventory_id,
+            i.location_id,
+            i.quantity,
+            wil.lot_number,
+            wil.expiry_date,
+            wil.manufacture_date,
+            i.created_at AS inventory_created_at,
+            i.created_by AS inventory_created_by,
+            i.updated_at AS inventory_updated_at,
+            i.updated_by AS inventory_updated_by,
+            wi.available_quantity
+        FROM warehouse_inventory_lots wil
+        JOIN inventory i ON wil.inventory_id = i.id
+        JOIN warehouse_inventory wi ON wil.inventory_id = wi.inventory_id
+                                     AND wil.warehouse_id = wi.warehouse_id
+        WHERE wil.id = ANY($1::uuid[])
+    )
+    SELECT
+        w.id AS warehouse_id,
+        w.name AS warehouse_name,
+        COUNT(ld.warehouse_lot_id) AS total_records,
+        json_agg(
+            json_build_object(
+                'warehouse_lot_id', ld.warehouse_lot_id,
+                'inventory_id', ld.inventory_id,
+                'location_id', ld.location_id,
+                'quantity', ld.quantity,
+                'product_name', COALESCE(p.product_name, 'Unknown Product'),
+                'inserted_quantity', i.quantity,
+                'available_quantity', ld.available_quantity,
+                'lot_number', ld.lot_number,
+                'expiry_date', ld.expiry_date,
+                'manufacture_date', ld.manufacture_date,
+                'inbound_date', i.inbound_date,
+                'inventory_created_at', ld.inventory_created_at,
+                'inventory_created_by', ld.inventory_created_by,
+                'inventory_updated_at', ld.inventory_updated_at,
+                'inventory_updated_by', ld.inventory_updated_by
+            )
+        ) AS inventory_records
+    FROM lots_data ld
+    JOIN warehouses w ON ld.warehouse_id = w.id
+    JOIN inventory i ON ld.inventory_id = i.id
+    LEFT JOIN products p ON i.product_id = p.id
+    GROUP BY w.id, w.name;
+    `;
+  
+  try {
+    const { rows } = await query(queryText, [warehouseLotIds]);
+    return rows;
+  } catch (error) {
+    logError("Error executing inventory query:", error);
+    throw error;
+  }
+};
+
 module.exports = {
   getWarehouseInventories,
   getWarehouseProductSummary,
   getWarehouseInventoryDetailsByWarehouseId,
   insertWarehouseInventoryRecords,
   updateWarehouseInventoryQuantity,
+  getRecentInsertWarehouseInventoryRecords,
 };

@@ -3,7 +3,7 @@ const AppError = require('../utils/AppError');
 const { logError, logInfo } = require('../utils/logger-helper');
 const { getWarehouseLotStatus } = require('../repositories/warehouse-lot-status-repository');
 const { withTransaction } = require('../database/db');
-const { insertWarehouseInventoryRecords, updateWarehouseInventoryQuantity } = require('../repositories/warehouse-inventory-repository');
+const { insertWarehouseInventoryRecords, updateWarehouseInventoryQuantity, getRecentInsertWarehouseInventoryRecords } = require('../repositories/warehouse-inventory-repository');
 const { geLocationIdByWarehouseId } = require('../repositories/warehouse-repository');
 const { insertWarehouseInventoryLots } = require('../repositories/warehouse-inventory-lot-repository');
 
@@ -142,11 +142,10 @@ const createInventoryRecords = async (inventoryData, userId) => {
       }, {});
       
       // Update inventory first
-      const inventoryIds= await updateInventoryQuantity(trx, inventoryUpdates, userId);
-      console.log("inventoryIds: ",inventoryIds);
+      await updateInventoryQuantity(trx, inventoryUpdates, userId);
+      
       // Update warehouse inventory next
-      const warehouseInventoryIds = await updateWarehouseInventoryQuantity(trx, warehouseUpdates, userId);
-      console.log("warehouseInventoryIds: ",warehouseInventoryIds);
+      await updateWarehouseInventoryQuantity(trx, warehouseUpdates, userId);
       
       return {
         success,
@@ -160,7 +159,20 @@ const createInventoryRecords = async (inventoryData, userId) => {
   }
 };
 
+const fetchRecentInsertWarehouseInventoryRecords = async (warehouseLotIds) => {
+  if (!Array.isArray(warehouseLotIds) || warehouseLotIds.length === 0) {
+    throw new Error("No warehouse lot IDs provided.");
+  }
+  
+  // Extract UUIDs from objects if they exist
+  const lotIds = warehouseLotIds.map(item => item.id);
+  
+  // Fetch inventory records from the repository
+  return await getRecentInsertWarehouseInventoryRecords(lotIds);
+};
+
 module.exports = {
   fetchAllInventories,
   createInventoryRecords,
+  fetchRecentInsertWarehouseInventoryRecords,
 };

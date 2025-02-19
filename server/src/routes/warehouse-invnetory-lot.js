@@ -1,6 +1,6 @@
 const express = require('express');
 const {
-  adjustWarehouseInventoryLotsController,
+  adjustWarehouseInventoryLotsController, insertInventoryRecordResponseController,
 } = require('../controllers/warehouse-inventory-lot-controller');
 
 const router = express.Router();
@@ -10,5 +10,7 @@ router.patch('/adjust/bulk', adjustWarehouseInventoryLotsController);
 
 // Route to adjust inventory (handles single and multiple records)
 router.patch('/adjust/:id', adjustWarehouseInventoryLotsController);
+
+router.get('/inventory-records/recent-inserts', insertInventoryRecordResponseController);
 
 module.exports = router;
