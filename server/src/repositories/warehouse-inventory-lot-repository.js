@@ -13,7 +13,6 @@ const {
   insertInventoryActivityLog,
 } = require('./inventory-activity-log-repository');
 const { getActionTypeId } = require('./inventory-action-type-repository');
-const { getInventoryIdByProductId } = require('./inventory-repository');
 const {
   insertInventoryHistoryLog,
   generateChecksum,

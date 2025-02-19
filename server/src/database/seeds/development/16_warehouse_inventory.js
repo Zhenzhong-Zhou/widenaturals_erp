@@ -123,23 +123,27 @@ exports.seed = async function (knex) {
           )
         : 0;
     const availableQuantity = Math.max(0, total_quantity - reservedQuantity);
-
-    // Check if the record already has a reserved_quantity
-    const existingInventory = await knex('warehouse_inventory')
-      .where({ warehouse_id, inventory_id })
-      .select('reserved_quantity', 'available_quantity')
-      .first();
-
-    if (!existingInventory || existingInventory.reserved_quantity === 0) {
-      // Only update if the record has never been assigned reserved/available stock
-      await knex('warehouse_inventory')
-        .where({ warehouse_id, inventory_id })
-        .update({
-          reserved_quantity: reservedQuantity,
-          available_quantity: availableQuantity,
-          last_update: knex.fn.now(),
-        });
+    
+    // Check if warehouse inventory records exist
+    const existingWarehouseInventory = await knex('warehouse_inventory').count('* as count').first();
+    if (existingWarehouseInventory.count > 0) {
+      console.log('⚠️ Warehouse inventory already seeded. Skipping seed process.');
+      return;
     }
+
+    // Update only if reserved_quantity is NULL or 0
+    await knex('warehouse_inventory')
+      .where({ warehouse_id, inventory_id })
+      .where((builder) =>
+        builder
+          .where('reserved_quantity', 0)
+          .orWhere('reserved_quantity', null)
+      )
+      .update({
+        reserved_quantity: reservedQuantity,
+        available_quantity: availableQuantity,
+        last_update: knex.fn.now(),
+      });
   }
 
   console.log('Warehouse inventory quantities updated successfully.');
