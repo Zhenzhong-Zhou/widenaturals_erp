@@ -54,10 +54,47 @@ const hashData = (data) => {
   return crypto.createHash('sha256').update(data).digest('hex');
 };
 
+/**
+ * Generate a unique checksum for inventory history records.
+ * Ensures consistency and traceability in inventory changes.
+ *
+ * @param {string} inventory_id
+ * @param {string} inventory_action_type_id
+ * @param {number} previous_quantity
+ * @param {number} quantity_change
+ * @param {number} new_quantity
+ * @param {string} source_action_id
+ * @param {string} comments
+ * @returns {string} - MD5 checksum hash
+ */
+const generateChecksum = (
+  inventory_id,
+  inventory_action_type_id,
+  previous_quantity,
+  quantity_change,
+  new_quantity,
+  source_action_id,
+  comments
+) => {
+  const data = [
+    inventory_id,
+    inventory_action_type_id,
+    previous_quantity,
+    quantity_change,
+    new_quantity,
+    source_action_id || '',
+    comments || '',
+    new Date().toISOString(), // Ensures uniqueness
+  ].join('|');
+  
+  return crypto.createHash('md5').update(data).digest('hex');
+};
+
 module.exports = {
   generateSecret,
   generateRandomToken,
   encryptData,
   decryptData,
   hashData,
+  generateChecksum,
 };

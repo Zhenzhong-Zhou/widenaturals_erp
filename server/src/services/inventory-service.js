@@ -6,6 +6,11 @@ const { withTransaction } = require('../database/db');
 const { insertWarehouseInventoryRecords, updateWarehouseInventoryQuantity, getRecentInsertWarehouseInventoryRecords } = require('../repositories/warehouse-inventory-repository');
 const { geLocationIdByWarehouseId } = require('../repositories/warehouse-repository');
 const { insertWarehouseInventoryLots } = require('../repositories/warehouse-inventory-lot-repository');
+const { bulkInsertInventoryActivityLogs } = require('../repositories/inventory-activity-log-repository');
+const { getActionTypeId } = require('../repositories/inventory-action-type-repository');
+const { bulkInsertInventoryHistory } = require('../repositories/inventory-history-repository');
+const { getWarehouseLotAdjustmentType } = require('../repositories/lot-adjustment-type-repository');
+const { generateChecksum } = require('../utils/crypto-utils');
 
 /**
  * Fetch all inventory records with pagination, sorting, and business logic.
@@ -64,7 +69,7 @@ const createInventoryRecords = async (inventoryData, userId) => {
     return await withTransaction(async (trx) => {
       const { id: status_id } = await getWarehouseLotStatus(null, { name: "in_stock" });
       
-      const warehouseIds = [...new Set(inventoryData.map((item) => item.warehouse_id))].filter(Boolean); // Ensure no null values
+      const warehouseIds = [...new Set(inventoryData.map((item) => item.warehouse_id))].filter(Boolean);
       const warehouseLocations = await geLocationIdByWarehouseId(trx, warehouseIds);
       
       const products = [];
@@ -91,21 +96,14 @@ const createInventoryRecords = async (inventoryData, userId) => {
         }
       }
       
-      const formattedInventoryData = {
-        products,
-        otherTypes
-      };
+      const formattedInventoryData = { products, otherTypes };
       
+      // Step 1: Insert Inventory Records
       const { success, inventoryRecords } = await insertInventoryRecords(trx, formattedInventoryData);
       
-      // Step 2: Map `inventory_id` for Warehouse Inventory Lots
+      // Step 2: Insert Warehouse Inventory Lots
       const warehouseLots = [...products, ...otherTypes].map((item, index) => {
-        const matchingInventory = inventoryRecords[index]; // Match by index instead of find()
-        
-        if (!matchingInventory || !matchingInventory.id) {
-          logError(`Missing inventory_id for item:`, item);
-          throw new AppError(`Missing inventory_id for item: ${JSON.stringify(item)}`);
-        }
+        const matchingInventory = inventoryRecords[index];
         
         if (!matchingInventory || !matchingInventory.id) {
           logError(`Missing inventory_id for item:`, item);
@@ -125,31 +123,135 @@ const createInventoryRecords = async (inventoryData, userId) => {
       });
       
       const warehouseInventoryRecords = await insertWarehouseInventoryRecords(trx, warehouseLots);
-      
       const warehouseLotsInventoryRecords = await insertWarehouseInventoryLots(trx, warehouseLots);
       
-      // Aggregate total quantity per inventory_id
+      const insert_action_type_id = await getActionTypeId(trx, 'manual_stock_insert');
+      const { id: insert_adjustment_type_id } = await getWarehouseLotAdjustmentType(trx, { name: 'manual_stock_insert' });
+      
+      // **Step 3: Insert Activity Logs for Inventory Creation**
+      const activityLogs = warehouseLots.map(({ inventory_id, warehouse_id, status_id, quantity }) => {
+        if (quantity === undefined || quantity === null || isNaN(quantity)) {
+          logError(`Invalid quantity value for inventory_id: ${inventory_id}, setting default to 0`);
+          quantity = 0; // Ensure a valid number
+        }
+        
+        return {
+          inventory_id,
+          warehouse_id,
+          lot_id: null, // Explicitly setting to NULL
+          inventory_action_type_id: insert_action_type_id,
+          previous_quantity: 0, // New inventory, so previous quantity is 0
+          quantity_change: Number(quantity) || 0,
+          new_quantity: Number(quantity) || 0,
+          status_id,
+          adjustment_type_id: insert_adjustment_type_id,
+          order_id: null,
+          user_id: userId,
+          timestamp: new Date(),
+          comments: "New inventory record created",
+        };
+      });
+      
+      await bulkInsertInventoryActivityLogs(activityLogs, trx);
+      
+      // **Step 4: Insert Inventory History for Creation**
+      const inventoryHistoryLogs = warehouseLots.map(item => ({
+        inventory_id: item.inventory_id,
+        inventory_action_type_id: insert_action_type_id,
+        previous_quantity: 0,
+        quantity_change: Number(item.quantity) || 0,
+        new_quantity: item.quantity,
+        status_id,
+        source_action_id: item.updated_by || userId,
+        comments: "Inventory added manually",
+        checksum: generateChecksum(
+          item.inventory_id,
+          insert_action_type_id,
+          0, // Previous quantity is 0 for new entries
+          Number(item.quantity) || 0,
+          item.quantity,
+          item.updated_by || userId,
+          "Inventory added manually"
+        ),
+        metadata: {},
+        created_by: userId,
+      }));
+      
+      await bulkInsertInventoryHistory(inventoryHistoryLogs, trx);
+      
+      // Step 5: Aggregate total quantity per inventory_id
       const inventoryUpdates = warehouseLots.reduce((acc, { inventory_id, quantity }) => {
         acc[inventory_id] = (acc[inventory_id] || 0) + quantity;
         return acc;
       }, {});
       
-      // Aggregate available quantity per warehouse_id & inventory_id
+      // Step 6: Aggregate available quantity per warehouse_id & inventory_id
       const warehouseUpdates = warehouseLots.reduce((acc, { warehouse_id, inventory_id, quantity }) => {
         const key = `${warehouse_id}-${inventory_id}`;
         acc[key] = (acc[key] || 0) + quantity;
         return acc;
       }, {});
       
-      // Update inventory first
+      // Step 7: Update Inventory Quantities
       await updateInventoryQuantity(trx, inventoryUpdates, userId);
       
-      // Update warehouse inventory next
+      // Step 8: Update Warehouse Inventory Quantities
       await updateWarehouseInventoryQuantity(trx, warehouseUpdates, userId);
+      
+      const inventoryToWarehouseMap = warehouseLots.reduce((map, item) => {
+        map[item.inventory_id] = item.warehouse_id;
+        return map;
+      }, {});
+      
+      const update_action_type_id = await getActionTypeId(trx, 'manual_stock_insert_update');
+      const { id: update_adjustment_type_id } = await getWarehouseLotAdjustmentType(trx, { name: 'manual_stock_update' });
+      
+      // **Step 9: Insert Activity Logs for Inventory Updates**
+      const updateLogs = Object.entries(inventoryUpdates).map(([inventory_id, new_quantity]) => ({
+        inventory_id,
+        warehouse_id: inventoryToWarehouseMap[inventory_id],
+        lot_id: null, // Not needed for inventory-level update
+        inventory_action_type_id: update_action_type_id,
+        previous_quantity: 0,
+        quantity_change: new_quantity,
+        new_quantity,
+        status_id,
+        adjustment_type_id: update_adjustment_type_id,
+        order_id: null,
+        user_id: userId,
+        comments: "Inventory quantity updated",
+      }));
+      
+      await bulkInsertInventoryActivityLogs(updateLogs, trx);
+      
+      // **Step 10: Insert Inventory History for Updates**
+      const updateHistoryLogs = Object.entries(inventoryUpdates).map(([inventory_id, new_quantity]) => ({
+        inventory_id,
+        inventory_action_type_id: update_action_type_id,
+        previous_quantity: 0, // Could be fetched if needed
+        quantity_change: new_quantity,
+        new_quantity,
+        status_id,
+        source_action_id: userId,
+        comments: "Inventory quantity updated",
+        checksum: generateChecksum(
+          inventory_id,
+          update_action_type_id,
+          0, // Previous quantity is 0 for new entries
+          Number(new_quantity) || 0,
+          new_quantity,
+          userId,
+          "Inventory added manually"
+        ),
+        metadata: {},
+        created_by: userId,
+      }));
+      
+      await bulkInsertInventoryHistory(updateHistoryLogs, trx);
       
       return {
         success,
-        message: "Inventory records successfully created.",
+        message: "Inventory records successfully created, updated, and logged.",
         data: { inventoryRecords, warehouseInventoryRecords, warehouseLotsInventoryRecords },
       };
     });

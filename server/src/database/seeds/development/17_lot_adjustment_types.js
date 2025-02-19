@@ -12,6 +12,14 @@ exports.seed = async function (knex) {
   // Define lot adjustment types
   const lotAdjustmentTypes = [
     {
+      name: 'manual_stock_insert',
+      description: 'Stock was manually inserted into the system.',
+    },
+    {
+      name: 'manual_stock_update',
+      description: 'Stock records were manually updated after insertion.',
+    },
+    {
       name: 'damaged',
       description: 'Lot is physically damaged and cannot be used.',
     },

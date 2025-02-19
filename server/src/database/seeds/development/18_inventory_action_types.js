@@ -17,6 +17,18 @@ exports.seed = async function (knex) {
       default_action: true, // System default action
     },
     {
+      name: 'manual_stock_insert',
+      description: 'Manually insert stock data into the system.',
+      status_id: activeStatusId,
+      default_action: true, // Indicates this is a system-defined default action
+    },
+    {
+      name: 'manual_stock_insert_update',
+      description: 'After manually inserting stock data, the system will update stock levels.',
+      status_id: activeStatusId,
+      default_action: true, // Indicates this is a system default action
+    },
+    {
       name: 'restock',
       description: 'Stock added from supplier or production',
       status_id: activeStatusId,

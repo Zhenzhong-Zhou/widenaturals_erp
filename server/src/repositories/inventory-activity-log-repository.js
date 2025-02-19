@@ -1,4 +1,4 @@
-const { query, withTransaction } = require('../database/db');
+const { query, withTransaction, bulkInsert } = require('../database/db');
 const {
   insertWarehouseLotAdjustment,
 } = require('./warehouse-lot-adjustment-repository');
@@ -57,6 +57,75 @@ const insertInventoryActivityLog = async (
   }
 };
 
+/**
+ * Inserts multiple inventory activity log records into the database using bulk insert.
+ *
+ * @param {Array<Object>} logs - List of inventory activity log entries to be inserted.
+ * @param {string} logs[].inventory_id - The UUID of the inventory item.
+ * @param {string} logs[].warehouse_id - The UUID of the warehouse where the activity occurred.
+ * @param {string|null} logs[].lot_id - The optional UUID of the lot, if applicable.
+ * @param {string} logs[].inventory_action_type_id - The UUID of the inventory action type (e.g., manual update).
+ * @param {number} logs[].previous_quantity - The inventory quantity before the change.
+ * @param {number} logs[].quantity_change - The change in inventory quantity.
+ * @param {number} logs[].new_quantity - The updated inventory quantity after the change.
+ * @param {string|null} logs[].status_id - The status ID of the inventory (e.g., in_stock, damaged).
+ * @param {string|null} logs[].adjustment_type_id - The optional adjustment type ID.
+ * @param {string|null} logs[].order_id - The optional UUID of the order related to this activity.
+ * @param {string} logs[].user_id - The UUID of the user who performed the action.
+ * @param {string} logs[].comments - A brief comment or description of the activity.
+ * @param {Object} client - The database transaction client.
+ * @returns {Promise<Array<Object>>} - Resolves with an array of inserted activity log records.
+ * @throws {Error} - Throws an error if bulk insert fails.
+ */
+const bulkInsertInventoryActivityLogs = async (logs, client) => {
+  if (!Array.isArray(logs) || logs.length === 0) {
+    throw new Error("No logs provided for bulk insert.");
+  }
+  
+  const tableName = "inventory_activity_log";
+  const columns = [
+    "inventory_id",
+    "warehouse_id",
+    "lot_id",
+    "inventory_action_type_id",
+    "previous_quantity",
+    "quantity_change",
+    "new_quantity",
+    "status_id",
+    "adjustment_type_id",
+    "order_id",
+    "user_id",
+    "timestamp",
+    "comments",
+  ];
+  
+  // Convert logs array into a nested array of values for bulk insert
+  const rows = logs.map(log => [
+    log.inventory_id,
+    log.warehouse_id,
+    log.lot_id,
+    log.inventory_action_type_id,
+    log.previous_quantity,
+    log.quantity_change,
+    log.new_quantity,
+    log.status_id,
+    log.adjustment_type_id,
+    log.order_id || null,
+    log.user_id,
+    new Date(), // Use current timestamp
+    log.comments,
+  ]);
+  
+  try {
+    // Perform bulk insert
+    return await bulkInsert(tableName, columns, rows, [], [], client);
+  } catch (error) {
+    logError("Error inserting bulk inventory activity logs:", error.message);
+    throw error;
+  }
+};
+
 module.exports = {
   insertInventoryActivityLog,
+  bulkInsertInventoryActivityLogs,
 };

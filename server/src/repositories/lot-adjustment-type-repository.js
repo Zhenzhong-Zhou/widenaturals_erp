@@ -40,7 +40,7 @@ const getActiveLotAdjustmentTypes = async () => {
   `;
 
   try {
-    const { rows } = await pool.query(queryText);
+    const { rows } = await query(queryText);
     return rows;
   } catch (error) {
     logError('Error fetching active warehouse lot adjustment types:', error);
@@ -51,33 +51,42 @@ const getActiveLotAdjustmentTypes = async () => {
 };
 
 /**
- * Fetch a specific warehouse lot adjustment type by ID.
- * @param {string} adjustmentTypeId - The ID of the adjustment type.
+ * Fetch a specific warehouse lot adjustment type by ID or name.
+ * @param {Object} params - Search parameters.
+ * @param trx
+ * @param {string} [params.id] - The ID of the adjustment type (optional).
+ * @param {string} [params.name] - The name of the adjustment type (optional).
  * @returns {Promise<{ id: string, name: string } | null>} - Adjustment type details.
  */
-const getWarehouseLotAdjustmentTypeById = async (adjustmentTypeId) => {
+const getWarehouseLotAdjustmentType = async (trx, { id, name }) => {
+  if (!id && !name) {
+    throw new AppError("At least one parameter (id or name) must be provided.");
+  }
+  
   const queryText = `
     SELECT id, name
     FROM lot_adjustment_types
-    WHERE id = $1
+    WHERE
+      ($1::UUID IS NULL OR id = $1)
+      AND ($2::TEXT IS NULL OR name = $2)
     LIMIT 1;
   `;
-
+  
   try {
-    const { rows } = await query(queryText, [adjustmentTypeId]);
+    const { rows } = await trx.query(queryText, [id || null, name || null]);
     return rows.length > 0 ? rows[0] : null;
   } catch (error) {
     logError(
-      `Error fetching warehouse lot adjustment type with ID: ${adjustmentTypeId}`,
+      `Error fetching warehouse lot adjustment type with ${id ? "ID: " + id : ""} ${name ? "Name: " + name : ""}`,
       error
     );
-    throw new AppError(
-      `Database error: Failed to fetch warehouse lot adjustment type with ID ${adjustmentTypeId}`
+    throw new AppError.databaseError(
+      `Database error: Failed to fetch warehouse lot adjustment type with ${id ? "ID " + id : ""} ${name ? "Name " + name : ""}`
     );
   }
 };
 
 module.exports = {
   getWarehouseLotAdjustmentTypes,
-  getWarehouseLotAdjustmentTypeById,
+  getWarehouseLotAdjustmentType,
 };
