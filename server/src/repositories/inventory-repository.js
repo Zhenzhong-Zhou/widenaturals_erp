@@ -388,7 +388,7 @@ const insertInventoryRecords = async (client, inventoryData) => {
  * @throws {Error} - Throws an error if the update query fails.
  */
 const updateInventoryQuantity = async (trx, inventoryUpdates, userId) => {
-  const { baseQuery, params } = formatBulkUpdateQuery(
+  const { baseQuery, params } = await formatBulkUpdateQuery(
     "inventory",
     ["quantity"],
     ["id"],

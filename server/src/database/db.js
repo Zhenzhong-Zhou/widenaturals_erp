@@ -453,29 +453,32 @@ const lockRows = async (client, table, conditions, lockMode = 'FOR UPDATE') => {
     throw new AppError.validationError("Invalid conditions for row locking. Expected a non-empty array.");
   }
   
-  // 🔹 Validate lock mode
+  // Validate lock mode
   const validLockModes = ['FOR UPDATE', 'FOR NO KEY UPDATE', 'FOR SHARE', 'FOR KEY SHARE'];
   if (!validLockModes.includes(lockMode)) {
     throw new AppError.validationError(`Invalid lock mode: ${lockMode}. Allowed: ${validLockModes.join(", ")}`);
   }
   
-  // 🔹 Dynamically check if the table exists in PostgreSQL
+  // Dynamically check if the table exists in PostgreSQL
   const tableExistsQuery = `SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE schemaname = 'public' AND tablename = $1)`;
-  const { rows: tableCheck } = await client.query(tableExistsQuery, [table]);
   
-  if (!tableCheck[0].exists) {
-    throw new AppError.notFoundError(`Table "${table}" does not exist in the database.`);
-  }
+  await retry(async () => {
+    const { rows: tableCheck } = await client.query(tableExistsQuery, [table]);
+    
+    if (!tableCheck[0].exists) {
+      throw new AppError.notFoundError(`Table "${table}" does not exist in the database.`);
+    }
+  });
   
   let query, values;
   
   if (typeof conditions[0] === 'string') {
-    // 🛠 Case 1: Simple ID Locking (e.g., `lockRows(client, 'inventory', [uuid1, uuid2])`)
+    // Case 1: Simple ID Locking (e.g., `lockRows(client, 'inventory', [uuid1, uuid2])`)
     const placeholders = conditions.map((_, i) => `$${i + 1}`).join(", ");
     query = `SELECT * FROM ${table} WHERE id IN (${placeholders}) ${lockMode}`;
     values = conditions;
   } else {
-    // 🛠 Case 2: Composite Key Locking (e.g., `lockRows(client, 'warehouse_inventory', [{ warehouse_id, inventory_id }])`)
+    // Case 2: Composite Key Locking (e.g., `lockRows(client, 'warehouse_inventory', [{ warehouse_id, inventory_id }])`)
     const whereClauses = conditions.map((cond, i) =>
       `(${Object.keys(cond).map((key, j) => `${key} = $${i * Object.keys(cond).length + j + 1}`).join(" AND ")})`
     ).join(" OR ");
@@ -485,13 +488,15 @@ const lockRows = async (client, table, conditions, lockMode = 'FOR UPDATE') => {
   }
   
   try {
-    const { rows } = await client.query(query, values);
-    // 🔍 Log missing rows
-    if (rows.length !== conditions.length) {
-      logWarn(`Some rows were not found in "${table}". Found: ${rows.length}, Expected: ${conditions.length}`);
-    }
-    
-    return rows;
+    return await retry(async () => {
+      const { rows } = await client.query(query, values);
+      // Log missing rows
+      if (rows.length !== conditions.length) {
+        logWarn(`Some rows were not found in "${table}". Found: ${rows.length}, Expected: ${conditions.length}`);
+      }
+      
+      return rows;
+    });
   } catch (error) {
     logError(`Error locking rows in table "${table}":`, error);
     throw new AppError.databaseError(`Database error while locking rows in "${table}".`);
@@ -539,7 +544,7 @@ const bulkInsert = async (
   columns,
   rows,
   conflictColumns = [],
-  updateColumns = [],  // Specify columns to update or leave empty for DO NOTHING
+  updateColumns = [], // Specify columns to update or leave empty for DO NOTHING
   clientOrPool = pool
 ) => {
   if (!rows.length) return 0;
@@ -587,8 +592,10 @@ const bulkInsert = async (
   const flattenedValues = rows.flat();
 
   try {
-    const { rows } = await clientOrPool.query(sql, flattenedValues);
-    return rows;
+    return await retry(async () => {
+      const { rows } = await clientOrPool.query(sql, flattenedValues);
+      return rows;
+    });
   } catch (error) {
     logError('SQL Execution Error:', error);
     throw AppError.databaseError('Bulk insert failed', {
@@ -625,7 +632,7 @@ const bulkInsert = async (
  * console.log(baseQuery); // Generated SQL Query
  * console.log(params); // Corresponding parameters
  */
-const formatBulkUpdateQuery = (table, columns, whereColumns, data, userId) => {
+const formatBulkUpdateQuery = async (table, columns, whereColumns, data, userId) => {
   if (!Object.keys(data).length) return null;
   
   let indexCounter = 2; // Start from 2 since $1 is for userId
@@ -662,7 +669,9 @@ const formatBulkUpdateQuery = (table, columns, whereColumns, data, userId) => {
     return [...keyArray, Number(value)];
   })];
   
-  return { baseQuery, params };
+  return await retry(async () => {
+    return { baseQuery, params };
+  });
 };
 
 // Export the utilities

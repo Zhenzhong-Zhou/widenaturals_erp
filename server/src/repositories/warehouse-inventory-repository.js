@@ -295,7 +295,7 @@ const insertWarehouseInventoryRecords = async (trx, inventoryData) => {
  * }, "e9a62a2a-0350-4e36-95cc-86237a394fe0");
  */
 const updateWarehouseInventoryQuantity = async (trx, warehouseUpdates, userId) => {
-  const { baseQuery, params } = formatBulkUpdateQuery(
+  const { baseQuery, params } = await formatBulkUpdateQuery(
     "warehouse_inventory",
     ["available_quantity"],
     ["warehouse_id", "inventory_id"],

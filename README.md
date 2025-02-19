@@ -180,6 +180,7 @@ npx knex seed:make seed_name
 7.  **For system-wide crontab:**:
     ```bash
     sudo crontab -e
+    crontab -e
     ```
 8.  \*Update Cron Job:\*\*:
     ```bash
@@ -195,6 +196,7 @@ npx knex seed:make seed_name
 10. **Run the following command to see if cron is restricted for your user:**:
     ```bash
     sudo crontab -l
+    crontab -l
     ```
 11. **Monitor Logs:**:
     ```bash
