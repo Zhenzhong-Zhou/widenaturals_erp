@@ -1,4 +1,4 @@
-const { query, withTransaction, bulkInsert } = require('../database/db');
+const { query, withTransaction, bulkInsert, retry } = require('../database/db');
 const {
   insertWarehouseLotAdjustment,
 } = require('./warehouse-lot-adjustment-repository');
@@ -117,11 +117,17 @@ const bulkInsertInventoryActivityLogs = async (logs, client) => {
   ]);
   
   try {
-    // Perform bulk insert
-    return await bulkInsert(tableName, columns, rows, [], [], client);
+    // Step 1: Retry Bulk Insert (3 Attempts with Exponential Backoff)
+    return await retry(
+      () => bulkInsert(tableName, columns, rows, [], [], client),
+      3, // Retry up to 3 times
+      1000 // Initial delay of 1 second (will exponentially increase)
+    );
   } catch (error) {
     logError("Error inserting bulk inventory activity logs:", error.message);
-    throw error;
+    throw new AppError.databaseError("Failed to insert inventory activity logs.", {
+      details: { error: error.message, logs },
+    });
   }
 };
 

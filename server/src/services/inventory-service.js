@@ -2,7 +2,7 @@ const { getInventories, insertInventoryRecords, updateInventoryQuantity } = requ
 const AppError = require('../utils/AppError');
 const { logError, logInfo } = require('../utils/logger-helper');
 const { getWarehouseLotStatus } = require('../repositories/warehouse-lot-status-repository');
-const { withTransaction } = require('../database/db');
+const { withTransaction, retry } = require('../database/db');
 const { insertWarehouseInventoryRecords, updateWarehouseInventoryQuantity, getRecentInsertWarehouseInventoryRecords } = require('../repositories/warehouse-inventory-repository');
 const { geLocationIdByWarehouseId } = require('../repositories/warehouse-repository');
 const { insertWarehouseInventoryLots } = require('../repositories/warehouse-inventory-lot-repository');
@@ -66,11 +66,11 @@ const createInventoryRecords = async (inventoryData, userId) => {
       throw new AppError("Invalid inventory data. Expected a non-empty array.");
     }
     
-    return await withTransaction(async (trx) => {
-      const { id: status_id } = await getWarehouseLotStatus(null, { name: "in_stock" });
+    return await withTransaction(async (client) => {
+      const { id: status_id } = await getWarehouseLotStatus(client, { name: "in_stock" });
       
       const warehouseIds = [...new Set(inventoryData.map((item) => item.warehouse_id))].filter(Boolean);
-      const warehouseLocations = await geLocationIdByWarehouseId(trx, warehouseIds);
+      const warehouseLocations = await geLocationIdByWarehouseId(client, warehouseIds);
       
       const products = [];
       const otherTypes = [];
@@ -99,7 +99,7 @@ const createInventoryRecords = async (inventoryData, userId) => {
       const formattedInventoryData = { products, otherTypes };
       
       // Step 1: Insert Inventory Records
-      const { success, inventoryRecords } = await insertInventoryRecords(trx, formattedInventoryData);
+      const { success, inventoryRecords } = await insertInventoryRecords(client, formattedInventoryData);
       
       // Step 2: Insert Warehouse Inventory Lots
       const warehouseLots = [...products, ...otherTypes].map((item, index) => {
@@ -122,39 +122,32 @@ const createInventoryRecords = async (inventoryData, userId) => {
         };
       });
       
-      const warehouseInventoryRecords = await insertWarehouseInventoryRecords(trx, warehouseLots);
-      const warehouseLotsInventoryRecords = await insertWarehouseInventoryLots(trx, warehouseLots);
+      const warehouseInventoryRecords = await insertWarehouseInventoryRecords(client, warehouseLots);
+      const warehouseLotsInventoryRecords = await insertWarehouseInventoryLots(client, warehouseLots);
       
-      const insert_action_type_id = await getActionTypeId(trx, 'manual_stock_insert');
-      const { id: insert_adjustment_type_id } = await getWarehouseLotAdjustmentType(trx, { name: 'manual_stock_insert' });
+      const insert_action_type_id = await getActionTypeId(client, 'manual_stock_insert');
+      const { id: insert_adjustment_type_id } = await getWarehouseLotAdjustmentType(client, { name: 'manual_stock_insert' });
       
-      // **Step 3: Insert Activity Logs for Inventory Creation**
-      const activityLogs = warehouseLots.map(({ inventory_id, warehouse_id, status_id, quantity }) => {
-        if (quantity === undefined || quantity === null || isNaN(quantity)) {
-          logError(`Invalid quantity value for inventory_id: ${inventory_id}, setting default to 0`);
-          quantity = 0; // Ensure a valid number
-        }
-        
-        return {
-          inventory_id,
-          warehouse_id,
-          lot_id: null, // Explicitly setting to NULL
-          inventory_action_type_id: insert_action_type_id,
-          previous_quantity: 0, // New inventory, so previous quantity is 0
-          quantity_change: Number(quantity) || 0,
-          new_quantity: Number(quantity) || 0,
-          status_id,
-          adjustment_type_id: insert_adjustment_type_id,
-          order_id: null,
-          user_id: userId,
-          timestamp: new Date(),
-          comments: "New inventory record created",
-        };
-      });
+      // Step 3: Insert Activity Logs for Inventory Creation
+      const activityLogs = warehouseLots.map(({ inventory_id, warehouse_id, status_id, quantity }) => ({
+        inventory_id,
+        warehouse_id,
+        lot_id: null,
+        inventory_action_type_id: insert_action_type_id,
+        previous_quantity: 0,
+        quantity_change: Number(quantity) || 0,
+        new_quantity: Number(quantity) || 0,
+        status_id,
+        adjustment_type_id: insert_adjustment_type_id,
+        order_id: null,
+        user_id: userId,
+        timestamp: new Date(),
+        comments: "New inventory record created",
+      }));
       
-      await bulkInsertInventoryActivityLogs(activityLogs, trx);
+      await bulkInsertInventoryActivityLogs(activityLogs, client);
       
-      // **Step 4: Insert Inventory History for Creation**
+      // Step 4: Insert Inventory History for Creation
       const inventoryHistoryLogs = warehouseLots.map(item => ({
         inventory_id: item.inventory_id,
         inventory_action_type_id: insert_action_type_id,
@@ -167,7 +160,7 @@ const createInventoryRecords = async (inventoryData, userId) => {
         checksum: generateChecksum(
           item.inventory_id,
           insert_action_type_id,
-          0, // Previous quantity is 0 for new entries
+          0,
           Number(item.quantity) || 0,
           item.quantity,
           item.updated_by || userId,
@@ -177,7 +170,7 @@ const createInventoryRecords = async (inventoryData, userId) => {
         created_by: userId,
       }));
       
-      await bulkInsertInventoryHistory(inventoryHistoryLogs, trx);
+      await bulkInsertInventoryHistory(inventoryHistoryLogs, client);
       
       // Step 5: Aggregate total quantity per inventory_id
       const inventoryUpdates = warehouseLots.reduce((acc, { inventory_id, quantity }) => {
@@ -193,20 +186,20 @@ const createInventoryRecords = async (inventoryData, userId) => {
       }, {});
       
       // Step 7: Update Inventory Quantities
-      await updateInventoryQuantity(trx, inventoryUpdates, userId);
+      await updateInventoryQuantity(client, inventoryUpdates, userId);
       
       // Step 8: Update Warehouse Inventory Quantities
-      await updateWarehouseInventoryQuantity(trx, warehouseUpdates, userId);
+      await updateWarehouseInventoryQuantity(client, warehouseUpdates, userId);
       
       const inventoryToWarehouseMap = warehouseLots.reduce((map, item) => {
         map[item.inventory_id] = item.warehouse_id;
         return map;
       }, {});
       
-      const update_action_type_id = await getActionTypeId(trx, 'manual_stock_insert_update');
-      const { id: update_adjustment_type_id } = await getWarehouseLotAdjustmentType(trx, { name: 'manual_stock_update' });
+      const update_action_type_id = await getActionTypeId(client, 'manual_stock_insert_update');
+      const { id: update_adjustment_type_id } = await getWarehouseLotAdjustmentType(client, { name: 'manual_stock_update' });
       
-      // **Step 9: Insert Activity Logs for Inventory Updates**
+      // Step 9: Insert Activity Logs for Inventory Updates
       const updateLogs = Object.entries(inventoryUpdates).map(([inventory_id, new_quantity]) => ({
         inventory_id,
         warehouse_id: inventoryToWarehouseMap[inventory_id],
@@ -222,9 +215,9 @@ const createInventoryRecords = async (inventoryData, userId) => {
         comments: "Inventory quantity updated",
       }));
       
-      await bulkInsertInventoryActivityLogs(updateLogs, trx);
+      await bulkInsertInventoryActivityLogs(updateLogs, client);
       
-      // **Step 10: Insert Inventory History for Updates**
+      // Step 10: Insert Inventory History for Updates
       const updateHistoryLogs = Object.entries(inventoryUpdates).map(([inventory_id, new_quantity]) => ({
         inventory_id,
         inventory_action_type_id: update_action_type_id,
@@ -247,7 +240,7 @@ const createInventoryRecords = async (inventoryData, userId) => {
         created_by: userId,
       }));
       
-      await bulkInsertInventoryHistory(updateHistoryLogs, trx);
+      await bulkInsertInventoryHistory(updateHistoryLogs, client);
       
       return {
         success,

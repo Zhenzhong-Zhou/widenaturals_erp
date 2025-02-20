@@ -2,7 +2,7 @@ const {
   query,
   withTransaction,
   lockRow,
-  bulkInsert,
+  bulkInsert, retry,
 } = require('../database/db');
 const {
   insertWarehouseLotAdjustment,
@@ -375,26 +375,60 @@ const adjustWarehouseInventoryLots = async (records, user_id) => {
   });
 };
 
-const insertWarehouseInventoryLots = async (trx, warehouseLots) => {
-  if (!warehouseLots.length) return [];
+/**
+ * Inserts warehouse inventory lot records in bulk with conflict handling and retry mechanism.
+ *
+ *  @param {import("pg").PoolClient} client - The PostgreSQL client instance (transaction).
+ * @param {Array<Object>} warehouseLots - The list of warehouse lot entries to insert.
+ * @param {string} warehouseLots[].warehouse_id - The ID of the warehouse.
+ * @param {string} warehouseLots[].inventory_id - The ID of the inventory item.
+ * @param {string} warehouseLots[].lot_number - The lot number for tracking.
+ * @param {number} warehouseLots[].quantity - The quantity associated with the lot.
+ * @param {Date|null} [warehouseLots[].expiry_date] - The expiration date of the lot (nullable).
+ * @param {Date|null} [warehouseLots[].manufacture_date] - The manufacturing date of the lot (nullable).
+ * @param {string} warehouseLots[].status_id - The status ID of the lot.
+ * @param {string} warehouseLots[].created_by - The user ID of the creator.
+ *
+ * @returns {Promise<Array<Object>>} - Resolves with the inserted warehouse inventory lot records.
+ * @throws {Error} - Throws an error if the bulk insert fails after retries.
+ */
+const insertWarehouseInventoryLots = async (client, warehouseLots) => {
+  if (!Array.isArray(warehouseLots) || warehouseLots.length === 0) {
+    return [];
+  }
   
-  const columns = [
-    "warehouse_id", "inventory_id", "lot_number", "quantity",
-    "expiry_date", "manufacture_date", "outbound_date", "status_id", "created_by",
-    "updated_at", "updated_by"
-  ];
-  
-  const rows = warehouseLots.map(({ warehouse_id, inventory_id, lot_number, quantity, expiry_date, manufacture_date, status_id, created_by }) => [
-    warehouse_id, inventory_id, lot_number, quantity, expiry_date, manufacture_date, null, status_id, created_by,
-    null, null
-  ]);
-  return await bulkInsert(
-    "warehouse_inventory_lots",
-    columns,
-    rows,
-    ["warehouse_id", "inventory_id", "lot_number"], // Conflict handling
-    [] // DO NOTHING on conflict
-  );
+  try {
+    const columns = [
+      "warehouse_id", "inventory_id", "lot_number", "quantity",
+      "expiry_date", "manufacture_date", "outbound_date", "status_id", "created_by",
+      "updated_at", "updated_by"
+    ];
+    
+    const rows = warehouseLots.map(({ warehouse_id, inventory_id, lot_number, quantity, expiry_date, manufacture_date, status_id, created_by }) => [
+      warehouse_id, inventory_id, lot_number, quantity, expiry_date, manufacture_date, null, status_id, created_by,
+      null, null
+    ]);
+    
+    // Step 1: Bulk Insert with Retry and Conflict Handling
+    return await retry(
+      () =>
+        bulkInsert(
+          "warehouse_inventory_lots",
+          columns,
+          rows,
+          ["warehouse_id", "inventory_id", "lot_number"], // Conflict columns
+          [], // DO NOTHING on conflict
+          client
+        ),
+      3, // Retries up to 3 times
+      1000 // Initial delay of 1s, with exponential backoff
+    );
+  } catch (error) {
+    logError("Error inserting warehouse inventory lots:", error);
+    throw new AppError.databaseError("Failed to insert warehouse inventory lots.", {
+      details: { error: error.message, warehouseLots },
+    });
+  }
 };
 
 module.exports = {

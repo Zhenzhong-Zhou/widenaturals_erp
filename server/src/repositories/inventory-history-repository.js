@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const { query, bulkInsert } = require('../database/db');
+const { query, bulkInsert, retry } = require('../database/db');
 const { logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
 
@@ -130,7 +130,11 @@ const bulkInsertInventoryHistory = async (historyRecords, client) => {
   ]);
   
   try {
-    return await bulkInsert(tableName, columns, rows, [], [], client);
+    return await retry(
+      () => bulkInsert(tableName, columns, rows, [], [], client),
+      3, // Retry up to 3 times
+      1000 // Initial delay of 1 second (exponential backoff applied)
+    );
   } catch (error) {
     logError("Error inserting bulk inventory history:", error.message);
     throw error;

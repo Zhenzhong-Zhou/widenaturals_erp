@@ -154,28 +154,32 @@ const getWarehouseInventorySummary = async ({ page, limit, statusFilter }) => {
 
 /**
  * Fetches location IDs based on warehouse IDs.
- * @param {object} trx - Transaction client.
+ * @param {object} client - Transaction client.
  * @param {Array<string>} warehouseIds - List of warehouse UUIDs.
  * @returns {Promise<object>} - Mapping of warehouse_id → location_id.
  */
-const geLocationIdByWarehouseId = async (trx, warehouseIds) => {
+const geLocationIdByWarehouseId = async (client, warehouseIds) => {
   if (!Array.isArray(warehouseIds) || warehouseIds.length === 0) {
     throw new Error("Invalid warehouse IDs input. Expected a non-empty array.");
   }
   
-  const query = `
+  const queryText = `
     SELECT id AS warehouse_id, location_id
     FROM warehouses
     WHERE id = ANY($1::uuid[]);
   `;
   
-  try {
-    const { rows } = await trx.query(query, [warehouseIds]); // ✅ Pass warehouseIds as array
-    return Object.fromEntries(rows.map(({ warehouse_id, location_id }) => [warehouse_id, location_id]));
-  } catch (error) {
-    logError("Error fetching location IDs for warehouses:", error);
-    throw error;
-  }
+  return await retry(async () => {
+    try {
+      const { rows } = client ?
+        await query(queryText, [warehouseIds]) :
+        await client.query(queryText, [warehouseIds]);
+      return Object.fromEntries(rows.map(({ warehouse_id, location_id }) => [warehouse_id, location_id]));
+    } catch (error) {
+      logError("Error fetching location IDs for warehouses:", error);
+      throw error;
+    }
+  }, 3, 1000); // Retry up to 3 times with exponential backoff
 };
 
 /**

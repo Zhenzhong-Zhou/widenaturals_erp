@@ -230,51 +230,66 @@ const getWarehouseInventoryDetailsByWarehouseId = async ({
  * Inserts records into the warehouse_inventory table using transactions.
  * Handles conflicts and ensures existing records are locked before updating.
  *
- * @param {Object} trx - Transaction client.
+ * @param {Object} client - Transaction client.
  * @param {Array} inventoryData - List of inventory records to insert.
  * @returns {Promise<Array>} - List of inserted or updated warehouse inventory records.
  */
-const insertWarehouseInventoryRecords = async (trx, inventoryData) => {
+const insertWarehouseInventoryRecords = async (client, inventoryData) => {
   if (!Array.isArray(inventoryData) || inventoryData.length === 0) {
     throw new AppError("Invalid inventory data. Expected a non-empty array.");
   }
   
-  // Step 1: Lock Existing Rows Before Insert/Update
-  await retry(() =>
-      lockRows(
-        trx,
-        "warehouse_inventory",
-        inventoryData.map(({ warehouse_id, inventory_id }) => ({ warehouse_id, inventory_id })),
-        "FOR UPDATE"
-      ),
-    3, 1000
-  );
-  
-  // Step 2: Prepare Data for Bulk Insert
-  const columns = [
-    "warehouse_id", "inventory_id", "reserved_quantity", "available_quantity",
-    "warehouse_fee", "status_id", "status_date", "created_at", "created_by", "updated_at", "updated_by", "last_update"
-  ];
-  
-  const rows = inventoryData.map(({ warehouse_id, inventory_id, available_quantity, warehouse_fee, status_id, userId }) => [
-    warehouse_id, inventory_id, 0, available_quantity || 0, warehouse_fee || 0,
-    status_id, new Date(), new Date(), userId, null, null, null
-  ]);
-  
-  // Step 3: Bulk Insert with Conflict Handling
-  return await bulkInsert(
-    "warehouse_inventory",
-    columns,
-    rows,
-    ["warehouse_id", "inventory_id"],  // Conflict Columns
-    []  // Fields to do nothing on conflict
-  ) || [];
+  try {
+    // Step 1: Lock Existing Rows Before Insert/Update (With Retry)
+    await retry(
+      () =>
+        lockRows(
+          client,
+          "warehouse_inventory",
+          inventoryData.map(({ warehouse_id, inventory_id }) => ({ warehouse_id, inventory_id })),
+          "FOR UPDATE"
+        ),
+      3, // Retries up to 3 times
+      1000 // Initial delay of 1s, with exponential backoff
+    );
+    
+    // Step 2: Prepare Data for Bulk Insert
+    const columns = [
+      "warehouse_id", "inventory_id", "reserved_quantity", "available_quantity",
+      "warehouse_fee", "status_id", "status_date", "created_at", "created_by",
+      "updated_at", "updated_by", "last_update"
+    ];
+    
+    const rows = inventoryData.map(({ warehouse_id, inventory_id, available_quantity, warehouse_fee, status_id, userId }) => [
+      warehouse_id, inventory_id, 0, available_quantity || 0, warehouse_fee || 0,
+      status_id, new Date(), new Date(), userId, null, null, null
+    ]);
+    
+    // Step 3: Bulk Insert with Retry and Conflict Handling
+    return await retry(
+      () =>
+        bulkInsert(
+          "warehouse_inventory",
+          columns,
+          rows,
+          ["warehouse_id", "inventory_id"], // Conflict Columns
+          [] // Fields to do nothing on conflict
+        ),
+      3, // Retries up to 3 times
+      1000 // Initial delay of 1s, with exponential backoff
+    ) || [];
+  } catch (error) {
+    logError("Error inserting warehouse inventory records:", error);
+    throw new AppError.databaseError("Failed to insert warehouse inventory records.", {
+      details: { error: error.message, inventoryData },
+    });
+  }
 };
 
 /**
  * Updates the available quantity of multiple inventory items across different warehouses in bulk using transactions.
  *
- * @param {Object} trx - Database transaction object used to execute queries.
+ * @param {Object} client - Database transaction object used to execute queries.
  * @param {Object} warehouseUpdates - An object mapping composite keys (`warehouse_id-inventory_id`) to the new quantity.
  *   - Example:
  *     ```js
@@ -289,12 +304,12 @@ const insertWarehouseInventoryRecords = async (trx, inventoryData) => {
  * @throws {Error} - Throws an error if the update query fails.
  *
  * @example
- * await updateWarehouseInventoryQuantity(trx, {
+ * await updateWarehouseInventoryQuantity(client, {
  *   "814cfc1d-e245-41be-b3f6-bcac548e1927-168bdc32-18a3-40f9-87c5-1ad77ad2258a": 6,
  *   "814cfc1d-e245-41be-b3f6-bcac548e1927-a430cacf-d7b5-4915-a01a-aa1715476300": 40
  * }, "e9a62a2a-0350-4e36-95cc-86237a394fe0");
  */
-const updateWarehouseInventoryQuantity = async (trx, warehouseUpdates, userId) => {
+const updateWarehouseInventoryQuantity = async (client, warehouseUpdates, userId) => {
   const { baseQuery, params } = await formatBulkUpdateQuery(
     "warehouse_inventory",
     ["available_quantity"],
@@ -302,9 +317,18 @@ const updateWarehouseInventoryQuantity = async (trx, warehouseUpdates, userId) =
     warehouseUpdates,
     userId
   );
+  
   if (baseQuery) {
-    const { rows } = await trx.query(baseQuery, params);
-    return rows; // Return the updated inventory IDs
+    return await retry(
+      async () => {
+        const { rows } = client ?
+          await query(baseQuery, params) :
+          await client.query(baseQuery, params);
+        return rows; // Return the updated inventory IDs
+      },
+      3, // Retry up to 3 times
+      1000, // Initial delay of 1 second (exponential backoff applied)
+    );
   }
   
   return []; // Return empty array if no updates were made

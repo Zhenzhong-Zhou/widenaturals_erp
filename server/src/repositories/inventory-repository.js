@@ -336,50 +336,61 @@ const insertInventoryRecords = async (client, inventoryData) => {
     return { success: false, message: "No valid inventory records provided." };
   }
   
-  // Step 1: Check & Lock Existing Inventory
-  const existingItems = await retry(() => checkAndLockInventory(client, flatInventory, "FOR UPDATE"), 3, 1000);
-  
-  // Step 2: Filter Out Existing Items Before Insert
-  const newItems = Array.isArray(flatInventory)
-    ? flatInventory.filter(
-      ({ location_id, product_id, identifier }) =>
-        !existingItems.some(
-          (item) =>
-            item.location_id === location_id &&
-            (product_id && item.product_id === product_id && item.type === "product") ||
-            (identifier && item.identifier === identifier && item.type !== "product")
-        )
-    )
-    : [];
-  
-  if (newItems.length === 0) {
-    logWarn("No new inventory to insert, all items already exist.");
-    return { success: false, message: "No new records to insert." };
+  try {
+    // Step 1: Check & Lock Existing Inventory (With Retry)
+    const existingItems = await retry(
+      () => checkAndLockInventory(client, flatInventory, "FOR UPDATE"),
+      3, // Retries up to 3 times
+      1000 // Initial delay of 1s, with exponential backoff
+    );
+    
+    // Step 2: Filter Out Existing Items Before Insert
+    const newItems = flatInventory.filter(({ location_id, product_id, identifier }) =>
+      !existingItems.some(
+        (item) =>
+          item.location_id === location_id &&
+          ((product_id && item.product_id === product_id && item.type === "product") ||
+            (identifier && item.identifier === identifier && item.type !== "product"))
+      )
+    );
+    
+    if (newItems.length === 0) {
+      logWarn("No new inventory to insert, all items already exist.");
+      return { success: false, message: "No new records to insert." };
+    }
+    
+    // Step 3: Separate Products & Other Types
+    const productEntries = newItems
+      .filter(e => e.product_id)
+      .map(e => ({ ...e, item_type: "product" })) || [];
+    
+    const otherEntries = newItems
+      .filter(e => !e.product_id && e.identifier)
+      .map(e => ({ ...e, item_type: e.type })) || [];
+    
+    // Step 4: Insert Products & Other Types with Retry and Transaction
+    const productResults = productEntries.length > 0
+      ? await retry(() => insertProducts(client, productEntries), 3, 1000)
+      : [];
+    
+    const otherTypeResults = otherEntries.length > 0
+      ? await retry(() => insertNonProducts(client, otherEntries), 3, 1000)
+      : [];
+    
+    return {
+      success: true,
+      inventoryRecords: [...productResults, ...otherTypeResults],
+    };
+  } catch (error) {
+    logError("Error inserting inventory records:", error);
+    return { success: false, message: "Failed to insert inventory records", error: error.message };
   }
-  
-  // Step 3: Separate Products & Other Types
-  const productEntries = newItems
-    .filter(e => e.product_id)
-    .map(e => ({ ...e, item_type: "product" })) || [];
-  
-  const otherEntries = newItems
-    .filter(e => !e.product_id && e.identifier)
-    .map(e => ({ ...e, item_type: e.type })) || [];
-  
-  // Step 4: Insert Products & Other Types with Transaction
-  const productResults = productEntries.length > 0 ? await insertProducts(client, productEntries) : [];
-  const otherTypeResults = otherEntries.length > 0 ? await insertNonProducts(client, otherEntries) : [];
-  
-  return {
-    success: true,
-    inventoryRecords: [...productResults, ...otherTypeResults],
-  };
 };
 
 /**
  * Updates the quantity of multiple inventory records in bulk using transactions.
  *
- * @param {Object} trx - Database transaction object used to execute queries.
+ * @param {Object} client - Database transaction object used to execute queries.
  * @param {Object} inventoryUpdates - An object mapping `inventory_id` (UUID) to the new quantity.
  *   Example: `{ "168bdc32-18a3-40f9-87c5-1ad77ad2258a": 6, "a430cacf-d7b5-4915-a01a-aa1715476300": 40 }`
  * @param {string} userId - The UUID of the user performing the update (stored in `updated_by`).
@@ -387,7 +398,7 @@ const insertInventoryRecords = async (client, inventoryData) => {
  *
  * @throws {Error} - Throws an error if the update query fails.
  */
-const updateInventoryQuantity = async (trx, inventoryUpdates, userId) => {
+const updateInventoryQuantity = async (client, inventoryUpdates, userId) => {
   const { baseQuery, params } = await formatBulkUpdateQuery(
     "inventory",
     ["quantity"],
@@ -395,9 +406,18 @@ const updateInventoryQuantity = async (trx, inventoryUpdates, userId) => {
     inventoryUpdates,
     userId
   );
+  
   if (baseQuery) {
-    const { rows } = await trx.query(baseQuery, params);
-    return rows; // Return the updated inventory IDs
+    return await retry(
+      async () => {
+        const { rows } = client ?
+          await query(baseQuery, params) :
+          await client.query(baseQuery, params);
+        return rows; // Return the updated inventory IDs
+      },
+      3, // Retry up to 3 times
+      1000 // Initial delay of 1 second (exponential backoff applied)
+    );
   }
   
   return []; // Return empty array if no updates were made

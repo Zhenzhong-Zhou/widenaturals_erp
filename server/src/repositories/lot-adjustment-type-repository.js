@@ -51,14 +51,16 @@ const getActiveLotAdjustmentTypes = async () => {
 };
 
 /**
- * Fetch a specific warehouse lot adjustment type by ID or name.
- * @param {Object} params - Search parameters.
- * @param trx
+ * Fetches a warehouse lot adjustment type by ID or name.
+ *
+ * @param {import('pg').PoolClient} client - The database client or transaction instance.
+ * @param {Object} params - The search parameters.
  * @param {string} [params.id] - The ID of the adjustment type (optional).
  * @param {string} [params.name] - The name of the adjustment type (optional).
- * @returns {Promise<{ id: string, name: string } | null>} - Adjustment type details.
+ * @returns {Promise<{ id: string, name: string } | null>} - Returns the adjustment type details if found, otherwise null.
+ * @throws {AppError} - Throws an error if neither ID nor name is provided or if a database error occurs.
  */
-const getWarehouseLotAdjustmentType = async (trx, { id, name }) => {
+const getWarehouseLotAdjustmentType = async (client, { id, name }) => {
   if (!id && !name) {
     throw new AppError("At least one parameter (id or name) must be provided.");
   }
@@ -72,18 +74,22 @@ const getWarehouseLotAdjustmentType = async (trx, { id, name }) => {
     LIMIT 1;
   `;
   
-  try {
-    const { rows } = await trx.query(queryText, [id || null, name || null]);
-    return rows.length > 0 ? rows[0] : null;
-  } catch (error) {
-    logError(
-      `Error fetching warehouse lot adjustment type with ${id ? "ID: " + id : ""} ${name ? "Name: " + name : ""}`,
-      error
-    );
-    throw new AppError.databaseError(
-      `Database error: Failed to fetch warehouse lot adjustment type with ${id ? "ID " + id : ""} ${name ? "Name " + name : ""}`
-    );
-  }
+  return await retry(async () => {
+    try {
+      const { rows } = client ?
+        await query(queryText, [id || null, name || null]) :
+        await client.query(queryText, [id || null, name || null]);
+      return rows.length > 0 ? rows[0] : null;
+    } catch (error) {
+      logError(
+        `Error fetching warehouse lot adjustment type with ${id ? "ID: " + id : ""} ${name ? "Name: " + name : ""}`,
+        error
+      );
+      throw new AppError.databaseError(
+        `Database error: Failed to fetch warehouse lot adjustment type with ${id ? "ID " + id : ""} ${name ? "Name " + name : ""}`
+      );
+    }
+  }, 3, 1000); // Retry up to 3 times with exponential backoff
 };
 
 module.exports = {
