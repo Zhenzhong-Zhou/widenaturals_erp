@@ -16,7 +16,7 @@ const initializeApp = async () => {
     logInfo('Loading environment variables...');
 
     // Load and validate environment variables
-    const env = loadAndValidateEnv();
+    const { env } = loadAndValidateEnv();
     logInfo(
       `Environment variables loaded and validated for environment: ${env}`
     );

@@ -57,7 +57,7 @@ const backupDatabase = async () => {
     logInfo(`Starting backup for database: '${targetDatabase}'`);
 
     // Build the dump command **without exposing credentials**
-    const dumpCommand = `${pgDumpPath} --no-owner --no-comments --clean --if-exists -U ${dbUser} -d ${targetDatabase} -f ${backupFile}`;
+    const dumpCommand = `${pgDumpPath} --no-owner --if-exists -U ${dbUser} -d ${targetDatabase} -f ${backupFile}`;
 
     // Run pg_dump with credentials securely handled
     await runPgDump(dumpCommand, isProduction, dbUser, dbPassword);
