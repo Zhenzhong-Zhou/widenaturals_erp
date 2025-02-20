@@ -8,17 +8,18 @@ const {
   insertWarehouseLotAdjustment,
 } = require('./warehouse-lot-adjustment-repository');
 const AppError = require('../utils/AppError');
-const { logError } = require('../utils/logger-helper');
+const { logError, logWarn, logInfo } = require('../utils/logger-helper');
 const {
-  insertInventoryActivityLog,
+  insertInventoryActivityLog, bulkInsertInventoryActivityLogs,
 } = require('./inventory-activity-log-repository');
 const { getActionTypeId } = require('./inventory-action-type-repository');
 const {
-  insertInventoryHistoryLog,
-  generateChecksum,
+  insertInventoryHistoryLog, bulkInsertInventoryHistory,
 } = require('./inventory-history-repository');
 const { getWarehouseLotStatus } = require('./warehouse-lot-status-repository');
 const { getStatusIdByName } = require('./status-repository');
+const { generateChecksum } = require('../utils/crypto-utils');
+const { getWarehouseLotAdjustmentType, bulkInsertWarehouseLotAdjustments } = require('./lot-adjustment-type-repository');
 
 /**
  * Checks if a lot exists in the warehouse inventory and locks it for update.
@@ -245,37 +246,58 @@ const adjustWarehouseInventoryLots = async (records, user_id) => {
 
       const actionType = 'manual_adjustment';
       const actionTypeId = await getActionTypeId(client, actionType);
-
-      // Add to batch insert arrays
-      warehouseLotAdjustments.push([
-        warehouse_id,
+      
+      const adjustmentType = await getWarehouseLotAdjustmentType(client, { id: adjustment_type_id });
+      
+      // Ensure the adjustment type exists and check the type name
+      if (!adjustmentType) {
+        logWarn(`Skipping adjustment: Type ID ${adjustment_type_id} not found.`);
+        continue; // Skip this entry if the adjustment type is not valid
+      }
+      
+      // Define valid adjustment types that should be recorded
+      const validAdjustmentTypes = [
+        "damaged", "lost", "defective", "expired", "stolen",
+        "recalled", "adjustment", "reclassified", "conversion"
+      ];
+      
+      // Check if adjustment type requires logging
+      if (validAdjustmentTypes.includes(adjustmentType.name.toLowerCase())) {
+        warehouseLotAdjustments.push({
+          warehouse_id,
+          inventory_id,
+          lot_number,
+          adjustment_type_id,
+          previous_quantity,
+          adjusted_quantity,
+          new_quantity,
+          status_id: new_status_id,
+          adjusted_by: user_id,
+          adjustment_date: new Date(),
+          comments: comments || null,
+          created_by: user_id,
+          updated_by: user_id,
+        });
+      } else {
+        logInfo(`Skipping adjustment: Type "${adjustmentType.name}" does not require logging.`);
+      }
+      
+      inventoryActivityLogs.push({
         inventory_id,
-        lot_number,
-        adjustment_type_id,
-        previous_quantity,
-        adjusted_quantity,
-        new_quantity,
-        new_status_id,
-        user_id,
-        comments,
-        user_id,
-      ]);
-
-      inventoryActivityLogs.push([
-        inventory_id,
         warehouse_id,
-        warehouse_inventory_id,
-        actionTypeId,
-        previous_quantity,
-        adjusted_quantity,
-        new_quantity,
-        new_status_id,
-        adjustment_type_id,
-        order_id || null,
+        lot_id: null,
+        inventory_action_type_id: actionTypeId,
+        previous_quantity: previous_quantity ?? 0,
+        quantity_change: adjusted_quantity ?? 0,
+        new_quantity: new_quantity ?? 0,
+        status_id: new_status_id,
+        adjustment_type_id: adjustment_type_id || null,
+        order_id: order_id || null,
         user_id,
-        comments,
-      ]);
-
+        timestamp: new Date(), // Automatically add timestamp
+        comments: comments || null,
+      });
+      
       const checksum = generateChecksum(
         inventory_id,
         actionTypeId,
@@ -286,91 +308,37 @@ const adjustWarehouseInventoryLots = async (records, user_id) => {
         user_id,
         comments
       );
-
-      inventoryHistoryLogs.push([
+      
+      inventoryHistoryLogs.push({
         inventory_id,
-        actionTypeId,
-        previous_quantity,
-        adjusted_quantity,
-        new_quantity,
-        new_status_id,
-        new Date().toISOString(),
-        user_id,
-        comments || null,
-        checksum,
-        '{}',
-        new Date().toISOString(),
-        user_id,
-      ]);
+        inventory_action_type_id: actionTypeId,
+        previous_quantity: previous_quantity ?? 0,
+        quantity_change: adjusted_quantity ?? 0,
+        new_quantity: new_quantity ?? 0,
+        status_id: new_status_id,
+        status_date: new Date(), // Automatically set timestamp
+        source_action_id: user_id,
+        comments: comments || null,
+        checksum: checksum || null,
+        metadata: {}, // Empty object instead of '{}'
+        created_at: new Date(),
+        created_by: user_id,
+      });
     }
-
+    
     // Bulk Inserts
     if (warehouseLotAdjustments.length > 0) {
-      await bulkInsert(
-        'warehouse_lot_adjustments',
-        [
-          'warehouse_id',
-          'inventory_id',
-          'lot_number',
-          'adjustment_type_id',
-          'previous_quantity',
-          'adjusted_quantity',
-          'new_quantity',
-          'status_id',
-          'adjusted_by',
-          'comments',
-          'updated_by',
-        ],
-        warehouseLotAdjustments,
-        client
-      );
+      await bulkInsertWarehouseLotAdjustments(warehouseLotAdjustments, client)
     }
 
     if (inventoryActivityLogs.length > 0) {
-      await bulkInsert(
-        'inventory_activity_log',
-        [
-          'inventory_id',
-          'warehouse_id',
-          'lot_id',
-          'inventory_action_type_id',
-          'previous_quantity',
-          'quantity_change',
-          'new_quantity',
-          'status_id',
-          'adjustment_type_id',
-          'order_id',
-          'user_id',
-          'comments',
-        ],
-        inventoryActivityLogs,
-        client
-      );
+      await bulkInsertInventoryActivityLogs(inventoryActivityLogs, client);
     }
-
+    
     if (inventoryHistoryLogs.length > 0) {
-      await bulkInsert(
-        'inventory_history',
-        [
-          'inventory_id',
-          'inventory_action_type_id',
-          'previous_quantity',
-          'quantity_change',
-          'new_quantity',
-          'status_id',
-          'status_date',
-          'source_action_id',
-          'comments',
-          'checksum',
-          'metadata',
-          'created_at',
-          'created_by',
-        ],
-        inventoryHistoryLogs,
-        client
-      );
+      await bulkInsertInventoryHistory(inventoryHistoryLogs, client);
     }
-
+    
     return adjustedRecords;
   });
 };

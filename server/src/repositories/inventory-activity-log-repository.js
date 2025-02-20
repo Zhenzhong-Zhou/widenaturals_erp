@@ -79,7 +79,7 @@ const insertInventoryActivityLog = async (
  */
 const bulkInsertInventoryActivityLogs = async (logs, client) => {
   if (!Array.isArray(logs) || logs.length === 0) {
-    throw new Error("No logs provided for bulk insert.");
+    throw new AppError.validationError("No logs provided for bulk insert.");
   }
   
   const tableName = "inventory_activity_log";
@@ -99,33 +99,42 @@ const bulkInsertInventoryActivityLogs = async (logs, client) => {
     "comments",
   ];
   
-  // Convert logs array into a nested array of values for bulk insert
+  // Convert logs into a nested array of values for bulk insert
   const rows = logs.map(log => [
     log.inventory_id,
     log.warehouse_id,
-    log.lot_id,
+    log.lot_id || null,
     log.inventory_action_type_id,
-    log.previous_quantity,
-    log.quantity_change,
-    log.new_quantity,
-    log.status_id,
-    log.adjustment_type_id,
+    log.previous_quantity ?? 0, // Ensure previous quantity is always defined
+    log.quantity_change ?? 0,
+    log.new_quantity ?? 0,
+    log.status_id || null,
+    log.adjustment_type_id || null,
     log.order_id || null,
     log.user_id,
     new Date(), // Use current timestamp
-    log.comments,
+    log.comments || null,
   ]);
   
   try {
-    // Step 1: Retry Bulk Insert (3 Attempts with Exponential Backoff)
+    // Step 1: Retry Bulk Insert with Exponential Backoff
     return await retry(
-      () => bulkInsert(tableName, columns, rows, [], [], client),
+      async () => {
+        return await bulkInsert(
+          tableName,
+          columns,
+          rows,
+          [], // No conflict columns
+          [], // No update columns (DO NOTHING on conflict)
+          client
+        );
+      },
       3, // Retry up to 3 times
-      1000 // Initial delay of 1 second (will exponentially increase)
+      1000 // Initial delay of 1 second (will exponentially back off)
     );
   } catch (error) {
-    logError("Error inserting bulk inventory activity logs:", error.message);
-    throw new AppError.databaseError("Failed to insert inventory activity logs.", {
+    logError("Failed to insert bulk inventory activity logs:", error);
+    throw new AppError.databaseError("Bulk insert failed for inventory activity logs.", {
       details: { error: error.message, logs },
     });
   }
