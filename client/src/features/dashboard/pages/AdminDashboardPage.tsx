@@ -20,20 +20,16 @@ const AdminDashboardPage = ({
 
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
-
+  
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Pending':
-        return 'warning';
-      case 'Approved':
-        return 'success';
-      case 'Cancelled':
-        return 'error';
-      default:
-        return 'default';
-    }
+    const statusMap: Record<string, "primary" | "secondary" | "success" | "error" | "warning" | "default"> = {
+      Pending: "warning",
+      Approved: "success",
+      Rejected: "error",
+    };
+    return statusMap[status] || "default";
   };
-
+  
   const handleApprove = (row: any) => {
     console.log(`Approved: ${row.name}`);
   };
@@ -81,8 +77,8 @@ const AdminDashboardPage = ({
               sortable: true,
               renderCell: (value: any) => (
                 <Chip
-                  label={value}
-                  color={getStatusColor(value) || 'default'} // Ensure this returns a valid color
+                  label={typeof value === 'string' || typeof value === 'number' ? value : 'Unknown'}
+                  color={getStatusColor(value) || 'default'}
                   sx={{ textTransform: 'capitalize' }}
                 />
               ),
