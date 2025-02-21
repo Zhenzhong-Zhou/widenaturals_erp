@@ -60,7 +60,7 @@ const WarehouseInventoryPage = () => {
         />
       )}
 
-      <BulkInsertInventoryModal onSubmit={""} />
+      <BulkInsertInventoryModal onSubmit={""} mode={'create'} />
       
       {/* Warehouse Inventory Table */}
       <WarehouseInventoryTable

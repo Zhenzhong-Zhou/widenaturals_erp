@@ -1,18 +1,27 @@
 import { FC, useState } from 'react';
-import { CustomButton, CustomModal, Loading, MultiItemForm } from '@components/index';
+import { CustomButton, CustomDatePicker, CustomModal, Loading, MultiItemForm } from '@components/index';
 import { InventoryDropdown } from '../index.ts';
 import useDropdown from '../../../hooks/useDropdown';
+import { addYears } from 'date-fns';
+import { formatDate } from '@utils/dateTimeUtils.ts';
 
-const BulkInsertInventoryModal: FC<{ onSubmit: (data: Record<string, any>[]) => void }> = ({ onSubmit }) => {
+const BulkInsertInventoryModal: FC<{ onSubmit: (data: Record<string, any>[]) => void; mode: 'create' | 'edit' | 'adjust' }> = ({ onSubmit, mode }) => {
   const [open, setOpen] = useState(false);
   const { products, warehouses, loading } = useDropdown();
   
   const productOptions = products.map((p) => ({ value: p.id, label: p.product_name }));
   const warehouseOptions = warehouses.map((w) => ({ value: w.id, label: w.name }));
-  console.log(productOptions)
-  console.log(warehouseOptions)
+  
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
+  
+  const getValidationRules = (mode: 'create' | 'edit' | 'adjust') => ({
+    quantity: (value: number) => {
+      if (mode === 'create' && value <= 0) return 'Quantity must be greater than 0';
+      if (mode === 'adjust' && value === 0) return 'Adjustment quantity cannot be zero';
+      return undefined;
+    },
+  });
   
   return (
     <>
@@ -25,6 +34,7 @@ const BulkInsertInventoryModal: FC<{ onSubmit: (data: Record<string, any>[]) => 
           <Loading message={'Loading Data...'}/>
         ) : (
           <MultiItemForm
+            validation={getValidationRules(mode)}
             defaultValues={[{ type: 'product' }]}
             fields={[
               {
@@ -73,10 +83,53 @@ const BulkInsertInventoryModal: FC<{ onSubmit: (data: Record<string, any>[]) => 
                   />
                 )
               },
-              { id: 'manufacture_date', label: 'Manufacture Date', type: 'text' },
-              { id: 'lot_number', label: 'Lot Number', type: 'text' },
-              { id: 'expiry_date', label: 'Expiry Date', type: 'text' },
-              { id: 'quantity', label: 'Quantity', type: 'number' },
+              {
+                id: 'manufacture_date',
+                label: 'Manufacture Date',
+                type: 'custom',
+                component: ({ value, onChange }) => (
+                  <CustomDatePicker
+                    label="Manufacture Date"
+                    value={value}
+                    onChange={onChange}
+                  />
+                ),
+              },
+              {
+                id: 'lot_number',
+                label: 'Lot Number',
+                type: 'text'
+              },
+              {
+                id: 'expiry_date',
+                label: 'Expiry Date',
+                type: 'custom',
+                component: ({ value, onChange }) => {
+                  const expiryDate = value ? new Date(value) : new Date();
+                  const adjustedExpiryDate = addYears(expiryDate, 3);
+                  
+                  return (
+                    <CustomDatePicker
+                      label="Expiry Date"
+                      value={value}
+                      onChange={(date) => {
+                        if (!date) return;
+                        const adjustedExpiry = formatDate(addYears(new Date(date), 3));
+                        onChange(adjustedExpiry);
+                      }}
+                      views={['year', 'month', 'day']}
+                      openTo="year"
+                      defaultValue={adjustedExpiryDate}
+                    />
+                  );
+                },
+              },
+              {
+                id: 'quantity',
+                label: 'Quantity',
+                type: 'number',
+                validation: (value: number) => (value <= 0 ? 'Quantity must be greater than 0' : undefined),
+              },
             ]}
             onSubmit={(formData) => {
               onSubmit(formData);

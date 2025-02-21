@@ -11,12 +11,14 @@ interface FieldConfig {
   options?: { value: string; label: string }[];
   component?: (props: { value: any; onChange: (value: string) => void }) => ReactNode;
   conditional?: (data: Record<string, any>) => boolean;
+  validation?: (value: any) => string | undefined;
 }
 
 interface MultiItemFormProps {
   fields: FieldConfig[];
   onSubmit: (formData: Record<string, any>[]) => void;
   defaultValues?: Record<string, any>[];
+  validation?: Record<string, (value: any) => string | undefined>;
 }
 
 const MultiItemForm: FC<MultiItemFormProps> = ({ fields, onSubmit, defaultValues = [{}] }) => {
@@ -56,6 +58,8 @@ const MultiItemForm: FC<MultiItemFormProps> = ({ fields, onSubmit, defaultValues
                   control={control}
                   defaultValue={defaultValues[index]?.[field.id] || ''}
                   render={({ field: { onChange, value } }) => {
+                    const errorMessage = field.validation ? field.validation(value) : undefined;
+                    
                     if (field.type === 'custom' && field.component) {
                       const CustomComponent = field.component;
                       return <CustomComponent value={value} onChange={onChange} />;
@@ -80,6 +84,8 @@ const MultiItemForm: FC<MultiItemFormProps> = ({ fields, onSubmit, defaultValues
                         onChange={onChange}
                         fullWidth
                         sx={{ minWidth: '150px', flexGrow: 1 }}
+                        error={!!errorMessage}
+                        helperText={errorMessage}
                       />
                     );
                   }}

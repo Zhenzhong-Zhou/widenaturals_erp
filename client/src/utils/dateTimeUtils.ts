@@ -1,4 +1,5 @@
 import { AppError, ErrorType } from '@utils/AppError.tsx';
+import { parseISO, differenceInDays, differenceInMinutes } from 'date-fns';
 
 /**
  * Helper function to validate a date object.
@@ -126,4 +127,16 @@ export const formatDateTime = (
   const second = String(localDate.getSeconds()).padStart(2, '0');
 
   return `${year}-${month}-${day} ${hour}:${minute}:${second} ${timezoneAbbreviation}`;
+};
+
+/**
+ * Returns relative time (e.g., "2 days ago", "10 minutes ago")
+ */
+export const timeAgo = (date: Date | string): string => {
+  const parsedDate = typeof date === 'string' ? parseISO(date) : date;
+  const diffMinutes = differenceInMinutes(new Date(), parsedDate);
+  
+  if (diffMinutes < 60) return `${diffMinutes} minutes ago`;
+  const diffDays = differenceInDays(new Date(), parsedDate);
+  return diffDays === 0 ? 'Today' : `${diffDays} days ago`;
 };

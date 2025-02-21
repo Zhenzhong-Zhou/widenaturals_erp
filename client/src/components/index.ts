@@ -21,3 +21,4 @@ export { default as DetailHeader } from './common/DetailHeader.tsx';
 export { default as MetadataSection } from './common/MetadataSection.tsx';
 export { default as PriceDisplay } from './common/PriceDisplay.tsx';
 export { default as Dropdown } from './common/Dropdown.tsx';
+export { default as CustomDatePicker } from './common/CustomDatePicker.tsx';
