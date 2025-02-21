@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { fetchProductDetails } from '../services/productService';
+import { productService } from '../services';
 import { Product } from '../features/product';
 
 interface UseProductDetailResult {
@@ -25,7 +25,7 @@ const useProductDetail = (productId: string): UseProductDetailResult => {
     try {
       setIsLoading(true);
       setError(null);
-      const fetchedProduct = await fetchProductDetails(productId);
+      const fetchedProduct = await productService.fetchProductDetails(productId);
       setProduct(fetchedProduct);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch product details');

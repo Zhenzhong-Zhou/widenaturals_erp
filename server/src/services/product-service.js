@@ -1,6 +1,6 @@
 const {
   getProducts,
-  getProductDetailsById,
+  getProductDetailsById, getActiveProductsForDropdown,
 } = require('../repositories/product-repository');
 const { logInfo, logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
@@ -66,7 +66,19 @@ const fetchProductDetails = async (id) => {
   }
 };
 
+const fetchProductDropdownList = async () => {
+  try {
+    const products = await getActiveProductsForDropdown();
+    console.log(products);
+    return products;
+  } catch (error) {
+    console.log(error);
+    throw new AppError.serviceError(`Failed to fetch product dropdown: ${error.message}`);
+  }
+};
+
 module.exports = {
   fetchAllProducts,
   fetchProductDetails,
+  fetchProductDropdownList,
 };

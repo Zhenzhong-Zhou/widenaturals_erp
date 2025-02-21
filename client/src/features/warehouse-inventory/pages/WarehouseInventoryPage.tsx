@@ -13,6 +13,7 @@ import {
   Typography,
 } from '@components/index.ts';
 import { WarehouseInventorySummaryCard } from '../index.ts';
+import BulkInsertInventoryModal from '../components/BulkInsertInventoryModal.tsx';
 
 const WarehouseInventoryPage = () => {
   const [page, setPage] = useState(1);
@@ -59,6 +60,8 @@ const WarehouseInventoryPage = () => {
         />
       )}
 
+      <BulkInsertInventoryModal onSubmit={""} />
+      
       {/* Warehouse Inventory Table */}
       <WarehouseInventoryTable
         data={inventories}

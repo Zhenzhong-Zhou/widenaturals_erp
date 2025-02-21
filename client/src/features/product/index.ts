@@ -7,4 +7,5 @@ export type {
   UseProductsOptions,
   Pagination,
   UseProductsResult,
+  ProductDetailApiResponse,
 } from './state/productTypes.ts';

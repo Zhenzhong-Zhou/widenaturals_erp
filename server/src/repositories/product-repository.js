@@ -299,8 +299,34 @@ const getProductDetailsById = async (id) => {
   }
 };
 
+const getActiveProductsForDropdown = async () => {
+  const queryText = `
+    SELECT p.id, p.product_name
+    FROM products p
+    INNER JOIN status s ON p.status_id = s.id
+    WHERE s.name = 'active'
+    ORDER BY p.product_name ASC
+  `;
+  
+  try {
+    const { rows } = await query(queryText);
+    console.log(rows);
+    return rows;
+  } catch (error) {
+    console.error(error);
+    logError('Error fetching products for dropdown', {
+      message: error.message,
+      stack: error.stack,
+    });
+    throw new AppError.databaseError('Failed to fetch product dropdown list', {
+      originalError: error.message,
+    });
+  }
+};
+
 module.exports = {
   getProducts,
   checkProductExists,
   getProductDetailsById,
+  getActiveProductsForDropdown,
 };

@@ -1,7 +1,7 @@
 const wrapAsync = require('../utils/wrap-async');
 const {
   fetchAllWarehouses,
-  fetchWarehouseInventorySummary,
+  fetchWarehouseInventorySummary, fetchWarehouseDropdownList,
 } = require('../services/warehouse-service');
 
 /**
@@ -51,7 +51,17 @@ const getWarehouseInventorySummaryController = wrapAsync(
   }
 );
 
+const getWarehouseDropdownListController = wrapAsync(async (req, res, next) => {
+  try {
+    const warehouses = await fetchWarehouseDropdownList();
+    res.json(warehouses);
+  } catch (error) {
+    next(error);
+  }
+});
+
 module.exports = {
   getAllWarehousesController,
   getWarehouseInventorySummaryController,
+  getWarehouseDropdownListController,
 };

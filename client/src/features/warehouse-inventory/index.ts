@@ -66,3 +66,15 @@ export { default as WarehouseProductSummaryCard } from './components/WarehousePr
 export { default as WarehouseInventoryDetailTable } from './components/WarehouseInventoryDetailTable.tsx';
 export { default as EditQuantityModal } from './components/EditQuantityModal.tsx';
 export { default as BulkAdjustQuantityModal } from './components/BulkAdjustQuantityModal.tsx';
+export type {
+  ProductDropdownItem,
+  WarehouseDropdownItem,
+  DropdownState,
+} from './state/inventoryDropdownTypes.ts';
+export { fetchInventoryDropdownData } from './state/inventoryDropdownThunks.ts';
+export {
+  selectDropdownLoading,
+  selectProductDropdown,
+  selectWarehouseDropdown,
+} from './state/inventoryDropdownSelectors.ts';
+export { default as InventoryDropdown } from './components/InventoryDropdown.tsx';

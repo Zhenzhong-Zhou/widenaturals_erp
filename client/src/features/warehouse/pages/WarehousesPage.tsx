@@ -1,6 +1,6 @@
 import { FC, useState } from 'react';
 import { useWarehouses } from '../../../hooks';
-import WarehouseTable from '../components/WarehouseTable';
+import { WarehouseTable } from '../index.ts';
 import Box from '@mui/material/Box';
 import { CustomButton, ErrorMessage, Loading } from '@components/index.ts';
 

@@ -211,10 +211,33 @@ const checkAndLockWarehouse = async (client, warehouseId, locationId) => {
   return await lockRow(client, "warehouses", warehouseToLock, "FOR UPDATE");
 };
 
+const getActiveWarehousesForDropdown = async () => {
+  const queryText = `
+    SELECT w.id, w.name
+    FROM warehouses w
+    INNER JOIN status s ON w.status_id = s.id
+    WHERE s.name = 'active'
+    ORDER BY w.name ASC
+  `;
+  
+  try {
+    const { rows } = await query(queryText);
+    return rows;
+  } catch (error) {
+    logError('Error fetching warehouses for dropdown', {
+      message: error.message,
+      stack: error.stack,
+    });
+    throw new AppError.databaseError('Failed to fetch warehouse dropdown list', {
+      originalError: error.message,
+    });
+  }
+};
 
 module.exports = {
   getWarehouses,
   getWarehouseInventorySummary,
   checkAndLockWarehouse,
   geLocationIdByWarehouseId,
+  getActiveWarehousesForDropdown,
 };

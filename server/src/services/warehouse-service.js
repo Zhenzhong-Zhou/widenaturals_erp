@@ -1,6 +1,6 @@
 const {
   getWarehouses,
-  getWarehouseInventorySummary,
+  getWarehouseInventorySummary, getActiveWarehousesForDropdown,
 } = require('../repositories/warehouse-repository');
 const AppError = require('../utils/AppError');
 const { logInfo, logError } = require('../utils/logger-helper');
@@ -99,13 +99,21 @@ const fetchWarehouseInventorySummary = async ({
       pagination,
     };
   } catch (error) {
-    console.log(error);
     logError('Error in fetchWarehouseInventorySummary:', error);
     throw new AppError('Failed to retrieve warehouse inventory summary.', 500);
+  }
+};
+
+const fetchWarehouseDropdownList = async () => {
+  try {
+    return await getActiveWarehousesForDropdown();
+  } catch (error) {
+    throw new AppError.serviceError(`Failed to fetch warehouse dropdown: ${error.message}`);
   }
 };
 
 module.exports = {
   fetchAllWarehouses,
   fetchWarehouseInventorySummary,
+  fetchWarehouseDropdownList,
 };
