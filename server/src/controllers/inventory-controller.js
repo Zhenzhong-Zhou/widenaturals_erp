@@ -36,13 +36,13 @@ const createInventoryRecordsController = wrapAsync(async (req, res, next) => {
     const result = await getUser(null, 'email', 'root@widenaturals.com');
     const userId= result.id;
     console.log(userId)
-    const response = await createInventoryRecords(inventoryData, userId);
+    const { success, message, data, warehouseLots } = await createInventoryRecords(inventoryData, userId);
     
-    if (!response.success) {
-      return res.status(400).json({ success: false, error: response.error });
+    if (!success) {
+      return res.status(400).json({ success, message, warehouseLots });
     }
     
-    return res.status(201).json({ success: true, message: response.message, data: response.data });
+    return res.status(201).json({ success: true, message, data });
   } catch (error) {
     logError('Controller error:', error.message);
     next(error);

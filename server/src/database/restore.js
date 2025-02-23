@@ -8,13 +8,20 @@ const execAsync = promisify(exec);
 loadEnv();
 
 /**
- * Restores a decrypted SQL backup to the database.
- * @param {string} decryptedFilePath - Path to the plain-text SQL file.
- * @param {string} databaseName - Target database name.
- * @returns {Promise<void>}
+ * Restores a decrypted SQL backup to the specified PostgreSQL database.
+ *
+ * @param {string} decryptedFilePath - The absolute path to the decrypted SQL backup file.
+ * @param {string} databaseName - The name of the PostgreSQL database to restore the backup into.
+ * @param {string} dbUser - The PostgreSQL user executing the restore operation.
+ * @returns {Promise<void>} Resolves when the restore process completes successfully.
+ *
+ * @throws {Error} Throws an error if the restore operation fails.
+ *
+ * @example
+ * await restoreDatabase('/backups/restore.sql', 'my_database', 'postgres');
  */
-const restoreDatabase = async (decryptedFilePath, databaseName) => {
-  const restoreCommand = `psql -d ${databaseName} -f ${decryptedFilePath}`;
+const restoreDatabase = async (decryptedFilePath, databaseName, dbUser) => {
+  const restoreCommand = `pg_restore --clean --if-exists --jobs=4 --format=custom --dbname=${databaseName} --username=${dbUser} ${decryptedFilePath}`;
   try {
     const { stdout, stderr } = await execAsync(restoreCommand);
     console.log(`Restore command output: ${stdout}`);

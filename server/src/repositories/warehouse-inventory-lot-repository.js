@@ -344,6 +344,77 @@ const adjustWarehouseInventoryLots = async (records, user_id) => {
 };
 
 /**
+ * Checks the existence of inventory lots in specified warehouses based on various criteria.
+ *
+ * @param {object} client - The database client instance.
+ * @param {string[]} warehouseIds - An array of warehouse IDs.
+ * @param {Array<{ inventory_id: string }>} inventoryData - An array of objects containing inventory IDs.
+ * @param {Array<{
+ *   lot_number: string,
+ *   manufacture_date: string | null,
+ *   expiry_date: string | null,
+ *   type: string
+ * }>} lotDetailsArray - An array of objects containing lot details.
+ * @returns {Promise<Array<{
+ *   warehouse_id: string,
+ *   inventory_id: string,
+ *   lot_number: string,
+ *   manufacture_date: string | null,
+ *   expiry_date: string | null,
+ *   id: string
+ * }>>} - Returns an array of warehouse inventory lot records matching the criteria, or an empty array if none are found.
+ * @throws {AppError} - Throws an error if the database query fails.
+ */
+const checkWarehouseInventoryLotExists = async (client, warehouseIds, inventoryData, lotDetailsArray) => {
+  if (!Array.isArray(warehouseIds) || warehouseIds.length === 0 ||
+    !Array.isArray(inventoryData) || inventoryData.length === 0 ||
+    !Array.isArray(lotDetailsArray) || lotDetailsArray.length === 0) {
+    return [];
+  }
+  
+  // Extract inventory IDs from inventoryData objects
+  const inventoryIds = inventoryData.map(({ inventory_id }) => inventory_id).filter(Boolean);
+  
+  // Extract lot details
+  const lotNumbers = lotDetailsArray.map(lot => lot.lot_number).filter(Boolean);
+  const manufactureDates = lotDetailsArray.map(lot => lot.manufacture_date).filter(Boolean);
+  const expiryDates = lotDetailsArray.map(lot => lot.expiry_date).filter(Boolean);
+  const itemTypes = lotDetailsArray.map(lot => lot.type).filter(Boolean);
+  
+  const queryText = `
+    SELECT warehouse_id, inventory_id, lot_number, manufacture_date, expiry_date, id
+    FROM warehouse_inventory_lots
+    WHERE warehouse_id = ANY($1::uuid[])
+    AND inventory_id = ANY($2::uuid[])
+    AND lot_number = ANY($3::text[])
+    AND (
+      (inventory_id IS NOT NULL AND 'product' = ANY($6::text[])
+        AND (array_length($4::date[], 1) IS NULL OR manufacture_date = ANY($4::date[]))
+        AND (array_length($5::date[], 1) IS NULL OR expiry_date = ANY($5::date[]))
+      )
+      OR (inventory_id IS NOT NULL AND 'product' != ANY($6::text[]))
+    );
+  `;
+  
+  const params = [
+    warehouseIds,
+    inventoryIds,
+    lotNumbers.length > 0 ? lotNumbers : null,
+    manufactureDates.length > 0 ? manufactureDates : null,
+    expiryDates.length > 0 ? expiryDates : null,
+    itemTypes.length > 0 ? itemTypes : null
+  ];
+  
+  try {
+    const { rows } = await client.query(queryText, params);
+    return rows;
+  } catch (error) {
+    logError("Error checking warehouse inventory lots:", error);
+    throw new AppError("Database query failed");
+  }
+};
+
+/**
  * Inserts warehouse inventory lot records in bulk with conflict handling and retry mechanism.
  *
  *  @param {import("pg").PoolClient} client - The PostgreSQL client instance (transaction).
@@ -401,5 +472,6 @@ const insertWarehouseInventoryLots = async (client, warehouseLots) => {
 
 module.exports = {
   adjustWarehouseInventoryLots,
+  checkWarehouseInventoryLotExists,
   insertWarehouseInventoryLots,
 };

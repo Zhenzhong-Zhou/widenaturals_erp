@@ -1,6 +1,7 @@
 const { query, paginateQuery, retry, withTransaction, bulkInsert, lockRow, lockRows, formatBulkUpdateQuery } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logInfo, logError } = require('../utils/logger-helper');
+const { checkInventoryExists } = require('./inventory-repository');
 
 const getWarehouseInventories = async ({
   page,
@@ -227,6 +228,38 @@ const getWarehouseInventoryDetailsByWarehouseId = async ({
 };
 
 /**
+ * Checks the existence of inventory records in specified warehouses.
+ *
+ * @param {object} client - The database client instance.
+ * @param {string[]} warehouseIds - An array of warehouse IDs.
+ * @param {string[]} inventoryRecords - An array of inventory IDs.
+ * @returns {Promise<Array<{warehouse_id: string, inventory_id: string, id: string}>>}
+ *          - Returns an array of matching warehouse inventory records, or an empty array if none are found.
+ * @throws {AppError} - Throws an error if the database query fails.
+ */
+const checkWarehouseInventoryBulk = async (client, warehouseIds, inventoryRecords) => {
+  if (!Array.isArray(warehouseIds) || warehouseIds.length === 0 ||
+    !Array.isArray(inventoryRecords) || inventoryRecords.length === 0) {
+    return [];
+  }
+  
+  const queryText = `
+    SELECT warehouse_id, inventory_id, id
+    FROM warehouse_inventory
+    WHERE warehouse_id = ANY($1::uuid[])
+    AND inventory_id = ANY($2::uuid[]);
+  `;
+  
+  try {
+    const { rows } = await client.query(queryText, [warehouseIds, inventoryRecords]);
+    return rows;
+  } catch (error) {
+    logError("Error checking warehouse inventory existence:", error);
+    throw new AppError("Database query failed");
+  }
+};
+
+/**
  * Inserts records into the warehouse_inventory table using transactions.
  * Handles conflicts and ensures existing records are locked before updating.
  *
@@ -260,9 +293,9 @@ const insertWarehouseInventoryRecords = async (client, inventoryData) => {
       "updated_at", "updated_by", "last_update"
     ];
     
-    const rows = inventoryData.map(({ warehouse_id, inventory_id, available_quantity, warehouse_fee, status_id, userId }) => [
+    const rows = inventoryData.map(({ warehouse_id, inventory_id, available_quantity, warehouse_fee, status_id, created_by }) => [
       warehouse_id, inventory_id, 0, available_quantity || 0, warehouse_fee || 0,
-      status_id, new Date(), new Date(), userId, null, null, null
+      status_id, new Date(), new Date(), created_by, null, null, null
     ]);
     
     // Step 3: Bulk Insert with Retry and Conflict Handling
@@ -334,6 +367,34 @@ const updateWarehouseInventoryQuantity = async (client, warehouseUpdates, userId
   return []; // Return empty array if no updates were made
 };
 
+/**
+ * Retrieves recently inserted warehouse inventory records based on warehouse lot IDs.
+ *
+ * @param {string[]} warehouseLotIds - An array of warehouse lot IDs.
+ * @returns {Promise<Array<{
+ *   warehouse_id: string,
+ *   warehouse_name: string,
+ *   total_records: number,
+ *   inventory_records: Array<{
+ *     warehouse_lot_id: string,
+ *     inventory_id: string,
+ *     location_id: string,
+ *     quantity: number,
+ *     product_name: string,
+ *     inserted_quantity: number,
+ *     available_quantity: number,
+ *     lot_number: string,
+ *     expiry_date: string | null,
+ *     manufacture_date: string | null,
+ *     inbound_date: string | null,
+ *     inventory_created_at: string,
+ *     inventory_created_by: string,
+ *     inventory_updated_at: string,
+ *     inventory_updated_by: string
+ *   }>
+ * }>>} - Returns an array of warehouse inventory records, grouped by warehouse, including product and lot details.
+ * @throws {Error} - Throws an error if the database query fails.
+ */
 const getRecentInsertWarehouseInventoryRecords = async (warehouseLotIds) => {
   const queryText = `
     WITH lots_data AS (
@@ -400,6 +461,7 @@ module.exports = {
   getWarehouseInventories,
   getWarehouseProductSummary,
   getWarehouseInventoryDetailsByWarehouseId,
+  checkWarehouseInventoryBulk,
   insertWarehouseInventoryRecords,
   updateWarehouseInventoryQuantity,
   getRecentInsertWarehouseInventoryRecords,

@@ -13,6 +13,7 @@ loadEnv();
 const encryptedFile = process.argv[2] || process.env.ENCRYPTED_FILE;
 const encryptionKey = process.env.BACKUP_ENCRYPTION_KEY;
 const databaseName = process.env.DB_NAME;
+const dbUser = process.env.DB_USER;
 
 (async () => {
   try {
@@ -49,7 +50,7 @@ const databaseName = process.env.DB_NAME;
     await decryptFile(encryptedFile, decryptedFile, encryptionKey, ivFile);
 
     console.log('Restoring database from decrypted file...');
-    await restoreDatabase(decryptedFile, databaseName);
+    await restoreDatabase(decryptedFile, databaseName, dbUser);
 
     // Optionally, delete the decrypted file after successful restoration
     fs.unlinkSync(decryptedFile);

@@ -1,16 +1,21 @@
-const { getInventories, insertInventoryRecords, updateInventoryQuantity } = require('../repositories/inventory-repository');
+const { getInventories, insertInventoryRecords, updateInventoryQuantity, checkInventoryExists,
+  getProductIdOrIdentifierByInventoryIds
+} = require('../repositories/inventory-repository');
 const AppError = require('../utils/AppError');
-const { logError, logInfo } = require('../utils/logger-helper');
+const { logError, logInfo, logWarn } = require('../utils/logger-helper');
 const { getWarehouseLotStatus } = require('../repositories/warehouse-lot-status-repository');
 const { withTransaction, retry } = require('../database/db');
-const { insertWarehouseInventoryRecords, updateWarehouseInventoryQuantity, getRecentInsertWarehouseInventoryRecords } = require('../repositories/warehouse-inventory-repository');
+const { insertWarehouseInventoryRecords, updateWarehouseInventoryQuantity, getRecentInsertWarehouseInventoryRecords,
+  checkWarehouseInventoryBulk
+} = require('../repositories/warehouse-inventory-repository');
 const { geLocationIdByWarehouseId } = require('../repositories/warehouse-repository');
-const { insertWarehouseInventoryLots } = require('../repositories/warehouse-inventory-lot-repository');
+const { insertWarehouseInventoryLots, checkWarehouseInventoryLotExists } = require('../repositories/warehouse-inventory-lot-repository');
 const { bulkInsertInventoryActivityLogs } = require('../repositories/inventory-activity-log-repository');
 const { getActionTypeId } = require('../repositories/inventory-action-type-repository');
 const { bulkInsertInventoryHistory } = require('../repositories/inventory-history-repository');
 const { getWarehouseLotAdjustmentType } = require('../repositories/lot-adjustment-type-repository');
 const { generateChecksum } = require('../utils/crypto-utils');
+const { rows } = require('pg/lib/defaults');
 
 /**
  * Fetch all inventory records with pagination, sorting, and business logic.
@@ -69,11 +74,14 @@ const createInventoryRecords = async (inventoryData, userId) => {
     return await withTransaction(async (client) => {
       const { id: status_id } = await getWarehouseLotStatus(client, { name: "in_stock" });
       
+      // Step 1: Extract warehouse-related IDs
       const warehouseIds = [...new Set(inventoryData.map((item) => item.warehouse_id))].filter(Boolean);
       const warehouseLocations = await geLocationIdByWarehouseId(client, warehouseIds);
       
+      // Step 2: Separate products and non-products
       const products = [];
       const otherTypes = [];
+      let warehouseLotsInventoryRecords = [];
       
       for (const data of inventoryData) {
         const { type, identifier, product_id, warehouse_id, quantity, lot_number, expiry_date, manufacture_date } = data;
@@ -89,47 +97,125 @@ const createInventoryRecords = async (inventoryData, userId) => {
         
         if (type === "product") {
           if (!product_id) throw new AppError.validationError("Product must have a product_id.");
-          products.push({ product_id, warehouse_id, location_id, quantity, lot_number, expiry_date, manufacture_date, status_id, userId });
+          products.push({ type, product_id, warehouse_id, location_id, quantity, lot_number, expiry_date, manufacture_date, status_id, userId });
         } else {
           if (!identifier) throw new AppError.validationError("Non-product items must have an identifier.");
-          otherTypes.push({ identifier, type, warehouse_id, location_id, quantity, lot_number, expiry_date, manufacture_date, status_id, userId });
+          otherTypes.push({ type, identifier, warehouse_id, location_id, quantity, lot_number, expiry_date, manufacture_date, status_id, userId });
         }
       }
       
       const formattedInventoryData = { products, otherTypes };
+      let flatInventory = [...(formattedInventoryData.products || []), ...(formattedInventoryData.otherTypes || [])];
       
-      // Step 1: Insert Inventory Records
-      const { success, inventoryRecords } = await insertInventoryRecords(client, formattedInventoryData);
+      // Step 3: Fetch Inventory IDs for Existing Items
+      let inventoryIds  = await retry(
+        () => checkInventoryExists(flatInventory),
+        3,
+        1000
+      ) || [];
       
-      // Step 2: Insert Warehouse Inventory Lots
-      const warehouseLots = [...products, ...otherTypes].map((item, index) => {
-        const matchingInventory = inventoryRecords[index];
-        
-        if (!matchingInventory || !matchingInventory.id) {
-          logError(`Missing inventory_id for item:`, item);
-          throw new AppError(`Missing inventory_id for item: ${JSON.stringify(item)}`);
+      // Step 4: Insert Missing Inventory Records
+      const newInventoryItems = flatInventory.filter(item =>
+        !inventoryIds.some(existing => existing.product_id === (item.product_id || item.identifier))
+      );
+      
+      if (newInventoryItems.length > 0) {
+        const { success, inventoryRecords } = await retry(() => insertInventoryRecords(client, newInventoryItems));
+        if (!success || !Array.isArray(inventoryRecords)) {
+          throw new AppError("Failed to insert inventory records or returned data is invalid.");
         }
         
-        return {
+        const retrieveRecords = await getProductIdOrIdentifierByInventoryIds(client, inventoryRecords);
+        
+        // Merge inserted inventory IDs with existing ones
+        inventoryIds = [
+          ...inventoryIds,
+          ...retrieveRecords.map(record => ({
+            id: record.id,
+            product_id: record.product_id || null,
+            identifier: record.identifier || null,
+          }))
+        ];
+      }
+      
+      // Step 5: Map inventory IDs to flatInventory
+      const inventoryMap = {};
+      inventoryIds.forEach(({ id, product_id, identifier }) => {
+        if (product_id) inventoryMap[product_id] = id;
+        if (identifier) inventoryMap[identifier] = id;
+      });
+      
+      flatInventory.forEach(item => {
+        // Get the corresponding inventory ID from the map
+        const mappedId = inventoryMap[item.product_id] || inventoryMap[item.identifier];
+        
+        if (mappedId) {
+          item.inventory_id = mappedId;
+        } else {
+          console.warn(`Warning: No matching inventory_id found for product_id: ${item.product_id}, identifier: ${item.identifier}`);
+        }
+      });
+      
+      // Step 6: Check and Insert Warehouse Inventory
+      const existingWarehouseInventoryItems = await checkWarehouseInventoryBulk(
+        client,
+        warehouseIds,
+        flatInventory.map(i => i.inventory_id)
+      );
+      
+      const newWarehouseInventoryItems = flatInventory.filter(item =>
+        !existingWarehouseInventoryItems.some(existing =>
+          existing.warehouse_id === item.warehouse_id &&
+          existing.inventory_id === item.inventory_id
+        )
+      );
+      
+      if (newWarehouseInventoryItems.length > 0) {
+        const warehouseInventoryRecords = newWarehouseInventoryItems.map(item => ({
           warehouse_id: item.warehouse_id,
-          inventory_id: matchingInventory.id,
+          inventory_id: item.inventory_id,
+          reserved_quantity: 0,
+          available_quantity: item.quantity,
+          warehouse_fee: 0,
+          status_id: status_id,
+          created_by: userId,
+        }));
+        
+        await insertWarehouseInventoryRecords(client, warehouseInventoryRecords);
+      }
+      
+      // Step 7: Check and Insert Warehouse Inventory Lots
+      const existingWarehouseInventoryLotItems = await checkWarehouseInventoryLotExists(client, warehouseIds, inventoryIds.map(i => i.id), flatInventory);
+      const newLots = flatInventory.filter(item =>
+        !existingWarehouseInventoryLotItems.some(existing =>
+          existing.warehouse_id === item.warehouse_id &&
+          existing.inventory_id === item.inventory_id &&
+          existing.lot_number === item.lot_number &&
+          existing.manufacture_date === item.manufacture_date &&
+          existing.expiry_date === item.expiry_date
+        )
+      );
+      
+      if (newLots.length > 0) {
+        const warehouseLots = newLots.map(item => ({
+          warehouse_id: item.warehouse_id,
+          inventory_id: item.inventory_id,
           lot_number: item.lot_number || null,
           quantity: item.quantity,
           expiry_date: item.expiry_date || null,
           manufacture_date: item.manufacture_date || null,
           status_id: item.status_id,
           created_by: userId,
-        };
-      });
-      
-      const warehouseInventoryRecords = await insertWarehouseInventoryRecords(client, warehouseLots);
-      const warehouseLotsInventoryRecords = await insertWarehouseInventoryLots(client, warehouseLots);
+        }));
+        
+        warehouseLotsInventoryRecords = await insertWarehouseInventoryLots(client, warehouseLots);
+      }
       
       const insert_action_type_id = await getActionTypeId(client, 'manual_stock_insert');
       const { id: insert_adjustment_type_id } = await getWarehouseLotAdjustmentType(client, { name: 'manual_stock_insert' });
       
       // Step 3: Insert Activity Logs for Inventory Creation
-      const activityLogs = warehouseLots.map(({ inventory_id, warehouse_id, status_id, quantity }) => ({
+      const activityLogs = newLots.map(({ inventory_id, warehouse_id, quantity }) => ({
         inventory_id,
         warehouse_id,
         lot_id: null,
@@ -148,7 +234,7 @@ const createInventoryRecords = async (inventoryData, userId) => {
       await bulkInsertInventoryActivityLogs(activityLogs, client);
       
       // Step 4: Insert Inventory History for Creation
-      const inventoryHistoryLogs = warehouseLots.map(item => ({
+      const inventoryHistoryLogs = newLots.map(item => ({
         inventory_id: item.inventory_id,
         inventory_action_type_id: insert_action_type_id,
         previous_quantity: 0,
@@ -173,13 +259,13 @@ const createInventoryRecords = async (inventoryData, userId) => {
       await bulkInsertInventoryHistory(inventoryHistoryLogs, client);
       
       // Step 5: Aggregate total quantity per inventory_id
-      const inventoryUpdates = warehouseLots.reduce((acc, { inventory_id, quantity }) => {
+      const inventoryUpdates = newLots.reduce((acc, { inventory_id, quantity }) => {
         acc[inventory_id] = (acc[inventory_id] || 0) + quantity;
         return acc;
       }, {});
       
       // Step 6: Aggregate available quantity per warehouse_id & inventory_id
-      const warehouseUpdates = warehouseLots.reduce((acc, { warehouse_id, inventory_id, quantity }) => {
+      const warehouseUpdates = newLots.reduce((acc, { warehouse_id, inventory_id, quantity }) => {
         const key = `${warehouse_id}-${inventory_id}`;
         acc[key] = (acc[key] || 0) + quantity;
         return acc;
@@ -190,8 +276,7 @@ const createInventoryRecords = async (inventoryData, userId) => {
       
       // Step 8: Update Warehouse Inventory Quantities
       await updateWarehouseInventoryQuantity(client, warehouseUpdates, userId);
-      
-      const inventoryToWarehouseMap = warehouseLots.reduce((map, item) => {
+      const inventoryToWarehouseMap = newLots.reduce((map, item) => {
         map[item.inventory_id] = item.warehouse_id;
         return map;
       }, {});
@@ -243,14 +328,14 @@ const createInventoryRecords = async (inventoryData, userId) => {
       await bulkInsertInventoryHistory(updateHistoryLogs, client);
       
       return {
-        success,
+        success: true,
         message: "Inventory records successfully created, updated, and logged.",
-        data: { inventoryRecords, warehouseInventoryRecords, warehouseLotsInventoryRecords },
+        data: { warehouseLotsInventoryRecords },
       };
     });
   } catch (error) {
     logError("Error in inventory service:", error.message);
-    return { success: false, error: error.message };
+    return { success: false, message: error.message };
   }
 };
 
