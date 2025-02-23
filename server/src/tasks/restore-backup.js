@@ -7,6 +7,7 @@ const { loadEnv } = require('../config/env');
 const fs = require('fs');
 const { decryptFile } = require('../database/encryption');
 const { restoreDatabase } = require('../database/restore');
+const { logInfo, logError } = require('../utils/logger-helper');
 
 loadEnv();
 
@@ -46,17 +47,17 @@ const dbUser = process.env.DB_USER;
       );
     }
 
-    console.log('Decrypting backup file...');
+    logInfo('Decrypting backup file...');
     await decryptFile(encryptedFile, decryptedFile, encryptionKey, ivFile);
-
-    console.log('Restoring database from decrypted file...');
+    
+    logInfo('Restoring database from decrypted file...');
     await restoreDatabase(decryptedFile, databaseName, dbUser);
 
     // Optionally, delete the decrypted file after successful restoration
     fs.unlinkSync(decryptedFile);
-    console.log('Restoration complete. Decrypted file deleted.');
+    logInfo('Restoration complete. Decrypted file deleted.');
   } catch (error) {
-    console.error('Failed to decrypt and restore the backup:', error.message);
+    logError('Failed to decrypt and restore the backup:', error.message);
     process.exit(1); // Exit with failure
   }
 })();

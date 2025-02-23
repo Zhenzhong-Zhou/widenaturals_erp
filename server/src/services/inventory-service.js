@@ -152,7 +152,7 @@ const createInventoryRecords = async (inventoryData, userId) => {
         if (mappedId) {
           item.inventory_id = mappedId;
         } else {
-          console.warn(`Warning: No matching inventory_id found for product_id: ${item.product_id}, identifier: ${item.identifier}`);
+          logWarn(`Warning: No matching inventory_id found for product_id: ${item.product_id}, identifier: ${item.identifier}`);
         }
       });
       

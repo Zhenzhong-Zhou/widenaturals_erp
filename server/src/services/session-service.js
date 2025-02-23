@@ -6,7 +6,7 @@ const {
 const { verifyPassword } = require('../utils/password-helper');
 const { signToken } = require('../utils/token-helper');
 const AppError = require('../utils/AppError');
-const { logError } = require('../utils/logger-helper');
+const { logError, logWarn } = require('../utils/logger-helper');
 const { withTransaction } = require('../database/db');
 const { validateUserExists } = require('../validators/db-validators');
 
@@ -59,7 +59,7 @@ const loginUser = async (email, password) => {
       const newTotalAttempts = attempts + 1;
 
       if (!isValidPassword) {
-        console.warn(
+        logWarn(
           'Password verification failed. Incrementing failed attempts.'
         );
 

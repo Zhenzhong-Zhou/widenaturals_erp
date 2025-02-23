@@ -3,6 +3,7 @@ const {
   getRolePermissionsByRoleId,
 } = require('../repositories/role-permission-repository');
 const AppError = require('../utils/AppError');
+const { logError } = require('../utils/logger-helper');
 
 /**
  * Fetch permissions and role name for a given role ID, with caching.
@@ -31,7 +32,7 @@ const fetchPermissions = async (roleId) => {
     return dataToCache;
   } catch (error) {
     // Log and throw the error for upstream handling
-    console.error('Error fetching permissions and role name:', {
+    logError('Error fetching permissions and role name:', {
       roleId,
       error: error.message,
     });
