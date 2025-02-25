@@ -313,25 +313,35 @@ const getAvailableProductsForDropdown = async (warehouseId) => {
   }
   
   const queryText = `
-     WITH active_products AS (
-        SELECT p.id AS product_id, p.product_name, i.id AS inventory_id
-        FROM products p
-        INNER JOIN status ps ON p.status_id = ps.id
-        INNER JOIN inventory i ON i.product_id = p.id
-        WHERE ps.name = 'active'
-    ),
-    existing_inventory AS (
-        SELECT wi.inventory_id, wi.warehouse_id
+    WITH active_warehouses AS (
+        SELECT DISTINCT wi.warehouse_id
         FROM warehouse_inventory wi
-        WHERE wi.warehouse_id = $1
+        JOIN warehouse_lot_status wls ON wi.status_id = wls.id
+        WHERE wls.name = 'active'
+          AND wi.warehouse_id = $1
+    ),
+    existing_active_products AS (
+        SELECT DISTINCT i.product_id
+        FROM inventory i
+        JOIN warehouse_inventory wi ON wi.inventory_id = i.id
+        JOIN active_warehouses aw ON aw.warehouse_id = wi.warehouse_id
+    ),
+    valid_batch_products AS (
+        SELECT DISTINCT ON (i.product_id) i.product_id
+        FROM warehouse_inventory_lots wil
+        JOIN inventory i ON wil.inventory_id = i.id
+        WHERE wil.lot_number IS NOT NULL
+          AND wil.expiry_date IS NOT NULL
+          AND wil.manufacture_date IS NOT NULL
+          AND wil.warehouse_id = $1
     )
-    SELECT
-        ap.product_id,
-        ap.product_name
-    FROM active_products ap
-    LEFT JOIN existing_inventory ei
-      ON ap.inventory_id = ei.inventory_id
-    ORDER BY ap.product_name ASC;
+    SELECT p.id AS product_id, p.product_name
+    FROM products p
+    LEFT JOIN existing_active_products eap ON eap.product_id = p.id
+    LEFT JOIN valid_batch_products vbp ON vbp.product_id = p.id
+    WHERE eap.product_id IS NULL
+      AND vbp.product_id IS NOT NULL
+    ORDER BY p.product_name ASC;
   `;
   
   try {

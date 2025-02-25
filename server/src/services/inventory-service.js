@@ -97,6 +97,9 @@ const createInventoryRecords = async (inventoryData, userId) => {
         
         if (type === "product") {
           if (!product_id) throw new AppError.validationError("Product must have a product_id.");
+          if (!lot_number) throw new AppError.validationError("Product must have a lot_number.");
+          if (!expiry_date) throw new AppError.validationError("Product must have an expiry_date.");
+          if (!manufacture_date) throw new AppError.validationError("Product must have a manufacture_date.");
           products.push({ type, product_id, warehouse_id, location_id, quantity, lot_number, expiry_date, manufacture_date, status_id, userId });
         } else {
           if (!identifier) throw new AppError.validationError("Non-product items must have an identifier.");
