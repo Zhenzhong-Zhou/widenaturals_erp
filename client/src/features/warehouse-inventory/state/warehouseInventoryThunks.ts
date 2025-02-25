@@ -6,6 +6,7 @@ import {
   WarehouseInventorySummaryResponse,
   WarehouseProductSummaryResponse,
 } from './warehouseInventoryTypes.ts';
+import { BulkInsertInventoryRequest, BulkInsertInventoryResponse } from './bulkInsertWarehouseInventoryTypes.ts';
 
 /**
  * Thunk to fetch warehouse inventories with pagination
@@ -119,6 +120,20 @@ export const fetchWarehouseInventoryDetailsThunk = createAsyncThunk<
       return rejectWithValue(
         'Failed to fetch warehouse inventory details. Please try again.'
       );
+    }
+  }
+);
+
+export const bulkInsertWarehouseInventoryThunk = createAsyncThunk<
+  BulkInsertInventoryResponse,
+  BulkInsertInventoryRequest
+>(
+  'warehouseInventory/bulkInsert',
+  async (requestData, { rejectWithValue }) => {
+    try {
+      return await warehouseInventoryService.bulkInsertInventory(requestData);
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Failed to insert warehouse inventory.');
     }
   }
 );

@@ -7,6 +7,7 @@ import { BulkAdjustQuantityModal, EditQuantityModal } from '../index.ts';
 import { WarehouseInventoryDetailExtended } from '../state/warehouseInventoryTypes.ts';
 import { capitalizeFirstLetter, formatCurrency } from '@utils/textUtils.ts';
 import { formatDate } from '@utils/dateTimeUtils.ts';
+import BulkInsertInventoryModal from './BulkInsertInventoryModal.tsx';
 
 // Define Column Type explicitly
 interface Column<T> {
@@ -41,6 +42,8 @@ interface WarehouseInventoryDetailTableProps {
       comments: string;
     }[]
   ) => void;
+  warehouseId: string;
+  handleBulkInsertSubmit: (formData: Record<string, any>[]) => Promise<void>;
 }
 
 const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
@@ -53,6 +56,8 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
   onRowsPerPageChange,
   onSingleLotQuantityUpdate,
   onBulkLotsQtyUpdate,
+  warehouseId,
+  handleBulkInsertSubmit,
 }) => {
   const [selectedLot, setSelectedLot] = useState<{
     warehouseInventoryLotId: string;
@@ -258,6 +263,10 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
         />
         Select All
         <Typography variant="h5">Warehouse Inventory Lots</Typography>
+        
+        {/* Pass handleBulkInsertSubmit function to modal */}
+        <BulkInsertInventoryModal warehouseId={warehouseId} onSubmit={handleBulkInsertSubmit} mode={'create'} />
+        
         <CustomButton
           variant="contained"
           color="primary"

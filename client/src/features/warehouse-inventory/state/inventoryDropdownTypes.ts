@@ -1,6 +1,7 @@
 export interface ProductDropdownItem {
-  id: string;
+  product_id: string;
   product_name: string;
+  warehouse_id?: string;
 }
 
 export interface WarehouseDropdownItem {
@@ -12,4 +13,5 @@ export interface DropdownState {
   products: ProductDropdownItem[];
   warehouses: WarehouseDropdownItem[];
   loading: boolean;
+  error: string | null;
 }

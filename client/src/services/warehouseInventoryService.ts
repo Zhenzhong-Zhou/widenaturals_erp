@@ -6,7 +6,7 @@ import {
   WarehouseProductSummaryResponse,
   WarehouseInventoryDetailsResponse,
   LotAdjustmentSinglePayload,
-  BulkLotAdjustmentPayload,
+  BulkLotAdjustmentPayload, BulkInsertInventoryRequest, BulkInsertInventoryResponse,
 } from '../features/warehouse-inventory';
 import { AppError } from '@utils/AppError.tsx';
 
@@ -160,7 +160,6 @@ const bulkAdjustWarehouseInventoryLotQty = async (
   adjustments: BulkLotAdjustmentPayload
 ) => {
   try {
-    console.log(adjustments);
     const response = await axiosInstance.patch(
       API_ENDPOINTS.WAREHOUSE_INVENTORY_LOT_BULK_ADJUST,
       adjustments
@@ -172,6 +171,21 @@ const bulkAdjustWarehouseInventoryLotQty = async (
   }
 };
 
+const bulkInsertInventory = async (
+  requestData: BulkInsertInventoryRequest
+): Promise<BulkInsertInventoryResponse> => {
+  try {
+    const response = await axiosInstance.post<BulkInsertInventoryResponse>(
+      API_ENDPOINTS.WAREHOUSE_INVENTORY_BULK_INSERT,
+      requestData
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error inserting inventory:', error);
+    throw new Error('Failed to insert inventory records.');
+  }
+};
+
 // Export the service
 export const warehouseInventoryService = {
   fetchAllWarehouseInventories,
@@ -180,4 +194,5 @@ export const warehouseInventoryService = {
   fetchWarehouseInventoryDetails,
   adjustSingleWarehouseInventoryLotQty,
   bulkAdjustWarehouseInventoryLotQty,
+  bulkInsertInventory,
 };

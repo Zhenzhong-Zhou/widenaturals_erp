@@ -8,11 +8,13 @@ import {
   Typography,
 } from '@components/index.ts';
 import {
+  useBulkInsertWarehouseInventory,
   useLotAdjustmentQty,
   useWarehouseInventoryDetails,
   useWarehouseProductSummary,
 } from '../../../hooks';
 import {
+  BulkInsertInventoryRequest, InventoryItem,
   WarehouseInventoryDetailExtended,
   WarehouseInventoryDetailTable,
   WarehouseProductSummaryCard,
@@ -55,6 +57,8 @@ const WarehouseInventoryDetailPage = () => {
 
   const { handleSingleLotAdjustment, handleBulkLotAdjustment } =
     useLotAdjustmentQty(refreshWarehouseInventoryDetails);
+  
+  const { isLoading, handleBulkInsert } = useBulkInsertWarehouseInventory();
 
   const transformedWarehouseInventoryDetails: WarehouseInventoryDetailExtended[] =
     warehouseInventoryDetails.map((detail) => ({
@@ -90,7 +94,36 @@ const WarehouseInventoryDetailPage = () => {
         No warehouse inventory records found.
       </Typography>
     );
-
+  
+  if (isLoading) {
+    return <Loading  message={`Loading Available Product Information...`} />;
+  }
+  
+  // Function to handle bulk insert submission
+  const handleBulkInsertSubmit = async (formData: Record<string, any>[]) => {
+    try {
+      const requestPayload: BulkInsertInventoryRequest = {
+        inventoryData: formData.map((item) => ({
+          type: item.type,
+          warehouse_id: warehouseId,
+          product_id: item.product_id,
+          quantity: Number(item.quantity),
+          lot_number: item.lot_number,
+          expiry_date: item.expiry_date,
+          manufacture_date: item.manufacture_date || undefined,
+          identifier: item.identifier || undefined,
+        })) as InventoryItem[],
+      };
+      
+      await handleBulkInsert(requestPayload); // Ensure you have this function in `useBulkInsertWarehouseInventory`
+      
+      // Refresh warehouse inventory after submission
+      refreshWarehouseInventoryDetails();
+    } catch (error) {
+      console.error('Bulk Insert Error:', error);
+    }
+  };
+  
   return (
     <Box sx={{ padding: 3 }}>
       {/* Page Header */}
@@ -128,6 +161,8 @@ const WarehouseInventoryDetailPage = () => {
           }
           onSingleLotQuantityUpdate={handleSingleLotAdjustment}
           onBulkLotsQtyUpdate={handleBulkLotAdjustment}
+          warehouseId={warehouseId}
+          handleBulkInsertSubmit={handleBulkInsertSubmit}
         />
       </Paper>
 

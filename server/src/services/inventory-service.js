@@ -120,7 +120,7 @@ const createInventoryRecords = async (inventoryData, userId) => {
       );
       
       if (newInventoryItems.length > 0) {
-        const { success, inventoryRecords } = await retry(() => insertInventoryRecords(client, newInventoryItems));
+        const { success, inventoryRecords } = await insertInventoryRecords(client, newInventoryItems);
         if (!success || !Array.isArray(inventoryRecords)) {
           throw new AppError("Failed to insert inventory records or returned data is invalid.");
         }
@@ -334,6 +334,7 @@ const createInventoryRecords = async (inventoryData, userId) => {
       };
     });
   } catch (error) {
+    console.log(error);
     logError("Error in inventory service:", error.message);
     return { success: false, message: error.message };
   }

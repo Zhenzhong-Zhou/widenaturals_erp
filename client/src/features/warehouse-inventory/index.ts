@@ -16,6 +16,7 @@ export {
   fetchWarehouseInventorySummaryThunk,
   fetchWarehouseProductSummaryThunk,
   fetchWarehouseInventoryDetailsThunk,
+  bulkInsertWarehouseInventoryThunk,
 } from './state/warehouseInventoryThunks.ts';
 export {
   fetchAllDropdownLotAdjustmentTypesThunk,
@@ -71,10 +72,23 @@ export type {
   WarehouseDropdownItem,
   DropdownState,
 } from './state/inventoryDropdownTypes.ts';
-export { fetchInventoryDropdownData } from './state/inventoryDropdownThunks.ts';
+export { fetchWarehousesThunk, fetchProductsByWarehouseThunk } from './state/inventoryDropdownThunks.ts';
 export {
   selectDropdownLoading,
   selectProductDropdown,
   selectWarehouseDropdown,
+  selectDropdownError,
+  selectDropdownData,
 } from './state/inventoryDropdownSelectors.ts';
 export { default as InventoryDropdown } from './components/InventoryDropdown.tsx';
+export type {
+  InventoryItem,
+  BulkInsertInventoryRequest,
+  InventoryRecord,
+  BulkInsertInventoryResponse,
+} from './state/bulkInsertWarehouseInventoryTypes.ts';
+export {
+  selectWarehouseInventoryInsertData,
+  selectWarehouseInventoryInsertLoading,
+  selectWarehouseInventoryInsertError,
+} from './state/bulkInsertWarehouseInventorySelectors.ts';

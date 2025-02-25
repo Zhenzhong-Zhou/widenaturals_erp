@@ -103,8 +103,9 @@ const getProductDetailsByIdController = wrapAsync(async (req, res, next) => {
 });
 
 const getProductsDropdownListController = wrapAsync( async (req, res, next) => {
+  const { warehouse_id } = req.query;
   try {
-    const products = await fetchProductDropdownList();
+    const products = await fetchProductDropdownList(warehouse_id);
     res.json(products);
   } catch (error) {
     next(error);

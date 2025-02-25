@@ -1,30 +1,48 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
 import {
-  fetchInventoryDropdownData,
+  fetchProductsByWarehouseThunk,
   selectDropdownLoading,
   selectProductDropdown,
-  selectWarehouseDropdown,
+  selectDropdownError,
 } from '../features/warehouse-inventory';
 
 /**
- * Custom hook to fetch dropdown data globally.
- * This will only fetch data once and provide cached values.
+ * Custom hook to fetch product dropdown data for a specific warehouse.
+ * - Fetches products dynamically based on the provided `warehouseId`.
+ * - Prevents redundant fetching.
  */
-const useDropdown = () => {
+const useDropdown = (warehouseId: string) => {
   const dispatch = useAppDispatch();
   
-  // Memoized selectors
-  const products = useAppSelector(selectProductDropdown);
-  const warehouses = useAppSelector(selectWarehouseDropdown);
+  // Select state from Redux
+  const allProducts = useAppSelector(selectProductDropdown);
   const loading = useAppSelector(selectDropdownLoading);
+  const error = useAppSelector(selectDropdownError);
   
-  // Fetch default dropdowns (products & warehouses)
+  // Fetch products dynamically when warehouseId changes
   useEffect(() => {
-    dispatch(fetchInventoryDropdownData());
-  }, [dispatch]);
+    if (warehouseId) {
+      dispatch(fetchProductsByWarehouseThunk({ warehouseId }));
+    }
+  }, [dispatch, warehouseId]);
   
-  return { products, warehouses, loading };
+  /** Memoize products to avoid unnecessary re-renders */
+  const uniqueProducts = useMemo(() => {
+    const productMap = new Map();
+    allProducts.forEach((product) => {
+      if (!productMap.has(product.product_id)) {
+        productMap.set(product.product_id, product);
+      }
+    });
+    return [...productMap.values()];
+  }, [allProducts]);
+  
+  return {
+    products: uniqueProducts,
+    loading,
+    error,
+  };
 };
 
 export default useDropdown;

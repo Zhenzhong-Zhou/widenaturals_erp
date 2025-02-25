@@ -299,26 +299,50 @@ const getProductDetailsById = async (id) => {
   }
 };
 
-const getActiveProductsForDropdown = async () => {
+/**
+ * Retrieves a list of available products for a dropdown selection, filtering out those already associated with the given warehouse.
+ *
+ * @param {string} warehouseId - The unique identifier of the warehouse.
+ * @returns {Promise<Array<{ id: string, product_name: string }>>}
+ *          - Returns an array of available products with their IDs and names, sorted alphabetically.
+ * @throws {AppError} - Throws an error if the database query fails.
+ */
+const getAvailableProductsForDropdown = async (warehouseId) => {
+  if (!warehouseId) {
+    return []; // Return an empty array instead of running the query
+  }
+  
   const queryText = `
-    SELECT p.id, p.product_name
-    FROM products p
-    INNER JOIN status s ON p.status_id = s.id
-    WHERE s.name = 'active'
-    ORDER BY p.product_name ASC
+     WITH active_products AS (
+        SELECT p.id AS product_id, p.product_name, i.id AS inventory_id
+        FROM products p
+        INNER JOIN status ps ON p.status_id = ps.id
+        INNER JOIN inventory i ON i.product_id = p.id
+        WHERE ps.name = 'active'
+    ),
+    existing_inventory AS (
+        SELECT wi.inventory_id, wi.warehouse_id
+        FROM warehouse_inventory wi
+        WHERE wi.warehouse_id = $1
+    )
+    SELECT
+        ap.product_id,
+        ap.product_name
+    FROM active_products ap
+    LEFT JOIN existing_inventory ei
+      ON ap.inventory_id = ei.inventory_id
+    ORDER BY ap.product_name ASC;
   `;
   
   try {
-    const { rows } = await query(queryText);
-    console.log(rows);
+    const { rows } = await query(queryText, [warehouseId]);
     return rows;
   } catch (error) {
-    console.error(error);
-    logError('Error fetching products for dropdown', {
+    logError('Error fetching available products for dropdown', {
       message: error.message,
       stack: error.stack,
     });
-    throw new AppError.databaseError('Failed to fetch product dropdown list', {
+    throw new AppError.databaseError('Failed to fetch available product dropdown list', {
       originalError: error.message,
     });
   }
@@ -328,5 +352,5 @@ module.exports = {
   getProducts,
   checkProductExists,
   getProductDetailsById,
-  getActiveProductsForDropdown,
+  getAvailableProductsForDropdown,
 };
