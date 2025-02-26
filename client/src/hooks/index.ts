@@ -26,3 +26,4 @@ export { default as useLotAdjustmentTypes } from './useLotAdjustmentTypes.ts';
 export { default as useLotAdjustmentQty } from './useLotAdjustmentQty.ts';
 export { default as useDropdown } from './useDropdown.ts';
 export { default as useBulkInsertWarehouseInventory } from './useBulkInsertWarehouseInventory.ts';
+export { default as useWarehouseDetails } from './useWarehouseDetails.ts';

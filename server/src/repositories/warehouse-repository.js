@@ -62,6 +62,60 @@ const getWarehouses = async ({ page, limit, sortBy, sortOrder }) => {
   }
 };
 
+const getWarehouseDetailsById = async (warehouseId) => {
+  const queryText = `
+    SELECT
+        w.id AS warehouse_id,
+        w.name AS warehouse_name,
+        w.storage_capacity,
+        w.status_id AS warehouse_status_id,
+        s.name AS warehouse_status_name,
+        w.created_at AS warehouse_created_at,
+        w.updated_at AS warehouse_updated_at,
+        COALESCE(u1.firstname || ' ' || u1.lastname, 'Unknown') AS created_by,
+        COALESCE(u2.firstname || ' ' || u2.lastname, 'Unknown') AS updated_by,
+    
+        -- Location Details
+        l.id AS location_id,
+        l.name AS location_name,
+        l.address AS location_address,
+        lt.id AS location_type_id,
+        lt.name AS location_type_name,
+        lt.description AS location_type_description,
+    
+        -- Location Status Details
+        l.status_id AS location_status_id,
+        sl.name AS location_status_name,
+        l.status_date AS location_status_date
+    
+    FROM warehouses w
+    -- Join location and its type
+    JOIN locations l ON w.location_id = l.id
+    JOIN location_types lt ON l.location_type_id = lt.id
+    
+    -- Join status tables for warehouse and location
+    JOIN status s ON w.status_id = s.id
+    JOIN status sl ON l.status_id = sl.id
+    
+    -- Join creator & updater details for warehouse
+    LEFT JOIN users u1 ON w.created_by = u1.id
+    LEFT JOIN users u2 ON w.updated_by = u2.id
+    
+    WHERE w.id = $1;
+  `;
+  
+  try {
+    const { rows } = await retry(() => query(queryText, [warehouseId]), 3, 1000);
+    if (rows.length === 0) {
+      throw new AppError.databaseError(`Warehouse with ID ${warehouseId} not found`);
+    }
+    return rows[0];
+  } catch (error) {
+    logError('Error fetching warehouse details repository:', error);
+    throw error;
+  }
+};
+
 const getWarehouseInventorySummary = async ({ page, limit, statusFilter }) => {
   const tableName = 'warehouses w';
 
@@ -236,6 +290,7 @@ const getActiveWarehousesForDropdown = async () => {
 
 module.exports = {
   getWarehouses,
+  getWarehouseDetailsById,
   getWarehouseInventorySummary,
   checkAndLockWarehouse,
   geLocationIdByWarehouseId,

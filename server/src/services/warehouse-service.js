@@ -1,6 +1,6 @@
 const {
   getWarehouses,
-  getWarehouseInventorySummary, getActiveWarehousesForDropdown,
+  getWarehouseInventorySummary, getActiveWarehousesForDropdown, getWarehouseDetailsById,
 } = require('../repositories/warehouse-repository');
 const AppError = require('../utils/AppError');
 const { logInfo, logError } = require('../utils/logger-helper');
@@ -33,6 +33,81 @@ const fetchAllWarehouses = async ({ page, limit, sortBy, sortOrder }) => {
   } catch (error) {
     logError('Error fetching warehouses:', error);
     throw new AppError('Failed to retrieve warehouses');
+  }
+};
+
+/**
+ * Fetch warehouse details by ID with business logic.
+ * @param {string} warehouseId - The UUID of the warehouse.
+ * @returns {Promise<Object>} - Warehouse details including location, status, and metadata.
+ * @throws {AppError} - Throws validation error if warehouseId is missing or invalid.
+ */
+const fetchWarehouseDetails = async (warehouseId) => {
+  if (!warehouseId) {
+    throw new AppError.validationError("Warehouse ID is required.");
+  }
+  
+  try {
+    const warehouse = await getWarehouseDetailsById(warehouseId);
+    
+    if (!warehouse) {
+      throw new AppError.notFoundError(`Warehouse with ID ${warehouseId} not found.`);
+    }
+    
+    // Business Logic: Check if the warehouse is active before returning details
+    let errorMessages = [];
+    if (warehouse.warehouse_status_name.toLowerCase() !== "active") {
+      errorMessages.push("Warehouse status is not active");
+    }
+    if (warehouse.location_status_name.toLowerCase() !== "active") {
+      errorMessages.push("Location status is not active");
+    }
+    
+    if (errorMessages.length > 0) {
+      throw new AppError.validationError(`Warehouse ${warehouse.name} cannot be used: ${errorMessages.join(" & ")}.`);
+    }
+    
+    // Business Logic: Transform certain fields if needed
+    return {
+      id: warehouse.warehouse_id,
+      name: warehouse.warehouse_name,
+      storageCapacity: warehouse.storage_capacity, // New field added
+      status: {
+        id: warehouse.warehouse_status_id,
+        name: warehouse.warehouse_status_name,
+      },
+      metadata: {
+        createdBy: warehouse.created_by,
+        updatedBy: warehouse.updated_by,
+        createdAt: warehouse.warehouse_created_at,
+        updatedAt: warehouse.warehouse_updated_at,
+      },
+      location: {
+        id: warehouse.location_id,
+        name: warehouse.location_name,
+        address: warehouse.location_address,
+        locationType: {
+          id: warehouse.location_type_id,
+          name: warehouse.location_type_name,
+          description: warehouse.location_type_description,
+        },
+        status: {
+          id: warehouse.location_status_id,
+          name: warehouse.location_status_name,
+          statusDate: warehouse.location_status_date,
+        },
+        metadata: {
+          createdBy: warehouse.location_created_by,
+          updatedBy: warehouse.location_updated_by,
+          createdAt: warehouse.location_created_at,
+          updatedAt: warehouse.location_updated_at,
+        },
+      },
+    };
+  } catch (error) {
+    console.error(error);
+    logError("Error fetching warehouse details service:", error);
+    throw new AppError.serviceError("Failed to fetch warehouse details.");
   }
 };
 
@@ -114,6 +189,7 @@ const fetchWarehouseDropdownList = async () => {
 
 module.exports = {
   fetchAllWarehouses,
+  fetchWarehouseDetails,
   fetchWarehouseInventorySummary,
   fetchWarehouseDropdownList,
 };

@@ -9,13 +9,13 @@ import {
 } from '@components/index.ts';
 import {
   useBulkInsertWarehouseInventory,
-  useLotAdjustmentQty,
+  useLotAdjustmentQty, useWarehouseDetails,
   useWarehouseInventoryDetails,
   useWarehouseProductSummary,
 } from '../../../hooks';
 import {
   BulkInsertInventoryRequest, InventoryItem,
-  WarehouseInventoryDetailExtended,
+  WarehouseInventoryDetailExtended, WarehouseInventoryDetailHeader,
   WarehouseInventoryDetailTable,
   WarehouseProductSummaryCard,
 } from '../index.ts';
@@ -30,7 +30,9 @@ const WarehouseInventoryDetailPage = () => {
       </ErrorDisplay>
     );
   }
-
+  
+  const { warehouseDetails, loading, error, refetch } = useWarehouseDetails(warehouseId);
+  
   // Fetch product summary (overview of all products in warehouse)
   const {
     productSummary,
@@ -68,7 +70,10 @@ const WarehouseInventoryDetailPage = () => {
       lotUpdatedBy: detail.lotUpdated.by,
       lotUpdatedDate: detail.lotUpdated.date,
     }));
-
+  
+  if (loading) return <Loading message={"Loading warehouse details..."}/>;
+  if (error) return <ErrorDisplay><ErrorMessage message={error}/></ErrorDisplay>;
+  
   if (productSummaryLoading)
     return <Loading message={`Loading Warehouse Product Summary...`} />;
   if (productSummaryError)
@@ -128,10 +133,7 @@ const WarehouseInventoryDetailPage = () => {
     <Box sx={{ padding: 3 }}>
       {/* Page Header */}
       <Paper sx={{ padding: 2, marginBottom: 3 }}>
-        <Typography variant="h4">Warehouse Inventory Detail</Typography>
-        <Typography variant="h6" color="textSecondary">
-          Warehouse Name: {warehouseId}
-        </Typography>
+        <WarehouseInventoryDetailHeader warehouseDetails={warehouseDetails} loading={loading} refetch={refetch} />
       </Paper>
 
       {/* Product Summary Section */}

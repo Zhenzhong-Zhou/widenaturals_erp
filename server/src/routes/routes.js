@@ -92,8 +92,7 @@ router.use('/locations', authenticate(), locationRouts);
 // router.use('/inventories', authenticate(), inventoryRouts);
 router.use('/inventories', inventoryRouts);
 
-// router.use('/warehouses', authenticate(), warehouseRouts);
-router.use('/warehouses', warehouseRouts);
+router.use('/warehouses', authenticate(), warehouseRouts);
 
 // router.use('/warehouse-inventories', authenticate(), warehouseInventoryRouts);
 router.use('/warehouse-inventories', warehouseInventoryRouts);

@@ -19,13 +19,11 @@ exports.up = async function (knex) {
     table
       .uuid('created_by')
       .references('id')
-      .inTable('users')
-      .onDelete('SET NULL');
+      .inTable('users');
     table
       .uuid('updated_by')
       .references('id')
-      .inTable('users')
-      .onDelete('SET NULL');
+      .inTable('users');
 
     // Index for better performance
     table.index(['name', 'location_type_id'], 'idx_locations_name_type');

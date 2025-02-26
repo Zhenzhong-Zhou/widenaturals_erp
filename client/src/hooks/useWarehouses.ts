@@ -5,7 +5,7 @@ import {
   selectWarehousePagination,
   selectWarehouseLoading,
   selectWarehouseError,
-  fetchWarehouses,
+  fetchWarehousesThunk,
 } from '../features/warehouse';
 
 // Custom Hook for Warehouses
@@ -23,7 +23,7 @@ const useWarehouses = ({
 
   // Fetch function wrapped in useCallback for better stability
   const fetchData = useCallback(() => {
-    dispatch(fetchWarehouses({ page, limit, sortBy, sortOrder }));
+    dispatch(fetchWarehousesThunk({ page, limit, sortBy, sortOrder }));
   }, [dispatch, page, limit, sortBy, sortOrder]);
 
   // Fetch data only when necessary (e.g., first load or changes)

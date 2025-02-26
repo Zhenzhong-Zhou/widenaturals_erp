@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { fetchWarehouses } from './warehouseThunks';
+import { fetchWarehousesThunk } from './warehouseThunks';
 import { Pagination, Warehouse } from './warehouseTypes.ts';
 
 // Warehouse State Type
@@ -25,12 +25,12 @@ const warehouseSlice = createSlice({
   reducers: {}, // No manual reducers needed since thunks handle updates
   extraReducers: (builder) => {
     builder
-      .addCase(fetchWarehouses.pending, (state) => {
+      .addCase(fetchWarehousesThunk.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(
-        fetchWarehouses.fulfilled,
+        fetchWarehousesThunk.fulfilled,
         (
           state,
           action: PayloadAction<{
@@ -43,7 +43,7 @@ const warehouseSlice = createSlice({
           state.loading = false;
         }
       )
-      .addCase(fetchWarehouses.rejected, (state, action) => {
+      .addCase(fetchWarehousesThunk.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });

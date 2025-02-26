@@ -92,3 +92,4 @@ export {
   selectWarehouseInventoryInsertLoading,
   selectWarehouseInventoryInsertError,
 } from './state/bulkInsertWarehouseInventorySelectors.ts';
+export { default as WarehouseInventoryDetailHeader } from './components/WarehouseInventoryDetailHeader.tsx';

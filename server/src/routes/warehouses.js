@@ -1,7 +1,7 @@
 const express = require('express');
 const {
   getAllWarehousesController,
-  getWarehouseInventorySummaryController, getWarehouseDropdownListController,
+  getWarehouseInventorySummaryController, getWarehouseDropdownListController, getWarehouseInfoController,
 } = require('../controllers/warehouse-controller');
 const authorize = require('../middlewares/authorize');
 
@@ -12,6 +12,12 @@ router.get(
   '/',
   authorize(['view_warehouses', 'manage_warehouses']),
   getAllWarehousesController
+);
+
+router.get(
+  '/details/:id',
+  authorize(['view_warehouses', 'manage_warehouses']),
+  getWarehouseInfoController
 );
 
 /**
