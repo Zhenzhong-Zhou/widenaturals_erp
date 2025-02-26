@@ -1,5 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { BulkInsertInventoryResponse } from './bulkInsertWarehouseInventoryTypes.ts';
+import { BulkInsertInventoryResponse } from './warehouseInventoryTypes.ts';
 import { bulkInsertWarehouseInventoryThunk } from './warehouseInventoryThunks.ts';
 
 interface WarehouseInventoryState {

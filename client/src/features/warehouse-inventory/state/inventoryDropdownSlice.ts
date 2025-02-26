@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { fetchWarehousesThunk, fetchProductsByWarehouseThunk } from './inventoryDropdownThunks.ts';
-import { DropdownState } from './inventoryDropdownTypes.ts';
+import { fetchProductsDropDownByWarehouseThunk, fetchWarehousesDropdownThunk } from './warehouseInventoryThunks.ts';
+import { DropdownState } from './warehouseInventoryTypes.ts';
 
 const initialState: DropdownState = {
   products: [],
@@ -28,15 +28,15 @@ const inventoryDropdownSlice = createSlice({
       /**
        * Handles fetching warehouses (only runs on mount)
        */
-      .addCase(fetchWarehousesThunk.pending, (state) => {
+      .addCase(fetchWarehousesDropdownThunk.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchWarehousesThunk.fulfilled, (state, action: PayloadAction<any[]>) => {
+      .addCase(fetchWarehousesDropdownThunk.fulfilled, (state, action: PayloadAction<any[]>) => {
         state.warehouses = action.payload || [];
         state.loading = false;
       })
-      .addCase(fetchWarehousesThunk.rejected, (state, action) => {
+      .addCase(fetchWarehousesDropdownThunk.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || 'Failed to load warehouses';
       })
@@ -44,15 +44,15 @@ const inventoryDropdownSlice = createSlice({
       /**
        * Handles fetching products (runs when warehouse selection changes)
        */
-      .addCase(fetchProductsByWarehouseThunk.pending, (state) => {
+      .addCase(fetchProductsDropDownByWarehouseThunk.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchProductsByWarehouseThunk.fulfilled, (state, action: PayloadAction<any[]>) => {
+      .addCase(fetchProductsDropDownByWarehouseThunk.fulfilled, (state, action: PayloadAction<any[]>) => {
         state.products = action.payload || [];
         state.loading = false;
       })
-      .addCase(fetchProductsByWarehouseThunk.rejected, (state, action) => {
+      .addCase(fetchProductsDropDownByWarehouseThunk.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message || 'Failed to load products';
       });

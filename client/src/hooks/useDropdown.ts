@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
 import {
-  fetchProductsByWarehouseThunk,
+  fetchProductsDropDownByWarehouseThunk,
   selectDropdownLoading,
   selectProductDropdown,
   selectDropdownError,
@@ -23,7 +23,7 @@ const useDropdown = (warehouseId: string) => {
   // Fetch products dynamically when warehouseId changes
   useEffect(() => {
     if (warehouseId) {
-      dispatch(fetchProductsByWarehouseThunk({ warehouseId }));
+      dispatch(fetchProductsDropDownByWarehouseThunk({ warehouseId }));
     }
   }, [dispatch, warehouseId]);
   

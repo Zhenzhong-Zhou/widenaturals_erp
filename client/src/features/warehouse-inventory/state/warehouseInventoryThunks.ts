@@ -1,12 +1,13 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { warehouseInventoryService } from '../../../services';
+import { dropdownService, warehouseInventoryService } from '../../../services';
 import {
+  BulkInsertInventoryRequest,
+  BulkInsertInventoryResponse,
   WarehouseInventoryDetailsResponse,
   WarehouseInventoryResponse,
   WarehouseInventorySummaryResponse,
   WarehouseProductSummaryResponse,
 } from './warehouseInventoryTypes.ts';
-import { BulkInsertInventoryRequest, BulkInsertInventoryResponse } from './bulkInsertWarehouseInventoryTypes.ts';
 
 /**
  * Thunk to fetch warehouse inventories with pagination
@@ -120,6 +121,38 @@ export const fetchWarehouseInventoryDetailsThunk = createAsyncThunk<
       return rejectWithValue(
         'Failed to fetch warehouse inventory details. Please try again.'
       );
+    }
+  }
+);
+
+/**
+ * Fetches the list of warehouses for the dropdown.
+ * This should run only once when the component mounts.
+ */
+export const fetchWarehousesDropdownThunk = createAsyncThunk(
+  'dropdown/fetchWarehouses',
+  async (_, { rejectWithValue }) => {
+    try {
+      return await dropdownService.fetchWarehousesForDropdown();
+    } catch (error: any) {
+      console.error('Error fetching warehouses:', error);
+      return rejectWithValue(error.message || 'Failed to fetch warehouses');
+    }
+  }
+);
+
+/**
+ * Fetches the list of products based on the selected warehouse.
+ * This should run only when the user selects a warehouse.
+ */
+export const fetchProductsDropDownByWarehouseThunk = createAsyncThunk(
+  'dropdown/fetchProductsByWarehouse',
+  async ({ warehouseId }: { warehouseId: string }, { rejectWithValue }) => {
+    try {
+      return await dropdownService.fetchProductsForDropdown(warehouseId);
+    } catch (error: any) {
+      console.error('Error fetching products:', error);
+      return rejectWithValue(error.message || 'Failed to fetch products');
     }
   }
 );
