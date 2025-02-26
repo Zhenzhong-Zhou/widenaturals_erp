@@ -3,11 +3,10 @@ import { Box, Paper, IconButton, Checkbox } from '@mui/material';
 import { CustomButton, CustomTable, Typography } from '@components/index.ts';
 import EditIcon from '@mui/icons-material/Edit';
 import InventoryIcon from '@mui/icons-material/Inventory'; // Ensure this import exists
-import { BulkAdjustQuantityModal, EditQuantityModal } from '../index.ts';
+import { BulkInsertInventoryModal, BulkAdjustQuantityModal, EditQuantityModal } from '../index.ts';
 import { WarehouseInventoryDetailExtended } from '../state/warehouseInventoryTypes.ts';
 import { capitalizeFirstLetter, formatCurrency } from '@utils/textUtils.ts';
 import { formatDate } from '@utils/dateTimeUtils.ts';
-import BulkInsertInventoryModal from './BulkInsertInventoryModal.tsx';
 
 // Define Column Type explicitly
 interface Column<T> {

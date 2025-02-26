@@ -1,21 +1,18 @@
 import { useParams } from 'react-router-dom';
 import { Box, Paper } from '@mui/material';
-import {
-  CustomButton,
-  ErrorDisplay,
-  ErrorMessage,
-  Loading,
-  Typography,
-} from '@components/index.ts';
+import { CustomButton, ErrorDisplay, ErrorMessage, Loading, Typography } from '@components/index.ts';
 import {
   useBulkInsertWarehouseInventory,
-  useLotAdjustmentQty, useWarehouseDetails,
+  useLotAdjustmentQty,
+  useWarehouseDetails,
   useWarehouseInventoryDetails,
   useWarehouseProductSummary,
 } from '../../../hooks';
 import {
-  BulkInsertInventoryRequest, InventoryItem,
-  WarehouseInventoryDetailExtended, WarehouseInventoryDetailHeader,
+  BulkInsertInventoryRequest,
+  InventoryItem,
+  WarehouseInventoryDetailExtended,
+  WarehouseInventoryDetailHeader,
   WarehouseInventoryDetailTable,
   WarehouseProductSummaryCard,
 } from '../index.ts';
@@ -107,25 +104,44 @@ const WarehouseInventoryDetailPage = () => {
   // Function to handle bulk insert submission
   const handleBulkInsertSubmit = async (formData: Record<string, any>[]) => {
     try {
+      // Remove objects that only have `warehouse_id` or `type` with no meaningful data
+      const filteredData = formData.filter((item) => {
+        // Ensure quantity is not 0
+        // Remove if no meaningful data exists (i.e., only warehouse_id or type is present)
+        return (item.product_id && item.product_id.trim() !== "") ||
+          (item.identifier && item.identifier.trim() !== "") ||
+          (item.lot_number && item.lot_number.trim() !== "") ||
+          (item.expiry_date && item.expiry_date.trim() !== "") ||
+          (item.manufacture_date && item.manufacture_date.trim() !== "") ||
+          (item.quantity && Number(item.quantity) > 0);
+      });
+      
+      // If all objects were removed (i.e., no valid data), stop the process
+      if (filteredData.length === 0) {
+        console.warn("No valid data to submit.");
+        return;
+      }
+      
       const requestPayload: BulkInsertInventoryRequest = {
-        inventoryData: formData.map((item) => ({
+        inventoryData: filteredData.map((item) => ({
           type: item.type,
-          warehouse_id: warehouseId,
-          product_id: item.product_id,
+          warehouse_id: warehouseId, // Always included in valid objects
+          product_id: item.product_id || undefined,
           quantity: Number(item.quantity),
-          lot_number: item.lot_number,
-          expiry_date: item.expiry_date,
-          manufacture_date: item.manufacture_date || undefined,
-          identifier: item.identifier || undefined,
+          lot_number: item.lot_number?.trim() || undefined,
+          expiry_date: item.expiry_date?.trim() || undefined,
+          manufacture_date: item.manufacture_date?.trim() || undefined,
+          identifier: item.identifier?.trim() || undefined,
         })) as InventoryItem[],
       };
       
-      await handleBulkInsert(requestPayload); // Ensure you have this function in `useBulkInsertWarehouseInventory`
+      console.log(requestPayload);
+      await handleBulkInsert(requestPayload);
       
       // Refresh warehouse inventory after submission
       refreshWarehouseInventoryDetails();
     } catch (error) {
-      console.error('Bulk Insert Error:', error);
+      console.error("Bulk Insert Error:", error);
     }
   };
   
