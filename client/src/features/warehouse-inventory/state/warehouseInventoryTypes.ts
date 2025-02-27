@@ -194,12 +194,59 @@ export interface InventoryRecord {
   id: string;
 }
 
+export interface InventoryRecord {
+  id: string;
+}
+
+export interface BulkInsertInventoryData {
+  warehouseLotsInventoryRecords: InventoryRecord[];
+}
+
 export interface BulkInsertInventoryResponse {
   success: boolean;
   message: string;
-  data: {
-    inventoryRecords: InventoryRecord[];
-    warehouseInventoryRecords: InventoryRecord[];
-    warehouseLotsInventoryRecords: InventoryRecord[];
-  };
+  data: BulkInsertInventoryData;
+}
+
+// Request Body Type
+export interface WarehouseLotId {
+  id: string;
+}
+
+export interface InsertInventoryRequestBody {
+  warehouseLotIds: WarehouseLotId[];
+}
+
+// Interface for Inventory Record
+export interface InventoryRecordInsertResponse {
+  warehouse_lot_id: string;
+  inventory_id: string;
+  location_id: string;
+  quantity: number;
+  product_name: string;
+  identifier: string;
+  inserted_quantity: number;
+  available_quantity: number;
+  lot_number: string;
+  expiry_date: string | null; // Nullable ISO Date String
+  manufacture_date: string | null; // Nullable ISO Date String
+  inbound_date: string; // ISO Date String
+  inventory_created_at: string; // ISO Date String
+  inventory_created_by: string;
+  inventory_updated_at: string; // ISO Date String
+  inventory_updated_by: string;
+}
+
+// Interface for Warehouse Inventory Data
+export interface WarehouseInventoryData {
+  warehouse_id: string;
+  warehouse_name: string;
+  total_records: string;
+  inventory_records: InventoryRecordInsertResponse[];
+}
+
+// Response Type
+export interface WarehouseInventoryInsertResponse {
+  success: boolean;
+  data: WarehouseInventoryData[];
 }

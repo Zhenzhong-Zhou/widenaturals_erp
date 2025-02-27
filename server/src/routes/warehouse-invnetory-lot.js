@@ -11,6 +11,6 @@ router.patch('/adjust/bulk', adjustWarehouseInventoryLotsController);
 // Route to adjust inventory (handles single and multiple records)
 router.patch('/adjust/:id', adjustWarehouseInventoryLotsController);
 
-router.get('/inventory-records/recent-inserts', insertInventoryRecordResponseController);
+router.post('/inventory-records/recent-inserts', insertInventoryRecordResponseController);
 
 module.exports = router;

@@ -336,7 +336,6 @@ const createInventoryRecords = async (inventoryData, userId) => {
       };
     });
   } catch (error) {
-    console.log(error);
     logError("Error in inventory service:", error.message);
     return { success: false, message: error.message };
   }

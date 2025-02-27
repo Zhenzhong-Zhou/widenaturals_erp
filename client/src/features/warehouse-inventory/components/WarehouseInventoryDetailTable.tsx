@@ -3,7 +3,12 @@ import { Box, Paper, IconButton, Checkbox } from '@mui/material';
 import { CustomButton, CustomTable, Typography } from '@components/index.ts';
 import EditIcon from '@mui/icons-material/Edit';
 import InventoryIcon from '@mui/icons-material/Inventory'; // Ensure this import exists
-import { BulkInsertInventoryModal, BulkAdjustQuantityModal, EditQuantityModal } from '../index.ts';
+import {
+  BulkInsertInventoryModal,
+  BulkAdjustQuantityModal,
+  EditQuantityModal,
+  InsertedInventoryRecordsResponseDialog, WarehouseInventoryInsertResponse,
+} from '../index.ts';
 import { WarehouseInventoryDetailExtended } from '../state/warehouseInventoryTypes.ts';
 import { capitalizeFirstLetter, formatCurrency } from '@utils/textUtils.ts';
 import { formatDate } from '@utils/dateTimeUtils.ts';
@@ -43,6 +48,9 @@ interface WarehouseInventoryDetailTableProps {
   ) => void;
   warehouseId: string;
   handleBulkInsertSubmit: (formData: Record<string, any>[]) => Promise<void>;
+  insertedDataResponse?: WarehouseInventoryInsertResponse | null;
+  openDialog: boolean;
+  setOpenDialog: (open: boolean) => void;
 }
 
 const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
@@ -57,6 +65,9 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
   onBulkLotsQtyUpdate,
   warehouseId,
   handleBulkInsertSubmit,
+  insertedDataResponse,
+  openDialog,
+  setOpenDialog
 }) => {
   const [selectedLot, setSelectedLot] = useState<{
     warehouseInventoryLotId: string;
@@ -265,6 +276,8 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
         
         {/* Pass handleBulkInsertSubmit function to modal */}
         <BulkInsertInventoryModal warehouseId={warehouseId} onSubmit={handleBulkInsertSubmit} mode={'create'} />
+        
+        <InsertedInventoryRecordsResponseDialog insertedDataResponse={insertedDataResponse} open={openDialog} onClose={() => setOpenDialog(false)} />
         
         <CustomButton
           variant="contained"

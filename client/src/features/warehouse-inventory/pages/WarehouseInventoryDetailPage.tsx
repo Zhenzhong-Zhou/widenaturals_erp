@@ -2,7 +2,7 @@ import { useParams } from 'react-router-dom';
 import { Box, Paper } from '@mui/material';
 import { CustomButton, ErrorDisplay, ErrorMessage, Loading, Typography } from '@components/index.ts';
 import {
-  useBulkInsertWarehouseInventory,
+  useBulkInsertWarehouseInventory, useInsertedInventoryRecordsResponse,
   useLotAdjustmentQty,
   useWarehouseDetails,
   useWarehouseInventoryDetails,
@@ -16,9 +16,11 @@ import {
   WarehouseInventoryDetailTable,
   WarehouseProductSummaryCard,
 } from '../index.ts';
+import { useEffect, useState } from 'react';
 
 const WarehouseInventoryDetailPage = () => {
   const { warehouseId } = useParams<{ warehouseId: string }>();
+  const [openDialog, setOpenDialog] = useState(false);
 
   if (!warehouseId) {
     return (
@@ -58,7 +60,15 @@ const WarehouseInventoryDetailPage = () => {
     useLotAdjustmentQty(refreshWarehouseInventoryDetails);
   
   const { isLoading, handleBulkInsert } = useBulkInsertWarehouseInventory();
-
+  
+  const { fetchInsertedInventoryRecords, data: insertedDataResponse } = useInsertedInventoryRecordsResponse();
+  
+  useEffect(() => {
+    if (insertedDataResponse && insertedDataResponse.data.length > 0) {
+      setOpenDialog(true);
+    }
+  }, [insertedDataResponse]);
+  
   const transformedWarehouseInventoryDetails: WarehouseInventoryDetailExtended[] =
     warehouseInventoryDetails.map((detail) => ({
       ...detail,
@@ -135,8 +145,15 @@ const WarehouseInventoryDetailPage = () => {
         })) as InventoryItem[],
       };
       
-      console.log(requestPayload);
-      await handleBulkInsert(requestPayload);
+      const succeedResponse = await handleBulkInsert(requestPayload);
+      
+      // Fetch inserted inventory records based on inserted identifiers
+      await fetchInsertedInventoryRecords({
+        warehouseLotIds: succeedResponse.data.warehouseLotsInventoryRecords,
+      });
+      
+      // Open the response dialog
+      setOpenDialog(true);
       
       // Refresh warehouse inventory after submission
       refreshWarehouseInventoryDetails();
@@ -181,6 +198,9 @@ const WarehouseInventoryDetailPage = () => {
           onBulkLotsQtyUpdate={handleBulkLotAdjustment}
           warehouseId={warehouseId}
           handleBulkInsertSubmit={handleBulkInsertSubmit}
+          insertedDataResponse={insertedDataResponse}
+          openDialog={openDialog}
+          setOpenDialog={setOpenDialog}
         />
       </Paper>
 

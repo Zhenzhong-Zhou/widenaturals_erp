@@ -3,7 +3,9 @@ import { dropdownService, warehouseInventoryService } from '../../../services';
 import {
   BulkInsertInventoryRequest,
   BulkInsertInventoryResponse,
+  InsertInventoryRequestBody,
   WarehouseInventoryDetailsResponse,
+  WarehouseInventoryInsertResponse,
   WarehouseInventoryResponse,
   WarehouseInventorySummaryResponse,
   WarehouseProductSummaryResponse,
@@ -167,6 +169,36 @@ export const bulkInsertWarehouseInventoryThunk = createAsyncThunk<
       return await warehouseInventoryService.bulkInsertInventory(requestData);
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to insert warehouse inventory.');
+    }
+  }
+);
+
+// Thunk for fetching inserted inventory records
+export const fetchInsertedInventoryRecordsThunk = createAsyncThunk<
+  WarehouseInventoryInsertResponse, // ✅ Correct Expected Response Type
+  InsertInventoryRequestBody, // ✅ Request Body Type
+  { rejectValue: string } // ✅ Error Type
+>(
+  "insertedInventory/fetchInsertedInventoryRecords",
+  async (requestData, { rejectWithValue }) => {
+    try {
+      // Ensure the response is of type `WarehouseInventoryInsertResponse`
+      const response = await warehouseInventoryService.getInsertedInventoryRecords(requestData) as unknown;
+      
+      // Explicitly cast `response` as `WarehouseInventoryInsertResponse` after validating structure
+      if (
+        typeof response === "object" &&
+        response !== null &&
+        "success" in response &&
+        "data" in response &&
+        Array.isArray((response as WarehouseInventoryInsertResponse).data)
+      ) {
+        return response as WarehouseInventoryInsertResponse;
+      } else {
+        return rejectWithValue("Invalid response structure from server.");
+      }
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || "Failed to fetch inserted inventory records.");
     }
   }
 );
