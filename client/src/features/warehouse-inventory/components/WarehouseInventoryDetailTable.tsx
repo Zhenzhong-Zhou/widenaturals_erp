@@ -11,7 +11,7 @@ import {
 } from '../index.ts';
 import { WarehouseInventoryDetailExtended } from '../state/warehouseInventoryTypes.ts';
 import { capitalizeFirstLetter, formatCurrency } from '@utils/textUtils.ts';
-import { formatDate } from '@utils/dateTimeUtils.ts';
+import { formatDate, formatDateTime } from '@utils/dateTimeUtils.ts';
 
 // Define Column Type explicitly
 interface Column<T> {
@@ -71,7 +71,7 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
 }) => {
   const [selectedLot, setSelectedLot] = useState<{
     warehouseInventoryLotId: string;
-    productName: string;
+    itemName: string;
     lotNumber: string;
     quantity: number;
   } | null>(null);
@@ -81,7 +81,7 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
   const [selectedLots, setSelectedLots] = useState<
     {
       warehouseInventoryLotId: string;
-      productName: string;
+      itemName: string;
       lotNumber: string;
       currentQuantity: number;
     }[]
@@ -95,7 +95,7 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
     lotCreatedBy: row.lotCreated?.by ?? 'Unknown', // Extract "Created By"
     lotCreatedDate: row.lotCreated?.date ?? '', // Extract "Created Date"
     warehouseInventoryLotId: row.warehouseInventoryLotId, // Ensure this exists
-    productName: row.productName, // Ensure this exists
+    itemName: row.itemName, // Ensure this exists
     lotNumber: row.lotNumber, // Ensure this exists
   }));
 
@@ -134,23 +134,15 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
         />
       ),
     },
-
-    // 2️⃣ Product & Lot Identification
     {
-      id: 'productName',
-      label: 'Product Name',
+      id: 'itemName',
+      label: 'Item Name',
       sortable: true,
     },
     {
       id: 'lotNumber',
       label: 'Lot Number',
       sortable: true,
-    },
-    {
-      id: 'identifier',
-      label: 'Identifier',
-      sortable: true,
-      format: (value: any) => value || 'N/A',
     },
     {
       id: 'itemType',
@@ -172,7 +164,7 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
             onClick={() =>
               setSelectedLot({
                 warehouseInventoryLotId: row.warehouseInventoryLotId,
-                productName: row.productName,
+                itemName: row.itemName,
                 lotNumber: row.lotNumber,
                 quantity: row.lotQuantity,
               })
@@ -212,6 +204,12 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
       label: 'Expiry Date',
       sortable: true,
       format: (value: any) => formatDate(value),
+    },
+    {
+      id: 'lastUpdate',
+      label: 'Last Update',
+      sortable: true,
+      format: (value: any) => formatDateTime(value),
     },
     {
       id: 'inboundDate',
@@ -288,7 +286,7 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
               .filter((lot) => selectedLotIds.has(lot.warehouseInventoryLotId))
               .map((lot) => ({
                 warehouseInventoryLotId: lot.warehouseInventoryLotId,
-                productName: lot.productName,
+                itemName: lot.itemName,
                 lotNumber: lot.lotNumber,
                 currentQuantity: lot.lotQuantity || 0,
               }));
@@ -323,7 +321,7 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
           open={Boolean(selectedLot)}
           onClose={() => setSelectedLot(null)}
           warehouseInventoryLotId={selectedLot.warehouseInventoryLotId}
-          productName={selectedLot.productName}
+          itemName={selectedLot.itemName}
           lotNumber={selectedLot.lotNumber}
           currentQuantity={selectedLot.quantity}
           onSubmit={(data) => {

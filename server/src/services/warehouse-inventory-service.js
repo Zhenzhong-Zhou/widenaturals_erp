@@ -164,41 +164,39 @@ const fetchWarehouseInventoryDetailsByWarehouseId = async (
     const inventoryDetails = data.map((item) => ({
       warehouseInventoryId: item.warehouse_inventory_id,
       inventoryId: item.inventory_id,
-      productName: item.product_name,
+      itemName: item.item_name,
       itemType: item.item_type,
-      identifier: item.identifier,
       warehouseInventoryLotId: item.warehouse_inventory_lot_id,
       lotNumber: item.lot_number,
       lotQuantity: item.lot_quantity,
       reservedStock: item.reserved_stock,
       availableStock: item.available_stock,
-      totalStock: item.total_quantity,
       warehouseFees: item.warehouse_fees,
       lotStatus: item.lot_status || 'Unknown',
-      manufactureDate: item.manufacture_date,
-      expiryDate: item.expiry_date,
-      inboundDate: item.inbound_date,
-      outboundDate: item.outbound_date,
-      lastUpdate: item.last_update,
-
+      manufactureDate: item.manufacture_date ? new Date(item.manufacture_date) : null,
+      expiryDate: item.expiry_date ? new Date(item.expiry_date) : null,
+      inboundDate: item.inbound_date ? new Date(item.inbound_date) : null,
+      outboundDate: item.outbound_date ? new Date(item.outbound_date) : null,
+      lastUpdate: item.last_update ? new Date(item.last_update) : null,
+      
       inventoryCreated: {
-        date: item.inventory_created_at,
+        date: item.inventory_created_at ? new Date(item.inventory_created_at) : null,
         by: item.inventory_created_by,
       },
       inventoryUpdated: {
-        date: item.inventory_updated_at,
+        date: item.inventory_updated_at ? new Date(item.inventory_updated_at) : null,
         by: item.inventory_updated_by,
       },
       lotCreated: {
-        date: item.lot_created_at,
+        date: item.lot_created_at ? new Date(item.lot_created_at) : null,
         by: item.lot_created_by,
       },
       lotUpdated: {
-        date: item.lot_updated_at,
+        date: item.lot_updated_at ? new Date(item.lot_updated_at) : null,
         by: item.lot_updated_by,
       },
     }));
-
+    
     return {
       inventoryDetails,
       pagination,

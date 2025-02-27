@@ -155,7 +155,7 @@ const getWarehouseInventoryDetailsByWarehouseId = async ({
   const joins = [
     'JOIN warehouses w ON wi.warehouse_id = w.id',
     'JOIN inventory i ON wi.inventory_id = i.id',
-    'JOIN products p ON i.product_id = p.id',
+    'LEFT JOIN products p ON i.product_id = p.id',
     'LEFT JOIN warehouse_inventory_lots wil ON wi.inventory_id = wil.inventory_id AND wi.warehouse_id = wil.warehouse_id',
     'LEFT JOIN warehouse_lot_status ws ON wil.status_id = ws.id',
     'LEFT JOIN users u1 ON wi.created_by = u1.id',
@@ -167,15 +167,14 @@ const getWarehouseInventoryDetailsByWarehouseId = async ({
   const whereClause = 'wi.warehouse_id = $1';
 
   // Sorting
-  const defaultSort = 'p.product_name, wil.expiry_date';
+  const defaultSort = 'COALESCE(i.product_id::TEXT, i.identifier), wil.lot_number, wil.expiry_date';
 
   const baseQuery = `
-    SELECT
+    SELECT DISTINCT ON (COALESCE(i.product_id::TEXT, i.identifier), wil.lot_number)
         wi.id AS warehouse_inventory_id,
         i.id AS inventory_id,
-        p.product_name,
+        COALESCE(NULLIF(p.product_name, ''), i.identifier) AS item_name,
         i.item_type,
-        i.identifier,
         wil.id AS warehouse_inventory_lot_id,
         wil.lot_number,
         COALESCE(wil.quantity, 0) AS lot_quantity,
@@ -190,7 +189,7 @@ const getWarehouseInventoryDetailsByWarehouseId = async ({
         wi.last_update,
         wi.created_at AS inventory_created_at,
         wi.updated_at AS inventory_updated_at,
-        
+    
         COALESCE(u1.firstname, '') || ' ' || COALESCE(u1.lastname, 'Unknown') AS inventory_created_by,
         COALESCE(u2.firstname, '') || ' ' || COALESCE(u2.lastname, 'Unknown') AS inventory_updated_by,
     
@@ -409,9 +408,9 @@ const getRecentInsertWarehouseInventoryRecords = async (warehouseLotIds) => {
             wil.expiry_date,
             wil.manufacture_date,
             i.created_at AS inventory_created_at,
-            COALESCE(u3.firstname, '') || ' ' || COALESCE(u3.lastname, 'Unknown') AS inventory_created_by,
+            COALESCE(u1.firstname, '') || ' ' || COALESCE(u1.lastname, 'Unknown') AS inventory_created_by,
             i.updated_at AS inventory_updated_at,
-            COALESCE(u4.firstname, '') || ' ' || COALESCE(u4.lastname, 'Unknown') AS inventory_updated_by,
+            COALESCE(u2.firstname, '') || ' ' || COALESCE(u2.lastname, 'Unknown') AS inventory_updated_by,
             wi.available_quantity,
             p.product_name,
             i.identifier,
@@ -420,8 +419,8 @@ const getRecentInsertWarehouseInventoryRecords = async (warehouseLotIds) => {
         JOIN inventory i ON wil.inventory_id = i.id
         JOIN warehouse_inventory wi ON wil.inventory_id = wi.inventory_id
                                      AND wil.warehouse_id = wi.warehouse_id
-        LEFT JOIN users u3 ON i.created_by = u3.id
-        LEFT JOIN users u4 ON i.updated_by = u4.id
+        LEFT JOIN users u1 ON i.created_by = u1.id
+        LEFT JOIN users u2 ON i.updated_by = u2.id
         LEFT JOIN products p ON i.product_id = p.id
         WHERE wil.id = ANY($1::uuid[])
     )

@@ -19,7 +19,7 @@ interface BulkAdjustQuantityModalProps {
   onClose: () => void;
   selectedLots: {
     warehouseInventoryLotId: string;
-    productName: string;
+    itemName: string;
     lotNumber: string;
     currentQuantity: number;
   }[];
@@ -75,7 +75,7 @@ const BulkAdjustQuantityModal: FC<BulkAdjustQuantityModalProps> = ({
     reset({
       adjustments: selectedLots.map((lot) => ({
         warehouseInventoryLotId: lot.warehouseInventoryLotId,
-        productName: lot.productName,
+        itemName: lot.itemName,
         lotNumber: lot.lotNumber,
         currentQuantity: lot.currentQuantity,
         adjustedQuantity: 0,

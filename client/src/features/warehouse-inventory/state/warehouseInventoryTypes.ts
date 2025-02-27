@@ -79,22 +79,20 @@ export interface WarehouseProductSummaryResponse {
 }
 
 export interface InventoryCreatedUpdatedInfo {
-  date: string;
+  date: string | null;
   by: string;
 }
 
 export interface WarehouseInventoryDetail {
   warehouseInventoryId: string;
   inventoryId: string;
-  productName: string;
+  itemName: string;
   itemType: string;
-  identifier: string;
   warehouseInventoryLotId: string;
   lotNumber: string;
   lotQuantity: number;
   reservedStock: number;
   availableStock: number;
-  totalStock: number;
   warehouseFees: string;
   lotStatus: string;
   manufactureDate: string;

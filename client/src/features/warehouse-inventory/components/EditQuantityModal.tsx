@@ -11,7 +11,7 @@ interface EditQuantityModalProps {
   open: boolean;
   onClose: () => void;
   warehouseInventoryLotId: string;
-  productName: string;
+  itemName: string;
   lotNumber: string;
   currentQuantity: number;
   onSubmit: (data: {
@@ -26,7 +26,7 @@ const EditQuantityModal: FC<EditQuantityModalProps> = ({
   open,
   onClose,
   warehouseInventoryLotId,
-  productName,
+  itemName,
   lotNumber,
   currentQuantity,
   onSubmit,
@@ -65,7 +65,7 @@ const EditQuantityModal: FC<EditQuantityModalProps> = ({
     <CustomModal open={open} onClose={onClose} title="Edit Lot Quantity">
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 2 }}>
         <Typography variant="h6" fontWeight="bold">
-          {productName}
+          {itemName}
         </Typography>
         <Typography variant="subtitle2" color="text.secondary">
           Lot Number: <strong>{lotNumber}</strong>
