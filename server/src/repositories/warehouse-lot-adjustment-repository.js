@@ -1,4 +1,4 @@
-const { query } = require('../database/db');
+const { query, retry, paginateQuery } = require('../database/db');
 const { logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
 
@@ -49,8 +49,14 @@ const insertWarehouseLotAdjustment = async (
 
   try {
     // Use the query function instead of pool.query
-    const { rows } = await query(queryText, values, client);
-    return rows[0]; // Return the inserted adjustment record
+    return await retry(
+      async () => {
+        const response = await query(queryText, values, client);
+        return response.rows; // Ensure we return `rows` explicitly
+      },
+      3, // Retry attempts
+      1000 // Delay in milliseconds between retries
+    );
   } catch (error) {
     logError('Error inserting warehouse lot adjustment:', error);
     throw new AppError(
@@ -59,4 +65,6 @@ const insertWarehouseLotAdjustment = async (
   }
 };
 
-module.exports = { insertWarehouseLotAdjustment };
+module.exports = {
+  insertWarehouseLotAdjustment,
+};

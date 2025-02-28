@@ -1,0 +1,97 @@
+const { getAdjustmentReport } = require('../repositories/report-repository');
+const { exportToCSV, exportToPDF, exportToPlainText } = require('../utils/export-utils');
+const AppError = require('../utils/AppError');
+const { logError } = require('../utils/logger-helper');
+
+/**
+ * Fetch adjustment report with optional export support.
+ * @param {Object} params - Request parameters.
+ * @param {string} params.reportType - 'daily', 'weekly', 'monthly', 'yearly', or 'custom'.
+ * @param {string} params.userTimezone - User's timezone.
+ * @param {string} [params.startDate] - Custom start date (optional).
+ * @param {string} [params.endDate] - Custom end date (optional).
+ * @param {string} [params.warehouseId] - Warehouse ID (optional).
+ * @param {string} [params.inventoryId] - Inventory ID (optional).
+ * @param {number} [params.page] - Page number for pagination (optional).
+ * @param {number} [params.limit] - Items per page (optional).
+ * @param {string} [params.sortBy] - Sort column (optional).
+ * @param {string} [params.sortOrder] - Sorting order (ASC/DESC) (optional).
+ * @param {string} [params.exportFormat] - 'csv', 'pdf', or 'txt' for export (optional).
+ * @returns {Promise<Object|Buffer>} - JSON response for paginated data or file buffer for export.
+ */
+const fetchAdjustmentReport = async ({
+                                            reportType = 'daily',
+                                            userTimezone = 'UTC',
+                                            startDate = null,
+                                            endDate = null,
+                                            warehouseId = null,
+                                            inventoryId = null,
+                                            page = 1,
+                                            limit = 50,
+                                            sortBy = 'local_adjustment_date',
+                                            sortOrder = 'DESC',
+                                            exportFormat = null, // Export format: 'csv', 'pdf', 'txt'
+                                          }) => {
+  try {
+    const isExport = !!exportFormat; // If exportFormat is provided, fetch all data
+    
+    // Fetch report from repository (paginated or full)
+    const reportData = await getAdjustmentReport({
+      reportType,
+      userTimezone,
+      startDate,
+      endDate,
+      warehouseId,
+      inventoryId,
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+      isExport,
+    });
+    
+    if (!isExport) {
+      // Return JSON response for paginated data
+      return {
+        success: true,
+        data: reportData,
+        pagination: { page, limit },
+      };
+    }
+    
+    // Handle export based on format
+    let fileBuffer;
+    let contentType;
+    let fileName;
+    
+    switch (exportFormat.toLowerCase()) {
+      case 'csv':
+        fileBuffer = exportToCSV(reportData);
+        contentType = 'text/csv';
+        fileName = 'adjustment_report.csv';
+        break;
+      case 'pdf':
+        fileBuffer = await exportToPDF(reportData, { landscape: true }); // PDF function should return a Buffer
+        contentType = 'application/pdf';
+        fileName = 'adjustment_report.pdf';
+        break;
+      case 'txt':
+        fileBuffer = exportToPlainText(reportData);
+        contentType = 'text/plain';
+        fileName = 'adjustment_report.txt';
+        break;
+      default:
+        throw new AppError.validationError('Invalid export format. Use "csv", "pdf", or "txt".');
+    }
+    
+    return { fileBuffer, contentType, fileName };
+  } catch (error) {
+    console.log(error);
+    logError('Failed to fetch adjustment report', error);
+    throw new AppError.databaseError('Failed to fetch adjustment report', error);
+  }
+};
+
+module.exports = {
+  fetchAdjustmentReport
+};
