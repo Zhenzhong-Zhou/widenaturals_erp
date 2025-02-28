@@ -81,12 +81,9 @@ const getAdjustmentReport = async ({
     queryText = baseQuery; // No limit & offset for export
   }
   
-  console.log(queryText, params);
-  
   try {
     return await retry(async () => {
       const { rows } = await query(queryText, params);
-      console.log(rows);
       return rows;
     }, 3, 1000); // Retry up to 3 times with a 1-second delay
   } catch (error) {

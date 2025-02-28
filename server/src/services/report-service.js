@@ -20,18 +20,18 @@ const { logError } = require('../utils/logger-helper');
  * @returns {Promise<Object|Buffer>} - JSON response for paginated data or file buffer for export.
  */
 const fetchAdjustmentReport = async ({
-                                            reportType = 'daily',
-                                            userTimezone = 'UTC',
-                                            startDate = null,
-                                            endDate = null,
-                                            warehouseId = null,
-                                            inventoryId = null,
-                                            page = 1,
-                                            limit = 50,
-                                            sortBy = 'local_adjustment_date',
-                                            sortOrder = 'DESC',
-                                            exportFormat = null, // Export format: 'csv', 'pdf', 'txt'
-                                          }) => {
+                                       reportType = 'daily',
+                                       userTimezone = 'UTC',
+                                       startDate = null,
+                                       endDate = null,
+                                       warehouseId = null,
+                                       inventoryId = null,
+                                       page = 1,
+                                       limit = 50,
+                                       sortBy = 'local_adjustment_date',
+                                       sortOrder = 'DESC',
+                                       exportFormat = null, // Export format: 'csv', 'pdf', 'txt'
+                                     }) => {
   try {
     const isExport = !!exportFormat; // If exportFormat is provided, fetch all data
     
@@ -50,6 +50,46 @@ const fetchAdjustmentReport = async ({
       isExport,
     });
     
+    // Handle No Data Case
+    if (!reportData || reportData.length === 0) {
+      if (!isExport) {
+        return {
+          success: true,
+          data: [],
+          pagination: { page, limit },
+          message: 'No adjustment records found for the given criteria.',
+        };
+      }
+      
+      // Handle empty file exports
+      const emptyMessage = 'No data available for export.';
+      let fileBuffer;
+      let contentType;
+      let fileName;
+      
+      switch (exportFormat.toLowerCase()) {
+        case 'csv':
+          fileBuffer = Buffer.from(emptyMessage, 'utf-8');
+          contentType = 'text/csv';
+          fileName = 'empty_adjustment_report.csv';
+          break;
+        case 'pdf':
+          fileBuffer = await exportToPDF([], { landscape: true }); // Empty PDF
+          contentType = 'application/pdf';
+          fileName = 'empty_adjustment_report.pdf';
+          break;
+        case 'txt':
+          fileBuffer = Buffer.from(emptyMessage, 'utf-8');
+          contentType = 'text/plain';
+          fileName = 'empty_adjustment_report.txt';
+          break;
+        default:
+          throw new AppError.validationError('Invalid export format. Use "csv", "pdf", or "txt".');
+      }
+      
+      return { fileBuffer, contentType, fileName };
+    }
+    
     if (!isExport) {
       // Return JSON response for paginated data
       return {
@@ -59,7 +99,7 @@ const fetchAdjustmentReport = async ({
       };
     }
     
-    // Handle export based on format
+    // Handle Export (Regular Data)
     let fileBuffer;
     let contentType;
     let fileName;
@@ -86,7 +126,6 @@ const fetchAdjustmentReport = async ({
     
     return { fileBuffer, contentType, fileName };
   } catch (error) {
-    console.log(error);
     logError('Failed to fetch adjustment report', error);
     throw new AppError.databaseError('Failed to fetch adjustment report', error);
   }
