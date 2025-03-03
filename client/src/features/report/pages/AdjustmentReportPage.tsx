@@ -8,11 +8,15 @@ import { capitalizeFirstLetter } from '@utils/textUtils.ts';
 import Box from '@mui/material/Box';
 import { ExportAdjustmentReportModal } from '../index.ts';
 import { handleDownload } from '@utils/downloadUtils.ts';
+import Dropdown from '@components/common/Dropdown.tsx';
+import CustomDatePicker from '@components/common/CustomDatePicker.tsx';
 
 const AdjustmentReportPage: FC = () => {
   const [filters, setFilters] = useState<Partial<AdjustmentReportParams>>({
-    reportType: 'weekly',
-    userTimezone: 'UTC',
+    reportType: null,
+    userTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone, // Auto-detect timezone
+    startDate: null,
+    endDate: null,
     page: 1,
     limit: 10,
   });
@@ -35,7 +39,7 @@ const AdjustmentReportPage: FC = () => {
   
   // Fetch report data on mount
   useEffect(() => {
-    fetchReport(filters);
+    fetchReport();
   }, [fetchReport]);
   
   /**
@@ -45,38 +49,72 @@ const AdjustmentReportPage: FC = () => {
     fetchReport(filters);
   };
   
-  // Handle export action
+  /**
+   * Handle export action
+   */
   const handleExport = async (exportParams: Partial<AdjustmentReportParams>) => {
     exportReport(exportParams);
   };
   
-  // Trigger file download when export completes
+  /**
+   * Trigger file download when export completes
+   */
   useEffect(() => {
     if (exportData) {
-      // Ensure file types are correct before downloading
-      const validFormats = ['csv', 'pdf', 'txt'];
-      if (!validFormats.includes(exportFormat || '')) {
-        console.error('Error: Unsupported export format', exportFormat);
-        return;
-      }
-      
-      // Handle file download
-      handleDownload(exportData, `Adjustment_Report_${new Date().toISOString().slice(0, 10)}.${exportFormat}`);
+      const fileExtension = exportFormat || 'csv';
+      handleDownload(exportData, `Adjustment_Report_${new Date().toISOString().slice(0, 10)}.${fileExtension}`);
     }
   }, [exportData, exportFormat]);
   
+  /**
+   * Handle report type change (daily, weekly, monthly, yearly)
+   */
+  const handleReportTypeChange = (value: string | null) => {
+    setFilters((prev) => ({
+      ...prev,
+      reportType: value as AdjustmentReportParams['reportType'],
+      startDate: value ? null : prev.startDate, // Reset start date if type is selected
+      endDate: value ? null : prev.endDate, // Reset end date if type is selected
+    }));
+  };
+  
+  /**
+   * Handle start date change
+   */
+  const handleStartDateChange = (date: Date | null) => {
+    if (date) {
+      // Convert selected date to YYYY-MM-DD format (keep local timezone)
+      const localDate = formatDate(date);
+      setFilters((prev) => ({ ...prev, startDate: localDate }));
+    } else {
+      setFilters((prev) => ({ ...prev, startDate: null }));
+    }
+  };
+  
+  /**
+   * Handle end date change
+   */
+  const handleEndDateChange = (date: Date | null) => {
+    if (date) {
+      const localDate = formatDate(date);
+      setFilters((prev) => ({ ...prev, endDate: localDate }));
+    } else {
+      setFilters((prev) => ({ ...prev, endDate: null }));
+    }
+  };
+  
+  // Define report type options
+  const reportTypeOptions = [
+    { value: null, label: 'Select A Type' },
+    { value: 'weekly', label: 'Weekly' },
+    { value: 'monthly', label: 'Monthly' },
+    { value: 'yearly', label: 'Yearly' },
+  ];
+  
   // Define table columns
   const columns: Column[] = [
-    {
-      id: 'warehouse_name',
-      label: 'Warehouse Name',
-      sortable: true,
-    },
-    {
-      id: 'item_name',
-      label: 'Item Name',
-      sortable: true
-    },
+    { id: 'warehouse_name', label: 'Warehouse Name', sortable: true },
+    { id: 'item_name', label: 'Item Name', sortable: true },
     {
       id: 'adjustment_type',
       label: 'Adjustment Type',
@@ -120,7 +158,7 @@ const AdjustmentReportPage: FC = () => {
   
   if (loading) return <Loading message="Loading Warehouse Inventory Adjustment Report..." />;
   if (error) return <ErrorDisplay><ErrorMessage message={error} /></ErrorDisplay>;
-  if (!data?.length)
+  if (!data)
     return <Typography variant="h4">No warehouse inventory adjustment records found.</Typography>;
   
   if (exportLoading) return <Loading message="Exporting Warehouse Inventory Adjustment Report..." />;
@@ -138,7 +176,29 @@ const AdjustmentReportPage: FC = () => {
         </Typography>
       </Box>
       
-      {/* Export Button */}
+      {/* Filters: Report Type, Start Date, End Date */}
+      <Box sx={{ display: 'flex', gap: 2, marginBottom: 2 }}>
+        <Dropdown
+          label="Report Type"
+          options={reportTypeOptions}
+          value={filters.reportType || ''}
+          onChange={handleReportTypeChange}
+        />
+        <CustomDatePicker
+          label="Start Date"
+          value={filters.startDate ? new Date(`${filters.startDate}T00:00:00`) : null}
+          onChange={handleStartDateChange}
+          disabled={!!filters.reportType}
+        />
+        <CustomDatePicker
+          label="End Date"
+          value={filters.endDate ? new Date(`${filters.endDate}T00:00:00`) : null}
+          onChange={handleEndDateChange}
+          disabled={!!filters.reportType}
+        />
+      </Box>
+      
+      {/* Action Buttons: Refresh & Export */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
         {/* Refresh Button */}
         <CustomButton variant="outlined" onClick={handleRefresh} disabled={loading}>
@@ -149,6 +209,7 @@ const AdjustmentReportPage: FC = () => {
         <CustomButton variant="contained" onClick={() => setOpen(true)} disabled={exportLoading}>
           {exportLoading ? 'Exporting...' : 'Export Report'}
         </CustomButton>
+        
         <ExportAdjustmentReportModal
           open={open}
           onClose={() => setOpen(false)}
@@ -167,18 +228,12 @@ const AdjustmentReportPage: FC = () => {
         totalRecords={pagination.totalRecords}
         page={filters.page ?? 1}
         onPageChange={(newPage) => {
-          setFilters((prev) => {
-            const updatedFilters = { ...prev, page: newPage + 1 };
-            fetchReport(updatedFilters);
-            return updatedFilters;
-          });
+          setFilters((prev) => ({ ...prev, page: newPage + 1 }));
+          fetchReport({ ...filters, page: newPage + 1 });
         }}
         onRowsPerPageChange={(newLimit) => {
-          setFilters((prev) => {
-            const updatedFilters = { ...prev, limit: newLimit, page: 1 };
-            fetchReport(updatedFilters);
-            return updatedFilters;
-          });
+          setFilters((prev) => ({ ...prev, limit: newLimit, page: 1 })); // Reset to first page
+          fetchReport({ ...filters, limit: newLimit, page: 1 });
         }}
       />
     </Box>

@@ -18,6 +18,7 @@ const getAdjustmentReportController = wrapAsync(async (req, res, next) => {
       exportFormat,
     } = req.query;
     
+    // Fetch the report (conversion is now handled inside `fetchAdjustmentReport`)
     const result = await fetchAdjustmentReport({
       reportType,
       userTimezone,
@@ -39,7 +40,7 @@ const getAdjustmentReportController = wrapAsync(async (req, res, next) => {
       });
     }
     
-    // Handle file exports
+    // Handle file exports (CSV, PDF, TXT)
     const { fileBuffer, contentType, fileName } = result;
     
     res.setHeader('Content-Disposition', `attachment; filename=${fileName}`);

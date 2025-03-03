@@ -3,10 +3,10 @@
  */
 export interface AdjustmentReportParams {
   exportFormat?: 'csv' | 'pdf' | 'txt' | null;
-  reportType: 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
+  reportType: 'weekly' | 'monthly' | 'yearly' | 'custom' | null;
   userTimezone: string;
-  startDate?: string | Date; // Accepts both string & Date
-  endDate?: string | Date; // Accepts both string & Date
+  startDate?: string | Date | null; // Accepts both string & Date
+  endDate?: string | Date | null; // Accepts both string & Date
   warehouseId?: string; // Nullable warehouse ID
   inventoryId?: string; // Nullable inventory ID
   page?: number; // Pagination: Current Page

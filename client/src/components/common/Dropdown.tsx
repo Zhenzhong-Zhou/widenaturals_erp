@@ -3,8 +3,8 @@ import { Autocomplete, TextField, Box } from '@mui/material';
 
 interface DropdownProps {
   label: string;
-  options: { value: string; label: string }[];
-  value: string;
+  options: { value: string | null; label: string }[];
+  value: string | null;
   onChange: (value: string) => void;
   searchable?: boolean;
   sx?: object;

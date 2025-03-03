@@ -20,7 +20,7 @@ const { logError } = require('../utils/logger-helper');
  * @returns {Promise<Object|Buffer>} - JSON response for paginated data or file buffer for export.
  */
 const fetchAdjustmentReport = async ({
-                                       reportType = 'daily',
+                                       reportType = null,
                                        userTimezone = 'UTC',
                                        startDate = null,
                                        endDate = null,

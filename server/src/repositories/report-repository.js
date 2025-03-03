@@ -14,7 +14,7 @@ const AppError = require('../utils/AppError');
  * @returns {Promise<Array>} - List of adjustment records.
  */
 const getAdjustmentReport = async ({
-                                     reportType = 'daily',
+                                     reportType = null,
                                      userTimezone = 'UTC',
                                      startDate = null,
                                      endDate = null,
@@ -52,7 +52,6 @@ const getAdjustmentReport = async ({
     LEFT JOIN warehouse_lot_status ws ON wa.status_id = ws.id
     WHERE wa.adjustment_date AT TIME ZONE 'UTC' AT TIME ZONE $1 >=
       CASE
-        WHEN $2::TEXT = 'daily' THEN (CURRENT_DATE AT TIME ZONE $1)
         WHEN $2::TEXT = 'weekly' THEN (CURRENT_DATE - INTERVAL '7 days') AT TIME ZONE $1
         WHEN $2::TEXT = 'monthly' THEN (CURRENT_DATE - INTERVAL '30 days') AT TIME ZONE $1
         WHEN $2::TEXT = 'yearly' THEN (CURRENT_DATE - INTERVAL '1 year') AT TIME ZONE $1
@@ -60,7 +59,7 @@ const getAdjustmentReport = async ({
       END
       AND wa.adjustment_date AT TIME ZONE 'UTC' AT TIME ZONE $1 <
       CASE
-        WHEN $2::TEXT IN ('daily', 'weekly', 'monthly', 'yearly') THEN (CURRENT_DATE + INTERVAL '1 day') AT TIME ZONE $1
+        WHEN $2::TEXT IN ('weekly', 'monthly', 'yearly') THEN (CURRENT_DATE + INTERVAL '1 day') AT TIME ZONE $1
         ELSE COALESCE($4::TIMESTAMP, (CURRENT_DATE + INTERVAL '1 day')::TIMESTAMP) AT TIME ZONE $1
       END
       AND ($5::UUID IS NULL OR wa.warehouse_id = $5::UUID)

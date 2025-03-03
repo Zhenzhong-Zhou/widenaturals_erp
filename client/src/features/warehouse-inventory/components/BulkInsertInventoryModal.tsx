@@ -3,6 +3,7 @@ import { CustomButton, CustomDatePicker, CustomModal, Loading, MultiItemForm } f
 import Box from '@mui/material/Box';
 import { InventoryDropdown, ProductDropdownItem } from "../index.ts";
 import { useDropdown } from "../../../hooks";
+import { formatDate } from '@utils/dateTimeUtils.ts';
 
 const BulkInsertInventoryModal: FC<{ warehouseId: string; onSubmit: (data: Record<string, any>[]) => void; mode: "create" | "edit" | "adjust" }> = ({ warehouseId, onSubmit, mode }) => {
   const [open, setOpen] = useState(false);
@@ -108,9 +109,13 @@ const BulkInsertInventoryModal: FC<{ warehouseId: string; onSubmit: (data: Recor
                   label: "Manufacture Date",
                   type: "custom",
                   component: ({ value, onChange }) =>
-                    <CustomDatePicker label="Manufacture Date" value={value}
-                                      onChange={onChange}  sx={{ width: "250px" }}
-                                      inputSx={{ width: "250px" }} />,
+                    <CustomDatePicker
+                      label="Manufacture Date"
+                      value={value ? new Date(value) : null} // Ensure value is Date
+                      onChange={(date) => onChange(date ? formatDate(date) : '')} // Convert Date to string before passing
+                      sx={{ width: "250px" }}
+                      inputSx={{ width: "250px" }}
+                    />
                 },
                 {
                   id: "lot_number",
@@ -123,9 +128,11 @@ const BulkInsertInventoryModal: FC<{ warehouseId: string; onSubmit: (data: Recor
                   type: "custom",
                   component: ({ value, onChange }) =>
                     <CustomDatePicker label="Expiry Date"
-                                      value={value} onChange={onChange}
+                                      value={value ? new Date(value) : null} // Ensure value is Date
+                                      onChange={(date) => onChange(date ? formatDate(date) : '')} // Convert Date to string before passing
                                       sx={{ width: "250px" }}
-                                      inputSx={{ width: "250px" }} />,
+                                      inputSx={{ width: "250px" }}
+                    />,
                 },
                 {
                   id: "quantity",
