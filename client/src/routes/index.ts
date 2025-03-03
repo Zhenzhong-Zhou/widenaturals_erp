@@ -24,7 +24,6 @@ export const routes = [
       requiresAuth: true,
       title: 'Dashboard',
       showInSidebar: true,
-      // requiredPermission: '',
     },
   },
   {
@@ -198,6 +197,17 @@ export const routes = [
       title: 'Warehouse Inventories Details',
       showInSidebar: false,
       requiredPermission: 'view_warehouses',
+    },
+  },
+  {
+    path: '/reports/adjustments',
+    component: () =>
+      import('../features/report/pages/AdjustmentReportPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Adjustment Report',
+      showInSidebar: false,
+      requiredPermission: 'view_adjustment_reports',
     },
   },
   {

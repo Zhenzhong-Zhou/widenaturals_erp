@@ -1,4 +1,4 @@
-const { retry, query } = require('../database/db');
+const { retry, query, paginateQuery } = require('../database/db');
 const { logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
 
@@ -28,70 +28,83 @@ const getAdjustmentReport = async ({
                                    }) => {
   const offset = (page - 1) * limit;
   
+  // Construct the Base Query
   const baseQuery = `
-    WITH adjustment_data AS (
-        SELECT
-            wa.adjustment_date AT TIME ZONE 'UTC' AT TIME ZONE $1 AS local_adjustment_date,
-            w.id AS warehouse_id,
-            w.name AS warehouse_name,
-            COALESCE(p.product_name, i.identifier, 'Unknown Item') AS item_name,
-            i.id AS inventory_id,
-            wa.previous_quantity,
-            wa.adjusted_quantity,
-            wa.new_quantity,
-            lat.name AS adjustment_type,
-            ws.name AS status,
-            COALESCE(u.firstname, 'System') || ' ' || COALESCE(u.lastname, 'Action') AS adjusted_by,
-            wa.comments
-        FROM warehouse_lot_adjustments wa
-        JOIN inventory i ON wa.inventory_id = i.id
-        LEFT JOIN products p ON i.product_id = p.id
-        JOIN warehouses w ON wa.warehouse_id = w.id
-        JOIN lot_adjustment_types lat ON wa.adjustment_type_id = lat.id
-        LEFT JOIN users u ON wa.adjusted_by = u.id
-        LEFT JOIN warehouse_lot_status ws ON wa.status_id = ws.id
-    )
-    SELECT * FROM adjustment_data
-    WHERE
-        local_adjustment_date >=
-        CASE
-        WHEN $2 = 'daily' THEN (CURRENT_DATE AT TIME ZONE $1) -- Start of day
-        WHEN $2 = 'weekly' THEN ((CURRENT_DATE - INTERVAL '7 days') AT TIME ZONE $1)
-        WHEN $2 = 'monthly' THEN ((CURRENT_DATE - INTERVAL '30 days') AT TIME ZONE $1)
-        WHEN $2 = 'yearly' THEN ((CURRENT_DATE - INTERVAL '1 year') AT TIME ZONE $1)
+    SELECT
+      wa.adjustment_date AT TIME ZONE 'UTC' AT TIME ZONE $1 AS local_adjustment_date,
+      w.id AS warehouse_id,
+      w.name AS warehouse_name,
+      COALESCE(p.product_name, i.identifier, 'Unknown Item') AS item_name,
+      i.id AS inventory_id,
+      wa.previous_quantity,
+      wa.adjusted_quantity,
+      wa.new_quantity,
+      lat.name AS adjustment_type,
+      ws.name AS status,
+      COALESCE(u.firstname, 'System') || ' ' || COALESCE(u.lastname, 'Action') AS adjusted_by,
+      wa.comments
+    FROM warehouse_lot_adjustments wa
+    JOIN inventory i ON wa.inventory_id = i.id
+    LEFT JOIN products p ON i.product_id = p.id
+    JOIN warehouses w ON wa.warehouse_id = w.id
+    JOIN lot_adjustment_types lat ON wa.adjustment_type_id = lat.id
+    LEFT JOIN users u ON wa.adjusted_by = u.id
+    LEFT JOIN warehouse_lot_status ws ON wa.status_id = ws.id
+    WHERE wa.adjustment_date AT TIME ZONE 'UTC' AT TIME ZONE $1 >=
+      CASE
+        WHEN $2::TEXT = 'daily' THEN (CURRENT_DATE AT TIME ZONE $1)
+        WHEN $2::TEXT = 'weekly' THEN (CURRENT_DATE - INTERVAL '7 days') AT TIME ZONE $1
+        WHEN $2::TEXT = 'monthly' THEN (CURRENT_DATE - INTERVAL '30 days') AT TIME ZONE $1
+        WHEN $2::TEXT = 'yearly' THEN (CURRENT_DATE - INTERVAL '1 year') AT TIME ZONE $1
         ELSE COALESCE($3::TIMESTAMP, CURRENT_DATE::TIMESTAMP) AT TIME ZONE $1
-    END
-    AND local_adjustment_date <
-    CASE
-        WHEN $2 IN ('daily', 'weekly', 'monthly', 'yearly') THEN ((CURRENT_DATE + INTERVAL '1 day') AT TIME ZONE $1) -- End of day
+      END
+      AND wa.adjustment_date AT TIME ZONE 'UTC' AT TIME ZONE $1 <
+      CASE
+        WHEN $2::TEXT IN ('daily', 'weekly', 'monthly', 'yearly') THEN (CURRENT_DATE + INTERVAL '1 day') AT TIME ZONE $1
         ELSE COALESCE($4::TIMESTAMP, (CURRENT_DATE + INTERVAL '1 day')::TIMESTAMP) AT TIME ZONE $1
-    END
-    AND (COALESCE($5, warehouse_id) = warehouse_id)
-    AND (COALESCE($6, inventory_id) = inventory_id)
-    ORDER BY ${sortBy} ${sortOrder}
+      END
+      AND ($5::UUID IS NULL OR wa.warehouse_id = $5::UUID)
+      AND ($6::UUID IS NULL OR wa.inventory_id = $6::UUID)
   `;
   
-  let queryText;
-  let params = [userTimezone, reportType, startDate, endDate, warehouseId, inventoryId];
+  // Count Query (for pagination)
+  const countQuery = `SELECT COUNT(*) AS total FROM (${baseQuery}) AS adjustment_data;`;
   
-  if (!isExport) {
-    queryText = `${baseQuery} LIMIT $7 OFFSET $8`;
-    params.push(limit, offset);
-  } else {
-    queryText = baseQuery; // No limit & offset for export
-  }
+  const params = [userTimezone, reportType, startDate, endDate, warehouseId, inventoryId];
   
   try {
-    return await retry(async () => {
-      const { rows } = await query(queryText, params);
-      return rows;
-    }, 3, 1000); // Retry up to 3 times with a 1-second delay
+    let totalRecords = 0;
+    
+    // Fetch Count (only if pagination is required)
+    if (!isExport) {
+      const countResult = await query(countQuery, params);
+      totalRecords = parseInt(countResult.rows[0]?.total || 0, 10);
+    }
+    
+    // Append Pagination if NOT Exporting
+    const finalQuery = isExport ? baseQuery : `${baseQuery} ORDER BY ${sortBy} ${sortOrder} LIMIT $7 OFFSET $8`;
+    if (!isExport) {
+      params.push(limit, offset);
+    }
+    
+    const { rows } = await query(finalQuery, params);
+    
+    return {
+      data: rows,
+      pagination: isExport
+        ? null
+        : {
+          page,
+          limit,
+          totalRecords,
+          totalPages: Math.ceil(totalRecords / limit),
+        },
+    };
   } catch (error) {
     logError('Error fetching adjustment report:', error);
     throw new AppError.databaseError('Database query failed');
   }
 };
-
 
 module.exports = {
   getAdjustmentReport,

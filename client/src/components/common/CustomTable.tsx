@@ -12,7 +12,7 @@ import {
 } from '@mui/material';
 import { useThemeContext } from '../../context/ThemeContext';
 
-interface Column<T = any> {
+export interface Column<T = any> {
   id: Extract<keyof T, string>;
   label: string;
   minWidth?: number;
@@ -25,8 +25,8 @@ interface Column<T = any> {
   renderCell?: (row: T) => ReactNode;
 }
 
-interface CustomTableProps {
-  columns: Column[];
+interface CustomTableProps<T = any> {
+  columns: Column<T>[];
   data: Record<string, any>[];
   rowsPerPageOptions?: number[];
   initialRowsPerPage?: number;

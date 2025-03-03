@@ -8,6 +8,7 @@ import {
 } from '@components/index.ts';
 import { FieldConfig } from '@components/common/CustomForm.tsx';
 import CustomModal from '@components/common/CustomModal.tsx';
+import { useNavigate } from 'react-router-dom';
 
 const AdminDashboardPage = ({
   roleName,
@@ -17,6 +18,7 @@ const AdminDashboardPage = ({
   permissions: string[];
 }) => {
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
 
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
@@ -138,7 +140,15 @@ const AdminDashboardPage = ({
           <CustomForm fields={fields} onSubmit={handleSubmit} />
         </div>
       )}
-
+      
+      <CustomButton
+        variant="contained"
+        color="primary"
+        onClick={() => navigate('/reports/adjustments')}
+      >
+        View Adjustment Report
+      </CustomButton>
+      
       {/* Modal Example */}
       {permissions.includes('view_modal') && (
         <div>

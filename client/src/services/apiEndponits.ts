@@ -31,4 +31,5 @@ export const API_ENDPOINTS = {
   WAREHOUSE_INVENTORY_LOT_BULK_ADJUST: '/warehouse-inventory-lots/adjust/bulk',
   WAREHOUSE_INVENTORY_BULK_INSERT: '/inventories/add-inventory-records',
   WAREHOUSE_INVENTORY_LOT_INSERT_RESPONSE: '/warehouse-inventory-lots/inventory-records/recent-inserts',
+  WAREHOUSE_INVENTORY_ADJUSTMENTS_REPORT: '/reports/adjustments',
 };

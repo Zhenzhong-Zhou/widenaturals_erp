@@ -50,13 +50,15 @@ const fetchAdjustmentReport = async ({
       isExport,
     });
     
+    const { data, pagination } = reportData;
+    
     // Handle No Data Case
-    if (!reportData || reportData.length === 0) {
+    if (!data || data.length === 0) {
       if (!isExport) {
         return {
           success: true,
           data: [],
-          pagination: { page, limit },
+          pagination: { page: 0, limit: 0, totalRecords: 0, totalPages: 0 },
           message: 'No adjustment records found for the given criteria.',
         };
       }
@@ -94,8 +96,8 @@ const fetchAdjustmentReport = async ({
       // Return JSON response for paginated data
       return {
         success: true,
-        data: reportData,
-        pagination: { page, limit },
+        data,
+        pagination,
       };
     }
     
@@ -106,17 +108,17 @@ const fetchAdjustmentReport = async ({
     
     switch (exportFormat.toLowerCase()) {
       case 'csv':
-        fileBuffer = exportToCSV(reportData);
+        fileBuffer = exportToCSV(data);
         contentType = 'text/csv';
         fileName = 'adjustment_report.csv';
         break;
       case 'pdf':
-        fileBuffer = await exportToPDF(reportData, { landscape: true }); // PDF function should return a Buffer
+        fileBuffer = await exportToPDF(data, { landscape: true }); // PDF function should return a Buffer
         contentType = 'application/pdf';
         fileName = 'adjustment_report.pdf';
         break;
       case 'txt':
-        fileBuffer = exportToPlainText(reportData);
+        fileBuffer = exportToPlainText(data);
         contentType = 'text/plain';
         fileName = 'adjustment_report.txt';
         break;

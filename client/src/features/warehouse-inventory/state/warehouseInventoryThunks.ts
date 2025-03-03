@@ -175,9 +175,9 @@ export const bulkInsertWarehouseInventoryThunk = createAsyncThunk<
 
 // Thunk for fetching inserted inventory records
 export const fetchInsertedInventoryRecordsThunk = createAsyncThunk<
-  WarehouseInventoryInsertResponse, // ✅ Correct Expected Response Type
-  InsertInventoryRequestBody, // ✅ Request Body Type
-  { rejectValue: string } // ✅ Error Type
+  WarehouseInventoryInsertResponse, // Correct Expected Response Type
+  InsertInventoryRequestBody, // Request Body Type
+  { rejectValue: string } // Error Type
 >(
   "insertedInventory/fetchInsertedInventoryRecords",
   async (requestData, { rejectWithValue }) => {

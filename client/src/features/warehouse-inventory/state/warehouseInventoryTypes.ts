@@ -109,9 +109,9 @@ export interface WarehouseInventoryDetail {
 export interface WarehouseInventoryDetailExtended
   extends WarehouseInventoryDetail {
   lotCreatedBy: string;
-  lotCreatedDate: string;
+  lotCreatedDate: string | null;
   lotUpdatedBy: string;
-  lotUpdatedDate: string;
+  lotUpdatedDate: string | null;
 }
 
 export interface WarehouseInventoryDetailsResponse {
