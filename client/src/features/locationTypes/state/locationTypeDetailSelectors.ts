@@ -12,7 +12,6 @@ export const selectLocationTypeDetail = createSelector(
   (locationTypeState) => locationTypeState.data
 );
 
-
 /**
  * Selects the list of locations within the location type.
  */

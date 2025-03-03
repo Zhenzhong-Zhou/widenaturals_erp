@@ -2,7 +2,10 @@ import axiosInstance from '@utils/axiosConfig.ts';
 import { API_ENDPOINTS } from './apiEndponits.ts';
 import { PricingDetailsResponse, PricingResponse } from '../features/pricing';
 
-const fetchAllPricings = async (page: number, limit: number): Promise<PricingResponse> => {
+const fetchAllPricings = async (
+  page: number,
+  limit: number
+): Promise<PricingResponse> => {
   try {
     const response = await axiosInstance.get<PricingResponse>(
       `${API_ENDPOINTS.ALL_PRICINGS}?page=${page}&limit=${limit}`
@@ -20,10 +23,16 @@ const fetchAllPricings = async (page: number, limit: number): Promise<PricingRes
  * @param limit - Number of records per page.
  * @returns A promise that resolves to pricing details.
  */
-const fetchPricingDetails = async (pricingId: string, page = 1, limit = 10): Promise<PricingDetailsResponse> => {
+const fetchPricingDetails = async (
+  pricingId: string,
+  page = 1,
+  limit = 10
+): Promise<PricingDetailsResponse> => {
   try {
     const endpoint = API_ENDPOINTS.PRICING_DETAILS.replace(':id', pricingId);
-    const response = await axiosInstance.get<PricingDetailsResponse>(`${endpoint}?page=${page}&limit=${limit}`);
+    const response = await axiosInstance.get<PricingDetailsResponse>(
+      `${endpoint}?page=${page}&limit=${limit}`
+    );
     return response.data;
   } catch (error) {
     throw new Error('Failed to fetch pricing details');
@@ -32,5 +41,5 @@ const fetchPricingDetails = async (pricingId: string, page = 1, limit = 10): Pro
 
 export const pricingService = {
   fetchAllPricings,
-  fetchPricingDetails
+  fetchPricingDetails,
 };

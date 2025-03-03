@@ -25,7 +25,7 @@ interface UseHealthStatusResult {
 
 const useHealthStatus = (): UseHealthStatusResult => {
   const dispatch = useAppDispatch();
-  
+
   // Selectors
   const healthStatus = useAppSelector(selectHealthState);
   const isHealthy = useAppSelector(selectIsServerHealthy);
@@ -34,7 +34,7 @@ const useHealthStatus = (): UseHealthStatusResult => {
   const timestamp = useAppSelector(selectHealthTimestamp);
   const loading = useAppSelector(selectIsHealthLoading);
   const error = useAppSelector(selectHealthError);
-  
+
   // Fetch health status
   const fetchStatus = useCallback(async () => {
     try {
@@ -43,14 +43,14 @@ const useHealthStatus = (): UseHealthStatusResult => {
       console.error('Failed to fetch health status:', err);
     }
   }, [dispatch]);
-  
+
   // Automatically fetch health status on mount
   useEffect(() => {
     (async () => {
       await fetchStatus();
     })();
   }, [fetchStatus]);
-  
+
   return {
     healthStatus,
     loading,

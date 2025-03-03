@@ -5,7 +5,19 @@ import { RootState } from '../../../store/store.ts';
 const selectWarehouseState = (state: RootState) => state.warehouses;
 
 // Memoized Selectors
-export const selectWarehouses = createSelector(selectWarehouseState, (warehouseState) => warehouseState.warehouses);
-export const selectWarehousePagination = createSelector(selectWarehouseState, (warehouseState) => warehouseState.pagination);
-export const selectWarehouseLoading = createSelector(selectWarehouseState, (warehouseState) => warehouseState.loading);
-export const selectWarehouseError = createSelector(selectWarehouseState, (warehouseState) => warehouseState.error);
+export const selectWarehouses = createSelector(
+  selectWarehouseState,
+  (warehouseState) => warehouseState.warehouses
+);
+export const selectWarehousePagination = createSelector(
+  selectWarehouseState,
+  (warehouseState) => warehouseState.pagination
+);
+export const selectWarehouseLoading = createSelector(
+  selectWarehouseState,
+  (warehouseState) => warehouseState.loading
+);
+export const selectWarehouseError = createSelector(
+  selectWarehouseState,
+  (warehouseState) => warehouseState.error
+);

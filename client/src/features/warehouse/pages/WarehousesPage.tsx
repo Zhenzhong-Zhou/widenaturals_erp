@@ -1,18 +1,21 @@
 import { FC, useState } from 'react';
 import { useWarehouses } from '../../../hooks';
-import WarehouseTable from '../components/WarehouseTable';
+import { WarehouseTable } from '../index.ts';
 import Box from '@mui/material/Box';
 import { CustomButton, ErrorMessage, Loading } from '@components/index.ts';
 
 const WarehousesPage: FC = () => {
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  
-  const { warehouses, pagination, loading, error, refetch } = useWarehouses({ page, limit: rowsPerPage });
-  
+
+  const { warehouses, pagination, loading, error, refetch } = useWarehouses({
+    page,
+    limit: rowsPerPage,
+  });
+
   if (loading) return <Loading message="Loading Warehouses..." />;
   if (error) return <ErrorMessage message={error} />;
-  
+
   return (
     <Box>
       {!loading && !error && warehouses.length > 0 && (
@@ -25,10 +28,8 @@ const WarehousesPage: FC = () => {
           onRowsPerPageChange={setRowsPerPage}
         />
       )}
-      
-      <CustomButton onClick={refetch}>
-        Refresh Data
-      </CustomButton>
+
+      <CustomButton onClick={refetch}>Refresh Data</CustomButton>
     </Box>
   );
 };

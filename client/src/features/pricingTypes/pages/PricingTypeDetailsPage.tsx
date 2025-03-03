@@ -6,11 +6,15 @@ import PricingTypeDetailsTable from '../components/PricingTypeDetailsTable';
 
 const PricingTypeDetailsPage: FC = () => {
   const { id } = useParams<{ id: string }>();
-  
+
   if (!id) {
-    return <ErrorDisplay><ErrorMessage message="Pricing Type ID is required." /></ErrorDisplay>;
+    return (
+      <ErrorDisplay>
+        <ErrorMessage message="Pricing Type ID is required." />
+      </ErrorDisplay>
+    );
   }
-  
+
   const {
     pricingTypeDetails,
     pricingRecords,
@@ -27,7 +31,7 @@ const PricingTypeDetailsPage: FC = () => {
     initialPage: 1,
     initialLimit: 10,
   });
-  
+
   return (
     <PricingTypeDetailsTable
       pricingTypeDetails={pricingTypeDetails} // Pass the pricing type metadata

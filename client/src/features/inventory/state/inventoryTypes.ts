@@ -1,17 +1,13 @@
 // Interface for a single inventory item
 export interface InventoryItem {
   inventory_id: string;
+  item_type: string;
   product_id: string;
-  product_name: string;
+  item_name: string;
   location_id: string;
   location_name: string;
-  item_type: string;
-  lot_number: string;
-  identifier: string;
-  quantity: number;
-  manufacture_date: string; // ISO Timestamp
-  expiry_date: string; // ISO Timestamp
-  warehouse_fee: number;
+  warehouse_id: string;
+  warehouse_name: string;
   inbound_date: string; // ISO Timestamp
   outbound_date: string | null; // ISO Timestamp or null
   last_update: string; // ISO Timestamp
@@ -22,6 +18,13 @@ export interface InventoryItem {
   updated_at: string; // ISO Timestamp
   created_by: string;
   updated_by: string;
+  warehouse_fee: number;
+  reserved_quantity: number;
+  available_quantity: number;
+  total_lots: number;
+  total_lot_quantity: number;
+  earliest_manufacture_date: string; // ISO Timestamp
+  nearest_expiry_date: string; // ISO Timestamp
   is_expired: boolean;
 }
 

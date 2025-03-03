@@ -1,1 +1,1 @@
-export { default as permissionSlice } from '../authorize/state/permissionSlice.ts'
+export { default as permissionSlice } from '../authorize/state/permissionSlice.ts';

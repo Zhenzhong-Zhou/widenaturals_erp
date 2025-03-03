@@ -5,9 +5,21 @@ const { fetchDynamicValue } = require('../03_utils');
  * @returns {Promise<void>}
  */
 exports.seed = async function (knex) {
-  const activeStatusId = await fetchDynamicValue(knex, 'status', 'name', 'active', 'id');
-  const adminUserId = await fetchDynamicValue(knex, 'users', 'email', 'admin@example.com', 'id');
-  
+  const activeStatusId = await fetchDynamicValue(
+    knex,
+    'status',
+    'name',
+    'active',
+    'id'
+  );
+  const adminUserId = await fetchDynamicValue(
+    knex,
+    'users',
+    'email',
+    'admin@example.com',
+    'id'
+  );
+
   const locationTypes = [
     {
       id: knex.raw('uuid_generate_v4()'),
@@ -59,13 +71,13 @@ exports.seed = async function (knex) {
     },
     // Add other entries as needed
   ];
-  
+
   for (const type of locationTypes) {
     await knex('location_types')
       .insert(type)
       .onConflict(['code', 'name'])
       .ignore();
   }
-  
+
   console.log(`${locationTypes.length} location types seeded successfully.`);
 };

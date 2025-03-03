@@ -17,4 +17,12 @@ export default defineConfig({
       '@store': resolve(__dirname, './src/store'),
     },
   },
+  optimizeDeps: {
+    include: [
+      '@mui/material',
+      '@mui/icons-material',
+      '@mui/x-date-pickers',
+      'date-fns'
+    ],
+  },
 });

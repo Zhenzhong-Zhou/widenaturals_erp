@@ -18,10 +18,13 @@ const productSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchProductDetailThunk.fulfilled, (state, action: PayloadAction<Product>) => {
-        state.loading = false;
-        state.productDetail = action.payload;
-      })
+      .addCase(
+        fetchProductDetailThunk.fulfilled,
+        (state, action: PayloadAction<Product>) => {
+          state.loading = false;
+          state.productDetail = action.payload;
+        }
+      )
       .addCase(fetchProductDetailThunk.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;

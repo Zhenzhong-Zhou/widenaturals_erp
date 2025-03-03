@@ -2,16 +2,20 @@ const { query, paginateQuery, retry } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logInfo, logError } = require('../utils/logger-helper');
 
-const getPricingDetailsByPricingTypeId = async ({ pricingTypeId, page, limit}) => {
+const getPricingDetailsByPricingTypeId = async ({
+  pricingTypeId,
+  page,
+  limit,
+}) => {
   const tableName = 'pricing pr';
   const joins = [
     'LEFT JOIN products p ON pr.product_id = p.id',
     'LEFT JOIN locations l ON pr.location_id = l.id',
     'LEFT JOIN location_types lt ON l.location_type_id = lt.id',
-    'LEFT JOIN status ps ON pr.status_id = ps.id'
+    'LEFT JOIN status ps ON pr.status_id = ps.id',
   ];
   const whereClause = 'pr.price_type_id = $1';
-  
+
   const pricingDetailsQuery = `
     SELECT
       pr.id AS pricing_id,
@@ -53,7 +57,7 @@ const getPricingDetailsByPricingTypeId = async ({ pricingTypeId, page, limit}) =
     LEFT JOIN users updated_by_user ON pr.updated_by = updated_by_user.id
     WHERE pr.price_type_id = $1
   `;
-  
+
   try {
     return await retry(async () => {
       return await paginateQuery({
@@ -69,7 +73,9 @@ const getPricingDetailsByPricingTypeId = async ({ pricingTypeId, page, limit}) =
       });
     });
   } catch (error) {
-    throw new AppError('Failed to fetch pricing details', 500, { originalError: error.message });
+    throw new AppError('Failed to fetch pricing details', 500, {
+      originalError: error.message,
+    });
   }
 };
 
@@ -80,18 +86,18 @@ const getPricingDetailsByPricingTypeId = async ({ pricingTypeId, page, limit}) =
  * @param {number} [options.limit=10] - Number of records per page.
  * @returns {Promise<Object>} - Returns an object with `data` (records) and `pagination` (metadata).
  */
-const getPricings = async ({ page, limit}) => {
+const getPricings = async ({ page, limit }) => {
   const tableName = 'pricing p'; // Corrected alias
-  
+
   const joins = [
     'LEFT JOIN pricing_types pt ON p.price_type_id = pt.id',
     'LEFT JOIN status s ON p.status_id = s.id',
     'LEFT JOIN users u1 ON p.created_by = u1.id',
     'LEFT JOIN users u2 ON p.updated_by = u2.id',
   ];
-  
+
   const whereClause = '1=1'; // Default where clause
-  
+
   const baseQuery = `
     SELECT
       p.id AS pricing_id,
@@ -108,7 +114,7 @@ const getPricings = async ({ page, limit}) => {
     FROM ${tableName}
     ${joins.join(' ')}
   `;
-  
+
   try {
     return await retry(() =>
       paginateQuery({
@@ -138,7 +144,7 @@ const getPricings = async ({ page, limit}) => {
  */
 const getPricingDetailsByPricingId = async ({ pricingId, page, limit }) => {
   const tableName = 'pricing p';
-  
+
   const joins = [
     'LEFT JOIN products pr ON p.product_id = pr.id',
     'LEFT JOIN pricing_types pt ON p.price_type_id = pt.id',
@@ -146,11 +152,11 @@ const getPricingDetailsByPricingId = async ({ pricingId, page, limit }) => {
     'LEFT JOIN location_types lt ON l.location_type_id = lt.id',
     'LEFT JOIN status s ON p.status_id = s.id',
     'LEFT JOIN users u1 ON p.created_by = u1.id',
-    'LEFT JOIN users u2 ON p.updated_by = u2.id'
+    'LEFT JOIN users u2 ON p.updated_by = u2.id',
   ];
-  
+
   const whereClause = 'p.id = $1';
-  
+
   const baseQuery = `
       SELECT
         p.id AS pricing_id,
@@ -187,7 +193,7 @@ const getPricingDetailsByPricingId = async ({ pricingId, page, limit }) => {
       s.name, p.status_date, p.created_at, p.updated_at,
       u1.firstname, u1.lastname, u2.firstname, u2.lastname
   `;
-  
+
   try {
     return await retry(async () => {
       return await paginateQuery({
@@ -207,4 +213,8 @@ const getPricingDetailsByPricingId = async ({ pricingId, page, limit }) => {
   }
 };
 
-module.exports = { getPricingDetailsByPricingTypeId, getPricings, getPricingDetailsByPricingId };
+module.exports = {
+  getPricingDetailsByPricingTypeId,
+  getPricings,
+  getPricingDetailsByPricingId,
+};

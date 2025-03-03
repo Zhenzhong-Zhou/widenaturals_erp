@@ -2,8 +2,8 @@ import { FC } from 'react';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import { Typography } from '@components/index';
-import { footerStyles, footerTextStyle } from './footerStyles'; // Import the abstracted styles
-import { useThemeContext } from '../../context'; // Import Theme Context
+import { footerStyles, footerTextStyle } from './footerStyles';
+import { useThemeContext } from '../../context/ThemeContext';
 
 const Footer: FC = () => {
   const { theme } = useThemeContext(); // Access the current theme from context

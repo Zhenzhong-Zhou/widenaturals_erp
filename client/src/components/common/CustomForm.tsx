@@ -9,36 +9,40 @@ import {
   Box,
   FormHelperText,
 } from '@mui/material';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, Control } from 'react-hook-form';
 import { CustomButton, BaseInput } from '@components/index';
-import { useThemeContext } from '../../context';
+import { useThemeContext } from '../../context/ThemeContext';
 
 export interface FieldConfig {
   id: string;
   label: string;
-  type: 'text' | 'select' | 'checkbox';
+  type: 'text' | 'select' | 'checkbox' | 'number'; // Added 'number'
   options?: { value: string | number; label: string }[]; // For select type
   required?: boolean; // Indicates if the field is required
   defaultValue?: any;
+  disabled?: boolean; // New property to disable input fields
+  helperText?: string;
 }
 
 interface FormProps {
-  children?: ReactNode; // Make children optional
-  fields?: FieldConfig[]; // Make fields optional
-  onSubmit: (formData: Record<string, any>) => void; // Callback for form submission
+  children?: ReactNode;
+  fields?: FieldConfig[];
+  control?: Control<any>; // Make it optional if not always required
+  onSubmit: (formData: Record<string, any>) => void | Promise<void>;
   submitButtonLabel?: string;
+  disabled?: boolean;
 }
 
-const Form: FC<FormProps> = ({
-  fields = [], // Default to an empty array
+const CustomForm: FC<FormProps> = ({
+  fields = [],
   children,
   onSubmit,
   submitButtonLabel = 'Submit',
+  control,
 }) => {
   const { theme } = useThemeContext();
   const {
     handleSubmit,
-    control,
     formState: { errors },
   } = useForm();
 
@@ -60,7 +64,7 @@ const Form: FC<FormProps> = ({
     >
       {fields.map((field) => (
         <Box key={field.id}>
-          {field.type === 'text' && (
+          {(field.type === 'text' || field.type === 'number') && (
             <Controller
               name={field.id}
               control={control}
@@ -73,10 +77,12 @@ const Form: FC<FormProps> = ({
                   fullWidth
                   id={field.id}
                   label={field.label}
+                  type={field.type}
                   value={value}
                   onChange={onChange}
                   error={!!errors[field.id]}
                   helperText={errors[field.id]?.message as string}
+                  disabled={field.disabled}
                 />
               )}
             />
@@ -142,4 +148,4 @@ const Form: FC<FormProps> = ({
   );
 };
 
-export default Form;
+export default CustomForm;

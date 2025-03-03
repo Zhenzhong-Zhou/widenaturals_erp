@@ -2,23 +2,23 @@ exports.seed = async function (knex) {
   // Fetch role IDs
   const roles = await knex('roles')
     .select('id', 'name')
-    .whereIn('name', ['admin', 'manager', 'sales', 'operations']);
-  
+    .whereIn('name', ['admin', 'manager', 'sales', 'operations', 'user']);
+
   const roleIds = roles.reduce((acc, role) => {
     acc[role.name] = role.id;
     return acc;
   }, {});
-  
+
   // Fetch status IDs
   const statuses = await knex('status')
     .select('id', 'name')
     .whereIn('name', ['active']);
-  
+
   const statusIds = statuses.reduce((acc, status) => {
     acc[status.name] = status.id;
     return acc;
   }, {});
-  
+
   // Define users
   const users = [
     {
@@ -149,8 +149,34 @@ exports.seed = async function (knex) {
       created_at: knex.fn.now(),
       updated_at: knex.fn.now(),
     },
+    {
+      id: knex.raw('uuid_generate_v4()'),
+      email: 'newsales@example.com',
+      firstname: 'Sales',
+      lastname: 'New',
+      phone_number: '3216549870',
+      job_title: 'New Sales',
+      role_id: roleIds['sales'],
+      status_id: statusIds['active'],
+      note: 'Sales operations',
+      created_at: knex.fn.now(),
+      updated_at: knex.fn.now(),
+    },
+    {
+      id: knex.raw('uuid_generate_v4()'),
+      email: 'newuser1@example.com',
+      firstname: 'User',
+      lastname: 'New',
+      phone_number: '4316549870',
+      job_title: 'New User',
+      role_id: roleIds['user'],
+      status_id: statusIds['active'],
+      note: 'User operations',
+      created_at: knex.fn.now(),
+      updated_at: knex.fn.now(),
+    },
   ];
-  
+
   // Insert users and avoid duplicates
   for (const user of users) {
     await knex('users')
@@ -159,5 +185,5 @@ exports.seed = async function (knex) {
       .ignore();
   }
 
-  console.log('Users seeded successfully.');
+  console.log(`${users.length} Users seeded successfully.`);
 };

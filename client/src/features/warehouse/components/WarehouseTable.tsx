@@ -15,36 +15,34 @@ interface WarehouseTableProps {
 }
 
 const WarehouseTable: FC<WarehouseTableProps> = ({
-                                                   warehouses,
-                                                   totalPages = 1,
-                                                   totalRecords = 0,
-                                                   page,
-                                                   onPageChange,
-                                                   onRowsPerPageChange,
-                                                 }) => {
+  warehouses,
+  totalPages = 1,
+  totalRecords = 0,
+  page,
+  onPageChange,
+  onRowsPerPageChange,
+}) => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  
+
   const columns = [
     {
       id: 'warehouse_name',
       label: 'Warehouse Name',
       sortable: true,
-      format: (_value: string, row: Record<string, any>) => {
-        const warehouse = row as Warehouse;
-        return (
-          <Link
-            to={`/warehouses/${warehouse.id}`}
-            style={{ textDecoration: 'none', color: 'blue' }}
-          >
-            {warehouse.warehouse_name}
-          </Link>
-        );
-      },
+      format: (value: string) => value,
+      renderCell: (row: Warehouse) => (
+        <Link
+          to={`/warehouses/${row.id}`}
+          style={{ textDecoration: 'none', color: 'blue' }}
+        >
+          {row.warehouse_name}
+        </Link>
+      ),
     },
     {
       id: 'location_name',
       label: 'Location',
-      sortable: true
+      sortable: true,
     },
     {
       id: 'storage_capacity',
@@ -55,32 +53,32 @@ const WarehouseTable: FC<WarehouseTableProps> = ({
       id: 'status_name',
       label: 'Status',
       sortable: true,
-      format: (value: string) => capitalizeFirstLetter(value)
+      format: (value: string) => capitalizeFirstLetter(value),
     },
     {
       id: 'created_by',
       label: 'Created By',
-      sortable: false
+      sortable: false,
     },
     {
       id: 'updated_by',
       label: 'Updated By',
-      sortable: false
+      sortable: false,
     },
     {
       id: 'created_at',
       label: 'Created At',
       sortable: true,
-      format: (value: string) => formatDateTime(value)
+      format: (value: string) => formatDateTime(value),
     },
     {
       id: 'updated_at',
       label: 'Updated At',
       sortable: true,
-      format: (value: string) => formatDateTime(value)
+      format: (value: string) => formatDateTime(value),
     },
   ];
-  
+
   return (
     <CustomTable
       columns={columns}

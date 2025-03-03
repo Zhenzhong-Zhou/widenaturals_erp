@@ -23,7 +23,7 @@ const HealthStatus: FC<HealthStatusProps> = ({ getStatusColor }) => {
     refreshHealthStatus,
     error,
   } = useHealthStatus();
-  
+
   return (
     <Box
       sx={{
@@ -42,7 +42,9 @@ const HealthStatus: FC<HealthStatusProps> = ({ getStatusColor }) => {
             <Typography variant="body2">
               Database: {databaseStatus || 'Unknown'}
             </Typography>
-            <Typography variant="body2">Pool: {poolStatus || 'Unknown'}</Typography>
+            <Typography variant="body2">
+              Pool: {poolStatus || 'Unknown'}
+            </Typography>
             <Typography variant="body2">
               Last Updated: {timestamp ? formatDateTime(timestamp) : 'N/A'}
             </Typography>
@@ -56,7 +58,9 @@ const HealthStatus: FC<HealthStatusProps> = ({ getStatusColor }) => {
         arrow
       >
         <Badge
-          color={getStatusColor(loading ? 'loading' : isHealthy ? 'success' : 'error')}
+          color={getStatusColor(
+            loading ? 'loading' : isHealthy ? 'success' : 'error'
+          )}
           variant="dot"
           sx={{ cursor: 'pointer' }}
           onClick={refreshHealthStatus} // Refresh health status on click

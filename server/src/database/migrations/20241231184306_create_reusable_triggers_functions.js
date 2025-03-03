@@ -8,7 +8,7 @@ exports.up = function (knex) {
     RETURNS TRIGGER AS $$
     BEGIN
       IF NEW.status_id IS NULL THEN
-        NEW.status_id = (SELECT id FROM status WHERE name = 'active' LIMIT 1);
+        NEW.status_id = (SELECT id FROM status WHERE name = 'inactive' LIMIT 1);
       END IF;
       RETURN NEW;
     END;

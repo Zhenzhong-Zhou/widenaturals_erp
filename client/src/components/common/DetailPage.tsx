@@ -1,28 +1,36 @@
-import { FC, ReactNode } from "react";
-import Box from "@mui/material/Box";
-import { Typography, Loading } from "@components/index.ts";
-import { useThemeContext } from "../../context";
+import { FC, ReactNode } from 'react';
+import Box from '@mui/material/Box';
+import { Typography, Loading } from '@components/index.ts';
+import { useThemeContext } from '../../context/ThemeContext';
 
 interface DetailPageProps {
   title: string;
   isLoading: boolean;
-  error?: string;
+  error?: string | null;
   children: ReactNode;
+  sx?: object;
 }
 
-const DetailPage: FC<DetailPageProps> = ({ title, isLoading, error, children }) => {
+const DetailPage: FC<DetailPageProps> = ({
+                                           title,
+                                           isLoading,
+                                           error,
+                                           children,
+                                           sx,
+                                         }) => {
   const { theme } = useThemeContext();
   
   if (isLoading) {
     return (
       <Box
         sx={{
-          width: "100%",
-          height: "100vh",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
+          width: '100%',
+          height: '100vh',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
           backgroundColor: theme.palette.background.default,
+          ...sx,
         }}
       >
         <Loading message={`Loading ${title.toLowerCase()}...`} />
@@ -32,7 +40,7 @@ const DetailPage: FC<DetailPageProps> = ({ title, isLoading, error, children }) 
   
   if (error) {
     return (
-      <Box sx={{ textAlign: "center", padding: theme.spacing(3) }}>
+      <Box sx={{ textAlign: 'center', padding: theme.spacing(3), ...sx }}>
         <Typography variant="h6" color={theme.palette.error.main}>
           {error}
         </Typography>
@@ -41,7 +49,7 @@ const DetailPage: FC<DetailPageProps> = ({ title, isLoading, error, children }) 
   }
   
   return (
-    <Box sx={{ padding: theme.spacing(3), maxWidth: 600, margin: "0 auto" }}>
+    <Box sx={{ padding: theme.spacing(3), maxWidth: 900, margin: '0 auto', ...sx }}>
       <Typography variant="h4" sx={{ marginBottom: theme.spacing(2) }}>
         {title}
       </Typography>

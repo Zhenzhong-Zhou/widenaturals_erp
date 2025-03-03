@@ -3,7 +3,8 @@ import { Box, Alert } from '@mui/material';
 import UsersList from '../components/UserList.tsx';
 import { useUsers } from '../../../hooks';
 import {
-  CustomButton, CustomPagination,
+  CustomButton,
+  CustomPagination,
   ErrorMessage,
   Loading,
   Typography,
@@ -13,21 +14,21 @@ const UsersPage: FC = () => {
   const { users, loading, error, refetchUsers } = useUsers();
   const usersList = users.data;
   const usersPagination = users.pagination;
-  
+
   // Extract pagination details
   const { page, totalPages, totalRecords, limit } = usersPagination;
-  
+
   // Handle page change
   const handlePageChange = (newPage: number) => {
     refetchUsers({ page: newPage, limit }); // Trigger data fetching for the new page
   };
-  
+
   return (
     <Box sx={{ padding: 3 }}>
       <Typography variant="h4" gutterBottom>
         User Management
       </Typography>
-      
+
       {/* Show Loading Spinner */}
       {loading && (
         <Box
@@ -39,14 +40,14 @@ const UsersPage: FC = () => {
           <Loading message={'Loading All Users...'} />
         </Box>
       )}
-      
+
       {/* Show Error Message */}
       {error && (
         <Alert severity="error" sx={{ marginBottom: 2 }}>
           <ErrorMessage message={error} />
         </Alert>
       )}
-      
+
       {/* Show Users List */}
       {!loading && !error && usersList.length > 0 ? (
         <>
@@ -66,9 +67,11 @@ const UsersPage: FC = () => {
           </Typography>
         )
       )}
-      
+
       <Box mt={3}>
-        <CustomButton onClick={() => refetchUsers()}>Refetch Users</CustomButton>
+        <CustomButton onClick={() => refetchUsers()}>
+          Refetch Users
+        </CustomButton>
       </Box>
     </Box>
   );

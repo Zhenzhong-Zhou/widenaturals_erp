@@ -1,5 +1,13 @@
 import { FC, ReactNode } from 'react';
-import { Card, CardContent, Box, CardMedia, CardActions, SxProps, Theme } from '@mui/material';
+import {
+  Card,
+  CardContent,
+  Box,
+  CardMedia,
+  CardActions,
+  SxProps,
+  Theme,
+} from '@mui/material';
 import { Typography } from '@components/index';
 
 interface CustomCardProps {
@@ -15,16 +23,16 @@ interface CustomCardProps {
 }
 
 const CustomCard: FC<CustomCardProps> = ({
-                                           title,
-                                           subtitle,
-                                           children,
-                                           imageUrl,
-                                           actions,
-                                           sx,
-                                           contentSx,
-                                           ariaLabel,
-                                           role = 'region',
-                                         }) => {
+  title,
+  subtitle,
+  children,
+  imageUrl,
+  actions,
+  sx,
+  contentSx,
+  ariaLabel,
+  role = 'region',
+}) => {
   return (
     <Card
       aria-label={ariaLabel}
@@ -47,12 +55,12 @@ const CustomCard: FC<CustomCardProps> = ({
           image={imageUrl}
           alt={typeof title === 'string' ? title : 'Card Image'}
           sx={{
-            objectFit: "cover", // Correct usage of objectFit
+            objectFit: 'cover', // Correct usage of objectFit
             borderRadius: 1,
           }}
         />
       )}
-      
+
       <CardContent sx={{ ...contentSx }}>
         {title && (
           <Typography
@@ -79,9 +87,11 @@ const CustomCard: FC<CustomCardProps> = ({
         )}
         {children && <Box mt={2}>{children}</Box>}
       </CardContent>
-      
+
       {/* Optional Actions */}
-      {actions && <CardActions sx={{ justifyContent: 'center' }}>{actions}</CardActions>}
+      {actions && (
+        <CardActions sx={{ justifyContent: 'center' }}>{actions}</CardActions>
+      )}
     </Card>
   );
 };

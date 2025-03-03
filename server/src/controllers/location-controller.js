@@ -10,7 +10,7 @@ const getAllLocationsController = wrapAsync(async (req, res, next) => {
       sortBy,
       sortOrder,
     });
-    
+
     res.status(200).json({
       success: true,
       message: 'Locations fetched successfully',

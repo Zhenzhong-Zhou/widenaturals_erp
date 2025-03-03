@@ -17,7 +17,12 @@ const useUsers = (): {
   users: UseUsersResponse;
   loading: boolean;
   error: string | null;
-  refetchUsers: (options?: { page?: number; limit?: number; sortBy?: string; sortOrder?: string }) => void;
+  refetchUsers: (options?: {
+    page?: number;
+    limit?: number;
+    sortBy?: string;
+    sortOrder?: string;
+  }) => void;
 } => {
   const dispatch = useAppDispatch();
   const users = useAppSelector(selectUsers);
@@ -29,7 +34,7 @@ const useUsers = (): {
     sortBy: 'u.created_at',
     sortOrder: 'ASC',
   });
-  
+
   useEffect(() => {
     // Fetch users whenever pagination or sorting parameters change
     dispatch(fetchUsersThunk(paginationState))
@@ -38,10 +43,14 @@ const useUsers = (): {
         console.error('Failed to fetch users:', err);
       });
   }, [dispatch, paginationState]);
-  
-  
+
   // Expose a manual refetch function
-  const refetchUsers = async (options?: { page?: number; limit?: number; sortBy?: string; sortOrder?: string }) => {
+  const refetchUsers = async (options?: {
+    page?: number;
+    limit?: number;
+    sortBy?: string;
+    sortOrder?: string;
+  }) => {
     try {
       // Merge new options into the existing paginationState
       setPaginationState((prev) => ({ ...prev, ...options }));
@@ -49,7 +58,7 @@ const useUsers = (): {
       console.error('Failed to refetch users:', err);
     }
   };
-  
+
   return { users, loading, error, refetchUsers };
 };
 

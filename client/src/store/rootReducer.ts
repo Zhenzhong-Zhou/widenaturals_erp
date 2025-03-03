@@ -18,10 +18,17 @@ import locationTypeReducer from '../features/locationTypes/state/locationTypeDet
 import locationReducer from '../features/location/state/locationSlice.ts';
 import inventoriesReducer from '../features/inventory/state/inventorySlice.ts';
 import warehouseReducer from '../features/warehouse/state/warehouseSlice.ts';
+import warehouseDetailsReducer from '../features/warehouse/state/warehouseDetailSlice.ts';
 import warehouseInventorySummaryReducer from '../features/warehouse-inventory/state/warehouseInventorySummarySlice.ts';
 import warehouseInventoriesReducer from '../features/warehouse-inventory/state/warehouseInventorySlice.ts';
 import warehouseProductsReducer from '../features/warehouse-inventory/state/warehouseProductSlice.ts';
-import warehouseInventroyDetailsReducer from '../features/warehouse-inventory/state/warehouseInventoryDetailSlice.ts';
+import warehouseInventoryDetailsReducer from '../features/warehouse-inventory/state/warehouseInventoryDetailSlice.ts';
+import lotAdjustmentDropdownReducer from '../features/warehouse-inventory/state/lotAdjustmentDropdownSlice.ts';
+import lotAdjustmentQtyReducer from '../features/warehouse-inventory/state/lotAdjustmentQtySlice.ts';
+import inventoryDropdownReducer from '../features/warehouse-inventory/state/inventoryDropdownSlice.ts';
+import bulkInsertWarehouseInventoryReducer from '../features/warehouse-inventory/state/bulkInsertWarehouseInventorySlice.ts';
+import insertedInventoryRecordsResponseReducer from '../features/warehouse-inventory/state/insertedInventoryRecordsResponseSlice.ts';
+import adjustmentReportReducer from '../features/report/state/adjustmentReportSlice.ts';
 
 // Combine reducers
 const appReducer = combineReducers({
@@ -43,10 +50,17 @@ const appReducer = combineReducers({
   locations: locationReducer,
   inventories: inventoriesReducer,
   warehouses: warehouseReducer,
+  warehouseDetails: warehouseDetailsReducer,
   warehouseInventoriesSummary: warehouseInventorySummaryReducer,
   warehouseInventories: warehouseInventoriesReducer,
   warehouseProducts: warehouseProductsReducer,
-  warehouseInventoryDetails: warehouseInventroyDetailsReducer,
+  warehouseInventoryDetails: warehouseInventoryDetailsReducer,
+  lotAdjustmentsDropdown: lotAdjustmentDropdownReducer,
+  lotAdjustmentQty: lotAdjustmentQtyReducer,
+  inventoryDropdown: inventoryDropdownReducer,
+  bulkInsertWarehouseInventory: bulkInsertWarehouseInventoryReducer,
+  insertedInventoryRecordsResponse: insertedInventoryRecordsResponseReducer,
+  adjustmentReport: adjustmentReportReducer,
 });
 
 // Root reducer with logout handling

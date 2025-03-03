@@ -27,7 +27,7 @@ exports.up = async function (knex) {
     // Indexes
     table.index(['product_name', 'SKU'], 'idx_products_name_sku');
   });
-  
+
   // Add generated columns and constraints using raw SQL
   await knex.raw(`
     ALTER TABLE products

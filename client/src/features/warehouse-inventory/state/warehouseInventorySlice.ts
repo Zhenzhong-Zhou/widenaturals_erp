@@ -37,15 +37,22 @@ const warehouseInventorySlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchWarehouseInventoriesThunk.fulfilled, (state, action: PayloadAction<WarehouseInventoryResponse>) => {
-        state.inventories = action.payload.inventories;
-        state.pagination = action.payload.pagination;
-        state.loading = false;
-      })
-      .addCase(fetchWarehouseInventoriesThunk.rejected, (state, action: PayloadAction<string | undefined>) => {
-        state.loading = false;
-        state.error = action.payload || 'Failed to load warehouse inventories';
-      });
+      .addCase(
+        fetchWarehouseInventoriesThunk.fulfilled,
+        (state, action: PayloadAction<WarehouseInventoryResponse>) => {
+          state.inventories = action.payload.inventories;
+          state.pagination = action.payload.pagination;
+          state.loading = false;
+        }
+      )
+      .addCase(
+        fetchWarehouseInventoriesThunk.rejected,
+        (state, action: PayloadAction<string | undefined>) => {
+          state.loading = false;
+          state.error =
+            action.payload || 'Failed to load warehouse inventories';
+        }
+      );
   },
 });
 

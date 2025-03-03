@@ -14,12 +14,15 @@ const AppContent: FC = () => {
     delay: 500,
     retryAttempts: 3,
   });
-  
+
   // Validate and refresh token on initial load
   const { loading: isTokenRefreshing } = useValidateAndRefreshToken();
 
   // Show critical error for initialization failure
-  if (hasError && initializationError?.message.includes('Server is currently unavailable')) {
+  if (
+    hasError &&
+    initializationError?.message.includes('Server is currently unavailable')
+  ) {
     return (
       <ErrorDisplay
         message="The server is currently unavailable. Please try again later."

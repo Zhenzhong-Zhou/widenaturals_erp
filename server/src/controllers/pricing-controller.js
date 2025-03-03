@@ -1,5 +1,8 @@
 const wrapAsync = require('../utils/wrap-async');
-const { fetchAllPricings, fetchPricingDetailsByPricingId } = require('../services/pricing-service');
+const {
+  fetchAllPricings,
+  fetchPricingDetailsByPricingId,
+} = require('../services/pricing-service');
 
 /**
  * Controller to handle the fetching of paginated pricing records.
@@ -10,13 +13,16 @@ const { fetchAllPricings, fetchPricingDetailsByPricingId } = require('../service
 const getPricingsController = wrapAsync(async (req, res, next) => {
   try {
     const { page, limit } = req.query;
-    
+
     // Ensure page and limit are numbers
     const parsedPage = parseInt(page, 10) || 1;
     const parsedLimit = parseInt(limit, 10) || 10;
-    
-    const pricingData = await fetchAllPricings({ page: parsedPage, limit: parsedLimit });
-    
+
+    const pricingData = await fetchAllPricings({
+      page: parsedPage,
+      limit: parsedLimit,
+    });
+
     return res.status(200).json({
       success: true,
       message: 'Pricing records fetched successfully.',
@@ -31,24 +37,27 @@ const getPricingsController = wrapAsync(async (req, res, next) => {
  * API Controller to get pricing details by ID.
  */
 const getPricingDetailsController = wrapAsync(async (req, res, next) => {
-    try {
-      const { id } = req.params;
-      const { page, limit } = req.query;
-      
-      const pricingDetails = await fetchPricingDetailsByPricingId(id, page, limit);
-      
-      return res.status(200).json({
-        success: true,
-        message: 'Pricing details fetched successfully',
-        data: pricingDetails
-      });
-    } catch (error) {
-      next(error);
-    }
+  try {
+    const { id } = req.params;
+    const { page, limit } = req.query;
+
+    const pricingDetails = await fetchPricingDetailsByPricingId(
+      id,
+      page,
+      limit
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: 'Pricing details fetched successfully',
+      data: pricingDetails,
+    });
+  } catch (error) {
+    next(error);
   }
-);
+});
 
 module.exports = {
   getPricingsController,
   getPricingDetailsController,
-}
+};

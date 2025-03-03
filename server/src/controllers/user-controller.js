@@ -27,7 +27,9 @@ const getAllUsersController = wrapAsync(async (req, res, next) => {
     };
 
     if (paginationParams.page < 1 || paginationParams.limit < 1) {
-      return next(AppError.validationError('Page and limit must be positive integers.'));
+      return next(
+        AppError.validationError('Page and limit must be positive integers.')
+      );
     }
 
     // Call service
@@ -87,7 +89,7 @@ const getPermissions = wrapAsync(async (req, res, next) => {
 
   // Fetch permissions from the service
   const rolePermissions = await fetchPermissions(role);
-  
+
   res.status(200).json({
     success: true,
     message: 'Permissions retrieved successfully',

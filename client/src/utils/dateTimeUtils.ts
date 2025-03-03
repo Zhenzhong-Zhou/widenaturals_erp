@@ -1,13 +1,58 @@
 import { AppError, ErrorType } from '@utils/AppError.tsx';
+import { parse, parseISO, differenceInDays, differenceInMinutes, isValid } from 'date-fns';
 
 /**
- * Helper function to validate a date object.
- * @param date - The date object to validate.
- * @throws {AppError} If the date is invalid.
+ * Validates a date input and ensures it matches a recognized format.
+ *
+ * - Supports common date formats: `YYYY-MM-DD`, `MM/DD/YYYY`, `YYYY.MM.DD`, `DD.MM.YYYY`, `YYYY/MM/DD`, `MM-DD-YYYY`.
+ * - Throws an `AppError` if the input is invalid when `isFinalValidation` is `true`.
+ * - Returns `true` for valid dates and `false` for partial or incomplete inputs.
+ *
+ * @param {string | Date} input - The date input to validate. Can be a string or a `Date` object.
+ * @throws {AppError} If `isFinalValidation` is `true` and the date is invalid.
+ * @returns {boolean} - `true` if the date is valid, `false` if the input is incomplete or still being typed.
  */
-const validateDate = (date: Date): void => {
-  if (isNaN(date.getTime())) {
-    throw new AppError('Invalid timestamp provided', 400, {
+const validateDate = (input: string | Date): void => {
+  if (!input) {
+    throw new AppError("Invalid timestamp provided: Empty value", 400, {
+      type: ErrorType.ValidationError,
+    });
+  }
+  
+  let date: Date | null = null;
+  
+  if (input instanceof Date) {
+    date = input;
+  } else {
+    { // Trim whitespace to avoid issues with extra spaces
+      {
+        const trimmedInput = input.trim();
+        {
+          if (trimmedInput === "") {
+            throw new AppError("Invalid timestamp provided: Empty string", 400, {
+              type: ErrorType.ValidationError,
+            });
+          }
+          {
+            const formats = ["yyyy-MM-dd", "MM/dd/yyyy", "yyyy.MM.dd", "dd.MM.yyyy", "yyyy/MM/dd", "MM-dd-yyyy"];
+            for (const format of formats) {
+              const parsedDate = parse(trimmedInput, format, new Date());
+              
+              // Ensure the parsed date is actually valid
+              if (isValid(parsedDate) && !isNaN(parsedDate.getTime())) {
+                date = parsedDate;
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  // Final validation check
+  if (!date || isNaN(date.getTime())) {
+    throw new AppError(`Invalid timestamp provided: ${input}`, 400, {
       type: ErrorType.ValidationError,
     });
   }
@@ -69,12 +114,12 @@ export const formatDate = (
   timezone: string = 'America/Vancouver'
 ): string => {
   if (!timestamp) return 'N/A';
-  
+
   const localTime = convertToLocalTime(timestamp, timezone);
   if (!localTime || !localTime.date || isNaN(localTime.date.getTime())) {
     return 'N/A'; // Ensure valid date
   }
-  
+
   return new Intl.DateTimeFormat('en-CA', {
     year: 'numeric',
     month: '2-digit',
@@ -108,12 +153,15 @@ export const formatDateTime = (
   timezone: string = 'America/Vancouver'
 ): string => {
   if (!timestamp) return 'N/A'; // Handle null or undefined inputs gracefully
-  
+
   const date = new Date(timestamp);
   if (isNaN(date.getTime())) return 'Invalid Date'; // Handle invalid date values
-  
-  const { date: localDate, timezoneAbbreviation } = convertToLocalTime(date, timezone);
-  
+
+  const { date: localDate, timezoneAbbreviation } = convertToLocalTime(
+    date,
+    timezone
+  );
+
   // Format with zero-padded values for consistency
   const year = localDate.getFullYear();
   const month = String(localDate.getMonth() + 1).padStart(2, '0');
@@ -121,6 +169,18 @@ export const formatDateTime = (
   const hour = String(localDate.getHours()).padStart(2, '0');
   const minute = String(localDate.getMinutes()).padStart(2, '0');
   const second = String(localDate.getSeconds()).padStart(2, '0');
-  
+
   return `${year}-${month}-${day} ${hour}:${minute}:${second} ${timezoneAbbreviation}`;
+};
+
+/**
+ * Returns relative time (e.g., "2 days ago", "10 minutes ago")
+ */
+export const timeAgo = (date: Date | string): string => {
+  const parsedDate = typeof date === 'string' ? parseISO(date) : date;
+  const diffMinutes = differenceInMinutes(new Date(), parsedDate);
+  
+  if (diffMinutes < 60) return `${diffMinutes} minutes ago`;
+  const diffDays = differenceInDays(new Date(), parsedDate);
+  return diffDays === 0 ? 'Today' : `${diffDays} days ago`;
 };

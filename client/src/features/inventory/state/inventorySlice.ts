@@ -1,6 +1,10 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { fetchAllInventories } from './inventoryThunks.ts';
-import { InventoryItem, Pagination, InventoryResponse } from './inventoryTypes.ts';
+import {
+  InventoryItem,
+  Pagination,
+  InventoryResponse,
+} from './inventoryTypes.ts';
 
 /**
  * Defines the Redux state for inventories.
@@ -29,11 +33,14 @@ const inventorySlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchAllInventories.fulfilled, (state, action: PayloadAction<InventoryResponse>) => {
-        state.loading = false;
-        state.inventories = action.payload.processedData; // Ensure this matches the API response key
-        state.pagination = action.payload.pagination;
-      })
+      .addCase(
+        fetchAllInventories.fulfilled,
+        (state, action: PayloadAction<InventoryResponse>) => {
+          state.loading = false;
+          state.inventories = action.payload.processedData; // Ensure this matches the API response key
+          state.pagination = action.payload.pagination;
+        }
+      )
       .addCase(fetchAllInventories.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || 'Failed to fetch inventories';
