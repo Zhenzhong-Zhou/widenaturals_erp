@@ -4,41 +4,16 @@ import axiosInstance from '@utils/axiosConfig';
 import { AppError } from '@utils/AppError';
 
 /**
- * Fetch warehouse inventory adjustments report.
- *
- * @param {AdjustmentReportParams} params - Parameters for the report request.
- * @returns {Promise<PaginatedAdjustmentReportResponse>} - The fetched report data.
+ * Fetch adjustment report (paginated, for UI).
  */
-const fetchAdjustmentReport = async ({
-                                       reportType = 'daily',
-                                       userTimezone = 'UTC',
-                                       startDate,
-                                       endDate,
-                                       warehouseId,
-                                       inventoryId,
-                                       page = 1,
-                                       limit = 50,
-                                       exportFormat
-                                     }: Partial<AdjustmentReportParams>): Promise<PaginatedAdjustmentReportResponse> => {
+export const fetchAdjustmentReport = async (
+  params: Partial<AdjustmentReportParams>
+): Promise<PaginatedAdjustmentReportResponse> => {
   try {
-    // Ensure the correct API endpoint
-    const endpoint = API_ENDPOINTS.WAREHOUSE_INVENTORY_ADJUSTMENTS_REPORT;
-    
-    // Attach query parameters
-    const response = await axiosInstance.get(endpoint, {
-      params: {
-        reportType,
-        userTimezone,
-        startDate,
-        endDate,
-        warehouseId,
-        inventoryId,
-        page,
-        limit,
-        exportFormat
-      }
-    });
-    
+    const response = await axiosInstance.get(
+      API_ENDPOINTS.WAREHOUSE_INVENTORY_ADJUSTMENTS_REPORT,
+      { params }
+    );
     return response.data;
   } catch (error) {
     console.error('Error fetching adjustment report:', error);
@@ -46,7 +21,37 @@ const fetchAdjustmentReport = async ({
   }
 };
 
+/**
+ * Export adjustment report (returns a downloadable file in CSV, PDF, or TXT format).
+ */
+export const exportAdjustmentReport = async (
+  params: Partial<AdjustmentReportParams>
+): Promise<Blob> => {
+  try {
+    const response = await axiosInstance.get(
+      API_ENDPOINTS.WAREHOUSE_INVENTORY_ADJUSTMENTS_REPORT,
+      {
+        params,
+        responseType: 'blob',
+      }
+    );
+    
+    // Validate response MIME type based on export format
+    const contentType = response.headers['content-type'];
+    if (!contentType.includes('pdf') && !contentType.includes('csv') && !contentType.includes('plain')) {
+      console.error('Invalid content type:', contentType);
+      throw new AppError('Received invalid file format. Expected CSV, PDF, or TXT.');
+    }
+    
+    return response.data;
+  } catch (error) {
+    console.error('Error exporting adjustment report:', error);
+    throw new AppError('Failed to export adjustment report');
+  }
+};
+
 // Export the service object
 export const reportService = {
-  fetchAdjustmentReport
+  fetchAdjustmentReport,
+  exportAdjustmentReport
 };

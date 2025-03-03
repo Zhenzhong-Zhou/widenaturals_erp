@@ -1,51 +1,82 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
 import {
   AdjustmentReportParams,
   fetchAdjustmentReportThunk,
-  ReportPagination,
+  exportAdjustmentReportThunk,
   selectAdjustmentReport,
 } from '../features/report';
-import { AdjustmentRecord } from '../features/report/state/reportTypes.ts';
 
 /**
  * Custom hook to fetch and manage adjustment report data.
- *
- * @param {Object} initialParams - Default parameters for fetching the report.
- * @returns {{
- *   data: AdjustmentRecord[];
- *   loading: boolean;
- *   error: string | null;
- *   pagination: ReportPagination;
- *   fetchReport: (params?: Partial<AdjustmentReportParams>) => void;
- * }}
  */
-const useAdjustmentReport = (initialParams?: Partial<AdjustmentReportParams>): {
-    data: AdjustmentRecord[];
-    loading: boolean;
-    error: string | null;
-    pagination: ReportPagination;
-    fetchReport: (params?: Partial<AdjustmentReportParams>) => void;
-} => {
+const useAdjustmentReport = (initialParams?: Partial<AdjustmentReportParams>) => {
   const dispatch = useAppDispatch();
-  const { data, loading, error, pagination } = useAppSelector(selectAdjustmentReport);
+  const reportState = useAppSelector(selectAdjustmentReport);
+  
+  // Memoize state values to avoid unnecessary recomputations
+  const {
+    data,
+    loading,
+    error,
+    pagination,
+    exportData,
+    exportFormat,
+    exportLoading,
+    exportError,
+  } = useMemo(() => reportState, [reportState]);
   
   /**
-   * Fetch report with given parameters (uses memoization for optimization).
+   * Fetch paginated report.
    */
   const fetchReport = useCallback(
     (params?: Partial<AdjustmentReportParams>) => {
-      dispatch(fetchAdjustmentReportThunk({ ...initialParams, ...params }));
+      const formattedParams = {
+        ...initialParams,
+        ...(params || {}),
+      };
+      dispatch(fetchAdjustmentReportThunk(formattedParams));
     },
     [dispatch, initialParams]
   );
   
-  // Fetch report on initial render
+  /**
+   * Export report (CSV, PDF, TXT).
+   */
+  const exportReport = useCallback(
+    (params: Partial<AdjustmentReportParams>) => {
+      const formattedParams = {
+        ...params,
+        page: undefined,
+        limit: undefined,
+        totalRecords: undefined,
+        totalPages: undefined,
+      };
+      dispatch(exportAdjustmentReportThunk(formattedParams));
+    },
+    [dispatch]
+  );
+  
+  // Auto-fetch report on mount
   useEffect(() => {
     fetchReport();
   }, [fetchReport]);
   
-  return { data, loading, error, pagination, fetchReport };
+  return useMemo(
+    () => ({
+      data,
+      loading,
+      error,
+      pagination,
+      fetchReport,
+      exportReport,
+      exportData,
+      exportFormat,
+      exportLoading,
+      exportError,
+    }),
+    [data, loading, error, pagination, fetchReport, exportReport, exportData, exportFormat, exportLoading, exportError]
+  );
 };
 
 export default useAdjustmentReport;
