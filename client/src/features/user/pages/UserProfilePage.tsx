@@ -15,6 +15,7 @@ import { formatDate, formatDateTime } from '@utils/dateTimeUtils.ts';
 import { ResetPasswordModal } from '../../resetPassword';
 import { resetPasswordThunk } from '../../resetPassword';
 import { useLogout } from '../../../hooks';
+import { clearTokens } from '@utils/tokenManager.ts';
 
 const UserProfilePage: FC = () => {
   const response = useAppSelector(selectUserProfileResponse);
@@ -23,7 +24,7 @@ const UserProfilePage: FC = () => {
   const user = response?.data;
   const [isModalOpen, setModalOpen] = useState(false);
   const dispatch = useAppDispatch();
-  const { logout, isLoading: isLogoutLoading } = useLogout();
+  const { isLoading: isLogoutLoading } = useLogout();
 
   const metadata = {
     Role: user?.role || 'N/A',
@@ -43,24 +44,19 @@ const UserProfilePage: FC = () => {
   }) => {
     try {
       console.log('Resetting password...');
-      const { success, message } = await dispatch(
-        resetPasswordThunk(data)
-      ).unwrap();
-
+      const { success, message } = await dispatch(resetPasswordThunk(data)).unwrap();
+      
       if (success) {
         console.log('Password reset successful:', message);
-
-        // Close the modal
         setModalOpen(false);
-
-        // Now proceed to logout
-        console.log('Initiating logout process after password reset...');
-        const logoutSuccess = await logout();
-        if (logoutSuccess) {
-          console.log('User successfully logged out after password reset.');
-        } else {
-          console.error('Failed to log out after password reset.');
-        }
+        
+        console.log('Clearing session after password reset...');
+        clearTokens();
+        localStorage.clear();
+        sessionStorage.clear();
+        
+        console.log('Redirecting to login after password reset...');
+        window.location.href = '/login';
       } else {
         console.error('Password reset failed:', message);
       }

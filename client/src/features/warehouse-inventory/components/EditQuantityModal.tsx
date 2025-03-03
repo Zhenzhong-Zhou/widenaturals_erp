@@ -106,8 +106,10 @@ const EditQuantityModal: FC<EditQuantityModalProps> = ({
           {
             id: 'comment',
             label: 'Comment (Optional)',
-            type: 'text',
+            type: 'textarea', // Change type to textarea
             required: false,
+            rows: 4, // Increase number of rows for more space
+            placeholder: 'Enter your comments here...', // Provide better UX
           },
         ]}
         onSubmit={handleFormSubmit}

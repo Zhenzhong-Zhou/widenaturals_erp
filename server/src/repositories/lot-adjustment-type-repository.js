@@ -3,24 +3,26 @@ const AppError = require('../utils/AppError');
 const { logInfo, logError } = require('../utils/logger-helper');
 
 /**
- * Fetch all warehouse lot adjustment types.
- * @returns {Promise<Array<{ id: string, name: string }>>} - Adjustment type list.
+ * Fetch warehouse lot adjustment types for dropdown selection.
+ * Excludes 'manual stock insert' and 'manual stock update'.
+ * @returns {Promise<Array<{ id: string, name: string }>>} - Dropdown options.
  */
-const getWarehouseLotAdjustmentTypes = async () => {
+const getWarehouseLotAdjustmentTypesForDropdown = async () => {
   const queryText = `
     SELECT id, name
     FROM lot_adjustment_types
     WHERE is_active = true
-    ORDER BY name ASC;
+    AND name NOT IN ('manual_stock_insert', 'manual_stock_update')
+    ORDER BY name;
   `;
 
   try {
     const { rows } = await query(queryText);
     return rows;
   } catch (error) {
-    logError('Error fetching warehouse lot adjustment types:', error);
+    logError('Error fetching lot adjustment types for dropdown:', error);
     throw new AppError(
-      'Database error: Failed to fetch warehouse lot adjustment types.'
+      'Database error: Unable to retrieve lot adjustment types for dropdown.'
     );
   }
 };
@@ -166,7 +168,7 @@ const bulkInsertWarehouseLotAdjustments = async (adjustments, client) => {
 };
 
 module.exports = {
-  getWarehouseLotAdjustmentTypes,
+  getWarehouseLotAdjustmentTypesForDropdown,
   getWarehouseLotAdjustmentType,
   bulkInsertWarehouseLotAdjustments,
 };

@@ -3,12 +3,6 @@
  * @description Contains the logic for authentication routes.
  */
 
-/**
- * POST /login
- * Handles user login.
- * @param {Request} req - Express request object.
- * @param {Response} res - Express response object.
- */
 const { logError, logInfo } = require('../utils/logger-helper');
 const { authenticationError, validationError } = require('../utils/AppError');
 const { resetPassword } = require('../services/auth-service');

@@ -4,20 +4,12 @@ const {
   lockRow,
   bulkInsert, retry,
 } = require('../database/db');
-const {
-  insertWarehouseLotAdjustment,
-} = require('./warehouse-lot-adjustment-repository');
 const AppError = require('../utils/AppError');
 const { logError, logWarn, logInfo } = require('../utils/logger-helper');
-const {
-  insertInventoryActivityLog, bulkInsertInventoryActivityLogs,
-} = require('./inventory-activity-log-repository');
+const { bulkInsertInventoryActivityLogs } = require('./inventory-activity-log-repository');
 const { getActionTypeId } = require('./inventory-action-type-repository');
-const {
-  insertInventoryHistoryLog, bulkInsertInventoryHistory,
-} = require('./inventory-history-repository');
+const { bulkInsertInventoryHistory, } = require('./inventory-history-repository');
 const { getWarehouseLotStatus } = require('./warehouse-lot-status-repository');
-const { getStatusIdByName } = require('./status-repository');
 const { generateChecksum } = require('../utils/crypto-utils');
 const { getWarehouseLotAdjustmentType, bulkInsertWarehouseLotAdjustments } = require('./lot-adjustment-type-repository');
 

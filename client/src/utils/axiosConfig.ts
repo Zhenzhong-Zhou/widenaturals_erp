@@ -141,6 +141,7 @@ axiosInstance.interceptors.response.use(
           }
 
           store.dispatch(logoutThunk()); // Log out the user
+          window.location.href = '/login';
           throw new AppError('Token refresh failed. Please log in again.', 401);
         } finally {
           isRefreshing = false; // Reset the refreshing flag
