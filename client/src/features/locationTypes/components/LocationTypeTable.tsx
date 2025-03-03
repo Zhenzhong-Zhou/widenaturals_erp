@@ -15,21 +15,25 @@ interface LocationTypesTableProps {
 }
 
 const LocationTypeTable: FC<LocationTypesTableProps> = ({
-                                                           data,
-                                                           page,
-                                                           totalRecords,
-                                                           totalPages,
-                                                           onPageChange,
-                                                           onRowsPerPageChange,
-                                                         }) => {
+  data,
+  page,
+  totalRecords,
+  totalPages,
+  onPageChange,
+  onRowsPerPageChange,
+}) => {
   const columns = [
     {
       id: 'location_type_name',
       label: 'Name',
       sortable: true,
-      format: (value: string, row: any) => (
-        <Link to={`/location_types/${row.location_type_id}`} style={{ textDecoration: 'none', color: 'blue' }}>
-          {value}
+      format: (value: string) => value,
+      renderCell: (row: any) => (
+        <Link
+          to={`/location_types/${row.location_type_id}`}
+          style={{ textDecoration: 'none', color: 'blue' }}
+        >
+          {row.location_type_name}
         </Link>
       ),
     },
@@ -61,7 +65,7 @@ const LocationTypeTable: FC<LocationTypesTableProps> = ({
     { id: 'created_by', label: 'Created By', sortable: true },
     { id: 'updated_by', label: 'Updated By', sortable: true },
   ];
-  
+
   return (
     <CustomTable
       columns={columns}

@@ -1,6 +1,11 @@
 import { FC } from 'react';
-import Box from "@mui/material/Box";
-import { CustomButton, CustomCard, PriceDisplay, Typography } from '@components/index';
+import Box from '@mui/material/Box';
+import {
+  CustomButton,
+  CustomCard,
+  PriceDisplay,
+  Typography,
+} from '@components/index';
 import { GeneralProductInfo } from '../state/productTypes.ts';
 import productPlaceholder from '../../../assets/Virility_CA.jpg';
 
@@ -9,15 +14,25 @@ interface ProductCardProps {
 }
 
 const ProductCard: FC<ProductCardProps> = ({ product }) => {
-  const { id, product_name, series, brand, category, barcode, market_region, prices, status_name } = product;
-  
+  const {
+    id,
+    product_name,
+    series,
+    brand,
+    category,
+    barcode,
+    market_region,
+    prices,
+    status_name,
+  } = product;
+
   return (
     <Box
       sx={{
-        transition: "transform 0.3s, box-shadow 0.3s",
-        "&:hover": {
-          transform: "scale(1.05)",
-          boxShadow: "0 8px 16px rgba(0, 0, 0, 0.2)",
+        transition: 'transform 0.3s, box-shadow 0.3s',
+        '&:hover': {
+          transform: 'scale(1.05)',
+          boxShadow: '0 8px 16px rgba(0, 0, 0, 0.2)',
         },
       }}
     >
@@ -29,7 +44,12 @@ const ProductCard: FC<ProductCardProps> = ({ product }) => {
             <CustomButton size="small" color="primary" variant="contained">
               Add to Cart
             </CustomButton>
-            <CustomButton size="small" color="secondary" variant="outlined" to={`/products/${id}`}>
+            <CustomButton
+              size="small"
+              color="secondary"
+              variant="outlined"
+              to={`/products/${id}`}
+            >
               View Details
             </CustomButton>
           </>
@@ -39,7 +59,9 @@ const ProductCard: FC<ProductCardProps> = ({ product }) => {
         <Typography variant="body2">Brand: {brand || 'N/A'}</Typography>
         <Typography variant="body2">Category: {category || 'N/A'}</Typography>
         <Typography variant="body2">Barcode: {barcode || 'N/A'}</Typography>
-        <Typography variant="body2">Region: {market_region || 'N/A'}</Typography>
+        <Typography variant="body2">
+          Region: {market_region || 'N/A'}
+        </Typography>
         <Typography variant="body2">Status: {status_name}</Typography>
         {/* Price Display */}
         <PriceDisplay prices={prices} />

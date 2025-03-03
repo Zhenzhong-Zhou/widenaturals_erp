@@ -1,5 +1,7 @@
 const express = require('express');
-const { getAllInventoriesController } = require('../controllers/inventory-controller');
+const {
+  getAllInventoriesController, createInventoryRecordsController,
+} = require('../controllers/inventory-controller');
 
 const router = express.Router();
 
@@ -9,5 +11,7 @@ const router = express.Router();
  * @access Private
  */
 router.get('/', getAllInventoriesController);
+
+router.post('/add-inventory-records', createInventoryRecordsController);
 
 module.exports = router;

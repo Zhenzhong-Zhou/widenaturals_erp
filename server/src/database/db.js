@@ -316,10 +316,10 @@ const paginateQuery = async ({
     paginatedQuery += ` ORDER BY ${sortBy} ${validSortOrder}`;
   }
   paginatedQuery += ` LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
-  
+
   // Append LIMIT and OFFSET to params
   const queryParams = [...params, limit, offset];
-  
+
   try {
     // Execute both the paginated query and the count query in parallel
     const [dataResult, countResult] = await Promise.all([
@@ -381,18 +381,18 @@ const paginateQuery = async ({
 const lockRow = async (client, table, id, lockMode = 'FOR UPDATE') => {
   const maskedId = maskSensitiveInfo(id, 'uuid');
   const maskTable = maskTableName(table);
-  
+
   const allowedLockModes = [
     'FOR UPDATE',
     'FOR NO KEY UPDATE',
     'FOR SHARE',
     'FOR KEY SHARE',
   ];
-  
+
   if (!allowedLockModes.includes(lockMode)) {
     throw AppError.validationError(`Invalid lock mode: ${lockMode}`);
   }
-  
+
   // Fetch the primary key dynamically
   const primaryKeySql = `
     SELECT a.attname AS primary_key
@@ -400,7 +400,7 @@ const lockRow = async (client, table, id, lockMode = 'FOR UPDATE') => {
     JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey)
     WHERE i.indrelid = $1::regclass AND i.indisprimary;
   `;
-  
+
   const tablePrimaryKey = await retry(async () => {
     const result = await client.query(primaryKeySql, [table]);
     if (result.rows.length === 0) {
@@ -410,9 +410,9 @@ const lockRow = async (client, table, id, lockMode = 'FOR UPDATE') => {
     }
     return result.rows[0].primary_key;
   });
-  
+
   const sql = `SELECT * FROM ${table} WHERE ${tablePrimaryKey} = $1 ${lockMode}`;
-  
+
   return await retry(async () => {
     try {
       const result = await client.query(sql, [id]);
@@ -437,18 +437,129 @@ const lockRow = async (client, table, id, lockMode = 'FOR UPDATE') => {
 };
 
 /**
- * Inserts multiple rows into a table in bulk.
+ * Dynamically verifies if a table exists before locking rows.
+ * Locks rows in a table using a specified lock mode.
+ * Supports single ID, multiple IDs, or composite keys.
+ *
+ * @param {object} client - Database transaction client.
+ * @param {string} table - The name of the table.
+ * @param {Array|object} conditions - Either an array of IDs or an array of key-value conditions.
+ * @param {string} [lockMode='FOR UPDATE'] - The lock mode.
+ * @returns {Promise<object[]>} - The locked rows.
+ * @throws {AppError} - Throws an error if table name or lock mode is invalid.
+ */
+const lockRows = async (client, table, conditions, lockMode = 'FOR UPDATE') => {
+  if (!Array.isArray(conditions) || conditions.length === 0) {
+    throw new AppError.validationError("Invalid conditions for row locking. Expected a non-empty array.");
+  }
+  
+  // Validate lock mode
+  const validLockModes = ['FOR UPDATE', 'FOR NO KEY UPDATE', 'FOR SHARE', 'FOR KEY SHARE'];
+  if (!validLockModes.includes(lockMode)) {
+    throw new AppError.validationError(`Invalid lock mode: ${lockMode}. Allowed: ${validLockModes.join(", ")}`);
+  }
+  
+  // Dynamically check if the table exists in PostgreSQL
+  const tableExistsQuery = `SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE schemaname = 'public' AND tablename = $1)`;
+  
+  await retry(async () => {
+    const { rows: tableCheck } = await client.query(tableExistsQuery, [table]);
+    
+    if (!tableCheck[0].exists) {
+      throw new AppError.notFoundError(`Table "${table}" does not exist in the database.`);
+    }
+  });
+  
+  let query, values;
+  
+  if (typeof conditions[0] === 'string') {
+    // Case 1: Simple ID Locking (e.g., `lockRows(client, 'inventory', [uuid1, uuid2])`)
+    const placeholders = conditions.map((_, i) => `$${i + 1}`).join(", ");
+    query = `SELECT * FROM ${table} WHERE id IN (${placeholders}) ${lockMode}`;
+    values = conditions;
+  } else {
+    // Case 2: Composite Key Locking (e.g., `lockRows(client, 'warehouse_inventory', [{ warehouse_id, inventory_id }])`)
+    const whereClauses = conditions.map((cond, i) =>
+      `(${Object.keys(cond).map((key, j) => `${key} = $${i * Object.keys(cond).length + j + 1}`).join(" AND ")})`
+    ).join(" OR ");
+    
+    values = conditions.flatMap(Object.values);
+    query = `SELECT * FROM ${table} WHERE ${whereClauses} ${lockMode}`;
+  }
+  
+  try {
+    return await retry(async () => {
+      const { rows } = await client.query(query, values);
+      // Log missing rows
+      if (rows.length !== conditions.length) {
+        logWarn(`Some rows were not found in "${table}". Found: ${rows.length}, Expected: ${conditions.length}`);
+      }
+      
+      return rows;
+    });
+  } catch (error) {
+    logError(`Error locking rows in table "${table}":`, error);
+    throw new AppError.databaseError(`Database error while locking rows in "${table}".`);
+  }
+};
+
+/**
+ * Inserts multiple rows into a specified database table in bulk.
+ *
+ * This function dynamically generates an `INSERT` SQL statement for bulk insertion,
+ * with support for conflict handling (`ON CONFLICT`) to either **do nothing** or **update specific columns**.
  *
  * @param {string} tableName - The name of the target table.
- * @param {string[]} columns - An array of column names to insert values into.
- * @param {Array<Array<any>>} rows - An array of row values to insert.
- * @param {object} clientOrPool - The database client or pool to execute the query.
- * @returns {Promise<number>} - The number of rows successfully inserted.
- * @throws {AppError} - Throws an error if the query fails.
+ * @param {string[]} columns - An array of column names for inserting values.
+ * @param {Array<Array<any>>} rows - A 2D array where each inner array represents a row of values to insert.
+ * @param {string[]} [conflictColumns=[]] - An array of column names that define a unique conflict condition.
+ * @param {string[]} [updateColumns=[]] - An array of column names to update in case of conflict (if empty, `DO NOTHING` is applied).
+ * @param {object} clientOrPool - The database client or pool instance to execute the query.
+ * @returns {Promise<Array<Object>>} - A promise resolving to an array of inserted/updated rows.
+ * @throws {AppError} - Throws an error if the query execution fails.
+ *
+ * @example
+ * // Bulk insert without conflict handling
+ * await bulkInsert('inventory', ['product_id', 'location_id', 'quantity'], [
+ *   ['123', 'loc-1', 50],
+ *   ['124', 'loc-2', 30]
+ * ], [], [], pool);
+ *
+ * @example
+ * // Bulk insert with conflict handling (DO NOTHING)
+ * await bulkInsert('inventory', ['product_id', 'location_id', 'quantity'], [
+ *   ['123', 'loc-1', 50],
+ *   ['124', 'loc-2', 30]
+ * ], ['product_id', 'location_id'], [], pool);
+ *
+ * @example
+ * // Bulk insert with conflict handling (UPDATE quantity)
+ * await bulkInsert('inventory', ['product_id', 'location_id', 'quantity'], [
+ *   ['123', 'loc-1', 50],
+ *   ['124', 'loc-2', 30]
+ * ], ['product_id', 'location_id'], ['quantity'], pool);
  */
-const bulkInsert = async (tableName, columns, rows, clientOrPool = pool) => {
+const bulkInsert = async (
+  tableName,
+  columns,
+  rows,
+  conflictColumns = [],
+  updateColumns = [], // Specify columns to update or leave empty for DO NOTHING
+  clientOrPool = pool
+) => {
   if (!rows.length) return 0;
 
+  // Validate that rows are properly structured
+  if (
+    !Array.isArray(rows) ||
+    !rows.every((row) => Array.isArray(row) && row.length === columns.length)
+  ) {
+    throw new AppError.validationError(
+      `Invalid data format: Expected an array of arrays, each with ${columns.length} values`
+    );
+  }
+  
+  // Generate column names and placeholders
   const columnNames = columns.join(', ');
   const valuePlaceholders = rows
     .map(
@@ -456,29 +567,111 @@ const bulkInsert = async (tableName, columns, rows, clientOrPool = pool) => {
         `(${columns.map((_, colIndex) => `$${rowIndex * columns.length + colIndex + 1}`).join(', ')})`
     )
     .join(', ');
-
+  
+  // Handle conflict dynamically: Either `DO NOTHING` or `DO UPDATE`
+  let conflictClause = '';
+  if (conflictColumns.length > 0) {
+    if (updateColumns.length > 0) {
+      // Construct dynamic UPDATE SET clause
+      const updateSet = updateColumns.map(col => `${col} = EXCLUDED.${col}`).join(', ');
+      conflictClause = `ON CONFLICT (${conflictColumns.join(', ')}) DO UPDATE SET ${updateSet}`;
+    } else {
+      conflictClause = `ON CONFLICT (${conflictColumns.join(', ')}) DO NOTHING`;
+    }
+  }
+  
+  // Construct SQL query
   const sql = `
     INSERT INTO ${tableName} (${columnNames})
     VALUES ${valuePlaceholders}
-    RETURNING *;
+    ${conflictClause}
+    RETURNING id;
   `;
-
+  
+  // Flatten values for bulk insert
   const flattenedValues = rows.flat();
 
   try {
-    const result = await clientOrPool.query(sql, flattenedValues);
-    return result.rowCount;
-  } catch (error) {
-    logError('Bulk insert failed:', {
-      tableName,
-      columns,
-      rows,
-      error: error.message,
+    return await retry(async () => {
+      const { rows } = await clientOrPool.query(sql, flattenedValues);
+      return rows;
     });
+  } catch (error) {
+    logError('SQL Execution Error:', error);
     throw AppError.databaseError('Bulk insert failed', {
       details: { tableName, columns, error: error.message },
     });
   }
+};
+
+/**
+ * Generates a bulk update SQL query for updating multiple rows in a given table.
+ *
+ * @param {string} table - The name of the table to update.
+ * @param {Array<string>} columns - The columns to be updated.
+ * @param {Array<string>} whereColumns - The columns used for matching records (e.g., primary keys).
+ * @param {Object} data - An object mapping identifiers (UUIDs or composite keys) to new values.
+ *   - Example (Single Key): `{ "168bdc32-18a3-40f9-87c5-1ad77ad2258a": 6 }`
+ *   - Example (Composite Key): `{ "814cfc1d-e245-41be-b3f6-bcac548e1927-168bdc32-18a3-40f9-87c5-1ad77ad2258a": 6 }`
+ * @param {string} userId - The UUID of the user performing the update (stored in `updated_by`).
+ * @returns {Object|null} - An object containing:
+ *   - `baseQuery` (string): The generated SQL query.
+ *   - `params` (Array): The list of query parameters.
+ *   Returns `null` if no data is provided.
+ *
+ * @throws {Error} - Throws an error if query generation fails.
+ *
+ * @example
+ * const { baseQuery, params } = formatBulkUpdateQuery(
+ *   "inventory",
+ *   ["quantity"],
+ *   ["id"],
+ *   { "168bdc32-18a3-40f9-87c5-1ad77ad2258a": 6, "a430cacf-d7b5-4915-a01a-aa1715476300": 40 },
+ *   "e9a62a2a-0350-4e36-95cc-86237a394fe0"
+ * );
+ * console.log(baseQuery); // Generated SQL Query
+ * console.log(params); // Corresponding parameters
+ */
+const formatBulkUpdateQuery = async (table, columns, whereColumns, data, userId) => {
+  if (!Object.keys(data).length) return null;
+  
+  let indexCounter = 2; // Start from 2 since $1 is for userId
+  
+  const values = Object.entries(data)
+    .map(([key, value]) => {
+      const keyArray = key.match(/([a-f0-9-]{36})-([a-f0-9-]{36})/)
+        ? key.split(/-(?=[a-f0-9-]{36}$)/)  // Splits only at the last occurrence for correct parsing
+        : [key];
+      
+      const placeholders = keyArray.map(() => `$${indexCounter++}::uuid`);
+      placeholders.push(`$${indexCounter++}::integer`); // For quantity
+      
+      return `(${placeholders.join(", ")})`;
+    })
+    .join(", ");
+  
+  const baseQuery = `
+      UPDATE ${table}
+      SET ${columns.map((col) => `${col} = data.${col}`).join(", ")},
+          updated_at = NOW(),
+          updated_by = $1
+      FROM (VALUES ${values})
+        AS data(${[...whereColumns, ...columns].join(", ")})
+      WHERE ${whereColumns.map((col) => `${table}.${col} = data.${col}`).join(" AND ")}
+      RETURNING ${whereColumns.map(col => `${table}.${col}`).join(", ")};
+  `;
+  
+  const params = [userId, ...Object.entries(data).flatMap(([key, value]) => {
+    const keyArray = key.match(/([a-f0-9-]{36})-([a-f0-9-]{36})/)
+      ? key.split(/-(?=[a-f0-9-]{36}$)/)
+      : [key];
+    
+    return [...keyArray, Number(value)];
+  })];
+  
+  return await retry(async () => {
+    return { baseQuery, params };
+  });
 };
 
 // Export the utilities
@@ -494,5 +687,7 @@ module.exports = {
   retryDatabaseConnection,
   paginateQuery,
   lockRow,
+  lockRows,
   bulkInsert,
+  formatBulkUpdateQuery,
 };

@@ -9,7 +9,10 @@ import { AppError } from '@utils/AppError.tsx';
  * @param {number} limit - Number of results per page
  * @returns {Promise<LocationResponse>} - Returns typed location data with pagination
  */
-const fetchAllLocations = async (page: number, limit: number): Promise<LocationResponse> => {
+const fetchAllLocations = async (
+  page: number,
+  limit: number
+): Promise<LocationResponse> => {
   try {
     const response = await axiosInstance.get<LocationResponse>(
       `${API_ENDPOINTS.ALL_LOCATIONS}?page=${page}&limit=${limit}`

@@ -27,9 +27,13 @@
  */
 
 const path = require('path');
-const { getPoolConfig, getConnectionConfig } = require('./src/config/db-config');
+const {
+  getPoolConfig,
+  getConnectionConfig,
+} = require('./src/config/db-config');
 
-const seedsDirectory = (env) => path.resolve(__dirname, `./src/database/seeds/${env}`);
+const seedsDirectory = (env) =>
+  path.resolve(__dirname, `./src/database/seeds/${env}`);
 
 // Base Knex configuration
 const baseConfig = {

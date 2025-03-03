@@ -15,13 +15,13 @@ interface LocationTypeTableProps {
 }
 
 const LocationTypeTable: FC<LocationTypeTableProps> = ({
-                                                         data,
-                                                         page,
-                                                         totalRecords,
-                                                         totalPages,
-                                                         onPageChange,
-                                                         onRowsPerPageChange,
-                                                       }) => {
+  data,
+  page,
+  totalRecords,
+  totalPages,
+  onPageChange,
+  onRowsPerPageChange,
+}) => {
   const columns = [
     { id: 'location_name', label: 'Location Name', sortable: true },
     { id: 'address', label: 'Address', sortable: false },
@@ -60,14 +60,16 @@ const LocationTypeTable: FC<LocationTypeTableProps> = ({
       sortable: true,
     },
   ];
-  
+
   return (
     <Box>
       <Paper sx={{ padding: 2, marginBottom: 3 }}>
         <Typography variant="h6">General Information</Typography>
-        <Typography><strong>Total Locations:</strong> {data.length}</Typography>
+        <Typography>
+          <strong>Total Locations:</strong> {data.length}
+        </Typography>
       </Paper>
-      
+
       <Paper sx={{ padding: 2, marginBottom: 3 }}>
         <Typography variant={'h3'}>Associated Locations</Typography>
         <CustomTable

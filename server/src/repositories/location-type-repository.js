@@ -13,7 +13,12 @@ const { logInfo, logError } = require('../utils/logger-helper');
  * @returns {Promise<Object>} - A paginated list of location types.
  * @throws {AppError} - Throws an error if the query fails.
  */
-const getLocationTypes = async ({ page = 1, limit = 10, sortBy = 'name', sortOrder = 'ASC' } = {}) => {
+const getLocationTypes = async ({
+  page = 1,
+  limit = 10,
+  sortBy = 'name',
+  sortOrder = 'ASC',
+} = {}) => {
   const tableName = 'location_types lt';
   const joins = [
     'LEFT JOIN status s ON lt.status_id = s.id',
@@ -21,16 +26,22 @@ const getLocationTypes = async ({ page = 1, limit = 10, sortBy = 'name', sortOrd
     'LEFT JOIN users u2 ON lt.updated_by = u2.id',
   ];
   const whereClause = '1=1';
-  
+
   // Validating sorting inputs
-  const validSortColumns = ['name', 'code', 'status_date', 'created_at', 'updated_at'];
+  const validSortColumns = [
+    'name',
+    'code',
+    'status_date',
+    'created_at',
+    'updated_at',
+  ];
   if (!validSortColumns.includes(sortBy)) {
     throw new AppError(`Invalid sort column: ${sortBy}`, 400);
   }
   if (!['ASC', 'DESC'].includes(sortOrder.toUpperCase())) {
     throw new AppError(`Invalid sort order: ${sortOrder}`, 400);
   }
-  
+
   // SQL Queries
   const dataQuery = `
     SELECT
@@ -48,7 +59,7 @@ const getLocationTypes = async ({ page = 1, limit = 10, sortBy = 'name', sortOrd
     ${joins.join(' ')}
     WHERE ${whereClause}
   `;
-  
+
   try {
     return await retry(async () => {
       return await paginateQuery({
@@ -89,7 +100,13 @@ const getLocationTypes = async ({ page = 1, limit = 10, sortBy = 'name', sortOrd
  * @returns {Promise<Object>} - A Promise resolving to an object containing location type details.
  * @throws {AppError} - Throws an error if the query fails.
  */
-const getLocationDetailById = async ({ id, page = 1, limit = 10, sortBy = 'created_at', sortOrder = 'ASC' }) => {
+const getLocationDetailById = async ({
+  id,
+  page = 1,
+  limit = 10,
+  sortBy = 'created_at',
+  sortOrder = 'ASC',
+}) => {
   const tableName = 'location_types lt';
   const joins = [
     'LEFT JOIN locations l ON lt.id = l.location_type_id',
@@ -100,9 +117,9 @@ const getLocationDetailById = async ({ id, page = 1, limit = 10, sortBy = 'creat
     'LEFT JOIN users u3 ON l.created_by = u3.id',
     'LEFT JOIN users u4 ON l.updated_by = u4.id',
   ];
-  
+
   const whereClause = 'lt.id = $1';
-  
+
   const baseQuery = `
     SELECT
       lt.id AS location_type_id,
@@ -126,7 +143,6 @@ const getLocationDetailById = async ({ id, page = 1, limit = 10, sortBy = 'creat
                   'location_id', l.id,
                   'location_name', l.name,
                   'address', l.address,
-                  'warehouse_fee', l.warehouse_fee,
                   'status_id', l.status_id,
                   'status_name', ls.name,
                   'status_date', l.status_date,
@@ -142,7 +158,7 @@ const getLocationDetailById = async ({ id, page = 1, limit = 10, sortBy = 'creat
     WHERE ${whereClause}
     GROUP BY lt.id, lt.code, lt.name, lt.description, lt.status_id, s.name, lt.status_date, lt.created_at, lt.updated_at
   `;
-  
+
   try {
     return await retry(async () => {
       return await paginateQuery({

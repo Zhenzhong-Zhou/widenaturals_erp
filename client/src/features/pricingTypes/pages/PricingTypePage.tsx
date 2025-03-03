@@ -1,7 +1,12 @@
 import { usePricingTypes } from '../../../hooks';
 import { PricingTypeTable } from '../index.ts';
 import Box from '@mui/material/Box';
-import { CustomButton, ErrorDisplay, ErrorMessage, Loading } from '@components/index.ts';
+import {
+  CustomButton,
+  ErrorDisplay,
+  ErrorMessage,
+  Loading,
+} from '@components/index.ts';
 
 const PricingTypePage = () => {
   const {
@@ -16,10 +21,15 @@ const PricingTypePage = () => {
     setLimit,
     refetch,
   } = usePricingTypes({ initialPage: 1, initialLimit: 10 });
-  
+
   if (isLoading) return <Loading message="Loading All Pricing Types..." />;
-  if (error) return <ErrorDisplay><ErrorMessage message={error} /></ErrorDisplay>;
-  
+  if (error)
+    return (
+      <ErrorDisplay>
+        <ErrorMessage message={error} />
+      </ErrorDisplay>
+    );
+
   return (
     <Box sx={{ padding: 2 }}>
       <PricingTypeTable

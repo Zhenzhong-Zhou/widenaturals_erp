@@ -124,22 +124,28 @@ const validateStatus = async (statusName) => {
  *
  * @throws {AppError} - Throws if validation fails.
  */
-const validateProductExistence = async (filters, options = { throwIfExists: false }) => {
+const validateProductExistence = async (
+  filters,
+  options = { throwIfExists: false }
+) => {
   const exists = await checkProductExists(filters);
-  
+
   logInfo('Product existence validation', {
     filters,
     throwIfExists: options.throwIfExists,
     exists,
   });
-  
+
   if (options.throwIfExists && exists) {
-    const message = options.errorMessage || 'A product with the provided details already exists.';
+    const message =
+      options.errorMessage ||
+      'A product with the provided details already exists.';
     throw new AppError.validationError(message, 400, { filters });
   }
-  
+
   if (!options.throwIfExists && !exists) {
-    const message = options.errorMessage || 'No product found with the provided details.';
+    const message =
+      options.errorMessage || 'No product found with the provided details.';
     throw new AppError.validationError(message, 404, { filters });
   }
 };

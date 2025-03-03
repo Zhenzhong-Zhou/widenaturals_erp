@@ -8,21 +8,32 @@
  * @param {string} returnColumn - The column to return.
  * @returns {Promise<any>} - The value of the return column or null if not found.
  */
-const fetchDynamicValue = async (knex, tableName, columnName, value, returnColumn) => {
+const fetchDynamicValue = async (
+  knex,
+  tableName,
+  columnName,
+  value,
+  returnColumn
+) => {
   // Validate arguments
   if (!tableName || !columnName || !value || !returnColumn) {
     throw new Error(
       `Invalid arguments provided to fetchDynamicValue: tableName=${tableName}, columnName=${columnName}, value=${value}, returnColumn=${returnColumn}`
     );
   }
-  
+
   try {
-    const result = await knex(tableName).select(returnColumn).where(columnName, value).first();
-    
+    const result = await knex(tableName)
+      .select(returnColumn)
+      .where(columnName, value)
+      .first();
+
     if (!result) {
-      console.warn(`No result found in table "${tableName}" where "${columnName}" = "${value}".`);
+      console.warn(
+        `No result found in table "${tableName}" where "${columnName}" = "${value}".`
+      );
     }
-    
+
     return result ? result[returnColumn] : null;
   } catch (error) {
     console.error(
@@ -31,6 +42,6 @@ const fetchDynamicValue = async (knex, tableName, columnName, value, returnColum
     );
     throw error;
   }
-}
+};
 
 module.exports = { fetchDynamicValue };

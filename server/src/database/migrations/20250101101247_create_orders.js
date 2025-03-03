@@ -4,7 +4,11 @@
  */
 exports.up = function (knex) {
   return knex.schema.createTable('orders', (table) => {
-    table.uuid('id').primary();
+    table
+      .uuid('id')
+      .primary()
+      .primary()
+      .defaultTo(knex.raw('uuid_generate_v4()'));
     table
       .uuid('order_type_id')
       .notNullable()

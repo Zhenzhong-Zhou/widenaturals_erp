@@ -10,18 +10,23 @@ import {
   TableSortLabel,
   Paper,
 } from '@mui/material';
-import { useThemeContext } from '../../context';
+import { useThemeContext } from '../../context/ThemeContext';
 
-interface Column {
-  id: string;
+export interface Column<T = any> {
+  id: Extract<keyof T, string>;
   label: string;
+  minWidth?: number;
   align?: 'left' | 'right' | 'center';
   sortable?: boolean;
-  format?: (value: any, row: Record<string, any>) => ReactNode;
+  format?: (
+    value: T[Extract<keyof T, string>],
+    row?: T
+  ) => string | number | null | undefined;
+  renderCell?: (row: T) => ReactNode;
 }
 
-interface CustomTableProps {
-  columns: Column[];
+interface CustomTableProps<T = any> {
+  columns: Column<T>[];
   data: Record<string, any>[];
   rowsPerPageOptions?: number[];
   initialRowsPerPage?: number;
@@ -77,9 +82,19 @@ const CustomTable: FC<CustomTableProps> = ({
         <Table>
           <TableHead>
             <TableRow>
+              <TableCell
+                sx={{
+                  fontWeight: 'bold',
+                  textAlign: 'center',
+                  backgroundColor: theme.palette.background.default,
+                  color: theme.palette.text.secondary,
+                }}
+              >
+                #
+              </TableCell>
               {columns.map((column) => (
                 <TableCell
-                  key={column.id}
+                  key={String(column.id)}
                   align={column.align || 'left'}
                   sortDirection={orderBy === column.id ? order : false}
                   sx={{
@@ -116,11 +131,20 @@ const CustomTable: FC<CustomTableProps> = ({
                   },
                 }}
               >
+                {/* Render row index dynamically */}
+                <TableCell align="center">
+                  {(safePage * initialRowsPerPage) + rowIndex + 1}
+                </TableCell>
                 {columns.map((column) => (
-                  <TableCell key={column.id} align={column.align || 'left'}>
-                    {column.format
-                      ? column.format(row[column.id], row)
-                      : row[column.id]}
+                  <TableCell
+                    key={String(column.id)}
+                    align={column.align || 'left'}
+                  >
+                    {column.renderCell
+                      ? column.renderCell(row)
+                      : column.format
+                        ? column.format(row[column.id as keyof typeof row], row)
+                        : row[column.id as keyof typeof row]}
                   </TableCell>
                 ))}
               </TableRow>

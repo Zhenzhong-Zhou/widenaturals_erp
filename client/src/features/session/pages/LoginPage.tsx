@@ -2,7 +2,7 @@ import { FC } from 'react';
 import { Box } from '@mui/material';
 import { Typography } from '@components/index.ts';
 import LoginCard from '../components/LoginCard.tsx';
-import { useThemeContext } from '../../../context';
+import { useThemeContext } from '../../../context/ThemeContext';
 import logoDark from '../../../assets/wide-logo-dark.png';
 import logoLight from '../../../assets/wide-logo-light.png';
 

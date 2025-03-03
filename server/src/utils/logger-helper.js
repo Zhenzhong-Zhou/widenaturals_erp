@@ -38,20 +38,20 @@ const logWithLevel = (
       : typeof message === 'string'
         ? message
         : JSON.stringify(message);
-  
+
   // Safely extract context from the request object if available
   const context = req
     ? {
-      method: req?.method || 'N/A',
-      url: req?.originalUrl || req?.url || 'N/A',
-      ip: req?.ip || 'N/A',
-      userAgent: req?.headers?.['user-agent'] || 'N/A',
-      timestamp: new Date().toISOString(),
-    }
+        method: req?.method || 'N/A',
+        url: req?.originalUrl || req?.url || 'N/A',
+        ip: req?.ip || 'N/A',
+        userAgent: req?.headers?.['user-agent'] || 'N/A',
+        timestamp: new Date().toISOString(),
+      }
     : {
-      timestamp: new Date().toISOString(),
-    };
-  
+        timestamp: new Date().toISOString(),
+      };
+
   // Combine context and meta into a single `meta` object
   const logPayload = {
     level,
@@ -61,12 +61,12 @@ const logWithLevel = (
       ...meta,
     },
   };
-  
+
   // Debug final payload (useful for development)
   if (process.env.NODE_ENV !== 'production') {
     console.debug('Final Log Payload:', JSON.stringify(logPayload, null, 2));
   }
-  
+
   // Log the structured message
   getLogger().log(logPayload);
 };

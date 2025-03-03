@@ -31,11 +31,14 @@ const pricingSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchPricingData.fulfilled, (state, action: PayloadAction<PricingResponse>) => {
-        state.loading = false;
-        state.data = action.payload.data.data;
-        state.pagination = action.payload.data.pagination;
-      })
+      .addCase(
+        fetchPricingData.fulfilled,
+        (state, action: PayloadAction<PricingResponse>) => {
+          state.loading = false;
+          state.data = action.payload.data.data;
+          state.pagination = action.payload.data.pagination;
+        }
+      )
       .addCase(fetchPricingData.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload ?? 'An error occurred';

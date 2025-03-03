@@ -17,23 +17,27 @@ interface LocationTableProps {
 }
 
 const LocationTable: FC<LocationTableProps> = ({
-                                                 data,
-                                                 page = 1,
-                                                 rowsPerPage,
-                                                 totalRecords = 0,
-                                                 totalPages = 1,
-                                                 onPageChange,
-                                                 onRowsPerPageChange,
-                                               }) => {
+  data,
+  page = 1,
+  rowsPerPage,
+  totalRecords = 0,
+  totalPages = 1,
+  onPageChange,
+  onRowsPerPageChange,
+}) => {
   const columns = [
     { id: 'location_type_name', label: 'Location Type', sortable: true },
     {
       id: 'location_name',
       label: 'Location Name',
       sortable: true,
-      format: (value: string, row: any) => (
-        <Link to={`/locations/${row.location_id}`} style={{ textDecoration: 'none', color: 'blue' }}>
-          {value}
+      format: (value: string) => value,
+      renderCell: (row: any) => (
+        <Link
+          to={`/locations/${row.location_id || 'unknown'}`}
+          style={{ textDecoration: 'none', color: 'blue' }}
+        >
+          {row.location_name}
         </Link>
       ),
     },
@@ -65,11 +69,13 @@ const LocationTable: FC<LocationTableProps> = ({
     { id: 'created_by', label: 'Created By', sortable: false },
     { id: 'updated_by', label: 'Updated By', sortable: false },
   ];
-  
+
   return (
     <Box>
       {data.length === 0 ? (
-        <Typography sx={{ textAlign: 'center', padding: 2 }}>No locations found.</Typography>
+        <Typography sx={{ textAlign: 'center', padding: 2 }}>
+          No locations found.
+        </Typography>
       ) : (
         <CustomTable
           columns={columns}

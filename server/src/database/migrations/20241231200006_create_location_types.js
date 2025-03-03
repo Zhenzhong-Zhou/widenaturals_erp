@@ -14,11 +14,11 @@ exports.up = async function (knex) {
     table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
     table.uuid('created_by').references('id').inTable('users');
     table.uuid('updated_by').references('id').inTable('users');
-    
+
     // Indexes
     table.index(['code', 'name'], 'idx_location_types_code_name');
   });
-  
+
   // Add unique constraint for code and name
   await knex.raw(`
     ALTER TABLE location_types

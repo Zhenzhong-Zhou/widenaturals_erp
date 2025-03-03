@@ -13,16 +13,16 @@ import { fetchPricingData } from '../features/pricing/state/pricingThunks.ts';
  */
 const usePricing = () => {
   const dispatch = useAppDispatch();
-  
+
   // Redux Selectors
   const pricingData = useAppSelector(selectPricingData);
   const pagination = useAppSelector(selectPagination);
   const loading = useAppSelector(selectPricingLoading);
   const error = useAppSelector(selectPricingError);
-  
+
   // Local state to prevent unnecessary fetches
   const [isFetched, setIsFetched] = useState(false);
-  
+
   /**
    * Fetch pricing records.
    * @param page - The page number to fetch.
@@ -30,10 +30,10 @@ const usePricing = () => {
    */
   const fetchPricings = (page: number, limit: number) => {
     if (page < 1 || loading) return; // Prevent invalid page numbers and duplicate requests
-    
+
     dispatch(fetchPricingData({ page, limit })).unwrap();
   };
-  
+
   // Fetch data on initial render
   useEffect(() => {
     if (!isFetched) {
@@ -41,7 +41,7 @@ const usePricing = () => {
       setIsFetched(true); // Prevent infinite re-fetching
     }
   }, [pagination.limit]); // Depend on limit to allow updates when it changes
-  
+
   return {
     pricingData,
     pagination,

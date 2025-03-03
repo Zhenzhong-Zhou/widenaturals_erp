@@ -3,30 +3,40 @@ import { PricingTypeTableProps } from '../state/pricingTypeTypes.ts';
 import { CustomTable } from '@components/index.ts';
 import { formatDateTime } from '@utils/dateTimeUtils.ts';
 import { Link } from 'react-router-dom';
+import { capitalizeFirstLetter } from '@utils/textUtils.ts';
 
 const PricingTypeTable: FC<PricingTypeTableProps> = ({
-                                                       data,
-                                                       totalPages,
-                                                       totalRecords,
-                                                       rowsPerPage,
-                                                       page,
-                                                       onPageChange,
-                                                       onRowsPerPageChange,
-                                                     }) => {
+  data,
+  totalPages,
+  totalRecords,
+  rowsPerPage,
+  page,
+  onPageChange,
+  onRowsPerPageChange,
+}) => {
   // Define columns for the DataTable
   const columns = [
     {
       id: 'name',
       label: 'Name',
       sortable: true,
-      format: (value: string, row: any) => (
-        <Link to={`/pricing_types/${row.id}`} style={{ textDecoration: 'none', color: 'blue' }}>
-          {value}
+      format: (value: string) => value,
+      renderCell: (row: any) => (
+        <Link
+          to={`/pricing_types/${row.id}`}
+          style={{ textDecoration: 'none', color: 'blue' }}
+        >
+          {row.name}
         </Link>
       ),
     },
     { id: 'description', label: 'Description', sortable: false },
-    { id: 'status', label: 'Status', sortable: true },
+    {
+      id: 'status',
+      label: 'Status',
+      sortable: true,
+      format: (value: string) => capitalizeFirstLetter(value),
+    },
     {
       id: 'status_date',
       label: 'Status Date',
@@ -48,7 +58,7 @@ const PricingTypeTable: FC<PricingTypeTableProps> = ({
     { id: 'created_by_fullname', label: 'Created By', sortable: true },
     { id: 'updated_by_fullname', label: 'Updated By', sortable: true },
   ];
-  
+
   return (
     <CustomTable
       columns={columns}

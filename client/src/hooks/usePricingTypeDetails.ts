@@ -8,7 +8,8 @@ import {
 } from '../features/pricingTypes';
 import {
   selectPricingError,
-  selectPricingIsLoading, selectPricingPagination,
+  selectPricingIsLoading,
+  selectPricingPagination,
   selectPricingRecords,
   selectPricingTypeDetails,
 } from '../features/pricingTypes';
@@ -33,12 +34,12 @@ interface UsePricingDetailsReturn {
 }
 
 const usePricingDetails = ({
-                             initialPage = 1,
-                             initialLimit = 10,
-                             pricingTypeId,
-                           }: UsePricingDetailsParams): UsePricingDetailsReturn => {
+  initialPage = 1,
+  initialLimit = 10,
+  pricingTypeId,
+}: UsePricingDetailsParams): UsePricingDetailsReturn => {
   const dispatch = useAppDispatch();
-  
+
   // Redux state
   const pricingTypeDetails = useAppSelector(selectPricingTypeDetails); // Fetches the pricing type info
   const pricingRecords = useAppSelector(selectPricingRecords); // Fetches pricing records
@@ -50,21 +51,21 @@ const usePricingDetails = ({
     totalRecords: 0,
     totalPages: 1,
   };
-  
+
   // Local state for pagination
   const [page, setPage] = useState(initialPage);
   const [limit, setLimit] = useState(initialLimit);
-  
+
   // Fetch Data
   const fetchData = useCallback(() => {
     if (!pricingTypeId) return;
     dispatch(fetchPricingTypeDetailsThunk({ pricingTypeId, page, limit }));
   }, [dispatch, pricingTypeId, page, limit]);
-  
+
   useEffect(() => {
     fetchData();
   }, [fetchData]);
-  
+
   return {
     pricingTypeDetails,
     pricingRecords,

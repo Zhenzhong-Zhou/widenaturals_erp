@@ -26,3 +26,47 @@ export interface WarehouseResponse {
   warehouses: Warehouse[];
   pagination: Pagination;
 }
+
+export interface LocationType {
+  id: string;
+  code: string;
+  name: string;
+  description: string;
+}
+
+export interface Status {
+  id: string;
+  name: string;
+  statusDate?: string; // Optional as it's only present in location
+}
+
+export interface Metadata {
+  createdBy?: string; // Made optional because location.metadata is sometimes empty
+  updatedBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface Location {
+  id: string;
+  name: string;
+  address: string;
+  locationType: LocationType;
+  status: Status;
+  metadata: Metadata; // Location metadata now included
+}
+
+export interface WarehouseDetails {
+  id: string;
+  name: string;
+  storageCapacity: number; // Added this missing field
+  location: Location;
+  status: Status;
+  metadata: Metadata;
+}
+
+export interface WarehouseDetailsResponse {
+  success: boolean;
+  message: string;
+  data: WarehouseDetails;
+}

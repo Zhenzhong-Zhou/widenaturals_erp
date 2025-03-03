@@ -17,7 +17,7 @@ const { logError } = require('../utils/logger-helper');
 const validatePasswordStrength = (req, res, next) => {
   try {
     const { newPassword } = req.body;
-    
+
     // Check strength of the new password
     const strengthResult = checkPasswordStrength(newPassword);
     if (strengthResult.score < 3) {
@@ -26,23 +26,31 @@ const validatePasswordStrength = (req, res, next) => {
         suggestions: strengthResult.feedback.suggestions || [],
         warning: strengthResult.feedback.warning || '',
       };
-      
+
       // Create the error instance
-      const passwordStrengthError = AppError.validationError('Password is too weak.', {
-        details: feedback,
-        type: 'PasswordStrengthError',
-        additionalContext: 'Password validation middleware encountered an error.',
-      });
+      const passwordStrengthError = AppError.validationError(
+        'Password is too weak.',
+        {
+          details: feedback,
+          type: 'PasswordStrengthError',
+          additionalContext:
+            'Password validation middleware encountered an error.',
+        }
+      );
 
       // Log the error in non-production environments
       if (process.env.NODE_ENV !== 'production') {
-        logError('Password Strength Error:', req, passwordStrengthError.toLog(req));
+        logError(
+          'Password Strength Error:',
+          req,
+          passwordStrengthError.toLog(req)
+        );
       }
 
       // Throw the structured error
       throw passwordStrengthError;
     }
-    
+
     next(); // Proceed to the next middleware or route handler
   } catch (error) {
     next(error); // Forward the error to the centralized error handler

@@ -24,7 +24,6 @@ export const routes = [
       requiresAuth: true,
       title: 'Dashboard',
       showInSidebar: true,
-      requiredPermission: '',
     },
   },
   {
@@ -82,20 +81,24 @@ export const routes = [
   },
   {
     path: '/pricing_types',
-    component: () => import('../features/pricingTypes/pages/PricingTypePage.tsx'),
+    component: () =>
+      import('../features/pricingTypes/pages/PricingTypePage.tsx'),
     meta: {
       requiresAuth: true,
       title: 'Pricing Types',
       showInSidebar: true,
     },
+    requiredPermission: 'view_prices',
   },
   {
     path: '/pricing_types/:id',
-    component: () => import('../features/pricingTypes/pages/PricingTypeDetailsPage.tsx'),
+    component: () =>
+      import('../features/pricingTypes/pages/PricingTypeDetailsPage.tsx'),
     meta: {
       requiresAuth: true,
       title: 'Pricing Type Details',
       showInSidebar: false,
+      requiredPermission: 'view_prices',
     },
   },
   {
@@ -105,6 +108,7 @@ export const routes = [
       requiresAuth: true,
       title: 'Prices',
       showInSidebar: true,
+      requiredPermission: 'view_prices',
     },
   },
   {
@@ -114,24 +118,29 @@ export const routes = [
       requiresAuth: true,
       title: 'Price Details',
       showInSidebar: false,
+      requiredPermission: 'view_prices',
     },
   },
   {
     path: '/location_types',
-    component: () => import('../features/locationTypes/pages/LocationTypePage.tsx'),
+    component: () =>
+      import('../features/locationTypes/pages/LocationTypePage.tsx'),
     meta: {
       requiresAuth: true,
       title: 'Location Types',
       showInSidebar: true,
+      requiredPermission: 'view_locations',
     },
   },
   {
     path: '/location_types/:id',
-    component: () => import('../features/locationTypes/pages/LocationTypeDetailPage.tsx'),
+    component: () =>
+      import('../features/locationTypes/pages/LocationTypeDetailPage.tsx'),
     meta: {
       requiresAuth: true,
       title: 'Location Types Details',
       showInSidebar: false,
+      requiredPermission: 'view_locations',
     },
   },
   {
@@ -141,6 +150,7 @@ export const routes = [
       requiresAuth: true,
       title: 'Locations',
       showInSidebar: true,
+      requiredPermission: 'view_locations',
     },
   },
   {
@@ -150,6 +160,7 @@ export const routes = [
       requiresAuth: true,
       title: 'Inventories',
       showInSidebar: true,
+      requiredPermission: 'view_inventories',
     },
   },
   {
@@ -159,24 +170,44 @@ export const routes = [
       requiresAuth: true,
       title: 'Warehouses',
       showInSidebar: true,
+      requiredPermission: 'view_warehouses',
     },
   },
   {
     path: '/warehouse_inventories',
-    component: () => import('../features/warehouse-inventory/pages/WarehouseInventoryPage.tsx'),
+    component: () =>
+      import(
+        '../features/warehouse-inventory/pages/WarehouseInventoryPage.tsx'
+      ),
     meta: {
       requiresAuth: true,
       title: 'Warehouse Inventories',
       showInSidebar: true,
+      requiredPermission: 'view_warehouses',
     },
   },
   {
     path: '/warehouse_inventories/:warehouseId',
-    component: () => import('../features/warehouse-inventory/pages/WarehouseInventoryDetailPage.tsx'),
+    component: () =>
+      import(
+        '../features/warehouse-inventory/pages/WarehouseInventoryDetailPage.tsx'
+      ),
     meta: {
       requiresAuth: true,
       title: 'Warehouse Inventories Details',
       showInSidebar: false,
+      requiredPermission: 'view_warehouses',
+    },
+  },
+  {
+    path: '/reports/adjustments',
+    component: () =>
+      import('../features/report/pages/AdjustmentReportPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Adjustment Report',
+      showInSidebar: false,
+      requiredPermission: 'view_adjustment_reports',
     },
   },
   {
