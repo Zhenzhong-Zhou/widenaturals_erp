@@ -59,14 +59,13 @@ const getInventories = async ({
   const text = `
     SELECT
       i.id AS inventory_id,
+      i.item_type,
       i.product_id,
-      p.product_name AS product_name,
+      COALESCE(NULLIF(p.product_name, ''), i.identifier) AS item_name,
       i.location_id,
       l.name AS location_name,
       w.id AS warehouse_id,
       w.name AS warehouse_name,
-      i.item_type,
-      i.identifier,
       i.inbound_date,
       i.outbound_date,
       i.last_update,

@@ -5,9 +5,8 @@ export interface WarehouseInventory {
   storageCapacity: number;
   locationName: string;
   inventoryId: string;
-  productName: string;
   itemType: string;
-  identifier: string;
+  itemName: string;
   availableQuantity: number;
   reservedQuantity: number;
   warehouseFee: string;

@@ -46,19 +46,14 @@ const WarehouseInventoryTable: FC<WarehouseInventoryTableProps> = ({
       sortable: true,
     },
     {
-      id: 'productName',
-      label: 'Product Name',
-      sortable: true,
-    },
-    {
       id: 'itemType',
       label: 'Item Type',
       sortable: true,
       format: (value: any) => capitalizeFirstLetter(value) || 'N/A',
     },
     {
-      id: 'identifier',
-      label: 'Identifier',
+      id: 'itemName',
+      label: 'Item Name',
       sortable: true,
       format: (value: any) => value || 'N/A',
     },
@@ -124,6 +119,7 @@ const WarehouseInventoryTable: FC<WarehouseInventoryTableProps> = ({
         data={data}
         page={page}
         initialRowsPerPage={rowsPerPage}
+        rowsPerPageOptions={[10, 30, 50, 100]}
         totalRecords={totalRecords}
         totalPages={totalPages}
         onPageChange={onPageChange}

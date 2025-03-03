@@ -1,14 +1,13 @@
 // Interface for a single inventory item
 export interface InventoryItem {
   inventory_id: string;
+  item_type: string;
   product_id: string;
-  product_name: string;
+  item_name: string;
   location_id: string;
   location_name: string;
   warehouse_id: string;
   warehouse_name: string;
-  item_type: string;
-  identifier: string;
   inbound_date: string; // ISO Timestamp
   outbound_date: string | null; // ISO Timestamp or null
   last_update: string; // ISO Timestamp

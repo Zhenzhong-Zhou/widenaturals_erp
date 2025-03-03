@@ -26,20 +26,6 @@ const InventoryTable: FC<InventoryTableProps> = ({
   onRowsPerPageChange,
 }) => {
   const columns = [
-    {
-      id: 'product_name',
-      label: 'Product Name',
-      sortable: true,
-      format: (value: any) => value,
-      renderCell: (row: Record<string, any>) => (
-        <Link
-          to={`/inventory/${row.inventory_id || 'unknown'}`}
-          style={{ textDecoration: 'none', color: 'blue' }}
-        >
-          {row.product_name}
-        </Link>
-      ),
-    },
     { id: 'location_name', label: 'Location', sortable: true },
     { id: 'warehouse_name', label: 'Warehouse', sortable: true },
     {
@@ -48,7 +34,20 @@ const InventoryTable: FC<InventoryTableProps> = ({
       sortable: true,
       format: (value: any) => capitalizeFirstLetter(value),
     },
-    { id: 'identifier', label: 'Identifier', sortable: false },
+    {
+      id: 'item_name',
+      label: 'Item Name',
+      sortable: true,
+      format: (value: any) => value,
+      renderCell: (row: Record<string, any>) => (
+        <Link
+          to={`/inventory/${row.inventory_id || 'unknown'}`}
+          style={{ textDecoration: 'none', color: 'blue' }}
+        >
+          {row.item_name}
+        </Link>
+      ),
+    },
     {
       id: 'available_quantity',
       label: 'Available Quantity',
@@ -126,6 +125,7 @@ const InventoryTable: FC<InventoryTableProps> = ({
         data={data}
         page={page}
         initialRowsPerPage={rowsPerPage}
+        rowsPerPageOptions={[10, 30, 50, 100]}
         totalRecords={totalRecords}
         totalPages={totalPages}
         onPageChange={onPageChange}

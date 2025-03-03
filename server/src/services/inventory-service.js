@@ -15,7 +15,6 @@ const { getActionTypeId } = require('../repositories/inventory-action-type-repos
 const { bulkInsertInventoryHistory } = require('../repositories/inventory-history-repository');
 const { getWarehouseLotAdjustmentType } = require('../repositories/lot-adjustment-type-repository');
 const { generateChecksum } = require('../utils/crypto-utils');
-const { rows } = require('pg/lib/defaults');
 
 /**
  * Fetch all inventory records with pagination, sorting, and business logic.

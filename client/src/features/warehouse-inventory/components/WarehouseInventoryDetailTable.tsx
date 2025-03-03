@@ -309,6 +309,7 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
         data={transformedData}
         page={page}
         initialRowsPerPage={rowsPerPage}
+        rowsPerPageOptions={[10, 30, 50, 100]}
         totalRecords={totalRecords}
         totalPages={totalPages}
         onPageChange={onPageChange}

@@ -54,7 +54,7 @@ const WarehouseInventoryDetailPage = () => {
     setWarehouseInventoryDetailPage,
     setWarehouseInventoryDetailLimit,
     refreshWarehouseInventoryDetails,
-  } = useWarehouseInventoryDetails(warehouseId, 1, 5);
+  } = useWarehouseInventoryDetails(warehouseId, 1, 10);
 
   const { handleSingleLotAdjustment, handleBulkLotAdjustment } =
     useLotAdjustmentQty(refreshWarehouseInventoryDetails);

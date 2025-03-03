@@ -40,9 +40,8 @@ const fetchAllWarehouseInventories = async ({
     warehouseName: inventory.warehouse_name,
     locationName: inventory.location_name,
     inventoryId: inventory.inventory_id,
-    productName: inventory.product_name,
     itemType: inventory.item_type,
-    identifier: inventory.identifier,
+    itemName: inventory.item_name,
     availableQuantity: inventory.available_quantity || 0,
     reservedQuantity: inventory.reserved_quantity || 0,
     warehouseFee: inventory.warehouse_fee
