@@ -117,7 +117,7 @@ const InventoryTable: FC<InventoryTableProps> = ({
       format: (value: boolean) => (value ? 'Yes' : 'No'),
     },
   ];
-  
+
   return (
     <Box>
       <CustomTable

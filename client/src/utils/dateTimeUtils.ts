@@ -1,5 +1,11 @@
 import { AppError, ErrorType } from '@utils/AppError.tsx';
-import { parse, parseISO, differenceInDays, differenceInMinutes, isValid } from 'date-fns';
+import {
+  parse,
+  parseISO,
+  differenceInDays,
+  differenceInMinutes,
+  isValid,
+} from 'date-fns';
 
 /**
  * Validates a date input and ensures it matches a recognized format.
@@ -14,30 +20,42 @@ import { parse, parseISO, differenceInDays, differenceInMinutes, isValid } from 
  */
 const validateDate = (input: string | Date): void => {
   if (!input) {
-    throw new AppError("Invalid timestamp provided: Empty value", 400, {
+    throw new AppError('Invalid timestamp provided: Empty value', 400, {
       type: ErrorType.ValidationError,
     });
   }
-  
+
   let date: Date | null = null;
-  
+
   if (input instanceof Date) {
     date = input;
   } else {
-    { // Trim whitespace to avoid issues with extra spaces
+    {
+      // Trim whitespace to avoid issues with extra spaces
       {
         const trimmedInput = input.trim();
         {
-          if (trimmedInput === "") {
-            throw new AppError("Invalid timestamp provided: Empty string", 400, {
-              type: ErrorType.ValidationError,
-            });
+          if (trimmedInput === '') {
+            throw new AppError(
+              'Invalid timestamp provided: Empty string',
+              400,
+              {
+                type: ErrorType.ValidationError,
+              }
+            );
           }
           {
-            const formats = ["yyyy-MM-dd", "MM/dd/yyyy", "yyyy.MM.dd", "dd.MM.yyyy", "yyyy/MM/dd", "MM-dd-yyyy"];
+            const formats = [
+              'yyyy-MM-dd',
+              'MM/dd/yyyy',
+              'yyyy.MM.dd',
+              'dd.MM.yyyy',
+              'yyyy/MM/dd',
+              'MM-dd-yyyy',
+            ];
             for (const format of formats) {
               const parsedDate = parse(trimmedInput, format, new Date());
-              
+
               // Ensure the parsed date is actually valid
               if (isValid(parsedDate) && !isNaN(parsedDate.getTime())) {
                 date = parsedDate;
@@ -49,7 +67,7 @@ const validateDate = (input: string | Date): void => {
       }
     }
   }
-  
+
   // Final validation check
   if (!date || isNaN(date.getTime())) {
     throw new AppError(`Invalid timestamp provided: ${input}`, 400, {
@@ -179,7 +197,7 @@ export const formatDateTime = (
 export const timeAgo = (date: Date | string): string => {
   const parsedDate = typeof date === 'string' ? parseISO(date) : date;
   const diffMinutes = differenceInMinutes(new Date(), parsedDate);
-  
+
   if (diffMinutes < 60) return `${diffMinutes} minutes ago`;
   const diffDays = differenceInDays(new Date(), parsedDate);
   return diffDays === 0 ? 'Today' : `${diffDays} days ago`;

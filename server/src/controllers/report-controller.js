@@ -18,7 +18,7 @@ const getAdjustmentReportController = wrapAsync(async (req, res, next) => {
       limit,
       exportFormat,
     } = req.query;
-    
+
     // Fetch the report (conversion is now handled inside `fetchAdjustmentReport`)
     const result = await fetchAdjustmentReport({
       reportType,
@@ -32,7 +32,7 @@ const getAdjustmentReportController = wrapAsync(async (req, res, next) => {
       limit: Number(limit) || 50,
       exportFormat,
     });
-    
+
     if (!exportFormat) {
       // Normal JSON response
       return res.json({
@@ -41,15 +41,14 @@ const getAdjustmentReportController = wrapAsync(async (req, res, next) => {
         ...result,
       });
     }
-    
+
     // Handle file exports (CSV, PDF, TXT)
     const { fileBuffer, contentType, fileName } = result;
-    
+
     res.setHeader('Content-Disposition', `attachment; filename=${fileName}`);
     res.setHeader('Content-Type', contentType);
-    
+
     return res.send(fileBuffer); // Send file content
-    
   } catch (error) {
     next(error);
   }

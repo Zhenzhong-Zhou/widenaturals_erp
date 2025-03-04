@@ -1,6 +1,10 @@
 import axiosInstance from '@utils/axiosConfig.ts';
 import { API_ENDPOINTS } from './apiEndponits.ts';
-import { Product, ProductResponse, ProductDetailApiResponse } from '../features/product';
+import {
+  Product,
+  ProductResponse,
+  ProductDetailApiResponse,
+} from '../features/product';
 
 const fetchProducts = async <T>(
   page: number = 1,
@@ -31,9 +35,7 @@ const fetchProducts = async <T>(
  * @returns {Promise<Product>} - Returns the product details
  * @throws {Error} - Throws an error if the request fails
  */
-const fetchProductDetails = async (
-  productId: string
-): Promise<Product> => {
+const fetchProductDetails = async (productId: string): Promise<Product> => {
   try {
     const endpoint = API_ENDPOINTS.PRODUCT_DETAILS.replace(':id', productId);
     const response =

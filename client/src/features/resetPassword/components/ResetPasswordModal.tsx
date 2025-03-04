@@ -17,12 +17,12 @@ interface ResetPasswordModalProps {
 }
 
 const ResetPasswordModal: FC<ResetPasswordModalProps> = ({
-                                                           open,
-                                                           onClose,
-                                                           onSubmit,
-                                                         }) => {
+  open,
+  onClose,
+  onSubmit,
+}) => {
   const { theme } = useThemeContext();
-  
+
   return (
     <CustomModal
       open={open}
@@ -75,13 +75,13 @@ const ResetPasswordModal: FC<ResetPasswordModalProps> = ({
             />
           </IconButton>
         </Box>
-        
+
         {/* Info Alert */}
         <Alert severity="info" sx={{ mb: 2 }}>
           Please note: After successfully resetting your password, you will be
           logged out and required to log in again with your new password.
         </Alert>
-        
+
         {/* Reset Password Form */}
         <ResetPasswordForm onSubmit={onSubmit} />
       </Box>

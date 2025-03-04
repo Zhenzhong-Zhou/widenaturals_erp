@@ -1,6 +1,6 @@
-import React from "react";
-import Dropdown from "@components/common/Dropdown.tsx";
-import CustomDatePicker from "@components/common/CustomDatePicker.tsx";
+import React from 'react';
+import Dropdown from '@components/common/Dropdown.tsx';
+import CustomDatePicker from '@components/common/CustomDatePicker.tsx';
 import { AdjustmentReportParams } from '../state/reportTypes.ts';
 import { formatDate } from '@utils/dateTimeUtils.ts';
 
@@ -9,14 +9,17 @@ interface AdjustmentReportFiltersProps {
   setFilters: (filters: any) => void;
 }
 
-const AdjustmentReportFilters: React.FC<AdjustmentReportFiltersProps> = ({ filters, setFilters }) => {
+const AdjustmentReportFilters: React.FC<AdjustmentReportFiltersProps> = ({
+  filters,
+  setFilters,
+}) => {
   const reportTypeOptions = [
-    { value: null, label: "Select A Type" },
-    { value: "weekly", label: "Weekly" },
-    { value: "monthly", label: "Monthly" },
-    { value: "yearly", label: "Yearly" },
+    { value: null, label: 'Select A Type' },
+    { value: 'weekly', label: 'Weekly' },
+    { value: 'monthly', label: 'Monthly' },
+    { value: 'yearly', label: 'Yearly' },
   ];
-  
+
   const handleReportTypeChange = (value: string | null) => {
     setFilters((prev: AdjustmentReportParams) => ({
       ...prev,
@@ -25,7 +28,7 @@ const AdjustmentReportFilters: React.FC<AdjustmentReportFiltersProps> = ({ filte
       endDate: value ? null : prev.endDate,
     }));
   };
-  
+
   const handleStartDateChange = (date: Date | null) => {
     setFilters((prev: AdjustmentReportParams) => ({
       ...prev,
@@ -33,7 +36,7 @@ const AdjustmentReportFilters: React.FC<AdjustmentReportFiltersProps> = ({ filte
       startDate: date ? formatDate(date) : null, // Convert for backend
     }));
   };
-  
+
   const handleEndDateChange = (date: Date | null) => {
     setFilters((prev: AdjustmentReportParams) => ({
       ...prev,
@@ -41,9 +44,9 @@ const AdjustmentReportFilters: React.FC<AdjustmentReportFiltersProps> = ({ filte
       endDate: date ? formatDate(date) : null, // Convert for backend
     }));
   };
-  
+
   return (
-    <div style={{ display: "flex", gap: "16px", marginBottom: "16px" }}>
+    <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
       <Dropdown
         label="Report Type"
         options={reportTypeOptions}
@@ -52,7 +55,9 @@ const AdjustmentReportFilters: React.FC<AdjustmentReportFiltersProps> = ({ filte
       />
       <CustomDatePicker
         label="Start Date"
-        value={filters.startDate ? new Date(`${filters.startDate}T00:00:00`) : null}
+        value={
+          filters.startDate ? new Date(`${filters.startDate}T00:00:00`) : null
+        }
         onChange={handleStartDateChange}
         disabled={!!filters.reportType}
       />

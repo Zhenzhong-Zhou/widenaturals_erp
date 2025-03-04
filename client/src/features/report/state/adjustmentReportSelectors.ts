@@ -3,7 +3,8 @@ import { RootState } from '../../../store/store.ts';
 import { ReportState } from './reportTypes.ts';
 
 // Select the adjustment report state
-const selectAdjustmentReportState = (state: RootState) => state.adjustmentReport;
+const selectAdjustmentReportState = (state: RootState) =>
+  state.adjustmentReport;
 
 // Memoized Selector for Report Data (Includes Exports)
 export const selectAdjustmentReport = createSelector(

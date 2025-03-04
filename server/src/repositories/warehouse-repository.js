@@ -103,11 +103,17 @@ const getWarehouseDetailsById = async (warehouseId) => {
     
     WHERE w.id = $1;
   `;
-  
+
   try {
-    const { rows } = await retry(() => query(queryText, [warehouseId]), 3, 1000);
+    const { rows } = await retry(
+      () => query(queryText, [warehouseId]),
+      3,
+      1000
+    );
     if (rows.length === 0) {
-      throw new AppError.databaseError(`Warehouse with ID ${warehouseId} not found`);
+      throw new AppError.databaseError(
+        `Warehouse with ID ${warehouseId} not found`
+      );
     }
     return rows[0];
   } catch (error) {
@@ -214,26 +220,35 @@ const getWarehouseInventorySummary = async ({ page, limit, statusFilter }) => {
  */
 const geLocationIdByWarehouseId = async (client, warehouseIds) => {
   if (!Array.isArray(warehouseIds) || warehouseIds.length === 0) {
-    throw new Error("Invalid warehouse IDs input. Expected a non-empty array.");
+    throw new Error('Invalid warehouse IDs input. Expected a non-empty array.');
   }
-  
+
   const queryText = `
     SELECT id AS warehouse_id, location_id
     FROM warehouses
     WHERE id = ANY($1::uuid[]);
   `;
-  
-  return await retry(async () => {
-    try {
-      const { rows } = client ?
-        await query(queryText, [warehouseIds]) :
-        await client.query(queryText, [warehouseIds]);
-      return Object.fromEntries(rows.map(({ warehouse_id, location_id }) => [warehouse_id, location_id]));
-    } catch (error) {
-      logError("Error fetching location IDs for warehouses:", error);
-      throw error;
-    }
-  }, 3, 1000); // Retry up to 3 times with exponential backoff
+
+  return await retry(
+    async () => {
+      try {
+        const { rows } = client
+          ? await query(queryText, [warehouseIds])
+          : await client.query(queryText, [warehouseIds]);
+        return Object.fromEntries(
+          rows.map(({ warehouse_id, location_id }) => [
+            warehouse_id,
+            location_id,
+          ])
+        );
+      } catch (error) {
+        logError('Error fetching location IDs for warehouses:', error);
+        throw error;
+      }
+    },
+    3,
+    1000
+  ); // Retry up to 3 times with exponential backoff
 };
 
 /**
@@ -246,11 +261,13 @@ const geLocationIdByWarehouseId = async (client, warehouseIds) => {
  */
 const checkAndLockWarehouse = async (client, warehouseId, locationId) => {
   if (!warehouseId && !locationId) {
-    throw new AppError.validationError("Either warehouseId or locationId must be provided.");
+    throw new AppError.validationError(
+      'Either warehouseId or locationId must be provided.'
+    );
   }
-  
+
   let warehouseToLock = warehouseId;
-  
+
   // Step 1: Fetch warehouse ID if only location ID is provided
   if (!warehouseId && locationId) {
     const warehouse = await geLocationIdByWarehouseId(client, locationId);
@@ -260,9 +277,9 @@ const checkAndLockWarehouse = async (client, warehouseId, locationId) => {
     }
     warehouseToLock = warehouse;
   }
-  
+
   // Step 2: Lock the warehouse row using lockRow function
-  return await lockRow(client, "warehouses", warehouseToLock, "FOR UPDATE");
+  return await lockRow(client, 'warehouses', warehouseToLock, 'FOR UPDATE');
 };
 
 const getActiveWarehousesForDropdown = async () => {
@@ -273,7 +290,7 @@ const getActiveWarehousesForDropdown = async () => {
     WHERE s.name = 'active'
     ORDER BY w.name ASC
   `;
-  
+
   try {
     const { rows } = await query(queryText);
     return rows;
@@ -282,9 +299,12 @@ const getActiveWarehousesForDropdown = async () => {
       message: error.message,
       stack: error.stack,
     });
-    throw new AppError.databaseError('Failed to fetch warehouse dropdown list', {
-      originalError: error.message,
-    });
+    throw new AppError.databaseError(
+      'Failed to fetch warehouse dropdown list',
+      {
+        originalError: error.message,
+      }
+    );
   }
 };
 

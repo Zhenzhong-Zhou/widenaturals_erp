@@ -1,6 +1,10 @@
 import { useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/storeHooks';
-import { fetchUserProfileThunk, selectUserProfileData, UserProfileResponse } from '../features/user';
+import {
+  fetchUserProfileThunk,
+  selectUserProfileData,
+  UserProfileResponse,
+} from '../features/user';
 
 /**
  * Custom hook to fetch and manage the user profile.
@@ -12,10 +16,14 @@ const useUserProfile = (): UserProfileResponse & {
   error: string | null;
 } => {
   const dispatch = useAppDispatch();
-  
+
   // Use the memoized selector
-  const { response: userResponse, loading, error } = useAppSelector(selectUserProfileData);
-  
+  const {
+    response: userResponse,
+    loading,
+    error,
+  } = useAppSelector(selectUserProfileData);
+
   // Dispatch profile fetch
   useEffect(() => {
     if (!userResponse && !loading) {
@@ -27,7 +35,7 @@ const useUserProfile = (): UserProfileResponse & {
         });
     }
   }, [dispatch, userResponse, loading]);
-  
+
   // Log errors if any
   useEffect(() => {
     if (error) {
@@ -35,7 +43,7 @@ const useUserProfile = (): UserProfileResponse & {
       // Optionally show a notification here
     }
   }, [error]);
-  
+
   // Default response structure
   const defaultResponse: UserProfileResponse = {
     success: false,
@@ -52,7 +60,7 @@ const useUserProfile = (): UserProfileResponse & {
     },
     timestamp: '',
   };
-  
+
   return {
     ...defaultResponse,
     ...userResponse,

@@ -1,5 +1,8 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { fetchAdjustmentReportThunk, exportAdjustmentReportThunk } from './reportThunks.ts';
+import {
+  fetchAdjustmentReportThunk,
+  exportAdjustmentReportThunk,
+} from './reportThunks.ts';
 import { ReportState } from './reportTypes.ts';
 
 const initialState: ReportState = {
@@ -31,7 +34,7 @@ const adjustmentReportSlice = createSlice({
       })
       .addCase(fetchAdjustmentReportThunk.fulfilled, (state, action) => {
         state.loading = false;
-        
+
         // Ensure response is of correct type (Paginated Data)
         if ('data' in action.payload && 'pagination' in action.payload) {
           state.data = action.payload.data || [];
@@ -49,7 +52,7 @@ const adjustmentReportSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       });
-    
+
     // Export Report Handling (CSV, PDF, TXT)
     builder
       .addCase(exportAdjustmentReportThunk.pending, (state, action) => {
@@ -59,7 +62,7 @@ const adjustmentReportSlice = createSlice({
       })
       .addCase(exportAdjustmentReportThunk.fulfilled, (state, action) => {
         state.exportLoading = false;
-        
+
         // Ensure response is a Blob before storing it
         if (action.payload instanceof Blob) {
           state.exportData = action.payload; // Store the exported file as a Blob

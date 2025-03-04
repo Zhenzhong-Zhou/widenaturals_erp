@@ -1,8 +1,15 @@
 import { useParams } from 'react-router-dom';
 import { Box, Paper } from '@mui/material';
-import { CustomButton, ErrorDisplay, ErrorMessage, Loading, Typography } from '@components/index.ts';
 import {
-  useBulkInsertWarehouseInventory, useInsertedInventoryRecordsResponse,
+  CustomButton,
+  ErrorDisplay,
+  ErrorMessage,
+  Loading,
+  Typography,
+} from '@components/index.ts';
+import {
+  useBulkInsertWarehouseInventory,
+  useInsertedInventoryRecordsResponse,
   useLotAdjustmentQty,
   useWarehouseDetails,
   useWarehouseInventoryDetails,
@@ -29,9 +36,10 @@ const WarehouseInventoryDetailPage = () => {
       </ErrorDisplay>
     );
   }
-  
-  const { warehouseDetails, loading, error, refetch } = useWarehouseDetails(warehouseId);
-  
+
+  const { warehouseDetails, loading, error, refetch } =
+    useWarehouseDetails(warehouseId);
+
   // Fetch product summary (overview of all products in warehouse)
   const {
     productSummary,
@@ -58,17 +66,18 @@ const WarehouseInventoryDetailPage = () => {
 
   const { handleSingleLotAdjustment, handleBulkLotAdjustment } =
     useLotAdjustmentQty(refreshWarehouseInventoryDetails);
-  
+
   const { isLoading, handleBulkInsert } = useBulkInsertWarehouseInventory();
-  
-  const { fetchInsertedInventoryRecords, data: insertedDataResponse } = useInsertedInventoryRecordsResponse();
-  
+
+  const { fetchInsertedInventoryRecords, data: insertedDataResponse } =
+    useInsertedInventoryRecordsResponse();
+
   useEffect(() => {
     if (insertedDataResponse && insertedDataResponse.data.length > 0) {
       setOpenDialog(true);
     }
   }, [insertedDataResponse]);
-  
+
   const transformedWarehouseInventoryDetails: WarehouseInventoryDetailExtended[] =
     warehouseInventoryDetails.map((detail) => ({
       ...detail,
@@ -77,10 +86,15 @@ const WarehouseInventoryDetailPage = () => {
       lotUpdatedBy: detail.lotUpdated.by,
       lotUpdatedDate: detail.lotUpdated.date,
     }));
-  
-  if (loading) return <Loading message={"Loading warehouse details..."}/>;
-  if (error) return <ErrorDisplay><ErrorMessage message={error}/></ErrorDisplay>;
-  
+
+  if (loading) return <Loading message={'Loading warehouse details...'} />;
+  if (error)
+    return (
+      <ErrorDisplay>
+        <ErrorMessage message={error} />
+      </ErrorDisplay>
+    );
+
   if (productSummaryLoading)
     return <Loading message={`Loading Warehouse Product Summary...`} />;
   if (productSummaryError)
@@ -106,11 +120,11 @@ const WarehouseInventoryDetailPage = () => {
         No warehouse inventory records found.
       </Typography>
     );
-  
+
   if (isLoading) {
-    return <Loading  message={`Loading Available Product Information...`} />;
+    return <Loading message={`Loading Available Product Information...`} />;
   }
-  
+
   // Function to handle bulk insert submission
   const handleBulkInsertSubmit = async (formData: Record<string, any>[]) => {
     try {
@@ -118,20 +132,22 @@ const WarehouseInventoryDetailPage = () => {
       const filteredData = formData.filter((item) => {
         // Ensure quantity is not 0
         // Remove if no meaningful data exists (i.e., only warehouse_id or type is present)
-        return (item.product_id && item.product_id.trim() !== "") ||
-          (item.identifier && item.identifier.trim() !== "") ||
-          (item.lot_number && item.lot_number.trim() !== "") ||
-          (item.expiry_date && item.expiry_date.trim() !== "") ||
-          (item.manufacture_date && item.manufacture_date.trim() !== "") ||
-          (item.quantity && Number(item.quantity) > 0);
+        return (
+          (item.product_id && item.product_id.trim() !== '') ||
+          (item.identifier && item.identifier.trim() !== '') ||
+          (item.lot_number && item.lot_number.trim() !== '') ||
+          (item.expiry_date && item.expiry_date.trim() !== '') ||
+          (item.manufacture_date && item.manufacture_date.trim() !== '') ||
+          (item.quantity && Number(item.quantity) > 0)
+        );
       });
-      
+
       // If all objects were removed (i.e., no valid data), stop the process
       if (filteredData.length === 0) {
-        console.warn("No valid data to submit.");
+        console.warn('No valid data to submit.');
         return;
       }
-      
+
       const requestPayload: BulkInsertInventoryRequest = {
         inventoryData: filteredData.map((item) => ({
           type: item.type,
@@ -144,29 +160,33 @@ const WarehouseInventoryDetailPage = () => {
           identifier: item.identifier?.trim() || undefined,
         })) as InventoryItem[],
       };
-      
+
       const succeedResponse = await handleBulkInsert(requestPayload);
-      
+
       // Fetch inserted inventory records based on inserted identifiers
       await fetchInsertedInventoryRecords({
         warehouseLotIds: succeedResponse.data.warehouseLotsInventoryRecords,
       });
-      
+
       // Open the response dialog
       setOpenDialog(true);
-      
+
       // Refresh warehouse inventory after submission
       refreshWarehouseInventoryDetails();
     } catch (error) {
-      console.error("Bulk Insert Error:", error);
+      console.error('Bulk Insert Error:', error);
     }
   };
-  
+
   return (
     <Box sx={{ padding: 3 }}>
       {/* Page Header */}
       <Paper sx={{ padding: 2, marginBottom: 3 }}>
-        <WarehouseInventoryDetailHeader warehouseDetails={warehouseDetails} loading={loading} refetch={refetch} />
+        <WarehouseInventoryDetailHeader
+          warehouseDetails={warehouseDetails}
+          loading={loading}
+          refetch={refetch}
+        />
       </Paper>
 
       {/* Product Summary Section */}

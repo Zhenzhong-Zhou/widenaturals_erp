@@ -1,7 +1,9 @@
 const express = require('express');
 const {
   getAllWarehousesController,
-  getWarehouseInventorySummaryController, getWarehouseDropdownListController, getWarehouseInfoController,
+  getWarehouseInventorySummaryController,
+  getWarehouseDropdownListController,
+  getWarehouseInfoController,
 } = require('../controllers/warehouse-controller');
 const authorize = require('../middlewares/authorize');
 

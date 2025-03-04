@@ -39,18 +39,18 @@ interface FormProps {
 }
 
 const CustomForm: FC<FormProps> = ({
-                                     fields = [],
-                                     children,
-                                     onSubmit,
-                                     submitButtonLabel = 'Submit',
-                                     control,
-                                   }) => {
+  fields = [],
+  children,
+  onSubmit,
+  submitButtonLabel = 'Submit',
+  control,
+}) => {
   const { theme } = useThemeContext();
   const {
     handleSubmit,
     formState: { errors },
   } = useForm();
-  
+
   return (
     <Box
       component="form"
@@ -78,8 +78,12 @@ const CustomForm: FC<FormProps> = ({
               defaultValue={field.defaultValue || ''}
               rules={{
                 required: field.required ? `${field.label} is required` : false,
-                min: field.min ? { value: field.min, message: `Min: ${field.min}` } : undefined,
-                max: field.max ? { value: field.max, message: `Max: ${field.max}` } : undefined,
+                min: field.min
+                  ? { value: field.min, message: `Min: ${field.min}` }
+                  : undefined,
+                max: field.max
+                  ? { value: field.max, message: `Max: ${field.max}` }
+                  : undefined,
               }}
               render={({ field: { onChange, value } }) => (
                 <TextField
@@ -90,17 +94,22 @@ const CustomForm: FC<FormProps> = ({
                   value={value}
                   onChange={onChange}
                   error={!!errors[field.id]}
-                  helperText={errors[field.id]?.message as string || field.helperText}
+                  helperText={
+                    (errors[field.id]?.message as string) || field.helperText
+                  }
                   disabled={field.disabled}
                   placeholder={field.placeholder}
                   slotProps={{
-                    htmlInput: field.type === 'number' ? { min: field.min, max: field.max } : {},
+                    htmlInput:
+                      field.type === 'number'
+                        ? { min: field.min, max: field.max }
+                        : {},
                   }}
                 />
               )}
             />
           )}
-          
+
           {/** Textarea Support */}
           {field.type === 'textarea' && (
             <Controller
@@ -120,14 +129,16 @@ const CustomForm: FC<FormProps> = ({
                   value={value}
                   onChange={onChange}
                   error={!!errors[field.id]}
-                  helperText={errors[field.id]?.message as string || field.helperText}
+                  helperText={
+                    (errors[field.id]?.message as string) || field.helperText
+                  }
                   disabled={field.disabled}
                   placeholder={field.placeholder}
                 />
               )}
             />
           )}
-          
+
           {/** Select Dropdown */}
           {field.type === 'select' && (
             <Controller
@@ -157,13 +168,13 @@ const CustomForm: FC<FormProps> = ({
                     ))}
                   </Select>
                   <FormHelperText>
-                    {errors[field.id]?.message as string || field.helperText}
+                    {(errors[field.id]?.message as string) || field.helperText}
                   </FormHelperText>
                 </FormControl>
               )}
             />
           )}
-          
+
           {/** Checkbox */}
           {field.type === 'checkbox' && (
             <Controller
@@ -189,9 +200,9 @@ const CustomForm: FC<FormProps> = ({
           )}
         </Box>
       ))}
-      
+
       {children}
-      
+
       {/** Submit Button */}
       <CustomButton type="submit" variant="contained" color="primary">
         {submitButtonLabel}

@@ -15,44 +15,40 @@ interface ResetPasswordFormProps {
 }
 
 const ResetPasswordForm: FC<ResetPasswordFormProps> = ({ onSubmit }) => {
-  const {
-    control,
-    handleSubmit,
-    setError,
-    clearErrors,
-  } = useForm({
+  const { control, handleSubmit, setError, clearErrors } = useForm({
     defaultValues: {
       currentPassword: '',
       newPassword: '',
       confirmPassword: '',
     },
   });
-  
+
   const handleFormSubmit = () =>
     handleSubmit((formData) => {
-    // Validate passwords
-    const validationErrors = validatePassword({
-      currentPassword: formData.currentPassword,
-      newPassword: formData.newPassword,
-      confirmPassword: formData.confirmPassword,
-    });
-    
-    if (validationErrors) {
-      // Set validation errors in React Hook Form
-      Object.entries(validationErrors).forEach(([field, message]) => {
-        if (message) setError(field as keyof PasswordValidationErrors, { message });
+      // Validate passwords
+      const validationErrors = validatePassword({
+        currentPassword: formData.currentPassword,
+        newPassword: formData.newPassword,
+        confirmPassword: formData.confirmPassword,
       });
-      return;
-    }
-    
-    // If no errors, proceed with form submission
-    onSubmit({
-      currentPassword: formData.currentPassword,
-      newPassword: formData.newPassword,
-      confirmPassword: formData.confirmPassword,
-    });
-  })();
-  
+
+      if (validationErrors) {
+        // Set validation errors in React Hook Form
+        Object.entries(validationErrors).forEach(([field, message]) => {
+          if (message)
+            setError(field as keyof PasswordValidationErrors, { message });
+        });
+        return;
+      }
+
+      // If no errors, proceed with form submission
+      onSubmit({
+        currentPassword: formData.currentPassword,
+        newPassword: formData.newPassword,
+        confirmPassword: formData.confirmPassword,
+      });
+    })();
+
   return (
     <CustomForm control={control} onSubmit={handleFormSubmit}>
       {/* Current Password Field */}
@@ -71,7 +67,7 @@ const ResetPasswordForm: FC<ResetPasswordFormProps> = ({ onSubmit }) => {
           />
         )}
       />
-      
+
       {/* New Password Field */}
       <Controller
         name="newPassword"
@@ -89,7 +85,7 @@ const ResetPasswordForm: FC<ResetPasswordFormProps> = ({ onSubmit }) => {
           />
         )}
       />
-      
+
       {/* Confirm New Password Field */}
       <Controller
         name="confirmPassword"

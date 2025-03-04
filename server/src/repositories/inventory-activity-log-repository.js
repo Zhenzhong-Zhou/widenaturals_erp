@@ -79,28 +79,28 @@ const insertInventoryActivityLog = async (
  */
 const bulkInsertInventoryActivityLogs = async (logs, client) => {
   if (!Array.isArray(logs) || logs.length === 0) {
-    throw new AppError.validationError("No logs provided for bulk insert.");
+    throw new AppError.validationError('No logs provided for bulk insert.');
   }
-  
-  const tableName = "inventory_activity_log";
+
+  const tableName = 'inventory_activity_log';
   const columns = [
-    "inventory_id",
-    "warehouse_id",
-    "lot_id",
-    "inventory_action_type_id",
-    "previous_quantity",
-    "quantity_change",
-    "new_quantity",
-    "status_id",
-    "adjustment_type_id",
-    "order_id",
-    "user_id",
-    "timestamp",
-    "comments",
+    'inventory_id',
+    'warehouse_id',
+    'lot_id',
+    'inventory_action_type_id',
+    'previous_quantity',
+    'quantity_change',
+    'new_quantity',
+    'status_id',
+    'adjustment_type_id',
+    'order_id',
+    'user_id',
+    'timestamp',
+    'comments',
   ];
-  
+
   // Convert logs into a nested array of values for bulk insert
-  const rows = logs.map(log => [
+  const rows = logs.map((log) => [
     log.inventory_id,
     log.warehouse_id,
     log.lot_id || null,
@@ -115,7 +115,7 @@ const bulkInsertInventoryActivityLogs = async (logs, client) => {
     new Date(), // Use current timestamp
     log.comments || null,
   ]);
-  
+
   try {
     // Step 1: Retry Bulk Insert with Exponential Backoff
     return await retry(
@@ -133,10 +133,13 @@ const bulkInsertInventoryActivityLogs = async (logs, client) => {
       1000 // Initial delay of 1 second (will exponentially back off)
     );
   } catch (error) {
-    logError("Failed to insert bulk inventory activity logs:", error);
-    throw new AppError.databaseError("Bulk insert failed for inventory activity logs.", {
-      details: { error: error.message, logs },
-    });
+    logError('Failed to insert bulk inventory activity logs:', error);
+    throw new AppError.databaseError(
+      'Bulk insert failed for inventory activity logs.',
+      {
+        details: { error: error.message, logs },
+      }
+    );
   }
 };
 

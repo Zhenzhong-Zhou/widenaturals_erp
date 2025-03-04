@@ -22,7 +22,7 @@ export default defineConfig({
       '@mui/material',
       '@mui/icons-material',
       '@mui/x-date-pickers',
-      'date-fns'
+      'date-fns',
     ],
   },
 });

@@ -1,5 +1,9 @@
 const { getAdjustmentReport } = require('../repositories/report-repository');
-const { exportToCSV, exportToPDF, exportToPlainText } = require('../utils/export-utils');
+const {
+  exportToCSV,
+  exportToPDF,
+  exportToPlainText,
+} = require('../utils/export-utils');
 const AppError = require('../utils/AppError');
 const { logError } = require('../utils/logger-helper');
 
@@ -20,21 +24,21 @@ const { logError } = require('../utils/logger-helper');
  * @returns {Promise<Object|Buffer>} - JSON response for paginated data or file buffer for export.
  */
 const fetchAdjustmentReport = async ({
-                                       reportType = null,
-                                       userTimezone = 'UTC',
-                                       startDate = null,
-                                       endDate = null,
-                                       warehouseId = null,
-                                       warehouseInventoryLotId = null,
-                                       page = 1,
-                                       limit = 50,
-                                       sortBy = 'local_adjustment_date',
-                                       sortOrder = 'DESC',
-                                       exportFormat = null, // Export format: 'csv', 'pdf', 'txt'
-                                     }) => {
+  reportType = null,
+  userTimezone = 'UTC',
+  startDate = null,
+  endDate = null,
+  warehouseId = null,
+  warehouseInventoryLotId = null,
+  page = 1,
+  limit = 50,
+  sortBy = 'local_adjustment_date',
+  sortOrder = 'DESC',
+  exportFormat = null, // Export format: 'csv', 'pdf', 'txt'
+}) => {
   try {
     const isExport = !!exportFormat; // If exportFormat is provided, fetch all data
-    
+
     // Fetch report from repository (paginated or full)
     const reportData = await getAdjustmentReport({
       reportType,
@@ -49,9 +53,9 @@ const fetchAdjustmentReport = async ({
       sortOrder,
       isExport,
     });
-    
+
     const { data, pagination } = reportData;
-    
+
     // Handle No Data Case
     if (!data || data.length === 0) {
       if (!isExport) {
@@ -62,13 +66,13 @@ const fetchAdjustmentReport = async ({
           message: 'No adjustment records found for the given criteria.',
         };
       }
-      
+
       // Handle empty file exports
       const emptyMessage = 'No data available for export.';
       let fileBuffer;
       let contentType;
       let fileName;
-      
+
       switch (exportFormat.toLowerCase()) {
         case 'csv':
           fileBuffer = Buffer.from(emptyMessage, 'utf-8');
@@ -86,12 +90,14 @@ const fetchAdjustmentReport = async ({
           fileName = 'empty_adjustment_report.txt';
           break;
         default:
-          throw new AppError.validationError('Invalid export format. Use "csv", "pdf", or "txt".');
+          throw new AppError.validationError(
+            'Invalid export format. Use "csv", "pdf", or "txt".'
+          );
       }
-      
+
       return { fileBuffer, contentType, fileName };
     }
-    
+
     if (!isExport) {
       // Return JSON response for paginated data
       return {
@@ -100,12 +106,12 @@ const fetchAdjustmentReport = async ({
         pagination,
       };
     }
-    
+
     // Handle Export (Regular Data)
     let fileBuffer;
     let contentType;
     let fileName;
-    
+
     switch (exportFormat.toLowerCase()) {
       case 'csv':
         fileBuffer = exportToCSV(data);
@@ -123,16 +129,21 @@ const fetchAdjustmentReport = async ({
         fileName = 'adjustment_report.txt';
         break;
       default:
-        throw new AppError.validationError('Invalid export format. Use "csv", "pdf", or "txt".');
+        throw new AppError.validationError(
+          'Invalid export format. Use "csv", "pdf", or "txt".'
+        );
     }
-    
+
     return { fileBuffer, contentType, fileName };
   } catch (error) {
     logError('Failed to fetch adjustment report', error);
-    throw new AppError.databaseError('Failed to fetch adjustment report', error);
+    throw new AppError.databaseError(
+      'Failed to fetch adjustment report',
+      error
+    );
   }
 };
 
 module.exports = {
-  fetchAdjustmentReport
+  fetchAdjustmentReport,
 };

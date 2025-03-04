@@ -142,7 +142,7 @@ const logout = async (): Promise<void> => {
       5000, // Timeout in milliseconds
       'Logout request timed out'
     );
-    
+
     clearTokens();
     return response.data;
   } catch (error) {

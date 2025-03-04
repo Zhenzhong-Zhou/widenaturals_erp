@@ -9,11 +9,13 @@ const {
  */
 const fetchWarehouseLotAdjustmentTypesForDropDown = async () => {
   const adjustmentTypes = await getWarehouseLotAdjustmentTypesForDropdown();
-  
+
   if (!adjustmentTypes.length) {
-    throw new Error('No available warehouse lot adjustment types for selection.');
+    throw new Error(
+      'No available warehouse lot adjustment types for selection.'
+    );
   }
-  
+
   return adjustmentTypes;
 };
 

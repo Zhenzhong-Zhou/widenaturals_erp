@@ -1,4 +1,13 @@
-const { query, paginateQuery, retry, withTransaction, bulkInsert, lockRow, lockRows, formatBulkUpdateQuery } = require('../database/db');
+const {
+  query,
+  paginateQuery,
+  retry,
+  withTransaction,
+  bulkInsert,
+  lockRow,
+  lockRows,
+  formatBulkUpdateQuery,
+} = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logInfo, logError } = require('../utils/logger-helper');
 const { checkInventoryExists } = require('./inventory-repository');
@@ -166,7 +175,8 @@ const getWarehouseInventoryDetailsByWarehouseId = async ({
   const whereClause = 'wi.warehouse_id = $1';
 
   // Sorting
-  const defaultSort = 'COALESCE(i.product_id::TEXT, i.identifier), wil.lot_number, wil.expiry_date';
+  const defaultSort =
+    'COALESCE(i.product_id::TEXT, i.identifier), wil.lot_number, wil.expiry_date';
 
   const baseQuery = `
     SELECT DISTINCT ON (COALESCE(i.product_id::TEXT, i.identifier), wil.lot_number)
@@ -235,25 +245,36 @@ const getWarehouseInventoryDetailsByWarehouseId = async ({
  *          - Returns an array of matching warehouse inventory records, or an empty array if none are found.
  * @throws {AppError} - Throws an error if the database query fails.
  */
-const checkWarehouseInventoryBulk = async (client, warehouseIds, inventoryRecords) => {
-  if (!Array.isArray(warehouseIds) || warehouseIds.length === 0 ||
-    !Array.isArray(inventoryRecords) || inventoryRecords.length === 0) {
+const checkWarehouseInventoryBulk = async (
+  client,
+  warehouseIds,
+  inventoryRecords
+) => {
+  if (
+    !Array.isArray(warehouseIds) ||
+    warehouseIds.length === 0 ||
+    !Array.isArray(inventoryRecords) ||
+    inventoryRecords.length === 0
+  ) {
     return [];
   }
-  
+
   const queryText = `
     SELECT warehouse_id, inventory_id, id
     FROM warehouse_inventory
     WHERE warehouse_id = ANY($1::uuid[])
     AND inventory_id = ANY($2::uuid[]);
   `;
-  
+
   try {
-    const { rows } = await client.query(queryText, [warehouseIds, inventoryRecords]);
+    const { rows } = await client.query(queryText, [
+      warehouseIds,
+      inventoryRecords,
+    ]);
     return rows;
   } catch (error) {
-    logError("Error checking warehouse inventory existence:", error);
-    throw new AppError("Database query failed");
+    logError('Error checking warehouse inventory existence:', error);
+    throw new AppError('Database query failed');
   }
 };
 
@@ -267,53 +288,89 @@ const checkWarehouseInventoryBulk = async (client, warehouseIds, inventoryRecord
  */
 const insertWarehouseInventoryRecords = async (client, inventoryData) => {
   if (!Array.isArray(inventoryData) || inventoryData.length === 0) {
-    throw new AppError("Invalid inventory data. Expected a non-empty array.");
+    throw new AppError('Invalid inventory data. Expected a non-empty array.');
   }
-  
+
   try {
     // Step 1: Lock Existing Rows Before Insert/Update (With Retry)
     await retry(
       () =>
         lockRows(
           client,
-          "warehouse_inventory",
-          inventoryData.map(({ warehouse_id, inventory_id }) => ({ warehouse_id, inventory_id })),
-          "FOR UPDATE"
+          'warehouse_inventory',
+          inventoryData.map(({ warehouse_id, inventory_id }) => ({
+            warehouse_id,
+            inventory_id,
+          })),
+          'FOR UPDATE'
         ),
       3, // Retries up to 3 times
       1000 // Initial delay of 1s, with exponential backoff
     );
-    
+
     // Step 2: Prepare Data for Bulk Insert
     const columns = [
-      "warehouse_id", "inventory_id", "reserved_quantity", "available_quantity",
-      "warehouse_fee", "status_id", "status_date", "created_at", "created_by",
-      "updated_at", "updated_by", "last_update"
+      'warehouse_id',
+      'inventory_id',
+      'reserved_quantity',
+      'available_quantity',
+      'warehouse_fee',
+      'status_id',
+      'status_date',
+      'created_at',
+      'created_by',
+      'updated_at',
+      'updated_by',
+      'last_update',
     ];
-    
-    const rows = inventoryData.map(({ warehouse_id, inventory_id, available_quantity, warehouse_fee, status_id, created_by }) => [
-      warehouse_id, inventory_id, 0, available_quantity || 0, warehouse_fee || 0,
-      status_id, new Date(), new Date(), created_by, null, null, null
-    ]);
-    
+
+    const rows = inventoryData.map(
+      ({
+        warehouse_id,
+        inventory_id,
+        available_quantity,
+        warehouse_fee,
+        status_id,
+        created_by,
+      }) => [
+        warehouse_id,
+        inventory_id,
+        0,
+        available_quantity || 0,
+        warehouse_fee || 0,
+        status_id,
+        new Date(),
+        new Date(),
+        created_by,
+        null,
+        null,
+        null,
+      ]
+    );
+
     // Step 3: Bulk Insert with Retry and Conflict Handling
-    return await retry(
-      () =>
-        bulkInsert(
-          "warehouse_inventory",
-          columns,
-          rows,
-          ["warehouse_id", "inventory_id"], // Conflict Columns
-          [] // Fields to do nothing on conflict
-        ),
-      3, // Retries up to 3 times
-      1000 // Initial delay of 1s, with exponential backoff
-    ) || [];
+    return (
+      (await retry(
+        () =>
+          bulkInsert(
+            'warehouse_inventory',
+            columns,
+            rows,
+            ['warehouse_id', 'inventory_id'], // Conflict Columns
+            [] // Fields to do nothing on conflict
+          ),
+        3, // Retries up to 3 times
+        1000 // Initial delay of 1s, with exponential backoff
+      )) || []
+    );
   } catch (error) {
-    logError("Error inserting warehouse inventory records:", error);
-    throw new AppError.databaseError("Failed to insert warehouse inventory records.", {
-      details: { error: error.message, inventoryData },
-    });
+    logError('Error inserting warehouse inventory records:', error);
+    throw new AppError.databaseError(
+      'Failed to insert warehouse inventory records.',
+      {
+        details: { error: error.message, inventoryData },
+      }
+    );
   }
 };
 
@@ -340,28 +397,32 @@ const insertWarehouseInventoryRecords = async (client, inventoryData) => {
  *   "814cfc1d-e245-41be-b3f6-bcac548e1927-a430cacf-d7b5-4915-a01a-aa1715476300": 40
  * }, "e9a62a2a-0350-4e36-95cc-86237a394fe0");
  */
-const updateWarehouseInventoryQuantity = async (client, warehouseUpdates, userId) => {
+const updateWarehouseInventoryQuantity = async (
+  client,
+  warehouseUpdates,
+  userId
+) => {
   const { baseQuery, params } = await formatBulkUpdateQuery(
-    "warehouse_inventory",
-    ["available_quantity"],
-    ["warehouse_id", "inventory_id"],
+    'warehouse_inventory',
+    ['available_quantity'],
+    ['warehouse_id', 'inventory_id'],
     warehouseUpdates,
     userId
   );
-  
+
   if (baseQuery) {
     return await retry(
       async () => {
-        const { rows } = client ?
-          await query(baseQuery, params) :
-          await client.query(baseQuery, params);
+        const { rows } = client
+          ? await query(baseQuery, params)
+          : await client.query(baseQuery, params);
         return rows; // Return the updated inventory IDs
       },
       3, // Retry up to 3 times
-      1000, // Initial delay of 1 second (exponential backoff applied)
+      1000 // Initial delay of 1 second (exponential backoff applied)
     );
   }
-  
+
   return []; // Return empty array if no updates were made
 };
 
@@ -457,12 +518,12 @@ const getRecentInsertWarehouseInventoryRecords = async (warehouseLotIds) => {
     JOIN inventory i ON ld.inventory_id = i.id
     GROUP BY w.id, w.name;
   `;
-  
+
   try {
     const { rows } = await query(queryText, [warehouseLotIds]);
     return rows;
   } catch (error) {
-    logError("Error executing inventory query:", error);
+    logError('Error executing inventory query:', error);
     throw error;
   }
 };

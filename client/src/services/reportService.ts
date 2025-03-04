@@ -1,4 +1,7 @@
-import { AdjustmentReportParams, PaginatedAdjustmentReportResponse } from '../features/report';
+import {
+  AdjustmentReportParams,
+  PaginatedAdjustmentReportResponse,
+} from '../features/report';
 import { API_ENDPOINTS } from './apiEndponits.ts';
 import axiosInstance from '@utils/axiosConfig';
 import { AppError } from '@utils/AppError';
@@ -35,14 +38,20 @@ export const exportAdjustmentReport = async (
         responseType: 'blob',
       }
     );
-    
+
     // Validate response MIME type based on export format
     const contentType = response.headers['content-type'];
-    if (!contentType.includes('pdf') && !contentType.includes('csv') && !contentType.includes('plain')) {
+    if (
+      !contentType.includes('pdf') &&
+      !contentType.includes('csv') &&
+      !contentType.includes('plain')
+    ) {
       console.error('Invalid content type:', contentType);
-      throw new AppError('Received invalid file format. Expected CSV, PDF, or TXT.');
+      throw new AppError(
+        'Received invalid file format. Expected CSV, PDF, or TXT.'
+      );
     }
-    
+
     return response.data;
   } catch (error) {
     console.error('Error exporting adjustment report:', error);
@@ -53,5 +62,5 @@ export const exportAdjustmentReport = async (
 // Export the service object
 export const reportService = {
   fetchAdjustmentReport,
-  exportAdjustmentReport
+  exportAdjustmentReport,
 };

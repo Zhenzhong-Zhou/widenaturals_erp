@@ -1,4 +1,4 @@
-import { NavigateFunction } from "react-router-dom";
+import { NavigateFunction } from 'react-router-dom';
 
 /**
  * Handles dynamic navigation for different reports based on warehouse, inventory, and lot parameters.
@@ -11,15 +11,16 @@ export const handleAdjustmentReportRedirect = (
   navigate: NavigateFunction,
   basePath: string,
   warehouseId?: string | null,
-  inventoryId?: string | null,
+  inventoryId?: string | null
 ) => {
-  const path = warehouseId && inventoryId
-    ? `/${basePath}/lot_adjustments/${warehouseId}/${inventoryId}`
-    : warehouseId
-      ? `/${basePath}/lot_adjustments/${warehouseId}`
-      : inventoryId
-        ? `/${basePath}/lot_adjustments/inventory/${inventoryId}`
-        : `/${basePath}`;
-  
+  const path =
+    warehouseId && inventoryId
+      ? `/${basePath}/lot_adjustments/${warehouseId}/${inventoryId}`
+      : warehouseId
+        ? `/${basePath}/lot_adjustments/${warehouseId}`
+        : inventoryId
+          ? `/${basePath}/lot_adjustments/inventory/${inventoryId}`
+          : `/${basePath}`;
+
   navigate(path);
 };

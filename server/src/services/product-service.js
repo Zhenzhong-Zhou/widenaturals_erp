@@ -1,6 +1,7 @@
 const {
   getProducts,
-  getProductDetailsById, getAvailableProductsForDropdown,
+  getProductDetailsById,
+  getAvailableProductsForDropdown,
 } = require('../repositories/product-repository');
 const { logInfo, logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
@@ -70,7 +71,9 @@ const fetchProductDropdownList = async (warehouse_id) => {
   try {
     return await getAvailableProductsForDropdown(warehouse_id);
   } catch (error) {
-    throw new AppError.serviceError(`Failed to fetch product dropdown: ${error.message}`);
+    throw new AppError.serviceError(
+      `Failed to fetch product dropdown: ${error.message}`
+    );
   }
 };
 

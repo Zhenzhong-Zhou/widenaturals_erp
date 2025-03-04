@@ -13,15 +13,21 @@ interface ExportReportModalProps {
 /**
  * Modal for selecting export format and triggering report export.
  */
-const ExportAdjustmentReportModal: FC<ExportReportModalProps> = ({ open, onClose, onExport, filters }) => {
-  const [exportFormat, setExportFormat] = useState<AdjustmentReportParams['exportFormat']>('csv');
-  
+const ExportAdjustmentReportModal: FC<ExportReportModalProps> = ({
+  open,
+  onClose,
+  onExport,
+  filters,
+}) => {
+  const [exportFormat, setExportFormat] =
+    useState<AdjustmentReportParams['exportFormat']>('csv');
+
   const handleExport = () => {
     const { page, limit, totalRecords, totalPages, ...exportFilters } = filters;
     onExport({ ...exportFilters, exportFormat });
     onClose();
   };
-  
+
   return (
     <CustomModal
       open={open}
@@ -32,7 +38,11 @@ const ExportAdjustmentReportModal: FC<ExportReportModalProps> = ({ open, onClose
           <CustomButton onClick={onClose} variant="outlined">
             Cancel
           </CustomButton>
-          <CustomButton onClick={handleExport} variant="contained" color="primary">
+          <CustomButton
+            onClick={handleExport}
+            variant="contained"
+            color="primary"
+          >
             Export
           </CustomButton>
         </>
@@ -41,7 +51,11 @@ const ExportAdjustmentReportModal: FC<ExportReportModalProps> = ({ open, onClose
       <Select
         fullWidth
         value={exportFormat ?? 'csv'}
-        onChange={(e: SelectChangeEvent) => setExportFormat(e.target.value as AdjustmentReportParams['exportFormat'])}
+        onChange={(e: SelectChangeEvent) =>
+          setExportFormat(
+            e.target.value as AdjustmentReportParams['exportFormat']
+          )
+        }
       >
         <MenuItem value="csv">CSV</MenuItem>
         <MenuItem value="pdf">PDF</MenuItem>

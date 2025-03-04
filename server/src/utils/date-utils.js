@@ -6,7 +6,7 @@
 const isValidDate = (value) => {
   if (value instanceof Date) return true;
   if (typeof value !== 'string') return false;
-  
+
   const date = new Date(value);
   return !isNaN(date.getTime());
 };
@@ -40,4 +40,4 @@ module.exports = {
   isValidDate,
   formatDate,
   formatValue,
-}
+};

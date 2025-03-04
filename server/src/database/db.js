@@ -450,56 +450,78 @@ const lockRow = async (client, table, id, lockMode = 'FOR UPDATE') => {
  */
 const lockRows = async (client, table, conditions, lockMode = 'FOR UPDATE') => {
   if (!Array.isArray(conditions) || conditions.length === 0) {
-    throw new AppError.validationError("Invalid conditions for row locking. Expected a non-empty array.");
+    throw new AppError.validationError(
+      'Invalid conditions for row locking. Expected a non-empty array.'
+    );
   }
-  
+
   // Validate lock mode
-  const validLockModes = ['FOR UPDATE', 'FOR NO KEY UPDATE', 'FOR SHARE', 'FOR KEY SHARE'];
+  const validLockModes = [
+    'FOR UPDATE',
+    'FOR NO KEY UPDATE',
+    'FOR SHARE',
+    'FOR KEY SHARE',
+  ];
   if (!validLockModes.includes(lockMode)) {
-    throw new AppError.validationError(`Invalid lock mode: ${lockMode}. Allowed: ${validLockModes.join(", ")}`);
+    throw new AppError.validationError(
+      `Invalid lock mode: ${lockMode}. Allowed: ${validLockModes.join(', ')}`
+    );
   }
-  
+
   // Dynamically check if the table exists in PostgreSQL
   const tableExistsQuery = `SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE schemaname = 'public' AND tablename = $1)`;
-  
+
   await retry(async () => {
     const { rows: tableCheck } = await client.query(tableExistsQuery, [table]);
-    
+
     if (!tableCheck[0].exists) {
-      throw new AppError.notFoundError(`Table "${table}" does not exist in the database.`);
+      throw new AppError.notFoundError(
+        `Table "${table}" does not exist in the database.`
+      );
     }
   });
-  
+
   let query, values;
-  
+
   if (typeof conditions[0] === 'string') {
     // Case 1: Simple ID Locking (e.g., `lockRows(client, 'inventory', [uuid1, uuid2])`)
-    const placeholders = conditions.map((_, i) => `$${i + 1}`).join(", ");
+    const placeholders = conditions.map((_, i) => `$${i + 1}`).join(', ');
     query = `SELECT * FROM ${table} WHERE id IN (${placeholders}) ${lockMode}`;
     values = conditions;
   } else {
     // Case 2: Composite Key Locking (e.g., `lockRows(client, 'warehouse_inventory', [{ warehouse_id, inventory_id }])`)
-    const whereClauses = conditions.map((cond, i) =>
-      `(${Object.keys(cond).map((key, j) => `${key} = $${i * Object.keys(cond).length + j + 1}`).join(" AND ")})`
-    ).join(" OR ");
-    
+    const whereClauses = conditions
+      .map(
+        (cond, i) =>
+          `(${Object.keys(cond)
+            .map(
+              (key, j) => `${key} = $${i * Object.keys(cond).length + j + 1}`
+            )
+            .join(' AND ')})`
+      )
+      .join(' OR ');
+
     values = conditions.flatMap(Object.values);
     query = `SELECT * FROM ${table} WHERE ${whereClauses} ${lockMode}`;
   }
-  
+
   try {
     return await retry(async () => {
       const { rows } = await client.query(query, values);
       // Log missing rows
       if (rows.length !== conditions.length) {
-        logWarn(`Some rows were not found in "${table}". Found: ${rows.length}, Expected: ${conditions.length}`);
+        logWarn(
+          `Some rows were not found in "${table}". Found: ${rows.length}, Expected: ${conditions.length}`
+        );
       }
-      
+
       return rows;
     });
   } catch (error) {
     logError(`Error locking rows in table "${table}":`, error);
-    throw new AppError.databaseError(`Database error while locking rows in "${table}".`);
+    throw new AppError.databaseError(
+      `Database error while locking rows in "${table}".`
+    );
   }
 };
 
@@ -558,7 +580,7 @@ const bulkInsert = async (
       `Invalid data format: Expected an array of arrays, each with ${columns.length} values`
     );
   }
-  
+
   // Generate column names and placeholders
   const columnNames = columns.join(', ');
   const valuePlaceholders = rows
@@ -567,19 +589,21 @@ const bulkInsert = async (
         `(${columns.map((_, colIndex) => `$${rowIndex * columns.length + colIndex + 1}`).join(', ')})`
     )
     .join(', ');
-  
+
   // Handle conflict dynamically: Either `DO NOTHING` or `DO UPDATE`
   let conflictClause = '';
   if (conflictColumns.length > 0) {
     if (updateColumns.length > 0) {
       // Construct dynamic UPDATE SET clause
-      const updateSet = updateColumns.map(col => `${col} = EXCLUDED.${col}`).join(', ');
+      const updateSet = updateColumns
+        .map((col) => `${col} = EXCLUDED.${col}`)
+        .join(', ');
       conflictClause = `ON CONFLICT (${conflictColumns.join(', ')}) DO UPDATE SET ${updateSet}`;
     } else {
       conflictClause = `ON CONFLICT (${conflictColumns.join(', ')}) DO NOTHING`;
     }
   }
-  
+
   // Construct SQL query
   const sql = `
     INSERT INTO ${tableName} (${columnNames})
@@ -587,7 +611,7 @@ const bulkInsert = async (
     ${conflictClause}
     RETURNING id;
   `;
-  
+
   // Flatten values for bulk insert
   const flattenedValues = rows.flat();
 
@@ -632,43 +656,52 @@ const bulkInsert = async (
  * console.log(baseQuery); // Generated SQL Query
  * console.log(params); // Corresponding parameters
  */
-const formatBulkUpdateQuery = async (table, columns, whereColumns, data, userId) => {
+const formatBulkUpdateQuery = async (
+  table,
+  columns,
+  whereColumns,
+  data,
+  userId
+) => {
   if (!Object.keys(data).length) return null;
-  
+
   let indexCounter = 2; // Start from 2 since $1 is for userId
-  
+
   const values = Object.entries(data)
     .map(([key, value]) => {
       const keyArray = key.match(/([a-f0-9-]{36})-([a-f0-9-]{36})/)
-        ? key.split(/-(?=[a-f0-9-]{36}$)/)  // Splits only at the last occurrence for correct parsing
+        ? key.split(/-(?=[a-f0-9-]{36}$)/) // Splits only at the last occurrence for correct parsing
         : [key];
-      
+
       const placeholders = keyArray.map(() => `$${indexCounter++}::uuid`);
       placeholders.push(`$${indexCounter++}::integer`); // For quantity
-      
-      return `(${placeholders.join(", ")})`;
+
+      return `(${placeholders.join(', ')})`;
     })
-    .join(", ");
-  
+    .join(', ');
+
   const baseQuery = `
       UPDATE ${table}
-      SET ${columns.map((col) => `${col} = data.${col}`).join(", ")},
+      SET ${columns.map((col) => `${col} = data.${col}`).join(', ')},
           updated_at = NOW(),
           updated_by = $1
       FROM (VALUES ${values})
-        AS data(${[...whereColumns, ...columns].join(", ")})
-      WHERE ${whereColumns.map((col) => `${table}.${col} = data.${col}`).join(" AND ")}
-      RETURNING ${whereColumns.map(col => `${table}.${col}`).join(", ")};
+        AS data(${[...whereColumns, ...columns].join(', ')})
+      WHERE ${whereColumns.map((col) => `${table}.${col} = data.${col}`).join(' AND ')}
+      RETURNING ${whereColumns.map((col) => `${table}.${col}`).join(', ')};
   `;
-  
-  const params = [userId, ...Object.entries(data).flatMap(([key, value]) => {
-    const keyArray = key.match(/([a-f0-9-]{36})-([a-f0-9-]{36})/)
-      ? key.split(/-(?=[a-f0-9-]{36}$)/)
-      : [key];
-    
-    return [...keyArray, Number(value)];
-  })];
-  
+
+  const params = [
+    userId,
+    ...Object.entries(data).flatMap(([key, value]) => {
+      const keyArray = key.match(/([a-f0-9-]{36})-([a-f0-9-]{36})/)
+        ? key.split(/-(?=[a-f0-9-]{36}$)/)
+        : [key];
+
+      return [...keyArray, Number(value)];
+    }),
+  ];
+
   return await retry(async () => {
     return { baseQuery, params };
   });

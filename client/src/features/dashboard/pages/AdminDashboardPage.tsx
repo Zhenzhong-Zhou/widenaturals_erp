@@ -5,10 +5,14 @@ import { DashboardLayout, DashboardPageProps } from '../index.ts';
 
 const AdminDashboardPage: FC<DashboardPageProps> = ({ fullName }) => {
   const navigate = useNavigate();
-  
+
   return (
     <DashboardLayout fullName={fullName}>
-      <CustomButton variant="contained" color="primary" onClick={() => navigate('/reports/adjustments')}>
+      <CustomButton
+        variant="contained"
+        color="primary"
+        onClick={() => navigate('/reports/adjustments')}
+      >
         View Adjustment Report
       </CustomButton>
     </DashboardLayout>

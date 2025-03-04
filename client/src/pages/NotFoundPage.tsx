@@ -69,8 +69,8 @@ const NotFoundPage: FC<NotFoundPageProps> = ({ isAuthenticated }) => {
       >
         {isAuthenticated ? 'Go Back to Dashboard' : 'Go Back to Home'}
       </CustomButton>
-      
-      <GoBackButton/>
+
+      <GoBackButton />
     </Container>
   );
 };

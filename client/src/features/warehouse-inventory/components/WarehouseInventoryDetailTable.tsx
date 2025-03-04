@@ -1,5 +1,12 @@
 import { FC, ReactNode, useState } from 'react';
-import { Box, Paper, IconButton, Checkbox, Tooltip, Popover } from '@mui/material';
+import {
+  Box,
+  Paper,
+  IconButton,
+  Checkbox,
+  Tooltip,
+  Popover,
+} from '@mui/material';
 import { CustomButton, CustomTable, Typography } from '@components/index.ts';
 import EditIcon from '@mui/icons-material/Edit';
 import InventoryIcon from '@mui/icons-material/Inventory'; // Ensure this import exists
@@ -9,7 +16,8 @@ import {
   BulkInsertInventoryModal,
   BulkAdjustQuantityModal,
   EditQuantityModal,
-  InsertedInventoryRecordsResponseDialog, WarehouseInventoryInsertResponse,
+  InsertedInventoryRecordsResponseDialog,
+  WarehouseInventoryInsertResponse,
 } from '../index.ts';
 import { WarehouseInventoryDetailExtended } from '../state/warehouseInventoryTypes.ts';
 import { capitalizeFirstLetter, formatCurrency } from '@utils/textUtils.ts';
@@ -71,7 +79,7 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
   handleBulkInsertSubmit,
   insertedDataResponse,
   openDialog,
-  setOpenDialog
+  setOpenDialog,
 }) => {
   const [selectedLot, setSelectedLot] = useState<{
     warehouseInventoryLotId: string;
@@ -90,21 +98,23 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
       currentQuantity: number;
     }[]
   >([]);
-  const [selectedInventoryLot, setSelectedInventoryLot] = useState<{ inventoryId: string } | null>(null);
+  const [selectedInventoryLot, setSelectedInventoryLot] = useState<{
+    inventoryId: string;
+  } | null>(null);
   const navigate = useNavigate();
-  
+
   const handleOpenPopover = (event: MouseEvent, inventoryId: string) => {
     const target = event.currentTarget as HTMLElement; // Ensure it's an HTML element
-    
+
     setAnchorEl(target);
     setSelectedInventoryLot({ inventoryId });
   };
-  
+
   const handleClosePopover = () => {
     setAnchorEl(null);
     setSelectedInventoryLot(null);
   };
-  
+
   const transformedData = data.map((row) => ({
     ...row,
     isSelect: false,
@@ -279,14 +289,19 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
       align: 'center',
       renderCell: (row) => (
         <Tooltip title="View Options">
-          <IconButton size="small" onClick={(event) => handleOpenPopover(event as unknown as MouseEvent, row.inventoryId)}>
+          <IconButton
+            size="small"
+            onClick={(event) =>
+              handleOpenPopover(event as unknown as MouseEvent, row.inventoryId)
+            }
+          >
             <MoreHorizIcon fontSize="small" />
           </IconButton>
         </Tooltip>
       ),
-    }
+    },
   ];
-  
+
   return (
     <Box>
       <Paper sx={{ padding: 2, marginBottom: 3 }}>
@@ -299,12 +314,17 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
         />
         Select All
         <Typography variant="h5">Warehouse Inventory Lots</Typography>
-        
         {/* Pass handleBulkInsertSubmit function to modal */}
-        <BulkInsertInventoryModal warehouseId={warehouseId} onSubmit={handleBulkInsertSubmit} mode={'create'} />
-        
-        <InsertedInventoryRecordsResponseDialog insertedDataResponse={insertedDataResponse} open={openDialog} onClose={() => setOpenDialog(false)} />
-        
+        <BulkInsertInventoryModal
+          warehouseId={warehouseId}
+          onSubmit={handleBulkInsertSubmit}
+          mode={'create'}
+        />
+        <InsertedInventoryRecordsResponseDialog
+          insertedDataResponse={insertedDataResponse}
+          open={openDialog}
+          onClose={() => setOpenDialog(false)}
+        />
         <CustomButton
           variant="contained"
           color="primary"
@@ -375,28 +395,55 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
           setSelectedLots([]);
         }}
       />
-      
+
       {/* Popover Menu */}
       <Popover
         open={Boolean(anchorEl)}
         anchorEl={anchorEl}
         onClose={handleClosePopover}
         anchorOrigin={{
-          vertical: "bottom",
-          horizontal: "right",
+          vertical: 'bottom',
+          horizontal: 'right',
         }}
         transformOrigin={{
-          vertical: "top",
-          horizontal: "right",
+          vertical: 'top',
+          horizontal: 'right',
         }}
       >
-        <MenuItem onClick={() => handleAdjustmentReportRedirect(navigate, "reports/adjustments", warehouseId, selectedInventoryLot?.inventoryId)}>
+        <MenuItem
+          onClick={() =>
+            handleAdjustmentReportRedirect(
+              navigate,
+              'reports/adjustments',
+              warehouseId,
+              selectedInventoryLot?.inventoryId
+            )
+          }
+        >
           View Lot Adjustment
         </MenuItem>
-        <MenuItem onClick={() => handleAdjustmentReportRedirect(navigate, "reports/inventory_activities/inventory_lot_activities", warehouseId, selectedInventoryLot?.inventoryId)}>
+        <MenuItem
+          onClick={() =>
+            handleAdjustmentReportRedirect(
+              navigate,
+              'reports/inventory_activities/inventory_lot_activities',
+              warehouseId,
+              selectedInventoryLot?.inventoryId
+            )
+          }
+        >
           View Inventory Activity
         </MenuItem>
-        <MenuItem onClick={() => handleAdjustmentReportRedirect(navigate, "reports/inventory_histories/inventory_lot_histories", warehouseId, selectedInventoryLot?.inventoryId)}>
+        <MenuItem
+          onClick={() =>
+            handleAdjustmentReportRedirect(
+              navigate,
+              'reports/inventory_histories/inventory_lot_histories',
+              warehouseId,
+              selectedInventoryLot?.inventoryId
+            )
+          }
+        >
           View Inventory History
         </MenuItem>
       </Popover>

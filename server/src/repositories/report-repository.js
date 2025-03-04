@@ -15,21 +15,21 @@ const AppError = require('../utils/AppError');
  * @returns {Promise<Array>} - List of adjustment records.
  */
 const getAdjustmentReport = async ({
-                                     reportType = null,
-                                     userTimezone = 'UTC',
-                                     startDate = null,
-                                     endDate = null,
-                                     warehouseId = null,
-                                     inventoryId = null,
-                                     warehouseInventoryLotId = null,
-                                     page = 1,
-                                     limit = 50,
-                                     sortBy = 'local_adjustment_date',
-                                     sortOrder = 'DESC',
-                                     isExport = false,
-                                   }) => {
+  reportType = null,
+  userTimezone = 'UTC',
+  startDate = null,
+  endDate = null,
+  warehouseId = null,
+  inventoryId = null,
+  warehouseInventoryLotId = null,
+  page = 1,
+  limit = 50,
+  sortBy = 'local_adjustment_date',
+  sortOrder = 'DESC',
+  isExport = false,
+}) => {
   const offset = (page - 1) * limit;
-  
+
   // Construct the Base Query
   const baseQuery = `
     SELECT
@@ -73,39 +73,49 @@ const getAdjustmentReport = async ({
       AND ($6::UUID IS NULL OR wil.inventory_id = $6::UUID)
       AND ($7::UUID IS NULL OR wa.warehouse_inventory_lot_id = $7::UUID)
   `;
-  
+
   // Count Query (for pagination)
   const countQuery = `SELECT COUNT(*) AS total FROM (${baseQuery}) AS adjustment_data;`;
-  
-  const params = [userTimezone, reportType, startDate, endDate, warehouseId, inventoryId, warehouseInventoryLotId];
-  
+
+  const params = [
+    userTimezone,
+    reportType,
+    startDate,
+    endDate,
+    warehouseId,
+    inventoryId,
+    warehouseInventoryLotId,
+  ];
+
   try {
     let totalRecords = 0;
-    
+
     // Fetch Count (only if pagination is required)
     if (!isExport) {
       const countResult = await query(countQuery, params);
       totalRecords = parseInt(countResult.rows[0]?.total || 0, 10);
     }
-    
+
     // Append Pagination if NOT Exporting
-    const finalQuery = isExport ? baseQuery : `${baseQuery} ORDER BY ${sortBy} ${sortOrder} LIMIT $8 OFFSET $9`;
+    const finalQuery = isExport
+      ? baseQuery
+      : `${baseQuery} ORDER BY ${sortBy} ${sortOrder} LIMIT $8 OFFSET $9`;
     if (!isExport) {
       params.push(limit, offset);
     }
-    
+
     const { rows } = await query(finalQuery, params);
-    
+
     return {
       data: rows,
       pagination: isExport
         ? null
         : {
-          page,
-          limit,
-          totalRecords,
-          totalPages: Math.ceil(totalRecords / limit),
-        },
+            page,
+            limit,
+            totalRecords,
+            totalPages: Math.ceil(totalRecords / limit),
+          },
     };
   } catch (error) {
     logError('Error fetching adjustment report:', error);

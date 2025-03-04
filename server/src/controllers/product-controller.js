@@ -1,7 +1,8 @@
 const wrapAsync = require('../utils/wrap-async');
 const {
   fetchAllProducts,
-  fetchProductDetails, fetchProductDropdownList,
+  fetchProductDetails,
+  fetchProductDropdownList,
 } = require('../services/product-service');
 const { logInfo, logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
@@ -102,7 +103,7 @@ const getProductDetailsByIdController = wrapAsync(async (req, res, next) => {
   }
 });
 
-const getProductsDropdownListController = wrapAsync( async (req, res, next) => {
+const getProductsDropdownListController = wrapAsync(async (req, res, next) => {
   const { warehouse_id } = req.query;
   try {
     const products = await fetchProductDropdownList(warehouse_id);

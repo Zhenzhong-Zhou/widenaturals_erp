@@ -123,11 +123,15 @@ exports.seed = async function (knex) {
           )
         : 0;
     const availableQuantity = Math.max(0, total_quantity - reservedQuantity);
-    
+
     // Check if warehouse inventory records exist
-    const existingWarehouseInventory = await knex('warehouse_inventory').count('* as count').first();
+    const existingWarehouseInventory = await knex('warehouse_inventory')
+      .count('* as count')
+      .first();
     if (existingWarehouseInventory.count > 0) {
-      console.log('⚠️ Warehouse inventory already seeded. Skipping seed process.');
+      console.log(
+        '⚠️ Warehouse inventory already seeded. Skipping seed process.'
+      );
       return;
     }
 
@@ -135,9 +139,7 @@ exports.seed = async function (knex) {
     await knex('warehouse_inventory')
       .where({ warehouse_id, inventory_id })
       .where((builder) =>
-        builder
-          .where('reserved_quantity', 0)
-          .orWhere('reserved_quantity', null)
+        builder.where('reserved_quantity', 0).orWhere('reserved_quantity', null)
       )
       .update({
         reserved_quantity: reservedQuantity,

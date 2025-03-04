@@ -37,7 +37,8 @@ const MainLayout = ({ children }: MainLayoutProps) => {
     loading: userProfileLoading,
     error: userProfileError,
   } = useUserProfile();
-  const fullName = `${userProfile.firstname ?? ""} ${userProfile.lastname ?? ""}`.trim();
+  const fullName =
+    `${userProfile.firstname ?? ''} ${userProfile.lastname ?? ''}`.trim();
   const { logout } = useLogout(); // Logout handler
   useTokenRefresh(); // Token refresh handling
   const { roleName, permissions } = usePermissionsContext(); // Access role and permissions

@@ -7,7 +7,10 @@ interface BaseDashboardLayoutProps {
   children: ReactNode;
 }
 
-const DashboardLayout: FC<BaseDashboardLayoutProps> = ({ fullName, children }) => {
+const DashboardLayout: FC<BaseDashboardLayoutProps> = ({
+  fullName,
+  children,
+}) => {
   return (
     <Box sx={{ padding: 3 }}>
       <Typography variant="h4" gutterBottom>

@@ -1,5 +1,5 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { fetchWarehouseDetailsThunk } from "./warehouseThunks";
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { fetchWarehouseDetailsThunk } from './warehouseThunks';
 import { WarehouseDetailsResponse } from './warehouseTypes.ts';
 
 interface WarehouseState {
@@ -15,7 +15,7 @@ const initialState: WarehouseState = {
 };
 
 const warehouseSlice = createSlice({
-  name: "warehouseDetails",
+  name: 'warehouseDetails',
   initialState,
   reducers: {
     clearWarehouseDetails(state) {

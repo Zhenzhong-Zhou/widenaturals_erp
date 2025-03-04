@@ -34,10 +34,10 @@ exports.up = async function (knex) {
     // Constraints
     table.check('new_quantity >= 0'); // Ensures stock never goes negative
     table.check('adjusted_quantity <> 0'); // Prevents zero adjustments
-    
+
     // Unique constraint to prevent duplicate adjustments at the same timestamp
     table.unique(['warehouse_inventory_lot_id', 'adjustment_date']);
-    
+
     // Index for better performance
     table.index(['warehouse_inventory_lot_id'], 'idx_wh_inventory_lot');
   });
