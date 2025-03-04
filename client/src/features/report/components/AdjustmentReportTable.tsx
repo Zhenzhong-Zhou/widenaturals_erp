@@ -34,6 +34,18 @@ const AdjustmentReportTable: React.FC<AdjustmentReportTableProps> = ({ data, pag
       sortable: true,
     },
     {
+      id: "expiry_date",
+      label: "Expiry Date",
+      sortable: true,
+      format: (value) => formatDate(value),
+    },
+    {
+      id: "manufacture_date",
+      label: "Manufacture Date",
+      sortable: true,
+      format: (value) => formatDate(value),
+    },
+    {
       id: "adjustment_type",
       label: "Adjustment Type",
       sortable: true,

@@ -17,12 +17,13 @@ export interface AdjustmentReportParams {
 
 // Represents an individual adjustment record
 export interface AdjustmentRecord {
-  local_adjustment_date: string; // ISO date string
   warehouse_id: string;
   warehouse_name: string;
+  warehouse_inventory_lot_id: string;
   item_name: string;
   lot_number: string;
-  inventory_id: string;
+  expiry_date: string;
+  manufacture_date: string;
   previous_quantity: number;
   adjusted_quantity: number;
   new_quantity: number;
@@ -30,6 +31,7 @@ export interface AdjustmentRecord {
   status: string;
   adjusted_by: string;
   comments: string | null;
+  local_adjustment_date: string; // ISO date string
 }
 
 // Represents pagination details
@@ -44,7 +46,7 @@ export interface ReportState {
   data: AdjustmentRecord[]; // Holds paginated report data
   exportData: Blob | null; // Stores exported file (CSV, PDF, TXT)
   exportFormat: 'csv' | 'pdf' | 'txt' | null; // Explicit export format types
-  loading: boolean; // ✅ Loading state for paginated data
+  loading: boolean; // Loading state for paginated data
   exportLoading: boolean; // Loading state for exports
   error: string | null; // Error state for paginated data
   exportError: string | null; // Error state for exports
