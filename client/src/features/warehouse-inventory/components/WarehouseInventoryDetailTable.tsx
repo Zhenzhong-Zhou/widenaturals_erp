@@ -106,11 +106,10 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
   
   const handleRedirect = (path: string) => {
     if (!selectedInventoryLot) return;
-    navigate(`${path}/${warehouseId}/${selectedInventoryLot.inventoryId}`);
+    navigate(`/${path}/${warehouseId}/${selectedInventoryLot.inventoryId}`);
     handleClosePopover();
   };
   
-  console.log(data)
   const transformedData = data.map((row) => ({
     ...row,
     isSelect: false,

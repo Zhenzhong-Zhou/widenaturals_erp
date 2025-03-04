@@ -1,23 +1,26 @@
-import { FC, useEffect, useState } from "react";
-import { useAdjustmentReport } from "../../../hooks";
-import { CustomButton, ErrorDisplay, ErrorMessage, Loading, Typography } from "@components/index.ts";
-import Box from "@mui/material/Box";
+import { FC, useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import Box from '@mui/material/Box';
+import { useAdjustmentReport } from '../../../hooks';
+import { CustomButton, ErrorDisplay, ErrorMessage, Loading, Typography } from '@components/index.ts';
 import { AdjustmentReportFilters, AdjustmentReportTable, ExportAdjustmentReportModal } from '../index.ts';
-import { handleDownload } from "@utils/downloadUtils.ts";
+import { handleDownload } from '@utils/downloadUtils.ts';
 
-const AdjustmentReportPage: FC = () => {
+const AdjustmentReportByWarehouseIdAndInventoryIdPage: FC = () => {
+  const { warehouseId, inventoryId } = useParams<{ warehouseId: string; inventoryId: string }>();
+  
   const [filters, setFilters] = useState({
     reportType: null,
     userTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     startDate: null,
     endDate: null,
+    warehouseId: warehouseId || null,
+    inventoryId: inventoryId || null,
     page: 1,
     limit: 10,
   });
-  
   const [open, setOpen] = useState(false);
-  
-  // Use custom hook to fetch report data
+  console.log(filters)
   const {
     data,
     loading,
@@ -39,7 +42,7 @@ const AdjustmentReportPage: FC = () => {
   useEffect(() => {
     if (exportData) {
       const fileExtension = exportFormat || "csv";
-      handleDownload(exportData, `Adjustment_Report_OverView_${new Date().toISOString().slice(0, 10)}.${fileExtension}`);
+      handleDownload(exportData, `Adjustment_Report_${data && data[0] ? data[0].warehouse_name : 'Test'}_${data && data[0] ? data[0].item_name : 'Test'}_${new Date().toISOString().slice(0, 10)}.${fileExtension}`);
     }
   }, [exportData, exportFormat]);
   
@@ -53,10 +56,10 @@ const AdjustmentReportPage: FC = () => {
     <Box sx={{ padding: 2, marginBottom: 3 }}>
       <Box sx={{ textAlign: "center", marginBottom: 4 }}>
         <Typography variant="h4" component="h1" fontWeight="bold">
-          Warehouse Inventory
+          {data && data[0] ? data[0].warehouse_name : 'Warehouse'} Inventory
         </Typography>
         <Typography variant="subtitle1" color="textSecondary">
-          Adjustment Report Overview
+          {data && data[0] ? data[0].item_name : 'Test'} Adjustment Report
         </Typography>
       </Box>
       
@@ -73,7 +76,7 @@ const AdjustmentReportPage: FC = () => {
       {/* Table */}
       <AdjustmentReportTable data={data} pagination={pagination} filters={filters} setFilters={setFilters} fetchReport={fetchReport} />
     </Box>
-  );
+  ) ;
 };
 
-export default AdjustmentReportPage;
+export default AdjustmentReportByWarehouseIdAndInventoryIdPage;

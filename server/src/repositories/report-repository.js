@@ -10,6 +10,7 @@ const AppError = require('../utils/AppError');
  * @param {string} [params.startDate] - Start date for custom range (optional).
  * @param {string} [params.endDate] - End date for custom range (optional).
  * @param {string} [params.warehouseId] - Warehouse ID for filtering (optional).
+ * @param {string} [params.inventoryId] - Inventory ID for filtering (optional).
  * @param {string} [params.warehouseInventoryLotId] - The ID of the specific lot in a warehouse's inventory (optional).
  * @returns {Promise<Array>} - List of adjustment records.
  */
@@ -19,6 +20,7 @@ const getAdjustmentReport = async ({
                                      startDate = null,
                                      endDate = null,
                                      warehouseId = null,
+                                     inventoryId = null,
                                      warehouseInventoryLotId = null,
                                      page = 1,
                                      limit = 50,
@@ -35,6 +37,7 @@ const getAdjustmentReport = async ({
       w.id AS warehouse_id,
       w.name AS warehouse_name,
       wil.id AS warehouse_inventory_lot_id,
+      wil.inventory_id AS inventory_id,
       wil.lot_number AS lot_number,
       COALESCE(p.product_name, i.identifier, 'Unknown Item') AS item_name,
       wil.expiry_date AS expiry_date,
@@ -67,13 +70,14 @@ const getAdjustmentReport = async ({
         ELSE COALESCE($4::TIMESTAMP, (CURRENT_DATE + INTERVAL '1 day')::TIMESTAMP) AT TIME ZONE $1
       END
       AND ($5::UUID IS NULL OR wil.warehouse_id = $5::UUID)
-      AND ($6::UUID IS NULL OR wa.warehouse_inventory_lot_id = $6::UUID)
+      AND ($6::UUID IS NULL OR wil.inventory_id = $6::UUID)
+      AND ($7::UUID IS NULL OR wa.warehouse_inventory_lot_id = $7::UUID)
   `;
   
   // Count Query (for pagination)
   const countQuery = `SELECT COUNT(*) AS total FROM (${baseQuery}) AS adjustment_data;`;
   
-  const params = [userTimezone, reportType, startDate, endDate, warehouseId, warehouseInventoryLotId];
+  const params = [userTimezone, reportType, startDate, endDate, warehouseId, inventoryId, warehouseInventoryLotId];
   
   try {
     let totalRecords = 0;
@@ -85,7 +89,7 @@ const getAdjustmentReport = async ({
     }
     
     // Append Pagination if NOT Exporting
-    const finalQuery = isExport ? baseQuery : `${baseQuery} ORDER BY ${sortBy} ${sortOrder} LIMIT $7 OFFSET $8`;
+    const finalQuery = isExport ? baseQuery : `${baseQuery} ORDER BY ${sortBy} ${sortOrder} LIMIT $8 OFFSET $9`;
     if (!isExport) {
       params.push(limit, offset);
     }

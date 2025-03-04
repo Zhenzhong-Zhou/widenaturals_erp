@@ -7,8 +7,9 @@ export interface AdjustmentReportParams {
   userTimezone: string;
   startDate?: string | Date | null; // Accepts both string & Date
   endDate?: string | Date | null; // Accepts both string & Date
-  warehouseId?: string; // Nullable warehouse ID
-  inventoryId?: string; // Nullable inventory ID
+  warehouseId?: string | null; // Nullable warehouse ID
+  inventoryId?: string | null; // Nullable inventory ID
+  warehouseInventoryLotId?: string | null;
   page?: number; // Pagination: Current Page
   limit?: number; // Pagination: Items per page
   totalRecords?: number; // Only in response, optional
@@ -20,6 +21,7 @@ export interface AdjustmentRecord {
   warehouse_id: string;
   warehouse_name: string;
   warehouse_inventory_lot_id: string;
+  inventory_id: string;
   item_name: string;
   lot_number: string;
   expiry_date: string;
