@@ -21,6 +21,7 @@ export interface AdjustmentRecord {
   warehouse_id: string;
   warehouse_name: string;
   item_name: string;
+  lot_number: string;
   inventory_id: string;
   previous_quantity: number;
   adjusted_quantity: number;

@@ -34,6 +34,7 @@ const getAdjustmentReport = async ({
       wa.adjustment_date AT TIME ZONE 'UTC' AT TIME ZONE $1 AS local_adjustment_date,
       w.id AS warehouse_id,
       w.name AS warehouse_name,
+      wa.lot_number AS lot_number,
       COALESCE(p.product_name, i.identifier, 'Unknown Item') AS item_name,
       i.id AS inventory_id,
       wa.previous_quantity,

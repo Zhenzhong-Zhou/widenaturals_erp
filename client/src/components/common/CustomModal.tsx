@@ -6,7 +6,7 @@ interface ModalProps {
   open: boolean;
   onClose: () => void;
   title?: ReactNode;
-  children: ReactNode;
+  children?: ReactNode;
   actions?: ReactNode;
   sx?: SxProps<Theme>;
 }

@@ -1,8 +1,10 @@
 import { FC, ReactNode, useState } from 'react';
-import { Box, Paper, IconButton, Checkbox } from '@mui/material';
+import { Box, Paper, IconButton, Checkbox, Tooltip, Popover } from '@mui/material';
 import { CustomButton, CustomTable, Typography } from '@components/index.ts';
 import EditIcon from '@mui/icons-material/Edit';
 import InventoryIcon from '@mui/icons-material/Inventory'; // Ensure this import exists
+import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
+import { useNavigate } from 'react-router-dom';
 import {
   BulkInsertInventoryModal,
   BulkAdjustQuantityModal,
@@ -12,6 +14,7 @@ import {
 import { WarehouseInventoryDetailExtended } from '../state/warehouseInventoryTypes.ts';
 import { capitalizeFirstLetter, formatCurrency } from '@utils/textUtils.ts';
 import { formatDate, formatDateTime } from '@utils/dateTimeUtils.ts';
+import MenuItem from '@mui/material/MenuItem';
 
 // Define Column Type explicitly
 interface Column<T> {
@@ -75,9 +78,9 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
     lotNumber: string;
     quantity: number;
   } | null>(null);
-
   const [selectedLotIds, setSelectedLotIds] = useState<Set<string>>(new Set());
   const [bulkAdjustOpen, setBulkAdjustOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedLots, setSelectedLots] = useState<
     {
       warehouseInventoryLotId: string;
@@ -86,7 +89,28 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
       currentQuantity: number;
     }[]
   >([]);
-
+  const [selectedInventoryLot, setSelectedInventoryLot] = useState<{ inventoryId: string } | null>(null);
+  const navigate = useNavigate();
+  
+  const handleOpenPopover = (event: MouseEvent, inventoryId: string) => {
+    const target = event.currentTarget as HTMLElement; // ✅ Ensure it's an HTML element
+    
+    setAnchorEl(target);
+    setSelectedInventoryLot({ inventoryId });
+  };
+  
+  const handleClosePopover = () => {
+    setAnchorEl(null);
+    setSelectedInventoryLot(null);
+  };
+  
+  const handleRedirect = (path: string) => {
+    if (!selectedInventoryLot) return;
+    navigate(`${path}/${warehouseId}/${selectedInventoryLot.inventoryId}`);
+    handleClosePopover();
+  };
+  
+  console.log(data)
   const transformedData = data.map((row) => ({
     ...row,
     isSelect: false,
@@ -122,7 +146,6 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
 
   // Define table columns
   const columns: Column<WarehouseInventoryDetailExtended>[] = [
-    // 1️⃣ Selection Checkbox
     {
       id: 'select',
       label: 'Select',
@@ -135,6 +158,12 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
       ),
     },
     {
+      id: 'itemType',
+      label: 'Item Type',
+      sortable: true,
+      format: (value: any) => capitalizeFirstLetter(value),
+    },
+    {
       id: 'itemName',
       label: 'Item Name',
       sortable: true,
@@ -144,13 +173,6 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
       label: 'Lot Number',
       sortable: true,
     },
-    {
-      id: 'itemType',
-      label: 'Item Type',
-      sortable: true,
-      format: (value: any) => capitalizeFirstLetter(value),
-    },
-
     // 3️⃣ Stock & Warehouse Information
     {
       id: 'lotQuantity',
@@ -257,8 +279,20 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
       sortable: true,
       format: (value: string) => (value ? formatDate(value) : 'N/A'),
     },
+    {
+      id: 'actions',
+      label: 'Actions',
+      align: 'center',
+      renderCell: (row) => (
+        <Tooltip title="View Options">
+          <IconButton size="small" onClick={(event) => handleOpenPopover(event as unknown as MouseEvent, row.inventoryId)}>
+            <MoreHorizIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+      ),
+    }
   ];
-
+  
   return (
     <Box>
       <Paper sx={{ padding: 2, marginBottom: 3 }}>
@@ -347,6 +381,25 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
           setSelectedLots([]);
         }}
       />
+      
+      {/* Popover Menu */}
+      <Popover
+        open={Boolean(anchorEl)}
+        anchorEl={anchorEl}
+        onClose={handleClosePopover}
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: "right",
+        }}
+        transformOrigin={{
+          vertical: "top",
+          horizontal: "right",
+        }}
+      >
+        <MenuItem onClick={() => handleRedirect('reports/inventory_histories/inventory_lot_histories')}>View Inventory History</MenuItem>
+        <MenuItem onClick={() => handleRedirect('reports/adjustments/lot_adjustments')}>View Lot Adjustment</MenuItem>
+        <MenuItem onClick={() => handleRedirect('reports/inventory_activities/inventory_lot_activities')}>View Inventory Activity</MenuItem>
+      </Popover>
     </Box>
   );
 };
