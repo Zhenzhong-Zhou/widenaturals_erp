@@ -1,9 +1,11 @@
 import { FC } from "react";
 import Box from "@mui/material/Box";
-import { CustomButton, Typography } from '@components/index.ts';
+import { CustomButton, GoBackButton, NoDataFound, Typography } from '@components/index.ts';
 import { WarehouseDetails } from '../../warehouse/state/warehouseTypes.ts';
 import { formatDate } from '@utils/dateTimeUtils.ts';
 import { capitalizeFirstLetter } from '@utils/textUtils.ts';
+import { handleAdjustmentReportRedirect } from '@utils/navigationUtils.ts';
+import { useNavigate } from 'react-router-dom';
 
 interface WarehouseDetailHeaderProps {
   warehouseDetails?: WarehouseDetails;
@@ -12,13 +14,8 @@ interface WarehouseDetailHeaderProps {
 }
 
 const WarehouseInventoryDetailHeader: FC<WarehouseDetailHeaderProps> = ({ warehouseDetails, loading, refetch }) => {
-  if (!warehouseDetails) {
-    return (
-      <Typography variant="body1" color="textSecondary">
-        No warehouse selected.
-      </Typography>
-    );
-  }
+  if (!warehouseDetails) return <NoDataFound message={" No warehouse selected."} />;
+  const navigate = useNavigate();
   
   return (
     <Box sx={{ mb: 3, textAlign: "left", p: 2, bgcolor: "background.default", borderRadius: 2 }}>
@@ -72,6 +69,10 @@ const WarehouseInventoryDetailHeader: FC<WarehouseDetailHeaderProps> = ({ wareho
       <CustomButton onClick={refetch} disabled={loading}>
         Refresh Warehouse Data
       </CustomButton>
+      <CustomButton onClick={() => handleAdjustmentReportRedirect(navigate, "reports/adjustments", warehouseDetails.id)} disabled={loading}>
+        View Warehouse Lot Adjustment
+      </CustomButton>
+      <GoBackButton/>
     </Box>
   );
 };

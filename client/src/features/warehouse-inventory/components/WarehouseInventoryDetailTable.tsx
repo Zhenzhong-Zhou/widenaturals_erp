@@ -15,6 +15,7 @@ import { WarehouseInventoryDetailExtended } from '../state/warehouseInventoryTyp
 import { capitalizeFirstLetter, formatCurrency } from '@utils/textUtils.ts';
 import { formatDate, formatDateTime } from '@utils/dateTimeUtils.ts';
 import MenuItem from '@mui/material/MenuItem';
+import { handleAdjustmentReportRedirect } from '@utils/navigationUtils.ts';
 
 // Define Column Type explicitly
 interface Column<T> {
@@ -93,7 +94,7 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
   const navigate = useNavigate();
   
   const handleOpenPopover = (event: MouseEvent, inventoryId: string) => {
-    const target = event.currentTarget as HTMLElement; // ✅ Ensure it's an HTML element
+    const target = event.currentTarget as HTMLElement; // Ensure it's an HTML element
     
     setAnchorEl(target);
     setSelectedInventoryLot({ inventoryId });
@@ -102,12 +103,6 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
   const handleClosePopover = () => {
     setAnchorEl(null);
     setSelectedInventoryLot(null);
-  };
-  
-  const handleRedirect = (path: string) => {
-    if (!selectedInventoryLot) return;
-    navigate(`/${path}/${warehouseId}/${selectedInventoryLot.inventoryId}`);
-    handleClosePopover();
   };
   
   const transformedData = data.map((row) => ({
@@ -395,9 +390,15 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
           horizontal: "right",
         }}
       >
-        <MenuItem onClick={() => handleRedirect('reports/inventory_histories/inventory_lot_histories')}>View Inventory History</MenuItem>
-        <MenuItem onClick={() => handleRedirect('reports/adjustments/lot_adjustments')}>View Lot Adjustment</MenuItem>
-        <MenuItem onClick={() => handleRedirect('reports/inventory_activities/inventory_lot_activities')}>View Inventory Activity</MenuItem>
+        <MenuItem onClick={() => handleAdjustmentReportRedirect(navigate, "reports/adjustments", warehouseId, selectedInventoryLot?.inventoryId)}>
+          View Lot Adjustment
+        </MenuItem>
+        <MenuItem onClick={() => handleAdjustmentReportRedirect(navigate, "reports/inventory_activities/inventory_lot_activities", warehouseId, selectedInventoryLot?.inventoryId)}>
+          View Inventory Activity
+        </MenuItem>
+        <MenuItem onClick={() => handleAdjustmentReportRedirect(navigate, "reports/inventory_histories/inventory_lot_histories", warehouseId, selectedInventoryLot?.inventoryId)}>
+          View Inventory History
+        </MenuItem>
       </Popover>
     </Box>
   );
