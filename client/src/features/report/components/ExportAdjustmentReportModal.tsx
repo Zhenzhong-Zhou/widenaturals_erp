@@ -17,7 +17,7 @@ const ExportAdjustmentReportModal: FC<ExportReportModalProps> = ({ open, onClose
   const [exportFormat, setExportFormat] = useState<AdjustmentReportParams['exportFormat']>('csv');
   
   const handleExport = () => {
-    const { page, limit, totalRecords, totalPages, ...exportFilters } = filters; // ✅ Remove pagination info
+    const { page, limit, totalRecords, totalPages, ...exportFilters } = filters;
     onExport({ ...exportFilters, exportFormat });
     onClose();
   };

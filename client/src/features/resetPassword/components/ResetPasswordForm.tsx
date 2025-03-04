@@ -1,6 +1,6 @@
-import { FC, useState } from 'react';
+import { FC } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import { CustomForm, PasswordInput } from '@components/index.ts';
-import { Box } from '@mui/material';
 import {
   validatePassword,
   PasswordValidationErrors,
@@ -15,90 +15,97 @@ interface ResetPasswordFormProps {
 }
 
 const ResetPasswordForm: FC<ResetPasswordFormProps> = ({ onSubmit }) => {
-  const [formData, setFormData] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
+  const {
+    control,
+    handleSubmit,
+    setError,
+    clearErrors,
+  } = useForm({
+    defaultValues: {
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+    },
   });
-
-  const [validationErrors, setValidationErrors] =
-    useState<PasswordValidationErrors>({
-      currentPassword: null,
-      newPassword: null,
-      confirmPassword: null,
-    });
-
-  const handleChange = (field: keyof typeof formData, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-    setValidationErrors((prev) => ({ ...prev, [field]: null })); // Clear field-specific error on change
-  };
-
-  const handleFormSubmit = () => {
-    const { currentPassword, newPassword, confirmPassword } = formData;
-
+  
+  const handleFormSubmit = () =>
+    handleSubmit((formData) => {
     // Validate passwords
     const validationErrors = validatePassword({
-      currentPassword,
-      newPassword,
-      confirmPassword,
+      currentPassword: formData.currentPassword,
+      newPassword: formData.newPassword,
+      confirmPassword: formData.confirmPassword,
     });
+    
     if (validationErrors) {
-      setValidationErrors(validationErrors); // Set validation errors in state
+      // Set validation errors in React Hook Form
+      Object.entries(validationErrors).forEach(([field, message]) => {
+        if (message) setError(field as keyof PasswordValidationErrors, { message });
+      });
       return;
     }
-
+    
     // If no errors, proceed with form submission
-    onSubmit({ currentPassword, newPassword, confirmPassword });
-  };
-
+    onSubmit({
+      currentPassword: formData.currentPassword,
+      newPassword: formData.newPassword,
+      confirmPassword: formData.confirmPassword,
+    });
+  })();
+  
   return (
-    <CustomForm
-      onSubmit={() => {
-        handleFormSubmit();
-      }}
-    >
-      <PasswordInput
-        label="Current Password"
-        value={formData.currentPassword}
-        onChange={(e) => handleChange('currentPassword', e.target.value)}
-        errorText={validationErrors.currentPassword || ''}
+    <CustomForm control={control} onSubmit={handleFormSubmit}>
+      {/* Current Password Field */}
+      <Controller
+        name="currentPassword"
+        control={control}
+        render={({ field, fieldState }) => (
+          <PasswordInput
+            label="Current Password"
+            value={field.value}
+            onChange={(e) => {
+              field.onChange(e.target.value);
+              clearErrors('currentPassword');
+            }}
+            errorText={fieldState.error?.message}
+          />
+        )}
       />
-      {validationErrors.currentPassword ? (
-        <Box style={{ color: 'red', marginTop: '5px' }}>
-          {validationErrors.currentPassword}
-        </Box>
-      ) : (
-        ''
-      )}
-      <PasswordInput
-        label="New Password"
-        value={formData.newPassword}
-        onChange={(e) => handleChange('newPassword', e.target.value)}
-        errorText={validationErrors.newPassword || ''}
-        helperText={
-          'Password must be 8-64 characters long, with at least one uppercase letter, one lowercase letter, one number, and one special character.'
-        }
+      
+      {/* New Password Field */}
+      <Controller
+        name="newPassword"
+        control={control}
+        render={({ field, fieldState }) => (
+          <PasswordInput
+            label="New Password"
+            value={field.value}
+            onChange={(e) => {
+              field.onChange(e.target.value);
+              clearErrors('newPassword');
+            }}
+            helperText="Password must be 8-64 characters long, with at least one uppercase letter, one lowercase letter, one number, and one special character."
+            errorText={fieldState.error?.message}
+          />
+        )}
       />
-      {validationErrors.newPassword ? (
-        <Box style={{ color: 'red', marginTop: '5px' }}>
-          {validationErrors.newPassword}
-        </Box>
-      ) : (
-        ''
-      )}
-      <PasswordInput
-        label="Confirm New Password"
-        value={formData.confirmPassword}
-        onChange={(e) => handleChange('confirmPassword', e.target.value)}
-        errorText={validationErrors.confirmPassword || ''}
+      
+      {/* Confirm New Password Field */}
+      <Controller
+        name="confirmPassword"
+        control={control}
+        render={({ field, fieldState }) => (
+          <PasswordInput
+            label="Confirm New Password"
+            value={field.value}
+            onChange={(e) => {
+              field.onChange(e.target.value);
+              clearErrors('confirmPassword');
+            }}
+            errorText={fieldState.error?.message}
+          />
+        )}
       />
-      {validationErrors.confirmPassword ? (
-        <Box style={{ color: 'red', marginTop: '5px' }}>
-          {validationErrors.confirmPassword}
-        </Box>
-      ) : (
-        ''
-      )}
     </CustomForm>
   );
 };

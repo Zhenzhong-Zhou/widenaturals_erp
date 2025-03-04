@@ -11,7 +11,7 @@ const { logError } = require('../utils/logger-helper');
  * @param {string} [params.startDate] - Custom start date (optional).
  * @param {string} [params.endDate] - Custom end date (optional).
  * @param {string} [params.warehouseId] - Warehouse ID (optional).
- * @param {string} [params.inventoryId] - Inventory ID (optional).
+ * @param {string} [params.warehouseInventoryLotId] - The ID of the specific warehouse inventory lot (optional).
  * @param {number} [params.page] - Page number for pagination (optional).
  * @param {number} [params.limit] - Items per page (optional).
  * @param {string} [params.sortBy] - Sort column (optional).
@@ -25,7 +25,7 @@ const fetchAdjustmentReport = async ({
                                        startDate = null,
                                        endDate = null,
                                        warehouseId = null,
-                                       inventoryId = null,
+                                       warehouseInventoryLotId = null,
                                        page = 1,
                                        limit = 50,
                                        sortBy = 'local_adjustment_date',
@@ -42,7 +42,7 @@ const fetchAdjustmentReport = async ({
       startDate,
       endDate,
       warehouseId,
-      inventoryId,
+      warehouseInventoryLotId,
       page,
       limit,
       sortBy,

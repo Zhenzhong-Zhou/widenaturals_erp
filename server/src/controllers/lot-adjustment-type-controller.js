@@ -1,27 +1,27 @@
 const {
-  fetchWarehouseLotAdjustmentTypes,
+  fetchWarehouseLotAdjustmentTypesForDropDown,
 } = require('../services/lot-adjustment-type-service');
 const { logError } = require('../utils/logger-helper');
 const wrapAsync = require('../utils/wrap-async');
 
 /**
- * Controller to fetch warehouse lot adjustment types.
+ * Controller to fetch warehouse lot adjustment types for dropdown.
  * @param {import("express").Request} req - Express request object.
  * @param {import("express").Response} res - Express response object.
- * @param next
+ * @param {import("express").NextFunction} next - Express next function.
  */
-const getWarehouseLotAdjustmentTypesController = wrapAsync(
+const getWarehouseLotAdjustmentTypesForDropdownController = wrapAsync(
   async (req, res, next) => {
     try {
-      const adjustmentTypes = await fetchWarehouseLotAdjustmentTypes();
+      const adjustmentTypes = await fetchWarehouseLotAdjustmentTypesForDropDown();
       res.status(200).json(adjustmentTypes);
     } catch (error) {
-      logError('Error in getWarehouseLotAdjustmentTypesController:', error);
+      logError('Error fetching in getWarehouseLotAdjustmentTypesController:', error);
       next(error);
     }
   }
 );
 
 module.exports = {
-  getWarehouseLotAdjustmentTypesController,
+  getWarehouseLotAdjustmentTypesForDropdownController,
 };

@@ -211,6 +211,17 @@ export const routes = [
     },
   },
   {
+    path: '/reports/adjustments/lot_adjustments/:warehouseId?/:inventoryId?/:warehouseInventoryLotId?',
+    component: () =>
+      import('../features/report/pages/AdjustmentReportPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Adjustment Report',
+      showInSidebar: false,
+      requiredPermission: 'view_adjustment_reports',
+    },
+  },
+  {
     path: '*',
     component: () => import('../pages/NotFoundPage.tsx'),
     meta: {

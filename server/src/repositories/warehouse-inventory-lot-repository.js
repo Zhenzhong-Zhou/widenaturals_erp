@@ -4,22 +4,15 @@ const {
   lockRow,
   bulkInsert, retry,
 } = require('../database/db');
-const {
-  insertWarehouseLotAdjustment,
-} = require('./warehouse-lot-adjustment-repository');
 const AppError = require('../utils/AppError');
 const { logError, logWarn, logInfo } = require('../utils/logger-helper');
-const {
-  insertInventoryActivityLog, bulkInsertInventoryActivityLogs,
-} = require('./inventory-activity-log-repository');
+const { bulkInsertInventoryActivityLogs } = require('./inventory-activity-log-repository');
 const { getActionTypeId } = require('./inventory-action-type-repository');
-const {
-  insertInventoryHistoryLog, bulkInsertInventoryHistory,
-} = require('./inventory-history-repository');
+const { bulkInsertInventoryHistory, } = require('./inventory-history-repository');
 const { getWarehouseLotStatus } = require('./warehouse-lot-status-repository');
-const { getStatusIdByName } = require('./status-repository');
 const { generateChecksum } = require('../utils/crypto-utils');
-const { getWarehouseLotAdjustmentType, bulkInsertWarehouseLotAdjustments } = require('./lot-adjustment-type-repository');
+const { getWarehouseLotAdjustmentType } = require('./lot-adjustment-type-repository');
+const { bulkInsertWarehouseLotAdjustments } = require('./warehouse-lot-adjustment-repository');
 
 /**
  * Checks if a lot exists in the warehouse inventory and locks it for update.
@@ -174,7 +167,7 @@ const adjustWarehouseInventoryLots = async (records, user_id) => {
         WHERE id = $4`,
         [new_quantity, new_status_id, user_id, warehouse_inventory_id]
       );
-
+      
       // Determine Warehouse Inventory Status Based on Lot Availability
       const { rows: warehouseStatusRows } = await client.query(
         `
@@ -264,9 +257,7 @@ const adjustWarehouseInventoryLots = async (records, user_id) => {
       // Check if adjustment type requires logging
       if (validAdjustmentTypes.includes(adjustmentType.name.toLowerCase())) {
         warehouseLotAdjustments.push({
-          warehouse_id,
-          inventory_id,
-          lot_number,
+          warehouse_inventory_id,
           adjustment_type_id,
           previous_quantity,
           adjusted_quantity,
@@ -275,8 +266,6 @@ const adjustWarehouseInventoryLots = async (records, user_id) => {
           adjusted_by: user_id,
           adjustment_date: new Date(),
           comments: comments || null,
-          created_by: user_id,
-          updated_by: user_id,
         });
       } else {
         logInfo(`Skipping adjustment: Type "${adjustmentType.name}" does not require logging.`);

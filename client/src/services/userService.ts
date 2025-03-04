@@ -5,7 +5,7 @@ import { AppError, ErrorType } from '@utils/AppError.tsx';
 import {
   UserProfileResponse,
   UseUsersResponse,
-} from '../features/user/state/userTypes.ts';
+} from '../features/user';
 import { isCustomAxiosError } from '@utils/axiosUtils.ts';
 import { withTimeout } from '@utils/timeoutUtils.ts';
 import { withRetry } from '@utils/retryUtils.ts';

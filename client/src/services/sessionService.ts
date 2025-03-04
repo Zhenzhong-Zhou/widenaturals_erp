@@ -137,14 +137,14 @@ const refreshToken = async (): Promise<{ accessToken: string }> => {
  */
 const logout = async (): Promise<void> => {
   try {
-    await withTimeout(
+    const response = await withTimeout(
       axiosInstance.post(API_ENDPOINTS.LOGOUT),
       5000, // Timeout in milliseconds
       'Logout request timed out'
     );
-
+    
     clearTokens();
-    console.log('Logout successful');
+    return response.data;
   } catch (error) {
     console.error('Logout failed:', error);
     throw new AppError('Logout failed. Please try again.', 500, {

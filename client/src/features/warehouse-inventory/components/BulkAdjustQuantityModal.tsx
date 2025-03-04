@@ -147,7 +147,7 @@ const BulkAdjustQuantityModal: FC<BulkAdjustQuantityModalProps> = ({
       }}
     >
       <Box sx={{ p: 2 }} component="form" onSubmit={handleFormSubmit}>
-        <Grid container spacing={2} justifyContent="center">
+        <Grid container spacing={3} justifyContent="center">
           {fields.map((lot, index) => (
             <Grid
               container
@@ -162,6 +162,7 @@ const BulkAdjustQuantityModal: FC<BulkAdjustQuantityModalProps> = ({
                   display: 'flex',
                   flexDirection: 'column',
                   maxWidth: '280px',
+                  padding: 2,
                   flexGrow: 1, // Ensures consistency
                 }}
               >
@@ -172,6 +173,7 @@ const BulkAdjustQuantityModal: FC<BulkAdjustQuantityModalProps> = ({
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between',
+                    padding: 2,
                   }}
                 >
                   {/* Title + Delete Button */}
@@ -229,6 +231,7 @@ const BulkAdjustQuantityModal: FC<BulkAdjustQuantityModalProps> = ({
                           label="Adjustment Amount"
                           type="number"
                           fullWidth
+                          sx={{ marginBottom: 2 }}
                         />
                       )}
                     />
@@ -245,6 +248,7 @@ const BulkAdjustQuantityModal: FC<BulkAdjustQuantityModalProps> = ({
                           label="Adjustment Type"
                           fullWidth
                           disabled={loading}
+                          sx={{ marginBottom: 2 }}
                         >
                           {types.map((type) => (
                             <MenuItem key={type.id} value={type.id}>
@@ -265,6 +269,9 @@ const BulkAdjustQuantityModal: FC<BulkAdjustQuantityModalProps> = ({
                           {...field}
                           label="Comment (Optional)"
                           fullWidth
+                          multiline  // Enables textarea mode
+                          rows={4}   // Allows more space for user input
+                          placeholder="Enter comments here..." // Improves UX
                         />
                       )}
                     />

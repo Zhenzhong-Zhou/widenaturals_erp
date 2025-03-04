@@ -8,16 +8,10 @@ exports.up = async function (knex) {
 
     // Foreign Keys
     table
-      .uuid('warehouse_id')
+      .uuid('warehouse_inventory_lot_id')
       .notNullable()
       .references('id')
-      .inTable('warehouses');
-    table
-      .uuid('inventory_id')
-      .notNullable()
-      .references('id')
-      .inTable('inventory');
-    table.string('lot_number', 100).notNullable();
+      .inTable('warehouse_inventory_lots');
     table
       .uuid('adjustment_type_id')
       .notNullable()
@@ -40,31 +34,12 @@ exports.up = async function (knex) {
     // Constraints
     table.check('new_quantity >= 0'); // Ensures stock never goes negative
     table.check('adjusted_quantity <> 0'); // Prevents zero adjustments
-
+    
     // Unique constraint to prevent duplicate adjustments at the same timestamp
-    table.unique([
-      'warehouse_id',
-      'inventory_id',
-      'lot_number',
-      'adjustment_date',
-    ]);
-
-    // Timestamps
-    table
-      .timestamp('created_at', { useTz: true })
-      .defaultTo(knex.fn.now())
-      .index();
-    table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
-
-    // Created/Updated By
-    table.uuid('created_by').references('id').inTable('users');
-    table.uuid('updated_by').references('id').inTable('users');
-
+    table.unique(['warehouse_inventory_lot_id', 'adjustment_date']);
+    
     // Index for better performance
-    table.index(
-      ['warehouse_id', 'inventory_id', 'lot_number'],
-      'idx_wh_lot_inv_lotnum'
-    );
+    table.index(['warehouse_inventory_lot_id'], 'idx_wh_inventory_lot');
   });
 };
 
