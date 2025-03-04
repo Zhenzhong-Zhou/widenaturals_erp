@@ -24,6 +24,7 @@ const fetchAllUsers = async ({ page, limit, sortBy, sortOrder }) => {
     // Call repository function
     return await getAllUsers({ page, limit, sortBy, sortOrder });
   } catch (error) {
+    console.log(error);
     logError('Error in fetchAllUsers service:', error);
     throw new AppError('Failed to fetch users from service layer', 500, {
       type: 'ServiceError',

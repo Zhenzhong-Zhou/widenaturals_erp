@@ -3,24 +3,26 @@ const AppError = require('../utils/AppError');
 const { logInfo, logError } = require('../utils/logger-helper');
 
 /**
- * Fetch all warehouse lot adjustment types.
- * @returns {Promise<Array<{ id: string, name: string }>>} - Adjustment type list.
+ * Fetch warehouse lot adjustment types for dropdown selection.
+ * Excludes 'manual stock insert' and 'manual stock update'.
+ * @returns {Promise<Array<{ id: string, name: string }>>} - Dropdown options.
  */
-const getWarehouseLotAdjustmentTypes = async () => {
+const getWarehouseLotAdjustmentTypesForDropdown = async () => {
   const queryText = `
     SELECT id, name
     FROM lot_adjustment_types
     WHERE is_active = true
-    ORDER BY name ASC;
+    AND name NOT IN ('manual_stock_insert', 'manual_stock_update')
+    ORDER BY name;
   `;
 
   try {
     const { rows } = await query(queryText);
     return rows;
   } catch (error) {
-    logError('Error fetching warehouse lot adjustment types:', error);
+    logError('Error fetching lot adjustment types for dropdown:', error);
     throw new AppError(
-      'Database error: Failed to fetch warehouse lot adjustment types.'
+      'Database error: Unable to retrieve lot adjustment types for dropdown.'
     );
   }
 };
@@ -92,81 +94,7 @@ const getWarehouseLotAdjustmentType = async (client, { id, name }) => {
   }, 3, 1000); // Retry up to 3 times with exponential backoff
 };
 
-/**
- * Bulk insert warehouse lot adjustments into the database.
- *
- * @param {Array<Object>} adjustments - Array of adjustment records to insert.
- * @param {Object} client - Database transaction client or connection pool.
- * @returns {Promise<Array>} - Inserted rows.
- * @throws {AppError} - Throws an error if insertion fails.
- */
-const bulkInsertWarehouseLotAdjustments = async (adjustments, client) => {
-  if (!Array.isArray(adjustments) || adjustments.length === 0) {
-    throw new AppError.validationError("No warehouse lot adjustments provided for bulk insert.");
-  }
-  
-  const tableName = "warehouse_lot_adjustments";
-  const columns = [
-    "warehouse_id",
-    "inventory_id",
-    "lot_number",
-    "adjustment_type_id",
-    "previous_quantity",
-    "adjusted_quantity",
-    "new_quantity",
-    "status_id",
-    "adjusted_by",
-    "adjustment_date",
-    "comments",
-    "created_at",
-    "updated_at",
-    "created_by",
-    "updated_by",
-  ];
-  
-  // Convert adjustments into a nested array of values for bulk insert
-  const rows = adjustments.map(adj => [
-    adj.warehouse_id,
-    adj.inventory_id,
-    adj.lot_number,
-    adj.adjustment_type_id,
-    adj.previous_quantity,
-    adj.adjusted_quantity,
-    adj.new_quantity,
-    adj.status_id || null, // Allow null if status_id is not provided
-    adj.adjusted_by,
-    adj.adjustment_date || new Date(),
-    adj.comments || null,
-    new Date(), // created_at (use current timestamp)
-    new Date(), // updated_at (use current timestamp)
-    adj.created_by || adj.adjusted_by, // Use adjusted_by if created_by is not explicitly provided
-    adj.updated_by || adj.adjusted_by, // Use adjusted_by if updated_by is not explicitly provided
-  ]);
-  
-  try {
-    // Step 1: Retry Bulk Insert (3 Attempts with Exponential Backoff)
-    return await retry(
-      () => bulkInsert(
-        tableName,
-        columns,
-        rows,
-        ["warehouse_id", "inventory_id", "lot_number", "adjustment_date"], // Unique conflict constraint
-        ["new_quantity", "updated_at", "updated_by"], // Update these columns on conflict
-        client
-      ),
-      3, // Retry up to 3 times
-      1000 // Initial delay of 1s, with exponential backoff
-    );
-  } catch (error) {
-    logError("Error inserting warehouse lot adjustments:", error.message);
-    throw new AppError.databaseError("Failed to insert warehouse lot adjustments.", {
-      details: { error: error.message, adjustments },
-    });
-  }
-};
-
 module.exports = {
-  getWarehouseLotAdjustmentTypes,
+  getWarehouseLotAdjustmentTypesForDropdown,
   getWarehouseLotAdjustmentType,
-  bulkInsertWarehouseLotAdjustments,
 };

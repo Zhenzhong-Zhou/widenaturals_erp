@@ -1,32 +1,16 @@
 import { FC } from 'react';
-import {
-  AdminDashboardPage,
-  ManagerDashboardPage,
-  UserDashboardPage,
-} from '../index.ts';
+import { AdminDashboardPage, ManagerDashboardPage, UserDashboardPage } from '../index.ts';
+import { DashboardPageProps } from '../state/dashboardTypes.ts';
 
-const DashboardPage: FC<{ roleName: string; permissions: string[] }> = ({
-  roleName,
-  permissions,
-}) => {
-  switch (roleName) {
-    case 'root_admin':
-      return (
-        <AdminDashboardPage roleName={roleName} permissions={permissions} />
-      );
-    case 'admin':
-      return (
-        <AdminDashboardPage roleName={roleName} permissions={permissions} />
-      );
-    case 'manager':
-      return (
-        <ManagerDashboardPage roleName={roleName} permissions={permissions} />
-      );
-    default:
-      return (
-        <UserDashboardPage roleName={roleName} permissions={permissions} />
-      );
-  }
+const roleComponentMap: Record<string, FC<DashboardPageProps>> = {
+  root_admin: AdminDashboardPage,
+  admin: AdminDashboardPage,
+  manager: ManagerDashboardPage,
+};
+
+const DashboardPage: FC<DashboardPageProps> = (props) => {
+  const DashboardComponent = roleComponentMap[props.roleName] || UserDashboardPage;
+  return <DashboardComponent {...props} />;
 };
 
 export default DashboardPage;

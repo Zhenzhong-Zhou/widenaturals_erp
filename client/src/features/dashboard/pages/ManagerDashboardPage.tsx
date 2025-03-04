@@ -1,43 +1,22 @@
 import { FC } from 'react';
-import { Box } from '@mui/material';
 import { CustomButton, Typography } from '@components/index.ts';
 import { useNavigate } from 'react-router-dom';
+import { DashboardLayout, DashboardPageProps, PermissionList } from '../index.ts';
 
-const UserDashboardPage: FC<{ roleName: string; permissions: string[] }> = ({
-  roleName,
-  permissions,
-}) => {
+const ManagerDashboardPage: FC<DashboardPageProps> = ({ fullName, permissions }) => {
   const navigate = useNavigate();
   
   return (
-    <Box sx={{ padding: 3 }}>
-      <Typography variant="h4" gutterBottom>
-        Welcome to the User Dashboard, {roleName}!
-      </Typography>
-
-      <Typography variant="body1" gutterBottom>
+    <DashboardLayout fullName={fullName}>
+      <Typography variant="body1" sx={{ mb: 2 }}>
         Your Permissions:
       </Typography>
-      <ul>
-        {permissions.map((permission, index) => (
-          <li key={index}>{permission}</li>
-        ))}
-      </ul>
-
-      <Typography variant="body1">
-        This is the dashboard specifically tailored for users. Here, you can
-        access reports, manage your profile, and view notifications.
-      </Typography>
-      
-      <CustomButton
-        variant="contained"
-        color="primary"
-        onClick={() => navigate('/reports/adjustments')}
-      >
+      <PermissionList permissions={permissions} />
+      <CustomButton variant="contained" color="primary" onClick={() => navigate('/reports/adjustments')}>
         View Adjustment Report
       </CustomButton>
-    </Box>
+    </DashboardLayout>
   );
 };
 
-export default UserDashboardPage;
+export default ManagerDashboardPage;

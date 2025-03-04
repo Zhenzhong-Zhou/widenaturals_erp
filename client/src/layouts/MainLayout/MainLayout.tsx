@@ -37,6 +37,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
     loading: userProfileLoading,
     error: userProfileError,
   } = useUserProfile();
+  const fullName = `${userProfile.firstname ?? ""} ${userProfile.lastname ?? ""}`.trim();
   const { logout } = useLogout(); // Logout handler
   useTokenRefresh(); // Token refresh handling
   const { roleName, permissions } = usePermissionsContext(); // Access role and permissions
@@ -131,6 +132,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
           <Suspense fallback={<Loading message="Loading content..." />}>
             <Box sx={mainContentStyles(theme)}>
               {cloneElement(children as ReactElement, {
+                fullName,
                 roleName,
                 permissions,
               })}

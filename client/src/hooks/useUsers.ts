@@ -1,12 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
-import {
-  selectUsers,
-  selectUsersError,
-  selectUsersLoading,
-} from '../features/user/state/userSelectors.ts';
-import { fetchUsersThunk } from '../features/user/state/userThunks.ts';
-import { UseUsersResponse } from '../features/user/state/userTypes.ts';
+import { selectUsersData } from '../features/user/state/userSelectors.ts';
+import { fetchUsersThunk, UseUsersResponse } from '../features/user';
 
 /**
  * Custom hook to manage fetching users and accessing user state.
@@ -25,40 +20,35 @@ const useUsers = (): {
   }) => void;
 } => {
   const dispatch = useAppDispatch();
-  const users = useAppSelector(selectUsers);
-  const loading = useAppSelector(selectUsersLoading);
-  const error = useAppSelector(selectUsersError);
+  
+  // Use the memoized selector
+  const { users, loading, error } = useAppSelector(selectUsersData);
+  
   const [paginationState, setPaginationState] = useState({
     page: 1,
     limit: 10,
     sortBy: 'u.created_at',
     sortOrder: 'ASC',
   });
-
+  
   useEffect(() => {
-    // Fetch users whenever pagination or sorting parameters change
     dispatch(fetchUsersThunk(paginationState))
       .unwrap()
       .catch((err) => {
         console.error('Failed to fetch users:', err);
       });
   }, [dispatch, paginationState]);
-
+  
   // Expose a manual refetch function
-  const refetchUsers = async (options?: {
+  const refetchUsers = (options?: {
     page?: number;
     limit?: number;
     sortBy?: string;
     sortOrder?: string;
   }) => {
-    try {
-      // Merge new options into the existing paginationState
-      setPaginationState((prev) => ({ ...prev, ...options }));
-    } catch (err) {
-      console.error('Failed to refetch users:', err);
-    }
+    setPaginationState((prev) => ({ ...prev, ...options }));
   };
-
+  
   return { users, loading, error, refetchUsers };
 };
 

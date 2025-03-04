@@ -1,11 +1,13 @@
 import React from "react";
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography } from "@mui/material";
+import { Dialog, DialogTitle, DialogContent, DialogActions } from "@mui/material";
+import { CustomButton, Typography } from '@components/index.ts';
 
 interface CommonDialogProps {
   open: boolean;
   onClose: () => void;
   title: string;
-  children: React.ReactNode;
+  children?: React.ReactNode; // Optional content
+  actions?: React.ReactNode; // New prop for action buttons
   confirmButtonText?: string; // Optional confirm button
   onConfirm?: () => void; // Optional confirm button action
 }
@@ -15,23 +17,29 @@ const CustomDialog: React.FC<CommonDialogProps> = ({
                                                      onClose,
                                                      title,
                                                      children,
+                                                     actions,
                                                      confirmButtonText,
                                                      onConfirm,
                                                    }) => {
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
       <DialogTitle>{title}</DialogTitle>
-      <DialogContent dividers>
-        {typeof children === "string" ? <Typography>{children}</Typography> : children}
-      </DialogContent>
-      {confirmButtonText && onConfirm && (
-        <DialogActions>
-          <Button onClick={onClose} color="secondary">Cancel</Button>
-          <Button variant="contained" onClick={onConfirm} color="primary">
-            {confirmButtonText}
-          </Button>
-        </DialogActions>
+      {children && (
+        <DialogContent dividers>
+          {typeof children === "string" ? <Typography>{children}</Typography> : children}
+        </DialogContent>
       )}
+      <DialogActions>
+        {actions}
+        {confirmButtonText && onConfirm && (
+          <>
+            <CustomButton onClick={onClose} color="secondary">Cancel</CustomButton>
+            <CustomButton variant="contained" onClick={onConfirm} color="primary">
+              {confirmButtonText}
+            </CustomButton>
+          </>
+        )}
+      </DialogActions>
     </Dialog>
   );
 };
