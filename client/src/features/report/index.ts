@@ -17,5 +17,8 @@ export {
 export { selectAdjustmentReport } from '../report/state/adjustmentReportSelectors.ts';
 export { default as ExportAdjustmentReportModal } from '../report/components/ExportAdjustmentReportModal.tsx';
 export { default as AdjustmentReportTable } from '../report/components/AdjustmentReportTable.tsx';
+export { default as InventoryActivityLogTable } from '../report/components/InventoryActivityLogTable.tsx';
 export { default as AdjustmentReportFilters } from '../report/components/AdjustmentReportFilters.tsx';
 export { selectInventoryActivityLogs } from '../report/state/inventoryActivityLogsSelectors.ts';
+export { default as useReportPageLogic } from '../report/hook/useReportPageLogic.ts';
+export { default as ReportPageLayout } from '../report/components/ReportPageLayout.tsx';
