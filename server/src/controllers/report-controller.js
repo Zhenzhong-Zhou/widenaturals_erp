@@ -1,4 +1,4 @@
-const { fetchAdjustmentReport } = require('../services/report-service');
+const { fetchAdjustmentReport, fetchInventoryActivityLogs } = require('../services/report-service');
 const wrapAsync = require('../utils/wrap-async');
 
 /**
@@ -54,6 +54,68 @@ const getAdjustmentReportController = wrapAsync(async (req, res, next) => {
   }
 });
 
+/**
+ * Controller to fetch and export inventory logs.
+ *
+ * Supports paginated JSON responses and exports in CSV, PDF, and TXT formats.
+ *
+ * @param {Object} req - Express request object.
+ * @param {Object} res - Express response object.
+ * @returns {Promise<void>} - Sends JSON response or file export.
+ */
+const getInventoryActivityLogsController = wrapAsync(async (req, res) => {
+  const {
+    inventoryId,
+    warehouseId,
+    lotId,
+    orderId,
+    actionTypeId,
+    statusId,
+    userId,
+    startDate,
+    endDate,
+    timezone = 'UTC',
+    page = 1,
+    limit = 50,
+    sortBy = 'timestamp',
+    sortOrder = 'DESC',
+    exportFormat
+  } = req.query;
+  
+  // Fetch inventory logs from service
+  const logsResponse = await fetchInventoryActivityLogs({
+    inventoryId,
+    warehouseId,
+    lotId,
+    orderId,
+    actionTypeId,
+    statusId,
+    userId,
+    startDate,
+    endDate,
+    timezone,
+    page,
+    limit,
+    sortBy,
+    sortOrder,
+    exportFormat,
+  });
+  
+  // **If export format is requested, return file**
+  if (exportFormat) {
+    res.setHeader('Content-Disposition', `attachment; filename="${logsResponse.fileName}"`);
+    res.setHeader('Content-Type', logsResponse.fileType);
+    return res.send(logsResponse.fileBuffer);
+  }
+  
+  return res.json({
+    success: true,
+    message: 'Inventory activity logs fetched successfully',
+    ...logsResponse,
+  });
+});
+
 module.exports = {
   getAdjustmentReportController,
+  getInventoryActivityLogsController,
 };
