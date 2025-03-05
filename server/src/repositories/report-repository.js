@@ -137,6 +137,7 @@ const getAdjustmentReport = async ({
  * @param {string|null} params.userId - Filter by user ID.
  * @param {string|null} params.startDate - Start date for filtering by timestamp.
  * @param {string|null} params.endDate - End date for filtering by timestamp.
+ * @param {string} params.reportType - 'daily', 'weekly', 'monthly', 'yearly', or 'custom'.
  * @param {string} [params.timezone='UTC'] - Frontend-provided time zone for displaying timestamps.
  * @param {number} [params.page=1] - Current page number for pagination.
  * @param {number} [params.limit=50] - Number of records per page.
@@ -155,6 +156,7 @@ const getInventoryActivityLogs = async ({
                                           userId,
                                           startDate,
                                           endDate,
+                                          reportType,
                                           timezone = 'UTC',
                                           page = 1,
                                           limit = 50,
@@ -215,6 +217,11 @@ const getInventoryActivityLogs = async ({
                     AND COALESCE($10::TIMESTAMP, 'infinity'::TIMESTAMP)
             )
             OR ($9 IS NULL AND $10 IS NULL)
+            OR (
+              ($11::TEXT = 'weekly' AND ial.timestamp >= NOW() - INTERVAL '7 days')
+              OR ($11::TEXT = 'monthly' AND ial.timestamp >= DATE_TRUNC('month', NOW()))
+              OR ($11::TEXT = 'yearly' AND ial.timestamp >= DATE_TRUNC('year', NOW()))
+          )
         )
   `;
   
@@ -229,7 +236,8 @@ const getInventoryActivityLogs = async ({
     statusId || null, // $7
     userId || null, // $8
     startDate ? new Date(startDate).toISOString() : null, // $9
-    endDate ? new Date(endDate).toISOString() : null // $10
+    endDate ? new Date(endDate).toISOString() : null, // $10
+    reportType ?? null // $11
   ];
   
   let totalRecords = 0;
@@ -243,18 +251,18 @@ const getInventoryActivityLogs = async ({
   
   // Append Pagination if NOT Exporting
   if (!isExport) {
-    bindings.push(limit, offset); // $11, $12
+    bindings.push(limit, offset); // $12, $13
   }
   
   // Final paginated query
   const paginatedQuery = isExport
     ? `${baseQuery} ORDER BY ${sortBy} ${sortOrder};`
-    : `${baseQuery} ORDER BY ${sortBy} ${sortOrder} LIMIT $11 OFFSET $12;`;
-  console.log(paginatedQuery, bindings);
+    : `${baseQuery} ORDER BY ${sortBy} ${sortOrder} LIMIT $12 OFFSET $13;`;
+  
   try {
     // Execute final query
     const { rows } = await query(paginatedQuery, bindings);
-    console.log(rows);
+    
     return {
       data: rows,
       pagination: isExport
@@ -267,7 +275,6 @@ const getInventoryActivityLogs = async ({
         },
     };
   } catch (error) {
-    console.error(error);
     logError('Error fetching paginated inventory logs:', error);
     throw new AppError.databaseError('An error occurred while retrieving inventory logs. Please try again later.');
   }

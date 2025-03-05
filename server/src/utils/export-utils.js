@@ -3,6 +3,8 @@ const PDFDocument = require('pdfkit');
 const { formatValue } = require('./date-utils');
 const { isUUID } = require('./id-utils');
 const { formatHeader, processHeaders } = require('./string-utils');
+const AppError = require('../utils/AppError');
+const { logInfo, logWarn } = require('./logger-helper');
 
 /**
  * Convert JSON data to CSV format.
@@ -199,8 +201,105 @@ const exportToPlainText = (data, separator = ' | ', timezone = 'PST') => {
   return Buffer.from(text, 'utf-8'); // Return as buffer for download
 };
 
+/**
+ * Exports data in the specified format (CSV, PDF, TXT).
+ *
+ * This function handles both exporting data and generating empty exports if no data is available.
+ * Supported formats: 'csv', 'pdf', 'txt'.
+ *
+ * @async
+ * @param {Object} options - The export configuration.
+ * @param {Array} options.data - The data to be exported.
+ * @param {string} options.exportFormat - The format for export ('csv', 'pdf', 'txt').
+ * @param {string} options.filename - The base filename without extension.
+ * @param {string} [options.title=''] - Optional title (used for PDFs).
+ * @returns {Promise<Object>} - An object containing `fileBuffer`, `contentType`, and `filename`.
+ * @throws {Error} - If an invalid export format is provided.
+ */
+const exportData = async ({ data, exportFormat, filename, title = '' }) => {
+  console.log(`Generating ${exportFormat.toUpperCase()} export: ${filename}`);
+  
+  // Handle empty data
+  if (!data || data.length === 0) {
+    console.warn('No data available for export.');
+    return generateEmptyExport(exportFormat, filename);
+  }
+  
+  return generateExport(exportFormat, data, filename, title);
+};
+
+/**
+ * Generates an empty export file with a message.
+ */
+const generateEmptyExport = (format, filename) => {
+  console.warn(`Generating empty export file for format: ${format}`);
+  
+  const emptyMessage = 'No data available for export.';
+  let fileBuffer, contentType;
+  
+  switch (format.toLowerCase()) {
+    case 'csv':
+      fileBuffer = Buffer.from(emptyMessage, 'utf-8');
+      contentType = 'text/csv';
+      filename = `empty_${filename}.csv`;
+      break;
+    case 'pdf':
+      fileBuffer = exportToPDF([], { title: 'Empty Report' }); // Empty PDF
+      contentType = 'application/pdf';
+      filename = `empty_${filename}.pdf`;
+      break;
+    case 'txt':
+      fileBuffer = Buffer.from(emptyMessage, 'utf-8');
+      contentType = 'text/plain';
+      filename = `empty_${filename}.txt`;
+      break;
+    default:
+      throw new AppError.validationError(
+        'Invalid export format. Use "csv", "pdf", or "txt".'
+      );
+  }
+  
+  return { fileBuffer, contentType, filename };
+};
+
+/**
+ * Generates an export file with provided data.
+ */
+const generateExport = async (format, data, filename, title) => {
+  console.log(`Generating export file: ${format}`);
+  
+  let fileBuffer, contentType;
+  
+  switch (format.toLowerCase()) {
+    case 'csv':
+      fileBuffer = exportToCSV(data);
+      contentType = 'text/csv';
+      filename += '.csv';
+      break;
+    case 'pdf':
+      fileBuffer = await exportToPDF(data, { title });
+      contentType = 'application/pdf';
+      filename += '.pdf';
+      break;
+    case 'txt':
+      fileBuffer = exportToPlainText(data, ' | ');
+      contentType = 'text/plain';
+      filename += '.txt';
+      break;
+    default:
+      throw new AppError.validationError(
+        'Invalid export format. Use "csv", "pdf", or "txt".'
+      );
+  }
+  
+  return { fileBuffer, contentType, filename };
+};
+
 module.exports = {
   exportToCSV,
   exportToPDF,
   exportToPlainText,
+  exportData,
+  generateEmptyExport,
+  generateExport,
 };
