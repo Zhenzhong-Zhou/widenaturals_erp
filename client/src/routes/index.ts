@@ -222,6 +222,28 @@ export const routes = [
     },
   },
   {
+    path: '/reports/inventory_activities',
+    component: () =>
+      import('../features/report/pages/InventoryActivityLogPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Inventory Activity Logs',
+      showInSidebar: false,
+      requiredPermission: 'view_inventory_activity_logs',
+    },
+  },
+  {
+    path: '/reports/inventory_activities/logs/:warehouseId?/:inventoryId?/:warehouseInventoryLotId?',
+    component: () =>
+      import('../features/report/pages/InventoryActivityLogPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Inventory Activity Logs',
+      showInSidebar: false,
+      requiredPermission: 'view_inventory_activity_logs',
+    },
+  },
+  {
     path: '*',
     component: () => import('../pages/NotFoundPage.tsx'),
     meta: {

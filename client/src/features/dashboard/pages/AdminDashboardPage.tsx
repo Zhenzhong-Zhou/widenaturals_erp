@@ -15,6 +15,13 @@ const AdminDashboardPage: FC<DashboardPageProps> = ({ fullName }) => {
       >
         View Adjustment Report
       </CustomButton>
+      <CustomButton
+        variant="contained"
+        color="primary"
+        onClick={() => navigate('/reports/inventory_activities')}
+      >
+        View Inventory Activity Logs
+      </CustomButton>
     </DashboardLayout>
   );
 };

@@ -3,9 +3,9 @@ import {
   fetchAdjustmentReportThunk,
   exportAdjustmentReportThunk,
 } from './reportThunks.ts';
-import { ReportState } from './reportTypes.ts';
+import { AdjustmentReportState } from './reportTypes.ts';
 
-const initialState: ReportState = {
+const initialState: AdjustmentReportState = {
   data: [], // Holds paginated data for UI
   exportData: null, // Stores exported file data
   exportFormat: null, // Tracks export type (CSV, PDF, etc.)

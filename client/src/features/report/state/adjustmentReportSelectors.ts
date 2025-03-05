@@ -1,6 +1,6 @@
 import { createSelector } from '@reduxjs/toolkit';
 import { RootState } from '../../../store/store.ts';
-import { ReportState } from './reportTypes.ts';
+import { AdjustmentReportState } from './reportTypes.ts';
 
 // Select the adjustment report state
 const selectAdjustmentReportState = (state: RootState) =>
@@ -9,7 +9,7 @@ const selectAdjustmentReportState = (state: RootState) =>
 // Memoized Selector for Report Data (Includes Exports)
 export const selectAdjustmentReport = createSelector(
   selectAdjustmentReportState,
-  (report: ReportState) => ({
+  (report: AdjustmentReportState) => ({
     data: report.data ?? [], // Ensures `data` is always an array
     loading: report.loading,
     error: report.error,

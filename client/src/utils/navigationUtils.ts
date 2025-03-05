@@ -24,3 +24,32 @@ export const handleAdjustmentReportRedirect = (
 
   navigate(path);
 };
+
+/**
+ * Handles dynamic navigation for inventory activity logs based on warehouse, inventory, and lot parameters.
+ * @param {NavigateFunction} navigate - React Router's navigate function.
+ * @param {string} basePath - Base path for redirection (e.g., "reports/inventory-logs").
+ * @param {string | null} warehouseId - Optional warehouse ID.
+ * @param {string | null} inventoryId - Optional inventory ID.
+ * @param {string | null} lotId - Optional lot ID.
+ */
+export const handleInventoryActivityLogRedirect = (
+  navigate: NavigateFunction,
+  basePath: string,
+  warehouseId?: string | null,
+  inventoryId?: string | null,
+  lotId?: string | null
+) => {
+  const path =
+    warehouseId && inventoryId && lotId
+      ? `/${basePath}/logs/${warehouseId}/${inventoryId}/${lotId}`
+      : warehouseId && inventoryId
+        ? `/${basePath}/logs/${warehouseId}/${inventoryId}`
+        : warehouseId
+          ? `/${basePath}/logs/${warehouseId}`
+          : inventoryId
+            ? `/${basePath}/logs/inventory/${inventoryId}`
+            : `/${basePath}`;
+  
+  navigate(path);
+};

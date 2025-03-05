@@ -26,6 +26,13 @@ const ManagerDashboardPage: FC<DashboardPageProps> = ({
       >
         View Adjustment Report
       </CustomButton>
+      <CustomButton
+        variant="contained"
+        color="primary"
+        onClick={() => navigate('/reports/inventory_activities')}
+      >
+        View Inventory Activity Logs
+      </CustomButton>
     </DashboardLayout>
   );
 };

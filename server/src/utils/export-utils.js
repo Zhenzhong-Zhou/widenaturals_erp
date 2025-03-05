@@ -232,7 +232,7 @@ const exportData = async ({ data, exportFormat, filename, title = '' }) => {
  * Generates an empty export file with a message.
  */
 const generateEmptyExport = (format, filename) => {
-  console.warn(`Generating empty export file for format: ${format}`);
+  logWarn(`Generating empty export file for format: ${format}`);
   
   const emptyMessage = 'No data available for export.';
   let fileBuffer, contentType;
@@ -266,7 +266,7 @@ const generateEmptyExport = (format, filename) => {
  * Generates an export file with provided data.
  */
 const generateExport = async (format, data, filename, title) => {
-  console.log(`Generating export file: ${format}`);
+  logInfo(`Generating export file: ${format}`);
   
   let fileBuffer, contentType;
   

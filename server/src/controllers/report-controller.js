@@ -75,7 +75,7 @@ const getInventoryActivityLogsController = wrapAsync(async (req, res) => {
     startDate,
     endDate,
     reportType,
-    timezone = 'UTC',
+    userTimezone = 'UTC',
     page = 1,
     limit = 50,
     sortBy = 'timestamp',
@@ -95,7 +95,7 @@ const getInventoryActivityLogsController = wrapAsync(async (req, res) => {
     startDate,
     endDate,
     reportType,
-    timezone,
+    userTimezone,
     page,
     limit,
     sortBy,
@@ -103,7 +103,7 @@ const getInventoryActivityLogsController = wrapAsync(async (req, res) => {
     exportFormat,
   });
   
-  // **If export format is requested, return file**
+  // If export format is requested, return file
   if (exportFormat) {
     res.setHeader('Content-Disposition', `attachment; filename="${logsResponse.fileName}"`);
     res.setHeader('Content-Type', logsResponse.contentType);

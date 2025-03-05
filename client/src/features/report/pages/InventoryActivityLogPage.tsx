@@ -1,7 +1,7 @@
-import { FC, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { useInventoryActivityLogs } from '../../../hooks';
 import Box from '@mui/material/Box';
-import { useAdjustmentReport } from '../../../hooks';
 import {
   CustomButton,
   ErrorDisplay,
@@ -11,15 +11,11 @@ import {
   NoDataFound,
   Typography,
 } from '@components/index.ts';
-import {
-  AdjustmentReportFilters,
-  AdjustmentReportTable,
-  ExportAdjustmentReportModal,
-} from '../index.ts';
+import InventoryActivityLogTable from '../components/InventoryActivityLogTable.tsx';
 import { handleDownload } from '@utils/downloadUtils.ts';
+import { AdjustmentReportFilters, ExportAdjustmentReportModal } from '../index.ts';
 
-const AdjustmentReportPage: FC = () => {
-  // Get optional parameters from URL
+const InventoryActivityLogPage = () => {
   const { warehouseId, inventoryId, warehouseInventoryLotId } = useParams<{
     warehouseId?: string;
     inventoryId?: string;
@@ -37,44 +33,43 @@ const AdjustmentReportPage: FC = () => {
     limit: 10,
   });
   const [open, setOpen] = useState(false);
-
-  // Use custom hook to fetch report data
+  
   const {
-    data,
-    loading,
+    inventoryLogs,
+    isLoading,
     error,
     pagination,
-    fetchReport,
-    exportReport,
+    fetchInventoryActivityLogs,
+    exportLogs,
     exportData,
     exportFormat,
     exportLoading,
     exportError,
-  } = useAdjustmentReport(filters);
-
-  const defaultWarehouseName = 'Warehouse Adjustments Overview';
-  const defaultItemName = 'Inventory Adjustments Overview';
-
-  // Get valid report entry if data exists
-  const reportEntry =
-    data && data.length > 0
-      ? data.find(
-          (entry) => entry.warehouse_name?.trim() || entry.item_name?.trim()
-        )
+  } = useInventoryActivityLogs(filters);
+  
+  const defaultWarehouseName = 'Warehouse Activity Logs Overview';
+  const defaultItemName = 'Inventory Activity Logs Overview';
+  
+  // Get valid log entry if data exists
+  const logEntry =
+    inventoryLogs && inventoryLogs.length > 0
+      ? inventoryLogs.find(
+        (entry) => entry.warehouse_name?.trim() || entry.item_name?.trim()
+      )
       : undefined;
-
+  
   // Extract values
-  const warehouseName = reportEntry?.warehouse_name || defaultWarehouseName;
-  const itemName = reportEntry?.item_name || defaultItemName;
-
+  const warehouseName = logEntry?.warehouse_name || defaultWarehouseName;
+  const itemName = logEntry?.item_name || defaultItemName;
+  
   // Determine the correct report title
   let pageTitle = `${warehouseName} Inventory`;
   let subtitle = `${itemName} Adjustment Report`;
-
+  
   // Handle different scenarios dynamically
   if (!warehouseId && !inventoryId) {
-    pageTitle = 'Warehouse & Inventory Overview';
-    subtitle = 'Company-wide Adjustment Report';
+    pageTitle = 'Warehouse & Inventory Activity Logs Overview';
+    subtitle = 'Company-wide Inventory Activity Logs';
   } else if (warehouseId && !inventoryId) {
     pageTitle = `${warehouseName} Overview`;
     subtitle = 'Warehouse-Specific Adjustment Report';
@@ -91,31 +86,33 @@ const AdjustmentReportPage: FC = () => {
     pageTitle = `Lot Report for ${warehouseInventoryLotId}`;
     subtitle = 'Lot Adjustment Report';
   }
-
+  
   // Fetch report data on mount
   useEffect(() => {
-    fetchReport();
-  }, [fetchReport]);
-
+    fetchInventoryActivityLogs();
+  }, [fetchInventoryActivityLogs]);
+  
   useEffect(() => {
     if (!exportData) return; // Ensure there's data to download
-
+    
     const fileExtension = exportFormat || 'csv';
     const formattedDate = new Date().toISOString().slice(0, 10);
-
+    
     // Ensure values exist before using them
     const safeWarehouseName =
       warehouseName?.replace(/\s+/g, '_') || 'Warehouse';
     const safeItemName = itemName?.replace(/\s+/g, '_') || 'Item';
-
-    const fileName = `Adjustment_Report_${safeWarehouseName}_${safeItemName}_${formattedDate}.${fileExtension}`;
-
+    
+    const fileName = `Inventory_Activity_Logs_${safeWarehouseName}_${safeItemName}_${formattedDate}.${fileExtension}`;
+    
     handleDownload(exportData, fileName);
   }, [exportData, exportFormat, warehouseName, itemName]); // Add dependencies for dynamic updates
-
-  if (loading)
+  
+  const safePagination = pagination || { totalPages: 1, totalRecords: 0, page: 1, limit: 10 };
+  
+  if (isLoading)
     return (
-      <Loading message="Loading Warehouse Inventory Adjustment Report..." />
+      <Loading message="Loading Warehouse Inventory Activity Logs..." />
     );
   if (error)
     return (
@@ -123,13 +120,13 @@ const AdjustmentReportPage: FC = () => {
         <ErrorMessage message={error} />
       </ErrorDisplay>
     );
-  if (!data)
+  if (!inventoryLogs)
     return (
-      <NoDataFound message="No warehouse inventory adjustment records found." />
+      <NoDataFound message="No warehouse inventory activity logs found." />
     );
   if (exportLoading)
     return (
-      <Loading message="Exporting Warehouse Inventory Adjustment Report..." />
+      <Loading message="Exporting Warehouse Inventory Activity Logs..." />
     );
   if (exportError)
     return (
@@ -137,11 +134,11 @@ const AdjustmentReportPage: FC = () => {
         <ErrorMessage message={exportError} />
       </ErrorDisplay>
     );
-  if (!reportEntry)
+  if (!logEntry)
     return (
-      <NoDataFound message="No warehouse inventory adjustment records found." />
+      <NoDataFound message="No warehouse inventory activity logs found." />
     );
-
+  
   return (
     <Box sx={{ padding: 2, marginBottom: 3 }}>
       <GoBackButton />
@@ -153,10 +150,10 @@ const AdjustmentReportPage: FC = () => {
           {subtitle}
         </Typography>
       </Box>
-
+      
       {/* Filters */}
       <AdjustmentReportFilters filters={filters} setFilters={setFilters} />
-
+      
       {/* Actions */}
       <Box
         sx={{
@@ -165,7 +162,7 @@ const AdjustmentReportPage: FC = () => {
           marginBottom: 2,
         }}
       >
-        <CustomButton variant="outlined" onClick={() => fetchReport(filters)}>
+        <CustomButton variant="outlined" onClick={() => fetchInventoryActivityLogs(filters)}>
           Refresh Data
         </CustomButton>
         <CustomButton variant="contained" onClick={() => setOpen(true)}>
@@ -174,21 +171,21 @@ const AdjustmentReportPage: FC = () => {
         <ExportAdjustmentReportModal
           open={open}
           onClose={() => setOpen(false)}
-          onExport={exportReport}
+          onExport={exportLogs}
           filters={filters}
         />
       </Box>
-
+      
       {/* Table */}
-      <AdjustmentReportTable
-        data={data}
-        pagination={pagination}
+      <InventoryActivityLogTable
+        data={inventoryLogs}
+        pagination={safePagination}
         filters={filters}
         setFilters={setFilters}
-        fetchReport={fetchReport}
+        fetchInventoryActivityLogs={fetchInventoryActivityLogs}
       />
     </Box>
   );
 };
 
-export default AdjustmentReportPage;
+export default InventoryActivityLogPage;
