@@ -320,7 +320,8 @@ const createInventoryRecords = async (inventoryData, userId) => {
           warehouseLots
         );
       }
-
+      const { id: warehouse_inventory_lot_id } = warehouseLotsInventoryRecords[0];
+      
       const insert_action_type_id = await getActionTypeId(
         client,
         'manual_stock_insert'
@@ -335,7 +336,7 @@ const createInventoryRecords = async (inventoryData, userId) => {
         ({ inventory_id, warehouse_id, quantity }) => ({
           inventory_id,
           warehouse_id,
-          lot_id: null,
+          lot_id: warehouse_inventory_lot_id,
           inventory_action_type_id: insert_action_type_id,
           previous_quantity: 0,
           quantity_change: Number(quantity) || 0,
@@ -419,7 +420,7 @@ const createInventoryRecords = async (inventoryData, userId) => {
         ([inventory_id, new_quantity]) => ({
           inventory_id,
           warehouse_id: inventoryToWarehouseMap[inventory_id],
-          lot_id: null, // Not needed for inventory-level update
+          lot_id: warehouse_inventory_lot_id,
           inventory_action_type_id: update_action_type_id,
           previous_quantity: 0,
           quantity_change: new_quantity,

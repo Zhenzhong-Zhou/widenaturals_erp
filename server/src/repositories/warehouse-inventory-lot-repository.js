@@ -296,7 +296,7 @@ const adjustWarehouseInventoryLots = async (records, user_id) => {
       inventoryActivityLogs.push({
         inventory_id,
         warehouse_id,
-        lot_id: null,
+        lot_id: warehouse_inventory_id,
         inventory_action_type_id: actionTypeId,
         previous_quantity: previous_quantity ?? 0,
         quantity_change: adjusted_quantity ?? 0,
