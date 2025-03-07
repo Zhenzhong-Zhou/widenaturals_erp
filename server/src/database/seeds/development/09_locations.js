@@ -12,11 +12,11 @@ exports.seed = async function (knex) {
     'active',
     'id'
   );
-  const adminUserId = await fetchDynamicValue(
+  const systemActionId = await fetchDynamicValue(
     knex,
     'users',
     'email',
-    'admin@example.com',
+    'system@internal.local',
     'id'
   );
 
@@ -28,57 +28,69 @@ exports.seed = async function (knex) {
     (type) => type.code === 'WAREHOUSE'
   )?.id;
   const retailTypeId = locationTypes.find((type) => type.code === 'RETAIL')?.id;
+  const manufacturerTypeId = locationTypes.find((type) => type.code === 'MANUFACTURER')?.id;
 
   const locations = [
     {
       id: knex.raw('uuid_generate_v4()'),
       name: 'Head Office',
-      location_type_id: officeTypeId, // Ensure this matches a valid ID in `location_types`
+      location_type_id: warehouseTypeId,
       address: '1040 W Georgia St Unit 1050, Vancouver',
       status_id: activeStatusId,
       status_date: knex.fn.now(),
       created_at: knex.fn.now(),
-      updated_at: knex.fn.now(),
-      created_by: adminUserId,
-      updated_by: adminUserId,
+      updated_at: null,
+      created_by: systemActionId,
+      updated_by: null,
     },
     {
       id: knex.raw('uuid_generate_v4()'),
-      name: 'Central Warehouse',
+      name: 'Richmond Storage',
       location_type_id: warehouseTypeId,
-      address: '123 Warehouse Lane',
+      address: '11111 Twigg Pl Unit 1049 - 10151, Richmond, BC V6V 0B7',
       status_id: activeStatusId,
       status_date: knex.fn.now(),
       created_at: knex.fn.now(),
-      updated_at: knex.fn.now(),
-      created_by: adminUserId,
-      updated_by: adminUserId,
+      updated_at: null,
+      created_by: systemActionId,
+      updated_by: null,
     },
     {
       id: knex.raw('uuid_generate_v4()'),
-      name: 'Downtown Retail Store',
-      location_type_id: retailTypeId,
-      address: '456 Main Street',
-      status_id: activeStatusId,
-      status_date: knex.fn.now(),
-      created_at: knex.fn.now(),
-      updated_at: knex.fn.now(),
-      created_by: adminUserId,
-      updated_by: adminUserId,
-    },
-    {
-      id: knex.raw('uuid_generate_v4()'),
-      name: 'Eastside Warehouse',
+      name: 'Viktor Temporarily Warehouse',
       location_type_id: warehouseTypeId,
-      address: '789 Industrial Ave',
+      address: '160-2639 Viking Way, Richmond, BC V6V 3B7',
       status_id: activeStatusId,
       status_date: knex.fn.now(),
       created_at: knex.fn.now(),
-      updated_at: knex.fn.now(),
-      created_by: adminUserId,
-      updated_by: adminUserId,
+      updated_at: null,
+      created_by: systemActionId,
+      updated_by: null,
     },
-    // Add other entries as needed
+    {
+      id: knex.raw('uuid_generate_v4()'),
+      name: 'Novastown Health',
+      location_type_id: manufacturerTypeId,
+      address: '3728 N Fraser Wy, Burnaby, BC V5J 5H4',
+      status_id: activeStatusId,
+      status_date: knex.fn.now(),
+      created_at: knex.fn.now(),
+      updated_at: null,
+      created_by: systemActionId,
+      updated_by: null,
+    },
+    {
+      id: knex.raw('uuid_generate_v4()'),
+      name: 'Canadian Phytopharmaceuticals',
+      location_type_id: manufacturerTypeId,
+      address: '12233 Riverside Way, Richmond, BC V6W 1K8',
+      status_id: activeStatusId,
+      status_date: knex.fn.now(),
+      created_at: knex.fn.now(),
+      updated_at: null,
+      created_by: systemActionId,
+      updated_by: null,
+    },
   ];
 
   for (const location of locations) {

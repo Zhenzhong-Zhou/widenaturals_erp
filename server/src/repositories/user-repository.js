@@ -173,12 +173,18 @@ const getAllUsers = async ({ page, limit, sortBy, sortOrder }) => {
     'INNER JOIN roles r ON u.role_id = r.id',
     'INNER JOIN status s ON u.status_id = s.id',
   ];
-
+  
   const whereClause = `
     s.name = 'active'
     AND r.name NOT ILIKE '%admin%'
+    AND r.name NOT ILIKE '%root%'
+    AND r.name NOT ILIKE '%system%'
     AND u.email NOT ILIKE '%admin%'
+    AND u.email NOT ILIKE '%root%'
+    AND u.email NOT ILIKE '%system%'
     AND u.job_title NOT ILIKE '%admin%'
+    AND u.job_title NOT ILIKE '%root%'
+    AND u.job_title NOT ILIKE '%system%'
   `;
 
   // Construct SQL query parts

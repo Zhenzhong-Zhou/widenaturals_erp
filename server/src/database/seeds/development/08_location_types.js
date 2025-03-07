@@ -12,11 +12,11 @@ exports.seed = async function (knex) {
     'active',
     'id'
   );
-  const adminUserId = await fetchDynamicValue(
+  const systemActionId = await fetchDynamicValue(
     knex,
     'users',
     'email',
-    'admin@example.com',
+    'system@internal.local',
     'id'
   );
 
@@ -29,9 +29,9 @@ exports.seed = async function (knex) {
       status_id: activeStatusId,
       status_date: knex.fn.now(),
       created_at: knex.fn.now(),
-      updated_at: knex.fn.now(),
-      created_by: adminUserId,
-      updated_by: adminUserId,
+      updated_at: null,
+      created_by: systemActionId,
+      updated_by: null,
     },
     {
       id: knex.raw('uuid_generate_v4()'),
@@ -41,9 +41,9 @@ exports.seed = async function (knex) {
       status_id: activeStatusId,
       status_date: knex.fn.now(),
       created_at: knex.fn.now(),
-      updated_at: knex.fn.now(),
-      created_by: adminUserId,
-      updated_by: adminUserId,
+      updated_at: null,
+      created_by: systemActionId,
+      updated_by: null,
     },
     {
       id: knex.raw('uuid_generate_v4()'),
@@ -53,9 +53,9 @@ exports.seed = async function (knex) {
       status_id: activeStatusId,
       status_date: knex.fn.now(),
       created_at: knex.fn.now(),
-      updated_at: knex.fn.now(),
-      created_by: adminUserId,
-      updated_by: adminUserId,
+      updated_at: null,
+      created_by: systemActionId,
+      updated_by: null,
     },
     {
       id: knex.raw('uuid_generate_v4()'),
@@ -65,11 +65,22 @@ exports.seed = async function (knex) {
       status_id: activeStatusId,
       status_date: knex.fn.now(),
       created_at: knex.fn.now(),
-      updated_at: knex.fn.now(),
-      created_by: adminUserId,
-      updated_by: adminUserId,
+      updated_at: null,
+      created_by: systemActionId,
+      updated_by: null,
     },
-    // Add other entries as needed
+    {
+      id: knex.raw('uuid_generate_v4()'),
+      code: 'MANUFACTURER',
+      name: 'Manufacturer Facility',
+      description: 'Facility responsible for producing and assembling products',
+      status_id: activeStatusId,
+      status_date: knex.fn.now(),
+      created_at: knex.fn.now(),
+      updated_at: null,
+      created_by: systemActionId,
+      updated_by: null,
+    }
   ];
 
   for (const type of locationTypes) {

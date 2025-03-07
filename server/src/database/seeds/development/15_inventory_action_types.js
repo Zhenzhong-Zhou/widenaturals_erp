@@ -11,6 +11,12 @@ exports.seed = async function (knex) {
 
   const inventoryActions = [
     {
+      name: 'initial_load',
+      description: 'Initial inventory entry at system setup.',
+      status_id: activeStatusId,
+      default_action: true, // System default action
+    },
+    {
       name: 'manual_adjustment',
       description: 'Manual stock adjustment',
       status_id: activeStatusId,

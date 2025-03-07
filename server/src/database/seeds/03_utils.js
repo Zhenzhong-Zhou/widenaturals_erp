@@ -44,4 +44,55 @@ const fetchDynamicValue = async (
   }
 };
 
-module.exports = { fetchDynamicValue };
+const fetchDynamicValues = async (knex, tableName, columnName, values, returnColumn) => {
+  if (!tableName || !columnName || !values || !returnColumn || !Array.isArray(values)) {
+    throw new Error(`Invalid arguments provided to fetchDynamicValues.`);
+  }
+  
+  try {
+    const results = await knex(tableName)
+      .select(returnColumn, columnName)
+      .whereIn(columnName, values);
+    
+    if (!results.length) {
+      console.warn(
+        `No results found in table "${tableName}" for values: ${values.join(', ')}`
+      );
+    }
+    
+    return results.reduce((acc, row) => {
+      acc[row[columnName]] = row[returnColumn];
+      return acc;
+    }, {});
+  } catch (error) {
+    console.error(
+      `Error fetching values from table "${tableName}" for values: ${values.join(', ')}:`,
+      error.message
+    );
+    throw error;
+  }
+};
+
+const generateProductCode = async (knex, categoryCode) => {
+  // Get the last assigned product code in this category
+  const lastProduct = await knex('products')
+    .where('category', categoryCode)
+    .orderBy('SKU', 'desc')
+    .first();
+  
+  let newCode = 101; // Default starting point
+  
+  if (lastProduct) {
+    const lastCode = parseInt(lastProduct.SKU.match(/\d{3}/)[0], 10);
+    newCode = lastCode + 1;
+  }
+  
+  return String(newCode).padStart(3, '0'); // Ensure it's always 3 digits
+};
+
+const generateSKU = async (knex, brandCode, categoryCode, variant, regionCode, productionDate) => {
+  const productCode = await generateProductCode(knex, categoryCode);
+  return `${brandCode}-${categoryCode}${productCode}-${variant}-${regionCode}-${productionDate}`;
+};
+
+module.exports = { fetchDynamicValue, fetchDynamicValues, generateSKU };
