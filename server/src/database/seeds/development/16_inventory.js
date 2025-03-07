@@ -1,4 +1,5 @@
 const { fetchDynamicValue } = require('../03_utils');
+const { generateChecksum } = require('../../../utils/crypto-utils');
 
 /**
  * @param {import("knex").Knex} knex
@@ -410,9 +411,8 @@ exports.seed = async function (knex) {
     `)
     )
     .groupBy('i.id');
-
-
-// Prepare inventory history entries
+  
+  // 🟢 Prepare inventory history entries with checksum
   const inventoryHistoryEntries = updatedInventoryRecords.map(record => ({
     id: knex.raw('uuid_generate_v4()'),
     inventory_id: record.inventory_id,
@@ -425,11 +425,15 @@ exports.seed = async function (knex) {
     timestamp: knex.fn.now(),
     source_action_id: systemActionId,
     comments: 'Initial inventory record',
-    checksum: knex.raw('md5(? || ? || ?)', [
+    checksum: generateChecksum(
       record.inventory_id,
       initialLoadActionId,
+      0, // previous_quantity
       record.total_quantity,
-    ]),
+      record.total_quantity,
+      systemActionId,
+      'Initial inventory record'
+    ),
     metadata: JSON.stringify({ source: 'seed' }),
     created_at: knex.fn.now(),
     created_by: systemActionId,

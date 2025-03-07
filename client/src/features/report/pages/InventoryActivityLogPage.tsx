@@ -1,7 +1,7 @@
 import { FC } from "react";
 import { useInventoryActivityLogs } from "../../../hooks";
 import { InventoryActivityLogTable, ReportPageLayout, useReportPageLogic } from '../index.ts';
-import { ErrorDisplay, ErrorMessage, Loading, NoDataFound } from '@components/index.ts';
+import { ErrorDisplay, ErrorMessage, Loading, Typography } from '@components/index.ts';
 
 const InventoryActivityLogPage: FC = () => {
   const {
@@ -34,12 +34,28 @@ const InventoryActivityLogPage: FC = () => {
         <ErrorMessage message={error} />
       </ErrorDisplay>
     );
-  if (!inventoryLogs || inventoryLogs.length === 0)
-    return <NoDataFound message="No inventory activity logs found." />;
   
   return (
-    <ReportPageLayout title="Inventory Activity Logs" subtitle="Detailed Inventory Transactions" {...reportLogic} fetchData={() => fetchInventoryActivityLogs(reportLogic.filters)} exportData={() => exportLogs(reportLogic.filters)}>
-      <InventoryActivityLogTable data={inventoryLogs} pagination={reportLogic.pagination} filters={reportLogic.filters} setFilters={reportLogic.setFilters} fetchInventoryActivityLogs={fetchInventoryActivityLogs} />
+    <ReportPageLayout
+      title="Inventory Activity Logs"
+      subtitle="Detailed Inventory Transactions"
+      {...reportLogic}
+      fetchData={() => fetchInventoryActivityLogs(reportLogic.filters)}
+      exportData={() => exportLogs(reportLogic.filters)}
+    >
+      {Array.isArray(inventoryLogs) && inventoryLogs.length > 0 ? (
+        <InventoryActivityLogTable
+          data={inventoryLogs}
+          pagination={reportLogic.pagination}
+          filters={reportLogic.filters}
+          setFilters={reportLogic.setFilters}
+          fetchInventoryActivityLogs={fetchInventoryActivityLogs}
+        />
+      ) : (
+        <Typography variant="body1" sx={{ textAlign: 'center', padding: 2 }}>
+          No inventory activity logs available.
+        </Typography>
+      )}
     </ReportPageLayout>
   );
 };

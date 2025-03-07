@@ -1,7 +1,7 @@
 import { FC } from "react";
 import { useAdjustmentReport } from "../../../hooks";
 import { AdjustmentReportTable, ReportPageLayout, useReportPageLogic } from '../index.ts';
-import { ErrorDisplay, ErrorMessage, Loading, NoDataFound } from '@components/index.ts';
+import { ErrorDisplay, ErrorMessage, Loading, Typography } from '@components/index.ts';
 
 const AdjustmentReportPage: FC = () => {
   const {
@@ -34,12 +34,28 @@ const AdjustmentReportPage: FC = () => {
         <ErrorMessage message={error} />
       </ErrorDisplay>
     );
-  if (!data || data.length === 0)
-    return <NoDataFound message="No adjustment records found." />;
   
   return (
-    <ReportPageLayout title="Adjustment Report" subtitle="Warehouse & Inventory Adjustments" {...reportLogic} fetchData={() => fetchReport(reportLogic.filters)} exportData={() => exportReport(reportLogic.filters)}>
-      <AdjustmentReportTable data={data} pagination={reportLogic.pagination} filters={reportLogic.filters} setFilters={reportLogic.setFilters} fetchReport={fetchReport} />
+    <ReportPageLayout
+      title="Adjustment Report"
+      subtitle="Warehouse & Inventory Adjustments"
+      {...reportLogic}
+      fetchData={() => fetchReport(reportLogic.filters)}
+      exportData={() => exportReport(reportLogic.filters)}
+    >
+      {Array.isArray(data) && data.length > 0 ? (
+        <AdjustmentReportTable
+          data={data}
+          pagination={reportLogic.pagination}
+          filters={reportLogic.filters}
+          setFilters={reportLogic.setFilters}
+          fetchReport={fetchReport}
+        />
+      ) : (
+        <Typography variant="body1" sx={{ textAlign: 'center', padding: 2 }}>
+          No adjustment records available.
+        </Typography>
+      )}
     </ReportPageLayout>
   );
 };
