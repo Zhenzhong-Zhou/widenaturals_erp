@@ -5,58 +5,39 @@ const { fetchDynamicValue } = require('../03_utils');
  * @returns {Promise<void>}
  */
 exports.seed = async function (knex) {
-  console.log('Seeding inventory for warehouses...');
+  console.log('Seeding inventory and warehouse lots...');
   
-  // Check if inventory table is empty
+  // 🛑 Skip seeding if inventory already exists
   const existingInventory = await knex('inventory').count('id as count').first();
   if (existingInventory.count > 0) {
     console.log('✅ Inventory already exists. Skipping seeding.');
     return;
   }
   
-  // Fetch location IDs for warehouses
-  const locations = await knex('locations')
-    .whereIn('name', ['Head Office', 'Viktor Temporarily Warehouse', 'Novastown Health'])
-    .select('id', 'name');
-  
-  const locationMap = locations.reduce((acc, location) => {
-    acc[location.name] = location.id;
-    return acc;
-  }, {});
-  
-  if (!locationMap['Head Office'] || !locationMap['Viktor Temporarily Warehouse'] || !locationMap['Novastown Health']) {
-    throw new Error('One or more warehouse locations not found.');
-  }
-  
-  // Fetch active status ID for in-stock items
-  const inStockStatusId = await knex('warehouse_lot_status')
-    .where({ name: 'in_stock' })
-    .select('id')
-    .first()
-    .then((row) => row?.id);
-  
-  if (!inStockStatusId) {
-    throw new Error('In-stock status ID not found.');
-  }
-  
-  const initialLoadActionId = await fetchDynamicValue(knex, 'inventory_action_types', 'name', 'initial_load', 'id');
-  
-  if (!initialLoadActionId) {
-    throw new Error('Initial-load status ID not found.');
-  }
-  
-  // Fetch system action user ID
+  // Fetch location, warehouse, and system user IDs
+  const locations = await knex('locations').select('id', 'name');
+  const warehouses = await knex('warehouses').select('id', 'name');
   const systemActionId = await knex('users')
     .where({ email: 'system@internal.local' })
     .select('id')
     .first()
-    .then((row) => row?.id);
+    .then(row => row?.id);
   
-  if (!systemActionId) {
-    throw new Error('System user ID not found.');
-  }
+  if (!systemActionId) throw new Error('System user ID not found.');
   
-  // Define inventory data for warehouses
+  // Create ID maps
+  const locationIdMap = Object.fromEntries(locations.map(l => [l.name, l.id]));
+  const warehouseIdMap = Object.fromEntries(warehouses.map(w => [w.name, w.id]));
+  
+  // Fetch status IDs
+  const statuses = await knex('warehouse_lot_status').select('id', 'name');
+  const statusIdMap = Object.fromEntries(statuses.map(s => [s.name, s.id]));
+  
+  // Fetch action ID
+  const initialLoadActionId = await fetchDynamicValue(knex, 'inventory_action_types', 'name', 'initial_load', 'id');
+  if (!initialLoadActionId) throw new Error('Initial-load action ID not found.');
+  
+  // 🟢 Define inventory data
   const warehouseProductQuantities = {
     'Head Office': {
       'Focus - CA': 84,
@@ -95,36 +76,26 @@ exports.seed = async function (knex) {
       'Memory - CA': 192,
       'Memory - INT': 96,
     },
-    'Novastown Health' : {
+    'Novastown Health': {
       'Hair Health': 1757,
     }
   };
   
-  // Fetch product IDs for all products in both warehouses
+  // Fetch product IDs
+  const productNames = Object.keys(
+    Object.assign({}, ...Object.values(warehouseProductQuantities))
+  );
+  
   const products = await knex('products')
-    .whereIn('product_name', [
-      ...Object.keys(warehouseProductQuantities['Head Office']),
-      ...Object.keys(warehouseProductQuantities['Viktor Temporarily Warehouse'])
-    ])
+    .whereIn('product_name', productNames)
     .select('id', 'product_name');
   
-  if (products.length === 0) {
-    console.warn('No matching products found. Skipping inventory seeding.');
-    return;
-  }
+  const productIdMap = Object.fromEntries(products.map(p => [p.product_name, p.id]));
   
-  // Map product names to IDs
-  const productIdMap = products.reduce((acc, product) => {
-    acc[product.product_name] = product.id;
-    return acc;
-  }, {});
-  
-  // Prepare inventory entries for both warehouses
+  // 🟢 Prepare and insert inventory records
   const inventoryEntries = [];
-  
   Object.entries(warehouseProductQuantities).forEach(([warehouse, productQuantities]) => {
-    const locationId = locationMap[warehouse];
-    
+    const locationId = locationIdMap[warehouse];
     Object.entries(productQuantities).forEach(([productName, quantity]) => {
       inventoryEntries.push({
         id: knex.raw('uuid_generate_v4()'),
@@ -136,7 +107,7 @@ exports.seed = async function (knex) {
         inbound_date: knex.fn.now(),
         outbound_date: null,
         last_update: null,
-        status_id: inStockStatusId,
+        status_id: statusIdMap['in_stock'],
         status_date: knex.fn.now(),
         created_at: knex.fn.now(),
         updated_at: null,
@@ -146,84 +117,18 @@ exports.seed = async function (knex) {
     });
   });
   
-  // Insert inventory data in bulk with `ON CONFLICT DO NOTHING`
-  if (inventoryEntries.length > 0) {
-    await knex('inventory')
-      .insert(inventoryEntries)
-      .onConflict(['product_id', 'location_id']) // If product already exists in location, do nothing
-      .ignore();
-    console.log(`✅ ${inventoryEntries.length} inventory records inserted successfully.`);
-  } else {
-    console.warn('⚠ No inventory records created.');
-  }
+  await knex('inventory')
+    .insert(inventoryEntries)
+    .onConflict(['product_id', 'location_id'])
+    .ignore();
   
-  // Insert inventory data in bulk with `ON CONFLICT DO NOTHING`
-  if (inventoryEntries.length > 0) {
-    await knex('inventory')
-      .insert(inventoryEntries)
-      .onConflict(['product_id', 'location_id']) // If product already exists in location, do nothing
-      .ignore();
-    console.log(`✅ ${inventoryEntries.length} inventory records inserted successfully.`);
-  }
+  console.log(`✅ Inserted ${inventoryEntries.length} inventory records.`);
   
-  console.log('Seeding warehouse inventory lots...');
+  // 🟢 Fetch inventory records
+  const inventory = await knex('inventory').select('id', 'product_id', 'location_id');
+  const inventoryMap = Object.fromEntries(inventory.map(i => [`${i.product_id}_${i.location_id}`, i.id]));
   
-  // Fetch necessary IDs
-
-  const unassignedStatusId = await fetchDynamicValue(
-    knex,
-    'warehouse_lot_status',
-    'name',
-    'unassigned',
-    'id'
-  );
-  const damagedStatusId = await fetchDynamicValue(
-    knex,
-    'warehouse_lot_status',
-    'name',
-    'damaged',
-    'id'
-  );
-  const suspendedStatusId = await fetchDynamicValue(
-    knex,
-    'warehouse_lot_status',
-    'name',
-    'suspended',
-    'id'
-  );
-  const unavailableStatusId = await fetchDynamicValue(
-    knex,
-    'warehouse_lot_status',
-    'name',
-    'unavailable',
-    'id'
-  );
-  const expiredStatusId = await fetchDynamicValue(
-    knex,
-    'warehouse_lot_status',
-    'name',
-    'expired',
-    'id'
-  );
-
-  
-  // Fetch product IDs, location IDs, warehouse IDs, and inventory IDs
-  const productsList = await knex('products').select('id', 'product_name');
-  const locationsList = await knex('locations').select('id', 'name');
-  const warehouses = await knex('warehouses').select('id', 'name');
-  const inventory = await knex('inventory')
-    .select('id', 'product_id', 'location_id', 'quantity');
-  
-  // Mapping data
-  const productIdsMap = Object.fromEntries(productsList.map((p) => [p.product_name, p.id]));
-  const locationIdMap = Object.fromEntries(locationsList.map((l) => [l.name, l.id]));
-  const warehouseIdMap = Object.fromEntries(warehouses.map((w) => [w.name, w.id]));
-  const inventoryMap = inventory.reduce((acc, i) => {
-    acc[`${i.product_id}_${i.location_id}`] = i.id;
-    return acc;
-  }, {});
-  
-  // Define Lot Data
+  // 🟢 Define warehouse inventory lot data
   const lotData = [
     { product: 'Focus - CA', lot_number: 'UNASSIGNED-11000001', expiry_date: '2026Mar07', warehouse: 'Head Office', quantity: 2 },
     { product: 'Focus - CA', lot_number: '11000004', expiry_date: '2026-02-13', warehouse: 'Head Office', quantity: 84 },
@@ -295,33 +200,22 @@ exports.seed = async function (knex) {
     { product: 'Memory - INT', lot_number: 'UNKNOWN-11400004', expiry_date: '2026-08-10', warehouse: 'Viktor Temporarily Warehouse', quantity: 96 },
   ];
   
-  // Insert into warehouse_inventory_lots
-  const warehouseInventoryLots = lotData.map((lot) => {
+  // 🟢 Prepare warehouse lot entries
+  const warehouseLotEntries = lotData.map(lot => {
     const productId = productIdMap[lot.product];
     const locationId = locationIdMap[lot.warehouse];
     const warehouseId = warehouseIdMap[lot.warehouse];
     const inventoryId = inventoryMap[`${productId}_${locationId}`];
     
-    if (!productId || !locationId || !warehouseId || !inventoryId) {
-      console.warn(
-        `🚨 Debug: ${lot.product} -> productId: ${productId}, ${lot.warehouse} -> warehouseId: ${warehouseId}, ${lot.warehouse} -> locationId: ${locationId}, inventoryId: ${inventoryId}`
-      );
-      return null;
-    }
+    if (!productId || !locationId || !warehouseId || !inventoryId) return null;
     
-    // 🟢 Determine correct status
-    let lotStatus = inStockStatusId; // Default: in_stock
-    if (!lot.lot_number || lot.lot_number.includes('UNASSIGNED')) {
-      lotStatus = unassignedStatusId;
-    } else if (lot.lot_number.includes('DAMAGED')) {
-      lotStatus = damagedStatusId;
-    } else if (lot.lot_number.includes('SUSPENDED')) {
-      lotStatus = suspendedStatusId;
-    } else if (lot.lot_number.includes('UNKNOWN')) {
-      lotStatus = unavailableStatusId;
-    } else if (lot.expiry_date && new Date(lot.expiry_date) < new Date()) {
-      lotStatus = expiredStatusId;
-    }
+    // Determine correct status
+    let lotStatus = statusIdMap['in_stock'];
+    if (!lot.lot_number || lot.lot_number.includes('UNASSIGNED')) lotStatus = statusIdMap['unassigned'];
+    else if (lot.lot_number.includes('DAMAGED')) lotStatus = statusIdMap['damaged'];
+    else if (lot.lot_number.includes('SUSPENDED')) lotStatus = statusIdMap['suspended'];
+    else if (lot.lot_number.includes('UNKNOWN')) lotStatus = statusIdMap['unavailable'];
+    else if (new Date(lot.expiry_date) < new Date()) lotStatus = statusIdMap['expired'];
     
     return {
       id: knex.raw('uuid_generate_v4()'),
@@ -342,17 +236,60 @@ exports.seed = async function (knex) {
     };
   }).filter(Boolean);
   
-  for (const lot of warehouseInventoryLots) {
-    await knex('warehouse_inventory_lots')
-      .insert(lot)
-      .onConflict(['warehouse_id', 'inventory_id', 'lot_number'])
-      .ignore();
-  }
-  console.log(`✅ ${warehouseInventoryLots.length} warehouse inventory lots inserted successfully.`);
+  await knex('warehouse_inventory_lots')
+    .insert(warehouseLotEntries)
+    .onConflict(['warehouse_id', 'inventory_id', 'lot_number'])
+    .ignore();
+  
+  console.log(`✅ Inserted ${warehouseLotEntries.length} warehouse inventory lots.`);
+  
+  // Fetch necessary IDs
+  const inStockStatusId = await fetchDynamicValue(
+    knex,
+    'warehouse_lot_status',
+    'name',
+    'in_stock',
+    'id'
+  );
+  const unassignedStatusId = await fetchDynamicValue(
+    knex,
+    'warehouse_lot_status',
+    'name',
+    'unassigned',
+    'id'
+  );
+  const damagedStatusId = await fetchDynamicValue(
+    knex,
+    'warehouse_lot_status',
+    'name',
+    'damaged',
+    'id'
+  );
+  const suspendedStatusId = await fetchDynamicValue(
+    knex,
+    'warehouse_lot_status',
+    'name',
+    'suspended',
+    'id'
+  );
+  const unavailableStatusId = await fetchDynamicValue(
+    knex,
+    'warehouse_lot_status',
+    'name',
+    'unavailable',
+    'id'
+  );
+  const expiredStatusId = await fetchDynamicValue(
+    knex,
+    'warehouse_lot_status',
+    'name',
+    'expired',
+    'id'
+  );
   
   // **Update warehouse_inventory**
   const warehouseInventory = lotData.reduce((acc, lot) => {
-    const productId = productIdsMap[lot.product];
+    const productId = productIdMap[lot.product];
     const locationId = locationIdMap[lot.warehouse];
     const warehouseId = warehouseIdMap[lot.warehouse];
     const inventoryId = inventoryMap[`${productId}_${locationId}`];
@@ -420,8 +357,7 @@ exports.seed = async function (knex) {
     console.log(`✅ ${warehouseInventoryEntries.length} warehouse inventory records updated.`);
   }
   
-  
-  console.log('🔄 Updating inventory statuses based on warehouse lot statuses...');
+  // 🟢 Update inventory statuses based on warehouse lot statuses
   await knex.raw(`
     WITH inventory_status_update AS (
       SELECT
@@ -458,6 +394,7 @@ exports.seed = async function (knex) {
     FROM inventory_status_update isu
     WHERE i.id = isu.inventory_id;
   `);
+  
   console.log('✅ Inventory statuses updated successfully.');
   
   // Fetch updated inventory records with correct status_id and summed quantity
@@ -499,7 +436,7 @@ exports.seed = async function (knex) {
   }));
   
   const BATCH_SIZE = 500;
-// Batch insert inventory history
+  // Batch insert inventory history
   if (inventoryHistoryEntries.length > 0) {
     console.log(`🔄 Inserting ${inventoryHistoryEntries.length} inventory history records...`);
     for (let i = 0; i < inventoryHistoryEntries.length; i += BATCH_SIZE) {
