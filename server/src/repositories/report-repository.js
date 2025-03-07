@@ -1,6 +1,7 @@
 const { retry, query, paginateQuery } = require('../database/db');
 const { logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
+const { toLog } = require('../utils/AppError');
 
 /**
  * Fetches inventory adjustment reports dynamically based on filters.
@@ -280,7 +281,156 @@ const getInventoryActivityLogs = async ({
   }
 };
 
+/**
+ * Fetch inventory history with optional filters, sorting, and pagination
+ *
+ * @param {Object} params - Query parameters
+ * @param {string|null} [params.inventoryId] - Filter by inventory ID
+ * @param {string|null} [params.actionTypeId] - Filter by inventory action type ID
+ * @param {string|null} [params.statusId] - Filter by status ID
+ * @param {string|null} [params.userId] - Filter by user ID
+ * @param {string|null} [params.startDate] - Start date for filtering
+ * @param {string|null} [params.endDate] - End date for filtering
+ * @param {string|null} [params.reportType] - Report type (weekly, monthly, yearly)
+ * @param {string} [params.timezone='UTC'] - Timezone for timestamp conversion
+ * @param {string} [params.sortBy='timestamp'] - Column to sort by
+ * @param {string} [params.sortOrder='DESC'] - Sorting order (ASC or DESC)
+ * @param {number} [params.page=1] - Page number for pagination
+ * @param {number} [params.limit=50] - Number of records per page
+ * @param {boolean} [params.isExport=false] - Whether exporting data (no pagination)
+ *
+ * @returns {Promise<Object>} - Paginated inventory history records and metadata
+ */
+const getInventoryHistory = async ({
+                                     inventoryId = null,
+                                     actionTypeId = null,
+                                     statusId = null,
+                                     userId = null,
+                                     startDate = null,
+                                     endDate = null,
+                                     reportType = null, // 'weekly', 'monthly', 'yearly'
+                                     timezone = 'UTC',
+                                     sortBy = 'timestamp',
+                                     sortOrder = 'DESC',
+                                     page = 1,
+                                     limit = 50,
+                                     isExport = false
+                                   }) => {
+  const offset = (page - 1) * limit;
+  
+  const baseQuery = `
+    SELECT
+        ih.id AS log_id,
+        ih.inventory_id,
+        i.product_id,
+        COALESCE(p.product_name, i.identifier, 'Unknown Item') AS item_name,
+        ih.inventory_action_type_id,
+        ia.name AS action_type,
+        ih.previous_quantity,
+        ih.quantity_change,
+        ih.new_quantity,
+        ih.status_id,
+        ws.name AS status,
+        ih.status_date,
+        ih.timestamp AT TIME ZONE $1 AS adjusted_timestamp, -- Convert timestamp to specified timezone
+        ih.source_action_id,
+        COALESCE(u.firstname, 'System') || ' ' || COALESCE(u.lastname, 'Action') AS source_user,
+        ih.comments,
+        ih.checksum,
+        ih.metadata,
+        ih.created_at,
+        ih.created_by,
+        COALESCE(u1.firstname, 'System') || ' ' || COALESCE(u1.lastname, 'Action') AS created_by
+    FROM inventory_history ih
+    LEFT JOIN inventory AS i ON ih.inventory_id = i.id
+    LEFT JOIN products AS p ON i.product_id = p.id
+    LEFT JOIN inventory_action_types AS ia ON ih.inventory_action_type_id = ia.id
+    LEFT JOIN warehouse_lot_status AS ws ON ih.status_id = ws.id
+    LEFT JOIN users AS u ON ih.source_action_id = u.id
+    LEFT JOIN users AS u1 ON ih.created_by = u1.id
+    WHERE
+        ($2::UUID IS NULL OR ih.inventory_id = $2)
+        AND ($3::UUID IS NULL OR ih.inventory_action_type_id = $3)
+        AND ($4::UUID IS NULL OR ih.status_id = $4)
+        AND ($5::UUID IS NULL OR ih.source_action_id = $5)
+        AND (
+            ($6::TIMESTAMP IS NULL AND $7::TIMESTAMP IS NULL)
+            OR (ih.timestamp AT TIME ZONE 'UTC' BETWEEN COALESCE($6, '-infinity') AND COALESCE($7, 'infinity'))
+            OR ($8 = 'weekly' AND ih.timestamp >= NOW() - INTERVAL '7 days')
+            OR ($8 = 'monthly' AND ih.timestamp >= DATE_TRUNC('month', NOW()))
+            OR ($8 = 'yearly' AND ih.timestamp >= DATE_TRUNC('year', NOW()))
+        )
+    ORDER BY
+        CASE
+            WHEN $9 = 'timestamp' THEN ih.timestamp
+        END ${sortOrder},
+
+        CASE
+            WHEN $9 = 'new_quantity' THEN ih.new_quantity
+            WHEN $9 = 'previous_quantity' THEN ih.previous_quantity
+        END ${sortOrder}
+  `;
+  
+  let totalRecords = 0;
+  
+  // Correct parameter binding for main query
+  const queryValues = [
+    timezone,        // $1
+    inventoryId,     // $2
+    actionTypeId,    // $3
+    statusId,        // $4
+    userId,          // $5
+    startDate,       // $6
+    endDate,         // $7
+    reportType,      // $8
+    sortBy,          // $9
+  ];
+  
+  // Fetch total count (Only when paginating)
+  if (!isExport) {
+    const countQuery = `SELECT COUNT(*) AS total FROM (${baseQuery}) AS filtered_data;`;
+    
+    // Remove limit/offset from count query
+    const countValues = queryValues.slice(0, 9); // Only use the first 9 parameters
+    
+    try {
+      const countResult = await query(countQuery, countValues);
+      totalRecords = parseInt(countResult.rows[0]?.total || 0, 10);
+    } catch (error) {
+      logError('Error fetching inventory history count:', error);
+      throw AppError.databaseError('Error fetching inventory history count.');
+    }
+  }
+  
+  // Append Pagination if NOT Exporting
+  if (!isExport) {
+    queryValues.push(limit, offset); // $10, $11
+  }
+  
+  // Execute correct query
+  const finalQuery = isExport ? baseQuery : `${baseQuery} LIMIT $10 OFFSET $11`;
+  
+  try {
+    const { rows } = await query(finalQuery, queryValues);
+    return {
+      data: rows,
+      pagination: isExport
+        ? null
+        : {
+          page,
+          limit,
+          totalRecords,
+          totalPages: Math.ceil(totalRecords / limit),
+        },
+    };
+  } catch (error) {
+    logError('Error fetching inventory history:', error);
+    throw AppError.databaseError('Error fetching inventory history.');
+  }
+};
+
 module.exports = {
   getAdjustmentReport,
-  getInventoryActivityLogs
+  getInventoryActivityLogs,
+  getInventoryHistory,
 };

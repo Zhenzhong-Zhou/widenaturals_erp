@@ -1,5 +1,7 @@
-const { fetchAdjustmentReport, fetchInventoryActivityLogs } = require('../services/report-service');
+const { fetchAdjustmentReport, fetchInventoryActivityLogs, fetchInventoryHistoryWithValidation } = require('../services/report-service');
 const wrapAsync = require('../utils/wrap-async');
+const { logError } = require('../utils/logger-helper');
+const AppError = require('../utils/AppError');
 
 /**
  * Controller to fetch inventory adjustment reports.
@@ -117,7 +119,62 @@ const getInventoryActivityLogsController = wrapAsync(async (req, res) => {
   });
 });
 
+/**
+ * Controller to fetch inventory history with optional export
+ */
+const getInventoryHistoryController = wrapAsync(async (req, res, next) => {
+  const {
+    inventoryId = null,
+    actionTypeId = null,
+    statusId = null,
+    userId = null,
+    startDate = null,
+    endDate = null,
+    reportType = null, // 'weekly', 'monthly', 'yearly'
+    timezone = 'UTC',
+    sortBy = 'timestamp',
+    sortOrder = 'DESC',
+    page = 1,
+    limit = 50,
+    exportFormat = null,
+  } = req.query;
+  
+  const records = await fetchInventoryHistoryWithValidation({
+    inventoryId,
+    actionTypeId,
+    statusId,
+    userId,
+    startDate,
+    endDate,
+    reportType,
+    timezone,
+    sortBy,
+    sortOrder,
+    page,
+    limit,
+    exportFormat
+  });
+  
+  // Handle export file response
+  if (exportFormat) {
+    if (!records?.fileBuffer) {
+      return AppError.validationError('Failed to generate export file');
+    }
+    res.setHeader('Content-Disposition', `attachment; filename="${records.fileName}"`);
+    res.setHeader('Content-Type', records.contentType);
+    return res.send(records.fileBuffer);
+  }
+  
+  // Handle JSON response
+  res.json({
+    success: true,
+    message: 'Inventory history fetched successfully',
+    ...records,
+  });
+});
+
 module.exports = {
   getAdjustmentReportController,
   getInventoryActivityLogsController,
+  getInventoryHistoryController,
 };

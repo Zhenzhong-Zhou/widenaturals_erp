@@ -1,6 +1,8 @@
 const express = require('express');
 const {
-  getAdjustmentReportController, getInventoryActivityLogsController,
+  getAdjustmentReportController,
+  getInventoryActivityLogsController,
+  getInventoryHistoryController,
 } = require('../controllers/report-controller');
 
 const router = express.Router();
@@ -29,5 +31,7 @@ router.get('/adjustments', getAdjustmentReportController);
  * @access Protected
  */
 router.get('/inventory-activity-logs', getInventoryActivityLogsController);
+
+router.get('/inventory-history', getInventoryHistoryController);
 
 module.exports = router;

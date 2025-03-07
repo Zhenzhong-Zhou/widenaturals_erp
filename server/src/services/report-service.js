@@ -1,11 +1,8 @@
-const { getAdjustmentReport, getInventoryActivityLogs } = require('../repositories/report-repository');
-const {
-  exportToCSV,
-  exportToPDF,
-  exportToPlainText, generateEmptyExport, exportData,
-} = require('../utils/export-utils');
+const { getAdjustmentReport, getInventoryActivityLogs, getInventoryHistory } = require('../repositories/report-repository');
+const { generateEmptyExport, exportData } = require('../utils/export-utils');
 const AppError = require('../utils/AppError');
 const { logError, logWarn } = require('../utils/logger-helper');
+const { validateChecksum } = require('../utils/crypto-utils');
 
 /**
  * Fetch adjustment report with optional export support.
@@ -204,7 +201,109 @@ const fetchInventoryActivityLogs = async ({
   };
 };
 
+/**
+ * Fetch inventory history with checksum validation.
+ * Ensures data integrity and logs violations if found.
+ *
+ * @param {Object} params - Query parameters
+ * @returns {Promise<Object>} - Validated inventory history records with pagination
+ */
+const fetchInventoryHistoryWithValidation = async ({
+                                                     inventoryId,
+                                                     actionTypeId,
+                                                     statusId,
+                                                     userId,
+                                                     startDate,
+                                                     endDate,
+                                                     reportType,
+                                                     timezone = 'UTC',
+                                                     sortBy = 'timestamp',
+                                                     sortOrder = 'DESC',
+                                                     page = 1,
+                                                     limit = 50,
+                                                     exportFormat = null
+                                                   }) => {
+  try {
+    // Ensure `page` and `limit` are valid numbers
+    const pageNumber = Math.max(Number(page) || 1, 1);
+    const limitNumber = Math.min(Math.max(Number(limit) || 1, 1), 100); // Limit max 100 records per page
+    
+    // Determine if export mode is enabled
+    const isExport = Boolean(exportFormat);
+    
+    // Fetch records from repository
+    const { data, pagination } = await getInventoryHistory({
+      inventoryId,
+      actionTypeId,
+      statusId,
+      userId,
+      startDate,
+      endDate,
+      reportType,
+      timezone,
+      sortBy,
+      sortOrder,
+      page: pageNumber,
+      limit: limitNumber,
+      isExport
+    });
+    
+    // Handle No Data Case
+    if (!data || data.length === 0) {
+      logWarn('No inventory history found for the given filters.');
+      
+      if (isExport) {
+        return generateEmptyExport(exportFormat, 'empty_inventory_history');
+      }
+      
+      return {
+        success: true,
+        data: [],
+        pagination: { page: 0, limit: 0, totalRecords: 0, totalPages: 0 },
+        message: 'No inventory history records found for the given criteria.',
+      };
+    }
+    
+    // Validate checksum for each record and log mismatches
+    for (const record of data) {
+      if (!validateChecksum(record)) {
+        logError(`⚠ Data Integrity Violation: Inventory log ${record.id} checksum mismatch!`);
+        // Optional: Store this in an audit log
+      }
+    }
+    
+    // Transform Data: Remove `checksum`**
+    const transformedData = data.map(({ checksum, ...record }) => record);
+    
+    // Export Handling
+    if (isExport) {
+      return await exportData({
+        data: transformedData,
+        exportFormat,
+        filename: 'inventory_history',
+        title: 'Inventory History',
+      });
+    }
+    
+    // Return paginated data
+    return {
+      success: true,
+      data: transformedData,
+      pagination: {
+        page: pageNumber,
+        limit: limitNumber,
+        totalRecords: pagination?.totalRecords || 0,
+        totalPages: pagination?.totalPages || 0,
+      },
+    };
+  } catch (error) {
+    logError('Error fetching inventory history:', error);
+    throw new AppError.serviceError('Failed to fetch inventory history', error);
+  }
+};
+
 module.exports = {
   fetchAdjustmentReport,
   fetchInventoryActivityLogs,
+  fetchInventoryHistoryWithValidation,
 };
