@@ -4,7 +4,7 @@ import { Box, IconButton } from '@mui/material';
 import { WarehouseInventorySummary } from '../state/warehouseInventoryTypes.ts';
 import { CustomButton, CustomCard, Typography } from '@components/index.ts';
 import { capitalizeFirstLetter, formatCurrency } from '@utils/textUtils.ts';
-import { formatDate } from '@utils/dateTimeUtils.ts';
+import { formatDateTime, formatToISODate } from '@utils/dateTimeUtils.ts';
 import { ArrowBack, ArrowForward, Refresh } from '@mui/icons-material';
 
 interface WarehouseInventorySummaryProps {
@@ -96,13 +96,13 @@ const WarehouseInventorySummaryCard: FC<WarehouseInventorySummaryProps> = ({
               </Typography>
               <Typography variant="body2">
                 Latest Inventory Update:{' '}
-                {formatDate(summary.lastInventoryUpdate)}
+                {formatDateTime(summary.lastInventoryUpdate)}
               </Typography>
               <Typography variant="body2">
-                Earliest Expiry: {formatDate(summary.earliestExpiry)}
+                Earliest Expiry: {formatToISODate(summary.earliestExpiry)}
               </Typography>
               <Typography variant="body2">
-                Latest Expiry: {formatDate(summary.latestExpiry)}
+                Latest Expiry: {formatToISODate(summary.latestExpiry)}
               </Typography>
               <Typography variant="body2">
                 Total Zero Stock Lots: {summary.totalZeroStockLots}

@@ -125,6 +125,7 @@ exports.seed = async function (knex) {
     { product: 'NMN 6000 - INT', lot_number: '12100004', expiry_date: '2026-04-18', warehouse: 'Head Office', quantity: 55 },
     
     { product: 'NMN 10000 - CA', lot_number: '12200005', expiry_date: '2026-03-07', warehouse: 'Head Office', quantity: 1 },
+    { product: 'NMN 10000 - INT', lot_number: '12200008', expiry_date: '2027-03-05', warehouse: 'Head Office', quantity: 88 },
     
     { product: 'NMN 15000 - CA', lot_number: '12300012', expiry_date: '2027-02-13', warehouse: 'Head Office', quantity: 14 },
     { product: 'NMN 15000 - INT', lot_number: '12300013', expiry_date: '2027-05-15', warehouse: 'Head Office', quantity: 33 },
