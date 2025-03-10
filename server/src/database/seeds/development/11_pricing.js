@@ -16,14 +16,14 @@ exports.seed = async function (knex) {
       'active',
       'id'
     );
-    const adminUserId = await fetchDynamicValue(
+    const systemActionId = await fetchDynamicValue(
       knex,
       'users',
       'email',
-      'admin@example.com',
+      'system@internal.local',
       'id'
     );
-
+    
     // Fetch required IDs
     const priceTypeIds = await knex('pricing_types')
       .select('id', 'name')
@@ -90,9 +90,9 @@ exports.seed = async function (knex) {
             status_id: activeStatusId,
             status_date: knex.fn.now(),
             created_at: knex.fn.now(),
-            updated_at: knex.fn.now(),
-            created_by: adminUserId,
-            updated_by: adminUserId,
+            updated_at: null,
+            created_by: systemActionId,
+            updated_by: null,
           });
         }
       }

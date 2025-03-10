@@ -9,9 +9,9 @@ exports.seed = async function (knex) {
     .where('name', 'active')
     .first()
     .then((row) => row?.id);
-  const adminUserId = await knex('users')
+  const systemActionId = await knex('users')
     .select('id')
-    .where('email', 'admin@example.com')
+    .where('email', 'system@internal.local')
     .first()
     .then((row) => row?.id);
 
@@ -25,8 +25,8 @@ exports.seed = async function (knex) {
       status_date: knex.fn.now(),
       created_at: knex.fn.now(),
       updated_at: knex.fn.now(),
-      created_by: adminUserId,
-      updated_by: adminUserId,
+      created_by: systemActionId,
+      updated_by: systemActionId,
     },
     {
       id: knex.raw('uuid_generate_v4()'),
@@ -35,9 +35,9 @@ exports.seed = async function (knex) {
       status_id: activeStatusId,
       status_date: knex.fn.now(),
       created_at: knex.fn.now(),
-      updated_at: knex.fn.now(),
-      created_by: adminUserId,
-      updated_by: adminUserId,
+      updated_at: null,
+      created_by: systemActionId,
+      updated_by: null,
     },
     {
       id: knex.raw('uuid_generate_v4()'),
@@ -46,9 +46,9 @@ exports.seed = async function (knex) {
       status_id: activeStatusId,
       status_date: knex.fn.now(),
       created_at: knex.fn.now(),
-      updated_at: knex.fn.now(),
-      created_by: adminUserId,
-      updated_by: adminUserId,
+      updated_at: null,
+      created_by: systemActionId,
+      updated_by: null,
     },
     {
       id: knex.raw('uuid_generate_v4()'),
@@ -57,9 +57,9 @@ exports.seed = async function (knex) {
       status_id: activeStatusId,
       status_date: knex.fn.now(),
       created_at: knex.fn.now(),
-      updated_at: knex.fn.now(),
-      created_by: adminUserId,
-      updated_by: adminUserId,
+      updated_at: null,
+      created_by: systemActionId,
+      updated_by: null,
     },
     {
       id: knex.raw('uuid_generate_v4()'),
@@ -68,9 +68,9 @@ exports.seed = async function (knex) {
       status_id: activeStatusId,
       status_date: knex.fn.now(),
       created_at: knex.fn.now(),
-      updated_at: knex.fn.now(),
-      created_by: adminUserId,
-      updated_by: adminUserId,
+      updated_at: null,
+      created_by: systemActionId,
+      updated_by: null,
     },
     {
       id: knex.raw('uuid_generate_v4()'),
@@ -79,9 +79,9 @@ exports.seed = async function (knex) {
       status_id: activeStatusId,
       status_date: knex.fn.now(),
       created_at: knex.fn.now(),
-      updated_at: knex.fn.now(),
-      created_by: adminUserId,
-      updated_by: adminUserId,
+      updated_at: null,
+      created_by: systemActionId,
+      updated_by: null,
     },
     {
       id: knex.raw('uuid_generate_v4()'),
@@ -90,9 +90,9 @@ exports.seed = async function (knex) {
       status_id: activeStatusId,
       status_date: knex.fn.now(),
       created_at: knex.fn.now(),
-      updated_at: knex.fn.now(),
-      created_by: adminUserId,
-      updated_by: adminUserId,
+      updated_at: null,
+      created_by: systemActionId,
+      updated_by: null,
     },
     {
       id: knex.raw('uuid_generate_v4()'),
@@ -101,9 +101,9 @@ exports.seed = async function (knex) {
       status_id: activeStatusId,
       status_date: knex.fn.now(),
       created_at: knex.fn.now(),
-      updated_at: knex.fn.now(),
-      created_by: adminUserId,
-      updated_by: adminUserId,
+      updated_at: null,
+      created_by: systemActionId,
+      updated_by: null,
     },
     {
       id: knex.raw('uuid_generate_v4()'),
@@ -112,9 +112,9 @@ exports.seed = async function (knex) {
       status_id: activeStatusId,
       status_date: knex.fn.now(),
       created_at: knex.fn.now(),
-      updated_at: knex.fn.now(),
-      created_by: adminUserId,
-      updated_by: adminUserId,
+      updated_at: null,
+      created_by: systemActionId,
+      updated_by: null,
     },
     {
       id: knex.raw('uuid_generate_v4()'),
@@ -123,9 +123,9 @@ exports.seed = async function (knex) {
       status_id: activeStatusId,
       status_date: knex.fn.now(),
       created_at: knex.fn.now(),
-      updated_at: knex.fn.now(),
-      created_by: adminUserId,
-      updated_by: adminUserId,
+      updated_at: null,
+      created_by: systemActionId,
+      updated_by: null,
     },
     {
       id: knex.raw('uuid_generate_v4()'),
@@ -134,9 +134,9 @@ exports.seed = async function (knex) {
       status_id: activeStatusId,
       status_date: knex.fn.now(),
       created_at: knex.fn.now(),
-      updated_at: knex.fn.now(),
-      created_by: adminUserId,
-      updated_by: adminUserId,
+      updated_at: null,
+      created_by: systemActionId,
+      updated_by: null,
     },
     {
       id: knex.raw('uuid_generate_v4()'),
@@ -145,9 +145,9 @@ exports.seed = async function (knex) {
       status_id: activeStatusId,
       status_date: knex.fn.now(),
       created_at: knex.fn.now(),
-      updated_at: knex.fn.now(),
-      created_by: adminUserId,
-      updated_by: adminUserId,
+      updated_at: null,
+      created_by: systemActionId,
+      updated_by: null,
     },
   ];
 

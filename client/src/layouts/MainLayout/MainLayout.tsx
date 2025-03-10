@@ -132,7 +132,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
         >
           <Suspense fallback={<Loading message="Loading content..." />}>
             <Box sx={mainContentStyles(theme)}>
-              {cloneElement(children as ReactElement, {
+              {cloneElement(children as ReactElement<any>, {
                 fullName,
                 roleName,
                 permissions,

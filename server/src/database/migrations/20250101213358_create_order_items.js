@@ -11,10 +11,10 @@ exports.up = function (knex) {
       .references('id')
       .inTable('sales_orders');
     table
-      .uuid('inventory_id')
+      .uuid('product_id')
       .notNullable()
       .references('id')
-      .inTable('inventory');
+      .inTable('products');
     table.integer('quantity_ordered').notNullable();
     table.integer('quantity_fulfilled').defaultTo(0);
     table.uuid('price_id').notNullable().references('id').inTable('pricing');
