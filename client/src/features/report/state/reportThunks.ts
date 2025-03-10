@@ -1,5 +1,10 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { AdjustmentReportParams, InventoryActivityLogParams, InventoryActivityLogsResponse } from './reportTypes.ts';
+import {
+  AdjustmentReportParams,
+  InventoryActivityLogParams,
+  InventoryActivityLogsResponse, InventoryHistoryParams,
+  InventoryHistoryResponse,
+} from './reportTypes.ts';
 import { reportService } from '../../../services';
 
 /**
@@ -64,6 +69,44 @@ export const exportInventoryActivityLogsThunk = createAsyncThunk<
     } catch (error) {
       console.error('Thunk Error: Exporting inventory logs failed', error);
       return rejectWithValue('Failed to export inventory activity logs');
+    }
+  }
+);
+
+/**
+ * Thunk to fetch inventory history with optional filters.
+ */
+export const fetchInventoryHistoryThunk = createAsyncThunk<
+  InventoryHistoryResponse, // Expected return type
+  Partial<InventoryHistoryParams>, // Parameters type
+  { rejectValue: string } // Error handling type
+>(
+  'inventory/fetchHistory',
+  async (params, { rejectWithValue }) => {
+    try {
+      return await reportService.fetchInventoryHistory(params);
+    } catch (error) {
+      console.error('Thunk Error: Fetching inventory history failed:', error);
+      return rejectWithValue('An unexpected error occurred.');
+    }
+  }
+);
+
+/**
+ * Thunk to export inventory history as a file (CSV, PDF, TXT).
+ */
+export const exportInventoryHistoryThunk = createAsyncThunk<
+  Blob, // Expected return type
+  Partial<InventoryHistoryParams>, // Parameters type
+  { rejectValue: string } // Error handling type
+>(
+  'inventory/exportHistory',
+  async (params, { rejectWithValue }) => {
+    try {
+      return await reportService.exportInventoryHistory(params);
+    } catch (error) {
+      console.error('Thunk Error: Exporting inventory history failed:', error);
+      return rejectWithValue('An unexpected error occurred.');
     }
   }
 );

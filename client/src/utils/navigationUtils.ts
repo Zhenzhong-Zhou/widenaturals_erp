@@ -53,3 +53,22 @@ export const handleInventoryActivityLogRedirect = (
   
   navigate(path);
 };
+
+/**
+ * Handles navigation to the inventory history page with optional filters.
+ *
+ * @param {NavigateFunction} navigate - React Router's navigate function.
+ * @param {string} basePath - Base path for inventory logs.
+ * @param {string | null} inventoryId - (Optional) Inventory ID for filtering.
+ */
+export const handleInventoryHistoryRedirect = (
+  navigate: NavigateFunction,
+  basePath: string,
+  inventoryId?: string | null,
+) => {
+  // Construct base path with inventoryId
+  const path = inventoryId ? `/${basePath}/histories/${inventoryId}` : `/${basePath}/histories`;
+  
+  // Navigate to the generated path
+  navigate(path);
+};

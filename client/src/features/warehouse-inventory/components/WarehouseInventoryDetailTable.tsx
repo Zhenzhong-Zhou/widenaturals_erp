@@ -23,7 +23,11 @@ import { WarehouseInventoryDetailExtended } from '../state/warehouseInventoryTyp
 import { capitalizeFirstLetter, formatCurrency } from '@utils/textUtils.ts';
 import { formatDate, formatDateTime } from '@utils/dateTimeUtils.ts';
 import MenuItem from '@mui/material/MenuItem';
-import { handleAdjustmentReportRedirect, handleInventoryActivityLogRedirect } from '@utils/navigationUtils.ts';
+import {
+  handleAdjustmentReportRedirect,
+  handleInventoryActivityLogRedirect,
+  handleInventoryHistoryRedirect,
+} from '@utils/navigationUtils.ts';
 
 // Define Column Type explicitly
 interface Column<T> {
@@ -436,10 +440,9 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
         </MenuItem>
         <MenuItem
           onClick={() =>
-            handleAdjustmentReportRedirect(
+            handleInventoryHistoryRedirect(
               navigate,
-              'reports/inventory_histories/inventory_lot_histories',
-              warehouseId,
+              'reports/inventory_histories',
               selectedInventoryLot?.inventoryId
             )
           }

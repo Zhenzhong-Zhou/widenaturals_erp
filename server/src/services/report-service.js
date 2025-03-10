@@ -66,7 +66,7 @@ const fetchAdjustmentReport = async ({
         };
       }
       
-      return generateEmptyExport(exportFormat, 'adjustment_report');
+      return generateEmptyExport(exportFormat, 'adjustment_report', false, true);
     }
     
     if (!isExport) {
@@ -84,6 +84,8 @@ const fetchAdjustmentReport = async ({
       exportFormat,
       filename: 'adjustment_report',
       title: 'Adjustment Report',
+      landscape: true,
+      summary: false,
     });
   } catch (error) {
     logError('Failed to fetch adjustment report', error);
@@ -166,7 +168,7 @@ const fetchInventoryActivityLogs = async ({
     logWarn('No inventory logs found for the given filters.');
     
     if (isExport) {
-      return generateEmptyExport(exportFormat, 'empty_inventory_activity_logs');
+      return generateEmptyExport(exportFormat, 'empty_inventory_activity_logs', false, true);
     }
     
     return {
@@ -184,6 +186,8 @@ const fetchInventoryActivityLogs = async ({
       exportFormat,
       filename: 'inventory_logs',
       title: 'Inventory Logs',
+      landscape: true,
+      summary: false,
     });
   }
   
@@ -253,7 +257,7 @@ const fetchInventoryHistoryWithValidation = async ({
       logWarn('No inventory history found for the given filters.');
       
       if (isExport) {
-        return generateEmptyExport(exportFormat, 'empty_inventory_history');
+        return generateEmptyExport(exportFormat, 'empty_inventory_history', false, true);
       }
       
       return {
@@ -282,6 +286,8 @@ const fetchInventoryHistoryWithValidation = async ({
         exportFormat,
         filename: 'inventory_history',
         title: 'Inventory History',
+        landscape: true,
+        summary: false,
       });
     }
     

@@ -216,7 +216,7 @@ const exportToPlainText = (data, separator = ' | ', timezone = 'PST') => {
  * @returns {Promise<Object>} - An object containing `fileBuffer`, `contentType`, and `filename`.
  * @throws {Error} - If an invalid export format is provided.
  */
-const exportData = async ({ data, exportFormat, filename, title = '' }) => {
+const exportData = async ({ data, exportFormat, filename, title = '' , landscape, summary}) => {
   console.log(`Generating ${exportFormat.toUpperCase()} export: ${filename}`);
   
   // Handle empty data
@@ -225,13 +225,13 @@ const exportData = async ({ data, exportFormat, filename, title = '' }) => {
     return generateEmptyExport(exportFormat, filename);
   }
   
-  return generateExport(exportFormat, data, filename, title);
+  return generateExport(exportFormat, data, filename, title, landscape, summary);
 };
 
 /**
  * Generates an empty export file with a message.
  */
-const generateEmptyExport = (format, filename) => {
+const generateEmptyExport = (format, filename, landscape, summary) => {
   logWarn(`Generating empty export file for format: ${format}`);
   
   const emptyMessage = 'No data available for export.';
@@ -244,7 +244,7 @@ const generateEmptyExport = (format, filename) => {
       filename = `empty_${filename}.csv`;
       break;
     case 'pdf':
-      fileBuffer = exportToPDF([], { title: 'Empty Report' }); // Empty PDF
+      fileBuffer = exportToPDF([], { title: 'Empty Report', landscape, summary }); // Empty PDF
       contentType = 'application/pdf';
       filename = `empty_${filename}.pdf`;
       break;
@@ -265,7 +265,7 @@ const generateEmptyExport = (format, filename) => {
 /**
  * Generates an export file with provided data.
  */
-const generateExport = async (format, data, filename, title) => {
+const generateExport = async (format, data, filename, title, landscape, summary) => {
   logInfo(`Generating export file: ${format}`);
   
   let fileBuffer, contentType;
@@ -277,7 +277,7 @@ const generateExport = async (format, data, filename, title) => {
       filename += '.csv';
       break;
     case 'pdf':
-      fileBuffer = await exportToPDF(data, { title });
+      fileBuffer = await exportToPDF(data, { title, landscape, summary });
       contentType = 'application/pdf';
       filename += '.pdf';
       break;

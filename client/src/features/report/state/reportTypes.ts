@@ -1,14 +1,17 @@
 /**
  * Base interface for common report parameters.
  */
-interface BaseReportParams {
+export interface BaseReportParams {
   exportFormat?: 'csv' | 'pdf' | 'txt' | null;
   reportType?: 'weekly' | 'monthly' | 'yearly' | 'custom' | null;
+  reportCategory?: 'adjustment' | 'inventory_history' | 'inventory_activity' | null;
   startDate?: string | Date | null; // Accepts both string & Date
   endDate?: string | Date | null; // Accepts both string & Date
   timezone?: string; // Default: 'UTC'
   page?: number; // Pagination: Current Page
   limit?: number; // Pagination: Items per page
+  totalRecords?: number; // Only in response, optional
+  totalPages?: number; // Only in response, optional
 }
 
 // **Base interface for all reports**
@@ -27,12 +30,9 @@ export interface ReportBaseState<T> {
  * Defines the parameters used for fetching an adjustment report.
  */
 export interface AdjustmentReportParams extends BaseReportParams {
-  userTimezone: string;
   warehouseId?: string | null; // Nullable warehouse ID
   inventoryId?: string | null; // Nullable inventory ID
   warehouseInventoryLotId?: string | null;
-  totalRecords?: number; // Only in response, optional
-  totalPages?: number; // Only in response, optional
 }
 
 // Represents an individual adjustment record
@@ -124,3 +124,49 @@ export interface InventoryActivityLogsResponse {
   data: InventoryActivityLog[];
   pagination: ReportPagination;
 }
+
+export interface InventoryHistoryParams extends BaseReportParams {
+  inventoryId?: string | null;
+  warehouseId?: string | null;
+  lotId?: string | null;
+  orderId?: string | null;
+  actionTypeId?: string | null;
+  statusId?: string | null;
+  userId?: string | null;
+  userTimezone?: string; // User-defined timezone
+  sortBy?: 'timestamp' | 'new_quantity' | 'previous_quantity' | 'action_type' | 'status' | 'user';
+  sortOrder?: 'ASC' | 'DESC';
+}
+
+// Define the structure for individual inventory history records
+export interface InventoryHistoryRecord {
+  log_id: string;
+  inventory_id: string;
+  product_id: string;
+  item_name: string;
+  inventory_action_type_id: string;
+  action_type: string;
+  previous_quantity: number;
+  quantity_change: number;
+  new_quantity: number;
+  status_id: string;
+  status: string;
+  status_date: string;
+  adjusted_timestamp: string; // Converted to user timezone
+  source_action_id: string;
+  source_user: string;
+  comments?: string | null;
+  metadata: Record<string, any>; // Additional metadata (e.g., batch info, source details)
+  created_at: string;
+  created_by: string;
+}
+
+// Define the API response structure
+export interface InventoryHistoryResponse {
+  success: boolean;
+  message: string;
+  data: InventoryHistoryRecord[];
+  pagination: ReportPagination;
+}
+
+export interface InventoryHistoryState extends ReportBaseState<InventoryHistoryRecord> {}

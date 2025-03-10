@@ -8,7 +8,7 @@ import {
   Loading,
   Typography,
 } from "@components/index.ts";
-import { AdjustmentReportFilters, ExportAdjustmentReportModal } from "../index.ts";
+import { ReportFilters, BaseReportParams, ExportReportModal } from '../index.ts';
 
 interface ReportPageLayoutProps {
   title: string;
@@ -16,7 +16,7 @@ interface ReportPageLayoutProps {
   filters: any;
   setFilters: (filters: any) => void;
   fetchData: () => void;
-  exportData: () => void;
+  exportData: (filters?: Partial<BaseReportParams>) => void;
   exportLoading: boolean;
   exportError: string | null;
   open: boolean;
@@ -58,7 +58,7 @@ const ReportPageLayout: FC<ReportPageLayoutProps> = ({
       </Box>
       
       {/* Filters */}
-      <AdjustmentReportFilters filters={filters} setFilters={setFilters} />
+      <ReportFilters filters={filters} setFilters={setFilters} />
       
       {/* Actions */}
       <Box sx={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
@@ -68,7 +68,13 @@ const ReportPageLayout: FC<ReportPageLayoutProps> = ({
         <CustomButton variant="contained" onClick={() => setOpen(true)}>
           Export Report
         </CustomButton>
-        <ExportAdjustmentReportModal open={open} onClose={() => setOpen(false)} onExport={exportData} filters={filters} />
+        <ExportReportModal
+          open={open}
+          onClose={() => setOpen(false)}
+          onExport={(exportFilters) => exportData(exportFilters)}
+          filters={filters}
+          setFilters={setFilters}
+        />
       </Box>
       
       {/* Table Content */}

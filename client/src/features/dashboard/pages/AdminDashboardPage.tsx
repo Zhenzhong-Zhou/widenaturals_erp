@@ -22,6 +22,13 @@ const AdminDashboardPage: FC<DashboardPageProps> = ({ fullName }) => {
       >
         View Inventory Activity Logs
       </CustomButton>
+      <CustomButton
+        variant="contained"
+        color="primary"
+        onClick={() => navigate('/reports/inventory_histories')}
+      >
+        View Inventory History
+      </CustomButton>
     </DashboardLayout>
   );
 };

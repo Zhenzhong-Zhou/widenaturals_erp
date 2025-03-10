@@ -1,4 +1,5 @@
 export type {
+  BaseReportParams,
   AdjustmentReportParams,
   ReportPagination,
   AdjustmentReportState,
@@ -6,7 +7,10 @@ export type {
   InventoryActivityLogParams,
   InventoryActivityLog,
   InventoryActivityLogsState,
-  InventoryActivityLogsResponse
+  InventoryActivityLogsResponse,
+  InventoryHistoryParams,
+  InventoryHistoryResponse,
+  InventoryHistoryState,
 } from '../report/state/reportTypes.ts';
 export {
   fetchAdjustmentReportThunk,
@@ -15,10 +19,12 @@ export {
   exportInventoryActivityLogsThunk,
 } from '../report/state/reportThunks.ts';
 export { selectAdjustmentReport } from '../report/state/adjustmentReportSelectors.ts';
-export { default as ExportAdjustmentReportModal } from '../report/components/ExportAdjustmentReportModal.tsx';
+export { default as ExportReportModal } from './components/ExportReportModal.tsx';
 export { default as AdjustmentReportTable } from '../report/components/AdjustmentReportTable.tsx';
 export { default as InventoryActivityLogTable } from '../report/components/InventoryActivityLogTable.tsx';
-export { default as AdjustmentReportFilters } from '../report/components/AdjustmentReportFilters.tsx';
+export { default as ReportFilters } from './components/ReportFilters.tsx';
 export { selectInventoryActivityLogs } from '../report/state/inventoryActivityLogsSelectors.ts';
 export { default as useReportPageLogic } from '../report/hook/useReportPageLogic.ts';
 export { default as ReportPageLayout } from '../report/components/ReportPageLayout.tsx';
+export { selectInventoryHistory } from '../report/state/inventoryHistorySelectors.ts';
+export { default as InventoryHistoryTable } from '../report/components/InventoryHistoryTable.tsx';

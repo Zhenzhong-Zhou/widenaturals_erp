@@ -244,6 +244,28 @@ export const routes = [
     },
   },
   {
+    path: '/reports/inventory_histories',
+    component: () =>
+      import('../features/report/pages/InventoryHistoryPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Inventory Activity Logs',
+      showInSidebar: false,
+      requiredPermission: 'view_inventory_activity_logs',
+    },
+  },
+  {
+    path: '/reports/inventory_histories/histories/:inventoryId?',
+    component: () =>
+      import('../features/report/pages/InventoryHistoryPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Inventory Activity Logs',
+      showInSidebar: false,
+      requiredPermission: 'view_inventory_activity_logs',
+    },
+  },
+  {
     path: '*',
     component: () => import('../pages/NotFoundPage.tsx'),
     meta: {

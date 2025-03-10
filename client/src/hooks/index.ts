@@ -30,3 +30,4 @@ export { default as useWarehouseDetails } from './useWarehouseDetails.ts';
 export { default as useInsertedInventoryRecordsResponse } from './useInsertedInventoryRecordsResponse.ts';
 export { default as useAdjustmentReport } from './useAdjustmentReport.ts';
 export { default as useInventoryActivityLogs } from './useInventoryActivityLogs.ts';
+export { default as useInventoryHistory } from './useInventoryHistory.ts';
