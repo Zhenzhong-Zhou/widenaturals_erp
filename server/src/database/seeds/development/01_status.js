@@ -6,21 +6,35 @@ exports.seed = async function (knex) {
       name: 'active',
       is_active: true,
       created_at: knex.fn.now(),
-      updated_at: knex.fn.now(),
+      updated_at: null,
     },
     {
       id: knex.raw('uuid_generate_v4()'),
       name: 'inactive',
       is_active: false,
       created_at: knex.fn.now(),
-      updated_at: knex.fn.now(),
+      updated_at: null,
     },
     {
       id: knex.raw('uuid_generate_v4()'),
       name: 'pending',
       is_active: true,
       created_at: knex.fn.now(),
-      updated_at: knex.fn.now(),
+      updated_at: null,
+    },
+    {
+      id: knex.raw('uuid_generate_v4()'),
+      name: 'discontinued',
+      is_active: true,
+      created_at: knex.fn.now(),
+      updated_at: null,
+    },
+    {
+      id: knex.raw('uuid_generate_v4()'),
+      name: 'archived',
+      is_active: true,
+      created_at: knex.fn.now(),
+      updated_at: null,
     },
   ];
 

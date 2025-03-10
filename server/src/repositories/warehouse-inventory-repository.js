@@ -164,7 +164,9 @@ const getWarehouseInventoryDetailsByWarehouseId = async ({
     'JOIN warehouses w ON wi.warehouse_id = w.id',
     'JOIN inventory i ON wi.inventory_id = i.id',
     'LEFT JOIN products p ON i.product_id = p.id',
-    'LEFT JOIN warehouse_inventory_lots wil ON wi.inventory_id = wil.inventory_id AND wi.warehouse_id = wil.warehouse_id',
+    'LEFT JOIN warehouse_inventory_lots wil ON wi.inventory_id = wil.inventory_id ' +
+    'AND wi.warehouse_id = wil.warehouse_id ' +
+    'AND (wi.warehouse_id = wil.warehouse_id OR wil.warehouse_id IS NULL)\n',
     'LEFT JOIN warehouse_lot_status ws ON wil.status_id = ws.id',
     'LEFT JOIN users u1 ON wi.created_by = u1.id',
     'LEFT JOIN users u2 ON wi.updated_by = u2.id',
@@ -179,7 +181,7 @@ const getWarehouseInventoryDetailsByWarehouseId = async ({
     'COALESCE(i.product_id::TEXT, i.identifier), wil.lot_number, wil.expiry_date';
 
   const baseQuery = `
-    SELECT DISTINCT ON (COALESCE(i.product_id::TEXT, i.identifier), wil.lot_number)
+    SELECT
         wi.id AS warehouse_inventory_id,
         i.id AS inventory_id,
         COALESCE(NULLIF(p.product_name, ''), i.identifier) AS item_name,

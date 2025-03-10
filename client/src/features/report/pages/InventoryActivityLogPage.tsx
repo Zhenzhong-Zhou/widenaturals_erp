@@ -1,36 +1,36 @@
 import { FC } from "react";
-import { useAdjustmentReport } from "../../../hooks";
-import { AdjustmentReportTable, ReportPageLayout, useReportPageLogic } from '../index.ts';
+import { useInventoryActivityLogs } from "../../../hooks";
+import { InventoryActivityLogTable, ReportPageLayout, useReportPageLogic } from '../index.ts';
 import { ErrorDisplay, ErrorMessage, Loading, Typography } from '@components/index.ts';
 
-const AdjustmentReportPage: FC = () => {
-  const reportCategory = "adjustment";
+const InventoryActivityLogPage: FC = () => {
+  const reportCategory = "inventory_activity";
   
   const {
-    data,
-    loading,
+    inventoryLogs,
+    isLoading,
     error,
     pagination,
-    fetchReport,
-    exportReport,
+    fetchInventoryActivityLogs,
+    exportLogs,
     exportData,
     exportFormat,
     exportLoading,
     exportError,
-  } = useAdjustmentReport();
+  } = useInventoryActivityLogs();
   
   const reportLogic = useReportPageLogic({
-    fetchData: fetchReport,
+    fetchData: fetchInventoryActivityLogs,
     exportData,
     exportFormat,
     reportCategory,
     exportLoading,
     exportError,
-    data,
+    data: inventoryLogs,
     pagination,
   });
   
-  if (loading) return <Loading message="Loading report..." />;
+  if (isLoading) return <Loading message="Loading activity logs..." />;
   if (error)
     return (
       <ErrorDisplay>
@@ -40,33 +40,33 @@ const AdjustmentReportPage: FC = () => {
   
   return (
     <ReportPageLayout
-      title="Adjustment Report"
-      subtitle="Warehouse & Inventory Adjustments"
+      title="Inventory Activity Logs"
+      subtitle="Detailed Inventory Transactions"
       {...reportLogic}
-      fetchData={() => fetchReport(reportLogic.filters)}
+      fetchData={() => fetchInventoryActivityLogs(reportLogic.filters)}
       exportData={() =>
-        exportReport({
+        exportLogs({
           ...reportLogic.filters,
           reportCategory: reportLogic.filters.reportCategory,
           exportFormat: reportLogic.filters.exportFormat,
         })
       }
     >
-      {Array.isArray(data) && data.length > 0 ? (
-        <AdjustmentReportTable
-          data={data}
+      {Array.isArray(inventoryLogs) && inventoryLogs.length > 0 ? (
+        <InventoryActivityLogTable
+          data={inventoryLogs}
           pagination={reportLogic.pagination}
           filters={reportLogic.filters}
           setFilters={reportLogic.setFilters}
-          fetchReport={fetchReport}
+          fetchInventoryActivityLogs={fetchInventoryActivityLogs}
         />
       ) : (
         <Typography variant="body1" sx={{ textAlign: 'center', padding: 2 }}>
-          No adjustment records available.
+          No inventory activity logs available.
         </Typography>
       )}
     </ReportPageLayout>
   );
 };
 
-export default AdjustmentReportPage;
+export default InventoryActivityLogPage;

@@ -1,4 +1,4 @@
-import React from 'react';
+import { FC } from 'react';
 import CustomTable from '@components/common/CustomTable.tsx';
 import { formatDate } from '@utils/dateTimeUtils.ts';
 import { capitalizeFirstLetter } from '@utils/textUtils.ts';
@@ -16,7 +16,7 @@ interface AdjustmentReportTableProps {
   fetchReport: (params: any) => void;
 }
 
-const AdjustmentReportTable: React.FC<AdjustmentReportTableProps> = ({
+const AdjustmentReportTable: FC<AdjustmentReportTableProps> = ({
   data,
   pagination,
   filters,
@@ -80,7 +80,7 @@ const AdjustmentReportTable: React.FC<AdjustmentReportTableProps> = ({
     <CustomTable
       columns={columns}
       data={data}
-      rowsPerPageOptions={[10, 20, 40, 60]}
+      rowsPerPageOptions={[10, 25, 50, 75]}
       initialRowsPerPage={filters.limit}
       totalPages={pagination.totalPages}
       totalRecords={pagination.totalRecords}
@@ -88,9 +88,9 @@ const AdjustmentReportTable: React.FC<AdjustmentReportTableProps> = ({
       onPageChange={(newPage) => {
         setFilters((prev: AdjustmentReportParams) => ({
           ...prev,
-          page: newPage + 1,
+          page: newPage,
         }));
-        fetchReport({ ...filters, page: newPage + 1 });
+        fetchReport({ ...filters, page: newPage });
       }}
       onRowsPerPageChange={(newLimit) => {
         setFilters((prev: AdjustmentReportParams) => ({

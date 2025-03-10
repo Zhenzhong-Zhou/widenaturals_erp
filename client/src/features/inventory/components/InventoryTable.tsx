@@ -26,8 +26,7 @@ const InventoryTable: FC<InventoryTableProps> = ({
   onRowsPerPageChange,
 }) => {
   const columns = [
-    { id: 'location_name', label: 'Location', sortable: true },
-    { id: 'warehouse_name', label: 'Warehouse', sortable: true },
+    { id: 'place_name', label: 'Place Name', sortable: true },
     {
       id: 'item_type',
       label: 'Item Type',
@@ -52,19 +51,19 @@ const InventoryTable: FC<InventoryTableProps> = ({
       id: 'available_quantity',
       label: 'Available Quantity',
       sortable: true,
-      format: (value: any) => value,
+      format: (value: any) => value | 0,
     },
     {
       id: 'reserved_quantity',
       label: 'Reserved Quantity',
       sortable: true,
-      format: (value: any) => value,
+      format: (value: any) => value | 0,
     },
     {
       id: 'total_lot_quantity',
       label: 'Total Lot Quantity',
       sortable: true,
-      format: (value: any) => value,
+      format: (value: any) => value | 0,
     },
     {
       id: 'status_name',

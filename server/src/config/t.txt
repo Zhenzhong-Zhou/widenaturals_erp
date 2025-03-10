@@ -1,0 +1,247 @@
+1️⃣ Group by location_id (Summarize per Location)
+
+SELECT
+  i.product_id,
+  i.location_id,
+  l.name AS location_name,
+  COALESCE(NULLIF(p.product_name, ''), i.identifier) AS item_name,
+  COUNT(DISTINCT i.id) AS total_inventory_entries,
+  SUM(i.quantity) AS total_quantity,
+  SUM(wi.available_quantity) AS total_available_quantity,
+  SUM(wi.reserved_quantity) AS total_reserved_quantity,
+  COUNT(DISTINCT wil.id) AS total_lots,
+  SUM(wil.quantity) AS total_lot_quantity,
+  MIN(wil.manufacture_date) AS earliest_manufacture_date,
+  MIN(wil.expiry_date) AS nearest_expiry_date
+FROM inventory i
+LEFT JOIN products p ON i.product_id = p.id
+LEFT JOIN locations l ON i.location_id = l.id
+LEFT JOIN warehouse_inventory wi ON i.id = wi.inventory_id
+LEFT JOIN warehouse_inventory_lots wil ON wi.warehouse_id = wil.warehouse_id AND i.id = wil.inventory_id
+GROUP BY i.product_id, i.location_id, l.name, p.product_name;
+
+
+2️⃣ Group by warehouse_id (Summarize per Warehouse)
+
+SELECT
+  i.product_id,
+  w.id AS warehouse_id,
+  w.name AS warehouse_name,
+  COALESCE(NULLIF(p.product_name, ''), i.identifier) AS item_name,
+  COUNT(DISTINCT i.id) AS total_inventory_entries,
+  SUM(i.quantity) AS total_quantity,
+  SUM(wi.available_quantity) AS total_available_quantity,
+  SUM(wi.reserved_quantity) AS total_reserved_quantity,
+  COUNT(DISTINCT wil.id) AS total_lots,
+  SUM(wil.quantity) AS total_lot_quantity,
+  MIN(wil.manufacture_date) AS earliest_manufacture_date,
+  MIN(wil.expiry_date) AS nearest_expiry_date
+FROM inventory i
+LEFT JOIN products p ON i.product_id = p.id
+LEFT JOIN warehouse_inventory wi ON i.id = wi.inventory_id
+LEFT JOIN warehouses w ON wi.warehouse_id = w.id
+LEFT JOIN warehouse_inventory_lots wil ON wi.warehouse_id = wil.warehouse_id AND i.id = wil.inventory_id
+GROUP BY i.product_id, w.id, w.name, p.product_name;
+
+
+3️⃣ Global Summary (Sum Across All Locations & Warehouses)
+
+SELECT
+  i.product_id,
+  COALESCE(NULLIF(p.product_name, ''), i.identifier) AS item_name,
+  COUNT(DISTINCT i.id) AS total_inventory_entries,
+  SUM(i.quantity) AS total_quantity,
+  SUM(wi.available_quantity) AS total_available_quantity,
+  SUM(wi.reserved_quantity) AS total_reserved_quantity,
+  COUNT(DISTINCT wil.id) AS total_lots,
+  SUM(wil.quantity) AS total_lot_quantity,
+  MIN(wil.manufacture_date) AS earliest_manufacture_date,
+  MIN(wil.expiry_date) AS nearest_expiry_date
+FROM inventory i
+LEFT JOIN products p ON i.product_id = p.id
+LEFT JOIN warehouse_inventory wi ON i.id = wi.inventory_id
+LEFT JOIN warehouse_inventory_lots wil ON wi.warehouse_id = wil.warehouse_id AND i.id = wil.inventory_id
+GROUP BY i.product_id, p.product_name;
+
+
+
+2️⃣ Warehouse-Level Inventory (Group by warehouse_id)
+✅ Use this to track total inventory per warehouse.
+
+SELECT
+  i.product_id,
+  w.id AS warehouse_id,
+  w.name AS warehouse_name,
+  COALESCE(NULLIF(p.product_name, ''), i.identifier) AS item_name,
+  COUNT(DISTINCT i.id) AS total_inventory_entries,
+  SUM(i.quantity) AS total_quantity,
+  SUM(wi.available_quantity) AS total_available_quantity,
+  SUM(wi.reserved_quantity) AS total_reserved_quantity,
+  COUNT(DISTINCT wil.id) AS total_lots,
+  SUM(wil.quantity) AS total_lot_quantity,
+  MIN(wil.manufacture_date) AS earliest_manufacture_date,
+  MIN(wil.expiry_date) AS nearest_expiry_date
+FROM inventory i
+LEFT JOIN products p ON i.product_id = p.id  -- ✅ Added this JOIN
+LEFT JOIN warehouse_inventory wi ON i.id = wi.inventory_id
+LEFT JOIN warehouses w ON wi.warehouse_id = w.id
+LEFT JOIN warehouse_inventory_lots wil ON wi.warehouse_id = wil.warehouse_id AND i.id = wil.inventory_id
+GROUP BY i.product_id, w.id, w.name, p.product_name, i.identifier; -- ✅ Added i.identifier to GROUP BY
+
+
+
+3️⃣ Location-Level Inventory (Group by location_id)
+✅ Use this to track total inventory per location.
+
+SELECT
+  i.product_id,
+  w.id AS warehouse_id,
+  w.name AS warehouse_name,
+  COALESCE(NULLIF(p.product_name, ''), i.identifier) AS item_name,
+  COUNT(DISTINCT i.id) AS total_inventory_entries,
+  SUM(i.quantity) AS total_quantity,
+  SUM(wi.available_quantity) AS total_available_quantity,
+  SUM(wi.reserved_quantity) AS total_reserved_quantity,
+  COUNT(DISTINCT wil.id) AS total_lots,
+  SUM(wil.quantity) AS total_lot_quantity,
+  MIN(wil.manufacture_date) AS earliest_manufacture_date,
+  MIN(wil.expiry_date) AS nearest_expiry_date
+FROM inventory i
+LEFT JOIN warehouse_inventory wi ON i.id = wi.inventory_id
+LEFT JOIN warehouses w ON wi.warehouse_id = w.id
+LEFT JOIN warehouse_inventory_lots wil ON wi.warehouse_id = wil.warehouse_id AND i.id = wil.inventory_id
+GROUP BY i.product_id, w.id, w.name, p.product_name;
+
+
+4️⃣ Global Inventory Summary (Group by product_id)
+✅ Use this for company-wide inventory tracking.
+
+SELECT
+  i.product_id,
+  COALESCE(NULLIF(p.product_name, ''), 'Unknown') AS item_name,
+  COUNT(DISTINCT i.id) AS total_inventory_entries,
+  SUM(i.quantity) AS total_quantity,
+  SUM(wi.available_quantity) AS total_available_quantity,
+  SUM(wi.reserved_quantity) AS total_reserved_quantity,
+  COUNT(DISTINCT wil.id) AS total_lots,
+  SUM(wil.quantity) AS total_lot_quantity,
+  MIN(wil.manufacture_date) AS earliest_manufacture_date,
+  MIN(wil.expiry_date) AS nearest_expiry_date
+FROM inventory i
+LEFT JOIN products p ON i.product_id = p.id
+LEFT JOIN warehouse_inventory wi ON i.id = wi.inventory_id
+LEFT JOIN warehouse_inventory_lots wil ON wi.warehouse_id = wil.warehouse_id AND i.id = wil.inventory_id
+GROUP BY i.product_id, p.product_name;
+
+
+  'Head Office': {
+      'Focus - CA': 84,
+      'Focus - INT': 6,
+      'Gut Health - CA': 39,
+      'Gut Health - INT': 4,
+      'Hair Health': 124,
+      'Immune - CA': 234,
+      'Immune - INT': 11,
+      'Memory - CA': 44,
+      'Memory - INT': 47,
+      'Menopause - CA': 41,
+      'Menopause - INT': 7,
+      'Mood - CA': 82,
+      'Mood - INT': 71,
+      'Sleep - CA': 91,
+      'NMN 3000 - CA': 91,
+      'NMN 3000 - INT': 111,
+      'NMN 6000 - CA': 90,
+      'NMN 6000 - INT': 55,
+      'NMN 10000 - CA': 1,
+      'NMN 10000 - INT': 88,
+      'NMN 15000 - CA': 14,
+      'NMN 15000 - INT': 104,
+      'NMN 30000 - CA': 3,
+      'NMN 30000 - INT': 419,
+      'Seal Oil - 120 Softgels': 200,
+      'Seal Oil - 180 Softgels': 89,
+    },
+    'Viktor Temporarily Warehouse': {
+      'NMN 3000 - CA': 24,
+      'NMN 3000 - INT': 48,
+      'NMN 6000 - INT': 144,
+      'Immune - CA': 36,
+      'Menopause - CA': 120,
+      'Memory - CA': 192,
+      'Memory - INT': 96,
+    },
+    'Novastown Health' : {
+      'Hair Health': 1757,
+    }
+  };
+
+const lotData = [
+    { product: 'Focus - CA', lot_number: 'UNASSIGNED-11000001', expiry_date: '2026Mar07', warehouse: 'Head Office', quantity: 2 },
+    { product: 'Focus - CA', lot_number: '11000004', expiry_date: '2026-02-13', warehouse: 'Head Office', quantity: 84 },
+    { product: 'Focus - INT', lot_number: 'UNASSIGNED-11000001', expiry_date: '2026Mar07', warehouse: 'Head Office', quantity: 8 },
+    { product: 'Focus - INT', lot_number: '11000002', expiry_date: '2025-08-24', warehouse: 'Head Office', quantity: 6 },
+
+    { product: 'Gut Health - CA', lot_number: '11100004', expiry_date: '2026-01-20', warehouse: 'Head Office', quantity: 27 },
+    { product: 'Gut Health - CA', lot_number: '11100005', expiry_date: '2026-08-11', warehouse: 'Head Office', quantity: 12 },
+    { product: 'Gut Health - INT', lot_number: 'UNASSIGNED-11100001', expiry_date: '2026Mar07', warehouse: 'Head Office', quantity: 4 },
+
+    { product: 'Hair Health', lot_number: 'NTFS2E003', expiry_date: '2027-11-20', warehouse: 'Head Office', quantity: 124 },
+
+    { product: 'Immune - CA', lot_number: 'UNASSIGNED-11300001', expiry_date: '2026Mar07', warehouse: 'Head Office', quantity: 10 },
+    { product: 'Immune - CA', lot_number: '11300003', expiry_date: '2026-02-14', warehouse: 'Head Office', quantity: 29 },
+    { product: 'Immune - CA', lot_number: '11300004', expiry_date: '2026-04-05', warehouse: 'Head Office', quantity: 105 },
+    { product: 'Immune - CA', lot_number: 'CM78737', expiry_date: '2027-08-25', warehouse: 'Head Office', quantity: 100 },
+    { product: 'Immune - INT', lot_number: '11300001', expiry_date: '2025-08-25', warehouse: 'Head Office', quantity: 1 },
+    { product: 'Immune - INT', lot_number: '11300002', expiry_date: '2025-12-21', warehouse: 'Head Office', quantity: 2 },
+    { product: 'Immune - INT', lot_number: '11300004', expiry_date: '2026-04-05', warehouse: 'Head Office', quantity: 8 },
+
+    { product: 'Memory - CA', lot_number: 'UNASSIGNED-11400001', expiry_date: '2026Mar07', warehouse: 'Head Office', quantity: 10 },
+    { product: 'Memory - CA', lot_number: '11400001', expiry_date: '2025-08-10', warehouse: 'Head Office', quantity: 12 },
+    { product: 'Memory - CA', lot_number: '11400003', expiry_date: '2026-01-24', warehouse: 'Head Office', quantity: 32 },
+    { product: 'Memory - INT', lot_number: 'UNASSIGNED-11400001', expiry_date: '2026Mar07', warehouse: 'Head Office', quantity: 12 },
+    { product: 'Memory - INT', lot_number: '11400003', expiry_date: '2026-01-25', warehouse: 'Head Office', quantity: 39 },
+    { product: 'Memory - INT', lot_number: '11400004', expiry_date: '2026-08-10', warehouse: 'Head Office', quantity: 8 },
+
+    { product: 'Menopause - CA', lot_number: 'UNASSIGNED-11500001', expiry_date: '2026Mar07', warehouse: 'Head Office', quantity: 10 },
+    { product: 'Menopause - CA', lot_number: '11500002', expiry_date: '2026-07-05', warehouse: 'Head Office', quantity: 41 },
+    { product: 'Menopause - INT', lot_number: 'UNASSIGNED-11800001', expiry_date: '2025Oct20', warehouse: 'Head Office', quantity: 8 },
+    { product: 'Menopause - INT', lot_number: '11800003', expiry_date: '2026-02-16', warehouse: 'Head Office', quantity: 7 },
+
+    { product: 'Mood - CA', lot_number: 'UNASSIGNED-12800001', expiry_date: '2026Mar20', warehouse: 'Head Office', quantity: 4 },
+    { product: 'Mood - CA', lot_number: '12800001', expiry_date: '2026-03-20', warehouse: 'Head Office', quantity: 82 },
+    { product: 'Mood - INT', lot_number: 'UNASSIGNED-11900001', expiry_date: '2026Mar20', warehouse: 'Head Office', quantity: 3 },
+    { product: 'Mood - INT', lot_number: '11900004', expiry_date: '2026-08-03', warehouse: 'Head Office', quantity: 71 },
+
+    { product: 'Sleep - CA', lot_number: 'DAMAGED-11200003', expiry_date: '2026-05-10', warehouse: 'Head Office', quantity: 6 },
+    { product: 'Sleep - CA', lot_number: 'SUSPENDED-11200004', expiry_date: '2026-07-11', warehouse: 'Head Office', quantity: 53 },
+    { product: 'Sleep - CA', lot_number: 'CS86736', expiry_date: '2027-08-11', warehouse: 'Head Office', quantity: 30 },
+
+    { product: 'NMN 3000 - CA', lot_number: '12000004', expiry_date: '2026-04-24', warehouse: 'Head Office', quantity: 91 },
+    { product: 'NMN 3000 - INT', lot_number: '12000004', expiry_date: '2026-04-24', warehouse: 'Head Office', quantity: 11 },
+    { product: 'NMN 3000 - INT', lot_number: '12000005', expiry_date: '2026-07-20', warehouse: 'Head Office', quantity: 100 },
+
+    { product: 'NMN 6000 - CA', lot_number: '12100003', expiry_date: '2025-11-23', warehouse: 'Head Office', quantity: 18 },
+    { product: 'NMN 6000 - CA', lot_number: '12100004', expiry_date: '2026-04-18', warehouse: 'Head Office', quantity: 72 },
+    { product: 'NMN 6000 - INT', lot_number: '12100004', expiry_date: '2026-04-18', warehouse: 'Head Office', quantity: 55 },
+
+    { product: 'NMN 10000 - CA', lot_number: '12200005', expiry_date: '2026-03-07', warehouse: 'Head Office', quantity: 1 },
+
+    { product: 'NMN 15000 - CA', lot_number: '12300012', expiry_date: '2027-02-13', warehouse: 'Head Office', quantity: 14 },
+    { product: 'NMN 15000 - INT', lot_number: '12300013', expiry_date: '2027-05-15', warehouse: 'Head Office', quantity: 33 },
+    { product: 'NMN 15000 - INT', lot_number: '12300014', expiry_date: '2027-08-29', warehouse: 'Head Office', quantity: 71 },
+
+    { product: 'NMN 30000 - CA', lot_number: '12400007', expiry_date: '2026-03-02', warehouse: 'Head Office', quantity: 3 },
+    { product: 'NMN 30000 - INT', lot_number: 'VNN7E68C', expiry_date: '2027-09-18', warehouse: 'Head Office', quantity: 419 },
+
+    { product: 'Seal Oil - 120 Softgels', lot_number: 'NTSS2E002', expiry_date: '2027-10-20', warehouse: 'Head Office', quantity: 200 },
+    { product: 'Seal Oil - 180 Softgels', lot_number: 'NTSS2E001', expiry_date: '2027-10-20', warehouse: 'Head Office', quantity: 89 },
+
+    { product: 'NMN 3000 - CA', lot_number: 'UNKNOWN', expiry_date: '2000-01-01', warehouse: 'Viktor Temporarily Warehouse', quantity: 100 },
+    { product: 'NMN 3000 - INT', lot_number: '12000005', expiry_date: '2026-07-20', warehouse: 'Viktor Temporarily Warehouse', quantity: 48 },
+    { product: 'NMN 6000 - INT', lot_number: '12100005', expiry_date: '2026-07-18', warehouse: 'Viktor Temporarily Warehouse', quantity: 144 },
+    { product: 'Immune - CA', lot_number: '11300004', expiry_date: '2026-04-05', warehouse: 'Viktor Temporarily Warehouse', quantity: 36 },
+    { product: 'Menopause - CA', lot_number: '11500002', expiry_date: '2026-07-05', warehouse: 'Viktor Temporarily Warehouse', quantity: 120 },
+    { product: 'Memory - CA', lot_number: 'UNKNOWN-11400003', expiry_date: '2026-01-24', warehouse: 'Viktor Temporarily Warehouse', quantity: 192 },
+    { product: 'Memory - INT', lot_number: 'UNKNOWN-11400004', expiry_date: '2026-08-10', warehouse: 'Viktor Temporarily Warehouse', quantity: 96 },
+  ];

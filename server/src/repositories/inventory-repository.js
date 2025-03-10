@@ -60,8 +60,7 @@ const getInventories = async ({
     'LEFT JOIN users u2 ON i.updated_by = u2.id',
     'LEFT JOIN warehouse_inventory wi ON i.id = wi.inventory_id',
     'LEFT JOIN warehouses w ON wi.warehouse_id = w.id',
-    'LEFT JOIN warehouse_inventory_lots wil ON wi.warehouse_id = wil.warehouse_id AND i.id = wil.inventory_id',
-    'LEFT JOIN warehouse_lot_status wls ON wil.status_id = wls.id',
+    'LEFT JOIN warehouse_lot_status wls ON i.status_id = wls.id',
   ];
 
   const whereClause = '1=1';
@@ -73,13 +72,12 @@ const getInventories = async ({
       i.product_id,
       COALESCE(NULLIF(p.product_name, ''), i.identifier) AS item_name,
       i.location_id,
-      l.name AS location_name,
       w.id AS warehouse_id,
-      w.name AS warehouse_name,
+      COALESCE(w.name, l.name) AS place_name,
       i.inbound_date,
       i.outbound_date,
       i.last_update,
-      wls.id AS status_id,
+      i.status_id AS status_id,
       wls.name AS status_name,
       i.status_date,
       i.created_at,
@@ -89,12 +87,37 @@ const getInventories = async ({
       wi.warehouse_fee,
       wi.reserved_quantity,
       wi.available_quantity,
-      COUNT(DISTINCT wil.id) AS total_lots,
-      COALESCE(SUM(wil.quantity), 0) AS total_lot_quantity,
-      MIN(wil.manufacture_date) AS earliest_manufacture_date,
-      MIN(wil.expiry_date) AS nearest_expiry_date
+      i.quantity AS total_lot_quantity,
+      CASE
+        WHEN i.quantity > 0 THEN MIN(wil.manufacture_date)
+        ELSE NULL
+      END AS earliest_manufacture_date,
+      
+      CASE
+          WHEN i.quantity > 0 THEN MIN(wil.expiry_date)
+          ELSE NULL
+      END AS nearest_expiry_date,
+      COALESCE(
+          (
+              SELECT wls.name
+              FROM warehouse_inventory_lots wil
+              JOIN warehouse_lot_status wls ON wil.status_id = wls.id
+              WHERE wil.inventory_id = i.id
+              ORDER BY
+                  CASE
+                      WHEN wls.name = 'expired' THEN 1
+                      WHEN wls.name = 'suspended' THEN 2
+                      WHEN wls.name = 'unavailable' THEN 3
+                      WHEN wls.name = 'in_stock' THEN 4
+                      ELSE 5
+                  END
+              LIMIT 1
+          ),
+          'unassigned'
+        ) AS display_status
     FROM ${tableName}
     ${joins.join(' ')}
+    LEFT JOIN warehouse_inventory_lots wil ON wi.warehouse_id = wil.warehouse_id AND i.id = wil.inventory_id
     GROUP BY
       i.id, p.product_name, l.name, wls.id, wls.name,
       u1.firstname, u1.lastname, u2.firstname, u2.lastname,

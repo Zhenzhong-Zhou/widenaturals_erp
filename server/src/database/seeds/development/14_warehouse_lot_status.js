@@ -5,11 +5,11 @@ const { fetchDynamicValue } = require('../03_utils');
  * @returns {Promise<void>}
  */
 exports.seed = async function (knex) {
-  const adminUserId = await fetchDynamicValue(
+  const systemActionId = await fetchDynamicValue(
     knex,
     'users',
     'email',
-    'admin@example.com',
+    'system@internal.local',
     'id'
   );
 
@@ -21,9 +21,9 @@ exports.seed = async function (knex) {
       description: 'Lot is in stock and available for use.',
       is_active: true,
       created_at: knex.fn.now(),
-      updated_at: knex.fn.now(),
-      created_by: adminUserId,
-      updated_by: adminUserId,
+      updated_at: null,
+      created_by: systemActionId,
+      updated_by: null,
     },
     {
       id: knex.raw('uuid_generate_v4()'),
@@ -31,20 +31,31 @@ exports.seed = async function (knex) {
       description: 'Lot has been fully used or sold and is now depleted.',
       is_active: true,
       created_at: knex.fn.now(),
-      updated_at: knex.fn.now(),
-      created_by: adminUserId,
-      updated_by: adminUserId,
+      updated_at: null,
+      created_by: systemActionId,
+      updated_by: null,
     },
     {
       id: knex.raw('uuid_generate_v4()'),
       name: 'unavailable',
       description:
         'Lot exists but cannot be used due to restrictions, quality checks, or pending approval.',
-      is_active: false, // Marked as inactive if it should not be selectable in normal operations
+      is_active: true,
       created_at: knex.fn.now(),
-      updated_at: knex.fn.now(),
-      created_by: adminUserId,
-      updated_by: adminUserId,
+      updated_at: null,
+      created_by: systemActionId,
+      updated_by: null,
+    },
+    {
+      id: knex.raw('uuid_generate_v4()'),
+      name: 'unassigned',
+      description:
+        'The product arrived without a proper lot assignment.',
+      is_active: true,
+      created_at: knex.fn.now(),
+      updated_at: null,
+      created_by: systemActionId,
+      updated_by: null,
     },
     {
       id: knex.raw('uuid_generate_v4()'),
@@ -53,9 +64,9 @@ exports.seed = async function (knex) {
         'Lot is completely depleted and no further stock is expected.',
       is_active: false, // Marked as inactive if no adjustments or restocking are allowed
       created_at: knex.fn.now(),
-      updated_at: knex.fn.now(),
-      created_by: adminUserId,
-      updated_by: adminUserId,
+      updated_at: null,
+      created_by: systemActionId,
+      updated_by: null,
     },
     {
       id: knex.raw('uuid_generate_v4()'),
@@ -63,9 +74,9 @@ exports.seed = async function (knex) {
       description: 'Lot is allocated for an order but not yet shipped.',
       is_active: true,
       created_at: knex.fn.now(),
-      updated_at: knex.fn.now(),
-      created_by: adminUserId,
-      updated_by: adminUserId,
+      updated_at: null,
+      created_by: systemActionId,
+      updated_by: null,
     },
     {
       id: knex.raw('uuid_generate_v4()'),
@@ -74,9 +85,9 @@ exports.seed = async function (knex) {
         'Lot is under inspection (e.g., quality check, contamination).',
       is_active: true,
       created_at: knex.fn.now(),
-      updated_at: knex.fn.now(),
-      created_by: adminUserId,
-      updated_by: adminUserId,
+      updated_at: null,
+      created_by: systemActionId,
+      updated_by: null,
     },
     {
       id: knex.raw('uuid_generate_v4()'),
@@ -84,9 +95,9 @@ exports.seed = async function (knex) {
       description: 'Lot has been damaged and needs to be removed or adjusted.',
       is_active: true,
       created_at: knex.fn.now(),
-      updated_at: knex.fn.now(),
-      created_by: adminUserId,
-      updated_by: adminUserId,
+      updated_at: null,
+      created_by: systemActionId,
+      updated_by: null,
     },
     {
       id: knex.raw('uuid_generate_v4()'),
@@ -94,9 +105,9 @@ exports.seed = async function (knex) {
       description: 'Lot has passed its expiry date.',
       is_active: true,
       created_at: knex.fn.now(),
-      updated_at: knex.fn.now(),
-      created_by: adminUserId,
-      updated_by: adminUserId,
+      updated_at: null,
+      created_by: systemActionId,
+      updated_by: null,
     },
     {
       id: knex.raw('uuid_generate_v4()'),
@@ -104,9 +115,9 @@ exports.seed = async function (knex) {
       description: 'Lot was used for production or internal purposes.',
       is_active: true,
       created_at: knex.fn.now(),
-      updated_at: knex.fn.now(),
-      created_by: adminUserId,
-      updated_by: adminUserId,
+      updated_at: null,
+      created_by: systemActionId,
+      updated_by: null,
     },
     {
       id: knex.raw('uuid_generate_v4()'),
@@ -114,9 +125,19 @@ exports.seed = async function (knex) {
       description: 'Lot was removed due to spoilage, damage, or expiry.',
       is_active: true,
       created_at: knex.fn.now(),
-      updated_at: knex.fn.now(),
-      created_by: adminUserId,
-      updated_by: adminUserId,
+      updated_at: null,
+      created_by: systemActionId,
+      updated_by: null,
+    },
+    {
+      id: knex.raw('uuid_generate_v4()'),
+      name: 'suspended',
+      description: 'Lot is temporarily blocked from sale due to pending quality checks or administrative holds.',
+      is_active: true,  // It should be selectable as an active status
+      created_at: knex.fn.now(),
+      updated_at: null,
+      created_by: systemActionId,
+      updated_by: null,
     },
   ];
 

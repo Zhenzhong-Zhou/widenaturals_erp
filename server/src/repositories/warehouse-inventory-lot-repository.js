@@ -296,7 +296,7 @@ const adjustWarehouseInventoryLots = async (records, user_id) => {
       inventoryActivityLogs.push({
         inventory_id,
         warehouse_id,
-        lot_id: null,
+        lot_id: warehouse_inventory_id,
         inventory_action_type_id: actionTypeId,
         previous_quantity: previous_quantity ?? 0,
         quantity_change: adjusted_quantity ?? 0,
@@ -529,6 +529,45 @@ const insertWarehouseInventoryLots = async (client, warehouseLots) => {
     );
   }
 };
+
+const updateStatus = async () => {
+  const text = `
+  WITH inventory_status_update AS (
+      SELECT
+        i.id AS inventory_id,
+        COALESCE(
+          (
+            SELECT wls.id FROM warehouse_inventory_lots wil
+            JOIN warehouse_lot_status wls ON wil.status_id = wls.id
+            WHERE wil.inventory_id = i.id
+            ORDER BY
+              CASE
+                WHEN wls.name = 'expired' THEN 1
+                WHEN wls.name = 'suspended' THEN 2
+                WHEN wls.name = 'unavailable' THEN 3
+                WHEN wls.name = 'in_stock' THEN 4  -- ✅ Ensure in_stock gets selected if no other higher-priority status
+                ELSE 5
+              END
+            LIMIT 1
+          ),
+          (
+            SELECT wls.id FROM warehouse_inventory_lots wil
+            JOIN warehouse_lot_status wls ON wil.status_id = wls.id
+            WHERE wil.inventory_id = i.id AND wls.name = 'in_stock'
+            LIMIT 1
+          ),
+          (
+            SELECT wls.id FROM warehouse_lot_status wls WHERE wls.name = 'unassigned' LIMIT 1
+          )
+        ) AS correct_status_id
+      FROM inventory i
+    )
+    UPDATE inventory i
+    SET status_id = isu.correct_status_id
+    FROM inventory_status_update isu
+    WHERE i.id = isu.inventory_id;
+    `
+}
 
 module.exports = {
   adjustWarehouseInventoryLots,

@@ -202,3 +202,19 @@ export const timeAgo = (date: Date | string): string => {
   const diffDays = differenceInDays(new Date(), parsedDate);
   return diffDays === 0 ? 'Today' : `${diffDays} days ago`;
 };
+
+/**
+ * Converts a date input to YYYY-MM-DD format.
+ */
+export const formatToISODate = (dateInput: any): string => {
+  if (!dateInput) return 'N/A'; // Handle null, undefined, empty
+  
+  // Convert string timestamps to Date objects
+  const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+  
+  if (!(date instanceof Date) || isNaN(date.getTime())) {
+    return 'N/A'; // Ensure valid date
+  }
+  
+  return date.toISOString().split('T')[0]; // Extract YYYY-MM-DD
+};

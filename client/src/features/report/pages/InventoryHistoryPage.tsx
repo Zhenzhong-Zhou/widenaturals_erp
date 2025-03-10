@@ -1,26 +1,26 @@
 import { FC } from "react";
-import { useAdjustmentReport } from "../../../hooks";
-import { AdjustmentReportTable, ReportPageLayout, useReportPageLogic } from '../index.ts';
+import { useInventoryHistory } from "../../../hooks";
+import { InventoryHistoryTable, ReportPageLayout, useReportPageLogic } from '../index.ts';
 import { ErrorDisplay, ErrorMessage, Loading, Typography } from '@components/index.ts';
 
-const AdjustmentReportPage: FC = () => {
-  const reportCategory = "adjustment";
+const InventoryHistoryPage: FC = () => {
+  const reportCategory = "inventory_history";
   
   const {
     data,
     loading,
     error,
     pagination,
-    fetchReport,
-    exportReport,
+    fetchInventoryHistory,
+    exportInventoryHistory,
     exportData,
     exportFormat,
     exportLoading,
     exportError,
-  } = useAdjustmentReport();
+  } = useInventoryHistory();
   
   const reportLogic = useReportPageLogic({
-    fetchData: fetchReport,
+    fetchData: fetchInventoryHistory,
     exportData,
     exportFormat,
     reportCategory,
@@ -30,7 +30,7 @@ const AdjustmentReportPage: FC = () => {
     pagination,
   });
   
-  if (loading) return <Loading message="Loading report..." />;
+  if (loading) return <Loading message="Loading inventory history..." />;
   if (error)
     return (
       <ErrorDisplay>
@@ -40,12 +40,12 @@ const AdjustmentReportPage: FC = () => {
   
   return (
     <ReportPageLayout
-      title="Adjustment Report"
-      subtitle="Warehouse & Inventory Adjustments"
+      title="Inventory History"
+      subtitle="Track inventory movements & adjustments"
       {...reportLogic}
-      fetchData={() => fetchReport(reportLogic.filters)}
+      fetchData={() => fetchInventoryHistory(reportLogic.filters)}
       exportData={() =>
-        exportReport({
+        exportInventoryHistory({
           ...reportLogic.filters,
           reportCategory: reportLogic.filters.reportCategory,
           exportFormat: reportLogic.filters.exportFormat,
@@ -53,20 +53,20 @@ const AdjustmentReportPage: FC = () => {
       }
     >
       {Array.isArray(data) && data.length > 0 ? (
-        <AdjustmentReportTable
+        <InventoryHistoryTable
           data={data}
           pagination={reportLogic.pagination}
           filters={reportLogic.filters}
           setFilters={reportLogic.setFilters}
-          fetchReport={fetchReport}
+          fetchInventoryHistory={fetchInventoryHistory}
         />
       ) : (
         <Typography variant="body1" sx={{ textAlign: 'center', padding: 2 }}>
-          No adjustment records available.
+          No inventory history records available.
         </Typography>
       )}
     </ReportPageLayout>
   );
 };
 
-export default AdjustmentReportPage;
+export default InventoryHistoryPage;

@@ -5,9 +5,8 @@ export interface InventoryItem {
   product_id: string;
   item_name: string;
   location_id: string;
-  location_name: string;
   warehouse_id: string;
-  warehouse_name: string;
+  place_name: string;
   inbound_date: string; // ISO Timestamp
   outbound_date: string | null; // ISO Timestamp or null
   last_update: string; // ISO Timestamp

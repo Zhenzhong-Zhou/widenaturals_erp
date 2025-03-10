@@ -103,9 +103,7 @@ const WarehouseInventoryDetailPage = () => {
         <ErrorMessage message={productSummaryError} />
       </ErrorDisplay>
     );
-  if (!productSummary)
-    return <Typography variant={'h4'}>No warehouse product found.</Typography>;
-
+  
   if (warehouseInventoryDetailLoading)
     return <Loading message={`Loading Warehouse Inventory Details...`} />;
   if (warehouseInventoryDetailError)
@@ -113,12 +111,6 @@ const WarehouseInventoryDetailPage = () => {
       <ErrorDisplay>
         <ErrorMessage message={warehouseInventoryDetailError} />
       </ErrorDisplay>
-    );
-  if (!warehouseInventoryDetails)
-    return (
-      <Typography variant={'h4'}>
-        No warehouse inventory records found.
-      </Typography>
     );
 
   if (isLoading) {
@@ -190,16 +182,18 @@ const WarehouseInventoryDetailPage = () => {
       </Paper>
 
       {/* Product Summary Section */}
-      {productSummary.length > 0 && (
+      {Array.isArray(productSummary) && productSummary.length > 0 ? (
         <WarehouseProductSummaryCard
           productsSummary={productSummary}
           summaryPage={productSummaryPage}
-          totalPages={productSummaryPagination.totalPages}
+          totalPages={productSummaryPagination?.totalPages || 0}
           setSummaryPage={setProductSummaryPage}
           refreshSummary={refreshProductSummary}
         />
+      ) : (
+        <Typography variant="body1" sx={{ textAlign: 'center', padding: 2 }}>No warehouse product found.</Typography>
       )}
-
+      
       {/* Inventory Details Section */}
       <Paper sx={{ padding: 2, marginTop: 3 }}>
         <WarehouseInventoryDetailTable
@@ -223,7 +217,7 @@ const WarehouseInventoryDetailPage = () => {
           setOpenDialog={setOpenDialog}
         />
       </Paper>
-
+      
       {/* Refresh Button */}
       <Box sx={{ textAlign: 'center', marginTop: 3 }}>
         <CustomButton onClick={refreshWarehouseInventoryDetails}>
