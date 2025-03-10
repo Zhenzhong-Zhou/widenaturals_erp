@@ -38,27 +38,27 @@ interface CustomTableProps<T = any> {
 }
 
 const CustomTable: FC<CustomTableProps> = ({
-                                             columns,
-                                             data,
-                                             rowsPerPageOptions = [5, 10, 25],
-                                             initialRowsPerPage = 5,
-                                             totalPages,
-                                             totalRecords,
-                                             page,
-                                             onPageChange,
-                                             onRowsPerPageChange,
-                                           }) => {
+  columns,
+  data,
+  rowsPerPageOptions = [5, 10, 25],
+  initialRowsPerPage = 5,
+  totalPages,
+  totalRecords,
+  page,
+  onPageChange,
+  onRowsPerPageChange,
+}) => {
   const [order, setOrder] = useState<'asc' | 'desc'>('asc');
   const [orderBy, setOrderBy] = useState<string | undefined>(undefined);
-  
+
   const { theme } = useThemeContext();
-  
+
   const handleSort = (columnId: string) => {
     const isAsc = orderBy === columnId && order === 'asc';
     setOrder(isAsc ? 'desc' : 'asc');
     setOrderBy(columnId);
   };
-  
+
   const sortedData = [...data].sort((a, b) => {
     if (!orderBy) return 0;
     const aValue = a[orderBy];
@@ -67,10 +67,10 @@ const CustomTable: FC<CustomTableProps> = ({
     if (aValue > bValue) return order === 'asc' ? 1 : -1;
     return 0;
   });
-  
+
   // Use totalPages directly to ensure the page stays in range
   const safePage = Math.min(page, Math.max(0, (totalPages || 1) - 1));
-  
+
   return (
     <Paper
       sx={{
@@ -133,7 +133,7 @@ const CustomTable: FC<CustomTableProps> = ({
               >
                 {/* Render row index dynamically */}
                 <TableCell align="center">
-                  {(safePage * initialRowsPerPage) + rowIndex + 1}
+                  {safePage * initialRowsPerPage + rowIndex + 1}
                 </TableCell>
                 {columns.map((column) => (
                   <TableCell

@@ -59,9 +59,7 @@ const loginUser = async (email, password) => {
       const newTotalAttempts = attempts + 1;
 
       if (!isValidPassword) {
-        logWarn(
-          'Password verification failed. Incrementing failed attempts.'
-        );
+        logWarn('Password verification failed. Incrementing failed attempts.');
 
         // Increment failed attempts and handle lockout
         await incrementFailedAttempts(

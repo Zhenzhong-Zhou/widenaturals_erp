@@ -2,17 +2,26 @@ const {
   query,
   withTransaction,
   lockRow,
-  bulkInsert, retry,
+  bulkInsert,
+  retry,
 } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logError, logWarn, logInfo } = require('../utils/logger-helper');
-const { bulkInsertInventoryActivityLogs } = require('./inventory-activity-log-repository');
+const {
+  bulkInsertInventoryActivityLogs,
+} = require('./inventory-activity-log-repository');
 const { getActionTypeId } = require('./inventory-action-type-repository');
-const { bulkInsertInventoryHistory, } = require('./inventory-history-repository');
+const {
+  bulkInsertInventoryHistory,
+} = require('./inventory-history-repository');
 const { getWarehouseLotStatus } = require('./warehouse-lot-status-repository');
 const { generateChecksum } = require('../utils/crypto-utils');
-const { getWarehouseLotAdjustmentType } = require('./lot-adjustment-type-repository');
-const { bulkInsertWarehouseLotAdjustments } = require('./warehouse-lot-adjustment-repository');
+const {
+  getWarehouseLotAdjustmentType,
+} = require('./lot-adjustment-type-repository');
+const {
+  bulkInsertWarehouseLotAdjustments,
+} = require('./warehouse-lot-adjustment-repository');
 
 /**
  * Checks if a lot exists in the warehouse inventory and locks it for update.
@@ -167,7 +176,7 @@ const adjustWarehouseInventoryLots = async (records, user_id) => {
         WHERE id = $4`,
         [new_quantity, new_status_id, user_id, warehouse_inventory_id]
       );
-      
+
       // Determine Warehouse Inventory Status Based on Lot Availability
       const { rows: warehouseStatusRows } = await client.query(
         `
@@ -239,21 +248,32 @@ const adjustWarehouseInventoryLots = async (records, user_id) => {
 
       const actionType = 'manual_adjustment';
       const actionTypeId = await getActionTypeId(client, actionType);
-      
-      const adjustmentType = await getWarehouseLotAdjustmentType(client, { id: adjustment_type_id });
-      
+
+      const adjustmentType = await getWarehouseLotAdjustmentType(client, {
+        id: adjustment_type_id,
+      });
+
       // Ensure the adjustment type exists and check the type name
       if (!adjustmentType) {
-        logWarn(`Skipping adjustment: Type ID ${adjustment_type_id} not found.`);
+        logWarn(
+          `Skipping adjustment: Type ID ${adjustment_type_id} not found.`
+        );
         continue; // Skip this entry if the adjustment type is not valid
       }
-      
+
       // Define valid adjustment types that should be recorded
       const validAdjustmentTypes = [
-        "damaged", "lost", "defective", "expired", "stolen",
-        "recalled", "adjustment", "reclassified", "conversion"
+        'damaged',
+        'lost',
+        'defective',
+        'expired',
+        'stolen',
+        'recalled',
+        'adjustment',
+        'reclassified',
+        'conversion',
       ];
-      
+
       // Check if adjustment type requires logging
       if (validAdjustmentTypes.includes(adjustmentType.name.toLowerCase())) {
         warehouseLotAdjustments.push({
@@ -268,13 +288,15 @@ const adjustWarehouseInventoryLots = async (records, user_id) => {
           comments: comments || null,
         });
       } else {
-        logInfo(`Skipping adjustment: Type "${adjustmentType.name}" does not require logging.`);
+        logInfo(
+          `Skipping adjustment: Type "${adjustmentType.name}" does not require logging.`
+        );
       }
-      
+
       inventoryActivityLogs.push({
         inventory_id,
         warehouse_id,
-        lot_id: null,
+        lot_id: warehouse_inventory_id,
         inventory_action_type_id: actionTypeId,
         previous_quantity: previous_quantity ?? 0,
         quantity_change: adjusted_quantity ?? 0,
@@ -286,7 +308,7 @@ const adjustWarehouseInventoryLots = async (records, user_id) => {
         timestamp: new Date(), // Automatically add timestamp
         comments: comments || null,
       });
-      
+
       const checksum = generateChecksum(
         inventory_id,
         actionTypeId,
@@ -297,7 +319,7 @@ const adjustWarehouseInventoryLots = async (records, user_id) => {
         user_id,
         comments
       );
-      
+
       inventoryHistoryLogs.push({
         inventory_id,
         inventory_action_type_id: actionTypeId,
@@ -314,20 +336,20 @@ const adjustWarehouseInventoryLots = async (records, user_id) => {
         created_by: user_id,
       });
     }
-    
+
     // Bulk Inserts
     if (warehouseLotAdjustments.length > 0) {
-      await bulkInsertWarehouseLotAdjustments(warehouseLotAdjustments, client)
+      await bulkInsertWarehouseLotAdjustments(warehouseLotAdjustments, client);
     }
 
     if (inventoryActivityLogs.length > 0) {
       await bulkInsertInventoryActivityLogs(inventoryActivityLogs, client);
     }
-    
+
     if (inventoryHistoryLogs.length > 0) {
       await bulkInsertInventoryHistory(inventoryHistoryLogs, client);
     }
-    
+
     return adjustedRecords;
   });
 };
@@ -354,22 +376,40 @@ const adjustWarehouseInventoryLots = async (records, user_id) => {
  * }>>} - Returns an array of warehouse inventory lot records matching the criteria, or an empty array if none are found.
  * @throws {AppError} - Throws an error if the database query fails.
  */
-const checkWarehouseInventoryLotExists = async (client, warehouseIds, inventoryData, lotDetailsArray) => {
-  if (!Array.isArray(warehouseIds) || warehouseIds.length === 0 ||
-    !Array.isArray(inventoryData) || inventoryData.length === 0 ||
-    !Array.isArray(lotDetailsArray) || lotDetailsArray.length === 0) {
+const checkWarehouseInventoryLotExists = async (
+  client,
+  warehouseIds,
+  inventoryData,
+  lotDetailsArray
+) => {
+  if (
+    !Array.isArray(warehouseIds) ||
+    warehouseIds.length === 0 ||
+    !Array.isArray(inventoryData) ||
+    inventoryData.length === 0 ||
+    !Array.isArray(lotDetailsArray) ||
+    lotDetailsArray.length === 0
+  ) {
     return [];
   }
-  
+
   // Extract inventory IDs from inventoryData objects
-  const inventoryIds = inventoryData.map(({ inventory_id }) => inventory_id).filter(Boolean);
-  
+  const inventoryIds = inventoryData
+    .map(({ inventory_id }) => inventory_id)
+    .filter(Boolean);
+
   // Extract lot details
-  const lotNumbers = lotDetailsArray.map(lot => lot.lot_number).filter(Boolean);
-  const manufactureDates = lotDetailsArray.map(lot => lot.manufacture_date).filter(Boolean);
-  const expiryDates = lotDetailsArray.map(lot => lot.expiry_date).filter(Boolean);
-  const itemTypes = lotDetailsArray.map(lot => lot.type).filter(Boolean);
-  
+  const lotNumbers = lotDetailsArray
+    .map((lot) => lot.lot_number)
+    .filter(Boolean);
+  const manufactureDates = lotDetailsArray
+    .map((lot) => lot.manufacture_date)
+    .filter(Boolean);
+  const expiryDates = lotDetailsArray
+    .map((lot) => lot.expiry_date)
+    .filter(Boolean);
+  const itemTypes = lotDetailsArray.map((lot) => lot.type).filter(Boolean);
+
   const queryText = `
     SELECT warehouse_id, inventory_id, lot_number, manufacture_date, expiry_date, id
     FROM warehouse_inventory_lots
@@ -384,22 +424,22 @@ const checkWarehouseInventoryLotExists = async (client, warehouseIds, inventoryD
       OR (inventory_id IS NOT NULL AND 'product' != ANY($6::text[]))
     );
   `;
-  
+
   const params = [
     warehouseIds,
     inventoryIds,
     lotNumbers.length > 0 ? lotNumbers : null,
     manufactureDates.length > 0 ? manufactureDates : null,
     expiryDates.length > 0 ? expiryDates : null,
-    itemTypes.length > 0 ? itemTypes : null
+    itemTypes.length > 0 ? itemTypes : null,
   ];
-  
+
   try {
     const { rows } = await client.query(queryText, params);
     return rows;
   } catch (error) {
-    logError("Error checking warehouse inventory lots:", error);
-    throw new AppError("Database query failed");
+    logError('Error checking warehouse inventory lots:', error);
+    throw new AppError('Database query failed');
   }
 };
 
@@ -424,27 +464,55 @@ const insertWarehouseInventoryLots = async (client, warehouseLots) => {
   if (!Array.isArray(warehouseLots) || warehouseLots.length === 0) {
     return [];
   }
-  
+
   try {
     const columns = [
-      "warehouse_id", "inventory_id", "lot_number", "quantity",
-      "expiry_date", "manufacture_date", "outbound_date", "status_id", "created_by",
-      "updated_at", "updated_by"
+      'warehouse_id',
+      'inventory_id',
+      'lot_number',
+      'quantity',
+      'expiry_date',
+      'manufacture_date',
+      'outbound_date',
+      'status_id',
+      'created_by',
+      'updated_at',
+      'updated_by',
     ];
-    
-    const rows = warehouseLots.map(({ warehouse_id, inventory_id, lot_number, quantity, expiry_date, manufacture_date, status_id, created_by }) => [
-      warehouse_id, inventory_id, lot_number, quantity, expiry_date, manufacture_date, null, status_id, created_by,
-      null, null
-    ]);
-    
+
+    const rows = warehouseLots.map(
+      ({
+        warehouse_id,
+        inventory_id,
+        lot_number,
+        quantity,
+        expiry_date,
+        manufacture_date,
+        status_id,
+        created_by,
+      }) => [
+        warehouse_id,
+        inventory_id,
+        lot_number,
+        quantity,
+        expiry_date,
+        manufacture_date,
+        null,
+        status_id,
+        created_by,
+        null,
+        null,
+      ]
+    );
+
     // Step 1: Bulk Insert with Retry and Conflict Handling
     return await retry(
       () =>
         bulkInsert(
-          "warehouse_inventory_lots",
+          'warehouse_inventory_lots',
           columns,
           rows,
-          ["warehouse_id", "inventory_id", "lot_number"], // Conflict columns
+          ['warehouse_id', 'inventory_id', 'lot_number'], // Conflict columns
           [], // DO NOTHING on conflict
           client
         ),
@@ -452,12 +520,54 @@ const insertWarehouseInventoryLots = async (client, warehouseLots) => {
       1000 // Initial delay of 1s, with exponential backoff
     );
   } catch (error) {
-    logError("Error inserting warehouse inventory lots:", error);
-    throw new AppError.databaseError("Failed to insert warehouse inventory lots.", {
-      details: { error: error.message, warehouseLots },
-    });
+    logError('Error inserting warehouse inventory lots:', error);
+    throw new AppError.databaseError(
+      'Failed to insert warehouse inventory lots.',
+      {
+        details: { error: error.message, warehouseLots },
+      }
+    );
   }
 };
+
+const updateStatus = async () => {
+  const text = `
+  WITH inventory_status_update AS (
+      SELECT
+        i.id AS inventory_id,
+        COALESCE(
+          (
+            SELECT wls.id FROM warehouse_inventory_lots wil
+            JOIN warehouse_lot_status wls ON wil.status_id = wls.id
+            WHERE wil.inventory_id = i.id
+            ORDER BY
+              CASE
+                WHEN wls.name = 'expired' THEN 1
+                WHEN wls.name = 'suspended' THEN 2
+                WHEN wls.name = 'unavailable' THEN 3
+                WHEN wls.name = 'in_stock' THEN 4  -- ✅ Ensure in_stock gets selected if no other higher-priority status
+                ELSE 5
+              END
+            LIMIT 1
+          ),
+          (
+            SELECT wls.id FROM warehouse_inventory_lots wil
+            JOIN warehouse_lot_status wls ON wil.status_id = wls.id
+            WHERE wil.inventory_id = i.id AND wls.name = 'in_stock'
+            LIMIT 1
+          ),
+          (
+            SELECT wls.id FROM warehouse_lot_status wls WHERE wls.name = 'unassigned' LIMIT 1
+          )
+        ) AS correct_status_id
+      FROM inventory i
+    )
+    UPDATE inventory i
+    SET status_id = isu.correct_status_id
+    FROM inventory_status_update isu
+    WHERE i.id = isu.inventory_id;
+    `
+}
 
 module.exports = {
   adjustWarehouseInventoryLots,

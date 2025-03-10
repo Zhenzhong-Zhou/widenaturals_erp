@@ -1,4 +1,4 @@
-import { createSlice } from "@reduxjs/toolkit";
+import { createSlice } from '@reduxjs/toolkit';
 import { WarehouseInventoryInsertResponse } from './warehouseInventoryTypes.ts';
 import { fetchInsertedInventoryRecordsThunk } from './warehouseInventoryThunks.ts';
 
@@ -15,7 +15,7 @@ const initialState: InsertedInventoryState = {
 };
 
 const insertedInventorySlice = createSlice({
-  name: "insertedInventoryRecordsResponse",
+  name: 'insertedInventoryRecordsResponse',
   initialState,
   reducers: {
     resetInsertedInventory: (state) => {
@@ -30,13 +30,16 @@ const insertedInventorySlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchInsertedInventoryRecordsThunk.fulfilled, (state, action) => {
-        state.loading = false;
-        state.data = action.payload;
-      })
+      .addCase(
+        fetchInsertedInventoryRecordsThunk.fulfilled,
+        (state, action) => {
+          state.loading = false;
+          state.data = action.payload;
+        }
+      )
       .addCase(fetchInsertedInventoryRecordsThunk.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload || "Something went wrong.";
+        state.error = action.payload || 'Something went wrong.';
       });
   },
 });

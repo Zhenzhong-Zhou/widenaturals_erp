@@ -204,7 +204,7 @@ const incrementFailedAttempts = async (
       const authId = await getAuthIdByUserId(client, userId);
       // Lock the user's row to ensure consistency during the update
       await lockRow(client, 'user_auth', authId);
-      
+
       // Execute the update query
       await query(
         sql,

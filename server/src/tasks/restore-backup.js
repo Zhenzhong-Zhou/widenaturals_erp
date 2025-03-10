@@ -49,7 +49,7 @@ const dbUser = process.env.DB_USER;
 
     logInfo('Decrypting backup file...');
     await decryptFile(encryptedFile, decryptedFile, encryptionKey, ivFile);
-    
+
     logInfo('Restoring database from decrypted file...');
     await restoreDatabase(decryptedFile, databaseName, dbUser);
 

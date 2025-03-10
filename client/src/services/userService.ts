@@ -2,10 +2,7 @@ import axiosInstance from '@utils/axiosConfig.ts';
 import { clearTokens } from '@utils/tokenManager.ts';
 import { handleError, mapErrorMessage } from '@utils/errorUtils.ts';
 import { AppError, ErrorType } from '@utils/AppError.tsx';
-import {
-  UserProfileResponse,
-  UseUsersResponse,
-} from '../features/user';
+import { UserProfileResponse, UseUsersResponse } from '../features/user';
 import { isCustomAxiosError } from '@utils/axiosUtils.ts';
 import { withTimeout } from '@utils/timeoutUtils.ts';
 import { withRetry } from '@utils/retryUtils.ts';

@@ -4,7 +4,9 @@ const {
 const { logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
 const wrapAsync = require('../utils/wrap-async');
-const { fetchRecentInsertWarehouseInventoryRecords } = require('../services/inventory-service');
+const {
+  fetchRecentInsertWarehouseInventoryRecords,
+} = require('../services/inventory-service');
 
 /**
  * API route to adjust inventory.
@@ -66,20 +68,23 @@ const adjustWarehouseInventoryLotsController = wrapAsync(
   }
 );
 
-const insertInventoryRecordResponseController = wrapAsync(async (req, res, next) => {
-  try {
-    const { warehouseLotIds } = req.body;
-    
-    const inventoryRecords = await fetchRecentInsertWarehouseInventoryRecords(warehouseLotIds);
-    
-    return res.json({ success: true, data: inventoryRecords });
-  } catch (error) {
-    logError("Error fetching grouped warehouse inventory:", error);
-    next(error);
+const insertInventoryRecordResponseController = wrapAsync(
+  async (req, res, next) => {
+    try {
+      const { warehouseLotIds } = req.body;
+
+      const inventoryRecords =
+        await fetchRecentInsertWarehouseInventoryRecords(warehouseLotIds);
+
+      return res.json({ success: true, data: inventoryRecords });
+    } catch (error) {
+      logError('Error fetching grouped warehouse inventory:', error);
+      next(error);
+    }
   }
-});
+);
 
 module.exports = {
   adjustWarehouseInventoryLotsController,
-  insertInventoryRecordResponseController
+  insertInventoryRecordResponseController,
 };

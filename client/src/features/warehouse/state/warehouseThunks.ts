@@ -1,5 +1,8 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { WarehouseDetailsResponse, WarehouseResponse } from './warehouseTypes.ts';
+import {
+  WarehouseDetailsResponse,
+  WarehouseResponse,
+} from './warehouseTypes.ts';
 import { warehouseService } from '../../../services';
 
 // Define API Thunk
@@ -21,16 +24,13 @@ export const fetchWarehousesThunk = createAsyncThunk<
 export const fetchWarehouseDetailsThunk = createAsyncThunk<
   WarehouseDetailsResponse,
   { warehouseId: string }
->(
-  "warehouse/fetchDetails",
-  async ({ warehouseId }, { rejectWithValue }) => {
-    try {
-      const data = await warehouseService.fetchWarehouseDetails(warehouseId);
-      if (!data) throw new Error("No data received");
-      return data;
-    } catch (error) {
-      console.error("Error fetching warehouse details:", error);
-      return rejectWithValue("Failed to fetch warehouse details.");
-    }
+>('warehouse/fetchDetails', async ({ warehouseId }, { rejectWithValue }) => {
+  try {
+    const data = await warehouseService.fetchWarehouseDetails(warehouseId);
+    if (!data) throw new Error('No data received');
+    return data;
+  } catch (error) {
+    console.error('Error fetching warehouse details:', error);
+    return rejectWithValue('Failed to fetch warehouse details.');
   }
-);
+});

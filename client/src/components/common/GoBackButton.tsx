@@ -1,14 +1,14 @@
-import { FC } from "react";
-import { useNavigate } from "react-router-dom";
-import { CustomButton } from "@components/index.ts";
+import { FC } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { CustomButton } from '@components/index.ts';
 
 interface GoBackButtonProps {
   label?: string;
 }
 
-const GoBackButton: FC<GoBackButtonProps> = ({ label = "Go Back" }) => {
+const GoBackButton: FC<GoBackButtonProps> = ({ label = 'Go Back' }) => {
   const navigate = useNavigate();
-  
+
   return (
     <CustomButton
       variant="contained"

@@ -41,7 +41,7 @@ const insertWarehouseLotAdjustment = async (
     VALUES ($1, $2, $3, $4, $5, NOW(), $6, $7, $8)
     RETURNING id;
   `;
-  
+
   const values = [
     warehouse_inventory_lot_id,
     adjustment_type_id,
@@ -52,7 +52,7 @@ const insertWarehouseLotAdjustment = async (
     status_id,
     comments,
   ];
-  
+
   try {
     // Use the query function instead of pool.query
     return await retry(
@@ -81,24 +81,26 @@ const insertWarehouseLotAdjustment = async (
  */
 const bulkInsertWarehouseLotAdjustments = async (adjustments, client) => {
   if (!Array.isArray(adjustments) || adjustments.length === 0) {
-    throw new AppError.validationError("No warehouse lot adjustments provided for bulk insert.");
+    throw new AppError.validationError(
+      'No warehouse lot adjustments provided for bulk insert.'
+    );
   }
-  
-  const tableName = "warehouse_lot_adjustments";
+
+  const tableName = 'warehouse_lot_adjustments';
   const columns = [
-    "warehouse_inventory_lot_id",
-    "adjustment_type_id",
-    "previous_quantity",
-    "adjusted_quantity",
-    "new_quantity",
-    "status_id",
-    "adjusted_by",
-    "adjustment_date",
-    "comments",
+    'warehouse_inventory_lot_id',
+    'adjustment_type_id',
+    'previous_quantity',
+    'adjusted_quantity',
+    'new_quantity',
+    'status_id',
+    'adjusted_by',
+    'adjustment_date',
+    'comments',
   ];
-  
+
   // Convert adjustments into a nested array of values for bulk insert
-  const rows = adjustments.map(adj => [
+  const rows = adjustments.map((adj) => [
     adj.warehouse_inventory_id,
     adj.adjustment_type_id,
     adj.previous_quantity,
@@ -109,26 +111,30 @@ const bulkInsertWarehouseLotAdjustments = async (adjustments, client) => {
     adj.adjustment_date || new Date(),
     adj.comments || null,
   ]);
-  
+
   try {
     // Step 1: Retry Bulk Insert (3 Attempts with Exponential Backoff)
     return await retry(
-      () => bulkInsert(
-        tableName,
-        columns,
-        rows,
-        ["warehouse_inventory_lot_id", "adjustment_date"], // Unique conflict constraint
-        ["new_quantity"], // Update these columns on conflict
-        client
-      ),
+      () =>
+        bulkInsert(
+          tableName,
+          columns,
+          rows,
+          ['warehouse_inventory_lot_id', 'adjustment_date'], // Unique conflict constraint
+          ['new_quantity'], // Update these columns on conflict
+          client
+        ),
       3, // Retry up to 3 times
       1000 // Initial delay of 1s, with exponential backoff
     );
   } catch (error) {
-    logError("Error inserting warehouse lot adjustments:", error.message);
-    throw new AppError.databaseError("Failed to insert warehouse lot adjustments.", {
-      details: { error: error.message, adjustments },
-    });
+    logError('Error inserting warehouse lot adjustments:', error.message);
+    throw new AppError.databaseError(
+      'Failed to insert warehouse lot adjustments.',
+      {
+        details: { error: error.message, adjustments },
+      }
+    );
   }
 };
 

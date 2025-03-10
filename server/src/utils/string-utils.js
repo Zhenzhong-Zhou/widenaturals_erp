@@ -10,7 +10,7 @@ const { isUUID } = require('./id-utils');
 const formatHeader = (key) => {
   return key
     .split('_') // Split by underscore
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1)) // Capitalize first letter
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1)) // Capitalize first letter
     .join(' '); // Rejoin as a readable string
 };
 
@@ -27,14 +27,14 @@ const processHeaders = (data) => {
   if (!Array.isArray(data) || data.length === 0) {
     throw new Error('Data is empty or invalid'); // Throw an error instead of returning 'No data available'
   }
-  
+
   const columnMap = Object.keys(data[0])
-    .filter(key => !isUUID(data[0][key]) && key !== 'id') // Remove ID and UUID fields
+    .filter((key) => !isUUID(data[0][key]) && key !== 'id') // Remove ID and UUID fields
     .reduce((acc, key) => {
       acc[formatHeader(key)] = key; // Map formatted header -> original key
       return acc;
     }, {});
-  
+
   return {
     formattedHeaders: Object.keys(columnMap), // Get formatted column names
     columnMap, // Mapping of formatted headers to original keys
@@ -55,5 +55,5 @@ const convertToKey = (formattedHeader) => {
 module.exports = {
   formatHeader,
   processHeaders,
-  convertToKey
+  convertToKey,
 };

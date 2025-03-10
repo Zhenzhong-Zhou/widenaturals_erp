@@ -15,28 +15,33 @@ const { logError } = require('../utils/logger-helper');
  */
 const getActionTypeId = async (client, actionTypeName) => {
   if (!actionTypeName) {
-    throw new AppError.validationError("Action type name must be provided.");
+    throw new AppError.validationError('Action type name must be provided.');
   }
-  
+
   try {
-    return await retry(async () => {
-      const queryText = `SELECT id FROM inventory_action_types WHERE name = $1 LIMIT 1;`;
-      const params = [actionTypeName];
-      
-      const { rows } = client
-        ? await client.query(queryText, params) // Use transaction client if available
-        : await query(queryText, params); // Use default pool query otherwise
-      
-      if (!rows.length) {
-        throw new AppError.notFoundError(`Inventory action type "${actionTypeName}" not found.`);
-      }
-      
-      return rows[0].id;
-    }, 3, 1000); // Retries up to 3 times with exponential backoff
-    
+    return await retry(
+      async () => {
+        const queryText = `SELECT id FROM inventory_action_types WHERE name = $1 LIMIT 1;`;
+        const params = [actionTypeName];
+
+        const { rows } = client
+          ? await client.query(queryText, params) // Use transaction client if available
+          : await query(queryText, params); // Use default pool query otherwise
+
+        if (!rows.length) {
+          throw new AppError.notFoundError(
+            `Inventory action type "${actionTypeName}" not found.`
+          );
+        }
+
+        return rows[0].id;
+      },
+      3,
+      1000
+    ); // Retries up to 3 times with exponential backoff
   } catch (error) {
     logError(`Error fetching action type ID for "${actionTypeName}":`, error);
-    throw new AppError.databaseError("Failed to fetch inventory action type.", {
+    throw new AppError.databaseError('Failed to fetch inventory action type.', {
       details: { actionTypeName, error: error.message },
     });
   }

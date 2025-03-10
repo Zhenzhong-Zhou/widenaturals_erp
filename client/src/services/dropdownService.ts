@@ -1,16 +1,21 @@
 import axiosInstance from '@utils/axiosConfig.ts';
 import { API_ENDPOINTS } from './apiEndponits.ts';
-import { ProductDropdownItem, WarehouseDropdownItem } from '../features/warehouse-inventory';
+import {
+  ProductDropdownItem,
+  WarehouseDropdownItem,
+} from '../features/warehouse-inventory';
 
 /**
  * Fetch active products for dropdown
  */
-const fetchProductsForDropdown = async (warehouseId?: string): Promise<ProductDropdownItem[]> => {
+const fetchProductsForDropdown = async (
+  warehouseId?: string
+): Promise<ProductDropdownItem[]> => {
   if (!warehouseId) {
     console.warn('Warning: No warehouse ID provided, returning empty list.');
     return [];
   }
-  
+
   try {
     const response = await axiosInstance.get<ProductDropdownItem[]>(
       `${API_ENDPOINTS.PRODUCTS_DROPDOWN}?warehouse_id=${warehouseId}`
@@ -25,9 +30,13 @@ const fetchProductsForDropdown = async (warehouseId?: string): Promise<ProductDr
 /**
  * Fetch active warehouses for dropdown
  */
-const fetchWarehousesForDropdown = async (): Promise<WarehouseDropdownItem[]> => {
+const fetchWarehousesForDropdown = async (): Promise<
+  WarehouseDropdownItem[]
+> => {
   try {
-    const response = await axiosInstance.get<WarehouseDropdownItem[]>(API_ENDPOINTS.WAREHOUSES_DROPDOWN);
+    const response = await axiosInstance.get<WarehouseDropdownItem[]>(
+      API_ENDPOINTS.WAREHOUSES_DROPDOWN
+    );
     return response.data;
   } catch (error) {
     console.error('Error fetching warehouse dropdown:', error);
@@ -37,5 +46,5 @@ const fetchWarehousesForDropdown = async (): Promise<WarehouseDropdownItem[]> =>
 
 export const dropdownService = {
   fetchProductsForDropdown,
-  fetchWarehousesForDropdown
+  fetchWarehousesForDropdown,
 };

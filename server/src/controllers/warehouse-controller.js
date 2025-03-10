@@ -1,7 +1,9 @@
 const wrapAsync = require('../utils/wrap-async');
 const {
   fetchAllWarehouses,
-  fetchWarehouseInventorySummary, fetchWarehouseDropdownList, fetchWarehouseDetails,
+  fetchWarehouseInventorySummary,
+  fetchWarehouseDropdownList,
+  fetchWarehouseDetails,
 } = require('../services/warehouse-service');
 
 /**
@@ -31,13 +33,13 @@ const getAllWarehousesController = wrapAsync(async (req, res) => {
 const getWarehouseInfoController = wrapAsync(async (req, res, next) => {
   try {
     const { id } = req.params;
-    
+
     const warehouseDetails = await fetchWarehouseDetails(id);
-    
+
     res.status(200).json({
       success: true,
       message: 'Warehouse details retrieved successfully',
-      data: warehouseDetails
+      data: warehouseDetails,
     });
   } catch (error) {
     next(error);

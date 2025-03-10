@@ -16,14 +16,8 @@ exports.up = async function (knex) {
     table.timestamp('status_date', { useTz: true }).defaultTo(knex.fn.now());
     table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
     table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
-    table
-      .uuid('created_by')
-      .references('id')
-      .inTable('users');
-    table
-      .uuid('updated_by')
-      .references('id')
-      .inTable('users');
+    table.uuid('created_by').references('id').inTable('users');
+    table.uuid('updated_by').references('id').inTable('users');
 
     // Index for better performance
     table.index(['name', 'location_type_id'], 'idx_locations_name_type');

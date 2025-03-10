@@ -10,7 +10,14 @@ interface DropdownProps {
   sx?: object;
 }
 
-const Dropdown: FC<DropdownProps> = ({ label, options, value, onChange, searchable = false, sx }) => {
+const Dropdown: FC<DropdownProps> = ({
+  label,
+  options,
+  value,
+  onChange,
+  searchable = false,
+  sx,
+}) => {
   return (
     <Box sx={{ minWidth: '200px', width: '100%', ...sx }}>
       <Autocomplete
@@ -18,7 +25,9 @@ const Dropdown: FC<DropdownProps> = ({ label, options, value, onChange, searchab
         getOptionLabel={(option) => option.label}
         value={options.find((option) => option.value === value) || null}
         onChange={(_, newValue) => onChange(newValue?.value || '')}
-        renderInput={(params) => <TextField {...params} label={label} variant="outlined" />}
+        renderInput={(params) => (
+          <TextField {...params} label={label} variant="outlined" />
+        )}
         disableClearable={!searchable}
         filterSelectedOptions
       />

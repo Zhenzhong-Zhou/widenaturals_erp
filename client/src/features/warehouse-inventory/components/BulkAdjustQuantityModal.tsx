@@ -269,8 +269,8 @@ const BulkAdjustQuantityModal: FC<BulkAdjustQuantityModalProps> = ({
                           {...field}
                           label="Comment (Optional)"
                           fullWidth
-                          multiline  // Enables textarea mode
-                          rows={4}   // Allows more space for user input
+                          multiline // Enables textarea mode
+                          rows={4} // Allows more space for user input
                           placeholder="Enter comments here..." // Improves UX
                         />
                       )}

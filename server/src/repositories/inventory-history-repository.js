@@ -92,28 +92,30 @@ const insertInventoryHistoryLog = async (
  */
 const bulkInsertInventoryHistory = async (historyRecords, client) => {
   if (!Array.isArray(historyRecords) || historyRecords.length === 0) {
-    throw new AppError.validationError("No inventory history records provided for bulk insert.");
+    throw new AppError.validationError(
+      'No inventory history records provided for bulk insert.'
+    );
   }
-  
-  const tableName = "inventory_history";
+
+  const tableName = 'inventory_history';
   const columns = [
-    "inventory_id",
-    "inventory_action_type_id",
-    "previous_quantity",
-    "quantity_change",
-    "new_quantity",
-    "status_id",
-    "status_date",
-    "source_action_id",
-    "comments",
-    "checksum",
-    "metadata",
-    "created_at",
-    "created_by",
+    'inventory_id',
+    'inventory_action_type_id',
+    'previous_quantity',
+    'quantity_change',
+    'new_quantity',
+    'status_id',
+    'status_date',
+    'source_action_id',
+    'comments',
+    'checksum',
+    'metadata',
+    'created_at',
+    'created_by',
   ];
-  
+
   // Convert records into a nested array of values
-  const rows = historyRecords.map(record => [
+  const rows = historyRecords.map((record) => [
     record.inventory_id,
     record.inventory_action_type_id,
     record.previous_quantity,
@@ -128,7 +130,7 @@ const bulkInsertInventoryHistory = async (historyRecords, client) => {
     new Date(), // created_at (use current timestamp)
     record.created_by,
   ]);
-  
+
   try {
     return await retry(
       () => bulkInsert(tableName, columns, rows, [], [], client),
@@ -136,7 +138,7 @@ const bulkInsertInventoryHistory = async (historyRecords, client) => {
       1000 // Initial delay of 1 second (exponential backoff applied)
     );
   } catch (error) {
-    logError("Error inserting bulk inventory history:", error.message);
+    logError('Error inserting bulk inventory history:', error.message);
     throw error;
   }
 };

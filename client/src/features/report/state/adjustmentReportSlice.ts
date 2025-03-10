@@ -1,8 +1,11 @@
-import { createSlice } from '@reduxjs/toolkit';
-import { fetchAdjustmentReportThunk, exportAdjustmentReportThunk } from './reportThunks.ts';
-import { ReportState } from './reportTypes.ts';
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import {
+  fetchAdjustmentReportThunk,
+  exportAdjustmentReportThunk,
+} from './reportThunks.ts';
+import { AdjustmentReportState, PaginatedAdjustmentReportResponse } from './reportTypes.ts';
 
-const initialState: ReportState = {
+const initialState: AdjustmentReportState = {
   data: [], // Holds paginated data for UI
   exportData: null, // Stores exported file data
   exportFormat: null, // Tracks export type (CSV, PDF, etc.)
@@ -29,27 +32,16 @@ const adjustmentReportSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchAdjustmentReportThunk.fulfilled, (state, action) => {
+      .addCase(fetchAdjustmentReportThunk.fulfilled, (state, action: PayloadAction<PaginatedAdjustmentReportResponse>) => {
         state.loading = false;
-        
-        // Ensure response is of correct type (Paginated Data)
-        if ('data' in action.payload && 'pagination' in action.payload) {
-          state.data = action.payload.data || [];
-          state.pagination = action.payload.pagination || {
-            page: 1,
-            limit: 50,
-            totalRecords: 0,
-            totalPages: 1,
-          };
-        } else {
-          console.warn('Unexpected payload type:', action.payload);
-        }
+        state.data = action.payload.data;
+        state.pagination = action.payload.pagination;
       })
       .addCase(fetchAdjustmentReportThunk.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });
-    
+
     // Export Report Handling (CSV, PDF, TXT)
     builder
       .addCase(exportAdjustmentReportThunk.pending, (state, action) => {
@@ -59,7 +51,7 @@ const adjustmentReportSlice = createSlice({
       })
       .addCase(exportAdjustmentReportThunk.fulfilled, (state, action) => {
         state.exportLoading = false;
-        
+
         // Ensure response is a Blob before storing it
         if (action.payload instanceof Blob) {
           state.exportData = action.payload; // Store the exported file as a Blob

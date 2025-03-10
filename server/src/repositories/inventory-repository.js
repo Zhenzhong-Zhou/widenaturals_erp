@@ -1,7 +1,17 @@
-const { query, paginateQuery, retry, bulkInsert, lockRow, withTransaction, formatBulkUpdateQuery } = require('../database/db');
+const {
+  query,
+  paginateQuery,
+  retry,
+  bulkInsert,
+  lockRow,
+  withTransaction,
+  formatBulkUpdateQuery,
+} = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logInfo, logError, logWarn } = require('../utils/logger-helper');
-const { insertWarehouseInventoryLots } = require('./warehouse-inventory-lot-repository');
+const {
+  insertWarehouseInventoryLots,
+} = require('./warehouse-inventory-lot-repository');
 
 /**
  * Fetch all inventory items with pagination & sorting.
@@ -13,36 +23,36 @@ const { insertWarehouseInventoryLots } = require('./warehouse-inventory-lot-repo
  * @returns {Promise<{ data: Array, pagination: Object }>} Inventory data with pagination info
  */
 const getInventories = async ({
-                                page = 1,
-                                limit = 10,
-                                sortBy,
-                                sortOrder,
-                              } = {}) => {
+  page = 1,
+  limit = 10,
+  sortBy,
+  sortOrder,
+} = {}) => {
   const validSortColumns = [
-    'product_name',       // Sort by product name
-    'location_name',      // Sort by location name
-    'item_type',          // Sort by item type
-    'lot_number',         // Sort by lot number (for batch tracking)
+    'product_name', // Sort by product name
+    'location_name', // Sort by location name
+    'item_type', // Sort by item type
+    'lot_number', // Sort by lot number (for batch tracking)
     'available_quantity', // Sort by available quantity
-    'reserved_quantity',  // Sort by reserved quantity
-    'warehouse_fee',      // Sort by storage fee
-    'status_id',          // Sort by warehouse lot status
-    'status_date',        // Sort by last status update
-    'inbound_date',       // Sort by when the item was received
-    'outbound_date',      // Sort by when the item was shipped out
-    'last_update',        // Sort by the last modified date
-    'created_at',         // Sort by record creation time
-    'updated_at',         // Sort by record last updated time
+    'reserved_quantity', // Sort by reserved quantity
+    'warehouse_fee', // Sort by storage fee
+    'status_id', // Sort by warehouse lot status
+    'status_date', // Sort by last status update
+    'inbound_date', // Sort by when the item was received
+    'outbound_date', // Sort by when the item was shipped out
+    'last_update', // Sort by the last modified date
+    'created_at', // Sort by record creation time
+    'updated_at', // Sort by record last updated time
   ];
-  
+
   let defaultSortBy = 'location_id, created_at';
-  
+
   if (!validSortColumns.includes(sortBy)) {
     sortBy = defaultSortBy;
   }
-  
+
   const tableName = 'inventory i';
-  
+
   const joins = [
     'LEFT JOIN products p ON i.product_id = p.id',
     'LEFT JOIN locations l ON i.location_id = l.id',
@@ -50,12 +60,11 @@ const getInventories = async ({
     'LEFT JOIN users u2 ON i.updated_by = u2.id',
     'LEFT JOIN warehouse_inventory wi ON i.id = wi.inventory_id',
     'LEFT JOIN warehouses w ON wi.warehouse_id = w.id',
-    'LEFT JOIN warehouse_inventory_lots wil ON wi.warehouse_id = wil.warehouse_id AND i.id = wil.inventory_id',
-    'LEFT JOIN warehouse_lot_status wls ON wil.status_id = wls.id'
+    'LEFT JOIN warehouse_lot_status wls ON i.status_id = wls.id',
   ];
-  
+
   const whereClause = '1=1';
-  
+
   const text = `
     SELECT
       i.id AS inventory_id,
@@ -63,13 +72,12 @@ const getInventories = async ({
       i.product_id,
       COALESCE(NULLIF(p.product_name, ''), i.identifier) AS item_name,
       i.location_id,
-      l.name AS location_name,
       w.id AS warehouse_id,
-      w.name AS warehouse_name,
+      COALESCE(w.name, l.name) AS place_name,
       i.inbound_date,
       i.outbound_date,
       i.last_update,
-      wls.id AS status_id,
+      i.status_id AS status_id,
       wls.name AS status_name,
       i.status_date,
       i.created_at,
@@ -79,18 +87,43 @@ const getInventories = async ({
       wi.warehouse_fee,
       wi.reserved_quantity,
       wi.available_quantity,
-      COUNT(DISTINCT wil.id) AS total_lots,
-      COALESCE(SUM(wil.quantity), 0) AS total_lot_quantity,
-      MIN(wil.manufacture_date) AS earliest_manufacture_date,
-      MIN(wil.expiry_date) AS nearest_expiry_date
+      i.quantity AS total_lot_quantity,
+      CASE
+        WHEN i.quantity > 0 THEN MIN(wil.manufacture_date)
+        ELSE NULL
+      END AS earliest_manufacture_date,
+      
+      CASE
+          WHEN i.quantity > 0 THEN MIN(wil.expiry_date)
+          ELSE NULL
+      END AS nearest_expiry_date,
+      COALESCE(
+          (
+              SELECT wls.name
+              FROM warehouse_inventory_lots wil
+              JOIN warehouse_lot_status wls ON wil.status_id = wls.id
+              WHERE wil.inventory_id = i.id
+              ORDER BY
+                  CASE
+                      WHEN wls.name = 'expired' THEN 1
+                      WHEN wls.name = 'suspended' THEN 2
+                      WHEN wls.name = 'unavailable' THEN 3
+                      WHEN wls.name = 'in_stock' THEN 4
+                      ELSE 5
+                  END
+              LIMIT 1
+          ),
+          'unassigned'
+        ) AS display_status
     FROM ${tableName}
     ${joins.join(' ')}
+    LEFT JOIN warehouse_inventory_lots wil ON wi.warehouse_id = wil.warehouse_id AND i.id = wil.inventory_id
     GROUP BY
       i.id, p.product_name, l.name, wls.id, wls.name,
       u1.firstname, u1.lastname, u2.firstname, u2.lastname,
       wi.warehouse_fee, wi.reserved_quantity, wi.available_quantity, w.id, w.name
   `;
-  
+
   try {
     return await retry(async () => {
       return await paginateQuery({
@@ -122,7 +155,7 @@ const getInventories = async ({
 const getInventoryId = async (client, productId, identifier) => {
   let queryText;
   let params = [];
-  
+
   if (productId) {
     queryText = `
       SELECT id AS inventory_id
@@ -142,13 +175,13 @@ const getInventoryId = async (client, productId, identifier) => {
   } else {
     return null; // No valid input provided
   }
-  
+
   try {
     const { rows } = await client.query(queryText, params);
     return rows.length > 0 ? rows[0].inventory_id : null;
   } catch (error) {
-    logError("Error fetching inventory ID:", error);
-    throw new AppError("Database query failed");
+    logError('Error fetching inventory ID:', error);
+    throw new AppError('Database query failed');
   }
 };
 
@@ -163,19 +196,19 @@ const getInventoryId = async (client, productId, identifier) => {
  */
 const checkInventoryExists = async (inventoryItems) => {
   if (!Array.isArray(inventoryItems) || inventoryItems.length === 0) return [];
-  
+
   let locationIds = new Set();
   let productIds = new Set();
   let identifiers = new Set();
-  
+
   inventoryItems.forEach(({ location_id, product_id, identifier }) => {
     if (location_id) locationIds.add(location_id);
     if (product_id) productIds.add(product_id);
     if (identifier) identifiers.add(identifier);
   });
-  
+
   if (locationIds.size === 0) return []; // Ensure at least one location_id exists
-  
+
   let queryText = `
     SELECT id, location_id, product_id, identifier
     FROM inventory
@@ -185,18 +218,18 @@ const checkInventoryExists = async (inventoryItems) => {
       OR ($3::uuid[] IS NOT NULL AND CARDINALITY($3::uuid[]) > 0 AND product_id = ANY($3::uuid[]))
     )
   `;
-  
+
   let params = [
     Array.from(locationIds),
     identifiers.size > 0 ? Array.from(identifiers) : [],
-    productIds.size > 0 ? Array.from(productIds) : null // Ensure it does not pass an empty array
+    productIds.size > 0 ? Array.from(productIds) : null, // Ensure it does not pass an empty array
   ];
-  
+
   try {
     const { rows } = await query(queryText, params);
     return rows;
   } catch (error) {
-    logError("Error checking inventory existence:", error);
+    logError('Error checking inventory existence:', error);
     throw error;
   }
 };
@@ -210,23 +243,23 @@ const checkInventoryExists = async (inventoryItems) => {
  */
 const checkAndLockInventory = async (client, inventoryItems, lockMode) => {
   if (!inventoryItems || inventoryItems.length === 0) return [];
-  
+
   // Step 1: Check existing inventory
   const existingInventory = await checkInventoryExists(inventoryItems);
-  
+
   if (existingInventory.length === 0) {
-    logWarn("No existing inventory records found. Proceeding with inserts.");
+    logWarn('No existing inventory records found. Proceeding with inserts.');
     return [];
   }
-  
+
   logInfo(`Locking ${existingInventory.length} existing inventory records...`);
-  
+
   // Step 2: Lock existing rows
   const lockedRecords = [];
   for (const item of existingInventory) {
-    const table = "inventory"; // Inventory table
+    const table = 'inventory'; // Inventory table
     let inventoryId = null;
-    
+
     if (item.product_id) {
       // Use product_id directly to find inventory
       inventoryId = item.id;
@@ -239,7 +272,7 @@ const checkAndLockInventory = async (client, inventoryItems, lockMode) => {
       logError(`Invalid inventory ID for item:`, item);
       continue; // Skip if inventoryId is still null
     }
-    
+
     // Now lock the row using inventoryId
     try {
       const lockedRow = await lockRow(client, table, inventoryId, lockMode);
@@ -249,7 +282,7 @@ const checkAndLockInventory = async (client, inventoryItems, lockMode) => {
       throw error;
     }
   }
-  
+
   return lockedRecords;
 };
 
@@ -262,29 +295,55 @@ const checkAndLockInventory = async (client, inventoryItems, lockMode) => {
  */
 const insertProducts = async (client, productEntries) => {
   if (!Array.isArray(productEntries) || productEntries.length === 0) return [];
-  
+
   const columns = [
-    "product_id", "location_id", "item_type", "identifier", "quantity", "inbound_date",
-    "status_id", "status_date", "created_at", "created_by", "updated_at", "updated_by", "last_update"
+    'product_id',
+    'location_id',
+    'item_type',
+    'identifier',
+    'quantity',
+    'inbound_date',
+    'status_id',
+    'status_date',
+    'created_at',
+    'created_by',
+    'updated_at',
+    'updated_by',
+    'last_update',
   ];
-  
+
   // Prepare rows for insertion
-  const rows = productEntries.map(({ product_id, location_id, item_type, status_id, userId }) => [
-    product_id, location_id, item_type, null, 0, new Date(),
-    status_id, new Date(), new Date(), userId, null, null, null
-  ]);
-  
+  const rows = productEntries.map(
+    ({ product_id, location_id, item_type, status_id, userId }) => [
+      product_id,
+      location_id,
+      item_type,
+      null,
+      0,
+      new Date(),
+      status_id,
+      new Date(),
+      new Date(),
+      userId,
+      null,
+      null,
+      null,
+    ]
+  );
+
   try {
     // Step 1: Insert into inventory table (Ignore if conflict exists)
-    return await bulkInsert(
-      "inventory",
-      columns,
-      rows,
-      ["location_id", "product_id"], // Conflict columns
-      [], // DO NOTHING on conflict
-    ) || [];
+    return (
+      (await bulkInsert(
+        'inventory',
+        columns,
+        rows,
+        ['location_id', 'product_id'], // Conflict columns
+        [] // DO NOTHING on conflict
+      )) || []
+    );
   } catch (error) {
-    logError("Error inserting product inventory records:", error);
+    logError('Error inserting product inventory records:', error);
     throw error;
   }
 };
@@ -298,27 +357,53 @@ const insertProducts = async (client, productEntries) => {
  */
 const insertNonProducts = async (trx, otherEntries) => {
   if (!Array.isArray(otherEntries) || otherEntries.length === 0) return [];
-  
+
   const columns = [
-    "product_id", "location_id", "item_type", "identifier", "quantity", "inbound_date",
-    "status_id", "status_date", "created_at", "created_by", "updated_at", "updated_by", "last_update"
+    'product_id',
+    'location_id',
+    'item_type',
+    'identifier',
+    'quantity',
+    'inbound_date',
+    'status_id',
+    'status_date',
+    'created_at',
+    'created_by',
+    'updated_at',
+    'updated_by',
+    'last_update',
   ];
-  
-  const rows = otherEntries.map(({ location_id, type, identifier, status_id, userId }) => [
-    null, location_id, type, identifier, 0, new Date(),
-    status_id, new Date(), new Date(), userId, null, null, null
-  ]);
-  
+
+  const rows = otherEntries.map(
+    ({ location_id, type, identifier, status_id, userId }) => [
+      null,
+      location_id,
+      type,
+      identifier,
+      0,
+      new Date(),
+      status_id,
+      new Date(),
+      new Date(),
+      userId,
+      null,
+      null,
+      null,
+    ]
+  );
+
   try {
-    return await bulkInsert(
-      "inventory",
-      columns,
-      rows,
-      ["location_id", "identifier"], // Conflict columns for non-product items
-      [] // DO NOTHING on conflict
-    ) || [];
+    return (
+      (await bulkInsert(
+        'inventory',
+        columns,
+        rows,
+        ['location_id', 'identifier'], // Conflict columns for non-product items
+        [] // DO NOTHING on conflict
+      )) || []
+    );
   } catch (error) {
-    logError("Error inserting non-product inventory records:", error);
+    logError('Error inserting non-product inventory records:', error);
     throw error;
   }
 };
@@ -336,37 +421,47 @@ const insertNonProducts = async (trx, otherEntries) => {
  */
 const insertInventoryRecords = async (client, inventoryData) => {
   if (!Array.isArray(inventoryData) || inventoryData.length === 0) {
-    logError("No inventory data to insert.");
-    return { success: false, message: "No inventory data provided.", inventoryRecords: [] };
+    logError('No inventory data to insert.');
+    return {
+      success: false,
+      message: 'No inventory data provided.',
+      inventoryRecords: [],
+    };
   }
-  
+
   try {
     // Step 1: Separate Products & Other Inventory Types
     const productEntries = inventoryData
-      .filter(item => item.type === "product" && item.product_id)
-      .map(e => ({ ...e, item_type: "product" }));
-    
+      .filter((item) => item.type === 'product' && item.product_id)
+      .map((e) => ({ ...e, item_type: 'product' }));
+
     const otherEntries = inventoryData
-      .filter(item => item.type !== "product" && item.identifier)
-      .map(e => ({ ...e, item_type: e.type }));
-    
+      .filter((item) => item.type !== 'product' && item.identifier)
+      .map((e) => ({ ...e, item_type: e.type }));
+
     // Step 2: Insert New Inventory Records
-    const productResults = productEntries.length > 0
-      ? await retry(() => insertProducts(client, productEntries), 3, 1000)
-      : [];
-    
-    const otherTypeResults = otherEntries.length > 0
-      ? await retry(() => insertNonProducts(client, otherEntries), 3, 1000)
-      : [];
-    
+    const productResults =
+      productEntries.length > 0
+        ? await retry(() => insertProducts(client, productEntries), 3, 1000)
+        : [];
+
+    const otherTypeResults =
+      otherEntries.length > 0
+        ? await retry(() => insertNonProducts(client, otherEntries), 3, 1000)
+        : [];
+
     // Step 3: Ensure inventoryRecords is always an array
     const inventoryRecords = [...productResults, ...otherTypeResults];
-    
+
     return { success: true, inventoryRecords };
-    
   } catch (error) {
-    logError("Error inserting inventory records:", error);
-    return { success: false, message: "Failed to insert inventory records", error: error.message, inventoryRecords: [] };
+    logError('Error inserting inventory records:', error);
+    return {
+      success: false,
+      message: 'Failed to insert inventory records',
+      error: error.message,
+      inventoryRecords: [],
+    };
   }
 };
 
@@ -379,25 +474,29 @@ const insertInventoryRecords = async (client, inventoryData) => {
  *          - Returns an array of inventory records with `id`, `product_id`, and `identifier`, or an empty array if no records are found.
  * @throws {AppError} - Throws an error if the database query fails.
  */
-const getProductIdOrIdentifierByInventoryIds = async (client, newInventoryIds) => {
-  if (!Array.isArray(newInventoryIds) || newInventoryIds.length === 0) return [];
-  
-  const flatIds = newInventoryIds.map(obj => obj.id);
+const getProductIdOrIdentifierByInventoryIds = async (
+  client,
+  newInventoryIds
+) => {
+  if (!Array.isArray(newInventoryIds) || newInventoryIds.length === 0)
+    return [];
+
+  const flatIds = newInventoryIds.map((obj) => obj.id);
 
   if (flatIds.length === 0) return []; // No valid UUIDs found
-  
+
   const queryText = `
     SELECT id , product_id, identifier
     FROM inventory
     WHERE id = ANY($1);
   `;
-  
+
   try {
     const { rows } = await client.query(queryText, [flatIds]);
     return rows;
   } catch (error) {
-    logError("Error fetching inventory IDs:", error);
-    throw new AppError("Database query failed");
+    logError('Error fetching inventory IDs:', error);
+    throw new AppError('Database query failed');
   }
 };
 
@@ -414,26 +513,26 @@ const getProductIdOrIdentifierByInventoryIds = async (client, newInventoryIds) =
  */
 const updateInventoryQuantity = async (client, inventoryUpdates, userId) => {
   const { baseQuery, params } = await formatBulkUpdateQuery(
-    "inventory",
-    ["quantity"],
-    ["id"],
+    'inventory',
+    ['quantity'],
+    ['id'],
     inventoryUpdates,
     userId
   );
-  
+
   if (baseQuery) {
     return await retry(
       async () => {
-        const { rows } = client ?
-          await query(baseQuery, params) :
-          await client.query(baseQuery, params);
+        const { rows } = client
+          ? await query(baseQuery, params)
+          : await client.query(baseQuery, params);
         return rows; // Return the updated inventory IDs
       },
       3, // Retry up to 3 times
       1000 // Initial delay of 1 second (exponential backoff applied)
     );
   }
-  
+
   return []; // Return empty array if no updates were made
 };
 

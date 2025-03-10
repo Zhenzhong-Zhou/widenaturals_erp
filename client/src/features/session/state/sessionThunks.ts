@@ -89,10 +89,10 @@ export const logoutThunk = createAsyncThunk<
   try {
     // Call the logout API
     await sessionService.logout();
-    
+
     // Dispatch the logout action to clear Redux state
     dispatch(logout());
-    
+
     // Clear persisted state
     await persistor.purge();
 

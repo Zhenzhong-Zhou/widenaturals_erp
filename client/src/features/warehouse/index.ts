@@ -6,7 +6,7 @@ export type {
 } from './state/warehouseTypes.ts';
 export {
   fetchWarehousesThunk,
-  fetchWarehouseDetailsThunk
+  fetchWarehouseDetailsThunk,
 } from './state/warehouseThunks.ts';
 export {
   selectWarehouses,

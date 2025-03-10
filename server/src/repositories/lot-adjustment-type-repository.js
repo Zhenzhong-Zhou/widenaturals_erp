@@ -64,9 +64,9 @@ const getActiveLotAdjustmentTypes = async () => {
  */
 const getWarehouseLotAdjustmentType = async (client, { id, name }) => {
   if (!id && !name) {
-    throw new AppError("At least one parameter (id or name) must be provided.");
+    throw new AppError('At least one parameter (id or name) must be provided.');
   }
-  
+
   const queryText = `
     SELECT id, name
     FROM lot_adjustment_types
@@ -75,23 +75,27 @@ const getWarehouseLotAdjustmentType = async (client, { id, name }) => {
       AND ($2::TEXT IS NULL OR name = $2)
     LIMIT 1;
   `;
-  
-  return await retry(async () => {
-    try {
-      const { rows } = client ?
-        await query(queryText, [id || null, name || null]) :
-        await client.query(queryText, [id || null, name || null]);
-      return rows.length > 0 ? rows[0] : null;
-    } catch (error) {
-      logError(
-        `Error fetching warehouse lot adjustment type with ${id ? "ID: " + id : ""} ${name ? "Name: " + name : ""}`,
-        error
-      );
-      throw new AppError.databaseError(
-        `Database error: Failed to fetch warehouse lot adjustment type with ${id ? "ID " + id : ""} ${name ? "Name " + name : ""}`
-      );
-    }
-  }, 3, 1000); // Retry up to 3 times with exponential backoff
+
+  return await retry(
+    async () => {
+      try {
+        const { rows } = client
+          ? await query(queryText, [id || null, name || null])
+          : await client.query(queryText, [id || null, name || null]);
+        return rows.length > 0 ? rows[0] : null;
+      } catch (error) {
+        logError(
+          `Error fetching warehouse lot adjustment type with ${id ? 'ID: ' + id : ''} ${name ? 'Name: ' + name : ''}`,
+          error
+        );
+        throw new AppError.databaseError(
+          `Database error: Failed to fetch warehouse lot adjustment type with ${id ? 'ID ' + id : ''} ${name ? 'Name ' + name : ''}`
+        );
+      }
+    },
+    3,
+    1000
+  ); // Retry up to 3 times with exponential backoff
 };
 
 module.exports = {
