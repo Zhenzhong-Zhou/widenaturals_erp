@@ -33,7 +33,7 @@ const useReportPageLogic = <T extends BaseReportParams, R>({
   // 🛠️ State for filters
   const [filters, setFilters] = useState<Partial<T>>(
     ({
-      exportFormat,
+      exportFormat: exportFormat ?? "csv",
       reportType: "", // Default value or make it dynamic
       reportCategory,
       userTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,

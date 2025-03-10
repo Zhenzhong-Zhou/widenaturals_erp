@@ -4,6 +4,8 @@ import { InventoryActivityLogTable, ReportPageLayout, useReportPageLogic } from 
 import { ErrorDisplay, ErrorMessage, Loading, Typography } from '@components/index.ts';
 
 const InventoryActivityLogPage: FC = () => {
+  const reportCategory = "inventory_activity";
+  
   const {
     inventoryLogs,
     isLoading,
@@ -21,6 +23,7 @@ const InventoryActivityLogPage: FC = () => {
     fetchData: fetchInventoryActivityLogs,
     exportData,
     exportFormat,
+    reportCategory,
     exportLoading,
     exportError,
     data: inventoryLogs,
@@ -41,7 +44,13 @@ const InventoryActivityLogPage: FC = () => {
       subtitle="Detailed Inventory Transactions"
       {...reportLogic}
       fetchData={() => fetchInventoryActivityLogs(reportLogic.filters)}
-      exportData={() => exportLogs(reportLogic.filters)}
+      exportData={() =>
+        exportLogs({
+          ...reportLogic.filters,
+          reportCategory: reportLogic.filters.reportCategory,
+          exportFormat: reportLogic.filters.exportFormat,
+        })
+      }
     >
       {Array.isArray(inventoryLogs) && inventoryLogs.length > 0 ? (
         <InventoryActivityLogTable

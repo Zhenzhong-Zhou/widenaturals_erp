@@ -4,6 +4,8 @@ import { AdjustmentReportTable, ReportPageLayout, useReportPageLogic } from '../
 import { ErrorDisplay, ErrorMessage, Loading, Typography } from '@components/index.ts';
 
 const AdjustmentReportPage: FC = () => {
+  const reportCategory = "adjustment";
+  
   const {
     data,
     loading,
@@ -21,6 +23,7 @@ const AdjustmentReportPage: FC = () => {
     fetchData: fetchReport,
     exportData,
     exportFormat,
+    reportCategory,
     exportLoading,
     exportError,
     data,
@@ -41,7 +44,13 @@ const AdjustmentReportPage: FC = () => {
       subtitle="Warehouse & Inventory Adjustments"
       {...reportLogic}
       fetchData={() => fetchReport(reportLogic.filters)}
-      exportData={() => exportReport(reportLogic.filters)}
+      exportData={() =>
+        exportReport({
+          ...reportLogic.filters,
+          reportCategory: reportLogic.filters.reportCategory,
+          exportFormat: reportLogic.filters.exportFormat,
+        })
+      }
     >
       {Array.isArray(data) && data.length > 0 ? (
         <AdjustmentReportTable
