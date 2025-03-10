@@ -12,14 +12,14 @@ interface DetailPageProps {
 }
 
 const DetailPage: FC<DetailPageProps> = ({
-                                           title,
-                                           isLoading,
-                                           error,
-                                           children,
-                                           sx,
-                                         }) => {
+  title,
+  isLoading,
+  error,
+  children,
+  sx,
+}) => {
   const { theme } = useThemeContext();
-  
+
   if (isLoading) {
     return (
       <Box
@@ -37,7 +37,7 @@ const DetailPage: FC<DetailPageProps> = ({
       </Box>
     );
   }
-  
+
   if (error) {
     return (
       <Box sx={{ textAlign: 'center', padding: theme.spacing(3), ...sx }}>
@@ -47,9 +47,11 @@ const DetailPage: FC<DetailPageProps> = ({
       </Box>
     );
   }
-  
+
   return (
-    <Box sx={{ padding: theme.spacing(3), maxWidth: 900, margin: '0 auto', ...sx }}>
+    <Box
+      sx={{ padding: theme.spacing(3), maxWidth: 900, margin: '0 auto', ...sx }}
+    >
       <Typography variant="h4" sx={{ marginBottom: theme.spacing(2) }}>
         {title}
       </Typography>

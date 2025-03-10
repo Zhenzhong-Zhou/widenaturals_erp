@@ -25,7 +25,6 @@ const warehouseLotAdjustmentRoutes = require('./lot-adjustment-type');
 const reportRoutes = require('./reports');
 const {
   createApiRateLimiter,
-  createCsrfTokenRateLimiter,
 } = require('../middlewares/rate-limiter');
 const authenticate = require('../middlewares/authenticate');
 
@@ -41,7 +40,7 @@ router.use(apiRateLimiter);
  */
 router.use('/public', publicRoute);
 
-router.use('/csrf', createCsrfTokenRateLimiter(), csrfRoute);
+router.use('/csrf', csrfRoute);
 
 // Internal routes (system-level operations)
 /**
@@ -90,24 +89,17 @@ router.use('/location-types', authenticate(), locationTypeRouts);
 
 router.use('/locations', authenticate(), locationRouts);
 
-// router.use('/inventories', authenticate(), inventoryRouts);
-router.use('/inventories', inventoryRouts);
+router.use('/inventories', authenticate(), inventoryRouts);
 
 router.use('/warehouses', authenticate(), warehouseRouts);
 
-// router.use('/warehouse-inventories', authenticate(), warehouseInventoryRouts);
-router.use('/warehouse-inventories', warehouseInventoryRouts);
+router.use('/warehouse-inventories', authenticate(), warehouseInventoryRouts);
 
-// router.use('/warehouse-inventory-lots', warehouseInventoryLotRouts);
-router.use(
-  '/warehouse-inventory-lots',
-  authenticate(),
-  warehouseInventoryLotRouts
-);
+router.use('/warehouse-inventory-lots', authenticate(), warehouseInventoryLotRouts);
 
-// router.use('/lot-adjustment-types', authenticate(), warehouseLotAdjustmentRoutes);
-router.use('/lot-adjustment-types', warehouseLotAdjustmentRoutes);
+router.use('/lot-adjustment-types', authenticate(), warehouseLotAdjustmentRoutes);
 
+// router.use('/reports', authenticate(), reportRoutes);
 router.use('/reports', reportRoutes);
 
 module.exports = router;

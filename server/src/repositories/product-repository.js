@@ -311,7 +311,7 @@ const getAvailableProductsForDropdown = async (warehouseId) => {
   if (!warehouseId) {
     return []; // Return an empty array instead of running the query
   }
-  
+
   const queryText = `
     WITH active_warehouses AS (
         SELECT DISTINCT wi.warehouse_id
@@ -332,18 +332,24 @@ const getAvailableProductsForDropdown = async (warehouseId) => {
         JOIN inventory i ON wil.inventory_id = i.id
         WHERE wil.lot_number IS NOT NULL
           AND wil.expiry_date IS NOT NULL
-          AND wil.manufacture_date IS NOT NULL
+          AND (wil.manufacture_date IS NOT NULL OR wil.manufacture_date IS NULL)
           AND wil.warehouse_id = $1
+    ),
+    active_products AS (
+        SELECT p.id AS product_id
+        FROM products p
+        JOIN status s ON s.id = p.status_id
+        WHERE s.name = 'active'
     )
     SELECT p.id AS product_id, p.product_name
     FROM products p
     LEFT JOIN existing_active_products eap ON eap.product_id = p.id
     LEFT JOIN valid_batch_products vbp ON vbp.product_id = p.id
+    JOIN active_products ap ON ap.product_id = p.id
     WHERE eap.product_id IS NULL
-      AND vbp.product_id IS NOT NULL
     ORDER BY p.product_name ASC;
   `;
-  
+
   try {
     const { rows } = await query(queryText, [warehouseId]);
     return rows;
@@ -352,9 +358,12 @@ const getAvailableProductsForDropdown = async (warehouseId) => {
       message: error.message,
       stack: error.stack,
     });
-    throw new AppError.databaseError('Failed to fetch available product dropdown list', {
-      originalError: error.message,
-    });
+    throw new AppError.databaseError(
+      'Failed to fetch available product dropdown list',
+      {
+        originalError: error.message,
+      }
+    );
   }
 };
 

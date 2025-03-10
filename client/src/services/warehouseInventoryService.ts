@@ -6,7 +6,10 @@ import {
   WarehouseProductSummaryResponse,
   WarehouseInventoryDetailsResponse,
   LotAdjustmentSinglePayload,
-  BulkLotAdjustmentPayload, BulkInsertInventoryRequest, BulkInsertInventoryResponse, InsertInventoryRequestBody,
+  BulkLotAdjustmentPayload,
+  BulkInsertInventoryRequest,
+  BulkInsertInventoryResponse,
+  InsertInventoryRequestBody,
 } from '../features/warehouse-inventory';
 import { AppError } from '@utils/AppError.tsx';
 import { InventoryRecordInsertResponse } from '../features/warehouse-inventory/state/warehouseInventoryTypes.ts';
@@ -197,7 +200,7 @@ const getInsertedInventoryRecords = async (
     );
     return response.data;
   } catch (error) {
-    console.error("Error fetching inventory response:", error);
+    console.error('Error fetching inventory response:', error);
     return null;
   }
 };

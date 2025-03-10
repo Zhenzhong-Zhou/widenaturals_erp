@@ -162,16 +162,15 @@ export const fetchProductsDropDownByWarehouseThunk = createAsyncThunk(
 export const bulkInsertWarehouseInventoryThunk = createAsyncThunk<
   BulkInsertInventoryResponse,
   BulkInsertInventoryRequest
->(
-  'warehouseInventory/bulkInsert',
-  async (requestData, { rejectWithValue }) => {
-    try {
-      return await warehouseInventoryService.bulkInsertInventory(requestData);
-    } catch (error: any) {
-      return rejectWithValue(error.message || 'Failed to insert warehouse inventory.');
-    }
+>('warehouseInventory/bulkInsert', async (requestData, { rejectWithValue }) => {
+  try {
+    return await warehouseInventoryService.bulkInsertInventory(requestData);
+  } catch (error: any) {
+    return rejectWithValue(
+      error.message || 'Failed to insert warehouse inventory.'
+    );
   }
-);
+});
 
 // Thunk for fetching inserted inventory records
 export const fetchInsertedInventoryRecordsThunk = createAsyncThunk<
@@ -179,26 +178,32 @@ export const fetchInsertedInventoryRecordsThunk = createAsyncThunk<
   InsertInventoryRequestBody, // Request Body Type
   { rejectValue: string } // Error Type
 >(
-  "insertedInventory/fetchInsertedInventoryRecords",
+  'insertedInventory/fetchInsertedInventoryRecords',
   async (requestData, { rejectWithValue }) => {
     try {
       // Ensure the response is of type `WarehouseInventoryInsertResponse`
-      const response = await warehouseInventoryService.getInsertedInventoryRecords(requestData) as unknown;
-      
+      const response =
+        (await warehouseInventoryService.getInsertedInventoryRecords(
+          requestData
+        )) as unknown;
+
       // Explicitly cast `response` as `WarehouseInventoryInsertResponse` after validating structure
       if (
-        typeof response === "object" &&
+        typeof response === 'object' &&
         response !== null &&
-        "success" in response &&
-        "data" in response &&
+        'success' in response &&
+        'data' in response &&
         Array.isArray((response as WarehouseInventoryInsertResponse).data)
       ) {
         return response as WarehouseInventoryInsertResponse;
       } else {
-        return rejectWithValue("Invalid response structure from server.");
+        return rejectWithValue('Invalid response structure from server.');
       }
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message || "Failed to fetch inserted inventory records.");
+      return rejectWithValue(
+        error.response?.data?.message ||
+          'Failed to fetch inserted inventory records.'
+      );
     }
   }
 );

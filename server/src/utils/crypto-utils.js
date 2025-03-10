@@ -65,7 +65,7 @@ const hashData = (data) => {
  * @param {number} new_quantity
  * @param {string} source_action_id
  * @param {string} comments
- * @returns {string} - MD5 checksum hash
+ * @returns {string} - SHA256 checksum hash
  */
 const generateChecksum = (
   inventory_id,
@@ -84,11 +84,32 @@ const generateChecksum = (
     new_quantity,
     source_action_id || '',
     comments || '',
-    new Date().toISOString(), // Ensures uniqueness
   ].join('|');
   
   return crypto.createHash('sha256').update(data).digest('hex');
 };
+
+/**
+ * Validate inventory history checksum before returning to frontend
+ * @param {Object} record - Inventory history record
+ * @returns {Boolean} - True if checksum matches, false otherwise
+ */
+const validateChecksum = (record) => {
+  const computedChecksum = crypto
+    .createHash('sha256') // Ensure to match database hashing method
+    .update([
+      record.inventory_id,
+      record.inventory_action_type_id,
+      record.previous_quantity,
+      record.quantity_change,
+      record.new_quantity,
+      record.source_action_id || '',
+      record.comments || '',
+    ].join('|'))
+    .digest('hex');
+  
+  return computedChecksum === record.checksum;
+}
 
 module.exports = {
   generateSecret,
@@ -97,4 +118,5 @@ module.exports = {
   decryptData,
   hashData,
   generateChecksum,
+  validateChecksum,
 };

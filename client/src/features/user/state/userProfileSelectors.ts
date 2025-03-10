@@ -2,8 +2,9 @@ import { createSelector } from '@reduxjs/toolkit';
 import { RootState } from '../../../store/store';
 import { UserProfileResponse } from './userTypes';
 
-export const selectUserProfileResponse = (state: RootState): UserProfileResponse | null =>
-  state.userProfile.response;
+export const selectUserProfileResponse = (
+  state: RootState
+): UserProfileResponse | null => state.userProfile.response;
 
 export const selectUserProfileLoading = (state: RootState): boolean =>
   state.userProfile.loading ?? false;

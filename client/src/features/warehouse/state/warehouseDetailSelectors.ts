@@ -1,4 +1,4 @@
-import { createSelector } from "@reduxjs/toolkit";
+import { createSelector } from '@reduxjs/toolkit';
 import { RootState } from '../../../store/store.ts';
 
 const selectWarehouseState = (state: RootState) => state.warehouseDetails;

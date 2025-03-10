@@ -1,26 +1,26 @@
+const { fetchDynamicValues } = require('../03_utils');
+
 exports.seed = async function (knex) {
-  // Fetch role IDs
-  const roles = await knex('roles')
-    .select('id', 'name')
-    .whereIn('name', ['admin', 'manager', 'sales', 'operations', 'user']);
+  // Fetch role IDs dynamically
+  const roleIds = await fetchDynamicValues(knex, 'roles', 'name', [
+    'admin', 'manager', 'sales', 'operations', 'user'
+  ], 'id');
 
-  const roleIds = roles.reduce((acc, role) => {
-    acc[role.name] = role.id;
-    return acc;
-  }, {});
-
-  // Fetch status IDs
-  const statuses = await knex('status')
-    .select('id', 'name')
-    .whereIn('name', ['active']);
-
-  const statusIds = statuses.reduce((acc, status) => {
-    acc[status.name] = status.id;
-    return acc;
-  }, {});
-
+  // Fetch status IDs dynamically
+  const statusIds = await fetchDynamicValues(knex, 'status', 'name', ['active'], 'id');
+  
   // Define users
   const users = [
+    {
+      id: knex.raw('uuid_generate_v4()'),
+      email: 'system@internal.local',
+      firstname: 'System',
+      lastname: 'Action',
+      role_id: roleIds['system'], // Ensure you have a 'system' role defined
+      status_id: statusIds['active'],
+      created_at: knex.fn.now(),
+      updated_at: null,
+    },
     {
       id: knex.raw('uuid_generate_v4()'),
       email: 'admin@example.com',

@@ -1,8 +1,9 @@
-import { createSelector } from "@reduxjs/toolkit";
-import { RootState } from "../../../store/store.ts";
+import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '../../../store/store.ts';
 
 // Base Selector
-const selectInsertedInventoryRecordsResponseState = (state: RootState) => state.insertedInventoryRecordsResponse;
+const selectInsertedInventoryRecordsResponseState = (state: RootState) =>
+  state.insertedInventoryRecordsResponse;
 
 // Memoized Selectors
 export const selectInsertedInventoryRecordsResponseData = createSelector(

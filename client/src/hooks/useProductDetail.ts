@@ -25,7 +25,8 @@ const useProductDetail = (productId: string): UseProductDetailResult => {
     try {
       setIsLoading(true);
       setError(null);
-      const fetchedProduct = await productService.fetchProductDetails(productId);
+      const fetchedProduct =
+        await productService.fetchProductDetails(productId);
       setProduct(fetchedProduct);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch product details');

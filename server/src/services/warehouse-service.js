@@ -1,6 +1,8 @@
 const {
   getWarehouses,
-  getWarehouseInventorySummary, getActiveWarehousesForDropdown, getWarehouseDetailsById,
+  getWarehouseInventorySummary,
+  getActiveWarehousesForDropdown,
+  getWarehouseDetailsById,
 } = require('../repositories/warehouse-repository');
 const AppError = require('../utils/AppError');
 const { logInfo, logError } = require('../utils/logger-helper');
@@ -44,29 +46,33 @@ const fetchAllWarehouses = async ({ page, limit, sortBy, sortOrder }) => {
  */
 const fetchWarehouseDetails = async (warehouseId) => {
   if (!warehouseId) {
-    throw new AppError.validationError("Warehouse ID is required.");
+    throw new AppError.validationError('Warehouse ID is required.');
   }
-  
+
   try {
     const warehouse = await getWarehouseDetailsById(warehouseId);
-    
+
     if (!warehouse) {
-      throw new AppError.notFoundError(`Warehouse with ID ${warehouseId} not found.`);
+      throw new AppError.notFoundError(
+        `Warehouse with ID ${warehouseId} not found.`
+      );
     }
-    
+
     // Business Logic: Check if the warehouse is active before returning details
     let errorMessages = [];
-    if (warehouse.warehouse_status_name.toLowerCase() !== "active") {
-      errorMessages.push("Warehouse status is not active");
+    if (warehouse.warehouse_status_name.toLowerCase() !== 'active') {
+      errorMessages.push('Warehouse status is not active');
     }
-    if (warehouse.location_status_name.toLowerCase() !== "active") {
-      errorMessages.push("Location status is not active");
+    if (warehouse.location_status_name.toLowerCase() !== 'active') {
+      errorMessages.push('Location status is not active');
     }
-    
+
     if (errorMessages.length > 0) {
-      throw new AppError.validationError(`Warehouse ${warehouse.name} cannot be used: ${errorMessages.join(" & ")}.`);
+      throw new AppError.validationError(
+        `Warehouse ${warehouse.name} cannot be used: ${errorMessages.join(' & ')}.`
+      );
     }
-    
+
     // Business Logic: Transform certain fields if needed
     return {
       id: warehouse.warehouse_id,
@@ -106,8 +112,8 @@ const fetchWarehouseDetails = async (warehouseId) => {
     };
   } catch (error) {
     console.error(error);
-    logError("Error fetching warehouse details service:", error);
-    throw new AppError.serviceError("Failed to fetch warehouse details.");
+    logError('Error fetching warehouse details service:', error);
+    throw new AppError.serviceError('Failed to fetch warehouse details.');
   }
 };
 
@@ -183,7 +189,9 @@ const fetchWarehouseDropdownList = async () => {
   try {
     return await getActiveWarehousesForDropdown();
   } catch (error) {
-    throw new AppError.serviceError(`Failed to fetch warehouse dropdown: ${error.message}`);
+    throw new AppError.serviceError(
+      `Failed to fetch warehouse dropdown: ${error.message}`
+    );
   }
 };
 

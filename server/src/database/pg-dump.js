@@ -22,17 +22,16 @@ const runPgDump = async (dumpCommand, isProduction, dbUser, dbPassword) => {
         ...process.env, // Preserve existing env variables
       },
     };
-    
+
     if (!isProduction) {
       execOptions.env.PGUSER = dbUser;
       execOptions.env.PGPASSWORD = dbPassword;
     }
-    
+
     const { stdout, stderr } = await execAsync(dumpCommand, execOptions);
-    
+
     if (stdout) logInfo(`pg_dump output: ${stdout}`);
     if (stderr) logError(`pg_dump error output: ${stderr}`);
-    
   } catch (error) {
     logError('pg_dump failed:', {
       message: error.message,
@@ -40,11 +39,11 @@ const runPgDump = async (dumpCommand, isProduction, dbUser, dbPassword) => {
       signal: error.signal,
       cmd: error.cmd,
     });
-    
+
     // Log full error output
     if (error.stdout) logError(`pg_dump stdout: ${error.stdout}`);
     if (error.stderr) logError(`pg_dump stderr: ${error.stderr}`);
-    
+
     throw error;
   }
 };

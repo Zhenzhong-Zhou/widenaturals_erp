@@ -1,5 +1,9 @@
 import { FC } from 'react';
-import { AdminDashboardPage, ManagerDashboardPage, UserDashboardPage } from '../index.ts';
+import {
+  AdminDashboardPage,
+  ManagerDashboardPage,
+  UserDashboardPage,
+} from '../index.ts';
 import { DashboardPageProps } from '../state/dashboardTypes.ts';
 
 const roleComponentMap: Record<string, FC<DashboardPageProps>> = {
@@ -9,7 +13,8 @@ const roleComponentMap: Record<string, FC<DashboardPageProps>> = {
 };
 
 const DashboardPage: FC<DashboardPageProps> = (props) => {
-  const DashboardComponent = roleComponentMap[props.roleName] || UserDashboardPage;
+  const DashboardComponent =
+    roleComponentMap[props.roleName] || UserDashboardPage;
   return <DashboardComponent {...props} />;
 };
 

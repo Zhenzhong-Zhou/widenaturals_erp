@@ -103,11 +103,17 @@ const getWarehouseDetailsById = async (warehouseId) => {
     
     WHERE w.id = $1;
   `;
-  
+
   try {
-    const { rows } = await retry(() => query(queryText, [warehouseId]), 3, 1000);
+    const { rows } = await retry(
+      () => query(queryText, [warehouseId]),
+      3,
+      1000
+    );
     if (rows.length === 0) {
-      throw new AppError.databaseError(`Warehouse with ID ${warehouseId} not found`);
+      throw new AppError.databaseError(
+        `Warehouse with ID ${warehouseId} not found`
+      );
     }
     return rows[0];
   } catch (error) {
@@ -146,40 +152,36 @@ const getWarehouseInventorySummary = async ({ page, limit, statusFilter }) => {
       w.name AS warehouse_name,
       COALESCE(s.name, 'unknown') AS status_name,
       COUNT(DISTINCT wi.inventory_id) AS total_products,
-      
-      -- Correctly using wlt.total_lot_quantity after joining
-      COALESCE(SUM(wlt.total_lot_quantity), 0) AS total_quantity,
+      COALESCE(SUM(DISTINCT wlt.total_lot_quantity), 0) AS total_quantity,
       COALESCE(SUM(wi.reserved_quantity), 0) AS total_reserved_stock,
-  
-      -- Calculate available stock dynamically
-      COALESCE(SUM(GREATEST(wlt.total_lot_quantity - wi.reserved_quantity, 0)), 0) AS total_available_stock,
-  
+      SUM(
+        CASE
+          WHEN wlt.total_lot_quantity - wi.reserved_quantity > 0
+          THEN wlt.total_lot_quantity - wi.reserved_quantity
+          ELSE 0
+        END
+      ) AS total_available_stock,
       COALESCE(SUM(wi.warehouse_fee), 0) AS total_warehouse_fees,
       MAX(wi.last_update) AS last_inventory_update,
       COUNT(DISTINCT wil.lot_number) AS total_lots,
-  
-      -- Expiry Date calculations (Ignore NULL values)
-      MIN(NULLIF(wil.expiry_date, NULL)) AS earliest_expiry,
-      MAX(NULLIF(wil.expiry_date, NULL)) AS latest_expiry,
-  
-      -- Count lots where quantity is zero
+      MIN(wil.expiry_date) FILTER (WHERE wil.expiry_date IS NOT NULL) AS earliest_expiry,
+      MAX(wil.expiry_date) FILTER (WHERE wil.expiry_date IS NOT NULL) AS latest_expiry,
       COUNT(DISTINCT CASE WHEN wil.quantity = 0 THEN wil.lot_number END) AS total_zero_stock_lots
   
-   FROM ${tableName}
-   LEFT JOIN warehouse_inventory wi ON w.id = wi.warehouse_id
-   LEFT JOIN warehouse_lot_totals wlt
+    FROM ${tableName}
+    LEFT JOIN warehouse_inventory wi ON w.id = wi.warehouse_id
+    LEFT JOIN warehouse_lot_totals wlt
            ON wi.warehouse_id = wlt.warehouse_id
            AND wi.inventory_id = wlt.inventory_id
-   LEFT JOIN warehouse_inventory_lots wil
+    LEFT JOIN warehouse_inventory_lots wil
            ON wi.inventory_id = wil.inventory_id
            AND w.id = wil.warehouse_id
-   LEFT JOIN inventory i ON wi.inventory_id = i.id
-   LEFT JOIN status s ON w.status_id = s.id
+    LEFT JOIN inventory i ON wi.inventory_id = i.id
+    LEFT JOIN status s ON w.status_id = s.id
+
+    WHERE s.name = $1
     
-   -- Dynamic filtering
-   WHERE ${whereClause}
-    
-   GROUP BY w.id, w.name, s.name
+    GROUP BY w.id, w.name, s.name
  `;
 
   try {
@@ -214,26 +216,35 @@ const getWarehouseInventorySummary = async ({ page, limit, statusFilter }) => {
  */
 const geLocationIdByWarehouseId = async (client, warehouseIds) => {
   if (!Array.isArray(warehouseIds) || warehouseIds.length === 0) {
-    throw new Error("Invalid warehouse IDs input. Expected a non-empty array.");
+    throw new Error('Invalid warehouse IDs input. Expected a non-empty array.');
   }
-  
+
   const queryText = `
     SELECT id AS warehouse_id, location_id
     FROM warehouses
     WHERE id = ANY($1::uuid[]);
   `;
-  
-  return await retry(async () => {
-    try {
-      const { rows } = client ?
-        await query(queryText, [warehouseIds]) :
-        await client.query(queryText, [warehouseIds]);
-      return Object.fromEntries(rows.map(({ warehouse_id, location_id }) => [warehouse_id, location_id]));
-    } catch (error) {
-      logError("Error fetching location IDs for warehouses:", error);
-      throw error;
-    }
-  }, 3, 1000); // Retry up to 3 times with exponential backoff
+
+  return await retry(
+    async () => {
+      try {
+        const { rows } = client
+          ? await query(queryText, [warehouseIds])
+          : await client.query(queryText, [warehouseIds]);
+        return Object.fromEntries(
+          rows.map(({ warehouse_id, location_id }) => [
+            warehouse_id,
+            location_id,
+          ])
+        );
+      } catch (error) {
+        logError('Error fetching location IDs for warehouses:', error);
+        throw error;
+      }
+    },
+    3,
+    1000
+  ); // Retry up to 3 times with exponential backoff
 };
 
 /**
@@ -246,11 +257,13 @@ const geLocationIdByWarehouseId = async (client, warehouseIds) => {
  */
 const checkAndLockWarehouse = async (client, warehouseId, locationId) => {
   if (!warehouseId && !locationId) {
-    throw new AppError.validationError("Either warehouseId or locationId must be provided.");
+    throw new AppError.validationError(
+      'Either warehouseId or locationId must be provided.'
+    );
   }
-  
+
   let warehouseToLock = warehouseId;
-  
+
   // Step 1: Fetch warehouse ID if only location ID is provided
   if (!warehouseId && locationId) {
     const warehouse = await geLocationIdByWarehouseId(client, locationId);
@@ -260,9 +273,9 @@ const checkAndLockWarehouse = async (client, warehouseId, locationId) => {
     }
     warehouseToLock = warehouse;
   }
-  
+
   // Step 2: Lock the warehouse row using lockRow function
-  return await lockRow(client, "warehouses", warehouseToLock, "FOR UPDATE");
+  return await lockRow(client, 'warehouses', warehouseToLock, 'FOR UPDATE');
 };
 
 const getActiveWarehousesForDropdown = async () => {
@@ -273,7 +286,7 @@ const getActiveWarehousesForDropdown = async () => {
     WHERE s.name = 'active'
     ORDER BY w.name ASC
   `;
-  
+
   try {
     const { rows } = await query(queryText);
     return rows;
@@ -282,9 +295,12 @@ const getActiveWarehousesForDropdown = async () => {
       message: error.message,
       stack: error.stack,
     });
-    throw new AppError.databaseError('Failed to fetch warehouse dropdown list', {
-      originalError: error.message,
-    });
+    throw new AppError.databaseError(
+      'Failed to fetch warehouse dropdown list',
+      {
+        originalError: error.message,
+      }
+    );
   }
 };
 

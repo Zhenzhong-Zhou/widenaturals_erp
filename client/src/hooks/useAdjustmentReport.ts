@@ -10,10 +10,12 @@ import {
 /**
  * Custom hook to fetch and manage adjustment report data.
  */
-const useAdjustmentReport = (initialParams?: Partial<AdjustmentReportParams>) => {
+const useAdjustmentReport = (
+  initialParams?: Partial<AdjustmentReportParams>
+) => {
   const dispatch = useAppDispatch();
   const reportState = useAppSelector(selectAdjustmentReport);
-  
+
   // Memoize state values to avoid unnecessary recomputations
   const {
     data,
@@ -21,11 +23,11 @@ const useAdjustmentReport = (initialParams?: Partial<AdjustmentReportParams>) =>
     error,
     pagination,
     exportData,
-    exportFormat,
+    exportFormat = initialParams?.exportFormat ?? "csv",
     exportLoading,
     exportError,
   } = useMemo(() => reportState, [reportState]);
-  
+
   /**
    * Fetch paginated report.
    */
@@ -39,7 +41,7 @@ const useAdjustmentReport = (initialParams?: Partial<AdjustmentReportParams>) =>
     },
     [dispatch, initialParams]
   );
-  
+
   /**
    * Export report (CSV, PDF, TXT).
    */
@@ -52,16 +54,17 @@ const useAdjustmentReport = (initialParams?: Partial<AdjustmentReportParams>) =>
         totalRecords: undefined,
         totalPages: undefined,
       };
+      
       dispatch(exportAdjustmentReportThunk(formattedParams));
     },
     [dispatch]
   );
-  
+
   // Auto-fetch report on mount
   useEffect(() => {
     fetchReport();
   }, [fetchReport]);
-  
+
   return useMemo(
     () => ({
       data,
@@ -75,7 +78,18 @@ const useAdjustmentReport = (initialParams?: Partial<AdjustmentReportParams>) =>
       exportLoading,
       exportError,
     }),
-    [data, loading, error, pagination, fetchReport, exportReport, exportData, exportFormat, exportLoading, exportError]
+    [
+      data,
+      loading,
+      error,
+      pagination,
+      fetchReport,
+      exportReport,
+      exportData,
+      exportFormat,
+      exportLoading,
+      exportError,
+    ]
   );
 };
 

@@ -10,15 +10,12 @@ export type {
   UsersCardProps,
   UsersListProps,
   UserProfile,
-  UserProfileResponse
+  UserProfileResponse,
 } from './state/userTypes.ts';
-export {
-  fetchUsersThunk,
-  fetchUserProfileThunk
-} from './state/userThunks.ts'
+export { fetchUsersThunk, fetchUserProfileThunk } from './state/userThunks.ts';
 export {
   selectUserProfileResponse,
   selectUserProfileLoading,
   selectUserProfileError,
-  selectUserProfileData
-} from './state/userProfileSelectors.ts'
+  selectUserProfileData,
+} from './state/userProfileSelectors.ts';

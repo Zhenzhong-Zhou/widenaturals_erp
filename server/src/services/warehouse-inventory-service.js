@@ -172,18 +172,24 @@ const fetchWarehouseInventoryDetailsByWarehouseId = async (
       availableStock: item.available_stock,
       warehouseFees: item.warehouse_fees,
       lotStatus: item.lot_status || 'Unknown',
-      manufactureDate: item.manufacture_date ? new Date(item.manufacture_date) : null,
+      manufactureDate: item.manufacture_date
+        ? new Date(item.manufacture_date)
+        : null,
       expiryDate: item.expiry_date ? new Date(item.expiry_date) : null,
       inboundDate: item.inbound_date ? new Date(item.inbound_date) : null,
       outboundDate: item.outbound_date ? new Date(item.outbound_date) : null,
       lastUpdate: item.last_update ? new Date(item.last_update) : null,
-      
+
       inventoryCreated: {
-        date: item.inventory_created_at ? new Date(item.inventory_created_at) : null,
+        date: item.inventory_created_at
+          ? new Date(item.inventory_created_at)
+          : null,
         by: item.inventory_created_by,
       },
       inventoryUpdated: {
-        date: item.inventory_updated_at ? new Date(item.inventory_updated_at) : null,
+        date: item.inventory_updated_at
+          ? new Date(item.inventory_updated_at)
+          : null,
         by: item.inventory_updated_by,
       },
       lotCreated: {
@@ -195,7 +201,7 @@ const fetchWarehouseInventoryDetailsByWarehouseId = async (
         by: item.lot_updated_by,
       },
     }));
-    
+
     return {
       inventoryDetails,
       pagination,

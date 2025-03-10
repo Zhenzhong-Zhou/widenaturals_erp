@@ -2,7 +2,8 @@ import { createSelector } from '@reduxjs/toolkit';
 import { RootState } from '../../../store/store.ts';
 
 // Base selector to get the entire warehouse inventory state
-const selectWarehouseInventoryInsertState = (state: RootState) => state.bulkInsertWarehouseInventory;
+const selectWarehouseInventoryInsertState = (state: RootState) =>
+  state.bulkInsertWarehouseInventory;
 
 // Select data
 export const selectWarehouseInventoryInsertData = createSelector(

@@ -14,19 +14,19 @@ import {
  */
 const useDropdown = (warehouseId: string) => {
   const dispatch = useAppDispatch();
-  
+
   // Select state from Redux
   const allProducts = useAppSelector(selectProductDropdown);
   const loading = useAppSelector(selectDropdownLoading);
   const error = useAppSelector(selectDropdownError);
-  
+
   // Fetch products dynamically when warehouseId changes
   useEffect(() => {
     if (warehouseId) {
       dispatch(fetchProductsDropDownByWarehouseThunk({ warehouseId }));
     }
   }, [dispatch, warehouseId]);
-  
+
   /** Memoize products to avoid unnecessary re-renders */
   const uniqueProducts = useMemo(() => {
     const productMap = new Map();
@@ -37,7 +37,7 @@ const useDropdown = (warehouseId: string) => {
     });
     return [...productMap.values()];
   }, [allProducts]);
-  
+
   return {
     products: uniqueProducts,
     loading,

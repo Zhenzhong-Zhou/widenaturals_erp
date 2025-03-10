@@ -1,11 +1,11 @@
-import { useEffect, useCallback, useMemo } from "react";
-import { useAppDispatch, useAppSelector } from "../store/storeHooks.ts";
+import { useEffect, useCallback, useMemo } from 'react';
+import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
 import {
   fetchWarehouseDetailsThunk,
   selectWarehouseDetails,
   selectWarehouseDetailsError,
   selectWarehouseDetailsLoading,
-} from "../features/warehouse";
+} from '../features/warehouse';
 import { WarehouseDetails } from '../features/warehouse/state/warehouseTypes.ts';
 
 /**
@@ -16,35 +16,35 @@ import { WarehouseDetails } from '../features/warehouse/state/warehouseTypes.ts'
  */
 const useWarehouseDetails = (warehouseId?: string) => {
   const dispatch = useAppDispatch();
-  
+
   // Select warehouse state from Redux
   const warehouseResponse = useAppSelector(selectWarehouseDetails); // This is WarehouseDetailsResponse | null
   const loading = useAppSelector(selectWarehouseDetailsLoading);
   const error = useAppSelector(selectWarehouseDetailsError);
-  
+
   /** Extract `data` from WarehouseDetailsResponse, or return null */
   const warehouseDetails: WarehouseDetails | undefined = useMemo(() => {
     return warehouseResponse?.data ?? undefined;
   }, [warehouseResponse]);
-  
+
   /** Fetch warehouse details when `warehouseId` changes */
   const fetchWarehouse = useCallback(() => {
     if (warehouseId && !loading) {
       dispatch(fetchWarehouseDetailsThunk({ warehouseId }));
     }
   }, [dispatch, warehouseId]);
-  
+
   /** Expose a manual refetch function */
   const refetch = useCallback(() => {
     if (warehouseId && !loading) {
       dispatch(fetchWarehouseDetailsThunk({ warehouseId }));
     }
   }, [dispatch, warehouseId, loading]);
-  
+
   useEffect(() => {
     fetchWarehouse();
   }, [fetchWarehouse]);
-  
+
   /** Memoize the returned values to prevent unnecessary re-renders */
   return useMemo(
     () => ({

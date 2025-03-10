@@ -11,6 +11,12 @@ exports.seed = async function (knex) {
 
   const inventoryActions = [
     {
+      name: 'initial_load',
+      description: 'Initial inventory entry at system setup.',
+      status_id: activeStatusId,
+      default_action: true, // System default action
+    },
+    {
       name: 'manual_adjustment',
       description: 'Manual stock adjustment',
       status_id: activeStatusId,
@@ -24,7 +30,8 @@ exports.seed = async function (knex) {
     },
     {
       name: 'manual_stock_insert_update',
-      description: 'After manually inserting stock data, the system will update stock levels.',
+      description:
+        'After manually inserting stock data, the system will update stock levels.',
       status_id: activeStatusId,
       default_action: true, // Indicates this is a system default action
     },

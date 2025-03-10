@@ -44,17 +44,19 @@ const UserProfilePage: FC = () => {
   }) => {
     try {
       console.log('Resetting password...');
-      const { success, message } = await dispatch(resetPasswordThunk(data)).unwrap();
-      
+      const { success, message } = await dispatch(
+        resetPasswordThunk(data)
+      ).unwrap();
+
       if (success) {
         console.log('Password reset successful:', message);
         setModalOpen(false);
-        
+
         console.log('Clearing session after password reset...');
         clearTokens();
         localStorage.clear();
         sessionStorage.clear();
-        
+
         console.log('Redirecting to login after password reset...');
         window.location.href = '/login';
       } else {

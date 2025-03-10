@@ -13,10 +13,14 @@ const wrapAsync = require('../utils/wrap-async');
 const getWarehouseLotAdjustmentTypesForDropdownController = wrapAsync(
   async (req, res, next) => {
     try {
-      const adjustmentTypes = await fetchWarehouseLotAdjustmentTypesForDropDown();
+      const adjustmentTypes =
+        await fetchWarehouseLotAdjustmentTypesForDropDown();
       res.status(200).json(adjustmentTypes);
     } catch (error) {
-      logError('Error fetching in getWarehouseLotAdjustmentTypesController:', error);
+      logError(
+        'Error fetching in getWarehouseLotAdjustmentTypesController:',
+        error
+      );
       next(error);
     }
   }
