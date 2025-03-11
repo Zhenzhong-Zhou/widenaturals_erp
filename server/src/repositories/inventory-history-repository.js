@@ -65,7 +65,7 @@ const insertInventoryHistoryLog = async (
     return rows[0];
   } catch (error) {
     logError('Error inserting inventory history log:', error);
-    throw new AppError(
+    throw AppError.databaseError(
       'Database error: Failed to insert inventory history log.'
     );
   }
@@ -92,7 +92,7 @@ const insertInventoryHistoryLog = async (
  */
 const bulkInsertInventoryHistory = async (historyRecords, client) => {
   if (!Array.isArray(historyRecords) || historyRecords.length === 0) {
-    throw new AppError.validationError(
+    throw AppError.validationError(
       'No inventory history records provided for bulk insert.'
     );
   }

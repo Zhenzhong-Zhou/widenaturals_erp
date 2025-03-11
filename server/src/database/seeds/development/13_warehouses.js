@@ -39,7 +39,7 @@ exports.seed = async function (knex) {
 
   // Define warehouse names and capacities
   const warehouseData = [
-    { name: 'Head Office', storage_capacity: 1000 },
+    { name: 'Head Office Warehouse', storage_capacity: 1000 },
     { name: 'Richmond Storage', storage_capacity: 10000 },
     { name: 'Viktor Temporarily Warehouse', storage_capacity: 5000 },
   ];

@@ -89,7 +89,7 @@ const fetchAdjustmentReport = async ({
     });
   } catch (error) {
     logError('Failed to fetch adjustment report', error);
-    throw new AppError.databaseError(
+    throw AppError.serviceError(
       'Failed to fetch adjustment report',
       error
     );
@@ -304,7 +304,7 @@ const fetchInventoryHistoryWithValidation = async ({
     };
   } catch (error) {
     logError('Error fetching inventory history:', error);
-    throw new AppError.serviceError('Failed to fetch inventory history', error);
+    throw AppError.serviceError('Failed to fetch inventory history', error);
   }
 };
 

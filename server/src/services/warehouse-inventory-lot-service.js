@@ -17,7 +17,7 @@ const adjustWarehouseInventory = async (records, user_id) => {
     return { data: result };
   } catch (error) {
     logError('Error in adjustWarehouseInventory service:', error.message);
-    throw new AppError(`Inventory adjustment failed: ${error.message}`);
+    throw AppError.serviceError(`Inventory adjustment failed: ${error.message}`);
   }
 };
 

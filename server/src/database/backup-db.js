@@ -10,6 +10,7 @@ const {
 } = require('./file-management');
 const { encryptFile } = require('./encryption');
 const { logInfo, logError } = require('../utils/logger-helper');
+const AppError = require('../utils/AppError');
 
 // Load environment variables
 loadEnv();
@@ -31,7 +32,7 @@ const maxBackups = parseInt(process.env.MAX_BACKUPS, 10) || 5; // Maximum number
 
 // Validate maxBackups
 if (!Number.isInteger(maxBackups) || maxBackups <= 0) {
-  throw new Error(
+  throw AppError.validationError(
     `Invalid MAX_BACKUPS value: ${maxBackups}. Must be a positive integer.`
   );
 }
@@ -48,7 +49,7 @@ if (!Number.isInteger(maxBackups) || maxBackups <= 0) {
  */
 const backupDatabase = async () => {
   if (!targetDatabase) {
-    throw new Error('Environment variable DB_NAME is missing.');
+    throw AppError.validationError('Environment variable DB_NAME is missing.');
   }
 
   try {
@@ -69,7 +70,7 @@ const backupDatabase = async () => {
     // Encrypt the SQL backup file
     const encryptionKey = process.env.BACKUP_ENCRYPTION_KEY;
     if (!encryptionKey || Buffer.from(encryptionKey, 'hex').length !== 32) {
-      throw new Error(
+      throw AppError.validationError(
         'Invalid or missing BACKUP_ENCRYPTION_KEY. Ensure it is a 64-character hexadecimal string.'
       );
     }

@@ -71,7 +71,7 @@ const fetchAllInventories = async ({ page, limit, sortBy, sortOrder }) => {
     return { processedData, pagination };
   } catch (error) {
     logError('Error fetching inventory:', error);
-    throw new AppError('Failed to fetch inventory', 500);
+    throw AppError.serviceError('Failed to fetch inventory');
   }
 };
 
@@ -89,7 +89,7 @@ const fetchAllInventories = async ({ page, limit, sortBy, sortOrder }) => {
 const createInventoryRecords = async (inventoryData, userId) => {
   try {
     if (!Array.isArray(inventoryData) || inventoryData.length === 0) {
-      throw new AppError('Invalid inventory data. Expected a non-empty array.');
+      throw AppError.validationError('Invalid inventory data. Expected a non-empty array.');
     }
 
     return await withTransaction(async (client) => {
@@ -125,28 +125,28 @@ const createInventoryRecords = async (inventoryData, userId) => {
         const location_id = warehouseLocations[warehouse_id];
 
         if (!location_id) {
-          throw new AppError(
+          throw AppError.validationError(
             `Warehouse ID ${warehouse_id} does not have a valid location.`
           );
         }
 
         if (!type || !warehouse_id || !quantity || !status_id || !lot_number) {
-          throw new AppError.validationError(
+          throw AppError.validationError(
             'Missing required fields in inventory record.'
           );
         }
 
         if (type === 'product') {
           if (!product_id)
-            throw new AppError.validationError(
+            throw AppError.validationError(
               'Product must have a product_id.'
             );
           if (!expiry_date)
-            throw new AppError.validationError(
+            throw AppError.validationError(
               'Product must have an expiry_date.'
             );
           if (!manufacture_date)
-            throw new AppError.validationError(
+            throw AppError.validationError(
               'Product must have a manufacture_date.'
             );
           products.push({
@@ -163,7 +163,7 @@ const createInventoryRecords = async (inventoryData, userId) => {
           });
         } else {
           if (!identifier)
-            throw new AppError.validationError(
+            throw AppError.validationError(
               'Non-product items must have an identifier.'
             );
           otherTypes.push({
@@ -206,7 +206,7 @@ const createInventoryRecords = async (inventoryData, userId) => {
           newInventoryItems
         );
         if (!success || !Array.isArray(inventoryRecords)) {
-          throw new AppError(
+          throw AppError.validationError(
             'Failed to insert inventory records or returned data is invalid.'
           );
         }
@@ -476,7 +476,7 @@ const createInventoryRecords = async (inventoryData, userId) => {
 
 const fetchRecentInsertWarehouseInventoryRecords = async (warehouseLotIds) => {
   if (!Array.isArray(warehouseLotIds) || warehouseLotIds.length === 0) {
-    throw new Error('No warehouse lot IDs provided.');
+    throw AppError.validationError('No warehouse lot IDs provided.');
   }
 
   // Extract UUIDs from objects if they exist

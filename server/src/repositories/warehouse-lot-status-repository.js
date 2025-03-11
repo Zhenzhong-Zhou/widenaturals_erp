@@ -10,7 +10,7 @@ const AppError = require('../utils/AppError'); // Import the query function
  */
 const getWarehouseLotStatus = async (client, options) => {
   if (!options.id && !options.name) {
-    throw new AppError('Either "id" or "name" must be provided.');
+    throw AppError.validationError('Either "id" or "name" must be provided.');
   }
 
   const queryText = options.id
@@ -32,7 +32,7 @@ const getWarehouseLotStatus = async (client, options) => {
           `Error fetching warehouse lot status: ${JSON.stringify(options)}`,
           error
         );
-        throw new AppError(`Failed to fetch warehouse lot status.`);
+        throw AppError.databaseError(`Failed to fetch warehouse lot status.`);
       }
     },
     3,

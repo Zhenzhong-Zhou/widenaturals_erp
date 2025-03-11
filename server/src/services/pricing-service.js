@@ -13,11 +13,11 @@ const {
  */
 const fetchAllPricings = async ({ page = 1, limit = 10 }) => {
   if (!Number.isInteger(page) || page < 1) {
-    throw new AppError('Invalid page number. Must be a positive integer.', 400);
+    throw AppError.validationError('Invalid page number. Must be a positive integer.');
   }
 
   if (!Number.isInteger(limit) || limit < 1) {
-    throw new AppError('Invalid limit. Must be a positive integer.', 400);
+    throw AppError.validationError('Invalid limit. Must be a positive integer.', 400);
   }
 
   try {
@@ -50,7 +50,7 @@ const fetchAllPricings = async ({ page = 1, limit = 10 }) => {
       pagination: pricingData.pagination,
     };
   } catch (error) {
-    throw new AppError('Failed to fetch pricing data', 500, error);
+    throw AppError.serviceError('Failed to fetch pricing data', 500, error);
   }
 };
 
@@ -64,11 +64,11 @@ const fetchAllPricings = async ({ page = 1, limit = 10 }) => {
 const fetchPricingDetailsByPricingId = async (pricingId, page, limit) => {
   // Validate input
   if (!pricingId) {
-    throw new AppError('Pricing ID is required', 400);
+    throw AppError.validationError('Pricing ID is required', 400);
   }
 
   if (page < 1 || limit < 1) {
-    throw new AppError('Page and limit must be positive integers', 400);
+    throw AppError.validationError('Page and limit must be positive integers', 400);
   }
 
   // Fetch pricing details from repository
@@ -79,7 +79,7 @@ const fetchPricingDetailsByPricingId = async (pricingId, page, limit) => {
   });
 
   if (!pricingData?.data?.length) {
-    throw new AppError('Pricing details not found', 404);
+    throw AppError.notFoundError('Pricing details not found', 404);
   }
 
   const pricing = pricingData.data[0];

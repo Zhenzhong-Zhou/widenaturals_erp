@@ -56,11 +56,11 @@ const checkLotExists = async (
     const { rows } = await query(text, [warehouse_inventory_id], client);
 
     if (!rows.length)
-      throw new AppError(`Lot with ID ${warehouse_inventory_id} not found.`);
+      throw AppError.notFoundError(`Lot with ID ${warehouse_inventory_id} not found.`);
 
     return rows[0];
   } catch (error) {
-    throw new AppError(`Error checking warehouse lot: ${error.message}`);
+    throw AppError.databaseError(`Error checking warehouse lot: ${error.message}`);
   }
 };
 
@@ -105,7 +105,7 @@ const adjustWarehouseInventoryLots = async (records, user_id) => {
 
       const new_quantity = previous_quantity + adjusted_quantity;
       if (new_quantity < 0) {
-        throw new AppError(
+        throw AppError.validationError(
           `Stock adjustment for lot ${lot_number} would result in negative stock.`
         );
       }
@@ -120,7 +120,7 @@ const adjustWarehouseInventoryLots = async (records, user_id) => {
       );
 
       if (!warehouseInventoryRows.length) {
-        throw new AppError(
+        throw AppError.notFoundError(
           `Warehouse inventory record not found for warehouse ${warehouse_id} and inventory ${inventory_id}`
         );
       }
@@ -130,7 +130,7 @@ const adjustWarehouseInventoryLots = async (records, user_id) => {
       // Prevent over-adjustment: available_quantity should NEVER go below 0
       let updated_available_quantity = available_quantity + adjusted_quantity;
       if (updated_available_quantity < 0) {
-        throw new AppError(
+        throw AppError.validationError(
           `Adjustment not allowed: Available stock cannot be negative. Current available: ${available_quantity}, Adjustment: ${adjusted_quantity}`
         );
       }
@@ -151,7 +151,7 @@ const adjustWarehouseInventoryLots = async (records, user_id) => {
         ['shipped', 'expired', 'sold_out'].includes(statusName) ||
         (statusName === 'out_of_stock' && adjusted_quantity < 0)
       ) {
-        throw new AppError(`Cannot adjust quantity for ${statusName} lots.`);
+        throw AppError.validationError(`Cannot adjust quantity for ${statusName} lots.`);
       }
 
       // Determine New Status for Warehouse Lot
@@ -439,7 +439,7 @@ const checkWarehouseInventoryLotExists = async (
     return rows;
   } catch (error) {
     logError('Error checking warehouse inventory lots:', error);
-    throw new AppError('Database query failed');
+    throw AppError.databaseError('Database query failed');
   }
 };
 
@@ -521,7 +521,7 @@ const insertWarehouseInventoryLots = async (client, warehouseLots) => {
     );
   } catch (error) {
     logError('Error inserting warehouse inventory lots:', error);
-    throw new AppError.databaseError(
+    throw AppError.databaseError(
       'Failed to insert warehouse inventory lots.',
       {
         details: { error: error.message, warehouseLots },

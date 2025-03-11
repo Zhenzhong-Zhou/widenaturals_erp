@@ -63,17 +63,14 @@ const insertUser = async (client, userDetails) => {
       if (result.rows.length === 0) {
         const maskedEmail = maskSensitiveInfo(email, 'email');
         logWarn(`User with email ${maskedEmail} already exists.`);
-        throw new AppError('User already exists', 409, {
-          type: 'ConflictError',
-          isExpected: true,
-        });
+        throw AppError.conflictError('User already exists');
       }
 
       return result.rows[0];
     });
   } catch (error) {
     logError('Error inserting user:', error);
-    throw new AppError('Failed to insert user', 500, { type: 'DatabaseError' });
+    throw AppError.databaseError('Failed to insert user');
   }
 };
 
@@ -91,10 +88,7 @@ const getUser = async (client, field, value, shouldLock = false) => {
   const maskedField = maskField(field, value);
 
   if (!['id', 'email'].includes(field)) {
-    throw new AppError('Invalid field for user query', 400, {
-      type: 'ValidationError',
-      isExpected: true,
-    });
+    throw AppError.validationError('Invalid field for user query');
   }
 
   const sql = `
@@ -145,9 +139,7 @@ const getUser = async (client, field, value, shouldLock = false) => {
     return user;
   } catch (error) {
     logError(`Error fetching user by ${maskedField}:`, error);
-    throw new AppError(`Failed to fetch user by ${maskedField}`, 500, {
-      type: 'DatabaseError',
-    });
+    throw AppError.databaseError(`Failed to fetch user by ${maskedField}`);
   } finally {
     // Release the client if it was created internally
     if (!isExternalClient && internalClient) {
@@ -217,10 +209,7 @@ const getAllUsers = async ({ page, limit, sortBy, sortOrder }) => {
     );
   } catch (error) {
     logError('Error executing paginated query in repository:', error);
-    throw new AppError('Failed to fetch users from repository', 500, {
-      type: 'DatabaseError',
-      details: error.message,
-    });
+    throw AppError.databaseError('Failed to fetch users from repository');
   }
 };
 
@@ -240,10 +229,7 @@ const userExists = async (field, value, status = 'active') => {
 
   // Validate the field
   if (!['id', 'email'].includes(field)) {
-    throw new AppError('Invalid field for user existence check', 400, {
-      type: 'ValidationError',
-      isExpected: true,
-    });
+    throw AppError.validationError('Invalid field for user existence check');
   }
 
   // SQL query with dynamic field and status filter
@@ -263,13 +249,7 @@ const userExists = async (field, value, status = 'active') => {
     return result.rowCount > 0; // Return true if the user exists and matches the status
   } catch (error) {
     logError(`Error checking user existence by ${maskedField}:`, error);
-    throw new AppError(
-      `Failed to check user existence by ${maskedField}`,
-      500,
-      {
-        type: 'DatabaseError',
-      }
-    );
+    throw AppError.databaseError(`Failed to check user existence by ${maskedField}`);
   }
 };
 
@@ -299,16 +279,13 @@ const updateUserPartial = async (id, updates) => {
     const result = await query(sql, values);
 
     if (result.rows.length === 0) {
-      throw new AppError('User not found for update', 404, {
-        type: 'NotFoundError',
-        isExpected: true,
-      });
+      throw AppError.notFoundError('User not found for update');
     }
 
     return result.rows[0];
   } catch (error) {
     logError('Error updating user partially:', error);
-    throw new AppError('Failed to update user', 500, { type: 'DatabaseError' });
+    throw AppError.databaseError('Failed to update user');
   }
 };
 
@@ -327,16 +304,13 @@ const deleteUser = async (id) => {
     const result = await query(sql, params);
 
     if (result.rows.length === 0) {
-      throw new AppError('User not found for deletion', 404, {
-        type: 'NotFoundError',
-        isExpected: true,
-      });
+      throw AppError.notFoundError('User not found for deletion');
     }
 
     return true;
   } catch (error) {
     logError('Error deleting user:', error);
-    throw new AppError('Failed to delete user', 500, { type: 'DatabaseError' });
+    throw AppError.databaseError('Failed to delete user');
   }
 };
 

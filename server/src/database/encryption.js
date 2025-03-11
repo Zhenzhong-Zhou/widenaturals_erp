@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const fs = require('fs').promises; // Use promise-based fs methods
-const { createReadStream, createWriteStream } = require('fs'); // For streaming
+const { createReadStream, createWriteStream } = require('fs');
+const AppError = require('../utils/AppError'); // For streaming
 
 /**
  * Encrypts a file using AES-256-CBC.
@@ -56,7 +57,7 @@ const decryptFile = async (
   try {
     await fs.access(ivFilePath);
   } catch (err) {
-    throw new Error(`Initialization Vector (IV) file not found: ${ivFilePath}`);
+    throw AppError.notFoundError(`Initialization Vector (IV) file not found: ${ivFilePath}`);
   }
 
   // Load IV asynchronously

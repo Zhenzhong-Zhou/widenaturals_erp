@@ -25,10 +25,7 @@ const fetchAllUsers = async ({ page, limit, sortBy, sortOrder }) => {
     return await getAllUsers({ page, limit, sortBy, sortOrder });
   } catch (error) {
     logError('Error in fetchAllUsers service:', error);
-    throw new AppError('Failed to fetch users from service layer', 500, {
-      type: 'ServiceError',
-      details: error.message,
-    });
+    throw AppError.serviceError('Failed to fetch users from service layer');
   }
 };
 
@@ -76,10 +73,7 @@ const createUser = async (userDetails) => {
 const getUserProfileById = async (userId) => {
   // Validate the input
   if (!userId || typeof userId !== 'string') {
-    throw AppError.validationError('Invalid user ID provided', 400, {
-      type: 'ValidationError',
-      isExpected: true,
-    });
+    throw AppError.validationError('Invalid user ID provided');
   }
 
   try {
@@ -87,10 +81,7 @@ const getUserProfileById = async (userId) => {
     const user = await getUser(null, 'id', userId);
 
     if (!user) {
-      throw AppError.notFoundError(`User with ID ${userId} not found`, 404, {
-        type: 'NotFoundError',
-        isExpected: true,
-      });
+      throw AppError.notFoundError(`User with ID ${userId} not found`);
     }
 
     // Map and return the user profile
@@ -108,12 +99,8 @@ const getUserProfileById = async (userId) => {
       throw error;
     }
 
-    throw new AppError(
-      'An unexpected error occurred while fetching the user profile',
-      500,
-      {
-        type: 'InternalError',
-      }
+    throw AppError.serviceError(
+      'An unexpected error occurred while fetching the user profile'
     );
   }
 };

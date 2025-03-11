@@ -58,7 +58,7 @@ const getWarehouses = async ({ page, limit, sortBy, sortOrder }) => {
     });
   } catch (error) {
     logError('Error fetching warehouses:', error);
-    throw new AppError('Failed to fetch warehouses.');
+    throw AppError.databaseError('Failed to fetch warehouses.');
   }
 };
 
@@ -111,7 +111,7 @@ const getWarehouseDetailsById = async (warehouseId) => {
       1000
     );
     if (rows.length === 0) {
-      throw new AppError.databaseError(
+      throw AppError.notFoundError(
         `Warehouse with ID ${warehouseId} not found`
       );
     }
@@ -204,7 +204,7 @@ const getWarehouseInventorySummary = async ({ page, limit, statusFilter }) => {
       `Error fetching warehouse inventory summary (page: ${page}, limit: ${limit}, status: ${statusFilter}):`,
       error
     );
-    throw new AppError('Failed to fetch warehouse inventory summary.');
+    throw AppError.databaseError('Failed to fetch warehouse inventory summary.');
   }
 };
 
@@ -216,7 +216,7 @@ const getWarehouseInventorySummary = async ({ page, limit, statusFilter }) => {
  */
 const geLocationIdByWarehouseId = async (client, warehouseIds) => {
   if (!Array.isArray(warehouseIds) || warehouseIds.length === 0) {
-    throw new Error('Invalid warehouse IDs input. Expected a non-empty array.');
+    throw AppError.validationError('Invalid warehouse IDs input. Expected a non-empty array.');
   }
 
   const queryText = `
@@ -257,7 +257,7 @@ const geLocationIdByWarehouseId = async (client, warehouseIds) => {
  */
 const checkAndLockWarehouse = async (client, warehouseId, locationId) => {
   if (!warehouseId && !locationId) {
-    throw new AppError.validationError(
+    throw AppError.validationError(
       'Either warehouseId or locationId must be provided.'
     );
   }
@@ -295,7 +295,7 @@ const getActiveWarehousesForDropdown = async () => {
       message: error.message,
       stack: error.stack,
     });
-    throw new AppError.databaseError(
+    throw AppError.databaseError(
       'Failed to fetch warehouse dropdown list',
       {
         originalError: error.message,

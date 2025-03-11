@@ -65,7 +65,7 @@ const insertWarehouseLotAdjustment = async (
     );
   } catch (error) {
     logError('Error inserting warehouse lot adjustment:', error);
-    throw new AppError(
+    throw AppError.databaseError(
       'Database error: Failed to insert warehouse lot adjustment.'
     );
   }
@@ -81,7 +81,7 @@ const insertWarehouseLotAdjustment = async (
  */
 const bulkInsertWarehouseLotAdjustments = async (adjustments, client) => {
   if (!Array.isArray(adjustments) || adjustments.length === 0) {
-    throw new AppError.validationError(
+    throw AppError.validationError(
       'No warehouse lot adjustments provided for bulk insert.'
     );
   }
@@ -129,7 +129,7 @@ const bulkInsertWarehouseLotAdjustments = async (adjustments, client) => {
     );
   } catch (error) {
     logError('Error inserting warehouse lot adjustments:', error.message);
-    throw new AppError.databaseError(
+    throw AppError.databaseError(
       'Failed to insert warehouse lot adjustments.',
       {
         details: { error: error.message, adjustments },

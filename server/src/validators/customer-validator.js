@@ -53,10 +53,7 @@ const validateCustomer = (customerData) => {
   });
   
   if (error) {
-    throw new AppError('Customer validation failed', 400, {
-      type: 'ValidationError',
-      code: 'VALIDATION_ERROR',
-      isExpected: true,
+    throw AppError.validationError('Customer validation failed', {
       details: error.details.map((err) => err.message),
     });
   }

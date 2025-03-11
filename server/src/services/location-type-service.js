@@ -28,14 +28,14 @@ const fetchAllLocationTypes = async ({
 
     // Validate pagination parameters
     if (page < 1 || limit < 1) {
-      throw new AppError('Invalid pagination parameters', 400);
+      throw AppError.validationError('Invalid pagination parameters');
     }
 
     // Fetch from repository
     return await getLocationTypes({ page, limit, sortBy, sortOrder });
   } catch (error) {
     logError('Error in getLocationTypes service:', error);
-    throw new AppError('Failed to retrieve location types', 500, error);
+    throw AppError.databaseError('Failed to retrieve location types', 500, error);
   }
 };
 
@@ -69,7 +69,7 @@ const fetchLocationTypeDetailByTypeId = async ({
   try {
     // Validate Required Parameters
     if (!id) {
-      throw new AppError('Location type ID is required', 400);
+      throw AppError.validationError('Location type ID is required');
     }
 
     // Fetch Data from Repository
@@ -83,7 +83,7 @@ const fetchLocationTypeDetailByTypeId = async ({
 
     // Handle Not Found Case
     if (!locationTypeData) {
-      throw new AppError('Location type not found', 404);
+      throw AppError.notFoundError('Location type not found');
     }
 
     // Process Locations (Add Business Logic)
@@ -107,9 +107,8 @@ const fetchLocationTypeDetailByTypeId = async ({
     };
   } catch (error) {
     logError('Error in fetchLocationTypeDetailByTypeId service:', error);
-    throw new AppError(
+    throw AppError.serviceError(
       error.message || 'Internal Server Error',
-      error.statusCode || 500,
       error
     );
   }

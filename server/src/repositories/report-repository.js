@@ -120,7 +120,7 @@ const getAdjustmentReport = async ({
     };
   } catch (error) {
     logError('Error fetching adjustment report:', error);
-    throw new AppError.databaseError('Database query failed');
+    throw AppError.databaseError('Database query failed');
   }
 };
 
@@ -277,7 +277,7 @@ const getInventoryActivityLogs = async ({
     };
   } catch (error) {
     logError('Error fetching paginated inventory logs:', error);
-    throw new AppError.databaseError('An error occurred while retrieving inventory logs. Please try again later.');
+    throw AppError.databaseError('An error occurred while retrieving inventory logs. Please try again later.');
   }
 };
 

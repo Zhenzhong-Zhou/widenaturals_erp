@@ -28,7 +28,7 @@ const checkCustomerExists = async (email, phone_number) => {
  */
 const bulkCreateCustomers = async (customers) => {
   if (!Array.isArray(customers) || customers.length === 0) {
-    throw new AppError('Customer list is empty.', 400, { code: 'VALIDATION_ERROR' });
+    throw AppError('Customer list is empty.', 400, { code: 'VALIDATION_ERROR' });
   }
   
   const columns = [
@@ -64,8 +64,7 @@ const bulkCreateCustomers = async (customers) => {
       );
     } catch (error) {
       logError('❌ Bulk Insert Failed:', error);
-      throw new AppError('Bulk insert operation failed', 500, {
-        code: 'DATABASE_ERROR',
+      throw AppError('Bulk insert operation failed',{
         details: { tableName: 'customers', columns, error: error.message },
       });
     }

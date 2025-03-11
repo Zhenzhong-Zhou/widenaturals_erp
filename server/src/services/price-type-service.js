@@ -69,7 +69,7 @@ const fetchPricingTypeDetailsByPricingTypeId = async (
   try {
     const pricingTypeDetails = await getPricingTypeById(pricingTypeId);
     if (!pricingTypeDetails) {
-      throw new AppError('Pricing type not found', 404);
+      throw AppError.notFoundError('Pricing type not found');
     }
 
     const pricingDetails = await getPricingDetailsByPricingTypeId({
@@ -84,7 +84,7 @@ const fetchPricingTypeDetailsByPricingTypeId = async (
       pagination: pricingDetails.pagination,
     };
   } catch (error) {
-    throw new AppError('Failed to fetch pricing type with details', 500, {
+    throw AppError.serviceError('Failed to fetch pricing type with details', {
       originalError: error.message,
     });
   }

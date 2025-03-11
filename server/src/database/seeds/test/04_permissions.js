@@ -1,3 +1,4 @@
+const AppError = require('../../../utils/AppError');
 exports.seed = async function (knex) {
   // Fetch the active status ID dynamically
   const activeStatusId = await knex('status')
@@ -14,7 +15,7 @@ exports.seed = async function (knex) {
     .then((row) => row.id);
 
   if (!adminUserId) {
-    throw new Error(
+    throw AppError.notFoundError(
       'Admin user is not seeded. Please seed the users table first.'
     );
   }

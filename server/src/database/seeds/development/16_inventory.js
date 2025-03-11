@@ -1,5 +1,6 @@
 const { fetchDynamicValue } = require('../03_utils');
 const { generateChecksum } = require('../../../utils/crypto-utils');
+const AppError = require('../../../utils/AppError');
 
 /**
  * @param {import("knex").Knex} knex
@@ -24,7 +25,7 @@ exports.seed = async function (knex) {
     .first()
     .then(row => row?.id);
   
-  if (!systemActionId) throw new Error('System user ID not found.');
+  if (!systemActionId) throw AppError.notFoundError('System user ID not found.');
   
   // Create ID maps
   const locationIdMap = Object.fromEntries(locations.map(l => [l.name, l.id]));

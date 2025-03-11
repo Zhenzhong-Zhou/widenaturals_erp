@@ -128,9 +128,7 @@ const getProducts = async ({
       message: error.message,
       stack: error.stack,
     });
-    throw new AppError.serviceError('Failed to fetch products', {
-      originalError: error.message,
-    });
+    throw AppError.databaseError('Failed to fetch products');
   }
 };
 
@@ -160,7 +158,7 @@ const checkProductExists = async (filters, combineWith = 'OR') => {
     typeof filters !== 'object' ||
     Object.keys(filters).length === 0
   ) {
-    throw new AppError.validationError(
+    throw AppError.validationError(
       'No valid filters provided for product existence check.',
       400,
       { providedFilters: filters }
@@ -180,9 +178,8 @@ const checkProductExists = async (filters, combineWith = 'OR') => {
   });
 
   if (whereClauses.length === 0) {
-    throw new AppError.validationError(
+    throw AppError.validationError(
       'No valid filters provided for product existence check.',
-      400,
       { providedFilters: filters }
     );
   }
@@ -203,7 +200,7 @@ const checkProductExists = async (filters, combineWith = 'OR') => {
     const result = await query(queryText, queryParams);
     return result.rows[0].exists;
   } catch (error) {
-    throw new AppError.databaseError(
+    throw AppError.databaseError(
       'Failed to execute product existence check.',
       {
         query: queryText,
@@ -306,7 +303,7 @@ const getProductDetailsById = async (id) => {
     return await retry(fetchProduct, 3, 1000); // Retry 3 times with a 1-second delay
   } catch (error) {
     logError('Error fetching product details:', error.message);
-    throw new AppError.databaseError('Error fetching product details');
+    throw AppError.databaseError('Error fetching product details');
   }
 };
 
@@ -369,7 +366,7 @@ const getAvailableProductsForDropdown = async (warehouseId) => {
       message: error.message,
       stack: error.stack,
     });
-    throw new AppError.databaseError(
+    throw AppError.databaseError(
       'Failed to fetch available product dropdown list',
       {
         originalError: error.message,

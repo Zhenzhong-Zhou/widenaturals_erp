@@ -34,7 +34,7 @@ const fetchAllWarehouses = async ({ page, limit, sortBy, sortOrder }) => {
     };
   } catch (error) {
     logError('Error fetching warehouses:', error);
-    throw new AppError('Failed to retrieve warehouses');
+    throw AppError.serviceError('Failed to retrieve warehouses');
   }
 };
 
@@ -46,14 +46,14 @@ const fetchAllWarehouses = async ({ page, limit, sortBy, sortOrder }) => {
  */
 const fetchWarehouseDetails = async (warehouseId) => {
   if (!warehouseId) {
-    throw new AppError.validationError('Warehouse ID is required.');
+    throw AppError.validationError('Warehouse ID is required.');
   }
 
   try {
     const warehouse = await getWarehouseDetailsById(warehouseId);
 
     if (!warehouse) {
-      throw new AppError.notFoundError(
+      throw AppError.notFoundError(
         `Warehouse with ID ${warehouseId} not found.`
       );
     }
@@ -68,7 +68,7 @@ const fetchWarehouseDetails = async (warehouseId) => {
     }
 
     if (errorMessages.length > 0) {
-      throw new AppError.validationError(
+      throw AppError.validationError(
         `Warehouse ${warehouse.name} cannot be used: ${errorMessages.join(' & ')}.`
       );
     }
@@ -113,7 +113,7 @@ const fetchWarehouseDetails = async (warehouseId) => {
   } catch (error) {
     console.error(error);
     logError('Error fetching warehouse details service:', error);
-    throw new AppError.serviceError('Failed to fetch warehouse details.');
+    throw AppError.serviceError('Failed to fetch warehouse details.');
   }
 };
 
@@ -135,9 +135,8 @@ const fetchWarehouseInventorySummary = async ({
     // Validate status filter input
     const allowedStatuses = ['active', 'inactive', 'all'];
     if (!allowedStatuses.includes(statusFilter)) {
-      throw new AppError(
-        `Invalid statusFilter: '${statusFilter}'. Allowed: ${allowedStatuses.join(', ')}`,
-        400
+      throw AppError.validationError(
+        `Invalid statusFilter: '${statusFilter}'. Allowed: ${allowedStatuses.join(', ')}`
       );
     }
 
@@ -181,7 +180,7 @@ const fetchWarehouseInventorySummary = async ({
     };
   } catch (error) {
     logError('Error in fetchWarehouseInventorySummary:', error);
-    throw new AppError('Failed to retrieve warehouse inventory summary.', 500);
+    throw AppError.serviceError('Failed to retrieve warehouse inventory summary.');
   }
 };
 
@@ -189,7 +188,7 @@ const fetchWarehouseDropdownList = async () => {
   try {
     return await getActiveWarehousesForDropdown();
   } catch (error) {
-    throw new AppError.serviceError(
+    throw AppError.serviceError(
       `Failed to fetch warehouse dropdown: ${error.message}`
     );
   }

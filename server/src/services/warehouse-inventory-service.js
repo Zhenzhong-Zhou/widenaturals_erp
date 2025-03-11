@@ -22,7 +22,7 @@ const fetchAllWarehouseInventories = async ({
   sortOrder,
 }) => {
   if (page < 1 || limit < 1) {
-    throw new AppError('Invalid pagination parameters', 400);
+    throw AppError.validationError('Invalid pagination parameters');
   }
 
   // Fetch inventories using repository
@@ -75,12 +75,11 @@ const fetchWarehouseProductSummary = async (
   try {
     // Validate input parameters
     if (!warehouseId) {
-      throw new AppError('Warehouse ID is required.', 400);
+      throw AppError.validationError('Warehouse ID is required.');
     }
     if (page < 1 || limit < 1) {
-      throw new AppError(
-        'Invalid pagination parameters. Page and limit must be positive numbers.',
-        400
+      throw AppError.validationError(
+        'Invalid pagination parameters. Page and limit must be positive numbers.'
       );
     }
 
@@ -126,9 +125,8 @@ const fetchWarehouseProductSummary = async (
       `Error fetching warehouse product summary (warehouseId: ${warehouseId}, page: ${page}, limit: ${limit}):`,
       error
     );
-    throw new AppError(
-      error.message || 'Failed to fetch warehouse product summary.',
-      error.statusCode || 500
+    throw AppError.validationError(
+      error.message || 'Failed to fetch warehouse product summary.'
     );
   }
 };
@@ -148,7 +146,7 @@ const fetchWarehouseInventoryDetailsByWarehouseId = async (
 ) => {
   try {
     if (!warehouse_id) {
-      throw new AppError('Warehouse ID is required.', 400);
+      throw AppError.validationError('Warehouse ID is required.');
     }
 
     // Fetch paginated inventory details from repository
@@ -211,9 +209,8 @@ const fetchWarehouseInventoryDetailsByWarehouseId = async (
       `Error fetching warehouse inventory details (warehouseId: ${warehouse_id}, page: ${page}, limit: ${limit}):`,
       error
     );
-    throw new AppError(
-      error.message || 'Failed to retrieve warehouse inventory details.',
-      error.statusCode || 500
+    throw AppError.serviceError(
+      error.message || 'Failed to retrieve warehouse inventory details.'
     );
   }
 };

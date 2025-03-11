@@ -1,4 +1,5 @@
 const { fetchDynamicValue } = require('../03_utils');
+const AppError = require('../../../utils/AppError');
 
 exports.seed = async function (knex) {
   // Fetch the 'Active' status ID from the 'status' table
@@ -11,7 +12,7 @@ exports.seed = async function (knex) {
   );
 
   if (!activeStatusId) {
-    throw new Error("The 'active' status is not found in the 'status' table.");
+    throw AppError.notFoundError("The 'active' status is not found in the 'status' table.");
   }
 
   // Define roles

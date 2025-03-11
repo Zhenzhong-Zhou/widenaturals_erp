@@ -1,3 +1,4 @@
+const AppError = require('../../utils/AppError');
 /**
  * Fetch a single value dynamically from a table.
  *
@@ -17,7 +18,7 @@ const fetchDynamicValue = async (
 ) => {
   // Validate arguments
   if (!tableName || !columnName || !value || !returnColumn) {
-    throw new Error(
+    throw AppError.validationError(
       `Invalid arguments provided to fetchDynamicValue: tableName=${tableName}, columnName=${columnName}, value=${value}, returnColumn=${returnColumn}`
     );
   }
@@ -46,7 +47,7 @@ const fetchDynamicValue = async (
 
 const fetchDynamicValues = async (knex, tableName, columnName, values, returnColumn) => {
   if (!tableName || !columnName || !values || !returnColumn || !Array.isArray(values)) {
-    throw new Error(`Invalid arguments provided to fetchDynamicValues.`);
+    throw AppError.validationError(`Invalid arguments provided to fetchDynamicValues.`);
   }
   
   try {

@@ -18,11 +18,11 @@ const validate = (
   errorMessage = 'Validation failed.'
 ) => {
   if (!schema || typeof schema.validate !== 'function') {
-    throw new Error('Invalid Joi schema provided.');
+    throw AppError.validationError('Invalid Joi schema provided.');
   }
 
   if (!['body', 'query', 'params'].includes(target)) {
-    throw new Error(`Invalid validation target: ${target}`);
+    throw AppError.validationError(`Invalid validation target: ${target}`);
   }
 
   const defaultOptions = { abortEarly: false, allowUnknown: false };
