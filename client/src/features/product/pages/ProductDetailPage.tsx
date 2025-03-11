@@ -26,6 +26,7 @@ const ProductDetailPage: React.FC = () => {
         Series: product.series ?? 'N/A',
         Brand: product.brand ?? 'N/A',
         Category: product.category ?? 'N/A',
+        NPN: product.npn ?? 'N/A',
         Barcode: product.barcode ?? 'N/A',
         'Market Region': product.market_region ?? 'N/A',
         Length: `${product.length_cm ?? 'N/A'} cm`,

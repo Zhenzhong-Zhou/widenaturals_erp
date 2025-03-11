@@ -58,6 +58,13 @@ const getProducts = async ({
       p.series,
       p.brand,
       p.category,
+      COALESCE(
+        jsonb_agg(
+            DISTINCT jsonb_build_object(
+                'npn', c.compliance_id
+            )
+        ) FILTER (WHERE c.type = 'NPN'), '[]'
+    ) AS npn_info,
       p.barcode,
       p.market_region,
       s.name AS status_name,
@@ -88,6 +95,7 @@ const getProducts = async ({
     ) pricing ON pricing.product_id = p.id
     LEFT JOIN locations loc ON pricing.location_id = loc.id
     LEFT JOIN location_types lt ON loc.location_type_id = lt.id
+    LEFT JOIN compliances c ON p.id = c.product_id AND c.type = 'NPN'
     WHERE ${whereClause}
     GROUP BY p.id, s.name, loc.name, lt.name
   `;
@@ -229,6 +237,7 @@ const getProductDetailsById = async (id) => {
       p.height_cm,
       p.weight_g,
       p.description,
+      c.compliance_id AS npn,
       loc.name AS location_name,
       lt.name AS location_type_name,
       s.name AS status_name,
@@ -266,12 +275,14 @@ const getProductDetailsById = async (id) => {
     LEFT JOIN location_types lt ON loc.location_type_id = lt.id
     LEFT JOIN users created_user ON p.created_by = created_user.id
     LEFT JOIN users updated_user ON p.updated_by = updated_user.id
+    LEFT JOIN compliances c ON c.product_id = p.id AND c.type = 'NPN'
     WHERE p.id = $1
       AND s.name = 'active'
     GROUP BY
       p.id,
       s.name,
       p.status_date,
+      c.compliance_id,
       loc.name,
       lt.name,
       created_user.firstname,
@@ -279,7 +290,7 @@ const getProductDetailsById = async (id) => {
       p.created_at,
       updated_user.firstname,
       updated_user.lastname,
-      p.updated_at
+      p.updated_at;
   `;
 
   try {

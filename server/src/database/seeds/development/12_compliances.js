@@ -55,23 +55,23 @@ exports.seed = async function (knex) {
     'Menopause - CA': '80118579',
     'Gut Health - CA': '80102616',
     'Focus - CA': '80102618',
-    'PPain Relief Topical Stick': '80109751',
+    'Pain Relief Topical Stick': '80109751',
     'Mood - CA': '80122212',
     'Hair Health': '80121449',
     
     // New Oil & Supplement Products with Size Variations
-    'Seal Oil 180 - CA': '80131669',
-    'Seal Oil 120 - CA': '80131669',
-    'EPA 900 120 - CA': '80118522',
-    'EPA 900 60 - CA': '80118522',
-    'OMEGA-3 900 120 - CA': '80119337',
-    'OMEGA-3 900 60 - CA': '80119337',
-    'MultiVitamin Fish Oil 120 - CA': '80107082',
-    'MultiVitamin Fish Oil 60 - CA': '80107082',
-    'Algal Oil Kids 60 - CA': '80111230',
-    'Algal Oil Kids 30 - CA': '80111230',
-    'Algal Oil Pregnant 60 - CA': '80111182',
-    'Algal Oil Pregnant 30 - CA': '80111182',
+    'Seal Oil - 180 Softgels': '80131669',
+    'Seal Oil - 120 Softgels': '80131669',
+    "EPA 900 - 120 Softgels": "80118522",
+    "EPA 900 - 60 Softgels": "80118522",
+    "Omega-3 900 - 120 Softgels": "80119337",
+    "Omega-3 900 - 60 Softgels": "80119337",
+    "MultiVitamin Fish Oil - 120 Softgels": "80107082",
+    "MultiVitamin Fish Oil - 60 Softgels": "80107082",
+    "Algal Oil Kids - 60 Softgels": "80111230",
+    "Algal Oil Kids - 30 Softgels": "80111230",
+    "Algal Oil Pregnant - 60 Softgels": "80111182",
+    "Algal Oil Pregnant - 30 Softgels": "80111182"
   };
   
   // Fetch product IDs for products in the mapping
