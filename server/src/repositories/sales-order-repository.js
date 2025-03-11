@@ -19,7 +19,6 @@ const createSalesOrder = async (salesOrderData) => {
   return withTransaction(async (client) => {
     try {
       const { id: order_status_id } = await getStatusByCodeOrId({ code: 'ORDER_PENDING' }, client);
-      console.log('order_status_id', order_status_id);
       
       // 🔹 Step 1: Create a general order in the `orders` table
       const order = await createOrder({

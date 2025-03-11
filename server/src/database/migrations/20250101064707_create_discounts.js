@@ -31,4 +31,18 @@ exports.up = async function (knex) {
  */
 exports.down = async function (knex) {
   await knex.schema.dropTableIfExists('discounts');
+  
+  // ✅ Drop ENUM only if no table uses it
+  await knex.raw(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_attribute a
+        JOIN pg_type t ON a.atttypid = t.oid
+        WHERE t.typname = 'discount_type_enum'
+      ) THEN
+        DROP TYPE discount_type_enum;
+      END IF;
+    END $$;
+  `);
 };

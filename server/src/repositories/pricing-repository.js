@@ -222,8 +222,9 @@ const getActiveProductPrice = async (productId, priceTypeId, client) => {
     INNER JOIN status s ON p.status_id = s.id
     WHERE p.product_id = $1
       AND p.price_type_id = $2
-      AND now() BETWEEN p.valid_from AND COALESCE(p.valid_to, now())
       AND s.name = 'active'
+      AND now() >= p.valid_from
+      AND (p.valid_to IS NULL OR now() <= p.valid_to)
     ORDER BY p.valid_from DESC
     LIMIT 1;
   `;

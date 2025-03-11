@@ -9,6 +9,11 @@ exports.seed = async function (knex) {
     .where('name', 'active')
     .first()
     .then((row) => row?.id);
+  const inactiveStatusId = await knex('status')
+    .select('id')
+    .where('name', 'inactive')
+    .first()
+    .then((row) => row?.id);
   const systemActionId = await knex('users')
     .select('id')
     .where('email', 'system@internal.local')
@@ -24,15 +29,15 @@ exports.seed = async function (knex) {
       status_id: activeStatusId,
       status_date: knex.fn.now(),
       created_at: knex.fn.now(),
-      updated_at: knex.fn.now(),
+      updated_at: null,
       created_by: systemActionId,
-      updated_by: systemActionId,
+      updated_by: null,
     },
     {
       id: knex.raw('uuid_generate_v4()'),
       name: 'Product Cost',
       description: 'The base cost of the product.',
-      status_id: activeStatusId,
+      status_id: inactiveStatusId,
       status_date: knex.fn.now(),
       created_at: knex.fn.now(),
       updated_at: null,
@@ -65,7 +70,7 @@ exports.seed = async function (knex) {
       id: knex.raw('uuid_generate_v4()'),
       name: 'Discount Price',
       description: 'Special discounted price for promotions.',
-      status_id: activeStatusId,
+      status_id: inactiveStatusId,
       status_date: knex.fn.now(),
       created_at: knex.fn.now(),
       updated_at: null,
@@ -85,9 +90,20 @@ exports.seed = async function (knex) {
     },
     {
       id: knex.raw('uuid_generate_v4()'),
+      name: 'Sample Price',
+      description: 'Price for product samples distributed for marketing or testing purposes.',
+      status_id: activeStatusId,
+      status_date: knex.fn.now(),
+      created_at: knex.fn.now(),
+      updated_at: null,
+      created_by: systemActionId,
+      updated_by: null,
+    },
+    {
+      id: knex.raw('uuid_generate_v4()'),
       name: 'Seasonal Discount',
       description: 'Special seasonal discounts.',
-      status_id: activeStatusId,
+      status_id: inactiveStatusId,
       status_date: knex.fn.now(),
       created_at: knex.fn.now(),
       updated_at: null,
@@ -98,7 +114,7 @@ exports.seed = async function (knex) {
       id: knex.raw('uuid_generate_v4()'),
       name: 'Clearance',
       description: 'Pricing for clearance products.',
-      status_id: activeStatusId,
+      status_id: inactiveStatusId,
       status_date: knex.fn.now(),
       created_at: knex.fn.now(),
       updated_at: null,
@@ -109,7 +125,7 @@ exports.seed = async function (knex) {
       id: knex.raw('uuid_generate_v4()'),
       name: 'Promotional',
       description: 'Pricing for promotional offers.',
-      status_id: activeStatusId,
+      status_id: inactiveStatusId,
       status_date: knex.fn.now(),
       created_at: knex.fn.now(),
       updated_at: null,
@@ -120,7 +136,7 @@ exports.seed = async function (knex) {
       id: knex.raw('uuid_generate_v4()'),
       name: 'Loyalty Program Price',
       description: 'Special pricing for loyalty program members.',
-      status_id: activeStatusId,
+      status_id: inactiveStatusId,
       status_date: knex.fn.now(),
       created_at: knex.fn.now(),
       updated_at: null,
@@ -131,7 +147,7 @@ exports.seed = async function (knex) {
       id: knex.raw('uuid_generate_v4()'),
       name: 'Exclusive Member Price',
       description: 'Exclusive pricing for members only.',
-      status_id: activeStatusId,
+      status_id: inactiveStatusId,
       status_date: knex.fn.now(),
       created_at: knex.fn.now(),
       updated_at: null,
@@ -142,7 +158,7 @@ exports.seed = async function (knex) {
       id: knex.raw('uuid_generate_v4()'),
       name: 'Bulk Purchase Discount',
       description: 'Special discounts for bulk purchases.',
-      status_id: activeStatusId,
+      status_id: inactiveStatusId,
       status_date: knex.fn.now(),
       created_at: knex.fn.now(),
       updated_at: null,
