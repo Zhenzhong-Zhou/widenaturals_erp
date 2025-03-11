@@ -576,7 +576,7 @@ const bulkInsert = async (
     !Array.isArray(rows) ||
     !rows.every((row) => Array.isArray(row) && row.length === columns.length)
   ) {
-    throw new AppError.validationError(
+    throw AppError.validationError(
       `Invalid data format: Expected an array of arrays, each with ${columns.length} values`
     );
   }

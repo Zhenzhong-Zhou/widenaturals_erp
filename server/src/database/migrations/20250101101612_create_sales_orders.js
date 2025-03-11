@@ -13,10 +13,16 @@ exports.up = async function (knex) {
         .references('id')
         .inTable('customers');
       table.date('order_date').notNullable();
-      table.uuid('discount_id').references('id').inTable('pricing');
+      table.uuid('discount_id').nullable().references('id').inTable('discounts');
       table.decimal('discount_amount', 10, 2);
       table.decimal('subtotal', 10, 2).notNullable();
-      table.decimal('tax', 10, 2);
+      table
+        .uuid('tax_rate_id')
+        .nullable()
+        .references('id')
+        .inTable('tax_rates'); // Ensure tax rate consistency
+      
+      table.decimal('tax_amount', 10, 2).defaultTo(0.00);
       table.decimal('shipping_fee', 10, 2);
       table.decimal('total_amount', 10, 2).notNullable();
       table
@@ -32,6 +38,7 @@ exports.up = async function (knex) {
       table.uuid('updated_by').references('id').inTable('users');
       
       table.index("delivery_method_id");
+      table.index(['customer_id', 'order_status_id', 'tax_rate_id']);
     });
   }
 };

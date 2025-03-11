@@ -213,8 +213,28 @@ const getPricingDetailsByPricingId = async ({ pricingId, page, limit }) => {
   }
 };
 
+const getActiveProductPrice = async (productId, priceTypeId, client) => {
+  const sql = `
+    SELECT
+      p.id,
+      p.price
+    FROM pricing p
+    INNER JOIN status s ON p.status_id = s.id
+    WHERE p.product_id = $1
+      AND p.price_type_id = $2
+      AND now() BETWEEN p.valid_from AND COALESCE(p.valid_to, now())
+      AND s.name = 'active'
+    ORDER BY p.valid_from DESC
+    LIMIT 1;
+  `;
+  
+  const result = await client.query(sql, [productId, priceTypeId]);
+  return result.rows.length > 0 ? result.rows[0] : null;
+};
+
 module.exports = {
   getPricingDetailsByPricingTypeId,
   getPricings,
   getPricingDetailsByPricingId,
+  getActiveProductPrice
 };
