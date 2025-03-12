@@ -1,28 +1,49 @@
+import { useEffect, useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
-import { useEffect } from "react";
 import {
   fetchAllOrderTypesThunk,
   selectOrderTypes,
   selectOrderTypesError,
-  selectOrderTypesLoading,
+  selectOrderTypesLoading, selectOrderTypesPagination,
 } from '../features/orderType';
 
-/**
- * Custom hook to fetch and manage order types from Redux state
- */
-const useOrderTypes = () => {
+const useOrderTypes = (
+  page: number,
+  limit: number,
+  sortBy: string = 'name',
+  sortOrder: string = 'ASC'
+) => {
   const dispatch = useAppDispatch();
+  
   const orderTypes = useAppSelector(selectOrderTypes);
+  const pagination = useAppSelector(selectOrderTypesPagination);
   const isLoading = useAppSelector(selectOrderTypesLoading);
   const error = useAppSelector(selectOrderTypesError);
   
-  useEffect(() => {
-    if (orderTypes.length === 0) {
-      dispatch(fetchAllOrderTypesThunk());
-    }
-  }, [dispatch, orderTypes.length]);
+  // Fetch order types on mount and when manually refreshed
+  const fetchData = useCallback(() => {
+    dispatch(fetchAllOrderTypesThunk({ page, limit, sortBy,  sortOrder: sortOrder as 'ASC' | 'DESC'  }));
+  }, [dispatch]);
   
-  return { orderTypes, isLoading, error };
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+  
+  // ✅ Manual refresh function
+  const refresh = useCallback(() => {
+    fetchData();
+  }, [fetchData]);
+  
+  return useMemo(
+    () => ({
+      orderTypes,
+      pagination,
+      isLoading,
+      error,
+      refresh, // Function to manually refresh compliance data
+    }),
+    [orderTypes, pagination, isLoading, error, refresh]
+  );
 };
 
 export default useOrderTypes;

@@ -6,9 +6,14 @@ const AppError = require('../utils/AppError');
  * Fetch all order types with business logic
  * @returns {Promise<Array>} List of order types
  */
-const fetchAllOrderTypes = async () => {
+const fetchAllOrderTypes = async (page = 1, limit = 10, sortBy = 'name', sortOrder = 'ASC') => {
   try {
-    const orderTypes = await getAllOrderTypes();
+    // Ensure valid pagination params
+    if (page < 1 || limit < 1) {
+      throw AppError.validationError('Invalid pagination parameters');
+    }
+    
+    const orderTypes = await getAllOrderTypes(page, limit, sortBy, sortOrder);
     
     if (!orderTypes || orderTypes.length === 0) {
       return { message: 'No order types found', data: [] };

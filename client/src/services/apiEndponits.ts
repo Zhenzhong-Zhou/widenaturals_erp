@@ -11,6 +11,7 @@ export const API_ENDPOINTS = {
   ALL_PRODUCTS: '/products',
   PRODUCT_DETAILS: '/products/product-details/:id',
   PRODUCTS_DROPDOWN: '/products/dropdown',
+  ALL_COMPLIANCES: '/compliances',
   ALL_PRICING_TYPES: '/pricing-types',
   PRICING_TYPE_DETAILS: '/pricing-types/:id',
   ALL_PRICINGS: '/pricings',

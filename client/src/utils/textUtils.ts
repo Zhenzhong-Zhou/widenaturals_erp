@@ -30,3 +30,12 @@ export const formatCurrency = (
   if (isNaN(number)) return `${currencySymbol}0.00`;
   return `${currencySymbol}${number.toFixed(2)}`;
 };
+
+/**
+ * Converts a string to uppercase.
+ * @param str - The string to convert.
+ * @returns The uppercase version of the string.
+ */
+export const toUpperCase = (str: string): string => {
+  return str.toUpperCase();
+};

@@ -80,6 +80,16 @@ export const routes = [
     },
   },
   {
+    path: '/compliances',
+    component: () =>
+      import('../features/compliance/pages/CompliancePage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Compliances',
+      showInSidebar: true,
+    },
+  },
+  {
     path: '/pricing_types',
     component: () =>
       import('../features/pricingTypes/pages/PricingTypePage.tsx'),

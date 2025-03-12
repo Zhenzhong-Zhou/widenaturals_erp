@@ -1,11 +1,11 @@
 import { FC } from "react";
 import { CustomTable } from '@components/index.ts';
-import { OrderType } from '../state/orderTypeTypes.ts';
-import { capitalizeFirstLetter } from '@utils/textUtils.ts';
+import { Compliance } from '../state/complianceTypes.ts';
+import { capitalizeFirstLetter, toUpperCase } from '@utils/textUtils.ts';
 import { formatDate } from '@utils/dateTimeUtils.ts';
 
-interface OrderTypesTableProps {
-  data: OrderType[];
+interface ComplianceTableProps {
+  data: Compliance[];
   page: number;
   rowsPerPage: number;
   totalRecords: number;
@@ -14,7 +14,7 @@ interface OrderTypesTableProps {
   onRowsPerPageChange: (rowsPerPage: number) => void;
 }
 
-const OrderTypesTable: FC<OrderTypesTableProps> = ({
+const ComplianceTable: FC<ComplianceTableProps> = ({
                                                      data,
                                                      page,
                                                      rowsPerPage,
@@ -25,22 +25,41 @@ const OrderTypesTable: FC<OrderTypesTableProps> = ({
                                                    }) => {
   const columns = [
     {
-      id: "name",
-      label: "Order Type",
+      id: "product_name",
+      label: "Product Name",
       minWidth: 170,
       sortable: true,
     },
     {
-      id: "category",
-      label: "Category",
+      id: "type",
+      label: "Type",
       minWidth: 150,
       sortable: true,
-      format: (value: string) => capitalizeFirstLetter(value),
+      format: (value: string) => toUpperCase(value),
+    },
+    {
+      id: "compliance_id",
+      label: "Compliance ID",
+      minWidth: 150,
     },
     {
       id: "description",
       label: "Description",
       minWidth: 250
+    },
+    {
+      id: "issued_date",
+      label: "Issued Date",
+      minWidth: 100,
+      sortable: true,
+      format: (value: string) => formatDate(value),
+    },
+    {
+      id: "expiry_date",
+      label: "Expiry Date",
+      minWidth: 100,
+      sortable: true,
+      format: (value: string) => formatDate(value),
     },
     {
       id: "status_name",
@@ -99,4 +118,4 @@ const OrderTypesTable: FC<OrderTypesTableProps> = ({
   );
 };
 
-export default OrderTypesTable;
+export default ComplianceTable;

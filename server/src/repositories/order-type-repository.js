@@ -1,4 +1,4 @@
-const { query } = require('../database/db');
+const { query, retry, paginateQuery } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logError } = require('../utils/logger-helper'); // Import the reusable query function
 
@@ -31,9 +31,32 @@ const getOrderTypeByIdOrName = async ({ id, name }) => {
  * Fetch all order types from the database using raw SQL.
  * @returns {Promise<Array>} List of order types.
  */
-const getAllOrderTypes = async () => {
-  try {
-    const queryText = `
+const getAllOrderTypes = async (
+  page = 1,
+  limit = 10,
+  sortBy = 'name',
+  sortOrder = 'ASC',
+) => {
+  const tableName = 'order_types ot';
+  const joins = [
+    'INNER JOIN status s ON ot.status_id = s.id',
+    'LEFT JOIN users u1 ON ot.created_by = u1.id',
+    'LEFT JOIN users u2 ON ot.updated_by = u2.id',
+  ];
+  const whereClause = '1=1';
+  
+  const allowedSortFields = [
+    'name',
+    'category',
+    'status_name',
+    'created_at',
+    'updated_at',
+  ];
+  
+  // Validate the sortBy field
+  const validatedSortBy = allowedSortFields.includes(sortBy) ? `ot.${sortBy}` : 'ot.name';
+  
+  const baseQuery = `
       SELECT
         ot.id,
         ot.name,
@@ -45,15 +68,26 @@ const getAllOrderTypes = async () => {
         ot.updated_at,
         COALESCE(u1.firstname || ' ' || u1.lastname, 'Unknown') AS created_by,
         COALESCE(u2.firstname || ' ' || u2.lastname, 'Unknown') AS updated_by
-      FROM order_types ot
-      INNER JOIN status s ON ot.status_id = s.id
-      LEFT JOIN users u1 ON ot.created_by = u1.id
-      LEFT JOIN users u2 ON ot.updated_by = u2.id
-      ORDER BY ot.name ASC;
+      FROM ${tableName}
+      ${joins.join(' ')}
     `;
-    
-    const { rows } = await query(queryText);
-    return rows;
+  
+  try {
+    return await retry(
+      () =>
+        paginateQuery({
+          tableName,
+          joins,
+          whereClause,
+          queryText: baseQuery,
+          params: [],
+          page,
+          limit,
+          sortBy: validatedSortBy,
+          sortOrder,
+        }),
+      3 // Retry up to 3 times
+    );
   } catch (error) {
     logError('Error fetching order types:', error);
     throw AppError.databaseError('Failed to fetch order types');

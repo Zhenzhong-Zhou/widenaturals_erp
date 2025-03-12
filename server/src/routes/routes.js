@@ -13,6 +13,7 @@ const authRoutes = require('./auth');
 const userRoutes = require('./users');
 const adminRoutes = require('./admin');
 const productRoutes = require('./products');
+const complianceRoutes = require('./compliances');
 const priceTypeRouts = require('./pricing_types');
 const pricingRouts = require('./pricings');
 const locationTypeRouts = require('./locations_types');
@@ -75,6 +76,9 @@ router.use('/admin', authenticate(), adminRoutes);
 
 // Products route
 router.use('/products', authenticate(), productRoutes);
+
+// router.use('/compliances', authenticate(), complianceRoutes);
+router.use('/compliances', complianceRoutes);
 
 // Price Types route
 router.use('/pricing-types', authenticate(), priceTypeRouts);

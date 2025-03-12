@@ -9,6 +9,7 @@ import usersReducer from '../features/user/state/userSlice.ts';
 import permissionsReducer from '../features/authorize/state/permissionSlice.ts';
 import productsReducer from '../features/product/state/productSlice.ts';
 import productReducer from '../features/product/state/productDetailSlice.ts';
+import compliancesReducer from '../features/compliance/state/complianceSlice.ts';
 import pricingTypesReducer from '../features/pricingTypes/state/pricingTypeSlice.ts';
 import pricingTypeReducer from '../features/pricingTypes/state/pricingTypeDetailSlice.ts';
 import pricingsReducer from '../features/pricing/state/pricingSlice.ts';
@@ -67,6 +68,7 @@ const appReducer = combineReducers({
   inventoryActivityLogs: inventoryActivityLogsReducer,
   inventoryHistory: inventoryHistoryReducer,
   orderTypes: orderTypesReducer,
+  compliances: compliancesReducer,
 });
 
 // Root reducer with logout handling

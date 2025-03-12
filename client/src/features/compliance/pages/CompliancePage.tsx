@@ -1,37 +1,37 @@
-import { FC, useState } from 'react';
-import { useOrderTypes } from '../../../hooks';
-import { CustomButton, ErrorDisplay, ErrorMessage, Loading, Typography } from '@components/index.ts';
-import { OrderTypesTable } from '../index.ts';
+import { useState } from 'react';
 import Box from '@mui/material/Box';
+import { CustomButton, ErrorDisplay, ErrorMessage, Loading, Typography } from '@components/index.ts';
+import { useCompliances } from '../../../hooks';
+import { ComplianceTable } from '../index.ts';
 
-const OrderTypesPage: FC = () => {
+const CompliancePage = () => {
   const [page, setPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(10);
   // const [sortBy, setSortBy] = useState<string>('created_at'); // Default valid field
   // const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('DESC'); // Ensure correct type
-  const { orderTypes, pagination, isLoading, error, refresh } = useOrderTypes(
+  
+  const { compliances, loading, error, pagination, refresh } = useCompliances(
     page, limit,
     // sortBy, sortOrder
   );
   
-  if (isLoading) return <Loading message="Loading Order Types..." />;
-  if (error) return <ErrorDisplay><ErrorMessage message={error} /></ErrorDisplay>;
-  
   return (
     <Box sx={{ padding: 3 }}>
       <Typography variant="h4" gutterBottom>
-        Order Types
+        Compliance Records
       </Typography>
       
       <CustomButton variant="contained" onClick={refresh} sx={{ mb: 2 }}>
         Refresh Data
       </CustomButton>
       
-      {!isLoading && !error && (
+      {loading && <Loading message={"Loading All Compliances..."} />}
+      {error && <ErrorDisplay><ErrorMessage message={error}/></ErrorDisplay>}
+      {!loading && !error && (
         <>
-          {orderTypes.length > 0 ? (
-            <OrderTypesTable
-              data={orderTypes}
+          {compliances.length > 0 ? (
+            <ComplianceTable
+              data={compliances}
               page={page - 1}
               rowsPerPage={limit}
               totalRecords={pagination.totalRecords}
@@ -46,7 +46,7 @@ const OrderTypesPage: FC = () => {
             />
           ) : (
             <Typography variant="h6" align="center" sx={{ mt: 2 }}>
-              No order types found.
+              No compliance records found.
             </Typography>
           )}
         </>
@@ -55,4 +55,4 @@ const OrderTypesPage: FC = () => {
   );
 };
 
-export default OrderTypesPage;
+export default CompliancePage;

@@ -9,6 +9,14 @@ export const selectOrderTypes = createSelector(
   (orderTypesState) => orderTypesState.data
 );
 
+/**
+ * Selects pagination details.
+ */
+export const selectOrderTypesPagination = createSelector(
+  [selectOrderTypesState],
+  (orderTypesState) => orderTypesState.pagination
+);
+
 // ✅ Memoized selector for loading state
 export const selectOrderTypesLoading = createSelector(
   [selectOrderTypesState],

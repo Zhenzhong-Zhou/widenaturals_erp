@@ -1,4 +1,5 @@
 export type {
+  FetchAllOrderTypesParams,
   OrderTypeCategory,
   OrderType,
   OrderTypeResponse
@@ -8,6 +9,7 @@ export {
 } from './state/orderTypeThunks.ts';
 export {
   selectOrderTypes,
+  selectOrderTypesPagination,
   selectOrderTypesLoading,
   selectOrderTypesError
 } from './state/orderTypeSelectors.ts';

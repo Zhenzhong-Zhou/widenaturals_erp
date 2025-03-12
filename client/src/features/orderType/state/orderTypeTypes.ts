@@ -1,3 +1,10 @@
+export interface FetchAllOrderTypesParams {
+  page: number;
+  limit: number;
+  sortBy: string;
+  sortOrder: 'ASC' | 'DESC';
+}
+
 export type OrderTypeCategory =
   | "purchase"
   | "sales"
@@ -20,8 +27,16 @@ export interface OrderType {
   updated_by: string;
 }
 
+export interface OrderTypePagination {
+  page: number;
+  limit: number;
+  totalRecords: number;
+  totalPages: number;
+}
+
 export interface OrderTypeResponse {
   success: boolean;
   message: string;
   data: OrderType[];
+  pagination: OrderTypePagination;
 }
