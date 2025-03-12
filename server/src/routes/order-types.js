@@ -1,5 +1,5 @@
 const express = require('express');
-const { fetchOrderTypesController } = require('../controllers/order-type-controller');
+const { getOrderTypesController, getOrderTypesDropdownController } = require('../controllers/order-type-controller');
 
 const router = express.Router();
 
@@ -8,6 +8,8 @@ const router = express.Router();
  * @desc Fetch all order types
  * @access Private
  */
-router.get('/', fetchOrderTypesController);
+router.get('/', getOrderTypesController);
+
+router.get('/dropdown', getOrderTypesDropdownController);
 
 module.exports = router;

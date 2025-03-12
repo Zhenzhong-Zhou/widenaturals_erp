@@ -286,6 +286,16 @@ export const routes = [
     },
   },
   {
+    path: '/orders',
+    component: () =>
+      import('../features/order/pages/OrdersPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Orders',
+      showInSidebar: true,
+    },
+  },
+  {
     path: '*',
     component: () => import('../pages/NotFoundPage.tsx'),
     meta: {

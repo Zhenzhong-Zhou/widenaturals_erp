@@ -4,6 +4,7 @@ import {
   ProductDropdownItem,
   WarehouseDropdownItem,
 } from '../features/warehouse-inventory';
+import { OrderType } from '../features/order';
 
 /**
  * Fetch active products for dropdown
@@ -44,7 +45,25 @@ const fetchWarehousesForDropdown = async (): Promise<
   }
 };
 
+/**
+ * Fetch active order types for dropdown
+ */
+const fetchOrderTypesForDropdown = async (): Promise<
+  OrderType[]
+> => {
+  try {
+    const response = await axiosInstance.get<OrderType[]>(
+      API_ENDPOINTS.ORDER_TYPES_DROPDOWN
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching warehouse dropdown:', error);
+    return [];
+  }
+};
+
 export const dropdownService = {
   fetchProductsForDropdown,
   fetchWarehousesForDropdown,
+  fetchOrderTypesForDropdown,
 };

@@ -1,4 +1,4 @@
-const { getAllOrderTypes } = require('../repositories/order-type-repository');
+const { getAllOrderTypes, getOrderTypes } = require('../repositories/order-type-repository');
 const { logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
 
@@ -30,6 +30,22 @@ const fetchAllOrderTypes = async (page = 1, limit = 10, sortBy = 'name', sortOrd
   }
 };
 
+const fetchOrderTypesForDropdown = async () => {
+  try {
+    const orderTypes = await getOrderTypes("dropdown");
+    
+    if (!orderTypes || orderTypes.length === 0) {
+      return { data: [] };
+    }
+    
+    return { data: orderTypes };
+  } catch (error) {
+    logError("Service Error - getOrderTypesForDropdown:", error);
+    throw AppError.serviceError("Failed to fetch order types for dropdown.");
+  }
+};
+
 module.exports = {
   fetchAllOrderTypes,
+  fetchOrderTypesForDropdown,
 };

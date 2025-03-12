@@ -7,6 +7,7 @@ interface DropdownProps {
   value: string | null;
   onChange: (value: string) => void;
   searchable?: boolean;
+  disabled?: boolean;
   sx?: object;
 }
 
@@ -16,6 +17,7 @@ const Dropdown: FC<DropdownProps> = ({
   value,
   onChange,
   searchable = false,
+  disabled = false,
   sx,
 }) => {
   return (
@@ -26,7 +28,7 @@ const Dropdown: FC<DropdownProps> = ({
         value={options.find((option) => option.value === value) || null}
         onChange={(_, newValue) => onChange(newValue?.value || '')}
         renderInput={(params) => (
-          <TextField {...params} label={label} variant="outlined" />
+          <TextField {...params} label={label} variant="outlined" disabled={disabled} />
         )}
         disableClearable={!searchable}
         filterSelectedOptions

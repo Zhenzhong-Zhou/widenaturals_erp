@@ -94,7 +94,29 @@ const getAllOrderTypes = async (
   }
 };
 
+const getOrderTypes = async (type = "lookup") => {
+  try {
+    const columns =
+      type === "dropdown" ? "ot.id, ot.name" : "ot.id, ot.name, ot.description, ot.category";
+    
+    const queryText = `
+      SELECT ${columns}
+      FROM order_types ot
+      JOIN status s ON ot.status_id = s.id
+      WHERE s.name = 'active';
+    `;
+    
+    const { rows } = await query(queryText);
+    
+    return rows;
+  } catch (error) {
+    logError("Error fetching order types:", error);
+    throw AppError.databaseError('Failed to fetch order types');
+  }
+};
+
 module.exports = {
   getOrderTypeByIdOrName,
   getAllOrderTypes,
+  getOrderTypes
 };
