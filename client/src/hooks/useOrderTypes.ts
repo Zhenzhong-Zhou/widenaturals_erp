@@ -23,7 +23,7 @@ const useOrderTypes = (
   // Fetch order types on mount and when manually refreshed
   const fetchData = useCallback(() => {
     dispatch(fetchAllOrderTypesThunk({ page, limit, sortBy,  sortOrder: sortOrder as 'ASC' | 'DESC'  }));
-  }, [dispatch]);
+  }, [dispatch, page, limit, sortBy, sortOrder]);
   
   useEffect(() => {
     fetchData();
