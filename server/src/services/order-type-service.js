@@ -13,13 +13,17 @@ const fetchAllOrderTypes = async (page = 1, limit = 10, sortBy = 'name', sortOrd
       throw AppError.validationError('Invalid pagination parameters');
     }
     
-    const orderTypes = await getAllOrderTypes(page, limit, sortBy, sortOrder);
+    const { data, pagination} = await getAllOrderTypes(page, limit, sortBy, sortOrder);
     
-    if (!orderTypes || orderTypes.length === 0) {
-      return { message: 'No order types found', data: [] };
+    if (!data || data.length === 0) {
+      return {
+        message: 'No order types found',
+        data: [],
+        pagination: { page: 0, limit: 0, totalRecords: 0, totalPages: 0 },
+      };
     }
     
-    return { message: 'Order types retrieved successfully', data: orderTypes };
+    return { message: 'Order types retrieved successfully', data, pagination };
   } catch (error) {
     logError('Error in getAllOrderTypes service:', error);
     throw AppError.serviceError('Failed to retrieve order types');

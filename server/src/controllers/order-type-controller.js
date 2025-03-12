@@ -16,12 +16,13 @@ const fetchOrderTypesController = wrapAsync(async (req, res, next) => {
     const pageNumber = Number(page);
     const limitNumber = Number(limit);
     
-    const { message, data } = await fetchAllOrderTypes(pageNumber, limitNumber, sortBy, sortOrder);
+    const { message, data, pagination } = await fetchAllOrderTypes(pageNumber, limitNumber, sortBy, sortOrder);
     
     return res.status(200).json({
       success: true,
       message,
       data,
+      pagination,
     });
   } catch (error) {
     logError('Error in fetchOrderTypesController:', error);
