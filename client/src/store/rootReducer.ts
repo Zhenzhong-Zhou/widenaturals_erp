@@ -31,6 +31,7 @@ import insertedInventoryRecordsResponseReducer from '../features/warehouse-inven
 import adjustmentReportReducer from '../features/report/state/adjustmentReportSlice.ts';
 import inventoryActivityLogsReducer from '../features/report/state/inventoryActivityLogsSlice.ts';
 import inventoryHistoryReducer from '../features/report/state/inventoryHistorySlice.ts';
+import orderTypesReducer from '../features/orderType/state/orderTypeSlice.ts';
 
 // Combine reducers
 const appReducer = combineReducers({
@@ -65,6 +66,7 @@ const appReducer = combineReducers({
   adjustmentReport: adjustmentReportReducer,
   inventoryActivityLogs: inventoryActivityLogsReducer,
   inventoryHistory: inventoryHistoryReducer,
+  orderTypes: orderTypesReducer,
 });
 
 // Root reducer with logout handling

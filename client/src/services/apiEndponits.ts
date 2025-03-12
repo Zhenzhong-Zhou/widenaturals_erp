@@ -35,4 +35,5 @@ export const API_ENDPOINTS = {
   WAREHOUSE_INVENTORY_ADJUSTMENTS_REPORT: '/reports/adjustments',
   WAREHOUSE_INVENTORY_ACTIVITY_LOGS: '/reports/inventory-activity-logs',
   INVENTORY_HISTORY: '/reports/inventory-history',
+  ALL_ORDER_TYPES: '/order-types',
 };

@@ -31,3 +31,4 @@ export { default as useInsertedInventoryRecordsResponse } from './useInsertedInv
 export { default as useAdjustmentReport } from './useAdjustmentReport.ts';
 export { default as useInventoryActivityLogs } from './useInventoryActivityLogs.ts';
 export { default as useInventoryHistory } from './useInventoryHistory.ts';
+export { default as useOrderTypes } from './useOrderTypes.ts';

@@ -15,3 +15,4 @@ export { warehouseInventoryService } from './warehouseInventoryService.ts';
 export { lotAdjustmentTypeService } from './lotAdjustmentTypeService.ts';
 export { dropdownService } from './dropdownService.ts';
 export { reportService } from './reportService.ts';
+export { orderTypeService } from './orderTypeService.ts';
