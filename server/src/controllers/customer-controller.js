@@ -1,7 +1,8 @@
-const { createCustomers } = require('../services/customer-service');
+const { createCustomers, fetchCustomersService, fetchCustomersDropdown } = require('../services/customer-service');
 const AppError = require('../utils/AppError');
 const wrapAsync = require('../utils/wrap-async');
 const { getUser } = require('../repositories/user-repository');
+const { logError } = require('../utils/logger-helper');
 
 /**
  * Handles creating a single customer or multiple customers.
@@ -35,6 +36,41 @@ const createCustomerController = wrapAsync(async (req, res, next) => {
   }
 });
 
+const getCustomersController = wrapAsync(async (req, res, next) => {
+  try {
+    const { page, limit, sortBy, sortOrder } = req.query;
+    
+    const result = await fetchCustomersService({
+      page: Number(page) || 1,
+      limit: Number(limit) || 10,
+      sortBy,
+      sortOrder,
+    });
+    
+    return res.status(200).json(result);
+  } catch (error) {
+    logError("Controller Error: Failed to fetch customers", error);
+    next(error);
+  }
+});
+
+const getCustomersDropdownController = wrapAsync(async (req, res, next) => {
+  try {
+    const { search } = req.query;
+    const customers = await fetchCustomersDropdown(search);
+    
+    return res.status(200).json({
+      success: true,
+      data: customers,
+    });
+  } catch (error) {
+    logError("Controller Error: Failed to fetch customer dropdown", error);
+    next(error);
+  }
+});
+
 module.exports = {
   createCustomerController,
+  getCustomersController,
+  getCustomersDropdownController,
 };
