@@ -63,8 +63,8 @@ const bulkCreateCustomers = async (customers) => {
         client
       );
     } catch (error) {
-      logError('❌ Bulk Insert Failed:', error);
-      throw AppError('Bulk insert operation failed',{
+      logError('Bulk Insert Failed:', error);
+      throw AppError.databaseError('Bulk insert operation failed',{
         details: { tableName: 'customers', columns, error: error.message },
       });
     }

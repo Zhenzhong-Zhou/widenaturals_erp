@@ -11,13 +11,13 @@ import {
   TextField,
 } from '@mui/material';
 import { useForm, Controller, Control } from 'react-hook-form';
-import { CustomButton } from '@components/index';
+import { CustomButton, CustomPhoneInput } from '@components/index';
 import { useThemeContext } from '../../context/ThemeContext';
 
 export interface FieldConfig {
   id: string;
   label: string;
-  type: 'text' | 'textarea' | 'select' | 'checkbox' | 'number';
+  type: "text" | "textarea" | "select" | "checkbox" | "number" | "phone";
   options?: { value: string | number; label: string }[];
   required?: boolean;
   defaultValue?: any;
@@ -27,6 +27,7 @@ export interface FieldConfig {
   min?: number; // Min for number fields
   max?: number; // Max for number fields
   rows?: number; // Support for textarea
+  country?: string; // Support for phone input
 }
 
 interface FormProps {
@@ -109,7 +110,26 @@ const CustomForm: FC<FormProps> = ({
               )}
             />
           )}
-
+          
+          {/** Phone Number Field */}
+          {field.type === "phone" && (
+            <Controller
+              name={field.id}
+              control={control}
+              defaultValue={field.defaultValue || ""}
+              rules={{
+                required: field.required ? `${field.label} is required` : false,
+              }}
+              render={({ field: { onChange, value } }) => (
+                <CustomPhoneInput
+                  value={value}
+                  onChange={onChange}
+                  country={field.country || "us"} // Support country selection
+                />
+              )}
+            />
+          )}
+          
           {/** Textarea Support */}
           {field.type === 'textarea' && (
             <Controller

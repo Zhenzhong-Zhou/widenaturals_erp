@@ -276,6 +276,16 @@ export const routes = [
     },
   },
   {
+    path: '/customers',
+    component: () =>
+      import('../features/customer/pages/CustomersPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Customers',
+      showInSidebar: true,
+    },
+  },
+  {
     path: '/order_types',
     component: () =>
       import('../features/orderType/pages/OrderTypesPage.tsx'),

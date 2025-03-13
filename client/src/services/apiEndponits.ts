@@ -38,4 +38,6 @@ export const API_ENDPOINTS = {
   INVENTORY_HISTORY: '/reports/inventory-history',
   ALL_ORDER_TYPES: '/order-types',
   ORDER_TYPES_DROPDOWN: '/order-types/dropdown',
+  ADD_NEW_CUSTOMER: '/customers/add-new-customer',
+  ADD_NEW_CUSTOMERS_BULK: '/customers/bulk/add-new-customers',
 };

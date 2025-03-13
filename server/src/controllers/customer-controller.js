@@ -14,10 +14,7 @@ const { getUser } = require('../repositories/user-repository');
 const createCustomerController = wrapAsync(async (req, res, next) => {
   try {
     let customers = req.body;
-    // const createdBy = req.user.id; // Extract user from token
-    
-    const responseUser = await getUser(null, 'email', 'root@widenaturals.com');
-    const userId = responseUser.id;
+    const createdBy = req.user.id; // Extract user from token
     
     if (!Array.isArray(customers) && typeof customers !== 'object') {
       throw AppError.validationError('Invalid input: Expected an object or an array of objects.');
@@ -26,15 +23,14 @@ const createCustomerController = wrapAsync(async (req, res, next) => {
     let result;
     if (Array.isArray(customers)) {
       // 🔹 Bulk Insert
-      result = await createCustomers(customers, userId);
+      result = await createCustomers(customers, createdBy);
       res.status(201).json({ success: true, message: 'Bulk customers created successfully.', customers: result });
     } else {
       // 🔹 Single Insert
-      result = await createCustomers(customers, userId);
+      result = await createCustomers(customers, createdBy);
       res.status(201).json({ success: true, message: 'Customer created successfully.', customer: result });
     }
   } catch (error) {
-    console.log(error);
     next(error);
   }
 });

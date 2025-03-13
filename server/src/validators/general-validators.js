@@ -35,8 +35,15 @@ const validateString = (
       'any.required': `${fieldName} is required`,
     });
 
+const validatePhoneNumber = Joi.string()
+  .pattern(/^\+?[1-9]\d{1,14}$/) // Matches E.164 international format
+  .messages({
+    "string.pattern.base": "Phone number must be in international format (e.g., +1234567890)",
+  });
+
 module.exports = {
   validateEmail,
   validateUUID,
   validateString,
+  validatePhoneNumber,
 };

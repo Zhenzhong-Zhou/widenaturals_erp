@@ -1,6 +1,6 @@
 const Joi = require('joi');
 const AppError = require('../utils/AppError');
-const { validateEmail } = require('./general-validators');
+const { validateEmail, validatePhoneNumber } = require('./general-validators');
 
 /**
  * Joi schema for customer validation.
@@ -30,12 +30,7 @@ const customerSchema = Joi.object({
   
   email: validateEmail,
   
-  phone_number: Joi.string()
-    .pattern(/^\(\d{3}\)-\d{3}-\d{4}$/) // Format: (123)-456-7890
-    .optional()
-    .messages({
-      'string.pattern.base': 'Phone number must follow the format (123)-456-7890',
-    }),
+  phone_number: validatePhoneNumber,
   
   address: Joi.string().max(255).optional(),
   

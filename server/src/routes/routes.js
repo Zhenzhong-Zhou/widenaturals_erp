@@ -108,8 +108,7 @@ router.use('/lot-adjustment-types', authenticate(), warehouseLotAdjustmentRoutes
 
 router.use('/reports', authenticate(), reportRoutes);
 
-// router.use('/customers', authenticate(), customerRoutes);
-router.use('/customers', customerRoutes);
+router.use('/customers', authenticate(), customerRoutes);
 
 // router.use('/orders', authenticate(), orderRoutes);
 router.use('/orders', orderRoutes);
