@@ -496,7 +496,9 @@ const getProductIdOrIdentifierByInventoryIds = async (
     return rows;
   } catch (error) {
     logError('Error fetching inventory IDs:', error);
-    throw AppError.databaseError('Database query failed to fetch inventory IDs');
+    throw AppError.databaseError(
+      'Database query failed to fetch inventory IDs'
+    );
   }
 };
 

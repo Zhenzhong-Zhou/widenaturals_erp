@@ -17,7 +17,7 @@ import { useThemeContext } from '../../context/ThemeContext';
 export interface FieldConfig {
   id: string;
   label: string;
-  type: "text" | "textarea" | "select" | "checkbox" | "number" | "phone";
+  type: 'text' | 'textarea' | 'select' | 'checkbox' | 'number' | 'phone';
   options?: { value: string | number; label: string }[];
   required?: boolean;
   defaultValue?: any;
@@ -110,13 +110,13 @@ const CustomForm: FC<FormProps> = ({
               )}
             />
           )}
-          
+
           {/** Phone Number Field */}
-          {field.type === "phone" && (
+          {field.type === 'phone' && (
             <Controller
               name={field.id}
               control={control}
-              defaultValue={field.defaultValue || ""}
+              defaultValue={field.defaultValue || ''}
               rules={{
                 required: field.required ? `${field.label} is required` : false,
               }}
@@ -124,12 +124,12 @@ const CustomForm: FC<FormProps> = ({
                 <CustomPhoneInput
                   value={value}
                   onChange={onChange}
-                  country={field.country || "ca"} // Support country selection
+                  country={field.country || 'ca'} // Support country selection
                 />
               )}
             />
           )}
-          
+
           {/** Textarea Support */}
           {field.type === 'textarea' && (
             <Controller

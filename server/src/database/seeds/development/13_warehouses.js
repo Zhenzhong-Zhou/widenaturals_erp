@@ -43,7 +43,7 @@ exports.seed = async function (knex) {
     { name: 'Richmond Storage', storage_capacity: 10000 },
     { name: 'Viktor Temporarily Warehouse', storage_capacity: 5000 },
   ];
-  
+
   // Fetch updated warehouse locations again
   warehouseLocations = await knex('locations')
     .where('location_type_id', warehouseLocationTypeId)
@@ -55,12 +55,14 @@ exports.seed = async function (knex) {
       const location = warehouseLocations.find(
         (loc) => loc.name === warehouse.name
       );
-      
+
       if (!location) {
-        console.warn(`❗ Skipping warehouse "${warehouse.name}" as no matching location was found.`);
+        console.warn(
+          `❗ Skipping warehouse "${warehouse.name}" as no matching location was found.`
+        );
         return null; // Skip this entry if location is missing
       }
-      
+
       return {
         id: knex.raw('uuid_generate_v4()'),
         name: warehouse.name,
@@ -74,7 +76,7 @@ exports.seed = async function (knex) {
       };
     })
     .filter(Boolean); // Removes `null` values from the array
-  
+
   // Insert warehouses & ignore duplicates
   if (warehouseEntries.length > 0) {
     await knex('warehouses')

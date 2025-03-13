@@ -35,7 +35,11 @@ const fetchAllLocationTypes = async ({
     return await getLocationTypes({ page, limit, sortBy, sortOrder });
   } catch (error) {
     logError('Error in getLocationTypes service:', error);
-    throw AppError.databaseError('Failed to retrieve location types', 500, error);
+    throw AppError.databaseError(
+      'Failed to retrieve location types',
+      500,
+      error
+    );
   }
 };
 

@@ -86,7 +86,7 @@ const getPricingDetailsByPricingTypeId = async ({
  */
 const getPricings = async ({ page, limit }) => {
   const tableName = 'pricing p'; // Alias for pricing table
-  
+
   const joins = [
     'LEFT JOIN products pr ON p.product_id = pr.id',
     'LEFT JOIN pricing_types pt ON p.price_type_id = pt.id',
@@ -95,9 +95,9 @@ const getPricings = async ({ page, limit }) => {
     'LEFT JOIN users u1 ON p.created_by = u1.id',
     'LEFT JOIN users u2 ON p.updated_by = u2.id',
   ];
-  
+
   const whereClause = '1=1'; // Default where clause
-  
+
   const baseQuery = `
     SELECT
       p.id AS pricing_id,
@@ -116,7 +116,7 @@ const getPricings = async ({ page, limit }) => {
     FROM ${tableName}
     ${joins.join(' ')}
   `;
-  
+
   try {
     return await retry(() =>
       paginateQuery({
@@ -211,7 +211,10 @@ const getPricingDetailsByPricingId = async ({ pricingId, page, limit }) => {
       });
     });
   } catch (error) {
-    throw AppError.databaseError(`Error fetching pricing details: ${error.message}`, error);
+    throw AppError.databaseError(
+      `Error fetching pricing details: ${error.message}`,
+      error
+    );
   }
 };
 
@@ -230,7 +233,7 @@ const getActiveProductPrice = async (productId, priceTypeId, client) => {
     ORDER BY p.valid_from DESC
     LIMIT 1;
   `;
-  
+
   const result = await client.query(sql, [productId, priceTypeId]);
   return result.rows.length > 0 ? result.rows[0] : null;
 };
@@ -239,5 +242,5 @@ module.exports = {
   getPricingDetailsByPricingTypeId,
   getPricings,
   getPricingDetailsByPricingId,
-  getActiveProductPrice
+  getActiveProductPrice,
 };

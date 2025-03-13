@@ -2,13 +2,23 @@ const { fetchDynamicValues } = require('../03_utils');
 
 exports.seed = async function (knex) {
   // Fetch role IDs dynamically
-  const roleIds = await fetchDynamicValues(knex, 'roles', 'name', [
-    'admin', 'manager', 'sales', 'operations', 'user'
-  ], 'id');
+  const roleIds = await fetchDynamicValues(
+    knex,
+    'roles',
+    'name',
+    ['admin', 'manager', 'sales', 'operations', 'user'],
+    'id'
+  );
 
   // Fetch status IDs dynamically
-  const statusIds = await fetchDynamicValues(knex, 'status', 'name', ['active'], 'id');
-  
+  const statusIds = await fetchDynamicValues(
+    knex,
+    'status',
+    'name',
+    ['active'],
+    'id'
+  );
+
   // Define users
   const users = [
     {

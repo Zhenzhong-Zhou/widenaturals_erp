@@ -1,4 +1,9 @@
-import { parsePhoneNumberFromString, AsYouType, getCountryCallingCode, CountryCode } from 'libphonenumber-js';
+import {
+  parsePhoneNumberFromString,
+  AsYouType,
+  getCountryCallingCode,
+  CountryCode,
+} from 'libphonenumber-js';
 
 /**
  * Capitalizes the first letter of each word in a given text.
@@ -49,16 +54,19 @@ export const toUpperCase = (str: string): string => {
  * @param defaultCountry - Fallback country code if detection fails (default: "US").
  * @returns Formatted phone number or original input if invalid.
  */
-export const formatPhoneNumber = (phoneNumber: string, defaultCountry: CountryCode = "CA"): string => {
-  if (!phoneNumber) return "Invalid Number";
-  
+export const formatPhoneNumber = (
+  phoneNumber: string,
+  defaultCountry: CountryCode = 'CA'
+): string => {
+  if (!phoneNumber) return 'Invalid Number';
+
   // Try parsing with automatic country detection
   let parsedPhone = parsePhoneNumberFromString(phoneNumber);
-  
+
   if (parsedPhone) {
     return parsedPhone.formatInternational(); // Correctly formatted number
   }
-  
+
   // Handle cases where number is missing country code (fallback)
   try {
     const callingCode = getCountryCallingCode(defaultCountry);

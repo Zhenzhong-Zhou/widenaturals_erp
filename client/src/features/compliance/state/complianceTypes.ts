@@ -6,25 +6,25 @@ export interface FetchAllCompliancesParams {
 }
 
 export type ComplianceType =
-  | "NPN" // Canada - Natural Product Number
-  | "DIN" // Canada - Drug Identification Number
-  | "FDA" // USA - FDA Approval
-  | "GRAS" // USA - Generally Recognized as Safe
-  | "USP" // USA - United States Pharmacopeia
-  | "NSF" // USA & Canada - National Sanitation Foundation
-  | "Organic_USA" // USDA Organic Certification
-  | "GMP" // Good Manufacturing Practices (USA, Canada, Australia)
-  | "AUST_L" // Australia - Listed Medicine Number
-  | "AUST_R" // Australia - Registered Medicine Number
-  | "FSANZ" // Australia & NZ - Food Safety Standards
-  | "TGA" // Australia - Therapeutic Goods Administration
-  | "Organic_AUS" // Australia - Certified Organic
-  | "BlueHat" // China - Health Food Registration
-  | "SFDA" // China - State Food and Drug Administration
-  | "CFDA" // China - China Food and Drug Administration
-  | "GB_Standard" // China - National Food Safety Standard
-  | "CCC" // China - Compulsory Certification
-  | "Organic_CNCA"; // China - Organic Certification
+  | 'NPN' // Canada - Natural Product Number
+  | 'DIN' // Canada - Drug Identification Number
+  | 'FDA' // USA - FDA Approval
+  | 'GRAS' // USA - Generally Recognized as Safe
+  | 'USP' // USA - United States Pharmacopeia
+  | 'NSF' // USA & Canada - National Sanitation Foundation
+  | 'Organic_USA' // USDA Organic Certification
+  | 'GMP' // Good Manufacturing Practices (USA, Canada, Australia)
+  | 'AUST_L' // Australia - Listed Medicine Number
+  | 'AUST_R' // Australia - Registered Medicine Number
+  | 'FSANZ' // Australia & NZ - Food Safety Standards
+  | 'TGA' // Australia - Therapeutic Goods Administration
+  | 'Organic_AUS' // Australia - Certified Organic
+  | 'BlueHat' // China - Health Food Registration
+  | 'SFDA' // China - State Food and Drug Administration
+  | 'CFDA' // China - China Food and Drug Administration
+  | 'GB_Standard' // China - National Food Safety Standard
+  | 'CCC' // China - Compulsory Certification
+  | 'Organic_CNCA'; // China - Organic Certification
 
 export interface Compliance {
   id: string;

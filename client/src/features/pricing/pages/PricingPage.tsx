@@ -10,8 +10,9 @@ import {
 } from '@components/index.ts';
 
 const PricingPage = () => {
-  const { pricingData, pagination, loading, error, fetchPricings } = usePricing();
-  
+  const { pricingData, pagination, loading, error, fetchPricings } =
+    usePricing();
+
   useEffect(() => {
     fetchPricings(pagination.page, pagination.limit);
   }, [pagination.page]);

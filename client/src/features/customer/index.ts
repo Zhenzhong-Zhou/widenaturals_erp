@@ -7,19 +7,19 @@ export type {
   Customer,
   CustomerListResponse,
   CustomerDetails,
-  CustomerDetailsResponse
+  CustomerDetailsResponse,
 } from './state/customerTypes.ts';
 export {
   createCustomerThunk,
   createBulkCustomersThunk,
   fetchCustomersThunk,
   fetchCustomerByIdThunk,
-} from './state/customerThunks.ts'
+} from './state/customerThunks.ts';
 export {
   selectCustomersCreate,
   selectCustomersCreateLoading,
   selectCustomersCreateError,
-} from "./state/customerCreateSelectors.ts";
+} from './state/customerCreateSelectors.ts';
 export { default as CreateCustomerModal } from './components/CreateCustomerModal.tsx';
 export {
   selectCustomers,

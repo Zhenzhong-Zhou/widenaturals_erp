@@ -49,8 +49,7 @@ exports.seed = async function (knex) {
     {
       id: knex.raw('uuid_generate_v4()'),
       name: 'unassigned',
-      description:
-        'The product arrived without a proper lot assignment.',
+      description: 'The product arrived without a proper lot assignment.',
       is_active: true,
       created_at: knex.fn.now(),
       updated_at: null,
@@ -132,8 +131,9 @@ exports.seed = async function (knex) {
     {
       id: knex.raw('uuid_generate_v4()'),
       name: 'suspended',
-      description: 'Lot is temporarily blocked from sale due to pending quality checks or administrative holds.',
-      is_active: true,  // It should be selectable as an active status
+      description:
+        'Lot is temporarily blocked from sale due to pending quality checks or administrative holds.',
+      is_active: true, // It should be selectable as an active status
       created_at: knex.fn.now(),
       updated_at: null,
       created_by: systemActionId,

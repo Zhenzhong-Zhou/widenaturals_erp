@@ -9,16 +9,26 @@ const AppError = require('../utils/AppError');
  * @param {string} sortOrder - The order of sorting (ASC/DESC).
  * @returns {Promise<Object>} - Compliance records with pagination metadata.
  */
-const fetchAllCompliances = async (page = 1, limit = 10, sortBy = 'created_at', sortOrder = 'DESC') => {
+const fetchAllCompliances = async (
+  page = 1,
+  limit = 10,
+  sortBy = 'created_at',
+  sortOrder = 'DESC'
+) => {
   try {
     // Ensure valid pagination params
     if (page < 1 || limit < 1) {
       throw AppError.validationError('Invalid pagination parameters');
     }
-    
+
     // Fetch compliance data from repository
-    const { data, pagination} = await getAllCompliances(page, limit, sortBy, sortOrder);
-    
+    const { data, pagination } = await getAllCompliances(
+      page,
+      limit,
+      sortBy,
+      sortOrder
+    );
+
     // Structure response
     return {
       success: true,
@@ -27,7 +37,9 @@ const fetchAllCompliances = async (page = 1, limit = 10, sortBy = 'created_at', 
       pagination,
     };
   } catch (error) {
-    throw AppError.serviceError('Failed to fetch compliance records', { cause: error });
+    throw AppError.serviceError('Failed to fetch compliance records', {
+      cause: error,
+    });
   }
 };
 

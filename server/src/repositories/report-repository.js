@@ -148,26 +148,26 @@ const getAdjustmentReport = async ({
  * @returns {Promise<Object>} - Returns paginated results and total count.
  */
 const getInventoryActivityLogs = async ({
-                                          inventoryId,
-                                          warehouseId,
-                                          lotId,
-                                          orderId,
-                                          actionTypeId,
-                                          statusId,
-                                          userId,
-                                          startDate,
-                                          endDate,
-                                          reportType,
-                                          timezone = 'UTC',
-                                          page = 1,
-                                          limit = 50,
-                                          sortBy = 'timestamp',
-                                          sortOrder = 'DESC',
-                                          isExport = false
-                                        }) => {
+  inventoryId,
+  warehouseId,
+  lotId,
+  orderId,
+  actionTypeId,
+  statusId,
+  userId,
+  startDate,
+  endDate,
+  reportType,
+  timezone = 'UTC',
+  page = 1,
+  limit = 50,
+  sortBy = 'timestamp',
+  sortOrder = 'DESC',
+  isExport = false,
+}) => {
   // Calculate pagination offset
   const offset = (page - 1) * limit;
-  
+
   // Base Query (Filtered Data)
   const baseQuery = `
     SELECT
@@ -225,7 +225,7 @@ const getInventoryActivityLogs = async ({
           )
         )
   `;
-  
+
   // Bind parameters
   const bindings = [
     timezone, // $1
@@ -238,46 +238,48 @@ const getInventoryActivityLogs = async ({
     userId || null, // $8
     startDate ? new Date(startDate).toISOString() : null, // $9
     endDate ? new Date(endDate).toISOString() : null, // $10
-    reportType ?? null // $11
+    reportType ?? null, // $11
   ];
-  
+
   let totalRecords = 0;
-  
+
   // Fetch Total Count (Only When Paginating)
   if (!isExport) {
     const countQuery = `SELECT COUNT(*) AS total FROM (${baseQuery}) AS filtered_data;`;
     const countResult = await query(countQuery, bindings);
     totalRecords = parseInt(countResult.rows[0]?.total || 0, 10);
   }
-  
+
   // Append Pagination if NOT Exporting
   if (!isExport) {
     bindings.push(limit, offset); // $12, $13
   }
-  
+
   // Final paginated query
   const paginatedQuery = isExport
     ? `${baseQuery} ORDER BY ${sortBy} ${sortOrder};`
     : `${baseQuery} ORDER BY ${sortBy} ${sortOrder} LIMIT $12 OFFSET $13;`;
-  
+
   try {
     // Execute final query
     const { rows } = await query(paginatedQuery, bindings);
-    
+
     return {
       data: rows,
       pagination: isExport
         ? null
         : {
-          page,
-          limit,
-          totalRecords,
-          totalPages: Math.ceil(totalRecords / limit),
-        },
+            page,
+            limit,
+            totalRecords,
+            totalPages: Math.ceil(totalRecords / limit),
+          },
     };
   } catch (error) {
     logError('Error fetching paginated inventory logs:', error);
-    throw AppError.databaseError('An error occurred while retrieving inventory logs. Please try again later.');
+    throw AppError.databaseError(
+      'An error occurred while retrieving inventory logs. Please try again later.'
+    );
   }
 };
 
@@ -302,22 +304,22 @@ const getInventoryActivityLogs = async ({
  * @returns {Promise<Object>} - Paginated inventory history records and metadata
  */
 const getInventoryHistory = async ({
-                                     inventoryId = null,
-                                     actionTypeId = null,
-                                     statusId = null,
-                                     userId = null,
-                                     startDate = null,
-                                     endDate = null,
-                                     reportType = null, // 'weekly', 'monthly', 'yearly'
-                                     timezone = 'UTC',
-                                     sortBy = 'timestamp',
-                                     sortOrder = 'DESC',
-                                     page = 1,
-                                     limit = 50,
-                                     isExport = false
-                                   }) => {
+  inventoryId = null,
+  actionTypeId = null,
+  statusId = null,
+  userId = null,
+  startDate = null,
+  endDate = null,
+  reportType = null, // 'weekly', 'monthly', 'yearly'
+  timezone = 'UTC',
+  sortBy = 'timestamp',
+  sortOrder = 'DESC',
+  page = 1,
+  limit = 50,
+  isExport = false,
+}) => {
   const offset = (page - 1) * limit;
-  
+
   const baseQuery = `
     SELECT
         ih.id AS log_id,
@@ -370,29 +372,29 @@ const getInventoryHistory = async ({
             WHEN $9 = 'previous_quantity' THEN ih.previous_quantity
         END ${sortOrder}
   `;
-  
+
   let totalRecords = 0;
-  
+
   // Correct parameter binding for main query
   const queryValues = [
-    timezone,        // $1
-    inventoryId,     // $2
-    actionTypeId,    // $3
-    statusId,        // $4
-    userId,          // $5
-    startDate,       // $6
-    endDate,         // $7
-    reportType,      // $8
-    sortBy,          // $9
+    timezone, // $1
+    inventoryId, // $2
+    actionTypeId, // $3
+    statusId, // $4
+    userId, // $5
+    startDate, // $6
+    endDate, // $7
+    reportType, // $8
+    sortBy, // $9
   ];
-  
+
   // Fetch total count (Only when paginating)
   if (!isExport) {
     const countQuery = `SELECT COUNT(*) AS total FROM (${baseQuery}) AS filtered_data;`;
-    
+
     // Remove limit/offset from count query
     const countValues = queryValues.slice(0, 9); // Only use the first 9 parameters
-    
+
     try {
       const countResult = await query(countQuery, countValues);
       totalRecords = parseInt(countResult.rows[0]?.total || 0, 10);
@@ -401,15 +403,15 @@ const getInventoryHistory = async ({
       throw AppError.databaseError('Error fetching inventory history count.');
     }
   }
-  
+
   // Append Pagination if NOT Exporting
   if (!isExport) {
     queryValues.push(limit, offset); // $10, $11
   }
-  
+
   // Execute correct query
   const finalQuery = isExport ? baseQuery : `${baseQuery} LIMIT $10 OFFSET $11`;
-  
+
   try {
     const { rows } = await query(finalQuery, queryValues);
     return {
@@ -417,11 +419,11 @@ const getInventoryHistory = async ({
       pagination: isExport
         ? null
         : {
-          page,
-          limit,
-          totalRecords,
-          totalPages: Math.ceil(totalRecords / limit),
-        },
+            page,
+            limit,
+            totalRecords,
+            totalPages: Math.ceil(totalRecords / limit),
+          },
     };
   } catch (error) {
     logError('Error fetching inventory history:', error);

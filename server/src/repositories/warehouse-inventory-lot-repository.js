@@ -56,11 +56,15 @@ const checkLotExists = async (
     const { rows } = await query(text, [warehouse_inventory_id], client);
 
     if (!rows.length)
-      throw AppError.notFoundError(`Lot with ID ${warehouse_inventory_id} not found.`);
+      throw AppError.notFoundError(
+        `Lot with ID ${warehouse_inventory_id} not found.`
+      );
 
     return rows[0];
   } catch (error) {
-    throw AppError.databaseError(`Error checking warehouse lot: ${error.message}`);
+    throw AppError.databaseError(
+      `Error checking warehouse lot: ${error.message}`
+    );
   }
 };
 
@@ -151,7 +155,9 @@ const adjustWarehouseInventoryLots = async (records, user_id) => {
         ['shipped', 'expired', 'sold_out'].includes(statusName) ||
         (statusName === 'out_of_stock' && adjusted_quantity < 0)
       ) {
-        throw AppError.validationError(`Cannot adjust quantity for ${statusName} lots.`);
+        throw AppError.validationError(
+          `Cannot adjust quantity for ${statusName} lots.`
+        );
       }
 
       // Determine New Status for Warehouse Lot
@@ -521,12 +527,9 @@ const insertWarehouseInventoryLots = async (client, warehouseLots) => {
     );
   } catch (error) {
     logError('Error inserting warehouse inventory lots:', error);
-    throw AppError.databaseError(
-      'Failed to insert warehouse inventory lots.',
-      {
-        details: { error: error.message, warehouseLots },
-      }
-    );
+    throw AppError.databaseError('Failed to insert warehouse inventory lots.', {
+      details: { error: error.message, warehouseLots },
+    });
   }
 };
 
@@ -566,8 +569,8 @@ const updateStatus = async () => {
     SET status_id = isu.correct_status_id
     FROM inventory_status_update isu
     WHERE i.id = isu.inventory_id;
-    `
-}
+    `;
+};
 
 module.exports = {
   adjustWarehouseInventoryLots,

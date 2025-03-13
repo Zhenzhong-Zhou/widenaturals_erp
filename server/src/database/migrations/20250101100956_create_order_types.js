@@ -11,16 +11,16 @@ exports.up = function (knex) {
       .defaultTo(knex.raw('uuid_generate_v4()'));
     table.string('name', 50).unique().notNullable();
     table
-      .string("category", 50)
+      .string('category', 50)
       .notNullable()
       .checkIn([
-        "purchase",
-        "sales",
-        "transfer",
-        "return",
-        "manufacturing",
-        "logistics",
-        "adjustment",
+        'purchase',
+        'sales',
+        'transfer',
+        'return',
+        'manufacturing',
+        'logistics',
+        'adjustment',
       ]);
     table.string('code', 20).unique().notNullable();
     table.text('description').nullable();

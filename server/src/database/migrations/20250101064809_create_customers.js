@@ -17,7 +17,7 @@ exports.up = function (knex) {
     table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now()); // Auto-set on creation in UTC
     table.uuid('created_by').references('id').inTable('users');
     table.uuid('updated_by').references('id').inTable('users');
-    
+
     table.unique(['email', 'phone_number']);
   });
 };

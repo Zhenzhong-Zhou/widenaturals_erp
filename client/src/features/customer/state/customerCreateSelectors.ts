@@ -1,5 +1,5 @@
-import { createSelector } from "@reduxjs/toolkit";
-import { RootState } from "../../../store/store";
+import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '../../../store/store';
 
 // Base state selector
 const selectCustomerCreateState = (state: RootState) => state.customersCreate;

@@ -1,5 +1,5 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { fetchCustomerByIdThunk } from "./customerThunks";
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { fetchCustomerByIdThunk } from './customerThunks';
 import { CustomerDetails } from './customerTypes';
 
 interface CustomerDetailState {
@@ -15,7 +15,7 @@ const initialState: CustomerDetailState = {
 };
 
 const customerDetailSlice = createSlice({
-  name: "customerDetail",
+  name: 'customerDetail',
   initialState,
   reducers: {
     clearCustomerDetail: (state) => {
@@ -39,7 +39,7 @@ const customerDetailSlice = createSlice({
       )
       .addCase(fetchCustomerByIdThunk.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload || "Failed to fetch customer details.";
+        state.error = action.payload || 'Failed to fetch customer details.';
       });
   },
 });

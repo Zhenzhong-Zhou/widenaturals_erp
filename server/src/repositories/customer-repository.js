@@ -1,4 +1,10 @@
-const { withTransaction, bulkInsert, query, retry, paginateQuery } = require('../database/db');
+const {
+  withTransaction,
+  bulkInsert,
+  query,
+  retry,
+  paginateQuery,
+} = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logError } = require('../utils/logger-helper');
 
@@ -10,13 +16,13 @@ const { logError } = require('../utils/logger-helper');
  */
 const checkCustomerExists = async (email, phone_number) => {
   if (!email && !phone_number) return false;
-  
+
   const sql = `
     SELECT id FROM customers
     WHERE email = $1 OR phone_number = $2
     LIMIT 1;
   `;
-  
+
   const result = await query(sql, [email || null, phone_number || null]);
   return result.rows.length > 0;
 };
@@ -28,15 +34,26 @@ const checkCustomerExists = async (email, phone_number) => {
  */
 const bulkCreateCustomers = async (customers) => {
   if (!Array.isArray(customers) || customers.length === 0) {
-    throw AppError('Customer list is empty.', 400, { code: 'VALIDATION_ERROR' });
+    throw AppError('Customer list is empty.', 400, {
+      code: 'VALIDATION_ERROR',
+    });
   }
-  
+
   const columns = [
-    'firstname', 'lastname', 'email', 'phone_number', 'address',
-    'status_id', 'note', 'status_date', 'created_at', 'updated_at',
-    'created_by', 'updated_by'
+    'firstname',
+    'lastname',
+    'email',
+    'phone_number',
+    'address',
+    'status_id',
+    'note',
+    'status_date',
+    'created_at',
+    'updated_at',
+    'created_by',
+    'updated_by',
   ];
-  
+
   const rows = customers.map((customer) => [
     customer.firstname,
     customer.lastname,
@@ -51,7 +68,7 @@ const bulkCreateCustomers = async (customers) => {
     customer.created_by,
     null,
   ]);
-  
+
   return withTransaction(async (client) => {
     try {
       return await bulkInsert(
@@ -64,7 +81,7 @@ const bulkCreateCustomers = async (customers) => {
       );
     } catch (error) {
       logError('Bulk Insert Failed:', error);
-      throw AppError.databaseError('Bulk insert operation failed',{
+      throw AppError.databaseError('Bulk insert operation failed', {
         details: { tableName: 'customers', columns, error: error.message },
       });
     }
@@ -88,7 +105,7 @@ const getAllCustomers = async (
   page = 1,
   limit = 10,
   sortBy = 'created_at',
-  sortOrder = 'DESC',
+  sortOrder = 'DESC'
 ) => {
   const tableName = 'customers c';
   const joins = [
@@ -97,7 +114,7 @@ const getAllCustomers = async (
     'LEFT JOIN users u2 ON c.updated_by = u2.id',
   ];
   const whereClause = '1=1';
-  
+
   const allowedSortFields = [
     'firstname',
     'lastname',
@@ -105,10 +122,12 @@ const getAllCustomers = async (
     'created_at',
     'updated_at',
   ];
-  
+
   // Validate the sortBy field
-  const validatedSortBy = allowedSortFields.includes(sortBy) ? `c.${sortBy}` : 'c.created_at';
-  
+  const validatedSortBy = allowedSortFields.includes(sortBy)
+    ? `c.${sortBy}`
+    : 'c.created_at';
+
   const baseQuery = `
       SELECT
         c.id,
@@ -124,7 +143,7 @@ const getAllCustomers = async (
       FROM ${tableName}
       ${joins.join(' ')}
     `;
-  
+
   try {
     return await retry(
       () =>
@@ -142,8 +161,8 @@ const getAllCustomers = async (
       3 // Retry up to 3 times
     );
   } catch (error) {
-    logError("Error fetching customers:", error);
-    throw AppError.databaseError("Failed to fetch customers.");
+    logError('Error fetching customers:', error);
+    throw AppError.databaseError('Failed to fetch customers.');
   }
 };
 
@@ -166,22 +185,22 @@ const getAllCustomers = async (
  * // Fetch customers with search term "Alice"
  * const customers = await getCustomersForDropdown(query, "Alice");
  */
-const getCustomersForDropdown = async (search = "", limit = 100) => {
+const getCustomersForDropdown = async (search = '', limit = 100) => {
   try {
-    let whereClause = "1=1"; // Default matches all customers
+    let whereClause = '1=1'; // Default matches all customers
     let params = [];
-    let searchCondition = "";
+    let searchCondition = '';
     let labelFormat = "c.firstname || ' ' || c.lastname"; // Default label format
-    
+
     if (search) {
       searchCondition = `LOWER(c.firstname) ILIKE LOWER($1)
                          OR LOWER(c.lastname) ILIKE LOWER($1)
                          OR LOWER(c.email) ILIKE LOWER($1)
                          OR c.phone_number ILIKE $1`;
-      
+
       whereClause += ` AND (${searchCondition})`;
       params.push(`%${search}%`);
-      
+
       // Adjust label format based on search type
       if (/\S+@\S+\.\S+/.test(search)) {
         // If search contains '@', assume email
@@ -191,7 +210,7 @@ const getCustomersForDropdown = async (search = "", limit = 100) => {
         labelFormat = `c.firstname || ' ' || c.lastname || ' - ' || c.phone_number`;
       }
     }
-    
+
     const sql = `
       SELECT
         c.id,
@@ -201,14 +220,14 @@ const getCustomersForDropdown = async (search = "", limit = 100) => {
       ORDER BY c.created_at DESC
       LIMIT $2;
     `;
-    
+
     params.push(limit); // Limit parameter
-    
+
     const result = await query(sql, params);
     return result.rows;
   } catch (error) {
-    logError("Error fetching customers for dropdown:", error);
-    throw AppError.databaseError("Failed to fetch customer dropdown data.");
+    logError('Error fetching customers for dropdown:', error);
+    throw AppError.databaseError('Failed to fetch customer dropdown data.');
   }
 };
 
@@ -241,17 +260,17 @@ const getCustomerById = async (customerId) => {
       LEFT JOIN users u2 ON c.updated_by = u2.id
       WHERE c.id = $1
     `;
-    
+
     const { rows } = await retry(() => query(queryText, [customerId]));
-    
+
     if (rows.length === 0) {
-      throw AppError.notFoundError("Customer not found", 404);
+      throw AppError.notFoundError('Customer not found', 404);
     }
-    
+
     return rows[0];
   } catch (error) {
-    logError("Error fetching customer by ID:", error);
-    throw AppError.databaseError("Failed to fetch customer details.");
+    logError('Error fetching customer by ID:', error);
+    throw AppError.databaseError('Failed to fetch customer details.');
   }
 };
 

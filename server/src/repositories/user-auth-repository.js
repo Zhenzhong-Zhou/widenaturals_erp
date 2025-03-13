@@ -40,7 +40,9 @@ const insertUserAuth = async (
       `Database error inserting user auth for user ID ${userId}:`,
       error
     );
-    throw AppError.databaseError('Failed to insert user authentication details');
+    throw AppError.databaseError(
+      'Failed to insert user authentication details'
+    );
   }
 };
 
@@ -437,7 +439,7 @@ const isPasswordReused = async (client, userId, newPassword) => {
   } catch (error) {
     // Log the error and throw a structured AppError for better error handling
     logError('Error checking password reuse:', error);
-    throw AppError.databaseError('Failed to check password reuse',  {
+    throw AppError.databaseError('Failed to check password reuse', {
       details: { userId },
     });
   }

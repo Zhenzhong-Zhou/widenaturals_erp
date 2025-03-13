@@ -1,6 +1,11 @@
-const { createOrder, getOrderDetailsById } = require('../repositories/order-repository');
+const {
+  createOrder,
+  getOrderDetailsById,
+} = require('../repositories/order-repository');
 const { createSalesOrder } = require('../repositories/sales-order-repository');
-const { getOrderTypeByIdOrName } = require('../repositories/order-type-repository');
+const {
+  getOrderTypeByIdOrName,
+} = require('../repositories/order-type-repository');
 const AppError = require('../utils/AppError');
 
 /**
@@ -12,17 +17,19 @@ const AppError = require('../utils/AppError');
  */
 const createOrderByType = async (orderData) => {
   // Step 1: Fetch order type details based on `order_type_id`
-  const orderType = await getOrderTypeByIdOrName({ id: orderData.order_type_id });
-  
+  const orderType = await getOrderTypeByIdOrName({
+    id: orderData.order_type_id,
+  });
+
   if (!orderType) {
     throw AppError.databaseError('Invalid order type provided.');
   }
-  
+
   // Step 2: Route to the correct order creation function
   switch (orderType.category) {
     case 'sales':
       return createSalesOrder(orderData); // 🔹 Calls `createSalesOrder`
-    
+
     case 'purchase':
     case 'transfer':
     case 'return':
@@ -30,9 +37,11 @@ const createOrderByType = async (orderData) => {
     case 'adjustment':
     case 'logistics':
       return createOrder(orderData); // 🔹 Calls `createOrder` for other order types
-    
+
     default:
-      throw AppError.validationError(`Unsupported order category: ${orderType.category}`);
+      throw AppError.validationError(
+        `Unsupported order category: ${orderType.category}`
+      );
   }
 };
 
@@ -47,14 +56,14 @@ const fetchOrderDetails = async (orderId, client) => {
   if (!orderId) {
     throw AppError.validationError('Order ID is required.');
   }
-  
+
   // Fetch order details from the repository
   const orderRows = await getOrderDetailsById(orderId, client);
-  
+
   if (!orderRows || orderRows.length === 0) {
     throw AppError.notFoundError(`Order with ID ${orderId} not found.`);
   }
-  
+
   // ✅ Transform Data: Group order items under a single order object
   return {
     order_id: orderRows[0].order_id,

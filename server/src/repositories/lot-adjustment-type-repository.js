@@ -64,7 +64,9 @@ const getActiveLotAdjustmentTypes = async () => {
  */
 const getWarehouseLotAdjustmentType = async (client, { id, name }) => {
   if (!id && !name) {
-    throw AppError.validationError('At least one parameter (id or name) must be provided.');
+    throw AppError.validationError(
+      'At least one parameter (id or name) must be provided.'
+    );
   }
 
   const queryText = `

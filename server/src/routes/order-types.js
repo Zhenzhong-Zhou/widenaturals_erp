@@ -1,5 +1,8 @@
 const express = require('express');
-const { getOrderTypesController, getOrderTypesDropdownController } = require('../controllers/order-type-controller');
+const {
+  getOrderTypesController,
+  getOrderTypesDropdownController,
+} = require('../controllers/order-type-controller');
 
 const router = express.Router();
 

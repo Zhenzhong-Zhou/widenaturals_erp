@@ -52,7 +52,9 @@ const restoreBackup = async (
 
   // Ensure all required files exist
   if (!fs.existsSync(encryptedFilePath)) {
-    throw AppError.notFoundError(`Encrypted backup file not found: ${encryptedFilePath}`);
+    throw AppError.notFoundError(
+      `Encrypted backup file not found: ${encryptedFilePath}`
+    );
   }
   if (!fs.existsSync(ivFilePath)) {
     throw AppError.notFoundError(`IV file not found: ${ivFilePath}`);

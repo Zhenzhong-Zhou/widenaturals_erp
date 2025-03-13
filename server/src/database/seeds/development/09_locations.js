@@ -28,7 +28,9 @@ exports.seed = async function (knex) {
     (type) => type.code === 'WAREHOUSE'
   )?.id;
   const retailTypeId = locationTypes.find((type) => type.code === 'RETAIL')?.id;
-  const manufacturerTypeId = locationTypes.find((type) => type.code === 'MANUFACTURER')?.id;
+  const manufacturerTypeId = locationTypes.find(
+    (type) => type.code === 'MANUFACTURER'
+  )?.id;
 
   const locations = [
     {

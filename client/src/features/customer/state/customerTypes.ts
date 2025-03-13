@@ -23,8 +23,8 @@ export interface BulkCustomerResponse {
 export interface CustomerQueryParams {
   page?: number; // Optional, defaults to 1
   limit?: number; // Optional, defaults to 10
-  sortBy?: "firstname" | "lastname" | "email" | "created_at" | "updated_at"; // Allowed fields
-  sortOrder?: "ASC" | "DESC"; // Sorting direction
+  sortBy?: 'firstname' | 'lastname' | 'email' | 'created_at' | 'updated_at'; // Allowed fields
+  sortOrder?: 'ASC' | 'DESC'; // Sorting direction
 }
 
 export interface Customer {

@@ -200,14 +200,11 @@ const checkProductExists = async (filters, combineWith = 'OR') => {
     const result = await query(queryText, queryParams);
     return result.rows[0].exists;
   } catch (error) {
-    throw AppError.databaseError(
-      'Failed to execute product existence check.',
-      {
-        query: queryText,
-        params: queryParams,
-        originalError: error.message,
-      }
-    );
+    throw AppError.databaseError('Failed to execute product existence check.', {
+      query: queryText,
+      params: queryParams,
+      originalError: error.message,
+    });
   }
 };
 

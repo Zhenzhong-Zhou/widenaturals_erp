@@ -1,10 +1,11 @@
 import {
   BulkCustomerRequest,
-  BulkCustomerResponse, CustomerDetailsResponse,
+  BulkCustomerResponse,
+  CustomerDetailsResponse,
   CustomerListResponse,
   CustomerQueryParams,
 } from '../features/customer';
-import axiosInstance from "../utils/axiosConfig";
+import axiosInstance from '../utils/axiosConfig';
 import { API_ENDPOINTS } from './apiEndponits.ts';
 
 // Generic post function for reducing redundancy
@@ -14,12 +15,22 @@ const postRequest = async <T, R>(url: string, data: T): Promise<R> => {
 };
 
 // Create a single customer
-const createCustomer = (customer: BulkCustomerRequest): Promise<BulkCustomerResponse> =>
-  postRequest<BulkCustomerRequest, BulkCustomerResponse>(API_ENDPOINTS.ADD_NEW_CUSTOMER, customer);
+const createCustomer = (
+  customer: BulkCustomerRequest
+): Promise<BulkCustomerResponse> =>
+  postRequest<BulkCustomerRequest, BulkCustomerResponse>(
+    API_ENDPOINTS.ADD_NEW_CUSTOMER,
+    customer
+  );
 
 // Create multiple customers
-const createBulkCustomers = (customers: BulkCustomerRequest): Promise<BulkCustomerResponse> =>
-  postRequest<BulkCustomerRequest, BulkCustomerResponse>(API_ENDPOINTS.ADD_NEW_CUSTOMERS_BULK, customers);
+const createBulkCustomers = (
+  customers: BulkCustomerRequest
+): Promise<BulkCustomerResponse> =>
+  postRequest<BulkCustomerRequest, BulkCustomerResponse>(
+    API_ENDPOINTS.ADD_NEW_CUSTOMERS_BULK,
+    customers
+  );
 
 /**
  * Fetch paginated customer data with sorting.
@@ -28,7 +39,12 @@ const createBulkCustomers = (customers: BulkCustomerRequest): Promise<BulkCustom
  * @returns {Promise<CustomerListResponse>} - API response containing customer data
  */
 export const fetchCustomers = async (
-  params: CustomerQueryParams = { page: 1, limit: 10, sortBy: "created_at", sortOrder: "DESC" }
+  params: CustomerQueryParams = {
+    page: 1,
+    limit: 10,
+    sortBy: 'created_at',
+    sortOrder: 'DESC',
+  }
 ): Promise<CustomerListResponse> => {
   const response = await axiosInstance.get<CustomerListResponse>(
     API_ENDPOINTS.ALL_CUSTOMERS,
@@ -37,7 +53,9 @@ export const fetchCustomers = async (
   return response.data;
 };
 
-const fetchCustomerDetailsById = async (customerId: string): Promise<CustomerDetailsResponse> => {
+const fetchCustomerDetailsById = async (
+  customerId: string
+): Promise<CustomerDetailsResponse> => {
   const endpoint = API_ENDPOINTS.CUSTOMER_DETAILS.replace(':id', customerId);
   const response = await axiosInstance.get<CustomerDetailsResponse>(endpoint);
   return response.data;
@@ -48,4 +66,4 @@ export const customerService = {
   createBulkCustomers,
   fetchCustomers,
   fetchCustomerDetailsById,
-}
+};

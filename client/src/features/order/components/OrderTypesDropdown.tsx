@@ -1,6 +1,6 @@
-import { FC } from "react";
-import { useOrderTypesDropdown } from "../../../hooks/";
-import { Dropdown } from "@components/index.ts";
+import { FC } from 'react';
+import { useOrderTypesDropdown } from '../../../hooks/';
+import { Dropdown } from '@components/index.ts';
 
 interface OrderTypeDropdownProps {
   value: string | null;
@@ -10,20 +10,22 @@ interface OrderTypeDropdownProps {
 }
 
 const OrderTypeDropdown: FC<OrderTypeDropdownProps> = ({
-                                                         value,
-                                                         onChange,
-                                                         label = "Select Order Type",
-                                                         sx = {},
-                                                       }) => {
+  value,
+  onChange,
+  label = 'Select Order Type',
+  sx = {},
+}) => {
   const { dropdownOptions, loading, error } = useOrderTypesDropdown();
-  
+
   return (
     <Dropdown
       label={label}
       options={dropdownOptions}
       value={value}
       onChange={(id) => {
-        const selectedOption = dropdownOptions.find((option) => option.value === id);
+        const selectedOption = dropdownOptions.find(
+          (option) => option.value === id
+        );
         if (selectedOption) {
           onChange(id, selectedOption.label);
         }

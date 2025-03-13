@@ -175,7 +175,11 @@ const getLocationDetailById = async ({
     });
   } catch (error) {
     logError('Error fetching location type detail by ID:', error);
-    throw AppError.databaseError('Failed to fetch location detail by ID', 500, error);
+    throw AppError.databaseError(
+      'Failed to fetch location detail by ID',
+      500,
+      error
+    );
   }
 };
 

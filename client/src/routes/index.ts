@@ -81,8 +81,7 @@ export const routes = [
   },
   {
     path: '/compliances',
-    component: () =>
-      import('../features/compliance/pages/CompliancePage.tsx'),
+    component: () => import('../features/compliance/pages/CompliancePage.tsx'),
     meta: {
       requiresAuth: true,
       title: 'Compliances',
@@ -277,8 +276,7 @@ export const routes = [
   },
   {
     path: '/customers',
-    component: () =>
-      import('../features/customer/pages/CustomersPage.tsx'),
+    component: () => import('../features/customer/pages/CustomersPage.tsx'),
     meta: {
       requiresAuth: true,
       title: 'Customers',
@@ -298,8 +296,7 @@ export const routes = [
   },
   {
     path: '/order_types',
-    component: () =>
-      import('../features/orderType/pages/OrderTypesPage.tsx'),
+    component: () => import('../features/orderType/pages/OrderTypesPage.tsx'),
     meta: {
       requiresAuth: true,
       title: 'Order Types',
@@ -308,8 +305,7 @@ export const routes = [
   },
   {
     path: '/orders',
-    component: () =>
-      import('../features/order/pages/OrdersPage.tsx'),
+    component: () => import('../features/order/pages/OrdersPage.tsx'),
     meta: {
       requiresAuth: true,
       title: 'Orders',

@@ -1,4 +1,8 @@
-const { getAdjustmentReport, getInventoryActivityLogs, getInventoryHistory } = require('../repositories/report-repository');
+const {
+  getAdjustmentReport,
+  getInventoryActivityLogs,
+  getInventoryHistory,
+} = require('../repositories/report-repository');
 const { generateEmptyExport, exportData } = require('../utils/export-utils');
 const AppError = require('../utils/AppError');
 const { logError, logWarn } = require('../utils/logger-helper');
@@ -56,7 +60,7 @@ const fetchAdjustmentReport = async ({
     // Handle No Data Case
     if (!data || data.length === 0) {
       logWarn('No adjustment records found for the given criteria.');
-      
+
       if (!isExport) {
         return {
           success: true,
@@ -65,10 +69,15 @@ const fetchAdjustmentReport = async ({
           message: 'No adjustment records found for the given criteria.',
         };
       }
-      
-      return generateEmptyExport(exportFormat, 'adjustment_report', false, true);
+
+      return generateEmptyExport(
+        exportFormat,
+        'adjustment_report',
+        false,
+        true
+      );
     }
-    
+
     if (!isExport) {
       // Return JSON response for paginated data
       return {
@@ -77,7 +86,7 @@ const fetchAdjustmentReport = async ({
         pagination,
       };
     }
-    
+
     // Handle Export (Regular Data)
     return await exportData({
       data,
@@ -89,10 +98,7 @@ const fetchAdjustmentReport = async ({
     });
   } catch (error) {
     logError('Failed to fetch adjustment report', error);
-    throw AppError.serviceError(
-      'Failed to fetch adjustment report',
-      error
-    );
+    throw AppError.serviceError('Failed to fetch adjustment report', error);
   }
 };
 
@@ -118,29 +124,29 @@ const fetchAdjustmentReport = async ({
  * @returns {Promise<Object>} - Returns paginated results and total count.
  */
 const fetchInventoryActivityLogs = async ({
-                                  inventoryId,
-                                  warehouseId,
-                                  lotId,
-                                  orderId,
-                                  actionTypeId,
-                                  statusId,
-                                  userId,
-                                  startDate,
-                                  endDate,
-                                  reportType,
-                                  timezone = 'UTC',
-                                  page = 1,
-                                  limit = 50,
-                                  sortBy = 'timestamp',
-                                  sortOrder = 'DESC',
-                                  exportFormat = null
-                                }) => {
+  inventoryId,
+  warehouseId,
+  lotId,
+  orderId,
+  actionTypeId,
+  statusId,
+  userId,
+  startDate,
+  endDate,
+  reportType,
+  timezone = 'UTC',
+  page = 1,
+  limit = 50,
+  sortBy = 'timestamp',
+  sortOrder = 'DESC',
+  exportFormat = null,
+}) => {
   // Ensure `page` and `limit` are valid numbers
   const pageNumber = Math.max(Number(page), 1);
   const limitNumber = Math.min(Math.max(Number(limit), 1), 100); // Limit max 100 records per page
-  
+
   const isExport = !!exportFormat; // If exportFormat is provided, fetch all data
-  
+
   // Fetch inventory logs from repository
   const logs = await getInventoryActivityLogs({
     inventoryId,
@@ -160,17 +166,22 @@ const fetchInventoryActivityLogs = async ({
     sortOrder,
     isExport,
   });
-  
+
   const { data, pagination } = logs;
-  
+
   // Handle No Data Case
   if (!logs || data.length === 0) {
     logWarn('No inventory logs found for the given filters.');
-    
+
     if (isExport) {
-      return generateEmptyExport(exportFormat, 'empty_inventory_activity_logs', false, true);
+      return generateEmptyExport(
+        exportFormat,
+        'empty_inventory_activity_logs',
+        false,
+        true
+      );
     }
-    
+
     return {
       success: true,
       data: [],
@@ -178,7 +189,7 @@ const fetchInventoryActivityLogs = async ({
       message: 'No adjustment records found for the given criteria.',
     };
   }
-  
+
   // Export Handling
   if (isExport) {
     return await exportData({
@@ -190,18 +201,18 @@ const fetchInventoryActivityLogs = async ({
       summary: false,
     });
   }
-  
+
   // Return paginated data
   return {
     data,
     pagination: isExport
       ? null
       : {
-        page: pageNumber,
-        limit: limitNumber,
-        totalRecords: pagination.totalRecords,
-        totalPages: pagination.totalPages,
-      },
+          page: pageNumber,
+          limit: limitNumber,
+          totalRecords: pagination.totalRecords,
+          totalPages: pagination.totalPages,
+        },
   };
 };
 
@@ -213,28 +224,28 @@ const fetchInventoryActivityLogs = async ({
  * @returns {Promise<Object>} - Validated inventory history records with pagination
  */
 const fetchInventoryHistoryWithValidation = async ({
-                                                     inventoryId,
-                                                     actionTypeId,
-                                                     statusId,
-                                                     userId,
-                                                     startDate,
-                                                     endDate,
-                                                     reportType,
-                                                     timezone = 'UTC',
-                                                     sortBy = 'timestamp',
-                                                     sortOrder = 'DESC',
-                                                     page = 1,
-                                                     limit = 50,
-                                                     exportFormat = null
-                                                   }) => {
+  inventoryId,
+  actionTypeId,
+  statusId,
+  userId,
+  startDate,
+  endDate,
+  reportType,
+  timezone = 'UTC',
+  sortBy = 'timestamp',
+  sortOrder = 'DESC',
+  page = 1,
+  limit = 50,
+  exportFormat = null,
+}) => {
   try {
     // Ensure `page` and `limit` are valid numbers
     const pageNumber = Math.max(Number(page) || 1, 1);
     const limitNumber = Math.min(Math.max(Number(limit) || 1, 1), 100); // Limit max 100 records per page
-    
+
     // Determine if export mode is enabled
     const isExport = Boolean(exportFormat);
-    
+
     // Fetch records from repository
     const { data, pagination } = await getInventoryHistory({
       inventoryId,
@@ -249,17 +260,22 @@ const fetchInventoryHistoryWithValidation = async ({
       sortOrder,
       page: pageNumber,
       limit: limitNumber,
-      isExport
+      isExport,
     });
-    
+
     // Handle No Data Case
     if (!data || data.length === 0) {
       logWarn('No inventory history found for the given filters.');
-      
+
       if (isExport) {
-        return generateEmptyExport(exportFormat, 'empty_inventory_history', false, true);
+        return generateEmptyExport(
+          exportFormat,
+          'empty_inventory_history',
+          false,
+          true
+        );
       }
-      
+
       return {
         success: true,
         data: [],
@@ -267,18 +283,20 @@ const fetchInventoryHistoryWithValidation = async ({
         message: 'No inventory history records found for the given criteria.',
       };
     }
-    
+
     // Validate checksum for each record and log mismatches
     for (const record of data) {
       if (!validateChecksum(record)) {
-        logError(`⚠ Data Integrity Violation: Inventory log ${record.id} checksum mismatch!`);
+        logError(
+          `⚠ Data Integrity Violation: Inventory log ${record.id} checksum mismatch!`
+        );
         // Optional: Store this in an audit log
       }
     }
-    
+
     // Transform Data: Remove `checksum`**
     const transformedData = data.map(({ checksum, ...record }) => record);
-    
+
     // Export Handling
     if (isExport) {
       return await exportData({
@@ -290,7 +308,7 @@ const fetchInventoryHistoryWithValidation = async ({
         summary: false,
       });
     }
-    
+
     // Return paginated data
     return {
       success: true,

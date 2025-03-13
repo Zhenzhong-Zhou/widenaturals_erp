@@ -6,13 +6,13 @@ export interface FetchAllOrderTypesParams {
 }
 
 export type OrderTypeCategory =
-  | "purchase"
-  | "sales"
-  | "transfer"
-  | "return"
-  | "manufacturing"
-  | "logistics"
-  | "adjustment";
+  | 'purchase'
+  | 'sales'
+  | 'transfer'
+  | 'return'
+  | 'manufacturing'
+  | 'logistics'
+  | 'adjustment';
 
 export interface OrderType {
   id: string;

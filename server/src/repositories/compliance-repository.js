@@ -10,7 +10,7 @@ const getAllCompliances = async (
   page = 1,
   limit = 10,
   sortBy = 'created_at',
-  sortOrder = 'DESC',
+  sortOrder = 'DESC'
 ) => {
   const tableName = 'compliances c';
   const joins = [
@@ -20,18 +20,20 @@ const getAllCompliances = async (
     'LEFT JOIN users u2 ON c.updated_by = u2.id',
   ];
   const whereClause = '1=1';
-  
+
   const allowedSortFields = [
     'created_at',
     'updated_at',
     'compliance_id',
     'issued_date',
-    'expiry_date'
+    'expiry_date',
   ];
-  
+
   // Validate the sortBy field
-  const validatedSortBy = allowedSortFields.includes(sortBy) ? `c.${sortBy}` : 'c.created_at';
-  
+  const validatedSortBy = allowedSortFields.includes(sortBy)
+    ? `c.${sortBy}`
+    : 'c.created_at';
+
   const baseQuery = `
     SELECT
       c.id,
@@ -51,7 +53,7 @@ const getAllCompliances = async (
     FROM ${tableName}
     ${joins.join(' ')}
   `;
-  
+
   try {
     return await retry(
       () =>

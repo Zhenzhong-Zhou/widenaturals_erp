@@ -15,7 +15,7 @@ const initialState: OrderTypeState = {
 };
 
 const orderTypeSlice = createSlice({
-  name: "orderTypesDropdown",
+  name: 'orderTypesDropdown',
   initialState,
   reducers: {},
   extraReducers: (builder) => {
@@ -24,13 +24,16 @@ const orderTypeSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchOrderTypesDropDownThunk.fulfilled, (state, action: PayloadAction<OrderType[]>) => {
-        state.loading = false;
-        state.orderTypes = action.payload;
-      })
+      .addCase(
+        fetchOrderTypesDropDownThunk.fulfilled,
+        (state, action: PayloadAction<OrderType[]>) => {
+          state.loading = false;
+          state.orderTypes = action.payload;
+        }
+      )
       .addCase(fetchOrderTypesDropDownThunk.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload || "Failed to load order types.";
+        state.error = action.payload || 'Failed to load order types.';
       });
   },
 });

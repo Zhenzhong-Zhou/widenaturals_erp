@@ -204,7 +204,9 @@ const getWarehouseInventorySummary = async ({ page, limit, statusFilter }) => {
       `Error fetching warehouse inventory summary (page: ${page}, limit: ${limit}, status: ${statusFilter}):`,
       error
     );
-    throw AppError.databaseError('Failed to fetch warehouse inventory summary.');
+    throw AppError.databaseError(
+      'Failed to fetch warehouse inventory summary.'
+    );
   }
 };
 
@@ -216,7 +218,9 @@ const getWarehouseInventorySummary = async ({ page, limit, statusFilter }) => {
  */
 const geLocationIdByWarehouseId = async (client, warehouseIds) => {
   if (!Array.isArray(warehouseIds) || warehouseIds.length === 0) {
-    throw AppError.validationError('Invalid warehouse IDs input. Expected a non-empty array.');
+    throw AppError.validationError(
+      'Invalid warehouse IDs input. Expected a non-empty array.'
+    );
   }
 
   const queryText = `
@@ -295,12 +299,9 @@ const getActiveWarehousesForDropdown = async () => {
       message: error.message,
       stack: error.stack,
     });
-    throw AppError.databaseError(
-      'Failed to fetch warehouse dropdown list',
-      {
-        originalError: error.message,
-      }
-    );
+    throw AppError.databaseError('Failed to fetch warehouse dropdown list', {
+      originalError: error.message,
+    });
   }
 };
 

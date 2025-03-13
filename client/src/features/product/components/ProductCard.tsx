@@ -65,7 +65,9 @@ const ProductCard: FC<ProductCardProps> = ({ product }) => {
         <Typography variant="body2">
           Region: {market_region || 'N/A'}
         </Typography>
-        <Typography variant="body2">Status: {capitalizeFirstLetter(status_name)}</Typography>
+        <Typography variant="body2">
+          Status: {capitalizeFirstLetter(status_name)}
+        </Typography>
         {/* Price Display */}
         <PriceDisplay prices={prices} />
       </CustomCard>

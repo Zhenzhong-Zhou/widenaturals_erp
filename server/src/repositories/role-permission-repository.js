@@ -55,7 +55,9 @@ const getRolePermissionsByRoleId = async (roleId) => {
       query: sql,
       error: error.message,
     });
-    throw AppError.databaseError('Failed to fetch permissions for the specified role.');
+    throw AppError.databaseError(
+      'Failed to fetch permissions for the specified role.'
+    );
   }
 };
 

@@ -28,7 +28,12 @@ const Dropdown: FC<DropdownProps> = ({
         value={options.find((option) => option.value === value) || null}
         onChange={(_, newValue) => onChange(newValue?.value || '')}
         renderInput={(params) => (
-          <TextField {...params} label={label} variant="outlined" disabled={disabled} />
+          <TextField
+            {...params}
+            label={label}
+            variant="outlined"
+            disabled={disabled}
+          />
         )}
         disableClearable={!searchable}
         filterSelectedOptions

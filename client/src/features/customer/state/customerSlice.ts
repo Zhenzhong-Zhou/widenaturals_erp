@@ -1,6 +1,10 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { fetchCustomersThunk } from "./customerThunks";
-import { Customer, CustomerListResponse, CustomerPagination } from './customerTypes';
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { fetchCustomersThunk } from './customerThunks';
+import {
+  Customer,
+  CustomerListResponse,
+  CustomerPagination,
+} from './customerTypes';
 
 interface CustomerState {
   customers: Customer[];
@@ -17,7 +21,7 @@ const initialState: CustomerState = {
 };
 
 const customerSlice = createSlice({
-  name: "customers",
+  name: 'customers',
   initialState,
   reducers: {},
   extraReducers: (builder) => {
@@ -26,14 +30,17 @@ const customerSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchCustomersThunk.fulfilled, (state, action: PayloadAction<CustomerListResponse>) => {
-        state.loading = false;
-        state.customers = action.payload.data;
-        state.pagination = action.payload.pagination;
-      })
+      .addCase(
+        fetchCustomersThunk.fulfilled,
+        (state, action: PayloadAction<CustomerListResponse>) => {
+          state.loading = false;
+          state.customers = action.payload.data;
+          state.pagination = action.payload.pagination;
+        }
+      )
       .addCase(fetchCustomersThunk.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload || "An error occurred.";
+        state.error = action.payload || 'An error occurred.';
       });
   },
 });

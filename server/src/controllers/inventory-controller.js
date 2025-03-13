@@ -33,9 +33,9 @@ const getAllInventoriesController = wrapAsync(async (req, res, next) => {
 const createInventoryRecordsController = wrapAsync(async (req, res, next) => {
   try {
     const { inventoryData } = req.body;
-    
+
     const userId = req.user.id; // Extract from auth middleware
-    
+
     const { success, message, data, warehouseLots } =
       await createInventoryRecords(inventoryData, userId);
 

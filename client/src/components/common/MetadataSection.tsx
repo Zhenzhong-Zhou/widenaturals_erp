@@ -14,7 +14,7 @@ interface MetadataSectionProps {
 
 const MetadataSection: FC<MetadataSectionProps> = ({ data, sx }) => {
   const { theme } = useThemeContext();
-  
+
   return (
     <Box sx={{ marginTop: theme.spacing(2), ...sx }}>
       {Object.entries(data).map(([key, value]) => (
@@ -25,7 +25,7 @@ const MetadataSection: FC<MetadataSectionProps> = ({ data, sx }) => {
           >
             {key}:
           </Typography>
-          
+
           {Array.isArray(value) ? (
             <Box sx={{ paddingLeft: theme.spacing(2) }}>
               {value.map((item, index) => (
@@ -34,7 +34,8 @@ const MetadataSection: FC<MetadataSectionProps> = ({ data, sx }) => {
             </Box>
           ) : typeof value === 'object' && value !== null ? (
             <Box sx={{ paddingLeft: theme.spacing(2) }}>
-              <MetadataSection data={value} sx={sx} /> // Recursively render nested objects
+              <MetadataSection data={value} sx={sx} /> // Recursively render
+              nested objects
             </Box>
           ) : (
             <Typography

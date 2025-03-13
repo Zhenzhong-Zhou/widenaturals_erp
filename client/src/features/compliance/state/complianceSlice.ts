@@ -1,5 +1,9 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { Compliance, CompliancePagination, ComplianceResponse } from './complianceTypes.ts';
+import {
+  Compliance,
+  CompliancePagination,
+  ComplianceResponse,
+} from './complianceTypes.ts';
 import { fetchAllCompliancesThunk } from './complianceThunks.ts';
 
 interface ComplianceState {
@@ -26,11 +30,14 @@ const complianceSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchAllCompliancesThunk.fulfilled, (state, action: PayloadAction<ComplianceResponse>) => {
-        state.loading = false;
-        state.data = action.payload.data; // Extracts `data` array
-        state.pagination = action.payload.pagination;
-      })
+      .addCase(
+        fetchAllCompliancesThunk.fulfilled,
+        (state, action: PayloadAction<ComplianceResponse>) => {
+          state.loading = false;
+          state.data = action.payload.data; // Extracts `data` array
+          state.pagination = action.payload.pagination;
+        }
+      )
       .addCase(fetchAllCompliancesThunk.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || 'Something went wrong';

@@ -27,9 +27,7 @@ const reportRoutes = require('./reports');
 const customerRoutes = require('./customers');
 const orderTypeRoutes = require('./order-types');
 const orderRoutes = require('./orders');
-const {
-  createApiRateLimiter,
-} = require('../middlewares/rate-limiter');
+const { createApiRateLimiter } = require('../middlewares/rate-limiter');
 const authenticate = require('../middlewares/authenticate');
 
 const router = express.Router();
@@ -102,9 +100,17 @@ router.use('/warehouses', authenticate(), warehouseRouts);
 
 router.use('/warehouse-inventories', authenticate(), warehouseInventoryRouts);
 
-router.use('/warehouse-inventory-lots', authenticate(), warehouseInventoryLotRouts);
+router.use(
+  '/warehouse-inventory-lots',
+  authenticate(),
+  warehouseInventoryLotRouts
+);
 
-router.use('/lot-adjustment-types', authenticate(), warehouseLotAdjustmentRoutes);
+router.use(
+  '/lot-adjustment-types',
+  authenticate(),
+  warehouseLotAdjustmentRoutes
+);
 
 router.use('/reports', authenticate(), reportRoutes);
 

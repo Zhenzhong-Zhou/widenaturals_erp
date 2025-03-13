@@ -11,14 +11,14 @@ const AppError = require('../utils/AppError');
  */
 const getValidDiscountById = async (discountId, client = null) => {
   if (!discountId) return null; // Return null if no discount is provided
-  
+
   const sql = `
     SELECT discount_type, discount_value
     FROM discounts
     WHERE id = $1
       AND now() BETWEEN valid_from AND COALESCE(valid_to, now())
   `;
-  
+
   try {
     const result = await query(sql, [discountId], client);
     return result.rows[0] || null; // Return the discount object or null if not found

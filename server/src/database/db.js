@@ -292,9 +292,7 @@ const paginateQuery = async ({
   req = null, // Pass request context for logging
 }) => {
   if (page < 1 || limit < 1) {
-    throw AppError.validationError(
-      'Page and limit must be positive integers.'
-    );
+    throw AppError.validationError('Page and limit must be positive integers.');
   }
 
   const offset = (page - 1) * limit;

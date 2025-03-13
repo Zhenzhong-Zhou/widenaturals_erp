@@ -1,6 +1,12 @@
-import { FC } from "react";
-import Box from "@mui/material/Box";
-import { CustomButton, ErrorDisplay, ErrorMessage, Loading, MetadataSection } from '@components/index';
+import { FC } from 'react';
+import Box from '@mui/material/Box';
+import {
+  CustomButton,
+  ErrorDisplay,
+  ErrorMessage,
+  Loading,
+  MetadataSection,
+} from '@components/index';
 import { formatDateTime } from '@utils/dateTimeUtils.ts';
 
 interface CustomerDetailsProps {
@@ -20,39 +26,46 @@ interface CustomerDetailsProps {
   error: string | null;
 }
 
-const CustomerDetailSection: FC<CustomerDetailsProps> = ({ customer, loading, error }) => {
-  
+const CustomerDetailSection: FC<CustomerDetailsProps> = ({
+  customer,
+  loading,
+  error,
+}) => {
   if (loading) return <Loading message={'Loading customer details...'} />;
   if (error)
-    return <ErrorDisplay><ErrorMessage message={error}/></ErrorDisplay>;
-  
+    return (
+      <ErrorDisplay>
+        <ErrorMessage message={error} />
+      </ErrorDisplay>
+    );
+
   return (
-    <Box sx={{ maxWidth: 600, mx: "auto", p: 3 }}>
+    <Box sx={{ maxWidth: 600, mx: 'auto', p: 3 }}>
       {/* Metadata Section */}
       <MetadataSection
         data={{
           Email: customer.email,
-          "Phone Number": customer.phone_number,
+          'Phone Number': customer.phone_number,
           Address: customer.address,
-          Note: customer.note || "N/A",
+          Note: customer.note || 'N/A',
           Status: customer.status_name,
-          "Status Date": formatDateTime(customer.status_date),
-          "Created By": customer.created_by,
-          "Created At": formatDateTime(customer.created_at),
-          "Updated By": customer.updated_by,
-          "Updated At": customer.updated_at
+          'Status Date': formatDateTime(customer.status_date),
+          'Created By': customer.created_by,
+          'Created At': formatDateTime(customer.created_at),
+          'Updated By': customer.updated_by,
+          'Updated At': customer.updated_at
             ? formatDateTime(customer.updated_at)
-            : "N/A",
+            : 'N/A',
         }}
         sx={{
-          backgroundColor: "rgba(0, 0, 0, 0.05)",
+          backgroundColor: 'rgba(0, 0, 0, 0.05)',
           padding: 2,
-          borderRadius: 1
+          borderRadius: 1,
         }}
       />
-      
+
       {/* Actions */}
-      <Box sx={{ mt: 3, textAlign: "center" }}>
+      <Box sx={{ mt: 3, textAlign: 'center' }}>
         <CustomButton variant="contained" color="primary">
           Edit Customer
         </CustomButton>

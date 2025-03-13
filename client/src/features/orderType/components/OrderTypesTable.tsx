@@ -1,4 +1,4 @@
-import { FC } from "react";
+import { FC } from 'react';
 import { CustomTable } from '@components/index.ts';
 import { OrderType } from '../state/orderTypeTypes.ts';
 import { capitalizeFirstLetter } from '@utils/textUtils.ts';
@@ -15,75 +15,75 @@ interface OrderTypesTableProps {
 }
 
 const OrderTypesTable: FC<OrderTypesTableProps> = ({
-                                                     data,
-                                                     page,
-                                                     rowsPerPage,
-                                                     totalRecords,
-                                                     totalPages,
-                                                     onPageChange,
-                                                     onRowsPerPageChange,
-                                                   }) => {
+  data,
+  page,
+  rowsPerPage,
+  totalRecords,
+  totalPages,
+  onPageChange,
+  onRowsPerPageChange,
+}) => {
   const columns = [
     {
-      id: "name",
-      label: "Order Type",
+      id: 'name',
+      label: 'Order Type',
       minWidth: 170,
       sortable: true,
     },
     {
-      id: "category",
-      label: "Category",
+      id: 'category',
+      label: 'Category',
       minWidth: 150,
       sortable: true,
       format: (value: string) => capitalizeFirstLetter(value),
     },
     {
-      id: "description",
-      label: "Description",
-      minWidth: 250
+      id: 'description',
+      label: 'Description',
+      minWidth: 250,
     },
     {
-      id: "status_name",
-      label: "Status",
+      id: 'status_name',
+      label: 'Status',
       minWidth: 100,
       sortable: true,
       format: (value: string) => capitalizeFirstLetter(value),
     },
     {
-      id: "status_date",
-      label: "Status Date",
+      id: 'status_date',
+      label: 'Status Date',
       minWidth: 100,
       sortable: true,
       format: (value: string) => formatDate(value),
     },
     {
-      id: "created_by",
-      label: "Created By",
+      id: 'created_by',
+      label: 'Created By',
       minWidth: 150,
       sortable: true,
     },
     {
-      id: "created_at",
-      label: "Created At",
+      id: 'created_at',
+      label: 'Created At',
       minWidth: 100,
       sortable: true,
       format: (value: string) => formatDate(value),
     },
     {
-      id: "updated_by",
-      label: "Updated By",
+      id: 'updated_by',
+      label: 'Updated By',
       minWidth: 150,
       sortable: true,
     },
     {
-      id: "updated_at",
-      label: "Updated At",
+      id: 'updated_at',
+      label: 'Updated At',
       minWidth: 100,
       sortable: true,
       format: (value: string) => formatDate(value),
     },
   ];
-  
+
   return (
     <CustomTable
       columns={columns}

@@ -1,5 +1,8 @@
 const express = require('express');
-const { createOrderController, getOrderDetailsController } = require('../controllers/order-controller');
+const {
+  createOrderController,
+  getOrderDetailsController,
+} = require('../controllers/order-controller');
 
 const router = express.Router();
 
@@ -9,7 +12,6 @@ const router = express.Router();
  * @access  Private
  */
 router.post('/:orderTypeId', createOrderController);
-
 
 /**
  * @route GET /api/orders/:id

@@ -1,5 +1,8 @@
 import { FC } from 'react';
-import { InventoryActivityLog, InventoryActivityLogParams } from '../state/reportTypes.ts';
+import {
+  InventoryActivityLog,
+  InventoryActivityLogParams,
+} from '../state/reportTypes.ts';
 import { Column } from '@components/common/CustomTable';
 import { CustomTable } from '@components/index.ts';
 import { formatDate, formatDateTime } from '@utils/dateTimeUtils.ts';
@@ -20,76 +23,80 @@ interface InventoryLogTableProps {
  * Component to display inventory activity logs with sorting and pagination.
  */
 const InventoryActivityLogTable: FC<InventoryLogTableProps> = ({
-                                                                 data,
-                                                                 pagination,
-                                                                 filters,
-                                                                 setFilters,
-                                                                 fetchInventoryActivityLogs,
-                                                       }) => {
+  data,
+  pagination,
+  filters,
+  setFilters,
+  fetchInventoryActivityLogs,
+}) => {
   const columns: Column<InventoryActivityLog>[] = [
     {
       id: 'warehouse_name',
       label: 'Warehouse',
       minWidth: 150,
-      sortable: true
+      sortable: true,
     },
     {
       id: 'item_name',
       label: 'Item Name',
       minWidth: 150,
-      sortable: true
+      sortable: true,
     },
     {
       id: 'lot_number',
       label: 'Lot Number',
       minWidth: 120,
-      sortable: true
+      sortable: true,
     },
     {
-      id: "expiry_date",
-      label: "Expiry Date",
+      id: 'expiry_date',
+      label: 'Expiry Date',
       minWidth: 120,
       sortable: true,
       format: (value: string | number | Record<string, any> | null) =>
-        typeof value === "string" || typeof value === "number" || value instanceof Date
+        typeof value === 'string' ||
+        typeof value === 'number' ||
+        value instanceof Date
           ? formatDate(value)
-          : "N/A",
+          : 'N/A',
     },
     {
-      id: "manufacture_date",
-      label: "Manufacture Date",
+      id: 'manufacture_date',
+      label: 'Manufacture Date',
       minWidth: 120,
       sortable: true,
       format: (value: string | number | Record<string, any> | null) =>
-        typeof value === "string" || typeof value === "number" || value instanceof Date
+        typeof value === 'string' ||
+        typeof value === 'number' ||
+        value instanceof Date
           ? formatDate(value)
-          : "N/A",
+          : 'N/A',
     },
     {
-      id: "action_type",
-      label: "Action Type",
+      id: 'action_type',
+      label: 'Action Type',
       minWidth: 120,
       sortable: true,
       format: (value: string | number | Record<string, any> | null) =>
-        typeof value === "string" ? capitalizeFirstLetter(value) : "N/A",
+        typeof value === 'string' ? capitalizeFirstLetter(value) : 'N/A',
     },
     {
       id: 'quantity_change',
       label: 'Quantity Change',
       minWidth: 100,
-      sortable: true
+      sortable: true,
     },
     {
       id: 'previous_quantity',
       label: 'Previous Qty',
       minWidth: 100,
-      sortable: true
+      sortable: true,
     },
     {
       id: 'new_quantity',
       label: 'New Qty',
       minWidth: 100,
-      sortable: true
+      sortable: true,
     },
     {
       id: 'status',
@@ -97,7 +104,7 @@ const InventoryActivityLogTable: FC<InventoryLogTableProps> = ({
       minWidth: 100,
       sortable: true,
       format: (value: string | number | Record<string, any> | null) =>
-        typeof value === "string" ? capitalizeFirstLetter(value) : "N/A",
+        typeof value === 'string' ? capitalizeFirstLetter(value) : 'N/A',
     },
     {
       id: 'adjustment_type',
@@ -105,13 +112,13 @@ const InventoryActivityLogTable: FC<InventoryLogTableProps> = ({
       minWidth: 120,
       sortable: true,
       format: (value: string | number | Record<string, any> | null) =>
-        typeof value === "string" ? capitalizeFirstLetter(value) : "N/A",
+        typeof value === 'string' ? capitalizeFirstLetter(value) : 'N/A',
     },
     {
       id: 'user_name',
       label: 'User',
       minWidth: 120,
-      sortable: true
+      sortable: true,
     },
     {
       id: 'local_timestamp',
@@ -119,36 +126,38 @@ const InventoryActivityLogTable: FC<InventoryLogTableProps> = ({
       minWidth: 150,
       sortable: true,
       format: (value: string | number | Record<string, any> | null) =>
-        typeof value === "string" || typeof value === "number" || value instanceof Date
+        typeof value === 'string' ||
+        typeof value === 'number' ||
+        value instanceof Date
           ? formatDateTime(value)
-          : "N/A",
+          : 'N/A',
     },
     {
-      id: "comments",
-      label: "Comments",
+      id: 'comments',
+      label: 'Comments',
       minWidth: 200,
       sortable: false,
       format: (value: string | number | Record<string, any> | null) => {
-        if (typeof value === "string" || typeof value === "number") {
+        if (typeof value === 'string' || typeof value === 'number') {
           return value;
         }
-        return "N/A";
+        return 'N/A';
       },
     },
     {
-      id: "metadata",
-      label: "Metadata",
+      id: 'metadata',
+      label: 'Metadata',
       minWidth: 200,
       sortable: false,
       format: (value: string | number | Record<string, any> | null) => {
-        if (typeof value === "object" && value !== null) {
+        if (typeof value === 'object' && value !== null) {
           return JSON.stringify(value);
         }
-        return "N/A";
+        return 'N/A';
       },
     },
   ];
-  
+
   return (
     <CustomTable
       columns={columns}

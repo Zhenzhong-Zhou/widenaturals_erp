@@ -16,7 +16,7 @@ const addOrderItems = async (orderId, items, createdBy, client) => {
   if (!Array.isArray(items) || items.length === 0) {
     throw AppError.validationError('Order items cannot be empty.');
   }
-  
+
   const columns = [
     'order_id',
     'product_id',
@@ -28,7 +28,7 @@ const addOrderItems = async (orderId, items, createdBy, client) => {
     'created_by',
     'updated_by',
   ];
-  
+
   // Ensure data is structured as an array of arrays for bulkInsert
   const rows = items.map((item) => [
     orderId, // Ensure order_id is correctly set
@@ -41,7 +41,7 @@ const addOrderItems = async (orderId, items, createdBy, client) => {
     createdBy, // Created by extracted from the user session
     null,
   ]);
-  
+
   return bulkInsert(
     'order_items',
     columns,

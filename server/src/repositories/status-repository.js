@@ -125,7 +125,7 @@ const getFilteredStatuses = async (
     return result.rows || [];
   } catch (error) {
     throw AppError.databaseError(
-      'Failed to fetch filtered statuses from the database',
+      'Failed to fetch filtered statuses from the database'
     );
   }
 };
@@ -152,7 +152,9 @@ const getStatusById = async (id) => {
     const result = await query(text, [id]);
     return result.rows[0] || null;
   } catch (error) {
-    throw AppError.databaseError('Failed to fetch the status from the database');
+    throw AppError.databaseError(
+      'Failed to fetch the status from the database'
+    );
   }
 };
 

@@ -48,7 +48,9 @@ const resetPassword = async (userId, currentPassword, newPassword) => {
       // Validate password reuse
       const isReused = await isPasswordReused(client, userId, newPassword);
       if (isReused) {
-        throw AppError.notFoundError('New password cannot be the same as a previously used password.');
+        throw AppError.notFoundError(
+          'New password cannot be the same as a previously used password.'
+        );
       }
 
       // Hash the new password

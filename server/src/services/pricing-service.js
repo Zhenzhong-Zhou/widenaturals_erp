@@ -13,11 +13,16 @@ const {
  */
 const fetchAllPricings = async ({ page = 1, limit = 10 }) => {
   if (!Number.isInteger(page) || page < 1) {
-    throw AppError.validationError('Invalid page number. Must be a positive integer.');
+    throw AppError.validationError(
+      'Invalid page number. Must be a positive integer.'
+    );
   }
 
   if (!Number.isInteger(limit) || limit < 1) {
-    throw AppError.validationError('Invalid limit. Must be a positive integer.', 400);
+    throw AppError.validationError(
+      'Invalid limit. Must be a positive integer.',
+      400
+    );
   }
 
   try {
@@ -68,7 +73,10 @@ const fetchPricingDetailsByPricingId = async (pricingId, page, limit) => {
   }
 
   if (page < 1 || limit < 1) {
-    throw AppError.validationError('Page and limit must be positive integers', 400);
+    throw AppError.validationError(
+      'Page and limit must be positive integers',
+      400
+    );
   }
 
   // Fetch pricing details from repository

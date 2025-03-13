@@ -1,6 +1,12 @@
 import { FC, useState } from 'react';
 import { useOrderTypes } from '../../../hooks';
-import { CustomButton, ErrorDisplay, ErrorMessage, Loading, Typography } from '@components/index.ts';
+import {
+  CustomButton,
+  ErrorDisplay,
+  ErrorMessage,
+  Loading,
+  Typography,
+} from '@components/index.ts';
 import { OrderTypesTable } from '../index.ts';
 import Box from '@mui/material/Box';
 
@@ -10,23 +16,29 @@ const OrderTypesPage: FC = () => {
   // const [sortBy, setSortBy] = useState<string>('created_at'); // Default valid field
   // const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('DESC'); // Ensure correct type
   const { orderTypes, pagination, isLoading, error, refresh } = useOrderTypes(
-    page, limit,
+    page,
+    limit
     // sortBy, sortOrder
   );
-  
+
   if (isLoading) return <Loading message="Loading Order Types..." />;
-  if (error) return <ErrorDisplay><ErrorMessage message={error} /></ErrorDisplay>;
-  
+  if (error)
+    return (
+      <ErrorDisplay>
+        <ErrorMessage message={error} />
+      </ErrorDisplay>
+    );
+
   return (
     <Box sx={{ padding: 3 }}>
       <Typography variant="h4" gutterBottom>
         Order Types
       </Typography>
-      
+
       <CustomButton variant="contained" onClick={refresh} sx={{ mb: 2 }}>
         Refresh Data
       </CustomButton>
-      
+
       {!isLoading && !error && (
         <>
           {orderTypes.length > 0 ? (

@@ -374,7 +374,6 @@ npm run build
 
 sudo systemctl restart nginx
 
-
 sudo -i -u postgres
 
 psql

@@ -180,7 +180,9 @@ const fetchWarehouseInventorySummary = async ({
     };
   } catch (error) {
     logError('Error in fetchWarehouseInventorySummary:', error);
-    throw AppError.serviceError('Failed to retrieve warehouse inventory summary.');
+    throw AppError.serviceError(
+      'Failed to retrieve warehouse inventory summary.'
+    );
   }
 };
 

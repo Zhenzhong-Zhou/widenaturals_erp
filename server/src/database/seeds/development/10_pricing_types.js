@@ -91,7 +91,8 @@ exports.seed = async function (knex) {
     {
       id: knex.raw('uuid_generate_v4()'),
       name: 'Sample Price',
-      description: 'Price for product samples distributed for marketing or testing purposes.',
+      description:
+        'Price for product samples distributed for marketing or testing purposes.',
       status_id: activeStatusId,
       status_date: knex.fn.now(),
       created_at: knex.fn.now(),

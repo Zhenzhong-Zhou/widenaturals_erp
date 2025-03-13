@@ -28,17 +28,17 @@ const PricingTable: FC<PricingTableProps> = ({
     {
       id: 'product_name',
       label: 'Product Name',
-      sortable: true
+      sortable: true,
     },
     {
       id: 'location',
       label: 'Location Name',
-      sortable: true
+      sortable: true,
     },
     {
       id: 'price_type',
       label: 'Price Type',
-      sortable: true
+      sortable: true,
     },
     {
       id: 'price',
@@ -110,7 +110,7 @@ const PricingTable: FC<PricingTableProps> = ({
       totalRecords={totalRecords}
       totalPages={totalPages}
       initialRowsPerPage={rowsPerPage}
-      rowsPerPageOptions = {[10, 25, 50, 75]}
+      rowsPerPageOptions={[10, 25, 50, 75]}
       onPageChange={onPageChange}
       onRowsPerPageChange={onRowsPerPageChange}
     />

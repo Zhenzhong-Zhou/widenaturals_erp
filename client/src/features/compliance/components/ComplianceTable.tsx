@@ -1,4 +1,4 @@
-import { FC } from "react";
+import { FC } from 'react';
 import { CustomTable } from '@components/index.ts';
 import { Compliance } from '../state/complianceTypes.ts';
 import { capitalizeFirstLetter, toUpperCase } from '@utils/textUtils.ts';
@@ -15,94 +15,94 @@ interface ComplianceTableProps {
 }
 
 const ComplianceTable: FC<ComplianceTableProps> = ({
-                                                     data,
-                                                     page,
-                                                     rowsPerPage,
-                                                     totalRecords,
-                                                     totalPages,
-                                                     onPageChange,
-                                                     onRowsPerPageChange,
-                                                   }) => {
+  data,
+  page,
+  rowsPerPage,
+  totalRecords,
+  totalPages,
+  onPageChange,
+  onRowsPerPageChange,
+}) => {
   const columns = [
     {
-      id: "product_name",
-      label: "Product Name",
+      id: 'product_name',
+      label: 'Product Name',
       minWidth: 170,
       sortable: true,
     },
     {
-      id: "type",
-      label: "Type",
+      id: 'type',
+      label: 'Type',
       minWidth: 150,
       sortable: true,
       format: (value: string) => toUpperCase(value),
     },
     {
-      id: "compliance_id",
-      label: "Compliance ID",
+      id: 'compliance_id',
+      label: 'Compliance ID',
       minWidth: 150,
     },
     {
-      id: "description",
-      label: "Description",
-      minWidth: 250
+      id: 'description',
+      label: 'Description',
+      minWidth: 250,
     },
     {
-      id: "issued_date",
-      label: "Issued Date",
+      id: 'issued_date',
+      label: 'Issued Date',
       minWidth: 100,
       sortable: true,
       format: (value: string) => formatDate(value),
     },
     {
-      id: "expiry_date",
-      label: "Expiry Date",
+      id: 'expiry_date',
+      label: 'Expiry Date',
       minWidth: 100,
       sortable: true,
       format: (value: string) => formatDate(value),
     },
     {
-      id: "status_name",
-      label: "Status",
+      id: 'status_name',
+      label: 'Status',
       minWidth: 100,
       sortable: true,
       format: (value: string) => capitalizeFirstLetter(value),
     },
     {
-      id: "status_date",
-      label: "Status Date",
+      id: 'status_date',
+      label: 'Status Date',
       minWidth: 100,
       sortable: true,
       format: (value: string) => formatDate(value),
     },
     {
-      id: "created_by",
-      label: "Created By",
+      id: 'created_by',
+      label: 'Created By',
       minWidth: 150,
       sortable: true,
     },
     {
-      id: "created_at",
-      label: "Created At",
+      id: 'created_at',
+      label: 'Created At',
       minWidth: 100,
       sortable: true,
       format: (value: string) => formatDate(value),
     },
     {
-      id: "updated_by",
-      label: "Updated By",
+      id: 'updated_by',
+      label: 'Updated By',
       minWidth: 150,
       sortable: true,
     },
     {
-      id: "updated_at",
-      label: "Updated At",
+      id: 'updated_at',
+      label: 'Updated At',
       minWidth: 100,
       sortable: true,
       format: (value: string) => formatDate(value),
     },
   ];
-  
+
   return (
     <CustomTable
       columns={columns}

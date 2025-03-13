@@ -165,7 +165,7 @@ const getAllUsers = async ({ page, limit, sortBy, sortOrder }) => {
     'INNER JOIN roles r ON u.role_id = r.id',
     'INNER JOIN status s ON u.status_id = s.id',
   ];
-  
+
   const whereClause = `
     s.name = 'active'
     AND r.name NOT ILIKE '%admin%'
@@ -249,7 +249,9 @@ const userExists = async (field, value, status = 'active') => {
     return result.rowCount > 0; // Return true if the user exists and matches the status
   } catch (error) {
     logError(`Error checking user existence by ${maskedField}:`, error);
-    throw AppError.databaseError(`Failed to check user existence by ${maskedField}`);
+    throw AppError.databaseError(
+      `Failed to check user existence by ${maskedField}`
+    );
   }
 };
 

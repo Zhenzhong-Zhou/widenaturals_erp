@@ -1,5 +1,9 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { OrderType, OrderTypePagination, OrderTypeResponse } from './orderTypeTypes.ts';
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import {
+  OrderType,
+  OrderTypePagination,
+  OrderTypeResponse,
+} from './orderTypeTypes.ts';
 import { fetchAllOrderTypesThunk } from './orderTypeThunks.ts';
 
 interface OrderTypesState {
@@ -17,7 +21,7 @@ const initialState: OrderTypesState = {
 };
 
 const orderTypesSlice = createSlice({
-  name: "orderTypes",
+  name: 'orderTypes',
   initialState,
   reducers: {},
   extraReducers: (builder) => {
@@ -26,14 +30,17 @@ const orderTypesSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchAllOrderTypesThunk.fulfilled, (state, action: PayloadAction<OrderTypeResponse>) => {
-        state.loading = false;
-        state.data = action.payload.data;
-        state.pagination = action.payload.pagination;
-      })
+      .addCase(
+        fetchAllOrderTypesThunk.fulfilled,
+        (state, action: PayloadAction<OrderTypeResponse>) => {
+          state.loading = false;
+          state.data = action.payload.data;
+          state.pagination = action.payload.pagination;
+        }
+      )
       .addCase(fetchAllOrderTypesThunk.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload || "Something went wrong";
+        state.error = action.payload || 'Something went wrong';
       });
   },
 });

@@ -1,9 +1,5 @@
-export type {
-  OrderType,
-} from './state/orderTypes.ts';
-export {
-  fetchOrderTypesDropDownThunk
-} from './state/orderThunks.ts'
+export type { OrderType } from './state/orderTypes.ts';
+export { fetchOrderTypesDropDownThunk } from './state/orderThunks.ts';
 export {
   selectOrderTypesDropdown,
   selectOrderTypesDropdownLoading,

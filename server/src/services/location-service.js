@@ -17,7 +17,9 @@ const fetchAllLocations = async ({ page, limit, sortBy, sortOrder }) => {
     page = Number(page);
     limit = Number(limit);
     if (page < 1 || limit < 1) {
-      throw AppError.validationError('Page and limit must be positive integers.');
+      throw AppError.validationError(
+        'Page and limit must be positive integers.'
+      );
     }
 
     // Fetch data from repository

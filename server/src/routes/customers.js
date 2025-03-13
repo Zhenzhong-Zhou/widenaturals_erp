@@ -1,5 +1,10 @@
 const express = require('express');
-const { createCustomerController, getCustomersController, getCustomersDropdownController, getCustomerByIdController } = require('../controllers/customer-controller');
+const {
+  createCustomerController,
+  getCustomersController,
+  getCustomersDropdownController,
+  getCustomerByIdController,
+} = require('../controllers/customer-controller');
 
 const router = express.Router();
 
@@ -11,8 +16,8 @@ router.post('/bulk/add-new-customers', createCustomerController);
 
 router.get('/', getCustomersController);
 
-router.get("/dropdown", getCustomersDropdownController);
+router.get('/dropdown', getCustomersDropdownController);
 
-router.get("/:id", getCustomerByIdController);
+router.get('/:id', getCustomerByIdController);
 
 module.exports = router;

@@ -50,7 +50,7 @@ export const handleInventoryActivityLogRedirect = (
           : inventoryId
             ? `/${basePath}/logs/inventory/${inventoryId}`
             : `/${basePath}`;
-  
+
   navigate(path);
 };
 
@@ -64,11 +64,13 @@ export const handleInventoryActivityLogRedirect = (
 export const handleInventoryHistoryRedirect = (
   navigate: NavigateFunction,
   basePath: string,
-  inventoryId?: string | null,
+  inventoryId?: string | null
 ) => {
   // Construct base path with inventoryId
-  const path = inventoryId ? `/${basePath}/histories/${inventoryId}` : `/${basePath}/histories`;
-  
+  const path = inventoryId
+    ? `/${basePath}/histories/${inventoryId}`
+    : `/${basePath}/histories`;
+
   // Navigate to the generated path
   navigate(path);
 };

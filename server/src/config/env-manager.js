@@ -9,12 +9,16 @@ const { loadEnv, validateEnv, loadSecret } = require('./env');
 const loadAndValidateEnv = () => {
   try {
     const env = loadEnv();
-    
+
     const environmentGroups = {
       general: [
         { envVar: 'NODE_ENV', required: true },
         { envVar: 'PORT', required: true },
-        { envVar: 'LOGS_DIR', required: true, defaultValue: '../../../dev_logs' },
+        {
+          envVar: 'LOGS_DIR',
+          required: true,
+          defaultValue: '../../../dev_logs',
+        },
         { envVar: 'LOG_LEVEL', required: true, defaultValue: 'debug' },
         { envVar: 'POOL_MONITOR_INTERVAL', required: false },
         { envVar: 'SLOW_QUERY_THRESHOLD', required: false },
@@ -76,7 +80,7 @@ const loadAndValidateEnv = () => {
         { envVar: 'RATE_LIMIT_MAX', required: false },
       ],
     };
-    
+
     validateEnv(environmentGroups);
     return env;
   } catch (error) {

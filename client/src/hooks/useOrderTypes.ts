@@ -4,7 +4,8 @@ import {
   fetchAllOrderTypesThunk,
   selectOrderTypes,
   selectOrderTypesError,
-  selectOrderTypesLoading, selectOrderTypesPagination,
+  selectOrderTypesLoading,
+  selectOrderTypesPagination,
 } from '../features/orderType';
 
 const useOrderTypes = (
@@ -14,26 +15,33 @@ const useOrderTypes = (
   sortOrder: string = 'ASC'
 ) => {
   const dispatch = useAppDispatch();
-  
+
   const orderTypes = useAppSelector(selectOrderTypes);
   const pagination = useAppSelector(selectOrderTypesPagination);
   const isLoading = useAppSelector(selectOrderTypesLoading);
   const error = useAppSelector(selectOrderTypesError);
-  
+
   // Fetch order types on mount and when manually refreshed
   const fetchData = useCallback(() => {
-    dispatch(fetchAllOrderTypesThunk({ page, limit, sortBy,  sortOrder: sortOrder as 'ASC' | 'DESC'  }));
+    dispatch(
+      fetchAllOrderTypesThunk({
+        page,
+        limit,
+        sortBy,
+        sortOrder: sortOrder as 'ASC' | 'DESC',
+      })
+    );
   }, [dispatch, page, limit, sortBy, sortOrder]);
-  
+
   useEffect(() => {
     fetchData();
   }, [fetchData]);
-  
+
   // Manual refresh function
   const refresh = useCallback(() => {
     fetchData();
   }, [fetchData]);
-  
+
   return useMemo(
     () => ({
       orderTypes,

@@ -13,7 +13,8 @@ import { GeneralProductInfo } from '../state/productTypes.ts';
 import { Box } from '@mui/material';
 
 const ProductsPage = () => {
-  const { products, pagination, loading, error, fetchProductsByPage } = useProducts<GeneralProductInfo>();
+  const { products, pagination, loading, error, fetchProductsByPage } =
+    useProducts<GeneralProductInfo>();
   const { page, totalPages, totalRecords, limit } = pagination;
 
   const handlePageChange = async (newPage: number) => {

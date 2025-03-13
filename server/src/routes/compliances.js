@@ -1,5 +1,7 @@
 const express = require('express');
-const { fetchAllCompliancesController } = require('../controllers/compliance-controller');
+const {
+  fetchAllCompliancesController,
+} = require('../controllers/compliance-controller');
 
 const router = express.Router();
 

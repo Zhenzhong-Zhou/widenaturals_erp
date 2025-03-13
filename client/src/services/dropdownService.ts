@@ -48,9 +48,7 @@ const fetchWarehousesForDropdown = async (): Promise<
 /**
  * Fetch active order types for dropdown
  */
-const fetchOrderTypesForDropdown = async (): Promise<
-  OrderType[]
-> => {
+const fetchOrderTypesForDropdown = async (): Promise<OrderType[]> => {
   try {
     const response = await axiosInstance.get<OrderType[]>(
       API_ENDPOINTS.ORDER_TYPES_DROPDOWN

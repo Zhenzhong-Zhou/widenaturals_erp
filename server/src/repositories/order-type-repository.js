@@ -12,7 +12,7 @@ const { logError } = require('../utils/logger-helper'); // Import the reusable q
 const getOrderTypeByIdOrName = async ({ id, name }) => {
   let sql;
   let values;
-  
+
   if (id) {
     sql = `SELECT * FROM order_types WHERE id = $1 LIMIT 1;`;
     values = [id];
@@ -20,9 +20,11 @@ const getOrderTypeByIdOrName = async ({ id, name }) => {
     sql = `SELECT * FROM order_types WHERE name = $1 LIMIT 1;`;
     values = [name];
   } else {
-    throw AppError.databaseError('Either "id" or "name" must be provided to fetch an order type.');
+    throw AppError.databaseError(
+      'Either "id" or "name" must be provided to fetch an order type.'
+    );
   }
-  
+
   const result = await query(sql, values);
   return result.rows[0] || null;
 };
@@ -35,7 +37,7 @@ const getAllOrderTypes = async (
   page = 1,
   limit = 10,
   sortBy = 'name',
-  sortOrder = 'ASC',
+  sortOrder = 'ASC'
 ) => {
   const tableName = 'order_types ot';
   const joins = [
@@ -44,7 +46,7 @@ const getAllOrderTypes = async (
     'LEFT JOIN users u2 ON ot.updated_by = u2.id',
   ];
   const whereClause = '1=1';
-  
+
   const allowedSortFields = [
     'name',
     'category',
@@ -52,10 +54,12 @@ const getAllOrderTypes = async (
     'created_at',
     'updated_at',
   ];
-  
+
   // Validate the sortBy field
-  const validatedSortBy = allowedSortFields.includes(sortBy) ? `ot.${sortBy}` : 'ot.name';
-  
+  const validatedSortBy = allowedSortFields.includes(sortBy)
+    ? `ot.${sortBy}`
+    : 'ot.name';
+
   const baseQuery = `
       SELECT
         ot.id,
@@ -71,7 +75,7 @@ const getAllOrderTypes = async (
       FROM ${tableName}
       ${joins.join(' ')}
     `;
-  
+
   try {
     return await retry(
       () =>
@@ -94,23 +98,25 @@ const getAllOrderTypes = async (
   }
 };
 
-const getOrderTypes = async (type = "lookup") => {
+const getOrderTypes = async (type = 'lookup') => {
   try {
     const columns =
-      type === "dropdown" ? "ot.id, ot.name" : "ot.id, ot.name, ot.description, ot.category";
-    
+      type === 'dropdown'
+        ? 'ot.id, ot.name'
+        : 'ot.id, ot.name, ot.description, ot.category';
+
     const queryText = `
       SELECT ${columns}
       FROM order_types ot
       JOIN status s ON ot.status_id = s.id
       WHERE s.name = 'active';
     `;
-    
+
     const { rows } = await query(queryText);
-    
+
     return rows;
   } catch (error) {
-    logError("Error fetching order types:", error);
+    logError('Error fetching order types:', error);
     throw AppError.databaseError('Failed to fetch order types');
   }
 };
@@ -118,5 +124,5 @@ const getOrderTypes = async (type = "lookup") => {
 module.exports = {
   getOrderTypeByIdOrName,
   getAllOrderTypes,
-  getOrderTypes
+  getOrderTypes,
 };

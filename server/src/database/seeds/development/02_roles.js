@@ -12,7 +12,9 @@ exports.seed = async function (knex) {
   );
 
   if (!activeStatusId) {
-    throw AppError.notFoundError("The 'active' status is not found in the 'status' table.");
+    throw AppError.notFoundError(
+      "The 'active' status is not found in the 'status' table."
+    );
   }
 
   // Define roles

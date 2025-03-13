@@ -1,4 +1,7 @@
-const { fetchAllOrderTypes, fetchOrderTypesForDropdown } = require('../services/order-type-service');
+const {
+  fetchAllOrderTypes,
+  fetchOrderTypesForDropdown,
+} = require('../services/order-type-service');
 const { logError } = require('../utils/logger-helper');
 const wrapAsync = require('../utils/wrap-async');
 
@@ -10,14 +13,24 @@ const wrapAsync = require('../utils/wrap-async');
  */
 const getOrderTypesController = wrapAsync(async (req, res, next) => {
   try {
-    const { page = 1, limit = 10, sortBy = 'name', sortOrder = 'ASC' } = req.query;
-    
+    const {
+      page = 1,
+      limit = 10,
+      sortBy = 'name',
+      sortOrder = 'ASC',
+    } = req.query;
+
     // Convert query params to numbers where needed
     const pageNumber = Number(page);
     const limitNumber = Number(limit);
-    
-    const { message, data, pagination } = await fetchAllOrderTypes(pageNumber, limitNumber, sortBy, sortOrder);
-    
+
+    const { message, data, pagination } = await fetchAllOrderTypes(
+      pageNumber,
+      limitNumber,
+      sortBy,
+      sortOrder
+    );
+
     return res.status(200).json({
       success: true,
       message,
@@ -30,7 +43,7 @@ const getOrderTypesController = wrapAsync(async (req, res, next) => {
   }
 });
 
-const getOrderTypesDropdownController = wrapAsync( async (req, res, next) => {
+const getOrderTypesDropdownController = wrapAsync(async (req, res, next) => {
   try {
     const { data } = await fetchOrderTypesForDropdown();
     res.status(200).json(data);

@@ -57,7 +57,9 @@ const decryptFile = async (
   try {
     await fs.access(ivFilePath);
   } catch (err) {
-    throw AppError.notFoundError(`Initialization Vector (IV) file not found: ${ivFilePath}`);
+    throw AppError.notFoundError(
+      `Initialization Vector (IV) file not found: ${ivFilePath}`
+    );
   }
 
   // Load IV asynchronously

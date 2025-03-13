@@ -89,7 +89,9 @@ const fetchAllInventories = async ({ page, limit, sortBy, sortOrder }) => {
 const createInventoryRecords = async (inventoryData, userId) => {
   try {
     if (!Array.isArray(inventoryData) || inventoryData.length === 0) {
-      throw AppError.validationError('Invalid inventory data. Expected a non-empty array.');
+      throw AppError.validationError(
+        'Invalid inventory data. Expected a non-empty array.'
+      );
     }
 
     return await withTransaction(async (client) => {
@@ -138,13 +140,9 @@ const createInventoryRecords = async (inventoryData, userId) => {
 
         if (type === 'product') {
           if (!product_id)
-            throw AppError.validationError(
-              'Product must have a product_id.'
-            );
+            throw AppError.validationError('Product must have a product_id.');
           if (!expiry_date)
-            throw AppError.validationError(
-              'Product must have an expiry_date.'
-            );
+            throw AppError.validationError('Product must have an expiry_date.');
           if (!manufacture_date)
             throw AppError.validationError(
               'Product must have a manufacture_date.'
@@ -320,8 +318,9 @@ const createInventoryRecords = async (inventoryData, userId) => {
           warehouseLots
         );
       }
-      const { id: warehouse_inventory_lot_id } = warehouseLotsInventoryRecords[0];
-      
+      const { id: warehouse_inventory_lot_id } =
+        warehouseLotsInventoryRecords[0];
+
       const insert_action_type_id = await getActionTypeId(
         client,
         'manual_stock_insert'

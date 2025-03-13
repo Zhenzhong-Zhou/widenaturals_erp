@@ -16,7 +16,7 @@ const createOrder = async (orderData) => {
     created_by,
     updated_by,
   } = orderData;
-  
+
   const sql = `
     INSERT INTO orders (
       order_type_id,
@@ -30,7 +30,7 @@ const createOrder = async (orderData) => {
     VALUES ($1, $2, $3, $4, $5, $6, $7)
     RETURNING id;
   `;
-  
+
   const values = [
     order_type_id,
     order_date,
@@ -40,7 +40,7 @@ const createOrder = async (orderData) => {
     created_by,
     updated_by,
   ];
-  
+
   try {
     const result = await query(sql, values);
     return result.rows[0]; // Returning the created order

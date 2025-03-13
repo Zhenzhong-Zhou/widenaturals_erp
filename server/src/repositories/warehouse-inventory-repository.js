@@ -165,8 +165,8 @@ const getWarehouseInventoryDetailsByWarehouseId = async ({
     'JOIN inventory i ON wi.inventory_id = i.id',
     'LEFT JOIN products p ON i.product_id = p.id',
     'LEFT JOIN warehouse_inventory_lots wil ON wi.inventory_id = wil.inventory_id ' +
-    'AND wi.warehouse_id = wil.warehouse_id ' +
-    'AND (wi.warehouse_id = wil.warehouse_id OR wil.warehouse_id IS NULL)\n',
+      'AND wi.warehouse_id = wil.warehouse_id ' +
+      'AND (wi.warehouse_id = wil.warehouse_id OR wil.warehouse_id IS NULL)\n',
     'LEFT JOIN warehouse_lot_status ws ON wil.status_id = ws.id',
     'LEFT JOIN users u1 ON wi.created_by = u1.id',
     'LEFT JOIN users u2 ON wi.updated_by = u2.id',
@@ -233,7 +233,9 @@ const getWarehouseInventoryDetailsByWarehouseId = async ({
       `Error fetching warehouse inventory details (page: ${page}, limit: ${limit}):`,
       error
     );
-    throw AppError.databaseError('Failed to fetch warehouse inventory details.');
+    throw AppError.databaseError(
+      'Failed to fetch warehouse inventory details.'
+    );
   }
 };
 
@@ -290,7 +292,9 @@ const checkWarehouseInventoryBulk = async (
  */
 const insertWarehouseInventoryRecords = async (client, inventoryData) => {
   if (!Array.isArray(inventoryData) || inventoryData.length === 0) {
-    throw AppError.validationError('Invalid inventory data. Expected a non-empty array.');
+    throw AppError.validationError(
+      'Invalid inventory data. Expected a non-empty array.'
+    );
   }
 
   try {
