@@ -34,6 +34,7 @@ import inventoryActivityLogsReducer from '../features/report/state/inventoryActi
 import inventoryHistoryReducer from '../features/report/state/inventoryHistorySlice.ts';
 import orderTypesReducer from '../features/orderType/state/orderTypeSlice.ts';
 import orderTypesDropDownReducer from '../features/order/state/orderTypeDropdownSlice.ts';
+import customersCreateReducer from '../features/customer/state/customerCreateSlice.ts';
 import customersReducer from '../features/customer/state/customerSlice.ts';
 
 // Combine reducers
@@ -72,6 +73,7 @@ const appReducer = combineReducers({
   inventoryHistory: inventoryHistoryReducer,
   orderTypes: orderTypesReducer,
   orderTypesDropdown: orderTypesDropDownReducer,
+  customersCreate: customersCreateReducer,
   customers: customersReducer,
 });
 

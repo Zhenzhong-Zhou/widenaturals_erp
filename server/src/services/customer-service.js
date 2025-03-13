@@ -52,12 +52,13 @@ const createCustomers = async (customers, createdBy) => {
  */
 const fetchCustomersService = async ({ page = 1, limit = 10, sortBy = 'created_at', sortOrder = 'DESC' }) => {
   try {
-    const result = await getAllCustomers(page, limit, sortBy, sortOrder);
+    const { data, pagination } = await getAllCustomers(page, limit, sortBy, sortOrder);
     
     return {
       success: true,
       message: "Customers retrieved successfully.",
-      data: result,
+      data,
+      pagination,
     };
   } catch (error) {
     logError("Service Error: Failed to fetch customers", error);

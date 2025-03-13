@@ -29,7 +29,7 @@ const useOrderTypes = (
     fetchData();
   }, [fetchData]);
   
-  // ✅ Manual refresh function
+  // Manual refresh function
   const refresh = useCallback(() => {
     fetchData();
   }, [fetchData]);

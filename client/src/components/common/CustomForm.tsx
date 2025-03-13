@@ -124,7 +124,7 @@ const CustomForm: FC<FormProps> = ({
                 <CustomPhoneInput
                   value={value}
                   onChange={onChange}
-                  country={field.country || "us"} // Support country selection
+                  country={field.country || "ca"} // Support country selection
                 />
               )}
             />

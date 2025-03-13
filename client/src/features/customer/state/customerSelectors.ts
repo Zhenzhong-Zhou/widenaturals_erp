@@ -10,14 +10,17 @@ export const selectCustomers = createSelector(
   (customerState) => customerState.customers
 );
 
-// Select loading state
-export const selectCustomersLoading = createSelector(
+export const selectCustomerPagination = createSelector(
+  [selectCustomerState],
+  (customerState) => customerState.pagination
+);
+
+export const selectCustomerLoading = createSelector(
   [selectCustomerState],
   (customerState) => customerState.loading
 );
 
-// Select error state
-export const selectCustomersError = createSelector(
+export const selectCustomerError = createSelector(
   [selectCustomerState],
   (customerState) => customerState.error
 );

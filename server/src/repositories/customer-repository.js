@@ -112,8 +112,7 @@ const getAllCustomers = async (
   const baseQuery = `
       SELECT
         c.id,
-        c.firstname,
-        c.lastname,
+        COALESCE(c.firstname || ' ' || c.lastname, 'Unknown') AS customer_name,
         c.email,
         c.phone_number,
         c.status_id,

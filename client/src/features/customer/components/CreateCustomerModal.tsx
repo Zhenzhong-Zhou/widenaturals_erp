@@ -1,14 +1,14 @@
 import { FC, useState } from 'react';
-import { Box, Button } from '@mui/material';
-import CustomModal from '@components/common/CustomModal';
-import CustomForm, { FieldConfig } from '@components/common/CustomForm';
+import Box from '@mui/material/Box';
+import { FieldConfig } from '@components/common/CustomForm.tsx';
+import { CustomButton, CustomForm, CustomModal } from '@components/index.ts';
 import { useCustomers } from '../../../hooks';
 import { useForm } from 'react-hook-form';
 import { BulkCustomerRequest, CustomerRequest } from '../state/customerTypes.ts';
 
 const CreateCustomerModal: FC = () => {
   const [open, setOpen] = useState(false);
-  const { createCustomer, loading } = useCustomers();
+  const { createCustomer, loading, refresh } = useCustomers();
   const { control, handleSubmit, reset } = useForm<CustomerRequest>();
   
   const handleFormSubmit = () =>
@@ -20,6 +20,7 @@ const CreateCustomerModal: FC = () => {
       await createCustomer(customersData);
       reset();
       setOpen(false);
+      refresh();
     })();
   
   const fields: FieldConfig[] = [
@@ -34,9 +35,9 @@ const CreateCustomerModal: FC = () => {
   return (
     <Box>
       {/* Trigger Button */}
-      <Button variant="contained" onClick={() => setOpen(true)}>
+      <CustomButton variant="contained" onClick={() => setOpen(true)}>
         Create Customer
-      </Button>
+      </CustomButton>
       
       {/* Modal with Form */}
       <CustomModal open={open} onClose={() => setOpen(false)} title="Create Customer">

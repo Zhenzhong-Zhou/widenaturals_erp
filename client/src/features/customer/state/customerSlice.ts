@@ -1,15 +1,17 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { createCustomerThunk, createBulkCustomersThunk } from "./customerThunks";
-import { BulkCustomerResponse, CustomerResponse } from "./customerTypes";
+import { fetchCustomersThunk } from "./customerThunks";
+import { Customer, CustomerListResponse, CustomerPagination } from './customerTypes';
 
 interface CustomerState {
-  customers: CustomerResponse[]; // Stores created customers
+  customers: Customer[];
+  pagination: CustomerPagination | null;
   loading: boolean;
   error: string | null;
 }
 
 const initialState: CustomerState = {
   customers: [],
+  pagination: null,
   loading: false,
   error: null,
 };
@@ -20,32 +22,18 @@ const customerSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
-      // Single customer creation
-      .addCase(createCustomerThunk.pending, (state) => {
+      .addCase(fetchCustomersThunk.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(createCustomerThunk.fulfilled, (state, action: PayloadAction<CustomerResponse>) => {
+      .addCase(fetchCustomersThunk.fulfilled, (state, action: PayloadAction<CustomerListResponse>) => {
         state.loading = false;
-        state.customers.push(action.payload); // Add newly created customer
+        state.customers = action.payload.data;
+        state.pagination = action.payload.pagination;
       })
-      .addCase(createCustomerThunk.rejected, (state, action) => {
+      .addCase(fetchCustomersThunk.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload || "Failed to create customer.";
-      })
-      
-      // Bulk customer creation
-      .addCase(createBulkCustomersThunk.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(createBulkCustomersThunk.fulfilled, (state, action: PayloadAction<BulkCustomerResponse>) => {
-        state.loading = false;
-        state.customers = [...state.customers, ...action.payload.customers]; // Add bulk-created customers
-      })
-      .addCase(createBulkCustomersThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload || "Failed to create bulk customers.";
+        state.error = action.payload || "An error occurred.";
       });
   },
 });

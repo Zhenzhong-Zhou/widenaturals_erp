@@ -40,4 +40,6 @@ export const API_ENDPOINTS = {
   ORDER_TYPES_DROPDOWN: '/order-types/dropdown',
   ADD_NEW_CUSTOMER: '/customers/add-new-customer',
   ADD_NEW_CUSTOMERS_BULK: '/customers/bulk/add-new-customers',
+  ALL_CUSTOMERS: '/customers',
+  CUSTOMERS_DROPDOWN: '/customers/dropdown',
 };
