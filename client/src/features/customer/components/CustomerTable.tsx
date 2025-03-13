@@ -5,9 +5,10 @@ import { CustomButton, CustomTable } from '@components/index.ts';
 import { Customer } from "../state/customerTypes";
 import { capitalizeFirstLetter, formatPhoneNumber } from '@utils/textUtils.ts';
 import { formatDate } from '@utils/dateTimeUtils.ts';
+import { Link } from 'react-router-dom';
 
 const CustomerTable: FC = () => {
-  const { allCustomers, pagination, loading, error, fetchCustomers, refresh } = useCustomers();
+  const { allCustomers, pagination, loading, error, fetchCustomers, refreshCustomers } = useCustomers();
   
   // Table Pagination State
   const [page, setPage] = useState(0);
@@ -31,7 +32,15 @@ const CustomerTable: FC = () => {
     {
       id: "customer_name",
       label: "Customer Name",
-      sortable: true
+      sortable: true,
+      renderCell: (row: Customer) => (
+        <Link
+          to={`/customers/customer/${row.id}`} // Navigate to customer detail page
+          style={{ textDecoration: "none", color: "#1976D2", fontWeight: "bold" }}
+        >
+          {row.customer_name}
+        </Link>
+      ),
     },
     {
       id: "email",
@@ -80,7 +89,7 @@ const CustomerTable: FC = () => {
         Customer List
       </Typography>
       
-      <CustomButton variant="contained" onClick={refresh} sx={{ mb: 2 }}>
+      <CustomButton variant="contained" onClick={refreshCustomers} sx={{ mb: 2 }}>
         Refresh Data
       </CustomButton>
       

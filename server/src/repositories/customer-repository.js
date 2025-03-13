@@ -212,9 +212,53 @@ const getCustomersForDropdown = async (search = "", limit = 100) => {
   }
 };
 
+/**
+ * Fetch customer details by ID from the database.
+ * @param {string} customerId - The UUID of the customer.
+ * @returns {Promise<Object>} - Returns the customer details if found.
+ * @throws {AppError} - Throws an error if the customer is not found or if a database error occurs.
+ */
+const getCustomerById = async (customerId) => {
+  try {
+    const queryText = `
+      SELECT
+        c.id,
+        COALESCE(c.firstname || ' ' || c.lastname, 'Unknown') AS customer_name,
+        c.email,
+        c.phone_number,
+        c.address,
+        c.note,
+        c.status_id,
+        s.name AS status_name,
+        c.status_date,
+        c.created_at,
+        c.updated_at,
+        COALESCE(u1.firstname || ' ' || u1.lastname, 'Unknown') AS created_by,
+        COALESCE(u2.firstname || ' ' || u2.lastname, 'Unknown') AS updated_by
+      FROM customers c
+      INNER JOIN status s ON c.status_id = s.id
+      LEFT JOIN users u1 ON c.created_by = u1.id
+      LEFT JOIN users u2 ON c.updated_by = u2.id
+      WHERE c.id = $1
+    `;
+    
+    const { rows } = await retry(() => query(queryText, [customerId]));
+    
+    if (rows.length === 0) {
+      throw AppError.notFoundError("Customer not found", 404);
+    }
+    
+    return rows[0];
+  } catch (error) {
+    logError("Error fetching customer by ID:", error);
+    throw AppError.databaseError("Failed to fetch customer details.");
+  }
+};
+
 module.exports = {
   checkCustomerExists,
   bulkCreateCustomers,
   getAllCustomers,
   getCustomersForDropdown,
+  getCustomerById,
 };

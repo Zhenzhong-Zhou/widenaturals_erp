@@ -2,7 +2,8 @@ import { createAsyncThunk } from '@reduxjs/toolkit';
 import { customerService } from '../../../services';
 import {
   BulkCustomerRequest,
-  BulkCustomerResponse,
+  BulkCustomerResponse, CustomerDetails,
+  CustomerDetailsResponse,
   CustomerListResponse,
   CustomerQueryParams,
 } from './customerTypes.ts';
@@ -53,6 +54,23 @@ export const fetchCustomersThunk = createAsyncThunk<
     } catch (error) {
       console.error("Error fetching customers:", error);
       return rejectWithValue("Failed to fetch customers.");
+    }
+  }
+);
+
+export const fetchCustomerByIdThunk = createAsyncThunk<
+  CustomerDetails, // Return only CustomerDetails
+  string, // Argument type (customer ID)
+  { rejectValue: string }
+>(
+  "customer/fetchById",
+  async (customerId, { rejectWithValue }) => {
+    try {
+      const response: CustomerDetailsResponse = await customerService.fetchCustomerDetailsById(customerId);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching customer details:", error);
+      return rejectWithValue("Failed to fetch customer details.");
     }
   }
 );

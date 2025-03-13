@@ -1,7 +1,7 @@
 const AppError = require('../utils/AppError');
 const { getStatusIdByName } = require('../repositories/status-repository');
 const { validateCustomer } = require('../validators/customer-validator');
-const { bulkCreateCustomers, getAllCustomers, getCustomersForDropdown } = require('../repositories/customer-repository');
+const { bulkCreateCustomers, getAllCustomers, getCustomersForDropdown, getCustomerById } = require('../repositories/customer-repository');
 const { logError } = require('../utils/logger-helper');
 
 /**
@@ -84,8 +84,19 @@ const fetchCustomersDropdown = async (search = "", limit = 100) => {
   }
 };
 
+/**
+ * Fetch customer details service function.
+ * @param {string} customerId - Customer ID to retrieve details.
+ * @returns {Promise<Object>} - Returns customer details.
+ */
+const fetchCustomerDetails = async (customerId) => {
+  return await getCustomerById(customerId);
+};
+
+
 module.exports = {
   createCustomers,
   fetchCustomersService,
   fetchCustomersDropdown,
+  fetchCustomerDetails,
 };

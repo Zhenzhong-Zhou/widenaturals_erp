@@ -4,7 +4,9 @@ import {
   BulkCustomerRequest,
   createBulkCustomersThunk,
   createCustomerThunk,
-  CustomerQueryParams, fetchCustomersThunk,
+  CustomerQueryParams,
+  fetchCustomersThunk,
+  fetchCustomerByIdThunk,
   selectCustomerError,
   selectCustomerLoading,
   selectCustomerPagination,
@@ -12,6 +14,9 @@ import {
   selectCustomersCreate,
   selectCustomersCreateError,
   selectCustomersCreateLoading,
+  selectCustomerDetail,
+  selectCustomerDetailLoading,
+  selectCustomerDetailError,
 } from '../features/customer';
 
 /**
@@ -30,11 +35,22 @@ export const useCustomers = () => {
   const fetchLoading = useAppSelector(selectCustomerLoading);
   const fetchError = useAppSelector(selectCustomerError);
   
+  // Customer detail selectors
+  const customerDetail = useAppSelector(selectCustomerDetail);
+  const customerDetailLoading = useAppSelector(selectCustomerDetailLoading);
+  const customerDetailError = useAppSelector(selectCustomerDetailError);
+  
   // Fetch customers with optional query parameters
   const fetchCustomers = useCallback(
     (params: CustomerQueryParams = { page: 1, limit: 10, sortBy: "created_at", sortOrder: "DESC" }) => {
       dispatch(fetchCustomersThunk(params));
     },
+    [dispatch]
+  );
+  
+  // Fetch a specific customer by ID
+  const fetchCustomerDetail = useCallback(
+    (customerId: string) => dispatch(fetchCustomerByIdThunk(customerId)),
     [dispatch]
   );
   
@@ -55,10 +71,18 @@ export const useCustomers = () => {
     fetchCustomers();
   }, [fetchCustomers]);
   
-  // Manual fetch function for user-triggered actions (e.g., button click)
-  const refresh = useCallback(() => {
+  // Manual refresh function for user-triggered actions (e.g., button click)
+  const refreshCustomers = useCallback(() => {
     fetchCustomers();
   }, [fetchCustomers]);
+  
+  // Manual refresh function for customer detail
+  const refreshCustomerDetail = useCallback(
+    (customerId: string) => {
+      fetchCustomerDetail(customerId);
+    },
+    [fetchCustomerDetail]
+  );
   
   return {
     customers,
@@ -71,7 +95,12 @@ export const useCustomers = () => {
     fetchLoading,
     fetchError,
     fetchCustomers,
-    refresh,
+    refreshCustomers,
+    customerDetail,
+    customerDetailLoading,
+    customerDetailError,
+    fetchCustomerDetail,
+    refreshCustomerDetail,
   };
 };
 

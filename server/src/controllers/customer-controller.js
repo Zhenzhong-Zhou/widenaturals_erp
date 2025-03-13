@@ -1,7 +1,6 @@
-const { createCustomers, fetchCustomersService, fetchCustomersDropdown } = require('../services/customer-service');
+const { createCustomers, fetchCustomersService, fetchCustomersDropdown, fetchCustomerDetails } = require('../services/customer-service');
 const AppError = require('../utils/AppError');
 const wrapAsync = require('../utils/wrap-async');
-const { getUser } = require('../repositories/user-repository');
 const { logError } = require('../utils/logger-helper');
 
 /**
@@ -23,11 +22,11 @@ const createCustomerController = wrapAsync(async (req, res, next) => {
     
     let result;
     if (Array.isArray(customers)) {
-      // 🔹 Bulk Insert
+      // Bulk Insert
       result = await createCustomers(customers, createdBy);
       res.status(201).json({ success: true, message: 'Bulk customers created successfully.', customers: result });
     } else {
-      // 🔹 Single Insert
+      // Single Insert
       result = await createCustomers(customers, createdBy);
       res.status(201).json({ success: true, message: 'Customer created successfully.', customer: result });
     }
@@ -69,8 +68,29 @@ const getCustomersDropdownController = wrapAsync(async (req, res, next) => {
   }
 });
 
+/**
+ * Controller to fetch customer details by ID.
+ * @param {Request} req - Express request object.
+ * @param {Response} res - Express response object.
+ */
+const getCustomerByIdController = wrapAsync(async (req, res, next) => {
+  try {
+    const { id } = req.params; // Get customer ID from request params
+    const customer = await fetchCustomerDetails(id);
+    
+    res.status(200).json({
+      success: true,
+      message: "Customer retrieved successfully.",
+      data: customer,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 module.exports = {
   createCustomerController,
   getCustomersController,
   getCustomersDropdownController,
+  getCustomerByIdController
 };

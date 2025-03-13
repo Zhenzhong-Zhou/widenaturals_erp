@@ -41,5 +41,6 @@ export const API_ENDPOINTS = {
   ADD_NEW_CUSTOMER: '/customers/add-new-customer',
   ADD_NEW_CUSTOMERS_BULK: '/customers/bulk/add-new-customers',
   ALL_CUSTOMERS: '/customers',
+  CUSTOMER_DETAILS: '/customers/:id',
   CUSTOMERS_DROPDOWN: '/customers/dropdown',
 };

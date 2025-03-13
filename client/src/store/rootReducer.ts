@@ -36,6 +36,7 @@ import orderTypesReducer from '../features/orderType/state/orderTypeSlice.ts';
 import orderTypesDropDownReducer from '../features/order/state/orderTypeDropdownSlice.ts';
 import customersCreateReducer from '../features/customer/state/customerCreateSlice.ts';
 import customersReducer from '../features/customer/state/customerSlice.ts';
+import customerDetailReducer from '../features/customer/state/customerDetailSlice.ts';
 
 // Combine reducers
 const appReducer = combineReducers({
@@ -75,6 +76,7 @@ const appReducer = combineReducers({
   orderTypesDropdown: orderTypesDropDownReducer,
   customersCreate: customersCreateReducer,
   customers: customersReducer,
+  customerDetail: customerDetailReducer,
 });
 
 // Root reducer with logout handling

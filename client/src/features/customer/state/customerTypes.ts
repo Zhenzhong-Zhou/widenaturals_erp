@@ -53,3 +53,25 @@ export interface CustomerListResponse {
   data: Customer[];
   pagination: CustomerPagination;
 }
+
+export interface CustomerDetails {
+  id: string;
+  customer_name: string;
+  email: string;
+  phone_number: string;
+  address: string;
+  note?: string;
+  status_id: string;
+  status_name: string;
+  status_date: string;
+  created_at: string;
+  updated_at: string | null;
+  created_by: string;
+  updated_by: string;
+}
+
+export interface CustomerDetailsResponse {
+  success: boolean;
+  message: string;
+  data: CustomerDetails;
+}

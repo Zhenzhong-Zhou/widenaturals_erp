@@ -8,7 +8,7 @@ import { BulkCustomerRequest, CustomerRequest } from '../state/customerTypes.ts'
 
 const CreateCustomerModal: FC = () => {
   const [open, setOpen] = useState(false);
-  const { createCustomer, loading, refresh } = useCustomers();
+  const { createCustomer, loading, refreshCustomers } = useCustomers();
   const { control, handleSubmit, reset } = useForm<CustomerRequest>();
   
   const handleFormSubmit = () =>
@@ -20,7 +20,7 @@ const CreateCustomerModal: FC = () => {
       await createCustomer(customersData);
       reset();
       setOpen(false);
-      refresh();
+      refreshCustomers();
     })();
   
   const fields: FieldConfig[] = [

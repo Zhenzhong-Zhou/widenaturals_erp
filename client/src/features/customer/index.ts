@@ -6,11 +6,14 @@ export type {
   CustomerQueryParams,
   Customer,
   CustomerListResponse,
+  CustomerDetails,
+  CustomerDetailsResponse
 } from './state/customerTypes.ts';
 export {
   createCustomerThunk,
   createBulkCustomersThunk,
-  fetchCustomersThunk
+  fetchCustomersThunk,
+  fetchCustomerByIdThunk,
 } from './state/customerThunks.ts'
 export {
   selectCustomersCreate,
@@ -25,3 +28,10 @@ export {
   selectCustomerError,
 } from './state/customerSelectors.ts';
 export { default as CustomerTable } from './components/CustomerTable.tsx';
+export {
+  selectCustomerDetail,
+  selectCustomerDetailLoading,
+  selectCustomerDetailError,
+} from './state/customerDetailSelectors.ts';
+export { default as CustomerDetailSection } from './components/CustomerDetailSection.tsx';
+export { default as CustomerDetailHeader } from './components/CustomerDetailHeader.tsx';
