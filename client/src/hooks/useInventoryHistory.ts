@@ -1,17 +1,25 @@
-import { useCallback, useEffect, useMemo } from "react";
-import { useAppDispatch, useAppSelector } from "../store/storeHooks.ts";
-import { InventoryHistoryParams, selectInventoryHistory } from '../features/report';
-import { exportInventoryHistoryThunk, fetchInventoryHistoryThunk } from '../features/report/state/reportThunks.ts';
+import { useCallback, useEffect, useMemo } from 'react';
+import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
+import {
+  InventoryHistoryParams,
+  selectInventoryHistory,
+} from '../features/report';
+import {
+  exportInventoryHistoryThunk,
+  fetchInventoryHistoryThunk,
+} from '../features/report/state/reportThunks.ts';
 
 /**
  * Custom hook for fetching and managing inventory history.
  */
-const useInventoryHistory = (initialParams?: Partial<InventoryHistoryParams>) => {
+const useInventoryHistory = (
+  initialParams?: Partial<InventoryHistoryParams>
+) => {
   const dispatch = useAppDispatch();
-  
+
   // Select inventory history from Redux state
   const inventoryHistoryState = useAppSelector(selectInventoryHistory);
-  
+
   // Memoized inventory state
   const {
     data,
@@ -19,11 +27,11 @@ const useInventoryHistory = (initialParams?: Partial<InventoryHistoryParams>) =>
     error,
     pagination,
     exportData,
-    exportFormat = initialParams?.exportFormat ?? "csv",
+    exportFormat = initialParams?.exportFormat ?? 'csv',
     exportLoading,
     exportError,
   } = useMemo(() => inventoryHistoryState, [inventoryHistoryState]);
-  
+
   // Fetch inventory history
   const fetchInventoryHistory = useCallback(
     (params?: Partial<InventoryHistoryParams>) => {
@@ -32,7 +40,7 @@ const useInventoryHistory = (initialParams?: Partial<InventoryHistoryParams>) =>
     },
     [dispatch, initialParams]
   );
-  
+
   // Export inventory history
   const exportInventoryHistory = useCallback(
     (params: Partial<InventoryHistoryParams>) => {
@@ -43,17 +51,17 @@ const useInventoryHistory = (initialParams?: Partial<InventoryHistoryParams>) =>
         totalRecords: undefined,
         totalPages: undefined,
       };
-      
+
       dispatch(exportInventoryHistoryThunk(formattedParams));
     },
     [dispatch]
   );
-  
+
   // Auto-fetch logs on mount
   useEffect(() => {
     fetchInventoryHistory();
   }, [fetchInventoryHistory]);
-  
+
   return useMemo(
     () => ({
       data,
@@ -76,7 +84,8 @@ const useInventoryHistory = (initialParams?: Partial<InventoryHistoryParams>) =>
       exportInventoryHistory,
       exportFormat,
       exportData,
-      exportLoading, exportError
+      exportLoading,
+      exportError,
     ]
   );
 };

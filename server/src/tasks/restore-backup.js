@@ -8,6 +8,7 @@ const fs = require('fs');
 const { decryptFile } = require('../database/encryption');
 const { restoreDatabase } = require('../database/restore');
 const { logInfo, logError } = require('../utils/logger-helper');
+const AppError = require('../utils/AppError');
 
 loadEnv();
 
@@ -20,19 +21,19 @@ const dbUser = process.env.DB_USER;
   try {
     // Validate environment variables
     if (!encryptedFile || !fs.existsSync(encryptedFile)) {
-      throw new Error(
+      throw AppError.notFoundError(
         `Encrypted backup file not found. Ensure ENCRYPTED_FILE is set to a valid path: ${encryptedFile}`
       );
     }
 
     if (!encryptionKey || Buffer.from(encryptionKey, 'hex').length !== 32) {
-      throw new Error(
+      throw AppError.validationError(
         'Invalid encryption key length. Ensure BACKUP_ENCRYPTION_KEY is a 64-character hexadecimal string.'
       );
     }
 
     if (!databaseName) {
-      throw new Error(
+      throw AppError.validationError(
         'Database name is missing. Ensure DB_NAME is set in the environment variables.'
       );
     }
@@ -42,7 +43,7 @@ const dbUser = process.env.DB_USER;
     const ivFile = `${encryptedFile}.iv`; // Initialization Vector file
 
     if (!fs.existsSync(ivFile)) {
-      throw new Error(
+      throw AppError.notFoundError(
         `IV file not found. Ensure the file exists at: ${ivFile}`
       );
     }

@@ -1,4 +1,5 @@
 const { isUUID } = require('./id-utils');
+const AppError = require('./AppError');
 
 /**
  * Converts a key name to a more readable column name.
@@ -25,7 +26,7 @@ const formatHeader = (key) => {
  */
 const processHeaders = (data) => {
   if (!Array.isArray(data) || data.length === 0) {
-    throw new Error('Data is empty or invalid'); // Throw an error instead of returning 'No data available'
+    throw AppError.validationError('Data is empty or invalid'); // Throw an error instead of returning 'No data available'
   }
 
   const columnMap = Object.keys(data[0])

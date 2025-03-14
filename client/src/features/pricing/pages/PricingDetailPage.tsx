@@ -7,7 +7,8 @@ import {
   Typography,
   ErrorDisplay,
 } from '@components/index.ts';
-import { Box, Paper } from '@mui/material';
+import Box from '@mui/material/Box';
+import Paper from '@mui/material/Paper';
 import { formatCurrency } from '@utils/textUtils.ts';
 
 const PricingDetailPage = () => {

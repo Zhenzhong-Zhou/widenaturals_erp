@@ -1,6 +1,12 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { InventoryActivityLogsResponse, InventoryActivityLogsState } from './reportTypes';
-import { exportInventoryActivityLogsThunk, fetchInventoryActivityLogsThunk } from './reportThunks.ts';
+import {
+  InventoryActivityLogsResponse,
+  InventoryActivityLogsState,
+} from './reportTypes';
+import {
+  exportInventoryActivityLogsThunk,
+  fetchInventoryActivityLogsThunk,
+} from './reportThunks.ts';
 
 /**
  * Initial state for Inventory Activity Logs
@@ -44,25 +50,31 @@ const inventoryLogsSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchInventoryActivityLogsThunk.fulfilled, (state, action: PayloadAction<InventoryActivityLogsResponse>) => {
-        state.loading = false;
-        state.data = action.payload.data; // Ensure it assigns correctly
-        state.pagination = action.payload.pagination;
-      })
+      .addCase(
+        fetchInventoryActivityLogsThunk.fulfilled,
+        (state, action: PayloadAction<InventoryActivityLogsResponse>) => {
+          state.loading = false;
+          state.data = action.payload.data; // Ensure it assigns correctly
+          state.pagination = action.payload.pagination;
+        }
+      )
       .addCase(fetchInventoryActivityLogsThunk.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       })
-      
+
       // Export Inventory Logs
       .addCase(exportInventoryActivityLogsThunk.pending, (state) => {
         state.exportLoading = true;
         state.exportError = null;
       })
-      .addCase(exportInventoryActivityLogsThunk.fulfilled, (state, action: PayloadAction<Blob>) => {
-        state.exportLoading = false;
-        state.exportData = action.payload;
-      })
+      .addCase(
+        exportInventoryActivityLogsThunk.fulfilled,
+        (state, action: PayloadAction<Blob>) => {
+          state.exportLoading = false;
+          state.exportData = action.payload;
+        }
+      )
       .addCase(exportInventoryActivityLogsThunk.rejected, (state, action) => {
         state.exportLoading = false;
         state.exportError = action.payload as string;

@@ -13,6 +13,7 @@ const authRoutes = require('./auth');
 const userRoutes = require('./users');
 const adminRoutes = require('./admin');
 const productRoutes = require('./products');
+const complianceRoutes = require('./compliances');
 const priceTypeRouts = require('./pricing_types');
 const pricingRouts = require('./pricings');
 const locationTypeRouts = require('./locations_types');
@@ -23,9 +24,10 @@ const warehouseInventoryRouts = require('./warehouse-inventory');
 const warehouseInventoryLotRouts = require('./warehouse-invnetory-lot');
 const warehouseLotAdjustmentRoutes = require('./lot-adjustment-type');
 const reportRoutes = require('./reports');
-const {
-  createApiRateLimiter,
-} = require('../middlewares/rate-limiter');
+const customerRoutes = require('./customers');
+const orderTypeRoutes = require('./order-types');
+const orderRoutes = require('./orders');
+const { createApiRateLimiter } = require('../middlewares/rate-limiter');
 const authenticate = require('../middlewares/authenticate');
 
 const router = express.Router();
@@ -73,6 +75,9 @@ router.use('/admin', authenticate(), adminRoutes);
 // Products route
 router.use('/products', authenticate(), productRoutes);
 
+// router.use('/compliances', authenticate(), complianceRoutes);
+router.use('/compliances', complianceRoutes);
+
 // Price Types route
 router.use('/pricing-types', authenticate(), priceTypeRouts);
 
@@ -95,11 +100,26 @@ router.use('/warehouses', authenticate(), warehouseRouts);
 
 router.use('/warehouse-inventories', authenticate(), warehouseInventoryRouts);
 
-router.use('/warehouse-inventory-lots', authenticate(), warehouseInventoryLotRouts);
+router.use(
+  '/warehouse-inventory-lots',
+  authenticate(),
+  warehouseInventoryLotRouts
+);
 
-router.use('/lot-adjustment-types', authenticate(), warehouseLotAdjustmentRoutes);
+router.use(
+  '/lot-adjustment-types',
+  authenticate(),
+  warehouseLotAdjustmentRoutes
+);
 
-// router.use('/reports', authenticate(), reportRoutes);
-router.use('/reports', reportRoutes);
+router.use('/reports', authenticate(), reportRoutes);
+
+router.use('/customers', authenticate(), customerRoutes);
+
+// router.use('/orders', authenticate(), orderRoutes);
+router.use('/orders', orderRoutes);
+
+// router.use('/order-types', authenticate(), orderTypeRoutes);
+router.use('/order-types', orderTypeRoutes);
 
 module.exports = router;

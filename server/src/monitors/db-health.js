@@ -32,7 +32,7 @@ const checkDatabaseHealth = async () => {
       error: error.message,
     });
 
-    throw new AppError('Database is not healthy', 500, {
+    throw AppError.healthCheckError('Database is not healthy', 500, {
       type: 'DatabaseHealthError',
       details: error.message,
     });

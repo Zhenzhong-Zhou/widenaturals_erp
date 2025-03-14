@@ -91,7 +91,7 @@ const getWarehouseInventories = async ({
     });
   } catch (error) {
     logError('Error fetching all warehouse inventories:', error);
-    throw new AppError('Failed to fetch all warehouse inventories.');
+    throw AppError.databaseError('Failed to fetch all warehouse inventories.');
   }
 };
 
@@ -149,7 +149,7 @@ const getWarehouseProductSummary = async ({
       `Error fetching warehouse product summary (warehouse_id: ${warehouse_id}, page: ${page}, limit: ${limit}):`,
       error
     );
-    throw new AppError('Failed to fetch warehouse product summary.');
+    throw AppError.databaseError('Failed to fetch warehouse product summary.');
   }
 };
 
@@ -165,8 +165,8 @@ const getWarehouseInventoryDetailsByWarehouseId = async ({
     'JOIN inventory i ON wi.inventory_id = i.id',
     'LEFT JOIN products p ON i.product_id = p.id',
     'LEFT JOIN warehouse_inventory_lots wil ON wi.inventory_id = wil.inventory_id ' +
-    'AND wi.warehouse_id = wil.warehouse_id ' +
-    'AND (wi.warehouse_id = wil.warehouse_id OR wil.warehouse_id IS NULL)\n',
+      'AND wi.warehouse_id = wil.warehouse_id ' +
+      'AND (wi.warehouse_id = wil.warehouse_id OR wil.warehouse_id IS NULL)\n',
     'LEFT JOIN warehouse_lot_status ws ON wil.status_id = ws.id',
     'LEFT JOIN users u1 ON wi.created_by = u1.id',
     'LEFT JOIN users u2 ON wi.updated_by = u2.id',
@@ -233,7 +233,9 @@ const getWarehouseInventoryDetailsByWarehouseId = async ({
       `Error fetching warehouse inventory details (page: ${page}, limit: ${limit}):`,
       error
     );
-    throw new AppError('Failed to fetch warehouse inventory details.');
+    throw AppError.databaseError(
+      'Failed to fetch warehouse inventory details.'
+    );
   }
 };
 
@@ -276,7 +278,7 @@ const checkWarehouseInventoryBulk = async (
     return rows;
   } catch (error) {
     logError('Error checking warehouse inventory existence:', error);
-    throw new AppError('Database query failed');
+    throw AppError.databaseError('Database query failed');
   }
 };
 
@@ -290,7 +292,9 @@ const checkWarehouseInventoryBulk = async (
  */
 const insertWarehouseInventoryRecords = async (client, inventoryData) => {
   if (!Array.isArray(inventoryData) || inventoryData.length === 0) {
-    throw new AppError('Invalid inventory data. Expected a non-empty array.');
+    throw AppError.validationError(
+      'Invalid inventory data. Expected a non-empty array.'
+    );
   }
 
   try {
@@ -367,7 +371,7 @@ const insertWarehouseInventoryRecords = async (client, inventoryData) => {
     );
   } catch (error) {
     logError('Error inserting warehouse inventory records:', error);
-    throw new AppError.databaseError(
+    throw AppError.databaseError(
       'Failed to insert warehouse inventory records.',
       {
         details: { error: error.message, inventoryData },

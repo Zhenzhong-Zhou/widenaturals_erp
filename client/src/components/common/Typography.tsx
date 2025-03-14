@@ -1,5 +1,6 @@
 import { FC } from 'react';
-import { Typography as MuiTypography, TypographyProps } from '@mui/material';
+import MuiTypography from '@mui/material/Typography';
+import type { TypographyProps } from '@mui/material/Typography';
 import { useThemeContext } from '../../context/ThemeContext';
 
 interface CustomTypographyProps extends TypographyProps {

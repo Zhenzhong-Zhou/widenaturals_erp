@@ -10,10 +10,12 @@ import {
 /**
  * Custom hook to fetch and manage inventory activity logs.
  */
-const useInventoryActivityLogs = (initialParams?: Partial<InventoryActivityLogParams>) => {
+const useInventoryActivityLogs = (
+  initialParams?: Partial<InventoryActivityLogParams>
+) => {
   const dispatch = useAppDispatch();
   const inventoryActivityLogState = useAppSelector(selectInventoryActivityLogs);
-  
+
   // Memoize state values to prevent unnecessary recomputations
   const {
     inventoryLogs,
@@ -25,7 +27,7 @@ const useInventoryActivityLogs = (initialParams?: Partial<InventoryActivityLogPa
     exportLoading,
     exportError,
   } = useMemo(() => inventoryActivityLogState, [inventoryActivityLogState]);
-  
+
   /**
    * Fetch paginated inventory logs.
    */
@@ -39,7 +41,7 @@ const useInventoryActivityLogs = (initialParams?: Partial<InventoryActivityLogPa
     },
     [dispatch, initialParams]
   );
-  
+
   /**
    * Export inventory logs (CSV, PDF, TXT).
    */
@@ -56,12 +58,12 @@ const useInventoryActivityLogs = (initialParams?: Partial<InventoryActivityLogPa
     },
     [dispatch]
   );
-  
+
   // Auto-fetch logs on mount
   useEffect(() => {
     fetchInventoryActivityLogs();
   }, [fetchInventoryActivityLogs]);
-  
+
   return useMemo(
     () => ({
       inventoryLogs,

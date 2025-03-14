@@ -140,13 +140,13 @@ const validateProductExistence = async (
     const message =
       options.errorMessage ||
       'A product with the provided details already exists.';
-    throw new AppError.validationError(message, 400, { filters });
+    throw AppError.validationError(message, { filters });
   }
 
   if (!options.throwIfExists && !exists) {
     const message =
       options.errorMessage || 'No product found with the provided details.';
-    throw new AppError.validationError(message, 404, { filters });
+    throw AppError.notFoundError(message, { filters });
   }
 };
 

@@ -31,9 +31,8 @@ const validateAndHashRootPassword = async (password) => {
     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=(.*[!@#$%^&*\-]){2,})(?=.{8,64})(?:(?!.*(.)\1\1).)*$/;
 
   if (!passwordRegex.test(password)) {
-    throw new AppError(
-      'Root admin password must include at least one uppercase letter, one lowercase letter, one number, at least two special characters (!@#$%^&*-), be 8-64 characters long, and avoid repeating characters more than three times consecutively.',
-      400
+    throw AppError.validationError(
+      'Root admin password must include at least one uppercase letter, one lowercase letter, one number, at least two special characters (!@#$%^&*-), be 8-64 characters long, and avoid repeating characters more than three times consecutively.'
     );
   }
 

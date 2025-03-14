@@ -85,7 +85,7 @@ const generateChecksum = (
     source_action_id || '',
     comments || '',
   ].join('|');
-  
+
   return crypto.createHash('sha256').update(data).digest('hex');
 };
 
@@ -97,19 +97,21 @@ const generateChecksum = (
 const validateChecksum = (record) => {
   const computedChecksum = crypto
     .createHash('sha256') // Ensure to match database hashing method
-    .update([
-      record.inventory_id,
-      record.inventory_action_type_id,
-      record.previous_quantity,
-      record.quantity_change,
-      record.new_quantity,
-      record.source_action_id || '',
-      record.comments || '',
-    ].join('|'))
+    .update(
+      [
+        record.inventory_id,
+        record.inventory_action_type_id,
+        record.previous_quantity,
+        record.quantity_change,
+        record.new_quantity,
+        record.source_action_id || '',
+        record.comments || '',
+      ].join('|')
+    )
     .digest('hex');
-  
+
   return computedChecksum === record.checksum;
-}
+};
 
 module.exports = {
   generateSecret,

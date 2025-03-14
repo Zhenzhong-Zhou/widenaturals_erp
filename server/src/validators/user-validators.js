@@ -1,7 +1,7 @@
 const Joi = require('joi');
 const { validateEmail, validateString } = require('./general-validators');
 const {
-  MIN_EMAIL,
+  MIN_PASSWORD,
   MIN_FIRSTNAME,
   MIN_LASTNAME,
 } = require('../utils/constants/general/min-limits');
@@ -13,7 +13,7 @@ const {
 const userSchema = Joi.object({
   email: validateEmail,
   password: Joi.string()
-    .min(MIN_EMAIL)
+    .min(MIN_PASSWORD)
     .regex(/[!@#$%^&*]/)
     .required()
     .messages({

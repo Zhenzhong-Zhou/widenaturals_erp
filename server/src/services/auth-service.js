@@ -42,22 +42,14 @@ const resetPassword = async (userId, currentPassword, newPassword) => {
       );
 
       if (!isMath) {
-        throw new AppError('Current password cannot be matched', 404, {
-          type: 'NotFoundError',
-          isExpected: true,
-        });
+        throw AppError.notFoundError('Current password cannot be matched');
       }
 
       // Validate password reuse
       const isReused = await isPasswordReused(client, userId, newPassword);
       if (isReused) {
-        throw new AppError(
-          'New password cannot be the same as a previously used password.',
-          400,
-          {
-            type: 'ValidationError',
-            isExpected: true,
-          }
+        throw AppError.notFoundError(
+          'New password cannot be the same as a previously used password.'
         );
       }
 

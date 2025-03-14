@@ -1,5 +1,6 @@
 import { FC } from 'react';
-import { Box, Alert } from '@mui/material';
+import Box from '@mui/material/Box';
+import Alert from '@mui/material/Alert';
 import UsersList from '../components/UserList.tsx';
 import { useUsers } from '../../../hooks';
 import {

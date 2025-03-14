@@ -1,23 +1,21 @@
 import { FC, ReactNode } from 'react';
-import {
-  Select,
-  MenuItem,
-  Checkbox,
-  FormControl,
-  FormControlLabel,
-  InputLabel,
-  Box,
-  FormHelperText,
-  TextField,
-} from '@mui/material';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import Checkbox from '@mui/material/Checkbox';
+import FormControl from '@mui/material/FormControl';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import InputLabel from '@mui/material/InputLabel';
+import Box from '@mui/material/Box';
+import FormHelperText from '@mui/material/FormHelperText';
+import TextField from '@mui/material/TextField';
 import { useForm, Controller, Control } from 'react-hook-form';
-import { CustomButton } from '@components/index';
+import { CustomButton, CustomPhoneInput } from '@components/index';
 import { useThemeContext } from '../../context/ThemeContext';
 
 export interface FieldConfig {
   id: string;
   label: string;
-  type: 'text' | 'textarea' | 'select' | 'checkbox' | 'number';
+  type: 'text' | 'textarea' | 'select' | 'checkbox' | 'number' | 'phone';
   options?: { value: string | number; label: string }[];
   required?: boolean;
   defaultValue?: any;
@@ -27,6 +25,7 @@ export interface FieldConfig {
   min?: number; // Min for number fields
   max?: number; // Max for number fields
   rows?: number; // Support for textarea
+  country?: string; // Support for phone input
 }
 
 interface FormProps {
@@ -105,6 +104,25 @@ const CustomForm: FC<FormProps> = ({
                         ? { min: field.min, max: field.max }
                         : {},
                   }}
+                />
+              )}
+            />
+          )}
+
+          {/** Phone Number Field */}
+          {field.type === 'phone' && (
+            <Controller
+              name={field.id}
+              control={control}
+              defaultValue={field.defaultValue || ''}
+              rules={{
+                required: field.required ? `${field.label} is required` : false,
+              }}
+              render={({ field: { onChange, value } }) => (
+                <CustomPhoneInput
+                  value={value}
+                  onChange={onChange}
+                  country={field.country || 'ca'} // Support country selection
                 />
               )}
             />

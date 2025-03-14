@@ -36,10 +36,10 @@ const getLocationTypes = async ({
     'updated_at',
   ];
   if (!validSortColumns.includes(sortBy)) {
-    throw new AppError(`Invalid sort column: ${sortBy}`, 400);
+    throw AppError.validationError(`Invalid sort column: ${sortBy}`, 400);
   }
   if (!['ASC', 'DESC'].includes(sortOrder.toUpperCase())) {
-    throw new AppError(`Invalid sort order: ${sortOrder}`, 400);
+    throw AppError.validationError(`Invalid sort order: ${sortOrder}`, 400);
   }
 
   // SQL Queries
@@ -76,7 +76,7 @@ const getLocationTypes = async ({
     });
   } catch (error) {
     logError('Error fetching location types:', error);
-    throw new AppError('Failed to fetch location types', 500, error);
+    throw AppError.databaseError('Failed to fetch location types', 500, error);
   }
 };
 
@@ -175,7 +175,11 @@ const getLocationDetailById = async ({
     });
   } catch (error) {
     logError('Error fetching location type detail by ID:', error);
-    throw new AppError('Failed to fetch location detail by ID', 500, error);
+    throw AppError.databaseError(
+      'Failed to fetch location detail by ID',
+      500,
+      error
+    );
   }
 };
 

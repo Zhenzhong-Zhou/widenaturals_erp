@@ -17,12 +17,12 @@ interface InventoryHistoryTableProps {
 }
 
 const InventoryHistoryTable: FC<InventoryHistoryTableProps> = ({
-                                                                 data,
-                                                                 pagination,
-                                                                 filters,
-                                                                 setFilters,
-                                                                 fetchInventoryHistory,
-                                                               }) => {
+  data,
+  pagination,
+  filters,
+  setFilters,
+  fetchInventoryHistory,
+}) => {
   const columns: Column[] = [
     {
       id: 'item_name',
@@ -95,10 +95,14 @@ const InventoryHistoryTable: FC<InventoryHistoryTableProps> = ({
       label: 'Metadata',
       sortable: false,
       format: (value) =>
-        value ? Object.entries(value).map(([key, val]) => `${key}: ${val}`).join(', ') : 'N/A',
-    }
+        value
+          ? Object.entries(value)
+              .map(([key, val]) => `${key}: ${val}`)
+              .join(', ')
+          : 'N/A',
+    },
   ];
-  
+
   return (
     <CustomTable
       columns={columns}

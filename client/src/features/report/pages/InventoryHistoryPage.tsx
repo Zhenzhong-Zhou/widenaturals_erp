@@ -1,11 +1,20 @@
-import { FC } from "react";
-import { useInventoryHistory } from "../../../hooks";
-import { InventoryHistoryTable, ReportPageLayout, useReportPageLogic } from '../index.ts';
-import { ErrorDisplay, ErrorMessage, Loading, Typography } from '@components/index.ts';
+import { FC } from 'react';
+import { useInventoryHistory } from '../../../hooks';
+import {
+  InventoryHistoryTable,
+  ReportPageLayout,
+  useReportPageLogic,
+} from '../index.ts';
+import {
+  ErrorDisplay,
+  ErrorMessage,
+  Loading,
+  Typography,
+} from '@components/index.ts';
 
 const InventoryHistoryPage: FC = () => {
-  const reportCategory = "inventory_history";
-  
+  const reportCategory = 'inventory_history';
+
   const {
     data,
     loading,
@@ -18,7 +27,7 @@ const InventoryHistoryPage: FC = () => {
     exportLoading,
     exportError,
   } = useInventoryHistory();
-  
+
   const reportLogic = useReportPageLogic({
     fetchData: fetchInventoryHistory,
     exportData,
@@ -29,7 +38,7 @@ const InventoryHistoryPage: FC = () => {
     data,
     pagination,
   });
-  
+
   if (loading) return <Loading message="Loading inventory history..." />;
   if (error)
     return (
@@ -37,7 +46,7 @@ const InventoryHistoryPage: FC = () => {
         <ErrorMessage message={error} />
       </ErrorDisplay>
     );
-  
+
   return (
     <ReportPageLayout
       title="Inventory History"

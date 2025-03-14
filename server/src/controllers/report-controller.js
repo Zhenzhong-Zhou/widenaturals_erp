@@ -1,4 +1,8 @@
-const { fetchAdjustmentReport, fetchInventoryActivityLogs, fetchInventoryHistoryWithValidation } = require('../services/report-service');
+const {
+  fetchAdjustmentReport,
+  fetchInventoryActivityLogs,
+  fetchInventoryHistoryWithValidation,
+} = require('../services/report-service');
 const wrapAsync = require('../utils/wrap-async');
 const { logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
@@ -82,9 +86,9 @@ const getInventoryActivityLogsController = wrapAsync(async (req, res) => {
     limit = 50,
     sortBy = 'timestamp',
     sortOrder = 'DESC',
-    exportFormat
+    exportFormat,
   } = req.query;
-  
+
   // Fetch inventory logs from service
   const logsResponse = await fetchInventoryActivityLogs({
     inventoryId,
@@ -104,14 +108,17 @@ const getInventoryActivityLogsController = wrapAsync(async (req, res) => {
     sortOrder,
     exportFormat,
   });
-  
+
   // If export format is requested, return file
   if (exportFormat) {
-    res.setHeader('Content-Disposition', `attachment; filename="${logsResponse.fileName}"`);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${logsResponse.fileName}"`
+    );
     res.setHeader('Content-Type', logsResponse.contentType);
     return res.send(logsResponse.fileBuffer);
   }
-  
+
   return res.json({
     success: true,
     message: 'Inventory activity logs fetched successfully',
@@ -138,7 +145,7 @@ const getInventoryHistoryController = wrapAsync(async (req, res, next) => {
     limit = 50,
     exportFormat = null,
   } = req.query;
-  
+
   const records = await fetchInventoryHistoryWithValidation({
     inventoryId,
     actionTypeId,
@@ -152,19 +159,22 @@ const getInventoryHistoryController = wrapAsync(async (req, res, next) => {
     sortOrder,
     page,
     limit,
-    exportFormat
+    exportFormat,
   });
-  
+
   // Handle export file response
   if (exportFormat) {
     if (!records?.fileBuffer) {
       return AppError.validationError('Failed to generate export file');
     }
-    res.setHeader('Content-Disposition', `attachment; filename="${records.fileName}"`);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${records.fileName}"`
+    );
     res.setHeader('Content-Type', records.contentType);
     return res.send(records.fileBuffer);
   }
-  
+
   // Handle JSON response
   res.json({
     success: true,

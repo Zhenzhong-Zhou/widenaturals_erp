@@ -1,7 +1,9 @@
 import { FC, ReactNode } from 'react';
-import { Box, IconButton } from '@mui/material';
+import Box from '@mui/material/Box';
+import IconButton from '@mui/material/IconButton';
 import Grid from '@mui/material/Grid2';
-import { Add, Delete } from '@mui/icons-material';
+import Add from '@mui/icons-material/Add';
+import Delete from '@mui/icons-material/Delete';
 import { v4 as uuidv4 } from 'uuid';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { CustomButton, BaseInput, Dropdown } from '@components/index';

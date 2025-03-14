@@ -73,9 +73,7 @@ const getPricingDetailsByPricingTypeId = async ({
       });
     });
   } catch (error) {
-    throw new AppError('Failed to fetch pricing details', 500, {
-      originalError: error.message,
-    });
+    throw AppError.databaseError('Failed to fetch pricing details', error);
   }
 };
 
@@ -87,10 +85,12 @@ const getPricingDetailsByPricingTypeId = async ({
  * @returns {Promise<Object>} - Returns an object with `data` (records) and `pagination` (metadata).
  */
 const getPricings = async ({ page, limit }) => {
-  const tableName = 'pricing p'; // Corrected alias
+  const tableName = 'pricing p'; // Alias for pricing table
 
   const joins = [
+    'LEFT JOIN products pr ON p.product_id = pr.id',
     'LEFT JOIN pricing_types pt ON p.price_type_id = pt.id',
+    'LEFT JOIN locations l ON p.location_id = l.id',
     'LEFT JOIN status s ON p.status_id = s.id',
     'LEFT JOIN users u1 ON p.created_by = u1.id',
     'LEFT JOIN users u2 ON p.updated_by = u2.id',
@@ -101,7 +101,9 @@ const getPricings = async ({ page, limit }) => {
   const baseQuery = `
     SELECT
       p.id AS pricing_id,
+      pr.product_name,
       pt.name AS price_type,
+      l.name AS location,
       p.price,
       p.valid_from,
       p.valid_to,
@@ -109,8 +111,8 @@ const getPricings = async ({ page, limit }) => {
       p.status_date,
       p.created_at,
       p.updated_at,
-      COALESCE(u1.firstname  || ' ' || u1.lastname, 'Unknown') AS created_by,
-      COALESCE(u2.firstname  || ' ' || u2.lastname, 'Unknown') AS updated_by
+      COALESCE(u1.firstname || ' ' || u1.lastname, 'Unknown') AS created_by,
+      COALESCE(u2.firstname || ' ' || u2.lastname, 'Unknown') AS updated_by
     FROM ${tableName}
     ${joins.join(' ')}
   `;
@@ -125,12 +127,12 @@ const getPricings = async ({ page, limit }) => {
         params: [],
         page,
         limit,
-        sortBy: 'pt.name',
+        sortBy: 'pr.product_name',
         sortOrder: 'ASC',
       })
     );
   } catch (error) {
-    throw new AppError('Failed to fetch pricing data', 500, error);
+    throw AppError.databaseError('Failed to fetch pricing data', error);
   }
 };
 
@@ -209,12 +211,36 @@ const getPricingDetailsByPricingId = async ({ pricingId, page, limit }) => {
       });
     });
   } catch (error) {
-    throw new Error(`Error fetching pricing details: ${error.message}`);
+    throw AppError.databaseError(
+      `Error fetching pricing details: ${error.message}`,
+      error
+    );
   }
+};
+
+const getActiveProductPrice = async (productId, priceTypeId, client) => {
+  const sql = `
+    SELECT
+      p.id,
+      p.price
+    FROM pricing p
+    INNER JOIN status s ON p.status_id = s.id
+    WHERE p.product_id = $1
+      AND p.price_type_id = $2
+      AND s.name = 'active'
+      AND now() >= p.valid_from
+      AND (p.valid_to IS NULL OR now() <= p.valid_to)
+    ORDER BY p.valid_from DESC
+    LIMIT 1;
+  `;
+
+  const result = await client.query(sql, [productId, priceTypeId]);
+  return result.rows.length > 0 ? result.rows[0] : null;
 };
 
 module.exports = {
   getPricingDetailsByPricingTypeId,
   getPricings,
   getPricingDetailsByPricingId,
+  getActiveProductPrice,
 };
