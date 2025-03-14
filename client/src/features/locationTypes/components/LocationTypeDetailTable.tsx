@@ -3,7 +3,8 @@ import { CustomTable, Typography } from '@components/index.ts';
 import { Location } from '../state/locationTypeTypes.ts';
 import { capitalizeFirstLetter } from '@utils/textUtils.ts';
 import { formatDateTime } from '@utils/dateTimeUtils.ts';
-import { Box, Paper } from '@mui/material';
+import Box from '@mui/material/Box';
+import Paper from '@mui/material/Paper';
 
 interface LocationTypeTableProps {
   data: Location[];

@@ -1,15 +1,13 @@
 import { FC, ReactNode } from 'react';
-import {
-  Select,
-  MenuItem,
-  Checkbox,
-  FormControl,
-  FormControlLabel,
-  InputLabel,
-  Box,
-  FormHelperText,
-  TextField,
-} from '@mui/material';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import Checkbox from '@mui/material/Checkbox';
+import FormControl from '@mui/material/FormControl';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import InputLabel from '@mui/material/InputLabel';
+import Box from '@mui/material/Box';
+import FormHelperText from '@mui/material/FormHelperText';
+import TextField from '@mui/material/TextField';
 import { useForm, Controller, Control } from 'react-hook-form';
 import { CustomButton, CustomPhoneInput } from '@components/index';
 import { useThemeContext } from '../../context/ThemeContext';

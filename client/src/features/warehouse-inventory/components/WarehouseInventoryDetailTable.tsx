@@ -1,12 +1,10 @@
 import { FC, ReactNode, useState } from 'react';
-import {
-  Box,
-  Paper,
-  IconButton,
-  Checkbox,
-  Tooltip,
-  Popover,
-} from '@mui/material';
+import Box from '@mui/material/Box';
+import Paper from '@mui/material/Paper';
+import IconButton from '@mui/material/IconButton';
+import Checkbox from '@mui/material/Checkbox';
+import Tooltip from '@mui/material/Tooltip';
+import Popover from '@mui/material/Popover';
 import { CustomButton, CustomTable, Typography } from '@components/index.ts';
 import EditIcon from '@mui/icons-material/Edit';
 import InventoryIcon from '@mui/icons-material/Inventory'; // Ensure this import exists

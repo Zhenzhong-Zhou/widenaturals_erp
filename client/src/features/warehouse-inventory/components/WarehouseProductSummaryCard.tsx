@@ -1,4 +1,5 @@
-import { Box, Paper } from '@mui/material';
+import Box from '@mui/material/Box';
+import Paper from '@mui/material/Paper';
 import { CustomButton, CustomCard, Typography } from '@components/index.ts';
 import { formatDate } from '@utils/dateTimeUtils.ts';
 import { WarehouseProductSummary } from '../state/warehouseInventoryTypes.ts';

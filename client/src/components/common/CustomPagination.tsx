@@ -1,5 +1,6 @@
 import { FC } from 'react';
-import { Box, Pagination } from '@mui/material';
+import Box from '@mui/material/Box';
+import Pagination from '@mui/material/Pagination';
 import { Typography } from '@components/index.ts';
 
 interface PaginationComponentProps {

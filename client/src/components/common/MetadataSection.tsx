@@ -2,7 +2,7 @@ import { FC } from 'react';
 import Box from '@mui/material/Box';
 import { Typography } from '@components/index.ts';
 import { useThemeContext } from '../../context/ThemeContext';
-import { SxProps, Theme } from '@mui/material';
+import type { SxProps, Theme } from '@mui/system';
 
 interface MetadataSectionProps {
   data: Record<

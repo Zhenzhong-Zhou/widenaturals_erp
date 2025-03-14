@@ -1,5 +1,5 @@
 import { FC } from 'react';
-import { Box } from '@mui/material';
+import Box from '@mui/material/Box';
 import { Typography } from '@components/index.ts';
 import LoginCard from '../components/LoginCard.tsx';
 import { useThemeContext } from '../../../context/ThemeContext';

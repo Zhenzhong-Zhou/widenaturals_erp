@@ -1,5 +1,6 @@
 import { useParams } from 'react-router-dom';
-import { Box, Paper } from '@mui/material';
+import Box from '@mui/material/Box';
+import Paper from '@mui/material/Paper';
 import {
   CustomButton,
   ErrorDisplay,

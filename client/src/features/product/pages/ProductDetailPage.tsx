@@ -7,7 +7,8 @@ import {
   MetadataSection,
   PriceDisplay,
 } from '@components/index.ts';
-import { Box, CardMedia } from '@mui/material';
+import Box from '@mui/material/Box';
+import CardMedia from '@mui/material/CardMedia';
 import productPlaceholder from '../../../assets/Virility_CA.jpg';
 import { formatDate } from '@utils/dateTimeUtils.ts';
 

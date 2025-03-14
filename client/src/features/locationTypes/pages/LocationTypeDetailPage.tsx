@@ -9,7 +9,8 @@ import {
   Loading,
   Typography,
 } from '@components/index.ts';
-import { Box, Paper } from '@mui/material';
+import Box from '@mui/material/Box';
+import Paper from '@mui/material/Paper';
 import Divider from '@mui/material/Divider';
 import { formatDateTime } from '@utils/dateTimeUtils.ts';
 import { capitalizeFirstLetter } from '@utils/textUtils.ts';
