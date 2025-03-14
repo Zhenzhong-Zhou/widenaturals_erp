@@ -8,7 +8,7 @@ interface PermissionListProps {
 
 const PermissionList: FC<PermissionListProps> = ({ permissions }) => (
   <Box component="ul" sx={{ pl: 2, mb: 3 }}>
-    {permissions.map((permission) => (
+    {permissions?.map((permission) => (
       <Typography key={permission} component="li" variant="body2">
         {permission}
       </Typography>

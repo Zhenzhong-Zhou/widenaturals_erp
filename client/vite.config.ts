@@ -4,7 +4,10 @@ import { resolve } from 'path';
 import { visualizer } from 'rollup-plugin-visualizer';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    process.env.NODE_ENV === 'development' ? visualizer({ filename: 'dist/stats.html' }) : null, // Only use visualizer in development
+  ],
   resolve: {
     alias: {
       '@styles': resolve(__dirname, './src/styles'),
@@ -30,85 +33,36 @@ export default defineConfig({
   
   optimizeDeps: {
     include: [
-      // Only include the MUI components you use
-      '@mui/material/Button',
-      '@mui/material/Card',
-      '@mui/material/CardActions',
-      '@mui/material/CardContent',
-      '@mui/material/CardMedia',
-      '@mui/material/Checkbox',
-      '@mui/material/CssBaseline',
-      '@mui/material/Dialog',
-      '@mui/material/DialogActions',
-      '@mui/material/DialogContent',
-      '@mui/material/DialogTitle',
-      '@mui/material/FormControl',
-      '@mui/material/FormControlLabel',
-      '@mui/material/FormHelperText',
-      '@mui/material/IconButton',
-      '@mui/material/InputLabel',
-      '@mui/material/MenuItem',
-      '@mui/material/Modal',
-      '@mui/material/Pagination',
-      '@mui/material/Paper',
-      '@mui/material/Popover',
-      '@mui/material/Select',
-      '@mui/material/styles/ThemeProvider',
-      '@mui/material/Table',
-      '@mui/material/TableBody',
-      '@mui/material/TableCell',
-      '@mui/material/TableContainer',
-      '@mui/material/TableHead',
-      '@mui/material/TablePagination',
-      '@mui/material/TableRow',
-      '@mui/material/TableSortLabel',
-      '@mui/material/TextField',
-      '@mui/material/Tooltip',
-      '@mui/material/Typography',
-      
-      // MUI Icons (Only include used icons)
-      '@mui/icons-material/Add',
-      '@mui/icons-material/Delete',
-      '@mui/icons-material/Close',
-      
-      // MUI X Date Pickers (If used)
+      '@mui/material',
+      '@mui/icons-material',
       '@mui/x-date-pickers',
-      
-      // Other dependencies
+      'date-fns',
       'axios',
-      'lodash/debounce',
-      'lodash/throttle',
-      'date-fns/format',
+      'lodash',
       'react',
       'react-dom',
     ],
+    exclude: [], // Do not exclude React (fixes "entry point cannot be marked as external" issue)
   },
   
   build: {
-    sourcemap: process.env.NODE_ENV === 'development', // Disable source maps in production
+    sourcemap: process.env.NODE_ENV === 'development', // Allow sourcemaps in dev, disable in prod
     minify: 'esbuild',
     rollupOptions: {
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            if (id.includes('react')) return 'react-vendor';
-            if (id.includes('react-dom')) return 'react-vendor';
-            if (id.includes('@mui')) return 'mui-vendor';
+            if (id.includes('react') || id.includes('react-dom')) return 'react-core'; // Keep React together
+            if (id.includes('@mui/material')) return 'mui-core'; // Separate MUI Core
+            if (id.includes('@mui/icons-material')) return 'mui-icons'; // Separate MUI Icons
+            if (id.includes('@mui/x-date-pickers')) return 'mui-datepickers'; // Separate MUI Date Pickers
             if (id.includes('date-fns')) return 'date-fns-vendor';
-            if (id.includes('axios')) return 'axios-vendor';
             if (id.includes('lodash')) return 'lodash-vendor';
-            return 'vendor'; // Default chunk for other node_modules
+            if (id.includes('axios')) return 'axios-vendor';
+            return 'vendor'; // Default chunk for remaining dependencies
           }
         },
       },
-      plugins: [
-        visualizer({
-          filename: 'dist/stats.html',
-          open: true,
-          gzipSize: true,
-          brotliSize: true,
-        }),
-      ],
     },
     chunkSizeWarningLimit: 500, // Warn if chunks exceed 500KB
   },

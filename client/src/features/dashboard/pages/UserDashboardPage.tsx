@@ -8,7 +8,7 @@ import {
 
 const UserDashboardPage: FC<DashboardPageProps> = ({
   fullName,
-  permissions,
+  permissions = [],
 }) => {
   return (
     <DashboardLayout fullName={fullName}>

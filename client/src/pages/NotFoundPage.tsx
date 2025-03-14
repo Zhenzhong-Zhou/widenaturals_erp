@@ -5,7 +5,7 @@ import { Typography, CustomButton, GoBackButton } from '@components/index';
 import { useThemeContext } from '../context/ThemeContext';
 
 interface NotFoundPageProps {
-  isAuthenticated: boolean;
+  isAuthenticated?: boolean;
 }
 
 const NotFoundPage: FC<NotFoundPageProps> = ({ isAuthenticated }) => {

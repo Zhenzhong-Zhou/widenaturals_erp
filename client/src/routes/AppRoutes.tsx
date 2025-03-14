@@ -35,11 +35,7 @@ const AppRoutes = () => {
     >
       <Suspense fallback={<Loading fullPage message="Loading page..." />}>
         <Routes>
-          {routes.map(({ path, component, meta }, index) => {
-            const LazyComponent = lazy(() =>
-              component().then((module) => ({ default: module.default }))
-            );
-
+          {routes.map(({ path, component: LazyComponent, meta }, index) => {
             if (meta?.requiresAuth) {
               if (
                 !hasPermission(meta.requiredPermission, permissions, roleName)

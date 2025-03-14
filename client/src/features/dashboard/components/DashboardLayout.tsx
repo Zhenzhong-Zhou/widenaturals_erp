@@ -3,7 +3,7 @@ import Box from '@mui/material/Box';
 import { Typography } from '@components/index.ts';
 
 interface BaseDashboardLayoutProps {
-  fullName: string;
+  fullName?: string;
   children: ReactNode;
 }
 

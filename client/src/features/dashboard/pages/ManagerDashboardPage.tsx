@@ -8,8 +8,8 @@ import {
 } from '../index.ts';
 
 const ManagerDashboardPage: FC<DashboardPageProps> = ({
-  fullName,
-  permissions,
+  fullName = 'Unknown User',
+  permissions = [],
 }) => {
   const navigate = useNavigate();
 
