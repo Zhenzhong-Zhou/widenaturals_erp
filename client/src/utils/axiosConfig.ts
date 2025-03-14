@@ -1,4 +1,9 @@
-import axios, { AxiosError, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
+import axios, {
+  AxiosError,
+  AxiosRequestConfig,
+  AxiosResponse,
+  InternalAxiosRequestConfig,
+} from 'axios';
 import { AppError, ErrorType } from '@utils/AppError.tsx';
 import { handleError } from '@utils/errorUtils';
 import { selectCsrfToken } from '../features/csrf/state/csrfSelector';
@@ -52,14 +57,14 @@ axiosInstance.interceptors.request.use(
       const state = store.getState();
       const csrfToken = selectCsrfToken(state);
       const accessToken = selectAccessToken(state);
-      
+
       if (accessToken && config.headers) {
         config.headers.Authorization = `Bearer ${accessToken}`;
       }
       if (csrfToken && config.headers) {
         config.headers['X-CSRF-Token'] = csrfToken;
       }
-      
+
       return config;
     } catch (error) {
       handleError(error); // Log error using handleError
@@ -84,10 +89,12 @@ axiosInstance.interceptors.request.use(
 axiosInstance.interceptors.response.use(
   (response: AxiosResponse) => response,
   async (error: AxiosError<ErrorResponse>) => {
-    const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
+    const originalRequest = error.config as AxiosRequestConfig & {
+      _retry?: boolean;
+    };
     const state = store.getState();
     const csrfToken = selectCsrfToken(state);
-    
+
     try {
       // Handle token expiration (401)
       if (error.response?.status === 401 && !originalRequest._retry) {
@@ -103,40 +110,44 @@ axiosInstance.interceptors.response.use(
             return axiosInstance(originalRequest);
           });
         }
-        
+
         originalRequest._retry = true;
         isRefreshing = true;
-        
+
         try {
           // Request a new access token
           const { accessToken } = await sessionService.refreshToken();
           store.dispatch(updateAccessToken(accessToken));
-          
+
           // Replay queued requests with the new token
           processQueue(null, accessToken);
-          
+
           // Retry the original request with updated tokens
           if (originalRequest.headers) {
             originalRequest.headers.Authorization = `Bearer ${accessToken}`;
             originalRequest.headers['X-CSRF-Token'] = csrfToken;
           }
-          
+
           return axiosInstance(originalRequest);
         } catch (refreshError) {
           if (axios.isAxiosError(refreshError)) {
             processQueue(refreshError, null); // Pass the AxiosError to processQueue
           } else {
-            console.error('Unexpected error during token refresh:', refreshError);
+            console.error(
+              'Unexpected error during token refresh:',
+              refreshError
+            );
             processQueue(null, null); // Handle non-AxiosError scenarios gracefully
           }
-          
+
           store.dispatch(logoutThunk()); // Log out the user
+          window.location.href = '/login';
           throw new AppError('Token refresh failed. Please log in again.', 401);
         } finally {
           isRefreshing = false; // Reset the refreshing flag
         }
       }
-      
+
       // Retry logic for rate-limiting or network errors
       if (error.response?.status === 429 || !error.response) {
         const retryAfter = parseInt(
@@ -150,7 +161,7 @@ axiosInstance.interceptors.response.use(
           'Rate-limited or network error. Retrying...'
         );
       }
-      
+
       // Convert server errors (500+) to AppError
       if (error.response?.status >= 500) {
         throw AppError.create(
@@ -160,7 +171,7 @@ axiosInstance.interceptors.response.use(
           { details: error.response.data }
         );
       }
-      
+
       // Handle validation errors (400)
       if (error.response?.status === 400) {
         throw AppError.create(
@@ -170,7 +181,7 @@ axiosInstance.interceptors.response.use(
           { details: error.response.data }
         );
       }
-      
+
       // Convert unknown errors to AppError
       throw AppError.create(
         ErrorType.UnknownError,

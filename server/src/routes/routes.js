@@ -13,6 +13,7 @@ const authRoutes = require('./auth');
 const userRoutes = require('./users');
 const adminRoutes = require('./admin');
 const productRoutes = require('./products');
+const complianceRoutes = require('./compliances');
 const priceTypeRouts = require('./pricing_types');
 const pricingRouts = require('./pricings');
 const locationTypeRouts = require('./locations_types');
@@ -20,10 +21,13 @@ const locationRouts = require('./locations');
 const inventoryRouts = require('./inventory');
 const warehouseRouts = require('./warehouses');
 const warehouseInventoryRouts = require('./warehouse-inventory');
-const {
-  createApiRateLimiter,
-  createCsrfTokenRateLimiter,
-} = require('../middlewares/rate-limiter');
+const warehouseInventoryLotRouts = require('./warehouse-invnetory-lot');
+const warehouseLotAdjustmentRoutes = require('./lot-adjustment-type');
+const reportRoutes = require('./reports');
+const customerRoutes = require('./customers');
+const orderTypeRoutes = require('./order-types');
+const orderRoutes = require('./orders');
+const { createApiRateLimiter } = require('../middlewares/rate-limiter');
 const authenticate = require('../middlewares/authenticate');
 
 const router = express.Router();
@@ -38,7 +42,7 @@ router.use(apiRateLimiter);
  */
 router.use('/public', publicRoute);
 
-router.use('/csrf', createCsrfTokenRateLimiter(), csrfRoute);
+router.use('/csrf', csrfRoute);
 
 // Internal routes (system-level operations)
 /**
@@ -71,6 +75,9 @@ router.use('/admin', authenticate(), adminRoutes);
 // Products route
 router.use('/products', authenticate(), productRoutes);
 
+// router.use('/compliances', authenticate(), complianceRoutes);
+router.use('/compliances', complianceRoutes);
+
 // Price Types route
 router.use('/pricing-types', authenticate(), priceTypeRouts);
 
@@ -80,20 +87,39 @@ router.use('/pricing-types', authenticate(), priceTypeRouts);
  * @desc Fetch paginated pricing records
  * @access Protected
  */
-router.use('/pricings',  pricingRouts);
+router.use('/pricings', authenticate(), pricingRouts);
 
 // Location Types route
 router.use('/location-types', authenticate(), locationTypeRouts);
 
 router.use('/locations', authenticate(), locationRouts);
 
-// router.use('/inventories', authenticate(), inventoryRouts);
-router.use('/inventories', inventoryRouts);
+router.use('/inventories', authenticate(), inventoryRouts);
 
-// router.use('/warehouses', authenticate(), warehouseRouts);
-router.use('/warehouses', warehouseRouts);
+router.use('/warehouses', authenticate(), warehouseRouts);
 
-// router.use('/warehouse-inventories', authenticate(), warehouseInventoryRouts);
-router.use('/warehouse-inventories', warehouseInventoryRouts);
+router.use('/warehouse-inventories', authenticate(), warehouseInventoryRouts);
+
+router.use(
+  '/warehouse-inventory-lots',
+  authenticate(),
+  warehouseInventoryLotRouts
+);
+
+router.use(
+  '/lot-adjustment-types',
+  authenticate(),
+  warehouseLotAdjustmentRoutes
+);
+
+router.use('/reports', authenticate(), reportRoutes);
+
+router.use('/customers', authenticate(), customerRoutes);
+
+// router.use('/orders', authenticate(), orderRoutes);
+router.use('/orders', orderRoutes);
+
+// router.use('/order-types', authenticate(), orderTypeRoutes);
+router.use('/order-types', orderTypeRoutes);
 
 module.exports = router;

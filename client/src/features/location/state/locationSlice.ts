@@ -1,5 +1,10 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { Location, Pagination, LocationResponse, fetchAllLocations } from '../index.ts';
+import {
+  Location,
+  Pagination,
+  LocationResponse,
+  fetchAllLocations,
+} from '../index.ts';
 
 /**
  * Defines the Redux state for locations.
@@ -36,10 +41,13 @@ const locationSlice = createSlice({
           state.pagination = action.payload.pagination;
         }
       )
-      .addCase(fetchAllLocations.rejected, (state, action: PayloadAction<string | undefined>) => {
-        state.loading = false;
-        state.error = action.payload || 'Failed to fetch locations';
-      });
+      .addCase(
+        fetchAllLocations.rejected,
+        (state, action: PayloadAction<string | undefined>) => {
+          state.loading = false;
+          state.error = action.payload || 'Failed to fetch locations';
+        }
+      );
   },
 });
 

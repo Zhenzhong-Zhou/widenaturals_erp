@@ -2,7 +2,8 @@ import { createSelector } from '@reduxjs/toolkit';
 import { RootState } from '../../../store/store.ts';
 
 /** Select raw warehouse inventory state */
-export const selectWarehouseInventoryState = (state: RootState) => state.warehouseInventories;
+export const selectWarehouseInventoryState = (state: RootState) =>
+  state.warehouseInventories;
 
 /** Select warehouse inventories */
 export const selectWarehouseInventories = createSelector(

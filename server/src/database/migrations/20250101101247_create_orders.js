@@ -4,7 +4,11 @@
  */
 exports.up = function (knex) {
   return knex.schema.createTable('orders', (table) => {
-    table.uuid('id').primary();
+    table
+      .uuid('id')
+      .primary()
+      .primary()
+      .defaultTo(knex.raw('uuid_generate_v4()'));
     table
       .uuid('order_type_id')
       .notNullable()
@@ -14,7 +18,11 @@ exports.up = function (knex) {
       .timestamp('order_date', { useTz: true })
       .defaultTo(knex.fn.now())
       .notNullable();
-    table.uuid('status_id').notNullable().references('id').inTable('status');
+    table
+      .uuid('order_status_id')
+      .notNullable()
+      .references('id')
+      .inTable('order_status');
     table.timestamp('status_date', { useTz: true }).defaultTo(knex.fn.now());
     table.jsonb('metadata').nullable();
     table.text('note').nullable();

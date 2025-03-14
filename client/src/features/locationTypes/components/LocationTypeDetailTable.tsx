@@ -3,7 +3,8 @@ import { CustomTable, Typography } from '@components/index.ts';
 import { Location } from '../state/locationTypeTypes.ts';
 import { capitalizeFirstLetter } from '@utils/textUtils.ts';
 import { formatDateTime } from '@utils/dateTimeUtils.ts';
-import { Box, Paper } from '@mui/material';
+import Box from '@mui/material/Box';
+import Paper from '@mui/material/Paper';
 
 interface LocationTypeTableProps {
   data: Location[];
@@ -15,13 +16,13 @@ interface LocationTypeTableProps {
 }
 
 const LocationTypeTable: FC<LocationTypeTableProps> = ({
-                                                         data,
-                                                         page,
-                                                         totalRecords,
-                                                         totalPages,
-                                                         onPageChange,
-                                                         onRowsPerPageChange,
-                                                       }) => {
+  data,
+  page,
+  totalRecords,
+  totalPages,
+  onPageChange,
+  onRowsPerPageChange,
+}) => {
   const columns = [
     { id: 'location_name', label: 'Location Name', sortable: true },
     { id: 'address', label: 'Address', sortable: false },
@@ -60,14 +61,16 @@ const LocationTypeTable: FC<LocationTypeTableProps> = ({
       sortable: true,
     },
   ];
-  
+
   return (
     <Box>
       <Paper sx={{ padding: 2, marginBottom: 3 }}>
         <Typography variant="h6">General Information</Typography>
-        <Typography><strong>Total Locations:</strong> {data.length}</Typography>
+        <Typography>
+          <strong>Total Locations:</strong> {data.length}
+        </Typography>
       </Paper>
-      
+
       <Paper sx={{ padding: 2, marginBottom: 3 }}>
         <Typography variant={'h3'}>Associated Locations</Typography>
         <CustomTable

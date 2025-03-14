@@ -1,8 +1,8 @@
 import { FC } from 'react';
 import Container from '@mui/material/Container';
 import { useNavigate } from 'react-router-dom';
-import { Typography, CustomButton } from '@components/index';
-import { useThemeContext } from '../context';
+import { Typography, CustomButton, GoBackButton } from '@components/index';
+import { useThemeContext } from '../context/ThemeContext';
 
 interface NotFoundPageProps {
   isAuthenticated: boolean;
@@ -69,6 +69,8 @@ const NotFoundPage: FC<NotFoundPageProps> = ({ isAuthenticated }) => {
       >
         {isAuthenticated ? 'Go Back to Dashboard' : 'Go Back to Home'}
       </CustomButton>
+
+      <GoBackButton />
     </Container>
   );
 };

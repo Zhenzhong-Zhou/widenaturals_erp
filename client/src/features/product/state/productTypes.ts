@@ -6,6 +6,7 @@ export interface Product {
   brand?: string;
   category?: string;
   SKU: string;
+  npn?: string;
   barcode?: string;
   market_region?: string;
   length_cm: number;
@@ -60,7 +61,12 @@ export interface UseProductsResult<T> {
   pagination: Pagination;
   loading: boolean;
   error: string | null;
-  fetchProductsByPage: (options?: { page?: number; limit?: number; category?: string; name?: string }) => Promise<void>;
+  fetchProductsByPage: (options?: {
+    page?: number;
+    limit?: number;
+    category?: string;
+    name?: string;
+  }) => Promise<void>;
 }
 
 // Define a subset type for general product info
@@ -70,6 +76,9 @@ export type GeneralProductInfo = {
   series?: string;
   brand?: string;
   category?: string;
+  npn_info: Array<{
+    npn: string;
+  }>;
   barcode?: string;
   market_region?: string;
   status_name: string; // Active, inactive, etc.

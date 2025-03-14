@@ -180,6 +180,7 @@ npx knex seed:make seed_name
 7.  **For system-wide crontab:**:
     ```bash
     sudo crontab -e
+    crontab -e
     ```
 8.  \*Update Cron Job:\*\*:
     ```bash
@@ -195,6 +196,7 @@ npx knex seed:make seed_name
 10. **Run the following command to see if cron is restricted for your user:**:
     ```bash
     sudo crontab -l
+    crontab -l
     ```
 11. **Monitor Logs:**:
     ```bash
@@ -312,10 +314,13 @@ artillery report -o report.html results.json
 **Set Up .pgpass in Production**
 
 **Prevent Storing Passwords in Bash History**:
+
 ```bash
 unset HISTFILE
 ```
+
 **Disable history temporarily for the session**:
+
 ```bash
 set +o history
 pg_dump -U your_user -h localhost -d your_db -f backup.sql
@@ -323,16 +328,16 @@ set -o history
 ```
 
 1. **Create .pgpass file**:
-    ```bash
-      nano ~/.pgpass
-    ```
+   ```bash
+     nano ~/.pgpass
+   ```
 2. **Add database credentials**:
-    ```bash
-      localhost:5432:widenaturals_erp_production:your_user:your_password
+   ```bash
+     localhost:5432:widenaturals_erp_production:your_user:your_password
    ```
 3. **Set strict permissions**:
-    ```bash
-     chmod 600 ~/.pgpass
+   ```bash
+    chmod 600 ~/.pgpass
    ```
 
 Set correct permissions:
@@ -348,12 +353,15 @@ For Amazon Linux 2023 (dnf package manager):
 sudo dnf install -y postgresql17-server postgresql15-contrib
 
 # Ensure www-data owns the entire frontend directory
+
 sudo chown -R www-data:www-data /home/ubuntu/apps/widenaturals_erp/client/dist
 
 # Ensure www-data has read + execute permissions
+
 sudo chmod -R 755 /home/ubuntu/apps/widenaturals_erp/client/dist
 
 # Allow execution (traversal) for all parent directories
+
 sudo chmod +x /home/ubuntu
 sudo chmod +x /home/ubuntu/apps
 sudo chmod +x /home/ubuntu/apps/widenaturals_erp
@@ -364,5 +372,8 @@ sudo chown -R ubuntu:ubuntu /home/ubuntu/apps/widenaturals_erp/client
 cd /home/ubuntu/apps/widenaturals_erp/client
 npm run build
 
-
 sudo systemctl restart nginx
+
+sudo -i -u postgres
+
+psql

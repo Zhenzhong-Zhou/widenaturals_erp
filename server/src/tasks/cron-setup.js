@@ -1,4 +1,5 @@
 const { exec } = require('child_process');
+const { logError, logInfo } = require('../utils/logger-helper');
 
 // Define your cron jobs
 const cronJobs = [
@@ -13,10 +14,10 @@ const setupCronJobs = () => {
   const cronString = cronJobs.join('\n') + '\n';
   exec(`echo "${cronString}" | crontab -`, (error, stdout, stderr) => {
     if (error) {
-      console.error('Failed to set up cron jobs:', error.message);
+      logError('Failed to set up cron jobs:', error.message);
       return;
     }
-    console.log('Cron jobs set up successfully.');
+    logInfo('Cron jobs set up successfully.');
   });
 };
 

@@ -10,14 +10,15 @@ const {
 } = require('./file-management');
 const { encryptFile } = require('./encryption');
 const { logInfo, logError } = require('../utils/logger-helper');
+const AppError = require('../utils/AppError');
 
 // Load environment variables
 loadEnv();
 
 // Configuration
-const isProduction = process.env.NODE_ENV === "production";
+const isProduction = process.env.NODE_ENV === 'production';
 const targetDatabase = process.env.DB_NAME; // Name of the target database
-const backupDir = process.env.BACKUP_DIR || './server/backups'; // Directory to store backups
+const backupDir = process.env.BACKUP_DIR || '../server/backups'; // Directory to store backups
 const timestamp = new Date().toISOString().replace(/[:.]/g, '-'); // Timestamp for file naming
 const baseFileName = `${targetDatabase}-${timestamp}`; // Base name for backup files
 const backupFile = path.join(backupDir, `${baseFileName}.sql`); // Plain-text SQL file path
@@ -31,7 +32,7 @@ const maxBackups = parseInt(process.env.MAX_BACKUPS, 10) || 5; // Maximum number
 
 // Validate maxBackups
 if (!Number.isInteger(maxBackups) || maxBackups <= 0) {
-  throw new Error(
+  throw AppError.validationError(
     `Invalid MAX_BACKUPS value: ${maxBackups}. Must be a positive integer.`
   );
 }
@@ -48,40 +49,40 @@ if (!Number.isInteger(maxBackups) || maxBackups <= 0) {
  */
 const backupDatabase = async () => {
   if (!targetDatabase) {
-    throw new Error('Environment variable DB_NAME is missing.');
+    throw AppError.validationError('Environment variable DB_NAME is missing.');
   }
-  
+
   try {
     // Ensure the backup directory exists
     await ensureDirectory(backupDir);
     logInfo(`Starting backup for database: '${targetDatabase}'`);
-    
+
     // Build the dump command **without exposing credentials**
-    const dumpCommand = `${pgDumpPath} --no-owner --no-comments --clean --if-exists -U ${dbUser} -d ${targetDatabase} -f ${backupFile}`;
-    
+    const dumpCommand = `${pgDumpPath} --format=custom --no-owner --clean --if-exists --file=${backupFile} --username=${dbUser} --dbname=${targetDatabase}`;
+
     // Run pg_dump with credentials securely handled
     await runPgDump(dumpCommand, isProduction, dbUser, dbPassword);
-    
+
     // Generate a SHA-256 hash
     const hash = await generateHash(backupFile);
     await saveHashToFile(hash, hashFile);
-    
+
     // Encrypt the SQL backup file
     const encryptionKey = process.env.BACKUP_ENCRYPTION_KEY;
     if (!encryptionKey || Buffer.from(encryptionKey, 'hex').length !== 32) {
-      throw new Error(
+      throw AppError.validationError(
         'Invalid or missing BACKUP_ENCRYPTION_KEY. Ensure it is a 64-character hexadecimal string.'
       );
     }
-    
+
     await encryptFile(backupFile, encryptedFile, encryptionKey, ivFile);
-    
+
     // Remove the plain-text backup file
     await fs.unlink(backupFile);
-    
+
     // Cleanup old backups
     await cleanupOldBackups(backupDir, maxBackups);
-    
+
     logInfo(`Backup encrypted and saved: ${encryptedFile}`);
   } catch (error) {
     logError('Error during backup operation:', { error: error.message });

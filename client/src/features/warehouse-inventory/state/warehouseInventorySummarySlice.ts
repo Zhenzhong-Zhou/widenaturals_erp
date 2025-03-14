@@ -1,5 +1,8 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { WarehouseInventorySummary, WarehouseInventorySummaryResponse } from './warehouseInventoryTypes.ts';
+import {
+  WarehouseInventorySummary,
+  WarehouseInventorySummaryResponse,
+} from './warehouseInventoryTypes.ts';
 import { fetchWarehouseInventorySummaryThunk } from './warehouseInventoryThunks.ts';
 
 interface WarehouseInventoryState {
@@ -36,15 +39,21 @@ const warehouseInventorySlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchWarehouseInventorySummaryThunk.fulfilled, (state, action: PayloadAction<WarehouseInventorySummaryResponse>) => {
-        state.loading = false;
-        state.data = action.payload.formattedSummary;
-        state.pagination = action.payload.pagination;
-      })
-      .addCase(fetchWarehouseInventorySummaryThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload || 'Unknown error occurred';
-      });
+      .addCase(
+        fetchWarehouseInventorySummaryThunk.fulfilled,
+        (state, action: PayloadAction<WarehouseInventorySummaryResponse>) => {
+          state.loading = false;
+          state.data = action.payload.formattedSummary;
+          state.pagination = action.payload.pagination;
+        }
+      )
+      .addCase(
+        fetchWarehouseInventorySummaryThunk.rejected,
+        (state, action) => {
+          state.loading = false;
+          state.error = action.payload || 'Unknown error occurred';
+        }
+      );
   },
 });
 

@@ -1,5 +1,4 @@
 import { useAppDispatch } from '../store/storeHooks';
-import { useNavigate } from 'react-router-dom';
 import { clearTokens } from '../utils/tokenManager';
 import { logoutThunk } from '../features/session/state/sessionThunks';
 import { useCallback, useState } from 'react';
@@ -9,7 +8,6 @@ import { useCallback, useState } from 'react';
  */
 const useLogout = () => {
   const dispatch = useAppDispatch();
-  const navigate = useNavigate();
 
   // State for loading and error handling
   const [isLoading, setIsLoading] = useState(false);
@@ -20,20 +18,31 @@ const useLogout = () => {
     setError(null); // Reset error state
 
     try {
-      console.log('Logout initiated');
+      console.log('Logout initiated...');
 
-      // Perform API logout
-      await dispatch(logoutThunk()).unwrap();
+      // Attempt API logout
+      try {
+        await dispatch(logoutThunk()).unwrap();
+      } catch (error) {
+        console.warn(
+          'Logout request failed or session already invalid:',
+          error
+        );
+        // Proceed with clearing session regardless
+      }
 
-      // Clear client-side data
+      // Clear client-side tokens
       clearTokens();
       localStorage.clear();
       sessionStorage.clear();
 
       console.log('Client data cleared. Redirecting to /login');
-      navigate('/login');
 
       setIsLoading(false);
+
+      // Ensure the page fully reloads to prevent stale session data
+      window.location.href = '/login';
+
       return true; // Indicate success
     } catch (error: any) {
       console.error('Error during logout:', error);
@@ -41,7 +50,7 @@ const useLogout = () => {
       setIsLoading(false);
       return false; // Indicate failure
     }
-  }, [dispatch, navigate]);
+  }, [dispatch]);
 
   return { logout, isLoading, error };
 };

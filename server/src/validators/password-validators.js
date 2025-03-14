@@ -18,9 +18,11 @@ const basePasswordValidation = Joi.string()
 // Full password validation schema
 const validatePasswordSchema = Joi.object({
   currentPassword: basePasswordValidation,
-  newPassword: basePasswordValidation.invalid(Joi.ref('currentPassword')).messages({
-    'any.invalid': 'New password cannot be the same as the current password.',
-  }),
+  newPassword: basePasswordValidation
+    .invalid(Joi.ref('currentPassword'))
+    .messages({
+      'any.invalid': 'New password cannot be the same as the current password.',
+    }),
 });
 
 module.exports = {

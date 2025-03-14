@@ -3,7 +3,7 @@
  * @description Application entry point.
  */
 
-const { logInfo, logFatal } = require('./utils/logger-helper');
+const { logInfo, logFatal, logError } = require('./utils/logger-helper');
 const { startServer, shutdownServer } = require('./server');
 const { setServer, handleExit } = require('./utils/on-exit');
 const { loadAndValidateEnv } = require('./config/env-manager'); // Load and validate environment variables
@@ -16,7 +16,7 @@ const initializeApp = async () => {
     logInfo('Loading environment variables...');
 
     // Load and validate environment variables
-    const env = loadAndValidateEnv();
+    const { env } = loadAndValidateEnv();
     logInfo(
       `Environment variables loaded and validated for environment: ${env}`
     );
@@ -38,7 +38,7 @@ const initializeApp = async () => {
     });
 
     process.on('unhandledRejection', (reason, promise) => {
-      console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+      logError('Unhandled Rejection at:', promise, 'reason:', reason);
     });
 
     logInfo('Application started successfully.');

@@ -90,40 +90,40 @@ const refreshToken = async (): Promise<{ accessToken: string }> => {
       type: ErrorType.AuthenticationError,
     });
   }
-  
+
   try {
     refreshAttemptCount += 1;
     const state = store.getState();
     const csrfToken = selectCsrfToken(state);
-    
-    const response =
-      await axiosInstance.post<{ accessToken: string }>(
-        API_ENDPOINTS.REFRESH_TOKEN,
-        {
-          headers: {
-            'X-CSRF-Token': csrfToken,
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${getToken('accessToken')}`,
-          },
-          withCredentials: true,
-      });
-    
+
+    const response = await axiosInstance.post<{ accessToken: string }>(
+      API_ENDPOINTS.REFRESH_TOKEN,
+      {
+        headers: {
+          'X-CSRF-Token': csrfToken,
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${getToken('accessToken')}`,
+        },
+        withCredentials: true,
+      }
+    );
+
     // Update Axios headers to use the new access token
     axiosInstance.defaults.headers.common['Authorization'] =
       `Bearer ${response.data.accessToken}`;
-    
+
     refreshAttemptCount = 0; // Reset attempt count on success
     return { accessToken: response.data.accessToken };
   } catch (error: unknown) {
     // Log the error and handle session expiration
     handleError(error);
-    
+
     // Call logoutThunk via store.dispatch
     await store.dispatch(logoutThunk());
-    
+
     // Redirect to login
     window.location.href = '/login?expired=true';
-    
+
     // Throw an application-level error
     throw new AppError('Token refresh failed', 401, {
       type: ErrorType.GlobalError,
@@ -137,14 +137,14 @@ const refreshToken = async (): Promise<{ accessToken: string }> => {
  */
 const logout = async (): Promise<void> => {
   try {
-    await withTimeout(
+    const response = await withTimeout(
       axiosInstance.post(API_ENDPOINTS.LOGOUT),
       5000, // Timeout in milliseconds
       'Logout request timed out'
     );
 
     clearTokens();
-    console.log('Logout successful');
+    return response.data;
   } catch (error) {
     console.error('Logout failed:', error);
     throw new AppError('Logout failed. Please try again.', 500, {

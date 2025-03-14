@@ -1,4 +1,5 @@
-import { Box, Paper } from '@mui/material';
+import Box from '@mui/material/Box';
+import Paper from '@mui/material/Paper';
 import { CustomButton, CustomCard, Typography } from '@components/index.ts';
 import { formatDate } from '@utils/dateTimeUtils.ts';
 import { WarehouseProductSummary } from '../state/warehouseInventoryTypes.ts';
@@ -14,19 +15,19 @@ interface WarehouseProductSummaryProps {
 }
 
 const WarehouseProductSummaryCard = ({
-                                       productsSummary,
-                                       summaryPage,
-                                       totalPages,
-                                       setSummaryPage,
-                                       refreshSummary,
-                                     }: WarehouseProductSummaryProps) => {
+  productsSummary,
+  summaryPage,
+  totalPages,
+  setSummaryPage,
+  refreshSummary,
+}: WarehouseProductSummaryProps) => {
   return (
     <Box>
       {/* Page Header */}
       <Paper sx={{ padding: 2, marginBottom: 3 }}>
         <Typography variant="h4">Warehouse Product Summary</Typography>
       </Paper>
-      
+
       {/* Summary Cards (Limited to 3 per Page) */}
       <Box
         sx={{
@@ -37,31 +38,45 @@ const WarehouseProductSummaryCard = ({
       >
         {productsSummary.map((product) => (
           <CustomCard
-            key={product.productId}
+            key={product.inventoryId}
             title={product.productName}
             subtitle={`Total Lots: ${product.totalLots}`}
             sx={{
               minWidth: 300,
-              transition: 'transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out',
+              transition:
+                'transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out',
               '&:hover': {
                 transform: 'scale(1.05)',
                 boxShadow: 3,
               },
             }}
           >
-            <Typography variant="body2">Reserved Stock: {product.totalReservedStock}</Typography>
-            <Typography variant="body2">Available Stock: {product.totalAvailableStock}</Typography>
-            <Typography variant="body2">Zero Stock Lots: {product.totalZeroStockLots}</Typography>
             <Typography variant="body2">
-              Earliest Expiry: {product.earliestExpiry ? formatDate(product.earliestExpiry) : 'N/A'}
+              Reserved Stock: {product.totalReservedStock}
             </Typography>
             <Typography variant="body2">
-              Latest Expiry: {product.latestExpiry ? formatDate(product.latestExpiry) : 'N/A'}
+              Available Stock: {product.totalAvailableStock}
+            </Typography>
+            <Typography variant="body2">
+              Total Stock: {product.totalQtyStock}
+            </Typography>
+            <Typography variant="body2">
+              Zero Stock Lots: {product.totalZeroStockLots}
+            </Typography>
+            <Typography variant="body2">
+              Earliest Expiry:{' '}
+              {product.earliestExpiry
+                ? formatDate(product.earliestExpiry)
+                : 'N/A'}
+            </Typography>
+            <Typography variant="body2">
+              Latest Expiry:{' '}
+              {product.latestExpiry ? formatDate(product.latestExpiry) : 'N/A'}
             </Typography>
           </CustomCard>
         ))}
       </Box>
-      
+
       {/* Pagination Controls */}
       {totalPages > 1 && (
         <Box
@@ -74,17 +89,26 @@ const WarehouseProductSummaryCard = ({
           }}
         >
           <IconButton
-            onClick={() => setSummaryPage(summaryPage > 1 ? summaryPage - 1 : 1)}
+            onClick={() =>
+              setSummaryPage(summaryPage > 1 ? summaryPage - 1 : 1)
+            }
             disabled={summaryPage === 1}
             color="primary"
           >
             <ArrowBack />
           </IconButton>
-          <Typography variant="body2" sx={{ minWidth: 80, textAlign: 'center' }}>
+          <Typography
+            variant="body2"
+            sx={{ minWidth: 80, textAlign: 'center' }}
+          >
             {`Page ${summaryPage} of ${totalPages}`}
           </Typography>
           <IconButton
-            onClick={() => setSummaryPage(summaryPage < totalPages ? summaryPage + 1 : totalPages)}
+            onClick={() =>
+              setSummaryPage(
+                summaryPage < totalPages ? summaryPage + 1 : totalPages
+              )
+            }
             disabled={summaryPage === totalPages}
             color="primary"
           >
@@ -92,7 +116,7 @@ const WarehouseProductSummaryCard = ({
           </IconButton>
         </Box>
       )}
-      
+
       {/* Refresh Button */}
       <Box sx={{ display: 'flex', justifyContent: 'center', marginTop: 2 }}>
         <CustomButton onClick={refreshSummary}>Refresh Data</CustomButton>

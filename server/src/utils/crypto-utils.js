@@ -54,10 +54,71 @@ const hashData = (data) => {
   return crypto.createHash('sha256').update(data).digest('hex');
 };
 
+/**
+ * Generate a unique checksum for inventory history records.
+ * Ensures consistency and traceability in inventory changes.
+ *
+ * @param {string} inventory_id
+ * @param {string} inventory_action_type_id
+ * @param {number} previous_quantity
+ * @param {number} quantity_change
+ * @param {number} new_quantity
+ * @param {string} source_action_id
+ * @param {string} comments
+ * @returns {string} - SHA256 checksum hash
+ */
+const generateChecksum = (
+  inventory_id,
+  inventory_action_type_id,
+  previous_quantity,
+  quantity_change,
+  new_quantity,
+  source_action_id,
+  comments
+) => {
+  const data = [
+    inventory_id,
+    inventory_action_type_id,
+    previous_quantity,
+    quantity_change,
+    new_quantity,
+    source_action_id || '',
+    comments || '',
+  ].join('|');
+
+  return crypto.createHash('sha256').update(data).digest('hex');
+};
+
+/**
+ * Validate inventory history checksum before returning to frontend
+ * @param {Object} record - Inventory history record
+ * @returns {Boolean} - True if checksum matches, false otherwise
+ */
+const validateChecksum = (record) => {
+  const computedChecksum = crypto
+    .createHash('sha256') // Ensure to match database hashing method
+    .update(
+      [
+        record.inventory_id,
+        record.inventory_action_type_id,
+        record.previous_quantity,
+        record.quantity_change,
+        record.new_quantity,
+        record.source_action_id || '',
+        record.comments || '',
+      ].join('|')
+    )
+    .digest('hex');
+
+  return computedChecksum === record.checksum;
+};
+
 module.exports = {
   generateSecret,
   generateRandomToken,
   encryptData,
   decryptData,
   hashData,
+  generateChecksum,
+  validateChecksum,
 };

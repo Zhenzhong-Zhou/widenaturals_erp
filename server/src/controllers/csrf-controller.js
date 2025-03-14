@@ -1,5 +1,6 @@
 const { logError } = require('../utils/logger-helper');
 const { csrfError } = require('../utils/AppError');
+const wrapAsync = require('../utils/wrap-async');
 
 /**
  * Middleware to generate a CSRF token for frontend usage.
@@ -9,7 +10,7 @@ const { csrfError } = require('../utils/AppError');
  * @param {object} res - The Express response object.
  * @param {function} next - The Express next middleware function.
  */
-const generateCsrfTokenController = (req, res, next) => {
+const generateCsrfTokenController = wrapAsync((req, res, next) => {
   try {
     const newCsrfToken = req.csrfToken(); // Generate CSRF token
 
@@ -34,6 +35,6 @@ const generateCsrfTokenController = (req, res, next) => {
       })
     );
   }
-};
+});
 
 module.exports = { generateCsrfTokenController };

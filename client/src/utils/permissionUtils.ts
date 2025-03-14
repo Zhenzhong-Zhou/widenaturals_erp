@@ -1,4 +1,7 @@
-export const getEffectivePermissions = (roleName: string, permissions: string[]): string[] => {
+export const getEffectivePermissions = (
+  roleName: string,
+  permissions: string[]
+): string[] => {
   if (roleName === 'root_admin') {
     return ['root_access']; // Root admin only has root access
   }
@@ -10,5 +13,8 @@ export const hasPermission = (
   permissions: string[],
   roleName: string
 ): boolean => {
-  return roleName === 'root_admin' || (requiredPermission ? permissions.includes(requiredPermission) : true);
+  return (
+    roleName === 'root_admin' ||
+    (requiredPermission ? permissions.includes(requiredPermission) : true)
+  );
 };

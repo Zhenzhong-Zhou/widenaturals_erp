@@ -10,10 +10,7 @@ const { query } = require('../database/db');
  */
 const getStatusIdByName = async (statusName) => {
   if (!statusName) {
-    throw new AppError('Status name is required', 400, {
-      type: 'ValidationError',
-      isExpected: true,
-    });
+    throw AppError('Status name is required');
   }
   const result = await queryStatus('LOWER(name) = LOWER($1)', [statusName]);
   return result ? result.id : null;
@@ -28,10 +25,7 @@ const getStatusIdByName = async (statusName) => {
  */
 const getStatusNameById = async (id) => {
   if (!id) {
-    throw new AppError('Status ID is required', 400, {
-      type: 'ValidationError',
-      isExpected: true,
-    });
+    throw AppError.validationError('Status ID is required');
   }
   return queryStatus('id = $1', [id]);
 };
@@ -55,10 +49,7 @@ const queryStatus = async (whereClause, params) => {
     const result = await query(text, params);
     return result.rows[0] || null;
   } catch (error) {
-    throw new AppError('Database query error while fetching status', 500, {
-      type: 'DatabaseError',
-      isExpected: false,
-    });
+    throw AppError.databaseError('Database query error while fetching status');
   }
 };
 
@@ -91,7 +82,7 @@ const getAllStatuses = async (page = 1, limit = 10) => {
       sortOrder: 'DESC',
     });
   } catch (error) {
-    throw new AppError('Failed to fetch statuses from the database', 500, {
+    throw AppError('Failed to fetch statuses from the database', 500, {
       type: 'DatabaseError',
       isExpected: false,
     });
@@ -133,13 +124,8 @@ const getFilteredStatuses = async (
     const result = await query(text, params);
     return result.rows || [];
   } catch (error) {
-    throw new AppError(
-      'Failed to fetch filtered statuses from the database',
-      500,
-      {
-        type: 'DatabaseError',
-        isExpected: false,
-      }
+    throw AppError.databaseError(
+      'Failed to fetch filtered statuses from the database'
     );
   }
 };
@@ -153,10 +139,7 @@ const getFilteredStatuses = async (
  */
 const getStatusById = async (id) => {
   if (!id) {
-    throw new AppError('Status ID is required', 400, {
-      type: 'ValidationError',
-      isExpected: true,
-    });
+    throw AppError.validationError('Status ID is required');
   }
 
   const text = `
@@ -169,10 +152,9 @@ const getStatusById = async (id) => {
     const result = await query(text, [id]);
     return result.rows[0] || null;
   } catch (error) {
-    throw new AppError('Failed to fetch the status from the database', 500, {
-      type: 'DatabaseError',
-      isExpected: false,
-    });
+    throw AppError.databaseError(
+      'Failed to fetch the status from the database'
+    );
   }
 };
 

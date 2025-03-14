@@ -6,7 +6,7 @@ const getAllPriceTypes = async ({ page, limit }) => {
   const tableName = 'pricing_types pt';
   const joins = []; // No joins needed for this query
   const whereClause = '1=1'; // Ensures no filtering
-  
+
   const baseQuery = `
     SELECT
       pt.id,
@@ -23,9 +23,9 @@ const getAllPriceTypes = async ({ page, limit }) => {
     LEFT JOIN users cu ON pt.created_by = cu.id
     LEFT JOIN users uu ON pt.updated_by = uu.id
   `;
-  
+
   const params = [];
-  
+
   try {
     // Execute the paginated query with retry logic
     const result = await retry(
@@ -43,12 +43,14 @@ const getAllPriceTypes = async ({ page, limit }) => {
         }),
       3 // Retry up to 3 times
     );
-    
-    logInfo(`Successfully fetched ${result.data.length} price types on page ${page}.`);
+
+    logInfo(
+      `Successfully fetched ${result.data.length} price types on page ${page}.`
+    );
     return result;
   } catch (error) {
     logError('Error fetching price types:', error);
-    throw new AppError('Failed to fetch price types', 500, error);
+    throw AppError.databaseError('Failed to fetch price types', 500, error);
   }
 };
 
@@ -76,14 +78,14 @@ const getPricingTypeById = async (pricingTypeId) => {
     LEFT JOIN users updated_by_user ON pt.updated_by = updated_by_user.id
     WHERE pt.id = $1;
   `;
-  
+
   try {
     return await retry(async () => {
       const result = await query(pricingTypeQuery, [pricingTypeId]);
       return result.rows.length ? result.rows[0] : null;
     });
   } catch (error) {
-    throw new AppError('Failed to fetch pricing type details', 500, { originalError: error.message });
+    throw AppError.databaseError('Failed to fetch pricing type details');
   }
 };
 

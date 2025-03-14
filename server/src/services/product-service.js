@@ -1,4 +1,8 @@
-const { getProducts, getProductDetailsById } = require('../repositories/product-repository');
+const {
+  getProducts,
+  getProductDetailsById,
+  getAvailableProductsForDropdown,
+} = require('../repositories/product-repository');
 const { logInfo, logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
 
@@ -17,17 +21,17 @@ const fetchAllProducts = async ({ page, limit, category, name }) => {
     const filters = {};
     if (category) filters.category = category.trim();
     if (name) filters.name = name.trim();
-    
+
     logInfo('Fetching products', { page, limit, filters });
-    
+
     // Call the repository layer, which handles pagination and retry
     const { data, pagination } = await getProducts({ page, limit, filters });
-    
+
     logInfo('Products fetched successfully', {
       resultCount: data.length,
       pagination,
     });
-    
+
     return {
       data,
       pagination, // Already calculated in the repository layer
@@ -57,13 +61,24 @@ const fetchProductDetails = async (id) => {
     return await getProductDetailsById(id);
   } catch (error) {
     logError('Error in service layer:', error.message);
-    
+
     // Wrap and rethrow error for consistent error handling
     throw AppError.serviceError('Error fetching product details');
   }
 };
 
+const fetchProductDropdownList = async (warehouse_id) => {
+  try {
+    return await getAvailableProductsForDropdown(warehouse_id);
+  } catch (error) {
+    throw AppError.serviceError(
+      `Failed to fetch product dropdown: ${error.message}`
+    );
+  }
+};
+
 module.exports = {
   fetchAllProducts,
-  fetchProductDetails
+  fetchProductDetails,
+  fetchProductDropdownList,
 };

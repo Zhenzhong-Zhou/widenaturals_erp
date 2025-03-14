@@ -15,35 +15,35 @@ const execAsync = promisify(exec);
 const runPgDump = async (dumpCommand, isProduction, dbUser, dbPassword) => {
   try {
     logInfo('Starting pg_dump execution...');
-    
+
     const execOptions = {
       timeout: 300000, // 5-minute timeout
       env: {
         ...process.env, // Preserve existing env variables
       },
     };
-    
-    // In production, rely on .pgpass, so do not pass PGPASSWORD
+
     if (!isProduction) {
       execOptions.env.PGUSER = dbUser;
       execOptions.env.PGPASSWORD = dbPassword;
     }
-    
+
     const { stdout, stderr } = await execAsync(dumpCommand, execOptions);
-    
+
     if (stdout) logInfo(`pg_dump output: ${stdout}`);
-    if (stderr) logError(`pg_dump warnings: ${stderr}`);
+    if (stderr) logError(`pg_dump error output: ${stderr}`);
   } catch (error) {
-    if (error.killed) {
-      logError('pg_dump was terminated by the user or a system signal.');
-    } else {
-      logError('pg_dump failed:', {
-        message: error.message,
-        code: error.code,
-        signal: error.signal,
-        cmd: error.cmd,
-      });
-    }
+    logError('pg_dump failed:', {
+      message: error.message,
+      code: error.code,
+      signal: error.signal,
+      cmd: error.cmd,
+    });
+
+    // Log full error output
+    if (error.stdout) logError(`pg_dump stdout: ${error.stdout}`);
+    if (error.stderr) logError(`pg_dump stderr: ${error.stderr}`);
+
     throw error;
   }
 };

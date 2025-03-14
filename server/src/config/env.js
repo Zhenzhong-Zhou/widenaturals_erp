@@ -38,7 +38,7 @@ const loadEnv = () => {
   // Allowed environments
   const allowedEnvs = ['development', 'test', 'staging', 'production'];
   if (!allowedEnvs.includes(env)) {
-    throw new AppError(
+    throw AppError.validationError(
       `Invalid NODE_ENV: ${env}. Allowed values: ${allowedEnvs.join(', ')}`
     );
   }
@@ -86,7 +86,7 @@ const validateEnv = (groups) => {
   if (missingVars.length > 0) {
     const errorMsg = `Missing required environment variables or secrets: ${missingVars.join(', ')}`;
     logError(errorMsg);
-    throw new AppError(errorMsg);
+    throw AppError.validationError(errorMsg);
   }
 };
 

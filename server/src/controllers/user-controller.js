@@ -27,7 +27,9 @@ const getAllUsersController = wrapAsync(async (req, res, next) => {
     };
 
     if (paginationParams.page < 1 || paginationParams.limit < 1) {
-      return next(AppError.validationError('Page and limit must be positive integers.'));
+      return next(
+        AppError.validationError('Page and limit must be positive integers.')
+      );
     }
 
     // Call service
@@ -53,9 +55,7 @@ const getAllUsersController = wrapAsync(async (req, res, next) => {
 const getUserProfile = wrapAsync(async (req, res) => {
   // Ensure user is authenticated
   if (!req.user || !req.user.id) {
-    throw new AppError.authenticationError('User is not authenticated', 401, {
-      type: 'AuthenticationError',
-    });
+    throw AppError.authenticationError('User is not authenticated');
   }
 
   // Fetch user profile
@@ -87,7 +87,7 @@ const getPermissions = wrapAsync(async (req, res, next) => {
 
   // Fetch permissions from the service
   const rolePermissions = await fetchPermissions(role);
-  
+
   res.status(200).json({
     success: true,
     message: 'Permissions retrieved successfully',

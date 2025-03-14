@@ -11,9 +11,17 @@ export const fetchAllInventories = createAsyncThunk<
   { rejectValue: string }
 >(
   'inventory/fetchAllInventories',
-  async ({ page, limit, sortBy = 'created_at', sortOrder = 'DESC' }, { rejectWithValue }) => {
+  async (
+    { page, limit, sortBy = 'created_at', sortOrder = 'DESC' },
+    { rejectWithValue }
+  ) => {
     try {
-      return await inventoryService.fetchAllInventories(page, limit, sortBy, sortOrder);
+      return await inventoryService.fetchAllInventories(
+        page,
+        limit,
+        sortBy,
+        sortOrder
+      );
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to fetch inventories');
     }

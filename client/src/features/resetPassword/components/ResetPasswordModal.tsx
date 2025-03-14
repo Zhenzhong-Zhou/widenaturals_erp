@@ -1,9 +1,12 @@
 import { FC } from 'react';
-import { Box, IconButton, Typography, Alert, Backdrop } from '@mui/material';
+import Box from '@mui/material/Box';
+import IconButton from '@mui/material/IconButton';
+import Alert from '@mui/material/Alert';
+import { CustomModal, Typography } from '@components/index.ts';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import ResetPasswordForm from './ResetPasswordForm';
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
-import { useThemeContext } from '../../../context';
+import { useThemeContext } from '../../../context/ThemeContext';
 
 interface ResetPasswordModalProps {
   open: boolean;
@@ -23,24 +26,37 @@ const ResetPasswordModal: FC<ResetPasswordModalProps> = ({
   const { theme } = useThemeContext();
 
   return (
-    <Backdrop
+    <CustomModal
       open={open}
-      onClick={onClose} // Close the modal when clicking outside
-      sx={{ zIndex: 1300, bgcolor: 'rgba(0, 0, 0, 0.5)' }} // Adjust the backdrop's appearance
+      onClose={onClose}
+      aria-labelledby="reset-password-title"
+      sx={{
+        display: 'flex', // Center the modal
+        alignItems: 'center',
+        justifyContent: 'center',
+        backdropFilter: 'blur(5px)', // Soften the background blur
+        bgcolor: 'rgba(0, 0, 0, 0.3)', // Darker overlay
+        width: 'auto',
+        height: 'auto', // Full height for better centering
+      }}
     >
       <Box
         component="div"
-        onClick={(e) => e.stopPropagation()} // Prevent the modal itself from triggering the close
         sx={{
           position: 'relative',
           bgcolor: 'background.paper',
-          width: 400,
+          width: 'auto', // Responsive width
+          maxWidth: 420, // Limit width on larger screens
+          minWidth: 320, // Prevent shrinking too much on mobile
           boxShadow: 24,
           borderRadius: 2,
           p: 3,
-          zIndex: 1400, // Ensure the modal content is above the backdrop
+          zIndex: 1400,
+          maxHeight: '80vh', // Prevent modal from exceeding screen height
+          overflowY: 'auto', // Enable scrolling when needed
         }}
       >
+        {/* Header */}
         <Box
           sx={{
             display: 'flex',
@@ -49,7 +65,7 @@ const ResetPasswordModal: FC<ResetPasswordModalProps> = ({
             mb: 2,
           }}
         >
-          <Typography variant="h6" component="h2">
+          <Typography id="reset-password-title" variant="h6" component="h2">
             Reset Password
           </Typography>
           <IconButton onClick={onClose} aria-label="close">
@@ -62,15 +78,16 @@ const ResetPasswordModal: FC<ResetPasswordModalProps> = ({
           </IconButton>
         </Box>
 
-        {/* Add a warning or hint */}
+        {/* Info Alert */}
         <Alert severity="info" sx={{ mb: 2 }}>
           Please note: After successfully resetting your password, you will be
           logged out and required to log in again with your new password.
         </Alert>
 
+        {/* Reset Password Form */}
         <ResetPasswordForm onSubmit={onSubmit} />
       </Box>
-    </Backdrop>
+    </CustomModal>
   );
 };
 

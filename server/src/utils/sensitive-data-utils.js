@@ -83,15 +83,23 @@ const maskRow = (table, row) => {
 const sanitizeMessage = (message, maskIp = false) => {
   if (!message || typeof message !== 'string') return message;
 
-  return message
-    // Mask passwords (e.g., password=1234 or "password": "1234")
-    .replace(/(password\s*[:=]\s*)["']?\S+["']?/gi, '$1****')
-    // Mask tokens (e.g., token=abcd1234 or "token": "abcd1234")
-    .replace(/(token\s*[:=]\s*)["']?\S+["']?/gi, '$1****')
-    // Mask email addresses (e.g., user@example.com)
-    .replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g, '***@***')
-    // Optionally mask IP addresses
-    .replace(maskIp ? /\b(?:\d{1,3}\.){3}\d{1,3}\b/g : /(?:)/g, '***.***.***.***');
+  return (
+    message
+      // Mask passwords (e.g., password=1234 or "password": "1234")
+      .replace(/(password\s*[:=]\s*)["']?\S+["']?/gi, '$1****')
+      // Mask tokens (e.g., token=abcd1234 or "token": "abcd1234")
+      .replace(/(token\s*[:=]\s*)["']?\S+["']?/gi, '$1****')
+      // Mask email addresses (e.g., user@example.com)
+      .replace(
+        /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g,
+        '***@***'
+      )
+      // Optionally mask IP addresses
+      .replace(
+        maskIp ? /\b(?:\d{1,3}\.){3}\d{1,3}\b/g : /(?:)/g,
+        '***.***.***.***'
+      )
+  );
 };
 
 /**

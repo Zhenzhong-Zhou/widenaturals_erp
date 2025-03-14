@@ -3,7 +3,6 @@ const {
   ONE_MINUTE,
   FIVE_MINUTES,
   TEN_MINUTES,
-  THIRTY_MINUTES,
 } = require('../general/time');
 const {
   RATE_LIMIT_GLOBAL,
@@ -16,6 +15,7 @@ const {
   RATE_LIMIT_ADMIN,
   RATE_LIMIT_FILE_UPLOAD,
   RATE_LIMIT_FORGOT_USERNAME,
+  RATE_LIMIT_CSRF_TOKEN,
 } = require('../messages/error-messages');
 const { RATE_LIMIT_MAX } = require('../general/max-limits');
 
@@ -39,7 +39,7 @@ const RATE_LIMIT = {
   CSRF: {
     WINDOW_MS: FIFTEEN_MINUTES,
     MAX: RATE_LIMIT_MAX.CSRF,
-    MESSAGE: '',
+    MESSAGE: RATE_LIMIT_CSRF_TOKEN,
   },
 
   LOGIN: {
@@ -61,7 +61,7 @@ const RATE_LIMIT = {
   },
 
   REFRESH: {
-    WINDOW_MS: THIRTY_MINUTES,
+    WINDOW_MS: FIFTEEN_MINUTES,
     MAX: RATE_LIMIT_MAX.REFRESH,
     MESSAGE: '',
   },

@@ -1,29 +1,36 @@
 const wrapAsync = require('../utils/wrap-async');
-const { fetchAllProducts, fetchProductDetails } = require('../services/product-service');
+const {
+  fetchAllProducts,
+  fetchProductDetails,
+  fetchProductDropdownList,
+} = require('../services/product-service');
 const { logInfo, logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
+const { fetchWarehouseDropdownList } = require('../services/warehouse-service');
 
 // Controller to handle the GET /products request
 const getProductsController = wrapAsync(async (req, res, next) => {
   // Extract and validate query parameters
   let { page = 1, limit = 10, category, name } = req.query;
-  
+
   try {
     // Validate inputs
     const paginationParams = {
       page: parseInt(page, 10),
       limit: parseInt(limit, 10),
       category,
-      name
+      name,
     };
-    
+
     if (paginationParams.page < 1 || paginationParams.limit < 1) {
-      return next(AppError.validationError('Page and limit must be positive integers.'));
+      return next(
+        AppError.validationError('Page and limit must be positive integers.')
+      );
     }
-    
+
     // Call the service layer
     const products = await fetchAllProducts(paginationParams);
-    
+
     // Log the successful response
     logInfo('Products fetched successfully', {
       page,
@@ -32,7 +39,7 @@ const getProductsController = wrapAsync(async (req, res, next) => {
       name,
       resultCount: products.data.length,
     });
-    
+
     // Send the response back to the client
     res.status(200).json({
       success: true,
@@ -49,7 +56,7 @@ const getProductsController = wrapAsync(async (req, res, next) => {
       route: req.originalUrl,
       userAgent: req.headers['user-agent'],
     });
-    
+
     next(
       AppError.serviceError('Failed to fetch products', {
         originalError: error.message,
@@ -73,16 +80,16 @@ const getProductsController = wrapAsync(async (req, res, next) => {
  */
 const getProductDetailsByIdController = wrapAsync(async (req, res, next) => {
   const { id } = req.params;
-  
+
   // Validate the product ID
   if (!id || typeof id !== 'string') {
     return next(AppError.validationError('Invalid product ID'));
   }
-  
+
   try {
     // Fetch product details from the service
     const product = await fetchProductDetails(id);
-    
+
     // Return product details
     res.status(200).json({
       success: true,
@@ -90,10 +97,24 @@ const getProductDetailsByIdController = wrapAsync(async (req, res, next) => {
     });
   } catch (error) {
     logError('Error fetching product details:', error.message);
-    
+
     // Pass the error to centralized error handling
     next(error);
   }
 });
 
-module.exports = { getProductsController, getProductDetailsByIdController };
+const getProductsDropdownListController = wrapAsync(async (req, res, next) => {
+  const { warehouse_id } = req.query;
+  try {
+    const products = await fetchProductDropdownList(warehouse_id);
+    res.json(products);
+  } catch (error) {
+    next(error);
+  }
+});
+
+module.exports = {
+  getProductsController,
+  getProductDetailsByIdController,
+  getProductsDropdownListController,
+};

@@ -13,28 +13,40 @@ exports.up = async function (knex) {
         .references('id')
         .inTable('customers');
       table.date('order_date').notNullable();
-      table.json('items').notNullable();
-      table.uuid('discount_id').references('id').inTable('pricing');
+      table
+        .uuid('discount_id')
+        .nullable()
+        .references('id')
+        .inTable('discounts');
       table.decimal('discount_amount', 10, 2);
       table.decimal('subtotal', 10, 2).notNullable();
-      table.decimal('tax', 10, 2);
+      table
+        .uuid('tax_rate_id')
+        .nullable()
+        .references('id')
+        .inTable('tax_rates'); // Ensure tax rate consistency
+
+      table.decimal('tax_amount', 10, 2).defaultTo(0.0);
       table.decimal('shipping_fee', 10, 2);
       table.decimal('total_amount', 10, 2).notNullable();
-      table
-        .uuid('tracking_number_id')
-        .references('id')
-        .inTable('tracking_numbers');
       table
         .uuid('delivery_method_id')
         .references('id')
         .inTable('delivery_methods');
-      table.uuid('status_id').notNullable().references('id').inTable('status');
+      table
+        .uuid('order_status_id')
+        .notNullable()
+        .references('id')
+        .inTable('order_status');
       table.timestamp('status_date', { useTz: true }).defaultTo(knex.fn.now());
       table.text('note');
       table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
       table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
       table.uuid('created_by').references('id').inTable('users');
       table.uuid('updated_by').references('id').inTable('users');
+
+      table.index('delivery_method_id');
+      table.index(['customer_id', 'order_status_id', 'tax_rate_id']);
     });
   }
 };

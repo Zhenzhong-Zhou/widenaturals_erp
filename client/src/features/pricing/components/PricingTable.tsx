@@ -16,25 +16,43 @@ interface PricingTableProps {
 }
 
 const PricingTable: FC<PricingTableProps> = ({
-                                               data,
-                                               page,
-                                               rowsPerPage,
-                                               totalRecords,
-                                               totalPages,
-                                               onPageChange,
-                                               onRowsPerPageChange,
-                                             }) => {
+  data,
+  page,
+  rowsPerPage,
+  totalRecords,
+  totalPages,
+  onPageChange,
+  onRowsPerPageChange,
+}) => {
   const columns = [
-    { id: 'price_type', label: 'Price Type', sortable: true },
+    {
+      id: 'product_name',
+      label: 'Product Name',
+      sortable: true,
+    },
+    {
+      id: 'location',
+      label: 'Location Name',
+      sortable: true,
+    },
+    {
+      id: 'price_type',
+      label: 'Price Type',
+      sortable: true,
+    },
     {
       id: 'price',
       label: 'Price',
       sortable: true,
-      format: (value: string, row: any) => (
-        <Link to={`/pricings/${row.pricing_id}`} style={{ textDecoration: 'none', color: 'red' }}>
-          {formatCurrency(value)}
+      format: (value: string) => formatCurrency(value),
+      renderCell: (row: any) => (
+        <Link
+          to={`/pricings/${row.pricing_id}`}
+          style={{ textDecoration: 'none', color: 'red' }}
+        >
+          {formatCurrency(row.price)}
         </Link>
-      )
+      ),
     },
     {
       id: 'valid_from',
@@ -83,7 +101,7 @@ const PricingTable: FC<PricingTableProps> = ({
       sortable: true,
     },
   ];
-  
+
   return (
     <CustomTable
       columns={columns}
@@ -92,6 +110,7 @@ const PricingTable: FC<PricingTableProps> = ({
       totalRecords={totalRecords}
       totalPages={totalPages}
       initialRowsPerPage={rowsPerPage}
+      rowsPerPageOptions={[10, 25, 50, 75]}
       onPageChange={onPageChange}
       onRowsPerPageChange={onRowsPerPageChange}
     />

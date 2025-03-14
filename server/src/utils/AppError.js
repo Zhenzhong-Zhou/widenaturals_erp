@@ -37,7 +37,7 @@ class AppError extends Error {
       details: this.details,
     };
   }
-  
+
   /**
    * Serialize error for structured logging.
    * Includes additional context like stack trace.
@@ -249,6 +249,15 @@ class AppError extends Error {
     return new AppError(message, 404, {
       type: 'NotFoundError',
       code: 'RESOURCE_NOT_FOUND',
+      isExpected: true,
+      ...options,
+    });
+  }
+
+  static conflictError(message, options = {}) {
+    return new AppError(message, 409, {
+      type: 'ConflictError',
+      code: 'CONFLICT_ERROR',
       isExpected: true,
       ...options,
     });

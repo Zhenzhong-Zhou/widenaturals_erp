@@ -1,6 +1,10 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { fetchWarehouseInventoryDetailsThunk } from './warehouseInventoryThunks.ts';
-import { Pagination, WarehouseInventoryDetail, WarehouseInventoryDetailsResponse } from './warehouseInventoryTypes.ts';
+import {
+  Pagination,
+  WarehouseInventoryDetail,
+  WarehouseInventoryDetailsResponse,
+} from './warehouseInventoryTypes.ts';
 
 interface WarehouseInventoryState {
   inventoryDetails: WarehouseInventoryDetail[];
@@ -33,15 +37,21 @@ const warehouseInventorySlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchWarehouseInventoryDetailsThunk.fulfilled, (state, action: PayloadAction<WarehouseInventoryDetailsResponse>) => {
-        state.inventoryDetails = action.payload.inventoryDetails;
-        state.pagination = action.payload.pagination;
-        state.loading = false;
-      })
-      .addCase(fetchWarehouseInventoryDetailsThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
-      });
+      .addCase(
+        fetchWarehouseInventoryDetailsThunk.fulfilled,
+        (state, action: PayloadAction<WarehouseInventoryDetailsResponse>) => {
+          state.inventoryDetails = action.payload.inventoryDetails;
+          state.pagination = action.payload.pagination;
+          state.loading = false;
+        }
+      )
+      .addCase(
+        fetchWarehouseInventoryDetailsThunk.rejected,
+        (state, action) => {
+          state.loading = false;
+          state.error = action.payload as string;
+        }
+      );
   },
 });
 

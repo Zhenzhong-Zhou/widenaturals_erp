@@ -25,6 +25,11 @@ exports.up = function (knex) {
  * @param { import("knex").Knex } knex
  * @returns {Knex.SchemaBuilder}
  */
-exports.down = function (knex) {
-  return knex.schema.dropTableIfExists('users');
+exports.down = async function (knex) {
+  await knex.schema.dropTableIfExists('inventory_transfer_status');
+  await knex.schema.dropTableIfExists('inventory_allocations');
+  await knex.schema.dropTableIfExists('inventory_transfers');
+
+  // Now it's safe to drop the `users` table
+  await knex.schema.dropTableIfExists('users');
 };

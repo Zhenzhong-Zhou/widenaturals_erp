@@ -18,16 +18,19 @@ const { logError } = require('../../utils/logger-helper');
 const globalErrorHandler = (err, req, res, next) => {
   // Normalize the error to an AppError instance if it's not already
   if (!(err instanceof AppError)) {
-    err = AppError.generalError(err.message || 'An unexpected error occurred.', {
-      status: err.status || 500,
-      type: 'GeneralError',
-      isExpected: false,
-    });
+    err = AppError.generalError(
+      err.message || 'An unexpected error occurred.',
+      {
+        status: err.status || 500,
+        type: 'GeneralError',
+        isExpected: false,
+      }
+    );
   }
-  
+
   // Log the error using the `toLog` method for structured logging
   logError(err.message || 'Global Error:', req, err.toLog(req));
-  
+
   // Send structured error response using the `toJSON` method
   res.status(err.status || 500).json(err.toJSON());
 };

@@ -1,5 +1,9 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { WarehouseProductSummary, Pagination, WarehouseProductSummaryResponse } from './warehouseInventoryTypes.ts';
+import {
+  WarehouseProductSummary,
+  Pagination,
+  WarehouseProductSummaryResponse,
+} from './warehouseInventoryTypes.ts';
 import { fetchWarehouseProductSummaryThunk } from './warehouseInventoryThunks.ts';
 
 interface WarehouseProductState {
@@ -33,11 +37,14 @@ const warehouseProductSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchWarehouseProductSummaryThunk.fulfilled, (state, action: PayloadAction<WarehouseProductSummaryResponse>) => {
-        state.loading = false;
-        state.productSummaryData = action.payload.productSummaryData;
-        state.pagination = action.payload.pagination;
-      })
+      .addCase(
+        fetchWarehouseProductSummaryThunk.fulfilled,
+        (state, action: PayloadAction<WarehouseProductSummaryResponse>) => {
+          state.loading = false;
+          state.productSummaryData = action.payload.productSummaryData;
+          state.pagination = action.payload.pagination;
+        }
+      )
       .addCase(fetchWarehouseProductSummaryThunk.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;

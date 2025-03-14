@@ -6,7 +6,7 @@ const {
 const { verifyPassword } = require('../utils/password-helper');
 const { signToken } = require('../utils/token-helper');
 const AppError = require('../utils/AppError');
-const { logError } = require('../utils/logger-helper');
+const { logError, logWarn } = require('../utils/logger-helper');
 const { withTransaction } = require('../database/db');
 const { validateUserExists } = require('../validators/db-validators');
 
@@ -54,24 +54,33 @@ const loginUser = async (email, password) => {
         passwordhash,
         passwordsalt
       );
-      
+
       // Update total attempts regardless of success or failure
       const newTotalAttempts = attempts + 1;
-      
+
       if (!isValidPassword) {
-        console.warn('Password verification failed. Incrementing failed attempts.');
-        
+        logWarn('Password verification failed. Incrementing failed attempts.');
+
         // Increment failed attempts and handle lockout
-        await incrementFailedAttempts(client, user_id, newTotalAttempts, failed_attempts);
-        
+        await incrementFailedAttempts(
+          client,
+          user_id,
+          newTotalAttempts,
+          failed_attempts
+        );
+
         // Commit the transaction before throwing
         await client.query('COMMIT');
-        
+
         throw AppError.authenticationError('Invalid email or password.');
       }
 
       // Successful login: Reset failed attempts and update last login
-      await resetFailedAttemptsAndUpdateLastLogin(client, user_id, newTotalAttempts);
+      await resetFailedAttemptsAndUpdateLastLogin(
+        client,
+        user_id,
+        newTotalAttempts
+      );
 
       // Generate tokens
       const accessToken = signToken({ id: user_id, role: role_id });

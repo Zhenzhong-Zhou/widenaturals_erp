@@ -12,6 +12,8 @@ const ERROR_MESSAGES = {
     'Too many file upload requests. Please try again later.',
   RATE_LIMIT_FORGOT_USERNAME:
     'Too many forgot username requests. Please try again later.',
+  RATE_LIMIT_CSRF_TOKEN:
+    'Too many CSRF validation attempts. Please try again later.',
 };
 
 module.exports = ERROR_MESSAGES;

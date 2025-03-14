@@ -28,16 +28,16 @@ const pricingSlice = createSlice({
       })
       .addCase(getPricingDetails.fulfilled, (state, action) => {
         state.loading = false;
-        
+
         const { pricing, pagination } = action.payload.data;
-        
+
         // Ensure correct structure for multiple products & locations
         state.pricing = {
           ...pricing,
           products: pricing.products ?? [], // Default to empty array if missing
           locations: pricing.locations ?? [], // Default to empty array if missing
         };
-        
+
         state.pagination = pagination;
       })
       .addCase(getPricingDetails.rejected, (state, action) => {

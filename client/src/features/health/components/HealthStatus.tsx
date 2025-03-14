@@ -1,7 +1,8 @@
 import { FC } from 'react';
 import Box from '@mui/material/Box';
 import Badge from '@mui/material/Badge';
-import { Tooltip, Typography } from '@mui/material';
+import Tooltip from '@mui/material/Tooltip';
+import Typography from '@mui/material/Typography';
 import { useHealthStatus } from '../../../hooks';
 import { formatDateTime } from '@utils/dateTimeUtils.ts';
 
@@ -23,7 +24,7 @@ const HealthStatus: FC<HealthStatusProps> = ({ getStatusColor }) => {
     refreshHealthStatus,
     error,
   } = useHealthStatus();
-  
+
   return (
     <Box
       sx={{
@@ -42,7 +43,9 @@ const HealthStatus: FC<HealthStatusProps> = ({ getStatusColor }) => {
             <Typography variant="body2">
               Database: {databaseStatus || 'Unknown'}
             </Typography>
-            <Typography variant="body2">Pool: {poolStatus || 'Unknown'}</Typography>
+            <Typography variant="body2">
+              Pool: {poolStatus || 'Unknown'}
+            </Typography>
             <Typography variant="body2">
               Last Updated: {timestamp ? formatDateTime(timestamp) : 'N/A'}
             </Typography>
@@ -56,7 +59,9 @@ const HealthStatus: FC<HealthStatusProps> = ({ getStatusColor }) => {
         arrow
       >
         <Badge
-          color={getStatusColor(loading ? 'loading' : isHealthy ? 'success' : 'error')}
+          color={getStatusColor(
+            loading ? 'loading' : isHealthy ? 'success' : 'error'
+          )}
           variant="dot"
           sx={{ cursor: 'pointer' }}
           onClick={refreshHealthStatus} // Refresh health status on click

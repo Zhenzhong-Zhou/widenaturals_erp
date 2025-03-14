@@ -40,9 +40,9 @@ const insertUserAuth = async (
       `Database error inserting user auth for user ID ${userId}:`,
       error
     );
-    throw new AppError('Failed to insert user authentication details', 500, {
-      type: 'DatabaseError',
-    });
+    throw AppError.databaseError(
+      'Failed to insert user authentication details'
+    );
   }
 };
 
@@ -61,17 +61,17 @@ const getAuthIdByUserId = async (client, userId) => {
     FROM user_auth
     WHERE user_id = $1;
   `;
-  
+
   try {
     const result = await query(sql, [userId], client);
-    
+
     if (result.rows.length === 0) {
       throw AppError.notFoundError(
         `No user_auth record found for user_id "${userId}".`,
         { query: sql, parameters: [userId] }
       );
     }
-    
+
     return result.rows[0].id;
   } catch (error) {
     logError(`Error fetching user_auth ID for user_id "${userId}"`, {
@@ -79,7 +79,7 @@ const getAuthIdByUserId = async (client, userId) => {
       parameters: [userId],
       error: error.message,
     });
-    
+
     throw AppError.databaseError('Failed to fetch user_auth ID.', {
       isExpected: false,
       details: error.message,
@@ -112,7 +112,7 @@ const getUserAuthByEmail = async (client, email) => {
     INNER JOIN status s ON u.status_id = s.id
     WHERE u.email = $1 AND s.name = 'active';
   `;
-  
+
   try {
     // Retry fetching user details in case of transient errors
     const user = await retry(async () => {
@@ -124,10 +124,10 @@ const getUserAuthByEmail = async (client, email) => {
       }
       return result.rows[0];
     });
-    
+
     // Fetch the `id` from the `user_auth` table
     const authId = await getAuthIdByUserId(client, user.user_id);
-    
+
     // Lock the user's row in the `users` and `user_auth` tables for subsequent updates
     await lockRow(client, 'users', user.user_id, 'FOR UPDATE');
     await lockRow(client, 'user_auth', authId, 'FOR UPDATE');
@@ -160,7 +160,12 @@ const getUserAuthByEmail = async (client, email) => {
  * @returns {Promise<void>} - Resolves when the update is successful.
  * @throws {AppError} - Throws an error if the update fails or retry limits are exceeded.
  */
-const incrementFailedAttempts = async (client, userId, newTotalAttempts, currentAttempts) => {
+const incrementFailedAttempts = async (
+  client,
+  userId,
+  newTotalAttempts,
+  currentAttempts
+) => {
   const newFailedAttempts = currentAttempts + 1;
   let lockoutTime = null;
   let notes = null;
@@ -199,11 +204,18 @@ const incrementFailedAttempts = async (client, userId, newTotalAttempts, current
       const authId = await getAuthIdByUserId(client, userId);
       // Lock the user's row to ensure consistency during the update
       await lockRow(client, 'user_auth', authId);
-      console.log('Updating failed attempts for user:', userId);
+
       // Execute the update query
-     await query(
+      await query(
         sql,
-        [newTotalAttempts, newFailedAttempts, lockoutTime, lockoutTime, notes, userId],
+        [
+          newTotalAttempts,
+          newFailedAttempts,
+          lockoutTime,
+          lockoutTime,
+          notes,
+          userId,
+        ],
         client
       );
     });
@@ -233,7 +245,11 @@ const incrementFailedAttempts = async (client, userId, newTotalAttempts, current
  * @returns {Promise<void>} Resolves when the update is successful.
  * @throws {AppError} If the query fails due to a database error or retry limits are exceeded.
  */
-const resetFailedAttemptsAndUpdateLastLogin = async (client, userId, newTotalAttempts) => {
+const resetFailedAttemptsAndUpdateLastLogin = async (
+  client,
+  userId,
+  newTotalAttempts
+) => {
   const sql = `
     UPDATE user_auth
     SET
@@ -319,9 +335,7 @@ const fetchPasswordHistory = async (client, userId) => {
     logError('Error fetching password history:', error);
 
     // Throw a structured AppError for better error handling
-    throw new AppError('Failed to fetch password history', 500, {
-      type: 'DatabaseError',
-    });
+    throw AppError.databaseError('Failed to fetch password history');
   }
 };
 
@@ -380,9 +394,7 @@ const verifyCurrentPassword = async (client, userId, plainPassword) => {
   } catch (error) {
     // Log the error and throw a structured AppError for better error handling
     logError('Error verifying current password:', error);
-    throw new AppError('Failed to verify current password', 500, {
-      type: 'DatabaseError',
-    });
+    throw AppError.databaseError('Failed to verify current password');
   }
 };
 
@@ -427,8 +439,7 @@ const isPasswordReused = async (client, userId, newPassword) => {
   } catch (error) {
     // Log the error and throw a structured AppError for better error handling
     logError('Error checking password reuse:', error);
-    throw new AppError('Failed to check password reuse', 500, {
-      type: 'DatabaseError',
+    throw AppError.databaseError('Failed to check password reuse', {
       details: { userId },
     });
   }
@@ -478,9 +489,7 @@ const updatePasswordHistory = async (client, userId, updatedHistory) => {
     return true;
   } catch (error) {
     logError('Error updating password history:', error);
-    throw new AppError('Failed to update password history', 500, {
-      type: 'DatabaseError',
-    });
+    throw AppError.databaseError('Failed to update password history');
   }
 };
 
@@ -529,9 +538,7 @@ const updatePasswordHashAndSalt = async (
     return true;
   } catch (error) {
     logError('Error updating password hash and salt:', error);
-    throw new AppError('Failed to update password hash and salt', 500, {
-      type: 'DatabaseError',
-    });
+    throw AppError.databaseError('Failed to update password hash and salt');
   }
 };
 

@@ -3,7 +3,8 @@ import { TypeRestrictedInput } from '@components/index.ts';
 import InputAdornment from '@mui/material/InputAdornment';
 import IconButton from '@mui/material/IconButton';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
+import { faEye } from '@fortawesome/free-solid-svg-icons/faEye';
+import { faEyeSlash } from '@fortawesome/free-solid-svg-icons/faEyeSlash';
 import { TextFieldProps } from '@mui/material/TextField';
 
 interface PasswordInputProps extends Omit<TextFieldProps, 'type'> {

@@ -9,7 +9,7 @@ import ListItemText from '@mui/material/ListItemText';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBars, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { sidebarStyles } from './sidebarStyles';
-import { useThemeContext } from '../../context';
+import { useThemeContext } from '../../context/ThemeContext';
 import logoDark from '../../assets/wide-logo-dark.png';
 import logoLight from '../../assets/wide-logo-light.png';
 import { routes } from '../../routes';
@@ -22,21 +22,27 @@ interface SidebarProps {
   permissions: string[];
 }
 
-const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar, roleName, permissions }) => {
+const Sidebar: FC<SidebarProps> = ({
+  isOpen,
+  toggleSidebar,
+  roleName,
+  permissions,
+}) => {
   const { theme } = useThemeContext();
   const logo = theme.palette.mode === 'dark' ? logoDark : logoLight;
-  
+
   // Filter routes for items to display in the sidebar
   const menuItems = routes.filter((route) => {
     const requiredPermission = route.meta?.requiredPermission || ''; // Ensure empty string if undefined
-    
+
     return (
       route.meta?.showInSidebar && // Show only if marked for sidebar
       !route.path.includes('*') && // Exclude wildcard routes
-      (requiredPermission === '' || hasPermission(requiredPermission, permissions, roleName)) // Check permission only if needed
+      (requiredPermission === '' ||
+        hasPermission(requiredPermission, permissions, roleName)) // Check permission only if needed
     );
   });
-  
+
   return (
     <>
       {/* Sidebar Drawer */}
@@ -78,7 +84,7 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar, roleName, permission
               }}
             />
           </Box>
-          
+
           {isOpen && (
             <IconButton
               onClick={toggleSidebar}
@@ -96,7 +102,7 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar, roleName, permission
             </IconButton>
           )}
         </Box>
-        
+
         {/* Sidebar Navigation */}
         <Box
           sx={{
@@ -130,7 +136,7 @@ const Sidebar: FC<SidebarProps> = ({ isOpen, toggleSidebar, roleName, permission
           </List>
         </Box>
       </Drawer>
-      
+
       {/* Open Button */}
       {!isOpen && (
         <IconButton

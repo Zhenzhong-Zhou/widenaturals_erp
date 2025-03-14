@@ -63,17 +63,14 @@ const insertUser = async (client, userDetails) => {
       if (result.rows.length === 0) {
         const maskedEmail = maskSensitiveInfo(email, 'email');
         logWarn(`User with email ${maskedEmail} already exists.`);
-        throw new AppError('User already exists', 409, {
-          type: 'ConflictError',
-          isExpected: true,
-        });
+        throw AppError.conflictError('User already exists');
       }
 
       return result.rows[0];
     });
   } catch (error) {
     logError('Error inserting user:', error);
-    throw new AppError('Failed to insert user', 500, { type: 'DatabaseError' });
+    throw AppError.databaseError('Failed to insert user');
   }
 };
 
@@ -91,10 +88,7 @@ const getUser = async (client, field, value, shouldLock = false) => {
   const maskedField = maskField(field, value);
 
   if (!['id', 'email'].includes(field)) {
-    throw new AppError('Invalid field for user query', 400, {
-      type: 'ValidationError',
-      isExpected: true,
-    });
+    throw AppError.validationError('Invalid field for user query');
   }
 
   const sql = `
@@ -145,9 +139,7 @@ const getUser = async (client, field, value, shouldLock = false) => {
     return user;
   } catch (error) {
     logError(`Error fetching user by ${maskedField}:`, error);
-    throw new AppError(`Failed to fetch user by ${maskedField}`, 500, {
-      type: 'DatabaseError',
-    });
+    throw AppError.databaseError(`Failed to fetch user by ${maskedField}`);
   } finally {
     // Release the client if it was created internally
     if (!isExternalClient && internalClient) {
@@ -168,8 +160,24 @@ const getUser = async (client, field, value, shouldLock = false) => {
  */
 const getAllUsers = async ({ page, limit, sortBy, sortOrder }) => {
   const tableName = 'users u';
-  const joins = ['LEFT JOIN status s ON u.status_id = s.id'];
-  const whereClause = "s.name = 'active'";
+
+  const joins = [
+    'INNER JOIN roles r ON u.role_id = r.id',
+    'INNER JOIN status s ON u.status_id = s.id',
+  ];
+
+  const whereClause = `
+    s.name = 'active'
+    AND r.name NOT ILIKE '%admin%'
+    AND r.name NOT ILIKE '%root%'
+    AND r.name NOT ILIKE '%system%'
+    AND u.email NOT ILIKE '%admin%'
+    AND u.email NOT ILIKE '%root%'
+    AND u.email NOT ILIKE '%system%'
+    AND u.job_title NOT ILIKE '%admin%'
+    AND u.job_title NOT ILIKE '%root%'
+    AND u.job_title NOT ILIKE '%system%'
+  `;
 
   // Construct SQL query parts
   const queryText = `
@@ -179,10 +187,9 @@ const getAllUsers = async ({ page, limit, sortBy, sortOrder }) => {
       CONCAT(COALESCE(u.firstname, ''), ' ', COALESCE(u.lastname, '')) AS fullname,
       u.phone_number,
       u.job_title
-    FROM users u
-    INNER JOIN roles r ON u.role_id = r.id
-    INNER JOIN status s ON u.status_id = s.id
-    WHERE s.name = 'active'
+    FROM ${tableName}
+    ${joins.join(' ')}
+    WHERE ${whereClause}
   `;
 
   try {
@@ -202,10 +209,7 @@ const getAllUsers = async ({ page, limit, sortBy, sortOrder }) => {
     );
   } catch (error) {
     logError('Error executing paginated query in repository:', error);
-    throw new AppError('Failed to fetch users from repository', 500, {
-      type: 'DatabaseError',
-      details: error.message,
-    });
+    throw AppError.databaseError('Failed to fetch users from repository');
   }
 };
 
@@ -225,10 +229,7 @@ const userExists = async (field, value, status = 'active') => {
 
   // Validate the field
   if (!['id', 'email'].includes(field)) {
-    throw new AppError('Invalid field for user existence check', 400, {
-      type: 'ValidationError',
-      isExpected: true,
-    });
+    throw AppError.validationError('Invalid field for user existence check');
   }
 
   // SQL query with dynamic field and status filter
@@ -248,12 +249,8 @@ const userExists = async (field, value, status = 'active') => {
     return result.rowCount > 0; // Return true if the user exists and matches the status
   } catch (error) {
     logError(`Error checking user existence by ${maskedField}:`, error);
-    throw new AppError(
-      `Failed to check user existence by ${maskedField}`,
-      500,
-      {
-        type: 'DatabaseError',
-      }
+    throw AppError.databaseError(
+      `Failed to check user existence by ${maskedField}`
     );
   }
 };
@@ -284,16 +281,13 @@ const updateUserPartial = async (id, updates) => {
     const result = await query(sql, values);
 
     if (result.rows.length === 0) {
-      throw new AppError('User not found for update', 404, {
-        type: 'NotFoundError',
-        isExpected: true,
-      });
+      throw AppError.notFoundError('User not found for update');
     }
 
     return result.rows[0];
   } catch (error) {
     logError('Error updating user partially:', error);
-    throw new AppError('Failed to update user', 500, { type: 'DatabaseError' });
+    throw AppError.databaseError('Failed to update user');
   }
 };
 
@@ -312,16 +306,13 @@ const deleteUser = async (id) => {
     const result = await query(sql, params);
 
     if (result.rows.length === 0) {
-      throw new AppError('User not found for deletion', 404, {
-        type: 'NotFoundError',
-        isExpected: true,
-      });
+      throw AppError.notFoundError('User not found for deletion');
     }
 
     return true;
   } catch (error) {
     logError('Error deleting user:', error);
-    throw new AppError('Failed to delete user', 500, { type: 'DatabaseError' });
+    throw AppError.databaseError('Failed to delete user');
   }
 };
 

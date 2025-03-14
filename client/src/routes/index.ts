@@ -24,7 +24,6 @@ export const routes = [
       requiresAuth: true,
       title: 'Dashboard',
       showInSidebar: true,
-      // requiredPermission: '',
     },
   },
   {
@@ -81,8 +80,18 @@ export const routes = [
     },
   },
   {
+    path: '/compliances',
+    component: () => import('../features/compliance/pages/CompliancePage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Compliances',
+      showInSidebar: true,
+    },
+  },
+  {
     path: '/pricing_types',
-    component: () => import('../features/pricingTypes/pages/PricingTypePage.tsx'),
+    component: () =>
+      import('../features/pricingTypes/pages/PricingTypePage.tsx'),
     meta: {
       requiresAuth: true,
       title: 'Pricing Types',
@@ -92,7 +101,8 @@ export const routes = [
   },
   {
     path: '/pricing_types/:id',
-    component: () => import('../features/pricingTypes/pages/PricingTypeDetailsPage.tsx'),
+    component: () =>
+      import('../features/pricingTypes/pages/PricingTypeDetailsPage.tsx'),
     meta: {
       requiresAuth: true,
       title: 'Pricing Type Details',
@@ -122,7 +132,8 @@ export const routes = [
   },
   {
     path: '/location_types',
-    component: () => import('../features/locationTypes/pages/LocationTypePage.tsx'),
+    component: () =>
+      import('../features/locationTypes/pages/LocationTypePage.tsx'),
     meta: {
       requiresAuth: true,
       title: 'Location Types',
@@ -132,7 +143,8 @@ export const routes = [
   },
   {
     path: '/location_types/:id',
-    component: () => import('../features/locationTypes/pages/LocationTypeDetailPage.tsx'),
+    component: () =>
+      import('../features/locationTypes/pages/LocationTypeDetailPage.tsx'),
     meta: {
       requiresAuth: true,
       title: 'Location Types Details',
@@ -172,7 +184,10 @@ export const routes = [
   },
   {
     path: '/warehouse_inventories',
-    component: () => import('../features/warehouse-inventory/pages/WarehouseInventoryPage.tsx'),
+    component: () =>
+      import(
+        '../features/warehouse-inventory/pages/WarehouseInventoryPage.tsx'
+      ),
     meta: {
       requiresAuth: true,
       title: 'Warehouse Inventories',
@@ -182,12 +197,119 @@ export const routes = [
   },
   {
     path: '/warehouse_inventories/:warehouseId',
-    component: () => import('../features/warehouse-inventory/pages/WarehouseInventoryDetailPage.tsx'),
+    component: () =>
+      import(
+        '../features/warehouse-inventory/pages/WarehouseInventoryDetailPage.tsx'
+      ),
     meta: {
       requiresAuth: true,
       title: 'Warehouse Inventories Details',
       showInSidebar: false,
       requiredPermission: 'view_warehouses',
+    },
+  },
+  {
+    path: '/reports/adjustments',
+    component: () =>
+      import('../features/report/pages/AdjustmentReportPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Adjustment Report',
+      showInSidebar: false,
+      requiredPermission: 'view_adjustment_reports',
+    },
+  },
+  {
+    path: '/reports/adjustments/lot_adjustments/:warehouseId?/:inventoryId?/:warehouseInventoryLotId?',
+    component: () =>
+      import('../features/report/pages/AdjustmentReportPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Adjustment Report',
+      showInSidebar: false,
+      requiredPermission: 'view_adjustment_reports',
+    },
+  },
+  {
+    path: '/reports/inventory_activities',
+    component: () =>
+      import('../features/report/pages/InventoryActivityLogPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Inventory Activity Logs',
+      showInSidebar: false,
+      requiredPermission: 'view_inventory_activity_logs',
+    },
+  },
+  {
+    path: '/reports/inventory_activities/logs/:warehouseId?/:inventoryId?/:warehouseInventoryLotId?',
+    component: () =>
+      import('../features/report/pages/InventoryActivityLogPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Inventory Activity Logs',
+      showInSidebar: false,
+      requiredPermission: 'view_inventory_activity_logs',
+    },
+  },
+  {
+    path: '/reports/inventory_histories',
+    component: () =>
+      import('../features/report/pages/InventoryHistoryPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Inventory Activity Logs',
+      showInSidebar: false,
+      requiredPermission: 'view_inventory_activity_logs',
+    },
+  },
+  {
+    path: '/reports/inventory_histories/histories/:inventoryId?',
+    component: () =>
+      import('../features/report/pages/InventoryHistoryPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Inventory Activity Logs',
+      showInSidebar: false,
+      requiredPermission: 'view_inventory_activity_logs',
+    },
+  },
+  {
+    path: '/customers',
+    component: () => import('../features/customer/pages/CustomersPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Customers',
+      showInSidebar: true,
+    },
+  },
+  {
+    path: '/customers/customer/:customerId',
+    component: () =>
+      import('../features/customer/pages/CustomerDetailsPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Customer Details',
+      showInSidebar: false,
+      requiredPermission: 'view_customer',
+    },
+  },
+  {
+    path: '/order_types',
+    component: () => import('../features/orderType/pages/OrderTypesPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Order Types',
+      showInSidebar: true,
+    },
+  },
+  {
+    path: '/orders',
+    component: () => import('../features/order/pages/OrdersPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Orders',
+      showInSidebar: true,
     },
   },
   {

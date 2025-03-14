@@ -1,4 +1,8 @@
-const { getWarehouseInventories, getWarehouseProductSummary, getWarehouseInventoryDetailsByWarehouseId } = require('../repositories/warehouse-inventory-repository');
+const {
+  getWarehouseInventories,
+  getWarehouseProductSummary,
+  getWarehouseInventoryDetailsByWarehouseId,
+} = require('../repositories/warehouse-inventory-repository');
 const AppError = require('../utils/AppError');
 const { logError } = require('../utils/logger-helper');
 
@@ -11,43 +15,48 @@ const { logError } = require('../utils/logger-helper');
  * @param {string} params.sortOrder - Sorting order (ASC or DESC).
  * @returns {Promise<Object>} - Paginated warehouse inventory records.
  */
-const fetchAllWarehouseInventories = async ({ page, limit, sortBy, sortOrder }) => {
+const fetchAllWarehouseInventories = async ({
+  page,
+  limit,
+  sortBy,
+  sortOrder,
+}) => {
   if (page < 1 || limit < 1) {
-    throw new AppError('Invalid pagination parameters', 400);
+    throw AppError.validationError('Invalid pagination parameters');
   }
-  
-  // Fetch inventories
-  const  { data, pagination }  = await getWarehouseInventories({ page, limit, sortBy, sortOrder });
-  
+
+  // Fetch inventories using repository
+  const { data, pagination } = await getWarehouseInventories({
+    page,
+    limit,
+    sortBy,
+    sortOrder,
+  });
+
   // Business logic: Post-processing (if needed)
   const inventories = data.map((inventory) => ({
-    ...inventory,
-    warehouse_fee: inventory.warehouse_fee
+    warehouseInventoryId: inventory.warehouse_inventory_id,
+    warehouseId: inventory.warehouse_id,
+    warehouseName: inventory.warehouse_name,
+    locationName: inventory.location_name,
+    inventoryId: inventory.inventory_id,
+    itemType: inventory.item_type,
+    itemName: inventory.item_name,
+    availableQuantity: inventory.available_quantity || 0,
+    reservedQuantity: inventory.reserved_quantity || 0,
+    warehouseFee: inventory.warehouse_fee
       ? `${parseFloat(inventory.warehouse_fee).toFixed(2)}`
       : 'N/A',
-    reserved_quantity: inventory.reserved_quantity || 0,
+    lastUpdate: inventory.last_update,
+    statusId: inventory.status_id,
+    statusName: inventory.status_name,
+    createdAt: inventory.created_at,
+    updatedAt: inventory.updated_at,
+    createdBy: inventory.created_by,
+    updatedBy: inventory.updated_by,
   }));
-  
-  return { inventories, pagination };
-};
 
-/**
- * Validate warehouse existence before fetching inventories.
- * @param {string} warehouseId - Warehouse ID.
- * @param {Object} params - Query parameters.
- * @returns {Promise<Object>} - Warehouse inventories if valid warehouse exists.
- */
-const fetchWarehouseInventoryByWarehouse = async (warehouseId, params) => {
-  if (!warehouseId) {
-    throw new AppError('Warehouse ID is required', 400);
-  }
-  
-  // const warehouse = await warehouseRepository.getWarehouseById(warehouseId);
-  // if (!warehouse) {
-  //   throw new AppError(`Warehouse with ID ${warehouseId} not found`, 404);
-  // }
-  
-  return fetchAllWarehouseInventories(params);
+  return { inventories, pagination };
 };
 
 /**
@@ -58,23 +67,33 @@ const fetchWarehouseInventoryByWarehouse = async (warehouseId, params) => {
  * @param {number} limit - The number of records per page.
  * @returns {Promise<Object>} - Returns formatted warehouse product summary data.
  */
-const fetchWarehouseProductSummary = async (warehouseId, page = 1, limit = 10) => {
+const fetchWarehouseProductSummary = async (
+  warehouseId,
+  page = 1,
+  limit = 10
+) => {
   try {
     // Validate input parameters
     if (!warehouseId) {
-      throw new AppError('Warehouse ID is required.', 400);
+      throw AppError.validationError('Warehouse ID is required.');
     }
     if (page < 1 || limit < 1) {
-      throw new AppError('Invalid pagination parameters. Page and limit must be positive numbers.', 400);
+      throw AppError.validationError(
+        'Invalid pagination parameters. Page and limit must be positive numbers.'
+      );
     }
-    
-    // Call the repository function to get warehouse product summary
-    const { data, pagination } = await getWarehouseProductSummary({ warehouse_id: warehouseId, page, limit });
-    
+
+    // Fetch warehouse product summary from repository
+    const { data, pagination } = await getWarehouseProductSummary({
+      warehouse_id: warehouseId,
+      page,
+      limit,
+    });
+
     if (!data || data.length === 0) {
       return {
         success: true,
-        message: 'No products found for the specified warehouse.',
+        message: 'No inventory items found for the specified warehouse.',
         data: [],
         pagination: {
           page,
@@ -84,26 +103,31 @@ const fetchWarehouseProductSummary = async (warehouseId, page = 1, limit = 10) =
         },
       };
     }
-    
-    const productSummaryData = data.map(product => ({
-      productId: product.product_id,
+
+    const productSummaryData = data.map((product) => ({
+      inventoryId: product.inventory_id,
       productName: product.product_name,
       totalLots: product.total_lots,
       totalReservedStock: product.total_reserved_stock,
       totalAvailableStock: product.total_available_stock,
+      totalQtyStock: product.total_quantity_stock,
       totalZeroStockLots: product.total_zero_stock_lots,
       earliestExpiry: product.earliest_expiry,
       latestExpiry: product.latest_expiry,
     }));
-    
-    // Format the response for the API
+
     return {
       productSummaryData,
       pagination,
     };
   } catch (error) {
-    logError(`Error fetching warehouse product summary (warehouseId: ${warehouseId}, page: ${page}, limit: ${limit}):`, error);
-    throw new AppError(error.message || 'Failed to fetch warehouse product summary.', error.statusCode || 500);
+    logError(
+      `Error fetching warehouse product summary (warehouseId: ${warehouseId}, page: ${page}, limit: ${limit}):`,
+      error
+    );
+    throw AppError.validationError(
+      error.message || 'Failed to fetch warehouse product summary.'
+    );
   }
 };
 
@@ -115,59 +139,79 @@ const fetchWarehouseProductSummary = async (warehouseId, page = 1, limit = 10) =
  * @param {number} limit - The number of records per page.
  * @returns {Promise<object>} - Returns formatted warehouse inventory details with pagination.
  */
-const fetchWarehouseInventoryDetailsByWarehouseId = async (warehouse_id, page = 1, limit = 10) => {
+const fetchWarehouseInventoryDetailsByWarehouseId = async (
+  warehouse_id,
+  page = 1,
+  limit = 10
+) => {
   try {
     if (!warehouse_id) {
-      throw new AppError('Warehouse ID is required.', 400);
+      throw AppError.validationError('Warehouse ID is required.');
     }
-    
-    // Fetch paginated inventory details from the repository
-    const { data, pagination } = await getWarehouseInventoryDetailsByWarehouseId({
-      warehouse_id,
-      page,
-      limit,
-    });
-    
-    // Transform the data if needed (e.g., formatting dates, structuring response)
-    const inventoryDetails = data.map(item => ({
+
+    // Fetch paginated inventory details from repository
+    const { data, pagination } =
+      await getWarehouseInventoryDetailsByWarehouseId({
+        warehouse_id,
+        page,
+        limit,
+      });
+
+    // Transform the data (e.g., formatting dates, structuring response)
+    const inventoryDetails = data.map((item) => ({
       warehouseInventoryId: item.warehouse_inventory_id,
-      productId: item.product_id,
-      productName: item.product_name,
+      inventoryId: item.inventory_id,
+      itemName: item.item_name,
+      itemType: item.item_type,
+      warehouseInventoryLotId: item.warehouse_inventory_lot_id,
       lotNumber: item.lot_number,
       lotQuantity: item.lot_quantity,
       reservedStock: item.reserved_stock,
+      availableStock: item.available_stock,
       warehouseFees: item.warehouse_fees,
       lotStatus: item.lot_status || 'Unknown',
-      manufactureDate: item.manufacture_date,
-      expiryDate: item.expiry_date,
-      inboundDate: item.inbound_date,
-      outboundDate: item.outbound_date,
-      lastUpdate: item.last_update,
-      
+      manufactureDate: item.manufacture_date
+        ? new Date(item.manufacture_date)
+        : null,
+      expiryDate: item.expiry_date ? new Date(item.expiry_date) : null,
+      inboundDate: item.inbound_date ? new Date(item.inbound_date) : null,
+      outboundDate: item.outbound_date ? new Date(item.outbound_date) : null,
+      lastUpdate: item.last_update ? new Date(item.last_update) : null,
+
       inventoryCreated: {
-        date: item.inventory_created_at,
+        date: item.inventory_created_at
+          ? new Date(item.inventory_created_at)
+          : null,
         by: item.inventory_created_by,
       },
       inventoryUpdated: {
-        date: item.inventory_updated_at,
+        date: item.inventory_updated_at
+          ? new Date(item.inventory_updated_at)
+          : null,
         by: item.inventory_updated_by,
       },
       lotCreated: {
-        date: item.lot_created_at,
+        date: item.lot_created_at ? new Date(item.lot_created_at) : null,
         by: item.lot_created_by,
       },
       lotUpdated: {
-        date: item.lot_updated_at,
+        date: item.lot_updated_at ? new Date(item.lot_updated_at) : null,
         by: item.lot_updated_by,
-      }
+      },
     }));
-    
+
     return {
       inventoryDetails,
       pagination,
     };
   } catch (error) {
-    throw new AppError(error.message || 'Failed to retrieve warehouse inventory details.', error.statusCode || 500);
+    logError(
+      `Error fetching warehouse inventory details (warehouseId: ${warehouse_id}, page: ${page}, limit: ${limit}):`,
+      error
+    );
+    throw AppError.serviceError(
+      error.message || 'Failed to retrieve warehouse inventory details.'
+    );
   }
 };
 

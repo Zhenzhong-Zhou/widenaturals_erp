@@ -2,7 +2,7 @@ import { FC } from 'react';
 import { CustomTable } from '@components/index.ts';
 import { InventoryItem } from '../state/inventoryTypes.ts';
 import { capitalizeFirstLetter } from '@utils/textUtils.ts';
-import { formatDateTime } from '@utils/dateTimeUtils.ts';
+import { formatDate, formatDateTime } from '@utils/dateTimeUtils.ts';
 import Box from '@mui/material/Box';
 import { Link } from 'react-router-dom';
 
@@ -17,39 +17,53 @@ interface InventoryTableProps {
 }
 
 const InventoryTable: FC<InventoryTableProps> = ({
-                                                   data,
-                                                   page,
-                                                   rowsPerPage,
-                                                   totalRecords,
-                                                   totalPages,
-                                                   onPageChange,
-                                                   onRowsPerPageChange,
-                                                 }) => {
+  data,
+  page,
+  rowsPerPage,
+  totalRecords,
+  totalPages,
+  onPageChange,
+  onRowsPerPageChange,
+}) => {
   const columns = [
+    { id: 'place_name', label: 'Place Name', sortable: true },
     {
-      id: 'product_name',
-      label: 'Product Name',
+      id: 'item_type',
+      label: 'Item Type',
       sortable: true,
-      format: (value: any, row: Record<string, any>) => {
-        const inventory = row as InventoryItem;
-        return (
-          <Link
-            to={`/inventory/${inventory.inventory_id}`}
-            style={{ textDecoration: 'none', color: 'blue' }}
-          >
-            {value}
-          </Link>
-        );
-      },
+      format: (value: any) => capitalizeFirstLetter(value),
     },
-    { id: 'location_name', label: 'Location', sortable: true },
-    { id: 'item_type', label: 'Item Type', sortable: true },
-    { id: 'identifier', label: 'Identifier', sortable: false },
     {
-      id: 'quantity',
-      label: 'Quantity',
+      id: 'item_name',
+      label: 'Item Name',
       sortable: true,
-      format: (value: any) => value.toLocaleString(),
+      format: (value: any) => value,
+      renderCell: (row: Record<string, any>) => (
+        <Link
+          to={`/inventory/${row.inventory_id || 'unknown'}`}
+          style={{ textDecoration: 'none', color: 'blue' }}
+        >
+          {row.item_name}
+        </Link>
+      ),
+    },
+    {
+      id: 'available_quantity',
+      label: 'Available Quantity',
+      sortable: true,
+      format: (value: any) => value | 0,
+    },
+    {
+      id: 'reserved_quantity',
+      label: 'Reserved Quantity',
+      sortable: true,
+      format: (value: any) => value | 0,
+    },
+    {
+      id: 'total_lot_quantity',
+      label: 'Total Lot Quantity',
+      sortable: true,
+      format: (value: any) => value | 0,
     },
     {
       id: 'status_name',
@@ -62,6 +76,24 @@ const InventoryTable: FC<InventoryTableProps> = ({
       label: 'Status Date',
       sortable: true,
       format: (value: any) => formatDateTime(value),
+    },
+    {
+      id: 'earliest_manufacture_date',
+      label: 'Earliest Manufacture Date',
+      sortable: true,
+      format: (value: any) => formatDate(value),
+    },
+    {
+      id: 'nearest_expiry_date',
+      label: 'Nearest Expiry Date',
+      sortable: true,
+      format: (value: any) => formatDate(value),
+    },
+    {
+      id: 'warehouse_fee',
+      label: 'Storage Fee',
+      sortable: true,
+      format: (value: any) => `$${value.toFixed(2)}`,
     },
     {
       id: 'created_at',
@@ -77,8 +109,14 @@ const InventoryTable: FC<InventoryTableProps> = ({
     },
     { id: 'created_by', label: 'Created By', sortable: false },
     { id: 'updated_by', label: 'Updated By', sortable: false },
+    {
+      id: 'is_expired',
+      label: 'Expired',
+      sortable: false,
+      format: (value: boolean) => (value ? 'Yes' : 'No'),
+    },
   ];
-  
+
   return (
     <Box>
       <CustomTable
@@ -86,6 +124,7 @@ const InventoryTable: FC<InventoryTableProps> = ({
         data={data}
         page={page}
         initialRowsPerPage={rowsPerPage}
+        rowsPerPageOptions={[10, 30, 50, 100]}
         totalRecords={totalRecords}
         totalPages={totalPages}
         onPageChange={onPageChange}

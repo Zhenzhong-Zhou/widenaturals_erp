@@ -1,7 +1,10 @@
 const { verifyToken, signToken } = require('../utils/token-helper');
 const { logWarn, logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
-const { validateUserExists, validateRoleById } = require('../validators/db-validators');
+const {
+  validateUserExists,
+  validateRoleById,
+} = require('../validators/db-validators');
 
 /**
  * Middleware to authenticate users using JWT tokens.
@@ -33,10 +36,10 @@ const authenticate = () => {
 
         // Validate if the user exists in the database
         await validateUserExists('id', user.id);
-        
+
         // Validate the role ID and get the validated value
-        const validatedRoleId= await validateRoleById(user.role);
-        
+        const validatedRoleId = await validateRoleById(user.role);
+
         req.user = {
           ...user, // Attach validated user to the request
           role: validatedRoleId,

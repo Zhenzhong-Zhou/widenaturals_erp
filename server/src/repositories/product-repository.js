@@ -10,19 +10,21 @@ const { logInfo, logError } = require('../utils/logger-helper');
 const buildWhereClause = (filters) => {
   const whereClauses = [];
   const queryParams = [];
-  
+
   if (filters.category) {
     whereClauses.push('category = $' + (queryParams.length + 1));
     queryParams.push(filters.category);
   }
-  
+
   if (filters.name) {
     whereClauses.push('product_name ILIKE $' + (queryParams.length + 1)); // Case-insensitive
     queryParams.push(`%${filters.name}%`);
   }
-  
+
   return {
-    whereClause: whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : '',
+    whereClause: whereClauses.length
+      ? `WHERE ${whereClauses.join(' AND ')}`
+      : '',
     queryParams,
   };
 };
@@ -38,16 +40,16 @@ const buildWhereClause = (filters) => {
  * @returns {Promise<Object>} - Paginated product data.
  */
 const getProducts = async ({
-                             page = 1,
-                             limit = 10,
-                             sortBy = 'p.created_at',
-                             sortOrder = 'DESC',
-                             status = 'active',
-                           }) => {
+  page = 1,
+  limit = 10,
+  sortBy = 'p.created_at',
+  sortOrder = 'DESC',
+  status = 'active',
+}) => {
   const tableName = 'products p';
   const joins = ['INNER JOIN status s ON p.status_id = s.id'];
   const whereClause = 's.name = $1'; // Use parameterized value
-  
+
   // Base query text
   const queryText = `
     SELECT
@@ -56,6 +58,13 @@ const getProducts = async ({
       p.series,
       p.brand,
       p.category,
+      COALESCE(
+        jsonb_agg(
+            DISTINCT jsonb_build_object(
+                'npn', c.compliance_id
+            )
+        ) FILTER (WHERE c.type = 'NPN'), '[]'
+    ) AS npn_info,
       p.barcode,
       p.market_region,
       s.name AS status_name,
@@ -86,12 +95,19 @@ const getProducts = async ({
     ) pricing ON pricing.product_id = p.id
     LEFT JOIN locations loc ON pricing.location_id = loc.id
     LEFT JOIN location_types lt ON loc.location_type_id = lt.id
+    LEFT JOIN compliances c ON p.id = c.product_id AND c.type = 'NPN'
     WHERE ${whereClause}
     GROUP BY p.id, s.name, loc.name, lt.name
   `;
-  
+
   const fetchPaginatedData = async () => {
-    logInfo('Fetching paginated products', { page, limit, sortBy, sortOrder, status });
+    logInfo('Fetching paginated products', {
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+      status,
+    });
     return paginateQuery({
       tableName,
       joins,
@@ -104,7 +120,7 @@ const getProducts = async ({
       sortOrder,
     });
   };
-  
+
   try {
     return await retry(fetchPaginatedData, 3, 1000);
   } catch (error) {
@@ -112,7 +128,7 @@ const getProducts = async ({
       message: error.message,
       stack: error.stack,
     });
-    throw new AppError.serviceError('Failed to fetch products', { originalError: error.message });
+    throw AppError.databaseError('Failed to fetch products');
   }
 };
 
@@ -137,18 +153,22 @@ const getProducts = async ({
  * @throws {AppError} - If no filters are provided or if there is an issue with the query execution.
  */
 const checkProductExists = async (filters, combineWith = 'OR') => {
-  if (!filters || typeof filters !== 'object' || Object.keys(filters).length === 0) {
-    throw new AppError.validationError(
+  if (
+    !filters ||
+    typeof filters !== 'object' ||
+    Object.keys(filters).length === 0
+  ) {
+    throw AppError.validationError(
       'No valid filters provided for product existence check.',
       400,
       { providedFilters: filters }
     );
   }
-  
+
   const allowedFilters = ['id', 'barcode', 'product_name'];
   const whereClauses = [];
   const queryParams = [];
-  
+
   // Build WHERE clause dynamically
   Object.entries(filters).forEach(([key, value]) => {
     if (allowedFilters.includes(key) && value) {
@@ -156,19 +176,18 @@ const checkProductExists = async (filters, combineWith = 'OR') => {
       queryParams.push(value);
     }
   });
-  
+
   if (whereClauses.length === 0) {
-    throw new AppError.validationError(
+    throw AppError.validationError(
       'No valid filters provided for product existence check.',
-      400,
       { providedFilters: filters }
     );
   }
-  
+
   // Use AND or OR based on the combineWith parameter
   const operator = combineWith.toUpperCase() === 'AND' ? ' AND ' : ' OR ';
   const whereClause = `WHERE ${whereClauses.join(operator)}`;
-  
+
   const queryText = `
     SELECT EXISTS (
       SELECT 1
@@ -176,12 +195,12 @@ const checkProductExists = async (filters, combineWith = 'OR') => {
       ${whereClause}
     ) AS exists;
   `;
-  
+
   try {
     const result = await query(queryText, queryParams);
     return result.rows[0].exists;
   } catch (error) {
-    throw new AppError.databaseError('Failed to execute product existence check.', {
+    throw AppError.databaseError('Failed to execute product existence check.', {
       query: queryText,
       params: queryParams,
       originalError: error.message,
@@ -212,6 +231,7 @@ const getProductDetailsById = async (id) => {
       p.height_cm,
       p.weight_g,
       p.description,
+      c.compliance_id AS npn,
       loc.name AS location_name,
       lt.name AS location_type_name,
       s.name AS status_name,
@@ -249,12 +269,14 @@ const getProductDetailsById = async (id) => {
     LEFT JOIN location_types lt ON loc.location_type_id = lt.id
     LEFT JOIN users created_user ON p.created_by = created_user.id
     LEFT JOIN users updated_user ON p.updated_by = updated_user.id
+    LEFT JOIN compliances c ON c.product_id = p.id AND c.type = 'NPN'
     WHERE p.id = $1
       AND s.name = 'active'
     GROUP BY
       p.id,
       s.name,
       p.status_date,
+      c.compliance_id,
       loc.name,
       lt.name,
       created_user.firstname,
@@ -262,9 +284,9 @@ const getProductDetailsById = async (id) => {
       p.created_at,
       updated_user.firstname,
       updated_user.lastname,
-      p.updated_at
+      p.updated_at;
   `;
-  
+
   try {
     // Use retry logic to handle transient database issues
     const fetchProduct = async () => {
@@ -274,16 +296,85 @@ const getProductDetailsById = async (id) => {
       }
       return result.rows[0]; // Return the product details
     };
-    
+
     return await retry(fetchProduct, 3, 1000); // Retry 3 times with a 1-second delay
   } catch (error) {
     logError('Error fetching product details:', error.message);
-    throw new AppError.databaseError('Error fetching product details');
+    throw AppError.databaseError('Error fetching product details');
+  }
+};
+
+/**
+ * Retrieves a list of available products for a dropdown selection, filtering out those already associated with the given warehouse.
+ *
+ * @param {string} warehouseId - The unique identifier of the warehouse.
+ * @returns {Promise<Array<{ id: string, product_name: string }>>}
+ *          - Returns an array of available products with their IDs and names, sorted alphabetically.
+ * @throws {AppError} - Throws an error if the database query fails.
+ */
+const getAvailableProductsForDropdown = async (warehouseId) => {
+  if (!warehouseId) {
+    return []; // Return an empty array instead of running the query
+  }
+
+  const queryText = `
+    WITH active_warehouses AS (
+        SELECT DISTINCT wi.warehouse_id
+        FROM warehouse_inventory wi
+        JOIN warehouse_lot_status wls ON wi.status_id = wls.id
+        WHERE wls.name = 'active'
+          AND wi.warehouse_id = $1
+    ),
+    existing_active_products AS (
+        SELECT DISTINCT i.product_id
+        FROM inventory i
+        JOIN warehouse_inventory wi ON wi.inventory_id = i.id
+        JOIN active_warehouses aw ON aw.warehouse_id = wi.warehouse_id
+    ),
+    valid_batch_products AS (
+        SELECT DISTINCT ON (i.product_id) i.product_id
+        FROM warehouse_inventory_lots wil
+        JOIN inventory i ON wil.inventory_id = i.id
+        WHERE wil.lot_number IS NOT NULL
+          AND wil.expiry_date IS NOT NULL
+          AND (wil.manufacture_date IS NOT NULL OR wil.manufacture_date IS NULL)
+          AND wil.warehouse_id = $1
+    ),
+    active_products AS (
+        SELECT p.id AS product_id
+        FROM products p
+        JOIN status s ON s.id = p.status_id
+        WHERE s.name = 'active'
+    )
+    SELECT p.id AS product_id, p.product_name
+    FROM products p
+    LEFT JOIN existing_active_products eap ON eap.product_id = p.id
+    LEFT JOIN valid_batch_products vbp ON vbp.product_id = p.id
+    JOIN active_products ap ON ap.product_id = p.id
+    WHERE eap.product_id IS NULL
+    ORDER BY p.product_name ASC;
+  `;
+
+  try {
+    const { rows } = await query(queryText, [warehouseId]);
+    return rows;
+  } catch (error) {
+    logError('Error fetching available products for dropdown', {
+      message: error.message,
+      stack: error.stack,
+    });
+    throw AppError.databaseError(
+      'Failed to fetch available product dropdown list',
+      {
+        originalError: error.message,
+      }
+    );
   }
 };
 
 module.exports = {
   getProducts,
   checkProductExists,
-  getProductDetailsById
+  getProductDetailsById,
+  getAvailableProductsForDropdown,
 };

@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { fetchProductDetails } from "../services/productService";
+import { useEffect, useState } from 'react';
+import { productService } from '../services';
 import { Product } from '../features/product';
 
 interface UseProductDetailResult {
@@ -19,29 +19,30 @@ const useProductDetail = (productId: string): UseProductDetailResult => {
   const [product, setProduct] = useState<Product | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Fetch product details
   const fetchProduct = async () => {
     try {
       setIsLoading(true);
       setError(null);
-      const fetchedProduct = await fetchProductDetails(productId);
+      const fetchedProduct =
+        await productService.fetchProductDetails(productId);
       setProduct(fetchedProduct);
     } catch (err: any) {
-      setError(err.message || "Failed to fetch product details");
+      setError(err.message || 'Failed to fetch product details');
       setProduct(null);
     } finally {
       setIsLoading(false);
     }
   };
-  
+
   // Fetch product details on mount and when productId changes
   useEffect(() => {
     if (productId) {
       fetchProduct();
     }
   }, [productId]);
-  
+
   // Return the product details, loading state, error, and refetch function
   return {
     product,
