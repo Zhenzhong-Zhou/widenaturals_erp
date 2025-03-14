@@ -3,7 +3,8 @@ const { promisify } = require('util');
 const fs = require('fs');
 const { loadEnv } = require('../config/env');
 const { decryptFile } = require('./encryption');
-const { logInfo, logWarn, logError } = require('../utils/logger-helper'); // Import decryptFile function
+const { logInfo, logWarn, logError } = require('../utils/logger-helper');
+const AppError = require('../utils/AppError'); // Import decryptFile function
 
 const execAsync = promisify(exec);
 loadEnv();
@@ -30,7 +31,7 @@ const restoreDatabase = async (decryptedFilePath, databaseName, dbUser) => {
       logWarn(`Restore command warnings: ${stderr}`);
     }
   } catch (error) {
-    throw new Error(`Database restore failed: ${error.message}`);
+    throw AppError.databaseError(`Database restore failed: ${error.message}`);
   }
 };
 
@@ -51,10 +52,12 @@ const restoreBackup = async (
 
   // Ensure all required files exist
   if (!fs.existsSync(encryptedFilePath)) {
-    throw new Error(`Encrypted backup file not found: ${encryptedFilePath}`);
+    throw AppError.notFoundError(
+      `Encrypted backup file not found: ${encryptedFilePath}`
+    );
   }
   if (!fs.existsSync(ivFilePath)) {
-    throw new Error(`IV file not found: ${ivFilePath}`);
+    throw AppError.notFoundError(`IV file not found: ${ivFilePath}`);
   }
 
   try {

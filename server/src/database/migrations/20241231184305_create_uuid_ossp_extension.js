@@ -3,23 +3,45 @@ loadEnv(); // Ensure environment variables are loaded
 
 /**
  * @param { import("knex").Knex } knex
- * @returns {Knex.Raw<TResult>}
+ * @returns {Promise<void>}
  */
 exports.up = async function (knex) {
-  await knex.raw("SET timezone = 'UTC';"); // Set timezone for session
-  await knex.raw('CREATE EXTENSION IF NOT EXISTS "uuid-ossp";'); // Enable uuid-ossp extension
-  return knex.raw(
-    `ALTER DATABASE ${process.env.DB_NAME} SET timezone TO 'UTC';`
-  ); // Set database timezone to UTC
+  try {
+    await knex.raw("SET timezone = 'UTC';"); // Set session timezone
+    await knex.raw('CREATE EXTENSION IF NOT EXISTS "uuid-ossp";'); // Enable uuid-ossp extension
+
+    if (process.env.DB_NAME) {
+      await knex.raw(
+        `ALTER DATABASE ${process.env.DB_NAME} SET timezone TO 'UTC';`
+      ); // Set DB timezone to UTC
+    } else {
+      console.warn('⚠️ Warning: DB_NAME is not set. Skipping ALTER DATABASE.');
+    }
+  } catch (error) {
+    console.error('❌ Migration failed:', error);
+    throw error;
+  }
 };
 
 /**
  * @param { import("knex").Knex } knex
- * @returns {Knex.Raw<TResult>}
+ * @returns {Promise<void>}
  */
 exports.down = async function (knex) {
-  await knex.raw('DROP EXTENSION IF EXISTS "uuid-ossp";'); // Remove uuid-ossp extension
-  return knex.raw(
-    `ALTER DATABASE ${process.env.DB_NAME} SET timezone TO DEFAULT;`
-  ); // Reset to the server's default timezone
+  try {
+    console.warn(
+      '⚠️ Skipping DROP EXTENSION uuid-ossp (used by UUID columns).'
+    );
+
+    if (process.env.DB_NAME) {
+      await knex.raw(
+        `ALTER DATABASE ${process.env.DB_NAME} SET timezone TO DEFAULT;`
+      ); // Reset DB timezone
+    } else {
+      console.warn('⚠️ Warning: DB_NAME is not set. Skipping ALTER DATABASE.');
+    }
+  } catch (error) {
+    console.error('❌ Rollback failed:', error);
+    throw error;
+  }
 };

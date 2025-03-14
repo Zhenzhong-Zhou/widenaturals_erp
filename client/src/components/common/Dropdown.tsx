@@ -1,5 +1,7 @@
 import { FC } from 'react';
-import { Autocomplete, TextField, Box } from '@mui/material';
+import Autocomplete from '@mui/material/Autocomplete';
+import TextField from '@mui/material/TextField';
+import Box from '@mui/material/Box';
 
 interface DropdownProps {
   label: string;
@@ -7,6 +9,7 @@ interface DropdownProps {
   value: string | null;
   onChange: (value: string) => void;
   searchable?: boolean;
+  disabled?: boolean;
   sx?: object;
 }
 
@@ -16,6 +19,7 @@ const Dropdown: FC<DropdownProps> = ({
   value,
   onChange,
   searchable = false,
+  disabled = false,
   sx,
 }) => {
   return (
@@ -26,7 +30,12 @@ const Dropdown: FC<DropdownProps> = ({
         value={options.find((option) => option.value === value) || null}
         onChange={(_, newValue) => onChange(newValue?.value || '')}
         renderInput={(params) => (
-          <TextField {...params} label={label} variant="outlined" />
+          <TextField
+            {...params}
+            label={label}
+            variant="outlined"
+            disabled={disabled}
+          />
         )}
         disableClearable={!searchable}
         filterSelectedOptions

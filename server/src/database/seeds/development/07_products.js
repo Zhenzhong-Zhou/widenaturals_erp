@@ -33,7 +33,7 @@ exports.seed = async function (knex) {
     'system@internal.local',
     'id'
   );
-  
+
   const products = [
     {
       id: knex.raw('uuid_generate_v4()'),
@@ -519,7 +519,7 @@ exports.seed = async function (knex) {
       created_by: systemActionId,
       updated_by: null,
     },
-    
+
     // NMN - International (INT)
     {
       id: knex.raw('uuid_generate_v4()'),
@@ -626,7 +626,7 @@ exports.seed = async function (knex) {
       created_by: systemActionId,
       updated_by: null,
     },
-    
+
     // TCM - Virility Products
     {
       id: knex.raw('uuid_generate_v4()'),
@@ -637,7 +637,8 @@ exports.seed = async function (knex) {
       SKU: 'PG-TCM301-R-CA',
       barcode: '628942007118',
       market_region: 'Canada',
-      description: 'Traditional Chinese Medicine - Virility Canada. Stay At Your Peak.',
+      description:
+        'Traditional Chinese Medicine - Virility Canada. Stay At Your Peak.',
       length_cm: 15.0,
       width_cm: 10.0,
       height_cm: 5.0,
@@ -658,7 +659,8 @@ exports.seed = async function (knex) {
       SKU: 'PG-TCM301-R-INT',
       barcode: '628693253079',
       market_region: 'International',
-      description: 'Traditional Chinese Medicine - Virility International. 巅峰男士必备臻品',
+      description:
+        'Traditional Chinese Medicine - Virility International. 巅峰男士必备臻品',
       length_cm: 15.0,
       width_cm: 10.0,
       height_cm: 5.0,
@@ -721,7 +723,8 @@ exports.seed = async function (knex) {
       SKU: 'WN-MO402-R-UNI',
       barcode: '628942370748',
       market_region: 'Universe',
-      description: 'High-concentration EPA 900 supplement for cardiovascular health.',
+      description:
+        'High-concentration EPA 900 supplement for cardiovascular health.',
       length_cm: 18.0,
       width_cm: 10.0,
       height_cm: 5.0,
@@ -742,7 +745,8 @@ exports.seed = async function (knex) {
       SKU: 'WN-MO402-S-UNI',
       barcode: '628719706008',
       market_region: 'Universe',
-      description: 'High-concentration EPA 900 supplement for cardiovascular health.',
+      description:
+        'High-concentration EPA 900 supplement for cardiovascular health.',
       length_cm: 18.0,
       width_cm: 10.0,
       height_cm: 5.0,
@@ -763,7 +767,8 @@ exports.seed = async function (knex) {
       SKU: 'WN-MO403-R-UNI',
       barcode: '628942370717',
       market_region: 'Universe',
-      description: 'Omega-3 900 - Premium DHA/EPA - 180 Softgels. Omega-3 900mg softgels for brain and heart health.',
+      description:
+        'Omega-3 900 - Premium DHA/EPA - 180 Softgels. Omega-3 900mg softgels for brain and heart health.',
       length_cm: 18.0,
       width_cm: 10.0,
       height_cm: 5.0,
@@ -784,7 +789,8 @@ exports.seed = async function (knex) {
       SKU: 'WN-MO403-S-UNI',
       barcode: '628942370731',
       market_region: 'Universe',
-      description: 'Omega-3 900 - Premium DHA/EPA - 120 Softgels. Omega-3 900mg softgels for brain and heart health.',
+      description:
+        'Omega-3 900 - Premium DHA/EPA - 120 Softgels. Omega-3 900mg softgels for brain and heart health.',
       length_cm: 18.0,
       width_cm: 10.0,
       height_cm: 5.0,
@@ -847,7 +853,8 @@ exports.seed = async function (knex) {
       SKU: 'WN-MO405-R-UNI',
       barcode: '628719706015',
       market_region: 'Universe',
-      description: 'Algal Oil specially formulated for kids’ brain and eye health.',
+      description:
+        'Algal Oil specially formulated for kids’ brain and eye health.',
       length_cm: 14.5,
       width_cm: 9.5,
       height_cm: 5.5,
@@ -868,7 +875,8 @@ exports.seed = async function (knex) {
       SKU: 'WN-MO405-S-UNI',
       barcode: '628719706022',
       market_region: 'Universe',
-      description: 'Algal Oil specially formulated for kids’ brain and eye health.',
+      description:
+        'Algal Oil specially formulated for kids’ brain and eye health.',
       length_cm: 14.5,
       width_cm: 9.5,
       height_cm: 5.5,
@@ -889,7 +897,8 @@ exports.seed = async function (knex) {
       SKU: 'WN-MO406-R-UNI',
       barcode: '628719706039',
       market_region: 'Universe',
-      description: 'Algal Oil DHA supplement for pregnant women and fetal development.',
+      description:
+        'Algal Oil DHA supplement for pregnant women and fetal development.',
       length_cm: 13.5,
       width_cm: 8.5,
       height_cm: 5.5,
@@ -910,7 +919,8 @@ exports.seed = async function (knex) {
       SKU: 'WN-MO406-S-UNI',
       barcode: '628719706046',
       market_region: 'Universe',
-      description: 'Algal Oil DHA supplement for pregnant women and fetal development.',
+      description:
+        'Algal Oil DHA supplement for pregnant women and fetal development.',
       length_cm: 13.5,
       width_cm: 8.5,
       height_cm: 5.5,

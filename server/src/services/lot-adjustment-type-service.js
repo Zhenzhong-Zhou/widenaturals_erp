@@ -1,6 +1,7 @@
 const {
   getWarehouseLotAdjustmentTypesForDropdown,
 } = require('../repositories/lot-adjustment-type-repository');
+const AppError = require('../utils/AppError');
 
 /**
  * Fetch warehouse lot adjustment types for dropdown.
@@ -11,7 +12,7 @@ const fetchWarehouseLotAdjustmentTypesForDropDown = async () => {
   const adjustmentTypes = await getWarehouseLotAdjustmentTypesForDropdown();
 
   if (!adjustmentTypes.length) {
-    throw new Error(
+    throw AppError.notFoundError(
       'No available warehouse lot adjustment types for selection.'
     );
   }

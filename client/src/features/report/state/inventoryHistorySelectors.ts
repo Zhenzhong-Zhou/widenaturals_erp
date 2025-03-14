@@ -1,5 +1,5 @@
-import { createSelector } from "@reduxjs/toolkit";
-import { RootState } from "../../../store/store";
+import { createSelector } from '@reduxjs/toolkit';
+import { RootState } from '../../../store/store';
 import { InventoryHistoryState } from './reportTypes.ts';
 
 // ✅ Select the inventory history state

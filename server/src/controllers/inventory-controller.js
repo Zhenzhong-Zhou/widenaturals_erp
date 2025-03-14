@@ -4,7 +4,6 @@ const {
 } = require('../services/inventory-service');
 const wrapAsync = require('../utils/wrap-async');
 const { logError } = require('../utils/logger-helper');
-const { getUser } = require('../repositories/user-repository');
 
 const getAllInventoriesController = wrapAsync(async (req, res, next) => {
   try {
@@ -34,11 +33,9 @@ const getAllInventoriesController = wrapAsync(async (req, res, next) => {
 const createInventoryRecordsController = wrapAsync(async (req, res, next) => {
   try {
     const { inventoryData } = req.body;
-    console.log(inventoryData);
-    // const userId = req.user.id; // Extract from auth middleware
-    const result = await getUser(null, 'email', 'root@widenaturals.com');
-    const userId = result.id;
-    console.log(userId);
+
+    const userId = req.user.id; // Extract from auth middleware
+
     const { success, message, data, warehouseLots } =
       await createInventoryRecords(inventoryData, userId);
 

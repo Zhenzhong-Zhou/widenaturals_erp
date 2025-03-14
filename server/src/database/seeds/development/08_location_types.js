@@ -80,7 +80,7 @@ exports.seed = async function (knex) {
       updated_at: null,
       created_by: systemActionId,
       updated_by: null,
-    }
+    },
   ];
 
   for (const type of locationTypes) {

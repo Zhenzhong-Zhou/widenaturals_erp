@@ -31,7 +31,7 @@ pool.on('connect', () => logInfo('Connected to the database'));
 pool.on('error', (err) => {
   logError('Database connection error', err);
   throw AppError.databaseError('Unexpected database connection error', {
-    details: { error: err.message },
+    details: { error: err },
   });
 });
 
@@ -292,14 +292,7 @@ const paginateQuery = async ({
   req = null, // Pass request context for logging
 }) => {
   if (page < 1 || limit < 1) {
-    throw new AppError.validationError(
-      'Page and limit must be positive integers.',
-      400,
-      {
-        type: 'ValidationError',
-        isExpected: true,
-      }
-    );
+    throw AppError.validationError('Page and limit must be positive integers.');
   }
 
   const offset = (page - 1) * limit;
@@ -328,9 +321,7 @@ const paginateQuery = async ({
     ]);
 
     if (!countResult.rows.length) {
-      throw new AppError('Failed to fetch total record count.', 500, {
-        type: 'DatabaseError',
-      });
+      throw AppError.databaseError('Failed to fetch total record count.');
     }
 
     const totalRecords = parseInt(countResult.rows[0]?.total || 0, 10);
@@ -361,10 +352,7 @@ const paginateQuery = async ({
           }
         : {},
     });
-    throw new AppError('Failed to execute paginated query.', 500, {
-      type: 'DatabaseError',
-      details: error.message,
-    });
+    throw AppError.databaseError('Failed to execute paginated query.');
   }
 };
 
@@ -450,7 +438,7 @@ const lockRow = async (client, table, id, lockMode = 'FOR UPDATE') => {
  */
 const lockRows = async (client, table, conditions, lockMode = 'FOR UPDATE') => {
   if (!Array.isArray(conditions) || conditions.length === 0) {
-    throw new AppError.validationError(
+    throw AppError.validationError(
       'Invalid conditions for row locking. Expected a non-empty array.'
     );
   }
@@ -463,7 +451,7 @@ const lockRows = async (client, table, conditions, lockMode = 'FOR UPDATE') => {
     'FOR KEY SHARE',
   ];
   if (!validLockModes.includes(lockMode)) {
-    throw new AppError.validationError(
+    throw AppError.validationError(
       `Invalid lock mode: ${lockMode}. Allowed: ${validLockModes.join(', ')}`
     );
   }
@@ -475,7 +463,7 @@ const lockRows = async (client, table, conditions, lockMode = 'FOR UPDATE') => {
     const { rows: tableCheck } = await client.query(tableExistsQuery, [table]);
 
     if (!tableCheck[0].exists) {
-      throw new AppError.notFoundError(
+      throw AppError.notFoundError(
         `Table "${table}" does not exist in the database.`
       );
     }
@@ -519,7 +507,7 @@ const lockRows = async (client, table, conditions, lockMode = 'FOR UPDATE') => {
     });
   } catch (error) {
     logError(`Error locking rows in table "${table}":`, error);
-    throw new AppError.databaseError(
+    throw AppError.databaseError(
       `Database error while locking rows in "${table}".`
     );
   }
@@ -576,7 +564,7 @@ const bulkInsert = async (
     !Array.isArray(rows) ||
     !rows.every((row) => Array.isArray(row) && row.length === columns.length)
   ) {
-    throw new AppError.validationError(
+    throw AppError.validationError(
       `Invalid data format: Expected an array of arrays, each with ${columns.length} values`
     );
   }

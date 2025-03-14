@@ -1,5 +1,5 @@
-import { FC, ReactNode } from "react";
-import Box from "@mui/material/Box";
+import { FC, ReactNode } from 'react';
+import Box from '@mui/material/Box';
 import {
   CustomButton,
   ErrorDisplay,
@@ -7,8 +7,12 @@ import {
   GoBackButton,
   Loading,
   Typography,
-} from "@components/index.ts";
-import { ReportFilters, BaseReportParams, ExportReportModal } from '../index.ts';
+} from '@components/index.ts';
+import {
+  ReportFilters,
+  BaseReportParams,
+  ExportReportModal,
+} from '../index.ts';
 
 interface ReportPageLayoutProps {
   title: string;
@@ -25,18 +29,18 @@ interface ReportPageLayoutProps {
 }
 
 const ReportPageLayout: FC<ReportPageLayoutProps> = ({
-                                                       title,
-                                                       subtitle,
-                                                       filters,
-                                                       setFilters,
-                                                       fetchData,
-                                                       exportData,
-                                                       exportLoading,
-                                                       exportError,
-                                                       open,
-                                                       setOpen,
-                                                       children,
-                                                     }) => {
+  title,
+  subtitle,
+  filters,
+  setFilters,
+  fetchData,
+  exportData,
+  exportLoading,
+  exportError,
+  open,
+  setOpen,
+  children,
+}) => {
   if (exportLoading) return <Loading message="Exporting report..." />;
   if (exportError)
     return (
@@ -44,11 +48,11 @@ const ReportPageLayout: FC<ReportPageLayoutProps> = ({
         <ErrorMessage message={exportError} />
       </ErrorDisplay>
     );
-  
+
   return (
     <Box sx={{ padding: 2, marginBottom: 3 }}>
       <GoBackButton />
-      <Box sx={{ textAlign: "center", marginBottom: 4 }}>
+      <Box sx={{ textAlign: 'center', marginBottom: 4 }}>
         <Typography variant="h4" component="h1" fontWeight="bold">
           {title}
         </Typography>
@@ -56,12 +60,18 @@ const ReportPageLayout: FC<ReportPageLayoutProps> = ({
           {subtitle}
         </Typography>
       </Box>
-      
+
       {/* Filters */}
       <ReportFilters filters={filters} setFilters={setFilters} />
-      
+
       {/* Actions */}
-      <Box sx={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          marginBottom: 2,
+        }}
+      >
         <CustomButton variant="outlined" onClick={fetchData}>
           Refresh Data
         </CustomButton>
@@ -76,7 +86,7 @@ const ReportPageLayout: FC<ReportPageLayoutProps> = ({
           setFilters={setFilters}
         />
       </Box>
-      
+
       {/* Table Content */}
       {children}
     </Box>

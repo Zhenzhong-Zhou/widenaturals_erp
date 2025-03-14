@@ -79,7 +79,7 @@ const insertInventoryActivityLog = async (
  */
 const bulkInsertInventoryActivityLogs = async (logs, client) => {
   if (!Array.isArray(logs) || logs.length === 0) {
-    throw new AppError.validationError('No logs provided for bulk insert.');
+    throw AppError.validationError('No logs provided for bulk insert.');
   }
 
   const tableName = 'inventory_activity_log';
@@ -134,7 +134,7 @@ const bulkInsertInventoryActivityLogs = async (logs, client) => {
     );
   } catch (error) {
     logError('Failed to insert bulk inventory activity logs:', error);
-    throw new AppError.databaseError(
+    throw AppError.databaseError(
       'Bulk insert failed for inventory activity logs.',
       {
         details: { error: error.message, logs },

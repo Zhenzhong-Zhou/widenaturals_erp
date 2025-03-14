@@ -17,7 +17,9 @@ const fetchAllLocations = async ({ page, limit, sortBy, sortOrder }) => {
     page = Number(page);
     limit = Number(limit);
     if (page < 1 || limit < 1) {
-      throw new AppError('Page and limit must be positive integers.');
+      throw AppError.validationError(
+        'Page and limit must be positive integers.'
+      );
     }
 
     // Fetch data from repository
@@ -40,9 +42,8 @@ const fetchAllLocations = async ({ page, limit, sortBy, sortOrder }) => {
     };
   } catch (error) {
     logError('Error fetching locations in service:', error);
-    throw new AppError(
+    throw AppError.serviceError(
       error.message || 'Failed to fetch locations',
-      error.statusCode || 500,
       error
     );
   }

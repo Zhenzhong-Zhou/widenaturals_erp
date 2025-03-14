@@ -1,7 +1,8 @@
 import { FC } from 'react';
 import Box from '@mui/material/Box';
 import Badge from '@mui/material/Badge';
-import { Tooltip, Typography } from '@mui/material';
+import Tooltip from '@mui/material/Tooltip';
+import Typography from '@mui/material/Typography';
 import { useHealthStatus } from '../../../hooks';
 import { formatDateTime } from '@utils/dateTimeUtils.ts';
 

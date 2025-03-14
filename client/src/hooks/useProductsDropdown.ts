@@ -12,7 +12,7 @@ import {
  * - Fetches products dynamically based on the provided `warehouseId`.
  * - Prevents redundant fetching.
  */
-const useDropdown = (warehouseId: string) => {
+const useProductsDropdown = (warehouseId: string) => {
   const dispatch = useAppDispatch();
 
   // Select state from Redux
@@ -45,4 +45,4 @@ const useDropdown = (warehouseId: string) => {
   };
 };
 
-export default useDropdown;
+export default useProductsDropdown;

@@ -254,6 +254,15 @@ class AppError extends Error {
     });
   }
 
+  static conflictError(message, options = {}) {
+    return new AppError(message, 409, {
+      type: 'ConflictError',
+      code: 'CONFLICT_ERROR',
+      isExpected: true,
+      ...options,
+    });
+  }
+
   static generalError(message, options = {}) {
     return new AppError(message, 500, {
       type: 'GeneralError',

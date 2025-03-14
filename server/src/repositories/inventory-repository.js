@@ -140,7 +140,7 @@ const getInventories = async ({
     });
   } catch (error) {
     logError('Error fetching inventories:', error);
-    throw new AppError('Failed to fetch inventories');
+    throw AppError.databaseError('Failed to fetch inventories');
   }
 };
 
@@ -181,7 +181,7 @@ const getInventoryId = async (client, productId, identifier) => {
     return rows.length > 0 ? rows[0].inventory_id : null;
   } catch (error) {
     logError('Error fetching inventory ID:', error);
-    throw new AppError('Database query failed');
+    throw AppError.databaseError('Database query failed');
   }
 };
 
@@ -496,7 +496,9 @@ const getProductIdOrIdentifierByInventoryIds = async (
     return rows;
   } catch (error) {
     logError('Error fetching inventory IDs:', error);
-    throw new AppError('Database query failed');
+    throw AppError.databaseError(
+      'Database query failed to fetch inventory IDs'
+    );
   }
 };
 

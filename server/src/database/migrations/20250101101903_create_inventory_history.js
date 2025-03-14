@@ -4,11 +4,7 @@
  */
 exports.up = function (knex) {
   return knex.schema.createTable('inventory_history', (table) => {
-    table
-      .uuid('id')
-      .primary()
-      .primary()
-      .defaultTo(knex.raw('uuid_generate_v4()'));
+    table.uuid('id').primary().defaultTo(knex.raw('uuid_generate_v4()'));
     table
       .uuid('inventory_id')
       .notNullable()

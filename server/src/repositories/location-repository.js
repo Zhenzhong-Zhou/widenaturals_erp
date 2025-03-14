@@ -68,7 +68,7 @@ const getLocations = async ({ page, limit, sortBy, sortOrder } = {}) => {
     });
   } catch (error) {
     logError('Error fetching locations:', error);
-    throw new AppError('Failed to fetch locations');
+    throw AppError.databaseError('Failed to fetch locations');
   }
 };
 

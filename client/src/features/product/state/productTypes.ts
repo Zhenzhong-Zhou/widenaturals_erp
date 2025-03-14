@@ -6,6 +6,7 @@ export interface Product {
   brand?: string;
   category?: string;
   SKU: string;
+  npn?: string;
   barcode?: string;
   market_region?: string;
   length_cm: number;
@@ -75,6 +76,9 @@ export type GeneralProductInfo = {
   series?: string;
   brand?: string;
   category?: string;
+  npn_info: Array<{
+    npn: string;
+  }>;
   barcode?: string;
   market_region?: string;
   status_name: string; // Active, inactive, etc.

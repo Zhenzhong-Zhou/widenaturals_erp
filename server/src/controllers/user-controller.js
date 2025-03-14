@@ -55,9 +55,7 @@ const getAllUsersController = wrapAsync(async (req, res, next) => {
 const getUserProfile = wrapAsync(async (req, res) => {
   // Ensure user is authenticated
   if (!req.user || !req.user.id) {
-    throw new AppError.authenticationError('User is not authenticated', 401, {
-      type: 'AuthenticationError',
-    });
+    throw AppError.authenticationError('User is not authenticated');
   }
 
   // Fetch user profile

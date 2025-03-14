@@ -16,10 +16,7 @@ const getRoleIdByField = async (field, value) => {
   if (!validFields.includes(field)) {
     const errorMessage = `Invalid field: '${field}'. Must be one of ${validFields.join(', ')}`;
     logError(errorMessage, { field, value });
-    throw new AppError(errorMessage, 400, {
-      type: 'ValidationError',
-      isExpected: true,
-    });
+    throw AppError.validationError(errorMessage);
   }
 
   const text = `
@@ -37,10 +34,7 @@ const getRoleIdByField = async (field, value) => {
     const result = await query(text, params);
 
     if (result.rows.length === 0) {
-      throw new AppError(`Role with ${field} '${value}' not found.`, 404, {
-        type: 'DatabaseError',
-        isExpected: true,
-      });
+      throw AppError.notFoundError(`Role with ${field} '${value}' not found.`);
     }
 
     return result.rows[0].id;
@@ -50,10 +44,7 @@ const getRoleIdByField = async (field, value) => {
       value,
       error: error.message,
     });
-    throw new AppError('Failed to fetch role ID.', 500, {
-      type: 'DatabaseError',
-      isExpected: false,
-    });
+    throw AppError.databaseError('Failed to fetch role ID.');
   }
 };
 

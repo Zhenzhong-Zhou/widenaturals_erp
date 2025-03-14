@@ -1,5 +1,6 @@
 import { useParams } from 'react-router-dom';
-import { Box, Paper } from '@mui/material';
+import Box from '@mui/material/Box';
+import Paper from '@mui/material/Paper';
 import {
   CustomButton,
   ErrorDisplay,
@@ -103,7 +104,7 @@ const WarehouseInventoryDetailPage = () => {
         <ErrorMessage message={productSummaryError} />
       </ErrorDisplay>
     );
-  
+
   if (warehouseInventoryDetailLoading)
     return <Loading message={`Loading Warehouse Inventory Details...`} />;
   if (warehouseInventoryDetailError)
@@ -191,9 +192,11 @@ const WarehouseInventoryDetailPage = () => {
           refreshSummary={refreshProductSummary}
         />
       ) : (
-        <Typography variant="body1" sx={{ textAlign: 'center', padding: 2 }}>No warehouse product found.</Typography>
+        <Typography variant="body1" sx={{ textAlign: 'center', padding: 2 }}>
+          No warehouse product found.
+        </Typography>
       )}
-      
+
       {/* Inventory Details Section */}
       <Paper sx={{ padding: 2, marginTop: 3 }}>
         <WarehouseInventoryDetailTable
@@ -217,7 +220,7 @@ const WarehouseInventoryDetailPage = () => {
           setOpenDialog={setOpenDialog}
         />
       </Paper>
-      
+
       {/* Refresh Button */}
       <Box sx={{ textAlign: 'center', marginTop: 3 }}>
         <CustomButton onClick={refreshWarehouseInventoryDetails}>

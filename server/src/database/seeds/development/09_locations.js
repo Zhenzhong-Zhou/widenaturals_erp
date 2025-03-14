@@ -28,13 +28,27 @@ exports.seed = async function (knex) {
     (type) => type.code === 'WAREHOUSE'
   )?.id;
   const retailTypeId = locationTypes.find((type) => type.code === 'RETAIL')?.id;
-  const manufacturerTypeId = locationTypes.find((type) => type.code === 'MANUFACTURER')?.id;
+  const manufacturerTypeId = locationTypes.find(
+    (type) => type.code === 'MANUFACTURER'
+  )?.id;
 
   const locations = [
     {
       id: knex.raw('uuid_generate_v4()'),
-      name: 'Head Office',
+      name: 'Head Office Warehouse',
       location_type_id: warehouseTypeId,
+      address: '1040 W Georgia St Unit 1050, Vancouver',
+      status_id: activeStatusId,
+      status_date: knex.fn.now(),
+      created_at: knex.fn.now(),
+      updated_at: null,
+      created_by: systemActionId,
+      updated_by: null,
+    },
+    {
+      id: knex.raw('uuid_generate_v4()'),
+      name: 'Head Office Canada',
+      location_type_id: officeTypeId,
       address: '1040 W Georgia St Unit 1050, Vancouver',
       status_id: activeStatusId,
       status_date: knex.fn.now(),

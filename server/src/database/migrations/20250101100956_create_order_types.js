@@ -10,6 +10,19 @@ exports.up = function (knex) {
       .primary()
       .defaultTo(knex.raw('uuid_generate_v4()'));
     table.string('name', 50).unique().notNullable();
+    table
+      .string('category', 50)
+      .notNullable()
+      .checkIn([
+        'purchase',
+        'sales',
+        'transfer',
+        'return',
+        'manufacturing',
+        'logistics',
+        'adjustment',
+      ]);
+    table.string('code', 20).unique().notNullable();
     table.text('description').nullable();
     table.uuid('status_id').notNullable().references('id').inTable('status');
     table.timestamp('status_date', { useTz: true }).defaultTo(knex.fn.now()); // Auto-set on creation in UTC
