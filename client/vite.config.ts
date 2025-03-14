@@ -30,10 +30,7 @@ export default defineConfig({
   
   optimizeDeps: {
     include: [
-      // MUI Core Components (Avoids full @mui/material import)
-      '@mui/material/Autocomplete',
-      '@mui/material/Avatar',
-      '@mui/material/Box',
+      // Only include the MUI components you use
       '@mui/material/Button',
       '@mui/material/Card',
       '@mui/material/CardActions',
@@ -69,28 +66,21 @@ export default defineConfig({
       '@mui/material/Tooltip',
       '@mui/material/Typography',
       
-      // MUI Icons (Avoids full @mui/icons-material import)
+      // MUI Icons (Only include used icons)
       '@mui/icons-material/Add',
-      '@mui/icons-material/Close',
       '@mui/icons-material/Delete',
+      '@mui/icons-material/Close',
       
-      // FontAwesome Icons
-      '@fortawesome/react-fontawesome',
-      '@fortawesome/free-solid-svg-icons/faEye',
-      '@fortawesome/free-solid-svg-icons/faEyeSlash',
-      
-      // MUI Date Pickers
+      // MUI X Date Pickers (If used)
       '@mui/x-date-pickers',
       
-      // Date Handling (Avoids full date-fns import)
-      'date-fns/format',
-      
-      // Lodash Optimization (Avoids full lodash import)
+      // Other dependencies
+      'axios',
       'lodash/debounce',
       'lodash/throttle',
-      
-      // Other Dependencies
-      'axios',
+      'date-fns/format',
+      'react',
+      'react-dom',
     ],
   },
   
@@ -102,6 +92,7 @@ export default defineConfig({
         manualChunks(id) {
           if (id.includes('node_modules')) {
             if (id.includes('react')) return 'react-vendor';
+            if (id.includes('react-dom')) return 'react-vendor';
             if (id.includes('@mui')) return 'mui-vendor';
             if (id.includes('date-fns')) return 'date-fns-vendor';
             if (id.includes('axios')) return 'axios-vendor';
