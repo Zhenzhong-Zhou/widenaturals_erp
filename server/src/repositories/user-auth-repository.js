@@ -40,9 +40,9 @@ const insertUserAuth = async (
       `Database error inserting user auth for user ID ${userId}:`,
       error
     );
-    throw new AppError('Failed to insert user authentication details', 500, {
-      type: 'DatabaseError',
-    });
+    throw AppError.databaseError(
+      'Failed to insert user authentication details'
+    );
   }
 };
 
@@ -335,9 +335,7 @@ const fetchPasswordHistory = async (client, userId) => {
     logError('Error fetching password history:', error);
 
     // Throw a structured AppError for better error handling
-    throw new AppError('Failed to fetch password history', 500, {
-      type: 'DatabaseError',
-    });
+    throw AppError.databaseError('Failed to fetch password history');
   }
 };
 
@@ -396,9 +394,7 @@ const verifyCurrentPassword = async (client, userId, plainPassword) => {
   } catch (error) {
     // Log the error and throw a structured AppError for better error handling
     logError('Error verifying current password:', error);
-    throw new AppError('Failed to verify current password', 500, {
-      type: 'DatabaseError',
-    });
+    throw AppError.databaseError('Failed to verify current password');
   }
 };
 
@@ -443,8 +439,7 @@ const isPasswordReused = async (client, userId, newPassword) => {
   } catch (error) {
     // Log the error and throw a structured AppError for better error handling
     logError('Error checking password reuse:', error);
-    throw new AppError('Failed to check password reuse', 500, {
-      type: 'DatabaseError',
+    throw AppError.databaseError('Failed to check password reuse', {
       details: { userId },
     });
   }
@@ -494,9 +489,7 @@ const updatePasswordHistory = async (client, userId, updatedHistory) => {
     return true;
   } catch (error) {
     logError('Error updating password history:', error);
-    throw new AppError('Failed to update password history', 500, {
-      type: 'DatabaseError',
-    });
+    throw AppError.databaseError('Failed to update password history');
   }
 };
 
@@ -545,9 +538,7 @@ const updatePasswordHashAndSalt = async (
     return true;
   } catch (error) {
     logError('Error updating password hash and salt:', error);
-    throw new AppError('Failed to update password hash and salt', 500, {
-      type: 'DatabaseError',
-    });
+    throw AppError.databaseError('Failed to update password hash and salt');
   }
 };
 

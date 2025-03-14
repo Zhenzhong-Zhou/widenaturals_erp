@@ -71,7 +71,7 @@ const fetchProductDropdownList = async (warehouse_id) => {
   try {
     return await getAvailableProductsForDropdown(warehouse_id);
   } catch (error) {
-    throw new AppError.serviceError(
+    throw AppError.serviceError(
       `Failed to fetch product dropdown: ${error.message}`
     );
   }

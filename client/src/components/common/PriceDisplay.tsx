@@ -1,6 +1,6 @@
 import { FC } from 'react';
 import { Typography } from '@components/index.ts';
-import { Box } from '@mui/material';
+import Box from '@mui/material/Box';
 
 interface Price {
   price: number;

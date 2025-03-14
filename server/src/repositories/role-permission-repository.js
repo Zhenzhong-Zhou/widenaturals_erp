@@ -55,13 +55,8 @@ const getRolePermissionsByRoleId = async (roleId) => {
       query: sql,
       error: error.message,
     });
-    throw new AppError(
-      'Failed to fetch permissions for the specified role.',
-      500,
-      {
-        type: 'DatabaseError',
-        isExpected: false,
-      }
+    throw AppError.databaseError(
+      'Failed to fetch permissions for the specified role.'
     );
   }
 };
@@ -90,10 +85,7 @@ const addPermissionToRole = async (roleId, permissionId) => {
       permissionId,
       error: error.message,
     });
-    throw new AppError('Failed to add permission to the role.', 500, {
-      type: 'DatabaseError',
-      isExpected: false,
-    });
+    throw AppError.databaseError('Failed to add permission to the role.');
   }
 };
 

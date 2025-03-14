@@ -50,7 +50,7 @@ const getAllPriceTypes = async ({ page, limit }) => {
     return result;
   } catch (error) {
     logError('Error fetching price types:', error);
-    throw new AppError('Failed to fetch price types', 500, error);
+    throw AppError.databaseError('Failed to fetch price types', 500, error);
   }
 };
 
@@ -85,9 +85,7 @@ const getPricingTypeById = async (pricingTypeId) => {
       return result.rows.length ? result.rows[0] : null;
     });
   } catch (error) {
-    throw new AppError('Failed to fetch pricing type details', 500, {
-      originalError: error.message,
-    });
+    throw AppError.databaseError('Failed to fetch pricing type details');
   }
 };
 

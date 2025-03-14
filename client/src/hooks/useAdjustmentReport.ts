@@ -23,7 +23,7 @@ const useAdjustmentReport = (
     error,
     pagination,
     exportData,
-    exportFormat = initialParams?.exportFormat ?? "csv",
+    exportFormat = initialParams?.exportFormat ?? 'csv',
     exportLoading,
     exportError,
   } = useMemo(() => reportState, [reportState]);
@@ -54,7 +54,7 @@ const useAdjustmentReport = (
         totalRecords: undefined,
         totalPages: undefined,
       };
-      
+
       dispatch(exportAdjustmentReportThunk(formattedParams));
     },
     [dispatch]

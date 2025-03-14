@@ -6,7 +6,8 @@ import {
   ReactNode,
   FC,
 } from 'react';
-import { ThemeProvider, CssBaseline } from '@mui/material';
+import ThemeProvider from '@mui/material/styles/ThemeProvider';
+import CssBaseline from '@mui/material/CssBaseline';
 import { lightTheme, darkTheme } from '../styles/theme';
 import { Theme } from '@mui/material/styles';
 

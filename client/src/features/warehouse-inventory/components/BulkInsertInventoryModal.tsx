@@ -8,7 +8,7 @@ import {
 } from '@components/index';
 import Box from '@mui/material/Box';
 import { InventoryDropdown, ProductDropdownItem } from '../index.ts';
-import { useDropdown } from '../../../hooks';
+import { useProductsDropdown } from '../../../hooks';
 import { formatDate } from '@utils/dateTimeUtils.ts';
 
 const BulkInsertInventoryModal: FC<{
@@ -17,7 +17,7 @@ const BulkInsertInventoryModal: FC<{
   mode: 'create' | 'edit' | 'adjust';
 }> = ({ warehouseId, onSubmit, mode }) => {
   const [open, setOpen] = useState(false);
-  const { products, loading } = useDropdown(warehouseId); // Fetch products for the given warehouseId
+  const { products, loading } = useProductsDropdown(warehouseId); // Fetch products for the given warehouseId
 
   // Product dropdown options
   const productOptions = products.map((p: ProductDropdownItem) => ({

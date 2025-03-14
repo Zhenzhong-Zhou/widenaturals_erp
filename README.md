@@ -373,3 +373,7 @@ cd /home/ubuntu/apps/widenaturals_erp/client
 npm run build
 
 sudo systemctl restart nginx
+
+sudo -i -u postgres
+
+psql

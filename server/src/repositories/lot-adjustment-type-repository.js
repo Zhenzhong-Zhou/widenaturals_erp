@@ -21,7 +21,7 @@ const getWarehouseLotAdjustmentTypesForDropdown = async () => {
     return rows;
   } catch (error) {
     logError('Error fetching lot adjustment types for dropdown:', error);
-    throw new AppError(
+    throw AppError.databaseError(
       'Database error: Unable to retrieve lot adjustment types for dropdown.'
     );
   }
@@ -46,7 +46,7 @@ const getActiveLotAdjustmentTypes = async () => {
     return rows;
   } catch (error) {
     logError('Error fetching active warehouse lot adjustment types:', error);
-    throw new AppError(
+    throw AppError.databaseError(
       'Database error: Failed to fetch active warehouse lot adjustment types.'
     );
   }
@@ -64,7 +64,9 @@ const getActiveLotAdjustmentTypes = async () => {
  */
 const getWarehouseLotAdjustmentType = async (client, { id, name }) => {
   if (!id && !name) {
-    throw new AppError('At least one parameter (id or name) must be provided.');
+    throw AppError.validationError(
+      'At least one parameter (id or name) must be provided.'
+    );
   }
 
   const queryText = `
@@ -88,7 +90,7 @@ const getWarehouseLotAdjustmentType = async (client, { id, name }) => {
           `Error fetching warehouse lot adjustment type with ${id ? 'ID: ' + id : ''} ${name ? 'Name: ' + name : ''}`,
           error
         );
-        throw new AppError.databaseError(
+        throw AppError.databaseError(
           `Database error: Failed to fetch warehouse lot adjustment type with ${id ? 'ID ' + id : ''} ${name ? 'Name ' + name : ''}`
         );
       }

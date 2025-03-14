@@ -15,7 +15,7 @@ const { logError } = require('../utils/logger-helper');
  */
 const getActionTypeId = async (client, actionTypeName) => {
   if (!actionTypeName) {
-    throw new AppError.validationError('Action type name must be provided.');
+    throw AppError.validationError('Action type name must be provided.');
   }
 
   try {
@@ -29,7 +29,7 @@ const getActionTypeId = async (client, actionTypeName) => {
           : await query(queryText, params); // Use default pool query otherwise
 
         if (!rows.length) {
-          throw new AppError.notFoundError(
+          throw AppError.notFoundError(
             `Inventory action type "${actionTypeName}" not found.`
           );
         }
@@ -41,7 +41,7 @@ const getActionTypeId = async (client, actionTypeName) => {
     ); // Retries up to 3 times with exponential backoff
   } catch (error) {
     logError(`Error fetching action type ID for "${actionTypeName}":`, error);
-    throw new AppError.databaseError('Failed to fetch inventory action type.', {
+    throw AppError.databaseError('Failed to fetch inventory action type.', {
       details: { actionTypeName, error: error.message },
     });
   }

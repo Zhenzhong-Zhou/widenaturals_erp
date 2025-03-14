@@ -1,14 +1,16 @@
 import { useState } from 'react';
-import { MenuItem, Select, SelectChangeEvent } from "@mui/material";
-import { CustomButton, CustomModal } from "@components/index.ts";
-import { BaseReportParams } from "../state/reportTypes.ts";
+import { MenuItem, Select, SelectChangeEvent } from '@mui/material';
+import { CustomButton, CustomModal } from '@components/index.ts';
+import { BaseReportParams } from '../state/reportTypes.ts';
 
 interface ExportReportModalProps<T extends BaseReportParams> {
   open: boolean;
   onClose: () => void;
   onExport: (params: Partial<T>) => void;
   filters: Partial<T>;
-  setFilters: (filters: Partial<T> | ((prev: Partial<T>) => Partial<T>)) => void;
+  setFilters: (
+    filters: Partial<T> | ((prev: Partial<T>) => Partial<T>)
+  ) => void;
   title?: string;
 }
 
@@ -16,30 +18,32 @@ interface ExportReportModalProps<T extends BaseReportParams> {
  * Reusable Export Modal for exporting reports with different formats.
  */
 const ExportReportModal = <T extends BaseReportParams>({
-                                                         open,
-                                                         onClose,
-                                                         onExport,
-                                                         filters,
-                                                         setFilters,
-                                                         title = "Export Report",
-                                                       }: ExportReportModalProps<T>) => {
-  const [exportFormat, setExportFormat] = useState<BaseReportParams["exportFormat"]>(
-    filters.exportFormat ?? "csv" // ✅ Ensure it starts with the correct format
+  open,
+  onClose,
+  onExport,
+  filters,
+  setFilters,
+  title = 'Export Report',
+}: ExportReportModalProps<T>) => {
+  const [exportFormat, setExportFormat] = useState<
+    BaseReportParams['exportFormat']
+  >(
+    filters.exportFormat ?? 'csv' // ✅ Ensure it starts with the correct format
   );
-  
+
   const handleExport = () => {
     const { page, limit, totalRecords, totalPages, ...exportFilters } = filters;
-    
+
     // ✅ Explicitly cast to Partial<T>
     const exportParams = {
       ...exportFilters,
-      exportFormat: exportFormat ?? "csv", // ✅ Ensure correct format is used
+      exportFormat: exportFormat ?? 'csv', // ✅ Ensure correct format is used
     } as Partial<T>; // ✅ Explicitly tell TypeScript this matches Partial<T>
-    
+
     onExport(exportParams);
     onClose();
   };
-  
+
   return (
     <CustomModal
       open={open}
@@ -50,7 +54,11 @@ const ExportReportModal = <T extends BaseReportParams>({
           <CustomButton onClick={onClose} variant="outlined">
             Cancel
           </CustomButton>
-          <CustomButton onClick={handleExport} variant="contained" color="primary">
+          <CustomButton
+            onClick={handleExport}
+            variant="contained"
+            color="primary"
+          >
             Export
           </CustomButton>
         </>
@@ -58,12 +66,13 @@ const ExportReportModal = <T extends BaseReportParams>({
     >
       <Select
         fullWidth
-        value={exportFormat ?? "csv"}
+        value={exportFormat ?? 'csv'}
         onChange={(e: SelectChangeEvent) => {
-          const selectedFormat = e.target.value as BaseReportParams["exportFormat"];
-          
+          const selectedFormat = e.target
+            .value as BaseReportParams['exportFormat'];
+
           setExportFormat(selectedFormat);
-          
+
           setFilters((prev) => ({
             ...prev,
             exportFormat: selectedFormat,

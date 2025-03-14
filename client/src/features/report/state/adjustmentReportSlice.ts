@@ -3,7 +3,10 @@ import {
   fetchAdjustmentReportThunk,
   exportAdjustmentReportThunk,
 } from './reportThunks.ts';
-import { AdjustmentReportState, PaginatedAdjustmentReportResponse } from './reportTypes.ts';
+import {
+  AdjustmentReportState,
+  PaginatedAdjustmentReportResponse,
+} from './reportTypes.ts';
 
 const initialState: AdjustmentReportState = {
   data: [], // Holds paginated data for UI
@@ -32,11 +35,14 @@ const adjustmentReportSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchAdjustmentReportThunk.fulfilled, (state, action: PayloadAction<PaginatedAdjustmentReportResponse>) => {
-        state.loading = false;
-        state.data = action.payload.data;
-        state.pagination = action.payload.pagination;
-      })
+      .addCase(
+        fetchAdjustmentReportThunk.fulfilled,
+        (state, action: PayloadAction<PaginatedAdjustmentReportResponse>) => {
+          state.loading = false;
+          state.data = action.payload.data;
+          state.pagination = action.payload.pagination;
+        }
+      )
       .addCase(fetchAdjustmentReportThunk.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;

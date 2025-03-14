@@ -10,7 +10,7 @@ import {
   Loading,
 } from '@components/index';
 import { GeneralProductInfo } from '../state/productTypes.ts';
-import { Box } from '@mui/material';
+import Box from '@mui/material/Box';
 
 const ProductsPage = () => {
   const { products, pagination, loading, error, fetchProductsByPage } =

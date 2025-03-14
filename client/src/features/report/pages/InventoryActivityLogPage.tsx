@@ -1,11 +1,20 @@
-import { FC } from "react";
-import { useInventoryActivityLogs } from "../../../hooks";
-import { InventoryActivityLogTable, ReportPageLayout, useReportPageLogic } from '../index.ts';
-import { ErrorDisplay, ErrorMessage, Loading, Typography } from '@components/index.ts';
+import { FC } from 'react';
+import { useInventoryActivityLogs } from '../../../hooks';
+import {
+  InventoryActivityLogTable,
+  ReportPageLayout,
+  useReportPageLogic,
+} from '../index.ts';
+import {
+  ErrorDisplay,
+  ErrorMessage,
+  Loading,
+  Typography,
+} from '@components/index.ts';
 
 const InventoryActivityLogPage: FC = () => {
-  const reportCategory = "inventory_activity";
-  
+  const reportCategory = 'inventory_activity';
+
   const {
     inventoryLogs,
     isLoading,
@@ -18,7 +27,7 @@ const InventoryActivityLogPage: FC = () => {
     exportLoading,
     exportError,
   } = useInventoryActivityLogs();
-  
+
   const reportLogic = useReportPageLogic({
     fetchData: fetchInventoryActivityLogs,
     exportData,
@@ -29,7 +38,7 @@ const InventoryActivityLogPage: FC = () => {
     data: inventoryLogs,
     pagination,
   });
-  
+
   if (isLoading) return <Loading message="Loading activity logs..." />;
   if (error)
     return (
@@ -37,7 +46,7 @@ const InventoryActivityLogPage: FC = () => {
         <ErrorMessage message={error} />
       </ErrorDisplay>
     );
-  
+
   return (
     <ReportPageLayout
       title="Inventory Activity Logs"

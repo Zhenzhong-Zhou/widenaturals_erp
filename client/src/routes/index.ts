@@ -80,6 +80,15 @@ export const routes = [
     },
   },
   {
+    path: '/compliances',
+    component: () => import('../features/compliance/pages/CompliancePage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Compliances',
+      showInSidebar: true,
+    },
+  },
+  {
     path: '/pricing_types',
     component: () =>
       import('../features/pricingTypes/pages/PricingTypePage.tsx'),
@@ -263,6 +272,44 @@ export const routes = [
       title: 'Inventory Activity Logs',
       showInSidebar: false,
       requiredPermission: 'view_inventory_activity_logs',
+    },
+  },
+  {
+    path: '/customers',
+    component: () => import('../features/customer/pages/CustomersPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Customers',
+      showInSidebar: true,
+    },
+  },
+  {
+    path: '/customers/customer/:customerId',
+    component: () =>
+      import('../features/customer/pages/CustomerDetailsPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Customer Details',
+      showInSidebar: false,
+      requiredPermission: 'view_customer',
+    },
+  },
+  {
+    path: '/order_types',
+    component: () => import('../features/orderType/pages/OrderTypesPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Order Types',
+      showInSidebar: true,
+    },
+  },
+  {
+    path: '/orders',
+    component: () => import('../features/order/pages/OrdersPage.tsx'),
+    meta: {
+      requiresAuth: true,
+      title: 'Orders',
+      showInSidebar: true,
     },
   },
   {

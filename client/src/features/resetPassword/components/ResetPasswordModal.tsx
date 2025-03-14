@@ -1,5 +1,7 @@
 import { FC } from 'react';
-import { Box, IconButton, Alert } from '@mui/material';
+import Box from '@mui/material/Box';
+import IconButton from '@mui/material/IconButton';
+import Alert from '@mui/material/Alert';
 import { CustomModal, Typography } from '@components/index.ts';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import ResetPasswordForm from './ResetPasswordForm';

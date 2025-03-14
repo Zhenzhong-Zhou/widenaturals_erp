@@ -2,6 +2,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const crypto = require('crypto');
 const { logInfo, logError } = require('../utils/logger-helper');
+const AppError = require('../utils/AppError');
 
 /**
  * Ensures the backup directory exists.
@@ -54,7 +55,7 @@ const cleanupOldBackups = async (dir, maxFiles) => {
   try {
     // Validate maxFiles
     if (!Number.isInteger(maxFiles) || maxFiles <= 0) {
-      throw new Error(
+      throw AppError.validationError(
         `Invalid maxFiles value: ${maxFiles}. Must be a positive integer.`
       );
     }

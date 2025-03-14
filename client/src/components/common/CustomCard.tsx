@@ -1,13 +1,10 @@
 import { FC, ReactNode } from 'react';
-import {
-  Card,
-  CardContent,
-  Box,
-  CardMedia,
-  CardActions,
-  SxProps,
-  Theme,
-} from '@mui/material';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
+import CardMedia from '@mui/material/CardMedia';
+import CardActions from '@mui/material/CardActions';
+import Box from '@mui/material/Box';
+import type { SxProps, Theme } from '@mui/system';
 import { Typography } from '@components/index';
 
 interface CustomCardProps {

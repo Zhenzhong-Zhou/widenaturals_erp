@@ -7,7 +7,8 @@ import {
   MetadataSection,
   PriceDisplay,
 } from '@components/index.ts';
-import { Box, CardMedia } from '@mui/material';
+import Box from '@mui/material/Box';
+import CardMedia from '@mui/material/CardMedia';
 import productPlaceholder from '../../../assets/Virility_CA.jpg';
 import { formatDate } from '@utils/dateTimeUtils.ts';
 
@@ -26,6 +27,7 @@ const ProductDetailPage: React.FC = () => {
         Series: product.series ?? 'N/A',
         Brand: product.brand ?? 'N/A',
         Category: product.category ?? 'N/A',
+        NPN: product.npn ?? 'N/A',
         Barcode: product.barcode ?? 'N/A',
         'Market Region': product.market_region ?? 'N/A',
         Length: `${product.length_cm ?? 'N/A'} cm`,

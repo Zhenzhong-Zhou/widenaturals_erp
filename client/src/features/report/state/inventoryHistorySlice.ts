@@ -1,6 +1,9 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { InventoryHistoryResponse, InventoryHistoryState } from './reportTypes';
-import { exportInventoryHistoryThunk, fetchInventoryHistoryThunk } from './reportThunks.ts';
+import {
+  exportInventoryHistoryThunk,
+  fetchInventoryHistoryThunk,
+} from './reportThunks.ts';
 
 const initialState: InventoryHistoryState = {
   data: [], // Now an array (not null) to prevent type errors
@@ -14,7 +17,7 @@ const initialState: InventoryHistoryState = {
 };
 
 const inventoryHistorySlice = createSlice({
-  name: "inventoryHistory",
+  name: 'inventoryHistory',
   initialState,
   reducers: {
     resetExportState: (state) => {
@@ -39,9 +42,9 @@ const inventoryHistorySlice = createSlice({
       )
       .addCase(fetchInventoryHistoryThunk.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload || "Failed to fetch inventory history.";
+        state.error = action.payload || 'Failed to fetch inventory history.';
       });
-    
+
     // Export Inventory History
     builder
       .addCase(exportInventoryHistoryThunk.pending, (state) => {
@@ -57,7 +60,8 @@ const inventoryHistorySlice = createSlice({
       )
       .addCase(exportInventoryHistoryThunk.rejected, (state, action) => {
         state.exportLoading = false;
-        state.exportError = action.payload || "Failed to export inventory history.";
+        state.exportError =
+          action.payload || 'Failed to export inventory history.';
       });
   },
 });

@@ -9,6 +9,7 @@ import usersReducer from '../features/user/state/userSlice.ts';
 import permissionsReducer from '../features/authorize/state/permissionSlice.ts';
 import productsReducer from '../features/product/state/productSlice.ts';
 import productReducer from '../features/product/state/productDetailSlice.ts';
+import compliancesReducer from '../features/compliance/state/complianceSlice.ts';
 import pricingTypesReducer from '../features/pricingTypes/state/pricingTypeSlice.ts';
 import pricingTypeReducer from '../features/pricingTypes/state/pricingTypeDetailSlice.ts';
 import pricingsReducer from '../features/pricing/state/pricingSlice.ts';
@@ -31,6 +32,11 @@ import insertedInventoryRecordsResponseReducer from '../features/warehouse-inven
 import adjustmentReportReducer from '../features/report/state/adjustmentReportSlice.ts';
 import inventoryActivityLogsReducer from '../features/report/state/inventoryActivityLogsSlice.ts';
 import inventoryHistoryReducer from '../features/report/state/inventoryHistorySlice.ts';
+import orderTypesReducer from '../features/orderType/state/orderTypeSlice.ts';
+import orderTypesDropDownReducer from '../features/order/state/orderTypeDropdownSlice.ts';
+import customersCreateReducer from '../features/customer/state/customerCreateSlice.ts';
+import customersReducer from '../features/customer/state/customerSlice.ts';
+import customerDetailReducer from '../features/customer/state/customerDetailSlice.ts';
 
 // Combine reducers
 const appReducer = combineReducers({
@@ -42,6 +48,7 @@ const appReducer = combineReducers({
   users: usersReducer,
   permissions: permissionsReducer,
   products: productsReducer,
+  compliances: compliancesReducer,
   product: productReducer,
   pricingTypes: pricingTypesReducer,
   pricingType: pricingTypeReducer,
@@ -65,6 +72,11 @@ const appReducer = combineReducers({
   adjustmentReport: adjustmentReportReducer,
   inventoryActivityLogs: inventoryActivityLogsReducer,
   inventoryHistory: inventoryHistoryReducer,
+  orderTypes: orderTypesReducer,
+  orderTypesDropdown: orderTypesDropDownReducer,
+  customersCreate: customersCreateReducer,
+  customers: customersReducer,
+  customerDetail: customerDetailReducer,
 });
 
 // Root reducer with logout handling

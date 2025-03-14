@@ -1,5 +1,5 @@
 import { FC, FormEvent, useState } from 'react';
-import { Box } from '@mui/material';
+import Box from '@mui/material/Box';
 import { BaseInput, CustomButton, PasswordInput } from '@components/index.ts';
 import { useAppSelector } from '../../../store/storeHooks.ts';
 import { selectLoading } from '../state/sessionSelectors.ts';

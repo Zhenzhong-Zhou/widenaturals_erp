@@ -6,7 +6,7 @@ const { fetchDynamicValue } = require('../03_utils');
  */
 exports.seed = async function (knex) {
   console.log('Seeding compliance records for NPN...');
-  
+
   // Fetch required IDs
   const activeStatusId = await fetchDynamicValue(
     knex,
@@ -22,7 +22,7 @@ exports.seed = async function (knex) {
     'system@internal.local',
     'id'
   );
-  
+
   // Define product name to NPN mapping (International)
   const npnMapping = {
     // International (INT)
@@ -41,7 +41,7 @@ exports.seed = async function (knex) {
     'Focus - INT': '80102618',
     'Pain Relief - INT': '80109751',
     'Hair Health - INT': '80121449',
-    
+
     // Canada (CA)
     'NMN 3000 - CA': '80118770',
     'NMN 6000 - CA': '80131669',
@@ -55,41 +55,43 @@ exports.seed = async function (knex) {
     'Menopause - CA': '80118579',
     'Gut Health - CA': '80102616',
     'Focus - CA': '80102618',
-    'PPain Relief Topical Stick': '80109751',
+    'Pain Relief Topical Stick': '80109751',
     'Mood - CA': '80122212',
     'Hair Health': '80121449',
-    
+
     // New Oil & Supplement Products with Size Variations
-    'Seal Oil 180 - CA': '80131669',
-    'Seal Oil 120 - CA': '80131669',
-    'EPA 900 120 - CA': '80118522',
-    'EPA 900 60 - CA': '80118522',
-    'OMEGA-3 900 120 - CA': '80119337',
-    'OMEGA-3 900 60 - CA': '80119337',
-    'MultiVitamin Fish Oil 120 - CA': '80107082',
-    'MultiVitamin Fish Oil 60 - CA': '80107082',
-    'Algal Oil Kids 60 - CA': '80111230',
-    'Algal Oil Kids 30 - CA': '80111230',
-    'Algal Oil Pregnant 60 - CA': '80111182',
-    'Algal Oil Pregnant 30 - CA': '80111182',
+    'Seal Oil - 180 Softgels': '80131669',
+    'Seal Oil - 120 Softgels': '80131669',
+    'EPA 900 - 120 Softgels': '80118522',
+    'EPA 900 - 60 Softgels': '80118522',
+    'Omega-3 900 - 120 Softgels': '80119337',
+    'Omega-3 900 - 60 Softgels': '80119337',
+    'MultiVitamin Fish Oil - 120 Softgels': '80107082',
+    'MultiVitamin Fish Oil - 60 Softgels': '80107082',
+    'Algal Oil Kids - 60 Softgels': '80111230',
+    'Algal Oil Kids - 30 Softgels': '80111230',
+    'Algal Oil Pregnant - 60 Softgels': '80111182',
+    'Algal Oil Pregnant - 30 Softgels': '80111182',
   };
-  
+
   // Fetch product IDs for products in the mapping
   const products = await knex('products')
     .whereIn('product_name', Object.keys(npnMapping))
     .select('id', 'product_name');
-  
+
   if (products.length === 0) {
-    console.warn('No matching products found. Skipping NPN compliance seeding.');
+    console.warn(
+      'No matching products found. Skipping NPN compliance seeding.'
+    );
     return;
   }
-  
+
   // Map product names to their IDs
   const productIdMap = products.reduce((acc, product) => {
     acc[product.product_name] = product.id;
     return acc;
   }, {});
-  
+
   // Generate compliance records with matching `product_id` and `compliance_id`
   const complianceRecords = products.map((product) => ({
     id: knex.raw('uuid_generate_v4()'),
@@ -106,14 +108,16 @@ exports.seed = async function (knex) {
     created_by: systemActionId,
     updated_by: null,
   }));
-  
+
   try {
     await knex('compliances')
       .insert(complianceRecords)
       .onConflict(['product_id', 'type']) // Prevent duplicates
       .ignore();
-    
-    console.log(`✅ ${complianceRecords.length} NPN compliance records seeded successfully.`);
+
+    console.log(
+      `✅ ${complianceRecords.length} NPN compliance records seeded successfully.`
+    );
   } catch (error) {
     console.error('❌ Error seeding NPN compliances:', error.message);
   }

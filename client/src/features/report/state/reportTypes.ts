@@ -4,7 +4,11 @@
 export interface BaseReportParams {
   exportFormat?: 'csv' | 'pdf' | 'txt' | null;
   reportType?: 'weekly' | 'monthly' | 'yearly' | 'custom' | null;
-  reportCategory?: 'adjustment' | 'inventory_history' | 'inventory_activity' | null;
+  reportCategory?:
+    | 'adjustment'
+    | 'inventory_history'
+    | 'inventory_activity'
+    | null;
   startDate?: string | Date | null; // Accepts both string & Date
   endDate?: string | Date | null; // Accepts both string & Date
   timezone?: string; // Default: 'UTC'
@@ -64,7 +68,8 @@ export interface ReportPagination {
 }
 
 // **Adjustment Report State (Extends ReportBaseState)**
-export interface AdjustmentReportState extends ReportBaseState<AdjustmentRecord> {}
+export interface AdjustmentReportState
+  extends ReportBaseState<AdjustmentRecord> {}
 
 // Represents the response for a paginated adjustment report
 export interface PaginatedAdjustmentReportResponse {
@@ -75,8 +80,8 @@ export interface PaginatedAdjustmentReportResponse {
 }
 
 /**
-* Defines the parameters for fetching inventory activity logs.
-*/
+ * Defines the parameters for fetching inventory activity logs.
+ */
 export interface InventoryActivityLogParams extends BaseReportParams {
   inventoryId?: string | null; // UUID or null
   warehouseId?: string | null; // UUID or null
@@ -115,7 +120,8 @@ export interface InventoryActivityLog {
 }
 
 // **Inventory Activity Logs State (Extends ReportBaseState)**
-export interface InventoryActivityLogsState extends ReportBaseState<InventoryActivityLog> {}
+export interface InventoryActivityLogsState
+  extends ReportBaseState<InventoryActivityLog> {}
 
 // Define the response format
 export interface InventoryActivityLogsResponse {
@@ -134,7 +140,13 @@ export interface InventoryHistoryParams extends BaseReportParams {
   statusId?: string | null;
   userId?: string | null;
   userTimezone?: string; // User-defined timezone
-  sortBy?: 'timestamp' | 'new_quantity' | 'previous_quantity' | 'action_type' | 'status' | 'user';
+  sortBy?:
+    | 'timestamp'
+    | 'new_quantity'
+    | 'previous_quantity'
+    | 'action_type'
+    | 'status'
+    | 'user';
   sortOrder?: 'ASC' | 'DESC';
 }
 
@@ -169,4 +181,5 @@ export interface InventoryHistoryResponse {
   pagination: ReportPagination;
 }
 
-export interface InventoryHistoryState extends ReportBaseState<InventoryHistoryRecord> {}
+export interface InventoryHistoryState
+  extends ReportBaseState<InventoryHistoryRecord> {}

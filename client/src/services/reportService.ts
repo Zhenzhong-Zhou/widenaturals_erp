@@ -1,6 +1,10 @@
 import {
-  AdjustmentReportParams, InventoryHistoryResponse, InventoryActivityLogParams, InventoryActivityLogsResponse,
-  PaginatedAdjustmentReportResponse, InventoryHistoryParams,
+  AdjustmentReportParams,
+  InventoryHistoryResponse,
+  InventoryActivityLogParams,
+  InventoryActivityLogsResponse,
+  PaginatedAdjustmentReportResponse,
+  InventoryHistoryParams,
 } from '../features/report';
 import { API_ENDPOINTS } from './apiEndponits.ts';
 import axiosInstance from '@utils/axiosConfig';
@@ -100,7 +104,7 @@ export const exportInventoryActivityLogs = async (
         responseType: 'blob',
       }
     );
-    
+
     // Validate response MIME type based on export format
     const contentType = response.headers['content-type'];
     if (
@@ -113,7 +117,7 @@ export const exportInventoryActivityLogs = async (
         'Received invalid file format. Expected CSV, PDF, or TXT.'
       );
     }
-    
+
     return response.data;
   } catch (error) {
     console.error('Error exporting inventory activity logs:', error);
@@ -132,17 +136,18 @@ export const fetchInventoryHistory = async (
   params: Partial<InventoryHistoryParams>
 ): Promise<InventoryHistoryResponse> => {
   try {
-    const response = await axiosInstance.get(
-      API_ENDPOINTS.INVENTORY_HISTORY,
-      { params }
-    );
+    const response = await axiosInstance.get(API_ENDPOINTS.INVENTORY_HISTORY, {
+      params,
+    });
     return response.data;
   } catch (error) {
-    console.error("Error fetching inventory history:", error);
+    console.error('Error fetching inventory history:', error);
     if (isCustomAxiosError(error)) {
-      throw new AppError("Failed to fetch inventory history");
+      throw new AppError('Failed to fetch inventory history');
     }
-    throw new AppError("An unexpected error occurred while fetching inventory history.");
+    throw new AppError(
+      'An unexpected error occurred while fetching inventory history.'
+    );
   }
 };
 
@@ -157,14 +162,11 @@ export const exportInventoryHistory = async (
   params: Partial<InventoryHistoryParams>
 ): Promise<Blob> => {
   try {
-    const response = await axiosInstance.get(
-      API_ENDPOINTS.INVENTORY_HISTORY,
-      {
-        params,
-        responseType: 'blob',
-      }
-    );
-    
+    const response = await axiosInstance.get(API_ENDPOINTS.INVENTORY_HISTORY, {
+      params,
+      responseType: 'blob',
+    });
+
     // Validate response MIME type based on export format
     const contentType = response.headers['content-type'];
     if (
@@ -177,16 +179,18 @@ export const exportInventoryHistory = async (
         'Received invalid file format. Expected CSV, PDF, or TXT.'
       );
     }
-    
+
     return response.data;
   } catch (error) {
-    console.error("Error exporting inventory history:", error);
-    
+    console.error('Error exporting inventory history:', error);
+
     if (isCustomAxiosError(error)) {
-      throw new AppError("Failed to export inventory history");
+      throw new AppError('Failed to export inventory history');
     }
-    
-    throw new AppError("An unexpected error occurred while exporting inventory history.");
+
+    throw new AppError(
+      'An unexpected error occurred while exporting inventory history.'
+    );
   }
 };
 

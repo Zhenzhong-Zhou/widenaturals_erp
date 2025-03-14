@@ -8,6 +8,7 @@ import {
 } from '@components/index';
 import { GeneralProductInfo } from '../state/productTypes.ts';
 import productPlaceholder from '../../../assets/Virility_CA.jpg';
+import { capitalizeFirstLetter } from '@utils/textUtils.ts';
 
 interface ProductCardProps {
   product: GeneralProductInfo; // Use the subset type
@@ -20,6 +21,7 @@ const ProductCard: FC<ProductCardProps> = ({ product }) => {
     series,
     brand,
     category,
+    npn_info,
     barcode,
     market_region,
     prices,
@@ -58,11 +60,14 @@ const ProductCard: FC<ProductCardProps> = ({ product }) => {
         <Typography variant="body2">Series: {series || 'N/A'}</Typography>
         <Typography variant="body2">Brand: {brand || 'N/A'}</Typography>
         <Typography variant="body2">Category: {category || 'N/A'}</Typography>
+        <Typography variant="body2">NPN: {npn_info[0].npn || 'N/A'}</Typography>
         <Typography variant="body2">Barcode: {barcode || 'N/A'}</Typography>
         <Typography variant="body2">
           Region: {market_region || 'N/A'}
         </Typography>
-        <Typography variant="body2">Status: {status_name}</Typography>
+        <Typography variant="body2">
+          Status: {capitalizeFirstLetter(status_name)}
+        </Typography>
         {/* Price Display */}
         <PriceDisplay prices={prices} />
       </CustomCard>

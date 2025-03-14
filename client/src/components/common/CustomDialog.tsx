@@ -1,18 +1,16 @@
-import React from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-} from '@mui/material';
+import { ReactNode } from 'react';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
 import { CustomButton, Typography } from '@components/index.ts';
 
 interface CommonDialogProps {
   open: boolean;
   onClose: () => void;
   title: string;
-  children?: React.ReactNode; // Optional content
-  actions?: React.ReactNode; // New prop for action buttons
+  children?: ReactNode; // Optional content
+  actions?: ReactNode; // New prop for action buttons
   confirmButtonText?: string; // Optional confirm button
   onConfirm?: () => void; // Optional confirm button action
 }

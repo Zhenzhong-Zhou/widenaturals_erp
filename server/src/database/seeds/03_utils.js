@@ -1,3 +1,4 @@
+const AppError = require('../../utils/AppError');
 /**
  * Fetch a single value dynamically from a table.
  *
@@ -17,7 +18,7 @@ const fetchDynamicValue = async (
 ) => {
   // Validate arguments
   if (!tableName || !columnName || !value || !returnColumn) {
-    throw new Error(
+    throw AppError.validationError(
       `Invalid arguments provided to fetchDynamicValue: tableName=${tableName}, columnName=${columnName}, value=${value}, returnColumn=${returnColumn}`
     );
   }
@@ -44,22 +45,36 @@ const fetchDynamicValue = async (
   }
 };
 
-const fetchDynamicValues = async (knex, tableName, columnName, values, returnColumn) => {
-  if (!tableName || !columnName || !values || !returnColumn || !Array.isArray(values)) {
-    throw new Error(`Invalid arguments provided to fetchDynamicValues.`);
+const fetchDynamicValues = async (
+  knex,
+  tableName,
+  columnName,
+  values,
+  returnColumn
+) => {
+  if (
+    !tableName ||
+    !columnName ||
+    !values ||
+    !returnColumn ||
+    !Array.isArray(values)
+  ) {
+    throw AppError.validationError(
+      `Invalid arguments provided to fetchDynamicValues.`
+    );
   }
-  
+
   try {
     const results = await knex(tableName)
       .select(returnColumn, columnName)
       .whereIn(columnName, values);
-    
+
     if (!results.length) {
       console.warn(
         `No results found in table "${tableName}" for values: ${values.join(', ')}`
       );
     }
-    
+
     return results.reduce((acc, row) => {
       acc[row[columnName]] = row[returnColumn];
       return acc;
@@ -79,18 +94,25 @@ const generateProductCode = async (knex, categoryCode) => {
     .where('category', categoryCode)
     .orderBy('SKU', 'desc')
     .first();
-  
+
   let newCode = 101; // Default starting point
-  
+
   if (lastProduct) {
     const lastCode = parseInt(lastProduct.SKU.match(/\d{3}/)[0], 10);
     newCode = lastCode + 1;
   }
-  
+
   return String(newCode).padStart(3, '0'); // Ensure it's always 3 digits
 };
 
-const generateSKU = async (knex, brandCode, categoryCode, variant, regionCode, productionDate) => {
+const generateSKU = async (
+  knex,
+  brandCode,
+  categoryCode,
+  variant,
+  regionCode,
+  productionDate
+) => {
   const productCode = await generateProductCode(knex, categoryCode);
   return `${brandCode}-${categoryCode}${productCode}-${variant}-${regionCode}-${productionDate}`;
 };

@@ -216,16 +216,30 @@ const exportToPlainText = (data, separator = ' | ', timezone = 'PST') => {
  * @returns {Promise<Object>} - An object containing `fileBuffer`, `contentType`, and `filename`.
  * @throws {Error} - If an invalid export format is provided.
  */
-const exportData = async ({ data, exportFormat, filename, title = '' , landscape, summary}) => {
+const exportData = async ({
+  data,
+  exportFormat,
+  filename,
+  title = '',
+  landscape,
+  summary,
+}) => {
   console.log(`Generating ${exportFormat.toUpperCase()} export: ${filename}`);
-  
+
   // Handle empty data
   if (!data || data.length === 0) {
     console.warn('No data available for export.');
     return generateEmptyExport(exportFormat, filename);
   }
-  
-  return generateExport(exportFormat, data, filename, title, landscape, summary);
+
+  return generateExport(
+    exportFormat,
+    data,
+    filename,
+    title,
+    landscape,
+    summary
+  );
 };
 
 /**
@@ -233,10 +247,10 @@ const exportData = async ({ data, exportFormat, filename, title = '' , landscape
  */
 const generateEmptyExport = (format, filename, landscape, summary) => {
   logWarn(`Generating empty export file for format: ${format}`);
-  
+
   const emptyMessage = 'No data available for export.';
   let fileBuffer, contentType;
-  
+
   switch (format.toLowerCase()) {
     case 'csv':
       fileBuffer = Buffer.from(emptyMessage, 'utf-8');
@@ -244,7 +258,11 @@ const generateEmptyExport = (format, filename, landscape, summary) => {
       filename = `empty_${filename}.csv`;
       break;
     case 'pdf':
-      fileBuffer = exportToPDF([], { title: 'Empty Report', landscape, summary }); // Empty PDF
+      fileBuffer = exportToPDF([], {
+        title: 'Empty Report',
+        landscape,
+        summary,
+      }); // Empty PDF
       contentType = 'application/pdf';
       filename = `empty_${filename}.pdf`;
       break;
@@ -258,18 +276,25 @@ const generateEmptyExport = (format, filename, landscape, summary) => {
         'Invalid export format. Use "csv", "pdf", or "txt".'
       );
   }
-  
+
   return { fileBuffer, contentType, filename };
 };
 
 /**
  * Generates an export file with provided data.
  */
-const generateExport = async (format, data, filename, title, landscape, summary) => {
+const generateExport = async (
+  format,
+  data,
+  filename,
+  title,
+  landscape,
+  summary
+) => {
   logInfo(`Generating export file: ${format}`);
-  
+
   let fileBuffer, contentType;
-  
+
   switch (format.toLowerCase()) {
     case 'csv':
       fileBuffer = exportToCSV(data);
@@ -291,7 +316,7 @@ const generateExport = async (format, data, filename, title, landscape, summary)
         'Invalid export format. Use "csv", "pdf", or "txt".'
       );
   }
-  
+
   return { fileBuffer, contentType, filename };
 };
 
