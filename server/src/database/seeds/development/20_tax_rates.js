@@ -16,12 +16,12 @@ exports.seed = async function (knex) {
       'id'
     );
 
-    // 🔹 Fixed valid_from timestamp to prevent duplicate conflicts
+    // Fixed valid_from timestamp to prevent duplicate conflicts
     const fixedTimestamp = new Date('2025-03-01T00:00:00Z');
 
-    // ✅ Insert common tax rates in Canada
+    // Insert common tax rates in Canada
     const taxRates = [
-      { name: 'GST', rate: 5.0, province: null, region: 'Canada' },
+      { name: 'GST', rate: 5.0, province: '', region: 'Canada' },
       { name: 'PST', rate: 7.0, province: 'BC', region: 'Canada' },
       { name: 'PST', rate: 6.0, province: 'SK', region: 'Canada' },
       { name: 'PST', rate: 7.0, province: 'MB', region: 'Canada' },
@@ -31,7 +31,7 @@ exports.seed = async function (knex) {
       { name: 'HST', rate: 15.0, province: 'NS', region: 'Canada' },
       { name: 'HST', rate: 15.0, province: 'NL', region: 'Canada' },
       { name: 'HST', rate: 15.0, province: 'PE', region: 'Canada' },
-      { name: 'Zero-Rated', rate: 0.0, province: null, region: 'Canada' },
+      { name: 'Zero-Rated', rate: 0.0, province: '', region: 'Canada' },
     ];
 
     // ✅ Format data for insertion
@@ -48,7 +48,7 @@ exports.seed = async function (knex) {
       updated_by: null,
     }));
 
-    // ✅ Insert tax rates & prevent duplicates
+    // Insert tax rates & prevent duplicates
     await knex('tax_rates')
       .insert(formattedTaxRates)
       .onConflict(['name', 'province', 'region', 'valid_from'])
