@@ -1,7 +1,6 @@
-import { FC, useState } from 'react';
+import { FC, lazy, useState } from 'react';
 import {
   CustomButton,
-  CustomDatePicker,
   CustomModal,
   Loading,
   MultiItemForm,
@@ -10,6 +9,8 @@ import Box from '@mui/material/Box';
 import { InventoryDropdown, ProductDropdownItem } from '../index.ts';
 import { useProductsDropdown } from '../../../hooks';
 import { formatDate } from '@utils/dateTimeUtils.ts';
+
+const CustomDatePicker = lazy(() => import('@components/common/CustomDatePicker.tsx'));
 
 const BulkInsertInventoryModal: FC<{
   warehouseId: string;

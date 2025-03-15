@@ -2,10 +2,12 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 import { visualizer } from 'rollup-plugin-visualizer';
+import compression from 'vite-plugin-compression';
 
 export default defineConfig({
   plugins: [
     react(),
+    compression({ algorithm: 'brotliCompress', ext: '.br' }), // Enable Brotli compression
     process.env.NODE_ENV === 'development' ? visualizer({ filename: 'dist/stats.html' }) : null, // Only use visualizer in development
   ],
   resolve: {
@@ -41,25 +43,33 @@ export default defineConfig({
       'lodash',
       'react',
       'react-dom',
+      'react/jsx-runtime',
     ],
-    exclude: [], // Do not exclude React (fixes "entry point cannot be marked as external" issue)
   },
   
   build: {
+    target: 'esnext',
     sourcemap: process.env.NODE_ENV === 'development', // Allow sourcemaps in dev, disable in prod
     minify: 'esbuild',
     rollupOptions: {
+      treeshake: {
+        moduleSideEffects: false, // Remove unused modules
+        preset: 'smallest', // Ensures aggressive tree-shaking
+      },
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom')) return 'react-core'; // Keep React together
             if (id.includes('@mui/material')) return 'mui-core'; // Separate MUI Core
             if (id.includes('@mui/icons-material')) return 'mui-icons'; // Separate MUI Icons
             if (id.includes('@mui/x-date-pickers')) return 'mui-datepickers'; // Separate MUI Date Pickers
             if (id.includes('date-fns')) return 'date-fns-vendor';
             if (id.includes('lodash')) return 'lodash-vendor';
             if (id.includes('axios')) return 'axios-vendor';
+            
             return 'vendor'; // Default chunk for remaining dependencies
+          }
+          if (id.includes('src/components/')) {
+            return 'components'; // Split components into their own chunk
           }
         },
       },

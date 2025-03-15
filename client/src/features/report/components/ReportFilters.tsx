@@ -1,7 +1,9 @@
+import { lazy } from 'react';
 import Dropdown from '@components/common/Dropdown.tsx';
-import CustomDatePicker from '@components/common/CustomDatePicker.tsx';
 import { BaseReportParams } from '../state/reportTypes.ts';
 import { formatDate } from '@utils/dateTimeUtils.ts';
+
+const CustomDatePicker = lazy(() => import('@components/common/CustomDatePicker.tsx'));
 
 interface ReportFiltersProps<T extends BaseReportParams> {
   filters: T;
