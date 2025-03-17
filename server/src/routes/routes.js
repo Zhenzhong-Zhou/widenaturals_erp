@@ -25,6 +25,7 @@ const warehouseInventoryLotRouts = require('./warehouse-invnetory-lot');
 const warehouseLotAdjustmentRoutes = require('./lot-adjustment-type');
 const reportRoutes = require('./reports');
 const customerRoutes = require('./customers');
+const discountRoutes = require('./discounts');
 const orderTypeRoutes = require('./order-types');
 const orderRoutes = require('./orders');
 const { createApiRateLimiter } = require('../middlewares/rate-limiter');
@@ -115,6 +116,9 @@ router.use(
 router.use('/reports', authenticate(), reportRoutes);
 
 router.use('/customers', authenticate(), customerRoutes);
+
+// router.use('/discounts', authenticate(), discountRoutes);
+router.use('/discounts', discountRoutes);
 
 // router.use('/orders', authenticate(), orderRoutes);
 router.use('/orders', orderRoutes);

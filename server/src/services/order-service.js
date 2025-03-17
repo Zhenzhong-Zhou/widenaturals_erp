@@ -28,7 +28,7 @@ const createOrderByType = async (orderData) => {
   // Step 2: Route to the correct order creation function
   switch (orderType.category) {
     case 'sales':
-      return createSalesOrder(orderData); // 🔹 Calls `createSalesOrder`
+      return createSalesOrder(orderData); // Calls `createSalesOrder`
 
     case 'purchase':
     case 'transfer':
@@ -36,7 +36,7 @@ const createOrderByType = async (orderData) => {
     case 'manufacturing':
     case 'adjustment':
     case 'logistics':
-      return createOrder(orderData); // 🔹 Calls `createOrder` for other order types
+      return createOrder(orderData); // Calls `createOrder` for other order types
 
     default:
       throw AppError.validationError(

@@ -1,5 +1,6 @@
 const { query } = require('../database/db');
 const AppError = require('../utils/AppError');
+const { logError } = require('../utils/logger-helper');
 
 /**
  * Retrieves a valid discount by ID.
@@ -27,4 +28,35 @@ const getValidDiscountById = async (discountId, client = null) => {
   }
 };
 
-module.exports = { getValidDiscountById };
+/**
+ * Fetches active and valid discounts with a timeout query.
+ * @returns {Promise<Array>} - List of discounts (id, name, type, value).
+ */
+const getActiveDiscounts = async () => {
+  try {
+    const queryText = `
+      SELECT
+          d.id,
+          d.name,
+          d.discount_type,
+          d.discount_value
+      FROM discounts d
+      JOIN status s ON d.status_id = s.id
+      WHERE
+          s.name = 'active'
+          AND (d.valid_to IS NULL OR d.valid_to >= NOW())
+      ORDER BY d.name ASC;
+    `;
+    
+    const { rows } = await query(queryText);
+    return rows;
+  } catch (error) {
+    logError('Error fetching active discounts:', error);
+    throw AppError.databaseError('Failed to fetch active discounts');
+  }
+};
+
+module.exports = {
+  getValidDiscountById,
+  getActiveDiscounts,
+};

@@ -23,7 +23,7 @@ const createSalesOrder = async (salesOrderData) => {
         client
       );
 
-      // 🔹 Step 1: Create a general order in the `orders` table
+      // Step 1: Create a general order in the `orders` table
       const order = await createOrder({
         order_type_id: salesOrderData.order_type_id,
         order_date: salesOrderData.order_date,
@@ -34,7 +34,7 @@ const createSalesOrder = async (salesOrderData) => {
         updated_by: salesOrderData.updated_by,
       });
 
-      // 🔹 Step 2: Fetch Prices & Calculate Subtotal
+      // Step 2: Fetch Prices & Calculate Subtotal
       let subtotal = 0;
       const processedItems = [];
 
@@ -58,7 +58,7 @@ const createSalesOrder = async (salesOrderData) => {
         const itemTotal = productPrice.price * quantity_ordered;
         subtotal += itemTotal;
 
-        // ✅ Store price_id from pricing table for tracking
+        // Store price_id from pricing table for tracking
         processedItems.push({
           ...item,
           price_id: productPrice.id, // Fetching price ID from pricing table
@@ -67,7 +67,7 @@ const createSalesOrder = async (salesOrderData) => {
         });
       }
 
-      // 🔹 Step 3: Fetch discount details (if discount ID is provided)
+      // Step 3: Fetch discount details (if discount ID is provided)
       let discountAmount = 0;
       if (salesOrderData.discount_id) {
         const discount = await getValidDiscountById(
@@ -81,19 +81,19 @@ const createSalesOrder = async (salesOrderData) => {
           );
         }
 
-        // ✅ Correctly calculate discount amount
+        // Correctly calculate discount amount
         discountAmount =
           discount.discount_type === 'PERCENTAGE'
             ? (subtotal * discount.discount_value) / 100
             : discount.discount_value;
       }
 
-      // 🔹 Step 4: Fetch Tax Rate
+      // Step 4: Fetch Tax Rate
       const taxRate = salesOrderData.tax_rate_id
         ? await getActiveTaxRateById(salesOrderData.tax_rate_id, client)
         : 0;
 
-      // 🔹 Step 5: Calculate Tax & Final Total
+      // Step 5: Calculate Tax & Final Total
       const taxableAmount = subtotal - discountAmount;
       if (taxableAmount < 0) {
         throw AppError.validationError('Discount cannot exceed order total.');
@@ -103,7 +103,7 @@ const createSalesOrder = async (salesOrderData) => {
       const finalTotal =
         taxableAmount + taxAmount + (salesOrderData.shipping_fee || 0);
 
-      // 🔹 Step 6: Create the sales order using the same order ID
+      // Step 6: Create the sales order using the same order ID
       const salesOrderSql = `
         INSERT INTO sales_orders (
           id, customer_id, order_date, discount_id, discount_amount, subtotal, tax_amount, shipping_fee,
@@ -118,11 +118,11 @@ const createSalesOrder = async (salesOrderData) => {
         salesOrderData.customer_id,
         salesOrderData.order_date,
         salesOrderData.discount_id || null,
-        discountAmount, // ✅ Store actual discount value applied
-        subtotal, // ✅ Store calculated subtotal
-        taxAmount, // ✅ Store calculated tax amount
-        salesOrderData.shipping_fee || 0, // ✅ Store shipping fee
-        finalTotal, // ✅ Store final total after discount and tax
+        discountAmount, // Store actual discount value applied
+        subtotal, // Store calculated subtotal
+        taxAmount, // Store calculated tax amount
+        salesOrderData.shipping_fee || 0, // Store shipping fee
+        finalTotal, // Store final total after discount and tax
         salesOrderData.delivery_method_id || null,
         order_status_id,
         salesOrderData.note,
@@ -136,14 +136,14 @@ const createSalesOrder = async (salesOrderData) => {
       );
       const salesOrder = salesOrderResult.rows[0];
 
-      // 🔹 Step 7: Ensure order items exist
+      // Step 7: Ensure order items exist
       if (!processedItems.length) {
         throw AppError.validationError(
           'Sales order must have at least one item.'
         );
       }
 
-      // 🔹 Step 8: Add order items using transaction client
+      // Step 8: Add order items using transaction client
       await addOrderItems(
         order.id,
         processedItems,
