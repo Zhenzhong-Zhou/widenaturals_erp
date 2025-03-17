@@ -16,7 +16,7 @@ const addOrderItems = async (orderId, items, createdBy, client) => {
   if (!Array.isArray(items) || items.length === 0) {
     throw AppError.validationError('Order items cannot be empty.');
   }
-
+  
   const columns = [
     'order_id',
     'product_id',
@@ -29,8 +29,31 @@ const addOrderItems = async (orderId, items, createdBy, client) => {
     'updated_by',
   ];
 
-  // Ensure data is structured as an array of arrays for bulkInsert
-  const rows = items.map((item) => [
+// Step 1: Aggregate items that have the same `product_id`, `price_type_id`, `price_id`, and `price`
+  const itemMap = new Map();
+  
+  for (const item of items) {
+    const { product_id, price_type_id, price_id, price, quantity_ordered } = item;
+    
+    // Create a unique key based on merging conditions
+    const itemKey = `${product_id}_${price_type_id}_${price_id}_${price}`;
+    
+    if (itemMap.has(itemKey)) {
+      // If same product, price_type_id, price_id, and price → Sum quantities
+      const existingItem = itemMap.get(itemKey);
+      existingItem.quantity_ordered += quantity_ordered;
+      itemMap.set(itemKey, existingItem);
+    } else {
+      // Otherwise, store as a new line item
+      itemMap.set(itemKey, {
+        ...item,
+        quantity_ordered,
+      });
+    }
+  }
+
+// Step 2: Convert aggregated items into an array for insertion
+  const rows = Array.from(itemMap.values()).map((item) => [
     orderId, // Ensure order_id is correctly set
     item.product_id,
     item.quantity_ordered,
@@ -39,15 +62,15 @@ const addOrderItems = async (orderId, items, createdBy, client) => {
     item.status_id,
     new Date(), // Default to now if missing
     createdBy, // Created by extracted from the user session
-    null,
+    null, // No updated_by at creation
   ]);
-
+  
   return bulkInsert(
     'order_items',
     columns,
     rows,
-    ['order_id', 'product_id', 'price_id'],
-    ['quantity_ordered', 'price', 'status_id', 'updated_by', 'status_date'],
+    ['order_id', 'product_id', 'price_id', 'price'], // Unique constraint check
+    ['quantity_ordered', 'status_id', 'updated_by', 'status_date'], // Fields that can be updated
     client
   );
 };

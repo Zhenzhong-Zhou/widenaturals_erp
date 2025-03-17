@@ -92,18 +92,128 @@ const getOrderDetailsById = async (orderId) => {
     LEFT JOIN order_status ist ON oi.status_id = ist.id
     WHERE o.id = $1
   `;
-  console.log(sql, [orderId]);
+  
   try {
     const { rows } = await query(sql, [orderId]);
     return rows.length > 0 ? rows : null;
   } catch (error) {
-    console.log(error);
     logError(`Error fetching order details for ID: ${orderId}`, error);
     throw AppError.databaseError('Failed to fetch order details.');
+  }
+};
+
+/**
+ * Updates an order with new details, including metadata updates for manual price overrides.
+ *
+ * This function dynamically updates only the provided fields while preserving existing metadata.
+ * It ensures that manual price overrides are properly tracked in `metadata` and prevents duplicate discount applications.
+ *
+ * @param {string} orderId - The unique identifier of the sales order to be updated.
+ * @param {Object} updateData - The fields to update in the sales order.
+ * @param {Array<Object>} [updateData.manual_price_overrides] - An array of manual price overrides to be appended to metadata.
+ * @param {string} [updateData.discount_id] - The discount ID to apply to the order.
+ * @param {number} [updateData.tax_amount] - The updated tax amount for the order.
+ * @param {number} [updateData.total_amount] - The updated total amount for the order.
+ * @param {string} [updateData.status_id] - The updated order status ID.
+ * @param {string} [updateData.note] - Any additional notes related to the order.
+ * @param {string} [updateData.updated_by] - The ID of the user making the update.
+ * @param {Object} client - The database transaction client.
+ * @returns {Promise<Object>} - The updated sales order record.
+ * @throws {AppError} - Throws an error if the order is not found or if the update fails.
+ */
+const updateOrderData = async (orderId, updateData, client) => {
+  try {
+    // Step 1: Fetch the existing order metadata
+    const existingOrder = await client.query(
+      `SELECT metadata FROM orders WHERE id = $1`,
+      [orderId]
+    );
+    
+    if (!existingOrder.rows.length) {
+      throw AppError.notFoundError(`Order ${orderId} not found.`);
+    }
+    
+    let existingMetadata = existingOrder.rows[0].metadata || {};
+    
+    // Step 2: Merge metadata for manual price overrides
+    if (updateData.manual_price_overrides) {
+      existingMetadata.manual_price_overrides = [
+        ...(existingMetadata.manual_price_overrides || []),
+        ...updateData.manual_price_overrides,
+      ];
+    }
+    
+    // Step 3: Construct the update query dynamically
+    let updateFields = [];
+    let updateValues = [];
+    let index = 1;
+    
+    if (updateData.discount_id) {
+      updateFields.push(`discount_id = $${index}`);
+      updateValues.push(updateData.discount_id);
+      index++;
+    }
+    
+    if (updateData.tax_amount !== undefined) {
+      updateFields.push(`tax_amount = $${index}`);
+      updateValues.push(updateData.tax_amount);
+      index++;
+    }
+    
+    if (updateData.total_amount !== undefined) {
+      updateFields.push(`total_amount = $${index}`);
+      updateValues.push(updateData.total_amount);
+      index++;
+    }
+    
+    if (updateData.status_id) {
+      updateFields.push(`order_status_id = $${index}`);
+      updateValues.push(updateData.status_id);
+      index++;
+      
+      // If status changes, update status_date
+      updateFields.push(`status_date = NOW()`);
+    }
+    
+    if (updateData.note) {
+      updateFields.push(`note = $${index}`);
+      updateValues.push(updateData.note);
+      index++;
+    }
+    
+    // Always update metadata and timestamps
+    updateFields.push(`metadata = $${index}`);
+    updateValues.push(existingMetadata);
+    index++;
+    
+    updateFields.push(`updated_at = NOW()`);
+    
+    if (updateData.updated_by) {
+      updateFields.push(`updated_by = $${index}`);
+      updateValues.push(updateData.updated_by);
+      index++;
+    }
+    
+    updateValues.push(orderId);
+    
+    const updateQuery = `
+      UPDATE orders
+      SET ${updateFields.join(', ')}
+      WHERE id = $${index}
+      RETURNING id;
+    `;
+    
+    const updatedOrder = await client.query(updateQuery, updateValues);
+    return updatedOrder.rows[0];
+    
+  } catch (error) {
+    logError('Error updating order:', error);
+    throw AppError.databaseError(`Failed to update order: ${error.message}`);
   }
 };
 
 module.exports = {
   createOrder,
   getOrderDetailsById,
+  updateOrderData,
 };

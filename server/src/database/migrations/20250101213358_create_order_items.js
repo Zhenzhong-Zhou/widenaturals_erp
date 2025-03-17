@@ -22,7 +22,7 @@ exports.up = function (knex) {
     table.uuid('created_by').references('id').inTable('users');
     table.uuid('updated_by').references('id').inTable('users');
 
-    table.unique(['order_id', 'product_id', 'price_id']);
+    table.unique(['order_id', 'product_id', 'price_id', 'price']);
   });
 };
 

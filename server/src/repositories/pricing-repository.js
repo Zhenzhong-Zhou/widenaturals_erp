@@ -218,8 +218,20 @@ const getPricingDetailsByPricingId = async ({ pricingId, page, limit }) => {
   }
 };
 
+/**
+ * Retrieves the active price ID and value for a given product and price type.
+ *
+ * This function queries the `pricing` table to fetch the most recent valid price
+ * for the specified product and price type. It ensures that only active and valid
+ * prices are considered, filtering by `status_id` and `valid_to` date.
+ *
+ * @param {string} productId - The unique identifier of the product.
+ * @param {string} priceTypeId - The unique identifier of the price type.
+ * @param {object} client - The database transaction client (optional).
+ * @returns {Promise<{ price_id: string, price: number } | null>} - The active price details, or `null` if no valid price is found.
+ */
 const getActiveProductPrice = async (productId, priceTypeId, client) => {
-  const sql = `
+  const queryText = `
     SELECT
       p.id,
       p.price
@@ -233,9 +245,14 @@ const getActiveProductPrice = async (productId, priceTypeId, client) => {
     ORDER BY p.valid_from DESC
     LIMIT 1;
   `;
-
-  const result = await client.query(sql, [productId, priceTypeId]);
-  return result.rows.length > 0 ? result.rows[0] : null;
+  
+  try {
+    const { rows } = await query(queryText, [productId, priceTypeId]);
+    return rows.length > 0 ? rows[0] : null;
+  } catch (error) {
+    logError('Error fetching price for order:', error);
+    throw AppError.databaseError('Failed to fetch price for order');
+  }
 };
 
 module.exports = {
