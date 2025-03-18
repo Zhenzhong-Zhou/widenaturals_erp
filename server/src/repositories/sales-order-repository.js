@@ -120,26 +120,24 @@ const createSalesOrder = async (salesOrderData) => {
           });
         }
       }
-
+      
       // Step 3: Fetch discount details (if discount ID is provided)
       let discountAmount = 0;
       if (salesOrderData.discount_id) {
-        const discount = await getValidDiscountById(
-          salesOrderData.discount_id,
-          client
-        );
-
+        const discount = await getValidDiscountById(salesOrderData.discount_id, client);
+        
         if (!discount) {
-          throw AppError.validationError(
-            'Invalid or expired discount provided.'
-          );
+          throw AppError.validationError('Invalid or expired discount provided.');
         }
-
+        
         // Correctly calculate discount amount
         discountAmount =
           discount.discount_type === 'PERCENTAGE'
             ? (subtotal * discount.discount_value) / 100
             : discount.discount_value;
+        
+        // Prevent discount from exceeding the subtotal
+        discountAmount = Math.min(discountAmount, subtotal);
       }
 
       // Step 4: Fetch Tax Rate
@@ -148,23 +146,20 @@ const createSalesOrder = async (salesOrderData) => {
         : 0;
 
       // Step 5: Calculate Tax & Final Total
-      const taxableAmount = subtotal - discountAmount;
-      if (taxableAmount < 0) {
-        throw AppError.validationError('Discount cannot exceed order total.');
-      }
-
+      const taxableAmount = Math.max(subtotal - discountAmount, 0); // Ensure it never goes below 0
+      
       const taxAmount = taxableAmount * (taxRate / 100);
-      const finalTotal =
-        taxableAmount + taxAmount + (salesOrderData.shipping_fee || 0);
-
+      
+      const finalTotal = taxableAmount + taxAmount;
+      
       // Step 6: Create the sales order using the same order ID
       const salesOrderSql = `
         INSERT INTO sales_orders (
           id, customer_id, order_date, discount_id, discount_amount, subtotal,
           tax_rate_id, tax_amount, delivery_method_id, total_amount,
-          order_status_id, status_date, note, created_by, updated_at, updated_by
+          order_status_id, status_date, created_by, updated_at, updated_by
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), $12, $13, $14, $15)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), $12, $13, $14)
         RETURNING id;
       `;
 
@@ -180,7 +175,6 @@ const createSalesOrder = async (salesOrderData) => {
         salesOrderData.delivery_method_id || null,
         finalTotal, // Store final total after discount and tax
         order_status_id,
-        salesOrderData.note,
         salesOrderData.created_by,
         null,
         null,

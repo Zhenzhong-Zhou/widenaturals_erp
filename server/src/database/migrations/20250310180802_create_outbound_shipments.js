@@ -10,7 +10,7 @@ exports.up = function (knex) {
       .uuid('order_id')
       .notNullable()
       .references('id')
-      .inTable('sales_orders');
+      .inTable('orders');
     table
       .uuid('warehouse_id')
       .notNullable()
@@ -30,7 +30,7 @@ exports.up = function (knex) {
       .uuid('status_id')
       .notNullable()
       .references('id')
-      .inTable('shipment_status'); // ✅ Normalized status
+      .inTable('shipment_status'); // Normalized status
 
     table.date('shipment_date').nullable();
     table.date('expected_delivery_date').nullable();
@@ -44,7 +44,7 @@ exports.up = function (knex) {
     table.timestamp('created_at').defaultTo(knex.fn.now());
     table.timestamp('updated_at').defaultTo(knex.fn.now());
 
-    // 🔹 Performance Optimization
+    // Performance Optimization
     table.index(['order_id', 'warehouse_id', 'tracking_number_id']);
     table.index('status_id');
   });

@@ -2,13 +2,12 @@
  * @param { import("knex").Knex } knex
  * @returns {Knex.SchemaBuilder}
  */
-exports.up = function (knex) {
-  return knex.schema.createTable('order_items', (table) => {
+exports.up = async function (knex) {
+  await knex.schema.createTable('order_items', (table) => {
     table.uuid('id').primary().defaultTo(knex.raw('uuid_generate_v4()'));
     table.uuid('order_id').notNullable().references('id').inTable('orders');
     table.uuid('product_id').notNullable().references('id').inTable('products');
     table.integer('quantity_ordered').notNullable();
-    table.integer('quantity_fulfilled').defaultTo(0);
     table.uuid('price_id').notNullable().references('id').inTable('pricing');
     table.decimal('price', 10, 2).nullable();
     table
@@ -23,8 +22,12 @@ exports.up = function (knex) {
     table.uuid('updated_by').references('id').inTable('users');
 
     table.unique(['order_id', 'product_id', 'price_id', 'price']);
-    table.check('price IS NULL OR price >= 0', 'check_price_non_negative');
   });
+  
+  await knex.raw(`
+    ALTER TABLE order_items
+    ADD CONSTRAINT check_price_non_negative CHECK (price IS NULL OR price >= 0);
+  `);
 };
 
 /**

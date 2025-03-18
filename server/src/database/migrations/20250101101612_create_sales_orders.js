@@ -27,6 +27,7 @@ exports.up = async function (knex) {
         .inTable('tax_rates'); // Ensure tax rate consistency
 
       table.decimal('tax_amount', 10, 2).defaultTo(0.0);
+      table.decimal('shipping_fee', 10, 2);
       table.decimal('total_amount', 10, 2).notNullable();
       table
         .uuid('delivery_method_id')
@@ -39,7 +40,6 @@ exports.up = async function (knex) {
         .references('id')
         .inTable('order_status');
       table.timestamp('status_date', { useTz: true }).defaultTo(knex.fn.now());
-      table.text('note');
       table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
       table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
       table.uuid('created_by').references('id').inTable('users');
