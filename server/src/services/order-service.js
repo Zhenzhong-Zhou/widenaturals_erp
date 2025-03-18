@@ -4,7 +4,7 @@ const {
 } = require('../repositories/order-repository');
 const { createSalesOrder } = require('../repositories/sales-order-repository');
 const {
-  getOrderTypeByIdOrName,
+  getOrderTypeByIdOrName, checkOrderTypeExists,
 } = require('../repositories/order-type-repository');
 const AppError = require('../utils/AppError');
 
@@ -16,28 +16,35 @@ const AppError = require('../utils/AppError');
  * @returns {Promise<Object>} - The created order.
  */
 const createOrderByType = async (orderData) => {
-  // Step 1: Fetch order type details based on `order_type_id`
+  // Step 1: Check if order type exists
+  const orderTypeExists = await checkOrderTypeExists(orderData.order_type_id);
+  
+  if (!orderTypeExists) {
+    throw AppError.validationError('Invalid order type provided.');
+  }
+  
+  // Step 2: Fetch order type details based on `order_type_id`
   const orderType = await getOrderTypeByIdOrName({
     id: orderData.order_type_id,
   });
-
+  
   if (!orderType) {
-    throw AppError.databaseError('Invalid order type provided.');
+    throw AppError.databaseError('Failed to fetch order type details.');
   }
-
-  // Step 2: Route to the correct order creation function
+  
+  // Step 3: Route to the correct order creation function
   switch (orderType.category) {
     case 'sales':
-      return createSalesOrder(orderData); // Calls `createSalesOrder`
-
+      return createSalesOrder(orderData);
+    
     case 'purchase':
     case 'transfer':
     case 'return':
     case 'manufacturing':
     case 'adjustment':
     case 'logistics':
-      return createOrder(orderData); // Calls `createOrder` for other order types
-
+      return createOrder(orderData);
+    
     default:
       throw AppError.validationError(
         `Unsupported order category: ${orderType.category}`

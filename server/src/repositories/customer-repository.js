@@ -9,22 +9,47 @@ const AppError = require('../utils/AppError');
 const { logError } = require('../utils/logger-helper');
 
 /**
- * Checks if a customer exists by email or phone.
+ * Repository function to check if a customer exists by ID.
+ * @param {string} customerId - The UUID of the customer.
+ * @param {object} client - Optional database transaction client.
+ * @returns {Promise<boolean>} - Returns true if the customer exists, otherwise false.
+ */
+const checkCustomerExistsById = async (customerId, client = null) => {
+  try {
+    console.log(customerId);
+    const queryText = `SELECT EXISTS (SELECT 1 FROM customers WHERE id = $1) AS exists;`;
+    console.log(queryText);
+    const { rows } = await query(queryText, [customerId], client);
+    console.log(rows[0]);
+    return rows[0]?.exists || false;
+  } catch (error) {
+    logError('Error checking customer existence by ID:', error);
+    throw AppError.databaseError('Failed to check customer existence by ID');
+  }
+};
+
+/**
+ * Repository function to check if a customer exists by email or phone number.
  * @param {string} email - Customer email.
  * @param {string} phone_number - Customer phone number.
- * @returns {Promise<boolean>} - True if customer exists, otherwise false.
+ * @param {object} client - Optional database transaction client.
+ * @returns {Promise<boolean>} - True if the customer exists, otherwise false.
  */
-const checkCustomerExists = async (email, phone_number) => {
+const checkCustomerExistsByEmailOrPhone = async (email, phone_number, client = null) => {
   if (!email && !phone_number) return false;
-
-  const sql = `
-    SELECT id FROM customers
-    WHERE email = $1 OR phone_number = $2
-    LIMIT 1;
-  `;
-
-  const result = await query(sql, [email || null, phone_number || null]);
-  return result.rows.length > 0;
+  
+  try {
+    const sql = `
+      SELECT EXISTS (
+        SELECT 1 FROM customers WHERE email = $1 OR phone_number = $2
+      ) AS exists;
+    `;
+    const { rows } = await query(sql, [email || null, phone_number || null], client);
+    return rows[0]?.exists || false;
+  } catch (error) {
+    logError('Error checking customer existence by email or phone:', error);
+    throw AppError.databaseError('Failed to check customer existence by email or phone');
+  }
 };
 
 /**
@@ -275,7 +300,8 @@ const getCustomerById = async (customerId) => {
 };
 
 module.exports = {
-  checkCustomerExists,
+  checkCustomerExistsById,
+  checkCustomerExistsByEmailOrPhone,
   bulkCreateCustomers,
   getAllCustomers,
   getCustomersForDropdown,

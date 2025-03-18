@@ -89,7 +89,25 @@ const getPricingTypeById = async (pricingTypeId) => {
   }
 };
 
+/**
+ * Repository function to check if a price type exists by ID.
+ * @param {string} priceTypeId - The UUID of the price type.
+ * @param {object} client - Database transaction client (optional for transactions).
+ * @returns {Promise<boolean>} - Returns true if the price type exists, otherwise false.
+ */
+const checkPriceTypeExists = async (priceTypeId, client = null) => {
+  try {
+    const queryText = `SELECT EXISTS (SELECT 1 FROM price_types WHERE id = $1) AS exists;`;
+    const { rows } = await query(queryText, [priceTypeId], client);
+    return rows[0]?.exists || false;
+  } catch (error) {
+    logError('Error checking price type existence:', error);
+    throw AppError.databaseError('Failed to check price type existence');
+  }
+};
+
 module.exports = {
   getAllPriceTypes,
   getPricingTypeById,
+  checkPriceTypeExists,
 };

@@ -14,9 +14,9 @@ const userRoutes = require('./users');
 const adminRoutes = require('./admin');
 const productRoutes = require('./products');
 const complianceRoutes = require('./compliances');
-const priceTypeRouts = require('./pricing_types');
+const priceTypeRouts = require('./pricing-types');
 const pricingRouts = require('./pricings');
-const locationTypeRouts = require('./locations_types');
+const locationTypeRouts = require('./locations-types');
 const locationRouts = require('./locations');
 const inventoryRouts = require('./inventory');
 const warehouseRouts = require('./warehouses');
@@ -26,6 +26,7 @@ const warehouseLotAdjustmentRoutes = require('./lot-adjustment-type');
 const reportRoutes = require('./reports');
 const customerRoutes = require('./customers');
 const discountRoutes = require('./discounts');
+const deliveryMethodRoutes = require('./delivery-methods');
 const orderTypeRoutes = require('./order-types');
 const orderRoutes = require('./orders');
 const { createApiRateLimiter } = require('../middlewares/rate-limiter');
@@ -119,6 +120,8 @@ router.use('/customers', authenticate(), customerRoutes);
 
 // router.use('/discounts', authenticate(), discountRoutes);
 router.use('/discounts', discountRoutes);
+
+router.use('/delivery-methods', deliveryMethodRoutes);
 
 // router.use('/orders', authenticate(), orderRoutes);
 router.use('/orders', orderRoutes);

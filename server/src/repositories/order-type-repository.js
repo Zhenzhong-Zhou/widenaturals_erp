@@ -121,8 +121,26 @@ const getOrderTypes = async (type = 'lookup') => {
   }
 };
 
+/**
+ * Repository function to check if an order type exists by ID.
+ * @param {string} orderTypeId - The UUID of the order type.
+ * @param {object} client - Database transaction client (optional for transactions).
+ * @returns {Promise<boolean>} - Returns true if the order type exists, otherwise false.
+ */
+const checkOrderTypeExists = async (orderTypeId, client = null) => {
+  try {
+    const queryText = `SELECT EXISTS (SELECT 1 FROM order_types WHERE id = $1) AS exists;`;
+    const { rows } = await query(queryText, [orderTypeId], client);
+    return rows[0]?.exists || false;
+  } catch (error) {
+    logError('Error checking order type existence:', error);
+    throw AppError.databaseError('Failed to check order type existence');
+  }
+};
+
 module.exports = {
   getOrderTypeByIdOrName,
   getAllOrderTypes,
   getOrderTypes,
+  checkOrderTypeExists,
 };

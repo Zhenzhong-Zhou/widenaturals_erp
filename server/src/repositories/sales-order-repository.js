@@ -3,10 +3,12 @@ const { createOrder, updateOrderData } = require('./order-repository');
 const AppError = require('../utils/AppError');
 const { addOrderItems } = require('./order-item-repository');
 const { getValidDiscountById } = require('./discount-repository');
-const { getActiveTaxRateById } = require('./tax-rate-repository');
+const { getActiveTaxRateById, checkTaxRateExists } = require('./tax-rate-repository');
 const { getActiveProductPrice } = require('./pricing-repository');
 const { getStatusByCodeOrId } = require('./order-status-repository');
 const { logError } = require('../utils/logger-helper');
+const { checkDeliveryMethodExists } = require('./delivery-method-repository');
+const { checkCustomerExistsById } = require('./customer-repository');
 
 /**
  * Creates a sales order in the `sales_orders` table using raw SQL.
@@ -22,7 +24,37 @@ const createSalesOrder = async (salesOrderData) => {
         { code: 'ORDER_PENDING' },
         client
       );
-
+      
+      // Validate customer ID
+      const customerExists = await checkCustomerExistsById(salesOrderData.customer_id, client);
+      if (!customerExists) {
+        throw AppError.validationError('Invalid or non-existent customer provided.');
+      }
+      
+      // Validate delivery method ID if provided
+      if (salesOrderData.delivery_method_id) {
+        const deliveryMethodExists = await checkDeliveryMethodExists(
+          salesOrderData.delivery_method_id,
+          client
+        );
+        if (!deliveryMethodExists) {
+          throw AppError.validationError(
+            'Invalid or non-existent delivery method provided.'
+          );
+        }
+      }
+      
+      // Validate tax rate ID if provided
+      if (salesOrderData.tax_rate_id) {
+        const taxRateExists = await checkTaxRateExists(
+          salesOrderData.tax_rate_id,
+          client
+        );
+        if (!taxRateExists) {
+          throw AppError.validationError('Invalid tax rate provided.');
+        }
+      }
+      
       // Step 1: Create a general order in the `orders` table
       const order = await createOrder({
         order_type_id: salesOrderData.order_type_id,
@@ -56,10 +88,14 @@ const createSalesOrder = async (salesOrderData) => {
         }
         
         // Check if input price matches the database price or is null
-        const is_manual_price = price !== null && price !== productPrice.price;
+        const is_manual_price =
+          price !== null &&
+          price !== undefined &&
+          price !== productPrice.price &&
+          price > 0;
         
         // Use input price if provided and different from DB, otherwise use DB price
-        const final_price = is_manual_price ? price : productPrice.price;
+        const final_price = price === 0 ? productPrice.price : is_manual_price ? price : productPrice.price;
         
         // Compute item total and add to subtotal
         const itemTotal = final_price * quantity_ordered;
@@ -80,7 +116,7 @@ const createSalesOrder = async (salesOrderData) => {
             price_type_id,
             original_price: productPrice.price,
             overridden_price: final_price,
-            reason: item.override_reason || 'Customer Loyalty Discount',
+            reason: 'Price Overridden',
           });
         }
       }
@@ -125,10 +161,10 @@ const createSalesOrder = async (salesOrderData) => {
       const salesOrderSql = `
         INSERT INTO sales_orders (
           id, customer_id, order_date, discount_id, discount_amount, subtotal,
-          tax_rate_id, tax_amount, delivery_method_id, shipping_fee, total_amount,
+          tax_rate_id, tax_amount, delivery_method_id, total_amount,
           order_status_id, status_date, note, created_by, updated_at, updated_by
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), $13, $14, $15, $16)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), $12, $13, $14, $15)
         RETURNING id;
       `;
 
@@ -142,7 +178,6 @@ const createSalesOrder = async (salesOrderData) => {
         salesOrderData.tax_rate_id || null,
         taxAmount, // Store calculated tax amount
         salesOrderData.delivery_method_id || null,
-        salesOrderData.shipping_fee || 0, // Store shipping fee
         finalTotal, // Store final total after discount and tax
         order_status_id,
         salesOrderData.note,

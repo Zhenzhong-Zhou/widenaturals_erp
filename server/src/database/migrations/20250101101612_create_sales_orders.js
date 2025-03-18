@@ -22,15 +22,15 @@ exports.up = async function (knex) {
       table.decimal('subtotal', 10, 2).notNullable();
       table
         .uuid('tax_rate_id')
-        .nullable()
+        .notNullable()
         .references('id')
         .inTable('tax_rates'); // Ensure tax rate consistency
 
       table.decimal('tax_amount', 10, 2).defaultTo(0.0);
-      table.decimal('shipping_fee', 10, 2);
       table.decimal('total_amount', 10, 2).notNullable();
       table
         .uuid('delivery_method_id')
+        .notNullable()
         .references('id')
         .inTable('delivery_methods');
       table

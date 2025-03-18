@@ -10,7 +10,7 @@ exports.up = function (knex) {
     table.integer('quantity_ordered').notNullable();
     table.integer('quantity_fulfilled').defaultTo(0);
     table.uuid('price_id').notNullable().references('id').inTable('pricing');
-    table.decimal('price', 10, 2).notNullable();
+    table.decimal('price', 10, 2).nullable();
     table
       .uuid('status_id')
       .notNullable()
@@ -23,6 +23,7 @@ exports.up = function (knex) {
     table.uuid('updated_by').references('id').inTable('users');
 
     table.unique(['order_id', 'product_id', 'price_id', 'price']);
+    table.check('price IS NULL OR price >= 0', 'check_price_non_negative');
   });
 };
 

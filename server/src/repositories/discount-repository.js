@@ -17,7 +17,7 @@ const getValidDiscountById = async (discountId, client = null) => {
     SELECT discount_type, discount_value
     FROM discounts
     WHERE id = $1
-      AND now() BETWEEN valid_from AND COALESCE(valid_to, now())
+      AND NOW() BETWEEN valid_from AND COALESCE(valid_to, NOW())
   `;
 
   try {
