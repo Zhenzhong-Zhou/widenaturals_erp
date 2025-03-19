@@ -91,6 +91,7 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
   } | null>(null);
   const [selectedLotIds, setSelectedLotIds] = useState<Set<string>>(new Set());
   const [bulkAdjustOpen, setBulkAdjustOpen] = useState(false);
+  const [bulkInsertOpen, setBulkInsertOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedLots, setSelectedLots] = useState<
     {
@@ -317,7 +318,19 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
         Select All
         <Typography variant="h5">Warehouse Inventory Lots</Typography>
         {/* Pass handleBulkInsertSubmit function to modal */}
+        <CustomButton variant="contained" color="primary"
+                      startIcon={<InventoryIcon />}
+                      onClick={() => {
+                        setBulkInsertOpen(true);
+                      }}
+                      sx={{ marginTop: 2 }}
+        >
+          Bulk Insert Inventory
+        </CustomButton>
+        
         <BulkInsertInventoryModal
+          open={bulkInsertOpen}
+          onClose={() => setBulkInsertOpen(false)}
           warehouseId={warehouseId}
           onSubmit={handleBulkInsertSubmit}
           mode={'create'}
