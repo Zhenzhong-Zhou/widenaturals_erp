@@ -212,20 +212,18 @@ const getAllCustomers = async (
  */
 const getCustomersForDropdown = async (search = '', limit = 100) => {
   try {
-    let whereClause = '1=1'; // Default matches all customers
+    let whereClause = ''; // Removed default '1=1' to prevent unnecessary conditions
     let params = [];
-    let searchCondition = '';
     let labelFormat = "c.firstname || ' ' || c.lastname"; // Default label format
-
+    
     if (search) {
-      searchCondition = `LOWER(c.firstname) ILIKE LOWER($1)
-                         OR LOWER(c.lastname) ILIKE LOWER($1)
-                         OR LOWER(c.email) ILIKE LOWER($1)
-                         OR c.phone_number ILIKE $1`;
-
-      whereClause += ` AND (${searchCondition})`;
+      whereClause = `WHERE LOWER(c.firstname) ILIKE LOWER($1)
+                     OR LOWER(c.lastname) ILIKE LOWER($1)
+                     OR LOWER(c.email) ILIKE LOWER($1)
+                     OR c.phone_number ILIKE $1`;
+      
       params.push(`%${search}%`);
-
+      
       // Adjust label format based on search type
       if (/\S+@\S+\.\S+/.test(search)) {
         // If search contains '@', assume email
@@ -235,19 +233,20 @@ const getCustomersForDropdown = async (search = '', limit = 100) => {
         labelFormat = `c.firstname || ' ' || c.lastname || ' - ' || c.phone_number`;
       }
     }
-
+    
+    // Ensure proper query structure (avoid unnecessary WHERE when search is empty)
     const sql = `
       SELECT
         c.id,
         ${labelFormat} AS label
       FROM customers c
-      WHERE ${whereClause}
+      ${whereClause}
       ORDER BY c.created_at DESC
-      LIMIT $2;
+      LIMIT $${params.length + 1};
     `;
-
+    
     params.push(limit); // Limit parameter
-
+    
     const result = await query(sql, params);
     return result.rows;
   } catch (error) {
