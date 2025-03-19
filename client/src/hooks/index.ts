@@ -35,3 +35,4 @@ export { default as useInventoryHistory } from './useInventoryHistory.ts';
 export { default as useOrderTypes } from './useOrderTypes.ts';
 export { default as useOrderTypesDropdown } from './useOrderTypesDropdown.ts';
 export { default as useCustomers } from './useCustomers.ts';
+export { default as useSalesOrders } from './useSalesOrders.ts';
