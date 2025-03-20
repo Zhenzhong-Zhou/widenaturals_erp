@@ -7,6 +7,7 @@ import {
 import { OrderType } from '../features/order';
 import { FetchCustomersDropdownResponse } from '../features/customer';
 import { DiscountDropdownItem } from '../features/discount';
+import { TaxRateDropdownResponse } from '../features/taxRate';
 
 /**
  * Fetch active products for dropdown
@@ -68,7 +69,7 @@ const fetchOrderTypesForDropdown = async (): Promise<OrderType[]> => {
  * @param {number} limit - Number of results to fetch (default: 100).
  * @returns {Promise<FetchCustomersDropdownResponse>} - Customer dropdown options.
  */
-export const fetchCustomersForDropdown = async (
+const fetchCustomersForDropdown = async (
   search: string = '',
   limit: number = 100
 ): Promise<FetchCustomersDropdownResponse> => {
@@ -89,7 +90,7 @@ export const fetchCustomersForDropdown = async (
  * Fetches available discounts for a dropdown list.
  * @returns {Promise<DiscountDropdownItem[]>} - List of discount dropdown options.
  */
-export const fetchDiscountsForDropdown = async (): Promise<DiscountDropdownItem[]> => {
+const fetchDiscountsForDropdown = async (): Promise<DiscountDropdownItem[]> => {
   try {
     const response = await axiosInstance.get<DiscountDropdownItem[]>(
       API_ENDPOINTS.DISCOUNTS_DROPDOWN
@@ -102,10 +103,38 @@ export const fetchDiscountsForDropdown = async (): Promise<DiscountDropdownItem[
   }
 };
 
+/**
+ * Fetches tax rates for a dropdown.
+ * Filters by:
+ * - `region` (default: 'Canada')
+ * - `province` (optional)
+ *
+ * @param {string} region - The region to filter by (e.g., 'Canada').
+ * @param {string|null} province - The province to filter by (optional).
+ * @returns {Promise<TaxRateDropdownResponse>} - A list of formatted tax rates.
+ */
+const fetchTaxRatesForDropdown = async (
+  region: string = 'Canada',
+  province: string | null = null
+): Promise<TaxRateDropdownResponse> => {
+  try {
+    const response = await axiosInstance.get<TaxRateDropdownResponse>(
+      API_ENDPOINTS.TAX_RATES_DROPDOWN,
+      { params: { region, province } }
+    );
+    
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching tax rates for dropdown:', error);
+    throw error;
+  }
+};
+
 export const dropdownService = {
   fetchProductsForDropdown,
   fetchWarehousesForDropdown,
   fetchOrderTypesForDropdown,
   fetchCustomersForDropdown,
   fetchDiscountsForDropdown,
+  fetchTaxRatesForDropdown,
 };
