@@ -44,4 +44,5 @@ export const API_ENDPOINTS = {
   CUSTOMER_DETAILS: '/customers/:id',
   CUSTOMERS_DROPDOWN: '/customers/dropdown',
   CREATE_SALES_ORDERS: '/orders/:orderTypeId',
+  DISCOUNTS_DROPDOWN: '/discounts/dropdown',
 };

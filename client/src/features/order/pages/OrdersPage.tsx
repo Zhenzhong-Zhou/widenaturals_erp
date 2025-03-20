@@ -35,7 +35,7 @@ const OrderPage: FC = () => {
           Selected Order Type: <strong>{selectedOrderType.name}</strong>
         </Typography>
       )}
-
+      
       {/* Modal for Order Form */}
       <CustomModal open={isModalOpen} onClose={() => setModalOpen(false)}>
         <Box

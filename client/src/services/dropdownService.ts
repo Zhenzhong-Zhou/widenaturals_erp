@@ -6,6 +6,7 @@ import {
 } from '../features/warehouse-inventory';
 import { OrderType } from '../features/order';
 import { FetchCustomersDropdownResponse } from '../features/customer';
+import { DiscountDropdownItem } from '../features/discount';
 
 /**
  * Fetch active products for dropdown
@@ -84,9 +85,27 @@ export const fetchCustomersForDropdown = async (
   }
 };
 
+/**
+ * Fetches available discounts for a dropdown list.
+ * @returns {Promise<DiscountDropdownItem[]>} - List of discount dropdown options.
+ */
+export const fetchDiscountsForDropdown = async (): Promise<DiscountDropdownItem[]> => {
+  try {
+    const response = await axiosInstance.get<DiscountDropdownItem[]>(
+      API_ENDPOINTS.DISCOUNTS_DROPDOWN
+    );
+    
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching discount dropdown:', error);
+    throw error;
+  }
+};
+
 export const dropdownService = {
   fetchProductsForDropdown,
   fetchWarehousesForDropdown,
   fetchOrderTypesForDropdown,
   fetchCustomersForDropdown,
+  fetchDiscountsForDropdown,
 };
