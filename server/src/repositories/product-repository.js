@@ -384,20 +384,21 @@ const getAvailableProductsForDropdown = async (warehouseId) => {
  */
 const getProductsForDropdown = async (search = null, limit= 100) => {
   try {
+    const searchPattern = search ? `%${search}%` : null;
+    
     const queryText = `
       SELECT
-        p.id,
-        CONCAT(p.product_name, ' (', p.barcode, ')') AS label
+          p.id,
+          CONCAT(p.product_name, ' (', p.barcode, ')') AS label
       FROM products p
       JOIN status s ON p.status_id = s.id
       WHERE s.name = 'active'
-       ${search ? `AND (p.product_name ILIKE $1 OR p.sku ILIKE $1 OR p.barcode ILIKE $1)` : ''}
+      ${searchPattern ? `AND (p.product_name ILIKE $1 OR p.sku ILIKE $1 OR p.barcode ILIKE $1)` : ''}
       ORDER BY p.product_name ASC
-      LIMIT $2;
+      LIMIT ${searchPattern ? '$2' : '$1'};
     `;
     
-    const values = search ? [`%${search}%`, limit] : [limit];
-    
+    const values = searchPattern ? [searchPattern, limit] : [limit];
     const { rows } = await query(queryText, values);
     
     return rows;
