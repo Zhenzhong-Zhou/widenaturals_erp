@@ -1,6 +1,7 @@
-import { FC } from 'react';
+import { FC, useState, useEffect } from 'react';
 import { useCustomerDropdown } from '../../../hooks';
-import Dropdown from '@components/common/Dropdown.tsx';
+import { Dropdown } from '@components/index.ts';
+import CreateCustomerModal from './CreateCustomerModal';
 
 interface CustomerDropdownProps {
   value: string | null;
@@ -10,29 +11,42 @@ interface CustomerDropdownProps {
 }
 
 /**
- * Reusable Customer Dropdown Component.
- * Fetches and displays a list of customers with search functionality.
+ * Reusable Customer Dropdown Component with Refresh & Add Customer inside the dropdown menu.
  */
 const CustomerDropdown: FC<CustomerDropdownProps> = ({ value, onChange, disabled = false, sx }) => {
-  const { customers, loading, error, fetchCustomers } = useCustomerDropdown();
+  const { customers, loading, fetchCustomers } = useCustomerDropdown();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [dropdownOptions, setDropdownOptions] = useState<{ value: string | null; label: string }[]>([]);
   
-  // Format options for Dropdown
-  const options = customers.map((customer) => ({
-    value: customer.id,
-    label: customer.label,
-  }));
+  // Update dropdown options when customers change
+  useEffect(() => {
+    setDropdownOptions(
+      customers.map((customer) => ({
+        value: customer.id,
+        label: customer.label,
+      }))
+    );
+  }, [customers]);
   
   return (
-    <Dropdown
-      label="Select Customer"
-  options={options}
-  value={value}
-  onChange={onChange}
-  searchable
-  disabled={loading || disabled}
-  sx={sx}
-  />
-);
+    <>
+      {/* Pass modal open state to CustomPaper inside Dropdown */}
+      <Dropdown
+        label="Select Customer"
+        options={dropdownOptions}
+        value={value}
+        onChange={onChange}
+        searchable
+        disabled={loading || disabled}
+        sx={sx}
+        onRefresh={() => fetchCustomers()}
+        onAddNew={() => setModalOpen(true)}
+      />
+      
+      {/*/!* Modal: Controlled by CustomerDropdown *!/*/}
+      <CreateCustomerModal open={modalOpen} onClose={() => setModalOpen(false)} />
+    </>
+  );
 };
 
 export default CustomerDropdown;

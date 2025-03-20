@@ -1,5 +1,5 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { customerService } from '../../../services';
+import { customerService, dropdownService } from '../../../services';
 import {
   BulkCustomerRequest,
   BulkCustomerResponse,
@@ -7,6 +7,7 @@ import {
   CustomerDetailsResponse,
   CustomerListResponse,
   CustomerQueryParams,
+  FetchCustomersDropdownResponse,
 } from './customerTypes.ts';
 
 // Thunk for creating a single customer
@@ -64,3 +65,21 @@ export const fetchCustomerByIdThunk = createAsyncThunk<
     return rejectWithValue('Failed to fetch customer details.');
   }
 });
+
+/**
+ * Thunk to fetch customers for dropdown.
+ */
+export const fetchCustomersForDropdownThunk = createAsyncThunk<
+  FetchCustomersDropdownResponse, // Return type
+  { search?: string; limit?: number }, // Payload type
+  { rejectValue: string } // Rejected action type
+>(
+  'customers/fetchDropdown',
+  async ({ search = '', limit = 100 }, { rejectWithValue }) => {
+    try {
+      return await dropdownService.fetchCustomersForDropdown(search, limit);
+    } catch (error) {
+      return rejectWithValue('Failed to fetch customers.');
+    }
+  }
+);

@@ -1,7 +1,6 @@
-import { FC, useState } from 'react';
-import Box from '@mui/material/Box';
+import { FC } from 'react';
 import { FieldConfig } from '@components/common/CustomForm.tsx';
-import { CustomButton, CustomForm, CustomModal } from '@components/index.ts';
+import { CustomForm, CustomModal } from '@components/index.ts';
 import { useCustomers } from '../../../hooks';
 import { useForm } from 'react-hook-form';
 import {
@@ -9,23 +8,30 @@ import {
   CustomerRequest,
 } from '../state/customerTypes.ts';
 
-const CreateCustomerModal: FC = () => {
-  const [open, setOpen] = useState(false);
+interface CreateCustomerModalProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+/**
+ * Modal for Creating a New Customer.
+ */
+const CreateCustomerModal: FC<CreateCustomerModalProps> = ({ open, onClose }) => {
   const { createCustomer, loading, refreshCustomers } = useCustomers();
   const { control, handleSubmit, reset } = useForm<CustomerRequest>();
-
+  
   const handleFormSubmit = () =>
     handleSubmit(async (formData) => {
       if (loading) return;
-
+      
       const customersData: BulkCustomerRequest = [formData as CustomerRequest];
-
+      
       await createCustomer(customersData);
       reset();
-      setOpen(false);
+      onClose();
       refreshCustomers();
     })();
-
+  
   const fields: FieldConfig[] = [
     { id: 'firstname', label: 'First Name', type: 'text', required: true },
     { id: 'lastname', label: 'Last Name', type: 'text', required: true },
@@ -34,27 +40,11 @@ const CreateCustomerModal: FC = () => {
     { id: 'address', label: 'Address', type: 'text' },
     { id: 'note', label: 'Note', type: 'textarea', rows: 3 },
   ];
-
+  
   return (
-    <Box>
-      {/* Trigger Button */}
-      <CustomButton variant="contained" onClick={() => setOpen(true)}>
-        Create Customer
-      </CustomButton>
-
-      {/* Modal with Form */}
-      <CustomModal
-        open={open}
-        onClose={() => setOpen(false)}
-        title="Create Customer"
-      >
-        <CustomForm
-          fields={fields}
-          control={control}
-          onSubmit={handleFormSubmit}
-        />
-      </CustomModal>
-    </Box>
+    <CustomModal open={open} onClose={onClose} title="Create Customer">
+      <CustomForm fields={fields} control={control} onSubmit={handleFormSubmit} />
+    </CustomModal>
   );
 };
 

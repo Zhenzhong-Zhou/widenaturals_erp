@@ -10,7 +10,31 @@ const syncGlobalVariables = (theme: Theme) => {
   root.style.setProperty('--border-light', theme.palette.divider);
 };
 
-// Shared tokens
+// Extend the palette with custom colors
+declare module '@mui/material/styles' {
+  interface Palette {
+    actionCustom: {
+      addNew: string;
+      refresh: string;
+    };
+    backgroundCustom: {
+      customDark: string;
+      customHover: string;
+    };
+  }
+  interface PaletteOptions {
+    actionCustom?: {
+      addNew?: string;
+      refresh?: string;
+    };
+    backgroundCustom?: {
+      customDark?: string;
+      customHover?: string;
+    };
+  }
+}
+
+// Define your shared tokens for consistency
 const sharedTokens: ThemeOptions = {
   typography: {
     fontFamily: "'Roboto', sans-serif",
@@ -39,6 +63,14 @@ const lightTheme = createTheme({
     warning: { main: '#ffc107' },
     error: { main: '#dc3545' },
     info: { main: '#17a2b8' },
+    actionCustom: {
+      addNew: '#28a745',
+      refresh: '#007bff',
+    },
+    backgroundCustom: {
+      customDark: '#1a1a1a',
+      customHover: '#2b2b2b',
+    },
   },
 });
 
@@ -56,6 +88,14 @@ const darkTheme = createTheme({
     warning: { main: '#ffc107' },
     error: { main: '#dc3545' },
     info: { main: '#17a2b8' },
+    actionCustom: {
+      addNew: '#28a745',
+      refresh: '#007bff',
+    },
+    backgroundCustom: {
+      customDark: '#1a1a1a',
+      customHover: '#2b2b2b',
+    },
   },
 });
 

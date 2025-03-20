@@ -18,10 +18,7 @@ const createOrderController = wrapAsync(async (req, res, next) => {
       throw AppError.validationError('Order type is required.');
     }
 
-    const responseUser = await getUser(null, 'email', 'root@widenaturals.com');
-    orderData.created_by = responseUser.id;
-
-    // orderData.created_by = req.user.id; // Extract `created_by` from token
+    orderData.created_by = req.user.id; // Extract `created_by` from token
     orderData.order_type_id = orderTypeId; // Assign order type ID
 
     const { salesOrder } = await createOrderByType(orderData);

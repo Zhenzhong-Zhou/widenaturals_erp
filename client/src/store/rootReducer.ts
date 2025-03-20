@@ -38,6 +38,7 @@ import customersCreateReducer from '../features/customer/state/customerCreateSli
 import customersReducer from '../features/customer/state/customerSlice.ts';
 import customerDetailReducer from '../features/customer/state/customerDetailSlice.ts';
 import createSalesOrderReducer from '../features/order/state/createSalesOrderSlice.ts';
+import customerDropdownReducer from '../features/customer/state/customerDropdownSlice.ts';
 
 // Combine reducers
 const appReducer = combineReducers({
@@ -79,6 +80,7 @@ const appReducer = combineReducers({
   customers: customersReducer,
   customerDetail: customerDetailReducer,
   createSalesOrder: createSalesOrderReducer,
+  customerDropdown: customerDropdownReducer,
 });
 
 // Root reducer with logout handling

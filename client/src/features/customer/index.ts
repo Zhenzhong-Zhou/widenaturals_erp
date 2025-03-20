@@ -8,12 +8,15 @@ export type {
   CustomerListResponse,
   CustomerDetails,
   CustomerDetailsResponse,
+  CustomerDropdownOption,
+  FetchCustomersDropdownResponse,
 } from './state/customerTypes.ts';
 export {
   createCustomerThunk,
   createBulkCustomersThunk,
   fetchCustomersThunk,
   fetchCustomerByIdThunk,
+  fetchCustomersForDropdownThunk,
 } from './state/customerThunks.ts';
 export {
   selectCustomersCreate,
@@ -35,3 +38,9 @@ export {
 } from './state/customerDetailSelectors.ts';
 export { default as CustomerDetailSection } from './components/CustomerDetailSection.tsx';
 export { default as CustomerDetailHeader } from './components/CustomerDetailHeader.tsx';
+export {
+  selectCustomerDropdownData,
+  selectCustomerDropdownLoading,
+  selectCustomerDropdownError
+} from './state/customerDropdownSelectors.ts';
+export { default as CustomerDropdown } from './components/CustomerDropdown';

@@ -18,7 +18,7 @@ const BulkInsertInventoryModal: FC<{
   onSubmit: (data: Record<string, any>[]) => void;
   mode: 'create' | 'edit' | 'adjust';
 }> = ({ open, onClose, warehouseId, onSubmit, mode }) => {
-  const { products, loading } = useProductsDropdown(warehouseId); // Fetch products for the given warehouseId
+  const { products, loading, refreshProducts } = useProductsDropdown(warehouseId); // Fetch products for the given warehouseId
 
   // Product dropdown options
   const productOptions = products.map((p: ProductDropdownItem) => ({
@@ -136,6 +136,7 @@ const BulkInsertInventoryModal: FC<{
                     options={productOptions}
                     value={value}
                     onChange={onChange}
+                    onRefresh={refreshProducts}
                     searchable
                   />
                 ),
