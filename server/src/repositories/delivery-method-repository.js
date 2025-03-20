@@ -4,20 +4,21 @@ const AppError = require('../utils/AppError');
 
 /**
  * Fetches available delivery methods for the dropdown menu.
- * @returns {Promise<Array>} - List of delivery methods (id, name, estimated time).
+ * @param {boolean} includePickup - Whether to include In-Store Pickup methods.
+ * @returns {Promise<Array<{ id: string, name: string, estimatedTime: { days: number } }>>} - List of delivery methods.
  */
-const getDeliveryMethodsForDropdown = async () => {
+const getDeliveryMethodsForDropdown = async (includePickup = false) => {
   try {
     const queryText = `
       SELECT
           dm.id,
-          dm.method_name,
-          dm.estimated_time
+          dm.method_name AS name,
+          dm.estimated_time AS estimatedTime
       FROM delivery_methods dm
       JOIN status s ON dm.status_id = s.id
       WHERE
-          dm.is_pickup_location = false
-          AND s.name = 'active'
+          s.name = 'active'
+          ${!includePickup ? 'AND dm.is_pickup_location = false' : ''}
       ORDER BY dm.method_name ASC;
     `;
     

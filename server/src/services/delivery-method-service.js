@@ -5,17 +5,18 @@ const AppError = require('../utils/AppError');
 /**
  * Service function to retrieve available delivery methods.
  * This function applies business logic such as filtering and formatting.
- * @returns {Promise<Array>} - List of delivery methods (id, name, estimated time).
+ * @param {boolean} includePickup - Whether to include In-Store Pickup methods.
+ * @returns {Promise<Array<{ id: string, name: string, estimatedTime: { days: number } }>>}
  */
-const fetchAvailableMethodsForDropdown = async () => {
+const fetchAvailableMethodsForDropdown = async (includePickup = false) => {
   try {
-    const methods = await getDeliveryMethodsForDropdown();
+    const methods = await getDeliveryMethodsForDropdown(includePickup);
     
-    // Apply business logic (if needed)
+    // Apply business logic and formatting
     return methods.map(method => ({
       id: method.id,
-      name: method.method_name,
-      estimatedTime: method.estimated_time, // Ensuring consistent format
+      name: method.name,
+      estimatedTime: { days: parseInt(method.estimatedtime.days, 10) },
     }));
   } catch (error) {
     logError('Error in delivery method service:', error);

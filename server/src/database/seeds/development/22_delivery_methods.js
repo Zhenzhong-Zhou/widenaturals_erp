@@ -24,6 +24,15 @@ exports.seed = async function (knex) {
   // Define delivery methods seed data
   const deliveryMethods = [
     {
+      method_name: 'In-Store Pickup',
+      is_pickup_location: true,
+      description: 'Order will be prepared and ready for pickup at the store location.',
+      estimated_time: '1 day',
+      status_id: activeStatusId,
+      created_by: systemActionId,
+      updated_by: null,
+    },
+    {
       method_name: 'Standard Shipping',
       is_pickup_location: false,
       description: 'Delivery within 5-7 business days.',
@@ -92,7 +101,7 @@ exports.seed = async function (knex) {
         status_date: knex.fn.now(),
         created_at: knex.fn.now(),
         updated_at: null,
-        created_by: systemActionId,
+        created_by: method.created_by,
         updated_by: null,
       }))
     )

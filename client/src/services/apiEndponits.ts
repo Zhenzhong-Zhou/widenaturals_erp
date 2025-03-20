@@ -46,4 +46,5 @@ export const API_ENDPOINTS = {
   CREATE_SALES_ORDERS: '/orders/:orderTypeId',
   DISCOUNTS_DROPDOWN: '/discounts/dropdown',
   TAX_RATES_DROPDOWN: '/tax-rates/dropdown',
+  DELIVERY_METHODS_DROPDOWN: '/delivery-methods/dropdown',
 };

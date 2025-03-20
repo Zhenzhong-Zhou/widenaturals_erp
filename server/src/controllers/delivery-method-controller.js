@@ -10,8 +10,9 @@ const { fetchAvailableMethodsForDropdown } = require('../services/delivery-metho
  */
 const getDeliveryMethodsForDropdownController = wrapAsync(async (req, res, next) => {
   try {
-    const deliveryMethods = await fetchAvailableMethodsForDropdown();
-    res.status(200).json({ success: true, data: deliveryMethods });
+    const includePickup = req.query.includePickup === 'true'; // Check if pickup methods should be included
+    const deliveryMethods = await fetchAvailableMethodsForDropdown(includePickup);
+    res.status(200).json(deliveryMethods);
   } catch (error) {
     next(error); // Passes error to error-handling middleware
   }

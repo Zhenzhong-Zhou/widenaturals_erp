@@ -8,6 +8,7 @@ import { OrderType } from '../features/order';
 import { FetchCustomersDropdownResponse } from '../features/customer';
 import { DiscountDropdownItem } from '../features/discount';
 import { TaxRateDropdownResponse } from '../features/taxRate';
+import { DeliveryMethodDropdownResponse } from '../features/deliveryMethod';
 
 /**
  * Fetch active products for dropdown
@@ -130,6 +131,27 @@ const fetchTaxRatesForDropdown = async (
   }
 };
 
+/**
+ * Fetches available delivery methods from the server.
+ * @param {boolean} includePickup - Whether to include In-Store Pickup methods. (Default: false)
+ * @returns {Promise<DeliveryMethodDropdownResponse>} - List of delivery methods.
+ */
+export const fetchDeliveryMethodsForDropdown = async (includePickup: boolean = false): Promise<DeliveryMethodDropdownResponse> => {
+  try {
+    const response = await axiosInstance.get<DeliveryMethodDropdownResponse>(
+      API_ENDPOINTS.DELIVERY_METHODS_DROPDOWN,
+      {
+        params: { includePickup: includePickup.toString() } // Convert boolean to string ('true' / 'false')
+      }
+    );
+    
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching delivery methods:', error);
+    throw error;
+  }
+};
+
 export const dropdownService = {
   fetchProductsForDropdown,
   fetchWarehousesForDropdown,
@@ -137,4 +159,5 @@ export const dropdownService = {
   fetchCustomersForDropdown,
   fetchDiscountsForDropdown,
   fetchTaxRatesForDropdown,
+  fetchDeliveryMethodsForDropdown,
 };
