@@ -7,7 +7,8 @@ const express = require('express');
 const {
   getPriceTypesController,
   getPricingTypeDetailsByIdController,
-} = require('../controllers/price-type-controller');
+  getPricingTypesForDropdownController,
+} = require('../controllers/pricing-type-controller');
 const authorize = require('../middlewares/authorize');
 
 const router = express.Router();
@@ -24,9 +25,11 @@ router.get(
  * Fetch all pricing type details with associated products and locations.
  */
 router.get(
-  '/:id',
+  '/details/:id',
   authorize(['view_prices', 'manage_prices']),
   getPricingTypeDetailsByIdController
 );
+
+router.get('/dropdown', getPricingTypesForDropdownController);
 
 module.exports = router;

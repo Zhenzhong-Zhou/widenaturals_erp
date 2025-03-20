@@ -106,8 +106,35 @@ const checkPriceTypeExists = async (priceTypeId, client = null) => {
   }
 };
 
+/**
+ * Fetches active pricing types for dropdown selection.
+ * Only fetches active status types.
+ *
+ * @returns {Promise<Array>} - List of pricing types.
+ */
+const getPricingTypesForDropdown = async () => {
+  try {
+    const queryText = `
+      SELECT
+        pt.id,
+        pt.name AS label
+      FROM pricing_types pt
+      JOIN status s ON pt.status_id = s.id
+      WHERE s.name = 'active'
+      ORDER BY pt.name ASC;
+    `;
+    
+    const { rows } = await query(queryText);
+    return rows;
+  } catch (error) {
+    logError('Error fetching pricing types for dropdown:', error);
+    throw AppError.databaseError('Failed to fetch pricing types.');
+  }
+};
+
 module.exports = {
   getAllPriceTypes,
   getPricingTypeById,
   checkPriceTypeExists,
+  getPricingTypesForDropdown,
 };

@@ -1,6 +1,6 @@
 const {
   getAllPriceTypes,
-  getPricingTypeById,
+  getPricingTypeById, getPricingTypesForDropdown,
 } = require('../repositories/pricing-type-repository');
 const { logInfo, logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
@@ -90,7 +90,29 @@ const fetchPricingTypeDetailsByPricingTypeId = async (
   }
 };
 
+/**
+ * Service function to fetch active pricing types for dropdown.
+ * Applies business logic such as formatting and validation.
+ *
+ * @returns {Promise<Array<{ id: string, label: string }>>} - List of pricing types for dropdown.
+ */
+const fetchAvailablePricingTypesForDropdown = async () => {
+  try {
+    const pricingTypes = await getPricingTypesForDropdown();
+    
+    // Apply additional formatting or filtering if needed (e.g., logging, auditing)
+    return pricingTypes.map((type) => ({
+      id: type.id,
+      label: type.label,
+    }));
+  } catch (error) {
+    logError('Error fetching pricing types in service:', error);
+    throw AppError.serviceError('Failed to fetch pricing types for dropdown');
+  }
+};
+
 module.exports = {
   fetchAllPriceTypes,
   fetchPricingTypeDetailsByPricingTypeId,
+  fetchAvailablePricingTypesForDropdown,
 };

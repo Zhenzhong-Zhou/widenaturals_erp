@@ -13,7 +13,7 @@ export const API_ENDPOINTS = {
   PRODUCTS_DROPDOWN_WAREHOUSE: '/products/dropdown/warehouse/:warehouseId',
   ALL_COMPLIANCES: '/compliances',
   ALL_PRICING_TYPES: '/pricing-types',
-  PRICING_TYPE_DETAILS: '/pricing-types/:id',
+  PRICING_TYPE_DETAILS: '/pricing-types/details/:id',
   ALL_PRICINGS: '/pricings',
   PRICING_DETAILS: '/pricings/:id',
   ALL_LOCATION_TYPES: '/location-types',
