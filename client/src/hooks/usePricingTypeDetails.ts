@@ -5,14 +5,14 @@ import {
   PricingRecord,
   PricingTypeDetail,
   PricingTypePagination,
-} from '../features/pricingTypes';
+} from '../features/pricingType';
 import {
   selectPricingError,
   selectPricingIsLoading,
   selectPricingPagination,
   selectPricingRecords,
   selectPricingTypeDetails,
-} from '../features/pricingTypes';
+} from '../features/pricingType';
 
 interface UsePricingDetailsParams {
   initialPage?: number;

@@ -53,12 +53,12 @@ export const routes = [
   },
   {
     path: '/pricing_types',
-    component: lazy(() => import('../features/pricingTypes/pages/PricingTypePage.tsx')),
+    component: lazy(() => import('../features/pricingType/pages/PricingTypePage.tsx')),
     meta: { requiresAuth: true, title: 'Pricing Types', showInSidebar: true, requiredPermission: 'view_prices' },
   },
   {
     path: '/pricing_types/:id',
-    component: lazy(() => import('../features/pricingTypes/pages/PricingTypeDetailsPage.tsx')),
+    component: lazy(() => import('../features/pricingType/pages/PricingTypeDetailsPage.tsx')),
     meta: { requiresAuth: true, title: 'Pricing Type Details', showInSidebar: false, requiredPermission: 'view_prices' },
   },
   {
@@ -73,12 +73,12 @@ export const routes = [
   },
   {
     path: '/location_types',
-    component: lazy(() => import('../features/locationTypes/pages/LocationTypePage.tsx')),
+    component: lazy(() => import('../features/locationType/pages/LocationTypePage.tsx')),
     meta: { requiresAuth: true, title: 'Location Types', showInSidebar: true, requiredPermission: 'view_locations' },
   },
   {
     path: '/location_types/:id',
-    component: lazy(() => import('../features/locationTypes/pages/LocationTypeDetailPage.tsx')),
+    component: lazy(() => import('../features/locationType/pages/LocationTypeDetailPage.tsx')),
     meta: { requiresAuth: true, title: 'Location Types Details', showInSidebar: false, requiredPermission: 'view_locations' },
   },
   {

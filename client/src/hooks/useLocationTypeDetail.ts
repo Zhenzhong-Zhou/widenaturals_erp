@@ -6,8 +6,8 @@ import {
   selectLocationTypeError,
   selectLocationTypeLoading,
   selectLocationTypePagination,
-} from '../features/locationTypes/state/locationTypeDetailSelectors.ts';
-import { fetchLocationTypeDetail } from '../features/locationTypes/state/locationTypesThunks.ts';
+} from '../features/locationType/state/locationTypeDetailSelectors.ts';
+import { fetchLocationTypeDetail } from '../features/locationType/state/locationTypesThunks.ts';
 
 /**
  * Custom hook for fetching and managing location type details.

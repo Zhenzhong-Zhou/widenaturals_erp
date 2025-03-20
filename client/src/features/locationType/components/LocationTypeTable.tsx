@@ -1,5 +1,5 @@
 import { FC } from 'react';
-import { LocationType } from '../../locationTypes';
+import { LocationType } from '../../locationType';
 import { CustomTable } from '@components/index.ts';
 import { capitalizeFirstLetter } from '@utils/textUtils.ts';
 import { formatDateTime } from '@utils/dateTimeUtils.ts';

@@ -3,7 +3,7 @@ import { API_ENDPOINTS } from './apiEndponits.ts';
 import {
   PricingTypeResponse,
   PricingTypesResponse,
-} from '../features/pricingTypes';
+} from '../features/pricingType';
 
 const fetchAllPricingTypes = async (
   page: number,

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { fetchPricingTypesThunk, PricingType } from '../features/pricingTypes';
+import { fetchPricingTypesThunk, PricingType } from '../features/pricingType';
 import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
 import {
   selectError,
@@ -7,7 +7,7 @@ import {
   selectPricingTypes,
   selectTotalPages,
   selectTotalRecords,
-} from '../features/pricingTypes/state/pricingTypeSelectors.ts';
+} from '../features/pricingType/state/pricingTypeSelectors.ts';
 
 interface UsePricingTypesParams {
   initialPage?: number;

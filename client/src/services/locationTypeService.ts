@@ -3,7 +3,7 @@ import { API_ENDPOINTS } from './apiEndponits.ts';
 import {
   LocationTypeResponse,
   LocationTypesResponse,
-} from '../features/locationTypes';
+} from '../features/locationType';
 
 /**
  * Fetches all location types from the server.
