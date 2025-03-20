@@ -2,7 +2,6 @@ import { FC, useState } from 'react';
 import Box from '@mui/material/Box';
 import { CustomModal, Typography } from '@components/index.ts';
 import { OrderTypesDropdown } from '../index.ts';
-import { DeliveryMethodDropdown } from '../../deliveryMethod';
 
 const OrderPage: FC = () => {
   const [selectedOrderType, setSelectedOrderType] = useState<{

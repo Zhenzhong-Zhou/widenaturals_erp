@@ -372,9 +372,46 @@ const getAvailableProductsForDropdown = async (warehouseId) => {
   }
 };
 
+/**
+ * Fetches active products for a dropdown.
+ * Filters by:
+ * - `status_id` matches the 'active' status from the `status` table.
+ * - Optionally filtered by search term (product name or SKU).
+ *
+ * @param {string|null} search - Optional search term for filtering (by name, SKU, etc.)
+ * @param {number} limit - Maximum number of results to fetch (Default: 100).
+ * @returns {Promise<Array<{ id: string, label: string }>>}
+ */
+const getProductsForDropdown = async (search = null, limit= 100) => {
+  try {
+    const queryText = `
+      SELECT
+        p.id,
+        CONCAT(p.product_name, ' (', p.barcode, ')') AS label
+      FROM products p
+      JOIN status s ON p.status_id = s.id
+      WHERE s.name = 'active'
+       ${search ? `AND (p.product_name ILIKE $1 OR p.sku ILIKE $1 OR p.barcode ILIKE $1)` : ''}
+      ORDER BY p.product_name ASC
+      LIMIT $2;
+    `;
+    
+    const values = search ? [`%${search}%`, limit] : [limit];
+    
+    const { rows } = await query(queryText, values);
+    
+    return rows;
+  } catch (error) {
+    logError('Error fetching products for dropdown:', error);
+    throw AppError.databaseError('Failed to fetch products for dropdown');
+  }
+};
+
+
 module.exports = {
   getProducts,
   checkProductExists,
   getProductDetailsById,
   getAvailableProductsForDropdown,
+  getProductsForDropdown,
 };

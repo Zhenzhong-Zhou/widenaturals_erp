@@ -22,9 +22,11 @@ const fetchProductsForDropdown = async (
   }
 
   try {
-    const response = await axiosInstance.get<ProductDropdownItem[]>(
-      `${API_ENDPOINTS.PRODUCTS_DROPDOWN}?warehouse_id=${warehouseId}`
+    const endpoint = API_ENDPOINTS.PRODUCTS_DROPDOWN.replace(
+      ':warehouseId',
+      warehouseId
     );
+    const response = await axiosInstance.get<ProductDropdownItem[]>(endpoint);
     return response.data;
   } catch (error) {
     console.error('Error fetching product dropdown:', error);
