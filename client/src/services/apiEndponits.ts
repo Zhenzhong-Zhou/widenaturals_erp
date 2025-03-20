@@ -48,4 +48,5 @@ export const API_ENDPOINTS = {
   TAX_RATES_DROPDOWN: '/tax-rates/dropdown',
   DELIVERY_METHODS_DROPDOWN: '/delivery-methods/dropdown',
   PRODUCTS_DROPDOWN_ORDERS: '/products/dropdown/orders',
+  PRICING_TYPES_DROPDOWN: '/pricing-types/dropdown',
 };

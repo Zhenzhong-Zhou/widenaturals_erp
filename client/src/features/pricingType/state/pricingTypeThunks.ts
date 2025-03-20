@@ -1,6 +1,6 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { pricingTypeService } from '../../../services';
-import { PricingTypeResponse, PricingTypesResponse } from './pricingTypeTypes';
+import { dropdownService, pricingTypeService } from '../../../services';
+import { PricingTypeDropdownItem, PricingTypeResponse, PricingTypesResponse } from './pricingTypeTypes';
 
 export const fetchPricingTypesThunk = createAsyncThunk<
   PricingTypesResponse,
@@ -33,6 +33,26 @@ export const fetchPricingTypeDetailsThunk = createAsyncThunk<
       return thunkAPI.rejectWithValue(
         error.message || 'Failed to fetch pricing type details'
       );
+    }
+  }
+);
+
+/**
+ * Thunk to fetch pricing types for a dropdown.
+ */
+export const fetchPricingTypeDropdownThunk = createAsyncThunk<
+  PricingTypeDropdownItem[], // Expected response type
+  void,                      // No parameters required
+  { rejectValue: string }     // Rejection error type
+>(
+  'pricingType/fetchPricingTypeDropdown',
+  async (_, { rejectWithValue }) => {
+    try {
+       // Call the service function
+      return await dropdownService.fetchPricingTypeDropdown();
+    } catch (error) {
+      console.error('Error fetching pricing type dropdown:', error);
+      return rejectWithValue('Failed to fetch pricing type dropdown.');
     }
   }
 );

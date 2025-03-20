@@ -10,6 +10,7 @@ import { DiscountDropdownItem } from '../features/discount';
 import { TaxRateDropdownResponse } from '../features/taxRate';
 import { DeliveryMethodDropdownResponse } from '../features/deliveryMethod';
 import { ProductDropdownResponse } from '../features/product/state/productTypes.ts';
+import { PricingTypeDropdownResponse } from '../features/pricingType';
 
 /**
  * Fetch active products for dropdown
@@ -179,6 +180,23 @@ const fetchProductsForOrdersDropdown = async (
   }
 };
 
+/**
+ * Fetches pricing types for dropdown.
+ * @returns {Promise<PricingTypeDropdownResponse>} - List of pricing type options.
+ */
+export const fetchPricingTypeDropdown = async (): Promise<PricingTypeDropdownResponse> => {
+  try {
+    const response = await axiosInstance.get<PricingTypeDropdownResponse>(
+      API_ENDPOINTS.PRICING_TYPES_DROPDOWN
+    );
+    
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching pricing type dropdown:', error);
+    throw error;
+  }
+};
+
 export const dropdownService = {
   fetchProductsForWarehouseDropdown,
   fetchWarehousesForDropdown,
@@ -188,4 +206,5 @@ export const dropdownService = {
   fetchTaxRatesForDropdown,
   fetchDeliveryMethodsForDropdown,
   fetchProductsForOrdersDropdown,
+  fetchPricingTypeDropdown,
 };

@@ -106,3 +106,12 @@ export interface PricingTypeResponse {
     pagination: PricingTypePagination;
   };
 }
+
+// Type for the pricing type dropdown item
+export interface PricingTypeDropdownItem {
+  id: string;     // Unique identifier for the pricing type
+  label: string;  // Display label for the dropdown (e.g., "Friend and Family Price")
+}
+
+// Type for the API response
+export type PricingTypeDropdownResponse = PricingTypeDropdownItem[];
