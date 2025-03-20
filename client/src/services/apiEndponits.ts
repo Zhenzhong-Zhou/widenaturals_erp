@@ -10,7 +10,7 @@ export const API_ENDPOINTS = {
   USER_PROFILE: '/users/me',
   ALL_PRODUCTS: '/products',
   PRODUCT_DETAILS: '/products/product-details/:id',
-  PRODUCTS_DROPDOWN: '/products/dropdown/warehouse/:warehouseId',
+  PRODUCTS_DROPDOWN_WAREHOUSE: '/products/dropdown/warehouse/:warehouseId',
   ALL_COMPLIANCES: '/compliances',
   ALL_PRICING_TYPES: '/pricing-types',
   PRICING_TYPE_DETAILS: '/pricing-types/:id',
@@ -47,4 +47,5 @@ export const API_ENDPOINTS = {
   DISCOUNTS_DROPDOWN: '/discounts/dropdown',
   TAX_RATES_DROPDOWN: '/tax-rates/dropdown',
   DELIVERY_METHODS_DROPDOWN: '/delivery-methods/dropdown',
+  PRODUCTS_DROPDOWN_ORDERS: '/products/dropdown/orders',
 };

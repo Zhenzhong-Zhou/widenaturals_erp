@@ -25,7 +25,7 @@ export { default as useWarehouseProductSummary } from './useWarehouseProductSumm
 export { default as useWarehouseInventoryDetails } from './useWarehouseInventoryDetails.ts';
 export { default as useLotAdjustmentTypes } from './useLotAdjustmentTypes.ts';
 export { default as useLotAdjustmentQty } from './useLotAdjustmentQty.ts';
-export { default as useProductsDropdown } from './useProductsDropdown.ts';
+export { default as useProductsWarehouseDropdown } from './useProductsWarehouseDropdown.ts';
 export { default as useBulkInsertWarehouseInventory } from './useBulkInsertWarehouseInventory.ts';
 export { default as useWarehouseDetails } from './useWarehouseDetails.ts';
 export { default as useInsertedInventoryRecordsResponse } from './useInsertedInventoryRecordsResponse.ts';
@@ -40,3 +40,4 @@ export { default as useCustomerDropdown } from './useCustomerDropdown.ts';
 export { default as useDiscountDropdown } from './useDiscountDropdown.ts';
 export { default as useTaxRateDropdown } from './useTaxRateDropdown.ts';
 export { default as useDeliveryMethodDropdown } from './useDeliveryMethodDropdown.ts';
+export { default as useProductOrderDropdown } from './useProductOrderDropdown.ts';

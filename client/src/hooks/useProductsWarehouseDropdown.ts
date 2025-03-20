@@ -13,7 +13,7 @@ import {
  * - Provides a refresh function to manually trigger fetching.
  * - Prevents redundant fetching.
  */
-const useProductsDropdown = (warehouseId: string) => {
+const useProductsWarehouseDropdown = (warehouseId: string) => {
   const dispatch = useAppDispatch();
   
   // Select state from Redux
@@ -51,4 +51,4 @@ const useProductsDropdown = (warehouseId: string) => {
   };
 };
 
-export default useProductsDropdown;
+export default useProductsWarehouseDropdown;

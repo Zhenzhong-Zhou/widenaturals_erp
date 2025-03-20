@@ -98,3 +98,12 @@ export interface ProductDetailState {
   loading: boolean;
   error: string | null;
 }
+
+// Interface for a single product dropdown item
+export interface ProductDropdownItem {
+  id: string;      // Unique identifier for the product
+  label: string;   // Product name with region and barcode formatted as a single label
+}
+
+// Type definition for the API response (array of ProductDropdownItem)
+export type ProductDropdownResponse = ProductDropdownItem[];

@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { GeneralProductInfo, ProductState } from './productTypes.ts';
-import { fetchProducts } from './productThunks.ts';
+import { fetchProductsThunk } from './productThunks.ts';
 
 // Initial state
 const initialState: ProductState<GeneralProductInfo> = {
@@ -22,16 +22,16 @@ const productSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
-      .addCase(fetchProducts.pending, (state) => {
+      .addCase(fetchProductsThunk.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchProducts.fulfilled, (state, action: PayloadAction<any>) => {
+      .addCase(fetchProductsThunk.fulfilled, (state, action: PayloadAction<any>) => {
         state.loading = false;
         state.data = action.payload.data;
         state.pagination = action.payload.pagination;
       })
-      .addCase(fetchProducts.rejected, (state, action: PayloadAction<any>) => {
+      .addCase(fetchProductsThunk.rejected, (state, action: PayloadAction<any>) => {
         state.loading = false;
         state.error = action.payload;
       });

@@ -6,7 +6,7 @@ import {
 } from '@components/index';
 import Box from '@mui/material/Box';
 import { InventoryDropdown, ProductDropdownItem } from '../index.ts';
-import { useProductsDropdown } from '../../../hooks';
+import { useProductsWarehouseDropdown } from '../../../hooks';
 import { formatDate } from '@utils/dateTimeUtils.ts';
 
 const CustomDatePicker = lazy(() => import('@components/common/CustomDatePicker.tsx'));
@@ -18,7 +18,7 @@ const BulkInsertInventoryModal: FC<{
   onSubmit: (data: Record<string, any>[]) => void;
   mode: 'create' | 'edit' | 'adjust';
 }> = ({ open, onClose, warehouseId, onSubmit, mode }) => {
-  const { products, loading, refreshProducts } = useProductsDropdown(warehouseId); // Fetch products for the given warehouseId
+  const { products, loading, refreshProducts } = useProductsWarehouseDropdown(warehouseId); // Fetch products for the given warehouseId
 
   // Product dropdown options
   const productOptions = products.map((p: ProductDropdownItem) => ({

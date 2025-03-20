@@ -42,6 +42,7 @@ import customerDropdownReducer from '../features/customer/state/customerDropdown
 import discountDropdownReducer from '../features/discount/state/discountDropdownSlice';
 import taxRateDropdownReducer from '../features/taxRate/state/taxRateDropdownSlice.ts';
 import deliveryMethodDropdownReducer from '../features/deliveryMethod/state/deliveryMethodDropdownSlice.ts';
+import productOrderDropdownReducer from '../features/product/state/productOrderDropdownSlice.ts';
 
 // Combine reducers
 const appReducer = combineReducers({
@@ -87,6 +88,7 @@ const appReducer = combineReducers({
   discountDropdown: discountDropdownReducer,
   taxRateDropdown: taxRateDropdownReducer,
   deliveryMethodDropdown: deliveryMethodDropdownReducer,
+  productOrderDropdown: productOrderDropdownReducer,
 });
 
 // Root reducer with logout handling

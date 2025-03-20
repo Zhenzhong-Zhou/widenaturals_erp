@@ -9,11 +9,12 @@ import { FetchCustomersDropdownResponse } from '../features/customer';
 import { DiscountDropdownItem } from '../features/discount';
 import { TaxRateDropdownResponse } from '../features/taxRate';
 import { DeliveryMethodDropdownResponse } from '../features/deliveryMethod';
+import { ProductDropdownResponse } from '../features/product/state/productTypes.ts';
 
 /**
  * Fetch active products for dropdown
  */
-const fetchProductsForDropdown = async (
+const fetchProductsForWarehouseDropdown = async (
   warehouseId?: string
 ): Promise<ProductDropdownItem[]> => {
   if (!warehouseId) {
@@ -22,7 +23,7 @@ const fetchProductsForDropdown = async (
   }
 
   try {
-    const endpoint = API_ENDPOINTS.PRODUCTS_DROPDOWN.replace(
+    const endpoint = API_ENDPOINTS.PRODUCTS_DROPDOWN_WAREHOUSE.replace(
       ':warehouseId',
       warehouseId
     );
@@ -154,12 +155,37 @@ export const fetchDeliveryMethodsForDropdown = async (includePickup: boolean = f
   }
 };
 
+/**
+ * Fetches available products for the dropdown menu.
+ *
+ * @param {string | null} search - Search term to filter by product name, SKU, or barcode.
+ * @param {number} limit - The maximum number of results to fetch. Default is 100.
+ * @returns {Promise<ProductDropdownResponse>} - List of products formatted for the dropdown.
+ */
+const fetchProductsForOrdersDropdown = async (
+  search: string | null = null,
+  limit: number = 100
+): Promise<ProductDropdownResponse> => {
+  try {
+    const response = await axiosInstance.get<ProductDropdownResponse>(
+      API_ENDPOINTS.PRODUCTS_DROPDOWN_ORDERS,
+      { params: { search, limit } }
+    );
+    
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching products for dropdown:', error);
+    throw error;
+  }
+};
+
 export const dropdownService = {
-  fetchProductsForDropdown,
+  fetchProductsForWarehouseDropdown,
   fetchWarehousesForDropdown,
   fetchOrderTypesForDropdown,
   fetchCustomersForDropdown,
   fetchDiscountsForDropdown,
   fetchTaxRatesForDropdown,
   fetchDeliveryMethodsForDropdown,
+  fetchProductsForOrdersDropdown,
 };
