@@ -29,6 +29,7 @@ const discountRoutes = require('./discounts');
 const deliveryMethodRoutes = require('./delivery-methods');
 const orderTypeRoutes = require('./order-types');
 const orderRoutes = require('./orders');
+const taxRateRoutes = require('./tax-rates');
 const { createApiRateLimiter } = require('../middlewares/rate-limiter');
 const authenticate = require('../middlewares/authenticate');
 
@@ -118,15 +119,14 @@ router.use('/reports', authenticate(), reportRoutes);
 
 router.use('/customers', authenticate(), customerRoutes);
 
-// router.use('/discounts', authenticate(), discountRoutes);
-router.use('/discounts', discountRoutes);
+router.use('/discounts', authenticate(), discountRoutes);
 
 router.use('/delivery-methods', deliveryMethodRoutes);
 
-// router.use('/orders', authenticate(), orderRoutes);
-router.use('/orders', orderRoutes);
+router.use('/orders', authenticate(), orderRoutes);
 
-// router.use('/order-types', authenticate(), orderTypeRoutes);
-router.use('/order-types', orderTypeRoutes);
+router.use('/order-types', authenticate(), orderTypeRoutes);
+
+router.use('/tax-rates', authenticate(), taxRateRoutes);
 
 module.exports = router;
