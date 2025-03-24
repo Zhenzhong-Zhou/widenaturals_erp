@@ -16,7 +16,7 @@ export interface OrderItem {
 export interface SalesOrder {
   customer_id: string;
   order_date: string; // ISO Date string (YYYY-MM-DD)
-  discount_id?: string; // Optional
+  discount_id: string | null; // Optional
   tax_rate_id: string;
   delivery_method_id: string;
   note?: string; // Optional

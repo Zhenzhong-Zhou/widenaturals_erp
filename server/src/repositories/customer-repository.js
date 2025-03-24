@@ -16,11 +16,8 @@ const { logError } = require('../utils/logger-helper');
  */
 const checkCustomerExistsById = async (customerId, client = null) => {
   try {
-    console.log(customerId);
     const queryText = `SELECT EXISTS (SELECT 1 FROM customers WHERE id = $1) AS exists;`;
-    console.log(queryText);
     const { rows } = await query(queryText, [customerId], client);
-    console.log(rows[0]);
     return rows[0]?.exists || false;
   } catch (error) {
     logError('Error checking customer existence by ID:', error);

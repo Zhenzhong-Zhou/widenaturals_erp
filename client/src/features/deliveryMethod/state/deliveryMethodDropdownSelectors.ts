@@ -29,6 +29,8 @@ export const selectFormattedDeliveryMethodDropdown = createSelector(
   (methods: DeliveryMethodDropdownItem[]) =>
     methods.map(method => ({
       value: method.id,
-      label: `${method.name} (${method.estimatedTime.days} days)`
+      label: method.estimatedTime
+        ? `${method.name} (${method.estimatedTime.days} days)` // Display days if available
+        : method.name // Display name only if estimatedTime is null
     }))
 );

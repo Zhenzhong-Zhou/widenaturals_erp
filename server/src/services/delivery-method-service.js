@@ -16,7 +16,9 @@ const fetchAvailableMethodsForDropdown = async (includePickup = false) => {
     return methods.map(method => ({
       id: method.id,
       name: method.name,
-      estimatedTime: { days: parseInt(method.estimatedtime.days, 10) },
+      estimatedTime: method.estimatedtime && method.estimatedtime.days
+        ? { days: parseInt(method.estimatedtime.days, 10) }
+        : null, // Return null if estimatedtime is null or doesn't have days
     }));
   } catch (error) {
     logError('Error in delivery method service:', error);

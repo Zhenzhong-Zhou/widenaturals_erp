@@ -1,4 +1,5 @@
-import { FC, ReactNode } from 'react';
+import { BaseSyntheticEvent, FC, ReactNode } from 'react';
+import { useForm, Controller, Control } from 'react-hook-form';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import Checkbox from '@mui/material/Checkbox';
@@ -8,7 +9,6 @@ import InputLabel from '@mui/material/InputLabel';
 import Box from '@mui/material/Box';
 import FormHelperText from '@mui/material/FormHelperText';
 import TextField from '@mui/material/TextField';
-import { useForm, Controller, Control } from 'react-hook-form';
 import { CustomButton, CustomPhoneInput } from '@components/index';
 import { useThemeContext } from '../../context/ThemeContext';
 
@@ -21,35 +21,37 @@ export interface FieldConfig {
   defaultValue?: any;
   disabled?: boolean;
   helperText?: string;
-  placeholder?: string; // Added placeholder support
-  min?: number; // Min for number fields
-  max?: number; // Max for number fields
-  rows?: number; // Support for textarea
-  country?: string; // Support for phone input
+  placeholder?: string;
+  min?: number;
+  max?: number;
+  rows?: number;
+  country?: string;
 }
 
 interface FormProps {
   children?: ReactNode;
   fields?: FieldConfig[];
-  control: Control<any>; // Ensure control is required
-  onSubmit: (formData: Record<string, any>) => void | Promise<void>;
+  control: Control<any>;
+  onSubmit: (formData: Record<string, any>, e?: BaseSyntheticEvent) => void | Promise<void>;
   submitButtonLabel?: string;
   disabled?: boolean;
+  showSubmitButton?: boolean;
 }
 
 const CustomForm: FC<FormProps> = ({
-  fields = [],
-  children,
-  onSubmit,
-  submitButtonLabel = 'Submit',
-  control,
-}) => {
+                                     fields = [],
+                                     children,
+                                     onSubmit,
+                                     submitButtonLabel = 'Submit',
+                                     control,
+                                     showSubmitButton = true
+                                   }) => {
   const { theme } = useThemeContext();
   const {
     handleSubmit,
     formState: { errors },
-  } = useForm();
-
+  } = useForm({ mode: 'onChange' });  // Enable real-time validation check
+  
   return (
     <Box
       component="form"
@@ -58,7 +60,7 @@ const CustomForm: FC<FormProps> = ({
         display: 'flex',
         flexDirection: 'column',
         gap: 2,
-        maxWidth: '600px', // Increased maxWidth for better layout
+        maxWidth: '600px', // maxWidth for better layout
         width: '100%',
         margin: '0 auto',
         padding: theme.spacing(3),
@@ -218,13 +220,15 @@ const CustomForm: FC<FormProps> = ({
           )}
         </Box>
       ))}
-
+      
       {children}
-
-      {/** Submit Button */}
-      <CustomButton type="submit" variant="contained" color="primary">
-        {submitButtonLabel}
-      </CustomButton>
+      
+      {/** Render the Submit button only if `showSubmitButton` is true */}
+      {showSubmitButton && (
+        <CustomButton type="submit" variant="contained" color="primary">
+          {submitButtonLabel}
+        </CustomButton>
+      )}
     </Box>
   );
 };

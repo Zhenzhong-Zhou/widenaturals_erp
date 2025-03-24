@@ -1,62 +1,85 @@
-import { FC, useState } from 'react';
+import { FC, useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
-import { CustomModal, Typography } from '@components/index.ts';
-import { OrderTypesDropdown } from '../index.ts';
+import { Loading, Typography } from '@components/index.ts';
+import { CreateSaleOrderForm, OrderFormModal, OrderTypesDropdown } from '../index.ts';
+import useSalesOrder from '../../../hooks/useSalesOrders.ts';
 
 const OrderPage: FC = () => {
   const [selectedOrderType, setSelectedOrderType] = useState<{
     id: string;
     name: string;
   } | null>(null);
+  const [latestOrderType, setLatestOrderType] = useState<{
+    id: string;
+    name: string;
+  } | null>(null); // Store the latest selected order type
+  
   const [isModalOpen, setModalOpen] = useState(false);
-
+  const { loading, success, salesOrderId, error, createOrder } = useSalesOrder();
+  
   const handleOrderTypeChange = (id: string, name: string) => {
-    setSelectedOrderType({ id, name });
-
-    // Open modal only if a valid value is selected
-    if (id) {
+    if (selectedOrderType?.id === id) {
+      // Re-selecting the same order type should re-trigger the modal
       setModalOpen(true);
+    } else {
+      // Set the selected order type and open modal
+      const selectedType = { id, name };
+      setSelectedOrderType(selectedType);
+      setLatestOrderType(selectedType); // Store in latestOrderType
+      if (id) setModalOpen(true);
     }
   };
-
+  
+  // Handle the success or error after submission
+  useEffect(() => {
+    if (success || error) {
+      console.log(success ? `Sales order created successfully with ID: ${salesOrderId}` : `Failed to create sales order: ${error}`);
+      setModalOpen(false); // Close the modal whether it's a success or failure
+    }
+  }, [success, error, salesOrderId]);
+  
+  // Reset `selectedOrderType` to null when the dropdown closes (modal closes)
+  useEffect(() => {
+    if (!isModalOpen) {
+      setSelectedOrderType(null);
+    }
+  }, [isModalOpen]);
+  
   return (
     <Box sx={{ p: 3, maxWidth: '600px', mx: 'auto' }}>
       <Typography variant="h4" gutterBottom>
         Create New Order
       </Typography>
-
+      
       <OrderTypesDropdown
         value={selectedOrderType?.id || null}
         onChange={handleOrderTypeChange}
       />
-
-      {selectedOrderType && (
+      
+      {latestOrderType && (
         <Typography variant="body1" sx={{ mt: 2 }}>
-          Selected Order Type: <strong>{selectedOrderType.name}</strong>
+          Selected Order Type: <strong>{latestOrderType.name}</strong>
         </Typography>
       )}
       
-      {/* Modal for Order Form */}
-      <CustomModal open={isModalOpen} onClose={() => setModalOpen(false)}>
-        <Box
-          sx={{
-            p: 4,
-            bgcolor: 'white',
-            borderRadius: 2,
-            maxWidth: 500,
-            mx: 'auto',
-            mt: 10,
-          }}
-        >
-          <Typography variant="h6" gutterBottom>
-            Create{' '}
-            {selectedOrderType?.name?.includes('Order')
-              ? selectedOrderType?.name
-              : `${selectedOrderType?.name} Order`}
-          </Typography>
-          {/*<OrderForm orderType={selectedOrderType} onClose={() => setModalOpen(false)} />*/}
+      {/* Display Loading Indicator When Processing */}
+      {loading && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+          <Loading />
         </Box>
-      </CustomModal>
+      )}
+      
+      {/* Modal for Order Form */}
+      <OrderFormModal
+        open={isModalOpen}
+        title={`Create ${latestOrderType?.name?.includes('Order') ? latestOrderType?.name : `${latestOrderType?.name} Order`}`}
+        onClose={() => setModalOpen(false)}
+      >
+        <CreateSaleOrderForm
+          onSubmit={(formData) => createOrder(latestOrderType!.id, formData)}
+          onClose={() => setModalOpen(false)}
+        />
+      </OrderFormModal>
     </Box>
   );
 };

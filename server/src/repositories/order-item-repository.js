@@ -29,7 +29,7 @@ const addOrderItems = async (orderId, items, createdBy, client) => {
     'updated_by',
   ];
 
-// Step 1: Aggregate items that have the same `product_id`, `price_type_id`, `price_id`, and `price`
+  // Step 1: Aggregate items that have the same `product_id`, `price_type_id`, `price_id`, and `price`
   const itemMap = new Map();
   
   for (const item of items) {
@@ -51,8 +51,8 @@ const addOrderItems = async (orderId, items, createdBy, client) => {
       });
     }
   }
-
-// Step 2: Convert aggregated items into an array for insertion
+  
+  // Step 2: Convert aggregated items into an array for insertion
   const rows = Array.from(itemMap.values()).map((item) => [
     orderId, // Ensure order_id is correctly set
     item.product_id,

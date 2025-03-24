@@ -4,6 +4,7 @@ import { Dropdown } from '@components/index.ts';
 import CreateCustomerModal from './CreateCustomerModal';
 
 interface CustomerDropdownProps {
+  label?: string;
   value: string | null;
   onChange: (value: string) => void;
   disabled?: boolean;
