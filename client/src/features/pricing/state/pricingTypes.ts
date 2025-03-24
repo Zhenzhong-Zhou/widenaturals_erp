@@ -70,3 +70,22 @@ export interface PricingDetailsResponse {
     pagination: Pagination;
   };
 }
+
+// Interface for the request parameters
+export interface PriceRequestParams {
+  productId: string;
+  priceTypeId: string;
+}
+
+// Type for the API response
+export type PriceResponse = {
+  price: string;         // Using string to maintain the format "180.00"
+  productId: string;
+  priceTypeId: string;
+};
+
+export interface PriceState {
+  priceData: PriceResponse | null;
+  loading: boolean;
+  error: string | null;
+}

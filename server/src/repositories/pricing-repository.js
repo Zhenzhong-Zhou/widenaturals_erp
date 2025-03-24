@@ -247,7 +247,7 @@ const getActiveProductPrice = async (productId, priceTypeId, client) => {
   `;
   
   try {
-    const { rows } = await query(queryText, [productId, priceTypeId]);
+    const { rows } = await query(queryText, [productId, priceTypeId], client);
     return rows.length > 0 ? rows[0] : null;
   } catch (error) {
     logError('Error fetching price for order:', error);

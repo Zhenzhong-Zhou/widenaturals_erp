@@ -15,7 +15,7 @@ export const API_ENDPOINTS = {
   ALL_PRICING_TYPES: '/pricing-types',
   PRICING_TYPE_DETAILS: '/pricing-types/details/:id',
   ALL_PRICINGS: '/pricings',
-  PRICING_DETAILS: '/pricings/:id',
+  PRICING_DETAILS: '/pricings/details/:id',
   ALL_LOCATION_TYPES: '/location-types',
   LOCATION_TYPE_DETAILS: '/location-types/:id',
   ALL_LOCATIONS: '/locations',
@@ -49,4 +49,5 @@ export const API_ENDPOINTS = {
   DELIVERY_METHODS_DROPDOWN: '/delivery-methods/dropdown',
   PRODUCTS_DROPDOWN_ORDERS: '/products/dropdown/orders',
   PRICING_TYPES_DROPDOWN: '/pricing-types/dropdown',
+  PRICE_VALUE: '/pricings/fetch-price',
 };

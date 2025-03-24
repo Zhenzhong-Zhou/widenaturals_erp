@@ -6,7 +6,7 @@
 const express = require('express');
 const {
   getPricingsController,
-  getPricingDetailsController,
+  getPricingDetailsController, getPriceByProductAndPriceTypeController,
 } = require('../controllers/pricing-controller');
 const authorize = require('../middlewares/authorize');
 
@@ -20,9 +20,11 @@ router.get(
 );
 
 router.get(
-  '/:id',
+  '/details/:id',
   authorize(['view_prices', 'manage_prices']),
   getPricingDetailsController
 );
+
+router.get('/fetch-price', getPriceByProductAndPriceTypeController);
 
 module.exports = router;

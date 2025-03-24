@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
 import {
-  selectPricing,
+  selectPricingDetails,
   selectProducts,
   selectLocations,
   selectLocationTypes,
@@ -10,8 +10,8 @@ import {
   selectPricingError,
 } from '../features/pricing';
 import {
-  getPricingDetails,
-  fetchPricingData,
+  getPricingDetailsThunk,
+  fetchPricingDataThunk,
 } from '../features/pricing/state/pricingThunks.ts';
 
 /**
@@ -28,7 +28,7 @@ const usePricing = (
   const dispatch = useAppDispatch();
 
   // Selectors
-  const pricing = useAppSelector(selectPricing);
+  const pricing = useAppSelector(selectPricingDetails);
   const products = useAppSelector(selectProducts); // Supports multiple products
   const locations = useAppSelector(selectLocations); // Supports multiple locations
   const locationTypes = useAppSelector(selectLocationTypes);
@@ -38,9 +38,9 @@ const usePricing = (
 
   useEffect(() => {
     if (pricingId && !pricing) {
-      dispatch(getPricingDetails({ pricingId, page, limit }));
+      dispatch(getPricingDetailsThunk({ pricingId, page, limit }));
     } else if (!pricingId && !products.length) {
-      dispatch(fetchPricingData({ page, limit }));
+      dispatch(fetchPricingDataThunk({ page, limit }));
     }
   }, [dispatch, pricingId, page, limit, pricing, products.length]);
 
@@ -52,10 +52,10 @@ const usePricing = (
   const fetchPricings = (newPage: number, newLimit: number) => {
     if (pricingId) {
       dispatch(
-        getPricingDetails({ pricingId, page: newPage, limit: newLimit })
+        getPricingDetailsThunk({ pricingId, page: newPage, limit: newLimit })
       );
     } else {
-      dispatch(fetchPricingData({ page: newPage, limit: newLimit }));
+      dispatch(fetchPricingDataThunk({ page: newPage, limit: newLimit }));
     }
   };
 

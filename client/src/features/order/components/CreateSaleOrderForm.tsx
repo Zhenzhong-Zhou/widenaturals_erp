@@ -1,4 +1,4 @@
-import { FC, useEffect, useMemo, useState } from 'react';
+import { FC, useEffect, useMemo, useRef, useState } from 'react';
 import { useForm, Controller, FormProvider } from 'react-hook-form';
 import { BaseInput, CustomButton, CustomDatePicker, CustomForm } from '@components/index';
 import Grid from '@mui/material/Grid2';
@@ -16,6 +16,7 @@ import { DeliveryMethodDropdown } from '../../deliveryMethod';
 import { ProductOrderDropdown } from '../../product';
 import { PricingTypeDropdown } from '../../pricingType';
 import { SalesOrder } from '../state/orderTypes.ts';
+import { usePricing } from '../../../hooks';
 
 interface SaleOrderFormProps {
   onSubmit: (formData: SalesOrder) => void | Promise<void>;
@@ -35,6 +36,9 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({ onSubmit = () => {}, onCl
   const [items, setItems] = useState<SaleOrderItem[]>([
     { id: uuidv4(), product_id: '', price_type_id: '', price: 0, quantity_ordered: 1 }
   ]);  // Initialized with one item
+  const priceUpdatedRef = useRef(false);
+  
+  const { fetchPriceValue, priceValueData, priceValueLoading } = usePricing();
   
   // Initialize useForm with your defined structure
   const methods = useForm<SalesOrder>({
@@ -134,11 +138,68 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({ onSubmit = () => {}, onCl
     );
   };
   
+  const fetchPriceByProductAndPriceType = (productId: string, priceTypeId: string, itemId: string) => {
+    if (productId && priceTypeId) {
+      priceUpdatedRef.current = false;  // Allow price fetching for this item
+      fetchPriceValue({ productId, priceTypeId }); // Fetch the price
+      
+      // Reset the price in react-hook-form and items state
+      const itemIndex = items.findIndex(item => item.id === itemId); // Find the index of the item with the given id
+      
+      if (itemIndex !== -1) { // If the item exists in the list
+        methods.setValue(`items.${itemIndex}.price`, 0);  // Reset form state price to 0
+        
+        // Update the state to reflect the price reset
+        setItems(prevItems =>
+          prevItems.map(item =>
+            item.id === itemId ? { ...item, price: 0 } : item
+          )
+        );
+      }
+    }
+  };
+  
+  useEffect(() => {
+    if (priceValueData?.price && !priceUpdatedRef.current) {
+      const priceValue = parseFloat(priceValueData.price);
+      
+      const updatedItems = items.map((item) => {
+        const itemIndex = items.findIndex((i) => i.id === item.id);
+        const currentFormPrice = methods.getValues(`items.${itemIndex}.price`);
+        
+        // Update if price is 0 (reset condition) or if product/priceType changed
+        if (currentFormPrice === 0 || item.price === 0) {
+          methods.setValue(`items.${itemIndex}.price`, priceValue); // Update form state
+          return { ...item, price: priceValue };
+        }
+        return item;
+      });
+      
+      setItems(updatedItems);  // Update state with new prices
+      priceUpdatedRef.current = true;  // Prevent continuous updates
+    }
+  }, [priceValueData, methods, items]);
+  
   const handleFormSubmit = () =>
-    handleSubmit((formData: SalesOrder) => {  // Wrap with methods.handleSubmit()
-      formData.items = items; // Attach your items array
-      onSubmit(formData); // Call parent onSubmit function
-      onClose(); // Close the modal after submission
+    handleSubmit((formData: SalesOrder) => {
+      formData.items = items; // Attach items array to the formData
+      
+      onSubmit(formData); // Submit the data
+      onClose(); // Close the modal
+      
+      // Reset form data to the initial state
+      methods.reset({
+        customer_id: '',
+        order_date: '',
+        discount_id: null,
+        tax_rate_id: '',
+        delivery_method_id: '',
+        note: '',
+        items: [{ product_id: '', price_type_id: '', price: 0, quantity_ordered: 1 }]
+      });
+      
+      setItems([{ id: uuidv4(), product_id: '', price_type_id: '', price: 0, quantity_ordered: 1 }]);  // Reset items
+      priceUpdatedRef.current = false;  // Allow fresh price fetch next time
     })();
   
   // Only show the submit button if the category is 'sales'
@@ -264,6 +325,7 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({ onSubmit = () => {}, onCl
                         onChange={(val) => {
                           field.onChange(val); // Update react-hook-form state
                           handleItemChange(item.id, 'product_id', val); // Update local state
+                          fetchPriceByProductAndPriceType(val, item.price_type_id, item.id);
                         }}// Use field.onChange to update form state
                       />
                     )}
@@ -281,6 +343,7 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({ onSubmit = () => {}, onCl
                         onChange={(val) => {
                           field.onChange(val); // Update react-hook-form state
                           handleItemChange(item.id, 'price_type_id', val); // Update local state
+                          fetchPriceByProductAndPriceType(item.product_id, val, item.id);
                         }}  // Use field.onChange to update form state
                       />
                     )}
@@ -299,8 +362,9 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({ onSubmit = () => {}, onCl
                         placeholder="Price"
                         value={field.value || 0}
                         onChange={(e) => {
-                          field.onChange(e.target.value);
-                          handleItemChange(item.id, 'price', parseFloat(e.target.value) || 0);
+                          const value = parseFloat(e.target.value) || 0;
+                          field.onChange(value);
+                          handleItemChange(item.id, 'price', value);
                         }}
                         slotProps={{
                           input: {
@@ -309,6 +373,7 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({ onSubmit = () => {}, onCl
                             ),
                           },
                         }}
+                        disabled={priceValueLoading}
                       />
                     )}
                   />

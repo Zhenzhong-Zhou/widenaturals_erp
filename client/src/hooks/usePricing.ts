@@ -1,28 +1,36 @@
 import { useEffect, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
 import {
-  selectPagination,
-  selectPricingData,
-  selectPricingLoading,
-  selectPricingError,
-} from '../features/pricing/state/pricingSelectors.ts';
-import { fetchPricingData } from '../features/pricing/state/pricingThunks.ts';
+  fetchPricingDataThunk,
+  selectPricingDetails,
+  selectPricingDetailsError,
+  selectPricingDetailsLoading,
+  selectPricingDetailsPagination,
+  selectPriceValueData,
+  selectPriceValueLoading,
+  selectPriceValueError, PriceRequestParams, fetchPriceValueThunk,
+} from '../features/pricing';
 
 /**
- * Custom hook for managing pricing data.
+ * Custom hook for managing pricing data and fetching price values.
  */
 const usePricing = () => {
   const dispatch = useAppDispatch();
-
-  // Redux Selectors
-  const pricingData = useAppSelector(selectPricingData);
-  const pagination = useAppSelector(selectPagination);
-  const loading = useAppSelector(selectPricingLoading);
-  const error = useAppSelector(selectPricingError);
-
+  
+  // Redux Selectors for Pricing Data
+  const pricingData = useAppSelector(selectPricingDetails);
+  const pagination = useAppSelector(selectPricingDetailsPagination);
+  const loading = useAppSelector(selectPricingDetailsLoading);
+  const error = useAppSelector(selectPricingDetailsError);
+  
+  // Redux Selectors for Price Value Data
+  const priceValueData = useAppSelector(selectPriceValueData);
+  const priceValueLoading = useAppSelector(selectPriceValueLoading);
+  const priceValueError = useAppSelector(selectPriceValueError);
+  
   // Local state to prevent unnecessary fetches
   const [isFetched, setIsFetched] = useState(false);
-
+  
   /**
    * Fetch pricing records.
    * @param page - The page number to fetch.
@@ -30,10 +38,19 @@ const usePricing = () => {
    */
   const fetchPricings = (page: number, limit: number) => {
     if (page < 1 || loading) return; // Prevent invalid page numbers and duplicate requests
-
-    dispatch(fetchPricingData({ page, limit })).unwrap();
+    
+    dispatch(fetchPricingDataThunk({ page, limit })).unwrap();
   };
-
+  
+  /**
+   * Fetch price value based on productId and priceTypeId
+   * @param {PriceRequestParams} params - The productId and priceTypeId to fetch the price
+   */
+  const fetchPriceValue = (params: PriceRequestParams) => {
+    if (!params.productId || !params.priceTypeId) return; // Ensure valid params
+    dispatch(fetchPriceValueThunk(params)).unwrap();
+  };
+  
   // Fetch data on initial render
   useEffect(() => {
     if (!isFetched) {
@@ -41,13 +58,17 @@ const usePricing = () => {
       setIsFetched(true); // Prevent infinite re-fetching
     }
   }, [pagination.limit]); // Depend on limit to allow updates when it changes
-
+  
   return {
     pricingData,
     pagination,
     loading,
     error,
     fetchPricings,
+    priceValueData,
+    priceValueLoading,
+    priceValueError,
+    fetchPriceValue,
   };
 };
 

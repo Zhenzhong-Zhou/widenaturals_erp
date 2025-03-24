@@ -1,6 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { Pagination, PricingDetails } from './pricingTypes.ts';
-import { getPricingDetails } from './pricingThunks';
+import { getPricingDetailsThunk } from './pricingThunks';
 
 interface PricingState {
   pricing: PricingDetails | null;
@@ -22,11 +22,11 @@ const pricingSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
-      .addCase(getPricingDetails.pending, (state) => {
+      .addCase(getPricingDetailsThunk.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(getPricingDetails.fulfilled, (state, action) => {
+      .addCase(getPricingDetailsThunk.fulfilled, (state, action) => {
         state.loading = false;
 
         const { pricing, pagination } = action.payload.data;
@@ -40,7 +40,7 @@ const pricingSlice = createSlice({
 
         state.pagination = pagination;
       })
-      .addCase(getPricingDetails.rejected, (state, action) => {
+      .addCase(getPricingDetailsThunk.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || 'Error fetching pricing details';
       });
