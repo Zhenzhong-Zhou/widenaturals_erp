@@ -3,19 +3,34 @@ import { RootState } from '../../../store/store.ts';
 
 const selectOrderTypeState = (state: RootState) => state.orderTypesDropdown;
 
-// Memoized selector to get order types
+// Get all order types
 export const selectOrderTypesDropdown = createSelector(
   [selectOrderTypeState],
-  (orderTypeState) => orderTypeState.orderTypes ?? [] // Ensure it always returns an array
+  (orderTypeState) => orderTypeState.orderTypes ?? []
 );
 
-// Memoized selector to get loading state
+// Get all order types grouped by category
+export const selectOrderTypesByCategory = createSelector(
+  [selectOrderTypesDropdown],
+  (orderTypes) => {
+    const groupedByCategory: Record<string, any[]> = {};
+    orderTypes.forEach(orderType => {
+      if (!groupedByCategory[orderType.category]) {
+        groupedByCategory[orderType.category] = [];
+      }
+      groupedByCategory[orderType.category].push(orderType);
+    });
+    return groupedByCategory;
+  }
+);
+
+// Get loading state
 export const selectOrderTypesDropdownLoading = createSelector(
   [selectOrderTypeState],
   (orderTypeState) => orderTypeState.loading
 );
 
-// Memoized selector to get error state
+// Get error state
 export const selectOrderTypesDropdownError = createSelector(
   [selectOrderTypeState],
   (orderTypeState) => orderTypeState.error

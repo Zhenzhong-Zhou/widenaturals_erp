@@ -3,36 +3,49 @@ import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
 import {
   fetchOrderTypesDropDownThunk,
   selectOrderTypesDropdown,
-  selectOrderTypesDropdownError,
+  selectOrderTypesByCategory,
   selectOrderTypesDropdownLoading,
+  selectOrderTypesDropdownError,
 } from '../features/order';
 
-const useOrderTypesDropdown = () => {
+const useOrderTypesDropdown = (category?: string) => {
   const dispatch = useAppDispatch();
-
+  
   // Redux selectors
-  const orderTypes = useAppSelector(selectOrderTypesDropdown);
+  const allOrderTypes = useAppSelector(selectOrderTypesDropdown);
+  const orderTypesByCategory = useAppSelector(selectOrderTypesByCategory);
   const loading = useAppSelector(selectOrderTypesDropdownLoading);
   const error = useAppSelector(selectOrderTypesDropdownError);
-
-  // Memoized dropdown options
+  
+  const orderTypes = useMemo(() => {
+    if (category && orderTypesByCategory[category]) {
+      return orderTypesByCategory[category];
+    }
+    return allOrderTypes;  // If no category, return all
+  }, [category, orderTypesByCategory, allOrderTypes]);
+  
+  // Prepare dropdown options
   const dropdownOptions = useMemo(
-    () => orderTypes.map(({ id, name }) => ({ value: id, label: name })),
+    () => orderTypes.map(({ id, name, category }) => ({
+      value: id,
+      label: name,
+      category  // Include category in the dropdown options
+    })),
     [orderTypes]
   );
-
-  // Manual refresh function
+  
+  // Refresh function
   const refreshOrderTypes = useCallback(() => {
     dispatch(fetchOrderTypesDropDownThunk());
   }, [dispatch]);
-
-  // Fetch order types on component mount
+  
+  // Fetch data on mount
   useEffect(() => {
-    if (orderTypes.length === 0) {
+    if (allOrderTypes.length === 0) {
       dispatch(fetchOrderTypesDropDownThunk());
     }
-  }, [dispatch, orderTypes.length]);
-
+  }, [dispatch, allOrderTypes.length]);
+  
   return { dropdownOptions, loading, error, refreshOrderTypes };
 };
 

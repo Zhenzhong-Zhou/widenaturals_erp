@@ -10,6 +10,7 @@ export {
 } from './state/orderThunks.ts';
 export {
   selectOrderTypesDropdown,
+  selectOrderTypesByCategory,
   selectOrderTypesDropdownLoading,
   selectOrderTypesDropdownError,
 } from './state/orderTypesDropdownSelectors.ts';

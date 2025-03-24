@@ -20,6 +20,7 @@ import { SalesOrder } from '../state/orderTypes.ts';
 interface SaleOrderFormProps {
   onSubmit: (formData: SalesOrder) => void | Promise<void>;
   onClose: () => void;
+  category: string | null;
 }
 
 interface SaleOrderItem {
@@ -30,7 +31,7 @@ interface SaleOrderItem {
   quantity_ordered: number;
 }
 
-const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({ onSubmit = () => {}, onClose = () => {} }) => {
+const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({ onSubmit = () => {}, onClose = () => {}, category }) => {
   const [items, setItems] = useState<SaleOrderItem[]>([
     { id: uuidv4(), product_id: '', price_type_id: '', price: 0, quantity_ordered: 1 }
   ]);  // Initialized with one item
@@ -140,6 +141,10 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({ onSubmit = () => {}, onCl
       onClose(); // Close the modal after submission
     })();
   
+  // Only show the submit button if the category is 'sales'
+  if (category !== 'sales') {
+    return <Typography variant="h6">This form is only available for 'sales' category.</Typography>;
+  }
   
   return (
     <FormProvider {...methods}>

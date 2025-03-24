@@ -102,7 +102,7 @@ const getOrderTypes = async (type = 'lookup') => {
   try {
     const columns =
       type === 'dropdown'
-        ? 'ot.id, ot.name'
+        ? 'ot.id, ot.name, ot.category'
         : 'ot.id, ot.name, ot.description, ot.category';
 
     const queryText = `

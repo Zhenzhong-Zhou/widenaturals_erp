@@ -2,6 +2,7 @@
 export interface OrderType {
   id: string;
   name: string;
+  category: string;
 }
 
 // Type for an order item

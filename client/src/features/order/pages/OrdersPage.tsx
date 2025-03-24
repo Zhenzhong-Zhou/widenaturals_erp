@@ -8,22 +8,24 @@ const OrderPage: FC = () => {
   const [selectedOrderType, setSelectedOrderType] = useState<{
     id: string;
     name: string;
+    category: string;
   } | null>(null);
   const [latestOrderType, setLatestOrderType] = useState<{
     id: string;
     name: string;
+    category: string;
   } | null>(null); // Store the latest selected order type
   
   const [isModalOpen, setModalOpen] = useState(false);
   const { loading, success, salesOrderId, error, createOrder } = useSalesOrder();
   
-  const handleOrderTypeChange = (id: string, name: string) => {
+  const handleOrderTypeChange = (id: string, name: string, category: string) => {
     if (selectedOrderType?.id === id) {
       // Re-selecting the same order type should re-trigger the modal
       setModalOpen(true);
     } else {
       // Set the selected order type and open modal
-      const selectedType = { id, name };
+      const selectedType = { id, name, category };
       setSelectedOrderType(selectedType);
       setLatestOrderType(selectedType); // Store in latestOrderType
       if (id) setModalOpen(true);
@@ -75,10 +77,17 @@ const OrderPage: FC = () => {
         title={`Create ${latestOrderType?.name?.includes('Order') ? latestOrderType?.name : `${latestOrderType?.name} Order`}`}
         onClose={() => setModalOpen(false)}
       >
-        <CreateSaleOrderForm
-          onSubmit={(formData) => createOrder(latestOrderType!.id, formData)}
-          onClose={() => setModalOpen(false)}
-        />
+        {latestOrderType?.category === 'sales' ? (
+          <CreateSaleOrderForm
+            onSubmit={(formData) => createOrder(latestOrderType!.id, formData)}
+            onClose={() => setModalOpen(false)}
+            category={latestOrderType?.category}
+          />
+        ) : (
+          <Typography variant="h6" sx={{ textAlign: 'center', marginTop: 2 }}>
+            This order type is not supported yet.
+          </Typography>
+        )}
       </OrderFormModal>
     </Box>
   );
