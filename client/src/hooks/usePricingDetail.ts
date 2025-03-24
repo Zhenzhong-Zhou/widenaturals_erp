@@ -7,12 +7,8 @@ import {
   selectLocationTypes,
   selectPagination,
   selectPricingLoading,
-  selectPricingError,
+  selectPricingError, getPricingDetailsThunk, fetchPricingDataThunk,
 } from '../features/pricing';
-import {
-  getPricingDetailsThunk,
-  fetchPricingDataThunk,
-} from '../features/pricing/state/pricingThunks.ts';
 
 /**
  * Custom hook for fetching and managing pricing data.
