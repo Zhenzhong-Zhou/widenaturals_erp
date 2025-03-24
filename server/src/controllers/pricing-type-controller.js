@@ -87,7 +87,7 @@ const getPricingTypeDetailsByIdController = wrapAsync(
 );
 
 /**
- * Controller to handle fetching pricing types for dropdowns.
+ * Controller to handle fetching pricing types for dropdowns based on product ID.
  *
  * @param {Request} req - Express request object.
  * @param {Response} res - Express response object.
@@ -95,7 +95,8 @@ const getPricingTypeDetailsByIdController = wrapAsync(
  */
 const getPricingTypesForDropdownController = wrapAsync(async (req, res, next) => {
   try {
-    const pricingTypes = await fetchAvailablePricingTypesForDropdown();
+    const { productId } = req.query;  // Extract productId from query parameters
+    const pricingTypes = await fetchAvailablePricingTypesForDropdown(productId);  // Pass productId to the service
     res.status(200).json(pricingTypes);
   } catch (error) {
     next(error); // Passes the error to global error handling middleware

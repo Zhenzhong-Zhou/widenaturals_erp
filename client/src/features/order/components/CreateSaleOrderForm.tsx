@@ -340,10 +340,15 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({ onSubmit = () => {}, onCl
                       <PricingTypeDropdown
                         label="Select Pricing Type"
                         value={field.value}
+                        productId={item.product_id}
                         onChange={(val) => {
                           field.onChange(val); // Update react-hook-form state
                           handleItemChange(item.id, 'price_type_id', val); // Update local state
-                          fetchPriceByProductAndPriceType(item.product_id, val, item.id);
+                          
+                          // Trigger fetching of price if both product_id and price_type_id are present
+                          if (item.product_id) {
+                            fetchPriceByProductAndPriceType(item.product_id, val, item.id);
+                          }
                         }}  // Use field.onChange to update form state
                       />
                     )}
@@ -397,6 +402,13 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({ onSubmit = () => {}, onCl
                       />
                     )}
                   />
+                </Grid>
+                
+                {/* Display Subtotal (Read-Only) */}
+                <Grid size={{ xs: 6, md: 8 }}>
+                  <Typography variant="subtitle1" sx={{ mt: 1 }}>
+                    Subtotal: ${ (item.price * item.quantity_ordered).toFixed(2) }
+                  </Typography>
                 </Grid>
                 
                 {/* Remove Button */}

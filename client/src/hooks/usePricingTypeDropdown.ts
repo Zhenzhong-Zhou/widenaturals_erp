@@ -9,9 +9,11 @@ import {
 
 /**
  * Custom hook to fetch and manage pricing types dropdown state.
+ *
+ * @param {string} productId - The ID of the product to fetch pricing types for.
  * @returns {object} - Contains pricing types, loading state, error state, and a refresh function.
  */
-const usePricingTypeDropdown = (): {
+const usePricingTypeDropdown = (productId: string): {
   pricingTypes: { id: string; label: string }[];
   loading: boolean;
   error: string | null;
@@ -24,15 +26,19 @@ const usePricingTypeDropdown = (): {
   const loading = useAppSelector(selectPricingTypeDropdownLoading);
   const error = useAppSelector(selectPricingTypeDropdownError);
   
-  // Fetch data when the hook is first used
+  // Fetch data when the hook is first used or when productId changes
   useEffect(() => {
-    dispatch(fetchPricingTypeDropdownThunk());
-  }, [dispatch]);
+    if (productId) {
+      dispatch(fetchPricingTypeDropdownThunk(productId));
+    }
+  }, [dispatch, productId]);
   
   // Refresh function to manually trigger data fetch
   const refreshPricingTypes = useCallback(() => {
-    dispatch(fetchPricingTypeDropdownThunk());
-  }, [dispatch]);
+    if (productId) {
+      dispatch(fetchPricingTypeDropdownThunk(productId));
+    }
+  }, [dispatch, productId]);
   
   return { pricingTypes, loading, error, refreshPricingTypes };
 };

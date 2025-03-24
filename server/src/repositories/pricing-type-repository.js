@@ -107,24 +107,29 @@ const checkPriceTypeExists = async (priceTypeId, client = null) => {
 };
 
 /**
- * Fetches active pricing types for dropdown selection.
- * Only fetches active status types.
+ * Fetches active pricing types for dropdown selection linked to a specific product.
+ * Only fetches active status types and includes price information in the label.
  *
- * @returns {Promise<Array>} - List of pricing types.
+ * @param {string} productId - The ID of the product for which to fetch pricing types.
+ * @returns {Promise<Array<{ id: string, label: string }>>} - List of formatted pricing types for dropdown.
+ * @throws {Error} - Throws an error if productId is not provided or if the fetch fails.
  */
-const getPricingTypesForDropdown = async () => {
+const getPricingTypesForDropdown = async (productId) => {
   try {
     const queryText = `
       SELECT
         pt.id,
-        pt.name AS label
+        CONCAT(pt.name, ' - $', p.price) AS label
       FROM pricing_types pt
+      JOIN pricing p ON p.price_type_id = pt.id
+      JOIN products prod ON prod.id = p.product_id
       JOIN status s ON pt.status_id = s.id
       WHERE s.name = 'active'
+        AND prod.id = $1
       ORDER BY pt.name ASC;
     `;
     
-    const { rows } = await query(queryText);
+    const { rows } = await query(queryText, [productId]);
     return rows;
   } catch (error) {
     logError('Error fetching pricing types for dropdown:', error);

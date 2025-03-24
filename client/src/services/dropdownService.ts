@@ -181,13 +181,20 @@ const fetchProductsForOrdersDropdown = async (
 };
 
 /**
- * Fetches pricing types for dropdown.
+ * Fetches pricing types for dropdown based on a given product ID.
+ *
+ * @param {string} productId - The ID of the product to fetch related pricing types.
  * @returns {Promise<PricingTypeDropdownResponse>} - List of pricing type options.
+ * @throws {Error} - Throws an error if the request fails or productId is missing.
  */
-export const fetchPricingTypeDropdown = async (): Promise<PricingTypeDropdownResponse> => {
+export const fetchPricingTypeDropdown = async (productId: string): Promise<PricingTypeDropdownResponse> => {
+  if (!productId) {
+    throw new Error('Product ID is required to fetch pricing types.');
+  }
+  
   try {
     const response = await axiosInstance.get<PricingTypeDropdownResponse>(
-      API_ENDPOINTS.PRICING_TYPES_DROPDOWN
+      `${API_ENDPOINTS.PRICING_TYPES_DROPDOWN}?productId=${productId}`
     );
     
     return response.data;

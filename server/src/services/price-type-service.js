@@ -92,13 +92,20 @@ const fetchPricingTypeDetailsByPricingTypeId = async (
 
 /**
  * Service function to fetch active pricing types for dropdown.
- * Applies business logic such as formatting and validation.
+ * Applies business logic such as formatting labels and validating product ID.
+ * Labels are formatted as: 'PricingTypeName - $Price'.
  *
- * @returns {Promise<Array<{ id: string, label: string }>>} - List of pricing types for dropdown.
+ * @param {string} productId - The ID of the product to fetch related pricing types.
+ * @returns {Promise<Array<{ id: string, label: string }>>} - List of pricing types formatted for dropdown use.
+ * @throws {Error} - Throws an error if the productId is missing or fetching data fails.
  */
-const fetchAvailablePricingTypesForDropdown = async () => {
+const fetchAvailablePricingTypesForDropdown = async (productId) => {
   try {
-    const pricingTypes = await getPricingTypesForDropdown();
+    if (!productId) {
+      throw AppError.validationError('Product ID is required to fetch pricing types.');
+    }
+    
+    const pricingTypes = await getPricingTypesForDropdown(productId);
     
     // Apply additional formatting or filtering if needed (e.g., logging, auditing)
     return pricingTypes.map((type) => ({
