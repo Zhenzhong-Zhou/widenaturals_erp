@@ -41,7 +41,7 @@ const generateOrderNumber = (category, orderTypeName, orderId) => {
   
   // Generate a SHA-256 hash and take the first 4 characters as the checksum
   const hash = crypto.createHash('sha256').update(baseOrderNumber).digest('hex');
-  const checksum = hash.slice(0, 4);
+  const checksum = hash.slice(0, 10);
   
   return `${baseOrderNumber}-${checksum}`;
 };
@@ -60,7 +60,7 @@ const verifyOrderNumber = (orderNumber) => {
   
   // Recalculate the checksum using the same hashing algorithm
   const hash = crypto.createHash('sha256').update(baseOrderNumber).digest('hex');
-  const calculatedChecksum = hash.slice(0, 4);
+  const calculatedChecksum = hash.slice(0, 10);
   
   return providedChecksum === calculatedChecksum;
 };

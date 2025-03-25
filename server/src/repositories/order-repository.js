@@ -1,4 +1,4 @@
-const { query } = require('../database/db');
+const { query, retry, paginateQuery } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logError } = require('../utils/logger-helper');
 const { getOrderTypes } = require('./order-type-repository');
@@ -251,8 +251,88 @@ const updateOrderData = async (orderId, updateData, client) => {
   }
 };
 
+/**
+ * Fetches all orders with pagination, sorting, and order number verification.
+ * Applies retry logic for robustness.
+ *
+ * @param {Object} options - Fetch options for the query.
+ * @param {number} options.page - The current page number (default: 1).
+ * @param {number} options.limit - The number of orders per page (default: 10).
+ * @param {string} options.sortBy - The column to sort the results by (default: 'created_at').
+ * @param {string} options.sortOrder - The order of sorting ('ASC' or 'DESC', default: 'DESC').
+ * @returns {Promise<Object>} - The paginated orders result.
+ * @throws {AppError} - If the query fails or verification fails.
+ */
+const getAllOrders = async ({
+                                page = 1,
+                                limit = 10,
+                                sortBy = 'created_at',
+                                sortOrder = 'DESC',
+                              } = {}) => {
+  const tableName = 'orders o';
+  const joins = [
+    'JOIN order_types ot ON o.order_type_id = ot.id',
+    'JOIN order_status os ON o.order_status_id = os.id',
+    'LEFT JOIN users u1 ON o.created_by = u1.id',
+    'LEFT JOIN users u2 ON o.updated_by = u2.id',
+  ];
+  const whereClause = '1=1';
+  
+  const allowedSortFields = [
+    'order_number',
+    'category',
+    'name',
+    'order_date',
+    'created_at',
+    'updated_at',
+  ];
+  
+  // Validate the sortBy field
+  const validatedSortBy = allowedSortFields.includes(sortBy)
+    ? `o.${sortBy}`
+    : 'o.created_at';
+  
+  const baseQuery = `
+    SELECT
+      o.id,
+      o.order_number,
+      ot.name AS order_type,
+      o.order_date,
+      os.name AS status,
+      o.created_at,
+      o.updated_at,
+      o.note,
+      COALESCE(u1.firstname || ' ' || u1.lastname, 'Unknown') AS created_by,
+      COALESCE(u2.firstname || ' ' || u2.lastname, 'Unknown') AS updated_by
+    FROM ${tableName}
+    ${joins.join(' ')}
+  `;
+  
+  try {
+    return await retry(
+      () =>
+        paginateQuery({
+          tableName,
+          joins,
+          whereClause,
+          queryText: baseQuery,
+          params: [],
+          page,
+          limit,
+          sortBy: validatedSortBy,
+          sortOrder,
+        }),
+      3 // Retry up to 3 times
+    );
+  } catch (error) {
+    logError('Error fetching all orders:', error);
+    throw AppError.databaseError('Failed to fetch all orders');
+  }
+};
+
 module.exports = {
   createOrder,
   getOrderDetailsById,
   updateOrderData,
+  getAllOrders,
 };

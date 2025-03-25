@@ -86,8 +86,7 @@ const createSalesOrder = async (salesOrderData) => {
             `No active price found for product ${product_id} at the given location.`
           );
         }
-        console.log("productPrice.price: ", productPrice.price);
-        console.log(price);
+        
         // Convert database price to Number if necessary
         const dbPrice = parseFloat(productPrice.price);
         

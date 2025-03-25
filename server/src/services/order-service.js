@@ -1,12 +1,14 @@
 const {
   createOrder,
-  getOrderDetailsById,
+  getOrderDetailsById, getAllOrders,
 } = require('../repositories/order-repository');
 const { createSalesOrder } = require('../repositories/sales-order-repository');
 const {
   getOrderTypeByIdOrName, checkOrderTypeExists,
 } = require('../repositories/order-type-repository');
 const AppError = require('../utils/AppError');
+const { verifyOrderNumber } = require('../utils/order-number-utils');
+const { logError } = require('../utils/logger-helper');
 
 /**
  * Creates an order dynamically based on its type.
@@ -118,7 +120,75 @@ const fetchOrderDetails = async (orderId, client) => {
   };
 };
 
+/**
+ * Transforms raw order data into a structured format.
+ *
+ * @param {Array} rawData - Raw order data fetched from the repository.
+ * @param {boolean} verifyOrderNumbers - Whether to verify order numbers.
+ * @returns {Array} - Transformed and verified order data.
+ */
+const transformOrders = (rawData, verifyOrderNumbers) => {
+  return rawData.map(order => {
+    // Verifying order number if required
+    const isOrderNumberValid = verifyOrderNumbers ? verifyOrderNumber(order.order_number) : true;
+    
+    // Log error if invalid order number is detected
+    if (!isOrderNumberValid) {
+      logError(`Invalid order number detected: ${order.order_number}`);
+    }
+    
+    // Transform order data structure
+    return {
+      id: order.id,
+      order_number: order.order_number,
+      order_number_valid: isOrderNumberValid,
+      order_type: order.order_type,
+      category: order.category,
+      order_date: order.order_date,
+      status: order.status,
+      note: order.note,
+      created_at: order.created_at,
+      updated_at: order.updated_at,
+      created_by: order.created_by,
+      updated_by: order.updated_by
+    };
+  });
+};
+
+/**
+ * Service function to fetch all orders with verification and transformation.
+ *
+ * @param {Object} options - Fetch options for the query.
+ * @param {number} options.page - The current page number (default: 1).
+ * @param {number} options.limit - The number of orders per page (default: 10).
+ * @param {string} options.sortBy - The column to sort the results by (default: 'created_at').
+ * @param {string} options.sortOrder - The order of sorting ('ASC' or 'DESC', default: 'DESC').
+ * @param {boolean} options.verifyOrderNumbers - Whether to verify order numbers using checksum (default: true).
+ * @returns {Promise<Object>} - The paginated orders result with transformed data.
+ */
+const fetchAllOrdersService = async ({
+                                       page = 1,
+                                       limit = 10,
+                                       sortBy = 'created_at',
+                                       sortOrder = 'DESC',
+                                       verifyOrderNumbers = true
+                                     } = {}) => {
+  try {
+    // Fetching raw order data from repository
+    const result = await getAllOrders({ page, limit, sortBy, sortOrder });
+    
+    // Transform the data
+    result.data = transformOrders(result.data, verifyOrderNumbers);
+    
+    return result;
+  } catch (error) {
+    logError('Error fetching all orders:', error);
+    throw AppError.databaseError('Failed to fetch all orders');
+  }
+};
+
 module.exports = {
   createOrderByType,
   fetchOrderDetails,
+  fetchAllOrdersService,
 };

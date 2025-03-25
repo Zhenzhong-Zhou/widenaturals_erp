@@ -1,10 +1,11 @@
 const {
   createOrderByType,
-  fetchOrderDetails,
+  fetchOrderDetails, fetchAllOrdersService,
 } = require('../services/order-service');
 const AppError = require('../utils/AppError');
 const wrapAsync = require('../utils/wrap-async');
 const { getUser } = require('../repositories/user-repository');
+const { logError } = require('../utils/logger-helper');
 
 /**
  * API Controller for creating an order.
@@ -55,7 +56,52 @@ const getOrderDetailsController = wrapAsync(async (req, res, next) => {
   });
 });
 
+/**
+ * Controller to fetch all orders with pagination, sorting, and order number validation.
+ *
+ * @param {Object} req - The HTTP request object.
+ * @param {Object} res - The HTTP response object.
+ * @param {Function} next - The middleware function to handle errors.
+ * @returns {Promise<void>}
+ */
+const getAllOrdersController = wrapAsync(async (req, res, next) => {
+  try {
+    // Extracting query parameters from the request
+    const {
+      page = 1,
+      limit = 10,
+      sortBy = 'created_at',
+      sortOrder = 'DESC',
+      verifyOrderNumbers = true
+    } = req.query;
+    
+    // Convert 'verifyOrderNumbers' to boolean if necessary
+    const verifyOrderNumbersBool = verifyOrderNumbers !== 'false';
+    
+    // Fetching orders from the service layer
+    const result = await fetchAllOrdersService({
+      page: Number(page),
+      limit: Number(limit),
+      sortBy,
+      sortOrder,
+      verifyOrderNumbers: verifyOrderNumbersBool
+    });
+    
+    // Responding with a successful JSON response
+    res.status(200).json({
+      success: true,
+      message: 'Orders fetched successfully',
+      data: result.data,
+      pagination: result.pagination
+    });
+  } catch (error) {
+    logError('Error in fetchAllOrdersController:', error);
+    next(error);
+  }
+});
+
 module.exports = {
   createOrderController,
   getOrderDetailsController,
+  getAllOrdersController,
 };
