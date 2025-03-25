@@ -10,7 +10,7 @@ const AppError = require('../utils/AppError');
  * @param {Array} items - The list of order items.
  * @param {UUID} createdBy - User who created the order.
  * @param {Object} client - Optional transaction client.
- * @returns {Promise<Array>} - The inserted order items.
+ * @returns {Promise<Array>} - The inserted or updated order items.
  */
 const addOrderItems = async (orderId, items, createdBy, client) => {
   if (!Array.isArray(items) || items.length === 0) {
@@ -23,12 +23,13 @@ const addOrderItems = async (orderId, items, createdBy, client) => {
     'quantity_ordered',
     'price_id',
     'price',
+    'subtotal',
     'status_id',
     'status_date',
     'created_by',
     'updated_by',
   ];
-
+  
   // Step 1: Aggregate items that have the same `product_id`, `price_type_id`, `price_id`, and `price`
   const itemMap = new Map();
   
@@ -42,12 +43,14 @@ const addOrderItems = async (orderId, items, createdBy, client) => {
       // If same product, price_type_id, price_id, and price → Sum quantities
       const existingItem = itemMap.get(itemKey);
       existingItem.quantity_ordered += quantity_ordered;
+      existingItem.subtotal = existingItem.price * existingItem.quantity_ordered; // Recalculate subtotal
       itemMap.set(itemKey, existingItem);
     } else {
       // Otherwise, store as a new line item
       itemMap.set(itemKey, {
         ...item,
         quantity_ordered,
+        subtotal: price * quantity_ordered, // Calculate subtotal here
       });
     }
   }
@@ -59,18 +62,20 @@ const addOrderItems = async (orderId, items, createdBy, client) => {
     item.quantity_ordered,
     item.price_id,
     item.price,
+    item.subtotal, // Adding subtotal for each row
     item.status_id,
-    new Date(), // Default to now if missing
-    createdBy, // Created by extracted from the user session
-    null, // No updated_by at creation
+    new Date(), // status_date
+    createdBy,
+    null // updated_by is null during creation
   ]);
   
+  // Step 3: Perform bulk insert with conflict handling
   return bulkInsert(
     'order_items',
     columns,
     rows,
     ['order_id', 'product_id', 'price_id', 'price'], // Unique constraint check
-    ['quantity_ordered', 'status_id', 'updated_by', 'status_date'], // Fields that can be updated
+    ['quantity_ordered', 'subtotal', 'status_id', 'updated_by', 'status_date'], // Fields that can be updated
     client
   );
 };

@@ -73,38 +73,43 @@ const createSalesOrder = async (salesOrderData) => {
 
       for (const item of salesOrderData.items) {
         const { product_id, price_type_id, price, quantity_ordered } = item;
-
+        
         // Fetch product price including location-based pricing
         const productPrice = await getActiveProductPrice(
           product_id,
           price_type_id,
           client
         );
-
+        
         if (!productPrice) {
           throw AppError.validationError(
             `No active price found for product ${product_id} at the given location.`
           );
         }
+        console.log("productPrice.price: ", productPrice.price);
+        console.log(price);
+        // Convert database price to Number if necessary
+        const dbPrice = parseFloat(productPrice.price);
         
         // Check if input price matches the database price or is null
         const is_manual_price =
           price !== null &&
           price !== undefined &&
-          price !== productPrice.price &&
-          price > 0;
+          !isNaN(price) &&
+          price > 0 &&
+          price !== dbPrice; // Compare using dbPrice as Number
         
         // Use input price if provided and different from DB, otherwise use DB price
-        const final_price = price === 0 ? productPrice.price : is_manual_price ? price : productPrice.price;
+        const final_price = price === 0 ? dbPrice : is_manual_price ? price : dbPrice;
         
         // Compute item total and add to subtotal
         const itemTotal = final_price * quantity_ordered;
         subtotal += itemTotal;
-
+        
         // Store price_id from pricing table for tracking
         processedItems.push({
           ...item,
-          price_id: productPrice.id, // Fetching price ID from pricing table
+          price_id: productPrice.id,
           price: final_price,
           status_id: order_status_id,
         });
@@ -114,7 +119,7 @@ const createSalesOrder = async (salesOrderData) => {
           manualPriceOverrides.push({
             product_id,
             price_type_id,
-            original_price: productPrice.price,
+            original_price: dbPrice,
             overridden_price: final_price,
             reason: 'Price Overridden',
           });

@@ -1,10 +1,13 @@
 const { query } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logError } = require('../utils/logger-helper');
+const { getOrderTypes } = require('./order-type-repository');
+const { generateOrderNumber, verifyOrderNumber } = require('../utils/order-number-utils');
+
 /**
  * Creates a general order in the `orders` table using raw SQL.
  * @param {Object} orderData - Order details.
- * @returns {Promise<Object>} - The created order.
+ * @returns {Promise<Object>} - The created order with order_number.
  */
 const createOrder = async (orderData) => {
   const {
@@ -16,34 +19,70 @@ const createOrder = async (orderData) => {
     created_by,
     updated_by,
   } = orderData;
-
-  const sql = `
-    INSERT INTO orders (
+  
+  try {
+    // Step 1: Insert order WITHOUT order_number
+    const insertOrderSQL = `
+      INSERT INTO orders (
+        order_type_id,
+        order_date,
+        order_status_id,
+        metadata,
+        note,
+        created_by,
+        updated_by
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING id;
+    `;
+    
+    const values = [
       order_type_id,
       order_date,
       order_status_id,
-      metadata,
+      metadata || null,
       note,
       created_by,
-      updated_by
-    )
-    VALUES ($1, $2, $3, $4, $5, $6, $7)
-    RETURNING id;
-  `;
-
-  const values = [
-    order_type_id,
-    order_date,
-    order_status_id,
-    metadata || null,
-    note,
-    created_by,
-    updated_by,
-  ];
-
-  try {
-    const result = await query(sql, values);
-    return result.rows[0]; // Returning the created order
+      updated_by,
+    ];
+    
+    const result = await query(insertOrderSQL, values);
+    const orderId = result.rows[0].id;
+    
+    // Step 2: Fetch Order Types (Using your getOrderTypes function)
+    const orderTypes = await getOrderTypes('dropdown');
+    const orderType = orderTypes.find((ot) => ot.id === order_type_id);
+    
+    if (!orderType) {
+      throw AppError.databaseError(`Order type not found for ID: ${order_type_id}`);
+    }
+    
+    const { category, name: orderTypeName } = orderType;
+    
+    // Step 3: Generate the order_number using the utility function
+    const orderNumber = generateOrderNumber(category, orderTypeName, orderId);
+    
+    // Step 4: Validate the generated order_number
+    if (!verifyOrderNumber(orderNumber)) {
+      throw AppError.databaseError('Generated order number is invalid');
+    }
+    
+    // Step 5: Update the order with the generated order_number
+    const updateOrderSQL = `
+      UPDATE orders
+      SET order_number = $1, updated_by = $2
+      WHERE id = $3
+      RETURNING *;
+    `;
+    
+    const updateValues = [orderNumber, updated_by, orderId];
+    const updatedOrderResult = await query(updateOrderSQL, updateValues);
+    
+    if (updatedOrderResult.rowCount === 0) {
+      throw AppError.databaseError(`Failed to update order with ID: ${orderId}`);
+    }
+    
+    return updatedOrderResult.rows[0]; // Return the updated order with order_number
   } catch (error) {
     logError(`Error creating order`, error);
     throw AppError.databaseError(`Failed to create order: ${error.message}`);

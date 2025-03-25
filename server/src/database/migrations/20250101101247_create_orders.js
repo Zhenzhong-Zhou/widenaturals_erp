@@ -9,6 +9,7 @@ exports.up = function (knex) {
       .primary()
       .primary()
       .defaultTo(knex.raw('uuid_generate_v4()'));
+    table.string('order_number', 100).unique().nullable();
     table
       .uuid('order_type_id')
       .notNullable()
