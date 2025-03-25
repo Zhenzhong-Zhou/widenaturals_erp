@@ -9,6 +9,8 @@ const {
 const AppError = require('../utils/AppError');
 const { verifyOrderNumber } = require('../utils/order-number-utils');
 const { logError } = require('../utils/logger-helper');
+const { transformOrderDetails, transformAllOrders } = require('../transformers/order-transformer');
+const { applyOrderDetailsBusinessLogic, validateOrderNumbers } = require('../business/order-business-logic');
 
 /**
  * Creates an order dynamically based on its type.
@@ -55,69 +57,29 @@ const createOrderByType = async (orderData) => {
 };
 
 /**
- * Fetches order details by ID, ensuring business logic is applied.
+ * Fetches and processes order details from the repository.
  *
- * @param {string} orderId - The ID of the order to fetch.
- * @param {Object} client - The database transaction client.
- * @returns {Promise<Object>} - The formatted order details.
+ * @param {string} orderId - The order ID to fetch.
+ * @param {object} user - The user making the request (includes permissions).
+ * @returns {object} - Processed order details.
  */
-const fetchOrderDetails = async (orderId, client) => {
+const fetchOrderDetails = async (orderId, user) => {
   if (!orderId) {
     throw AppError.validationError('Order ID is required.');
   }
-
+  
   // Fetch order details from the repository
-  const orderRows = await getOrderDetailsById(orderId, client);
-
+  const orderRows = await getOrderDetailsById(orderId);
+  
   if (!orderRows || orderRows.length === 0) {
     throw AppError.notFoundError(`Order with ID ${orderId} not found.`);
   }
-
-  // ✅ Transform Data: Group order items under a single order object
-  return {
-    order_id: orderRows[0].order_id,
-    order_date: orderRows[0].order_date,
-    order_status: orderRows[0].order_status,
-    note: orderRows[0].order_note,
-    customer: {
-      id: orderRows[0].customer_id,
-      name: orderRows[0].customer_name,
-    },
-    discount: {
-      id: orderRows[0].discount_id || null,
-      type: orderRows[0].discount_type || null,
-      value: orderRows[0].discount_value || 0,
-      amount: orderRows[0].discount_amount || 0,
-    },
-    subtotal: orderRows[0].subtotal,
-    tax: {
-      rate: orderRows[0].tax_rate || 0,
-      amount: orderRows[0].tax || 0,
-    },
-    shipping_fee: orderRows[0].shipping_fee || 0,
-    total_amount: orderRows[0].total_amount,
-    items: orderRows
-      .filter((row) => row.order_item_id) // Exclude orders with no items
-      .map((row) => ({
-        id: row.order_item_id,
-        product: {
-          id: row.product_id,
-          name: row.product_name,
-        },
-        quantity_ordered: row.quantity_ordered,
-        quantity_fulfilled: row.quantity_fulfilled,
-        price: {
-          id: row.price_id,
-          amount: row.price,
-          type_id: row.price_type_id,
-          type: row.price_type,
-        },
-        status: {
-          id: row.order_item_status_id,
-          name: row.order_item_status_name,
-        },
-      })),
-  };
+  
+  // Transform Data
+  const transformedOrder = transformOrderDetails(orderRows);
+  
+  // Apply Business Logic with User Permissions
+  return applyOrderDetailsBusinessLogic(transformedOrder, user);
 };
 
 /**
@@ -177,10 +139,13 @@ const fetchAllOrdersService = async ({
     // Fetching raw order data from repository
     const result = await getAllOrders({ page, limit, sortBy, sortOrder });
     
-    // Transform the data
-    result.data = transformOrders(result.data, verifyOrderNumbers);
+    // Transforming the raw data
+    const transformedOrders = transformAllOrders(result.data);
     
-    return result;
+    // Validating order numbers
+    const validatedOrders = validateOrderNumbers(transformedOrders, verifyOrderNumbers);
+    
+    return { ...result, data: validatedOrders };
   } catch (error) {
     logError('Error fetching all orders:', error);
     throw AppError.databaseError('Failed to fetch all orders');

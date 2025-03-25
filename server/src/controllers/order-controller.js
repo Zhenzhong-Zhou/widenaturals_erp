@@ -38,12 +38,13 @@ const createOrderController = wrapAsync(async (req, res, next) => {
  */
 const getOrderDetailsController = wrapAsync(async (req, res, next) => {
   const { id: orderId } = req.params;
+  const userId = req.user.id;
 
   if (!orderId) {
     throw AppError.validationError('Order ID is required.');
   }
 
-  const orderDetails = await fetchOrderDetails(orderId, req.client);
+  const orderDetails = await fetchOrderDetails(orderId, userId);
 
   if (!orderDetails) {
     throw AppError.notFoundError(`Order with ID ${orderId} not found.`);

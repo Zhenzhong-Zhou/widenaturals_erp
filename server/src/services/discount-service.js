@@ -1,6 +1,7 @@
 const { getActiveDiscounts } = require('../repositories/discount-repository');
 const { AppError } = require('../utils/AppError');
 const { logError } = require('../utils/logger-helper');
+const { formatDiscount } = require('../utils/string-utils');
 
 /**
  * Business logic for fetching and formatting active discounts
@@ -19,9 +20,7 @@ const fetchAvailableDiscounts = async () => {
     return discounts.map((discount) => ({
       id: discount.id,
       name: discount.name,
-      displayValue: discount.discount_type === 'PERCENTAGE'
-        ? `${discount.discount_value}%`
-        : `$${discount.discount_value}`,
+      displayValue: formatDiscount(discount.discount_type, discount.discount_value),
     }));
     
   } catch (error) {

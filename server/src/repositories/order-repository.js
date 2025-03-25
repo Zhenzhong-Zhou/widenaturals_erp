@@ -92,42 +92,50 @@ const createOrder = async (orderData) => {
 const getOrderDetailsById = async (orderId) => {
   const sql = `
     SELECT
-        o.id AS order_id,
-        o.order_date,
-        o.note AS order_note,
-        os.name AS order_status,
-        s.id AS sales_order_id,
-        s.customer_id,
-        COALESCE(c.firstname, '') || ' ' || COALESCE(c.lastname, '') AS customer_name,
-        s.discount_amount,
-        s.subtotal,
-        s.total_amount,
-        s.shipping_fee,
-        s.total_amount,
-        d.discount_value,
-        d.discount_type,
-        t.rate AS tax_rate,
-        oi.id AS order_item_id,
-        oi.product_id,
-        p.product_name AS product_name,
-        oi.quantity_ordered,
-        oi.quantity_fulfilled,
-        oi.price_id,
-        oi.price,
-        ps.price_type_id,
-        pt.name AS price_type,
-        oi.status_id AS order_item_status_id,
-        ist.name AS order_item_status_name
+      o.id AS order_id,
+      o.order_number,
+      ot.category AS order_category,
+      ot.name AS order_type,
+      o.order_date,
+      o.note AS order_note,
+      o.metadata AS order_metadata,
+      os.name AS order_status,
+      s.id AS sales_order_id,
+      s.customer_id,
+      COALESCE(c.firstname, '') || ' ' || COALESCE(c.lastname, '') AS customer_name,
+      d.discount_value,
+      d.discount_type,
+      s.discount_amount,
+      s.subtotal,
+      t.rate AS tax_rate,
+      oi.id AS order_item_id,
+      s.tax_amount,
+      s.shipping_fee,
+      s.total_amount,
+      oi.product_id,
+      p.product_name AS product_name,
+      p.barcode AS barcode,
+      COALESCE(co.compliance_id, '') AS npn,
+      oi.quantity_ordered,
+      ps.price_type_id,
+      pt.name AS price_type,
+      oi.price_id,
+      ps.price AS system_price,
+      oi.price AS adjusted_price,
+      oi.status_id AS order_item_status_id,
+      ist.name AS order_item_status_name
     FROM orders o
     LEFT JOIN sales_orders s ON o.id = s.id
     LEFT JOIN customers c ON s.customer_id = c.id
     LEFT JOIN order_status os ON o.order_status_id = os.id
+    LEFT JOIN order_types ot ON o.order_type_id = ot.id  -- Added Order Type
     LEFT JOIN discounts d ON s.discount_id = d.id
     LEFT JOIN tax_rates t ON s.tax_rate_id = t.id
     LEFT JOIN order_items oi ON o.id = oi.order_id
     LEFT JOIN products p ON oi.product_id = p.id
     LEFT JOIN pricing ps ON oi.price_id = ps.id
     LEFT JOIN pricing_types pt ON ps.price_type_id = pt.id
+    LEFT JOIN compliances co ON p.id = co.product_id
     LEFT JOIN order_status ist ON oi.status_id = ist.id
     WHERE o.id = $1
   `;

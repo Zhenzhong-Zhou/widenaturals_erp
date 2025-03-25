@@ -42,9 +42,21 @@ const validatePhoneNumber = Joi.string()
       'Phone number must be in international format (e.g., +1234567890)',
   });
 
+/**
+ * Reusable Joi validator for order numbers.
+ */
+const validateOrderNumber = Joi.string()
+  .pattern(/^[A-Z]{2}-[A-Z]{2,}-\d{14}-[a-f0-9]{8}-[a-f0-9]{10}$/)
+  .required()
+  .messages({
+    'string.pattern.base': 'Invalid order number format.',
+    'any.required': 'Order number is required.'
+  });
+
 module.exports = {
   validateEmail,
   validateUUID,
   validateString,
   validatePhoneNumber,
+  validateOrderNumber,
 };
