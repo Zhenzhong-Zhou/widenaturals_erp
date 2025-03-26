@@ -79,7 +79,7 @@ const restoreBackup = async (
   const tempDir = path.join(__dirname, '../temp');
   if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
   
-  let encryptedFilePath, ivFilePath, sha256FilePath, decryptedFilePath;
+  let encryptedFilePath, ivFilePath, decryptedFilePath;
   
   try {
     if (isProduction) {
@@ -87,7 +87,6 @@ const restoreBackup = async (
       
       encryptedFilePath = path.join(tempDir, path.basename(s3KeyEnc));
       ivFilePath = `${encryptedFilePath}.iv`;
-      sha256FilePath = `${encryptedFilePath}.sha256`;
       decryptedFilePath = encryptedFilePath.replace('.enc', '');
       
       // Download encrypted file and IV file
@@ -97,7 +96,7 @@ const restoreBackup = async (
       // Attempt to download SHA256 file as a string for verification
       let originalHash = null;
       try {
-        originalHash = await downloadFileFromS3(bucketName, sha256FilePath, null, true);
+        originalHash = await downloadFileFromS3(bucketName, `${s3KeyEnc}.sha256`, null, true);
         logInfo('SHA256 file downloaded successfully.');
       } catch (error) {
         logWarn('No SHA256 file found. Integrity check will be skipped.');
@@ -129,7 +128,7 @@ const restoreBackup = async (
     throw error;
   }
   finally {
-    [encryptedFilePath, ivFilePath, sha256FilePath, decryptedFilePath].forEach(file => {
+    [encryptedFilePath, ivFilePath, decryptedFilePath].forEach(file => {
       if (file && fs.existsSync(file)) {
         try {
           fs.unlinkSync(file);

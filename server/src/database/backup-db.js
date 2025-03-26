@@ -19,7 +19,7 @@ loadEnv();
 // Configuration
 const isProduction = process.env.NODE_ENV === 'production';
 const targetDatabase = process.env.DB_NAME; // Name of the target database
-const backupDir = process.env.BACKUP_DIR || '../../backups'; // Directory to store backups
+const backupDir = path.resolve(__dirname, process.env.BACKUP_DIR) || '../../backups'; // Directory to store backups
 const timestamp = new Date().toISOString().replace(/[:.]/g, '-'); // Timestamp for file naming
 const baseFileName = `${targetDatabase}-${timestamp}`; // Base name for backup files
 const backupFile = path.join(backupDir, `${baseFileName}.sql`); // Plain-text SQL file path
@@ -76,8 +76,7 @@ const backupDatabase = async () => {
     await saveHashToFile(hash, hashFile);
     
     // Cleanup old backups
-    // todo test local remove
-    await cleanupOldBackups(backupDir, 3, isProduction, bucketName);
+    await cleanupOldBackups(backupDir, maxBackups, isProduction, bucketName);
     
     logInfo(`Backup encrypted and saved: ${encryptedFile}`);
     
