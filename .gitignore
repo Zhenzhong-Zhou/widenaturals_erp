@@ -32,7 +32,7 @@ env/
 pgdata/
 
 # nginx
-ssl
+ssl/
 nginx.conf
 
 # OS-specific files
@@ -40,7 +40,7 @@ nginx.conf
 Thumbs.db
 
 # IDE WebStorm
-.idea
+.idea/
 
 # Editor directories and files
 .vscode/*
@@ -54,3 +54,6 @@ Thumbs.db
 # Sever
 server/backup
 server/backups
+backups/
+backup/
+temp/

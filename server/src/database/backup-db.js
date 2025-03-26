@@ -11,6 +11,7 @@ const {
 const { encryptFile } = require('./encryption');
 const { logInfo, logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
+const { uploadFileToS3 } = require('../utils/aws-s3-service');
 
 // Load environment variables
 loadEnv();
@@ -18,7 +19,7 @@ loadEnv();
 // Configuration
 const isProduction = process.env.NODE_ENV === 'production';
 const targetDatabase = process.env.DB_NAME; // Name of the target database
-const backupDir = process.env.BACKUP_DIR || '../server/backups'; // Directory to store backups
+const backupDir = process.env.BACKUP_DIR || '../../backups'; // Directory to store backups
 const timestamp = new Date().toISOString().replace(/[:.]/g, '-'); // Timestamp for file naming
 const baseFileName = `${targetDatabase}-${timestamp}`; // Base name for backup files
 const backupFile = path.join(backupDir, `${baseFileName}.sql`); // Plain-text SQL file path
@@ -28,45 +29,35 @@ const hashFile = `${encryptedFile}.sha256`; // Hash file path
 const dbUser = process.env.DB_USER;
 const dbPassword = process.env.DB_PASSWORD;
 const pgDumpPath = process.env.PG_DUMP_PATH || 'pg_dump'; // Path to the pg_dump binary
-const maxBackups = parseInt(process.env.MAX_BACKUPS, 10) || 5; // Maximum number of backups to keep
+const maxBackups = parseInt(process.env.MAX_BACKUPS, 10) || 15; // Maximum number of backups to keep
+const bucketName = process.env.AWS_S3_BUCKET_NAME; // S3 Bucket name
 
-// Validate maxBackups
-if (!Number.isInteger(maxBackups) || maxBackups <= 0) {
+// Validate maxFiles - Ensure it's a positive multiple of 3
+if (!Number.isInteger(maxBackups) || maxBackups <= 0 || maxBackups % 3 !== 0) {
   throw AppError.validationError(
-    `Invalid MAX_BACKUPS value: ${maxBackups}. Must be a positive integer.`
+    `Invalid MAX_BACKUPS value: ${maxBackups}. It must be a positive multiple of 3 (e.g., 3, 6, 9, etc.).`
   );
 }
 
 /**
- * Backs up the target PostgreSQL database.
- * - Dumps the database using `pg_dump`.
- * - Generates a hash for the backup file.
- * - Encrypts the backup using AES-256-CBC.
- * - Cleans up old backups, keeping only the most recent.
- *
- * @throws {Error} If the database name or critical environment variables are missing.
- * @returns {Promise<void>}
+ * Backs up the target PostgreSQL database and uploads it to S3 if in production.
  */
 const backupDatabase = async () => {
   if (!targetDatabase) {
     throw AppError.validationError('Environment variable DB_NAME is missing.');
   }
-
+  
   try {
     // Ensure the backup directory exists
     await ensureDirectory(backupDir);
     logInfo(`Starting backup for database: '${targetDatabase}'`);
-
-    // Build the dump command **without exposing credentials**
+    
+    // Build the dump command without exposing credentials
     const dumpCommand = `${pgDumpPath} --format=custom --no-owner --clean --if-exists --file=${backupFile} --username=${dbUser} --dbname=${targetDatabase}`;
-
+    
     // Run pg_dump with credentials securely handled
     await runPgDump(dumpCommand, isProduction, dbUser, dbPassword);
-
-    // Generate a SHA-256 hash
-    const hash = await generateHash(backupFile);
-    await saveHashToFile(hash, hashFile);
-
+    
     // Encrypt the SQL backup file
     const encryptionKey = process.env.BACKUP_ENCRYPTION_KEY;
     if (!encryptionKey || Buffer.from(encryptionKey, 'hex').length !== 32) {
@@ -74,16 +65,49 @@ const backupDatabase = async () => {
         'Invalid or missing BACKUP_ENCRYPTION_KEY. Ensure it is a 64-character hexadecimal string.'
       );
     }
-
+    
     await encryptFile(backupFile, encryptedFile, encryptionKey, ivFile);
-
+    
     // Remove the plain-text backup file
     await fs.unlink(backupFile);
-
+    
+    // Generate a SHA-256 hash of the encrypted file
+    const hash = await generateHash(encryptedFile);
+    await saveHashToFile(hash, hashFile);
+    
     // Cleanup old backups
-    await cleanupOldBackups(backupDir, maxBackups);
-
+    // todo test local remove
+    await cleanupOldBackups(backupDir, 3, isProduction, bucketName);
+    
     logInfo(`Backup encrypted and saved: ${encryptedFile}`);
+    
+    // Upload to S3 if in production
+    if (isProduction && bucketName) {
+      try {
+        // Prepare S3 keys
+        const s3KeyEnc = `backups/${path.basename(encryptedFile)}`;
+        const s3KeyIv = `backups/${path.basename(ivFile)}`;
+        const s3KeySha256 = `backups/${path.basename(hashFile)}`;
+        
+        // Upload all files with retry logic
+        await uploadFileToS3(encryptedFile, bucketName, s3KeyEnc, 'application/gzip');
+        await uploadFileToS3(ivFile, bucketName, s3KeyIv, 'application/octet-stream');
+        await uploadFileToS3(hashFile, bucketName, s3KeySha256, 'text/plain');
+        
+        logInfo(`Successfully uploaded backup files to S3: ${s3KeyEnc}, ${s3KeyIv}, ${s3KeySha256}.`);
+        
+        // Optionally delete the encrypted file locally after successful upload
+        await fs.unlink(encryptedFile);
+        await fs.unlink(ivFile);     // Also delete the initialization vector
+        await fs.unlink(hashFile);    // And the hash file
+      } catch (uploadError) {
+        logError('Failed to upload encrypted backup to S3.', { error: uploadError.message });
+        throw uploadError;
+      }
+    } else {
+      logInfo('Skipping S3 upload: Not in production or no bucket name provided.');
+    }
+    
   } catch (error) {
     logError('Error during backup operation:', { error: error.message });
     throw error;
