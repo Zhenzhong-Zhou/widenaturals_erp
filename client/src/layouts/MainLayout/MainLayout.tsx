@@ -4,15 +4,13 @@ import {
   Suspense,
   cloneElement,
   ReactElement,
+  useEffect,
 } from 'react';
+import { useMediaQuery, useTheme } from '@mui/material';
 import { Sidebar, Header, Footer } from '../index';
 import { useThemeContext } from '../../context/ThemeContext';
 import Box from '@mui/material/Box';
-import {
-  layoutStyles,
-  contentContainerStyles,
-  mainContentStyles,
-} from './layoutStyles';
+import { contentContainerStyles, layoutStyles, mainContentStyles } from './layoutStyles.ts';
 import {
   ErrorDisplay,
   ErrorMessage,
@@ -26,26 +24,28 @@ import { useLogout, useTokenRefresh, useUserProfile } from '../../hooks';
 import { usePermissionsContext } from '../../context/PermissionsContext';
 
 interface MainLayoutProps {
-  children: ReactNode; // Allow any React elements to be passed as children
+  children: ReactNode;
 }
 
 const MainLayout = ({ children }: MainLayoutProps) => {
-  const { theme } = useThemeContext(); // Access the current theme from context
-  const [isSidebarOpen, setSidebarOpen] = useState(true); // Sidebar state
-  const {
-    data: userProfile,
-    loading: userProfileLoading,
-    error: userProfileError,
-  } = useUserProfile();
-  const fullName =
-    `${userProfile.firstname ?? ''} ${userProfile.lastname ?? ''}`.trim();
-  const { logout } = useLogout(); // Logout handler
-  useTokenRefresh(); // Token refresh handling
-  const { roleName, permissions } = usePermissionsContext(); // Access role and permissions
-
+  const { theme } = useThemeContext();
+  const muiTheme = useTheme();
+  const isSmallScreen = useMediaQuery(muiTheme.breakpoints.down('md')); // Change breakpoint as needed
+  
+  const [isSidebarOpen, setSidebarOpen] = useState(!isSmallScreen); // Open if large screen, close if small screen
+  
+  const { data: userProfile, loading: userProfileLoading, error: userProfileError } = useUserProfile();
+  const fullName = `${userProfile.firstname ?? ''} ${userProfile.lastname ?? ''}`.trim();
+  const { logout } = useLogout();
+  useTokenRefresh();
+  const { roleName, permissions } = usePermissionsContext();
+  
   const toggleSidebar = () => setSidebarOpen((prev) => !prev);
-
-  // Handle global loading for user profile
+  
+  useEffect(() => {
+    setSidebarOpen(!isSmallScreen); // Automatically adjust sidebar state based on screen size
+  }, [isSmallScreen]);
+  
   if (userProfileLoading) {
     return <Loading message="Loading user profile..." />;
   }
@@ -54,7 +54,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
   if (userProfileError) {
     return <ErrorDisplay message="Failed to load user profile." />;
   }
-
+  
   if (!userProfile) {
     return (
       <ErrorDisplay>
@@ -62,7 +62,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
       </ErrorDisplay>
     );
   }
-
+  
   return (
     <Box className="layout" sx={layoutStyles(theme)}>
       {/* Sidebar */}

@@ -8,7 +8,6 @@ export const sidebarStyles = (
   transition: 'width 0.3s ease', // Smooth transition for the width
   flexShrink: 0,
   height: '100vh', // Full height
-  backgroundColor: theme.palette.background.default, // Dynamic background color
   color: theme.palette.text.primary, // Dynamic text color
   display: 'flex',
   flexDirection: 'column',
