@@ -61,10 +61,22 @@ const applyOrderDetailsBusinessLogic = (order, user) => {
   delete order.discount_value;
   
   // Process each item
-  order.items = order.items.map(item => ({
-    ...item,
-    price: determineDisplayPrice(item.system_price, item.adjusted_price)
-  }));
+  order.items = order.items.map(item => {
+    // Prepare the transformed item
+    const transformedItem = {
+      ...item,
+      system_price: item.system_price,
+    };
+    
+    // Remove adjusted_price if it's the same as system_price or null
+    if (item.adjusted_price === null || item.adjusted_price === item.system_price) {
+      delete transformedItem.adjusted_price;
+    } else {
+      transformedItem.adjusted_price = item.adjusted_price;
+    }
+    
+    return transformedItem;
+  });
   
   // Check if the user has permission to view metadata and category
   const canViewMetadata = checkPermissions(user, [

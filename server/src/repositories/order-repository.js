@@ -96,7 +96,8 @@ const getOrderDetailsById = async (orderId) => {
       o.order_number,
       ot.category AS order_category,
       ot.name AS order_type,
-      o.order_date,
+      o.order_date AS order_date,
+      s.order_date AS sales_order_date,
       o.note AS order_note,
       o.metadata AS order_metadata,
       os.name AS order_status,
@@ -123,12 +124,20 @@ const getOrderDetailsById = async (orderId) => {
       ps.price AS system_price,
       oi.price AS adjusted_price,
       oi.status_id AS order_item_status_id,
-      ist.name AS order_item_status_name
+      ist.name AS order_item_status_name,
+      dm.id AS delivery_method_id,
+      dm.method_name AS delivery_method,
+      dm.is_pickup_location,
+      tn.id AS tracking_number_id,
+      tn.tracking_number,
+      tn.carrier,
+      tn.service_name,
+      tn.shipped_date
     FROM orders o
     LEFT JOIN sales_orders s ON o.id = s.id
     LEFT JOIN customers c ON s.customer_id = c.id
     LEFT JOIN order_status os ON o.order_status_id = os.id
-    LEFT JOIN order_types ot ON o.order_type_id = ot.id  -- Added Order Type
+    LEFT JOIN order_types ot ON o.order_type_id = ot.id
     LEFT JOIN discounts d ON s.discount_id = d.id
     LEFT JOIN tax_rates t ON s.tax_rate_id = t.id
     LEFT JOIN order_items oi ON o.id = oi.order_id
@@ -137,6 +146,8 @@ const getOrderDetailsById = async (orderId) => {
     LEFT JOIN pricing_types pt ON ps.price_type_id = pt.id
     LEFT JOIN compliances co ON p.id = co.product_id
     LEFT JOIN order_status ist ON oi.status_id = ist.id
+    LEFT JOIN tracking_numbers tn ON o.id = tn.order_id
+    LEFT JOIN delivery_methods dm ON s.delivery_method_id = dm.id
     WHERE o.id = $1
   `;
   

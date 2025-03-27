@@ -60,10 +60,10 @@ exports.seed = async function (knex) {
       updated_by: null,
     },
     {
-      method_name: 'In-Store Pickup',
-      is_pickup_location: true,
-      description: 'Pickup your order at a store location.',
-      estimated_time: null,
+      method_name: 'Personal Driver Delivery',
+      is_pickup_location: false,  // It's not a pickup, so this should be false
+      description: 'Order will be delivered personally by a driver to the specified address.',
+      estimated_time: '2 hours',  // Estimate as needed, e.g., 2 hours for same-day delivery
       status_id: activeStatusId,
       created_by: systemActionId,
       updated_by: null,

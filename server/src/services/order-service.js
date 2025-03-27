@@ -83,41 +83,6 @@ const fetchOrderDetails = async (orderId, user) => {
 };
 
 /**
- * Transforms raw order data into a structured format.
- *
- * @param {Array} rawData - Raw order data fetched from the repository.
- * @param {boolean} verifyOrderNumbers - Whether to verify order numbers.
- * @returns {Array} - Transformed and verified order data.
- */
-const transformOrders = (rawData, verifyOrderNumbers) => {
-  return rawData.map(order => {
-    // Verifying order number if required
-    const isOrderNumberValid = verifyOrderNumbers ? verifyOrderNumber(order.order_number) : true;
-    
-    // Log error if invalid order number is detected
-    if (!isOrderNumberValid) {
-      logError(`Invalid order number detected: ${order.order_number}`);
-    }
-    
-    // Transform order data structure
-    return {
-      id: order.id,
-      order_number: order.order_number,
-      order_number_valid: isOrderNumberValid,
-      order_type: order.order_type,
-      category: order.category,
-      order_date: order.order_date,
-      status: order.status,
-      note: order.note,
-      created_at: order.created_at,
-      updated_at: order.updated_at,
-      created_by: order.created_by,
-      updated_by: order.updated_by
-    };
-  });
-};
-
-/**
  * Service function to fetch all orders with verification and transformation.
  *
  * @param {Object} options - Fetch options for the query.
