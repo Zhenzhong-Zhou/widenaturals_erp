@@ -45,6 +45,7 @@ import deliveryMethodDropdownReducer from '../features/deliveryMethod/state/deli
 import productOrderDropdownReducer from '../features/product/state/productOrderDropdownSlice.ts';
 import pricingTypeDropdownReducer from '../features/pricingType/state/pricingTypeDropdownSlice.ts';
 import pricingValueReducer from '../features/pricing/state/pricingValueSlice.ts';
+import ordersReducer from '../features/order/state/orderSlice.ts';
 
 // Combine reducers
 const appReducer = combineReducers({
@@ -93,6 +94,7 @@ const appReducer = combineReducers({
   productOrderDropdown: productOrderDropdownReducer,
   pricingTypeDropdown: pricingTypeDropdownReducer,
   pricingValue: pricingValueReducer,
+  orders: ordersReducer,
 });
 
 // Root reducer with logout handling

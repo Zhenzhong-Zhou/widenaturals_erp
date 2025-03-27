@@ -19,7 +19,7 @@ import {
  *   createOrder: (orderTypeId: string, orderData: SalesOrder) => void;
  * }}
  */
-const useSalesOrder = (): {
+const useSalesOrders = (): {
     loading: boolean;
     success: boolean;
     salesOrderId: string | null;
@@ -49,4 +49,4 @@ const useSalesOrder = (): {
   );
 };
 
-export default useSalesOrder;
+export default useSalesOrders;

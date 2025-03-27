@@ -2,11 +2,16 @@ export type {
   OrderType,
   OrderItem,
   SalesOrder,
-  CreateSalesOrderResponse
+  CreateSalesOrderResponse,
+  Order,
+  OrderPagination,
+  OrdersResponse,
+  FetchOrdersParams,
 } from './state/orderTypes.ts';
 export {
   fetchOrderTypesDropDownThunk,
   createSalesOrderThunk,
+  fetchAllOrdersThunk,
 } from './state/orderThunks.ts';
 export {
   selectOrderTypesDropdown,
@@ -23,3 +28,12 @@ export {
   selectCreatedSalesOrderError
 } from './state/createSalesOrderSelectors.ts';
 export { default as CreateSaleOrderForm } from './components/CreateSaleOrderForm';
+export {
+  selectAllOrders,
+  selectOrdersLoading,
+  selectOrdersError,
+  selectOrdersPagination,
+  selectOrdersByStatus,
+  selectOrderById
+} from './state/orderSelectors.ts';
+export { default as OrdersTable } from './components/OrdersTable.tsx';

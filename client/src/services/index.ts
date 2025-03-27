@@ -18,3 +18,4 @@ export { dropdownService } from './dropdownService.ts';
 export { reportService } from './reportService.ts';
 export { orderTypeService } from './orderTypeService.ts';
 export { customerService } from './customerService.ts';
+export { orderService } from './orderService.ts';

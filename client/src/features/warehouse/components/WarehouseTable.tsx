@@ -3,7 +3,7 @@ import { Warehouse } from '../state/warehouseTypes.ts';
 import { CustomTable } from '@components/index.ts';
 import { formatDateTime } from '@utils/dateTimeUtils.ts';
 import { capitalizeFirstLetter } from '@utils/textUtils.ts';
-import { Link } from 'react-router-dom';
+// import { Link } from 'react-router-dom';
 
 interface WarehouseTableProps {
   warehouses: Warehouse[];
@@ -30,14 +30,14 @@ const WarehouseTable: FC<WarehouseTableProps> = ({
       label: 'Warehouse Name',
       sortable: true,
       format: (value: string) => value,
-      renderCell: (row: Warehouse) => (
-        <Link
-          to={`/warehouses/${row.id}`}
-          style={{ textDecoration: 'none', color: 'blue' }}
-        >
-          {row.warehouse_name}
-        </Link>
-      ),
+      // renderCell: (row: Warehouse) => (
+      //   <Link
+      //     to={`/warehouses/${row.id}`}
+      //     style={{ textDecoration: 'none', color: 'blue' }}
+      //   >
+      //     {row.warehouse_name}
+      //   </Link>
+      // ),
     },
     {
       id: 'location_name',

@@ -1,8 +1,8 @@
 import { FC, useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import { Loading, Typography } from '@components/index.ts';
-import { CreateSaleOrderForm, OrderFormModal, OrderTypesDropdown } from '../index.ts';
-import useSalesOrder from '../../../hooks/useSalesOrders.ts';
+import { CreateSaleOrderForm, OrderFormModal, OrdersTable, OrderTypesDropdown } from '../index.ts';
+import { useSalesOrders } from '../../../hooks';
 
 const OrderPage: FC = () => {
   const [selectedOrderType, setSelectedOrderType] = useState<{
@@ -17,7 +17,7 @@ const OrderPage: FC = () => {
   } | null>(null); // Store the latest selected order type
   
   const [isModalOpen, setModalOpen] = useState(false);
-  const { loading, success, salesOrderId, error, createOrder } = useSalesOrder();
+  const { loading, success, salesOrderId, error, createOrder } = useSalesOrders();
   
   const handleOrderTypeChange = (id: string, name: string, category: string) => {
     if (selectedOrderType?.id === id) {
@@ -48,7 +48,7 @@ const OrderPage: FC = () => {
   }, [isModalOpen]);
   
   return (
-    <Box sx={{ p: 3, maxWidth: '600px', mx: 'auto' }}>
+    <Box>
       <Typography variant="h4" gutterBottom>
         Create New Order
       </Typography>
@@ -89,6 +89,8 @@ const OrderPage: FC = () => {
           </Typography>
         )}
       </OrderFormModal>
+      
+      <OrdersTable/>
     </Box>
   );
 };

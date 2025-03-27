@@ -4,7 +4,7 @@ import { Location } from '../state/locationTypes.ts';
 import { capitalizeFirstLetter } from '@utils/textUtils.ts';
 import { formatDateTime } from '@utils/dateTimeUtils.ts';
 import Box from '@mui/material/Box';
-import { Link } from 'react-router-dom';
+// import { Link } from 'react-router-dom';
 
 interface LocationTableProps {
   data: Location[];
@@ -32,14 +32,14 @@ const LocationTable: FC<LocationTableProps> = ({
       label: 'Location Name',
       sortable: true,
       format: (value: string) => value,
-      renderCell: (row: any) => (
-        <Link
-          to={`/locations/${row.location_id || 'unknown'}`}
-          style={{ textDecoration: 'none', color: 'blue' }}
-        >
-          {row.location_name}
-        </Link>
-      ),
+      // renderCell: (row: any) => (
+      //   <Link
+      //     to={`/locations/${row.location_id || 'unknown'}`}
+      //     style={{ textDecoration: 'none', color: 'blue' }}
+      //   >
+      //     {row.location_name}
+      //   </Link>
+      // ),
     },
     { id: 'address', label: 'Address', sortable: false },
     {

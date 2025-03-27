@@ -1,7 +1,7 @@
 import { FC, useState } from 'react';
-import { Box, Typography } from '@mui/material';
+import Box from '@mui/material/Box';
 import { useCustomers } from '../../../hooks';
-import { CustomButton, CustomTable } from '@components/index.ts';
+import { CustomButton, CustomTable, Typography } from '@components/index.ts';
 import { Customer } from '../state/customerTypes';
 import { capitalizeFirstLetter, formatPhoneNumber } from '@utils/textUtils.ts';
 import { formatDate } from '@utils/dateTimeUtils.ts';

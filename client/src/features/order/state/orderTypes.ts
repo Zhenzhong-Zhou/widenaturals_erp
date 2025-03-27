@@ -30,3 +30,43 @@ export interface CreateSalesOrderResponse {
   message: string;
   salesOrderId: string;
 }
+
+// Type for individual order
+export type Order = {
+  id: string;
+  order_number: string;
+  order_type: string;
+  order_date: string;
+  status: string;
+  note: string;
+  created_at: string;
+  updated_at: string;
+  created_by: string;
+  updated_by: string;
+  order_number_valid: boolean;
+};
+
+// Type for pagination details
+export type OrderPagination = {
+  page: number;
+  limit: number;
+  totalRecords: number;
+  totalPages: number;
+};
+
+// Interface for the response structure
+export interface OrdersResponse {
+  success: boolean;
+  message: string;
+  data: Order[];
+  pagination: OrderPagination;
+}
+
+// Type for parameters of fetching orders
+export type FetchOrdersParams = {
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: 'ASC' | 'DESC';
+  verifyOrderNumbers?: boolean;
+};
