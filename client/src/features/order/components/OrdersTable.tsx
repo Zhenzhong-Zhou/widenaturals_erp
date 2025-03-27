@@ -3,7 +3,7 @@ import { Link as RouterLink } from 'react-router-dom';
 import { useOrders } from '../../../hooks';
 import { Column } from '@components/common/CustomTable.tsx';
 import { Order } from '../state/orderTypes.ts';
-import { CustomTable, ErrorMessage, Loading } from '@components/index.ts';
+import { CustomButton, CustomTable, ErrorMessage, Loading } from '@components/index.ts';
 import Box from '@mui/material/Box';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCheckCircle, faTimesCircle } from '@fortawesome/free-solid-svg-icons';
@@ -11,19 +11,31 @@ import { useThemeContext } from '../../../context/ThemeContext.tsx';
 import { formatDate } from '@utils/dateTimeUtils.ts';
 import { getOrderTypeSlug } from '@utils/slugUtils.ts';
 
+interface OrdersTableProps {
+  refreshTrigger: boolean;
+}
 
-const OrdersTable: FC = () => {
+const OrdersTable: FC<OrdersTableProps> = ({ refreshTrigger }) => {
   const { theme } = useThemeContext();
   const {
     orders,
     loading,
     error,
     pagination,
-    fetchAllOrders
+    fetchAllOrders,
+    manualRefresh,
+    refreshCounter
   } = useOrders();
   
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // Define the available options
+  const rowsPerPageOptions = [10, 25, 50, 75];
+
+  // Ensure the rowsPerPage value is valid
+  const validRowsPerPage = rowsPerPageOptions.includes(rowsPerPage) ? rowsPerPage : 10;
   
   useEffect(() => {
     fetchAllOrders({
@@ -33,7 +45,7 @@ const OrdersTable: FC = () => {
       sortOrder: 'DESC',
       verifyOrderNumbers: true
     });
-  }, [fetchAllOrders, page, rowsPerPage]);
+  }, [fetchAllOrders, page, rowsPerPage, refreshTrigger, refreshCounter]);
   
   const columns: Column<Order>[] = [
     {
@@ -145,21 +157,39 @@ const OrdersTable: FC = () => {
     },
   ];
   
+  // Handle manual refresh
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      manualRefresh();  // Trigger re-fetch via the hook
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+  
   if (loading) return <Loading message={'Loading All Orders...'}/>;
   if (error) return <ErrorMessage message={error}/>;
   
   return (
-    <CustomTable
-      columns={columns}
-      data={orders}
-      page={page}
-      rowsPerPageOptions={[5, 10, 25]}
-      initialRowsPerPage={rowsPerPage}
-      totalPages={pagination.totalPages}
-      totalRecords={pagination.totalRecords}
-      onPageChange={setPage}
-      onRowsPerPageChange={setRowsPerPage}
-    />
+   <Box>
+     <Box sx={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
+       <CustomButton onClick={handleManualRefresh} disabled={isRefreshing}>
+         {isRefreshing ? 'Refreshing...' : 'Refresh Table'}
+       </CustomButton>
+     </Box>
+     
+     <CustomTable
+       columns={columns}
+       data={orders}
+       page={page}
+       rowsPerPageOptions={[10, 25, 50, 75]}
+       initialRowsPerPage={validRowsPerPage}
+       totalPages={pagination.totalPages}
+       totalRecords={pagination.totalRecords}
+       onPageChange={setPage}
+       onRowsPerPageChange={setRowsPerPage}
+     />
+   </Box>
   );
 };
 

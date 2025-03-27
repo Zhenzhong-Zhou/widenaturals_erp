@@ -1,6 +1,6 @@
 import { FC, useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
-import { Loading, Typography } from '@components/index.ts';
+import { GoBackButton, Loading, Typography } from '@components/index.ts';
 import { CreateSaleOrderForm, OrderFormModal, OrdersTable, OrderTypesDropdown } from '../index.ts';
 import { useSalesOrders } from '../../../hooks';
 
@@ -19,6 +19,9 @@ const OrderPage: FC = () => {
   const [isModalOpen, setModalOpen] = useState(false);
   const { loading, success, salesOrderId, error, createOrder } = useSalesOrders();
   
+  // State to trigger refresh for OrdersTable
+  const [refreshTrigger, setRefreshTrigger] = useState(false);
+  
   const handleOrderTypeChange = (id: string, name: string, category: string) => {
     if (selectedOrderType?.id === id) {
       // Re-selecting the same order type should re-trigger the modal
@@ -27,7 +30,7 @@ const OrderPage: FC = () => {
       // Set the selected order type and open modal
       const selectedType = { id, name, category };
       setSelectedOrderType(selectedType);
-      setLatestOrderType(selectedType); // Store in latestOrderType
+      setLatestOrderType(selectedType);
       if (id) setModalOpen(true);
     }
   };
@@ -36,7 +39,12 @@ const OrderPage: FC = () => {
   useEffect(() => {
     if (success || error) {
       console.log(success ? `Sales order created successfully with ID: ${salesOrderId}` : `Failed to create sales order: ${error}`);
-      setModalOpen(false); // Close the modal whether it's a success or failure
+      setModalOpen(false);
+      
+      // Trigger table refresh if successful
+      if (success) {
+        setRefreshTrigger(prev => !prev);  // Toggle the trigger to force refresh
+      }
     }
   }, [success, error, salesOrderId]);
   
@@ -52,6 +60,8 @@ const OrderPage: FC = () => {
       <Typography variant="h4" gutterBottom>
         Create New Order
       </Typography>
+      
+      <GoBackButton/>
       
       <OrderTypesDropdown
         value={selectedOrderType?.id || null}
@@ -90,7 +100,7 @@ const OrderPage: FC = () => {
         )}
       </OrderFormModal>
       
-      <OrdersTable/>
+      <OrdersTable refreshTrigger={refreshTrigger} />
     </Box>
   );
 };

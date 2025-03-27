@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
 import {
   fetchAllOrdersThunk,
@@ -13,6 +13,7 @@ import {
 
 const useOrders = () => {
   const dispatch = useAppDispatch();
+  const [refreshCounter, setRefreshCounter] = useState(0);
   
   // Memoized Selectors
   const orders = useAppSelector(selectAllOrders);
@@ -31,6 +32,11 @@ const useOrders = () => {
     (params: FetchOrdersParams) => dispatch(fetchAllOrdersThunk(params)),
     [dispatch]
   );
+  
+  // Manual refresh function
+  const manualRefresh = useCallback(() => {
+    setRefreshCounter(prev => prev + 1);  // Trigger a refresh by updating the state
+  }, []);
   
   // Memoized function to get orders by status
   const getOrdersByStatus = useCallback(
@@ -51,7 +57,9 @@ const useOrders = () => {
     pagination: memoizedPagination,
     fetchAllOrders,
     getOrdersByStatus,
-    getOrderById
+    getOrderById,
+    manualRefresh,
+    refreshCounter  // Export the refreshCounter to trigger re-fetching if needed
   };
 };
 
