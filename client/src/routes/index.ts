@@ -175,6 +175,11 @@ export const routes = [
     meta: { requiresAuth: true, title: 'Orders', showInSidebar: true },
   },
   {
+    path: '/orders/:orderType/:orderId',
+    component: lazy(() => import('../features/order/pages/OrderDetailsPage.tsx')),
+    meta: { requiresAuth: true, title: 'Order Details', showInSidebar: false, requiredPermission: 'view_sales_order_details' },
+  },
+  {
     path: '*',
     component: lazy(() => import('../pages/NotFoundPage.tsx')),
     meta: { requiresAuth: false, title: '404 - Page Not Found', showInSidebar: false },

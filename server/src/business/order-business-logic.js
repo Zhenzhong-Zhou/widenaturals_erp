@@ -46,6 +46,7 @@ const applyOrderDetailsBusinessLogic = (order, user) => {
     // Check if the user has permission to view invalid orders
     const canViewInvalidOrder = checkPermissions(user, [
       'root_access',
+      'view_full_sales_order_details',
       'view_all_order_details'
     ]);
     

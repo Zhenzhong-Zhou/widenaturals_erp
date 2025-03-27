@@ -26,3 +26,4 @@ export { default as CustomDialog } from './common/CustomDialog.tsx';
 export { default as NoDataFound } from './common/NoDataFound.tsx';
 export { default as GoBackButton } from './common/GoBackButton.tsx';
 export { default as CustomPhoneInput } from './common/CustomPhoneInput.tsx';
+export { default as DetailsSection } from './common/DetailsSection.tsx';

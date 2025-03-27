@@ -58,7 +58,7 @@ const transformOrderDetails = (orderDetails) => {
       price_type: order.price_type ?? 'Unknown',
       system_price: order.system_price ?? null,
       adjusted_price: order.adjusted_price ?? null,
-      order_item_status: order.order_item_status ?? 'Unknown',
+      order_item_status_name: order.order_item_status_name ?? 'Unknown',
     })),
   };
 }

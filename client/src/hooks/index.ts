@@ -43,3 +43,4 @@ export { default as useDeliveryMethodDropdown } from './useDeliveryMethodDropdow
 export { default as useProductOrderDropdown } from './useProductOrderDropdown.ts';
 export { default as usePricingTypeDropdown } from './usePricingTypeDropdown.ts';
 export { default as useOrders } from './useOrders.ts';
+export { default as useSalesOrderDetails } from './useSalesOrderDetails.ts';

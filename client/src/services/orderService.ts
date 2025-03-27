@@ -1,6 +1,12 @@
 import axiosInstance from '@utils/axiosConfig.ts';
 import { API_ENDPOINTS } from './apiEndponits.ts';
-import { CreateSalesOrderResponse, FetchOrdersParams, OrdersResponse, SalesOrder } from '../features/order';
+import {
+  CreateSalesOrderResponse,
+  FetchOrdersParams,
+  OrderResponse,
+  OrdersResponse,
+  SalesOrder,
+} from '../features/order';
 
 /**
  * Creates a new sales order.
@@ -44,7 +50,37 @@ const fetchAllOrders = async (
   }
 };
 
+/**
+ * Fetch Sales Order Details
+ *
+ * This function fetches the details of a specific sales order by its ID.
+ * It retrieves all related order information including customer details,
+ * order items, prices, and additional metadata.
+ *
+ * @param {string} orderId - The ID of the sales order to fetch.
+ * @returns {Promise<OrderResponse>} - Returns a promise resolving to the order details.
+ *
+ * @throws {Error} - Throws an error if the request fails.
+ *
+ * @example
+ *  const orderDetails = await fetchSalesOrderDetails("b64ead02-0061-4713-bce6-33103018bc31");
+ *  console.log(orderDetails.data.order_number); // Output: SO-SSO-20250325174708-b64ead02-b8ff650703
+ */
+const fetchSalesOrderDetails = async (
+  orderId: string
+): Promise<OrderResponse> => {
+  try {
+    const endpoint = API_ENDPOINTS.SALES_ORDER_DETAILS.replace(':id', orderId);
+    const response = await axiosInstance.get<OrderResponse>(endpoint);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching sales order details:', error);
+    throw new Error('Failed to fetch sales order details. Please try again later.');
+  }
+};
+
 export const orderService = {
   createSalesOrder,
   fetchAllOrders,
+  fetchSalesOrderDetails,
 };

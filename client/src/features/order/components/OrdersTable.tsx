@@ -53,6 +53,7 @@ const OrdersTable: FC = () => {
           <Box
             component={RouterLink}
             to={`/orders/${orderTypeSlug}/${row.id}`}
+            state={{ orderNumber: row.order_number }}
             sx={{
               textDecoration: 'none',
               color: 'inherit',

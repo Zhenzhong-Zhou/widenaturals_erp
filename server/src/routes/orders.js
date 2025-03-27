@@ -14,10 +14,10 @@ const router = express.Router();
 router.post('/order-types/:orderTypeId', createOrderController);
 
 /**
- * @route GET /api/orders/:id
+ * @route GET /api/orders/sales-order/details/:id
  * @access Protected
  */
-router.get('/details/:id', getOrderDetailsController);
+router.get('/sales-order/details/:id', getOrderDetailsController);
 
 
 router.get('/', getAllOrdersController);

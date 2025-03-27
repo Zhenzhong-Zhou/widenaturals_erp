@@ -51,4 +51,5 @@ export const API_ENDPOINTS = {
   PRODUCTS_DROPDOWN_ORDERS: '/products/dropdown/orders',
   PRICING_TYPES_DROPDOWN: '/pricing-types/dropdown',
   PRICE_VALUE: '/pricings/fetch-price',
+  SALES_ORDER_DETAILS: '/orders/sales-order/details/:id',
 };

@@ -1,5 +1,5 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { CreateSalesOrderResponse, FetchOrdersParams, OrderType, SalesOrder } from './orderTypes.ts';
+import { CreateSalesOrderResponse, FetchOrdersParams, OrderResponse, OrderType, SalesOrder } from './orderTypes.ts';
 import { dropdownService, orderService } from '../../../services';
 
 export const fetchOrderTypesDropDownThunk = createAsyncThunk<
@@ -39,6 +39,25 @@ export const fetchAllOrdersThunk = createAsyncThunk(
       return await orderService.fetchAllOrders(params);
     } catch (error: any) {
       return rejectWithValue(error.message);
+    }
+  }
+);
+
+/**
+ * Thunk to fetch sales order details by order ID
+ */
+export const fetchSalesOrderDetailsThunk = createAsyncThunk<
+  OrderResponse,
+  string,
+  { rejectValue: string }
+>(
+  'salesOrderDetails/fetch',
+  async (orderId, { rejectWithValue }) => {
+    try {
+      return await orderService.fetchSalesOrderDetails(orderId);
+    } catch (error: any) {
+      console.error('Error in fetchSalesOrderDetailsThunk:', error.message);
+      return rejectWithValue('Failed to fetch sales order details. Please try again.');
     }
   }
 );
