@@ -49,6 +49,27 @@ const transformOrderDetails = (orderDetails) => {
     }
     : null;
   
+  // Process items
+  const items = orderDetails.map(order => {
+    const hasValidSystemPrice = typeof order.system_price === 'string' && order.system_price.trim() !== '';
+    const hasValidAdjustedPrice = typeof order.adjusted_price === 'string' && order.adjusted_price.trim() !== '';
+    
+    return {
+      order_item_id: order.order_item_id,
+      product_id: order.product_id,
+      product_name: order.product_name ?? 'N/A',
+      barcode: order.barcode ?? 'N/A',
+      npn: order.npn ?? 'N/A',
+      quantity_ordered: order.quantity_ordered ?? 0,
+      price_type: order.price_type ?? 'Unknown',
+      system_price: hasValidSystemPrice ? order.system_price : 'N/A',
+      adjusted_price: hasValidAdjustedPrice && order.system_price !== order.adjusted_price ? order.adjusted_price : null,
+      order_item_subtotal: order.order_item_subtotal ?? 'N/A',
+      order_item_status_name: order.order_item_status_name ?? 'Unknown',
+      order_item_status_date: order.order_item_status_date ?? 'N/A',
+    };
+  });
+  
   return {
     order_id: baseOrder.order_id,
     order_number: baseOrder.order_number,
@@ -71,25 +92,9 @@ const transformOrderDetails = (orderDetails) => {
       method: baseOrder.delivery_method ?? '', // Display the method name from the database
       tracking_info: trackingInfo, // Show tracking info only if applicable
     },
-    items: orderDetails.map(order => {
-      // Check if system_price and adjusted_price are the same
-      const isSamePrice = order.system_price === order.adjusted_price;
-      
-      return {
-        order_item_id: order.order_item_id,
-        product_id: order.product_id,
-        product_name: order.product_name ?? '',
-        barcode: order.barcode ?? '',
-        npn: order.npn ?? '',
-        quantity_ordered: order.quantity_ordered ?? 0,
-        price_type: order.price_type ?? 'Unknown',
-        system_price: order.system_price ?? null,
-        adjusted_price: isSamePrice ? null : order.adjusted_price,  // Only include if prices differ
-        order_item_status_name: order.order_item_status_name ?? 'Unknown',
-      };
-    }),
+    items,
   };
-}
+};
 
 module.exports = {
   transformAllOrders,

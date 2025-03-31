@@ -82,7 +82,9 @@ export interface FetchedOrderItem {
   price_type: string; // Example: "Retail"
   system_price: string;  // Always included
   adjusted_price?: string;  // Optional: Only included if different from system_price
+  order_item_subtotal: number;
   order_item_status_name: string; // Example: "Pending"
+  order_item_status_date: string;
 }
 
 // Delivery Info Interface

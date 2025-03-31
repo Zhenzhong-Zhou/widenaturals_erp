@@ -1,7 +1,7 @@
 import { FC, useMemo } from 'react';
 import Box from '@mui/material/Box';
-import { CustomButton, DetailsSection, ErrorMessage, Loading } from '@components/index.ts';
 import Typography from '@components/common/Typography.tsx';
+import { CustomButton, DetailsSection, ErrorMessage, Loading } from '@components/index.ts';
 import { useSalesOrderDetails } from '../../../hooks';
 import { formatDate } from '@utils/dateTimeUtils.ts';
 import { capitalizeFirstLetter, formatCurrency } from '@utils/textUtils.ts';
@@ -10,6 +10,7 @@ import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Divider from '@mui/material/Divider';
 import Grid from '@mui/material/Grid2';
+import { OrderItemsTable } from '../index.ts';
 
 interface SalesOrderDetailsSectionProps {
   orderId: string;
@@ -33,7 +34,17 @@ const SalesOrderDetailsSection: FC<SalesOrderDetailsSectionProps> = ({ orderId }
     // Format Category, Customer Name, Dates & Prices
     if (orderDetails.order_category) orderDetails.order_category = capitalizeFirstLetter(orderDetails.order_category);
     if (orderDetails.customer_name) orderDetails.customer_name = capitalizeFirstLetter(orderDetails.customer_name);
-    if (orderDetails.discount_amount) orderDetails.discount_amount = formatCurrency(orderDetails.discount_amount);
+    if (orderDetails.discount_amount && parseFloat(orderDetails.discount_amount) > 0) {
+      orderDetails.discount_amount = formatCurrency(orderDetails.discount_amount);
+    } else {
+      delete orderDetails.discount_amount; // Remove if it's zero or null
+    }
+    
+    if (orderDetails.shipping_fee && parseFloat(orderDetails.shipping_fee) > 0) {
+      orderDetails.shipping_fee = formatCurrency(orderDetails.shipping_fee);
+    } else {
+      delete orderDetails.shipping_fee; // Remove if it's zero or null
+    }
     if (orderDetails.subtotal) orderDetails.subtotal = formatCurrency(orderDetails.subtotal);
     if (orderDetails.tax_amount) orderDetails.tax_amount = formatCurrency(orderDetails.tax_amount);
     if (orderDetails.total_amount) orderDetails.total_amount = formatCurrency(orderDetails.total_amount);
@@ -42,16 +53,13 @@ const SalesOrderDetailsSection: FC<SalesOrderDetailsSectionProps> = ({ orderId }
     if (orderDetails.order_date) {
       if (typeof orderDetails.order_date === 'string') {
         orderDetails.order_date = formatDate(orderDetails.order_date);
-      } else if (typeof orderDetails.order_date === 'object') {
-        orderDetails.order_date = `Order Date: ${formatDate(orderDetails.order_date.order_date)} | Sales Order Date: ${formatDate(orderDetails.order_date.sales_order_date)}`;
       }
     }
     
     // Format delivery_info if present
     if (orderDetails.delivery_info) orderDetails.delivery_info.method = capitalizeFirstLetter(orderDetails.delivery_info.method);
-    
-    // Handle metadata display
-    if (!orderDetails.order_metadata || Object.keys(orderDetails.order_metadata).length === 0) orderDetails.order_metadata = { message: 'N/A' }; // Assigning an object instead of a string
+    if (!orderDetails.order_metadata || Object.keys(orderDetails.order_metadata).length === 0)
+      orderDetails.order_metadata = { message: 'N/A' };
     
     if (Array.isArray(orderDetails.items)) {
       orderDetails.items = orderDetails.items.map(item => {
@@ -79,7 +87,7 @@ const SalesOrderDetailsSection: FC<SalesOrderDetailsSectionProps> = ({ orderId }
     <Card
       sx={{
         margin: 'auto',
-        maxWidth: '1000px',
+        maxWidth: '1500px',
         borderRadius: 3,
         boxShadow: 4,
         padding: 3,
@@ -100,26 +108,19 @@ const SalesOrderDetailsSection: FC<SalesOrderDetailsSectionProps> = ({ orderId }
             <DetailsSection data={{
               'Order Number': filteredOrderDetails.order_number,
               'Order Category': filteredOrderDetails.order_category,
-              'Order Type': filteredOrderDetails.order_type,
-              'Order Date': filteredOrderDetails.order_date,
-              'Customer Name': filteredOrderDetails.customer_name,
-              'Order Status': filteredOrderDetails.order_status,
               'Delivery Method': filteredOrderDetails.delivery_info?.method,
-              'Tracking Number': filteredOrderDetails.delivery_info?.tracking_info,
-              'MetaData': filteredOrderDetails.order_metadata,
+              'Customer Name': filteredOrderDetails.customer_name,
+              'Order Note': filteredOrderDetails.order_note || 'N/A',
             }} />
           </Grid>
           
           <Grid size={6}>
             <DetailsSection data={{
-              'Subtotal': filteredOrderDetails.subtotal,
-              'Tax Rate': `${filteredOrderDetails.tax_rate}%`,
-              'Tax Amount': filteredOrderDetails.tax_amount,
-              'Shipping Fee': filteredOrderDetails.shipping_fee,
-              'Total Amount': filteredOrderDetails.total_amount,
-              'Discount': filteredOrderDetails.discount,
-              'Discount Amount': filteredOrderDetails.discount_amount,
-              'Order Note': filteredOrderDetails.order_note || 'N/A',
+              'Order Type': filteredOrderDetails.order_type,
+              'Tracking Number': filteredOrderDetails.delivery_info?.tracking_info,
+              'Order Status': filteredOrderDetails.order_status,
+              'MetaData': filteredOrderDetails.order_metadata,
+              'Order Date': filteredOrderDetails.order_date,
             }} />
           </Grid>
         </Grid>
@@ -127,17 +128,7 @@ const SalesOrderDetailsSection: FC<SalesOrderDetailsSectionProps> = ({ orderId }
         <Divider sx={{ marginY: 2 }} />
         
         {filteredOrderDetails.items && (
-          <Box>
-            <Typography variant="h6" sx={{ marginBottom: 1 }}>Order Items</Typography>
-            {filteredOrderDetails.items.map((item, index) => (
-              <Card
-                key={index}
-                sx={{ marginBottom: 2, padding: 2, borderRadius: 2, backgroundColor: 'background.default' }}
-              >
-                <DetailsSection data={item} />
-              </Card>
-            ))}
-          </Box>
+          <OrderItemsTable items={filteredOrderDetails.items} />
         )}
         
         {/* Show tracking info if exists */}
@@ -147,6 +138,26 @@ const SalesOrderDetailsSection: FC<SalesOrderDetailsSectionProps> = ({ orderId }
             <DetailsSection data={filteredOrderDetails.delivery_info.tracking_info} />
           </Box>
         )}
+        
+        <Grid container spacing={3}>
+          <Grid size={6}>
+            <DetailsSection data={{
+              'Discount': filteredOrderDetails.discount,
+              'Discount Amount': filteredOrderDetails.discount_amount,
+              'Shipping Fee': filteredOrderDetails.shipping_fee,
+            }} />
+          </Grid>
+          
+        <Grid size={6}>
+          <DetailsSection data={{
+            
+            'Subtotal': filteredOrderDetails.subtotal,
+            'Tax Rate': `${filteredOrderDetails.tax_rate}%`,
+            'Tax Amount': filteredOrderDetails.tax_amount,
+            'Total Amount': filteredOrderDetails.total_amount,
+          }} />
+        </Grid>
+        </Grid>
       </CardContent>
     </Card>
   );

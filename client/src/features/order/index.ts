@@ -46,3 +46,5 @@ export {
   selectOrderNumber
 } from './state/salesOrderDetailSelectors.ts';
 export { default as SalesOrderDetailsSection } from './components/SalesOrderDetailsSection.tsx';
+export { default as OrderItemsTable } from './components/OrderItemsTable.tsx';
+export { orderItemsColumns } from './components/OrderItemsTableColumns.ts';
