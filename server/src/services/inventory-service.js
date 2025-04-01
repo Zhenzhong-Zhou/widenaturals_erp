@@ -3,7 +3,7 @@ const {
   insertInventoryRecords,
   updateInventoryQuantity,
   checkInventoryExists,
-  getProductIdOrIdentifierByInventoryIds,
+  getProductIdOrIdentifierByInventoryIds, getPaginatedInventorySummary,
 } = require('../repositories/inventory-repository');
 const AppError = require('../utils/AppError');
 const { logError, logInfo, logWarn } = require('../utils/logger-helper');
@@ -37,6 +37,7 @@ const {
   getWarehouseLotAdjustmentType,
 } = require('../repositories/lot-adjustment-type-repository');
 const { generateChecksum } = require('../utils/crypto-utils');
+const { transformPaginatedInventorySummary } = require('../transformers/inventory-transformer');
 
 /**
  * Fetch all inventory records with pagination, sorting, and business logic.
@@ -61,6 +62,7 @@ const fetchAllInventories = async ({ page, limit, sortBy, sortOrder }) => {
       sortOrder,
     });
 
+    // todo: not in stock display boolean, expired or close expired or something else 6<=x<=12
     // Business Logic: Mark expired items
     const processedData = data.map((item) => ({
       ...item,
@@ -485,8 +487,27 @@ const fetchRecentInsertWarehouseInventoryRecords = async (warehouseLotIds) => {
   return await getRecentInsertWarehouseInventoryRecords(lotIds);
 };
 
+/**
+ * Fetches and processes paginated inventory summary.
+ *
+ * @param {object} options
+ * @param {number} options.page - Page number
+ * @param {number} options.limit - Page size
+ * @returns {Promise<object>} - Transformed and business-validated result
+ */
+const fetchPaginatedInventorySummary = async ({ page = 1, limit = 20 }) => {
+  if (page < 1 || limit < 1) {
+    throw AppError.validationError('Invalid pagination parameters.');
+  }
+  
+  const rawResult = await getPaginatedInventorySummary({ page, limit });
+  
+  return transformPaginatedInventorySummary(rawResult);
+};
+
 module.exports = {
   fetchAllInventories,
   createInventoryRecords,
   fetchRecentInsertWarehouseInventoryRecords,
+  fetchPaginatedInventorySummary,
 };

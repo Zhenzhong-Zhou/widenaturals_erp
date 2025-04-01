@@ -5,6 +5,7 @@ const {
 } = require('../repositories/warehouse-inventory-repository');
 const AppError = require('../utils/AppError');
 const { logError } = require('../utils/logger-helper');
+const { transformPaginatedWarehouseInventorySummary } = require('../transformers/warehouse-inventory-transformer');
 
 /**
  * Fetch paginated warehouse inventories with sorting.
@@ -26,37 +27,14 @@ const fetchAllWarehouseInventories = async ({
   }
 
   // Fetch inventories using repository
-  const { data, pagination } = await getWarehouseInventories({
+  const result = await getWarehouseInventories({
     page,
     limit,
     sortBy,
     sortOrder,
   });
-
-  // Business logic: Post-processing (if needed)
-  const inventories = data.map((inventory) => ({
-    warehouseInventoryId: inventory.warehouse_inventory_id,
-    warehouseId: inventory.warehouse_id,
-    warehouseName: inventory.warehouse_name,
-    locationName: inventory.location_name,
-    inventoryId: inventory.inventory_id,
-    itemType: inventory.item_type,
-    itemName: inventory.item_name,
-    availableQuantity: inventory.available_quantity || 0,
-    reservedQuantity: inventory.reserved_quantity || 0,
-    warehouseFee: inventory.warehouse_fee
-      ? `${parseFloat(inventory.warehouse_fee).toFixed(2)}`
-      : 'N/A',
-    lastUpdate: inventory.last_update,
-    statusId: inventory.status_id,
-    statusName: inventory.status_name,
-    createdAt: inventory.created_at,
-    updatedAt: inventory.updated_at,
-    createdBy: inventory.created_by,
-    updatedBy: inventory.updated_by,
-  }));
-
-  return { inventories, pagination };
+  
+  return transformPaginatedWarehouseInventorySummary(result);
 };
 
 /**

@@ -44,27 +44,6 @@ LEFT JOIN warehouse_inventory_lots wil ON wi.warehouse_id = wil.warehouse_id AND
 GROUP BY i.product_id, w.id, w.name, p.product_name;
 
 
-3️⃣ Global Summary (Sum Across All Locations & Warehouses)
-
-SELECT
-  i.product_id,
-  COALESCE(NULLIF(p.product_name, ''), i.identifier) AS item_name,
-  COUNT(DISTINCT i.id) AS total_inventory_entries,
-  SUM(i.quantity) AS total_quantity,
-  SUM(wi.available_quantity) AS total_available_quantity,
-  SUM(wi.reserved_quantity) AS total_reserved_quantity,
-  COUNT(DISTINCT wil.id) AS total_lots,
-  SUM(wil.quantity) AS total_lot_quantity,
-  MIN(wil.manufacture_date) AS earliest_manufacture_date,
-  MIN(wil.expiry_date) AS nearest_expiry_date
-FROM inventory i
-LEFT JOIN products p ON i.product_id = p.id
-LEFT JOIN warehouse_inventory wi ON i.id = wi.inventory_id
-LEFT JOIN warehouse_inventory_lots wil ON wi.warehouse_id = wil.warehouse_id AND i.id = wil.inventory_id
-GROUP BY i.product_id, p.product_name;
-
-
-
 2️⃣ Warehouse-Level Inventory (Group by warehouse_id)
 ✅ Use this to track total inventory per warehouse.
 

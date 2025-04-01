@@ -81,7 +81,8 @@ const applyOrderDetailsBusinessLogic = (order, user) => {
   // Check if the user has permission to view metadata and category
   const canViewMetadata = checkPermissions(user, [
     'root_access',
-    'view_all_order_details'
+    'view_all_order_details',
+    'view_full_sales_order_details',
   ]);
   
   // Remove sensitive data if the user lacks permission
@@ -91,23 +92,6 @@ const applyOrderDetailsBusinessLogic = (order, user) => {
   }
   
   return order;
-};
-
-/**
- * Determines which price to display based on the comparison of system price and adjusted price.
- * @param {number|null} systemPrice - The price from the pricing table.
- * @param {number|null} adjustedPrice - The manually adjusted price from the order items table.
- * @returns {object} - Formatted price information.
- */
-const determineDisplayPrice = (systemPrice, adjustedPrice) => {
-  if (adjustedPrice === null || systemPrice === adjustedPrice) {
-    return { price: systemPrice, type: 'System Price' };
-  }
-  
-  return {
-    system_price: { price: systemPrice, type: 'System Price' },
-    adjusted_price: { price: adjustedPrice, type: 'Adjusted Price' }
-  };
 };
 
 module.exports = {

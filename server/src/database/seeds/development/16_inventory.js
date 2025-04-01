@@ -53,23 +53,23 @@ exports.seed = async function (knex) {
   if (!initialLoadActionId)
     throw new Error('Initial-load action ID not found.');
 
-  // 🟢 Define inventory data
+  // Define inventory data
   const warehouseProductQuantities = {
     'Head Office Warehouse': {
       'Focus - CA': 84,
-      'Focus - INT': 6,
-      'Gut Health - CA': 39,
+      'Focus - INT': 14,
+      'Gut Health - CA': 36,
       'Gut Health - INT': 4,
-      'Hair Health': 124,
-      'Immune - CA': 234,
+      'Hair Health': 110,
+      'Immune - CA': 218,
       'Immune - INT': 11,
-      'Memory - CA': 44,
-      'Memory - INT': 47,
-      'Menopause - CA': 41,
-      'Menopause - INT': 7,
-      'Mood - CA': 82,
-      'Mood - INT': 71,
-      'Sleep - CA': 91,
+      'Memory - CA': 53,
+      'Memory - INT': 59,
+      'Menopause - CA': 63,
+      'Menopause - INT': 15,
+      'Mood - CA': 71,
+      'Mood - INT': 74,
+      'Sleep - CA': 75,
       'NMN 3000 - CA': 91,
       'NMN 3000 - INT': 111,
       'NMN 6000 - CA': 90,
@@ -77,20 +77,20 @@ exports.seed = async function (knex) {
       'NMN 10000 - CA': 1,
       'NMN 10000 - INT': 88,
       'NMN 15000 - CA': 14,
-      'NMN 15000 - INT': 104,
+      'NMN 15000 - INT': 103,
       'NMN 30000 - CA': 3,
-      'NMN 30000 - INT': 419,
-      'Seal Oil - 120 Softgels': 200,
-      'Seal Oil - 180 Softgels': 89,
+      'NMN 30000 - INT': 388,
+      'Seal Oil - 120 Softgels': 22,
+      'Seal Oil - 180 Softgels': 0,
     },
     'Viktor Temporarily Warehouse': {
-      'NMN 3000 - CA': 24,
       'NMN 3000 - INT': 48,
+      'NMN 6000 - CA': 24,
       'NMN 6000 - INT': 144,
       'Immune - CA': 36,
-      'Menopause - CA': 120,
-      'Memory - CA': 192,
-      'Memory - INT': 96,
+      'Menopause - CA': 96,
+      'Memory - CA': 144,
+      'Memory - INT': 132,
     },
     'Novastown Health': {
       'Hair Health': 1757,
@@ -110,7 +110,7 @@ exports.seed = async function (knex) {
     products.map((p) => [p.product_name, p.id])
   );
 
-  // 🟢 Prepare and insert inventory records
+  // Prepare and insert inventory records
   const inventoryEntries = [];
   Object.entries(warehouseProductQuantities).forEach(
     ([warehouse, productQuantities]) => {
@@ -142,9 +142,9 @@ exports.seed = async function (knex) {
     .onConflict(['product_id', 'location_id'])
     .ignore();
 
-  console.log(`✅ Inserted ${inventoryEntries.length} inventory records.`);
+  console.log(`Inserted ${inventoryEntries.length} inventory records.`);
 
-  // 🟢 Fetch inventory records
+  // Fetch inventory records
   const inventory = await knex('inventory').select(
     'id',
     'product_id',
@@ -154,7 +154,7 @@ exports.seed = async function (knex) {
     inventory.map((i) => [`${i.product_id}_${i.location_id}`, i.id])
   );
 
-  // 🟢 Define warehouse inventory lot data
+  // Define warehouse inventory lot data
   const lotData = [
     {
       product: 'Focus - CA',
@@ -168,7 +168,7 @@ exports.seed = async function (knex) {
       lot_number: '11000004',
       expiry_date: '2026-02-13',
       warehouse: 'Head Office Warehouse',
-      quantity: 84,
+      quantity: 82,
     },
     {
       product: 'Focus - INT',
@@ -190,7 +190,7 @@ exports.seed = async function (knex) {
       lot_number: '11100004',
       expiry_date: '2026-01-20',
       warehouse: 'Head Office Warehouse',
-      quantity: 27,
+      quantity: 24,
     },
     {
       product: 'Gut Health - CA',
@@ -212,7 +212,7 @@ exports.seed = async function (knex) {
       lot_number: 'NTFS2E003',
       expiry_date: '2027-11-20',
       warehouse: 'Head Office Warehouse',
-      quantity: 124,
+      quantity: 110,
     },
 
     {
@@ -227,7 +227,7 @@ exports.seed = async function (knex) {
       lot_number: '11300003',
       expiry_date: '2026-02-14',
       warehouse: 'Head Office Warehouse',
-      quantity: 29,
+      quantity: 16,
     },
     {
       product: 'Immune - CA',
@@ -241,7 +241,7 @@ exports.seed = async function (knex) {
       lot_number: 'CM78737',
       expiry_date: '2027-08-25',
       warehouse: 'Head Office Warehouse',
-      quantity: 100,
+      quantity: 97,
     },
     {
       product: 'Immune - INT',
@@ -284,7 +284,7 @@ exports.seed = async function (knex) {
       lot_number: '11400003',
       expiry_date: '2026-01-24',
       warehouse: 'Head Office Warehouse',
-      quantity: 32,
+      quantity: 31,
     },
     {
       product: 'Memory - INT',
@@ -320,7 +320,7 @@ exports.seed = async function (knex) {
       lot_number: '11500002',
       expiry_date: '2026-07-05',
       warehouse: 'Head Office Warehouse',
-      quantity: 41,
+      quantity: 53,
     },
     {
       product: 'Menopause - INT',
@@ -349,7 +349,7 @@ exports.seed = async function (knex) {
       lot_number: '12800001',
       expiry_date: '2026-03-20',
       warehouse: 'Head Office Warehouse',
-      quantity: 82,
+      quantity: 67,
     },
     {
       product: 'Mood - INT',
@@ -385,7 +385,7 @@ exports.seed = async function (knex) {
       lot_number: 'CS86736',
       expiry_date: '2027-08-11',
       warehouse: 'Head Office Warehouse',
-      quantity: 30,
+      quantity: 16,
     },
 
     {
@@ -459,7 +459,7 @@ exports.seed = async function (knex) {
       lot_number: '12300013',
       expiry_date: '2027-05-15',
       warehouse: 'Head Office Warehouse',
-      quantity: 33,
+      quantity: 32,
     },
     {
       product: 'NMN 15000 - INT',
@@ -481,7 +481,7 @@ exports.seed = async function (knex) {
       lot_number: 'VNN7E68C',
       expiry_date: '2027-09-18',
       warehouse: 'Head Office Warehouse',
-      quantity: 419,
+      quantity: 388,
     },
 
     {
@@ -489,29 +489,29 @@ exports.seed = async function (knex) {
       lot_number: 'NTSS2E002',
       expiry_date: '2027-10-20',
       warehouse: 'Head Office Warehouse',
-      quantity: 200,
+      quantity: 22,
     },
     {
       product: 'Seal Oil - 180 Softgels',
       lot_number: 'NTSS2E001',
       expiry_date: '2027-10-20',
       warehouse: 'Head Office Warehouse',
-      quantity: 89,
+      quantity: 0,
     },
-
-    {
-      product: 'NMN 3000 - CA',
-      lot_number: 'UNKNOWN',
-      expiry_date: '2000-01-01',
-      warehouse: 'Viktor Temporarily Warehouse',
-      quantity: 100,
-    },
+    
     {
       product: 'NMN 3000 - INT',
       lot_number: '12000005',
       expiry_date: '2026-07-20',
       warehouse: 'Viktor Temporarily Warehouse',
       quantity: 48,
+    },
+    {
+      product: 'NMN 6000 - CA',
+      lot_number: '12100004',
+      expiry_date: '2026-04-19',
+      warehouse: 'Viktor Temporarily Warehouse',
+      quantity: 24,
     },
     {
       product: 'NMN 6000 - INT',
@@ -532,21 +532,21 @@ exports.seed = async function (knex) {
       lot_number: '11500002',
       expiry_date: '2026-07-05',
       warehouse: 'Viktor Temporarily Warehouse',
-      quantity: 120,
+      quantity: 96,
     },
     {
       product: 'Memory - CA',
-      lot_number: 'UNKNOWN-11400003',
-      expiry_date: '2026-01-24',
+      lot_number: '11400004',
+      expiry_date: '2026-08-10',
       warehouse: 'Viktor Temporarily Warehouse',
-      quantity: 192,
+      quantity: 144,
     },
     {
       product: 'Memory - INT',
-      lot_number: 'UNKNOWN-11400004',
+      lot_number: '11400004',
       expiry_date: '2026-08-10',
       warehouse: 'Viktor Temporarily Warehouse',
-      quantity: 96,
+      quantity: 132,
     },
   ];
 
@@ -573,7 +573,9 @@ exports.seed = async function (knex) {
         lotStatus = statusIdMap['unavailable'];
       else if (new Date(lot.expiry_date) < new Date())
         lotStatus = statusIdMap['expired'];
-
+      else if (lot.quantity === 0)
+        lotStatus = statusIdMap['out_of_stock'];
+      
       return {
         id: knex.raw('uuid_generate_v4()'),
         warehouse_id: warehouseId,
@@ -581,7 +583,7 @@ exports.seed = async function (knex) {
         lot_number: lot.lot_number,
         quantity: lot.quantity,
         manufacture_date: null,
-        expiry_date: lot.expiry_date ? knex.raw('?', [lot.expiry_date]) : null, // ✅ Fixed expiry_date
+        expiry_date: lot.expiry_date ? knex.raw('?', [lot.expiry_date]) : null, // Fixed expiry_date
         inbound_date: knex.fn.now(),
         outbound_date: null,
         status_id: lotStatus,
@@ -600,10 +602,17 @@ exports.seed = async function (knex) {
     .ignore();
 
   console.log(
-    `✅ Inserted ${warehouseLotEntries.length} warehouse inventory lots.`
+    `Inserted ${warehouseLotEntries.length} warehouse inventory lots.`
   );
 
   // Fetch necessary IDs
+  const outOfStockStatusId = await fetchDynamicValue(
+    knex,
+    'warehouse_lot_status',
+    'name',
+    'out_of_stock',
+    'id'
+  );
   const inStockStatusId = await fetchDynamicValue(
     knex,
     'warehouse_lot_status',
@@ -654,7 +663,7 @@ exports.seed = async function (knex) {
     const warehouseId = warehouseIdMap[lot.warehouse];
     const inventoryId = inventoryMap[`${productId}_${locationId}`];
 
-    // 🛑 Skip if any required ID is missing
+    // Skip if any required ID is missing
     if (!inventoryId || !warehouseId) {
       console.warn(
         `Skipping inventory record: ${lot.product} at ${lot.warehouse} (Missing ID)`
@@ -662,7 +671,7 @@ exports.seed = async function (knex) {
       return acc;
     }
 
-    // 🟢 Determine if lot should count toward available stock
+    // Determine if lot should count toward available stock
     let lotStatus = inStockStatusId;
     let includeInAvailableStock = true;
 
@@ -678,15 +687,18 @@ exports.seed = async function (knex) {
     } else if (lot.expiry_date && new Date(lot.expiry_date) < new Date()) {
       lotStatus = expiredStatusId;
       includeInAvailableStock = false;
+    } else if (lot.quantity === 0) {
+      lotStatus = outOfStockStatusId;
+      includeInAvailableStock = false;
     }
-
+    
     // Initialize inventory record if it doesn't exist
     if (!acc[inventoryId]) {
       acc[inventoryId] = {
         id: knex.raw('uuid_generate_v4()'),
         warehouse_id: warehouseId,
         inventory_id: inventoryId,
-        reserved_quantity: 0, // ✅ Always 0
+        reserved_quantity: 0, // Always 0
         available_quantity: 0, // Will be updated
         warehouse_fee: 0, // Adjust as needed
         last_update: knex.fn.now(),
@@ -699,7 +711,7 @@ exports.seed = async function (knex) {
       };
     }
 
-    // ✅ Update available quantity only for active lots
+    // Update available quantity only for active lots
     if (includeInAvailableStock) {
       acc[inventoryId].available_quantity += lot.quantity;
     }
@@ -717,11 +729,11 @@ exports.seed = async function (knex) {
       .merge({ available_quantity: knex.raw('EXCLUDED.available_quantity') });
 
     console.log(
-      `✅ ${warehouseInventoryEntries.length} warehouse inventory records updated.`
+      `${warehouseInventoryEntries.length} warehouse inventory records updated.`
     );
   }
 
-  // 🟢 Update inventory statuses based on warehouse lot statuses
+  // Update inventory statuses based on warehouse lot statuses
   await knex.raw(`
     WITH inventory_status_update AS (
       SELECT
@@ -736,7 +748,7 @@ exports.seed = async function (knex) {
                 WHEN wls.name = 'expired' THEN 1
                 WHEN wls.name = 'suspended' THEN 2
                 WHEN wls.name = 'unavailable' THEN 3
-                WHEN wls.name = 'in_stock' THEN 4  -- ✅ Ensure in_stock gets selected if no other higher-priority status
+                WHEN wls.name = 'in_stock' THEN 4  -- Ensure in_stock gets selected if no other higher-priority status
                 ELSE 5
               END
             LIMIT 1
@@ -759,7 +771,7 @@ exports.seed = async function (knex) {
     WHERE i.id = isu.inventory_id;
   `);
 
-  console.log('✅ Inventory statuses updated successfully.');
+  console.log('Inventory statuses updated successfully.');
 
   // Fetch updated inventory records with correct status_id and summed quantity
   const updatedInventoryRecords = await knex('inventory as i')
@@ -775,15 +787,15 @@ exports.seed = async function (knex) {
     )
     .groupBy('i.id');
 
-  // 🟢 Prepare inventory history entries with checksum
+  // Prepare inventory history entries with checksum
   const inventoryHistoryEntries = updatedInventoryRecords.map((record) => ({
     id: knex.raw('uuid_generate_v4()'),
     inventory_id: record.inventory_id,
     inventory_action_type_id: initialLoadActionId,
     previous_quantity: 0,
-    quantity_change: record.total_quantity, // ✅ Use summed quantity
-    new_quantity: record.total_quantity, // ✅ Ensure correct total quantity
-    status_id: record.status_id, // ✅ Use updated status_id
+    quantity_change: record.total_quantity, // Use summed quantity
+    new_quantity: record.total_quantity, // Ensure correct total quantity
+    status_id: record.status_id, // Use updated status_id
     status_date: knex.fn.now(),
     timestamp: knex.fn.now(),
     source_action_id: systemActionId,
@@ -806,13 +818,13 @@ exports.seed = async function (knex) {
   // Batch insert inventory history
   if (inventoryHistoryEntries.length > 0) {
     console.log(
-      `🔄 Inserting ${inventoryHistoryEntries.length} inventory history records...`
+      `Inserting ${inventoryHistoryEntries.length} inventory history records...`
     );
     for (let i = 0; i < inventoryHistoryEntries.length; i += BATCH_SIZE) {
       const batch = inventoryHistoryEntries.slice(i, i + BATCH_SIZE);
       await knex('inventory_history').insert(batch);
       console.log(
-        `✅ Inserted batch ${i / BATCH_SIZE + 1}/${Math.ceil(inventoryHistoryEntries.length / BATCH_SIZE)}`
+        `Inserted batch ${i / BATCH_SIZE + 1}/${Math.ceil(inventoryHistoryEntries.length / BATCH_SIZE)}`
       );
     }
   }

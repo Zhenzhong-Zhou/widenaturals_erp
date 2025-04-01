@@ -1,7 +1,7 @@
 const express = require('express');
 const {
   getAllInventoriesController,
-  createInventoryRecordsController,
+  createInventoryRecordsController, getPaginatedInventorySummaryController,
 } = require('../controllers/inventory-controller');
 
 const router = express.Router();
@@ -14,5 +14,7 @@ const router = express.Router();
 router.get('/', getAllInventoriesController);
 
 router.post('/add-inventory-records', createInventoryRecordsController);
+
+router.get('/inventory-summary', getPaginatedInventorySummaryController);
 
 module.exports = router;

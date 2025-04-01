@@ -17,17 +17,17 @@ const getAllWarehouseInventoriesController = wrapAsync(
     try {
       const { page = 1, limit = 10, sortBy, sortOrder } = req.query;
 
-      const { inventories, pagination } = await fetchAllWarehouseInventories({
+      const { data, pagination } = await fetchAllWarehouseInventories({
         page: Number(page),
         limit: Number(limit),
         sortBy,
         sortOrder,
       });
-
+      
       res.status(200).json({
         success: true,
         message: 'Warehouse inventories retrieved successfully',
-        inventories,
+        data,
         pagination,
       });
     } catch (error) {

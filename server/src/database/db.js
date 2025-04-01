@@ -357,6 +357,57 @@ const paginateQuery = async ({
 };
 
 /**
+ * Wraps a complex SQL query into a count query.
+ * Used for paginating CTEs or grouped queries.
+ *
+ * @param {string} queryText - The full query you want to count rows from.
+ * @param {string} [alias='subquery'] - Optional alias for the wrapped subquery.
+ * @returns {string} A SQL string that counts the rows of the input query.
+ */
+const getCountQuery = (queryText, alias = 'subquery') => {
+  const trimmedQuery = queryText.trim().replace(/;$/, ''); // Strip semicolon
+  return `SELECT COUNT(*) AS total_count FROM (${trimmedQuery}) AS ${alias}`;
+};
+
+/**
+ * Executes a paginated query and returns results with metadata.
+ * Uses your internal `query()` function for consistency and logging.
+ *
+ * @param {object} options
+ * @param {string} dataQuery - The full SQL query WITHOUT limit/offset
+ * @param {Array} [params=[]] - Query parameters (optional)
+ * @param {number} page - Page number (1-based)
+ * @param {number} limit - Number of rows per page
+ * @returns {Promise<object>} Paginated result
+ */
+const paginateResults = async ({ dataQuery, params = [], page = 1, limit = 20 }) => {
+  const offset = (page - 1) * limit;
+  
+  // Main paginated query
+  const paginatedQuery = `${dataQuery.trim().replace(/;$/, '')} LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+  const paginatedParams = [...params, limit, offset];
+  
+  // Generate count query from original SQL
+  const countQuery = getCountQuery(dataQuery);
+  
+  const [dataRows, countResult] = await Promise.all([
+    query(paginatedQuery, paginatedParams),
+    query(countQuery, params),
+  ]);
+  
+  const totalRecords = parseInt(countResult.rows[0].total_count, 10) || 0;
+  const totalPages = Math.ceil(totalRecords / limit);
+  
+  return {
+    page,
+    limit,
+    totalRecords,
+    totalPages,
+    data: dataRows.rows,
+  };
+};
+
+/**
  * Locks a specific row in the given table using the specified lock mode.
  *
  * @param {object} client - The database client.
@@ -707,6 +758,8 @@ module.exports = {
   retry,
   retryDatabaseConnection,
   paginateQuery,
+  getCountQuery,
+  paginateResults,
   lockRow,
   lockRows,
   bulkInsert,
