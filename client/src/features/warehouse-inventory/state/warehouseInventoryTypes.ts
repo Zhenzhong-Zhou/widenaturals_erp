@@ -1,23 +1,57 @@
-export interface WarehouseInventory {
-  warehouseInventoryId: string;
-  warehouseId: string;
-  warehouseName: string;
+export interface Warehouse {
+  id: string;
+  name: string;
   storageCapacity: number;
-  locationName: string;
-  inventoryId: string;
+  location: string;
+}
+
+export interface InventoryItem {
+  id: string;
   itemType: string;
   itemName: string;
-  availableQuantity: number;
-  reservedQuantity: number;
-  warehouseFee: string;
-  lastUpdate: string;
-  createdAt: string;
-  updatedAt: string;
+}
+
+export interface QuantityInfo {
+  reserved: number;
+  available: number;
+  totalLot: number;
+  inStock: number;
+}
+
+export interface FeesInfo {
+  warehouseFee: number;
+}
+
+export interface DatesInfo {
+  lastUpdate: string | null;
+  displayStatusDate: string | null;
+  earliestManufactureDate: string | null;
+  nearestExpiryDate: string | null;
+}
+
+export interface StatusInfo {
+  display: string;
+}
+
+export interface AuditInfo {
+  createdAt: string | null;
+  updatedAt: string | null;
   createdBy: string;
   updatedBy: string;
 }
 
-export interface Pagination {
+export interface WarehouseInventory {
+  warehouseInventoryId: string;
+  warehouse: Warehouse;
+  inventory: InventoryItem;
+  quantity: QuantityInfo;
+  fees: FeesInfo;
+  dates: DatesInfo;
+  status: StatusInfo;
+  audit: AuditInfo;
+}
+
+export interface WarehouseInventoryPagination {
   page: number;
   limit: number;
   totalRecords: number;
@@ -27,8 +61,8 @@ export interface Pagination {
 export interface WarehouseInventoryResponse {
   success: boolean;
   message: string;
-  inventories: WarehouseInventory[];
-  pagination: Pagination;
+  data: WarehouseInventory[];
+  pagination: WarehouseInventoryPagination;
 }
 
 export interface WarehouseInventorySummary {
@@ -51,7 +85,7 @@ export interface WarehouseInventorySummaryResponse {
   success: boolean;
   message: string;
   formattedSummary: WarehouseInventorySummary[];
-  pagination: Pagination;
+  pagination: WarehouseInventoryPagination;
 }
 
 // Interface for a single product summary in a warehouse
@@ -74,7 +108,7 @@ export interface WarehouseProductSummaryResponse {
   success: boolean;
   message: string;
   productSummaryData: WarehouseProductSummary[];
-  pagination: Pagination;
+  pagination: WarehouseInventoryPagination;
 }
 
 export interface InventoryCreatedUpdatedInfo {
@@ -117,7 +151,7 @@ export interface WarehouseInventoryDetailsResponse {
   success: boolean;
   message: string;
   inventoryDetails: WarehouseInventoryDetail[];
-  pagination: Pagination;
+  pagination: WarehouseInventoryPagination;
 }
 
 // Interface for Warehouse Lot Adjustment Type

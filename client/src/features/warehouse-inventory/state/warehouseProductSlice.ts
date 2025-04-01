@@ -1,14 +1,14 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import {
   WarehouseProductSummary,
-  Pagination,
+  WarehouseInventoryPagination,
   WarehouseProductSummaryResponse,
 } from './warehouseInventoryTypes.ts';
 import { fetchWarehouseProductSummaryThunk } from './warehouseInventoryThunks.ts';
 
 interface WarehouseProductState {
   productSummaryData: WarehouseProductSummary[];
-  pagination: Pagination;
+  pagination: WarehouseInventoryPagination;
   loading: boolean;
   error: string | null;
 }

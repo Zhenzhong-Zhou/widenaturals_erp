@@ -2,15 +2,15 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { fetchWarehouseInventoriesThunk } from './warehouseInventoryThunks.ts';
 import {
   WarehouseInventoryResponse,
-  WarehouseInventory,
-  Pagination,
+  WarehouseInventory, WarehouseInventoryPagination,
 } from './warehouseInventoryTypes.ts';
 
 interface WarehouseInventoryState {
   inventories: WarehouseInventory[];
-  pagination: Pagination;
+  pagination: WarehouseInventoryPagination;
   loading: boolean;
   error: string | null;
+  message: string | null;
 }
 
 const initialState: WarehouseInventoryState = {
@@ -23,6 +23,7 @@ const initialState: WarehouseInventoryState = {
   },
   loading: false,
   error: null,
+  message: null,
 };
 
 const warehouseInventorySlice = createSlice({
@@ -39,15 +40,22 @@ const warehouseInventorySlice = createSlice({
       })
       .addCase(
         fetchWarehouseInventoriesThunk.fulfilled,
-        (state, action: PayloadAction<WarehouseInventoryResponse>) => {
-          state.inventories = action.payload.inventories;
+        (
+          state,
+          action: PayloadAction<WarehouseInventoryResponse>
+        ) => {
+          state.inventories = action.payload.data;
           state.pagination = action.payload.pagination;
+          state.message = action.payload.message || null;
           state.loading = false;
         }
       )
       .addCase(
         fetchWarehouseInventoriesThunk.rejected,
-        (state, action: PayloadAction<string | undefined>) => {
+        (
+          state,
+          action: PayloadAction<string | undefined>
+        ) => {
           state.loading = false;
           state.error =
             action.payload || 'Failed to load warehouse inventories';
@@ -56,5 +64,6 @@ const warehouseInventorySlice = createSlice({
   },
 });
 
-export const { resetWarehouseInventory } = warehouseInventorySlice.actions;
+export const { resetWarehouseInventory } =
+  warehouseInventorySlice.actions;
 export default warehouseInventorySlice.reducer;

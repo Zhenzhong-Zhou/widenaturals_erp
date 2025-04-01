@@ -66,9 +66,6 @@ const getWarehouseInventories = async ({
       wi.available_quantity,
       wi.warehouse_fee,
       wi.last_update,
-      wi.status_id,
-      ws.name AS status_name,
-      wi.status_date,
       wi.created_at,
       wi.updated_at,
       COALESCE(u1.firstname || ' ' || u1.lastname, 'Unknown') AS created_by,
@@ -96,7 +93,24 @@ const getWarehouseInventories = async ({
           LIMIT 1
         ),
         'unassigned'
-      ) AS display_status
+      ) AS display_status,
+      (
+        SELECT wil2.status_date
+        FROM warehouse_inventory_lots wil2
+        JOIN warehouse_lot_status wls2 ON wil2.status_id = wls2.id
+        WHERE wil2.inventory_id = wi.inventory_id
+          AND wil2.warehouse_id = wi.warehouse_id
+        ORDER BY
+          CASE
+            WHEN wls2.name = 'expired' THEN 1
+            WHEN wls2.name = 'suspended' THEN 2
+            WHEN wls2.name = 'unavailable' THEN 3
+            WHEN wls2.name = 'out_of_stock' THEN 4
+            WHEN wls2.name = 'in_stock' THEN 5
+            ELSE 6
+          END
+        LIMIT 1
+      ) AS display_status_date
     FROM ${tableName}
     ${joins.join('\n')}
     WHERE ${whereClause}

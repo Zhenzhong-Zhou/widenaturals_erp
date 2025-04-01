@@ -1,6 +1,6 @@
 export type {
   WarehouseInventory,
-  Pagination,
+  WarehouseInventoryPagination,
   WarehouseInventoryResponse,
   WarehouseInventorySummaryResponse,
   WarehouseProductSummaryResponse,

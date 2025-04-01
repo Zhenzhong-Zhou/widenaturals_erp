@@ -28,17 +28,17 @@ const transformWarehouseInventorySummary = (row) => {
     },
     dates: {
       lastUpdate: row.last_update ? new Date(row.last_update) : null,
-      statusDate: row.status_date ? new Date(row.status_date) : null,
       earliestManufactureDate: row.earliest_manufacture_date
         ? new Date(row.earliest_manufacture_date)
         : null,
       nearestExpiryDate: row.nearest_expiry_date
         ? new Date(row.nearest_expiry_date)
         : null,
+      displayStatusDate: row.display_status_date
+        ? new Date(row.display_status_date)
+        : null,
     },
     status: {
-      id: row.status_id,
-      name: row.status_name,
       display: row.display_status,
     },
     audit: {
