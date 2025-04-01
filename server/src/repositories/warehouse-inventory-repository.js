@@ -35,9 +35,9 @@ const getWarehouseInventories = async ({
   sortOrder = ['ASC', 'DESC'].includes(sortOrder?.toUpperCase())
     ? sortOrder.toUpperCase()
     : 'ASC';
-
+  
   const tableName = 'warehouse_inventory wi';
-
+  
   const joins = [
     'LEFT JOIN warehouses w ON wi.warehouse_id = w.id',
     'LEFT JOIN inventory i ON wi.inventory_id = i.id',
@@ -46,10 +46,12 @@ const getWarehouseInventories = async ({
     'LEFT JOIN warehouse_lot_status ws ON wi.status_id = ws.id',
     'LEFT JOIN users u1 ON wi.created_by = u1.id',
     'LEFT JOIN users u2 ON wi.updated_by = u2.id',
+    'LEFT JOIN warehouse_inventory_lots wil ON wi.warehouse_id = wil.warehouse_id AND wi.inventory_id = wil.inventory_id',
+    'LEFT JOIN warehouse_lot_status wls ON wil.status_id = wls.id',
   ];
-
-  const whereClause = '1=1'; // No filters by default
-
+  
+  const whereClause = '1=1';
+  
   const baseQuery = `
     SELECT
       wi.id AS warehouse_inventory_id,
@@ -70,11 +72,39 @@ const getWarehouseInventories = async ({
       wi.created_at,
       wi.updated_at,
       COALESCE(u1.firstname || ' ' || u1.lastname, 'Unknown') AS created_by,
-      COALESCE(u2.firstname || ' ' || u2.lastname, 'Unknown') AS updated_by
+      COALESCE(u2.firstname || ' ' || u2.lastname, 'Unknown') AS updated_by,
+      SUM(wil.quantity) FILTER (WHERE wls.name = 'in_stock') AS in_stock_quantity,
+      SUM(wil.quantity) AS total_lot_quantity,
+      MIN(wil.manufacture_date) AS earliest_manufacture_date,
+      MIN(wil.expiry_date) AS nearest_expiry_date,
+      COALESCE(
+        (
+          SELECT wls2.name
+          FROM warehouse_inventory_lots wil2
+          JOIN warehouse_lot_status wls2 ON wil2.status_id = wls2.id
+          WHERE wil2.inventory_id = wi.inventory_id
+            AND wil2.warehouse_id = wi.warehouse_id
+          ORDER BY
+            CASE
+              WHEN wls2.name = 'expired' THEN 1
+              WHEN wls2.name = 'suspended' THEN 2
+              WHEN wls2.name = 'unavailable' THEN 3
+              WHEN wls2.name = 'out_of_stock' THEN 4
+              WHEN wls2.name = 'in_stock' THEN 5
+              ELSE 6
+            END
+          LIMIT 1
+        ),
+        'unassigned'
+      ) AS display_status
     FROM ${tableName}
-    ${joins.join(' ')}
+    ${joins.join('\n')}
+    WHERE ${whereClause}
+    GROUP BY
+      wi.id, w.id, l.id, i.id, p.product_name, i.identifier,
+      ws.id, ws.name, u1.firstname, u1.lastname, u2.firstname, u2.lastname
   `;
-
+  
   try {
     return await retry(async () => {
       return await paginateQuery({
