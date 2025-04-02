@@ -160,10 +160,10 @@ const createSalesOrder = async (salesOrderData) => {
       const salesOrderSql = `
         INSERT INTO sales_orders (
           id, customer_id, order_date, discount_id, discount_amount, subtotal,
-          tax_rate_id, tax_amount, delivery_method_id, total_amount,
-          order_status_id, status_date, created_by, updated_at, updated_by
+          tax_rate_id, tax_amount, delivery_method_id, total_amount, created_by,
+          updated_at, updated_by
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), $12, $13, $14)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
         RETURNING id;
       `;
 
@@ -178,7 +178,6 @@ const createSalesOrder = async (salesOrderData) => {
         taxAmount, // Store calculated tax amount
         salesOrderData.delivery_method_id || null,
         finalTotal, // Store final total after discount and tax
-        order_status_id,
         salesOrderData.created_by,
         null,
         null,

@@ -34,12 +34,6 @@ exports.up = async function (knex) {
         .notNullable()
         .references('id')
         .inTable('delivery_methods');
-      table
-        .uuid('order_status_id')
-        .notNullable()
-        .references('id')
-        .inTable('order_status');
-      table.timestamp('status_date', { useTz: true }).defaultTo(knex.fn.now());
       table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
       table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
       table.uuid('created_by').references('id').inTable('users');
