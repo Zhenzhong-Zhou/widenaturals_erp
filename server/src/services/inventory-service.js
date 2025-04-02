@@ -38,7 +38,7 @@ const {
 } = require('../repositories/lot-adjustment-type-repository');
 const { generateChecksum } = require('../utils/crypto-utils');
 const { transformPaginatedInventorySummary, transformPaginatedInventoryRecords } = require('../transformers/inventory-transformer');
-const { canViewInventorySummary } = require('../business/inventory-bussiness-logic');
+const { canViewInventorySummary } = require('../business/inventory-business-logic');
 
 /**
  * Fetch all inventory records with pagination, sorting, and business logic.
