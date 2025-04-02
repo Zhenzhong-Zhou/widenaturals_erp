@@ -1,30 +1,34 @@
 // Interface for a single inventory item
 export interface InventoryItem {
-  inventory_id: string;
-  item_type: string;
-  product_id: string;
-  item_name: string;
-  location_id: string;
-  warehouse_id: string;
-  place_name: string;
-  inbound_date: string; // ISO Timestamp
-  outbound_date: string | null; // ISO Timestamp or null
-  last_update: string; // ISO Timestamp
-  status_id: string;
-  status_name: string;
-  status_date: string; // ISO Timestamp
-  created_at: string; // ISO Timestamp
-  updated_at: string; // ISO Timestamp
-  created_by: string;
-  updated_by: string;
-  warehouse_fee: number;
-  reserved_quantity: number;
-  available_quantity: number;
-  total_lots: number;
-  total_lot_quantity: number;
-  earliest_manufacture_date: string; // ISO Timestamp
-  nearest_expiry_date: string; // ISO Timestamp
-  is_expired: boolean;
+  inventoryId: string;
+  itemType: string;
+  productId: string;
+  itemName: string;
+  locationId: string;
+  warehouseId: string | null;
+  placeName: string;
+  inboundDate: string | null;
+  outboundDate: string | null;
+  lastUpdate: string | null;
+  statusId: string;
+  statusName: string;
+  statusDate: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+  createdBy: string;
+  updatedBy: string;
+  warehouseFee: number;
+  reservedQuantity: number;
+  availableQuantity: number;
+  totalLotQuantity: number;
+  earliestManufactureDate: string | null;
+  nearestExpiryDate: string | null;
+  displayStatus: string;
+  isExpired: boolean;
+  isNearExpiry: boolean;
+  isLowStock: boolean;
+  stockLevel: 'none' | 'critical' | 'low' | 'normal';
+  expirySeverity: 'expired' | 'expired_soon' | 'critical' | 'warning' | 'notice' | 'safe' | 'unknown';
 }
 
 // Pagination Interface
@@ -39,7 +43,7 @@ export interface AllInventoriesPagination {
 export interface InventoryResponse {
   success: boolean;
   message: string;
-  processedData: InventoryItem[];
+  data: InventoryItem[];
   pagination: AllInventoriesPagination;
 }
 

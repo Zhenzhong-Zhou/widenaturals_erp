@@ -9,7 +9,7 @@ const getAllInventoriesController = wrapAsync(async (req, res, next) => {
   try {
     const { page, limit, sortBy, sortOrder } = req.query;
 
-    const { processedData, pagination } = await fetchAllInventories({
+    const { data, pagination } = await fetchAllInventories({
       page: parseInt(page, 10) || 1,
       limit: parseInt(limit, 10) || 10,
       sortBy,
@@ -19,7 +19,7 @@ const getAllInventoriesController = wrapAsync(async (req, res, next) => {
     res.status(200).json({
       success: true,
       message: 'Inventory data fetched successfully',
-      processedData,
+      data,
       pagination,
     });
   } catch (error) {

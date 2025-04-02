@@ -1,10 +1,11 @@
 import { FC } from 'react';
 import { CustomTable } from '@components/index.ts';
 import { InventoryItem } from '../state/inventoryTypes.ts';
-import { capitalizeFirstLetter } from '@utils/textUtils.ts';
+import { capitalizeFirstLetter, formatCurrency } from '@utils/textUtils.ts';
 import { formatDate, formatDateTime } from '@utils/dateTimeUtils.ts';
 import Box from '@mui/material/Box';
-import { Link } from 'react-router-dom';
+// import { Link } from 'react-router-dom';
+import { ExpirySeverityChip, InventoryStatusChip, IsExpiredChip, NearExpiryChip, StockLevelChip } from '../index.ts';
 
 interface InventoryTableProps {
   data: InventoryItem[];
@@ -26,94 +27,115 @@ const InventoryTable: FC<InventoryTableProps> = ({
   onRowsPerPageChange,
 }) => {
   const columns = [
-    { id: 'place_name', label: 'Place Name', sortable: true },
+    { id: 'placeName', label: 'Place Name', sortable: true },
+    
     {
-      id: 'item_type',
+      id: 'itemType',
       label: 'Item Type',
       sortable: true,
-      format: (value: any) => capitalizeFirstLetter(value),
+      format: (value: string) => capitalizeFirstLetter(value),
     },
     {
-      id: 'item_name',
+      id: 'itemName',
       label: 'Item Name',
       sortable: true,
-      format: (value: any) => value,
-      renderCell: (row: Record<string, any>) => (
-        <Link
-          to={`/inventory/${row.inventory_id || 'unknown'}`}
-          style={{ textDecoration: 'none', color: 'blue' }}
-        >
-          {row.item_name}
-        </Link>
+      // renderCell: (row: InventoryItem) => (
+      //   <Link
+      //     to={`/inventory/${row.inventoryId}`}
+      //     style={{ textDecoration: 'none', color: 'blue' }}
+      //   >
+      //     {row.itemName}
+      //   </Link>
+      // ),
+    },
+    {
+      id: 'availableQuantity',
+      label: 'Available Qty',
+      sortable: true,
+      format: (value: number) => value ?? 0,
+    },
+    {
+      id: 'reservedQuantity',
+      label: 'Reserved Qty',
+      sortable: true,
+      format: (value: number) => value ?? 0,
+    },
+    {
+      id: 'totalLotQuantity',
+      label: 'Lot Qty',
+      sortable: true,
+      format: (value: number) => value ?? 0,
+    },
+    {
+      id: 'displayStatus',
+      label: 'Status',
+      sortable: true,
+      renderCell: (row: InventoryItem) => <InventoryStatusChip status={row.displayStatus} />,
+    },
+    {
+      id: 'statusDate',
+      label: 'Status Date',
+      sortable: true,
+      format: (value: string) => formatDate(value),
+    },
+    {
+      id: 'earliestManufactureDate',
+      label: 'Earliest MFG',
+      sortable: true,
+      format: (value: string) => formatDate(value),
+    },
+    {
+      id: 'nearestExpiryDate',
+      label: 'Nearest Expiry',
+      sortable: true,
+      format: (value: string) => formatDate(value),
+    },
+    {
+      id: 'warehouseFee',
+      label: 'Storage Fee',
+      sortable: true,
+      format: (value: number) => formatCurrency(value),
+    },
+    {
+      id: 'createdAt',
+      label: 'Created At',
+      sortable: true,
+      format: (value: string) => formatDateTime(value),
+    },
+    {
+      id: 'updatedAt',
+      label: 'Updated At',
+      sortable: true,
+      format: (value: string) => formatDateTime(value),
+    },
+    { id: 'createdBy', label: 'Created By', sortable: false },
+    { id: 'updatedBy', label: 'Updated By', sortable: false },
+    
+    {
+      id: 'isExpired',
+      label: 'Expired',
+      sortable: true,
+      renderCell: (row: InventoryItem) => <IsExpiredChip isExpired={row.isExpired} />,
+    },
+    {
+      id: 'isNearExpiry',
+      label: 'Near Expiry',
+      sortable: true,
+      renderCell: (row: InventoryItem) => <NearExpiryChip isNearExpiry={row.isNearExpiry} />,
+    },
+    {
+      id: 'stockLevel',
+      label: 'Stock Level',
+      sortable: true,
+      renderCell: (row: InventoryItem) => (
+        <StockLevelChip stockLevel={row.stockLevel} isLowStock={row.isLowStock} />
       ),
     },
     {
-      id: 'available_quantity',
-      label: 'Available Quantity',
+      id: 'expirySeverity',
+      label: 'Expiry Severity',
       sortable: true,
-      format: (value: any) => value | 0,
-    },
-    {
-      id: 'reserved_quantity',
-      label: 'Reserved Quantity',
-      sortable: true,
-      format: (value: any) => value | 0,
-    },
-    {
-      id: 'total_lot_quantity',
-      label: 'Total Lot Quantity',
-      sortable: true,
-      format: (value: any) => value | 0,
-    },
-    {
-      id: 'status_name',
-      label: 'Status',
-      sortable: true,
-      format: (value: any) => capitalizeFirstLetter(value),
-    },
-    {
-      id: 'status_date',
-      label: 'Status Date',
-      sortable: true,
-      format: (value: any) => formatDateTime(value),
-    },
-    {
-      id: 'earliest_manufacture_date',
-      label: 'Earliest Manufacture Date',
-      sortable: true,
-      format: (value: any) => formatDate(value),
-    },
-    {
-      id: 'nearest_expiry_date',
-      label: 'Nearest Expiry Date',
-      sortable: true,
-      format: (value: any) => formatDate(value),
-    },
-    {
-      id: 'warehouse_fee',
-      label: 'Storage Fee',
-      sortable: true,
-      format: (value: any) => `$${value.toFixed(2)}`,
-    },
-    {
-      id: 'created_at',
-      label: 'Created At',
-      sortable: true,
-      format: (value: any) => formatDateTime(value),
-    },
-    {
-      id: 'updated_at',
-      label: 'Updated At',
-      sortable: true,
-      format: (value: any) => formatDateTime(value),
-    },
-    { id: 'created_by', label: 'Created By', sortable: false },
-    { id: 'updated_by', label: 'Updated By', sortable: false },
-    {
-      id: 'is_expired',
-      label: 'Expired',
-      sortable: false,
-      format: (value: boolean) => (value ? 'Yes' : 'No'),
+      renderCell: (row: InventoryItem) => <ExpirySeverityChip severity={row.expirySeverity} />,
     },
   ];
 

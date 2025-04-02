@@ -84,7 +84,7 @@ const InventorySummaryTable: FC<InventorySummaryTableProps> = ({
       id: 'status',
       label: 'Status',
       sortable: true,
-      renderCell: (row: InventorySummary) => InventoryStatusChip(row.status),
+      renderCell: (row: InventorySummary) =>  <InventoryStatusChip status={row.status} />,
     },
     {
       id: 'stockLevel',

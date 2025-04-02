@@ -37,7 +37,7 @@ const inventorySlice = createSlice({
         fetchAllInventories.fulfilled,
         (state, action: PayloadAction<InventoryResponse>) => {
           state.loading = false;
-          state.inventories = action.payload.processedData; // Ensure this matches the API response key
+          state.inventories = action.payload.data; // Ensure this matches the API response key
           state.pagination = action.payload.pagination;
         }
       )

@@ -37,7 +37,7 @@ const {
   getWarehouseLotAdjustmentType,
 } = require('../repositories/lot-adjustment-type-repository');
 const { generateChecksum } = require('../utils/crypto-utils');
-const { transformPaginatedInventorySummary } = require('../transformers/inventory-transformer');
+const { transformPaginatedInventorySummary, transformPaginatedInventoryRecords } = require('../transformers/inventory-transformer');
 const { canViewInventorySummary } = require('../business/inventory-bussiness-logic');
 
 /**
@@ -56,22 +56,14 @@ const fetchAllInventories = async ({ page, limit, sortBy, sortOrder }) => {
     );
 
     // Fetch inventory records from repository
-    const { data, pagination } = await getInventories({
+    const rawResult = await getInventories({
       page,
       limit,
       sortBy,
       sortOrder,
     });
-
-    // todo: not in stock display boolean, expired or close expired or something else 6<=x<=12
-    // Business Logic: Mark expired items
-    const processedData = data.map((item) => ({
-      ...item,
-      is_expired: item.expiry_date && new Date(item.expiry_date) < new Date(), // If expiry_date is in the past, mark as expired
-      warehouse_fee: parseFloat(item.warehouse_fee) || 0, // Ensure warehouse_fee is always a number
-    }));
-
-    return { processedData, pagination };
+    
+    return transformPaginatedInventoryRecords(rawResult);
   } catch (error) {
     logError('Error fetching inventory:', error);
     throw AppError.serviceError('Failed to fetch inventory');

@@ -29,7 +29,7 @@ const InventoryPage = () => {
     error,
     refresh,
   } = useInventories(page, limit);
-  
+  console.log(inventories)
   const {
     inventorySummaryData,
     inventorySummaryPagination,
@@ -42,6 +42,7 @@ const InventoryPage = () => {
   // Fetch inventory summary only when that tab is active
   useEffect(() => {
     if (tab === 0) fetchSummary(page, limit);
+    else fetchSummary(page, limit);
   }, [page, limit, tab]);
   
   const handleTabChange = (_: SyntheticEvent, newValue: number) => {

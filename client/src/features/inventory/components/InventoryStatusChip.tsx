@@ -1,8 +1,13 @@
-import { Chip } from "@mui/material";
+import { FC } from 'react';
+import { Chip } from '@mui/material';
 import { capitalizeFirstLetter } from '@utils/textUtils.ts';
 import { useThemeContext } from '../../../context/ThemeContext.tsx';
 
-const InventoryStatusChip = (status: string) => {
+interface Props {
+  status: string;
+}
+
+const InventoryStatusChip: FC<Props> = ({ status }) => {
   const { theme } = useThemeContext();
   
   const statusKeys = ['in_stock', 'out_of_stock', 'suspended', 'unassigned'] as const;
@@ -15,7 +20,9 @@ const InventoryStatusChip = (status: string) => {
     unassigned: theme.palette.text.disabled,
   };
   
-  const safeStatus = statusKeys.includes(status as StatusKey) ? (status as StatusKey) : 'unassigned';
+  const safeStatus = statusKeys.includes(status as StatusKey)
+    ? (status as StatusKey)
+    : 'unassigned';
   
   return (
     <Chip
@@ -23,6 +30,7 @@ const InventoryStatusChip = (status: string) => {
       sx={{
         border: `1px solid ${customColorMap[safeStatus]}`,
         color: customColorMap[safeStatus],
+        fontWeight: 500,
       }}
       size="small"
       variant="outlined"
