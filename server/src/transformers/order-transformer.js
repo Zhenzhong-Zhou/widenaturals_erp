@@ -1,3 +1,4 @@
+const AppError = require('../utils/AppError');
 /**
  * Transforms raw order data into a structured format.
  *
@@ -96,7 +97,44 @@ const transformOrderDetails = (orderDetails) => {
   };
 };
 
+/**
+ * Transforms raw SQL rows into structured order + item format.
+ *
+ * @param {Array} rows - Raw rows returned from the SQL query.
+ * @returns {{
+ *   order_status_id: string,
+ *   order_status_name: string,
+ *   items: Array<{
+ *     product_id: string,
+ *     quantity_ordered: number,
+ *     order_item_status_id: string,
+ *     order_item_status_name: string
+ *   }>
+ * }} - Transformed order structure with item-level status details.
+ */
+const transformOrderStatusAndItems = (rows) => {
+  if (!rows || rows.length === 0) {
+    throw AppError.transformerError('No data found to transform.');
+  }
+  
+  const { order_status_id, order_status_name } = rows[0];
+  
+  const orderItems = rows.map((row) => ({
+    product_id: row.product_id,
+    quantity_ordered: Number(row.quantity_ordered),
+    order_item_status_id: row.order_item_status_id,
+    order_item_status_name: row.order_item_status_name,
+  }));
+  
+  return {
+    order_status_id,
+    order_status_name,
+    orderItems,
+  };
+};
+
 module.exports = {
   transformAllOrders,
-  transformOrderDetails
+  transformOrderDetails,
+  transformOrderStatusAndItems,
 };

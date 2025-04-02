@@ -5,9 +5,10 @@ const { insertInventoryAllocation } = require('../repositories/inventory-allocat
 const { logError } = require('../utils/logger-helper');
 const { transformOrderStatusAndItems } = require('../transformers/order-transformer');
 const { transformWarehouseLotResult } = require('../transformers/warehouse-inventory-lot-transformer');
+const { getStatusValue } = require('../database/db');
 
 /**
- * Allocates inventory for a confirmed order based on FIFO or FEFO strategy.
+ * Allocates inventory for a confirmed order item using FIFO or FEFO.
  *
  * @param {Object} params - Allocation input values.
  * @param {string} params.productId - ID of the product to allocate.
@@ -20,14 +21,19 @@ const { transformWarehouseLotResult } = require('../transformers/warehouse-inven
  * @throws {AppError} - If the order is invalid or inventory is insufficient.
  */
 const allocateInventoryForOrder = async ({
-                                                  productId,
-                                                  quantity,
-                                                  strategy = 'FEFO',
-                                                  orderId,
-                                                  warehouseId,
-                                                  userId,
-                                                }) => {
+                                           productId,
+                                           quantity,
+                                           strategy = 'FEFO',
+                                           orderId,
+                                           warehouseId,
+                                           userId,
+                                         }) => {
   try {
+    // 0. Validate quantity
+    if (typeof quantity !== 'number' || quantity <= 0) {
+      throw AppError.validationError('Quantity must be a positive number greater than zero.');
+    }
+    
     // 1. Fetch and transform order status and items
     const rawOrderResult = await getOrderStatusAndItems(orderId);
     if (!rawOrderResult || rawOrderResult.length === 0) {
@@ -35,47 +41,69 @@ const allocateInventoryForOrder = async ({
     }
     
     const {
-      order_status_id,
       order_status_name,
-      items,
+      orderItems,
     } = transformOrderStatusAndItems(rawOrderResult);
     
+    // 2. Validate order-level status
     if (!order_status_name || order_status_name.toLowerCase() !== 'confirmed') {
       throw AppError.validationError(
         `Order must be in 'confirmed' status before allocation. Current: ${order_status_name}`
       );
     }
     
-    if (!items || items.length === 0) {
-      throw AppError.notFoundError('Order has no items.');
+    // 3. Match the product in the order
+    const orderItem = orderItems.find((item) => item.product_id === productId);
+    if (!orderItem) {
+      throw AppError.validationError(`Product ${productId} is not part of the order.`);
     }
     
-    // 2. Match the product in the order
-    const matchingItem = items.find((item) => item.product_id === productId);
-    if (!matchingItem) {
-      throw AppError.validationError('This product is not part of the order.');
-    }
-    
-    if (quantity > matchingItem.quantity_ordered) {
+    // 4. Validate item-level status
+    if (
+      !orderItem.order_item_status_name ||
+      orderItem.order_item_status_name.toLowerCase() !== 'confirmed'
+    ) {
       throw AppError.validationError(
-        `Requested quantity (${quantity}) exceeds ordered quantity (${matchingItem.quantity_ordered}).`
+        `Order item for product ${productId} is not confirmed. Current status: ${orderItem.order_item_status_name}`
       );
     }
     
-    // 3. Find best lot to allocate
-    const rawInventoryResult = await getAvailableLotForAllocation(productId, warehouseId, quantity, strategy);
-    const { warehouse_inventory_lot_id, inventory_id } = transformWarehouseLotResult(rawInventoryResult);
-    if (!warehouse_inventory_lot_id) {
-      throw AppError.notFoundError('No available inventory to fulfill this order.');
+    // 5. Validate quantity
+    if (quantity > orderItem.quantity_ordered) {
+      throw AppError.validationError(
+        `Requested quantity (${quantity}) exceeds ordered quantity (${orderItem.quantity_ordered}) for product ${productId}.`
+      );
     }
     
-    // 4. Create inventory allocation
+    // 6. Find inventory lot using FIFO/FEFO
+    const rawLot = await getAvailableLotForAllocation(productId, warehouseId, quantity, strategy);
+    const { warehouse_inventory_lot_id, inventory_id } = transformWarehouseLotResult(rawLot);
+    
+    if (!warehouse_inventory_lot_id) {
+      throw AppError.notFoundError(`No available inventory for product ${productId} in warehouse ${warehouseId}.`);
+    }
+    
+    // 7. Determine allocation status
+    const statusCode =
+      quantity < orderItem.quantity_ordered ? 'ALLOC_PARTIAL' : 'ALLOC_COMPLETED';
+    
+    const status_id = await getStatusValue({
+      table: 'inventory_allocation_status',
+      where: { code: statusCode },
+      select: 'id',
+    });
+    
+    if (!status_id) {
+      throw AppError.validationError(`Invalid allocation status code: ${statusCode}`);
+    }
+    
+    // 8. Insert allocation
     return await insertInventoryAllocation({
-      inventory_id: inventory_id,
+      inventory_id,
       warehouse_id: warehouseId,
       lot_id: warehouse_inventory_lot_id,
       allocated_quantity: quantity,
-      status_id: order_status_id,
+      status_id,
       order_id: orderId,
       created_by: userId,
       updated_by: userId,

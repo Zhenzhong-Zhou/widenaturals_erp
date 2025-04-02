@@ -746,6 +746,41 @@ const formatBulkUpdateQuery = async (
   });
 };
 
+/**
+ * Retrieves a status value from a given table by `code` or `id`.
+ *
+ * @param {Object} params
+ * @param {string} params.table - The table name to search (e.g., 'inventory_allocation_status')
+ * @param {Object} params.where - The where clause key-value, e.g., { code: 'ALLOC_COMPLETED' } or { id: 'uuid' }
+ * @param {string} params.select - The column to return (e.g., 'id' or 'code')
+ * @returns {Promise<string|null>} - The matched value or null
+ * @throws {AppError} - On database or input validation errors
+ */
+const getStatusValue = async ({ table, where, select }) => {
+  if (!table || typeof where !== 'object' || !select) {
+    throw AppError.validationError('Invalid parameters for getStatusValue.');
+  }
+  
+  const whereKey = Object.keys(where)[0];
+  const whereValue = where[whereKey];
+  
+  const sql = `
+    SELECT ${select}
+    FROM ${table}
+    WHERE ${whereKey} = $1
+    LIMIT 1
+  `;
+  
+  try {
+    const result = await query(sql, [whereValue]);
+    return result.rows?.[0]?.[select] || null;
+  } catch (error) {
+    throw AppError.databaseError(
+      `Failed to fetch ${select} from ${table}: ${error.message}`
+    );
+  }
+};
+
 // Export the utilities
 module.exports = {
   pool,
@@ -764,4 +799,5 @@ module.exports = {
   lockRows,
   bulkInsert,
   formatBulkUpdateQuery,
+  getStatusValue,
 };

@@ -224,7 +224,37 @@ class AppError extends Error {
       ...options,
     });
   }
-
+  
+  static businessError(message, options = {}) {
+    return new AppError(message, 400, {
+      type: 'BusinessLogicError',
+      code: 'BUSINESS_LOGIC_ERROR',
+      logLevel: 'warn',
+      isExpected: true,
+      ...options,
+    });
+  }
+  
+  static controllerError(message, options = {}) {
+    return new AppError(message, 400, {
+      type: 'ControllerError',
+      code: 'CONTROLLER_ERROR',
+      logLevel: 'warn',
+      isExpected: true,
+      ...options,
+    });
+  }
+  
+  static transformerError(message, options = {}) {
+    return new AppError(message, 500, {
+      type: 'TransformerError',
+      code: 'TRANSFORMER_ERROR',
+      logLevel: 'error',
+      isExpected: false,
+      ...options,
+    });
+  }
+  
   // Specialized Errors
   static fileUploadError(message, options = {}) {
     return new AppError(message, 400, {

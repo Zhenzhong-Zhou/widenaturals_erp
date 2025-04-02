@@ -392,9 +392,48 @@ const getAllOrders = async ({
   }
 };
 
+/**
+ * Fetches the order status and all associated items by order ID.
+ * Used for validation and inventory allocation preparation.
+ *
+ * @param {string} orderId - The UUID of the order.
+ * @returns {Promise<{order_id: string, order_status_id: string, order_status_name: string, items: {product_id: string, quantity_ordered: number}[]}>}
+ * @throws {AppError} - If the order is not found or has no items.
+ */
+const getOrderStatusAndItems = async (orderId) => {
+  const sql = `
+    SELECT
+      o.order_status_id,
+      os.name AS order_status_name,
+      oi.product_id,
+      oi.quantity_ordered,
+      oi.status_id AS order_item_status_id,
+      ios.name AS order_item_status_name
+    FROM orders o
+    JOIN order_status os ON o.order_status_id = os.id
+    JOIN order_items oi ON oi.order_id = o.id
+    JOIN order_status ios ON oi.status_id = ios.id
+    WHERE o.id = $1
+  `;
+  
+  try {
+    const result = await retry(() => query(sql, [orderId]));
+    
+    if (!result.rows || result.rows.length === 0) {
+      return null;
+    }
+    
+    return result.rows;
+  } catch (error) {
+    logError('Error fetching order and items:', error);
+    throw AppError.databaseError('Failed to fetch order and items: ' + error.message);
+  }
+};
+
 module.exports = {
   createOrder,
   getOrderDetailsById,
   updateOrderData,
   getAllOrders,
+  getOrderStatusAndItems,
 };

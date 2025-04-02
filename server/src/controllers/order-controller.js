@@ -4,7 +4,6 @@ const {
 } = require('../services/order-service');
 const AppError = require('../utils/AppError');
 const wrapAsync = require('../utils/wrap-async');
-const { getUser } = require('../repositories/user-repository');
 const { logError } = require('../utils/logger-helper');
 
 /**

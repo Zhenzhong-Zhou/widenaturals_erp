@@ -30,6 +30,7 @@ const deliveryMethodRoutes = require('./delivery-methods');
 const orderTypeRoutes = require('./order-types');
 const orderRoutes = require('./orders');
 const taxRateRoutes = require('./tax-rates');
+const inventoryAllocationRoutes = require('./inventory-allocation');
 const { createApiRateLimiter } = require('../middlewares/rate-limiter');
 const authenticate = require('../middlewares/authenticate');
 
@@ -128,5 +129,8 @@ router.use('/orders', authenticate(), orderRoutes);
 router.use('/order-types', authenticate(), orderTypeRoutes);
 
 router.use('/tax-rates', authenticate(), taxRateRoutes);
+
+// router.use('/inventory-allocation', authenticate(), inventoryAllocationRoutes);
+router.use('/inventory-allocation',  inventoryAllocationRoutes);
 
 module.exports = router;

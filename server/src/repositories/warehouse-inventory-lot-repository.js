@@ -548,7 +548,7 @@ const updateStatus = async () => {
                 WHEN wls.name = 'expired' THEN 1
                 WHEN wls.name = 'suspended' THEN 2
                 WHEN wls.name = 'unavailable' THEN 3
-                WHEN wls.name = 'in_stock' THEN 4  -- ✅ Ensure in_stock gets selected if no other higher-priority status
+                WHEN wls.name = 'in_stock' THEN 4  -- Ensure in_stock gets selected if no other higher-priority status
                 ELSE 5
               END
             LIMIT 1
@@ -572,8 +572,61 @@ const updateStatus = async () => {
     `;
 };
 
+/**
+ * Retrieves the most suitable inventory lot for allocation based on the chosen strategy (FIFO or FEFO).
+ *
+ * @param {string} productId - The ID of the product to allocate.
+ * @param {string} warehouseId - The ID of the warehouse to check.
+ * @param {number} quantityNeeded - The required quantity to allocate.
+ * @param {'FIFO' | 'FEFO'} [strategy='FEFO'] - The allocation strategy:
+ *        - 'FIFO': First In, First Out (based on inbound_date)
+ *        - 'FEFO': First Expired, First Out (based on expiry_date)
+ * @returns {Promise<object | null>} The best available lot for allocation, or null if none found.
+ */
+const getAvailableLotForAllocation = async (
+  productId,
+  warehouseId,
+  quantityNeeded,
+  strategy = 'FEFO'
+) => {
+  const orderBy = strategy === 'FEFO' ? 'wil.expiry_date ASC' : 'wil.inbound_date ASC';
+  console.log(productId,
+    warehouseId,
+    quantityNeeded)
+  const sql = `
+    SELECT wil.*
+    FROM warehouse_inventory_lots wil
+    JOIN inventory i ON wil.inventory_id = i.id
+    JOIN products p ON i.product_id = p.id
+    JOIN warehouses w ON wil.warehouse_id = w.id
+    WHERE i.product_id = $1
+      AND wil.warehouse_id = $2
+      AND wil.quantity >= $3
+      AND wil.status_id = (
+        SELECT id FROM warehouse_lot_status WHERE LOWER(name) = 'in_stock' LIMIT 1
+      )
+      AND p.status_id = (
+        SELECT id FROM status WHERE LOWER(name) = 'active' LIMIT 1
+      )
+      AND w.status_id = (
+        SELECT id FROM status WHERE LOWER(name) = 'active' LIMIT 1
+      )
+    ORDER BY ${orderBy}
+    LIMIT 1;
+  `;
+  
+  try {
+    const result = await retry( () => query(sql, [productId, warehouseId, quantityNeeded]));
+    return result.rows[0] || null;
+  } catch (error) {
+    logError('Error fetching available lot for allocation:', error);
+    throw AppError.databaseError('Failed to fetch available lot for allocation');
+  }
+};
+
 module.exports = {
   adjustWarehouseInventoryLots,
   checkWarehouseInventoryLotExists,
   insertWarehouseInventoryLots,
+  getAvailableLotForAllocation,
 };
