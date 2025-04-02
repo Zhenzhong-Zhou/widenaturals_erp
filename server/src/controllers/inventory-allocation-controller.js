@@ -1,7 +1,6 @@
 const { allocateMultipleInventoryItems } = require('../services/inventory-allocation-service');
 const AppError = require('../utils/AppError');
 const wrapAsync = require('../utils/wrap-async');
-const { getUser } = require('../repositories/user-repository');
 
 /**
  * Controller to handle inventory allocation for an order.
@@ -12,10 +11,7 @@ const allocateMultipleInventoryItemsController = wrapAsync(async (req, res, next
     const { order_id } = req.params;
     const { strategy: defaultStrategy = 'FEFO', items } = req.body;
     
-    // todo: You can replace this with actual `req.user.id` if auth is integrated
-    // const userId = req.user.id;
-    const user = await getUser(null, 'email', 'root@widenaturals.com');
-    const userId = user.id;
+    const userId = req.user.id;
     
     if (!order_id || !items || !Array.isArray(items) || items.length === 0) {
       throw AppError.validationError('Order ID and at least one allocation item are required.');

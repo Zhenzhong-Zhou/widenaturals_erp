@@ -19,20 +19,38 @@ exports.seed = async function (knex) {
 
   // Define order statuses
   const orderStatuses = [
-    // 🔄 **Processing**
     {
       name: 'Pending',
-      category: 'processing',
+      category: 'draft',
       code: 'ORDER_PENDING',
-      description: 'Order received but not yet processed.',
+      description: 'Order has been created but not yet reviewed or confirmed.',
+    },
+    {
+      name: 'Confirmed',
+      category: 'confirmation',
+      code: 'ORDER_CONFIRMED',
+      description: 'Order has been reviewed and approved for processing.',
     },
     {
       name: 'Processing',
-      category: 'processing',
+      category: 'fulfillment',
       code: 'ORDER_PROCESSING',
-      description: 'Order is being prepared.',
+      description: 'Order is being prepared for fulfillment (inventory allocation, packing, etc.).',
     },
-
+    {
+      name: 'Partially Fulfilled',
+      category: 'fulfillment',
+      code: 'ORDER_PARTIAL',
+      description: 'Some items in the order have been fulfilled; others are pending.',
+    },
+    {
+      name: 'Fulfilled',
+      category: 'completion',
+      code: 'ORDER_FULFILLED',
+      description: 'All items in the order have been fully fulfilled and/or shipped.',
+      is_final: true,
+    },
+    
     // 💳 **Payment**
     {
       name: 'Awaiting Payment',
@@ -88,7 +106,7 @@ exports.seed = async function (knex) {
       name: 'Canceled',
       category: 'completion',
       code: 'ORDER_CANCELED',
-      description: 'Order was canceled.',
+      description: 'Order has been canceled and will not be processed or fulfilled.',
       is_final: true,
     },
   ];
@@ -109,6 +127,6 @@ exports.seed = async function (knex) {
       .onConflict(['name', 'code']) // Ensure uniqueness
       .ignore();
   }
-
+  
   console.log(`${orderStatuses.length} order statuses seeded successfully.`);
 };
