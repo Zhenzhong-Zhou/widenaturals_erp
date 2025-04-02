@@ -753,10 +753,11 @@ const formatBulkUpdateQuery = async (
  * @param {string} params.table - The table name to search (e.g., 'inventory_allocation_status')
  * @param {Object} params.where - The where clause key-value, e.g., { code: 'ALLOC_COMPLETED' } or { id: 'uuid' }
  * @param {string} params.select - The column to return (e.g., 'id' or 'code')
+ * @param {import('pg').PoolClient} [client] - Optional PostgreSQL client for transactional execution.
  * @returns {Promise<string|null>} - The matched value or null
  * @throws {AppError} - On database or input validation errors
  */
-const getStatusValue = async ({ table, where, select }) => {
+const getStatusValue = async ({ table, where, select }, client) => {
   if (!table || typeof where !== 'object' || !select) {
     throw AppError.validationError('Invalid parameters for getStatusValue.');
   }
@@ -772,7 +773,7 @@ const getStatusValue = async ({ table, where, select }) => {
   `;
   
   try {
-    const result = await query(sql, [whereValue]);
+    const result = await query(sql, [whereValue], client);
     return result.rows?.[0]?.[select] || null;
   } catch (error) {
     throw AppError.databaseError(

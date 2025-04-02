@@ -581,18 +581,18 @@ const updateStatus = async () => {
  * @param {'FIFO' | 'FEFO'} [strategy='FEFO'] - The allocation strategy:
  *        - 'FIFO': First In, First Out (based on inbound_date)
  *        - 'FEFO': First Expired, First Out (based on expiry_date)
+ * @param {import('pg').PoolClient} [client] - Optional PostgreSQL client for transactional execution.
  * @returns {Promise<object | null>} The best available lot for allocation, or null if none found.
  */
 const getAvailableLotForAllocation = async (
   productId,
   warehouseId,
   quantityNeeded,
-  strategy = 'FEFO'
+  strategy = 'FEFO',
+  client,
 ) => {
   const orderBy = strategy === 'FEFO' ? 'wil.expiry_date ASC' : 'wil.inbound_date ASC';
-  console.log(productId,
-    warehouseId,
-    quantityNeeded)
+  
   const sql = `
     SELECT wil.*
     FROM warehouse_inventory_lots wil
@@ -616,7 +616,7 @@ const getAvailableLotForAllocation = async (
   `;
   
   try {
-    const result = await retry( () => query(sql, [productId, warehouseId, quantityNeeded]));
+    const result = await retry( () => query(sql, [productId, warehouseId, quantityNeeded], client));
     return result.rows[0] || null;
   } catch (error) {
     logError('Error fetching available lot for allocation:', error);

@@ -1,5 +1,7 @@
 const { allocateInventoryForOrder } = require('../business/inventory-allocation-business-logic');
 const AppError = require('../utils/AppError');
+const { withTransaction } = require('../database/db');
+const { logError } = require('../utils/logger-helper');
 
 /**
  * Service wrapper for inventory allocation.
@@ -11,6 +13,7 @@ const AppError = require('../utils/AppError');
  * @param {string} params.orderId - Order ID.
  * @param {string} params.warehouseId - Warehouse ID.
  * @param {string} params.userId - The user who initiated the allocation.
+ * @param {Object} [params.client] - Optional database client for transaction.
  * @returns {Promise<Object>} - The created inventory allocation record.
  */
 const allocateInventory = async (params) => {
@@ -19,7 +22,7 @@ const allocateInventory = async (params) => {
 };
 
 /**
- * Service to handle multiple inventory allocations for a single order.
+ * Service to handle multiple inventory allocations for a single order in a single transaction.
  *
  * @param {Object} params
  * @param {string} params.orderId - Order ID
@@ -34,33 +37,41 @@ const allocateMultipleInventoryItems = async ({
                                                 userId,
                                                 defaultStrategy = 'FEFO',
                                               }) => {
-  const allocations = [];
-  
-  for (const item of items) {
-    const {
-      warehouseId,
-      productId,
-      quantity,
-      strategy = defaultStrategy,
-    } = item;
-    
-    if (!warehouseId || !productId || !quantity) {
-      throw AppError.validationError('Each item must include warehouseId, productId, and quantity.');
-    }
-    
-    const allocation = await allocateInventory({
-      orderId,
-      warehouseId,
-      productId,
-      quantity,
-      strategy,
-      userId,
+  try {
+    return await withTransaction(async (client) => {
+      const allocations = [];
+      
+      for (const item of items) {
+        const {
+          warehouseId,
+          productId,
+          quantity,
+          strategy = defaultStrategy,
+        } = item;
+        
+        if (!warehouseId || !productId || !quantity) {
+          throw AppError.validationError('Each item must include warehouseId, productId, and quantity.');
+        }
+        
+        const allocation = await allocateInventory({
+          orderId,
+          warehouseId,
+          productId,
+          quantity,
+          strategy,
+          userId,
+          client, // Pass client if supported in business logic
+        });
+        
+        allocations.push(allocation);
+      }
+      
+      return allocations;
     });
-    
-    allocations.push(allocation);
+  } catch (error) {
+    logError('Error during multiple inventory allocations:', error);
+    throw AppError.serviceError('Failed to allocate all inventory items: ' + error.message);
   }
-  
-  return allocations;
 };
 
 module.exports = {

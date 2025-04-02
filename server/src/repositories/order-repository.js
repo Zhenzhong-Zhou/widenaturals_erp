@@ -397,10 +397,11 @@ const getAllOrders = async ({
  * Used for validation and inventory allocation preparation.
  *
  * @param {string} orderId - The UUID of the order.
+ * @param {import('pg').PoolClient} [client] - Optional PostgreSQL client for transactional execution.
  * @returns {Promise<{order_id: string, order_status_id: string, order_status_name: string, items: {product_id: string, quantity_ordered: number}[]}>}
  * @throws {AppError} - If the order is not found or has no items.
  */
-const getOrderStatusAndItems = async (orderId) => {
+const getOrderStatusAndItems = async (orderId, client) => {
   const sql = `
     SELECT
       o.order_status_id,
@@ -417,7 +418,7 @@ const getOrderStatusAndItems = async (orderId) => {
   `;
   
   try {
-    const result = await retry(() => query(sql, [orderId]));
+    const result = await retry(() => query(sql, [orderId], client));
     
     if (!result.rows || result.rows.length === 0) {
       return null;

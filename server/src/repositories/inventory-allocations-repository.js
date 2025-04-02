@@ -13,7 +13,7 @@ const { query } = require('../database/db');
  * @param {string} [allocation.transfer_id] - Optional ID of the inventory transfer.
  * @param {string} [allocation.created_by] - ID of the user who created the allocation.
  * @param {string} [allocation.updated_by] - ID of the user who last updated the allocation.
- *
+ * @param {import('pg').PoolClient} [client] - Optional PostgreSQL client for transactional execution.
  * @returns {Promise<Object>} - The inserted inventory allocation record.
  * @throws {Error} - Throws if the query fails.
  */
@@ -27,7 +27,7 @@ const insertInventoryAllocation = async ({
                                            transfer_id = null,
                                            created_by = null,
                                            updated_by = null,
-                                         }) => {
+                                         }, client) => {
   const sql = `
     INSERT INTO inventory_allocations (
       inventory_id,
@@ -62,7 +62,7 @@ const insertInventoryAllocation = async ({
     updated_by,
   ];
   
-  const result = await query(sql, values);
+  const result = await query(sql, values, client);
   return result.rows[0];
 };
 

@@ -5,7 +5,7 @@ const { insertInventoryAllocation } = require('../repositories/inventory-allocat
 const { logError } = require('../utils/logger-helper');
 const { transformOrderStatusAndItems } = require('../transformers/order-transformer');
 const { transformWarehouseLotResult } = require('../transformers/warehouse-inventory-lot-transformer');
-const { getStatusValue } = require('../database/db');
+const { getStatusValue, lockRow, retry } = require('../database/db');
 
 /**
  * Allocates inventory for a confirmed order item using FIFO or FEFO.
@@ -27,6 +27,7 @@ const allocateInventoryForOrder = async ({
                                            orderId,
                                            warehouseId,
                                            userId,
+                                           client
                                          }) => {
   try {
     // 0. Validate quantity
@@ -35,7 +36,7 @@ const allocateInventoryForOrder = async ({
     }
     
     // 1. Fetch and transform order status and items
-    const rawOrderResult = await getOrderStatusAndItems(orderId);
+    const rawOrderResult = await getOrderStatusAndItems(orderId, client);
     if (!rawOrderResult || rawOrderResult.length === 0) {
       throw AppError.notFoundError('Order not found or has no items.');
     }
@@ -76,12 +77,14 @@ const allocateInventoryForOrder = async ({
     }
     
     // 6. Find inventory lot using FIFO/FEFO
-    const rawLot = await getAvailableLotForAllocation(productId, warehouseId, quantity, strategy);
+    const rawLot = await getAvailableLotForAllocation(productId, warehouseId, quantity, strategy, client);
     const { warehouse_inventory_lot_id, inventory_id } = transformWarehouseLotResult(rawLot);
     
     if (!warehouse_inventory_lot_id) {
       throw AppError.notFoundError(`No available inventory for product ${productId} in warehouse ${warehouseId}.`);
     }
+    
+    await lockRow(client, 'warehouse_inventory_lots', warehouse_inventory_lot_id);
     
     // 7. Determine allocation status
     const statusCode =
@@ -91,23 +94,25 @@ const allocateInventoryForOrder = async ({
       table: 'inventory_allocation_status',
       where: { code: statusCode },
       select: 'id',
-    });
+    }, client);
     
     if (!status_id) {
       throw AppError.validationError(`Invalid allocation status code: ${statusCode}`);
     }
     
     // 8. Insert allocation
-    return await insertInventoryAllocation({
-      inventory_id,
-      warehouse_id: warehouseId,
-      lot_id: warehouse_inventory_lot_id,
-      allocated_quantity: quantity,
-      status_id,
-      order_id: orderId,
-      created_by: userId,
-      updated_by: userId,
-    });
+    return await retry(() =>
+      insertInventoryAllocation({
+        inventory_id,
+        warehouse_id: warehouseId,
+        lot_id: warehouse_inventory_lot_id,
+        allocated_quantity: quantity,
+        status_id,
+        order_id: orderId,
+        created_by: userId,
+        updated_by: userId,
+      }, client)
+    );
   } catch (error) {
     logError('Error allocating inventory:', error);
     throw AppError.businessError('Inventory allocation failed: ' + error.message);
