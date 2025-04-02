@@ -61,13 +61,15 @@ const createInventoryRecordsController = wrapAsync(async (req, res, next) => {
 const getPaginatedInventorySummaryController = wrapAsync(async (req, res, next) => {
   try {
     const { page, limit } = req.query;
+    const user = req.user;
     
-    const result = await fetchPaginatedInventorySummary({ page, limit });
+    const { data, pagination } = await fetchPaginatedInventorySummary({ page, limit, user });
     
     res.status(200).json({
       success: true,
       message: 'Inventory summary fetched successfully.',
-      result,
+      data,
+      pagination,
     });
   } catch (error) {
     next(error);

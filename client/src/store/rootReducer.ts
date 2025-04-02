@@ -18,6 +18,7 @@ import locationTypesReducer from '../features/locationType/state/locationTypesSl
 import locationTypeReducer from '../features/locationType/state/locationTypeDetailSlice.ts';
 import locationReducer from '../features/location/state/locationSlice.ts';
 import inventoriesReducer from '../features/inventory/state/inventorySlice.ts';
+import inventorySummaryReducer from '../features/inventory/state/inventorySummarySlice.ts';
 import warehouseReducer from '../features/warehouse/state/warehouseSlice.ts';
 import warehouseDetailsReducer from '../features/warehouse/state/warehouseDetailSlice.ts';
 import warehouseInventorySummaryReducer from '../features/warehouse-inventory/state/warehouseInventorySummarySlice.ts';
@@ -97,6 +98,7 @@ const appReducer = combineReducers({
   pricingValue: pricingValueReducer,
   orders: ordersReducer,
   salesOrderDetail: salesOrderDetailReducer,
+  inventorySummary: inventorySummaryReducer,
 });
 
 // Root reducer with logout handling

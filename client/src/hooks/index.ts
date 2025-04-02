@@ -18,6 +18,7 @@ export { default as useLocationTypes } from './useLocationTypes.ts';
 export { default as useLocationTypeDetail } from './useLocationTypeDetail.ts';
 export { default as useLocations } from './useLocations.ts';
 export { default as useInventories } from './useInventories.ts';
+export { default as useInventorySummary } from './useInventorySummary.ts';
 export { default as useWarehouses } from './useWarehouses.ts';
 export { default as useWarehouseInventories } from './useWarehouseInventories.ts';
 export { default as useWarehouseInventoriesSummary } from './useWarehouseInventoriesSummary.ts';

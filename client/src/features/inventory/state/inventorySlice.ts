@@ -2,7 +2,7 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { fetchAllInventories } from './inventoryThunks.ts';
 import {
   InventoryItem,
-  Pagination,
+  AllInventoriesPagination,
   InventoryResponse,
 } from './inventoryTypes.ts';
 
@@ -11,7 +11,7 @@ import {
  */
 interface InventoryState {
   inventories: InventoryItem[];
-  pagination: Pagination;
+  pagination: AllInventoriesPagination;
   loading: boolean;
   error: string | null;
 }

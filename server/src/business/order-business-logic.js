@@ -38,13 +38,13 @@ const validateOrderNumbers = (orders, verifyOrderNumbers = true) => {
  * @param {object} user - The user object containing permissions.
  * @returns {object} - Order object with applied business logic.
  */
-const applyOrderDetailsBusinessLogic = (order, user) => {
+const applyOrderDetailsBusinessLogic = async (order, user) => {
   // Check if the order number is valid
   const isOrderNumberValid = verifyOrderNumber(order.order_number);
   
   if (!isOrderNumberValid) {
     // Check if the user has permission to view invalid orders
-    const canViewInvalidOrder = checkPermissions(user, [
+    const canViewInvalidOrder = await checkPermissions(user, [
       'root_access',
       'view_full_sales_order_details',
       'view_all_order_details'

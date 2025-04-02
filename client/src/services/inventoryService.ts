@@ -1,6 +1,6 @@
 import axiosInstance from '@utils/axiosConfig.ts';
 import { API_ENDPOINTS } from './apiEndponits.ts';
-import { InventoryResponse } from '../features/inventory';
+import { InventoryResponse, InventorySummaryResponse } from '../features/inventory';
 import { AppError } from '@utils/AppError.tsx';
 
 /**
@@ -33,6 +33,35 @@ const fetchAllInventories = async (
   }
 };
 
+/**
+ * Fetches a paginated inventory summary list from the server.
+ *
+ * @param {number} [page=1] - The current page number (default is 1).
+ * @param {number} [limit=10] - The number of records per page (default is 10).
+ * @returns {Promise<InventorySummaryResponse>} - The inventory summary result with pagination.
+ * @throws {AppError} - Throws error when the request fails.
+ */
+export const fetchInventorySummary = async (
+  page: number = 1,
+  limit: number = 10
+): Promise<InventorySummaryResponse> => {
+  try {
+    const response = await axiosInstance.get<InventorySummaryResponse>(
+      API_ENDPOINTS.INVENTORY_SUMMARY,
+      {
+        params: { page, limit },
+      }
+    );
+    return response.data;
+  } catch (error: any) {
+    console.error('Error fetching inventory summary:', error);
+    throw new AppError(
+      error.response?.data?.message || 'Unable to fetch inventory summary'
+    );
+  }
+};
+
 export const inventoryService = {
   fetchAllInventories,
+  fetchInventorySummary,
 };

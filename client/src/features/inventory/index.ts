@@ -1,7 +1,10 @@
 export type {
   InventoryItem,
-  Pagination,
+  AllInventoriesPagination,
   InventoryResponse,
+  InventorySummary,
+  InventorySummaryPagination,
+  InventorySummaryResponse,
 } from './state/inventoryTypes.ts';
 export { fetchAllInventories } from './state/inventoryThunks.ts';
 export {
@@ -11,3 +14,13 @@ export {
   selectInventoryError,
   selectIsFetchingInventory,
 } from './state/inventorySelectors.ts';
+export {
+  selectInventorySummaryData,
+  selectInventorySummaryPagination,
+  selectInventorySummaryLoading,
+  selectInventorySummaryError,
+} from './state/inventorySummarySelectors.ts';
+export { default as InventoryStatusChip } from './components/InventoryStatusChip.tsx';
+export { default as StockLevelChip } from './components/StockLevelChip.tsx';
+export { default as NearExpiryChip } from './components/NearExpiryChip.tsx';
+export { default as InventorySummaryTable } from './components/InventorySummaryTable.tsx';

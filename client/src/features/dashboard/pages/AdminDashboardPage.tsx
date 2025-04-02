@@ -7,7 +7,7 @@ const AdminDashboardPage: FC<DashboardPageProps> = ({ fullName }) => {
   const navigate = useNavigate();
 
   return (
-    <DashboardLayout fullName={fullName}>
+    <DashboardLayout fullName={fullName} showInventorySummary={true}>
       <CustomButton
         variant="contained"
         color="primary"

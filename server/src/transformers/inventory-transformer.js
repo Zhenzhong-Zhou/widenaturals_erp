@@ -5,23 +5,40 @@
  * @returns {object} - Transformed inventory summary.
  */
 const transformInventorySummary = (row) => {
+  const nearestExpiryDate = row.nearest_expiry_date
+    ? new Date(row.nearest_expiry_date)
+    : null;
+  
+  const now = new Date();
+  const expiryThreshold = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000); // 90 days
+  
+  const availableQty = Number(row.total_available_quantity);
+  
   return {
     productId: row.product_id,
     itemName: row.item_name,
     totalInventoryEntries: Number(row.total_inventory_entries),
     recordedQuantity: Number(row.recorded_quantity),
     actualQuantity: Number(row.actual_quantity),
-    availableQuantity: Number(row.total_available_quantity),
+    availableQuantity: availableQty,
     reservedQuantity: Number(row.total_reserved_quantity),
     totalLots: Number(row.total_lots),
     lotQuantity: Number(row.total_lot_quantity),
     earliestManufactureDate: row.earliest_manufacture_date
       ? new Date(row.earliest_manufacture_date)
       : null,
-    nearestExpiryDate: row.nearest_expiry_date
-      ? new Date(row.nearest_expiry_date)
-      : null,
+    nearestExpiryDate,
     status: row.display_status,
+    isNearExpiry: nearestExpiryDate && nearestExpiryDate <= expiryThreshold,
+    isLowStock: availableQty <= 30,
+    stockLevel:
+      availableQty === 0
+        ? 'none'
+        : availableQty <= 10
+          ? 'critical'
+          : availableQty <= 30
+            ? 'low'
+            : 'normal',
   };
 };
 

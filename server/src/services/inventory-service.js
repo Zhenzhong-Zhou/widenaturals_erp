@@ -38,6 +38,7 @@ const {
 } = require('../repositories/lot-adjustment-type-repository');
 const { generateChecksum } = require('../utils/crypto-utils');
 const { transformPaginatedInventorySummary } = require('../transformers/inventory-transformer');
+const { canViewInventorySummary } = require('../business/inventory-bussiness-logic');
 
 /**
  * Fetch all inventory records with pagination, sorting, and business logic.
@@ -488,14 +489,23 @@ const fetchRecentInsertWarehouseInventoryRecords = async (warehouseLotIds) => {
 };
 
 /**
- * Fetches and processes paginated inventory summary.
+ * Fetches and processes paginated inventory summary after permission check.
  *
  * @param {object} options
  * @param {number} options.page - Page number
  * @param {number} options.limit - Page size
+ * @param {object} options.user - Authenticated user object
  * @returns {Promise<object>} - Transformed and business-validated result
  */
-const fetchPaginatedInventorySummary = async ({ page = 1, limit = 20 }) => {
+const fetchPaginatedInventorySummary = async ({ page = 1, limit = 20, user }) => {
+  if (!user) {
+    throw AppError.authenticationError('User is not authenticated.');
+  }
+  const isAllowed = await canViewInventorySummary(user);
+  if (!isAllowed) {
+    throw AppError.authorizationError('You do not have permission to view inventory summary.');
+  }
+  
   if (page < 1 || limit < 1) {
     throw AppError.validationError('Invalid pagination parameters.');
   }
