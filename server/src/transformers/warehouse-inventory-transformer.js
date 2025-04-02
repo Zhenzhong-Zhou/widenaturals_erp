@@ -3,6 +3,12 @@
  * @param {object} row - A single row from the DB result.
  * @returns {object} - Transformed inventory summary.
  */
+// todo: add Adds calculated fields like:
+// - isExpired: `true` if the expiry date is before today
+// - isNearExpiry: `true` if the expiry date is within the next 90 days
+// - isLowStock: `true` if availableQuantity is 30 or less
+// - stockLevel: One of `'none'`, `'critical'`, `'low'`, `'normal'` based on quantity
+// - expirySeverity:
 const transformWarehouseInventorySummary = (row) => {
   return {
     warehouseInventoryId: row.warehouse_inventory_id,

@@ -127,6 +127,12 @@ const fetchWarehouseInventoryDetailsByWarehouseId = async (
       throw AppError.validationError('Warehouse ID is required.');
     }
 
+    // todo: create a transformer file
+    // todo: include // - isExpired: `true` if the expiry date is before today
+    // // - isNearExpiry: `true` if the expiry date is within the next 90 days
+    // // - isLowStock: `true` if availableQuantity is 30 or less
+    // // - stockLevel: One of `'none'`, `'critical'`, `'low'`, `'normal'` based on quantity
+    // // - expirySeverity:
     // Fetch paginated inventory details from repository
     const { data, pagination } =
       await getWarehouseInventoryDetailsByWarehouseId({

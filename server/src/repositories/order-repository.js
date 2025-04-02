@@ -14,8 +14,20 @@ const createOrder = async (orderData) => {
     order_type_id,
     order_date,
     order_status_id,
+    status_date,
     metadata,
     note,
+    has_shipping_address = false,
+    shipping_fullname,
+    shipping_phone,
+    shipping_email,
+    shipping_address_line1,
+    shipping_address_line2,
+    shipping_city,
+    shipping_state,
+    shipping_postal_code,
+    shipping_country,
+    shipping_region,
     created_by,
     updated_by,
   } = orderData;
@@ -27,12 +39,28 @@ const createOrder = async (orderData) => {
         order_type_id,
         order_date,
         order_status_id,
+        status_date,
         metadata,
         note,
+        has_shipping_address,
+        shipping_fullname,
+        shipping_phone,
+        shipping_email,
+        shipping_address_line1,
+        shipping_address_line2,
+        shipping_city,
+        shipping_state,
+        shipping_postal_code,
+        shipping_country,
+        shipping_region,
         created_by,
         updated_by
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      VALUES (
+        $1, $2, $3, $4, $5, $6,
+        $7, $8, $9, $10, $11, $12,
+        $13, $14, $15, $16, $17, $18, $19
+      )
       RETURNING id;
     `;
     
@@ -40,8 +68,20 @@ const createOrder = async (orderData) => {
       order_type_id,
       order_date,
       order_status_id,
+      status_date || new Date(),
       metadata || null,
-      note,
+      note || null,
+      has_shipping_address,
+      shipping_fullname || null,
+      shipping_phone || null,
+      shipping_email || null,
+      shipping_address_line1 || null,
+      shipping_address_line2 || null,
+      shipping_city || null,
+      shipping_state || null,
+      shipping_postal_code || null,
+      shipping_country || null,
+      shipping_region || null,
       created_by,
       updated_by,
     ];
@@ -49,7 +89,7 @@ const createOrder = async (orderData) => {
     const result = await query(insertOrderSQL, values);
     const orderId = result.rows[0].id;
     
-    // Step 2: Fetch Order Types (Using your getOrderTypes function)
+    // Step 2: Get order type details
     const orderTypes = await getOrderTypes('dropdown');
     const orderType = orderTypes.find((ot) => ot.id === order_type_id);
     
@@ -59,7 +99,7 @@ const createOrder = async (orderData) => {
     
     const { category, name: orderTypeName } = orderType;
     
-    // Step 3: Generate the order_number using the utility function
+    // Step 3: Generate order number
     const orderNumber = generateOrderNumber(category, orderTypeName, orderId);
     
     // Step 4: Validate the generated order_number
@@ -70,7 +110,7 @@ const createOrder = async (orderData) => {
     // Step 5: Update the order with the generated order_number
     const updateOrderSQL = `
       UPDATE orders
-      SET order_number = $1, updated_by = $2
+      SET order_number = $1, updated_by = $2, updated_at = NOW()
       WHERE id = $3
       RETURNING *;
     `;

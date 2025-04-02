@@ -80,7 +80,8 @@ const OrderPage: FC = () => {
           <Loading />
         </Box>
       )}
-      
+      // todo: need to fix update state whenever user change product id aor price type id the value of price should update correctly in the input filed
+      // todo: add shipping address part in the form ui
       {/* Modal for Order Form */}
       <OrderFormModal
         open={isModalOpen}
