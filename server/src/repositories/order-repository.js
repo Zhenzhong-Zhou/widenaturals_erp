@@ -406,6 +406,7 @@ const getOrderStatusAndItems = async (orderId, client) => {
     SELECT
       o.order_status_id,
       os.code AS order_status_code,
+      oi.id AS order_item_id,
       oi.product_id,
       oi.quantity_ordered,
       oi.status_id AS order_item_status_id,
@@ -472,46 +473,50 @@ const getOrderAndItemStatusCodes = async (orderId, client) => {
 };
 
 /**
- * Updates the status of an order and its associated items.
+ * Updates the status of an order and optionally its associated items.
  *
- * @param {string} orderId - UUID of the order.
- * @param {string} newStatusCode - Status code to set (e.g., 'ORDER_CONFIRMED').
+ * @param {Object} params
+ * @param {string} params.orderId - UUID of the order.
+ * @param {string} params.orderStatusCode - Status code to set on the order.
+ * @param {string} [params.itemStatusCode] - Optional separate status code for items.
  * @param {*} client - PostgreSQL client (transactional).
  * @returns {Promise<object>} - Updated row counts or result info.
  */
-const updateOrderAndItemStatus = async (orderId, newStatusCode, client) => {
-  if (!orderId || !newStatusCode) {
-    throw AppError.validationError('Both orderId and statusCode are required.');
+const updateOrderAndItemStatus = async ({ orderId, orderStatusCode, itemStatusCode }, client) => {
+  if (!orderId || !orderStatusCode) {
+    throw AppError.validationError('orderId and orderStatusCode are required.');
   }
   
+  const queries = [];
+  
+  // Update order
   const orderSql = `
     UPDATE orders o
-    SET
-      order_status_id = s.id,
-      status_date = NOW(),
-      updated_at = NOW()
+    SET order_status_id = s.id,
+        status_date = NOW(),
+        updated_at = NOW()
     FROM order_status s
-    WHERE s.code = $2
-      AND o.id = $1
+    WHERE s.code = $2 AND o.id = $1
     RETURNING o.id;
   `;
+  queries.push(query(orderSql, [orderId, orderStatusCode], client));
   
-  const itemSql = `
-    UPDATE order_items oi
-    SET
-      status_id = s.id,
-      status_date = NOW(),
-      updated_at = NOW()
-    FROM order_status s
-    WHERE s.code = $2
-      AND oi.order_id = $1
-    RETURNING oi.id;
-  `;
+  // Update items only if itemStatusCode is explicitly provided
+  if (itemStatusCode) {
+    const itemSql = `
+      UPDATE order_items oi
+      SET status_id = s.id,
+          status_date = NOW(),
+          updated_at = NOW()
+      FROM order_status s
+      WHERE s.code = $2 AND oi.order_id = $1
+      RETURNING oi.id;
+    `;
+    queries.push(query(itemSql, [orderId, itemStatusCode], client));
+  }
   
   try {
-    const orderResult = await query(orderSql, [orderId, newStatusCode], client);
-    const orderItemResult = await query(itemSql, [orderId, newStatusCode], client);
-    
+    const [orderResult, orderItemResult = { rowCount: 0 }] = await Promise.all(queries);
     return {
       orderResult,
       orderItemResult,

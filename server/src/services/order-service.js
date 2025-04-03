@@ -1,6 +1,6 @@
 const {
   createOrder,
-  getOrderDetailsById, getAllOrders, getOrderAndItemStatusCodes,
+  getOrderDetailsById, getAllOrders,
 } = require('../repositories/order-repository');
 const { createSalesOrder } = require('../repositories/sales-order-repository');
 const {
@@ -8,7 +8,7 @@ const {
 } = require('../repositories/order-type-repository');
 const AppError = require('../utils/AppError');
 const { logError } = require('../utils/logger-helper');
-const { transformOrderDetails, transformAllOrders, transformConfirmedOrderResult, transformOrderStatusCodes } = require('../transformers/order-transformer');
+const { transformOrderDetails, transformAllOrders, transformUpdatedOrderStatusResult } = require('../transformers/order-transformer');
 const { applyOrderDetailsBusinessLogic, validateOrderNumbers, confirmOrderWithItems, canConfirmOrder } = require('../business/order-business-logic');
 const { withTransaction } = require('../database/db');
 
@@ -143,7 +143,7 @@ const confirmOrderService = async (orderId, user) => {
     const rawResult = await confirmOrderWithItems(orderId, user, client);
     
     // Step 3: Transform and return the final confirmed result
-    return transformConfirmedOrderResult(rawResult);
+    return transformUpdatedOrderStatusResult(rawResult);
   });
 };
 

@@ -116,6 +116,7 @@ const confirmOrderController = wrapAsync(async (req, res, next) => {
     const result = await confirmOrderService(orderId, user);
     
     res.status(200).json({
+      success: true,
       message: 'Order successfully confirmed.',
       data: result,
     });

@@ -115,7 +115,11 @@ const confirmOrderWithItems = async (orderId, user, client) => {
     throw AppError.authorizationError('You do not have permission to confirm orders.');
   }
   
-  return await updateOrderAndItemStatus(orderId, 'ORDER_CONFIRMED', client);
+  return await updateOrderAndItemStatus({
+    orderId,
+    orderStatusCode: 'ORDER_CONFIRMED',
+    itemStatusCode: 'ORDER_CONFIRMED',
+  }, client);
 };
 
 /**

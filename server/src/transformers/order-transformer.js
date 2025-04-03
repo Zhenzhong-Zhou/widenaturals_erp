@@ -120,6 +120,7 @@ const transformOrderStatusAndItems = (rows) => {
   const { order_status_id, order_status_code } = rows[0];
   
   const orderItems = rows.map((row) => ({
+    order_item_id: row.order_item_id,
     product_id: row.product_id,
     quantity_ordered: Number(row.quantity_ordered),
     order_item_status_id: row.order_item_status_id,
@@ -159,22 +160,26 @@ const transformOrderStatusCodes = (rows = []) => {
 };
 
 /**
- * Transforms raw confirmation results from confirming an order and its items.
+ * Transforms the result returned from `updateOrderAndItemStatus`.
  *
- * @param {Object} result - The raw result from the repository.
- * @param {Object} result.orderResult - Result of confirming the order.
- * @param {Object} result.orderItemResult - Result of confirming the order items.
+ * Normalizes the DB update results into a consistent structure that tracks
+ * how many records were updated for both the order and its items.
+ *
+ * @param {Object} result - Raw result returned from updateOrderAndItemStatus.
+ * @param {Object} result.orderResult - Result from updating the order.
+ * @param {Object} result.orderItemResult - Result from updating order items.
  * @returns {{
- *   orderId: string | null,
- *   confirmedItemIds: string[]
+ *   updatedOrderCount: number,
+ *   updatedItemCount: number
  * }}
  */
-const transformConfirmedOrderResult = ({ orderResult, orderItemResult }) => {
+const transformUpdatedOrderStatusResult = ({ orderResult, orderItemResult }) => {
+  const orderId = orderResult?.rows?.[0]?.id || null;
+  
   return {
-    orderId: orderResult?.rows?.[0]?.id || null,
-    confirmedItemIds: Array.isArray(orderItemResult?.rows)
-      ? orderItemResult.rows.map((row) => row.id)
-      : [],
+    ...(orderId && { orderId }), // only include if available
+    updatedOrderCount: orderResult?.rowCount || 0,
+    updatedItemCount: orderItemResult?.rowCount || 0,
   };
 };
 
@@ -183,5 +188,5 @@ module.exports = {
   transformOrderDetails,
   transformOrderStatusAndItems,
   transformOrderStatusCodes,
-  transformConfirmedOrderResult,
+  transformUpdatedOrderStatusResult,
 };

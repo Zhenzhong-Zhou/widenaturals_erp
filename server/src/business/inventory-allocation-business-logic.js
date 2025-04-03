@@ -1,11 +1,12 @@
-const { getOrderStatusAndItems } = require('../repositories/order-repository');
+const { getOrderStatusAndItems, updateOrderAndItemStatus } = require('../repositories/order-repository');
 const AppError = require('../utils/AppError');
 const { getAvailableLotForAllocation } = require('../repositories/warehouse-inventory-lot-repository');
-const { insertInventoryAllocation } = require('../repositories/inventory-allocations-repository');
+const { insertInventoryAllocation, getAllocationsByOrderId } = require('../repositories/inventory-allocations-repository');
 const { logError } = require('../utils/logger-helper');
-const { transformOrderStatusAndItems } = require('../transformers/order-transformer');
+const { transformOrderStatusAndItems, transformUpdatedOrderStatusResult } = require('../transformers/order-transformer');
 const { transformWarehouseLotResult } = require('../transformers/warehouse-inventory-lot-transformer');
 const { getStatusValue, lockRow, retry } = require('../database/db');
+const { determineOrderStatusFromAllocations } = require('../utils/allocation-utils');
 
 /**
  * Allocates inventory for a confirmed order item using FIFO or FEFO.
@@ -88,7 +89,7 @@ const allocateInventoryForOrder = async ({
     
     // 7. Determine allocation status
     const statusCode =
-      quantity < orderItem.quantity_ordered ? 'ALLOC_PARTIAL' : 'ALLOC_COMPLETED';
+      quantity < orderItem.quantity_ordered ? 'ORDER_ALLOCATING' : 'ORDER_ALLOCATED';
     
     const status_id = await getStatusValue({
       table: 'inventory_allocation_status',
@@ -100,8 +101,8 @@ const allocateInventoryForOrder = async ({
       throw AppError.validationError(`Invalid allocation status code: ${statusCode}`);
     }
     
-    // 8. Insert allocation
-    return await retry(() =>
+    // 8. Insert allocation record into inventory_allocations table
+    await retry(() =>
       insertInventoryAllocation({
         inventory_id,
         warehouse_id: warehouseId,
@@ -113,6 +114,26 @@ const allocateInventoryForOrder = async ({
         updated_by: userId,
       }, client)
     );
+    
+    // 9. Fetch all allocations for this order to determine overall order allocation status
+    const allAllocations = await getAllocationsByOrderId(orderId, client); // includes each allocation's status
+
+    // 10. Determine new order status based on allocation statuses (e.g. ORDER_ALLOCATED or ORDER_ALLOCATING)
+    const newOrderStatus = determineOrderStatusFromAllocations(allAllocations);
+
+    // 11. Determine item-level status based on how much was allocated
+    const itemStatus = quantity < orderItem.quantity_ordered ? 'ALLOC_PARTIAL' : 'ALLOC_COMPLETED';
+    
+    // 12. Update both order status and this specific item's status in the DB
+    const rawResult = await updateOrderAndItemStatus({
+      orderId,
+      orderItemId: orderItem.order_item_id,
+      orderStatusCode: newOrderStatus,
+      itemStatusCode: itemStatus
+    }, client);
+
+    // 13. Transform update result into a structured summary object
+    return transformUpdatedOrderStatusResult(rawResult);
   } catch (error) {
     logError('Error allocating inventory:', error);
     throw AppError.businessError('Inventory allocation failed: ' + error.message);

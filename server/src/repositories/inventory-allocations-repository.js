@@ -1,4 +1,6 @@
 const { query } = require('../database/db');
+const { logError } = require('../utils/logger-helper');
+const AppError = require('../utils/AppError');
 
 /**
  * Inserts a new inventory allocation record into the database.
@@ -66,6 +68,38 @@ const insertInventoryAllocation = async ({
   return result.rows[0];
 };
 
+/**
+ * Fetches all inventory allocation records for a given order.
+ *
+ * @param {string} orderId - The UUID of the order to fetch allocations for.
+ * @param {object} client - Optional PostgreSQL client used in transaction context.
+ * @returns {Promise<Array<{ id: string, order_id: string, allocated_quantity: number, status_id: string, status_code: string }>>}
+ *          A list of allocation records with status codes.
+ * @throws {AppError} If the query fails.
+ */
+const getAllocationsByOrderId = async (orderId, client) => {
+  const sql = `
+    SELECT
+      ia.id,
+      ia.order_id,
+      ia.allocated_quantity,
+      ia.status_id,
+      ias.code AS status_code
+    FROM inventory_allocations ia
+    JOIN inventory_allocation_status ias ON ia.status_id = ias.id
+    WHERE ia.order_id = $1
+  `;
+  
+  try {
+    const result = await query(sql, [orderId], client);
+    return result.rows || [];
+  } catch (error) {
+    logError('Error fetching allocations:', error);
+    throw AppError.databaseError('Failed to fetch allocations: ' + error.message);
+  }
+};
+
 module.exports = {
   insertInventoryAllocation,
+  getAllocationsByOrderId,
 };
