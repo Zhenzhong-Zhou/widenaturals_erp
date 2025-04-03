@@ -1,8 +1,8 @@
-import { forwardRef, useImperativeHandle, useMemo } from 'react';
+import { FC, useEffect, useMemo } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@components/common/Typography.tsx';
 import { CustomButton, DetailsSection, ErrorMessage, Loading } from '@components/index.ts';
-import { useSalesOrderDetails } from '../../../hooks';
+import { useConfirmSalesOrder, useSalesOrderDetails } from '../../../hooks';
 import { formatDate } from '@utils/dateTimeUtils.ts';
 import { capitalizeFirstLetter, formatCurrency } from '@utils/textUtils.ts';
 import { OrderData } from '../state/orderTypes.ts';
@@ -11,24 +11,39 @@ import CardContent from '@mui/material/CardContent';
 import Divider from '@mui/material/Divider';
 import Grid from '@mui/material/Grid2';
 import { OrderItemsTable } from '../index.ts';
+import { Stack } from '@mui/material';
 
 interface SalesOrderDetailsSectionProps {
   orderId: string;
 }
 
-const SalesOrderDetailsSection = forwardRef(({ orderId }: SalesOrderDetailsSectionProps, ref) => {
-  const { data, loading, error, refresh } = useSalesOrderDetails(orderId);
-  
-  // expose refresh to parent via ref
-  useImperativeHandle(ref, () => ({
+const SalesOrderDetailsSection: FC<SalesOrderDetailsSectionProps> = ({ orderId }) => {
+  const {
+    data: orderData,
+    loading: orderLoading,
+    error: orderError,
     refresh,
-  }));
+  } = useSalesOrderDetails(orderId);
+  
+  const {
+    confirm,
+    data: confirmData,
+    loading: confirmLoading,
+    error: confirmError,
+    successMessage
+  } = useConfirmSalesOrder();
+  
+  useEffect(() => {
+    if (confirmData?.data?.orderId && successMessage) {
+      refresh(); // Trigger refresh after successful confirmation
+    }
+  }, [confirmData, successMessage]);
   
   const filteredOrderDetails = useMemo(() => {
-    if (!data?.data) return null;
+    if (!orderData?.data) return null;
     
     // Deep clone the data to prevent mutation errors
-    const orderDetails: Partial<OrderData> = JSON.parse(JSON.stringify(data.data));
+    const orderDetails: Partial<OrderData> = JSON.parse(JSON.stringify(orderData.data));
     
     // Define sensitive keys
     const sensitiveKeys: (keyof OrderData)[] = ['order_id'];
@@ -39,32 +54,34 @@ const SalesOrderDetailsSection = forwardRef(({ orderId }: SalesOrderDetailsSecti
     // Format Category, Customer Name, Dates & Prices
     if (orderDetails.order_category) orderDetails.order_category = capitalizeFirstLetter(orderDetails.order_category);
     if (orderDetails.customer_name) orderDetails.customer_name = capitalizeFirstLetter(orderDetails.customer_name);
+    
     if (orderDetails.discount_amount && parseFloat(orderDetails.discount_amount) > 0) {
       orderDetails.discount_amount = formatCurrency(orderDetails.discount_amount);
     } else {
-      delete orderDetails.discount_amount; // Remove if it's zero or null
+      delete orderDetails.discount_amount;
     }
     
     if (orderDetails.shipping_fee && parseFloat(orderDetails.shipping_fee) > 0) {
       orderDetails.shipping_fee = formatCurrency(orderDetails.shipping_fee);
     } else {
-      delete orderDetails.shipping_fee; // Remove if it's zero or null
+      delete orderDetails.shipping_fee;
     }
+    
     if (orderDetails.subtotal) orderDetails.subtotal = formatCurrency(orderDetails.subtotal);
     if (orderDetails.tax_amount) orderDetails.tax_amount = formatCurrency(orderDetails.tax_amount);
     if (orderDetails.total_amount) orderDetails.total_amount = formatCurrency(orderDetails.total_amount);
     
-    // Handling order_date formatting (object or string)
-    if (orderDetails.order_date) {
-      if (typeof orderDetails.order_date === 'string') {
-        orderDetails.order_date = formatDate(orderDetails.order_date);
-      }
+    if (typeof orderDetails.order_date === 'string') {
+      orderDetails.order_date = formatDate(orderDetails.order_date);
     }
     
-    // Format delivery_info if present
-    if (orderDetails.delivery_info) orderDetails.delivery_info.method = capitalizeFirstLetter(orderDetails.delivery_info.method);
-    if (!orderDetails.order_metadata || Object.keys(orderDetails.order_metadata).length === 0)
+    if (orderDetails.delivery_info) {
+      orderDetails.delivery_info.method = capitalizeFirstLetter(orderDetails.delivery_info.method);
+    }
+    
+    if (!orderDetails.order_metadata || Object.keys(orderDetails.order_metadata).length === 0) {
       orderDetails.order_metadata = { message: 'N/A' };
+    }
     
     if (Array.isArray(orderDetails.items)) {
       orderDetails.items = orderDetails.items.map(item => {
@@ -82,10 +99,20 @@ const SalesOrderDetailsSection = forwardRef(({ orderId }: SalesOrderDetailsSecti
     }
     
     return orderDetails;
-  }, [data]);
+  }, [orderData]);
   
-  if (loading) return <Loading message="Loading Sales Order Details..." />;
-  if (error) return <ErrorMessage message={error} />;
+  const canConfirm =
+    filteredOrderDetails?.order_status &&
+    ['pending', 'edited'].includes(filteredOrderDetails.order_status.toLowerCase()) &&
+    filteredOrderDetails.items?.every(
+      item =>
+        ['pending', 'edited'].includes(
+          (item as any)?.order_item_status_name?.toLowerCase() || ''
+        )
+    );
+  
+  if (orderLoading) return <Loading message="Loading Sales Order Details..." />;
+  if (orderError || confirmError) return <ErrorMessage message={orderError || confirmError} />;
   if (!filteredOrderDetails) return <Typography>No order details available.</Typography>;
   
   return (
@@ -103,7 +130,19 @@ const SalesOrderDetailsSection = forwardRef(({ orderId }: SalesOrderDetailsSecti
       <CardContent>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
           <Typography variant="h4" sx={{ fontWeight: 'bold' }}>Sales Order Details</Typography>
-          <CustomButton onClick={refresh}>Refresh Data</CustomButton>
+          <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 3 }}>
+            {canConfirm && (
+              <CustomButton
+                variant="contained"
+                color="primary"
+                onClick={() => confirm(orderId)}
+                disabled={confirmLoading}
+              >
+                {confirmLoading ? 'Confirming...' : 'Confirm Order'}
+              </CustomButton>
+            )}
+            <CustomButton onClick={refresh}>Refresh Data</CustomButton>
+          </Stack>
         </Box>
         
         <Divider sx={{ marginBottom: 2 }} />
@@ -132,9 +171,7 @@ const SalesOrderDetailsSection = forwardRef(({ orderId }: SalesOrderDetailsSecti
         
         <Divider sx={{ marginY: 2 }} />
         
-        {filteredOrderDetails.items && (
-          <OrderItemsTable items={filteredOrderDetails.items} />
-        )}
+        {filteredOrderDetails.items && <OrderItemsTable items={filteredOrderDetails.items} />}
         
         {/* Show tracking info if exists */}
         {filteredOrderDetails.delivery_info?.tracking_info && (
@@ -166,6 +203,6 @@ const SalesOrderDetailsSection = forwardRef(({ orderId }: SalesOrderDetailsSecti
       </CardContent>
     </Card>
   );
-});
+};
 
 export default SalesOrderDetailsSection;
