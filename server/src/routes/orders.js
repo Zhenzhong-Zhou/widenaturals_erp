@@ -1,7 +1,7 @@
 const express = require('express');
 const {
   createOrderController,
-  getOrderDetailsController, getAllOrdersController,
+  getOrderDetailsController, getAllOrdersController, confirmOrderController,
 } = require('../controllers/order-controller');
 
 const router = express.Router();
@@ -19,7 +19,8 @@ router.post('/order-types/:orderTypeId', createOrderController);
  */
 router.get('/sales-order/details/:id', getOrderDetailsController);
 
-
 router.get('/', getAllOrdersController);
+
+router.post('/:orderId/confirm', confirmOrderController);
 
 module.exports = router;

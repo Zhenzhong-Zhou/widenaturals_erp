@@ -405,11 +405,11 @@ const getOrderStatusAndItems = async (orderId, client) => {
   const sql = `
     SELECT
       o.order_status_id,
-      os.name AS order_status_name,
+      os.code AS order_status_code,
       oi.product_id,
       oi.quantity_ordered,
       oi.status_id AS order_item_status_id,
-      ios.name AS order_item_status_name
+      ios.code AS order_item_status_code
     FROM orders o
     JOIN order_status os ON o.order_status_id = os.id
     JOIN order_items oi ON oi.order_id = o.id
@@ -431,10 +431,98 @@ const getOrderStatusAndItems = async (orderId, client) => {
   }
 };
 
+/**
+ * Retrieves the order status code and the status codes of all related order items
+ * for a given order ID. Returns one row per order item.
+ *
+ * Useful for validation logic before confirming an order (e.g., ensuring all items
+ * are in a confirmable status like `ITEM_PENDING`).
+ *
+ * @param {string} orderId - The UUID of the order to fetch status codes for.
+ * @param {object} client - The PostgreSQL transaction client.
+ * @returns {Promise<Array<{ order_status_code: string, order_item_status_code: string }> | null>}
+ *          An array of status code objects for the order and each item,
+ *          or `null` if no matching order is found.
+ * @throws {AppError} - Throws a database error if the query fails.
+ */
+const getOrderAndItemStatusCodes = async (orderId, client) => {
+  const sql = `
+    SELECT
+      os.code AS order_status_code,
+      ios.code AS order_item_status_code
+    FROM orders o
+    JOIN order_status os ON o.order_status_id = os.id
+    JOIN order_items oi ON oi.order_id = o.id
+    JOIN order_status ios ON oi.status_id = ios.id
+    WHERE o.id = $1
+  `;
+  
+  try {
+    const result = await retry(() => query(sql, [orderId], client));
+    
+    if (!result.rows || result.rows.length === 0) {
+      return null;
+    }
+    
+    return result.rows; // array of status codes (for each order item)
+  } catch (error) {
+    logError('Error fetching order/item status codes:', error);
+    throw AppError.databaseError('Failed to fetch status codes: ' + error.message);
+  }
+};
+
+/**
+ * Updates an order and its items to 'confirmed' status.
+ *
+ * @param {string} orderId - UUID of the order.
+ * @param {*} client - Optional PostgreSQL client for transaction support.
+ * @returns {Promise<void>}
+ */
+const confirmOrderAndItems = async (orderId, client) => {
+  const orderUpdateSql = `
+    UPDATE orders o
+    SET
+      order_status_id = s.id,
+      status_date = NOW(),
+      updated_at = NOW()
+    FROM order_status s
+    WHERE LOWER(s.name) = 'confirmed'
+      AND o.id = $1
+    RETURNING o.id;
+  `;
+  
+  const orderItemUpdateSql = `
+    UPDATE order_items oi
+    SET
+      status_id = s.id,
+      status_date = NOW(),
+      updated_at = NOW()
+    FROM order_status s
+    WHERE LOWER(s.name) = 'confirmed'
+      AND oi.order_id = $1
+    RETURNING oi.id;
+  `;
+  
+  try {
+    const orderResult = await query(orderUpdateSql, [orderId], client);
+    const orderItemResult = await query(orderItemUpdateSql, [orderId], client);
+    
+    return {
+      orderResult,
+      orderItemResult,
+    };
+  } catch (error) {
+    logError(`Failed to confirm order: ${orderId} and items:`, error.message);
+    throw AppError.databaseError('Unable to confirm order and its items.', { cause: error });
+  }
+};
+
 module.exports = {
   createOrder,
   getOrderDetailsById,
   updateOrderData,
   getAllOrders,
   getOrderStatusAndItems,
+  getOrderAndItemStatusCodes,
+  confirmOrderAndItems,
 };

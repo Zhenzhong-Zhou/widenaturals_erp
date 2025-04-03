@@ -130,7 +130,6 @@ router.use('/order-types', authenticate(), orderTypeRoutes);
 
 router.use('/tax-rates', authenticate(), taxRateRoutes);
 
-// router.use('/inventory-allocation', authenticate(), inventoryAllocationRoutes);
-router.use('/inventory-allocation',  inventoryAllocationRoutes);
+router.use('/inventory-allocation', authenticate(), inventoryAllocationRoutes);
 
 module.exports = router;

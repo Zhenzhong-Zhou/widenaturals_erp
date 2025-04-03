@@ -3,6 +3,9 @@ const { checkPermissions } = require('../services/role-permission-service');
 const { verifyOrderNumber } = require('../utils/order-number-utils');
 const AppError = require('../utils/AppError');
 const { logError } = require('../utils/logger-helper');
+const { confirmOrderAndItems, getOrderAndItemStatusCodes } = require('../repositories/order-repository');
+const { getStatusValue } = require('../database/db');
+const { transformOrderStatusCodes } = require('../transformers/order-transformer');
 
 /**
  * Validates a list of orders by their order numbers.
@@ -94,7 +97,63 @@ const applyOrderDetailsBusinessLogic = async (order, user) => {
   return order;
 };
 
+/**
+ * Business logic to confirm an order and its items.
+ *
+ * @param {string} orderId - The UUID of the order to confirm.
+ * @param {object} user - Authenticated user object (must contain role).
+ * @param {object} client - Optional PostgreSQL client (for transaction support).
+ * @returns {Promise<Object>} Raw confirmation result.
+ */
+const confirmOrderWithItems = async (orderId, user, client) => {
+  const hasPermission = await checkPermissions(user, [
+    'root_access',
+    'confirm_order',
+    'confirm_sales_order'
+  ]);
+  
+  if (!hasPermission) {
+    throw AppError.authorizationError('You do not have permission to confirm orders.');
+  }
+  
+  return await confirmOrderAndItems(orderId, client);
+};
+
+/**
+ * Determines whether an order can be confirmed by validating both
+ * the current order status and all associated order item statuses.
+ *
+ * Confirmation is allowed only if:
+ * - The order's status code is in the allowed list (e.g., 'ORDER_PENDING')
+ * - All order items also have a status that permits confirmation
+ *
+ * @param {string} orderId - UUID of the order to check
+ * @param {object} client - Optional database client for transaction context
+ * @returns {Promise<boolean>} - Whether the order is eligible for confirmation
+ * @throws {AppError} - If the order status cannot be retrieved
+ */
+const canConfirmOrder = async (orderId, client) => {
+  const allowedStatusCodes = ['ORDER_PENDING', 'ORDER_EDITED'];
+  const allowedItemStatuses = ['ORDER_PENDING', 'ORDER_EDITED'];
+  
+  const rawStatusRows = await getOrderAndItemStatusCodes(orderId, client);
+  const { order_status_code, item_status_codes } = transformOrderStatusCodes(rawStatusRows);
+  
+  if (!order_status_code) {
+    throw AppError.databaseError(`Order status not found for order ID: ${orderId}`);
+  }
+  
+  const isOrderConfirmable = allowedStatusCodes.includes(order_status_code);
+  const areAllItemsConfirmable = item_status_codes.every((status) =>
+    allowedItemStatuses.includes(status)
+  );
+  
+  return isOrderConfirmable && areAllItemsConfirmable;
+};
+
 module.exports = {
   validateOrderNumbers,
-  applyOrderDetailsBusinessLogic
+  applyOrderDetailsBusinessLogic,
+  confirmOrderWithItems,
+  canConfirmOrder,
 };

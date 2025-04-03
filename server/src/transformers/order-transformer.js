@@ -117,19 +117,64 @@ const transformOrderStatusAndItems = (rows) => {
     throw AppError.transformerError('No data found to transform.');
   }
   
-  const { order_status_id, order_status_name } = rows[0];
+  const { order_status_id, order_status_code } = rows[0];
   
   const orderItems = rows.map((row) => ({
     product_id: row.product_id,
     quantity_ordered: Number(row.quantity_ordered),
     order_item_status_id: row.order_item_status_id,
-    order_item_status_name: row.order_item_status_name,
+    order_item_status_code: row.order_item_status_code,
   }));
   
   return {
     order_status_id,
-    order_status_name,
+    order_status_code,
     orderItems,
+  };
+};
+
+/**
+ * Transforms raw rows from the order and order item status code query
+ * into a structured object for status validation logic.
+ *
+ * @param {Array<object>} rows - Raw DB result containing status codes.
+ * @returns {{ order_status_code: string, item_status_codes: string[] }}
+ *          - Normalized object with order status and an array of item status codes.
+ */
+const transformOrderStatusCodes = (rows = []) => {
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return {
+      order_status_code: null,
+      item_status_codes: [],
+    };
+  }
+  
+  const order_status_code = rows[0].order_status_code;
+  const item_status_codes = rows.map((row) => row.order_item_status_code);
+  
+  return {
+    order_status_code,
+    item_status_codes,
+  };
+};
+
+/**
+ * Transforms raw confirmation results from confirming an order and its items.
+ *
+ * @param {Object} result - The raw result from the repository.
+ * @param {Object} result.orderResult - Result of confirming the order.
+ * @param {Object} result.orderItemResult - Result of confirming the order items.
+ * @returns {{
+ *   orderId: string | null,
+ *   confirmedItemIds: string[]
+ * }}
+ */
+const transformConfirmedOrderResult = ({ orderResult, orderItemResult }) => {
+  return {
+    orderId: orderResult?.rows?.[0]?.id || null,
+    confirmedItemIds: Array.isArray(orderItemResult?.rows)
+      ? orderItemResult.rows.map((row) => row.id)
+      : [],
   };
 };
 
@@ -137,4 +182,6 @@ module.exports = {
   transformAllOrders,
   transformOrderDetails,
   transformOrderStatusAndItems,
+  transformOrderStatusCodes,
+  transformConfirmedOrderResult,
 };

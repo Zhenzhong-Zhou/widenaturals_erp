@@ -26,6 +26,12 @@ exports.seed = async function (knex) {
       description: 'Order has been created but not yet reviewed or confirmed.',
     },
     {
+      name: 'Edited',
+      category: 'draft',
+      code: 'ORDER_EDITED',
+      description: 'Order has been modified after creation but before confirmation.',
+    },
+    {
       name: 'Confirmed',
       category: 'confirmation',
       code: 'ORDER_CONFIRMED',

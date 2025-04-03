@@ -42,14 +42,14 @@ const allocateInventoryForOrder = async ({
     }
     
     const {
-      order_status_name,
+      order_status_code,
       orderItems,
     } = transformOrderStatusAndItems(rawOrderResult);
     
     // 2. Validate order-level status
-    if (!order_status_name || order_status_name.toLowerCase() !== 'confirmed') {
+    if (!order_status_code || order_status_code.toUpperCase() !== 'ORDER_CONFIRMED') {
       throw AppError.validationError(
-        `Order must be in 'confirmed' status before allocation. Current: ${order_status_name}`
+        `Order must be in 'confirmed' status before allocation. Current: ${order_status_code}`
       );
     }
     
@@ -61,11 +61,11 @@ const allocateInventoryForOrder = async ({
     
     // 4. Validate item-level status
     if (
-      !orderItem.order_item_status_name ||
-      orderItem.order_item_status_name.toLowerCase() !== 'confirmed'
+      !orderItem.order_item_status_code ||
+      orderItem.order_item_status_code.toUpperCase() !== 'ORDER_CONFIRMED'
     ) {
       throw AppError.validationError(
-        `Order item for product ${productId} is not confirmed. Current status: ${orderItem.order_item_status_name}`
+        `Order item for product ${productId} is not confirmed. Current status: ${orderItem.order_item_status_code}`
       );
     }
     

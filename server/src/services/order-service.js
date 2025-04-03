@@ -1,16 +1,16 @@
 const {
   createOrder,
-  getOrderDetailsById, getAllOrders,
+  getOrderDetailsById, getAllOrders, getOrderAndItemStatusCodes,
 } = require('../repositories/order-repository');
 const { createSalesOrder } = require('../repositories/sales-order-repository');
 const {
   getOrderTypeByIdOrName, checkOrderTypeExists,
 } = require('../repositories/order-type-repository');
 const AppError = require('../utils/AppError');
-const { verifyOrderNumber } = require('../utils/order-number-utils');
 const { logError } = require('../utils/logger-helper');
-const { transformOrderDetails, transformAllOrders } = require('../transformers/order-transformer');
-const { applyOrderDetailsBusinessLogic, validateOrderNumbers } = require('../business/order-business-logic');
+const { transformOrderDetails, transformAllOrders, transformConfirmedOrderResult, transformOrderStatusCodes } = require('../transformers/order-transformer');
+const { applyOrderDetailsBusinessLogic, validateOrderNumbers, confirmOrderWithItems, canConfirmOrder } = require('../business/order-business-logic');
+const { withTransaction } = require('../database/db');
 
 /**
  * Creates an order dynamically based on its type.
@@ -117,8 +117,39 @@ const fetchAllOrdersService = async ({
   }
 };
 
+/**
+ * Service to confirm an order and its associated order items.
+ * Validates the order's current status before proceeding.
+ *
+ * @param {string} orderId - The ID of the order to confirm.
+ * @param {object} user - The user performing the confirmation.
+ * @returns {Promise<object>} - Transformed result of the confirmed order.
+ * @throws {AppError} - If order ID is missing or order cannot be confirmed.
+ */
+const confirmOrderService = async (orderId, user) => {
+  if (!orderId) {
+    throw AppError.validationError('Order ID is required to confirm the order.');
+  }
+  
+  return await withTransaction(async (client) => {
+    // Step 1: Validate if the order and its items can be confirmed
+    const isConfirmable = await canConfirmOrder(orderId, client);
+    
+    if (!isConfirmable) {
+      throw AppError.validationError(`Order cannot be confirmed from its current status or item statuses.`);
+    }
+    
+    // Step 2: Confirm the order and items in the database
+    const rawResult = await confirmOrderWithItems(orderId, user, client);
+    
+    // Step 3: Transform and return the final confirmed result
+    return transformConfirmedOrderResult(rawResult);
+  });
+};
+
 module.exports = {
   createOrderByType,
   fetchOrderDetails,
   fetchAllOrdersService,
+  confirmOrderService,
 };

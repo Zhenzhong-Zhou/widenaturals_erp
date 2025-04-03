@@ -1,6 +1,6 @@
 const {
   createOrderByType,
-  fetchOrderDetails, fetchAllOrdersService,
+  fetchOrderDetails, fetchAllOrdersService, confirmOrderService,
 } = require('../services/order-service');
 const AppError = require('../utils/AppError');
 const wrapAsync = require('../utils/wrap-async');
@@ -100,8 +100,33 @@ const getAllOrdersController = wrapAsync(async (req, res, next) => {
   }
 });
 
+/**
+ * Controller to confirm an order and its items.
+ * @route POST /orders/:orderId/confirm
+ */
+const confirmOrderController = wrapAsync(async (req, res, next) => {
+  try {
+    const { orderId } = req.params;
+    const user = req.user;
+    
+    if (!orderId) {
+      throw AppError.validationError('Missing required parameter: orderId');
+    }
+    
+    const result = await confirmOrderService(orderId, user);
+    
+    res.status(200).json({
+      message: 'Order successfully confirmed.',
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 module.exports = {
   createOrderController,
   getOrderDetailsController,
   getAllOrdersController,
+  confirmOrderController,
 };
