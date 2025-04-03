@@ -89,7 +89,7 @@ const allocateInventoryForOrder = async ({
     
     // 7. Determine allocation status
     const statusCode =
-      quantity < orderItem.quantity_ordered ? 'ORDER_ALLOCATING' : 'ORDER_ALLOCATED';
+      quantity < orderItem.quantity_ordered ? 'ALLOC_PARTIAL' : 'ALLOC_COMPLETED';
     
     const status_id = await getStatusValue({
       table: 'inventory_allocation_status',
@@ -111,7 +111,6 @@ const allocateInventoryForOrder = async ({
         status_id,
         order_id: orderId,
         created_by: userId,
-        updated_by: userId,
       }, client)
     );
     
@@ -129,7 +128,8 @@ const allocateInventoryForOrder = async ({
       orderId,
       orderItemId: orderItem.order_item_id,
       orderStatusCode: newOrderStatus,
-      itemStatusCode: itemStatus
+      itemStatusCode: itemStatus,
+      userId,
     }, client);
 
     // 13. Transform update result into a structured summary object

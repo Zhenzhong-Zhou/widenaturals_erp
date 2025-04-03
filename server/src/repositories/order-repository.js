@@ -479,12 +479,13 @@ const getOrderAndItemStatusCodes = async (orderId, client) => {
  * @param {string} params.orderId - UUID of the order.
  * @param {string} params.orderStatusCode - Status code to set on the order.
  * @param {string} [params.itemStatusCode] - Optional separate status code for items.
+ * @param {string} params.userId - UUID of the user performing the update.
  * @param {*} client - PostgreSQL client (transactional).
  * @returns {Promise<object>} - Updated row counts or result info.
  */
-const updateOrderAndItemStatus = async ({ orderId, orderStatusCode, itemStatusCode }, client) => {
-  if (!orderId || !orderStatusCode) {
-    throw AppError.validationError('orderId and orderStatusCode are required.');
+const updateOrderAndItemStatus = async ({ orderId, orderStatusCode, itemStatusCode, userId }, client) => {
+  if (!orderId || !orderStatusCode || !userId) {
+    throw AppError.validationError('orderId, orderStatusCode, and userId are required.');
   }
   
   const queries = [];
@@ -494,12 +495,13 @@ const updateOrderAndItemStatus = async ({ orderId, orderStatusCode, itemStatusCo
     UPDATE orders o
     SET order_status_id = s.id,
         status_date = NOW(),
-        updated_at = NOW()
+        updated_at = NOW(),
+        updated_by = $3
     FROM order_status s
     WHERE s.code = $2 AND o.id = $1
     RETURNING o.id;
   `;
-  queries.push(query(orderSql, [orderId, orderStatusCode], client));
+  queries.push(query(orderSql, [orderId, orderStatusCode, userId], client));
   
   // Update items only if itemStatusCode is explicitly provided
   if (itemStatusCode) {
@@ -507,12 +509,13 @@ const updateOrderAndItemStatus = async ({ orderId, orderStatusCode, itemStatusCo
       UPDATE order_items oi
       SET status_id = s.id,
           status_date = NOW(),
-          updated_at = NOW()
+          updated_at = NOW(),
+          updated_by = $3
       FROM order_status s
       WHERE s.code = $2 AND oi.order_id = $1
       RETURNING oi.id;
     `;
-    queries.push(query(itemSql, [orderId, itemStatusCode], client));
+    queries.push(query(itemSql, [orderId, itemStatusCode, userId], client));
   }
   
   try {

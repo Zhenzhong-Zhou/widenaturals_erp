@@ -47,7 +47,7 @@ const insertInventoryAllocation = async ({
     )
     VALUES (
       $1, $2, $3, $4, $5, NOW(),
-      $6, $7, $8, $9, NOW(), NULL
+      $6, $7, $8, NULL, NOW(), NULL
     )
     RETURNING *;
   `;
@@ -61,7 +61,6 @@ const insertInventoryAllocation = async ({
     order_id,
     transfer_id,
     created_by,
-    updated_by,
   ];
   
   const result = await query(sql, values, client);

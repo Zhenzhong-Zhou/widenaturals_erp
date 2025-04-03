@@ -119,6 +119,7 @@ const confirmOrderWithItems = async (orderId, user, client) => {
     orderId,
     orderStatusCode: 'ORDER_CONFIRMED',
     itemStatusCode: 'ORDER_CONFIRMED',
+    userId: user.id,
   }, client);
 };
 
