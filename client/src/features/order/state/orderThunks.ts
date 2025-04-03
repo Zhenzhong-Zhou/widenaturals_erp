@@ -1,5 +1,12 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { CreateSalesOrderResponse, FetchOrdersParams, OrderResponse, OrderType, SalesOrder } from './orderTypes.ts';
+import {
+  CreateSalesOrderResponse,
+  FetchOrdersParams,
+  OrderResponse,
+  OrderStatusUpdateResponse,
+  OrderType,
+  SalesOrder,
+} from './orderTypes.ts';
 import { dropdownService, orderService } from '../../../services';
 
 export const fetchOrderTypesDropDownThunk = createAsyncThunk<
@@ -58,6 +65,30 @@ export const fetchSalesOrderDetailsThunk = createAsyncThunk<
     } catch (error: any) {
       console.error('Error in fetchSalesOrderDetailsThunk:', error.message);
       return rejectWithValue('Failed to fetch sales order details. Please try again.');
+    }
+  }
+);
+
+/**
+ * Thunk to confirm a sales order.
+ *
+ * Dispatches API request to confirm a sales order and handles response or error.
+ *
+ * @param {string} orderId - UUID of the sales order.
+ * @returns {Promise<OrderStatusUpdateResponse>} - Confirmed order response data.
+ */
+export const confirmSalesOrderThunk = createAsyncThunk<
+  OrderStatusUpdateResponse, // Return type
+  string,                    // Payload type (orderId)
+  { rejectValue: string }    // Error type for rejected action
+>(
+  'salesOrder/confirm',
+  async (orderId, { rejectWithValue }) => {
+    try {
+      return await orderService.confirmSalesOrder(orderId);
+    } catch (error: any) {
+      console.error('Error confirming sales order:', error);
+      return rejectWithValue('Failed to confirm sales order. Please try again later.');
     }
   }
 );

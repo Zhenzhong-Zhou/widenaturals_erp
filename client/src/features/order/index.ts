@@ -7,13 +7,16 @@ export type {
   OrderPagination,
   OrdersResponse,
   FetchOrdersParams,
-  OrderResponse
+  OrderResponse,
+  OrderStatusUpdateResult,
+  OrderStatusUpdateResponse,
 } from './state/orderTypes.ts';
 export {
   fetchOrderTypesDropDownThunk,
   createSalesOrderThunk,
   fetchAllOrdersThunk,
   fetchSalesOrderDetailsThunk,
+  confirmSalesOrderThunk,
 } from './state/orderThunks.ts';
 export {
   selectOrderTypesDropdown,
@@ -48,3 +51,9 @@ export {
 export { default as SalesOrderDetailsSection } from './components/SalesOrderDetailsSection.tsx';
 export { default as OrderItemsTable } from './components/OrderItemsTable.tsx';
 export { orderItemsColumns } from './components/OrderItemsTableColumns.ts';
+export {
+  selectConfirmOrderData,
+  selectConfirmOrderLoading,
+  selectConfirmOrderError,
+  selectConfirmOrderSuccessMessage,
+} from './state/confirmSalesOrderSelectors.ts';

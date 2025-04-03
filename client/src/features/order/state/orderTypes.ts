@@ -129,3 +129,15 @@ export interface OrderResponse {
   message: string;
   data: OrderData;
 }
+
+export interface OrderStatusUpdateResult {
+  orderId: string;
+  updatedOrderCount: number;
+  updatedItemCount: number;
+}
+
+export interface OrderStatusUpdateResponse {
+  success: boolean;
+  message: string;
+  data: OrderStatusUpdateResult;
+}

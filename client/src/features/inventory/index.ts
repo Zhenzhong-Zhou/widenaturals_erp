@@ -6,7 +6,10 @@ export type {
   InventorySummaryPagination,
   InventorySummaryResponse,
 } from './state/inventoryTypes.ts';
-export { fetchAllInventories } from './state/inventoryThunks.ts';
+export {
+  fetchAllInventories,
+  fetchInventorySummaryThunk
+} from './state/inventoryThunks.ts';
 export {
   selectInventories,
   selectInventoryPagination,

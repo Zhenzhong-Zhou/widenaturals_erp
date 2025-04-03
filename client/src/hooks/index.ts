@@ -37,6 +37,7 @@ export { default as useOrderTypes } from './useOrderTypes.ts';
 export { default as useOrderTypesDropdown } from './useOrderTypesDropdown.ts';
 export { default as useCustomers } from './useCustomers.ts';
 export { default as useSalesOrders } from './useSalesOrders.ts';
+export { default as useConfirmSalesOrder } from './useConfirmSalesOrder.ts';
 export { default as useCustomerDropdown } from './useCustomerDropdown.ts';
 export { default as useDiscountDropdown } from './useDiscountDropdown.ts';
 export { default as useTaxRateDropdown } from './useTaxRateDropdown.ts';

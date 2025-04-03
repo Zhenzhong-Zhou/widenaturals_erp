@@ -4,7 +4,7 @@ import {
   CreateSalesOrderResponse,
   FetchOrdersParams,
   OrderResponse,
-  OrdersResponse,
+  OrdersResponse, OrderStatusUpdateResponse,
   SalesOrder,
 } from '../features/order';
 
@@ -79,8 +79,29 @@ const fetchSalesOrderDetails = async (
   }
 };
 
+/**
+ * Sends a request to confirm a sales order by ID.
+ *
+ * @param {string} orderId - The UUID of the sales order to be confirmed.
+ * @returns {Promise<OrderStatusUpdateResponse>} - Confirmation result containing updated counts and order ID.
+ * @throws {Error} - Throws an error if the request fails.
+ */
+const confirmSalesOrder = async (
+  orderId: string
+): Promise<OrderStatusUpdateResponse> => {
+  try {
+    const endpoint = API_ENDPOINTS.CONFIRM_SALES_ORDER.replace(':orderId', orderId);
+    const response = await axiosInstance.post<OrderStatusUpdateResponse>(endpoint);
+    return response.data;
+  } catch (error) {
+    console.error('Error confirming sales order:', error);
+    throw new Error('Failed to confirm the sales order. Please try again later.');
+  }
+};
+
 export const orderService = {
   createSalesOrder,
   fetchAllOrders,
   fetchSalesOrderDetails,
+  confirmSalesOrder,
 };

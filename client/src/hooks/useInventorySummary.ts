@@ -1,10 +1,10 @@
 import { useAppDispatch, useAppSelector } from '../store/storeHooks';
 import {
+  fetchInventorySummaryThunk,
   selectInventorySummaryData, selectInventorySummaryError,
   selectInventorySummaryLoading,
   selectInventorySummaryPagination,
 } from '../features/inventory';
-import { fetchInventorySummaryThunk } from '../features/inventory/state/inventoryThunks.ts';
 
 /**
  * Custom hook to interact with inventory summary state and actions.

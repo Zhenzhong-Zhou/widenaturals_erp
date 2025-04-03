@@ -1,4 +1,4 @@
-import { FC, useMemo } from 'react';
+import { forwardRef, useImperativeHandle, useMemo } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@components/common/Typography.tsx';
 import { CustomButton, DetailsSection, ErrorMessage, Loading } from '@components/index.ts';
@@ -16,8 +16,13 @@ interface SalesOrderDetailsSectionProps {
   orderId: string;
 }
 
-const SalesOrderDetailsSection: FC<SalesOrderDetailsSectionProps> = ({ orderId }) => {
+const SalesOrderDetailsSection = forwardRef(({ orderId }: SalesOrderDetailsSectionProps, ref) => {
   const { data, loading, error, refresh } = useSalesOrderDetails(orderId);
+  
+  // expose refresh to parent via ref
+  useImperativeHandle(ref, () => ({
+    refresh,
+  }));
   
   const filteredOrderDetails = useMemo(() => {
     if (!data?.data) return null;
@@ -161,6 +166,6 @@ const SalesOrderDetailsSection: FC<SalesOrderDetailsSectionProps> = ({ orderId }
       </CardContent>
     </Card>
   );
-};
+});
 
 export default SalesOrderDetailsSection;
