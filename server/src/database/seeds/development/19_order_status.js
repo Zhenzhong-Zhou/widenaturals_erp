@@ -38,6 +38,36 @@ exports.seed = async function (knex) {
       description: 'Order has been reviewed and approved for processing.',
     },
     {
+      name: 'Allocating',
+      category: 'processing',
+      code: 'ORDER_ALLOCATING',
+      description: 'Order is currently being allocated with available inventory.',
+    },
+    {
+      name: 'Allocated',
+      category: 'processing',
+      code: 'ORDER_ALLOCATED',
+      description: 'Inventory has been fully allocated for the order.',
+    },
+    {
+      name: 'Partially Allocated',
+      category: 'processing',
+      code: 'ALLOC_PARTIAL',
+      description: 'Only part of the required inventory has been allocated for this item.',
+    },
+    {
+      name: 'Fully Allocated',
+      category: 'processing',
+      code: 'ALLOC_COMPLETED',
+      description: 'Item has been fully allocated with available inventory.',
+    },
+    {
+      name: 'Backordered',
+      category: 'processing',
+      code: 'BACKORDERED',
+      description: 'Item could not be allocated due to lack of inventory.',
+    },
+    {
       name: 'Processing',
       category: 'fulfillment',
       code: 'ORDER_PROCESSING',

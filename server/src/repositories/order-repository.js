@@ -472,48 +472,53 @@ const getOrderAndItemStatusCodes = async (orderId, client) => {
 };
 
 /**
- * Updates an order and its items to 'confirmed' status.
+ * Updates the status of an order and its associated items.
  *
  * @param {string} orderId - UUID of the order.
- * @param {*} client - Optional PostgreSQL client for transaction support.
- * @returns {Promise<void>}
+ * @param {string} newStatusCode - Status code to set (e.g., 'ORDER_CONFIRMED').
+ * @param {*} client - PostgreSQL client (transactional).
+ * @returns {Promise<object>} - Updated row counts or result info.
  */
-const confirmOrderAndItems = async (orderId, client) => {
-  const orderUpdateSql = `
+const updateOrderAndItemStatus = async (orderId, newStatusCode, client) => {
+  if (!orderId || !newStatusCode) {
+    throw AppError.validationError('Both orderId and statusCode are required.');
+  }
+  
+  const orderSql = `
     UPDATE orders o
     SET
       order_status_id = s.id,
       status_date = NOW(),
       updated_at = NOW()
     FROM order_status s
-    WHERE LOWER(s.name) = 'confirmed'
+    WHERE s.code = $2
       AND o.id = $1
     RETURNING o.id;
   `;
   
-  const orderItemUpdateSql = `
+  const itemSql = `
     UPDATE order_items oi
     SET
       status_id = s.id,
       status_date = NOW(),
       updated_at = NOW()
     FROM order_status s
-    WHERE LOWER(s.name) = 'confirmed'
+    WHERE s.code = $2
       AND oi.order_id = $1
     RETURNING oi.id;
   `;
   
   try {
-    const orderResult = await query(orderUpdateSql, [orderId], client);
-    const orderItemResult = await query(orderItemUpdateSql, [orderId], client);
+    const orderResult = await query(orderSql, [orderId, newStatusCode], client);
+    const orderItemResult = await query(itemSql, [orderId, newStatusCode], client);
     
     return {
       orderResult,
       orderItemResult,
     };
   } catch (error) {
-    logError(`Failed to confirm order: ${orderId} and items:`, error.message);
-    throw AppError.databaseError('Unable to confirm order and its items.', { cause: error });
+    logError(`Failed to update order & item statuses for order ${orderId}`, error);
+    throw AppError.databaseError(`Unable to update statuses for order: ${orderId}`, { cause: error });
   }
 };
 
@@ -524,5 +529,5 @@ module.exports = {
   getAllOrders,
   getOrderStatusAndItems,
   getOrderAndItemStatusCodes,
-  confirmOrderAndItems,
+  updateOrderAndItemStatus,
 };

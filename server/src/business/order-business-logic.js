@@ -3,8 +3,7 @@ const { checkPermissions } = require('../services/role-permission-service');
 const { verifyOrderNumber } = require('../utils/order-number-utils');
 const AppError = require('../utils/AppError');
 const { logError } = require('../utils/logger-helper');
-const { confirmOrderAndItems, getOrderAndItemStatusCodes } = require('../repositories/order-repository');
-const { getStatusValue } = require('../database/db');
+const { updateOrderAndItemStatus, getOrderAndItemStatusCodes } = require('../repositories/order-repository');
 const { transformOrderStatusCodes } = require('../transformers/order-transformer');
 
 /**
@@ -116,7 +115,7 @@ const confirmOrderWithItems = async (orderId, user, client) => {
     throw AppError.authorizationError('You do not have permission to confirm orders.');
   }
   
-  return await confirmOrderAndItems(orderId, client);
+  return await updateOrderAndItemStatus(orderId, 'ORDER_CONFIRMED', client);
 };
 
 /**

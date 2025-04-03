@@ -1,11 +1,10 @@
-const { withTransaction, query } = require('../database/db');
+const { withTransaction, query, getStatusValue } = require('../database/db');
 const { createOrder, updateOrderData } = require('./order-repository');
 const AppError = require('../utils/AppError');
 const { addOrderItems } = require('./order-item-repository');
 const { getValidDiscountById } = require('./discount-repository');
 const { getActiveTaxRateById, checkTaxRateExists } = require('./tax-rate-repository');
 const { getActiveProductPrice } = require('./pricing-repository');
-const { getStatusByCodeOrId } = require('./order-status-repository');
 const { logError } = require('../utils/logger-helper');
 const { checkDeliveryMethodExists } = require('./delivery-method-repository');
 const { checkCustomerExistsById } = require('./customer-repository');
@@ -20,10 +19,11 @@ const { checkCustomerExistsById } = require('./customer-repository');
 const createSalesOrder = async (salesOrderData) => {
   return withTransaction(async (client) => {
     try {
-      const { id: order_status_id } = await getStatusByCodeOrId(
-        { code: 'ORDER_PENDING' },
-        client
-      );
+      const status_id = await getStatusValue({
+        table: 'order_status',
+        where: { code: 'ORDER_PENDING' },
+        select: 'id',
+      }, client);
       
       // Validate customer ID
       const customerExists = await checkCustomerExistsById(salesOrderData.customer_id, client);
@@ -59,7 +59,7 @@ const createSalesOrder = async (salesOrderData) => {
       const order = await createOrder({
         order_type_id: salesOrderData.order_type_id,
         order_date: salesOrderData.order_date,
-        order_status_id,
+        order_status_id: status_id,
         metadata: salesOrderData.metadata,
         note: salesOrderData.note,
         created_by: salesOrderData.created_by,
@@ -110,7 +110,7 @@ const createSalesOrder = async (salesOrderData) => {
           ...item,
           price_id: productPrice.id,
           price: final_price,
-          status_id: order_status_id,
+          status_id,
         });
         
         // Track manual price overrides
