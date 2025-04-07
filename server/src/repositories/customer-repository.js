@@ -1,5 +1,4 @@
 const {
-  withTransaction,
   bulkInsert,
   query,
   retry,
@@ -52,21 +51,28 @@ const checkCustomerExistsByEmailOrPhone = async (email, phone_number, client = n
 /**
  * Inserts multiple customers into the database in a transaction.
  * @param {Array} customers - List of customer objects.
+ * @param client
  * @returns {Promise<Array>} - The inserted customers.
  */
-const bulkCreateCustomers = async (customers) => {
+const bulkCreateCustomers = async (customers, client) => {
   if (!Array.isArray(customers) || customers.length === 0) {
     throw AppError('Customer list is empty.', 400, {
       code: 'VALIDATION_ERROR',
     });
   }
-
+  
   const columns = [
     'firstname',
     'lastname',
     'email',
     'phone_number',
-    'address',
+    'address_line1',
+    'address_line2',
+    'city',
+    'state',
+    'postal_code',
+    'country',
+    'region',
     'status_id',
     'note',
     'status_date',
@@ -75,39 +81,44 @@ const bulkCreateCustomers = async (customers) => {
     'created_by',
     'updated_by',
   ];
-
+  
   const rows = customers.map((customer) => [
     customer.firstname,
     customer.lastname,
     customer.email || null,
     customer.phone_number || null,
-    customer.address || null,
+    customer.address_line1,
+    customer.address_line2 || null,
+    customer.city,
+    customer.state,
+    customer.postal_code,
+    customer.country,
+    customer.region || null,
     customer.status_id,
     customer.note || null,
     new Date(), // status_date
     new Date(), // created_at
-    null, // updated_at
+    null,       // updated_at
     customer.created_by,
-    null,
+    null,       // updated_by
   ]);
+  
 
-  return withTransaction(async (client) => {
-    try {
-      return await bulkInsert(
-        'customers',
-        columns,
-        rows,
-        ['email', 'phone_number'], // Conflict resolution based on email, phone
-        ['firstname', 'lastname', 'address', 'status_id', 'updated_at'], // Update on conflict
-        client
-      );
-    } catch (error) {
-      logError('Bulk Insert Failed:', error);
-      throw AppError.databaseError('Bulk insert operation failed', {
-        details: { tableName: 'customers', columns, error: error.message },
-      });
-    }
-  });
+  try {
+    return await bulkInsert(
+      'customers',
+      columns,
+      rows,
+      ['email', 'phone_number'], // Conflict resolution based on email, phone
+      ['firstname', 'lastname', 'address', 'status_id', 'updated_at'], // Update on conflict
+      client
+    );
+  } catch (error) {
+    logError('Bulk Insert Failed:', error);
+    throw AppError.databaseError('Bulk insert operation failed', {
+      details: { tableName: 'customers', columns, error: error.message },
+    });
+  }
 };
 
 /**
@@ -189,27 +200,42 @@ const getAllCustomers = async (
 };
 
 /**
- * Fetches customer data for a dropdown selection.
+ * Fetches customer data for a dropdown selection, including optional shipping info.
  *
  * This function retrieves customers from the database with a limit on the number of results.
  * If a search term is provided, it filters customers by their firstname, lastname, email, or phone number.
+ * Returns customer id, label (name + contact), and shipping address fields for auto-filling.
  *
  * @param {string} [search=""] - The search term to filter customers (matches firstname, lastname, email, or phone_number).
  * @param {number} [limit=100] - The maximum number of customers to return.
- * @returns {Promise<Array<{ id: string, label: string }>>} - A promise that resolves to an array of customer objects with `id` and `label`.
+ * @returns {Promise<Array<{
+ *   id: string,
+ *   fullname: string | null,
+ *   label: string,
+ *   phone: string | null,
+ *   email: string | null,
+ *   address: string | null,
+ *   address_line2: string | null,
+ *   city: string | null,
+ *   state: string | null,
+ *   postal_code: string | null,
+ *   country: string | null,
+ *   region: string | null
+ * }>>} - A promise resolving to customer dropdown entries with shipping details.
+ *
  * @throws {Error} - Throws an error if the database query fails.
  *
  * @example
- * // Fetch first 100 customers for dropdown
- * const customers = await getCustomersForDropdown(query);
+ * // Fetch default customer list
+ * const customers = await getCustomersForDropdown();
  *
  * @example
- * // Fetch customers with search term "Alice"
- * const customers = await getCustomersForDropdown(query, "Alice");
+ * // Fetch with search filter
+ * const customers = await getCustomersForDropdown("Alice");
  */
 const getCustomersForDropdown = async (search = '', limit = 100) => {
   try {
-    let whereClause = ''; // Removed unnecessary conditions
+    let whereClause = '';
     let params = [];
     
     if (search) {
@@ -230,7 +256,14 @@ const getCustomersForDropdown = async (search = '', limit = 100) => {
           WHEN c.email IS NOT NULL THEN ' - ' || c.email
           WHEN c.phone_number IS NOT NULL THEN ' - ' || c.phone_number
           ELSE ''
-        END AS label
+        END AS label,
+        c.address_line1,
+        c.address_line2,
+        c.city,
+        c.state,
+        c.postal_code,
+        c.country,
+        c.region
       FROM customers c
       ${whereClause}
       ORDER BY c.created_at DESC
@@ -261,7 +294,10 @@ const getCustomerById = async (customerId) => {
         COALESCE(c.firstname || ' ' || c.lastname, 'Unknown') AS customer_name,
         c.email,
         c.phone_number,
-        c.address,
+        COALESCE(
+          c.address_line1 || ' ' || c.address_line2 || ', ' || c.city || ', ' || c.state || ', ' || c.postal_code,
+          ''
+        ) AS address,
         c.note,
         c.status_id,
         s.name AS status_name,

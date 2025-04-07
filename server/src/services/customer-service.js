@@ -1,44 +1,31 @@
 const AppError = require('../utils/AppError');
-const { getStatusIdByName } = require('../repositories/status-repository');
-const { validateCustomer } = require('../validators/customer-validator');
 const {
   bulkCreateCustomers,
   getAllCustomers,
   getCustomersForDropdown,
   getCustomerById,
 } = require('../repositories/customer-repository');
+const { prepareCustomersForInsert } = require('../business/customer-bussiness-logic');
 const { logError } = require('../utils/logger-helper');
+const { withTransaction } = require('../database/db');
 
 /**
- * Creates multiple customers in bulk.
+ * Creates multiple customers in bulk with validation and conflict handling.
+ * Wraps the insertion in a database transaction.
+ *
  * @param {Array} customers - List of customer objects.
- * @param {String} createdBy - User ID from JWT token.
- * @returns {Promise<Array>} - The inserted customers.
+ * @param {String} createdBy - ID of the user initiating the operation.
+ * @returns {Promise<Array>} - Inserted or updated customer records.
  */
 const createCustomers = async (customers, createdBy) => {
-  if (!Array.isArray(customers) || customers.length === 0) {
-    throw AppError.validationError('Customer list is empty.');
-  }
-
-  // Fetch the active status ID
-  const activeStatusId = await getStatusIdByName('active');
-  if (!activeStatusId) {
-    throw AppError.databaseError('Active status ID not found.');
-  }
-
-  // Validate customers concurrently
-  await Promise.all(customers.map(validateCustomer));
-
-  // Transform customers with default values
-  const transformedCustomers = customers.map((customer) => ({
-    ...customer,
-    status_id: activeStatusId, // Always set status as active
-    created_by: createdBy, // Extract from token
-    updated_by: createdBy, // Updated by same user initially
-  }));
-
-  // Bulk insert customers (handling conflicts)
-  return bulkCreateCustomers(transformedCustomers);
+  return withTransaction(async (client) => {
+    try {
+      const preparedCustomers = await prepareCustomersForInsert(customers, createdBy);
+      return await bulkCreateCustomers(preparedCustomers, client);
+    } catch (error) {
+      throw AppError.serviceError('Failed to create customers in transaction', error);
+    }
+  });
 };
 
 /**

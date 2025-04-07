@@ -9,7 +9,13 @@ exports.up = function (knex) {
     table.string('lastname', 100).notNullable();
     table.string('email', 255).notNullable().unique().index();
     table.string('phone_number', 15).unique().nullable();
-    table.text('address').nullable();
+    table.string('address_line1', 255).nullable();
+    table.string('address_line2', 255).nullable();
+    table.string('city', 100).nullable();
+    table.string('state', 100).nullable();
+    table.string('postal_code', 20).nullable();
+    table.string('country', 100).nullable();
+    table.string('region', 100).nullable();
     table.uuid('status_id').notNullable().references('id').inTable('status');
     table.text('note').nullable();
     table.timestamp('status_date', { useTz: true }).defaultTo(knex.fn.now()); // Auto-set on creation in UTC
