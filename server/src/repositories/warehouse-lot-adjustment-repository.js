@@ -5,6 +5,7 @@ const AppError = require('../utils/AppError');
 /**
  * Inserts a warehouse lot adjustment record.
  * @param {Object} client - The database client (optional, for transactions).
+ * @param {string|null} order_id - (Optional) The associated order ID if the adjustment is linked to a sales order.
  * @param {string} warehouse_inventory_lot_id - The ID of the warehouse-inventory-lot.
  * @param {string} adjustment_type_id - The type of adjustment (e.g., 'damaged', 'lost').
  * @param {number} previous_quantity - The previous quantity before adjustment.
@@ -17,6 +18,7 @@ const AppError = require('../utils/AppError');
  */
 const insertWarehouseLotAdjustment = async (
   client,
+  order_id,
   warehouse_inventory_lot_id,
   adjustment_type_id,
   previous_quantity,
@@ -28,6 +30,7 @@ const insertWarehouseLotAdjustment = async (
 ) => {
   const queryText = `
     INSERT INTO warehouse_lot_adjustments (
+      order_id,
       warehouse_inventory_lot_id,
       adjustment_type_id,
       previous_quantity,
@@ -38,11 +41,12 @@ const insertWarehouseLotAdjustment = async (
       status_id,
       comments
     )
-    VALUES ($1, $2, $3, $4, $5, NOW(), $6, $7, $8)
+    VALUES ($1, $2, $3, $4, $5, NOW(), $6, $7, $8, $9)
     RETURNING id;
   `;
 
   const values = [
+    order_id,
     warehouse_inventory_lot_id,
     adjustment_type_id,
     previous_quantity,
@@ -88,6 +92,7 @@ const bulkInsertWarehouseLotAdjustments = async (adjustments, client) => {
 
   const tableName = 'warehouse_lot_adjustments';
   const columns = [
+    'order_id',
     'warehouse_inventory_lot_id',
     'adjustment_type_id',
     'previous_quantity',
@@ -101,6 +106,7 @@ const bulkInsertWarehouseLotAdjustments = async (adjustments, client) => {
 
   // Convert adjustments into a nested array of values for bulk insert
   const rows = adjustments.map((adj) => [
+    adj.order_id || null,
     adj.warehouse_inventory_id,
     adj.adjustment_type_id,
     adj.previous_quantity,

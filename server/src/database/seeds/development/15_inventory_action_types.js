@@ -95,6 +95,12 @@ exports.seed = async function (knex) {
       status_id: activeStatusId,
       default_action: true,
     },
+    {
+      name: 'reserve',
+      description: 'Inventory reserved for order or transfer',
+      status_id: activeStatusId,
+      default_action: false,
+    }
   ];
 
   // Insert data while avoiding duplicates

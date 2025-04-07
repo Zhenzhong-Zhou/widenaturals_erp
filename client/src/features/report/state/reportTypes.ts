@@ -41,6 +41,8 @@ export interface AdjustmentReportParams extends BaseReportParams {
 
 // Represents an individual adjustment record
 export interface AdjustmentRecord {
+  orderId?: string | null;
+  orderNumber?: string | null;
   warehouse_id: string;
   warehouse_name: string;
   warehouse_inventory_lot_id: string;
@@ -113,6 +115,7 @@ export interface InventoryActivityLog {
   status: string;
   adjustment_type: string | null;
   order_id: string | null;
+  order_number: string | null;
   user_name: string;
   local_timestamp: string;
   comments: string | null;

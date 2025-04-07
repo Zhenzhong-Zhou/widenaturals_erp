@@ -404,6 +404,7 @@ const getAllOrders = async ({
 const getOrderStatusAndItems = async (orderId, client) => {
   const sql = `
     SELECT
+      o.order_number,
       o.order_status_id,
       os.code AS order_status_code,
       oi.id AS order_item_id,

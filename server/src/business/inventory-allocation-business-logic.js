@@ -8,6 +8,7 @@ const { transformWarehouseLotResult } = require('../transformers/warehouse-inven
 const { getStatusValue, lockRow, retry } = require('../database/db');
 const { determineOrderStatusFromAllocations } = require('../utils/allocation-utils');
 const { updateWarehouseInventoryQuantity, fetchWarehouseInventoryQuantities } = require('../repositories/warehouse-inventory-repository');
+const { bulkInsertInventoryActivityLogs } = require('../repositories/inventory-activity-log-repository');
 
 /**
  * Allocates inventory for a confirmed order item using FIFO or FEFO.
@@ -155,7 +156,33 @@ const allocateInventoryForOrder = async ({
       client
     );
     
-    // 8.2 Update available_quantity and reserved_quantity in warehouse_inventory (warehouse-level summary)
+    // 8.2 Insert reservation log for activity tracking (lot reserved)
+    await bulkInsertInventoryActivityLogs([
+      {
+        inventory_id,
+        warehouse_id: warehouseId,
+        lot_id: warehouse_inventory_lot_id,
+        inventory_action_type_id: await getStatusValue({
+          table: 'inventory_action_types',
+          where: { name: 'reserve' },
+          select: 'id'
+        }, client),
+        previous_quantity: prevAvailable,
+        quantity_change: -quantity, // reservation reduces available quantity
+        new_quantity: prevAvailable - quantity,
+        status_id: await getStatusValue({
+          table: 'warehouse_lot_status',
+          where: { name: 'reserved' }, // optional, if status changed
+          select: 'id'
+        }, client),
+        adjustment_type_id: null, // optional for reservation
+        order_id: orderId,
+        user_id: userId,
+        comments: `Automatically reserved by system for sales order triggered by allocation process`
+      }
+    ], client);
+    
+    // 8.3 Update available_quantity and reserved_quantity in warehouse_inventory (warehouse-level summary)
     if (!inventoryQtyMap[key]) {
       throw AppError.notFoundError(`Warehouse inventory not found for ${key}`);
     }

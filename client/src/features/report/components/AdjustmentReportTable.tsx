@@ -30,6 +30,11 @@ const AdjustmentReportTable: FC<AdjustmentReportTableProps> = ({
       sortable: true,
     },
     {
+      id: 'order_number',
+      label: 'Order Number',
+      sortable: true,
+    },
+    {
       id: 'item_name',
       label: 'Item Name',
       sortable: true,

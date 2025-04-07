@@ -31,6 +31,19 @@ const InventoryActivityLogTable: FC<InventoryLogTableProps> = ({
 }) => {
   const columns: Column<InventoryActivityLog>[] = [
     {
+      id: 'order_number',
+      label: 'Order Number',
+      sortable: true,
+      format: (
+        value: string | number | Record<string, any> | null,
+      ): string | number | null | undefined => {
+        if (typeof value === 'string' || typeof value === 'number') {
+          return value;
+        }
+        return '-';
+      }
+    },
+    {
       id: 'warehouse_name',
       label: 'Warehouse',
       minWidth: 150,
