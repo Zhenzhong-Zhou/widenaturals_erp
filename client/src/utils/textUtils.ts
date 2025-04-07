@@ -4,6 +4,7 @@ import {
   getCountryCallingCode,
   CountryCode,
 } from 'libphonenumber-js';
+import { ShippingInformation } from '../features/order';
 
 /**
  * Formats a given string into human-readable Title Case.
@@ -82,4 +83,51 @@ export const formatPhoneNumber = (
   } catch {
     return phoneNumber; // Return raw number if formatting fails
   }
+};
+
+/**
+ * Formats a shipping address into a display-friendly structure.
+ * - For North America, combines street address + city/state/postal into one 'Address' field.
+ * - For other regions, keeps Address and Location separate.
+ *
+ * @param {ShippingInformation | null} shippingInfo
+ * @returns {Record<string, string>}
+ */
+export const formatShippingAddress = (
+  shippingInfo?: ShippingInformation | null
+): Record<string, string> => {
+  if (!shippingInfo) {
+    return {
+      'Address': 'N/A',
+      'Country': 'N/A',
+      'Region': 'N/A',
+    };
+  }
+  
+  const {
+    shipping_address_line1,
+    shipping_address_line2,
+    shipping_city,
+    shipping_state,
+    shipping_postal_code,
+    shipping_country,
+    shipping_region,
+  } = shippingInfo;
+  
+  const isNorthAmerica = ['Canada', 'United States', 'USA', 'US'].includes(
+    (shipping_country || '').trim()
+  );
+  
+  const addressParts = [shipping_address_line1, shipping_address_line2].filter(Boolean);
+  const locationParts = isNorthAmerica
+    ? [shipping_city, shipping_state, shipping_postal_code]
+    : [shipping_city, shipping_region];
+  
+  const fullAddress = [...addressParts, ...locationParts].filter(Boolean).join(', ') || 'N/A';
+  
+  return {
+    'Address': fullAddress,
+    'Country': shipping_country || 'N/A',
+    'Region': shipping_region || 'N/A',
+  };
 };

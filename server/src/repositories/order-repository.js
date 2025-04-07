@@ -129,6 +129,22 @@ const createOrder = async (orderData) => {
   }
 };
 
+/**
+ * Fetches detailed order information including customer details, order items,
+ * pricing, delivery method, shipping address, and tracking info.
+ *
+ * This function performs a complex join across multiple tables:
+ * - `orders`, `sales_orders`, `order_items`
+ * - `products`, `pricing`, `pricing_types`, `order_status`
+ * - `customers`, `discounts`, `tax_rates`, `delivery_methods`, `tracking_numbers`
+ *
+ * Shipping address fields are also included directly from the `orders` table.
+ *
+ * @param {string} orderId - The UUID of the order to retrieve.
+ * @returns {Promise<Array<Object> | null>} An array of rows containing detailed order information,
+ *          or null if no order is found.
+ * @throws {AppError} - If a database error occurs.
+ */
 const getOrderDetailsById = async (orderId) => {
   const sql = `
     SELECT
@@ -175,7 +191,18 @@ const getOrderDetailsById = async (orderId) => {
       tn.tracking_number,
       tn.carrier,
       tn.service_name,
-      tn.shipped_date
+      tn.shipped_date,
+      o.has_shipping_address,
+      o.shipping_fullname,
+      o.shipping_phone,
+      o.shipping_email,
+      o.shipping_address_line1,
+      o.shipping_address_line2,
+      o.shipping_city,
+      o.shipping_state,
+      o.shipping_postal_code,
+      o.shipping_country,
+      o.shipping_region
     FROM orders o
     LEFT JOIN sales_orders s ON o.id = s.id
     LEFT JOIN customers c ON s.customer_id = c.id

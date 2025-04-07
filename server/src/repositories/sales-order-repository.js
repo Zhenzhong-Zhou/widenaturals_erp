@@ -55,11 +55,42 @@ const createSalesOrder = async (salesOrderData) => {
         }
       }
       
+      // Destructure shipping info safely
+      const {
+        has_shipping_info = false,
+        shipping_info = {},
+        items
+      } = salesOrderData;
+      
+      const {
+        shipping_fullname,
+        shipping_phone,
+        shipping_email,
+        shipping_address_line1,
+        shipping_address_line2,
+        shipping_city,
+        shipping_state,
+        shipping_postal_code,
+        shipping_country,
+        shipping_region,
+      } = shipping_info;
+      
       // Step 1: Create a general order in the `orders` table
       const order = await createOrder({
         order_type_id: salesOrderData.order_type_id,
         order_date: salesOrderData.order_date,
         order_status_id: status_id,
+        has_shipping_address: has_shipping_info,
+        shipping_fullname,
+        shipping_phone,
+        shipping_email,
+        shipping_address_line1,
+        shipping_address_line2,
+        shipping_city,
+        shipping_state,
+        shipping_postal_code,
+        shipping_country,
+        shipping_region,
         metadata: salesOrderData.metadata,
         note: salesOrderData.note,
         created_by: salesOrderData.created_by,
@@ -71,7 +102,7 @@ const createSalesOrder = async (salesOrderData) => {
       const processedItems = [];
       const manualPriceOverrides = [];
 
-      for (const item of salesOrderData.items) {
+      for (const item of items) {
         const { product_id, price_type_id, price, quantity_ordered } = item;
         
         // Fetch product price including location-based pricing

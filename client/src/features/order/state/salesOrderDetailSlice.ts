@@ -1,9 +1,9 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { OrderResponse } from './orderTypes.ts';
+import { OrderDetailsResponse } from './orderTypes.ts';
 import { fetchSalesOrderDetailsThunk } from './orderThunks.ts';
 
 interface SalesOrderDetailsState {
-  data: OrderResponse | null;
+  data: OrderDetailsResponse | null;
   loading: boolean;
   error: string | null;
 }
@@ -30,7 +30,7 @@ const salesOrderDetailsSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchSalesOrderDetailsThunk.fulfilled, (state, action: PayloadAction<OrderResponse>) => {
+      .addCase(fetchSalesOrderDetailsThunk.fulfilled, (state, action: PayloadAction<OrderDetailsResponse>) => {
         state.loading = false;
         state.data = action.payload;
       })

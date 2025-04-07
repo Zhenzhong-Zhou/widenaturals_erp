@@ -49,6 +49,19 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({ onSubmit = () => {}, onCl
       discount_id: null,
       tax_rate_id: '',
       delivery_method_id: '',
+      has_shipping_info: false,
+      shipping_info: {
+        shipping_fullname: '',
+        shipping_phone: '',
+        shipping_email: '',
+        shipping_address_line1: '',
+        shipping_address_line2: '',
+        shipping_city: '',
+        shipping_state: '',
+        shipping_postal_code: '',
+        shipping_country: '',
+        shipping_region: '',
+      },
       note: '',
       items: [
         {
@@ -305,8 +318,133 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({ onSubmit = () => {}, onCl
         
         <Divider sx={{ my: 2 }} />
         
+        <Typography variant="h6" gutterBottom>Shipping Information</Typography>
+        
+        <Grid container spacing={2}>
+          <Grid size={{ xs: 12, md: 8 }}>
+            <Controller
+              name="has_shipping_info"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  label="Include Shipping Info?"
+                  select
+                  fullWidth
+                  value={field.value ? 'yes' : 'no'}
+                  onChange={(e) => field.onChange(e.target.value === 'yes')}
+                  slotProps={{
+                    select: {
+                      native: true,
+                    },
+                  }}
+                >
+                  <option value="no">No</option>
+                  <option value="yes">Yes</option>
+                </TextField>
+              )}
+            />
+          </Grid>
+          
+          {methods.watch('has_shipping_info') && (
+            <>
+              <Grid size={{ xs: 12, md: 8 }}>
+                <Controller
+                  name="shipping_info.shipping_fullname"
+                  control={control}
+                  render={({ field }) => (
+                    <BaseInput label="Recipient Name" {...field} fullWidth />
+                  )}
+                />
+              </Grid>
+              <Grid size={{ xs: 12, md: 8 }}>
+                <Controller
+                  name="shipping_info.shipping_phone"
+                  control={control}
+                  render={({ field }) => (
+                    <BaseInput label="Phone Number" {...field} fullWidth />
+                  )}
+                />
+              </Grid>
+              <Grid size={{ xs: 12, md: 8 }}>
+                <Controller
+                  name="shipping_info.shipping_email"
+                  control={control}
+                  render={({ field }) => (
+                    <BaseInput label="Email" {...field} fullWidth />
+                  )}
+                />
+              </Grid>
+              <Grid size={{ xs: 12, md: 8 }}>
+                <Controller
+                  name="shipping_info.shipping_address_line1"
+                  control={control}
+                  render={({ field }) => (
+                    <BaseInput label="Address Line 1" {...field} fullWidth />
+                  )}
+                />
+              </Grid>
+              <Grid size={{ xs: 12, md: 8 }}>
+                <Controller
+                  name="shipping_info.shipping_address_line2"
+                  control={control}
+                  render={({ field }) => (
+                    <BaseInput label="Address Line 2 (Optional)" {...field} fullWidth />
+                  )}
+                />
+              </Grid>
+              <Grid size={{ xs: 12, md: 8 }}>
+                <Controller
+                  name="shipping_info.shipping_city"
+                  control={control}
+                  render={({ field }) => (
+                    <BaseInput label="City" {...field} fullWidth />
+                  )}
+                />
+              </Grid>
+              <Grid size={{ xs: 12, md: 8 }}>
+                <Controller
+                  name="shipping_info.shipping_state"
+                  control={control}
+                  render={({ field }) => (
+                    <BaseInput label="State / Province" {...field} fullWidth />
+                  )}
+                />
+              </Grid>
+              <Grid size={{ xs: 12, md: 8 }}>
+                <Controller
+                  name="shipping_info.shipping_postal_code"
+                  control={control}
+                  render={({ field }) => (
+                    <BaseInput label="Postal Code" {...field} fullWidth />
+                  )}
+                />
+              </Grid>
+              <Grid size={{ xs: 12, md: 8 }}>
+                <Controller
+                  name="shipping_info.shipping_country"
+                  control={control}
+                  render={({ field }) => (
+                    <BaseInput label="Country" {...field} fullWidth />
+                  )}
+                />
+              </Grid>
+              <Grid size={{ xs: 12, md: 8 }}>
+                <Controller
+                  name="shipping_info.shipping_region"
+                  control={control}
+                  render={({ field }) => (
+                    <BaseInput label="Region" {...field} fullWidth />
+                  )}
+                />
+              </Grid>
+            </>
+          )}
+        </Grid>
+        
+        <Divider sx={{ my: 2 }} />
+        
         <Typography variant="h6" gutterBottom>
-          Order Items
+        Order Items
         </Typography>
         
         {items.map((item, index) => (

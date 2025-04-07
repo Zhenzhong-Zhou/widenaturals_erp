@@ -3,7 +3,7 @@ import { API_ENDPOINTS } from './apiEndponits.ts';
 import {
   CreateSalesOrderResponse,
   FetchOrdersParams,
-  OrderResponse,
+  OrderDetailsResponse,
   OrdersResponse, OrderStatusUpdateResponse,
   SalesOrder,
 } from '../features/order';
@@ -58,7 +58,7 @@ const fetchAllOrders = async (
  * order items, prices, and additional metadata.
  *
  * @param {string} orderId - The ID of the sales order to fetch.
- * @returns {Promise<OrderResponse>} - Returns a promise resolving to the order details.
+ * @returns {Promise<OrderDetailsResponse>} - Returns a promise resolving to the order details.
  *
  * @throws {Error} - Throws an error if the request fails.
  *
@@ -68,10 +68,10 @@ const fetchAllOrders = async (
  */
 const fetchSalesOrderDetails = async (
   orderId: string
-): Promise<OrderResponse> => {
+): Promise<OrderDetailsResponse> => {
   try {
     const endpoint = API_ENDPOINTS.SALES_ORDER_DETAILS.replace(':id', orderId);
-    const response = await axiosInstance.get<OrderResponse>(endpoint);
+    const response = await axiosInstance.get<OrderDetailsResponse>(endpoint);
     return response.data;
   } catch (error) {
     console.error('Error fetching sales order details:', error);

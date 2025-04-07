@@ -7,7 +7,8 @@ export type {
   OrderPagination,
   OrdersResponse,
   FetchOrdersParams,
-  OrderResponse,
+  ShippingInformation,
+  OrderDetailsResponse,
   OrderStatusUpdateResult,
   OrderStatusUpdateResponse,
 } from './state/orderTypes.ts';

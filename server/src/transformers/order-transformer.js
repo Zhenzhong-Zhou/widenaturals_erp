@@ -50,6 +50,22 @@ const transformOrderDetails = (orderDetails) => {
     }
     : null;
   
+  // Build shipping info
+  const shippingInfo = baseOrder.has_shipping_address
+    ? {
+      shipping_fullname: baseOrder.shipping_fullname ?? '',
+      shipping_phone: baseOrder.shipping_phone ?? '',
+      shipping_email: baseOrder.shipping_email ?? '',
+      shipping_address_line1: baseOrder.shipping_address_line1 ?? '',
+      shipping_address_line2: baseOrder.shipping_address_line2 ?? '',
+      shipping_city: baseOrder.shipping_city ?? '',
+      shipping_state: baseOrder.shipping_state ?? '',
+      shipping_postal_code: baseOrder.shipping_postal_code ?? '',
+      shipping_country: baseOrder.shipping_country ?? '',
+      shipping_region: baseOrder.shipping_region ?? '',
+    }
+    : null;
+  
   // Process items
   const items = orderDetails.map(order => {
     const hasValidSystemPrice = typeof order.system_price === 'string' && order.system_price.trim() !== '';
@@ -93,6 +109,7 @@ const transformOrderDetails = (orderDetails) => {
       method: baseOrder.delivery_method ?? '', // Display the method name from the database
       tracking_info: trackingInfo, // Show tracking info only if applicable
     },
+    shipping_info: shippingInfo,
     items,
   };
 };

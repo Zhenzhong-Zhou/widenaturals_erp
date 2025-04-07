@@ -4,8 +4,8 @@ import Typography from '@components/common/Typography.tsx';
 import { CustomButton, DetailsSection, ErrorMessage, Loading } from '@components/index.ts';
 import { useConfirmSalesOrder, useSalesOrderDetails } from '../../../hooks';
 import { formatDate } from '@utils/dateTimeUtils.ts';
-import { formatLabel, formatCurrency } from '@utils/textUtils.ts';
-import { OrderData } from '../state/orderTypes.ts';
+import { formatLabel, formatCurrency, formatShippingAddress } from '@utils/textUtils.ts';
+import { OrderDetailsData } from '../state/orderTypes.ts';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Divider from '@mui/material/Divider';
@@ -19,8 +19,8 @@ interface SalesOrderDetailsSectionProps {
 
 const SalesOrderDetailsSection: FC<SalesOrderDetailsSectionProps> = ({ orderId }) => {
   const {
-    data: orderData,
-    loading: orderLoading,
+    data: orderDetailsData,
+    loading: orderDetailsLoading,
     error: orderError,
     refresh,
   } = useSalesOrderDetails(orderId);
@@ -40,13 +40,13 @@ const SalesOrderDetailsSection: FC<SalesOrderDetailsSectionProps> = ({ orderId }
   }, [confirmData, successMessage]);
   
   const filteredOrderDetails = useMemo(() => {
-    if (!orderData?.data) return null;
+    if (!orderDetailsData?.data) return null;
     
     // Deep clone the data to prevent mutation errors
-    const orderDetails: Partial<OrderData> = JSON.parse(JSON.stringify(orderData.data));
+    const orderDetails: Partial<OrderDetailsData> = JSON.parse(JSON.stringify(orderDetailsData.data));
     
     // Define sensitive keys
-    const sensitiveKeys: (keyof OrderData)[] = ['order_id'];
+    const sensitiveKeys: (keyof OrderDetailsData)[] = ['order_id'];
     
     // Remove sensitive keys
     sensitiveKeys.forEach((key) => delete orderDetails[key]);
@@ -99,7 +99,7 @@ const SalesOrderDetailsSection: FC<SalesOrderDetailsSectionProps> = ({ orderId }
     }
     
     return orderDetails;
-  }, [orderData]);
+  }, [orderDetailsData]);
   
   const canConfirm =
     filteredOrderDetails?.order_status &&
@@ -111,7 +111,7 @@ const SalesOrderDetailsSection: FC<SalesOrderDetailsSectionProps> = ({ orderId }
         )
     );
   
-  if (orderLoading) return <Loading message="Loading Sales Order Details..." />;
+  if (orderDetailsLoading) return <Loading message="Loading Sales Order Details..." />;
   if (orderError || confirmError) return <ErrorMessage message={orderError || confirmError} />;
   if (!filteredOrderDetails) return <Typography>No order details available.</Typography>;
   
@@ -171,6 +171,29 @@ const SalesOrderDetailsSection: FC<SalesOrderDetailsSectionProps> = ({ orderId }
         
         <Divider sx={{ marginY: 2 }} />
         
+        {filteredOrderDetails.shipping_info && (
+          <Box mt={4}>
+            <Typography variant="h6" sx={{ marginBottom: 1 }}>Shipping Information</Typography>
+            <Grid container spacing={3}>
+              <Grid size={6}>
+               <DetailsSection
+                 data={{
+                   'Recipient Name': filteredOrderDetails.shipping_info?.shipping_fullname || 'N/A',
+                   'Phone': filteredOrderDetails.shipping_info?.shipping_phone || 'N/A',
+                   'Email': filteredOrderDetails.shipping_info?.shipping_email || 'N/A',
+                 }}
+               />
+              </Grid>
+              
+              <Grid size={6}>
+                <DetailsSection data={formatShippingAddress(filteredOrderDetails.shipping_info)} />
+             </Grid>
+           </Grid>
+          </Box>
+        )}
+        
+        <Divider sx={{ marginY: 2 }} />
+        
         {filteredOrderDetails.items && <OrderItemsTable items={filteredOrderDetails.items} />}
         
         {/* Show tracking info if exists */}
@@ -180,6 +203,8 @@ const SalesOrderDetailsSection: FC<SalesOrderDetailsSectionProps> = ({ orderId }
             <DetailsSection data={filteredOrderDetails.delivery_info.tracking_info} />
           </Box>
         )}
+        
+        <Divider sx={{ marginY: 2 }} />
         
         <Grid container spacing={3}>
           <Grid size={6}>

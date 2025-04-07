@@ -5,6 +5,20 @@ export interface OrderType {
   category: string;
 }
 
+// Shipping Info
+export interface ShippingInformation {
+  shipping_fullname?: string | null;
+  shipping_phone?: string | null;
+  shipping_email?: string | null;
+  shipping_address_line1?: string | null;
+  shipping_address_line2?: string | null;
+  shipping_city?: string | null;
+  shipping_state?: string | null;
+  shipping_postal_code?: string | null;
+  shipping_country?: string | null;
+  shipping_region?: string | null;
+}
+
 // Type for an order item
 export interface CreateOrderItem {
   product_id: string;
@@ -20,6 +34,8 @@ export interface SalesOrder {
   discount_id: string | null; // Optional
   tax_rate_id: string;
   delivery_method_id: string;
+  has_shipping_info: boolean;
+  shipping_info?: ShippingInformation | null;
   note?: string; // Optional
   items: CreateOrderItem[]; // Array of order items
 }
@@ -102,32 +118,33 @@ interface TrackingInfo {
 }
 
 // Order Data Interface
-export interface OrderData {
+export interface OrderDetailsData {
   order_id: string;
   order_number: string;
-  order_category: string; // Example: "sales"
-  order_type: string; // Example: "Standard Sales Order"
-  order_date: string | { order_date: string; sales_order_date: string }; // Handle both single date and object
+  order_category: string;
+  order_type: string;
+  order_date: string | { order_date: string; sales_order_date: string };
   customer_name: string;
-  order_status: string; // Example: "Pending"
-  discount_amount: string | null; // Example: "2520.00" or null
+  order_status: string;
+  discount_amount: string | null;
   subtotal: string;
-  tax_rate: string; // Percentage as a string, e.g., "15.00"
+  tax_rate: string;
   tax_amount: string;
   shipping_fee: string;
   total_amount: string;
   order_note: string;
-  order_metadata: Record<string, any> | null; // Allowing null values as well
-  delivery_info: DeliveryInfo; // Delivery Information with method & tracking info
-  items: FetchedOrderItem[]; // Array of Order Items
-  discount?: string; // Example: "15.00%"
+  order_metadata: Record<string, any> | null;
+  delivery_info: DeliveryInfo;
+  shipping_info: ShippingInformation | null; // <-- Add this (null if not applicable)
+  items: FetchedOrderItem[];
+  discount?: string;
 }
 
 // Full Response Type
-export interface OrderResponse {
+export interface OrderDetailsResponse {
   success: boolean;
   message: string;
-  data: OrderData;
+  data: OrderDetailsData;
 }
 
 export interface OrderStatusUpdateResult {

@@ -2,7 +2,7 @@ import { createAsyncThunk } from '@reduxjs/toolkit';
 import {
   CreateSalesOrderResponse,
   FetchOrdersParams,
-  OrderResponse,
+  OrderDetailsResponse,
   OrderStatusUpdateResponse,
   OrderType,
   SalesOrder,
@@ -54,7 +54,7 @@ export const fetchAllOrdersThunk = createAsyncThunk(
  * Thunk to fetch sales order details by order ID
  */
 export const fetchSalesOrderDetailsThunk = createAsyncThunk<
-  OrderResponse,
+  OrderDetailsResponse,
   string,
   { rejectValue: string }
 >(

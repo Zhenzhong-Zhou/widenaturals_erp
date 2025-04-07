@@ -1,6 +1,6 @@
 import { createSelector } from '@reduxjs/toolkit';
 import { RootState } from '../../../store/store.ts';
-import { OrderResponse } from './orderTypes.ts';
+import { OrderDetailsResponse } from './orderTypes.ts';
 
 // Base Selector - Getting the whole salesOrderDetails state slice
 const selectSalesOrderDetailsState = (state: RootState) => state.salesOrderDetail;
@@ -26,5 +26,5 @@ export const selectSalesOrderDetailsError = createSelector(
 // Example of fetching a specific value from the data (Order Number)
 export const selectOrderNumber = createSelector(
   [selectSalesOrderDetailsData],
-  (data: OrderResponse | null) => data?.data.order_number || null
+  (data: OrderDetailsResponse | null) => data?.data.order_number || null
 );
