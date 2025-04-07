@@ -1,7 +1,7 @@
 import { FC } from 'react';
 import { CustomTable } from '@components/index.ts';
 import { InventoryItem } from '../state/inventoryTypes.ts';
-import { capitalizeFirstLetter, formatCurrency } from '@utils/textUtils.ts';
+import { formatLabel, formatCurrency } from '@utils/textUtils.ts';
 import { formatDate, formatDateTime } from '@utils/dateTimeUtils.ts';
 import Box from '@mui/material/Box';
 // import { Link } from 'react-router-dom';
@@ -33,7 +33,7 @@ const InventoryTable: FC<InventoryTableProps> = ({
       id: 'itemType',
       label: 'Item Type',
       sortable: true,
-      format: (value: string) => capitalizeFirstLetter(value),
+      format: (value: string) => formatLabel(value),
     },
     {
       id: 'itemName',

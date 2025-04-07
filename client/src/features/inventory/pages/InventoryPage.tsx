@@ -29,7 +29,7 @@ const InventoryPage = () => {
     error,
     refresh,
   } = useInventories(page, limit);
-  console.log(inventories)
+  
   const {
     inventorySummaryData,
     inventorySummaryPagination,

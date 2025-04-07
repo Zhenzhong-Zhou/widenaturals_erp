@@ -1,15 +1,39 @@
+const { getStockLevel, getExpirySeverity } = require('../utils/inventory-utils');
+
 /**
- * Transforms a single warehouse inventory summary row.
- * @param {object} row - A single row from the DB result.
- * @returns {object} - Transformed inventory summary.
+ * Transforms a single enriched warehouse inventory summary row.
+ * Includes calculated indicators such as stock level, expiry severity, and notes.
+ *
+ * @param {object} row - A single row from the `getWarehouseInventories` query result.
+ * @returns {object} - Transformed and enriched inventory summary.
  */
-// todo: add Adds calculated fields like:
-// - isExpired: `true` if the expiry date is before today
-// - isNearExpiry: `true` if the expiry date is within the next 90 days
-// - isLowStock: `true` if availableQuantity is 30 or less
-// - stockLevel: One of `'none'`, `'critical'`, `'low'`, `'normal'` based on quantity
-// - expirySeverity:
 const transformWarehouseInventorySummary = (row) => {
+  const reserved = Number(row.reserved_quantity);
+  const available = Number(row.available_quantity);
+  const totalLot = Number(row.total_lot_quantity);
+  const lotReserved = Number(row.total_reserved_quantity);
+  const nearestExpiry = row.nearest_expiry_date ? new Date(row.nearest_expiry_date) : null;
+  
+  const isExpired = nearestExpiry ? nearestExpiry < new Date() : false;
+  const isNearExpiry = nearestExpiry
+    ? nearestExpiry >= new Date() &&
+    (nearestExpiry - new Date()) / (1000 * 60 * 60 * 24) <= 90
+    : false;
+  
+  const stockLevel = getStockLevel(available);
+  const expirySeverity = getExpirySeverity(nearestExpiry);
+  const isLowStock = available <= 30;
+  
+  const notes = [];
+  
+  if (reserved === totalLot && totalLot > 0) notes.push('All stock reserved');
+  if (available === 0 && totalLot > 0) notes.push('No stock available');
+  if (isExpired) notes.push('Expired stock');
+  if (isNearExpiry) notes.push('Expiring soon');
+  if (isLowStock) notes.push('Low stock');
+  
+  const displayNote = notes.length > 0 ? notes.join(' • ') : null;
+  
   return {
     warehouseInventoryId: row.warehouse_inventory_id,
     warehouse: {
@@ -24,28 +48,29 @@ const transformWarehouseInventorySummary = (row) => {
       itemName: row.item_name,
     },
     quantity: {
-      reserved: Number(row.reserved_quantity),
-      available: Number(row.available_quantity),
-      totalLot: Number(row.total_lot_quantity),
+      reserved,
+      available,
+      totalLot,
       inStock: Number(row.in_stock_quantity),
+      lotReserved,
     },
     fees: {
       warehouseFee: Number(row.warehouse_fee),
     },
     dates: {
       lastUpdate: row.last_update ? new Date(row.last_update) : null,
-      earliestManufactureDate: row.earliest_manufacture_date
-        ? new Date(row.earliest_manufacture_date)
-        : null,
-      nearestExpiryDate: row.nearest_expiry_date
-        ? new Date(row.nearest_expiry_date)
-        : null,
-      displayStatusDate: row.display_status_date
-        ? new Date(row.display_status_date)
-        : null,
+      earliestManufactureDate: row.earliest_manufacture_date ? new Date(row.earliest_manufacture_date) : null,
+      nearestExpiryDate: nearestExpiry,
+      displayStatusDate: row.display_status_date ? new Date(row.display_status_date) : null,
     },
     status: {
       display: row.display_status,
+      isExpired,
+      isNearExpiry,
+      isLowStock,
+      stockLevel,
+      expirySeverity,
+      displayNote,
     },
     audit: {
       createdAt: row.created_at ? new Date(row.created_at) : null,
@@ -57,19 +82,21 @@ const transformWarehouseInventorySummary = (row) => {
 };
 
 /**
- * Transforms an array of warehouse inventory rows.
- * @param {Array<object>} rows
- * @returns {Array<object>}
+ * Transforms a list of enriched warehouse inventory summary rows.
+ *
+ * @param {Array<object>} rows - List of raw DB rows from `getWarehouseInventories`.
+ * @returns {Array<object>} - List of enriched summaries.
  */
 const transformWarehouseInventorySummaryList = (rows = []) => {
   return rows.map(transformWarehouseInventorySummary);
 };
 
 /**
- * Transforms full paginated warehouse inventory summary response.
+ * Transforms a paginated result set from `getWarehouseInventories` query
+ * into enriched summary format with calculated indicators.
  *
- * @param {object} paginatedResult - Includes pagination and data fields
- * @returns {object} - Transformed paginated result
+ * @param {object} paginatedResult - Raw paginated result with `pagination` and `data`.
+ * @returns {object} - Transformed paginated response.
  */
 const transformPaginatedWarehouseInventorySummary = (paginatedResult = {}) => {
   const {
@@ -93,8 +120,189 @@ const transformPaginatedWarehouseInventorySummary = (paginatedResult = {}) => {
   };
 };
 
+/**
+ * Transforms a single item summary row from warehouse inventory item summary results.
+ *
+ * @param {object} row - A single item summary row.
+ * @returns {object} - Transformed item inventory summary.
+ */
+const transformWarehouseItemSummaryRow = (row) => {
+  return {
+    inventoryId: row.inventory_id,
+    itemName: row.item_name,
+    itemType: row.item_type,
+    totalLots: Number(row.total_lots) || 0,
+    totalReservedStock: Number(row.total_reserved_stock) || 0,
+    totalLotReservedStock: Number(row.total_lot_reserved_stock) || 0,
+    totalAvailableStock: Number(row.total_available_stock) || 0,
+    totalQtyStock: Number(row.total_quantity_stock) || 0,
+    totalZeroStockLots: Number(row.total_zero_stock_lots) || 0,
+    earliestExpiry: row.earliest_expiry ? new Date(row.earliest_expiry) : null,
+    latestExpiry: row.latest_expiry ? new Date(row.latest_expiry) : null,
+  };
+};
+
+/**
+ * Transforms the full paginated item summary result for a warehouse.
+ *
+ * @param {object} result - The raw paginated result from getWarehouseItemSummary.
+ * @param {Array<object>} result.data - The item summary rows.
+ * @param {object} result.pagination - Pagination info.
+ * @returns {object} - Transformed result with mapped item summary data.
+ */
+const transformPaginatedWarehouseItemSummary = ({ data = [], pagination = {} }) => {
+  const transformed = data.map(transformWarehouseItemSummaryRow);
+  
+  return {
+    itemSummaryData: transformed,
+    pagination: {
+      page: Number(pagination.page || 1),
+      limit: Number(pagination.limit || 10),
+      totalRecords: Number(pagination.totalRecords || 0),
+      totalPages: Number(pagination.totalPages || 0),
+    },
+  };
+};
+
+/**
+ * Transforms a single warehouse inventory lot detail row.
+ * Adds metadata and computed stock/expiry info.
+ *
+ * @param {object} item - A single row from `getWarehouseInventoryDetailsByWarehouseId`
+ * @returns {object}
+ */
+const transformWarehouseInventoryLotDetail = (item) => {
+  const reservedStock = Number(item.reserved_stock) || 0;
+  const availableStock = Number(item.available_stock) || 0;
+  const lotReserved = Number(item.lot_reserved_quantity) || 0;
+  
+  const expiryDate = item.expiry_date ? new Date(item.expiry_date) : null;
+  const today = new Date();
+  
+  const isExpired = expiryDate ? expiryDate < today : false;
+  const isNearExpiry = expiryDate
+    ? expiryDate >= today &&
+    (expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24) <= 90
+    : false;
+  
+  const stockLevel = getStockLevel(availableStock);
+  const expirySeverity = getExpirySeverity(expiryDate);
+  const isLowStock = availableStock <= 30;
+  
+  return {
+    warehouseInventoryId: item.warehouse_inventory_id,
+    inventoryId: item.inventory_id,
+    itemName: item.item_name,
+    itemType: item.item_type,
+    warehouseInventoryLotId: item.warehouse_inventory_lot_id,
+    lotNumber: item.lot_number,
+    lotQuantity: item.lot_quantity,
+    reservedStock,
+    lotReserved,
+    availableStock,
+    warehouseFees: Number(item.warehouse_fees) || 0,
+    lotStatus: item.lot_status || 'Unknown',
+    manufactureDate: item.manufacture_date
+      ? new Date(item.manufacture_date)
+      : null,
+    expiryDate,
+    inboundDate: item.inbound_date ? new Date(item.inbound_date) : null,
+    outboundDate: item.outbound_date ? new Date(item.outbound_date) : null,
+    lastUpdate: item.last_update ? new Date(item.last_update) : null,
+    
+    inventoryCreated: {
+      date: item.inventory_created_at
+        ? new Date(item.inventory_created_at)
+        : null,
+      by: item.inventory_created_by,
+    },
+    inventoryUpdated: {
+      date: item.inventory_updated_at
+        ? new Date(item.inventory_updated_at)
+        : null,
+      by: item.inventory_updated_by,
+    },
+    lotCreated: {
+      date: item.lot_created_at ? new Date(item.lot_created_at) : null,
+      by: item.lot_created_by,
+    },
+    lotUpdated: {
+      date: item.lot_updated_at ? new Date(item.lot_updated_at) : null,
+      by: item.lot_updated_by,
+    },
+    
+    indicators: {
+      isExpired,
+      isNearExpiry,
+      isLowStock,
+      stockLevel,
+      expirySeverity,
+    },
+  };
+};
+
+/**
+ * Transforms a list of inventory lot detail rows.
+ * @param {Array<object>} rows
+ * @returns {Array<object>}
+ */
+const transformWarehouseInventoryLotDetailList = (rows = []) => {
+  return rows.map(transformWarehouseInventoryLotDetail);
+};
+
+/**
+ * Transforms raw warehouse inventory data from the DB into a structured response.
+ * @param {Array} dbResults - Raw DB results grouped by warehouse
+ * @returns {Array} Transformed structured inventory data per warehouse
+ */
+const transformWarehouseInventoryRecords = (dbResults) => {
+  return dbResults.map((warehouse) => {
+    const {
+      warehouse_id,
+      warehouse_name,
+      total_records,
+      inventory_records,
+    } = warehouse;
+    
+    const transformedRecords = inventory_records.map((record) => ({
+      warehouseLotId: record.warehouse_lot_id,
+      inventoryId: record.inventory_id,
+      productName: record.product_name,
+      lotNumber: record.lot_number,
+      lotQuantity: record.lot_qty,
+      inventoryQuantity: record.inventory_qty,
+      availableQuantity: record.available_quantity,
+      lotReservedQuantity: record.lot_reserved_quantity,
+      manufactureDate: record.manufacture_date,
+      expiryDate: record.expiry_date,
+      inboundDate: record.inbound_date,
+      locationId: record.location_id,
+      insertedQuantity: record.inserted_quantity,
+      
+      audit: {
+        createdAt: record.lot_created_at,
+        createdBy: record.lot_created_by,
+        updatedAt: record.lot_updated_at,
+        updatedBy: record.lot_updated_by,
+      },
+    }));
+    
+    return {
+      warehouseId: warehouse_id,
+      warehouseName: warehouse_name,
+      totalRecords: Number(total_records),
+      inventoryRecords: transformedRecords,
+    };
+  });
+}
+
 module.exports = {
   transformWarehouseInventorySummary,
   transformWarehouseInventorySummaryList,
   transformPaginatedWarehouseInventorySummary,
+  transformWarehouseItemSummaryRow,
+  transformPaginatedWarehouseItemSummary,
+  transformWarehouseInventoryLotDetail,
+  transformWarehouseInventoryLotDetailList,
+  transformWarehouseInventoryRecords,
 };

@@ -2,7 +2,7 @@ import { FC, useState } from 'react';
 import { Warehouse } from '../state/warehouseTypes.ts';
 import { CustomTable } from '@components/index.ts';
 import { formatDateTime } from '@utils/dateTimeUtils.ts';
-import { capitalizeFirstLetter } from '@utils/textUtils.ts';
+import { formatLabel } from '@utils/textUtils.ts';
 // import { Link } from 'react-router-dom';
 
 interface WarehouseTableProps {
@@ -53,7 +53,7 @@ const WarehouseTable: FC<WarehouseTableProps> = ({
       id: 'status_name',
       label: 'Status',
       sortable: true,
-      format: (value: string) => capitalizeFirstLetter(value),
+      format: (value: string) => formatLabel(value),
     },
     {
       id: 'created_by',

@@ -1,3 +1,5 @@
+const { getStockLevel, getExpirySeverity } = require('../utils/inventory-utils');
+
 /**
  * Transforms a single inventory summary row from the DB into clean application format.
  *
@@ -97,23 +99,8 @@ const transformInventoryRecord = (row) => {
   const nearestExpiryDate = row.nearest_expiry_date ? new Date(row.nearest_expiry_date) : null;
   const availableQty = Number(row.available_quantity) || 0;
   
-  let stockLevel = 'normal';
-  if (availableQty === 0) stockLevel = 'none';
-  else if (availableQty <= 10) stockLevel = 'critical';
-  else if (availableQty <= 30) stockLevel = 'low';
-  
-  let expirySeverity = 'unknown';
-  if (nearestExpiryDate) {
-    const timeDiff = nearestExpiryDate.getTime() - now.getTime();
-    const daysLeft = timeDiff / (1000 * 60 * 60 * 24);
-    
-    if (daysLeft < 0) expirySeverity = 'expired';
-    else if (daysLeft <= 90) expirySeverity = 'expired_soon';
-    else if (daysLeft <= 180) expirySeverity = 'critical';
-    else if (daysLeft <= 365) expirySeverity = 'warning';
-    else if (daysLeft <= 547) expirySeverity = 'notice'; // ~1.5 years
-    else expirySeverity = 'safe';
-  }
+  const stockLevel = getStockLevel(availableQty);
+  const expirySeverity = getExpirySeverity(nearestExpiryDate);
   
   return {
     inventoryId: row.inventory_id,

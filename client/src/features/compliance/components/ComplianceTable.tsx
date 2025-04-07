@@ -1,7 +1,7 @@
 import { FC } from 'react';
 import { CustomTable } from '@components/index.ts';
 import { Compliance } from '../state/complianceTypes.ts';
-import { capitalizeFirstLetter, toUpperCase } from '@utils/textUtils.ts';
+import { formatLabel, toUpperCase } from '@utils/textUtils.ts';
 import { formatDate } from '@utils/dateTimeUtils.ts';
 
 interface ComplianceTableProps {
@@ -66,7 +66,7 @@ const ComplianceTable: FC<ComplianceTableProps> = ({
       label: 'Status',
       minWidth: 100,
       sortable: true,
-      format: (value: string) => capitalizeFirstLetter(value),
+      format: (value: string) => formatLabel(value),
     },
     {
       id: 'status_date',

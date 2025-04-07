@@ -79,7 +79,7 @@ const BulkInsertInventoryModal: FC<{
         return undefined;
       },
     });
-
+// todo: add reserved_quantity filed
   return (
     <CustomModal
       open={open}

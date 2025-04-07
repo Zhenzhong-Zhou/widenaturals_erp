@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { Typography } from '@components/index.ts';
 import Box from '@mui/material/Box';
 import { useLotAdjustmentTypes } from '../../../hooks';
-import { capitalizeFirstLetter } from '@utils/textUtils.ts';
+import { formatLabel } from '@utils/textUtils.ts';
 
 interface EditQuantityModalProps {
   open: boolean;
@@ -98,7 +98,7 @@ const EditQuantityModal: FC<EditQuantityModalProps> = ({
             type: 'select',
             options: types.map((type) => ({
               value: type.id,
-              label: capitalizeFirstLetter(type.name),
+              label: formatLabel(type.name),
             })),
             required: true,
             disabled: loading,

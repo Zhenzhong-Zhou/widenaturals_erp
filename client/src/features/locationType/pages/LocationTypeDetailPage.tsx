@@ -13,7 +13,7 @@ import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Divider from '@mui/material/Divider';
 import { formatDateTime } from '@utils/dateTimeUtils.ts';
-import { capitalizeFirstLetter } from '@utils/textUtils.ts';
+import { formatLabel } from '@utils/textUtils.ts';
 
 const LocationTypeDetailPage: FC = () => {
   const { id } = useParams<{ id: string }>(); // Get ID from URL params
@@ -54,7 +54,7 @@ const LocationTypeDetailPage: FC = () => {
             <Divider sx={{ marginY: 2 }} />
             <Typography>
               <strong>Status:</strong>{' '}
-              {capitalizeFirstLetter(locationType.status_name)}
+              {formatLabel(locationType.status_name)}
             </Typography>
             <Typography>
               <strong>Status Date:</strong>{' '}

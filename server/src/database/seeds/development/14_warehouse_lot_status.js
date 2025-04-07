@@ -139,6 +139,26 @@ exports.seed = async function (knex) {
       created_by: systemActionId,
       updated_by: null,
     },
+    {
+      id: knex.raw('uuid_generate_v4()'),
+      name: 'returned',
+      description: 'Lot has been returned and added back into stock.',
+      is_active: true,
+      created_at: knex.fn.now(),
+      updated_at: null,
+      created_by: systemActionId,
+      updated_by: null,
+    },
+    {
+      id: knex.raw('uuid_generate_v4()'),
+      name: 'returned_pending',
+      description: 'Returned lot is pending inspection before restocking.',
+      is_active: true,
+      created_at: knex.fn.now(),
+      updated_at: null,
+      created_by: systemActionId,
+      updated_by: null,
+    }
   ];
 
   await knex('warehouse_lot_status')

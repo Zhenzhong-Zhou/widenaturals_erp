@@ -4,7 +4,7 @@ import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import { WarehouseInventorySummary } from '../state/warehouseInventoryTypes.ts';
 import { CustomButton, CustomCard, Typography } from '@components/index.ts';
-import { capitalizeFirstLetter, formatCurrency } from '@utils/textUtils.ts';
+import { formatLabel, formatCurrency } from '@utils/textUtils.ts';
 import { formatDateTime, formatToISODate } from '@utils/dateTimeUtils.ts';
 import { ArrowBack, ArrowForward, Refresh } from '@mui/icons-material';
 
@@ -59,7 +59,7 @@ const WarehouseInventorySummaryCard: FC<WarehouseInventorySummaryProps> = ({
                 {summary.warehouseName}
               </Link>
             }
-            subtitle={`Status: ${capitalizeFirstLetter(summary.status)}`}
+            subtitle={`Status: ${formatLabel(summary.status)}`}
             sx={{
               minWidth: 200,
               flex: '0 0 auto',

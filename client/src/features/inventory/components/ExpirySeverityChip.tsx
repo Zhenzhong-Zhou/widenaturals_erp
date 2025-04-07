@@ -1,6 +1,6 @@
 import { Chip } from '@mui/material';
 import { FC } from 'react';
-import { capitalizeFirstLetter } from '@utils/textUtils.ts';
+import { formatLabel } from '@utils/textUtils.ts';
 import { useThemeContext } from '../../../context/ThemeContext.tsx';
 
 interface Props {
@@ -22,7 +22,7 @@ const ExpirySeverityChip: FC<Props> = ({ severity }) => {
   
   return (
     <Chip
-      label={capitalizeFirstLetter(severity.replace(/_/g, ' '))}
+      label={formatLabel(severity.replace(/_/g, ' '))}
       size="small"
       variant="outlined"
       sx={{

@@ -2,33 +2,34 @@ import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import { CustomButton, CustomCard, Typography } from '@components/index.ts';
 import { formatDate } from '@utils/dateTimeUtils.ts';
-import { WarehouseProductSummary } from '../state/warehouseInventoryTypes.ts';
+import { WarehouseItemSummary } from '../state/warehouseInventoryTypes.ts';
 import IconButton from '@mui/material/IconButton';
 import { ArrowBack, ArrowForward } from '@mui/icons-material';
+import { formatLabel } from '@utils/textUtils.ts';
 
-interface WarehouseProductSummaryProps {
-  productsSummary: WarehouseProductSummary[];
+interface WarehouseItemSummaryProps {
+  itemsSummary: WarehouseItemSummary[];
   summaryPage: number;
   totalPages: number;
   setSummaryPage: (page: number) => void;
   refreshSummary: () => void;
 }
 
-const WarehouseProductSummaryCard = ({
-  productsSummary,
-  summaryPage,
-  totalPages,
-  setSummaryPage,
-  refreshSummary,
-}: WarehouseProductSummaryProps) => {
+const WarehouseItemSummaryCard = ({
+                                    itemsSummary,
+                                    summaryPage,
+                                    totalPages,
+                                    setSummaryPage,
+                                    refreshSummary,
+                                  }: WarehouseItemSummaryProps) => {
   return (
     <Box>
       {/* Page Header */}
       <Paper sx={{ padding: 2, marginBottom: 3 }}>
-        <Typography variant="h4">Warehouse Product Summary</Typography>
+        <Typography variant="h4">Warehouse Item Summary</Typography>
       </Paper>
-
-      {/* Summary Cards (Limited to 3 per Page) */}
+      
+      {/* Summary Cards */}
       <Box
         sx={{
           display: 'grid',
@@ -36,11 +37,11 @@ const WarehouseProductSummaryCard = ({
           gap: 5,
         }}
       >
-        {productsSummary.map((product) => (
+        {itemsSummary.map((item) => (
           <CustomCard
-            key={product.inventoryId}
-            title={product.productName}
-            subtitle={`Total Lots: ${product.totalLots}`}
+            key={item.inventoryId}
+            title={item.itemName}
+            subtitle={`Item Type: ${formatLabel(item.itemType)}`}
             sx={{
               minWidth: 300,
               transition:
@@ -52,31 +53,35 @@ const WarehouseProductSummaryCard = ({
             }}
           >
             <Typography variant="body2">
-              Reserved Stock: {product.totalReservedStock}
+              Reserved Stock: {item.totalReservedStock}
             </Typography>
             <Typography variant="body2">
-              Available Stock: {product.totalAvailableStock}
+              Lot Reserved: {item.totalLotReservedStock || 0}
             </Typography>
             <Typography variant="body2">
-              Total Stock: {product.totalQtyStock}
+              Available Stock: {item.totalAvailableStock}
             </Typography>
             <Typography variant="body2">
-              Zero Stock Lots: {product.totalZeroStockLots}
+              Total Stock: {item.totalQtyStock}
+            </Typography>
+            <Typography variant="body2">
+              Total Lots: {item.totalLots}
+            </Typography>
+            <Typography variant="body2">
+              Zero Stock Lots: {item.totalZeroStockLots}
             </Typography>
             <Typography variant="body2">
               Earliest Expiry:{' '}
-              {product.earliestExpiry
-                ? formatDate(product.earliestExpiry)
-                : 'N/A'}
+              {item.earliestExpiry ? formatDate(item.earliestExpiry) : 'N/A'}
             </Typography>
             <Typography variant="body2">
               Latest Expiry:{' '}
-              {product.latestExpiry ? formatDate(product.latestExpiry) : 'N/A'}
+              {item.latestExpiry ? formatDate(item.latestExpiry) : 'N/A'}
             </Typography>
           </CustomCard>
         ))}
       </Box>
-
+      
       {/* Pagination Controls */}
       {totalPages > 1 && (
         <Box
@@ -116,7 +121,7 @@ const WarehouseProductSummaryCard = ({
           </IconButton>
         </Box>
       )}
-
+      
       {/* Refresh Button */}
       <Box sx={{ display: 'flex', justifyContent: 'center', marginTop: 2 }}>
         <CustomButton onClick={refreshSummary}>Refresh Data</CustomButton>
@@ -125,4 +130,4 @@ const WarehouseProductSummaryCard = ({
   );
 };
 
-export default WarehouseProductSummaryCard;
+export default WarehouseItemSummaryCard;

@@ -1,6 +1,6 @@
 import { FC } from 'react';
 import { Chip } from '@mui/material';
-import { capitalizeFirstLetter } from '@utils/textUtils.ts';
+import { formatLabel } from '@utils/textUtils.ts';
 import { useThemeContext } from '../../../context/ThemeContext.tsx';
 
 interface Props {
@@ -26,7 +26,7 @@ const InventoryStatusChip: FC<Props> = ({ status }) => {
   
   return (
     <Chip
-      label={capitalizeFirstLetter(status.replace(/_/g, ' '))}
+      label={formatLabel(status.replace(/_/g, ' '))}
       sx={{
         border: `1px solid ${customColorMap[safeStatus]}`,
         color: customColorMap[safeStatus],

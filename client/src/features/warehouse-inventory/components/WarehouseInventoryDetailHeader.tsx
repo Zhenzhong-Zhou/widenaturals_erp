@@ -8,7 +8,7 @@ import {
 } from '@components/index.ts';
 import { WarehouseDetails } from '../../warehouse/state/warehouseTypes.ts';
 import { formatDate } from '@utils/dateTimeUtils.ts';
-import { capitalizeFirstLetter } from '@utils/textUtils.ts';
+import { formatLabel } from '@utils/textUtils.ts';
 import { handleAdjustmentReportRedirect } from '@utils/navigationUtils.ts';
 import { useNavigate } from 'react-router-dom';
 
@@ -77,7 +77,7 @@ const WarehouseInventoryDetailHeader: FC<WarehouseDetailHeaderProps> = ({
               : 'error.main'
           }
         >
-          Status: {capitalizeFirstLetter(warehouseDetails.status.name)}
+          Status: {formatLabel(warehouseDetails.status.name)}
         </Typography>
       )}
 

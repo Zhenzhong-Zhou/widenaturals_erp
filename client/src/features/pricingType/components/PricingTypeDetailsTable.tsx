@@ -14,7 +14,7 @@ import {
   PricingTypePagination,
 } from '../state/pricingTypeTypes';
 import { formatDate, formatDateTime } from '@utils/dateTimeUtils.ts';
-import { capitalizeFirstLetter } from '@utils/textUtils.ts';
+import { formatLabel } from '@utils/textUtils.ts';
 import { Link } from 'react-router-dom';
 
 interface PricingTypeDetailsTableProps {
@@ -126,7 +126,7 @@ const PricingTypeDetailsTable: FC<PricingTypeDetailsTableProps> = ({
       id: 'status',
       label: 'Status',
       sortable: true,
-      format: (value: string) => capitalizeFirstLetter(value),
+      format: (value: string) => formatLabel(value),
     },
     {
       id: 'status_date',

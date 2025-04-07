@@ -14,7 +14,7 @@ import {
   useLotAdjustmentQty,
   useWarehouseDetails,
   useWarehouseInventoryDetails,
-  useWarehouseProductSummary,
+  useWarehouseItemSummary
 } from '../../../hooks';
 import {
   BulkInsertInventoryRequest,
@@ -22,14 +22,14 @@ import {
   WarehouseInventoryDetailExtended,
   WarehouseInventoryDetailHeader,
   WarehouseInventoryDetailTable,
-  WarehouseProductSummaryCard,
+  WarehouseItemSummaryCard,
 } from '../index.ts';
 import { useEffect, useState } from 'react';
 
 const WarehouseInventoryDetailPage = () => {
   const { warehouseId } = useParams<{ warehouseId: string }>();
   const [openDialog, setOpenDialog] = useState(false);
-
+  
   if (!warehouseId) {
     return (
       <ErrorDisplay>
@@ -37,22 +37,22 @@ const WarehouseInventoryDetailPage = () => {
       </ErrorDisplay>
     );
   }
-
+  
   const { warehouseDetails, loading, error, refetch } =
     useWarehouseDetails(warehouseId);
-
-  // Fetch product summary (overview of all products in warehouse)
+  
+  // Fetch item summary (overview of all inventory items in warehouse)
   const {
-    productSummary,
-    productSummaryPagination,
-    productSummaryLoading,
-    productSummaryError,
-    productSummaryPage,
-    setProductSummaryPage,
-    refreshProductSummary,
-  } = useWarehouseProductSummary(warehouseId, 1, 5);
-
-  // Fetch warehouse inventory details (product lots)
+    itemSummary,
+    itemSummaryPagination,
+    itemSummaryLoading,
+    itemSummaryError,
+    itemSummaryPage,
+    setItemSummaryPage,
+    refreshItemSummary,
+  } = useWarehouseItemSummary(warehouseId, 1, 5);
+  
+  // Fetch warehouse inventory details (lot-level)
   const {
     warehouseInventoryDetails,
     warehouseInventoryDetailPagination,
@@ -64,30 +64,35 @@ const WarehouseInventoryDetailPage = () => {
     setWarehouseInventoryDetailLimit,
     refreshWarehouseInventoryDetails,
   } = useWarehouseInventoryDetails(warehouseId, 1, 10);
-
+  
   const { handleSingleLotAdjustment, handleBulkLotAdjustment } =
     useLotAdjustmentQty(refreshWarehouseInventoryDetails);
-
+  
   const { isLoading, handleBulkInsert } = useBulkInsertWarehouseInventory();
-
+  
   const { fetchInsertedInventoryRecords, data: insertedDataResponse } =
     useInsertedInventoryRecordsResponse();
-
+  
   useEffect(() => {
     if (insertedDataResponse && insertedDataResponse.data.length > 0) {
       setOpenDialog(true);
     }
   }, [insertedDataResponse]);
-
+  
   const transformedWarehouseInventoryDetails: WarehouseInventoryDetailExtended[] =
     warehouseInventoryDetails.map((detail) => ({
       ...detail,
-      lotCreatedBy: detail.lotCreated.by,
-      lotCreatedDate: detail.lotCreated.date,
-      lotUpdatedBy: detail.lotUpdated.by,
-      lotUpdatedDate: detail.lotUpdated.date,
+      lotCreatedBy: detail.lotCreated?.by ?? 'Unknown',
+      lotCreatedDate: detail.lotCreated?.date ?? null,
+      lotUpdatedBy: detail.lotUpdated?.by ?? 'Unknown',
+      lotUpdatedDate: detail.lotUpdated?.date ?? null,
+      indicators_isExpired: detail.indicators?.isExpired ?? false,
+      indicators_isNearExpiry: detail.indicators?.isNearExpiry ?? false,
+      indicators_isLowStock: detail.indicators?.isLowStock ?? false,
+      indicators_stockLevel: detail.indicators?.stockLevel ?? 'none',
+      indicators_expirySeverity: detail.indicators?.expirySeverity ?? 'unknown',
     }));
-
+  
   if (loading) return <Loading message={'Loading warehouse details...'} />;
   if (error)
     return (
@@ -95,16 +100,16 @@ const WarehouseInventoryDetailPage = () => {
         <ErrorMessage message={error} />
       </ErrorDisplay>
     );
-
-  if (productSummaryLoading)
-    return <Loading message={`Loading Warehouse Product Summary...`} />;
-  if (productSummaryError)
+  
+  if (itemSummaryLoading)
+    return <Loading message={`Loading Warehouse Item Summary...`} />;
+  if (itemSummaryError)
     return (
       <ErrorDisplay>
-        <ErrorMessage message={productSummaryError} />
+        <ErrorMessage message={itemSummaryError} />
       </ErrorDisplay>
     );
-
+  
   if (warehouseInventoryDetailLoading)
     return <Loading message={`Loading Warehouse Inventory Details...`} />;
   if (warehouseInventoryDetailError)
@@ -113,12 +118,12 @@ const WarehouseInventoryDetailPage = () => {
         <ErrorMessage message={warehouseInventoryDetailError} />
       </ErrorDisplay>
     );
-
+  
   if (isLoading) {
-    return <Loading message={`Loading Available Product Information...`} />;
+    return <Loading message={`Loading Inventory Data...`} />;
   }
-
-  // Function to handle bulk insert submission
+  
+  // Handle bulk insert
   const handleBulkInsertSubmit = async (formData: Record<string, any>[]) => {
     try {
       // Remove objects that only have `warehouse_id` or `type` with no meaningful data
@@ -140,7 +145,7 @@ const WarehouseInventoryDetailPage = () => {
         console.warn('No valid data to submit.');
         return;
       }
-
+      
       const requestPayload: BulkInsertInventoryRequest = {
         inventoryData: filteredData.map((item) => ({
           type: item.type,
@@ -153,7 +158,7 @@ const WarehouseInventoryDetailPage = () => {
           identifier: item.identifier?.trim() || undefined,
         })) as InventoryItem[],
       };
-
+      
       const succeedResponse = await handleBulkInsert(requestPayload);
 
       // Fetch inserted inventory records based on inserted identifiers
@@ -170,7 +175,7 @@ const WarehouseInventoryDetailPage = () => {
       console.error('Bulk Insert Error:', error);
     }
   };
-
+  
   return (
     <Box sx={{ padding: 3 }}>
       {/* Page Header */}
@@ -181,22 +186,22 @@ const WarehouseInventoryDetailPage = () => {
           refetch={refetch}
         />
       </Paper>
-
-      {/* Product Summary Section */}
-      {Array.isArray(productSummary) && productSummary.length > 0 ? (
-        <WarehouseProductSummaryCard
-          productsSummary={productSummary}
-          summaryPage={productSummaryPage}
-          totalPages={productSummaryPagination?.totalPages || 0}
-          setSummaryPage={setProductSummaryPage}
-          refreshSummary={refreshProductSummary}
+      
+      {/* Item Summary Section */}
+      {Array.isArray(itemSummary) && itemSummary.length > 0 ? (
+        <WarehouseItemSummaryCard
+          itemsSummary={itemSummary}
+          summaryPage={itemSummaryPage}
+          totalPages={itemSummaryPagination?.totalPages || 0}
+          setSummaryPage={setItemSummaryPage}
+          refreshSummary={refreshItemSummary}
         />
       ) : (
         <Typography variant="body1" sx={{ textAlign: 'center', padding: 2 }}>
-          No warehouse product found.
+          No warehouse item found.
         </Typography>
       )}
-
+      
       {/* Inventory Details Section */}
       <Paper sx={{ padding: 2, marginTop: 3 }}>
         <WarehouseInventoryDetailTable
@@ -220,7 +225,7 @@ const WarehouseInventoryDetailPage = () => {
           setOpenDialog={setOpenDialog}
         />
       </Paper>
-
+      
       {/* Refresh Button */}
       <Box sx={{ textAlign: 'center', marginTop: 3 }}>
         <CustomButton onClick={refreshWarehouseInventoryDetails}>

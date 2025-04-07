@@ -14,51 +14,36 @@ interface InventoryRecordsDialogProps {
   onClose: (open: boolean) => void;
 }
 
-const InventoryRecordsDialog: FC<InventoryRecordsDialogProps> = ({
-  insertedDataResponse,
-  open,
-  onClose,
-}) => {
+const InventoryRecordsResponseDialog: FC<InventoryRecordsDialogProps> = ({
+                                                                   insertedDataResponse,
+                                                                   open,
+                                                                   onClose,
+                                                                 }) => {
   if (!insertedDataResponse?.data || insertedDataResponse.data.length === 0) {
     return <Box />;
   }
-
+  
   // Properly type destructuring variables
   const formattedData = {
     ...insertedDataResponse,
-    data: insertedDataResponse.data.map(
-      ({ warehouse_id, inventory_records, ...warehouseData }) => ({
-        ...warehouseData, // Keep other warehouse details
-        inventory_records: inventory_records.map(
-          ({
-            inventory_id,
-            warehouse_lot_id,
-            location_id,
-            inventory_created_by,
-            inventory_updated_by,
-            inbound_date,
-            inventory_created_at,
-            inventory_updated_at,
-            expiry_date,
-            manufacture_date,
-            ...recordData
-          }) => ({
-            ...recordData, // Keep other inventory details
-            inventory_created_by,
-            inventory_updated_by,
-            inbound_date: formatDateTime(inbound_date),
-            inventory_created_at: formatDateTime(inventory_created_at),
-            inventory_updated_at: formatDateTime(inventory_updated_at),
-            expiry_date: expiry_date ? formatDateTime(expiry_date) : 'N/A', // Handle null expiry date
-            manufacture_date: manufacture_date
-              ? formatDateTime(manufacture_date)
-              : 'N/A', // Handle null manufacture date
-          })
-        ),
-      })
-    ),
+    data: insertedDataResponse.data.map((warehouse) => ({
+      ...warehouse,
+      inventoryRecords: warehouse.inventoryRecords.map((record) => ({
+        ...record,
+        expiryDate: record.expiryDate ? formatDateTime(record.expiryDate) : 'N/A',
+        manufactureDate: record.manufactureDate
+          ? formatDateTime(record.manufactureDate)
+          : 'N/A',
+        inboundDate: formatDateTime(record.inboundDate),
+        audit: {
+          ...record.audit,
+          createdAt: formatDateTime(record.audit.createdAt),
+          updatedAt: formatDateTime(record.audit.updatedAt),
+        },
+      })),
+    })),
   };
-
+  
   return (
     <div>
       <CustomDialog
@@ -66,14 +51,21 @@ const InventoryRecordsDialog: FC<InventoryRecordsDialogProps> = ({
         onClose={() => onClose(false)}
         title="Inserted Inventory Records"
       >
-        {formattedData.data.map((warehouse, index) => (
-          <Box key={index} sx={{ marginBottom: 2 }}>
-            <Typography variant="h6">{warehouse.warehouse_name}</Typography>
+        {formattedData.data.map((warehouse) => (
+          <Box key={warehouse.warehouseId} sx={{ marginBottom: 2 }}>
+            <Typography variant="h6">{warehouse.warehouseName}</Typography>
             <Typography variant="body2">
-              Total Records: {warehouse.total_records}
+              Total Records: {warehouse.totalRecords}
             </Typography>
-
-            <MetadataSection data={warehouse} />
+            
+            {warehouse.inventoryRecords.map((record) => (
+              <Box key={record.warehouseLotId} sx={{ mb: 2 }}>
+                <Typography variant="subtitle1">
+                  {record.productName} (Lot: {record.lotNumber})
+                </Typography>
+                <MetadataSection data={record} />
+              </Box>
+            ))}
           </Box>
         ))}
       </CustomDialog>
@@ -81,4 +73,4 @@ const InventoryRecordsDialog: FC<InventoryRecordsDialogProps> = ({
   );
 };
 
-export default InventoryRecordsDialog;
+export default InventoryRecordsResponseDialog;

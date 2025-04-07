@@ -122,7 +122,7 @@ router.use('/customers', authenticate(), customerRoutes);
 
 router.use('/discounts', authenticate(), discountRoutes);
 
-router.use('/delivery-methods', deliveryMethodRoutes);
+router.use('/delivery-methods', authenticate(), deliveryMethodRoutes);
 
 router.use('/orders', authenticate(), orderRoutes);
 

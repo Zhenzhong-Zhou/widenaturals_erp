@@ -1,6 +1,6 @@
 const {
   fetchAllWarehouseInventories,
-  fetchWarehouseProductSummary,
+  fetchWarehouseItemSummary,
   fetchWarehouseInventoryDetailsByWarehouseId,
 } = require('../services/warehouse-inventory-service');
 const { logError } = require('../utils/logger-helper');
@@ -63,33 +63,32 @@ const getWarehouseInventoryByWarehouse = async (req, res, next) => {
 };
 
 /**
- * Controller to get warehouse product summary.
+ * Controller to get warehouse items.
  *
  * @param {Object} req - Express request object.
  * @param {Object} res - Express response object.
  * @param next
  * @returns {Promise<void>}
  */
-const getWarehouseProductSummaryController = wrapAsync(
+const getWarehouseItemSummaryController = wrapAsync(
   async (req, res, next) => {
     try {
       const { warehouse_id } = req.params; // Get warehouse ID from URL params
       const page = parseInt(req.query.page, 10) || 1;
       const limit = parseInt(req.query.limit, 10) || 10;
-
-      // Call the service function
-      const { productSummaryData, pagination } =
-        await fetchWarehouseProductSummary(warehouse_id, page, limit);
-
+      
+      // Call the updated service
+      const { itemSummaryData, pagination } = await fetchWarehouseItemSummary(warehouse_id, page, limit);
+      
       // Return the response
       return res.status(200).json({
         success: true,
-        message: 'Warehouse product summary retrieved successfully.',
-        productSummaryData,
+        message: 'Warehouse items retrieved successfully.',
+        itemSummaryData,
         pagination,
       });
     } catch (error) {
-      logError('Error in getWarehouseProductSummaryController:', error);
+      logError('Error in getWarehouseItemsController:', error);
       next(error);
     }
   }
@@ -123,6 +122,6 @@ const getWarehouseInventoryDetailsController = wrapAsync(async (req, res) => {
 
 module.exports = {
   getAllWarehouseInventoriesController,
-  getWarehouseProductSummaryController,
+  getWarehouseItemSummaryController,
   getWarehouseInventoryDetailsController,
 };

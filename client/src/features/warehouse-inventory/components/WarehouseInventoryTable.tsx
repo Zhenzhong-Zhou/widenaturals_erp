@@ -2,9 +2,10 @@ import { FC } from 'react';
 import { CustomTable } from '@components/index.ts';
 import { WarehouseInventory } from '../state/warehouseInventoryTypes.ts';
 import { formatDateTime } from '@utils/dateTimeUtils.ts';
-import { capitalizeFirstLetter, formatCurrency } from '@utils/textUtils.ts';
+import { formatLabel, formatCurrency } from '@utils/textUtils.ts';
 import Box from '@mui/material/Box';
 import { Link } from 'react-router-dom';
+import { ExpirySeverityChip, IsExpiredChip, NearExpiryChip, StockLevelChip } from '../../inventory';
 
 interface WarehouseInventoryTableProps {
   data: WarehouseInventory[];
@@ -30,14 +31,17 @@ const WarehouseInventoryTable: FC<WarehouseInventoryTableProps> = ({
       id: 'warehouse.name',
       label: 'Warehouse',
       sortable: true,
-      renderCell: (row: WarehouseInventory) => (
-        <Link
-          to={`/warehouse_inventories/${row.warehouse.id}`}
-          style={{ textDecoration: 'none', color: 'blue' }}
-        >
-          {row.warehouse.name}
-        </Link>
-      ),
+      renderCell: (row: WarehouseInventory) =>
+        row?.warehouse ? (
+          <Link
+            to={`/warehouse_inventories/${row.warehouse.id}`}
+            style={{ textDecoration: 'none', color: 'blue' }}
+          >
+            {row.warehouse.name}
+          </Link>
+        ) : (
+          'N/A'
+        ),
     },
     {
       id: 'warehouse.storageCapacity',
@@ -56,7 +60,7 @@ const WarehouseInventoryTable: FC<WarehouseInventoryTableProps> = ({
       label: 'Item Type',
       sortable: true,
       format: (_: any, row: WarehouseInventory) =>
-        capitalizeFirstLetter(row.inventory.itemType),
+        formatLabel(row.inventory.itemType),
     },
     {
       id: 'inventory.itemName',
@@ -69,6 +73,12 @@ const WarehouseInventoryTable: FC<WarehouseInventoryTableProps> = ({
       label: 'Available Qty',
       sortable: true,
       format: (_: any, row: WarehouseInventory) => row.quantity.available,
+    },
+    {
+      id: 'quantity.lotReserved',
+      label: 'Lot Reserved Qty',
+      sortable: true,
+      format: (_:any, row: WarehouseInventory) => row.quantity?.lotReserved ?? 0,
     },
     {
       id: 'quantity.reserved',
@@ -125,14 +135,57 @@ const WarehouseInventoryTable: FC<WarehouseInventoryTableProps> = ({
       label: 'Display Status',
       sortable: true,
       format: (_: any, row: WarehouseInventory) =>
-        capitalizeFirstLetter(row.status.display),
+        formatLabel(row.status?.display ?? ''),
+    },
+    {
+      id: 'status.stockLevel',
+      label: 'Stock Level',
+      sortable: true,
+      renderCell: (row: WarehouseInventory) =>
+        row.status ?
+          <StockLevelChip
+            stockLevel={row.status.stockLevel}
+            isLowStock={row.status.isLowStock}
+          /> : 'N/A',
+    },
+    {
+      id: 'status.expirySeverity',
+      label: 'Expiry Severity',
+      sortable: true,
+      renderCell: (row: WarehouseInventory) =>
+        row.status ?
+          <ExpirySeverityChip severity={row.status.expirySeverity} /> : 'N/A',
+    },
+    {
+      id: 'status.isExpired',
+      label: 'Expired',
+      sortable: true,
+      renderCell: (row: WarehouseInventory) =>
+        row.status ?
+          <IsExpiredChip isExpired={row.status.isExpired} /> : 'N/A',
+    },
+    {
+      id: 'status.isNearExpiry',
+      label: 'Near Expiry',
+      sortable: true,
+      renderCell: (row: WarehouseInventory) =>
+        row.status ?
+          <NearExpiryChip isNearExpiry={row.status.isNearExpiry } /> : 'N/A',
+    },
+    {
+      id: 'status.displayNote',
+      label: 'Display Note',
+      sortable: false,
+      format: (_: any, row: WarehouseInventory) => row.status?.displayNote || '—',
     },
     {
       id: 'dates.displayStatusDate',
       label: 'Display Status Date',
       sortable: true,
       format: (_: any, row: WarehouseInventory) =>
-        formatDateTime(row.dates.displayStatusDate),
+        row.dates.displayStatusDate
+          ? formatDateTime(row.dates.displayStatusDate)
+          : 'N/A',
     },
     {
       id: 'audit.createdAt',

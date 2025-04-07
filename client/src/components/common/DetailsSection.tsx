@@ -4,6 +4,7 @@ import Typography from '@components/common/Typography.tsx';
 import { useThemeContext } from '../../context/ThemeContext';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import type { SxProps, Theme } from '@mui/system';
+import { formatLabel } from '@utils/textUtils.ts';
 
 interface DetailsSectionProps {
   data: Record<string, any>;
@@ -15,18 +16,6 @@ const INLINE_DISPLAY_LENGTH = 50;  // Max length of text for inline display on l
 const DetailsSection: FC<DetailsSectionProps> = ({ data, sx }) => {
   const { theme } = useThemeContext();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
-  
-  // Format field name to Title Case (handles snake_case & camelCase)
-  const formatFieldName = (fieldName: string): string => {
-    const spacedFieldName = fieldName
-      .replace(/_/g, ' ')  // Convert snake_case to normal text
-      .replace(/([a-z0-9])([A-Z])/g, '$1 $2');  // Convert camelCase to normal text
-    
-    return spacedFieldName
-      .split(' ')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-  };
   
   return (
     <Box sx={{ marginTop: theme.spacing(2), ...sx }}>
@@ -50,7 +39,7 @@ const DetailsSection: FC<DetailsSectionProps> = ({ data, sx }) => {
               variant="body2"
               sx={{ fontWeight: 'bold', color: theme.palette.text.primary, marginRight: 1 }}
             >
-              {formatFieldName(key)}:
+              {formatLabel(key)}:
             </Typography>
             
             {/* Value */}

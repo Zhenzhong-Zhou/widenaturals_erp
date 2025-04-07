@@ -61,8 +61,6 @@ const useLotAdjustmentQty = (refreshInventoryCallback?: () => void) => {
   const handleBulkLotAdjustment = async (
     bulkData: BulkLotAdjustmentPayload
   ) => {
-    console.log('🔹 Bulk Data Received:', bulkData);
-
     try {
       await dispatch(bulkAdjustWarehouseInventoryLotsQtyThunk(bulkData));
       if (refreshInventoryCallback) {

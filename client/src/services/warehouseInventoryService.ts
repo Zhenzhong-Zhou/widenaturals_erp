@@ -3,13 +3,13 @@ import { API_ENDPOINTS } from './apiEndponits.ts';
 import {
   WarehouseInventoryResponse,
   WarehouseInventorySummaryResponse,
-  WarehouseProductSummaryResponse,
+  WarehouseItemSummaryResponse,
   WarehouseInventoryDetailsResponse,
   LotAdjustmentSinglePayload,
   BulkLotAdjustmentPayload,
   BulkInsertInventoryRequest,
   BulkInsertInventoryResponse,
-  InsertInventoryRequestBody,
+  InsertInventoryRequestBody, FetchWarehouseItemSummaryParams,
 } from '../features/warehouse-inventory';
 import { AppError } from '@utils/AppError.tsx';
 import { InventoryRecordInsertResponse } from '../features/warehouse-inventory/state/warehouseInventoryTypes.ts';
@@ -86,31 +86,31 @@ const fetchWarehouseInventorySummary = async (
 };
 
 /**
- * Fetches the warehouse product summary from the backend.
+ * Fetches the warehouse item summary from the backend.
  *
- * @param {string} warehouseId - The ID of the warehouse.
- * @param {number} page - The page number for pagination (default: 1).
- * @param {number} limit - The number of records per page (default: 10).
- * @returns {Promise<WarehouseProductSummaryResponse>} - The warehouse product summary data.
+ * @param {FetchWarehouseItemSummaryParams} params - Parameters for fetching item summary.
+ * @returns {Promise<WarehouseItemSummaryResponse>} - The warehouse item summary data.
  */
-const fetchWarehouseProductSummary = async (
-  warehouseId: string,
-  page: number = 1,
-  limit: number = 10
-): Promise<WarehouseProductSummaryResponse> => {
+const fetchWarehouseItemSummary = async ({
+                                           warehouseId,
+                                           itemSummaryPage = 1,
+                                           itemSummaryLimit = 10,
+                                         }: FetchWarehouseItemSummaryParams): Promise<WarehouseItemSummaryResponse> => {
   try {
-    const endpoint = API_ENDPOINTS.WAREHOUSE_PRODUCTS_SUMMARY.replace(
+    const endpoint = API_ENDPOINTS.WAREHOUSE_ITEMS_SUMMARY.replace(
       ':id',
       warehouseId
     );
-    const response = await axiosInstance.get<WarehouseProductSummaryResponse>(
-      `${endpoint}?page=${page}&limit=${limit}`
+    
+    const response = await axiosInstance.get<WarehouseItemSummaryResponse>(
+      `${endpoint}?page=${itemSummaryPage}&limit=${itemSummaryLimit}`
     );
+    
     return response.data;
   } catch (error) {
-    console.error('Error fetching warehouse product summary:', error);
+    console.error('Error fetching warehouse item summary:', error);
     throw new AppError(
-      'Failed to fetch warehouse product summary. Please try again later.'
+      'Failed to fetch warehouse item summary. Please try again later.'
     );
   }
 };
@@ -209,7 +209,7 @@ const getInsertedInventoryRecords = async (
 export const warehouseInventoryService = {
   fetchAllWarehouseInventories,
   fetchWarehouseInventorySummary,
-  fetchWarehouseProductSummary,
+  fetchWarehouseItemSummary,
   fetchWarehouseInventoryDetails,
   adjustSingleWarehouseInventoryLotQty,
   bulkAdjustWarehouseInventoryLotQty,

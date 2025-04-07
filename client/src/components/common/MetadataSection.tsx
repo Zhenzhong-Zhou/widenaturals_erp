@@ -1,52 +1,60 @@
 import { FC } from 'react';
 import Box from '@mui/material/Box';
-import { Typography } from '@components/index.ts';
+import Typography from '@mui/material/Typography';
 import { useThemeContext } from '../../context/ThemeContext';
 import type { SxProps, Theme } from '@mui/system';
+import { formatLabel } from '@utils/textUtils.ts';
 
+// Helper to exclude keys like `id`, `uuid`, etc.
+const shouldExcludeKey = (key: string): boolean =>
+  /id$/i.test(key) || /_id$/i.test(key) || /uuid/i.test(key);
+
+// Recursive metadata display
 interface MetadataSectionProps {
-  data: Record<
-    string,
-    string | number | Record<string, any> | Record<string, any>[]
-  >;
+  data: Record<string, any>;
   sx?: SxProps<Theme>;
 }
 
 const MetadataSection: FC<MetadataSectionProps> = ({ data, sx }) => {
   const { theme } = useThemeContext();
-
+  
   return (
-    <Box sx={{ marginTop: theme.spacing(2), ...sx }}>
-      {Object.entries(data).map(([key, value]) => (
-        <Box key={key} sx={{ marginBottom: theme.spacing(1) }}>
-          <Typography
-            variant="body2"
-            sx={{ fontWeight: 'bold', color: theme.palette.text.primary }}
-          >
-            {key}:
-          </Typography>
-
-          {Array.isArray(value) ? (
-            <Box sx={{ paddingLeft: theme.spacing(2) }}>
-              {value.map((item, index) => (
-                <MetadataSection key={index} data={item} sx={sx} /> // Recursively render array items
-              ))}
-            </Box>
-          ) : typeof value === 'object' && value !== null ? (
-            <Box sx={{ paddingLeft: theme.spacing(2) }}>
-              <MetadataSection data={value} sx={sx} /> // Recursively render
-              nested objects
-            </Box>
-          ) : (
+    <Box sx={{ mt: theme.spacing(2), ...sx }}>
+      {Object.entries(data).map(([key, value]) => {
+        if (shouldExcludeKey(key)) return null;
+        
+        const formattedKey = formatLabel(key);
+        
+        return (
+          <Box key={key} sx={{ mb: theme.spacing(1) }}>
             <Typography
-              variant="body2"
-              sx={{ color: theme.palette.text.secondary }}
+              variant="subtitle2"
+              sx={{ color: theme.palette.text.primary }}
             >
-              {value !== null ? value.toString() : 'N/A'}
+              {formattedKey}:
             </Typography>
-          )}
-        </Box>
-      ))}
+            
+            {Array.isArray(value) ? (
+              <Box sx={{ pl: theme.spacing(2) }}>
+                {value.map((item, index) => (
+                  <MetadataSection key={index} data={item} sx={sx} />
+                ))}
+              </Box>
+            ) : typeof value === 'object' && value !== null ? (
+              <Box sx={{ pl: theme.spacing(2) }}>
+                <MetadataSection data={value} sx={sx} />
+              </Box>
+            ) : (
+              <Typography
+                variant="body2"
+                sx={{ color: theme.palette.text.secondary }}
+              >
+                {value !== null && value !== '' ? value.toString() : 'N/A'}
+              </Typography>
+            )}
+          </Box>
+        );
+      })}
     </Box>
   );
 };

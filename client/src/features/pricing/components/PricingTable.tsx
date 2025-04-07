@@ -1,6 +1,6 @@
 import { FC } from 'react';
 import { Pricing } from '../state/pricingTypes.ts';
-import { capitalizeFirstLetter, formatCurrency } from '@utils/textUtils.ts';
+import { formatLabel, formatCurrency } from '@utils/textUtils.ts';
 import { CustomTable } from '@components/index.ts';
 import { formatDateTime } from '@utils/dateTimeUtils.ts';
 import { Link } from 'react-router-dom';
@@ -70,7 +70,7 @@ const PricingTable: FC<PricingTableProps> = ({
       id: 'status_name',
       label: 'Status',
       sortable: true,
-      format: (value: string) => capitalizeFirstLetter(value),
+      format: (value: string) => formatLabel(value),
     },
     {
       id: 'status_date',

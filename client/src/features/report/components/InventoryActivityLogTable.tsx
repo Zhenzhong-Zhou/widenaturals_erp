@@ -6,7 +6,7 @@ import {
 import { Column } from '@components/common/CustomTable';
 import { CustomTable } from '@components/index.ts';
 import { formatDate, formatDateTime } from '@utils/dateTimeUtils.ts';
-import { capitalizeFirstLetter } from '@utils/textUtils.ts';
+import { formatLabel } from '@utils/textUtils.ts';
 
 interface InventoryLogTableProps {
   data: any[];
@@ -78,7 +78,7 @@ const InventoryActivityLogTable: FC<InventoryLogTableProps> = ({
       minWidth: 120,
       sortable: true,
       format: (value: string | number | Record<string, any> | null) =>
-        typeof value === 'string' ? capitalizeFirstLetter(value) : 'N/A',
+        typeof value === 'string' ? formatLabel(value) : 'N/A',
     },
     {
       id: 'quantity_change',
@@ -104,7 +104,7 @@ const InventoryActivityLogTable: FC<InventoryLogTableProps> = ({
       minWidth: 100,
       sortable: true,
       format: (value: string | number | Record<string, any> | null) =>
-        typeof value === 'string' ? capitalizeFirstLetter(value) : 'N/A',
+        typeof value === 'string' ? formatLabel(value) : 'N/A',
     },
     {
       id: 'adjustment_type',
@@ -112,7 +112,7 @@ const InventoryActivityLogTable: FC<InventoryLogTableProps> = ({
       minWidth: 120,
       sortable: true,
       format: (value: string | number | Record<string, any> | null) =>
-        typeof value === 'string' ? capitalizeFirstLetter(value) : 'N/A',
+        typeof value === 'string' ? formatLabel(value) : 'N/A',
     },
     {
       id: 'user_name',

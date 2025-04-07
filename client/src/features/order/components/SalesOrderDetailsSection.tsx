@@ -4,7 +4,7 @@ import Typography from '@components/common/Typography.tsx';
 import { CustomButton, DetailsSection, ErrorMessage, Loading } from '@components/index.ts';
 import { useConfirmSalesOrder, useSalesOrderDetails } from '../../../hooks';
 import { formatDate } from '@utils/dateTimeUtils.ts';
-import { capitalizeFirstLetter, formatCurrency } from '@utils/textUtils.ts';
+import { formatLabel, formatCurrency } from '@utils/textUtils.ts';
 import { OrderData } from '../state/orderTypes.ts';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
@@ -52,8 +52,8 @@ const SalesOrderDetailsSection: FC<SalesOrderDetailsSectionProps> = ({ orderId }
     sensitiveKeys.forEach((key) => delete orderDetails[key]);
     
     // Format Category, Customer Name, Dates & Prices
-    if (orderDetails.order_category) orderDetails.order_category = capitalizeFirstLetter(orderDetails.order_category);
-    if (orderDetails.customer_name) orderDetails.customer_name = capitalizeFirstLetter(orderDetails.customer_name);
+    if (orderDetails.order_category) orderDetails.order_category = formatLabel(orderDetails.order_category);
+    if (orderDetails.customer_name) orderDetails.customer_name = formatLabel(orderDetails.customer_name);
     
     if (orderDetails.discount_amount && parseFloat(orderDetails.discount_amount) > 0) {
       orderDetails.discount_amount = formatCurrency(orderDetails.discount_amount);
@@ -76,7 +76,7 @@ const SalesOrderDetailsSection: FC<SalesOrderDetailsSectionProps> = ({ orderId }
     }
     
     if (orderDetails.delivery_info) {
-      orderDetails.delivery_info.method = capitalizeFirstLetter(orderDetails.delivery_info.method);
+      orderDetails.delivery_info.method = formatLabel(orderDetails.delivery_info.method);
     }
     
     if (!orderDetails.order_metadata || Object.keys(orderDetails.order_metadata).length === 0) {

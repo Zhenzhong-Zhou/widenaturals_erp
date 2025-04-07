@@ -6,21 +6,29 @@ import {
 } from 'libphonenumber-js';
 
 /**
- * Capitalizes the first letter of each word in a given text.
- * @param text - The string to format.
- * @returns The formatted string or 'Unknown' if null/undefined.
+ * Formats a given string into human-readable Title Case.
+ * - Handles snake_case, kebab-case, and camelCase formats.
+ * - Replaces underscores and hyphens with spaces.
+ * - Adds spaces between camelCase words.
+ * - Capitalizes the first letter of each word.
+ *
+ * @param text - The input string to format.
+ * @returns A formatted Title Case string, or 'Unknown' if input is null or undefined.
+ * Examples:
+ *  - "lot_number" → "Lot Number"
+ *  - "lotNumber" → "Lot Number"
+ *  - "LOT-number" → "Lot Number"
  */
-export const capitalizeFirstLetter = (
-  text: string | null | undefined
-): string => {
+export const formatLabel = (text: string | null | undefined): string => {
   if (!text) return 'Unknown';
-
+  
   return text
-    .replace(/[_-]/g, ' ') // Replace underscores and hyphens with spaces
-    .toLowerCase() // Convert everything to lowercase first
-    .split(' ') // Split into words
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1)) // Capitalize first letter of each word
-    .join(' '); // Join back into a sentence
+    .replace(/[_-]/g, ' ') // snake_case or kebab-case to space
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2') // camelCase to space
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
 };
 
 /**

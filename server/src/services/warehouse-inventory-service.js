@@ -1,11 +1,13 @@
 const {
   getWarehouseInventories,
-  getWarehouseProductSummary,
+  getWarehouseItemSummary,
   getWarehouseInventoryDetailsByWarehouseId,
 } = require('../repositories/warehouse-inventory-repository');
 const AppError = require('../utils/AppError');
 const { logError } = require('../utils/logger-helper');
-const { transformPaginatedWarehouseInventorySummary } = require('../transformers/warehouse-inventory-transformer');
+const { transformPaginatedWarehouseInventorySummary, transformPaginatedWarehouseItemSummary,
+  transformWarehouseInventoryLotDetailList
+} = require('../transformers/warehouse-inventory-transformer');
 
 /**
  * Fetch paginated warehouse inventories with sorting.
@@ -33,19 +35,19 @@ const fetchAllWarehouseInventories = async ({
     sortBy,
     sortOrder,
   });
-  
+  console.log(result);
   return transformPaginatedWarehouseInventorySummary(result);
 };
 
 /**
- * Service function to fetch warehouse product summary.
+ * Service function to fetch warehouse items summary.
  *
  * @param {string} warehouseId - The ID of the warehouse.
  * @param {number} page - The page number for pagination.
  * @param {number} limit - The number of records per page.
- * @returns {Promise<Object>} - Returns formatted warehouse product summary data.
+ * @returns {Promise<Object>} - Returns formatted warehouse items data.
  */
-const fetchWarehouseProductSummary = async (
+const fetchWarehouseItemSummary = async (
   warehouseId,
   page = 1,
   limit = 10
@@ -60,19 +62,20 @@ const fetchWarehouseProductSummary = async (
         'Invalid pagination parameters. Page and limit must be positive numbers.'
       );
     }
-
-    // Fetch warehouse product summary from repository
-    const { data, pagination } = await getWarehouseProductSummary({
+    
+    // Fetch raw data from repository
+    const rawResult = await getWarehouseItemSummary({
       warehouse_id: warehouseId,
       page,
       limit,
     });
-
-    if (!data || data.length === 0) {
+    
+    // Handle empty results
+    if (!rawResult.data || rawResult.data.length === 0) {
       return {
         success: true,
-        message: 'No inventory items found for the specified warehouse.',
-        data: [],
+        message: 'No items found for the specified warehouse.',
+        items: [],
         pagination: {
           page,
           limit,
@@ -81,30 +84,22 @@ const fetchWarehouseProductSummary = async (
         },
       };
     }
-
-    const productSummaryData = data.map((product) => ({
-      inventoryId: product.inventory_id,
-      productName: product.product_name,
-      totalLots: product.total_lots,
-      totalReservedStock: product.total_reserved_stock,
-      totalAvailableStock: product.total_available_stock,
-      totalQtyStock: product.total_quantity_stock,
-      totalZeroStockLots: product.total_zero_stock_lots,
-      earliestExpiry: product.earliest_expiry,
-      latestExpiry: product.latest_expiry,
-    }));
-
+    
+    // Transform and return
+    const { itemSummaryData, pagination } =
+      transformPaginatedWarehouseItemSummary(rawResult);
+    
     return {
-      productSummaryData,
+      itemSummaryData,
       pagination,
     };
   } catch (error) {
     logError(
-      `Error fetching warehouse product summary (warehouseId: ${warehouseId}, page: ${page}, limit: ${limit}):`,
+      `Error fetching warehouse items (warehouseId: ${warehouseId}, page: ${page}, limit: ${limit}):`,
       error
     );
-    throw AppError.validationError(
-      error.message || 'Failed to fetch warehouse product summary.'
+    throw AppError.serviceError(
+      error.message || 'Failed to fetch warehouse items.'
     );
   }
 };
@@ -126,13 +121,7 @@ const fetchWarehouseInventoryDetailsByWarehouseId = async (
     if (!warehouse_id) {
       throw AppError.validationError('Warehouse ID is required.');
     }
-
-    // todo: create a transformer file
-    // todo: include // - isExpired: `true` if the expiry date is before today
-    // // - isNearExpiry: `true` if the expiry date is within the next 90 days
-    // // - isLowStock: `true` if availableQuantity is 30 or less
-    // // - stockLevel: One of `'none'`, `'critical'`, `'low'`, `'normal'` based on quantity
-    // // - expirySeverity:
+    
     // Fetch paginated inventory details from repository
     const { data, pagination } =
       await getWarehouseInventoryDetailsByWarehouseId({
@@ -140,50 +129,10 @@ const fetchWarehouseInventoryDetailsByWarehouseId = async (
         page,
         limit,
       });
-
+console.log(data);
     // Transform the data (e.g., formatting dates, structuring response)
-    const inventoryDetails = data.map((item) => ({
-      warehouseInventoryId: item.warehouse_inventory_id,
-      inventoryId: item.inventory_id,
-      itemName: item.item_name,
-      itemType: item.item_type,
-      warehouseInventoryLotId: item.warehouse_inventory_lot_id,
-      lotNumber: item.lot_number,
-      lotQuantity: item.lot_quantity,
-      reservedStock: item.reserved_stock,
-      availableStock: item.available_stock,
-      warehouseFees: item.warehouse_fees,
-      lotStatus: item.lot_status || 'Unknown',
-      manufactureDate: item.manufacture_date
-        ? new Date(item.manufacture_date)
-        : null,
-      expiryDate: item.expiry_date ? new Date(item.expiry_date) : null,
-      inboundDate: item.inbound_date ? new Date(item.inbound_date) : null,
-      outboundDate: item.outbound_date ? new Date(item.outbound_date) : null,
-      lastUpdate: item.last_update ? new Date(item.last_update) : null,
-
-      inventoryCreated: {
-        date: item.inventory_created_at
-          ? new Date(item.inventory_created_at)
-          : null,
-        by: item.inventory_created_by,
-      },
-      inventoryUpdated: {
-        date: item.inventory_updated_at
-          ? new Date(item.inventory_updated_at)
-          : null,
-        by: item.inventory_updated_by,
-      },
-      lotCreated: {
-        date: item.lot_created_at ? new Date(item.lot_created_at) : null,
-        by: item.lot_created_by,
-      },
-      lotUpdated: {
-        date: item.lot_updated_at ? new Date(item.lot_updated_at) : null,
-        by: item.lot_updated_by,
-      },
-    }));
-
+    const inventoryDetails = transformWarehouseInventoryLotDetailList(data)
+    
     return {
       inventoryDetails,
       pagination,
@@ -201,6 +150,6 @@ const fetchWarehouseInventoryDetailsByWarehouseId = async (
 
 module.exports = {
   fetchAllWarehouseInventories,
-  fetchWarehouseProductSummary,
+  fetchWarehouseItemSummary,
   fetchWarehouseInventoryDetailsByWarehouseId,
 };

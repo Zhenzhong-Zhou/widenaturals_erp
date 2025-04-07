@@ -18,7 +18,7 @@ import {
   WarehouseInventoryInsertResponse,
 } from '../index.ts';
 import { WarehouseInventoryDetailExtended } from '../state/warehouseInventoryTypes.ts';
-import { capitalizeFirstLetter, formatCurrency } from '@utils/textUtils.ts';
+import { formatLabel, formatCurrency } from '@utils/textUtils.ts';
 import { formatDate, formatDateTime } from '@utils/dateTimeUtils.ts';
 import MenuItem from '@mui/material/MenuItem';
 import {
@@ -26,6 +26,7 @@ import {
   handleInventoryActivityLogRedirect,
   handleInventoryHistoryRedirect,
 } from '@utils/navigationUtils.ts';
+import { ExpirySeverityChip, IsExpiredChip, NearExpiryChip, StockLevelChip } from '../../inventory';
 
 // Define Column Type explicitly
 interface Column<T> {
@@ -117,19 +118,28 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
     setAnchorEl(null);
     setSelectedInventoryLot(null);
   };
-
-  const transformedData = data.map((row) => ({
+  
+  const transformedData= data.map((row) => ({
     ...row,
+    
     isSelect: false,
-    lotUpdatedBy: row.lotUpdated?.by ?? 'Unknown', // Extract "Updated By"
-    lotUpdatedDate: row.lotUpdated?.date ?? '', // Extract "Updated Date"
-    lotCreatedBy: row.lotCreated?.by ?? 'Unknown', // Extract "Created By"
-    lotCreatedDate: row.lotCreated?.date ?? '', // Extract "Created Date"
+    
     warehouseInventoryLotId: row.warehouseInventoryLotId, // Ensure this exists
     itemName: row.itemName, // Ensure this exists
     lotNumber: row.lotNumber, // Ensure this exists
+    
+    // Audit Info
+    lotCreatedBy: row.lotCreated?.by ?? 'Unknown',
+    lotCreatedDate: row.lotCreated?.date ?? null,
+    lotUpdatedBy: row.lotUpdated?.by ?? 'Unknown',
+    lotUpdatedDate: row.lotUpdated?.date ?? null,
+    indicators_isExpired: row.indicators?.isExpired ?? false,
+    indicators_isNearExpiry: row.indicators?.isNearExpiry ?? false,
+    indicators_isLowStock: row.indicators?.isLowStock ?? false,
+    indicators_stockLevel: row.indicators?.stockLevel ?? 'none',
+    indicators_expirySeverity: row.indicators?.expirySeverity ?? 'unknown',
   }));
-
+  
   const handleSelectLot = (lotId: string) => {
     setSelectedLotIds((prevSelected) => {
       const newSelected = new Set(prevSelected);
@@ -168,7 +178,7 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
       id: 'itemType',
       label: 'Item Type',
       sortable: true,
-      format: (value: any) => capitalizeFirstLetter(value),
+      format: (value: any) => formatLabel(value),
     },
     {
       id: 'itemName',
@@ -181,6 +191,11 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
       sortable: true,
     },
     // 3️⃣ Stock & Warehouse Information
+    {
+      id: 'lotReserved',
+      label: 'Lot Reserved Stock',
+      sortable: true,
+    },
     {
       id: 'lotQuantity',
       label: 'Quantity',
@@ -218,7 +233,7 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
       id: 'lotStatus',
       label: 'Status',
       sortable: true,
-      format: (value: string) => capitalizeFirstLetter(value),
+      format: (value: string) => formatLabel(value),
     },
 
     // 4️⃣ Date Tracking (Manufacturing, Expiry, Inbound & Outbound)
@@ -285,6 +300,32 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
       label: 'Updated Date',
       sortable: true,
       format: (value: string) => (value ? formatDate(value) : 'N/A'),
+    },
+    {
+      id: 'indicators_isExpired',
+      label: 'Expired',
+      sortable: true,
+      renderCell: (row: WarehouseInventoryDetailExtended) => <IsExpiredChip isExpired={row.indicators_isExpired} />,
+    },
+    {
+      id: 'indicators_isNearExpiry',
+      label: 'Near Expiry',
+      sortable: true,
+      renderCell: (row: WarehouseInventoryDetailExtended) => <NearExpiryChip isNearExpiry={row.indicators_isNearExpiry} />,
+    },
+    {
+      id: 'indicators_stockLevel',
+      label: 'Stock Level',
+      sortable: true,
+      renderCell: (row: WarehouseInventoryDetailExtended) => (
+        <StockLevelChip stockLevel={row.indicators_stockLevel} isLowStock={row.indicators_isLowStock} />
+      ),
+    },
+    {
+      id: 'indicators_expirySeverity',
+      label: 'Expiry Severity',
+      sortable: true,
+      renderCell: (row: WarehouseInventoryDetailExtended) => <ExpirySeverityChip severity={row.indicators_expirySeverity} />,
     },
     {
       id: 'actions',

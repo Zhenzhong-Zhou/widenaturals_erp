@@ -4,7 +4,7 @@ import { CustomTable, Typography } from '@components/index.ts';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import { formatDateTime } from '@utils/dateTimeUtils.ts';
-import { capitalizeFirstLetter, formatCurrency } from '@utils/textUtils.ts';
+import { formatLabel, formatCurrency } from '@utils/textUtils.ts';
 
 interface PricingDetailsTableProps {
   pricing: PricingDetails;
@@ -64,7 +64,7 @@ const PricingDetailsTable: FC<PricingDetailsTableProps> = ({
           {pricing.valid_to ? formatDateTime(pricing.valid_to) : 'N/A'}
         </Typography>
         <Typography>
-          <strong>Status:</strong> {capitalizeFirstLetter(pricing.status_name)}
+          <strong>Status:</strong> {formatLabel(pricing.status_name)}
         </Typography>
         <Typography>
           <strong>Status Date:</strong> {formatDateTime(pricing.status_date)}

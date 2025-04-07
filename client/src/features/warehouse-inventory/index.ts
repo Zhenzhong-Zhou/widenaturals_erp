@@ -3,7 +3,8 @@ export type {
   WarehouseInventoryPagination,
   WarehouseInventoryResponse,
   WarehouseInventorySummaryResponse,
-  WarehouseProductSummaryResponse,
+  FetchWarehouseItemSummaryParams,
+  WarehouseItemSummaryResponse,
   WarehouseInventoryDetailExtended,
   WarehouseInventoryDetailsResponse,
   LotAdjustmentTypeList,
@@ -23,7 +24,7 @@ export type {
 export {
   fetchWarehouseInventoriesThunk,
   fetchWarehouseInventorySummaryThunk,
-  fetchWarehouseProductSummaryThunk,
+  fetchWarehouseItemSummaryThunk,
   fetchWarehouseInventoryDetailsThunk,
   fetchWarehousesDropdownThunk,
   fetchProductsDropDownByWarehouseThunk,
@@ -42,11 +43,11 @@ export {
   selectWarehouseInventoryError,
 } from './state/warehouseInventorySelector.ts';
 export {
-  selectWarehouseProductSummary,
-  selectWarehouseProductLoading,
-  selectWarehouseProductError,
-  selectWarehouseProductPagination,
-} from './state/warehouseProductSelectors.ts';
+  selectWarehouseItemLoading,
+  selectWarehouseItemError,
+  selectWarehouseItemPagination,
+  selectWarehouseItemSummary,
+} from './state/warehouseItemSummarySelectors.ts';
 export {
   selectWarehouseInventorySummary,
   selectWarehouseInventorySummaryPagination,
@@ -72,10 +73,10 @@ export {
   selectLotAdjustmentQtySuccessBulk,
   selectLotAdjustmentQtyErrorBulk,
 } from './state/lotAdjustmentQtySelectors.ts';
-export { resetWarehouseProductSummary } from './state/warehouseProductSlice.ts';
+export { resetWarehouseItemSummary } from './state/warehouseItemSummarySlice.ts';
 export { resetLotAdjustmentState } from './state/lotAdjustmentQtySlice.ts';
 export { default as WarehouseInventorySummaryCard } from './components/WarehouseInventorySummaryCard.tsx';
-export { default as WarehouseProductSummaryCard } from './components/WarehouseProductSummaryCard.tsx';
+export { default as WarehouseItemSummaryCard } from './components/WarehouseItemSummaryCard.tsx';
 export { default as WarehouseInventoryDetailTable } from './components/WarehouseInventoryDetailTable.tsx';
 export { default as EditQuantityModal } from './components/EditQuantityModal.tsx';
 export { default as BulkAdjustQuantityModal } from './components/BulkAdjustQuantityModal.tsx';

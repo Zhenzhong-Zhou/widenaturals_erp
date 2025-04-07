@@ -13,7 +13,7 @@ import { useInventorySummary } from '../../../hooks';
 import { formatDate } from '@utils/dateTimeUtils.ts';
 import { useThemeContext } from '../../../context/ThemeContext.tsx';
 import { useMediaQuery } from '@mui/material';
-import { capitalizeFirstLetter } from '@utils/textUtils.ts';
+import { formatLabel } from '@utils/textUtils.ts';
 
 interface BaseDashboardLayoutProps {
   fullName?: string;
@@ -91,7 +91,7 @@ const DashboardLayout: FC<BaseDashboardLayoutProps> = ({
                   <Grid size={{ xs:12, sm:6, md:4, lg:3 }} key={item.productId}>
                     <CustomCard
                       title={item.itemName}
-                      subtitle={`Status: ${capitalizeFirstLetter(item.status)}`}
+                      subtitle={`Status: ${formatLabel(item.status)}`}
                       ariaLabel={`Inventory summary card for ${item.itemName}`}
                       sx={{ height: '100%' }}
                     >
@@ -107,7 +107,7 @@ const DashboardLayout: FC<BaseDashboardLayoutProps> = ({
                       
                       {item.isLowStock && (
                         <Typography color="warning.main">
-                          Low Stock ({capitalizeFirstLetter(item.stockLevel)})
+                          Low Stock ({formatLabel(item.stockLevel)})
                         </Typography>
                       )}
                       {item.isNearExpiry && (

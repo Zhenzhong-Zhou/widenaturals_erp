@@ -13,6 +13,7 @@ export interface InventoryItem {
 
 export interface QuantityInfo {
   reserved: number;
+  lotReserved: number;
   available: number;
   totalLot: number;
   inStock: number;
@@ -31,6 +32,12 @@ export interface DatesInfo {
 
 export interface StatusInfo {
   display: string;
+  isExpired: boolean;
+  isNearExpiry: boolean;
+  isLowStock: boolean;
+  stockLevel: 'none' | 'critical' | 'low' | 'normal';
+  expirySeverity: 'unknown' | 'expired' | 'expired_soon' | 'critical' | 'warning' | 'notice' | 'safe';
+  displayNote: string;
 }
 
 export interface AuditInfo {
@@ -88,32 +95,53 @@ export interface WarehouseInventorySummaryResponse {
   pagination: WarehouseInventoryPagination;
 }
 
-// Interface for a single product summary in a warehouse
-export interface WarehouseProductSummary {
+// Interface for a single item summary in a warehouse
+export interface WarehouseItemSummary {
   inventoryId: string;
-  productName: string;
+  itemName: string;
   itemType: string;
-  identifier: string;
   totalLots: number;
   totalReservedStock: number;
+  totalLotReservedStock: number;
   totalAvailableStock: number;
   totalQtyStock: number;
   totalZeroStockLots: number;
-  earliestExpiry: string | null; // Can be null if no expiry date is set
+  earliestExpiry: string | null;
   latestExpiry: string | null;
 }
 
+export interface FetchWarehouseItemSummaryParams {
+  warehouseId: string;
+  itemSummaryPage: number;
+  itemSummaryLimit: number;
+}
+
 // Interface for the full API response
-export interface WarehouseProductSummaryResponse {
+export interface WarehouseItemSummaryResponse {
   success: boolean;
   message: string;
-  productSummaryData: WarehouseProductSummary[];
+  itemSummaryData: WarehouseItemSummary[];
   pagination: WarehouseInventoryPagination;
 }
 
 export interface InventoryCreatedUpdatedInfo {
   date: string | null;
   by: string;
+}
+
+interface InventoryIndicatorsFlat {
+  isExpired: boolean;
+  isNearExpiry: boolean;
+  isLowStock: boolean;
+  stockLevel: 'none' | 'critical' | 'low' | 'normal';
+  expirySeverity:
+    | 'unknown'
+    | 'expired'
+    | 'expired_soon'
+    | 'critical'
+    | 'warning'
+    | 'notice'
+    | 'safe';
 }
 
 export interface WarehouseInventoryDetail {
@@ -123,20 +151,22 @@ export interface WarehouseInventoryDetail {
   itemType: string;
   warehouseInventoryLotId: string;
   lotNumber: string;
+  lotReserved: number;
   lotQuantity: number;
   reservedStock: number;
   availableStock: number;
-  warehouseFees: string;
+  warehouseFees: number; // updated from string
   lotStatus: string;
-  manufactureDate: string;
-  expiryDate: string;
-  inboundDate: string;
+  manufactureDate: string | null;
+  expiryDate: string | null;
+  inboundDate: string | null;
   outboundDate: string | null;
-  lastUpdate: string;
+  lastUpdate: string | null;
   inventoryCreated: InventoryCreatedUpdatedInfo;
   inventoryUpdated: InventoryCreatedUpdatedInfo;
   lotCreated: InventoryCreatedUpdatedInfo;
   lotUpdated: InventoryCreatedUpdatedInfo;
+  indicators: InventoryIndicatorsFlat;
 }
 
 export interface WarehouseInventoryDetailExtended
@@ -145,6 +175,11 @@ export interface WarehouseInventoryDetailExtended
   lotCreatedDate: string | null;
   lotUpdatedBy: string;
   lotUpdatedDate: string | null;
+  indicators_isExpired: boolean;
+  indicators_isNearExpiry: boolean;
+  indicators_isLowStock: boolean;
+  indicators_stockLevel: 'none' | 'critical' | 'low' | 'normal';
+  indicators_expirySeverity: InventoryIndicatorsFlat['expirySeverity'];
 }
 
 export interface WarehouseInventoryDetailsResponse {
@@ -250,30 +285,28 @@ export interface InsertInventoryRequestBody {
 
 // Interface for Inventory Record
 export interface InventoryRecordInsertResponse {
-  warehouse_lot_id: string;
-  inventory_id: string;
-  location_id: string;
-  quantity: number;
-  product_name: string;
-  identifier: string;
-  inserted_quantity: number;
-  available_quantity: number;
-  lot_number: string;
-  expiry_date: string | null; // Nullable ISO Date String
-  manufacture_date: string | null; // Nullable ISO Date String
-  inbound_date: string; // ISO Date String
-  inventory_created_at: string; // ISO Date String
-  inventory_created_by: string;
-  inventory_updated_at: string; // ISO Date String
-  inventory_updated_by: string;
+  warehouseLotId: string;
+  inventoryId: string;
+  locationId: string;
+  productName: string;
+  lotNumber: string;
+  lotQuantity: number;
+  inventoryQuantity: number;
+  availableQuantity: number;
+  lotReservedQuantity: number;
+  insertedQuantity: number;
+  manufactureDate: string | null;
+  expiryDate: string | null;
+  inboundDate: string;
+  audit: AuditInfo;
 }
 
 // Interface for Warehouse Inventory Data
 export interface WarehouseInventoryData {
-  warehouse_id: string;
-  warehouse_name: string;
-  total_records: string;
-  inventory_records: InventoryRecordInsertResponse[];
+  warehouseId: string;
+  warehouseName: string;
+  totalRecords: number;
+  inventoryRecords: InventoryRecordInsertResponse[];
 }
 
 // Response Type

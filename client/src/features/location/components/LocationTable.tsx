@@ -1,7 +1,7 @@
 import { FC } from 'react';
 import { CustomTable, Typography } from '@components/index.ts';
 import { Location } from '../state/locationTypes.ts';
-import { capitalizeFirstLetter } from '@utils/textUtils.ts';
+import { formatLabel } from '@utils/textUtils.ts';
 import { formatDateTime } from '@utils/dateTimeUtils.ts';
 import Box from '@mui/material/Box';
 // import { Link } from 'react-router-dom';
@@ -46,7 +46,7 @@ const LocationTable: FC<LocationTableProps> = ({
       id: 'status_name',
       label: 'Status',
       sortable: true,
-      format: (value: string) => capitalizeFirstLetter(value),
+      format: (value: string) => formatLabel(value),
     },
     {
       id: 'status_date',

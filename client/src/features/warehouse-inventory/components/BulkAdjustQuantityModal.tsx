@@ -12,7 +12,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import TextField from '@mui/material/TextField';
 import MenuItem from '@mui/material/MenuItem';
 import { useLotAdjustmentTypes } from '../../../hooks';
-import { capitalizeFirstLetter } from '@utils/textUtils.ts';
+import { formatLabel } from '@utils/textUtils.ts';
 
 interface BulkAdjustQuantityModalProps {
   open: boolean;
@@ -252,7 +252,7 @@ const BulkAdjustQuantityModal: FC<BulkAdjustQuantityModalProps> = ({
                         >
                           {types.map((type) => (
                             <MenuItem key={type.id} value={type.id}>
-                              {capitalizeFirstLetter(type.name)}
+                              {formatLabel(type.name)}
                             </MenuItem>
                           ))}
                         </TextField>

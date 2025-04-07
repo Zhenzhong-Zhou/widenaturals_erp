@@ -3,7 +3,7 @@ import Box from '@mui/material/Box';
 import { useCustomers } from '../../../hooks';
 import { CustomButton, CustomTable, Typography } from '@components/index.ts';
 import { Customer } from '../state/customerTypes';
-import { capitalizeFirstLetter, formatPhoneNumber } from '@utils/textUtils.ts';
+import { formatLabel, formatPhoneNumber } from '@utils/textUtils.ts';
 import { formatDate } from '@utils/dateTimeUtils.ts';
 import { Link } from 'react-router-dom';
 
@@ -68,7 +68,7 @@ const CustomerTable: FC = () => {
       id: 'status_name',
       label: 'Status',
       sortable: false,
-      format: (value: string) => capitalizeFirstLetter(value),
+      format: (value: string) => formatLabel(value),
     },
     {
       id: 'created_at',

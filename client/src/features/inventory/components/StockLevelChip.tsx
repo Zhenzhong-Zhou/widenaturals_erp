@@ -1,6 +1,6 @@
 import { Chip } from '@mui/material';
 import { FC } from 'react';
-import { capitalizeFirstLetter } from '@utils/textUtils.ts';
+import { formatLabel } from '@utils/textUtils.ts';
 import { useThemeContext } from '../../../context/ThemeContext.tsx';
 
 interface Props {
@@ -18,7 +18,7 @@ const StockLevelChip: FC<Props> = ({ stockLevel, isLowStock }) => {
     normal: 'success',
   };
   
-  const label = isLowStock ? `Low (${capitalizeFirstLetter(stockLevel)})` : 'Normal';
+  const label = isLowStock ? `Low (${formatLabel(stockLevel)})` : 'Normal';
   const chipColor = isLowStock ? colorMap[stockLevel] : 'success';
   
   const paletteColor = chipColor ? theme.palette[chipColor].main : theme.palette.text.primary;

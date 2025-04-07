@@ -3,7 +3,7 @@ const {
   withTransaction,
   lockRow,
   bulkInsert,
-  retry,
+  retry, getStatusValue,
 } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logError, logWarn, logInfo } = require('../utils/logger-helper');
@@ -49,7 +49,7 @@ const checkLotExists = async (
 
     // Fetch without locking
     const text = `
-      SELECT id, warehouse_id, product_id, lot_number, quantity, status_id, manufacture_date, expiry_date
+      SELECT id, warehouse_id, product_id, lot_number, quantity, reserved_qty, status_id, manufacture_date, expiry_date
       FROM warehouse_inventory_lots
       WHERE id = $1
     `;
@@ -103,6 +103,7 @@ const adjustWarehouseInventoryLots = async (records, user_id) => {
         inventory_id,
         lot_number,
         quantity: previous_quantity,
+        reserved_quantity,
         status_id,
       } = existingLot;
       const statusName = await getWarehouseLotStatus(client, { id: status_id });
@@ -162,12 +163,13 @@ const adjustWarehouseInventoryLots = async (records, user_id) => {
 
       // Determine New Status for Warehouse Lot
       let new_status_id = status_id;
-      if (new_quantity === 0) {
+      const totalEffectiveStock = new_quantity + (reserved_quantity ?? 0);
+      if (totalEffectiveStock === 0) {
         const { id } = await getWarehouseLotStatus(client, {
           name: 'out_of_stock',
         });
         new_status_id = id;
-      } else if (new_quantity > 0 && statusName !== 'in_stock') {
+      } else if (totalEffectiveStock > 0 && statusName !== 'in_stock') {
         const { id } = await getWarehouseLotStatus(client, {
           name: 'in_stock',
         });
@@ -178,7 +180,10 @@ const adjustWarehouseInventoryLots = async (records, user_id) => {
       await client.query(
         `
         UPDATE warehouse_inventory_lots
-        SET quantity = $1, status_id = $2, updated_at = NOW(), updated_by = $3
+        SET quantity = $1,
+            status_id = $2,
+            updated_at = NOW(),
+            updated_by = $3
         WHERE id = $4`,
         [new_quantity, new_status_id, user_id, warehouse_inventory_id]
       );
@@ -186,8 +191,9 @@ const adjustWarehouseInventoryLots = async (records, user_id) => {
       // Determine Warehouse Inventory Status Based on Lot Availability
       const { rows: warehouseStatusRows } = await client.query(
         `
-        SELECT COALESCE(SUM(wil.quantity), 0) AS total_lot_quantity,
-               COALESCE(SUM(wi.reserved_quantity), 0) AS total_reserved
+        SELECT
+          COALESCE(SUM(wil.quantity), 0) AS total_lot_quantity,
+          COALESCE(SUM(wil.reserved_quantity), 0) AS total_lot_reserved
         FROM warehouse_inventory wi
         LEFT JOIN warehouse_inventory_lots wil
           ON wi.warehouse_id = wil.warehouse_id
@@ -200,7 +206,7 @@ const adjustWarehouseInventoryLots = async (records, user_id) => {
       let warehouse_total_stock =
         warehouseStatusRows[0]?.total_lot_quantity || 0;
       let warehouse_total_reserved =
-        warehouseStatusRows[0]?.total_reserved || 0;
+        warehouseStatusRows[0]?.total_lot_reserved || 0;
 
       let warehouse_new_status =
         warehouse_total_stock === 0 && warehouse_total_reserved === 0
@@ -477,6 +483,7 @@ const insertWarehouseInventoryLots = async (client, warehouseLots) => {
       'inventory_id',
       'lot_number',
       'quantity',
+      'reserved_quantity',
       'expiry_date',
       'manufacture_date',
       'outbound_date',
@@ -492,6 +499,7 @@ const insertWarehouseInventoryLots = async (client, warehouseLots) => {
         inventory_id,
         lot_number,
         quantity,
+        reserved_quantity,
         expiry_date,
         manufacture_date,
         status_id,
@@ -501,6 +509,7 @@ const insertWarehouseInventoryLots = async (client, warehouseLots) => {
         inventory_id,
         lot_number,
         quantity,
+        reserved_quantity,
         expiry_date,
         manufacture_date,
         null,
@@ -601,7 +610,7 @@ const getAvailableLotForAllocation = async (
     JOIN warehouses w ON wil.warehouse_id = w.id
     WHERE i.product_id = $1
       AND wil.warehouse_id = $2
-      AND wil.quantity >= $3
+      AND (wil.quantity - COALESCE(wil.reserved_quantity, 0)) >= $3
       AND wil.status_id = (
         SELECT id FROM warehouse_lot_status WHERE LOWER(name) = 'in_stock' LIMIT 1
       )
@@ -616,11 +625,81 @@ const getAvailableLotForAllocation = async (
   `;
   
   try {
-    const result = await retry( () => query(sql, [productId, warehouseId, quantityNeeded], client));
+    const result = await retry(() => query(sql, [productId, warehouseId, quantityNeeded], client));
     return result.rows[0] || null;
   } catch (error) {
     logError('Error fetching available lot for allocation:', error);
     throw AppError.databaseError('Failed to fetch available lot for allocation');
+  }
+};
+
+/**
+ * Updates quantity for a warehouse inventory lot.
+ *
+ * @param {Object} params
+ * @param {string} params.lotId - ID of the warehouse_inventory_lot.
+ * @param {number} params.quantityDelta - Positive (add) or negative (subtract) value to update quantity.
+ * @param {number} [reservedDelta] - Change in reserved quantity
+ * @param {string} [params.statusName] - New status name (e.g., 'allocated', 'fulfilled', 'returned') if needed.
+ * @param {string} params.userId - User performing the update.
+ * @param {*} client - PostgreSQL client (transactional).
+ * @returns {Promise<object>} Updated lot record.
+ */
+const updateWarehouseInventoryLotQuantity = async (
+  { lotId, quantityDelta = 0, reservedDelta = 0, statusName = null, userId },
+  client
+) => {
+  if (!lotId || typeof quantityDelta !== 'number' || typeof reservedDelta !== 'number') {
+    throw AppError.validationError('lotId, quantityDelta, and reservedDelta must be provided and valid numbers');
+  }
+  
+  try {
+    // Step 1: Resolve status_id if statusName is provided
+    let statusId = null;
+    if (statusName) {
+      statusId = await getStatusValue({
+        table: 'warehouse_lot_status',
+        where: { name: statusName },
+        select: 'id'
+      }, client);
+      
+      if (!statusId) {
+        throw AppError.validationError(`Invalid warehouse lot status name: ${statusName}`);
+      }
+    }
+    
+    // Step 2: Build dynamic SQL query
+    const updateFields = [
+      'quantity = quantity + $2',
+      'reserved_quantity = reserved_quantity + $3',
+      'updated_by = $4',
+      'updated_at = NOW()'
+    ];
+    
+    const values = [lotId, quantityDelta, reservedDelta, userId];
+    
+    if (statusId) {
+      updateFields.splice(2, 0, 'status_id = $5', 'status_date = NOW()');
+      values.push(statusId);
+    }
+    
+    const updateQuery = `
+      UPDATE warehouse_inventory_lots
+      SET ${updateFields.join(', ')}
+      WHERE id = $1
+      RETURNING *;
+    `;
+    
+    const result = await query(updateQuery, values, client);
+    
+    if (!result.rows.length) {
+      throw AppError.notFoundError(`Lot not found for ID: ${lotId}`);
+    }
+    
+    return result.rows[0];
+  } catch (error) {
+    logError('Error updating warehouse_inventory_lot quantity and reserved_quantity:', error);
+    throw AppError.databaseError('Failed to update inventory lot quantity or reservation');
   }
 };
 
@@ -629,4 +708,5 @@ module.exports = {
   checkWarehouseInventoryLotExists,
   insertWarehouseInventoryLots,
   getAvailableLotForAllocation,
+  updateWarehouseInventoryLotQuantity,
 };

@@ -40,7 +40,7 @@ exports.up = async function (knex) {
       table.uuid('updated_by').references('id').inTable('users');
 
       table.index('delivery_method_id');
-      table.index(['customer_id', 'order_status_id', 'tax_rate_id']);
+      table.index(['customer_id', 'tax_rate_id']);
     });
   }
 };

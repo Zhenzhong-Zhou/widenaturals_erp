@@ -2,13 +2,13 @@ import { createAsyncThunk } from '@reduxjs/toolkit';
 import { dropdownService, warehouseInventoryService } from '../../../services';
 import {
   BulkInsertInventoryRequest,
-  BulkInsertInventoryResponse,
+  BulkInsertInventoryResponse, FetchWarehouseItemSummaryParams,
   InsertInventoryRequestBody,
   WarehouseInventoryDetailsResponse,
   WarehouseInventoryInsertResponse,
   WarehouseInventoryResponse,
   WarehouseInventorySummaryResponse,
-  WarehouseProductSummaryResponse,
+  WarehouseItemSummaryResponse,
 } from './warehouseInventoryTypes.ts';
 
 /**
@@ -60,36 +60,22 @@ export const fetchWarehouseInventorySummaryThunk = createAsyncThunk<
 );
 
 /**
- * Thunk to fetch warehouse product summary.
+ * Thunk to fetch warehouse item summary.
  *
- * @param {Object} params - Parameters for fetching data.
- * @param {string} params.warehouseId - The warehouse ID.
- * @param {number} params.page - Page number for pagination.
- * @param {number} params.limit - Number of records per page.
+ * @param {FetchWarehouseItemSummaryParams} params - Parameters for fetching data.
  */
-export const fetchWarehouseProductSummaryThunk = createAsyncThunk<
-  WarehouseProductSummaryResponse,
-  {
-    warehouseId: string;
-    productSummaryPage: number;
-    productSummaryLimit: number;
-  }
+export const fetchWarehouseItemSummaryThunk = createAsyncThunk<
+  WarehouseItemSummaryResponse,
+  FetchWarehouseItemSummaryParams
 >(
-  'warehouseProduct/fetchWarehouseProductSummary',
-  async (
-    { warehouseId, productSummaryPage, productSummaryLimit },
-    { rejectWithValue }
-  ) => {
+  'warehouseInventory/fetchWarehouseItemSummary',
+  async (params, { rejectWithValue }) => {
     try {
-      return await warehouseInventoryService.fetchWarehouseProductSummary(
-        warehouseId,
-        productSummaryPage,
-        productSummaryLimit
-      );
+      return await warehouseInventoryService.fetchWarehouseItemSummary(params);
     } catch (error) {
-      console.error('Failed to fetch warehouse products summary:', error);
+      console.error('Failed to fetch warehouse item summary:', error);
       return rejectWithValue(
-        'Failed to fetch warehouse products summary. Please try again.'
+        'Failed to fetch warehouse item summary. Please try again.'
       );
     }
   }

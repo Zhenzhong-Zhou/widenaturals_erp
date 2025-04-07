@@ -14,6 +14,7 @@ import {
   Typography,
 } from '@components/index.ts';
 import { WarehouseInventorySummaryCard } from '../index.ts';
+import { sanitizeWarehouseInventory } from '@utils/transformersUtlis.ts';
 
 const WarehouseInventoryPage = () => {
   const [page, setPage] = useState(1);
@@ -29,7 +30,9 @@ const WarehouseInventoryPage = () => {
     setSummaryPage,
     refreshSummary,
   } = useWarehouseInventoriesSummary(1, 3, '');
-
+  
+  const sanitizedInventories = sanitizeWarehouseInventory(inventories || []);
+  
   if (loading) return <Loading message={`Loading Warehouse Inventory...`} />;
   if (error)
     return (
@@ -37,7 +40,7 @@ const WarehouseInventoryPage = () => {
         <ErrorMessage message={error} />
       </ErrorDisplay>
     );
-  if (!inventories)
+  if (!inventories || inventories.length === 0)
     return (
       <Typography variant={'h4'}>No warehouse inventory found.</Typography>
     );
@@ -62,7 +65,7 @@ const WarehouseInventoryPage = () => {
 
       {/* Warehouse Inventory Table */}
       <WarehouseInventoryTable
-        data={inventories}
+        data={sanitizedInventories}
         page={page - 1}
         rowsPerPage={limit}
         totalRecords={pagination.totalRecords}

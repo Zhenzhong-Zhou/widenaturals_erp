@@ -39,6 +39,7 @@ const {
 const { generateChecksum } = require('../utils/crypto-utils');
 const { transformPaginatedInventorySummary, transformPaginatedInventoryRecords } = require('../transformers/inventory-transformer');
 const { canViewInventorySummary } = require('../business/inventory-business-logic');
+const { transformWarehouseInventoryRecords } = require('../transformers/warehouse-inventory-transformer');
 
 /**
  * Fetch all inventory records with pagination, sorting, and business logic.
@@ -115,6 +116,7 @@ const createInventoryRecords = async (inventoryData, userId) => {
           product_id,
           warehouse_id,
           quantity,
+          reserved_quantity,
           lot_number,
           expiry_date,
           manufacture_date,
@@ -127,7 +129,7 @@ const createInventoryRecords = async (inventoryData, userId) => {
           );
         }
 
-        if (!type || !warehouse_id || !quantity || !status_id || !lot_number) {
+        if (!type || !warehouse_id || !quantity || reserved_quantity === null || !status_id || !lot_number) {
           throw AppError.validationError(
             'Missing required fields in inventory record.'
           );
@@ -148,6 +150,7 @@ const createInventoryRecords = async (inventoryData, userId) => {
             warehouse_id,
             location_id,
             quantity,
+            reserved_quantity,
             lot_number,
             expiry_date,
             manufacture_date,
@@ -165,6 +168,7 @@ const createInventoryRecords = async (inventoryData, userId) => {
             warehouse_id,
             location_id,
             quantity,
+            reserved_quantity,
             lot_number,
             expiry_date,
             manufacture_date,
@@ -302,6 +306,7 @@ const createInventoryRecords = async (inventoryData, userId) => {
           inventory_id: item.inventory_id,
           lot_number: item.lot_number || null,
           quantity: item.quantity,
+          reserved_quantity: item.reserved_quantity || 0,
           expiry_date: item.expiry_date || null,
           manufacture_date: item.manufacture_date || null,
           status_id: item.status_id,
@@ -468,16 +473,26 @@ const createInventoryRecords = async (inventoryData, userId) => {
   }
 };
 
+/**
+ * Fetches and transforms recently inserted warehouse inventory records by lot IDs.
+ *
+ * @param {Array<{id: string}>} warehouseLotIds - Array of lot objects containing `id` fields (UUIDs).
+ * @returns {Promise<Array>} - Transformed inventory records grouped by warehouse.
+ * @throws {AppError} - If input is invalid or database query fails.
+ */
 const fetchRecentInsertWarehouseInventoryRecords = async (warehouseLotIds) => {
   if (!Array.isArray(warehouseLotIds) || warehouseLotIds.length === 0) {
     throw AppError.validationError('No warehouse lot IDs provided.');
   }
-
-  // Extract UUIDs from objects if they exist
+  
+  // Extract UUIDs from objects
   const lotIds = warehouseLotIds.map((item) => item.id);
-
-  // Fetch inventory records from the repository
-  return await getRecentInsertWarehouseInventoryRecords(lotIds);
+  
+  // Fetch raw data from the database
+  const rawRecords = await getRecentInsertWarehouseInventoryRecords(lotIds);
+  
+  // Transform the result into a structured response
+  return transformWarehouseInventoryRecords(rawRecords);
 };
 
 /**
