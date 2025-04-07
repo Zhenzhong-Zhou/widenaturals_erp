@@ -291,7 +291,7 @@ const getWarehouseInventoryDetailsByWarehouseId = async ({
       COALESCE(wi.reserved_quantity, 0) AS reserved_stock,
       COALESCE(wil.reserved_quantity, 0) AS lot_reserved_quantity,
       (
-        SELECT SUM(wil2.quantity)
+        SELECT SUM(wil2.quantity - COALESCE(wil2.reserved_quantity, 0))
         FROM warehouse_inventory_lots wil2
         JOIN warehouse_lot_status wls2 ON wil2.status_id = wls2.id
         WHERE wil2.inventory_id = wi.inventory_id
@@ -524,28 +524,32 @@ const updateWarehouseInventoryQuantity = async (
   warehouseUpdates,
   userId
 ) => {
+  const columnTypes = {
+    reserved_quantity: 'integer',
+    available_quantity: 'integer',
+  };
+  
   const { baseQuery, params } = await formatBulkUpdateQuery(
     'warehouse_inventory',
-    ['available_quantity'],
+    ['reserved_quantity', 'available_quantity'],
     ['warehouse_id', 'inventory_id'],
     warehouseUpdates,
-    userId
+    userId,
+    columnTypes
   );
-
+  
   if (baseQuery) {
     return await retry(
       async () => {
-        const { rows } = client
-          ? await query(baseQuery, params)
-          : await client.query(baseQuery, params);
+        const { rows } = await query(baseQuery, params, client);
         return rows; // Return the updated inventory IDs
       },
       3, // Retry up to 3 times
       1000 // Initial delay of 1 second (exponential backoff applied)
     );
   }
-
-  return []; // Return empty array if no updates were made
+  
+  return [];
 };
 
 /**
@@ -654,6 +658,59 @@ const getRecentInsertWarehouseInventoryRecords = async (warehouseLotIds) => {
   }
 };
 
+/**
+ * Fetches the available and reserved quantities from warehouse_inventory
+ * for a list of (warehouse_id, inventory_id) pairs.
+ *
+ * @param {Array<{ warehouseId: string, inventoryId: string }>} items - List of warehouse-inventory pairs.
+ * @param {Object} [client] - Optional DB client (for transaction support).
+ * @returns {Promise<Object>} - Object keyed by 'warehouseId-inventoryId' with quantity info:
+ *   {
+ *     'warehouseId-inventoryId': {
+ *       available_quantity: number,
+ *       reserved_quantity: number
+ *     },
+ *     ...
+ *   }
+ *
+ * @throws {AppError} - Throws if DB query fails.
+ */
+const fetchWarehouseInventoryQuantities = async (items, client = null) => {
+  if (!Array.isArray(items) || items.length === 0) return {};
+  
+  try {
+    const conditions = items
+      .map((_, index) => `($${index * 2 + 1}::uuid, $${index * 2 + 2}::uuid)`)
+      .join(', ');
+    
+    const params = items.flatMap(({ warehouseId, inventoryId }) => [
+      warehouseId,
+      inventoryId,
+    ]);
+    
+    const queryText = `
+      SELECT warehouse_id, inventory_id, available_quantity, reserved_quantity
+      FROM warehouse_inventory
+      WHERE (warehouse_id, inventory_id) IN (${conditions})
+    `;
+    
+    const { rows } = await query(queryText, params, client);
+    
+    const result = {};
+    for (const row of rows) {
+      const key = `${row.warehouse_id}-${row.inventory_id}`;
+      result[key] = {
+        available_quantity: Number(row.available_quantity ?? 0),
+        reserved_quantity: Number(row.reserved_quantity ?? 0),
+      };
+    }
+    
+    return result;
+  } catch (error) {
+    throw AppError.databaseError('Failed to fetch warehouse inventory quantities', error);
+  }
+};
+
 module.exports = {
   getWarehouseInventories,
   getWarehouseItemSummary,
@@ -662,4 +719,5 @@ module.exports = {
   insertWarehouseInventoryRecords,
   updateWarehouseInventoryQuantity,
   getRecentInsertWarehouseInventoryRecords,
+  fetchWarehouseInventoryQuantities,
 };

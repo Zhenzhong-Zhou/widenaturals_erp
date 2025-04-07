@@ -46,6 +46,9 @@ exports.up = function (knex) {
     table.uuid('updated_by').references('id').inTable('users');
     table.timestamp('created_at').defaultTo(knex.fn.now());
     table.timestamp('updated_at').defaultTo(knex.fn.now());
+    
+    // Unique Constraint to prevent duplicate allocation entries
+    table.unique(['order_id', 'lot_id', 'inventory_id', 'warehouse_id']);
   });
 };
 

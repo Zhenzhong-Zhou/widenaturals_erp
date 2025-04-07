@@ -66,6 +66,7 @@ const query = async (text, params = [], clientOrPool = null) => {
     logInfo('Query executed', { query: text, duration: `${duration}ms` });
     return result;
   } catch (error) {
+    console.log(error);
     logError('Query execution failed', {
       query: text,
       params,
@@ -671,76 +672,91 @@ const bulkInsert = async (
  * Generates a bulk update SQL query for updating multiple rows in a given table.
  *
  * @param {string} table - The name of the table to update.
- * @param {Array<string>} columns - The columns to be updated.
- * @param {Array<string>} whereColumns - The columns used for matching records (e.g., primary keys).
- * @param {Object} data - An object mapping identifiers (UUIDs or composite keys) to new values.
- *   - Example (Single Key): `{ "168bdc32-18a3-40f9-87c5-1ad77ad2258a": 6 }`
- *   - Example (Composite Key): `{ "814cfc1d-e245-41be-b3f6-bcac548e1927-168bdc32-18a3-40f9-87c5-1ad77ad2258a": 6 }`
- * @param {string} userId - The UUID of the user performing the update (stored in `updated_by`).
- * @returns {Object|null} - An object containing:
- *   - `baseQuery` (string): The generated SQL query.
- *   - `params` (Array): The list of query parameters.
- *   Returns `null` if no data is provided.
+ * @param {Array<string>} columns - The columns to be updated (e.g., ['available_quantity', 'reserved_quantity']).
+ * @param {Array<string>} whereColumns - The columns used for matching records (e.g., ['warehouse_id', 'inventory_id']).
+ * @param {Object} data - An object mapping composite keys to an object of values to update.
+ *   - Example:
+ *     {
+ *       "warehouseId-inventoryId": {
+ *         reserved_quantity: 2,
+ *         available_quantity: 74
+ *       }
+ *     }
+ * @param {string} userId - The UUID of the user performing the update (used in `updated_by`).
+ * @param {Object} columnTypes - (Optional) An object mapping column names to their SQL types.
+ *   - Example: { reserved_quantity: 'integer', available_quantity: 'integer', status: 'text' }
  *
- * @throws {Error} - Throws an error if query generation fails.
+ * @returns {Promise<{ baseQuery: string, params: any[] } | null>} The SQL update query and parameters,
+ *   or null if `data` is empty.
+ *
+ * @throws {Error} If query generation fails.
  *
  * @example
- * const { baseQuery, params } = formatBulkUpdateQuery(
- *   "inventory",
- *   ["quantity"],
- *   ["id"],
- *   { "168bdc32-18a3-40f9-87c5-1ad77ad2258a": 6, "a430cacf-d7b5-4915-a01a-aa1715476300": 40 },
- *   "e9a62a2a-0350-4e36-95cc-86237a394fe0"
+ * const { baseQuery, params } = await formatBulkUpdateQuery(
+ *   'warehouse_inventory',
+ *   ['reserved_quantity', 'available_quantity'],
+ *   ['warehouse_id', 'inventory_id'],
+ *   {
+ *     'wh-id-inv-id': { reserved_quantity: 2, available_quantity: 74 }
+ *   },
+ *   userId,
+ *   {
+ *     reserved_quantity: 'integer',
+ *     available_quantity: 'integer'
+ *   }
  * );
- * console.log(baseQuery); // Generated SQL Query
- * console.log(params); // Corresponding parameters
  */
 const formatBulkUpdateQuery = async (
   table,
-  columns,
-  whereColumns,
-  data,
-  userId
+  columns,                 // ['reserved_quantity', 'status', 'remarks']
+  whereColumns,            // ['warehouse_id', 'inventory_id']
+  data,                    // { 'id-id': { reserved_quantity: 5, status: 'active', ... } }
+  userId,
+  columnTypes = {}         // { reserved_quantity: 'integer', status: 'text', ... }
 ) => {
   if (!Object.keys(data).length) return null;
-
-  let indexCounter = 2; // Start from 2 since $1 is for userId
-
+  
+  let indexCounter = 2; // $1 is reserved for userId
+  
+  // 1. VALUES block
   const values = Object.entries(data)
     .map(([key, value]) => {
-      const keyArray = key.match(/([a-f0-9-]{36})-([a-f0-9-]{36})/)
-        ? key.split(/-(?=[a-f0-9-]{36}$)/) // Splits only at the last occurrence for correct parsing
-        : [key];
-
-      const placeholders = keyArray.map(() => `$${indexCounter++}::uuid`);
-      placeholders.push(`$${indexCounter++}::integer`); // For quantity
-
+      const keyParts = key.split(/-(?=[a-f0-9-]{36}$)/); // for UUID composite keys
+      const placeholders = [
+        ...keyParts.map(() => `$${indexCounter++}::uuid`),
+        ...columns.map((col) => {
+          const type = columnTypes[col] || 'text'; // fallback to text
+          return `$${indexCounter++}::${type}`;
+        })
+      ];
       return `(${placeholders.join(', ')})`;
     })
     .join(', ');
-
+  
+  // 2. SQL statement
   const baseQuery = `
-      UPDATE ${table}
-      SET ${columns.map((col) => `${col} = data.${col}`).join(', ')},
-          updated_at = NOW(),
-          updated_by = $1
-      FROM (VALUES ${values})
-        AS data(${[...whereColumns, ...columns].join(', ')})
-      WHERE ${whereColumns.map((col) => `${table}.${col} = data.${col}`).join(' AND ')}
-      RETURNING ${whereColumns.map((col) => `${table}.${col}`).join(', ')};
+    UPDATE ${table}
+    SET ${columns.map((col) => `${col} = data.${col}`).join(', ')},
+        updated_at = NOW(),
+        updated_by = $1
+    FROM (VALUES ${values})
+      AS data(${[...whereColumns, ...columns].join(', ')})
+    WHERE ${whereColumns.map((col) => `${table}.${col} = data.${col}`).join(' AND ')}
+    RETURNING ${whereColumns.map((col) => `${table}.${col}`).join(', ')};
   `;
-
+  
+  // 3. Parameters
   const params = [
     userId,
     ...Object.entries(data).flatMap(([key, value]) => {
-      const keyArray = key.match(/([a-f0-9-]{36})-([a-f0-9-]{36})/)
-        ? key.split(/-(?=[a-f0-9-]{36}$)/)
-        : [key];
-
-      return [...keyArray, Number(value)];
+      const keyParts = key.split(/-(?=[a-f0-9-]{36}$)/);
+      return [
+        ...keyParts,
+        ...columns.map((col) => value[col] ?? null)
+      ];
     }),
   ];
-
+  
   return await retry(async () => {
     return { baseQuery, params };
   });

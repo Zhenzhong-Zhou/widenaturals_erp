@@ -30,6 +30,14 @@ const insertInventoryAllocation = async ({
                                            created_by = null,
                                            updated_by = null,
                                          }, client) => {
+  if (!inventory_id || !warehouse_id || !allocated_quantity || !status_id) {
+    throw AppError.validationError('Missing required fields for inventory allocation.');
+  }
+  
+  if (allocated_quantity <= 0) {
+    throw AppError.validationError('Allocated quantity must be a positive number.');
+  }
+  
   const sql = `
     INSERT INTO inventory_allocations (
       inventory_id,
@@ -49,6 +57,11 @@ const insertInventoryAllocation = async ({
       $1, $2, $3, $4, $5, NOW(),
       $6, $7, $8, NULL, NOW(), NULL
     )
+    ON CONFLICT (order_id, lot_id, inventory_id, warehouse_id)
+    DO UPDATE SET
+      allocated_quantity = inventory_allocations.allocated_quantity + EXCLUDED.allocated_quantity,
+      updated_at = NOW(),
+      updated_by = EXCLUDED.created_by
     RETURNING *;
   `;
   
@@ -98,7 +111,37 @@ const getAllocationsByOrderId = async (orderId, client) => {
   }
 };
 
+/**
+ * Fetches the total allocated quantity for a specific product in a given order.
+ * This helps ensure that the allocation does not exceed the ordered quantity.
+ *
+ * @param {Object} params
+ * @param {string} params.orderId - The ID of the order.
+ * @param {string} params.productId - The ID of the product.
+ * @param {Object} client - The database client or transaction client.
+ * @returns {Promise<number>} - The total quantity allocated so far for the given product in the order.
+ *
+ * @throws {AppError} - If the database query fails.
+ */
+const getTotalAllocatedForOrderItem = async ({ orderId, productId }, client) => {
+  try {
+    const sql = `
+      SELECT COALESCE(SUM(allocated_quantity), 0) AS total_allocated
+      FROM inventory_allocations ia
+      JOIN inventory i ON ia.inventory_id = i.id
+      WHERE ia.order_id = $1 AND i.product_id = $2
+    `;
+    
+    const { rows } = await query(sql, [orderId, productId], client);
+    return Number(rows[0]?.total_allocated ?? 0);
+  } catch (error) {
+    logError('Error in getTotalAllocatedForOrderItem:', error);
+    throw AppError.databaseError('Failed to fetch allocated quantity for order item');
+  }
+};
+
 module.exports = {
   insertInventoryAllocation,
   getAllocationsByOrderId,
+  getTotalAllocatedForOrderItem,
 };
