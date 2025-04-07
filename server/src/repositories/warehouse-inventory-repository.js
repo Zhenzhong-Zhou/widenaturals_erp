@@ -37,11 +37,14 @@ const getWarehouseInventories = async ({
     warehouse_name: 'w.name',
     location_name: 'l.name',
     storage_capacity: 'w.storage_capacity',
-    status_id: 'w.status_id',
-    created_at: 'w.created_at',
-    updated_at: 'w.updated_at',
+    created_at: 'wi.created_at',
+    updated_at: 'wi.updated_at',
+    item_name: 'item_name',
+    in_stock_quantity: 'in_stock_quantity',
+    total_reserved_quantity: 'total_reserved_quantity',
+    total_lot_quantity: 'total_lot_quantity',
   };
-
+  
   // Default sorting (by warehouse name & creation time)
   const defaultSortBy = 'w.name, w.created_at';
   sortBy = validSortColumns[sortBy] || defaultSortBy;
@@ -85,7 +88,14 @@ const getWarehouseInventories = async ({
       wi.updated_at,
       COALESCE(u1.firstname || ' ' || u1.lastname, 'Unknown') AS created_by,
       COALESCE(u2.firstname || ' ' || u2.lastname, 'Unknown') AS updated_by,
-      SUM(wil.quantity) FILTER (WHERE wls.name = 'in_stock') AS in_stock_quantity,
+      (
+        SELECT SUM(wil2.quantity)
+        FROM warehouse_inventory_lots wil2
+        JOIN warehouse_lot_status wls2 ON wil2.status_id = wls2.id
+        WHERE wil2.inventory_id = wi.inventory_id
+          AND wil2.warehouse_id = wi.warehouse_id
+          AND wls2.name = 'in_stock'
+      ) AS in_stock_quantity,
       SUM(wil.reserved_quantity) AS total_reserved_quantity,
       SUM(wil.quantity) AS total_lot_quantity,
       MIN(wil.manufacture_date) AS earliest_manufacture_date,

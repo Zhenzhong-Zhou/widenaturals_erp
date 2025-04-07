@@ -35,7 +35,7 @@ const fetchAllWarehouseInventories = async ({
     sortBy,
     sortOrder,
   });
-  console.log(result);
+  
   return transformPaginatedWarehouseInventorySummary(result);
 };
 
@@ -129,7 +129,7 @@ const fetchWarehouseInventoryDetailsByWarehouseId = async (
         page,
         limit,
       });
-console.log(data);
+    
     // Transform the data (e.g., formatting dates, structuring response)
     const inventoryDetails = transformWarehouseInventoryLotDetailList(data)
     

@@ -139,7 +139,7 @@ const adjustWarehouseInventoryLots = async (records, user_id) => {
           `Adjustment not allowed: Available stock cannot be negative. Current available: ${available_quantity}, Adjustment: ${adjusted_quantity}`
         );
       }
-
+      
       // Update warehouse inventory quantities (reserved_quantity remains unchanged)
       await client.query(
         `
