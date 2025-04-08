@@ -60,28 +60,26 @@ export const toUpperCase = (str: string): string => {
  * Formats a phone number dynamically by detecting its country.
  *
  * @param phoneNumber - The raw phone number from the database.
- * @param defaultCountry - Fallback country code if detection fails (default: "US").
- * @returns Formatted phone number or original input if invalid.
+ * @param defaultCountry - Fallback country code if detection fails (default: "CA").
+ * @returns Formatted phone number or fallback message.
  */
 export const formatPhoneNumber = (
-  phoneNumber: string,
+  phoneNumber: string | null,
   defaultCountry: CountryCode = 'CA'
 ): string => {
-  if (!phoneNumber) return 'Invalid Number';
-
-  // Try parsing with automatic country detection
-  let parsedPhone = parsePhoneNumberFromString(phoneNumber);
-
+  if (!phoneNumber) return 'N/A';
+  
+  const parsedPhone = parsePhoneNumberFromString(phoneNumber);
+  
   if (parsedPhone) {
-    return parsedPhone.formatInternational(); // Correctly formatted number
+    return parsedPhone.formatInternational();
   }
-
-  // Handle cases where number is missing country code (fallback)
+  
   try {
     const callingCode = getCountryCallingCode(defaultCountry);
     return new AsYouType(defaultCountry).input(`+${callingCode}${phoneNumber}`);
   } catch {
-    return phoneNumber; // Return raw number if formatting fails
+    return phoneNumber;
   }
 };
 

@@ -8,29 +8,20 @@ import {
   MetadataSection,
 } from '@components/index';
 import { formatDateTime } from '@utils/dateTimeUtils.ts';
+import { CustomerDetails } from '../state/customerTypes.ts';
+import { formatPhoneNumber } from '@utils/textUtils.ts';
 
 interface CustomerDetailsProps {
-  customer: {
-    email: string;
-    phone_number: string;
-    address: string;
-    note?: string;
-    status_name: string;
-    status_date: string;
-    created_by: string;
-    created_at: string;
-    updated_by: string;
-    updated_at?: string | null;
-  };
+  customer: CustomerDetails;
   loading: boolean;
   error: string | null;
 }
 
 const CustomerDetailSection: FC<CustomerDetailsProps> = ({
-  customer,
-  loading,
-  error,
-}) => {
+                                                           customer,
+                                                           loading,
+                                                           error,
+                                                         }) => {
   if (loading) return <Loading message={'Loading customer details...'} />;
   if (error)
     return (
@@ -38,24 +29,22 @@ const CustomerDetailSection: FC<CustomerDetailsProps> = ({
         <ErrorMessage message={error} />
       </ErrorDisplay>
     );
-
+  
   return (
     <Box sx={{ maxWidth: 600, mx: 'auto', p: 3 }}>
       {/* Metadata Section */}
       <MetadataSection
         data={{
           Email: customer.email,
-          'Phone Number': customer.phone_number,
-          Address: customer.address,
+          'Phone Number': formatPhoneNumber(customer.phoneNumber),
+          Address: customer.address || 'N/A',
           Note: customer.note || 'N/A',
-          Status: customer.status_name,
-          'Status Date': formatDateTime(customer.status_date),
-          'Created By': customer.created_by,
-          'Created At': formatDateTime(customer.created_at),
-          'Updated By': customer.updated_by,
-          'Updated At': customer.updated_at
-            ? formatDateTime(customer.updated_at)
-            : 'N/A',
+          Status: customer.statusName,
+          'Status Date': formatDateTime(customer.statusDate),
+          'Created By': customer.createdBy,
+          'Created At': formatDateTime(customer.createdAt),
+          'Updated By': customer.updatedBy,
+          'Updated At': formatDateTime(customer.updatedAt),
         }}
         sx={{
           backgroundColor: 'rgba(0, 0, 0, 0.05)',
@@ -63,7 +52,7 @@ const CustomerDetailSection: FC<CustomerDetailsProps> = ({
           borderRadius: 1,
         }}
       />
-
+      
       {/* Actions */}
       <Box sx={{ mt: 3, textAlign: 'center' }}>
         <CustomButton variant="contained" color="primary">

@@ -307,10 +307,13 @@ const getCustomerDetailsById = async (customerId) => {
         COALESCE(c.firstname || ' ' || c.lastname, 'Unknown') AS customer_name,
         c.email,
         c.phone_number,
-        COALESCE(
-          c.address_line1 || ' ' || c.address_line2 || ', ' || c.city || ', ' || c.state || ', ' || c.postal_code,
-          ''
-        ) AS address,
+        c.address_line1,
+        c.address_line2,
+        c.city,
+        c.state,
+        c.postal_code,
+        c.country,
+        c.region,
         c.note,
         c.status_id,
         s.name AS status_name,

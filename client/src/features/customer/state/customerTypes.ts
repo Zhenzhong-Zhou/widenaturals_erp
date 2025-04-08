@@ -62,18 +62,18 @@ export interface CustomerListResponse {
 
 export interface CustomerDetails {
   id: string;
-  customer_name: string;
+  customerName: string;
   email: string;
-  phone_number: string;
+  phoneNumber: string | null;
   address: string;
-  note?: string;
-  status_id: string;
-  status_name: string;
-  status_date: string;
-  created_at: string;
-  updated_at: string | null;
-  created_by: string;
-  updated_by: string;
+  note: string | null;
+  statusId: string;
+  statusName: string;
+  statusDate: string;
+  createdAt: string;
+  updatedAt: string | null;
+  createdBy: string;
+  updatedBy: string;
 }
 
 export interface CustomerDetailsResponse {

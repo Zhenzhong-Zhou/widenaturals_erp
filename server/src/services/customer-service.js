@@ -8,6 +8,7 @@ const {
 const { prepareCustomersForInsert } = require('../business/customer-bussiness-logic');
 const { logError } = require('../utils/logger-helper');
 const { withTransaction } = require('../database/db');
+const { transformCustomerDetails } = require('../transformers/customer-transformer');
 
 /**
  * Creates multiple customers in bulk with validation and conflict handling.
@@ -90,9 +91,19 @@ const fetchCustomersDropdown = async (search = '', limit = 100) => {
  * Fetch customer details service function.
  * @param {string} customerId - Customer ID to retrieve details.
  * @returns {Promise<Object>} - Returns customer details.
+ * @throws Will throw an error if the fetch fails.
  */
 const fetchCustomerDetails = async (customerId) => {
-  return await getCustomerDetailsById(customerId);
+  try {
+    const row = await getCustomerDetailsById(customerId);
+    if (!row) {
+      throw AppError.notFoundError('Customer not found');
+    }
+    return transformCustomerDetails(row);
+  } catch (error) {
+    logError('Error fetching customer details:', error.message);
+    throw AppError.serviceError('Failed to fetch customer details.');
+  }
 };
 
 module.exports = {

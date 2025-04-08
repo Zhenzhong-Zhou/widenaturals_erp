@@ -37,7 +37,7 @@ const CustomerDetailsPage: FC = () => {
       {/* Show customer details when available */}
       {customerDetail && (
         <Box sx={{ flex: 1, minWidth: 350 }}>
-          <CustomerDetailHeader customerName={customerDetail.customer_name} />
+          <CustomerDetailHeader customerName={customerDetail.customerName} />
           <CustomerDetailSection
             customer={customerDetail}
             loading={customerDetailLoading}
