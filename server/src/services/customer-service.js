@@ -5,7 +5,7 @@ const {
   getCustomersForDropdown,
   getCustomerDetailsById,
 } = require('../repositories/customer-repository');
-const { prepareCustomersForInsert } = require('../business/customer-bussiness-logic');
+const { prepareCustomersForInsert } = require('../shared/customer-utils');
 const { logError } = require('../utils/logger-helper');
 const { withTransaction } = require('../database/db');
 const { transformCustomerDetails } = require('../transformers/customer-transformer');

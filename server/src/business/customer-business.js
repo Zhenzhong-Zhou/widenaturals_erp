@@ -29,5 +29,5 @@ const getCustomerDetailsLogic = async (customerId) => {
 };
 
 module.exports = {
-  getCustomerDetailsLogic
+  getCustomerDetailsLogic,
 };
