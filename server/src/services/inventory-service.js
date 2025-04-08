@@ -38,7 +38,7 @@ const {
 } = require('../repositories/lot-adjustment-type-repository');
 const { generateChecksum } = require('../utils/crypto-utils');
 const { transformPaginatedInventorySummary, transformPaginatedInventoryRecords } = require('../transformers/inventory-transformer');
-const { canViewInventorySummary } = require('../business/inventory-business-logic');
+const { canViewInventorySummary } = require('../business/inventory-business');
 const { transformWarehouseInventoryRecords } = require('../transformers/warehouse-inventory-transformer');
 
 /**

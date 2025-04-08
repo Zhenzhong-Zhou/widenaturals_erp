@@ -1,4 +1,4 @@
-const { allocateInventoryForOrder } = require('../business/inventory-allocation-business-logic');
+const { allocateInventoryForOrder } = require('../business/inventory-allocation-business');
 const AppError = require('../utils/AppError');
 const { withTransaction } = require('../database/db');
 const { logError } = require('../utils/logger-helper');

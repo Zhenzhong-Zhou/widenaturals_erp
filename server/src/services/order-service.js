@@ -9,7 +9,7 @@ const {
 const AppError = require('../utils/AppError');
 const { logError } = require('../utils/logger-helper');
 const { transformOrderDetails, transformAllOrders, transformUpdatedOrderStatusResult } = require('../transformers/order-transformer');
-const { applyOrderDetailsBusinessLogic, validateOrderNumbers, confirmOrderWithItems, canConfirmOrder } = require('../business/order-business-logic');
+const { applyOrderDetailsBusinessLogic, validateOrderNumbers, confirmOrderWithItems, canConfirmOrder } = require('../business/order-business');
 const { withTransaction } = require('../database/db');
 
 /**
