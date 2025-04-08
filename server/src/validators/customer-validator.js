@@ -41,7 +41,7 @@ const customerSchema = Joi.object({
   }),
   region: Joi.string().max(100).allow('', null),
   
-  note: Joi.string().max(500).optional(),
+  note: Joi.string().max(500).allow('').optional(),
 });
 
 /**

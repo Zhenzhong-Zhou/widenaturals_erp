@@ -3,7 +3,13 @@ export interface CustomerRequest {
   lastname: string;
   email: string;
   phone_number: string;
-  address: string;
+  address_line1: string;
+  address_line2?: string;
+  city: string;
+  state: string;
+  postal_code: string;
+  country: string;
+  region?: string;
   note?: string; // Optional field
 }
 

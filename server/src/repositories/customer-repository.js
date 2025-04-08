@@ -103,14 +103,27 @@ const bulkCreateCustomers = async (customers, client) => {
     null,       // updated_by
   ]);
   
-
   try {
     return await bulkInsert(
       'customers',
       columns,
       rows,
       ['email', 'phone_number'], // Conflict resolution based on email, phone
-      ['firstname', 'lastname', 'address', 'status_id', 'updated_at'], // Update on conflict
+      [
+        'firstname',
+        'lastname',
+        'address_line1',
+        'address_line2',
+        'city',
+        'state',
+        'postal_code',
+        'country',
+        'region',
+        'status_id',
+        'note',
+        'updated_at',
+        'updated_by',
+      ], // Update on conflict
       client
     );
   } catch (error) {
@@ -286,7 +299,7 @@ const getCustomersForDropdown = async (search = '', limit = 100) => {
  * @returns {Promise<Object>} - Returns the customer details if found.
  * @throws {AppError} - Throws an error if the customer is not found or if a database error occurs.
  */
-const getCustomerById = async (customerId) => {
+const getCustomerDetailsById = async (customerId) => {
   try {
     const queryText = `
       SELECT
@@ -332,5 +345,5 @@ module.exports = {
   bulkCreateCustomers,
   getAllCustomers,
   getCustomersForDropdown,
-  getCustomerById,
+  getCustomerDetailsById,
 };

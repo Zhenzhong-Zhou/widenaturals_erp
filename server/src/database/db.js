@@ -66,7 +66,6 @@ const query = async (text, params = [], clientOrPool = null) => {
     logInfo('Query executed', { query: text, duration: `${duration}ms` });
     return result;
   } catch (error) {
-    console.log(error);
     logError('Query execution failed', {
       query: text,
       params,

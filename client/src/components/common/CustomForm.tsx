@@ -8,9 +8,10 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import InputLabel from '@mui/material/InputLabel';
 import Box from '@mui/material/Box';
 import FormHelperText from '@mui/material/FormHelperText';
-import TextField from '@mui/material/TextField';
-import { CustomButton, CustomPhoneInput } from '@components/index';
+import { BaseInput, CustomButton, CustomPhoneInput } from '@components/index';
 import { useThemeContext } from '../../context/ThemeContext';
+import { SxProps } from '@mui/material/styles';
+import { Theme } from '@mui/system';
 
 export interface FieldConfig {
   id: string;
@@ -36,6 +37,7 @@ interface FormProps {
   submitButtonLabel?: string;
   disabled?: boolean;
   showSubmitButton?: boolean;
+  sx?: SxProps<Theme>;
 }
 
 const CustomForm: FC<FormProps> = ({
@@ -44,7 +46,8 @@ const CustomForm: FC<FormProps> = ({
                                      onSubmit,
                                      submitButtonLabel = 'Submit',
                                      control,
-                                     showSubmitButton = true
+                                     showSubmitButton = true,
+                                     sx
                                    }) => {
   const { theme } = useThemeContext();
   const {
@@ -67,6 +70,7 @@ const CustomForm: FC<FormProps> = ({
         backgroundColor: theme.palette.background.paper,
         borderRadius: theme.shape.borderRadius,
         boxShadow: theme.shadows[3],
+        ...sx,
       }}
     >
       {fields.map((field) => (
@@ -87,7 +91,7 @@ const CustomForm: FC<FormProps> = ({
                   : undefined,
               }}
               render={({ field: { onChange, value } }) => (
-                <TextField
+                <BaseInput
                   fullWidth
                   id={field.id}
                   label={field.label}
@@ -140,7 +144,7 @@ const CustomForm: FC<FormProps> = ({
                 required: field.required ? `${field.label} is required` : false,
               }}
               render={({ field: { onChange, value } }) => (
-                <TextField
+                <BaseInput
                   fullWidth
                   id={field.id}
                   label={field.label}

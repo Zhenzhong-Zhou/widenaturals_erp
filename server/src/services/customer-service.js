@@ -3,7 +3,7 @@ const {
   bulkCreateCustomers,
   getAllCustomers,
   getCustomersForDropdown,
-  getCustomerById,
+  getCustomerDetailsById,
 } = require('../repositories/customer-repository');
 const { prepareCustomersForInsert } = require('../business/customer-bussiness-logic');
 const { logError } = require('../utils/logger-helper');
@@ -92,7 +92,7 @@ const fetchCustomersDropdown = async (search = '', limit = 100) => {
  * @returns {Promise<Object>} - Returns customer details.
  */
 const fetchCustomerDetails = async (customerId) => {
-  return await getCustomerById(customerId);
+  return await getCustomerDetailsById(customerId);
 };
 
 module.exports = {
