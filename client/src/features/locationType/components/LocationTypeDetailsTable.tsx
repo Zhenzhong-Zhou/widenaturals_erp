@@ -16,7 +16,7 @@ interface LocationTypeTableProps {
   onRowsPerPageChange: (newRowsPerPage: number) => void;
 }
 
-const LocationTypeTable: FC<LocationTypeTableProps> = ({
+const LocationTypeDetailsTable: FC<LocationTypeTableProps> = ({
   data,
   page,
   totalRecords,
@@ -88,4 +88,4 @@ const LocationTypeTable: FC<LocationTypeTableProps> = ({
   );
 };
 
-export default LocationTypeTable;
+export default LocationTypeDetailsTable;

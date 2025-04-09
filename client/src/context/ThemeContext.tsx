@@ -11,63 +11,69 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { lightTheme, darkTheme } from '../styles/theme';
 import type { Theme } from '@mui/material/styles';
 
-// Define the shape of the context
+// Context type
 interface ThemeContextProps {
   toggleTheme: () => void;
   theme: Theme;
+  mode: 'light' | 'dark';
 }
 
 // Create the context
 const ThemeContext = createContext<ThemeContextProps | undefined>(undefined);
 
-// Helper function to get the initial theme
-const getInitialTheme = (): Theme => {
-  // Check localStorage for a saved theme
-  const savedTheme = localStorage.getItem('theme');
-  if (savedTheme === 'dark') {
-    return darkTheme;
-  }
-  if (savedTheme === 'light') {
-    return lightTheme;
-  }
-
-  // Fallback to system preference
+// Detect theme mode from system (SSR-safe)
+const getSystemThemeMode = (): 'light' | 'dark' => {
+  if (typeof window === 'undefined') return 'light';
   return window.matchMedia('(prefers-color-scheme: dark)').matches
-    ? darkTheme
-    : lightTheme;
+    ? 'dark'
+    : 'light';
 };
 
-// Create a provider component
+// Get initial mode from localStorage or system
+const getInitialThemeMode = (): 'light' | 'dark' => {
+  if (typeof window === 'undefined') return 'light';
+  const stored = localStorage.getItem('theme');
+  return stored === 'dark' || stored === 'light'
+    ? stored
+    : getSystemThemeMode();
+};
+
+// Provider component
 export const ThemeProviderWrapper: FC<{ children: ReactNode }> = ({
-  children,
-}) => {
-  const [theme, setTheme] = useState<Theme>(getInitialTheme);
-
-  // Toggle theme and persist user preference
+                                                                    children,
+                                                                  }) => {
+  const [mode, setMode] = useState<'light' | 'dark'>(() =>
+    getInitialThemeMode()
+  );
+  const [mounted, setMounted] = useState(false); // Avoid hydration mismatches
+  
+  const theme = mode === 'dark' ? darkTheme : lightTheme;
+  
   const toggleTheme = () => {
-    setTheme((prevTheme) => {
-      const newTheme = prevTheme === darkTheme ? lightTheme : darkTheme;
-      localStorage.setItem('theme', newTheme === darkTheme ? 'dark' : 'light');
-      return newTheme;
-    });
+    const newMode = mode === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('theme', newMode);
+    setMode(newMode);
   };
-
-  // Listen for system theme changes
+  
+  // Sync with system preference only if no localStorage override
   useEffect(() => {
+    setMounted(true);
+    
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = () => {
-      // If no user preference is set, update based on system theme
+    const handler = () => {
       if (!localStorage.getItem('theme')) {
-        setTheme(mediaQuery.matches ? darkTheme : lightTheme);
+        setMode(mediaQuery.matches ? 'dark' : 'light');
       }
     };
-
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
+    
+    mediaQuery.addEventListener('change', handler);
+    return () => mediaQuery.removeEventListener('change', handler);
   }, []);
-
+  
+  if (!mounted) return null; // Prevent flash of wrong theme
+  
   return (
-    <ThemeContext.Provider value={{ toggleTheme, theme }}>
+    <ThemeContext.Provider value={{ toggleTheme, theme, mode }}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
         {children}
@@ -76,13 +82,11 @@ export const ThemeProviderWrapper: FC<{ children: ReactNode }> = ({
   );
 };
 
-// Custom hook for using the theme context
+// Hook
 export const useThemeContext = (): ThemeContextProps => {
   const context = useContext(ThemeContext);
   if (!context) {
-    throw new Error(
-      'useThemeContext must be used within a ThemeProviderWrapper'
-    );
+    throw new Error('useThemeContext must be used within a ThemeProviderWrapper');
   }
   return context;
 };
