@@ -1,16 +1,16 @@
 import { useCallback, useEffect } from 'react';
-import { HealthState } from '../features/health/state/healthStatusState.ts';
-import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
-import { fetchHealthStatus } from '../features/health/state/healthStatusThunk.ts';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
+import { fetchHealthStatus } from '@features/health/state/healthStatusThunk';
 import {
-  selectDatabaseStatus,
-  selectHealthError,
   selectHealthState,
-  selectHealthTimestamp,
-  selectIsHealthLoading,
-  selectIsServerHealthy,
+  selectDatabaseStatus,
   selectPoolStatus,
-} from '../features/health/state/healthStatusSelectors.ts';
+  selectHealthTimestamp,
+  selectIsServerHealthy,
+  selectIsHealthLoading,
+  selectHealthError,
+} from '@features/health/state/healthStatusSelectors';
+import type { HealthState } from '@features/health/state/healthStatusState';
 
 interface UseHealthStatusResult {
   healthStatus: HealthState | null;

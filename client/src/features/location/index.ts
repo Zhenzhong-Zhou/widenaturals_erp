@@ -11,3 +11,4 @@ export {
   selectLocationError,
 } from './state/locationSelectors.ts';
 export { default as LocationTable } from './components/LocationTable.tsx';
+export { locationReducers } from './state';

@@ -101,3 +101,4 @@ export {
   selectInsertedInventoryRecordsResponseError,
 } from './state/insertedInventoryRecordsResponseSelectors.ts';
 export { default as InsertedInventoryRecordsResponseDialog } from './components/InsertedInventoryRecordsResponseDialog.tsx';
+export { warehouseInventoryReducers } from './state';

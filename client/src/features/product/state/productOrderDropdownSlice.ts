@@ -2,7 +2,7 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { ProductDropdownItem } from './productTypes.ts';
 import { fetchProductsForOrdersDropdownThunk } from './productThunks.ts';
 
-interface ProductOrderDropdownState {
+export interface ProductOrderDropdownState {
   products: ProductDropdownItem[];
   loading: boolean;
   error: string | null;

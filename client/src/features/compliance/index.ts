@@ -13,3 +13,4 @@ export {
   selectCompliancesError,
 } from './state/complianceSelectors.ts';
 export { default as ComplianceTable } from './components/ComplianceTable.tsx';
+export { complianceReducers } from './state';

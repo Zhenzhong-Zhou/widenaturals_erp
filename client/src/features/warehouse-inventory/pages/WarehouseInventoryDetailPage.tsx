@@ -25,6 +25,7 @@ import {
   WarehouseItemSummaryCard,
 } from '../index.ts';
 import { useEffect, useState } from 'react';
+import { WarehouseInventoryDetail } from '@features/warehouse-inventory/state';
 
 const WarehouseInventoryDetailPage = () => {
   const { warehouseId } = useParams<{ warehouseId: string }>();
@@ -80,7 +81,7 @@ const WarehouseInventoryDetailPage = () => {
   }, [insertedDataResponse]);
   
   const transformedWarehouseInventoryDetails: WarehouseInventoryDetailExtended[] =
-    warehouseInventoryDetails.map((detail) => ({
+    warehouseInventoryDetails.map((detail: WarehouseInventoryDetail) => ({
       ...detail,
       lotCreatedBy: detail.lotCreated?.by ?? 'Unknown',
       lotCreatedDate: detail.lotCreated?.date ?? null,

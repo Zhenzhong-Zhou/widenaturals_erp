@@ -3,7 +3,7 @@ import { fetchUserProfileThunk } from './userThunks.ts';
 import { UserProfile, UserProfileResponse } from './userTypes.ts';
 
 // Define the UserState interface
-interface UserProfileState {
+export interface UserProfileState {
   response: UserProfileResponse | null;
   loading: boolean;
   error: string | null;

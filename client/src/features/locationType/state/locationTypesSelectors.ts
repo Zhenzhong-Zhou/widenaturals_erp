@@ -1,32 +1,41 @@
-import { RootState } from '../../../store/store.ts';
-import { LocationType, Pagination } from './locationTypeTypes.ts';
+import { RootState } from '@store/store.ts';
+import { LocationTypesState } from '@features/locationType/state/locationTypesSlice.ts';
+import { createSelector } from '@reduxjs/toolkit';
 
 /**
- * Selects the entire location types state.
+ * Base selector for the locationTypes slice.
  */
-export const selectLocationTypesState = (state: RootState) =>
-  state.locationTypes;
+export const selectLocationTypesState = (state: RootState): LocationTypesState =>
+  state.locationTypes as LocationTypesState;
 
 /**
  * Selects the list of location types.
  */
-export const selectLocationTypes = (state: RootState): LocationType[] =>
-  state.locationTypes.data;
+export const selectLocationTypes = createSelector(
+  selectLocationTypesState,
+  (state) => state.data
+);
 
 /**
  * Selects pagination details.
  */
-export const selectLocationTypesPagination = (state: RootState): Pagination =>
-  state.locationTypes.pagination;
+export const selectLocationTypesPagination = createSelector(
+  selectLocationTypesState,
+  (state) => state.pagination
+);
 
 /**
  * Selects loading state.
  */
-export const selectLocationTypesLoading = (state: RootState): boolean =>
-  state.locationTypes.loading;
+export const selectLocationTypesLoading = createSelector(
+  selectLocationTypesState,
+  (state) => state.loading
+);
 
 /**
  * Selects error message.
  */
-export const selectLocationTypesError = (state: RootState): string | null =>
-  state.locationTypes.error;
+export const selectLocationTypesError = createSelector(
+  selectLocationTypesState,
+  (state) => state.error
+);

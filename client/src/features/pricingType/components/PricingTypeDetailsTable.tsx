@@ -12,7 +12,7 @@ import {
   PricingTypeDetail,
   PricingRecord,
   PricingTypePagination,
-} from '../state/pricingTypeTypes';
+} from '@features/pricingType';
 import { formatDate, formatDateTime } from '@utils/dateTimeUtils.ts';
 import { formatLabel } from '@utils/textUtils.ts';
 import { Link } from 'react-router-dom';

@@ -12,3 +12,4 @@ export {
   selectOrderTypesError,
 } from './state/orderTypeSelectors.ts';
 export { default as OrderTypesTable } from './components/OrderTypesTable.tsx';
+export { orderTypeReducers } from './state';

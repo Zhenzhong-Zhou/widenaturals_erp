@@ -7,7 +7,7 @@ import {
   selectLocationTypeLoading,
   selectLocationTypePagination,
 } from '../features/locationType/state/locationTypeDetailSelectors.ts';
-import { fetchLocationTypeDetail } from '../features/locationType/state/locationTypesThunks.ts';
+import { fetchLocationTypeDetailsThunk } from '../features/locationType/state/locationTypesThunks.ts';
 
 /**
  * Custom hook for fetching and managing location type details.
@@ -36,7 +36,7 @@ const useLocationTypeDetail = (
    */
   useEffect(() => {
     if (id) {
-      dispatch(fetchLocationTypeDetail({ id, page, limit, sortBy, sortOrder }));
+      dispatch(fetchLocationTypeDetailsThunk({ id, page, limit, sortBy, sortOrder }));
     }
   }, [dispatch, id, page, limit, sortBy, sortOrder]);
 
@@ -45,7 +45,7 @@ const useLocationTypeDetail = (
    */
   const refresh = useCallback(() => {
     if (id) {
-      dispatch(fetchLocationTypeDetail({ id, page, limit, sortBy, sortOrder }));
+      dispatch(fetchLocationTypeDetailsThunk({ id, page, limit, sortBy, sortOrder }));
     }
   }, [dispatch, id, page, limit, sortBy, sortOrder]);
 

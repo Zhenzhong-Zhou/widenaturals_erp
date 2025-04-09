@@ -1,6 +1,6 @@
 import { FC } from 'react';
-import { CustomTable } from '@components/index.ts';
-import { Compliance } from '../state/complianceTypes.ts';
+import CustomTable from '@components/common/CustomTable';
+import type { Compliance } from '@features/compliance/state/complianceTypes.ts';
 import { formatLabel, toUpperCase } from '@utils/textUtils.ts';
 import { formatDate } from '@utils/dateTimeUtils.ts';
 

@@ -28,3 +28,4 @@ export { default as useReportPageLogic } from '../report/hook/useReportPageLogic
 export { default as ReportPageLayout } from '../report/components/ReportPageLayout.tsx';
 export { selectInventoryHistory } from '../report/state/inventoryHistorySelectors.ts';
 export { default as InventoryHistoryTable } from '../report/components/InventoryHistoryTable.tsx';
+export { reportReducers } from './state';

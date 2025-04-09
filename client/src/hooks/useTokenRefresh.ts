@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { jwtDecode } from 'jwt-decode';
-import { useAppDispatch, useAppSelector } from '../store/storeHooks';
-import { refreshTokenThunk } from '../features/session';
-import { selectAccessToken } from '../features/session/state/sessionSelectors';
-import { isTokenValid } from '../utils/tokenValidationUtils';
-import axiosInstance from '@utils/axiosConfig.ts';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
+import { refreshTokenThunk } from '@features/session/state/sessionThunks';
+import { selectAccessToken } from '@features/session/state/sessionSelectors';
+import { isTokenValid } from '@utils/tokenValidationUtils';
+import axiosInstance from '@utils/axiosConfig';
 
 const useTokenRefresh = () => {
   const dispatch = useAppDispatch();

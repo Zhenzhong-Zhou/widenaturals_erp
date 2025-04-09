@@ -6,6 +6,7 @@ import { Typography } from '@components/index.ts';
 import Box from '@mui/material/Box';
 import { useLotAdjustmentTypes } from '../../../hooks';
 import { formatLabel } from '@utils/textUtils.ts';
+import { LotAdjustmentType } from '@features/warehouse-inventory/state';
 
 interface EditQuantityModalProps {
   open: boolean;
@@ -96,7 +97,7 @@ const EditQuantityModal: FC<EditQuantityModalProps> = ({
             id: 'adjustmentType',
             label: 'Adjustment Type',
             type: 'select',
-            options: types.map((type) => ({
+            options: types.map((type: LotAdjustmentType) => ({
               value: type.id,
               label: formatLabel(type.name),
             })),

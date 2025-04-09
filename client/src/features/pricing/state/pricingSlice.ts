@@ -2,14 +2,14 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { Pricing, PricingResponse, Pagination } from './pricingTypes.ts';
 import { fetchPricingDataThunk } from './pricingThunks';
 
-interface PricingState {
+export interface PricingListState {
   data: Pricing[];
   pagination: Pagination;
   loading: boolean;
   error: string | null;
 }
 
-const initialState: PricingState = {
+const initialState: PricingListState = {
   data: [],
   pagination: {
     page: 1,

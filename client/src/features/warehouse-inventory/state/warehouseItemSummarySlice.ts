@@ -6,14 +6,14 @@ import {
 } from './warehouseInventoryTypes.ts';
 import { fetchWarehouseItemSummaryThunk } from './warehouseInventoryThunks.ts';
 
-interface WarehouseItemState {
+export interface WarehouseItemSummaryState {
   itemSummaryData: WarehouseItemSummary[];
   pagination: WarehouseInventoryPagination;
   loading: boolean;
   error: string | null;
 }
 
-const initialState: WarehouseItemState = {
+const initialState: WarehouseItemSummaryState = {
   itemSummaryData: [],
   pagination: { page: 1, limit: 10, totalRecords: 0, totalPages: 0 },
   loading: false,

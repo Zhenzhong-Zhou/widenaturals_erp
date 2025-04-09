@@ -1,51 +1,50 @@
-import { useEffect, useState } from 'react';
-import { productService } from '../services';
-import { Product } from '../features/product';
+import { useEffect, useMemo, useCallback } from 'react';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
+import {
+  fetchProductDetailThunk,
+  Product,
+  selectProductDetail,
+  selectProductDetailError,
+  selectProductDetailLoading,
+} from '@features/product';
 
 interface UseProductDetailResult {
-  product: Product | null; // The fetched product details
-  isLoading: boolean; // Whether the product details are being fetched
-  error: string | null; // Error message if any
-  refetchProduct: () => void; // Function to refetch the product details
+  product: Product | null;
+  isLoading: boolean;
+  error: string | null;
+  refetchProduct: () => void;
 }
 
 /**
- * Custom hook to fetch and manage product details by ID.
+ * Custom hook to fetch and manage product details by ID via Redux.
  *
  * @param {string} productId - The ID of the product to fetch.
- * @returns {UseProductDetailResult} - Product details, loading state, error state, and refetch function.
+ * @returns {UseProductDetailResult} - Product data, loading/error state, and a refetch function.
  */
 const useProductDetail = (productId: string): UseProductDetailResult => {
-  const [product, setProduct] = useState<Product | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Fetch product details
-  const fetchProduct = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const fetchedProduct =
-        await productService.fetchProductDetails(productId);
-      setProduct(fetchedProduct);
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch product details');
-      setProduct(null);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Fetch product details on mount and when productId changes
-  useEffect(() => {
+  const dispatch = useAppDispatch();
+  
+  const product = useAppSelector(selectProductDetail);
+  const isLoading = useAppSelector(selectProductDetailLoading);
+  const error = useAppSelector(selectProductDetailError);
+  
+  // Trigger data fetching
+  const fetchProduct = useCallback(() => {
     if (productId) {
-      fetchProduct();
+      dispatch(fetchProductDetailThunk(productId));
     }
-  }, [productId]);
-
-  // Return the product details, loading state, error, and refetch function
+  }, [dispatch, productId]);
+  
+  // Fetch on mount or when productId changes
+  useEffect(() => {
+    fetchProduct();
+  }, [fetchProduct]);
+  
+  // Optional: useMemo for derived values if needed
+  const memoizedProduct = useMemo(() => product, [product]);
+  
   return {
-    product,
+    product: memoizedProduct,
     isLoading,
     error,
     refetchProduct: fetchProduct,

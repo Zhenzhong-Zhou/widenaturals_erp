@@ -1,8 +1,10 @@
 import { FC } from 'react';
 import Box from '@mui/material/Box';
-import { useInitializeApp, useValidateAndRefreshToken } from '../hooks';
-import AppRoutes from '../routes/AppRoutes.tsx';
-import { Loading, ErrorDisplay } from '@components/index.ts';
+import useInitializeApp from '@hooks/useInitializeApp';
+import { useValidateAndRefreshToken } from '@hooks/useValidateAndRefreshToken';
+import AppRoutes from '@routes/AppRoutes';
+import Loading from '@components/common/Loading';
+import ErrorDisplay from '@components/shared/ErrorDisplay';
 
 /**
  * AppContent Component

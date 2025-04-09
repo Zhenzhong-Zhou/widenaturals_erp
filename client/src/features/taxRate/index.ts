@@ -11,3 +11,4 @@ export {
   selectTaxRateDropdownError
 } from './state/taxRateDropdownSelectors.ts';
 export { default as TaxRateDropdown } from './components/TaxRateDropdown.tsx';
+export { taxRateReducers } from './state';

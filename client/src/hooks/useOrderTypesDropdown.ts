@@ -5,8 +5,8 @@ import {
   selectOrderTypesDropdown,
   selectOrderTypesByCategory,
   selectOrderTypesDropdownLoading,
-  selectOrderTypesDropdownError,
-} from '../features/order';
+  selectOrderTypesDropdownError, OrderType,
+} from '@features/order';
 
 const useOrderTypesDropdown = (category?: string) => {
   const dispatch = useAppDispatch();
@@ -17,7 +17,7 @@ const useOrderTypesDropdown = (category?: string) => {
   const loading = useAppSelector(selectOrderTypesDropdownLoading);
   const error = useAppSelector(selectOrderTypesDropdownError);
   
-  const orderTypes = useMemo(() => {
+  const orderTypes = useMemo<OrderType[]>(() => {
     if (category && orderTypesByCategory[category]) {
       return orderTypesByCategory[category];
     }

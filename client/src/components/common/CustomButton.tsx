@@ -1,7 +1,8 @@
 import { FC } from 'react';
-import Button, { ButtonProps } from '@mui/material/Button';
+import Button from '@mui/material/Button';
+import type { ButtonProps } from '@mui/material/Button';
 import { Link as RouterLink } from 'react-router-dom';
-import { useThemeContext } from '../../context/ThemeContext';
+import { useThemeContext } from '@context/ThemeContext';
 
 interface CustomButtonProps extends ButtonProps {
   to?: string; // Optional 'to' prop for routing

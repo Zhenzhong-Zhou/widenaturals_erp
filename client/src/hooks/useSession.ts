@@ -1,13 +1,13 @@
 import { useCallback, useEffect } from 'react';
-import { useAppDispatch, useAppSelector } from '../store/storeHooks';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   selectAccessToken,
   selectIsAuthenticated,
   selectUser,
-} from '../features/session/state/sessionSelectors';
-import { selectCsrfToken } from '../features/csrf/state/csrfSelector';
-import { refreshTokenThunk } from '../features/session';
-import axiosInstance from '../utils/axiosConfig';
+} from '@features/session/state/sessionSelectors';
+import { selectCsrfToken } from '@features/csrf/state/csrfSelector';
+import { refreshTokenThunk } from '@features/session/state/sessionThunks';
+import axiosInstance from '@utils/axiosConfig';
 
 /**
  * Custom hook for session management.

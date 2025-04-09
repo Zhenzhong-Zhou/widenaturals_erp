@@ -1,3 +1,3 @@
-export { ThemeProviderWrapper } from './ThemeContext.tsx';
-export { LoadingProvider } from './LoadingContext.tsx';
-export { PermissionsProvider } from './PermissionsContext.tsx';
+export { ThemeProviderWrapper } from './ThemeContext';
+export { LoadingProvider } from './LoadingContext';
+export { PermissionsProvider } from './PermissionsContext';

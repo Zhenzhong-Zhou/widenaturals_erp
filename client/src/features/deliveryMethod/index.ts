@@ -11,3 +11,4 @@ export {
   selectFormattedDeliveryMethodDropdown
 } from './state/deliveryMethodDropdownSelectors.ts';
 export { default as DeliveryMethodDropdown } from './components/DeliveryMethodDropdown.tsx';
+export { deliveryMethodReducers } from './state';

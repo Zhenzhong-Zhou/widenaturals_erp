@@ -1,41 +1,54 @@
 import { createSelector } from '@reduxjs/toolkit';
-import { RootState } from '../../../store/store';
+import { RootState } from '@store/store.ts';
+import { PricingLocation } from '@features/pricing';
+import { PricingState } from '@features/pricing/state/pricingDetailSlice.ts';
+
+const selectPricingState = (state: RootState) =>
+  (state.pricing as PricingState) ?? {
+    pricing: null,
+    pagination: { page: 1, limit: 10, totalRecords: 0, totalPages: 1 },
+    loading: false,
+    error: null,
+  };
 
 /**
  * Selects full pricing details from Redux state.
  */
-export const selectPricingDetails = (state: RootState) => state.pricing.pricing;
+export const selectPricingDetails = createSelector(
+  selectPricingState,
+  (pricingState) => pricingState.pricing
+);
 
 /**
  * Memoized selector for all products related to the pricing.
  */
 export const selectProducts = createSelector(
-  (state: RootState) => state.pricing.pricing?.products,
-  (products) => products ?? [] // Ensures the same array reference if unchanged
+  selectPricingDetails,
+  (pricing) => pricing?.products ?? []
 );
 
 /**
  * Memoized selector for all locations related to the pricing.
  */
 export const selectLocations = createSelector(
-  (state: RootState) => state.pricing.pricing?.locations,
-  (locations) => locations ?? [] // Ensures the same array reference if unchanged
+  selectPricingDetails,
+  (pricing) => pricing?.locations ?? []
 );
 
 /**
  * Memoized selector for the first product (if needed for display).
  */
 export const selectFirstProduct = createSelector(
-  (state: RootState) => state.pricing.pricing?.products,
-  (products) => products?.[0] ?? null
+  selectProducts,
+  (products) => products[0] ?? null
 );
 
 /**
  * Memoized selector for the first location (if needed for display).
  */
 export const selectFirstLocation = createSelector(
-  (state: RootState) => state.pricing.pricing?.locations,
-  (locations) => locations?.[0] ?? null
+  selectLocations,
+  (locations) => locations[0] ?? null
 );
 
 /**
@@ -43,20 +56,29 @@ export const selectFirstLocation = createSelector(
  */
 export const selectLocationTypes = createSelector(
   selectLocations,
-  (locations) => locations.map((loc) => loc.location_type) ?? [] // Ensures same reference
+  (locations: PricingLocation[]) => locations.map((loc) => loc.location_type)
 );
 
 /**
  * Selects pagination details.
  */
-export const selectPricingDetailsPagination = (state: RootState) => state.pricing.pagination;
+export const selectPricingDetailsPagination = createSelector(
+  selectPricingState,
+  (state) => state.pagination
+);
 
 /**
  * Selects loading state.
  */
-export const selectPricingDetailsLoading = (state: RootState) => state.pricing.loading;
+export const selectPricingDetailsLoading = createSelector(
+  selectPricingState,
+  (state) => state.loading
+);
 
 /**
  * Selects error message.
  */
-export const selectPricingDetailsError = (state: RootState) => state.pricing.error;
+export const selectPricingDetailsError = createSelector(
+  selectPricingState,
+  (state) => state.error
+);

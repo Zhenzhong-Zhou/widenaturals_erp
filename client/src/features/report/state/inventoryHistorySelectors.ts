@@ -1,12 +1,16 @@
 import { createSelector } from '@reduxjs/toolkit';
-import { RootState } from '../../../store/store';
+import { RootState } from '@store/store.ts';
 import { InventoryHistoryState } from './reportTypes.ts';
 
-// ✅ Select the inventory history state
+/**
+ * Base selector to retrieve the inventory history state from the root state.
+ */
 const selectInventoryHistoryState = (state: RootState): InventoryHistoryState =>
-  state.inventoryHistory;
+  state.inventoryHistory as InventoryHistoryState;
 
-// Memoized Selector for Inventory History Data
+/**
+ * Memoized selector that returns the entire inventory history state with fallback defaults.
+ */
 export const selectInventoryHistory = createSelector(
   selectInventoryHistoryState,
   (inventory) => ({

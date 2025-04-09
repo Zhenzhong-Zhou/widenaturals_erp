@@ -1,22 +1,38 @@
-import { RootState } from '../../../store/store';
+import { RootState } from '@store/store.ts';
+import { createSelector } from '@reduxjs/toolkit';
+import { PricingListState } from '@features/pricing/state/pricingSlice.ts';
+
+const selectPricingsState = (state: RootState): PricingListState =>
+  state.pricings as PricingListState;
 
 /**
- * Selects pricing data from Redux state.
+ * Selects pricing list from Redux state.
  */
-export const selectPricingData = (state: RootState) => state.pricings.data;
+export const selectPricingList = createSelector(
+  selectPricingsState,
+  (state) => state.data
+);
 
 /**
  * Selects pagination details.
  */
-export const selectPagination = (state: RootState) => state.pricings.pagination;
+export const selectPagination = createSelector(
+  selectPricingsState,
+  (state) => state.pagination
+);
 
 /**
  * Selects loading state.
  */
-export const selectPricingLoading = (state: RootState) =>
-  state.pricings.loading;
+export const selectPricingLoading = createSelector(
+  selectPricingsState,
+  (state) => state.loading
+);
 
 /**
  * Selects error message.
  */
-export const selectPricingError = (state: RootState) => state.pricings.error;
+export const selectPricingError = createSelector(
+  selectPricingsState,
+  (state) => state.error
+);

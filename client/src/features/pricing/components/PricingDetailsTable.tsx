@@ -1,5 +1,5 @@
 import { FC } from 'react';
-import { PricingDetails } from '../state/pricingTypes.ts';
+import { PricingDetails } from '@features/pricing';
 import { CustomTable, Typography } from '@components/index.ts';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';

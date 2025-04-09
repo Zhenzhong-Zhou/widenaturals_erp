@@ -1,6 +1,6 @@
 import { FC } from 'react';
 import { CustomTable } from '@components/index.ts';
-import { WarehouseInventory } from '../state/warehouseInventoryTypes.ts';
+import { WarehouseInventory } from '@features/warehouse-inventory';
 import { formatDateTime } from '@utils/dateTimeUtils.ts';
 import { formatLabel, formatCurrency } from '@utils/textUtils.ts';
 import Box from '@mui/material/Box';

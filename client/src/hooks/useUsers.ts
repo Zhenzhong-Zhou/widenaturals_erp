@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
-import { selectUsersData } from '../features/user/state/userSelectors.ts';
-import { fetchUsersThunk, UseUsersResponse } from '../features/user';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
+import { fetchUsersThunk } from '@features/user/state/userThunks';
+import { selectUsersData } from '@features/user/state/userSelectors';
+import type { UseUsersResponse } from '@features/user';
 
 /**
  * Custom hook to manage fetching users and accessing user state.

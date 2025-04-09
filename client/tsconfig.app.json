@@ -27,9 +27,25 @@
     /* Path Aliases */
     "baseUrl": "./src", // Set base directory for imports
     "paths": {
-      "@components/*": ["components/*"], // Alias for components
-      "@utils/*": ["utils/*"], // Alias for utility functions
-      "@styles/*": ["styles/*"] // Alias for shared styles
+      "@styles/*": ["styles/*"],
+      "@context/*": ["context/*"],
+      "@components/*": ["components/*"],
+      "@core/*": ["core/*"],
+      "@utils/*": ["utils/*"],
+      "@pages/*": ["pages/*"],
+      "@routes/*": ["routes/*"],
+      "@services/*": ["services/*"],
+      "@features/*": ["features/*"],
+      "@store/*": ["store/*"],
+      "@assets/*": ["assets/*"],
+      "@hooks/*": ["hooks/*"],
+      "@layouts/*": ["layouts/*"],
+      "@middleware/*": ["middleware/*"],
+      "@constants/*": ["constants/*"],
+      "@redux/*": ["redux/*"],
+      "@themes/*": ["themes/*"],
+      "@lib/*": ["lib/*"],
+      "@config/*": ["config/*"]
     },
 
     /* Type Definitions */

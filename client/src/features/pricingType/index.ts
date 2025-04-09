@@ -29,3 +29,4 @@ export {
   selectPricingTypeDropdownError,
 } from './state/pricingTypeDropdownSelectors.ts'
 export { default as PricingTypeDropdown } from './components/PricingTypeDropdown';
+export { pricingTypeReducers } from './state';

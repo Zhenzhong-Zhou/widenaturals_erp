@@ -8,7 +8,7 @@ import {
   selectPagination,
   selectPricingLoading,
   selectPricingError, getPricingDetailsThunk, fetchPricingDataThunk,
-} from '../features/pricing';
+} from '@features/pricing';
 
 /**
  * Custom hook for fetching and managing pricing data.

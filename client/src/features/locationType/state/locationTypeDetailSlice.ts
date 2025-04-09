@@ -1,5 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { fetchLocationTypeDetail } from './locationTypesThunks.ts';
+import { fetchLocationTypeDetailsThunk } from './locationTypesThunks.ts';
 import { LocationTypeDetail, Pagination } from './locationTypeTypes.ts';
 
 /**
@@ -25,16 +25,16 @@ const locationTypeDetailSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
-      .addCase(fetchLocationTypeDetail.pending, (state) => {
+      .addCase(fetchLocationTypeDetailsThunk.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchLocationTypeDetail.fulfilled, (state, action) => {
+      .addCase(fetchLocationTypeDetailsThunk.fulfilled, (state, action) => {
         state.loading = false;
         state.data = action.payload.locationTypeDetail;
         state.pagination = action.payload.pagination;
       })
-      .addCase(fetchLocationTypeDetail.rejected, (state, action) => {
+      .addCase(fetchLocationTypeDetailsThunk.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || 'Failed to fetch location type details';
       });

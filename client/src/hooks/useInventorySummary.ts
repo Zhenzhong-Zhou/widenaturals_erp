@@ -4,7 +4,7 @@ import {
   selectInventorySummaryData, selectInventorySummaryError,
   selectInventorySummaryLoading,
   selectInventorySummaryPagination,
-} from '../features/inventory';
+} from '@features/inventory';
 
 /**
  * Custom hook to interact with inventory summary state and actions.

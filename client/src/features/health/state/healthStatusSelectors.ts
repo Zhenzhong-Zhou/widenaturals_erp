@@ -1,10 +1,10 @@
 import { createSelector } from '@reduxjs/toolkit';
-import { RootState } from '../../../store/store';
+import { RootState } from '@store/store.ts';
 import { HealthState } from './healthStatusState';
 
 // Base selector to access the health slice
 export const selectHealthState = (state: RootState): HealthState =>
-  state.health;
+  state.health as HealthState;
 
 // Selector to get the overall server status
 export const selectServerStatus = createSelector(

@@ -1,16 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
-import { handleError, mapErrorMessage } from '../utils/errorUtils';
-import { AppError, ErrorType } from '../utils/AppError';
-import { csrfService } from '../services';
-import { withTimeout } from '../utils/timeoutUtils';
+import { handleError, mapErrorMessage } from '@utils/errorUtils';
+import { AppError, ErrorType } from '@utils/AppError';
+import { withTimeout } from '@utils/timeoutUtils';
 import { withRetry } from '@utils/retryUtils.ts';
+import { csrfService } from '@services/csrfService';
 import { monitorCsrfStatus } from '@utils/monitorCsrfStatus.ts';
-import {
-  selectCsrfStatus,
-  selectCsrfError,
-} from '../features/csrf/state/csrfSelector.ts';
-import { resetCsrfToken } from '../features/csrf/state/csrfSlice.ts';
-import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
+import { selectCsrfStatus, selectCsrfError } from '@features/csrf/state/csrfSelector';
+import { resetCsrfToken } from '@features/csrf/state/csrfSlice';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 
 interface InitializeAppOptions {
   delay?: number; // Simulated delay (default: 500ms)

@@ -1,21 +1,41 @@
 import { createSelector } from '@reduxjs/toolkit';
-import { RootState } from '../../../store/store';
+import { RootState } from '@store/store.ts';
+import { WarehouseItemSummaryState } from '@features/warehouse-inventory/state/warehouseItemSummarySlice.ts';
 
-// Direct state selectors
-export const selectWarehouseItemSummaryState = (state: RootState) =>
-  state.warehouseItems;
+/**
+ * Base selector to access the warehouse item summary state.
+ */
+const selectWarehouseItemState = (state: RootState): WarehouseItemSummaryState =>
+  state.warehouseItems as WarehouseItemSummaryState;
 
-export const selectWarehouseItemLoading = (state: RootState) =>
-  state.warehouseItems.loading;
+/**
+ * Selector to get the loading status.
+ */
+export const selectWarehouseItemLoading = createSelector(
+  selectWarehouseItemState,
+  (state) => state.loading
+);
 
-export const selectWarehouseItemError = (state: RootState) =>
-  state.warehouseItems.error;
+/**
+ * Selector to get the error message.
+ */
+export const selectWarehouseItemError = createSelector(
+  selectWarehouseItemState,
+  (state) => state.error
+);
 
-export const selectWarehouseItemPagination = (state: RootState) =>
-  state.warehouseItems.pagination;
+/**
+ * Selector to get pagination info.
+ */
+export const selectWarehouseItemPagination = createSelector(
+  selectWarehouseItemState,
+  (state) => state.pagination
+);
 
-// Optimized selector for item summary data
+/**
+ * Selector to get the item summary data.
+ */
 export const selectWarehouseItemSummary = createSelector(
-  [selectWarehouseItemSummaryState],
-  (warehouseItem) => warehouseItem.itemSummaryData
+  selectWarehouseItemState,
+  (state) => state.itemSummaryData
 );

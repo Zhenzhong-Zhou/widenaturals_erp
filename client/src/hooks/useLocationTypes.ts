@@ -4,9 +4,8 @@ import {
   selectLocationTypes,
   selectLocationTypesPagination,
   selectLocationTypesLoading,
-  selectLocationTypesError,
-} from '../features/locationType/state/locationTypesSelectors.ts';
-import { fetchLocationTypes } from '../features/locationType/state/locationTypesThunks.ts';
+  selectLocationTypesError, fetchLocationTypesThunk,
+} from '@features/locationType/state';
 
 /**
  * Custom hook for fetching and managing location types.
@@ -30,7 +29,7 @@ const useLocationTypes = () => {
       if (page < 1) return; // Prevent invalid page numbers
 
       try {
-        dispatch(fetchLocationTypes({ page, limit })).unwrap();
+        dispatch(fetchLocationTypesThunk({ page, limit })).unwrap();
       } catch (err) {
         console.error('Failed to fetch location types:', err);
       }

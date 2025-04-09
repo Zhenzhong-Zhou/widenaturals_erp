@@ -1,5 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit';
-import { RootState } from '../../../store/store';
+import { RootState } from '@store/store.ts';
 
 // Base Selector: Select the session state from the RootState
 export const selectSessionState = (state: RootState) => state.session;

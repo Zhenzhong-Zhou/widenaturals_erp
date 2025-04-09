@@ -4,15 +4,15 @@ import axios, {
   AxiosResponse,
   InternalAxiosRequestConfig,
 } from 'axios';
-import { AppError, ErrorType } from '@utils/AppError.tsx';
+import { store } from '@store/store';
+import { AppError, ErrorType } from '@utils/AppError';
 import { handleError } from '@utils/errorUtils';
-import { selectCsrfToken } from '../features/csrf/state/csrfSelector';
-import { store } from '../store/store';
-import { sessionService } from '../services';
-import { updateAccessToken } from '../features/session/state/sessionSlice.ts';
-import { selectAccessToken } from '../features/session/state/sessionSelectors.ts';
-import { withRetry } from '@utils/retryUtils.ts';
-import { logoutThunk } from '../features/session/state/sessionThunks.ts';
+import { withRetry } from '@utils/retryUtils';
+import { selectAccessToken } from '@features/session/state/sessionSelectors';
+import { updateAccessToken } from '@features/session/state/sessionSlice';
+import { logoutThunk } from '@features/session/state/sessionThunks';
+import { selectCsrfToken } from '@features/csrf/state/csrfSelector';
+import { sessionService } from '@services/sessionService';
 
 interface ErrorResponse {
   message?: string;

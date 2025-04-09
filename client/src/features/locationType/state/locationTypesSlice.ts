@@ -1,11 +1,11 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { fetchLocationTypes } from './locationTypesThunks.ts';
+import { fetchLocationTypesThunk } from './locationTypesThunks.ts';
 import { LocationType, Pagination } from './locationTypeTypes.ts';
 
 /**
  * Defines the Redux state for location types.
  */
-interface LocationTypesState {
+export interface LocationTypesState {
   data: LocationType[]; // Stores the list of location types
   pagination: Pagination; // Stores pagination metadata
   loading: boolean;
@@ -25,16 +25,16 @@ const locationTypesSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
-      .addCase(fetchLocationTypes.pending, (state) => {
+      .addCase(fetchLocationTypesThunk.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchLocationTypes.fulfilled, (state, action) => {
+      .addCase(fetchLocationTypesThunk.fulfilled, (state, action) => {
         state.loading = false;
         state.data = action.payload.data.data;
         state.pagination = action.payload.data.pagination;
       })
-      .addCase(fetchLocationTypes.rejected, (state, action) => {
+      .addCase(fetchLocationTypesThunk.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || 'Failed to fetch location types';
       });

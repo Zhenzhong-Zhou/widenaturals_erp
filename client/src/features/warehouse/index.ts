@@ -20,3 +20,4 @@ export {
   selectWarehouseDetailsError,
 } from './state/warehouseDetailSelectors.ts';
 export { default as WarehouseTable } from './components/WarehouseTable.tsx';
+export { warehouseReducers } from './state';

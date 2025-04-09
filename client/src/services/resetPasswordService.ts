@@ -5,7 +5,7 @@ import { withTimeout } from '@utils/timeoutUtils.ts';
 import {
   ResetPasswordError,
   ResetPasswordResponse,
-} from '../features/resetPassword/state/resetPasswordInterfaces.ts';
+} from '@features/resetPassword/state/resetPasswordTypes.ts';
 import { API_ENDPOINTS } from './apiEndponits.ts';
 
 /**

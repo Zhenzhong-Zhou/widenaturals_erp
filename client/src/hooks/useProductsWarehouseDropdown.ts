@@ -4,8 +4,8 @@ import {
   fetchProductsDropDownByWarehouseThunk,
   selectDropdownLoading,
   selectProductDropdown,
-  selectDropdownError,
-} from '../features/warehouse-inventory';
+  selectDropdownError, ProductDropdownItem,
+} from '@features/warehouse-inventory';
 
 /**
  * Custom hook to fetch product dropdown data for a specific warehouse.
@@ -35,7 +35,7 @@ const useProductsWarehouseDropdown = (warehouseId: string) => {
   /** Memoize products to avoid unnecessary re-renders */
   const uniqueProducts = useMemo(() => {
     const productMap = new Map();
-    allProducts.forEach((product) => {
+    allProducts.forEach((product: ProductDropdownItem) => {
       if (!productMap.has(product.product_id)) {
         productMap.set(product.product_id, product);
       }

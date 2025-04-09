@@ -1,20 +1,50 @@
-import { RootState } from '../../../store/store';
+import { RootState } from '@store/store';
+import { createSelector } from '@reduxjs/toolkit';
+import { PricingTypeState } from '@features/pricingType/state/pricingTypeDetailSlice.ts';
 
-// Selects the single Pricing Type details object
-export const selectPricingTypeDetails = (state: RootState) =>
-  state.pricingType.pricingTypeDetails;
+/**
+ * Base selector to access the pricingType slice from the Redux state.
+ * Casts to PricingTypeState to avoid TS18046 "unknown" errors.
+ */
+const selectPricingTypeState = (state: RootState): PricingTypeState =>
+  state.pricingType as PricingTypeState;
 
-// Selects the array of Pricing Records (list of product prices)
-export const selectPricingRecords = (state: RootState) =>
-  state.pricingType.pricingDetails;
+/**
+ * Selects the detailed pricing type information.
+ */
+export const selectPricingTypeDetails = createSelector(
+  selectPricingTypeState,
+  (state) => state.pricingTypeDetails
+);
 
-// Selects pagination info
-export const selectPricingPagination = (state: RootState) =>
-  state.pricingType.pagination;
+/**
+ * Selects the list of pricing records related to the pricing type.
+ */
+export const selectPricingRecords = createSelector(
+  selectPricingTypeState,
+  (state) => state.pricingDetails
+);
 
-// Selects the loading state
-export const selectPricingIsLoading = (state: RootState) =>
-  state.pricingType.isLoading;
+/**
+ * Selects pagination information for the pricing records.
+ */
+export const selectPricingPagination = createSelector(
+  selectPricingTypeState,
+  (state) => state.pagination
+);
 
-// Selects any error messages
-export const selectPricingError = (state: RootState) => state.pricingType.error;
+/**
+ * Selects the loading state of the pricing type feature.
+ */
+export const selectPricingIsLoading = createSelector(
+  selectPricingTypeState,
+  (state) => state.isLoading
+);
+
+/**
+ * Selects any error message related to pricing type operations.
+ */
+export const selectPricingError = createSelector(
+  selectPricingTypeState,
+  (state) => state.error
+);

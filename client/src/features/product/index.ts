@@ -24,4 +24,10 @@ export {
   selectProductOrderDropdownLoading,
   selectProductOrderDropdownError
 } from './state/productOrderDropdownSelectors.ts';
+export {
+  selectProductDetail,
+  selectProductDetailLoading,
+  selectProductDetailError,
+} from './state/productDetailSelector.ts';
 export { default as ProductOrderDropdown } from './components/ProductOrderDropdown';
+export { productReducers } from './state';

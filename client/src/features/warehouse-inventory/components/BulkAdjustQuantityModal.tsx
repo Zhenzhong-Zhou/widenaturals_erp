@@ -13,6 +13,7 @@ import TextField from '@mui/material/TextField';
 import MenuItem from '@mui/material/MenuItem';
 import { useLotAdjustmentTypes } from '../../../hooks';
 import { formatLabel } from '@utils/textUtils.ts';
+import { LotAdjustmentType } from '@features/warehouse-inventory/state';
 
 interface BulkAdjustQuantityModalProps {
   open: boolean;
@@ -250,7 +251,7 @@ const BulkAdjustQuantityModal: FC<BulkAdjustQuantityModalProps> = ({
                           disabled={loading}
                           sx={{ marginBottom: 2 }}
                         >
-                          {types.map((type) => (
+                          {types.map((type: LotAdjustmentType) => (
                             <MenuItem key={type.id} value={type.id}>
                               {formatLabel(type.name)}
                             </MenuItem>

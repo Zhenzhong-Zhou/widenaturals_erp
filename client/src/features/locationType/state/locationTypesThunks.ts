@@ -8,7 +8,7 @@ import { locationTypeService } from '../../../services';
 /**
  * Async thunk for fetching location types with pagination.
  */
-export const fetchLocationTypes = createAsyncThunk<
+export const fetchLocationTypesThunk = createAsyncThunk<
   LocationTypesResponse, // Return type
   { page: number; limit: number }, // Argument type
   { rejectValue: string } // Error type
@@ -23,7 +23,7 @@ export const fetchLocationTypes = createAsyncThunk<
 /**
  * Thunk to fetch location type details by ID.
  */
-export const fetchLocationTypeDetail = createAsyncThunk<
+export const fetchLocationTypeDetailsThunk = createAsyncThunk<
   LocationTypeResponse, // Return type
   {
     id: string;

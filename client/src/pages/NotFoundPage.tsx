@@ -1,8 +1,10 @@
 import { FC } from 'react';
 import Container from '@mui/material/Container';
 import { useNavigate } from 'react-router-dom';
-import { Typography, CustomButton, GoBackButton } from '@components/index';
-import { useThemeContext } from '../context/ThemeContext';
+import Typography from '@components/common/Typography';
+import CustomButton from '@components/common/CustomButton';
+import GoBackButton from '@components/common/GoBackButton';
+import { useThemeContext } from '@context/ThemeContext';
 
 interface NotFoundPageProps {
   isAuthenticated?: boolean;

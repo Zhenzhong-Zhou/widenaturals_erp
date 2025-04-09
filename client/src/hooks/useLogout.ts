@@ -1,7 +1,7 @@
-import { useAppDispatch } from '../store/storeHooks';
-import { clearTokens } from '../utils/tokenManager';
-import { logoutThunk } from '../features/session/state/sessionThunks';
 import { useCallback, useState } from 'react';
+import { useAppDispatch } from '@store/storeHooks';
+import { clearTokens } from '@utils/tokenManager';
+import { logoutThunk } from '@features/session/state/sessionThunks';
 
 /**
  * Custom hook for user logout.

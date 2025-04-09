@@ -1,14 +1,12 @@
-import { useState } from 'react';
+import { useState, lazy } from 'react';
 import Box from '@mui/material/Box';
-import {
-  CustomButton,
-  ErrorDisplay,
-  ErrorMessage,
-  Loading,
-  Typography,
-} from '@components/index.ts';
-import { useCompliances } from '../../../hooks';
-import { ComplianceTable } from '../index.ts';
+import CustomButton from '@components/common/CustomButton';
+import ErrorDisplay from '@components/shared/ErrorDisplay';
+import ErrorMessage from '@components/common/ErrorMessage';
+import Loading from '@components/common/Loading';
+import Typography from '@components/common/Typography.tsx';
+import useCompliances from '@hooks/useCompliances';
+const ComplianceTable = lazy(() =>  import('../components/ComplianceTable.tsx'));
 
 const CompliancePage = () => {
   const [page, setPage] = useState<number>(1);

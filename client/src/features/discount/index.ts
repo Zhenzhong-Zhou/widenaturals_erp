@@ -11,3 +11,4 @@ export {
   selectFormattedDiscounts
 } from './state/discountSelectors.ts';
 export { default as DiscountDropdown } from './components/DiscountDropdown.tsx';
+export { discountReducers } from './state';

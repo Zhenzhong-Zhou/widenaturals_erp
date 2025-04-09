@@ -4,7 +4,7 @@ export type {
   PricingResponse,
   Product,
   LocationType,
-  Location,
+  PricingLocation,
   PricingDetails,
   PricingDetailsResponse,
   PriceRequestParams,
@@ -18,7 +18,7 @@ export {
 } from './state/pricingThunks.ts';
 export {
   selectPagination,
-  selectPricingData,
+  selectPricingList,
   selectPricingLoading,
   selectPricingError,
 } from './state/pricingSelectors.ts';
@@ -37,3 +37,4 @@ export {
   selectPriceValueLoading,
   selectPriceValueError,
 } from './state/pricingValueSelectors.ts'
+export { pricingReducers } from './state';

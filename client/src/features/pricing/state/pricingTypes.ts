@@ -47,7 +47,7 @@ export interface LocationType {
   type_name: string;
 }
 
-export interface Location {
+export interface PricingLocation {
   location_id: string;
   location_name: string;
   location_type: LocationType;
@@ -59,7 +59,7 @@ export interface Location {
  */
 export interface PricingDetails extends Pricing {
   products: Product[]; // Changed from single object to array
-  locations: Location[]; // Changed from single object to array
+  locations: PricingLocation[]; // Changed from single object to array
 }
 
 export interface PricingDetailsResponse {

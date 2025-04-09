@@ -1,4 +1,4 @@
-import { RootState } from '../../../store/store.ts';
+import { RootState } from '@store/store.ts';
 import { createSelector } from '@reduxjs/toolkit';
 
 // Select raw state

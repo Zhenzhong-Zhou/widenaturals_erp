@@ -58,3 +58,4 @@ export {
   selectConfirmOrderError,
   selectConfirmOrderSuccessMessage,
 } from './state/confirmSalesOrderSelectors.ts';
+export { orderReducers } from './state';

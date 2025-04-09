@@ -2,7 +2,7 @@ import { createSlice } from '@reduxjs/toolkit';
 import { fetchPricingTypesThunk } from './pricingTypeThunks.ts';
 import { PricingType } from './pricingTypeTypes';
 
-interface PricingTypeState {
+export interface PricingTypesState {
   data: PricingType[];
   totalRecords: number;
   totalPages: number;
@@ -10,7 +10,7 @@ interface PricingTypeState {
   error: string | null;
 }
 
-const initialState: PricingTypeState = {
+const initialState: PricingTypesState = {
   data: [],
   totalRecords: 0,
   totalPages: 0,

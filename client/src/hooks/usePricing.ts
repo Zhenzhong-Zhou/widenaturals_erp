@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
 import {
   fetchPricingDataThunk,
-  selectPricingData,
+  selectPricingList,
   selectPagination,
   selectPricingLoading,
   selectPricingError,
@@ -18,7 +18,7 @@ const usePricing = () => {
   const dispatch = useAppDispatch();
   
   // Redux Selectors for Pricing Data
-  const pricingData = useAppSelector(selectPricingData);
+  const pricingData = useAppSelector(selectPricingList);
   const pagination = useAppSelector(selectPagination);
   const loading = useAppSelector(selectPricingLoading);
   const error = useAppSelector(selectPricingError);

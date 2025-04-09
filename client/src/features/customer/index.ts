@@ -44,3 +44,4 @@ export {
   selectCustomerDropdownError
 } from './state/customerDropdownSelectors.ts';
 export { default as CustomerDropdown } from './components/CustomerDropdown';
+export { customerReducers } from './state';

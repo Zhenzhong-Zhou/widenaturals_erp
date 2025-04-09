@@ -7,7 +7,7 @@ import {
   PricingTypeResponse,
 } from './pricingTypeTypes';
 
-interface PricingTypeState {
+export interface PricingTypeState {
   pricingTypeDetails: PricingTypeDetail | null; // Now a single object instead of an array
   pricingDetails: PricingRecord[]; // List of pricing records
   pagination: PricingTypePagination | null;

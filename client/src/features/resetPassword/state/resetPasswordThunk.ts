@@ -3,7 +3,7 @@ import { resetPasswordService } from '../../../services';
 import {
   ResetPasswordError,
   ResetPasswordResponse,
-} from './resetPasswordInterfaces.ts';
+} from './resetPasswordTypes.ts';
 
 /**
  * Thunk for resetting the user's password using createAsyncThunk.

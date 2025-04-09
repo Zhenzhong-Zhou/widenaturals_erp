@@ -1,19 +1,18 @@
 import { FC, ReactNode, useEffect, useMemo, useState } from 'react';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid2';
-import {
-  Typography,
-  CustomButton,
-  CustomCard,
-  Loading,
-  ErrorMessage,
-  CustomPagination,
-} from '@components/index.ts';
-import { useInventorySummary } from '../../../hooks';
-import { formatDate } from '@utils/dateTimeUtils.ts';
-import { useThemeContext } from '../../../context/ThemeContext.tsx';
 import { useMediaQuery } from '@mui/material';
+import Typography from '@components/common/Typography.tsx';
+import Loading from '@components/common/Loading.tsx';
+import ErrorMessage from '@components/common/ErrorMessage.tsx';
+import CustomCard from '@components/common/CustomCard.tsx';
+import CustomPagination from '@components/common/CustomPagination.tsx';
+import CustomButton from '@components/common/CustomButton.tsx';
+import useInventorySummary from '@hooks/useInventorySummary';
+import { formatDate } from '@utils/dateTimeUtils.ts';
+import { useThemeContext } from '@context/ThemeContext.tsx';
 import { formatLabel } from '@utils/textUtils.ts';
+import { InventorySummary } from '@features/inventory';
 
 interface BaseDashboardLayoutProps {
   fullName?: string;
@@ -50,7 +49,7 @@ const DashboardLayout: FC<BaseDashboardLayoutProps> = ({
   const highlightedItems = useMemo(() => {
     if (!inventorySummaryData) return [];
     return inventorySummaryData.filter(
-      (item) =>
+      (item: InventorySummary) =>
         item.isLowStock ||
         item.isNearExpiry ||
         ['out_of_stock', 'unassigned', 'suspended'].includes(item.status)
@@ -87,7 +86,7 @@ const DashboardLayout: FC<BaseDashboardLayoutProps> = ({
           ) : (
             <>
               <Grid container spacing={2}>
-                {paginatedItems.map((item) => (
+                {paginatedItems.map((item: InventorySummary) => (
                   <Grid size={{ xs:12, sm:6, md:4, lg:3 }} key={item.productId}>
                     <CustomCard
                       title={item.itemName}
