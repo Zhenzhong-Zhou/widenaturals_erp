@@ -6,7 +6,7 @@ import {
   useState,
   useCallback,
 } from 'react';
-import { Loading } from '@components/index';
+import Loading from '@components/common/Loading';
 
 interface LoadingContextType {
   showLoading: (

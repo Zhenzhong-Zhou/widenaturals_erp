@@ -2,9 +2,10 @@ import { FC } from 'react';
 import Box from '@mui/material/Box';
 import Badge from '@mui/material/Badge';
 import Tooltip from '@mui/material/Tooltip';
-import Typography from '@mui/material/Typography';
-import { useHealthStatus } from '../../../hooks';
-import { formatDateTime } from '@utils/dateTimeUtils.ts';
+import Typography from '@components/common/Typography';
+import { formatDateTime } from '@utils/dateTimeUtils';
+import useHealthStatus from '@hooks/useHealthStatus';
+import { formatLabel } from '@utils/textUtils.ts';
 
 interface HealthStatusProps {
   getStatusColor: (
@@ -38,13 +39,13 @@ const HealthStatus: FC<HealthStatusProps> = ({ getStatusColor }) => {
         title={
           <Box sx={{ textAlign: 'left' }}>
             <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-              Server: {healthStatus?.server || 'Unknown'}
+              Server: {formatLabel(healthStatus?.server) || 'Unknown'}
             </Typography>
             <Typography variant="body2">
-              Database: {databaseStatus || 'Unknown'}
+              Database: {formatLabel(databaseStatus) || 'Unknown'}
             </Typography>
             <Typography variant="body2">
-              Pool: {poolStatus || 'Unknown'}
+              Pool: {formatLabel(poolStatus) || 'Unknown'}
             </Typography>
             <Typography variant="body2">
               Last Updated: {timestamp ? formatDateTime(timestamp) : 'N/A'}

@@ -1,21 +1,17 @@
 import { SyntheticEvent, useEffect, useState } from 'react';
-import {
-  useInventories,
-  useInventorySummary,
-} from '../../../hooks';
-import InventoryTable from '../components/InventoryTable.tsx';
-import { InventorySummaryTable } from '../index.ts';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
-import {
-  Typography,
-  CustomButton,
-  Loading,
-  ErrorDisplay,
-  ErrorMessage,
-} from '@components/index.ts';
+import useInventories from '@hooks/useInventories';
+import useInventorySummary from '@hooks/useInventorySummary';
+import Loading from '@components/common/Loading';
+import ErrorDisplay from '@components/shared/ErrorDisplay';
+import ErrorMessage from '@components/common/ErrorMessage';
+import Typography from '@components/common/Typography';
+import InventorySummaryTable from '@features/inventory/components/InventorySummaryTable';
+import CustomButton from '@components/common/CustomButton';
+import InventoryTable from '@features/inventory/components/InventoryTable';
 
 const InventoryPage = () => {
   const [page, setPage] = useState(1);

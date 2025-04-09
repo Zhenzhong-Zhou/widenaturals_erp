@@ -1,6 +1,8 @@
 import { FC, useState } from 'react';
 import Box from '@mui/material/Box';
-import { CustomButton, ErrorMessage, Typography } from '@components/index.ts'; // Reuse common Typography
+import Typography from '@components/common/Typography';
+import ErrorMessage from '@components/common/ErrorMessage';
+import CustomButton from '@components/common/CustomButton';
 
 interface FallbackUIProps {
   title?: string; // Error title

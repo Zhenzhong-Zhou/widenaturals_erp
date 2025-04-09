@@ -1,15 +1,17 @@
 import { FC, useEffect, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
-import { useOrders } from '../../../hooks';
-import { Column } from '@components/common/CustomTable.tsx';
-import { Order } from '../state/orderTypes.ts';
-import { CustomButton, CustomTable, ErrorMessage, Loading } from '@components/index.ts';
+import CustomTable, { Column } from '@components/common/CustomTable';
+import { Order } from '@features/order';
 import Box from '@mui/material/Box';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCheckCircle, faTimesCircle } from '@fortawesome/free-solid-svg-icons';
-import { useThemeContext } from '../../../context/ThemeContext.tsx';
-import { formatDate } from '@utils/dateTimeUtils.ts';
-import { getOrderTypeSlug } from '@utils/slugUtils.ts';
+import Loading from '@components/common/Loading';
+import ErrorMessage from '@components/common/ErrorMessage';
+import CustomButton from '@components/common/CustomButton';
+import { useThemeContext } from '@context/ThemeContext';
+import { formatDate } from '@utils/dateTimeUtils';
+import { getOrderTypeSlug } from '@utils/slugUtils';
+import useOrders from '@hooks/useOrders';
 
 interface OrdersTableProps {
   refreshTrigger: boolean;

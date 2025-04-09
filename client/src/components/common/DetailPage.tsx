@@ -1,7 +1,8 @@
 import { FC, ReactNode } from 'react';
 import Box from '@mui/material/Box';
-import { Typography, Loading } from '@components/index.ts';
-import { useThemeContext } from '../../context/ThemeContext';
+import Typography from '@components/common/Typography';
+import Loading from '@components/common/Loading';
+import { useThemeContext } from '@context/ThemeContext';
 
 interface DetailPageProps {
   title: string;

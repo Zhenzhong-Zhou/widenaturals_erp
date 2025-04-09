@@ -1,13 +1,11 @@
 import { useEffect } from 'react';
-import { usePricing } from '../../../hooks';
-import { PricingTable } from '../index.ts';
 import Box from '@mui/material/Box';
-import {
-  CustomButton,
-  ErrorDisplay,
-  ErrorMessage,
-  Loading,
-} from '@components/index.ts';
+import Loading from '@components/common/Loading';
+import ErrorDisplay from '@components/shared/ErrorDisplay';
+import ErrorMessage from '@components/common/ErrorMessage';
+import CustomButton from '@components/common/CustomButton';
+import PricingTable from '@features/pricing/components/PricingTable';
+import usePricing from '@hooks/usePricing';
 
 const PricingPage = () => {
   const { pricingData, pagination, loading, error, fetchPricings } =

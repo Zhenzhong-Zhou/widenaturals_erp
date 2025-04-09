@@ -1,7 +1,7 @@
-import { Chip } from '@mui/material';
 import { FC } from 'react';
-import { formatLabel } from '@utils/textUtils.ts';
-import { useThemeContext } from '../../../context/ThemeContext.tsx';
+import Chip from '@mui/material/Chip';
+import { formatLabel } from '@utils/textUtils';
+import { useThemeContext } from '@context/ThemeContext';
 
 interface Props {
   severity: 'expired' | 'expired_soon' | 'critical' | 'warning' | 'notice' | 'safe' | 'unknown';

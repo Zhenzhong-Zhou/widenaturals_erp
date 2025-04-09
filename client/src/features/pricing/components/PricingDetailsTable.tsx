@@ -1,10 +1,11 @@
 import { FC } from 'react';
 import { PricingDetails } from '@features/pricing';
-import { CustomTable, Typography } from '@components/index.ts';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
-import { formatDateTime } from '@utils/dateTimeUtils.ts';
-import { formatLabel, formatCurrency } from '@utils/textUtils.ts';
+import Typography from '@components/common/Typography';
+import CustomTable from '@components/common/CustomTable';
+import { formatDateTime } from '@utils/dateTimeUtils';
+import { formatLabel, formatCurrency } from '@utils/textUtils';
 
 interface PricingDetailsTableProps {
   pricing: PricingDetails;

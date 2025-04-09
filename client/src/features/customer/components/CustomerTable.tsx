@@ -1,11 +1,13 @@
 import { FC, useState } from 'react';
-import Box from '@mui/material/Box';
-import { useCustomers } from '../../../hooks';
-import { CustomButton, CustomTable, Typography } from '@components/index.ts';
-import { Customer } from '../state/customerTypes';
-import { formatLabel, formatPhoneNumber } from '@utils/textUtils.ts';
-import { formatDate } from '@utils/dateTimeUtils.ts';
 import { Link } from 'react-router-dom';
+import Box from '@mui/material/Box';
+import Typography from '@components/common/Typography';
+import CustomButton from '@components/common/CustomButton';
+import CustomTable from '@components/common/CustomTable';
+import { Customer } from '@features/customer';
+import { formatLabel, formatPhoneNumber } from '@utils/textUtils';
+import { formatDate } from '@utils/dateTimeUtils';
+import useCustomers from '@hooks/useCustomers';
 
 const CustomerTable: FC = () => {
   const {

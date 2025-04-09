@@ -2,16 +2,16 @@ import { FC, ReactNode, useEffect, useMemo, useState } from 'react';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid2';
 import { useMediaQuery } from '@mui/material';
-import Typography from '@components/common/Typography.tsx';
-import Loading from '@components/common/Loading.tsx';
-import ErrorMessage from '@components/common/ErrorMessage.tsx';
-import CustomCard from '@components/common/CustomCard.tsx';
-import CustomPagination from '@components/common/CustomPagination.tsx';
-import CustomButton from '@components/common/CustomButton.tsx';
+import Typography from '@components/common/Typography';
+import Loading from '@components/common/Loading';
+import ErrorMessage from '@components/common/ErrorMessage';
+import CustomCard from '@components/common/CustomCard';
+import CustomPagination from '@components/common/CustomPagination';
+import CustomButton from '@components/common/CustomButton';
 import useInventorySummary from '@hooks/useInventorySummary';
-import { formatDate } from '@utils/dateTimeUtils.ts';
-import { useThemeContext } from '@context/ThemeContext.tsx';
-import { formatLabel } from '@utils/textUtils.ts';
+import { formatDate } from '@utils/dateTimeUtils';
+import { useThemeContext } from '@context/ThemeContext';
+import { formatLabel } from '@utils/textUtils';
 import { InventorySummary } from '@features/inventory';
 
 interface BaseDashboardLayoutProps {

@@ -1,8 +1,8 @@
 import { FC } from 'react';
 import Box from '@mui/material/Box';
 import Avatar from '@mui/material/Avatar';
-import { Typography } from '@components/index.ts';
-import { useThemeContext } from '../../context/ThemeContext';
+import Typography from '@components/common/Typography';
+import { useThemeContext } from '@context/ThemeContext';
 
 interface DetailHeaderProps {
   avatarSrc?: string;

@@ -9,7 +9,7 @@ import {
 import ThemeProvider from '@mui/material/styles/ThemeProvider';
 import CssBaseline from '@mui/material/CssBaseline';
 import { lightTheme, darkTheme } from '../styles/theme';
-import { Theme } from '@mui/material/styles';
+import type { Theme } from '@mui/material/styles';
 
 // Define the shape of the context
 interface ThemeContextProps {

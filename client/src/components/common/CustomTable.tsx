@@ -8,7 +8,7 @@ import TableRow from '@mui/material/TableRow';
 import TablePagination from '@mui/material/TablePagination';
 import TableSortLabel from '@mui/material/TableSortLabel';
 import Paper from '@mui/material/Paper';
-import { useThemeContext } from '../../context/ThemeContext';
+import { useThemeContext } from '@context/ThemeContext';
 
 export interface Column<T = any> {
   id: Extract<keyof T, string>;

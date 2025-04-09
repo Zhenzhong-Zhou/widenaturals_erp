@@ -1,14 +1,12 @@
 import { useState } from 'react';
-import { useLocations } from '../../../hooks';
-import { LocationTable } from '../index.ts';
 import Box from '@mui/material/Box';
-import {
-  CustomButton,
-  ErrorDisplay,
-  ErrorMessage,
-  Loading,
-  Typography,
-} from '@components/index.ts';
+import useLocations from '@hooks/useLocations';
+import Loading from '@components/common/Loading';
+import ErrorDisplay from '@components/shared/ErrorDisplay';
+import ErrorMessage from '@components/common/ErrorMessage';
+import Typography from '@components/common/Typography';
+import CustomButton from '@components/common/CustomButton';
+import LocationTable from '@features/location/components/LocationTable';
 
 const LocationPage = () => {
   const [page, setPage] = useState(1);

@@ -1,7 +1,9 @@
-import { useLocationTypes } from '../../../hooks';
-import { Loading, ErrorMessage, CustomButton } from '@components/index.ts';
 import Box from '@mui/material/Box';
-import { LocationTypeTable } from '../index.ts';
+import { useLocationTypes } from '@hooks/index';
+import Loading from '@components/common/Loading';
+import ErrorMessage from '@components/common/ErrorMessage';
+import CustomButton from '@components/common/CustomButton';
+import LocationTypeTable from '@features/locationType/components/LocationTypeDetailTable';
 
 const LocationTypesPage = () => {
   const { locationTypes, pagination, loading, error, fetchLocations } =

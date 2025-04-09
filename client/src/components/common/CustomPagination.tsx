@@ -1,7 +1,7 @@
 import { FC } from 'react';
 import Box from '@mui/material/Box';
 import Pagination from '@mui/material/Pagination';
-import { Typography } from '@components/index.ts';
+import Typography from '@components/common/Typography';
 
 interface PaginationComponentProps {
   page: number; // Current page

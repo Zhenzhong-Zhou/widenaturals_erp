@@ -1,8 +1,10 @@
 import { Component, ReactNode, ErrorInfo } from 'react';
 import Box from '@mui/material/Box';
-import { CustomButton, ErrorDisplay, Typography } from '@components/index.ts';
-import { AppError, ErrorType } from '@utils/AppError.tsx';
-import { handleError, mapErrorMessage } from '@utils/errorUtils.ts'; // Import error utilities
+import { handleError, mapErrorMessage } from '@utils/errorUtils';
+import ErrorDisplay from '@components/shared/ErrorDisplay';
+import Typography from '@components/common/Typography';
+import CustomButton from '@components/common/CustomButton';
+import { AppError, ErrorType } from '@utils/AppError';
 
 interface Props {
   children: ReactNode; // The component's children

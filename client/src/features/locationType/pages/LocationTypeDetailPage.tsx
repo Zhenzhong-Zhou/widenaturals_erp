@@ -1,19 +1,17 @@
 import { FC, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { useLocationTypeDetail } from '../../../hooks';
-import { LocationTypeDetailTable } from '../index.ts';
-import {
-  CustomButton,
-  ErrorDisplay,
-  ErrorMessage,
-  Loading,
-  Typography,
-} from '@components/index.ts';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Divider from '@mui/material/Divider';
-import { formatDateTime } from '@utils/dateTimeUtils.ts';
-import { formatLabel } from '@utils/textUtils.ts';
+import Loading from '@components/common/Loading';
+import ErrorDisplay from '@components/shared/ErrorDisplay';
+import ErrorMessage from '@components/common/ErrorMessage';
+import Typography from '@components/common/Typography';
+import LocationTypeDetailTable from '@features/locationType/components/LocationTypeDetailTable';
+import CustomButton from '@components/common/CustomButton';
+import { formatDateTime } from '@utils/dateTimeUtils';
+import { formatLabel } from '@utils/textUtils';
+import useLocationTypeDetail from '@hooks/useLocationTypeDetail';
 
 const LocationTypeDetailPage: FC = () => {
   const { id } = useParams<{ id: string }>(); // Get ID from URL params

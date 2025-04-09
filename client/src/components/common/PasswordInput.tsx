@@ -1,11 +1,10 @@
 import { FC, useState } from 'react';
-import { TypeRestrictedInput } from '@components/index.ts';
+import TypeRestrictedInput from '@components/common/TypeRestrictedInput';
 import InputAdornment from '@mui/material/InputAdornment';
 import IconButton from '@mui/material/IconButton';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEye } from '@fortawesome/free-solid-svg-icons/faEye';
-import { faEyeSlash } from '@fortawesome/free-solid-svg-icons/faEyeSlash';
-import { TextFieldProps } from '@mui/material/TextField';
+import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
+import type { TextFieldProps } from '@mui/material/TextField';
 
 interface PasswordInputProps extends Omit<TextFieldProps, 'type'> {
   label: string;

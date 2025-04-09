@@ -1,7 +1,7 @@
 import { FC, useState, useEffect } from 'react';
-import { useCustomerDropdown } from '../../../hooks';
-import { Dropdown } from '@components/index.ts';
-import CreateCustomerModal from './CreateCustomerModal';
+import useCustomerDropdown from '@hooks/useCustomerDropdown';
+import Dropdown from '@components/common/Dropdown';
+import CreateCustomerModal from '@features/customer/components/CreateCustomerModal';
 
 interface CustomerDropdownProps {
   label?: string;

@@ -1,12 +1,13 @@
 import { FC, ReactNode } from 'react';
 import Box from '@mui/material/Box';
-import { Typography, CustomButton } from '@components/index';
-import { monitorCsrfStatus } from '@utils/monitorCsrfStatus.ts';
+import Typography from '@components/common/Typography';
+import CustomButton from '@components/common/CustomButton';
+import { monitorCsrfStatus } from '@utils/monitorCsrfStatus';
 import {
   selectCsrfStatus,
   selectCsrfError,
-} from '../../features/csrf/state/csrfSelector';
-import { useAppSelector } from '../../store/storeHooks';
+} from '@features/csrf/state';
+import { useAppSelector } from '@store/storeHooks';
 
 interface ErrorDisplayProps {
   message?: string; // Custom error message to display

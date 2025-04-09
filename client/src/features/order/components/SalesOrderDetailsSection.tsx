@@ -1,17 +1,21 @@
 import { FC, useEffect, useMemo } from 'react';
 import Box from '@mui/material/Box';
-import Typography from '@components/common/Typography.tsx';
-import { CustomButton, DetailsSection, ErrorMessage, Loading } from '@components/index.ts';
-import { useConfirmSalesOrder, useSalesOrderDetails } from '../../../hooks';
-import { formatDate } from '@utils/dateTimeUtils.ts';
-import { formatLabel, formatCurrency, formatShippingAddress } from '@utils/textUtils.ts';
-import { OrderDetailsData } from '../state/orderTypes.ts';
+import Typography from '@components/common/Typography';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Divider from '@mui/material/Divider';
 import Grid from '@mui/material/Grid2';
-import { OrderItemsTable } from '../index.ts';
-import { Stack } from '@mui/material';
+import Stack from '@mui/material/Stack';
+import Loading from '@components/common/Loading';
+import ErrorMessage from '@components/common/ErrorMessage';
+import CustomButton from '@components/common/CustomButton';
+import DetailsSection from '@components/common/DetailsSection';
+import OrderItemsTable from '@features/order/components/OrderItemsTable';
+import useSalesOrderDetails from '@hooks/useSalesOrderDetails';
+import useConfirmSalesOrder from '@hooks/useConfirmSalesOrder';
+import { OrderDetailsData } from '@features/order/state';
+import { formatDate } from '@utils/dateTimeUtils';
+import { formatLabel, formatCurrency, formatShippingAddress } from '@utils/textUtils';
 
 interface SalesOrderDetailsSectionProps {
   orderId: string;

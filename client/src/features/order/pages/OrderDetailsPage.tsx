@@ -1,12 +1,13 @@
 import { FC } from 'react';
 import { useParams } from 'react-router-dom';
-import { SalesOrderDetailsSection } from '../index.ts';
-import Box from '@mui/material/Box';
-import Typography from '@components/common/Typography.tsx';
 import { useLocation } from 'react-router';
-import ErrorDisplay from '@components/shared/ErrorDisplay.tsx';
-import { ErrorMessage, GoBackButton } from '@components/index.ts';
-import { Stack } from '@mui/material';
+import Box from '@mui/material/Box';
+import Stack from '@mui/material/Stack';
+import Typography from '@components/common/Typography';
+import ErrorDisplay from '@components/shared/ErrorDisplay';
+import ErrorMessage from '@components/common/ErrorMessage';
+import GoBackButton from '@components/common/GoBackButton';
+import SalesOrderDetailsSection from '@features/order/components/SalesOrderDetailsSection';
 
 const OrderDetailsPage: FC = () => {
   // Get the `orderType` and `orderId` from the URL

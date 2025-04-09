@@ -1,8 +1,8 @@
 import { FC } from 'react';
 import CustomTable from '@components/common/CustomTable';
-import type { Compliance } from '@features/compliance/state/complianceTypes.ts';
-import { formatLabel, toUpperCase } from '@utils/textUtils.ts';
-import { formatDate } from '@utils/dateTimeUtils.ts';
+import type { Compliance } from '@features/compliance/state/complianceTypes';
+import { formatLabel, toUpperCase } from '@utils/textUtils';
+import { formatDate } from '@utils/dateTimeUtils';
 
 interface ComplianceTableProps {
   data: Compliance[];

@@ -1,8 +1,8 @@
-import { Chip } from '@mui/material';
+import { FC } from 'react';
+import Chip from '@mui/material/Chip';
 import ErrorIcon from '@mui/icons-material/Error';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import { FC } from 'react';
-import { useThemeContext } from '../../../context/ThemeContext.tsx';
+import { useThemeContext } from '@context/ThemeContext';
 
 interface Props {
   isNearExpiry: boolean;

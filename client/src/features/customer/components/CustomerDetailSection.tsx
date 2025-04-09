@@ -1,15 +1,13 @@
 import { FC } from 'react';
 import Box from '@mui/material/Box';
-import {
-  CustomButton,
-  ErrorDisplay,
-  ErrorMessage,
-  Loading,
-  MetadataSection,
-} from '@components/index';
-import { formatDateTime } from '@utils/dateTimeUtils.ts';
-import { CustomerDetails } from '../state/customerTypes.ts';
-import { formatPhoneNumber } from '@utils/textUtils.ts';
+import { CustomerDetails } from '@features/customer';
+import Loading from '@components/common/Loading';
+import ErrorDisplay from '@components/shared/ErrorDisplay';
+import ErrorMessage from '@components/common/ErrorMessage';
+import MetadataSection from '@components/common/MetadataSection';
+import CustomButton from '@components/common/CustomButton';
+import { formatDateTime } from '@utils/dateTimeUtils';
+import { formatPhoneNumber } from '@utils/textUtils';
 
 interface CustomerDetailsProps {
   customer: CustomerDetails;

@@ -1,13 +1,14 @@
 import { FC } from 'react';
-import { CustomTable, Typography } from '@components/index.ts';
-import { Location } from '../state/locationTypeTypes.ts';
-import { formatLabel } from '@utils/textUtils.ts';
-import { formatDateTime } from '@utils/dateTimeUtils.ts';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
+import Typography from '@components/common/Typography';
+import CustomTable from '@components/common/CustomTable';
+import { LocationType } from '@features/locationType';
+import { formatLabel } from '@utils/textUtils';
+import { formatDateTime } from '@utils/dateTimeUtils';
 
 interface LocationTypeTableProps {
-  data: Location[];
+  data: LocationType[];
   page: number;
   totalRecords: number;
   totalPages: number;

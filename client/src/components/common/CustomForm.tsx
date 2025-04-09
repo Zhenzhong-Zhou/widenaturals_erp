@@ -8,10 +8,11 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import InputLabel from '@mui/material/InputLabel';
 import Box from '@mui/material/Box';
 import FormHelperText from '@mui/material/FormHelperText';
-import { BaseInput, CustomButton, CustomPhoneInput } from '@components/index';
-import { useThemeContext } from '../../context/ThemeContext';
-import { SxProps } from '@mui/material/styles';
-import { Theme } from '@mui/system';
+import BaseInput from '@components/common/BaseInput';
+import CustomButton from '@components/common/CustomButton';
+import CustomPhoneInput from '@components/common/CustomPhoneInput';
+import { useThemeContext } from '@context/ThemeContext';
+import type { SxProps, Theme } from '@mui/system';
 
 export interface FieldConfig {
   id: string;

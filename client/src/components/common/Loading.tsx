@@ -2,7 +2,7 @@ import { FC } from 'react';
 import CircularProgress from '@mui/material/CircularProgress';
 import LinearProgress from '@mui/material/LinearProgress';
 import Box from '@mui/material/Box';
-import { useThemeContext } from '../../context/ThemeContext';
+import { useThemeContext } from '@context/ThemeContext.tsx';
 
 interface LoadingProps {
   size?: number; // Customize size for CircularProgress

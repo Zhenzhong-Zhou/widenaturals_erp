@@ -5,7 +5,7 @@ import CardMedia from '@mui/material/CardMedia';
 import CardActions from '@mui/material/CardActions';
 import Box from '@mui/material/Box';
 import type { SxProps, Theme } from '@mui/system';
-import { Typography } from '@components/index';
+import Typography from '@components/common/Typography';
 
 interface CustomCardProps {
   title?: string | ReactNode;

@@ -1,13 +1,13 @@
 import { FC } from 'react';
 import { useForm } from 'react-hook-form';
-import { FieldConfig } from '@components/common/CustomForm.tsx';
-import { CustomForm, CustomModal } from '@components/index.ts';
-import { useCustomers } from '../../../hooks';
+import Box from '@mui/material/Box';
+import useCustomers from '@hooks/useCustomers';
+import CustomForm, { FieldConfig } from '@components/common/CustomForm';
+import CustomModal from '@components/common/CustomModal';
 import {
   BulkCustomerRequest,
   CustomerRequest,
-} from '../state/customerTypes.ts';
-import Box from '@mui/material/Box';
+} from '@features/customer';
 
 interface CreateCustomerModalProps {
   open: boolean;

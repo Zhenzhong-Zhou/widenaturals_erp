@@ -1,7 +1,7 @@
 import { FC } from 'react';
 import MuiTypography from '@mui/material/Typography';
 import type { TypographyProps } from '@mui/material/Typography';
-import { useThemeContext } from '../../context/ThemeContext';
+import { useThemeContext } from '@context/ThemeContext.tsx';
 
 interface CustomTypographyProps extends TypographyProps {
   variant?: TypographyProps['variant'];

@@ -6,9 +6,9 @@ import MenuItem from '@mui/material/MenuItem';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faSyncAlt } from '@fortawesome/free-solid-svg-icons';
 import Divider from '@mui/material/Divider';
-import { Stack } from '@mui/material';
-import { Typography } from '@components/index.ts';
-import { useThemeContext } from '../../context/ThemeContext.tsx';
+import Stack from '@mui/material/Stack';
+import Typography from '@components/common/Typography';
+import { useThemeContext } from '@context/ThemeContext';
 
 interface OptionType {
   value: string | null;

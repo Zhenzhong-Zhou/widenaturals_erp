@@ -1,7 +1,7 @@
 import { Component, ErrorInfo, ReactNode } from 'react';
-import { ErrorDisplay } from '@components/index.ts';
-import { AppError, ErrorType } from '@utils/AppError.tsx';
-import { handleError, mapErrorMessage } from '@utils/errorUtils.ts';
+import ErrorDisplay from '@components/shared/ErrorDisplay';
+import { AppError, ErrorType } from '@utils/AppError';
+import { handleError, mapErrorMessage } from '@utils/errorUtils';
 
 interface Props {
   children: ReactNode;

@@ -1,7 +1,7 @@
 import { FC } from 'react';
 import Box from '@mui/material/Box';
-import Typography from '@components/common/Typography.tsx';
-import { useThemeContext } from '../../context/ThemeContext';
+import Typography from '@components/common/Typography';
+import { useThemeContext } from '@context/ThemeContext';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import type { SxProps, Theme } from '@mui/system';
 import { formatLabel } from '@utils/textUtils.ts';

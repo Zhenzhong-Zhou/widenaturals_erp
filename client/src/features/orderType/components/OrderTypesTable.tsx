@@ -1,8 +1,8 @@
 import { FC } from 'react';
-import { CustomTable } from '@components/index.ts';
-import { OrderType } from '../state/orderTypeTypes.ts';
-import { formatLabel } from '@utils/textUtils.ts';
-import { formatDate } from '@utils/dateTimeUtils.ts';
+import { OrderType } from '@features/order';
+import CustomTable from '@components/common/CustomTable';
+import { formatLabel } from '@utils/textUtils';
+import { formatDate } from '@utils/dateTimeUtils';
 
 interface OrderTypesTableProps {
   data: OrderType[];

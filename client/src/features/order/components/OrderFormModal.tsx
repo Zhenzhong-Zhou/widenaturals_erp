@@ -1,6 +1,7 @@
 import { FC, ReactNode } from 'react';
 import Box from '@mui/material/Box';
-import { CustomModal, Typography } from '@components/index';
+import CustomModal from '@components/common/CustomModal';
+import Typography from '@components/common/Typography';
 
 interface OrderFormModalProps {
   open: boolean;

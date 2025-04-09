@@ -1,7 +1,8 @@
 import { FC } from 'react';
 import Box from '@mui/material/Box';
-import { useThemeContext } from '../../../context/ThemeContext';
-import { GoBackButton, Typography } from '@components/index.ts';
+import { useThemeContext } from '@context/ThemeContext';
+import GoBackButton from '@components/common/GoBackButton';
+import Typography from '@components/common/Typography';
 
 interface CustomerDetailHeaderProps {
   customerName: string;

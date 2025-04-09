@@ -1,7 +1,7 @@
-import { Column } from '@components/common/CustomTable.tsx';
-import { FetchedOrderItem } from '../state/orderTypes.ts';
-import { formatCurrency } from '@utils/textUtils.ts';
-import { formatDate } from '@utils/dateTimeUtils.ts';
+import type { Column } from '@components/common/CustomTable';
+import { FetchedOrderItem } from '@features/order/state';
+import { formatCurrency } from '@utils/textUtils';
+import { formatDate } from '@utils/dateTimeUtils';
 
 export const orderItemsColumns = (items: FetchedOrderItem[]): Column<FetchedOrderItem>[] => {
   // Check if any item has `adjusted_price` different from `system_price`

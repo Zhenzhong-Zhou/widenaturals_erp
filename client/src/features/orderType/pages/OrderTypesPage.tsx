@@ -1,14 +1,12 @@
 import { FC, useState } from 'react';
-import { useOrderTypes } from '../../../hooks';
-import {
-  CustomButton,
-  ErrorDisplay,
-  ErrorMessage,
-  Loading,
-  Typography,
-} from '@components/index.ts';
-import { OrderTypesTable } from '../index.ts';
 import Box from '@mui/material/Box';
+import useOrderTypes from '@hooks/useOrderTypes';
+import Loading from '@components/common/Loading';
+import ErrorDisplay from '@components/shared/ErrorDisplay';
+import ErrorMessage from '@components/common/ErrorMessage';
+import Typography from '@components/common/Typography';
+import CustomButton from '@components/common/CustomButton';
+import OrderTypesTable from '@features/orderType/components/OrderTypesTable';
 
 const OrderTypesPage: FC = () => {
   const [page, setPage] = useState<number>(1);

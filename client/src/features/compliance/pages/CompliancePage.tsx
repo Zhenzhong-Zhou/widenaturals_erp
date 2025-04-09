@@ -4,7 +4,7 @@ import CustomButton from '@components/common/CustomButton';
 import ErrorDisplay from '@components/shared/ErrorDisplay';
 import ErrorMessage from '@components/common/ErrorMessage';
 import Loading from '@components/common/Loading';
-import Typography from '@components/common/Typography.tsx';
+import Typography from '@components/common/Typography';
 import useCompliances from '@hooks/useCompliances';
 const ComplianceTable = lazy(() =>  import('../components/ComplianceTable.tsx'));
 

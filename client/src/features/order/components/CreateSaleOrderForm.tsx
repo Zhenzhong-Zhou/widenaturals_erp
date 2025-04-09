@@ -1,22 +1,24 @@
 import { FC, useEffect, useMemo, useRef, useState } from 'react';
 import { useForm, Controller, FormProvider } from 'react-hook-form';
-import { BaseInput, CustomButton, CustomDatePicker, CustomForm } from '@components/index';
 import Grid from '@mui/material/Grid2';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
-import Typography from '@mui/material/Typography';
 import Divider from '@mui/material/Divider';
-import TextField from '@mui/material/TextField';
 import InputAdornment from '@mui/material/InputAdornment';
+import CustomForm from '@components/common/CustomForm';
+import CustomerDropdown from '@features/customer/components/CustomerDropdown';
+import CustomDatePicker from '@components/common/CustomDatePicker';
+import DiscountDropdown from '@features/discount/components/DiscountDropdown';
+import TaxRateDropdown from '@features/taxRate/components/TaxRateDropdown';
+import DeliveryMethodDropdown from '@features/deliveryMethod/components/DeliveryMethodDropdown';
+import BaseInput from '@components/common/BaseInput';
+import ProductOrderDropdown from '@features/product/components/ProductOrderDropdown';
+import PricingTypeDropdown from '@features/pricingType/components/PricingTypeDropdown';
+import CustomButton from '@components/common/CustomButton';
+import Typography from '@components/common/Typography';
 import { v4 as uuidv4 } from 'uuid';
-import { CustomerDropdown } from '../../customer';
-import { DiscountDropdown } from '../../discount';
-import { TaxRateDropdown } from '../../taxRate';
-import { DeliveryMethodDropdown } from '../../deliveryMethod';
-import { ProductOrderDropdown } from '../../product';
-import { PricingTypeDropdown } from '../../pricingType';
-import { SalesOrder } from '../state/orderTypes.ts';
-import { usePricing } from '../../../hooks';
+import { SalesOrder } from '../state';
+import usePricing from '@hooks/usePricing';
 
 interface SaleOrderFormProps {
   onSubmit: (formData: SalesOrder) => void | Promise<void>;
@@ -302,7 +304,7 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({ onSubmit = () => {}, onCl
               name="note"
               control={control}
               render={({ field }) => (
-                <TextField
+                <BaseInput
                   label="Note"
                   value={field.value || ''}   // Ensure it's never undefined
                   onChange={field.onChange}   // Pass onChange directly
@@ -326,7 +328,7 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({ onSubmit = () => {}, onCl
               name="has_shipping_info"
               control={control}
               render={({ field }) => (
-                <TextField
+                <BaseInput
                   label="Include Shipping Info?"
                   select
                   fullWidth
@@ -340,7 +342,7 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({ onSubmit = () => {}, onCl
                 >
                   <option value="no">No</option>
                   <option value="yes">Yes</option>
-                </TextField>
+                </BaseInput>
               )}
             />
           </Grid>

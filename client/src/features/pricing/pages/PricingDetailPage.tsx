@@ -1,15 +1,13 @@
 import { useParams } from 'react-router-dom';
-import { usePricingDetail } from '../../../hooks';
-import PricingDetailsTable from '../components/PricingDetailsTable';
-import {
-  Loading,
-  ErrorMessage,
-  Typography,
-  ErrorDisplay,
-} from '@components/index.ts';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
-import { formatCurrency } from '@utils/textUtils.ts';
+import Loading from '@components/common/Loading';
+import ErrorDisplay from '@components/shared/ErrorDisplay';
+import ErrorMessage from '@components/common/ErrorMessage';
+import Typography from '@components/common/Typography';
+import PricingDetailsTable from '@features/pricing/components/PricingDetailsTable';
+import { formatCurrency } from '@utils/textUtils';
+import usePricingDetail from '@hooks/usePricingDetail';
 
 const PricingDetailPage = () => {
   const { id } = useParams<{ id: string }>();

@@ -1,6 +1,6 @@
 import { FC } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CustomButton } from '@components/index.ts';
+import CustomButton from '@components/common/CustomButton';
 
 interface GoBackButtonProps {
   label?: string;

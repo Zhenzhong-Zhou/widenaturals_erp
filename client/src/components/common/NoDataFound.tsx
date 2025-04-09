@@ -1,6 +1,7 @@
 import { FC } from 'react';
 import Box from '@mui/material/Box';
-import { GoBackButton, Typography } from '@components/index.ts';
+import Typography from '@components/common/Typography';
+import GoBackButton from '@components/common/GoBackButton';
 
 interface NoDataFoundProps {
   message?: string;

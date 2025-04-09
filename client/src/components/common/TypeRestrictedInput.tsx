@@ -1,6 +1,6 @@
 import { FC } from 'react';
-import BaseInput from './BaseInput';
-import { TextFieldProps } from '@mui/material/TextField';
+import BaseInput from '@components/common/BaseInput';
+import type { TextFieldProps } from '@mui/material/TextField';
 
 type InputType = 'text' | 'email' | 'tel' | 'number' | 'password';
 

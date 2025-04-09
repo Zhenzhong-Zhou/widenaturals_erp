@@ -1,11 +1,15 @@
 import { FC } from 'react';
-import { CustomTable } from '@components/index.ts';
-import { InventoryItem } from '../state/inventoryTypes.ts';
-import { formatLabel, formatCurrency } from '@utils/textUtils.ts';
-import { formatDate, formatDateTime } from '@utils/dateTimeUtils.ts';
-import Box from '@mui/material/Box';
 // import { Link } from 'react-router-dom';
-import { ExpirySeverityChip, InventoryStatusChip, IsExpiredChip, NearExpiryChip, StockLevelChip } from '../index.ts';
+import Box from '@mui/material/Box';
+import InventoryStatusChip from '@features/inventory/components/InventoryStatusChip';
+import IsExpiredChip from '@features/inventory/components/IsExpiredChip';
+import NearExpiryChip from '@features/inventory/components/NearExpiryChip';
+import StockLevelChip from '@features/inventory/components/StockLevelChip';
+import ExpirySeverityChip from '@features/inventory/components/ExpirySeverityChip';
+import CustomTable from '@components/common/CustomTable';
+import { InventoryItem } from '@features/inventory';
+import { formatLabel, formatCurrency } from '@utils/textUtils';
+import { formatDate, formatDateTime } from '@utils/dateTimeUtils';
 
 interface InventoryTableProps {
   data: InventoryItem[];

@@ -1,8 +1,8 @@
 import { FC, useEffect, useState } from 'react';
 import Dropdown from '@components/common/Dropdown';
-import { useDiscountDropdown } from '../../../hooks';
+import useDiscountDropdown from '@hooks/useDiscountDropdown';
+import Loading from '@components/common/Loading';
 import Box from '@mui/material/Box';
-import { Loading } from '@components/index.ts';
 
 interface DiscountDropdownProps {
   label?: string;

@@ -1,10 +1,11 @@
 import { FC } from 'react';
-import { CustomTable, Typography } from '@components/index.ts';
-import { Location } from '../state/locationTypes.ts';
-import { formatLabel } from '@utils/textUtils.ts';
-import { formatDateTime } from '@utils/dateTimeUtils.ts';
-import Box from '@mui/material/Box';
 // import { Link } from 'react-router-dom';
+import { Location } from '@features/location';
+import { formatLabel } from '@utils/textUtils';
+import { formatDateTime } from '@utils/dateTimeUtils';
+import Box from '@mui/material/Box';
+import Typography from '@components/common/Typography';
+import CustomTable from '@components/common/CustomTable';
 
 interface LocationTableProps {
   data: Location[];

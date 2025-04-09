@@ -1,6 +1,6 @@
 import { FC } from 'react';
-import { useOrderTypesDropdown } from '../../../hooks/';
-import { Dropdown } from '@components/index.ts';
+import useOrderTypesDropdown from '@hooks/useOrderTypesDropdown';
+import Dropdown from '@components/common/Dropdown';
 
 interface OrderTypeDropdownProps {
   value: string | null;

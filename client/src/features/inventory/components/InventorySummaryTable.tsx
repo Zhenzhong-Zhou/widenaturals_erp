@@ -1,9 +1,11 @@
 import { FC } from 'react';
 import { Link } from 'react-router-dom';
-import { CustomTable } from '@components/index.ts';
-import { formatDate } from '@utils/dateTimeUtils.ts';
-import { InventorySummary } from '../state/inventoryTypes.ts';
-import { InventoryStatusChip, NearExpiryChip, StockLevelChip } from '../index.ts';
+import InventoryStatusChip from '@features/inventory/components/InventoryStatusChip';
+import StockLevelChip from '@features/inventory/components/StockLevelChip';
+import NearExpiryChip from '@features/inventory/components/NearExpiryChip';
+import CustomTable from '@components/common/CustomTable';
+import { formatDate } from '@utils/dateTimeUtils';
+import { InventorySummary } from '@features/inventory';
 
 interface InventorySummaryTableProps {
   data: InventorySummary[];

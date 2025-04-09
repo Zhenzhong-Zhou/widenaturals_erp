@@ -1,7 +1,7 @@
 import { FC } from 'react';
-import { Chip } from '@mui/material';
-import { formatLabel } from '@utils/textUtils.ts';
-import { useThemeContext } from '../../../context/ThemeContext.tsx';
+import Chip from '@mui/material/Chip';
+import { formatLabel } from '@utils/textUtils';
+import { useThemeContext } from '@context/ThemeContext';
 
 interface Props {
   status: string;

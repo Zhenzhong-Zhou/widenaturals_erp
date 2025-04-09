@@ -1,8 +1,13 @@
 import { FC, useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
-import { GoBackButton, Loading, Typography } from '@components/index.ts';
-import { CreateSaleOrderForm, OrderFormModal, OrdersTable, OrderTypesDropdown } from '../index.ts';
-import { useSalesOrders } from '../../../hooks';
+import useSalesOrders from '@hooks/useSalesOrders';
+import Typography from '@components/common/Typography';
+import GoBackButton from '@components/common/GoBackButton';
+import OrderTypesDropdown from '@features/order/components/OrderTypesDropdown';
+import Loading from '@components/common/Loading';
+import OrderFormModal from '@features/order/components/OrderFormModal';
+import CreateSaleOrderForm from '@features/order/components/CreateSaleOrderForm';
+import OrdersTable from '@features/order/components/OrdersTable';
 
 const OrderPage: FC = () => {
   const [selectedOrderType, setSelectedOrderType] = useState<{

@@ -1,8 +1,8 @@
 import { FC } from 'react';
+import useDeliveryMethodDropdown from '@hooks/useDeliveryMethodDropdown';
+import Loading from '@components/common/Loading';
 import Dropdown from '@components/common/Dropdown';
-import { useDeliveryMethodDropdown } from '../../../hooks';
 import Box from '@mui/material/Box';
-import { Loading } from '@components/index.ts';
 
 interface DeliveryMethodDropdownProps {
   label?: string;

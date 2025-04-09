@@ -6,7 +6,9 @@ import Add from '@mui/icons-material/Add';
 import Delete from '@mui/icons-material/Delete';
 import { v4 as uuidv4 } from 'uuid';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
-import { CustomButton, BaseInput, Dropdown } from '@components/index';
+import Dropdown from '@components/common/Dropdown';
+import BaseInput from '@components/common/BaseInput';
+import CustomButton from '@components/common/CustomButton';
 
 interface FieldConfig {
   id: string;

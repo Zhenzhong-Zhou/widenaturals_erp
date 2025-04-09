@@ -1,6 +1,6 @@
 import { FC } from 'react';
 import Box from '@mui/material/Box';
-import { Typography } from '@components/index.ts';
+import Typography from '@components/common/Typography';
 
 interface PermissionListProps {
   permissions: string[];

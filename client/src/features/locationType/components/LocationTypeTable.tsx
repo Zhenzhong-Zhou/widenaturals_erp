@@ -1,9 +1,9 @@
 import { FC } from 'react';
-import { LocationType } from '../../locationType';
-import { CustomTable } from '@components/index.ts';
-import { formatLabel } from '@utils/textUtils.ts';
-import { formatDateTime } from '@utils/dateTimeUtils.ts';
 import { Link } from 'react-router-dom';
+import { formatLabel } from '@utils/textUtils';
+import { formatDateTime } from '@utils/dateTimeUtils';
+import { LocationType } from '@features/locationType';
+import CustomTable from '@components/common/CustomTable';
 
 interface LocationTypesTableProps {
   data: LocationType[];
