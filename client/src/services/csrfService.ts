@@ -6,7 +6,7 @@ import { AppDispatch } from '../store/store.ts';
 import {
   resetCsrfToken,
   updateCsrfToken,
-} from '../features/csrf/state/csrfSlice.ts';
+} from '@features/csrf/state';
 import { API_ENDPOINTS } from './apiEndponits.ts';
 
 /**

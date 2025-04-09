@@ -28,15 +28,15 @@ const csrfErrorHandler = (err, req, res, next) => {
     );
 
     // Log the CSRF error with detailed metadata
-    logError(csrfError.logLevel, 'CSRF Token Validation Failed', {
-      message: csrfError.message,
-      route: req.originalUrl,
-      method: req.method,
-      ip: req.ip,
-      userAgent: req.headers['user-agent'] || 'Unknown',
-      referrer: req.headers.referer || 'None',
+    logError(csrfError, req, {
+      message: 'CSRF Token Validation Failed',
+      route: req?.originalUrl || 'Unknown',
+      method: req?.method || 'Unknown',
+      ip: req?.ip || req?.connection?.remoteAddress || 'Unknown',
+      userAgent: req?.headers?.['user-agent'] || 'Unknown',
+      referrer: req?.headers?.referer || 'None',
     });
-
+    
     // Respond with a structured error response
     return res.status(csrfError.status).json(csrfError.toJSON());
   }

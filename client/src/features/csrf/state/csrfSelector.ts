@@ -4,7 +4,7 @@
  */
 
 import { createSelector } from '@reduxjs/toolkit';
-import type { RootState } from '../../../store/store.ts'; // Use the typed RootState from storeHooks
+import type { RootState } from '@store/store.ts';
 
 /**
  * Selector to get the entire CSRF state.

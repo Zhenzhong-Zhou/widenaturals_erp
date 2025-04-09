@@ -8,7 +8,7 @@ import {
 } from 'react';
 import { useMediaQuery, useTheme } from '@mui/material';
 import { Sidebar, Header, Footer } from '../index';
-import { useThemeContext } from '../../context/ThemeContext';
+import { useThemeContext } from '@context/ThemeContext.tsx';
 import Box from '@mui/material/Box';
 import { contentContainerStyles, layoutStyles, mainContentStyles } from './layoutStyles.ts';
 import {
@@ -21,7 +21,7 @@ import {
 import { AppError } from '@utils/AppError';
 import { getErrorLog } from '@utils/errorUtils';
 import { useLogout, useTokenRefresh, useUserProfile } from '../../hooks';
-import { usePermissionsContext } from '../../context/PermissionsContext';
+import { usePermissionsContext } from '@context/PermissionsContext.tsx';
 
 interface MainLayoutProps {
   children: ReactNode;
