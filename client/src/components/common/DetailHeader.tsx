@@ -1,7 +1,7 @@
 import { FC } from 'react';
 import Box from '@mui/material/Box';
 import Avatar from '@mui/material/Avatar';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 import { useThemeContext } from '@context/ThemeContext';
 
 interface DetailHeaderProps {
@@ -34,14 +34,14 @@ const DetailHeader: FC<DetailHeaderProps> = ({
       >
         {avatarFallback}
       </Avatar>
-      <Typography
+      <CustomTypography
         variant="h6"
         sx={{ marginTop: theme.spacing(2), color: theme.palette.text.primary }}
       >
         {name}
-      </Typography>
+      </CustomTypography>
       {subtitle && (
-        <Typography
+        <CustomTypography
           variant="body2"
           sx={{
             color: theme.palette.text.secondary,
@@ -49,7 +49,7 @@ const DetailHeader: FC<DetailHeaderProps> = ({
           }}
         >
           {subtitle}
-        </Typography>
+        </CustomTypography>
       )}
     </Box>
   );

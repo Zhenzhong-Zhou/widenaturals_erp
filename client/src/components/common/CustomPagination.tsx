@@ -1,7 +1,7 @@
 import { FC } from 'react';
 import Box from '@mui/material/Box';
 import Pagination from '@mui/material/Pagination';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 
 interface PaginationComponentProps {
   page: number; // Current page
@@ -36,14 +36,14 @@ const CustomPagination: FC<PaginationComponentProps> = ({
       />
 
       {/* Footer Info */}
-      <Typography
+      <CustomTypography
         variant="caption"
         align="center"
         display="block"
         marginTop={1}
       >
         Showing {startIndex}–{endIndex} of {totalRecords} items
-      </Typography>
+      </CustomTypography>
     </Box>
   );
 };

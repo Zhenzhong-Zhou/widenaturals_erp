@@ -6,7 +6,7 @@ import ErrorDisplay from '@components/shared/ErrorDisplay';
 import ErrorMessage from '@components/common/ErrorMessage';
 import ReportPageLayout from '@features/report/components/ReportPageLayout';
 import AdjustmentReportTable from '@features/report/components/AdjustmentReportTable';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 
 const AdjustmentReportPage: FC = () => {
   const reportCategory = 'adjustment';
@@ -66,9 +66,9 @@ const AdjustmentReportPage: FC = () => {
           fetchReport={fetchReport}
         />
       ) : (
-        <Typography variant="body1" sx={{ textAlign: 'center', padding: 2 }}>
+        <CustomTypography variant="body1" sx={{ textAlign: 'center', padding: 2 }}>
           No adjustment records available.
-        </Typography>
+        </CustomTypography>
       )}
     </ReportPageLayout>
   );

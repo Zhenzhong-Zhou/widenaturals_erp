@@ -2,7 +2,7 @@ import { FC } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import NoDataFound from '@components/common/NoDataFound';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
 import GoBackButton from '@components/common/GoBackButton';
 import { WarehouseDetails } from '@features/warehouse/state';
@@ -36,38 +36,38 @@ const WarehouseInventoryDetailHeader: FC<WarehouseDetailHeaderProps> = ({
       }}
     >
       {/* Warehouse Name */}
-      <Typography variant="h4" gutterBottom>
+      <CustomTypography variant="h4" gutterBottom>
         {warehouseDetails.name}
-      </Typography>
+      </CustomTypography>
 
       {/* Storage Capacity */}
-      <Typography variant="body1" color="textSecondary">
+      <CustomTypography variant="body1" color="textSecondary">
         Storage Capacity: {warehouseDetails.storageCapacity.toLocaleString()}{' '}
         units
-      </Typography>
+      </CustomTypography>
 
       {/* Location Details */}
       {warehouseDetails.location && (
         <>
           {/* Location Type */}
           {warehouseDetails.location.locationType && (
-            <Typography variant="body1" color="textSecondary">
+            <CustomTypography variant="body1" color="textSecondary">
               Location Type: {warehouseDetails.location.locationType.name}
-            </Typography>
+            </CustomTypography>
           )}
 
-          <Typography variant="body1" color="textSecondary">
+          <CustomTypography variant="body1" color="textSecondary">
             Location: {warehouseDetails.location.name}
-          </Typography>
-          <Typography variant="body1" color="textSecondary">
+          </CustomTypography>
+          <CustomTypography variant="body1" color="textSecondary">
             Address: {warehouseDetails.location.address}
-          </Typography>
+          </CustomTypography>
         </>
       )}
 
       {/* Warehouse Status */}
       {warehouseDetails.status?.name && (
-        <Typography
+        <CustomTypography
           variant="body1"
           color={
             warehouseDetails.status.name.toLowerCase() === 'active'
@@ -76,19 +76,19 @@ const WarehouseInventoryDetailHeader: FC<WarehouseDetailHeaderProps> = ({
           }
         >
           Status: {formatLabel(warehouseDetails.status.name)}
-        </Typography>
+        </CustomTypography>
       )}
 
       {/* Metadata (Created By, Updated By) */}
       {warehouseDetails.metadata && (
-        <Typography variant="body2" color="textSecondary" sx={{ mt: 2 }}>
+        <CustomTypography variant="body2" color="textSecondary" sx={{ mt: 2 }}>
           Created by: {warehouseDetails.metadata.createdBy ?? 'Unknown'} on{' '}
           {formatDate(warehouseDetails.metadata.createdAt ?? null)}
           <br />
           Last updated by: {warehouseDetails.metadata.updatedBy ??
             'Unknown'} on{' '}
           {formatDate(warehouseDetails.metadata.updatedAt ?? null)}
-        </Typography>
+        </CustomTypography>
       )}
       <CustomButton onClick={refetch} disabled={loading}>
         Refresh Warehouse Data

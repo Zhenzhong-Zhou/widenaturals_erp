@@ -9,7 +9,7 @@ interface CustomTypographyProps extends TypographyProps {
   align?: TypographyProps['align'];
 }
 
-const Typography: FC<CustomTypographyProps> = ({
+const CustomTypography: FC<CustomTypographyProps> = ({
   children,
   variant = 'body1', // Default variant
   color = 'textPrimary', // Default text color
@@ -35,4 +35,4 @@ const Typography: FC<CustomTypographyProps> = ({
   );
 };
 
-export default Typography;
+export default CustomTypography;

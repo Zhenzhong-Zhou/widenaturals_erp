@@ -1,6 +1,6 @@
 import { FC } from 'react';
 import Box from '@mui/material/Box';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 import { useThemeContext } from '@context/ThemeContext';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import type { SxProps, Theme } from '@mui/system';
@@ -35,12 +35,12 @@ const DetailsSection: FC<DetailsSectionProps> = ({ data, sx }) => {
             }}
           >
             {/* Label */}
-            <Typography
+            <CustomTypography
               variant="body2"
               sx={{ fontWeight: 'bold', color: theme.palette.text.primary, marginRight: 1 }}
             >
               {formatLabel(key)}:
-            </Typography>
+            </CustomTypography>
             
             {/* Value */}
             {Array.isArray(value) ? (
@@ -54,12 +54,12 @@ const DetailsSection: FC<DetailsSectionProps> = ({ data, sx }) => {
                 <DetailsSection data={value} sx={sx} />
               </Box>
             ) : (
-              <Typography
+              <CustomTypography
                 variant="body2"
                 sx={{ color: theme.palette.text.secondary, whiteSpace: shouldDisplayInline ? 'nowrap' : 'normal' }}
               >
                 {value !== null && value !== undefined ? value.toString() : 'N/A'}
-              </Typography>
+              </CustomTypography>
             )}
           </Box>
         );

@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useLocation } from 'react-router';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 import ErrorDisplay from '@components/shared/ErrorDisplay';
 import ErrorMessage from '@components/common/ErrorMessage';
 import GoBackButton from '@components/common/GoBackButton';
@@ -26,9 +26,9 @@ const OrderDetailsPage: FC = () => {
   return (
     <Box sx={{ p: 3 }}>
       {/* Header */}
-      <Typography variant="h4" sx={{ marginBottom: 2 }}>
+      <CustomTypography variant="h4" sx={{ marginBottom: 2 }}>
         {state?.orderNumber} - Order Information
-      </Typography>
+      </CustomTypography>
       
       {/* Actions Row */}
       <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 3 }}>

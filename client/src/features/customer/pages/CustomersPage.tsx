@@ -1,6 +1,6 @@
 import { FC, useState } from 'react';
 import Box from '@mui/material/Box';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
 import CreateCustomerModal from '@features/customer/components/CreateCustomerModal';
 import CustomerTable from '@features/customer/components/CustomerTable';
@@ -10,9 +10,9 @@ const CustomersPage: FC = () => {
   
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>
+      <CustomTypography variant="h4" gutterBottom>
         Customer Management
-      </Typography>
+      </CustomTypography>
       
       {/* Separate Button to Open Modal */}
       <CustomButton variant="contained" onClick={() => setModalOpen(true)}>

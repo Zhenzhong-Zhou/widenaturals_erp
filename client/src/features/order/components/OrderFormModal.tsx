@@ -1,7 +1,7 @@
 import { FC, ReactNode } from 'react';
 import Box from '@mui/material/Box';
 import CustomModal from '@components/common/CustomModal';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 
 interface OrderFormModalProps {
   open: boolean;
@@ -39,9 +39,9 @@ const OrderFormModal: FC<OrderFormModalProps> = ({ open, title, children, onClos
           mt: 10,
         }}
       >
-        <Typography variant="h6" gutterBottom>
+        <CustomTypography variant="h6" gutterBottom>
           {title}
-        </Typography>
+        </CustomTypography>
         {children}
       </Box>
     </CustomModal>

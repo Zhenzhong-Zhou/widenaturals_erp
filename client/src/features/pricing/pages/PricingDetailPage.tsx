@@ -4,7 +4,7 @@ import Paper from '@mui/material/Paper';
 import Loading from '@components/common/Loading';
 import ErrorDisplay from '@components/shared/ErrorDisplay';
 import ErrorMessage from '@components/common/ErrorMessage';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 import PricingDetailsTable from '@features/pricing/components/PricingDetailsTable';
 import { formatCurrency } from '@utils/textUtils';
 import usePricingDetail from '@hooks/usePricingDetail';
@@ -37,15 +37,15 @@ const PricingDetailPage = () => {
         <>
           {/* Pricing Overview Section */}
           <Paper sx={{ padding: 2, marginBottom: 3 }}>
-            <Typography variant="h4" gutterBottom>
+            <CustomTypography variant="h4" gutterBottom>
               {pricing.price_type_name} - CA{formatCurrency(pricing.price)}
-            </Typography>
-            <Typography variant="subtitle1" color="textSecondary">
+            </CustomTypography>
+            <CustomTypography variant="subtitle1" color="textSecondary">
               Valid From: {new Date(pricing.valid_from).toLocaleDateString()} →
               {pricing.valid_to
                 ? new Date(pricing.valid_to).toLocaleDateString()
                 : 'N/A'}
-            </Typography>
+            </CustomTypography>
           </Paper>
 
           {/* Pricing Details Table */}

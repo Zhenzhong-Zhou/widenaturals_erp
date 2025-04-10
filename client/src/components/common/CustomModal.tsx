@@ -2,7 +2,7 @@ import { FC, ReactNode } from 'react';
 import Box from '@mui/material/Box';
 import Modal from '@mui/material/Modal';
 import type { SxProps, Theme } from '@mui/system';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 
 interface ModalProps {
   open: boolean;
@@ -42,9 +42,9 @@ const CustomModal: FC<ModalProps> = ({
     >
       <Box sx={{ ...modalStyles, ...sx }}>
         {title && (
-          <Typography id="modal-title" variant="h6" sx={{ mb: 2 }}>
+          <CustomTypography id="modal-title" variant="h6" sx={{ mb: 2 }}>
             {title}
-          </Typography>
+          </CustomTypography>
         )}
         <Box id="modal-description" sx={{ mb: 2 }}>
           {children}

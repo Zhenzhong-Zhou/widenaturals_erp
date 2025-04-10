@@ -1,7 +1,7 @@
 import { FC } from 'react';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 import CustomTable from '@components/common/CustomTable';
 import { LocationType } from '@features/locationType';
 import { formatLabel } from '@utils/textUtils';
@@ -66,14 +66,14 @@ const LocationTypeDetailsTable: FC<LocationTypeTableProps> = ({
   return (
     <Box>
       <Paper sx={{ padding: 2, marginBottom: 3 }}>
-        <Typography variant="h6">General Information</Typography>
-        <Typography>
+        <CustomTypography variant="h6">General Information</CustomTypography>
+        <CustomTypography>
           <strong>Total Locations:</strong> {data.length}
-        </Typography>
+        </CustomTypography>
       </Paper>
 
       <Paper sx={{ padding: 2, marginBottom: 3 }}>
-        <Typography variant={'h3'}>Associated Locations</Typography>
+        <CustomTypography variant={'h3'}>Associated Locations</CustomTypography>
         <CustomTable
           columns={columns}
           data={data}

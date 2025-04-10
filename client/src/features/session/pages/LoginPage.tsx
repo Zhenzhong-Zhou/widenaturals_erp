@@ -1,6 +1,6 @@
 import { FC } from 'react';
 import Box from '@mui/material/Box';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 import LoginCard from '@features/session/components/LoginCard';
 import { useThemeContext } from '@context/ThemeContext';
 import logoDark from '@assets/wide-logo-dark.png';
@@ -34,15 +34,15 @@ const LoginPage: FC = () => {
           alt="Company Logo"
           sx={{ mb: 2, width: 100, height: 100 }}
         />
-        <Typography
+        <CustomTypography
           variant="h4"
           sx={{ fontWeight: 'bold', color: 'text.primary' }}
         >
           Welcome to Wide Naturals ERP
-        </Typography>
-        <Typography variant="body1" sx={{ color: 'text.secondary', mt: 1 }}>
+        </CustomTypography>
+        <CustomTypography variant="body1" sx={{ color: 'text.secondary', mt: 1 }}>
           Manage your inventory, sales, and operations efficiently.
-        </Typography>
+        </CustomTypography>
       </Box>
 
       {/* Login Card */}
@@ -55,7 +55,7 @@ const LoginPage: FC = () => {
 
       {/* Support Links */}
       <Box sx={{ mt: 3, textAlign: 'center' }}>
-        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+        <CustomTypography variant="body2" sx={{ color: 'text.secondary' }}>
           Forgot your password?{' '}
           <a
             href="/reset-password"
@@ -63,7 +63,7 @@ const LoginPage: FC = () => {
           >
             Reset it here
           </a>
-        </Typography>
+        </CustomTypography>
       </Box>
     </Box>
   );

@@ -14,7 +14,7 @@ import IsExpiredChip from '@features/inventory/components/IsExpiredChip';
 import NearExpiryChip from '@features/inventory/components/NearExpiryChip';
 import StockLevelChip from '@features/inventory/components/StockLevelChip';
 import ExpirySeverityChip from '@features/inventory/components/ExpirySeverityChip';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
 import BulkInsertInventoryModal from '@features/warehouse-inventory/components/BulkInsertInventoryModal';
 import InsertedInventoryRecordsResponseDialog
@@ -360,7 +360,7 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
           color="primary"
         />
         Select All
-        <Typography variant="h5">Warehouse Inventory Lots</Typography>
+        <CustomTypography variant="h5">Warehouse Inventory Lots</CustomTypography>
         {/* Pass handleBulkInsertSubmit function to modal */}
         <CustomButton variant="contained" color="primary"
                       startIcon={<InventoryIcon />}

@@ -2,7 +2,7 @@ import { FC } from 'react';
 import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
 import useUsers from '@hooks/useUsers';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 import Loading from '@components/common/Loading';
 import ErrorMessage from '@components/common/ErrorMessage';
 import UsersList from '@features/user/components/UserList';
@@ -24,9 +24,9 @@ const UsersPage: FC = () => {
 
   return (
     <Box sx={{ padding: 3 }}>
-      <Typography variant="h4" gutterBottom>
+      <CustomTypography variant="h4" gutterBottom>
         User Management
-      </Typography>
+      </CustomTypography>
 
       {/* Show Loading Spinner */}
       {loading && (
@@ -61,9 +61,9 @@ const UsersPage: FC = () => {
       ) : (
         !loading &&
         !error && (
-          <Typography variant="body1" align="center">
+          <CustomTypography variant="body1" align="center">
             No users found.
-          </Typography>
+          </CustomTypography>
         )
       )}
 

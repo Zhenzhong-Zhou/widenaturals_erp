@@ -1,6 +1,6 @@
 import { FC } from 'react';
-import Typography from '@components/common/Typography';
 import Box from '@mui/material/Box';
+import CustomTypography from '@components/common/CustomTypography';
 
 interface Price {
   price: number;
@@ -35,27 +35,27 @@ const PriceDisplay: FC<PriceDisplayProps> = ({
           alignItems="center"
           gap={1}
         >
-          <Typography variant="body1" color="primary">
+          <CustomTypography variant="body1" color="primary">
             {priceObj.pricing_type}: {currency}
             {priceObj.price.toFixed(2)}
-          </Typography>
+          </CustomTypography>
         </Box>
       ))}
 
       {isDiscounted && retailPrice && (
         <Box display="flex" alignItems="center" gap={1}>
           {/* Original Price */}
-          <Typography
+          <CustomTypography
             variant="body2"
             color="textSecondary"
             sx={{ textDecoration: 'line-through' }}
           >
             {currency}
             {originalPrice.toFixed(2)}
-          </Typography>
+          </CustomTypography>
 
           {/* Discount Percentage */}
-          <Typography
+          <CustomTypography
             variant="caption"
             color="error"
             sx={{
@@ -66,7 +66,7 @@ const PriceDisplay: FC<PriceDisplayProps> = ({
           >
             -{Math.round(((originalPrice - retailPrice) / originalPrice) * 100)}
             %
-          </Typography>
+          </CustomTypography>
         </Box>
       )}
     </Box>

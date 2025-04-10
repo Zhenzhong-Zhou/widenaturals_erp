@@ -6,7 +6,7 @@ import ErrorDisplay from '@components/shared/ErrorDisplay';
 import ErrorMessage from '@components/common/ErrorMessage';
 import ReportPageLayout from '@features/report/components/ReportPageLayout';
 import InventoryHistoryTable from '@features/report/components/InventoryHistoryTable';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 
 const InventoryHistoryPage: FC = () => {
   const reportCategory = 'inventory_history';
@@ -66,9 +66,9 @@ const InventoryHistoryPage: FC = () => {
           fetchInventoryHistory={fetchInventoryHistory}
         />
       ) : (
-        <Typography variant="body1" sx={{ textAlign: 'center', padding: 2 }}>
+        <CustomTypography variant="body1" sx={{ textAlign: 'center', padding: 2 }}>
           No inventory history records available.
-        </Typography>
+        </CustomTypography>
       )}
     </ReportPageLayout>
   );

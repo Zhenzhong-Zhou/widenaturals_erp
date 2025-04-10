@@ -6,7 +6,7 @@ import Loading from '@components/common/Loading';
 import WarehouseInventoryDetailHeader
   from '@features/warehouse-inventory/components/WarehouseInventoryDetailHeader';
 import WarehouseItemSummaryCard from '@features/warehouse-inventory/components/WarehouseItemSummaryCard';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 import WarehouseInventoryDetailTable from '@features/warehouse-inventory/components/WarehouseInventoryDetailTable';
 import CustomButton from '@components/common/CustomButton';
 import ErrorDisplay from '@components/shared/ErrorDisplay';
@@ -195,9 +195,9 @@ const WarehouseInventoryDetailPage = () => {
           refreshSummary={refreshItemSummary}
         />
       ) : (
-        <Typography variant="body1" sx={{ textAlign: 'center', padding: 2 }}>
+        <CustomTypography variant="body1" sx={{ textAlign: 'center', padding: 2 }}>
           No warehouse item found.
-        </Typography>
+        </CustomTypography>
       )}
       
       {/* Inventory Details Section */}

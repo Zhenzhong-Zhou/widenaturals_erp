@@ -2,7 +2,7 @@ import { FC } from 'react';
 import Box from '@mui/material/Box';
 import Badge from '@mui/material/Badge';
 import Tooltip from '@mui/material/Tooltip';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 import { formatDateTime } from '@utils/dateTimeUtils';
 import useHealthStatus from '@hooks/useHealthStatus';
 import { formatLabel } from '@utils/textUtils';
@@ -38,22 +38,22 @@ const HealthStatus: FC<HealthStatusProps> = ({ getStatusColor }) => {
       <Tooltip
         title={
           <Box sx={{ textAlign: 'left' }}>
-            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+            <CustomTypography variant="body2" sx={{ fontWeight: 'bold' }}>
               Server: {formatLabel(healthStatus?.server) || 'Unknown'}
-            </Typography>
-            <Typography variant="body2">
+            </CustomTypography>
+            <CustomTypography variant="body2">
               Database: {formatLabel(databaseStatus) || 'Unknown'}
-            </Typography>
-            <Typography variant="body2">
+            </CustomTypography>
+            <CustomTypography variant="body2">
               Pool: {formatLabel(poolStatus) || 'Unknown'}
-            </Typography>
-            <Typography variant="body2">
+            </CustomTypography>
+            <CustomTypography variant="body2">
               Last Updated: {timestamp ? formatDateTime(timestamp) : 'N/A'}
-            </Typography>
+            </CustomTypography>
             {error && (
-              <Typography variant="body2" color="error">
+              <CustomTypography variant="body2" color="error">
                 Error: {error}
-              </Typography>
+              </CustomTypography>
             )}
           </Box>
         }
@@ -67,7 +67,7 @@ const HealthStatus: FC<HealthStatusProps> = ({ getStatusColor }) => {
           sx={{ cursor: 'pointer' }}
           onClick={refreshHealthStatus} // Refresh health status on click
         >
-          <Typography
+          <CustomTypography
             variant="body2"
             sx={{
               color: 'text.primary',
@@ -75,7 +75,7 @@ const HealthStatus: FC<HealthStatusProps> = ({ getStatusColor }) => {
             }}
           >
             Health
-          </Typography>
+          </CustomTypography>
         </Badge>
       </Tooltip>
     </Box>

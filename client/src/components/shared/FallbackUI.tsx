@@ -1,6 +1,6 @@
 import { FC, useState } from 'react';
 import Box from '@mui/material/Box';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 import ErrorMessage from '@components/common/ErrorMessage';
 import CustomButton from '@components/common/CustomButton';
 
@@ -33,14 +33,14 @@ const FallbackUI: FC<FallbackUIProps> = ({
       }}
     >
       {/* Error Title */}
-      <Typography variant="h4" color="error" gutterBottom>
+      <CustomTypography variant="h4" color="error" gutterBottom>
         {title}
-      </Typography>
+      </CustomTypography>
 
       {/* Error Description */}
-      <Typography variant="body1" gutterBottom>
+      <CustomTypography variant="body1" gutterBottom>
         {description}
-      </Typography>
+      </CustomTypography>
 
       {/* Error Code */}
       {errorCode && (

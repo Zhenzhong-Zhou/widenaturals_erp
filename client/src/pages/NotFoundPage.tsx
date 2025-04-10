@@ -1,7 +1,7 @@
 import { FC } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Container from '@mui/material/Container';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
 import GoBackButton from '@components/common/GoBackButton';
 import { useThemeContext } from '@context/ThemeContext';
@@ -35,7 +35,7 @@ const NotFoundPage: FC<NotFoundPageProps> = ({ isAuthenticated }) => {
         paddingTop: '30vh', // Add top padding to push content upward
       }}
     >
-      <Typography
+      <CustomTypography
         variant="h1"
         sx={{
           fontWeight: 'bold',
@@ -44,8 +44,8 @@ const NotFoundPage: FC<NotFoundPageProps> = ({ isAuthenticated }) => {
         }}
       >
         404
-      </Typography>
-      <Typography
+      </CustomTypography>
+      <CustomTypography
         variant="h4"
         sx={{
           mb: 4,
@@ -55,7 +55,7 @@ const NotFoundPage: FC<NotFoundPageProps> = ({ isAuthenticated }) => {
         {isAuthenticated
           ? 'Sorry, we couldn’t find the page you’re looking for.'
           : 'Oops! The page you are looking for doesn’t exist.'}
-      </Typography>
+      </CustomTypography>
       <CustomButton
         variant="contained"
         size="large"

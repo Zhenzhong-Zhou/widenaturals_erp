@@ -15,7 +15,7 @@ import BaseInput from '@components/common/BaseInput';
 import ProductOrderDropdown from '@features/product/components/ProductOrderDropdown';
 import PricingTypeDropdown from '@features/pricingType/components/PricingTypeDropdown';
 import CustomButton from '@components/common/CustomButton';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 import { v4 as uuidv4 } from 'uuid';
 import { SalesOrder } from '../state';
 import usePricing from '@hooks/usePricing';
@@ -219,7 +219,7 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({ onSubmit = () => {}, onCl
   
   // Only show the submit button if the category is 'sales'
   if (category !== 'sales') {
-    return <Typography variant="h6">This form is only available for 'sales' category.</Typography>;
+    return <CustomTypography variant="h6">This form is only available for 'sales' category.</CustomTypography>;
   }
   
   return (
@@ -320,7 +320,7 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({ onSubmit = () => {}, onCl
         
         <Divider sx={{ my: 2 }} />
         
-        <Typography variant="h6" gutterBottom>Shipping Information</Typography>
+        <CustomTypography variant="h6" gutterBottom>Shipping Information</CustomTypography>
         
         <Grid container spacing={2}>
           <Grid size={{ xs: 12, md: 8 }}>
@@ -445,9 +445,9 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({ onSubmit = () => {}, onCl
         
         <Divider sx={{ my: 2 }} />
         
-        <Typography variant="h6" gutterBottom>
+        <CustomTypography variant="h6" gutterBottom>
         Order Items
-        </Typography>
+        </CustomTypography>
         
         {items.map((item, index) => (
           <Card key={index} variant="outlined" sx={{ mb: 2 }}>
@@ -546,9 +546,9 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({ onSubmit = () => {}, onCl
                 
                 {/* Display Subtotal (Read-Only) */}
                 <Grid size={{ xs: 6, md: 8 }}>
-                  <Typography variant="subtitle1" sx={{ mt: 1 }}>
+                  <CustomTypography variant="subtitle1" sx={{ mt: 1 }}>
                     Subtotal: ${ (item.price * item.quantity_ordered).toFixed(2) }
-                  </Typography>
+                  </CustomTypography>
                 </Grid>
                 
                 {/* Remove Button */}

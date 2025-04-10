@@ -1,6 +1,6 @@
 import { FC } from 'react';
 import Box from '@mui/material/Box';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 import GoBackButton from '@components/common/GoBackButton';
 
 interface NoDataFoundProps {
@@ -12,9 +12,9 @@ const NoDataFound: FC<NoDataFoundProps> = ({
 }) => {
   return (
     <Box sx={{ textAlign: 'center', mt: 5 }}>
-      <Typography variant="h5" color="error">
+      <CustomTypography variant="h5" color="error">
         {message}
-      </Typography>
+      </CustomTypography>
       <GoBackButton />
     </Box>
   );

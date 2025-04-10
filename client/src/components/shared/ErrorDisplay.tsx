@@ -1,6 +1,6 @@
 import { FC, ReactNode } from 'react';
 import Box from '@mui/material/Box';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
 import { monitorCsrfStatus } from '@utils/monitorCsrfStatus';
 import {
@@ -48,9 +48,9 @@ const ErrorDisplay: FC<ErrorDisplayProps> = ({
         color: 'text.primary',
       }}
     >
-      <Typography variant="h4" color="error" gutterBottom>
+      <CustomTypography variant="h4" color="error" gutterBottom>
         {message || csrfErrorMessage || 'An unexpected error occurred.'}
-      </Typography>
+      </CustomTypography>
       {children && (
         <Box
           sx={{

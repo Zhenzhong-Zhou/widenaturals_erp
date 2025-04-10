@@ -7,7 +7,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faSyncAlt } from '@fortawesome/free-solid-svg-icons';
 import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 import { useThemeContext } from '@context/ThemeContext';
 
 interface OptionType {
@@ -84,7 +84,7 @@ const Dropdown: FC<DropdownProps> = ({
                 }}
               >
                 {/* Refresh List Button */}
-                <Typography
+                <CustomTypography
                   key="refresh-button"
                   onClick={onRefresh}
                   sx={{
@@ -99,11 +99,11 @@ const Dropdown: FC<DropdownProps> = ({
                 >
                   <FontAwesomeIcon icon={faSyncAlt} />
                   Refresh
-                </Typography>
+                </CustomTypography>
                 
                 {/* Add New Button */}
                 {onAddNew && (
-                  <Typography
+                  <CustomTypography
                     key="add-new-button"
                     onClick={onAddNew}
                     sx={{
@@ -118,7 +118,7 @@ const Dropdown: FC<DropdownProps> = ({
                   >
                     <FontAwesomeIcon icon={faPlus} />
                     Add New
-                  </Typography>
+                  </CustomTypography>
                 )}
               </Stack>
             )}

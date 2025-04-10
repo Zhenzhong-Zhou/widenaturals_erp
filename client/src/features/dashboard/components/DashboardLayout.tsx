@@ -2,7 +2,7 @@ import { FC, ReactNode, useEffect, useMemo, useState } from 'react';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid2';
 import { Skeleton, useMediaQuery } from '@mui/material';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 import Loading from '@components/common/Loading';
 import ErrorMessage from '@components/common/ErrorMessage';
 import CustomCard from '@components/common/CustomCard';
@@ -66,9 +66,9 @@ const DashboardLayout: FC<BaseDashboardLayoutProps> = ({
   return (
     <Box sx={{ padding: 3 }}>
       {fullName ? (
-        <Typography variant="h4" gutterBottom>
+        <CustomTypography variant="h4" gutterBottom>
           Welcome, {fullName}!
-        </Typography>
+        </CustomTypography>
       ) : (
         <Skeleton variant="text" width={200} />
       )}
@@ -77,16 +77,16 @@ const DashboardLayout: FC<BaseDashboardLayoutProps> = ({
       
       {showInventorySummary && (
         <Box sx={{ mt: 5 }}>
-          <Typography variant="h5" gutterBottom>
+          <CustomTypography variant="h5" gutterBottom>
             Inventory Alerts
-          </Typography>
+          </CustomTypography>
           
           {inventorySummaryLoading ? (
             <Loading message="Loading inventory summary..." />
           ) : inventorySummaryError ? (
             <ErrorMessage message={inventorySummaryError} />
           ) : paginatedItems.length === 0 ? (
-            <Typography>No critical inventory issues found.</Typography>
+            <CustomTypography>No critical inventory issues found.</CustomTypography>
           ) : (
             <>
               <Grid container spacing={2}>
@@ -98,23 +98,23 @@ const DashboardLayout: FC<BaseDashboardLayoutProps> = ({
                       ariaLabel={`Inventory summary card for ${item.itemName}`}
                       sx={{ height: '100%' }}
                     >
-                      <Typography>Available: {item.availableQuantity}</Typography>
-                      <Typography>Reserved: {item.reservedQuantity}</Typography>
-                      <Typography>Total Lots: {item.totalLots}</Typography>
-                      <Typography>
+                      <CustomTypography>Available: {item.availableQuantity}</CustomTypography>
+                      <CustomTypography>Reserved: {item.reservedQuantity}</CustomTypography>
+                      <CustomTypography>Total Lots: {item.totalLots}</CustomTypography>
+                      <CustomTypography>
                         Nearest Expiry:{' '}
                         {item.nearestExpiryDate
                           ? formatDate(item.nearestExpiryDate)
                           : 'N/A'}
-                      </Typography>
+                      </CustomTypography>
                       
                       {item.isLowStock && (
-                        <Typography color="warning.main">
+                        <CustomTypography color="warning.main">
                           Low Stock ({formatLabel(item.stockLevel)})
-                        </Typography>
+                        </CustomTypography>
                       )}
                       {item.isNearExpiry && (
-                        <Typography color="error.main">Near Expiry</Typography>
+                        <CustomTypography color="error.main">Near Expiry</CustomTypography>
                       )}
                     </CustomCard>
                   </Grid>

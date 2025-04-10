@@ -5,7 +5,7 @@ import IconButton from '@mui/material/IconButton';
 import { ArrowBack, ArrowForward, Refresh } from '@mui/icons-material';
 import CustomButton from '@components/common/CustomButton';
 import CustomCard from '@components/common/CustomCard';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 import { formatLabel, formatCurrency } from '@utils/textUtils';
 import { formatDateTime, formatToISODate } from '@utils/dateTimeUtils';
 import { WarehouseInventorySummary } from '../state/warehouseInventoryTypes';
@@ -60,9 +60,9 @@ const WarehouseInventorySummaryCard: FC<WarehouseInventorySummaryProps> = ({
                   to={`/warehouse_inventories/${summary.warehouseId}`}
                   style={{ textDecoration: 'none', }}
                 >
-                  <Typography variant="h5" component="h5" sx={{ color: '#1976d2', fontWeight: 'bold' }}>
+                  <CustomTypography variant="h5" component="h5" sx={{ color: '#1976d2', fontWeight: 'bold' }}>
                     {summary.warehouseName}
-                  </Typography>
+                  </CustomTypography>
                 </Link>
               )
             }
@@ -90,38 +90,38 @@ const WarehouseInventorySummaryCard: FC<WarehouseInventorySummaryProps> = ({
                 flexDirection: 'column',
               }}
             >
-              <Typography variant="body2">
+              <CustomTypography variant="body2">
                 Total Products: {summary.totalProducts}
-              </Typography>
-              <Typography variant="body2">
+              </CustomTypography>
+              <CustomTypography variant="body2">
                 Total Quantity: {summary.totalQuantity}
-              </Typography>
-              <Typography variant="body2">
+              </CustomTypography>
+              <CustomTypography variant="body2">
                 Total Lots: {summary.totalLots}
-              </Typography>
-              <Typography variant="body2">
+              </CustomTypography>
+              <CustomTypography variant="body2">
                 Total Reserved Stock: {summary.totalReservedStock}
-              </Typography>
-              <Typography variant="body2">
+              </CustomTypography>
+              <CustomTypography variant="body2">
                 Total Available Stock: {summary.totalAvailableStock}
-              </Typography>
-              <Typography variant="body2">
+              </CustomTypography>
+              <CustomTypography variant="body2">
                 Total Warehouse Fees:{' '}
                 {formatCurrency(summary.totalWarehouseFees)}
-              </Typography>
-              <Typography variant="body2">
+              </CustomTypography>
+              <CustomTypography variant="body2">
                 Latest Inventory Update:{' '}
                 {formatDateTime(summary.lastInventoryUpdate)}
-              </Typography>
-              <Typography variant="body2">
+              </CustomTypography>
+              <CustomTypography variant="body2">
                 Earliest Expiry: {formatToISODate(summary.earliestExpiry)}
-              </Typography>
-              <Typography variant="body2">
+              </CustomTypography>
+              <CustomTypography variant="body2">
                 Latest Expiry: {formatToISODate(summary.latestExpiry)}
-              </Typography>
-              <Typography variant="body2">
+              </CustomTypography>
+              <CustomTypography variant="body2">
                 Total Zero Stock Lots: {summary.totalZeroStockLots}
-              </Typography>
+              </CustomTypography>
             </Box>
           </CustomCard>
         ))}
@@ -143,7 +143,7 @@ const WarehouseInventorySummaryCard: FC<WarehouseInventorySummaryProps> = ({
           >
             <ArrowBack />
           </IconButton>
-          <Typography variant="body2">{`Page ${summaryPage} of ${totalPages}`}</Typography>
+          <CustomTypography variant="body2">{`Page ${summaryPage} of ${totalPages}`}</CustomTypography>
           <IconButton
             onClick={() => setSummaryPage(summaryPage + 1)}
             disabled={summaryPage === totalPages}

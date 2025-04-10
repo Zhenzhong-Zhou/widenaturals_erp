@@ -3,7 +3,7 @@ import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
 
 interface CommonDialogProps {
@@ -31,7 +31,7 @@ const CustomDialog: React.FC<CommonDialogProps> = ({
       {children && (
         <DialogContent dividers>
           {typeof children === 'string' ? (
-            <Typography>{children}</Typography>
+            <CustomTypography>{children}</CustomTypography>
           ) : (
             children
           )}

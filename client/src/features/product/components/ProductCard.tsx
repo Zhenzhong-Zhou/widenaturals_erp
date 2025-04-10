@@ -2,7 +2,7 @@ import { FC } from 'react';
 import Box from '@mui/material/Box';
 import CustomCard from '@components/common/CustomCard';
 import CustomButton from '@components/common/CustomButton';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 import PriceDisplay from '@components/common/PriceDisplay';
 import productPlaceholder from '@assets/Virility_CA.jpg';
 import { formatLabel } from '@utils/textUtils';
@@ -55,17 +55,17 @@ const ProductCard: FC<ProductCardProps> = ({ product }) => {
           </>
         }
       >
-        <Typography variant="body2">Series: {series || 'N/A'}</Typography>
-        <Typography variant="body2">Brand: {brand || 'N/A'}</Typography>
-        <Typography variant="body2">Category: {category || 'N/A'}</Typography>
-        <Typography variant="body2">NPN: {npn_info[0].npn || 'N/A'}</Typography>
-        <Typography variant="body2">Barcode: {barcode || 'N/A'}</Typography>
-        <Typography variant="body2">
+        <CustomTypography variant="body2">Series: {series || 'N/A'}</CustomTypography>
+        <CustomTypography variant="body2">Brand: {brand || 'N/A'}</CustomTypography>
+        <CustomTypography variant="body2">Category: {category || 'N/A'}</CustomTypography>
+        <CustomTypography variant="body2">NPN: {npn_info[0].npn || 'N/A'}</CustomTypography>
+        <CustomTypography variant="body2">Barcode: {barcode || 'N/A'}</CustomTypography>
+        <CustomTypography variant="body2">
           Region: {market_region || 'N/A'}
-        </Typography>
-        <Typography variant="body2">
+        </CustomTypography>
+        <CustomTypography variant="body2">
           Status: {formatLabel(status_name)}
-        </Typography>
+        </CustomTypography>
         {/* Price Display */}
         <PriceDisplay prices={prices} />
       </CustomCard>

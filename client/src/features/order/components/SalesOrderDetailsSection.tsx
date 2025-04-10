@@ -1,6 +1,6 @@
 import { FC, useEffect, useMemo } from 'react';
 import Box from '@mui/material/Box';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Divider from '@mui/material/Divider';
@@ -117,7 +117,7 @@ const SalesOrderDetailsSection: FC<SalesOrderDetailsSectionProps> = ({ orderId }
   
   if (orderDetailsLoading) return <Loading message="Loading Sales Order Details..." />;
   if (orderError || confirmError) return <ErrorMessage message={orderError || confirmError} />;
-  if (!filteredOrderDetails) return <Typography>No order details available.</Typography>;
+  if (!filteredOrderDetails) return <CustomTypography>No order details available.</CustomTypography>;
   
   return (
     <Card
@@ -133,7 +133,7 @@ const SalesOrderDetailsSection: FC<SalesOrderDetailsSectionProps> = ({ orderId }
     >
       <CardContent>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
-          <Typography variant="h4" sx={{ fontWeight: 'bold' }}>Sales Order Details</Typography>
+          <CustomTypography variant="h4" sx={{ fontWeight: 'bold' }}>Sales Order Details</CustomTypography>
           <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 3 }}>
             {canConfirm && (
               <CustomButton
@@ -177,7 +177,7 @@ const SalesOrderDetailsSection: FC<SalesOrderDetailsSectionProps> = ({ orderId }
         
         {filteredOrderDetails.shipping_info && (
           <Box mt={4}>
-            <Typography variant="h6" sx={{ marginBottom: 1 }}>Shipping Information</Typography>
+            <CustomTypography variant="h6" sx={{ marginBottom: 1 }}>Shipping Information</CustomTypography>
             <Grid container spacing={3}>
               <Grid size={6}>
                <DetailsSection
@@ -203,7 +203,7 @@ const SalesOrderDetailsSection: FC<SalesOrderDetailsSectionProps> = ({ orderId }
         {/* Show tracking info if exists */}
         {filteredOrderDetails.delivery_info?.tracking_info && (
           <Box mt={2}>
-            <Typography variant="h6" sx={{ marginBottom: 1 }}>Tracking Information</Typography>
+            <CustomTypography variant="h6" sx={{ marginBottom: 1 }}>Tracking Information</CustomTypography>
             <DetailsSection data={filteredOrderDetails.delivery_info.tracking_info} />
           </Box>
         )}

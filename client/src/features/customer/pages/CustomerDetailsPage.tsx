@@ -2,7 +2,7 @@ import { FC, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 import CustomerDetailHeader from '@features/customer/components/CustomerDetailHeader';
 import CustomerDetailSection from '@features/customer/components/CustomerDetailSection';
 import useCustomers from '@hooks/useCustomers';
@@ -27,12 +27,12 @@ const CustomerDetailsPage: FC = () => {
     <Box sx={{ display: 'flex', gap: 4, p: 3, flexWrap: 'wrap' }}>
       {/* Show loading state */}
       {customerDetailLoading && (
-        <Typography>Loading customer details...</Typography>
+        <CustomTypography>Loading customer details...</CustomTypography>
       )}
 
       {/* Show error message */}
       {customerDetailError && (
-        <Typography color="error">Error: {customerDetailError}</Typography>
+        <CustomTypography color="error">Error: {customerDetailError}</CustomTypography>
       )}
 
       {/* Show customer details when available */}
@@ -54,9 +54,9 @@ const CustomerDetailsPage: FC = () => {
 
           {/* Right: Related Data */}
           <Box sx={{ flex: 2, minWidth: 500 }}>
-            <Typography variant="h6" sx={{ mb: 2 }}>
+            <CustomTypography variant="h6" sx={{ mb: 2 }}>
               Customer Orders
-            </Typography>
+            </CustomTypography>
             {/*<OrdersList customerId={customerId} />*/}
           </Box>
         </Box>

@@ -8,7 +8,7 @@ import MenuItem from '@mui/material/MenuItem';
 import Divider from '@mui/material/Divider';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSun, faMoon } from '@fortawesome/free-solid-svg-icons';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 import HealthStatus from '@features/health/components/HealthStatus';
 import CustomButton from '@components/common/CustomButton';
 import { useThemeContext } from '@context/ThemeContext';
@@ -49,9 +49,9 @@ const Header: FC<HeaderProps> = ({ user, onLogout }) => {
   return (
     <Box sx={headerStyles(theme)}>
       {/* Application Title */}
-      <Typography variant="h6" sx={typographyStyles(theme)}>
+      <CustomTypography variant="h6" sx={typographyStyles(theme)}>
         WIDE Naturals Inc.
-      </Typography>
+      </CustomTypography>
 
       {/* Server Status */}
       <HealthStatus getStatusColor={getStatusColor} />
@@ -92,7 +92,7 @@ const Header: FC<HeaderProps> = ({ user, onLogout }) => {
         }}
       >
         <MenuItem>
-          <Typography variant="body1">{user?.firstname || 'Guest'}</Typography>
+          <CustomTypography variant="body1">{user?.firstname || 'Guest'}</CustomTypography>
         </MenuItem>
         <Divider />
         <MenuItem
@@ -109,7 +109,7 @@ const Header: FC<HeaderProps> = ({ user, onLogout }) => {
             onLogout();
           }}
         >
-          <Typography variant="body2">Logout</Typography>
+          <CustomTypography variant="body2">Logout</CustomTypography>
         </MenuItem>
       </Menu>
     </Box>

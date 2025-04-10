@@ -2,7 +2,7 @@ import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import IconButton from '@mui/material/IconButton';
 import { ArrowBack, ArrowForward } from '@mui/icons-material';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 import CustomCard from '@components/common/CustomCard';
 import CustomButton from '@components/common/CustomButton';
 import { formatDate } from '@utils/dateTimeUtils';
@@ -28,7 +28,7 @@ const WarehouseItemSummaryCard = ({
     <Box>
       {/* Page Header */}
       <Paper sx={{ padding: 2, marginBottom: 3 }}>
-        <Typography variant="h4">Warehouse Item Summary</Typography>
+        <CustomTypography variant="h4">Warehouse Item Summary</CustomTypography>
       </Paper>
       
       {/* Summary Cards */}
@@ -54,32 +54,32 @@ const WarehouseItemSummaryCard = ({
               },
             }}
           >
-            <Typography variant="body2">
+            <CustomTypography variant="body2">
               Reserved Stock: {item.totalReservedStock}
-            </Typography>
-            <Typography variant="body2">
+            </CustomTypography>
+            <CustomTypography variant="body2">
               Lot Reserved: {item.totalLotReservedStock || 0}
-            </Typography>
-            <Typography variant="body2">
+            </CustomTypography>
+            <CustomTypography variant="body2">
               Available Stock: {item.totalAvailableStock}
-            </Typography>
-            <Typography variant="body2">
+            </CustomTypography>
+            <CustomTypography variant="body2">
               Total Stock: {item.totalQtyStock}
-            </Typography>
-            <Typography variant="body2">
+            </CustomTypography>
+            <CustomTypography variant="body2">
               Total Lots: {item.totalLots}
-            </Typography>
-            <Typography variant="body2">
+            </CustomTypography>
+            <CustomTypography variant="body2">
               Zero Stock Lots: {item.totalZeroStockLots}
-            </Typography>
-            <Typography variant="body2">
+            </CustomTypography>
+            <CustomTypography variant="body2">
               Earliest Expiry:{' '}
               {item.earliestExpiry ? formatDate(item.earliestExpiry) : 'N/A'}
-            </Typography>
-            <Typography variant="body2">
+            </CustomTypography>
+            <CustomTypography variant="body2">
               Latest Expiry:{' '}
               {item.latestExpiry ? formatDate(item.latestExpiry) : 'N/A'}
-            </Typography>
+            </CustomTypography>
           </CustomCard>
         ))}
       </Box>
@@ -104,12 +104,12 @@ const WarehouseItemSummaryCard = ({
           >
             <ArrowBack />
           </IconButton>
-          <Typography
+          <CustomTypography
             variant="body2"
             sx={{ minWidth: 80, textAlign: 'center' }}
           >
             {`Page ${summaryPage} of ${totalPages}`}
-          </Typography>
+          </CustomTypography>
           <IconButton
             onClick={() =>
               setSummaryPage(

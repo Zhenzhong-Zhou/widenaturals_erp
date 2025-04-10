@@ -2,7 +2,7 @@ import { FC } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import CustomButton from '@components/common//CustomButton';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 import { useThemeContext } from '@context/ThemeContext';
 
 const HomePage: FC = () => {
@@ -15,7 +15,7 @@ const HomePage: FC = () => {
 
   return (
     <Box>
-      <Typography>Welcome</Typography>
+      <CustomTypography>Welcome</CustomTypography>
       <CustomButton
         variant="contained"
         size="large"

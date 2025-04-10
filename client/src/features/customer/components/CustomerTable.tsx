@@ -1,7 +1,7 @@
 import { FC, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Box from '@mui/material/Box';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
 import CustomTable from '@components/common/CustomTable';
 import { Customer } from '@features/customer';
@@ -98,9 +98,9 @@ const CustomerTable: FC = () => {
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
+      <CustomTypography variant="h4" gutterBottom>
         Customer List
-      </Typography>
+      </CustomTypography>
 
       <CustomButton
         variant="contained"
@@ -110,8 +110,8 @@ const CustomerTable: FC = () => {
         Refresh Data
       </CustomButton>
 
-      {loading && <Typography>Loading customers...</Typography>}
-      {error && <Typography color="error">{error}</Typography>}
+      {loading && <CustomTypography>Loading customers...</CustomTypography>}
+      {error && <CustomTypography color="error">{error}</CustomTypography>}
 
       <CustomTable
         columns={columns}

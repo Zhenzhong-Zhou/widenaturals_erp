@@ -6,7 +6,7 @@ import ErrorDisplay from '@components/shared/ErrorDisplay';
 import ErrorMessage from '@components/common/ErrorMessage';
 import ReportPageLayout from '@features/report/components/ReportPageLayout';
 import InventoryActivityLogTable from '@features/report/components/InventoryActivityLogTable';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 
 const InventoryActivityLogPage: FC = () => {
   const reportCategory = 'inventory_activity';
@@ -66,9 +66,9 @@ const InventoryActivityLogPage: FC = () => {
           fetchInventoryActivityLogs={fetchInventoryActivityLogs}
         />
       ) : (
-        <Typography variant="body1" sx={{ textAlign: 'center', padding: 2 }}>
+        <CustomTypography variant="body1" sx={{ textAlign: 'center', padding: 2 }}>
           No inventory activity logs available.
-        </Typography>
+        </CustomTypography>
       )}
     </ReportPageLayout>
   );

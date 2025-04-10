@@ -1,7 +1,7 @@
 import { FC, useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import useSalesOrders from '@hooks/useSalesOrders';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 import GoBackButton from '@components/common/GoBackButton';
 import OrderTypesDropdown from '@features/order/components/OrderTypesDropdown';
 import Loading from '@components/common/Loading';
@@ -62,9 +62,9 @@ const OrderPage: FC = () => {
   
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
+      <CustomTypography variant="h4" gutterBottom>
         Create New Order
-      </Typography>
+      </CustomTypography>
       
       <GoBackButton/>
       
@@ -74,9 +74,9 @@ const OrderPage: FC = () => {
       />
       
       {latestOrderType && (
-        <Typography variant="body1" sx={{ mt: 2 }}>
+        <CustomTypography variant="body1" sx={{ mt: 2 }}>
           Selected Order Type: <strong>{latestOrderType.name}</strong>
-        </Typography>
+        </CustomTypography>
       )}
       
       {/* Display Loading Indicator When Processing */}
@@ -99,9 +99,9 @@ const OrderPage: FC = () => {
             category={latestOrderType?.category}
           />
         ) : (
-          <Typography variant="h6" sx={{ textAlign: 'center', marginTop: 2 }}>
+          <CustomTypography variant="h6" sx={{ textAlign: 'center', marginTop: 2 }}>
             This order type is not supported yet.
-          </Typography>
+          </CustomTypography>
         )}
       </OrderFormModal>
       

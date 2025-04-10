@@ -11,7 +11,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import TextField from '@mui/material/TextField';
 import MenuItem from '@mui/material/MenuItem';
 import CustomModal from '@components/common/CustomModal';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
 import { formatLabel } from '@utils/textUtils';
 import { LotAdjustmentType } from '@features/warehouse-inventory/state';
@@ -133,7 +133,7 @@ const BulkAdjustQuantityModal: FC<BulkAdjustQuantityModalProps> = ({
       onClose={onClose}
       title={
         <Box display="flex" justifyContent="space-between" alignItems="center">
-          <Typography variant="h6">Bulk Adjust Lot Quantities</Typography>
+          <CustomTypography variant="h6">Bulk Adjust Lot Quantities</CustomTypography>
           {/* Close Button */}
           <IconButton onClick={onClose} color="inherit">
             <CloseIcon />
@@ -185,7 +185,7 @@ const BulkAdjustQuantityModal: FC<BulkAdjustQuantityModalProps> = ({
                     justifyContent="space-between"
                     alignItems="center"
                   >
-                    <Typography
+                    <CustomTypography
                       variant="h6"
                       fontWeight="bold"
                       sx={{
@@ -195,7 +195,7 @@ const BulkAdjustQuantityModal: FC<BulkAdjustQuantityModalProps> = ({
                       }}
                     >
                       {lot.productName}
-                    </Typography>
+                    </CustomTypography>
                     {/* Remove Button for Each Lot */}
                     <IconButton
                       onClick={() => handleRemove(lot.warehouseInventoryLotId)}
@@ -205,12 +205,12 @@ const BulkAdjustQuantityModal: FC<BulkAdjustQuantityModalProps> = ({
                     </IconButton>
                   </Box>
 
-                  <Typography variant="body2" color="text.secondary">
+                  <CustomTypography variant="body2" color="text.secondary">
                     Lot Number: <strong>{lot.lotNumber}</strong>
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  </CustomTypography>
+                  <CustomTypography variant="body2" color="text.secondary">
                     Current Quantity: <strong>{lot.currentQuantity}</strong>
-                  </Typography>
+                  </CustomTypography>
 
                   <Divider sx={{ my: 2 }} />
 

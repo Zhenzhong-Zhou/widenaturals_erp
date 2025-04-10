@@ -3,7 +3,7 @@ import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import Alert from '@mui/material/Alert';
 import CustomModal from '@components/common/CustomModal';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 import ResetPasswordForm from '@features/resetPassword/components/ResetPasswordForm';
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -66,9 +66,9 @@ const ResetPasswordModal: FC<ResetPasswordModalProps> = ({
             mb: 2,
           }}
         >
-          <Typography id="reset-password-title" variant="h6" component="h2">
+          <CustomTypography id="reset-password-title" variant="h6" component="h2">
             Reset Password
-          </Typography>
+          </CustomTypography>
           <IconButton onClick={onClose} aria-label="close">
             <FontAwesomeIcon
               icon={faTimes}

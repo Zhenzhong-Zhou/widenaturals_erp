@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import CustomModal from '@components/common/CustomModal';
 import CustomForm from '@components/common/CustomForm';
 import Box from '@mui/material/Box';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 import { formatLabel } from '@utils/textUtils';
 import { LotAdjustmentType } from '@features/warehouse-inventory/state';
 import useLotAdjustmentTypes from '@hooks/useLotAdjustmentTypes';
@@ -65,12 +65,12 @@ const EditQuantityModal: FC<EditQuantityModalProps> = ({
   return (
     <CustomModal open={open} onClose={onClose} title="Edit Lot Quantity">
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 2 }}>
-        <Typography variant="h6" fontWeight="bold">
+        <CustomTypography variant="h6" fontWeight="bold">
           {itemName}
-        </Typography>
-        <Typography variant="subtitle2" color="text.secondary">
+        </CustomTypography>
+        <CustomTypography variant="subtitle2" color="text.secondary">
           Lot Number: <strong>{lotNumber}</strong>
-        </Typography>
+        </CustomTypography>
       </Box>
 
       <CustomForm

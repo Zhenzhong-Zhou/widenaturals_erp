@@ -2,7 +2,7 @@ import { Component, ReactNode, ErrorInfo } from 'react';
 import Box from '@mui/material/Box';
 import { handleError, mapErrorMessage } from '@utils/errorUtils';
 import ErrorDisplay from '@components/shared/ErrorDisplay';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
 import { AppError, ErrorType } from '@utils/AppError';
 
@@ -106,17 +106,17 @@ class ModuleErrorBoundary extends Component<Props, State> {
                 boxShadow: 1,
               }}
             >
-              <Typography variant="h4" color="error" gutterBottom>
+              <CustomTypography variant="h4" color="error" gutterBottom>
                 Module Error
-              </Typography>
-              <Typography variant="body1" gutterBottom>
+              </CustomTypography>
+              <CustomTypography variant="body1" gutterBottom>
                 {errorMessage ||
                   'Something went wrong in this module. Please try again later.'}
-              </Typography>
+              </CustomTypography>
               {errorType && (
-                <Typography variant="body2" color="textSecondary" gutterBottom>
+                <CustomTypography variant="body2" color="textSecondary" gutterBottom>
                   Error Type: {errorType}
-                </Typography>
+                </CustomTypography>
               )}
               <CustomButton
                 variant="contained"

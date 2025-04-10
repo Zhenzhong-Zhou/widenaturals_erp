@@ -4,8 +4,8 @@ import CardContent from '@mui/material/CardContent';
 import CardMedia from '@mui/material/CardMedia';
 import CardActions from '@mui/material/CardActions';
 import Box from '@mui/material/Box';
+import CustomTypography from '@components/common/CustomTypography';
 import type { SxProps, Theme } from '@mui/system';
-import Typography from '@components/common/Typography';
 
 interface CustomCardProps {
   title?: string | ReactNode;
@@ -60,7 +60,7 @@ const CustomCard: FC<CustomCardProps> = ({
 
       <CardContent sx={{ ...contentSx }}>
         {title && (
-          <Typography
+          <CustomTypography
             variant="h5"
             align="center"
             gutterBottom
@@ -70,17 +70,17 @@ const CustomCard: FC<CustomCardProps> = ({
             }}
           >
             {title}
-          </Typography>
+          </CustomTypography>
         )}
         {subtitle && (
-          <Typography
+          <CustomTypography
             variant="body1"
             align="center"
             gutterBottom
             sx={{ color: (theme) => theme.palette.text.secondary }}
           >
             {subtitle}
-          </Typography>
+          </CustomTypography>
         )}
         {children && <Box mt={2}>{children}</Box>}
       </CardContent>

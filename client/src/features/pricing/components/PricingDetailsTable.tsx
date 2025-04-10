@@ -2,7 +2,7 @@ import { FC } from 'react';
 import { PricingDetails } from '@features/pricing';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 import CustomTable from '@components/common/CustomTable';
 import { formatDateTime } from '@utils/dateTimeUtils';
 import { formatLabel, formatCurrency } from '@utils/textUtils';
@@ -52,41 +52,41 @@ const PricingDetailsTable: FC<PricingDetailsTableProps> = ({
     <Box>
       {/* General Pricing Info */}
       <Paper sx={{ padding: 2, marginBottom: 3 }}>
-        <Typography variant="h6">General Pricing Information</Typography>
-        <Typography>
+        <CustomTypography variant="h6">General Pricing Information</CustomTypography>
+        <CustomTypography>
           <strong>{pricing.price_type_name} Price:</strong> CA{' '}
           {formatCurrency(pricing.price)}
-        </Typography>
-        <Typography>
+        </CustomTypography>
+        <CustomTypography>
           <strong>Valid From:</strong> {formatDateTime(pricing.valid_from)}
-        </Typography>
-        <Typography>
+        </CustomTypography>
+        <CustomTypography>
           <strong>Valid To:</strong>{' '}
           {pricing.valid_to ? formatDateTime(pricing.valid_to) : 'N/A'}
-        </Typography>
-        <Typography>
+        </CustomTypography>
+        <CustomTypography>
           <strong>Status:</strong> {formatLabel(pricing.status_name)}
-        </Typography>
-        <Typography>
+        </CustomTypography>
+        <CustomTypography>
           <strong>Status Date:</strong> {formatDateTime(pricing.status_date)}
-        </Typography>
-        <Typography>
+        </CustomTypography>
+        <CustomTypography>
           <strong>Created At:</strong> {formatDateTime(pricing.created_at)}
-        </Typography>
-        <Typography>
+        </CustomTypography>
+        <CustomTypography>
           <strong>Updated At:</strong> {formatDateTime(pricing.updated_at)}
-        </Typography>
-        <Typography>
+        </CustomTypography>
+        <CustomTypography>
           <strong>Created By:</strong> {pricing.created_by}
-        </Typography>
-        <Typography>
+        </CustomTypography>
+        <CustomTypography>
           <strong>Updated By:</strong> {pricing.updated_by}
-        </Typography>
+        </CustomTypography>
       </Paper>
 
       {/* Products Table */}
       <Paper sx={{ padding: 2, marginBottom: 3 }}>
-        <Typography variant="h6">Linked Products</Typography>
+        <CustomTypography variant="h6">Linked Products</CustomTypography>
         <CustomTable
           columns={productColumns}
           data={products}
@@ -100,7 +100,7 @@ const PricingDetailsTable: FC<PricingDetailsTableProps> = ({
 
       {/* Locations Table */}
       <Paper sx={{ padding: 2, marginBottom: 3 }}>
-        <Typography variant="h6">Linked Locations</Typography>
+        <CustomTypography variant="h6">Linked Locations</CustomTypography>
         <CustomTable
           columns={locationColumns}
           data={locations}

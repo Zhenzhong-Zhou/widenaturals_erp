@@ -4,7 +4,7 @@ import Paper from '@mui/material/Paper';
 import Loading from '@components/common/Loading';
 import ErrorDisplay from '@components/shared/ErrorDisplay';
 import ErrorMessage from '@components/common/ErrorMessage';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 import WarehouseInventorySummaryCard from '@features/warehouse-inventory/components/WarehouseInventorySummaryCard';
 import WarehouseInventoryTable from '@features/warehouse-inventory/components/WarehouseInventoryTable';
 import CustomButton from '@components/common/CustomButton';
@@ -39,14 +39,14 @@ const WarehouseInventoryPage = () => {
     );
   if (!inventories || inventories.length === 0)
     return (
-      <Typography variant={'h4'}>No warehouse inventory found.</Typography>
+      <CustomTypography variant={'h4'}>No warehouse inventory found.</CustomTypography>
     );
 
   return (
     <Box sx={{ padding: 3 }}>
       {/* Page Header */}
       <Paper sx={{ padding: 2, marginBottom: 3 }}>
-        <Typography variant="h4">Warehouse Inventory</Typography>
+        <CustomTypography variant="h4">Warehouse Inventory</CustomTypography>
       </Paper>
 
       {/* Summary Card with Pagination */}

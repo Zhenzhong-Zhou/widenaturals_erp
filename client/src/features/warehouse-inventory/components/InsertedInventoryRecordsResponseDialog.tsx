@@ -1,7 +1,7 @@
 import { FC } from 'react';
 import Box from '@mui/material/Box';
 import CustomDialog from '@components/common/CustomDialog';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 import MetadataSection from '@components/common/MetadataSection';
 import { formatDateTime } from '@utils/dateTimeUtils';
 import { WarehouseInventoryInsertResponse } from '@features/warehouse-inventory';
@@ -51,16 +51,16 @@ const InventoryRecordsResponseDialog: FC<InventoryRecordsDialogProps> = ({
       >
         {formattedData.data.map((warehouse) => (
           <Box key={warehouse.warehouseId} sx={{ marginBottom: 2 }}>
-            <Typography variant="h6">{warehouse.warehouseName}</Typography>
-            <Typography variant="body2">
+            <CustomTypography variant="h6">{warehouse.warehouseName}</CustomTypography>
+            <CustomTypography variant="body2">
               Total Records: {warehouse.totalRecords}
-            </Typography>
+            </CustomTypography>
             
             {warehouse.inventoryRecords.map((record) => (
               <Box key={record.warehouseLotId} sx={{ mb: 2 }}>
-                <Typography variant="subtitle1">
+                <CustomTypography variant="subtitle1">
                   {record.productName} (Lot: {record.lotNumber})
-                </Typography>
+                </CustomTypography>
                 <MetadataSection data={record} />
               </Box>
             ))}

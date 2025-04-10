@@ -4,7 +4,7 @@ import { Location } from '@features/location';
 import { formatLabel } from '@utils/textUtils';
 import { formatDateTime } from '@utils/dateTimeUtils';
 import Box from '@mui/material/Box';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 import CustomTable from '@components/common/CustomTable';
 
 interface LocationTableProps {
@@ -74,9 +74,9 @@ const LocationTable: FC<LocationTableProps> = ({
   return (
     <Box>
       {data.length === 0 ? (
-        <Typography sx={{ textAlign: 'center', padding: 2 }}>
+        <CustomTypography sx={{ textAlign: 'center', padding: 2 }}>
           No locations found.
-        </Typography>
+        </CustomTypography>
       ) : (
         <CustomTable
           columns={columns}

@@ -6,7 +6,7 @@ import Divider from '@mui/material/Divider';
 import Loading from '@components/common/Loading';
 import ErrorDisplay from '@components/shared/ErrorDisplay';
 import ErrorMessage from '@components/common/ErrorMessage';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 import LocationTypeDetailsTable from '@features/locationType/components/LocationTypeDetailsTable';
 import CustomButton from '@components/common/CustomButton';
 import { formatDateTime } from '@utils/dateTimeUtils';
@@ -35,7 +35,7 @@ const LocationTypeDetailPage: FC = () => {
       </ErrorDisplay>
     );
   if (!locationType)
-    return <Typography variant={'h4'}>No location type found.</Typography>;
+    return <CustomTypography variant={'h4'}>No location type found.</CustomTypography>;
 
   return (
     <Box>
@@ -43,35 +43,35 @@ const LocationTypeDetailPage: FC = () => {
         <>
           {/* Location Type Overview Section */}
           <Paper sx={{ padding: 2, marginBottom: 3 }}>
-            <Typography variant="h4" gutterBottom>
+            <CustomTypography variant="h4" gutterBottom>
               {locationType.location_type_name} - Location Type Details
-            </Typography>
-            <Typography variant="subtitle1" color="textSecondary">
+            </CustomTypography>
+            <CustomTypography variant="subtitle1" color="textSecondary">
               {locationType.location_type_description}
-            </Typography>
+            </CustomTypography>
             <Divider sx={{ marginY: 2 }} />
-            <Typography>
+            <CustomTypography>
               <strong>Status:</strong>{' '}
               {formatLabel(locationType.status_name)}
-            </Typography>
-            <Typography>
+            </CustomTypography>
+            <CustomTypography>
               <strong>Status Date:</strong>{' '}
               {formatDateTime(locationType.status_date)}
-            </Typography>
-            <Typography>
+            </CustomTypography>
+            <CustomTypography>
               <strong>Created At:</strong>{' '}
               {formatDateTime(locationType.created_at)}
-            </Typography>
-            <Typography>
+            </CustomTypography>
+            <CustomTypography>
               <strong>Updated At:</strong>{' '}
               {formatDateTime(locationType.updated_at)}
-            </Typography>
-            <Typography>
+            </CustomTypography>
+            <CustomTypography>
               <strong>Created By:</strong> {locationType.created_by}
-            </Typography>
-            <Typography>
+            </CustomTypography>
+            <CustomTypography>
               <strong>Updated By:</strong> {locationType.updated_by}
-            </Typography>
+            </CustomTypography>
           </Paper>
         </>
       )}

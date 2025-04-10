@@ -1,7 +1,7 @@
 import { FC } from 'react';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 import { footerStyles, footerTextStyle } from '@layouts/Footer/footerStyles';
 import { useThemeContext } from '@context/ThemeContext';
 
@@ -14,25 +14,25 @@ const Footer: FC = () => {
         <Box sx={footerStyles(theme)}>
           {/* Copyright Information */}
           <Box sx={footerTextStyle(theme)}>
-            <Typography variant="body2" color="text.secondary">
+            <CustomTypography variant="body2" color="text.secondary">
               &copy; 2022 - {new Date().getFullYear()} Wide Naturals Inc. All
               Rights Reserved.
-            </Typography>
+            </CustomTypography>
           </Box>
 
           {/* Powered By */}
           <Box>
-            <Typography variant="body2" color="text.secondary">
+            <CustomTypography variant="body2" color="text.secondary">
               Powered by{' '}
-              <Typography
+              <CustomTypography
                 component="span"
                 variant="body2"
                 color="primary"
                 sx={{ fontWeight: 'bold' }}
               >
                 Bob Dev
-              </Typography>
-            </Typography>
+              </CustomTypography>
+            </CustomTypography>
           </Box>
         </Box>
       </Container>

@@ -8,7 +8,7 @@ import useInventorySummary from '@hooks/useInventorySummary';
 import Loading from '@components/common/Loading';
 import ErrorDisplay from '@components/shared/ErrorDisplay';
 import ErrorMessage from '@components/common/ErrorMessage';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 import InventorySummaryTable from '@features/inventory/components/InventorySummaryTable';
 import CustomButton from '@components/common/CustomButton';
 import InventoryTable from '@features/inventory/components/InventoryTable';
@@ -67,9 +67,9 @@ const InventoryPage = () => {
   return (
     <Box sx={{ padding: 3 }}>
       <Paper sx={{ padding: 2, mb: 3 }}>
-        <Typography variant="h4" gutterBottom>
+        <CustomTypography variant="h4" gutterBottom>
           Inventory Management
-        </Typography>
+        </CustomTypography>
         <Tabs value={tab} onChange={handleTabChange}>
           <Tab label="Inventory Summary" />
           <Tab label="Inventory List" />

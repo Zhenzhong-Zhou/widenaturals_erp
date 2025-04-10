@@ -4,7 +4,7 @@ import Box from '@mui/material/Box';
 import Loading from '@components/common/Loading';
 import ErrorDisplay from '@components/shared/ErrorDisplay';
 import ErrorMessage from '@components/common/ErrorMessage';
-import Typography from '@components/common/Typography';
+import CustomTypography from '@components/common/CustomTypography';
 import CustomTable from '@components/common/CustomTable';
 import CustomButton from '@components/common/CustomButton';
 import {
@@ -172,32 +172,32 @@ const PricingTypeDetailsTable: FC<PricingTypeDetailsTableProps> = ({
       {/* Display Pricing Type Metadata */}
       {pricingTypeDetails && (
         <Box sx={{ marginBottom: 2 }}>
-          <Typography variant="h4" gutterBottom>
+          <CustomTypography variant="h4" gutterBottom>
             {pricingTypeDetails.pricing_type_name} - Price Type Details
-          </Typography>
-          <Typography variant="h6">
+          </CustomTypography>
+          <CustomTypography variant="h6">
             Description: {pricingTypeDetails.pricing_type_description}
-          </Typography>
-          <Typography variant="body1">
+          </CustomTypography>
+          <CustomTypography variant="body1">
             Status: {pricingTypeDetails.status} | Status Date:{' '}
             {formatDateTime(pricingTypeDetails.status_date)}
-          </Typography>
-          <Typography variant="body1">
+          </CustomTypography>
+          <CustomTypography variant="body1">
             Created At: {formatDateTime(pricingTypeDetails.created_at)} | Last
             Updated: {formatDateTime(pricingTypeDetails.updated_at)}
-          </Typography>
-          <Typography variant="body1">
+          </CustomTypography>
+          <CustomTypography variant="body1">
             Created By: {pricingTypeDetails.created_by.full_name} | Updated By:{' '}
             {pricingTypeDetails.updated_by.full_name}
-          </Typography>
+          </CustomTypography>
         </Box>
       )}
 
       {/* Pricing Records Table */}
       {data.length === 0 ? (
-        <Typography variant="body1">
+        <CustomTypography variant="body1">
           No pricing records available for this pricing type.
-        </Typography>
+        </CustomTypography>
       ) : (
         <>
           <CustomTable
