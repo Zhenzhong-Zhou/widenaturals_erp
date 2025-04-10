@@ -1,5 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit';
-import { RootState } from '../../../store/store.ts';
+import { RootState } from '@store/store';
 
 const selectInventorySummaryState = (state: RootState) => state.inventorySummary;
 

@@ -20,7 +20,7 @@ export type {
   BulkInsertInventoryResponse,
   InsertInventoryRequestBody,
   WarehouseInventoryInsertResponse,
-} from './state/warehouseInventoryTypes.ts';
+} from './state/warehouseInventoryTypes';
 export {
   fetchWarehouseInventoriesThunk,
   fetchWarehouseInventorySummaryThunk,
@@ -30,41 +30,41 @@ export {
   fetchProductsDropDownByWarehouseThunk,
   bulkInsertWarehouseInventoryThunk,
   fetchInsertedInventoryRecordsThunk,
-} from './state/warehouseInventoryThunks.ts';
+} from './state/warehouseInventoryThunks';
 export {
   fetchAllDropdownLotAdjustmentTypesThunk,
   adjustWarehouseInventoryLotThunk,
   bulkAdjustWarehouseInventoryLotsQtyThunk,
-} from './state/lotAdjustmentThunks.ts';
+} from './state/lotAdjustmentThunks';
 export {
   selectWarehouseInventories,
   selectWarehouseInventoryPagination,
   selectWarehouseInventoryLoading,
   selectWarehouseInventoryError,
-} from './state/warehouseInventorySelector.ts';
+} from './state/warehouseInventorySelector';
 export {
   selectWarehouseItemLoading,
   selectWarehouseItemError,
   selectWarehouseItemPagination,
   selectWarehouseItemSummary,
-} from './state/warehouseItemSummarySelectors.ts';
+} from './state/warehouseItemSummarySelectors';
 export {
   selectWarehouseInventorySummary,
   selectWarehouseInventorySummaryPagination,
   selectWarehouseInventorySummaryLoading,
   selectWarehouseInventorySummaryError,
-} from './state/warehouseInventorySummarySelectors.ts';
+} from './state/warehouseInventorySummarySelectors';
 export {
   selectWarehouseInventoryDetails,
   selectWarehouseInventoryDetailPagination,
   selectWarehouseInventoryDetailLoading,
   selectWarehouseInventoryDetailError,
-} from './state/warehouseInventoryDetailSelectors.ts';
+} from './state/warehouseInventoryDetailSelectors';
 export {
   selectLotAdjustmentTypes,
   selectLotAdjustmentLoading,
   selectLotAdjustmentError,
-} from './state/lotAdjustmentDropdownSelectors.ts';
+} from './state/lotAdjustmentDropdownSelectors';
 export {
   selectLotAdjustmentQtyLoadingSingle,
   selectLotAdjustmentQtySuccessSingle,
@@ -72,33 +72,33 @@ export {
   selectLotAdjustmentQtyLoadingBulk,
   selectLotAdjustmentQtySuccessBulk,
   selectLotAdjustmentQtyErrorBulk,
-} from './state/lotAdjustmentQtySelectors.ts';
-export { resetWarehouseItemSummary } from './state/warehouseItemSummarySlice.ts';
-export { resetLotAdjustmentState } from './state/lotAdjustmentQtySlice.ts';
-export { default as WarehouseInventorySummaryCard } from './components/WarehouseInventorySummaryCard.tsx';
-export { default as WarehouseItemSummaryCard } from './components/WarehouseItemSummaryCard.tsx';
-export { default as WarehouseInventoryDetailTable } from './components/WarehouseInventoryDetailTable.tsx';
-export { default as EditQuantityModal } from './components/EditQuantityModal.tsx';
-export { default as BulkAdjustQuantityModal } from './components/BulkAdjustQuantityModal.tsx';
+} from './state/lotAdjustmentQtySelectors';
+export { resetWarehouseItemSummary } from './state/warehouseItemSummarySlice';
+export { resetLotAdjustmentState } from './state/lotAdjustmentQtySlice';
+export { default as WarehouseInventorySummaryCard } from './components/WarehouseInventorySummaryCard';
+export { default as WarehouseItemSummaryCard } from './components/WarehouseItemSummaryCard';
+export { default as WarehouseInventoryDetailTable } from './components/WarehouseInventoryDetailTable';
+export { default as EditQuantityModal } from './components/EditQuantityModal';
+export { default as BulkAdjustQuantityModal } from './components/BulkAdjustQuantityModal';
 export {
   selectDropdownLoading,
   selectProductDropdown,
   selectWarehouseDropdown,
   selectDropdownError,
   selectDropdownData,
-} from './state/inventoryDropdownSelectors.ts';
-export { default as InventoryDropdown } from './components/InventoryDropdown.tsx';
+} from './state/inventoryDropdownSelectors';
+export { default as InventoryDropdown } from './components/InventoryDropdown';
 export {
   selectWarehouseInventoryInsertData,
   selectWarehouseInventoryInsertLoading,
   selectWarehouseInventoryInsertError,
-} from './state/bulkInsertWarehouseInventorySelectors.ts';
-export { default as BulkInsertInventoryModal } from './components/BulkInsertInventoryModal.tsx';
-export { default as WarehouseInventoryDetailHeader } from './components/WarehouseInventoryDetailHeader.tsx';
+} from './state/bulkInsertWarehouseInventorySelectors';
+export { default as BulkInsertInventoryModal } from './components/BulkInsertInventoryModal';
+export { default as WarehouseInventoryDetailHeader } from './components/WarehouseInventoryDetailHeader';
 export {
   selectInsertedInventoryRecordsResponseData,
   selectInsertedInventoryRecordsResponseLoading,
   selectInsertedInventoryRecordsResponseError,
-} from './state/insertedInventoryRecordsResponseSelectors.ts';
-export { default as InsertedInventoryRecordsResponseDialog } from './components/InsertedInventoryRecordsResponseDialog.tsx';
+} from './state/insertedInventoryRecordsResponseSelectors';
+export { default as InsertedInventoryRecordsResponseDialog } from './components/InsertedInventoryRecordsResponseDialog';
 export { warehouseInventoryReducers } from './state';

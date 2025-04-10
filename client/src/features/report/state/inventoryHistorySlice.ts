@@ -1,9 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { InventoryHistoryResponse, InventoryHistoryState } from './reportTypes';
-import {
-  exportInventoryHistoryThunk,
-  fetchInventoryHistoryThunk,
-} from './reportThunks.ts';
+import { InventoryHistoryResponse, InventoryHistoryState } from '@features/report';
+import { exportInventoryHistoryThunk, fetchInventoryHistoryThunk } from '@features/report/state/reportThunks';
 
 const initialState: InventoryHistoryState = {
   data: [], // Now an array (not null) to prevent type errors

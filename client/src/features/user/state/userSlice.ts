@@ -1,6 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { PaginationInfo, User, UsersState } from './userTypes';
-import { fetchUsersThunk } from './userThunks';
+import { fetchUsersThunk, PaginationInfo, User, UsersState } from '@features/user';
 
 const initialState: UsersState = {
   users: {

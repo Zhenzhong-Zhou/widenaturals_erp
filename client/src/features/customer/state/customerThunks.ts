@@ -6,8 +6,8 @@ import {
   CustomerListResponse,
   CustomerQueryParams, FetchCustomersDropdownResponse,
 } from '@features/customer';
-import { customerService } from '@services/customerService.ts';
-import { dropdownService } from '@services/dropdownService.ts';
+import { customerService } from '@services/customerService';
+import { dropdownService } from '@services/dropdownService';
 
 // Thunk for creating a single customer
 export const createCustomerThunk = createAsyncThunk<

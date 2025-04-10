@@ -1,5 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit';
-import { RootState } from '../../../store/store.ts';
+import { RootState } from '@store/store';
 
 /** Select raw warehouse inventory state */
 export const selectWarehouseInventoryState = (state: RootState) =>

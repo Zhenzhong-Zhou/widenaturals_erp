@@ -1,6 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { PriceState } from './pricingTypes.ts';
-import { fetchPriceValueThunk } from './pricingThunks.ts';
+import { fetchPriceValueThunk, PriceState } from '@features/pricing';
 
 const initialState: PriceState = {
   priceData: null,

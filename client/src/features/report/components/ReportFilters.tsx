@@ -3,7 +3,7 @@ import Dropdown from '@components/common/Dropdown';
 import { BaseReportParams } from '@features/report';
 import { formatDate } from '@utils/dateTimeUtils';
 
-const CustomDatePicker = lazy(() => import('@components/common/CustomDatePicker.tsx'));
+const CustomDatePicker = lazy(() => import('@components/common/CustomDatePicker'));
 
 interface ReportFiltersProps<T extends BaseReportParams> {
   filters: T;

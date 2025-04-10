@@ -1,9 +1,9 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { LotAdjustmentQtyState } from './warehouseInventoryTypes.ts';
 import {
   adjustWarehouseInventoryLotThunk,
   bulkAdjustWarehouseInventoryLotsQtyThunk,
-} from './lotAdjustmentThunks.ts';
+  LotAdjustmentQtyState,
+} from '@features/warehouse-inventory';
 
 const initialState: LotAdjustmentQtyState = {
   loadingSingle: false,

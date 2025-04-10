@@ -2,11 +2,10 @@ import { createAsyncThunk } from '@reduxjs/toolkit';
 import {
   AdjustmentReportParams,
   InventoryActivityLogParams,
-  InventoryActivityLogsResponse,
-  InventoryHistoryParams,
+  InventoryActivityLogsResponse, InventoryHistoryParams,
   InventoryHistoryResponse,
-} from './reportTypes.ts';
-import { reportService } from '../../../services';
+} from '@features/report';
+import { reportService } from '@services/reportService';
 
 /**
  * Thunk for fetching paginated adjustment reports.

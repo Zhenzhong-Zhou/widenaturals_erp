@@ -4,7 +4,7 @@ import Typography from '@components/common/Typography';
 import { useThemeContext } from '@context/ThemeContext';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import type { SxProps, Theme } from '@mui/system';
-import { formatLabel } from '@utils/textUtils.ts';
+import { formatLabel } from '@utils/textUtils';
 
 interface DetailsSectionProps {
   data: Record<string, any>;

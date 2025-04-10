@@ -1,9 +1,6 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import {
-  FetchAllOrderTypesParams,
-  OrderTypeResponse,
-} from './orderTypeTypes.ts';
-import { orderTypeService } from '../../../services';
+import { FetchAllOrderTypesParams, OrderTypeResponse } from '@features/orderType';
+import { orderTypeService } from '@services/orderTypeService';
 
 export const fetchAllOrderTypesThunk = createAsyncThunk<
   OrderTypeResponse,

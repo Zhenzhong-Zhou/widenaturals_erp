@@ -1,6 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { OrderDetailsResponse } from './orderTypes.ts';
-import { fetchSalesOrderDetailsThunk } from './orderThunks.ts';
+import { fetchSalesOrderDetailsThunk, OrderDetailsResponse } from '@features/order';
 
 interface SalesOrderDetailsState {
   data: OrderDetailsResponse | null;

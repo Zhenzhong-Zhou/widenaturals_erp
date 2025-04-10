@@ -6,7 +6,7 @@ import ErrorMessage from '@components/common/ErrorMessage';
 import Loading from '@components/common/Loading';
 import Typography from '@components/common/Typography';
 import useCompliances from '@hooks/useCompliances';
-const ComplianceTable = lazy(() =>  import('../components/ComplianceTable.tsx'));
+const ComplianceTable = lazy(() =>  import('../components/ComplianceTable'));
 
 const CompliancePage = () => {
   const [page, setPage] = useState<number>(1);

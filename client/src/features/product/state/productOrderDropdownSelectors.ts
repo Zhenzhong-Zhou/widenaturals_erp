@@ -1,6 +1,6 @@
 import { createSelector } from '@reduxjs/toolkit';
-import { RootState } from '@store/store.ts';
-import { ProductOrderDropdownState } from '@features/product/state/productOrderDropdownSlice.ts';
+import { RootState } from '@store/store';
+import { ProductOrderDropdownState } from '@features/product/state/productOrderDropdownSlice';
 
 /**
  * Base selector to access the productOrderDropdown slice of the Redux state.

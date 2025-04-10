@@ -1,6 +1,10 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { InventorySummary, InventorySummaryPagination, InventorySummaryResponse } from './inventoryTypes.ts';
-import { fetchInventorySummaryThunk } from './inventoryThunks.ts';
+import {
+  fetchInventorySummaryThunk,
+  InventorySummary,
+  InventorySummaryPagination,
+  InventorySummaryResponse,
+} from '@features/inventory';
 
 interface InventorySummaryState {
   data: InventorySummary[];

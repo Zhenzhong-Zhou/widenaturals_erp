@@ -1,6 +1,6 @@
 import { FC } from 'react';
 import Chip from '@mui/material/Chip';
-import { useThemeContext } from '@context/ThemeContext.tsx';
+import { useThemeContext } from '@context/ThemeContext';
 
 interface Props {
   isExpired: boolean;

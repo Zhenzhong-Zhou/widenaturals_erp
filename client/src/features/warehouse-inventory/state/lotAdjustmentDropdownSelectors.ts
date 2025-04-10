@@ -1,5 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit';
-import { RootState } from '../../../store/store.ts';
+import { RootState } from '@store/store';
 
 // Base Selector: Gets the lotAdjustment slice
 const selectLotAdjustmentState = (state: RootState) =>

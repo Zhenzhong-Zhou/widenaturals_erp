@@ -1,12 +1,10 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import {
-  InventoryActivityLogsResponse,
-  InventoryActivityLogsState,
-} from './reportTypes';
-import {
   exportInventoryActivityLogsThunk,
   fetchInventoryActivityLogsThunk,
-} from './reportThunks.ts';
+  InventoryActivityLogsResponse,
+  InventoryActivityLogsState,
+} from '@features/report';
 
 /**
  * Initial state for Inventory Activity Logs

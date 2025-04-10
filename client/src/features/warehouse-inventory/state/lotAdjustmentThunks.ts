@@ -3,12 +3,10 @@ import {
   BulkLotAdjustmentPayload,
   LotAdjustmentSinglePayload,
   LotAdjustmentType,
-} from './warehouseInventoryTypes.ts';
-import {
-  lotAdjustmentTypeService,
-  warehouseInventoryService,
-} from '../../../services';
-import { AppError } from '@utils/AppError.tsx';
+} from '@features/warehouse-inventory/state/warehouseInventoryTypes';
+import { lotAdjustmentTypeService } from '@services/lotAdjustmentTypeService';
+import { AppError } from '@utils/AppError';
+import { warehouseInventoryService } from '@services/warehouseInventoryService';
 
 // API Call to Fetch Adjustment Types
 export const fetchAllDropdownLotAdjustmentTypesThunk = createAsyncThunk<

@@ -1,5 +1,5 @@
 import { createSelector } from 'reselect';
-import { RootState } from '../../../store/store.ts';
+import { RootState } from '@store/store';
 
 // Base selector: Directly selects dropdown state
 const selectDropdownState = (state: RootState) => state.inventoryDropdown;

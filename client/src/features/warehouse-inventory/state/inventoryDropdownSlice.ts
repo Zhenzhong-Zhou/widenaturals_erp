@@ -1,9 +1,9 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import {
+  DropdownState,
   fetchProductsDropDownByWarehouseThunk,
   fetchWarehousesDropdownThunk,
-} from './warehouseInventoryThunks.ts';
-import { DropdownState } from './warehouseInventoryTypes.ts';
+} from '@features/warehouse-inventory';
 
 const initialState: DropdownState = {
   products: [],

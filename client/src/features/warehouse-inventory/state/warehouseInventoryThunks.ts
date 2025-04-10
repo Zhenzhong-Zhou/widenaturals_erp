@@ -1,15 +1,17 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { dropdownService, warehouseInventoryService } from '../../../services';
 import {
   BulkInsertInventoryRequest,
-  BulkInsertInventoryResponse, FetchWarehouseItemSummaryParams,
+  BulkInsertInventoryResponse,
+  FetchWarehouseItemSummaryParams,
   InsertInventoryRequestBody,
   WarehouseInventoryDetailsResponse,
   WarehouseInventoryInsertResponse,
   WarehouseInventoryResponse,
   WarehouseInventorySummaryResponse,
   WarehouseItemSummaryResponse,
-} from './warehouseInventoryTypes.ts';
+} from '@features/warehouse-inventory';
+import { warehouseInventoryService } from '@services/warehouseInventoryService';
+import { dropdownService } from '@services/dropdownService';
 
 /**
  * Thunk to fetch warehouse inventories with pagination

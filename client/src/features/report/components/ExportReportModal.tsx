@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
-import CustomModal from '@components/common/CustomModal.tsx';
-import CustomButton from '@components/common/CustomButton.tsx';
+import CustomModal from '@components/common/CustomModal';
+import CustomButton from '@components/common/CustomButton';
 import { BaseReportParams } from '@features/report';
 
 interface ExportReportModalProps<T extends BaseReportParams> {

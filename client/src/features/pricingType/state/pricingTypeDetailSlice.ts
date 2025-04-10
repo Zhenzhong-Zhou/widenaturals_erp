@@ -1,11 +1,10 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { fetchPricingTypeDetailsThunk } from './pricingTypeThunks';
 import {
-  PricingTypeDetail,
+  fetchPricingTypeDetailsThunk,
   PricingRecord,
-  PricingTypePagination,
-  PricingTypeResponse,
-} from './pricingTypeTypes';
+  PricingTypeDetail,
+  PricingTypePagination, PricingTypeResponse,
+} from '@features/pricingType';
 
 export interface PricingTypeState {
   pricingTypeDetails: PricingTypeDetail | null; // Now a single object instead of an array

@@ -1,6 +1,6 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { DeliveryMethodDropdownItem } from './deliveryMethodTypes.ts';
-import { dropdownService } from '../../../services';
+import { DeliveryMethodDropdownItem } from '@features/deliveryMethod';
+import { dropdownService } from '@services/dropdownService';
 
 /**
  * Thunk to fetch delivery methods for dropdown.

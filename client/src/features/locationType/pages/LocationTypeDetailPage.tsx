@@ -7,7 +7,7 @@ import Loading from '@components/common/Loading';
 import ErrorDisplay from '@components/shared/ErrorDisplay';
 import ErrorMessage from '@components/common/ErrorMessage';
 import Typography from '@components/common/Typography';
-import LocationTypeDetailsTable from '@features/locationType/components/LocationTypeDetailsTable.tsx';
+import LocationTypeDetailsTable from '@features/locationType/components/LocationTypeDetailsTable';
 import CustomButton from '@components/common/CustomButton';
 import { formatDateTime } from '@utils/dateTimeUtils';
 import { formatLabel } from '@utils/textUtils';

@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { fetchProductDetailThunk } from './productThunks';
-import { Product, ProductDetailState } from './productTypes';
+import { Product, ProductDetailState } from '@features/product/state/productTypes';
+import { fetchProductDetailThunk } from '@features/product';
 
 const initialState: ProductDetailState = {
   productDetail: null,

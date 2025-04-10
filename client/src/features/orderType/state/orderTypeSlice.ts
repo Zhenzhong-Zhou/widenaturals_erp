@@ -1,10 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import {
-  OrderType,
-  OrderTypePagination,
-  OrderTypeResponse,
-} from './orderTypeTypes.ts';
-import { fetchAllOrderTypesThunk } from './orderTypeThunks.ts';
+import { OrderTypePagination } from '@features/orderType/state/orderTypeTypes';
+import { fetchAllOrderTypesThunk, OrderType, OrderTypeResponse } from '@features/orderType';
 
 interface OrderTypesState {
   data: OrderType[];

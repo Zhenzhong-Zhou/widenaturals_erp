@@ -3,7 +3,7 @@ import Box from '@mui/material/Box';
 import Loading from '@components/common/Loading';
 import Dropdown from '@components/common/Dropdown';
 import { TaxRateDropdownItem } from '@features/taxRate';
-import useTaxRateDropdown from '@hooks/useTaxRateDropdown.ts';
+import useTaxRateDropdown from '@hooks/useTaxRateDropdown';
 
 interface TaxRateDropdownProps {
   label?: string;
