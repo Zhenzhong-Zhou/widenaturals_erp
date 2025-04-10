@@ -1,4 +1,4 @@
-import { AppError, ErrorType } from '@utils/AppError.tsx';
+import { AppError, ErrorType } from '@utils/AppError';
 
 // Overload declarations
 export function withTimeout<T>(

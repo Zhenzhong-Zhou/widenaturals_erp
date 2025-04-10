@@ -1,11 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useAppDispatch, useAppSelector } from '../store/storeHooks';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   selectProducts,
   selectProductsPagination,
   selectProductsLoading,
   selectProductsError, UseProductsResult, fetchProductsThunk,
-} from '../features/product';
+} from '@features/product';
 
 const useProducts = <T>(): UseProductsResult<T> => {
   const dispatch = useAppDispatch();

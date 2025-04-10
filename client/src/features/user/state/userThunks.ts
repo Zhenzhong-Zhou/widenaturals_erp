@@ -1,7 +1,7 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { userService } from '../../../services';
-import { AppError } from '@utils/AppError.tsx';
-import { PaginationInfo, User, UserProfileResponse } from './userTypes.ts';
+import { AppError } from '@utils/AppError';
+import { PaginationInfo, User, UserProfileResponse } from '@features/user';
+import { userService } from '@services/userService';
 
 /**
  * Fetch all users from the API.

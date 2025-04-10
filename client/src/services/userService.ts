@@ -1,12 +1,12 @@
-import axiosInstance from '@utils/axiosConfig.ts';
-import { clearTokens } from '@utils/tokenManager.ts';
-import { handleError, mapErrorMessage } from '@utils/errorUtils.ts';
-import { AppError, ErrorType } from '@utils/AppError.tsx';
-import { UserProfileResponse, UseUsersResponse } from '../features/user';
-import { isCustomAxiosError } from '@utils/axiosUtils.ts';
-import { withTimeout } from '@utils/timeoutUtils.ts';
-import { withRetry } from '@utils/retryUtils.ts';
-import { API_ENDPOINTS } from './apiEndponits.ts';
+import axiosInstance from '@utils/axiosConfig';
+import { API_ENDPOINTS } from '@services/apiEndpoints';
+import { clearTokens } from '@utils/tokenManager';
+import { handleError, mapErrorMessage } from '@utils/errorUtils';
+import { AppError, ErrorType } from '@utils/AppError';
+import { UserProfileResponse, UseUsersResponse } from '@features/user';
+import { isCustomAxiosError } from '@utils/axiosUtils';
+import { withTimeout } from '@utils/timeoutUtils';
+import { withRetry } from '@utils/retryUtils';
 
 /**
  * Fetches a list of all users from the API.

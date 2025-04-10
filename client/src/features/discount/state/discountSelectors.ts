@@ -1,6 +1,6 @@
 import { createSelector } from '@reduxjs/toolkit';
-import { RootState } from '../../../store/store.ts';
-import { DiscountDropdownItem } from './discountTypes';
+import { RootState } from '@store/store';
+import { DiscountDropdownItem } from '@features/discount';
 
 // Simple selector to access the discountDropdown state
 const selectDiscountDropdownState = (state: RootState) => state.discountDropdown;

@@ -1,11 +1,10 @@
 import { FC } from 'react';
-import { CustomButton, Typography } from '@components/index.ts';
 import { useNavigate } from 'react-router-dom';
-import {
-  DashboardLayout,
-  DashboardPageProps,
-  PermissionList,
-} from '../index.ts';
+import { DashboardPageProps } from '@features/dashboard';
+import DashboardLayout from '@features/dashboard/components/DashboardLayout';
+import Typography from '@components/common/Typography';
+import CustomButton from '@components/common/CustomButton';
+import PermissionList from '@features/dashboard/components/PermissionList';
 
 const ManagerDashboardPage: FC<DashboardPageProps> = ({
   fullName = 'Unknown User',

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo } from 'react';
-import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   selectInventories,
   selectInventoryPagination,
@@ -7,7 +7,7 @@ import {
   selectInventoryError,
   selectIsFetchingInventory,
   fetchAllInventories,
-} from '../features/inventory';
+} from '@features/inventory';
 
 /**
  * Custom hook for fetching and managing inventory data.

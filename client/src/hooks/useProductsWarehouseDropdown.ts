@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useCallback } from 'react';
-import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchProductsDropDownByWarehouseThunk,
   selectDropdownLoading,

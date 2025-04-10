@@ -1,18 +1,14 @@
 import { FC, ReactNode } from 'react';
+import { BaseReportParams } from '@features/report';
 import Box from '@mui/material/Box';
-import {
-  CustomButton,
-  ErrorDisplay,
-  ErrorMessage,
-  GoBackButton,
-  Loading,
-  Typography,
-} from '@components/index.ts';
-import {
-  ReportFilters,
-  BaseReportParams,
-  ExportReportModal,
-} from '../index.ts';
+import Loading from '@components/common/Loading';
+import ErrorDisplay from '@components/shared/ErrorDisplay';
+import ErrorMessage from '@components/common/ErrorMessage';
+import GoBackButton from '@components/common/GoBackButton';
+import Typography from '@components/common/Typography';
+import ReportFilters from '@features/report/components/ReportFilters';
+import CustomButton from '@components/common/CustomButton';
+import ExportReportModal from '@features/report/components/ExportReportModal';
 
 interface ReportPageLayoutProps {
   title: string;

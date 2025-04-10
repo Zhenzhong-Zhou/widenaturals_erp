@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useCallback } from 'react';
-import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchSalesOrderDetailsThunk,
   selectSalesOrderDetailsData,
   selectSalesOrderDetailsError,
   selectSalesOrderDetailsLoading,
-} from '../features/order';
+} from '@features/order';
 
 /**
  * useSalesOrderDetails - A custom hook to fetch and select sales order details.

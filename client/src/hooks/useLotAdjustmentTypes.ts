@@ -1,11 +1,11 @@
 import { useEffect } from 'react';
-import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchAllDropdownLotAdjustmentTypesThunk,
   selectLotAdjustmentError,
   selectLotAdjustmentLoading,
   selectLotAdjustmentTypes,
-} from '../features/warehouse-inventory';
+} from '@features/warehouse-inventory';
 
 /**
  * Custom hook to fetch and manage lot adjustment types.

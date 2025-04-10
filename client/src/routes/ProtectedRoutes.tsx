@@ -1,7 +1,7 @@
 import { FC, ReactNode } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router';
-import { useSession } from '../hooks';
-import { routes } from './index.ts';
+import useSession from '@hooks/useSession';
+import { routes } from './index';
 
 interface ProtectedRoutesProps {
   children?: ReactNode; // Optional children

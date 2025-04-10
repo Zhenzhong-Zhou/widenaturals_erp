@@ -1,5 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { createSalesOrderThunk } from './orderThunks.ts';
+import { createSalesOrderThunk } from '@features/order';
 
 interface SalesOrderState {
   salesOrderId: string | null;

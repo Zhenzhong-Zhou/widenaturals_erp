@@ -4,13 +4,13 @@ export type {
   Compliance,
   CompliancePagination,
   ComplianceResponse,
-} from './state/complianceTypes.ts';
-export { fetchAllCompliancesThunk } from './state/complianceThunks.ts';
+} from './state/complianceTypes';
+export { fetchAllCompliancesThunk } from './state/complianceThunks';
 export {
   selectCompliances,
   selectCompliancesPagination,
   selectCompliancesLoading,
   selectCompliancesError,
-} from './state/complianceSelectors.ts';
-export { default as ComplianceTable } from './components/ComplianceTable.tsx';
+} from './state/complianceSelectors';
+export { default as ComplianceTable } from './components/ComplianceTable';
 export { complianceReducers } from './state';

@@ -10,19 +10,19 @@ export type {
   PriceRequestParams,
   PriceResponse,
   PriceState,
-} from './state/pricingTypes.ts';
+} from './state/pricingTypes';
 export {
   fetchPricingDataThunk,
   getPricingDetailsThunk,
   fetchPriceValueThunk,
-} from './state/pricingThunks.ts';
+} from './state/pricingThunks';
 export {
   selectPagination,
   selectPricingList,
   selectPricingLoading,
   selectPricingError,
-} from './state/pricingSelectors.ts';
-export { default as PricingTable } from './components/PricingTable.tsx';
+} from './state/pricingSelectors';
+export { default as PricingTable } from './components/PricingTable';
 export {
   selectPricingDetails,
   selectProducts,
@@ -31,10 +31,10 @@ export {
   selectPricingDetailsPagination,
   selectPricingDetailsLoading,
   selectPricingDetailsError,
-} from './state/pricingDetailSelectors.ts';
+} from './state/pricingDetailSelectors';
 export {
   selectPriceValueData,
   selectPriceValueLoading,
   selectPriceValueError,
-} from './state/pricingValueSelectors.ts'
+} from './state/pricingValueSelectors'
 export { pricingReducers } from './state';

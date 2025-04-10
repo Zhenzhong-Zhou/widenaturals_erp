@@ -1,21 +1,19 @@
 import { FC } from 'react';
+import { Link } from 'react-router-dom';
 import Box from '@mui/material/Box';
-import {
-  CustomButton,
-  Loading,
-  ErrorDisplay,
-  ErrorMessage,
-  CustomTable,
-  Typography,
-} from '@components/index.ts';
+import Loading from '@components/common/Loading';
+import ErrorDisplay from '@components/shared/ErrorDisplay';
+import ErrorMessage from '@components/common/ErrorMessage';
+import Typography from '@components/common/Typography';
+import CustomTable from '@components/common/CustomTable';
+import CustomButton from '@components/common/CustomButton';
 import {
   PricingTypeDetail,
   PricingRecord,
   PricingTypePagination,
 } from '@features/pricingType';
-import { formatDate, formatDateTime } from '@utils/dateTimeUtils.ts';
-import { formatLabel } from '@utils/textUtils.ts';
-import { Link } from 'react-router-dom';
+import { formatDate, formatDateTime } from '@utils/dateTimeUtils';
+import { formatLabel } from '@utils/textUtils';
 
 interface PricingTypeDetailsTableProps {
   pricingTypeDetails: PricingTypeDetail | null; // Added for pricing type metadata

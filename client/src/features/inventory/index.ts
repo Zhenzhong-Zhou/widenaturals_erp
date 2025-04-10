@@ -5,28 +5,28 @@ export type {
   InventorySummary,
   InventorySummaryPagination,
   InventorySummaryResponse,
-} from './state/inventoryTypes.ts';
+} from './state/inventoryTypes';
 export {
   fetchAllInventories,
   fetchInventorySummaryThunk
-} from './state/inventoryThunks.ts';
+} from './state/inventoryThunks';
 export {
   selectInventories,
   selectInventoryPagination,
   selectInventoryLoading,
   selectInventoryError,
   selectIsFetchingInventory,
-} from './state/inventorySelectors.ts';
+} from './state/inventorySelectors';
 export {
   selectInventorySummaryData,
   selectInventorySummaryPagination,
   selectInventorySummaryLoading,
   selectInventorySummaryError,
-} from './state/inventorySummarySelectors.ts';
-export { default as InventoryStatusChip } from './components/InventoryStatusChip.tsx';
-export { default as StockLevelChip } from './components/StockLevelChip.tsx';
-export { default as NearExpiryChip } from './components/NearExpiryChip.tsx';
-export { default as IsExpiredChip } from './components/IsExpiredChip.tsx';
-export { default as ExpirySeverityChip } from './components/ExpirySeverityChip.tsx';
-export { default as InventorySummaryTable } from './components/InventorySummaryTable.tsx';
+} from './state/inventorySummarySelectors';
+export { default as InventoryStatusChip } from './components/InventoryStatusChip';
+export { default as StockLevelChip } from './components/StockLevelChip';
+export { default as NearExpiryChip } from './components/NearExpiryChip';
+export { default as IsExpiredChip } from './components/IsExpiredChip';
+export { default as ExpirySeverityChip } from './components/ExpirySeverityChip';
+export { default as InventorySummaryTable } from './components/InventorySummaryTable';
 export { inventoryReducers } from './state';

@@ -2,11 +2,10 @@ import { FC } from 'react';
 import {
   InventoryActivityLog,
   InventoryActivityLogParams,
-} from '../state/reportTypes.ts';
-import { Column } from '@components/common/CustomTable';
-import { CustomTable } from '@components/index.ts';
-import { formatDate, formatDateTime } from '@utils/dateTimeUtils.ts';
-import { formatLabel } from '@utils/textUtils.ts';
+} from '@features/report';
+import CustomTable, { Column } from '@components/common/CustomTable';
+import { formatDate, formatDateTime } from '@utils/dateTimeUtils';
+import { formatLabel } from '@utils/textUtils';
 
 interface InventoryLogTableProps {
   data: any[];

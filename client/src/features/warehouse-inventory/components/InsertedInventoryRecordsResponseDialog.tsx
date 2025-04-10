@@ -1,12 +1,10 @@
 import { FC } from 'react';
 import Box from '@mui/material/Box';
-import {
-  CustomDialog,
-  MetadataSection,
-  Typography,
-} from '@components/index.ts';
-import { formatDateTime } from '@utils/dateTimeUtils.ts';
-import { WarehouseInventoryInsertResponse } from '../state/warehouseInventoryTypes.ts';
+import CustomDialog from '@components/common/CustomDialog';
+import Typography from '@components/common/Typography';
+import MetadataSection from '@components/common/MetadataSection';
+import { formatDateTime } from '@utils/dateTimeUtils';
+import { WarehouseInventoryInsertResponse } from '@features/warehouse-inventory';
 
 interface InventoryRecordsDialogProps {
   insertedDataResponse?: WarehouseInventoryInsertResponse | null;

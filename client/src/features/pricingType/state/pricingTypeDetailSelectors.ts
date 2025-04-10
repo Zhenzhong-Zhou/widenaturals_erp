@@ -1,6 +1,6 @@
 import { RootState } from '@store/store';
 import { createSelector } from '@reduxjs/toolkit';
-import { PricingTypeState } from '@features/pricingType/state/pricingTypeDetailSlice.ts';
+import { PricingTypeState } from '@features/pricingType/state/pricingTypeDetailSlice';
 
 /**
  * Base selector to access the pricingType slice from the Redux state.

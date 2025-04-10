@@ -1,6 +1,6 @@
 import { createSelector } from '@reduxjs/toolkit';
-import { RootState } from '@store/store.ts';
-import { WarehouseItemSummaryState } from '@features/warehouse-inventory/state/warehouseItemSummarySlice.ts';
+import { RootState } from '@store/store';
+import { WarehouseItemSummaryState } from '@features/warehouse-inventory/state/warehouseItemSummarySlice';
 
 /**
  * Base selector to access the warehouse item summary state.

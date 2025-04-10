@@ -1,9 +1,6 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import {
-  LocationTypeResponse,
-  LocationTypesResponse,
-} from './locationTypeTypes.ts';
-import { locationTypeService } from '../../../services';
+import { LocationTypeResponse, LocationTypesResponse } from '@features/locationType';
+import { locationTypeService } from '@services/locationTypeService';
 
 /**
  * Async thunk for fetching location types with pagination.

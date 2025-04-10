@@ -1,6 +1,6 @@
 import { createSelector } from '@reduxjs/toolkit';
-import { RootState } from '@store/store.ts';
-import { UserProfileState } from '@features/user/state/userProfileSlice.ts';
+import { RootState } from '@store/store';
+import { UserProfileState } from '@features/user/state/userProfileSlice';
 
 /**
  * Base selector with type assertion to avoid TS18046.

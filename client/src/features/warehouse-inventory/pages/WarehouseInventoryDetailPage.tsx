@@ -1,31 +1,28 @@
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
-import {
-  CustomButton,
-  ErrorDisplay,
-  ErrorMessage,
-  Loading,
-  Typography,
-} from '@components/index.ts';
-import {
-  useBulkInsertWarehouseInventory,
-  useInsertedInventoryRecordsResponse,
-  useLotAdjustmentQty,
-  useWarehouseDetails,
-  useWarehouseInventoryDetails,
-  useWarehouseItemSummary
-} from '../../../hooks';
+import Loading from '@components/common/Loading';
+import WarehouseInventoryDetailHeader
+  from '@features/warehouse-inventory/components/WarehouseInventoryDetailHeader';
+import WarehouseItemSummaryCard from '@features/warehouse-inventory/components/WarehouseItemSummaryCard';
+import Typography from '@components/common/Typography';
+import WarehouseInventoryDetailTable from '@features/warehouse-inventory/components/WarehouseInventoryDetailTable';
+import CustomButton from '@components/common/CustomButton';
+import ErrorDisplay from '@components/shared/ErrorDisplay';
+import ErrorMessage from '@components/common/ErrorMessage';
+import useWarehouseDetails from '@hooks/useWarehouseDetails';
 import {
   BulkInsertInventoryRequest,
   InventoryItem,
+  WarehouseInventoryDetail,
   WarehouseInventoryDetailExtended,
-  WarehouseInventoryDetailHeader,
-  WarehouseInventoryDetailTable,
-  WarehouseItemSummaryCard,
-} from '../index.ts';
-import { useEffect, useState } from 'react';
-import { WarehouseInventoryDetail } from '@features/warehouse-inventory/state';
+} from '@features/warehouse-inventory/state';
+import useWarehouseItemSummary from '@hooks/useWarehouseItemSummary';
+import useWarehouseInventoryDetails from '@hooks/useWarehouseInventoryDetails';
+import useLotAdjustmentQty from '@hooks/useLotAdjustmentQty';
+import useBulkInsertWarehouseInventory from '@hooks/useBulkInsertWarehouseInventory';
+import useInsertedInventoryRecordsResponse from '@hooks/useInsertedInventoryRecordsResponse';
 
 const WarehouseInventoryDetailPage = () => {
   const { warehouseId } = useParams<{ warehouseId: string }>();

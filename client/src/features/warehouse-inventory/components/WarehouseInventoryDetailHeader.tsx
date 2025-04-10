@@ -1,16 +1,14 @@
 import { FC } from 'react';
-import Box from '@mui/material/Box';
-import {
-  CustomButton,
-  GoBackButton,
-  NoDataFound,
-  Typography,
-} from '@components/index.ts';
-import { WarehouseDetails } from '../../warehouse/state/warehouseTypes.ts';
-import { formatDate } from '@utils/dateTimeUtils.ts';
-import { formatLabel } from '@utils/textUtils.ts';
-import { handleAdjustmentReportRedirect } from '@utils/navigationUtils.ts';
 import { useNavigate } from 'react-router-dom';
+import Box from '@mui/material/Box';
+import NoDataFound from '@components/common/NoDataFound';
+import Typography from '@components/common/Typography';
+import CustomButton from '@components/common/CustomButton';
+import GoBackButton from '@components/common/GoBackButton';
+import { WarehouseDetails } from '@features/warehouse/state';
+import { formatDate } from '@utils/dateTimeUtils';
+import { formatLabel } from '@utils/textUtils';
+import { handleAdjustmentReportRedirect } from '@utils/navigationUtils';
 
 interface WarehouseDetailHeaderProps {
   warehouseDetails?: WarehouseDetails;

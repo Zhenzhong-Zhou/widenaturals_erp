@@ -1,16 +1,12 @@
 import { FC } from 'react';
-import { useAdjustmentReport } from '../../../hooks';
-import {
-  AdjustmentReportTable,
-  ReportPageLayout,
-  useReportPageLogic,
-} from '../index.ts';
-import {
-  ErrorDisplay,
-  ErrorMessage,
-  Loading,
-  Typography,
-} from '@components/index.ts';
+import useAdjustmentReport from '@hooks/useAdjustmentReport';
+import useReportPageLogic from '@features/report/hook/useReportPageLogic';
+import Loading from '@components/common/Loading';
+import ErrorDisplay from '@components/shared/ErrorDisplay';
+import ErrorMessage from '@components/common/ErrorMessage';
+import ReportPageLayout from '@features/report/components/ReportPageLayout';
+import AdjustmentReportTable from '@features/report/components/AdjustmentReportTable';
+import Typography from '@components/common/Typography';
 
 const AdjustmentReportPage: FC = () => {
   const reportCategory = 'adjustment';

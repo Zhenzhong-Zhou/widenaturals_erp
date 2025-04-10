@@ -1,8 +1,9 @@
 import { FC } from 'react';
 import { useParams } from 'react-router-dom';
-import { ErrorDisplay, ErrorMessage } from '@components/index.ts';
-import usePricingDetails from '../../../hooks/usePricingTypeDetails.ts';
-import { PricingTypeDetailsTable } from '../index.ts';
+import ErrorDisplay from '@components/shared/ErrorDisplay';
+import ErrorMessage from '@components/common/ErrorMessage';
+import PricingTypeDetailsTable from '@features/pricingType/components/PricingTypeDetailsTable';
+import usePricingDetails from '@hooks/usePricingTypeDetails';
 
 const PricingTypeDetailsPage: FC = () => {
   const { id } = useParams<{ id: string }>();

@@ -1,9 +1,9 @@
 import { FC, useState } from 'react';
-import { Warehouse } from '../state/warehouseTypes.ts';
-import { CustomTable } from '@components/index.ts';
-import { formatDateTime } from '@utils/dateTimeUtils.ts';
-import { formatLabel } from '@utils/textUtils.ts';
 // import { Link } from 'react-router-dom';
+import { Warehouse } from '@features/warehouse';
+import { formatDateTime } from '@utils/dateTimeUtils';
+import { formatLabel } from '@utils/textUtils';
+import CustomTable from '@components/common/CustomTable';
 
 interface WarehouseTableProps {
   warehouses: Warehouse[];

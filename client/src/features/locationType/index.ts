@@ -3,7 +3,7 @@ export type {
   Pagination,
   LocationTypesResponse,
   LocationTypeResponse,
-} from './state/locationTypeTypes.ts';
-export { default as LocationTypeTable } from './components/LocationTypeTable.tsx';
-export { default as LocationTypeDetailTable } from './components/LocationTypeDetailsTable.tsx';
+} from './state/locationTypeTypes';
+export { default as LocationTypeTable } from './components/LocationTypeTable';
+export { default as LocationTypeDetailTable } from './components/LocationTypeDetailsTable';
 export { locationTypeReducers } from './state';

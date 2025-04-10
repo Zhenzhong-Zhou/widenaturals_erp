@@ -1,9 +1,9 @@
-import axiosInstance from '@utils/axiosConfig.ts';
-import { API_ENDPOINTS } from './apiEndponits.ts';
+import axiosInstance from '@utils/axiosConfig';
+import { API_ENDPOINTS } from '@services/apiEndpoints';
 import {
   PricingTypeResponse,
   PricingTypesResponse,
-} from '../features/pricingType';
+} from '@features/pricingType';
 
 const fetchAllPricingTypes = async (
   page: number,

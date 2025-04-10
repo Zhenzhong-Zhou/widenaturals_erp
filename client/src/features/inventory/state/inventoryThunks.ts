@@ -1,6 +1,6 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { inventoryService } from '../../../services';
-import { InventoryResponse, InventorySummaryResponse } from './inventoryTypes.ts';
+import { InventoryResponse, InventorySummaryResponse } from '@features/inventory';
+import { inventoryService } from '@services/inventoryService';
 
 /**
  * Fetch all inventories with pagination, sorting, and error handling.

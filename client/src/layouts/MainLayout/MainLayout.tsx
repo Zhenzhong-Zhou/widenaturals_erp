@@ -6,22 +6,24 @@ import {
   ReactElement,
   useEffect,
 } from 'react';
+import { useThemeContext } from '@context/ThemeContext';
 import { useMediaQuery, useTheme } from '@mui/material';
-import { Sidebar, Header, Footer } from '../index';
-import { useThemeContext } from '@context/ThemeContext.tsx';
 import Box from '@mui/material/Box';
-import { contentContainerStyles, layoutStyles, mainContentStyles } from './layoutStyles.ts';
-import {
-  ErrorDisplay,
-  ErrorMessage,
-  FallbackUI,
-  Loading,
-  ModuleErrorBoundary,
-} from '@components/index';
+import Loading from '@components/common/Loading';
+import ErrorDisplay from '@components/shared/ErrorDisplay';
+import ErrorMessage from '@components/common/ErrorMessage';
+import ModuleErrorBoundary from '@components/shared/ModuleErrorBoundary';
+import FallbackUI from '@components/shared/FallbackUI';
+import Sidebar from '@layouts/Sidebar/Sidebar';
+import Header from '@layouts/Header/Header';
+import Footer from '@layouts/Footer/Footer';
 import { AppError } from '@utils/AppError';
 import { getErrorLog } from '@utils/errorUtils';
-import { useLogout, useTokenRefresh, useUserProfile } from '../../hooks';
-import { usePermissionsContext } from '@context/PermissionsContext.tsx';
+import { usePermissionsContext } from '@context/PermissionsContext';
+import useUserProfile from '@hooks/useUserProfile';
+import useLogout from '@hooks/useLogout';
+import useTokenRefresh from '@hooks/useTokenRefresh';
+import { contentContainerStyles, layoutStyles, mainContentStyles } from '@layouts/MainLayout/layoutStyles';
 
 interface MainLayoutProps {
   children: ReactNode;

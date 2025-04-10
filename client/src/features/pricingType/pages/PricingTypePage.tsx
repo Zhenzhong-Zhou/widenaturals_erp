@@ -1,12 +1,10 @@
-import { usePricingTypes } from '../../../hooks';
-import { PricingTypeTable } from '../index.ts';
 import Box from '@mui/material/Box';
-import {
-  CustomButton,
-  ErrorDisplay,
-  ErrorMessage,
-  Loading,
-} from '@components/index.ts';
+import Loading from '@components/common/Loading';
+import ErrorDisplay from '@components/shared/ErrorDisplay';
+import ErrorMessage from '@components/common/ErrorMessage';
+import PricingTypeTable from '@features/pricingType/components/PricingTypeTable';
+import CustomButton from '@components/common/CustomButton';
+import usePricingTypes from '@hooks/usePricingTypes';
 
 const PricingTypePage = () => {
   const {

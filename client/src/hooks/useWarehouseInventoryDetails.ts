@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchWarehouseInventoryDetailsThunk,
   selectWarehouseInventoryDetailError,
   selectWarehouseInventoryDetailLoading,
   selectWarehouseInventoryDetailPagination,
   selectWarehouseInventoryDetails,
-} from '../features/warehouse-inventory';
+} from '@features/warehouse-inventory';
 
 const useWarehouseInventoryDetails = (
   warehouseId: string,

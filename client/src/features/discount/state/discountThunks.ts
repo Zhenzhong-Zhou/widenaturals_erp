@@ -1,6 +1,6 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { DiscountDropdownItem } from './discountTypes.ts';
-import { dropdownService } from '../../../services';
+import { DiscountDropdownItem } from '@features/discount';
+import { dropdownService } from '@services/dropdownService';
 
 // Thunk for fetching discounts dropdown
 export const fetchDiscountDropdownThunk = createAsyncThunk<

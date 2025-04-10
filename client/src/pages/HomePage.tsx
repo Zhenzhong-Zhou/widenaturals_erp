@@ -1,6 +1,6 @@
 import { FC } from 'react';
-import Box from '@mui/material/Box';
 import { useNavigate } from 'react-router-dom';
+import Box from '@mui/material/Box';
 import CustomButton from '@components/common//CustomButton';
 import Typography from '@components/common/Typography';
 import { useThemeContext } from '@context/ThemeContext';

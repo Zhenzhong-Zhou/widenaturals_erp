@@ -4,7 +4,7 @@ import {
   getCountryCallingCode,
   CountryCode,
 } from 'libphonenumber-js';
-import { ShippingInformation } from '../features/order';
+import { ShippingInformation } from '@features/order';
 
 /**
  * Formats a given string into human-readable Title Case.

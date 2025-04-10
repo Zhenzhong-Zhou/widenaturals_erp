@@ -1,5 +1,5 @@
 import Box from '@mui/material/Box';
-import { useLocationTypes } from '@hooks/index';
+import useLocationTypes from '@hooks/useLocationTypes';
 import Loading from '@components/common/Loading';
 import ErrorMessage from '@components/common/ErrorMessage';
 import CustomButton from '@components/common/CustomButton';

@@ -1,5 +1,5 @@
 import { useMemo, useCallback } from 'react';
-import { useAppDispatch, useAppSelector } from '../store/storeHooks';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   createSalesOrderThunk,
   SalesOrder,
@@ -7,7 +7,7 @@ import {
   selectCreatedSalesOrderId,
   selectCreatedSalesOrderLoading,
   selectCreatedSalesOrderSuccess,
-} from '../features/order';
+} from '@features/order';
 
 /**
  * Custom hook to manage sales order creation state and actions.

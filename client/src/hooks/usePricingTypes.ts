@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
-import { fetchPricingTypesThunk, PricingType } from '../features/pricingType';
-import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
+import { fetchPricingTypesThunk, PricingType } from '@features/pricingType';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   selectError,
   selectIsLoading,
   selectPricingTypes,
   selectTotalPages,
   selectTotalRecords,
-} from '../features/pricingType/state/pricingTypeSelectors.ts';
+} from '@features/pricingType/state';
 
 interface UsePricingTypesParams {
   initialPage?: number;

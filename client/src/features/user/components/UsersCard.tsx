@@ -1,8 +1,9 @@
 import { FC } from 'react';
-import { CustomCard, Typography } from '@components/index.ts';
+import { UsersCardProps } from '@features/user';
 import Box from '@mui/material/Box';
 import Avatar from '@mui/material/Avatar';
-import { UsersCardProps } from '../state/userTypes.ts';
+import CustomCard from '@components/common/CustomCard.tsx';
+import Typography from '@components/common/Typography.tsx';
 
 const UsersCard: FC<UsersCardProps> = ({ user }) => {
   const userInfo = [

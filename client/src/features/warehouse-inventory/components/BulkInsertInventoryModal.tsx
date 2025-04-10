@@ -1,15 +1,14 @@
 import { FC, lazy } from 'react';
-import {
-  CustomModal,
-  Loading,
-  MultiItemForm,
-} from '@components/index';
 import Box from '@mui/material/Box';
-import { InventoryDropdown, ProductDropdownItem } from '../index.ts';
-import { useProductsWarehouseDropdown } from '../../../hooks';
-import { formatDate } from '@utils/dateTimeUtils.ts';
+import { formatDate } from '@utils/dateTimeUtils';
+import useProductsWarehouseDropdown from '@hooks/useProductsWarehouseDropdown';
+import { ProductDropdownItem } from '@features/warehouse-inventory';
+import CustomModal from '@components/common/CustomModal';
+import Loading from '@components/common/Loading';
+import MultiItemForm from '@components/common/MultiItemForm';
+import InventoryDropdown from '@features/warehouse-inventory/components/InventoryDropdown';
 
-const CustomDatePicker = lazy(() => import('@components/common/CustomDatePicker.tsx'));
+const CustomDatePicker = lazy(() => import('@components/common/CustomDatePicker'));
 
 const BulkInsertInventoryModal: FC<{
   open: boolean;
@@ -79,7 +78,7 @@ const BulkInsertInventoryModal: FC<{
         return undefined;
       },
     });
-// todo: add reserved_quantity filed
+  
   return (
     <CustomModal
       open={open}
@@ -184,6 +183,13 @@ const BulkInsertInventoryModal: FC<{
                 type: 'number',
                 validation: (value: number) =>
                   value <= 0 ? 'Quantity must be greater than 0' : undefined,
+              },
+              {
+                id: 'reserved_quantity',
+                label: 'Reserved Quantity',
+                type: 'number',
+                validation: (value: number) =>
+                  value <= 0 ? 'Reserved quantity must be greater than 0' : undefined,
               },
             ]}
             onSubmit={(formData) => {

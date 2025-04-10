@@ -1,8 +1,8 @@
 import { FC, useEffect, useState } from 'react';
-import Dropdown from '@components/common/Dropdown';
-import { useProductOrderDropdown } from '../../../hooks';
 import Box from '@mui/material/Box';
-import { Loading } from '@components/index.ts';
+import Dropdown from '@components/common/Dropdown';
+import Loading from '@components/common/Loading';
+import useProductOrderDropdown from '@hooks/useProductOrderDropdown';
 
 interface ProductOrderDropdownProps {
   label?: string;

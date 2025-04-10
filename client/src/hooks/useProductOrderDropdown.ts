@@ -1,11 +1,11 @@
 import { useEffect, useCallback } from 'react';
-import { useAppDispatch, useAppSelector } from '../store/storeHooks';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchProductsForOrdersDropdownThunk,
   selectProductOrderDropdown,
   selectProductOrderDropdownError,
   selectProductOrderDropdownLoading,
-} from '../features/product';
+} from '@features/product';
 
 /**
  * Custom hook to manage product orders dropdown state.

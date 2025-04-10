@@ -1,7 +1,9 @@
 import { FC, useState } from 'react';
 import Box from '@mui/material/Box';
-import { CustomButton, Typography } from '@components/index.ts';
-import { CreateCustomerModal, CustomerTable } from '../index.ts';
+import Typography from '@components/common/Typography';
+import CustomButton from '@components/common/CustomButton';
+import CreateCustomerModal from '@features/customer/components/CreateCustomerModal';
+import CustomerTable from '@features/customer/components/CustomerTable';
 
 const CustomersPage: FC = () => {
   const [modalOpen, setModalOpen] = useState(false);

@@ -1,5 +1,5 @@
-import axiosInstance from '@utils/axiosConfig.ts';
-import { API_ENDPOINTS } from './apiEndponits.ts';
+import axiosInstance from '@utils/axiosConfig';
+import { API_ENDPOINTS } from '@services/apiEndpoints';
 import {
   WarehouseInventoryResponse,
   WarehouseInventorySummaryResponse,
@@ -10,9 +10,9 @@ import {
   BulkInsertInventoryRequest,
   BulkInsertInventoryResponse,
   InsertInventoryRequestBody, FetchWarehouseItemSummaryParams,
-} from '../features/warehouse-inventory';
-import { AppError } from '@utils/AppError.tsx';
-import { InventoryRecordInsertResponse } from '../features/warehouse-inventory/state/warehouseInventoryTypes.ts';
+} from '@features/warehouse-inventory';
+import { AppError } from '@utils/AppError';
+import { InventoryRecordInsertResponse } from '@features/warehouse-inventory/state';
 
 /**
  * Fetches all warehouse inventories with pagination.

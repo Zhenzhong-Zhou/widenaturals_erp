@@ -1,16 +1,14 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
-import { useProductDetail } from '../../../hooks';
-import {
-  CustomButton,
-  DetailPage,
-  MetadataSection,
-  PriceDisplay,
-} from '@components/index.ts';
 import Box from '@mui/material/Box';
 import CardMedia from '@mui/material/CardMedia';
-import productPlaceholder from '../../../assets/Virility_CA.jpg';
-import { formatDate } from '@utils/dateTimeUtils.ts';
+import DetailPage from '@components/common/DetailPage';
+import CustomButton from '@components/common/CustomButton';
+import MetadataSection from '@components/common/MetadataSection';
+import PriceDisplay from '@components/common/PriceDisplay';
+import productPlaceholder from '@assets/Virility_CA.jpg';
+import { formatDate } from '@utils/dateTimeUtils';
+import useProductDetail from '@hooks/useProductDetail';
 
 const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>(); // Extract product ID from the URL

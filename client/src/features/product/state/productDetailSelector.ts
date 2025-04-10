@@ -1,6 +1,6 @@
 import { createSelector } from '@reduxjs/toolkit';
-import { RootState } from '@store/store.ts';
-import { ProductDetailState } from '@features/product/state/productTypes.ts';
+import { RootState } from '@store/store';
+import { ProductDetailState } from '@features/product/state/productTypes';
 
 /**
  * Base selector to access the product detail slice from the root Redux state.

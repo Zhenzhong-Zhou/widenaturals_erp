@@ -1,13 +1,13 @@
-import axiosInstance from '../utils/axiosConfig';
-import { handleError, mapErrorMessage } from '../utils/errorUtils';
-import { AppError, ErrorType } from '../utils/AppError';
-import { clearTokens, getToken } from '../utils/tokenManager';
-import { withRetry } from '../utils/retryUtils';
-import { withTimeout } from '../utils/timeoutUtils';
+import axiosInstance from '@utils/axiosConfig';
+import { API_ENDPOINTS } from '@services/apiEndpoints';
+import { handleError, mapErrorMessage } from '@utils/errorUtils';
+import { AppError, ErrorType } from '@utils/AppError';
+import { clearTokens, getToken } from '@utils/tokenManager';
+import { withRetry } from '@utils/retryUtils';
+import { withTimeout } from '@utils/timeoutUtils';
 import { selectCsrfToken } from '@features/csrf/state';
-import { store } from '../store/store.ts';
+import { store } from '@store/store';
 import { logoutThunk } from '@features/session/state';
-import { API_ENDPOINTS } from './apiEndponits.ts';
 
 interface LoginResponse {
   accessToken: string;

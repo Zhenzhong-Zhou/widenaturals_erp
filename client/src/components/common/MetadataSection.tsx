@@ -1,9 +1,9 @@
 import { FC } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import { useThemeContext } from '@context/ThemeContext.tsx';
+import { useThemeContext } from '@context/ThemeContext';
 import type { SxProps, Theme } from '@mui/system';
-import { formatLabel } from '@utils/textUtils.ts';
+import { formatLabel } from '@utils/textUtils';
 
 // Helper to exclude keys like `id`, `uuid`, etc.
 const shouldExcludeKey = (key: string): boolean =>

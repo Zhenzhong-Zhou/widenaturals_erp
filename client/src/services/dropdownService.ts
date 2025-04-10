@@ -1,16 +1,16 @@
-import axiosInstance from '@utils/axiosConfig.ts';
-import { API_ENDPOINTS } from './apiEndponits.ts';
+import axiosInstance from '@utils/axiosConfig';
+import { API_ENDPOINTS } from '@services/apiEndpoints';
 import {
   ProductDropdownItem,
   WarehouseDropdownItem,
-} from '../features/warehouse-inventory';
-import { OrderType } from '../features/order';
-import { FetchCustomersDropdownResponse } from '../features/customer';
-import { DiscountDropdownItem } from '../features/discount';
-import { TaxRateDropdownResponse } from '../features/taxRate';
-import { DeliveryMethodDropdownResponse } from '../features/deliveryMethod';
-import { ProductDropdownResponse } from '../features/product/state/productTypes.ts';
-import { PricingTypeDropdownResponse } from '../features/pricingType';
+} from '@features/warehouse-inventory';
+import { OrderType } from '@features/order';
+import { FetchCustomersDropdownResponse } from '@features/customer';
+import { DiscountDropdownItem } from '@features/discount';
+import { TaxRateDropdownResponse } from '@features/taxRate';
+import { DeliveryMethodDropdownResponse } from '@features/deliveryMethod';
+import { ProductDropdownResponse } from '@features/product/state';
+import { PricingTypeDropdownResponse } from '@features/pricingType';
 
 /**
  * Fetch active products for dropdown

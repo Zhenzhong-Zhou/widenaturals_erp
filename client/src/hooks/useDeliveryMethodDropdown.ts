@@ -1,11 +1,11 @@
 import { useEffect, useCallback } from 'react';
-import { useAppDispatch, useAppSelector } from '../store/storeHooks';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchDeliveryMethodDropdownThunk,
   selectDeliveryMethodDropdownError,
   selectDeliveryMethodDropdownLoading,
   selectFormattedDeliveryMethodDropdown,
-} from '../features/deliveryMethod';
+} from '@features/deliveryMethod';
 
 /**
  * Custom hook to fetch and manage delivery methods dropdown state.

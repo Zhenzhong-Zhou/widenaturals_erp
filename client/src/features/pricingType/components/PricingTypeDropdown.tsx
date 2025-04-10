@@ -1,8 +1,8 @@
 import { FC, useEffect, useState } from 'react';
-import Dropdown from '@components/common/Dropdown';
-import { usePricingTypeDropdown } from '../../../hooks';
 import Box from '@mui/material/Box';
-import { Loading } from '@components/index.ts';
+import Loading from '@components/common/Loading';
+import Dropdown from '@components/common/Dropdown';
+import usePricingTypeDropdown from '@hooks/usePricingTypeDropdown';
 
 interface PricingTypeDropdownProps {
   label?: string;

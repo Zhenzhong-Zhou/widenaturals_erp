@@ -1,16 +1,14 @@
-import { useProducts } from '../../../hooks';
 import Container from '@mui/material/Container';
 import Grid from '@mui/material/Grid2';
-import { ProductCard } from '../index';
-import {
-  CustomButton,
-  CustomPagination,
-  ErrorDisplay,
-  ErrorMessage,
-  Loading,
-} from '@components/index';
-import { GeneralProductInfo } from '../state/productTypes.ts';
 import Box from '@mui/material/Box';
+import Loading from '@components/common/Loading';
+import ErrorDisplay from '@components/shared/ErrorDisplay';
+import ErrorMessage from '@components/common/ErrorMessage';
+import CustomButton from '@components/common/CustomButton';
+import ProductCard from '@features/product/components/ProductCard';
+import CustomPagination from '@components/common/CustomPagination';
+import useProducts from '@hooks/useProducts';
+import { GeneralProductInfo } from '@features/product/state';
 
 const ProductsPage = () => {
   const { products, pagination, loading, error, fetchProductsByPage } =

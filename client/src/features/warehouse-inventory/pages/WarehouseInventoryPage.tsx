@@ -1,20 +1,16 @@
 import { useState } from 'react';
-import {
-  useWarehouseInventories,
-  useWarehouseInventoriesSummary,
-} from '../../../hooks';
-import WarehouseInventoryTable from '../components/WarehouseInventoryTable.tsx';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
-import {
-  CustomButton,
-  ErrorDisplay,
-  ErrorMessage,
-  Loading,
-  Typography,
-} from '@components/index.ts';
-import { WarehouseInventorySummaryCard } from '../index.ts';
-import { sanitizeWarehouseInventory } from '@utils/transformersUtlis.ts';
+import Loading from '@components/common/Loading';
+import ErrorDisplay from '@components/shared/ErrorDisplay';
+import ErrorMessage from '@components/common/ErrorMessage';
+import Typography from '@components/common/Typography';
+import WarehouseInventorySummaryCard from '@features/warehouse-inventory/components/WarehouseInventorySummaryCard';
+import WarehouseInventoryTable from '@features/warehouse-inventory/components/WarehouseInventoryTable';
+import CustomButton from '@components/common/CustomButton';
+import { sanitizeWarehouseInventory } from '@utils/transformersUtlis';
+import useWarehouseInventories from '@hooks/useWarehouseInventories';
+import useWarehouseInventoriesSummary from '@hooks/useWarehouseInventoriesSummary';
 
 const WarehouseInventoryPage = () => {
   const [page, setPage] = useState(1);

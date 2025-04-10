@@ -1,9 +1,9 @@
 import {
   ComplianceResponse,
   FetchAllCompliancesParams,
-} from '../features/compliance';
-import axiosInstance from '@utils/axiosConfig.ts';
-import { API_ENDPOINTS } from './apiEndponits.ts';
+} from '@features/compliance';
+import axiosInstance from '@utils/axiosConfig';
+import { API_ENDPOINTS } from '@services/apiEndpoints';
 
 /**
  * Fetch all compliance records with pagination and sorting.

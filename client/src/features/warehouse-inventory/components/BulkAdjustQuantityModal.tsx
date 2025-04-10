@@ -1,6 +1,5 @@
 import { FC, useEffect } from 'react';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
-import { CustomButton, CustomModal, Typography } from '@components/index.ts';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid2';
 import Card from '@mui/material/Card';
@@ -11,9 +10,12 @@ import CloseIcon from '@mui/icons-material/Close';
 import DeleteIcon from '@mui/icons-material/Delete';
 import TextField from '@mui/material/TextField';
 import MenuItem from '@mui/material/MenuItem';
-import { useLotAdjustmentTypes } from '../../../hooks';
-import { formatLabel } from '@utils/textUtils.ts';
+import CustomModal from '@components/common/CustomModal';
+import Typography from '@components/common/Typography';
+import CustomButton from '@components/common/CustomButton';
+import { formatLabel } from '@utils/textUtils';
 import { LotAdjustmentType } from '@features/warehouse-inventory/state';
+import useLotAdjustmentTypes from '@hooks/useLotAdjustmentTypes';
 
 interface BulkAdjustQuantityModalProps {
   open: boolean;

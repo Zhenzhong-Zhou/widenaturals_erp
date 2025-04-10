@@ -1,32 +1,35 @@
 import { FC, ReactNode, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import IconButton from '@mui/material/IconButton';
 import Checkbox from '@mui/material/Checkbox';
 import Tooltip from '@mui/material/Tooltip';
 import Popover from '@mui/material/Popover';
-import { CustomButton, CustomTable, Typography } from '@components/index.ts';
 import EditIcon from '@mui/icons-material/Edit';
-import InventoryIcon from '@mui/icons-material/Inventory'; // Ensure this import exists
+import InventoryIcon from '@mui/icons-material/Inventory';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
-import { useNavigate } from 'react-router-dom';
-import {
-  BulkInsertInventoryModal,
-  BulkAdjustQuantityModal,
-  EditQuantityModal,
-  InsertedInventoryRecordsResponseDialog,
-  WarehouseInventoryInsertResponse,
-} from '../index.ts';
-import { WarehouseInventoryDetailExtended } from '../state/warehouseInventoryTypes.ts';
-import { formatLabel, formatCurrency } from '@utils/textUtils.ts';
-import { formatDate, formatDateTime } from '@utils/dateTimeUtils.ts';
 import MenuItem from '@mui/material/MenuItem';
+import IsExpiredChip from '@features/inventory/components/IsExpiredChip';
+import NearExpiryChip from '@features/inventory/components/NearExpiryChip';
+import StockLevelChip from '@features/inventory/components/StockLevelChip';
+import ExpirySeverityChip from '@features/inventory/components/ExpirySeverityChip';
+import Typography from '@components/common/Typography';
+import CustomButton from '@components/common/CustomButton';
+import BulkInsertInventoryModal from '@features/warehouse-inventory/components/BulkInsertInventoryModal';
+import InsertedInventoryRecordsResponseDialog
+  from '@features/warehouse-inventory/components/InsertedInventoryRecordsResponseDialog';
+import CustomTable from '@components/common/CustomTable';
+import EditQuantityModal from '@features/warehouse-inventory/components/EditQuantityModal';
+import BulkAdjustQuantityModal from '@features/warehouse-inventory/components/BulkAdjustQuantityModal';
+import { WarehouseInventoryDetailExtended, WarehouseInventoryInsertResponse } from '@features/warehouse-inventory';
+import { formatLabel, formatCurrency } from '@utils/textUtils';
+import { formatDate, formatDateTime } from '@utils/dateTimeUtils';
 import {
   handleAdjustmentReportRedirect,
   handleInventoryActivityLogRedirect,
   handleInventoryHistoryRedirect,
-} from '@utils/navigationUtils.ts';
-import { ExpirySeverityChip, IsExpiredChip, NearExpiryChip, StockLevelChip } from '../../inventory';
+} from '@utils/navigationUtils';
 
 // Define Column Type explicitly
 interface Column<T> {

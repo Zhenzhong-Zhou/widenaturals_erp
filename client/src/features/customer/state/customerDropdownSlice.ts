@@ -1,6 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { CustomerDropdownOption } from './customerTypes.ts';
-import { fetchCustomersForDropdownThunk } from './customerThunks.ts';
+import { CustomerDropdownOption, fetchCustomersForDropdownThunk } from '@features/customer';
 
 interface CustomerDropdownState {
   data: CustomerDropdownOption[];

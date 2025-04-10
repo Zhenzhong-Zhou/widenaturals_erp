@@ -1,7 +1,7 @@
 import { lazy } from 'react';
-import Dropdown from '@components/common/Dropdown.tsx';
-import { BaseReportParams } from '../state/reportTypes.ts';
-import { formatDate } from '@utils/dateTimeUtils.ts';
+import Dropdown from '@components/common/Dropdown';
+import { BaseReportParams } from '@features/report';
+import { formatDate } from '@utils/dateTimeUtils';
 
 const CustomDatePicker = lazy(() => import('@components/common/CustomDatePicker.tsx'));
 

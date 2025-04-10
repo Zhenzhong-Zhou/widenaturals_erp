@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { GeneralProductInfo, ProductState } from './productTypes.ts';
-import { fetchProductsThunk } from './productThunks.ts';
+import { fetchProductsThunk, ProductState } from '@features/product';
+import { GeneralProductInfo } from '@features/product/state/productTypes';
 
 // Initial state
 const initialState: ProductState<GeneralProductInfo> = {

@@ -1,6 +1,6 @@
 import { ReactNode, FC } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
-import { useSession } from '../hooks';
+import useSession from '@hooks/useSession';
 
 // Define props explicitly
 interface GuestRouteProps {

@@ -1,5 +1,5 @@
 import { createSelector } from 'reselect';
-import { RootState } from '../../../store/store.ts';
+import { RootState } from '@store/store';
 
 // Base selector
 const selectCustomerDropdownState = (state: RootState) => state.customerDropdown;

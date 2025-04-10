@@ -3,21 +3,21 @@ export type {
   Pagination,
   WarehouseResponse,
   WarehouseDetailsResponse,
-} from './state/warehouseTypes.ts';
+} from './state/warehouseTypes';
 export {
   fetchWarehousesThunk,
   fetchWarehouseDetailsThunk,
-} from './state/warehouseThunks.ts';
+} from './state/warehouseThunks';
 export {
   selectWarehouses,
   selectWarehousePagination,
   selectWarehouseLoading,
   selectWarehouseError,
-} from './state/warehouseSelectors.ts';
+} from './state/warehouseSelectors';
 export {
   selectWarehouseDetails,
   selectWarehouseDetailsLoading,
   selectWarehouseDetailsError,
-} from './state/warehouseDetailSelectors.ts';
-export { default as WarehouseTable } from './components/WarehouseTable.tsx';
+} from './state/warehouseDetailSelectors';
+export { default as WarehouseTable } from './components/WarehouseTable';
 export { warehouseReducers } from './state';

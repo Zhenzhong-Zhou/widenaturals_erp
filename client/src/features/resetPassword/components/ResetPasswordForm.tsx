@@ -1,10 +1,11 @@
 import { FC } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { CustomForm, PasswordInput } from '@components/index.ts';
 import {
   validatePassword,
   PasswordValidationErrors,
-} from '@utils/validation.ts';
+} from '@utils/validation';
+import CustomForm from '@components/common/CustomForm';
+import PasswordInput from '@components/common/PasswordInput';
 
 interface ResetPasswordFormProps {
   onSubmit: (data: {

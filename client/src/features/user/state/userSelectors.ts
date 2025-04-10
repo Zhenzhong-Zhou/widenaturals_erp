@@ -1,6 +1,6 @@
 import { createSelector } from '@reduxjs/toolkit';
-import { RootState } from '@store/store.ts';
-import { UsersState } from './userTypes'; // make sure UsersState is defined
+import { RootState } from '@store/store';
+import { UsersState } from '@features/user';
 
 /**
  * Base selector for the users slice.

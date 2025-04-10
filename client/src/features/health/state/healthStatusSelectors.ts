@@ -1,6 +1,6 @@
 import { createSelector } from '@reduxjs/toolkit';
-import { RootState } from '@store/store.ts';
-import { HealthState } from './healthStatusState';
+import { RootState } from '@store/store';
+import { HealthState } from '@features/health/state/healthStatusState';
 
 // Base selector to access the health slice
 export const selectHealthState = (state: RootState): HealthState =>

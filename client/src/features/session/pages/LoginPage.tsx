@@ -1,10 +1,10 @@
 import { FC } from 'react';
 import Box from '@mui/material/Box';
-import { Typography } from '@components/index.ts';
-import LoginCard from '../components/LoginCard.tsx';
-import { useThemeContext } from '../../../context/ThemeContext';
-import logoDark from '../../../assets/wide-logo-dark.png';
-import logoLight from '../../../assets/wide-logo-light.png';
+import Typography from '@components/common/Typography';
+import LoginCard from '@features/session/components/LoginCard';
+import { useThemeContext } from '@context/ThemeContext';
+import logoDark from '@assets/wide-logo-dark.png';
+import logoLight from '@assets/wide-logo-light.png';
 
 const LoginPage: FC = () => {
   const { theme } = useThemeContext();

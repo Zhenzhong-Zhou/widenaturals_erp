@@ -1,5 +1,5 @@
 import { FC } from 'react';
-import { Dropdown } from '@components/index.ts';
+import Dropdown from '@components/common/Dropdown';
 
 interface InventoryOption {
   value: string;

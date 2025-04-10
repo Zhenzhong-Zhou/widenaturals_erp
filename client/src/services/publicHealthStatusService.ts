@@ -1,10 +1,10 @@
 import axiosInstance from '@utils/axiosConfig';
+import { API_ENDPOINTS } from '@services/apiEndpoints';
 import { AppError, ErrorType } from '@utils/AppError';
 import { withTimeout } from '@utils/timeoutUtils';
 import { withRetry } from '@utils/retryUtils';
-import { isCustomAxiosError } from '@utils/axiosUtils.ts';
-import { HealthState } from '../features/health/state/healthStatusState.ts';
-import { API_ENDPOINTS } from './apiEndponits.ts';
+import { isCustomAxiosError } from '@utils/axiosUtils';
+import { HealthState } from '@features/health/state';
 
 /**
  * Fetches the public health status of the server.

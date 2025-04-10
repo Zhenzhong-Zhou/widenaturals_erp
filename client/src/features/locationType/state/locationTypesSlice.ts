@@ -1,6 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { fetchLocationTypesThunk } from './locationTypesThunks.ts';
-import { LocationType, Pagination } from './locationTypeTypes.ts';
+import { LocationType, Pagination } from '@features/locationType';
+import { fetchLocationTypesThunk } from '@features/locationType/state/locationTypesThunks';
 
 /**
  * Defines the Redux state for location types.

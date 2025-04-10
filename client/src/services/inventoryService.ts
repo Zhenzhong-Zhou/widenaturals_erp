@@ -1,7 +1,7 @@
-import axiosInstance from '@utils/axiosConfig.ts';
-import { API_ENDPOINTS } from './apiEndponits.ts';
-import { InventoryResponse, InventorySummaryResponse } from '../features/inventory';
-import { AppError } from '@utils/AppError.tsx';
+import axiosInstance from '@utils/axiosConfig';
+import { API_ENDPOINTS } from '@services/apiEndpoints';
+import { InventoryResponse, InventorySummaryResponse } from '@features/inventory';
+import { AppError } from '@utils/AppError';
 
 /**
  * Fetch all inventory items from the server with pagination, sorting, and error handling.

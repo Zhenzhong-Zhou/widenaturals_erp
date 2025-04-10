@@ -1,11 +1,11 @@
 import { useEffect, useCallback } from 'react';
-import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   TaxRateDropdownItem, fetchTaxRateDropdownThunk,
   selectTaxRateDropdown,
   selectTaxRateDropdownError,
   selectTaxRateDropdownLoading,
-} from '../features/taxRate';
+} from '@features/taxRate';
 
 /**
  * Custom hook to fetch and manage tax rates dropdown state.

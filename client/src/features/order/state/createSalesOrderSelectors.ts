@@ -1,5 +1,5 @@
 import { createSelector } from 'reselect';
-import { RootState } from '../../../store/store.ts';
+import { RootState } from '@store/store';
 
 // Base selector for createdSalesOrder state
 const selectCreatedSalesOrderState = (state: RootState) => state.createSalesOrder;

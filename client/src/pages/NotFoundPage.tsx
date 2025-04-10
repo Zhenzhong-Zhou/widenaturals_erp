@@ -1,6 +1,6 @@
 import { FC } from 'react';
-import Container from '@mui/material/Container';
 import { useNavigate } from 'react-router-dom';
+import Container from '@mui/material/Container';
 import Typography from '@components/common/Typography';
 import CustomButton from '@components/common/CustomButton';
 import GoBackButton from '@components/common/GoBackButton';

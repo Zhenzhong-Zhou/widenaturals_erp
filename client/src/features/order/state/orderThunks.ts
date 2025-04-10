@@ -1,13 +1,13 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
+import { dropdownService } from '@services/dropdownService.ts';
 import {
   CreateSalesOrderResponse,
   FetchOrdersParams,
   OrderDetailsResponse,
-  OrderStatusUpdateResponse,
-  OrderType,
+  OrderStatusUpdateResponse, OrderType,
   SalesOrder,
-} from './orderTypes.ts';
-import { dropdownService, orderService } from '../../../services';
+} from '@features/order';
+import { orderService } from '@services/orderService.ts';
 
 export const fetchOrderTypesDropDownThunk = createAsyncThunk<
   OrderType[], // Expected return type

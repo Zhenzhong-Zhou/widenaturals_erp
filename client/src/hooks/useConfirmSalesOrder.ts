@@ -1,12 +1,12 @@
 import { useCallback, useMemo } from 'react';
-import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   confirmSalesOrderThunk,
   selectConfirmOrderData,
   selectConfirmOrderError,
   selectConfirmOrderLoading,
   selectConfirmOrderSuccessMessage,
-} from '../features/order';
+} from '@features/order';
 
 /**
  * Custom hook to handle confirming a sales order with related state and dispatcher.

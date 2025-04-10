@@ -1,4 +1,4 @@
-import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   adjustWarehouseInventoryLotThunk,
   bulkAdjustWarehouseInventoryLotsQtyThunk,
@@ -11,7 +11,7 @@ import {
   selectLotAdjustmentQtyLoadingSingle,
   selectLotAdjustmentQtySuccessBulk,
   selectLotAdjustmentQtySuccessSingle,
-} from '../features/warehouse-inventory';
+} from '@features/warehouse-inventory';
 
 const useLotAdjustmentQty = (refreshInventoryCallback?: () => void) => {
   const dispatch = useAppDispatch();

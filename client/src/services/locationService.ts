@@ -1,7 +1,7 @@
-import axiosInstance from '@utils/axiosConfig.ts';
-import { API_ENDPOINTS } from './apiEndponits.ts';
-import { LocationResponse } from '../features/location';
-import { AppError } from '@utils/AppError.tsx';
+import axiosInstance from '@utils/axiosConfig';
+import { API_ENDPOINTS } from '@services/apiEndpoints';
+import { LocationResponse } from '@features/location';
+import { AppError } from '@utils/AppError';
 
 /**
  * Fetch all locations from the API with pagination.

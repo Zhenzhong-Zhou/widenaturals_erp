@@ -1,9 +1,9 @@
+import axiosInstance from '@utils/axiosConfig';
+import { API_ENDPOINTS } from '@services/apiEndpoints';
 import {
   FetchAllOrderTypesParams,
   OrderTypeResponse,
-} from '../features/orderType';
-import axiosInstance from '@utils/axiosConfig.ts';
-import { API_ENDPOINTS } from './apiEndponits.ts';
+} from '@features/orderType';
 
 const fetchAllOrderTypes = async (
   params: FetchAllOrderTypesParams

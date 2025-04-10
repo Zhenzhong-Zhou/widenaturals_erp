@@ -1,13 +1,13 @@
 import axiosInstance from '@utils/axiosConfig';
+import { API_ENDPOINTS } from '@services/apiEndpoints';
 import { AppError, ErrorType } from '@utils/AppError';
-import { withTimeout } from '@utils/timeoutUtils.ts';
-import { withRetry } from '@utils/retryUtils.ts';
-import { AppDispatch } from '../store/store.ts';
+import { withTimeout } from '@utils/timeoutUtils';
+import { withRetry } from '@utils/retryUtils';
+import { AppDispatch } from '@store/store';
 import {
   resetCsrfToken,
   updateCsrfToken,
 } from '@features/csrf/state';
-import { API_ENDPOINTS } from './apiEndponits.ts';
 
 /**
  * Fetches the CSRF token from the backend with retry and timeout logic.

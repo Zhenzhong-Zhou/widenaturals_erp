@@ -1,11 +1,11 @@
 import { useEffect, useMemo } from 'react';
-import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchCustomersForDropdownThunk,
   selectCustomerDropdownData,
   selectCustomerDropdownError,
   selectCustomerDropdownLoading,
-} from '../features/customer';
+} from '@features/customer';
 
 /**
  * Custom hook for managing customer dropdown data.

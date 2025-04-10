@@ -1,13 +1,11 @@
 import { useCallback, useEffect, useMemo } from 'react';
-import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   selectLocations,
-  selectLocationTypeDetail,
-  selectLocationTypeError,
-  selectLocationTypeLoading,
+  selectLocationTypeDetail, selectLocationTypeError, selectLocationTypeLoading,
   selectLocationTypePagination,
-} from '../features/locationType/state/locationTypeDetailSelectors.ts';
-import { fetchLocationTypeDetailsThunk } from '../features/locationType/state/locationTypesThunks.ts';
+} from '@features/locationType/state/locationTypeDetailSelectors';
+import { fetchLocationTypeDetailsThunk } from '@features/locationType/state';
 
 /**
  * Custom hook for fetching and managing location type details.

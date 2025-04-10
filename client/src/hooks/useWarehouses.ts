@@ -1,12 +1,12 @@
-import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
 import { useCallback, useEffect, useMemo } from 'react';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   selectWarehouses,
   selectWarehousePagination,
   selectWarehouseLoading,
   selectWarehouseError,
   fetchWarehousesThunk,
-} from '../features/warehouse';
+} from '@features/warehouse';
 
 // Custom Hook for Warehouses
 const useWarehouses = ({

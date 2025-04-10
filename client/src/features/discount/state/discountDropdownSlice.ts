@@ -1,6 +1,5 @@
-import { DiscountDropdownItem } from './discountTypes.ts';
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { fetchDiscountDropdownThunk } from './discountThunks.ts';
+import { DiscountDropdownItem, fetchDiscountDropdownThunk } from '@features/discount';
 
 // Initial state
 interface DiscountDropdownState {

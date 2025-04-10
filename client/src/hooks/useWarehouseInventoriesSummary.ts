@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchWarehouseInventorySummaryThunk,
   selectWarehouseInventorySummary,
   selectWarehouseInventorySummaryError,
   selectWarehouseInventorySummaryLoading,
   selectWarehouseInventorySummaryPagination,
-} from '../features/warehouse-inventory';
+} from '@features/warehouse-inventory';
 
 /**
  * Custom hook for managing warehouse inventory summary with backend pagination.

@@ -1,4 +1,4 @@
-import { useAppDispatch, useAppSelector } from '../store/storeHooks';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchInventorySummaryThunk,
   selectInventorySummaryData, selectInventorySummaryError,

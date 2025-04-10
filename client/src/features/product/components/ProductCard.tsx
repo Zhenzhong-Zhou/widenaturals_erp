@@ -1,14 +1,12 @@
 import { FC } from 'react';
 import Box from '@mui/material/Box';
-import {
-  CustomButton,
-  CustomCard,
-  PriceDisplay,
-  Typography,
-} from '@components/index';
-import { GeneralProductInfo } from '../state/productTypes.ts';
-import productPlaceholder from '../../../assets/Virility_CA.jpg';
-import { formatLabel } from '@utils/textUtils.ts';
+import CustomCard from '@components/common/CustomCard';
+import CustomButton from '@components/common/CustomButton';
+import Typography from '@components/common/Typography';
+import PriceDisplay from '@components/common/PriceDisplay';
+import productPlaceholder from '@assets/Virility_CA.jpg';
+import { formatLabel } from '@utils/textUtils';
+import { GeneralProductInfo } from '@features/product/state';
 
 interface ProductCardProps {
   product: GeneralProductInfo; // Use the subset type

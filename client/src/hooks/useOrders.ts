@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchAllOrdersThunk,
   FetchOrdersParams,
@@ -9,7 +9,7 @@ import {
   selectOrdersPagination,
   selectOrdersByStatus,
   selectOrderById,
-} from '../features/order';
+} from '@features/order';
 
 const useOrders = () => {
   const dispatch = useAppDispatch();

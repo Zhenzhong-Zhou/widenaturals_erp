@@ -1,21 +1,19 @@
 import { FC, useState } from 'react';
-import {
-  CustomButton,
-  DetailHeader,
-  DetailPage,
-  MetadataSection,
-} from '@components/index.ts';
-import { useAppDispatch, useAppSelector } from '../../../store/storeHooks.ts';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   selectUserProfileLoading,
   selectUserProfileResponse,
-} from '../state/userProfileSelectors.ts';
-import { selectLastLogin } from '../../session/state/sessionSelectors.ts';
-import { formatDate, formatDateTime } from '@utils/dateTimeUtils.ts';
-import { ResetPasswordModal } from '../../resetPassword';
-import { resetPasswordThunk } from '../../resetPassword';
-import { useLogout } from '../../../hooks';
-import { clearTokens } from '@utils/tokenManager.ts';
+} from '@features/user';
+import { selectLastLogin } from '@features/session/state';
+import { formatDate, formatDateTime } from '@utils/dateTimeUtils';
+import { clearTokens } from '@utils/tokenManager';
+import useLogout from '@hooks/useLogout';
+import { resetPasswordThunk } from '@features/resetPassword';
+import DetailPage from '@components/common/DetailPage';
+import DetailHeader from '@components/common/DetailHeader';
+import MetadataSection from '@components/common/MetadataSection';
+import CustomButton from '@components/common/CustomButton';
+import ResetPasswordModal from '@features/resetPassword/components/ResetPasswordModal';
 
 const UserProfilePage: FC = () => {
   const response = useAppSelector(selectUserProfileResponse);
@@ -43,16 +41,13 @@ const UserProfilePage: FC = () => {
     newPassword: string;
   }) => {
     try {
-      console.log('Resetting password...');
       const { success, message } = await dispatch(
         resetPasswordThunk(data)
       ).unwrap();
 
       if (success) {
-        console.log('Password reset successful:', message);
         setModalOpen(false);
-
-        console.log('Clearing session after password reset...');
+        
         clearTokens();
         localStorage.clear();
         sessionStorage.clear();

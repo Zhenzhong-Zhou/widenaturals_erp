@@ -1,11 +1,13 @@
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
-import { CustomButton, CustomCard, Typography } from '@components/index.ts';
-import { formatDate } from '@utils/dateTimeUtils.ts';
-import { WarehouseItemSummary } from '../state/warehouseInventoryTypes.ts';
 import IconButton from '@mui/material/IconButton';
 import { ArrowBack, ArrowForward } from '@mui/icons-material';
-import { formatLabel } from '@utils/textUtils.ts';
+import Typography from '@components/common/Typography';
+import CustomCard from '@components/common/CustomCard';
+import CustomButton from '@components/common/CustomButton';
+import { formatDate } from '@utils/dateTimeUtils';
+import { formatLabel } from '@utils/textUtils';
+import { WarehouseItemSummary } from '@features/warehouse-inventory/state';
 
 interface WarehouseItemSummaryProps {
   itemsSummary: WarehouseItemSummary[];

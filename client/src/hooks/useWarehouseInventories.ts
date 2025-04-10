@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo } from 'react';
-import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchWarehouseInventoriesThunk,
   selectWarehouseInventories,
   selectWarehouseInventoryError,
   selectWarehouseInventoryLoading,
   selectWarehouseInventoryPagination,
-} from '../features/warehouse-inventory';
+} from '@features/warehouse-inventory';
 
 /**
  * Custom hook to manage warehouse inventories with pagination.

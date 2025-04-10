@@ -1,7 +1,8 @@
 import { FC } from 'react';
-import { CustomButton } from '@components/index.ts';
 import { useNavigate } from 'react-router-dom';
-import { DashboardLayout, DashboardPageProps } from '../index.ts';
+import { DashboardPageProps } from '@features/dashboard';
+import DashboardLayout from '@features/dashboard/components/DashboardLayout';
+import CustomButton from '@components/common/CustomButton';
 
 const AdminDashboardPage: FC<DashboardPageProps> = ({ fullName }) => {
   const navigate = useNavigate();

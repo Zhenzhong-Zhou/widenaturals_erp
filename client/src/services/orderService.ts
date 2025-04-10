@@ -1,12 +1,12 @@
-import axiosInstance from '@utils/axiosConfig.ts';
-import { API_ENDPOINTS } from './apiEndponits.ts';
+import axiosInstance from '@utils/axiosConfig';
+import { API_ENDPOINTS } from '@services/apiEndpoints';
 import {
   CreateSalesOrderResponse,
   FetchOrdersParams,
   OrderDetailsResponse,
   OrdersResponse, OrderStatusUpdateResponse,
   SalesOrder,
-} from '../features/order';
+} from '@features/order';
 
 /**
  * Creates a new sales order.

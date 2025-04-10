@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchPricingDataThunk,
   selectPricingList,
@@ -9,7 +9,7 @@ import {
   selectPriceValueData,
   selectPriceValueLoading,
   selectPriceValueError, PriceRequestParams, fetchPriceValueThunk,
-} from '../features/pricing';
+} from '@features/pricing';
 
 /**
  * Custom hook for managing pricing data and fetching price values.

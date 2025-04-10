@@ -1,11 +1,11 @@
 import { useEffect, useCallback } from 'react';
-import { useAppDispatch, useAppSelector } from '../store/storeHooks';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchPricingTypeDropdownThunk,
   selectPricingTypeDropdown,
   selectPricingTypeDropdownLoading,
   selectPricingTypeDropdownError,
-} from '../features/pricingType';
+} from '@features/pricingType';
 
 /**
  * Custom hook to fetch and manage pricing types dropdown state.

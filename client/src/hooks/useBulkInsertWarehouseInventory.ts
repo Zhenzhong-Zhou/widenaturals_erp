@@ -1,12 +1,12 @@
 import { useCallback } from 'react';
-import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   BulkInsertInventoryRequest,
   bulkInsertWarehouseInventoryThunk,
   selectWarehouseInventoryInsertData,
   selectWarehouseInventoryInsertError,
   selectWarehouseInventoryInsertLoading,
-} from '../features/warehouse-inventory';
+} from '@features/warehouse-inventory';
 
 /**
  * Custom hook to handle bulk inserting warehouse inventory

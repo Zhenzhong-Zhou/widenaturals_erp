@@ -1,16 +1,12 @@
 import { FC } from 'react';
-import { useInventoryHistory } from '../../../hooks';
-import {
-  InventoryHistoryTable,
-  ReportPageLayout,
-  useReportPageLogic,
-} from '../index.ts';
-import {
-  ErrorDisplay,
-  ErrorMessage,
-  Loading,
-  Typography,
-} from '@components/index.ts';
+import useInventoryHistory from '@hooks/useInventoryHistory';
+import useReportPageLogic from '@features/report/hook/useReportPageLogic';
+import Loading from '@components/common/Loading';
+import ErrorDisplay from '@components/shared/ErrorDisplay';
+import ErrorMessage from '@components/common/ErrorMessage';
+import ReportPageLayout from '@features/report/components/ReportPageLayout';
+import InventoryHistoryTable from '@features/report/components/InventoryHistoryTable';
+import Typography from '@components/common/Typography';
 
 const InventoryHistoryPage: FC = () => {
   const reportCategory = 'inventory_history';

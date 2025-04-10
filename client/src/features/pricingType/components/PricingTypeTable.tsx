@@ -1,9 +1,9 @@
 import { FC } from 'react';
-import { PricingTypeTableProps } from '../state/pricingTypeTypes.ts';
-import { CustomTable } from '@components/index.ts';
-import { formatDateTime } from '@utils/dateTimeUtils.ts';
 import { Link } from 'react-router-dom';
-import { formatLabel } from '@utils/textUtils.ts';
+import { PricingTypeTableProps } from '@features/pricingType/state';
+import CustomTable from '@components/common/CustomTable';
+import { formatDateTime } from '@utils/dateTimeUtils';
+import { formatLabel } from '@utils/textUtils';
 
 const PricingTypeTable: FC<PricingTypeTableProps> = ({
   data,

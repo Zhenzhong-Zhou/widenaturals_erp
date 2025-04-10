@@ -1,8 +1,9 @@
 import { FC, useEffect, useState } from 'react';
-import { useTaxRateDropdown } from '../../../hooks';
-import { Dropdown, Loading } from '@components/index.ts';
 import Box from '@mui/material/Box';
-import { TaxRateDropdownItem } from '../state/taxRateTypes';
+import Loading from '@components/common/Loading';
+import Dropdown from '@components/common/Dropdown';
+import { TaxRateDropdownItem } from '@features/taxRate';
+import useTaxRateDropdown from '@hooks/useTaxRateDropdown.ts';
 
 interface TaxRateDropdownProps {
   label?: string;

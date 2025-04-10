@@ -1,9 +1,9 @@
 import { FC } from 'react';
-import CustomTable from '@components/common/CustomTable.tsx';
-import { formatDate, formatDateTime } from '@utils/dateTimeUtils.ts';
-import { formatLabel } from '@utils/textUtils.ts';
-import { Column } from '@components/common/CustomTable.tsx';
-import { InventoryHistoryParams } from '../state/reportTypes.ts';
+import type { Column } from '@components/common/CustomTable';
+import CustomTable from '@components/common/CustomTable';
+import { formatDate, formatDateTime } from '@utils/dateTimeUtils';
+import { formatLabel } from '@utils/textUtils';
+import { InventoryHistoryParams } from '@features/report';
 
 interface InventoryHistoryTableProps {
   data: any[];

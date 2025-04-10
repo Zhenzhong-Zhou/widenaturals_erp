@@ -2,11 +2,13 @@ import { FC } from 'react';
 import { Link } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
-import { WarehouseInventorySummary } from '../state/warehouseInventoryTypes.ts';
-import { CustomButton, CustomCard, Typography } from '@components/index.ts';
-import { formatLabel, formatCurrency } from '@utils/textUtils.ts';
-import { formatDateTime, formatToISODate } from '@utils/dateTimeUtils.ts';
 import { ArrowBack, ArrowForward, Refresh } from '@mui/icons-material';
+import CustomButton from '@components/common/CustomButton';
+import CustomCard from '@components/common/CustomCard';
+import Typography from '@components/common/Typography';
+import { formatLabel, formatCurrency } from '@utils/textUtils';
+import { formatDateTime, formatToISODate } from '@utils/dateTimeUtils';
+import { WarehouseInventorySummary } from '../state/warehouseInventoryTypes';
 
 interface WarehouseInventorySummaryProps {
   inventoriesSummary: WarehouseInventorySummary[];

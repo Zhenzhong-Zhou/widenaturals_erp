@@ -1,16 +1,19 @@
 import { Suspense, lazy } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { routes } from './index';
-import ProtectedRoutes from './ProtectedRoutes.tsx';
-import GuestRoute from './GuestRoute.tsx';
-import { ErrorDisplay, ErrorMessage, Loading } from '@components/index.ts';
-import { MainLayout } from '../layouts';
-import { usePermissions, useSession } from '../hooks';
-import { PermissionsProvider } from '../context';
-import { hasPermission } from '@utils/permissionUtils.ts';
+import ProtectedRoutes from '@routes/ProtectedRoutes';
+import GuestRoute from './GuestRoute';
+import useSession from '@hooks/useSession';
+import usePermissions from '@hooks/usePermissions';
+import ErrorDisplay from '@components/shared/ErrorDisplay';
+import ErrorMessage from '@components/common/ErrorMessage';
+import { PermissionsProvider } from '@context/PermissionsContext';
+import Loading from '@components/common/Loading';
+import MainLayout from '@layouts/MainLayout/MainLayout';
+import { hasPermission } from '@utils/permissionUtils';
 
 const LazyNotFoundPage = lazy(() =>
-  import('../pages/NotFoundPage').then((module) => ({
+  import('@pages/NotFoundPage').then((module) => ({
     default: module.default,
   }))
 );

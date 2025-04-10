@@ -1,5 +1,5 @@
 import { combineReducers, PayloadAction } from '@reduxjs/toolkit';
-import { createReducerMap } from '@utils/reducerUtils.ts';
+import { createReducerMap } from '@utils/reducerUtils';
 
 // Reducer groups
 import { authorizeReducers } from '@features/authorize';

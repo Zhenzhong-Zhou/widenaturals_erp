@@ -3,13 +3,13 @@ export type {
   OrderTypeCategory,
   OrderType,
   OrderTypeResponse,
-} from './state/orderTypeTypes.ts';
-export { fetchAllOrderTypesThunk } from './state/orderTypeThunks.ts';
+} from './state/orderTypeTypes';
+export { fetchAllOrderTypesThunk } from './state/orderTypeThunks';
 export {
   selectOrderTypes,
   selectOrderTypesPagination,
   selectOrderTypesLoading,
   selectOrderTypesError,
-} from './state/orderTypeSelectors.ts';
-export { default as OrderTypesTable } from './components/OrderTypesTable.tsx';
+} from './state/orderTypeSelectors';
+export { default as OrderTypesTable } from './components/OrderTypesTable';
 export { orderTypeReducers } from './state';

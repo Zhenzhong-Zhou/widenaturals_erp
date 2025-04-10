@@ -1,4 +1,4 @@
-export { default as UsersCard } from './components/UsersCard.tsx';
+export { default as UsersCard } from './components/UsersCard';
 export type {
   PaginationInfo,
   UseUsersResponse,
@@ -8,12 +8,12 @@ export type {
   UsersListProps,
   UserProfile,
   UserProfileResponse,
-} from './state/userTypes.ts';
-export { fetchUsersThunk, fetchUserProfileThunk } from './state/userThunks.ts';
+} from './state/userTypes';
+export { fetchUsersThunk, fetchUserProfileThunk } from './state/userThunks';
 export {
   selectUserProfileResponse,
   selectUserProfileLoading,
   selectUserProfileError,
   selectUserProfileData,
-} from './state/userProfileSelectors.ts';
+} from './state/userProfileSelectors';
 export { userReducers } from './state';

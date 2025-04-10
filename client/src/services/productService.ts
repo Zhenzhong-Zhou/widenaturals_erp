@@ -1,10 +1,10 @@
-import axiosInstance from '@utils/axiosConfig.ts';
-import { API_ENDPOINTS } from './apiEndponits.ts';
+import axiosInstance from '@utils/axiosConfig';
+import { API_ENDPOINTS } from '@services/apiEndpoints';
 import {
   Product,
   ProductResponse,
   ProductDetailApiResponse,
-} from '../features/product';
+} from '@features/product';
 
 const fetchProducts = async <T>(
   page: number = 1,

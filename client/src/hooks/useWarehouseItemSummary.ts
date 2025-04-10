@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { useAppDispatch, useAppSelector } from '../store/storeHooks';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   FetchWarehouseItemSummaryParams,
   fetchWarehouseItemSummaryThunk,
@@ -8,7 +8,7 @@ import {
   selectWarehouseItemLoading,
   selectWarehouseItemPagination,
   selectWarehouseItemSummary,
-} from '../features/warehouse-inventory';
+} from '@features/warehouse-inventory';
 
 const useWarehouseItemSummary = (
   warehouseId: string,

@@ -1,14 +1,13 @@
 import { FC } from 'react';
-import CustomCard from '@components/common/CustomCard.tsx';
-import LoginForm from './LoginForm.tsx';
-import { handleError, mapErrorMessage } from '@utils/errorUtils.ts';
-import { loginThunk } from '../state/sessionThunks.ts';
-import { useAppDispatch, useAppSelector } from '../../../store/storeHooks.ts';
-import { selectLoginError } from '../state/sessionSelectors.ts';
 import { useNavigate } from 'react-router-dom';
-import { useLoading } from '../../../context/LoadingContext';
-import { ErrorDisplay } from '@components/index.ts';
-import { setMessage } from '../state/sessionSlice.ts';
+import CustomCard from '@components/common/CustomCard';
+import ErrorDisplay from '@components/shared/ErrorDisplay';
+import LoginForm from '@features/session/components/LoginForm';
+import { handleError, mapErrorMessage } from '@utils/errorUtils';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
+import { useLoading } from '@context/LoadingContext';
+import { loginThunk, selectLoginError } from '@features/session/state';
+import { setMessage } from '@features/session/state/sessionSlice';
 
 interface LoginCardProps {
   title?: string; // Optional title

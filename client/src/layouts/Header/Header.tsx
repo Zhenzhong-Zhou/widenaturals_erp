@@ -1,4 +1,5 @@
 import React, { FC, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Avatar from '@mui/material/Avatar';
 import IconButton from '@mui/material/IconButton';
@@ -7,15 +8,15 @@ import MenuItem from '@mui/material/MenuItem';
 import Divider from '@mui/material/Divider';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSun, faMoon } from '@fortawesome/free-solid-svg-icons';
-import { Typography, CustomButton } from '@components/index';
-import { useThemeContext } from '../../context/ThemeContext';
-import { UserProfile as UserProfileType } from '../../features/user/state/userTypes';
-import { headerStyles, typographyStyles } from './headerStyles';
-import { HealthStatus } from '../../features/health';
-import { useNavigate } from 'react-router-dom';
+import Typography from '@components/common/Typography';
+import HealthStatus from '@features/health/components/HealthStatus';
+import CustomButton from '@components/common/CustomButton';
+import { useThemeContext } from '@context/ThemeContext';
+import { UserProfile } from '@features/user';
+import { headerStyles, typographyStyles } from '@layouts/Header/headerStyles';
 
 interface HeaderProps {
-  user?: UserProfileType;
+  user?: UserProfile;
   onLogout: () => void;
 }
 

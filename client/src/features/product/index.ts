@@ -1,4 +1,4 @@
-export { default as ProductCard } from './components/ProductCard.tsx';
+export { default as ProductCard } from './components/ProductCard';
 export type {
   Product,
   ProductResponse,
@@ -7,27 +7,27 @@ export type {
   Pagination,
   UseProductsResult,
   ProductDetailApiResponse,
-} from './state/productTypes.ts';
+} from './state/productTypes';
 export {
   fetchProductsThunk,
   fetchProductDetailThunk,
   fetchProductsForOrdersDropdownThunk,
-} from './state/productThunks.ts'
+} from './state/productThunks'
 export {
   selectProducts,
   selectProductsPagination,
   selectProductsLoading,
   selectProductsError
-} from './state/productSelectors.ts';
+} from './state/productSelectors';
 export {
   selectProductOrderDropdown,
   selectProductOrderDropdownLoading,
   selectProductOrderDropdownError
-} from './state/productOrderDropdownSelectors.ts';
+} from './state/productOrderDropdownSelectors';
 export {
   selectProductDetail,
   selectProductDetailLoading,
   selectProductDetailError,
-} from './state/productDetailSelector.ts';
+} from './state/productDetailSelector';
 export { default as ProductOrderDropdown } from './components/ProductOrderDropdown';
 export { productReducers } from './state';

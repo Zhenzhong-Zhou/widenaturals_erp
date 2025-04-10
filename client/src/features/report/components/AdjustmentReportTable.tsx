@@ -1,9 +1,9 @@
 import { FC } from 'react';
-import CustomTable from '@components/common/CustomTable.tsx';
-import { formatDate } from '@utils/dateTimeUtils.ts';
-import { formatLabel } from '@utils/textUtils.ts';
-import { Column } from '@components/common/CustomTable.tsx';
-import { AdjustmentReportParams } from '../state/reportTypes.ts';
+import CustomTable from '@components/common/CustomTable';
+import { Column } from '@components/common/CustomTable';
+import { AdjustmentReportParams } from '@features/report';
+import { formatDate } from '@utils/dateTimeUtils';
+import { formatLabel } from '@utils/textUtils';
 
 interface AdjustmentReportTableProps {
   data: any[];

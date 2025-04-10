@@ -5,7 +5,7 @@ import Tooltip from '@mui/material/Tooltip';
 import Typography from '@components/common/Typography';
 import { formatDateTime } from '@utils/dateTimeUtils';
 import useHealthStatus from '@hooks/useHealthStatus';
-import { formatLabel } from '@utils/textUtils.ts';
+import { formatLabel } from '@utils/textUtils';
 
 interface HealthStatusProps {
   getStatusColor: (

@@ -1,5 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { resetPasswordThunk } from './resetPasswordThunk.ts';
+import { resetPasswordThunk } from '@features/resetPassword';
 
 export interface ResetPasswordState {
   loading: boolean;

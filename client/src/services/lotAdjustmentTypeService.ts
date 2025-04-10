@@ -1,6 +1,6 @@
-import axiosInstance from '@utils/axiosConfig.ts';
-import { API_ENDPOINTS } from './apiEndponits.ts';
-import { LotAdjustmentTypeList } from '../features/warehouse-inventory';
+import axiosInstance from '@utils/axiosConfig';
+import { API_ENDPOINTS } from '@services/apiEndpoints';
+import { LotAdjustmentTypeList } from '@features/warehouse-inventory';
 
 const fetchAllDropdownLotAdjustmentTypes =
   async (): Promise<LotAdjustmentTypeList> => {

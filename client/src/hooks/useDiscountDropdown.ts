@@ -1,11 +1,11 @@
 import { useEffect } from 'react';
-import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchDiscountDropdownThunk,
   selectDiscountsError,
   selectDiscountsLoading,
   selectFormattedDiscounts,
-} from '../features/discount';
+} from '@features/discount';
 
 const useDiscountDropdown = () => {
   const dispatch = useAppDispatch();

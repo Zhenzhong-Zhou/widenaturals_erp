@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo } from 'react';
-import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   AdjustmentReportParams,
   fetchAdjustmentReportThunk,
   exportAdjustmentReportThunk,
   selectAdjustmentReport,
-} from '../features/report';
+} from '@features/report';
 
 /**
  * Custom hook to fetch and manage adjustment report data.

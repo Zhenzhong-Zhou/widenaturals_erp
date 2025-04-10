@@ -2,11 +2,12 @@ import { FC } from 'react';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import Alert from '@mui/material/Alert';
-import { CustomModal, Typography } from '@components/index.ts';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import ResetPasswordForm from './ResetPasswordForm';
+import CustomModal from '@components/common/CustomModal';
+import Typography from '@components/common/Typography';
+import ResetPasswordForm from '@features/resetPassword/components/ResetPasswordForm';
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
-import { useThemeContext } from '../../../context/ThemeContext';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { useThemeContext } from '@context/ThemeContext';
 
 interface ResetPasswordModalProps {
   open: boolean;

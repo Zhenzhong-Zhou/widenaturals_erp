@@ -11,28 +11,28 @@ export type {
   OrderDetailsResponse,
   OrderStatusUpdateResult,
   OrderStatusUpdateResponse,
-} from './state/orderTypes.ts';
+} from './state/orderTypes';
 export {
   fetchOrderTypesDropDownThunk,
   createSalesOrderThunk,
   fetchAllOrdersThunk,
   fetchSalesOrderDetailsThunk,
   confirmSalesOrderThunk,
-} from './state/orderThunks.ts';
+} from './state/orderThunks';
 export {
   selectOrderTypesDropdown,
   selectOrderTypesByCategory,
   selectOrderTypesDropdownLoading,
   selectOrderTypesDropdownError,
-} from './state/orderTypesDropdownSelectors.ts';
-export { default as OrderTypesDropdown } from './components/OrderTypesDropdown.tsx';
-export { default as OrderFormModal } from './components/OrderFormModal.tsx';
+} from './state/orderTypesDropdownSelectors';
+export { default as OrderTypesDropdown } from './components/OrderTypesDropdown';
+export { default as OrderFormModal } from './components/OrderFormModal';
 export {
   selectCreatedSalesOrderLoading,
   selectCreatedSalesOrderSuccess,
   selectCreatedSalesOrderId,
   selectCreatedSalesOrderError
-} from './state/createSalesOrderSelectors.ts';
+} from './state/createSalesOrderSelectors';
 export { default as CreateSaleOrderForm } from './components/CreateSaleOrderForm';
 export {
   selectAllOrders,
@@ -41,21 +41,21 @@ export {
   selectOrdersPagination,
   selectOrdersByStatus,
   selectOrderById
-} from './state/orderSelectors.ts';
-export { default as OrdersTable } from './components/OrdersTable.tsx';
+} from './state/orderSelectors';
+export { default as OrdersTable } from './components/OrdersTable';
 export {
   selectSalesOrderDetailsData,
   selectSalesOrderDetailsLoading,
   selectSalesOrderDetailsError,
   selectOrderNumber
-} from './state/salesOrderDetailSelectors.ts';
-export { default as SalesOrderDetailsSection } from './components/SalesOrderDetailsSection.tsx';
-export { default as OrderItemsTable } from './components/OrderItemsTable.tsx';
-export { orderItemsColumns } from './components/OrderItemsTableColumns.ts';
+} from './state/salesOrderDetailSelectors';
+export { default as SalesOrderDetailsSection } from './components/SalesOrderDetailsSection';
+export { default as OrderItemsTable } from './components/OrderItemsTable';
+export { orderItemsColumns } from './components/OrderItemsTableColumns';
 export {
   selectConfirmOrderData,
   selectConfirmOrderLoading,
   selectConfirmOrderError,
   selectConfirmOrderSuccessMessage,
-} from './state/confirmSalesOrderSelectors.ts';
+} from './state/confirmSalesOrderSelectors';
 export { orderReducers } from './state';

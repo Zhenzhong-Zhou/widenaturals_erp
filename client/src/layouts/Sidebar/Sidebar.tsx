@@ -9,11 +9,11 @@ import ListItemText from '@mui/material/ListItemText';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBars, faTimes } from '@fortawesome/free-solid-svg-icons';
 import { sidebarStyles } from './sidebarStyles';
-import { useThemeContext } from '../../context/ThemeContext';
-import logoDark from '../../assets/wide-logo-dark.png';
-import logoLight from '../../assets/wide-logo-light.png';
-import { routes } from '../../routes';
-import { hasPermission } from '@utils/permissionUtils.ts';
+import { useThemeContext } from '@context/ThemeContext';
+import logoDark from '@assets/wide-logo-dark.png';
+import logoLight from '@assets/wide-logo-light.png';
+import { routes } from '@routes/index';
+import { hasPermission } from '@utils/permissionUtils';
 
 interface SidebarProps {
   isOpen: boolean;

@@ -1,6 +1,6 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { PriceRequestParams, PriceResponse, PricingDetailsResponse, PricingResponse } from './pricingTypes.ts';
-import { pricingService } from '../../../services';
+import { PriceRequestParams, PriceResponse, PricingDetailsResponse, PricingResponse } from '@features/pricing';
+import { pricingService } from '@services/pricingService';
 
 /**
  * Async thunk to fetch paginated pricing records.

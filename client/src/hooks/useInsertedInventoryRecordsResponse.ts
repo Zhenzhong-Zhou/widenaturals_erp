@@ -1,12 +1,12 @@
 import { useCallback, useMemo } from 'react';
-import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchInsertedInventoryRecordsThunk,
   InsertInventoryRequestBody,
   selectInsertedInventoryRecordsResponseData,
   selectInsertedInventoryRecordsResponseError,
   selectInsertedInventoryRecordsResponseLoading,
-} from '../features/warehouse-inventory';
+} from '@features/warehouse-inventory';
 
 const useInsertedInventoryRecordsResponse = () => {
   const dispatch = useAppDispatch();

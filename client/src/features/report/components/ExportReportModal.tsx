@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { MenuItem, Select, SelectChangeEvent } from '@mui/material';
-import { CustomButton, CustomModal } from '@components/index.ts';
-import { BaseReportParams } from '../state/reportTypes.ts';
+import Select, { SelectChangeEvent } from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import CustomModal from '@components/common/CustomModal.tsx';
+import CustomButton from '@components/common/CustomButton.tsx';
+import { BaseReportParams } from '@features/report';
 
 interface ExportReportModalProps<T extends BaseReportParams> {
   open: boolean;
@@ -28,17 +30,17 @@ const ExportReportModal = <T extends BaseReportParams>({
   const [exportFormat, setExportFormat] = useState<
     BaseReportParams['exportFormat']
   >(
-    filters.exportFormat ?? 'csv' // ✅ Ensure it starts with the correct format
+    filters.exportFormat ?? 'csv' // Ensure it starts with the correct format
   );
 
   const handleExport = () => {
     const { page, limit, totalRecords, totalPages, ...exportFilters } = filters;
 
-    // ✅ Explicitly cast to Partial<T>
+    // Explicitly cast to Partial<T>
     const exportParams = {
       ...exportFilters,
-      exportFormat: exportFormat ?? 'csv', // ✅ Ensure correct format is used
-    } as Partial<T>; // ✅ Explicitly tell TypeScript this matches Partial<T>
+      exportFormat: exportFormat ?? 'csv', // Ensure correct format is used
+    } as Partial<T>; // Explicitly tell TypeScript this matches Partial<T>
 
     onExport(exportParams);
     onClose();

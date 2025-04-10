@@ -1,14 +1,13 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { customerService, dropdownService } from '../../../services';
 import {
   BulkCustomerRequest,
-  BulkCustomerResponse,
-  CustomerDetails,
+  BulkCustomerResponse, CustomerDetails,
   CustomerDetailsResponse,
   CustomerListResponse,
-  CustomerQueryParams,
-  FetchCustomersDropdownResponse,
-} from './customerTypes.ts';
+  CustomerQueryParams, FetchCustomersDropdownResponse,
+} from '@features/customer';
+import { customerService } from '@services/customerService.ts';
+import { dropdownService } from '@services/dropdownService.ts';
 
 // Thunk for creating a single customer
 export const createCustomerThunk = createAsyncThunk<

@@ -1,3 +1,5 @@
+import axiosInstance from '@utils/axiosConfig';
+import { API_ENDPOINTS } from '@services/apiEndpoints';
 import {
   AdjustmentReportParams,
   InventoryHistoryResponse,
@@ -5,11 +7,9 @@ import {
   InventoryActivityLogsResponse,
   PaginatedAdjustmentReportResponse,
   InventoryHistoryParams,
-} from '../features/report';
-import { API_ENDPOINTS } from './apiEndponits.ts';
-import axiosInstance from '@utils/axiosConfig';
+} from '@features/report';
 import { AppError } from '@utils/AppError';
-import { isCustomAxiosError } from '@utils/axiosUtils.ts';
+import { isCustomAxiosError } from '@utils/axiosUtils';
 
 /**
  * Fetch adjustment report (paginated, for UI).

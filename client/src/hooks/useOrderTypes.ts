@@ -1,12 +1,12 @@
 import { useEffect, useCallback, useMemo } from 'react';
-import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchAllOrderTypesThunk,
   selectOrderTypes,
   selectOrderTypesError,
   selectOrderTypesLoading,
   selectOrderTypesPagination,
-} from '../features/orderType';
+} from '@features/orderType';
 
 const useOrderTypes = (
   page: number,

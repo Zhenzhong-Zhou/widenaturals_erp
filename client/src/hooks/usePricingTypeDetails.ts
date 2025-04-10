@@ -1,18 +1,18 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useAppDispatch, useAppSelector } from '../store/storeHooks';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchPricingTypeDetailsThunk,
   PricingRecord,
   PricingTypeDetail,
   PricingTypePagination,
-} from '../features/pricingType';
+} from '@features/pricingType';
 import {
   selectPricingError,
   selectPricingIsLoading,
   selectPricingPagination,
   selectPricingRecords,
   selectPricingTypeDetails,
-} from '../features/pricingType';
+} from '@features/pricingType';
 
 interface UsePricingDetailsParams {
   initialPage?: number;

@@ -4,9 +4,9 @@ import {
   CustomerDetailsResponse,
   CustomerListResponse,
   CustomerQueryParams,
-} from '../features/customer';
-import axiosInstance from '../utils/axiosConfig';
-import { API_ENDPOINTS } from './apiEndponits.ts';
+} from '@features/customer';
+import axiosInstance from '@utils/axiosConfig';
+import { API_ENDPOINTS } from '@services/apiEndpoints';
 
 // Generic post function for reducing redundancy
 const postRequest = async <T, R>(url: string, data: T): Promise<R> => {

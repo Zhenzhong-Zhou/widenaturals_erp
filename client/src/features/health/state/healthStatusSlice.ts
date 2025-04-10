@@ -1,6 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { fetchHealthStatus } from './healthStatusThunk.ts';
-import { HealthState } from './healthStatusState.ts';
+import { HealthState } from '@features/health/state/healthStatusState';
+import { fetchHealthStatus } from '@features/health/state/healthStatusThunk';
 
 const initialState: HealthState = {
   server: 'unknown',

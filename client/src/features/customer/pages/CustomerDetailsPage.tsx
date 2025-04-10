@@ -1,10 +1,11 @@
 import { FC, useEffect } from 'react';
-import Box from '@mui/material/Box';
-import { Typography } from '@components/index.ts';
-import { CustomerDetailHeader, CustomerDetailSection } from '../index.ts';
-import { useCustomers } from '../../../hooks';
 import { useParams } from 'react-router-dom';
+import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
+import Typography from '@components/common/Typography';
+import CustomerDetailHeader from '@features/customer/components/CustomerDetailHeader';
+import CustomerDetailSection from '@features/customer/components/CustomerDetailSection';
+import useCustomers from '@hooks/useCustomers';
 
 const CustomerDetailsPage: FC = () => {
   const { customerId } = useParams<{ customerId: string }>();

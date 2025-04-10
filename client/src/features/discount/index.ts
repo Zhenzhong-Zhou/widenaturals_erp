@@ -1,14 +1,14 @@
 export type {
   DiscountDropdownItem,
   DiscountDropdownResponse,
-} from './state/discountTypes.ts';
+} from './state/discountTypes';
 export {
   fetchDiscountDropdownThunk,
-} from './state/discountThunks.ts';
+} from './state/discountThunks';
 export {
   selectDiscountsLoading,
   selectDiscountsError,
   selectFormattedDiscounts
-} from './state/discountSelectors.ts';
-export { default as DiscountDropdown } from './components/DiscountDropdown.tsx';
+} from './state/discountSelectors';
+export { default as DiscountDropdown } from './components/DiscountDropdown';
 export { discountReducers } from './state';

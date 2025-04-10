@@ -1,15 +1,13 @@
 import { FC } from 'react';
 import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
-import UsersList from '../components/UserList.tsx';
-import { useUsers } from '../../../hooks';
-import {
-  CustomButton,
-  CustomPagination,
-  ErrorMessage,
-  Loading,
-  Typography,
-} from '@components/index.ts';
+import useUsers from '@hooks/useUsers';
+import Typography from '@components/common/Typography';
+import Loading from '@components/common/Loading';
+import ErrorMessage from '@components/common/ErrorMessage';
+import UsersList from '@features/user/components/UserList';
+import CustomPagination from '@components/common/CustomPagination';
+import CustomButton from '@components/common/CustomButton';
 
 const UsersPage: FC = () => {
   const { users, loading, error, refetchUsers } = useUsers();
