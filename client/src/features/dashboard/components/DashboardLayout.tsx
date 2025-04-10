@@ -1,7 +1,7 @@
 import { FC, ReactNode, useEffect, useMemo, useState } from 'react';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid2';
-import { useMediaQuery } from '@mui/material';
+import { Skeleton, useMediaQuery } from '@mui/material';
 import Typography from '@components/common/Typography';
 import Loading from '@components/common/Loading';
 import ErrorMessage from '@components/common/ErrorMessage';
@@ -65,9 +65,13 @@ const DashboardLayout: FC<BaseDashboardLayoutProps> = ({
   
   return (
     <Box sx={{ padding: 3 }}>
-      <Typography variant="h4" gutterBottom>
-        Welcome, {fullName || 'User'}!
-      </Typography>
+      {fullName ? (
+        <Typography variant="h4" gutterBottom>
+          Welcome, {fullName}!
+        </Typography>
+      ) : (
+        <Skeleton variant="text" width={200} />
+      )}
       
       {children}
       

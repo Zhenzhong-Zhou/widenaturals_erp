@@ -9,6 +9,7 @@ import Typography from '@components/common/Typography';
 import { formatLabel, formatCurrency } from '@utils/textUtils';
 import { formatDateTime, formatToISODate } from '@utils/dateTimeUtils';
 import { WarehouseInventorySummary } from '../state/warehouseInventoryTypes';
+import Skeleton from '@mui/material/Skeleton';
 
 interface WarehouseInventorySummaryProps {
   inventoriesSummary: WarehouseInventorySummary[];
@@ -16,9 +17,11 @@ interface WarehouseInventorySummaryProps {
   totalPages: number;
   setSummaryPage: (page: number) => void;
   refreshSummary: () => void;
+  isLoading?: boolean;
 }
 
 const WarehouseInventorySummaryCard: FC<WarehouseInventorySummaryProps> = ({
+  isLoading,
   inventoriesSummary,
   summaryPage,
   totalPages,
@@ -50,18 +53,26 @@ const WarehouseInventorySummaryCard: FC<WarehouseInventorySummaryProps> = ({
           <CustomCard
             key={summary.warehouseId}
             title={
-              <Link
-                to={`/warehouse_inventories/${summary.warehouseId}`}
-                style={{
-                  textDecoration: 'none',
-                  color: '#1976d2',
-                  fontWeight: 'bold',
-                }}
-              >
-                {summary.warehouseName}
-              </Link>
+              isLoading ? (
+                <Skeleton variant="text" width={200} height={28} />
+              ) : (
+                <Link
+                  to={`/warehouse_inventories/${summary.warehouseId}`}
+                  style={{ textDecoration: 'none', }}
+                >
+                  <Typography variant="h5" component="h5" sx={{ color: '#1976d2', fontWeight: 'bold' }}>
+                    {summary.warehouseName}
+                  </Typography>
+                </Link>
+              )
             }
-            subtitle={`Status: ${formatLabel(summary.status)}`}
+            subtitle={
+              isLoading ? (
+                <Skeleton variant="text" width={120} />
+              ) : (
+                `Status: ${formatLabel(summary.status)}`
+              )
+            }
             sx={{
               minWidth: 200,
               flex: '0 0 auto',
@@ -70,7 +81,8 @@ const WarehouseInventorySummaryCard: FC<WarehouseInventorySummaryProps> = ({
               '&:hover': { transform: 'scale(1.05)', boxShadow: 6 },
             }}
           >
-            {/* Main content inside CustomCard */}
+          
+          {/* Main content inside CustomCard */}
             <Box
               sx={{
                 textAlign: 'left',

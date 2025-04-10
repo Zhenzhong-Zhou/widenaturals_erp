@@ -1,15 +1,5 @@
 import { createTheme, ThemeOptions, Theme } from '@mui/material/styles';
 
-// Sync global CSS variables with theme
-const syncGlobalVariables = (theme: Theme) => {
-  const root = document.documentElement;
-  root.style.setProperty('--primary-color', theme.palette.primary.main);
-  root.style.setProperty('--secondary-color', theme.palette.secondary.main);
-  root.style.setProperty('--bg-light', theme.palette.background.default);
-  root.style.setProperty('--text-light', theme.palette.text.primary);
-  root.style.setProperty('--border-light', theme.palette.divider);
-};
-
 // Extend the palette with custom colors
 declare module '@mui/material/styles' {
   interface Palette {
@@ -38,13 +28,38 @@ declare module '@mui/material/styles' {
 const sharedTokens: ThemeOptions = {
   typography: {
     fontFamily: "'Roboto', sans-serif",
-    fontSize: 16, // Base font size
-    h1: { fontSize: '2.5rem', fontWeight: 700 },
-    h2: { fontSize: '2rem', fontWeight: 700 },
-    h3: { fontSize: '1.5rem', fontWeight: 900 },
-    h6: { fontSize: '1.3rem', fontWeight: 700 },
-    body1: { fontSize: '1rem', lineHeight: 1.7 },
-    body2: { fontSize: '0.875rem', lineHeight: 1.6 },
+    h1: {
+      fontSize: 'clamp(2.5rem, 5vw, 3.5rem)',
+      fontWeight: 700,
+    },
+    h2: {
+      fontSize: 'clamp(2rem, 4vw, 3rem)',
+      fontWeight: 700,
+    },
+    h3: {
+      fontSize: 'clamp(1.5rem, 3vw, 2.5rem)',
+      fontWeight: 600,
+    },
+    h4: {
+      fontSize: '1.75rem',
+      fontWeight: 600,
+    },
+    h5: {
+      fontSize: 'clamp(1.25rem, 2vw, 1.5rem)', // 20px–24px
+      fontWeight: 600,
+    },
+    h6: {
+      fontSize: 'clamp(1rem, 1.5vw, 1.25rem)', // 16px–20px
+      fontWeight: 600,
+    },
+    body1: {
+      fontSize: '1rem',
+      lineHeight: 1.6,
+    },
+    body2: {
+      fontSize: '0.875rem',
+      lineHeight: 1.6,
+    },
   },
   spacing: 8,
 };
@@ -98,10 +113,6 @@ const darkTheme = createTheme({
     },
   },
 });
-
-// Apply global variables dynamically
-syncGlobalVariables(lightTheme);
-syncGlobalVariables(darkTheme);
 
 export { lightTheme, darkTheme };
 export type { Theme };

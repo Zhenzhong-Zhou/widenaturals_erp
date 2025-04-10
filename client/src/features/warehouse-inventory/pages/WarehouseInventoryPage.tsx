@@ -20,6 +20,7 @@ const WarehouseInventoryPage = () => {
     useWarehouseInventories(page, limit);
 
   const {
+    summaryLoading,
     inventoriesSummary,
     summaryPagination,
     summaryPage,
@@ -51,6 +52,7 @@ const WarehouseInventoryPage = () => {
       {/* Summary Card with Pagination */}
       {inventoriesSummary.length > 0 && (
         <WarehouseInventorySummaryCard
+          isLoading={summaryLoading}
           inventoriesSummary={inventoriesSummary}
           summaryPage={summaryPage}
           totalPages={summaryPagination.totalPages}

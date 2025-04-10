@@ -51,7 +51,7 @@ const getAdjustmentReport = async ({
       COALESCE(u.firstname, 'System') || ' ' || COALESCE(u.lastname, 'Action') AS adjusted_by,
       wa.comments,
       wa.order_id,
-      COALESCE(so.order_number, '—') AS order_number
+      COALESCE(o.order_number, '—') AS order_number
     FROM warehouse_lot_adjustments wa
     JOIN warehouse_inventory_lots wil ON wa.warehouse_inventory_lot_id = wil.id
     JOIN warehouses w ON wil.warehouse_id = w.id
@@ -60,7 +60,7 @@ const getAdjustmentReport = async ({
     JOIN lot_adjustment_types lat ON wa.adjustment_type_id = lat.id
     LEFT JOIN users u ON wa.adjusted_by = u.id
     LEFT JOIN warehouse_lot_status ws ON wa.status_id = ws.id
-    LEFT JOIN sales_orders so ON wa.order_id = so.id
+    LEFT JOIN orders o ON wa.order_id = o.id
     WHERE wa.adjustment_date AT TIME ZONE 'UTC' AT TIME ZONE $1 >=
       CASE
         WHEN $2::TEXT = 'weekly' THEN (CURRENT_DATE - INTERVAL '7 days') AT TIME ZONE $1

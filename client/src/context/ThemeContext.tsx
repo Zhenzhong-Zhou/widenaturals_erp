@@ -8,7 +8,7 @@ import {
 } from 'react';
 import ThemeProvider from '@mui/material/styles/ThemeProvider';
 import CssBaseline from '@mui/material/CssBaseline';
-import { lightTheme, darkTheme } from '../styles/theme';
+import { lightTheme, darkTheme } from '@styles/theme';
 import type { Theme } from '@mui/material/styles';
 
 // Context type
@@ -39,13 +39,9 @@ const getInitialThemeMode = (): 'light' | 'dark' => {
 };
 
 // Provider component
-export const ThemeProviderWrapper: FC<{ children: ReactNode }> = ({
-                                                                    children,
-                                                                  }) => {
-  const [mode, setMode] = useState<'light' | 'dark'>(() =>
-    getInitialThemeMode()
-  );
-  const [mounted, setMounted] = useState(false); // Avoid hydration mismatches
+export const ThemeProviderWrapper: FC<{ children: ReactNode }> = ({ children }) => {
+  const [mode, setMode] = useState<'light' | 'dark'>(() => getInitialThemeMode());
+  const [mounted, setMounted] = useState(false);
   
   const theme = mode === 'dark' ? darkTheme : lightTheme;
   
@@ -70,7 +66,17 @@ export const ThemeProviderWrapper: FC<{ children: ReactNode }> = ({
     return () => mediaQuery.removeEventListener('change', handler);
   }, []);
   
-  if (!mounted) return null; // Prevent flash of wrong theme
+  // Sync CSS variables with the active theme
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty('--primary-color', theme.palette.primary.main);
+    root.style.setProperty('--secondary-color', theme.palette.secondary.main);
+    root.style.setProperty('--bg-light', theme.palette.background.default);
+    root.style.setProperty('--text-light', theme.palette.text.primary);
+    root.style.setProperty('--border-light', theme.palette.divider);
+  }, [theme]);
+  
+  if (!mounted) return null;
   
   return (
     <ThemeContext.Provider value={{ toggleTheme, theme, mode }}>
