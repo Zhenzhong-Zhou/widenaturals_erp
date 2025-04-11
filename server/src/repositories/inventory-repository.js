@@ -609,20 +609,24 @@ const getProductIdOrIdentifierByInventoryIds = async (
  * @throws {Error} - Throws an error if the update query fails.
  */
 const updateInventoryQuantity = async (client, inventoryUpdates, userId) => {
+  const columnTypes = {
+    quantity: 'integer',
+  };
+  
   const { baseQuery, params } = await formatBulkUpdateQuery(
     'inventory',
     ['quantity'],
     ['id'],
     inventoryUpdates,
-    userId
+    userId,
+    columnTypes
   );
-
+  
   if (baseQuery) {
     return await retry(
       async () => {
-        const { rows } = client
-          ? await query(baseQuery, params)
-          : await client.query(baseQuery, params);
+        const { rows } = await query(baseQuery, params, client);
+        
         return rows; // Return the updated inventory IDs
       },
       3, // Retry up to 3 times

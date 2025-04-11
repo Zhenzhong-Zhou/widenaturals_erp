@@ -150,6 +150,7 @@ const WarehouseInventoryDetailPage = () => {
           warehouse_id: warehouseId, // Always included in valid objects
           product_id: item.product_id || undefined,
           quantity: Number(item.quantity),
+          reserved_quantity: Number(item.reserved_quantity),
           lot_number: item.lot_number?.trim() || undefined,
           expiry_date: item.expiry_date?.trim() || undefined,
           manufacture_date: item.manufacture_date?.trim() || undefined,

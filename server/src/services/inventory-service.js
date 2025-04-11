@@ -182,7 +182,10 @@ const createInventoryRecords = async (inventoryData, userId) => {
       let flatInventory = [
         ...(formattedInventoryData.products || []),
         ...(formattedInventoryData.otherTypes || []),
-      ];
+      ].map(item => ({
+        ...item,
+        reserved_quantity: item.reserved_quantity ?? 0
+      }));
 
       // Step 3: Fetch Inventory IDs for Existing Items
       let inventoryIds =
@@ -306,7 +309,7 @@ const createInventoryRecords = async (inventoryData, userId) => {
           inventory_id: item.inventory_id,
           lot_number: item.lot_number || null,
           quantity: item.quantity,
-          reserved_quantity: item.reserved_quantity || 0,
+          reserved_quantity: item.reserved_quantity ?? 0,
           expiry_date: item.expiry_date || null,
           manufacture_date: item.manufacture_date || null,
           status_id: item.status_id,
@@ -377,24 +380,24 @@ const createInventoryRecords = async (inventoryData, userId) => {
       await bulkInsertInventoryHistory(inventoryHistoryLogs, client);
 
       // Step 5: Aggregate total quantity per inventory_id
-      const inventoryUpdates = newLots.reduce(
-        (acc, { inventory_id, quantity }) => {
-          acc[inventory_id] = (acc[inventory_id] || 0) + quantity;
-          return acc;
-        },
-        {}
-      );
+      const inventoryUpdates = newLots.reduce((acc, { inventory_id, quantity, reserved_quantity }) => {
+        acc[inventory_id] = {
+          quantity: (acc[inventory_id]?.quantity || 0) + (quantity ?? 0),
+          reserved_quantity: (acc[inventory_id]?.reserved_quantity || 0) + (reserved_quantity ?? 0),
+        };
+        return acc;
+      }, {});
 
       // Step 6: Aggregate available quantity per warehouse_id & inventory_id
-      const warehouseUpdates = newLots.reduce(
-        (acc, { warehouse_id, inventory_id, quantity }) => {
-          const key = `${warehouse_id}-${inventory_id}`;
-          acc[key] = (acc[key] || 0) + quantity;
-          return acc;
-        },
-        {}
-      );
-
+      const warehouseUpdates = newLots.reduce((acc, { warehouse_id, inventory_id, quantity, reserved_quantity }) => {
+        const key = `${warehouse_id}-${inventory_id}`;
+        acc[key] = {
+          available_quantity: (acc[key]?.available_quantity || 0) + quantity,
+          reserved_quantity: (acc[key]?.reserved_quantity || 0) + (reserved_quantity ?? 0)
+        };
+        return acc;
+      }, {});
+      
       // Step 7: Update Inventory Quantities
       await updateInventoryQuantity(client, inventoryUpdates, userId);
 
@@ -416,49 +419,64 @@ const createInventoryRecords = async (inventoryData, userId) => {
 
       // Step 9: Insert Activity Logs for Inventory Updates
       const updateLogs = Object.entries(inventoryUpdates).map(
-        ([inventory_id, new_quantity]) => ({
-          inventory_id,
-          warehouse_id: inventoryToWarehouseMap[inventory_id],
-          lot_id: warehouse_inventory_lot_id,
-          inventory_action_type_id: update_action_type_id,
-          previous_quantity: 0,
-          quantity_change: new_quantity,
-          new_quantity,
-          status_id,
-          adjustment_type_id: update_adjustment_type_id,
-          order_id: null,
-          user_id: userId,
-          comments: 'Inventory quantity updated',
-        })
+        ([inventory_id, update]) => {
+          const { quantity, reserved_quantity } = update;
+          return {
+            inventory_id,
+            warehouse_id: inventoryToWarehouseMap[inventory_id],
+            lot_id: warehouse_inventory_lot_id,
+            inventory_action_type_id: update_action_type_id,
+            previous_quantity: 0,
+            quantity_change: quantity,
+            new_quantity: quantity,
+            status_id,
+            adjustment_type_id: update_adjustment_type_id,
+            order_id: null,
+            user_id: userId,
+            comments:
+              reserved_quantity > 0
+                ? `Inventory quantity updated with reserved quantity: ${reserved_quantity}`
+                : 'Inventory quantity updated',
+          };
+        }
       );
-
+      
       await bulkInsertInventoryActivityLogs(updateLogs, client);
 
       // Step 10: Insert Inventory History for Updates
       const updateHistoryLogs = Object.entries(inventoryUpdates).map(
-        ([inventory_id, new_quantity]) => ({
-          inventory_id,
-          inventory_action_type_id: update_action_type_id,
-          previous_quantity: 0, // Could be fetched if needed
-          quantity_change: new_quantity,
-          new_quantity,
-          status_id,
-          source_action_id: userId,
-          comments: 'Inventory quantity updated',
-          checksum: generateChecksum(
+        ([inventory_id, update]) => {
+          const { quantity, reserved_quantity } = update;
+          
+          const comment =
+            reserved_quantity > 0
+              ? `Inventory updated with reserved quantity: ${reserved_quantity}`
+              : 'Inventory quantity updated';
+          
+          return {
             inventory_id,
-            update_action_type_id,
-            0, // Previous quantity is 0 for new entries
-            Number(new_quantity) || 0,
-            new_quantity,
-            userId,
-            'Inventory added manually'
-          ),
-          metadata: {},
-          created_by: userId,
-        })
+            inventory_action_type_id: update_action_type_id,
+            previous_quantity: 0, // You can replace this if needed
+            quantity_change: quantity,
+            new_quantity: quantity,
+            status_id,
+            source_action_id: userId,
+            comments: comment,
+            checksum: generateChecksum(
+              inventory_id,
+              update_action_type_id,
+              0, // previous_quantity
+              quantity,
+              quantity,
+              userId,
+              comment
+            ),
+            metadata: {},
+            created_by: userId,
+          };
+        }
       );
-
+      
       await bulkInsertInventoryHistory(updateHistoryLogs, client);
 
       return {

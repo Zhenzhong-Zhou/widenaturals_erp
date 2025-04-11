@@ -245,6 +245,7 @@ export interface InventoryItem {
   identifier?: string; // Only for non-product types
   warehouse_id: string;
   quantity: number;
+  reserved_quantity: number;
   lot_number: string;
   expiry_date: string;
   manufacture_date?: string; // Only for 'product' type

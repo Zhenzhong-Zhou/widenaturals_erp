@@ -705,60 +705,50 @@ const bulkInsert = async (
  *   }
  * );
  */
-const formatBulkUpdateQuery = async (
+const formatBulkUpdateQuery = (
   table,
-  columns,                 // ['reserved_quantity', 'status', 'remarks']
-  whereColumns,            // ['warehouse_id', 'inventory_id']
-  data,                    // { 'id-id': { reserved_quantity: 5, status: 'active', ... } }
+  columns, // e.g., ['reserved_quantity', 'status', 'remarks']
+  whereColumns, // e.g., ['warehouse_id', 'inventory_id']
+  data, // { 'id-id': { reserved_quantity: 5, status: 'active', ... } }
   userId,
-  columnTypes = {}         // { reserved_quantity: 'integer', status: 'text', ... }
+  columnTypes = {} // e.g., { reserved_quantity: 'integer', status: 'text' }
 ) => {
   if (!Object.keys(data).length) return null;
   
-  let indexCounter = 2; // $1 is reserved for userId
+  let indexCounter = 2; // $1 = userId
+  const params = [userId]; // initial param list
   
-  // 1. VALUES block
-  const values = Object.entries(data)
-    .map(([key, value]) => {
-      const keyParts = key.split(/-(?=[a-f0-9-]{36}$)/); // for UUID composite keys
-      const placeholders = [
-        ...keyParts.map(() => `$${indexCounter++}::uuid`),
-        ...columns.map((col) => {
-          const type = columnTypes[col] || 'text'; // fallback to text
-          return `$${indexCounter++}::${type}`;
-        })
-      ];
-      return `(${placeholders.join(', ')})`;
-    })
-    .join(', ');
+  const valuesSql = Object.entries(data).map(([key, value]) => {
+    const keyParts = key.split(/-(?=[a-f0-9-]{36}$)/); // split composite key like 'warehouseId-inventoryId'
+    const rowParams = [
+      ...keyParts,
+      ...(columns.length === 1 && typeof value !== 'object'
+        ? [value]
+        : columns.map((col) => value[col] ?? null))
+    ];
+    params.push(...rowParams);
+    
+    const placeholders = rowParams.map(() => `$${indexCounter++}`);
+    const typedPlaceholders = [
+      ...keyParts.map(() => `uuid`),
+      ...columns.map((col) => columnTypes[col] || 'text')
+    ].map((type, i) => `${placeholders[i]}::${type}`);
+    
+    return `(${typedPlaceholders.join(', ')})`;
+  });
   
-  // 2. SQL statement
   const baseQuery = `
     UPDATE ${table}
     SET ${columns.map((col) => `${col} = data.${col}`).join(', ')},
         updated_at = NOW(),
         updated_by = $1
-    FROM (VALUES ${values})
+    FROM (VALUES ${valuesSql.join(',\n')})
       AS data(${[...whereColumns, ...columns].join(', ')})
     WHERE ${whereColumns.map((col) => `${table}.${col} = data.${col}`).join(' AND ')}
     RETURNING ${whereColumns.map((col) => `${table}.${col}`).join(', ')};
   `;
   
-  // 3. Parameters
-  const params = [
-    userId,
-    ...Object.entries(data).flatMap(([key, value]) => {
-      const keyParts = key.split(/-(?=[a-f0-9-]{36}$)/);
-      return [
-        ...keyParts,
-        ...columns.map((col) => value[col] ?? null)
-      ];
-    }),
-  ];
-  
-  return await retry(async () => {
-    return { baseQuery, params };
-  });
+  return { baseQuery, params };
 };
 
 /**
