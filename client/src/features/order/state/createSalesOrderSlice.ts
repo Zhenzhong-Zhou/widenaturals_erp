@@ -12,7 +12,7 @@ const initialState: SalesOrderState = {
   salesOrderId: null,
   loading: false,
   success: false,
-  error: null
+  error: null,
 };
 
 const createSalesOrderSlice = createSlice({
@@ -36,7 +36,7 @@ const createSalesOrderSlice = createSlice({
         state.success = false;
         state.error = action.payload || 'Failed to create sales order';
       });
-  }
+  },
 });
 
 export default createSalesOrderSlice.reducer;

@@ -16,20 +16,23 @@
  * const groups = groupFilesWithTolerance(files, 10000);
  * console.log(groups);
  */
-const groupFilesWithTolerance = (files, toleranceMs = 5000) => { // Tolerance in milliseconds
+const groupFilesWithTolerance = (files, toleranceMs = 5000) => {
+  // Tolerance in milliseconds
   const groups = [];
-  
-  files.forEach(file => {
+
+  files.forEach((file) => {
     // Extract timestamp from the filename
-    const timestampMatch = file.Key.match(/(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z)/);
+    const timestampMatch = file.Key.match(
+      /(\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z)/
+    );
     if (!timestampMatch) return; // Skip files without timestamp
-    
+
     const fileTimestamp = new Date(timestampMatch[0]).getTime();
     let foundGroup = false;
-    
+
     for (const group of groups) {
       const groupTimestamp = group[0].timestamp;
-      
+
       // Compare timestamps with tolerance
       if (Math.abs(fileTimestamp - groupTimestamp) <= toleranceMs) {
         group.push({ ...file, timestamp: fileTimestamp });
@@ -37,13 +40,13 @@ const groupFilesWithTolerance = (files, toleranceMs = 5000) => { // Tolerance in
         break;
       }
     }
-    
+
     // If no suitable group is found, create a new one
     if (!foundGroup) {
       groups.push([{ ...file, timestamp: fileTimestamp }]);
     }
   });
-  
+
   return groups;
 };
 

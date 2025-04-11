@@ -2,7 +2,8 @@ const wrapAsync = require('../utils/wrap-async');
 const {
   fetchAllProducts,
   fetchProductDetails,
-  fetchProductDropdownList, fetchAvailableProductsForDropdown,
+  fetchProductDropdownList,
+  fetchAvailableProductsForDropdown,
 } = require('../services/product-service');
 const { logInfo, logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
@@ -124,10 +125,13 @@ const getProductsDropdownListController = wrapAsync(async (req, res, next) => {
 const getProductsForDropdownController = wrapAsync(async (req, res, next) => {
   try {
     const { search = null, limit = 100 } = req.query;
-    
+
     // Fetch products with optional search term and limit
-    const products = await fetchAvailableProductsForDropdown(search, parseInt(limit, 10));
-    
+    const products = await fetchAvailableProductsForDropdown(
+      search,
+      parseInt(limit, 10)
+    );
+
     // Send the response
     res.status(200).json(products);
   } catch (error) {

@@ -75,7 +75,7 @@ const insertInventoryRecordResponseController = wrapAsync(
 
       const inventoryRecords =
         await fetchRecentInsertWarehouseInventoryRecords(warehouseLotIds);
-      
+
       return res.json({ success: true, data: inventoryRecords });
     } catch (error) {
       logError('Error fetching grouped warehouse inventory:', error);

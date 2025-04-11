@@ -1,7 +1,10 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { productService } from '@services/productService';
 import { dropdownService } from '@services/dropdownService';
-import type { Product, ProductDropdownItem } from '@features/product/state/productTypes';
+import type {
+  Product,
+  ProductDropdownItem,
+} from '@features/product/state/productTypes';
 
 // Async thunk for fetching products
 export const fetchProductsThunk = createAsyncThunk(
@@ -44,7 +47,10 @@ export const fetchProductsForOrdersDropdownThunk = createAsyncThunk<
   'products/fetchProductsForOrdersDropdown',
   async ({ search = null, limit = 100 }, { rejectWithValue }) => {
     try {
-      return await dropdownService.fetchProductsForOrdersDropdown(search, limit); // Successfully return the fetched data
+      return await dropdownService.fetchProductsForOrdersDropdown(
+        search,
+        limit
+      ); // Successfully return the fetched data
     } catch (error) {
       console.error('Error fetching products for orders dropdown:', error);
       return rejectWithValue('Failed to fetch products for orders dropdown.');

@@ -1,5 +1,9 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import { fetchAllOrdersThunk, type Order, type OrdersResponse } from '@features/order';
+import {
+  fetchAllOrdersThunk,
+  type Order,
+  type OrdersResponse,
+} from '@features/order';
 
 // Define the initial state type
 interface OrdersState {
@@ -33,11 +37,14 @@ const orderSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchAllOrdersThunk.fulfilled, (state, action: PayloadAction<OrdersResponse>) => {
-        state.loading = false;
-        state.orders = action.payload.data;
-        state.pagination = action.payload.pagination;
-      })
+      .addCase(
+        fetchAllOrdersThunk.fulfilled,
+        (state, action: PayloadAction<OrdersResponse>) => {
+          state.loading = false;
+          state.orders = action.payload.data;
+          state.pagination = action.payload.pagination;
+        }
+      )
       .addCase(fetchAllOrdersThunk.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;

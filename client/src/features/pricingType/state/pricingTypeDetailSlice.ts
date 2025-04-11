@@ -3,7 +3,8 @@ import {
   fetchPricingTypeDetailsThunk,
   type PricingRecord,
   type PricingTypeDetail,
-  type PricingTypePagination, type PricingTypeResponse,
+  type PricingTypePagination,
+  type PricingTypeResponse,
 } from '@features/pricingType';
 
 export interface PricingTypeState {

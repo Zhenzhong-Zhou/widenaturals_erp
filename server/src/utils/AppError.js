@@ -224,7 +224,7 @@ class AppError extends Error {
       ...options,
     });
   }
-  
+
   static businessError(message, options = {}) {
     return new AppError(message, 400, {
       type: 'BusinessLogicError',
@@ -234,7 +234,7 @@ class AppError extends Error {
       ...options,
     });
   }
-  
+
   static controllerError(message, options = {}) {
     return new AppError(message, 400, {
       type: 'ControllerError',
@@ -244,7 +244,7 @@ class AppError extends Error {
       ...options,
     });
   }
-  
+
   static transformerError(message, options = {}) {
     return new AppError(message, 500, {
       type: 'TransformerError',
@@ -254,7 +254,7 @@ class AppError extends Error {
       ...options,
     });
   }
-  
+
   // Specialized Errors
   static fileUploadError(message, options = {}) {
     return new AppError(message, 400, {

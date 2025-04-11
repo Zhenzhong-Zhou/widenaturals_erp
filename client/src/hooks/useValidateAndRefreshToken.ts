@@ -2,7 +2,10 @@ import { useCallback, useEffect, useState } from 'react';
 import axiosInstance from '@utils/axiosConfig';
 import { isTokenValid } from '@utils/tokenValidationUtils';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
-import { refreshTokenThunk, logoutThunk } from '@features/session/state/sessionThunks';
+import {
+  refreshTokenThunk,
+  logoutThunk,
+} from '@features/session/state/sessionThunks';
 import { selectAccessToken } from '@features/session/state/sessionSelectors';
 import { updateCsrfToken } from '@features/csrf/state/csrfSlice';
 import { selectCsrfToken } from '@features/csrf/state/csrfSelector';

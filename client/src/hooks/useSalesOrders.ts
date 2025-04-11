@@ -20,20 +20,20 @@ import {
  * }}
  */
 const useSalesOrders = (): {
-    loading: boolean;
-    success: boolean;
-    salesOrderId: string | null;
-    error: string | null;
-    createOrder: (orderTypeId: string, orderData: SalesOrder) => void;
+  loading: boolean;
+  success: boolean;
+  salesOrderId: string | null;
+  error: string | null;
+  createOrder: (orderTypeId: string, orderData: SalesOrder) => void;
 } => {
   const dispatch = useAppDispatch();
-  
+
   // Selectors for sales order state
   const loading = useAppSelector(selectCreatedSalesOrderLoading);
   const success = useAppSelector(selectCreatedSalesOrderSuccess);
   const salesOrderId = useAppSelector(selectCreatedSalesOrderId);
   const error = useAppSelector(selectCreatedSalesOrderError);
-  
+
   // Dispatch function to create a sales order
   const createOrder = useCallback(
     (orderTypeId: string, orderData: SalesOrder) => {
@@ -41,7 +41,7 @@ const useSalesOrders = (): {
     },
     [dispatch]
   );
-  
+
   // Memoize the returned object to prevent unnecessary re-renders
   return useMemo(
     () => ({ loading, success, salesOrderId, error, createOrder }),

@@ -5,8 +5,10 @@ const {
 } = require('../repositories/warehouse-inventory-repository');
 const AppError = require('../utils/AppError');
 const { logError } = require('../utils/logger-helper');
-const { transformPaginatedWarehouseInventorySummary, transformPaginatedWarehouseItemSummary,
-  transformWarehouseInventoryLotDetailList
+const {
+  transformPaginatedWarehouseInventorySummary,
+  transformPaginatedWarehouseItemSummary,
+  transformWarehouseInventoryLotDetailList,
 } = require('../transformers/warehouse-inventory-transformer');
 
 /**
@@ -35,7 +37,7 @@ const fetchAllWarehouseInventories = async ({
     sortBy,
     sortOrder,
   });
-  
+
   return transformPaginatedWarehouseInventorySummary(result);
 };
 
@@ -47,11 +49,7 @@ const fetchAllWarehouseInventories = async ({
  * @param {number} limit - The number of records per page.
  * @returns {Promise<Object>} - Returns formatted warehouse items data.
  */
-const fetchWarehouseItemSummary = async (
-  warehouseId,
-  page = 1,
-  limit = 10
-) => {
+const fetchWarehouseItemSummary = async (warehouseId, page = 1, limit = 10) => {
   try {
     // Validate input parameters
     if (!warehouseId) {
@@ -62,14 +60,14 @@ const fetchWarehouseItemSummary = async (
         'Invalid pagination parameters. Page and limit must be positive numbers.'
       );
     }
-    
+
     // Fetch raw data from repository
     const rawResult = await getWarehouseItemSummary({
       warehouse_id: warehouseId,
       page,
       limit,
     });
-    
+
     // Handle empty results
     if (!rawResult.data || rawResult.data.length === 0) {
       return {
@@ -84,11 +82,11 @@ const fetchWarehouseItemSummary = async (
         },
       };
     }
-    
+
     // Transform and return
     const { itemSummaryData, pagination } =
       transformPaginatedWarehouseItemSummary(rawResult);
-    
+
     return {
       itemSummaryData,
       pagination,
@@ -121,7 +119,7 @@ const fetchWarehouseInventoryDetailsByWarehouseId = async (
     if (!warehouse_id) {
       throw AppError.validationError('Warehouse ID is required.');
     }
-    
+
     // Fetch paginated inventory details from repository
     const { data, pagination } =
       await getWarehouseInventoryDetailsByWarehouseId({
@@ -129,10 +127,10 @@ const fetchWarehouseInventoryDetailsByWarehouseId = async (
         page,
         limit,
       });
-    
+
     // Transform the data (e.g., formatting dates, structuring response)
-    const inventoryDetails = transformWarehouseInventoryLotDetailList(data)
-    
+    const inventoryDetails = transformWarehouseInventoryLotDetailList(data);
+
     return {
       inventoryDetails,
       pagination,

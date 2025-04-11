@@ -25,7 +25,12 @@ const InventoryDropdown: FC<InventoryDropdownProps> = ({
   const filteredOptions = options.filter((item) => !item.disabled);
 
   return (
-    <Dropdown {...props} options={filteredOptions} onRefresh={onRefresh} sx={{ width: '250px' }} />
+    <Dropdown
+      {...props}
+      options={filteredOptions}
+      onRefresh={onRefresh}
+      sx={{ width: '250px' }}
+    />
   );
 };
 

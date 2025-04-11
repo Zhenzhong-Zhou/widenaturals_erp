@@ -6,25 +6,43 @@ const { fetchDynamicValue, fetchDynamicValues } = require('../03_utils');
  */
 exports.seed = async function (knex) {
   // Fetch required status ID
-  const activeStatusId = await fetchDynamicValue(knex, 'status', 'name', 'active', 'id');
-  
+  const activeStatusId = await fetchDynamicValue(
+    knex,
+    'status',
+    'name',
+    'active',
+    'id'
+  );
+
   // Fetch role IDs dynamically based on the existing roles
-  const roleIds = await fetchDynamicValues(knex, 'roles', 'name', [
-    'system',
-    'admin',
-    'manager',
-    'sales',
-    'marketing',
-    'qa',
-    'product_manager',
-    'account',
-    'inventory',
-    'user',
-    'manufacturing_director',
-  ], 'id');
-  
+  const roleIds = await fetchDynamicValues(
+    knex,
+    'roles',
+    'name',
+    [
+      'system',
+      'admin',
+      'manager',
+      'sales',
+      'marketing',
+      'qa',
+      'product_manager',
+      'account',
+      'inventory',
+      'user',
+      'manufacturing_director',
+    ],
+    'id'
+  );
+
   // Insert the system user first (if it doesn’t exist)
-  let systemUserId = await fetchDynamicValue(knex, 'users', 'email', 'system@internal.local', 'id');
+  let systemUserId = await fetchDynamicValue(
+    knex,
+    'users',
+    'email',
+    'system@internal.local',
+    'id'
+  );
   if (!systemUserId) {
     const insertedSystemUser = await knex('users')
       .insert({
@@ -44,10 +62,10 @@ exports.seed = async function (knex) {
         updated_at: knex.fn.now(),
       })
       .returning('id'); // Fetch inserted ID
-    
+
     systemUserId = insertedSystemUser[0].id;
   }
-  
+
   // Define users
   const users = [
     {
@@ -107,9 +125,9 @@ exports.seed = async function (knex) {
       role_id: roleIds['inventory'],
     },
   ];
-  
+
   // Format user data for insertion
-  const formattedUsers = users.map(user => ({
+  const formattedUsers = users.map((user) => ({
     id: knex.raw('uuid_generate_v4()'),
     email: user.email,
     firstname: user.firstname,
@@ -125,12 +143,9 @@ exports.seed = async function (knex) {
     created_at: new Date(),
     updated_at: null,
   }));
-  
+
   // Insert users, ignoring duplicates
-  await knex('users')
-    .insert(formattedUsers)
-    .onConflict(['email'])
-    .ignore();
-  
+  await knex('users').insert(formattedUsers).onConflict(['email']).ignore();
+
   console.log(`${formattedUsers.length} user records seeded successfully.`);
 };

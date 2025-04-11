@@ -5,8 +5,9 @@ import { createSelector } from '@reduxjs/toolkit';
 /**
  * Base selector for the locationTypes slice.
  */
-export const selectLocationTypesState = (state: RootState): LocationTypesState =>
-  state.locationTypes as LocationTypesState;
+export const selectLocationTypesState = (
+  state: RootState
+): LocationTypesState => state.locationTypes as LocationTypesState;
 
 /**
  * Selects the list of location types.

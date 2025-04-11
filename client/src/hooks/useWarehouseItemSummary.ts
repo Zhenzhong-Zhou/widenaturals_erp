@@ -16,18 +16,18 @@ const useWarehouseItemSummary = (
   initialLimit: number = 10
 ) => {
   const dispatch = useAppDispatch();
-  
+
   // Local pagination state
   const [itemSummaryPage, setItemSummaryPage] = useState<number>(initialPage);
   const [itemSummaryLimit, setItemSummaryLimit] =
     useState<number>(initialLimit);
-  
+
   // Redux state
   const itemSummary = useAppSelector(selectWarehouseItemSummary);
   const itemSummaryPagination = useAppSelector(selectWarehouseItemPagination);
   const itemSummaryLoading = useAppSelector(selectWarehouseItemLoading);
   const itemSummaryError = useAppSelector(selectWarehouseItemError);
-  
+
   // Fetch data when warehouseId, page, or limit changes
   useEffect(() => {
     if (warehouseId) {
@@ -39,7 +39,7 @@ const useWarehouseItemSummary = (
       dispatch(fetchWarehouseItemSummaryThunk(params));
     }
   }, [dispatch, warehouseId, itemSummaryPage, itemSummaryLimit]);
-  
+
   // Manual refresh function
   const refreshItemSummary = useMemo(
     () => () => {
@@ -52,14 +52,14 @@ const useWarehouseItemSummary = (
     },
     [dispatch, warehouseId, itemSummaryPage, itemSummaryLimit]
   );
-  
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       dispatch(resetWarehouseItemSummary());
     };
   }, [dispatch]);
-  
+
   return useMemo(
     () => ({
       itemSummary,

@@ -29,25 +29,25 @@ interface DropdownProps {
 }
 
 const Dropdown: FC<DropdownProps> = ({
-                                       label,
-                                       options = [],
-                                       value,
-                                       onChange,
-                                       searchable = false,
-                                       disabled = false,
-                                       sx,
-                                       onRefresh,
-                                       onAddNew = null,
-                                     }) => {
+  label,
+  options = [],
+  value,
+  onChange,
+  searchable = false,
+  disabled = false,
+  sx,
+  onRefresh,
+  onAddNew = null,
+}) => {
   const { theme } = useThemeContext();
-  
+
   // Modified options array with special items at the top
   const modifiedOptions: OptionType[] = [
     { value: 'add', label: 'Add New Customer', icon: faPlus },
     { value: 'refresh', label: 'Refresh List', icon: faSyncAlt },
-    ...options
+    ...options,
   ];
-  
+
   return (
     <Box sx={{ minWidth: '200px', width: '100%', ...sx }}>
       <Autocomplete
@@ -60,17 +60,25 @@ const Dropdown: FC<DropdownProps> = ({
           else onChange(newValue?.value || '');
         }}
         renderInput={(params) => (
-          <TextField {...params} label={label} variant="outlined" disabled={disabled} />
+          <TextField
+            {...params}
+            label={label}
+            variant="outlined"
+            disabled={disabled}
+          />
         )}
         disableClearable={!searchable}
         fullWidth
         renderOption={(props, option) => (
           <div key={option.value}>
             {/* Divider before the regular options */}
-            {(option.value === 'add') && (
-              <Divider key={`divider-${option.value}`} sx={{ marginY: 0.5, borderColor: theme.palette.divider }} />
+            {option.value === 'add' && (
+              <Divider
+                key={`divider-${option.value}`}
+                sx={{ marginY: 0.5, borderColor: theme.palette.divider }}
+              />
             )}
-            
+
             {option.value === 'refresh' && (
               <Stack
                 key="top-options"
@@ -80,7 +88,7 @@ const Dropdown: FC<DropdownProps> = ({
                 sx={{
                   padding: '8px 16px',
                   backgroundColor: theme.palette.background.default,
-                  marginBottom: '4px'
+                  marginBottom: '4px',
                 }}
               >
                 {/* Refresh List Button */}
@@ -94,13 +102,16 @@ const Dropdown: FC<DropdownProps> = ({
                     display: 'flex',
                     alignItems: 'center',
                     gap: '4px',
-                    '&:hover': { textDecoration: 'underline', color: theme.palette.primary.light }
+                    '&:hover': {
+                      textDecoration: 'underline',
+                      color: theme.palette.primary.light,
+                    },
                   }}
                 >
                   <FontAwesomeIcon icon={faSyncAlt} />
                   Refresh
                 </CustomTypography>
-                
+
                 {/* Add New Button */}
                 {onAddNew && (
                   <CustomTypography
@@ -113,7 +124,10 @@ const Dropdown: FC<DropdownProps> = ({
                       display: 'flex',
                       alignItems: 'center',
                       gap: '4px',
-                      '&:hover': { textDecoration: 'underline', color: theme.palette.success.light  }
+                      '&:hover': {
+                        textDecoration: 'underline',
+                        color: theme.palette.success.light,
+                      },
                     }}
                   >
                     <FontAwesomeIcon icon={faPlus} />
@@ -122,7 +136,7 @@ const Dropdown: FC<DropdownProps> = ({
                 )}
               </Stack>
             )}
-            
+
             {/* Render Regular Options */}
             {option.value !== 'refresh' && option.value !== 'add' && (
               <MenuItem
@@ -130,26 +144,33 @@ const Dropdown: FC<DropdownProps> = ({
                 key={`option-${option.value}`}
                 data-value={option.value}
                 sx={{
-                  backgroundColor: option.value === 'add' || option.value === 'refresh'
-                    ? theme.palette.backgroundCustom.customDark
-                    : 'inherit',
-                  color: option.value === 'add'
-                    ? theme.palette.actionCustom.addNew
-                    : option.value === 'refresh'
-                      ? theme.palette.actionCustom.refresh
+                  backgroundColor:
+                    option.value === 'add' || option.value === 'refresh'
+                      ? theme.palette.backgroundCustom.customDark
                       : 'inherit',
+                  color:
+                    option.value === 'add'
+                      ? theme.palette.actionCustom.addNew
+                      : option.value === 'refresh'
+                        ? theme.palette.actionCustom.refresh
+                        : 'inherit',
                   '&:hover': {
-                    backgroundColor: option.value === 'add' || option.value === 'refresh'
-                      ? theme.palette.backgroundCustom.customHover
-                      : 'inherit',
-                    textDecoration: option.value === 'add' || option.value === 'refresh'
-                      ? 'underline'
-                      : 'none'
-                  }
+                    backgroundColor:
+                      option.value === 'add' || option.value === 'refresh'
+                        ? theme.palette.backgroundCustom.customHover
+                        : 'inherit',
+                    textDecoration:
+                      option.value === 'add' || option.value === 'refresh'
+                        ? 'underline'
+                        : 'none',
+                  },
                 }}
               >
                 {option.icon && (
-                  <FontAwesomeIcon icon={option.icon} style={{ marginRight: 8 }} />
+                  <FontAwesomeIcon
+                    icon={option.icon}
+                    style={{ marginRight: 8 }}
+                  />
                 )}
                 {option.label}
               </MenuItem>

@@ -31,7 +31,7 @@ export {
   selectCreatedSalesOrderLoading,
   selectCreatedSalesOrderSuccess,
   selectCreatedSalesOrderId,
-  selectCreatedSalesOrderError
+  selectCreatedSalesOrderError,
 } from './state/createSalesOrderSelectors';
 export { default as CreateSaleOrderForm } from './components/CreateSaleOrderForm';
 export {
@@ -40,14 +40,14 @@ export {
   selectOrdersError,
   selectOrdersPagination,
   selectOrdersByStatus,
-  selectOrderById
+  selectOrderById,
 } from './state/orderSelectors';
 export { default as OrdersTable } from './components/OrdersTable';
 export {
   selectSalesOrderDetailsData,
   selectSalesOrderDetailsLoading,
   selectSalesOrderDetailsError,
-  selectOrderNumber
+  selectOrderNumber,
 } from './state/salesOrderDetailSelectors';
 export { default as SalesOrderDetailsSection } from './components/SalesOrderDetailsSection';
 export { default as OrderItemsTable } from './components/OrderItemsTable';

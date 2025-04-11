@@ -83,7 +83,7 @@ const fetchCustomersForDropdown = async (
       API_ENDPOINTS.CUSTOMERS_DROPDOWN,
       { params: { search, limit } }
     );
-    
+
     return response.data;
   } catch (error) {
     console.error('Error fetching customer dropdown:', error);
@@ -100,7 +100,7 @@ const fetchDiscountsForDropdown = async (): Promise<DiscountDropdownItem[]> => {
     const response = await axiosInstance.get<DiscountDropdownItem[]>(
       API_ENDPOINTS.DISCOUNTS_DROPDOWN
     );
-    
+
     return response.data;
   } catch (error) {
     console.error('Error fetching discount dropdown:', error);
@@ -127,7 +127,7 @@ const fetchTaxRatesForDropdown = async (
       API_ENDPOINTS.TAX_RATES_DROPDOWN,
       { params: { region, province } }
     );
-    
+
     return response.data;
   } catch (error) {
     console.error('Error fetching tax rates for dropdown:', error);
@@ -140,15 +140,17 @@ const fetchTaxRatesForDropdown = async (
  * @param {boolean} includePickup - Whether to include In-Store Pickup methods. (Default: false)
  * @returns {Promise<DeliveryMethodDropdownResponse>} - List of delivery methods.
  */
-export const fetchDeliveryMethodsForDropdown = async (includePickup: boolean = false): Promise<DeliveryMethodDropdownResponse> => {
+export const fetchDeliveryMethodsForDropdown = async (
+  includePickup: boolean = false
+): Promise<DeliveryMethodDropdownResponse> => {
   try {
     const response = await axiosInstance.get<DeliveryMethodDropdownResponse>(
       API_ENDPOINTS.DELIVERY_METHODS_DROPDOWN,
       {
-        params: { includePickup: includePickup.toString() } // Convert boolean to string ('true' / 'false')
+        params: { includePickup: includePickup.toString() }, // Convert boolean to string ('true' / 'false')
       }
     );
-    
+
     return response.data;
   } catch (error) {
     console.error('Error fetching delivery methods:', error);
@@ -172,7 +174,7 @@ const fetchProductsForOrdersDropdown = async (
       API_ENDPOINTS.PRODUCTS_DROPDOWN_ORDERS,
       { params: { search, limit } }
     );
-    
+
     return response.data;
   } catch (error) {
     console.error('Error fetching products for dropdown:', error);
@@ -187,16 +189,18 @@ const fetchProductsForOrdersDropdown = async (
  * @returns {Promise<PricingTypeDropdownResponse>} - List of pricing type options.
  * @throws {Error} - Throws an error if the request fails or productId is missing.
  */
-export const fetchPricingTypeDropdown = async (productId: string): Promise<PricingTypeDropdownResponse> => {
+export const fetchPricingTypeDropdown = async (
+  productId: string
+): Promise<PricingTypeDropdownResponse> => {
   if (!productId) {
     throw new Error('Product ID is required to fetch pricing types.');
   }
-  
+
   try {
     const response = await axiosInstance.get<PricingTypeDropdownResponse>(
       `${API_ENDPOINTS.PRICING_TYPES_DROPDOWN}?productId=${productId}`
     );
-    
+
     return response.data;
   } catch (error) {
     console.error('Error fetching pricing type dropdown:', error);

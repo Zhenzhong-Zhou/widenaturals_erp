@@ -23,32 +23,40 @@ const bucketName = process.env.AWS_S3_BUCKET_NAME;
  * @param {string} s3KeyEnc - The S3 key of the encrypted backup file (if applicable).
  * @returns {Promise<void>}
  */
-const restoreDatabase = async (decryptedFilePath, databaseName, dbUser, dbPassword = '', s3KeyEnc = '') => {
+const restoreDatabase = async (
+  decryptedFilePath,
+  databaseName,
+  dbUser,
+  dbPassword = '',
+  s3KeyEnc = ''
+) => {
   try {
     // Download from S3 if specified
     if (!fs.existsSync(decryptedFilePath)) {
       logInfo('Downloading file from S3...');
-      
+
       await downloadFileFromS3(bucketName, s3KeyEnc, decryptedFilePath);
       logInfo(`File downloaded from S3: ${decryptedFilePath}`);
     }
-    
+
     if (!fs.existsSync(decryptedFilePath)) {
-      throw AppError.notFoundError(`Decrypted file not found: ${decryptedFilePath}`);
+      throw AppError.notFoundError(
+        `Decrypted file not found: ${decryptedFilePath}`
+      );
     }
-    
+
     const restoreCommand = dbPassword
       ? `PGPASSWORD=${dbPassword} pg_restore --clean --if-exists --jobs=4 --format=custom --dbname=${databaseName} --username=${dbUser} ${decryptedFilePath}`
       : `pg_restore --clean --if-exists --jobs=4 --format=custom --dbname=${databaseName} --username=${dbUser} ${decryptedFilePath}`;
-    
+
     logInfo(`Executing restore command for database: ${databaseName}`);
     logInfo(`Restore command: ${restoreCommand}`);
-    
+
     const { stdout, stderr } = await execAsync(restoreCommand);
-    
+
     if (stdout) logInfo(`Restore command output: ${stdout}`);
     if (stderr) logWarn(`Restore command warnings: ${stderr}`);
-    
+
     logInfo('Database restore completed successfully.');
   } catch (error) {
     logError('Database restore failed:', error.message);
@@ -78,33 +86,38 @@ const restoreBackup = async (
   const bucketName = process.env.AWS_S3_BUCKET_NAME;
   const tempDir = path.join(__dirname, '../temp');
   if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
-  
+
   let encryptedFilePath, ivFilePath, decryptedFilePath;
-  
+
   try {
     if (isProduction) {
-      if (!bucketName) throw AppError.validationError('AWS_S3_BUCKET_NAME is not set.');
-      
+      if (!bucketName)
+        throw AppError.validationError('AWS_S3_BUCKET_NAME is not set.');
+
       encryptedFilePath = path.join(tempDir, path.basename(s3KeyEnc));
       ivFilePath = `${encryptedFilePath}.iv`;
       decryptedFilePath = encryptedFilePath.replace('.enc', '');
-      
+
       // Download encrypted file and IV file
       await downloadFileFromS3(bucketName, s3KeyEnc, encryptedFilePath);
       await downloadFileFromS3(bucketName, `${s3KeyEnc}.iv`, ivFilePath);
-      
+
       // Attempt to download SHA256 file as a string for verification
       let originalHash = null;
       try {
-        originalHash = await downloadFileFromS3(bucketName, `${s3KeyEnc}.sha256`, null, true);
+        originalHash = await downloadFileFromS3(
+          bucketName,
+          `${s3KeyEnc}.sha256`,
+          null,
+          true
+        );
         logInfo('SHA256 file downloaded successfully.');
       } catch (error) {
         logWarn('No SHA256 file found. Integrity check will be skipped.');
       }
-      
+
       logInfo('All files downloaded successfully from S3.');
-      
-      
+
       // Verify file integrity if SHA256 file was found
       if (originalHash) {
         logInfo('Verifying file integrity...');
@@ -115,20 +128,26 @@ const restoreBackup = async (
       encryptedFilePath = s3KeyEnc;
       ivFilePath = `${s3KeyEnc}.iv`;
       decryptedFilePath = encryptedFilePath.replace('.enc', '');
-      
+
       if (!fs.existsSync(encryptedFilePath) || !fs.existsSync(ivFilePath)) {
-        throw new AppError.notFoundError('Required backup files not found locally.');
+        throw new AppError.notFoundError(
+          'Required backup files not found locally.'
+        );
       }
     }
-    
-    await decryptFile(encryptedFilePath, decryptedFilePath, encryptionKey, ivFilePath);
+
+    await decryptFile(
+      encryptedFilePath,
+      decryptedFilePath,
+      encryptionKey,
+      ivFilePath
+    );
     await restoreDatabase(decryptedFilePath, databaseName, dbUser, dbPassword);
   } catch (error) {
     logError('Restoration failed:', error.message);
     throw error;
-  }
-  finally {
-    [encryptedFilePath, ivFilePath, decryptedFilePath].forEach(file => {
+  } finally {
+    [encryptedFilePath, ivFilePath, decryptedFilePath].forEach((file) => {
       if (file && fs.existsSync(file)) {
         try {
           fs.unlinkSync(file);
@@ -143,5 +162,5 @@ const restoreBackup = async (
 
 module.exports = {
   restoreDatabase,
-  restoreBackup
+  restoreBackup,
 };

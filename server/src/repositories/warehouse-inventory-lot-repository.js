@@ -3,7 +3,8 @@ const {
   withTransaction,
   lockRow,
   bulkInsert,
-  retry, getStatusValue,
+  retry,
+  getStatusValue,
 } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logError, logWarn, logInfo } = require('../utils/logger-helper');
@@ -139,7 +140,7 @@ const adjustWarehouseInventoryLots = async (records, user_id) => {
           `Adjustment not allowed: Available stock cannot be negative. Current available: ${available_quantity}, Adjustment: ${adjusted_quantity}`
         );
       }
-      
+
       // Update warehouse inventory quantities (reserved_quantity remains unchanged)
       await client.query(
         `
@@ -598,10 +599,11 @@ const getAvailableLotForAllocation = async (
   warehouseId,
   quantityNeeded,
   strategy = 'FEFO',
-  client,
+  client
 ) => {
-  const orderBy = strategy === 'FEFO' ? 'wil.expiry_date ASC' : 'wil.inbound_date ASC';
-  
+  const orderBy =
+    strategy === 'FEFO' ? 'wil.expiry_date ASC' : 'wil.inbound_date ASC';
+
   const sql = `
     SELECT wil.*
     FROM warehouse_inventory_lots wil
@@ -623,13 +625,17 @@ const getAvailableLotForAllocation = async (
     ORDER BY ${orderBy}
     LIMIT 1;
   `;
-  
+
   try {
-    const result = await retry(() => query(sql, [productId, warehouseId, quantityNeeded], client));
+    const result = await retry(() =>
+      query(sql, [productId, warehouseId, quantityNeeded], client)
+    );
     return result.rows[0] || null;
   } catch (error) {
     logError('Error fetching available lot for allocation:', error);
-    throw AppError.databaseError('Failed to fetch available lot for allocation');
+    throw AppError.databaseError(
+      'Failed to fetch available lot for allocation'
+    );
   }
 };
 
@@ -649,57 +655,73 @@ const updateWarehouseInventoryLotQuantity = async (
   { lotId, quantityDelta = 0, reservedDelta = 0, statusName = null, userId },
   client
 ) => {
-  if (!lotId || typeof quantityDelta !== 'number' || typeof reservedDelta !== 'number') {
-    throw AppError.validationError('lotId, quantityDelta, and reservedDelta must be provided and valid numbers');
+  if (
+    !lotId ||
+    typeof quantityDelta !== 'number' ||
+    typeof reservedDelta !== 'number'
+  ) {
+    throw AppError.validationError(
+      'lotId, quantityDelta, and reservedDelta must be provided and valid numbers'
+    );
   }
-  
+
   try {
     // Step 1: Resolve status_id if statusName is provided
     let statusId = null;
     if (statusName) {
-      statusId = await getStatusValue({
-        table: 'warehouse_lot_status',
-        where: { name: statusName },
-        select: 'id'
-      }, client);
-      
+      statusId = await getStatusValue(
+        {
+          table: 'warehouse_lot_status',
+          where: { name: statusName },
+          select: 'id',
+        },
+        client
+      );
+
       if (!statusId) {
-        throw AppError.validationError(`Invalid warehouse lot status name: ${statusName}`);
+        throw AppError.validationError(
+          `Invalid warehouse lot status name: ${statusName}`
+        );
       }
     }
-    
+
     // Step 2: Build dynamic SQL query
     const updateFields = [
       'quantity = quantity + $2',
       'reserved_quantity = reserved_quantity + $3',
       'updated_by = $4',
-      'updated_at = NOW()'
+      'updated_at = NOW()',
     ];
-    
+
     const values = [lotId, quantityDelta, reservedDelta, userId];
-    
+
     if (statusId) {
       updateFields.splice(2, 0, 'status_id = $5', 'status_date = NOW()');
       values.push(statusId);
     }
-    
+
     const updateQuery = `
       UPDATE warehouse_inventory_lots
       SET ${updateFields.join(', ')}
       WHERE id = $1
       RETURNING *;
     `;
-    
+
     const result = await query(updateQuery, values, client);
-    
+
     if (!result.rows.length) {
       throw AppError.notFoundError(`Lot not found for ID: ${lotId}`);
     }
-    
+
     return result.rows[0];
   } catch (error) {
-    logError('Error updating warehouse_inventory_lot quantity and reserved_quantity:', error);
-    throw AppError.databaseError('Failed to update inventory lot quantity or reservation');
+    logError(
+      'Error updating warehouse_inventory_lot quantity and reserved_quantity:',
+      error
+    );
+    throw AppError.databaseError(
+      'Failed to update inventory lot quantity or reservation'
+    );
   }
 };
 

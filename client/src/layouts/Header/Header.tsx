@@ -92,7 +92,9 @@ const Header: FC<HeaderProps> = ({ user, onLogout }) => {
         }}
       >
         <MenuItem>
-          <CustomTypography variant="body1">{user?.firstname || 'Guest'}</CustomTypography>
+          <CustomTypography variant="body1">
+            {user?.firstname || 'Guest'}
+          </CustomTypography>
         </MenuItem>
         <Divider />
         <MenuItem

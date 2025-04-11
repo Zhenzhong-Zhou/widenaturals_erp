@@ -32,11 +32,11 @@ export const selectOrdersPagination = createSelector(
 // Selector to get orders by status (Memoized)
 export const selectOrdersByStatus = (status: string) =>
   createSelector([selectAllOrders], (orders: Order[]) =>
-    orders.filter(order => order.status === status)
+    orders.filter((order) => order.status === status)
   );
 
 // Selector to get order by ID (Memoized)
 export const selectOrderById = (orderId: string) =>
   createSelector([selectAllOrders], (orders: Order[]) =>
-    orders.find(order => order.id === orderId)
+    orders.find((order) => order.id === orderId)
   );

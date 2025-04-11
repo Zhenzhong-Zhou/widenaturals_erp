@@ -66,7 +66,11 @@ const ResetPasswordModal: FC<ResetPasswordModalProps> = ({
             mb: 2,
           }}
         >
-          <CustomTypography id="reset-password-title" variant="h6" component="h2">
+          <CustomTypography
+            id="reset-password-title"
+            variant="h6"
+            component="h2"
+          >
             Reset Password
           </CustomTypography>
           <IconButton onClick={onClose} aria-label="close">

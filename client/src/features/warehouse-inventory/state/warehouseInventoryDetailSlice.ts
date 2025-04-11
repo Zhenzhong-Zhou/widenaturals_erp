@@ -1,6 +1,7 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type {
-  WarehouseInventoryDetail, WarehouseInventoryDetailsResponse,
+  WarehouseInventoryDetail,
+  WarehouseInventoryDetailsResponse,
   WarehouseInventoryPagination,
 } from '@features/warehouse-inventory/state/warehouseInventoryTypes';
 import { fetchWarehouseInventoryDetailsThunk } from '@features/warehouse-inventory';

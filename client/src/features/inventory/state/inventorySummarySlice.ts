@@ -49,8 +49,7 @@ const inventorySummarySlice = createSlice({
         fetchInventorySummaryThunk.rejected,
         (state, action: PayloadAction<string | undefined>) => {
           state.loading = false;
-          state.error =
-            action.payload || 'Failed to fetch inventory summary';
+          state.error = action.payload || 'Failed to fetch inventory summary';
         }
       );
   },

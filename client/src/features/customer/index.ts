@@ -41,7 +41,7 @@ export { default as CustomerDetailHeader } from './components/CustomerDetailHead
 export {
   selectCustomerDropdownData,
   selectCustomerDropdownLoading,
-  selectCustomerDropdownError
+  selectCustomerDropdownError,
 } from './state/customerDropdownSelectors';
 export { default as CustomerDropdown } from './components/CustomerDropdown';
 export { customerReducers } from './state';

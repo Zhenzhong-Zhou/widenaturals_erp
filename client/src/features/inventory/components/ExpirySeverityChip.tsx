@@ -4,12 +4,19 @@ import { formatLabel } from '@utils/textUtils';
 import { useThemeContext } from '@context/ThemeContext';
 
 interface Props {
-  severity: 'expired' | 'expired_soon' | 'critical' | 'warning' | 'notice' | 'safe' | 'unknown';
+  severity:
+    | 'expired'
+    | 'expired_soon'
+    | 'critical'
+    | 'warning'
+    | 'notice'
+    | 'safe'
+    | 'unknown';
 }
 
 const ExpirySeverityChip: FC<Props> = ({ severity }) => {
   const { theme } = useThemeContext();
-  
+
   const colorMap: Record<Props['severity'], string> = {
     expired: theme.palette.error.main,
     expired_soon: theme.palette.error.light,
@@ -19,7 +26,7 @@ const ExpirySeverityChip: FC<Props> = ({ severity }) => {
     safe: theme.palette.success.main,
     unknown: theme.palette.text.disabled,
   };
-  
+
   return (
     <Chip
       label={formatLabel(severity.replace(/_/g, ' '))}

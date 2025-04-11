@@ -7,26 +7,26 @@ import compression from 'vite-plugin-compression';
 export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
-    
+
     // Enable Brotli compression in production
     mode === 'production' &&
-    compression({
-      algorithm: 'brotliCompress',
-      ext: '.br',
-      deleteOriginFile: false, // Set to true only if you want to keep only compressed files
-      verbose: true,
-    }),
-    
+      compression({
+        algorithm: 'brotliCompress',
+        ext: '.br',
+        deleteOriginFile: false, // Set to true only if you want to keep only compressed files
+        verbose: true,
+      }),
+
     // Bundle analyzer only in development
     mode === 'development' &&
-    visualizer({
-      filename: './dist/stats.html',
-      open: true,
-      gzipSize: true,
-      brotliSize: true,
-    }),
+      visualizer({
+        filename: './dist/stats.html',
+        open: true,
+        gzipSize: true,
+        brotliSize: true,
+      }),
   ].filter(Boolean), // filter out false plugins
-  
+
   resolve: {
     alias: {
       '@styles': resolve(__dirname, './src/styles'),
@@ -50,7 +50,7 @@ export default defineConfig(({ mode }) => ({
       '@config': resolve(__dirname, './src/config'),
     },
   },
-  
+
   optimizeDeps: {
     include: [
       'react',
@@ -65,20 +65,20 @@ export default defineConfig(({ mode }) => ({
     ],
     exclude: [], // Can add libraries to skip pre-bundling if needed
   },
-  
+
   build: {
     target: 'esnext',
     sourcemap: mode === 'development',
     minify: 'esbuild', // fastest and default
-    
+
     chunkSizeWarningLimit: 700, // KB
-    
+
     rollupOptions: {
       treeshake: {
         moduleSideEffects: false,
         preset: 'smallest',
       },
-      
+
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
@@ -90,19 +90,19 @@ export default defineConfig(({ mode }) => ({
             if (id.includes('axios')) return 'axios-vendor';
             return 'vendor';
           }
-          
+
           if (id.includes('src/components/')) return 'components';
         },
       },
     },
   },
-  
+
   server: {
     port: 5173,
     strictPort: true,
     open: true,
   },
-  
+
   preview: {
     port: 4173,
     strictPort: true,

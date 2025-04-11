@@ -15,7 +15,7 @@
  */
 const transformWarehouseLotResult = (row) => {
   if (!row) return null;
-  
+
   return {
     warehouse_inventory_lot_id: row.id,
     inventory_id: row.inventory_id,
@@ -28,5 +28,5 @@ const transformWarehouseLotResult = (row) => {
 };
 
 module.exports = {
-  transformWarehouseLotResult
+  transformWarehouseLotResult,
 };

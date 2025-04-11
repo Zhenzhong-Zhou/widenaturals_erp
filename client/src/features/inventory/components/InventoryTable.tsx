@@ -32,7 +32,7 @@ const InventoryTable: FC<InventoryTableProps> = ({
 }) => {
   const columns = [
     { id: 'placeName', label: 'Place Name', sortable: true },
-    
+
     {
       id: 'itemType',
       label: 'Item Type',
@@ -74,7 +74,9 @@ const InventoryTable: FC<InventoryTableProps> = ({
       id: 'displayStatus',
       label: 'Status',
       sortable: true,
-      renderCell: (row: InventoryItem) => <InventoryStatusChip status={row.displayStatus} />,
+      renderCell: (row: InventoryItem) => (
+        <InventoryStatusChip status={row.displayStatus} />
+      ),
     },
     {
       id: 'statusDate',
@@ -114,32 +116,41 @@ const InventoryTable: FC<InventoryTableProps> = ({
     },
     { id: 'createdBy', label: 'Created By', sortable: false },
     { id: 'updatedBy', label: 'Updated By', sortable: false },
-    
+
     {
       id: 'isExpired',
       label: 'Expired',
       sortable: true,
-      renderCell: (row: InventoryItem) => <IsExpiredChip isExpired={row.isExpired} />,
+      renderCell: (row: InventoryItem) => (
+        <IsExpiredChip isExpired={row.isExpired} />
+      ),
     },
     {
       id: 'isNearExpiry',
       label: 'Near Expiry',
       sortable: true,
-      renderCell: (row: InventoryItem) => <NearExpiryChip isNearExpiry={row.isNearExpiry} />,
+      renderCell: (row: InventoryItem) => (
+        <NearExpiryChip isNearExpiry={row.isNearExpiry} />
+      ),
     },
     {
       id: 'stockLevel',
       label: 'Stock Level',
       sortable: true,
       renderCell: (row: InventoryItem) => (
-        <StockLevelChip stockLevel={row.stockLevel} isLowStock={row.isLowStock} />
+        <StockLevelChip
+          stockLevel={row.stockLevel}
+          isLowStock={row.isLowStock}
+        />
       ),
     },
     {
       id: 'expirySeverity',
       label: 'Expiry Severity',
       sortable: true,
-      renderCell: (row: InventoryItem) => <ExpirySeverityChip severity={row.expirySeverity} />,
+      renderCell: (row: InventoryItem) => (
+        <ExpirySeverityChip severity={row.expirySeverity} />
+      ),
     },
   ];
 

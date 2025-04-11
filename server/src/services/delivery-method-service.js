@@ -1,4 +1,6 @@
-const { getDeliveryMethodsForDropdown } = require('../repositories/delivery-method-repository');
+const {
+  getDeliveryMethodsForDropdown,
+} = require('../repositories/delivery-method-repository');
 const { logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
 
@@ -11,14 +13,15 @@ const AppError = require('../utils/AppError');
 const fetchAvailableMethodsForDropdown = async (includePickup = false) => {
   try {
     const methods = await getDeliveryMethodsForDropdown(includePickup);
-    
+
     // Apply business logic and formatting
-    return methods.map(method => ({
+    return methods.map((method) => ({
       id: method.id,
       name: method.name,
-      estimatedTime: method.estimatedtime && method.estimatedtime.days
-        ? { days: parseInt(method.estimatedtime.days, 10) }
-        : null, // Return null if estimatedtime is null or doesn't have days
+      estimatedTime:
+        method.estimatedtime && method.estimatedtime.days
+          ? { days: parseInt(method.estimatedtime.days, 10) }
+          : null, // Return null if estimatedtime is null or doesn't have days
     }));
   } catch (error) {
     logError('Error in delivery method service:', error);
@@ -27,5 +30,5 @@ const fetchAvailableMethodsForDropdown = async (includePickup = false) => {
 };
 
 module.exports = {
-  fetchAvailableMethodsForDropdown
+  fetchAvailableMethodsForDropdown,
 };

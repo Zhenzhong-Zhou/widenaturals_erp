@@ -1,7 +1,7 @@
 import { type FC, useEffect } from 'react';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import Box from '@mui/material/Box';
-import Grid from '@mui/material/Grid2';
+import Grid from '@mui/material/Grid';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import IconButton from '@mui/material/IconButton';
@@ -133,7 +133,9 @@ const BulkAdjustQuantityModal: FC<BulkAdjustQuantityModalProps> = ({
       onClose={onClose}
       title={
         <Box display="flex" justifyContent="space-between" alignItems="center">
-          <CustomTypography variant="h6">Bulk Adjust Lot Quantities</CustomTypography>
+          <CustomTypography variant="h6">
+            Bulk Adjust Lot Quantities
+          </CustomTypography>
           {/* Close Button */}
           <IconButton onClick={onClose} color="inherit">
             <CloseIcon />

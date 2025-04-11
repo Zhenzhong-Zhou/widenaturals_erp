@@ -3,7 +3,8 @@ import {
   Suspense,
   cloneElement,
   type ReactElement,
-  useEffect, isValidElement,
+  useEffect,
+  isValidElement,
 } from 'react';
 import { useThemeContext } from '@context/ThemeContext';
 import { useMediaQuery, useTheme } from '@mui/material';
@@ -22,7 +23,11 @@ import { usePermissionsContext } from '@context/PermissionsContext';
 import useUserProfile from '@hooks/useUserProfile';
 import useLogout from '@hooks/useLogout';
 import useTokenRefresh from '@hooks/useTokenRefresh';
-import { contentContainerStyles, layoutStyles, mainContentStyles } from '@layouts/MainLayout/layoutStyles';
+import {
+  contentContainerStyles,
+  layoutStyles,
+  mainContentStyles,
+} from '@layouts/MainLayout/layoutStyles';
 
 interface InjectedProps {
   fullName: string;
@@ -38,21 +43,26 @@ const MainLayout = ({ children }: MainLayoutProps) => {
   const { theme } = useThemeContext();
   const muiTheme = useTheme();
   const isSmallScreen = useMediaQuery(muiTheme.breakpoints.down('md')); // Change breakpoint as needed
-  
+
   const [isSidebarOpen, setSidebarOpen] = useState(!isSmallScreen); // Open if large screen, close if small screen
-  
-  const { data: userProfile, loading: userProfileLoading, error: userProfileError } = useUserProfile();
-  const fullName = `${userProfile.firstname ?? ''} ${userProfile.lastname ?? ''}`.trim();
+
+  const {
+    data: userProfile,
+    loading: userProfileLoading,
+    error: userProfileError,
+  } = useUserProfile();
+  const fullName =
+    `${userProfile.firstname ?? ''} ${userProfile.lastname ?? ''}`.trim();
   const { logout } = useLogout();
   useTokenRefresh();
   const { roleName, permissions } = usePermissionsContext();
-  
+
   const toggleSidebar = () => setSidebarOpen((prev) => !prev);
-  
+
   useEffect(() => {
     setSidebarOpen(!isSmallScreen); // Automatically adjust sidebar state based on screen size
   }, [isSmallScreen]);
-  
+
   if (userProfileLoading) {
     return <Loading message="Loading user profile..." />;
   }
@@ -61,7 +71,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
   if (userProfileError) {
     return <ErrorDisplay message="Failed to load user profile." />;
   }
-  
+
   if (!userProfile) {
     return (
       <ErrorDisplay>
@@ -69,7 +79,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
       </ErrorDisplay>
     );
   }
-  
+
   return (
     <Box className="layout" sx={layoutStyles(theme)}>
       {/* Sidebar */}

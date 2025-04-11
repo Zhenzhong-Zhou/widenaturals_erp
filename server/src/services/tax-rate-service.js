@@ -1,4 +1,6 @@
-const { getTaxRatesForDropdown } = require('../repositories/tax-rate-repository');
+const {
+  getTaxRatesForDropdown,
+} = require('../repositories/tax-rate-repository');
 const AppError = require('../utils/AppError');
 
 /**
@@ -11,11 +13,11 @@ const AppError = require('../utils/AppError');
 const fetchTaxRatesForDropdown = async (region = 'Canada', province = null) => {
   try {
     const taxRates = await getTaxRatesForDropdown(region, province);
-    
+
     // Formatting data for dropdown usage
-    return taxRates.map(rate => ({
+    return taxRates.map((rate) => ({
       value: rate.id,
-      label: `${rate.name} (${rate.rate}%)`
+      label: `${rate.name} (${rate.rate}%)`,
     }));
   } catch (error) {
     throw AppError.serviceError('Unable to process tax rates for dropdown.');
@@ -23,5 +25,5 @@ const fetchTaxRatesForDropdown = async (region = 'Canada', province = null) => {
 };
 
 module.exports = {
-  fetchTaxRatesForDropdown
+  fetchTaxRatesForDropdown,
 };

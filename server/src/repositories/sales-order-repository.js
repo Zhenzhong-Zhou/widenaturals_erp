@@ -3,7 +3,10 @@ const { createOrder, updateOrderData } = require('./order-repository');
 const AppError = require('../utils/AppError');
 const { addOrderItems } = require('./order-item-repository');
 const { getValidDiscountById } = require('./discount-repository');
-const { getActiveTaxRateById, checkTaxRateExists } = require('./tax-rate-repository');
+const {
+  getActiveTaxRateById,
+  checkTaxRateExists,
+} = require('./tax-rate-repository');
 const { getActiveProductPrice } = require('./pricing-repository');
 const { logError } = require('../utils/logger-helper');
 const { checkDeliveryMethodExists } = require('./delivery-method-repository');
@@ -19,18 +22,26 @@ const { checkCustomerExistsById } = require('./customer-repository');
 const createSalesOrder = async (salesOrderData) => {
   return withTransaction(async (client) => {
     try {
-      const status_id = await getStatusValue({
-        table: 'order_status',
-        where: { code: 'ORDER_PENDING' },
-        select: 'id',
-      }, client);
-      
+      const status_id = await getStatusValue(
+        {
+          table: 'order_status',
+          where: { code: 'ORDER_PENDING' },
+          select: 'id',
+        },
+        client
+      );
+
       // Validate customer ID
-      const customerExists = await checkCustomerExistsById(salesOrderData.customer_id, client);
+      const customerExists = await checkCustomerExistsById(
+        salesOrderData.customer_id,
+        client
+      );
       if (!customerExists) {
-        throw AppError.validationError('Invalid or non-existent customer provided.');
+        throw AppError.validationError(
+          'Invalid or non-existent customer provided.'
+        );
       }
-      
+
       // Validate delivery method ID if provided
       if (salesOrderData.delivery_method_id) {
         const deliveryMethodExists = await checkDeliveryMethodExists(
@@ -43,7 +54,7 @@ const createSalesOrder = async (salesOrderData) => {
           );
         }
       }
-      
+
       // Validate tax rate ID if provided
       if (salesOrderData.tax_rate_id) {
         const taxRateExists = await checkTaxRateExists(
@@ -54,14 +65,14 @@ const createSalesOrder = async (salesOrderData) => {
           throw AppError.validationError('Invalid tax rate provided.');
         }
       }
-      
+
       // Destructure shipping info safely
       const {
         has_shipping_info = false,
         shipping_info = {},
-        items
+        items,
       } = salesOrderData;
-      
+
       const {
         shipping_fullname,
         shipping_phone,
@@ -74,7 +85,7 @@ const createSalesOrder = async (salesOrderData) => {
         shipping_country,
         shipping_region,
       } = shipping_info;
-      
+
       // Step 1: Create a general order in the `orders` table
       const order = await createOrder({
         order_type_id: salesOrderData.order_type_id,
@@ -104,23 +115,23 @@ const createSalesOrder = async (salesOrderData) => {
 
       for (const item of items) {
         const { product_id, price_type_id, price, quantity_ordered } = item;
-        
+
         // Fetch product price including location-based pricing
         const productPrice = await getActiveProductPrice(
           product_id,
           price_type_id,
           client
         );
-        
+
         if (!productPrice) {
           throw AppError.validationError(
             `No active price found for product ${product_id} at the given location.`
           );
         }
-        
+
         // Convert database price to Number if necessary
         const dbPrice = parseFloat(productPrice.price);
-        
+
         // Check if input price matches the database price or is null
         const is_manual_price =
           price !== null &&
@@ -128,14 +139,15 @@ const createSalesOrder = async (salesOrderData) => {
           !isNaN(price) &&
           price > 0 &&
           price !== dbPrice; // Compare using dbPrice as Number
-        
+
         // Use input price if provided and different from DB, otherwise use DB price
-        const final_price = price === 0 ? dbPrice : is_manual_price ? price : dbPrice;
-        
+        const final_price =
+          price === 0 ? dbPrice : is_manual_price ? price : dbPrice;
+
         // Compute item total and add to subtotal
         const itemTotal = final_price * quantity_ordered;
         subtotal += itemTotal;
-        
+
         // Store price_id from pricing table for tracking
         processedItems.push({
           ...item,
@@ -143,7 +155,7 @@ const createSalesOrder = async (salesOrderData) => {
           price: final_price,
           status_id,
         });
-        
+
         // Track manual price overrides
         if (is_manual_price) {
           manualPriceOverrides.push({
@@ -155,22 +167,27 @@ const createSalesOrder = async (salesOrderData) => {
           });
         }
       }
-      
+
       // Step 3: Fetch discount details (if discount ID is provided)
       let discountAmount = 0;
       if (salesOrderData.discount_id) {
-        const discount = await getValidDiscountById(salesOrderData.discount_id, client);
-        
+        const discount = await getValidDiscountById(
+          salesOrderData.discount_id,
+          client
+        );
+
         if (!discount) {
-          throw AppError.validationError('Invalid or expired discount provided.');
+          throw AppError.validationError(
+            'Invalid or expired discount provided.'
+          );
         }
-        
+
         // Correctly calculate discount amount
         discountAmount =
           discount.discount_type === 'PERCENTAGE'
             ? (subtotal * discount.discount_value) / 100
             : discount.discount_value;
-        
+
         // Prevent discount from exceeding the subtotal
         discountAmount = Math.min(discountAmount, subtotal);
       }
@@ -182,11 +199,11 @@ const createSalesOrder = async (salesOrderData) => {
 
       // Step 5: Calculate Tax & Final Total
       const taxableAmount = Math.max(subtotal - discountAmount, 0); // Ensure it never goes below 0
-      
+
       const taxAmount = taxableAmount * (taxRate / 100);
-      
+
       const finalTotal = taxableAmount + taxAmount;
-      
+
       // Step 6: Create the sales order using the same order ID
       const salesOrderSql = `
         INSERT INTO sales_orders (
@@ -234,12 +251,19 @@ const createSalesOrder = async (salesOrderData) => {
         salesOrderData.created_by,
         client
       );
-      
+
       // Step 9: If manual price overrides exist, update order metadata
       if (manualPriceOverrides.length > 0) {
-        await updateOrderData(order.id, { manual_price_overrides: manualPriceOverrides, updated_by: salesOrderData.created_by }, client);
+        await updateOrderData(
+          order.id,
+          {
+            manual_price_overrides: manualPriceOverrides,
+            updated_by: salesOrderData.created_by,
+          },
+          client
+        );
       }
-      
+
       return { order, salesOrder };
     } catch (error) {
       logError('Sales Order Creation Error:', error);

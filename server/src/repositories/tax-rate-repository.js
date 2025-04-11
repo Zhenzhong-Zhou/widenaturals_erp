@@ -31,7 +31,7 @@ const getActiveTaxRateById = async (taxRateId, client) => {
 const checkTaxRateExists = async (taxRateId, client = null) => {
   try {
     const queryText = `SELECT EXISTS (SELECT 1 FROM tax_rates WHERE id = $1) AS exists;`;
-    const { rows } =  await query(queryText, [taxRateId], client);
+    const { rows } = await query(queryText, [taxRateId], client);
     return rows[0]?.exists || false;
   } catch (error) {
     logError('Error checking tax rate existence:', error);
@@ -62,11 +62,11 @@ const getTaxRatesForDropdown = async (region = 'Canada', province = null) => {
         ${province ? `AND province = $2` : ''}
       ORDER BY name ASC;
     `;
-    
+
     const values = province ? [region, province] : [region];
-    
+
     const { rows } = await query(baseQuery, values);
-    
+
     return rows;
   } catch (error) {
     logError('Error fetching tax rates for dropdown:', error);
@@ -77,5 +77,5 @@ const getTaxRatesForDropdown = async (region = 'Canada', province = null) => {
 module.exports = {
   getActiveTaxRateById,
   checkTaxRateExists,
-  getTaxRatesForDropdown
+  getTaxRatesForDropdown,
 };

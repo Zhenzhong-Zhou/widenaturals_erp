@@ -3,7 +3,8 @@ import type { RootState } from '@store/store';
 import type { OrderDetailsResponse } from '@features/order';
 
 // Base Selector - Getting the whole salesOrderDetails state slice
-const selectSalesOrderDetailsState = (state: RootState) => state.salesOrderDetail;
+const selectSalesOrderDetailsState = (state: RootState) =>
+  state.salesOrderDetail;
 
 // Memoized Selector for getting the sales order details data
 export const selectSalesOrderDetailsData = createSelector(

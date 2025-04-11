@@ -19,24 +19,26 @@ interface UseDeliveryMethodDropdownReturnType {
   refreshMethods: () => void;
 }
 
-const useDeliveryMethodDropdown = (includePickup: boolean = false): UseDeliveryMethodDropdownReturnType => {
+const useDeliveryMethodDropdown = (
+  includePickup: boolean = false
+): UseDeliveryMethodDropdownReturnType => {
   const dispatch = useAppDispatch();
-  
+
   // Memoized selectors
   const methods = useAppSelector(selectFormattedDeliveryMethodDropdown);
   const loading = useAppSelector(selectDeliveryMethodDropdownLoading);
   const error = useAppSelector(selectDeliveryMethodDropdownError);
-  
+
   // Fetch data on mount or when includePickup changes
   useEffect(() => {
     dispatch(fetchDeliveryMethodDropdownThunk({ includePickup }));
   }, [dispatch, includePickup]);
-  
+
   // Refresh function to manually trigger data fetch
   const refreshMethods = useCallback(() => {
     dispatch(fetchDeliveryMethodDropdownThunk({ includePickup }));
   }, [dispatch, includePickup]);
-  
+
   return { methods, loading, error, refreshMethods };
 };
 

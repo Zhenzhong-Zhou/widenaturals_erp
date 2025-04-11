@@ -1,5 +1,8 @@
 import { createSlice } from '@reduxjs/toolkit';
-import type { LocationTypeDetail, Pagination } from '@features/locationType/state/locationTypeTypes';
+import type {
+  LocationTypeDetail,
+  Pagination,
+} from '@features/locationType/state/locationTypeTypes';
 import { fetchLocationTypeDetailsThunk } from '@features/locationType/state/locationTypesThunks';
 
 /**

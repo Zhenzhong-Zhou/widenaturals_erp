@@ -24,10 +24,13 @@ const deliveryMethodSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchDeliveryMethodDropdownThunk.fulfilled, (state, action: PayloadAction<DeliveryMethodDropdownItem[]>) => {
-        state.methods = action.payload;
-        state.loading = false;
-      })
+      .addCase(
+        fetchDeliveryMethodDropdownThunk.fulfilled,
+        (state, action: PayloadAction<DeliveryMethodDropdownItem[]>) => {
+          state.methods = action.payload;
+          state.loading = false;
+        }
+      )
       .addCase(fetchDeliveryMethodDropdownThunk.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;

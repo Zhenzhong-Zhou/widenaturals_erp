@@ -24,10 +24,13 @@ const taxRateSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchTaxRateDropdownThunk.fulfilled, (state, action: PayloadAction<TaxRateDropdownItem[]>) => {
-        state.taxRates = action.payload;
-        state.loading = false;
-      })
+      .addCase(
+        fetchTaxRateDropdownThunk.fulfilled,
+        (state, action: PayloadAction<TaxRateDropdownItem[]>) => {
+          state.taxRates = action.payload;
+          state.loading = false;
+        }
+      )
       .addCase(fetchTaxRateDropdownThunk.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;

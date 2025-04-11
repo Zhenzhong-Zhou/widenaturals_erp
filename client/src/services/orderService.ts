@@ -4,7 +4,8 @@ import type {
   CreateSalesOrderResponse,
   FetchOrdersParams,
   OrderDetailsResponse,
-  OrdersResponse, OrderStatusUpdateResponse,
+  OrdersResponse,
+  OrderStatusUpdateResponse,
   SalesOrder,
 } from '@features/order';
 
@@ -19,8 +20,14 @@ export const createSalesOrder = async (
   orderData: SalesOrder
 ): Promise<CreateSalesOrderResponse> => {
   try {
-    const endpoint = API_ENDPOINTS.CREATE_SALES_ORDERS.replace(':orderTypeId', orderTypeId);
-    const response = await axiosInstance.post<CreateSalesOrderResponse>(endpoint, orderData);
+    const endpoint = API_ENDPOINTS.CREATE_SALES_ORDERS.replace(
+      ':orderTypeId',
+      orderTypeId
+    );
+    const response = await axiosInstance.post<CreateSalesOrderResponse>(
+      endpoint,
+      orderData
+    );
     return response.data;
   } catch (error) {
     console.error('Error creating sales order:', error);
@@ -75,7 +82,9 @@ const fetchSalesOrderDetails = async (
     return response.data;
   } catch (error) {
     console.error('Error fetching sales order details:', error);
-    throw new Error('Failed to fetch sales order details. Please try again later.');
+    throw new Error(
+      'Failed to fetch sales order details. Please try again later.'
+    );
   }
 };
 
@@ -90,12 +99,18 @@ const confirmSalesOrder = async (
   orderId: string
 ): Promise<OrderStatusUpdateResponse> => {
   try {
-    const endpoint = API_ENDPOINTS.CONFIRM_SALES_ORDER.replace(':orderId', orderId);
-    const response = await axiosInstance.post<OrderStatusUpdateResponse>(endpoint);
+    const endpoint = API_ENDPOINTS.CONFIRM_SALES_ORDER.replace(
+      ':orderId',
+      orderId
+    );
+    const response =
+      await axiosInstance.post<OrderStatusUpdateResponse>(endpoint);
     return response.data;
   } catch (error) {
     console.error('Error confirming sales order:', error);
-    throw new Error('Failed to confirm the sales order. Please try again later.');
+    throw new Error(
+      'Failed to confirm the sales order. Please try again later.'
+    );
   }
 };
 

@@ -1,6 +1,7 @@
 const {
   fetchAllInventories,
-  createInventoryRecords, fetchPaginatedInventorySummary,
+  createInventoryRecords,
+  fetchPaginatedInventorySummary,
 } = require('../services/inventory-service');
 const wrapAsync = require('../utils/wrap-async');
 const { logError } = require('../utils/logger-helper');
@@ -58,23 +59,29 @@ const createInventoryRecordsController = wrapAsync(async (req, res, next) => {
  * @queryparam {number} limit - Number of items per page
  * @returns {object} JSON response with paginated inventory summary
  */
-const getPaginatedInventorySummaryController = wrapAsync(async (req, res, next) => {
-  try {
-    const { page, limit } = req.query;
-    const user = req.user;
-    
-    const { data, pagination } = await fetchPaginatedInventorySummary({ page, limit, user });
-    
-    res.status(200).json({
-      success: true,
-      message: 'Inventory summary fetched successfully.',
-      data,
-      pagination,
-    });
-  } catch (error) {
-    next(error);
+const getPaginatedInventorySummaryController = wrapAsync(
+  async (req, res, next) => {
+    try {
+      const { page, limit } = req.query;
+      const user = req.user;
+
+      const { data, pagination } = await fetchPaginatedInventorySummary({
+        page,
+        limit,
+        user,
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Inventory summary fetched successfully.',
+        data,
+        pagination,
+      });
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
 module.exports = {
   getAllInventoriesController,

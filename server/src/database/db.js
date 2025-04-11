@@ -380,24 +380,29 @@ const getCountQuery = (queryText, alias = 'subquery') => {
  * @param {number} limit - Number of rows per page
  * @returns {Promise<object>} Paginated result
  */
-const paginateResults = async ({ dataQuery, params = [], page = 1, limit = 20 }) => {
+const paginateResults = async ({
+  dataQuery,
+  params = [],
+  page = 1,
+  limit = 20,
+}) => {
   const offset = (page - 1) * limit;
-  
+
   // Main paginated query
   const paginatedQuery = `${dataQuery.trim().replace(/;$/, '')} LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
   const paginatedParams = [...params, limit, offset];
-  
+
   // Generate count query from original SQL
   const countQuery = getCountQuery(dataQuery);
-  
+
   const [dataRows, countResult] = await Promise.all([
     query(paginatedQuery, paginatedParams),
     query(countQuery, params),
   ]);
-  
+
   const totalRecords = parseInt(countResult.rows[0].total_count, 10) || 0;
   const totalPages = Math.ceil(totalRecords / limit);
-  
+
   return {
     page,
     limit,
@@ -714,29 +719,29 @@ const formatBulkUpdateQuery = (
   columnTypes = {} // e.g., { reserved_quantity: 'integer', status: 'text' }
 ) => {
   if (!Object.keys(data).length) return null;
-  
+
   let indexCounter = 2; // $1 = userId
   const params = [userId]; // initial param list
-  
+
   const valuesSql = Object.entries(data).map(([key, value]) => {
     const keyParts = key.split(/-(?=[a-f0-9-]{36}$)/); // split composite key like 'warehouseId-inventoryId'
     const rowParams = [
       ...keyParts,
       ...(columns.length === 1 && typeof value !== 'object'
         ? [value]
-        : columns.map((col) => value[col] ?? null))
+        : columns.map((col) => value[col] ?? null)),
     ];
     params.push(...rowParams);
-    
+
     const placeholders = rowParams.map(() => `$${indexCounter++}`);
     const typedPlaceholders = [
       ...keyParts.map(() => `uuid`),
-      ...columns.map((col) => columnTypes[col] || 'text')
+      ...columns.map((col) => columnTypes[col] || 'text'),
     ].map((type, i) => `${placeholders[i]}::${type}`);
-    
+
     return `(${typedPlaceholders.join(', ')})`;
   });
-  
+
   const baseQuery = `
     UPDATE ${table}
     SET ${columns.map((col) => `${col} = data.${col}`).join(', ')},
@@ -747,7 +752,7 @@ const formatBulkUpdateQuery = (
     WHERE ${whereColumns.map((col) => `${table}.${col} = data.${col}`).join(' AND ')}
     RETURNING ${whereColumns.map((col) => `${table}.${col}`).join(', ')};
   `;
-  
+
   return { baseQuery, params };
 };
 
@@ -766,17 +771,17 @@ const getStatusValue = async ({ table, where, select }, client) => {
   if (!table || typeof where !== 'object' || !select) {
     throw AppError.validationError('Invalid parameters for getStatusValue.');
   }
-  
+
   const whereKey = Object.keys(where)[0];
   const whereValue = where[whereKey];
-  
+
   const sql = `
     SELECT ${select}
     FROM ${table}
     WHERE ${whereKey} = $1
     LIMIT 1
   `;
-  
+
   try {
     const result = await query(sql, [whereValue], client);
     return result.rows?.[0]?.[select] || null;

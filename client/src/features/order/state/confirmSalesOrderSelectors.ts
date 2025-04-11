@@ -2,7 +2,8 @@ import { createSelector } from '@reduxjs/toolkit';
 import type { RootState } from '@store/store';
 
 // Base slice selector
-const selectConfirmSalesOrderState = (state: RootState) => state.confirmSalesOrder;
+const selectConfirmSalesOrderState = (state: RootState) =>
+  state.confirmSalesOrder;
 
 // Memoized selectors
 export const selectConfirmOrderData = createSelector(

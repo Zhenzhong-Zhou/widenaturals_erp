@@ -3,7 +3,10 @@ import {
   createCustomerThunk,
   createBulkCustomersThunk,
 } from './customerThunks';
-import { type BulkCustomerResponse, type CustomerResponse } from './customerTypes';
+import {
+  type BulkCustomerResponse,
+  type CustomerResponse,
+} from './customerTypes';
 
 interface CustomerState {
   customers: CustomerResponse[]; // Stores created customers

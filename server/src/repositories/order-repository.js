@@ -2,7 +2,10 @@ const { query, retry, paginateQuery } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logError } = require('../utils/logger-helper');
 const { getOrderTypes } = require('./order-type-repository');
-const { generateOrderNumber, verifyOrderNumber } = require('../utils/order-number-utils');
+const {
+  generateOrderNumber,
+  verifyOrderNumber,
+} = require('../utils/order-number-utils');
 
 /**
  * Creates a general order in the `orders` table using raw SQL.
@@ -31,7 +34,7 @@ const createOrder = async (orderData) => {
     created_by,
     updated_by,
   } = orderData;
-  
+
   try {
     // Step 1: Insert order WITHOUT order_number
     const insertOrderSQL = `
@@ -63,7 +66,7 @@ const createOrder = async (orderData) => {
       )
       RETURNING id;
     `;
-    
+
     const values = [
       order_type_id,
       order_date,
@@ -85,28 +88,30 @@ const createOrder = async (orderData) => {
       created_by,
       updated_by,
     ];
-    
+
     const result = await query(insertOrderSQL, values);
     const orderId = result.rows[0].id;
-    
+
     // Step 2: Get order type details
     const orderTypes = await getOrderTypes('dropdown');
     const orderType = orderTypes.find((ot) => ot.id === order_type_id);
-    
+
     if (!orderType) {
-      throw AppError.databaseError(`Order type not found for ID: ${order_type_id}`);
+      throw AppError.databaseError(
+        `Order type not found for ID: ${order_type_id}`
+      );
     }
-    
+
     const { category, name: orderTypeName } = orderType;
-    
+
     // Step 3: Generate order number
     const orderNumber = generateOrderNumber(category, orderTypeName, orderId);
-    
+
     // Step 4: Validate the generated order_number
     if (!verifyOrderNumber(orderNumber)) {
       throw AppError.databaseError('Generated order number is invalid');
     }
-    
+
     // Step 5: Update the order with the generated order_number
     const updateOrderSQL = `
       UPDATE orders
@@ -114,14 +119,16 @@ const createOrder = async (orderData) => {
       WHERE id = $3
       RETURNING *;
     `;
-    
+
     const updateValues = [orderNumber, updated_by, orderId];
     const updatedOrderResult = await query(updateOrderSQL, updateValues);
-    
+
     if (updatedOrderResult.rowCount === 0) {
-      throw AppError.databaseError(`Failed to update order with ID: ${orderId}`);
+      throw AppError.databaseError(
+        `Failed to update order with ID: ${orderId}`
+      );
     }
-    
+
     return updatedOrderResult.rows[0]; // Return the updated order with order_number
   } catch (error) {
     logError(`Error creating order`, error);
@@ -220,7 +227,7 @@ const getOrderDetailsById = async (orderId) => {
     LEFT JOIN delivery_methods dm ON s.delivery_method_id = dm.id
     WHERE o.id = $1
   `;
-  
+
   try {
     const { rows } = await query(sql, [orderId]);
     return rows.length > 0 ? rows : null;
@@ -256,13 +263,13 @@ const updateOrderData = async (orderId, updateData, client) => {
       `SELECT metadata FROM orders WHERE id = $1`,
       [orderId]
     );
-    
+
     if (!existingOrder.rows.length) {
       throw AppError.notFoundError(`Order ${orderId} not found.`);
     }
-    
+
     let existingMetadata = existingOrder.rows[0].metadata || {};
-    
+
     // Step 2: Merge metadata for manual price overrides
     if (updateData.manual_price_overrides) {
       existingMetadata.manual_price_overrides = [
@@ -270,70 +277,69 @@ const updateOrderData = async (orderId, updateData, client) => {
         ...updateData.manual_price_overrides,
       ];
     }
-    
+
     // Step 3: Construct the update query dynamically
     let updateFields = [];
     let updateValues = [];
     let index = 1;
-    
+
     if (updateData.discount_id) {
       updateFields.push(`discount_id = $${index}`);
       updateValues.push(updateData.discount_id);
       index++;
     }
-    
+
     if (updateData.tax_amount !== undefined) {
       updateFields.push(`tax_amount = $${index}`);
       updateValues.push(updateData.tax_amount);
       index++;
     }
-    
+
     if (updateData.total_amount !== undefined) {
       updateFields.push(`total_amount = $${index}`);
       updateValues.push(updateData.total_amount);
       index++;
     }
-    
+
     if (updateData.status_id) {
       updateFields.push(`order_status_id = $${index}`);
       updateValues.push(updateData.status_id);
       index++;
-      
+
       // If status changes, update status_date
       updateFields.push(`status_date = NOW()`);
     }
-    
+
     if (updateData.note) {
       updateFields.push(`note = $${index}`);
       updateValues.push(updateData.note);
       index++;
     }
-    
+
     // Always update metadata and timestamps
     updateFields.push(`metadata = $${index}`);
     updateValues.push(existingMetadata);
     index++;
-    
+
     updateFields.push(`updated_at = NOW()`);
-    
+
     if (updateData.updated_by) {
       updateFields.push(`updated_by = $${index}`);
       updateValues.push(updateData.updated_by);
       index++;
     }
-    
+
     updateValues.push(orderId);
-    
+
     const updateQuery = `
       UPDATE orders
       SET ${updateFields.join(', ')}
       WHERE id = $${index}
       RETURNING id;
     `;
-    
+
     const updatedOrder = await client.query(updateQuery, updateValues);
     return updatedOrder.rows[0];
-    
   } catch (error) {
     logError('Error updating order:', error);
     throw AppError.databaseError(`Failed to update order: ${error.message}`);
@@ -353,11 +359,11 @@ const updateOrderData = async (orderId, updateData, client) => {
  * @throws {AppError} - If the query fails or verification fails.
  */
 const getAllOrders = async ({
-                                page = 1,
-                                limit = 10,
-                                sortBy = 'created_at',
-                                sortOrder = 'DESC',
-                              } = {}) => {
+  page = 1,
+  limit = 10,
+  sortBy = 'created_at',
+  sortOrder = 'DESC',
+} = {}) => {
   const tableName = 'orders o';
   const joins = [
     'JOIN order_types ot ON o.order_type_id = ot.id',
@@ -366,7 +372,7 @@ const getAllOrders = async ({
     'LEFT JOIN users u2 ON o.updated_by = u2.id',
   ];
   const whereClause = '1=1';
-  
+
   const allowedSortFields = [
     'order_number',
     'category',
@@ -375,12 +381,12 @@ const getAllOrders = async ({
     'created_at',
     'updated_at',
   ];
-  
+
   // Validate the sortBy field
   const validatedSortBy = allowedSortFields.includes(sortBy)
     ? `o.${sortBy}`
     : 'o.created_at';
-  
+
   const baseQuery = `
     SELECT
       o.id,
@@ -396,7 +402,7 @@ const getAllOrders = async ({
     FROM ${tableName}
     ${joins.join(' ')}
   `;
-  
+
   try {
     return await retry(
       () =>
@@ -445,18 +451,20 @@ const getOrderStatusAndItems = async (orderId, client) => {
     JOIN order_status ios ON oi.status_id = ios.id
     WHERE o.id = $1
   `;
-  
+
   try {
     const result = await retry(() => query(sql, [orderId], client));
-    
+
     if (!result.rows || result.rows.length === 0) {
       return null;
     }
-    
+
     return result.rows;
   } catch (error) {
     logError('Error fetching order and items:', error);
-    throw AppError.databaseError('Failed to fetch order and items: ' + error.message);
+    throw AppError.databaseError(
+      'Failed to fetch order and items: ' + error.message
+    );
   }
 };
 
@@ -485,18 +493,20 @@ const getOrderAndItemStatusCodes = async (orderId, client) => {
     JOIN order_status ios ON oi.status_id = ios.id
     WHERE o.id = $1
   `;
-  
+
   try {
     const result = await retry(() => query(sql, [orderId], client));
-    
+
     if (!result.rows || result.rows.length === 0) {
       return null;
     }
-    
+
     return result.rows; // array of status codes (for each order item)
   } catch (error) {
     logError('Error fetching order/item status codes:', error);
-    throw AppError.databaseError('Failed to fetch status codes: ' + error.message);
+    throw AppError.databaseError(
+      'Failed to fetch status codes: ' + error.message
+    );
   }
 };
 
@@ -511,13 +521,18 @@ const getOrderAndItemStatusCodes = async (orderId, client) => {
  * @param {*} client - PostgreSQL client (transactional).
  * @returns {Promise<object>} - Updated row counts or result info.
  */
-const updateOrderAndItemStatus = async ({ orderId, orderStatusCode, itemStatusCode, userId }, client) => {
+const updateOrderAndItemStatus = async (
+  { orderId, orderStatusCode, itemStatusCode, userId },
+  client
+) => {
   if (!orderId || !orderStatusCode || !userId) {
-    throw AppError.validationError('orderId, orderStatusCode, and userId are required.');
+    throw AppError.validationError(
+      'orderId, orderStatusCode, and userId are required.'
+    );
   }
-  
+
   const queries = [];
-  
+
   // Update order
   const orderSql = `
     UPDATE orders o
@@ -530,7 +545,7 @@ const updateOrderAndItemStatus = async ({ orderId, orderStatusCode, itemStatusCo
     RETURNING o.id;
   `;
   queries.push(query(orderSql, [orderId, orderStatusCode, userId], client));
-  
+
   // Update items only if itemStatusCode is explicitly provided
   if (itemStatusCode) {
     const itemSql = `
@@ -545,16 +560,23 @@ const updateOrderAndItemStatus = async ({ orderId, orderStatusCode, itemStatusCo
     `;
     queries.push(query(itemSql, [orderId, itemStatusCode, userId], client));
   }
-  
+
   try {
-    const [orderResult, orderItemResult = { rowCount: 0 }] = await Promise.all(queries);
+    const [orderResult, orderItemResult = { rowCount: 0 }] =
+      await Promise.all(queries);
     return {
       orderResult,
       orderItemResult,
     };
   } catch (error) {
-    logError(`Failed to update order & item statuses for order ${orderId}`, error);
-    throw AppError.databaseError(`Unable to update statuses for order: ${orderId}`, { cause: error });
+    logError(
+      `Failed to update order & item statuses for order ${orderId}`,
+      error
+    );
+    throw AppError.databaseError(
+      `Unable to update statuses for order: ${orderId}`,
+      { cause: error }
+    );
   }
 };
 

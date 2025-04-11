@@ -34,13 +34,13 @@ const InventoryActivityLogTable: FC<InventoryLogTableProps> = ({
       label: 'Order Number',
       sortable: true,
       format: (
-        value: string | number | Record<string, any> | null,
+        value: string | number | Record<string, any> | null
       ): string | number | null | undefined => {
         if (typeof value === 'string' || typeof value === 'number') {
           return value;
         }
         return '-';
-      }
+      },
     },
     {
       id: 'warehouse_name',

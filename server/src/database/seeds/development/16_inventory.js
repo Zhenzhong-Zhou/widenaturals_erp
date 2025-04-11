@@ -498,7 +498,7 @@ exports.seed = async function (knex) {
       warehouse: 'Head Office Warehouse',
       quantity: 0,
     },
-    
+
     {
       product: 'NMN 3000 - INT',
       lot_number: '12000005',
@@ -573,9 +573,8 @@ exports.seed = async function (knex) {
         lotStatus = statusIdMap['unavailable'];
       else if (new Date(lot.expiry_date) < new Date())
         lotStatus = statusIdMap['expired'];
-      else if (lot.quantity === 0)
-        lotStatus = statusIdMap['out_of_stock'];
-      
+      else if (lot.quantity === 0) lotStatus = statusIdMap['out_of_stock'];
+
       return {
         id: knex.raw('uuid_generate_v4()'),
         warehouse_id: warehouseId,
@@ -691,7 +690,7 @@ exports.seed = async function (knex) {
       lotStatus = outOfStockStatusId;
       includeInAvailableStock = false;
     }
-    
+
     // Initialize inventory record if it doesn't exist
     if (!acc[inventoryId]) {
       acc[inventoryId] = {

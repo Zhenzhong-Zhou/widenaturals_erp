@@ -28,7 +28,14 @@ export interface InventoryItem {
   isNearExpiry: boolean;
   isLowStock: boolean;
   stockLevel: 'none' | 'critical' | 'low' | 'normal';
-  expirySeverity: 'expired' | 'expired_soon' | 'critical' | 'warning' | 'notice' | 'safe' | 'unknown';
+  expirySeverity:
+    | 'expired'
+    | 'expired_soon'
+    | 'critical'
+    | 'warning'
+    | 'notice'
+    | 'safe'
+    | 'unknown';
 }
 
 // Pagination Interface

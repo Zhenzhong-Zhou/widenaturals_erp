@@ -19,7 +19,8 @@ loadEnv();
 // Configuration
 const isProduction = process.env.NODE_ENV === 'production';
 const targetDatabase = process.env.DB_NAME; // Name of the target database
-const backupDir = path.resolve(__dirname, process.env.BACKUP_DIR) || '../../backups'; // Directory to store backups
+const backupDir =
+  path.resolve(__dirname, process.env.BACKUP_DIR) || '../../backups'; // Directory to store backups
 const timestamp = new Date().toISOString().replace(/[:.]/g, '-'); // Timestamp for file naming
 const baseFileName = `${targetDatabase}-${timestamp}`; // Base name for backup files
 const backupFile = path.join(backupDir, `${baseFileName}.sql`); // Plain-text SQL file path
@@ -46,18 +47,18 @@ const backupDatabase = async () => {
   if (!targetDatabase) {
     throw AppError.validationError('Environment variable DB_NAME is missing.');
   }
-  
+
   try {
     // Ensure the backup directory exists
     await ensureDirectory(backupDir);
     logInfo(`Starting backup for database: '${targetDatabase}'`);
-    
+
     // Build the dump command without exposing credentials
     const dumpCommand = `${pgDumpPath} --format=custom --no-owner --clean --if-exists --file=${backupFile} --username=${dbUser} --dbname=${targetDatabase}`;
-    
+
     // Run pg_dump with credentials securely handled
     await runPgDump(dumpCommand, isProduction, dbUser, dbPassword);
-    
+
     // Encrypt the SQL backup file
     const encryptionKey = process.env.BACKUP_ENCRYPTION_KEY;
     if (!encryptionKey || Buffer.from(encryptionKey, 'hex').length !== 32) {
@@ -65,21 +66,21 @@ const backupDatabase = async () => {
         'Invalid or missing BACKUP_ENCRYPTION_KEY. Ensure it is a 64-character hexadecimal string.'
       );
     }
-    
+
     await encryptFile(backupFile, encryptedFile, encryptionKey, ivFile);
-    
+
     // Remove the plain-text backup file
     await fs.unlink(backupFile);
-    
+
     // Generate a SHA-256 hash of the encrypted file
     const hash = await generateHash(encryptedFile);
     await saveHashToFile(hash, hashFile);
-    
+
     // Cleanup old backups
     await cleanupOldBackups(backupDir, maxBackups, isProduction, bucketName);
-    
+
     logInfo(`Backup encrypted and saved: ${encryptedFile}`);
-    
+
     // Upload to S3 if in production
     if (isProduction && bucketName) {
       try {
@@ -87,26 +88,41 @@ const backupDatabase = async () => {
         const s3KeyEnc = `backups/${path.basename(encryptedFile)}`;
         const s3KeyIv = `backups/${path.basename(ivFile)}`;
         const s3KeySha256 = `backups/${path.basename(hashFile)}`;
-        
+
         // Upload all files with retry logic
-        await uploadFileToS3(encryptedFile, bucketName, s3KeyEnc, 'application/gzip');
-        await uploadFileToS3(ivFile, bucketName, s3KeyIv, 'application/octet-stream');
+        await uploadFileToS3(
+          encryptedFile,
+          bucketName,
+          s3KeyEnc,
+          'application/gzip'
+        );
+        await uploadFileToS3(
+          ivFile,
+          bucketName,
+          s3KeyIv,
+          'application/octet-stream'
+        );
         await uploadFileToS3(hashFile, bucketName, s3KeySha256, 'text/plain');
-        
-        logInfo(`Successfully uploaded backup files to S3: ${s3KeyEnc}, ${s3KeyIv}, ${s3KeySha256}.`);
-        
+
+        logInfo(
+          `Successfully uploaded backup files to S3: ${s3KeyEnc}, ${s3KeyIv}, ${s3KeySha256}.`
+        );
+
         // Optionally delete the encrypted file locally after successful upload
         await fs.unlink(encryptedFile);
-        await fs.unlink(ivFile);     // Also delete the initialization vector
-        await fs.unlink(hashFile);    // And the hash file
+        await fs.unlink(ivFile); // Also delete the initialization vector
+        await fs.unlink(hashFile); // And the hash file
       } catch (uploadError) {
-        logError('Failed to upload encrypted backup to S3.', { error: uploadError.message });
+        logError('Failed to upload encrypted backup to S3.', {
+          error: uploadError.message,
+        });
         throw uploadError;
       }
     } else {
-      logInfo('Skipping S3 upload: Not in production or no bucket name provided.');
+      logInfo(
+        'Skipping S3 upload: Not in production or no bucket name provided.'
+      );
     }
-    
   } catch (error) {
     logError('Error during backup operation:', { error: error.message });
     throw error;

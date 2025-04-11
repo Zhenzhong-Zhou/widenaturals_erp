@@ -1,7 +1,8 @@
 import { createSelector } from '@reduxjs/toolkit';
 import type { RootState } from '@store/store';
 
-const selectInventorySummaryState = (state: RootState) => state.inventorySummary;
+const selectInventorySummaryState = (state: RootState) =>
+  state.inventorySummary;
 
 export const selectInventorySummaryData = createSelector(
   [selectInventorySummaryState],

@@ -8,7 +8,9 @@ import Loading from '@components/common/Loading';
 import MultiItemForm from '@components/common/MultiItemForm';
 import InventoryDropdown from '@features/warehouse-inventory/components/InventoryDropdown';
 
-const CustomDatePicker = lazy(() => import('@components/common/CustomDatePicker'));
+const CustomDatePicker = lazy(
+  () => import('@components/common/CustomDatePicker')
+);
 
 const BulkInsertInventoryModal: FC<{
   open: boolean;
@@ -17,7 +19,8 @@ const BulkInsertInventoryModal: FC<{
   onSubmit: (data: Record<string, any>[]) => void;
   mode: 'create' | 'edit' | 'adjust';
 }> = ({ open, onClose, warehouseId, onSubmit, mode }) => {
-  const { products, loading, refreshProducts } = useProductsWarehouseDropdown(warehouseId); // Fetch products for the given warehouseId
+  const { products, loading, refreshProducts } =
+    useProductsWarehouseDropdown(warehouseId); // Fetch products for the given warehouseId
 
   // Product dropdown options
   const productOptions = products.map((p: ProductDropdownItem) => ({
@@ -78,7 +81,7 @@ const BulkInsertInventoryModal: FC<{
         return undefined;
       },
     });
-  
+
   return (
     <CustomModal
       open={open}
@@ -97,9 +100,7 @@ const BulkInsertInventoryModal: FC<{
       {loading ? (
         <Loading message={'Loading Data...'} />
       ) : (
-        <Box
-          style={{ maxHeight: '80vh', overflowY: 'auto', padding: '16px' }}
-        >
+        <Box style={{ maxHeight: '80vh', overflowY: 'auto', padding: '16px' }}>
           <MultiItemForm
             validation={getValidationRules(mode)}
             defaultValues={[{ type: 'product' }]}
@@ -148,9 +149,7 @@ const BulkInsertInventoryModal: FC<{
                   <CustomDatePicker
                     label="Manufacture Date"
                     value={value ? new Date(value) : null} // Ensure value is Date
-                    onChange={(date) =>
-                      onChange(date ? formatDate(date) : '')
-                    } // Convert Date to string before passing
+                    onChange={(date) => onChange(date ? formatDate(date) : '')} // Convert Date to string before passing
                     sx={{ width: '250px' }}
                     inputSx={{ width: '250px' }}
                   />
@@ -166,11 +165,15 @@ const BulkInsertInventoryModal: FC<{
                 label: 'Expiry Date',
                 type: 'custom',
                 component: ({ value, onChange }) => (
-                  <Suspense fallback={<Loading message={"Loading date picker..."}/>}>
+                  <Suspense
+                    fallback={<Loading message={'Loading date picker...'} />}
+                  >
                     <CustomDatePicker
                       label="Expiry Date"
                       value={value ? new Date(value) : null}
-                      onChange={(date) => onChange(date ? formatDate(date) : '')}
+                      onChange={(date) =>
+                        onChange(date ? formatDate(date) : '')
+                      }
                       sx={{ width: '250px' }}
                       inputSx={{ width: '250px' }}
                     />
@@ -189,7 +192,9 @@ const BulkInsertInventoryModal: FC<{
                 label: 'Reserved Quantity',
                 type: 'number',
                 validation: (value: number) =>
-                  value <= 0 ? 'Reserved quantity must be greater than 0' : undefined,
+                  value <= 0
+                    ? 'Reserved quantity must be greater than 0'
+                    : undefined,
               },
             ]}
             onSubmit={(formData) => {

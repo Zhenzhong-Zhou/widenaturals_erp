@@ -14,11 +14,18 @@ interface CustomerDropdownProps {
 /**
  * Reusable Customer Dropdown Component with Refresh & Add Customer inside the dropdown menu.
  */
-const CustomerDropdown: FC<CustomerDropdownProps> = ({ value, onChange, disabled = false, sx }) => {
+const CustomerDropdown: FC<CustomerDropdownProps> = ({
+  value,
+  onChange,
+  disabled = false,
+  sx,
+}) => {
   const { customers, loading, fetchCustomers } = useCustomerDropdown();
   const [modalOpen, setModalOpen] = useState(false);
-  const [dropdownOptions, setDropdownOptions] = useState<{ value: string | null; label: string }[]>([]);
-  
+  const [dropdownOptions, setDropdownOptions] = useState<
+    { value: string | null; label: string }[]
+  >([]);
+
   // Update dropdown options when customers change
   useEffect(() => {
     setDropdownOptions(
@@ -28,7 +35,7 @@ const CustomerDropdown: FC<CustomerDropdownProps> = ({ value, onChange, disabled
       }))
     );
   }, [customers]);
-  
+
   return (
     <>
       {/* Pass modal open state to CustomPaper inside Dropdown */}
@@ -43,9 +50,12 @@ const CustomerDropdown: FC<CustomerDropdownProps> = ({ value, onChange, disabled
         onRefresh={() => fetchCustomers()}
         onAddNew={() => setModalOpen(true)}
       />
-      
+
       {/*/!* Modal: Controlled by CustomerDropdown *!/*/}
-      <CreateCustomerModal open={modalOpen} onClose={() => setModalOpen(false)} />
+      <CreateCustomerModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+      />
     </>
   );
 };

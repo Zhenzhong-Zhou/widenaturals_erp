@@ -1,6 +1,9 @@
 import axiosInstance from '@utils/axiosConfig';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
-import type { PricingDetailsResponse, PricingResponse } from '@features/pricing';
+import type {
+  PricingDetailsResponse,
+  PricingResponse,
+} from '@features/pricing';
 import type { PriceRequestParams, PriceResponse } from '@features/pricing';
 
 const fetchAllPricings = async (
@@ -40,14 +43,19 @@ const fetchPricingDetails = async (
   }
 };
 
-const fetchPriceByProductIdAndPriceTypeId = async (params: PriceRequestParams): Promise<PriceResponse> => {
+const fetchPriceByProductIdAndPriceTypeId = async (
+  params: PriceRequestParams
+): Promise<PriceResponse> => {
   try {
-    const response = await axiosInstance.get<PriceResponse>(API_ENDPOINTS.PRICE_VALUE, {
-      params
-    });
+    const response = await axiosInstance.get<PriceResponse>(
+      API_ENDPOINTS.PRICE_VALUE,
+      {
+        params,
+      }
+    );
     return response.data;
   } catch (error) {
-    console.error("Failed to fetch price:", error);
+    console.error('Failed to fetch price:', error);
     throw new Error('Failed to fetch price');
   }
 };

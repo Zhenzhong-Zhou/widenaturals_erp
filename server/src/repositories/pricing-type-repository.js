@@ -128,7 +128,7 @@ const getPricingTypesForDropdown = async (productId) => {
         AND prod.id = $1
       ORDER BY pt.name ASC;
     `;
-    
+
     const { rows } = await query(queryText, [productId]);
     return rows;
   } catch (error) {

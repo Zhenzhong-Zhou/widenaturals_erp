@@ -1,7 +1,8 @@
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchInventorySummaryThunk,
-  selectInventorySummaryData, selectInventorySummaryError,
+  selectInventorySummaryData,
+  selectInventorySummaryError,
   selectInventorySummaryLoading,
   selectInventorySummaryPagination,
 } from '@features/inventory';
@@ -11,12 +12,14 @@ import {
  */
 const useInventorySummary = () => {
   const dispatch = useAppDispatch();
-  
+
   const inventorySummaryData = useAppSelector(selectInventorySummaryData);
-  const inventorySummaryPagination = useAppSelector(selectInventorySummaryPagination);
+  const inventorySummaryPagination = useAppSelector(
+    selectInventorySummaryPagination
+  );
   const inventorySummaryLoading = useAppSelector(selectInventorySummaryLoading);
   const inventorySummaryError = useAppSelector(selectInventorySummaryError);
-  
+
   /**
    * Fetch inventory summary with pagination.
    * @param page Current page
@@ -25,7 +28,7 @@ const useInventorySummary = () => {
   const fetchSummary = (page: number = 1, limit: number = 10) => {
     dispatch(fetchInventorySummaryThunk({ page, limit }));
   };
-  
+
   /**
    * Refresh current inventory summary with the latest page/limit.
    */
@@ -37,7 +40,7 @@ const useInventorySummary = () => {
       })
     );
   };
-  
+
   return {
     inventorySummaryData,
     inventorySummaryPagination,

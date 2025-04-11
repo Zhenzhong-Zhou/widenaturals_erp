@@ -9,7 +9,8 @@ import type {
   BulkLotAdjustmentPayload,
   BulkInsertInventoryRequest,
   BulkInsertInventoryResponse,
-  InsertInventoryRequestBody, FetchWarehouseItemSummaryParams,
+  InsertInventoryRequestBody,
+  FetchWarehouseItemSummaryParams,
 } from '@features/warehouse-inventory';
 import { AppError } from '@utils/AppError';
 import type { InventoryRecordInsertResponse } from '@features/warehouse-inventory/state';
@@ -92,20 +93,20 @@ const fetchWarehouseInventorySummary = async (
  * @returns {Promise<WarehouseItemSummaryResponse>} - The warehouse item summary data.
  */
 const fetchWarehouseItemSummary = async ({
-                                           warehouseId,
-                                           itemSummaryPage = 1,
-                                           itemSummaryLimit = 10,
-                                         }: FetchWarehouseItemSummaryParams): Promise<WarehouseItemSummaryResponse> => {
+  warehouseId,
+  itemSummaryPage = 1,
+  itemSummaryLimit = 10,
+}: FetchWarehouseItemSummaryParams): Promise<WarehouseItemSummaryResponse> => {
   try {
     const endpoint = API_ENDPOINTS.WAREHOUSE_ITEMS_SUMMARY.replace(
       ':id',
       warehouseId
     );
-    
+
     const response = await axiosInstance.get<WarehouseItemSummaryResponse>(
       `${endpoint}?page=${itemSummaryPage}&limit=${itemSummaryLimit}`
     );
-    
+
     return response.data;
   } catch (error) {
     console.error('Error fetching warehouse item summary:', error);

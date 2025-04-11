@@ -5,12 +5,16 @@
 const { fetchDynamicValue } = require('../03_utils');
 
 exports.seed = async function (knex) {
-  const existing = await knex('inventory_allocation_status').select('id').first();
+  const existing = await knex('inventory_allocation_status')
+    .select('id')
+    .first();
   if (existing) {
-    console.log('⚠️ Skipping seeding: `inventory_allocation_status` already has data.');
+    console.log(
+      '⚠️ Skipping seeding: `inventory_allocation_status` already has data.'
+    );
     return;
   }
-  
+
   const systemUserId = await fetchDynamicValue(
     knex,
     'users',
@@ -18,7 +22,7 @@ exports.seed = async function (knex) {
     'system@internal.local',
     'id'
   );
-  
+
   const allocationStatuses = [
     {
       name: 'pending',
@@ -35,7 +39,8 @@ exports.seed = async function (knex) {
     {
       name: 'partially_allocated',
       code: 'ALLOC_PARTIAL',
-      description: 'Only a portion of the required inventory has been allocated.',
+      description:
+        'Only a portion of the required inventory has been allocated.',
       is_final: false,
     },
     {
@@ -47,7 +52,8 @@ exports.seed = async function (knex) {
     {
       name: 'fulfilled',
       code: 'ALLOC_FULFILLED',
-      description: 'Inventory has been picked/shipped/transferred and fulfilled.',
+      description:
+        'Inventory has been picked/shipped/transferred and fulfilled.',
       is_final: true,
     },
     {
@@ -57,7 +63,7 @@ exports.seed = async function (knex) {
       is_final: true,
     },
   ];
-  
+
   const inserted = await knex('inventory_allocation_status')
     .insert(
       allocationStatuses.map((status) => ({
@@ -74,7 +80,7 @@ exports.seed = async function (knex) {
     )
     .onConflict(['name'])
     .ignore();
-  
+
   console.log(
     `✅ Seeded ${
       inserted?.rowCount || allocationStatuses.length

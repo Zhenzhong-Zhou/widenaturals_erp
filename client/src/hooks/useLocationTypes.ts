@@ -4,7 +4,8 @@ import {
   selectLocationTypes,
   selectLocationTypesPagination,
   selectLocationTypesLoading,
-  selectLocationTypesError, fetchLocationTypesThunk,
+  selectLocationTypesError,
+  fetchLocationTypesThunk,
 } from '@features/locationType/state';
 
 /**

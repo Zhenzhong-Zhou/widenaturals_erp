@@ -1,5 +1,7 @@
 const express = require('express');
-const { getDeliveryMethodsForDropdownController } = require('../controllers/delivery-method-controller');
+const {
+  getDeliveryMethodsForDropdownController,
+} = require('../controllers/delivery-method-controller');
 
 const router = express.Router();
 

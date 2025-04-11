@@ -1,5 +1,8 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import type { WarehouseDetailsResponse, WarehouseResponse } from '@features/warehouse';
+import type {
+  WarehouseDetailsResponse,
+  WarehouseResponse,
+} from '@features/warehouse';
 import { warehouseService } from '@services/warehouseService';
 
 // Define API Thunk

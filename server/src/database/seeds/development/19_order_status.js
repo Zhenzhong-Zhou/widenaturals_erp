@@ -29,7 +29,8 @@ exports.seed = async function (knex) {
       name: 'Edited',
       category: 'draft',
       code: 'ORDER_EDITED',
-      description: 'Order has been modified after creation but before confirmation.',
+      description:
+        'Order has been modified after creation but before confirmation.',
     },
     {
       name: 'Confirmed',
@@ -41,7 +42,8 @@ exports.seed = async function (knex) {
       name: 'Allocating',
       category: 'processing',
       code: 'ORDER_ALLOCATING',
-      description: 'Order is currently being allocated with available inventory.',
+      description:
+        'Order is currently being allocated with available inventory.',
     },
     {
       name: 'Allocated',
@@ -53,7 +55,8 @@ exports.seed = async function (knex) {
       name: 'Partially Allocated',
       category: 'processing',
       code: 'ALLOC_PARTIAL',
-      description: 'Only part of the required inventory has been allocated for this item.',
+      description:
+        'Only part of the required inventory has been allocated for this item.',
     },
     {
       name: 'Fully Allocated',
@@ -71,22 +74,25 @@ exports.seed = async function (knex) {
       name: 'Processing',
       category: 'fulfillment',
       code: 'ORDER_PROCESSING',
-      description: 'Order is being prepared for fulfillment (inventory allocation, packing, etc.).',
+      description:
+        'Order is being prepared for fulfillment (inventory allocation, packing, etc.).',
     },
     {
       name: 'Partially Fulfilled',
       category: 'fulfillment',
       code: 'ORDER_PARTIAL',
-      description: 'Some items in the order have been fulfilled; others are pending.',
+      description:
+        'Some items in the order have been fulfilled; others are pending.',
     },
     {
       name: 'Fulfilled',
       category: 'completion',
       code: 'ORDER_FULFILLED',
-      description: 'All items in the order have been fully fulfilled and/or shipped.',
+      description:
+        'All items in the order have been fully fulfilled and/or shipped.',
       is_final: true,
     },
-    
+
     // 💳 **Payment**
     {
       name: 'Awaiting Payment',
@@ -142,7 +148,8 @@ exports.seed = async function (knex) {
       name: 'Canceled',
       category: 'completion',
       code: 'ORDER_CANCELED',
-      description: 'Order has been canceled and will not be processed or fulfilled.',
+      description:
+        'Order has been canceled and will not be processed or fulfilled.',
       is_final: true,
     },
   ];
@@ -163,6 +170,6 @@ exports.seed = async function (knex) {
       .onConflict(['name', 'code']) // Ensure uniqueness
       .ignore();
   }
-  
+
   console.log(`${orderStatuses.length} order statuses seeded successfully.`);
 };

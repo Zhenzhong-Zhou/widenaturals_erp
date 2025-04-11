@@ -1,6 +1,8 @@
 const {
   createOrderByType,
-  fetchOrderDetails, fetchAllOrdersService, confirmOrderService,
+  fetchOrderDetails,
+  fetchAllOrdersService,
+  confirmOrderService,
 } = require('../services/order-service');
 const AppError = require('../utils/AppError');
 const wrapAsync = require('../utils/wrap-async');
@@ -37,7 +39,7 @@ const createOrderController = wrapAsync(async (req, res, next) => {
  */
 const getOrderDetailsController = wrapAsync(async (req, res, next) => {
   const { id: orderId } = req.params;
-  const user= req.user;
+  const user = req.user;
 
   if (!orderId) {
     throw AppError.validationError('Order ID is required.');
@@ -72,27 +74,27 @@ const getAllOrdersController = wrapAsync(async (req, res, next) => {
       limit = 10,
       sortBy = 'created_at',
       sortOrder = 'DESC',
-      verifyOrderNumbers = true
+      verifyOrderNumbers = true,
     } = req.query;
-    
+
     // Convert 'verifyOrderNumbers' to boolean if necessary
     const verifyOrderNumbersBool = verifyOrderNumbers !== 'false';
-    
+
     // Fetching orders from the service layer
     const result = await fetchAllOrdersService({
       page: Number(page),
       limit: Number(limit),
       sortBy,
       sortOrder,
-      verifyOrderNumbers: verifyOrderNumbersBool
+      verifyOrderNumbers: verifyOrderNumbersBool,
     });
-    
+
     // Responding with a successful JSON response
     res.status(200).json({
       success: true,
       message: 'Orders fetched successfully',
       data: result.data,
-      pagination: result.pagination
+      pagination: result.pagination,
     });
   } catch (error) {
     logError('Error in fetchAllOrdersController:', error);
@@ -108,13 +110,13 @@ const confirmOrderController = wrapAsync(async (req, res, next) => {
   try {
     const { orderId } = req.params;
     const user = req.user;
-    
+
     if (!orderId) {
       throw AppError.validationError('Missing required parameter: orderId');
     }
-    
+
     const result = await confirmOrderService(orderId, user);
-    
+
     res.status(200).json({
       success: true,
       message: 'Order successfully confirmed.',

@@ -5,7 +5,9 @@ import type { WarehouseItemSummaryState } from '@features/warehouse-inventory/st
 /**
  * Base selector to access the warehouse item summary state.
  */
-const selectWarehouseItemState = (state: RootState): WarehouseItemSummaryState =>
+const selectWarehouseItemState = (
+  state: RootState
+): WarehouseItemSummaryState =>
   state.warehouseItems as WarehouseItemSummaryState;
 
 /**

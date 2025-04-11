@@ -2,7 +2,8 @@ import { createSelector } from 'reselect';
 import type { RootState } from '@store/store';
 
 // Base selector
-const selectCustomerDropdownState = (state: RootState) => state.customerDropdown;
+const selectCustomerDropdownState = (state: RootState) =>
+  state.customerDropdown;
 
 // Memoized selectors
 export const selectCustomerDropdownData = createSelector(

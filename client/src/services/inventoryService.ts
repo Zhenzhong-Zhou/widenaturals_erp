@@ -1,6 +1,9 @@
 import axiosInstance from '@utils/axiosConfig';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
-import type { InventoryResponse, InventorySummaryResponse } from '@features/inventory';
+import type {
+  InventoryResponse,
+  InventorySummaryResponse,
+} from '@features/inventory';
 import { AppError } from '@utils/AppError';
 
 /**

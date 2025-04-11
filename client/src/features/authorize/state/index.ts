@@ -1,4 +1,3 @@
-
 import permissionsReducer from './permissionSlice';
 
 export const authorizeReducers = {

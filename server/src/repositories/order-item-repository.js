@@ -16,7 +16,7 @@ const addOrderItems = async (orderId, items, createdBy, client) => {
   if (!Array.isArray(items) || items.length === 0) {
     throw AppError.validationError('Order items cannot be empty.');
   }
-  
+
   const columns = [
     'order_id',
     'product_id',
@@ -29,21 +29,23 @@ const addOrderItems = async (orderId, items, createdBy, client) => {
     'created_by',
     'updated_by',
   ];
-  
+
   // Step 1: Aggregate items that have the same `product_id`, `price_type_id`, `price_id`, and `price`
   const itemMap = new Map();
-  
+
   for (const item of items) {
-    const { product_id, price_type_id, price_id, price, quantity_ordered } = item;
-    
+    const { product_id, price_type_id, price_id, price, quantity_ordered } =
+      item;
+
     // Create a unique key based on merging conditions
     const itemKey = `${product_id}_${price_type_id}_${price_id}_${price}`;
-    
+
     if (itemMap.has(itemKey)) {
       // If same product, price_type_id, price_id, and price → Sum quantities
       const existingItem = itemMap.get(itemKey);
       existingItem.quantity_ordered += quantity_ordered;
-      existingItem.subtotal = existingItem.price * existingItem.quantity_ordered; // Recalculate subtotal
+      existingItem.subtotal =
+        existingItem.price * existingItem.quantity_ordered; // Recalculate subtotal
       itemMap.set(itemKey, existingItem);
     } else {
       // Otherwise, store as a new line item
@@ -54,7 +56,7 @@ const addOrderItems = async (orderId, items, createdBy, client) => {
       });
     }
   }
-  
+
   // Step 2: Convert aggregated items into an array for insertion
   const rows = Array.from(itemMap.values()).map((item) => [
     orderId, // Ensure order_id is correctly set
@@ -66,9 +68,9 @@ const addOrderItems = async (orderId, items, createdBy, client) => {
     item.status_id,
     new Date(), // status_date
     createdBy,
-    null // updated_by is null during creation
+    null, // updated_by is null during creation
   ]);
-  
+
   // Step 3: Perform bulk insert with conflict handling
   return bulkInsert(
     'order_items',

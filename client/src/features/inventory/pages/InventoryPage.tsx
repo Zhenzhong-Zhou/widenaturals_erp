@@ -17,15 +17,12 @@ const InventoryPage = () => {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [tab, setTab] = useState(0); // 0 = Inventory Summary, 1 = Inventory List
-  
-  const {
-    inventories,
-    pagination,
-    loading,
-    error,
-    refresh,
-  } = useInventories(page, limit);
-  
+
+  const { inventories, pagination, loading, error, refresh } = useInventories(
+    page,
+    limit
+  );
+
   const {
     inventorySummaryData,
     inventorySummaryPagination,
@@ -34,36 +31,36 @@ const InventoryPage = () => {
     fetchSummary,
     refreshSummary,
   } = useInventorySummary();
-  
+
   // Fetch inventory summary only when that tab is active
   useEffect(() => {
     if (tab === 0) fetchSummary(page, limit);
     else fetchSummary(page, limit);
   }, [page, limit, tab]);
-  
+
   const handleTabChange = (_: SyntheticEvent, newValue: number) => {
     setTab(newValue);
   };
-  
+
   const handlePageChange = (newPage: number) => {
     setPage(newPage + 1);
   };
-  
+
   const handleRowsPerPageChange = (newLimit: number) => {
     setLimit(newLimit);
     setPage(1);
   };
-  
+
   if (tab === 0 && loading) return <Loading message="Loading Inventory..." />;
   if (tab === 1 && inventorySummaryLoading)
     return <Loading message="Loading Inventory Summary..." />;
-  
+
   const renderError = (msg: string | null) => (
     <ErrorDisplay>
       <ErrorMessage message={msg || 'Unexpected error'} />
     </ErrorDisplay>
   );
-  
+
   return (
     <Box sx={{ padding: 3 }}>
       <Paper sx={{ padding: 2, mb: 3 }}>
@@ -75,7 +72,7 @@ const InventoryPage = () => {
           <Tab label="Inventory List" />
         </Tabs>
       </Paper>
-      
+
       {tab === 0 && (
         <>
           {inventorySummaryError && renderError(inventorySummaryError)}
@@ -96,7 +93,7 @@ const InventoryPage = () => {
           </CustomButton>
         </>
       )}
-      
+
       {tab === 1 && (
         <>
           {error && renderError(error)}

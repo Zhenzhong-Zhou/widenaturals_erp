@@ -44,7 +44,7 @@ const getWarehouseInventories = async ({
     total_reserved_quantity: 'total_reserved_quantity',
     total_lot_quantity: 'total_lot_quantity',
   };
-  
+
   // Default sorting (by warehouse name & creation time)
   const defaultSortBy = 'w.name, w.created_at';
   sortBy = validSortColumns[sortBy] || defaultSortBy;
@@ -53,9 +53,9 @@ const getWarehouseInventories = async ({
   sortOrder = ['ASC', 'DESC'].includes(sortOrder?.toUpperCase())
     ? sortOrder.toUpperCase()
     : 'ASC';
-  
+
   const tableName = 'warehouse_inventory wi';
-  
+
   const joins = [
     'LEFT JOIN warehouses w ON wi.warehouse_id = w.id',
     'LEFT JOIN inventory i ON wi.inventory_id = i.id',
@@ -67,9 +67,9 @@ const getWarehouseInventories = async ({
     'LEFT JOIN warehouse_inventory_lots wil ON wi.warehouse_id = wil.warehouse_id AND wi.inventory_id = wil.inventory_id',
     'LEFT JOIN warehouse_lot_status wls ON wil.status_id = wls.id',
   ];
-  
+
   const whereClause = '1=1';
-  
+
   const baseQuery = `
     SELECT
       wi.id AS warehouse_inventory_id,
@@ -144,7 +144,7 @@ const getWarehouseInventories = async ({
       wi.id, w.id, l.id, i.id, p.product_name, i.identifier,
       ws.id, ws.name, u1.firstname, u1.lastname, u2.firstname, u2.lastname
   `;
-  
+
   try {
     return await retry(async () => {
       return await paginateQuery({
@@ -180,22 +180,22 @@ const getWarehouseInventories = async ({
  * @throws {AppError} - Throws a database error if query fails.
  */
 const getWarehouseItemSummary = async ({
-                                            warehouse_id,
-                                            page = 1,
-                                            limit = 10,
-                                          }) => {
+  warehouse_id,
+  page = 1,
+  limit = 10,
+}) => {
   const tableName = 'warehouse_inventory wi';
-  
+
   const joins = [
     'INNER JOIN warehouse_inventory_lots wil ON wi.warehouse_id = wil.warehouse_id AND wi.inventory_id = wil.inventory_id',
     'JOIN inventory i ON wi.inventory_id = i.id', // Fetch from inventory
     'LEFT JOIN products p ON i.product_id = p.id', // Referenced via inventory
   ];
-  
+
   // Dynamic WHERE clause
   const whereClause = 'wi.warehouse_id = $1';
   const params = [warehouse_id];
-  
+
   // Base Query
   const baseQuery = `
     SELECT
@@ -215,7 +215,7 @@ const getWarehouseItemSummary = async ({
     WHERE ${whereClause}
     GROUP BY i.id, i.item_type, i.identifier, p.product_name
   `;
-  
+
   try {
     return await retry(async () => {
       return await paginateQuery({
@@ -528,7 +528,7 @@ const updateWarehouseInventoryQuantity = async (
     reserved_quantity: 'integer',
     available_quantity: 'integer',
   };
-  
+
   const { baseQuery, params } = await formatBulkUpdateQuery(
     'warehouse_inventory',
     ['reserved_quantity', 'available_quantity'],
@@ -537,7 +537,7 @@ const updateWarehouseInventoryQuantity = async (
     userId,
     columnTypes
   );
-  
+
   if (baseQuery) {
     return await retry(
       async () => {
@@ -548,7 +548,7 @@ const updateWarehouseInventoryQuantity = async (
       1000 // Initial delay of 1 second (exponential backoff applied)
     );
   }
-  
+
   return [];
 };
 
@@ -677,25 +677,25 @@ const getRecentInsertWarehouseInventoryRecords = async (warehouseLotIds) => {
  */
 const fetchWarehouseInventoryQuantities = async (items, client = null) => {
   if (!Array.isArray(items) || items.length === 0) return {};
-  
+
   try {
     const conditions = items
       .map((_, index) => `($${index * 2 + 1}::uuid, $${index * 2 + 2}::uuid)`)
       .join(', ');
-    
+
     const params = items.flatMap(({ warehouseId, inventoryId }) => [
       warehouseId,
       inventoryId,
     ]);
-    
+
     const queryText = `
       SELECT warehouse_id, inventory_id, available_quantity, reserved_quantity
       FROM warehouse_inventory
       WHERE (warehouse_id, inventory_id) IN (${conditions})
     `;
-    
+
     const { rows } = await query(queryText, params, client);
-    
+
     const result = {};
     for (const row of rows) {
       const key = `${row.warehouse_id}-${row.inventory_id}`;
@@ -704,10 +704,13 @@ const fetchWarehouseInventoryQuantities = async (items, client = null) => {
         reserved_quantity: Number(row.reserved_quantity ?? 0),
       };
     }
-    
+
     return result;
   } catch (error) {
-    throw AppError.databaseError('Failed to fetch warehouse inventory quantities', error);
+    throw AppError.databaseError(
+      'Failed to fetch warehouse inventory quantities',
+      error
+    );
   }
 };
 

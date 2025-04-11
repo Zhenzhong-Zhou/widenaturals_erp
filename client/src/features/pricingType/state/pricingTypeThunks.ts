@@ -1,7 +1,11 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { pricingTypeService } from '@services/pricingTypeService.ts';
 import { dropdownService } from '@services/dropdownService.ts';
-import type { PricingTypeDropdownItem, PricingTypeResponse, PricingTypesResponse } from './pricingTypeTypes';
+import type {
+  PricingTypeDropdownItem,
+  PricingTypeResponse,
+  PricingTypesResponse,
+} from './pricingTypeTypes';
 
 export const fetchPricingTypesThunk = createAsyncThunk<
   PricingTypesResponse,
@@ -42,17 +46,20 @@ export const fetchPricingTypeDetailsThunk = createAsyncThunk<
  * Thunk to fetch pricing types for a dropdown based on a product ID.
  */
 export const fetchPricingTypeDropdownThunk = createAsyncThunk<
-  PricingTypeDropdownItem[],  // Expected response type
-  string,                     // Accepts a productId as the argument
-  { rejectValue: string }      // Rejection error type
+  PricingTypeDropdownItem[], // Expected response type
+  string, // Accepts a productId as the argument
+  { rejectValue: string } // Rejection error type
 >(
   'pricingType/fetchPricingTypeDropdown',
-  async (productId, { rejectWithValue }) => {   // Accepts productId
+  async (productId, { rejectWithValue }) => {
+    // Accepts productId
     try {
       if (!productId) {
-        return rejectWithValue('Product ID is required to fetch pricing types.');
+        return rejectWithValue(
+          'Product ID is required to fetch pricing types.'
+        );
       }
-      
+
       // Call the service function with productId
       return await dropdownService.fetchPricingTypeDropdown(productId);
     } catch (error) {

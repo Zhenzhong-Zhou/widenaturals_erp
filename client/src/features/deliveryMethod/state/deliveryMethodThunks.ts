@@ -7,13 +7,15 @@ import { dropdownService } from '@services/dropdownService';
  */
 export const fetchDeliveryMethodDropdownThunk = createAsyncThunk<
   DeliveryMethodDropdownItem[], // Return type
-  { includePickup: boolean },    // Argument type
-  { rejectValue: string }        // Error handling type
+  { includePickup: boolean }, // Argument type
+  { rejectValue: string } // Error handling type
 >(
   'deliveryMethod/fetchDeliveryMethods',
   async ({ includePickup }, { rejectWithValue }) => {
     try {
-      return await dropdownService.fetchDeliveryMethodsForDropdown(includePickup);
+      return await dropdownService.fetchDeliveryMethodsForDropdown(
+        includePickup
+      );
     } catch (error) {
       console.error('Error fetching delivery methods:', error);
       return rejectWithValue('Failed to fetch delivery methods.');

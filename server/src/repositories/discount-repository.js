@@ -47,7 +47,7 @@ const getActiveDiscounts = async () => {
           AND (d.valid_to IS NULL OR d.valid_to >= NOW())
       ORDER BY d.name ASC;
     `;
-    
+
     const { rows } = await query(queryText);
     return rows;
   } catch (error) {

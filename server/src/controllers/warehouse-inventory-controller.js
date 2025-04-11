@@ -23,7 +23,7 @@ const getAllWarehouseInventoriesController = wrapAsync(
         sortBy,
         sortOrder,
       });
-      
+
       res.status(200).json({
         success: true,
         message: 'Warehouse inventories retrieved successfully',
@@ -70,29 +70,31 @@ const getWarehouseInventoryByWarehouse = async (req, res, next) => {
  * @param next
  * @returns {Promise<void>}
  */
-const getWarehouseItemSummaryController = wrapAsync(
-  async (req, res, next) => {
-    try {
-      const { warehouse_id } = req.params; // Get warehouse ID from URL params
-      const page = parseInt(req.query.page, 10) || 1;
-      const limit = parseInt(req.query.limit, 10) || 10;
-      
-      // Call the updated service
-      const { itemSummaryData, pagination } = await fetchWarehouseItemSummary(warehouse_id, page, limit);
-      
-      // Return the response
-      return res.status(200).json({
-        success: true,
-        message: 'Warehouse items retrieved successfully.',
-        itemSummaryData,
-        pagination,
-      });
-    } catch (error) {
-      logError('Error in getWarehouseItemsController:', error);
-      next(error);
-    }
+const getWarehouseItemSummaryController = wrapAsync(async (req, res, next) => {
+  try {
+    const { warehouse_id } = req.params; // Get warehouse ID from URL params
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
+
+    // Call the updated service
+    const { itemSummaryData, pagination } = await fetchWarehouseItemSummary(
+      warehouse_id,
+      page,
+      limit
+    );
+
+    // Return the response
+    return res.status(200).json({
+      success: true,
+      message: 'Warehouse items retrieved successfully.',
+      itemSummaryData,
+      pagination,
+    });
+  } catch (error) {
+    logError('Error in getWarehouseItemsController:', error);
+    next(error);
   }
-);
+});
 
 /**
  * Controller to get warehouse inventory details by warehouse ID.

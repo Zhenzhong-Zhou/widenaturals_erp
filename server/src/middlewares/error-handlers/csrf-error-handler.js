@@ -36,7 +36,7 @@ const csrfErrorHandler = (err, req, res, next) => {
       userAgent: req?.headers?.['user-agent'] || 'Unknown',
       referrer: req?.headers?.referer || 'None',
     });
-    
+
     // Respond with a structured error response
     return res.status(csrfError.status).json(csrfError.toJSON());
   }

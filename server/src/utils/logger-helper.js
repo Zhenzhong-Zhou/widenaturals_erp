@@ -90,7 +90,7 @@ const logFatal = (message, req = null, meta = {}) =>
  */
 const logError = (errOrMessage, req = null, meta = {}) => {
   let message, stack, logLevel, errorMeta;
-  
+
   if (errOrMessage instanceof AppError) {
     message = errOrMessage.message || 'An unknown error occurred';
     stack =
@@ -119,12 +119,12 @@ const logError = (errOrMessage, req = null, meta = {}) => {
   // Extract metadata from the request object
   const reqMeta = req
     ? {
-      method: req?.method || 'Unknown',
-      route: req?.originalUrl || req?.url || 'Unknown',
-      userAgent: req?.headers?.['user-agent'] || 'Unknown',
-      ip: req?.ip || req?.connection?.remoteAddress || 'Unknown',
-      timestamp: new Date().toISOString(),
-    }
+        method: req?.method || 'Unknown',
+        route: req?.originalUrl || req?.url || 'Unknown',
+        userAgent: req?.headers?.['user-agent'] || 'Unknown',
+        ip: req?.ip || req?.connection?.remoteAddress || 'Unknown',
+        timestamp: new Date().toISOString(),
+      }
     : {};
 
   // Merge all metadata

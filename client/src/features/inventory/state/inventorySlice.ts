@@ -1,5 +1,10 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import { type AllInventoriesPagination, fetchAllInventories, type InventoryItem, type InventoryResponse } from '@features/inventory';
+import {
+  type AllInventoriesPagination,
+  fetchAllInventories,
+  type InventoryItem,
+  type InventoryResponse,
+} from '@features/inventory';
 
 /**
  * Defines the Redux state for inventories.

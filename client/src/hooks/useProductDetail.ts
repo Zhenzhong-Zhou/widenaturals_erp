@@ -23,26 +23,26 @@ interface UseProductDetailResult {
  */
 const useProductDetail = (productId: string): UseProductDetailResult => {
   const dispatch = useAppDispatch();
-  
+
   const product = useAppSelector(selectProductDetail);
   const isLoading = useAppSelector(selectProductDetailLoading);
   const error = useAppSelector(selectProductDetailError);
-  
+
   // Trigger data fetching
   const fetchProduct = useCallback(() => {
     if (productId) {
       dispatch(fetchProductDetailThunk(productId));
     }
   }, [dispatch, productId]);
-  
+
   // Fetch on mount or when productId changes
   useEffect(() => {
     fetchProduct();
   }, [fetchProduct]);
-  
+
   // Optional: useMemo for derived values if needed
   const memoizedProduct = useMemo(() => product, [product]);
-  
+
   return {
     product: memoizedProduct,
     isLoading,

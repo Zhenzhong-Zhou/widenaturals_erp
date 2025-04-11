@@ -1,14 +1,12 @@
 export type {
   TaxRateDropdownItem,
-  TaxRateDropdownResponse
+  TaxRateDropdownResponse,
 } from './state/taxRateTypes';
-export {
-  fetchTaxRateDropdownThunk
-} from './state/taxRateThunks';
+export { fetchTaxRateDropdownThunk } from './state/taxRateThunks';
 export {
   selectTaxRateDropdown,
   selectTaxRateDropdownLoading,
-  selectTaxRateDropdownError
+  selectTaxRateDropdownError,
 } from './state/taxRateDropdownSelectors';
 export { default as TaxRateDropdown } from './components/TaxRateDropdown';
 export { taxRateReducers } from './state';

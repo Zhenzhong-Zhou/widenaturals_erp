@@ -11,37 +11,43 @@ interface DetailsSectionProps {
   sx?: SxProps<Theme>;
 }
 
-const INLINE_DISPLAY_LENGTH = 50;  // Max length of text for inline display on large screens
+const INLINE_DISPLAY_LENGTH = 50; // Max length of text for inline display on large screens
 
 const DetailsSection: FC<DetailsSectionProps> = ({ data, sx }) => {
   const { theme } = useThemeContext();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
-  
+
   return (
     <Box sx={{ marginTop: theme.spacing(2), ...sx }}>
       {Object.entries(data).map(([key, value]) => {
         const isNoteField = key.toLowerCase().includes('note');
-        const isLongText = typeof value === 'string' && value.length > INLINE_DISPLAY_LENGTH;
-        
-        const shouldDisplayInline = !isNoteField && (!isSmallScreen && !isLongText);
-        
+        const isLongText =
+          typeof value === 'string' && value.length > INLINE_DISPLAY_LENGTH;
+
+        const shouldDisplayInline =
+          !isNoteField && !isSmallScreen && !isLongText;
+
         return (
           <Box
             key={key}
             sx={{
               marginBottom: theme.spacing(1),
               display: shouldDisplayInline ? 'flex' : 'block',
-              alignItems: 'center'
+              alignItems: 'center',
             }}
           >
             {/* Label */}
             <CustomTypography
               variant="body2"
-              sx={{ fontWeight: 'bold', color: theme.palette.text.primary, marginRight: 1 }}
+              sx={{
+                fontWeight: 'bold',
+                color: theme.palette.text.primary,
+                marginRight: 1,
+              }}
             >
               {formatLabel(key)}:
             </CustomTypography>
-            
+
             {/* Value */}
             {Array.isArray(value) ? (
               <Box sx={{ paddingLeft: theme.spacing(2) }}>
@@ -56,9 +62,14 @@ const DetailsSection: FC<DetailsSectionProps> = ({ data, sx }) => {
             ) : (
               <CustomTypography
                 variant="body2"
-                sx={{ color: theme.palette.text.secondary, whiteSpace: shouldDisplayInline ? 'nowrap' : 'normal' }}
+                sx={{
+                  color: theme.palette.text.secondary,
+                  whiteSpace: shouldDisplayInline ? 'nowrap' : 'normal',
+                }}
               >
-                {value !== null && value !== undefined ? value.toString() : 'N/A'}
+                {value !== null && value !== undefined
+                  ? value.toString()
+                  : 'N/A'}
               </CustomTypography>
             )}
           </Box>

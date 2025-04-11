@@ -51,5 +51,5 @@ const transformCustomerDetails = (row) => {
 };
 
 module.exports = {
-  transformCustomerDetails
+  transformCustomerDetails,
 };

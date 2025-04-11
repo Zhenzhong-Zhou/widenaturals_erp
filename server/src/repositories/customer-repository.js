@@ -1,9 +1,4 @@
-const {
-  bulkInsert,
-  query,
-  retry,
-  paginateQuery,
-} = require('../database/db');
+const { bulkInsert, query, retry, paginateQuery } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logError } = require('../utils/logger-helper');
 
@@ -31,20 +26,30 @@ const checkCustomerExistsById = async (customerId, client = null) => {
  * @param {object} client - Optional database transaction client.
  * @returns {Promise<boolean>} - True if the customer exists, otherwise false.
  */
-const checkCustomerExistsByEmailOrPhone = async (email, phone_number, client = null) => {
+const checkCustomerExistsByEmailOrPhone = async (
+  email,
+  phone_number,
+  client = null
+) => {
   if (!email && !phone_number) return false;
-  
+
   try {
     const sql = `
       SELECT EXISTS (
         SELECT 1 FROM customers WHERE email = $1 OR phone_number = $2
       ) AS exists;
     `;
-    const { rows } = await query(sql, [email || null, phone_number || null], client);
+    const { rows } = await query(
+      sql,
+      [email || null, phone_number || null],
+      client
+    );
     return rows[0]?.exists || false;
   } catch (error) {
     logError('Error checking customer existence by email or phone:', error);
-    throw AppError.databaseError('Failed to check customer existence by email or phone');
+    throw AppError.databaseError(
+      'Failed to check customer existence by email or phone'
+    );
   }
 };
 
@@ -60,7 +65,7 @@ const bulkCreateCustomers = async (customers, client) => {
       code: 'VALIDATION_ERROR',
     });
   }
-  
+
   const columns = [
     'firstname',
     'lastname',
@@ -81,7 +86,7 @@ const bulkCreateCustomers = async (customers, client) => {
     'created_by',
     'updated_by',
   ];
-  
+
   const rows = customers.map((customer) => [
     customer.firstname,
     customer.lastname,
@@ -98,11 +103,11 @@ const bulkCreateCustomers = async (customers, client) => {
     customer.note || null,
     new Date(), // status_date
     new Date(), // created_at
-    null,       // updated_at
+    null, // updated_at
     customer.created_by,
-    null,       // updated_by
+    null, // updated_by
   ]);
-  
+
   try {
     return await bulkInsert(
       'customers',
@@ -250,7 +255,7 @@ const getCustomersForDropdown = async (search = '', limit = 100) => {
   try {
     let whereClause = '';
     let params = [];
-    
+
     if (search) {
       whereClause = `WHERE LOWER(c.firstname) ILIKE LOWER($1)
                      OR LOWER(c.lastname) ILIKE LOWER($1)
@@ -258,7 +263,7 @@ const getCustomersForDropdown = async (search = '', limit = 100) => {
                      OR c.phone_number ILIKE $1`;
       params.push(`%${search}%`);
     }
-    
+
     // Ensure proper query structure (avoid unnecessary WHERE when search is empty)
     // Use `COALESCE` to prioritize email, fallback to phone if email is null
     const sql = `
@@ -282,9 +287,9 @@ const getCustomersForDropdown = async (search = '', limit = 100) => {
       ORDER BY c.created_at DESC
       LIMIT $${params.length + 1};
     `;
-    
+
     params.push(limit); // Ensure proper parameter binding
-    
+
     const result = await query(sql, params);
     return result.rows;
   } catch (error) {

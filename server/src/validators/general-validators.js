@@ -50,7 +50,7 @@ const validateOrderNumber = Joi.string()
   .required()
   .messages({
     'string.pattern.base': 'Invalid order number format.',
-    'any.required': 'Order number is required.'
+    'any.required': 'Order number is required.',
   });
 
 module.exports = {

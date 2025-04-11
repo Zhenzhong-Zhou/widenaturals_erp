@@ -38,7 +38,7 @@ const applyGlobalMiddleware = (app) => {
 
   // 6. CSRF Protection
   app.use(csrfProtection());
-  
+
   // 7. Request Logging
   app.use(requestLogger);
 

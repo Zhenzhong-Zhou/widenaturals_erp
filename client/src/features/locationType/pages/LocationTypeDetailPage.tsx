@@ -35,7 +35,11 @@ const LocationTypeDetailPage: FC = () => {
       </ErrorDisplay>
     );
   if (!locationType)
-    return <CustomTypography variant={'h4'}>No location type found.</CustomTypography>;
+    return (
+      <CustomTypography variant={'h4'}>
+        No location type found.
+      </CustomTypography>
+    );
 
   return (
     <Box>
@@ -51,8 +55,7 @@ const LocationTypeDetailPage: FC = () => {
             </CustomTypography>
             <Divider sx={{ marginY: 2 }} />
             <CustomTypography>
-              <strong>Status:</strong>{' '}
-              {formatLabel(locationType.status_name)}
+              <strong>Status:</strong> {formatLabel(locationType.status_name)}
             </CustomTypography>
             <CustomTypography>
               <strong>Status Date:</strong>{' '}

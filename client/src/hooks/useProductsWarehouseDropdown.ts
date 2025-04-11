@@ -4,7 +4,8 @@ import {
   fetchProductsDropDownByWarehouseThunk,
   selectDropdownLoading,
   selectProductDropdown,
-  selectDropdownError, type ProductDropdownItem,
+  selectDropdownError,
+  type ProductDropdownItem,
 } from '@features/warehouse-inventory';
 
 /**
@@ -15,23 +16,23 @@ import {
  */
 const useProductsWarehouseDropdown = (warehouseId: string) => {
   const dispatch = useAppDispatch();
-  
+
   // Select state from Redux
   const allProducts = useAppSelector(selectProductDropdown);
   const loading = useAppSelector(selectDropdownLoading);
   const error = useAppSelector(selectDropdownError);
-  
+
   // Fetch products dynamically when warehouseId changes
   const fetchProducts = useCallback(() => {
     if (warehouseId) {
       dispatch(fetchProductsDropDownByWarehouseThunk({ warehouseId }));
     }
   }, [dispatch, warehouseId]);
-  
+
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
-  
+
   /** Memoize products to avoid unnecessary re-renders */
   const uniqueProducts = useMemo(() => {
     const productMap = new Map();
@@ -42,7 +43,7 @@ const useProductsWarehouseDropdown = (warehouseId: string) => {
     });
     return [...productMap.values()];
   }, [allProducts]);
-  
+
   return {
     products: uniqueProducts,
     loading,

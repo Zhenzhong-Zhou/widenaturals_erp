@@ -1,5 +1,10 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import { fetchAllLocations, type Location, type LocationResponse, type Pagination } from '@features/location';
+import {
+  fetchAllLocations,
+  type Location,
+  type LocationResponse,
+  type Pagination,
+} from '@features/location';
 
 /**
  * Defines the Redux state for locations.

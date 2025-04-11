@@ -66,7 +66,10 @@ const AdjustmentReportPage: FC = () => {
           fetchReport={fetchReport}
         />
       ) : (
-        <CustomTypography variant="body1" sx={{ textAlign: 'center', padding: 2 }}>
+        <CustomTypography
+          variant="body1"
+          sx={{ textAlign: 'center', padding: 2 }}
+        >
           No adjustment records available.
         </CustomTypography>
       )}

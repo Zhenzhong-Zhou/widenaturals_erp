@@ -44,7 +44,11 @@ export const routes = [
   {
     path: '/products/:id',
     component: lazy(() => import('@features/product/pages/ProductDetailPage')),
-    meta: { requiresAuth: true, title: 'Product Details', showInSidebar: false },
+    meta: {
+      requiresAuth: true,
+      title: 'Product Details',
+      showInSidebar: false,
+    },
   },
   {
     path: '/compliances',
@@ -53,68 +57,146 @@ export const routes = [
   },
   {
     path: '/pricing_types',
-    component: lazy(() => import('@features/pricingType/pages/PricingTypePage')),
-    meta: { requiresAuth: true, title: 'Pricing Types', showInSidebar: true, requiredPermission: 'view_prices' },
+    component: lazy(
+      () => import('@features/pricingType/pages/PricingTypePage')
+    ),
+    meta: {
+      requiresAuth: true,
+      title: 'Pricing Types',
+      showInSidebar: true,
+      requiredPermission: 'view_prices',
+    },
   },
   {
     path: '/pricing_types/:id',
-    component: lazy(() => import('@features/pricingType/pages/PricingTypeDetailsPage')),
-    meta: { requiresAuth: true, title: 'Pricing Type Details', showInSidebar: false, requiredPermission: 'view_prices' },
+    component: lazy(
+      () => import('@features/pricingType/pages/PricingTypeDetailsPage')
+    ),
+    meta: {
+      requiresAuth: true,
+      title: 'Pricing Type Details',
+      showInSidebar: false,
+      requiredPermission: 'view_prices',
+    },
   },
   {
     path: '/pricings',
     component: lazy(() => import('@features/pricing/pages/PricingPage')),
-    meta: { requiresAuth: true, title: 'Prices', showInSidebar: true, requiredPermission: 'view_prices' },
+    meta: {
+      requiresAuth: true,
+      title: 'Prices',
+      showInSidebar: true,
+      requiredPermission: 'view_prices',
+    },
   },
   {
     path: '/pricings/:id',
     component: lazy(() => import('@features/pricing/pages/PricingDetailPage')),
-    meta: { requiresAuth: true, title: 'Price Details', showInSidebar: false, requiredPermission: 'view_prices' },
+    meta: {
+      requiresAuth: true,
+      title: 'Price Details',
+      showInSidebar: false,
+      requiredPermission: 'view_prices',
+    },
   },
   {
     path: '/location_types',
-    component: lazy(() => import('@features/locationType/pages/LocationTypePage')),
-    meta: { requiresAuth: true, title: 'Location Types', showInSidebar: true, requiredPermission: 'view_locations' },
+    component: lazy(
+      () => import('@features/locationType/pages/LocationTypePage')
+    ),
+    meta: {
+      requiresAuth: true,
+      title: 'Location Types',
+      showInSidebar: true,
+      requiredPermission: 'view_locations',
+    },
   },
   {
     path: '/location_types/:id',
-    component: lazy(() => import('@features/locationType/pages/LocationTypeDetailPage')),
-    meta: { requiresAuth: true, title: 'Location Types Details', showInSidebar: false, requiredPermission: 'view_locations' },
+    component: lazy(
+      () => import('@features/locationType/pages/LocationTypeDetailPage')
+    ),
+    meta: {
+      requiresAuth: true,
+      title: 'Location Types Details',
+      showInSidebar: false,
+      requiredPermission: 'view_locations',
+    },
   },
   {
     path: '/locations',
     component: lazy(() => import('@features/location/pages/LocationPage')),
-    meta: { requiresAuth: true, title: 'Locations', showInSidebar: true, requiredPermission: 'view_locations' },
+    meta: {
+      requiresAuth: true,
+      title: 'Locations',
+      showInSidebar: true,
+      requiredPermission: 'view_locations',
+    },
   },
   {
     path: '/inventories',
     component: lazy(() => import('@features/inventory/pages/InventoryPage')),
-    meta: { requiresAuth: true, title: 'Inventories', showInSidebar: true, requiredPermission: 'view_inventories' },
+    meta: {
+      requiresAuth: true,
+      title: 'Inventories',
+      showInSidebar: true,
+      requiredPermission: 'view_inventories',
+    },
   },
   {
     path: '/warehouses',
     component: lazy(() => import('@features/warehouse/pages/WarehousesPage')),
-    meta: { requiresAuth: true, title: 'Warehouses', showInSidebar: true, requiredPermission: 'view_warehouses' },
+    meta: {
+      requiresAuth: true,
+      title: 'Warehouses',
+      showInSidebar: true,
+      requiredPermission: 'view_warehouses',
+    },
   },
   {
     path: '/warehouse_inventories',
-    component: lazy(() => import('@features/warehouse-inventory/pages/WarehouseInventoryPage')),
-    meta: { requiresAuth: true, title: 'Warehouse Inventories', showInSidebar: true, requiredPermission: 'view_warehouses' },
+    component: lazy(
+      () => import('@features/warehouse-inventory/pages/WarehouseInventoryPage')
+    ),
+    meta: {
+      requiresAuth: true,
+      title: 'Warehouse Inventories',
+      showInSidebar: true,
+      requiredPermission: 'view_warehouses',
+    },
   },
   {
     path: '/warehouse_inventories/:warehouseId',
-    component: lazy(() => import('@features/warehouse-inventory/pages/WarehouseInventoryDetailPage')),
-    meta: { requiresAuth: true, title: 'Warehouse Inventories Details', showInSidebar: false, requiredPermission: 'view_warehouses' },
+    component: lazy(
+      () =>
+        import(
+          '@features/warehouse-inventory/pages/WarehouseInventoryDetailPage'
+        )
+    ),
+    meta: {
+      requiresAuth: true,
+      title: 'Warehouse Inventories Details',
+      showInSidebar: false,
+      requiredPermission: 'view_warehouses',
+    },
   },
   {
     path: '/reports/adjustments',
-    component: lazy(() => import('@features/report/pages/AdjustmentReportPage')),
-    meta: { requiresAuth: true, title: 'Adjustment Report', showInSidebar: false, requiredPermission: 'view_adjustment_reports' },
+    component: lazy(
+      () => import('@features/report/pages/AdjustmentReportPage')
+    ),
+    meta: {
+      requiresAuth: true,
+      title: 'Adjustment Report',
+      showInSidebar: false,
+      requiredPermission: 'view_adjustment_reports',
+    },
   },
   {
     path: '/reports/adjustments/lot_adjustments/:warehouseId?/:inventoryId?/:warehouseInventoryLotId?',
-    component: lazy(() =>
-      import('@features/report/pages/AdjustmentReportPage')),
+    component: lazy(
+      () => import('@features/report/pages/AdjustmentReportPage')
+    ),
     meta: {
       requiresAuth: true,
       title: 'Adjustment Report',
@@ -124,13 +206,21 @@ export const routes = [
   },
   {
     path: '/reports/inventory_activities',
-    component: lazy(() => import('@features/report/pages/InventoryActivityLogPage')),
-    meta: { requiresAuth: true, title: 'Inventory Activity Logs', showInSidebar: false, requiredPermission: 'view_inventory_activity_logs' },
+    component: lazy(
+      () => import('@features/report/pages/InventoryActivityLogPage')
+    ),
+    meta: {
+      requiresAuth: true,
+      title: 'Inventory Activity Logs',
+      showInSidebar: false,
+      requiredPermission: 'view_inventory_activity_logs',
+    },
   },
   {
     path: '/reports/inventory_activities/logs/:warehouseId?/:inventoryId?/:warehouseInventoryLotId?',
-    component: lazy(() =>
-      import('@features/report/pages/InventoryActivityLogPage')),
+    component: lazy(
+      () => import('@features/report/pages/InventoryActivityLogPage')
+    ),
     meta: {
       requiresAuth: true,
       title: 'Inventory Activity Logs',
@@ -140,13 +230,21 @@ export const routes = [
   },
   {
     path: '/reports/inventory_histories',
-    component: lazy(() => import('@features/report/pages/InventoryHistoryPage')),
-    meta: { requiresAuth: true, title: 'Inventory Activity Logs', showInSidebar: false, requiredPermission: 'view_inventory_activity_logs' },
+    component: lazy(
+      () => import('@features/report/pages/InventoryHistoryPage')
+    ),
+    meta: {
+      requiresAuth: true,
+      title: 'Inventory Activity Logs',
+      showInSidebar: false,
+      requiredPermission: 'view_inventory_activity_logs',
+    },
   },
   {
     path: '/reports/inventory_histories/histories/:inventoryId?',
-    component: lazy(() =>
-      import('@features/report/pages/InventoryHistoryPage')),
+    component: lazy(
+      () => import('@features/report/pages/InventoryHistoryPage')
+    ),
     meta: {
       requiresAuth: true,
       title: 'Inventory Activity Logs',
@@ -161,8 +259,15 @@ export const routes = [
   },
   {
     path: '/customers/customer/:customerId',
-    component: lazy(() => import('@features/customer/pages/CustomerDetailsPage')),
-    meta: { requiresAuth: true, title: 'Customer Details', showInSidebar: false, requiredPermission: 'view_customer' },
+    component: lazy(
+      () => import('@features/customer/pages/CustomerDetailsPage')
+    ),
+    meta: {
+      requiresAuth: true,
+      title: 'Customer Details',
+      showInSidebar: false,
+      requiredPermission: 'view_customer',
+    },
   },
   {
     path: '/order_types',
@@ -177,11 +282,20 @@ export const routes = [
   {
     path: '/orders/:orderType/:orderId',
     component: lazy(() => import('@features/order/pages/OrderDetailsPage')),
-    meta: { requiresAuth: true, title: 'Order Details', showInSidebar: false, requiredPermission: 'view_sales_order_details' },
+    meta: {
+      requiresAuth: true,
+      title: 'Order Details',
+      showInSidebar: false,
+      requiredPermission: 'view_sales_order_details',
+    },
   },
   {
     path: '*',
     component: lazy(() => import('@pages/NotFoundPage')),
-    meta: { requiresAuth: false, title: '404 - Page Not Found', showInSidebar: false },
+    meta: {
+      requiresAuth: false,
+      title: '404 - Page Not Found',
+      showInSidebar: false,
+    },
   },
 ];

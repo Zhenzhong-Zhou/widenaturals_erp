@@ -79,7 +79,7 @@ export interface PriceRequestParams {
 
 // Type for the API response
 export type PriceResponse = {
-  price: string;         // Using string to maintain the format "180.00"
+  price: string; // Using string to maintain the format "180.00"
   productId: string;
   priceTypeId: string;
 };

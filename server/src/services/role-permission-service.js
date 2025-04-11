@@ -52,17 +52,19 @@ const fetchPermissions = async (roleId) => {
  */
 const checkPermissions = async (user, requiredPermissions) => {
   if (!user || !user.role) return false;
-  
+
   // Fetch permissions for the role from cache or database
   const { permissions } = await fetchPermissions(user.role);
-  
+
   if (!permissions || permissions.length === 0) return false;
-  
+
   // Allow if the user has `root_access`
   if (permissions.includes('root_access')) return true;
-  
+
   // Check if user has at least one required permission
-  return requiredPermissions.some(permission => permissions.includes(permission));
+  return requiredPermissions.some((permission) =>
+    permissions.includes(permission)
+  );
 };
 
 module.exports = {

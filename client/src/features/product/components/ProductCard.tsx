@@ -55,11 +55,21 @@ const ProductCard: FC<ProductCardProps> = ({ product }) => {
           </>
         }
       >
-        <CustomTypography variant="body2">Series: {series || 'N/A'}</CustomTypography>
-        <CustomTypography variant="body2">Brand: {brand || 'N/A'}</CustomTypography>
-        <CustomTypography variant="body2">Category: {category || 'N/A'}</CustomTypography>
-        <CustomTypography variant="body2">NPN: {npn_info[0]?.npn || 'N/A'}</CustomTypography>
-        <CustomTypography variant="body2">Barcode: {barcode || 'N/A'}</CustomTypography>
+        <CustomTypography variant="body2">
+          Series: {series || 'N/A'}
+        </CustomTypography>
+        <CustomTypography variant="body2">
+          Brand: {brand || 'N/A'}
+        </CustomTypography>
+        <CustomTypography variant="body2">
+          Category: {category || 'N/A'}
+        </CustomTypography>
+        <CustomTypography variant="body2">
+          NPN: {npn_info[0]?.npn || 'N/A'}
+        </CustomTypography>
+        <CustomTypography variant="body2">
+          Barcode: {barcode || 'N/A'}
+        </CustomTypography>
         <CustomTypography variant="body2">
           Region: {market_region || 'N/A'}
         </CustomTypography>

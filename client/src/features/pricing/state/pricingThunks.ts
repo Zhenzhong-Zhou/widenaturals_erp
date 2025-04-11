@@ -1,5 +1,10 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import type { PriceRequestParams, PriceResponse, PricingDetailsResponse, PricingResponse } from '@features/pricing';
+import type {
+  PriceRequestParams,
+  PriceResponse,
+  PricingDetailsResponse,
+  PricingResponse,
+} from '@features/pricing';
 import { pricingService } from '@services/pricingService';
 
 /**
@@ -40,14 +45,11 @@ export const getPricingDetailsThunk = createAsyncThunk<
 export const fetchPriceValueThunk = createAsyncThunk<
   PriceResponse,
   PriceRequestParams
->(
-  'pricing/fetchPriceValue',
-  async (params, { rejectWithValue }) => {
-    try {
-      return await pricingService.fetchPriceByProductIdAndPriceTypeId(params);
-    } catch (error: any) {
-      console.error("Failed to fetch price:", error);
-      return rejectWithValue(error.response?.data || 'Failed to fetch price');
-    }
+>('pricing/fetchPriceValue', async (params, { rejectWithValue }) => {
+  try {
+    return await pricingService.fetchPriceByProductIdAndPriceTypeId(params);
+  } catch (error: any) {
+    console.error('Failed to fetch price:', error);
+    return rejectWithValue(error.response?.data || 'Failed to fetch price');
   }
-);
+});

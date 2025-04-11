@@ -36,7 +36,14 @@ export interface StatusInfo {
   isNearExpiry: boolean;
   isLowStock: boolean;
   stockLevel: 'none' | 'critical' | 'low' | 'normal';
-  expirySeverity: 'unknown' | 'expired' | 'expired_soon' | 'critical' | 'warning' | 'notice' | 'safe';
+  expirySeverity:
+    | 'unknown'
+    | 'expired'
+    | 'expired_soon'
+    | 'critical'
+    | 'warning'
+    | 'notice'
+    | 'safe';
   displayNote: string;
 }
 

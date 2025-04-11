@@ -101,8 +101,8 @@ export interface ProductDetailState {
 
 // Interface for a single product dropdown item
 export interface ProductDropdownItem {
-  id: string;      // Unique identifier for the product
-  label: string;   // Product name with region and barcode formatted as a single label
+  id: string; // Unique identifier for the product
+  label: string; // Product name with region and barcode formatted as a single label
 }
 
 // Type definition for the API response (array of ProductDropdownItem)

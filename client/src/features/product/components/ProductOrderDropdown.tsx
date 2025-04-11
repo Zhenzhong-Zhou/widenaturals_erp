@@ -21,39 +21,44 @@ interface FormattedOption {
 }
 
 const ProductOrderDropdown: FC<ProductOrderDropdownProps> = ({
-                                                               label = 'Select Product',
-                                                               value,
-                                                               onChange,
-                                                               onAddNew,
-                                                               disabled = false,
-                                                               search = null,
-                                                               limit = 100,
-                                                             }) => {
-  const { products, loading, error, refreshProducts } = useProductOrderDropdown(search, limit);
+  label = 'Select Product',
+  value,
+  onChange,
+  onAddNew,
+  disabled = false,
+  search = null,
+  limit = 100,
+}) => {
+  const { products, loading, error, refreshProducts } = useProductOrderDropdown(
+    search,
+    limit
+  );
   const [options, setOptions] = useState<FormattedOption[]>([]);
-  
+
   // Update options when products data changes
   useEffect(() => {
     if (products.length > 0) {
-      setOptions(products.map((product) => ({
-        value: product.id,               // Corrected: Keeping the original `id` field
-        label: product.label,          // Keeping the label as is
-      })));
+      setOptions(
+        products.map((product) => ({
+          value: product.id, // Corrected: Keeping the original `id` field
+          label: product.label, // Keeping the label as is
+        }))
+      );
     }
   }, [products]);
-  
+
   if (loading) {
     return (
       <Box display="flex" alignItems="center" justifyContent="center">
-        <Loading/>
+        <Loading />
       </Box>
     );
   }
-  
+
   if (error) {
     return <div>Error loading products: {error}</div>;
   }
-  
+
   return (
     <Dropdown
       label={label}

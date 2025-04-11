@@ -18,8 +18,9 @@ const getStockLevel = (availableQty) => {
 const getExpirySeverity = (expiryDate) => {
   if (!expiryDate) return 'unknown';
   const today = new Date();
-  const daysLeft = (expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
-  
+  const daysLeft =
+    (expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
+
   if (daysLeft < 0) return 'expired';
   if (daysLeft <= 90) return 'expired_soon';
   if (daysLeft <= 180) return 'critical';

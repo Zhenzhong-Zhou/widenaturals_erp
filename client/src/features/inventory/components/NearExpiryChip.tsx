@@ -10,11 +10,11 @@ interface Props {
 
 const NearExpiryChip: FC<Props> = ({ isNearExpiry }) => {
   const { theme } = useThemeContext();
-  
+
   const paletteColor = isNearExpiry
     ? theme.palette.error.main
     : theme.palette.success.main;
-  
+
   return (
     <Chip
       label={isNearExpiry ? 'Near Expiry' : 'OK'}

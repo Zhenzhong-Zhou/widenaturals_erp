@@ -1,7 +1,7 @@
 import type { FC, ReactNode } from 'react';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
-import Grid from '@mui/material/Grid2';
+import Grid from '@mui/material/Grid';
 import Add from '@mui/icons-material/Add';
 import Delete from '@mui/icons-material/Delete';
 import { v4 as uuidv4 } from 'uuid';
@@ -136,7 +136,9 @@ const MultiItemForm: FC<MultiItemFormProps> = ({
                         defaultValue={defaultValues[index]?.[field.id] || ''}
                         render={({ field: { onChange, value } }) => {
                           const validateFn = validationRules[field.id];
-                          const errorMessage = validateFn ? validateFn(value) : undefined;
+                          const errorMessage = validateFn
+                            ? validateFn(value)
+                            : undefined;
 
                           if (field.type === 'custom' && field.component) {
                             const CustomComponent = field.component;

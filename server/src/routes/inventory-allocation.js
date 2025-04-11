@@ -1,5 +1,7 @@
 const express = require('express');
-const { allocateMultipleInventoryItemsController } = require('../controllers/inventory-allocation-controller');
+const {
+  allocateMultipleInventoryItemsController,
+} = require('../controllers/inventory-allocation-controller');
 
 const router = express.Router();
 

@@ -1,7 +1,7 @@
 export { default as ResetPasswordModal } from './components/ResetPasswordModal';
 export {
   selectResetPasswordErrorMessage,
-  selectResetPasswordFieldErrors
+  selectResetPasswordFieldErrors,
 } from './state/resetPasswordSelectors';
 export { resetPasswordThunk } from './state/resetPasswordThunk';
 export { resetPasswordReducers } from './state';

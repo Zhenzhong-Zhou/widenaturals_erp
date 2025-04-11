@@ -1,5 +1,8 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { fetchPricingTypesThunk, type PricingType } from '@features/pricingType';
+import {
+  fetchPricingTypesThunk,
+  type PricingType,
+} from '@features/pricingType';
 
 export interface PricingTypesState {
   data: PricingType[];

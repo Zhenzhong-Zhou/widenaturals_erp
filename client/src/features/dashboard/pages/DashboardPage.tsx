@@ -11,11 +11,10 @@ const roleComponentMap: Record<string, FC<DashboardPageProps>> = {
 };
 
 const DashboardPage: FC<DashboardPageProps> = ({
-                                                 roleName = 'user', // Provide default role
-                                                 ...props
-                                               }) => {
-  const DashboardComponent =
-    roleComponentMap[roleName] || UserDashboardPage;
+  roleName = 'user', // Provide default role
+  ...props
+}) => {
+  const DashboardComponent = roleComponentMap[roleName] || UserDashboardPage;
   return <DashboardComponent {...props} />;
 };
 

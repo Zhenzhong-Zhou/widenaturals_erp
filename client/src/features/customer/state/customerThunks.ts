@@ -1,10 +1,12 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import type {
   BulkCustomerRequest,
-  BulkCustomerResponse, CustomerDetails,
+  BulkCustomerResponse,
+  CustomerDetails,
   CustomerDetailsResponse,
   CustomerListResponse,
-  CustomerQueryParams, FetchCustomersDropdownResponse,
+  CustomerQueryParams,
+  FetchCustomersDropdownResponse,
 } from '@features/customer';
 import { customerService } from '@services/customerService';
 import { dropdownService } from '@services/dropdownService';

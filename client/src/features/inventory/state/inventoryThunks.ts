@@ -1,5 +1,8 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import type { InventoryResponse, InventorySummaryResponse } from '@features/inventory';
+import type {
+  InventoryResponse,
+  InventorySummaryResponse,
+} from '@features/inventory';
 import { inventoryService } from '@services/inventoryService';
 
 /**
@@ -40,15 +43,12 @@ export const fetchInventorySummaryThunk = createAsyncThunk<
   InventorySummaryResponse,
   { page: number; limit: number },
   { rejectValue: string }
->(
-  'inventorySummary/fetchAll',
-  async ({ page, limit }, { rejectWithValue }) => {
-    try {
-      return await inventoryService.fetchInventorySummary(page, limit);
-    } catch (error: any) {
-      return rejectWithValue(
-        error.message || 'Failed to fetch inventory summary'
-      );
-    }
+>('inventorySummary/fetchAll', async ({ page, limit }, { rejectWithValue }) => {
+  try {
+    return await inventoryService.fetchInventorySummary(page, limit);
+  } catch (error: any) {
+    return rejectWithValue(
+      error.message || 'Failed to fetch inventory summary'
+    );
   }
-);
+});

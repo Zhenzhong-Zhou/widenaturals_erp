@@ -1,5 +1,9 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { fetchUserProfileThunk, type UserProfile, type UserProfileResponse } from '@features/user';
+import {
+  fetchUserProfileThunk,
+  type UserProfile,
+  type UserProfileResponse,
+} from '@features/user';
 
 // Define the UserState interface
 export interface UserProfileState {

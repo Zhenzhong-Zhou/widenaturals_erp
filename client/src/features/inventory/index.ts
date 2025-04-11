@@ -8,7 +8,7 @@ export type {
 } from './state/inventoryTypes';
 export {
   fetchAllInventories,
-  fetchInventorySummaryThunk
+  fetchInventorySummaryThunk,
 } from './state/inventoryThunks';
 export {
   selectInventories,

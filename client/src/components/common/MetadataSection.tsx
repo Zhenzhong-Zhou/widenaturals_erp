@@ -17,14 +17,14 @@ interface MetadataSectionProps {
 
 const MetadataSection: FC<MetadataSectionProps> = ({ data, sx }) => {
   const { theme } = useThemeContext();
-  
+
   return (
     <Box sx={{ mt: theme.spacing(2), ...sx }}>
       {Object.entries(data).map(([key, value]) => {
         if (shouldExcludeKey(key)) return null;
-        
+
         const formattedKey = formatLabel(key);
-        
+
         return (
           <Box key={key} sx={{ mb: theme.spacing(1) }}>
             <Typography
@@ -33,7 +33,7 @@ const MetadataSection: FC<MetadataSectionProps> = ({ data, sx }) => {
             >
               {formattedKey}:
             </Typography>
-            
+
             {Array.isArray(value) ? (
               <Box sx={{ pl: theme.spacing(2) }}>
                 {value.map((item, index) => (

@@ -84,8 +84,8 @@ export interface CustomerDetailsResponse {
 
 // Represents a single customer dropdown option
 export interface CustomerDropdownOption {
-  id: string;  // UUID of the customer
-  label: string;  // Formatted label (name, email, or phone based on search)
+  id: string; // UUID of the customer
+  label: string; // Formatted label (name, email, or phone based on search)
 }
 
 // Response type for fetching customers dropdown

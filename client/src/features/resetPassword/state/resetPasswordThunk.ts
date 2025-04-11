@@ -1,5 +1,8 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import type { ResetPasswordError, ResetPasswordResponse } from '@features/resetPassword/state/resetPasswordTypes';
+import type {
+  ResetPasswordError,
+  ResetPasswordResponse,
+} from '@features/resetPassword/state/resetPasswordTypes';
 import { resetPasswordService } from '@services/resetPasswordService';
 
 /**

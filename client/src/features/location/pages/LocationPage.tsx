@@ -25,7 +25,9 @@ const LocationPage = () => {
       </ErrorDisplay>
     );
   if (!locations)
-    return <CustomTypography variant={'h4'}>No location found.</CustomTypography>;
+    return (
+      <CustomTypography variant={'h4'}>No location found.</CustomTypography>
+    );
 
   return (
     <Box sx={{ padding: 3 }}>

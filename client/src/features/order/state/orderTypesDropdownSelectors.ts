@@ -15,11 +15,11 @@ export const selectOrderTypesByCategory = createSelector(
   [selectOrderTypesDropdown],
   (orderTypes: OrderType[]) => {
     const groupedByCategory: Record<string, OrderType[]> = {};
-    
+
     orderTypes.forEach((orderType: OrderType) => {
       (groupedByCategory[orderType.category] ??= []).push(orderType);
     });
-    
+
     return groupedByCategory;
   }
 );

@@ -27,6 +27,6 @@ export {
   selectPricingTypeDropdown,
   selectPricingTypeDropdownLoading,
   selectPricingTypeDropdownError,
-} from './state/pricingTypeDropdownSelectors'
+} from './state/pricingTypeDropdownSelectors';
 export { default as PricingTypeDropdown } from './components/PricingTypeDropdown';
 export { pricingTypeReducers } from './state';

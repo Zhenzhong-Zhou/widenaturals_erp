@@ -1,5 +1,9 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { getPricingDetailsThunk, type Pagination, type PricingDetails } from '@features/pricing';
+import {
+  getPricingDetailsThunk,
+  type Pagination,
+  type PricingDetails,
+} from '@features/pricing';
 
 export interface PricingState {
   pricing: PricingDetails | null;
@@ -27,17 +31,17 @@ const pricingSlice = createSlice({
       })
       .addCase(getPricingDetailsThunk.fulfilled, (state, action) => {
         state.loading = false;
-        
+
         const data = action.payload.data;
         const pricing = data?.pricing;
         const pagination = data?.pagination;
-        
+
         if (!pricing) {
           state.pricing = null;
           state.pagination = pagination;
           return;
         }
-        
+
         // Ensure correct structure for multiple products & locations
         state.pricing = {
           ...pricing,

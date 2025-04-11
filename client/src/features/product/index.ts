@@ -12,17 +12,17 @@ export {
   fetchProductsThunk,
   fetchProductDetailThunk,
   fetchProductsForOrdersDropdownThunk,
-} from './state/productThunks'
+} from './state/productThunks';
 export {
   selectProducts,
   selectProductsPagination,
   selectProductsLoading,
-  selectProductsError
+  selectProductsError,
 } from './state/productSelectors';
 export {
   selectProductOrderDropdown,
   selectProductOrderDropdownLoading,
-  selectProductOrderDropdownError
+  selectProductOrderDropdownError,
 } from './state/productOrderDropdownSelectors';
 export {
   selectProductDetail,

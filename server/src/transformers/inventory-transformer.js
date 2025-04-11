@@ -1,4 +1,7 @@
-const { getStockLevel, getExpirySeverity } = require('../utils/inventory-utils');
+const {
+  getStockLevel,
+  getExpirySeverity,
+} = require('../utils/inventory-utils');
 
 /**
  * Transforms a single inventory summary row from the DB into clean application format.
@@ -10,12 +13,12 @@ const transformInventorySummary = (row) => {
   const nearestExpiryDate = row.nearest_expiry_date
     ? new Date(row.nearest_expiry_date)
     : null;
-  
+
   const now = new Date();
   const expiryThreshold = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000); // 90 days
-  
+
   const availableQty = Number(row.total_available_quantity);
-  
+
   return {
     productId: row.product_id,
     itemName: row.item_name,
@@ -50,7 +53,8 @@ const transformInventorySummary = (row) => {
  * @param {Array<object>} rows - Array of raw DB result rows.
  * @returns {Array<object>} - Array of transformed inventory summaries.
  */
-const transformInventorySummaryList = (rows = []) => rows.map(transformInventorySummary);
+const transformInventorySummaryList = (rows = []) =>
+  rows.map(transformInventorySummary);
 
 /**
  * Transforms the complete paginated inventory summary result,
@@ -96,12 +100,14 @@ const transformPaginatedInventorySummary = (paginatedResult) => ({
  */
 const transformInventoryRecord = (row) => {
   const now = new Date();
-  const nearestExpiryDate = row.nearest_expiry_date ? new Date(row.nearest_expiry_date) : null;
+  const nearestExpiryDate = row.nearest_expiry_date
+    ? new Date(row.nearest_expiry_date)
+    : null;
   const availableQty = Number(row.available_quantity) || 0;
-  
+
   const stockLevel = getStockLevel(availableQty);
   const expirySeverity = getExpirySeverity(nearestExpiryDate);
-  
+
   return {
     inventoryId: row.inventory_id,
     itemType: row.item_type,
@@ -124,11 +130,15 @@ const transformInventoryRecord = (row) => {
     reservedQuantity: Number(row.reserved_quantity) || 0,
     availableQuantity: availableQty,
     totalLotQuantity: Number(row.total_lot_quantity) || 0,
-    earliestManufactureDate: row.earliest_manufacture_date ? new Date(row.earliest_manufacture_date) : null,
+    earliestManufactureDate: row.earliest_manufacture_date
+      ? new Date(row.earliest_manufacture_date)
+      : null,
     nearestExpiryDate,
     displayStatus: row.display_status,
     isExpired: nearestExpiryDate ? nearestExpiryDate < now : false,
-    isNearExpiry: nearestExpiryDate ? nearestExpiryDate <= new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000) : false,
+    isNearExpiry: nearestExpiryDate
+      ? nearestExpiryDate <= new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000)
+      : false,
     isLowStock: availableQty <= 30,
     stockLevel,
     expirySeverity,
@@ -141,7 +151,8 @@ const transformInventoryRecord = (row) => {
  * @param {Array<object>} rows - Array of raw DB result rows.
  * @returns {Array<object>} - Array of transformed inventory records.
  */
-const transformInventoryList = (rows = []) => rows.map(transformInventoryRecord);
+const transformInventoryList = (rows = []) =>
+  rows.map(transformInventoryRecord);
 
 /**
  * Transforms the complete paginated inventory result.

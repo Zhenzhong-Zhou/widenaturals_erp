@@ -16,10 +16,10 @@ interface CustomerDetailsProps {
 }
 
 const CustomerDetailSection: FC<CustomerDetailsProps> = ({
-                                                           customer,
-                                                           loading,
-                                                           error,
-                                                         }) => {
+  customer,
+  loading,
+  error,
+}) => {
   if (loading) return <Loading message={'Loading customer details...'} />;
   if (error)
     return (
@@ -27,7 +27,7 @@ const CustomerDetailSection: FC<CustomerDetailsProps> = ({
         <ErrorMessage message={error} />
       </ErrorDisplay>
     );
-  
+
   return (
     <Box sx={{ maxWidth: 600, mx: 'auto', p: 3 }}>
       {/* Metadata Section */}
@@ -50,7 +50,7 @@ const CustomerDetailSection: FC<CustomerDetailsProps> = ({
           borderRadius: 1,
         }}
       />
-      
+
       {/* Actions */}
       <Box sx={{ mt: 3, textAlign: 'center' }}>
         <CustomButton variant="contained" color="primary">

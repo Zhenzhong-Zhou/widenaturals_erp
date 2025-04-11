@@ -1,6 +1,7 @@
 const {
   getAllPriceTypes,
-  getPricingTypeById, getPricingTypesForDropdown,
+  getPricingTypeById,
+  getPricingTypesForDropdown,
 } = require('../repositories/pricing-type-repository');
 const { logInfo, logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
@@ -102,11 +103,13 @@ const fetchPricingTypeDetailsByPricingTypeId = async (
 const fetchAvailablePricingTypesForDropdown = async (productId) => {
   try {
     if (!productId) {
-      throw AppError.validationError('Product ID is required to fetch pricing types.');
+      throw AppError.validationError(
+        'Product ID is required to fetch pricing types.'
+      );
     }
-    
+
     const pricingTypes = await getPricingTypesForDropdown(productId);
-    
+
     // Apply additional formatting or filtering if needed (e.g., logging, auditing)
     return pricingTypes.map((type) => ({
       id: type.id,

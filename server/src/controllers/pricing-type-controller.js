@@ -1,6 +1,7 @@
 const {
   fetchAllPriceTypes,
-  fetchPricingTypeDetailsByPricingTypeId, fetchAvailablePricingTypesForDropdown,
+  fetchPricingTypeDetailsByPricingTypeId,
+  fetchAvailablePricingTypesForDropdown,
 } = require('../services/price-type-service');
 const { logInfo, logError } = require('../utils/logger-helper');
 const wrapAsync = require('../utils/wrap-async');
@@ -93,15 +94,18 @@ const getPricingTypeDetailsByIdController = wrapAsync(
  * @param {Response} res - Express response object.
  * @param {NextFunction} next - Express next function.
  */
-const getPricingTypesForDropdownController = wrapAsync(async (req, res, next) => {
-  try {
-    const { productId } = req.query;  // Extract productId from query parameters
-    const pricingTypes = await fetchAvailablePricingTypesForDropdown(productId);  // Pass productId to the service
-    res.status(200).json(pricingTypes);
-  } catch (error) {
-    next(error); // Passes the error to global error handling middleware
+const getPricingTypesForDropdownController = wrapAsync(
+  async (req, res, next) => {
+    try {
+      const { productId } = req.query; // Extract productId from query parameters
+      const pricingTypes =
+        await fetchAvailablePricingTypesForDropdown(productId); // Pass productId to the service
+      res.status(200).json(pricingTypes);
+    } catch (error) {
+      next(error); // Passes the error to global error handling middleware
+    }
   }
-});
+);
 
 module.exports = {
   getPriceTypesController,

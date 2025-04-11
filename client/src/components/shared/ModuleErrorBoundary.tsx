@@ -114,7 +114,11 @@ class ModuleErrorBoundary extends Component<Props, State> {
                   'Something went wrong in this module. Please try again later.'}
               </CustomTypography>
               {errorType && (
-                <CustomTypography variant="body2" color="textSecondary" gutterBottom>
+                <CustomTypography
+                  variant="body2"
+                  color="textSecondary"
+                  gutterBottom
+                >
                   Error Type: {errorType}
                 </CustomTypography>
               )}

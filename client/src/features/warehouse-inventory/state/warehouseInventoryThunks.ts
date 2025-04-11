@@ -139,7 +139,9 @@ export const fetchProductsDropDownByWarehouseThunk = createAsyncThunk(
   'dropdown/fetchProductsByWarehouse',
   async ({ warehouseId }: { warehouseId: string }, { rejectWithValue }) => {
     try {
-      return await dropdownService.fetchProductsForWarehouseDropdown(warehouseId);
+      return await dropdownService.fetchProductsForWarehouseDropdown(
+        warehouseId
+      );
     } catch (error: any) {
       console.error('Error fetching products:', error);
       return rejectWithValue(error.message || 'Failed to fetch products');

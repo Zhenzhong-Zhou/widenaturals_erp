@@ -3,7 +3,8 @@ const {
   insertInventoryRecords,
   updateInventoryQuantity,
   checkInventoryExists,
-  getProductIdOrIdentifierByInventoryIds, getPaginatedInventorySummary,
+  getProductIdOrIdentifierByInventoryIds,
+  getPaginatedInventorySummary,
 } = require('../repositories/inventory-repository');
 const AppError = require('../utils/AppError');
 const { logError, logInfo, logWarn } = require('../utils/logger-helper');
@@ -37,9 +38,14 @@ const {
   getWarehouseLotAdjustmentType,
 } = require('../repositories/lot-adjustment-type-repository');
 const { generateChecksum } = require('../utils/crypto-utils');
-const { transformPaginatedInventorySummary, transformPaginatedInventoryRecords } = require('../transformers/inventory-transformer');
+const {
+  transformPaginatedInventorySummary,
+  transformPaginatedInventoryRecords,
+} = require('../transformers/inventory-transformer');
 const { canViewInventorySummary } = require('../business/inventory-business');
-const { transformWarehouseInventoryRecords } = require('../transformers/warehouse-inventory-transformer');
+const {
+  transformWarehouseInventoryRecords,
+} = require('../transformers/warehouse-inventory-transformer');
 
 /**
  * Fetch all inventory records with pagination, sorting, and business logic.
@@ -63,7 +69,7 @@ const fetchAllInventories = async ({ page, limit, sortBy, sortOrder }) => {
       sortBy,
       sortOrder,
     });
-    
+
     return transformPaginatedInventoryRecords(rawResult);
   } catch (error) {
     logError('Error fetching inventory:', error);
@@ -129,7 +135,14 @@ const createInventoryRecords = async (inventoryData, userId) => {
           );
         }
 
-        if (!type || !warehouse_id || !quantity || reserved_quantity === null || !status_id || !lot_number) {
+        if (
+          !type ||
+          !warehouse_id ||
+          !quantity ||
+          reserved_quantity === null ||
+          !status_id ||
+          !lot_number
+        ) {
           throw AppError.validationError(
             'Missing required fields in inventory record.'
           );
@@ -182,9 +195,9 @@ const createInventoryRecords = async (inventoryData, userId) => {
       let flatInventory = [
         ...(formattedInventoryData.products || []),
         ...(formattedInventoryData.otherTypes || []),
-      ].map(item => ({
+      ].map((item) => ({
         ...item,
-        reserved_quantity: item.reserved_quantity ?? 0
+        reserved_quantity: item.reserved_quantity ?? 0,
       }));
 
       // Step 3: Fetch Inventory IDs for Existing Items
@@ -380,24 +393,33 @@ const createInventoryRecords = async (inventoryData, userId) => {
       await bulkInsertInventoryHistory(inventoryHistoryLogs, client);
 
       // Step 5: Aggregate total quantity per inventory_id
-      const inventoryUpdates = newLots.reduce((acc, { inventory_id, quantity, reserved_quantity }) => {
-        acc[inventory_id] = {
-          quantity: (acc[inventory_id]?.quantity || 0) + (quantity ?? 0),
-          reserved_quantity: (acc[inventory_id]?.reserved_quantity || 0) + (reserved_quantity ?? 0),
-        };
-        return acc;
-      }, {});
+      const inventoryUpdates = newLots.reduce(
+        (acc, { inventory_id, quantity, reserved_quantity }) => {
+          acc[inventory_id] = {
+            quantity: (acc[inventory_id]?.quantity || 0) + (quantity ?? 0),
+            reserved_quantity:
+              (acc[inventory_id]?.reserved_quantity || 0) +
+              (reserved_quantity ?? 0),
+          };
+          return acc;
+        },
+        {}
+      );
 
       // Step 6: Aggregate available quantity per warehouse_id & inventory_id
-      const warehouseUpdates = newLots.reduce((acc, { warehouse_id, inventory_id, quantity, reserved_quantity }) => {
-        const key = `${warehouse_id}-${inventory_id}`;
-        acc[key] = {
-          available_quantity: (acc[key]?.available_quantity || 0) + quantity,
-          reserved_quantity: (acc[key]?.reserved_quantity || 0) + (reserved_quantity ?? 0)
-        };
-        return acc;
-      }, {});
-      
+      const warehouseUpdates = newLots.reduce(
+        (acc, { warehouse_id, inventory_id, quantity, reserved_quantity }) => {
+          const key = `${warehouse_id}-${inventory_id}`;
+          acc[key] = {
+            available_quantity: (acc[key]?.available_quantity || 0) + quantity,
+            reserved_quantity:
+              (acc[key]?.reserved_quantity || 0) + (reserved_quantity ?? 0),
+          };
+          return acc;
+        },
+        {}
+      );
+
       // Step 7: Update Inventory Quantities
       await updateInventoryQuantity(client, inventoryUpdates, userId);
 
@@ -440,19 +462,19 @@ const createInventoryRecords = async (inventoryData, userId) => {
           };
         }
       );
-      
+
       await bulkInsertInventoryActivityLogs(updateLogs, client);
 
       // Step 10: Insert Inventory History for Updates
       const updateHistoryLogs = Object.entries(inventoryUpdates).map(
         ([inventory_id, update]) => {
           const { quantity, reserved_quantity } = update;
-          
+
           const comment =
             reserved_quantity > 0
               ? `Inventory updated with reserved quantity: ${reserved_quantity}`
               : 'Inventory quantity updated';
-          
+
           return {
             inventory_id,
             inventory_action_type_id: update_action_type_id,
@@ -476,7 +498,7 @@ const createInventoryRecords = async (inventoryData, userId) => {
           };
         }
       );
-      
+
       await bulkInsertInventoryHistory(updateHistoryLogs, client);
 
       return {
@@ -502,13 +524,13 @@ const fetchRecentInsertWarehouseInventoryRecords = async (warehouseLotIds) => {
   if (!Array.isArray(warehouseLotIds) || warehouseLotIds.length === 0) {
     throw AppError.validationError('No warehouse lot IDs provided.');
   }
-  
+
   // Extract UUIDs from objects
   const lotIds = warehouseLotIds.map((item) => item.id);
-  
+
   // Fetch raw data from the database
   const rawRecords = await getRecentInsertWarehouseInventoryRecords(lotIds);
-  
+
   // Transform the result into a structured response
   return transformWarehouseInventoryRecords(rawRecords);
 };
@@ -522,21 +544,27 @@ const fetchRecentInsertWarehouseInventoryRecords = async (warehouseLotIds) => {
  * @param {object} options.user - Authenticated user object
  * @returns {Promise<object>} - Transformed and business-validated result
  */
-const fetchPaginatedInventorySummary = async ({ page = 1, limit = 20, user }) => {
+const fetchPaginatedInventorySummary = async ({
+  page = 1,
+  limit = 20,
+  user,
+}) => {
   if (!user) {
     throw AppError.authenticationError('User is not authenticated.');
   }
   const isAllowed = await canViewInventorySummary(user);
   if (!isAllowed) {
-    throw AppError.authorizationError('You do not have permission to view inventory summary.');
+    throw AppError.authorizationError(
+      'You do not have permission to view inventory summary.'
+    );
   }
-  
+
   if (page < 1 || limit < 1) {
     throw AppError.validationError('Invalid pagination parameters.');
   }
-  
+
   const rawResult = await getPaginatedInventorySummary({ page, limit });
-  
+
   return transformPaginatedInventorySummary(rawResult);
 };
 

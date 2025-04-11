@@ -33,31 +33,31 @@ const appReducer = combineReducers(
     sessionReducers,
     csrfReducers,
     resetPasswordReducers,
-    
+
     // User
     userReducers,
     customerReducers,
-    
+
     // Product & Pricing
     productReducers,
     complianceReducers,
     pricingTypeReducers,
     pricingReducers,
-    
+
     // Inventory & Warehouse
     locationTypeReducers,
     locationReducers,
     inventoryReducers,
     warehouseReducers,
     warehouseInventoryReducers,
-    
+
     // Orders
     orderTypeReducers,
     orderReducers,
-    
+
     // Reporting
     reportReducers,
-    
+
     // Misc
     discountReducers,
     taxRateReducers,

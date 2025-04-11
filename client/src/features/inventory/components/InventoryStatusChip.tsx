@@ -9,21 +9,26 @@ interface Props {
 
 const InventoryStatusChip: FC<Props> = ({ status }) => {
   const { theme } = useThemeContext();
-  
-  const statusKeys = ['in_stock', 'out_of_stock', 'suspended', 'unassigned'] as const;
-  type StatusKey = typeof statusKeys[number];
-  
+
+  const statusKeys = [
+    'in_stock',
+    'out_of_stock',
+    'suspended',
+    'unassigned',
+  ] as const;
+  type StatusKey = (typeof statusKeys)[number];
+
   const customColorMap: Record<StatusKey, string> = {
     in_stock: theme.palette.success.main,
     out_of_stock: theme.palette.error.main,
     suspended: theme.palette.warning.main,
     unassigned: theme.palette.text.disabled,
   };
-  
+
   const safeStatus = statusKeys.includes(status as StatusKey)
     ? (status as StatusKey)
     : 'unassigned';
-  
+
   return (
     <Chip
       label={formatLabel(status.replace(/_/g, ' '))}

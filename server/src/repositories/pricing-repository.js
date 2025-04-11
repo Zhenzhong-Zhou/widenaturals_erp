@@ -245,7 +245,7 @@ const getActiveProductPrice = async (productId, priceTypeId, client) => {
     ORDER BY p.valid_from DESC
     LIMIT 1;
   `;
-  
+
   try {
     const { rows } = await query(queryText, [productId, priceTypeId], client);
     return rows.length > 0 ? rows[0] : null;

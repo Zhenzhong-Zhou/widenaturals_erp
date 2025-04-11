@@ -14,27 +14,28 @@ interface DeliveryMethodDropdownProps {
 }
 
 const DeliveryMethodDropdown: FC<DeliveryMethodDropdownProps> = ({
-                                                                   label = 'Select Delivery Method',
-                                                                   value,
-                                                                   onChange,
-                                                                   onAddNew,
-                                                                   includePickup = false,
-                                                                   disabled = false,
-                                                                 }) => {
-  const { methods, loading, error, refreshMethods } = useDeliveryMethodDropdown(includePickup);
-  
+  label = 'Select Delivery Method',
+  value,
+  onChange,
+  onAddNew,
+  includePickup = false,
+  disabled = false,
+}) => {
+  const { methods, loading, error, refreshMethods } =
+    useDeliveryMethodDropdown(includePickup);
+
   if (loading) {
     return (
       <Box display="flex" alignItems="center" justifyContent="center">
-        <Loading/>
+        <Loading />
       </Box>
     );
   }
-  
+
   if (error) {
     return <div>Error loading delivery methods: {error}</div>;
   }
-  
+
   return (
     <Dropdown
       label={label}

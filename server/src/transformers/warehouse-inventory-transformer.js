@@ -1,4 +1,7 @@
-const { getStockLevel, getExpirySeverity } = require('../utils/inventory-utils');
+const {
+  getStockLevel,
+  getExpirySeverity,
+} = require('../utils/inventory-utils');
 
 /**
  * Transforms a single enriched warehouse inventory summary row.
@@ -12,28 +15,30 @@ const transformWarehouseInventorySummary = (row) => {
   const available = Number(row.available_quantity);
   const totalLot = Number(row.total_lot_quantity);
   const lotReserved = Number(row.total_reserved_quantity);
-  const nearestExpiry = row.nearest_expiry_date ? new Date(row.nearest_expiry_date) : null;
-  
+  const nearestExpiry = row.nearest_expiry_date
+    ? new Date(row.nearest_expiry_date)
+    : null;
+
   const isExpired = nearestExpiry ? nearestExpiry < new Date() : false;
   const isNearExpiry = nearestExpiry
     ? nearestExpiry >= new Date() &&
-    (nearestExpiry - new Date()) / (1000 * 60 * 60 * 24) <= 90
+      (nearestExpiry - new Date()) / (1000 * 60 * 60 * 24) <= 90
     : false;
-  
+
   const stockLevel = getStockLevel(available);
   const expirySeverity = getExpirySeverity(nearestExpiry);
   const isLowStock = available <= 30;
-  
+
   const notes = [];
-  
+
   if (reserved === totalLot && totalLot > 0) notes.push('All stock reserved');
   if (available === 0 && totalLot > 0) notes.push('No stock available');
   if (isExpired) notes.push('Expired stock');
   if (isNearExpiry) notes.push('Expiring soon');
   if (isLowStock) notes.push('Low stock');
-  
+
   const displayNote = notes.length > 0 ? notes.join(' • ') : null;
-  
+
   return {
     warehouseInventoryId: row.warehouse_inventory_id,
     warehouse: {
@@ -59,9 +64,13 @@ const transformWarehouseInventorySummary = (row) => {
     },
     dates: {
       lastUpdate: row.last_update ? new Date(row.last_update) : null,
-      earliestManufactureDate: row.earliest_manufacture_date ? new Date(row.earliest_manufacture_date) : null,
+      earliestManufactureDate: row.earliest_manufacture_date
+        ? new Date(row.earliest_manufacture_date)
+        : null,
       nearestExpiryDate: nearestExpiry,
-      displayStatusDate: row.display_status_date ? new Date(row.display_status_date) : null,
+      displayStatusDate: row.display_status_date
+        ? new Date(row.display_status_date)
+        : null,
     },
     status: {
       display: row.display_status,
@@ -100,15 +109,10 @@ const transformWarehouseInventorySummaryList = (rows = []) => {
  */
 const transformPaginatedWarehouseInventorySummary = (paginatedResult = {}) => {
   const {
-    pagination: {
-      page = 1,
-      limit = 20,
-      totalRecords = 0,
-      totalPages = 0,
-    } = {},
+    pagination: { page = 1, limit = 20, totalRecords = 0, totalPages = 0 } = {},
     data = [],
   } = paginatedResult;
-  
+
   return {
     pagination: {
       page: Number(page),
@@ -150,9 +154,12 @@ const transformWarehouseItemSummaryRow = (row) => {
  * @param {object} result.pagination - Pagination info.
  * @returns {object} - Transformed result with mapped item summary data.
  */
-const transformPaginatedWarehouseItemSummary = ({ data = [], pagination = {} }) => {
+const transformPaginatedWarehouseItemSummary = ({
+  data = [],
+  pagination = {},
+}) => {
   const transformed = data.map(transformWarehouseItemSummaryRow);
-  
+
   return {
     itemSummaryData: transformed,
     pagination: {
@@ -175,20 +182,20 @@ const transformWarehouseInventoryLotDetail = (item) => {
   const reservedStock = Number(item.reserved_stock) || 0;
   const availableStock = Number(item.available_stock) || 0;
   const lotReserved = Number(item.lot_reserved_quantity) || 0;
-  
+
   const expiryDate = item.expiry_date ? new Date(item.expiry_date) : null;
   const today = new Date();
-  
+
   const isExpired = expiryDate ? expiryDate < today : false;
   const isNearExpiry = expiryDate
     ? expiryDate >= today &&
-    (expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24) <= 90
+      (expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24) <= 90
     : false;
-  
+
   const stockLevel = getStockLevel(availableStock);
   const expirySeverity = getExpirySeverity(expiryDate);
   const isLowStock = availableStock <= 30;
-  
+
   return {
     warehouseInventoryId: item.warehouse_inventory_id,
     inventoryId: item.inventory_id,
@@ -209,7 +216,7 @@ const transformWarehouseInventoryLotDetail = (item) => {
     inboundDate: item.inbound_date ? new Date(item.inbound_date) : null,
     outboundDate: item.outbound_date ? new Date(item.outbound_date) : null,
     lastUpdate: item.last_update ? new Date(item.last_update) : null,
-    
+
     inventoryCreated: {
       date: item.inventory_created_at
         ? new Date(item.inventory_created_at)
@@ -230,7 +237,7 @@ const transformWarehouseInventoryLotDetail = (item) => {
       date: item.lot_updated_at ? new Date(item.lot_updated_at) : null,
       by: item.lot_updated_by,
     },
-    
+
     indicators: {
       isExpired,
       isNearExpiry,
@@ -257,13 +264,9 @@ const transformWarehouseInventoryLotDetailList = (rows = []) => {
  */
 const transformWarehouseInventoryRecords = (dbResults) => {
   return dbResults.map((warehouse) => {
-    const {
-      warehouse_id,
-      warehouse_name,
-      total_records,
-      inventory_records,
-    } = warehouse;
-    
+    const { warehouse_id, warehouse_name, total_records, inventory_records } =
+      warehouse;
+
     const transformedRecords = inventory_records.map((record) => ({
       warehouseLotId: record.warehouse_lot_id,
       inventoryId: record.inventory_id,
@@ -278,7 +281,7 @@ const transformWarehouseInventoryRecords = (dbResults) => {
       inboundDate: record.inbound_date,
       locationId: record.location_id,
       insertedQuantity: record.inserted_quantity,
-      
+
       audit: {
         createdAt: record.lot_created_at,
         createdBy: record.lot_created_by,
@@ -286,7 +289,7 @@ const transformWarehouseInventoryRecords = (dbResults) => {
         updatedBy: record.lot_updated_by,
       },
     }));
-    
+
     return {
       warehouseId: warehouse_id,
       warehouseName: warehouse_name,
@@ -294,7 +297,7 @@ const transformWarehouseInventoryRecords = (dbResults) => {
       inventoryRecords: transformedRecords,
     };
   });
-}
+};
 
 module.exports = {
   transformWarehouseInventorySummary,

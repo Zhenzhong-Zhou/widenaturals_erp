@@ -61,11 +61,14 @@ const convertToKey = (formattedHeader) => {
  * @returns {string} - Formatted discount value.
  */
 const formatDiscount = (discountType, discountValue) => {
-  if (!discountType || discountValue === null || discountValue === undefined) return 'N/A';
-  
-  if (discountType === 'PERCENTAGE') return `${Number(discountValue).toFixed(2)}%`;
-  if (discountType === 'FIXED_AMOUNT') return `$${Number(discountValue).toFixed(2)}`;
-  
+  if (!discountType || discountValue === null || discountValue === undefined)
+    return 'N/A';
+
+  if (discountType === 'PERCENTAGE')
+    return `${Number(discountValue).toFixed(2)}%`;
+  if (discountType === 'FIXED_AMOUNT')
+    return `$${Number(discountValue).toFixed(2)}`;
+
   return 'N/A';
 };
 

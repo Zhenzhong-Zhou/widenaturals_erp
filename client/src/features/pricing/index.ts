@@ -36,5 +36,5 @@ export {
   selectPriceValueData,
   selectPriceValueLoading,
   selectPriceValueError,
-} from './state/pricingValueSelectors'
+} from './state/pricingValueSelectors';
 export { pricingReducers } from './state';

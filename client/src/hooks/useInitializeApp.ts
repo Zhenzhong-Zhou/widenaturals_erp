@@ -5,7 +5,10 @@ import { withTimeout } from '@utils/timeoutUtils';
 import { withRetry } from '@utils/retryUtils';
 import { csrfService } from '@services/csrfService';
 import { monitorCsrfStatus } from '@utils/monitorCsrfStatus';
-import { selectCsrfStatus, selectCsrfError } from '@features/csrf/state/csrfSelector';
+import {
+  selectCsrfStatus,
+  selectCsrfError,
+} from '@features/csrf/state/csrfSelector';
 import { resetCsrfToken } from '@features/csrf/state/csrfSlice';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 

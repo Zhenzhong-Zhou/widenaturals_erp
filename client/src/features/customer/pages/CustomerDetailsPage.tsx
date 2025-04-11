@@ -32,7 +32,9 @@ const CustomerDetailsPage: FC = () => {
 
       {/* Show error message */}
       {customerDetailError && (
-        <CustomTypography color="error">Error: {customerDetailError}</CustomTypography>
+        <CustomTypography color="error">
+          Error: {customerDetailError}
+        </CustomTypography>
       )}
 
       {/* Show customer details when available */}

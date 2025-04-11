@@ -10,19 +10,24 @@ interface Props {
 
 const StockLevelChip: FC<Props> = ({ stockLevel, isLowStock }) => {
   const { theme } = useThemeContext();
-  
-  const colorMap: Record<Props['stockLevel'], 'warning' | 'error' | 'success' | null> = {
+
+  const colorMap: Record<
+    Props['stockLevel'],
+    'warning' | 'error' | 'success' | null
+  > = {
     none: null,
     low: 'warning',
     critical: 'error',
     normal: 'success',
   };
-  
+
   const label = isLowStock ? `Low (${formatLabel(stockLevel)})` : 'Normal';
   const chipColor = isLowStock ? colorMap[stockLevel] : 'success';
-  
-  const paletteColor = chipColor ? theme.palette[chipColor].main : theme.palette.text.primary;
-  
+
+  const paletteColor = chipColor
+    ? theme.palette[chipColor].main
+    : theme.palette.text.primary;
+
   return (
     <Chip
       label={label}

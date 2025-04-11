@@ -1,7 +1,8 @@
 import { useEffect, useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
-  type TaxRateDropdownItem, fetchTaxRateDropdownThunk,
+  type TaxRateDropdownItem,
+  fetchTaxRateDropdownThunk,
   selectTaxRateDropdown,
   selectTaxRateDropdownError,
   selectTaxRateDropdownLoading,
@@ -25,22 +26,22 @@ const useTaxRateDropdown = (
   province: string | null = null
 ): UseTaxRateDropdownReturn => {
   const dispatch = useAppDispatch();
-  
+
   // Memoized selectors
   const taxRates = useAppSelector(selectTaxRateDropdown);
   const loading = useAppSelector(selectTaxRateDropdownLoading);
   const error = useAppSelector(selectTaxRateDropdownError);
-  
+
   // Fetch tax rates on component mount or when dependencies change
   useEffect(() => {
     dispatch(fetchTaxRateDropdownThunk({ region, province }));
   }, [dispatch, region, province]);
-  
+
   // Refresh function to manually trigger data fetch
   const refreshTaxRates = useCallback(() => {
     dispatch(fetchTaxRateDropdownThunk({ region, province }));
   }, [dispatch, region, province]);
-  
+
   return { taxRates, loading, error, refreshTaxRates };
 };
 

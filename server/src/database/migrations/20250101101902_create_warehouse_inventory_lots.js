@@ -55,13 +55,13 @@ exports.up = async function (knex) {
     CREATE INDEX idx_warehouse_inventory_lots_outbound_date ON warehouse_inventory_lots (outbound_date);
     CREATE INDEX idx_warehouse_inventory_lots_status ON warehouse_inventory_lots (status_id);
   `);
-  
+
   await knex.raw(`
     ALTER TABLE warehouse_inventory_lots
     ADD CONSTRAINT warehouse_inventory_lots_quantity_check
     CHECK (quantity >= 0)
   `);
-  
+
   await knex.raw(`
     ALTER TABLE warehouse_inventory_lots
     ADD CONSTRAINT warehouse_inventory_lots_reserved_quantity_check

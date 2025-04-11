@@ -1,4 +1,6 @@
-const { allocateInventoryForOrder } = require('../business/inventory-allocation-business');
+const {
+  allocateInventoryForOrder,
+} = require('../business/inventory-allocation-business');
 const AppError = require('../utils/AppError');
 const { withTransaction } = require('../database/db');
 const { logError } = require('../utils/logger-helper');
@@ -32,15 +34,15 @@ const allocateInventory = async (params) => {
  * @returns {Promise<Array>} List of successful allocation records
  */
 const allocateMultipleInventoryItems = async ({
-                                                orderId,
-                                                items,
-                                                userId,
-                                                defaultStrategy = 'FEFO',
-                                              }) => {
+  orderId,
+  items,
+  userId,
+  defaultStrategy = 'FEFO',
+}) => {
   try {
     return await withTransaction(async (client) => {
       const allocations = [];
-      
+
       for (const item of items) {
         const {
           warehouseId,
@@ -48,11 +50,13 @@ const allocateMultipleInventoryItems = async ({
           quantity,
           strategy = defaultStrategy,
         } = item;
-        
+
         if (!warehouseId || !productId || !quantity) {
-          throw AppError.validationError('Each item must include warehouseId, productId, and quantity.');
+          throw AppError.validationError(
+            'Each item must include warehouseId, productId, and quantity.'
+          );
         }
-        
+
         const allocation = await allocateInventory({
           orderId,
           warehouseId,
@@ -62,19 +66,21 @@ const allocateMultipleInventoryItems = async ({
           userId,
           client, // Pass client if supported in business logic
         });
-        
+
         allocations.push(allocation);
       }
-      
+
       return allocations;
     });
   } catch (error) {
     logError('Error during multiple inventory allocations:', error);
-    throw AppError.serviceError('Failed to allocate all inventory items: ' + error.message);
+    throw AppError.serviceError(
+      'Failed to allocate all inventory items: ' + error.message
+    );
   }
 };
 
 module.exports = {
   allocateInventory,
-  allocateMultipleInventoryItems
+  allocateMultipleInventoryItems,
 };

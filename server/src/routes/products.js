@@ -2,7 +2,8 @@ const express = require('express');
 const {
   getProductsController,
   getProductDetailsByIdController,
-  getProductsDropdownListController, getProductsForDropdownController,
+  getProductsDropdownListController,
+  getProductsForDropdownController,
 } = require('../controllers/product-controller');
 const validate = require('../middlewares/validate');
 const { paginationSchema } = require('../validators/product-validators');
@@ -15,7 +16,10 @@ router.get('/', validate(paginationSchema), getProductsController);
 // Route for fetching product details by ID
 router.get('/product-details/:id', getProductDetailsByIdController);
 
-router.get('/dropdown/warehouse/:warehouseId', getProductsDropdownListController);
+router.get(
+  '/dropdown/warehouse/:warehouseId',
+  getProductsDropdownListController
+);
 
 router.get('/dropdown/orders', getProductsForDropdownController);
 

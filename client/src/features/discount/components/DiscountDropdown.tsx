@@ -19,15 +19,15 @@ interface FormattedOption {
 }
 
 const DiscountDropdown: FC<DiscountDropdownProps> = ({
-                                                       label = 'Select Discount',
-                                                       value,
-                                                       onChange,
-                                                       onAddNew,
-                                                       disabled = false,
-                                                     }) => {
+  label = 'Select Discount',
+  value,
+  onChange,
+  onAddNew,
+  disabled = false,
+}) => {
   const { discounts, loading, error, refreshDiscounts } = useDiscountDropdown();
   const [options, setOptions] = useState<FormattedOption[]>([]);
-  
+
   // Update options whenever discounts change
   useEffect(() => {
     if (discounts.length > 0) {
@@ -38,7 +38,7 @@ const DiscountDropdown: FC<DiscountDropdownProps> = ({
       setOptions(formattedOptions);
     }
   }, [discounts]);
-  
+
   if (loading) {
     return (
       <Box display="flex" alignItems="center" justifyContent="center">
@@ -46,11 +46,11 @@ const DiscountDropdown: FC<DiscountDropdownProps> = ({
       </Box>
     );
   }
-  
+
   if (error) {
     return <div>Error loading discounts: {error}</div>;
   }
-  
+
   return (
     <Dropdown
       label={label}

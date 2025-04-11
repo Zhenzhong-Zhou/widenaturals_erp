@@ -27,9 +27,9 @@ const WarehouseInventoryPage = () => {
     setSummaryPage,
     refreshSummary,
   } = useWarehouseInventoriesSummary(1, 3, '');
-  
+
   const sanitizedInventories = sanitizeWarehouseInventory(inventories || []);
-  
+
   if (loading) return <Loading message={`Loading Warehouse Inventory...`} />;
   if (error)
     return (
@@ -39,7 +39,9 @@ const WarehouseInventoryPage = () => {
     );
   if (!inventories || inventories.length === 0)
     return (
-      <CustomTypography variant={'h4'}>No warehouse inventory found.</CustomTypography>
+      <CustomTypography variant={'h4'}>
+        No warehouse inventory found.
+      </CustomTypography>
     );
 
   return (

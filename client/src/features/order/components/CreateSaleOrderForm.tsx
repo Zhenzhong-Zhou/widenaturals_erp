@@ -1,6 +1,14 @@
-import { type FC, lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  type FC,
+  lazy,
+  Suspense,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useForm, Controller, FormProvider } from 'react-hook-form';
-import Grid from '@mui/material/Grid2';
+import Grid from '@mui/material/Grid';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import Divider from '@mui/material/Divider';
@@ -20,7 +28,9 @@ import { v4 as uuidv4 } from 'uuid';
 import type { SalesOrder } from '../state';
 import usePricing from '@hooks/usePricing';
 
-const CustomDatePicker = lazy(() => import('@components/common/CustomDatePicker'));
+const CustomDatePicker = lazy(
+  () => import('@components/common/CustomDatePicker')
+);
 
 interface SaleOrderFormProps {
   onSubmit: (formData: SalesOrder) => void | Promise<void>;
@@ -36,14 +46,24 @@ interface SaleOrderItem {
   quantity_ordered: number;
 }
 
-const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({ onSubmit = () => {}, onClose = () => {}, category }) => {
+const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({
+  onSubmit = () => {},
+  onClose = () => {},
+  category,
+}) => {
   const [items, setItems] = useState<SaleOrderItem[]>([
-    { id: uuidv4(), product_id: '', price_type_id: '', price: 0, quantity_ordered: 1 }
-  ]);  // Initialized with one item
+    {
+      id: uuidv4(),
+      product_id: '',
+      price_type_id: '',
+      price: 0,
+      quantity_ordered: 1,
+    },
+  ]); // Initialized with one item
   const priceUpdatedRef = useRef(false);
-  
+
   const { fetchPriceValue, priceValueData, priceValueLoading } = usePricing();
-  
+
   // Initialize useForm with your defined structure
   const methods = useForm<SalesOrder>({
     mode: 'onChange',
@@ -73,117 +93,137 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({ onSubmit = () => {}, onCl
           price_type_id: '',
           price: 0,
           quantity_ordered: 1,
-        }
-      ]
-    }
+        },
+      ],
+    },
   });
-  
-  const { handleSubmit, control, formState: { isValid } } = methods;  // Extract control
-  
+
+  const {
+    handleSubmit,
+    control,
+    formState: { isValid },
+  } = methods; // Extract control
+
   useEffect(() => {
     if (items.length === 0) {
       // Ensure there is always at least one item
-      setItems([{ id: uuidv4(), product_id: '', price_type_id: '', price: 0, quantity_ordered: 1 }]);
+      setItems([
+        {
+          id: uuidv4(),
+          product_id: '',
+          price_type_id: '',
+          price: 0,
+          quantity_ordered: 1,
+        },
+      ]);
     }
     // Always synchronize form state with items state
     methods.setValue('items', items);
   }, [items, methods]);
-  
+
   const handleAddItem = () => {
     const newItem = {
       id: uuidv4(),
       product_id: '',
       price_type_id: '',
       price: 0,
-      quantity_ordered: 1
+      quantity_ordered: 1,
     };
-    
+
     // Update the state only
     setItems((prevItems) => [...prevItems, newItem]);
   };
-  
+
   // Function to check if all fields are completed
   const areAllFieldsCompleted = () => {
     const customer_id = methods.getValues('customer_id');
     const order_date = methods.getValues('order_date');
     const tax_rate_id = methods.getValues('tax_rate_id');
     const delivery_method_id = methods.getValues('delivery_method_id');
-    
+
     // Check if main required fields are filled
-    const isMainFormCompleted = !!(customer_id && order_date && tax_rate_id && delivery_method_id);
-    
+    const isMainFormCompleted = !!(
+      customer_id &&
+      order_date &&
+      tax_rate_id &&
+      delivery_method_id
+    );
+
     // Check if all items are completed
     const areItemsCompleted = items.every((_item, index) => {
       const product_id = methods.getValues(`items.${index}.product_id`);
       const price_type_id = methods.getValues(`items.${index}.price_type_id`);
       const price = methods.getValues(`items.${index}.price`);
-      const quantity_ordered = methods.getValues(`items.${index}.quantity_ordered`);
-      
-      // Check if all required fields of the item are filled
-      return (
-        product_id &&
-        price_type_id &&
-        price >= 0 &&
-        quantity_ordered > 0
+      const quantity_ordered = methods.getValues(
+        `items.${index}.quantity_ordered`
       );
+
+      // Check if all required fields of the item are filled
+      return product_id && price_type_id && price >= 0 && quantity_ordered > 0;
     });
-    
+
     // Return true only if all required fields are filled
     return isMainFormCompleted && areItemsCompleted;
   };
-  
-  const isFormValid = useMemo(() => areAllFieldsCompleted(), [items, methods.watch()]);
-  
+
+  const isFormValid = useMemo(
+    () => areAllFieldsCompleted(),
+    [items, methods.watch()]
+  );
+
   const handleRemoveItem = (id: string) => {
     if (items.length === 1) return; // Prevent removal of the only remaining item
-    
-    const updatedItems = items.filter(item => item.id !== id);
-    
+
+    const updatedItems = items.filter((item) => item.id !== id);
+
     setItems(updatedItems);
     methods.reset({ items: updatedItems }); // Reset form data with the updated items
   };
-  
+
   const handleItemChange = <K extends keyof SaleOrderItem>(
     id: string,
     key: K,
     value: SaleOrderItem[K]
   ) => {
     setItems((prev) =>
-      prev.map(item =>
-        item.id === id ? { ...item, [key]: value } : item
-      )
+      prev.map((item) => (item.id === id ? { ...item, [key]: value } : item))
     );
   };
-  
-  const fetchPriceByProductAndPriceType = (productId: string, priceTypeId: string, itemId: string) => {
+
+  const fetchPriceByProductAndPriceType = (
+    productId: string,
+    priceTypeId: string,
+    itemId: string
+  ) => {
     if (productId && priceTypeId) {
-      priceUpdatedRef.current = false;  // Allow price fetching for this item
+      priceUpdatedRef.current = false; // Allow price fetching for this item
       fetchPriceValue({ productId, priceTypeId }); // Fetch the price
-      
+
       // Reset the price in react-hook-form and items state
-      const itemIndex = items.findIndex(item => item.id === itemId); // Find the index of the item with the given id
-      
-      if (itemIndex !== -1) { // If the item exists in the list
-        methods.setValue(`items.${itemIndex}.price`, 0);  // Reset form state price to 0
-        
+      const itemIndex = items.findIndex((item) => item.id === itemId); // Find the index of the item with the given id
+
+      if (itemIndex !== -1) {
+        // If the item exists in the list
+        methods.setValue(`items.${itemIndex}.price`, 0); // Reset form state price to 0
+
         // Update the state to reflect the price reset
-        setItems(prevItems =>
-          prevItems.map(item =>
+        setItems((prevItems) =>
+          prevItems.map((item) =>
             item.id === itemId ? { ...item, price: 0 } : item
           )
         );
       }
     }
   };
-  
+
   useEffect(() => {
     if (priceValueData?.price && !priceUpdatedRef.current) {
       const priceValue = parseFloat(priceValueData.price);
-      
+
       const updatedItems = items.map((item) => {
         const itemIndex = items.findIndex((i) => i.id === item.id);
         const currentFormPrice = methods.getValues(`items.${itemIndex}.price`);
-        
+
         // Update if price is 0 (reset condition) or if product/priceType changed
         if (currentFormPrice === 0 || item.price === 0) {
           methods.setValue(`items.${itemIndex}.price`, priceValue); // Update form state
@@ -191,19 +231,19 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({ onSubmit = () => {}, onCl
         }
         return item;
       });
-      
-      setItems(updatedItems);  // Update state with new prices
-      priceUpdatedRef.current = true;  // Prevent continuous updates
+
+      setItems(updatedItems); // Update state with new prices
+      priceUpdatedRef.current = true; // Prevent continuous updates
     }
   }, [priceValueData, methods, items]);
-  
+
   const handleFormSubmit = () =>
     handleSubmit((formData: SalesOrder) => {
       formData.items = items; // Attach items array to the formData
-      
+
       onSubmit(formData); // Submit the data
       onClose(); // Close the modal
-      
+
       // Reset form data to the initial state
       methods.reset({
         customer_id: '',
@@ -212,22 +252,39 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({ onSubmit = () => {}, onCl
         tax_rate_id: '',
         delivery_method_id: '',
         note: '',
-        items: [{ product_id: '', price_type_id: '', price: 0, quantity_ordered: 1 }]
+        items: [
+          { product_id: '', price_type_id: '', price: 0, quantity_ordered: 1 },
+        ],
       });
-      
-      setItems([{ id: uuidv4(), product_id: '', price_type_id: '', price: 0, quantity_ordered: 1 }]);  // Reset items
-      priceUpdatedRef.current = false;  // Allow fresh price fetch next time
+
+      setItems([
+        {
+          id: uuidv4(),
+          product_id: '',
+          price_type_id: '',
+          price: 0,
+          quantity_ordered: 1,
+        },
+      ]); // Reset items
+      priceUpdatedRef.current = false; // Allow fresh price fetch next time
     })();
-  
+
   // Only show the submit button if the category is 'sales'
   if (category !== 'sales') {
-    return <CustomTypography variant="h6">This form is only available for 'sales' category.</CustomTypography>;
+    return (
+      <CustomTypography variant="h6">
+        This form is only available for 'sales' category.
+      </CustomTypography>
+    );
   }
-  
+
   return (
     <FormProvider {...methods}>
-      <CustomForm control={control} onSubmit={handleFormSubmit} showSubmitButton={isValid && isFormValid} >
-        
+      <CustomForm
+        control={control}
+        onSubmit={handleFormSubmit}
+        showSubmitButton={isValid && isFormValid}
+      >
         <Grid container spacing={2}>
           <Grid size={{ xs: 6, md: 8 }}>
             <Controller
@@ -242,14 +299,15 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({ onSubmit = () => {}, onCl
               )}
             />
           </Grid>
-          
-          
+
           <Grid size={{ xs: 6, md: 8 }}>
             <Controller
               name="order_date"
               control={control}
               render={({ field }) => (
-                <Suspense fallback={<Loading message="Loading date picker..." />}>
+                <Suspense
+                  fallback={<Loading message="Loading date picker..." />}
+                >
                   <CustomDatePicker
                     label="Order Date"
                     value={field.value || null}
@@ -259,7 +317,7 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({ onSubmit = () => {}, onCl
               )}
             />
           </Grid>
-          
+
           <Grid size={{ xs: 6, md: 8 }}>
             <Controller
               name="discount_id"
@@ -273,7 +331,7 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({ onSubmit = () => {}, onCl
               )}
             />
           </Grid>
-          
+
           <Grid size={{ xs: 6, md: 8 }}>
             <Controller
               name="tax_rate_id"
@@ -287,7 +345,7 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({ onSubmit = () => {}, onCl
               )}
             />
           </Grid>
-          
+
           <Grid size={{ xs: 6, md: 8 }}>
             <Controller
               name="delivery_method_id"
@@ -302,7 +360,7 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({ onSubmit = () => {}, onCl
               )}
             />
           </Grid>
-          
+
           <Grid size={{ xs: 6, md: 8 }}>
             <Controller
               name="note"
@@ -310,22 +368,24 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({ onSubmit = () => {}, onCl
               render={({ field }) => (
                 <BaseInput
                   label="Note"
-                  value={field.value || ''}   // Ensure it's never undefined
-                  onChange={field.onChange}   // Pass onChange directly
-                  fullWidth                  // Make it occupy full width of the Grid cell
-                  multiline                  // Allow multiple lines
-                  rows={4}                   // Provide sufficient space for text input
+                  value={field.value || ''} // Ensure it's never undefined
+                  onChange={field.onChange} // Pass onChange directly
+                  fullWidth // Make it occupy full width of the Grid cell
+                  multiline // Allow multiple lines
+                  rows={4} // Provide sufficient space for text input
                   placeholder="Enter additional information"
                 />
               )}
             />
           </Grid>
         </Grid>
-        
+
         <Divider sx={{ my: 2 }} />
-        
-        <CustomTypography variant="h6" gutterBottom>Shipping Information</CustomTypography>
-        
+
+        <CustomTypography variant="h6" gutterBottom>
+          Shipping Information
+        </CustomTypography>
+
         <Grid container spacing={2}>
           <Grid size={{ xs: 12, md: 8 }}>
             <Controller
@@ -350,7 +410,7 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({ onSubmit = () => {}, onCl
               )}
             />
           </Grid>
-          
+
           {methods.watch('has_shipping_info') && (
             <>
               <Grid size={{ xs: 12, md: 8 }}>
@@ -394,7 +454,11 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({ onSubmit = () => {}, onCl
                   name="shipping_info.shipping_address_line2"
                   control={control}
                   render={({ field }) => (
-                    <BaseInput label="Address Line 2 (Optional)" {...field} fullWidth />
+                    <BaseInput
+                      label="Address Line 2 (Optional)"
+                      {...field}
+                      fullWidth
+                    />
                   )}
                 />
               </Grid>
@@ -446,21 +510,20 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({ onSubmit = () => {}, onCl
             </>
           )}
         </Grid>
-        
+
         <Divider sx={{ my: 2 }} />
-        
+
         <CustomTypography variant="h6" gutterBottom>
-        Order Items
+          Order Items
         </CustomTypography>
-        
+
         {items.map((item, index) => (
           <Card key={index} variant="outlined" sx={{ mb: 2 }}>
             <CardContent>
               <Grid container spacing={2} alignItems="center">
-                
                 <Grid size={{ xs: 6, md: 8 }}>
                   <Controller
-                    name={`items.${index}.product_id`}  // Corrected name syntax for react-hook-form
+                    name={`items.${index}.product_id`} // Corrected name syntax for react-hook-form
                     control={control}
                     render={({ field }) => (
                       <ProductOrderDropdown
@@ -469,16 +532,20 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({ onSubmit = () => {}, onCl
                         onChange={(val) => {
                           field.onChange(val); // Update react-hook-form state
                           handleItemChange(item.id, 'product_id', val); // Update local state
-                          fetchPriceByProductAndPriceType(val, item.price_type_id, item.id);
-                        }}// Use field.onChange to update form state
+                          fetchPriceByProductAndPriceType(
+                            val,
+                            item.price_type_id,
+                            item.id
+                          );
+                        }} // Use field.onChange to update form state
                       />
                     )}
                   />
                 </Grid>
-                
+
                 <Grid size={{ xs: 6, md: 8 }}>
                   <Controller
-                    name={`items.${index}.price_type_id`}  // Corrected name syntax for react-hook-form
+                    name={`items.${index}.price_type_id`} // Corrected name syntax for react-hook-form
                     control={control}
                     render={({ field }) => (
                       <PricingTypeDropdown
@@ -488,17 +555,21 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({ onSubmit = () => {}, onCl
                         onChange={(val) => {
                           field.onChange(val); // Update react-hook-form state
                           handleItemChange(item.id, 'price_type_id', val); // Update local state
-                          
+
                           // Trigger fetching of price if both product_id and price_type_id are present
                           if (item.product_id) {
-                            fetchPriceByProductAndPriceType(item.product_id, val, item.id);
+                            fetchPriceByProductAndPriceType(
+                              item.product_id,
+                              val,
+                              item.id
+                            );
                           }
-                        }}  // Use field.onChange to update form state
+                        }} // Use field.onChange to update form state
                       />
                     )}
                   />
                 </Grid>
-                
+
                 <Grid size={{ xs: 6, md: 8 }}>
                   <Controller
                     name={`items.${index}.price`}
@@ -518,7 +589,9 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({ onSubmit = () => {}, onCl
                         slotProps={{
                           input: {
                             startAdornment: (
-                              <InputAdornment position="start">$</InputAdornment>
+                              <InputAdornment position="start">
+                                $
+                              </InputAdornment>
                             ),
                           },
                         }}
@@ -527,7 +600,7 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({ onSubmit = () => {}, onCl
                     )}
                   />
                 </Grid>
-                
+
                 <Grid size={{ xs: 6, md: 8 }}>
                   <Controller
                     name={`items.${index}.quantity_ordered`}
@@ -541,36 +614,46 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({ onSubmit = () => {}, onCl
                         value={field.value || 1}
                         onChange={(e) => {
                           field.onChange(e.target.value);
-                          handleItemChange(item.id, 'quantity_ordered', parseInt(e.target.value) || 1);
+                          handleItemChange(
+                            item.id,
+                            'quantity_ordered',
+                            parseInt(e.target.value) || 1
+                          );
                         }}
                       />
                     )}
                   />
                 </Grid>
-                
+
                 {/* Display Subtotal (Read-Only) */}
                 <Grid size={{ xs: 6, md: 8 }}>
                   <CustomTypography variant="subtitle1" sx={{ mt: 1 }}>
-                    Subtotal: ${ (item.price * item.quantity_ordered).toFixed(2) }
+                    Subtotal: ${(item.price * item.quantity_ordered).toFixed(2)}
                   </CustomTypography>
                 </Grid>
-                
+
                 {/* Remove Button */}
                 <Grid size={{ xs: 6, md: 8 }}>
                   {items.length > 1 && (
-                    <CustomButton onClick={() => handleRemoveItem(item.id)} color="error">
+                    <CustomButton
+                      onClick={() => handleRemoveItem(item.id)}
+                      color="error"
+                    >
                       Remove
                     </CustomButton>
                   )}
                 </Grid>
-              
               </Grid>
             </CardContent>
           </Card>
         ))}
-        
+
         {isFormValid && (
-          <CustomButton type="button" onClick={handleAddItem} variant="outlined">
+          <CustomButton
+            type="button"
+            onClick={handleAddItem}
+            variant="outlined"
+          >
             Add Product
           </CustomButton>
         )}

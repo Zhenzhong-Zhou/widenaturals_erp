@@ -6,11 +6,7 @@ exports.up = function (knex) {
   return knex.schema.createTable('outbound_shipments', (table) => {
     table.uuid('id').primary().defaultTo(knex.raw('uuid_generate_v4()'));
 
-    table
-      .uuid('order_id')
-      .notNullable()
-      .references('id')
-      .inTable('orders');
+    table.uuid('order_id').notNullable().references('id').inTable('orders');
     table
       .uuid('warehouse_id')
       .notNullable()

@@ -1,5 +1,7 @@
 const express = require('express');
-const { getDiscountsForDropdownController } = require('../controllers/discount-controller');
+const {
+  getDiscountsForDropdownController,
+} = require('../controllers/discount-controller');
 
 const router = express.Router();
 

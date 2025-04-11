@@ -3,10 +3,7 @@ import Box from '@mui/material/Box';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
 import { monitorCsrfStatus } from '@utils/monitorCsrfStatus';
-import {
-  selectCsrfStatus,
-  selectCsrfError,
-} from '@features/csrf/state';
+import { selectCsrfStatus, selectCsrfError } from '@features/csrf/state';
 import { useAppSelector } from '@store/storeHooks';
 
 interface ErrorDisplayProps {

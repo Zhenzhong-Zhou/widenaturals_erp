@@ -8,7 +8,9 @@ import type { ProductOrderDropdownState } from '@features/product/state/productO
  * @param state - The root Redux state.
  * @returns The product order dropdown slice state.
  */
-const selectProductOrderDropdownState = (state: RootState): ProductOrderDropdownState =>
+const selectProductOrderDropdownState = (
+  state: RootState
+): ProductOrderDropdownState =>
   state.productOrderDropdown as ProductOrderDropdownState;
 
 /**

@@ -1,7 +1,8 @@
 const wrapAsync = require('../utils/wrap-async');
 const {
   fetchAllPricings,
-  fetchPricingDetailsByPricingId, fetchPriceByProductAndPriceType,
+  fetchPricingDetailsByPricingId,
+  fetchPriceByProductAndPriceType,
 } = require('../services/pricing-service');
 
 /**
@@ -57,17 +58,22 @@ const getPricingDetailsController = wrapAsync(async (req, res, next) => {
   }
 });
 
-const getPriceByProductAndPriceTypeController = wrapAsync(async (req, res, next) => {
-  const { productId, priceTypeId } = req.query;
-  
-  try {
-    const price = await fetchPriceByProductAndPriceType(productId, priceTypeId);
-    
-    res.status(200).json(price);
-  } catch (error) {
-    next(error);
+const getPriceByProductAndPriceTypeController = wrapAsync(
+  async (req, res, next) => {
+    const { productId, priceTypeId } = req.query;
+
+    try {
+      const price = await fetchPriceByProductAndPriceType(
+        productId,
+        priceTypeId
+      );
+
+      res.status(200).json(price);
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
 module.exports = {
   getPricingsController,

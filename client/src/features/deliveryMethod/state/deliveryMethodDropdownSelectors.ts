@@ -3,7 +3,8 @@ import type { RootState } from '@store/store';
 import type { DeliveryMethodDropdownItem } from './deliveryMethodTypes';
 
 // Selector to get the delivery method state
-const selectDeliveryMethodDropdownState = (state: RootState) => state.deliveryMethodDropdown;
+const selectDeliveryMethodDropdownState = (state: RootState) =>
+  state.deliveryMethodDropdown;
 
 // Selector to get the list of methods
 export const selectDeliveryMethods = createSelector(
@@ -27,10 +28,10 @@ export const selectDeliveryMethodDropdownError = createSelector(
 export const selectFormattedDeliveryMethodDropdown = createSelector(
   [selectDeliveryMethods],
   (methods: DeliveryMethodDropdownItem[]) =>
-    methods.map(method => ({
+    methods.map((method) => ({
       value: method.id,
       label: method.estimatedTime
         ? `${method.name} (${method.estimatedTime.days} days)` // Display days if available
-        : method.name // Display name only if estimatedTime is null
+        : method.name, // Display name only if estimatedTime is null
     }))
 );

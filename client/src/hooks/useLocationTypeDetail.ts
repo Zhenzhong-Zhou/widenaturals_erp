@@ -2,7 +2,9 @@ import { useCallback, useEffect, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   selectLocations,
-  selectLocationTypeDetail, selectLocationTypeError, selectLocationTypeLoading,
+  selectLocationTypeDetail,
+  selectLocationTypeError,
+  selectLocationTypeLoading,
   selectLocationTypePagination,
 } from '@features/locationType/state/locationTypeDetailSelectors';
 import { fetchLocationTypeDetailsThunk } from '@features/locationType/state';
@@ -34,7 +36,9 @@ const useLocationTypeDetail = (
    */
   useEffect(() => {
     if (id) {
-      dispatch(fetchLocationTypeDetailsThunk({ id, page, limit, sortBy, sortOrder }));
+      dispatch(
+        fetchLocationTypeDetailsThunk({ id, page, limit, sortBy, sortOrder })
+      );
     }
   }, [dispatch, id, page, limit, sortBy, sortOrder]);
 
@@ -43,7 +47,9 @@ const useLocationTypeDetail = (
    */
   const refresh = useCallback(() => {
     if (id) {
-      dispatch(fetchLocationTypeDetailsThunk({ id, page, limit, sortBy, sortOrder }));
+      dispatch(
+        fetchLocationTypeDetailsThunk({ id, page, limit, sortBy, sortOrder })
+      );
     }
   }, [dispatch, id, page, limit, sortBy, sortOrder]);
 

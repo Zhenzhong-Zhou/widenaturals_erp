@@ -13,7 +13,12 @@ interface OrderFormModalProps {
 /**
  * Dedicated Modal Component for Creating Orders
  */
-const OrderFormModal: FC<OrderFormModalProps> = ({ open, title, children, onClose }) => {
+const OrderFormModal: FC<OrderFormModalProps> = ({
+  open,
+  title,
+  children,
+  onClose,
+}) => {
   return (
     <CustomModal
       open={open}

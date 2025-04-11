@@ -34,7 +34,10 @@ interface FormProps {
   children?: ReactNode;
   fields?: FieldConfig[];
   control: Control<any>;
-  onSubmit: (formData: Record<string, any>, e?: BaseSyntheticEvent) => void | Promise<void>;
+  onSubmit: (
+    formData: Record<string, any>,
+    e?: BaseSyntheticEvent
+  ) => void | Promise<void>;
   submitButtonLabel?: string;
   disabled?: boolean;
   showSubmitButton?: boolean;
@@ -42,20 +45,20 @@ interface FormProps {
 }
 
 const CustomForm: FC<FormProps> = ({
-                                     fields = [],
-                                     children,
-                                     onSubmit,
-                                     submitButtonLabel = 'Submit',
-                                     control,
-                                     showSubmitButton = true,
-                                     sx
-                                   }) => {
+  fields = [],
+  children,
+  onSubmit,
+  submitButtonLabel = 'Submit',
+  control,
+  showSubmitButton = true,
+  sx,
+}) => {
   const { theme } = useThemeContext();
   const {
     handleSubmit,
     formState: { errors },
-  } = useForm({ mode: 'onChange' });  // Enable real-time validation check
-  
+  } = useForm({ mode: 'onChange' }); // Enable real-time validation check
+
   return (
     <Box
       component="form"
@@ -225,9 +228,9 @@ const CustomForm: FC<FormProps> = ({
           )}
         </Box>
       ))}
-      
+
       {children}
-      
+
       {/** Render the Submit button only if `showSubmitButton` is true */}
       {showSubmitButton && (
         <CustomButton type="submit" variant="contained" color="primary">

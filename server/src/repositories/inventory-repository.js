@@ -4,7 +4,8 @@ const {
   retry,
   bulkInsert,
   lockRow,
-  formatBulkUpdateQuery, paginateResults,
+  formatBulkUpdateQuery,
+  paginateResults,
 } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logInfo, logError, logWarn } = require('../utils/logger-helper');
@@ -223,20 +224,20 @@ const getPaginatedInventorySummary = async ({ page = 1, limit = 20 }) => {
     GROUP BY i.product_id, p.product_name, i.identifier, sn.name
     ORDER BY item_name
   `;
-  
- try {
-   return await retry(async () => {
-     return await paginateResults({
-       dataQuery: baseQuery,
-       params: [],
-       page,
-       limit,
-     });
-   });
- } catch (error) {
-   logError('Error fetching paginated inventory summary:', error);
-   throw AppError.databaseError('Failed to fetch paginated inventory summary');
- }
+
+  try {
+    return await retry(async () => {
+      return await paginateResults({
+        dataQuery: baseQuery,
+        params: [],
+        page,
+        limit,
+      });
+    });
+  } catch (error) {
+    logError('Error fetching paginated inventory summary:', error);
+    throw AppError.databaseError('Failed to fetch paginated inventory summary');
+  }
 };
 
 /**
@@ -612,7 +613,7 @@ const updateInventoryQuantity = async (client, inventoryUpdates, userId) => {
   const columnTypes = {
     quantity: 'integer',
   };
-  
+
   const { baseQuery, params } = await formatBulkUpdateQuery(
     'inventory',
     ['quantity'],
@@ -621,12 +622,12 @@ const updateInventoryQuantity = async (client, inventoryUpdates, userId) => {
     userId,
     columnTypes
   );
-  
+
   if (baseQuery) {
     return await retry(
       async () => {
         const { rows } = await query(baseQuery, params, client);
-        
+
         return rows; // Return the updated inventory IDs
       },
       3, // Retry up to 3 times

@@ -13,13 +13,13 @@ import {
  */
 const useConfirmSalesOrder = () => {
   const dispatch = useAppDispatch();
-  
+
   // Memoized state from selectors
   const data = useAppSelector(selectConfirmOrderData);
   const loading = useAppSelector(selectConfirmOrderLoading);
   const error = useAppSelector(selectConfirmOrderError);
   const successMessage = useAppSelector(selectConfirmOrderSuccessMessage);
-  
+
   // Memoized dispatch action
   const confirm = useCallback(
     (orderId: string) => {
@@ -27,7 +27,7 @@ const useConfirmSalesOrder = () => {
     },
     [dispatch]
   );
-  
+
   // Memoized return for optimization
   return useMemo(
     () => ({

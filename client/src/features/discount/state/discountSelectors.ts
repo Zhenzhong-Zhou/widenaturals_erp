@@ -3,7 +3,8 @@ import type { RootState } from '@store/store';
 import type { DiscountDropdownItem } from '@features/discount';
 
 // Simple selector to access the discountDropdown state
-const selectDiscountDropdownState = (state: RootState) => state.discountDropdown;
+const selectDiscountDropdownState = (state: RootState) =>
+  state.discountDropdown;
 
 // Memoized Selector for getting discounts
 export const selectDiscounts = createSelector(
@@ -29,6 +30,6 @@ export const selectFormattedDiscounts = createSelector(
   (discounts: DiscountDropdownItem[]) =>
     discounts.map((discount) => ({
       value: discount.id,
-      label: `${discount.name} - ${discount.displayValue}`
+      label: `${discount.name} - ${discount.displayValue}`,
     }))
 );

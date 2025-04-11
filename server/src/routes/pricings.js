@@ -6,7 +6,8 @@
 const express = require('express');
 const {
   getPricingsController,
-  getPricingDetailsController, getPriceByProductAndPriceTypeController,
+  getPricingDetailsController,
+  getPriceByProductAndPriceTypeController,
 } = require('../controllers/pricing-controller');
 const authorize = require('../middlewares/authorize');
 

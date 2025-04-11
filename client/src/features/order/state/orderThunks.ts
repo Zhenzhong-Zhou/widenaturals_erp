@@ -4,7 +4,8 @@ import type {
   CreateSalesOrderResponse,
   FetchOrdersParams,
   OrderDetailsResponse,
-  OrderStatusUpdateResponse, OrderType,
+  OrderStatusUpdateResponse,
+  OrderType,
   SalesOrder,
 } from '@features/order';
 import { orderService } from '@services/orderService';
@@ -57,17 +58,16 @@ export const fetchSalesOrderDetailsThunk = createAsyncThunk<
   OrderDetailsResponse,
   string,
   { rejectValue: string }
->(
-  'salesOrderDetails/fetch',
-  async (orderId, { rejectWithValue }) => {
-    try {
-      return await orderService.fetchSalesOrderDetails(orderId);
-    } catch (error: any) {
-      console.error('Error in fetchSalesOrderDetailsThunk:', error.message);
-      return rejectWithValue('Failed to fetch sales order details. Please try again.');
-    }
+>('salesOrderDetails/fetch', async (orderId, { rejectWithValue }) => {
+  try {
+    return await orderService.fetchSalesOrderDetails(orderId);
+  } catch (error: any) {
+    console.error('Error in fetchSalesOrderDetailsThunk:', error.message);
+    return rejectWithValue(
+      'Failed to fetch sales order details. Please try again.'
+    );
   }
-);
+});
 
 /**
  * Thunk to confirm a sales order.
@@ -79,16 +79,15 @@ export const fetchSalesOrderDetailsThunk = createAsyncThunk<
  */
 export const confirmSalesOrderThunk = createAsyncThunk<
   OrderStatusUpdateResponse, // Return type
-  string,                    // Payload type (orderId)
-  { rejectValue: string }    // Error type for rejected action
->(
-  'salesOrder/confirm',
-  async (orderId, { rejectWithValue }) => {
-    try {
-      return await orderService.confirmSalesOrder(orderId);
-    } catch (error: any) {
-      console.error('Error confirming sales order:', error);
-      return rejectWithValue('Failed to confirm sales order. Please try again later.');
-    }
+  string, // Payload type (orderId)
+  { rejectValue: string } // Error type for rejected action
+>('salesOrder/confirm', async (orderId, { rejectWithValue }) => {
+  try {
+    return await orderService.confirmSalesOrder(orderId);
+  } catch (error: any) {
+    console.error('Error confirming sales order:', error);
+    return rejectWithValue(
+      'Failed to confirm sales order. Please try again later.'
+    );
   }
-);
+});

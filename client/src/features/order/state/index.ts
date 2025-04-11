@@ -1,4 +1,3 @@
-
 import orderTypesDropDownReducer from './orderTypeDropdownSlice';
 import createSalesOrderReducer from './createSalesOrderSlice';
 import confirmSalesOrderReducer from './confirmSalesOrderSlice';

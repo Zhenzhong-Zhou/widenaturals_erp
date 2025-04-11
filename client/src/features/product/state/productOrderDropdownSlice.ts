@@ -24,14 +24,20 @@ const productOrderDropdownSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchProductsForOrdersDropdownThunk.fulfilled, (state, action: PayloadAction<ProductDropdownItem[]>) => {
-        state.products = action.payload;
-        state.loading = false;
-      })
-      .addCase(fetchProductsForOrdersDropdownThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
-      });
+      .addCase(
+        fetchProductsForOrdersDropdownThunk.fulfilled,
+        (state, action: PayloadAction<ProductDropdownItem[]>) => {
+          state.products = action.payload;
+          state.loading = false;
+        }
+      )
+      .addCase(
+        fetchProductsForOrdersDropdownThunk.rejected,
+        (state, action) => {
+          state.loading = false;
+          state.error = action.payload as string;
+        }
+      );
   },
 });
 

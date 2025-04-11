@@ -7,7 +7,9 @@ import {
   selectLocationTypes,
   selectPagination,
   selectPricingLoading,
-  selectPricingError, getPricingDetailsThunk, fetchPricingDataThunk,
+  selectPricingError,
+  getPricingDetailsThunk,
+  fetchPricingDataThunk,
 } from '@features/pricing';
 
 /**

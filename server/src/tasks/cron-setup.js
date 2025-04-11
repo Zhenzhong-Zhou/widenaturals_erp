@@ -8,11 +8,14 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 // Define logs path based on environment
 const logsPath = isProduction
-  ? path.resolve('/logs/database')  // Production path
-  : path.resolve(process.env.LOGS_DIR || '../../dev_logs');  // Local path
+  ? path.resolve('/logs/database') // Production path
+  : path.resolve(process.env.LOGS_DIR || '../../dev_logs'); // Local path
 
 // Define paths for your cron job scripts
-const cronBackupPath = path.resolve(__dirname, '../tasks/schedulers/backup-scheduler.js');
+const cronBackupPath = path.resolve(
+  __dirname,
+  '../tasks/schedulers/backup-scheduler.js'
+);
 
 // Ensure logs directory exists
 if (!fs.existsSync(logsPath)) {
@@ -21,7 +24,7 @@ if (!fs.existsSync(logsPath)) {
 
 // Define the PATH depending on the environment
 const PATH_ENV = isProduction
-  ? '/usr/local/bin'// Ubuntu default PATH
+  ? '/usr/local/bin' // Ubuntu default PATH
   : '/opt/homebrew/bin'; // macOS with Homebrew
 
 // Dynamically resolve the Node.js path
@@ -42,10 +45,10 @@ const cronJobs = [
  */
 const setupCronJobs = () => {
   logInfo('Registering cron jobs...');
-  
+
   const cronString = cronJobs.join('\n') + '\n';
   logInfo(`Generated cron job string: \n${cronString}`);
-  
+
   exec(`echo "${cronString}" | crontab -`, (error, stdout, stderr) => {
     if (error) {
       logError('Failed to set up cron jobs:', error.message);

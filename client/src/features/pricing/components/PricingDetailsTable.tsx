@@ -52,7 +52,9 @@ const PricingDetailsTable: FC<PricingDetailsTableProps> = ({
     <Box>
       {/* General Pricing Info */}
       <Paper sx={{ padding: 2, marginBottom: 3 }}>
-        <CustomTypography variant="h6">General Pricing Information</CustomTypography>
+        <CustomTypography variant="h6">
+          General Pricing Information
+        </CustomTypography>
         <CustomTypography>
           <strong>{pricing.price_type_name} Price:</strong> CA{' '}
           {formatCurrency(pricing.price)}

@@ -36,11 +36,7 @@ export const selectUserProfileError = createSelector(
  * Memoized selector combining response, loading, and error.
  */
 export const selectUserProfileData = createSelector(
-  [
-    selectUserProfileResponse,
-    selectUserProfileLoading,
-    selectUserProfileError,
-  ],
+  [selectUserProfileResponse, selectUserProfileLoading, selectUserProfileError],
   (response, loading, error) => ({
     response,
     loading,

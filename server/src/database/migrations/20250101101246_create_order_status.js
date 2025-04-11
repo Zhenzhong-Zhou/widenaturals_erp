@@ -9,7 +9,16 @@ exports.up = function (knex) {
     table
       .string('category', 50)
       .notNullable()
-      .checkIn(['draft', 'confirmation', 'processing', 'fulfillment', 'shipment', 'payment', 'return', 'completion']); // High-level category of status
+      .checkIn([
+        'draft',
+        'confirmation',
+        'processing',
+        'fulfillment',
+        'shipment',
+        'payment',
+        'return',
+        'completion',
+      ]); // High-level category of status
     table.string('code', 50).unique().notNullable(); // Short code, e.g., "ORDER_PENDING"
     table.text('description').nullable();
     table.boolean('is_final').defaultTo(false); // Marks if status is terminal (e.g., delivered, canceled)

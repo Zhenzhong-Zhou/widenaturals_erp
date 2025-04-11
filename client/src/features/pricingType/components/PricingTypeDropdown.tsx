@@ -8,7 +8,7 @@ interface PricingTypeDropdownProps {
   label?: string;
   value: string | null;
   onChange: (value: string) => void;
-  productId: string | null;  // New prop for product ID
+  productId: string | null; // New prop for product ID
   onAddNew?: () => void;
   disabled?: boolean;
 }
@@ -20,26 +20,29 @@ interface FormattedOption {
 }
 
 const PricingTypeDropdown: FC<PricingTypeDropdownProps> = ({
-                                                             label = 'Select Pricing Type',
-                                                             value,
-                                                             onChange,
-                                                             productId,
-                                                             onAddNew,
-                                                             disabled = false,
-                                                           }) => {
-  const { pricingTypes, loading, error, refreshPricingTypes } = usePricingTypeDropdown(productId || '');  // Pass productId to hook
+  label = 'Select Pricing Type',
+  value,
+  onChange,
+  productId,
+  onAddNew,
+  disabled = false,
+}) => {
+  const { pricingTypes, loading, error, refreshPricingTypes } =
+    usePricingTypeDropdown(productId || ''); // Pass productId to hook
   const [options, setOptions] = useState<FormattedOption[]>([]);
-  
+
   // Update options when pricingTypes data changes
   useEffect(() => {
     if (pricingTypes.length > 0) {
-      setOptions(pricingTypes.map((type) => ({
-        value: type.id,
-        label: type.label,
-      })));
+      setOptions(
+        pricingTypes.map((type) => ({
+          value: type.id,
+          label: type.label,
+        }))
+      );
     }
   }, [pricingTypes]);
-  
+
   if (loading) {
     return (
       <Box display="flex" alignItems="center" justifyContent="center">
@@ -47,11 +50,11 @@ const PricingTypeDropdown: FC<PricingTypeDropdownProps> = ({
       </Box>
     );
   }
-  
+
   if (error) {
     return <div>Error loading pricing types: {error}</div>;
   }
-  
+
   return (
     <Dropdown
       label={label}
@@ -60,7 +63,7 @@ const PricingTypeDropdown: FC<PricingTypeDropdownProps> = ({
       onChange={onChange}
       onAddNew={onAddNew}
       onRefresh={refreshPricingTypes}
-      disabled={disabled || !productId}  // Disable if no productId is provided
+      disabled={disabled || !productId} // Disable if no productId is provided
       searchable
     />
   );

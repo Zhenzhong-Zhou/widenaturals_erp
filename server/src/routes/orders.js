@@ -1,7 +1,9 @@
 const express = require('express');
 const {
   createOrderController,
-  getOrderDetailsController, getAllOrdersController, confirmOrderController,
+  getOrderDetailsController,
+  getAllOrdersController,
+  confirmOrderController,
 } = require('../controllers/order-controller');
 
 const router = express.Router();

@@ -113,25 +113,25 @@ require('winston').addColors(customLevels.colors);
 const handleRotationAndUpload = (transport, s3PathPrefix) => {
   transport.on('rotate', async (oldFilename, newFilename) => {
     logInfo(`Log rotation detected: ${oldFilename} -> ${newFilename}`);
-    
+
     try {
       // Compress file before uploading
       const compressedFilename = `${oldFilename}.gz`;
       await compressFile(oldFilename, compressedFilename);
-      
+
       logInfo('Compression completed...');
-      
+
       // Prepare S3 key (path)
       const s3Key = `${s3PathPrefix}/${path.basename(compressedFilename)}`;
-      
+
       // Upload compressed file to S3
       await uploadFileToS3(compressedFilename, bucketName, s3Key);
       logInfo(`Uploaded ${compressedFilename} to S3 as ${s3Key}.`);
-      
+
       // Cleanup - Remove the original & compressed file
       fs.unlinkSync(oldFilename);
       fs.unlinkSync(compressedFilename);
-      
+
       logInfo(`Successfully uploaded ${compressedFilename} to S3.`);
     } catch (error) {
       logError('Failed to upload log to S3:', error.message);
@@ -154,7 +154,7 @@ const compressFile = (sourceFile, destinationFile) =>
     const readStream = fs.createReadStream(sourceFile);
     const writeStream = fs.createWriteStream(destinationFile);
     const gzip = zlib.createGzip();
-    
+
     readStream
       .pipe(gzip)
       .pipe(writeStream)

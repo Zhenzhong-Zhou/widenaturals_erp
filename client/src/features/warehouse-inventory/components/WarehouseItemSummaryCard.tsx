@@ -18,19 +18,19 @@ interface WarehouseItemSummaryProps {
 }
 
 const WarehouseItemSummaryCard = ({
-                                    itemsSummary,
-                                    summaryPage,
-                                    totalPages,
-                                    setSummaryPage,
-                                    refreshSummary,
-                                  }: WarehouseItemSummaryProps) => {
+  itemsSummary,
+  summaryPage,
+  totalPages,
+  setSummaryPage,
+  refreshSummary,
+}: WarehouseItemSummaryProps) => {
   return (
     <Box>
       {/* Page Header */}
       <Paper sx={{ padding: 2, marginBottom: 3 }}>
         <CustomTypography variant="h4">Warehouse Item Summary</CustomTypography>
       </Paper>
-      
+
       {/* Summary Cards */}
       <Box
         sx={{
@@ -83,7 +83,7 @@ const WarehouseItemSummaryCard = ({
           </CustomCard>
         ))}
       </Box>
-      
+
       {/* Pagination Controls */}
       {totalPages > 1 && (
         <Box
@@ -123,7 +123,7 @@ const WarehouseItemSummaryCard = ({
           </IconButton>
         </Box>
       )}
-      
+
       {/* Refresh Button */}
       <Box sx={{ display: 'flex', justifyContent: 'center', marginTop: 2 }}>
         <CustomButton onClick={refreshSummary}>Refresh Data</CustomButton>

@@ -1,5 +1,9 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import { fetchWarehousesThunk, type Pagination, type Warehouse } from '@features/warehouse';
+import {
+  fetchWarehousesThunk,
+  type Pagination,
+  type Warehouse,
+} from '@features/warehouse';
 
 // Warehouse State Type
 interface WarehouseState {

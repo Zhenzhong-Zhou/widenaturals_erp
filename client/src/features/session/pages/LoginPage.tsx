@@ -40,7 +40,10 @@ const LoginPage: FC = () => {
         >
           Welcome to Wide Naturals ERP
         </CustomTypography>
-        <CustomTypography variant="body1" sx={{ color: 'text.secondary', mt: 1 }}>
+        <CustomTypography
+          variant="body1"
+          sx={{ color: 'text.secondary', mt: 1 }}
+        >
           Manage your inventory, sales, and operations efficiently.
         </CustomTypography>
       </Box>

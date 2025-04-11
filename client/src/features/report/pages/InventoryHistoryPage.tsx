@@ -66,7 +66,10 @@ const InventoryHistoryPage: FC = () => {
           fetchInventoryHistory={fetchInventoryHistory}
         />
       ) : (
-        <CustomTypography variant="body1" sx={{ textAlign: 'center', padding: 2 }}>
+        <CustomTypography
+          variant="body1"
+          sx={{ textAlign: 'center', padding: 2 }}
+        >
           No inventory history records available.
         </CustomTypography>
       )}

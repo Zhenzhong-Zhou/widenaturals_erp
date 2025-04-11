@@ -21,7 +21,7 @@ const getDeliveryMethodsForDropdown = async (includePickup = false) => {
           ${!includePickup ? 'AND dm.is_pickup_location = false' : ''}
       ORDER BY dm.method_name ASC;
     `;
-    
+
     const { rows } = await query(queryText);
     return rows;
   } catch (error) {
@@ -43,11 +43,11 @@ const checkDeliveryMethodExists = async (deliveryMethodId, client = null) => {
         SELECT 1 FROM delivery_methods WHERE id = $1
       ) AS exists;
     `;
-    
+
     const { rows } = client
       ? await client.query(queryText, [deliveryMethodId])
       : await query(queryText, [deliveryMethodId]);
-    
+
     return rows[0]?.exists || false;
   } catch (error) {
     logError('Error checking delivery method existence:', error);
@@ -57,5 +57,5 @@ const checkDeliveryMethodExists = async (deliveryMethodId, client = null) => {
 
 module.exports = {
   getDeliveryMethodsForDropdown,
-  checkDeliveryMethodExists
-}
+  checkDeliveryMethodExists,
+};

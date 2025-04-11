@@ -22,13 +22,13 @@ import type { ShippingInformation } from '@features/order';
  */
 export const formatLabel = (text: string | null | undefined): string => {
   if (!text) return 'Unknown';
-  
+
   return text
     .replace(/[_-]/g, ' ') // snake_case or kebab-case to space
     .replace(/([a-z0-9])([A-Z])/g, '$1 $2') // camelCase to space
     .toLowerCase()
     .split(' ')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
 };
 
@@ -68,13 +68,13 @@ export const formatPhoneNumber = (
   defaultCountry: CountryCode = 'CA'
 ): string => {
   if (!phoneNumber) return 'N/A';
-  
+
   const parsedPhone = parsePhoneNumberFromString(phoneNumber);
-  
+
   if (parsedPhone) {
     return parsedPhone.formatInternational();
   }
-  
+
   try {
     const callingCode = getCountryCallingCode(defaultCountry);
     return new AsYouType(defaultCountry).input(`+${callingCode}${phoneNumber}`);
@@ -96,12 +96,12 @@ export const formatShippingAddress = (
 ): Record<string, string> => {
   if (!shippingInfo) {
     return {
-      'Address': 'N/A',
-      'Country': 'N/A',
-      'Region': 'N/A',
+      Address: 'N/A',
+      Country: 'N/A',
+      Region: 'N/A',
     };
   }
-  
+
   const {
     shipping_address_line1,
     shipping_address_line2,
@@ -111,21 +111,24 @@ export const formatShippingAddress = (
     shipping_country,
     shipping_region,
   } = shippingInfo;
-  
+
   const isNorthAmerica = ['Canada', 'United States', 'USA', 'US'].includes(
     (shipping_country || '').trim()
   );
-  
-  const addressParts = [shipping_address_line1, shipping_address_line2].filter(Boolean);
+
+  const addressParts = [shipping_address_line1, shipping_address_line2].filter(
+    Boolean
+  );
   const locationParts = isNorthAmerica
     ? [shipping_city, shipping_state, shipping_postal_code]
     : [shipping_city, shipping_region];
-  
-  const fullAddress = [...addressParts, ...locationParts].filter(Boolean).join(', ') || 'N/A';
-  
+
+  const fullAddress =
+    [...addressParts, ...locationParts].filter(Boolean).join(', ') || 'N/A';
+
   return {
-    'Address': fullAddress,
-    'Country': shipping_country || 'N/A',
-    'Region': shipping_region || 'N/A',
+    Address: fullAddress,
+    Country: shipping_country || 'N/A',
+    Region: shipping_region || 'N/A',
   };
 };

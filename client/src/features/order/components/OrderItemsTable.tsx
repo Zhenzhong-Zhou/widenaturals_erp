@@ -10,7 +10,7 @@ interface OrderItemsTableProps {
 const OrderItemsTable: FC<OrderItemsTableProps> = ({ items }) => {
   // Define the columns for the order items table
   const columns = useMemo(() => orderItemsColumns(items), [items]);
-  
+
   return (
     <CustomTable
       columns={columns}

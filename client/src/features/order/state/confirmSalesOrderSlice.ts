@@ -1,5 +1,8 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { confirmSalesOrderThunk, type OrderStatusUpdateResponse } from '@features/order';
+import {
+  confirmSalesOrderThunk,
+  type OrderStatusUpdateResponse,
+} from '@features/order';
 
 interface ConfirmSalesOrderState {
   data: OrderStatusUpdateResponse | null;

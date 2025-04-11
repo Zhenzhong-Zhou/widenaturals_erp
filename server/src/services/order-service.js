@@ -1,15 +1,26 @@
 const {
   createOrder,
-  getOrderDetailsById, getAllOrders,
+  getOrderDetailsById,
+  getAllOrders,
 } = require('../repositories/order-repository');
 const { createSalesOrder } = require('../repositories/sales-order-repository');
 const {
-  getOrderTypeByIdOrName, checkOrderTypeExists,
+  getOrderTypeByIdOrName,
+  checkOrderTypeExists,
 } = require('../repositories/order-type-repository');
 const AppError = require('../utils/AppError');
 const { logError } = require('../utils/logger-helper');
-const { transformOrderDetails, transformAllOrders, transformUpdatedOrderStatusResult } = require('../transformers/order-transformer');
-const { applyOrderDetailsBusinessLogic, validateOrderNumbers, confirmOrderWithItems, canConfirmOrder } = require('../business/order-business');
+const {
+  transformOrderDetails,
+  transformAllOrders,
+  transformUpdatedOrderStatusResult,
+} = require('../transformers/order-transformer');
+const {
+  applyOrderDetailsBusinessLogic,
+  validateOrderNumbers,
+  confirmOrderWithItems,
+  canConfirmOrder,
+} = require('../business/order-business');
 const { withTransaction } = require('../database/db');
 
 /**
@@ -22,25 +33,25 @@ const { withTransaction } = require('../database/db');
 const createOrderByType = async (orderData) => {
   // Step 1: Check if order type exists
   const orderTypeExists = await checkOrderTypeExists(orderData.order_type_id);
-  
+
   if (!orderTypeExists) {
     throw AppError.validationError('Invalid order type provided.');
   }
-  
+
   // Step 2: Fetch order type details based on `order_type_id`
   const orderType = await getOrderTypeByIdOrName({
     id: orderData.order_type_id,
   });
-  
+
   if (!orderType) {
     throw AppError.databaseError('Failed to fetch order type details.');
   }
-  
+
   // Step 3: Route to the correct order creation function
   switch (orderType.category) {
     case 'sales':
       return createSalesOrder(orderData);
-    
+
     case 'purchase':
     case 'transfer':
     case 'return':
@@ -48,7 +59,7 @@ const createOrderByType = async (orderData) => {
     case 'adjustment':
     case 'logistics':
       return createOrder(orderData);
-    
+
     default:
       throw AppError.validationError(
         `Unsupported order category: ${orderType.category}`
@@ -67,17 +78,17 @@ const fetchOrderDetails = async (orderId, user) => {
   if (!orderId) {
     throw AppError.validationError('Order ID is required.');
   }
-  
+
   // Fetch order details from the repository
   const orderRows = await getOrderDetailsById(orderId);
-  
+
   if (!orderRows || orderRows.length === 0) {
     throw AppError.notFoundError(`Order with ID ${orderId} not found.`);
   }
-  
+
   // Transform Data
   const transformedOrder = transformOrderDetails(orderRows);
-  
+
   // Apply Business Logic with User Permissions
   return applyOrderDetailsBusinessLogic(transformedOrder, user);
 };
@@ -94,22 +105,25 @@ const fetchOrderDetails = async (orderId, user) => {
  * @returns {Promise<Object>} - The paginated orders result with transformed data.
  */
 const fetchAllOrdersService = async ({
-                                       page = 1,
-                                       limit = 10,
-                                       sortBy = 'created_at',
-                                       sortOrder = 'DESC',
-                                       verifyOrderNumbers = true
-                                     } = {}) => {
+  page = 1,
+  limit = 10,
+  sortBy = 'created_at',
+  sortOrder = 'DESC',
+  verifyOrderNumbers = true,
+} = {}) => {
   try {
     // Fetching raw order data from repository
     const result = await getAllOrders({ page, limit, sortBy, sortOrder });
-    
+
     // Transforming the raw data
     const transformedOrders = transformAllOrders(result.data);
-    
+
     // Validating order numbers
-    const validatedOrders = validateOrderNumbers(transformedOrders, verifyOrderNumbers);
-    
+    const validatedOrders = validateOrderNumbers(
+      transformedOrders,
+      verifyOrderNumbers
+    );
+
     return { ...result, data: validatedOrders };
   } catch (error) {
     logError('Error fetching all orders:', error);
@@ -128,20 +142,24 @@ const fetchAllOrdersService = async ({
  */
 const confirmOrderService = async (orderId, user) => {
   if (!orderId) {
-    throw AppError.validationError('Order ID is required to confirm the order.');
+    throw AppError.validationError(
+      'Order ID is required to confirm the order.'
+    );
   }
-  
+
   return await withTransaction(async (client) => {
     // Step 1: Validate if the order and its items can be confirmed
     const isConfirmable = await canConfirmOrder(orderId, client);
-    
+
     if (!isConfirmable) {
-      throw AppError.validationError(`Order cannot be confirmed from its current status or item statuses.`);
+      throw AppError.validationError(
+        `Order cannot be confirmed from its current status or item statuses.`
+      );
     }
-    
+
     // Step 2: Confirm the order and items in the database
     const rawResult = await confirmOrderWithItems(orderId, user, client);
-    
+
     // Step 3: Transform and return the final confirmed result
     return transformUpdatedOrderStatusResult(rawResult);
   });

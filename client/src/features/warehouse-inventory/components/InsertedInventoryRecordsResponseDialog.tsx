@@ -13,14 +13,14 @@ interface InventoryRecordsDialogProps {
 }
 
 const InventoryRecordsResponseDialog: FC<InventoryRecordsDialogProps> = ({
-                                                                   insertedDataResponse,
-                                                                   open,
-                                                                   onClose,
-                                                                 }) => {
+  insertedDataResponse,
+  open,
+  onClose,
+}) => {
   if (!insertedDataResponse?.data || insertedDataResponse.data.length === 0) {
     return <Box />;
   }
-  
+
   // Properly type destructuring variables
   const formattedData = {
     ...insertedDataResponse,
@@ -28,7 +28,9 @@ const InventoryRecordsResponseDialog: FC<InventoryRecordsDialogProps> = ({
       ...warehouse,
       inventoryRecords: warehouse.inventoryRecords.map((record) => ({
         ...record,
-        expiryDate: record.expiryDate ? formatDateTime(record.expiryDate) : 'N/A',
+        expiryDate: record.expiryDate
+          ? formatDateTime(record.expiryDate)
+          : 'N/A',
         manufactureDate: record.manufactureDate
           ? formatDateTime(record.manufactureDate)
           : 'N/A',
@@ -41,7 +43,7 @@ const InventoryRecordsResponseDialog: FC<InventoryRecordsDialogProps> = ({
       })),
     })),
   };
-  
+
   return (
     <div>
       <CustomDialog
@@ -51,11 +53,13 @@ const InventoryRecordsResponseDialog: FC<InventoryRecordsDialogProps> = ({
       >
         {formattedData.data.map((warehouse) => (
           <Box key={warehouse.warehouseId} sx={{ marginBottom: 2 }}>
-            <CustomTypography variant="h6">{warehouse.warehouseName}</CustomTypography>
+            <CustomTypography variant="h6">
+              {warehouse.warehouseName}
+            </CustomTypography>
             <CustomTypography variant="body2">
               Total Records: {warehouse.totalRecords}
             </CustomTypography>
-            
+
             {warehouse.inventoryRecords.map((record) => (
               <Box key={record.warehouseLotId} sx={{ mb: 2 }}>
                 <CustomTypography variant="subtitle1">

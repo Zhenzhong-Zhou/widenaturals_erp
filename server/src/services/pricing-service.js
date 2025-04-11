@@ -111,20 +111,24 @@ const fetchPricingDetailsByPricingId = async (pricingId, page, limit) => {
  */
 const fetchPriceByProductAndPriceType = async (productId, priceTypeId) => {
   if (!productId || !priceTypeId) {
-    throw AppError.validationError('Product ID and Price Type ID are required.');
+    throw AppError.validationError(
+      'Product ID and Price Type ID are required.'
+    );
   }
-  
+
   try {
     const result = await getActiveProductPrice(productId, priceTypeId);
-    
+
     if (!result) {
-      throw AppError.notFoundError(`No active price found for product ${productId} with price type ${priceTypeId}.`);
+      throw AppError.notFoundError(
+        `No active price found for product ${productId} with price type ${priceTypeId}.`
+      );
     }
-    
+
     return {
       price: result.price,
       productId,
-      priceTypeId
+      priceTypeId,
     };
   } catch (error) {
     throw AppError.serviceError(`Failed to fetch price: ${error.message}`);

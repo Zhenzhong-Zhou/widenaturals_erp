@@ -4,7 +4,9 @@ import Loading from '@components/common/Loading';
 import type { BaseReportParams } from '@features/report';
 import { formatDate } from '@utils/dateTimeUtils';
 
-const CustomDatePicker = lazy(() => import('@components/common/CustomDatePicker'));
+const CustomDatePicker = lazy(
+  () => import('@components/common/CustomDatePicker')
+);
 
 interface ReportFiltersProps<T extends BaseReportParams> {
   filters: T;
@@ -63,7 +65,7 @@ const ReportFilters = <T extends BaseReportParams>({
           disabled={!!filters.reportType}
         />
       </Suspense>
-      
+
       <Suspense fallback={<Loading message="Loading end date picker..." />}>
         <CustomDatePicker
           label="End Date"

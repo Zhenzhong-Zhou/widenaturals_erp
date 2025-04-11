@@ -1,5 +1,8 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { type BulkInsertInventoryResponse, bulkInsertWarehouseInventoryThunk } from '@features/warehouse-inventory';
+import {
+  type BulkInsertInventoryResponse,
+  bulkInsertWarehouseInventoryThunk,
+} from '@features/warehouse-inventory';
 
 interface WarehouseInventoryState {
   data: BulkInsertInventoryResponse | null;

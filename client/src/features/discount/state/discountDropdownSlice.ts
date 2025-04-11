@@ -1,5 +1,8 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import { type DiscountDropdownItem, fetchDiscountDropdownThunk } from '@features/discount';
+import {
+  type DiscountDropdownItem,
+  fetchDiscountDropdownThunk,
+} from '@features/discount';
 
 // Initial state
 interface DiscountDropdownState {
@@ -24,10 +27,13 @@ const discountDropdownSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchDiscountDropdownThunk.fulfilled, (state, action: PayloadAction<DiscountDropdownItem[]>) => {
-        state.discounts = action.payload;
-        state.loading = false;
-      })
+      .addCase(
+        fetchDiscountDropdownThunk.fulfilled,
+        (state, action: PayloadAction<DiscountDropdownItem[]>) => {
+          state.discounts = action.payload;
+          state.loading = false;
+        }
+      )
       .addCase(fetchDiscountDropdownThunk.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;

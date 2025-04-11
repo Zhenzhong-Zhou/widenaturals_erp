@@ -6,10 +6,28 @@ const { fetchDynamicValue } = require('../03_utils');
  */
 exports.seed = async function (knex) {
   // Fetch dynamically required values
-  const activeStatusId = await fetchDynamicValue(knex, 'status', 'name', 'active', 'id');
-  const inactiveStatusId = await fetchDynamicValue(knex, 'status', 'name', 'inactive', 'id');
-  const systemActionId = await fetchDynamicValue(knex, 'users', 'email', 'system@internal.local', 'id');
-  
+  const activeStatusId = await fetchDynamicValue(
+    knex,
+    'status',
+    'name',
+    'active',
+    'id'
+  );
+  const inactiveStatusId = await fetchDynamicValue(
+    knex,
+    'status',
+    'name',
+    'inactive',
+    'id'
+  );
+  const systemActionId = await fetchDynamicValue(
+    knex,
+    'users',
+    'email',
+    'system@internal.local',
+    'id'
+  );
+
   // Define discount records
   const discounts = [
     {
@@ -19,7 +37,8 @@ exports.seed = async function (knex) {
       status_id: activeStatusId,
       valid_from: new Date('2025-03-15T00:00:00Z'),
       valid_to: null,
-      description: 'Seasonal spring sale offering 15% off on selected products.',
+      description:
+        'Seasonal spring sale offering 15% off on selected products.',
       status_date: new Date('2025-03-15T00:00:00Z'),
     },
     {
@@ -43,9 +62,9 @@ exports.seed = async function (knex) {
       status_date: new Date('2025-02-01T00:00:00Z'),
     },
   ];
-  
+
   // Format data before insertion
-  const formattedDiscounts = discounts.map(discount => ({
+  const formattedDiscounts = discounts.map((discount) => ({
     id: knex.raw('uuid_generate_v4()'),
     name: discount.name,
     discount_type: discount.discount_type,
@@ -60,12 +79,14 @@ exports.seed = async function (knex) {
     created_at: new Date(),
     updated_at: null,
   }));
-  
+
   // Insert discounts while ignoring conflicts
   await knex('discounts')
     .insert(formattedDiscounts)
     .onConflict(['name', 'discount_type', 'valid_from'])
     .ignore();
-  
-  console.log(`${formattedDiscounts.length} discount records seeded successfully.`);
+
+  console.log(
+    `${formattedDiscounts.length} discount records seeded successfully.`
+  );
 };

@@ -7,21 +7,24 @@ import CustomerTable from '@features/customer/components/CustomerTable';
 
 const CustomersPage: FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
-  
+
   return (
     <Box sx={{ p: 3 }}>
       <CustomTypography variant="h4" gutterBottom>
         Customer Management
       </CustomTypography>
-      
+
       {/* Separate Button to Open Modal */}
       <CustomButton variant="contained" onClick={() => setModalOpen(true)}>
         Create Customer
       </CustomButton>
-      
+
       {/* Modal: Controlled by State */}
-      <CreateCustomerModal open={modalOpen} onClose={() => setModalOpen(false)} />
-      
+      <CreateCustomerModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+      />
+
       <CustomerTable />
     </Box>
   );

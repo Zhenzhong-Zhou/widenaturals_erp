@@ -26,15 +26,21 @@ const productSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchProductsThunk.fulfilled, (state, action: PayloadAction<any>) => {
-        state.loading = false;
-        state.data = action.payload.data;
-        state.pagination = action.payload.pagination;
-      })
-      .addCase(fetchProductsThunk.rejected, (state, action: PayloadAction<any>) => {
-        state.loading = false;
-        state.error = action.payload;
-      });
+      .addCase(
+        fetchProductsThunk.fulfilled,
+        (state, action: PayloadAction<any>) => {
+          state.loading = false;
+          state.data = action.payload.data;
+          state.pagination = action.payload.pagination;
+        }
+      )
+      .addCase(
+        fetchProductsThunk.rejected,
+        (state, action: PayloadAction<any>) => {
+          state.loading = false;
+          state.error = action.payload;
+        }
+      );
   },
 });
 

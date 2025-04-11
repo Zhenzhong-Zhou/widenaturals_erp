@@ -4,10 +4,7 @@ import Box from '@mui/material/Box';
 import useCustomers from '@hooks/useCustomers';
 import CustomForm, { type FieldConfig } from '@components/common/CustomForm';
 import CustomModal from '@components/common/CustomModal';
-import type {
-  BulkCustomerRequest,
-  CustomerRequest,
-} from '@features/customer';
+import type { BulkCustomerRequest, CustomerRequest } from '@features/customer';
 
 interface CreateCustomerModalProps {
   open: boolean;
@@ -17,33 +14,41 @@ interface CreateCustomerModalProps {
 /**
  * Modal for Creating a New Customer with Google Autocomplete support.
  */
-const CreateCustomerModal: FC<CreateCustomerModalProps> = ({ open, onClose }) => {
+const CreateCustomerModal: FC<CreateCustomerModalProps> = ({
+  open,
+  onClose,
+}) => {
   const { createCustomer, loading, refreshCustomers } = useCustomers();
   const { control, handleSubmit, reset } = useForm<CustomerRequest>();
-  
+
   const handleFormSubmit = () =>
     handleSubmit(async (formData) => {
       if (loading) return;
-      
+
       const customersData: BulkCustomerRequest = [
         {
           ...formData,
           address_line2: formData.address_line2 || '',
         },
       ];
-      
+
       await createCustomer(customersData);
       reset();
       onClose();
       refreshCustomers();
     })();
-  
+
   const customerFormFields: FieldConfig[] = [
     { id: 'firstname', label: 'First Name', type: 'text', required: true },
     { id: 'lastname', label: 'Last Name', type: 'text', required: true },
     { id: 'email', label: 'Email', type: 'text' },
     { id: 'phone_number', label: 'Phone Number', type: 'phone' },
-    { id: 'address_line1', label: 'Address Line 1', type: 'text', required: true },
+    {
+      id: 'address_line1',
+      label: 'Address Line 1',
+      type: 'text',
+      required: true,
+    },
     { id: 'address_line2', label: 'Address Line 2', type: 'text' },
     { id: 'city', label: 'City', type: 'text', required: true },
     { id: 'state', label: 'State / Province', type: 'text', required: true },
@@ -52,7 +57,7 @@ const CreateCustomerModal: FC<CreateCustomerModalProps> = ({ open, onClose }) =>
     { id: 'region', label: 'Region', type: 'text' },
     { id: 'note', label: 'Note', type: 'textarea' },
   ];
-  
+
   return (
     <CustomModal
       open={open}
@@ -72,17 +77,17 @@ const CreateCustomerModal: FC<CreateCustomerModalProps> = ({ open, onClose }) =>
           py: 1,
         }}
       >
-       <CustomForm
-         fields={customerFormFields}
-         control={control}
-         onSubmit={handleFormSubmit}
-         sx={{
-           display: 'grid',
-           gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-           gap: 2,
-         }}
-       />
-     </Box>
+        <CustomForm
+          fields={customerFormFields}
+          control={control}
+          onSubmit={handleFormSubmit}
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+            gap: 2,
+          }}
+        />
+      </Box>
     </CustomModal>
   );
 };

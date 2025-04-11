@@ -2,7 +2,8 @@ import { createSelector } from 'reselect';
 import type { RootState } from '@store/store';
 
 // Base selector for createdSalesOrder state
-const selectCreatedSalesOrderState = (state: RootState) => state.createSalesOrder;
+const selectCreatedSalesOrderState = (state: RootState) =>
+  state.createSalesOrder;
 
 // Memoized selector for loading status
 export const selectCreatedSalesOrderLoading = createSelector(

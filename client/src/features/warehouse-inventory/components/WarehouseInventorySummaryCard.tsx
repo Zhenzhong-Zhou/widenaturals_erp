@@ -58,9 +58,13 @@ const WarehouseInventorySummaryCard: FC<WarehouseInventorySummaryProps> = ({
               ) : (
                 <Link
                   to={`/warehouse_inventories/${summary.warehouseId}`}
-                  style={{ textDecoration: 'none', }}
+                  style={{ textDecoration: 'none' }}
                 >
-                  <CustomTypography variant="h5" component="h5" sx={{ color: '#1976d2', fontWeight: 'bold' }}>
+                  <CustomTypography
+                    variant="h5"
+                    component="h5"
+                    sx={{ color: '#1976d2', fontWeight: 'bold' }}
+                  >
                     {summary.warehouseName}
                   </CustomTypography>
                 </Link>
@@ -81,8 +85,7 @@ const WarehouseInventorySummaryCard: FC<WarehouseInventorySummaryProps> = ({
               '&:hover': { transform: 'scale(1.05)', boxShadow: 6 },
             }}
           >
-          
-          {/* Main content inside CustomCard */}
+            {/* Main content inside CustomCard */}
             <Box
               sx={{
                 textAlign: 'left',

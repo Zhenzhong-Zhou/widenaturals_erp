@@ -16,17 +16,22 @@ interface TaxRateDropdownProps {
 }
 
 const TaxRateDropdown: FC<TaxRateDropdownProps> = ({
-                                                     label = 'Select Tax Rate',
-                                                     value,
-                                                     onChange,
-                                                     region = 'Canada',
-                                                     province = '',
-                                                     onAddNew,
-                                                     disabled = false,
-                                                   }) => {
-  const { taxRates, loading, error, refreshTaxRates } = useTaxRateDropdown(region, province);
-  const [options, setOptions] = useState<{ value: string; label: string }[]>([]);
-  
+  label = 'Select Tax Rate',
+  value,
+  onChange,
+  region = 'Canada',
+  province = '',
+  onAddNew,
+  disabled = false,
+}) => {
+  const { taxRates, loading, error, refreshTaxRates } = useTaxRateDropdown(
+    region,
+    province
+  );
+  const [options, setOptions] = useState<{ value: string; label: string }[]>(
+    []
+  );
+
   // Format tax rates for the Dropdown component
   useEffect(() => {
     if (taxRates.length > 0) {
@@ -37,19 +42,19 @@ const TaxRateDropdown: FC<TaxRateDropdownProps> = ({
       setOptions(formattedOptions);
     }
   }, [taxRates]);
-  
+
   if (loading) {
     return (
       <Box display="flex" alignItems="center" justifyContent="center">
-        <Loading/>
+        <Loading />
       </Box>
     );
   }
-  
+
   if (error) {
     return <div>Error loading tax rates: {error}</div>;
   }
-  
+
   return (
     <Dropdown
       label={label}

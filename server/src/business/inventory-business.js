@@ -18,4 +18,4 @@ const canViewInventorySummary = async (user) => {
 
 module.exports = {
   canViewInventorySummary,
-}
+};

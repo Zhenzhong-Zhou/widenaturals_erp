@@ -15,7 +15,7 @@
     "verbatimModuleSyntax": true, // Ensures imports use exact module specifiers (great with bundler)
     "isolatedModules": true,
     "moduleDetection": "force",
-    
+
     /* === Path Aliases === */
     "baseUrl": "./src",
     "paths": {
@@ -39,7 +39,7 @@
       "@lib/*": ["lib/*"],
       "@config/*": ["config/*"]
     },
-    
+
     /* === Linting & Strict Mode === */
     "strict": true,
     "noUnusedLocals": true,
@@ -48,20 +48,15 @@
     "noImplicitReturns": true,
     "noUncheckedIndexedAccess": true,
     "noUncheckedSideEffectImports": true,
-    
+
     /* === Type Declarations === */
     "types": ["vite/client"],
-    
+
     /* === Compatibility & Performance === */
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  
+
   "include": ["src"],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "**/*.test.*",
-    "**/*.spec.*"
-  ]
+  "exclude": ["node_modules", "dist", "**/*.test.*", "**/*.spec.*"]
 }

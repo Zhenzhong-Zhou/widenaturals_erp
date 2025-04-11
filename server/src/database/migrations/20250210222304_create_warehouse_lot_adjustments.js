@@ -12,10 +12,7 @@ exports.up = async function (knex) {
       .notNullable()
       .references('id')
       .inTable('warehouse_inventory_lots');
-    table
-      .uuid('order_id')
-      .nullable().references('id')
-      .inTable('orders');
+    table.uuid('order_id').nullable().references('id').inTable('orders');
     table
       .uuid('adjustment_type_id')
       .notNullable()

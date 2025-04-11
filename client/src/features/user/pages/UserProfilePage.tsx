@@ -47,7 +47,7 @@ const UserProfilePage: FC = () => {
 
       if (success) {
         setModalOpen(false);
-        
+
         clearTokens();
         localStorage.clear();
         sessionStorage.clear();

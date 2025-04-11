@@ -15,5 +15,5 @@ const getTaxRatesForDropdownController = wrapAsync(async (req, res, next) => {
 });
 
 module.exports = {
-  getTaxRatesForDropdownController
+  getTaxRatesForDropdownController,
 };

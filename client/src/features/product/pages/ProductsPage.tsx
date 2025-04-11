@@ -1,5 +1,5 @@
 import Container from '@mui/material/Container';
-import Grid from '@mui/material/Grid2';
+import Grid from '@mui/material/Grid';
 import Box from '@mui/material/Box';
 import Loading from '@components/common/Loading';
 import ErrorDisplay from '@components/shared/ErrorDisplay';

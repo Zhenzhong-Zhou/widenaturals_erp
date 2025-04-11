@@ -17,12 +17,14 @@ import ExpirySeverityChip from '@features/inventory/components/ExpirySeverityChi
 import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
 import BulkInsertInventoryModal from '@features/warehouse-inventory/components/BulkInsertInventoryModal';
-import InsertedInventoryRecordsResponseDialog
-  from '@features/warehouse-inventory/components/InsertedInventoryRecordsResponseDialog';
+import InsertedInventoryRecordsResponseDialog from '@features/warehouse-inventory/components/InsertedInventoryRecordsResponseDialog';
 import CustomTable from '@components/common/CustomTable';
 import EditQuantityModal from '@features/warehouse-inventory/components/EditQuantityModal';
 import BulkAdjustQuantityModal from '@features/warehouse-inventory/components/BulkAdjustQuantityModal';
-import type { WarehouseInventoryDetailExtended, WarehouseInventoryInsertResponse } from '@features/warehouse-inventory';
+import type {
+  WarehouseInventoryDetailExtended,
+  WarehouseInventoryInsertResponse,
+} from '@features/warehouse-inventory';
 import { formatLabel, formatCurrency } from '@utils/textUtils';
 import { formatDate, formatDateTime } from '@utils/dateTimeUtils';
 import {
@@ -121,16 +123,16 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
     setAnchorEl(null);
     setSelectedInventoryLot(null);
   };
-  
-  const transformedData= data.map((row) => ({
+
+  const transformedData = data.map((row) => ({
     ...row,
-    
+
     isSelect: false,
-    
+
     warehouseInventoryLotId: row.warehouseInventoryLotId, // Ensure this exists
     itemName: row.itemName, // Ensure this exists
     lotNumber: row.lotNumber, // Ensure this exists
-    
+
     // Audit Info
     lotCreatedBy: row.lotCreated?.by ?? 'Unknown',
     lotCreatedDate: row.lotCreated?.date ?? null,
@@ -142,7 +144,7 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
     indicators_stockLevel: row.indicators?.stockLevel ?? 'none',
     indicators_expirySeverity: row.indicators?.expirySeverity ?? 'unknown',
   }));
-  
+
   const handleSelectLot = (lotId: string) => {
     setSelectedLotIds((prevSelected) => {
       const newSelected = new Set(prevSelected);
@@ -308,27 +310,36 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
       id: 'indicators_isExpired',
       label: 'Expired',
       sortable: true,
-      renderCell: (row: WarehouseInventoryDetailExtended) => <IsExpiredChip isExpired={row.indicators_isExpired} />,
+      renderCell: (row: WarehouseInventoryDetailExtended) => (
+        <IsExpiredChip isExpired={row.indicators_isExpired} />
+      ),
     },
     {
       id: 'indicators_isNearExpiry',
       label: 'Near Expiry',
       sortable: true,
-      renderCell: (row: WarehouseInventoryDetailExtended) => <NearExpiryChip isNearExpiry={row.indicators_isNearExpiry} />,
+      renderCell: (row: WarehouseInventoryDetailExtended) => (
+        <NearExpiryChip isNearExpiry={row.indicators_isNearExpiry} />
+      ),
     },
     {
       id: 'indicators_stockLevel',
       label: 'Stock Level',
       sortable: true,
       renderCell: (row: WarehouseInventoryDetailExtended) => (
-        <StockLevelChip stockLevel={row.indicators_stockLevel} isLowStock={row.indicators_isLowStock} />
+        <StockLevelChip
+          stockLevel={row.indicators_stockLevel}
+          isLowStock={row.indicators_isLowStock}
+        />
       ),
     },
     {
       id: 'indicators_expirySeverity',
       label: 'Expiry Severity',
       sortable: true,
-      renderCell: (row: WarehouseInventoryDetailExtended) => <ExpirySeverityChip severity={row.indicators_expirySeverity} />,
+      renderCell: (row: WarehouseInventoryDetailExtended) => (
+        <ExpirySeverityChip severity={row.indicators_expirySeverity} />
+      ),
     },
     {
       id: 'actions',
@@ -360,18 +371,21 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
           color="primary"
         />
         Select All
-        <CustomTypography variant="h5">Warehouse Inventory Lots</CustomTypography>
+        <CustomTypography variant="h5">
+          Warehouse Inventory Lots
+        </CustomTypography>
         {/* Pass handleBulkInsertSubmit function to modal */}
-        <CustomButton variant="contained" color="primary"
-                      startIcon={<InventoryIcon />}
-                      onClick={() => {
-                        setBulkInsertOpen(true);
-                      }}
-                      sx={{ marginTop: 2 }}
+        <CustomButton
+          variant="contained"
+          color="primary"
+          startIcon={<InventoryIcon />}
+          onClick={() => {
+            setBulkInsertOpen(true);
+          }}
+          sx={{ marginTop: 2 }}
         >
           Bulk Insert Inventory
         </CustomButton>
-        
         <BulkInsertInventoryModal
           open={bulkInsertOpen}
           onClose={() => setBulkInsertOpen(false)}

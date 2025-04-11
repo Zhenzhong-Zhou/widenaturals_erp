@@ -11,17 +11,17 @@
  */
 const determineOrderStatusFromAllocations = (allocations = []) => {
   if (allocations.length === 0) return 'ORDER_CONFIRMED'; // fallback if no allocations
-  
-  const allStatuses = allocations.map(a => a.status_code);
-  const allCompleted = allStatuses.every(code => code === 'ALLOC_COMPLETED');
-  const somePartial = allStatuses.some(code => code === 'ALLOC_PARTIAL');
-  
+
+  const allStatuses = allocations.map((a) => a.status_code);
+  const allCompleted = allStatuses.every((code) => code === 'ALLOC_COMPLETED');
+  const somePartial = allStatuses.some((code) => code === 'ALLOC_PARTIAL');
+
   if (allCompleted) return 'ORDER_ALLOCATED';
   if (somePartial) return 'ORDER_ALLOCATING';
-  
+
   return 'ORDER_ALLOCATING'; // default if in progress
 };
 
 module.exports = {
-  determineOrderStatusFromAllocations
+  determineOrderStatusFromAllocations,
 };

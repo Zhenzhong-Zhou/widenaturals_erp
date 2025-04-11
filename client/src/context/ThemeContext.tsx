@@ -6,7 +6,7 @@ import {
   type FC,
   type ReactNode,
 } from 'react';
-import ThemeProvider from '@mui/material/styles/ThemeProvider';
+import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { lightTheme, darkTheme } from '@styles/theme';
 import type { Theme } from '@mui/material/styles';
@@ -39,33 +39,37 @@ const getInitialThemeMode = (): 'light' | 'dark' => {
 };
 
 // Provider component
-export const ThemeProviderWrapper: FC<{ children: ReactNode }> = ({ children }) => {
-  const [mode, setMode] = useState<'light' | 'dark'>(() => getInitialThemeMode());
+export const ThemeProviderWrapper: FC<{ children: ReactNode }> = ({
+  children,
+}) => {
+  const [mode, setMode] = useState<'light' | 'dark'>(() =>
+    getInitialThemeMode()
+  );
   const [mounted, setMounted] = useState(false);
-  
+
   const theme = mode === 'dark' ? darkTheme : lightTheme;
-  
+
   const toggleTheme = () => {
     const newMode = mode === 'dark' ? 'light' : 'dark';
     localStorage.setItem('theme', newMode);
     setMode(newMode);
   };
-  
+
   // Sync with system preference only if no localStorage override
   useEffect(() => {
     setMounted(true);
-    
+
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handler = () => {
       if (!localStorage.getItem('theme')) {
         setMode(mediaQuery.matches ? 'dark' : 'light');
       }
     };
-    
+
     mediaQuery.addEventListener('change', handler);
     return () => mediaQuery.removeEventListener('change', handler);
   }, []);
-  
+
   // Sync CSS variables with the active theme
   useEffect(() => {
     const root = document.documentElement;
@@ -75,9 +79,9 @@ export const ThemeProviderWrapper: FC<{ children: ReactNode }> = ({ children }) 
     root.style.setProperty('--text-light', theme.palette.text.primary);
     root.style.setProperty('--border-light', theme.palette.divider);
   }, [theme]);
-  
+
   if (!mounted) return null;
-  
+
   return (
     <ThemeContext.Provider value={{ toggleTheme, theme, mode }}>
       <ThemeProvider theme={theme}>
@@ -92,7 +96,9 @@ export const ThemeProviderWrapper: FC<{ children: ReactNode }> = ({ children }) 
 export const useThemeContext = (): ThemeContextProps => {
   const context = useContext(ThemeContext);
   if (!context) {
-    throw new Error('useThemeContext must be used within a ThemeProviderWrapper');
+    throw new Error(
+      'useThemeContext must be used within a ThemeProviderWrapper'
+    );
   }
   return context;
 };

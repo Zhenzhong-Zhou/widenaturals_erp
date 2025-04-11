@@ -382,10 +382,10 @@ const getAvailableProductsForDropdown = async (warehouseId) => {
  * @param {number} limit - Maximum number of results to fetch (Default: 100).
  * @returns {Promise<Array<{ id: string, label: string }>>}
  */
-const getProductsForDropdown = async (search = null, limit= 100) => {
+const getProductsForDropdown = async (search = null, limit = 100) => {
   try {
     const searchPattern = search ? `%${search}%` : null;
-    
+
     const queryText = `
       SELECT
           p.id,
@@ -397,17 +397,16 @@ const getProductsForDropdown = async (search = null, limit= 100) => {
       ORDER BY p.product_name ASC
       LIMIT ${searchPattern ? '$2' : '$1'};
     `;
-    
+
     const values = searchPattern ? [searchPattern, limit] : [limit];
     const { rows } = await query(queryText, values);
-    
+
     return rows;
   } catch (error) {
     logError('Error fetching products for dropdown:', error);
     throw AppError.databaseError('Failed to fetch products for dropdown');
   }
 };
-
 
 module.exports = {
   getProducts,

@@ -50,7 +50,8 @@ const WarehouseInventoryTable: FC<WarehouseInventoryTableProps> = ({
       id: 'warehouse.storageCapacity',
       label: 'Storage Capacity',
       sortable: true,
-      format: (_: any, row: WarehouseInventory) => row.warehouse.storageCapacity,
+      format: (_: any, row: WarehouseInventory) =>
+        row.warehouse.storageCapacity,
     },
     {
       id: 'warehouse.location',
@@ -81,7 +82,8 @@ const WarehouseInventoryTable: FC<WarehouseInventoryTableProps> = ({
       id: 'quantity.lotReserved',
       label: 'Lot Reserved Qty',
       sortable: true,
-      format: (_:any, row: WarehouseInventory) => row.quantity?.lotReserved ?? 0,
+      format: (_: any, row: WarehouseInventory) =>
+        row.quantity?.lotReserved ?? 0,
     },
     {
       id: 'quantity.reserved',
@@ -145,41 +147,50 @@ const WarehouseInventoryTable: FC<WarehouseInventoryTableProps> = ({
       label: 'Stock Level',
       sortable: true,
       renderCell: (row: WarehouseInventory) =>
-        row.status ?
+        row.status ? (
           <StockLevelChip
             stockLevel={row.status.stockLevel}
             isLowStock={row.status.isLowStock}
-          /> : 'N/A',
+          />
+        ) : (
+          'N/A'
+        ),
     },
     {
       id: 'status.expirySeverity',
       label: 'Expiry Severity',
       sortable: true,
       renderCell: (row: WarehouseInventory) =>
-        row.status ?
-          <ExpirySeverityChip severity={row.status.expirySeverity} /> : 'N/A',
+        row.status ? (
+          <ExpirySeverityChip severity={row.status.expirySeverity} />
+        ) : (
+          'N/A'
+        ),
     },
     {
       id: 'status.isExpired',
       label: 'Expired',
       sortable: true,
       renderCell: (row: WarehouseInventory) =>
-        row.status ?
-          <IsExpiredChip isExpired={row.status.isExpired} /> : 'N/A',
+        row.status ? <IsExpiredChip isExpired={row.status.isExpired} /> : 'N/A',
     },
     {
       id: 'status.isNearExpiry',
       label: 'Near Expiry',
       sortable: true,
       renderCell: (row: WarehouseInventory) =>
-        row.status ?
-          <NearExpiryChip isNearExpiry={row.status.isNearExpiry } /> : 'N/A',
+        row.status ? (
+          <NearExpiryChip isNearExpiry={row.status.isNearExpiry} />
+        ) : (
+          'N/A'
+        ),
     },
     {
       id: 'status.displayNote',
       label: 'Display Note',
       sortable: false,
-      format: (_: any, row: WarehouseInventory) => row.status?.displayNote || '—',
+      format: (_: any, row: WarehouseInventory) =>
+        row.status?.displayNote || '—',
     },
     {
       id: 'dates.displayStatusDate',
@@ -217,7 +228,7 @@ const WarehouseInventoryTable: FC<WarehouseInventoryTableProps> = ({
       format: (_: any, row: WarehouseInventory) => row.audit.updatedBy,
     },
   ];
-  
+
   return (
     <Box>
       <CustomTable

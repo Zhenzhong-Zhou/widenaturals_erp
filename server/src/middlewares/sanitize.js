@@ -22,7 +22,7 @@ const sanitizeInput = (req, res, next) => {
     if (req.params) {
       req.sanitizedParams = customSanitization(req.params);
     }
-    
+
     next();
   } catch (error) {
     logError('Input sanitization failed:', {
@@ -30,7 +30,7 @@ const sanitizeInput = (req, res, next) => {
       route: req.originalUrl,
       error: error.message,
     });
-    
+
     next(
       AppError.sanitizationError('Input sanitization failed.', {
         details: error.message,

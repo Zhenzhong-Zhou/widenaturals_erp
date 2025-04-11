@@ -7,8 +7,8 @@ const AppError = require('../utils/AppError');
  */
 const transformAllOrders = (rawData) => {
   if (!Array.isArray(rawData)) return [];
-  
-  return rawData.map(order => ({
+
+  return rawData.map((order) => ({
     id: order.id,
     order_number: order.order_number,
     order_type: order.order_type,
@@ -19,7 +19,7 @@ const transformAllOrders = (rawData) => {
     created_at: order.created_at || null,
     updated_at: order.updated_at || null,
     created_by: order.created_by || null,
-    updated_by: order.updated_by || null
+    updated_by: order.updated_by || null,
   }));
 };
 
@@ -30,47 +30,56 @@ const transformAllOrders = (rawData) => {
  */
 const transformOrderDetails = (orderDetails) => {
   if (!orderDetails || orderDetails.length === 0) return null;
-  
+
   const baseOrder = orderDetails[0];
-  
+
   // Convert date strings to Date objects and compare their timestamps
-  const isSameOrderDate = new Date(baseOrder.order_date).getTime() === new Date(baseOrder.sales_order_date).getTime();
-  const orderDate = isSameOrderDate ? baseOrder.order_date : {
-    order_date: baseOrder.order_date,
-    sales_order_date: baseOrder.sales_order_date
-  };
-  
+  const isSameOrderDate =
+    new Date(baseOrder.order_date).getTime() ===
+    new Date(baseOrder.sales_order_date).getTime();
+  const orderDate = isSameOrderDate
+    ? baseOrder.order_date
+    : {
+        order_date: baseOrder.order_date,
+        sales_order_date: baseOrder.sales_order_date,
+      };
+
   // Determine if tracking info should be displayed (only if not In-Store Pickup)
-  const trackingInfo = !baseOrder.is_pickup_location && baseOrder.tracking_number
-    ? {
-      tracking_number: baseOrder.tracking_number,
-      carrier: baseOrder.carrier,
-      service_name: baseOrder.service_name,
-      shipped_date: baseOrder.shipped_date,
-    }
-    : null;
-  
+  const trackingInfo =
+    !baseOrder.is_pickup_location && baseOrder.tracking_number
+      ? {
+          tracking_number: baseOrder.tracking_number,
+          carrier: baseOrder.carrier,
+          service_name: baseOrder.service_name,
+          shipped_date: baseOrder.shipped_date,
+        }
+      : null;
+
   // Build shipping info
   const shippingInfo = baseOrder.has_shipping_address
     ? {
-      shipping_fullname: baseOrder.shipping_fullname ?? '',
-      shipping_phone: baseOrder.shipping_phone ?? '',
-      shipping_email: baseOrder.shipping_email ?? '',
-      shipping_address_line1: baseOrder.shipping_address_line1 ?? '',
-      shipping_address_line2: baseOrder.shipping_address_line2 ?? '',
-      shipping_city: baseOrder.shipping_city ?? '',
-      shipping_state: baseOrder.shipping_state ?? '',
-      shipping_postal_code: baseOrder.shipping_postal_code ?? '',
-      shipping_country: baseOrder.shipping_country ?? '',
-      shipping_region: baseOrder.shipping_region ?? '',
-    }
+        shipping_fullname: baseOrder.shipping_fullname ?? '',
+        shipping_phone: baseOrder.shipping_phone ?? '',
+        shipping_email: baseOrder.shipping_email ?? '',
+        shipping_address_line1: baseOrder.shipping_address_line1 ?? '',
+        shipping_address_line2: baseOrder.shipping_address_line2 ?? '',
+        shipping_city: baseOrder.shipping_city ?? '',
+        shipping_state: baseOrder.shipping_state ?? '',
+        shipping_postal_code: baseOrder.shipping_postal_code ?? '',
+        shipping_country: baseOrder.shipping_country ?? '',
+        shipping_region: baseOrder.shipping_region ?? '',
+      }
     : null;
-  
+
   // Process items
-  const items = orderDetails.map(order => {
-    const hasValidSystemPrice = typeof order.system_price === 'string' && order.system_price.trim() !== '';
-    const hasValidAdjustedPrice = typeof order.adjusted_price === 'string' && order.adjusted_price.trim() !== '';
-    
+  const items = orderDetails.map((order) => {
+    const hasValidSystemPrice =
+      typeof order.system_price === 'string' &&
+      order.system_price.trim() !== '';
+    const hasValidAdjustedPrice =
+      typeof order.adjusted_price === 'string' &&
+      order.adjusted_price.trim() !== '';
+
     return {
       order_item_id: order.order_item_id,
       product_id: order.product_id,
@@ -80,19 +89,22 @@ const transformOrderDetails = (orderDetails) => {
       quantity_ordered: order.quantity_ordered ?? 0,
       price_type: order.price_type ?? 'Unknown',
       system_price: hasValidSystemPrice ? order.system_price : 'N/A',
-      adjusted_price: hasValidAdjustedPrice && order.system_price !== order.adjusted_price ? order.adjusted_price : null,
+      adjusted_price:
+        hasValidAdjustedPrice && order.system_price !== order.adjusted_price
+          ? order.adjusted_price
+          : null,
       order_item_subtotal: order.order_item_subtotal ?? 'N/A',
       order_item_status_name: order.order_item_status_name ?? 'Unknown',
       order_item_status_date: order.order_item_status_date ?? 'N/A',
     };
   });
-  
+
   return {
     order_id: baseOrder.order_id,
     order_number: baseOrder.order_number,
     order_category: baseOrder.order_category ?? '',
     order_type: baseOrder.order_type ?? '',
-    order_date: orderDate,  // Processed order date
+    order_date: orderDate, // Processed order date
     customer_name: baseOrder.customer_name ?? '',
     order_status: baseOrder.order_status ?? 'Unknown',
     discount_type: baseOrder.discount_type ?? null,
@@ -133,9 +145,9 @@ const transformOrderStatusAndItems = (rows) => {
   if (!rows || rows.length === 0) {
     throw AppError.transformerError('No data found to transform.');
   }
-  
+
   const { order_status_id, order_status_code } = rows[0];
-  
+
   const orderItems = rows.map((row) => ({
     order_item_id: row.order_item_id,
     product_id: row.product_id,
@@ -143,7 +155,7 @@ const transformOrderStatusAndItems = (rows) => {
     order_item_status_id: row.order_item_status_id,
     order_item_status_code: row.order_item_status_code,
   }));
-  
+
   return {
     order_status_id,
     order_status_code,
@@ -166,10 +178,10 @@ const transformOrderStatusCodes = (rows = []) => {
       item_status_codes: [],
     };
   }
-  
+
   const order_status_code = rows[0].order_status_code;
   const item_status_codes = rows.map((row) => row.order_item_status_code);
-  
+
   return {
     order_status_code,
     item_status_codes,
@@ -190,9 +202,12 @@ const transformOrderStatusCodes = (rows = []) => {
  *   updatedItemCount: number
  * }}
  */
-const transformUpdatedOrderStatusResult = ({ orderResult, orderItemResult }) => {
+const transformUpdatedOrderStatusResult = ({
+  orderResult,
+  orderItemResult,
+}) => {
   const orderId = orderResult?.rows?.[0]?.id || null;
-  
+
   return {
     ...(orderId && { orderId }), // only include if available
     updatedOrderCount: orderResult?.rowCount || 0,

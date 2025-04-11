@@ -8,7 +8,9 @@ const {
 const { prepareCustomersForInsert } = require('../shared/customer-utils');
 const { logError } = require('../utils/logger-helper');
 const { withTransaction } = require('../database/db');
-const { transformCustomerDetails } = require('../transformers/customer-transformer');
+const {
+  transformCustomerDetails,
+} = require('../transformers/customer-transformer');
 
 /**
  * Creates multiple customers in bulk with validation and conflict handling.
@@ -21,10 +23,16 @@ const { transformCustomerDetails } = require('../transformers/customer-transform
 const createCustomers = async (customers, createdBy) => {
   return withTransaction(async (client) => {
     try {
-      const preparedCustomers = await prepareCustomersForInsert(customers, createdBy);
+      const preparedCustomers = await prepareCustomersForInsert(
+        customers,
+        createdBy
+      );
       return await bulkCreateCustomers(preparedCustomers, client);
     } catch (error) {
-      throw AppError.serviceError('Failed to create customers in transaction', error);
+      throw AppError.serviceError(
+        'Failed to create customers in transaction',
+        error
+      );
     }
   });
 };

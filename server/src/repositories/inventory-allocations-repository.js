@@ -19,25 +19,32 @@ const AppError = require('../utils/AppError');
  * @returns {Promise<Object>} - The inserted inventory allocation record.
  * @throws {Error} - Throws if the query fails.
  */
-const insertInventoryAllocation = async ({
-                                           inventory_id,
-                                           warehouse_id,
-                                           lot_id = null,
-                                           allocated_quantity,
-                                           status_id,
-                                           order_id = null,
-                                           transfer_id = null,
-                                           created_by = null,
-                                           updated_by = null,
-                                         }, client) => {
+const insertInventoryAllocation = async (
+  {
+    inventory_id,
+    warehouse_id,
+    lot_id = null,
+    allocated_quantity,
+    status_id,
+    order_id = null,
+    transfer_id = null,
+    created_by = null,
+    updated_by = null,
+  },
+  client
+) => {
   if (!inventory_id || !warehouse_id || !allocated_quantity || !status_id) {
-    throw AppError.validationError('Missing required fields for inventory allocation.');
+    throw AppError.validationError(
+      'Missing required fields for inventory allocation.'
+    );
   }
-  
+
   if (allocated_quantity <= 0) {
-    throw AppError.validationError('Allocated quantity must be a positive number.');
+    throw AppError.validationError(
+      'Allocated quantity must be a positive number.'
+    );
   }
-  
+
   const sql = `
     INSERT INTO inventory_allocations (
       inventory_id,
@@ -64,7 +71,7 @@ const insertInventoryAllocation = async ({
       updated_by = EXCLUDED.created_by
     RETURNING *;
   `;
-  
+
   const values = [
     inventory_id,
     warehouse_id,
@@ -75,7 +82,7 @@ const insertInventoryAllocation = async ({
     transfer_id,
     created_by,
   ];
-  
+
   const result = await query(sql, values, client);
   return result.rows[0];
 };
@@ -101,13 +108,15 @@ const getAllocationsByOrderId = async (orderId, client) => {
     JOIN inventory_allocation_status ias ON ia.status_id = ias.id
     WHERE ia.order_id = $1
   `;
-  
+
   try {
     const result = await query(sql, [orderId], client);
     return result.rows || [];
   } catch (error) {
     logError('Error fetching allocations:', error);
-    throw AppError.databaseError('Failed to fetch allocations: ' + error.message);
+    throw AppError.databaseError(
+      'Failed to fetch allocations: ' + error.message
+    );
   }
 };
 
@@ -123,7 +132,10 @@ const getAllocationsByOrderId = async (orderId, client) => {
  *
  * @throws {AppError} - If the database query fails.
  */
-const getTotalAllocatedForOrderItem = async ({ orderId, productId }, client) => {
+const getTotalAllocatedForOrderItem = async (
+  { orderId, productId },
+  client
+) => {
   try {
     const sql = `
       SELECT COALESCE(SUM(allocated_quantity), 0) AS total_allocated
@@ -131,12 +143,14 @@ const getTotalAllocatedForOrderItem = async ({ orderId, productId }, client) => 
       JOIN inventory i ON ia.inventory_id = i.id
       WHERE ia.order_id = $1 AND i.product_id = $2
     `;
-    
+
     const { rows } = await query(sql, [orderId, productId], client);
     return Number(rows[0]?.total_allocated ?? 0);
   } catch (error) {
     logError('Error in getTotalAllocatedForOrderItem:', error);
-    throw AppError.databaseError('Failed to fetch allocated quantity for order item');
+    throw AppError.databaseError(
+      'Failed to fetch allocated quantity for order item'
+    );
   }
 };
 

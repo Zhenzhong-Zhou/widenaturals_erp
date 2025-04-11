@@ -18,14 +18,14 @@ interface InventorySummaryTableProps {
 }
 
 const InventorySummaryTable: FC<InventorySummaryTableProps> = ({
-                                                                 data,
-                                                                 page,
-                                                                 rowsPerPage,
-                                                                 totalRecords,
-                                                                 totalPages,
-                                                                 onPageChange,
-                                                                 onRowsPerPageChange,
-                                                               }) => {
+  data,
+  page,
+  rowsPerPage,
+  totalRecords,
+  totalPages,
+  onPageChange,
+  onRowsPerPageChange,
+}) => {
   const columns = [
     {
       id: 'itemName',
@@ -86,22 +86,31 @@ const InventorySummaryTable: FC<InventorySummaryTableProps> = ({
       id: 'status',
       label: 'Status',
       sortable: true,
-      renderCell: (row: InventorySummary) =>  <InventoryStatusChip status={row.status} />,
+      renderCell: (row: InventorySummary) => (
+        <InventoryStatusChip status={row.status} />
+      ),
     },
     {
       id: 'stockLevel',
       label: 'Stock Level',
       sortable: false,
-      renderCell: (row: InventorySummary) => <StockLevelChip stockLevel={row.stockLevel} isLowStock={row.isLowStock} />,
+      renderCell: (row: InventorySummary) => (
+        <StockLevelChip
+          stockLevel={row.stockLevel}
+          isLowStock={row.isLowStock}
+        />
+      ),
     },
     {
       id: 'isNearExpiry',
       label: 'Near Expiry',
       sortable: false,
-      renderCell: (row: InventorySummary) => <NearExpiryChip isNearExpiry={row.isNearExpiry} />
+      renderCell: (row: InventorySummary) => (
+        <NearExpiryChip isNearExpiry={row.isNearExpiry} />
+      ),
     },
   ];
-  
+
   return (
     <CustomTable
       columns={columns}
