@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
 import useUsers from '@hooks/useUsers';

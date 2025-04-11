@@ -1,5 +1,5 @@
-import { BaseSyntheticEvent, FC, ReactNode } from 'react';
-import { useForm, Controller, Control } from 'react-hook-form';
+import type { BaseSyntheticEvent, FC, ReactNode } from 'react';
+import { useForm, Controller, type Control } from 'react-hook-form';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import Checkbox from '@mui/material/Checkbox';

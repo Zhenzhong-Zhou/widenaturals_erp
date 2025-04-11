@@ -1,6 +1,6 @@
 import { createSelector } from '@reduxjs/toolkit';
-import { RootState } from '../../../store/store';
-import { DeliveryMethodDropdownItem } from './deliveryMethodTypes';
+import type { RootState } from '@store/store';
+import type { DeliveryMethodDropdownItem } from './deliveryMethodTypes';
 
 // Selector to get the delivery method state
 const selectDeliveryMethodDropdownState = (state: RootState) => state.deliveryMethodDropdown;

@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 // import { Link } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import InventoryStatusChip from '@features/inventory/components/InventoryStatusChip';
@@ -7,7 +7,7 @@ import NearExpiryChip from '@features/inventory/components/NearExpiryChip';
 import StockLevelChip from '@features/inventory/components/StockLevelChip';
 import ExpirySeverityChip from '@features/inventory/components/ExpirySeverityChip';
 import CustomTable from '@components/common/CustomTable';
-import { InventoryItem } from '@features/inventory';
+import type { InventoryItem } from '@features/inventory';
 import { formatLabel, formatCurrency } from '@utils/textUtils';
 import { formatDate, formatDateTime } from '@utils/dateTimeUtils';
 

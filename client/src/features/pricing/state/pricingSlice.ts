@@ -1,5 +1,5 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { fetchPricingDataThunk, Pagination, Pricing, PricingResponse } from '@features/pricing';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { fetchPricingDataThunk, type Pagination, type Pricing, type PricingResponse } from '@features/pricing';
 
 export interface PricingListState {
   data: Pricing[];

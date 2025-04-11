@@ -1,6 +1,6 @@
 import axiosInstance from '@utils/axiosConfig';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
-import { LocationResponse } from '@features/location';
+import type { LocationResponse } from '@features/location';
 import { AppError } from '@utils/AppError';
 
 /**

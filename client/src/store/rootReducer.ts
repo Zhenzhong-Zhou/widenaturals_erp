@@ -1,4 +1,4 @@
-import { combineReducers, PayloadAction } from '@reduxjs/toolkit';
+import { combineReducers, type PayloadAction } from '@reduxjs/toolkit';
 import { createReducerMap } from '@utils/reducerUtils';
 
 // Reducer groups

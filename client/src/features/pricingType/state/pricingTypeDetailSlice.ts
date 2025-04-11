@@ -1,9 +1,9 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import {
   fetchPricingTypeDetailsThunk,
-  PricingRecord,
-  PricingTypeDetail,
-  PricingTypePagination, PricingTypeResponse,
+  type PricingRecord,
+  type PricingTypeDetail,
+  type PricingTypePagination, type PricingTypeResponse,
 } from '@features/pricingType';
 
 export interface PricingTypeState {

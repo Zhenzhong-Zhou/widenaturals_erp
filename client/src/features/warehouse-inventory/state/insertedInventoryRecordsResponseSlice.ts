@@ -1,5 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { fetchInsertedInventoryRecordsThunk, WarehouseInventoryInsertResponse } from '@features/warehouse-inventory';
+import { fetchInsertedInventoryRecordsThunk, type WarehouseInventoryInsertResponse } from '@features/warehouse-inventory';
 
 interface InsertedInventoryState {
   data: WarehouseInventoryInsertResponse | null;

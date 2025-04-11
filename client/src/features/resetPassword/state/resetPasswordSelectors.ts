@@ -1,6 +1,6 @@
 import { createSelector } from '@reduxjs/toolkit';
-import { RootState } from '@store/store';
-import { ResetPasswordState } from '@features/resetPassword/state/resetPasswordSlice';
+import type { RootState } from '@store/store';
+import type { ResetPasswordState } from '@features/resetPassword/state/resetPasswordSlice';
 
 /**
  * Base selector for resetPassword state with type assertion.

@@ -1,5 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit';
-import { RootState } from '@store/store';
+import type { RootState } from '@store/store';
 
 // Base slice selector
 const selectConfirmSalesOrderState = (state: RootState) => state.confirmSalesOrder;

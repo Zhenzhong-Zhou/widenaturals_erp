@@ -3,7 +3,7 @@ import { API_ENDPOINTS } from '@services/apiEndpoints';
 import { AppError, ErrorType } from '@utils/AppError';
 import { withRetry } from '@utils/retryUtils';
 import { withTimeout } from '@utils/timeoutUtils';
-import {
+import type {
   ResetPasswordError,
   ResetPasswordResponse,
 } from '@features/resetPassword/state/resetPasswordTypes';

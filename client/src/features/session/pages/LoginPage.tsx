@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import Box from '@mui/material/Box';
 import CustomTypography from '@components/common/CustomTypography';
 import LoginCard from '@features/session/components/LoginCard';

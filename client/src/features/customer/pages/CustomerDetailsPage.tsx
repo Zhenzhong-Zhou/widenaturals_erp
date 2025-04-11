@@ -1,4 +1,4 @@
-import { FC, useEffect } from 'react';
+import { type FC, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';

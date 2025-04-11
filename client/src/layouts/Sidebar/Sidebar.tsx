@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import Drawer from '@mui/material/Drawer';

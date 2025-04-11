@@ -2,7 +2,7 @@ import { useEffect, useMemo, useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchProductDetailThunk,
-  Product,
+  type Product,
   selectProductDetail,
   selectProductDetailError,
   selectProductDetailLoading,

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
-  InventoryHistoryParams,
+  type InventoryHistoryParams,
   selectInventoryHistory,
 } from '@features/report';
 import {

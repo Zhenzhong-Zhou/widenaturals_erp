@@ -1,9 +1,9 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import {
-  AdjustmentReportState,
+  type AdjustmentReportState,
   exportAdjustmentReportThunk,
   fetchAdjustmentReportThunk,
-  PaginatedAdjustmentReportResponse,
+  type PaginatedAdjustmentReportResponse,
 } from '@features/report';
 
 const initialState: AdjustmentReportState = {

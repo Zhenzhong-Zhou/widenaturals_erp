@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { handleDownload } from '@utils/downloadUtils';
-import { BaseReportParams } from '@features/report';
+import type { BaseReportParams } from '@features/report';
 
 interface UseReportPageLogicProps<T, R> {
   fetchData: (filters: Partial<T>) => void;

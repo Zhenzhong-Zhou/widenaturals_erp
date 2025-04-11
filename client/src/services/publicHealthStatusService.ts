@@ -4,7 +4,7 @@ import { AppError, ErrorType } from '@utils/AppError';
 import { withTimeout } from '@utils/timeoutUtils';
 import { withRetry } from '@utils/retryUtils';
 import { isCustomAxiosError } from '@utils/axiosUtils';
-import { HealthState } from '@features/health/state';
+import type { HealthState } from '@features/health/state';
 
 /**
  * Fetches the public health status of the server.

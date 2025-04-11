@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchAllOrdersThunk,
-  FetchOrdersParams,
+  type FetchOrdersParams,
   selectAllOrders,
   selectOrdersError,
   selectOrdersLoading,

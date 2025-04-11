@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import Button from '@mui/material/Button';
 import type { ButtonProps } from '@mui/material/Button';
 import { Link as RouterLink } from 'react-router-dom';

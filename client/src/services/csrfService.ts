@@ -3,7 +3,7 @@ import { API_ENDPOINTS } from '@services/apiEndpoints';
 import { AppError, ErrorType } from '@utils/AppError';
 import { withTimeout } from '@utils/timeoutUtils';
 import { withRetry } from '@utils/retryUtils';
-import { AppDispatch } from '@store/store';
+import type { AppDispatch } from '@store/store';
 import {
   resetCsrfToken,
   updateCsrfToken,

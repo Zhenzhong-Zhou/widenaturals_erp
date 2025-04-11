@@ -1,5 +1,5 @@
 import { createSelector } from 'reselect';
-import { RootState } from '@store/store';
+import type { RootState } from '@store/store';
 
 // Base selector for createdSalesOrder state
 const selectCreatedSalesOrderState = (state: RootState) => state.createSalesOrder;

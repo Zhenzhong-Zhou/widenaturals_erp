@@ -1,5 +1,5 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { LocationResponse } from '@features/location';
+import type { LocationResponse } from '@features/location';
 import { locationService } from '@services/locationService';
 
 /**

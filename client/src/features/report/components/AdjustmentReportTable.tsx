@@ -1,7 +1,7 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import CustomTable from '@components/common/CustomTable';
-import { Column } from '@components/common/CustomTable';
-import { AdjustmentReportParams } from '@features/report';
+import type { Column } from '@components/common/CustomTable';
+import type { AdjustmentReportParams } from '@features/report';
 import { formatDate } from '@utils/dateTimeUtils';
 import { formatLabel } from '@utils/textUtils';
 

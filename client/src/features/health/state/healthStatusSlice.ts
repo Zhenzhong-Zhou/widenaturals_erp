@@ -1,5 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { HealthState } from '@features/health/state/healthStatusState';
+import type { HealthState } from '@features/health/state/healthStatusState';
 import { fetchHealthStatus } from '@features/health/state/healthStatusThunk';
 
 const initialState: HealthState = {

@@ -1,4 +1,4 @@
-import { NavigateFunction } from 'react-router-dom';
+import type { NavigateFunction } from 'react-router-dom';
 
 /**
  * Handles dynamic navigation for different reports based on warehouse, inventory, and lot parameters.

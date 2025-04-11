@@ -1,4 +1,4 @@
-import { FC, ReactNode } from 'react';
+import type { FC, ReactNode } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router';
 import useSession from '@hooks/useSession';
 import { routes } from './index';

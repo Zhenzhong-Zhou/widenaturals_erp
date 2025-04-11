@@ -1,6 +1,6 @@
-import { FC, useMemo } from 'react';
+import { type FC, useMemo } from 'react';
 import CustomTable from '@components/common/CustomTable';
-import { FetchedOrderItem } from '@features/order/state';
+import type { FetchedOrderItem } from '@features/order/state';
 import { orderItemsColumns } from '@features/order';
 
 interface OrderItemsTableProps {

@@ -4,7 +4,7 @@ import {
   fetchProductsDropDownByWarehouseThunk,
   selectDropdownLoading,
   selectProductDropdown,
-  selectDropdownError, ProductDropdownItem,
+  selectDropdownError, type ProductDropdownItem,
 } from '@features/warehouse-inventory';
 
 /**

@@ -1,4 +1,4 @@
-import { Component, ReactNode, ErrorInfo } from 'react';
+import { Component, type ReactNode, type ErrorInfo } from 'react';
 import Box from '@mui/material/Box';
 import { handleError, mapErrorMessage } from '@utils/errorUtils';
 import ErrorDisplay from '@components/shared/ErrorDisplay';

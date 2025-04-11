@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import Box from '@mui/material/Box';
 import Badge from '@mui/material/Badge';
 import Tooltip from '@mui/material/Tooltip';

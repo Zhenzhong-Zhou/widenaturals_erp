@@ -1,5 +1,5 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { Compliance, CompliancePagination, ComplianceResponse, fetchAllCompliancesThunk } from '@features/compliance';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { type Compliance, type CompliancePagination, type ComplianceResponse, fetchAllCompliancesThunk } from '@features/compliance';
 
 interface ComplianceState {
   data: Compliance[];

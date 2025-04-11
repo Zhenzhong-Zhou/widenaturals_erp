@@ -1,5 +1,5 @@
-import { RootState } from '@store/store';
-import { LocationTypesState } from '@features/locationType/state/locationTypesSlice';
+import type { RootState } from '@store/store';
+import type { LocationTypesState } from '@features/locationType/state/locationTypesSlice';
 import { createSelector } from '@reduxjs/toolkit';
 
 /**

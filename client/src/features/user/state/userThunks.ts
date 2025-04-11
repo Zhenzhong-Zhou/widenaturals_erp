@@ -1,6 +1,6 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { AppError } from '@utils/AppError';
-import { PaginationInfo, User, UserProfileResponse } from '@features/user';
+import type { PaginationInfo, User, UserProfileResponse } from '@features/user';
 import { userService } from '@services/userService';
 
 /**

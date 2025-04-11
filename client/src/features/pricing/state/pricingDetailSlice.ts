@@ -1,5 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { getPricingDetailsThunk, Pagination, PricingDetails } from '@features/pricing';
+import { getPricingDetailsThunk, type Pagination, type PricingDetails } from '@features/pricing';
 
 export interface PricingState {
   pricing: PricingDetails | null;

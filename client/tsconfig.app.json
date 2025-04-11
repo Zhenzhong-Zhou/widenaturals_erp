@@ -1,31 +1,23 @@
 {
   "compilerOptions": {
-    /* Build Settings */
-    "tsBuildInfoFile": "./dist/tsconfig.app.tsbuildinfo", // Store incremental build info in dist folder
-    "target": "ES2023", // Target the latest JavaScript features
-    "useDefineForClassFields": true, // Enable modern class field semantics
-    "lib": ["ES2023", "DOM"], // Use modern JS and DOM features
-    "module": "ESNext", // Use ESNext module system
-    "skipLibCheck": true, // Skip type checks for third-party libraries
-
-    /* Bundler Mode */
-    "moduleResolution": "bundler", // Optimize for Vite's bundler
-    "allowImportingTsExtensions": true, // Allow importing with .ts/.tsx extensions
-    "isolatedModules": true, // Ensure each file is treated as an isolated module
-    "moduleDetection": "force", // Force TypeScript to treat the file as a module
-    "noEmit": true, // Prevent TypeScript from emitting JavaScript files
-    "jsx": "react-jsx", // Use React JSX runtime
-
-    /* Linting and Strictness */
-    "strict": true, // Enable strict type-checking
-    "noUnusedLocals": true, // Warn about unused variables
-    "noUnusedParameters": true, // Warn about unused function parameters
-    "noFallthroughCasesInSwitch": true, // Disallow fallthrough in switch cases
-    "noUncheckedSideEffectImports": true, // Warn about unchecked imports
-    "noImplicitReturns": true, // Ensure all code paths in a function return a value
-
-    /* Path Aliases */
-    "baseUrl": "./src", // Set base directory for imports
+    /* === Build Settings === */
+    "incremental": true, // Enable incremental compilation
+    "composite": false, // Enable project references if needed later
+    "tsBuildInfoFile": "./dist/tsconfig.app.tsbuildinfo",
+    "target": "ES2023",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "lib": ["ES2023", "DOM"],
+    "allowImportingTsExtensions": true,
+    "allowArbitraryExtensions": true,
+    "verbatimModuleSyntax": true, // Ensures imports use exact module specifiers (great with bundler)
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    
+    /* === Path Aliases === */
+    "baseUrl": "./src",
     "paths": {
       "@styles/*": ["styles/*"],
       "@context/*": ["context/*"],
@@ -47,17 +39,29 @@
       "@lib/*": ["lib/*"],
       "@config/*": ["config/*"]
     },
-
-    /* Type Definitions */
-    "types": ["vite/client"] // Include Vite-specific global types
+    
+    /* === Linting & Strict Mode === */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "noUncheckedIndexedAccess": true,
+    "noUncheckedSideEffectImports": true,
+    
+    /* === Type Declarations === */
+    "types": ["vite/client"],
+    
+    /* === Compatibility & Performance === */
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
   },
-  "include": [
-    "src" // Include all frontend source files
-  ],
+  
+  "include": ["src"],
   "exclude": [
-    "node_modules", // Exclude installed dependencies
-    "dist", // Exclude build output
-    "**/*.test.*", // Exclude test files
-    "**/*.spec.*" // Exclude test specification files
+    "node_modules",
+    "dist",
+    "**/*.test.*",
+    "**/*.spec.*"
   ]
 }

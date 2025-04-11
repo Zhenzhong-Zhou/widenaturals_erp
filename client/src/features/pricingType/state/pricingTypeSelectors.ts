@@ -1,6 +1,6 @@
 import { createSelector } from '@reduxjs/toolkit';
-import { RootState } from '@store/store';
-import { PricingTypesState } from '@features/pricingType/state/pricingTypeSlice';
+import type { RootState } from '@store/store';
+import type { PricingTypesState } from '@features/pricingType/state/pricingTypeSlice';
 
 /**
  * Base selector for the pricingTypes slice with type assertion.

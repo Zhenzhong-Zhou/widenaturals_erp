@@ -12,7 +12,7 @@ import CustomButton from '@components/common/CustomButton';
 import ErrorDisplay from '@components/shared/ErrorDisplay';
 import ErrorMessage from '@components/common/ErrorMessage';
 import useWarehouseDetails from '@hooks/useWarehouseDetails';
-import {
+import type {
   BulkInsertInventoryRequest,
   InventoryItem,
   WarehouseInventoryDetail,

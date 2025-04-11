@@ -1,4 +1,4 @@
-import { FC, ReactNode } from 'react';
+import type { FC, ReactNode } from 'react';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import Grid from '@mui/material/Grid2';
@@ -80,7 +80,7 @@ const MultiItemForm: FC<MultiItemFormProps> = ({
         sx={{
           display: 'grid',
           gridTemplateColumns: {
-            xs: '1fr', // 1 column for extra small screens
+            xs: '1fr', // 1 column for extreme small screens
             sm: 'repeat(2, 1fr)', // 2 columns for small screens
             md: 'repeat(3, 1fr)', // 3 columns for medium screens
             lg: 'repeat(5, 1fr)',
@@ -135,9 +135,8 @@ const MultiItemForm: FC<MultiItemFormProps> = ({
                         control={control}
                         defaultValue={defaultValues[index]?.[field.id] || ''}
                         render={({ field: { onChange, value } }) => {
-                          const errorMessage = validationRules[field.id]
-                            ? validationRules[field.id](value)
-                            : undefined;
+                          const validateFn = validationRules[field.id];
+                          const errorMessage = validateFn ? validateFn(value) : undefined;
 
                           if (field.type === 'custom' && field.component) {
                             const CustomComponent = field.component;

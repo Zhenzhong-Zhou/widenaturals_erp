@@ -1,6 +1,6 @@
 import axiosInstance from '@utils/axiosConfig';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
-import {
+import type {
   WarehouseInventoryResponse,
   WarehouseInventorySummaryResponse,
   WarehouseItemSummaryResponse,
@@ -12,7 +12,7 @@ import {
   InsertInventoryRequestBody, FetchWarehouseItemSummaryParams,
 } from '@features/warehouse-inventory';
 import { AppError } from '@utils/AppError';
-import { InventoryRecordInsertResponse } from '@features/warehouse-inventory/state';
+import type { InventoryRecordInsertResponse } from '@features/warehouse-inventory/state';
 
 /**
  * Fetches all warehouse inventories with pagination.

@@ -1,5 +1,5 @@
-import { FC, ReactNode } from 'react';
-import { BaseReportParams } from '@features/report';
+import type { FC, ReactNode } from 'react';
+import type { BaseReportParams } from '@features/report';
 import Box from '@mui/material/Box';
 import Loading from '@components/common/Loading';
 import ErrorDisplay from '@components/shared/ErrorDisplay';

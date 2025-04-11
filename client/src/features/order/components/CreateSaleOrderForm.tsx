@@ -1,4 +1,4 @@
-import { FC, useEffect, useMemo, useRef, useState } from 'react';
+import { type FC, lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useForm, Controller, FormProvider } from 'react-hook-form';
 import Grid from '@mui/material/Grid2';
 import Card from '@mui/material/Card';
@@ -7,7 +7,6 @@ import Divider from '@mui/material/Divider';
 import InputAdornment from '@mui/material/InputAdornment';
 import CustomForm from '@components/common/CustomForm';
 import CustomerDropdown from '@features/customer/components/CustomerDropdown';
-import CustomDatePicker from '@components/common/CustomDatePicker';
 import DiscountDropdown from '@features/discount/components/DiscountDropdown';
 import TaxRateDropdown from '@features/taxRate/components/TaxRateDropdown';
 import DeliveryMethodDropdown from '@features/deliveryMethod/components/DeliveryMethodDropdown';
@@ -16,9 +15,12 @@ import ProductOrderDropdown from '@features/product/components/ProductOrderDropd
 import PricingTypeDropdown from '@features/pricingType/components/PricingTypeDropdown';
 import CustomButton from '@components/common/CustomButton';
 import CustomTypography from '@components/common/CustomTypography';
+import Loading from '@components/common/Loading';
 import { v4 as uuidv4 } from 'uuid';
-import { SalesOrder } from '../state';
+import type { SalesOrder } from '../state';
 import usePricing from '@hooks/usePricing';
+
+const CustomDatePicker = lazy(() => import('@components/common/CustomDatePicker'));
 
 interface SaleOrderFormProps {
   onSubmit: (formData: SalesOrder) => void | Promise<void>;
@@ -247,11 +249,13 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({ onSubmit = () => {}, onCl
               name="order_date"
               control={control}
               render={({ field }) => (
-                <CustomDatePicker
-                  label="Order Date"
-                  value={field.value || null}
-                  onChange={(date) => field.onChange(date)}
-                />
+                <Suspense fallback={<Loading message="Loading date picker..." />}>
+                  <CustomDatePicker
+                    label="Order Date"
+                    value={field.value || null}
+                    onChange={(date) => field.onChange(date)}
+                  />
+                </Suspense>
               )}
             />
           </Grid>

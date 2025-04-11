@@ -1,8 +1,8 @@
-import { FC, lazy } from 'react';
+import { type FC, lazy, Suspense } from 'react';
 import Box from '@mui/material/Box';
 import { formatDate } from '@utils/dateTimeUtils';
 import useProductsWarehouseDropdown from '@hooks/useProductsWarehouseDropdown';
-import { ProductDropdownItem } from '@features/warehouse-inventory';
+import type { ProductDropdownItem } from '@features/warehouse-inventory';
 import CustomModal from '@components/common/CustomModal';
 import Loading from '@components/common/Loading';
 import MultiItemForm from '@components/common/MultiItemForm';
@@ -166,15 +166,15 @@ const BulkInsertInventoryModal: FC<{
                 label: 'Expiry Date',
                 type: 'custom',
                 component: ({ value, onChange }) => (
-                  <CustomDatePicker
-                    label="Expiry Date"
-                    value={value ? new Date(value) : null} // Ensure value is Date
-                    onChange={(date) =>
-                      onChange(date ? formatDate(date) : '')
-                    } // Convert Date to string before passing
-                    sx={{ width: '250px' }}
-                    inputSx={{ width: '250px' }}
-                  />
+                  <Suspense fallback={<Loading message={"Loading date picker..."}/>}>
+                    <CustomDatePicker
+                      label="Expiry Date"
+                      value={value ? new Date(value) : null}
+                      onChange={(date) => onChange(date ? formatDate(date) : '')}
+                      sx={{ width: '250px' }}
+                      inputSx={{ width: '250px' }}
+                    />
+                  </Suspense>
                 ),
               },
               {

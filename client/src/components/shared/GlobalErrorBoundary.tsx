@@ -1,4 +1,4 @@
-import { Component, ErrorInfo, ReactNode } from 'react';
+import { Component, type ErrorInfo, type ReactNode } from 'react';
 import ErrorDisplay from '@components/shared/ErrorDisplay';
 import { AppError, ErrorType } from '@utils/AppError';
 import { handleError, mapErrorMessage } from '@utils/errorUtils';

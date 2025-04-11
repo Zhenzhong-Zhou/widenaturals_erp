@@ -1,6 +1,6 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import Box from '@mui/material/Box';
-import { CustomerDetails } from '@features/customer';
+import type { CustomerDetails } from '@features/customer';
 import Loading from '@components/common/Loading';
 import ErrorDisplay from '@components/shared/ErrorDisplay';
 import ErrorMessage from '@components/common/ErrorMessage';

@@ -1,6 +1,7 @@
-import { FC, useState } from 'react';
+import { type FC, useState } from 'react';
 // import { Link } from 'react-router-dom';
-import { Warehouse } from '@features/warehouse';
+// import { Link } from 'react-router-dom';
+import type { Warehouse } from '@features/warehouse';
 import { formatDateTime } from '@utils/dateTimeUtils';
 import { formatLabel } from '@utils/textUtils';
 import CustomTable from '@components/common/CustomTable';

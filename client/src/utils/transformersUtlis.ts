@@ -1,4 +1,4 @@
-import { WarehouseInventory } from '@features/warehouse-inventory';
+import type { WarehouseInventory } from '@features/warehouse-inventory';
 
 export const sanitizeWarehouseInventory = (data: any[]): WarehouseInventory[] => {
   if (!Array.isArray(data)) return [];

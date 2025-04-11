@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import GlobalErrorBoundary from '@components/shared/GlobalErrorBoundary';
 import FallbackUI from '@components/shared/FallbackUI';

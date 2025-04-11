@@ -1,6 +1,6 @@
 import { createSelector } from '@reduxjs/toolkit';
-import { RootState } from '@store/store';
-import { InventoryHistoryState } from '@features/report';
+import type { RootState } from '@store/store';
+import type { InventoryHistoryState } from '@features/report';
 
 /**
  * Base selector to retrieve the inventory history state from the root state.

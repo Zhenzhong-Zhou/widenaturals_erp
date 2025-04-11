@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import useAdjustmentReport from '@hooks/useAdjustmentReport';
 import useReportPageLogic from '@features/report/hook/useReportPageLogic';
 import Loading from '@components/common/Loading';

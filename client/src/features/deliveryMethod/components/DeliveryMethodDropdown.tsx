@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import useDeliveryMethodDropdown from '@hooks/useDeliveryMethodDropdown';
 import Loading from '@components/common/Loading';
 import Dropdown from '@components/common/Dropdown';

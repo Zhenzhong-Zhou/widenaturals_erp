@@ -1,4 +1,4 @@
-import { FC, useState } from 'react';
+import { type FC, useState } from 'react';
 import Box from '@mui/material/Box';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';

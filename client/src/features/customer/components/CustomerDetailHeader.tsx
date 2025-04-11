@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import Box from '@mui/material/Box';
 import { useThemeContext } from '@context/ThemeContext';
 import GoBackButton from '@components/common/GoBackButton';

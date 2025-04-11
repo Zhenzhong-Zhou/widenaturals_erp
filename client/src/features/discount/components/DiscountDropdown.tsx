@@ -1,4 +1,4 @@
-import { FC, useEffect, useState } from 'react';
+import { type FC, useEffect, useState } from 'react';
 import Dropdown from '@components/common/Dropdown';
 import useDiscountDropdown from '@hooks/useDiscountDropdown';
 import Loading from '@components/common/Loading';

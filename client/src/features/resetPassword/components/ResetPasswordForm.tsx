@@ -1,8 +1,8 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import {
   validatePassword,
-  PasswordValidationErrors,
+  type PasswordValidationErrors,
 } from '@utils/validation';
 import CustomForm from '@components/common/CustomForm';
 import PasswordInput from '@components/common/PasswordInput';

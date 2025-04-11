@@ -1,6 +1,6 @@
 import { createSelector } from 'reselect';
-import { RootState } from '@store/store';
-import { Order } from '@features/order';
+import type { RootState } from '@store/store';
+import type { Order } from '@features/order';
 
 // Root selector for the orders slice
 const selectOrdersState = (state: RootState) => state.orders;

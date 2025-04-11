@@ -1,4 +1,4 @@
-import React from 'react';
+import { type FC } from 'react';
 import { useParams } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import CardMedia from '@mui/material/CardMedia';
@@ -10,7 +10,7 @@ import productPlaceholder from '@assets/Virility_CA.jpg';
 import { formatDate } from '@utils/dateTimeUtils';
 import useProductDetail from '@hooks/useProductDetail';
 
-const ProductDetailPage: React.FC = () => {
+const ProductDetailPage: FC = () => {
   const { id } = useParams<{ id: string }>(); // Extract product ID from the URL
   const { product, isLoading, error, refetchProduct } = useProductDetail(id!);
 

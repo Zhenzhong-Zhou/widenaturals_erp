@@ -1,6 +1,6 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import Box from '@mui/material/Box';
-import { UsersListProps } from '@features/user';
+import type { UsersListProps } from '@features/user';
 import UsersCard from '@features/user/components/UsersCard';
 import { generateUniqueKey } from '@utils/generateUniqueKey';
 

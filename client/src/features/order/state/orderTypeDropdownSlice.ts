@@ -1,5 +1,5 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { fetchOrderTypesDropDownThunk, OrderType } from '@features/order';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { fetchOrderTypesDropDownThunk, type OrderType } from '@features/order';
 
 interface OrderTypeState {
   orderTypes: OrderType[];

@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
-  FetchWarehouseItemSummaryParams,
+  type FetchWarehouseItemSummaryParams,
   fetchWarehouseItemSummaryThunk,
   resetWarehouseItemSummary,
   selectWarehouseItemError,

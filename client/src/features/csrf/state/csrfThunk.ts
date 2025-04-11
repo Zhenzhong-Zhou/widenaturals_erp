@@ -1,5 +1,5 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { csrfService } from '../../../services';
+import { csrfService } from '@services/csrfService';
 
 export const getCsrfTokenThunk = createAsyncThunk<
   string,

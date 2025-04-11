@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CustomCard from '@components/common/CustomCard';
 import ErrorDisplay from '@components/shared/ErrorDisplay';

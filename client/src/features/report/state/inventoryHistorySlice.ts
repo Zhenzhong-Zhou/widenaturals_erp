@@ -1,5 +1,5 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { InventoryHistoryResponse, InventoryHistoryState } from '@features/report';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { type InventoryHistoryResponse, type InventoryHistoryState } from '@features/report';
 import { exportInventoryHistoryThunk, fetchInventoryHistoryThunk } from '@features/report/state/reportThunks';
 
 const initialState: InventoryHistoryState = {

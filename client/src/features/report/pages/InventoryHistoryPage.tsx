@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import useInventoryHistory from '@hooks/useInventoryHistory';
 import useReportPageLogic from '@features/report/hook/useReportPageLogic';
 import Loading from '@components/common/Loading';

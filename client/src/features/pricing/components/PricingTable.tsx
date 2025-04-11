@@ -1,6 +1,6 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import { Link } from 'react-router-dom';
-import { Pricing } from '@features/pricing';
+import type { Pricing } from '@features/pricing';
 import { formatLabel, formatCurrency } from '@utils/textUtils';
 import { formatDateTime } from '@utils/dateTimeUtils';
 import CustomTable from '@components/common/CustomTable';

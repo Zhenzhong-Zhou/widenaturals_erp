@@ -8,7 +8,7 @@ import CustomButton from '@components/common/CustomButton';
 import ProductCard from '@features/product/components/ProductCard';
 import CustomPagination from '@components/common/CustomPagination';
 import useProducts from '@hooks/useProducts';
-import { GeneralProductInfo } from '@features/product/state';
+import type { GeneralProductInfo } from '@features/product/state';
 
 const ProductsPage = () => {
   const { products, pagination, loading, error, fetchProductsByPage } =

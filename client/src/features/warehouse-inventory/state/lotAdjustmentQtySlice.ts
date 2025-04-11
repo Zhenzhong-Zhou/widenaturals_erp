@@ -2,7 +2,7 @@ import { createSlice } from '@reduxjs/toolkit';
 import {
   adjustWarehouseInventoryLotThunk,
   bulkAdjustWarehouseInventoryLotsQtyThunk,
-  LotAdjustmentQtyState,
+  type LotAdjustmentQtyState,
 } from '@features/warehouse-inventory';
 
 const initialState: LotAdjustmentQtyState = {

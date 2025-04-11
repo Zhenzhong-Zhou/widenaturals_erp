@@ -1,6 +1,6 @@
 import { createSelector } from '@reduxjs/toolkit';
-import { RootState } from '@store/store';
-import { OrderDetailsResponse } from '@features/order';
+import type { RootState } from '@store/store';
+import type { OrderDetailsResponse } from '@features/order';
 
 // Base Selector - Getting the whole salesOrderDetails state slice
 const selectSalesOrderDetailsState = (state: RootState) => state.salesOrderDetail;

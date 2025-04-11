@@ -1,5 +1,5 @@
 import type { Column } from '@components/common/CustomTable';
-import { FetchedOrderItem } from '@features/order/state';
+import type { FetchedOrderItem } from '@features/order/state';
 import { formatCurrency } from '@utils/textUtils';
 import { formatDate } from '@utils/dateTimeUtils';
 

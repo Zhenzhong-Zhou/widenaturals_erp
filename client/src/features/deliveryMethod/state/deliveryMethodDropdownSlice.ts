@@ -1,6 +1,6 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { fetchDeliveryMethodDropdownThunk } from './deliveryMethodThunks';
-import { DeliveryMethodDropdownItem } from './deliveryMethodTypes';
+import type { DeliveryMethodDropdownItem } from './deliveryMethodTypes';
 
 interface DeliveryMethodState {
   methods: DeliveryMethodDropdownItem[];

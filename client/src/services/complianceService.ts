@@ -1,4 +1,4 @@
-import {
+import type {
   ComplianceResponse,
   FetchAllCompliancesParams,
 } from '@features/compliance';

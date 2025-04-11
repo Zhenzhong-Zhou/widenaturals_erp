@@ -1,8 +1,8 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import AdminDashboardPage from '@features/dashboard/pages/AdminDashboardPage';
 import ManagerDashboardPage from '@features/dashboard/pages/ManagerDashboardPage';
 import UserDashboardPage from '@features/dashboard/pages/UserDashboardPage';
-import { DashboardPageProps } from '@features/dashboard';
+import type { DashboardPageProps } from '@features/dashboard';
 
 const roleComponentMap: Record<string, FC<DashboardPageProps>> = {
   root_admin: AdminDashboardPage,

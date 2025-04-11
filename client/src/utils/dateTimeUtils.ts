@@ -204,15 +204,16 @@ export const timeAgo = (date: Date | string): string => {
 /**
  * Converts a date input to YYYY-MM-DD format.
  */
-export const formatToISODate = (dateInput: any): string => {
+export const formatToISODate = (dateInput: string | Date | null | undefined): string => {
   if (!dateInput) return 'N/A'; // Handle null, undefined, empty
 
   // Convert string timestamps to Date objects
   const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
-
-  if (!(date instanceof Date) || isNaN(date.getTime())) {
-    return 'N/A'; // Ensure valid date
-  }
-
-  return date.toISOString().split('T')[0]; // Extract YYYY-MM-DD
+  
+  if (isNaN(date.getTime())) return 'N/A';
+  
+  const isoString = date.toISOString();
+  const parts = isoString.split('T');
+  
+  return parts[0] ?? 'N/A'; // Extract YYYY-MM-DD
 };

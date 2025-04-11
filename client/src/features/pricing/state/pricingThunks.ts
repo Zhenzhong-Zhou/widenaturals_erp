@@ -1,5 +1,5 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { PriceRequestParams, PriceResponse, PricingDetailsResponse, PricingResponse } from '@features/pricing';
+import type { PriceRequestParams, PriceResponse, PricingDetailsResponse, PricingResponse } from '@features/pricing';
 import { pricingService } from '@services/pricingService';
 
 /**

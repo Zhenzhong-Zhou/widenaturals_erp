@@ -1,6 +1,7 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 // import { Link } from 'react-router-dom';
-import { Location } from '@features/location';
+// import { Link } from 'react-router-dom';
+import type { Location } from '@features/location';
 import { formatLabel } from '@utils/textUtils';
 import { formatDateTime } from '@utils/dateTimeUtils';
 import Box from '@mui/material/Box';

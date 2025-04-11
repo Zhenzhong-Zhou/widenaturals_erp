@@ -1,9 +1,9 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import {
   exportInventoryActivityLogsThunk,
   fetchInventoryActivityLogsThunk,
-  InventoryActivityLogsResponse,
-  InventoryActivityLogsState,
+  type InventoryActivityLogsResponse,
+  type InventoryActivityLogsState,
 } from '@features/report';
 
 /**

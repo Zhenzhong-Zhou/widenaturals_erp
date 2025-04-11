@@ -1,11 +1,11 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import NoDataFound from '@components/common/NoDataFound';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
 import GoBackButton from '@components/common/GoBackButton';
-import { WarehouseDetails } from '@features/warehouse/state';
+import type { WarehouseDetails } from '@features/warehouse/state';
 import { formatDate } from '@utils/dateTimeUtils';
 import { formatLabel } from '@utils/textUtils';
 import { handleAdjustmentReportRedirect } from '@utils/navigationUtils';

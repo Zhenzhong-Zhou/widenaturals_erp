@@ -2,9 +2,9 @@ import {
   parsePhoneNumberFromString,
   AsYouType,
   getCountryCallingCode,
-  CountryCode,
+  type CountryCode,
 } from 'libphonenumber-js';
-import { ShippingInformation } from '@features/order';
+import type { ShippingInformation } from '@features/order';
 
 /**
  * Formats a given string into human-readable Title Case.

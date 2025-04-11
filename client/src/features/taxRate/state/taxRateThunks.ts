@@ -1,6 +1,6 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { dropdownService } from '../../../services';
-import { TaxRateDropdownItem } from './taxRateTypes';
+import type { TaxRateDropdownItem } from './taxRateTypes';
 
 /**
  * Thunk to fetch tax rates for a dropdown.

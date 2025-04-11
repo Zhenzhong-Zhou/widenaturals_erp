@@ -1,6 +1,6 @@
-import { RootState } from '@store/store';
+import type { RootState } from '@store/store';
 import { createSelector } from '@reduxjs/toolkit';
-import { PricingListState } from '@features/pricing/state/pricingSlice';
+import type { PricingListState } from '@features/pricing/state/pricingSlice';
 
 const selectPricingsState = (state: RootState): PricingListState =>
   state.pricings as PricingListState;

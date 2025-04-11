@@ -1,4 +1,4 @@
-import { FC, ReactNode } from 'react';
+import type { FC, ReactNode } from 'react';
 import Box from '@mui/material/Box';
 import Modal from '@mui/material/Modal';
 import type { SxProps, Theme } from '@mui/system';

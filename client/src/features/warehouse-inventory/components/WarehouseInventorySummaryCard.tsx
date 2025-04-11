@@ -1,15 +1,15 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import { Link } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import { ArrowBack, ArrowForward, Refresh } from '@mui/icons-material';
+import Skeleton from '@mui/material/Skeleton';
 import CustomButton from '@components/common/CustomButton';
 import CustomCard from '@components/common/CustomCard';
 import CustomTypography from '@components/common/CustomTypography';
 import { formatLabel, formatCurrency } from '@utils/textUtils';
 import { formatDateTime, formatToISODate } from '@utils/dateTimeUtils';
-import { WarehouseInventorySummary } from '../state/warehouseInventoryTypes';
-import Skeleton from '@mui/material/Skeleton';
+import type { WarehouseInventorySummary } from '../state/warehouseInventoryTypes';
 
 interface WarehouseInventorySummaryProps {
   inventoriesSummary: WarehouseInventorySummary[];

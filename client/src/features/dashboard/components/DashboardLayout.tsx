@@ -1,4 +1,4 @@
-import { FC, ReactNode, useEffect, useMemo, useState } from 'react';
+import { type FC, type ReactNode, useEffect, useMemo, useState } from 'react';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid2';
 import { Skeleton, useMediaQuery } from '@mui/material';
@@ -12,7 +12,7 @@ import useInventorySummary from '@hooks/useInventorySummary';
 import { formatDate } from '@utils/dateTimeUtils';
 import { useThemeContext } from '@context/ThemeContext';
 import { formatLabel } from '@utils/textUtils';
-import { InventorySummary } from '@features/inventory';
+import type { InventorySummary } from '@features/inventory';
 
 interface BaseDashboardLayoutProps {
   fullName?: string;

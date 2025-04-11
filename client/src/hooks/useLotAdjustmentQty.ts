@@ -2,8 +2,8 @@ import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   adjustWarehouseInventoryLotThunk,
   bulkAdjustWarehouseInventoryLotsQtyThunk,
-  BulkLotAdjustmentPayload,
-  LotAdjustmentSinglePayload,
+  type BulkLotAdjustmentPayload,
+  type LotAdjustmentSinglePayload,
   resetLotAdjustmentState,
   selectLotAdjustmentQtyErrorBulk,
   selectLotAdjustmentQtyErrorSingle,

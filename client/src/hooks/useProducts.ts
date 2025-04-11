@@ -4,7 +4,7 @@ import {
   selectProducts,
   selectProductsPagination,
   selectProductsLoading,
-  selectProductsError, UseProductsResult, fetchProductsThunk,
+  selectProductsError, type UseProductsResult, fetchProductsThunk,
 } from '@features/product';
 
 const useProducts = <T>(): UseProductsResult<T> => {

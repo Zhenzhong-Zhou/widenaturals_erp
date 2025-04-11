@@ -1,10 +1,10 @@
 import { useCallback, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
-  BulkCustomerRequest,
+  type BulkCustomerRequest,
   createBulkCustomersThunk,
   createCustomerThunk,
-  CustomerQueryParams,
+  type CustomerQueryParams,
   fetchCustomersThunk,
   fetchCustomerByIdThunk,
   selectCustomerError,

@@ -1,6 +1,6 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { dropdownService } from '@services/dropdownService';
-import {
+import type {
   CreateSalesOrderResponse,
   FetchOrdersParams,
   OrderDetailsResponse,

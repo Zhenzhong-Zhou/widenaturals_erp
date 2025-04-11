@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import BaseInput from '@components/common/BaseInput';
 import type { TextFieldProps } from '@mui/material/TextField';
 

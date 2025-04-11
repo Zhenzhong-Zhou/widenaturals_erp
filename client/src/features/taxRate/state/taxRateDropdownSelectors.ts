@@ -1,5 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit';
-import { RootState } from '../../../store/store';
+import type { RootState } from '@store/store';
 
 // Simple selector to get the tax rate state
 const selectTaxRateDropdownState = (state: RootState) => state.taxRateDropdown;

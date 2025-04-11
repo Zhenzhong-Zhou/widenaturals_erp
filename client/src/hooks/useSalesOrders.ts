@@ -2,7 +2,7 @@ import { useMemo, useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   createSalesOrderThunk,
-  SalesOrder,
+  type SalesOrder,
   selectCreatedSalesOrderError,
   selectCreatedSalesOrderId,
   selectCreatedSalesOrderLoading,

@@ -1,7 +1,7 @@
 import { useEffect, useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
-  TaxRateDropdownItem, fetchTaxRateDropdownThunk,
+  type TaxRateDropdownItem, fetchTaxRateDropdownThunk,
   selectTaxRateDropdown,
   selectTaxRateDropdownError,
   selectTaxRateDropdownLoading,

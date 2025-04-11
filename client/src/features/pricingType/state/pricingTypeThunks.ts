@@ -1,6 +1,7 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { dropdownService, pricingTypeService } from '../../../services';
-import { PricingTypeDropdownItem, PricingTypeResponse, PricingTypesResponse } from './pricingTypeTypes';
+import { pricingTypeService } from '@services/pricingTypeService.ts';
+import { dropdownService } from '@services/dropdownService.ts';
+import type { PricingTypeDropdownItem, PricingTypeResponse, PricingTypesResponse } from './pricingTypeTypes';
 
 export const fetchPricingTypesThunk = createAsyncThunk<
   PricingTypesResponse,

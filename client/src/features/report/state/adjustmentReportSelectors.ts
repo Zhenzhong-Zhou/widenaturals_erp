@@ -1,6 +1,6 @@
 import { createSelector } from '@reduxjs/toolkit';
-import { RootState } from '@store/store';
-import { AdjustmentReportState } from '@features/report';
+import type { RootState } from '@store/store';
+import type { AdjustmentReportState } from '@features/report';
 
 // Select the adjustment report state
 const selectAdjustmentReportState = (state: RootState) =>

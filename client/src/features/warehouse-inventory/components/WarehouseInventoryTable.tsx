@@ -1,6 +1,6 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import { Link } from 'react-router-dom';
-import { WarehouseInventory } from '@features/warehouse-inventory';
+import type { WarehouseInventory } from '@features/warehouse-inventory';
 import { formatDateTime } from '@utils/dateTimeUtils';
 import { formatLabel, formatCurrency } from '@utils/textUtils';
 import Box from '@mui/material/Box';

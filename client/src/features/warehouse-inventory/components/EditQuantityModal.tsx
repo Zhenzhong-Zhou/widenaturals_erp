@@ -1,11 +1,11 @@
-import { FC, useEffect } from 'react';
+import { type FC, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import CustomModal from '@components/common/CustomModal';
 import CustomForm from '@components/common/CustomForm';
 import Box from '@mui/material/Box';
 import CustomTypography from '@components/common/CustomTypography';
 import { formatLabel } from '@utils/textUtils';
-import { LotAdjustmentType } from '@features/warehouse-inventory/state';
+import type { LotAdjustmentType } from '@features/warehouse-inventory/state';
 import useLotAdjustmentTypes from '@hooks/useLotAdjustmentTypes';
 
 interface EditQuantityModalProps {

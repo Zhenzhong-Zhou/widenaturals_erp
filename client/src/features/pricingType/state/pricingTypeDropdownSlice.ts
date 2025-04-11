@@ -1,6 +1,6 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { fetchPricingTypeDropdownThunk } from './pricingTypeThunks';
-import { PricingTypeDropdownItem } from './pricingTypeTypes';
+import type { PricingTypeDropdownItem } from './pricingTypeTypes';
 
 // Define the initial state
 interface PricingTypeDropdownState {

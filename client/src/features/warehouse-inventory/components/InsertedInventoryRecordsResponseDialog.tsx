@@ -1,10 +1,10 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import Box from '@mui/material/Box';
 import CustomDialog from '@components/common/CustomDialog';
 import CustomTypography from '@components/common/CustomTypography';
 import MetadataSection from '@components/common/MetadataSection';
 import { formatDateTime } from '@utils/dateTimeUtils';
-import { WarehouseInventoryInsertResponse } from '@features/warehouse-inventory';
+import type { WarehouseInventoryInsertResponse } from '@features/warehouse-inventory';
 
 interface InventoryRecordsDialogProps {
   insertedDataResponse?: WarehouseInventoryInsertResponse | null;

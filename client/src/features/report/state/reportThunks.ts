@@ -1,5 +1,5 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import {
+import type {
   AdjustmentReportParams,
   InventoryActivityLogParams,
   InventoryActivityLogsResponse, InventoryHistoryParams,

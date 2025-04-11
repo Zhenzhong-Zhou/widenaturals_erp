@@ -3,8 +3,8 @@ import {
   useState,
   useEffect,
   useContext,
-  ReactNode,
-  FC,
+  type FC,
+  type ReactNode,
 } from 'react';
 import ThemeProvider from '@mui/material/styles/ThemeProvider';
 import CssBaseline from '@mui/material/CssBaseline';

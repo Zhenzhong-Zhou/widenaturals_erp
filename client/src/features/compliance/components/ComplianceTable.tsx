@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import CustomTable from '@components/common/CustomTable';
 import type { Compliance } from '@features/compliance/state/complianceTypes';
 import { formatLabel, toUpperCase } from '@utils/textUtils';

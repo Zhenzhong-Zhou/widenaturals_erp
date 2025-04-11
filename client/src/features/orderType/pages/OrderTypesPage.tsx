@@ -1,4 +1,4 @@
-import { FC, useState } from 'react';
+import { type FC, useState } from 'react';
 import Box from '@mui/material/Box';
 import useOrderTypes from '@hooks/useOrderTypes';
 import Loading from '@components/common/Loading';

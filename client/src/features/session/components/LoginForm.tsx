@@ -1,4 +1,4 @@
-import { FC, FormEvent, useState } from 'react';
+import { type FC, type FormEvent, useState } from 'react';
 import { useAppSelector } from '@store/storeHooks';
 import { selectLoading } from '@features/session/state';
 import Box from '@mui/material/Box';

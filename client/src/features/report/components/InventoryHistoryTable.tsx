@@ -1,9 +1,9 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import type { Column } from '@components/common/CustomTable';
 import CustomTable from '@components/common/CustomTable';
 import { formatDate, formatDateTime } from '@utils/dateTimeUtils';
 import { formatLabel } from '@utils/textUtils';
-import { InventoryHistoryParams } from '@features/report';
+import type { InventoryHistoryParams } from '@features/report';
 
 interface InventoryHistoryTableProps {
   data: any[];

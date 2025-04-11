@@ -1,4 +1,4 @@
-import { FC, useEffect, useState } from 'react';
+import { type FC, useEffect, useState } from 'react';
 import Box from '@mui/material/Box';
 import Loading from '@components/common/Loading';
 import Dropdown from '@components/common/Dropdown';

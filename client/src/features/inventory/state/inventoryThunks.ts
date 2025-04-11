@@ -1,5 +1,5 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { InventoryResponse, InventorySummaryResponse } from '@features/inventory';
+import type { InventoryResponse, InventorySummaryResponse } from '@features/inventory';
 import { inventoryService } from '@services/inventoryService';
 
 /**

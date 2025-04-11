@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
-  AdjustmentReportParams,
+  type AdjustmentReportParams,
   fetchAdjustmentReportThunk,
   exportAdjustmentReportThunk,
   selectAdjustmentReport,

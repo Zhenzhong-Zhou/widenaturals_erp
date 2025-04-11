@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import TextField from '@mui/material/TextField';
 import type { TextFieldProps } from '@mui/material/TextField';
 import { useThemeContext } from '@context/ThemeContext';

@@ -1,4 +1,4 @@
-import { FC, useState } from 'react';
+import { type FC, useState } from 'react';
 import Box from '@mui/material/Box';
 import CustomTypography from '@components/common/CustomTypography';
 import ErrorMessage from '@components/common/ErrorMessage';
@@ -8,7 +8,7 @@ interface FallbackUIProps {
   title?: string; // Error title
   description?: string; // User-friendly description
   errorCode?: string; // Optional error code for debugging
-  errorLog?: string; // Optional detailed error log
+  errorLog: string | undefined; // Optional detailed error log
   onRetry?: () => void; // Retry action callback
 }
 

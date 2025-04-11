@@ -1,9 +1,9 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomTable from '@components/common/CustomTable';
-import { LocationType } from '@features/locationType';
+import type { LocationType } from '@features/locationType';
 import { formatLabel } from '@utils/textUtils';
 import { formatDateTime } from '@utils/dateTimeUtils';
 

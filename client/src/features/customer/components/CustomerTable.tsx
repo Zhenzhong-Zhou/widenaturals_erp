@@ -1,10 +1,10 @@
-import { FC, useState } from 'react';
+import { type FC, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
 import CustomTable from '@components/common/CustomTable';
-import { Customer } from '@features/customer';
+import type { Customer } from '@features/customer';
 import { formatLabel, formatPhoneNumber } from '@utils/textUtils';
 import { formatDate } from '@utils/dateTimeUtils';
 import useCustomers from '@hooks/useCustomers';

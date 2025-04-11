@@ -5,7 +5,7 @@ import {
   selectOrderTypesDropdown,
   selectOrderTypesByCategory,
   selectOrderTypesDropdownLoading,
-  selectOrderTypesDropdownError, OrderType,
+  selectOrderTypesDropdownError, type OrderType,
 } from '@features/order';
 
 const useOrderTypesDropdown = (category?: string) => {

@@ -1,8 +1,8 @@
 import axios, {
   AxiosError,
-  AxiosRequestConfig,
-  AxiosResponse,
-  InternalAxiosRequestConfig,
+  type AxiosRequestConfig,
+  type AxiosResponse,
+  type InternalAxiosRequestConfig,
 } from 'axios';
 import { store } from '@store/store';
 import { AppError, ErrorType } from '@utils/AppError';

@@ -1,10 +1,9 @@
 import {
-  ReactNode,
   useState,
   Suspense,
   cloneElement,
-  ReactElement,
-  useEffect,
+  type ReactElement,
+  useEffect, isValidElement,
 } from 'react';
 import { useThemeContext } from '@context/ThemeContext';
 import { useMediaQuery, useTheme } from '@mui/material';
@@ -25,8 +24,14 @@ import useLogout from '@hooks/useLogout';
 import useTokenRefresh from '@hooks/useTokenRefresh';
 import { contentContainerStyles, layoutStyles, mainContentStyles } from '@layouts/MainLayout/layoutStyles';
 
+interface InjectedProps {
+  fullName: string;
+  roleName: string;
+  permissions: string[];
+}
+
 interface MainLayoutProps {
-  children: ReactNode;
+  children: ReactElement<InjectedProps>;
 }
 
 const MainLayout = ({ children }: MainLayoutProps) => {
@@ -134,11 +139,9 @@ const MainLayout = ({ children }: MainLayoutProps) => {
         >
           <Suspense fallback={<Loading message="Loading content..." />}>
             <Box sx={mainContentStyles(theme)}>
-              {cloneElement(children as ReactElement<any>, {
-                fullName,
-                roleName,
-                permissions,
-              })}
+              {isValidElement(children)
+                ? cloneElement(children, { fullName, roleName, permissions })
+                : null}
             </Box>
           </Suspense>
         </ModuleErrorBoundary>

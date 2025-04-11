@@ -3,7 +3,7 @@ import { API_ENDPOINTS } from '@services/apiEndpoints';
 import { clearTokens } from '@utils/tokenManager';
 import { handleError, mapErrorMessage } from '@utils/errorUtils';
 import { AppError, ErrorType } from '@utils/AppError';
-import { UserProfileResponse, UseUsersResponse } from '@features/user';
+import type { UserProfileResponse, UseUsersResponse } from '@features/user';
 import { isCustomAxiosError } from '@utils/axiosUtils';
 import { withTimeout } from '@utils/timeoutUtils';
 import { withRetry } from '@utils/retryUtils';

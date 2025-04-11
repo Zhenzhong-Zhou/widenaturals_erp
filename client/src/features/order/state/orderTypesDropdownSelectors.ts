@@ -1,6 +1,6 @@
 import { createSelector } from '@reduxjs/toolkit';
-import { RootState } from '@store/store';
-import { OrderType } from '@features/order';
+import type { RootState } from '@store/store';
+import type { OrderType } from '@features/order';
 
 const selectOrderTypeState = (state: RootState) => state.orderTypesDropdown;
 
@@ -15,12 +15,11 @@ export const selectOrderTypesByCategory = createSelector(
   [selectOrderTypesDropdown],
   (orderTypes: OrderType[]) => {
     const groupedByCategory: Record<string, OrderType[]> = {};
+    
     orderTypes.forEach((orderType: OrderType) => {
-      if (!groupedByCategory[orderType.category]) {
-        groupedByCategory[orderType.category] = [];
-      }
-      groupedByCategory[orderType.category].push(orderType);
+      (groupedByCategory[orderType.category] ??= []).push(orderType);
     });
+    
     return groupedByCategory;
   }
 );

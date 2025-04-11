@@ -7,7 +7,7 @@ import CustomCard from '@components/common/CustomCard';
 import CustomButton from '@components/common/CustomButton';
 import { formatDate } from '@utils/dateTimeUtils';
 import { formatLabel } from '@utils/textUtils';
-import { WarehouseItemSummary } from '@features/warehouse-inventory/state';
+import type { WarehouseItemSummary } from '@features/warehouse-inventory/state';
 
 interface WarehouseItemSummaryProps {
   itemsSummary: WarehouseItemSummary[];

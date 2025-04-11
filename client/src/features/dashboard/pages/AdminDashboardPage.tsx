@@ -1,6 +1,6 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { DashboardPageProps } from '@features/dashboard';
+import type { DashboardPageProps } from '@features/dashboard';
 import DashboardLayout from '@features/dashboard/components/DashboardLayout';
 import CustomButton from '@components/common/CustomButton';
 

@@ -1,4 +1,4 @@
-import { FC, ReactNode, useState } from 'react';
+import { type FC, type ReactNode, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
@@ -22,7 +22,7 @@ import InsertedInventoryRecordsResponseDialog
 import CustomTable from '@components/common/CustomTable';
 import EditQuantityModal from '@features/warehouse-inventory/components/EditQuantityModal';
 import BulkAdjustQuantityModal from '@features/warehouse-inventory/components/BulkAdjustQuantityModal';
-import { WarehouseInventoryDetailExtended, WarehouseInventoryInsertResponse } from '@features/warehouse-inventory';
+import type { WarehouseInventoryDetailExtended, WarehouseInventoryInsertResponse } from '@features/warehouse-inventory';
 import { formatLabel, formatCurrency } from '@utils/textUtils';
 import { formatDate, formatDateTime } from '@utils/dateTimeUtils';
 import {

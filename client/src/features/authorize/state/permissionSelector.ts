@@ -1,6 +1,6 @@
 import { createSelector } from '@reduxjs/toolkit';
-import { RootState } from '@store/store';
-import { PermissionsState } from './permissionSlice';
+import type { RootState } from '@store/store';
+import type { PermissionsState } from './permissionSlice';
 
 const getPermissionsState = (state: RootState): PermissionsState =>
   state.permissions as PermissionsState;

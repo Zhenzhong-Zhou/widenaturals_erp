@@ -2,7 +2,7 @@ import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchInsertedInventoryRecordsThunk,
-  InsertInventoryRequestBody,
+  type InsertInventoryRequestBody,
   selectInsertedInventoryRecordsResponseData,
   selectInsertedInventoryRecordsResponseError,
   selectInsertedInventoryRecordsResponseLoading,

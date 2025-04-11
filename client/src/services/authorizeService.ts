@@ -1,6 +1,6 @@
 import axiosInstance from '@utils/axiosConfig';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
-import { PermissionResponse } from '@features/authorize/state/authorzeTypes';
+import type { PermissionResponse } from '@features/authorize/state/authorzeTypes';
 
 /**
  * Fetch permissions and role name for the authenticated user.

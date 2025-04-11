@@ -1,5 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { LotAdjustmentType } from '@features/warehouse-inventory/state/warehouseInventoryTypes';
+import type { LotAdjustmentType } from '@features/warehouse-inventory/state/warehouseInventoryTypes';
 import { fetchAllDropdownLotAdjustmentTypesThunk } from '@features/warehouse-inventory';
 
 // Initial State

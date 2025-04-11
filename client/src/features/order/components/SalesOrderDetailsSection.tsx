@@ -1,4 +1,4 @@
-import { FC, useEffect, useMemo } from 'react';
+import { type FC, useEffect, useMemo } from 'react';
 import Box from '@mui/material/Box';
 import CustomTypography from '@components/common/CustomTypography';
 import Card from '@mui/material/Card';
@@ -13,7 +13,7 @@ import DetailsSection from '@components/common/DetailsSection';
 import OrderItemsTable from '@features/order/components/OrderItemsTable';
 import useSalesOrderDetails from '@hooks/useSalesOrderDetails';
 import useConfirmSalesOrder from '@hooks/useConfirmSalesOrder';
-import { OrderDetailsData } from '@features/order/state';
+import type { OrderDetailsData } from '@features/order/state';
 import { formatDate } from '@utils/dateTimeUtils';
 import { formatLabel, formatCurrency, formatShippingAddress } from '@utils/textUtils';
 

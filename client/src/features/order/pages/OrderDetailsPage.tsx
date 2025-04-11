@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import { useParams } from 'react-router-dom';
 import { useLocation } from 'react-router';
 import Box from '@mui/material/Box';

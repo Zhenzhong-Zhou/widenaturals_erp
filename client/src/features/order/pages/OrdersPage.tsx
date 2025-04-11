@@ -1,4 +1,4 @@
-import { FC, useState, useEffect } from 'react';
+import { type FC, useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import useSalesOrders from '@hooks/useSalesOrders';
 import CustomTypography from '@components/common/CustomTypography';

@@ -1,5 +1,5 @@
-import { FC } from 'react';
-import { UsersCardProps } from '@features/user';
+import type { FC } from 'react';
+import type { UsersCardProps } from '@features/user';
 import Box from '@mui/material/Box';
 import Avatar from '@mui/material/Avatar';
 import CustomCard from '@components/common/CustomCard';

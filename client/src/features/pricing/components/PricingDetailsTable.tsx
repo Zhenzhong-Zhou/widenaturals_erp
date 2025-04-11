@@ -1,5 +1,5 @@
-import { FC } from 'react';
-import { PricingDetails } from '@features/pricing';
+import type { FC } from 'react';
+import type { PricingDetails } from '@features/pricing';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import CustomTypography from '@components/common/CustomTypography';

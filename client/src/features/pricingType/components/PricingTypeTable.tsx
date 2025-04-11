@@ -1,6 +1,6 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import { Link } from 'react-router-dom';
-import { PricingTypeTableProps } from '@features/pricingType/state';
+import type { PricingTypeTableProps } from '@features/pricingType/state';
 import CustomTable from '@components/common/CustomTable';
 import { formatDateTime } from '@utils/dateTimeUtils';
 import { formatLabel } from '@utils/textUtils';

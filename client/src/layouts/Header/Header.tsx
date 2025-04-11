@@ -1,4 +1,4 @@
-import React, { FC, useState } from 'react';
+import { type FC, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Avatar from '@mui/material/Avatar';
@@ -12,7 +12,7 @@ import CustomTypography from '@components/common/CustomTypography';
 import HealthStatus from '@features/health/components/HealthStatus';
 import CustomButton from '@components/common/CustomButton';
 import { useThemeContext } from '@context/ThemeContext';
-import { UserProfile } from '@features/user';
+import type { UserProfile } from '@features/user';
 import { headerStyles, typographyStyles } from '@layouts/Header/headerStyles';
 
 interface HeaderProps {

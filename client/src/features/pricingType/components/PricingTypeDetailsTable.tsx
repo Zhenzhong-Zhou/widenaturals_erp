@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import { Link } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Loading from '@components/common/Loading';
@@ -7,7 +7,7 @@ import ErrorMessage from '@components/common/ErrorMessage';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomTable from '@components/common/CustomTable';
 import CustomButton from '@components/common/CustomButton';
-import {
+import type {
   PricingTypeDetail,
   PricingRecord,
   PricingTypePagination,

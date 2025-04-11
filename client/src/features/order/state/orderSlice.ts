@@ -1,5 +1,5 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { fetchAllOrdersThunk, Order, OrdersResponse } from '@features/order';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { fetchAllOrdersThunk, type Order, type OrdersResponse } from '@features/order';
 
 // Define the initial state type
 interface OrdersState {

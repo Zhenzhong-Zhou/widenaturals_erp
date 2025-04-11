@@ -1,6 +1,6 @@
 import axiosInstance from '@utils/axiosConfig';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
-import {
+import type {
   PricingTypeResponse,
   PricingTypesResponse,
 } from '@features/pricingType';

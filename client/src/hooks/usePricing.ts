@@ -8,7 +8,7 @@ import {
   selectPricingError,
   selectPriceValueData,
   selectPriceValueLoading,
-  selectPriceValueError, PriceRequestParams, fetchPriceValueThunk,
+  selectPriceValueError, type PriceRequestParams, fetchPriceValueThunk,
 } from '@features/pricing';
 
 /**

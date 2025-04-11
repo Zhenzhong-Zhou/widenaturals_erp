@@ -1,5 +1,5 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { ProductDropdownItem } from '@features/product/state/productTypes';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import type { ProductDropdownItem } from '@features/product/state/productTypes';
 import { fetchProductsForOrdersDropdownThunk } from '@features/product';
 
 export interface ProductOrderDropdownState {

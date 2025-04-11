@@ -1,5 +1,5 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { DiscountDropdownItem } from '@features/discount';
+import type { DiscountDropdownItem } from '@features/discount';
 import { dropdownService } from '@services/dropdownService';
 
 // Thunk for fetching discounts dropdown

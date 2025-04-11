@@ -1,9 +1,9 @@
-import { FC } from 'react';
-import {
+import type { FC } from 'react';
+import type {
   InventoryActivityLog,
   InventoryActivityLogParams,
 } from '@features/report';
-import CustomTable, { Column } from '@components/common/CustomTable';
+import CustomTable, { type Column } from '@components/common/CustomTable';
 import { formatDate, formatDateTime } from '@utils/dateTimeUtils';
 import { formatLabel } from '@utils/textUtils';
 

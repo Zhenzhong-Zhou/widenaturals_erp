@@ -2,9 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchPricingTypeDetailsThunk,
-  PricingRecord,
-  PricingTypeDetail,
-  PricingTypePagination,
+  type PricingRecord,
+  type PricingTypeDetail,
+  type PricingTypePagination,
 } from '@features/pricingType';
 import {
   selectPricingError,

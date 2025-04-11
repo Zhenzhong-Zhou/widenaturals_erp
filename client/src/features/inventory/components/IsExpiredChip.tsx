@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import Chip from '@mui/material/Chip';
 import { useThemeContext } from '@context/ThemeContext';
 

@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import useOrderTypesDropdown from '@hooks/useOrderTypesDropdown';
 import Dropdown from '@components/common/Dropdown';
 

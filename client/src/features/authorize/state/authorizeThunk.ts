@@ -1,5 +1,5 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { authorizeService } from '../../../services';
+import { authorizeService } from '@services/authorizeService';
 
 export const fetchPermissionsThunk = createAsyncThunk<
   { roleName: string; permissions: string[] }, // Return type

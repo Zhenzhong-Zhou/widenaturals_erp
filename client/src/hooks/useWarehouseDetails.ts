@@ -6,7 +6,7 @@ import {
   selectWarehouseDetailsError,
   selectWarehouseDetailsLoading,
 } from '@features/warehouse';
-import { WarehouseDetails } from '@features/warehouse/state';
+import type { WarehouseDetails } from '@features/warehouse/state';
 
 /**
  * Custom hook to fetch and memoize warehouse details.

@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
-  BulkInsertInventoryRequest,
+  type BulkInsertInventoryRequest,
   bulkInsertWarehouseInventoryThunk,
   selectWarehouseInventoryInsertData,
   selectWarehouseInventoryInsertError,

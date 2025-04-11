@@ -1,4 +1,4 @@
-import { FC, useState, useEffect } from 'react';
+import { type FC, useState, useEffect } from 'react';
 import useCustomerDropdown from '@hooks/useCustomerDropdown';
 import Dropdown from '@components/common/Dropdown';
 import CreateCustomerModal from '@features/customer/components/CreateCustomerModal';

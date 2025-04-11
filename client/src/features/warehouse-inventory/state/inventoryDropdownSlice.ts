@@ -1,6 +1,6 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import {
-  DropdownState,
+  type DropdownState,
   fetchProductsDropDownByWarehouseThunk,
   fetchWarehousesDropdownThunk,
 } from '@features/warehouse-inventory';

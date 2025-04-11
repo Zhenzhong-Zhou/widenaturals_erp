@@ -1,6 +1,6 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { fetchTaxRateDropdownThunk } from './taxRateThunks';
-import { TaxRateDropdownItem } from './taxRateTypes';
+import { type TaxRateDropdownItem } from './taxRateTypes';
 
 interface TaxRateState {
   taxRates: TaxRateDropdownItem[];

@@ -1,7 +1,7 @@
-import { FC, useEffect, useState } from 'react';
+import { type FC, useEffect, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
-import CustomTable, { Column } from '@components/common/CustomTable';
-import { Order } from '@features/order';
+import CustomTable, { type Column } from '@components/common/CustomTable';
+import type { Order } from '@features/order';
 import Box from '@mui/material/Box';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCheckCircle, faTimesCircle } from '@fortawesome/free-solid-svg-icons';

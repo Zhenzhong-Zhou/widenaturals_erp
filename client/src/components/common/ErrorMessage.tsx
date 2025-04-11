@@ -1,5 +1,5 @@
-import { FC } from 'react';
-import Box, { BoxProps } from '@mui/material/Box';
+import type { FC } from 'react';
+import Box, { type BoxProps } from '@mui/material/Box';
 import { useThemeContext } from '@context/ThemeContext';
 
 interface ErrorMessageProps extends BoxProps {

@@ -1,5 +1,5 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { DeliveryMethodDropdownItem } from '@features/deliveryMethod';
+import type { DeliveryMethodDropdownItem } from '@features/deliveryMethod';
 import { dropdownService } from '@services/dropdownService';
 
 /**

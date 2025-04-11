@@ -1,4 +1,4 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import Box from '@mui/material/Box';
 import CustomCard from '@components/common/CustomCard';
 import CustomButton from '@components/common/CustomButton';
@@ -6,7 +6,7 @@ import CustomTypography from '@components/common/CustomTypography';
 import PriceDisplay from '@components/common/PriceDisplay';
 import productPlaceholder from '@assets/Virility_CA.jpg';
 import { formatLabel } from '@utils/textUtils';
-import { GeneralProductInfo } from '@features/product/state';
+import type { GeneralProductInfo } from '@features/product/state';
 
 interface ProductCardProps {
   product: GeneralProductInfo; // Use the subset type
@@ -58,7 +58,7 @@ const ProductCard: FC<ProductCardProps> = ({ product }) => {
         <CustomTypography variant="body2">Series: {series || 'N/A'}</CustomTypography>
         <CustomTypography variant="body2">Brand: {brand || 'N/A'}</CustomTypography>
         <CustomTypography variant="body2">Category: {category || 'N/A'}</CustomTypography>
-        <CustomTypography variant="body2">NPN: {npn_info[0].npn || 'N/A'}</CustomTypography>
+        <CustomTypography variant="body2">NPN: {npn_info[0]?.npn || 'N/A'}</CustomTypography>
         <CustomTypography variant="body2">Barcode: {barcode || 'N/A'}</CustomTypography>
         <CustomTypography variant="body2">
           Region: {market_region || 'N/A'}

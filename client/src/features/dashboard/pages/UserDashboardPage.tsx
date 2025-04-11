@@ -1,5 +1,5 @@
-import { FC } from 'react';
-import { DashboardPageProps } from '@features/dashboard';
+import type { FC } from 'react';
+import type { DashboardPageProps } from '@features/dashboard';
 import DashboardLayout from '@features/dashboard/components/DashboardLayout';
 import CustomTypography from '@components/common/CustomTypography';
 import PermissionList from '@features/dashboard/components/PermissionList';

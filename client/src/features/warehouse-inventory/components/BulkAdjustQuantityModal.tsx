@@ -1,4 +1,4 @@
-import { FC, useEffect } from 'react';
+import { type FC, useEffect } from 'react';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid2';
@@ -14,7 +14,7 @@ import CustomModal from '@components/common/CustomModal';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
 import { formatLabel } from '@utils/textUtils';
-import { LotAdjustmentType } from '@features/warehouse-inventory/state';
+import type { LotAdjustmentType } from '@features/warehouse-inventory/state';
 import useLotAdjustmentTypes from '@hooks/useLotAdjustmentTypes';
 
 interface BulkAdjustQuantityModalProps {

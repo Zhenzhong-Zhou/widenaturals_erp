@@ -1,5 +1,5 @@
-import { FC } from 'react';
-import { OrderType } from '@features/order';
+import type { FC } from 'react';
+import type { OrderType } from '@features/order';
 import CustomTable from '@components/common/CustomTable';
 import { formatLabel } from '@utils/textUtils';
 import { formatDate } from '@utils/dateTimeUtils';
