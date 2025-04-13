@@ -4,8 +4,8 @@ const {
 } = require('../repositories/order-repository');
 const AppError = require('../utils/AppError');
 const {
-  getAvailableLotForAllocation,
-  updateWarehouseInventoryLotQuantity,
+  getAvailableLotsForAllocation,
+  updateWarehouseInventoryLotQuantity, getSpecificLotsInOrder,
 } = require('../repositories/warehouse-inventory-lot-repository');
 const {
   insertInventoryAllocation,
@@ -33,7 +33,8 @@ const {
 } = require('../repositories/inventory-activity-log-repository');
 
 /**
- * Allocates inventory for a confirmed order item using FIFO or FEFO.
+ * Allocates inventory for a confirmed order item using FIFO or FEFO or manually selected lots.
+ * Supports automatic multi-lot allocation and manual lot selection with partial fill allowance.
  *
  * @param {Object} params - Allocation input values.
  * @param {string} params.productId - ID of the product to allocate.
@@ -41,8 +42,11 @@ const {
  * @param {'FEFO' | 'FIFO'} [params.strategy='FEFO'] - Allocation strategy.
  * @param {string} params.orderId - ID of the order to allocate for.
  * @param {string} params.warehouseId - ID of the warehouse.
+ * @param {Array<string>} [params.lotIds] - Optional list of lot IDs for manual override.
+ * @param {boolean} [params.allowPartial=false] - Whether to allow partial allocation when lots are insufficient.
  * @param {string} params.userId - ID of the user performing the allocation.
- * @returns {Promise<Object>} - The inserted allocation record.
+ * @param {import('pg').PoolClient} [params.client] - Optional transaction client.
+ * @returns {Promise<Object>} - Summary of allocation result.
  * @throws {AppError} - If the order is invalid or inventory is insufficient.
  */
 const allocateInventoryForOrder = async ({
@@ -51,6 +55,8 @@ const allocateInventoryForOrder = async ({
   strategy = 'FEFO',
   orderId,
   warehouseId,
+  lotIds = [],
+  allowPartial = false,
   userId,
   client,
 }) => {
@@ -98,191 +104,165 @@ const allocateInventoryForOrder = async ({
         `Order item for product ${productId} is not confirmed. Current status: ${orderItem.order_item_status_code}`
       );
     }
-
+    
     // 5. Validate quantity
     if (quantity > orderItem.quantity_ordered) {
       throw AppError.validationError(
         `Requested quantity (${quantity}) exceeds ordered quantity (${orderItem.quantity_ordered}) for product ${productId}.`
       );
     }
-
-    // 6. Find inventory lot using FIFO/FEFO
-    const rawLot = await getAvailableLotForAllocation(
-      productId,
-      warehouseId,
-      quantity,
-      strategy,
-      client
-    );
-    if (!rawLot) {
-      throw AppError.notFoundError(
-        `No available inventory lot for product ${productId} in warehouse ${warehouseId}.`
-      );
+    
+    // 6. Find inventory lots (manual or automatic)
+    const selectedLots = lotIds.length > 0
+      ? await getSpecificLotsInOrder(lotIds, productId, warehouseId, client)
+      : await getAvailableLotsForAllocation(productId, warehouseId, strategy, client);
+    
+    if (!selectedLots?.length) {
+      throw AppError.notFoundError('No available lots found for allocation.');
     }
-
-    const { warehouse_inventory_lot_id, inventory_id } =
-      transformWarehouseLotResult(rawLot);
-    if (!warehouse_inventory_lot_id || !inventory_id) {
-      throw AppError.notFoundError(
-        `Unable to transform warehouse lot data for allocation.`
+    
+    let remaining = quantity;
+    
+    for (const rawLot of selectedLots) {
+      const { warehouse_inventory_lot_id, inventory_id, item_name, lot_number, expiry_date } =
+        transformWarehouseLotResult(rawLot);
+      if (!warehouse_inventory_lot_id || !inventory_id) {
+        throw AppError.notFoundError(
+          `Unable to transform warehouse lot data for allocation.`
+        );
+      }
+      
+      await lockRow(
+        client,
+        'warehouse_inventory_lots',
+        warehouse_inventory_lot_id
       );
-    }
-
-    await lockRow(
-      client,
-      'warehouse_inventory_lots',
-      warehouse_inventory_lot_id
-    );
-
-    // 7. Determine allocation status
-    const statusCode =
-      quantity < orderItem.quantity_ordered
-        ? 'ALLOC_PARTIAL'
-        : 'ALLOC_COMPLETED';
-
-    const status_id = await getStatusValue(
-      {
+      
+      // 7. Check available quantity (lot-level and inventory-level)
+      const key = `${warehouseId}-${inventory_id}`;
+      const inventoryQtyMap = await fetchWarehouseInventoryQuantities(
+        [{ warehouseId, inventoryId: inventory_id }],
+        client
+      );
+      
+      if (!inventoryQtyMap[key]) {
+        throw AppError.notFoundError(`Warehouse inventory not found for ${key}`);
+      }
+      
+      const lotAvailable = rawLot.quantity - (rawLot.reserved_quantity || 0);
+      const invAvailable = inventoryQtyMap[key]?.available_quantity ?? 0;
+      const availableQty = Math.min(lotAvailable, invAvailable);
+      
+      const toAllocate = Math.min(availableQty, remaining);
+      if (toAllocate <= 0) continue;
+      
+      const alreadyAllocatedQty = await getTotalAllocatedForOrderItem({ orderId, productId }, client);
+      const afterThisAllocation = alreadyAllocatedQty + toAllocate;
+      
+      if (afterThisAllocation > orderItem.quantity_ordered) {
+        throw AppError.validationError(`Allocating ${toAllocate} exceeds ordered quantity.`);
+      }
+      
+      const allocationStatus = afterThisAllocation >= orderItem.quantity_ordered
+        ? 'ALLOC_COMPLETED'
+        : 'ALLOC_PARTIAL';
+      const statusId = await getStatusValue({
         table: 'inventory_allocation_status',
-        where: { code: statusCode },
+        where: { code: allocationStatus },
         select: 'id',
-      },
-      client
-    );
-
-    if (!status_id) {
-      throw AppError.validationError(
-        `Invalid allocation status code: ${statusCode}`
+      }, client);
+      
+      if (!statusId) {
+        throw AppError.validationError(
+          `Invalid allocation status code: ${allocationStatus}`
+        );
+      }
+      
+      // 8. Insert allocation and update inventory tracking
+      await retry(() =>
+        insertInventoryAllocation(
+          {
+            inventory_id,
+            warehouse_id: warehouseId,
+            lot_id: warehouse_inventory_lot_id,
+            allocated_quantity: toAllocate,
+            status_id: statusId,
+            order_id: orderId,
+            created_by: userId,
+          },
+          client
+        )
       );
-    }
-
-    // 7.1 Prevent over-reservation by validating against available stock
-    const key = `${warehouseId}-${inventory_id}`;
-    const inventoryQtyMap = await fetchWarehouseInventoryQuantities(
-      [{ warehouseId, inventoryId: inventory_id }],
-      client
-    );
-
-    if (!inventoryQtyMap[key]) {
-      throw AppError.notFoundError(`Warehouse inventory not found for ${key}`);
-    }
-
-    const prevAvailable = inventoryQtyMap[key].available_quantity ?? 0;
-
-    if (quantity > prevAvailable) {
-      throw AppError.validationError(
-        `Cannot reserve ${quantity} units for ${productId}. Only ${prevAvailable} available in warehouse ${warehouseId}.`
-      );
-    }
-
-    // 7.2 Prevent over-reservation against ordered quantity
-    const alreadyAllocatedQty = await getTotalAllocatedForOrderItem(
-      { orderId, productId },
-      client
-    );
-
-    if (alreadyAllocatedQty + quantity > orderItem.quantity_ordered) {
-      throw AppError.validationError(
-        `Cannot allocate ${quantity} more units for product ${productId}. Already allocated: ${alreadyAllocatedQty}, ordered: ${orderItem.quantity_ordered}.`
-      );
-    }
-
-    // 8. Insert allocation record into inventory_allocations table
-    await retry(() =>
-      insertInventoryAllocation(
+      
+      await updateWarehouseInventoryLotQuantity(
         {
-          inventory_id,
-          warehouse_id: warehouseId,
-          lot_id: warehouse_inventory_lot_id,
-          allocated_quantity: quantity,
-          status_id,
-          order_id: orderId,
-          created_by: userId,
+          lotId: warehouse_inventory_lot_id,
+          reservedDelta: toAllocate, // only reserved is changed here
+          userId,
         },
         client
-      )
-    );
-
-    // 8.1 Update reserved_quantity on the warehouse_inventory_lots table
-    await updateWarehouseInventoryLotQuantity(
-      {
-        lotId: warehouse_inventory_lot_id,
-        reservedDelta: quantity, // only reserved is changed here
-        userId,
-      },
-      client
-    );
-
-    // 8.2 Insert reservation log for activity tracking (lot reserved)
-    await bulkInsertInventoryActivityLogs(
-      [
-        {
-          inventory_id,
-          warehouse_id: warehouseId,
-          lot_id: warehouse_inventory_lot_id,
-          inventory_action_type_id: await getStatusValue(
-            {
-              table: 'inventory_action_types',
-              where: { name: 'reserve' },
-              select: 'id',
-            },
-            client
-          ),
-          previous_quantity: prevAvailable,
-          quantity_change: -quantity, // reservation reduces available quantity
-          new_quantity: prevAvailable - quantity,
-          status_id: await getStatusValue(
-            {
-              table: 'warehouse_lot_status',
-              where: { name: 'reserved' }, // optional, if status changed
-              select: 'id',
-            },
-            client
-          ),
-          adjustment_type_id: null, // optional for reservation
-          order_id: orderId,
-          user_id: userId,
-          comments: `Automatically reserved by system for sales order triggered by allocation process`,
-        },
-      ],
-      client
-    );
-
-    // 8.3 Update available_quantity and reserved_quantity in warehouse_inventory (warehouse-level summary)
-    if (!inventoryQtyMap[key]) {
-      throw AppError.notFoundError(`Warehouse inventory not found for ${key}`);
-    }
-
-    const newAvailable = prevAvailable - quantity;
-
-    if (newAvailable < 0) {
-      throw AppError.validationError(
-        `Insufficient stock. Cannot allocate ${quantity} from available: ${prevAvailable}`
       );
+      
+      const prevQty = inventoryQtyMap[key]?.available_quantity ?? 0;
+      const newQty = prevQty - toAllocate;
+      
+      await bulkInsertInventoryActivityLogs(
+        [
+          {
+            inventory_id,
+            warehouse_id: warehouseId,
+            lot_id: warehouse_inventory_lot_id,
+            inventory_action_type_id: await getStatusValue(
+              {
+                table: 'inventory_action_types',
+                where: { name: 'reserve' },
+                select: 'id',
+              },
+              client
+            ),
+            previous_quantity: prevQty,
+            quantity_change: -toAllocate, // reservation reduces available quantity
+            new_quantity: newQty,
+            status_id: await getStatusValue(
+              {
+                table: 'warehouse_lot_status',
+                where: { name: 'reserved' }, // optional, if status changed
+                select: 'id',
+              },
+              client
+            ),
+            adjustment_type_id: null, // optional for reservation
+            order_id: orderId,
+            user_id: userId,
+            comments: `System auto-reserved ${toAllocate} units from lot "${lot_number}" (Item: ${item_name}, Expiry: ${expiry_date || 'N/A'})`,
+          },
+        ],
+        client
+      );
+      
+      const warehouseUpdates = {
+        [key]: {
+          reserved_quantity:
+            (inventoryQtyMap[key]?.reserved_quantity ?? 0) + toAllocate,
+          available_quantity: newQty,
+        },
+      };
+      
+      await updateWarehouseInventoryQuantity(client, warehouseUpdates, userId);
+      
+      remaining -= toAllocate;
+      if (remaining <= 0) break;
     }
-
-    const warehouseUpdates = {
-      [key]: {
-        reserved_quantity:
-          (inventoryQtyMap[key].reserved_quantity ?? 0) + quantity,
-        available_quantity: newAvailable,
-      },
-    };
-
-    await updateWarehouseInventoryQuantity(client, warehouseUpdates, userId);
-
-    // 9. Fetch all allocations for this order to determine overall order allocation status
+    
+    if (remaining > 0 && lotIds.length > 0 && !allowPartial) {
+      throw AppError.validationError(`Manual lots do not have enough stock. Remaining: ${remaining}`);
+    }
+    
+    // 9. Final status update (order + item)
     const allAllocations = await getAllocationsByOrderId(orderId, client); // includes each allocation's status
-
-    // 10. Determine new order status based on allocation statuses (e.g. ORDER_ALLOCATED or ORDER_ALLOCATING)
     const newOrderStatus = determineOrderStatusFromAllocations(allAllocations);
-
-    // 11. Determine item-level status based on how much was allocated
-    const itemStatus =
-      quantity < orderItem.quantity_ordered
-        ? 'ALLOC_PARTIAL'
-        : 'ALLOC_COMPLETED';
-
-    // 12. Update both order status and this specific item's status in the DB
+    const itemStatus = remaining < orderItem.quantity_ordered ? 'ALLOC_PARTIAL' : 'ALLOC_COMPLETED';
+    
     const rawResult = await updateOrderAndItemStatus(
       {
         orderId,
@@ -293,8 +273,7 @@ const allocateInventoryForOrder = async ({
       },
       client
     );
-
-    // 13. Transform update result into a structured summary object
+    
     return transformUpdatedOrderStatusResult(rawResult);
   } catch (error) {
     logError('Error allocating inventory:', error);

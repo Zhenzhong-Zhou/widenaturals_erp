@@ -583,59 +583,119 @@ const updateStatus = async () => {
 };
 
 /**
- * Retrieves the most suitable inventory lot for allocation based on the chosen strategy (FIFO or FEFO).
+ * Returns the shared FROM + JOIN + WHERE clause for querying valid warehouse inventory lots.
+ * Includes:
+ * - Warehouse lot status = 'in_stock'
+ * - Product status = 'active'
+ * - Warehouse status = 'active'
+ * - Positive available quantity (quantity - reserved_quantity > 0)
+ *
+ * Use this to build reusable lot queries for both automatic and manual inventory allocation.
+ *
+ * @returns {string} The SQL fragment for JOINs and WHERE conditions.
+ */
+const getBaseLotQuery = () => `
+  FROM warehouse_inventory_lots wil
+  JOIN inventory i ON wil.inventory_id = i.id
+  JOIN products p ON i.product_id = p.id
+  JOIN warehouses w ON wil.warehouse_id = w.id
+  WHERE (wil.quantity - COALESCE(wil.reserved_quantity, 0)) > 0
+    AND wil.status_id = (
+      SELECT id FROM warehouse_lot_status WHERE LOWER(name) = 'in_stock' LIMIT 1
+    )
+    AND p.status_id = (
+      SELECT id FROM status WHERE LOWER(name) = 'active' LIMIT 1
+    )
+    AND w.status_id = (
+      SELECT id FROM status WHERE LOWER(name) = 'active' LIMIT 1
+    )
+`;
+
+/**
+ * Retrieves the most suitable inventory lots for allocation based on the chosen strategy (FIFO or FEFO).
+ * Supports multi-lot allocation by returning all valid lots ordered appropriately.
  *
  * @param {string} productId - The ID of the product to allocate.
  * @param {string} warehouseId - The ID of the warehouse to check.
- * @param {number} quantityNeeded - The required quantity to allocate.
  * @param {'FIFO' | 'FEFO'} [strategy='FEFO'] - The allocation strategy:
  *        - 'FIFO': First In, First Out (based on inbound_date)
  *        - 'FEFO': First Expired, First Out (based on expiry_date)
  * @param {import('pg').PoolClient} [client] - Optional PostgreSQL client for transactional execution.
- * @returns {Promise<object | null>} The best available lot for allocation, or null if none found.
+ * @returns {Promise<Array<object>>} A list of suitable lots for allocation, sorted by strategy.
  */
-const getAvailableLotForAllocation = async (
+const getAvailableLotsForAllocation = async (
   productId,
   warehouseId,
-  quantityNeeded,
   strategy = 'FEFO',
   client
 ) => {
   const orderBy =
     strategy === 'FEFO' ? 'wil.expiry_date ASC' : 'wil.inbound_date ASC';
-
+  
   const sql = `
-    SELECT wil.*
-    FROM warehouse_inventory_lots wil
-    JOIN inventory i ON wil.inventory_id = i.id
-    JOIN products p ON i.product_id = p.id
-    JOIN warehouses w ON wil.warehouse_id = w.id
-    WHERE i.product_id = $1
+    SELECT
+      wil.*,
+      p.product_name,
+      i.identifier AS inventory_identifier
+    ${getBaseLotQuery()}
+      AND i.product_id = $1
       AND wil.warehouse_id = $2
-      AND (wil.quantity - COALESCE(wil.reserved_quantity, 0)) >= $3
-      AND wil.status_id = (
-        SELECT id FROM warehouse_lot_status WHERE LOWER(name) = 'in_stock' LIMIT 1
-      )
-      AND p.status_id = (
-        SELECT id FROM status WHERE LOWER(name) = 'active' LIMIT 1
-      )
-      AND w.status_id = (
-        SELECT id FROM status WHERE LOWER(name) = 'active' LIMIT 1
-      )
     ORDER BY ${orderBy}
-    LIMIT 1;
   `;
 
   try {
     const result = await retry(() =>
-      query(sql, [productId, warehouseId, quantityNeeded], client)
+      query(sql, [productId, warehouseId], client)
     );
-    return result.rows[0] || null;
+    
+    return result.rows || null;
   } catch (error) {
     logError('Error fetching available lot for allocation:', error);
     throw AppError.databaseError(
       'Failed to fetch available lot for allocation'
     );
+  }
+};
+
+/**
+ * Fetches specific warehouse lots by ID in the given order.
+ * Ensures each lot:
+ * - Matches the product and warehouse
+ * - Has available quantity
+ * - Has status = 'in_stock'
+ *
+ * @param {string[]} lotIds - List of lot IDs to fetch
+ * @param {string} productId - Product ID for validation
+ * @param {string} warehouseId - Warehouse ID for validation
+ * @param {import('pg').PoolClient} client - Optional PostgreSQL client
+ * @returns {Promise<Array<Object>>} - List of lot records in the same order as input
+ * @throws {AppError} If the query fails or input is invalid
+ */
+const getSpecificLotsInOrder = async (lotIds, productId, warehouseId, client) => {
+  if (!Array.isArray(lotIds) || lotIds.length === 0) {
+    throw AppError.validationError('lotIds must be a non-empty array.');
+  }
+  
+  const sql = `
+    SELECT
+      wil.*,
+      p.product_name,
+      i.identifier AS inventory_identifier
+    ${getBaseLotQuery()}
+      AND wil.id = ANY($1)
+      AND i.product_id = $2
+      AND wil.warehouse_id = $3
+  `;
+  
+  try {
+    const { rows } = await query(sql, [lotIds, productId, warehouseId], client);
+    
+    // Preserve input order
+    const lotMap = new Map(rows.map(row => [row.id, row]));
+    return lotIds.map(id => lotMap.get(id)).filter(Boolean);
+  } catch (error) {
+    logError('Error fetching specific lots in order:', error);
+    throw AppError.databaseError('Failed to fetch specific lots: ' + error.message);
   }
 };
 
@@ -729,6 +789,7 @@ module.exports = {
   adjustWarehouseInventoryLots,
   checkWarehouseInventoryLotExists,
   insertWarehouseInventoryLots,
-  getAvailableLotForAllocation,
+  getAvailableLotsForAllocation,
+  getSpecificLotsInOrder,
   updateWarehouseInventoryLotQuantity,
 };

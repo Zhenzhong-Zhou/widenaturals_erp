@@ -25,51 +25,52 @@ const allocateInventory = async (params) => {
 
 /**
  * Service to handle multiple inventory allocations for a single order in a single transaction.
+ * Supports a global allocation strategy (FIFO/FEFO), with optional per-item overrides.
  *
  * @param {Object} params
- * @param {string} params.orderId - Order ID
- * @param {Array<Object>} params.items - List of items to allocate
- * @param {string} params.userId - ID of the user performing the allocation
- * @param {'FIFO'|'FEFO'} [params.defaultStrategy='FEFO'] - Default strategy to use if not provided per item
- * @returns {Promise<Array>} List of successful allocation records
+ * @param {string} params.orderId - Order ID.
+ * @param {Array<Object>} params.items - List of items to allocate. Each item may override the global strategy.
+ * @param {string} params.userId - ID of the user performing the allocation.
+ * @param {'FIFO'|'FEFO'} [params.strategy='FEFO'] - Global default allocation strategy. Individual items can override with their own `strategy` value.
+ * @returns {Promise<Array>} List of allocation results, one per item.
  */
 const allocateMultipleInventoryItems = async ({
-  orderId,
-  items,
-  userId,
-  defaultStrategy = 'FEFO',
-}) => {
+                                                orderId,
+                                                items,
+                                                userId,
+                                                strategy: defaultStrategy = 'FEFO',
+                                              }) => {
   try {
     return await withTransaction(async (client) => {
       const allocations = [];
-
+      
       for (const item of items) {
         const {
           warehouseId,
           productId,
           quantity,
-          strategy = defaultStrategy,
+          strategy,
         } = item;
-
+        
         if (!warehouseId || !productId || !quantity) {
           throw AppError.validationError(
             'Each item must include warehouseId, productId, and quantity.'
           );
         }
-
+        
         const allocation = await allocateInventory({
           orderId,
           warehouseId,
           productId,
           quantity,
-          strategy,
+          strategy: strategy || defaultStrategy,
           userId,
           client, // Pass client if supported in business logic
         });
-
+        
         allocations.push(allocation);
       }
-
+      
       return allocations;
     });
   } catch (error) {
