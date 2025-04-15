@@ -75,7 +75,6 @@ export {
 } from './state/lotAdjustmentQtySelectors';
 export { resetWarehouseItemSummary } from './state/warehouseItemSummarySlice';
 export { resetLotAdjustmentState } from './state/lotAdjustmentQtySlice';
-export { default as WarehouseItemSummaryCard } from './components/WarehouseItemSummaryCard';
 export { default as EditQuantityModal } from './components/EditQuantityModal';
 export { default as BulkAdjustQuantityModal } from './components/BulkAdjustQuantityModal';
 export {
