@@ -66,8 +66,33 @@ const DashboardLayout: FC<BaseDashboardLayoutProps> = ({
   return (
     <Box sx={{ padding: 3 }}>
       {fullName ? (
-        <CustomTypography variant="h4" gutterBottom>
-          Welcome, {fullName}!
+        <CustomTypography
+          variant="body1"
+          component="h1"
+          sx={{
+            fontSize: '1.125rem',
+            fontWeight: 500,
+            minHeight: '1.5rem',
+            display: 'inline',
+          }}
+        >
+          <Box component="span"> Welcome,&nbsp;</Box>
+          <Box
+            component="span"
+            sx={{
+              color: 'primary.main',
+              fontWeight: 600,
+              display: 'inline',
+              animation: 'fadeIn 0.6s ease-in-out',
+              '@keyframes fadeIn': {
+                from: { opacity: 0 },
+                to: { opacity: 1 },
+              },
+            }}
+          >
+            {fullName}
+          </Box>
+          <Box component="span">!</Box>
         </CustomTypography>
       ) : (
         <Skeleton variant="text" width={200} />
@@ -120,12 +145,12 @@ const DashboardLayout: FC<BaseDashboardLayoutProps> = ({
                       </CustomTypography>
 
                       {item.isLowStock && (
-                        <CustomTypography color="warning.main">
+                        <CustomTypography sx={{ color:"warning.main" }}>
                           Low Stock ({formatLabel(item.stockLevel)})
                         </CustomTypography>
                       )}
                       {item.isNearExpiry && (
-                        <CustomTypography color="error.main">
+                        <CustomTypography sx={{ color:"error.main" }}>
                           Near Expiry
                         </CustomTypography>
                       )}

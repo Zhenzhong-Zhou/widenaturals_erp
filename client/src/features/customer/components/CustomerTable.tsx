@@ -98,7 +98,13 @@ const CustomerTable: FC = () => {
 
   return (
     <Box>
-      <CustomTypography variant="h4" gutterBottom>
+      <CustomTypography
+        sx={{
+          fontWeight: 600,
+          lineHeight: 1.3,
+          minHeight: '1.25rem',
+        }}
+      >
         Customer List
       </CustomTypography>
 

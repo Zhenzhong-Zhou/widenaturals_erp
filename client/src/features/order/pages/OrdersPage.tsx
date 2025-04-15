@@ -1,5 +1,6 @@
-import { type FC, useState, useEffect } from 'react';
+import { type FC, useState, useEffect, lazy, Suspense } from 'react';
 import Box from '@mui/material/Box';
+import Skeleton from '@mui/material/Skeleton';
 import useSalesOrders from '@hooks/useSalesOrders';
 import CustomTypography from '@components/common/CustomTypography';
 import GoBackButton from '@components/common/GoBackButton';
@@ -7,7 +8,8 @@ import OrderTypesDropdown from '@features/order/components/OrderTypesDropdown';
 import Loading from '@components/common/Loading';
 import OrderFormModal from '@features/order/components/OrderFormModal';
 import CreateSaleOrderForm from '@features/order/components/CreateSaleOrderForm';
-import OrdersTable from '@features/order/components/OrdersTable';
+
+const OrdersTable = lazy(() => import('@features/order/components/OrdersTable'));
 
 const OrderPage: FC = () => {
   const [selectedOrderType, setSelectedOrderType] = useState<{
@@ -71,10 +73,10 @@ const OrderPage: FC = () => {
 
   return (
     <Box>
-      <CustomTypography variant="h4" gutterBottom>
+      <CustomTypography>
         Create New Order
       </CustomTypography>
-      <GoBackButton />
+      <GoBackButton sx={{ borderRadius: 20 }}/>
       <OrderTypesDropdown
         value={selectedOrderType?.id || null}
         onChange={handleOrderTypeChange}
@@ -90,9 +92,9 @@ const OrderPage: FC = () => {
           <Loading />
         </Box>
       )}
-      // todo: need to fix update state whenever user change product id aor
-      price type id the value of price should update correctly in the input
-      filed
+      {/*// todo: need to fix update state whenever user change product id aor*/}
+      {/*price type id the value of price should update correctly in the input*/}
+      {/*filed*/}
       {/* Modal for Order Form */}
       <OrderFormModal
         open={isModalOpen}
@@ -114,7 +116,9 @@ const OrderPage: FC = () => {
           </CustomTypography>
         )}
       </OrderFormModal>
-      <OrdersTable refreshTrigger={refreshTrigger} />
+      <Suspense fallback={<Skeleton height={300} />}>
+        <OrdersTable refreshTrigger={refreshTrigger} />
+      </Suspense>
     </Box>
   );
 };

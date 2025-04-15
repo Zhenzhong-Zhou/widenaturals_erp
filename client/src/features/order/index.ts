@@ -42,7 +42,6 @@ export {
   selectOrdersByStatus,
   selectOrderById,
 } from './state/orderSelectors';
-export { default as OrdersTable } from './components/OrdersTable';
 export {
   selectSalesOrderDetailsData,
   selectSalesOrderDetailsLoading,

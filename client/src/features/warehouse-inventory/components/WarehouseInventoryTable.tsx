@@ -1,7 +1,7 @@
-import type { FC } from 'react';
+import { type FC, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import type { WarehouseInventory } from '@features/warehouse-inventory';
-import { formatDateTime } from '@utils/dateTimeUtils';
+import { formatDate, formatDateTime } from '@utils/dateTimeUtils';
 import { formatLabel, formatCurrency } from '@utils/textUtils';
 import Box from '@mui/material/Box';
 import IsExpiredChip from '@features/inventory/components/IsExpiredChip';
@@ -29,6 +29,51 @@ const WarehouseInventoryTable: FC<WarehouseInventoryTableProps> = ({
   onPageChange,
   onRowsPerPageChange,
 }) => {
+  const hasStatus = (row: WarehouseInventory): boolean => !!row.status;
+  
+  const renderStockLevelCell = useCallback(
+    (row: WarehouseInventory) =>
+      hasStatus(row) ? (
+        <StockLevelChip
+          stockLevel={row.status.stockLevel}
+          isLowStock={row.status.isLowStock}
+        />
+      ) : (
+        'N/A'
+      ),
+    []
+  );
+  
+  const renderExpirySeverityCell = useCallback(
+    (row: WarehouseInventory) =>
+      hasStatus(row) ? (
+        <ExpirySeverityChip severity={row.status.expirySeverity} />
+      ) : (
+        'N/A'
+      ),
+    []
+  );
+  
+  const renderIsExpiredCell = useCallback(
+    (row: WarehouseInventory) =>
+      hasStatus(row) ? (
+        <IsExpiredChip isExpired={row.status.isExpired} />
+      ) : (
+        'N/A'
+      ),
+    []
+  );
+  
+  const renderNearExpiryCell = useCallback(
+    (row: WarehouseInventory) =>
+      hasStatus(row) ? (
+        <NearExpiryChip isNearExpiry={row.status.isNearExpiry} />
+      ) : (
+        'N/A'
+      ),
+    []
+  );
+  
   const columns = [
     {
       id: 'warehouse.name',
@@ -123,7 +168,7 @@ const WarehouseInventoryTable: FC<WarehouseInventoryTableProps> = ({
       sortable: true,
       format: (_: any, row: WarehouseInventory) =>
         row.dates.earliestManufactureDate
-          ? formatDateTime(row.dates.earliestManufactureDate)
+          ? formatDate(row.dates.earliestManufactureDate)
           : 'N/A',
     },
     {
@@ -132,7 +177,7 @@ const WarehouseInventoryTable: FC<WarehouseInventoryTableProps> = ({
       sortable: true,
       format: (_: any, row: WarehouseInventory) =>
         row.dates.nearestExpiryDate
-          ? formatDateTime(row.dates.nearestExpiryDate)
+          ? formatDate(row.dates.nearestExpiryDate)
           : 'N/A',
     },
     {
@@ -146,44 +191,25 @@ const WarehouseInventoryTable: FC<WarehouseInventoryTableProps> = ({
       id: 'status.stockLevel',
       label: 'Stock Level',
       sortable: true,
-      renderCell: (row: WarehouseInventory) =>
-        row.status ? (
-          <StockLevelChip
-            stockLevel={row.status.stockLevel}
-            isLowStock={row.status.isLowStock}
-          />
-        ) : (
-          'N/A'
-        ),
+      renderCell: renderStockLevelCell,
     },
     {
       id: 'status.expirySeverity',
       label: 'Expiry Severity',
       sortable: true,
-      renderCell: (row: WarehouseInventory) =>
-        row.status ? (
-          <ExpirySeverityChip severity={row.status.expirySeverity} />
-        ) : (
-          'N/A'
-        ),
+      renderCell: renderExpirySeverityCell,
     },
     {
       id: 'status.isExpired',
       label: 'Expired',
       sortable: true,
-      renderCell: (row: WarehouseInventory) =>
-        row.status ? <IsExpiredChip isExpired={row.status.isExpired} /> : 'N/A',
+      renderCell: renderIsExpiredCell,
     },
     {
       id: 'status.isNearExpiry',
       label: 'Near Expiry',
       sortable: true,
-      renderCell: (row: WarehouseInventory) =>
-        row.status ? (
-          <NearExpiryChip isNearExpiry={row.status.isNearExpiry} />
-        ) : (
-          'N/A'
-        ),
+      renderCell: renderNearExpiryCell,
     },
     {
       id: 'status.displayNote',

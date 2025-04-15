@@ -1,7 +1,8 @@
-import type { FC } from 'react';
+import { memo, type FC } from 'react';
 import Chip from '@mui/material/Chip';
 import { formatLabel } from '@utils/textUtils';
 import { useThemeContext } from '@context/ThemeContext';
+import type { Theme } from '@mui/material';
 
 interface Props {
   severity:
@@ -14,10 +15,9 @@ interface Props {
     | 'unknown';
 }
 
-const ExpirySeverityChip: FC<Props> = ({ severity }) => {
-  const { theme } = useThemeContext();
-
-  const colorMap: Record<Props['severity'], string> = {
+// Optional: move outside component to prevent recreation on render
+const getSeverityColor = (severity: Props['severity'], theme: Theme): string => {
+  const map: Record<Props['severity'], string> = {
     expired: theme.palette.error.main,
     expired_soon: theme.palette.error.light,
     critical: theme.palette.warning.dark,
@@ -26,15 +26,21 @@ const ExpirySeverityChip: FC<Props> = ({ severity }) => {
     safe: theme.palette.success.main,
     unknown: theme.palette.text.disabled,
   };
+  return map[severity];
+};
 
+const ExpirySeverityChip: FC<Props> = ({ severity }) => {
+  const { theme } = useThemeContext(); // more idiomatic than custom context if only palette is used
+  const color = getSeverityColor(severity, theme);
+  
   return (
     <Chip
-      label={formatLabel(severity.replace(/_/g, ' '))}
+      label={formatLabel(severity)} // already handles underscores/spaces
       size="small"
       variant="outlined"
       sx={{
-        borderColor: colorMap[severity],
-        color: colorMap[severity],
+        borderColor: color,
+        color,
         fontWeight: 500,
         textTransform: 'capitalize',
       }}
@@ -42,4 +48,4 @@ const ExpirySeverityChip: FC<Props> = ({ severity }) => {
   );
 };
 
-export default ExpirySeverityChip;
+export default memo(ExpirySeverityChip);

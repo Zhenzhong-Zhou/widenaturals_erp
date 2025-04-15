@@ -1,4 +1,4 @@
-import type { FC } from 'react';
+import { type FC, useCallback } from 'react';
 // import { Link } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import InventoryStatusChip from '@features/inventory/components/InventoryStatusChip';
@@ -30,6 +30,38 @@ const InventoryTable: FC<InventoryTableProps> = ({
   onPageChange,
   onRowsPerPageChange,
 }) => {
+  const renderStatusCell = useCallback(
+    (row: InventoryItem) => <InventoryStatusChip status={row.displayStatus} />,
+    []
+  );
+  
+  const renderIsExpiredCell = useCallback(
+    (row: InventoryItem) => <IsExpiredChip isExpired={row.isExpired} />,
+    []
+  );
+  
+  const renderNearExpiryCell = useCallback(
+    (row: InventoryItem) => <NearExpiryChip isNearExpiry={row.isNearExpiry} />,
+    []
+  );
+  
+  const renderStockLevelCell = useCallback(
+    (row: InventoryItem) => (
+      <StockLevelChip
+        stockLevel={row.stockLevel}
+        isLowStock={row.isLowStock}
+      />
+    ),
+    []
+  );
+  
+  const renderExpirySeverityCell = useCallback(
+    (row: InventoryItem) => (
+      <ExpirySeverityChip severity={row.expirySeverity} />
+    ),
+    []
+  );
+  
   const columns = [
     { id: 'placeName', label: 'Place Name', sortable: true },
 
@@ -74,9 +106,7 @@ const InventoryTable: FC<InventoryTableProps> = ({
       id: 'displayStatus',
       label: 'Status',
       sortable: true,
-      renderCell: (row: InventoryItem) => (
-        <InventoryStatusChip status={row.displayStatus} />
-      ),
+      renderCell: renderStatusCell,
     },
     {
       id: 'statusDate',
@@ -121,36 +151,25 @@ const InventoryTable: FC<InventoryTableProps> = ({
       id: 'isExpired',
       label: 'Expired',
       sortable: true,
-      renderCell: (row: InventoryItem) => (
-        <IsExpiredChip isExpired={row.isExpired} />
-      ),
+      renderCell: renderIsExpiredCell,
     },
     {
       id: 'isNearExpiry',
       label: 'Near Expiry',
       sortable: true,
-      renderCell: (row: InventoryItem) => (
-        <NearExpiryChip isNearExpiry={row.isNearExpiry} />
-      ),
+      renderCell: renderNearExpiryCell,
     },
     {
       id: 'stockLevel',
       label: 'Stock Level',
       sortable: true,
-      renderCell: (row: InventoryItem) => (
-        <StockLevelChip
-          stockLevel={row.stockLevel}
-          isLowStock={row.isLowStock}
-        />
-      ),
+      renderCell: renderStockLevelCell,
     },
     {
       id: 'expirySeverity',
       label: 'Expiry Severity',
       sortable: true,
-      renderCell: (row: InventoryItem) => (
-        <ExpirySeverityChip severity={row.expirySeverity} />
-      ),
+      renderCell: renderExpirySeverityCell,
     },
   ];
 

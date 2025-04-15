@@ -36,7 +36,14 @@ const WarehouseInventoryDetailHeader: FC<WarehouseDetailHeaderProps> = ({
       }}
     >
       {/* Warehouse Name */}
-      <CustomTypography variant="h4" gutterBottom>
+      <CustomTypography
+        variant="h4"
+        sx={{
+          fontWeight: 600,
+          lineHeight: 1.3,
+          minHeight: '1.25rem',
+        }}
+      >
         {warehouseDetails.name}
       </CustomTypography>
 
@@ -55,7 +62,7 @@ const WarehouseInventoryDetailHeader: FC<WarehouseDetailHeaderProps> = ({
               Location Type: {warehouseDetails.location.locationType.name}
             </CustomTypography>
           )}
-
+      
           <CustomTypography variant="body1" color="textSecondary">
             Location: {warehouseDetails.location.name}
           </CustomTypography>
@@ -81,7 +88,7 @@ const WarehouseInventoryDetailHeader: FC<WarehouseDetailHeaderProps> = ({
 
       {/* Metadata (Created By, Updated By) */}
       {warehouseDetails.metadata && (
-        <CustomTypography variant="body2" color="textSecondary" sx={{ mt: 2 }}>
+        <CustomTypography sx={{ mt: 2, color: 'text.secondary' }}>
           Created by: {warehouseDetails.metadata.createdBy ?? 'Unknown'} on{' '}
           {formatDate(warehouseDetails.metadata.createdAt ?? null)}
           <br />

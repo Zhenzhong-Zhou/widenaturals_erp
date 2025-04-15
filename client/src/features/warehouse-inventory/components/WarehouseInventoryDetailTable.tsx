@@ -1,4 +1,4 @@
-import { type FC, type ReactNode, useState } from 'react';
+import { type FC, type ReactNode, useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
@@ -111,14 +111,16 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
     inventoryId: string;
   } | null>(null);
   const navigate = useNavigate();
-
-  const handleOpenPopover = (event: MouseEvent, inventoryId: string) => {
-    const target = event.currentTarget as HTMLElement; // Ensure it's an HTML element
-
-    setAnchorEl(target);
-    setSelectedInventoryLot({ inventoryId });
-  };
-
+  
+  const handleOpenPopover = useCallback(
+    (event: MouseEvent, inventoryId: string) => {
+      const target = event.currentTarget as HTMLElement;
+      setAnchorEl(target);
+      setSelectedInventoryLot({ inventoryId });
+    },
+    [setAnchorEl, setSelectedInventoryLot] // include only stable state setters
+  );
+  
   const handleClosePopover = () => {
     setAnchorEl(null);
     setSelectedInventoryLot(null);
@@ -165,7 +167,75 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
       return new Set(data.map((lot) => lot.warehouseInventoryLotId)); // Select all
     });
   };
-
+  
+  const renderIsExpiredCell = useCallback(
+    (row: WarehouseInventoryDetailExtended) => (
+      <IsExpiredChip isExpired={row.indicators_isExpired} />
+    ),
+    []
+  );
+  
+  const renderNearExpiryCell = useCallback(
+    (row: WarehouseInventoryDetailExtended) => (
+      <NearExpiryChip isNearExpiry={row.indicators_isNearExpiry} />
+    ),
+    []
+  );
+  
+  const renderStockLevelCell = useCallback(
+    (row: WarehouseInventoryDetailExtended) => (
+      <StockLevelChip
+        stockLevel={row.indicators_stockLevel}
+        isLowStock={row.indicators_isLowStock}
+      />
+    ),
+    []
+  );
+  
+  const renderExpirySeverityCell = useCallback(
+    (row: WarehouseInventoryDetailExtended) => (
+      <ExpirySeverityChip severity={row.indicators_expirySeverity} />
+    ),
+    []
+  );
+  
+  const handleEditClick = useCallback((row: WarehouseInventoryDetailExtended) => {
+    setSelectedLot({
+      warehouseInventoryLotId: row.warehouseInventoryLotId,
+      itemName: row.itemName,
+      lotNumber: row.lotNumber,
+      quantity: row.lotQuantity,
+    });
+  }, []);
+  
+  const renderLotQuantityCell = useCallback(
+    (row: WarehouseInventoryDetailExtended) => (
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        {row.lotQuantity}
+        <IconButton size="small" onClick={() => handleEditClick(row)}>
+          <EditIcon fontSize="small" />
+        </IconButton>
+      </Box>
+    ),
+    [handleEditClick]
+  );
+  
+  const renderActionsCell = useCallback(
+    (row: WarehouseInventoryDetailExtended) => (
+      <Tooltip title="View Options">
+        <IconButton
+          size="small"
+          onClick={(event) =>
+            handleOpenPopover(event as unknown as MouseEvent, row.inventoryId)
+          }
+        >
+          <MoreHorizIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+    ),
+    [handleOpenPopover]
+  );
+  
   // Define table columns
   const columns: Column<WarehouseInventoryDetailExtended>[] = [
     {
@@ -205,24 +275,7 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
       id: 'lotQuantity',
       label: 'Quantity',
       sortable: true,
-      renderCell: (row) => (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          {row.lotQuantity}
-          <IconButton
-            size="small"
-            onClick={() =>
-              setSelectedLot({
-                warehouseInventoryLotId: row.warehouseInventoryLotId,
-                itemName: row.itemName,
-                lotNumber: row.lotNumber,
-                quantity: row.lotQuantity,
-              })
-            }
-          >
-            <EditIcon fontSize="small" />
-          </IconButton>
-        </Box>
-      ),
+      renderCell: renderLotQuantityCell,
     },
     {
       id: 'reservedStock',
@@ -310,53 +363,31 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
       id: 'indicators_isExpired',
       label: 'Expired',
       sortable: true,
-      renderCell: (row: WarehouseInventoryDetailExtended) => (
-        <IsExpiredChip isExpired={row.indicators_isExpired} />
-      ),
+      renderCell: renderIsExpiredCell,
     },
     {
       id: 'indicators_isNearExpiry',
       label: 'Near Expiry',
       sortable: true,
-      renderCell: (row: WarehouseInventoryDetailExtended) => (
-        <NearExpiryChip isNearExpiry={row.indicators_isNearExpiry} />
-      ),
+      renderCell: renderNearExpiryCell,
     },
     {
       id: 'indicators_stockLevel',
       label: 'Stock Level',
       sortable: true,
-      renderCell: (row: WarehouseInventoryDetailExtended) => (
-        <StockLevelChip
-          stockLevel={row.indicators_stockLevel}
-          isLowStock={row.indicators_isLowStock}
-        />
-      ),
+      renderCell: renderStockLevelCell,
     },
     {
       id: 'indicators_expirySeverity',
       label: 'Expiry Severity',
       sortable: true,
-      renderCell: (row: WarehouseInventoryDetailExtended) => (
-        <ExpirySeverityChip severity={row.indicators_expirySeverity} />
-      ),
+      renderCell: renderExpirySeverityCell,
     },
     {
       id: 'actions',
       label: 'Actions',
       align: 'center',
-      renderCell: (row) => (
-        <Tooltip title="View Options">
-          <IconButton
-            size="small"
-            onClick={(event) =>
-              handleOpenPopover(event as unknown as MouseEvent, row.inventoryId)
-            }
-          >
-            <MoreHorizIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-      ),
+      renderCell: renderActionsCell,
     },
   ];
 

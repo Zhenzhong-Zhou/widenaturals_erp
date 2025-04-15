@@ -2,6 +2,7 @@
 export { default as useInitializeApp } from './useInitializeApp';
 export { default as useHealthStatus } from './useHealthStatus';
 export { default as useErrorHandler } from './useErrorHandler';
+export { default as useThemeMode } from './useThemeMode';
 
 // --- Auth & Session ---
 export { default as useSession } from './useSession';

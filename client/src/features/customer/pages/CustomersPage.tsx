@@ -10,7 +10,13 @@ const CustomersPage: FC = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <CustomTypography variant="h4" gutterBottom>
+      <CustomTypography
+        sx={{
+          fontWeight: 600,
+          lineHeight: 1.3,
+          minHeight: '1.25rem',
+        }}
+      >
         Customer Management
       </CustomTypography>
 

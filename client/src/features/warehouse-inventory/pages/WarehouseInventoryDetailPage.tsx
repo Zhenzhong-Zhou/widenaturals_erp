@@ -1,12 +1,10 @@
-import { useEffect, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Loading from '@components/common/Loading';
 import WarehouseInventoryDetailHeader from '@features/warehouse-inventory/components/WarehouseInventoryDetailHeader';
-import WarehouseItemSummaryCard from '@features/warehouse-inventory/components/WarehouseItemSummaryCard';
 import CustomTypography from '@components/common/CustomTypography';
-import WarehouseInventoryDetailTable from '@features/warehouse-inventory/components/WarehouseInventoryDetailTable';
 import CustomButton from '@components/common/CustomButton';
 import ErrorDisplay from '@components/shared/ErrorDisplay';
 import ErrorMessage from '@components/common/ErrorMessage';
@@ -22,6 +20,12 @@ import useWarehouseInventoryDetails from '@hooks/useWarehouseInventoryDetails';
 import useLotAdjustmentQty from '@hooks/useLotAdjustmentQty';
 import useBulkInsertWarehouseInventory from '@hooks/useBulkInsertWarehouseInventory';
 import useInsertedInventoryRecordsResponse from '@hooks/useInsertedInventoryRecordsResponse';
+import Skeleton from '@mui/material/Skeleton';
+
+const WarehouseItemSummaryCard = lazy(() =>
+  import('@features/warehouse-inventory/components/WarehouseItemSummaryCard'));
+const WarehouseInventoryDetailTable = lazy(() =>
+  import('@features/warehouse-inventory/components/WarehouseInventoryDetailTable'));
 
 const WarehouseInventoryDetailPage = () => {
   const { warehouseId } = useParams<{ warehouseId: string }>();
@@ -75,9 +79,9 @@ const WarehouseInventoryDetailPage = () => {
       setOpenDialog(true);
     }
   }, [insertedDataResponse]);
-
-  const transformedWarehouseInventoryDetails: WarehouseInventoryDetailExtended[] =
-    warehouseInventoryDetails.map((detail: WarehouseInventoryDetail) => ({
+  
+  const transformedWarehouseInventoryDetails = useMemo<WarehouseInventoryDetailExtended[]>(() => {
+    return warehouseInventoryDetails.map((detail: WarehouseInventoryDetail) => ({
       ...detail,
       lotCreatedBy: detail.lotCreated?.by ?? 'Unknown',
       lotCreatedDate: detail.lotCreated?.date ?? null,
@@ -89,7 +93,21 @@ const WarehouseInventoryDetailPage = () => {
       indicators_stockLevel: detail.indicators?.stockLevel ?? 'none',
       indicators_expirySeverity: detail.indicators?.expirySeverity ?? 'unknown',
     }));
-
+  }, [warehouseInventoryDetails]);
+  
+  const handlePageChange = useCallback(
+    (newPage: number) => setWarehouseInventoryDetailPage(newPage + 1),
+    []
+  );
+  
+  const handleRowsPerPageChange = useCallback(
+    (newLimit: number) => {
+      setWarehouseInventoryDetailLimit(newLimit);
+      setWarehouseInventoryDetailPage(1);
+    },
+    []
+  );
+  
   if (loading) return <Loading message={'Loading warehouse details...'} />;
   if (error)
     return (
@@ -187,13 +205,15 @@ const WarehouseInventoryDetailPage = () => {
 
       {/* Item Summary Section */}
       {Array.isArray(itemSummary) && itemSummary.length > 0 ? (
-        <WarehouseItemSummaryCard
-          itemsSummary={itemSummary}
-          summaryPage={itemSummaryPage}
-          totalPages={itemSummaryPagination?.totalPages || 0}
-          setSummaryPage={setItemSummaryPage}
-          refreshSummary={refreshItemSummary}
-        />
+        <Suspense fallback={<Skeleton height={180} width="100%" />}>
+          <WarehouseItemSummaryCard
+            itemsSummary={itemSummary}
+            summaryPage={itemSummaryPage}
+            totalPages={itemSummaryPagination?.totalPages || 0}
+            setSummaryPage={setItemSummaryPage}
+            refreshSummary={refreshItemSummary}
+          />
+        </Suspense>
       ) : (
         <CustomTypography
           variant="body1"
@@ -205,26 +225,24 @@ const WarehouseInventoryDetailPage = () => {
 
       {/* Inventory Details Section */}
       <Paper sx={{ padding: 2, marginTop: 3 }}>
-        <WarehouseInventoryDetailTable
-          data={transformedWarehouseInventoryDetails}
-          page={warehouseInventoryDetailPage - 1}
-          rowsPerPage={warehouseInventoryDetailLimit}
-          totalRecords={warehouseInventoryDetailPagination.totalRecords}
-          totalPages={warehouseInventoryDetailPagination.totalPages}
-          onPageChange={(newPage) =>
-            setWarehouseInventoryDetailPage(newPage + 1)
-          }
-          onRowsPerPageChange={(newLimit) =>
-            setWarehouseInventoryDetailLimit(newLimit)
-          }
-          onSingleLotQuantityUpdate={handleSingleLotAdjustment}
-          onBulkLotsQtyUpdate={handleBulkLotAdjustment}
-          warehouseId={warehouseId}
-          handleBulkInsertSubmit={handleBulkInsertSubmit}
-          insertedDataResponse={insertedDataResponse}
-          openDialog={openDialog}
-          setOpenDialog={setOpenDialog}
-        />
+        <Suspense fallback={<Skeleton height={400} />}>
+          <WarehouseInventoryDetailTable
+            data={transformedWarehouseInventoryDetails}
+            page={warehouseInventoryDetailPage - 1}
+            rowsPerPage={warehouseInventoryDetailLimit}
+            totalRecords={warehouseInventoryDetailPagination.totalRecords}
+            totalPages={warehouseInventoryDetailPagination.totalPages}
+            onPageChange={handlePageChange}
+            onRowsPerPageChange={handleRowsPerPageChange}
+            onSingleLotQuantityUpdate={handleSingleLotAdjustment}
+            onBulkLotsQtyUpdate={handleBulkLotAdjustment}
+            warehouseId={warehouseId}
+            handleBulkInsertSubmit={handleBulkInsertSubmit}
+            insertedDataResponse={insertedDataResponse}
+            openDialog={openDialog}
+            setOpenDialog={setOpenDialog}
+          />
+        </Suspense>
       </Paper>
 
       {/* Refresh Button */}

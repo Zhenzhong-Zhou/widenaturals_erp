@@ -1,6 +1,6 @@
-import type { FC } from 'react';
+import { memo, type FC, useMemo } from 'react';
 import Chip from '@mui/material/Chip';
-import { useThemeContext } from '@context/ThemeContext';
+import { useThemeContext } from '@context/ThemeContext.tsx';
 
 interface Props {
   isExpired: boolean;
@@ -8,23 +8,31 @@ interface Props {
 
 const IsExpiredChip: FC<Props> = ({ isExpired }) => {
   const { theme } = useThemeContext();
-
-  const color = isExpired
-    ? theme.palette.error.main
-    : theme.palette.success.main;
-
+  
+  const { label, color } = useMemo(() => {
+    return isExpired
+      ? {
+        label: 'Yes',
+        color: theme.palette.error.main,
+      }
+      : {
+        label: 'No',
+        color: theme.palette.success.main,
+      };
+  }, [isExpired, theme]);
+  
   return (
     <Chip
-      label={isExpired ? 'Yes' : 'No'}
+      label={label}
       size="small"
       variant="outlined"
       sx={{
         borderColor: color,
-        color: color,
+        color,
         fontWeight: 500,
       }}
     />
   );
 };
 
-export default IsExpiredChip;
+export default memo(IsExpiredChip);

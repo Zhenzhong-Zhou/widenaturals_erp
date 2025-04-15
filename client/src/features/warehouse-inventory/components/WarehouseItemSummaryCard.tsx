@@ -28,7 +28,15 @@ const WarehouseItemSummaryCard = ({
     <Box>
       {/* Page Header */}
       <Paper sx={{ padding: 2, marginBottom: 3 }}>
-        <CustomTypography variant="h4">Warehouse Item Summary</CustomTypography>
+        <CustomTypography
+          sx={{
+            fontWeight: 600,
+            lineHeight: 1.3,
+            minHeight: '1.25rem',
+          }}
+        >
+          Warehouse Item Summary
+        </CustomTypography>
       </Paper>
 
       {/* Summary Cards */}

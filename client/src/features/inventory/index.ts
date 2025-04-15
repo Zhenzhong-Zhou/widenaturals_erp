@@ -28,5 +28,4 @@ export { default as StockLevelChip } from './components/StockLevelChip';
 export { default as NearExpiryChip } from './components/NearExpiryChip';
 export { default as IsExpiredChip } from './components/IsExpiredChip';
 export { default as ExpirySeverityChip } from './components/ExpirySeverityChip';
-export { default as InventorySummaryTable } from './components/InventorySummaryTable';
 export { inventoryReducers } from './state';
