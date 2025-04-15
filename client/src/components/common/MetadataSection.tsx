@@ -5,11 +5,16 @@ import { useThemeContext } from '@context/ThemeContext';
 import type { SxProps, Theme } from '@mui/system';
 import { formatLabel } from '@utils/textUtils';
 
-// Helper to exclude keys like `id`, `uuid`, etc.
+// Exclude keys like id, uuid, etc.
 const shouldExcludeKey = (key: string): boolean =>
-  /id$/i.test(key) || /_id$/i.test(key) || /uuid/i.test(key);
+  /(^|_)id$|uuid/i.test(key);
 
-// Recursive metadata display
+// Helper to check if value is a primitive or displayable
+const isSimpleValue = (value: any): boolean =>
+  typeof value === 'string' ||
+  typeof value === 'number' ||
+  typeof value === 'boolean';
+
 interface MetadataSectionProps {
   data: Record<string, any>;
   sx?: SxProps<Theme>;
@@ -17,31 +22,45 @@ interface MetadataSectionProps {
 
 const MetadataSection: FC<MetadataSectionProps> = ({ data, sx }) => {
   const { theme } = useThemeContext();
-
+  
   return (
     <Box sx={{ mt: theme.spacing(2), ...sx }}>
       {Object.entries(data).map(([key, value]) => {
         if (shouldExcludeKey(key)) return null;
-
+        
         const formattedKey = formatLabel(key);
-
+        
         return (
-          <Box key={key} sx={{ mb: theme.spacing(1) }}>
+          <Box key={key} sx={{ mb: theme.spacing(1.5) }}>
             <Typography
               variant="subtitle2"
-              sx={{ color: theme.palette.text.primary }}
+              sx={{
+                fontWeight: 600,
+                color: theme.palette.text.primary,
+              }}
             >
               {formattedKey}:
             </Typography>
-
+            
+            {/* Recursive for nested values */}
             {Array.isArray(value) ? (
-              <Box sx={{ pl: theme.spacing(2) }}>
-                {value.map((item, index) => (
-                  <MetadataSection key={index} data={item} sx={sx} />
-                ))}
+              <Box sx={{ pl: theme.spacing(2), pt: 0.5 }}>
+                {value.map((item, index) =>
+                  typeof item === 'object' && item !== null ? (
+                    <MetadataSection key={index} data={item} sx={sx} />
+                  ) : isSimpleValue(item) ? (
+                    <Typography
+                      key={`${item}-${index}`}
+                      variant="body2"
+                      sx={{ color: theme.palette.text.secondary }}
+                    >
+                      {item?.toString() || 'N/A'}
+                    </Typography>
+                  ) : null
+                )}
               </Box>
             ) : typeof value === 'object' && value !== null ? (
-              <Box sx={{ pl: theme.spacing(2) }}>
+              <Box sx={{ pl: theme.spacing(2), pt: 0.5 }}>
                 <MetadataSection data={value} sx={sx} />
               </Box>
             ) : (
@@ -49,7 +68,9 @@ const MetadataSection: FC<MetadataSectionProps> = ({ data, sx }) => {
                 variant="body2"
                 sx={{ color: theme.palette.text.secondary }}
               >
-                {value !== null && value !== '' ? value.toString() : 'N/A'}
+                {value !== null && value !== '' && value !== undefined
+                  ? value.toString()
+                  : 'N/A'}
               </Typography>
             )}
           </Box>

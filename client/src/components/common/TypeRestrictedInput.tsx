@@ -4,18 +4,18 @@ import type { TextFieldProps } from '@mui/material/TextField';
 
 type InputType = 'text' | 'email' | 'tel' | 'number' | 'password';
 
-interface CustomFields {
+interface RestrictedInputProps {
   label: string;
   type: InputType;
   placeholder?: string;
   errorText?: string;
 }
 
-type TypeRestrictedInputProps = TextFieldProps & CustomFields;
+type TypeRestrictedInputProps = TextFieldProps & RestrictedInputProps;
 
 const TypeRestrictedInput: FC<TypeRestrictedInputProps> = ({
   label,
-  type,
+  type = 'text', // fallback to text
   placeholder,
   errorText,
   slotProps,

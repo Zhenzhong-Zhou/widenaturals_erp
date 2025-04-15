@@ -1,13 +1,13 @@
 import type { FC } from 'react';
 import Autocomplete from '@mui/material/Autocomplete';
-import TextField from '@mui/material/TextField';
 import Box from '@mui/material/Box';
 import MenuItem from '@mui/material/MenuItem';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPlus, faSyncAlt } from '@fortawesome/free-solid-svg-icons';
 import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPlus, faSyncAlt } from '@fortawesome/free-solid-svg-icons';
 import CustomTypography from '@components/common/CustomTypography';
+import BaseInput from '@components/common/BaseInput.tsx';
 import { useThemeContext } from '@context/ThemeContext';
 
 interface OptionType {
@@ -28,6 +28,11 @@ interface DropdownProps {
   onAddNew?: () => void;
 }
 
+const SPECIAL_OPTIONS: OptionType[] = [
+  { value: 'add', label: 'Add New Customer', icon: faPlus },
+  { value: 'refresh', label: 'Refresh List', icon: faSyncAlt },
+];
+
 const Dropdown: FC<DropdownProps> = ({
   label,
   options = [],
@@ -42,11 +47,7 @@ const Dropdown: FC<DropdownProps> = ({
   const { theme } = useThemeContext();
 
   // Modified options array with special items at the top
-  const modifiedOptions: OptionType[] = [
-    { value: 'add', label: 'Add New Customer', icon: faPlus },
-    { value: 'refresh', label: 'Refresh List', icon: faSyncAlt },
-    ...options,
-  ];
+  const modifiedOptions: OptionType[] = [...SPECIAL_OPTIONS, ...options];
 
   return (
     <Box sx={{ minWidth: '200px', width: '100%', ...sx }}>
@@ -60,7 +61,7 @@ const Dropdown: FC<DropdownProps> = ({
           else onChange(newValue?.value || '');
         }}
         renderInput={(params) => (
-          <TextField
+          <BaseInput
             {...params}
             label={label}
             variant="outlined"
@@ -69,8 +70,9 @@ const Dropdown: FC<DropdownProps> = ({
         )}
         disableClearable={!searchable}
         fullWidth
+        isOptionEqualToValue={(option, value) => option.value === value.value}
         renderOption={(props, option) => (
-          <div key={option.value}>
+          <Box key={option.value}>
             {/* Divider before the regular options */}
             {option.value === 'add' && (
               <Divider
@@ -175,7 +177,7 @@ const Dropdown: FC<DropdownProps> = ({
                 {option.label}
               </MenuItem>
             )}
-          </div>
+          </Box>
         )}
       />
     </Box>

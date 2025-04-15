@@ -29,6 +29,7 @@ const PasswordInput: FC<PasswordInputProps> = ({
       type={showPassword ? 'text' : 'password'} // Toggle type dynamically
       errorText={errorText || ''} // Only show errorText when it exists
       helperText={errorText ? '' : helperText} // Show helperText only if no error
+      error={!!errorText}
       slotProps={{
         input: {
           endAdornment: (
@@ -36,7 +37,9 @@ const PasswordInput: FC<PasswordInputProps> = ({
               <IconButton
                 onClick={toggleVisibility}
                 edge="end"
-                aria-label="toggle password visibility"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                size="small"
+                sx={{ minWidth: 40 }}
               >
                 <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
               </IconButton>

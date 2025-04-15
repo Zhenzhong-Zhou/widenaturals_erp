@@ -1,6 +1,7 @@
 import type { FC } from 'react';
 import Box from '@mui/material/Box';
 import CustomTypography from '@components/common/CustomTypography';
+import { useThemeContext } from '@context/ThemeContext';
 
 interface Price {
   price: number;
@@ -18,37 +19,63 @@ const PriceDisplay: FC<PriceDisplayProps> = ({
   originalPrice,
   currency = '$',
 }) => {
+  const { theme } = useThemeContext();
+  
   // Find retail price for comparison (if needed)
   const retailPrice = prices.find((p) => p.pricing_type === 'Retail')?.price;
 
   // Determine if there is a discount
   const isDiscounted =
-    originalPrice && retailPrice && originalPrice > retailPrice;
+    typeof originalPrice === 'number' &&
+    typeof retailPrice === 'number' &&
+    originalPrice > retailPrice;
 
   return (
-    <Box display="flex" flexDirection="column" gap={1}>
+    <Box
+      display="flex"
+      flexDirection="column"
+      gap={theme.spacing(1)}
+      sx={{
+        padding: theme.spacing(1),
+        borderRadius: theme.shape.borderRadius,
+        backgroundColor: theme.palette.background.paper,
+      }}
+    >
       {/* Iterate through prices */}
-      {prices.map((priceObj) => (
+      {prices.map(({ pricing_type, price }) => (
         <Box
-          key={priceObj.pricing_type}
+          key={pricing_type}
           display="flex"
+          justifyContent="space-between"
           alignItems="center"
-          gap={1}
+          sx={{ minHeight: 32 }}
         >
-          <CustomTypography variant="body1" color="primary">
-            {priceObj.pricing_type}: {currency}
-            {priceObj.price.toFixed(2)}
+          <CustomTypography
+            variant="body2"
+            sx={{ color: theme.palette.text.primary, fontWeight: 500 }}
+          >
+            {pricing_type}
+          </CustomTypography>
+          <CustomTypography
+            variant="body2"
+            sx={{ color: theme.palette.primary.main, fontWeight: 600 }}
+          >
+            {currency}
+            {price.toFixed(2)}
           </CustomTypography>
         </Box>
       ))}
-
+      
+      {/* Discount Info */}
       {isDiscounted && retailPrice && (
-        <Box display="flex" alignItems="center" gap={1}>
+        <Box display="flex" alignItems="center" gap={1} mt={1}>
           {/* Original Price */}
           <CustomTypography
             variant="body2"
-            color="textSecondary"
-            sx={{ textDecoration: 'line-through' }}
+            sx={{
+              color: theme.palette.text.disabled,
+              textDecoration: 'line-through',
+            }}
           >
             {currency}
             {originalPrice.toFixed(2)}
@@ -57,14 +84,19 @@ const PriceDisplay: FC<PriceDisplayProps> = ({
           {/* Discount Percentage */}
           <CustomTypography
             variant="caption"
-            color="error"
             sx={{
-              backgroundColor: 'rgba(255,0,0,0.1)',
-              padding: '2px 6px',
-              borderRadius: '4px',
+              color: theme.palette.error.main,
+              backgroundColor: theme.palette.error.light + '22', // semi-transparent
+              px: 1,
+              py: 0.25,
+              borderRadius: 1,
+              fontWeight: 600,
             }}
           >
-            -{Math.round(((originalPrice - retailPrice) / originalPrice) * 100)}
+            -
+            {Math.round(
+              ((originalPrice - retailPrice!) / originalPrice) * 100
+            )}
             %
           </CustomTypography>
         </Box>

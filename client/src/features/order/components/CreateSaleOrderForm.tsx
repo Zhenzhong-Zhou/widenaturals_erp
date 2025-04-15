@@ -286,7 +286,7 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({
         showSubmitButton={isValid && isFormValid}
       >
         <Grid container spacing={2}>
-          <Grid size={{ xs: 6, md: 8 }}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Controller
               name="customer_id"
               control={control}
@@ -299,8 +299,8 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({
               )}
             />
           </Grid>
-
-          <Grid size={{ xs: 6, md: 8 }}>
+          
+          <Grid size={{ xs: 12, md: 6 }}>
             <Controller
               name="order_date"
               control={control}
@@ -317,8 +317,8 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({
               )}
             />
           </Grid>
-
-          <Grid size={{ xs: 6, md: 8 }}>
+          
+          <Grid size={{ xs: 12, md: 6 }}>
             <Controller
               name="discount_id"
               control={control}
@@ -331,8 +331,8 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({
               )}
             />
           </Grid>
-
-          <Grid size={{ xs: 6, md: 8 }}>
+          
+          <Grid size={{ xs: 12, md: 6 }}>
             <Controller
               name="tax_rate_id"
               control={control}
@@ -345,8 +345,8 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({
               )}
             />
           </Grid>
-
-          <Grid size={{ xs: 6, md: 8 }}>
+          
+          <Grid size={{ xs: 12, md: 6 }}>
             <Controller
               name="delivery_method_id"
               control={control}
@@ -361,7 +361,7 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({
             />
           </Grid>
 
-          <Grid size={{ xs: 6, md: 8 }}>
+          <Grid size={{ xs: 12 }}>
             <Controller
               name="note"
               control={control}
@@ -380,9 +380,9 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({
           </Grid>
         </Grid>
 
-        <Divider sx={{ my: 2 }} />
+        <Divider sx={{ my: 4 }} />
 
-        <CustomTypography variant="h6" gutterBottom>
+        <CustomTypography variant="h6" gutterBottom sx={{ mb: 2 }}>
           Shipping Information
         </CustomTypography>
 
@@ -413,7 +413,7 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({
 
           {methods.watch('has_shipping_info') && (
             <>
-              <Grid size={{ xs: 12, md: 8 }}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Controller
                   name="shipping_info.shipping_fullname"
                   control={control}
@@ -422,7 +422,7 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({
                   )}
                 />
               </Grid>
-              <Grid size={{ xs: 12, md: 8 }}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Controller
                   name="shipping_info.shipping_phone"
                   control={control}
@@ -431,7 +431,7 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({
                   )}
                 />
               </Grid>
-              <Grid size={{ xs: 12, md: 8 }}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Controller
                   name="shipping_info.shipping_email"
                   control={control}
@@ -440,7 +440,7 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({
                   )}
                 />
               </Grid>
-              <Grid size={{ xs: 12, md: 8 }}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Controller
                   name="shipping_info.shipping_address_line1"
                   control={control}
@@ -449,7 +449,7 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({
                   )}
                 />
               </Grid>
-              <Grid size={{ xs: 12, md: 8 }}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Controller
                   name="shipping_info.shipping_address_line2"
                   control={control}
@@ -462,7 +462,7 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({
                   )}
                 />
               </Grid>
-              <Grid size={{ xs: 12, md: 8 }}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Controller
                   name="shipping_info.shipping_city"
                   control={control}
@@ -471,7 +471,7 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({
                   )}
                 />
               </Grid>
-              <Grid size={{ xs: 12, md: 8 }}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Controller
                   name="shipping_info.shipping_state"
                   control={control}
@@ -480,7 +480,7 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({
                   )}
                 />
               </Grid>
-              <Grid size={{ xs: 12, md: 8 }}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Controller
                   name="shipping_info.shipping_postal_code"
                   control={control}
@@ -489,7 +489,7 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({
                   )}
                 />
               </Grid>
-              <Grid size={{ xs: 12, md: 8 }}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Controller
                   name="shipping_info.shipping_country"
                   control={control}
@@ -498,7 +498,7 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({
                   )}
                 />
               </Grid>
-              <Grid size={{ xs: 12, md: 8 }}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Controller
                   name="shipping_info.shipping_region"
                   control={control}
@@ -511,17 +511,17 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({
           )}
         </Grid>
 
-        <Divider sx={{ my: 2 }} />
+        <Divider sx={{ my: 4 }} />
 
-        <CustomTypography variant="h6" gutterBottom>
+        <CustomTypography variant="h6" gutterBottom sx={{ mb: 2 }}>
           Order Items
         </CustomTypography>
 
         {items.map((item, index) => (
-          <Card key={index} variant="outlined" sx={{ mb: 2 }}>
+          <Card key={index} variant="outlined" sx={{ mb: 3, borderRadius: 2, boxShadow: 1 }}>
             <CardContent>
               <Grid container spacing={2} alignItems="center">
-                <Grid size={{ xs: 6, md: 8 }}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Controller
                     name={`items.${index}.product_id`} // Corrected name syntax for react-hook-form
                     control={control}
@@ -542,8 +542,8 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({
                     )}
                   />
                 </Grid>
-
-                <Grid size={{ xs: 6, md: 8 }}>
+                
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Controller
                     name={`items.${index}.price_type_id`} // Corrected name syntax for react-hook-form
                     control={control}
@@ -569,8 +569,8 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({
                     )}
                   />
                 </Grid>
-
-                <Grid size={{ xs: 6, md: 8 }}>
+                
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Controller
                     name={`items.${index}.price`}
                     control={control}
@@ -600,8 +600,8 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({
                     )}
                   />
                 </Grid>
-
-                <Grid size={{ xs: 6, md: 8 }}>
+                
+                <Grid size={{ xs: 12, md: 6 }}>
                   <Controller
                     name={`items.${index}.quantity_ordered`}
                     control={control}
@@ -626,18 +626,19 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({
                 </Grid>
 
                 {/* Display Subtotal (Read-Only) */}
-                <Grid size={{ xs: 6, md: 8 }}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <CustomTypography variant="subtitle1" sx={{ mt: 1 }}>
                     Subtotal: ${(item.price * item.quantity_ordered).toFixed(2)}
                   </CustomTypography>
                 </Grid>
 
                 {/* Remove Button */}
-                <Grid size={{ xs: 6, md: 8 }}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   {items.length > 1 && (
                     <CustomButton
                       onClick={() => handleRemoveItem(item.id)}
                       color="error"
+                      sx={{ mt: 2 }}
                     >
                       Remove
                     </CustomButton>
@@ -653,6 +654,7 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({
             type="button"
             onClick={handleAddItem}
             variant="outlined"
+            sx={{ mt: 2 }}
           >
             Add Product
           </CustomButton>
