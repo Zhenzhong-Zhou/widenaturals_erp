@@ -20,16 +20,16 @@ interface CustomCardProps {
 }
 
 const CustomCard: FC<CustomCardProps> = ({
-  title,
-  subtitle,
-  children,
-  imageUrl,
-  actions,
-  sx,
-  contentSx,
-  ariaLabel,
-  role = 'region',
-}) => {
+                                           title,
+                                           subtitle,
+                                           children,
+                                           imageUrl,
+                                           actions,
+                                           sx,
+                                           contentSx,
+                                           ariaLabel,
+                                           role = 'region',
+                                         }) => {
   return (
     <Card
       aria-label={ariaLabel}
@@ -37,10 +37,11 @@ const CustomCard: FC<CustomCardProps> = ({
       sx={{
         maxWidth: 400,
         margin: '0 auto',
-        padding: 3,
+        padding: 2,
         borderRadius: 2,
-        boxShadow: 3,
-        backgroundColor: (theme) => theme.palette.background.paper,
+        boxShadow: 1,
+        backgroundColor: 'var(--bg-paper)', // dynamic, LCP-safe via CSS variable
+        transition: 'background-color 0.3s ease-in-out',
         ...sx,
       }}
     >
@@ -50,14 +51,15 @@ const CustomCard: FC<CustomCardProps> = ({
           component="img"
           height="340"
           image={imageUrl}
-          alt={typeof title === 'string' ? title : 'Card Image'}
+          alt={typeof title === 'string' ? title : 'Card image'}
+          loading="lazy"
           sx={{
-            objectFit: 'cover', // Correct usage of objectFit
+            objectFit: 'cover',
             borderRadius: 1,
           }}
         />
       )}
-
+      
       <CardContent sx={{ ...contentSx }}>
         {title && (
           <CustomTypography
@@ -65,29 +67,38 @@ const CustomCard: FC<CustomCardProps> = ({
             align="center"
             gutterBottom
             sx={{
-              fontWeight: 'bold',
-              color: (theme) => theme.palette.text.primary,
+              fontWeight: 700,
+              fontFamily: "'Roboto', sans-serif",
+              color: 'var(--text-primary)',
+              minHeight: '32px',
+              textRendering: 'optimizeLegibility',
             }}
           >
             {title}
           </CustomTypography>
         )}
+        
         {subtitle && (
           <CustomTypography
             variant="body1"
             align="center"
             gutterBottom
-            sx={{ color: (theme) => theme.palette.text.secondary }}
+            sx={{
+              color: 'var(--text-secondary)',
+              minHeight: '24px',
+            }}
           >
             {subtitle}
           </CustomTypography>
         )}
+        
         {children && <Box mt={2}>{children}</Box>}
       </CardContent>
-
-      {/* Optional Actions */}
-      {actions && (
+      
+      {actions ? (
         <CardActions sx={{ justifyContent: 'center' }}>{actions}</CardActions>
+      ) : (
+        <Box height={40} />
       )}
     </Card>
   );

@@ -2,6 +2,7 @@ import type { FC, ReactNode } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router';
 import useSession from '@hooks/useSession';
 import { routes } from './index';
+import Loading from '@components/common/Loading';
 
 interface ProtectedRoutesProps {
   children?: ReactNode; // Optional children
@@ -16,21 +17,29 @@ interface ProtectedRoutesProps {
 const ProtectedRoutes: FC<ProtectedRoutesProps> = ({
   children = <Outlet />,
 }) => {
-  const { isAuthenticated } = useSession();
+  const { isAuthenticated, isLoading } = useSession();
   const location = useLocation(); // Capture current location for redirect after login
-
+  
+  // If session is still being validated, show loading to prevent layout shift
+  if (isLoading) {
+    return <Loading fullPage message="Checking authentication..." />;
+  }
+  
+  
   // Get public routes from the routes configuration
   const publicPaths = routes
     .filter((route) => !route.meta?.requiresAuth)
     .map((route) => route.path);
 
   // Redirect unauthenticated users to login
-  if (!isAuthenticated && !publicPaths.includes(location.pathname)) {
+  const isPublicPath = publicPaths.includes(location.pathname);
+  
+  if (!isAuthenticated && !isPublicPath) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   // Redirect authenticated users to /dashboard if accessing invalid paths
-  if (isAuthenticated && publicPaths.includes(location.pathname)) {
+  if (isAuthenticated && isPublicPath) {
     return <Navigate to="/dashboard" replace />;
   }
 

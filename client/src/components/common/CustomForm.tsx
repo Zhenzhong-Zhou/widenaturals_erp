@@ -1,13 +1,15 @@
 import type { BaseSyntheticEvent, FC, ReactNode } from 'react';
-import { useForm, Controller, type Control } from 'react-hook-form';
-import Select from '@mui/material/Select';
-import MenuItem from '@mui/material/MenuItem';
-import Checkbox from '@mui/material/Checkbox';
-import FormControl from '@mui/material/FormControl';
-import FormControlLabel from '@mui/material/FormControlLabel';
-import InputLabel from '@mui/material/InputLabel';
-import Box from '@mui/material/Box';
-import FormHelperText from '@mui/material/FormHelperText';
+import { useForm, Controller, type Control, type FieldErrors } from 'react-hook-form';
+import {
+  Select,
+  MenuItem,
+  Checkbox,
+  FormControl,
+  FormControlLabel,
+  InputLabel,
+  Box,
+  FormHelperText,
+} from '@mui/material';
 import BaseInput from '@components/common/BaseInput';
 import CustomButton from '@components/common/CustomButton';
 import CustomPhoneInput from '@components/common/CustomPhoneInput';
@@ -22,7 +24,7 @@ export interface FieldConfig {
   required?: boolean;
   defaultValue?: any;
   disabled?: boolean;
-  helperText?: string;
+  defaultHelperText?: string;
   placeholder?: string;
   min?: number;
   max?: number;
@@ -45,20 +47,27 @@ interface FormProps {
 }
 
 const CustomForm: FC<FormProps> = ({
-  fields = [],
-  children,
-  onSubmit,
-  submitButtonLabel = 'Submit',
-  control,
-  showSubmitButton = true,
-  sx,
-}) => {
+                                     fields = [],
+                                     children,
+                                     onSubmit,
+                                     submitButtonLabel = 'Submit',
+                                     control,
+                                     showSubmitButton = true,
+                                     sx,
+                                   }) => {
   const { theme } = useThemeContext();
+  
   const {
     handleSubmit,
     formState: { errors },
-  } = useForm({ mode: 'onChange' }); // Enable real-time validation check
-
+  } = useForm({ mode: 'onChange' });
+  
+  const getError = (errors: FieldErrors<any>, id: string, fallback = ''): string => {
+    const err = errors[id];
+    const message = err && typeof err.message === 'string' ? err.message : undefined;
+    return message ?? fallback;
+  };
+  
   return (
     <Box
       component="form"
@@ -67,12 +76,12 @@ const CustomForm: FC<FormProps> = ({
         display: 'flex',
         flexDirection: 'column',
         gap: 2,
-        maxWidth: '600px', // maxWidth for better layout
+        maxWidth: 600,
         width: '100%',
         margin: '0 auto',
         padding: theme.spacing(3),
         backgroundColor: theme.palette.background.paper,
-        borderRadius: theme.shape.borderRadius,
+        borderRadius: theme.shape?.borderRadius || 8,
         boxShadow: theme.shadows[3],
         ...sx,
       }}
@@ -84,35 +93,28 @@ const CustomForm: FC<FormProps> = ({
             <Controller
               name={field.id}
               control={control}
-              defaultValue={field.defaultValue || ''}
+              defaultValue={field.defaultValue ?? ''}
               rules={{
                 required: field.required ? `${field.label} is required` : false,
-                min: field.min
-                  ? { value: field.min, message: `Min: ${field.min}` }
-                  : undefined,
-                max: field.max
-                  ? { value: field.max, message: `Max: ${field.max}` }
-                  : undefined,
+                min: field.min ? { value: field.min, message: `Min: ${field.min}` } : undefined,
+                max: field.max ? { value: field.max, message: `Max: ${field.max}` } : undefined,
               }}
-              render={({ field: { onChange, value } }) => (
+              render={({ field: controllerField }) => (
                 <BaseInput
                   fullWidth
                   id={field.id}
                   label={field.label}
                   type={field.type}
-                  value={value}
-                  onChange={onChange}
-                  error={!!errors[field.id]}
-                  helperText={
-                    (errors[field.id]?.message as string) || field.helperText
-                  }
+                  value={controllerField.value}
+                  onChange={controllerField.onChange}
                   disabled={field.disabled}
+                  error={!!errors[field.id]}
+                  helperText={getError(errors, field.id, field.defaultHelperText)}
                   placeholder={field.placeholder}
                   slotProps={{
-                    htmlInput:
-                      field.type === 'number'
-                        ? { min: field.min, max: field.max }
-                        : {},
+                    htmlInput: field.type === 'number'
+                      ? { min: field.min, max: field.max }
+                      : {},
                   }}
                 />
               )}
@@ -124,15 +126,15 @@ const CustomForm: FC<FormProps> = ({
             <Controller
               name={field.id}
               control={control}
-              defaultValue={field.defaultValue || ''}
+              defaultValue={field.defaultValue ?? ''}
               rules={{
                 required: field.required ? `${field.label} is required` : false,
               }}
-              render={({ field: { onChange, value } }) => (
+              render={({ field: controllerField }) => (
                 <CustomPhoneInput
-                  value={value}
-                  onChange={onChange}
-                  country={field.country || 'ca'} // Support country selection
+                  value={controllerField.value}
+                  onChange={controllerField.onChange}
+                  country={field.country || 'ca'}
                 />
               )}
             />
@@ -143,24 +145,21 @@ const CustomForm: FC<FormProps> = ({
             <Controller
               name={field.id}
               control={control}
-              defaultValue={field.defaultValue || ''}
+              defaultValue={field.defaultValue ?? ''}
               rules={{
                 required: field.required ? `${field.label} is required` : false,
               }}
-              render={({ field: { onChange, value } }) => (
+              render={({ field: controllerField }) => (
                 <BaseInput
                   fullWidth
-                  id={field.id}
-                  label={field.label}
                   multiline
-                  rows={field.rows || 4} // Default to 4 rows for better spacing
-                  value={value}
-                  onChange={onChange}
-                  error={!!errors[field.id]}
-                  helperText={
-                    (errors[field.id]?.message as string) || field.helperText
-                  }
+                  rows={field.rows ?? 4}
+                  label={field.label}
+                  value={controllerField.value}
+                  onChange={controllerField.onChange}
                   disabled={field.disabled}
+                  error={!!errors[field.id]}
+                  helperText={getError(errors, field.id, field.defaultHelperText)}
                   placeholder={field.placeholder}
                 />
               )}
@@ -172,32 +171,31 @@ const CustomForm: FC<FormProps> = ({
             <Controller
               name={field.id}
               control={control}
-              defaultValue={field.defaultValue || ''}
+              defaultValue={field.defaultValue ?? ''}
               rules={{
                 required: field.required ? `${field.label} is required` : false,
               }}
-              render={({ field: { onChange, value } }) => (
+              render={({ field: controllerField }) => (
                 <FormControl
                   fullWidth
                   error={!!errors[field.id]}
-                  sx={{ marginBottom: theme.spacing(2) }}
+                  sx={{ mb: theme.spacing(2) }}
                 >
                   <InputLabel>{field.label}</InputLabel>
                   <Select
                     id={field.id}
-                    value={value}
-                    onChange={onChange}
+                    value={controllerField.value}
+                    onChange={controllerField.onChange}
                     disabled={field.disabled}
+                    label={field.label}
                   >
-                    {field.options?.map((option) => (
-                      <MenuItem key={option.value} value={option.value}>
-                        {option.label}
+                    {field.options?.map((opt) => (
+                      <MenuItem key={opt.value} value={opt.value}>
+                        {opt.label}
                       </MenuItem>
                     ))}
                   </Select>
-                  <FormHelperText>
-                    {(errors[field.id]?.message as string) || field.helperText}
-                  </FormHelperText>
+                  <FormHelperText>{getError(errors, field.id, field.defaultHelperText)}</FormHelperText>
                 </FormControl>
               )}
             />
@@ -208,16 +206,18 @@ const CustomForm: FC<FormProps> = ({
             <Controller
               name={field.id}
               control={control}
-              defaultValue={field.defaultValue || false}
-              render={({ field: { onChange, value } }) => (
+              defaultValue={field.defaultValue ?? false}
+              render={({ field: controllerField }) => (
                 <FormControlLabel
                   control={
                     <Checkbox
-                      checked={value}
-                      onChange={(e) => onChange(e.target.checked)}
+                      checked={controllerField.value}
+                      onChange={(e) => controllerField.onChange(e.target.checked)}
                       sx={{
                         color: theme.palette.primary.main,
-                        '&.Mui-checked': { color: theme.palette.primary.main },
+                        '&.Mui-checked': {
+                          color: theme.palette.primary.main,
+                        },
                       }}
                     />
                   }
@@ -228,7 +228,7 @@ const CustomForm: FC<FormProps> = ({
           )}
         </Box>
       ))}
-
+      
       {children}
 
       {/** Render the Submit button only if `showSubmitButton` is true */}

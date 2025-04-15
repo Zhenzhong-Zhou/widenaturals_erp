@@ -1,8 +1,8 @@
 import { Suspense, lazy } from 'react';
 import { Route, Routes } from 'react-router-dom';
-import { routes } from './index';
+import { routes } from '@routes/index';
 import ProtectedRoutes from '@routes/ProtectedRoutes';
-import GuestRoute from './GuestRoute';
+import GuestRoute from '@routes/GuestRoute';
 import useSession from '@hooks/useSession';
 import usePermissions from '@hooks/usePermissions';
 import ErrorDisplay from '@components/shared/ErrorDisplay';
@@ -21,7 +21,7 @@ const LazyNotFoundPage = lazy(() =>
 const AppRoutes = () => {
   const { isAuthenticated } = useSession(); // Fetch authentication state
   const { roleName, permissions, error } = usePermissions(); // Fetch permissions
-
+  
   if (error) {
     return (
       <ErrorDisplay>
@@ -29,7 +29,7 @@ const AppRoutes = () => {
       </ErrorDisplay>
     );
   }
-
+  
   return (
     <PermissionsProvider
       roleName={roleName}
@@ -58,7 +58,7 @@ const AppRoutes = () => {
                   />
                 );
               }
-
+              
               return (
                 <Route
                   key={index}
@@ -73,7 +73,7 @@ const AppRoutes = () => {
                 />
               );
             }
-
+            
             if (path === '/login' || path === '/') {
               // Wrap login and homepage with GuestRoute
               return (
@@ -88,13 +88,13 @@ const AppRoutes = () => {
                 />
               );
             }
-
+            
             // Render other public routes directly
             return (
               <Route key={index} path={path} element={<LazyComponent />} />
             );
           })}
-
+          
           {/* 404 Page for Invalid Routes */}
           <Route
             path="*"

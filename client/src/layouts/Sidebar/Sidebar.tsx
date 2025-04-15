@@ -23,26 +23,25 @@ interface SidebarProps {
 }
 
 const Sidebar: FC<SidebarProps> = ({
-  isOpen,
-  toggleSidebar,
-  roleName,
-  permissions,
-}) => {
+                                     isOpen,
+                                     toggleSidebar,
+                                     roleName,
+                                     permissions,
+                                   }) => {
   const { theme } = useThemeContext();
   const logo = theme.palette.mode === 'dark' ? logoDark : logoLight;
-
-  // Filter routes for items to display in the sidebar
+  
+  // Filter routes for sidebar
   const menuItems = routes.filter((route) => {
-    const requiredPermission = route.meta?.requiredPermission || ''; // Ensure empty string if undefined
-
+    const requiredPermission = route.meta?.requiredPermission || '';
     return (
-      route.meta?.showInSidebar && // Show only if marked for sidebar
-      !route.path.includes('*') && // Exclude wildcard routes
+      route.meta?.showInSidebar &&
+      !route.path.includes('*') &&
       (requiredPermission === '' ||
-        hasPermission(requiredPermission, permissions, roleName)) // Check permission only if needed
+        hasPermission(requiredPermission, permissions, roleName))
     );
   });
-
+  
   return (
     <>
       {/* Sidebar Drawer */}
@@ -53,67 +52,60 @@ const Sidebar: FC<SidebarProps> = ({
         variant="persistent"
         sx={sidebarStyles(theme, isOpen)}
       >
-        {/* Sidebar Header */}
+        {/* Header with logo and close */}
         <Box
           sx={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            height: '80px',
+            height: 80,
             padding: theme.spacing(2),
             backgroundColor: theme.palette.background.paper,
+            borderBottom: `1px solid ${theme.palette.divider}`,
           }}
         >
           <Box
             sx={{
+              height: '100%',
+              width: '100%',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              height: '100%',
-              width: '100%',
             }}
           >
             <img
               src={logo}
               alt="WIDE Naturals Inc."
+              loading="eager" // LCP optimization
               style={{
-                width: '100%',
-                height: '100%',
-                maxHeight: isOpen ? '50px' : '80px',
+                height: '50px',
                 objectFit: 'contain',
+                fontFamily: "'Roboto', sans-serif", // FOUT prevention
               }}
             />
           </Box>
-
+          
           {isOpen && (
             <IconButton
               onClick={toggleSidebar}
               aria-label="Close Sidebar"
-              sx={{
-                marginLeft: 'auto',
-              }}
+              sx={{ ml: 'auto' }}
             >
-              <FontAwesomeIcon
-                icon={faTimes}
-                style={{
-                  color: theme.palette.text.primary,
-                }}
-              />
+              <FontAwesomeIcon icon={faTimes} />
             </IconButton>
           )}
         </Box>
-
-        {/* Sidebar Navigation */}
+        
+        {/* Sidebar links */}
         <Box
           sx={{
-            padding: theme.spacing(2),
+            p: 2,
             backgroundColor: theme.palette.background.default,
             height: '100%',
-            width: '240px',
+            width: 240,
             color: theme.palette.text.primary,
             display: 'flex',
             flexDirection: 'column',
-            justifyContent: 'space-between',
           }}
         >
           <List>
@@ -124,31 +116,50 @@ const Sidebar: FC<SidebarProps> = ({
                   href={item.path}
                   sx={{
                     borderRadius: theme.shape.borderRadius,
+                    px: 2,
+                    py: 1.2,
+                    color: theme.palette.text.primary,
                     '&:hover': {
                       backgroundColor: theme.palette.action.hover,
                     },
                   }}
                 >
-                  <ListItemText primary={item.meta?.title} />
+                  <ListItemText
+                    primary={item.meta?.title}
+                    slotProps={{
+                      primary: {
+                        sx: {
+                          fontSize: '0.95rem',
+                          fontWeight: 500,
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        },
+                      },
+                    }}
+                  />
                 </ListItemButton>
               </ListItem>
             ))}
           </List>
         </Box>
       </Drawer>
-
-      {/* Open Button */}
+      
+      {/* Mobile open button */}
       {!isOpen && (
         <IconButton
           onClick={toggleSidebar}
           sx={{
             position: 'fixed',
-            top: theme.spacing(2),
-            left: theme.spacing(2),
+            top: 16,
+            left: 16,
             zIndex: theme.zIndex.drawer + 1,
             backgroundColor: theme.palette.background.paper,
             color: theme.palette.text.primary,
             boxShadow: theme.shadows[1],
+            '&:hover': {
+              backgroundColor: theme.palette.action.hover,
+            },
           }}
           aria-label="Open Sidebar"
         >

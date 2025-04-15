@@ -12,30 +12,35 @@ interface CustomButtonProps extends ButtonProps {
 }
 
 const CustomButton: FC<CustomButtonProps> = ({
-  children,
-  to, // Link destination
-  variant = 'contained', // Default to 'contained' for primary actions
-  color = 'primary', // Default to primary color
-  size = 'medium', // Default size
-  ...props
-}) => {
+                                               children,
+                                               to,
+                                               variant = 'contained',
+                                               color = 'primary',
+                                               size = 'medium',
+                                               ...props
+                                             }) => {
   const { theme } = useThemeContext();
-
+  
+  const borderRadius = theme.shape?.borderRadius ?? 6; // fallback if not defined
+  const spacing = theme.spacing?.(1, 2) ?? '8px 16px';
+  
   return (
     <Button
-      component={to ? RouterLink : 'button'} // Use RouterLink when `to` is provided
-      to={to} // Pass `to` to RouterLink
+      component={to ? RouterLink : 'button'}
+      to={to}
       variant={variant}
       color={color}
       size={size}
       {...props}
       sx={{
         textTransform: 'none',
-        borderRadius: theme.shape.borderRadius,
-        padding: theme.spacing(1, 2),
-        boxShadow: variant === 'contained' ? theme.shadows[2] : 'none',
+        borderRadius,
+        padding: spacing,
+        fontWeight: 500,
+        fontFamily: "'Roboto', sans-serif",
+        boxShadow: variant === 'contained' ? theme.shadows?.[2] ?? 'none' : 'none',
         '&:hover': {
-          boxShadow: variant === 'contained' ? theme.shadows[4] : 'none',
+          boxShadow: variant === 'contained' ? theme.shadows?.[4] ?? 'none' : 'none',
         },
         ...props.sx,
       }}

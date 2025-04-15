@@ -1,7 +1,6 @@
 import {
   parsePhoneNumberFromString,
   AsYouType,
-  getCountryCallingCode,
   type CountryCode,
 } from 'libphonenumber-js';
 import type { ShippingInformation } from '@features/order';
@@ -68,18 +67,22 @@ export const formatPhoneNumber = (
   defaultCountry: CountryCode = 'CA'
 ): string => {
   if (!phoneNumber) return 'N/A';
-
-  const parsedPhone = parsePhoneNumberFromString(phoneNumber);
-
-  if (parsedPhone) {
-    return parsedPhone.formatInternational();
+  
+  // Normalize: remove all non-numeric except leading +
+  const normalized = phoneNumber.trim().replace(/[^\d+]/g, '');
+  
+  const parsedPhone = parsePhoneNumberFromString(normalized);
+  
+  if (parsedPhone && parsedPhone.isValid()) {
+    return parsedPhone.formatInternational(); // e.g. +1 234 567 8901
   }
-
+  
   try {
-    const callingCode = getCountryCallingCode(defaultCountry);
-    return new AsYouType(defaultCountry).input(`+${callingCode}${phoneNumber}`);
+    // Fallback with AsYouType (doesn't validate but formats nicely)
+    const typed = new AsYouType(defaultCountry).input(normalized);
+    return typed || normalized;
   } catch {
-    return phoneNumber;
+    return normalized;
   }
 };
 

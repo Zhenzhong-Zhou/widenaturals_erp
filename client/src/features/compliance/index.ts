@@ -12,5 +12,5 @@ export {
   selectCompliancesLoading,
   selectCompliancesError,
 } from './state/complianceSelectors';
-export { default as ComplianceTable } from './components/ComplianceTable';
+// export { default as ComplianceTable } from './components/ComplianceTable';
 export { complianceReducers } from './state';

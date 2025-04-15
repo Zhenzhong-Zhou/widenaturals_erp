@@ -29,6 +29,8 @@ export default defineConfig(({ mode }) => ({
 
   resolve: {
     alias: {
+      '@emotion/react': resolve(__dirname, 'node_modules/@emotion/react'),
+      '@emotion/styled': resolve(__dirname, 'node_modules/@emotion/styled'),
       '@styles': resolve(__dirname, './src/styles'),
       '@context': resolve(__dirname, './src/context'),
       '@components': resolve(__dirname, './src/components'),
@@ -59,6 +61,10 @@ export default defineConfig(({ mode }) => ({
       '@mui/material',
       '@mui/icons-material',
       '@mui/x-date-pickers',
+      '@emotion/react',
+      '@emotion/styled',
+      '@mui/material',
+      '@mui/system',
       'date-fns',
       'lodash',
       'axios',
@@ -71,16 +77,17 @@ export default defineConfig(({ mode }) => ({
     sourcemap: mode === 'development',
     minify: 'esbuild', // fastest and default
 
-    chunkSizeWarningLimit: 700, // KB
+    chunkSizeWarningLimit: 500, // KB
 
     rollupOptions: {
       treeshake: {
         moduleSideEffects: false,
         preset: 'smallest',
       },
-
+      
       output: {
         manualChunks(id) {
+          // --- External Libraries ---
           if (id.includes('node_modules')) {
             if (id.includes('@mui/material')) return 'mui-core';
             if (id.includes('@mui/icons-material')) return 'mui-icons';
@@ -88,12 +95,48 @@ export default defineConfig(({ mode }) => ({
             if (id.includes('date-fns')) return 'date-fns-vendor';
             if (id.includes('lodash')) return 'lodash-vendor';
             if (id.includes('axios')) return 'axios-vendor';
-            return 'vendor';
+            if (id.includes('react-hook-form')) return 'react-hook-form-vendor';
+            if (id.includes('uuid')) return 'uuid-vendor';
+            if (id.includes('classnames')) return 'classnames-vendor';
+            if (id.includes('react-redux')) return 'redux-vendor';
+            if (id.includes('redux-persist')) return 'redux-persist-vendor';
+            if (id.includes('fontawesome')) return 'fontawesome-vendor';
+            if (id.includes('libphonenumber-js')) return 'phone-utils-vendor';
+            if (id.includes('slugify')) return 'slugify-vendor';
+            if (id.includes('jwt-decode')) return 'jwt-vendor';
+            
+            return 'misc-vendor'; // fallback for unclassified external deps
           }
-
-          if (id.includes('src/components/')) return 'components';
+          
+          // --- Shared UI Components ---
+          if (id.includes('src/components/common/')) {
+            if (
+              id.includes('CustomButton') ||
+              id.includes('Typography') ||
+              id.includes('ErrorDisplay') ||
+              id.includes('ErrorMessage') ||
+              id.includes('Loading') ||
+              id.includes('BaseInput') ||
+              id.includes('Dropdown') ||
+              id.includes('DetailsSection')
+            ) {
+              return 'ui';
+            }
+            return 'components'; // fallback for other common components
+          }
+          
+          // --- Internal Code Splits ---
+          if (id.includes('src/features/')) return 'features';
+          if (id.includes('src/layouts/')) return 'layouts';
+          if (id.includes('src/pages/')) return 'pages';
+          if (id.includes('src/hooks/')) return 'hooks';
+          if (id.includes('src/services/')) return 'services';
+          if (id.includes('src/store/')) return 'store';
+          if (id.includes('src/utils/')) return 'utils';
+          
+          return undefined; // fallback
         },
-      },
+      }
     },
   },
 

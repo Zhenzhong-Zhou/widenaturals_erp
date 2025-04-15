@@ -3,36 +3,38 @@ import TextField from '@mui/material/TextField';
 import type { TextFieldProps } from '@mui/material/TextField';
 import { useThemeContext } from '@context/ThemeContext';
 
-const BaseInput: FC<TextFieldProps> = ({ sx, slotProps, ...props }) => {
+/**
+ * BaseInput wraps MUI's TextField with default styling.
+ * - Uses CSS variables for LCP-safe rendering and theme transitions
+ * - Supports custom sx overrides and slotProps
+ */
+const BaseInput: FC<TextFieldProps> = ({ sx = {}, slotProps, ...props }) => {
   const { theme } = useThemeContext();
-
+  
   return (
     <TextField
       {...props}
-      slotProps={{
-        ...slotProps, // Spread and allow overriding slotProps
-      }}
+      slotProps={{ ...slotProps }}
       sx={{
-        marginBottom: theme.spacing(2), // Default spacing
+        marginBottom: theme.spacing(2),
         '& .MuiInputBase-root': {
-          backgroundColor: theme.palette.background.paper, // Input background
-          borderRadius: theme.shape.borderRadius, // Rounded corners
+          backgroundColor: 'var(--bg-paper)',
+          borderRadius: theme.shape.borderRadius,
         },
         '& .MuiOutlinedInput-notchedOutline': {
-          borderColor: theme.palette.divider, // Default border color
+          borderColor: 'var(--border-light)',
         },
         '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
-          borderColor: theme.palette.primary.main, // Hover border color
+          borderColor: 'var(--primary-color)',
         },
-        '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline':
-          {
-            borderColor: theme.palette.primary.main, // Focus border color
-            boxShadow: `0 0 0 3px ${theme.palette.primary.light}`, // Focus outline
-          },
+        '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+          borderColor: 'var(--primary-color)',
+          boxShadow: `0 0 0 3px ${theme.palette.primary.light}`, // Keep dynamic for clarity
+        },
         '& .MuiFormHelperText-root': {
-          color: theme.palette.error.main, // Error text color
+          color: 'var(--text-secondary)',
         },
-        ...sx, // Allow additional styles to override defaults
+        ...sx,
       }}
     />
   );

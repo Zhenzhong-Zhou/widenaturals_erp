@@ -82,7 +82,7 @@ const DashboardLayout: FC<BaseDashboardLayoutProps> = ({
           </CustomTypography>
 
           {inventorySummaryLoading ? (
-            <Loading message="Loading inventory summary..." />
+            <Loading size={32} variant="dotted" message="Loading inventory summary..." />
           ) : inventorySummaryError ? (
             <ErrorMessage message={inventorySummaryError} />
           ) : paginatedItems.length === 0 ? (

@@ -78,6 +78,12 @@ export const ThemeProviderWrapper: FC<{ children: ReactNode }> = ({
     root.style.setProperty('--bg-light', theme.palette.background.default);
     root.style.setProperty('--text-light', theme.palette.text.primary);
     root.style.setProperty('--border-light', theme.palette.divider);
+    root.style.setProperty('--text-primary', theme.palette.text.primary);
+    root.style.setProperty('--text-secondary', theme.palette.text.secondary);
+    root.style.setProperty('--bg-paper', theme.palette.background.paper);
+    root.style.setProperty('--bg-default', theme.palette.background.default);
+    root.style.setProperty('--link-color', theme.palette.primary.main);
+    root.style.setProperty('--hover-bg', theme.palette.backgroundCustom?.customHover ?? '#eee');
   }, [theme]);
 
   if (!mounted) return null;

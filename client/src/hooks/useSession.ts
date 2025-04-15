@@ -2,7 +2,7 @@ import { useCallback, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   selectAccessToken,
-  selectIsAuthenticated,
+  selectIsAuthenticated, selectLoading,
   selectUser,
 } from '@features/session/state/sessionSelectors';
 import { selectCsrfToken } from '@features/csrf/state/csrfSelector';
@@ -16,6 +16,7 @@ import axiosInstance from '@utils/axiosConfig';
 const useSession = () => {
   const dispatch = useAppDispatch();
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const isLoading = useAppSelector(selectLoading);
   const user = useAppSelector(selectUser);
   const accessToken = useAppSelector(selectAccessToken);
   const csrfToken = useAppSelector(selectCsrfToken);
@@ -65,6 +66,7 @@ const useSession = () => {
   // Return the session state and actions
   return {
     isAuthenticated,
+    isLoading,
     user,
     accessToken,
     csrfToken,

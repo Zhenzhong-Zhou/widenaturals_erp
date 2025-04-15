@@ -90,7 +90,7 @@ const EditQuantityModal: FC<EditQuantityModalProps> = ({
             type: 'number',
             required: true,
             defaultValue: 0,
-            helperText:
+            defaultHelperText:
               'Use negative (-) for reducing stock, positive (+) for adding stock.',
           },
           {

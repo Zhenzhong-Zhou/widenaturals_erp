@@ -4,7 +4,7 @@ import {
   cloneElement,
   type ReactElement,
   useEffect,
-  isValidElement,
+  isValidElement, useMemo,
 } from 'react';
 import { useThemeContext } from '@context/ThemeContext';
 import { useMediaQuery, useTheme } from '@mui/material';
@@ -12,7 +12,7 @@ import Box from '@mui/material/Box';
 import Loading from '@components/common/Loading';
 import ErrorDisplay from '@components/shared/ErrorDisplay';
 import ErrorMessage from '@components/common/ErrorMessage';
-import ModuleErrorBoundary from '@components/shared/ModuleErrorBoundary';
+import ModuleErrorBoundaryWrapper from '@components/shared/ModuleErrorBoundaryWrapper';
 import FallbackUI from '@components/shared/FallbackUI';
 import Sidebar from '@layouts/Sidebar/Sidebar';
 import Header from '@layouts/Header/Header';
@@ -62,9 +62,15 @@ const MainLayout = ({ children }: MainLayoutProps) => {
   useEffect(() => {
     setSidebarOpen(!isSmallScreen); // Automatically adjust sidebar state based on screen size
   }, [isSmallScreen]);
-
+  
+  const injectedChild = useMemo(() => {
+    return isValidElement(children)
+      ? cloneElement(children, { fullName, roleName, permissions })
+      : null;
+  }, [children, fullName, roleName, permissions]);
+  
   if (userProfileLoading) {
-    return <Loading message="Loading user profile..." />;
+    return <Loading fullPage={true} message="Loading user profile..." />;
   }
 
   // Handle global error for user profile
@@ -83,7 +89,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
   return (
     <Box className="layout" sx={layoutStyles(theme)}>
       {/* Sidebar */}
-      <ModuleErrorBoundary
+      <ModuleErrorBoundaryWrapper
         fallback={
           <FallbackUI
             title="Sidebar Error"
@@ -99,18 +105,20 @@ const MainLayout = ({ children }: MainLayoutProps) => {
           />
         }
       >
-        <Sidebar
-          isOpen={isSidebarOpen}
-          toggleSidebar={toggleSidebar}
-          roleName={roleName}
-          permissions={permissions}
-        />
-      </ModuleErrorBoundary>
+        <Suspense fallback={<Loading message="Loading sidebar..." />}>
+          <Sidebar
+            isOpen={isSidebarOpen}
+            toggleSidebar={toggleSidebar}
+            roleName={roleName}
+            permissions={permissions}
+          />
+        </Suspense>
+      </ModuleErrorBoundaryWrapper>
 
       {/* Content Container */}
       <Box className="content-container" sx={contentContainerStyles(theme)}>
         {/* Header */}
-        <ModuleErrorBoundary
+        <ModuleErrorBoundaryWrapper
           fallback={
             <FallbackUI
               title="Header Error"
@@ -129,10 +137,10 @@ const MainLayout = ({ children }: MainLayoutProps) => {
           <Suspense fallback={<Loading message="Loading header..." />}>
             <Header user={userProfile} onLogout={logout} />
           </Suspense>
-        </ModuleErrorBoundary>
+        </ModuleErrorBoundaryWrapper>
 
         {/* Main Content */}
-        <ModuleErrorBoundary
+        <ModuleErrorBoundaryWrapper
           fallback={
             <FallbackUI
               title="Content Error"
@@ -148,16 +156,12 @@ const MainLayout = ({ children }: MainLayoutProps) => {
           }
         >
           <Suspense fallback={<Loading message="Loading content..." />}>
-            <Box sx={mainContentStyles(theme)}>
-              {isValidElement(children)
-                ? cloneElement(children, { fullName, roleName, permissions })
-                : null}
-            </Box>
+            <Box sx={mainContentStyles(theme)}>{injectedChild}</Box>
           </Suspense>
-        </ModuleErrorBoundary>
+        </ModuleErrorBoundaryWrapper>
 
         {/* Footer */}
-        <ModuleErrorBoundary
+        <ModuleErrorBoundaryWrapper
           fallback={
             <FallbackUI
               title="Footer Error"
@@ -176,7 +180,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
           <Suspense fallback={<Loading message="Loading footer..." />}>
             <Footer />
           </Suspense>
-        </ModuleErrorBoundary>
+        </ModuleErrorBoundaryWrapper>
       </Box>
     </Box>
   );

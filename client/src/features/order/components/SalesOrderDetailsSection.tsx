@@ -9,7 +9,7 @@ import Stack from '@mui/material/Stack';
 import Loading from '@components/common/Loading';
 import ErrorMessage from '@components/common/ErrorMessage';
 import CustomButton from '@components/common/CustomButton';
-import DetailsSection from '@components/common/DetailsSection';
+import MemoizedDetailsSection from '@components/common/DetailsSection';
 import OrderItemsTable from '@features/order/components/OrderItemsTable';
 import useSalesOrderDetails from '@hooks/useSalesOrderDetails';
 import useConfirmSalesOrder from '@hooks/useConfirmSalesOrder';
@@ -48,95 +48,77 @@ const SalesOrderDetailsSection: FC<SalesOrderDetailsSectionProps> = ({
       refresh(); // Trigger refresh after successful confirmation
     }
   }, [confirmData, successMessage]);
-
+  
   const filteredOrderDetails = useMemo(() => {
     if (!orderDetailsData?.data) return null;
-
-    // Deep clone the data to prevent mutation errors
-    const orderDetails: Partial<OrderDetailsData> = JSON.parse(
-      JSON.stringify(orderDetailsData.data)
-    );
-
-    // Define sensitive keys
-    const sensitiveKeys: (keyof OrderDetailsData)[] = ['order_id'];
-
+    
+    const orderDetails: Partial<OrderDetailsData> = structuredClone(orderDetailsData.data);
+    
     // Remove sensitive keys
+    const sensitiveKeys: (keyof OrderDetailsData)[] = ['order_id'];
     sensitiveKeys.forEach((key) => delete orderDetails[key]);
-
-    // Format Category, Customer Name, Dates & Prices
-    if (orderDetails.order_category)
-      orderDetails.order_category = formatLabel(orderDetails.order_category);
-    if (orderDetails.customer_name)
-      orderDetails.customer_name = formatLabel(orderDetails.customer_name);
-
-    if (
-      orderDetails.discount_amount &&
-      parseFloat(orderDetails.discount_amount) > 0
-    ) {
-      orderDetails.discount_amount = formatCurrency(
-        orderDetails.discount_amount
-      );
-    } else {
-      delete orderDetails.discount_amount;
-    }
-
-    if (
-      orderDetails.shipping_fee &&
-      parseFloat(orderDetails.shipping_fee) > 0
-    ) {
-      orderDetails.shipping_fee = formatCurrency(orderDetails.shipping_fee);
-    } else {
-      delete orderDetails.shipping_fee;
-    }
-
-    if (orderDetails.subtotal)
-      orderDetails.subtotal = formatCurrency(orderDetails.subtotal);
-    if (orderDetails.tax_amount)
-      orderDetails.tax_amount = formatCurrency(orderDetails.tax_amount);
-    if (orderDetails.total_amount)
-      orderDetails.total_amount = formatCurrency(orderDetails.total_amount);
-
+    
+    // Format label fields
+    orderDetails.order_category = formatLabel(orderDetails.order_category ?? '');
+    orderDetails.customer_name = formatLabel(orderDetails.customer_name ?? '');
+    
+    // Format amounts (safely mutate)
+    const currencyFields: (keyof OrderDetailsData)[] = [
+      'discount_amount',
+      'shipping_fee',
+      'subtotal',
+      'tax_amount',
+      'total_amount',
+    ];
+    const mutable = orderDetails as Record<string, any>;
+    currencyFields.forEach((key) => {
+      const value = mutable[key];
+      if (value && parseFloat(value) > 0) {
+        mutable[key] = formatCurrency(value);
+      } else {
+        delete mutable[key];
+      }
+    });
+    
+    // Format date
     if (typeof orderDetails.order_date === 'string') {
       orderDetails.order_date = formatDate(orderDetails.order_date);
     }
-
-    if (orderDetails.delivery_info) {
-      orderDetails.delivery_info.method = formatLabel(
-        orderDetails.delivery_info.method
-      );
+    
+    // Normalize delivery method
+    if (orderDetails.delivery_info?.method) {
+      orderDetails.delivery_info.method = formatLabel(orderDetails.delivery_info.method);
     }
-
+    
+    // Normalize empty metadata
     if (
       !orderDetails.order_metadata ||
       Object.keys(orderDetails.order_metadata).length === 0
     ) {
       orderDetails.order_metadata = { message: 'N/A' };
     }
-
+    
+    // Format items
     if (Array.isArray(orderDetails.items)) {
       orderDetails.items = orderDetails.items.map((item) => {
-        const transformedItem = { ...item };
-
-        if (transformedItem.system_price)
-          transformedItem.system_price = formatCurrency(
-            transformedItem.system_price
-          );
-        if (transformedItem.adjusted_price)
-          transformedItem.adjusted_price = formatCurrency(
-            transformedItem.adjusted_price
-          );
-
-        // Safely delete keys by asserting to Record<string, any>
-        delete (transformedItem as Record<string, any>).order_item_id;
-        delete (transformedItem as Record<string, any>).product_id;
-
-        return transformedItem;
+        const transformed = { ...item };
+        delete (transformed as Record<string, any>).order_item_id;
+        delete (transformed as Record<string, any>).product_id;
+        
+        if (transformed.system_price) {
+          transformed.system_price = formatCurrency(transformed.system_price);
+        }
+        if (transformed.adjusted_price) {
+          transformed.adjusted_price = formatCurrency(transformed.adjusted_price);
+        }
+        
+        return transformed;
       });
     }
-
+    
     return orderDetails;
   }, [orderDetailsData]);
-
+  
   const canConfirm =
     filteredOrderDetails?.order_status &&
     ['pending', 'edited'].includes(
@@ -198,7 +180,7 @@ const SalesOrderDetailsSection: FC<SalesOrderDetailsSectionProps> = ({
 
         <Grid container spacing={3}>
           <Grid size={6}>
-            <DetailsSection
+            <MemoizedDetailsSection
               data={{
                 'Order Number': filteredOrderDetails.order_number,
                 'Order Category': filteredOrderDetails.order_category,
@@ -210,7 +192,7 @@ const SalesOrderDetailsSection: FC<SalesOrderDetailsSectionProps> = ({
           </Grid>
 
           <Grid size={6}>
-            <DetailsSection
+            <MemoizedDetailsSection
               data={{
                 'Order Type': filteredOrderDetails.order_type,
                 'Tracking Number':
@@ -232,7 +214,7 @@ const SalesOrderDetailsSection: FC<SalesOrderDetailsSectionProps> = ({
             </CustomTypography>
             <Grid container spacing={3}>
               <Grid size={6}>
-                <DetailsSection
+                <MemoizedDetailsSection
                   data={{
                     'Recipient Name':
                       filteredOrderDetails.shipping_info?.shipping_fullname ||
@@ -248,7 +230,7 @@ const SalesOrderDetailsSection: FC<SalesOrderDetailsSectionProps> = ({
               </Grid>
 
               <Grid size={6}>
-                <DetailsSection
+                <MemoizedDetailsSection
                   data={formatShippingAddress(
                     filteredOrderDetails.shipping_info
                   )}
@@ -270,7 +252,7 @@ const SalesOrderDetailsSection: FC<SalesOrderDetailsSectionProps> = ({
             <CustomTypography variant="h6" sx={{ marginBottom: 1 }}>
               Tracking Information
             </CustomTypography>
-            <DetailsSection
+            <MemoizedDetailsSection
               data={filteredOrderDetails.delivery_info.tracking_info}
             />
           </Box>
@@ -280,7 +262,7 @@ const SalesOrderDetailsSection: FC<SalesOrderDetailsSectionProps> = ({
 
         <Grid container spacing={3}>
           <Grid size={6}>
-            <DetailsSection
+            <MemoizedDetailsSection
               data={{
                 Discount: filteredOrderDetails.discount,
                 'Discount Amount': filteredOrderDetails.discount_amount,
@@ -290,7 +272,7 @@ const SalesOrderDetailsSection: FC<SalesOrderDetailsSectionProps> = ({
           </Grid>
 
           <Grid size={6}>
-            <DetailsSection
+            <MemoizedDetailsSection
               data={{
                 Subtotal: filteredOrderDetails.subtotal,
                 'Tax Rate': `${filteredOrderDetails.tax_rate}%`,

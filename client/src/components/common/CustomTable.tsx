@@ -1,4 +1,5 @@
-import { type FC, type ReactNode, useState } from 'react';
+import type { FC, ReactNode } from 'react';
+import { useState } from 'react';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -8,6 +9,7 @@ import TableRow from '@mui/material/TableRow';
 import TablePagination from '@mui/material/TablePagination';
 import TableSortLabel from '@mui/material/TableSortLabel';
 import Paper from '@mui/material/Paper';
+import Skeleton from '@mui/material/Skeleton';
 import { useThemeContext } from '@context/ThemeContext';
 
 export interface Column<T = any> {
@@ -16,16 +18,14 @@ export interface Column<T = any> {
   minWidth?: number;
   align?: 'left' | 'right' | 'center';
   sortable?: boolean;
-  format?: (
-    value: T[Extract<keyof T, string>],
-    row?: T
-  ) => string | number | null | undefined;
+  format?: (value: T[keyof T], row?: T) => ReactNode;
   renderCell?: (row: T) => ReactNode;
 }
 
 interface CustomTableProps<T = any> {
+  loading?: boolean;
   columns: Column<T>[];
-  data: Record<string, any>[];
+  data: T[];
   rowsPerPageOptions?: number[];
   initialRowsPerPage?: number;
   totalPages?: number;
@@ -36,133 +36,164 @@ interface CustomTableProps<T = any> {
 }
 
 const CustomTable: FC<CustomTableProps> = ({
-  columns,
-  data,
-  rowsPerPageOptions = [5, 10, 25],
-  initialRowsPerPage = 5,
-  totalPages,
-  totalRecords,
-  page,
-  onPageChange,
-  onRowsPerPageChange,
-}) => {
+                                             loading,
+                                             columns,
+                                             data,
+                                             rowsPerPageOptions = [5, 10, 25],
+                                             initialRowsPerPage = 5,
+                                             totalPages,
+                                             totalRecords,
+                                             page,
+                                             onPageChange,
+                                             onRowsPerPageChange,
+                                           }) => {
+  const { theme } = useThemeContext();
   const [order, setOrder] = useState<'asc' | 'desc'>('asc');
   const [orderBy, setOrderBy] = useState<string | undefined>(undefined);
-
-  const { theme } = useThemeContext();
-
+  
   const handleSort = (columnId: string) => {
     const isAsc = orderBy === columnId && order === 'asc';
     setOrder(isAsc ? 'desc' : 'asc');
     setOrderBy(columnId);
   };
-
-  const sortedData = [...data].sort((a, b) => {
-    if (!orderBy) return 0;
-    const aValue = a[orderBy];
-    const bValue = b[orderBy];
-    if (aValue < bValue) return order === 'asc' ? -1 : 1;
-    if (aValue > bValue) return order === 'asc' ? 1 : -1;
-    return 0;
-  });
-
+  
+  const sortedData = orderBy
+    ? [...data].sort((a, b) => {
+      const aVal = a[orderBy as keyof typeof a];
+      const bVal = b[orderBy as keyof typeof b];
+      if (aVal === bVal) return 0;
+      if (aVal == null) return 1;
+      if (bVal == null) return -1;
+      return order === 'asc'
+        ? String(aVal).localeCompare(String(bVal))
+        : String(bVal).localeCompare(String(aVal));
+    })
+    : data;
+  
   // Use totalPages directly to ensure the page stays in range
   const safePage = Math.min(page, Math.max(0, (totalPages || 1) - 1));
-
+  
   return (
     <Paper
       sx={{
         backgroundColor: theme.palette.background.paper,
         color: theme.palette.text.primary,
+        overflow: 'hidden',
       }}
     >
-      <TableContainer>
-        <Table>
+      <TableContainer
+        sx={{
+          minHeight: 320, // arbitrary fallback height
+          transition: 'min-height 0.2s ease-in-out',
+        }}
+      >
+        <Table aria-label="Custom data table">
           <TableHead>
             <TableRow>
               <TableCell
+                align="center"
                 sx={{
-                  fontWeight: 'bold',
-                  textAlign: 'center',
-                  backgroundColor: theme.palette.background.default,
+                  py: 1.25, // instead of default
+                  px: 2,
+                  fontWeight: 600,
+                  backgroundColor: theme.palette.background.paper,
                   color: theme.palette.text.secondary,
                 }}
               >
                 #
               </TableCell>
-              {columns.map((column) => (
+              {columns.map((col) => (
                 <TableCell
-                  key={String(column.id)}
-                  align={column.align || 'left'}
-                  sortDirection={orderBy === column.id ? order : false}
+                  key={col.id}
+                  align={col.align || 'left'}
+                  sortDirection={orderBy === col.id ? order : false}
                   sx={{
-                    backgroundColor: theme.palette.background.default,
+                    py: 1.25, // instead of default
+                    px: 2,
+                    fontWeight: 700,
+                    backgroundColor: theme.palette.background.paper,
                     color: theme.palette.text.secondary,
+                    fontSize: '0.875rem',
+                    letterSpacing: 0.5,
+                    textTransform: 'uppercase',
                   }}
                 >
-                  {column.sortable ? (
+                  {col.sortable ? (
                     <TableSortLabel
-                      active={orderBy === column.id}
-                      direction={orderBy === column.id ? order : 'asc'}
-                      onClick={() => handleSort(column.id)}
-                      sx={{
-                        color: theme.palette.primary.main,
-                        '&:hover': { color: theme.palette.primary.dark },
-                      }}
+                      active={orderBy === col.id}
+                      direction={orderBy === col.id ? order : 'asc'}
+                      onClick={() => handleSort(col.id)}
+                      sx={{ color: theme.palette.primary.main }}
                     >
-                      {column.label}
+                      {col.label}
                     </TableSortLabel>
                   ) : (
-                    column.label
+                    col.label
                   )}
                 </TableCell>
               ))}
             </TableRow>
           </TableHead>
+          
           <TableBody>
-            {sortedData.map((row, rowIndex) => (
-              <TableRow
-                key={rowIndex}
-                sx={{
-                  '&:nth-of-type(odd)': {
-                    backgroundColor: theme.palette.action.hover,
-                  },
-                }}
-              >
-                {/* Render row index dynamically */}
-                <TableCell align="center">
-                  {safePage * initialRowsPerPage + rowIndex + 1}
-                </TableCell>
-                {columns.map((column) => (
+            {loading
+              ? [...Array(initialRowsPerPage)].map((_, i) => (
+                <TableRow key={`skeleton-${i}`}>
                   <TableCell
-                    key={String(column.id)}
-                    align={column.align || 'left'}
+                    colSpan={columns.length + 1}
+                    sx={{ py: 1.25, px: 2 }}
                   >
-                    {column.renderCell
-                      ? column.renderCell(row)
-                      : column.format
-                        ? column.format(row[column.id as keyof typeof row], row)
-                        : row[column.id as keyof typeof row]}
+                    <Skeleton variant="rectangular" height={48} animation="wave" />
                   </TableCell>
-                ))}
-              </TableRow>
-            ))}
+                </TableRow>
+              ))
+              : sortedData.map((row, rowIndex) => (
+                <TableRow
+                  key={rowIndex}
+                  sx={{
+                    '&:nth-of-type(odd)': {
+                      backgroundColor: theme.palette.action.hover,
+                    },
+                  }}
+                >
+                  <TableCell
+                    align="center"
+                    sx={{ py: 1.25, px: 2 }}
+                  >
+                    {safePage * initialRowsPerPage + rowIndex + 1}
+                  </TableCell>
+                  {columns.map((col) => (
+                    <TableCell
+                      key={col.id}
+                      align={col.align || 'left'}
+                      sx={{ py: 1.25, px: 2 }}
+                    >
+                      {col.renderCell
+                        ? col.renderCell(row)
+                        : col.format
+                          ? col.format(row[col.id], row)
+                          : row[col.id]}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
           </TableBody>
         </Table>
       </TableContainer>
+      
       <TablePagination
         rowsPerPageOptions={rowsPerPageOptions}
         component="div"
-        count={totalRecords || 0}
+        count={totalRecords ?? data.length}
         rowsPerPage={initialRowsPerPage}
         page={safePage}
         onPageChange={(_, newPage) => onPageChange(newPage)}
-        onRowsPerPageChange={(event) =>
-          onRowsPerPageChange(parseInt(event.target.value, 10))
+        onRowsPerPageChange={(e) =>
+          onRowsPerPageChange(parseInt(e.target.value, 10))
         }
         sx={{
           backgroundColor: theme.palette.background.default,
-          color: theme.palette.text.primary,
+          borderTop: `1px solid ${theme.palette.divider}`,
         }}
       />
     </Paper>
