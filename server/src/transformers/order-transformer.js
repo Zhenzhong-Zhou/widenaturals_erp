@@ -30,7 +30,7 @@ const transformAllOrders = (rawData) => {
  */
 const transformOrderDetails = (orderDetails) => {
   if (!orderDetails || orderDetails.length === 0) return null;
-
+  
   const baseOrder = orderDetails[0];
 
   // Convert date strings to Date objects and compare their timestamps
@@ -40,35 +40,35 @@ const transformOrderDetails = (orderDetails) => {
   const orderDate = isSameOrderDate
     ? baseOrder.order_date
     : {
-        order_date: baseOrder.order_date,
-        sales_order_date: baseOrder.sales_order_date,
-      };
-
+      order_date: baseOrder.order_date,
+      sales_order_date: baseOrder.sales_order_date,
+    };
+  
   // Determine if tracking info should be displayed (only if not In-Store Pickup)
   const trackingInfo =
     !baseOrder.is_pickup_location && baseOrder.tracking_number
       ? {
-          tracking_number: baseOrder.tracking_number,
-          carrier: baseOrder.carrier,
-          service_name: baseOrder.service_name,
-          shipped_date: baseOrder.shipped_date,
-        }
+        tracking_number: baseOrder.tracking_number,
+        carrier: baseOrder.carrier,
+        service_name: baseOrder.service_name,
+        shipped_date: baseOrder.shipped_date,
+      }
       : null;
 
   // Build shipping info
   const shippingInfo = baseOrder.has_shipping_address
     ? {
-        shipping_fullname: baseOrder.shipping_fullname ?? '',
-        shipping_phone: baseOrder.shipping_phone ?? '',
-        shipping_email: baseOrder.shipping_email ?? '',
-        shipping_address_line1: baseOrder.shipping_address_line1 ?? '',
-        shipping_address_line2: baseOrder.shipping_address_line2 ?? '',
-        shipping_city: baseOrder.shipping_city ?? '',
-        shipping_state: baseOrder.shipping_state ?? '',
-        shipping_postal_code: baseOrder.shipping_postal_code ?? '',
-        shipping_country: baseOrder.shipping_country ?? '',
-        shipping_region: baseOrder.shipping_region ?? '',
-      }
+      shipping_fullname: baseOrder.shipping_fullname ?? '',
+      shipping_phone: baseOrder.shipping_phone ?? '',
+      shipping_email: baseOrder.shipping_email ?? '',
+      shipping_address_line1: baseOrder.shipping_address_line1 ?? '',
+      shipping_address_line2: baseOrder.shipping_address_line2 ?? '',
+      shipping_city: baseOrder.shipping_city ?? '',
+      shipping_state: baseOrder.shipping_state ?? '',
+      shipping_postal_code: baseOrder.shipping_postal_code ?? '',
+      shipping_country: baseOrder.shipping_country ?? '',
+      shipping_region: baseOrder.shipping_region ?? '',
+    }
     : null;
 
   // Process items
@@ -79,11 +79,14 @@ const transformOrderDetails = (orderDetails) => {
     const hasValidAdjustedPrice =
       typeof order.adjusted_price === 'string' &&
       order.adjusted_price.trim() !== '';
-
+    
     return {
       order_item_id: order.order_item_id,
-      product_id: order.product_id,
-      product_name: order.product_name ?? 'N/A',
+      inventory_id: order.inventory_id,
+      item_name:
+        order.inventory_identifier?.trim() ||
+        order.product_name?.trim() ||
+        'N/A',
       barcode: order.barcode ?? 'N/A',
       npn: order.npn ?? 'N/A',
       quantity_ordered: order.quantity_ordered ?? 0,
@@ -98,7 +101,7 @@ const transformOrderDetails = (orderDetails) => {
       order_item_status_date: order.order_item_status_date ?? 'N/A',
     };
   });
-
+  
   return {
     order_id: baseOrder.order_id,
     order_number: baseOrder.order_number,
@@ -150,7 +153,7 @@ const transformOrderStatusAndItems = (rows) => {
 
   const orderItems = rows.map((row) => ({
     order_item_id: row.order_item_id,
-    product_id: row.product_id,
+    inventory_id: row.inventory_id,
     quantity_ordered: Number(row.quantity_ordered),
     order_item_status_id: row.order_item_status_id,
     order_item_status_code: row.order_item_status_code,

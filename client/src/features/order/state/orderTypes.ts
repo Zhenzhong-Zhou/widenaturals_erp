@@ -90,8 +90,8 @@ export type FetchOrdersParams = {
 // Order Item Interface
 export interface FetchedOrderItem {
   order_item_id: string;
-  product_id: string;
-  product_name: string;
+  inventory_id: string;
+  item_name: string;
   barcode: string;
   npn: string;
   quantity_ordered: number;

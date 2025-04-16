@@ -7,6 +7,7 @@ const wrapAsync = require('../utils/wrap-async');
 const {
   fetchRecentInsertWarehouseInventoryRecords,
 } = require('../services/inventory-service');
+const { getAvailableInventoryLotsForClient } = require('../business/warehouse-inventory-lot-business');
 
 /**
  * API route to adjust inventory.
@@ -84,7 +85,39 @@ const insertInventoryRecordResponseController = wrapAsync(
   }
 );
 
+/**
+ * Controller: Returns available inventory lots for a given inventory ID.
+ *
+ * @route GET /api/v1/warehouse-inventory-lots/inventory/:inventoryId/lots
+ * @query warehouseId, strategy (optional)
+ */
+const getAvailableInventoryLotsController = wrapAsync(async (req, res, next) => {
+  try {
+    const { inventoryId } = req.params;
+    const { warehouseId, strategy = 'FEFO' } = req.query;
+    
+    if (!inventoryId) {
+      throw AppError.validationError('Missing inventory ID in request.');
+    }
+    
+    const lots = await getAvailableInventoryLotsForClient({
+      inventoryId,
+      warehouseId: warehouseId || null,
+      strategy,
+    });
+    
+    return res.status(200).json({
+      success: true,
+      message: 'Available inventory lots retrieved successfully.',
+      data: lots,
+    });
+  } catch (error) {
+    next(error); // centralized error handler middleware will handle this
+  }
+});
+
 module.exports = {
   adjustWarehouseInventoryLotsController,
   insertInventoryRecordResponseController,
+  getAvailableInventoryLotsController,
 };

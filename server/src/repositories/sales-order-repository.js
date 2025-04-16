@@ -11,6 +11,7 @@ const { getActiveProductPrice } = require('./pricing-repository');
 const { logError } = require('../utils/logger-helper');
 const { checkDeliveryMethodExists } = require('./delivery-method-repository');
 const { checkCustomerExistsById } = require('./customer-repository');
+const { getInventoryId } = require('./inventory-repository');
 
 /**
  * Creates a sales order in the `sales_orders` table using raw SQL.
@@ -114,8 +115,11 @@ const createSalesOrder = async (salesOrderData) => {
       const manualPriceOverrides = [];
 
       for (const item of items) {
-        const { product_id, price_type_id, price, quantity_ordered } = item;
-
+        const { product_id, price_type_id, price, quantity_ordered, ...rest } = item;
+        
+        // Fetch inventory_id from product_id
+        const inventory_id = await getInventoryId(product_id, client);
+        
         // Fetch product price including location-based pricing
         const productPrice = await getActiveProductPrice(
           product_id,
@@ -150,9 +154,12 @@ const createSalesOrder = async (salesOrderData) => {
 
         // Store price_id from pricing table for tracking
         processedItems.push({
-          ...item,
+          ...rest,
+          inventory_id,
           price_id: productPrice.id,
           price: final_price,
+          quantity_ordered,
+          price_type_id,
           status_id,
         });
 

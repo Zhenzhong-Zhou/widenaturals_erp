@@ -177,9 +177,11 @@ const getOrderDetailsById = async (orderId) => {
       s.tax_amount,
       s.shipping_fee,
       s.total_amount,
-      oi.product_id,
-      p.product_name AS product_name,
-      p.barcode AS barcode,
+      oi.inventory_id,
+      i.identifier AS inventory_identifier,
+      p.id AS product_id,
+      p.product_name,
+      p.barcode,
       COALESCE(co.compliance_id, '') AS npn,
       oi.quantity_ordered,
       ps.price_type_id,
@@ -218,7 +220,8 @@ const getOrderDetailsById = async (orderId) => {
     LEFT JOIN discounts d ON s.discount_id = d.id
     LEFT JOIN tax_rates t ON s.tax_rate_id = t.id
     LEFT JOIN order_items oi ON o.id = oi.order_id
-    LEFT JOIN products p ON oi.product_id = p.id
+    LEFT JOIN inventory i ON oi.inventory_id = i.id
+    LEFT JOIN products p ON i.product_id = p.id
     LEFT JOIN pricing ps ON oi.price_id = ps.id
     LEFT JOIN pricing_types pt ON ps.price_type_id = pt.id
     LEFT JOIN compliances co ON p.id = co.product_id
@@ -431,7 +434,7 @@ const getAllOrders = async ({
  *
  * @param {string} orderId - The UUID of the order.
  * @param {import('pg').PoolClient} [client] - Optional PostgreSQL client for transactional execution.
- * @returns {Promise<{order_id: string, order_status_id: string, order_status_name: string, items: {product_id: string, quantity_ordered: number}[]}>}
+ * @returns {Promise<{order_id: string, order_status_id: string, order_status_name: string, items: {inventory_id: string, quantity_ordered: number}[]}>}
  * @throws {AppError} - If the order is not found or has no items.
  */
 const getOrderStatusAndItems = async (orderId, client) => {
@@ -441,13 +444,14 @@ const getOrderStatusAndItems = async (orderId, client) => {
       o.order_status_id,
       os.code AS order_status_code,
       oi.id AS order_item_id,
-      oi.product_id,
+      oi.inventory_id,
       oi.quantity_ordered,
       oi.status_id AS order_item_status_id,
       ios.code AS order_item_status_code
     FROM orders o
     JOIN order_status os ON o.order_status_id = os.id
     JOIN order_items oi ON oi.order_id = o.id
+    JOIN inventory i ON oi.inventory_id = i.id
     JOIN order_status ios ON oi.status_id = ios.id
     WHERE o.id = $1
   `;

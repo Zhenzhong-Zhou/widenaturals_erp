@@ -16,10 +16,10 @@ const addOrderItems = async (orderId, items, createdBy, client) => {
   if (!Array.isArray(items) || items.length === 0) {
     throw AppError.validationError('Order items cannot be empty.');
   }
-
+  
   const columns = [
     'order_id',
-    'product_id',
+    'inventory_id',
     'quantity_ordered',
     'price_id',
     'price',
@@ -34,11 +34,10 @@ const addOrderItems = async (orderId, items, createdBy, client) => {
   const itemMap = new Map();
 
   for (const item of items) {
-    const { product_id, price_type_id, price_id, price, quantity_ordered } =
-      item;
+    const { inventory_id, price_type_id, price_id, price, quantity_ordered, status_id } = item;
 
     // Create a unique key based on merging conditions
-    const itemKey = `${product_id}_${price_type_id}_${price_id}_${price}`;
+    const itemKey = `${inventory_id}_${price_type_id}_${price_id}_${price}`;
 
     if (itemMap.has(itemKey)) {
       // If same product, price_type_id, price_id, and price → Sum quantities
@@ -50,9 +49,13 @@ const addOrderItems = async (orderId, items, createdBy, client) => {
     } else {
       // Otherwise, store as a new line item
       itemMap.set(itemKey, {
-        ...item,
+        inventory_id,
+        price_type_id,
+        price_id,
+        price,
         quantity_ordered,
-        subtotal: price * quantity_ordered, // Calculate subtotal here
+        status_id,
+        subtotal: price * quantity_ordered,
       });
     }
   }
@@ -60,7 +63,7 @@ const addOrderItems = async (orderId, items, createdBy, client) => {
   // Step 2: Convert aggregated items into an array for insertion
   const rows = Array.from(itemMap.values()).map((item) => [
     orderId, // Ensure order_id is correctly set
-    item.product_id,
+    item.inventory_id,
     item.quantity_ordered,
     item.price_id,
     item.price,
@@ -76,7 +79,7 @@ const addOrderItems = async (orderId, items, createdBy, client) => {
     'order_items',
     columns,
     rows,
-    ['order_id', 'product_id', 'price_id', 'price'], // Unique constraint check
+    ['order_id', 'inventory_id', 'price_id', 'price'], // Unique constraint check
     ['quantity_ordered', 'subtotal', 'status_id', 'updated_by', 'status_date'], // Fields that can be updated
     client
   );

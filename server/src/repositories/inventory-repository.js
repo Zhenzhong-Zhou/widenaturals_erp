@@ -243,12 +243,12 @@ const getPaginatedInventorySummary = async ({ page = 1, limit = 20 }) => {
 /**
  * Fetches the inventory ID associated with a given product ID.
  *
- * @param {object} client - The database client instance.
  * @param {string} productId - The unique identifier of the product.
  * @param {string} [identifier] - An optional identifier for additional filtering.
+ * @param {object} client - The database client instance.
  * @returns {Promise<string|null>} - Returns the inventory ID if found, otherwise null.
  */
-const getInventoryId = async (client, productId, identifier) => {
+const getInventoryId = async (productId, identifier, client) => {
   let queryText;
   let params = [];
 
@@ -273,7 +273,7 @@ const getInventoryId = async (client, productId, identifier) => {
   }
 
   try {
-    const { rows } = await client.query(queryText, params);
+    const { rows } = await query(queryText, params, client);
     return rows.length > 0 ? rows[0].inventory_id : null;
   } catch (error) {
     logError('Error fetching inventory ID:', error);

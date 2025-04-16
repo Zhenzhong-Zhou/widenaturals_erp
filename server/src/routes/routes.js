@@ -79,8 +79,7 @@ router.use('/admin', authenticate(), adminRoutes);
 // Products route
 router.use('/products', authenticate(), productRoutes);
 
-// router.use('/compliances', authenticate(), complianceRoutes);
-router.use('/compliances', complianceRoutes);
+router.use('/compliances', authenticate(), complianceRoutes);
 
 // Price Types route
 router.use('/pricing-types', authenticate(), priceTypeRouts);

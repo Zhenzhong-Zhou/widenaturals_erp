@@ -1,7 +1,7 @@
 const express = require('express');
 const {
   adjustWarehouseInventoryLotsController,
-  insertInventoryRecordResponseController,
+  insertInventoryRecordResponseController, getAvailableInventoryLotsController,
 } = require('../controllers/warehouse-inventory-lot-controller');
 
 const router = express.Router();
@@ -16,5 +16,7 @@ router.post(
   '/inventory-records/recent-inserts',
   insertInventoryRecordResponseController
 );
+
+router.get('/inventory/:inventoryId/lots', getAvailableInventoryLotsController);
 
 module.exports = router;

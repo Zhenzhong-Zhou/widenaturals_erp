@@ -47,21 +47,21 @@ const allocateMultipleInventoryItems = async ({
       for (const item of items) {
         const {
           warehouseId,
-          productId,
+          inventoryId,
           quantity,
           strategy,
         } = item;
         
-        if (!warehouseId || !productId || !quantity) {
+        if (!warehouseId || !inventoryId || !quantity) {
           throw AppError.validationError(
-            'Each item must include warehouseId, productId, and quantity.'
+            'Each item must include warehouseId, inventoryId, and quantity.'
           );
         }
         
         const allocation = await allocateInventory({
           orderId,
           warehouseId,
-          productId,
+          inventoryId,
           quantity,
           strategy: strategy || defaultStrategy,
           userId,

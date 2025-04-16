@@ -13,8 +13,8 @@ export const orderItemsColumns = (
 
   const columns: Column<FetchedOrderItem>[] = [
     {
-      id: 'product_name',
-      label: 'Product Name',
+      id: 'item_name',
+      label: 'Item Name',
       minWidth: 150,
       sortable: true,
     },

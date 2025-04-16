@@ -121,19 +121,19 @@ const getAllocationsByOrderId = async (orderId, client) => {
 };
 
 /**
- * Fetches the total allocated quantity for a specific product in a given order.
- * This helps ensure that the allocation does not exceed the ordered quantity.
+ * Fetches the total allocated quantity for a specific inventory item in a given order.
+ * This ensures the allocation does not exceed the ordered quantity.
  *
- * @param {Object} params
+ * @param {Object} params - Parameters object.
  * @param {string} params.orderId - The ID of the order.
- * @param {string} params.productId - The ID of the product.
+ * @param {string} params.inventoryId - The ID of the inventory item.
  * @param {Object} client - The database client or transaction client.
- * @returns {Promise<number>} - The total quantity allocated so far for the given product in the order.
+ * @returns {Promise<number>} - The total quantity allocated so far for the given inventory in the order.
  *
  * @throws {AppError} - If the database query fails.
  */
 const getTotalAllocatedForOrderItem = async (
-  { orderId, productId },
+  { orderId, inventoryId },
   client
 ) => {
   try {
@@ -141,10 +141,10 @@ const getTotalAllocatedForOrderItem = async (
       SELECT COALESCE(SUM(allocated_quantity), 0) AS total_allocated
       FROM inventory_allocations ia
       JOIN inventory i ON ia.inventory_id = i.id
-      WHERE ia.order_id = $1 AND i.product_id = $2
+      WHERE ia.order_id = $1 AND i.id = $2;
     `;
 
-    const { rows } = await query(sql, [orderId, productId], client);
+    const { rows } = await query(sql, [orderId, inventoryId], client);
     return Number(rows[0]?.total_allocated ?? 0);
   } catch (error) {
     logError('Error in getTotalAllocatedForOrderItem:', error);

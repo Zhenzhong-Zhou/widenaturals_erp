@@ -37,7 +37,7 @@ const {
  * Supports automatic multi-lot allocation and manual lot selection with partial fill allowance.
  *
  * @param {Object} params - Allocation input values.
- * @param {string} params.productId - ID of the product to allocate.
+ * @param {string} params.inventoryId - Inventory ID for the item to allocate.
  * @param {number} params.quantity - Quantity to allocate.
  * @param {'FEFO' | 'FIFO'} [params.strategy='FEFO'] - Allocation strategy.
  * @param {string} params.orderId - ID of the order to allocate for.
@@ -50,7 +50,7 @@ const {
  * @throws {AppError} - If the order is invalid or inventory is insufficient.
  */
 const allocateInventoryForOrder = async ({
-  productId,
+  inventoryId,
   quantity,
   strategy = 'FEFO',
   orderId,
@@ -87,11 +87,11 @@ const allocateInventoryForOrder = async ({
       );
     }
 
-    // 3. Match the product in the order
-    const orderItem = orderItems.find((item) => item.product_id === productId);
+    // 3. Match the inventory item in the order
+    const orderItem = orderItems.find((item) => item.inventory_id === inventoryId);
     if (!orderItem) {
       throw AppError.validationError(
-        `Product ${productId} is not part of the order.`
+        `Inventory item ${inventoryId} is not part of the order.`
       );
     }
 
@@ -101,21 +101,21 @@ const allocateInventoryForOrder = async ({
       orderItem.order_item_status_code.toUpperCase() !== 'ORDER_CONFIRMED'
     ) {
       throw AppError.validationError(
-        `Order item for product ${productId} is not confirmed. Current status: ${orderItem.order_item_status_code}`
+        `Order item for inventory ${inventoryId} is not confirmed. Current status: ${orderItem.order_item_status_code}`
       );
     }
     
     // 5. Validate quantity
     if (quantity > orderItem.quantity_ordered) {
       throw AppError.validationError(
-        `Requested quantity (${quantity}) exceeds ordered quantity (${orderItem.quantity_ordered}) for product ${productId}.`
+        `Requested quantity (${quantity}) exceeds ordered quantity (${orderItem.quantity_ordered}) for inventory ${inventoryId}.`
       );
     }
     
     // 6. Find inventory lots (manual or automatic)
     const selectedLots = lotIds.length > 0
-      ? await getSpecificLotsInOrder(lotIds, productId, warehouseId, client)
-      : await getAvailableLotsForAllocation(productId, warehouseId, strategy, client);
+      ? await getSpecificLotsInOrder(lotIds, inventoryId, warehouseId, client)
+      : await getAvailableLotsForAllocation(inventoryId, warehouseId, strategy, client);
     
     if (!selectedLots?.length) {
       throw AppError.notFoundError('No available lots found for allocation.');
@@ -156,16 +156,17 @@ const allocateInventoryForOrder = async ({
       const toAllocate = Math.min(availableQty, remaining);
       if (toAllocate <= 0) continue;
       
-      const alreadyAllocatedQty = await getTotalAllocatedForOrderItem({ orderId, productId }, client);
+      const alreadyAllocatedQty = await getTotalAllocatedForOrderItem({ orderId, inventoryId }, client);
       const afterThisAllocation = alreadyAllocatedQty + toAllocate;
       
       if (afterThisAllocation > orderItem.quantity_ordered) {
         throw AppError.validationError(`Allocating ${toAllocate} exceeds ordered quantity.`);
       }
       
-      const allocationStatus = afterThisAllocation >= orderItem.quantity_ordered
-        ? 'ALLOC_COMPLETED'
-        : 'ALLOC_PARTIAL';
+      const totalAllocated = Number(afterThisAllocation);
+      const orderedQty = Number(orderItem.quantity_ordered);
+      const allocationStatus =
+        totalAllocated >= orderedQty ? 'ALLOC_COMPLETED' : 'ALLOC_PARTIAL';
       const statusId = await getStatusValue({
         table: 'inventory_allocation_status',
         where: { code: allocationStatus },
@@ -261,7 +262,11 @@ const allocateInventoryForOrder = async ({
     // 9. Final status update (order + item)
     const allAllocations = await getAllocationsByOrderId(orderId, client); // includes each allocation's status
     const newOrderStatus = determineOrderStatusFromAllocations(allAllocations);
-    const itemStatus = remaining < orderItem.quantity_ordered ? 'ALLOC_PARTIAL' : 'ALLOC_COMPLETED';
+    const totalAllocated = await getTotalAllocatedForOrderItem({ orderId, inventoryId }, client);
+    const orderedQty = Number(orderItem.quantity_ordered);
+    
+    const itemStatus =
+      totalAllocated >= orderedQty ? 'ALLOC_COMPLETED' : 'ALLOC_PARTIAL';
     
     const rawResult = await updateOrderAndItemStatus(
       {

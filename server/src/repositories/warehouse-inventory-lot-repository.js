@@ -597,7 +597,7 @@ const updateStatus = async () => {
 const getBaseLotQuery = () => `
   FROM warehouse_inventory_lots wil
   JOIN inventory i ON wil.inventory_id = i.id
-  JOIN products p ON i.product_id = p.id
+  LEFT JOIN products p ON i.product_id = p.id
   JOIN warehouses w ON wil.warehouse_id = w.id
   WHERE (wil.quantity - COALESCE(wil.reserved_quantity, 0)) > 0
     AND wil.status_id = (
@@ -613,18 +613,18 @@ const getBaseLotQuery = () => `
 
 /**
  * Retrieves the most suitable inventory lots for allocation based on the chosen strategy (FIFO or FEFO).
- * Supports multi-lot allocation by returning all valid lots ordered appropriately.
+ * Works for both products and non-product items (e.g., packaging, raw materials) by using inventory_id.
  *
- * @param {string} productId - The ID of the product to allocate.
+ * @param {string} inventoryId - The ID of the inventory to allocate from.
  * @param {string} warehouseId - The ID of the warehouse to check.
- * @param {'FIFO' | 'FEFO'} [strategy='FEFO'] - The allocation strategy:
+ * @param {'FIFO' | 'FEFO'} [strategy='FEFO'] - Allocation strategy:
  *        - 'FIFO': First In, First Out (based on inbound_date)
  *        - 'FEFO': First Expired, First Out (based on expiry_date)
  * @param {import('pg').PoolClient} [client] - Optional PostgreSQL client for transactional execution.
  * @returns {Promise<Array<object>>} A list of suitable lots for allocation, sorted by strategy.
  */
 const getAvailableLotsForAllocation = async (
-  productId,
+  inventoryId,
   warehouseId,
   strategy = 'FEFO',
   client
@@ -638,14 +638,14 @@ const getAvailableLotsForAllocation = async (
       p.product_name,
       i.identifier AS inventory_identifier
     ${getBaseLotQuery()}
-      AND i.product_id = $1
+      AND i.id = $1
       AND wil.warehouse_id = $2
     ORDER BY ${orderBy}
   `;
 
   try {
     const result = await retry(() =>
-      query(sql, [productId, warehouseId], client)
+      query(sql, [inventoryId, warehouseId], client)
     );
     
     return result.rows || null;
@@ -660,18 +660,19 @@ const getAvailableLotsForAllocation = async (
 /**
  * Fetches specific warehouse lots by ID in the given order.
  * Ensures each lot:
- * - Matches the product and warehouse
+ * - Matches the inventory ID and warehouse
  * - Has available quantity
  * - Has status = 'in_stock'
+ * Supports both product-based and non-product inventory types.
  *
- * @param {string[]} lotIds - List of lot IDs to fetch
- * @param {string} productId - Product ID for validation
- * @param {string} warehouseId - Warehouse ID for validation
- * @param {import('pg').PoolClient} client - Optional PostgreSQL client
- * @returns {Promise<Array<Object>>} - List of lot records in the same order as input
- * @throws {AppError} If the query fails or input is invalid
+ * @param {string[]} lotIds - List of lot UUIDs to fetch.
+ * @param {string} inventoryId - Inventory ID for validation.
+ * @param {string} warehouseId - Warehouse ID for validation.
+ * @param {import('pg').PoolClient} client - Optional PostgreSQL client.
+ * @returns {Promise<Array<Object>>} - List of lot records, matching input order.
+ * @throws {AppError} If the query fails or inputs are invalid.
  */
-const getSpecificLotsInOrder = async (lotIds, productId, warehouseId, client) => {
+const getSpecificLotsInOrder = async (lotIds, inventoryId, warehouseId, client) => {
   if (!Array.isArray(lotIds) || lotIds.length === 0) {
     throw AppError.validationError('lotIds must be a non-empty array.');
   }
@@ -683,12 +684,12 @@ const getSpecificLotsInOrder = async (lotIds, productId, warehouseId, client) =>
       i.identifier AS inventory_identifier
     ${getBaseLotQuery()}
       AND wil.id = ANY($1)
-      AND i.product_id = $2
+      AND wil.inventory_id = $2
       AND wil.warehouse_id = $3
   `;
   
   try {
-    const { rows } = await query(sql, [lotIds, productId, warehouseId], client);
+    const { rows } = await query(sql, [lotIds, inventoryId, warehouseId], client);
     
     // Preserve input order
     const lotMap = new Map(rows.map(row => [row.id, row]));
@@ -785,6 +786,55 @@ const updateWarehouseInventoryLotQuantity = async (
   }
 };
 
+/**
+ * Look up available inventory lots for a given inventory ID (and optional warehouse).
+ * Compatible with product and non-product inventory items.
+ *
+ * @param {string} inventoryId - UUID of the inventory item to look up lots for.
+ * @param {string|null} [warehouseId=null] - Optional UUID of the warehouse to scope the lookup.
+ * @param {'FEFO'|'FIFO'} [strategy='FEFO'] - Allocation strategy: 'FEFO' (expiry date) or 'FIFO' (inbound date).
+ * @returns {Promise<Array>} List of available inventory lots sorted by strategy.
+ * @throws {Error} If inventoryId is missing or query fails.
+ */
+const getAvailableInventoryLots = async (inventoryId, warehouseId = null, strategy = 'FEFO') => {
+  if (!inventoryId) {
+    throw AppError.validationError('getAvailableInventoryLots: inventoryId is required.');
+  }
+  
+  const normalizedStrategy = strategy.toLowerCase();
+  const orderBy =
+    normalizedStrategy === 'fefo' ? 'wil.expiry_date ASC' : 'wil.inbound_date ASC';
+  
+  const sql = `
+    SELECT
+      wil.id,
+      wil.lot_number,
+      wil.inbound_date,
+      wil.manufacture_date,
+      wil.expiry_date,
+      wil.quantity,
+      wil.reserved_quantity,
+      (wil.quantity - COALESCE(wil.reserved_quantity, 0)) AS available_quantity,
+      p.product_name,
+      i.identifier AS inventory_identifier,
+      w.name AS warehouse_name
+    ${getBaseLotQuery()}
+      AND wil.inventory_id = $1
+      ${warehouseId ? 'AND wil.warehouse_id = $2' : ''}
+    ORDER BY ${orderBy}
+  `;
+  
+  const values = warehouseId ? [inventoryId, warehouseId] : [inventoryId];
+  
+  try {
+    const { rows } = await query(sql, values);
+    return rows;
+  } catch (error) {
+    logError('Error in lookupAvailableInventoryLots:', error);
+    throw AppError.databaseError('Failed to fetch available inventory lots');
+  }
+};
+
 module.exports = {
   adjustWarehouseInventoryLots,
   checkWarehouseInventoryLotExists,
@@ -792,4 +842,5 @@ module.exports = {
   getAvailableLotsForAllocation,
   getSpecificLotsInOrder,
   updateWarehouseInventoryLotQuantity,
+  getAvailableInventoryLots,
 };

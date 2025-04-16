@@ -29,6 +29,58 @@ const transformWarehouseLotResult = (row) => {
   };
 };
 
+/**
+ * Transform a raw inventory lot record into a normalized shape for client use.
+ *
+ * @param {Object} row - Raw DB row from lookupAvailableInventoryLots.
+ * @returns {Object} Transformed inventory lot object.
+ */
+const transformInventoryLot = (row) => {
+  const available = Number(row.available_quantity) || 0;
+  const reserved = Number(row.reserved_quantity) || 0;
+  const quantity = Number(row.quantity) || 0;
+  
+  const hasProductName = row.product_name?.trim();
+  const hasIdentifier = row.inventory_identifier?.trim();
+  
+  let itemName = 'N/A';
+  if (hasProductName && hasIdentifier) {
+    itemName = `${row.product_name} (${row.inventory_identifier})`;
+  } else if (hasProductName) {
+    itemName = row.product_name;
+  } else if (hasIdentifier) {
+    itemName = row.inventory_identifier;
+  }
+  
+  return {
+    lotId: row.id,
+    lotNumber: row.lot_number,
+    inboundDate: row.inbound_date,
+    manufactureDate: row.manufacture_date,
+    expiryDate: row.expiry_date,
+    quantity,
+    reservedQuantity: reserved,
+    availableQuantity: available,
+    itemName, // ← Combined fallback name
+    warehouseName: row.warehouse_name,
+    status: available <= 0 ? 'out_of_stock' : 'in_stock',
+    isNearExpiry:
+      row.expiry_date && new Date(row.expiry_date) < new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+  };
+};
+
+/**
+ * Transform an array of inventory lots.
+ *
+ * @param {Array<Object>} rows - Array of raw DB rows.
+ * @returns {Array<Object>} Transformed lots.
+ */
+const transformInventoryLots = (rows) => {
+  return rows.map(transformInventoryLot);
+};
+
 module.exports = {
   transformWarehouseLotResult,
+  transformInventoryLot,
+  transformInventoryLots,
 };
