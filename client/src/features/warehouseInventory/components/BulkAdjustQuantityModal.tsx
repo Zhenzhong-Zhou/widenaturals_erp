@@ -14,7 +14,7 @@ import CustomModal from '@components/common/CustomModal';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
 import { formatLabel } from '@utils/textUtils';
-import type { LotAdjustmentType } from '@features/warehouse-inventory/state';
+import type { LotAdjustmentType } from '@features/warehouseInventory/state';
 import useLotAdjustmentTypes from '@hooks/useLotAdjustmentTypes';
 
 interface BulkAdjustQuantityModalProps {

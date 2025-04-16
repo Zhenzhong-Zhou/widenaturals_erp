@@ -6,7 +6,7 @@ import {
   selectProductDropdown,
   selectDropdownError,
   type ProductDropdownItem,
-} from '@features/warehouse-inventory';
+} from '@features/warehouseInventory';
 
 /**
  * Custom hook to fetch product dropdown data for a specific warehouse.

@@ -1,6 +1,6 @@
 import axiosInstance from '@utils/axiosConfig';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
-import type { LotAdjustmentTypeList } from '@features/warehouse-inventory';
+import type { LotAdjustmentTypeList } from '@features/warehouseInventory';
 
 const fetchAllDropdownLotAdjustmentTypes =
   async (): Promise<LotAdjustmentTypeList> => {

@@ -4,7 +4,7 @@ import {
   type WarehouseInventory,
   type WarehouseInventoryPagination,
   type WarehouseInventoryResponse,
-} from '@features/warehouse-inventory';
+} from '@features/warehouseInventory';
 
 interface WarehouseInventoryState {
   inventories: WarehouseInventory[];

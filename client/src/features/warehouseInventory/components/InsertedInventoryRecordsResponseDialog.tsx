@@ -4,7 +4,7 @@ import CustomDialog from '@components/common/CustomDialog';
 import CustomTypography from '@components/common/CustomTypography';
 import MetadataSection from '@components/common/MetadataSection';
 import { formatDateTime } from '@utils/dateTimeUtils';
-import type { WarehouseInventoryInsertResponse } from '@features/warehouse-inventory';
+import type { WarehouseInventoryInsertResponse } from '@features/warehouseInventory';
 
 interface InventoryRecordsDialogProps {
   insertedDataResponse?: WarehouseInventoryInsertResponse | null;

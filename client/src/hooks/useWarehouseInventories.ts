@@ -6,7 +6,7 @@ import {
   selectWarehouseInventoryError,
   selectWarehouseInventoryLoading,
   selectWarehouseInventoryPagination,
-} from '@features/warehouse-inventory';
+} from '@features/warehouseInventory';
 
 /**
  * Custom hook to manage warehouse inventories with pagination.

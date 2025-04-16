@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Loading from '@components/common/Loading';
-import WarehouseInventoryDetailHeader from '@features/warehouse-inventory/components/WarehouseInventoryDetailHeader';
+import WarehouseInventoryDetailHeader from '@features/warehouseInventory/components/WarehouseInventoryDetailHeader';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
 import ErrorDisplay from '@components/shared/ErrorDisplay';
@@ -14,7 +14,7 @@ import type {
   InventoryItem,
   WarehouseInventoryDetail,
   WarehouseInventoryDetailExtended,
-} from '@features/warehouse-inventory/state';
+} from '@features/warehouseInventory/state';
 import useWarehouseItemSummary from '@hooks/useWarehouseItemSummary';
 import useWarehouseInventoryDetails from '@hooks/useWarehouseInventoryDetails';
 import useLotAdjustmentQty from '@hooks/useLotAdjustmentQty';
@@ -23,9 +23,9 @@ import useInsertedInventoryRecordsResponse from '@hooks/useInsertedInventoryReco
 import Skeleton from '@mui/material/Skeleton';
 
 const WarehouseItemSummaryCard = lazy(() =>
-  import('@features/warehouse-inventory/components/WarehouseItemSummaryCard'));
+  import('@features/warehouseInventory/components/WarehouseItemSummaryCard'));
 const WarehouseInventoryDetailTable = lazy(() =>
-  import('@features/warehouse-inventory/components/WarehouseInventoryDetailTable'));
+  import('@features/warehouseInventory/components/WarehouseInventoryDetailTable'));
 
 const WarehouseInventoryDetailPage = () => {
   const { warehouseId } = useParams<{ warehouseId: string }>();

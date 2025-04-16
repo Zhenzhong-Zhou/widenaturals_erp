@@ -156,7 +156,7 @@ export const routes = [
   {
     path: '/warehouse_inventories',
     component: lazy(
-      () => import('@features/warehouse-inventory/pages/WarehouseInventoryPage')
+      () => import('@features/warehouseInventory/pages/WarehouseInventoryPage')
     ),
     meta: {
       requiresAuth: true,
@@ -170,7 +170,7 @@ export const routes = [
     component: lazy(
       () =>
         import(
-          '@features/warehouse-inventory/pages/WarehouseInventoryDetailPage'
+          '@features/warehouseInventory/pages/WarehouseInventoryDetailPage'
         )
     ),
     meta: {

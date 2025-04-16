@@ -12,8 +12,8 @@ import { sanitizeWarehouseInventory } from '@utils/transformersUtlis';
 import useWarehouseInventories from '@hooks/useWarehouseInventories';
 import useWarehouseInventoriesSummary from '@hooks/useWarehouseInventoriesSummary';
 
-const WarehouseInventorySummaryCard = lazy(() => import('@features/warehouse-inventory/components/WarehouseInventorySummaryCard'));
-const WarehouseInventoryTable = lazy(() => import('@features/warehouse-inventory/components/WarehouseInventoryTable'));
+const WarehouseInventorySummaryCard = lazy(() => import('@features/warehouseInventory/components/WarehouseInventorySummaryCard'));
+const WarehouseInventoryTable = lazy(() => import('@features/warehouseInventory/components/WarehouseInventoryTable'));
 
 const WarehouseInventoryPage = () => {
   const [page, setPage] = useState(1);

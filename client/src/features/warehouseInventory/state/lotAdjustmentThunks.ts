@@ -3,7 +3,7 @@ import type {
   BulkLotAdjustmentPayload,
   LotAdjustmentSinglePayload,
   LotAdjustmentType,
-} from '@features/warehouse-inventory/state/warehouseInventoryTypes';
+} from '@features/warehouseInventory/state/warehouseInventoryTypes';
 import { lotAdjustmentTypeService } from '@services/lotAdjustmentTypeService';
 import { AppError } from '@utils/AppError';
 import { warehouseInventoryService } from '@services/warehouseInventoryService';

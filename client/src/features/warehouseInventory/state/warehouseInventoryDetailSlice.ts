@@ -3,8 +3,8 @@ import type {
   WarehouseInventoryDetail,
   WarehouseInventoryDetailsResponse,
   WarehouseInventoryPagination,
-} from '@features/warehouse-inventory/state/warehouseInventoryTypes';
-import { fetchWarehouseInventoryDetailsThunk } from '@features/warehouse-inventory';
+} from '@features/warehouseInventory/state/warehouseInventoryTypes';
+import { fetchWarehouseInventoryDetailsThunk } from '@features/warehouseInventory';
 
 interface WarehouseInventoryState {
   inventoryDetails: WarehouseInventoryDetail[];

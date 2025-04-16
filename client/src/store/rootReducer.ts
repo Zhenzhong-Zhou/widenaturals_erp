@@ -23,7 +23,7 @@ import { sessionReducers } from '@features/session';
 import { taxRateReducers } from '@features/taxRate';
 import { userReducers } from '@features/user';
 import { warehouseReducers } from '@features/warehouse';
-import { warehouseInventoryReducers } from '@features/warehouse-inventory';
+import { warehouseInventoryReducers } from '@features/warehouseInventory';
 
 // Use helper to combine
 const appReducer = combineReducers(

@@ -5,7 +5,7 @@ import {
   selectLotAdjustmentError,
   selectLotAdjustmentLoading,
   selectLotAdjustmentTypes,
-} from '@features/warehouse-inventory';
+} from '@features/warehouseInventory';
 
 /**
  * Custom hook to fetch and manage lot adjustment types.

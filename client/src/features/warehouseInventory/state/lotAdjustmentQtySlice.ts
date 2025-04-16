@@ -3,7 +3,7 @@ import {
   adjustWarehouseInventoryLotThunk,
   bulkAdjustWarehouseInventoryLotsQtyThunk,
   type LotAdjustmentQtyState,
-} from '@features/warehouse-inventory';
+} from '@features/warehouseInventory';
 
 const initialState: LotAdjustmentQtyState = {
   loadingSingle: false,

@@ -9,7 +9,7 @@ import type {
   WarehouseInventoryResponse,
   WarehouseInventorySummaryResponse,
   WarehouseItemSummaryResponse,
-} from '@features/warehouse-inventory';
+} from '@features/warehouseInventory';
 import { warehouseInventoryService } from '@services/warehouseInventoryService';
 import { dropdownService } from '@services/dropdownService';
 

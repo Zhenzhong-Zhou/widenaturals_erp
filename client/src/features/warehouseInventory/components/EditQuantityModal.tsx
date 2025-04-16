@@ -5,7 +5,7 @@ import CustomForm from '@components/common/CustomForm';
 import Box from '@mui/material/Box';
 import CustomTypography from '@components/common/CustomTypography';
 import { formatLabel } from '@utils/textUtils';
-import type { LotAdjustmentType } from '@features/warehouse-inventory/state';
+import type { LotAdjustmentType } from '@features/warehouseInventory/state';
 import useLotAdjustmentTypes from '@hooks/useLotAdjustmentTypes';
 
 interface EditQuantityModalProps {

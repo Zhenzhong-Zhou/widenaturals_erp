@@ -16,15 +16,15 @@ import StockLevelChip from '@features/inventory/components/StockLevelChip';
 import ExpirySeverityChip from '@features/inventory/components/ExpirySeverityChip';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
-import BulkInsertInventoryModal from '@features/warehouse-inventory/components/BulkInsertInventoryModal';
-import InsertedInventoryRecordsResponseDialog from '@features/warehouse-inventory/components/InsertedInventoryRecordsResponseDialog';
+import BulkInsertInventoryModal from '@features/warehouseInventory/components/BulkInsertInventoryModal';
+import InsertedInventoryRecordsResponseDialog from '@features/warehouseInventory/components/InsertedInventoryRecordsResponseDialog';
 import CustomTable from '@components/common/CustomTable';
-import EditQuantityModal from '@features/warehouse-inventory/components/EditQuantityModal';
-import BulkAdjustQuantityModal from '@features/warehouse-inventory/components/BulkAdjustQuantityModal';
+import EditQuantityModal from '@features/warehouseInventory/components/EditQuantityModal';
+import BulkAdjustQuantityModal from '@features/warehouseInventory/components/BulkAdjustQuantityModal';
 import type {
   WarehouseInventoryDetailExtended,
   WarehouseInventoryInsertResponse,
-} from '@features/warehouse-inventory';
+} from '@features/warehouseInventory';
 import { formatLabel, formatCurrency } from '@utils/textUtils';
 import { formatDate, formatDateTime } from '@utils/dateTimeUtils';
 import {

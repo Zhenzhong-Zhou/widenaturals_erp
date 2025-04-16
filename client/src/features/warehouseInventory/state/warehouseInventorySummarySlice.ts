@@ -2,8 +2,8 @@ import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import {
   type WarehouseInventorySummary,
   type WarehouseInventorySummaryResponse,
-} from '@features/warehouse-inventory/state/warehouseInventoryTypes';
-import { fetchWarehouseInventorySummaryThunk } from '@features/warehouse-inventory';
+} from '@features/warehouseInventory/state/warehouseInventoryTypes';
+import { fetchWarehouseInventorySummaryThunk } from '@features/warehouseInventory';
 
 interface WarehouseInventoryState {
   data: WarehouseInventorySummary[];

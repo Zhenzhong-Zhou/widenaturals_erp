@@ -6,7 +6,7 @@ import {
   selectWarehouseInventoryInsertData,
   selectWarehouseInventoryInsertError,
   selectWarehouseInventoryInsertLoading,
-} from '@features/warehouse-inventory';
+} from '@features/warehouseInventory';
 
 /**
  * Custom hook to handle bulk inserting warehouse inventory

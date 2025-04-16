@@ -11,9 +11,9 @@ import type {
   BulkInsertInventoryResponse,
   InsertInventoryRequestBody,
   FetchWarehouseItemSummaryParams,
-} from '@features/warehouse-inventory';
+} from '@features/warehouseInventory';
 import { AppError } from '@utils/AppError';
-import type { InventoryRecordInsertResponse } from '@features/warehouse-inventory/state';
+import type { InventoryRecordInsertResponse } from '@features/warehouseInventory/state';
 
 /**
  * Fetches all warehouse inventories with pagination.

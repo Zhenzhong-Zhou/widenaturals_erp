@@ -1,4 +1,4 @@
-import type { WarehouseInventory } from '@features/warehouse-inventory';
+import type { WarehouseInventory } from '@features/warehouseInventory';
 
 export const sanitizeWarehouseInventory = (
   data: any[]

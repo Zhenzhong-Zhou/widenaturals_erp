@@ -11,7 +11,7 @@ import {
   selectLotAdjustmentQtyLoadingSingle,
   selectLotAdjustmentQtySuccessBulk,
   selectLotAdjustmentQtySuccessSingle,
-} from '@features/warehouse-inventory';
+} from '@features/warehouseInventory';
 
 const useLotAdjustmentQty = (refreshInventoryCallback?: () => void) => {
   const dispatch = useAppDispatch();

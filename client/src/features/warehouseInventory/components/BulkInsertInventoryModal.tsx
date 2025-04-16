@@ -2,11 +2,11 @@ import { type FC, lazy, Suspense } from 'react';
 import Box from '@mui/material/Box';
 import { formatDate } from '@utils/dateTimeUtils';
 import useProductsWarehouseDropdown from '@hooks/useProductsWarehouseDropdown';
-import type { ProductDropdownItem } from '@features/warehouse-inventory';
+import type { ProductDropdownItem } from '@features/warehouseInventory';
 import CustomModal from '@components/common/CustomModal';
 import Loading from '@components/common/Loading';
 import MultiItemForm from '@components/common/MultiItemForm';
-import InventoryDropdown from '@features/warehouse-inventory/components/InventoryDropdown';
+import InventoryDropdown from '@features/warehouseInventory/components/InventoryDropdown';
 
 const CustomDatePicker = lazy(
   () => import('@components/common/CustomDatePicker')

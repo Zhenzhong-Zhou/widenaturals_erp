@@ -6,7 +6,7 @@ import {
   selectInsertedInventoryRecordsResponseData,
   selectInsertedInventoryRecordsResponseError,
   selectInsertedInventoryRecordsResponseLoading,
-} from '@features/warehouse-inventory';
+} from '@features/warehouseInventory';
 
 const useInsertedInventoryRecordsResponse = () => {
   const dispatch = useAppDispatch();

@@ -8,7 +8,7 @@ import {
   selectWarehouseItemLoading,
   selectWarehouseItemPagination,
   selectWarehouseItemSummary,
-} from '@features/warehouse-inventory';
+} from '@features/warehouseInventory';
 
 const useWarehouseItemSummary = (
   warehouseId: string,

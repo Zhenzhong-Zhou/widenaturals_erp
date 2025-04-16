@@ -3,8 +3,8 @@ import type {
   WarehouseInventoryPagination,
   WarehouseItemSummary,
   WarehouseItemSummaryResponse,
-} from '@features/warehouse-inventory/state/warehouseInventoryTypes';
-import { fetchWarehouseItemSummaryThunk } from '@features/warehouse-inventory';
+} from '@features/warehouseInventory/state/warehouseInventoryTypes';
+import { fetchWarehouseItemSummaryThunk } from '@features/warehouseInventory';
 
 export interface WarehouseItemSummaryState {
   itemSummaryData: WarehouseItemSummary[];

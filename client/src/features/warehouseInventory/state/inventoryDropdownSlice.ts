@@ -3,7 +3,7 @@ import {
   type DropdownState,
   fetchProductsDropDownByWarehouseThunk,
   fetchWarehousesDropdownThunk,
-} from '@features/warehouse-inventory';
+} from '@features/warehouseInventory';
 
 const initialState: DropdownState = {
   products: [],

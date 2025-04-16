@@ -3,7 +3,7 @@ import { API_ENDPOINTS } from '@services/apiEndpoints';
 import type {
   ProductDropdownItem,
   WarehouseDropdownItem,
-} from '@features/warehouse-inventory';
+} from '@features/warehouseInventory';
 import type { OrderType } from '@features/order';
 import type { FetchCustomersDropdownResponse } from '@features/customer';
 import type { DiscountDropdownItem } from '@features/discount';

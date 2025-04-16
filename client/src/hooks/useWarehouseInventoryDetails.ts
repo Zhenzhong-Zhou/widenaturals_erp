@@ -6,7 +6,7 @@ import {
   selectWarehouseInventoryDetailLoading,
   selectWarehouseInventoryDetailPagination,
   selectWarehouseInventoryDetails,
-} from '@features/warehouse-inventory';
+} from '@features/warehouseInventory';
 
 const useWarehouseInventoryDetails = (
   warehouseId: string,
