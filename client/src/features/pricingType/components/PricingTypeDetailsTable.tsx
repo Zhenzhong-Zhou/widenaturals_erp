@@ -10,7 +10,7 @@ import CustomButton from '@components/common/CustomButton';
 import type {
   PricingTypeDetail,
   PricingRecord,
-  PricingTypePagination,
+  PricingTypePagination, PricingTypeTableRow,
 } from '@features/pricingType';
 import { formatDate, formatDateTime } from '@utils/dateTimeUtils';
 import { formatLabel } from '@utils/textUtils';
@@ -53,7 +53,7 @@ const PricingTypeDetailsTable: FC<PricingTypeDetailsTableProps> = ({
       </ErrorDisplay>
     );
 
-  const transformedData = data.map((item) => ({
+  const transformedData: PricingTypeTableRow[] = data.map((item) => ({
     ...item,
 
     // Flatten Product Details
@@ -112,25 +112,25 @@ const PricingTypeDetailsTable: FC<PricingTypeDetailsTableProps> = ({
       id: 'valid_from',
       label: 'Valid From',
       sortable: true,
-      format: (value: any) => formatDateTime(value),
+      format: (value: string | null)  => formatDateTime(value),
     },
     {
       id: 'valid_to',
       label: 'Valid To',
       sortable: true,
-      format: (value: any) => formatDateTime(value),
+      format: (value: string | null)  => formatDateTime(value),
     },
     {
       id: 'status',
       label: 'Status',
       sortable: true,
-      format: (value: string) => formatLabel(value),
+      format: (value: string | null)  => formatLabel(value),
     },
     {
       id: 'status_date',
       label: 'Status Date',
       sortable: true,
-      format: (value: any) => formatDate(value),
+      format: (value: string | null)  => formatDate(value),
     },
 
     { id: 'product_name', label: 'Product Name', sortable: true },
@@ -152,7 +152,7 @@ const PricingTypeDetailsTable: FC<PricingTypeDetailsTableProps> = ({
       id: 'created_at',
       label: 'Created At',
       sortable: true,
-      format: (value: any) => formatDate(value),
+      format: (value: string | null)  => formatDate(value),
     },
     {
       id: 'updated_by_name',
@@ -163,7 +163,7 @@ const PricingTypeDetailsTable: FC<PricingTypeDetailsTableProps> = ({
       id: 'updated_at',
       label: 'Updated At',
       sortable: true,
-      format: (value: any) => formatDate(value),
+      format: (value: string | null)  => formatDate(value),
     },
   ];
 

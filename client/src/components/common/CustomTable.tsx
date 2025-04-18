@@ -1,5 +1,4 @@
-import type { FC, ReactNode } from 'react';
-import { useState } from 'react';
+import { Fragment, type ReactNode, useState } from 'react';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -10,16 +9,17 @@ import TablePagination from '@mui/material/TablePagination';
 import TableSortLabel from '@mui/material/TableSortLabel';
 import Paper from '@mui/material/Paper';
 import Skeleton from '@mui/material/Skeleton';
+import Collapse from '@mui/material/Collapse';
 import { useThemeContext } from '@context/ThemeContext';
 
 export interface Column<T = any> {
-  id: Extract<keyof T, string>;
+  id: string;
   label: string;
   minWidth?: number;
   align?: 'left' | 'right' | 'center';
   sortable?: boolean;
   format?: (value: T[keyof T], row?: T) => ReactNode;
-  renderCell?: (row: T) => ReactNode;
+  renderCell?: (row: T, rowIndex?: number) => ReactNode;
 }
 
 interface CustomTableProps<T = any> {
@@ -33,9 +33,12 @@ interface CustomTableProps<T = any> {
   page: number;
   onPageChange: (newPage: number) => void;
   onRowsPerPageChange: (newRowsPerPage: number) => void;
+  expandable?: boolean;
+  expandedContent?: (row: T) => ReactNode;
+  expandedRowIndex?: number | null;
 }
 
-const CustomTable: FC<CustomTableProps> = ({
+const CustomTable = <T extends Record<string, any>>({
                                              loading,
                                              columns,
                                              data,
@@ -46,7 +49,10 @@ const CustomTable: FC<CustomTableProps> = ({
                                              page,
                                              onPageChange,
                                              onRowsPerPageChange,
-                                           }) => {
+                                             expandable = false,
+                                             expandedContent,
+                                             expandedRowIndex,
+                                           }: CustomTableProps<T>) => {
   const { theme } = useThemeContext();
   const [order, setOrder] = useState<'asc' | 'desc'>('asc');
   const [orderBy, setOrderBy] = useState<string | undefined>(undefined);
@@ -102,6 +108,7 @@ const CustomTable: FC<CustomTableProps> = ({
               >
                 #
               </TableCell>
+              
               {columns.map((col) => (
                 <TableCell
                   key={col.id}
@@ -139,43 +146,44 @@ const CustomTable: FC<CustomTableProps> = ({
             {loading
               ? [...Array(initialRowsPerPage)].map((_, i) => (
                 <TableRow key={`skeleton-${i}`}>
-                  <TableCell
-                    colSpan={columns.length + 1}
-                    sx={{ py: 1.25, px: 2 }}
-                  >
+                  <TableCell colSpan={columns.length + 1} sx={{ py: 1.25, px: 2 }}>
                     <Skeleton variant="rectangular" height={48} animation="wave" />
                   </TableCell>
                 </TableRow>
               ))
               : sortedData.map((row, rowIndex) => (
-                <TableRow
-                  key={rowIndex}
-                  sx={{
-                    '&:nth-of-type(odd)': {
-                      backgroundColor: theme.palette.action.hover,
-                    },
-                  }}
-                >
-                  <TableCell
-                    align="center"
-                    sx={{ py: 1.25, px: 2 }}
+                <Fragment key={rowIndex}>
+                  <TableRow
+                    sx={{
+                      '&:nth-of-type(odd)': {
+                        backgroundColor: theme.palette.action.hover,
+                      },
+                    }}
                   >
-                    {safePage * initialRowsPerPage + rowIndex + 1}
-                  </TableCell>
-                  {columns.map((col) => (
-                    <TableCell
-                      key={col.id}
-                      align={col.align || 'left'}
-                      sx={{ py: 1.25, px: 2 }}
-                    >
-                      {col.renderCell
-                        ? col.renderCell(row)
-                        : col.format
-                          ? col.format(row[col.id], row)
-                          : row[col.id]}
+                    <TableCell align="center" sx={{ py: 1.25, px: 2 }}>
+                      {safePage * initialRowsPerPage + rowIndex + 1}
                     </TableCell>
-                  ))}
-                </TableRow>
+                    {columns.map((col) => (
+                      <TableCell key={col.id} align={col.align || 'left'} sx={{ py: 1.25, px: 2 }}>
+                        {col.renderCell
+                          ? col.renderCell(row, rowIndex)
+                          : col.format
+                            ? col.format(row[col.id], row)
+                            : (row[col.id] as ReactNode)}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                  
+                  {expandable && (
+                    <TableRow>
+                      <TableCell colSpan={columns.length + 1} sx={{ p: 0 }}>
+                        <Collapse in={expandedRowIndex === rowIndex}>
+                          {expandedContent?.(row)}
+                        </Collapse>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </Fragment>
               ))}
           </TableBody>
         </Table>

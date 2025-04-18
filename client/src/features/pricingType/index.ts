@@ -6,6 +6,7 @@ export type {
   PricingRecord,
   PricingTypeDetail,
   PricingTypePagination,
+  PricingTypeTableRow,
   PricingTypeDropdownItem,
   PricingTypeDropdownResponse,
 } from './state/pricingTypeTypes';

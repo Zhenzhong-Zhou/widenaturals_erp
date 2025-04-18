@@ -20,7 +20,7 @@ import type { ShippingInformation } from '@features/order';
  *  - "LOT-number" → "Lot Number"
  */
 export const formatLabel = (text: string | null | undefined): string => {
-  if (!text) return 'Unknown';
+  if (text === null || text === undefined || text === '') return 'Unknown';
 
   return text
     .replace(/[_-]/g, ' ') // snake_case or kebab-case to space
@@ -51,8 +51,8 @@ export const formatCurrency = (
  * @param str - The string to convert.
  * @returns The uppercase version of the string.
  */
-export const toUpperCase = (str: string): string => {
-  return str.toUpperCase();
+export const toUpperCase = (str: string | null | undefined): string => {
+  return str ? str.toUpperCase() : '-';
 };
 
 /**

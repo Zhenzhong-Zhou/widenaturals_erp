@@ -6,7 +6,7 @@ import IsExpiredChip from '@features/inventory/components/IsExpiredChip';
 import NearExpiryChip from '@features/inventory/components/NearExpiryChip';
 import StockLevelChip from '@features/inventory/components/StockLevelChip';
 import ExpirySeverityChip from '@features/inventory/components/ExpirySeverityChip';
-import CustomTable from '@components/common/CustomTable';
+import CustomTable, { type Column } from '@components/common/CustomTable';
 import type { InventoryItem } from '@features/inventory';
 import { formatLabel, formatCurrency } from '@utils/textUtils';
 import { formatDate, formatDateTime } from '@utils/dateTimeUtils';
@@ -62,14 +62,14 @@ const InventoryTable: FC<InventoryTableProps> = ({
     []
   );
   
-  const columns = [
+  const columns: Column<InventoryItem>[] = [
     { id: 'placeName', label: 'Place Name', sortable: true },
 
     {
       id: 'itemType',
       label: 'Item Type',
       sortable: true,
-      format: (value: string) => formatLabel(value),
+      format: (value) => formatLabel(value as string),
     },
     {
       id: 'itemName',
@@ -88,19 +88,19 @@ const InventoryTable: FC<InventoryTableProps> = ({
       id: 'availableQuantity',
       label: 'Available Qty',
       sortable: true,
-      format: (value: number) => value ?? 0,
+      format: (value) => value as number ?? 0,
     },
     {
       id: 'reservedQuantity',
       label: 'Reserved Qty',
       sortable: true,
-      format: (value: number) => value ?? 0,
+      format: (value) => value as number ?? 0,
     },
     {
       id: 'totalLotQuantity',
       label: 'Lot Qty',
       sortable: true,
-      format: (value: number) => value ?? 0,
+      format: (value) => value as number ?? 0,
     },
     {
       id: 'displayStatus',
@@ -112,37 +112,37 @@ const InventoryTable: FC<InventoryTableProps> = ({
       id: 'statusDate',
       label: 'Status Date',
       sortable: true,
-      format: (value: string) => formatDate(value),
+      format: (value) => formatDate(value as string),
     },
     {
       id: 'earliestManufactureDate',
       label: 'Earliest MFG',
       sortable: true,
-      format: (value: string) => formatDate(value),
+      format: (value) => formatDate(value as string),
     },
     {
       id: 'nearestExpiryDate',
       label: 'Nearest Expiry',
       sortable: true,
-      format: (value: string) => formatDate(value),
+      format: (value) => formatDate(value as string),
     },
     {
       id: 'warehouseFee',
       label: 'Storage Fee',
       sortable: true,
-      format: (value: number) => formatCurrency(value),
+      format: (value) => formatCurrency(value as number),
     },
     {
       id: 'createdAt',
       label: 'Created At',
       sortable: true,
-      format: (value: string) => formatDateTime(value),
+      format: (value) => formatDateTime(value as string),
     },
     {
       id: 'updatedAt',
       label: 'Updated At',
       sortable: true,
-      format: (value: string) => formatDateTime(value),
+      format: (value) => formatDateTime(value as string),
     },
     { id: 'createdBy', label: 'Created By', sortable: false },
     { id: 'updatedBy', label: 'Updated By', sortable: false },

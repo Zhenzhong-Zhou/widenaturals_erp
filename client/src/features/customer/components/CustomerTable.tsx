@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
-import CustomTable from '@components/common/CustomTable';
+import CustomTable, { type Column } from '@components/common/CustomTable';
 import type { Customer } from '@features/customer';
 import { formatLabel, formatPhoneNumber } from '@utils/textUtils';
 import { formatDate } from '@utils/dateTimeUtils';
@@ -37,7 +37,7 @@ const CustomerTable: FC = () => {
   };
 
   // Table column definitions
-  const columns = [
+  const columns: Column<Customer>[] = [
     {
       id: 'customer_name',
       label: 'Customer Name',
@@ -64,19 +64,19 @@ const CustomerTable: FC = () => {
       id: 'phone_number',
       label: 'Phone',
       sortable: true,
-      format: (value: string) => formatPhoneNumber(value),
+      format: (value: string | null) => formatPhoneNumber(value)
     },
     {
       id: 'status_name',
       label: 'Status',
       sortable: false,
-      format: (value: string) => formatLabel(value),
+      format: (value: string | null) => formatLabel(value),
     },
     {
       id: 'created_at',
       label: 'Created At',
       sortable: true,
-      format: (value: string) => formatDate(value),
+      format: (value: string | null) => formatDate(value),
     },
     {
       id: 'created_by',
@@ -87,7 +87,7 @@ const CustomerTable: FC = () => {
       id: 'updated_at',
       label: 'Updated At',
       sortable: true,
-      format: (value: string) => formatDate(value),
+      format: (value: string | null) => formatDate(value),
     },
     {
       id: 'updated_by',

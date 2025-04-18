@@ -8,7 +8,7 @@ import IsExpiredChip from '@features/inventory/components/IsExpiredChip';
 import NearExpiryChip from '@features/inventory/components/NearExpiryChip';
 import StockLevelChip from '@features/inventory/components/StockLevelChip';
 import ExpirySeverityChip from '@features/inventory/components/ExpirySeverityChip';
-import CustomTable from '@components/common/CustomTable';
+import CustomTable, { type Column } from '@components/common/CustomTable';
 
 interface WarehouseInventoryTableProps {
   data: WarehouseInventory[];
@@ -74,7 +74,7 @@ const WarehouseInventoryTable: FC<WarehouseInventoryTableProps> = ({
     []
   );
   
-  const columns = [
+  const columns: Column<WarehouseInventory>[] = [
     {
       id: 'warehouse.name',
       label: 'Warehouse',
@@ -95,97 +95,96 @@ const WarehouseInventoryTable: FC<WarehouseInventoryTableProps> = ({
       id: 'warehouse.storageCapacity',
       label: 'Storage Capacity',
       sortable: true,
-      format: (_: any, row: WarehouseInventory) =>
-        row.warehouse.storageCapacity,
+      format: (_: any, row?: WarehouseInventory) =>
+        row?.warehouse?.storageCapacity ?? '—',
     },
     {
       id: 'warehouse.location',
       label: 'Location',
       sortable: true,
-      format: (_: any, row: WarehouseInventory) => row.warehouse.location,
+      format: (_: any, row?: WarehouseInventory) => row?.warehouse?.location ?? '—',
     },
     {
       id: 'inventory.itemType',
       label: 'Item Type',
       sortable: true,
-      format: (_: any, row: WarehouseInventory) =>
-        formatLabel(row.inventory.itemType),
+      format: (_: any, row?: WarehouseInventory) =>
+        row?.inventory?.itemType ? formatLabel(row.inventory.itemType) : '—',
     },
     {
       id: 'inventory.itemName',
       label: 'Item Name',
       sortable: true,
-      format: (_: any, row: WarehouseInventory) => row.inventory.itemName,
+      format: (_: any, row?: WarehouseInventory) => row?.inventory?.itemName ?? '—',
     },
     {
       id: 'quantity.available',
       label: 'Available Qty',
       sortable: true,
-      format: (_: any, row: WarehouseInventory) => row.quantity.available,
+      format: (_: any, row?: WarehouseInventory) => row?.quantity?.available ?? 0,
     },
     {
       id: 'quantity.lotReserved',
       label: 'Lot Reserved Qty',
       sortable: true,
-      format: (_: any, row: WarehouseInventory) =>
-        row.quantity?.lotReserved ?? 0,
+      format: (_: any, row?: WarehouseInventory) => row?.quantity?.lotReserved ?? 0,
     },
     {
       id: 'quantity.reserved',
       label: 'Reserved Qty',
       sortable: true,
-      format: (_: any, row: WarehouseInventory) => row.quantity.reserved,
+      format: (_: any, row?: WarehouseInventory) => row?.quantity?.reserved ?? 0,
     },
     {
       id: 'quantity.inStock',
       label: 'In-Stock Qty',
       sortable: true,
-      format: (_: any, row: WarehouseInventory) => row.quantity.inStock,
+      format: (_: any, row?: WarehouseInventory) => row?.quantity?.inStock ?? 0,
     },
     {
       id: 'quantity.totalLot',
       label: 'Total Lot Qty',
       sortable: true,
-      format: (_: any, row: WarehouseInventory) => row.quantity.totalLot,
+      format: (_: any, row?: WarehouseInventory) => row?.quantity?.totalLot ?? 0,
     },
     {
       id: 'fees.warehouseFee',
       label: 'Warehouse Fee ($)',
       sortable: true,
-      format: (_: any, row: WarehouseInventory) =>
-        formatCurrency(row.fees.warehouseFee),
+      format: (_: any, row?: WarehouseInventory) =>
+        row?.fees?.warehouseFee != null ? formatCurrency(row.fees.warehouseFee) : '—',
     },
     {
       id: 'dates.lastUpdate',
       label: 'Last Update',
       sortable: true,
-      format: (_: any, row: WarehouseInventory) =>
-        formatDateTime(row.dates.lastUpdate),
+      format: (_: any, row?: WarehouseInventory) =>
+        row?.dates?.lastUpdate ? formatDateTime(row.dates.lastUpdate) : '—',
     },
     {
       id: 'dates.earliestManufactureDate',
       label: 'Earliest MFG Date',
       sortable: true,
-      format: (_: any, row: WarehouseInventory) =>
-        row.dates.earliestManufactureDate
+      format: (_: any, row?: WarehouseInventory) =>
+        row?.dates?.earliestManufactureDate
           ? formatDate(row.dates.earliestManufactureDate)
-          : 'N/A',
+          : '—',
     },
     {
       id: 'dates.nearestExpiryDate',
       label: 'Nearest Expiry',
       sortable: true,
-      format: (_: any, row: WarehouseInventory) =>
-        row.dates.nearestExpiryDate
+      format: (_: any, row?: WarehouseInventory) =>
+        row?.dates?.nearestExpiryDate
           ? formatDate(row.dates.nearestExpiryDate)
-          : 'N/A',
+          : '—',
     },
     {
       id: 'status.display',
       label: 'Display Status',
       sortable: true,
-      format: (_: any, row: WarehouseInventory) =>
-        formatLabel(row.status?.display ?? ''),
+      format: (_: any, row?: WarehouseInventory) =>
+        row?.status?.display ? formatLabel(row.status.display) : '—',
     },
     {
       id: 'status.stockLevel',
@@ -215,15 +214,15 @@ const WarehouseInventoryTable: FC<WarehouseInventoryTableProps> = ({
       id: 'status.displayNote',
       label: 'Display Note',
       sortable: false,
-      format: (_: any, row: WarehouseInventory) =>
-        row.status?.displayNote || '—',
+      format: (_: any, row?: WarehouseInventory) =>
+        row?.status?.displayNote || '—',
     },
     {
       id: 'dates.displayStatusDate',
       label: 'Display Status Date',
       sortable: true,
-      format: (_: any, row: WarehouseInventory) =>
-        row.dates.displayStatusDate
+      format: (_: any, row?: WarehouseInventory) =>
+        row?.dates?.displayStatusDate
           ? formatDateTime(row.dates.displayStatusDate)
           : 'N/A',
     },
@@ -231,27 +230,29 @@ const WarehouseInventoryTable: FC<WarehouseInventoryTableProps> = ({
       id: 'audit.createdAt',
       label: 'Created At',
       sortable: true,
-      format: (_: any, row: WarehouseInventory) =>
-        formatDateTime(row.audit.createdAt),
+      format: (_: any, row?: WarehouseInventory) =>
+        row?.audit?.createdAt ? formatDateTime(row.audit.createdAt) : 'N/A',
     },
     {
       id: 'audit.updatedAt',
       label: 'Updated At',
       sortable: true,
-      format: (_: any, row: WarehouseInventory) =>
-        row.audit.updatedAt ? formatDateTime(row.audit.updatedAt) : 'N/A',
+      format: (_: any, row?: WarehouseInventory) =>
+        row?.audit?.updatedAt ? formatDateTime(row.audit.updatedAt) : 'N/A',
     },
     {
       id: 'audit.createdBy',
       label: 'Created By',
       sortable: true,
-      format: (_: any, row: WarehouseInventory) => row.audit.createdBy,
+      format: (_: any, row?: WarehouseInventory) =>
+        row?.audit?.createdBy || '—',
     },
     {
       id: 'audit.updatedBy',
       label: 'Updated By',
       sortable: true,
-      format: (_: any, row: WarehouseInventory) => row.audit.updatedBy,
+      format: (_: any, row?: WarehouseInventory) =>
+        row?.audit?.updatedBy || '—',
     },
   ];
 

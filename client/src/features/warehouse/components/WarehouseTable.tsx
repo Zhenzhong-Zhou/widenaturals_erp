@@ -4,7 +4,7 @@ import { type FC, useState } from 'react';
 import type { Warehouse } from '@features/warehouse';
 import { formatDateTime } from '@utils/dateTimeUtils';
 import { formatLabel } from '@utils/textUtils';
-import CustomTable from '@components/common/CustomTable';
+import CustomTable, { type Column } from '@components/common/CustomTable';
 
 interface WarehouseTableProps {
   warehouses: Warehouse[];
@@ -25,12 +25,12 @@ const WarehouseTable: FC<WarehouseTableProps> = ({
 }) => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  const columns = [
+  const columns: Column<Warehouse>[] = [
     {
       id: 'warehouse_name',
       label: 'Warehouse Name',
       sortable: true,
-      format: (value: string) => value,
+      format: (value) => value as string,
       // renderCell: (row: Warehouse) => (
       //   <Link
       //     to={`/warehouses/${row.id}`}
@@ -54,7 +54,7 @@ const WarehouseTable: FC<WarehouseTableProps> = ({
       id: 'status_name',
       label: 'Status',
       sortable: true,
-      format: (value: string) => formatLabel(value),
+      format: (value) => formatLabel(value as string),
     },
     {
       id: 'created_by',
@@ -70,13 +70,13 @@ const WarehouseTable: FC<WarehouseTableProps> = ({
       id: 'created_at',
       label: 'Created At',
       sortable: true,
-      format: (value: string) => formatDateTime(value),
+      format: (value) => formatDateTime(value as string),
     },
     {
       id: 'updated_at',
       label: 'Updated At',
       sortable: true,
-      format: (value: string) => formatDateTime(value),
+      format: (value) => formatDateTime(value as string),
     },
   ];
 

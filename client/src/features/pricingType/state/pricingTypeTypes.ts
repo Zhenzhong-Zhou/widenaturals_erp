@@ -107,6 +107,44 @@ export interface PricingTypeResponse {
   };
 }
 
+export type PricingTypeTableRow = {
+  // Pricing (flattened)
+  pricing_id: string;
+  price: string;
+  
+  // Product Details
+  product_id: string | null;
+  product_name: string;
+  product_series: string;
+  product_brand: string;
+  product_category: string;
+  product_barcode: string;
+  product_market_region: string;
+  
+  // Location Details
+  location_id: string | null;
+  location_name: string;
+  location_type: string;
+  
+  // Created By Details
+  created_by_id: string | null;
+  created_by_name: string;
+  
+  // Updated By Details
+  updated_by_id: string | null;
+  updated_by_name: string;
+  
+  // Status & Dates
+  status: string;
+  status_date: string | null;
+  valid_from: string | null;
+  valid_to: string | null;
+  
+  // Audit Timestamps
+  created_at: string | null;
+  updated_at: string | null;
+};
+
 // Type for the pricing type dropdown item
 export interface PricingTypeDropdownItem {
   id: string; // Unique identifier for the pricing type

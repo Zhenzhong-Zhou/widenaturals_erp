@@ -1,4 +1,4 @@
-import { type FC, type ReactNode, useCallback, useState } from 'react';
+import { type FC, lazy, type ReactNode, Suspense, useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
@@ -10,8 +10,10 @@ import EditIcon from '@mui/icons-material/Edit';
 import InventoryIcon from '@mui/icons-material/Inventory';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import MenuItem from '@mui/material/MenuItem';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import Skeleton from '@mui/material/Skeleton';
 import IsExpiredChip from '@features/inventory/components/IsExpiredChip';
-import NearExpiryChip from '@features/inventory/components/NearExpiryChip';
 import StockLevelChip from '@features/inventory/components/StockLevelChip';
 import ExpirySeverityChip from '@features/inventory/components/ExpirySeverityChip';
 import CustomTypography from '@components/common/CustomTypography';
@@ -25,13 +27,18 @@ import type {
   WarehouseInventoryDetailExtended,
   WarehouseInventoryInsertResponse,
 } from '@features/warehouseInventory';
-import { formatLabel, formatCurrency } from '@utils/textUtils';
+import { formatLabel } from '@utils/textUtils';
 import { formatDate, formatDateTime } from '@utils/dateTimeUtils';
 import {
   handleAdjustmentReportRedirect,
   handleInventoryActivityLogRedirect,
   handleInventoryHistoryRedirect,
 } from '@utils/navigationUtils';
+import WarehouseInventoryAuditDrawer from '@features/warehouseInventory/components/WarehouseInventoryAuditDrawer';
+
+const WarehouseLotDetailsInlineSection = lazy(
+  () => import('@features/warehouseInventory/components/WarehouseLotDetailsInlineSection')
+);
 
 // Define Column Type explicitly
 interface Column<T> {
@@ -41,7 +48,7 @@ interface Column<T> {
   align?: 'right' | 'left' | 'center';
   sortable?: boolean;
   format?: (value: any, row?: T) => string | number | null | undefined;
-  renderCell?: (row: T) => ReactNode;
+  renderCell?: (row: T, rowIndex?: number) => ReactNode;
 }
 
 interface WarehouseInventoryDetailTableProps {
@@ -72,6 +79,19 @@ interface WarehouseInventoryDetailTableProps {
   openDialog: boolean;
   setOpenDialog: (open: boolean) => void;
 }
+
+type TransformedWarehouseInventoryRow = WarehouseInventoryDetailExtended & {
+  isSelect: boolean;
+  lotCreatedBy: string;
+  lotCreatedDate: string | null;
+  lotUpdatedBy: string;
+  lotUpdatedDate: string | null;
+  indicators_isExpired: boolean;
+  indicators_isNearExpiry: boolean;
+  indicators_isLowStock: boolean;
+  indicators_stockLevel: string;
+  indicators_expirySeverity: string;
+};
 
 const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
   data,
@@ -110,6 +130,9 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
   const [selectedInventoryLot, setSelectedInventoryLot] = useState<{
     inventoryId: string;
   } | null>(null);
+  const [expandedRowIndex, setExpandedRowIndex] = useState<number | null>(null);
+  const [selectedAuditRow, setSelectedAuditRow] = useState<WarehouseInventoryDetailExtended | null>(null);
+  const [auditDrawerOpen, setAuditDrawerOpen] = useState(false);
   const navigate = useNavigate();
   
   const handleOpenPopover = useCallback(
@@ -125,8 +148,8 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
     setAnchorEl(null);
     setSelectedInventoryLot(null);
   };
-
-  const transformedData = data.map((row) => ({
+  
+  const transformedData: TransformedWarehouseInventoryRow[] = data.map((row) => ({
     ...row,
 
     isSelect: false,
@@ -168,16 +191,30 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
     });
   };
   
+  const handleAuditInfoClick = (row: WarehouseInventoryDetailExtended) => {
+    setSelectedAuditRow(row);
+    setAuditDrawerOpen(true);
+  };
+  
+  const renderExpandedContent = useCallback(
+    (row: WarehouseInventoryDetailExtended) => (
+      <Suspense
+        fallback={
+          <Box sx={{ p: 2 }}>
+            <Skeleton variant="text" width="40%" height={28} sx={{ mb: 1 }} />
+            <Skeleton variant="rectangular" height={140} />
+          </Box>
+        }
+      >
+        <WarehouseLotDetailsInlineSection row={row} sx={{ pl: 2 }} />
+      </Suspense>
+    ),
+    [] // dependencies (you can add `pl` or any dynamic value if needed)
+  );
+  
   const renderIsExpiredCell = useCallback(
     (row: WarehouseInventoryDetailExtended) => (
       <IsExpiredChip isExpired={row.indicators_isExpired} />
-    ),
-    []
-  );
-  
-  const renderNearExpiryCell = useCallback(
-    (row: WarehouseInventoryDetailExtended) => (
-      <NearExpiryChip isNearExpiry={row.indicators_isNearExpiry} />
     ),
     []
   );
@@ -208,6 +245,40 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
     });
   }, []);
   
+  const renderItemNameCell = useCallback(
+    (row: TransformedWarehouseInventoryRow, rowIndex?: number): ReactNode => (
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        {row.itemName}
+        <Tooltip
+          title={
+            rowIndex !== undefined && expandedRowIndex === rowIndex
+              ? 'Hide Details'
+              : 'Show Details'
+          }
+        >
+          <IconButton
+            onClick={(e) => {
+              e.stopPropagation();
+              if (rowIndex !== undefined) {
+                setExpandedRowIndex((prev) =>
+                  prev === rowIndex ? null : rowIndex
+                );
+              }
+            }}
+            size="small"
+          >
+            {rowIndex !== undefined && expandedRowIndex === rowIndex ? (
+              <ExpandLessIcon fontSize="small" />
+            ) : (
+              <ExpandMoreIcon fontSize="small" />
+            )}
+          </IconButton>
+        </Tooltip>
+      </Box>
+    ),
+    [expandedRowIndex]
+  ) as Column<TransformedWarehouseInventoryRow>['renderCell'];
+  
   const renderLotQuantityCell = useCallback(
     (row: WarehouseInventoryDetailExtended) => (
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -222,6 +293,7 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
   
   const renderActionsCell = useCallback(
     (row: WarehouseInventoryDetailExtended) => (
+    <Box>
       <Tooltip title="View Options">
         <IconButton
           size="small"
@@ -232,12 +304,24 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
           <MoreHorizIcon fontSize="small" />
         </IconButton>
       </Tooltip>
+      <Tooltip title="Audit Info">
+        <IconButton
+          size="small"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleAuditInfoClick(row);
+          }}
+        >
+          <InventoryIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+    </Box>
     ),
     [handleOpenPopover]
   );
   
   // Define table columns
-  const columns: Column<WarehouseInventoryDetailExtended>[] = [
+  const columns: Column<TransformedWarehouseInventoryRow>[] = [
     {
       id: 'select',
       label: 'Select',
@@ -250,15 +334,10 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
       ),
     },
     {
-      id: 'itemType',
-      label: 'Item Type',
-      sortable: true,
-      format: (value: any) => formatLabel(value),
-    },
-    {
       id: 'itemName',
       label: 'Item Name',
       sortable: true,
+      renderCell: renderItemNameCell,
     },
     {
       id: 'lotNumber',
@@ -278,11 +357,6 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
       renderCell: renderLotQuantityCell,
     },
     {
-      id: 'reservedStock',
-      label: 'Reserved Stock',
-      sortable: true,
-    },
-    {
       id: 'availableStock',
       label: 'Available Stock',
       sortable: true,
@@ -292,14 +366,6 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
       label: 'Status',
       sortable: true,
       format: (value: string) => formatLabel(value),
-    },
-
-    // 4️⃣ Date Tracking (Manufacturing, Expiry, Inbound & Outbound)
-    {
-      id: 'manufactureDate',
-      label: 'Manufactured Date',
-      sortable: true,
-      format: (value: any) => formatDate(value),
     },
     {
       id: 'expiryDate',
@@ -314,62 +380,10 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
       format: (value: any) => formatDateTime(value),
     },
     {
-      id: 'inboundDate',
-      label: 'Inbound Date',
-      sortable: true,
-      format: (value: any) => formatDate(value),
-    },
-    {
-      id: 'outboundDate',
-      label: 'Outbound Date',
-      sortable: true,
-      format: (value: any) => (value ? formatDate(value) : 'N/A'),
-    },
-
-    // 5️⃣ Warehouse Fees
-    {
-      id: 'warehouseFees',
-      label: 'Warehouse Fees ($)',
-      sortable: true,
-      format: (value: any) => formatCurrency(value),
-    },
-
-    // 6️⃣ User & System Tracking
-    {
-      id: 'lotCreatedBy',
-      label: 'Created By',
-      sortable: true,
-      format: (value: string) => value || 'Unknown',
-    },
-    {
-      id: 'lotCreatedDate',
-      label: 'Created Date',
-      sortable: true,
-      format: (value: string) => (value ? formatDate(value) : 'N/A'),
-    },
-    {
-      id: 'lotUpdatedBy',
-      label: 'Updated By',
-      sortable: true,
-      format: (value: string) => value || 'Unknown',
-    },
-    {
-      id: 'lotUpdatedDate',
-      label: 'Updated Date',
-      sortable: true,
-      format: (value: string) => (value ? formatDate(value) : 'N/A'),
-    },
-    {
       id: 'indicators_isExpired',
       label: 'Expired',
       sortable: true,
       renderCell: renderIsExpiredCell,
-    },
-    {
-      id: 'indicators_isNearExpiry',
-      label: 'Near Expiry',
-      sortable: true,
-      renderCell: renderNearExpiryCell,
     },
     {
       id: 'indicators_stockLevel',
@@ -390,7 +404,7 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
       renderCell: renderActionsCell,
     },
   ];
-
+  
   return (
     <Box>
       <Paper sx={{ padding: 2, marginBottom: 3 }}>
@@ -461,13 +475,22 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
         data={transformedData}
         page={page}
         initialRowsPerPage={rowsPerPage}
-        rowsPerPageOptions={[10, 30, 50, 100]}
+        rowsPerPageOptions={[30, 50, 75, 100]}
         totalRecords={totalRecords}
         totalPages={totalPages}
         onPageChange={onPageChange}
         onRowsPerPageChange={onRowsPerPageChange}
+        expandable={true}
+        expandedContent={renderExpandedContent}
+        expandedRowIndex={expandedRowIndex}
       />
-
+      
+      <WarehouseInventoryAuditDrawer
+        open={auditDrawerOpen}
+        onClose={() => setAuditDrawerOpen(false)}
+        data={selectedAuditRow}
+      />
+      
       {/* Edit Quantity Modal */}
       {selectedLot && (
         <EditQuantityModal
