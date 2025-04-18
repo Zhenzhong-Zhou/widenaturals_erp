@@ -1,14 +1,24 @@
-import { type FC, useCallback } from 'react';
+import { type FC, lazy, Suspense, useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { WarehouseInventory } from '@features/warehouseInventory';
-import { formatDate, formatDateTime } from '@utils/dateTimeUtils';
-import { formatLabel, formatCurrency } from '@utils/textUtils';
+import { formatDateTime } from '@utils/dateTimeUtils';
+import { formatLabel } from '@utils/textUtils';
 import Box from '@mui/material/Box';
-import IsExpiredChip from '@features/inventory/components/IsExpiredChip';
-import NearExpiryChip from '@features/inventory/components/NearExpiryChip';
 import StockLevelChip from '@features/inventory/components/StockLevelChip';
 import ExpirySeverityChip from '@features/inventory/components/ExpirySeverityChip';
 import CustomTable, { type Column } from '@components/common/CustomTable';
+import Tooltip from '@mui/material/Tooltip';
+import IconButton from '@mui/material/IconButton';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import { useThemeContext } from '@context/ThemeContext.tsx';
+import WarehouseInventoryAuditDrawer
+  from '@features/warehouseInventory/components/WarehouseInventoryDetailsAuditDrawer.tsx';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+
+const WarehouseInventoryInlineDetailsSection = lazy(
+  () => import('@features/warehouseInventory/components/WarehouseInventoryInlineDetailsSection')
+);
 
 interface WarehouseInventoryTableProps {
   data: WarehouseInventory[];
@@ -29,7 +39,60 @@ const WarehouseInventoryTable: FC<WarehouseInventoryTableProps> = ({
   onPageChange,
   onRowsPerPageChange,
 }) => {
+  const { theme } = useThemeContext();
+  const [expandedRowIndex, setExpandedRowIndex] = useState<number | null>(null);
+  const [selectedAuditRow, setSelectedAuditRow] = useState<WarehouseInventory | null>(null);
+  const [auditDrawerOpen, setAuditDrawerOpen] = useState(false);
   const hasStatus = (row: WarehouseInventory): boolean => !!row.status;
+  
+  const handleAuditInfoClick = (row: WarehouseInventory) => {
+    setSelectedAuditRow(row);
+    setAuditDrawerOpen(true);
+  };
+  
+  const renderWarehouseNameCell = useCallback(
+    (row: WarehouseInventory, rowIndex?: number) => (
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        {row.warehouse ? (
+          <Link
+            to={`/warehouse_inventories/${row.warehouse.id}`}
+            style={{ textDecoration: 'none', color: theme.palette.primary.main, fontWeight: 500 }}
+          >
+            {row.warehouse.name}
+          </Link>
+        ) : (
+          '—'
+        )}
+        
+        <Tooltip
+          title={rowIndex !== undefined && expandedRowIndex === rowIndex ? 'Hide Details' : 'Show Details'}
+        >
+          <IconButton
+            size="small"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (rowIndex !== undefined) {
+                setExpandedRowIndex((prev) => (prev === rowIndex ? null : rowIndex));
+              }
+            }}
+          >
+            {rowIndex !== undefined && expandedRowIndex === rowIndex ? (
+              <ExpandLessIcon fontSize="small" />
+            ) : (
+              <ExpandMoreIcon fontSize="small" />
+            )}
+          </IconButton>
+        </Tooltip>
+      </Box>
+    ),
+    [expandedRowIndex]
+  ) as Column<WarehouseInventory>['renderCell'];
+  
+  const renderExpandedContent = (row: WarehouseInventory) => (
+    <Suspense fallback={<Box sx={{ p: 2 }}>Loading...</Box>}>
+      <WarehouseInventoryInlineDetailsSection row={row} sx={{ pl: 2 }} />
+    </Suspense>
+  );
   
   const renderStockLevelCell = useCallback(
     (row: WarehouseInventory) =>
@@ -39,7 +102,7 @@ const WarehouseInventoryTable: FC<WarehouseInventoryTableProps> = ({
           isLowStock={row.status.isLowStock}
         />
       ) : (
-        'N/A'
+        '—'
       ),
     []
   );
@@ -49,29 +112,26 @@ const WarehouseInventoryTable: FC<WarehouseInventoryTableProps> = ({
       hasStatus(row) ? (
         <ExpirySeverityChip severity={row.status.expirySeverity} />
       ) : (
-        'N/A'
+        '—'
       ),
     []
   );
   
-  const renderIsExpiredCell = useCallback(
-    (row: WarehouseInventory) =>
-      hasStatus(row) ? (
-        <IsExpiredChip isExpired={row.status.isExpired} />
-      ) : (
-        'N/A'
-      ),
-    []
-  );
-  
-  const renderNearExpiryCell = useCallback(
-    (row: WarehouseInventory) =>
-      hasStatus(row) ? (
-        <NearExpiryChip isNearExpiry={row.status.isNearExpiry} />
-      ) : (
-        'N/A'
-      ),
-    []
+  const renderActionsCell = useCallback(
+    (row: WarehouseInventory) => (
+      <Tooltip title="Audit Info">
+        <IconButton
+          size="small"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleAuditInfoClick(row);
+          }}
+        >
+          <InfoOutlinedIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+    ),
+    [handleAuditInfoClick]
   );
   
   const columns: Column<WarehouseInventory>[] = [
@@ -79,30 +139,7 @@ const WarehouseInventoryTable: FC<WarehouseInventoryTableProps> = ({
       id: 'warehouse.name',
       label: 'Warehouse',
       sortable: true,
-      renderCell: (row: WarehouseInventory) =>
-        row?.warehouse ? (
-          <Link
-            to={`/warehouse_inventories/${row.warehouse.id}`}
-            style={{ textDecoration: 'none', color: 'blue' }}
-          >
-            {row.warehouse.name}
-          </Link>
-        ) : (
-          'N/A'
-        ),
-    },
-    {
-      id: 'warehouse.storageCapacity',
-      label: 'Storage Capacity',
-      sortable: true,
-      format: (_: any, row?: WarehouseInventory) =>
-        row?.warehouse?.storageCapacity ?? '—',
-    },
-    {
-      id: 'warehouse.location',
-      label: 'Location',
-      sortable: true,
-      format: (_: any, row?: WarehouseInventory) => row?.warehouse?.location ?? '—',
+      renderCell: renderWarehouseNameCell,
     },
     {
       id: 'inventory.itemType',
@@ -148,36 +185,11 @@ const WarehouseInventoryTable: FC<WarehouseInventoryTableProps> = ({
       format: (_: any, row?: WarehouseInventory) => row?.quantity?.totalLot ?? 0,
     },
     {
-      id: 'fees.warehouseFee',
-      label: 'Warehouse Fee ($)',
-      sortable: true,
-      format: (_: any, row?: WarehouseInventory) =>
-        row?.fees?.warehouseFee != null ? formatCurrency(row.fees.warehouseFee) : '—',
-    },
-    {
       id: 'dates.lastUpdate',
       label: 'Last Update',
       sortable: true,
       format: (_: any, row?: WarehouseInventory) =>
         row?.dates?.lastUpdate ? formatDateTime(row.dates.lastUpdate) : '—',
-    },
-    {
-      id: 'dates.earliestManufactureDate',
-      label: 'Earliest MFG Date',
-      sortable: true,
-      format: (_: any, row?: WarehouseInventory) =>
-        row?.dates?.earliestManufactureDate
-          ? formatDate(row.dates.earliestManufactureDate)
-          : '—',
-    },
-    {
-      id: 'dates.nearestExpiryDate',
-      label: 'Nearest Expiry',
-      sortable: true,
-      format: (_: any, row?: WarehouseInventory) =>
-        row?.dates?.nearestExpiryDate
-          ? formatDate(row.dates.nearestExpiryDate)
-          : '—',
     },
     {
       id: 'status.display',
@@ -199,18 +211,6 @@ const WarehouseInventoryTable: FC<WarehouseInventoryTableProps> = ({
       renderCell: renderExpirySeverityCell,
     },
     {
-      id: 'status.isExpired',
-      label: 'Expired',
-      sortable: true,
-      renderCell: renderIsExpiredCell,
-    },
-    {
-      id: 'status.isNearExpiry',
-      label: 'Near Expiry',
-      sortable: true,
-      renderCell: renderNearExpiryCell,
-    },
-    {
       id: 'status.displayNote',
       label: 'Display Note',
       sortable: false,
@@ -227,32 +227,10 @@ const WarehouseInventoryTable: FC<WarehouseInventoryTableProps> = ({
           : 'N/A',
     },
     {
-      id: 'audit.createdAt',
-      label: 'Created At',
-      sortable: true,
-      format: (_: any, row?: WarehouseInventory) =>
-        row?.audit?.createdAt ? formatDateTime(row.audit.createdAt) : 'N/A',
-    },
-    {
-      id: 'audit.updatedAt',
-      label: 'Updated At',
-      sortable: true,
-      format: (_: any, row?: WarehouseInventory) =>
-        row?.audit?.updatedAt ? formatDateTime(row.audit.updatedAt) : 'N/A',
-    },
-    {
-      id: 'audit.createdBy',
-      label: 'Created By',
-      sortable: true,
-      format: (_: any, row?: WarehouseInventory) =>
-        row?.audit?.createdBy || '—',
-    },
-    {
-      id: 'audit.updatedBy',
-      label: 'Updated By',
-      sortable: true,
-      format: (_: any, row?: WarehouseInventory) =>
-        row?.audit?.updatedBy || '—',
+      id: 'actions',
+      label: 'Actions',
+      align: 'center',
+      renderCell: renderActionsCell,
     },
   ];
 
@@ -268,6 +246,15 @@ const WarehouseInventoryTable: FC<WarehouseInventoryTableProps> = ({
         totalPages={totalPages}
         onPageChange={onPageChange}
         onRowsPerPageChange={onRowsPerPageChange}
+        expandable={true}
+        expandedRowIndex={expandedRowIndex}
+        expandedContent={renderExpandedContent}
+      />
+      
+      <WarehouseInventoryAuditDrawer
+        open={auditDrawerOpen}
+        onClose={() => setAuditDrawerOpen(false)}
+        data={selectedAuditRow}
       />
     </Box>
   );

@@ -3,29 +3,29 @@ import Drawer from '@mui/material/Drawer';
 import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
 import MetadataSection from '@components/common/MetadataSection';
-import type { WarehouseInventory } from '@features/warehouseInventory';
+import type { WarehouseInventoryDetailExtended } from '@features/warehouseInventory';
 import { formatDateTime } from '@utils/dateTimeUtils';
 import CustomTypography from '@components/common/CustomTypography.tsx';
 
 interface WarehouseInventoryAuditDrawerProps {
   open: boolean;
   onClose: () => void;
-  data: WarehouseInventory | null;
+  data: WarehouseInventoryDetailExtended | null;
 }
 
-const WarehouseInventoryAuditDrawer: FC<WarehouseInventoryAuditDrawerProps> = ({
+const WarehouseInventoryDetailsAuditDrawer: FC<WarehouseInventoryAuditDrawerProps> = ({
                                                                                  open,
                                                                                  onClose,
                                                                                  data,
                                                                                }) => {
   const metadata = useMemo(() => {
-    if (!data?.audit) return null;
+    if (!data) return null;
     
     return {
-      createdBy: data.audit.createdBy || 'Unknown',
-      createdDate: formatDateTime(data.audit.createdAt) || 'N/A',
-      updatedBy: data.audit.updatedBy || 'Unknown',
-      updatedDate: formatDateTime(data.audit.updatedAt) || 'N/A',
+      createdBy: data.lotCreatedBy || 'Unknown',
+      createdDate: formatDateTime(data.lotCreatedDate) || 'N/A',
+      updatedBy: data.lotUpdatedBy || 'Unknown',
+      updatedDate: formatDateTime(data.lotUpdatedDate) || 'N/A',
     };
   }, [data]);
   
@@ -46,4 +46,4 @@ const WarehouseInventoryAuditDrawer: FC<WarehouseInventoryAuditDrawerProps> = ({
   );
 };
 
-export default memo(WarehouseInventoryAuditDrawer);
+export default memo(WarehouseInventoryDetailsAuditDrawer);

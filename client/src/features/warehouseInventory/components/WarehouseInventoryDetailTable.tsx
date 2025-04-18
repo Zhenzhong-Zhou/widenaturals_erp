@@ -13,6 +13,7 @@ import MenuItem from '@mui/material/MenuItem';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import Skeleton from '@mui/material/Skeleton';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import IsExpiredChip from '@features/inventory/components/IsExpiredChip';
 import StockLevelChip from '@features/inventory/components/StockLevelChip';
 import ExpirySeverityChip from '@features/inventory/components/ExpirySeverityChip';
@@ -34,7 +35,8 @@ import {
   handleInventoryActivityLogRedirect,
   handleInventoryHistoryRedirect,
 } from '@utils/navigationUtils';
-import WarehouseInventoryAuditDrawer from '@features/warehouseInventory/components/WarehouseInventoryAuditDrawer';
+import WarehouseInventoryDetailsAuditDrawer
+  from '@features/warehouseInventory/components/WarehouseInventoryDetailsAuditDrawer';
 
 const WarehouseLotDetailsInlineSection = lazy(
   () => import('@features/warehouseInventory/components/WarehouseLotDetailsInlineSection')
@@ -312,7 +314,7 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
             handleAuditInfoClick(row);
           }}
         >
-          <InventoryIcon fontSize="small" />
+          <InfoOutlinedIcon fontSize="small" />
         </IconButton>
       </Tooltip>
     </Box>
@@ -485,7 +487,7 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
         expandedRowIndex={expandedRowIndex}
       />
       
-      <WarehouseInventoryAuditDrawer
+      <WarehouseInventoryDetailsAuditDrawer
         open={auditDrawerOpen}
         onClose={() => setAuditDrawerOpen(false)}
         data={selectedAuditRow}
