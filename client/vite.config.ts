@@ -125,6 +125,11 @@ export default defineConfig(({ mode }) => ({
             return 'components'; // fallback for other common components
           }
           
+          // --- Feature Chunks ---
+          if (id.includes('src/features/warehouseInventory')) return 'warehouse-inventory';
+          if (id.includes('src/features/order')) return 'order';
+          if (id.includes('src/features/report')) return 'report';
+          
           // --- Internal Code Splits ---
           if (id.includes('src/features/')) return 'features';
           if (id.includes('src/layouts/')) return 'layouts';

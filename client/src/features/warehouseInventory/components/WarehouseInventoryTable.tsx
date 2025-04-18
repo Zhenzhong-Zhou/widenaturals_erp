@@ -13,7 +13,7 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { useThemeContext } from '@context/ThemeContext.tsx';
 import WarehouseInventoryAuditDrawer
-  from '@features/warehouseInventory/components/WarehouseInventoryDetailsAuditDrawer.tsx';
+  from '@features/warehouseInventory/components/WarehouseInventoryAuditDrawer.tsx';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 
 const WarehouseInventoryInlineDetailsSection = lazy(
