@@ -409,68 +409,84 @@ const WarehouseInventoryDetailTable: FC<WarehouseInventoryDetailTableProps> = ({
   
   return (
     <Box>
-      <Paper sx={{ padding: 2, marginBottom: 3 }}>
-        <Checkbox
-          checked={
-            selectedLotIds.size > 0 && selectedLotIds.size === data.length
-          }
-          onChange={toggleSelectAll}
-          color="primary"
-        />
-        Select All
+      <Paper
+        elevation={1}
+        sx={{
+          p: 3,
+          mb: 3,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 2,
+          borderRadius: 2,
+          border: '1px solid',
+          borderColor: 'divider',
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Checkbox
+            checked={selectedLotIds.size > 0 && selectedLotIds.size === data.length}
+            onChange={toggleSelectAll}
+            color="primary"
+          />
+          <CustomTypography variant="body1" sx={{ fontWeight: 500 }}>
+            Select All
+          </CustomTypography>
+        </Box>
         <CustomTypography variant="h5">
           Warehouse Inventory Lots
         </CustomTypography>
         {/* Pass handleBulkInsertSubmit function to modal */}
-        <CustomButton
-          variant="contained"
-          color="primary"
-          startIcon={<InventoryIcon />}
-          onClick={() => {
-            setBulkInsertOpen(true);
-          }}
-          sx={{ marginTop: 2 }}
-        >
-          Bulk Insert Inventory
-        </CustomButton>
-        <BulkInsertInventoryModal
-          open={bulkInsertOpen}
-          onClose={() => setBulkInsertOpen(false)}
-          warehouseId={warehouseId}
-          onSubmit={handleBulkInsertSubmit}
-          mode={'create'}
-        />
-        <InsertedInventoryRecordsResponseDialog
-          insertedDataResponse={insertedDataResponse}
-          open={openDialog}
-          onClose={() => setOpenDialog(false)}
-        />
-        <CustomButton
-          variant="contained"
-          color="primary"
-          startIcon={<InventoryIcon />}
-          onClick={() => {
-            const selected = data
-              .filter((lot) => selectedLotIds.has(lot.warehouseInventoryLotId))
-              .map((lot) => ({
-                warehouseInventoryLotId: lot.warehouseInventoryLotId,
-                itemName: lot.itemName,
-                lotNumber: lot.lotNumber,
-                currentQuantity: lot.lotQuantity || 0,
-              }));
-
-            if (selected.length === 0) {
-              alert('Please select at least one lot.');
-              return;
-            }
-
-            setSelectedLots(selected);
-            setBulkAdjustOpen(true);
-          }}
-          sx={{ marginTop: 2 }}
-        >
-          Bulk Adjust Quantities
-        </CustomButton>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+          <CustomButton
+            variant="contained"
+            color="primary"
+            startIcon={<InventoryIcon />}
+            onClick={() => {
+              setBulkInsertOpen(true);
+            }}
+            sx={{ marginTop: 2 }}
+          >
+            Bulk Insert Inventory
+          </CustomButton>
+          <BulkInsertInventoryModal
+            open={bulkInsertOpen}
+            onClose={() => setBulkInsertOpen(false)}
+            warehouseId={warehouseId}
+            onSubmit={handleBulkInsertSubmit}
+            mode={'create'}
+          />
+          <InsertedInventoryRecordsResponseDialog
+            insertedDataResponse={insertedDataResponse}
+            open={openDialog}
+            onClose={() => setOpenDialog(false)}
+          />
+          <CustomButton
+            variant="contained"
+            color="primary"
+            startIcon={<InventoryIcon />}
+            onClick={() => {
+              const selected = data
+                .filter((lot) => selectedLotIds.has(lot.warehouseInventoryLotId))
+                .map((lot) => ({
+                  warehouseInventoryLotId: lot.warehouseInventoryLotId,
+                  itemName: lot.itemName,
+                  lotNumber: lot.lotNumber,
+                  currentQuantity: lot.lotQuantity || 0,
+                }));
+  
+              if (selected.length === 0) {
+                alert('Please select at least one lot.');
+                return;
+              }
+  
+              setSelectedLots(selected);
+              setBulkAdjustOpen(true);
+            }}
+            sx={{ marginTop: 2 }}
+          >
+            Bulk Adjust Quantities
+          </CustomButton>
+        </Box>
       </Paper>
       <CustomTable
         columns={columns}
