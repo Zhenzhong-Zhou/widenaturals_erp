@@ -11,13 +11,18 @@ export type {
   OrderDetailsResponse,
   OrderStatusUpdateResult,
   OrderStatusUpdateResponse,
+  AllocationEligibleOrderItem,
+  AllocationEligibleOrderDetailsResponse,
 } from './state/orderTypes';
+export * from '@features/order/state/utils/index';
 export {
   fetchOrderTypesDropDownThunk,
   createSalesOrderThunk,
   fetchAllOrdersThunk,
+  fetchAllocationEligibleOrdersThunk,
   fetchSalesOrderDetailsThunk,
   confirmSalesOrderThunk,
+  fetchAllocationEligibleOrderDetailsThunk,
 } from './state/orderThunks';
 export {
   selectOrderTypesDropdown,
@@ -41,7 +46,15 @@ export {
   selectOrdersPagination,
   selectOrdersByStatus,
   selectOrderById,
-} from './state/orderSelectors';
+} from './state/allOrderSelectors';
+export {
+  selectAllocationEligibleOrders,
+  selectAllocationEligibleOrdersLoading,
+  selectAllocationEligibleOrdersError,
+  selectAllocationEligibleOrdersPagination,
+  selectAllocationEligibleOrdersByStatus,
+  selectAllocationEligibleOrderById,
+} from '@features/order/state/allocationEligibleOrdersSelectors.ts';
 export {
   selectSalesOrderDetailsData,
   selectSalesOrderDetailsLoading,
@@ -58,3 +71,11 @@ export {
   selectConfirmOrderSuccessMessage,
 } from './state/confirmSalesOrderSelectors';
 export { orderReducers } from './state';
+export {
+  selectAllocationEligibleOrderDetails,
+  selectAllocationEligibleOrderLoading,
+  selectAllocationEligibleOrderError,
+  selectAllocationItems,
+  selectAllocatableItems,
+  selectAllocationOrderInfo,
+} from '@features/order/state/allocationEligibleOrderDetailsSelectors';

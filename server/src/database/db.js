@@ -36,47 +36,91 @@ pool.on('error', (err) => {
 });
 
 /**
- * Execute a query on the database and monitor for slow execution times.
- * @param {string} text - The SQL query string.
- * @param {Array} [params] - Query parameters (optional).
- * @param clientOrPool
- * @returns {Promise<object>} - The query result.
+ * Retry a function with exponential backoff.
+ *
+ * This utility is designed to handle transient issues, such as temporary database connectivity problems or external service failures.
+ * It retries the provided function a specified number of times, with an exponentially increasing delay between attempts.
+ *
+ * @param {Function} fn - The function to execute. It should return a Promise (e.g., a database query or API call).
+ * @param {number} [retries=3] - The maximum number of retry attempts before giving up.
+ * @param {number} [backoffFactor=1000] - The base delay (in milliseconds) for the exponential backoff. Default is 1000ms.
+ * @returns {Promise<any>} - Resolves with the result of the function if successful within the allowed retries.
+ * @throws {Error} - Throws the last error encountered if all retries are exhausted.
  */
-const query = async (text, params = [], clientOrPool = null) => {
-  const client = clientOrPool || (await pool.connect()); // Use the provided client or acquire a new one
-  const startTime = Date.now(); // Start timer for query execution
-  let shouldRelease = false;
+const retry = async (fn, retries = 3, backoffFactor = 1000) => {
+  let attempt = 0;
+  
+  const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+  
+  while (attempt < retries) {
+    try {
+      return await fn(); // Attempt to execute the function
+    } catch (error) {
+      attempt++;
+      logWarn(`Retry ${attempt}/${retries} failed: ${error.message}`, {
+        attempt,
+        retries,
+      });
+      
+      if (attempt === retries) {
+        throw AppError.serviceError('Function execution failed after retries', {
+          details: { error: error.message, attempts: attempt, retries },
+        });
+      }
+      
+      await delay(backoffFactor * Math.pow(2, attempt)); // Configurable exponential backoff
+    }
+  }
+};
 
-  try {
-    if (!clientOrPool) shouldRelease = true; // Mark for release only if acquired here
-    const result = await client.query(text, params); // Execute the query
-    const duration = Date.now() - startTime;
-
-    // Log slow queries
-    const slowQueryThreshold =
-      parseInt(process.env.SLOW_QUERY_THRESHOLD, 10) || 1000; // Default: 1000ms
-    if (duration > slowQueryThreshold) {
-      logWarn('Slow query detected', {
+/**
+ * Executes a PostgreSQL query with retry and slow query monitoring.
+ *
+ * @param {string} text - SQL query string.
+ * @param {Array} [params=[]] - Query parameters.
+ * @param {object|null} [clientOrPool=null] - Optional pg client for transaction use.
+ * @param {number} [retries=3] - Number of retry attempts.
+ * @param {number} [backoff=200] - Backoff in ms between retries.
+ * @returns {Promise<object>} - Query result.
+ * @throws {AppError} - Custom database error if all retries fail.
+ */
+const query = async (text, params = [], clientOrPool = null, retries = 3, backoff = 1000) => {
+  return retry(async () => {
+    const client = clientOrPool || (await pool.connect());
+    const shouldRelease = !clientOrPool;
+    const startTime = Date.now();
+    
+    try {
+      const result = await client.query(text, params);
+      const duration = Date.now() - startTime;
+      
+      const slowQueryThreshold = parseInt(process.env.SLOW_QUERY_THRESHOLD, 10) || 1000;
+      if (duration > slowQueryThreshold) {
+        logWarn('Slow query detected', {
+          query: text,
+          params,
+          duration: `${duration}ms`,
+        });
+      }
+      
+      logInfo('Query executed', { query: text, duration: `${duration}ms` });
+      return result;
+    } catch (error) {
+      logError('Query execution failed', {
         query: text,
         params,
-        duration: `${duration}ms`,
+        error: error.message,
       });
+      
+      throw AppError.databaseError('Database query failed', {
+        details: { query: text, params, error: error.message },
+      });
+    } finally {
+      if (shouldRelease && client) {
+        client.release();
+      }
     }
-
-    logInfo('Query executed', { query: text, duration: `${duration}ms` });
-    return result;
-  } catch (error) {
-    logError('Query execution failed', {
-      query: text,
-      params,
-      error: error.message,
-    });
-    throw AppError.databaseError('Database query failed', {
-      details: { query: text, params, error: error.message },
-    });
-  } finally {
-    if (shouldRelease) client.release(); // Release the client back to the pool only if acquired here
-  }
+  }, retries, backoff);
 };
 
 /**
@@ -185,44 +229,6 @@ const closePool = async () => {
         details: { error: error.message },
       }
     );
-  }
-};
-
-/**
- * Retry a function with exponential backoff.
- *
- * This utility is designed to handle transient issues, such as temporary database connectivity problems or external service failures.
- * It retries the provided function a specified number of times, with an exponentially increasing delay between attempts.
- *
- * @param {Function} fn - The function to execute. It should return a Promise (e.g., a database query or API call).
- * @param {number} [retries=3] - The maximum number of retry attempts before giving up.
- * @param {number} [backoffFactor=1000] - The base delay (in milliseconds) for the exponential backoff. Default is 1000ms.
- * @returns {Promise<any>} - Resolves with the result of the function if successful within the allowed retries.
- * @throws {Error} - Throws the last error encountered if all retries are exhausted.
- */
-const retry = async (fn, retries = 3, backoffFactor = 1000) => {
-  let attempt = 0;
-
-  const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-  while (attempt < retries) {
-    try {
-      return await fn(); // Attempt to execute the function
-    } catch (error) {
-      attempt++;
-      logWarn(`Retry ${attempt}/${retries} failed: ${error.message}`, {
-        attempt,
-        retries,
-      });
-
-      if (attempt === retries) {
-        throw AppError.serviceError('Function execution failed after retries', {
-          details: { error: error.message, attempts: attempt, retries },
-        });
-      }
-
-      await delay(backoffFactor * Math.pow(2, attempt)); // Configurable exponential backoff
-    }
   }
 };
 
@@ -795,13 +801,13 @@ const getStatusValue = async ({ table, where, select }, client) => {
 // Export the utilities
 module.exports = {
   pool,
+  retry,
   query,
   getClient,
   withTransaction,
   closePool,
   testConnection,
   monitorPool,
-  retry,
   retryDatabaseConnection,
   paginateQuery,
   getCountQuery,

@@ -112,3 +112,12 @@ LEFT JOIN warehouse_inventory wi ON i.id = wi.inventory_id
 LEFT JOIN warehouse_inventory_lots wil ON wi.warehouse_id = wil.warehouse_id AND i.id = wil.inventory_id
 GROUP BY i.product_id, p.product_name;
 
+┌───────────────────────────── Inventory Allocation ─────────────────────────────┐
+│ Product: Hair Health        Quantity Ordered: 30       Allocated: 25 / 30      │
+├────────────────────────────────────────────────────────────────────────────────┤
+│ Warehouse     | Lot #      | In Stock | Reserved | Available | Allocate | Note │
+├───────────────┼────────────┼──────────┼──────────┼───────────┼──────────┼──────┤
+│ Main WH       | LOT-123    | 100      | 20       | 80        |   [ 20 ] | ✅    │
+│ East WH       | LOT-234    | 10       | 5        | 5         |   [ 5  ] | ✅    │
+└────────────────────────────────────────────────────────────────────────────────┘
+[ Confirm Allocation ] [ Auto Allocate Best Fit ] [ Cancel ]

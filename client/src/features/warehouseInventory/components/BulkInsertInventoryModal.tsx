@@ -19,7 +19,7 @@ const BulkInsertInventoryModal: FC<{
   onSubmit: (data: Record<string, any>[]) => void;
   mode: 'create' | 'edit' | 'adjust';
 }> = ({ open, onClose, warehouseId, onSubmit, mode }) => {
-  const { products, loading, refreshProducts } =
+  const { products, productLoading, refreshProducts } =
     useProductsWarehouseDropdown(warehouseId); // Fetch products for the given warehouseId
 
   // Product dropdown options
@@ -97,7 +97,7 @@ const BulkInsertInventoryModal: FC<{
         flexDirection: 'column',
       }}
     >
-      {loading ? (
+      {productLoading ? (
         <Loading message={'Loading Data...'} />
       ) : (
         <Box style={{ maxHeight: '80vh', overflowY: 'auto', padding: '16px' }}>

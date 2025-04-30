@@ -9,7 +9,7 @@ import Loading from '@components/common/Loading';
 import OrderFormModal from '@features/order/components/OrderFormModal';
 import CreateSaleOrderForm from '@features/order/components/CreateSaleOrderForm';
 
-const OrdersTable = lazy(() => import('@features/order/components/OrdersTable'));
+const AllOrdersTable = lazy(() => import('@features/order/components/AllOrdersTable'));
 
 const OrderPage: FC = () => {
   const [selectedOrderType, setSelectedOrderType] = useState<{
@@ -117,7 +117,7 @@ const OrderPage: FC = () => {
         )}
       </OrderFormModal>
       <Suspense fallback={<Skeleton height={300} />}>
-        <OrdersTable refreshTrigger={refreshTrigger} />
+        <AllOrdersTable refreshTrigger={refreshTrigger} />
       </Suspense>
     </Box>
   );

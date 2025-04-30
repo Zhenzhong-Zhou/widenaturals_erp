@@ -7,6 +7,13 @@ const {
   verifyOrderNumber,
 } = require('../utils/order-number-utils');
 
+const allocationEligibleStatuses = [
+  'ORDER_CONFIRMED',
+  'ORDER_ALLOCATING',
+  'ORDER_ALLOCATED',
+  'ORDER_PARTIAL',
+];
+
 /**
  * Creates a general order in the `orders` table using raw SQL.
  * @param {Object} orderData - Order details.
@@ -350,6 +357,91 @@ const updateOrderData = async (orderId, updateData, client) => {
 };
 
 /**
+ * Shared logic for fetching orders with pagination, sorting, and optional filters.
+ *
+ * @param {Object} options - Query options for fetching orders.
+ * @param {number} [options.page=1] - Page number for pagination.
+ * @param {number} [options.limit=10] - Number of records per page.
+ * @param {string} [options.sortBy='created_at'] - Column to sort by.
+ * @param {string} [options.sortOrder='DESC'] - Sort order ('ASC' or 'DESC').
+ * @param {string} [options.extraWhereClause=''] - Optional extra WHERE condition to apply.
+ * @returns {Promise<Object>} - Paginated result of orders.
+ * @throws {AppError} - Throws a database error if query fails.
+ */
+const getOrdersWithFilters = async ({
+                                      page = 1,
+                                      limit = 10,
+                                      sortBy = 'created_at',
+                                      sortOrder = 'DESC',
+                                      extraWhereClause = '',
+                                    } = {}) => {
+  const tableName = 'orders o';
+  const joins = [
+    'JOIN order_types ot ON o.order_type_id = ot.id',
+    'JOIN order_status os ON o.order_status_id = os.id',
+    'LEFT JOIN users u1 ON o.created_by = u1.id',
+    'LEFT JOIN users u2 ON o.updated_by = u2.id',
+  ];
+  
+  const allowedSortFields = [
+    'order_number',
+    'category',
+    'name',
+    'order_date',
+    'created_at',
+    'updated_at',
+  ];
+  
+  const validatedSortBy = allowedSortFields.includes(sortBy)
+    ? `o.${sortBy}`
+    : 'o.created_at';
+  
+  const whereClause = ['1=1'];
+  if (extraWhereClause) {
+    whereClause.push(extraWhereClause);
+  }
+  
+  const baseQuery = `
+    SELECT
+      o.id,
+      o.order_number,
+      ot.name AS order_type,
+      o.order_date,
+      os.name AS status,
+      os.code AS status_code,
+      o.created_at,
+      o.updated_at,
+      o.note,
+      COALESCE(u1.firstname || ' ' || u1.lastname, 'Unknown') AS created_by,
+      COALESCE(u2.firstname || ' ' || u2.lastname, 'Unknown') AS updated_by
+    FROM ${tableName}
+    ${joins.join(' ')}
+    WHERE ${whereClause.join(' AND ')}
+  `;
+  
+  try {
+    return await retry(
+      () =>
+        paginateQuery({
+          tableName,
+          joins,
+          whereClause: whereClause.join(' AND '),
+          queryText: baseQuery,
+          params: [],
+          page,
+          limit,
+          sortBy: validatedSortBy,
+          sortOrder,
+        }),
+      3
+    );
+  } catch (error) {
+    logError('Error fetching orders:', error);
+    throw AppError.databaseError('Failed to fetch orders');
+  }
+};
+
+/**
  * Fetches all orders with pagination, sorting, and order number verification.
  * Applies retry logic for robustness.
  *
@@ -361,71 +453,25 @@ const updateOrderData = async (orderId, updateData, client) => {
  * @returns {Promise<Object>} - The paginated orders result.
  * @throws {AppError} - If the query fails or verification fails.
  */
-const getAllOrders = async ({
-  page = 1,
-  limit = 10,
-  sortBy = 'created_at',
-  sortOrder = 'DESC',
-} = {}) => {
-  const tableName = 'orders o';
-  const joins = [
-    'JOIN order_types ot ON o.order_type_id = ot.id',
-    'JOIN order_status os ON o.order_status_id = os.id',
-    'LEFT JOIN users u1 ON o.created_by = u1.id',
-    'LEFT JOIN users u2 ON o.updated_by = u2.id',
-  ];
-  const whereClause = '1=1';
+const getAllOrders = (options = {}) => {
+  return getOrdersWithFilters(options);
+};
 
-  const allowedSortFields = [
-    'order_number',
-    'category',
-    'name',
-    'order_date',
-    'created_at',
-    'updated_at',
-  ];
-
-  // Validate the sortBy field
-  const validatedSortBy = allowedSortFields.includes(sortBy)
-    ? `o.${sortBy}`
-    : 'o.created_at';
-
-  const baseQuery = `
-    SELECT
-      o.id,
-      o.order_number,
-      ot.name AS order_type,
-      o.order_date,
-      os.name AS status,
-      o.created_at,
-      o.updated_at,
-      o.note,
-      COALESCE(u1.firstname || ' ' || u1.lastname, 'Unknown') AS created_by,
-      COALESCE(u2.firstname || ' ' || u2.lastname, 'Unknown') AS updated_by
-    FROM ${tableName}
-    ${joins.join(' ')}
-  `;
-
-  try {
-    return await retry(
-      () =>
-        paginateQuery({
-          tableName,
-          joins,
-          whereClause,
-          queryText: baseQuery,
-          params: [],
-          page,
-          limit,
-          sortBy: validatedSortBy,
-          sortOrder,
-        }),
-      3 // Retry up to 3 times
-    );
-  } catch (error) {
-    logError('Error fetching all orders:', error);
-    throw AppError.databaseError('Failed to fetch all orders');
-  }
+/**
+ * Fetches orders eligible for inventory allocation (based on status codes).
+ *
+ * @param {Object} options - Query options for fetching orders.
+ * @param {number} [options.page=1] - Page number for pagination.
+ * @param {number} [options.limit=10] - Number of records per page.
+ * @param {string} [options.sortBy='created_at'] - Column to sort by.
+ * @param {string} [options.sortOrder='DESC'] - Sort order ('ASC' or 'DESC').
+ * @returns {Promise<Object>} - Paginated result of allocation-eligible orders.
+ */
+const getAllocationEligibleOrders = (options = {}) => {
+  return getOrdersWithFilters({
+    ...options,
+    extraWhereClause: `os.code = ANY(ARRAY['${allocationEligibleStatuses.join("','")}'])`
+  });
 };
 
 /**
@@ -457,7 +503,7 @@ const getOrderStatusAndItems = async (orderId, client) => {
   `;
 
   try {
-    const result = await retry(() => query(sql, [orderId], client));
+    const result = await query(sql, [orderId], client);
 
     if (!result.rows || result.rows.length === 0) {
       return null;
@@ -584,12 +630,60 @@ const updateOrderAndItemStatus = async (
   }
 };
 
+/**
+ * Fetch lightweight order and item details for inventory allocation.
+ *
+ * Includes order metadata, order item inventory links, and related product info.
+ * Only returns results for confirmed orders.
+ *
+ * @param {string} orderId - The ID of the order to fetch.
+ * @returns {Promise<Array>} - An array of allocation-ready order item details.
+ * @throws {Error} - Throws an error if the query fails.
+ */
+const getOrderAllocationDetailsById = async (orderId) => {
+  const sql = `
+    SELECT
+      o.id AS order_id,
+      o.order_number,
+      o.order_status_id,
+      os.name AS order_status,
+      os.code AS order_status_code,
+      o.created_by,
+      oi.id AS order_item_id,
+      oi.inventory_id,
+      oi.quantity_ordered,
+      i.product_id,
+      i.identifier AS inventory_identifier,
+      wi.available_quantity,
+      p.product_name,
+      p.barcode
+    FROM orders o
+    JOIN order_status os ON o.order_status_id = os.id
+    JOIN order_items oi ON o.id = oi.order_id
+    JOIN warehouse_inventory wi ON oi.inventory_id = wi.inventory_id
+    JOIN inventory i ON oi.inventory_id = i.id
+    JOIN products p ON i.product_id = p.id
+    WHERE o.id = $1
+      AND os.code = ANY($2::text[]);
+  `;
+  
+  try {
+    const result = await query(sql, [orderId, allocationEligibleStatuses]);
+    return result.rows;
+  } catch (error) {
+    logError('Error fetching order allocation details:', error);
+    throw AppError.databaseError('Failed to fetch order allocation details');
+  }
+};
+
 module.exports = {
   createOrder,
   getOrderDetailsById,
   updateOrderData,
   getAllOrders,
+  getAllocationEligibleOrders,
   getOrderStatusAndItems,
   getOrderAndItemStatusCodes,
   updateOrderAndItemStatus,
+  getOrderAllocationDetailsById,
 };

@@ -1,7 +1,7 @@
 const {
   createOrder,
   getOrderDetailsById,
-  getAllOrders,
+  getAllOrders, getAllocationEligibleOrders, getOrderAllocationDetailsById,
 } = require('../repositories/order-repository');
 const { createSalesOrder } = require('../repositories/sales-order-repository');
 const {
@@ -12,8 +12,8 @@ const AppError = require('../utils/AppError');
 const { logError } = require('../utils/logger-helper');
 const {
   transformOrderDetails,
-  transformAllOrders,
-  transformUpdatedOrderStatusResult,
+  transformOrders,
+  transformUpdatedOrderStatusResult, transformOrderAllocationDetails,
 } = require('../transformers/order-transformer');
 const {
   applyOrderDetailsBusinessLogic,
@@ -22,6 +22,8 @@ const {
   canConfirmOrder,
 } = require('../business/order-business');
 const { withTransaction } = require('../database/db');
+const { verifyOrderNumber } = require('../utils/order-number-utils');
+const { checkPermissions } = require('./role-permission-service');
 
 /**
  * Creates an order dynamically based on its type.
@@ -94,42 +96,79 @@ const fetchOrderDetails = async (orderId, user) => {
 };
 
 /**
- * Service function to fetch all orders with verification and transformation.
+ * Internal helper to fetch, transform, and validate orders from a given fetch function.
  *
- * @param {Object} options - Fetch options for the query.
- * @param {number} options.page - The current page number (default: 1).
- * @param {number} options.limit - The number of orders per page (default: 10).
- * @param {string} options.sortBy - The column to sort the results by (default: 'created_at').
- * @param {string} options.sortOrder - The order of sorting ('ASC' or 'DESC', default: 'DESC').
- * @param {boolean} options.verifyOrderNumbers - Whether to verify order numbers using checksum (default: true).
- * @returns {Promise<Object>} - The paginated orders result with transformed data.
+ * @param {Function} fetchFn - The repository function to fetch raw order data.
+ * @param {Object} options - The query and transformation options.
+ * @param {object} [options.user] - The user object (must include `id` and `role`) for permission checks.
+ * @param {string[]} [options.requiredPermissions] - Permissions required to access the order data.
+ * @param {boolean} [options.requireAllPermissions=false] - Whether to require all permissions (vs. any).
+ * @returns {Promise<Object>} - Transformed and optionally validated order data.
  */
-const fetchAllOrdersService = async ({
-  page = 1,
-  limit = 10,
-  sortBy = 'created_at',
-  sortOrder = 'DESC',
-  verifyOrderNumbers = true,
-} = {}) => {
+const handleOrderServiceFetch = async (
+  fetchFn,
+  {
+    page = 1,
+    limit = 10,
+    sortBy = 'created_at',
+    sortOrder = 'DESC',
+    verifyOrderNumbers = true,
+    user,
+    requiredPermissions = [],
+    requireAllPermissions = false,
+  } = {}
+) => {
   try {
-    // Fetching raw order data from repository
-    const result = await getAllOrders({ page, limit, sortBy, sortOrder });
-
-    // Transforming the raw data
-    const transformedOrders = transformAllOrders(result.data);
-
-    // Validating order numbers
+    // Permission check if requiredPermissions are defined
+    if (user && requiredPermissions.length > 0) {
+      const hasAccess = await checkPermissions(user, requiredPermissions, {
+        requireAll: requireAllPermissions,
+      });
+      
+      if (!hasAccess) {
+        throw AppError.authorizationError('You do not have permission to access these orders.');
+      }
+    }
+    
+    // Fetch, transform, validate
+    const result = await fetchFn({ page, limit, sortBy, sortOrder });
+    
+    const transformedOrders = transformOrders(result.data);
+    
     const validatedOrders = validateOrderNumbers(
       transformedOrders,
       verifyOrderNumbers
     );
-
+    
     return { ...result, data: validatedOrders };
   } catch (error) {
-    logError('Error fetching all orders:', error);
-    throw AppError.databaseError('Failed to fetch all orders');
+    logError('Error in order service fetch:', error);
+    throw AppError.databaseError('Failed to fetch orders');
   }
 };
+
+/**
+ * Service function to fetch all orders with transformation and verification.
+ */
+const fetchAllOrdersService = (options = {}) =>
+  handleOrderServiceFetch(getAllOrders, {
+    ...options,
+    requiredPermissions: ['view_all_order_details'],
+  });
+
+/**
+ * Service function to fetch orders eligible for inventory allocation,
+ * including confirmed, allocating, allocated, and partially fulfilled statuses.
+ *
+ * @param {Object} options - Query options for fetching orders.
+ * @returns {Promise<Object>} - Paginated and filtered list of allocation-eligible orders.
+ */
+const fetchAllocationEligibleOrdersService = (options = {}) =>
+  handleOrderServiceFetch(getAllocationEligibleOrders, {
+    ...options,
+    requiredPermissions: ['view_allocation_details', 'view_full_sales_order_details'],
+    requireAllPermissions: false, // only one is needed
+  });
 
 /**
  * Service to confirm an order and its associated order items.
@@ -165,9 +204,45 @@ const confirmOrderService = async (orderId, user) => {
   });
 };
 
+/**
+ * Fetch and transform an order eligible for inventory allocation,
+ * ensuring the order exists, is in a valid status, and the user has access.
+ *
+ * @param {string} orderId - The order ID.
+ * @param {object} user - The current user performing the request.
+ * @returns {Promise<object>} - Transformed order with items.
+ * @throws {AppError} - If the order is not allocation-eligible or permissions fail.
+ */
+const fetchAllocationEligibleOrderDetails = async (orderId, user) => {
+  const rows = await getOrderAllocationDetailsById(orderId);
+  const order = transformOrderAllocationDetails(rows);
+  
+  if (!order) {
+    throw AppError.notFoundError('Order not found or not confirmed.');
+  }
+  
+  const isValid = verifyOrderNumber(order.order_number);
+  
+  if (!isValid) {
+    const canViewInvalid = await checkPermissions(user, [
+      'root_access',
+      'view_all_order_details',
+      'view_order_allocation_details',
+    ]);
+    
+    if (!canViewInvalid) {
+      throw AppError.validationError('Order number is invalid or not found.');
+    }
+  }
+  
+  return order;
+};
+
 module.exports = {
   createOrderByType,
   fetchOrderDetails,
   fetchAllOrdersService,
+  fetchAllocationEligibleOrdersService,
   confirmOrderService,
+  fetchAllocationEligibleOrderDetails,
 };

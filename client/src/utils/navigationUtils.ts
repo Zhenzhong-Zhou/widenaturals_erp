@@ -1,4 +1,6 @@
 import type { NavigateFunction } from 'react-router-dom';
+import { getOrderTypeSlug } from '@utils/slugUtils.ts';
+import type { Order } from '@features/order';
 
 /**
  * Handles dynamic navigation for different reports based on warehouse, inventory, and lot parameters.
@@ -73,4 +75,32 @@ export const handleInventoryHistoryRedirect = (
 
   // Navigate to the generated path
   navigate(path);
+};
+
+/**
+ * Generates the appropriate route path for an order based on its status and type.
+ *
+ * @param row - The order object containing status_code, order_type, and id
+ * @returns A string route path directing to the correct page (edit, confirmed view, or default view)
+ *
+ * Examples:
+ * - ORDER_PENDING or ORDER_EDITED → /orders/:type/:id/edit
+ * - ORDER_CONFIRMED → /orders/:type/:id/allocate
+ * - All other statuses → /orders/:type/:id
+ */
+export const getOrderRoutePath = (row: Order): string => {
+  const orderTypeSlug = getOrderTypeSlug(row.order_type);
+  
+  switch (row.status_code) {
+    case 'ORDER_PENDING':
+    case 'ORDER_EDITED':
+      return`/orders/${orderTypeSlug}/${row.id}/edit`
+    case 'ORDER_CONFIRMED':
+    case 'ORDER_ALLOCATING':
+    case 'ORDER_ALLOCATED':
+    case 'ORDER_PARTIAL':
+      return `/orders/${orderTypeSlug}/${row.id}/allocate`;
+    default:
+      return `/orders/${orderTypeSlug}/${row.id}`;
+  }
 };

@@ -34,6 +34,7 @@ export const API_ENDPOINTS = {
   WAREHOUSE_INVENTORY_BULK_INSERT: '/inventories/add-inventory-records',
   WAREHOUSE_INVENTORY_LOT_INSERT_RESPONSE:
     '/warehouse-inventory-lots/inventory-records/recent-inserts',
+  WAREHOUSE_INVENTORY_LOT_INVENTORY_AVAILABLE: '/warehouse-inventory-lots/inventory/:inventoryId/lots',
   WAREHOUSE_INVENTORY_ADJUSTMENTS_REPORT: '/reports/adjustments',
   WAREHOUSE_INVENTORY_ACTIVITY_LOGS: '/reports/inventory-activity-logs',
   INVENTORY_HISTORY: '/reports/inventory-history',
@@ -45,6 +46,7 @@ export const API_ENDPOINTS = {
   CUSTOMER_DETAILS: '/customers/:id',
   CUSTOMERS_DROPDOWN: '/customers/dropdown',
   ALL_ORDERS: '/orders',
+  ALLOCATION_ELIGIBLE_ORDERS: '/orders/allocation-eligible',
   CREATE_SALES_ORDERS: '/orders/order-types/:orderTypeId',
   CONFIRM_SALES_ORDER: '/orders/:orderId/confirm',
   DISCOUNTS_DROPDOWN: '/discounts/dropdown',
@@ -54,4 +56,6 @@ export const API_ENDPOINTS = {
   PRICING_TYPES_DROPDOWN: '/pricing-types/dropdown',
   PRICE_VALUE: '/pricings/fetch-price',
   SALES_ORDER_DETAILS: '/orders/sales-order/details/:id',
+  ALLOCATION_ELIGIBLE_ORDER_DETAILS: '/orders/:id/allocation',
+  INVENTORY_ALLOCATION_EXECUTE: '/inventory-allocation/allocate/:id',
 };

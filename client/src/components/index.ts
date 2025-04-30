@@ -28,3 +28,4 @@ export { default as NoDataFound } from './common/NoDataFound';
 export { default as GoBackButton } from './common/GoBackButton';
 export { default as CustomPhoneInput } from './common/CustomPhoneInput';
 export { default as DetailsSection } from './common/DetailsSection';
+export { default as CustomMiniTable } from './common/CustomMiniTable';

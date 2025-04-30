@@ -3,7 +3,7 @@ const {
 } = require('../business/inventory-allocation-business');
 const AppError = require('../utils/AppError');
 const { withTransaction } = require('../database/db');
-const { logError } = require('../utils/logger-helper');
+const { logError, logInfo } = require('../utils/logger-helper');
 
 /**
  * Service wrapper for inventory allocation.
@@ -58,6 +58,13 @@ const allocateMultipleInventoryItems = async ({
           );
         }
         
+        // Log only when allowPartial is inferred due to lotIds
+        if (item.lotIds?.length && item.allowPartial === undefined) {
+          logInfo(
+            `Manual lotIds passed for inventory ${inventoryId}, but allowPartial flag is missing. This may cause allocation to fail if lots are insufficient.`
+          );
+        }
+        
         const allocation = await allocateInventory({
           orderId,
           warehouseId,
@@ -65,6 +72,8 @@ const allocateMultipleInventoryItems = async ({
           quantity,
           strategy: strategy || defaultStrategy,
           userId,
+          lotIds: item.lotIds || [],
+          allowPartial: item.allowPartial ?? (item.lotIds?.length > 0),
           client, // Pass client if supported in business logic
         });
         

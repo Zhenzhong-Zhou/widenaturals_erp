@@ -14,6 +14,9 @@ import type {
 } from '@features/warehouseInventory';
 import { AppError } from '@utils/AppError';
 import type { InventoryRecordInsertResponse } from '@features/warehouseInventory/state';
+import type {
+  AvailableInventoryLotsResponse, FetchAvailableInventoryRequest,
+} from '@features/inventoryAllocation';
 
 /**
  * Fetches all warehouse inventories with pagination.
@@ -206,6 +209,34 @@ const getInsertedInventoryRecords = async (
   }
 };
 
+/**
+ * Fetches available inventory lots for a specific inventory item.
+ *
+ * @param params - Object containing `inventoryId` as a path param, `warehouseId` and optional `strategy` as query params.
+ * @returns A promise that resolves to an `AvailableInventoryLotsResponse` object or `null` if an error occurs.
+ */
+export const fetchAvailableInventoryLots = async (
+  params: FetchAvailableInventoryRequest
+): Promise<AvailableInventoryLotsResponse | null> => {
+  try {
+    const endpoint = API_ENDPOINTS.WAREHOUSE_INVENTORY_LOT_INVENTORY_AVAILABLE.replace(
+      ':inventoryId',
+      params.inventoryId
+    );
+    const response = await axiosInstance.get<AvailableInventoryLotsResponse>(endpoint, {
+      params: {
+        warehouseId: params.warehouseId,
+        strategy: params.strategy,
+      },
+    });
+    
+    return response.data;
+  } catch (error: any) {
+    console.error('Error fetching available inventory lots:', error);
+    return null;
+  }
+};
+
 // Export the service
 export const warehouseInventoryService = {
   fetchAllWarehouseInventories,
@@ -216,4 +247,5 @@ export const warehouseInventoryService = {
   bulkAdjustWarehouseInventoryLotQty,
   bulkInsertInventory,
   getInsertedInventoryRecords,
+  fetchAvailableInventoryLots
 };

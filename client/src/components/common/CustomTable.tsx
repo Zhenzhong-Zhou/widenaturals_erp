@@ -10,6 +10,7 @@ import TableSortLabel from '@mui/material/TableSortLabel';
 import Paper from '@mui/material/Paper';
 import Skeleton from '@mui/material/Skeleton';
 import Collapse from '@mui/material/Collapse';
+import NoDataFound from '@components/common/NoDataFound';
 import { useThemeContext } from '@context/ThemeContext';
 
 export interface Column<T = any> {
@@ -36,6 +37,7 @@ interface CustomTableProps<T = any> {
   expandable?: boolean;
   expandedContent?: (row: T) => ReactNode;
   expandedRowIndex?: number | null;
+  emptyMessage?: string;
 }
 
 const CustomTable = <T extends Record<string, any>>({
@@ -52,6 +54,7 @@ const CustomTable = <T extends Record<string, any>>({
                                              expandable = false,
                                              expandedContent,
                                              expandedRowIndex,
+                                             emptyMessage,
                                            }: CustomTableProps<T>) => {
   const { theme } = useThemeContext();
   const [order, setOrder] = useState<'asc' | 'desc'>('asc');
@@ -150,9 +153,15 @@ const CustomTable = <T extends Record<string, any>>({
                     <Skeleton variant="rectangular" height={48} animation="wave" />
                   </TableCell>
                 </TableRow>
-              ))
-              : sortedData.map((row, rowIndex) => (
-                <Fragment key={rowIndex}>
+              )) : sortedData.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={columns.length + 1} align="center" sx={{ py: 3 }}>
+                    <NoDataFound message={emptyMessage} />
+                  </TableCell>
+                </TableRow>
+              ) : (
+                sortedData.map((row, rowIndex) => (
+                  <Fragment key={rowIndex}>
                   <TableRow
                     sx={{
                       '&:nth-of-type(odd)': {
@@ -184,7 +193,8 @@ const CustomTable = <T extends Record<string, any>>({
                     </TableRow>
                   )}
                 </Fragment>
-              ))}
+                ))
+              )}
           </TableBody>
         </Table>
       </TableContainer>

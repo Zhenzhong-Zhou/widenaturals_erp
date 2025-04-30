@@ -81,9 +81,7 @@ const getWarehouseLotAdjustmentType = async (client, { id, name }) => {
   return await retry(
     async () => {
       try {
-        const { rows } = client
-          ? await query(queryText, [id || null, name || null])
-          : await client.query(queryText, [id || null, name || null]);
+        const { rows } = await query(queryText, [id || null, name || null], client);
         return rows.length > 0 ? rows[0] : null;
       } catch (error) {
         logError(

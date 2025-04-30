@@ -241,8 +241,14 @@ export interface WarehouseDropdownItem {
 export interface DropdownState {
   products: ProductDropdownItem[];
   warehouses: WarehouseDropdownItem[];
-  loading: boolean;
-  error: string | null;
+  loading: {
+    products: boolean;
+    warehouses: boolean;
+  };
+  error: {
+    products: string | null;
+    warehouses: string | null;
+  };
 }
 
 // Request Data Interface

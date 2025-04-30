@@ -52,13 +52,16 @@ export { default as useWarehouseItemSummary } from './useWarehouseItemSummary';
 export { default as useCompliances } from './useCompliances';
 export { default as useAdjustmentReport } from './useAdjustmentReport';
 
-// --- Orders ---
-export { default as useOrders } from './useOrders';
+// --- Orders & Process ---
+export { default as useAllOrders } from './useAllOrders';
+export { default as useAllocationEligibleOrders } from './useAllocationEligibleOrders';
 export { default as useSalesOrders } from './useSalesOrders';
 export { default as useConfirmSalesOrder } from './useConfirmSalesOrder';
 export { default as useSalesOrderDetails } from './useSalesOrderDetails';
 export { default as useOrderTypes } from './useOrderTypes';
 export { default as useOrderTypesDropdown } from './useOrderTypesDropdown';
+export { default as useAvailableInventoryLots } from './useAvailableInventoryLots';
+export { default as useAllocationEligibleOrderDetails } from './useAllocationEligibleOrderDetails';
 
 // --- Customer & Dropdowns ---
 export { default as useCustomers } from './useCustomers';

@@ -1,12 +1,13 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { dropdownService } from '@services/dropdownService';
-import type {
-  CreateSalesOrderResponse,
-  FetchOrdersParams,
-  OrderDetailsResponse,
-  OrderStatusUpdateResponse,
-  OrderType,
-  SalesOrder,
+import {
+  type AllocationEligibleOrderDetailsResponse,
+  createOrderThunk,
+  type CreateSalesOrderResponse,
+  type OrderDetailsResponse,
+  type OrderStatusUpdateResponse,
+  type OrderType,
+  type SalesOrder,
 } from '@features/order';
 import { orderService } from '@services/orderService';
 
@@ -39,16 +40,14 @@ export const createSalesOrderThunk = createAsyncThunk<
   }
 );
 
-// Thunk for fetching all orders
-export const fetchAllOrdersThunk = createAsyncThunk(
+export const fetchAllOrdersThunk = createOrderThunk(
   'orders/fetchAllOrders',
-  async (params: FetchOrdersParams, { rejectWithValue }) => {
-    try {
-      return await orderService.fetchAllOrders(params);
-    } catch (error: any) {
-      return rejectWithValue(error.message);
-    }
-  }
+  orderService.fetchAllOrders
+);
+
+export const fetchAllocationEligibleOrdersThunk = createOrderThunk(
+  'orders/fetchAllocationEligibleOrders',
+  orderService.fetchAllocationEligibleOrders
 );
 
 /**
@@ -91,3 +90,35 @@ export const confirmSalesOrderThunk = createAsyncThunk<
     );
   }
 });
+
+/**
+ * Thunk to fetch allocation-eligible order details for inventory allocation.
+ *
+ * This async thunk calls the `fetchAllocationEligibleOrderDetails` service,
+ * which retrieves allocation-relevant order data (e.g., product, inventory info)
+ * for a given order ID, provided it is in an allocation-eligible status.
+ *
+ * The result is expected to be used in inventory reservation or fulfillment flows.
+ *
+ * @param orderId - The ID of the order to fetch
+ * @returns An `AllocationEligibleOrderDetailsResponse` if successful
+ * @throws A rejected action with error message if the fetch fails
+ *
+ * @example
+ * dispatch(fetchAllocationEligibleOrderDetailsThunk('order-id-123'));
+ */
+export const fetchAllocationEligibleOrderDetailsThunk = createAsyncThunk<
+  AllocationEligibleOrderDetailsResponse,
+  string,
+  { rejectValue: string }
+>(
+  'orders/fetchAllocationEligibleOrderDetails',
+  async (orderId, { rejectWithValue }) => {
+    try {
+      return await orderService.fetchAllocationEligibleOrderDetails(orderId);
+    } catch (error: any) {
+      console.error('Thunk error:', error);
+      return rejectWithValue(error.message ?? 'Failed to load order allocation data.');
+    }
+  }
+);

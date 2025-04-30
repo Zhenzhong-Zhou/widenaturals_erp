@@ -1,6 +1,7 @@
 import axiosInstance from '@utils/axiosConfig';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 import type {
+  AllocationEligibleOrderDetailsResponse,
   CreateSalesOrderResponse,
   FetchOrdersParams,
   OrderDetailsResponse,
@@ -36,26 +37,39 @@ export const createSalesOrder = async (
 };
 
 /**
- * Fetch all orders from the server with optional parameters for pagination, sorting, and order number verification.
+ * Generic function to fetch orders from a given endpoint with optional parameters.
  *
- * @param {FetchOrdersParams} params - The parameters for fetching orders, including pagination, sorting, and order number verification.
- * @returns {Promise<OrdersResponse>} - A promise resolving to the orders data and pagination information.
- * @throws {Error} - Throws an error if the request fails.
+ * @param {string} endpoint - The API endpoint to fetch from.
+ * @param {FetchOrdersParams} params - Query parameters for pagination, sorting, etc.
+ * @returns {Promise<OrdersResponse>} - The fetched orders and pagination info.
+ * @throws {Error} - If the request fails.
  */
-const fetchAllOrders = async (
+const fetchOrdersByEndpoint = async (
+  endpoint: string,
   params: FetchOrdersParams
 ): Promise<OrdersResponse> => {
   try {
-    const response = await axiosInstance.get<OrdersResponse>(
-      API_ENDPOINTS.ALL_ORDERS,
-      { params }
-    );
+    const response = await axiosInstance.get<OrdersResponse>(endpoint, { params });
     return response.data;
   } catch (error) {
-    console.error('Error fetching all orders:', error);
+    console.error(`Error fetching orders from ${endpoint}:`, error);
     throw new Error('An error occurred while fetching orders.');
   }
 };
+
+/**
+ * Fetch all orders from the server.
+ */
+const fetchAllOrders = (params: FetchOrdersParams): Promise<OrdersResponse> =>
+  fetchOrdersByEndpoint(API_ENDPOINTS.ALL_ORDERS, params);
+
+/**
+ * Fetch allocation-eligible orders from the server.
+ *
+ * Includes orders in statuses like CONFIRMED, ALLOCATING, ALLOCATED, and PARTIAL.
+ */
+const fetchAllocationEligibleOrders = (params: FetchOrdersParams): Promise<OrdersResponse> =>
+  fetchOrdersByEndpoint(API_ENDPOINTS.ALLOCATION_ELIGIBLE_ORDERS, params);
 
 /**
  * Fetch Sales Order Details
@@ -114,9 +128,33 @@ const confirmSalesOrder = async (
   }
 };
 
+/**
+ * Fetches allocation-eligible order details for inventory allocation.
+ *
+ * @param {string} orderId - The ID of the order.
+ * @returns {Promise<AllocationEligibleOrderDetailsResponse>} - Transformed allocation data.
+ * @throws {Error} - If the request fails.
+ */
+export const fetchAllocationEligibleOrderDetails = async (
+  orderId: string
+): Promise<AllocationEligibleOrderDetailsResponse> => {
+  try {
+    const endpoint = API_ENDPOINTS.ALLOCATION_ELIGIBLE_ORDER_DETAILS.replace(':id', orderId);
+    const response = await axiosInstance.get<AllocationEligibleOrderDetailsResponse>(endpoint);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching allocation-eligible order details:', error);
+    throw new Error(
+      'Failed to fetch allocation details. Please try again later.'
+    );
+  }
+};
+
 export const orderService = {
   createSalesOrder,
   fetchAllOrders,
+  fetchAllocationEligibleOrders,
   fetchSalesOrderDetails,
   confirmSalesOrder,
+  fetchAllocationEligibleOrderDetails,
 };

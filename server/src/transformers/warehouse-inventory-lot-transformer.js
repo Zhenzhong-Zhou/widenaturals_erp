@@ -58,10 +58,12 @@ const transformInventoryLot = (row) => {
     inboundDate: row.inbound_date,
     manufactureDate: row.manufacture_date,
     expiryDate: row.expiry_date,
-    quantity,
+    lotQuantity: quantity,
     reservedQuantity: reserved,
     availableQuantity: available,
+    inventoryId: row.inventory_id,
     itemName, // ← Combined fallback name
+    warehouseId: row.warehouse_id,
     warehouseName: row.warehouse_name,
     status: available <= 0 ? 'out_of_stock' : 'in_stock',
     isNearExpiry:

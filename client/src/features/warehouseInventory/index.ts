@@ -78,10 +78,12 @@ export { resetLotAdjustmentState } from './state/lotAdjustmentQtySlice';
 export { default as EditQuantityModal } from './components/EditQuantityModal';
 export { default as BulkAdjustQuantityModal } from './components/BulkAdjustQuantityModal';
 export {
-  selectDropdownLoading,
+  selectProductDropdownLoading,
+  selectWarehouseDropdownLoading,
   selectProductDropdown,
   selectWarehouseDropdown,
-  selectDropdownError,
+  selectProductDropdownError,
+  selectWarehouseDropdownError,
   selectDropdownData,
 } from './state/inventoryDropdownSelectors';
 export { default as InventoryDropdown } from './components/InventoryDropdown';

@@ -1,11 +1,12 @@
 const AppError = require('../utils/AppError');
+
 /**
- * Transforms raw order data into a structured format.
+ * Transforms raw order data into a consistent format.
  *
  * @param {Array} rawData - Raw order data fetched from the repository.
  * @returns {Array} - Transformed order data.
  */
-const transformAllOrders = (rawData) => {
+const transformOrders = (rawData) => {
   if (!Array.isArray(rawData)) return [];
 
   return rawData.map((order) => ({
@@ -15,6 +16,7 @@ const transformAllOrders = (rawData) => {
     category: order.category,
     order_date: order.order_date,
     status: order.status,
+    status_code: order.status_code,
     note: order.note || '',
     created_at: order.created_at || null,
     updated_at: order.updated_at || null,
@@ -218,10 +220,48 @@ const transformUpdatedOrderStatusResult = ({
   };
 };
 
+/**
+ * Transform flat DB rows into structured order allocation format.
+ *
+ * @param {Array} rows - Flat result from the order allocation SQL query.
+ * @returns {object|null} - Structured order with nested items, or null if not found.
+ */
+const transformOrderAllocationDetails = (rows) => {
+  if (!Array.isArray(rows) || rows.length === 0) return null;
+  
+  const base = rows[0];
+  
+  return {
+    order_id: base.order_id,
+    order_number: base.order_number,
+    order_status_id: base.order_status_id,
+    order_status: base.order_status,
+    order_status_code: base.order_status_code,
+    created_by: base.created_by,
+    items: rows.map((row) => {
+      const item_name = row.product_name?.trim() || row.inventory_identifier?.trim() || 'Unnamed Item';
+      
+      return {
+        order_item_id: row.order_item_id,
+        inventory_id: row.inventory_id,
+        product_id: row.product_id ?? null,
+        barcode: row.barcode ?? null,
+        item_name,
+        quantity_ordered: Number(row.quantity_ordered) || 0,
+        available_quantity:
+          row.available_quantity !== null && row.available_quantity !== undefined
+            ? Number(row.available_quantity)
+            : null,
+      };
+    }),
+  };
+};
+
 module.exports = {
-  transformAllOrders,
+  transformOrders,
   transformOrderDetails,
   transformOrderStatusAndItems,
   transformOrderStatusCodes,
   transformUpdatedOrderStatusResult,
+  transformOrderAllocationDetails,
 };

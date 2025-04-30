@@ -19,3 +19,4 @@ export { reportService } from './reportService';
 export { orderTypeService } from './orderTypeService';
 export { customerService } from './customerService';
 export { orderService } from './orderService';
+export { inventoryAllocationService } from './inventoryAllocationService';

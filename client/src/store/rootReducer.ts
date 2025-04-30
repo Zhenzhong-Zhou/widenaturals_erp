@@ -24,6 +24,7 @@ import { taxRateReducers } from '@features/taxRate';
 import { userReducers } from '@features/user';
 import { warehouseReducers } from '@features/warehouse';
 import { warehouseInventoryReducers } from '@features/warehouseInventory';
+import { inventoryAllocationReducers } from '@features/inventoryAllocation';
 
 // Use helper to combine
 const appReducer = combineReducers(
@@ -51,10 +52,11 @@ const appReducer = combineReducers(
     warehouseReducers,
     warehouseInventoryReducers,
 
-    // Orders
+    // Orders && Process
     orderTypeReducers,
     orderReducers,
-
+    inventoryAllocationReducers,
+    
     // Reporting
     reportReducers,
 

@@ -1,5 +1,5 @@
-import type { FC } from 'react';
-import Autocomplete from '@mui/material/Autocomplete';
+import { type FC } from 'react';
+import Autocomplete, { type AutocompleteProps } from '@mui/material/Autocomplete';
 import Box from '@mui/material/Box';
 import MenuItem from '@mui/material/MenuItem';
 import Divider from '@mui/material/Divider';
@@ -7,13 +7,14 @@ import Stack from '@mui/material/Stack';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faSyncAlt } from '@fortawesome/free-solid-svg-icons';
 import CustomTypography from '@components/common/CustomTypography';
-import BaseInput from '@components/common/BaseInput.tsx';
+import BaseInput from '@components/common/BaseInput';
+import Loading from '@components/common/Loading';
 import { useThemeContext } from '@context/ThemeContext';
 
 interface OptionType {
   value: string | null;
   label: string;
-  icon?: typeof faPlus | typeof faSyncAlt; // Allow 'icon' property for specific options
+  icon?: typeof faSyncAlt;
 }
 
 interface DropdownProps {
@@ -26,6 +27,7 @@ interface DropdownProps {
   sx?: object;
   onRefresh?: () => void;
   onAddNew?: () => void;
+  loading?: boolean;
 }
 
 const SPECIAL_OPTIONS: OptionType[] = [
@@ -34,21 +36,22 @@ const SPECIAL_OPTIONS: OptionType[] = [
 ];
 
 const Dropdown: FC<DropdownProps> = ({
-  label,
-  options = [],
-  value,
-  onChange,
-  searchable = false,
-  disabled = false,
-  sx,
-  onRefresh,
-  onAddNew = null,
-}) => {
+                                       label,
+                                       options = [],
+                                       value,
+                                       onChange,
+                                       searchable = false,
+                                       disabled = false,
+                                       sx,
+                                       onRefresh,
+                                       onAddNew = null,
+                                       loading = false, // ← NEW
+                                     }) => {
   const { theme } = useThemeContext();
 
   // Modified options array with special items at the top
   const modifiedOptions: OptionType[] = [...SPECIAL_OPTIONS, ...options];
-
+  
   return (
     <Box sx={{ minWidth: '200px', width: '100%', ...sx }}>
       <Autocomplete
@@ -68,9 +71,35 @@ const Dropdown: FC<DropdownProps> = ({
             disabled={disabled}
           />
         )}
+        slotProps={
+          {
+            popper: {
+              modifiers: [
+                {
+                  name: 'offset',
+                  options: {
+                    offset: [0, 8],
+                  },
+                },
+              ],
+            },
+            input: {
+              endAdornment: (
+                <>
+                  {loading && (
+                    <Box sx={{ mr: 1 }}>
+                      <Loading size={18} variant="dotted" />
+                    </Box>
+                  )}
+                </>
+              ),
+            },
+          } as unknown as AutocompleteProps<OptionType, false, boolean, false>['slotProps']
+        }
+        loading={loading}
         disableClearable={!searchable}
         fullWidth
-        isOptionEqualToValue={(option, value) => option.value === value.value}
+        isOptionEqualToValue={(option, val) => option.value === val.value}
         renderOption={(props, option) => (
           <Box key={option.value}>
             {/* Divider before the regular options */}
@@ -80,7 +109,7 @@ const Dropdown: FC<DropdownProps> = ({
                 sx={{ marginY: 0.5, borderColor: theme.palette.divider }}
               />
             )}
-
+            
             {option.value === 'refresh' && (
               <Stack
                 key="top-options"

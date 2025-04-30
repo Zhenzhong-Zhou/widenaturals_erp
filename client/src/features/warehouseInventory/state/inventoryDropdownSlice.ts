@@ -8,8 +8,14 @@ import {
 const initialState: DropdownState = {
   products: [],
   warehouses: [],
-  loading: false,
-  error: null,
+  loading: {
+    products: false,
+    warehouses: false,
+  },
+  error: {
+    products: null,
+    warehouses: null,
+  },
 };
 
 const inventoryDropdownSlice = createSlice({
@@ -22,8 +28,10 @@ const inventoryDropdownSlice = createSlice({
     resetDropdownData: (state) => {
       state.products = [];
       state.warehouses = [];
-      state.error = null;
-      state.loading = false;
+      state.loading.products = false;
+      state.loading.warehouses = false;
+      state.error.products = null;
+      state.error.warehouses = null;
     },
   },
   extraReducers: (builder) => {
@@ -32,42 +40,33 @@ const inventoryDropdownSlice = createSlice({
        * Handles fetching warehouses (only runs on mount)
        */
       .addCase(fetchWarehousesDropdownThunk.pending, (state) => {
-        state.loading = true;
-        state.error = null;
+        state.loading.warehouses = true;
+        state.error.warehouses = null;
       })
-      .addCase(
-        fetchWarehousesDropdownThunk.fulfilled,
-        (state, action: PayloadAction<any[]>) => {
-          state.warehouses = action.payload || [];
-          state.loading = false;
-        }
-      )
+      .addCase(fetchWarehousesDropdownThunk.fulfilled, (state, action: PayloadAction<any[]>) => {
+        state.warehouses = action.payload || [];
+        state.loading.warehouses = false;
+      })
       .addCase(fetchWarehousesDropdownThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.error.message || 'Failed to load warehouses';
+        state.loading.warehouses = false;
+        state.error.warehouses = action.error.message || 'Failed to load warehouses';
       })
 
       /**
        * Handles fetching products (runs when warehouse selection changes)
        */
       .addCase(fetchProductsDropDownByWarehouseThunk.pending, (state) => {
-        state.loading = true;
-        state.error = null;
+        state.loading.products = true;
+        state.error.products = null;
       })
-      .addCase(
-        fetchProductsDropDownByWarehouseThunk.fulfilled,
-        (state, action: PayloadAction<any[]>) => {
-          state.products = action.payload || [];
-          state.loading = false;
-        }
-      )
-      .addCase(
-        fetchProductsDropDownByWarehouseThunk.rejected,
-        (state, action) => {
-          state.loading = false;
-          state.error = action.error.message || 'Failed to load products';
-        }
-      );
+      .addCase(fetchProductsDropDownByWarehouseThunk.fulfilled, (state, action: PayloadAction<any[]>) => {
+        state.products = action.payload || [];
+        state.loading.products = false;
+      })
+      .addCase(fetchProductsDropDownByWarehouseThunk.rejected, (state, action) => {
+        state.loading.products = false;
+        state.error.products = action.error.message || 'Failed to load products';
+      });
   },
 });
 

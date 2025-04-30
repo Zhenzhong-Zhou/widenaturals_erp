@@ -1,12 +1,13 @@
 import { createSelector } from 'reselect';
 import type { RootState } from '@store/store';
 
-// Base selector: Directly selects dropdown state
+/**
+ * Base selector for inventory dropdown state.
+ */
 const selectDropdownState = (state: RootState) => state.inventoryDropdown;
 
 /**
- * Selects the product dropdown list (ensures an array is returned).
- * Memoized to prevent unnecessary re-renders.
+ * Selects the product dropdown list.
  */
 export const selectProductDropdown = createSelector(
   [selectDropdownState],
@@ -14,8 +15,7 @@ export const selectProductDropdown = createSelector(
 );
 
 /**
- * Selects the warehouse dropdown list (ensures an array is returned).
- * Memoized to prevent unnecessary re-renders.
+ * Selects the warehouse dropdown list.
  */
 export const selectWarehouseDropdown = createSelector(
   [selectDropdownState],
@@ -23,25 +23,39 @@ export const selectWarehouseDropdown = createSelector(
 );
 
 /**
- * Selects the loading state, used to check when either warehouses or products are being fetched.
+ * Selects only the product loading state.
  */
-export const selectDropdownLoading = createSelector(
+export const selectProductDropdownLoading = createSelector(
   [selectDropdownState],
-  (dropdown) => dropdown.loading
+  (dropdown) => dropdown.loading?.products ?? false
 );
 
 /**
- * Selects any error messages related to warehouse or product dropdowns.
- * Ensures `error` is either a string or `null`.
+ * Selects only the warehouse loading state.
  */
-export const selectDropdownError = createSelector(
+export const selectWarehouseDropdownLoading = createSelector(
   [selectDropdownState],
-  (dropdown) => dropdown.error ?? null
+  (dropdown) => dropdown.loading?.warehouses ?? false
 );
 
 /**
- * Selects both products and warehouses together as a single object.
- * Useful if you need both dropdowns in one component.
+ * Selects only the product dropdown error.
+ */
+export const selectProductDropdownError = createSelector(
+  [selectDropdownState],
+  (dropdown) => dropdown.error?.products ?? null
+);
+
+/**
+ * Selects only the warehouse dropdown error.
+ */
+export const selectWarehouseDropdownError = createSelector(
+  [selectDropdownState],
+  (dropdown) => dropdown.error?.warehouses ?? null
+);
+
+/**
+ * Selects both dropdown lists together.
  */
 export const selectDropdownData = createSelector(
   [selectProductDropdown, selectWarehouseDropdown],

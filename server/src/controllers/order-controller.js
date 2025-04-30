@@ -2,7 +2,7 @@ const {
   createOrderByType,
   fetchOrderDetails,
   fetchAllOrdersService,
-  confirmOrderService,
+  confirmOrderService, fetchAllocationEligibleOrdersService, fetchAllocationEligibleOrderDetails,
 } = require('../services/order-service');
 const AppError = require('../utils/AppError');
 const wrapAsync = require('../utils/wrap-async');
@@ -59,48 +59,59 @@ const getOrderDetailsController = wrapAsync(async (req, res, next) => {
 });
 
 /**
- * Controller to fetch all orders with pagination, sorting, and order number validation.
+ * Generic controller for fetching orders using a specified service function.
  *
- * @param {Object} req - The HTTP request object.
- * @param {Object} res - The HTTP response object.
- * @param {Function} next - The middleware function to handle errors.
- * @returns {Promise<void>}
+ * @param {Function} serviceFn - The service function to fetch orders.
+ * @returns {Function} - Express route handler.
  */
-const getAllOrdersController = wrapAsync(async (req, res, next) => {
-  try {
-    // Extracting query parameters from the request
-    const {
-      page = 1,
-      limit = 10,
-      sortBy = 'created_at',
-      sortOrder = 'DESC',
-      verifyOrderNumbers = true,
-    } = req.query;
+const createOrderFetchController = (serviceFn) =>
+  wrapAsync(async (req, res, next) => {
+    try {
+      const {
+        page = 1,
+        limit = 10,
+        sortBy = 'created_at',
+        sortOrder = 'DESC',
+        verifyOrderNumbers = true,
+      } = req.query;
+      
+      const verifyOrderNumbersBool = verifyOrderNumbers !== 'false';
+      
+      const result = await serviceFn({
+        page: Number(page),
+        limit: Number(limit),
+        sortBy,
+        sortOrder,
+        verifyOrderNumbers: verifyOrderNumbersBool,
+      });
+      
+      res.status(200).json({
+        success: true,
+        message: 'Orders fetched successfully',
+        data: result.data,
+        pagination: result.pagination,
+      });
+    } catch (error) {
+      logError('Error in order fetch controller:', error);
+      next(error);
+    }
+  });
 
-    // Convert 'verifyOrderNumbers' to boolean if necessary
-    const verifyOrderNumbersBool = verifyOrderNumbers !== 'false';
+/**
+ * Controller to handle fetching all orders.
+ * Supports pagination, sorting, and optional order number validation.
+ *
+ * @type {Function}
+ */
+const getAllOrdersController = createOrderFetchController(fetchAllOrdersService);
 
-    // Fetching orders from the service layer
-    const result = await fetchAllOrdersService({
-      page: Number(page),
-      limit: Number(limit),
-      sortBy,
-      sortOrder,
-      verifyOrderNumbers: verifyOrderNumbersBool,
-    });
-
-    // Responding with a successful JSON response
-    res.status(200).json({
-      success: true,
-      message: 'Orders fetched successfully',
-      data: result.data,
-      pagination: result.pagination,
-    });
-  } catch (error) {
-    logError('Error in fetchAllOrdersController:', error);
-    next(error);
-  }
-});
+/**
+ * Controller to handle fetching orders eligible for inventory allocation.
+ * Supports pagination, sorting, and optional order number filtering.
+ *
+ * @type {Function}
+ */
+const getAllocationEligibleOrdersController = createOrderFetchController(fetchAllocationEligibleOrdersService);
 
 /**
  * Controller to confirm an order and its items.
@@ -127,9 +138,31 @@ const confirmOrderController = wrapAsync(async (req, res, next) => {
   }
 });
 
+/**
+ * Controller to fetch an allocation-eligible order for inventory allocation.
+ * Ensures the order exists, is in a valid status, and the user has proper permissions.
+ *
+ * @route GET /api/orders/:orderId/allocation
+ * @access Protected
+ */
+const getAllocationEligibleOrderDetailsController = wrapAsync(async (req, res) => {
+  const { orderId } = req.params;
+  const user = req.user;
+  
+  const order = await fetchAllocationEligibleOrderDetails(orderId, user);
+  
+  res.status(200).json({
+    success: true,
+    message: 'Confirmed order allocation data fetched successfully',
+    data: order,
+  });
+});
+
 module.exports = {
   createOrderController,
   getOrderDetailsController,
   getAllOrdersController,
+  getAllocationEligibleOrdersController,
   confirmOrderController,
+  getAllocationEligibleOrderDetailsController,
 };

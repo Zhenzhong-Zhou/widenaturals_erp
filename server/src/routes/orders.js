@@ -3,7 +3,7 @@ const {
   createOrderController,
   getOrderDetailsController,
   getAllOrdersController,
-  confirmOrderController,
+  confirmOrderController, getAllocationEligibleOrdersController, getAllocationEligibleOrderDetailsController,
 } = require('../controllers/order-controller');
 
 const router = express.Router();
@@ -23,6 +23,10 @@ router.get('/sales-order/details/:id', getOrderDetailsController);
 
 router.get('/', getAllOrdersController);
 
+router.get('/allocation-eligible', getAllocationEligibleOrdersController);
+
 router.post('/:orderId/confirm', confirmOrderController);
+
+router.get('/:orderId/allocation', getAllocationEligibleOrderDetailsController);
 
 module.exports = router;

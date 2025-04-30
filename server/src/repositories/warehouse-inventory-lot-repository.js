@@ -599,16 +599,13 @@ const getBaseLotQuery = () => `
   JOIN inventory i ON wil.inventory_id = i.id
   LEFT JOIN products p ON i.product_id = p.id
   JOIN warehouses w ON wil.warehouse_id = w.id
+  JOIN warehouse_lot_status wls ON wil.status_id = wls.id
+  JOIN status ps ON p.status_id = ps.id
+  JOIN status ws ON w.status_id = ws.id
   WHERE (wil.quantity - COALESCE(wil.reserved_quantity, 0)) > 0
-    AND wil.status_id = (
-      SELECT id FROM warehouse_lot_status WHERE LOWER(name) = 'in_stock' LIMIT 1
-    )
-    AND p.status_id = (
-      SELECT id FROM status WHERE LOWER(name) = 'active' LIMIT 1
-    )
-    AND w.status_id = (
-      SELECT id FROM status WHERE LOWER(name) = 'active' LIMIT 1
-    )
+    AND LOWER(wls.name) = 'in_stock'
+    AND LOWER(ps.name) = 'active'
+    AND LOWER(ws.name) = 'active'
 `;
 
 /**
@@ -815,8 +812,10 @@ const getAvailableInventoryLots = async (inventoryId, warehouseId = null, strate
       wil.quantity,
       wil.reserved_quantity,
       (wil.quantity - COALESCE(wil.reserved_quantity, 0)) AS available_quantity,
+      i.id AS inventory_id,
       p.product_name,
       i.identifier AS inventory_identifier,
+      w.id AS warehouse_id,
       w.name AS warehouse_name
     ${getBaseLotQuery()}
       AND wil.inventory_id = $1

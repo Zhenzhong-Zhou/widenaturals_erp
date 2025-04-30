@@ -277,7 +277,7 @@ export const routes = [
   {
     path: '/orders',
     component: lazy(() => import('@features/order/pages/OrdersPage')),
-    meta: { requiresAuth: true, title: 'Orders', showInSidebar: true },
+    meta: { requiresAuth: true, title: 'All Orders', showInSidebar: true },
   },
   {
     path: '/orders/:orderType/:orderId',
@@ -289,6 +289,46 @@ export const routes = [
       requiredPermission: 'view_sales_order_details',
     },
   },
+  {
+    path: '/orders/:orderType/:orderId/edit',
+    component: lazy(() => import('@features/order/pages/OrderDetailsPage')),
+    meta: {
+      requiresAuth: true,
+      title: 'Order Details',
+      showInSidebar: false,
+      requiredPermission: 'view_sales_order_details',
+    },
+  },
+  {
+    path: '/orders/allocation-eligible',
+    component: lazy(() => import('@features/order/pages/AllocationEligibleOrderPage')),
+    meta: { requiresAuth: true, title: 'Allocation-Eligible Orders', showInSidebar: true },
+  },
+  {
+    path: '/orders/:orderType/:orderId/allocate',
+    component: lazy(() => import('@features/inventoryAllocation/pages/OrderInventoryAllocationPage')),
+    meta: {
+      requiresAuth: true,
+      title: 'Inventory Allocation',
+      showInSidebar: false,
+      requiredPermission: 'inventory_allocation',
+    },
+  },
+  // {
+  //   path: '/orders/:type/:id/allocation',
+  //   component: lazy(() => import('@features/order/pages/OrderAllocationDetailsPage')),
+  //   meta: { requiresAuth: true, title: 'Order Allocation', showInSidebar: false },
+  // },
+  // {
+  //   path: '/orders/fulfillment',
+  //   component: lazy(() => import('@features/order/pages/OrderFulfillmentPage')),
+  //   meta: { requiresAuth: true, title: 'Fulfillment', showInSidebar: true },
+  // },
+  // {
+  //   path: '/orders/transfers',
+  //   component: lazy(() => import('@features/order/pages/OrderTransferPage')),
+  //   meta: { requiresAuth: true, title: 'Transfers', showInSidebar: true },
+  // },
   {
     path: '*',
     component: lazy(() => import('@pages/NotFoundPage')),

@@ -54,6 +54,7 @@ export type Order = {
   order_type: string;
   order_date: string;
   status: string;
+  status_code: string;
   note: string;
   created_at: string;
   updated_at: string;
@@ -157,4 +158,30 @@ export interface OrderStatusUpdateResponse {
   success: boolean;
   message: string;
   data: OrderStatusUpdateResult;
+}
+
+export interface AllocationEligibleOrderItem {
+  order_item_id: string;
+  inventory_id: string;
+  quantity_ordered: number;
+  product_id: string;
+  inventory_identifier: string | null;
+  available_quantity: number | null;
+  item_name: string;
+  barcode: string;
+}
+
+export interface AllocationEligibleOrderDetails {
+  order_id: string;
+  order_number: string;
+  order_status_id: string;
+  order_status_code: string;
+  created_by: string;
+  items: AllocationEligibleOrderItem[];
+}
+
+export interface AllocationEligibleOrderDetailsResponse {
+  success: boolean;
+  message: string;
+  data: AllocationEligibleOrderDetails;
 }
