@@ -95,7 +95,7 @@ const refreshToken = async (): Promise<{ accessToken: string }> => {
     refreshAttemptCount += 1;
     const state = store.getState();
     const csrfToken = selectCsrfToken(state);
-
+    
     const response = await axiosInstance.post<{ accessToken: string }>(
       API_ENDPOINTS.REFRESH_TOKEN,
       {},
@@ -108,7 +108,7 @@ const refreshToken = async (): Promise<{ accessToken: string }> => {
         withCredentials: true,
       }
     );
-
+    
     // Update Axios headers to use the new access token
     axiosInstance.defaults.headers.common['Authorization'] =
       `Bearer ${response.data.accessToken}`;

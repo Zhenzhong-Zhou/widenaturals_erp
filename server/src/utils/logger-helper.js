@@ -90,7 +90,7 @@ const logFatal = (message, req = null, meta = {}) =>
  */
 const logError = (errOrMessage, req = null, meta = {}) => {
   let message, stack, logLevel, errorMeta;
-
+  
   if (errOrMessage instanceof AppError) {
     message = errOrMessage.message || 'An unknown error occurred';
     stack =
