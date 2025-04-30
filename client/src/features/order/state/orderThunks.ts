@@ -102,7 +102,7 @@ export const confirmSalesOrderThunk = createAsyncThunk<
  *
  * @param orderId - The ID of the order to fetch
  * @returns An `AllocationEligibleOrderDetailsResponse` if successful
- * @throws A rejected action with error message if the fetch fails
+ * @throws A rejected action with the error message if the fetch fails
  *
  * @example
  * dispatch(fetchAllocationEligibleOrderDetailsThunk('order-id-123'));
