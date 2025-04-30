@@ -1,4 +1,4 @@
-import { type FC, useEffect, useState } from 'react';
+import { type FC, useEffect, useRef, useState } from 'react';
 import { formatDate } from '@utils/dateTimeUtils';
 import CustomMiniTable, {
   type MiniColumn,
@@ -20,7 +20,6 @@ interface Props {
   warehouseLoading: boolean;
   refreshWarehouses: () => void;
   selectedLotIds: (warehouseId: string, lookupInventoryId: string) => string[];
-  // onToggleLot: (warehouseId: string, lotId: string, lookupInventoryId: string) => void;
   onToggleLot: (lot: AvailableInventoryLot) => void
   onVisibleLotsChange: (lots: AvailableInventoryLot[]) => void;
 }
@@ -29,6 +28,7 @@ const LotAllocationLookupMiniTable: FC<Props> = ({ inventoryId, warehouses, ware
   if (!inventoryId) return null;
   
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<string | null>(null);
+  const fetchedLotsCache = useRef(new Map());
   
   const {
     lots,
@@ -36,17 +36,19 @@ const LotAllocationLookupMiniTable: FC<Props> = ({ inventoryId, warehouses, ware
     error,
     fetchInventoryLots,
   } = useAvailableInventoryLots({ inventoryId: inventoryId ?? '', warehouseId: selectedWarehouseId ?? '', strategy: 'FEFO' });
-  console.log(lots)
+  
   // Fetch on mount or when warehouse selection changes
   useEffect(() => {
     if (!inventoryId) return;
     
-    // Optional: prevent refetch on unchanged warehouseId
-    fetchInventoryLots({
-      inventoryId,
-      warehouseId: selectedWarehouseId ?? '',
-      strategy: 'FEFO',
-    });
+    const cacheKey = `${inventoryId}_${selectedWarehouseId}`;
+    
+    if (!fetchedLotsCache.current.has(cacheKey)) {
+      fetchInventoryLots({ inventoryId, warehouseId: selectedWarehouseId ?? '', strategy: 'FEFO' });
+    } else {
+      const cachedLots = fetchedLotsCache.current.get(cacheKey);
+      onVisibleLotsChange(cachedLots);
+    }
   }, [inventoryId, selectedWarehouseId]);
   
   useEffect(() => {
@@ -66,17 +68,15 @@ const LotAllocationLookupMiniTable: FC<Props> = ({ inventoryId, warehouses, ware
       fetchInventoryLots({ inventoryId, warehouseId: warehouseId ?? '', strategy: 'FIFO' });
     }
   };
-  console.log(lots)
+  
   const columns: MiniColumn<AvailableInventoryLot>[] = [
     {
       id: 'select',
       label: '',
       renderCell: (row) => {
-        console.log('[MiniTable Row]', row);  // Logs the entire row object
         return (
           <Checkbox
             checked={selectedLotIds(row.warehouseId, row.inventoryId).includes(row.lotId)}
-            // onChange={() => onToggleLot(row.warehouseId, row.lotId, row.inventoryId)}
             onChange={() => onToggleLot(row)}
           />
         );

@@ -59,7 +59,6 @@ const AllocateInventoryDialog: FC<AllocateInventoryDialogProps> = ({
   
   const handleFormSubmit = () => {
     const payload = buildInventoryAllocationPayload();
-    console.log(payload)
     if (payload.items.length === 0) {
       alert('Please enter quantity for at least one lot.');
       return;

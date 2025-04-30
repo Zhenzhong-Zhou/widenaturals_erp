@@ -58,7 +58,7 @@ const OrderInventoryAllocationPage: FC = () => {
       </ErrorDisplay>
     );
   }
-  console.log("loading", eligibleOrderDetailsLoading)
+  
   return (
     <Box sx={{ p: 3 }}>
       <Stack
@@ -97,6 +97,7 @@ const OrderInventoryAllocationPage: FC = () => {
         warehouses={warehouses}
         warehouseLoading={warehouseLoading}
         refreshWarehouses={refreshWarehouses}
+        onAllocationSuccess={fetchAllocationData}
       />
     </Box>
   );

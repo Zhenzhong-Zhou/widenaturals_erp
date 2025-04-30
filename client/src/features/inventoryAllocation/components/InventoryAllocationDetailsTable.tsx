@@ -1,4 +1,4 @@
-import { type Dispatch, type FC, type SetStateAction, useCallback, useEffect, useState } from 'react';
+import { type Dispatch, type FC, type SetStateAction, useCallback, useState } from 'react';
 import CustomTable, { type Column } from '@components/common/CustomTable';
 import type { AllocationEligibleOrderItem } from '@features/order';
 import useRenderAllocationStatusCell from '@features/inventoryAllocation/components/useRenderAllocationStatusCell';
@@ -22,6 +22,7 @@ interface Props {
   warehouses: WarehouseDropdownItem[];
   warehouseLoading: boolean;
   refreshWarehouses: () => void;
+  onAllocationSuccess?: () => void;
 }
 
 export type LotSelectionsState = {
@@ -38,7 +39,7 @@ interface ToggleLotArgs {
   setVisibleLotMap: Dispatch<SetStateAction<Map<string, AvailableInventoryLot>>>;
 }
 
-const InventoryAllocationDetailsTable: FC<Props> = ({ orderId, items, eligibleOrderDetailsLoading, warehouses, warehouseLoading, refreshWarehouses }) => {
+const InventoryAllocationDetailsTable: FC<Props> = ({ orderId, items, eligibleOrderDetailsLoading, warehouses, warehouseLoading, refreshWarehouses, onAllocationSuccess }) => {
   const [expandedRowIndex, setExpandedRowIndex] = useState<number | null>(null);
   const [expandedInventoryId, setExpandedInventoryId] = useState<string | null>(null);
   const [lotSelections, setLotSelections] = useState<LotSelectionsState>({});
@@ -65,10 +66,6 @@ const InventoryAllocationDetailsTable: FC<Props> = ({ orderId, items, eligibleOr
     [expandedRowIndex, items]
   );
   
-  useEffect(() => {
-    console.log('[Lot Selections]', lotSelections);
-  }, [lotSelections]);
-  
   const renderToggleCell = useCallback(
     (_: AllocationEligibleOrderItem, rowIndex?: number) => {
       const index = rowIndex ?? 0;
@@ -84,42 +81,45 @@ const InventoryAllocationDetailsTable: FC<Props> = ({ orderId, items, eligibleOr
     [expandedRowIndex, handleExpandToggle]
   );
   
-  const toggleLotSelectionAndCacheMeta = ({
-                                            lot,
-                                            setLotSelections,
-                                            visibleLotMap,
-                                            setVisibleLotMap,
-                                          }: ToggleLotArgs): void => {
-    const { inventoryId, warehouseId, lotId } = lot;
-    
-    if (!inventoryId || !warehouseId || !lotId) return;
-    
-    // Update lotSelections
-    setLotSelections((prev) => {
-      const warehouseSelections = prev[inventoryId]?.[warehouseId] || [];
+  const toggleLotSelectionAndCacheMeta = useCallback(
+    ({
+       lot,
+       setLotSelections,
+       visibleLotMap,
+       setVisibleLotMap,
+     }: ToggleLotArgs): void => {
+      const { inventoryId, warehouseId, lotId } = lot;
       
-      const updatedLotIds = warehouseSelections.includes(lotId)
-        ? warehouseSelections.filter((id) => id !== lotId)
-        : [...warehouseSelections, lotId];
+      if (!inventoryId || !warehouseId || !lotId) return;
       
-      return {
-        ...prev,
-        [inventoryId]: {
-          ...prev[inventoryId],
-          [warehouseId]: updatedLotIds,
-        },
-      };
-    });
-    
-    // Cache metadata if not already in visibleLotMap
-    if (!visibleLotMap.has(lotId)) {
-      setVisibleLotMap((prev) => {
-        const next = new Map(prev);
-        next.set(lotId, lot);
-        return next;
+      // Update lotSelections
+      setLotSelections((prev) => {
+        const warehouseSelections = prev[inventoryId]?.[warehouseId] || [];
+        
+        const updatedLotIds = warehouseSelections.includes(lotId)
+          ? warehouseSelections.filter((id) => id !== lotId)
+          : [...warehouseSelections, lotId];
+        
+        return {
+          ...prev,
+          [inventoryId]: {
+            ...prev[inventoryId],
+            [warehouseId]: updatedLotIds,
+          },
+        };
       });
-    }
-  };
+      
+      // Cache metadata if not already in visibleLotMap
+      if (!visibleLotMap.has(lotId)) {
+        setVisibleLotMap((prev) => {
+          const next = new Map(prev);
+          next.set(lotId, lot);
+          return next;
+        });
+      }
+    },
+    []
+  );
   
   const columns: Column<AllocationEligibleOrderItem>[] = [
     {
@@ -150,12 +150,12 @@ const InventoryAllocationDetailsTable: FC<Props> = ({ orderId, items, eligibleOr
       renderCell: renderAllocationStatusCell,
     },
   ];
-  console.log(items)
-  console.log(visibleLotMap)
+  
   const renderExpandedContent = useCallback(
     () => (
       <Box sx={{ p: 2 }}>
         <LotAllocationLookupMiniTable
+          key={expandedInventoryId}
           inventoryId={expandedInventoryId}
           warehouses={warehouses}
           warehouseLoading={warehouseLoading}
@@ -186,7 +186,17 @@ const InventoryAllocationDetailsTable: FC<Props> = ({ orderId, items, eligibleOr
         />
       </Box>
     ),
-    [expandedInventoryId, warehouses, warehouseLoading, refreshWarehouses, lotSelections]
+    [
+      expandedInventoryId,
+      warehouses,
+      warehouseLoading,
+      refreshWarehouses,
+      lotSelections,
+      visibleLotMap,
+      setLotSelections,
+      setVisibleLotMap,
+      toggleLotSelectionAndCacheMeta,
+    ]
   );
   
   const allItemsHaveLotsSelected = () => {
@@ -230,17 +240,14 @@ const InventoryAllocationDetailsTable: FC<Props> = ({ orderId, items, eligibleOr
     visibleLotMap
   );
   
-  console.log('lotSelections:', lotSelections);
-  console.log('visibleLotMap:', Array.from(visibleLotMap.values()));
-  console.log('selectedVisibleLots:', selectedVisibleLots);
-  
   const handleAllocateInventory = async (payload: InventoryAllocationPayload) => {
     try {
       await submit(payload);
-      console.log('Inventory allocation successful!');
-      // // You can also trigger a data refresh or close the dialog
-      // fetchAllocationData();
       setDialogOpen(false);
+      
+      if (onAllocationSuccess) {
+        onAllocationSuccess();
+      }
     } catch (err) {
       console.error('Failed to allocate inventory.', err);
     }
