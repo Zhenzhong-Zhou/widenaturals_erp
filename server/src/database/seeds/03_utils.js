@@ -88,33 +88,4 @@ const fetchDynamicValues = async (
   }
 };
 
-const generateProductCode = async (knex, categoryCode) => {
-  // Get the last assigned product code in this category
-  const lastProduct = await knex('products')
-    .where('category', categoryCode)
-    .orderBy('SKU', 'desc')
-    .first();
-
-  let newCode = 101; // Default starting point
-
-  if (lastProduct) {
-    const lastCode = parseInt(lastProduct.SKU.match(/\d{3}/)[0], 10);
-    newCode = lastCode + 1;
-  }
-
-  return String(newCode).padStart(3, '0'); // Ensure it's always 3 digits
-};
-
-const generateSKU = async (
-  knex,
-  brandCode,
-  categoryCode,
-  variant,
-  regionCode,
-  productionDate
-) => {
-  const productCode = await generateProductCode(knex, categoryCode);
-  return `${brandCode}-${categoryCode}${productCode}-${variant}-${regionCode}-${productionDate}`;
-};
-
-module.exports = { fetchDynamicValue, fetchDynamicValues, generateSKU };
+module.exports = { fetchDynamicValue, fetchDynamicValues };

@@ -103,11 +103,11 @@ exports.seed = async function (knex) {
   );
 
   const products = await knex('products')
-    .whereIn('product_name', productNames)
-    .select('id', 'product_name');
+    .whereIn('name', productNames)
+    .select('id', 'name');
 
   const productIdMap = Object.fromEntries(
-    products.map((p) => [p.product_name, p.id])
+    products.map((p) => [p.name, p.id])
   );
 
   // Prepare and insert inventory records

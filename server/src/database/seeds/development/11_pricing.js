@@ -93,13 +93,13 @@ exports.seed = async function (knex) {
     ];
 
     const products = await knex('products')
-      .select('id', 'product_name')
-      .whereIn('product_name', productNames);
+      .select('id', 'name')
+      .whereIn('name', productNames);
 
     // Function to get product ID by name
     const getProductId = (name) => {
       const foundProduct = products.find(
-        (product) => product.product_name === name
+        (product) => product.name === name
       );
       if (!foundProduct) {
         console.warn(`⚠️ Product not found: ${name}`);
