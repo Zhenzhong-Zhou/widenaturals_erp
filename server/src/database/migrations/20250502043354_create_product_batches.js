@@ -3,7 +3,7 @@
  * @returns {Knex.SchemaBuilder}
  */
 exports.up = async function (knex) {
-  await knex.schema.createTable('batches', (table) => {
+  await knex.schema.createTable('product_batches', (table) => {
     table.uuid('id').primary().defaultTo(knex.raw('uuid_generate_v4()'));
     
     table.string('lot_number', 100).notNullable(); // e.g. "LOT20240501-01"
@@ -37,5 +37,5 @@ exports.up = async function (knex) {
  * @returns {Knex.SchemaBuilder}
  */
 exports.down = async function (knex) {
-  await knex.schema.dropTableIfExists('batches');
+  await knex.schema.dropTableIfExists('product_batches');
 };

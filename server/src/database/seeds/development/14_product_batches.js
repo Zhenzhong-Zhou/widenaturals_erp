@@ -545,11 +545,11 @@ exports.seed = async function (knex) {
   }
   
   if (batches.length > 0) {
-    await knex('batches')
+    await knex('product_batches')
       .insert(batches)
       .onConflict(['lot_number', 'sku_id'])
       .ignore();
-    console.log(`Seeded ${batches.length} batches.`);
+    console.log(`Seeded ${batches.length} product batches.`);
   } else {
     console.log('No valid batch entries to seed.');
   }
