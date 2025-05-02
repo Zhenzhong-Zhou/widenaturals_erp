@@ -1,4 +1,4 @@
-const { fetchDynamicValue } = require('../03_utils');
+const { fetchDynamicValue, fetchDynamicValues } = require('../03_utils');
 
 /**
  * @param {import("knex").Knex} knex
@@ -15,6 +15,7 @@ exports.seed = async function (knex) {
     'active',
     'id'
   );
+  
   const systemActionId = await fetchDynamicValue(
     knex,
     'users',
@@ -22,8 +23,7 @@ exports.seed = async function (knex) {
     'system@internal.local',
     'id'
   );
-
-  // Fetch warehouse location type ID
+  
   const warehouseLocationTypeId = await fetchDynamicValue(
     knex,
     'location_types',
@@ -31,59 +31,83 @@ exports.seed = async function (knex) {
     'WAREHOUSE',
     'id'
   );
-
-  // Fetch existing warehouse locations
-  let warehouseLocations = await knex('locations')
-    .where('location_type_id', warehouseLocationTypeId)
-    .select('id', 'name');
-
-  // Define warehouse names and capacities
+  
+  const warehouseTypeMap = await fetchDynamicValues(
+    knex,
+    'warehouse_types',
+    'name',
+    ['distribution_center', 'storage_only'],
+    'id'
+  );
+  
   const warehouseData = [
-    { name: 'Head Office Warehouse', storage_capacity: 1000 },
-    { name: 'Richmond Storage', storage_capacity: 10000 },
-    { name: 'Viktor Temporarily Warehouse', storage_capacity: 5000 },
+    {
+      warehouse_name: 'WIDE Naturals Inc.',
+      location_label: 'Head Office Warehouse',
+      storage_capacity: 1000,
+      type: 'distribution_center',
+    },
+    {
+      warehouse_name: 'Richmond Storage',
+      location_label: 'Richmond Warehouse',
+      storage_capacity: 10000,
+      type: 'storage_only',
+    },
+    {
+      warehouse_name: 'Viktor Temporarily Warehouse',
+      location_label: 'Viktor Temporarily Warehouse',
+      storage_capacity: 5000,
+      type: 'storage_only',
+    },
   ];
-
-  // Fetch updated warehouse locations again
-  warehouseLocations = await knex('locations')
+  
+  const warehouseLocations = await knex('locations')
     .where('location_type_id', warehouseLocationTypeId)
     .select('id', 'name');
 
   // Ensure each warehouse has a unique location
   const warehouseEntries = warehouseData
-    .map((warehouse) => {
+    .map((entry) => {
       const location = warehouseLocations.find(
-        (loc) => loc.name === warehouse.name
+        (loc) => loc.name === entry.location_label
       );
-
-      if (!location) {
+      
+      const typeId = warehouseTypeMap[entry.type];
+      
+      if (!location || !typeId) {
         console.warn(
-          `❗ Skipping warehouse "${warehouse.name}" as no matching location was found.`
+          `Skipping warehouse "${entry.warehouse_name}" — missing location or warehouse type "${entry.type}".`
         );
-        return null; // Skip this entry if location is missing
+        return null;
       }
-
+      
       return {
         id: knex.raw('uuid_generate_v4()'),
-        name: warehouse.name,
+        name: entry.warehouse_name,
         location_id: location.id,
-        storage_capacity: warehouse.storage_capacity,
+        type_id: typeId,
+        storage_capacity: entry.storage_capacity,
         status_id: activeStatusId,
+        status_date: knex.fn.now(),
+        is_archived: false,
+        notes: null,
         created_at: knex.fn.now(),
         updated_at: null,
         created_by: systemActionId,
         updated_by: null,
       };
     })
-    .filter(Boolean); // Removes `null` values from the array
-
+    .filter(Boolean);
+  
   // Insert warehouses & ignore duplicates
   if (warehouseEntries.length > 0) {
     await knex('warehouses')
       .insert(warehouseEntries)
       .onConflict(['name', 'location_id'])
-      .ignore(); // Skip if exists
+      .ignore();
+    
+    console.log(`${warehouseEntries.length} warehouses seeded successfully.`);
+  } else {
+    console.log('No warehouse entries to seed.');
   }
-
-  console.log(`${warehouseEntries.length} warehouses seeded successfully.`);
 };
