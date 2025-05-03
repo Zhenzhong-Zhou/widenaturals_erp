@@ -1,6 +1,5 @@
 const { fetchDynamicValue } = require('../03_utils');
 const { generateSKU } = require('../../../utils/sku-generator');
-const { getBrandCategoryCodes } = require('../../../repositories/sku-code-base-repository');
 
 /**
  * @param { import("knex").Knex } knex
@@ -247,7 +246,7 @@ exports.seed = async function (knex) {
           variantCode: 'R',
           barcode: '628942007125',
           market_region: 'China',
-          size_label: '50 mg',
+          size_label: '50g',
           dimensions: { length_cm: 15, width_cm: 10, height_cm: 5, weight_g: 250 },
           status_id: discontinuedStatusId,
         },
@@ -258,7 +257,7 @@ exports.seed = async function (knex) {
           variantCode: 'R',
           barcode: '628693253086',
           market_region: 'Universe',
-          size_label: '50 mg',
+          size_label: '50g',
           dimensions: { length_cm: 15, width_cm: 10, height_cm: 5, weight_g: 250 },
           status_id: activeStatusId,
         },
@@ -271,17 +270,6 @@ exports.seed = async function (knex) {
       category: 'Herbal Natural',
       description: 'Helps to Maintain Healthy Hair. 恢复靓丽秀发 保持发肤健康。',
       variants: [
-        {
-          regionCode: 'CN',
-          language: 'en-fr',
-          country_code: 'CN',
-          variantCode: 'R',
-          barcode: null,
-          market_region: 'China',
-          size_label: '60 Capsules',
-          dimensions: { length_cm: 15, width_cm: 10, height_cm: 5, weight_g: 250 },
-          status_id: discontinuedStatusId,
-        },
         {
           regionCode: 'UN',
           language: 'en-fr',
