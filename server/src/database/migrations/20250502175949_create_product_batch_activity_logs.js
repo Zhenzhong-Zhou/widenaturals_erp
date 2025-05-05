@@ -3,11 +3,11 @@
  * @returns { Promise<void> }
  */
 exports.up = async function (knex) {
-  await knex.schema.createTable('product_batch_activity_log', (table) => {
+  await knex.schema.createTable('product_batch_activity_logs', (table) => {
     table.uuid('id').primary().defaultTo(knex.raw('uuid_generate_v4()'));
     table.uuid('batch_id').notNullable().references('id').inTable('product_batches');
     
-    table.string('action_type', 50).notNullable(); // e.g., status_change, quantity_correction, note_update
+    table.uuid('lot_adjustment_type_id').notNullable().references('id').inTable('lot_adjustment_types');
     table.jsonb('previous_value');
     table.jsonb('new_value');
     table.text('change_summary');
@@ -16,7 +16,7 @@ exports.up = async function (knex) {
     table.timestamp('changed_at', { useTz: true }).defaultTo(knex.fn.now());
     
     table.index(['batch_id'], 'idx_product_batch_activity_log_batch_id');
-    table.index(['action_type'], 'idx_product_batch_activity_log_action');
+    table.index(['lot_adjustment_type_id'], 'idx_product_batch_activity_log_action');
   });
 };
 
@@ -25,5 +25,5 @@ exports.up = async function (knex) {
  * @returns { Promise<void> }
  */
 exports.down = async function (knex) {
-  await knex.schema.dropTableIfExists('product_batch_activity_log');
+  await knex.schema.dropTableIfExists('product_batch_activity_logs');
 };
