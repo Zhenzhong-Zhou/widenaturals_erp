@@ -1,4 +1,5 @@
 const { fetchDynamicValue } = require('../03_utils');
+const { generateStandardizedCode } = require('../../../utils/codeGenerators');
 
 /**
  * @param { import("knex").Knex } knex
@@ -32,7 +33,7 @@ exports.seed = async function (knex) {
     },
   ];
   
-  for (const entry of manufacturerLocations) {
+  for (const [index, entry] of manufacturerLocations.entries()) {
     const location = await knex('locations')
       .select('id')
       .whereILike('name', `%${entry.company_name}%`)
@@ -44,9 +45,16 @@ exports.seed = async function (knex) {
       continue;
     }
     
+    const manufacturer_code = generateStandardizedCode('MFG', entry.company_name, {
+      regionCode: entry.city.slice(0, 2).toUpperCase(), // e.g., 'BU' from 'Burnaby'
+      sequenceNumber: index + 1,
+    });
+    
     const manufacturer = {
       id: knex.raw('uuid_generate_v4()'),
       name: entry.company_name,
+      code: manufacturer_code,
+      contact_name: null,
       contact_email: null,
       contact_phone: null,
       location_id: location.id,

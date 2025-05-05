@@ -40,11 +40,53 @@ exports.seed = async function (knex) {
       description: 'Generic printed adhesive label for product packaging',
     },
     {
-      name: 'Retail Box',
-      code: 'BOX-STD',
+      name: 'Retail Box Shell',
+      code: 'BOX-SHELL',
       type: 'box',
       unit_of_measure: 'piece',
-      description: 'Cardboard box used for retail product presentation or shipping',
+      description: 'Main structure of the box'
+    },
+    {
+      name: 'Box Sleeve',
+      code: 'BOX-SLEEVE',
+      type: 'box',
+      unit_of_measure: 'piece',
+      description: 'Printed cardboard sleeve for outer branding'
+    },
+    {
+      name: 'Box Tray',
+      code: 'BOX-TRAY',
+      type: 'box',
+      unit_of_measure: 'piece',
+      description: 'Internal insert to hold product in place'
+    },
+    {
+      name: 'Box Lid',
+      code: 'BOX-LID',
+      type: 'box',
+      unit_of_measure: 'piece',
+      description: 'Top lid for telescoping box'
+    },
+    {
+      name: 'Box Tray Insert',
+      code: 'BOX-INSERT',
+      type: 'box',
+      unit_of_measure: 'piece',
+      description: 'Cardboard tray insert used inside box'
+    },
+    {
+      name: 'Box Bottom Base',
+      code: 'BOX-BASE',
+      type: 'box',
+      unit_of_measure: 'piece',
+      description: 'Bottom base of telescoping box'
+    },
+    {
+      name: 'Telescoping Box',
+      code: 'BOX-TEL',
+      type: 'box',
+      unit_of_measure: 'piece',
+      description: '3-part telescoping box with lid, tray insert, and base as one assembled unit',
     },
     {
       name: 'Tamper-Evident Seal',
@@ -58,7 +100,7 @@ exports.seed = async function (knex) {
       code: 'LINER-THREADED',
       type: 'liner',
       unit_of_measure: 'piece',
-      description: 'Foam liner inserted inside cap to improve seal and prevent leakage',
+      description: 'Foam liner designed to fit threaded caps, providing a secure seal to prevent leakage and protect bottle contents.',
     },
     {
       name: 'Desiccant',
@@ -68,11 +110,11 @@ exports.seed = async function (knex) {
       description: 'Silica gel packet used to absorb moisture inside packaging',
     },
     {
-      name: 'Desiccant Cap Liner',
-      code: 'LINER-DESICCANT',
-      type: 'liner',
+      name: 'Desiccant Cap Insert',
+      code: 'INSERT-DESICCANT',
+      type: 'insert',
       unit_of_measure: 'piece',
-      description: 'Cap liner integrated with desiccant for moisture control',
+      description: 'Cap-mounted insert with integrated desiccant for moisture control in packaging',
     },
     {
       name: 'Filler',
@@ -102,7 +144,7 @@ exports.seed = async function (knex) {
     ...part,
     is_active: true,
     created_at: now,
-    updated_at: now,
+    updated_at: null,
     created_by: systemUserId,
     updated_by: null,
   }));

@@ -1,56 +1,47 @@
 /**
  * @param { import("knex").Knex } knex
- * @returns { Promise<void> }
+ * @returns {Promise<void>}
  */
 exports.up = async function (knex) {
-  await knex.schema.createTable('bom_items', (table) => {
+  await knex.schema.createTable('packaging_materials', (table) => {
     table.uuid('id').primary().defaultTo(knex.raw('uuid_generate_v4()'));
     
-    table.uuid('bom_id').notNullable().references('id').inTable('boms');
-    table.uuid('part_id').notNullable().references('id').inTable('parts');
-    
-    table.decimal('quantity_per_unit', 10, 3).notNullable(); // Required: per finished product
-    table.string('unit', 20).notNullable(); // e.g., 'pcs', 'g', 'ml'
-    
-    // Optional variant reference fields
-    table.string('size', 50);
+    table.string('name', 150).notNullable();
+    table.string('code', 50).notNullable().unique(); // e.g. MAT-CAP001
     table.string('color', 50);
-    table.string('material', 100);
-    table.string('material_grade', 100);
+    table.string('size', 50);
+    table.string('grade', 50); // e.g., 'food', 'medical'
+    table.string('material_composition', 100); // e.g., 'plastic', 'paper', 'glass'
+    table.string('unit', 20); // e.g., 'pc', 'g', 'ml'
     
-    // Optional dimensional fields
+    table.decimal('estimated_unit_cost', 12, 4);
+    table.string('currency', 5); // 'USD', 'CAD', 'CNY'
+    
     table.decimal('length_cm', 10, 2);
     table.decimal('width_cm', 10, 2);
     table.decimal('height_cm', 10, 2);
     table.decimal('weight_g', 10, 2);
     
-    // Optional costing
-    table.decimal('estimated_unit_cost', 12, 4);
-    table.string('currency', 5); // 'USD', 'CAD', 'CNY'
+    table.uuid('supplier_id').nullable().references('id').inTable('suppliers');
+    table.uuid('status_id').notNullable().references('id').inTable('status');
+    table.timestamp('status_date', { useTz: true }).defaultTo(knex.fn.now());
     
-    // Additional metadata
-    table.text('specifications');    // e.g., "FDA-approved"
-    table.text('note');              // engineering or QA context
+    table.boolean('is_archived').defaultTo(false);
+    table.text('description');
     
-    // Timestamps & authorship
     table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
     table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
     table.uuid('created_by').references('id').inTable('users');
     table.uuid('updated_by').references('id').inTable('users');
     
     // Indexes
-    table.index(['bom_id']);
-    table.index(['part_id']);
-    
-    // Composite uniqueness
-    table.unique(['bom_id', 'part_id', 'length_cm', 'width_cm', 'height_cm', 'color', 'material'], {
-      indexName: 'uq_bom_item_variant',
-    });
+    table.index(['name'], 'idx_packaging_materials_name');
+    table.index(['code'], 'idx_packaging_materials_code');
   });
   
   // Add generated columns and value constraints
   await knex.raw(`
-    ALTER TABLE bom_items
+    ALTER TABLE packaging_materials
     ADD COLUMN length_inch DECIMAL(10, 2) GENERATED ALWAYS AS (length_cm / 2.54) STORED,
     ADD COLUMN width_inch DECIMAL(10, 2) GENERATED ALWAYS AS (width_cm / 2.54) STORED,
     ADD COLUMN height_inch DECIMAL(10, 2) GENERATED ALWAYS AS (height_cm / 2.54) STORED,
@@ -67,8 +58,8 @@ exports.up = async function (knex) {
 
 /**
  * @param { import("knex").Knex } knex
- * @returns { Promise<void> }
+ * @returns {Promise<void>}
  */
 exports.down = async function (knex) {
-  await knex.schema.dropTableIfExists('bom_items');
+  await knex.schema.dropTableIfExists('packaging_materials');
 };

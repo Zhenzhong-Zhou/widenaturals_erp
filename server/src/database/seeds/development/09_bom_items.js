@@ -17,43 +17,65 @@ exports.seed = async function (knex) {
   const bomMap = Object.fromEntries(boms.map((b) => [b.code, b.id]));
   const partMap = Object.fromEntries(parts.map((p) => [p.code, p.id]));
   
-  const sharedBomCodes = [
-    'BOM-CH-HN100-R-CN', 'BOM-CH-HN101-R-CA', 'BOM-CH-HN102-R-CN',
-    'BOM-CH-HN103-R-CA', 'BOM-CH-HN104-R-CN', 'BOM-CH-HN105-R-CA',
-    'BOM-CH-HN106-R-CN', 'BOM-CH-HN107-R-CA', 'BOM-CH-HN108-R-CN',
-    'BOM-CH-HN109-R-CA', 'BOM-CH-HN110-R-CN', 'BOM-CH-HN111-R-CA',
-    'BOM-CH-HN112-R-CN', 'BOM-CH-HN113-R-CA', 'BOM-CH-HN116-R-UN',
-  ];
+  const sharedSeries = {
+    series1: [
+      'BOM-CH-HN100-R-CN', 'BOM-CH-HN101-R-CA', 'BOM-CH-HN102-R-CN', 'BOM-CH-HN103-R-CA',
+      'BOM-CH-HN104-R-CN', 'BOM-CH-HN105-R-CA', 'BOM-CH-HN106-R-CN', 'BOM-CH-HN107-R-CA',
+      'BOM-CH-HN108-R-CN', 'BOM-CH-HN109-R-CA', 'BOM-CH-HN110-R-CN', 'BOM-CH-HN111-R-CA',
+      'BOM-CH-HN112-R-CN', 'BOM-CH-HN113-R-CA', 'BOM-CH-HN116-R-UN'
+    ],
+    series2: [
+      'BOM-PG-NM200-R-CN', 'BOM-PG-NM201-R-CA', 'BOM-PG-NM202-R-CN', 'BOM-PG-NM203-R-CA',
+      'BOM-PG-NM204-R-CN', 'BOM-PG-NM205-R-CA', 'BOM-PG-NM206-R-CN', 'BOM-PG-NM207-R-CA',
+      'BOM-PG-NM208-R-CN', 'BOM-PG-NM209-R-CA', 'BOM-PG-TCM300-R-CN', 'BOM-PG-TCM300-R-CA'
+    ],
+    series3: [
+      'BOM-WN-MO400-S-UN', 'BOM-WN-MO401-L-UN', 'BOM-WN-MO402-S-UN', 'BOM-WN-MO403-L-UN',
+      'BOM-WN-MO404-S-UN', 'BOM-WN-MO405-L-UN', 'BOM-WN-MO406-S-UN', 'BOM-WN-MO407-L-UN',
+      'BOM-WN-MO408-S-UN', 'BOM-WN-MO409-L-UN', 'BOM-WN-MO410-S-UN', 'BOM-WN-MO411-L-UN',
+    ]
+  };
   
-  const sharedItems = [
-    { code: 'PART-LID', qty: 1, unit: 'pc', color: 'white', material: 'plastic', material_grade: 'food' },
-    { code: 'SEAL-TAMPER', qty: 1, unit: 'pc', color: 'white', material: 'foam', material_grade: 'food' },
-    { code: 'DSC-PACKET', qty: 1, unit: 'pc', color: 'clear', material: 'plastic', material_grade: 'food', note: 'desiccant plug' },
-    { code: 'CAP-VEG', qty: 60, unit: 'pcs', size: '0 size', color: 'clear', material: 'vegan', material_grade: 'food' },
-    { code: 'PART-FILLER', qty: 1, unit: 'pc', color: 'clear', material: 'plastic', material_grade: 'food' },
-    { code: 'PART-BOTTLE', qty: 1, unit: 'pc', size: '250ml', material: 'plastic', material_grade: 'food' },
-    { code: 'LBL-STD', qty: 1, unit: 'pc', length_cm: 19.6, width_cm: 7.0, material: 'paper' },
-    { code: 'BOX-STD', qty: 1, unit: 'pc', length_cm: 6.4, width_cm: 6.4, height_cm: 11.3, material: 'cardboard' },
-  ];
+  const sharedItems = {
+    series1: [
+      { code: 'PART-LID', qty: 1, unit: 'pc', note: 'white plastic lid, food-grade' },
+      { code: 'SEAL-TAMPER', qty: 1, unit: 'pc', note: 'white foam tamper seal, food-grade' },
+      { code: 'DSC-PACKET', qty: 1, unit: 'pc', note: 'desiccant plug (clear plastic)' },
+      { code: 'CAP-VEG', qty: 60, unit: 'pcs', note: 'clear vegan capsule, size 0' },
+      { code: 'PART-FILLER', qty: 1, unit: 'pc', note: 'clear plastic filler, food-grade' },
+      { code: 'PART-BOTTLE', qty: 1, unit: 'pc', note: '250ml plastic bottle, food-grade' },
+      { code: 'LBL-STD', qty: 1, unit: 'pc', note: 'standard paper label, 19.6×7.0cm' },
+      { code: 'BOX-STD', qty: 1, unit: 'pc', note: 'standard cardboard box, 6.4×6.4×11.3cm' }
+    ],
+    series2: [
+      { code: 'PART-LID', qty: 1, unit: 'pc', note: 'metallica plastic lid, food-grade' },
+      { code: 'INSERT-DESICCANT', qty: 1, unit: 'pc', note: 'clear desiccant insert, plastic' },
+      { code: 'DSC-PACKET', qty: 1, unit: 'pc', note: 'green desiccant plug packet' },
+      { code: 'CAP-VEG', qty: 60, unit: 'pcs', note: 'white vegan capsule, size 1' },
+      { code: 'PART-FILLER', qty: 1, unit: 'pc', note: 'plastic filler, clear' },
+      { code: 'PART-BOTTLE', qty: 1, unit: 'pc', note: 'frosted glass bottle, 9k or 11k size' },
+      { code: 'LBL-STD', qty: 1, unit: 'pc', note: 'standard paper label (e.g. 13×4.5cm or 15.2×5.7cm)' },
+      { code: 'BOX-STD', qty: 1, unit: 'pc', note: 'outer packaging box (cardboard or rigid box)' },
+    ],
+    series3: [
+      { code: 'PART-LID', qty: 1, unit: 'pc', note: 'natural aluminum lid, food-grade' },
+      { code: 'LINER-THREADED', qty: 1, unit: 'pc', note: 'white plastic threaded liner, food-grade' },
+      { code: 'DSC-PACKET', qty: 1, unit: 'pc', note: 'white plastic desiccant plug, food-grade' },
+      { code: 'CAP-SOFTGEL', qty: 120, unit: 'pcs', note: 'yellow gelatin softgel capsule, 500mg, food-grade' },
+      { code: 'PART-BOTTLE', qty: 1, unit: 'pc', note: '220ml aluminum bottle, food-grade' },
+      { code: 'LBL-STD', qty: 1, unit: 'pc', note: 'plastic label, 16.0×6.5cm' },
+    ]
+  };
   
-  // Helper to create a bom_items row
   const generateBomItemRow = (bom_id, item) => ({
     id: knex.raw('uuid_generate_v4()'),
     bom_id,
     part_id: partMap[item.code],
     quantity_per_unit: item.qty,
     unit: item.unit,
-    size: item.size || null,
-    color: item.color || null,
-    material: item.material || null,
-    material_grade: item.material_grade || null,
-    length_cm: item.length_cm || null,
-    width_cm: item.width_cm || null,
-    height_cm: item.height_cm || null,
-    weight_g: item.weight_g || null,
+    note: item.note || null,
     estimated_unit_cost: item.unit_cost || null,
     currency: item.currency || null,
-    note: item.note || null,
     created_by: createdBy,
     updated_by: null,
     created_at: knex.fn.now(),
@@ -62,30 +84,24 @@ exports.seed = async function (knex) {
   
   const rows = [];
   
-  // Insert shared items
-  for (const bomCode of sharedBomCodes) {
-    const bom_id = bomMap[bomCode];
-    if (!bom_id) continue;
-    for (const item of sharedItems) {
-      if (!partMap[item.code]) continue;
-      rows.push(generateBomItemRow(bom_id, item));
-    }
-  }
-  
-  // Insert custom items
-  for (const def of require('./data/bom_items_customBomDefs')) {
-    const bom_id = bomMap[def.bomCode];
-    if (!bom_id) continue;
-    for (const item of def.items) {
-      if (!partMap[item.code]) continue;
-      rows.push(generateBomItemRow(bom_id, item));
+  for (const [series, bomCodes] of Object.entries(sharedSeries)) {
+    const items = sharedItems[series];
+    if (!items) continue;
+    
+    for (const bomCode of bomCodes) {
+      const bom_id = bomMap[bomCode];
+      if (!bom_id) continue;
+      for (const item of items) {
+        if (!partMap[item.code]) continue;
+        rows.push(generateBomItemRow(bom_id, item));
+      }
     }
   }
   
   if (rows.length > 0) {
     await knex('bom_items')
       .insert(rows)
-      .onConflict(['bom_id', 'part_id', 'length_cm', 'width_cm', 'height_cm', 'color', 'material'])
+      .onConflict(['bom_id', 'part_id'])
       .ignore();
     console.log(`Seeded ${rows.length} BOM item records.`);
   }
