@@ -57,3 +57,4 @@ server/backups
 backups/
 backup/
 temp/
+server/public/uploads/sku-images

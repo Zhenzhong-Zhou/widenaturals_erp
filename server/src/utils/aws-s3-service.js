@@ -6,6 +6,8 @@ const {
   GetObjectCommand,
 } = require('@aws-sdk/client-s3');
 const fs = require('fs');
+const path = require('path');
+const mime = require('mime-types');
 const s3Client = require('../config/aws-s3-config');
 const { logInfo, logError } = require('./logger-helper');
 
@@ -294,6 +296,38 @@ const listBackupsFromS3 = async (bucketName, folderPrefix = 'backups/') => {
   }
 };
 
+/**
+ * Upload a local image file to S3 for a given SKU
+ * @param {string} bucketName - The name of the S3 bucket.
+ * @param {string} localFilePath - Full local path to the file
+ * @param {string} keyPrefix - Folder structure under `sku-images/` (e.g., 'canaherb/2025-05-06').
+ * @param {string} keyName - Optional override for key filename
+ * @returns {Promise<string>} - S3 public URL
+ */
+const uploadSkuImageToS3 = async (bucketName, localFilePath, keyPrefix, keyName = null) => {
+  if (!bucketName) {
+    throw new Error('Bucket name is required.');
+  }
+  
+  const fileStream = fs.createReadStream(localFilePath);
+  const ext = path.extname(localFilePath);
+  const contentType = mime.lookup(ext) || 'application/octet-stream';
+  const baseFileName = keyName || path.basename(localFilePath);
+  
+  const s3Key = `${keyPrefix}/${baseFileName}`;
+  
+  const command = new PutObjectCommand({
+    Bucket: bucketName,
+    Key: s3Key,
+    Body: fileStream,
+    ContentType: contentType,
+  });
+  
+  await s3Client.send(command);
+
+  return `https://${bucketName}.s3.${process.env.AWS_REGION}.amazonaws.com/${s3Key}`;
+}
+
 module.exports = {
   uploadFileToS3,
   downloadFileFromS3,
@@ -301,4 +335,5 @@ module.exports = {
   deleteFilesFromS3,
   listFilesInS3,
   listBackupsFromS3,
+  uploadSkuImageToS3
 };

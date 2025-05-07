@@ -11,6 +11,7 @@ const corsMiddleware = require('./cors'); // Custom CORS configuration
 const { csrfProtection } = require('./csrf-protection');
 const requestLogger = require('./request-logger');
 const { createRateLimiter } = require('../utils/rate-limit-helper');
+const path = require('path');
 
 /**
  * Applies global middleware to the application.
@@ -45,6 +46,11 @@ const applyGlobalMiddleware = (app) => {
   // 8. Development Tools
   if (process.env.NODE_ENV === 'development') {
     app.use(morgan('dev')); // Use 'dev' logging format in development
+  }
+  
+  // 9. Serve Static Images (only in development)
+  if (process.env.NODE_ENV === 'development') {
+    app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
   }
 };
 
