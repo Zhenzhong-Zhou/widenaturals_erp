@@ -14,7 +14,7 @@ exports.seed = async function (knex) {
   );
 
   // Insert initial statuses
-  const warehouseStatus = [
+  const inventoryStatus = [
     {
       id: knex.raw('uuid_generate_v4()'),
       name: 'in_stock',
@@ -37,7 +37,7 @@ exports.seed = async function (knex) {
     },
     {
       id: knex.raw('uuid_generate_v4()'),
-      name: 'unavailable',
+      name: 'blocked',
       description:
         'Lot exists but cannot be used due to restrictions, quality checks, or pending approval.',
       is_active: true,
@@ -151,7 +151,7 @@ exports.seed = async function (knex) {
     },
     {
       id: knex.raw('uuid_generate_v4()'),
-      name: 'returned_pending',
+      name: 'returned_inspection',
       description: 'Returned lot is pending inspection before restocking.',
       is_active: true,
       created_at: knex.fn.now(),
@@ -161,12 +161,12 @@ exports.seed = async function (knex) {
     },
   ];
 
-  await knex('warehouse_lot_status')
-    .insert(warehouseStatus)
+  await knex('inventory_status')
+    .insert(inventoryStatus)
     .onConflict(['name'])
     .ignore(); // Avoid duplicate entries
 
   console.log(
-    `${warehouseStatus.length} warehouse lot status seeded successfully.`
+    `${inventoryStatus.length} warehouse lot status seeded successfully.`
   );
 };

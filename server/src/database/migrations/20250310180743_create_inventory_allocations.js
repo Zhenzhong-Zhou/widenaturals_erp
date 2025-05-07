@@ -7,21 +7,21 @@ exports.up = function (knex) {
     table.uuid('id').primary().defaultTo(knex.raw('uuid_generate_v4()'));
 
     // Inventory & Warehouse Info
-    table
-      .uuid('inventory_id')
-      .notNullable()
-      .references('id')
-      .inTable('inventory');
+    // table
+    //   .uuid('inventory_id')
+    //   .notNullable()
+    //   .references('id')
+    //   .inTable('inventory');
     table
       .uuid('warehouse_id')
       .notNullable()
       .references('id')
       .inTable('warehouses');
-    table
-      .uuid('lot_id')
-      .references('id')
-      .inTable('warehouse_inventory_lots')
-      .nullable();
+    // table
+    //   .uuid('lot_id')
+    //   .references('id')
+    //   .inTable('warehouse_inventory_lots')
+    //   .nullable();
 
     // Allocation Details
     table.integer('allocated_quantity').notNullable().checkPositive();
@@ -48,7 +48,7 @@ exports.up = function (knex) {
     table.timestamp('updated_at').defaultTo(knex.fn.now());
 
     // Unique Constraint to prevent duplicate allocation entries
-    table.unique(['order_id', 'lot_id', 'inventory_id', 'warehouse_id']);
+    // table.unique(['order_id', 'lot_id', 'inventory_id', 'warehouse_id']);
   });
 };
 

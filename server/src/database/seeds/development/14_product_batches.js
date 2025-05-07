@@ -25,7 +25,7 @@ exports.seed = async function (knex) {
       product_name: 'Focus',
       size_label: '60 Capsules',
       country_code: 'CA',
-      lot_number: 'UNASSIGNED-11000001',
+      lot_number: '11000001',
       expiry_date: '2026MAR07',
       quantity: 2,
       manufacturer: 'Phyto-Matrix Natural Technologies',
@@ -43,7 +43,7 @@ exports.seed = async function (knex) {
       product_name: 'Focus',
       size_label: '60 Capsules',
       country_code: 'CN',
-      lot_number: 'UNASSIGNED-11000001',
+      lot_number: '11000001',
       expiry_date: '2026MAR07',
       quantity: 8,
       manufacturer: 'Phyto-Matrix Natural Technologies',
@@ -286,7 +286,7 @@ exports.seed = async function (knex) {
       product_name: 'Mood',
       size_label: '60 Capsules',
       country_code: 'CA',
-      lot_number: '12800001',
+      lot_number: '12800001?',
       expiry_date: '2026MAR20',
       quantity: 4,
       manufacturer: 'Phyto-Matrix Natural Technologies',
@@ -398,7 +398,16 @@ exports.seed = async function (knex) {
       country_code: 'CN',
       lot_number: '12100004',
       expiry_date: '2026APR18',
-      quantity: 199,
+      quantity: 33,
+      manufacturer: 'Phyto-Matrix Natural Technologies',
+    },
+    {
+      product_name: 'NMN 6000',
+      size_label: '60 Capsules',
+      country_code: 'CN',
+      lot_number: '12100005',
+      expiry_date: '2026JUL18',
+      quantity: 144,
       manufacturer: 'Phyto-Matrix Natural Technologies',
     },
     {
@@ -443,7 +452,7 @@ exports.seed = async function (knex) {
       country_code: 'CN',
       lot_number: '12300014',
       expiry_date: '2027AUG19',
-      quantity: 71,
+      quantity: 200,
       manufacturer: 'Phyto-Matrix Natural Technologies',
     },
     {
@@ -466,7 +475,7 @@ exports.seed = async function (knex) {
     },
     
     {
-      product_name: 'Seal Oil',
+      product_name: 'Seal Oil Omega-3 500mg',
       size_label: '120 Softgels',
       country_code: 'UN',
       lot_number: 'NTSS2E002',
@@ -475,7 +484,7 @@ exports.seed = async function (knex) {
       manufacturer: 'Novastown Health',
     },
     {
-      product_name: 'Seal Oil',
+      product_name: 'Seal Oil Omega-3 500mg',
       size_label: '180 Softgels',
       country_code: 'UN',
       lot_number: 'NTSS2E001',
@@ -515,11 +524,11 @@ exports.seed = async function (knex) {
     }
     if (!manufacturerId) {
       console.warn(`Skipping batch: Unknown manufacturer "${entry.manufacturer}"`);
-      return null;
+      continue;
     }
     if (!expiry) {
       console.warn(`Skipping batch: Invalid expiry date "${entry.expiry_date}"`);
-      return null;
+      continue;
     }
     
     const manufactureDate = new Date(expiry);
@@ -543,6 +552,8 @@ exports.seed = async function (knex) {
       updated_by: null,
     });
   }
+  
+  console.log(`Prepared ${batches.length} valid batches out of ${lotData.length} total entries`);
   
   if (batches.length > 0) {
     await knex('product_batches')

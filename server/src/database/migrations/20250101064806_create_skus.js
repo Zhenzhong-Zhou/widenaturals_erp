@@ -33,6 +33,7 @@ exports.up = async function(knex) {
     table.uuid('updated_by').references('id').inTable('users');
     
     table.index(['product_id', 'sku'], 'idx_skus_product_sku');
+    table.index(['product_id', 'size_label', 'country_code'], 'idx_skus_lookup_key');
     
     table.unique(['product_id', 'sku']);
   });

@@ -1,4 +1,5 @@
 const { fetchDynamicValue, fetchDynamicValues } = require('../03_utils');
+const { generateStandardizedCode } = require('../../../utils/codeGenerators');
 
 /**
  * @param {import("knex").Knex} knex
@@ -67,7 +68,7 @@ exports.seed = async function (knex) {
 
   // Ensure each warehouse has a unique location
   const warehouseEntries = warehouseData
-    .map((entry) => {
+    .map((entry, index) => {
       const location = warehouseLocations.find(
         (loc) => loc.name === entry.location_label
       );
@@ -86,6 +87,11 @@ exports.seed = async function (knex) {
         name: entry.warehouse_name,
         location_id: location.id,
         type_id: typeId,
+        code: generateStandardizedCode('WH', entry.warehouse_name, {
+          regionCode: 'CA',
+          sequenceNumber: index + 1,
+          padLength: 2,
+        }),
         storage_capacity: entry.storage_capacity,
         status_id: activeStatusId,
         status_date: knex.fn.now(),

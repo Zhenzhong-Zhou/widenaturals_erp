@@ -122,8 +122,8 @@ exports.up = function (knex) {
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
-    CREATE TRIGGER set_inventory_updated_at
-    BEFORE UPDATE ON inventory
+    CREATE TRIGGER set_location_inventory_updated_at
+    BEFORE UPDATE ON location_inventory
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
@@ -132,13 +132,13 @@ exports.up = function (knex) {
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
-    CREATE TRIGGER set_warehouse_inventory_lots_updated_at
-    BEFORE UPDATE ON warehouse_inventory_lots
+    CREATE TRIGGER set_warehouse_zones_updated_at
+    BEFORE UPDATE ON warehouse_zones
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
-    CREATE TRIGGER set_warehouse_lot_status_updated_at
-    BEFORE UPDATE ON warehouse_lot_status
+    CREATE TRIGGER set_inventory_status_updated_at
+    BEFORE UPDATE ON inventory_status
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 

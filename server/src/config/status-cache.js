@@ -15,7 +15,7 @@ const getStatusIdMap = async () => {
     const sql = `
       SELECT 'status' AS source, LOWER(name) AS name, id FROM status WHERE LOWER(name) IN ('active')
       UNION ALL
-      SELECT 'warehouse_lot_status', LOWER(name), id FROM warehouse_lot_status WHERE LOWER(name) IN ('in_stock')
+      SELECT 'inventory_status', LOWER(name), id FROM inventory_status WHERE LOWER(name) IN ('in_stock')
     `;
     
     const { rows } = await query(sql);

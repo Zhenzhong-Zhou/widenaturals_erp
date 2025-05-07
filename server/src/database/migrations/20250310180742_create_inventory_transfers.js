@@ -16,11 +16,11 @@ exports.up = function (knex) {
       .notNullable()
       .references('id')
       .inTable('warehouses');
-    table
-      .uuid('lot_id')
-      .references('id')
-      .inTable('warehouse_inventory_lots')
-      .nullable();
+    // table
+    //   .uuid('lot_id')
+    //   .references('id')
+    //   .inTable('warehouse_inventory_lots')
+    //   .nullable();
 
     table.integer('quantity').notNullable().checkPositive();
 

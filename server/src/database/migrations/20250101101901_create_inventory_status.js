@@ -3,7 +3,7 @@
  * @returns { Promise<void> }
  */
 exports.up = function (knex) {
-  return knex.schema.createTable('warehouse_lot_status', (table) => {
+  return knex.schema.createTable('inventory_status', (table) => {
     table.uuid('id').primary().defaultTo(knex.raw('uuid_generate_v4()'));
     table.string('name', 50).unique().notNullable(); // Status name (e.g., Available, Damaged, Expired)
     table.text('description').nullable(); // Optional description for better clarity
@@ -14,7 +14,7 @@ exports.up = function (knex) {
     table.uuid('updated_by').references('id').inTable('users');
 
     // Indexes
-    table.index(['name'], 'idx_warehouse_lot_status_name');
+    table.index(['name'], 'idx_inventory_status_name');
   });
 };
 
@@ -23,5 +23,5 @@ exports.up = function (knex) {
  * @returns { Promise<void> }
  */
 exports.down = function (knex) {
-  return knex.schema.dropTableIfExists('warehouse_lot_status');
+  return knex.schema.dropTableIfExists('inventory_status');
 };
