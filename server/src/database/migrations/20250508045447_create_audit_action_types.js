@@ -3,12 +3,12 @@
  * @returns {Knex.SchemaBuilder}
  */
 exports.up = function (knex) {
-  return knex.schema.createTable('auth_action_types', (table) => {
+  return knex.schema.createTable('audit_action_types', (table) => {
     table.uuid('id').primary().defaultTo(knex.raw('uuid_generate_v4()'));
     
-    table.string('name', 50).notNullable().unique(); // e.g., 'login_success', 'logout', 'lockout'
-    table.string('code', 50).notNullable().unique(); // e.g., 'LOGIN_SUCCESS'
-    table.string('slug', 50).unique();               // e.g., 'login-success'
+    table.string('name', 50).notNullable().unique();
+    table.string('code', 50).notNullable().unique();
+    table.string('slug', 50).unique();
     table.text('description').nullable();
     
     // Status tracking (optional in reference tables, but useful if you want soft-deactivation)
@@ -28,5 +28,5 @@ exports.up = function (knex) {
  * @returns {Knex.SchemaBuilder}
  */
 exports.down = function (knex) {
-  return knex.schema.dropTableIfExists('auth_action_types');
+  return knex.schema.dropTableIfExists('audit_action_types');
 };
