@@ -172,16 +172,6 @@ exports.up = function (knex) {
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
 
-    CREATE TRIGGER set_warehouse_lot_adjustments_updated_at
-    BEFORE UPDATE ON warehouse_lot_adjustments
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
-    CREATE TRIGGER set_inventory_activity_log_updated_at
-    BEFORE UPDATE ON inventory_activity_log
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
     -- === ORDERS ===
     CREATE TRIGGER set_customers_updated_at
     BEFORE UPDATE ON customers

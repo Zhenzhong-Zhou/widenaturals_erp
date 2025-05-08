@@ -71,7 +71,6 @@ const generateStandardizedCode = (
  * Generate either a structured code or a URL-friendly slug based on the input name.
  * Slug mode outputs lowercase, underscore-delimited strings; otherwise, a prefixed code is returned.
  *
- * @param {string|null} prefix - Prefix to use in code mode (e.g., 'ORD', 'PRC'). Ignored in slug-only mode.
  * @param {string} name - The name string to generate code or slug from.
  * @param {object} options - Configuration options.
  * @param {boolean} [options.slugOnly=false] - If true, return a slug instead of structured code.
@@ -81,7 +80,6 @@ const generateStandardizedCode = (
  * @returns {string} - Either a structured code or a slug string.
  */
 const generateCodeOrSlug = (
-  prefix,
   name,
   {
     slugOnly = false,
@@ -98,7 +96,7 @@ const generateCodeOrSlug = (
   const abbr = generateAbbreviation(normalizedName);
   const padded = String(sequenceNumber).padStart(padLength, '0');
   const regionPart = regionCode ? `-${regionCode.toUpperCase()}` : '';
-  return `${prefix}-${abbr}${regionPart}${padded}`;
+  return `${abbr}${regionPart}${padded}`;
 };
 
 module.exports = {

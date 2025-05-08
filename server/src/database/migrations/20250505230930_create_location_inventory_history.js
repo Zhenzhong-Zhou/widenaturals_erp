@@ -26,7 +26,7 @@ exports.up = function (knex) {
     
     table.unique(
       ['location_inventory_id', 'inventory_action_type_id', 'timestamp'],
-      'uq_location_inventory_history_dedupe'
+      {indexName: 'uq_location_inventory_history_dedupe'}
     );
   });
 };
