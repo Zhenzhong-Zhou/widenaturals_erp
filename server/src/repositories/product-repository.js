@@ -1,6 +1,6 @@
-const { query, paginateQuery, retry } = require('../database/db');
+const { query, retry } = require('../database/db');
 const AppError = require('../utils/AppError');
-const { logInfo, logError } = require('../utils/logger-helper');
+const { logError } = require('../utils/logger-helper');
 
 /**
  * Build WHERE clause dynamically based on filters.
@@ -27,109 +27,6 @@ const buildWhereClause = (filters) => {
       : '',
     queryParams,
   };
-};
-
-/**
- * Fetch paginated products with filtering and sorting.
- * @param {Object} options - Options for query building.
- * @param {number} options.page - Current page number.
- * @param {number} options.limit - Number of items per page.
- * @param {string} options.sortBy - Column to sort by.
- * @param {string} options.sortOrder - Sort direction (ASC/DESC).
- * @param {string} [options.status='active'] - Filter products by status.
- * @returns {Promise<Object>} - Paginated product data.
- */
-const getProducts = async ({
-  page = 1,
-  limit = 10,
-  sortBy = 'p.created_at',
-  sortOrder = 'DESC',
-  status = 'active',
-}) => {
-  const tableName = 'products p';
-  const joins = ['INNER JOIN status s ON p.status_id = s.id'];
-  const whereClause = 's.name = $1'; // Use parameterized value
-
-  // Base query text
-  const queryText = `
-    SELECT
-      p.id,
-      p.product_name,
-      p.series,
-      p.brand,
-      p.category,
-      COALESCE(
-        jsonb_agg(
-            DISTINCT jsonb_build_object(
-                'npn', c.compliance_id
-            )
-        ) FILTER (WHERE c.type = 'NPN'), '[]'
-    ) AS npn_info,
-      p.barcode,
-      p.market_region,
-      s.name AS status_name,
-      COALESCE(
-        jsonb_agg(
-          jsonb_build_object(
-            'pricing_type', pricing.pricing_type,
-            'price', pricing.price
-          )
-        ) FILTER (WHERE pricing.pricing_type IN ('Retail', 'MSRP')), '[]'
-      ) AS prices
-    FROM ${tableName}
-    INNER JOIN status s ON p.status_id = s.id
-    LEFT JOIN (
-      SELECT
-        pr.product_id,
-        pt.name AS pricing_type,
-        pr.price,
-        pr.location_id
-      FROM pricing pr
-      INNER JOIN pricing_types pt ON pr.price_type_id = pt.id
-      INNER JOIN status ps ON pr.status_id = ps.id
-      INNER JOIN locations l ON pr.location_id = l.id
-      INNER JOIN location_types lt ON l.location_type_id = lt.id
-      WHERE ps.name = 'active'
-        AND lt.name = 'Office'
-        AND pt.name IN ('Retail', 'MSRP')
-    ) pricing ON pricing.product_id = p.id
-    LEFT JOIN locations loc ON pricing.location_id = loc.id
-    LEFT JOIN location_types lt ON loc.location_type_id = lt.id
-    LEFT JOIN compliances c ON p.id = c.product_id AND c.type = 'NPN'
-    WHERE ${whereClause}
-    GROUP BY p.id, s.name, loc.name, lt.name
-  `;
-
-  const fetchPaginatedData = async () => {
-    logInfo('Fetching paginated products', {
-      page,
-      limit,
-      sortBy,
-      sortOrder,
-      status,
-    });
-    return paginateQuery({
-      tableName,
-      joins,
-      whereClause,
-      queryText,
-      params: [status], // Parameterize the status filter
-      page,
-      limit,
-      sortBy,
-      sortOrder,
-    });
-  };
-
-  try {
-    return await retry(fetchPaginatedData, 3, 1000);
-  } catch (error) {
-    logError('Error fetching paginated products', {
-      message: error.message,
-      stack: error.stack,
-    });
-    throw AppError.databaseError('Failed to fetch products');
-  }
 };
 
 /**
@@ -409,7 +306,6 @@ const getProductsForDropdown = async (search = null, limit = 100) => {
 };
 
 module.exports = {
-  getProducts,
   checkProductExists,
   getProductDetailsById,
   getAvailableProductsForDropdown,

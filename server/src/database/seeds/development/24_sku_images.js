@@ -24,6 +24,12 @@ exports.seed = async function (knex) {
     .first();
   if (!systemUser) throw new Error('System user not found');
   
+  const existingCount = await knex('sku_images').count('*').first();
+  if (parseInt(existingCount.count) > 0) {
+    console.warn('Skipping sku_images seeding: table already has data.');
+    return;
+  }
+  
   const seedData = [
     {
       sku: 'CH-HN100-R-CN',

@@ -47,11 +47,6 @@ const applyGlobalMiddleware = (app) => {
   if (process.env.NODE_ENV === 'development') {
     app.use(morgan('dev')); // Use 'dev' logging format in development
   }
-  
-  // 9. Serve Static Images (only in development)
-  if (process.env.NODE_ENV === 'development') {
-    app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
-  }
 };
 
 module.exports = applyGlobalMiddleware;

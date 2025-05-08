@@ -465,7 +465,7 @@ exports.seed = async function (knex) {
           market_region: 'Canada',
           size_label: '60 Capsules',
           dimensions: { length_cm: 15, width_cm: 10, height_cm: 5, weight_g: 250 },
-          status_id: inActiveStatusId,
+          status_id: activeStatusId,
         },
       ],
     },

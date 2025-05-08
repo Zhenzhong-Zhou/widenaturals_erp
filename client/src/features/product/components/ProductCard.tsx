@@ -4,7 +4,6 @@ import CustomCard from '@components/common/CustomCard';
 import CustomButton from '@components/common/CustomButton';
 import CustomTypography from '@components/common/CustomTypography';
 import PriceDisplay from '@components/common/PriceDisplay';
-import productPlaceholder from '@assets/Virility_CA.jpg';
 import { formatLabel } from '@utils/textUtils';
 import type { GeneralProductInfo } from '@features/product/state';
 
@@ -38,7 +37,7 @@ const ProductCard: FC<ProductCardProps> = ({ product }) => {
     >
       <CustomCard
         title={product_name}
-        imageUrl={productPlaceholder}
+        imageUrl={''}
         actions={
           <>
             <CustomButton size="small" color="primary" variant="contained">

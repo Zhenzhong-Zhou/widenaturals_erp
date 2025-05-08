@@ -45,7 +45,7 @@ const getProductsController = wrapAsync(async (req, res, next) => {
     res.status(200).json({
       success: true,
       data: products.data,
-      pagination: products.pagination,
+      pagination: products.totalRecords,
     });
   } catch (error) {
     // Add context and log the error
