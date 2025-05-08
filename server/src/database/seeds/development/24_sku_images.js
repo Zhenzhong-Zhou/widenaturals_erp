@@ -362,7 +362,7 @@ exports.seed = async function (knex) {
       ],
     },
     {
-      sku: 'PG-TCM300-R-CA',
+      sku: 'PG-TCM301-R-CA',
       images: [
         {
           url: 'src/assets/sku-images/PG/virility_ca.jpg',

@@ -27,7 +27,7 @@ exports.seed = async function (knex) {
     series2: [
       'BOM-PG-NM200-R-CN', 'BOM-PG-NM201-R-CA', 'BOM-PG-NM202-R-CN', 'BOM-PG-NM203-R-CA',
       'BOM-PG-NM204-R-CN', 'BOM-PG-NM205-R-CA', 'BOM-PG-NM206-R-CN', 'BOM-PG-NM207-R-CA',
-      'BOM-PG-NM208-R-CN', 'BOM-PG-NM209-R-CA', 'BOM-PG-TCM300-R-CN', 'BOM-PG-TCM300-R-CA'
+      'BOM-PG-NM208-R-CN', 'BOM-PG-NM209-R-CA', 'BOM-PG-TCM300-R-CN', 'BOM-PG-TCM301-R-CA'
     ],
     series3: [
       'BOM-WN-MO400-S-UN', 'BOM-WN-MO401-L-UN', 'BOM-WN-MO402-S-UN', 'BOM-WN-MO403-L-UN',

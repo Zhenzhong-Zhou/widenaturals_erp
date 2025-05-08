@@ -703,6 +703,8 @@ exports.seed = async function (knex) {
         category: productDef.category,
       });
     
+    const lastUsedCodeMap = new Map();
+    
     for (const variant of productDef.variants) {
       const brandCode = brandNameToCode[productDef.brand];
       const categoryCode = categoryNameToCode[productDef.category];
@@ -711,7 +713,8 @@ exports.seed = async function (knex) {
         brandCode,
         categoryCode,
         variant.variantCode,
-        variant.regionCode || null
+        variant.regionCode || null,
+        lastUsedCodeMap
       );
       
       if (variant.barcode) {
