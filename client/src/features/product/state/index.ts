@@ -1,14 +1,10 @@
-import productsReducer from './productSlice';
-import productReducer from './productDetailSlice';
-import productOrderDropdownReducer from './productOrderDropdownSlice';
+import skuProductCardsReducer from './skuProductCardSlice.ts';
 
-export const productReducers = {
-  products: productsReducer,
-  product: productReducer,
-  productOrderDropdown: productOrderDropdownReducer,
+export const skuReducers = {
+  skuProductCards: skuProductCardsReducer,
 };
 
 // Optional exports for types, selectors, and thunks
-export * from './productSelectors';
-export * from './productThunks';
-export * from './productTypes';
+export * from './skuProductCardSelectors.ts';
+export * from './skuThunks.ts';
+export * from './skuTypes.ts';

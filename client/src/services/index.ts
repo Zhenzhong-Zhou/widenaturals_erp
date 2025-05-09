@@ -4,7 +4,7 @@ export { csrfService } from './csrfService';
 export { resetPasswordService } from './resetPasswordService';
 export { userService } from './userService';
 export { authorizeService } from './authorizeService';
-export { productService } from './productService';
+export { skuService } from './skuService';
 export { complianceService } from './complianceService';
 export { pricingTypeService } from './pricingTypeService';
 export { pricingService } from './pricingService';

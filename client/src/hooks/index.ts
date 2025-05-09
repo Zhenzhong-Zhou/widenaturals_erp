@@ -14,7 +14,7 @@ export { default as usePermissions } from './usePermissions';
 export { default as useUsers } from './useUsers';
 
 // --- Product ---
-export { default as useProducts } from './useProducts';
+export { default as useProducts } from './useSkuProductCards.ts';
 export { default as useProductDetail } from './useProductDetail';
 export { default as useProductsWarehouseDropdown } from './useProductsWarehouseDropdown';
 export { default as useProductOrderDropdown } from './useProductOrderDropdown';

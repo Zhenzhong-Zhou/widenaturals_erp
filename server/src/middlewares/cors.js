@@ -29,12 +29,16 @@ const corsMiddleware = cors({
           }
         );
       }
-
+      
+      const isDev = process.env.NODE_ENV === 'development';
+      
       // Read allowed origins from environment variables
       const allowedOrigins = process.env.ALLOWED_ORIGINS
-        ? process.env.ALLOWED_ORIGINS.split(',').filter(Boolean)
-        : [];
-
+        ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim().toLowerCase()).filter(Boolean)
+        : isDev
+          ? ['http://localhost:5173']
+          : [];
+      
       if (!origin) {
         // Handle requests without an Origin header
         if (allowedOrigins.length === 0) {

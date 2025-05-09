@@ -16,7 +16,7 @@ import { orderReducers } from '@features/order';
 import { orderTypeReducers } from '@features/orderType';
 import { pricingReducers } from '@features/pricing';
 import { pricingTypeReducers } from '@features/pricingType';
-import { productReducers } from '@features/product';
+import { skuReducers } from '@features/product';
 import { reportReducers } from '@features/report';
 import { resetPasswordReducers } from '@features/resetPassword';
 import { sessionReducers } from '@features/session';
@@ -40,7 +40,7 @@ const appReducer = combineReducers(
     customerReducers,
 
     // Product & Pricing
-    productReducers,
+    skuReducers,
     complianceReducers,
     pricingTypeReducers,
     pricingReducers,

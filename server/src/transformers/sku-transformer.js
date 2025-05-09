@@ -6,27 +6,30 @@ const { getProductDisplayName } = require('../utils/display-name-utils');
  * @returns {Array<Object>} Transformed array for product card grid.
  */
 const transformSkuProductCardList = (rows) => {
-  return rows.map((row) => ({
-    skuId: row.sku_id,
-    skuCode: row.sku,
-    barcode: row.barcode,
+  return rows.map((row) => {
+    const unifiedStatus =
+      row.status_name === row.sku_status_name
+        ? row.status_name
+        : { product: row.status_name, sku: row.sku_status_name };
     
-    productId: row.id,
-    displayName: getProductDisplayName(row),
-    brand: row.brand,
-    series: row.series,
-    category: row.category,
-    marketRegion: row.market_region,
-    
-    statusName: row.status_name,
-    skuStatusName: row.sku_status_name,
-    
-    npnComplianceId: row.compliance_id || null,
-    msrpPrice: row.msrp_price ? Number(row.msrp_price) : null,
-    
-    imageUrl: row.primary_image_url || null,
-    imageAltText: row.image_alt_text || '',
-  }));
+    return {
+      skuId: row.sku_id,
+      skuCode: row.sku,
+      barcode: row.barcode,
+      
+      displayName: getProductDisplayName(row),
+      brand: row.brand,
+      series: row.series,
+      
+      status: unifiedStatus, // dynamically collapsed or nested
+      
+      npnComplianceId: row.compliance_id || null,
+      msrpPrice: row.msrp_price ? Number(row.msrp_price) : null,
+      
+      imageUrl: row.primary_image_url || null,
+      imageAltText: row.image_alt_text || '',
+    };
+  });
 }
 
 module.exports = {

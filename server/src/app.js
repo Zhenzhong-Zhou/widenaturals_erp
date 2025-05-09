@@ -9,6 +9,7 @@ const applyErrorHandlers = require('./middlewares/error-handlers/apply-error-han
 const { createGlobalRateLimiter } = require('./middlewares/rate-limiter');
 const path = require('path');
 const routes = require('./routes/routes');
+const corsMiddleware = require('./middlewares/cors');
 
 const app = express();
 
@@ -22,7 +23,20 @@ app.use(globalRateLimiter);
 // Serve Static Images (only in development)
 if (process.env.NODE_ENV === 'development') {
   const rootPath = path.join(__dirname, '..');
-  app.use('/uploads', express.static(path.join(rootPath, 'public/uploads')));
+  
+  const uploadsRouter = express.Router();
+  
+  uploadsRouter.use(
+    corsMiddleware,
+    (req, res, next) => {
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+      res.setHeader('Cross-Origin-Embedder-Policy', 'unsafe-none');
+      next();
+    },
+    express.static(path.join(rootPath, 'public/uploads'))
+  );
+  
+  app.use('/uploads', uploadsRouter);
 }
 
 // Routes

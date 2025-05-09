@@ -1,6 +1,8 @@
 const { query, paginateResults } = require('../database/db');
 const { logError, logInfo } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
+const { FILTERABLE_FIELDS } = require('../utils/filter-field-mapping');
+const { sanitizeSortBy } = require('../utils/sort-utils');
 
 /**
  * Retrieves the most recent SKU string for a given brand and category combination.
@@ -44,24 +46,26 @@ const getLastSku = async (brandCode, categoryCode) => {
  */
 const buildWhereClauseAndParams = (productStatusId, filters = {}) => {
   try {
+    const fieldMap = FILTERABLE_FIELDS.skuProductCards;
     const conditions = [`p.status_id = $1`, `sku.status_id = $1`];
     const params = [productStatusId];
+    let paramIndex = 2;
     
-    const addCondition = (condition, value) => {
+    for (const [key, value] of Object.entries(filters)) {
       if (value !== undefined && value !== null && value !== '') {
-        conditions.push(`${condition} $${params.length + 1}`);
-        params.push(value);
+        const field = fieldMap[key];
+        if (!field) continue;
+        
+        if (key === 'keyword') {
+          conditions.push(`${field} ILIKE $${paramIndex}`);
+          params.push(`%${value}%`);
+        } else {
+          conditions.push(`${field} = $${paramIndex}`);
+          params.push(value);
+        }
+        
+        paramIndex++;
       }
-    };
-    
-    addCondition('p.brand =', filters.brand);
-    addCondition('p.category =', filters.category);
-    addCondition('sku.market_region =', filters.marketRegion);
-    addCondition('sku.size_label =', filters.sizeLabel);
-    
-    if (filters.keyword) {
-      conditions.push(`p.name ILIKE $${params.length + 1}`);
-      params.push(`%${filters.keyword}%`);
     }
     
     return {
@@ -109,16 +113,16 @@ const buildWhereClauseAndParams = (productStatusId, filters = {}) => {
 const fetchPaginatedActiveSkusWithProductCards = async ({
                                                           page = 1,
                                                           limit = 10,
-                                                          sortBy = 'p.name, p.created_at',
+                                                          sortBy = 'name, created_at',
                                                           sortOrder = 'DESC',
                                                           productStatusId,
                                                           filters = {},
                                                         }) => {
   const { whereClause, params } = buildWhereClauseAndParams(productStatusId, filters);
+  const orderBy = sanitizeSortBy(sortBy, 'skuProductCards');
   
   const queryText = `
     SELECT
-      p.id,
       p.name AS product_name,
       p.series,
       p.brand,
@@ -159,15 +163,14 @@ const fetchPaginatedActiveSkusWithProductCards = async ({
       comp.compliance_id,
       pr.price,
       img.image_url, img.alt_text
+    ORDER BY ${orderBy} ${sortOrder}
   `;
   
   try {
     logInfo('Fetching paginated active SKUs with product cards');
     
-    const dataQuery = `${queryText} ORDER BY ${sortBy} ${sortOrder}`;
-    
     return await paginateResults({
-      dataQuery,
+      dataQuery: queryText,
       params,
       page,
       limit,

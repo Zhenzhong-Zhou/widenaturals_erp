@@ -12,6 +12,7 @@ interface CustomCardProps {
   subtitle?: string | ReactNode;
   children?: ReactNode;
   imageUrl?: string; // Optional media
+  imageAlt?: string;
   actions?: ReactNode; // Optional actions
   sx?: SxProps<Theme>;
   contentSx?: SxProps<Theme>;
@@ -24,6 +25,7 @@ const CustomCard: FC<CustomCardProps> = ({
                                            subtitle,
                                            children,
                                            imageUrl,
+                                           imageAlt,
                                            actions,
                                            sx,
                                            contentSx,
@@ -51,7 +53,7 @@ const CustomCard: FC<CustomCardProps> = ({
           component="img"
           height="340"
           image={imageUrl}
-          alt={typeof title === 'string' ? title : 'Card image'}
+          alt={imageAlt || (typeof title === 'string' ? title : 'Card image')}
           loading="lazy"
           sx={{
             objectFit: 'cover',

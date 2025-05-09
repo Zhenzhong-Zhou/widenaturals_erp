@@ -63,7 +63,6 @@ const fetchAvailableProductsForDropdown = async (
 };
 
 module.exports = {
-  fetchAllProducts,
   fetchProductDetails,
   fetchProductDropdownList,
   fetchAvailableProductsForDropdown,

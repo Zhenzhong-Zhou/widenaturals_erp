@@ -2,7 +2,6 @@ import { type FC, useEffect, useState } from 'react';
 import Box from '@mui/material/Box';
 import Dropdown from '@components/common/Dropdown';
 import Loading from '@components/common/Loading';
-import useProductOrderDropdown from '@hooks/useProductOrderDropdown';
 
 interface ProductOrderDropdownProps {
   label?: string;

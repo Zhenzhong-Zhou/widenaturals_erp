@@ -1,4 +1,4 @@
-import type { FC } from 'react';
+import type { FC, ReactNode } from 'react';
 import Button from '@mui/material/Button';
 import type { ButtonProps } from '@mui/material/Button';
 import { Link as RouterLink } from 'react-router-dom';
@@ -9,6 +9,7 @@ interface CustomButtonProps extends ButtonProps {
   variant?: 'contained' | 'outlined' | 'text';
   color?: 'primary' | 'secondary' | 'success' | 'error' | 'info' | 'warning';
   size?: 'small' | 'medium' | 'large';
+  icon?: ReactNode;
 }
 
 const CustomButton: FC<CustomButtonProps> = ({
@@ -17,11 +18,12 @@ const CustomButton: FC<CustomButtonProps> = ({
                                                variant = 'contained',
                                                color = 'primary',
                                                size = 'medium',
+                                               icon,
                                                ...props
                                              }) => {
   const { theme } = useThemeContext();
   
-  const borderRadius = theme.shape?.borderRadius ?? 6; // fallback if not defined
+  const borderRadius = theme.shape?.borderRadius ?? 6; // fallback if isn't defined
   const spacing = theme.spacing?.(1, 2) ?? '8px 16px';
   
   return (
@@ -31,6 +33,7 @@ const CustomButton: FC<CustomButtonProps> = ({
       variant={variant}
       color={color}
       size={size}
+      startIcon={icon}
       {...props}
       sx={{
         textTransform: 'none',
