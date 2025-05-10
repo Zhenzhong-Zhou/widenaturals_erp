@@ -12,6 +12,7 @@ const { encryptFile } = require('./encryption');
 const { logInfo, logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
 const { uploadFileToS3 } = require('../utils/aws-s3-service');
+const { logSystemError, logSystemInfo, logSystemException } = require('../utils/system-logger');
 
 // Load environment variables
 loadEnv();
@@ -35,6 +36,12 @@ const bucketName = process.env.AWS_S3_BUCKET_NAME; // S3 Bucket name
 
 // Validate maxFiles - Ensure it's a positive multiple of 3
 if (!Number.isInteger(maxBackups) || maxBackups <= 0 || maxBackups % 3 !== 0) {
+  logSystemError('Invalid MAX_BACKUPS value', {
+    value: maxBackups,
+    context: 'backup-config',
+    severity: 'critical',
+  });
+  
   throw AppError.validationError(
     `Invalid MAX_BACKUPS value: ${maxBackups}. It must be a positive multiple of 3 (e.g., 3, 6, 9, etc.).`
   );
@@ -51,8 +58,11 @@ const backupDatabase = async () => {
   try {
     // Ensure the backup directory exists
     await ensureDirectory(backupDir);
-    logInfo(`Starting backup for database: '${targetDatabase}'`);
-
+    logSystemInfo(`Starting backup for database: '${targetDatabase}'`, {
+      context: 'backup',
+      backupDir,
+    });
+    
     // Build the dump command without exposing credentials
     const dumpCommand = `${pgDumpPath} --format=custom --no-owner --clean --if-exists --file=${backupFile} --username=${dbUser} --dbname=${targetDatabase}`;
 
@@ -78,9 +88,12 @@ const backupDatabase = async () => {
 
     // Cleanup old backups
     await cleanupOldBackups(backupDir, maxBackups, isProduction, bucketName);
-
-    logInfo(`Backup encrypted and saved: ${encryptedFile}`);
-
+    
+    logSystemInfo('Backup encrypted and saved', {
+      context: 'backup',
+      encryptedFile,
+    });
+    
     // Upload to S3 if in production
     if (isProduction && bucketName) {
       try {
@@ -103,28 +116,34 @@ const backupDatabase = async () => {
           'application/octet-stream'
         );
         await uploadFileToS3(hashFile, bucketName, s3KeySha256, 'text/plain');
-
-        logInfo(
-          `Successfully uploaded backup files to S3: ${s3KeyEnc}, ${s3KeyIv}, ${s3KeySha256}.`
-        );
+        
+        logSystemInfo('Successfully uploaded backup files to S3', {
+          context: 'backup-upload',
+          files: [s3KeyEnc, s3KeyIv, s3KeySha256],
+        });
 
         // Optionally delete the encrypted file locally after successful upload
         await fs.unlink(encryptedFile);
         await fs.unlink(ivFile); // Also delete the initialization vector
         await fs.unlink(hashFile); // And the hash file
       } catch (uploadError) {
-        logError('Failed to upload encrypted backup to S3.', {
-          error: uploadError.message,
+        logSystemException(uploadError, 'Failed to upload encrypted backup to S3', {
+          context: 'backup-upload',
+          severity: 'error',
         });
+        
         throw uploadError;
       }
     } else {
-      logInfo(
-        'Skipping S3 upload: Not in production or no bucket name provided.'
-      );
+      logSystemInfo('Skipping S3 upload: Not in production or no bucket name provided.', {
+        context: 'backup-upload',
+      });
     }
   } catch (error) {
-    logError('Error during backup operation:', { error: error.message });
+    logSystemException(error, 'Error during backup operation', {
+      context: 'backup',
+      severity: 'critical',
+    });
     throw error;
   }
 };
@@ -135,9 +154,16 @@ module.exports = { backupDatabase };
 // Self-executing script for standalone usage
 if (require.main === module) {
   backupDatabase()
-    .then(() => logInfo('Database backup completed successfully.'))
+    .then(() => {
+      logSystemInfo('Database backup completed successfully.', {
+        context: 'backup',
+      });
+    })
     .catch((error) => {
-      logError('Failed to back up the database.', { error: error.message });
+      logSystemException(error, 'Failed to back up the database', {
+        context: 'backup',
+        severity: 'critical',
+      });
       process.exit(1); // Exit with an error code for monitoring
     });
 }

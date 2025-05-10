@@ -1,12 +1,11 @@
 const AppError = require('../utils/AppError');
 const { handleExit } = require('../utils/on-exit');
 const {
-  logError,
-  logInfo,
-  logWarn,
-  logFatal,
-} = require('../utils/logger-helper');
-const { hashPasswordWithSalt } = require('../utils/password-helper');
+  logSystemFatal,
+  logSystemInfo,
+  logSystemWarn,
+  logSystemException
+} = require('../utils/system-logger');
 const { userExists } = require('../repositories/user-repository');
 const {
   validateRoleByName,
@@ -47,17 +46,25 @@ const initializeRootAdmin = async () => {
   const password = process.env.ROOT_ADMIN_PASSWORD;
 
   if (!email || !password) {
-    logFatal('Root admin credentials are missing in environment variables.');
+    logSystemFatal('Root admin credentials are missing in environment variables.', {
+      context: 'root-admin-init',
+      severity: 'critical',
+    });
     await handleExit(1); // Terminate if credentials are missing
   }
 
   try {
-    logInfo('Initializing root admin account...');
-
+    logSystemInfo('Initializing root admin account...', {
+      context: 'root-admin-init',
+    });
+    
     // Check if the root admin already exists
     const existingUser = await userExists('email', email);
     if (existingUser) {
-      logWarn('Root admin already exists. Skipping initialization.');
+      logSystemWarn('Root admin already exists. Skipping initialization.', {
+        context: 'root-admin-init',
+        email: maskSensitiveInfo(email, 'email'),
+      });
       return;
     }
 
@@ -84,16 +91,24 @@ const initializeRootAdmin = async () => {
     });
 
     const maskedEmail = maskSensitiveInfo(user.email, 'email');
-
-    logInfo(`Root admin initialized successfully: ${maskedEmail}`);
+    
+    logSystemInfo(`Root admin initialized successfully: ${maskedEmail}`, {
+      context: 'root-admin-init',
+      email: maskedEmail,
+    });
   } catch (error) {
-    logError('Error initializing root admin:', error);
-
-    if (error instanceof AppError) {
-      logFatal(`Root admin initialization failed: ${error.message}`);
-    } else {
-      logFatal('Unexpected error during root admin initialization.');
-    }
+    logSystemException(error, 'Error initializing root admin', {
+      context: 'root-admin-init',
+      severity: 'critical',
+      email: maskSensitiveInfo(email, 'email'),
+    });
+    
+    logSystemFatal('Root admin initialization failed', {
+      context: 'root-admin-init',
+      errorMessage: error.message,
+      stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined,
+      severity: 'critical',
+    });
 
     // Terminate on critical error
     await handleExit(1);

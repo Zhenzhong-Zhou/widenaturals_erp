@@ -5,7 +5,6 @@
 
 const { sanitizeMessage } = require('./sensitive-data-utils');
 const AppError = require('./AppError');
-const { maskSensitiveParams } = require('./mask-logger-params');
 
 let logger; // Lazy-loaded logger instance
 
@@ -157,6 +156,7 @@ const createSystemMeta = () => ({
   timestamp: new Date().toISOString(),
   pid: process.pid,
   host: require('os').hostname(),
+  traceId: global.traceId ?? 'system-startup',
 });
 
 module.exports = {

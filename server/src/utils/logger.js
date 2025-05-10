@@ -9,7 +9,10 @@ const path = require('path');
 const { createLogger, format, transports } = require('winston');
 const DailyRotateFile = require('winston-daily-rotate-file');
 const { loadEnv } = require('../config/env');
-const { logError, logInfo } = require('./logger-helper');
+const {
+  logSystemInfo,
+  logSystemException
+} = require('./system-logger');
 const AppError = require('./AppError');
 const { uploadFileToS3 } = require('./aws-s3-service');
 
@@ -24,18 +27,19 @@ const bucketName = process.env.AWS_S3_BUCKET_NAME;
 try {
   if (!fs.existsSync(logsDir)) {
     fs.mkdirSync(logsDir, { recursive: true });
+    logSystemInfo('Log directory created', {
+      context: 'logger-init',
+      directory: logsDir,
+    });
   }
 } catch (err) {
-  logError('Failed to create logs directory:', err);
-  throw AppError.serviceError(
-    'Logging setup failed due to directory creation issues.',
-    {
-      details: {
-        directory: logsDir,
-        error: err.message,
-      },
-    }
-  );
+  logSystemException(err, 'Failed to create logs directory', {
+    context: 'logger-init',
+    directory: logsDir,
+  });
+  throw AppError.serviceError('Logging setup failed', {
+    details: { error: err.message },
+  });
 }
 
 // Custom log levels
@@ -110,31 +114,67 @@ logger.rejections.handle(rejectionsTransport);
 // Apply colors to custom levels
 require('winston').addColors(customLevels.colors);
 
+// Compression handler
+const compressFile = (sourceFile, destinationFile) =>
+  new Promise((resolve, reject) => {
+    const readStream = fs.createReadStream(sourceFile);
+    const writeStream = fs.createWriteStream(destinationFile);
+    const gzip = zlib.createGzip();
+    
+    readStream
+      .pipe(gzip)
+      .pipe(writeStream)
+      .on('finish', () => {
+        logSystemInfo('Compression successful', {
+          context: 'log-rotation',
+          sourceFile,
+          destinationFile,
+        });
+        resolve();
+      })
+      .on('error', (err) => {
+        logSystemException(err, 'Compression failed', {
+          context: 'log-rotation',
+          file: sourceFile,
+        });
+        reject(err);
+      });
+  });
+
+// Rotation + S3 upload
 const handleRotationAndUpload = (transport, s3PathPrefix) => {
   transport.on('rotate', async (oldFilename, newFilename) => {
-    logInfo(`Log rotation detected: ${oldFilename} -> ${newFilename}`);
-
+    logSystemInfo('Log rotation triggered', {
+      context: 'log-rotation',
+      oldFilename,
+      newFilename,
+    });
+    
     try {
       // Compress file before uploading
       const compressedFilename = `${oldFilename}.gz`;
       await compressFile(oldFilename, compressedFilename);
-
-      logInfo('Compression completed...');
-
+      
       // Prepare S3 key (path)
       const s3Key = `${s3PathPrefix}/${path.basename(compressedFilename)}`;
 
-      // Upload compressed file to S3
+      // Upload a compressed file to S3
       await uploadFileToS3(compressedFilename, bucketName, s3Key);
-      logInfo(`Uploaded ${compressedFilename} to S3 as ${s3Key}.`);
-
+      
       // Cleanup - Remove the original & compressed file
       fs.unlinkSync(oldFilename);
       fs.unlinkSync(compressedFilename);
-
-      logInfo(`Successfully uploaded ${compressedFilename} to S3.`);
+      
+      logSystemInfo('Log uploaded and cleaned up', {
+        context: 'log-rotation',
+        s3Key,
+        compressedFilename,
+      });
     } catch (error) {
-      logError('Failed to upload log to S3:', error.message);
+      logSystemException(error, 'Failed to upload log to S3', {
+        context: 'log-rotation',
+        oldFilename,
+      });
     }
   });
 };
@@ -145,27 +185,12 @@ if (isProduction && bucketName) {
   handleRotationAndUpload(exceptionsTransport, 'logs/exceptions');
   handleRotationAndUpload(rejectionsTransport, 'logs/rejections');
 } else {
-  console.log('Logs will be kept locally. S3 upload is disabled.');
-}
-
-// Compression Function
-const compressFile = (sourceFile, destinationFile) =>
-  new Promise((resolve, reject) => {
-    const readStream = fs.createReadStream(sourceFile);
-    const writeStream = fs.createWriteStream(destinationFile);
-    const gzip = zlib.createGzip();
-
-    readStream
-      .pipe(gzip)
-      .pipe(writeStream)
-      .on('finish', () => {
-        logInfo(`Compression successful: ${sourceFile} -> ${destinationFile}`);
-        resolve();
-      })
-      .on('error', (err) => {
-        logError(`Compression failed: ${err.message}`);
-        reject(err);
-      });
+  setImmediate(() => {
+    logSystemInfo('Log rotation is local only. S3 upload is disabled.', {
+      context: 'logger-init',
+      environment: process.env.NODE_ENV,
+    });
   });
+}
 
 module.exports = logger;

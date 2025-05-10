@@ -1,5 +1,8 @@
 const { query } = require('../database/db');
-const { logError } = require('../utils/logger-helper');
+const {
+  logSystemException,
+  logSystemError
+} = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 
 let statusMap = null;
@@ -25,14 +28,16 @@ const getStatusIdMap = async () => {
       if (row.source === 'status' && row.name === 'active') {
         map.product_active = row.id;
         map.warehouse_active = row.id;
-      } else if (row.source === 'warehouse_lot_status' && row.name === 'in_stock') {
+      } else if (row.source === 'inventory_status' && row.name === 'in_stock') {
         map.lot_in_stock = row.id;
       }
     }
     
     return Object.freeze(map); // prevent accidental mutation
-  } catch (err) {
-    logError('[getStatusIdMap] Failed to fetch status IDs:', err);
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch status IDs', {
+      context: 'get-status-id-map',
+    });
     throw AppError.hashError('Failed to initialize status map');
   }
 };
@@ -44,9 +49,11 @@ const getStatusIdMap = async () => {
 const initStatusCache = async () => {
   try {
     statusMap = await getStatusIdMap();
-  } catch (err) {
-    logError('[initStatusCache] Failed to load status ID map:', err);
-    throw err;
+  } catch (error) {
+    logSystemException(error, 'Failed to load status ID map', {
+      context: 'init-status-cache',
+    });
+    throw error;
   }
 };
 
@@ -60,10 +67,15 @@ const getStatusId = (key) => {
   if (!statusMap) {
     throw AppError.hashError(`Status map not initialized. Cannot fetch key: "${key}"`);
   }
+  
   if (!statusMap[key]) {
-    logError(`[getStatusId] Status key not found: "${key}"`);
+    logSystemError('Status key not found in cache', {
+      context: 'get-status-id',
+      missingKey: key,
+    });
     throw AppError.notFoundError(`Missing status ID for key: "${key}"`);
   }
+  
   return statusMap[key];
 };
 

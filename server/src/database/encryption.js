@@ -1,7 +1,8 @@
 const crypto = require('crypto');
 const fs = require('fs').promises; // Use promise-based fs methods
 const { createReadStream, createWriteStream } = require('fs');
-const AppError = require('../utils/AppError'); // For streaming
+const AppError = require('../utils/AppError');
+const { logSystemInfo, logSystemException } = require('../utils/system-logger'); // For streaming
 
 /**
  * Encrypts a file using AES-256-CBC.
@@ -18,25 +19,49 @@ const encryptFile = async (
   ivFilePath
 ) => {
   const iv = crypto.randomBytes(16); // Generate IV
-
-  // Save IV to a file asynchronously
-  await fs.writeFile(ivFilePath, iv);
-
-  const cipher = crypto.createCipheriv(
-    'aes-256-cbc',
-    Buffer.from(encryptionKey, 'hex'),
-    iv
-  );
-  const input = createReadStream(filePath);
-  const output = createWriteStream(encryptedFilePath);
-
-  // Pipe the input through the cipher into the output
-  input.pipe(cipher).pipe(output);
-
-  return new Promise((resolve, reject) => {
-    output.on('finish', resolve);
-    output.on('error', reject);
-  });
+  
+  try {
+    // Save IV to a file asynchronously
+    await fs.writeFile(ivFilePath, iv);
+  
+    const cipher = crypto.createCipheriv(
+      'aes-256-cbc',
+      Buffer.from(encryptionKey, 'hex'),
+      iv
+    );
+    const input = createReadStream(filePath);
+    const output = createWriteStream(encryptedFilePath);
+  
+    // Pipe the input through the cipher into the output
+    input.pipe(cipher).pipe(output);
+    
+    return new Promise((resolve, reject) => {
+      output.on('finish', () => {
+        logSystemInfo('File encryption completed.', {
+          context: 'encryption',
+          filePath,
+          encryptedFilePath,
+          ivFilePath,
+        });
+        resolve();
+      });
+      output.on('error', (err) => {
+        logSystemException(err, 'Error writing encrypted file', {
+          context: 'encryption',
+          filePath,
+          encryptedFilePath,
+        });
+        reject(err);
+      });
+    });
+  } catch (error) {
+    logSystemException(error, 'Encryption failed', {
+      context: 'encryption',
+      filePath,
+      encryptedFilePath,
+    });
+    throw error;
+  }
 };
 
 /**
@@ -53,33 +78,57 @@ const decryptFile = async (
   encryptionKey,
   ivFilePath
 ) => {
-  // Check if IV file exists asynchronously
+  let iv;
   try {
-    await fs.access(ivFilePath);
+    // Load IV once
+    iv = await fs.readFile(ivFilePath);
   } catch (err) {
     throw AppError.notFoundError(
       `Initialization Vector (IV) file not found: ${ivFilePath}`
     );
   }
-
-  // Load IV asynchronously
-  const iv = await fs.readFile(ivFilePath);
-
-  const decipher = crypto.createDecipheriv(
-    'aes-256-cbc',
-    Buffer.from(encryptionKey, 'hex'),
-    iv
-  );
-  const input = createReadStream(encryptedFilePath);
-  const output = createWriteStream(decryptedFilePath);
-
-  // Pipe the input through the decipher into the output
-  input.pipe(decipher).pipe(output);
-
-  return new Promise((resolve, reject) => {
-    output.on('finish', resolve);
-    output.on('error', reject);
-  });
+ try {
+   const decipher = crypto.createDecipheriv(
+     'aes-256-cbc',
+     Buffer.from(encryptionKey, 'hex'),
+     iv
+   );
+   const input = createReadStream(encryptedFilePath);
+   const output = createWriteStream(decryptedFilePath);
+   
+   // Pipe the input through the deciphering into the output
+   input.pipe(decipher).pipe(output);
+   
+   return new Promise((resolve, reject) => {
+     output.on('finish', () => {
+       logSystemInfo('File decryption completed.', {
+         context: 'decryption',
+         encryptedFilePath,
+         decryptedFilePath,
+         ivFilePath,
+       });
+       resolve();
+     });
+     output.on('error', (err) => {
+       logSystemException(err, 'Error writing decrypted file', {
+         context: 'decryption',
+         encryptedFilePath,
+         decryptedFilePath,
+       });
+       reject(err);
+     });
+   });
+ } catch (error) {
+   logSystemException(error, 'Decryption failed', {
+     context: 'decryption',
+     encryptedFilePath,
+     decryptedFilePath,
+   });
+   throw error;
+ }
 };
 
-module.exports = { encryptFile, decryptFile };
+module.exports = {
+  encryptFile,
+  decryptFile,
+};

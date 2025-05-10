@@ -7,7 +7,7 @@
 const fs = require('fs');
 const path = require('path');
 const dotenv = require('dotenv');
-const { logWarn, logError } = require('../utils/logger-helper');
+const { logSystemError } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 
 /**
@@ -54,7 +54,11 @@ const loadEnv = () => {
     if (fs.existsSync(filePath)) {
       dotenv.config({ path: filePath });
     } else {
-      logError(`Environment file not found: ${filePath}`);
+      logSystemError('Environment file not found', {
+        filePath,
+        severity: 'warning',
+        context: 'env-loader',
+      });
     }
   });
 
@@ -67,8 +71,8 @@ const loadEnv = () => {
  */
 const validateEnv = (groups) => {
   const missingVars = [];
-
-  for (const [category, vars] of Object.entries(groups)) {
+  
+  for (const vars of Object.values(groups)) {
     vars.forEach(({ envVar, secret, required, defaultValue }) => {
       const value = secret ? secret() : process.env[envVar] || defaultValue;
 
@@ -78,14 +82,24 @@ const validateEnv = (groups) => {
 
       if (!process.env[envVar] && defaultValue) {
         process.env[envVar] = defaultValue;
-        logWarn(`${envVar} not set. Defaulting to ${defaultValue}`);
+        logSystemError('Missing required environment variables or secrets', {
+          missingVars,
+          context: 'env-loader',
+          severity: 'critical',
+        });
       }
     });
   }
-
+  
   if (missingVars.length > 0) {
     const errorMsg = `Missing required environment variables or secrets: ${missingVars.join(', ')}`;
-    logError(errorMsg);
+    
+    logSystemError('Missing required environment variables or secrets', {
+      missingVars,
+      context: 'env-loader',
+      severity: 'critical',
+    });
+    
     throw AppError.validationError(errorMsg);
   }
 };

@@ -1,7 +1,9 @@
 const fs = require('fs').promises;
 const path = require('path');
 const crypto = require('crypto');
-const { logInfo, logError, logWarn } = require('../utils/logger-helper');
+const {
+  logSystemInfo, logSystemException, logSystemWarn
+} = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 const { deleteFilesFromS3, listFilesInS3 } = require('../utils/aws-s3-service');
 const {
@@ -15,13 +17,23 @@ const {
  */
 const ensureDirectory = async (dir) => {
   try {
-    await fs.access(dir); // Check if directory exists
+    await fs.access(dir); // Check if the directory exists
   } catch (error) {
     if (error.code === 'ENOENT') {
       // Directory does not exist, create it
       await fs.mkdir(dir, { recursive: true });
-      logInfo(`Created backup directory at: ${dir}`);
+      logSystemInfo(`Created backup directory at: ${dir}`, {
+        context: 'backup',
+        operation: 'ensureDirectory',
+        path: dir,
+      });
     } else {
+      logSystemException(error, 'Unexpected error checking backup directory', {
+        context: 'backup',
+        operation: 'ensureDirectory',
+        path: dir,
+      });
+      
       throw error; // Re-throw other errors
     }
   }
@@ -33,7 +45,7 @@ const ensureDirectory = async (dir) => {
  * @returns {Promise<string>} - Hash value.
  */
 const generateHash = async (filePath) => {
-  const fileData = await fs.readFile(filePath); // Read file asynchronously
+  const fileData = await fs.readFile(filePath); // Read a file asynchronously
   const hash = crypto.createHash('sha256');
   hash.update(fileData);
   return hash.digest('hex'); // Return hash as a hex string
@@ -58,16 +70,28 @@ const saveHashToFile = async (hash, filePath) => {
  */
 const verifyFileIntegrity = async (filePath, originalHash) => {
   try {
-    logInfo(`🔍 Verifying integrity of file: ${filePath}`);
+    logSystemInfo(`Verifying integrity of file: ${filePath}`, {
+      context: 'backup',
+      operation: 'verifyFileIntegrity',
+    });
     const generatedHash = await generateHash(filePath);
     if (generatedHash.trim() !== originalHash.trim()) {
       throw new Error(
         'File integrity check failed. The downloaded file is corrupted or tampered with.'
       );
     }
-    logInfo('File integrity verified successfully.');
+    logSystemInfo('File integrity verified successfully.', {
+      context: 'backup',
+      operation: 'verifyFileIntegrity',
+      filePath,
+    });
   } catch (error) {
-    logError('Failed to verify file integrity:', error.message);
+    logSystemException(error, 'Failed to verify file integrity', {
+      context: 'backup',
+      operation: 'verifyFileIntegrity',
+      filePath,
+    });
+    
     throw error;
   }
 };
@@ -98,10 +122,14 @@ const cleanupOldBackups = async (
         `Invalid MAX_BACKUPS value: ${maxFiles}. It must be a positive multiple of 3 (e.g., 3, 6, 9, etc.).`
       );
     }
-
+    
     if (isProduction && bucketName) {
       // Production Mode: Delete from S3
-      logInfo('Starting S3 backup cleanup process...');
+      logSystemInfo('Starting backup cleanup process...', {
+        context: 'backup',
+        environment: isProduction ? 'production' : 'development',
+        mode: isProduction ? 'S3' : 'local',
+      });
 
       const backupPrefix = 'backups/';
 
@@ -142,9 +170,11 @@ const cleanupOldBackups = async (
       );
 
       if (groupsToDelete.length === 0) {
-        logInfo(
-          `All backups are within the limit of ${maxFiles}. No files deleted.`
-        );
+        logSystemInfo(`All backups are within limit (${maxFiles}). No files deleted.`, {
+          context: 'backup',
+          operation: 'cleanupOldBackups',
+        });
+        
         return;
       }
 
@@ -156,13 +186,20 @@ const cleanupOldBackups = async (
 
       // Delete files from S3
       await deleteFilesFromS3(bucketName, keysToDelete);
-
-      logInfo(
-        `Successfully deleted ${keysToDelete.length} old backups from S3.`
-      );
+      
+      logSystemInfo('Old backups deleted from S3', {
+        context: 'backup-cleanup',
+        environment: 'production',
+        mode: 'S3',
+        deletedCount: keysToDelete.length,
+      });
     } else {
       // Development Mode: Delete locally
-      logInfo('Starting local backup cleanup process...');
+      logSystemInfo('Starting backup cleanup process...', {
+        context: 'backup',
+        environment: isProduction ? 'production' : 'development',
+        mode: isProduction ? 'S3' : 'local',
+      });
 
       const allFiles = await fs.readdir(dir);
 
@@ -180,7 +217,11 @@ const cleanupOldBackups = async (
       ).sort((a, b) => b.time - a.time); // Sort files by modification time (newest first)
 
       if (backupFiles.length === 0) {
-        logInfo('No backup files found for cleanup.');
+        logSystemInfo('No backup files found for cleanup', {
+          context: 'backup-cleanup',
+          mode: 'local',
+        });
+        
         return;
       }
 
@@ -188,9 +229,13 @@ const cleanupOldBackups = async (
       const filesToDelete = backupFiles.slice(maxFiles);
 
       if (filesToDelete.length === 0) {
-        logInfo(
-          `All backups are within the limit of ${maxFiles} files. No files deleted.`
-        );
+        logSystemInfo('Backup files are within the retention limit', {
+          context: 'backup-cleanup',
+          mode: 'local',
+          limit: maxFiles,
+          deleted: 0,
+        });
+        
         return;
       }
 
@@ -200,32 +245,55 @@ const cleanupOldBackups = async (
           const filePath = path.join(dir, file.name);
           try {
             await fs.unlink(filePath);
-            logInfo(`Deleted old backup: ${file.name}`);
-
+            logSystemInfo('Deleted old backup file', {
+              context: 'backup-cleanup',
+              mode: 'local',
+              file: file.name,
+            });
+            
             // Attempt to delete associated files
             const hashFilePath = `${filePath}.sha256`;
             const ivFilePath = `${filePath}.iv`;
 
             await fs
               .unlink(hashFilePath)
-              .catch(() => logWarn(`No hash file to delete for: ${file.name}`));
+              .catch(() =>
+                logSystemWarn('No hash file to delete', {
+                  context: 'backup-cleanup',
+                  file: file.name,
+                  type: 'sha256',
+                })
+              );
             await fs
               .unlink(ivFilePath)
-              .catch(() => logWarn(`No IV file to delete for: ${file.name}`));
+              .catch(() =>
+                logSystemWarn('No IV file to delete', {
+                  context: 'backup-cleanup',
+                  file: file.name,
+                  type: 'iv',
+                })
+              );
           } catch (deleteError) {
-            logError(`Failed to delete file: ${file.name}`, {
-              error: deleteError.message,
+            logSystemException(deleteError, 'Failed to delete backup file', {
+              context: 'backup-cleanup',
+              file: file.name,
             });
           }
         })
       );
-
-      logInfo(
-        `Cleanup of old backups completed. ${filesToDelete.length} files deleted.`
-      );
+      
+      logSystemInfo('Cleanup of old backups completed', {
+        context: 'backup-cleanup',
+        deletedCount: filesToDelete.length,
+        environment: isProduction ? 'production' : 'development',
+      });
     }
   } catch (error) {
-    logError('Error during cleanup of old backups:', { error: error.message });
+    logSystemException(error, 'Error during cleanup of old backups', {
+      context: 'backup-cleanup',
+      environment: isProduction ? 'production' : 'development',
+    });
+    
     throw error;
   }
 };
