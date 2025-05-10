@@ -1,5 +1,5 @@
 const { fetchDynamicValue } = require('../03_utils');
-const { generateStandardizedCode, generateCodeOrSlug } = require('../../../utils/codeGenerators');
+const { generateStandardizedCode, generateCodeOrSlug } = require('../../../utils/code-generators');
 
 exports.seed = async function (knex) {
   const adminUserId = await fetchDynamicValue(

@@ -1,4 +1,4 @@
-const { generateStandardizedCode, generateSlugOnly } = require('../../../utils/codeGenerators');
+const { generateStandardizedCode, generateSlugOnly } = require('../../../utils/code-generators');
 
 /**
  * @param { import("knex").Knex } knex

@@ -6,6 +6,15 @@ const { generateSKU } = require('../../../utils/sku-generator');
  * @returns {Promise<void>}
  */
 exports.seed = async function (knex) {
+  // Check if 'products' or 'skus' already have data
+  const existingProducts = await knex('products').count('id as count').first();
+  const existingSkus = await knex('skus').count('id as count').first();
+  
+  if (parseInt(existingProducts.count, 10) > 0 || parseInt(existingSkus.count, 10) > 0) {
+    console.warn('Seeding skipped: products or skus already populated.');
+    return;
+  }
+  
   const [activeStatusId, inActiveStatusId, discontinuedStatusId, systemActionId] =
     await Promise.all([
       fetchDynamicValue(knex, 'status', 'name', 'active', 'id'),

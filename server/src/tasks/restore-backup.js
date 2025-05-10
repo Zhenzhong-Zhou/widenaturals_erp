@@ -1,5 +1,5 @@
 const { restoreBackup } = require('../database/restore');
-const { logInfo, logError } = require('../utils/logger-helper');
+const { logInfo, logError, createSystemMeta } = require('../utils/logger-helper');
 const { loadEnv } = require('../config/env');
 const { listBackupsFromS3 } = require('../utils/aws-s3-service');
 const readline = require('readline');
@@ -91,9 +91,17 @@ const promptForFilePath = (promptText) => {
       isProduction
     );
 
-    logInfo('Database restoration completed successfully.');
+    logInfo('Database restoration completed successfully.', null, createSystemMeta());
   } catch (error) {
-    logError('Database restoration failed:', error.message);
+    logError(
+      'Database restoration failed.',
+      null,
+      {
+        ...createSystemMeta(),
+        errorMessage: error.message,
+        stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined,
+      }
+    );
     process.exit(1);
   }
 })();

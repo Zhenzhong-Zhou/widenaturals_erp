@@ -1,5 +1,5 @@
 const { fetchDynamicValue, fetchDynamicValues } = require('../03_utils');
-const { generateStandardizedCode } = require('../../../utils/codeGenerators');
+const { generateStandardizedCode } = require('../../../utils/code-generators');
 
 /**
  * @param {import("knex").Knex} knex

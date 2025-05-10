@@ -5,6 +5,7 @@
 
 const { sanitizeMessage } = require('./sensitive-data-utils');
 const AppError = require('./AppError');
+const { maskSensitiveParams } = require('./mask-logger-params');
 
 let logger; // Lazy-loaded logger instance
 
@@ -134,6 +135,30 @@ const logError = (errOrMessage, req = null, meta = {}) => {
   logWithLevel(logLevel, message, null, combinedMeta);
 };
 
+/**
+ * Generates standardized metadata for system-level log entries.
+ *
+ * This function is intended for use in non-request-driven contexts such as
+ * background jobs, database tasks, startup scripts, or system health checks.
+ * It returns a consistent object structure to ensure uniform logging and
+ * easier downstream processing in log aggregators.
+ *
+ * @returns {Object} System-level log metadata including context, timestamp, process ID, and host.
+ *
+ * @example
+ * logInfo('Backup completed successfully', null, createSystemMeta());
+ */
+const createSystemMeta = () => ({
+  context: 'system',
+  ip: null,
+  method: null,
+  url: null,
+  userAgent: null,
+  timestamp: new Date().toISOString(),
+  pid: process.pid,
+  host: require('os').hostname(),
+});
+
 module.exports = {
   logInfo,
   logDebug,
@@ -141,4 +166,5 @@ module.exports = {
   logFatal,
   logError,
   logWithLevel,
+  createSystemMeta,
 };

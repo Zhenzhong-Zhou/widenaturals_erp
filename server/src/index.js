@@ -3,7 +3,7 @@
  * @description Application entry point.
  */
 
-const { logInfo, logFatal, logError } = require('./utils/logger-helper');
+const { logSystemInfo, logSystemError, logSystemCrash } = require('./utils/system-logger');
 const { startServer, shutdownServer } = require('./server');
 const { setServer, handleExit } = require('./utils/on-exit');
 const { loadAndValidateEnv } = require('./config/env-manager'); // Load and validate environment variables
@@ -13,39 +13,43 @@ const { loadAndValidateEnv } = require('./config/env-manager'); // Load and vali
  */
 const initializeApp = async () => {
   try {
-    logInfo('Loading environment variables...');
+    logSystemInfo('Loading environment variables...');
 
     // Load and validate environment variables
     const { env } = loadAndValidateEnv();
-    logInfo(
+    logSystemInfo(
       `Environment variables loaded and validated for environment: ${env}`
     );
-
-    logInfo('Starting server...');
+    
+    logSystemInfo('Starting server...');
     const serverInstance = await startServer();
-
-    logInfo('Signal handlers registered.');
+    
+    logSystemInfo('Signal handlers registered.');
     setServer(serverInstance); // Pass server reference for cleanup
 
     // Register signal handlers for graceful shutdown
     process.on('SIGINT', async () => {
-      logInfo('SIGINT received. Shutting down gracefully...');
+      logSystemInfo('SIGINT received. Shutting down gracefully...');
       await handleShutdown(0);
     });
     process.on('SIGTERM', async () => {
-      logInfo('SIGTERM received. Shutting down gracefully...');
+      logSystemInfo('SIGTERM received. Shutting down gracefully...');
       await handleShutdown(0);
     });
-
+    
     process.on('unhandledRejection', (reason, promise) => {
-      logError('Unhandled Rejection at:', promise, 'reason:', reason);
+      logSystemError('Unhandled Rejection occurred', {
+        reason,
+        promise,
+      });
     });
-
-    logInfo('Application started successfully.');
+    
+    logSystemInfo('Application started successfully.');
     return serverInstance;
   } catch (error) {
-    logFatal(`Application initialization failed: ${error.message}`, null, {
-      stack: error.stack,
+    logSystemCrash(error, 'Application initialization failed', {
+      context: 'bootstrap',
+      severity: 'critical',
     });
     await handleExit(1);
   }
@@ -57,15 +61,17 @@ const initializeApp = async () => {
  */
 const handleShutdown = async (exitCode) => {
   try {
-    logInfo('Initiating application shutdown...');
+    logSystemInfo('Initiating application shutdown...');
 
     // Perform server-specific cleanup
     await shutdownServer(); // Call server-specific shutdown logic
-
-    logInfo('Application shutdown completed.');
+    
+    logSystemInfo('Application shutdown completed.');
     process.exit(0);
   } catch (error) {
-    logFatal(`Error during shutdown: ${error.message}`, { stack: error.stack });
+    logSystemCrash(error, 'Error during shutdown', {
+      context: 'shutdown',
+    });
     await handleExit(1);
   }
 };
@@ -73,7 +79,9 @@ const handleShutdown = async (exitCode) => {
 // Execute if file is called directly
 if (require.main === module) {
   initializeApp().catch(async (error) => {
-    logFatal(`Startup failed: ${error.message}`, null, { stack: error.stack });
+    logSystemCrash(error, 'Startup failed', {
+      context: 'entry',
+    });
     await handleExit(1);
   });
 }
