@@ -11,20 +11,39 @@
 const { loadEnv } = require('../config/env');
 const csrf = require('csurf');
 const { logWarn, logError } = require('../utils/logger-helper');
+const { logSystemInfo } = require('../utils/system-logger');
 const { ONE_HOUR } = require('../utils/constants/general/time');
 const AppError = require('../utils/AppError');
 
 loadEnv();
 
-// Configure CSRF Middleware
-const csrfMiddleware = csrf({
-  cookie: {
+/**
+ * Creates configured CSRF middleware using environment-based cookie options.
+ *
+ * @returns {Function} Express middleware for CSRF protection.
+ */
+const createCsrfMiddleware = () => {
+  // Configure CSRF cookie behavior for security and session consistency
+  const csrfCookieOptions = {
     httpOnly: true, // Prevent client-side access to the cookie (enhances security)
     secure: process.env.COOKIE_SECURE === 'true', // Use secure cookies in production
     sameSite: process.env.COOKIE_SAMESITE || 'strict', // Enforce same-site policy
     maxAge: parseInt(process.env.CSRF_COOKIE_MAXAGE, 10) || ONE_HOUR, // Set cookie expiration
-  },
-});
+  };
+  
+  // Log the resolved CSRF cookie configuration for traceability and debugging
+  logSystemInfo('Initialized CSRF middleware with cookie settings.', {
+    context: 'csrf-protection',
+    cookie: csrfCookieOptions,
+  });
+  
+  // Create the CSRF middleware instance using the configured cookie policy
+  return csrf({ cookie: csrfCookieOptions });
+};
+
+// Initialize CSRF middleware once at module level with secure cookie settings.
+// Used globally to enforce CSRF protection with standardized logging and environment-aware configuration.
+const csrfMiddleware = createCsrfMiddleware();
 
 /**
  * Determines if a request should bypass CSRF protection.
@@ -39,6 +58,9 @@ const shouldBypassCSRF = (req) => {
     process.env.NODE_ENV === 'development' &&
     process.env.CSRF_TESTING === 'true'
   ) {
+    logSystemInfo('CSRF bypassed for development testing.', {
+      context: 'csrf-protection',
+    });
     return true;
   }
 
@@ -53,9 +75,9 @@ const shouldBypassCSRF = (req) => {
     exemptMethods.includes(req.method) ||
     (req.method === 'GET' && exemptPaths.includes(req.path))
   ) {
-    logWarn('CSRF validation bypassed', req, {
-      reason:
-        exemptMethods.includes(req.method) ? 'exempt method' : 'exempt path',
+    logError('CSRF validation bypassed', req, {
+      context: 'csrf-protection',
+      reason: exemptMethods.includes(req.method) ? 'exempt method' : 'exempt path',
     });
     return true;
   }
@@ -78,7 +100,10 @@ const csrfProtection = () => {
     try {
       csrfMiddleware(req, res, next);
     } catch (error) {
-      logError(error, req, { middleware: 'csrfProtection' });
+      logError(error, req, {
+        context: 'csrf-protection',
+        stage: 'token-validation',
+      });
       
       next(
         AppError.csrfError('CSRF token validation failed.', {

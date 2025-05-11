@@ -33,7 +33,7 @@ const validate = (
       const { error, value } = schema.validate(req[target], validationOptions);
 
       if (error) {
-        // Sanitize the error details
+        // Sanitize the Joi validation details
         const sanitizedDetails =
           typeof sanitizeValidationError === 'function'
             ? sanitizeValidationError(error)
@@ -41,23 +41,24 @@ const validate = (
                 message,
                 path: path.join('.'),
               }));
-
-        // Log the sanitized error in non-production environments
-        if (process.env.NODE_ENV !== 'production') {
-          const validationError = AppError.validationError(errorMessage, {
-            details: sanitizedDetails,
-            additionalContext: 'Validation middleware encountered an error.',
-          });
-
-          logError('Validation Error:', req, validationError.toLog(req));
-        }
-
-        throw AppError.validationError(errorMessage, {
+        
+        const appError = AppError.validationError(errorMessage, {
           details: sanitizedDetails,
         });
+        
+        // Log only in non-prod for developer visibility
+        if (process.env.NODE_ENV !== 'production') {
+          logError(appError, req, {
+            context: 'validation-middleware',
+            stage: 'joi-schema-validation',
+            target,
+          });
+        }
+        
+        throw appError;
       }
-
-      req[target] = value; // Attach sanitized input
+      
+      req[target] = value; // Replace it with validated input
       next();
     } catch (err) {
       next(err); // Forward error to global error handler

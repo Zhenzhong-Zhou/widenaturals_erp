@@ -25,15 +25,10 @@ const sanitizationErrorHandler = (err, req, res, next) => {
     );
 
     // Log the sanitization error with metadata for debugging
-    logError('Sanitization Error:', {
-      message: sanitizationError.message,
-      details: sanitizationError.details,
-      method: req.method,
-      route: req.originalUrl,
-      userAgent: req.headers['user-agent'] || 'Unknown',
-      ip: req.ip,
+    logError(sanitizationError, req, {
+      context: 'sanitization-error-handler',
     });
-
+    
     // Respond with a structured error response
     return res
       .status(sanitizationError.status)

@@ -51,15 +51,10 @@ const fileUploadErrorHandler = (err, req, res, next) => {
 
   if (errorResponse) {
     // Log the file upload error with metadata
-    logError('File Upload Error:', {
-      message: errorResponse.message,
-      details: errorResponse.details || null,
-      route: req.originalUrl,
-      method: req.method,
-      userAgent: req.headers['user-agent'] || 'Unknown',
-      ip: req.ip,
+    logError(errorResponse, req, {
+      context: 'file-upload-handler',
     });
-
+    
     // Send structured error response
     return res.status(errorResponse.status).json(errorResponse.toJSON());
   }

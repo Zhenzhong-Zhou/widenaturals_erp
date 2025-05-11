@@ -4,7 +4,7 @@
  */
 
 const AppError = require('../../utils/AppError');
-const { logWarn } = require('../../utils/logger-helper');
+const { logError } = require('../../utils/logger-helper');
 
 /**
  * Not found handler middleware.
@@ -16,22 +16,11 @@ const { logWarn } = require('../../utils/logger-helper');
  */
 const notFoundHandler = (req, res, next) => {
   // Create a structured AppError for 404 Not Found
-  const notFoundError = AppError.notFoundError(
-    `Route not found: ${req.originalUrl}`,
-    {
-      code: 'NOT_FOUND',
-      type: 'NotFoundError',
-      isExpected: true, // 404 errors are generally expected
-    }
-  );
+  const notFoundError = AppError.notFoundError(`Route not found: ${req.originalUrl}`);
 
   // Log the 404 error with relevant metadata
-  logWarn('404 Error:', {
-    message: notFoundError.message,
-    route: req.originalUrl,
-    method: req.method,
-    ip: req.ip,
-    userAgent: req.headers['user-agent'] || 'Unknown',
+  logError(notFoundError, req, {
+    context: 'not-found-handler',
   });
 
   // Send structured error response

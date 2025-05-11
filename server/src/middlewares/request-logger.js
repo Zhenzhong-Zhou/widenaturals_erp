@@ -4,7 +4,6 @@
  */
 
 const { v4: uuidv4 } = require('uuid');
-const AppError = require('../utils/AppError');
 const {
   logSystemInfo,
   logSystemWarn,

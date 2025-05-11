@@ -28,10 +28,13 @@ const globalErrorHandler = (err, req, res, next) => {
     );
   }
 
-  // Log the error using the `toLog` method for structured logging
-  logError(err.message || 'Global Error:', req, err.toLog(req));
-
-  // Send structured error response using the `toJSON` method
+  // Log the error with full context (auto-extracts req metadata)
+  logError(err, req, {
+    context: 'global-error-handler',
+    stage: 'response-finalization',
+  });
+  
+  // Send structured error response
   res.status(err.status || 500).json(err.toJSON());
 };
 

@@ -4,7 +4,7 @@
  */
 
 const AppError = require('../../utils/AppError');
-const { logWarn } = require('../../utils/logger-helper');
+const { logError } = require('../../utils/logger-helper');
 
 /**
  * Middleware to handle service-level errors.
@@ -25,13 +25,8 @@ const serviceErrorHandler = (err, req, res, next) => {
     );
 
     // Log the service-level error with metadata
-    logWarn('Service-Level Error:', {
-      message: errorResponse.message,
-      route: req.originalUrl,
-      method: req.method,
-      userAgent: req.headers['user-agent'] || 'Unknown',
-      ip: req.ip,
-      details: errorResponse.details,
+    logError(errorResponse, req, {
+      context: 'service-error-handler',
     });
 
     // Send structured error response

@@ -16,21 +16,22 @@ const { logError } = require('../../utils/logger-helper');
  */
 const validationErrorHandler = (err, req, res, next) => {
   if (err.name === 'ValidationError' || err.type === 'ValidationError') {
-    // Use the AppError factory method for validation errors
-    const validationError = AppError.validationError(
-      err.message || 'Validation failed.',
-      {
-        details: err.details || null, // Include validation details if available
-      }
-    );
+    // Normalize the error as an AppError instance if it's not already
+    const validationError = err instanceof AppError
+      ? err
+      : AppError.validationError(
+        err.message || 'Validation failed.',
+        {
+          details: err.details || null,
+          ...err,
+        }
+      );
 
     // Log the validation error with detailed metadata
-    if (process.env.NODE_ENV !== 'production') {
-      logError(validationError, req, {
-        additionalContext: 'Validation middleware encountered an error.',
-      });
-    }
-
+    logError(validationError, req, {
+      context: 'validation-error-handler',
+    });
+    
     // Respond with a structured error response
     return res.status(validationError.status).json(validationError.toJSON());
   }

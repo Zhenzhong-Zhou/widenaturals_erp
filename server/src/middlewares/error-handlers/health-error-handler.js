@@ -4,7 +4,7 @@
  */
 
 const AppError = require('../../utils/AppError');
-const { logWarn } = require('../../utils/logger-helper');
+const { logError } = require('../../utils/logger-helper');
 
 /**
  * Middleware to handle health-check errors.
@@ -22,22 +22,16 @@ const healthErrorHandler = (err, req, res, next) => {
       {
         code: err.code || 'SERVICE_UNAVAILABLE',
         status: err.status || 503,
+        details: err.details || null,
       }
     );
 
     // Log the health-check error as a warning
-    logWarn('Health-Check Error Detected:', {
-      message: healthError.message,
-      type: healthError.type,
-      code: healthError.code,
-      status: healthError.status,
-      route: req.originalUrl,
-      method: req.method,
-      userAgent: req.headers['user-agent'] || 'Unknown',
-      ip: req.ip,
+    logError(healthError, req, {
+      context: 'health-check-handler',
     });
 
-    // Return a structured 503 Service Unavailable response
+    // Return a structured 503-Service Unavailable response
     return res.status(healthError.status).json({
       ...healthError.toJSON(),
       timestamp: new Date().toISOString(),
@@ -45,7 +39,7 @@ const healthErrorHandler = (err, req, res, next) => {
   }
 
   // Pass to the next error handler if not a health-check specific error
-  next(err);
+  next(err); // Not a HealthCheckError, pass to the next handler
 };
 
 module.exports = healthErrorHandler;

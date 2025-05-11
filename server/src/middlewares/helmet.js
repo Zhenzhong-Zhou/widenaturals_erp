@@ -1,6 +1,6 @@
 const helmet = require('helmet');
 const AppError = require('../utils/AppError');
-const { logError } = require('../utils/logger-helper');
+const { logSystemException } = require('../utils/system-logger');
 
 /**
  * Helmet middleware configuration
@@ -63,9 +63,8 @@ const configureHelmet = (isProduction) => {
       referrerPolicy: { policy: 'no-referrer' }, // Hide the Referer header
     });
   } catch (error) {
-    logError('Helmet configuration error:', {
-      message: error.message,
-      stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined,
+    logSystemException(error, 'Helmet configuration error', {
+      context: 'helmet-config',
     });
     throw AppError.serviceError('Failed to configure security headers.', {
       details: error.message,

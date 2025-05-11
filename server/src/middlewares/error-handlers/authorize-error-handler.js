@@ -4,7 +4,7 @@
  */
 
 const AppError = require('../../utils/AppError');
-const { logWarn } = require('../../utils/logger-helper');
+const { logError } = require('../../utils/logger-helper');
 
 /**
  * Middleware to handle authorization errors.
@@ -16,23 +16,19 @@ const { logWarn } = require('../../utils/logger-helper');
  */
 const authorizationErrorHandler = (err, req, res, next) => {
   if (err.name === 'AuthorizationError') {
+    const details = typeof err === 'object' && 'details' in err ? err.details : null;
+    
     // Use AppError static factory method for consistency
     const errorResponse = AppError.authorizationError(
       err.message || 'You are not authorized to perform this action.',
       {
-        details: err.details || null, // Include additional details if provided
-        logLevel: 'warn',
+        details, // Include additional details if provided
       }
     );
 
     // Log the authorization error as a warning
-    logWarn('Authorization Error:', {
-      message: errorResponse.message,
-      route: req.originalUrl,
-      method: req.method,
-      userAgent: req.headers['user-agent'] || 'Unknown',
-      ip: req.ip,
-      details: errorResponse.details,
+    logError(errorResponse, req, {
+      context: 'authorization-error-handler',
     });
 
     // Send structured error response

@@ -38,7 +38,10 @@ const getStatusIdMap = async () => {
     logSystemException(error, 'Failed to fetch status IDs', {
       context: 'get-status-id-map',
     });
-    throw AppError.hashError('Failed to initialize status map');
+    
+    throw AppError.databaseError('Failed to initialize status map', {
+      details: error.message,
+    });
   }
 };
 
@@ -65,7 +68,7 @@ const initStatusCache = async () => {
  */
 const getStatusId = (key) => {
   if (!statusMap) {
-    throw AppError.hashError(`Status map not initialized. Cannot fetch key: "${key}"`);
+    throw AppError.initializationError(`Status map not initialized. Cannot fetch key: "${key}"`);
   }
   
   if (!statusMap[key]) {

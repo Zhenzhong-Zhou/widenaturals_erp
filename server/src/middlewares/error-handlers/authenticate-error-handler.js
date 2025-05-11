@@ -43,17 +43,16 @@ const authenticateErrorHandler = (err, req, res, next) => {
     // Create the custom authentication error
     const authError = AppError.authenticationError(message, {
       isExpected: true,
+      type: err.type || 'AuthenticationError',
+      code: err.code || 'AUTHENTICATION_ERROR',
       logLevel: err.logLevel || 'warn', // Use the original log level if available
       ...err, // Include other properties like `code` or `details`
     });
 
     // Log the error with metadata
-    logError(authError.logLevel, 'Authentication Error', {
-      message: authError.message,
-      route: req.originalUrl || 'Unknown',
-      method: req.method || 'Unknown',
-      ip: req.ip || 'Unknown',
-      userAgent: req.headers['user-agent'] || 'Unknown',
+    logError(authError, req, {
+      context: 'auth-error-handler',
+      stage: 'token-validation',
     });
 
     // Send a structured error response

@@ -26,17 +26,12 @@ const corsErrorHandler = (err, req, res, next) => {
           method: req.method,
           route: req.originalUrl,
         },
-        logLevel: 'warn',
       }
     );
 
     // Log the CORS error with detailed metadata
-    logError(corsError.logLevel, 'CORS Error:', {
-      message: corsError.message,
-      origin: req.headers.origin || 'Unknown',
-      method: req.method,
-      route: req.originalUrl,
-      userAgent: req.headers['user-agent'] || 'Unknown',
+    logError(corsError, req, {
+      context: 'cors-error-handler',
     });
 
     // Respond with a structured error response

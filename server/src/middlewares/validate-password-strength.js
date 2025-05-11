@@ -6,7 +6,7 @@ const { logError } = require('../utils/logger-helper');
  * Middleware to validate the strength of a new password in the request body.
  *
  * This middleware checks if the provided password meets the required strength criteria.
- * If the password strength is insufficient, it throws a structured AppError with relevant feedback.
+ * If the password strength is not enough, it throws a structured AppError with relevant feedback.
  *
  * @function passwordStrengthMiddleware
  * @param {Object} req - The Express request object containing the password in `req.body.newPassword`.
@@ -18,7 +18,7 @@ const validatePasswordStrength = (req, res, next) => {
   try {
     const { newPassword } = req.body;
 
-    // Check strength of the new password
+    // Check the strength of the new password
     const strengthResult = checkPasswordStrength(newPassword);
     if (strengthResult.score < 3) {
       const feedback = {
@@ -26,29 +26,22 @@ const validatePasswordStrength = (req, res, next) => {
         suggestions: strengthResult.feedback.suggestions || [],
         warning: strengthResult.feedback.warning || '',
       };
-
+      
       // Create the error instance
-      const passwordStrengthError = AppError.validationError(
-        'Password is too weak.',
-        {
-          details: feedback,
-          type: 'PasswordStrengthError',
-          additionalContext:
-            'Password validation middleware encountered an error.',
-        }
-      );
-
+      const error = AppError.validationError('Password is too weak.', {
+        details: feedback,
+        type: 'PasswordStrengthError',
+      });
+      
       // Log the error in non-production environments
       if (process.env.NODE_ENV !== 'production') {
-        logError(
-          'Password Strength Error:',
-          req,
-          passwordStrengthError.toLog(req)
-        );
+        logError(error, req, {
+          context: 'password-validation',
+          stage: 'strength-check',
+        });
       }
-
-      // Throw the structured error
-      throw passwordStrengthError;
+      
+      throw error;
     }
 
     next(); // Proceed to the next middleware or route handler

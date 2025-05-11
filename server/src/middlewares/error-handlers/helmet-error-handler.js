@@ -16,32 +16,25 @@ const AppError = require('../../utils/AppError');
  */
 const helmetErrorHandler = (err, req, res, next) => {
   if (err.type === 'HelmetError') {
-    // Log the Helmet error with detailed metadata
-    logError('Helmet Error Detected:', {
-      message: err.message,
-      details: err.details || null,
-      route: req.originalUrl || 'N/A',
-      method: req.method || 'N/A',
-      userAgent: req.headers['user-agent'] || 'Unknown',
-      ip: req.ip || 'Unknown',
-      timestamp: new Date().toISOString(),
-    });
-
     // Ensure the error is a structured AppError
     const errorResponse = AppError.helmetError(
       err.message || 'Helmet configuration failed.',
       {
         details: err.details || null,
-        isExpected: true,
       }
     );
-
+    
+    // Log with structured error logging
+    logError(errorResponse, req, {
+      context: 'helmet-error-handler',
+    });
+    
     // Respond with the structured error response
     return res.status(errorResponse.status).json(errorResponse.toJSON());
   }
 
   // Pass to the next error handler if not a Helmet error
-  next(err);
+  next(err); // Not a HelmetError, pass through
 };
 
 module.exports = helmetErrorHandler;
