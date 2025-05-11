@@ -1,4 +1,4 @@
-const { logError } = require('./logger-helper');
+const { logSystemError } = require('./system-logger');
 
 /**
  * Clean and normalize a name string.
@@ -56,13 +56,22 @@ const generateStandardizedCode = (
   name,
   { regionCode = '', sequenceNumber = 1, padLength = 3 } = {}
 ) => {
+  const context = 'generate-standardized-code';
+  
   try {
     const cleanAbbr = generateAbbreviation(cleanName(name), 3);
     const paddedNum = String(sequenceNumber).padStart(padLength, '0');
     const regionPart = regionCode ? `-${regionCode.toUpperCase()}` : '';
     return `${prefix}-${cleanAbbr}${regionPart}${paddedNum}`;
   } catch (error) {
-    logError('[generateStandardizedCode] Error:', error.message);
+    logSystemError('Failed to generate standardized code.', {
+      context,
+      prefix,
+      name,
+      regionCode,
+      sequenceNumber,
+      padLength,
+    });
     return '';
   }
 };

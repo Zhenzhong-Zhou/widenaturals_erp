@@ -4,7 +4,11 @@ const { formatValue } = require('./date-utils');
 const { isUUID } = require('./id-utils');
 const { formatHeader, processHeaders } = require('./string-utils');
 const AppError = require('../utils/AppError');
-const { logInfo, logWarn } = require('./logger-helper');
+const {
+  logSystemInfo,
+  logSystemError,
+  logSystemWarn
+} = require('./system-logger');
 
 /**
  * Convert JSON data to CSV format.
@@ -17,24 +21,40 @@ const { logInfo, logWarn } = require('./logger-helper');
  * @returns {Buffer} - CSV file buffer.
  */
 const exportToCSV = (data, timezone = 'PST') => {
-  const { formattedHeaders, columnMap } = processHeaders(data);
-
-  // **Transform Data (Apply Formatting)**
-  const formattedData = data.map((row) => {
-    let formattedRow = {};
-    formattedHeaders.forEach((header) => {
-      const originalKey = columnMap[header]; // Get original key from formatted header
-      let value = row[originalKey] || ''; // Get value or empty string
-      formattedRow[header] = formatValue(value, timezone); // Format values properly
+  const context = 'export-to-csv';
+  
+  try {
+    const { formattedHeaders, columnMap } = processHeaders(data);
+    
+    // Transform Data (Apply Formatting)
+    const formattedData = data.map((row) => {
+      const formattedRow = {};
+      formattedHeaders.forEach((header) => {
+        const originalKey = columnMap[header]; // Get original key from formatted header
+        const value = row[originalKey] || ''; // Get value or empty string
+        formattedRow[header] = formatValue(value, timezone); // Format values properly
+      });
+      return formattedRow;
     });
-    return formattedRow;
-  });
-
-  // **Generate CSV**
-  const parser = new Parser({ fields: formattedHeaders });
-  const csv = parser.parse(formattedData);
-
-  return Buffer.from(csv, 'utf-8'); // Return as buffer for download
+    
+    // Generate CSV
+    const parser = new Parser({ fields: formattedHeaders });
+    const csv = parser.parse(formattedData);
+    
+    logSystemInfo('CSV export completed successfully.', {
+      context,
+      rowCount: data.length,
+      columns: formattedHeaders.length,
+    });
+    
+    return Buffer.from(csv, 'utf-8'); // Return as buffer for download
+  } catch (error) {
+    logSystemError('Failed to export data to CSV.', {
+      context,
+      rowCount: data?.length || 0,
+    });
+    throw error;
+  }
 };
 
 /**
@@ -51,114 +71,135 @@ const exportToCSV = (data, timezone = 'PST') => {
  * @returns {Promise<Buffer>} - PDF file buffer.
  */
 const exportToPDF = async (data, options = {}) => {
+  const {
+    title = 'Report',
+    fontSize = 12,
+    includeIndex = true,
+    landscape = false,
+    summary = false,
+    timezone = 'PST',
+  } = options;
+  
+  const context = 'export-to-pdf';
+  
   return new Promise((resolve, reject) => {
-    const {
-      title = 'Report',
-      fontSize = 12,
-      includeIndex = true,
-      landscape = false,
-      summary = false,
-      timezone = 'PST',
-    } = options;
-
-    if (!Array.isArray(data) || data.length === 0) {
-      return resolve(Buffer.from('No data available', 'utf-8'));
-    }
-
-    const doc = new PDFDocument({
-      size: landscape ? 'A4' : 'LETTER',
-      layout: landscape ? 'landscape' : 'portrait',
-      margin: 50,
-    });
-
-    let buffers = [];
-
-    doc.on('data', buffers.push.bind(buffers));
-    doc.on('end', () => resolve(Buffer.concat(buffers)));
-    doc.on('error', reject);
-
-    // Title
-    doc.fontSize(18).text(title, { align: 'center' }).moveDown(2);
-
-    // Extract column headers dynamically (EXCLUDING UUID fields)
-    const columnMap = Object.keys(data[0])
-      .filter((key) => !isUUID(data[0][key])) // Remove UUIDs
-      .reduce((acc, key) => {
-        acc[formatHeader(key)] = key; // Map formatted header -> original key
-        return acc;
-      }, {});
-
-    const headers = Object.keys(columnMap); // Get formatted headers
-
-    // If `summary` is enabled, use summary formatting
-    if (summary) {
-      data.forEach((row, index) => {
-        doc
-          .fontSize(fontSize + 1)
-          .text(`Record ${index + 1}:`, { underline: true })
-          .moveDown(0.5);
-
-        Object.entries(columnMap).forEach(([formattedHeader, originalKey]) => {
-          let value = row[originalKey] || 'N/A';
-          value = formatValue(value, timezone);
-
-          doc.fontSize(fontSize - 1).text(`${formattedHeader}: ${value}`);
+    try {
+      if (!Array.isArray(data) || data.length === 0) {
+        logSystemInfo('No data provided. Returning empty PDF buffer.', {
+          context,
         });
-
-        doc.moveDown(1);
+        return resolve(Buffer.from('No data available', 'utf-8'));
+      }
+      
+      const doc = new PDFDocument({
+        size: landscape ? 'A4' : 'LETTER',
+        layout: landscape ? 'landscape' : 'portrait',
+        margin: 50,
       });
-
+      
+      const buffers = [];
+      
+      doc.on('data', buffers.push.bind(buffers));
+      doc.on('end', () => {
+        const output = Buffer.concat(buffers);
+        logSystemInfo('PDF export completed successfully.', {
+          context,
+          rowCount: data.length,
+          summary,
+        });
+        resolve(output);
+      });
+      
+      doc.on('error', (err) => {
+        logSystemError('PDF generation failed.', {
+          context,
+        });
+        reject(err);
+      });
+      
+      // Title
+      doc.fontSize(18).text(title, { align: 'center' }).moveDown(2);
+      
+      // Extract column headers dynamically (EXCLUDING UUID fields)
+      const columnMap = Object.keys(data[0])
+        .filter((key) => !isUUID(data[0][key]))  // Remove UUIDs
+        .reduce((acc, key) => {
+          acc[formatHeader(key)] = key; // Map formatted header -> original key
+          return acc;
+        }, {});
+      
+      const headers = Object.keys(columnMap); // Get formatted headers
+      
+      // If `summary` is enabled, use summary formatting
+      if (summary) {
+        data.forEach((row, index) => {
+          doc
+            .fontSize(fontSize + 1)
+            .text(`Record ${index + 1}:`, { underline: true })
+            .moveDown(0.5);
+          
+          Object.entries(columnMap).forEach(([formattedHeader, originalKey]) => {
+            const value = formatValue(row[originalKey] || 'N/A', timezone);
+            doc.fontSize(fontSize - 1).text(`${formattedHeader}: ${value}`);
+          });
+          
+          doc.moveDown(1);
+        });
+        
+        return doc.end(); // Important: do not return a value here — `resolve` is called in .on('end')
+      }
+      
+      // Column Width Calculation
+      const maxWidth = landscape ? 750 : 500;
+      const columnWidths = headers.map(() => Math.floor(maxWidth / headers.length));
+      
+      // Table Header
+      doc.fontSize(fontSize + 1).fillColor('black');
+      headers.forEach((header, i) => {
+        doc.text(header.padEnd(columnWidths[i] / 6, ' '), {
+          underline: true,
+          continued: i !== headers.length - 1,
+        });
+      });
+      doc.moveDown(1);
+      
+      // Table Data (Formatted)
+      data.forEach((row, index) => {
+        doc.text(' ', { continued: false });
+        
+        headers.forEach((formattedHeader, i) => {
+          const originalKey = columnMap[formattedHeader];
+          let value = formatValue(row[originalKey] || 'N/A', timezone);
+          
+          const textValue =
+            typeof value === 'number'
+              ? value.toString().padStart(columnWidths[i] / 6, ' ')
+              : value;
+          
+          doc.text(
+            includeIndex && i === 0 ? `${index + 1}. ${textValue}` : textValue,
+            {
+              continued: i !== headers.length - 1,
+            }
+          );
+        });
+      });
+      
       doc.end();
-      return;
+    } catch (error) {
+      logSystemError('PDF generation failed (outer catch).', {
+        context,
+      });
+      reject(error);
     }
-
-    // Column Width Calculation
-    const maxWidth = landscape ? 750 : 500;
-    const columnWidths = headers.map(() =>
-      Math.floor(maxWidth / headers.length)
-    );
-
-    // Table Header
-    doc.fontSize(fontSize + 1).fillColor('black');
-    headers.forEach((header, i) => {
-      doc.text(header.padEnd(columnWidths[i] / 6, ' '), {
-        underline: true,
-        continued: i !== headers.length - 1,
-      });
-    });
-    doc.moveDown(1);
-
-    // Table Data (Formatted)
-    data.forEach((row, index) => {
-      doc.text(' ', { continued: false });
-
-      headers.forEach((formattedHeader, i) => {
-        const originalKey = columnMap[formattedHeader];
-        let value = row[originalKey] || 'N/A';
-        value = formatValue(value, timezone);
-
-        const textValue =
-          typeof value === 'number'
-            ? value.toString().padStart(columnWidths[i] / 6, ' ')
-            : value;
-        doc.text(
-          includeIndex && i === 0 ? `${index + 1}. ${textValue}` : textValue,
-          {
-            continued: i !== headers.length - 1,
-          }
-        );
-      });
-    });
-
-    doc.end();
   });
 };
 
 /**
  * Converts an array of JSON objects to a formatted plain text buffer.
- * - **Removes `id` and UUID fields** to avoid unnecessary identifiers.
- * - **Formats headers** by capitalizing and removing underscores.
- * - **Formats values** such as dates, numbers, and booleans for readability.
+ * - Removes `id` and UUID fields to avoid unnecessary identifiers.
+ * - Formats headers by capitalizing and removing underscores.
+ * - Formats values such as dates, numbers, and booleans for readability.
  *
  * @param {Array<Object>} data - The array of objects to be converted into plain text.
  * @param {string} [separator=' | '] - The separator used between column values (default: `" | "`).
@@ -183,22 +224,46 @@ const exportToPDF = async (data, options = {}) => {
  * console.log(buffer.toString());
  */
 const exportToPlainText = (data, separator = ' | ', timezone = 'PST') => {
-  const { formattedHeaders, columnMap } = processHeaders(data);
-
-  // **Create a header row**
-  let text = formattedHeaders.join(separator) + '\n';
-  text += '-'.repeat(text.length) + '\n'; // Separator line
-
-  // **Generate row data**
-  text += data
-    .map((row) =>
-      formattedHeaders
-        .map((header) => formatValue(row[columnMap[header]] || 'N/A', timezone)) // Format values properly
-        .join(separator)
-    )
-    .join('\n');
-
-  return Buffer.from(text, 'utf-8'); // Return as buffer for download
+  const context = 'export-to-plaintext';
+  
+  try {
+    if (!Array.isArray(data) || data.length === 0) {
+      logSystemInfo('No data provided. Returning empty plain text buffer.', {
+        context,
+      });
+      return Buffer.from('No data available', 'utf-8');
+    }
+    
+    const { formattedHeaders, columnMap } = processHeaders(data);
+    
+    // Create a header row
+    let text = formattedHeaders.join(separator) + '\n';
+    text += '-'.repeat(text.length) + '\n'; // Separator line
+    
+    // Generate row data
+    text += data
+      .map((row) =>
+        formattedHeaders
+          .map((header) =>
+            formatValue(row[columnMap[header]] || 'N/A', timezone)
+          )
+          .join(separator)
+      )
+      .join('\n');
+    
+    logSystemInfo('Plain text export completed successfully.', {
+      context,
+      rowCount: data.length,
+      separator,
+    });
+    
+    return Buffer.from(text, 'utf-8');
+  } catch (error) {
+    logSystemError('Failed to export data as plain text.', {
+      context,
+    });
+    throw error;
+  }
 };
 
 /**
@@ -217,40 +282,66 @@ const exportToPlainText = (data, separator = ' | ', timezone = 'PST') => {
  * @throws {Error} - If an invalid export format is provided.
  */
 const exportData = async ({
-  data,
-  exportFormat,
-  filename,
-  title = '',
-  landscape,
-  summary,
-}) => {
-  console.log(`Generating ${exportFormat.toUpperCase()} export: ${filename}`);
-
-  // Handle empty data
-  if (!data || data.length === 0) {
-    console.warn('No data available for export.');
-    return generateEmptyExport(exportFormat, filename);
+                            data,
+                            exportFormat,
+                            filename,
+                            title = '',
+                            landscape,
+                            summary,
+                          }) => {
+  const context = 'export-data';
+  
+  try {
+    logSystemInfo(`Generating ${exportFormat.toUpperCase()} export: ${filename}`, {
+      context,
+    });
+    
+    // Handle empty data
+    if (!data || data.length === 0) {
+      logSystemWarn('No data available for export. Generating empty file.', {
+        context,
+        exportFormat,
+      });
+      return generateEmptyExport(exportFormat, filename, landscape, summary);
+    }
+    
+    return generateExport(
+      exportFormat,
+      data,
+      filename,
+      title,
+      landscape,
+      summary
+    );
+  } catch (error) {
+    logSystemError('Failed to export data.', {
+      context,
+      exportFormat,
+      filename,
+    });
+    throw error;
   }
-
-  return generateExport(
-    exportFormat,
-    data,
-    filename,
-    title,
-    landscape,
-    summary
-  );
 };
 
 /**
- * Generates an empty export file with a message.
+ * Generates an empty export file for supported formats.
+ *
+ * @param {string} format - Export format (csv, pdf, txt)
+ * @param {string} filename - Desired filename without extension
+ * @param {boolean} [landscape]
+ * @param {boolean} [summary]
+ * @returns {object} { fileBuffer, contentType, filename }
  */
 const generateEmptyExport = (format, filename, landscape, summary) => {
-  logWarn(`Generating empty export file for format: ${format}`);
-
+  const context = 'generate-empty-export';
   const emptyMessage = 'No data available for export.';
   let fileBuffer, contentType;
-
+  
+  logSystemWarn(`Creating empty export for format: ${format}`, {
+    context,
+    filename,
+  });
+  
   switch (format.toLowerCase()) {
     case 'csv':
       fileBuffer = Buffer.from(emptyMessage, 'utf-8');
@@ -262,7 +353,7 @@ const generateEmptyExport = (format, filename, landscape, summary) => {
         title: 'Empty Report',
         landscape,
         summary,
-      }); // Empty PDF
+      });
       contentType = 'application/pdf';
       filename = `empty_${filename}.pdf`;
       break;
@@ -272,16 +363,25 @@ const generateEmptyExport = (format, filename, landscape, summary) => {
       filename = `empty_${filename}.txt`;
       break;
     default:
-      throw new AppError.validationError(
-        'Invalid export format. Use "csv", "pdf", or "txt".'
+      throw AppError.validationError(
+        'Invalid export format. Use "csv", "pdf", or "txt".',
+        { context }
       );
   }
-
+  
   return { fileBuffer, contentType, filename };
 };
 
 /**
- * Generates an export file with provided data.
+ * Generates a data export file in the specified format.
+ *
+ * @param {string} format - Export format (csv, pdf, txt)
+ * @param {Array} data - Array of data objects to export
+ * @param {string} filename - Base filename (without extension)
+ * @param {string} [title] - Optional title for PDF exports
+ * @param {boolean} [landscape] - PDF landscape mode
+ * @param {boolean} [summary] - Summary mode for PDF
+ * @returns {object} { fileBuffer, contentType, filename }
  */
 const generateExport = async (
   format,
@@ -291,33 +391,51 @@ const generateExport = async (
   landscape,
   summary
 ) => {
-  logInfo(`Generating export file: ${format}`);
-
-  let fileBuffer, contentType;
-
-  switch (format.toLowerCase()) {
-    case 'csv':
-      fileBuffer = exportToCSV(data);
-      contentType = 'text/csv';
-      filename += '.csv';
-      break;
-    case 'pdf':
-      fileBuffer = await exportToPDF(data, { title, landscape, summary });
-      contentType = 'application/pdf';
-      filename += '.pdf';
-      break;
-    case 'txt':
-      fileBuffer = exportToPlainText(data, ' | ');
-      contentType = 'text/plain';
-      filename += '.txt';
-      break;
-    default:
-      throw new AppError.validationError(
-        'Invalid export format. Use "csv", "pdf", or "txt".'
-      );
+  const context = 'generate-export';
+  logSystemInfo(`Starting export file generation: ${format}`, {
+    context,
+    filename,
+  });
+  
+  try {
+    let fileBuffer, contentType;
+    
+    switch (format.toLowerCase()) {
+      case 'csv':
+        fileBuffer = exportToCSV(data);
+        contentType = 'text/csv';
+        filename += '.csv';
+        break;
+      
+      case 'pdf':
+        fileBuffer = await exportToPDF(data, { title, landscape, summary });
+        contentType = 'application/pdf';
+        filename += '.pdf';
+        break;
+      
+      case 'txt':
+        fileBuffer = exportToPlainText(data, ' | ');
+        contentType = 'text/plain';
+        filename += '.txt';
+        break;
+      
+      default:
+        throw AppError.validationError(
+          'Invalid export format. Use "csv", "pdf", or "txt".',
+          { context }
+        );
+    }
+    
+    logSystemInfo(`Export generation complete: ${filename}`, { context });
+    return { fileBuffer, contentType, filename };
+  } catch (error) {
+    logSystemError(`Export generation failed: ${error.message}`, {
+      context,
+      format,
+      filename,
+    });
+    throw error;
   }
-
-  return { fileBuffer, contentType, filename };
 };
 
 module.exports = {
