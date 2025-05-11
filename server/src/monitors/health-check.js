@@ -3,7 +3,7 @@
  * @description Schedules and manages periodic health checks for the application.
  */
 
-const logger = require('../utils/logger');
+const { logSystemWarn, logSystemError, logSystemInfo, logSystemException } = require('../utils/system-logger');
 const { checkDatabaseHealth } = require('./db-health');
 const { monitorPool } = require('../database/db');
 const { ONE_MINUTE } = require('../utils/constants/general/time');
@@ -25,7 +25,9 @@ const healthChecks = [
  */
 const startHealthCheck = (interval = ONE_MINUTE) => {
   if (healthCheckInterval) {
-    logger.warn('Health check already running. Restarting...');
+    logSystemWarn('Health check already running. Restarting...', {
+      context: 'health-monitor',
+    });
     clearInterval(healthCheckInterval);
   }
 
@@ -44,10 +46,13 @@ const startHealthCheck = (interval = ONE_MINUTE) => {
               details: result,
             };
           } catch (error) {
-            logger.error(`Health check failed: ${healthCheck.name}`, {
-              error: error.message,
-              stack: error.stack,
+            logSystemError(`Health check failed: ${healthCheck.name}`, {
+              context: 'health-monitor',
+              check: healthCheck.name,
+              errorMessage: error.message,
+              stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined,
             });
+            
             return {
               name: healthCheck.name,
               status: 'unhealthy',
@@ -58,19 +63,23 @@ const startHealthCheck = (interval = ONE_MINUTE) => {
       );
 
       const duration = Date.now() - startTime;
-
-      logger.info(`Scheduled health check completed in ${duration}ms`, {
+      
+      logSystemInfo('Scheduled health check completed.', {
+        context: 'health-monitor',
+        durationMS: duration,
         results,
       });
     } catch (error) {
-      logger.error('Scheduled health check failed unexpectedly', {
-        error: error.message,
-        stack: error.stack,
+      logSystemException(error, 'Unexpected failure during scheduled health check', {
+        context: 'health-monitor',
       });
     }
   }, interval);
-
-  logger.info(`Health check started with an interval of ${interval} ms`);
+  
+  logSystemInfo('Health check interval initialized.', {
+    context: 'health-monitor',
+    intervalMs: interval,
+  });
 };
 
 /**
@@ -80,10 +89,22 @@ const stopHealthCheck = () => {
   if (healthCheckInterval) {
     clearInterval(healthCheckInterval);
     healthCheckInterval = null;
-    logger.info('Health check stopped');
+    
+    logSystemInfo('Health check stopped', {
+      context: 'health-monitor',
+      action: 'stop',
+      status: 'stopped',
+    });
   } else {
-    logger.warn('Health check is not running');
+    logSystemWarn('Health check is not running', {
+      context: 'health-monitor',
+      action: 'stop',
+      status: 'not_running',
+    });
   }
 };
 
-module.exports = { startHealthCheck, stopHealthCheck };
+module.exports = {
+  startHealthCheck,
+  stopHealthCheck
+};

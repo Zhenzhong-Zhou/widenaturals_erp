@@ -20,11 +20,7 @@ const authenticate = () => {
       const refreshToken = req.cookies?.refreshToken; // Refresh token remains in the cookies
 
       if (!accessToken) {
-        logWarn('Access token is missing. Please log in.', {
-          ip: req.ip || 'N/A',
-          route: req.originalUrl || 'N/A',
-          userAgent: req.headers['user-agent'] || 'N/A',
-        });
+        logWarn('Access token is missing. Please log in.', req);
         return next(
           AppError.accessTokenError('Access token is missing. Please log in.')
         );
@@ -50,11 +46,7 @@ const authenticate = () => {
         if (error.name === 'TokenExpiredError' && refreshToken) {
           logWarn(
             'Access token expired. Attempting to refresh with a valid refresh token.',
-            {
-              ip: req.ip || 'N/A',
-              route: req.originalUrl || 'N/A',
-              userAgent: req.headers['user-agent'] || 'N/A',
-            }
+            req
           );
 
           try {
@@ -73,9 +65,7 @@ const authenticate = () => {
             req.user = refreshPayload; // Attach refreshed user details
             return next();
           } catch (refreshError) {
-            logError('Invalid or expired refresh token encountered.', {
-              ip: req.ip || 'N/A',
-              route: req.originalUrl || 'N/A',
+            logError('Invalid or expired refresh token encountered.', req, {
               error: refreshError.message,
             });
 
@@ -93,24 +83,16 @@ const authenticate = () => {
         }
 
         // Handle other access token errors
-        logError('Invalid or expired access token encountered.', {
-          ip: req.ip || 'N/A',
-          route: req.originalUrl || 'N/A',
+        logError('Invalid or expired access token encountered.', req, {
           error: error.message,
         });
+        
         throw AppError.accessTokenExpiredError(
           'Access token expired. Please use your refresh token.'
         );
       }
     } catch (error) {
-      logError('Authentication middleware encountered an error:', {
-        ip: req.ip || 'N/A',
-        method: req.method || 'N/A',
-        url: req.originalUrl || 'N/A',
-        userAgent: req.headers['user-agent'] || 'N/A',
-        timestamp: new Date().toISOString(),
-        error: error.message,
-      });
+      logError(error, req);
 
       if (!(error instanceof AppError)) {
         error = AppError.authenticationError(

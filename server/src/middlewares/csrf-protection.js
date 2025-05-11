@@ -53,9 +53,9 @@ const shouldBypassCSRF = (req) => {
     exemptMethods.includes(req.method) ||
     (req.method === 'GET' && exemptPaths.includes(req.path))
   ) {
-    logWarn(`CSRF validation bypassed for ${req.method} ${req.path}`, {
-      ip: req.ip,
-      userAgent: req.headers['user-agent'],
+    logWarn('CSRF validation bypassed', req, {
+      reason:
+        exemptMethods.includes(req.method) ? 'exempt method' : 'exempt path',
     });
     return true;
   }
@@ -78,10 +78,8 @@ const csrfProtection = () => {
     try {
       csrfMiddleware(req, res, next);
     } catch (error) {
-      logError('CSRF Middleware Error:', {
-        message: error.message,
-        stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined,
-      });
+      logError(error, req, { middleware: 'csrfProtection' });
+      
       next(
         AppError.csrfError('CSRF token validation failed.', {
           details: process.env.NODE_ENV !== 'production' ? error.message : null,

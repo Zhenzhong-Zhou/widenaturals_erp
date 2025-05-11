@@ -77,10 +77,8 @@ const authorize = (requiredPermissions = []) => {
       next();
     } catch (error) {
       if (!(error instanceof AppError)) {
-        logError('Unexpected error in authorization middleware:', {
-          message: error.message,
-          stack: error.stack,
-        });
+        logError(error, req, { middleware: 'authorize' });
+        
         return next(
           AppError.authorizationError(
             'An unexpected error occurred during authorization.'

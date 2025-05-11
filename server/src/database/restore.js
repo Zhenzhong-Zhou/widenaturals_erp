@@ -4,6 +4,10 @@ const fs = require('fs');
 const path = require('path');
 const { loadEnv } = require('../config/env');
 const { decryptFile } = require('./encryption');
+const {
+  logSystemInfo,
+  logSystemWarn, logSystemException
+} = require('../utils/system-logger');
 const { logInfo, logWarn, logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
 const { downloadFileFromS3 } = require('../utils/aws-s3-service');
@@ -33,10 +37,18 @@ const restoreDatabase = async (
   try {
     // Download from S3 if specified
     if (!fs.existsSync(decryptedFilePath)) {
-      logInfo('Downloading file from S3...');
+      logSystemInfo('Downloading file from S3...', {
+        context: 'restore-db',
+        s3Key: s3KeyEnc,
+        targetPath: decryptedFilePath,
+      });
 
       await downloadFileFromS3(bucketName, s3KeyEnc, decryptedFilePath);
-      logInfo(`File downloaded from S3: ${decryptedFilePath}`);
+      
+      logSystemInfo(`File downloaded from S3`, {
+        context: 'restore-db',
+        decryptedFilePath,
+      });
     }
 
     if (!fs.existsSync(decryptedFilePath)) {
@@ -48,18 +60,43 @@ const restoreDatabase = async (
     const restoreCommand = dbPassword
       ? `PGPASSWORD=${dbPassword} pg_restore --clean --if-exists --jobs=4 --format=custom --dbname=${databaseName} --username=${dbUser} ${decryptedFilePath}`
       : `pg_restore --clean --if-exists --jobs=4 --format=custom --dbname=${databaseName} --username=${dbUser} ${decryptedFilePath}`;
-
-    logInfo(`Executing restore command for database: ${databaseName}`);
-    logInfo(`Restore command: ${restoreCommand}`);
+    
+    logSystemInfo('Executing pg_restore command', {
+      context: 'restore-db',
+      database: databaseName,
+      command: restoreCommand,
+    });
 
     const { stdout, stderr } = await execAsync(restoreCommand);
-
-    if (stdout) logInfo(`Restore command output: ${stdout}`);
-    if (stderr) logWarn(`Restore command warnings: ${stderr}`);
-
-    logInfo('Database restore completed successfully.');
+    
+    if (stdout) {
+      logSystemInfo('Restore command output', {
+        context: 'restore-db',
+        database: databaseName,
+        stdout,
+      });
+    }
+    
+    if (stderr) {
+      logSystemWarn('Restore command warnings', {
+        context: 'restore-db',
+        database: databaseName,
+        stderr,
+      });
+    }
+    
+    logSystemInfo('Database restore completed successfully', {
+      context: 'restore-db',
+      database: databaseName,
+    });
   } catch (error) {
-    logError('Database restore failed:', error.message);
+    logSystemException(error, 'Database restore failed', {
+      context: 'restore-db',
+      decryptedFilePath,
+      database: databaseName,
+      s3Key: s3KeyEnc,
+    });
+    
     throw AppError.databaseError(`Database restore failed: ${error.message}`);
   }
 };
@@ -90,6 +127,12 @@ const restoreBackup = async (
   let encryptedFilePath, ivFilePath, decryptedFilePath;
 
   try {
+    logSystemInfo('Starting database restore process', {
+      context: 'restore-backup',
+      isProduction,
+      databaseName,
+    });
+    
     if (isProduction) {
       if (!bucketName)
         throw AppError.validationError('AWS_S3_BUCKET_NAME is not set.');
@@ -111,18 +154,30 @@ const restoreBackup = async (
           null,
           true
         );
-        logInfo('SHA256 file downloaded successfully.');
+        
+        logSystemInfo('SHA256 file downloaded', {
+          context: 'restore-backup',
+          s3Key: `${s3KeyEnc}.sha256`,
+        });
       } catch (error) {
-        logWarn('No SHA256 file found. Integrity check will be skipped.');
+        logSystemWarn('SHA256 file not found, skipping integrity check', {
+          context: 'restore-backup',
+          s3Key: `${s3KeyEnc}.sha256`,
+        });
       }
-
-      logInfo('All files downloaded successfully from S3.');
+      
+      logSystemInfo('All necessary files downloaded from S3', {
+        context: 'restore-backup',
+        files: [s3KeyEnc, `${s3KeyEnc}.iv`],
+      });
 
       // Verify file integrity if SHA256 file was found
       if (originalHash) {
-        logInfo('Verifying file integrity...');
+        logSystemInfo('Verifying file integrity...', {
+          context: 'restore-backup',
+          file: encryptedFilePath,
+        });
         await verifyFileIntegrity(encryptedFilePath, originalHash);
-        logInfo('File integrity verified successfully.');
       }
     } else {
       encryptedFilePath = s3KeyEnc;
@@ -134,6 +189,12 @@ const restoreBackup = async (
           'Required backup files not found locally.'
         );
       }
+      
+      logSystemInfo('Local encrypted and IV files found.', {
+        context: 'restore-backup',
+        encryptedFilePath,
+        ivFilePath,
+      });
     }
 
     await decryptFile(
@@ -144,16 +205,28 @@ const restoreBackup = async (
     );
     await restoreDatabase(decryptedFilePath, databaseName, dbUser, dbPassword);
   } catch (error) {
-    logError('Restoration failed:', error.message);
+    logSystemException(error, 'Database restoration failed', {
+      context: 'restore-backup',
+      databaseName,
+      s3Key: s3KeyEnc,
+    });
+    
     throw error;
   } finally {
     [encryptedFilePath, ivFilePath, decryptedFilePath].forEach((file) => {
       if (file && fs.existsSync(file)) {
         try {
           fs.unlinkSync(file);
-          logInfo(`Deleted temporary file: ${file}`);
+          logSystemInfo('Deleted temporary file', {
+            context: 'restore-backup',
+            file,
+          });
         } catch (cleanupError) {
-          logWarn(`Failed to delete file: ${file} - ${cleanupError.message}`);
+          logSystemWarn('Failed to delete temporary file', {
+            context: 'restore-backup',
+            file,
+            errorMessage: cleanupError.message,
+          });
         }
       }
     });

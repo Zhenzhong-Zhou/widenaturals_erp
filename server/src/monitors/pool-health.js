@@ -3,7 +3,11 @@
  * @description Utilities for monitoring the database connection pool.
  */
 
-const { logInfo, logError, logWarn } = require('../utils/logger-helper');
+const {
+  logSystemWarn,
+  logSystemInfo,
+  logSystemException
+} = require('../utils/system-logger');
 const { ONE_MINUTE } = require('../utils/constants/general/time');
 
 let monitorPool;
@@ -22,25 +26,37 @@ const startPoolMonitoring = (
   interval = parseInt(process.env.POOL_MONITOR_INTERVAL, 10) || ONE_MINUTE
 ) => {
   if (isNaN(interval) || interval <= 0) {
-    logError(
-      `Invalid monitoring interval: ${interval}. Defaulting to 60000ms.`
-    );
+    logSystemWarn('Invalid monitoring interval. Defaulting to 60000ms.', {
+      context: 'pool-monitor',
+      originalValue: process.env.POOL_MONITOR_INTERVAL,
+      fallback: ONE_MINUTE,
+    });
     interval = ONE_MINUTE; // Default to 1 minute
   }
 
   if (monitoringIntervalId) {
-    logWarn('Pool monitoring is already running. Restarting...');
+    logSystemWarn('Pool monitoring is already running. Restarting...', {
+      context: 'pool-monitor',
+    });
     clearInterval(monitoringIntervalId);
   }
-
-  logInfo(`Starting pool monitoring with an interval of ${interval}ms`);
+  
+  logSystemInfo('Starting pool monitoring', {
+    context: 'pool-monitor',
+    interval,
+  });
 
   monitoringIntervalId = setInterval(() => {
     try {
       const metrics = monitorPool();
-      logInfo('Periodic pool monitoring metrics:', metrics);
+      logSystemInfo('Pool monitoring metrics', {
+        context: 'pool-monitor',
+        metrics,
+      });
     } catch (error) {
-      logError('Error during pool monitoring:', { error: error.message });
+      logSystemException(error, 'Error during pool monitoring', {
+        context: 'pool-monitor',
+      });
     }
   }, interval);
 };
@@ -52,9 +68,13 @@ const stopPoolMonitoring = () => {
   if (monitoringIntervalId) {
     clearInterval(monitoringIntervalId);
     monitoringIntervalId = null;
-    logInfo('Pool monitoring stopped.');
+    logSystemInfo('Pool monitoring stopped', {
+      context: 'pool-monitor',
+    });
   } else {
-    logWarn('Pool monitoring was not running; no action taken.');
+    logSystemWarn('Pool monitoring was not running; no action taken', {
+      context: 'pool-monitor',
+    });
   }
 };
 

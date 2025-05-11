@@ -1,8 +1,11 @@
 const crypto = require('crypto');
 const fs = require('fs').promises; // Use promise-based fs methods
 const { createReadStream, createWriteStream } = require('fs');
+const {
+  logSystemInfo,
+  logSystemException
+} = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
-const { logSystemInfo, logSystemException } = require('../utils/system-logger'); // For streaming
 
 /**
  * Encrypts a file using AES-256-CBC.

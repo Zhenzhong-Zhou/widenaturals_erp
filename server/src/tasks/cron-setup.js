@@ -1,12 +1,12 @@
 const { exec, execSync } = require('child_process');
-const { logError, logInfo } = require('../utils/logger-helper');
+const { logSystemInfo } = require('../utils/system-logger');
 const path = require('path');
 const fs = require('fs');
 
 // Check if running in production or development
 const isProduction = process.env.NODE_ENV === 'production';
 
-// Define logs path based on environment
+// Define a log path based on environment
 const logsPath = isProduction
   ? path.resolve('/logs/database') // Production path
   : path.resolve(process.env.LOGS_DIR || '../../dev_logs'); // Local path
@@ -37,24 +37,37 @@ const TIMEZONE = 'UTC';
 const cronJobs = [
   // Runs the backup-scheduler.js every minute (for testing purpose, change to 2 AM for production)
   `0 2 * * * PATH=${PATH_ENV} NODE_ENV=${isProduction ? 'production' : 'development'} TZ=${TIMEZONE} ${nodePath} ${cronBackupPath} >> ${logsPath}/cron-backup.log 2>&1`,
-  // `* * * * * PATH=${PATH_ENV} NODE_ENV=${isProduction ? 'production' : 'development'} TZ=${TIMEZONE} ${nodePath} ${cronBackupPath} >> ${logsPath}/cron-backup.log 2>&1`,
+  // `* * * * * PATH=${PATH_ENV} NODE_ENV=${isProduction ? 'production': 'development'} TZ=${TIMEZONE} ${nodePath} ${cronBackupPath} >> ${logsPath}/cron-backup.log 2>&1`,
 ];
 
 /**
  * Adds cron jobs to the crontab.
  */
 const setupCronJobs = () => {
-  logInfo('Registering cron jobs...');
+  logSystemInfo('Registering cron jobs...', {
+    context: 'setup-cron',
+  });
 
   const cronString = cronJobs.join('\n') + '\n';
-  logInfo(`Generated cron job string: \n${cronString}`);
+  logSystemInfo('Generated cron job string.', {
+    context: 'setup-cron',
+    jobCount: cronJobs.length,
+    preview: cronString, // or omit if too verbose
+  });
 
   exec(`echo "${cronString}" | crontab -`, (error, stdout, stderr) => {
     if (error) {
-      logError('Failed to set up cron jobs:', error.message);
+      logSystemException(error, 'Failed to set up cron jobs.', {
+        context: 'setup-cron',
+        stderr,
+      });
       return;
     }
-    logInfo('Cron jobs set up successfully.');
+    
+    logSystemInfo('Cron jobs set up successfully.', {
+      context: 'setup-cron',
+      stdout: stdout.trim(),
+    });
   });
 };
 

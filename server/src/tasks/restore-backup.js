@@ -1,8 +1,12 @@
 const { restoreBackup } = require('../database/restore');
+const {
+  logSystemInfo, logSystemError, logSystemException
+} = require('../utils/system-logger');
 const { logInfo, logError, createSystemMeta } = require('../utils/logger-helper');
 const { loadEnv } = require('../config/env');
 const { listBackupsFromS3 } = require('../utils/aws-s3-service');
 const readline = require('readline');
+const path = require('path');
 
 loadEnv();
 
@@ -13,9 +17,11 @@ const args = require('minimist')(process.argv.slice(2), {
 });
 
 /**
- * Prompts user to input a file path if not provided initially.
- * @param {string} promptText - The message to prompt the user with.
- * @returns {Promise<string>} The path entered by the user.
+ * Prompts the user to enter a file path.
+ * This is used in CLI/interactive mode only.
+ *
+ * @param {string} promptText - The text to display to the user.
+ * @returns {Promise<string>} - The trimmed user input file path.
  */
 const promptForFilePath = (promptText) => {
   return new Promise((resolve) => {
@@ -23,10 +29,20 @@ const promptForFilePath = (promptText) => {
       input: process.stdin,
       output: process.stdout,
     });
-
+    
+    logSystemInfo('Prompting user for file path input...', {
+      context: 'promptForFilePath',
+      promptText,
+    });
+    
     rl.question(`\n${promptText}: `, (filePath) => {
       rl.close();
-      resolve(filePath.trim());
+      const trimmed = filePath.trim();
+      logSystemInfo('User provided file path.', {
+        context: 'promptForFilePath',
+        filePath: path.basename(trimmed), // Optional: omit or sanitize if sensitive
+      });
+      resolve(trimmed);
     });
   });
 };
@@ -42,29 +58,47 @@ const promptForFilePath = (promptText) => {
     const dbPassword = process.env.DB_PASSWORD;
 
     if (!databaseName || !encryptionKey || !dbUser || !dbPassword) {
-      logError(
-        'Essential environment variables (DB_NAME, BACKUP_ENCRYPTION_KEY, DB_USER, DB_PASSWORD) are missing.'
+      logSystemError(
+        'Essential environment variables are missing.',
+        {
+          context: 'restore-verify',
+          missing: {
+            DB_NAME: !!databaseName,
+            BACKUP_ENCRYPTION_KEY: !!encryptionKey,
+            DB_USER: !!dbUser,
+            DB_PASSWORD: !!dbPassword,
+          },
+        }
       );
       process.exit(1);
     }
 
     if (isProduction && bucketName && (!s3KeyEnc || !s3KeyIv || !s3KeySha256)) {
-      logInfo(`Fetching available backups from S3 bucket: ${bucketName}...`);
+      logSystemInfo(`Fetching available backups from S3 bucket...`, {
+        context: 'restore-verify',
+        bucket: bucketName,
+      });
 
       try {
         const backups = await listBackupsFromS3(bucketName, 'backups/');
 
         if (backups.length === 0) {
-          logError('No backups found in the S3 bucket.');
+          logSystemError('No backups found in the S3 bucket.', {
+            context: 'restore-verify',
+            bucket: bucketName,
+          });
           process.exit(1);
         }
-
-        console.log(
-          'Available Backups:',
-          backups.map((file) => file.Key)
-        );
+        
+        logSystemInfo('Available backups:', {
+          context: 'restore-verify',
+          files: backups.map((file) => file.Key),
+        });
       } catch (err) {
-        logError('Failed to fetch backups from S3:', err.message);
+        logSystemException(err, 'Failed to fetch backups from S3.', {
+          context: 'restore-verify',
+          bucket: bucketName,
+        });
         process.exit(1);
       }
     }
@@ -76,9 +110,14 @@ const promptForFilePath = (promptText) => {
       s3KeySha256 = await promptForFilePath('Enter SHA256 File Path');
 
     if (!s3KeyEnc || !s3KeyIv || !s3KeySha256) {
-      logError(
-        'Missing required paths. Make sure to provide paths for all files.'
-      );
+      logSystemError('Missing required paths. Make sure to provide paths for all files.', {
+        context: 'restore-backup',
+        missing: {
+          s3KeyEnc: !!s3KeyEnc,
+          s3KeyIv: !!s3KeyIv,
+          s3KeySha256: !!s3KeySha256,
+        },
+      });
       process.exit(1);
     }
 
@@ -90,18 +129,14 @@ const promptForFilePath = (promptText) => {
       dbPassword,
       isProduction
     );
-
-    logInfo('Database restoration completed successfully.', null, createSystemMeta());
+    
+    logSystemInfo('Database restoration completed successfully.', {
+      context: 'restore-backup',
+    });
   } catch (error) {
-    logError(
-      'Database restoration failed.',
-      null,
-      {
-        ...createSystemMeta(),
-        errorMessage: error.message,
-        stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined,
-      }
-    );
+    logSystemException(error, 'Database restoration failed.', {
+      context: 'restore-backup',
+    });
     process.exit(1);
   }
 })();

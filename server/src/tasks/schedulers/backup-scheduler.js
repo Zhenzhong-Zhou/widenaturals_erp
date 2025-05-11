@@ -4,19 +4,29 @@
  */
 
 const { backupDatabase } = require('../../database/backup-db');
-const { logInfo, logError } = require('../../utils/logger-helper');
+const {
+  logSystemInfo,
+  logSystemException
+} = require('../../utils/system-logger');
 const { handleExit } = require('../../utils/on-exit');
 
 /**
  * Executes the database backup process.
  */
 const runBackup = async () => {
-  logInfo('Starting manual database backup process...');
+  logSystemInfo('Starting manual database backup process...', {
+    context: 'run-backup',
+  });
+  
   try {
     await backupDatabase();
-    logInfo('Manual database backup completed successfully.');
+    logSystemInfo('Manual database backup completed successfully.', {
+      context: 'run-backup',
+    });
   } catch (error) {
-    logError('Manual database backup failed.', error);
+    logSystemException(error, 'Manual database backup failed.', {
+      context: 'run-backup',
+    });
     await handleExit(1); // Exit with error code for monitoring
   }
 };

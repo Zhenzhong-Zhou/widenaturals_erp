@@ -32,7 +32,7 @@ const setServer = (serverInstance) => {
  */
 const cleanupLogic = async () => {
   if (cleanupCalled) {
-    getLoggerHelper().logWarn(
+    getLoggerHelper().logSystemWarn(
       'Cleanup already in progress. Skipping redundant call.'
     );
     return;
@@ -40,35 +40,34 @@ const cleanupLogic = async () => {
   cleanupCalled = true;
 
   const logger = getLoggerHelper();
-  logger.logInfo('Starting cleanup logic...');
+  logger.logSystemInfo('Starting cleanup logic...');
 
   try {
     // Close server connections
     if (server) {
-      logger.logInfo('Closing server connections...');
+      logger.logSystemInfo('Closing server connections...');
       await new Promise((resolve) => {
         server.close(() => {
-          logger.logInfo('Server connections closed.');
+          logger.logSystemInfo('Server connections closed.');
           resolve();
         });
       });
     } else {
-      logger.logInfo('No active server instance to close.');
+      logger.logSystemInfo('No active server instance to close.');
     }
 
     // Close database pool
-    logger.logInfo('Closing database pool...');
+    logger.logSystemInfo('Closing database pool...');
     await closePool();
 
     // Remove signal handlers
     process.removeAllListeners('SIGINT');
     process.removeAllListeners('SIGTERM');
-
-    logger.logInfo('Database pool closed.');
+    
+    logger.logSystemInfo('Database pool closed.');
   } catch (error) {
-    logger.logFatal('Error during cleanup:', null, {
-      error: error.message,
-      stack: error.stack,
+    logger.logSystemException(error, 'Error during cleanup logic', {
+      context: 'on-exit',
     });
   }
 };
@@ -82,25 +81,26 @@ const handleExit = async (code = 0) => {
   const logger = getLoggerHelper();
 
   try {
-    logger.logInfo('Initiating exit process...');
+    logger.logSystemInfo('Initiating exit process...');
 
     // Set a timeout for the cleanup process
     const timeout = setTimeout(() => {
-      logger.logFatal('Cleanup exceeded timeout. Forcing exit.');
+      logger.logSystemFatal('Cleanup exceeded timeout. Forcing exit.', {
+        context: 'on-exit',
+      });
       process.exit(code);
-    }, 10000); // 10 seconds timeout
+    }, 10000); // 10-second timeout
 
     await cleanupLogic();
     clearTimeout(timeout);
-
-    logger.logInfo('Cleanup completed successfully.');
+    
+    logger.logSystemInfo('Cleanup completed successfully.');
   } catch (error) {
-    logger.logFatal('Unexpected error during exit:', null, {
-      error: error.message,
-      stack: error.stack,
+    logger.logSystemException(error, 'Unexpected error during exit', {
+      context: 'on-exit',
     });
   } finally {
-    logger.logInfo(`Exiting with code: ${code}`);
+    logger.logSystemInfo(`Exiting with code: ${code}`);
     process.exit(code);
   }
 };
