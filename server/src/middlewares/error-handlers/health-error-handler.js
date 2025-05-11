@@ -3,7 +3,7 @@
  * @description Middleware for handling health-check specific errors.
  */
 
-const AppError = require('../../utils/AppError');
+const normalizeError = require('../../utils/normalize-error');
 const { logError } = require('../../utils/logger-helper');
 
 /**
@@ -16,24 +16,22 @@ const { logError } = require('../../utils/logger-helper');
  */
 const healthErrorHandler = (err, req, res, next) => {
   if (err.type === 'HealthCheckError') {
-    // Normalize to an AppError instance if not already
-    const healthError = AppError.healthCheckError(
-      err.message || 'Service Unavailable',
-      {
-        code: err.code || 'SERVICE_UNAVAILABLE',
-        status: err.status || 503,
-        details: err.details || null,
-      }
-    );
-
-    // Log the health-check error as a warning
-    logError(healthError, req, {
-      context: 'health-check-handler',
+    const normalizedError = normalizeError(err, {
+      type: 'HealthCheckError',
+      code: err.code || 'SERVICE_UNAVAILABLE',
+      status: err.status || 503,
+      logLevel: 'warn',
+      isExpected: true,
     });
 
+    // Log the health-check error as a warning
+    logError(normalizedError, req, {
+      context: 'health-check-handler',
+    });
+    
     // Return a structured 503-Service Unavailable response
-    return res.status(healthError.status).json({
-      ...healthError.toJSON(),
+    return res.status(normalizedError.status).json({
+      ...normalizedError.toJSON(),
       timestamp: new Date().toISOString(),
     });
   }

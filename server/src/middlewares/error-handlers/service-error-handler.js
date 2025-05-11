@@ -3,7 +3,7 @@
  * @description Middleware to handle service-level (business logic) errors.
  */
 
-const AppError = require('../../utils/AppError');
+const normalizeError = require('../../utils/normalize-error');
 const { logError } = require('../../utils/logger-helper');
 
 /**
@@ -15,26 +15,22 @@ const { logError } = require('../../utils/logger-helper');
  * @param {function} next - Express next middleware function.
  */
 const serviceErrorHandler = (err, req, res, next) => {
-  if (err.name === 'ServiceError') {
-    // Use the AppError factory method for service errors with explicit fields
-    const errorResponse = AppError.serviceError(
-      err.message || 'A business rule was violated.',
-      {
-        details: err.details || null, // Include additional details if provided
-      }
-    );
-
-    // Log the service-level error with metadata
-    logError(errorResponse, req, {
-      context: 'service-error-handler',
-    });
-
-    // Send structured error response
-    return res.status(errorResponse.status).json(errorResponse.toJSON());
-  }
-
-  // Pass to the next error handler if not a service-level error
-  next(err);
+  if (err.name !== 'ServiceError') return next(err);
+  
+  const normalizedError = normalizeError(err, {
+    type: 'ServiceError',
+    code: 'SERVICE_ERROR',
+    status: err.status || 500,
+    isExpected: false,
+    logLevel: 'warn',
+    details: err.details || null,
+  });
+  
+  logError(normalizedError, req, {
+    context: 'service-error-handler',
+  });
+  
+  return res.status(normalizedError.status).json(normalizedError.toJSON());
 };
 
 module.exports = serviceErrorHandler;

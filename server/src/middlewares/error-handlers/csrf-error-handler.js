@@ -3,7 +3,7 @@
  * @description Middleware for handling CSRF token errors.
  */
 
-const AppError = require('../../utils/AppError');
+const normalizeError = require('../../utils/normalize-error');
 const { logError } = require('../../utils/logger-helper');
 
 /**
@@ -16,28 +16,31 @@ const { logError } = require('../../utils/logger-helper');
  * @param {Function} next - The Express next middleware function.
  */
 const csrfErrorHandler = (err, req, res, next) => {
-  if (err.code === 'EBADCSRFTOKEN') {
-    // Use the AppError factory method for CSRF violations
-    const csrfError = AppError.csrfError('Invalid or missing CSRF token', {
-      details: {
-        message: err.message,
-        code: err.code,
-        origin: req.headers.origin,
-      },
-    });
+  if (err.code !== 'EBADCSRFTOKEN') return next(err);
+  
+  const enrichedDetails = {
+    message: err.message,
+    code: err.code,
+    origin: req.headers.origin || 'Unknown',
+  };
+  
+  // Normalize the error
+  const normalizedError = normalizeError(err, {
+    type: 'CSRFError',
+    code: 'CSRF_ERROR',
+    isExpected: true,
+    logLevel: 'warn',
+    details: enrichedDetails,
+  });
+  
+  // Log the CSRF error with context and request metadata
+  logError(normalizedError, req, {
+    context: 'csrf-error-handler',
+    referrer: req.headers?.referer || 'None',
+  })
 
-    // Log the CSRF error with detailed metadata
-    logError(csrfError, req, {
-      context: 'csrf-error-handler',
-      referrer: req.headers?.referer || 'None',
-    });
-    
-    // Respond with a structured error response
-    return res.status(csrfError.status).json(csrfError.toJSON());
-  }
-
-  // Pass the error to the next middleware if it's not a CSRF error
-  next(err);
+  // Respond with a structured error response
+  return res.status(normalizedError.status).json(normalizedError.toJSON());
 };
 
 module.exports = csrfErrorHandler;

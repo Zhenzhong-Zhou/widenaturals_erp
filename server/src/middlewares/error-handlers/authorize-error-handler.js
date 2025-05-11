@@ -3,7 +3,7 @@
  * @description Middleware to handle authorization errors.
  */
 
-const AppError = require('../../utils/AppError');
+const normalizeError = require('../../utils/normalize-error');
 const { logError } = require('../../utils/logger-helper');
 
 /**
@@ -15,24 +15,27 @@ const { logError } = require('../../utils/logger-helper');
  * @param {function} next - Express next middleware function.
  */
 const authorizationErrorHandler = (err, req, res, next) => {
-  if (err.name === 'AuthorizationError') {
-    const details = typeof err === 'object' && 'details' in err ? err.details : null;
+  if (
+    err.name === 'AuthorizationError' ||
+    err.type === 'AuthorizationError' ||
+    err.code === 'AUTHORIZATION_ERROR'
+  ) {
+    // Normalize raw errors into AppError
+    const normalizedError = normalizeError(err, {
+      type: 'AuthorizationError',
+      code: 'AUTHORIZATION_ERROR',
+      status: 403,
+      logLevel: 'warn',
+      isExpected: true,
+    });
     
-    // Use AppError static factory method for consistency
-    const errorResponse = AppError.authorizationError(
-      err.message || 'You are not authorized to perform this action.',
-      {
-        details, // Include additional details if provided
-      }
-    );
-
-    // Log the authorization error as a warning
-    logError(errorResponse, req, {
+    // Log with structured metadata
+    logError(normalizedError, req, {
       context: 'authorization-error-handler',
     });
-
-    // Send structured error response
-    return res.status(errorResponse.status).json(errorResponse.toJSON());
+    
+    // Respond with structured error response
+    return res.status(normalizedError.status).json(normalizedError.toJSON());
   }
 
   // Pass to the next error handler if not an authorization error

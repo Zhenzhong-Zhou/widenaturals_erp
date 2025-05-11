@@ -3,7 +3,7 @@
  * @description Middleware for handling authentication errors.
  */
 
-const AppError = require('../../utils/AppError');
+const normalizeError = require('../../utils/normalize-error');
 const { logError } = require('../../utils/logger-helper');
 
 /**
@@ -16,17 +16,29 @@ const { logError } = require('../../utils/logger-helper');
  * @param {Function} next - The Express next middleware function.
  */
 const authenticateErrorHandler = (err, req, res, next) => {
-  // Check if the error is related to authentication
-  if (
-    err.type === 'AuthenticationError' ||
-    err.type === 'AccessTokenExpiredError' ||
-    err.type === 'AccessTokenError' ||
-    err.type === 'RefreshTokenExpiredError' ||
-    err.type === 'RefreshTokenError' ||
-    err.type === 'TokenRevokedError' ||
-    err.code === 'AUTHENTICATION_ERROR' ||
-    err.name === 'UnauthorizedError'
-  ) {
+    // Normalize the incoming error
+    const normalizedError = normalizeError(err, {
+      isExpected: true,
+      type: err.type || 'AuthenticationError',
+      code: err.code || 'AUTHENTICATION_ERROR',
+      logLevel: err.logLevel || 'warn', // Use the original log level if available
+      ...err, // Include other properties like `code` or `details`
+    });
+  
+  // Check if it's an authentication-related error
+  const isAuthError =
+    [
+      'AuthenticationError',
+      'AccessTokenExpiredError',
+      'AccessTokenError',
+      'RefreshTokenExpiredError',
+      'RefreshTokenError',
+      'TokenRevokedError',
+    ].includes(normalizedError.type) ||
+    normalizedError.code === 'AUTHENTICATION_ERROR' ||
+    normalizedError.name === 'UnauthorizedError';
+  
+  if (isAuthError) {
     // Define custom messages for specific error types
     const errorMessages = {
       AccessTokenExpiredError:
@@ -36,27 +48,20 @@ const authenticateErrorHandler = (err, req, res, next) => {
       RefreshTokenError: 'Refresh token is missing or invalid.',
       TokenRevokedError: 'Token has been revoked. Please log in again.',
     };
-
-    // Use the specific message or default to the error's message
-    const message = errorMessages[err.type] || err.message;
-
-    // Create the custom authentication error
-    const authError = AppError.authenticationError(message, {
-      isExpected: true,
-      type: err.type || 'AuthenticationError',
-      code: err.code || 'AUTHENTICATION_ERROR',
-      logLevel: err.logLevel || 'warn', // Use the original log level if available
-      ...err, // Include other properties like `code` or `details`
-    });
-
-    // Log the error with metadata
-    logError(authError, req, {
+    
+    // Override the message if a more specific one exists
+    normalizedError.message =
+      errorMessages[normalizedError.type] || normalizedError.message;
+    
+    
+    // Log and return the error
+    logError(normalizedError, req, {
       context: 'auth-error-handler',
       stage: 'token-validation',
     });
-
+    
     // Send a structured error response
-    return res.status(authError.status).json(authError.toJSON());
+    return res.status(normalizedError.status).json(normalizedError.toJSON());
   }
 
   // Pass the error to the next middleware if it's not an authentication error

@@ -3,7 +3,7 @@
  * @description Middleware to handle sanitization errors.
  */
 
-const AppError = require('../../utils/AppError');
+const normalizeError = require('../../utils/normalize-error');
 const { logError } = require('../../utils/logger-helper');
 
 /**
@@ -15,28 +15,28 @@ const { logError } = require('../../utils/logger-helper');
  * @param {function} next - The Express next middleware function.
  */
 const sanitizationErrorHandler = (err, req, res, next) => {
-  if (err.name === 'SanitizationError' || err.type === 'SanitizationError') {
-    // Use the AppError factory method to create a structured sanitization error
-    const sanitizationError = AppError.sanitizationError(
-      err.message || 'Sanitization failed.',
-      {
-        details: err.details || null, // Include sanitization details if available
-      }
-    );
-
-    // Log the sanitization error with metadata for debugging
-    logError(sanitizationError, req, {
-      context: 'sanitization-error-handler',
-    });
-    
-    // Respond with a structured error response
-    return res
-      .status(sanitizationError.status)
-      .json(sanitizationError.toJSON());
-  }
-
-  // Pass non-sanitization errors to the next middleware
-  next(err);
+  const isSanitizationError =
+    err.name === 'SanitizationError' || err.type === 'SanitizationError';
+  
+  if (!isSanitizationError) return next(err);
+  
+  // Normalize the error for consistent structure
+  const normalizedError = normalizeError(err, {
+    type: 'SanitizationError',
+    code: 'SANITIZATION_ERROR',
+    status: 422,
+    isExpected: true,
+    logLevel: 'error',
+    details: err.details || null,
+  });
+  
+  // Log the error with structured metadata
+  logError(normalizedError, req, {
+    context: 'sanitization-error-handler',
+  });
+  
+  // Return structured JSON response
+  return res.status(normalizedError.status).json(normalizedError.toJSON());
 };
 
 module.exports = sanitizationErrorHandler;

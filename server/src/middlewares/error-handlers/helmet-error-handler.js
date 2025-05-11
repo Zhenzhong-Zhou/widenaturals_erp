@@ -3,8 +3,8 @@
  * @description Middleware for handling Helmet-related errors.
  */
 
+const normalizeError = require('../../utils/normalize-error');
 const { logError } = require('../../utils/logger-helper');
-const AppError = require('../../utils/AppError');
 
 /**
  * Middleware to handle Helmet-related errors.
@@ -16,21 +16,21 @@ const AppError = require('../../utils/AppError');
  */
 const helmetErrorHandler = (err, req, res, next) => {
   if (err.type === 'HelmetError') {
-    // Ensure the error is a structured AppError
-    const errorResponse = AppError.helmetError(
-      err.message || 'Helmet configuration failed.',
-      {
-        details: err.details || null,
-      }
-    );
+    const normalizedError = normalizeError(err, {
+      type: 'HelmetError',
+      code: 'HELMET_ERROR',
+      logLevel: 'error',
+      isExpected: true,
+      details: err.details || null,
+    });
     
     // Log with structured error logging
-    logError(errorResponse, req, {
+    logError(normalizedError, req, {
       context: 'helmet-error-handler',
     });
     
     // Respond with the structured error response
-    return res.status(errorResponse.status).json(errorResponse.toJSON());
+    return res.status(normalizedError.status).json(normalizedError.toJSON());
   }
 
   // Pass to the next error handler if not a Helmet error
