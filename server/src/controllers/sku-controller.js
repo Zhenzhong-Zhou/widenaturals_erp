@@ -1,6 +1,7 @@
 const wrapAsync = require('../utils/wrap-async');
 const { fetchPaginatedSkuProductCardsService } = require('../services/sku-service');
 const { sanitizeSortBy } = require('../utils/sort-utils');
+const { logInfo } = require('../utils/logger-helper');
 
 /**
  * Controller for fetching a paginated list of active SKU product cards.
@@ -30,8 +31,11 @@ const getActiveSkuProductCardsController = wrapAsync(async (req, res) => {
   } = req.query;
   
   const filters = { brand, category, marketRegion, sizeLabel, keyword };
-  
   const sanitizedSortBy = sanitizeSortBy(sortBy, 'skuProductCards');
+  
+  logInfo('Fetching active SKU product cards', req, {
+    query: { page, limit, sortBy: sanitizedSortBy, sortOrder, filters },
+  });
   
   const result = await fetchPaginatedSkuProductCardsService({
     page: Number(page),
@@ -42,6 +46,11 @@ const getActiveSkuProductCardsController = wrapAsync(async (req, res) => {
   });
   
   const { data, pagination } = result;
+  
+  logInfo('Fetched active SKU product cards successfully', req, {
+    resultCount: data.length,
+    pagination,
+  });
   
   res.status(200).json({
     success: true,

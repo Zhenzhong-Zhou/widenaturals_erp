@@ -2,7 +2,7 @@ const { getStatusId } = require('../config/status-cache');
 const { fetchPaginatedActiveSkusWithProductCards } = require('../repositories/sku-repository');
 const { transformSkuProductCardList } = require('../transformers/sku-transformer');
 const AppError = require('../utils/AppError');
-const { logError } = require('../utils/logger-helper');
+const { logError, logInfo } = require('../utils/logger-helper');
 const { sanitizeSortBy } = require('../utils/sort-utils');
 
 /**
@@ -34,8 +34,17 @@ const fetchPaginatedSkuProductCardsService = async ({
   try {
     // Fetch the active status ID
     const productStatusId = getStatusId('product_active');
-    
     const sanitizedSortBy = sanitizeSortBy(sortBy, 'skuProductCards');
+    
+    logInfo('Fetching paginated SKU product cards from DB', null, {
+      context: 'fetchPaginatedSkuProductCardsService',
+      page,
+      limit,
+      sortBy: sanitizedSortBy,
+      sortOrder,
+      filters,
+      productStatusId,
+    });
     
     const { data, totalRecords, totalPages } = await fetchPaginatedActiveSkusWithProductCards({
       page,
@@ -48,6 +57,13 @@ const fetchPaginatedSkuProductCardsService = async ({
     
     const transformed = transformSkuProductCardList(data);
     
+    logInfo('Successfully fetched SKU product cards', null, {
+      context: 'fetchPaginatedSkuProductCardsService',
+      returnedRecords: transformed.length,
+      totalRecords,
+      totalPages,
+    });
+    
     return {
       data: transformed,
       pagination: {
@@ -58,7 +74,10 @@ const fetchPaginatedSkuProductCardsService = async ({
       },
     };
   } catch (error) {
-    logError('Error fetching active SKUs with product cards');
+    logError('Failed to fetch SKU product cards', null, {
+      context: 'fetchPaginatedSkuProductCardsService',
+      errorMessage: error.message,
+    });
     throw AppError.serviceError('Failed to fetch active SKU product cards');
   }
 };

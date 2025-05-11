@@ -24,11 +24,30 @@ const getLastSku = async (brandCode, categoryCode) => {
       ORDER BY sku DESC
       LIMIT 1
     `;
+    
     const result = await query(sql, [pattern]);
-    return result.rows[0]?.sku || null;
+    
+    const lastSku = result.rows[0]?.sku || null;
+    
+    logInfo('[getLastSku] Retrieved last SKU', {
+      brandCode,
+      categoryCode,
+      pattern,
+      lastSku,
+    });
+    
+    return lastSku;
   } catch (error) {
-    logError('[getLastSku] Failed to fetch last SKU');
-    throw AppError.databaseError('Database error while retrieving last SKU');
+    logError('Failed to fetch last SKU', null, {
+      context: 'getLastSku',
+      error: error.message,
+      brandCode,
+      categoryCode,
+    });
+    throw AppError.databaseError('Database error while retrieving last SKU', {
+      brandCode,
+      categoryCode,
+    });
   }
 };
 
@@ -73,8 +92,16 @@ const buildWhereClauseAndParams = (productStatusId, filters = {}) => {
       params,
     };
   } catch (err) {
-    console.error('Failed to build WHERE clause:', err.message);
-    throw new Error('Internal error preparing filter conditions');
+    logError('Failed to construct WHERE clause', null, {
+      context: 'buildWhereClauseAndParams',
+      error: err.message,
+      filters,
+      productStatusId,
+    });
+    throw AppError.transformerError('Failed to prepare filter conditions', {
+      details: err.message,
+      stage: 'build-where-clause',
+    });
   }
 };
 
@@ -118,56 +145,63 @@ const fetchPaginatedActiveSkusWithProductCards = async ({
                                                           productStatusId,
                                                           filters = {},
                                                         }) => {
-  const { whereClause, params } = buildWhereClauseAndParams(productStatusId, filters);
-  const orderBy = sanitizeSortBy(sortBy, 'skuProductCards');
-  
-  const queryText = `
-    SELECT
-      p.name AS product_name,
-      p.series,
-      p.brand,
-      p.category,
-      s.name AS status_name,
-      sku.id AS sku_id,
-      sku.sku,
-      sku.barcode,
-      sku.country_code,
-      sku.market_region,
-      sku.size_label,
-      sku_status.name AS sku_status_name,
-      comp.compliance_id,
-      pr.price AS msrp_price,
-      img.image_url AS primary_image_url,
-      img.alt_text AS image_alt_text
-    FROM skus sku
-    INNER JOIN products p ON sku.product_id = p.id
-    INNER JOIN status s ON p.status_id = s.id
-    LEFT JOIN status sku_status ON sku.status_id = sku_status.id AND sku_status.id = $1
-    LEFT JOIN compliances comp ON comp.sku_id = sku.id AND comp.type = 'NPN' AND comp.status_id = $1
-    LEFT JOIN LATERAL (
-      SELECT pr.price, pr.status_id
-      FROM pricing pr
-      INNER JOIN pricing_types pt ON pr.price_type_id = pt.id AND pt.name = 'MSRP'
-      INNER JOIN locations l ON pr.location_id = l.id
-      INNER JOIN location_types lt ON l.location_type_id = lt.id AND lt.name = 'Office'
-      WHERE pr.sku_id = sku.id AND pr.status_id = $1
-      ORDER BY pr.valid_from DESC NULLS LAST
-      LIMIT 1
-    ) pr ON TRUE
-    LEFT JOIN sku_images img ON img.sku_id = sku.id AND img.is_primary = TRUE
-    LEFT JOIN status ps ON pr.status_id = ps.id AND ps.id = $1
-    WHERE ${whereClause}
-    GROUP BY
-      p.id, s.name,
-      sku.id, sku.sku, sku.barcode, sku.market_region, sku.size_label, sku_status.name,
-      comp.compliance_id,
-      pr.price,
-      img.image_url, img.alt_text
-    ORDER BY ${orderBy} ${sortOrder}
-  `;
-  
   try {
-    logInfo('Fetching paginated active SKUs with product cards');
+    const { whereClause, params } = buildWhereClauseAndParams(productStatusId, filters);
+    const orderBy = sanitizeSortBy(sortBy, 'skuProductCards');
+    
+    const queryText = `
+      SELECT
+        p.name AS product_name,
+        p.series,
+        p.brand,
+        p.category,
+        s.name AS status_name,
+        sku.id AS sku_id,
+        sku.sku,
+        sku.barcode,
+        sku.country_code,
+        sku.market_region,
+        sku.size_label,
+        sku_status.name AS sku_status_name,
+        comp.compliance_id,
+        pr.price AS msrp_price,
+        img.image_url AS primary_image_url,
+        img.alt_text AS image_alt_text
+      FROM skus sku
+      INNER JOIN products p ON sku.product_id = p.id
+      INNER JOIN status s ON p.status_id = s.id
+      LEFT JOIN status sku_status ON sku.status_id = sku_status.id AND sku_status.id = $1
+      LEFT JOIN compliances comp ON comp.sku_id = sku.id AND comp.type = 'NPN' AND comp.status_id = $1
+      LEFT JOIN LATERAL (
+        SELECT pr.price, pr.status_id
+        FROM pricing pr
+        INNER JOIN pricing_types pt ON pr.price_type_id = pt.id AND pt.name = 'MSRP'
+        INNER JOIN locations l ON pr.location_id = l.id
+        INNER JOIN location_types lt ON l.location_type_id = lt.id AND lt.name = 'Office'
+        WHERE pr.sku_id = sku.id AND pr.status_id = $1
+        ORDER BY pr.valid_from DESC NULLS LAST
+        LIMIT 1
+      ) pr ON TRUE
+      LEFT JOIN sku_images img ON img.sku_id = sku.id AND img.is_primary = TRUE
+      LEFT JOIN status ps ON pr.status_id = ps.id AND ps.id = $1
+      WHERE ${whereClause}
+      GROUP BY
+        p.id, s.name,
+        sku.id, sku.sku, sku.barcode, sku.market_region, sku.size_label, sku_status.name,
+        comp.compliance_id,
+        pr.price,
+        img.image_url, img.alt_text
+      ORDER BY ${orderBy} ${sortOrder}
+    `;
+    
+    logInfo('Fetching paginated active SKUs with product cards', null, {
+      context: 'fetchPaginatedActiveSkusWithProductCards',
+      filters,
+      sortBy: orderBy,
+      sortOrder,
+      page,
+      limit,
+    });
     
     return await paginateResults({
       dataQuery: queryText,
@@ -176,8 +210,13 @@ const fetchPaginatedActiveSkusWithProductCards = async ({
       limit,
     });
   } catch (error) {
-    logError('Error fetching active SKUs with product cards');
-    throw AppError.databaseError('Failed to fetch active product SKUs');
+    logError('Error fetching active SKUs with product cards', null, {
+      context: 'fetchPaginatedActiveSkusWithProductCards',
+      stage: 'query-execution',
+    });
+    throw AppError.databaseError('Failed to fetch active product SKUs', {
+      details: error.message,
+    });
   }
 };
 
