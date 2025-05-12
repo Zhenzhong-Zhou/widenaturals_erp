@@ -694,6 +694,7 @@ exports.seed = async function (knex) {
       status_id: activeStatusId,
       created_by: systemActionId,
       updated_by: null,
+      updated_at: null,
     };
 
     // Insert or ignore if duplicate
@@ -749,6 +750,7 @@ exports.seed = async function (knex) {
           status_id: variant.status_id,
           created_by: systemActionId,
           updated_by: null,
+          updated_at: null,
         })
         .onConflict(['product_id', 'sku'])
         .ignore();

@@ -29,6 +29,7 @@ const DetailPage: FC<DetailPageProps> = ({
         aria-busy="true"
         sx={{
           width: '100%',
+          maxWidth: '1200px',
           minHeight: '100vh',
           display: 'flex',
           justifyContent: 'center',

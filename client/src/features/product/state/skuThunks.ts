@@ -1,6 +1,7 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import type { PaginatedSkuProductCardResponse, SkuProductCardFilters } from './skuTypes';
+import type { PaginatedSkuProductCardResponse, SkuDetails, SkuProductCardFilters } from './skuTypes';
 import { skuService } from '@services/skuService';
+import { AxiosError } from 'axios';
 
 /**
  * Thunk to fetch a paginated list of active SKU product cards.
@@ -27,3 +28,39 @@ export const fetchSkuProductCardsThunk = createAsyncThunk<
     return thunkAPI.rejectWithValue(error.message);
   }
 });
+
+/**
+ * Thunk to fetch detailed SKU information for the given SKU ID.
+ *
+ * Dispatches loading, success, or failure state.
+ *
+ * @param skuId - The UUID of the SKU to fetch
+ * @returns SkuDetails on success or a string error message on failure
+ */
+export const fetchSkuDetailsThunk = createAsyncThunk<
+  SkuDetails,               // Return type
+  string,                   // Argument: skuId
+  {
+    rejectValue: string;    // Custom error message
+  }
+>(
+  'sku/fetchSkuDetails',
+  async (skuId, { rejectWithValue }) => {
+    try {
+      return await skuService.getSkuDetails(skuId);
+    } catch (error) {
+      let message = 'Failed to fetch SKU details.';
+      
+      if (error instanceof AxiosError && error.response?.data?.message) {
+        message = error.response.data.message;
+      }
+      
+      console.error('[Thunk] fetchSkuDetailsThunk failed:', {
+        skuId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      
+      return rejectWithValue(message);
+    }
+  }
+);

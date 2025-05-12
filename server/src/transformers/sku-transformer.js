@@ -56,6 +56,7 @@ const transformSkuProductCardList = (rows) => {
  */
 const transformSkuDetailsWithMeta = (row) => {
   const {
+    // SKU-level
     sku_id,
     sku,
     barcode,
@@ -75,6 +76,14 @@ const transformSkuDetailsWithMeta = (row) => {
     sku_status_date,
     sku_created_at,
     sku_updated_at,
+    sku_created_by,
+    sku_updated_by,
+    sku_created_by_firstname,
+    sku_created_by_lastname,
+    sku_updated_by_firstname,
+    sku_updated_by_lastname,
+    
+    // Product-level
     product_id,
     product_name,
     series,
@@ -82,29 +91,33 @@ const transformSkuDetailsWithMeta = (row) => {
     category,
     product_description,
     product_status_date,
+    product_created_at,
+    product_updated_at,
+    product_created_by,
+    product_updated_by,
+    product_created_by_firstname,
+    product_created_by_lastname,
+    product_updated_by_firstname,
+    product_updated_by_lastname,
+    
+    // Shared/meta
     sku_status_name,
     product_status_name,
     prices = [],
     compliances = [],
     images = [],
-    created_by,
-    updated_by,
-    created_at,
-    updated_at,
-    created_by_first_name,
-    created_by_last_name,
-    updated_by_first_name,
-    updated_by_last_name,
   } = row;
-
+  
+  const getAuditUser = (id, firstName, lastName) => {
+    const fullName = getFullName(firstName, lastName);
+    return id || fullName ? { id: id ?? null, fullName } : null;
+  };
+  
   const status =
     sku_status_name === product_status_name
       ? sku_status_name
-      : {
-        sku: sku_status_name,
-        product: product_status_name,
-      };
-
+      : { sku: sku_status_name, product: product_status_name };
+  
   const description = sku_description?.trim() || product_description?.trim() || '';
   
   // Separate zoom and main
@@ -149,20 +162,14 @@ const transformSkuDetailsWithMeta = (row) => {
       category,
     },
     audit: {
-      createdAt: created_at ?? sku_created_at,
-      createdBy: created_by
-        ? {
-          id: created_by,
-          fullName: getFullName(created_by_first_name, created_by_last_name),
-        }
-        : null,
-      updatedAt: updated_at ?? sku_updated_at,
-      updatedBy: updated_by
-        ? {
-          id: updated_by,
-          fullName: getFullName(updated_by_first_name, updated_by_last_name),
-        }
-        : null,
+      createdAt: sku_created_at ?? product_created_at,
+      createdBy:
+        getAuditUser(sku_created_by, sku_created_by_firstname, sku_created_by_lastname) ??
+        getAuditUser(product_created_by, product_created_by_firstname, product_created_by_lastname),
+      updatedAt: sku_updated_at ?? product_updated_at,
+      updatedBy:
+        getAuditUser(sku_updated_by, sku_updated_by_firstname, sku_updated_by_lastname) ??
+        getAuditUser(product_updated_by, product_updated_by_firstname, product_updated_by_lastname),
     },
     prices,
     compliances,

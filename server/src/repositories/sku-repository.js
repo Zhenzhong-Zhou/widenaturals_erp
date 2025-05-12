@@ -303,6 +303,13 @@ const getSkuDetailsWithPricingAndMeta = async (
       sku.status_date AS sku_status_date,
       sku.created_at AS sku_created_at,
       sku.updated_at AS sku_updated_at,
+      sku.created_by AS sku_created_by,
+      sku_creator.firstname AS sku_created_by_firstname,
+      sku_creator.lastname AS sku_created_by_lastname,
+      sku.updated_by AS sku_updated_by,
+      sku_updater.firstname AS sku_updated_by_firstname,
+      sku_updater.lastname AS sku_updated_by_lastname,
+      sku.updated_at AS sku_updated_at,
       p.id AS product_id,
       p.name AS product_name,
       p.series,
@@ -310,6 +317,14 @@ const getSkuDetailsWithPricingAndMeta = async (
       p.category,
       p.description AS product_description,
       p.status_date AS product_status_date,
+      p.created_at AS product_created_at,
+      p.updated_at AS product_updated_at,
+      p.created_by AS product_created_by,
+      product_creator.firstname AS product_created_by_firstname,
+      product_creator.lastname AS product_created_by_lastname,
+      p.updated_by AS product_updated_by,
+      product_updater.firstname AS product_updated_by_firstname,
+      product_updater.lastname AS product_updated_by_lastname,
       sku_status.name AS sku_status_name,
       prod_status.name AS product_status_name,
       COALESCE(
@@ -347,6 +362,10 @@ const getSkuDetailsWithPricingAndMeta = async (
     JOIN products AS p ON sku.product_id = p.id
     JOIN status AS sku_status ON sku.status_id = sku_status.id
     JOIN status AS prod_status ON p.status_id = prod_status.id
+    LEFT JOIN users AS sku_creator ON sku.created_by = sku_creator.id
+    LEFT JOIN users AS sku_updater ON sku.updated_by = sku_updater.id
+    LEFT JOIN users AS product_creator ON p.created_by = product_creator.id
+    LEFT JOIN users AS product_updater ON p.updated_by = product_updater.id
     LEFT JOIN pricing AS pr ON pr.sku_id = sku.id
     LEFT JOIN pricing_types AS pt ON pr.price_type_id = pt.id
     LEFT JOIN locations AS l ON pr.location_id = l.id
@@ -361,7 +380,15 @@ const getSkuDetailsWithPricingAndMeta = async (
       sku.id,
       p.id,
       sku_status.name,
-      prod_status.name
+      prod_status.name,
+      sku_creator.firstname,
+      sku_creator.lastname,
+      sku_updater.firstname,
+      sku_updater.lastname,
+      product_creator.firstname,
+      product_creator.lastname,
+      product_updater.firstname,
+      product_updater.lastname
   `;
 
   try {
@@ -377,7 +404,7 @@ const getSkuDetailsWithPricingAndMeta = async (
 
       throw AppError.notFoundError('SKU not found or not visible under current status filter');
     }
-
+console.log(result.rows);
     return result.rows[0];
   } catch (error) {
     logSystemException(error, 'Failed to fetch SKU details with meta', {

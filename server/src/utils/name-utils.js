@@ -6,7 +6,12 @@
  * @param {string|null|undefined} last - Last name
  * @returns {string} Full name string (e.g. "Jane Doe")
  */
-const getFullName = (first, last) =>
-  [first, last].map((s) => (s ? String(s).trim() : '')).filter(Boolean).join(' ');
+const getFullName = (first, last) => {
+  const full = [first, last]
+    .map((s) => (s ? String(s).trim() : ''))
+    .filter(Boolean)
+    .join(' ');
+  return full || '—';
+};
 
 module.exports = { getFullName };

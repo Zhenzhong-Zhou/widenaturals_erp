@@ -1,6 +1,7 @@
-import type { PaginatedSkuProductCardResponse, SkuProductCardFilters } from "@features/product/state";
+import type { PaginatedSkuProductCardResponse, SkuDetails, SkuProductCardFilters } from "@features/product/state";
 import axiosInstance from "@utils/axiosConfig";
 import { API_ENDPOINTS } from "./apiEndpoints";
+import type { AxiosError } from 'axios';
 
 /**
  * Fetch a paginated list of active SKU product cards with optional filters.
@@ -39,6 +40,33 @@ const fetchActiveSkuProductCards = async (
   }
 };
 
+/**
+ * Fetches detailed SKU information with pricing, compliance, and image metadata.
+ *
+ * @param skuId - UUID of the SKU to fetch
+ * @returns SKU detail object
+ * @throws AxiosError if request fails
+ */
+export const getSkuDetails = async (skuId: string): Promise<SkuDetails> => {
+  if (!skuId) {
+    throw new Error('SKU ID is required to fetch details.');
+  }
+  
+  const endpoint = API_ENDPOINTS.SKU_DETAILS.replace(
+    ':skuId',
+    encodeURIComponent(skuId)
+  );
+  
+  try {
+    const response = await axiosInstance.get<{ data: SkuDetails }>(endpoint);
+    return response.data.data;
+  } catch (error) {
+    // Optional: Add logging or rewrap error here
+    throw error as AxiosError;
+  }
+};
+
 export const skuService = {
   fetchActiveSkuProductCards,
+  getSkuDetails,
 };

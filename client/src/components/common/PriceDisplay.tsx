@@ -4,58 +4,71 @@ import CustomTypography from '@components/common/CustomTypography';
 import { useThemeContext } from '@context/ThemeContext';
 
 interface Price {
-  price: number;
+  location_type?: string;
+  location?: string;
   pricing_type: string;
+  price: number;
+  valid_from?: string;
+  valid_to?: string | null;
 }
 
 interface PriceDisplayProps {
-  prices: Price[]; // Array of prices
-  originalPrice?: number; // Optional original price
-  currency?: string; // Optional, default: "$"
+  prices: Price[];
+  originalPrice?: number;
+  currency?: string;
 }
 
 const PriceDisplay: FC<PriceDisplayProps> = ({
-  prices,
-  originalPrice,
-  currency = '$',
-}) => {
+                                               prices,
+                                               originalPrice,
+                                               currency = '$',
+                                             }) => {
   const { theme } = useThemeContext();
   
   // Find retail price for comparison (if needed)
-  const retailPrice = prices.find((p) => p.pricing_type === 'Retail')?.price;
-
+  const retail = prices.find((p) => p.pricing_type === 'Retail');
+  const retailPrice = retail?.price;
+  
   // Determine if there is a discount
   const isDiscounted =
     typeof originalPrice === 'number' &&
     typeof retailPrice === 'number' &&
     originalPrice > retailPrice;
-
+  
   return (
     <Box
       display="flex"
       flexDirection="column"
       gap={theme.spacing(1)}
       sx={{
-        padding: theme.spacing(1),
+        padding: theme.spacing(2),
         borderRadius: theme.shape.borderRadius,
         backgroundColor: theme.palette.background.paper,
+        boxShadow: theme.shadows[1],
       }}
     >
-      {/* Iterate through prices */}
-      {prices.map(({ pricing_type, price }) => (
+      {prices.map(({ pricing_type, price, location, location_type }) => (
         <Box
-          key={pricing_type}
+          key={`${pricing_type}-${location || 'default'}`}
           display="flex"
           justifyContent="space-between"
           alignItems="center"
           sx={{ minHeight: 32 }}
         >
-          <CustomTypography
-            variant="body2"
-            sx={{ color: theme.palette.text.primary, fontWeight: 500 }}
-          >
-            {pricing_type}
-          </CustomTypography>
+          <Box>
+            <CustomTypography variant="body2" sx={{ fontWeight: 600 }}>
+              {pricing_type}
+            </CustomTypography>
+            {(location || location_type) && (
+              <CustomTypography
+                variant="caption"
+                sx={{ color: theme.palette.text.secondary }}
+              >
+                {location} {location_type && `(${location_type})`}
+              </CustomTypography>
+            )}
+          </Box>
+          
           <CustomTypography
             variant="body2"
             sx={{ color: theme.palette.primary.main, fontWeight: 600 }}
@@ -86,7 +99,7 @@ const PriceDisplay: FC<PriceDisplayProps> = ({
             variant="caption"
             sx={{
               color: theme.palette.error.main,
-              backgroundColor: theme.palette.error.light + '22', // semi-transparent
+              backgroundColor: `${theme.palette.error.light}22`,
               px: 1,
               py: 0.25,
               borderRadius: 1,
@@ -95,7 +108,7 @@ const PriceDisplay: FC<PriceDisplayProps> = ({
           >
             -
             {Math.round(
-              ((originalPrice - retailPrice!) / originalPrice) * 100
+              ((originalPrice - retailPrice) / originalPrice) * 100
             )}
             %
           </CustomTypography>

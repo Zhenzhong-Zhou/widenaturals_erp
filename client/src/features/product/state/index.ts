@@ -1,7 +1,9 @@
-import skuProductCardsReducer from './skuProductCardSlice.ts';
+import skuProductCardsReducer from './skuProductCardSlice';
+import skuDetailsReducer from './skuDetailsSlice';
 
 export const skuReducers = {
   skuProductCards: skuProductCardsReducer,
+  skuDetails: skuDetailsReducer,
 };
 
 // Optional exports for types, selectors, and thunks

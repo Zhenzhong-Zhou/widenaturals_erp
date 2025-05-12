@@ -1,77 +1,124 @@
-import { type FC } from 'react';
+import { useState, type FC } from 'react';
 import { useParams } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import CardMedia from '@mui/material/CardMedia';
+import Paper from '@mui/material/Paper';
 import DetailPage from '@components/common/DetailPage';
 import CustomButton from '@components/common/CustomButton';
-import MetadataSection from '@components/common/MetadataSection';
+import SkuDetailsSection from '@features/product/components/SkuDetailsSection';
+import GoBackButton from '@components/common/GoBackButton';
+import ZoomImageDialog from '@components/common/ZoomImageDialog';
+import CustomTypography from '@components/common/CustomTypography';
 import PriceDisplay from '@components/common/PriceDisplay';
-import productPlaceholder from '@assets/Virility_CA.jpg';
-import { formatDate } from '@utils/dateTimeUtils';
-import useProductDetail from '@hooks/useProductDetail';
+import useSkuDetails from '@hooks/useSkuDetails';
+import { formatImageUrl } from '@utils/formatImageUrl';
+import type { ImageInfo } from '../state';
 
 const ProductDetailPage: FC = () => {
-  const { id } = useParams<{ id: string }>(); // Extract product ID from the URL
-  const { product, isLoading, error, refetchProduct } = useProductDetail(id!);
-
+  const { skuId } = useParams<{ skuId: string }>();
+  const [openZoom, setOpenZoom] = useState(false);
+  
+  const {
+    skuDetails,
+    skuDetailsLoading,
+    skuDetailsError,
+    skuImages,
+    primaryMainImage,
+    refresh,
+  } = useSkuDetails(skuId!);
+  
+  const zoomImage = skuImages.find((img: ImageInfo) => img.type === 'zoom');
+  
+  const displayImageUrl = openZoom && zoomImage?.image_url
+    ? formatImageUrl(zoomImage.image_url)
+    : formatImageUrl(primaryMainImage?.image_url ?? null);
+  
   const pageTitle =
-    product?.product_name && product.product_name.length > 50
-      ? `${product.product_name.slice(0, 50)}... - Product Details`
-      : `${product?.product_name || 'Product Details'} - Product Details`;
-
-  // Prepare Metadata
-  const metadata: Record<string, string | number> = product
-    ? {
-        Series: product.series ?? 'N/A',
-        Brand: product.brand ?? 'N/A',
-        Category: product.category ?? 'N/A',
-        NPN: product.npn ?? 'N/A',
-        Barcode: product.barcode ?? 'N/A',
-        'Market Region': product.market_region ?? 'N/A',
-        Length: `${product.length_cm ?? 'N/A'} cm`,
-        Width: `${product.width_cm ?? 'N/A'} cm`,
-        Height: `${product.height_cm ?? 'N/A'} cm`,
-        Weight: `${product.weight_g ?? 'N/A'} g`,
-        Description: product.description ?? 'N/A',
-        Status: product.status_name ?? 'N/A',
-        'Location Type Name': product.location_type_name ?? 'N/A',
-        'Location Name': product.location_name ?? 'N/A',
-        'Status Date': formatDate(product.status_date) ?? 'N/A',
-        'Created By': product.created_by_fullname ?? 'N/A',
-        'Created At': formatDate(product.created_at) ?? 'N/A',
-        'Updated By': product.updated_by_fullname ?? 'N/A',
-        'Updated At': formatDate(product.updated_at) ?? 'N/A',
-      }
-    : {};
-
+    skuDetails?.product?.displayName && skuDetails.product.displayName.length > 50
+      ? `${skuDetails.product.displayName.slice(0, 50)}... - Product Details`
+      : `${skuDetails?.product?.displayName || 'Product Details'} - Product Details`;
+  
   return (
     <DetailPage
       title={pageTitle}
-      isLoading={isLoading}
-      error={error ?? undefined}
+      isLoading={skuDetailsLoading}
+      error={skuDetailsError ?? undefined}
+      sx={{ maxWidth: '100%', px: { xs: 2, md: 4 }, pb: 6 }}
     >
-      <Box mt={3}>
-        <CustomButton onClick={() => refetchProduct()}>
-          Refetch Products
+      {/* Action Buttons Row */}
+      <Box
+        mt={3}
+        display="flex"
+        gap={2}
+        justifyContent="flex-start"
+        flexWrap="wrap"
+      >
+        <CustomButton sx={{ minWidth: 160 }} onClick={refresh}>
+          Refetch SKU Details
         </CustomButton>
+        <GoBackButton sx={{ minWidth: 160}} />
       </Box>
-
-      {product && (
-        <Box>
-          {/* Product Image */}
-          <CardMedia
-            component="img"
-            height="300"
-            image={productPlaceholder || '/default-placeholder.png'} // Use placeholder if no image
-            alt={product.product_name}
-            sx={{ borderRadius: 2, marginBottom: 2, objectFit: 'cover' }}
-          />
-
-          {/* Metadata */}
-          <MetadataSection data={metadata} />
-
-          {/* Price Display */}
-          <PriceDisplay prices={product.prices || []} />
+      
+      {/* Main Content */}
+      {skuDetails && (
+        <Box
+          display="flex"
+          flexDirection={{ xs: 'column', md: 'row' }}
+          gap={{ xs: 4, md: 6 }}
+          alignItems="flex-start"
+          mt={4}
+        >
+          {/* Left: Image */}
+          <Box
+            flexShrink={0}
+            sx={{
+              width: { xs: '100%', md: 320 },
+              textAlign: 'center',
+              pr: { md: 5 },
+              mr: { md: 25 },
+              ml: { md: 10 },
+            }}
+          >
+            <CardMedia
+              component="img"
+              image={displayImageUrl}
+              alt={primaryMainImage?.alt_text || skuDetails?.sku}
+              onClick={() => setOpenZoom(true)}
+            />
+            {zoomImage && (
+              <CustomTypography variant="caption" color="text.secondary" mt={1}>
+                Click image to toggle zoom
+              </CustomTypography>
+            )}
+            {/* Zoom Dialog (renders on click) */}
+            <ZoomImageDialog
+              open={openZoom}
+              imageUrl={formatImageUrl(zoomImage?.image_url || primaryMainImage?.image_url || '')}
+              altText={primaryMainImage?.alt_text}
+              onClose={() => setOpenZoom(false)}
+            />
+          </Box>
+          
+          {/* Right: Metadata + Pricing */}
+          <Box flex={1} minWidth={0}>
+            <SkuDetailsSection data={skuDetails} />
+            
+            <Box mt={5}>
+              <CustomTypography variant="h6" fontWeight={600} mb={2}>
+                Pricing
+              </CustomTypography>
+              <Paper
+                elevation={1}
+                sx={{
+                  p: 2,
+                  borderRadius: 2,
+                  backgroundColor: theme => theme.palette.background.default,
+                }}
+              >
+                <PriceDisplay prices={skuDetails.prices || []} />
+              </Paper>
+            </Box>
+          </Box>
         </Box>
       )}
     </DetailPage>

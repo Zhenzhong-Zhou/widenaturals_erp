@@ -84,29 +84,33 @@ const SkuProductCardFilterPanel: React.FC<SkuProductCardFilterPanelProps> = ({
         { label: 'Category', value: filters.category ?? '', options: CATEGORIES, key: 'category' },
         { label: 'Market', value: filters.marketRegion ?? '', options: MARKET_REGIONS, key: 'marketRegion' },
         { label: 'Size', value: filters.sizeLabel ?? '', options: SIZE_LABELS, key: 'sizeLabel' },
-      ].map(({ label, value, options, key }) => (
-        <BaseInput
-          key={label}
-          select
-          label={label}
-          value={value}
-          onChange={handleChange(key as keyof SkuProductCardFilters)}
-          size="small"
-          sx={{
-            minWidth: 120,
-            borderRadius: 10,
-            '& .MuiInputBase-root': {
-              borderRadius: '24px',
-            },
-          }}
-        >
-          {options.map((option) => (
-            <MenuItem key={option} value={option}>
-              {option}
-            </MenuItem>
-          ))}
-        </BaseInput>
-      ))}
+      ].map(({ label, value, options, key }) => {
+        const inputId = `filter-${key}`;
+        return (
+          <BaseInput
+            key={label}
+            id={inputId}
+            name={key}
+            select
+            value={value}
+            onChange={handleChange(key as keyof SkuProductCardFilters)}
+            size="small"
+            sx={{
+              minWidth: 120,
+              borderRadius: 10,
+              '& .MuiInputBase-root': {
+                borderRadius: '24px',
+              },
+            }}
+          >
+            {options.map((option) => (
+              <MenuItem key={option} value={option}>
+                {option}
+              </MenuItem>
+            ))}
+          </BaseInput>
+        );
+      })}
       
       {/* Keyword search with search icon */}
       <Autocomplete
