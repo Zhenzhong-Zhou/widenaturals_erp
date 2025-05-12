@@ -1,9 +1,11 @@
 const { getStatusId } = require('../config/status-cache');
-const { fetchPaginatedActiveSkusWithProductCards } = require('../repositories/sku-repository');
-const { transformSkuProductCardList } = require('../transformers/sku-transformer');
+const { fetchPaginatedActiveSkusWithProductCards, getSkuDetailsWithPricingAndMeta } = require('../repositories/sku-repository');
+const { transformSkuProductCardList, transformSkuDetailsWithMeta } = require('../transformers/sku-transformer');
 const AppError = require('../utils/AppError');
 const { logError, logInfo } = require('../utils/logger-helper');
 const { sanitizeSortBy } = require('../utils/sort-utils');
+const { getAllowedStatusIdsForUser, getAllowedPricingTypesForUser } = require('../business/sku-business');
+const { logSystemException } = require('../utils/system-logger');
 
 /**
  * Service to fetch a paginated list of active SKU product cards.
@@ -82,6 +84,37 @@ const fetchPaginatedSkuProductCardsService = async ({
   }
 };
 
+/**
+ * Service function that fetches a SKU with status and pricing visibility rules applied.
+ *
+ * @param {object} user - Authenticated user
+ * @param {string} skuId - SKU ID to fetch
+ * @returns {Promise<object>} Transformed SKU detail for frontend
+ */
+const getSkuDetailsForUserService = async (user, skuId) => {
+  try {
+    const allowedStatusIds = await getAllowedStatusIdsForUser(user);
+    const allowedPricingTypes = await getAllowedPricingTypesForUser(user);
+
+    const row = await getSkuDetailsWithPricingAndMeta(skuId, {
+      allowedStatusIds,
+      allowedPricingTypes,
+    });
+
+    return transformSkuDetailsWithMeta(row);
+  } catch (err) {
+    logSystemException('Failed to fetch SKU details for user', {
+      context: 'getSkuDetailsForUserService',
+      skuId,
+      userId: user?.id,
+      error: err,
+    });
+
+    throw AppError.serviceError(err, 'Could not retrieve SKU details'); // Or rethrow if already wrapped
+  }
+};
+
 module.exports = {
   fetchPaginatedSkuProductCardsService,
+  getSkuDetailsForUserService,
 };

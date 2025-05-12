@@ -1,5 +1,8 @@
 const { query, paginateResults } = require('../database/db');
-const { logError, logInfo } = require('../utils/logger-helper');
+const {
+  logSystemInfo,
+  logSystemException
+} = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 const { FILTERABLE_FIELDS } = require('../utils/filter-field-mapping');
 const { sanitizeSortBy } = require('../utils/sort-utils');
@@ -29,7 +32,7 @@ const getLastSku = async (brandCode, categoryCode) => {
     
     const lastSku = result.rows[0]?.sku || null;
     
-    logInfo('[getLastSku] Retrieved last SKU', {
+    logSystemInfo('[getLastSku] Retrieved last SKU', {
       brandCode,
       categoryCode,
       pattern,
@@ -38,7 +41,7 @@ const getLastSku = async (brandCode, categoryCode) => {
     
     return lastSku;
   } catch (error) {
-    logError('Failed to fetch last SKU', null, {
+    logSystemException(error, 'Failed to fetch last SKU', {
       context: 'getLastSku',
       error: error.message,
       brandCode,
@@ -92,7 +95,7 @@ const buildWhereClauseAndParams = (productStatusId, filters = {}) => {
       params,
     };
   } catch (err) {
-    logError('Failed to construct WHERE clause', null, {
+    logSystemException(err, 'Failed to construct WHERE clause', {
       context: 'buildWhereClauseAndParams',
       error: err.message,
       filters,
@@ -194,7 +197,7 @@ const fetchPaginatedActiveSkusWithProductCards = async ({
       ORDER BY ${orderBy} ${sortOrder}
     `;
     
-    logInfo('Fetching paginated active SKUs with product cards', null, {
+    logSystemInfo('Fetching paginated active SKUs with product cards', null, {
       context: 'fetchPaginatedActiveSkusWithProductCards',
       filters,
       sortBy: orderBy,
@@ -210,7 +213,7 @@ const fetchPaginatedActiveSkusWithProductCards = async ({
       limit,
     });
   } catch (error) {
-    logError('Error fetching active SKUs with product cards', null, {
+    logSystemException(error, 'Error fetching active SKUs with product cards', {
       context: 'fetchPaginatedActiveSkusWithProductCards',
       stage: 'query-execution',
     });
@@ -220,7 +223,176 @@ const fetchPaginatedActiveSkusWithProductCards = async ({
   }
 };
 
+/**
+ * Fetches the status IDs of both SKU and its parent product.
+ *
+ * @param {string} skuId - UUID of the SKU
+ * @returns {Promise<{ skuStatusId: string, productStatusId: string }>} - Status info
+ * @throws {AppError} If SKU not found
+ */
+const getSkuAndProductStatus = async (skuId) => {
+  const queryText = `
+    SELECT
+      sku.status_id AS "skuStatusId",
+      p.status_id AS "productStatusId"
+    FROM skus AS sku
+    JOIN products AS p ON sku.product_id = p.id
+    WHERE sku.id = $1
+    LIMIT 1;
+  `;
+
+  try {
+    const result = await query(queryText, [skuId]);
+
+    if (result.rows.length === 0) {
+      logSystemInfo('SKU not found during status check', {
+        context: 'getSkuAndProductStatus',
+        skuId,
+      });
+
+      throw AppError.notFoundError('SKU not found');
+    }
+
+    return result.rows[0];
+  } catch (error) {
+    logSystemException('Failed to fetch SKU and product status', {
+      context: 'getSkuAndProductStatus',
+      skuId,
+      error,
+    });
+
+    throw AppError.databaseError('Could not retrieve SKU status information');
+  }
+};
+
+/**
+ * Fetches detailed SKU metadata including pricing, compliance, images, and audit info.
+ * Filters by allowed status IDs for both SKU and its parent product.
+ *
+ * @param {string} skuId - The UUID of the SKU to fetch.
+ * @param {string[] | null} allowedStatusIds - Filter for allowed product/SKU statuses (null = no filter)
+ * @param {string[] | null} allowedPricingTypes - Filter for allowed pricing types by code (null = no filter)
+ * @returns {Promise<object>} Transformed SKU metadata for frontend rendering.
+ * @throws {AppError} If the SKU does not exist or status is not permitted.
+ */
+const getSkuDetailsWithPricingAndMeta = async (
+  skuId,
+  {
+    allowedStatusIds = null,
+    allowedPricingTypes = null,
+  } = {}
+) => {
+  const queryText = `
+    SELECT
+      sku.id AS sku_id,
+      sku.sku,
+      sku.barcode,
+      sku.language,
+      sku.country_code,
+      sku.market_region,
+      sku.size_label,
+      sku.description AS sku_description,
+      sku.length_cm,
+      sku.width_cm,
+      sku.height_cm,
+      sku.weight_g,
+      sku.length_inch,
+      sku.width_inch,
+      sku.height_inch,
+      sku.weight_lb,
+      sku.status_date AS sku_status_date,
+      sku.created_at AS sku_created_at,
+      sku.updated_at AS sku_updated_at,
+      p.id AS product_id,
+      p.name AS product_name,
+      p.series,
+      p.brand,
+      p.category,
+      p.description AS product_description,
+      p.status_date AS product_status_date,
+      sku_status.name AS sku_status_name,
+      prod_status.name AS product_status_name,
+      COALESCE(
+        jsonb_agg(DISTINCT jsonb_build_object(
+          'pricing_type', pt.name,
+          'price', pr.price,
+          'valid_from', pr.valid_from,
+          'valid_to', pr.valid_to,
+          'location', l.name,
+          'location_type', lt.name
+        )) FILTER (WHERE pr.id IS NOT NULL),
+        '[]'
+      ) AS prices,
+      COALESCE(
+        jsonb_agg(DISTINCT jsonb_build_object(
+          'type', c.type,
+          'compliance_id', c.compliance_id,
+          'issued_date', c.issued_date,
+          'expiry_date', c.expiry_date,
+          'description', c.description
+        )) FILTER (WHERE c.id IS NOT NULL),
+        '[]'
+      ) AS compliances,
+      COALESCE(
+        jsonb_agg(DISTINCT jsonb_build_object(
+          'image_url', img.image_url,
+          'type', img.image_type,
+          'order', img.display_order,
+          'is_primary', img.is_primary,
+          'alt_text', img.alt_text
+        )) FILTER (WHERE img.id IS NOT NULL),
+        '[]'
+      ) AS images
+    FROM skus AS sku
+    JOIN products AS p ON sku.product_id = p.id
+    JOIN status AS sku_status ON sku.status_id = sku_status.id
+    JOIN status AS prod_status ON p.status_id = prod_status.id
+    LEFT JOIN pricing AS pr ON pr.sku_id = sku.id
+    LEFT JOIN pricing_types AS pt ON pr.price_type_id = pt.id
+    LEFT JOIN locations AS l ON pr.location_id = l.id
+    LEFT JOIN location_types AS lt ON l.location_type_id = lt.id
+    LEFT JOIN compliances AS c ON c.sku_id = sku.id
+    LEFT JOIN sku_images AS img ON img.sku_id = sku.id
+    WHERE sku.id = $1
+      AND ($2::uuid[] IS NULL OR sku_status.id = ANY($2))
+      AND ($2::uuid[] IS NULL OR prod_status.id = ANY($2))
+      AND ($3::text[] IS NULL OR pt.code = ANY($3))
+    GROUP BY
+      sku.id,
+      p.id,
+      sku_status.name,
+      prod_status.name
+  `;
+
+  try {
+    const result = await query(queryText, [skuId, allowedStatusIds, allowedPricingTypes]);
+
+    if (result.rows.length === 0) {
+      logSystemInfo('SKU not found or filtered out by status', {
+        context: 'fetchSkuDetailsWithPricingAndMeta',
+        skuId,
+        allowedStatusIds,
+        allowedPricingTypes,
+      });
+
+      throw AppError.notFoundError('SKU not found or not visible under current status filter');
+    }
+
+    return result.rows[0];
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch SKU details with meta', {
+      context: 'fetchSkuDetailsWithPricingAndMeta',
+      allowedStatusIds,
+      allowedPricingTypes,
+    });
+
+    throw AppError.databaseError('Failed to retrieve SKU details');
+  }
+};
+
 module.exports = {
   getLastSku,
   fetchPaginatedActiveSkusWithProductCards,
+  getSkuAndProductStatus,
+  getSkuDetailsWithPricingAndMeta,
 };

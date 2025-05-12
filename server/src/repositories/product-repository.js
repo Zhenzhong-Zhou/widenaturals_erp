@@ -1,33 +1,6 @@
-const { query, retry } = require('../database/db');
+const { query } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logError } = require('../utils/logger-helper');
-
-/**
- * Build WHERE clause dynamically based on filters.
- * @param {Object} filters - Filters like category, name, etc.
- * @returns {Object} - { whereClause: string, queryParams: array }
- */
-const buildWhereClause = (filters) => {
-  const whereClauses = [];
-  const queryParams = [];
-
-  if (filters.category) {
-    whereClauses.push('category = $' + (queryParams.length + 1));
-    queryParams.push(filters.category);
-  }
-
-  if (filters.name) {
-    whereClauses.push('product_name ILIKE $' + (queryParams.length + 1)); // Case-insensitive
-    queryParams.push(`%${filters.name}%`);
-  }
-
-  return {
-    whereClause: whereClauses.length
-      ? `WHERE ${whereClauses.join(' AND ')}`
-      : '',
-    queryParams,
-  };
-};
 
 /**
  * Checks if a product exists in the database based on provided filters.
@@ -102,102 +75,6 @@ const checkProductExists = async (filters, combineWith = 'OR') => {
       params: queryParams,
       originalError: error.message,
     });
-  }
-};
-
-/**
- * Fetch product details by ID from the database.
- * Retrieves product information, including retail and MSRP prices,
- * only if the product is active.
- *
- * @param {string} id - The ID of the product to fetch
- * @returns {Promise<object>} - Returns an object containing product details
- * @throws {AppError} - Throws not found or database error
- */
-const getProductDetailsById = async (id) => {
-  const queryText = `
-    SELECT
-      p.product_name,
-      p.series,
-      p.brand,
-      p.category,
-      p.barcode,
-      p.market_region,
-      p.length_cm,
-      p.width_cm,
-      p.height_cm,
-      p.weight_g,
-      p.description,
-      c.compliance_id AS npn,
-      loc.name AS location_name,
-      lt.name AS location_type_name,
-      s.name AS status_name,
-      COALESCE(
-        jsonb_agg(
-          jsonb_build_object(
-            'pricing_type', pricing.pricing_type,
-            'price', pricing.price
-          )
-        ) FILTER (WHERE pricing.pricing_type IN ('Retail', 'MSRP')), '[]'
-      ) AS prices,
-      p.status_date,
-      CONCAT(COALESCE(created_user.firstname, ''), ' ', COALESCE(created_user.lastname, '')) AS created_by_fullname,
-      p.created_at,
-      CONCAT(COALESCE(updated_user.firstname, ''), ' ', COALESCE(updated_user.lastname, '')) AS updated_by_fullname,
-      p.updated_at
-    FROM products p
-    INNER JOIN status s ON p.status_id = s.id
-    LEFT JOIN (
-      SELECT
-        pr.product_id,
-        pt.name AS pricing_type,
-        pr.price,
-        pr.location_id
-      FROM pricing pr
-      INNER JOIN pricing_types pt ON pr.price_type_id = pt.id
-      INNER JOIN status ps ON pr.status_id = ps.id
-      INNER JOIN locations loc ON pr.location_id = loc.id
-      INNER JOIN location_types lt ON loc.location_type_id = lt.id
-      WHERE ps.name = 'active'
-        AND lt.name = 'Office'
-        AND pt.name IN ('Retail', 'MSRP')
-    ) pricing ON pricing.product_id = p.id
-    LEFT JOIN locations loc ON pricing.location_id = loc.id
-    LEFT JOIN location_types lt ON loc.location_type_id = lt.id
-    LEFT JOIN users created_user ON p.created_by = created_user.id
-    LEFT JOIN users updated_user ON p.updated_by = updated_user.id
-    LEFT JOIN compliances c ON c.product_id = p.id AND c.type = 'NPN'
-    WHERE p.id = $1
-      AND s.name = 'active'
-    GROUP BY
-      p.id,
-      s.name,
-      p.status_date,
-      c.compliance_id,
-      loc.name,
-      lt.name,
-      created_user.firstname,
-      created_user.lastname,
-      p.created_at,
-      updated_user.firstname,
-      updated_user.lastname,
-      p.updated_at;
-  `;
-
-  try {
-    // Use retry logic to handle transient database issues
-    const fetchProduct = async () => {
-      const result = await query(queryText, [id]);
-      if (result.rows.length === 0) {
-        throw AppError.notFoundError('Product not found or inactive');
-      }
-      return result.rows[0]; // Return the product details
-    };
-
-    return await retry(fetchProduct, 3, 1000); // Retry 3 times with a 1-second delay
-  } catch (error) {
-    logError('Error fetching product details:', error.message);
-    throw AppError.databaseError('Error fetching product details');
   }
 };
 
@@ -307,7 +184,6 @@ const getProductsForDropdown = async (search = null, limit = 100) => {
 
 module.exports = {
   checkProductExists,
-  getProductDetailsById,
   getAvailableProductsForDropdown,
   getProductsForDropdown,
 };

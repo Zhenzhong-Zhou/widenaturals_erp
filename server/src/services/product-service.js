@@ -1,30 +1,9 @@
 const {
-  getProductDetailsById,
   getAvailableProductsForDropdown,
   getProductsForDropdown,
 } = require('../repositories/product-repository');
 const { logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
-
-/**
- * Service to fetch detailed product information by ID.
- * Validates the input and retrieves product details from the repository layer.
- *
- * @param {string} id - The ID of the product to fetch
- * @returns {Promise<object>} - Returns the product details if found
- * @throws {AppError} - Throws a validation or internal server error if the operation fails
- */
-const fetchProductDetails = async (id) => {
-  try {
-    // Fetch product details from the repository
-    return await getProductDetailsById(id);
-  } catch (error) {
-    logError('Error in service layer:', error.message);
-
-    // Wrap and rethrow error for consistent error handling
-    throw AppError.serviceError('Error fetching product details');
-  }
-};
 
 const fetchProductDropdownList = async (warehouse_id) => {
   try {
@@ -63,7 +42,6 @@ const fetchAvailableProductsForDropdown = async (
 };
 
 module.exports = {
-  fetchProductDetails,
   fetchProductDropdownList,
   fetchAvailableProductsForDropdown,
 };

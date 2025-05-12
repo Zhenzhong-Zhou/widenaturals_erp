@@ -1,7 +1,8 @@
 const wrapAsync = require('../utils/wrap-async');
-const { fetchPaginatedSkuProductCardsService } = require('../services/sku-service');
+const { fetchPaginatedSkuProductCardsService, getSkuDetailsForUserService } = require('../services/sku-service');
 const { sanitizeSortBy } = require('../utils/sort-utils');
 const { logInfo } = require('../utils/logger-helper');
+const AppError = require('../utils/AppError');
 
 /**
  * Controller for fetching a paginated list of active SKU product cards.
@@ -60,6 +61,28 @@ const getActiveSkuProductCardsController = wrapAsync(async (req, res) => {
   });
 });
 
+/**
+ * GET /skus/:skuId
+ * Returns detailed SKU information for the authenticated user, with pricing and status filtering applied.
+ */
+const getSkuDetailsController = wrapAsync(async (req, res) => {
+  const { skuId } = req.params;
+  const user = req.user;
+
+  if (!skuId) {
+    throw AppError.validationError('SKU ID is required');
+  }
+
+  const data = await getSkuDetailsForUserService(user, skuId);
+  
+  res.status(200).json({
+    success: true,
+    message: 'SKU details retrieved successfully.',
+    data
+  });
+});
+
 module.exports = {
   getActiveSkuProductCardsController,
+  getSkuDetailsController,
 };
