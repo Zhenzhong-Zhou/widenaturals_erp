@@ -64,6 +64,28 @@ const sharedTokens: ThemeOptions = {
       fontSize: '0.875rem',
       lineHeight: 1.6,
     },
+    caption: {
+      fontSize: '0.8125rem', // ~13px
+      fontWeight: 600,
+      lineHeight: 1.4,
+    },
+    subtitle1: {
+      fontSize: '0.875rem',
+      fontWeight: 500,
+      lineHeight: 1.5,
+    },
+    subtitle2: {
+      fontSize: '0.8125rem',
+      fontWeight: 400,
+      lineHeight: 1.5,
+    },
+    overline: {
+      fontSize: '0.75rem',
+      fontWeight: 500,
+      letterSpacing: '0.08em',
+      textTransform: 'uppercase',
+      lineHeight: 1.6,
+    },
   },
   spacing: 8,
   shape: {

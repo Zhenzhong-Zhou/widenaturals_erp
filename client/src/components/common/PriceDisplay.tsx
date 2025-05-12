@@ -56,7 +56,7 @@ const PriceDisplay: FC<PriceDisplayProps> = ({
           sx={{ minHeight: 32 }}
         >
           <Box>
-            <CustomTypography variant="body2" sx={{ fontWeight: 600 }}>
+            <CustomTypography variant="h6">
               {pricing_type}
             </CustomTypography>
             {(location || location_type) && (

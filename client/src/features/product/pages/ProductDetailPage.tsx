@@ -1,5 +1,5 @@
 import { useState, type FC } from 'react';
-import { useParams } from 'react-router-dom';
+import { Navigate, useParams } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import CardMedia from '@mui/material/CardMedia';
 import Paper from '@mui/material/Paper';
@@ -10,14 +10,16 @@ import GoBackButton from '@components/common/GoBackButton';
 import ZoomImageDialog from '@components/common/ZoomImageDialog';
 import CustomTypography from '@components/common/CustomTypography';
 import PriceDisplay from '@components/common/PriceDisplay';
+import usePermissions from '@hooks/usePermissions';
 import useSkuDetails from '@hooks/useSkuDetails';
 import { formatImageUrl } from '@utils/formatImageUrl';
-import type { ImageInfo } from '../state';
+import type { ImageInfo, PricingInfo } from '../state';
 
 const ProductDetailPage: FC = () => {
   const { skuId } = useParams<{ skuId: string }>();
   const [openZoom, setOpenZoom] = useState(false);
   
+  const { permissions } = usePermissions();
   const {
     skuDetails,
     skuDetailsLoading,
@@ -26,6 +28,29 @@ const ProductDetailPage: FC = () => {
     primaryMainImage,
     refresh,
   } = useSkuDetails(skuId!);
+  
+  const canViewInactive = ['root_access', 'view_all_product_statuses'].some((perm) =>
+    permissions.includes(perm)
+  );
+  
+  const canViewAllPrices = ['root_access', 'view_all_pricing_types'].some((perm) =>
+    permissions.includes(perm)
+  );
+  
+  const filteredPrices = canViewAllPrices
+    ? skuDetails && skuDetails.prices
+    : (skuDetails.prices || []).filter((p: PricingInfo) =>
+      ['msrp', 'retail'].includes(p.pricing_type.toLowerCase())
+    );
+  
+  // Early guard: unauthorized access to non-active product
+  if (
+    skuDetails &&
+    skuDetails.status !== 'active' &&
+    !canViewInactive
+  ) {
+    return <Navigate to="/404" replace />;
+  }
   
   const zoomImage = skuImages.find((img: ImageInfo) => img.type === 'zoom');
   
@@ -104,7 +129,7 @@ const ProductDetailPage: FC = () => {
             <SkuDetailsSection data={skuDetails} />
             
             <Box mt={5}>
-              <CustomTypography variant="h6" fontWeight={600} mb={2}>
+              <CustomTypography variant="h5" mb={2}>
                 Pricing
               </CustomTypography>
               <Paper
@@ -115,7 +140,7 @@ const ProductDetailPage: FC = () => {
                   backgroundColor: theme => theme.palette.background.default,
                 }}
               >
-                <PriceDisplay prices={skuDetails.prices || []} />
+                <PriceDisplay prices={filteredPrices} />
               </Paper>
             </Box>
           </Box>
