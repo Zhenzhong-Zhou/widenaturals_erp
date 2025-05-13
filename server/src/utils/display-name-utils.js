@@ -51,7 +51,9 @@ const getProductDisplayName = (row) => {
     return displayNameRules[skuPrefix](row, country_code);
   }
   
-  return row.product_name;
+  return row.size_label
+    ? `${row.product_name} - ${row.size_label}`
+    : row.product_name;
 };
 
 module.exports = {

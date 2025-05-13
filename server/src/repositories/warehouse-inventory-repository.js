@@ -33,7 +33,6 @@ const { logError } = require('../utils/logger-helper');
  * @returns {Promise<{ data: any[], meta: { page: number, total: number } }>} A paginated summary of SKU-level inventory data.
  */
 const getPaginatedSkuInventorySummary = async ({ page = 1, limit = 20, statusId }) => {
-  console.log('getPaginatedSkuInventorySummary', page, limit, statusId);
   const baseQuery = `
     WITH lot_agg AS (
       SELECT
@@ -83,7 +82,8 @@ const getPaginatedSkuInventorySummary = async ({ page = 1, limit = 20, statusId 
       s.country_code,
       s.size_label,
       s.sku,
-      COALESCE(NULLIF(p.name, ''), s.sku) AS item_name,
+      p.brand,
+      COALESCE(NULLIF(p.name, ''), s.sku) AS product_name,
       COUNT(DISTINCT wi.id) AS total_inventory_entries,
       COALESCE(SUM(wi.warehouse_quantity), 0) AS recorded_quantity,
       COALESCE(l.total_lot_quantity, 0) AS actual_quantity,
@@ -106,13 +106,13 @@ const getPaginatedSkuInventorySummary = async ({ page = 1, limit = 20, statusId 
     LEFT JOIN status_names sn ON sp.min_priority = sn.priority
     WHERE p.status_id = $1 AND s.status_id = $1
     GROUP BY
-      s.id, s.sku, s.country_code, s.size_label,
+      s.id, s.sku, p.brand, s.country_code, s.size_label,
       p.name,
       l.total_lots, l.total_lot_quantity,
       l.total_available_quantity, l.total_reserved_quantity,
       l.earliest_manufacture_date, l.nearest_expiry_date,
       sp.min_priority, sn.name
-    ORDER BY sp.min_priority ASC, item_name ASC, recorded_quantity ASC
+    ORDER BY sp.min_priority ASC, product_name ASC, recorded_quantity ASC
   `;
   
   try {
@@ -121,14 +121,12 @@ const getPaginatedSkuInventorySummary = async ({ page = 1, limit = 20, statusId 
       params: { page, limit, statusId },
     });
     
-    const a = await paginateResults({
+    return await paginateResults({
       dataQuery: baseQuery,
       params: [statusId],
       page,
       limit,
     });
-    console.log('paginated SKU inventory summary', a);
-    return a;
   } catch (error) {
     logSystemError('Error fetching paginated SKU inventory summary', {
       context: 'warehouse-inventory-repository',

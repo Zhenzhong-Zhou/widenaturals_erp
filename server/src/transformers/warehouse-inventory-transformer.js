@@ -2,6 +2,7 @@ const {
   getStockLevel,
   getExpirySeverity,
 } = require('../utils/inventory-utils');
+const { getProductDisplayName } = require('../utils/display-name-utils');
 
 /**
  * Transforms a single SKU-level inventory summary row from the DB into clean application format.
@@ -24,7 +25,7 @@ const transformSkuInventorySummaryRow = (row) => {
     sku: row.sku,
     countryCode: row.country_code,
     sizeLabel: row.size_label,
-    itemName: row.item_name,
+    productName: getProductDisplayName(row),
     
     totalInventoryEntries: Number(row.total_inventory_entries),
     recordedQuantity: Number(row.recorded_quantity),
