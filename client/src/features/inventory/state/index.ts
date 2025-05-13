@@ -1,9 +1,7 @@
 import inventoriesReducer from './inventorySlice';
-import inventorySummaryReducer from './inventorySummarySlice';
 
 export const inventoryReducers = {
   inventories: inventoriesReducer,
-  inventorySummary: inventorySummaryReducer,
 };
 
 // Optional: Export selectors, thunks, and types

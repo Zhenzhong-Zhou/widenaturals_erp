@@ -5,7 +5,7 @@ import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import Skeleton from '@mui/material/Skeleton';
 import useInventories from '@hooks/useInventories';
-import useInventorySummary from '@hooks/useInventorySummary';
+import useSkuWarehouseInventorySummary from '@hooks/useSkuWarehouseInventorySummary';
 import ErrorDisplay from '@components/shared/ErrorDisplay';
 import ErrorMessage from '@components/common/ErrorMessage';
 import CustomTypography from '@components/common/CustomTypography';
@@ -18,22 +18,24 @@ const InventoryTable = lazy(() => import('@features/inventory/components/Invento
 const InventoryPage = () => {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
-  const [tab, setTab] = useState(0); // 0 = Inventory Summary, 1 = Inventory List
+  const [tab, setTab] = useState(0);
   
-  const { inventories, pagination, loading, error, refresh } = useInventories(page, limit);
+  const { inventories, pagination, loading, error, refresh: refreshInventories } = useInventories(page, limit);
+  
   const {
-    inventorySummaryData,
-    inventorySummaryPagination,
-    inventorySummaryLoading,
-    inventorySummaryError,
-    fetchSummary,
-    refreshSummary,
-  } = useInventorySummary();
+    data: inventorySummaryData,
+    pagination: inventorySummaryPagination,
+    loading: inventorySummaryLoading,
+    error: inventorySummaryError,
+    refresh: refreshSkuSummary,
+  } = useSkuWarehouseInventorySummary();
   
-  // Fetch only when tab === 0 (Inventory Summary)
+  // On tab switch, optionally refresh (or you can remove this entirely if autoFetch is true)
   useEffect(() => {
-    if (tab === 0) fetchSummary(page, limit);
-  }, [tab, page, limit]);
+    if (tab === 0 && inventorySummaryData.length === 0 && !inventorySummaryLoading) {
+      refreshSkuSummary();
+    }
+  }, [tab]);
   
   const handleTabChange = (_: SyntheticEvent, newValue: number) => {
     setTab(newValue);
@@ -62,13 +64,7 @@ const InventoryPage = () => {
   return (
     <Box sx={{ p: 3 }}>
       <Paper sx={{ p: 2, mb: 3 }}>
-        <CustomTypography
-          sx={{
-            fontWeight: 600,
-            lineHeight: 1.3,
-            minHeight: '1.25rem',
-          }}
-        >
+        <CustomTypography sx={{ fontWeight: 600, lineHeight: 1.3 }}>
           Inventory Management
         </CustomTypography>
         <Tabs value={tab} onChange={handleTabChange}>
@@ -101,15 +97,15 @@ const InventoryPage = () => {
               >
                 <InventorySummaryTable
                   data={inventorySummaryData || []}
-                  page={inventorySummaryPagination.page - 1}
-                  rowsPerPage={inventorySummaryPagination.limit}
-                  totalRecords={inventorySummaryPagination.totalRecords}
-                  totalPages={inventorySummaryPagination.totalPages}
-                  onPageChange={handlePageChange}
-                  onRowsPerPageChange={handleRowsPerPageChange}
+                  page={(inventorySummaryPagination?.page ?? 1) - 1}
+                  rowsPerPage={inventorySummaryPagination?.limit ?? 10}
+                  totalRecords={inventorySummaryPagination?.totalRecords ?? 0}
+                  totalPages={inventorySummaryPagination?.totalPages ?? 1}
+                  onPageChange={(newPage) => refreshSkuSummary({ page: newPage + 1 })}
+                  onRowsPerPageChange={(newLimit) => refreshSkuSummary({ page: 1, limit: newLimit })}
                 />
               </Suspense>
-              <CustomButton onClick={refreshSummary} sx={{ mt: 2 }}>
+              <CustomButton onClick={() => refreshSkuSummary()} sx={{ mt: 2 }}>
                 Refresh Summary
               </CustomButton>
             </>
@@ -118,11 +114,7 @@ const InventoryPage = () => {
           {tab === 1 && (
             <>
               {error && renderError(error)}
-              <Suspense
-                fallback={
-                  <Skeleton height={400} variant="rectangular" sx={{ borderRadius: 1 }} />
-                }
-              >
+              <Suspense fallback={<Skeleton height={400} variant="rectangular" sx={{ borderRadius: 1 }} />}>
                 <InventoryTable
                   data={inventories || []}
                   page={page - 1}
@@ -133,7 +125,7 @@ const InventoryPage = () => {
                   onRowsPerPageChange={handleRowsPerPageChange}
                 />
               </Suspense>
-              <CustomButton onClick={refresh} sx={{ mt: 2 }}>
+              <CustomButton onClick={refreshInventories} sx={{ mt: 2 }}>
                 Refresh Inventory
               </CustomButton>
             </>

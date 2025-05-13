@@ -1,3 +1,4 @@
+import warehouseInventorySkuSummaryReducer from './warehouseInventorySkuSummarySlice.ts';
 import warehouseInventorySummaryReducer from './warehouseInventorySummarySlice';
 import warehouseInventoriesReducer from './warehouseInventorySlice';
 import warehouseItemsReducer from './warehouseItemSummarySlice';
@@ -9,6 +10,7 @@ import bulkInsertWarehouseInventoryReducer from './bulkInsertWarehouseInventoryS
 import insertedInventoryRecordsResponseReducer from './insertedInventoryRecordsResponseSlice';
 
 export const warehouseInventoryReducers = {
+  warehouseInventorySkuSummary: warehouseInventorySkuSummaryReducer,
   warehouseInventoriesSummary: warehouseInventorySummaryReducer,
   warehouseInventories: warehouseInventoriesReducer,
   warehouseItems: warehouseItemsReducer,
@@ -21,6 +23,7 @@ export const warehouseInventoryReducers = {
 };
 
 // Optionally export selectors, thunks, types
+export * from './warehouseInventorySkuSummarySelectors';
 export * from './bulkInsertWarehouseInventorySelectors';
 export * from './insertedInventoryRecordsResponseSelectors';
 export * from './inventoryDropdownSelectors';

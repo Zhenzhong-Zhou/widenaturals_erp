@@ -13,10 +13,31 @@ import type {
   FetchWarehouseItemSummaryParams,
 } from '@features/warehouseInventory';
 import { AppError } from '@utils/AppError';
-import type { InventoryRecordInsertResponse } from '@features/warehouseInventory/state';
+import type {
+  FetchSkuWarehouseInventorySummaryParams,
+  InventoryRecordInsertResponse,
+  PaginatedResponse,
+  SkuWarehouseInventorySummary,
+} from '@features/warehouseInventory/state';
 import type {
   AvailableInventoryLotsResponse, FetchAvailableInventoryRequest,
 } from '@features/inventoryAllocation';
+
+/**
+ * Fetches paginated SKU-level inventory summary from the warehouse-inventory domain.
+ *
+ * @param {FetchSkuWarehouseInventorySummaryParams} params - Optional pagination parameters.
+ * @returns {Promise<PaginatedResponse<SkuWarehouseInventorySummary>>} - Paginated inventory summary response.
+ */
+const fetchSkuInventorySummary = async (
+  params: FetchSkuWarehouseInventorySummaryParams = {}
+): Promise<PaginatedResponse<SkuWarehouseInventorySummary>> => {
+  const response = await axiosInstance.get<PaginatedResponse<SkuWarehouseInventorySummary>>(
+    API_ENDPOINTS.WAREHOUSE_INVENTORY_SKU_SUMMARY,
+    { params }
+  );
+  return response.data;
+};
 
 /**
  * Fetches all warehouse inventories with pagination.
@@ -239,6 +260,7 @@ export const fetchAvailableInventoryLots = async (
 
 // Export the service
 export const warehouseInventoryService = {
+  fetchSkuInventorySummary,
   fetchAllWarehouseInventories,
   fetchWarehouseInventorySummary,
   fetchWarehouseItemSummary,

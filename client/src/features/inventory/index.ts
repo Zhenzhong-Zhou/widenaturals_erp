@@ -2,13 +2,9 @@ export type {
   InventoryItem,
   AllInventoriesPagination,
   InventoryResponse,
-  InventorySummary,
-  InventorySummaryPagination,
-  InventorySummaryResponse,
 } from './state/inventoryTypes';
 export {
   fetchAllInventories,
-  fetchInventorySummaryThunk,
 } from './state/inventoryThunks';
 export {
   selectInventories,
@@ -17,12 +13,6 @@ export {
   selectInventoryError,
   selectIsFetchingInventory,
 } from './state/inventorySelectors';
-export {
-  selectInventorySummaryData,
-  selectInventorySummaryPagination,
-  selectInventorySummaryLoading,
-  selectInventorySummaryError,
-} from './state/inventorySummarySelectors';
 export { default as InventoryStatusChip } from './components/InventoryStatusChip';
 export { default as StockLevelChip } from './components/StockLevelChip';
 export { default as NearExpiryChip } from './components/NearExpiryChip';

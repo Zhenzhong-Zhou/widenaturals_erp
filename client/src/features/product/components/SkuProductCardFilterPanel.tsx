@@ -86,13 +86,18 @@ const SkuProductCardFilterPanel: React.FC<SkuProductCardFilterPanelProps> = ({
         { label: 'Size', value: filters.sizeLabel ?? '', options: SIZE_LABELS, key: 'sizeLabel' },
       ].map(({ label, value, options, key }) => {
         const inputId = `filter-${key}`;
+        
         return (
           <BaseInput
             key={label}
-            id={inputId}
             name={key}
             select
             value={value}
+            label={label}
+            slotProps={{
+              input: { id: inputId },
+              inputLabel: { htmlFor: inputId },
+            }}
             onChange={handleChange(key as keyof SkuProductCardFilters)}
             size="small"
             sx={{

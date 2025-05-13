@@ -5,10 +5,10 @@ import StockLevelChip from '@features/inventory/components/StockLevelChip';
 import NearExpiryChip from '@features/inventory/components/NearExpiryChip';
 import CustomTable from '@components/common/CustomTable';
 import { formatDate } from '@utils/dateTimeUtils';
-import type { InventorySummary } from '@features/inventory';
+import type { SkuWarehouseInventorySummary } from '@features/warehouseInventory/state';
 
-interface InventorySummaryTableProps {
-  data: InventorySummary[];
+interface SkuInventorySummaryTableProps {
+  data: SkuWarehouseInventorySummary[];
   page: number;
   rowsPerPage: number;
   totalRecords: number;
@@ -17,28 +17,43 @@ interface InventorySummaryTableProps {
   onRowsPerPageChange: (newRowsPerPage: number) => void;
 }
 
-const InventorySummaryTable: FC<InventorySummaryTableProps> = ({
-  data,
-  page,
-  rowsPerPage,
-  totalRecords,
-  totalPages,
-  onPageChange,
-  onRowsPerPageChange,
-}) => {
+const SkuInventorySummaryTable: FC<SkuInventorySummaryTableProps> = ({
+                                                                       data,
+                                                                       page,
+                                                                       rowsPerPage,
+                                                                       totalRecords,
+                                                                       totalPages,
+                                                                       onPageChange,
+                                                                       onRowsPerPageChange,
+                                                                     }) => {
   const columns = [
     {
-      id: 'itemName',
-      label: 'Item Name',
+      id: 'productName',
+      label: 'Product Name',
       sortable: true,
-      renderCell: (row: InventorySummary) => (
+      renderCell: (row: SkuWarehouseInventorySummary) => (
         <Link
-          to={`/products/${row.productId}`}
+          to={`/skus/${row.skuId}`}
           style={{ textDecoration: 'none', color: 'blue' }}
         >
-          {row.itemName}
+          {row.productName}
         </Link>
       ),
+    },
+    {
+      id: 'sku',
+      label: 'SKU',
+      sortable: true,
+    },
+    {
+      id: 'countryCode',
+      label: 'Country',
+      sortable: true,
+    },
+    {
+      id: 'sizeLabel',
+      label: 'Size',
+      sortable: true,
     },
     {
       id: 'availableQuantity',
@@ -86,7 +101,7 @@ const InventorySummaryTable: FC<InventorySummaryTableProps> = ({
       id: 'status',
       label: 'Status',
       sortable: true,
-      renderCell: (row: InventorySummary) => (
+      renderCell: (row: SkuWarehouseInventorySummary) => (
         <InventoryStatusChip status={row.status} />
       ),
     },
@@ -94,7 +109,7 @@ const InventorySummaryTable: FC<InventorySummaryTableProps> = ({
       id: 'stockLevel',
       label: 'Stock Level',
       sortable: false,
-      renderCell: (row: InventorySummary) => (
+      renderCell: (row: SkuWarehouseInventorySummary) => (
         <StockLevelChip
           stockLevel={row.stockLevel}
           isLowStock={row.isLowStock}
@@ -105,12 +120,12 @@ const InventorySummaryTable: FC<InventorySummaryTableProps> = ({
       id: 'isNearExpiry',
       label: 'Near Expiry',
       sortable: false,
-      renderCell: (row: InventorySummary) => (
+      renderCell: (row: SkuWarehouseInventorySummary) => (
         <NearExpiryChip isNearExpiry={row.isNearExpiry} />
       ),
     },
   ];
-
+  
   return (
     <CustomTable
       columns={columns}
@@ -126,4 +141,4 @@ const InventorySummaryTable: FC<InventorySummaryTableProps> = ({
   );
 };
 
-export default InventorySummaryTable;
+export default SkuInventorySummaryTable;

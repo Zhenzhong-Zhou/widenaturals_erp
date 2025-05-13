@@ -1,3 +1,48 @@
+export interface WarehouseInventoryPagination {
+  page: number;
+  limit: number;
+  totalRecords: number;
+  totalPages: number;
+}
+
+export interface FetchSkuWarehouseInventorySummaryParams {
+  page?: number;
+  limit?: number;
+}
+
+export interface SkuWarehouseInventorySummary {
+  skuId: string;
+  sku: string;
+  countryCode: string;
+  sizeLabel: string;
+  productName: string;
+  totalInventoryEntries: number;
+  recordedQuantity: number;
+  actualQuantity: number;
+  availableQuantity: number;
+  reservedQuantity: number;
+  totalLots: number;
+  lotQuantity: number;
+  earliestManufactureDate: string; // ISO date string
+  nearestExpiryDate: string;       // ISO date string
+  status: string;
+  isNearExpiry: boolean;
+  isLowStock: boolean;
+  stockLevel: 'none' | 'critical' | 'low' | 'normal';
+}
+
+export interface PaginatedResponse<T> {
+  success: boolean;
+  message: string;
+  data: T[];
+  pagination: {
+    page: number;
+    limit: number;
+    totalRecords: number;
+    totalPages: number;
+  };
+}
+
 export interface Warehouse {
   id: string;
   name: string;

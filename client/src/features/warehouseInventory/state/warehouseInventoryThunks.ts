@@ -12,6 +12,27 @@ import type {
 } from '@features/warehouseInventory';
 import { warehouseInventoryService } from '@services/warehouseInventoryService';
 import { dropdownService } from '@services/dropdownService';
+import type { FetchSkuWarehouseInventorySummaryParams, PaginatedResponse, SkuWarehouseInventorySummary } from '@features/warehouseInventory/state/warehouseInventoryTypes.ts';
+
+/**
+ * Redux thunk to fetch paginated SKU inventory summary from the warehouse domain.
+ *
+ * @param {FetchSkuWarehouseInventorySummaryParams} params - Pagination input (page, limit).
+ * @returns {PaginatedResponse<SkuWarehouseInventorySummary>} - Paginated SKU inventory response.
+ */
+export const fetchSkuInventorySummaryThunk = createAsyncThunk<
+  PaginatedResponse<SkuWarehouseInventorySummary>,
+  FetchSkuWarehouseInventorySummaryParams
+>(
+  'warehouseInventory/fetchSkuInventorySummary',
+  async (params, thunkAPI) => {
+    try {
+      return await warehouseInventoryService.fetchSkuInventorySummary(params);
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error);
+    }
+  }
+);
 
 /**
  * Thunk to fetch warehouse inventories with pagination

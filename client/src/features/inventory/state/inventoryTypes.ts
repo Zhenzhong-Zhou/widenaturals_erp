@@ -53,35 +53,3 @@ export interface InventoryResponse {
   data: InventoryItem[];
   pagination: AllInventoriesPagination;
 }
-
-export interface InventorySummary {
-  productId: string;
-  itemName: string;
-  totalInventoryEntries: number;
-  recordedQuantity: number;
-  actualQuantity: number;
-  availableQuantity: number;
-  reservedQuantity: number;
-  totalLots: number;
-  lotQuantity: number;
-  earliestManufactureDate: string | null;
-  nearestExpiryDate: string | null;
-  status: string;
-  isNearExpiry: boolean;
-  isLowStock: boolean;
-  stockLevel: 'none' | 'critical' | 'low' | 'normal'; // optional but helpful for display logic
-}
-
-export interface InventorySummaryPagination {
-  page: number;
-  limit: number;
-  totalRecords: number;
-  totalPages: number;
-}
-
-export interface InventorySummaryResponse {
-  success: boolean;
-  message: string;
-  data: InventorySummary[];
-  pagination: InventorySummaryPagination;
-}
