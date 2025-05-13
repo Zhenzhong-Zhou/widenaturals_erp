@@ -1,4 +1,4 @@
-import warehouseInventorySkuSummaryReducer from './warehouseInventorySkuSummarySlice.ts';
+import warehouseInventoryItemSummaryReducer from './warehouseInventoryItemSummarySlice.ts';
 import warehouseInventorySummaryReducer from './warehouseInventorySummarySlice';
 import warehouseInventoriesReducer from './warehouseInventorySlice';
 import warehouseItemsReducer from './warehouseItemSummarySlice';
@@ -10,7 +10,7 @@ import bulkInsertWarehouseInventoryReducer from './bulkInsertWarehouseInventoryS
 import insertedInventoryRecordsResponseReducer from './insertedInventoryRecordsResponseSlice';
 
 export const warehouseInventoryReducers = {
-  warehouseInventorySkuSummary: warehouseInventorySkuSummaryReducer,
+  warehouseInventoryItemSummary: warehouseInventoryItemSummaryReducer,
   warehouseInventoriesSummary: warehouseInventorySummaryReducer,
   warehouseInventories: warehouseInventoriesReducer,
   warehouseItems: warehouseItemsReducer,
@@ -30,7 +30,7 @@ export * from './inventoryDropdownSelectors';
 export * from './lotAdjustmentDropdownSelectors';
 export * from './lotAdjustmentQtySelectors';
 export * from './warehouseInventoryDetailSelectors';
-export * from './warehouseInventorySelector';
+export * from './warehouseInventorySelector.ts';
 export * from './warehouseInventorySummarySelectors';
 export * from './warehouseItemSummarySelectors';
 export * from './warehouseInventoryThunks';

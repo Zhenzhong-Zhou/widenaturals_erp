@@ -496,7 +496,7 @@ const paginateResults = async ({
       limit,
       totalRecords,
       totalPages,
-      data: dataRows.rows,
+      data: dataRows.rows || [],
     };
   } catch (error) {
     logPaginatedQueryError(error, dataQuery, countQuery, params, {

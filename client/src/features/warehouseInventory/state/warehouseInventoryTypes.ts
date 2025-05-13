@@ -5,16 +5,17 @@ export interface WarehouseInventoryPagination {
   totalPages: number;
 }
 
-export interface FetchSkuWarehouseInventorySummaryParams {
+export interface FetchWarehouseInventoryItemSummaryParams {
   page?: number;
   limit?: number;
+  itemType?: 'product' | 'material' | 'all';
 }
 
-export interface SkuWarehouseInventorySummary {
+export type StockLevel = 'none' | 'critical' | 'low' | 'normal';
+
+export interface BaseWarehouseInventoryItemSummary {
   skuId: string;
   sku: string;
-  countryCode: string;
-  sizeLabel: string;
   productName: string;
   totalInventoryEntries: number;
   recordedQuantity: number;
@@ -28,8 +29,32 @@ export interface SkuWarehouseInventorySummary {
   status: string;
   isNearExpiry: boolean;
   isLowStock: boolean;
-  stockLevel: 'none' | 'critical' | 'low' | 'normal';
+  stockLevel: StockLevel;
 }
+
+// Product-specific
+export interface ProductWarehouseInventorySummary extends BaseWarehouseInventoryItemSummary {
+  itemType: 'product';
+  skuId: string;
+  sku: string;
+  brand: string;
+  productName: string;
+  countryCode: string;
+  sizeLabel: string;
+}
+
+// Material-specific
+export interface MaterialWarehouseInventorySummary extends BaseWarehouseInventoryItemSummary {
+  itemType: 'material';
+  materialId: string;
+  materialCode: string;
+  materialName: string;
+}
+
+// Union type
+export type WarehouseInventoryItemSummary =
+  | ProductWarehouseInventorySummary
+  | MaterialWarehouseInventorySummary;
 
 export interface PaginatedResponse<T> {
   success: boolean;

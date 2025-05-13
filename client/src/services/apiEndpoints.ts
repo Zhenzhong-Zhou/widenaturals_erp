@@ -26,7 +26,7 @@ export const API_ENDPOINTS = {
   WAREHOUSES_DROPDOWN: '/warehouses/dropdown',
   WAREHOUSE_INVENTORIES_SUMMARY: '/warehouses/inventory-overview',
   ALL_WAREHOUSE_INVENTORIES: '/warehouse-inventory',
-  WAREHOUSE_INVENTORY_SKU_SUMMARY: '/warehouse-inventory/sku-summary',
+  WAREHOUSE_INVENTORY_SUMMARY: '/warehouse-inventory/summary',
   WAREHOUSE_ITEMS_SUMMARY: '/warehouse-inventory/:id/items-summary',
   WAREHOUSE_INVENTORY_DETAILS: '/warehouse-inventory/:id',
   LOT_ADJUSTMENT_TYPES_DROPDOWN: '/lot-adjustment-types/dropdown',

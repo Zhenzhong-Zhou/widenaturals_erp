@@ -1,52 +1,52 @@
 import { createSelector } from '@reduxjs/toolkit';
 import type { RootState } from '@store/store';
-import type { SkuWarehouseInventorySummary } from './warehouseInventoryTypes';
+import type { WarehouseInventoryItemSummary } from './warehouseInventoryTypes';
 
 /**
- * Root selector for the warehouse inventory SKU summary slice.
+ * Root selector for the warehouse inventory item summary slice.
  */
-const selectWarehouseInventorySkuSummaryState = (state: RootState) =>
-  state.warehouseInventorySkuSummary;
+const selectWarehouseInventoryItemSummaryState = (state: RootState) =>
+  state.warehouseInventoryItemSummary;
 
 /**
- * Selects the SKU inventory summary data array.
+ * Selects the full inventory summary data array (products and materials).
  */
-export const selectSkuSummaryData = createSelector(
-  [selectWarehouseInventorySkuSummaryState],
+export const selectWarehouseInventoryItemSummaryData = createSelector(
+  [selectWarehouseInventoryItemSummaryState],
   (state) => state.data
 );
 
 /**
- * Selects the pagination metadata for SKU inventory summary.
+ * Selects the pagination metadata for warehouse inventory summary.
  */
-export const selectSkuSummaryPagination = createSelector(
-  [selectWarehouseInventorySkuSummaryState],
+export const selectWarehouseInventoryItemSummaryPagination = createSelector(
+  [selectWarehouseInventoryItemSummaryState],
   (state) => state.pagination
 );
 
 /**
- * Selects the loading state for SKU inventory summary.
+ * Selects the loading state for the warehouse inventory summary.
  */
-export const selectSkuSummaryLoading = createSelector(
-  [selectWarehouseInventorySkuSummaryState],
+export const selectWarehouseInventoryItemSummaryLoading = createSelector(
+  [selectWarehouseInventoryItemSummaryState],
   (state) => state.loading
 );
 
 /**
- * Selects any error associated with SKU inventory summary fetching.
+ * Selects any error associated with warehouse inventory summary fetching.
  */
-export const selectSkuSummaryError = createSelector(
-  [selectWarehouseInventorySkuSummaryState],
+export const selectWarehouseInventoryItemSummaryError = createSelector(
+  [selectWarehouseInventoryItemSummaryState],
   (state) => state.error
 );
 
 /**
- * Calculates the total available quantity across all SKUs in the inventory summary.
+ * Calculates the total available quantity across all inventory items (products + materials).
  */
-export const selectSkuSummaryTotalAvailableQuantity = createSelector(
-  [selectSkuSummaryData],
+export const selectTotalAvailableQuantity = createSelector(
+  [selectWarehouseInventoryItemSummaryData],
   (data) =>
-    data.reduce((sum: number, item: SkuWarehouseInventorySummary) => {
+    data.reduce((sum: number, item: WarehouseInventoryItemSummary) => {
       return sum + Number(item.availableQuantity || 0);
-    }, 0 as number)
+    }, 0)
 );

@@ -9,8 +9,8 @@ import CustomButton from '@components/common/CustomButton';
 import { formatLabel } from '@utils/textUtils';
 import { formatDate } from '@utils/dateTimeUtils';
 import { useThemeContext } from '@context/ThemeContext';
-import useSkuWarehouseInventorySummary from '@hooks/useSkuWarehouseInventorySummary';
-import type { SkuWarehouseInventorySummary } from '../state/warehouseInventoryTypes';
+import useWarehouseInventoryItemSummary from '@hooks/useWarehouseInventoryItemSummary.ts';
+import type { BaseWarehouseInventoryItemSummary } from '../state/warehouseInventoryTypes';
 
 const SkuWarehouseInventorySummarySection = () => {
   const { theme } = useThemeContext();
@@ -23,11 +23,11 @@ const SkuWarehouseInventorySummarySection = () => {
     data,
     loading,
     error,
-    refresh,
-  } = useSkuWarehouseInventorySummary();
+    fetchWarehouseInventorySummary,
+  } = useWarehouseInventoryItemSummary({ itemType: 'product' });
   
   const highlightedItems = useMemo(() => {
-    return data.filter((item: SkuWarehouseInventorySummary) =>
+    return data.filter((item: BaseWarehouseInventoryItemSummary) =>
       item.isLowStock ||
       item.isNearExpiry ||
       ['out_of_stock', 'unassigned', 'suspended'].includes(item.status)
@@ -56,7 +56,7 @@ const SkuWarehouseInventorySummarySection = () => {
       ) : (
         <>
           <Grid container spacing={2}>
-            {paginatedItems.map((item: SkuWarehouseInventorySummary) => (
+            {paginatedItems.map((item: BaseWarehouseInventoryItemSummary) => (
               <Grid key={item.skuId} size={{xs: 12, sm: 6, md: 4, lg: 3}}>
                 <CustomCard
                   title={item.productName}
@@ -97,7 +97,7 @@ const SkuWarehouseInventorySummarySection = () => {
       )}
       
       <Box sx={{ mt: 2, textAlign: 'center' }}>
-        <CustomButton onClick={() => refresh({ page: 1, limit: 50 })}>Refresh Summary</CustomButton>
+        <CustomButton onClick={() => fetchWarehouseInventorySummary({ page: 1, limit: 50 , itemType: 'product'})}>Refresh Summary</CustomButton>
         <CustomButton
           size="small"
           variant="outlined"

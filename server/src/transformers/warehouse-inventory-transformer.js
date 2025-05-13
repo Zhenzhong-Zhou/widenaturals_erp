@@ -50,8 +50,6 @@ const transformWarehouseInventoryItemSummaryRow = (row) => {
       sku: row.item_code,
       productName: getProductDisplayName(row),
       brand: row.brand,
-      countryCode: row.country_code,
-      sizeLabel: row.size_label,
       lotQuantity: Number(row.total_lot_quantity),
       isNearExpiry: nearestExpiryDate && nearestExpiryDate <= expiryThreshold,
       isLowStock: availableQty <= 30,

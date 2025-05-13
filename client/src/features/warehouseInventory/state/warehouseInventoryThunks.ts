@@ -12,22 +12,27 @@ import type {
 } from '@features/warehouseInventory';
 import { warehouseInventoryService } from '@services/warehouseInventoryService';
 import { dropdownService } from '@services/dropdownService';
-import type { FetchSkuWarehouseInventorySummaryParams, PaginatedResponse, SkuWarehouseInventorySummary } from '@features/warehouseInventory/state/warehouseInventoryTypes.ts';
+import type {
+  FetchWarehouseInventoryItemSummaryParams,
+  PaginatedResponse,
+  WarehouseInventoryItemSummary,
+} from '@features/warehouseInventory/state/warehouseInventoryTypes.ts';
 
 /**
- * Redux thunk to fetch paginated SKU inventory summary from the warehouse domain.
+ * Redux thunk to fetch paginated warehouse inventory summary
+ * including both SKU-level (products) and material-level records.
  *
- * @param {FetchSkuWarehouseInventorySummaryParams} params - Pagination input (page, limit).
- * @returns {PaginatedResponse<SkuWarehouseInventorySummary>} - Paginated SKU inventory response.
+ * @param {FetchWarehouseInventoryItemSummaryParams} params - Pagination and filter input (page, limit, itemType).
+ * @returns {PaginatedResponse<WarehouseInventorySummary>} - Paginated inventory summary response.
  */
-export const fetchSkuInventorySummaryThunk = createAsyncThunk<
-  PaginatedResponse<SkuWarehouseInventorySummary>,
-  FetchSkuWarehouseInventorySummaryParams
+export const fetchWarehouseInventoryItemSummaryThunk = createAsyncThunk<
+  PaginatedResponse<WarehouseInventoryItemSummary>,
+  FetchWarehouseInventoryItemSummaryParams
 >(
-  'warehouseInventory/fetchSkuInventorySummary',
+  'warehouseInventory/fetchWarehouseInventorySummary',
   async (params, thunkAPI) => {
     try {
-      return await warehouseInventoryService.fetchSkuInventorySummary(params);
+      return await warehouseInventoryService.fetchWarehouseInventoryItemSummary(params);
     } catch (error) {
       return thunkAPI.rejectWithValue(error);
     }

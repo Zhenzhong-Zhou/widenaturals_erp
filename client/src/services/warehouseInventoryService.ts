@@ -14,28 +14,30 @@ import type {
 } from '@features/warehouseInventory';
 import { AppError } from '@utils/AppError';
 import type {
-  FetchSkuWarehouseInventorySummaryParams,
+  FetchWarehouseInventoryItemSummaryParams,
   InventoryRecordInsertResponse,
   PaginatedResponse,
-  SkuWarehouseInventorySummary,
+  WarehouseInventoryItemSummary,
 } from '@features/warehouseInventory/state';
 import type {
   AvailableInventoryLotsResponse, FetchAvailableInventoryRequest,
 } from '@features/inventoryAllocation';
 
 /**
- * Fetches paginated SKU-level inventory summary from the warehouse-inventory domain.
+ * Fetches paginated inventory summary (products and/or materials).
  *
- * @param {FetchSkuWarehouseInventorySummaryParams} params - Optional pagination parameters.
- * @returns {Promise<PaginatedResponse<SkuWarehouseInventorySummary>>} - Paginated inventory summary response.
+ * @param {FetchWarehouseInventoryItemSummaryParams} params - Pagination and filter parameters.
+ * @returns {Promise<PaginatedResponse<WarehouseInventorySummary>>} - Typed paginated inventory response.
  */
-const fetchSkuInventorySummary = async (
-  params: FetchSkuWarehouseInventorySummaryParams = {}
-): Promise<PaginatedResponse<SkuWarehouseInventorySummary>> => {
-  const response = await axiosInstance.get<PaginatedResponse<SkuWarehouseInventorySummary>>(
-    API_ENDPOINTS.WAREHOUSE_INVENTORY_SKU_SUMMARY,
+const fetchWarehouseInventoryItemSummary = async (
+  params: FetchWarehouseInventoryItemSummaryParams
+): Promise<PaginatedResponse<WarehouseInventoryItemSummary>> => {
+  console.log(params);
+  const response = await axiosInstance.get<PaginatedResponse<WarehouseInventoryItemSummary>>(
+    API_ENDPOINTS.WAREHOUSE_INVENTORY_SUMMARY,
     { params }
   );
+  console.log("response: ", response);
   return response.data;
 };
 
@@ -260,7 +262,7 @@ export const fetchAvailableInventoryLots = async (
 
 // Export the service
 export const warehouseInventoryService = {
-  fetchSkuInventorySummary,
+  fetchWarehouseInventoryItemSummary,
   fetchAllWarehouseInventories,
   fetchWarehouseInventorySummary,
   fetchWarehouseItemSummary,
