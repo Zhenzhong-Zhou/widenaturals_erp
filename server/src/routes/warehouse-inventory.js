@@ -2,19 +2,20 @@ const express = require('express');
 const {
   getAllWarehouseInventoriesController,
   getWarehouseItemSummaryController,
-  getWarehouseInventoryDetailsController, getPaginatedSkuInventorySummaryController,
+  getWarehouseInventoryDetailsController, getPaginatedWarehouseInventorySummaryController,
 } = require('../controllers/warehouse-inventory-controller');
 const authorize = require('../middlewares/authorize');
 
 const router = express.Router();
 
 /**
- * @route GET /warehouse-inventory/sku-summary
- * @description Returns a paginated summary of SKU-level inventory grouped from warehouse_inventory.
+ * @route GET /warehouse-inventory/item-summary
+ * @description Returns a paginated summary of inventory items (products and non-products) grouped by SKU or material code.
+ * Supports filtering by item type via query params like `itemType=product` or `itemType=material`.
  * @access Protected
  * @permission view_warehouse_inventory or equivalent
  */
-router.get('/sku-summary', getPaginatedSkuInventorySummaryController);
+router.get('/summary', getPaginatedWarehouseInventorySummaryController);
 
 // GET /api/warehouse-inventory - Fetch all warehouse inventories with pagination
 router.get(

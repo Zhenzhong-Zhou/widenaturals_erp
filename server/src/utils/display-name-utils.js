@@ -20,8 +20,8 @@
 const displayNameRules = {
   'WIDE Naturals': (row) => `${row.product_name} - ${row.size_label}`,
   
-  CH: (row, country_code) => (country_code === 'UN' ? row.product_name : `${row.product_name} - ${country_code}`),
-  PG: (row, country_code) => (country_code === 'UN' ? row.product_name : `${row.product_name} - ${country_code}`),
+  CH: (row, countryCode) => (countryCode === 'UN' ? row.product_name : `${row.product_name} - ${countryCode}`),
+  PG: (row, countryCode) => (countryCode === 'UN' ? row.product_name : `${row.product_name} - ${countryCode}`),
 };
 
 /**
@@ -37,23 +37,29 @@ const displayNameRules = {
  */
 const getProductDisplayName = (row) => {
   if (!row || typeof row !== 'object') return '';
+  
+  // Prefer preformatted display_name if it exists
   if (row.display_name) return row.display_name;
   
   const brand = row.brand;
   const skuPrefix = row.sku?.slice(0, 2).toUpperCase();
-  const country_code = row.country_code?.toUpperCase();
+  const countryCode = (row.country_code || '').toUpperCase();
+  const productName = row.product_name || row.item_name || row.itemName || '';
   
+  // Prefer brand rule
   if (displayNameRules[brand]) {
-    return displayNameRules[brand](row, country_code);
+    return displayNameRules[brand]({ ...row, product_name: productName }, countryCode);
   }
   
+  // Then SKU prefix rule
   if (displayNameRules[skuPrefix]) {
-    return displayNameRules[skuPrefix](row, country_code);
+    return displayNameRules[skuPrefix]({ ...row, product_name: productName }, countryCode);
   }
   
+  // Fallback: size label format
   return row.size_label
-    ? `${row.product_name} - ${row.size_label}`
-    : row.product_name;
+    ? `${productName} - ${row.size_label}`
+    : productName;
 };
 
 module.exports = {

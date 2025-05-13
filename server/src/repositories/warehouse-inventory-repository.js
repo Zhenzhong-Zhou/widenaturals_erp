@@ -14,76 +14,89 @@ const {
 const { logError } = require('../utils/logger-helper');
 
 /**
- * Fetches a paginated summary of inventory data grouped by SKU.
+ * Fetches a paginated summary of warehouse inventory items, including both product SKUs and packaging materials.
  *
- * This function uses `warehouse_inventory` as the source of truth and aggregates:
- * - total inventory entries
- * - recorded vs. actual quantity
- * - available and reserved quantity
- * - earliest manufacture date and nearest expiry date
- * - system-level stock status (e.g., in_stock, expired)
+ * This function aggregates inventory data from `warehouse_inventory` (products) and `location_inventory` (materials),
+ * grouped by SKU or material code. It includes:
+ * - Total inventory entries
+ * - Recorded, actual, available, and reserved quantities
+ * - Earliest manufacture and nearest expiry dates
+ * - Inventory status derived from warehouse records
+ * - Active status (based on provided `statusId`) or presence of quantity > 0
  *
- * SKUs and Products must match the provided `statusId` (usually 'active').
- * Results are ordered by stock priority, then item name, then quantity.
+ * Filtering:
+ * - Products and SKUs are included if they are active OR have warehouse quantity > 0
+ * - Materials are included if they are active OR have location quantity > 0
+ * - If `itemType` is specified, only that group is included
  *
  * @param {Object} options
  * @param {number} [options.page=1] - The page number for pagination.
  * @param {number} [options.limit=20] - The number of items per page.
- * @param {string} options.statusId - The UUID of the 'active' status to filter by.
- * @returns {Promise<{ data: any[], meta: { page: number, total: number } }>} A paginated summary of SKU-level inventory data.
+ * @param {string} options.statusId - Required. The internal UUID for the 'active' status, used to match products, SKUs, and materials.
+ * @param {string} [options.itemType] - Optional. `'product'`, `'material'`, or omitted for both.
+ * @returns {Promise<{ data: any[], meta: { page: number, total: number } }>} A paginated summary of warehouse inventory grouped by SKU or material code.
  */
-const getPaginatedSkuInventorySummary = async ({ page = 1, limit = 20, statusId }) => {
-  const baseQuery = `
-    WITH lot_agg AS (
-      SELECT
-        pb.sku_id,
-        COUNT(DISTINCT li.id) AS total_lots,
-        SUM(li.location_quantity) AS total_lot_quantity,
-        MIN(pb.manufacture_date) AS earliest_manufacture_date,
-        MIN(pb.expiry_date) AS nearest_expiry_date,
-        SUM(li.location_quantity - li.reserved_quantity) AS total_available_quantity,
-        SUM(li.reserved_quantity) AS total_reserved_quantity
-      FROM location_inventory li
-      JOIN batch_registry br ON li.batch_id = br.id
-      JOIN product_batches pb ON br.product_batch_id = pb.id
-      GROUP BY pb.sku_id
-    ),
-    status_priority AS (
-      SELECT
-        pb.sku_id,
-        MIN(CASE ist.name
-          WHEN 'expired' THEN 1
-          WHEN 'suspended' THEN 2
-          WHEN 'unavailable' THEN 3
-          WHEN 'out_of_stock' THEN 4
-          WHEN 'in_stock' THEN 5
-          ELSE 6
-        END) AS min_priority
-      FROM warehouse_inventory wi
-      JOIN batch_registry br ON wi.batch_id = br.id
-      JOIN product_batches pb ON br.product_batch_id = pb.id
-      JOIN inventory_status ist ON wi.status_id = ist.id
-      GROUP BY pb.sku_id
-    ),
-    status_names AS (
-      SELECT * FROM (
-        VALUES
-          (1, 'expired'),
-          (2, 'suspended'),
-          (3, 'unavailable'),
-          (4, 'out_of_stock'),
-          (5, 'in_stock'),
-          (6, 'unassigned')
-      ) AS s(priority, name)
-    )
-    
+const getPaginatedWarehouseInventoryItemSummary = async ({ page = 1, limit = 20, itemType, statusId }) => {
+  const includeProducts = itemType === 'product' || itemType === 'all' || !itemType;
+  const includeMaterials = itemType === 'material' || itemType === 'all' || !itemType;
+  
+  // CTE is needed only if we include products
+  const baseCTE = includeProducts
+    ? `
+      WITH lot_agg AS (
+        SELECT
+          pb.sku_id,
+          COUNT(DISTINCT li.id) AS total_lots,
+          SUM(li.location_quantity) AS total_lot_quantity,
+          MIN(pb.manufacture_date) AS earliest_manufacture_date,
+          MIN(pb.expiry_date) AS nearest_expiry_date,
+          SUM(li.location_quantity - li.reserved_quantity) AS total_available_quantity,
+          SUM(li.reserved_quantity) AS total_reserved_quantity
+        FROM location_inventory li
+        JOIN batch_registry br ON li.batch_id = br.id
+        JOIN product_batches pb ON br.product_batch_id = pb.id
+        GROUP BY pb.sku_id
+      ),
+      status_priority AS (
+        SELECT
+          pb.sku_id,
+          MIN(CASE ist.name
+            WHEN 'expired' THEN 1
+            WHEN 'suspended' THEN 2
+            WHEN 'unavailable' THEN 3
+            WHEN 'out_of_stock' THEN 4
+            WHEN 'in_stock' THEN 5
+            ELSE 6
+          END) AS min_priority
+        FROM warehouse_inventory wi
+        JOIN batch_registry br ON wi.batch_id = br.id
+        JOIN product_batches pb ON br.product_batch_id = pb.id
+        JOIN inventory_status ist ON wi.status_id = ist.id
+        GROUP BY pb.sku_id
+      ),
+      status_names AS (
+        SELECT * FROM (
+          VALUES
+            (1, 'expired'),
+            (2, 'suspended'),
+            (3, 'unavailable'),
+            (4, 'out_of_stock'),
+            (5, 'in_stock'),
+            (6, 'unassigned')
+        ) AS s(priority, name)
+      )
+    `
+    : '';
+  
+  const productSelect = `
     SELECT
-      s.id AS sku_id,
+      s.id AS item_id,
+      'product' AS item_type,
+      s.sku AS item_code,
+      COALESCE(NULLIF(p.name, ''), s.sku) AS item_name,
+      p.brand,
       s.country_code,
       s.size_label,
-      s.sku,
-      p.brand,
-      COALESCE(NULLIF(p.name, ''), s.sku) AS product_name,
       COUNT(DISTINCT wi.id) AS total_inventory_entries,
       COALESCE(SUM(wi.warehouse_quantity), 0) AS recorded_quantity,
       COALESCE(l.total_lot_quantity, 0) AS actual_quantity,
@@ -94,46 +107,83 @@ const getPaginatedSkuInventorySummary = async ({ page = 1, limit = 20, statusId 
       l.earliest_manufacture_date,
       l.nearest_expiry_date,
       sp.min_priority,
-      COALESCE(sn.name, 'unassigned') AS display_status
+      COALESCE(sn.name, 'unassigned') AS display_status,
+      (p.status_id = $1 AND s.status_id = $1) AS is_active
     FROM warehouse_inventory wi
     JOIN batch_registry br ON wi.batch_id = br.id
     JOIN product_batches pb ON br.product_batch_id = pb.id
     JOIN skus s ON pb.sku_id = s.id
     JOIN products p ON s.product_id = p.id
-    LEFT JOIN status st ON p.status_id = st.id
     LEFT JOIN lot_agg l ON s.id = l.sku_id
     LEFT JOIN status_priority sp ON s.id = sp.sku_id
     LEFT JOIN status_names sn ON sp.min_priority = sn.priority
-    WHERE p.status_id = $1 AND s.status_id = $1
     GROUP BY
-      s.id, s.sku, p.brand, s.country_code, s.size_label,
-      p.name,
+      s.id, s.sku, p.name, p.brand, s.country_code, s.size_label,
       l.total_lots, l.total_lot_quantity,
       l.total_available_quantity, l.total_reserved_quantity,
       l.earliest_manufacture_date, l.nearest_expiry_date,
-      sp.min_priority, sn.name
-    ORDER BY sp.min_priority ASC, product_name ASC, recorded_quantity ASC
+      sp.min_priority, sn.name, p.status_id, s.status_id
+    HAVING
+      (p.status_id = $1 AND s.status_id = $1)
+      OR SUM(wi.warehouse_quantity) > 0
   `;
   
+  const materialSelect = `
+    SELECT
+      pm.id AS item_id,
+      'material' AS item_type,
+      pm.code AS item_code,
+      pm.name AS item_name,
+      NULL AS brand,
+      NULL AS country_code,
+      NULL AS size_label,
+      COUNT(DISTINCT li.id) AS total_inventory_entries,
+      COALESCE(SUM(li.location_quantity), 0) AS recorded_quantity,
+      COALESCE(SUM(li.location_quantity), 0) AS actual_quantity,
+      COALESCE(SUM(li.location_quantity - li.reserved_quantity), 0) AS total_available_quantity,
+      COALESCE(SUM(li.reserved_quantity), 0) AS total_reserved_quantity,
+      COUNT(DISTINCT pmb.id) AS total_lots,
+      COALESCE(SUM(li.location_quantity), 0) AS total_lot_quantity,
+      MIN(pmb.manufacture_date) AS earliest_manufacture_date,
+      MIN(pmb.expiry_date) AS nearest_expiry_date,
+      NULL AS min_priority,
+      'unassigned' AS display_status,
+      (pm.status_id = $1) AS is_active
+    FROM location_inventory li
+    JOIN batch_registry br ON li.batch_id = br.id
+    JOIN packaging_material_batches pmb ON br.product_batch_id = pmb.id
+    JOIN packaging_materials pm ON pmb.packaging_material_id = pm.id
+    WHERE
+      pm.status_id = $1
+      OR li.location_quantity > 0
+    GROUP BY pm.id, pm.code, pm.name
+  `;
+  
+  const selectParts = [];
+  if (includeProducts) selectParts.push(productSelect);
+  if (includeMaterials) selectParts.push(materialSelect);
+  
+  const finalQuery = baseCTE + '\n' + selectParts.join('\nUNION ALL\n');
+  
   try {
-    logSystemInfo('Fetching paginated SKU inventory summary', {
+    logSystemInfo('Fetching paginated warehouse inventory summary (products + materials)', {
       context: 'warehouse-inventory-repository',
-      params: { page, limit, statusId },
+      params: { page, limit, statusId, itemType },
     });
     
     return await paginateResults({
-      dataQuery: baseQuery,
+      dataQuery: finalQuery,
       params: [statusId],
       page,
       limit,
     });
   } catch (error) {
-    logSystemError('Error fetching paginated SKU inventory summary', {
+    logSystemError('Error fetching paginated warehouse inventory summary (products + materials)', {
       context: 'warehouse-inventory-repository',
       error,
     });
     
-    throw AppError.databaseError('Failed to fetch paginated SKU inventory summary');
+    throw AppError.databaseError('Failed to fetch paginated warehouse inventory items summary');
   }
 };
 
@@ -843,7 +893,7 @@ const fetchWarehouseInventoryQuantities = async (items, client = null) => {
 };
 
 module.exports = {
-  getPaginatedSkuInventorySummary,
+  getPaginatedWarehouseInventoryItemSummary,
   getWarehouseInventories,
   getWarehouseItemSummary,
   getWarehouseInventoryDetailsByWarehouseId,

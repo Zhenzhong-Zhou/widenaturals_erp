@@ -5,28 +5,27 @@ const {
 const { getProductDisplayName } = require('../utils/display-name-utils');
 
 /**
- * Transforms a single SKU-level inventory summary row from the DB into clean application format.
+ * Transforms a single warehouse inventory summary row (product or material) into application format.
  *
  * @param {object} row - A single row from the DB result.
- * @returns {object} - Transformed SKU inventory summary.
+ * @returns {object} - Transformed warehouse inventory summary.
  */
-const transformSkuInventorySummaryRow = (row) => {
+const transformWarehouseInventoryItemSummaryRow = (row) => {
+  const isProduct = row.item_type === 'product';
+  
   const nearestExpiryDate = row.nearest_expiry_date
     ? new Date(row.nearest_expiry_date)
     : null;
   
   const now = new Date();
   const expiryThreshold = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000); // 90 days
-  
   const availableQty = Number(row.total_available_quantity);
   
-  return {
-    skuId: row.sku_id,
-    sku: row.sku,
-    countryCode: row.country_code,
-    sizeLabel: row.size_label,
-    productName: getProductDisplayName(row),
-    
+  const base = {
+    itemId: row.item_id,
+    itemType: row.item_type,
+    itemCode: row.item_code,
+    itemName: row.item_name,
     totalInventoryEntries: Number(row.total_inventory_entries),
     recordedQuantity: Number(row.recorded_quantity),
     actualQuantity: Number(row.actual_quantity),
@@ -41,47 +40,81 @@ const transformSkuInventorySummaryRow = (row) => {
     nearestExpiryDate,
     
     status: row.display_status,
-    isNearExpiry: nearestExpiryDate && nearestExpiryDate <= expiryThreshold,
-    isLowStock: availableQty <= 30,
-    stockLevel:
-      availableQty === 0
-        ? 'none'
-        : availableQty <= 10
-          ? 'critical'
-          : availableQty <= 30
-            ? 'low'
-            : 'normal',
+    isActive: !!row.is_active,
   };
+  
+  if (isProduct) {
+    return {
+      ...base,
+      skuId: row.item_id,
+      sku: row.item_code,
+      productName: getProductDisplayName(row),
+      brand: row.brand,
+      countryCode: row.country_code,
+      sizeLabel: row.size_label,
+      lotQuantity: Number(row.total_lot_quantity),
+      isNearExpiry: nearestExpiryDate && nearestExpiryDate <= expiryThreshold,
+      isLowStock: availableQty <= 30,
+      stockLevel:
+        availableQty === 0
+          ? 'none'
+          : availableQty <= 10
+            ? 'critical'
+            : availableQty <= 30
+              ? 'low'
+              : 'normal',
+    };
+  } else {
+    return {
+      ...base,
+      materialId: row.item_id,
+      materialCode: row.item_code,
+      materialName: row.item_name,
+      brand: null,
+      countryCode: null,
+      sizeLabel: null,
+      isNearExpiry: nearestExpiryDate && nearestExpiryDate <= expiryThreshold,
+      isLowStock: availableQty <= 30,
+      stockLevel:
+        availableQty === 0
+          ? 'none'
+          : availableQty <= 10
+            ? 'critical'
+            : availableQty <= 30
+              ? 'low'
+              : 'normal',
+    };
+  }
 };
 
 /**
- * Transforms an array of SKU inventory summary rows.
+ * Transforms a list of warehouse inventory summary rows.
  *
  * @param {Array<object>} rows - Raw DB rows.
- * @returns {Array<object>} Transformed summary rows.
+ * @returns {Array<object>} Transformed rows.
  */
-const transformSkuInventorySummaryList = (rows = []) =>
-  rows.map(transformSkuInventorySummaryRow);
+const transformWarehouseInventoryItemSummaryList = (rows = []) =>
+  rows.map(transformWarehouseInventoryItemSummaryRow);
 
 /**
- * Transforms a paginated SKU inventory result with metadata and data.
+ * Transforms a paginated inventory result with metadata and transformed rows.
  *
- * @param {object} paginatedResult - Raw DB paginated result.
+ * @param {object} paginatedResult
  * @param {Array<object>} paginatedResult.data
  * @param {number|string} paginatedResult.page
  * @param {number|string} paginatedResult.limit
  * @param {number|string} paginatedResult.totalRecords
  * @param {number|string} paginatedResult.totalPages
- * @returns {object} - API-ready format with pagination and transformed data
+ * @returns {object}
  */
-const transformPaginatedSkuInventorySummary = (paginatedResult) => ({
+const transformPaginatedWarehouseInventoryItemSummary = (paginatedResult) => ({
   pagination: {
     page: Number(paginatedResult.page),
     limit: Number(paginatedResult.limit),
     totalRecords: Number(paginatedResult.totalRecords),
     totalPages: Number(paginatedResult.totalPages),
   },
-  data: transformSkuInventorySummaryList(paginatedResult.data),
+  data: transformWarehouseInventoryItemSummaryList(paginatedResult.data),
 });
 
 /**
@@ -381,7 +414,7 @@ const transformWarehouseInventoryRecords = (dbResults) => {
 };
 
 module.exports = {
-  transformPaginatedSkuInventorySummary,
+  transformPaginatedWarehouseInventoryItemSummary,
   transformWarehouseInventorySummary,
   transformWarehouseInventorySummaryList,
   transformPaginatedWarehouseInventorySummary,

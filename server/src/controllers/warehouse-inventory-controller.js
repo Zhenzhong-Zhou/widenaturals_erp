@@ -1,40 +1,41 @@
 const {
   fetchAllWarehouseInventories,
   fetchWarehouseItemSummary,
-  fetchWarehouseInventoryDetailsByWarehouseId, fetchPaginatedSkuInventorySummary,
+  fetchWarehouseInventoryDetailsByWarehouseId, fetchPaginatedWarehouseInventoryItemSummary,
 } = require('../services/warehouse-inventory-service');
 const { logError } = require('../utils/logger-helper');
 const wrapAsync = require('../utils/wrap-async');
 const { logSystemInfo } = require('../utils/system-logger');
 
 /**
- * Controller: Handles GET request to fetch paginated SKU-level inventory summary.
+ * Controller: Handles GET request to fetch paginated warehouse inventory summary.
  *
  * This controller:
- * - Extracts pagination query parameters and authenticated user
- * - Calls the service layer to fetch SKU-level inventory summary from warehouse inventory
- * - Logs the access for traceability
- * - Returns structured JSON response with summary data and pagination
+ * - Extracts pagination query parameters (`page`, `limit`, `itemType`) and the authenticated user
+ * - Calls the service layer to fetch product or material inventory summary from warehouse inventory
+ * - Logs the access for audit traceability
+ * - Returns structured JSON response with inventory data and pagination info
  *
- * @route GET /api/v1/warehouse-inventory/sku-summary
+ * @route GET /api/v1/warehouse-inventory/summary
  * @access Protected
  *
- * @param {object} req - Express request object, with `query.page`, `query.limit`, and `user`
+ * @param {object} req - Express request object, with `query.page`, `query.limit`, `query.itemType`, and `user`
  * @param {object} res - Express response object
  * @param {function} next - Express next middleware function
  * @returns {void}
  */
-const getPaginatedSkuInventorySummaryController = wrapAsync(async (req, res) => {
-  const { page, limit } = req.query;
+const getPaginatedWarehouseInventorySummaryController = wrapAsync(async (req, res) => {
+  const { page, limit, itemType } = req.query;
   const user = req.user;
   
-  const { data, pagination } = await fetchPaginatedSkuInventorySummary({
+  const { data, pagination } = await fetchPaginatedWarehouseInventoryItemSummary({
     page,
     limit,
+    itemType,
     user,
   });
   
-  logSystemInfo('Paginated SKU inventory summary fetched', {
+  logSystemInfo('Paginated warehouse inventory summary fetched', {
     context: 'warehouse-inventory-controller',
     userId: user.id,
     page,
@@ -43,7 +44,7 @@ const getPaginatedSkuInventorySummaryController = wrapAsync(async (req, res) => 
   
   res.status(200).json({
     success: true,
-    message: 'SKU inventory summary fetched successfully.',
+    message: 'Warehouse inventory summary fetched successfully.',
     data,
     pagination,
   });
@@ -78,32 +79,6 @@ const getAllWarehouseInventoriesController = wrapAsync(
     }
   }
 );
-
-/**
- * Controller to fetch warehouse inventory for a specific warehouse.
- * @param {import('express').Request} req - Express request object.
- * @param {import('express').Response} res - Express response object.
- */
-const getWarehouseInventoryByWarehouse = async (req, res, next) => {
-  try {
-    const { warehouseId } = req.params;
-    const { page = 1, limit = 10, sortBy, sortOrder } = req.query;
-
-    // const inventories = await warehouseInventoryService.fetchWarehouseInventoryByWarehouse(
-    //   warehouseId,
-    //   { page: Number(page), limit: Number(limit), sortBy, sortOrder }
-    // );
-    //
-    // res.status(200).json({
-    //   success: true,
-    //   message: `Inventories for warehouse ${warehouseId} retrieved successfully`,
-    //   data: inventories.data,
-    //   pagination: inventories.pagination,
-    // });
-  } catch (error) {
-    next(error);
-  }
-};
 
 /**
  * Controller to get warehouse items.
@@ -166,7 +141,7 @@ const getWarehouseInventoryDetailsController = wrapAsync(async (req, res) => {
 });
 
 module.exports = {
-  getPaginatedSkuInventorySummaryController,
+  getPaginatedWarehouseInventorySummaryController,
   getAllWarehouseInventoriesController,
   getWarehouseItemSummaryController,
   getWarehouseInventoryDetailsController,
