@@ -3,9 +3,8 @@ const {
   fetchWarehouseItemSummary,
   fetchWarehouseInventoryDetailsByWarehouseId, fetchPaginatedWarehouseInventoryItemSummary,
 } = require('../services/warehouse-inventory-service');
-const { logError } = require('../utils/logger-helper');
+const { logError, logInfo } = require('../utils/logger-helper');
 const wrapAsync = require('../utils/wrap-async');
-const { logSystemInfo } = require('../utils/system-logger');
 
 /**
  * Controller: Handles GET request to fetch paginated warehouse inventory summary.
@@ -35,7 +34,7 @@ const getPaginatedWarehouseInventorySummaryController = wrapAsync(async (req, re
     user,
   });
   
-  logSystemInfo('Paginated warehouse inventory summary fetched', {
+  logInfo('Paginated warehouse inventory summary fetched', req, {
     context: 'warehouse-inventory-controller',
     userId: user.id,
     page,

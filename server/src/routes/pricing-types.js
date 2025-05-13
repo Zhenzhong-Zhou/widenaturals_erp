@@ -5,7 +5,7 @@
 
 const express = require('express');
 const {
-  getPriceTypesController,
+  getAllPriceTypesController,
   getPricingTypeDetailsByIdController,
   getPricingTypesForDropdownController,
 } = require('../controllers/pricing-type-controller');
@@ -16,8 +16,15 @@ const router = express.Router();
 // Route for getting all users
 router.get(
   '/',
-  authorize(['view_prices', 'manage_prices']),
-  getPriceTypesController
+  authorize([
+    'view_prices',
+    'view_pricing_types',
+    'view_pricing_config',
+    'manage_pricing',
+    'manage_catalog',
+    'root_access',
+  ]),
+  getAllPriceTypesController
 );
 
 /**

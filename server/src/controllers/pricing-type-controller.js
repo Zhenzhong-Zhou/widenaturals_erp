@@ -8,53 +8,46 @@ const wrapAsync = require('../utils/wrap-async');
 const AppError = require('../utils/AppError');
 
 /**
- * Controller to handle fetching all price types.
- * @param {Object} req - Express request object.
- * @param {Object} res - Express response object.
+ * Controller: Handles GET request to fetch paginated pricing types with optional filters.
+ *
+ * @route GET /api/v1/pricing-types
+ * @access Protected
+ *
+ * @query {number} [page=1] - Page number for pagination
+ * @query {number} [limit=10] - Page size
+ * @query {string} [name] - Optional name/code search keyword
+ * @query {string} [startDate] - Optional start date for status_date filter
+ * @query {string} [endDate] - Optional end date for status_date filter
+ * @param {object} req - Express request object
+ * @param {object} res - Express response object
  */
-const getPriceTypesController = wrapAsync(async (req, res, next) => {
-  try {
-    // Extract query parameters for pagination and filtering
-    const { page = 1, limit = 10, name, status } = req.query;
-
-    logInfo('Handling request to fetch price types', {
-      page,
-      limit,
-      name,
-      status,
-    });
-
-    const paginationParams = {
-      page: parseInt(page, 10),
-      limit: parseInt(limit, 10),
-      name,
-      status,
-    };
-
-    if (paginationParams.page < 1 || paginationParams.limit < 1) {
-      return next(
-        AppError.validationError('Page and limit must be positive integers.')
-      );
-    }
-
-    // Call the service layer to fetch price types
-    const result = await fetchAllPriceTypes(paginationParams);
-
-    // Send successful response
-    res.status(200).json({
-      success: true,
-      data: result.data,
-      pagination: result.pagination,
-    });
-  } catch (error) {
-    // Log and send error response
-    logError('Error in getAllPriceTypes controller', {
-      message: error.message,
-      stack: error.stack,
-    });
-
-    next(error);
-  }
+const getAllPriceTypesController = wrapAsync(async (req, res, next) => {
+  const { page = 1, limit = 10, name, startDate, endDate } = req.query;
+  const user = req.user;
+  
+  logInfo('Request received for fetching pricing types', req, {
+    context: 'pricing-type-controller',
+    page,
+    limit,
+    userId: user?.id,
+  });
+  
+  const { data, pagination } = await fetchAllPriceTypes({
+    page: Number(page),
+    limit: Number(limit),
+    name,
+    startDate,
+    endDate,
+    user,
+  });
+  
+  // Call the service layer to fetch price types
+  res.status(200).json({
+    success: true,
+    message: 'Pricing types fetched successfully.',
+    data,
+    pagination,
+  });
 });
 
 /**
@@ -108,7 +101,7 @@ const getPricingTypesForDropdownController = wrapAsync(
 );
 
 module.exports = {
-  getPriceTypesController,
+  getAllPriceTypesController,
   getPricingTypeDetailsByIdController,
   getPricingTypesForDropdownController,
 };

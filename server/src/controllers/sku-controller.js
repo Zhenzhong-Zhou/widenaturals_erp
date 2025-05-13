@@ -35,6 +35,7 @@ const getActiveSkuProductCardsController = wrapAsync(async (req, res) => {
   const sanitizedSortBy = sanitizeSortBy(sortBy, 'skuProductCards');
   
   logInfo('Fetching active SKU product cards', req, {
+    context: 'sku-controller',
     query: { page, limit, sortBy: sanitizedSortBy, sortOrder, filters },
   });
   
@@ -49,6 +50,7 @@ const getActiveSkuProductCardsController = wrapAsync(async (req, res) => {
   const { data, pagination } = result;
   
   logInfo('Fetched active SKU product cards successfully', req, {
+    context: 'sku-controller',
     resultCount: data.length,
     pagination,
   });
@@ -74,6 +76,12 @@ const getSkuDetailsController = wrapAsync(async (req, res) => {
   }
 
   const data = await getSkuDetailsForUserService(user, skuId);
+  
+  logInfo('SKU details retrieved successfully', req, {
+    context: 'sku-controller',
+    userId: user.id,
+    skuId,
+  });
   
   res.status(200).json({
     success: true,

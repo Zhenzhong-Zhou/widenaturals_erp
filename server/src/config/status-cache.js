@@ -19,6 +19,7 @@ let statusMap = null;
  */
 const STATUS_KEY_LOOKUP = [
   { key: 'product_active', table: 'status', name: 'active' },
+  { key: 'pricing_type_active', table: 'status', name: 'active' },
   { key: 'warehouse_active', table: 'status', name: 'active' },
   { key: 'sku_active', table: 'status', name: 'active' },
   { key: 'lot_in_stock', table: 'inventory_status', name: 'in_stock' },

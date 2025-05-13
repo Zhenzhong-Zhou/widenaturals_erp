@@ -1,16 +1,71 @@
 const { query, paginateQuery, retry } = require('../database/db');
 const AppError = require('../utils/AppError');
-const { logInfo, logError, logWarn } = require('../utils/logger-helper');
+const { logSystemError, logSystemInfo } = require('../utils/system-logger');
+const { logError, logWarn } = require('../utils/logger-helper');
 
-const getAllPriceTypes = async ({ page, limit }) => {
+/**
+ * Fetches paginated pricing types with optional filters.
+ *
+ * - If `canViewAllStatuses` is false: only pricing types with the specified `statusId` are returned (usually 'active').
+ * - Supports optional search (on name/code) and filtering by `status_date` range.
+ *
+ * @param {object} options
+ * @param {number} options.page - Page number for pagination.
+ * @param {number} options.limit - Number of items per page.
+ * @param {string} [options.statusId] - UUID of status to filter by (required if `canViewAllStatuses` is false).
+ * @param {string} [options.search] - Search string for filtering by name/code.
+ * @param {string} [options.startDate] - Filter by status_date (start).
+ * @param {string} [options.endDate] - Filter by status_date (end).
+ * @param {boolean} [options.canViewAllStatuses=false] - If true, no status filter is enforced unless provided.
+ * @returns {Promise<object>} Paginated pricing types.
+ */
+const getAllPriceTypes = async ({
+                                  page,
+                                  limit,
+                                  statusId,
+                                  search,
+                                  startDate,
+                                  endDate,
+                                  canViewAllStatuses = false,
+                                }) => {
   const tableName = 'pricing_types pt';
-  const joins = []; // No joins needed for this query
-  const whereClause = '1=1'; // Ensures no filtering
-
+  const joins = [
+    'JOIN status s ON pt.status_id = s.id',
+    'LEFT JOIN users cu ON pt.created_by = cu.id',
+    'LEFT JOIN users uu ON pt.updated_by = uu.id',
+  ];
+  
+  const params = [];
+  const whereClauses = [];
+  let paramIndex = 1;
+  
+  // Apply status filter if permission doesn't allow unrestricted view
+  if (!canViewAllStatuses || (canViewAllStatuses && statusId)) {
+    whereClauses.push(`pt.status_id = $${paramIndex++}`);
+    params.push(statusId);
+  }
+  
+  // Optional keyword search
+  if (search) {
+    whereClauses.push(`(LOWER(pt.name) ILIKE $${paramIndex} OR LOWER(pt.code) ILIKE $${paramIndex})`);
+    params.push(`%${search.toLowerCase()}%`);
+    paramIndex++;
+  }
+  
+  // Optional status_date range filter
+  if (startDate && endDate) {
+    whereClauses.push(`pt.status_date BETWEEN $${paramIndex++} AND $${paramIndex++}`);
+    params.push(startDate, endDate);
+  }
+  
+  const whereClause = whereClauses.length > 0 ? whereClauses.join(' AND ') : '1=1';
+  
   const baseQuery = `
     SELECT
       pt.id,
       pt.name,
+      pt.code,
+      pt.slug,
       pt.description,
       s.name AS status,
       pt.status_date,
@@ -19,38 +74,40 @@ const getAllPriceTypes = async ({ page, limit }) => {
       CONCAT(COALESCE(cu.firstname, ''), ' ', COALESCE(cu.lastname, '')) AS created_by_fullname,
       CONCAT(COALESCE(uu.firstname, ''), ' ', COALESCE(uu.lastname, '')) AS updated_by_fullname
     FROM pricing_types pt
-    INNER JOIN status s ON pt.status_id = s.id
-    LEFT JOIN users cu ON pt.created_by = cu.id
-    LEFT JOIN users uu ON pt.updated_by = uu.id
+    ${joins.join(' ')}
+    WHERE ${whereClause}
   `;
-
-  const params = [];
-
+  
   try {
-    // Execute the paginated query with retry logic
-    const result = await retry(
-      () =>
-        paginateQuery({
-          tableName,
-          joins,
-          whereClause,
-          queryText: baseQuery,
-          params,
-          page,
-          limit,
-          sortBy: 'pt.name',
-          sortOrder: 'ASC',
-        }),
-      3 // Retry up to 3 times
-    );
-
-    logInfo(
-      `Successfully fetched ${result.data.length} price types on page ${page}.`
-    );
+    const result = await paginateQuery({
+      tableName,
+      joins,
+      whereClause,
+      queryText: baseQuery,
+      params,
+      page,
+      limit,
+      sortBy: 'pt.name',
+      sortOrder: 'ASC',
+    });
+    
+    logSystemInfo('Fetched paginated pricing types', {
+      context: 'pricing-types-repository',
+      page,
+      limit,
+      resultCount: result.data.length,
+    });
+    
     return result;
   } catch (error) {
-    logError('Error fetching price types:', error);
-    throw AppError.databaseError('Failed to fetch price types', 500, error);
+    logSystemError('Failed to fetch paginated pricing types', {
+      context: 'pricing-types-repository',
+      page,
+      limit,
+      error,
+    });
+    
+    throw AppError.databaseError('Unable to retrieve pricing types at this time.');
   }
 };
 
