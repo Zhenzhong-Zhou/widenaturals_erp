@@ -1,10 +1,53 @@
 const {
   fetchAllWarehouseInventories,
   fetchWarehouseItemSummary,
-  fetchWarehouseInventoryDetailsByWarehouseId,
+  fetchWarehouseInventoryDetailsByWarehouseId, fetchPaginatedSkuInventorySummary,
 } = require('../services/warehouse-inventory-service');
 const { logError } = require('../utils/logger-helper');
 const wrapAsync = require('../utils/wrap-async');
+const { logSystemInfo } = require('../utils/system-logger');
+
+/**
+ * Controller: Handles GET request to fetch paginated SKU-level inventory summary.
+ *
+ * This controller:
+ * - Extracts pagination query parameters and authenticated user
+ * - Calls the service layer to fetch SKU-level inventory summary from warehouse inventory
+ * - Logs the access for traceability
+ * - Returns structured JSON response with summary data and pagination
+ *
+ * @route GET /api/v1/warehouse-inventory/sku-summary
+ * @access Protected
+ *
+ * @param {object} req - Express request object, with `query.page`, `query.limit`, and `user`
+ * @param {object} res - Express response object
+ * @param {function} next - Express next middleware function
+ * @returns {void}
+ */
+const getPaginatedSkuInventorySummaryController = wrapAsync(async (req, res) => {
+  const { page, limit } = req.query;
+  const user = req.user;
+  
+  const { data, pagination } = await fetchPaginatedSkuInventorySummary({
+    page,
+    limit,
+    user,
+  });
+  
+  logSystemInfo('Paginated SKU inventory summary fetched', {
+    context: 'warehouse-inventory-controller',
+    userId: user.id,
+    page,
+    limit,
+  });
+  
+  res.status(200).json({
+    success: true,
+    message: 'SKU inventory summary fetched successfully.',
+    data,
+    pagination,
+  });
+});
 
 /**
  * Controller to fetch all warehouse inventories with pagination, sorting, and filtering.
@@ -123,6 +166,7 @@ const getWarehouseInventoryDetailsController = wrapAsync(async (req, res) => {
 });
 
 module.exports = {
+  getPaginatedSkuInventorySummaryController,
   getAllWarehouseInventoriesController,
   getWarehouseItemSummaryController,
   getWarehouseInventoryDetailsController,

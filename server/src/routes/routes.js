@@ -104,7 +104,7 @@ router.use('/inventories', authenticate(), inventoryRouts);
 
 router.use('/warehouses', authenticate(), warehouseRouts);
 
-router.use('/warehouse-inventories', authenticate(), warehouseInventoryRouts);
+router.use('/warehouse-inventory', authenticate(), warehouseInventoryRouts);
 
 router.use(
   '/warehouse-inventory-lots',

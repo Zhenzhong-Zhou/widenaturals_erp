@@ -396,7 +396,7 @@ const getSkuDetailsWithPricingAndMeta = async (
 
     if (result.rows.length === 0) {
       logSystemInfo('SKU not found or filtered out by status', {
-        context: 'fetchSkuDetailsWithPricingAndMeta',
+        context: 'sku-repository',
         skuId,
         allowedStatusIds,
         allowedPricingTypes,
@@ -404,11 +404,11 @@ const getSkuDetailsWithPricingAndMeta = async (
 
       throw AppError.notFoundError('SKU not found or not visible under current status filter');
     }
-console.log(result.rows);
+    
     return result.rows[0];
   } catch (error) {
     logSystemException(error, 'Failed to fetch SKU details with meta', {
-      context: 'fetchSkuDetailsWithPricingAndMeta',
+      context: 'sku-repository',
       allowedStatusIds,
       allowedPricingTypes,
     });

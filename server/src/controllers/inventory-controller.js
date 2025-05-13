@@ -1,7 +1,6 @@
 const {
   fetchAllInventories,
   createInventoryRecords,
-  fetchPaginatedInventorySummary,
 } = require('../services/inventory-service');
 const wrapAsync = require('../utils/wrap-async');
 const { logError } = require('../utils/logger-helper');
@@ -51,40 +50,7 @@ const createInventoryRecordsController = wrapAsync(async (req, res, next) => {
   }
 });
 
-/**
- * Controller to handle paginated inventory summary requests.
- *
- * @route GET /inventory/summary
- * @queryparam {number} page - The page number (1-based)
- * @queryparam {number} limit - Number of items per page
- * @returns {object} JSON response with paginated inventory summary
- */
-const getPaginatedInventorySummaryController = wrapAsync(
-  async (req, res, next) => {
-    try {
-      const { page, limit } = req.query;
-      const user = req.user;
-
-      const { data, pagination } = await fetchPaginatedInventorySummary({
-        page,
-        limit,
-        user,
-      });
-
-      res.status(200).json({
-        success: true,
-        message: 'Inventory summary fetched successfully.',
-        data,
-        pagination,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
 module.exports = {
   getAllInventoriesController,
   createInventoryRecordsController,
-  getPaginatedInventorySummaryController,
 };

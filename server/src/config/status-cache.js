@@ -8,32 +8,67 @@ const AppError = require('../utils/AppError');
 let statusMap = null;
 
 /**
- * Fetches status IDs from multiple status-related tables.
- * Returns a map like: { product_active: <uuid>, lot_in_stock: <uuid> }
+ * Defines mappings from logical status keys used in application code
+ * to their corresponding status name and source table in the database.
  *
- * @returns {Promise<Object>} Status ID map
+ * - `key`: The name used in the app to refer to this status (e.g., 'product_active')
+ * - `table`: The source table where the status resides (e.g., 'status', 'inventory_status')
+ * - `name`: The exact status name in the DB (case-insensitive match)
+ *
+ * This is used by `getStatusIdMap()` to dynamically fetch status UUIDs for system-wide usage.
+ */
+const STATUS_KEY_LOOKUP = [
+  { key: 'product_active', table: 'status', name: 'active' },
+  { key: 'warehouse_active', table: 'status', name: 'active' },
+  { key: 'sku_active', table: 'status', name: 'active' },
+  { key: 'lot_in_stock', table: 'inventory_status', name: 'in_stock' },
+];
+
+/**
+ * Fetches a map of application-level status keys to actual status UUIDs,
+ * by dynamically resolving entries defined in the `status_keys` table.
+ *
+ * Example output:
+ * {
+ *   product_active: 'uuid-...',
+ *   warehouse_active: 'uuid-...',
+ *   lot_in_stock: 'uuid-...'
+ * }
+ *
+ * This allows central configuration of logical status keys and prevents hardcoding.
+ *
+ * @returns {Promise<Readonly<Record<string, string>>>} A frozen map of { a key: UUID }
+ * @throws {AppError} When the status map query fails
  */
 const getStatusIdMap = async () => {
   try {
-    const sql = `
-      SELECT 'status' AS source, LOWER(name) AS name, id FROM status WHERE LOWER(name) IN ('active')
-      UNION ALL
-      SELECT 'inventory_status', LOWER(name), id FROM inventory_status WHERE LOWER(name) IN ('in_stock')
-    `;
+    const nameSet = new Set();
+    const unions = [];
+    
+    for (const { table, name } of STATUS_KEY_LOOKUP) {
+      nameSet.add(`${table}:${name}`);
+    }
+    
+    const uniquePairs = Array.from(nameSet);
+    
+    for (const entry of uniquePairs) {
+      const [table, name] = entry.split(':');
+      unions.push(`
+        SELECT '${table}' AS source, LOWER(name) AS name, id FROM ${table} WHERE LOWER(name) = '${name.toLowerCase()}'
+      `);
+    }
+    
+    const sql = unions.join(' UNION ALL ');
     
     const { rows } = await query(sql);
     
     const map = {};
-    for (const row of rows) {
-      if (row.source === 'status' && row.name === 'active') {
-        map.product_active = row.id;
-        map.warehouse_active = row.id;
-      } else if (row.source === 'inventory_status' && row.name === 'in_stock') {
-        map.lot_in_stock = row.id;
-      }
+    for (const { key, table, name } of STATUS_KEY_LOOKUP) {
+      const row = rows.find(r => r.source === table && r.name === name.toLowerCase());
+      if (row) map[key] = row.id;
     }
     
-    return Object.freeze(map); // prevent accidental mutation
+    return Object.freeze(map);
   } catch (error) {
     logSystemException(error, 'Failed to fetch status IDs', {
       context: 'get-status-id-map',

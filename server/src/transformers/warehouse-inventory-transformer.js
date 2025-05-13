@@ -4,6 +4,86 @@ const {
 } = require('../utils/inventory-utils');
 
 /**
+ * Transforms a single SKU-level inventory summary row from the DB into clean application format.
+ *
+ * @param {object} row - A single row from the DB result.
+ * @returns {object} - Transformed SKU inventory summary.
+ */
+const transformSkuInventorySummaryRow = (row) => {
+  const nearestExpiryDate = row.nearest_expiry_date
+    ? new Date(row.nearest_expiry_date)
+    : null;
+  
+  const now = new Date();
+  const expiryThreshold = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000); // 90 days
+  
+  const availableQty = Number(row.total_available_quantity);
+  
+  return {
+    skuId: row.sku_id,
+    sku: row.sku,
+    countryCode: row.country_code,
+    sizeLabel: row.size_label,
+    itemName: row.item_name,
+    
+    totalInventoryEntries: Number(row.total_inventory_entries),
+    recordedQuantity: Number(row.recorded_quantity),
+    actualQuantity: Number(row.actual_quantity),
+    availableQuantity: availableQty,
+    reservedQuantity: Number(row.total_reserved_quantity),
+    totalLots: Number(row.total_lots),
+    lotQuantity: Number(row.total_lot_quantity),
+    
+    earliestManufactureDate: row.earliest_manufacture_date
+      ? new Date(row.earliest_manufacture_date)
+      : null,
+    nearestExpiryDate,
+    
+    status: row.display_status,
+    isNearExpiry: nearestExpiryDate && nearestExpiryDate <= expiryThreshold,
+    isLowStock: availableQty <= 30,
+    stockLevel:
+      availableQty === 0
+        ? 'none'
+        : availableQty <= 10
+          ? 'critical'
+          : availableQty <= 30
+            ? 'low'
+            : 'normal',
+  };
+};
+
+/**
+ * Transforms an array of SKU inventory summary rows.
+ *
+ * @param {Array<object>} rows - Raw DB rows.
+ * @returns {Array<object>} Transformed summary rows.
+ */
+const transformSkuInventorySummaryList = (rows = []) =>
+  rows.map(transformSkuInventorySummaryRow);
+
+/**
+ * Transforms a paginated SKU inventory result with metadata and data.
+ *
+ * @param {object} paginatedResult - Raw DB paginated result.
+ * @param {Array<object>} paginatedResult.data
+ * @param {number|string} paginatedResult.page
+ * @param {number|string} paginatedResult.limit
+ * @param {number|string} paginatedResult.totalRecords
+ * @param {number|string} paginatedResult.totalPages
+ * @returns {object} - API-ready format with pagination and transformed data
+ */
+const transformPaginatedSkuInventorySummary = (paginatedResult) => ({
+  pagination: {
+    page: Number(paginatedResult.page),
+    limit: Number(paginatedResult.limit),
+    totalRecords: Number(paginatedResult.totalRecords),
+    totalPages: Number(paginatedResult.totalPages),
+  },
+  data: transformSkuInventorySummaryList(paginatedResult.data),
+});
+
+/**
  * Transforms a single enriched warehouse inventory summary row.
  * Includes calculated indicators such as stock level, expiry severity, and notes.
  *
@@ -104,7 +184,7 @@ const transformWarehouseInventorySummaryList = (rows = []) => {
  * Transforms a paginated result set from `getWarehouseInventories` query
  * into enriched summary format with calculated indicators.
  *
- * @param {object} paginatedResult - Raw paginated result with `pagination` and `data`.
+ * @param {object} paginatedResult - Raw-paginated result with `pagination` and `data`.
  * @returns {object} - Transformed paginated response.
  */
 const transformPaginatedWarehouseInventorySummary = (paginatedResult = {}) => {
@@ -149,7 +229,7 @@ const transformWarehouseItemSummaryRow = (row) => {
 /**
  * Transforms the full paginated item summary result for a warehouse.
  *
- * @param {object} result - The raw paginated result from getWarehouseItemSummary.
+ * @param {object} result - The raw-paginated result from getWarehouseItemSummary.
  * @param {Array<object>} result.data - The item summary rows.
  * @param {object} result.pagination - Pagination info.
  * @returns {object} - Transformed result with mapped item summary data.
@@ -300,6 +380,7 @@ const transformWarehouseInventoryRecords = (dbResults) => {
 };
 
 module.exports = {
+  transformPaginatedSkuInventorySummary,
   transformWarehouseInventorySummary,
   transformWarehouseInventorySummaryList,
   transformPaginatedWarehouseInventorySummary,

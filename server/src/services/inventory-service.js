@@ -4,7 +4,6 @@ const {
   updateInventoryQuantity,
   checkInventoryExists,
   getProductIdOrIdentifierByInventoryIds,
-  getPaginatedInventorySummary,
 } = require('../repositories/inventory-repository');
 const AppError = require('../utils/AppError');
 const { logError, logInfo, logWarn } = require('../utils/logger-helper');
@@ -39,10 +38,9 @@ const {
 } = require('../repositories/lot-adjustment-type-repository');
 const { generateChecksum } = require('../utils/crypto-utils');
 const {
-  transformPaginatedInventorySummary,
   transformPaginatedInventoryRecords,
 } = require('../transformers/inventory-transformer');
-const { canViewInventorySummary } = require('../business/inventory-business');
+const { canViewInventorySummary } = require('../business/warehouse-inventory-business');
 const {
   transformWarehouseInventoryRecords,
 } = require('../transformers/warehouse-inventory-transformer');
@@ -535,42 +533,8 @@ const fetchRecentInsertWarehouseInventoryRecords = async (warehouseLotIds) => {
   return transformWarehouseInventoryRecords(rawRecords);
 };
 
-/**
- * Fetches and processes paginated inventory summary after permission check.
- *
- * @param {object} options
- * @param {number} options.page - Page number
- * @param {number} options.limit - Page size
- * @param {object} options.user - Authenticated user object
- * @returns {Promise<object>} - Transformed and business-validated result
- */
-const fetchPaginatedInventorySummary = async ({
-  page = 1,
-  limit = 20,
-  user,
-}) => {
-  if (!user) {
-    throw AppError.authenticationError('User is not authenticated.');
-  }
-  const isAllowed = await canViewInventorySummary(user);
-  if (!isAllowed) {
-    throw AppError.authorizationError(
-      'You do not have permission to view inventory summary.'
-    );
-  }
-
-  if (page < 1 || limit < 1) {
-    throw AppError.validationError('Invalid pagination parameters.');
-  }
-
-  const rawResult = await getPaginatedInventorySummary({ page, limit });
-
-  return transformPaginatedInventorySummary(rawResult);
-};
-
 module.exports = {
   fetchAllInventories,
   createInventoryRecords,
   fetchRecentInsertWarehouseInventoryRecords,
-  fetchPaginatedInventorySummary,
 };

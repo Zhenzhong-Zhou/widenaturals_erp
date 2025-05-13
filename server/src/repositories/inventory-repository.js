@@ -9,6 +9,7 @@ const {
 } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logInfo, logError, logWarn } = require('../utils/logger-helper');
+const { logSystemError } = require('../utils/system-logger');
 
 /**
  * Fetch all inventory items with pagination & sorting.
@@ -147,96 +148,6 @@ const getInventories = async ({
   } catch (error) {
     logError('Error fetching inventories:', error);
     throw AppError.databaseError('Failed to fetch inventories');
-  }
-};
-
-/**
- * Fetch paginated inventory summary per product.
- * Includes total lot quantity, available stock, status, etc.
- *
- * @param {Object} options
- * @param {number} options.page - Page number (1-based)
- * @param {number} options.limit - Number of records per page
- * @returns {Promise<object>} - Paginated inventory summary
- */
-const getPaginatedInventorySummary = async ({ page = 1, limit = 20 }) => {
-  const baseQuery = `
-    WITH lot_agg AS (
-      SELECT
-        inventory_id,
-        COUNT(*) AS total_lots,
-        SUM(quantity) AS total_lot_quantity,
-        MIN(manufacture_date) AS earliest_manufacture_date,
-        MIN(expiry_date) AS nearest_expiry_date
-      FROM warehouse_inventory_lots
-      GROUP BY inventory_id
-    ),
-    lot_status AS (
-      SELECT
-        i.product_id,
-        MIN(CASE wls.name
-          WHEN 'expired' THEN 1
-          WHEN 'suspended' THEN 2
-          WHEN 'unavailable' THEN 3
-          WHEN 'out_of_stock' THEN 4
-          WHEN 'in_stock' THEN 5
-          ELSE 6
-        END) AS min_priority
-      FROM inventory i
-      JOIN warehouse_inventory wi ON i.id = wi.inventory_id
-      JOIN warehouse_inventory_lots wil ON i.id = wil.inventory_id AND wi.warehouse_id = wil.warehouse_id
-      LEFT JOIN warehouse_lot_status wls ON wil.status_id = wls.id
-      GROUP BY i.product_id
-    ),
-    status_names AS (
-      SELECT * FROM (
-        VALUES
-          (1, 'expired'),
-          (2, 'suspended'),
-          (3, 'unavailable'),
-          (4, 'out_of_stock'),
-          (5, 'in_stock'),
-          (6, 'unassigned')
-      ) AS s(priority, name)
-    )
-
-    SELECT
-      i.product_id,
-      COALESCE(NULLIF(p.product_name, ''), i.identifier) AS item_name,
-      COUNT(DISTINCT i.id) AS total_inventory_entries,
-      COALESCE(SUM(i.quantity), 0) AS recorded_quantity,
-      COALESCE(SUM(l.total_lot_quantity), 0) AS actual_quantity,
-      COALESCE(SUM(wi.available_quantity), 0) AS total_available_quantity,
-      COALESCE(SUM(wi.reserved_quantity), 0) AS total_reserved_quantity,
-      COALESCE(SUM(l.total_lots), 0) AS total_lots,
-      COALESCE(SUM(l.total_lot_quantity), 0) AS total_lot_quantity,
-      MIN(l.earliest_manufacture_date) AS earliest_manufacture_date,
-      MIN(l.nearest_expiry_date) AS nearest_expiry_date,
-      COALESCE(sn.name, 'unassigned') AS display_status
-    FROM inventory i
-    LEFT JOIN products p ON i.product_id = p.id
-    LEFT JOIN status s ON p.status_id = s.id
-    LEFT JOIN warehouse_inventory wi ON i.id = wi.inventory_id
-    LEFT JOIN lot_agg l ON i.id = l.inventory_id
-    LEFT JOIN lot_status ls ON i.product_id = ls.product_id
-    LEFT JOIN status_names sn ON ls.min_priority = sn.priority
-    WHERE s.name = 'active'
-    GROUP BY i.product_id, p.product_name, i.identifier, sn.name
-    ORDER BY item_name
-  `;
-
-  try {
-    return await retry(async () => {
-      return await paginateResults({
-        dataQuery: baseQuery,
-        params: [],
-        page,
-        limit,
-      });
-    });
-  } catch (error) {
-    logError('Error fetching paginated inventory summary:', error);
-    throw AppError.databaseError('Failed to fetch paginated inventory summary');
   }
 };
 
@@ -646,5 +557,4 @@ module.exports = {
   insertInventoryRecords,
   getProductIdOrIdentifierByInventoryIds,
   updateInventoryQuantity,
-  getPaginatedInventorySummary,
 };
