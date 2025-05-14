@@ -1,21 +1,15 @@
 import { createSlice } from '@reduxjs/toolkit';
-import {
-  fetchPricingTypesThunk,
-  type PricingType,
-} from '@features/pricingType';
-
-export interface PricingTypesState {
-  data: PricingType[];
-  totalRecords: number;
-  totalPages: number;
-  isLoading: boolean;
-  error: string | null;
-}
+import type { PricingTypesState } from './pricingTypeTypes';
+import { fetchAllPricingTypesThunk } from './pricingTypeThunks';
 
 const initialState: PricingTypesState = {
   data: [],
-  totalRecords: 0,
-  totalPages: 0,
+  pagination: {
+    page: 1,
+    limit: 10,
+    totalRecords: 0,
+    totalPages: 0,
+  },
   isLoading: false,
   error: null,
 };
@@ -23,24 +17,31 @@ const initialState: PricingTypesState = {
 const pricingTypeSlice = createSlice({
   name: 'pricingTypes',
   initialState,
-  reducers: {},
+  reducers: {
+    clearPricingTypesState: (state) => {
+      state.data = [];
+      state.pagination = { page: 1, limit: 10, totalRecords: 0, totalPages: 0 };
+      state.isLoading = false;
+      state.error = null;
+    },
+  },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchPricingTypesThunk.pending, (state) => {
+      .addCase(fetchAllPricingTypesThunk.pending, (state) => {
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(fetchPricingTypesThunk.fulfilled, (state, action) => {
+      .addCase(fetchAllPricingTypesThunk.fulfilled, (state, action) => {
         state.isLoading = false;
         state.data = action.payload.data;
-        state.totalRecords = action.payload.pagination.totalRecords;
-        state.totalPages = action.payload.pagination.totalPages;
+        state.pagination = action.payload.pagination;
       })
-      .addCase(fetchPricingTypesThunk.rejected, (state, action) => {
+      .addCase(fetchAllPricingTypesThunk.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload || 'Failed to fetch pricing types';
       });
   },
 });
 
+export const { clearPricingTypesState } = pricingTypeSlice.actions;
 export default pricingTypeSlice.reducer;

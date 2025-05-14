@@ -6,6 +6,30 @@ import {
 import type { ShippingInformation } from '@features/order';
 
 /**
+ * Formats nullable or undefined values into fallback strings.
+ *
+ * @param value - The original value to format.
+ * @param fallback - The fallback string to return for nullish values. Default is 'N/A'.
+ * @param emptyStringFallback - Optional fallback if the value is an empty string.
+ * @returns {string} A formatted string or the original value.
+ */
+export const formatNullable = (
+  value: any,
+  fallback: string = 'N/A',
+  emptyStringFallback?: string
+): string => {
+  if (value === null || value === undefined) {
+    return fallback;
+  }
+  
+  if (typeof value === 'string' && value.trim() === '') {
+    return emptyStringFallback ?? fallback;
+  }
+  
+  return String(value);
+};
+
+/**
  * Formats a given string into human-readable Title Case.
  * - Handles snake_case, kebab-case, and camelCase formats.
  * - Replaces underscores and hyphens with spaces.

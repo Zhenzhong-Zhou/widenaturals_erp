@@ -1,25 +1,36 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { pricingTypeService } from '@services/pricingTypeService.ts';
 import { dropdownService } from '@services/dropdownService.ts';
+import type { PaginatedResponse } from 'types/api';
 import type {
+  FetchPricingTypesParams,
+  PricingType,
   PricingTypeDropdownItem,
   PricingTypeResponse,
-  PricingTypesResponse,
 } from './pricingTypeTypes';
 
-export const fetchPricingTypesThunk = createAsyncThunk<
-  PricingTypesResponse,
-  { page: number; limit: number },
+/**
+ * Redux thunk to fetch paginated pricing types with optional filters.
+ *
+ * @param {FetchPricingTypesParams} params - Pagination and filter parameters.
+ * @returns {PaginatedResponse<PricingType>} - A paginated list of pricing types.
+ */
+export const fetchAllPricingTypesThunk = createAsyncThunk<
+  PaginatedResponse<PricingType>,
+  FetchPricingTypesParams,
   { rejectValue: string }
->('pricingTypes/fetchPricingTypes', async ({ page, limit }, thunkAPI) => {
-  try {
-    return await pricingTypeService.fetchAllPricingTypes(page, limit);
-  } catch (error: any) {
-    return thunkAPI.rejectWithValue(
-      error.message || 'Failed to fetch pricing types'
-    );
+>(
+  'pricingTypes/fetchAllPricingTypes',
+  async (params, thunkAPI) => {
+    try {
+      return await pricingTypeService.fetchAllPricingTypes(params);
+    } catch (error: any) {
+      return thunkAPI.rejectWithValue(
+        error.message || 'Failed to fetch pricing types'
+      );
+    }
   }
-});
+);
 
 export const fetchPricingTypeDetailsThunk = createAsyncThunk<
   PricingTypeResponse,

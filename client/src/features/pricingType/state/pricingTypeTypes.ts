@@ -1,29 +1,36 @@
+import type { PaginatedResponse, Pagination } from 'types/api';
+
+export interface FetchPricingTypesParams {
+  page?: number;
+  limit?: number;
+  name?: string;             // Search keyword for name/code
+  startDate?: string;        // ISO format date string
+  endDate?: string;          // ISO format date string
+}
+
 // Interface for a single PricingType
 export interface PricingType {
   id: string;
   name: string;
+  code: string;
+  slug: string;
   description: string;
   status: string;
-  status_date: string;
-  created_at: string;
-  updated_at: string;
-  created_by_fullname: string;
-  updated_by_fullname: string;
-}
-
-// Interface for Pagination data
-export interface Pagination {
-  page: number;
-  limit: number;
-  totalRecords: number;
-  totalPages: number;
+  statusDate: string;
+  createdAt: string;
+  updatedAt: string | null;
+  createdByFullName: string;
+  updatedByFullName: string | null;
 }
 
 // Interface for the response structure
-export interface PricingTypesResponse {
-  success: boolean;
+export type PricingTypesResponse = PaginatedResponse<PricingType>;
+
+export interface PricingTypesState {
   data: PricingType[];
   pagination: Pagination;
+  isLoading: boolean;
+  error: string | null;
 }
 
 export interface PricingTypeTableProps {

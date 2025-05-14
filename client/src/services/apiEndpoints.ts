@@ -12,7 +12,7 @@ export const API_ENDPOINTS = {
   ACTIVE_SKU_PRODUCT_CARDS: '/skus/cards/active',
   SKU_DETAILS: '/skus/sku-details/:skuId',
   ALL_COMPLIANCES: '/compliances',
-  ALL_PRICING_TYPES: '/pricing-types',
+  PRICING_TYPES: '/pricing-types',
   PRICING_TYPE_DETAILS: '/pricing-types/details/:id',
   ALL_PRICINGS: '/pricings',
   PRICING_DETAILS: '/pricings/details/:id',

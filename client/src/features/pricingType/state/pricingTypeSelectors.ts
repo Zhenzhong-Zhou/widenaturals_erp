@@ -1,9 +1,9 @@
 import { createSelector } from '@reduxjs/toolkit';
 import type { RootState } from '@store/store';
-import type { PricingTypesState } from '@features/pricingType/state/pricingTypeSlice';
+import type { PricingTypesState } from './pricingTypeTypes';
 
 /**
- * Base selector for the pricingTypes slice with type assertion.
+ * Base selector for the pricingTypes slices with type assertion.
  */
 const selectPricingTypesState = (state: RootState): PricingTypesState =>
   state.pricingTypes as PricingTypesState;
@@ -17,19 +17,27 @@ export const selectPricingTypes = createSelector(
 );
 
 /**
- * Selects the total number of records available.
+ * Selects the pagination object.
+ */
+export const selectPagination = createSelector(
+  selectPricingTypesState,
+  (state) => state.pagination
+);
+
+/**
+ * Selects the total number of records.
  */
 export const selectTotalRecords = createSelector(
-  selectPricingTypesState,
-  (state) => state.totalRecords
+  selectPagination,
+  (pagination) => pagination?.totalRecords ?? 0
 );
 
 /**
  * Selects the total number of pages.
  */
 export const selectTotalPages = createSelector(
-  selectPricingTypesState,
-  (state) => state.totalPages
+  selectPagination,
+  (pagination) => pagination?.totalPages ?? 1
 );
 
 /**

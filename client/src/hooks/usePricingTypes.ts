@@ -1,87 +1,49 @@
-import { useState, useEffect, useCallback } from 'react';
-import {
-  fetchPricingTypesThunk,
-  type PricingType,
-} from '@features/pricingType';
+import { useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
+  fetchAllPricingTypesThunk,
   selectError,
   selectIsLoading,
+  selectPagination,
   selectPricingTypes,
-  selectTotalPages,
-  selectTotalRecords,
+  type FetchPricingTypesParams,
 } from '@features/pricingType/state';
-
-interface UsePricingTypesParams {
-  initialPage?: number;
-  initialLimit?: number;
-}
+import type { PricingType } from '@features/pricingType';
+import type { Pagination } from 'types/api';
 
 interface UsePricingTypesReturn {
   data: PricingType[];
-  totalRecords: number;
-  totalPages: number;
-  page: number;
-  limit: number;
+  pagination: Pagination;
   isLoading: boolean;
   error: string | null;
-  setPage: (page: number) => void;
-  setLimit: (limit: number) => void;
-  refetch: () => void;
+  refetchAllPricingTypes: (params?: FetchPricingTypesParams) => void;
 }
 
-const usePricingTypes = ({
-  initialPage = 1,
-  initialLimit = 10,
-}: UsePricingTypesParams): UsePricingTypesReturn => {
+/**
+ * Hook to access pricing types and their fetch status from Redux.
+ * Pagination and fetch triggers should be managed by the calling component.
+ */
+const usePricingTypes = (): UsePricingTypesReturn => {
   const dispatch = useAppDispatch();
-
-  // Redux state
+  
   const data = useAppSelector(selectPricingTypes);
-  const totalRecords = useAppSelector(selectTotalRecords);
-  const totalPages = useAppSelector(selectTotalPages);
+  const pagination = useAppSelector(selectPagination);
   const isLoading = useAppSelector(selectIsLoading);
   const error = useAppSelector(selectError);
-
-  // Local state for pagination
-  const [page, setPage] = useState(initialPage);
-  const [limit, setLimit] = useState(initialLimit);
-
-  // Fetch pricing types
-  const fetchData = useCallback(() => {
-    dispatch(fetchPricingTypesThunk({ page, limit }));
-  }, [dispatch, page, limit]);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  // Adjust page number when `limit` changes
-  useEffect(() => {
-    setPage((prevPage) => {
-      const maxPage = Math.ceil(totalRecords / limit) || 1;
-      return Math.min(prevPage, maxPage);
-    });
-  }, [limit, totalRecords]);
-
-  // Method to manually refetch data
-  const refetch = () => {
-    fetchData();
-  };
-
+  
+  const refetchAllPricingTypes = useCallback(
+    (params: FetchPricingTypesParams = {}) => {
+      dispatch(fetchAllPricingTypesThunk(params));
+    },
+    [dispatch]
+  );
+  
   return {
     data,
-    totalRecords,
-    totalPages,
-    page,
-    limit,
+    pagination,
     isLoading,
     error,
-    setPage,
-    setLimit: (newLimit: number) => {
-      setLimit(newLimit);
-    },
-    refetch,
+    refetchAllPricingTypes,
   };
 };
 
