@@ -1,62 +1,89 @@
 const AppError = require('../utils/AppError');
 const {
-  getPricings,
+  getAllPricingRecords,
   getPricingDetailsByPricingId,
   getActiveProductPrice,
 } = require('../repositories/pricing-repository');
+const { transformPaginatedPricingResult } = require('../transformers/pricing-transformer');
+const { logSystemException } = require('../utils/system-logger');
+const { sanitizeSortBy } = require('../utils/sort-utils');
 
 /**
  * Service to fetch paginated pricing records.
+ *
+ * Supports sorting, filtering, and keyword search across product name or SKU.
+ *
  * @param {Object} options - Options for the paginated query.
  * @param {number} [options.page=1] - Current page number.
  * @param {number} [options.limit=10] - Number of records per page.
- * @returns {Promise<Object>} - Returns an object with `data` and `pagination` metadata.
+ * @param {string} [options.sortBy='brand'] - Field to sort by (must match allowed keys).
+ * @param {string} [options.sortOrder='ASC'] - Sort direction ('ASC' or 'DESC').
+ * @param {Object} [options.filters={}] - Optional filters (e.g., { brand, pricingType }).
+ * @param {string} [options.keyword] - Optional keyword for fuzzy search.
+ *
+ * @returns {Promise<Object>} - Returns transformed pricing data with pagination metadata.
  */
-const fetchAllPricings = async ({ page = 1, limit = 10 }) => {
+const fetchPaginatedPricingRecordsService = async ({
+                                  page = 1,
+                                  limit = 10,
+                                  sortBy = 'brand',
+                                  sortOrder = 'ASC',
+                                  filters = {},
+                                  keyword,
+                                }) => {
+  // Validate inputs
   if (!Number.isInteger(page) || page < 1) {
-    throw AppError.validationError(
-      'Invalid page number. Must be a positive integer.'
-    );
+    throw AppError.validationError('Invalid page number. Must be a positive integer.');
   }
-
+  
   if (!Number.isInteger(limit) || limit < 1) {
-    throw AppError.validationError(
-      'Invalid limit. Must be a positive integer.',
-      400
-    );
+    throw AppError.validationError('Invalid limit. Must be a positive integer.');
   }
-
+  
+  if ((filters.validFrom && !filters.validTo) || (!filters.validFrom && filters.validTo)) {
+    throw AppError.validationError('Both validFrom and validTo must be provided together for date filtering.');
+  }
+  
+  const sanitizedSortBy = sanitizeSortBy(sortBy, 'pricingRecords');
+  const resolvedSortOrder = sortOrder?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+  
   try {
-    // Fetch data from the repository layer
-    const pricingData = await getPricings({ page, limit });
-
-    // Business Logic: Validate response data
-    if (!pricingData || !pricingData.data || pricingData.data.length === 0) {
+    const rawResult = await getAllPricingRecords({
+      page,
+      limit,
+      sortBy: sanitizedSortBy,
+      sortOrder: resolvedSortOrder,
+      filters,
+      keyword,
+    });
+    
+    if (!rawResult || !rawResult.data || rawResult.data.length === 0) {
       return {
+        success: true,
+        message: 'No pricing records found.',
         data: [],
         pagination: {
+          page,
+          limit,
           totalRecords: 0,
           totalPages: 0,
-          currentPage: page,
-          limit,
-          hasNextPage: false,
-          hasPrevPage: page > 1,
         },
       };
     }
-
-    // Additional Business Logic: Example - Mask certain price values based on user role (if applicable)
-    const sanitizedData = pricingData.data.map((item) => ({
-      ...item,
-      price: item.price ? parseFloat(item.price).toFixed(2) : 'N/A', // Ensures consistent price format
-    }));
-
-    return {
-      data: sanitizedData,
-      pagination: pricingData.pagination,
-    };
+    
+    return transformPaginatedPricingResult(rawResult);
   } catch (error) {
-    throw AppError.serviceError('Failed to fetch pricing data', 500, error);
+    logSystemException(error, 'Failed to fetch pricing records', {
+      context: 'pricing-service/fetchPaginatedPricingRecordsService',
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+      filters,
+      keyword,
+    });
+    
+    throw AppError.serviceError('Failed to fetch pricing records', 500, error);
   }
 };
 
@@ -136,7 +163,7 @@ const fetchPriceByProductAndPriceType = async (productId, priceTypeId) => {
 };
 
 module.exports = {
-  fetchAllPricings,
+  fetchPaginatedPricingRecordsService,
   fetchPricingDetailsByPricingId,
   fetchPriceByProductAndPriceType,
 };

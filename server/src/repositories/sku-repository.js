@@ -4,8 +4,7 @@ const {
   logSystemException
 } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
-const { FILTERABLE_FIELDS } = require('../utils/filter-field-mapping');
-const { sanitizeSortBy } = require('../utils/sort-utils');
+const { buildWhereClauseAndParams } = require('../utils/ sql/build-sku-filters');
 
 /**
  * Retrieves the most recent SKU string for a given brand and category combination.
@@ -55,60 +54,6 @@ const getLastSku = async (brandCode, categoryCode) => {
 };
 
 /**
- * Builds a dynamic SQL WHERE clause and parameter array for filtering active SKUs and products.
- *
- * @param {string} productStatusId - UUID of the 'active' status to filter both products and SKUs.
- * @param {Object} [filters={}] - Optional filters to apply.
- * @param {string} [filters.brand] - Product brand (e.g., "Canaherb").
- * @param {string} [filters.category] - Product category (e.g., "Herbal Natural").
- * @param {string} [filters.marketRegion] - SKU market region (e.g., "CN", "CA").
- * @param {string} [filters.sizeLabel] - SKU size label (e.g., "60 Capsules").
- * @param {string} [filters.keyword] - Partial product name for search (ILIKE).
- * @returns {{ whereClause: string, params: Array<any> }} SQL-safe WHERE clause and parameter list.
- */
-const buildWhereClauseAndParams = (productStatusId, filters = {}) => {
-  try {
-    const fieldMap = FILTERABLE_FIELDS.skuProductCards;
-    const conditions = [`p.status_id = $1`, `sku.status_id = $1`];
-    const params = [productStatusId];
-    let paramIndex = 2;
-    
-    for (const [key, value] of Object.entries(filters)) {
-      if (value !== undefined && value !== null && value !== '') {
-        const field = fieldMap[key];
-        if (!field) continue;
-        
-        if (key === 'keyword') {
-          conditions.push(`${field} ILIKE $${paramIndex}`);
-          params.push(`%${value}%`);
-        } else {
-          conditions.push(`${field} = $${paramIndex}`);
-          params.push(value);
-        }
-        
-        paramIndex++;
-      }
-    }
-    
-    return {
-      whereClause: conditions.join(' AND '),
-      params,
-    };
-  } catch (err) {
-    logSystemException(err, 'Failed to construct WHERE clause', {
-      context: 'sku-repository/buildWhereClauseAndParams',
-      error: err.message,
-      filters,
-      productStatusId,
-    });
-    throw AppError.transformerError('Failed to prepare filter conditions', {
-      details: err.message,
-      stage: 'build-where-clause',
-    });
-  }
-};
-
-/**
  * Fetch a paginated list of active SKUs for product display (e.g., product cards or grid).
  * Includes basic product info, active SKU data, NPN compliance, pricing (MSRP), and primary image.
  *
@@ -150,7 +95,6 @@ const fetchPaginatedActiveSkusWithProductCards = async ({
                                                         }) => {
   try {
     const { whereClause, params } = buildWhereClauseAndParams(productStatusId, filters);
-    const orderBy = sanitizeSortBy(sortBy, 'skuProductCards');
     
     const queryText = `
       SELECT
@@ -194,13 +138,13 @@ const fetchPaginatedActiveSkusWithProductCards = async ({
         comp.compliance_id,
         pr.price,
         img.image_url, img.alt_text
-      ORDER BY ${orderBy} ${sortOrder}
+      ORDER BY ${sortBy} ${sortOrder}
     `;
     
     logSystemInfo('Fetching paginated active SKUs with product cards', null, {
       context: 'sku-repository/fetchPaginatedActiveSkusWithProductCards',
       filters,
-      sortBy: orderBy,
+      sortBy,
       sortOrder,
       page,
       limit,
@@ -209,12 +153,15 @@ const fetchPaginatedActiveSkusWithProductCards = async ({
     return await paginateResults({
       dataQuery: queryText,
       params,
+      filters,
+      sortBy,
+      sortOrder,
       page,
       limit,
     });
   } catch (error) {
     logSystemException(error, 'Error fetching active SKUs with product cards', {
-      context: 'fetchPaginatedActiveSkusWithProductCards',
+      context: 'sku-repository/fetchPaginatedActiveSkusWithProductCards',
       stage: 'query-execution',
     });
     throw AppError.databaseError('Failed to fetch active product SKUs', {

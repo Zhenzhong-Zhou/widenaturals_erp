@@ -1,6 +1,112 @@
 const { query, paginateQuery, retry } = require('../database/db');
 const AppError = require('../utils/AppError');
-const { logInfo, logError } = require('../utils/logger-helper');
+const {
+  logSystemInfo, logSystemException
+} = require('../utils/system-logger');
+const { logError } = require('../utils/logger-helper');
+const { buildPricingFilters } = require('../utils/ sql/build-pricing-filters');
+
+/**
+ * Fetches a paginated list of pricing records with enriched SKU and product data.
+ *
+ * Supports optional sorting, keyword search, and filtering by fields like brand or pricing type.
+ *
+ * @param {Object} options - Options for pagination, sorting, and filtering.
+ * @param {number} options.page - Current page number (1-based index).
+ * @param {number} options.limit - Number of records per page.
+ * @param {string} [options.sortBy='brand'] - Field to sort by (e.g., 'productName', 'price').
+ * @param {string} [options.sortOrder='ASC'] - Sort direction: 'ASC' or 'DESC'.
+ * @param {Object} [options.filters] - Optional filters (e.g., { brand: 'X', pricingType: 'MSRP' }).
+ * @param {string} [options.keyword] - Optional keyword for fuzzy search across product name or SKU.
+ *
+ * @returns {Promise<Object>} - Paginated pricing data and metadata:
+ * {
+ *   data: Array<PricingListItem>,
+ *   pagination: {
+ *     page: number,
+ *     limit: number,
+ *     totalRecords: number,
+ *     totalPages: number
+ *   }
+ * }
+ *
+ * @throws {AppError} - On validation failure or database error.
+ */
+const getAllPricingRecords = async ({
+                                             page,
+                                             limit,
+                                             sortBy = 'brand',
+                                             sortOrder,
+                                             filters = {},
+                                             keyword,
+                                           }) => {
+  const tableName = 'pricing p';
+  const joins = [
+    'JOIN pricing_types pt ON pt.id = p.price_type_id',
+    'JOIN skus s ON s.id = p.sku_id',
+    'JOIN products pr ON pr.id = s.product_id',
+  ];
+  
+  // Use extracted filter logic
+  const { whereClause, params } = buildPricingFilters(filters, keyword);
+  
+  const baseQueryText = `
+    SELECT
+      p.id AS pricing_id,
+      p.price,
+      p.valid_from,
+      p.valid_to,
+      pt.name AS pricing_type,
+      pt.code AS pricing_type_code,
+      s.id AS sku_id,
+      s.sku,
+      s.country_code,
+      s.size_label,
+      s.barcode,
+      pr.id AS product_id,
+      pr.name AS product_name,
+      pr.brand
+    FROM ${tableName}
+    ${joins.join(' ')}
+    WHERE ${whereClause}
+  `;
+  
+  try {
+    logSystemInfo('Fetching paginated pricing records', {
+      context: 'pricing-repository/getAllPricingRecords',
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+      filters,
+      keyword,
+    });
+    
+    return await paginateQuery({
+      tableName,
+      joins,
+      whereClause,
+      queryText: baseQueryText,
+      params,
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+    });
+  } catch (error) {
+    logSystemException(error,'Failed to fetch pricing records', {
+      context: 'pricing-repository/getAllPricingRecords',
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+      filters,
+      keyword,
+    });
+    
+    throw AppError.databaseError('Failed to fetch pricing list', error);
+  }
+};
 
 const getPricingDetailsByPricingTypeId = async ({
   pricingTypeId,
@@ -57,7 +163,42 @@ const getPricingDetailsByPricingTypeId = async ({
     LEFT JOIN users updated_by_user ON pr.updated_by = updated_by_user.id
     WHERE pr.price_type_id = $1
   `;
-
+  
+  const example = `
+    SELECT
+  pt.name AS pricing_type,
+    pt.code AS pricing_type_code,
+    pt.slug AS pricing_type_slug,
+    pt.description AS pricing_type_description,
+    pt.status_id,
+    pt.status_date,
+    pt.created_at AS created_at,
+    pt.created_by AS created_by,
+    pt.updated_at AS updated_at,
+    pt.updated_by AS updated_by,
+    p.location_id,
+    p.price,
+    p.valid_from,
+    p.valid_to,
+    p.status_id,
+    p.created_at AS created_at,
+    p.created_by AS created_by,
+    p.updated_at AS updated_at,
+    p.updated_by AS updated_by,
+    s.sku,
+    s.barcode,
+    s.country_code,
+    s.size_label,
+    pr.name AS product_name,
+    pr.brand AS brand_name
+  FROM pricing p
+  JOIN pricing_types pt ON pt.id = p.price_type_id
+  JOIN skus s ON s.id = p.sku_id
+  JOIN products pr ON pr.id = s.product_id
+  WHERE p.price_type_id = 'd421a039-4b39-4809-bdeb-902296c9aa4b'
+  ORDER BY pr.name, s.sku;
+  `
+  
   try {
     return await retry(async () => {
       return await paginateQuery({
@@ -74,65 +215,6 @@ const getPricingDetailsByPricingTypeId = async ({
     });
   } catch (error) {
     throw AppError.databaseError('Failed to fetch pricing details', error);
-  }
-};
-
-/**
- * Fetches paginated pricing records with related entity names.
- * @param {Object} options - Options for the paginated query.
- * @param {number} [options.page=1] - Current page number (1-based index).
- * @param {number} [options.limit=10] - Number of records per page.
- * @returns {Promise<Object>} - Returns an object with `data` (records) and `pagination` (metadata).
- */
-const getPricings = async ({ page, limit }) => {
-  const tableName = 'pricing p'; // Alias for pricing table
-
-  const joins = [
-    'LEFT JOIN products pr ON p.product_id = pr.id',
-    'LEFT JOIN pricing_types pt ON p.price_type_id = pt.id',
-    'LEFT JOIN locations l ON p.location_id = l.id',
-    'LEFT JOIN status s ON p.status_id = s.id',
-    'LEFT JOIN users u1 ON p.created_by = u1.id',
-    'LEFT JOIN users u2 ON p.updated_by = u2.id',
-  ];
-
-  const whereClause = '1=1'; // Default where clause
-
-  const baseQuery = `
-    SELECT
-      p.id AS pricing_id,
-      pr.product_name,
-      pt.name AS price_type,
-      l.name AS location,
-      p.price,
-      p.valid_from,
-      p.valid_to,
-      s.name AS status_name,
-      p.status_date,
-      p.created_at,
-      p.updated_at,
-      COALESCE(u1.firstname || ' ' || u1.lastname, 'Unknown') AS created_by,
-      COALESCE(u2.firstname || ' ' || u2.lastname, 'Unknown') AS updated_by
-    FROM ${tableName}
-    ${joins.join(' ')}
-  `;
-
-  try {
-    return await retry(() =>
-      paginateQuery({
-        tableName,
-        joins,
-        whereClause,
-        queryText: baseQuery,
-        params: [],
-        page,
-        limit,
-        sortBy: 'pr.product_name',
-        sortOrder: 'ASC',
-      })
-    );
-  } catch (error) {
-    throw AppError.databaseError('Failed to fetch pricing data', error);
   }
 };
 
@@ -256,8 +338,8 @@ const getActiveProductPrice = async (productId, priceTypeId, client) => {
 };
 
 module.exports = {
+  getAllPricingRecords,
   getPricingDetailsByPricingTypeId,
-  getPricings,
   getPricingDetailsByPricingId,
   getActiveProductPrice,
 };

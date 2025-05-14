@@ -1,37 +1,60 @@
 const wrapAsync = require('../utils/wrap-async');
 const {
-  fetchAllPricings,
+  fetchPaginatedPricingRecordsService,
   fetchPricingDetailsByPricingId,
   fetchPriceByProductAndPriceType,
 } = require('../services/pricing-service');
 
 /**
  * Controller to handle the fetching of paginated pricing records.
+ *
  * @param {Request} req - Express request object.
  * @param {Response} res - Express response object.
  * @param {Function} next - Express next middleware function.
  */
-const getPricingsController = wrapAsync(async (req, res, next) => {
-  try {
-    const { page, limit } = req.query;
-
-    // Ensure page and limit are numbers
-    const parsedPage = parseInt(page, 10) || 1;
-    const parsedLimit = parseInt(limit, 10) || 10;
-
-    const pricingData = await fetchAllPricings({
-      page: parsedPage,
-      limit: parsedLimit,
-    });
-
-    return res.status(200).json({
-      success: true,
-      message: 'Pricing records fetched successfully.',
-      data: pricingData,
-    });
-  } catch (error) {
-    next(error);
-  }
+const getPaginatedPricingRecordsController = wrapAsync(async (req, res, next) => {
+  const {
+    page,
+    limit,
+    sortBy,
+    sortOrder,
+    keyword,
+    brand,
+    pricingType,
+    countryCode,
+    sizeLabel,
+    validFrom,
+    validTo,
+  } = req.query;
+  
+  // Parse and normalize numeric values
+  const parsedPage = parseInt(page, 10) || 1;
+  const parsedLimit = parseInt(limit, 10) || 10;
+  
+  // Build filters object
+  const filters = {
+    ...(brand && { brand }),
+    ...(pricingType && { pricingType }),
+    ...(countryCode && { countryCode }),
+    ...(sizeLabel && { sizeLabel }),
+    ...(validFrom && { validFrom }),
+    ...(validTo && { validTo }),
+  };
+  
+  const pricingData = await fetchPaginatedPricingRecordsService({
+    page: parsedPage,
+    limit: parsedLimit,
+    sortBy,
+    sortOrder,
+    filters,
+    keyword,
+  });
+  
+  return res.status(200).json({
+    success: true,
+    message: 'Pricing records fetched successfully.',
+    ...pricingData, // includes data and pagination
+  });
 });
 
 /**
@@ -76,7 +99,7 @@ const getPriceByProductAndPriceTypeController = wrapAsync(
 );
 
 module.exports = {
-  getPricingsController,
+  getPricingsController: getPaginatedPricingRecordsController,
   getPricingDetailsController,
   getPriceByProductAndPriceTypeController,
 };

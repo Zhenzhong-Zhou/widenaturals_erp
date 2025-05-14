@@ -22,7 +22,7 @@ const getActiveSkuProductCardsController = wrapAsync(async (req, res) => {
   const {
     page = 1,
     limit = 10,
-    sortBy = 'p.name, p.created_at',
+    sortBy = 'name, created_at',
     sortOrder = 'DESC',
     brand,
     category,
@@ -32,17 +32,16 @@ const getActiveSkuProductCardsController = wrapAsync(async (req, res) => {
   } = req.query;
   
   const filters = { brand, category, marketRegion, sizeLabel, keyword };
-  const sanitizedSortBy = sanitizeSortBy(sortBy, 'skuProductCards');
   
   logInfo('Fetching active SKU product cards', req, {
     context: 'sku-controller',
-    query: { page, limit, sortBy: sanitizedSortBy, sortOrder, filters },
+    query: { page, limit, sortBy, sortOrder, filters },
   });
   
   const result = await fetchPaginatedSkuProductCardsService({
     page: Number(page),
     limit: Number(limit),
-    sortBy: sanitizedSortBy,
+    sortBy,
     sortOrder,
     filters,
   });
