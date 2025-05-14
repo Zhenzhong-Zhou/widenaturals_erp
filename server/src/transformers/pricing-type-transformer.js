@@ -75,11 +75,11 @@ const transformPaginatedPricingTypeResult = (paginatedResult) => ({
  *   code: string,
  *   slug: string,
  *   description: string,
- *   status: { id: string, name: string, status_date: string },
- *   created_by: { id: string, full_name: string },
- *   updated_by: { id: string | null, full_name: string },
- *   created_at: string,
- *   updated_at: string | null
+ *   status: { id: string, name: string, statusDate: string },
+ *   createdBy: { id: string, fullName: string },
+ *   updatedBy: { id: string | null, fullName: string },
+ *   createdAt: string,
+ *   updatedAt: string | null
  * }}
  */
 const transformPricingTypeMetadata = (row) => ({
@@ -91,18 +91,18 @@ const transformPricingTypeMetadata = (row) => ({
   status: {
     id: row.status_id,
     name: row.status_name,
-    status_date: row.status_date,
+    statusDate: row.status_date,
   },
-  created_by: {
+  createdBy: {
     id: row.created_by_id,
-    full_name: `${row.created_by_firstname || ''} ${row.created_by_lastname || ''}`.trim() || 'Unknown',
+    fullName: `${row.created_by_firstname || ''} ${row.created_by_lastname || ''}`.trim() || 'Unknown',
   },
-  updated_by: {
+  updatedBy: {
     id: row.updated_by_id,
-    full_name: `${row.updated_by_firstname || ''} ${row.updated_by_lastname || ''}`.trim() || 'Unknown',
+    fullName: `${row.updated_by_firstname || ''} ${row.updated_by_lastname || ''}`.trim() || 'Unknown',
   },
-  created_at: row.pricing_type_created_at,
-  updated_at: row.pricing_type_updated_at,
+  createdAt: row.pricing_type_created_at,
+  updatedAt: row.pricing_type_updated_at,
 });
 
 module.exports = {

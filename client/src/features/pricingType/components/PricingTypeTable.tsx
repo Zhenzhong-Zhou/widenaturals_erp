@@ -5,16 +5,7 @@ import CustomTable, { type Column } from '@components/common/CustomTable';
 import { formatDateTime } from '@utils/dateTimeUtils';
 import { formatLabel, formatNullable } from '@utils/textUtils';
 import { useThemeContext } from '@context/ThemeContext.tsx';
-
-interface PricingTypeTableProps {
-  data: PricingType[];
-  page: number; // zero-based for MUI
-  rowsPerPage: number;
-  totalRecords: number;
-  totalPages: number;
-  onPageChange: (newPage: number) => void;
-  onRowsPerPageChange: (newLimit: number) => void;
-}
+import type { PricingTypeTableProps } from '../state';
 
 const PricingTypeTable: FC<PricingTypeTableProps> = ({
                                                        data,

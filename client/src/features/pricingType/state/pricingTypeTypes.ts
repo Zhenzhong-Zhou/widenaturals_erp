@@ -35,12 +35,12 @@ export interface PricingTypesState {
 
 export interface PricingTypeTableProps {
   data: PricingType[];
-  totalPages: number;
-  totalRecords: number;
+  page: number; // zero-based for MUI
   rowsPerPage: number;
-  page: number;
+  totalRecords: number;
+  totalPages: number;
   onPageChange: (newPage: number) => void;
-  onRowsPerPageChange: (newRowsPerPage: number) => void;
+  onRowsPerPageChange: (newLimit: number) => void;
 }
 
 // Interface for Created/Updated By User Info
