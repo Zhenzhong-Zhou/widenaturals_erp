@@ -68,7 +68,7 @@ export const routes = [
     },
   },
   {
-    path: '/pricing_types/:id',
+    path: '/pricing_types/:slug/:id',
     component: lazy(
       () => import('@features/pricingType/pages/PricingTypeDetailsPage')
     ),

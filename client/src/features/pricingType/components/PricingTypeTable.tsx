@@ -34,12 +34,23 @@ const PricingTypeTable: FC<PricingTypeTableProps> = ({
       sortable: true,
       renderCell: (row: PricingType) => (
         <Link
-          to={`/pricing-types/${row.id}`}
+          to={`/pricing-types/${row.slug}/${row.id}`}
           style={{ textDecoration: 'none', color: theme.palette.primary.main, fontWeight: 500 }}
         >
           {row.name}
         </Link>
       ),
+    },
+    {
+      id: 'code',
+      label: 'Code',
+      sortable: false
+    },
+    {
+      id: 'slug',
+      label: 'Slug',
+      sortable: false,
+      format: formatLabel,
     },
     { id: 'description', label: 'Description', sortable: false },
     {
