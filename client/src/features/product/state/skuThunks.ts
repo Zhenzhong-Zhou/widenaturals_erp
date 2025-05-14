@@ -47,7 +47,8 @@ export const fetchSkuDetailsThunk = createAsyncThunk<
   'sku/fetchSkuDetails',
   async (skuId, { rejectWithValue }) => {
     try {
-      return await skuService.getSkuDetails(skuId);
+      const response = await skuService.getSkuDetails(skuId);
+      return response.data; // Extract just the SkuDetail
     } catch (error) {
       let message = 'Failed to fetch SKU details.';
       

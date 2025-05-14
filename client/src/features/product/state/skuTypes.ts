@@ -1,9 +1,4 @@
-export interface Pagination {
-  page: number;
-  limit: number;
-  totalRecords: number;
-  totalPages: number;
-}
+import type { ApiSuccessResponse, PaginatedResponse } from "types/api";
 
 export interface SkuProductCard {
   skuId: string;
@@ -19,12 +14,7 @@ export interface SkuProductCard {
   imageAltText: string;
 }
 
-export interface PaginatedSkuProductCardResponse {
-  success: boolean;
-  message: string;
-  data: SkuProductCard[];
-  pagination: Pagination;
-}
+export type PaginatedSkuProductCardResponse = PaginatedResponse<SkuProductCard>;
 
 export interface SkuProductCardFilters {
   brand?: string;
@@ -125,3 +115,5 @@ export interface SkuDetails {
   compliances: ComplianceInfo[];
   images: ImageInfo[];
 }
+
+export type SkuDetailResponse = ApiSuccessResponse<SkuDetails>;
