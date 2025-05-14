@@ -12,9 +12,9 @@ import type {
 } from '@features/warehouseInventory';
 import { warehouseInventoryService } from '@services/warehouseInventoryService';
 import { dropdownService } from '@services/dropdownService';
+import type { PaginatedResponse } from 'types/api';
 import type {
   FetchWarehouseInventoryItemSummaryParams,
-  PaginatedResponse,
   WarehouseInventoryItemSummary,
 } from '@features/warehouseInventory/state/warehouseInventoryTypes.ts';
 

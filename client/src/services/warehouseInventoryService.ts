@@ -16,9 +16,9 @@ import { AppError } from '@utils/AppError';
 import type {
   FetchWarehouseInventoryItemSummaryParams,
   InventoryRecordInsertResponse,
-  PaginatedResponse,
   WarehouseInventoryItemSummary,
 } from '@features/warehouseInventory/state';
+import type { PaginatedResponse } from 'types/api';
 import type {
   AvailableInventoryLotsResponse, FetchAvailableInventoryRequest,
 } from '@features/inventoryAllocation';
@@ -32,12 +32,10 @@ import type {
 const fetchWarehouseInventoryItemSummary = async (
   params: FetchWarehouseInventoryItemSummaryParams
 ): Promise<PaginatedResponse<WarehouseInventoryItemSummary>> => {
-  console.log(params);
   const response = await axiosInstance.get<PaginatedResponse<WarehouseInventoryItemSummary>>(
     API_ENDPOINTS.WAREHOUSE_INVENTORY_SUMMARY,
     { params }
   );
-  console.log("response: ", response);
   return response.data;
 };
 

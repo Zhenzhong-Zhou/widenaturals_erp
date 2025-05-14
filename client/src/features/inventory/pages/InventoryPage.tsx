@@ -16,10 +16,11 @@ const InventorySummaryTable = lazy(() => import('@features/inventory/components/
 // const InventoryTable = lazy(() => import('@features/inventory/components/InventoryTable'));
 
 const InventoryPage = () => {
-  const [tab, setTab] = useState(0); // 0 = Summary, 1 = List
+  const [tab, setTab] = useState(0); // 0 = Summaries, 1 = List
   const [itemTypeTab, setItemTypeTab] = useState(0); // 0 = all, 1 = product, 2 = material
   const [page, setPage] = useState(1);
-  // const [limit, setLimit] = useState(10);
+  // const [limit, setLimit] = useState(20);
+  const [limit] = useState(20);
   
   
   const itemType = useMemo(() => {
@@ -37,7 +38,7 @@ const InventoryPage = () => {
   // On tab switch, optionally refresh (or you can remove this entirely if autoFetch is true)
   useEffect(() => {
     if (tab === 0) {
-      fetchWarehouseInventorySummary({ page: 1, itemType });
+      fetchWarehouseInventorySummary({ page: 1, limit,  itemType });
     }
   }, [tab, itemType]);
 
@@ -110,12 +111,12 @@ const InventoryPage = () => {
                     rowsPerPage={inventorySummaryPagination?.limit ?? 20}
                     totalRecords={inventorySummaryPagination?.totalRecords ?? 0}
                     totalPages={inventorySummaryPagination?.totalPages ?? 1}
-                    onPageChange={(newPage) => fetchWarehouseInventorySummary({ page: newPage + 1, itemType })}
+                    onPageChange={(newPage) => fetchWarehouseInventorySummary({ page: newPage + 1, limit, itemType })}
                     onRowsPerPageChange={(newLimit) => fetchWarehouseInventorySummary({ page: 1, limit: newLimit, itemType })}
                   />
                 </Suspense>
               )}
-              <CustomButton onClick={() => fetchWarehouseInventorySummary({ page, itemType })} sx={{ mt: 2 }}>
+              <CustomButton onClick={() => fetchWarehouseInventorySummary({ page, limit, itemType })} sx={{ mt: 2 }}>
                 Refresh Summary
               </CustomButton>
             </>

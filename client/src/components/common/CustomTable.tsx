@@ -209,6 +209,14 @@ const CustomTable = <T extends Record<string, any>>({
         onRowsPerPageChange={(e) =>
           onRowsPerPageChange(parseInt(e.target.value, 10))
         }
+        slotProps={{
+          select: {
+            inputProps: {
+              name: 'rows-per-page',
+              id: 'rows-per-page-selector',
+            },
+          },
+        }}
         sx={{
           backgroundColor: theme.palette.background.default,
           borderTop: `1px solid ${theme.palette.divider}`,

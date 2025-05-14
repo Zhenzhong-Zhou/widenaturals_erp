@@ -1,10 +1,3 @@
-export interface WarehouseInventoryPagination {
-  page: number;
-  limit: number;
-  totalRecords: number;
-  totalPages: number;
-}
-
 export interface FetchWarehouseInventoryItemSummaryParams {
   page?: number;
   limit?: number;
@@ -55,18 +48,6 @@ export interface MaterialWarehouseInventorySummary extends BaseWarehouseInventor
 export type WarehouseInventoryItemSummary =
   | ProductWarehouseInventorySummary
   | MaterialWarehouseInventorySummary;
-
-export interface PaginatedResponse<T> {
-  success: boolean;
-  message: string;
-  data: T[];
-  pagination: {
-    page: number;
-    limit: number;
-    totalRecords: number;
-    totalPages: number;
-  };
-}
 
 export interface Warehouse {
   id: string;
