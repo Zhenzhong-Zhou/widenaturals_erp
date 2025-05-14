@@ -56,7 +56,7 @@ export const routes = [
     meta: { requiresAuth: true, title: 'Compliances', showInSidebar: true },
   },
   {
-    path: '/pricing_types',
+    path: '/pricing-types',
     component: lazy(
       () => import('@features/pricingType/pages/PricingTypePage')
     ),
@@ -68,7 +68,7 @@ export const routes = [
     },
   },
   {
-    path: '/pricing_types/:slug/:id',
+    path: '/pricing-types/:slug/:id',
     component: lazy(
       () => import('@features/pricingType/pages/PricingTypeDetailsPage')
     ),

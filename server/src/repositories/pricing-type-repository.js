@@ -111,38 +111,49 @@ const getAllPriceTypes = async ({
   }
 };
 
+/**
+ * Fetch detailed metadata for a specific pricing type by its ID.
+ *
+ * @param {string} pricingTypeId - The UUID of the pricing type to retrieve.
+ * @returns {Promise<object|null>} The pricing type metadata, or null if not found.
+ * @throws {AppError} If a database error occurs.
+ */
 const getPricingTypeById = async (pricingTypeId) => {
   const pricingTypeQuery = `
     SELECT
       pt.id AS pricing_type_id,
       pt.name AS pricing_type_name,
+      pt.code AS pricing_type_code,
+      pt.slug AS pricing_type_slug,
       pt.description AS pricing_type_description,
-      pts.name AS status,
+      pt.status_id,
+      status.name AS status_name,
       pt.status_date,
-      pt.created_at,
-      pt.updated_at,
-      jsonb_build_object(
-          'id', created_by_user.id,
-          'full_name', COALESCE(created_by_user.firstname || ' ' || created_by_user.lastname, 'Unknown')
-      ) AS created_by,
-      jsonb_build_object(
-          'id', updated_by_user.id,
-          'full_name', COALESCE(updated_by_user.firstname || ' ' || updated_by_user.lastname, 'Unknown')
-      ) AS updated_by
+      pt.created_at AS pricing_type_created_at,
+      pt.updated_at AS pricing_type_updated_at,
+      created_by_user.id AS created_by_id,
+      created_by_user.firstname AS created_by_firstname,
+      created_by_user.lastname AS created_by_lastname,
+      updated_by_user.id AS updated_by_id,
+      updated_by_user.firstname AS updated_by_firstname,
+      updated_by_user.lastname AS updated_by_lastname
     FROM pricing_types pt
-    LEFT JOIN status pts ON pt.status_id = pts.id
+    LEFT JOIN status ON pt.status_id = status.id
     LEFT JOIN users created_by_user ON pt.created_by = created_by_user.id
     LEFT JOIN users updated_by_user ON pt.updated_by = updated_by_user.id
     WHERE pt.id = $1;
   `;
-
+  
   try {
-    return await retry(async () => {
-      const result = await query(pricingTypeQuery, [pricingTypeId]);
-      return result.rows.length ? result.rows[0] : null;
-    });
+    const result = await query(pricingTypeQuery, [pricingTypeId]);
+    return result.rows.length > 0 ? result.rows[0] : null;
   } catch (error) {
-    throw AppError.databaseError('Failed to fetch pricing type details');
+    logSystemError('Failed to fetch pricing type details', {
+      context: 'pricing-types-repository/getPricingTypeById',
+      pricingTypeId,
+      error,
+    });
+    throw AppError.databaseError('Unable to retrieve pricing type details from the database.', { cause: error });
   }
 };
 

@@ -1,11 +1,9 @@
 const {
   fetchAllPriceTypes,
-  fetchPricingTypeDetailsByPricingTypeId,
-  fetchAvailablePricingTypesForDropdown,
+  fetchAvailablePricingTypesForDropdown, fetchPricingTypeByIdWithMetadataService,
 } = require('../services/price-type-service');
-const { logInfo, logError } = require('../utils/logger-helper');
+const { logInfo } = require('../utils/logger-helper');
 const wrapAsync = require('../utils/wrap-async');
-const AppError = require('../utils/AppError');
 
 /**
  * Controller: Handles GET request to fetch paginated pricing types with optional filters.
@@ -51,34 +49,30 @@ const getAllPriceTypesController = wrapAsync(async (req, res, next) => {
 });
 
 /**
- * Controller to fetch pricing type details.
- * @param {Object} req - Express request object.
- * @param {Object} res - Express response object.
- * @param next
+ * Controller to fetch pricing type metadata by ID.
+ *
+ * @function
+ * @name getPricingTypeMetadataController
+ * @param {import('express').Request} req - Express request object, expects `req.params.id` (UUID of a pricing type).
+ * @param {import('express').Response} res - Express response object used to send the metadata JSON.
+ * @param {import('express').NextFunction} next - Express next middleware function for error handling.
+ * @returns {void}
  */
-const getPricingTypeDetailsByIdController = wrapAsync(
-  async (req, res, next) => {
-    const { id } = req.params;
-    const { page = 1, limit = 10 } = req.query;
-
-    try {
-      logInfo('Handling request to fetch pricing type details');
-      const pricingDetails = await fetchPricingTypeDetailsByPricingTypeId(
-        id,
-        page,
-        limit
-      );
-      res.status(200).json({
-        success: true,
-        data: pricingDetails,
-      });
-    } catch (error) {
-      logError('Error in getPricingTypeDetails controller', error);
-
-      next(error);
-    }
-  }
-);
+const getPricingTypeMetadataController = wrapAsync(async (req, res, next) => {
+  const { id } = req.params;
+  
+  logInfo('Handling request to fetch pricing type metadata', req, {
+    context: 'pricing-types-controller/getPricingTypeMetadataController',
+    pricingTypeId: id,
+  });
+  
+  const pricingType = await fetchPricingTypeByIdWithMetadataService(id);
+  
+  res.status(200).json({
+    success: true,
+    data: pricingType,
+  });
+});
 
 /**
  * Controller to handle fetching pricing types for dropdowns based on product ID.
@@ -102,6 +96,6 @@ const getPricingTypesForDropdownController = wrapAsync(
 
 module.exports = {
   getAllPriceTypesController,
-  getPricingTypeDetailsByIdController,
+  getPricingTypeMetadataController,
   getPricingTypesForDropdownController,
 };

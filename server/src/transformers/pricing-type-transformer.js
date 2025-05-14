@@ -47,6 +47,65 @@ const transformPaginatedPricingTypeResult = (paginatedResult) => ({
   data: transformPricingTypeList(paginatedResult.data),
 });
 
+/**
+ * Transforms a flat row from the pricing type metadata query
+ * into a structured object with nested status and user info.
+ *
+ * @param {object} row - The raw database result row.
+ * @param {string} row.pricing_type_id - UUID of the pricing type.
+ * @param {string} row.pricing_type_name - Display name of the pricing type.
+ * @param {string} row.pricing_type_code - Unique code of the pricing type.
+ * @param {string} row.pricing_type_slug - URL-friendly slug.
+ * @param {string} row.pricing_type_description - Description text.
+ * @param {string} row.status_id - Status ID (foreign key).
+ * @param {string} row.status_name - Status label (e.g., 'active').
+ * @param {string} row.status_date - Date of status change.
+ * @param {Date} row.pricing_type_created_at - Creation timestamp.
+ * @param {Date|null} row.pricing_type_updated_at - Last update timestamp.
+ * @param {string} row.created_by_id - Creator's user ID.
+ * @param {string|null} row.created_by_firstname - Creator's first name.
+ * @param {string|null} row.created_by_lastname - Creator's last name.
+ * @param {string|null} row.updated_by_id - Updater's user ID.
+ * @param {string|null} row.updated_by_firstname - Updater's first name.
+ * @param {string|null} row.updated_by_lastname - Updater's last name.
+ *
+ * @returns {{
+ *   id: string,
+ *   name: string,
+ *   code: string,
+ *   slug: string,
+ *   description: string,
+ *   status: { id: string, name: string, status_date: string },
+ *   created_by: { id: string, full_name: string },
+ *   updated_by: { id: string | null, full_name: string },
+ *   created_at: string,
+ *   updated_at: string | null
+ * }}
+ */
+const transformPricingTypeMetadata = (row) => ({
+  id: row.pricing_type_id,
+  name: row.pricing_type_name,
+  code: row.pricing_type_code,
+  slug: row.pricing_type_slug,
+  description: row.pricing_type_description,
+  status: {
+    id: row.status_id,
+    name: row.status_name,
+    status_date: row.status_date,
+  },
+  created_by: {
+    id: row.created_by_id,
+    full_name: `${row.created_by_firstname || ''} ${row.created_by_lastname || ''}`.trim() || 'Unknown',
+  },
+  updated_by: {
+    id: row.updated_by_id,
+    full_name: `${row.updated_by_firstname || ''} ${row.updated_by_lastname || ''}`.trim() || 'Unknown',
+  },
+  created_at: row.pricing_type_created_at,
+  updated_at: row.pricing_type_updated_at,
+});
+
 module.exports = {
   transformPaginatedPricingTypeResult,
+  transformPricingTypeMetadata,
 };

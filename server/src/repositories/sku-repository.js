@@ -42,7 +42,7 @@ const getLastSku = async (brandCode, categoryCode) => {
     return lastSku;
   } catch (error) {
     logSystemException(error, 'Failed to fetch last SKU', {
-      context: 'getLastSku',
+      context: 'sku-repository/getLastSku',
       error: error.message,
       brandCode,
       categoryCode,
@@ -96,7 +96,7 @@ const buildWhereClauseAndParams = (productStatusId, filters = {}) => {
     };
   } catch (err) {
     logSystemException(err, 'Failed to construct WHERE clause', {
-      context: 'buildWhereClauseAndParams',
+      context: 'sku-repository/buildWhereClauseAndParams',
       error: err.message,
       filters,
       productStatusId,
@@ -198,7 +198,7 @@ const fetchPaginatedActiveSkusWithProductCards = async ({
     `;
     
     logSystemInfo('Fetching paginated active SKUs with product cards', null, {
-      context: 'fetchPaginatedActiveSkusWithProductCards',
+      context: 'sku-repository/fetchPaginatedActiveSkusWithProductCards',
       filters,
       sortBy: orderBy,
       sortOrder,
@@ -246,7 +246,7 @@ const getSkuAndProductStatus = async (skuId) => {
 
     if (result.rows.length === 0) {
       logSystemInfo('SKU not found during status check', {
-        context: 'getSkuAndProductStatus',
+        context: 'sku-repository/getSkuAndProductStatus',
         skuId,
       });
 
@@ -256,7 +256,7 @@ const getSkuAndProductStatus = async (skuId) => {
     return result.rows[0];
   } catch (error) {
     logSystemException('Failed to fetch SKU and product status', {
-      context: 'getSkuAndProductStatus',
+      context: 'sku-repository/getSkuAndProductStatus',
       skuId,
       error,
     });
@@ -396,7 +396,7 @@ const getSkuDetailsWithPricingAndMeta = async (
 
     if (result.rows.length === 0) {
       logSystemInfo('SKU not found or filtered out by status', {
-        context: 'sku-repository',
+        context: 'sku-repository/getSkuDetailsWithPricingAndMeta',
         skuId,
         allowedStatusIds,
         allowedPricingTypes,
@@ -408,7 +408,7 @@ const getSkuDetailsWithPricingAndMeta = async (
     return result.rows[0];
   } catch (error) {
     logSystemException(error, 'Failed to fetch SKU details with meta', {
-      context: 'sku-repository',
+      context: 'sku-repository/getSkuDetailsWithPricingAndMeta',
       allowedStatusIds,
       allowedPricingTypes,
     });

@@ -10,7 +10,7 @@ const {
   getPricingDetailsByPricingTypeId,
 } = require('../repositories/pricing-repository');
 const { canViewPricingTypes } = require('../business/pricing-type-business');
-const { transformPaginatedPricingTypeResult } = require('../transformers/pricing-type-transformer');
+const { transformPaginatedPricingTypeResult, transformPricingTypeMetadata } = require('../transformers/pricing-type-transformer');
 const { getStatusId } = require('../config/status-cache');
 
 /**
@@ -95,38 +95,29 @@ const fetchAllPriceTypes = async ({
 };
 
 /**
- * Service function to fetch pricing details by pricing type ID.
- * @param {string} pricingTypeId - The ID of the pricing type to fetch details for.
- * @param page
- * @param limit
- * @returns {Promise<Object[]>} - The list of pricing details.
+ * Service function to fetch pricing type metadata by ID.
+ *
+ * @param {string} pricingTypeId - UUID of the pricing type.
+ * @returns {Promise<object>} The transformed pricing type metadata.
+ * @throws {AppError} If the pricing type is not found or a database error occurs.
  */
-const fetchPricingTypeDetailsByPricingTypeId = async (
-  pricingTypeId,
-  page,
-  limit
-) => {
+const fetchPricingTypeByIdWithMetadataService = async (pricingTypeId) => {
   try {
-    const pricingTypeDetails = await getPricingTypeById(pricingTypeId);
-    if (!pricingTypeDetails) {
+    const pricingTypeRow = await getPricingTypeById(pricingTypeId);
+    
+    if (!pricingTypeRow) {
       throw AppError.notFoundError('Pricing type not found');
     }
-
-    const pricingDetails = await getPricingDetailsByPricingTypeId({
-      pricingTypeId,
-      page,
-      limit,
-    });
-
-    return {
-      pricingTypeDetails,
-      pricingDetails: pricingDetails.data,
-      pagination: pricingDetails.pagination,
-    };
+    
+    return transformPricingTypeMetadata(pricingTypeRow);
   } catch (error) {
-    throw AppError.serviceError('Failed to fetch pricing type with details', {
-      originalError: error.message,
+    logSystemError('Failed to fetch pricing type metadata', {
+      context: 'pricing-types-service/fetchPricingTypeByIdWithMetadata',
+      pricingTypeId,
+      error,
     });
+    
+    throw AppError.serviceError('Unable to retrieve pricing type metadata.', { cause: error });
   }
 };
 
@@ -162,6 +153,6 @@ const fetchAvailablePricingTypesForDropdown = async (productId) => {
 
 module.exports = {
   fetchAllPriceTypes,
-  fetchPricingTypeDetailsByPricingTypeId,
+  fetchPricingTypeByIdWithMetadataService,
   fetchAvailablePricingTypesForDropdown,
 };
