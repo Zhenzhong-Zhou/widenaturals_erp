@@ -1,4 +1,4 @@
-import type { PaginatedResponse, Pagination } from 'types/api';
+import type { ApiSuccessResponse, PaginatedResponse, Pagination } from 'types/api';
 
 export interface FetchPricingTypesParams {
   page?: number;
@@ -50,17 +50,31 @@ export interface UserInfo {
 }
 
 // Interface for a single Pricing Type Detail
-export interface PricingTypeDetail {
-  pricing_type_id: string;
-  pricing_type_name: string;
-  pricing_type_description: string;
-  status: string;
-  status_date: string;
-  created_at: string;
-  updated_at: string;
-  created_by: UserInfo;
-  updated_by: UserInfo;
+export interface PricingTypeMetadata {
+  id: string;
+  name: string;
+  code: string;
+  slug: string;
+  description: string;
+  status: {
+    id: string;
+    name: string;
+    statusDate: string; // ISO date string
+  };
+  createdBy: {
+    id: string;
+    fullName: string;
+  };
+  updatedBy: {
+    id: string | null;
+    fullName: string;
+  };
+  createdAt: string; // ISO date string
+  updatedAt: string | null;
 }
+
+// Interface for API Response
+export type PricingTypeMetadataResponse = ApiSuccessResponse<PricingTypeMetadata>;
 
 // Interface for a single Product Detail
 export interface ProductDetail {
@@ -102,16 +116,6 @@ export interface PricingTypePagination {
   limit: number;
   totalRecords: number;
   totalPages: number;
-}
-
-// Interface for API Response
-export interface PricingTypeResponse {
-  success: boolean;
-  data: {
-    pricingTypeDetails: PricingTypeDetail;
-    pricingDetails: PricingRecord[];
-    pagination: PricingTypePagination;
-  };
 }
 
 export type PricingTypeTableRow = {

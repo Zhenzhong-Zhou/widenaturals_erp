@@ -34,7 +34,7 @@ router.get(
 );
 
 /**
- * @route GET /pricing-types/details/:id
+ * @route GET /pricing-types/metadata/:id
  * @description Fetch pricing type metadata by ID.
  * @access Protected
  * @param {string} req.params.id - UUID of the pricing type.
@@ -43,7 +43,7 @@ router.get(
  * @throws {500} If an internal server error occurs.
  */
 router.get(
-  '/details/:id',
+  '/metadata/:id',
   authorize([
     'view_prices',
     'view_pricing_types',

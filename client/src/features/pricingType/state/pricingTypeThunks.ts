@@ -6,7 +6,7 @@ import type {
   FetchPricingTypesParams,
   PricingType,
   PricingTypeDropdownItem,
-  PricingTypeResponse,
+  PricingTypeMetadata,
 } from './pricingTypeTypes';
 
 /**
@@ -32,26 +32,32 @@ export const fetchAllPricingTypesThunk = createAsyncThunk<
   }
 );
 
-export const fetchPricingTypeDetailsThunk = createAsyncThunk<
-  PricingTypeResponse,
-  { pricingTypeId: string; page: number; limit: number },
+/**
+ * Thunk to fetch pricing type metadata by ID.
+ *
+ * This thunk calls the pricing type service to retrieve metadata such as
+ * name, code, status, and audit fields (createdBy, updatedBy). It handles
+ * success and error states for use in Redux state management.
+ *
+ * @param {string} id - The UUID of the pricing type to fetch.
+ * @returns {Promise<PricingTypeMetadata>} On success, returns the transformed pricing type metadata.
+ * @throws {string} On failure, returns a rejected value containing the error message.
+ *
+ * @example
+ * dispatch(fetchPricingTypeMetadataThunk('d421a039-...'));
+ */
+export const fetchPricingTypeMetadataThunk = createAsyncThunk<
+  PricingTypeMetadata,
+  string,
   { rejectValue: string }
->(
-  'pricingTypes/fetchPricingTypeDetails',
-  async ({ pricingTypeId, page, limit }, thunkAPI) => {
-    try {
-      return await pricingTypeService.fetchPricingTypeDetailsById(
-        pricingTypeId,
-        page,
-        limit
-      );
-    } catch (error: any) {
-      return thunkAPI.rejectWithValue(
-        error.message || 'Failed to fetch pricing type details'
-      );
-    }
+>('pricingType/fetchMetadataById', async (id, { rejectWithValue }) => {
+  try {
+    const response = await pricingTypeService.fetchPricingTypeMetadataById(id);
+    return response.data;
+  } catch (error: any) {
+    return rejectWithValue(error.message || 'Failed to fetch pricing type metadata');
   }
-);
+});
 
 /**
  * Thunk to fetch pricing types for a dropdown based on a product ID.

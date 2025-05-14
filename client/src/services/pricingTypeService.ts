@@ -1,10 +1,10 @@
 import axiosInstance from '@utils/axiosConfig';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
-import type { FetchPricingTypesParams } from '@features/pricingType/state';
 import type {
-  PricingType,
-  PricingTypeResponse,
-} from '@features/pricingType';
+  FetchPricingTypesParams,
+  PricingTypeMetadataResponse,
+} from '@features/pricingType/state';
+import type { PricingType } from '@features/pricingType';
 import type { PaginatedResponse } from 'types/api';
 
 /**
@@ -38,26 +38,27 @@ const fetchAllPricingTypes = async (
   }
 };
 
-const fetchPricingTypeDetailsById = async (
+/**
+ * Fetches metadata for a single pricing type by ID.
+ *
+ * @param {string} pricingTypeId - The UUID of the pricing type to fetch.
+ * @returns {Promise<PricingTypeMetadataResponse>} The metadata response.
+ * @throws {Error} If the request fails.
+ */
+export const fetchPricingTypeMetadataById = async (
   pricingTypeId: string,
-  page: number,
-  limit: number
-): Promise<PricingTypeResponse> => {
+): Promise<PricingTypeMetadataResponse> => {
   try {
-    const endpoint = API_ENDPOINTS.PRICING_TYPE_DETAILS.replace(
-      ':id',
-      pricingTypeId
-    );
-    const response = await axiosInstance.get<PricingTypeResponse>(
-      `${endpoint}?page=${page}&limit=${limit}`
-    );
-    return response.data; // Return the fetched data
-  } catch (error) {
-    throw new Error('Failed to fetch pricing type details');
+    const endpoint = API_ENDPOINTS.PRICING_TYPE_METADATA.replace(':id', pricingTypeId);
+    const response = await axiosInstance.get<PricingTypeMetadataResponse>(endpoint);
+    return response.data;
+  } catch (error: any) {
+    const message = error?.response?.data?.message || error.message || 'Unknown error';
+    throw new Error(`Failed to fetch pricing type metadata: ${message}`);
   }
 };
 
 export const pricingTypeService = {
   fetchAllPricingTypes,
-  fetchPricingTypeDetailsById,
+  fetchPricingTypeMetadataById,
 };

@@ -33,3 +33,25 @@ export interface PaginatedResponse<T> {
   /** Pagination metadata for the current response */
   pagination: Pagination;
 }
+
+/**
+ * Generic interface for a standard successful API response.
+ *
+ * @template T - The type of the response payload contained in `data`.
+ */
+export interface ApiSuccessResponse<T> {
+  /**
+   * Indicates whether the request was successful.
+   */
+  success: true;
+  
+  /**
+   * A human-readable message describing the result.
+   */
+  message: string;
+  
+  /**
+   * The actual data payload of the response.
+   */
+  data: T;
+}

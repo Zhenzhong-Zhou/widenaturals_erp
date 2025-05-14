@@ -70,7 +70,7 @@ const getPricingTypeMetadataController = wrapAsync(async (req, res, next) => {
   
   res.status(200).json({
     success: true,
-    message: 'Pricing type details fetched successfully.',
+    message: 'Pricing type metadata fetched successfully.',
     data: pricingType,
   });
 });

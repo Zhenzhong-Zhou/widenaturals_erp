@@ -13,7 +13,7 @@ export const API_ENDPOINTS = {
   SKU_DETAILS: '/skus/sku-details/:skuId',
   ALL_COMPLIANCES: '/compliances',
   PRICING_TYPES: '/pricing-types',
-  PRICING_TYPE_DETAILS: '/pricing-types/details/:id',
+  PRICING_TYPE_METADATA: '/pricing-types/metadata/:id',
   ALL_PRICINGS: '/pricings',
   PRICING_DETAILS: '/pricings/details/:id',
   ALL_LOCATION_TYPES: '/location-types',
