@@ -106,7 +106,7 @@ const corsMiddleware = cors({
     'Origin',
     'X-CSRF-Token',
   ], // Allowed headers
-  exposedHeaders: process.env.EXPOSED_HEADERS?.split(',') || [], // Exposed headers
+  exposedHeaders: process.env.EXPOSED_HEADERS?.split(',') || ['Content-Disposition'], // Exposed headers
   credentials: process.env.ALLOW_CREDENTIALS === 'true', // Allow credentials (cookies, Authorization header, etc.)
   optionsSuccessStatus: parseInt(process.env.OPTIONS_SUCCESS_STATUS, 10) || 204, // Response status for preflight requests
 });

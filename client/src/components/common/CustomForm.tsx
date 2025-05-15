@@ -1,16 +1,16 @@
-import type { BaseSyntheticEvent, FC, ReactNode } from 'react';
-import { useForm, Controller, type Control, type FieldErrors } from 'react-hook-form';
-import {
-  Select,
-  MenuItem,
-  Checkbox,
-  FormControl,
-  FormControlLabel,
-  InputLabel,
-  Box,
-  FormHelperText,
-} from '@mui/material';
+import type { ReactNode, ForwardedRef } from 'react';
+import { forwardRef, useImperativeHandle } from 'react';
+import { useForm, Controller, type FieldErrors } from 'react-hook-form';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import Checkbox from '@mui/material/Checkbox';
+import FormControl from '@mui/material/FormControl';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import InputLabel from '@mui/material/InputLabel';
+import Box from '@mui/material/Box';
+import FormHelperText from '@mui/material/FormHelperText';
 import BaseInput from '@components/common/BaseInput';
+import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
 import CustomPhoneInput from '@components/common/CustomPhoneInput';
 import { useThemeContext } from '@context/ThemeContext';
@@ -32,40 +32,46 @@ export interface FieldConfig {
   country?: string;
 }
 
+export interface CustomFormRef {
+  resetForm: (values?: Record<string, any>) => void;
+}
+
 interface FormProps {
   children?: ReactNode;
   fields?: FieldConfig[];
-  control: Control<any>;
-  onSubmit: (
-    formData: Record<string, any>,
-    e?: BaseSyntheticEvent
-  ) => void | Promise<void>;
+  initialValues?: Record<string, any>;
+  onSubmit: (formData: Record<string, any>) => void | Promise<void>;
   submitButtonLabel?: string;
   disabled?: boolean;
   showSubmitButton?: boolean;
   sx?: SxProps<Theme>;
 }
 
-const CustomForm: FC<FormProps> = ({
-                                     fields = [],
-                                     children,
-                                     onSubmit,
-                                     submitButtonLabel = 'Submit',
-                                     control,
-                                     showSubmitButton = true,
-                                     sx,
-                                   }) => {
+const CustomForm = forwardRef<CustomFormRef, FormProps>(({
+                                                           fields = [],
+                                                           children,
+                                                           onSubmit,
+                                                           submitButtonLabel = 'Submit',
+                                                           initialValues = {},
+                                                           showSubmitButton = true,
+                                                           sx,
+                                                         }, ref: ForwardedRef<CustomFormRef>) => {
   const { theme } = useThemeContext();
   
   const {
+    control,
     handleSubmit,
     formState: { errors },
-  } = useForm({ mode: 'onChange' });
+    reset,
+  } = useForm({ mode: 'onChange', defaultValues: initialValues });
+  
+  useImperativeHandle(ref, () => ({
+    resetForm: (values?: Record<string, any>) => reset(values || initialValues),
+  }));
   
   const getError = (errors: FieldErrors<any>, id: string, fallback = ''): string => {
     const err = errors[id];
-    const message = err && typeof err.message === 'string' ? err.message : undefined;
-    return message ?? fallback;
+    return typeof err?.message === 'string' ? err.message : fallback;
   };
   
   return (
@@ -86,6 +92,12 @@ const CustomForm: FC<FormProps> = ({
         ...sx,
       }}
     >
+      {Object.keys(errors).length > 0 && (
+        <CustomTypography color="error" variant="body2">
+          Please correct the highlighted fields below.
+        </CustomTypography>
+      )}
+      
       {fields.map((field) => (
         <Box key={field.id}>
           {/** Text & Number Fields */}
@@ -112,9 +124,8 @@ const CustomForm: FC<FormProps> = ({
                   helperText={getError(errors, field.id, field.defaultHelperText)}
                   placeholder={field.placeholder}
                   slotProps={{
-                    htmlInput: field.type === 'number'
-                      ? { min: field.min, max: field.max }
-                      : {},
+                    htmlInput:
+                      field.type === 'number' ? { min: field.min, max: field.max } : {},
                   }}
                 />
               )}
@@ -176,11 +187,7 @@ const CustomForm: FC<FormProps> = ({
                 required: field.required ? `${field.label} is required` : false,
               }}
               render={({ field: controllerField }) => (
-                <FormControl
-                  fullWidth
-                  error={!!errors[field.id]}
-                  sx={{ mb: theme.spacing(2) }}
-                >
+                <FormControl fullWidth error={!!errors[field.id]} sx={{ mb: theme.spacing(2) }}>
                   <InputLabel>{field.label}</InputLabel>
                   <Select
                     id={field.id}
@@ -239,6 +246,7 @@ const CustomForm: FC<FormProps> = ({
       )}
     </Box>
   );
-};
+});
 
+CustomForm.displayName = 'CustomForm';
 export default CustomForm;

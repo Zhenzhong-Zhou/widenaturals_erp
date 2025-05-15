@@ -67,24 +67,36 @@ const getPaginatedPricingRecordsController = wrapAsync(async (req, res) => {
  * @param {Response} res - Express response object
  */
 const exportPricingRecordsController = wrapAsync(async (req, res) => {
-  const { format = 'csv' } = req.query;
-  const filters = req.query.filters ? JSON.parse(req.query.filters) : {};
+  const {
+    exportFormat,
+    brand,
+    pricingType,
+    countryCode,
+    sizeLabel, } = req.query;
+  
+  // Build filters object
+  const filters = {
+    ...(brand && { brand }),
+    ...(pricingType && { pricingType }),
+    ...(countryCode && { countryCode }),
+    ...(sizeLabel && { sizeLabel }),
+  };
   
   const context = 'pricing-controller/exportPricingRecordsController';
   
   logInfo('Starting pricing export', req, {
     context,
-    format,
+    exportFormat,
     filters,
   });
   
   // Fetch raw export data using filters
-  const exportRows = await exportPricingRecordsService(filters, format);
+  const exportRows = await exportPricingRecordsService(filters, exportFormat);
   
   // Export a final file using utility (handles formatting and content-type), handles an empty case inside
   const { fileBuffer, contentType, filename } = await exportData({
     data: exportRows,
-    exportFormat: format,
+    exportFormat,
     filename: 'pricing_export',
     title: 'Pricing Export',
   });

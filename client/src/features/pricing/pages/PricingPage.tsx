@@ -9,11 +9,14 @@ import PricingTable from '@features/pricing/components/PricingTable';
 import usePricingList from '@hooks/usePricingList';
 import CustomTypography from '@components/common/CustomTypography';
 import PricingFilterPanel from '@features/pricing/components/PricingFilterPanel';
-import { extractPricingFilterOptions } from '../utils/extractPricingFilterOptions';
 import Stack from '@mui/material/Stack';
+import CustomModal from '@components/common/CustomModal';
+import ExportPricingForm from '../components/ExportPricingForm';
+import { extractPricingFilterOptions } from '../utils/extractPricingFilterOptions';
 
 const PricingPage = () => {
   const [params, setParams] = useState<FetchPricingParams>({ page: 1, limit: 25 });
+  const [exportOpen, setExportOpen] = useState(false);
   
   const {
     data: pricingData,
@@ -97,10 +100,19 @@ const PricingPage = () => {
           pricingTypeOptions={pricingTypes}
           sizeLabelOptions={sizeLabels}
         />
+        <CustomButton variant="outlined" onClick={() => setExportOpen(true)}>
+          Export
+        </CustomButton>
         <CustomButton onClick={handleRefresh} variant="outlined">
-          Refresh Data
+          Refresh
         </CustomButton>
       </Stack>
+      
+      <CustomModal open={exportOpen} onClose={() => setExportOpen(false)} title="Export Pricing Data">
+        <ExportPricingForm
+          onClose={() => setExportOpen(false)}
+        />
+      </CustomModal>
       
       {isEmpty ? (
         <CustomTypography variant={'h6'}>No pricing records found.</CustomTypography>

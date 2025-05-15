@@ -71,7 +71,7 @@ const UserProfilePage: FC = () => {
       {user && (
         <>
           <DetailHeader
-            avatarSrc={''} // Replace with actual avatar URL if available
+            avatarSrc={''} // Replace it with actual avatar URL if available
             avatarFallback={user.firstname?.charAt(0).toUpperCase()}
             name={`${user.firstname} ${user.lastname}`}
             subtitle={user.email}
