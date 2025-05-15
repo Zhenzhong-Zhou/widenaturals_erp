@@ -2,17 +2,19 @@ const wrapAsync = require('../utils/wrap-async');
 const {
   fetchPaginatedPricingRecordsService,
   fetchPricingDetailsByPricingId,
-  fetchPriceByProductAndPriceType,
+  fetchPriceByProductAndPriceType, exportPricingRecordsService,
 } = require('../services/pricing-service');
+const { logInfo } = require('../utils/logger-helper');
+const { exportData } = require('../utils/export-utils');
+const { generateTimestampedFilename } = require('../utils/name-utils');
 
 /**
  * Controller to handle the fetching of paginated pricing records.
  *
- * @param {Request} req - Express request object.
+ * @param {Request} req - Express a request object.
  * @param {Response} res - Express response object.
- * @param {Function} next - Express next middleware function.
  */
-const getPaginatedPricingRecordsController = wrapAsync(async (req, res, next) => {
+const getPaginatedPricingRecordsController = wrapAsync(async (req, res) => {
   const {
     page,
     limit,
@@ -58,6 +60,41 @@ const getPaginatedPricingRecordsController = wrapAsync(async (req, res, next) =>
 });
 
 /**
+ * Controller to export pricing records.
+ * Accepts optional filters and export format (default: csv).
+ *
+ * @param {Request} req - Express request object
+ * @param {Response} res - Express response object
+ */
+const exportPricingRecordsController = wrapAsync(async (req, res) => {
+  const { format = 'csv' } = req.query;
+  const filters = req.query.filters ? JSON.parse(req.query.filters) : {};
+  
+  const context = 'pricing-controller/exportPricingRecordsController';
+  
+  logInfo('Starting pricing export', req, {
+    context,
+    format,
+    filters,
+  });
+  
+  // Fetch raw export data using filters
+  const exportRows = await exportPricingRecordsService(filters, format);
+  
+  // Export a final file using utility (handles formatting and content-type), handles an empty case inside
+  const { fileBuffer, contentType, filename } = await exportData({
+    data: exportRows,
+    exportFormat: format,
+    filename: 'pricing_export',
+    title: 'Pricing Export',
+  });
+  
+  res.setHeader('Content-Type', contentType);
+  res.setHeader('Content-Disposition', `attachment; filename="${generateTimestampedFilename(filename)}"`);
+  res.status(200).send(fileBuffer);
+});
+
+/**
  * API Controller to get pricing details by ID.
  */
 const getPricingDetailsController = wrapAsync(async (req, res, next) => {
@@ -99,7 +136,8 @@ const getPriceByProductAndPriceTypeController = wrapAsync(
 );
 
 module.exports = {
-  getPricingsController: getPaginatedPricingRecordsController,
+  getPaginatedPricingRecordsController,
+  exportPricingRecordsController,
   getPricingDetailsController,
   getPriceByProductAndPriceTypeController,
 };

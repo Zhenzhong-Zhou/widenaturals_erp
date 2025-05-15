@@ -7,7 +7,6 @@ import ErrorMessage from '@components/common/ErrorMessage';
 import CustomButton from '@components/common/CustomButton';
 import PricingTable from '@features/pricing/components/PricingTable';
 import usePricingList from '@hooks/usePricingList';
-import NoDataFound from '@components/common/NoDataFound';
 import CustomTypography from '@components/common/CustomTypography';
 import PricingFilterPanel from '@features/pricing/components/PricingFilterPanel';
 import { extractPricingFilterOptions } from '../utils/extractPricingFilterOptions';
@@ -53,10 +52,6 @@ const PricingPage = () => {
         <ErrorMessage message={error} />
       </ErrorDisplay>
     );
-  }
-  
-  if (isEmpty) {
-    return <NoDataFound message="No pricing records found." />;
   }
   
   return (
@@ -107,15 +102,19 @@ const PricingPage = () => {
         </CustomButton>
       </Stack>
       
-      <PricingTable
-        data={pricingData}
-        page={(pagination.page ?? 1) - 1}
-        rowsPerPage={pagination.limit}
-        totalRecords={pagination.totalRecords}
-        totalPages={pagination.totalPages}
-        onPageChange={(newPage) => handlePageChange(newPage + 1)}
-        onRowsPerPageChange={handleRowsPerPageChange}
-      />
+      {isEmpty ? (
+        <CustomTypography variant={'h6'}>No pricing records found.</CustomTypography>
+        ) : (
+        <PricingTable
+          data={pricingData}
+          page={(pagination.page ?? 1) - 1}
+          rowsPerPage={pagination.limit}
+          totalRecords={pagination.totalRecords}
+          totalPages={pagination.totalPages}
+          onPageChange={(newPage) => handlePageChange(newPage + 1)}
+          onRowsPerPageChange={handleRowsPerPageChange}
+        />
+      )}
     </Box>
   );
 };

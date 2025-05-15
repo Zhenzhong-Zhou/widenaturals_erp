@@ -58,6 +58,29 @@ const transformPaginatedPricingResult = (paginatedResult) => ({
   },
 });
 
+/**
+ * Transforms raw pricing data rows into flat export-friendly format.
+ *
+ * @param {Array<Object>} rows - Raw DB query result
+ * @param {string} format - Optional export format ('csv' | 'xlsx' | 'txt')
+ * @returns {Array<Object>} - Flattened and human-readable rows
+ */
+const transformExportPricingData = (rows = [], format = 'csv') => {
+  return rows.map(row => ({
+    SKU: row.sku,
+    Brand: row.brand,
+    'Product Name': getProductDisplayName(row),
+    Barcode: row.barcode,
+    'Size Label': row.size_label,
+    'Country Code': row.country_code,
+    'Pricing Type': row.pricing_type,
+    Price: row.price,
+    'Valid From': row.valid_from,
+    'Valid To': row.valid_to,
+  }));
+};
+
 module.exports = {
   transformPaginatedPricingResult,
+  transformExportPricingData,
 };

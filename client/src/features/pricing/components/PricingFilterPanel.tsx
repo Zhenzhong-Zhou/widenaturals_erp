@@ -155,7 +155,7 @@ const PricingFilterPanel: FC<PricingFilterPanelProps> = ({
               {...params}
               label="Keyword"
               size="small"
-              placeholder="Search keyword"
+              placeholder="Search name or code"
             />
           )}
         />

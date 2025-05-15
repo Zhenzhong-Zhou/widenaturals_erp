@@ -1,3 +1,5 @@
+const { format } = require('date-fns-tz');
+
 /**
  * Returns a full name from first and last name components.
  * Gracefully handles missing or null inputs.
@@ -14,4 +16,20 @@ const getFullName = (first, last) => {
   return full || '—';
 };
 
-module.exports = { getFullName };
+/**
+ * Generate a timestamped filename.
+ *
+ * @param {string} baseName - Base name without extension, e.g., 'pricing_export.csv'
+ * @param {string} [timeZone='America/Los_Angeles']
+ * @returns {string} e.g., 'pricing_export_20250515_213045.csv'
+ */
+const generateTimestampedFilename = (baseName, timeZone = 'America/Los_Angeles') => {
+  const [name, ext] = baseName.split('.');
+  const timestamp = format(new Date(), 'yyyyMMdd_HHmmss', { timeZone });
+  return `${name}_${timestamp}.${ext}`;
+};
+
+module.exports = {
+  getFullName,
+  generateTimestampedFilename,
+};

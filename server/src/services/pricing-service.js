@@ -1,12 +1,12 @@
 const AppError = require('../utils/AppError');
+const { sanitizeSortBy } = require('../utils/sort-utils');
 const {
   getAllPricingRecords,
   getPricingDetailsByPricingId,
   getActiveProductPrice,
 } = require('../repositories/pricing-repository');
-const { transformPaginatedPricingResult } = require('../transformers/pricing-transformer');
-const { logSystemException } = require('../utils/system-logger');
-const { sanitizeSortBy } = require('../utils/sort-utils');
+const { transformPaginatedPricingResult, transformExportPricingData } = require('../transformers/pricing-transformer');
+const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 
 /**
  * Service to fetch paginated pricing records.
@@ -88,6 +88,45 @@ const fetchPaginatedPricingRecordsService = async ({
 };
 
 /**
+ * Service to export pricing records in a format-friendly structure.
+ *
+ * @param {Object} filters - Filter object (e.g., brand, pricingType, etc.)
+ * @param {string} format - Export format: 'csv' | 'xlsx' | 'txt'
+ * @returns {Promise<Array<Object>>} - Transformed rows for export
+ */
+const exportPricingRecordsService = async (filters = {}, format = 'csv') => {
+  logSystemInfo('Exporting pricing records', {
+    context: 'pricing-service/exportPricingRecordsService',
+    filters,
+    format,
+  });
+  
+  try {
+    const rawData = await getAllPricingRecords({
+      page: 1,
+      limit: 10000,
+      sortBy: 'brand',
+      sortOrder: 'ASC',
+      filters,
+    });
+    
+    if (!rawData.data || rawData.data.length === 0) {
+      return [];
+    }
+    
+    return transformExportPricingData(rawData.data, format);
+  } catch (error) {
+    logSystemException(error, 'Failed to export pricing records', {
+      context: 'pricing-service/exportPricingRecordsService',
+      filters,
+      format,
+    });
+    
+    throw AppError.serviceError('Failed to export pricing records', 500, error);
+  }
+};
+
+/**
  * Fetch pricing details, including product, location, and pagination info.
  * @param {string} pricingId - The UUID of the pricing record.
  * @param {number} page - The page number for pagination.
@@ -164,6 +203,7 @@ const fetchPriceByProductAndPriceType = async (productId, priceTypeId) => {
 
 module.exports = {
   fetchPaginatedPricingRecordsService,
+  exportPricingRecordsService,
   fetchPricingDetailsByPricingId,
   fetchPriceByProductAndPriceType,
 };

@@ -1,5 +1,6 @@
 const { Parser } = require('json2csv');
 const PDFDocument = require('pdfkit');
+const XLSX = require('xlsx');
 const { formatValue } = require('./date-utils');
 const { isUUID } = require('./id-utils');
 const { formatHeader, processHeaders } = require('./string-utils');
@@ -9,6 +10,7 @@ const {
   logSystemError,
   logSystemWarn
 } = require('./system-logger');
+const { generateTimestampedFilename } = require('./name-utils');
 
 /**
  * Convert JSON data to CSV format.
@@ -220,7 +222,7 @@ const exportToPDF = async (data, options = {}) => {
  *
  * @example
  * // Using a custom separator (", ") and timezone ("EST")
- * const buffer = exportToPlainText(data, ', ', 'EST');
+ * const buffer = exportToPlainText(data, ',', 'EST');
  * console.log(buffer.toString());
  */
 const exportToPlainText = (data, separator = ' | ', timezone = 'PST') => {
@@ -267,15 +269,62 @@ const exportToPlainText = (data, separator = ' | ', timezone = 'PST') => {
 };
 
 /**
- * Exports data in the specified format (CSV, PDF, TXT).
+ * Export data to XLSX buffer using SheetJS
+ * @param {Array<Object>} data - Array of objects to export
+ * @param {string} [sheetName='Export'] - Sheet name
+ * @param {string} [timezone='UTC'] - Optional timezone for formatting
+ * @returns {Buffer}
+ */
+const exportToXLSX = (data, sheetName = 'Export', timezone = 'UTC') => {
+  const context = 'export-to-xlsx';
+  
+  try {
+    let worksheet;
+    
+    if (!Array.isArray(data) || data.length === 0) {
+      worksheet = XLSX.utils.aoa_to_sheet([['No data available']]);
+    } else {
+      const headers = Object.keys(data[0]);
+      const formattedData = data.map((row) =>
+        headers.map((key) => formatValue(row[key], timezone))
+      );
+      worksheet = XLSX.utils.aoa_to_sheet([headers, ...formattedData]);
+    }
+    
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+    
+    const buffer = XLSX.write(workbook, {
+      type: 'buffer',
+      bookType: 'xlsx',
+    });
+    
+    logSystemInfo('XLSX export completed.', {
+      context,
+      rowCount: data.length,
+      columnCount: data[0] ? Object.keys(data[0]).length : 0,
+    });
+    
+    return buffer;
+  } catch (error) {
+    logSystemError('XLSX export failed.', {
+      context,
+      error: error.message,
+    });
+    throw error;
+  }
+};
+
+/**
+ * Exports data in the specified format (CSV, PDF, TXT, XLSX).
  *
  * This function handles both exporting data and generating empty exports if no data is available.
- * Supported formats: 'csv', 'pdf', 'txt'.
+ * Supported formats: 'csv', 'pdf', 'txt', 'xlsx'.
  *
  * @async
  * @param {Object} options - The export configuration.
  * @param {Array} options.data - The data to be exported.
- * @param {string} options.exportFormat - The format for export ('csv', 'pdf', 'txt').
+ * @param {string} options.exportFormat - The format for export ('csv', 'pdf', 'txt', 'xlsx').
  * @param {string} options.filename - The base filename without extension.
  * @param {string} [options.title=''] - Optional title (used for PDFs).
  * @returns {Promise<Object>} - An object containing `fileBuffer`, `contentType`, and `filename`.
@@ -305,14 +354,7 @@ const exportData = async ({
       return generateEmptyExport(exportFormat, filename, landscape, summary);
     }
     
-    return generateExport(
-      exportFormat,
-      data,
-      filename,
-      title,
-      landscape,
-      summary
-    );
+    return generateExport(exportFormat, data, filename, title, landscape, summary);
   } catch (error) {
     logSystemError('Failed to export data.', {
       context,
@@ -324,9 +366,21 @@ const exportData = async ({
 };
 
 /**
+ * Creates an empty Excel workbook with a single sheet and default message.
+ * @param {string} message - Message to show in the first cell.
+ * @returns {Buffer} - XLSX file buffer
+ */
+const createEmptyWorkbook = (message = 'No Data') => {
+  const worksheet = XLSX.utils.aoa_to_sheet([[message]]);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
+  return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+};
+
+/**
  * Generates an empty export file for supported formats.
  *
- * @param {string} format - Export format (csv, pdf, txt)
+ * @param {string} format - Export format (csv, pdf, txt, xlsx)
  * @param {string} filename - Desired filename without extension
  * @param {boolean} [landscape]
  * @param {boolean} [summary]
@@ -346,8 +400,9 @@ const generateEmptyExport = (format, filename, landscape, summary) => {
     case 'csv':
       fileBuffer = Buffer.from(emptyMessage, 'utf-8');
       contentType = 'text/csv';
-      filename = `empty_${filename}.csv`;
+      filename = `empty_${generateTimestampedFilename(filename)}.csv`;
       break;
+    
     case 'pdf':
       fileBuffer = exportToPDF([], {
         title: 'Empty Report',
@@ -355,16 +410,25 @@ const generateEmptyExport = (format, filename, landscape, summary) => {
         summary,
       });
       contentType = 'application/pdf';
-      filename = `empty_${filename}.pdf`;
+      filename = `empty_${generateTimestampedFilename(filename)}.pdf`;
       break;
+    
     case 'txt':
       fileBuffer = Buffer.from(emptyMessage, 'utf-8');
       contentType = 'text/plain';
-      filename = `empty_${filename}.txt`;
+      filename = `empty_${generateTimestampedFilename(filename)}.txt`;
       break;
+    
+    case 'xlsx': {
+      fileBuffer = createEmptyWorkbook('No data available');
+      contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      filename = `empty_${generateTimestampedFilename(filename)}.xlsx`;
+      break;
+    }
+    
     default:
       throw AppError.validationError(
-        'Invalid export format. Use "csv", "pdf", or "txt".',
+        'Invalid export format. Use "csv", "pdf", "txt", or "xlsx".',
         { context }
       );
   }
@@ -375,13 +439,13 @@ const generateEmptyExport = (format, filename, landscape, summary) => {
 /**
  * Generates a data export file in the specified format.
  *
- * @param {string} format - Export format (csv, pdf, txt)
- * @param {Array} data - Array of data objects to export
+ * @param {string} format - Export format ('csv', 'pdf', 'txt', 'xlsx')
+ * @param {Array<Object>} data - Array of data objects to export
  * @param {string} filename - Base filename (without extension)
  * @param {string} [title] - Optional title for PDF exports
  * @param {boolean} [landscape] - PDF landscape mode
  * @param {boolean} [summary] - Summary mode for PDF
- * @returns {object} { fileBuffer, contentType, filename }
+ * @returns {Promise<{ fileBuffer: Buffer, contentType: string, filename: string }>}
  */
 const generateExport = async (
   format,
@@ -419,9 +483,15 @@ const generateExport = async (
         filename += '.txt';
         break;
       
+      case 'xlsx':
+        fileBuffer = exportToXLSX(data);
+        contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+        filename += '.xlsx';
+        break;
+      
       default:
         throw AppError.validationError(
-          'Invalid export format. Use "csv", "pdf", or "txt".',
+          'Invalid export format. Supported formats: csv, pdf, txt, xlsx.',
           { context }
         );
     }
@@ -442,6 +512,7 @@ module.exports = {
   exportToCSV,
   exportToPDF,
   exportToPlainText,
+  exportToXLSX,
   exportData,
   generateEmptyExport,
   generateExport,
