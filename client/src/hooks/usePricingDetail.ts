@@ -9,7 +9,7 @@ import {
   selectPricingLoading,
   selectPricingError,
   getPricingDetailsThunk,
-  fetchPricingDataThunk,
+  fetchPricingListDataThunk,
 } from '@features/pricing';
 
 /**
@@ -38,7 +38,7 @@ const usePricing = (
     if (pricingId && !pricing) {
       dispatch(getPricingDetailsThunk({ pricingId, page, limit }));
     } else if (!pricingId && !products.length) {
-      dispatch(fetchPricingDataThunk({ page, limit }));
+      dispatch(fetchPricingListDataThunk({ page, limit }));
     }
   }, [dispatch, pricingId, page, limit, pricing, products.length]);
 
@@ -53,7 +53,7 @@ const usePricing = (
         getPricingDetailsThunk({ pricingId, page: newPage, limit: newLimit })
       );
     } else {
-      dispatch(fetchPricingDataThunk({ page: newPage, limit: newLimit }));
+      dispatch(fetchPricingListDataThunk({ page: newPage, limit: newLimit }));
     }
   };
 

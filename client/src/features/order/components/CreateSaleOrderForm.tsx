@@ -26,7 +26,7 @@ import CustomTypography from '@components/common/CustomTypography';
 import Loading from '@components/common/Loading';
 import { v4 as uuidv4 } from 'uuid';
 import type { SalesOrder } from '../state';
-import usePricing from '@hooks/usePricing';
+import usePricingList from '@hooks/usePricingList.ts';
 
 const CustomDatePicker = lazy(
   () => import('@components/common/CustomDatePicker')
@@ -62,7 +62,7 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({
   ]); // Initialized with one item
   const priceUpdatedRef = useRef(false);
 
-  const { fetchPriceValue, priceValueData, priceValueLoading } = usePricing();
+  const { fetchPriceValue, priceValueData, priceValueLoading } = usePricingList();
 
   // Initialize useForm with your defined structure
   const methods = useForm<SalesOrder>({

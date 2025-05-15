@@ -7,6 +7,7 @@ import Autocomplete from '@mui/material/Autocomplete';
 import IconButton from '@mui/material/IconButton';
 import TextField from '@mui/material/TextField';
 import SearchIcon from '@mui/icons-material/Search';
+import { BRANDS, CATEGORIES, KEYWORD_SUGGESTIONS, MARKET_REGIONS, SIZE_LABELS } from '@utils/filters';
 
 export interface SkuProductCardFilters {
   brand?: string;
@@ -21,26 +22,6 @@ interface SkuProductCardFilterPanelProps {
   onChange: (updatedFilters: SkuProductCardFilters) => void;
   showReset?: boolean;
 }
-
-const BRANDS = ['Canaherb', 'Phyto-Genious', 'Wide Naturals'] as const;
-const CATEGORIES = ['Herbal Natural', 'NMN', 'TCM', 'Marine Oil'] as const;
-const MARKET_REGIONS = ['Canada', 'China', 'Universe'] as const;
-const SIZE_LABELS = [
-  '50g',
-  '60 Capsules',
-  '30 Softgels',
-  '60 Softgels',
-  '120 Softgels',
-  '180 Softgels',
-] as const;
-const KEYWORD_SUGGESTIONS = [
-  'NMN',
-  'Canaherb',
-  'Seal Oil',
-  'Focus',
-  'TCM',
-  'Marine Oil',
-];
 
 const SkuProductCardFilterPanel: React.FC<SkuProductCardFilterPanelProps> = ({
                                                                                filters,

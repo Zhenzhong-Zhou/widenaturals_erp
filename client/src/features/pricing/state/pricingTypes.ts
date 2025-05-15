@@ -1,36 +1,46 @@
+import type { PaginatedResponse, Pagination } from 'types/api';
+
 // Define the Pricing Record structure
-export interface Pricing {
-  pricing_id: string;
-  product_name: string;
-  price_type_name: string;
-  location_name: string;
-  price: string;
-  valid_from: string; // ISO Timestamp
-  valid_to: string; // ISO Timestamp
-  status_name: 'active' | 'inactive' | 'pending'; // Expand based on actual statuses
-  status_date: string;
-  created_at: string;
-  updated_at: string;
-  created_by: string;
-  updated_by: string;
+export interface PricingRecord {
+  pricingId: string;
+  price: number;
+  validFrom: string; // ISO date string
+  validTo: string | null;
+  pricingType: {
+    name: string;
+    code: string;
+  };
+  sku: {
+    id: string;
+    value: string;
+    countryCode: string;
+    sizeLabel: string;
+    barcode: string;
+  };
+  product: {
+    id: string;
+    name: string;
+    brand: string;
+  };
 }
 
-// Define the Pagination Metadata structure
-export interface Pagination {
-  page: number;
-  limit: number;
-  totalRecords: number;
-  totalPages: number;
+export interface FetchPricingParams {
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: 'ASC' | 'DESC';
+  filters?: Record<string, string>;
+  keyword?: string;
 }
 
 // Define the API Response structure
-export interface PricingResponse {
-  success: boolean;
-  message: string;
-  data: {
-    data: Pricing[];
-    pagination: Pagination;
-  };
+export type PaginatedPricingRecordsResponse = PaginatedResponse<PricingRecord>;
+
+export interface PricingListState {
+  data: PricingRecord[];
+  pagination: Pagination;
+  loading: boolean;
+  error: string | null;
 }
 
 export interface Product {
@@ -53,23 +63,9 @@ export interface PricingLocation {
   location_type: LocationType;
 }
 
-/**
- * Extended interface for detailed pricing records.
- * Now supports multiple products & locations.
- */
-export interface PricingDetails extends Pricing {
-  products: Product[]; // Changed from single object to array
-  locations: PricingLocation[]; // Changed from single object to array
-}
 
-export interface PricingDetailsResponse {
-  success: boolean;
-  message: string;
-  data: {
-    pricing: PricingDetails;
-    pagination: Pagination;
-  };
-}
+
+
 
 // Interface for the request parameters
 export interface PriceRequestParams {

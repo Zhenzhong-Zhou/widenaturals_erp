@@ -14,7 +14,7 @@ export const API_ENDPOINTS = {
   ALL_COMPLIANCES: '/compliances',
   PRICING_TYPES: '/pricing-types',
   PRICING_TYPE_METADATA: '/pricing-types/metadata/:id',
-  ALL_PRICINGS: '/pricings',
+  PRICING_LIST: '/pricings',
   PRICING_DETAILS: '/pricings/details/:id',
   ALL_LOCATION_TYPES: '/location-types',
   LOCATION_TYPE_DETAILS: '/location-types/:id',

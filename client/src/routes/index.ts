@@ -90,7 +90,7 @@ export const routes = [
     },
   },
   {
-    path: '/pricings/:id',
+    path: '/pricings/:sku/:id',
     component: lazy(() => import('@features/pricing/pages/PricingDetailPage')),
     meta: {
       requiresAuth: true,

@@ -18,7 +18,7 @@ export { default as useProducts } from './useSkuProductCards.ts';
 export { default as useProductsWarehouseDropdown } from './useProductsWarehouseDropdown';
 
 // --- Pricing ---
-export { default as usePricing } from './usePricing';
+export { default as usePricing } from './usePricingList.ts';
 export { default as usePricingDetail } from './usePricingDetail';
 export { default as usePricingTypes } from './usePricingTypes';
 export { default as usePricingTypeDropdown } from './usePricingTypeDropdown';

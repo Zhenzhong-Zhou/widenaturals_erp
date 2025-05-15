@@ -1,12 +1,13 @@
 import type { FC } from 'react';
 import { Link } from 'react-router-dom';
-import type { Pricing } from '@features/pricing';
-import { formatLabel, formatCurrency } from '@utils/textUtils';
+import type { PricingRecord } from '../state';
+import { formatCurrency } from '@utils/textUtils';
 import { formatDateTime } from '@utils/dateTimeUtils';
-import CustomTable from '@components/common/CustomTable';
+import CustomTable, { type Column } from '@components/common/CustomTable';
+import { useThemeContext } from '@context/ThemeContext.tsx';
 
 interface PricingTableProps {
-  data: Pricing[];
+  data: PricingRecord[];
   page: number;
   rowsPerPage: number;
   totalRecords: number;
@@ -16,92 +17,82 @@ interface PricingTableProps {
 }
 
 const PricingTable: FC<PricingTableProps> = ({
-  data,
-  page,
-  rowsPerPage,
-  totalRecords,
-  totalPages,
-  onPageChange,
-  onRowsPerPageChange,
-}) => {
-  const columns = [
+                                               data,
+                                               page,
+                                               rowsPerPage,
+                                               totalRecords,
+                                               totalPages,
+                                               onPageChange,
+                                               onRowsPerPageChange,
+                                             }) => {
+  const { theme } = useThemeContext();
+  
+  const columns: Column<PricingRecord>[] = [
     {
-      id: 'product_name',
-      label: 'Product Name',
+      id: 'sku',
+      label: 'SKU',
       sortable: true,
+      renderCell: (row: PricingRecord) => (
+        <Link
+          to={`/pricings/${row.sku.value}/${row.pricingId}`}
+          style={{ textDecoration: 'none',  color: theme.palette.primary.main, fontWeight: 500 }}
+        >
+          {row.sku.value}
+        </Link>
+      ),
     },
     {
-      id: 'location',
-      label: 'Location Name',
+      id: 'brand',
+      label: 'Brand',
       sortable: true,
+      renderCell: (row: PricingRecord) => row.product.brand,
     },
     {
-      id: 'price_type',
+      id: 'productName',
+      label: 'Product',
+      sortable: true,
+      renderCell: (row: PricingRecord) => row.product.name,
+    },
+    {
+      id: 'barcode',
+      label: 'Barcode',
+      sortable: true,
+      renderCell: (row: PricingRecord) => row.sku.barcode,
+    },
+    {
+      id: 'sizeLabel',
+      label: 'Size',
+      sortable: true,
+      renderCell: (row: PricingRecord) => row.sku.sizeLabel,
+    },
+    {
+      id: 'pricingType',
       label: 'Price Type',
       sortable: true,
+      renderCell: (row: PricingRecord) => row.pricingType.name,
     },
     {
       id: 'price',
       label: 'Price',
       sortable: true,
-      format: (value: string) => formatCurrency(value),
-      renderCell: (row: any) => (
-        <Link
-          to={`/pricings/${row.pricing_id}`}
-          style={{ textDecoration: 'none', color: 'red' }}
-        >
-          {formatCurrency(row.price)}
-        </Link>
-      ),
+      renderCell: (row: PricingRecord) => formatCurrency(row.price),
     },
     {
-      id: 'valid_from',
+      id: 'validFrom',
       label: 'Valid From',
       sortable: true,
-      format: (value: string) => formatDateTime(value),
+      renderCell: (row: PricingRecord) => formatDateTime(row.validFrom),
     },
     {
-      id: 'valid_to',
+      id: 'validTo',
       label: 'Valid To',
       sortable: true,
-      format: (value: string) => formatDateTime(value),
+      renderCell: (row: PricingRecord) => row.validTo ? formatDateTime(row.validTo) : '—',
     },
-    {
-      id: 'status_name',
-      label: 'Status',
-      sortable: true,
-      format: (value: string) => formatLabel(value),
-    },
-    {
-      id: 'status_date',
-      label: 'Status Date',
-      sortable: true,
-      format: (value: string) => formatDateTime(value),
-    },
-    {
-      id: 'created_at',
-      label: 'Created At',
-      sortable: true,
-      format: (value: string) => formatDateTime(value),
-    },
-    {
-      id: 'updated_at',
-      label: 'Updated At',
-      sortable: true,
-      format: (value: string) => formatDateTime(value),
-    },
-    {
-      id: 'created_by',
-      label: 'Created By',
-      sortable: true,
-    },
-    {
-      id: 'updated_by',
-      label: 'Updated By',
-      sortable: true,
-    },
+   
+    
   ];
-
+  
   return (
     <CustomTable
       columns={columns}
@@ -110,7 +101,7 @@ const PricingTable: FC<PricingTableProps> = ({
       totalRecords={totalRecords}
       totalPages={totalPages}
       initialRowsPerPage={rowsPerPage}
-      rowsPerPageOptions={[10, 25, 50, 75]}
+      rowsPerPageOptions={[25, 50, 75, 100]}
       onPageChange={onPageChange}
       onRowsPerPageChange={onRowsPerPageChange}
     />
