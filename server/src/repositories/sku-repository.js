@@ -4,7 +4,7 @@ const {
   logSystemException
 } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
-const { buildWhereClauseAndParams } = require('../utils/ sql/build-sku-filters');
+const { buildWhereClauseAndParams } = require('../utils/sql/build-sku-filters');
 
 /**
  * Retrieves the most recent SKU string for a given brand and category combination.

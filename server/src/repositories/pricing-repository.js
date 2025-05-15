@@ -1,10 +1,11 @@
 const { query, paginateQuery, retry } = require('../database/db');
 const AppError = require('../utils/AppError');
 const {
-  logSystemInfo, logSystemException
+  logSystemInfo,
+  logSystemException
 } = require('../utils/system-logger');
 const { logError } = require('../utils/logger-helper');
-const { buildPricingFilters } = require('../utils/ sql/build-pricing-filters');
+const { buildPricingFilters } = require('../utils/sql/build-pricing-filters');
 
 /**
  * Fetches a paginated list of pricing records with enriched SKU and product data.
