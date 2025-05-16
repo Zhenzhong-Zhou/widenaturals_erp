@@ -62,11 +62,16 @@ export const formatLabel = (text: string | null | undefined): string => {
  * @returns A formatted currency string.
  */
 export const formatCurrency = (
-  value: string | number,
+  value: string | number | null,
   currencySymbol: string = '$'
 ): string => {
+  if (value === null || value === undefined) {
+    return `${currencySymbol}0.00`;
+  }
+  
   const number = typeof value === 'string' ? parseFloat(value) : value;
   if (isNaN(number)) return `${currencySymbol}0.00`;
+  
   return `${currencySymbol}${number.toFixed(2)}`;
 };
 

@@ -18,6 +18,7 @@ const transformPricingListRecord = (row) => ({
     id: row.pricing_type_id,
     name: row.pricing_type,
     code: row.pricing_type_code,
+    slug: row.pricing_type_slug,
   },
   
   sku: {

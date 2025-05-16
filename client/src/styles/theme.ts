@@ -26,6 +26,12 @@ declare module '@mui/material/styles' {
       customHover?: string;
     };
   }
+  interface Palette {
+    stack: string;
+  }
+  interface PaletteOptions {
+    stack?: string;
+  }
 }
 
 // Define your shared tokens for consistency
@@ -137,6 +143,7 @@ const lightTheme = createTheme({
     background: { default: '#f4f4f4', paper: '#ffffff' },
     text: { primary: '#333', secondary: '#555' },
     divider: '#dcdcdc',
+    stack: '#f5f5f5',
     success: { main: '#28a745' },
     warning: { main: '#ffc107' },
     error: { main: '#dc3545' },
@@ -162,6 +169,7 @@ const darkTheme = createTheme({
     background: { default: '#121212', paper: '#1e1e1e' },
     text: { primary: '#f4f4f4', secondary: '#ccc' },
     divider: '#333',
+    stack: '#424242',
     success: { main: '#28a745' },
     warning: { main: '#ffc107' },
     error: { main: '#dc3545' },

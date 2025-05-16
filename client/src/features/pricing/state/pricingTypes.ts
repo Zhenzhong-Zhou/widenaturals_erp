@@ -10,6 +10,7 @@ export interface PricingRecord {
     id: string;
     name: string;
     code: string;
+    slug: string;
   };
   sku: {
     id: string;

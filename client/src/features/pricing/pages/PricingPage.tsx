@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import type { FetchPricingParams } from '@features/pricing/state';
+import type { FetchPricingParams, PricingRecord } from '@features/pricing/state';
 import Box from '@mui/material/Box';
 import Loading from '@components/common/Loading';
 import ErrorDisplay from '@components/shared/ErrorDisplay';
@@ -13,10 +13,12 @@ import Stack from '@mui/material/Stack';
 import CustomModal from '@components/common/CustomModal';
 import ExportPricingForm from '../components/ExportPricingForm';
 import { extractPricingFilterOptions } from '../utils/extractPricingFilterOptions';
+import { useThemeContext } from '@context/ThemeContext';
 
 const PricingPage = () => {
   const [params, setParams] = useState<FetchPricingParams>({ page: 1, limit: 25 });
   const [exportOpen, setExportOpen] = useState(false);
+  const { theme } = useThemeContext();
   
   const {
     data: pricingData,
@@ -44,6 +46,25 @@ const PricingPage = () => {
   const handleRefresh = () => {
     fetchData(params); // Refetch current params
   };
+  
+  const flattened = pricingData.map((item: PricingRecord) => ({
+    pricingId: item.pricingId,
+    price: item.price,
+    pricingTypeId: item.pricingType?.id,
+    pricingTypeName: item.pricingType?.name,
+    pricingTypeCode: item.pricingType?.code,
+    pricingTypeSlug: item.pricingType?.slug,
+    productName: item.product?.name,
+    productBrand: item.product?.brand,
+    productId: item.product?.id,
+    skuValue: item.sku?.value,
+    skuId: item.sku?.id,
+    countryCode: item.sku?.countryCode,
+    sizeLabel: item.sku?.sizeLabel,
+    barcode: item.sku?.barcode,
+    validFrom: item.validFrom,
+    validTo: item.validTo,
+  }));
   
   if (isLoading) {
     return <Loading message="Fetching pricing records..." />;
@@ -77,7 +98,7 @@ const PricingPage = () => {
         spacing={2}
         sx={{
           mb: 2,
-          backgroundColor: 'grey.100',
+          backgroundColor: theme.palette.stack,
           borderRadius: 3,
           px: 2,
           py: 1.5,
@@ -118,7 +139,7 @@ const PricingPage = () => {
         <CustomTypography variant={'h6'}>No pricing records found.</CustomTypography>
         ) : (
         <PricingTable
-          data={pricingData}
+          data={flattened}
           page={(pagination.page ?? 1) - 1}
           rowsPerPage={pagination.limit}
           totalRecords={pagination.totalRecords}

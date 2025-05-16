@@ -4,10 +4,11 @@ import Box from '@mui/material/Box';
 import Loading from '@components/common/Loading';
 import ErrorDisplay from '@components/shared/ErrorDisplay';
 import ErrorMessage from '@components/common/ErrorMessage';
+import NoDataFound from '@components/common/NoDataFound';
+import GoBackButton from '@components/common/GoBackButton';
 import GroupedPricingDetailsTable from '@features/pricing/components/GroupedPricingDetailsTable';
 import usePricingListByType from '@hooks/usePricingListByType';
 import type { PricingDetail } from '@features/pricing/state';
-import NoDataFound from '@components/common/NoDataFound.tsx';
 
 const PricingDetailPage = () => {
   const { id: pricingTypeId } = useParams<{ id: string }>();
@@ -55,6 +56,7 @@ const PricingDetailPage = () => {
   
   return (
     <Box sx={{ padding: 3 }}>
+      <GoBackButton />
       <GroupedPricingDetailsTable groupedData={groupedData} />
     </Box>
   );

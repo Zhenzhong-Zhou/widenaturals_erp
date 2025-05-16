@@ -86,7 +86,7 @@ const PricingFilterPanel: FC<PricingFilterPanelProps> = ({
       sx={{
         mb: 2,
         p: 2,
-        backgroundColor: 'background.default',
+        backgroundColor: 'background.paper',
         borderRadius: 2,
         boxShadow: 1,
       }}

@@ -1,13 +1,28 @@
 import type { FC } from 'react';
 import { Link } from 'react-router-dom';
-import type { PricingRecord } from '../state';
 import { formatCurrency } from '@utils/textUtils';
 import { formatDateTime } from '@utils/dateTimeUtils';
 import CustomTable, { type Column } from '@components/common/CustomTable';
 import { useThemeContext } from '@context/ThemeContext.tsx';
 
+interface PricingRow {
+  pricingId: string;
+  price: number;
+  pricingTypeId: string;
+  pricingTypeName: string;
+  pricingTypeCode: string;
+  pricingTypeSlug: string;
+  productName: string;
+  productBrand: string;
+  skuValue: string;
+  sizeLabel: string;
+  barcode: string;
+  validFrom: string;
+  validTo: string | null;
+}
+
 interface PricingTableProps {
-  data: PricingRecord[];
+  data: PricingRow[];
   page: number;
   rowsPerPage: number;
   totalRecords: number;
@@ -26,71 +41,68 @@ const PricingTable: FC<PricingTableProps> = ({
                                                onRowsPerPageChange,
                                              }) => {
   const { theme } = useThemeContext();
-  
-  const columns: Column<PricingRecord>[] = [
+  const columns: Column<PricingRow>[] = [
     {
       id: 'sku',
       label: 'SKU',
       sortable: true,
-      renderCell: (row: PricingRecord) => (
+      renderCell: (row: PricingRow) => (
         <Link
-          to={`/pricings/${row.sku.value}/${row.pricingType.id}`}
+          to={`/pricings/${row.pricingTypeSlug}/${row.pricingTypeId}`}
           style={{ textDecoration: 'none',  color: theme.palette.primary.main, fontWeight: 500 }}
         >
-          {row.sku.value}
+          {row.skuValue}
         </Link>
       ),
     },
     {
-      id: 'brand',
+      id: 'productBrand',
       label: 'Brand',
       sortable: true,
-      renderCell: (row: PricingRecord) => row.product.brand,
     },
     {
       id: 'productName',
       label: 'Product',
       sortable: true,
-      renderCell: (row: PricingRecord) => row.product.name,
     },
     {
       id: 'barcode',
       label: 'Barcode',
       sortable: true,
-      renderCell: (row: PricingRecord) => row.sku.barcode,
     },
     {
       id: 'sizeLabel',
       label: 'Size',
       sortable: true,
-      renderCell: (row: PricingRecord) => row.sku.sizeLabel,
     },
     {
-      id: 'pricingType',
+      id: 'pricingTypeCode',
+      label: 'Price Code',
+      sortable: true,
+    },
+    {
+      id: 'pricingTypeName',
       label: 'Price Type',
       sortable: true,
-      renderCell: (row: PricingRecord) => row.pricingType.name,
     },
     {
       id: 'price',
       label: 'Price',
       sortable: true,
-      renderCell: (row: PricingRecord) => formatCurrency(row.price),
+      format: (value) => formatCurrency(value),
     },
     {
       id: 'validFrom',
       label: 'Valid From',
       sortable: true,
-      renderCell: (row: PricingRecord) => formatDateTime(row.validFrom),
+      format: (value) => formatDateTime(value),
     },
     {
       id: 'validTo',
       label: 'Valid To',
       sortable: true,
-      renderCell: (row: PricingRecord) => row.validTo ? formatDateTime(row.validTo) : '—',
+      format: (value) => formatDateTime(value),
     },
-   
-    
   ];
   
   return (

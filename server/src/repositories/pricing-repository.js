@@ -60,6 +60,7 @@ const getAllPricingRecords = async ({
       pt.id AS pricing_type_id,
       pt.name AS pricing_type,
       pt.code AS pricing_type_code,
+      pt.slug AS pricing_type_slug,
       s.id AS sku_id,
       s.sku,
       s.country_code,
