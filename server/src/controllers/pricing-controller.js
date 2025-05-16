@@ -1,7 +1,7 @@
 const wrapAsync = require('../utils/wrap-async');
 const {
   fetchPaginatedPricingRecordsService,
-  fetchPricingDetailsByPricingId,
+  fetchPricingDetailsByPricingTypeId,
   fetchPriceByProductAndPriceType, exportPricingRecordsService,
 } = require('../services/pricing-service');
 const { logInfo } = require('../utils/logger-helper');
@@ -107,27 +107,32 @@ const exportPricingRecordsController = wrapAsync(async (req, res) => {
 });
 
 /**
- * API Controller to get pricing details by ID.
+ * Controller: Get pricing details by pricing type ID.
+ *
+ * @description Fetches paginated pricing details including product, SKU, location, status, and audit metadata.
+ *
+ * @route GET /api/pricing-types/:id/details
+ * @param {import('express').Request} req - Express request object.
+ * @param {import('express').Response} res - Express response object.
+ * @param {import('express').NextFunction} next - Express next middleware function.
+ * @returns {Promise<void>} Responds with JSON including pricing detail records and pagination metadata.
  */
-const getPricingDetailsController = wrapAsync(async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const { page, limit } = req.query;
+const getPricingDetailsController = wrapAsync(async (req, res) => {
+  const { id } = req.params;
+  const { page, limit } = req.query;
 
-    const pricingDetails = await fetchPricingDetailsByPricingId(
-      id,
-      page,
-      limit
-    );
+  const { data, pagination } = await fetchPricingDetailsByPricingTypeId(
+    id,
+    page,
+    limit
+  );
 
-    return res.status(200).json({
-      success: true,
-      message: 'Pricing details fetched successfully',
-      data: pricingDetails,
-    });
-  } catch (error) {
-    next(error);
-  }
+  return res.status(200).json({
+    success: true,
+    message: 'Pricing details fetched successfully',
+    data,
+    pagination,
+  });
 });
 
 const getPriceByProductAndPriceTypeController = wrapAsync(

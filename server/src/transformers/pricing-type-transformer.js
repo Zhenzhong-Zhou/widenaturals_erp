@@ -1,3 +1,5 @@
+const { transformPaginatedResult } = require('../utils/transformPaginatedResult');
+
 /**
  * Transforms a raw pricing type DB row into a formatted object.
  *
@@ -19,33 +21,15 @@ const transformPricingTypeRow = (row) => ({
 });
 
 /**
- * Transforms an array of raw pricing type rows.
+ * Transforms a paginated result of pricing types using the shared pagination utility.
  *
- * @param {Array<object>} rows - Raw rows from the database.
- * @returns {Array<object>} - Transformed pricing type list.
- */
-const transformPricingTypeList = (rows = []) => rows.map(transformPricingTypeRow);
-
-/**
- * Transforms a paginated result of pricing types.
- *
- * @param {object} paginatedResult - Raw paginated DB result.
+ * @param {object} paginatedResult - Raw paginated result from the database.
  * @param {Array<object>} paginatedResult.data - Raw pricing type rows.
- * @param {number} paginatedResult.page - Current page number.
- * @param {number} paginatedResult.limit - Items per page.
- * @param {number} paginatedResult.totalRecords - Total number of records.
- * @param {number} paginatedResult.totalPages - Total number of pages.
- * @returns {object} - Transformed response with pagination and formatted pricing types.
+ * @param {object} paginatedResult.pagination - Metadata including page, limit, totalRecords, totalPages.
+ * @returns {object} Transformed response with pagination and formatted pricing type records.
  */
-const transformPaginatedPricingTypeResult = (paginatedResult) => ({
-  pagination: {
-    page: Number(paginatedResult.pagination?.page ?? 1),
-    limit: Number(paginatedResult.pagination?.limit ?? 10),
-    totalRecords: Number(paginatedResult.pagination?.totalRecords ?? 0),
-    totalPages: Number(paginatedResult.pagination?.totalPages ?? 1),
-  },
-  data: transformPricingTypeList(paginatedResult.data),
-});
+const transformPaginatedPricingTypeResult = (paginatedResult) =>
+  transformPaginatedResult(paginatedResult, transformPricingTypeRow);
 
 /**
  * Transforms a flat row from the pricing type metadata query

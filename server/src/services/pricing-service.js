@@ -2,10 +2,12 @@ const AppError = require('../utils/AppError');
 const { sanitizeSortBy } = require('../utils/sort-utils');
 const {
   getAllPricingRecords,
-  getPricingDetailsByPricingId,
+  getPricingDetailsByPricingTypeId,
   getActiveProductPrice,
 } = require('../repositories/pricing-repository');
-const { transformPaginatedPricingResult, transformExportPricingData } = require('../transformers/pricing-transformer');
+const { transformPaginatedPricingResult, transformExportPricingData, transformPricingDetailRow,
+  transformPaginatedPricingDetailResult
+} = require('../transformers/pricing-transformer');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 
 /**
@@ -127,43 +129,57 @@ const exportPricingRecordsService = async (filters = {}, format = 'csv') => {
 };
 
 /**
- * Fetch pricing details, including product, location, and pagination info.
- * @param {string} pricingId - The UUID of the pricing record.
- * @param {number} page - The page number for pagination.
- * @param {number} limit - The number of records per page.
- * @returns {Promise<Object>} - Returns pricing details with related product, location, and pagination info.
+ * Fetch pricing details by pricing type ID, including product, location, and audit metadata.
+ *
+ * @param {string} pricingTypeId - The UUID of the pricing type.
+ * @param {number} page - Page number for pagination.
+ * @param {number} limit - Number of records per page.
+ * @returns {Promise<Object>} Paginated pricing detail records.
+ * @throws {AppError} If validation fails or no records are found.
  */
-const fetchPricingDetailsByPricingId = async (pricingId, page, limit) => {
-  // Validate input
-  if (!pricingId) {
-    throw AppError.validationError('Pricing ID is required', 400);
+const fetchPricingDetailsByPricingTypeId = async (pricingTypeId, page, limit) => {
+  try {
+    // Input validation
+    if (!pricingTypeId) {
+      throw AppError.validationError('Pricing type ID is required', 400);
+    }
+    
+    if (page < 1 || limit < 1) {
+      throw AppError.validationError('Page and limit must be positive integers', 400);
+    }
+    
+    logSystemInfo('Fetching pricing details by pricing type ID', {
+      context: 'pricing-service/fetchPricingDetailsByPricingTypeId',
+      pricingTypeId,
+      page,
+      limit,
+    });
+    
+    // Repository fetch
+    const pricingRawData = await getPricingDetailsByPricingTypeId({
+      pricingTypeId,
+      page,
+      limit,
+    });
+    
+    if (!pricingRawData?.data?.length) {
+      throw AppError.notFoundError(
+        'No pricing details found for the specified pricing type ID',
+        404
+      );
+    }
+    
+    return transformPaginatedPricingDetailResult(pricingRawData);
+  } catch (error) {
+    logSystemException('Failed to fetch pricing details', {
+      context: 'pricing-service/fetchPricingDetailsByPricingTypeId',
+      pricingTypeId,
+      page,
+      limit,
+      error,
+    });
+    throw AppError.serviceError('Internal pricing fetch error', error);
   }
-
-  if (page < 1 || limit < 1) {
-    throw AppError.validationError(
-      'Page and limit must be positive integers',
-      400
-    );
-  }
-
-  // Fetch pricing details from repository
-  const pricingData = await getPricingDetailsByPricingId({
-    pricingId,
-    page,
-    limit,
-  });
-
-  if (!pricingData?.data?.length) {
-    throw AppError.notFoundError('Pricing details not found', 404);
-  }
-
-  const pricing = pricingData.data[0];
-
-  // Format response
-  return {
-    pricing,
-    pagination: pricingData.pagination,
-  };
 };
 
 /**
@@ -204,6 +220,6 @@ const fetchPriceByProductAndPriceType = async (productId, priceTypeId) => {
 module.exports = {
   fetchPaginatedPricingRecordsService,
   exportPricingRecordsService,
-  fetchPricingDetailsByPricingId,
+  fetchPricingDetailsByPricingTypeId,
   fetchPriceByProductAndPriceType,
 };

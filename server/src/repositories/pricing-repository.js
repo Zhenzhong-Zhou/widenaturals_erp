@@ -109,112 +109,105 @@ const getAllPricingRecords = async ({
   }
 };
 
-const getPricingDetailsByPricingTypeId = async ({
-  pricingTypeId,
-  page,
-  limit,
-}) => {
-  const tableName = 'pricing pr';
+/**
+ * Fetches paginated pricing details associated with a specific pricing type ID.
+ *
+ * Includes metadata such as product, SKU, pricing information, location, and audit fields.
+ *
+ * @param {Object} options
+ * @param {string} options.pricingTypeId - UUID of the pricing type to filter by.
+ * @param {number} options.page - The page number for pagination.
+ * @param {number} options.limit - The number of records per page.
+ *
+ * @returns {Promise<Object>} Paginated pricing detail records including SKU, product, price, and audit metadata.
+ *
+ * @throws {AppError} Throws a database error if the query fails.
+ */
+const getPricingDetailsByPricingTypeId = async ({ pricingTypeId, page, limit }) => {
+  const tableName = 'pricing p';
   const joins = [
-    'LEFT JOIN products p ON pr.product_id = p.id',
-    'LEFT JOIN locations l ON pr.location_id = l.id',
-    'LEFT JOIN location_types lt ON l.location_type_id = lt.id',
-    'LEFT JOIN status ps ON pr.status_id = ps.id',
+    'JOIN pricing_types pt ON pt.id = p.price_type_id',
+    'JOIN skus s ON s.id = p.sku_id',
+    'JOIN products pr ON pr.id = s.product_id',
+    'LEFT JOIN locations l ON l.id = p.location_id',
+    'LEFT JOIN status st ON st.id = pt.status_id',        // pricing_types status
+    'LEFT JOIN status pts ON pts.id = p.status_id',       // pricing status
+    'LEFT JOIN users ptc ON ptc.id = pt.created_by',      // pricing_types created_by
+    'LEFT JOIN users ptu ON ptu.id = pt.updated_by',      // pricing_types updated_by
+    'LEFT JOIN users uc ON uc.id = p.created_by',         // pricing created_by
+    'LEFT JOIN users uu ON uu.id = p.updated_by',         // pricing updated_by
   ];
-  const whereClause = 'pr.price_type_id = $1';
-
+  const whereClause = 'p.price_type_id = $1';
+  
   const pricingDetailsQuery = `
     SELECT
-      pr.id AS pricing_id,
-      pr.price,
-      pr.valid_from,
-      pr.valid_to,
-      pr.status_date,
-      ps.name AS status,
-      pr.created_at,
-      pr.updated_at,
-      jsonb_build_object(
-          'id', created_by_user.id,
-          'full_name', COALESCE(created_by_user.firstname || ' ' || created_by_user.lastname, 'Unknown')
-      ) AS created_by,
-      jsonb_build_object(
-          'id', updated_by_user.id,
-          'full_name', COALESCE(updated_by_user.firstname || ' ' || updated_by_user.lastname, 'Unknown')
-      ) AS updated_by,
-      jsonb_build_object(
-          'id', p.id,
-          'name', p.product_name,
-          'series', p.series,
-          'brand', p.brand,
-          'category', p.category,
-          'barcode', p.barcode,
-          'market_region', p.market_region
-      ) AS product,
-      jsonb_build_object(
-          'id', l.id,
-          'name', l.name,
-          'type', lt.name
-      ) AS location
-    FROM pricing pr
-    LEFT JOIN products p ON pr.product_id = p.id
-    LEFT JOIN locations l ON pr.location_id = l.id
-    LEFT JOIN location_types lt ON l.location_type_id = lt.id
-    LEFT JOIN status ps ON pr.status_id = ps.id
-    LEFT JOIN users created_by_user ON pr.created_by = created_by_user.id
-    LEFT JOIN users updated_by_user ON pr.updated_by = updated_by_user.id
-    WHERE pr.price_type_id = $1
+      pt.name AS pricing_type,
+      pt.code AS pricing_type_code,
+      pt.slug AS pricing_type_slug,
+      pt.description AS pricing_type_description,
+      pt.status_id AS pt_status_id,
+      st.name AS pricing_type_status_name,
+      pt.status_date AS pt_status_date,
+      pt.created_at AS pt_created_at,
+      ptc.firstname AS pt_created_firstname,
+      ptc.lastname AS pt_created_lastname,
+      pt.updated_at AS pt_updated_at,
+      pt.updated_by AS pt_updated_by,
+      ptu.firstname AS pt_updated_firstname,
+      ptu.lastname AS pt_updated_lastname,
+      p.location_id,
+      l.name AS location_name,
+      p.price,
+      p.valid_from,
+      p.valid_to,
+      p.status_id AS pricing_status_id,
+      pts.name AS pricing_status_name,
+      p.created_at AS pricing_created_at,
+      uc.firstname AS created_by_firstname,
+      uc.lastname AS created_by_lastname,
+      p.updated_at AS pricing_updated_at,
+      p.updated_by AS pricing_updated_by,
+      uu.firstname AS updated_by_firstname,
+      uu.lastname AS updated_by_lastname,
+      s.sku,
+      s.barcode,
+      s.country_code,
+      s.size_label,
+      pr.name AS product_name,
+      pr.brand AS brand_name
+    FROM ${tableName}
+    ${joins.join(' ')}
+    WHERE ${whereClause}
   `;
   
-  const example = `
-    SELECT
-  pt.name AS pricing_type,
-    pt.code AS pricing_type_code,
-    pt.slug AS pricing_type_slug,
-    pt.description AS pricing_type_description,
-    pt.status_id,
-    pt.status_date,
-    pt.created_at AS created_at,
-    pt.created_by AS created_by,
-    pt.updated_at AS updated_at,
-    pt.updated_by AS updated_by,
-    p.location_id,
-    p.price,
-    p.valid_from,
-    p.valid_to,
-    p.status_id,
-    p.created_at AS created_at,
-    p.created_by AS created_by,
-    p.updated_at AS updated_at,
-    p.updated_by AS updated_by,
-    s.sku,
-    s.barcode,
-    s.country_code,
-    s.size_label,
-    pr.name AS product_name,
-    pr.brand AS brand_name
-  FROM pricing p
-  JOIN pricing_types pt ON pt.id = p.price_type_id
-  JOIN skus s ON s.id = p.sku_id
-  JOIN products pr ON pr.id = s.product_id
-  WHERE p.price_type_id = 'd421a039-4b39-4809-bdeb-902296c9aa4b'
-  ORDER BY pr.name, s.sku;
-  `
-  
   try {
-    return await retry(async () => {
-      return await paginateQuery({
-        tableName,
-        joins,
-        whereClause,
-        queryText: pricingDetailsQuery,
-        params: [pricingTypeId],
-        page,
-        limit,
-        sortBy: 'p.product_name',
-        sortOrder: 'ASC',
-      });
+    logSystemInfo('Fetching pricing details by pricing type ID', {
+      context: 'getPricingDetailsByPricingTypeId',
+      pricingTypeId,
+      page,
+      limit,
+    });
+
+    return await paginateQuery({
+      tableName,
+      joins,
+      whereClause,
+      queryText: pricingDetailsQuery,
+      params: [pricingTypeId],
+      page,
+      limit,
+      sortBy: 'pr.name',
+      sortOrder: 'ASC',
     });
   } catch (error) {
+    logSystemException('Failed to fetch pricing details', {
+      context: 'getPricingDetailsByPricingTypeId',
+      pricingTypeId,
+      page,
+      limit,
+      error,
+    });
+    
     throw AppError.databaseError('Failed to fetch pricing details', error);
   }
 };

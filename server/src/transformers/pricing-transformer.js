@@ -1,4 +1,6 @@
 const { getProductDisplayName } = require('../utils/display-name-utils');
+const { getFullName } = require('../utils/name-utils');
+const { transformPaginatedResult } = require('../utils/transformPaginatedResult');
 
 /**
  * Transforms a raw SQL pricing row into a flattened pricing list item.
@@ -33,30 +35,15 @@ const transformPricingListRecord = (row) => ({
 });
 
 /**
- * Transforms an array of raw pricing rows.
+ * Transforms a paginated pricing query result using the shared pagination utility.
  *
- * @param {Array<object>} rows - Raw SQL result rows.
- * @returns {Array<object>} - Transformed pricing list.
+ * @param {Object} paginatedResult - Raw-paginated result from the pricing repository.
+ * @param {Array<Object>} paginatedResult.data - Raw pricing rows.
+ * @param {Object} paginatedResult.pagination - Pagination metadata.
+ * @returns {Object} Transformed response containing structured pricing data and pagination info.
  */
-const transformPricingList = (rows = []) => rows.map(transformPricingListRecord);
-
-/**
- * Transforms a paginated pricing query result into API-ready structure.
- *
- * @param {object} paginatedResult - Raw result from pagination helper.
- * @param {Array<object>} paginatedResult.data
- * @param {object} paginatedResult.pagination
- * @returns {object} - Paginated API response.
- */
-const transformPaginatedPricingResult = (paginatedResult) => ({
-  data: transformPricingList(paginatedResult.data),
-  pagination: {
-    page: Number(paginatedResult.pagination?.page ?? 1),
-    limit: Number(paginatedResult.pagination?.limit ?? 10),
-    totalRecords: Number(paginatedResult.pagination?.totalRecords ?? 0),
-    totalPages: Number(paginatedResult.pagination?.totalPages ?? 1),
-  },
-});
+const transformPaginatedPricingResult = (paginatedResult) =>
+  transformPaginatedResult(paginatedResult, transformPricingListRecord);
 
 /**
  * Transforms raw pricing data rows into flat export-friendly format.
@@ -80,7 +67,79 @@ const transformExportPricingData = (rows = [], format = 'csv') => {
   }));
 };
 
+/**
+ * /**
+ *  * Transforms a single raw pricing detail row into a structured object.
+ *  *
+ *  * @param {Object} row - Raw database row.
+ *  * @returns {Object} Transformed pricing detail.
+ *  */
+const transformPricingDetailRow = (row) => {
+  return {
+    pricingType: {
+      name: row.pricing_type,
+      code: row.pricing_type_code,
+      slug: row.pricing_type_slug,
+      description: row.pricing_type_description,
+      status: {
+        id: row.pt_status_id,
+        name: row.pricing_type_status_name,
+        date: row.pt_status_date,
+      },
+      createdAt: row.pt_created_at,
+      createdBy: {
+        fullname: getFullName(row.pt_created_firstname, row.pt_created_lastname),
+      },
+      updatedAt: row.pt_updated_at,
+      updatedBy: {
+        fullname: getFullName(row.pt_updated_firstname, row.pt_updated_lastname),
+      },
+    },
+    pricing: {
+      locationId: row.location_id,
+      locationName: row.location_name,
+      price: row.price,
+      validFrom: row.valid_from,
+      validTo: row.valid_to,
+      status: {
+        id: row.pricing_status_id,
+        name: row.pricing_status_name,
+      },
+      createdAt: row.pricing_created_at,
+      createdBy: {
+        fullname: getFullName(row.created_by_firstname, row.created_by_lastname),
+      },
+      updatedAt: row.pricing_updated_at,
+      updatedBy: {
+        fullname: getFullName(row.updated_by_firstname, row.updated_by_lastname),
+      },
+    },
+    sku: {
+      sku: row.sku,
+      barcode: row.barcode,
+      countryCode: row.country_code,
+      sizeLabel: row.size_label,
+    },
+    product: {
+      productName: getProductDisplayName(row),
+      brand: row.brand_name,
+    },
+  };
+}
+
+/**
+ * Transforms a paginated pricing detail result using the shared pagination transformer.
+ *
+ * @param {Object} result - Raw-paginated result from the pricing detail query.
+ * @param {Array<Object>} result.data - Array of raw pricing detail rows.
+ * @param {Object} result.pagination - Pagination metadata including page, limit, totalRecords, totalPages.
+ * @returns {Object} Transformed result containing formatted pricing detail rows and pagination info.
+ */
+const transformPaginatedPricingDetailResult = (result) =>
+  transformPaginatedResult(result, transformPricingDetailRow);
+
 module.exports = {
   transformPaginatedPricingResult,
   transformExportPricingData,
+  transformPaginatedPricingDetailResult,
 };

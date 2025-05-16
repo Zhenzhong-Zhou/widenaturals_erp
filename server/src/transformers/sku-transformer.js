@@ -1,52 +1,54 @@
 const { getProductDisplayName } = require('../utils/display-name-utils');
-const { logError } = require('../utils/logger-helper');
-const AppError = require('../utils/AppError');
 const { getFullName } = require('../utils/name-utils');
+const { transformPaginatedResult } = require('../utils/transformPaginatedResult');
 
 /**
- * Transform raw SKU + product data into a structured SKU product card format.
+ * Transforms a single raw SKU + product row into a product card structure
+ * suitable for frontend display (e.g., in product grids or SKU cards).
  *
- * @param {Array<Object>} rows - Raw DB rows with joined SKU, product, price, and image data.
- * @returns {Array<Object>} Transformed array for product card grid.
+ * @param {object} row - Raw row from the database combining SKU and product info.
+ * @param {string} row.sku_id - UUID of the SKU.
+ * @param {string} row.sku - SKU code.
+ * @param {string} row.barcode - Product barcode.
+ * @param {string} row.brand - Brand name.
+ * @param {string} row.series - Product series.
+ * @param {string} row.status_name - Product status name.
+ * @param {string} row.sku_status_name - SKU-specific status name.
+ * @param {string|null} row.compliance_id - Compliance ID (e.g., NPN).
+ * @param {string|null} row.primary_image_url - Main product image URL.
+ * @param {string|null} row.image_alt_text - Alt text for the product image.
+ * @param {number|string|null} row.msrp_price - MSRP price.
+ * @returns {object} Transformed product card object.
  */
-const transformSkuProductCardList = (rows) => {
-  try {
-    if (!Array.isArray(rows)) {
-      throw AppError.validationError('Input must be an array of rows.');
-    }
-    
-    return rows.map((row) => {
-      const unifiedStatus =
-        row.status_name === row.sku_status_name
-          ? row.status_name
-          : { product: row.status_name, sku: row.sku_status_name };
-      
-      return {
-        skuId: row.sku_id,
-        skuCode: row.sku,
-        barcode: row.barcode,
-        
-        displayName: getProductDisplayName(row),
-        brand: row.brand,
-        series: row.series,
-        
-        status: unifiedStatus, // dynamically collapsed or nested
-        
-        npnComplianceId: row.compliance_id || null,
-        msrpPrice: row.msrp_price ? Number(row.msrp_price) : null,
-        
-        imageUrl: row.primary_image_url || null,
-        imageAltText: row.image_alt_text || '',
-      };
-    });
-  } catch (error) {
-    logError('Error transforming SKU product card list', null, {
-      error: error.message,
-      rowsSample: Array.isArray(rows) ? rows.slice(0, 1) : null,
-    });
-    return []; // Return an empty list to fail gracefully
-  }
+const transformSkuProductCardRow = (row) => {
+  const unifiedStatus =
+    row.status_name === row.sku_status_name
+      ? row.status_name
+      : { product: row.status_name, sku: row.sku_status_name };
+  
+  return {
+    skuId: row.sku_id,
+    skuCode: row.sku,
+    barcode: row.barcode,
+    displayName: getProductDisplayName(row),
+    brand: row.brand,
+    series: row.series,
+    status: unifiedStatus,
+    npnComplianceId: row.compliance_id || null,
+    msrpPrice: row.msrp_price ? Number(row.msrp_price) : null,
+    imageUrl: row.primary_image_url || null,
+    imageAltText: row.image_alt_text || '',
+  };
 };
+
+/**
+ * Transforms a paginated result of SKU product cards.
+ *
+ * @param {object} paginatedResult - Raw result from repository.
+ * @returns {object} API-ready structure with pagination.
+ */
+const transformPaginatedSkuProductCardResult = (paginatedResult) =>
+  transformPaginatedResult(paginatedResult, transformSkuProductCardRow);
 
 /**
  * Transforms raw SKU detail row into clean client-friendly structure.
@@ -178,6 +180,6 @@ const transformSkuDetailsWithMeta = (row) => {
 };
 
 module.exports = {
-  transformSkuProductCardList,
+  transformPaginatedSkuProductCardResult,
   transformSkuDetailsWithMeta,
 };
