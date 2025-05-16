@@ -15,6 +15,7 @@ const transformPricingListRecord = (row) => ({
   validTo: row.valid_to ?? null,
   
   pricingType: {
+    id: row.pricing_type_id,
     name: row.pricing_type,
     code: row.pricing_type_code,
   },
@@ -78,22 +79,6 @@ const transformPricingDetailRow = (row) => {
   return {
     pricingType: {
       name: row.pricing_type,
-      code: row.pricing_type_code,
-      slug: row.pricing_type_slug,
-      description: row.pricing_type_description,
-      status: {
-        id: row.pt_status_id,
-        name: row.pricing_type_status_name,
-        date: row.pt_status_date,
-      },
-      createdAt: row.pt_created_at,
-      createdBy: {
-        fullname: getFullName(row.pt_created_firstname, row.pt_created_lastname),
-      },
-      updatedAt: row.pt_updated_at,
-      updatedBy: {
-        fullname: getFullName(row.pt_updated_firstname, row.pt_updated_lastname),
-      },
     },
     pricing: {
       locationId: row.location_id,
@@ -124,6 +109,7 @@ const transformPricingDetailRow = (row) => {
       productName: getProductDisplayName(row),
       brand: row.brand_name,
     },
+    productCount: row.product_count !== undefined ? Number(row.product_count) : undefined,
   };
 }
 

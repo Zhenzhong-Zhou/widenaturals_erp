@@ -55,3 +55,22 @@ export interface ApiSuccessResponse<T> {
    */
   data: T;
 }
+
+/**
+ * A generic interface for managing paginated asynchronous state in Redux or any data layer.
+ *
+ * @template T - The type of the individual data item in the paginated list.
+ */
+export interface PaginatedState<T> {
+  /** The array of transformed data items returned by the API. */
+  data: T[];
+  
+  /** Pagination metadata including page, limit, totalRecords, and totalPages. */
+  pagination: Pagination;
+  
+  /** Indicates whether the data is currently being fetched. */
+  loading: boolean;
+  
+  /** Optional error message if the fetch operation fails. */
+  error: string | null;
+}

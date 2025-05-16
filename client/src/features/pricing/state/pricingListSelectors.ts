@@ -15,7 +15,7 @@ export const selectPricingListData = createSelector(
 /**
  * Selector to get pagination metadata.
  */
-export const selectPricingPagination = createSelector(
+export const selectPricingListPagination = createSelector(
   [selectPricingListState],
   (state) => state.pagination
 );

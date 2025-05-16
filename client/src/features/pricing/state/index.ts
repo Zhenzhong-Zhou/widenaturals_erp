@@ -1,16 +1,16 @@
-import pricingListReducer from './pricingListSlice.ts';
-// import pricingReducer from './pricingDetailSlice';
-import pricingValueReducer from './pricingValueSlice';
+import pricingListReducer from './pricingListSlice';
+import pricingListByTypeReducer from './pricingListByTypeSlice';
+// import pricingValueReducer from './pricingValueSlice';
 
 export const pricingReducers = {
   pricingList: pricingListReducer,
-  // pricing: pricingReducer,
-  pricingValue: pricingValueReducer,
+  pricingListByType: pricingListByTypeReducer,
+  // pricingValue: pricingValueReducer,
 };
 
 // Optional: Export thunks, selectors, types
 export * from './pricingListSelectors';
-export * from './pricingDetailSelectors';
+export * from './pricingListByTypeSelectors';
 export * from './pricingValueSelectors';
 export * from './pricingThunks';
 export * from './pricingTypes';

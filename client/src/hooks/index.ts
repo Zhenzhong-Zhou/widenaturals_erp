@@ -19,7 +19,7 @@ export { default as useProductsWarehouseDropdown } from './useProductsWarehouseD
 
 // --- Pricing ---
 export { default as usePricing } from './usePricingList.ts';
-export { default as usePricingDetail } from './usePricingDetail';
+export { default as usePricingDetail } from './usePricingListByType.ts';
 export { default as usePricingTypes } from './usePricingTypes';
 export { default as usePricingTypeDropdown } from './usePricingTypeDropdown';
 

@@ -16,7 +16,7 @@ export const API_ENDPOINTS = {
   PRICING_TYPE_METADATA: '/pricing-types/metadata/:id',
   PRICING_LIST: '/pricings',
   PRICING_LIST_EXPORT: '/pricings/export',
-  PRICING_DETAILS: '/pricings/details/:id',
+  PRICING_DETAILS_BY_TYPE: '/pricings/by-type/:id/details',
   ALL_LOCATION_TYPES: '/location-types',
   LOCATION_TYPE_DETAILS: '/location-types/:id',
   ALL_LOCATIONS: '/locations',

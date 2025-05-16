@@ -1,4 +1,4 @@
-import type { PaginatedResponse, Pagination } from 'types/api';
+import type { PaginatedResponse, PaginatedState } from 'types/api';
 
 // Define the Pricing Record structure
 export interface PricingRecord {
@@ -7,6 +7,7 @@ export interface PricingRecord {
   validFrom: string; // ISO date string
   validTo: string | null;
   pricingType: {
+    id: string;
     name: string;
     code: string;
   };
@@ -36,12 +37,10 @@ export interface FetchPricingParams {
 // Define the API Response structure
 export type PaginatedPricingRecordsResponse = PaginatedResponse<PricingRecord>;
 
-export interface PricingListState {
-  data: PricingRecord[];
-  pagination: Pagination;
-  loading: boolean;
-  error: string | null;
-}
+/**
+ * Redux state structure for managing a paginated list of pricing records.
+ */
+export type PricingListState = PaginatedState<PricingRecord>;
 
 export interface Product {
   product_id: string;
@@ -52,36 +51,50 @@ export interface Product {
   market_region: string;
 }
 
-export interface LocationType {
-  type_id: string;
-  type_name: string;
+export interface PricingType {
+  name: string;
 }
 
-export interface PricingLocation {
-  location_id: string;
-  location_name: string;
-  location_type: LocationType;
+export interface Pricing {
+  locationId: string;
+  locationName: string;
+  price: string; // If this should be a number, change to: number
+  validFrom: string; // ISO date string
+  validTo: string | null;
+  status: {
+    id: string;
+    name: string;
+  };
+  createdAt: string;
+  createdBy: {
+    fullname: string;
+  };
+  updatedAt: string | null;
+  updatedBy: {
+    fullname: string;
+  };
 }
 
-
-
-
-
-// Interface for the request parameters
-export interface PriceRequestParams {
-  productId: string;
-  priceTypeId: string;
+export interface SKU {
+  sku: string;
+  barcode: string;
+  countryCode: string;
+  sizeLabel: string;
 }
 
-// Type for the API response
-export type PriceResponse = {
-  price: string; // Using string to maintain the format "180.00"
-  productId: string;
-  priceTypeId: string;
-};
-
-export interface PriceState {
-  priceData: PriceResponse | null;
-  loading: boolean;
-  error: string | null;
+export interface Product {
+  productName: string;
+  brand: string;
 }
+
+export interface PricingDetail {
+  pricingType: PricingType;
+  pricing: Pricing;
+  sku: SKU;
+  product: Product;
+  productCount: number;
+}
+
+export type PaginatedPricingDetailsResponse = PaginatedResponse<PricingDetail>;
+
+export type PricingState = PaginatedState<PricingDetail>;

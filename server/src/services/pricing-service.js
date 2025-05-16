@@ -161,12 +161,9 @@ const fetchPricingDetailsByPricingTypeId = async (pricingTypeId, page, limit) =>
       page,
       limit,
     });
-    
-    if (!pricingRawData?.data?.length) {
-      throw AppError.notFoundError(
-        'No pricing details found for the specified pricing type ID',
-        404
-      );
+   
+    if (!pricingRawData.data.length || pricingRawData.data.length === 0) {
+      return [];
     }
     
     return transformPaginatedPricingDetailResult(pricingRawData);

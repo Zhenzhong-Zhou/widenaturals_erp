@@ -1,64 +1,61 @@
+import { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import Box from '@mui/material/Box';
-import Paper from '@mui/material/Paper';
 import Loading from '@components/common/Loading';
 import ErrorDisplay from '@components/shared/ErrorDisplay';
 import ErrorMessage from '@components/common/ErrorMessage';
-import CustomTypography from '@components/common/CustomTypography';
-import PricingDetailsTable from '@features/pricing/components/PricingDetailsTable';
-import { formatCurrency } from '@utils/textUtils';
-import usePricingDetail from '@hooks/usePricingDetail';
+import GroupedPricingDetailsTable from '@features/pricing/components/GroupedPricingDetailsTable';
+import usePricingListByType from '@hooks/usePricingListByType';
+import type { PricingDetail } from '@features/pricing/state';
+import NoDataFound from '@components/common/NoDataFound.tsx';
 
 const PricingDetailPage = () => {
-  const { id } = useParams<{ id: string }>();
-
-  // Use the custom hook for fetching pricing details
-  const { pricing, pagination, loading, error, fetchPricings } =
-    usePricingDetail(id, 1, 10);
-
-  // Pagination Handlers
-  const handlePageChange = (newPage: number) =>
-    fetchPricings(newPage, pagination.limit);
-  const handleRowsPerPageChange = (newLimit: number) =>
-    fetchPricings(1, newLimit);
-
-  // Handle Loading & Error states
-  if (loading) return <Loading message="Loading Pricing Details..." />;
-  if (error)
+  const { id: pricingTypeId } = useParams<{ id: string }>();
+  const {
+    data,
+    pagination,
+    loading,
+    error,
+    fetchData: fetchPricingList,
+  } = usePricingListByType();
+  
+  // Fetch data on mount or when pricingTypeId changes
+  useEffect(() => {
+    if (pricingTypeId) {
+      fetchPricingList(pricingTypeId, pagination.page, 1000);
+    }
+  }, [pricingTypeId]);
+  
+  if (!data) {
+    return <NoDataFound message="No pricing detail list data found." />;
+  }
+  
+  if (loading) {
+    return <Loading message="Loading Pricing Details..." />;
+  }
+  
+  if (error) {
     return (
       <ErrorDisplay>
         <ErrorMessage message={error} />
       </ErrorDisplay>
     );
-
+  }
+  
+  const groupPricingByTypeAndPrice = (records: PricingDetail[]) => {
+    return records.reduce((acc, record) => {
+      const groupKey = `${record.pricingType.name} - CA${record.pricing.price} - ${record.pricing.locationName}`;
+      if (!acc[groupKey]) acc[groupKey] = [];
+      acc[groupKey].push(record);
+      return acc;
+    }, {} as Record<string, PricingDetail[]>);
+  };
+  
+  const groupedData = groupPricingByTypeAndPrice(data);
+  
   return (
     <Box sx={{ padding: 3 }}>
-      {pricing && (
-        <>
-          {/* Pricing Overview Section */}
-          <Paper sx={{ padding: 2, marginBottom: 3 }}>
-            <CustomTypography variant="h4" gutterBottom>
-              {pricing.price_type_name} - CA{formatCurrency(pricing.price)}
-            </CustomTypography>
-            <CustomTypography variant="subtitle1" color="textSecondary">
-              Valid From: {new Date(pricing.valid_from).toLocaleDateString()} →
-              {pricing.valid_to
-                ? new Date(pricing.valid_to).toLocaleDateString()
-                : 'N/A'}
-            </CustomTypography>
-          </Paper>
-
-          {/* Pricing Details Table */}
-          <PricingDetailsTable
-            pricing={pricing}
-            page={pagination.page}
-            totalRecords={pagination.totalRecords}
-            totalPages={pagination.totalPages}
-            onPageChange={handlePageChange}
-            onRowsPerPageChange={handleRowsPerPageChange}
-          />
-        </>
-      )}
+      <GroupedPricingDetailsTable groupedData={groupedData} />
     </Box>
   );
 };

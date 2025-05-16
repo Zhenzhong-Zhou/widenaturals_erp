@@ -1,6 +1,10 @@
 import axiosInstance from '@utils/axiosConfig';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
-import type { FetchPricingParams, PaginatedPricingRecordsResponse } from '@features/pricing/state';
+import type {
+  FetchPricingParams,
+  PaginatedPricingDetailsResponse,
+  PaginatedPricingRecordsResponse,
+} from '@features/pricing/state';
 import type { PriceRequestParams, PriceResponse } from '@features/pricing';
 import { saveAs } from 'file-saver';
 
@@ -82,27 +86,29 @@ const exportPricingRecords = async (
 };
 
 /**
- * Fetch pricing details by pricing ID.
- * @param pricingId - The UUID of the pricing record.
- * @param page - Page number for pagination.
- * @param limit - Number of records per page.
- * @returns A promise that resolves to pricing details.
+ * Fetches paginated pricing details by pricing type ID.
+ *
+ * @param pricingTypeId - The UUID of the pricing type to filter by.
+ * @param [page=1] - The current page number.
+ * @param [limit=10] - Number of records per page.
+ * @returns {Promise<PaginatedPricingDetailsResponse>} - Resolved pricing details and pagination info.
+ * @throws {Error} - Throws an error if the request fails.
  */
-// const fetchPricingDetails = async (
-//   pricingId: string,
-//   page = 1,
-//   limit = 10
-// ): Promise<PricingDetailsResponse> => {
-//   try {
-//     const endpoint = API_ENDPOINTS.PRICING_DETAILS.replace(':id', pricingId);
-//     const response = await axiosInstance.get<PricingDetailsResponse>(
-//       `${endpoint}?page=${page}&limit=${limit}`
-//     );
-//     return response.data;
-//   } catch (error) {
-//     throw new Error('Failed to fetch pricing details');
-//   }
-// };
+const fetchPricingDetailsByType = async (
+  pricingTypeId: string,
+  page = 1,
+  limit = 10
+): Promise<PaginatedPricingDetailsResponse> => {
+  try {
+    const endpoint = API_ENDPOINTS.PRICING_DETAILS_BY_TYPE.replace(':id', pricingTypeId);
+    const response = await axiosInstance.get<PaginatedPricingDetailsResponse>(
+      `${endpoint}?page=${page}&limit=${limit}`
+    );
+    return response.data;
+  } catch (error) {
+    throw new Error('Failed to fetch pricing details');
+  }
+};
 
 const fetchPriceByProductIdAndPriceTypeId = async (
   params: PriceRequestParams
@@ -124,6 +130,6 @@ const fetchPriceByProductIdAndPriceTypeId = async (
 export const pricingService = {
   fetchPaginatedPricingRecords,
   exportPricingRecords,
-  // fetchPricingDetails,
+  fetchPricingDetailsByType,
   fetchPriceByProductIdAndPriceTypeId,
 };

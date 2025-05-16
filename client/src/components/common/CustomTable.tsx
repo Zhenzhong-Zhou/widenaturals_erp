@@ -24,6 +24,7 @@ export interface Column<T = any> {
 }
 
 interface CustomTableProps<T = any> {
+  rowsPerPageId?: string;
   loading?: boolean;
   columns: Column<T>[];
   data: T[];
@@ -41,6 +42,7 @@ interface CustomTableProps<T = any> {
 }
 
 const CustomTable = <T extends Record<string, any>>({
+                                             rowsPerPageId,
                                              loading,
                                              columns,
                                              data,
@@ -213,7 +215,7 @@ const CustomTable = <T extends Record<string, any>>({
           select: {
             inputProps: {
               name: 'rows-per-page',
-              id: 'rows-per-page-selector',
+              id: rowsPerPageId || 'rows-per-page-selector',
             },
           },
         }}

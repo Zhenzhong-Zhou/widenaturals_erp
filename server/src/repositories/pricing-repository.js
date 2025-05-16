@@ -57,6 +57,7 @@ const getAllPricingRecords = async ({
       p.price,
       p.valid_from,
       p.valid_to,
+      pt.id AS pricing_type_id,
       pt.name AS pricing_type,
       pt.code AS pricing_type_code,
       s.id AS sku_id,
@@ -130,10 +131,7 @@ const getPricingDetailsByPricingTypeId = async ({ pricingTypeId, page, limit }) 
     'JOIN skus s ON s.id = p.sku_id',
     'JOIN products pr ON pr.id = s.product_id',
     'LEFT JOIN locations l ON l.id = p.location_id',
-    'LEFT JOIN status st ON st.id = pt.status_id',        // pricing_types status
     'LEFT JOIN status pts ON pts.id = p.status_id',       // pricing status
-    'LEFT JOIN users ptc ON ptc.id = pt.created_by',      // pricing_types created_by
-    'LEFT JOIN users ptu ON ptu.id = pt.updated_by',      // pricing_types updated_by
     'LEFT JOIN users uc ON uc.id = p.created_by',         // pricing created_by
     'LEFT JOIN users uu ON uu.id = p.updated_by',         // pricing updated_by
   ];
@@ -142,19 +140,6 @@ const getPricingDetailsByPricingTypeId = async ({ pricingTypeId, page, limit }) 
   const pricingDetailsQuery = `
     SELECT
       pt.name AS pricing_type,
-      pt.code AS pricing_type_code,
-      pt.slug AS pricing_type_slug,
-      pt.description AS pricing_type_description,
-      pt.status_id AS pt_status_id,
-      st.name AS pricing_type_status_name,
-      pt.status_date AS pt_status_date,
-      pt.created_at AS pt_created_at,
-      ptc.firstname AS pt_created_firstname,
-      ptc.lastname AS pt_created_lastname,
-      pt.updated_at AS pt_updated_at,
-      pt.updated_by AS pt_updated_by,
-      ptu.firstname AS pt_updated_firstname,
-      ptu.lastname AS pt_updated_lastname,
       p.location_id,
       l.name AS location_name,
       p.price,
@@ -174,10 +159,16 @@ const getPricingDetailsByPricingTypeId = async ({ pricingTypeId, page, limit }) 
       s.country_code,
       s.size_label,
       pr.name AS product_name,
-      pr.brand AS brand_name
+      pr.brand AS brand_name,
+      COUNT(DISTINCT s.id) AS product_count
     FROM ${tableName}
     ${joins.join(' ')}
     WHERE ${whereClause}
+    GROUP BY
+      pt.name, p.location_id, l.name, p.price, p.valid_from, p.valid_to,
+      p.status_id, pts.name, p.created_at, uc.firstname, uc.lastname, p.updated_at,
+      p.updated_by, uu.firstname, uu.lastname, s.sku, s.barcode, s.country_code,
+      s.size_label, pr.name, pr.brand
   `;
   
   try {

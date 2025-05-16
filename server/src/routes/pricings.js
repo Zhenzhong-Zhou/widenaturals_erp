@@ -26,7 +26,7 @@ router.get('/export', authorize([
 ]), exportPricingRecordsController);
 
 router.get(
-  '/details/:id',
+  '/by-type/:id/details',
   authorize(['view_prices', 'manage_prices']),
   getPricingDetailsController
 );

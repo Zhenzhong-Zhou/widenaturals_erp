@@ -6,8 +6,9 @@ import {
   selectPricingError,
   selectPricingListData,
   selectPricingLoading,
-  selectPricingPagination,
+  selectPricingListPagination,
   type FetchPricingParams,
+  selectPricingTotalCount,
 } from '@features/pricing/state';
 
 /**
@@ -21,9 +22,10 @@ const usePricingList = (
   const dispatch = useAppDispatch();
   
   const data = useAppSelector(selectPricingListData);
-  const pagination = useAppSelector(selectPricingPagination);
+  const pagination = useAppSelector(selectPricingListPagination);
   const isLoading = useAppSelector(selectPricingLoading);
   const error = useAppSelector(selectPricingError);
+  const totalCount = useAppSelector(selectPricingTotalCount);
   const isEmpty = useAppSelector(selectIsPricingListEmpty);
   
   const fetchData = useCallback(
@@ -38,6 +40,7 @@ const usePricingList = (
     pagination,
     isLoading,
     error,
+    totalCount,
     isEmpty,
     fetchData,
   };
