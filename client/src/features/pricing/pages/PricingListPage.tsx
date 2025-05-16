@@ -5,7 +5,7 @@ import Loading from '@components/common/Loading';
 import ErrorDisplay from '@components/shared/ErrorDisplay';
 import ErrorMessage from '@components/common/ErrorMessage';
 import CustomButton from '@components/common/CustomButton';
-import PricingTable from '@features/pricing/components/PricingTable';
+import PricingListTable from '@features/pricing/components/PricingListTable.tsx';
 import usePricingList from '@hooks/usePricingList';
 import CustomTypography from '@components/common/CustomTypography';
 import PricingFilterPanel from '@features/pricing/components/PricingFilterPanel';
@@ -15,7 +15,7 @@ import ExportPricingForm from '../components/ExportPricingForm';
 import { extractPricingFilterOptions } from '../utils/extractPricingFilterOptions';
 import { useThemeContext } from '@context/ThemeContext';
 
-const PricingPage = () => {
+const PricingListPage = () => {
   const [params, setParams] = useState<FetchPricingParams>({ page: 1, limit: 25 });
   const [exportOpen, setExportOpen] = useState(false);
   const { theme } = useThemeContext();
@@ -138,7 +138,7 @@ const PricingPage = () => {
       {isEmpty ? (
         <CustomTypography variant={'h6'}>No pricing records found.</CustomTypography>
         ) : (
-        <PricingTable
+        <PricingListTable
           data={flattened}
           page={(pagination.page ?? 1) - 1}
           rowsPerPage={pagination.limit}
@@ -152,4 +152,4 @@ const PricingPage = () => {
   );
 };
 
-export default PricingPage;
+export default PricingListPage;

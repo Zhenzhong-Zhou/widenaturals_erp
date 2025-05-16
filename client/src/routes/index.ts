@@ -81,7 +81,7 @@ export const routes = [
   },
   {
     path: '/pricings',
-    component: lazy(() => import('@features/pricing/pages/PricingPage')),
+    component: lazy(() => import('@features/pricing/pages/PricingListPage.tsx')),
     meta: {
       requiresAuth: true,
       title: 'Prices',

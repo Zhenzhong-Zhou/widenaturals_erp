@@ -31,7 +31,7 @@ interface PricingTableProps {
   onRowsPerPageChange: (newRowsPerPage: number) => void;
 }
 
-const PricingTable: FC<PricingTableProps> = ({
+const PricingListTable: FC<PricingTableProps> = ({
                                                data,
                                                page,
                                                rowsPerPage,
@@ -120,4 +120,4 @@ const PricingTable: FC<PricingTableProps> = ({
   );
 };
 
-export default PricingTable;
+export default PricingListTable;
