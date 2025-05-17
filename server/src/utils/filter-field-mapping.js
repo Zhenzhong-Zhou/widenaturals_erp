@@ -9,6 +9,7 @@ const FILTERABLE_FIELDS = {
     marketRegion: 'sku.market_region',
     sizeLabel: 'sku.size_label',
     keyword: 'p.name',
+    createdAt: 'sku.created_at',
   },
   pricingRecords: {
     productName: 'pr.name',
@@ -22,6 +23,24 @@ const FILTERABLE_FIELDS = {
     price: 'p.price',
     validFrom: 'p.valid_from',
     validTo: 'p.valid_to',
+  },
+  locationInventorySummary: {
+    lotNumber: 'lot_number',
+    sku: 's.sku',
+    productName: 'p.name',
+    materialName: 'pm.name',
+    inboundDate: 'li.inbound_date',
+    expiryDate: `
+      CASE
+        WHEN br.batch_type = 'product' THEN pb.expiry_date
+        WHEN br.batch_type = 'packaging_material' THEN pmb.expiry_date
+        ELSE NULL
+      END
+    `,
+    status: 's_status.name',
+    locationQuantity: 'li.location_quantity',
+    reservedQuantity: 'li.reserved_quantity',
+    createdAt: 'li.created_at',
   },
 };
 

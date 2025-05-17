@@ -1,4 +1,4 @@
-const { transformPaginatedResult } = require('../utils/transformPaginatedResult');
+const { transformPaginatedResult } = require('../utils/transformer-utils');
 
 /**
  * Transforms a raw pricing type DB row into a formatted object.

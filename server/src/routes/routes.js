@@ -19,7 +19,7 @@ const priceTypeRouts = require('./pricing-types');
 const pricingRouts = require('./pricings');
 const locationTypeRouts = require('./locations-types');
 const locationRouts = require('./locations');
-const inventoryRouts = require('./inventory');
+const locationInventoryRouts = require('./location-inventory');
 const warehouseRouts = require('./warehouses');
 const warehouseInventoryRouts = require('./warehouse-inventory');
 const warehouseInventoryLotRouts = require('./warehouse-invnetory-lot');
@@ -100,7 +100,8 @@ router.use('/location-types', authenticate(), locationTypeRouts);
 
 router.use('/locations', authenticate(), locationRouts);
 
-router.use('/inventories', authenticate(), inventoryRouts);
+// router.use('/location-inventory', authenticate(), locationInventoryRouts);
+router.use('/location-inventory', locationInventoryRouts);
 
 router.use('/warehouses', authenticate(), warehouseRouts);
 

@@ -11,7 +11,7 @@ const { getActiveProductPrice } = require('./pricing-repository');
 const { logError } = require('../utils/logger-helper');
 const { checkDeliveryMethodExists } = require('./delivery-method-repository');
 const { checkCustomerExistsById } = require('./customer-repository');
-const { getInventoryId } = require('./inventory-repository');
+const { getInventoryId } = require('./location-inventory-repository');
 
 /**
  * Creates a sales order in the `sales_orders` table using raw SQL.

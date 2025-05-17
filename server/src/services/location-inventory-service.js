@@ -1,10 +1,10 @@
 const {
-  getInventories,
+  getHighLevelLocationInventorySummary,
   insertInventoryRecords,
   updateInventoryQuantity,
   checkInventoryExists,
   getProductIdOrIdentifierByInventoryIds,
-} = require('../repositories/inventory-repository');
+} = require('../repositories/location-inventory-repository');
 const AppError = require('../utils/AppError');
 const { logError, logInfo, logWarn } = require('../utils/logger-helper');
 const {
@@ -38,40 +38,76 @@ const {
 } = require('../repositories/lot-adjustment-type-repository');
 const { generateChecksum } = require('../utils/crypto-utils');
 const {
-  transformPaginatedInventoryRecords,
-} = require('../transformers/inventory-transformer');
+  transformPaginatedLocationInventorySummaryResult,
+} = require('../transformers/location-inventory-transformer');
 const { canViewInventorySummary } = require('../business/warehouse-inventory-business');
 const {
   transformWarehouseInventoryRecords,
 } = require('../transformers/warehouse-inventory-transformer');
+const { sanitizeSortBy, sanitizeSortOrder } = require('../utils/sort-utils');
+const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 
 /**
- * Fetch all inventory records with pagination, sorting, and business logic.
- * @param {Object} options - Query parameters.
- * @param {number} options.page - Page number.
- * @param {number} options.limit - Records per page.
- * @param {string} [options.sortBy='created_at'] - Column to sort by.
- * @param {string} [options.sortOrder='ASC'] - Sorting order.
- * @returns {Promise<{ data: Array, pagination: Object }>}
+ * Fetches paginated location inventory summary records with filters, sorting, and
+ * derived inventory logic.
+ *
+ * Designed for displaying high-level inventory data (products or packaging materials)
+ * from the `location_inventory` table, including
+ * - Structured product/material metadata
+ * - Derived inventory health flags (e.g., isExpired, isLowStock)
+ * - Quantity and date normalization
+ *
+ * @param {Object} options - Query parameters
+ * @param {number} options.page - Current page number (1-based)
+ * @param {number} options.limit - Number of records per page
+ * @param {Object} options.filters - Inventory filters (e.g., productName, lotNumber, locationId)
+ * @param {string} [options.sortBy='createdAt'] - Logical sort key (mapped internally to SQL columns)
+ * @param {string} [options.sortOrder='ASC'] - Sort direction: 'ASC' or 'DESC'
+ *
+ * @returns {Promise<{
+ *   data: Array<Object>,
+ *   pagination: {
+ *     page: number,
+ *     limit: number,
+ *     totalRecords: number,
+ *     totalPages: number
+ *   }
+ * }>} Transformed summary inventory result
  */
-const fetchAllInventories = async ({ page, limit, sortBy, sortOrder }) => {
+const fetchLocationInventorySummaryService = async ({ page, limit, filters, sortBy, sortOrder }) => {
   try {
-    logInfo(
-      `Fetching inventory data: page=${page}, limit=${limit}, sortBy=${sortBy}, sortOrder=${sortOrder}`
-    );
-
-    // Fetch inventory records from repository
-    const rawResult = await getInventories({
+    logSystemInfo('Fetching location inventory summary', {
+      context: 'location-inventory-service/fetchLocationInventorySummary',
       page,
       limit,
+      filters,
       sortBy,
       sortOrder,
     });
-
-    return transformPaginatedInventoryRecords(rawResult);
+    
+    const sortByClause = sanitizeSortBy(sortBy || 'createdAt', 'locationInventorySummary');
+    const sortOrderClause = sanitizeSortOrder(sortOrder);
+    
+    const rawResult = await getHighLevelLocationInventorySummary({
+      page,
+      limit,
+      filters,
+      sortBy: sortByClause,
+      sortOrder: sortOrderClause,
+    });
+    
+    return transformPaginatedLocationInventorySummaryResult(rawResult);
   } catch (error) {
-    logError('Error fetching inventory:', error);
-    throw AppError.serviceError('Failed to fetch inventory');
+    logSystemException(error, 'Error fetching location inventory summary', {
+      context: 'location-inventory-service/fetchLocationInventorySummary',
+      page,
+      limit,
+      filters,
+      sortBy,
+      sortOrder,
+    });
+    
+    throw AppError.serviceError('Failed to fetch location inventory summary');
   }
 };
 
@@ -534,7 +570,7 @@ const fetchRecentInsertWarehouseInventoryRecords = async (warehouseLotIds) => {
 };
 
 module.exports = {
-  fetchAllInventories,
+  fetchLocationInventorySummaryService,
   createInventoryRecords,
   fetchRecentInsertWarehouseInventoryRecords,
 };

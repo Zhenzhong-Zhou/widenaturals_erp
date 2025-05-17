@@ -1,6 +1,6 @@
 const { getProductDisplayName } = require('../utils/display-name-utils');
 const { getFullName } = require('../utils/name-utils');
-const { transformPaginatedResult } = require('../utils/transformPaginatedResult');
+const { transformPaginatedResult } = require('../utils/transformer-utils');
 
 /**
  * Transforms a raw SQL pricing row into a flattened pricing list item.

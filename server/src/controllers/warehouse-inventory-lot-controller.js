@@ -6,7 +6,7 @@ const AppError = require('../utils/AppError');
 const wrapAsync = require('../utils/wrap-async');
 const {
   fetchRecentInsertWarehouseInventoryRecords,
-} = require('../services/inventory-service');
+} = require('../services/location-inventory-service');
 const { getAvailableInventoryLotsForClient } = require('../business/warehouse-inventory-lot-business');
 
 /**

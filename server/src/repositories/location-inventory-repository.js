@@ -5,149 +5,139 @@ const {
   bulkInsert,
   lockRow,
   formatBulkUpdateQuery,
-  paginateResults,
 } = require('../database/db');
 const AppError = require('../utils/AppError');
+const {
+  logSystemException,
+  logSystemInfo
+} = require('../utils/system-logger');
 const { logInfo, logError, logWarn } = require('../utils/logger-helper');
-const { logSystemError } = require('../utils/system-logger');
+const { buildLocationInventoryWhereClause } = require('../utils/sql/build-location-inventory-filters');
 
 /**
- * Fetch all inventory items with pagination & sorting.
+ * Fetches high-level location inventory records with support for:
+ * pagination, dynamic filters, and sorting.
+ *
+ * Handles both product-based and packaging material–based inventory entries.
+ * Applies system-defined filters (e.g. non-zero quantity) and user-provided filters
+ * such as SKU, lot number, product/material name, dates, and status.
+ *
  * @param {Object} options - Query parameters
- * @param {number} options.page - Current page number
- * @param {number} options.limit - Number of results per page
- * @param {string} [options.sortBy='name'] - Column to sort by
- * @param {string} [options.sortOrder='ASC'] - Sorting order (ASC/DESC)
- * @returns {Promise<{ data: Array, pagination: Object }>} Inventory data with pagination info
+ * @param {number} [options.page=1] - Current page number (1-based)
+ * @param {number} [options.limit=10] - Number of records per page
+ * @param {Object} [options.filters={}] - Filtering options
+ * @param {string} [options.sortBy='createdAt'] - Field key to sort by (mapped internally to SQL column)
+ * @param {string} [options.sortOrder='DESC'] - Sorting order: ASC or DESC
+ *
+ * @returns {Promise<{ data: Array<Object>, pagination: { page: number, limit: number, totalRecords: number, totalPages: number } }>}
+ * Returns paginated inventory rows and metadata.
  */
-const getInventories = async ({
-  page = 1,
-  limit = 10,
-  sortBy,
-  sortOrder,
-} = {}) => {
-  const validSortColumns = [
-    'product_name', // Sort by product name
-    'location_name', // Sort by location name
-    'item_type', // Sort by item type
-    'lot_number', // Sort by lot number (for batch tracking)
-    'available_quantity', // Sort by available quantity
-    'reserved_quantity', // Sort by reserved quantity
-    'warehouse_fee', // Sort by storage fee
-    'status_id', // Sort by warehouse lot status
-    'status_date', // Sort by last status update
-    'inbound_date', // Sort by when the item was received
-    'outbound_date', // Sort by when the item was shipped out
-    'last_update', // Sort by the last modified date
-    'created_at', // Sort by record creation time
-    'updated_at', // Sort by record last updated time
-  ];
-
-  let defaultSortBy = 'location_id, created_at';
-
-  if (!validSortColumns.includes(sortBy)) {
-    sortBy = defaultSortBy;
-  }
-
-  const tableName = 'inventory i';
-
+const getHighLevelLocationInventorySummary = async ({
+                                                      page = 1,
+                                                      limit = 10,
+                                                      filters = {},
+                                                      sortBy = 'created_at',
+                                                      sortOrder = 'DESC',
+                                                    } = {}) => {
   const joins = [
-    'LEFT JOIN products p ON i.product_id = p.id',
-    'LEFT JOIN locations l ON i.location_id = l.id',
-    'LEFT JOIN users u1 ON i.created_by = u1.id',
-    'LEFT JOIN users u2 ON i.updated_by = u2.id',
-    'LEFT JOIN warehouse_inventory wi ON i.id = wi.inventory_id',
-    'LEFT JOIN warehouses w ON wi.warehouse_id = w.id',
-    'LEFT JOIN warehouse_lot_status wls ON i.status_id = wls.id',
+    'LEFT JOIN locations l ON li.location_id = l.id',
+    'LEFT JOIN batch_registry br ON li.batch_id = br.id',
+    'LEFT JOIN product_batches pb ON br.product_batch_id = pb.id',
+    'LEFT JOIN skus s ON pb.sku_id = s.id',
+    'LEFT JOIN products p ON s.product_id = p.id',
+    'LEFT JOIN packaging_material_batches pmb ON br.packaging_material_batch_id = pmb.id',
+    'LEFT JOIN packaging_materials pm ON pmb.packaging_material_id = pm.id',
+    'LEFT JOIN part_materials pmx ON pmx.packaging_material_id = pm.id',
+    'LEFT JOIN parts pt ON pmx.part_id = pt.id',
+    'LEFT JOIN inventory_status s_status ON li.status_id = s_status.id',
+    'LEFT JOIN users u1 ON li.created_by = u1.id',
+    'LEFT JOIN users u2 ON li.updated_by = u2.id'
   ];
-
-  const whereClause = '1=1';
-
-  const text = `
+  
+  const { whereClause, params } = buildLocationInventoryWhereClause(filters);
+  
+  const tableName = 'location_inventory li';
+  
+  const queryText = `
     SELECT
-      i.id AS inventory_id,
-      i.item_type,
-      i.product_id,
-      COALESCE(NULLIF(p.product_name, ''), i.identifier) AS item_name,
-      i.location_id,
-      w.id AS warehouse_id,
-      COALESCE(w.name, l.name) AS place_name,
-      i.inbound_date,
-      i.outbound_date,
-      i.last_update,
-      i.status_id AS status_id,
-      wls.name AS status_name,
-      i.status_date,
-      i.created_at,
-      i.updated_at,
-      COALESCE(u1.firstname || ' ' || u1.lastname, 'Unknown') AS created_by,
-      COALESCE(u2.firstname || ' ' || u2.lastname, 'Unknown') AS updated_by,
-      wi.warehouse_fee,
-      wi.reserved_quantity,
-      (
-        SELECT SUM(wil2.quantity)
-        FROM warehouse_inventory_lots wil2
-        JOIN warehouse_lot_status wls2 ON wil2.status_id = wls2.id
-        WHERE wil2.inventory_id = i.id AND wls2.name = 'in_stock'
-      ) AS available_quantity,
-      (
-        SELECT SUM(wil2.quantity)
-        FROM warehouse_inventory_lots wil2
-        WHERE wil2.inventory_id = i.id
-      ) AS total_lot_quantity,
+      li.id AS location_inventory_id,
+      li.location_id,
+      l.name AS location_name,
+      li.batch_id,
+      br.batch_type,
       CASE
-        WHEN i.quantity > 0 THEN MIN(wil.manufacture_date)
+        WHEN br.batch_type = 'product' THEN pb.lot_number
+        WHEN br.batch_type = 'packaging_material' THEN pmb.lot_number
         ELSE NULL
-      END AS earliest_manufacture_date,
-      
+      END AS lot_number,
       CASE
-          WHEN i.quantity > 0 THEN MIN(wil.expiry_date)
-          ELSE NULL
-      END AS nearest_expiry_date,
-      COALESCE(
-          (
-              SELECT wls.name
-              FROM warehouse_inventory_lots wil
-              JOIN warehouse_lot_status wls ON wil.status_id = wls.id
-              WHERE wil.inventory_id = i.id
-              ORDER BY
-                  CASE
-                      WHEN wls.name = 'expired' THEN 1
-                      WHEN wls.name = 'suspended' THEN 2
-                      WHEN wls.name = 'unavailable' THEN 3
-                      WHEN wls.name = 'in_stock' THEN 4
-                      ELSE 5
-                  END
-              LIMIT 1
-          ),
-          'unassigned'
-        ) AS display_status
+        WHEN br.batch_type = 'product' THEN pb.manufacture_date
+        WHEN br.batch_type = 'packaging_material' THEN pmb.manufacture_date
+        ELSE NULL
+      END AS manufacture_date,
+      CASE
+        WHEN br.batch_type = 'product' THEN pb.expiry_date
+        WHEN br.batch_type = 'packaging_material' THEN pmb.expiry_date
+        ELSE NULL
+      END AS expiry_date,
+      s.sku,
+      s.barcode,
+      s.country_code,
+      s.size_label,
+      p.name AS product_name,
+      p.brand,
+      p.series,
+      p.category,
+      pt.name AS part_name,
+      pt.type AS part_type,
+      pm.name AS material_name,
+      pm.code AS material_code,
+      pm.unit AS material_unit,
+      pm.material_composition,
+      li.location_quantity,
+      li.reserved_quantity,
+      li.inbound_date,
+      li.outbound_date,
+      li.status_id,
+      s_status.name AS status_name,
+      li.status_date,
+      li.created_at AS created_at
     FROM ${tableName}
-    ${joins.join(' ')}
-    LEFT JOIN warehouse_inventory_lots wil ON wi.warehouse_id = wil.warehouse_id AND i.id = wil.inventory_id
-    GROUP BY
-      i.id, p.product_name, l.name, wls.id, wls.name,
-      u1.firstname, u1.lastname, u2.firstname, u2.lastname,
-      wi.warehouse_fee, wi.reserved_quantity, wi.available_quantity, w.id, w.name
+    ${joins.join('\n')}
+    WHERE ${whereClause}
   `;
-
+  
   try {
-    return await retry(async () => {
-      return await paginateQuery({
-        tableName,
-        joins,
-        whereClause,
-        queryText: text,
-        params: [],
-        page,
-        limit,
-        sortBy: `i.${sortBy}`,
-        sortOrder,
-      });
+    logSystemInfo('Fetching location inventory summary', {
+      context: 'location-inventory-repository/getHighLevelLocationInventorySummary',
+      filters,
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+    });
+    
+    return await paginateQuery({
+      tableName,
+      joins,
+      whereClause,
+      queryText,
+      params,
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+      meta: {
+        context: 'location-inventory-repository/getHighLevelLocationInventorySummary',
+        filters,
+      },
     });
   } catch (error) {
-    logError('Error fetching inventories:', error);
-    throw AppError.databaseError('Failed to fetch inventories');
+    logSystemException(error, 'Error fetching location inventory summary', {
+      context: 'location-inventory-repository/getHighLevelLocationInventorySummary',
+      filters,
+    });
+    throw AppError.databaseError('Failed to fetch location inventory summary');
   }
 };
 
@@ -546,11 +536,11 @@ const updateInventoryQuantity = async (client, inventoryUpdates, userId) => {
     );
   }
 
-  return []; // Return empty array if no updates were made
+  return []; // Return an empty array if no updates were made
 };
 
 module.exports = {
-  getInventories,
+  getHighLevelLocationInventorySummary,
   getInventoryId,
   checkInventoryExists,
   checkAndLockInventory,

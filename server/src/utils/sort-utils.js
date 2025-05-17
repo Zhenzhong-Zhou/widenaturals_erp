@@ -1,4 +1,5 @@
 const { FILTERABLE_FIELDS } = require('./filter-field-mapping');
+const { logSystemWarn } = require('./system-logger');
 
 /**
  * Sanitize and map frontend sort keys to SQL column names.
@@ -10,16 +11,39 @@ const { FILTERABLE_FIELDS } = require('./filter-field-mapping');
 const sanitizeSortBy = (sortByRaw = '', module = null) => {
   const map = module && FILTERABLE_FIELDS[module] ? FILTERABLE_FIELDS[module] : {};
   
-  const mapped = sortByRaw
-    .split(',')
-    .map((key) => map[key.trim()])
-    .filter(Boolean)
-    .join(', ');
+  const requestedKeys = sortByRaw.split(',').map((key) => key.trim());
+  const mappedKeys = requestedKeys
+    .map((key) => {
+      const mapped = map[key];
+      if (!mapped) {
+        logSystemWarn(`Invalid or ambiguous sortBy key: "${key}"`, {
+          context: 'sanitizeSortBy',
+          module,
+        });
+      }
+      return mapped;
+    })
+    .filter(Boolean);
+  
+  const mapped = mappedKeys.join(', ');
   
   // If nothing valid is mapped, fallback safely
-  return mapped || Object.values(map)[0] || 'created_at';
+  return mapped || map.createdAt || 'created_at';
+};
+
+/**
+ * Ensures the sort order is valid ('ASC' or 'DESC').
+ * Falls back to 'ASC' by default.
+ *
+ * @param {string} sortOrderRaw
+ * @returns {'ASC' | 'DESC'}
+ */
+const sanitizeSortOrder = (sortOrderRaw = '') => {
+  const upper = sortOrderRaw.trim().toUpperCase();
+  return upper === 'DESC' ? 'DESC' : 'ASC';
 };
 
 module.exports = {
-  sanitizeSortBy
+  sanitizeSortBy,
+  sanitizeSortOrder
 };

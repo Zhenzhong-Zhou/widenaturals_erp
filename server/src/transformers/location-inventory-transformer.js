@@ -2,6 +2,109 @@ const {
   getStockLevel,
   getExpirySeverity,
 } = require('../utils/inventory-utils');
+const {
+  transformPaginatedResult,
+  deriveInventoryStatusFlags,
+} = require('../utils/transformer-utils');
+const { getProductDisplayName } = require('../utils/display-name-utils');
+
+/**
+ * Transforms a raw SQL row from the location inventory summary query
+ * into a normalized inventory record with derived stock/expiry info.
+ *
+ * Supports both product and packaging material inventory types.
+ *
+ * @param {Object} row - Raw SQL result row
+ * @returns {Object} Transformed inventory record for frontend consumption
+ */
+const transformLocationInventoryRow = (row) => {
+  const isProduct = row.batch_type === 'product';
+  const isMaterial = row.batch_type === 'packaging_material';
+  const productName = getProductDisplayName(row);
+  
+  const statusInfo = deriveInventoryStatusFlags(row);
+  
+  return {
+    id: row.location_inventory_id,
+    locationId: row.location_id,
+    locationName: row.location_name,
+    batchId: row.batch_id,
+    batchType: row.batch_type,
+    lotNumber: row.lot_number,
+    manufactureDate: row.manufacture_date,
+    expiryDate: row.expiry_date,
+    
+    typeLabel: isProduct ? 'product' : 'material',
+    
+    displayName: isProduct
+      ? productName || row.sku || '[Unnamed Product]'
+      : row.material_name || row.material_code || '[Unnamed Material]',
+    
+    sku: row.sku,
+    barcode: row.barcode,
+    
+    product: isProduct
+      ? {
+        name: productName,
+        brand: row.brand,
+        series: row.series,
+        category: row.category,
+      }
+      : null,
+    
+    material: isMaterial
+      ? {
+        name: row.material_name,
+        code: row.material_code,
+        unit: row.material_unit,
+        composition: row.material_composition,
+        partName: row.part_name || null,
+        partType: row.part_type || null,
+      }
+      : null,
+    
+    quantity: {
+      location: Number(row.location_quantity),
+      reserved: Number(row.reserved_quantity),
+    },
+    
+    status: {
+      id: row.status_id,
+      name: row.status_name,
+      date: row.status_date,
+    },
+    
+    inboundDate: row.inbound_date,
+    outboundDate: row.outbound_date,
+    
+    ...statusInfo, // derived flags: availableQuantity, stockLevel, isExpired, etc.
+  };
+};
+
+/**
+ * Transforms a paginated SQL result of raw location inventory summary rows
+ * into a fully structured, frontend-ready result using `transformLocationInventoryRow`.
+ *
+ * This includes:
+ * - Row-level normalization (product/material shape)
+ * - Derived stock, expiry, and quantity flags
+ * - Preserves pagination metadata
+ *
+ * @param {Object} paginatedResult - The raw result from `paginateQuery`
+ * @param {Array<Object>} paginatedResult.data - Raw SQL rows
+ * @param {Object} paginatedResult.pagination - Pagination metadata (page, limit, totalRecords, totalPages)
+ * @returns {{
+ *   data: Array<Object>,
+ *   pagination: {
+ *     page: number,
+ *     limit: number,
+ *     totalRecords: number,
+ *     totalPages: number
+ *   }
+ * }} Transformed result for frontend consumption
+ */
+const transformPaginatedLocationInventorySummaryResult = (paginatedResult) =>
+  transformPaginatedResult(paginatedResult, transformLocationInventoryRow);
 
 /**
  * Transforms a single raw inventory record row from the database into a normalized object.
@@ -101,6 +204,7 @@ const transformPaginatedInventoryRecords = (paginatedResult) => ({
 });
 
 module.exports = {
+  transformPaginatedLocationInventorySummaryResult,
   transformInventoryRecord,
   transformInventoryList,
   transformPaginatedInventoryRecords,

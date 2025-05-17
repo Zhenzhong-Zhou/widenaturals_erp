@@ -1,9 +1,9 @@
 const { getProductDisplayName } = require('../utils/display-name-utils');
 const { getFullName } = require('../utils/name-utils');
-const { transformPaginatedResult } = require('../utils/transformPaginatedResult');
+const { transformPaginatedResult } = require('../utils/transformer-utils');
 
 /**
- * Transforms a single raw SKU + product row into a product card structure
+ * Transforms a single raw SKU and product row into a product card structure
  * suitable for frontend display (e.g., in product grids or SKU cards).
  *
  * @param {object} row - Raw row from the database combining SKU and product info.
