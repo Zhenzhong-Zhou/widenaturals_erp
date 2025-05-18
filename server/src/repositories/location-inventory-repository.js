@@ -1,6 +1,6 @@
 const {
   query,
-  paginateQuery,
+  paginateResults,
   retry,
   bulkInsert,
   lockRow,
@@ -36,7 +36,7 @@ const getHighLevelLocationInventorySummary = async ({
                                                       page = 1,
                                                       limit = 10,
                                                       filters = {},
-                                                      sortBy = 'nearest_expiry_date',
+                                                      sortBy = 'expiryDate',
                                                       sortOrder = 'DESC',
                                                     } = {}) => {
   const joins = [
@@ -72,10 +72,6 @@ const getHighLevelLocationInventorySummary = async ({
         ELSE NULL
       END AS sku,
       CASE
-        WHEN br.batch_type = 'product' THEN s.barcode
-        ELSE NULL
-      END AS barcode,
-      CASE
         WHEN br.batch_type = 'product' THEN s.country_code
         ELSE NULL
       END AS country_code,
@@ -92,14 +88,6 @@ const getHighLevelLocationInventorySummary = async ({
         ELSE NULL
       END AS brand,
       CASE
-        WHEN br.batch_type = 'product' THEN p.series
-        ELSE NULL
-      END AS series,
-      CASE
-        WHEN br.batch_type = 'product' THEN p.category
-        ELSE NULL
-      END AS category,
-      CASE
         WHEN br.batch_type = 'packaging_material' THEN pt.name
         ELSE NULL
       END AS part_name,
@@ -111,18 +99,6 @@ const getHighLevelLocationInventorySummary = async ({
         WHEN br.batch_type = 'packaging_material' THEN pm.name
         ELSE NULL
       END AS material_name,
-      CASE
-        WHEN br.batch_type = 'packaging_material' THEN pm.code
-        ELSE NULL
-      END AS material_code,
-      CASE
-        WHEN br.batch_type = 'packaging_material' THEN pm.unit
-        ELSE NULL
-      END AS material_unit,
-      CASE
-        WHEN br.batch_type = 'packaging_material' THEN pm.material_composition
-        ELSE NULL
-      END AS material_composition,
       COUNT(DISTINCT li.batch_id) AS total_lots,
       SUM(li.location_quantity) AS total_quantity,
       SUM(li.location_quantity - li.reserved_quantity) AS available_quantity,
@@ -161,16 +137,11 @@ const getHighLevelLocationInventorySummary = async ({
       sortOrder,
     });
     
-    return await paginateQuery({
-      tableName,
-      joins,
-      whereClause,
-      queryText,
+    return await paginateResults({
+      dataQuery: queryText,
       params,
       page,
       limit,
-      sortBy,
-      sortOrder,
       meta: {
         context: 'location-inventory-repository/getHighLevelLocationInventorySummary',
         filters,

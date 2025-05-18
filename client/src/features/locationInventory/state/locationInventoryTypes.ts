@@ -61,43 +61,15 @@ export type LocationInventorySummaryResponse = PaginatedResponse<LocationInvento
 
 export interface LocationInventorySummary extends InventoryHealthStatus {
   id: string;
-  locationId: string;
-  locationName: string;
-  batchId: string;
-  batchType: 'product' | 'packaging_material';
-  lotNumber: string;
-  manufactureDate: string; // ISO timestamp
-  expiryDate: string;      // ISO timestamp
-  typeLabel: 'product' | 'material';
+  typeLabel: 'product' | 'packaging_material'; // Use 'material' to match transformed value
   displayName: string;
-  sku: string | null;
-  barcode: string | null;
-  product: string | null;
-  material: MaterialDetails | null;
-  quantity: QuantityDetails;
-  status: InventoryStatus;
-  inboundDate: string;
-  outboundDate: string | null;
-}
-
-export interface MaterialDetails {
-  name: string;
-  code: string;
-  unit: string;
-  composition: string;
-  partName: string;
-  partType: string;
-}
-
-export interface QuantityDetails {
-  location: number;
-  reserved: number;
-}
-
-export interface InventoryStatus {
-  id: string;
-  name: string;
-  date: string;
+  totalLots: number;
+  totalLotQuantity: number;
+  availableQuantity: number;
+  reservedQuantity: number;
+  earliestManufactureDate: string | null;
+  nearestExpiryDate: string | null;
+  createdAt: string;
 }
 
 export interface LocationInventoryQueryParams {

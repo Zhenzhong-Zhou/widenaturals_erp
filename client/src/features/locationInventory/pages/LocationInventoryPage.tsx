@@ -61,11 +61,12 @@ const LocationInventoryPage = () => {
   };
   
   const handlePageChange = (newPage: number) => {
-    setPage(newPage + 1);
+    const nextPage = newPage + 1;
+    setPage(nextPage);
     if (tab === 0) {
-      fetchWarehouseInventorySummary({ page: newPage + 1, limit, itemType });
+      fetchWarehouseInventorySummary({ page: nextPage, limit, itemType });
     } else {
-      fetchLocationInventorySummary({ page: newPage + 1, limit });
+      fetchLocationInventorySummary({ page: nextPage, limit });
     }
   };
   

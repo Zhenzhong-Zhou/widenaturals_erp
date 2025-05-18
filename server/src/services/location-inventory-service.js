@@ -85,7 +85,7 @@ const fetchLocationInventorySummaryService = async ({ page, limit, filters, sort
       sortOrder,
     });
     
-    const sortByClause = sanitizeSortBy(sortBy || 'createdAt', 'locationInventorySummary');
+    const sortByClause = sanitizeSortBy(sortBy || 'createdAt','locationInventorySummarySortMap');
     const sortOrderClause = sanitizeSortOrder(sortOrder);
     
     const rawResult = await getHighLevelLocationInventorySummary({

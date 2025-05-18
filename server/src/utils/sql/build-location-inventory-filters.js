@@ -25,6 +25,7 @@
  *
  * @param {Object} filters - Filter options
  * @param {string} [filters.locationId] - Optional location ID to filter by
+ * @param {string} [filters.batchType] - Optional batch type to filter by
  * @param {string} [filters.sku] - Optional SKU keyword (ILIKE)
  * @param {string} [filters.productName] - Optional product name (ILIKE)
  * @param {string} [filters.materialName] - Optional material name (ILIKE)
@@ -54,6 +55,11 @@ const buildLocationInventoryWhereClause = (filters = {}) => {
   if (filters.locationId) {
     params.push(filters.locationId);
     whereClauses.push(`li.location_id = $${params.length}`);
+  }
+  
+  if (filters.batchType) {
+    params.push(filters.batchType);
+    whereClauses.push(`br.batch_type = $${params.length}`);
   }
   
   if (filters.sku) {

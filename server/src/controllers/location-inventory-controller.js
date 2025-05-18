@@ -39,6 +39,7 @@ const getLocationInventorySummaryController = wrapAsync(async (req, res) => {
   } = req.query;
   
   const filters = {
+    batchType: req.query.itemType || undefined,
     productName: rawFilters.product_name,
     lotNumber: rawFilters.lot_number,
     sku: rawFilters.sku,

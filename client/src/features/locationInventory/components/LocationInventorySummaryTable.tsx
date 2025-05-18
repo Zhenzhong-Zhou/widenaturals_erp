@@ -1,9 +1,6 @@
 import { type FC, useCallback } from 'react';
 import type { LocationInventorySummary } from '../state';
 import Box from '@mui/material/Box';
-import InventoryStatusChip from '@features/locationInventory/components/InventoryStatusChip';
-import IsExpiredChip from '@features/locationInventory/components/IsExpiredChip';
-import NearExpiryChip from '@features/locationInventory/components/NearExpiryChip';
 import StockLevelChip from '@features/locationInventory/components/StockLevelChip';
 import ExpirySeverityChip from '@features/locationInventory/components/ExpirySeverityChip';
 import type { Column } from '@components/common/CustomTable';
@@ -30,21 +27,6 @@ const LocationInventorySummaryTable: FC<LocationInventorySummaryTableProps> = ({
                                                                  onPageChange,
                                                                  onRowsPerPageChange,
                                                                }) => {
-  const renderStatusCell = useCallback(
-    (row: LocationInventorySummary) => <InventoryStatusChip status={row.displayStatus} />,
-    []
-  );
-  
-  const renderIsExpiredCell = useCallback(
-    (row: LocationInventorySummary) => <IsExpiredChip isExpired={row.isExpired} />,
-    []
-  );
-  
-  const renderNearExpiryCell = useCallback(
-    (row: LocationInventorySummary) => <NearExpiryChip isNearExpiry={row.isNearExpiry} />,
-    []
-  );
-  
   const renderStockLevelCell = useCallback(
     (row: LocationInventorySummary) => (
       <StockLevelChip stockLevel={row.stockLevel} isLowStock={row.isLowStock} />
@@ -61,12 +43,7 @@ const LocationInventorySummaryTable: FC<LocationInventorySummaryTableProps> = ({
   
   const columns: Column<LocationInventorySummary>[] = [
     {
-      id: 'locationName',
-      label: 'Location',
-      sortable: true,
-    },
-    {
-      id: 'batchType',
+      id: 'typeLabel',
       label: 'Type',
       sortable: true,
       format: (value) => formatLabel(value as string),
@@ -74,11 +51,6 @@ const LocationInventorySummaryTable: FC<LocationInventorySummaryTableProps> = ({
     {
       id: 'displayName',
       label: 'Item Name',
-      sortable: true,
-    },
-    {
-      id: 'lotNumber',
-      label: 'Lot Number',
       sortable: true,
     },
     {
@@ -97,28 +69,9 @@ const LocationInventorySummaryTable: FC<LocationInventorySummaryTableProps> = ({
       sortable: true,
     },
     {
-      id: 'displayStatus',
-      label: 'Status',
+      id: 'totalLots',
+      label: 'Total Lots',
       sortable: true,
-      renderCell: renderStatusCell,
-    },
-    {
-      id: 'status.date',
-      label: 'Status Date',
-      sortable: true,
-      format: (_, row) => formatDate(row?.status?.date ?? ''),
-    },
-    {
-      id: 'manufactureDate',
-      label: 'MFG Date',
-      sortable: true,
-      format: (value) => formatDate(value as string),
-    },
-    {
-      id: 'expiryDate',
-      label: 'Expiry Date',
-      sortable: true,
-      format: (value) => formatDate(value as string),
     },
     {
       id: 'earliestManufactureDate',
@@ -137,24 +90,6 @@ const LocationInventorySummaryTable: FC<LocationInventorySummaryTableProps> = ({
       label: 'Created At',
       sortable: true,
       format: (value) => formatDateTime(value as string),
-    },
-    {
-      id: 'updatedAt',
-      label: 'Updated At',
-      sortable: true,
-      format: (value) => formatDateTime(value as string),
-    },
-    {
-      id: 'isExpired',
-      label: 'Expired',
-      sortable: true,
-      renderCell: renderIsExpiredCell,
-    },
-    {
-      id: 'isNearExpiry',
-      label: 'Near Expiry',
-      sortable: true,
-      renderCell: renderNearExpiryCell,
     },
     {
       id: 'stockLevel',

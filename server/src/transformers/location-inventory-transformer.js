@@ -20,7 +20,6 @@ const { getProductDisplayName } = require('../utils/display-name-utils');
  */
 const transformLocationInventoryRow = (row) => {
   const isProduct = row.item_type === 'product';
-  const isMaterial = row.item_type === 'packaging_material';
   const productName = getProductDisplayName(row);
   const statusInfo = deriveInventoryStatusFlags(row);
   
@@ -30,27 +29,6 @@ const transformLocationInventoryRow = (row) => {
     displayName: isProduct
       ? productName || row.sku || '[Unnamed Product]'
       : row.material_name || row.material_code || '[Unnamed Material]',
-    
-    sku: isProduct ? row.sku : undefined,
-    barcode: isProduct ? row.barcode : undefined,
-    
-    product: isProduct
-      ? cleanObject({
-        brand: row.brand,
-        series: row.series,
-        category: row.category,
-      })
-      : undefined,
-    
-    material: isMaterial
-      ? cleanObject({
-        code: row.material_code,
-        unit: row.material_unit,
-        composition: row.material_composition,
-        partName: row.part_name,
-        partType: row.part_type,
-      })
-      : undefined,
     
     totalLots: Number(row.total_lots) || 0,
     earliestManufactureDate: row.earliest_manufacture_date || null,

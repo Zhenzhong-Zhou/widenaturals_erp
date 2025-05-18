@@ -47,7 +47,7 @@ const FILTERABLE_FIELDS = {
     locationQuantity: 'li.location_quantity',
     reservedQuantity: 'li.reserved_quantity',
     availableQuantity: '(li.location_quantity - li.reserved_quantity)',
-    createdAt: 'MAX(li.created_at)',
+    createdAt: 'created_at',
   },
 };
 
