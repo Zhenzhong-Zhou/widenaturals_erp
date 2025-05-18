@@ -9,7 +9,7 @@ import { customerReducers } from '@features/customer';
 import { deliveryMethodReducers } from '@features/deliveryMethod';
 import { discountReducers } from '@features/discount';
 import { healthReducers } from '@features/health';
-import { inventoryReducers } from '@features/inventory';
+import { locationInventoryReducers } from '@features/locationInventory';
 import { locationReducers } from '@features/location';
 import { locationTypeReducers } from '@features/locationType';
 import { orderReducers } from '@features/order';
@@ -48,7 +48,7 @@ const appReducer = combineReducers(
     // Inventory & Warehouse
     locationTypeReducers,
     locationReducers,
-    inventoryReducers,
+    locationInventoryReducers,
     warehouseReducers,
     warehouseInventoryReducers,
 

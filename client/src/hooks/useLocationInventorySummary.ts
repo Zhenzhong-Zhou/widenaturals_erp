@@ -1,0 +1,37 @@
+import { useCallback } from 'react';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
+import {
+  fetchLocationInventorySummaryThunk,
+  type LocationInventoryQueryParams,
+  selectLocationInventorySummaryData,
+  selectLocationInventorySummaryError,
+  selectLocationInventorySummaryLoading,
+  selectLocationInventorySummaryPagination,
+} from '@features/locationInventory/state';
+
+/**
+ * Custom hook to access and fetch location inventory summary data.
+ *
+ */
+const useLocationInventorySummary = () => {
+  const dispatch = useAppDispatch();
+  
+  const data = useAppSelector(selectLocationInventorySummaryData);
+  const pagination = useAppSelector(selectLocationInventorySummaryPagination);
+  const loading = useAppSelector(selectLocationInventorySummaryLoading);
+  const error = useAppSelector(selectLocationInventorySummaryError);
+  
+  const fetchData = useCallback((params: LocationInventoryQueryParams) => {
+    dispatch(fetchLocationInventorySummaryThunk(params));
+  }, [dispatch]);
+  
+  return {
+    data,
+    pagination,
+    loading,
+    error,
+    fetchData,
+  };
+};
+
+export default useLocationInventorySummary;

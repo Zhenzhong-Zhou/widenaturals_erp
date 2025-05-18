@@ -134,13 +134,13 @@ export const routes = [
     },
   },
   {
-    path: '/inventories',
-    component: lazy(() => import('@features/inventory/pages/InventoryPage')),
+    path: '/location-inventory',
+    component: lazy(() => import('@features/locationInventory/pages/LocationInventoryPage')),
     meta: {
       requiresAuth: true,
-      title: 'Inventories',
+      title: 'Location Inventory',
       showInSidebar: true,
-      requiredPermission: 'view_inventories',
+      requiredPermission: 'view_location_inventory',
     },
   },
   {

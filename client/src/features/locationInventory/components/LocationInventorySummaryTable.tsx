@@ -1,18 +1,18 @@
 import { type FC, useCallback } from 'react';
-// import { Link } from 'react-router-dom';
+import type { LocationInventorySummary } from '../state';
 import Box from '@mui/material/Box';
-import InventoryStatusChip from '@features/inventory/components/InventoryStatusChip';
-import IsExpiredChip from '@features/inventory/components/IsExpiredChip';
-import NearExpiryChip from '@features/inventory/components/NearExpiryChip';
-import StockLevelChip from '@features/inventory/components/StockLevelChip';
-import ExpirySeverityChip from '@features/inventory/components/ExpirySeverityChip';
-import CustomTable, { type Column } from '@components/common/CustomTable';
-import type { InventoryItem } from '@features/inventory';
-import { formatLabel, formatCurrency } from '@utils/textUtils';
+import InventoryStatusChip from '@features/locationInventory/components/InventoryStatusChip';
+import IsExpiredChip from '@features/locationInventory/components/IsExpiredChip';
+import NearExpiryChip from '@features/locationInventory/components/NearExpiryChip';
+import StockLevelChip from '@features/locationInventory/components/StockLevelChip';
+import ExpirySeverityChip from '@features/locationInventory/components/ExpirySeverityChip';
+import type { Column } from '@components/common/CustomTable';
+import CustomTable from '@components/common/CustomTable';
+import { formatLabel } from '@utils/textUtils';
 import { formatDate, formatDateTime } from '@utils/dateTimeUtils';
 
-interface InventoryTableProps {
-  data: InventoryItem[];
+interface LocationInventorySummaryTableProps {
+  data: LocationInventorySummary[];
   page: number;
   rowsPerPage: number;
   totalRecords: number;
@@ -21,86 +21,80 @@ interface InventoryTableProps {
   onRowsPerPageChange: (newRowsPerPage: number) => void;
 }
 
-const InventoryTable: FC<InventoryTableProps> = ({
-  data,
-  page,
-  rowsPerPage,
-  totalRecords,
-  totalPages,
-  onPageChange,
-  onRowsPerPageChange,
-}) => {
+const LocationInventorySummaryTable: FC<LocationInventorySummaryTableProps> = ({
+                                                                 data,
+                                                                 page,
+                                                                 rowsPerPage,
+                                                                 totalRecords,
+                                                                 totalPages,
+                                                                 onPageChange,
+                                                                 onRowsPerPageChange,
+                                                               }) => {
   const renderStatusCell = useCallback(
-    (row: InventoryItem) => <InventoryStatusChip status={row.displayStatus} />,
+    (row: LocationInventorySummary) => <InventoryStatusChip status={row.displayStatus} />,
     []
   );
   
   const renderIsExpiredCell = useCallback(
-    (row: InventoryItem) => <IsExpiredChip isExpired={row.isExpired} />,
+    (row: LocationInventorySummary) => <IsExpiredChip isExpired={row.isExpired} />,
     []
   );
   
   const renderNearExpiryCell = useCallback(
-    (row: InventoryItem) => <NearExpiryChip isNearExpiry={row.isNearExpiry} />,
+    (row: LocationInventorySummary) => <NearExpiryChip isNearExpiry={row.isNearExpiry} />,
     []
   );
   
   const renderStockLevelCell = useCallback(
-    (row: InventoryItem) => (
-      <StockLevelChip
-        stockLevel={row.stockLevel}
-        isLowStock={row.isLowStock}
-      />
+    (row: LocationInventorySummary) => (
+      <StockLevelChip stockLevel={row.stockLevel} isLowStock={row.isLowStock} />
     ),
     []
   );
   
   const renderExpirySeverityCell = useCallback(
-    (row: InventoryItem) => (
+    (row: LocationInventorySummary) => (
       <ExpirySeverityChip severity={row.expirySeverity} />
     ),
     []
   );
   
-  const columns: Column<InventoryItem>[] = [
-    { id: 'placeName', label: 'Place Name', sortable: true },
-
+  const columns: Column<LocationInventorySummary>[] = [
     {
-      id: 'itemType',
-      label: 'Item Type',
+      id: 'locationName',
+      label: 'Location',
+      sortable: true,
+    },
+    {
+      id: 'batchType',
+      label: 'Type',
       sortable: true,
       format: (value) => formatLabel(value as string),
     },
     {
-      id: 'itemName',
+      id: 'displayName',
       label: 'Item Name',
       sortable: true,
-      // renderCell: (row: InventoryItem) => (
-      //   <Link
-      //     to={`/inventory/${row.inventoryId}`}
-      //     style={{ textDecoration: 'none', color: 'blue' }}
-      //   >
-      //     {row.itemName}
-      //   </Link>
-      // ),
+    },
+    {
+      id: 'lotNumber',
+      label: 'Lot Number',
+      sortable: true,
     },
     {
       id: 'availableQuantity',
       label: 'Available Qty',
       sortable: true,
-      format: (value) => value as number ?? 0,
     },
     {
       id: 'reservedQuantity',
       label: 'Reserved Qty',
       sortable: true,
-      format: (value) => value as number ?? 0,
     },
     {
       id: 'totalLotQuantity',
       label: 'Lot Qty',
       sortable: true,
-      format: (value) => value as number ?? 0,
     },
     {
       id: 'displayStatus',
@@ -109,8 +103,20 @@ const InventoryTable: FC<InventoryTableProps> = ({
       renderCell: renderStatusCell,
     },
     {
-      id: 'statusDate',
+      id: 'status.date',
       label: 'Status Date',
+      sortable: true,
+      format: (_, row) => formatDate(row?.status?.date ?? ''),
+    },
+    {
+      id: 'manufactureDate',
+      label: 'MFG Date',
+      sortable: true,
+      format: (value) => formatDate(value as string),
+    },
+    {
+      id: 'expiryDate',
+      label: 'Expiry Date',
       sortable: true,
       format: (value) => formatDate(value as string),
     },
@@ -127,12 +133,6 @@ const InventoryTable: FC<InventoryTableProps> = ({
       format: (value) => formatDate(value as string),
     },
     {
-      id: 'warehouseFee',
-      label: 'Storage Fee',
-      sortable: true,
-      format: (value) => formatCurrency(value as number),
-    },
-    {
       id: 'createdAt',
       label: 'Created At',
       sortable: true,
@@ -144,9 +144,6 @@ const InventoryTable: FC<InventoryTableProps> = ({
       sortable: true,
       format: (value) => formatDateTime(value as string),
     },
-    { id: 'createdBy', label: 'Created By', sortable: false },
-    { id: 'updatedBy', label: 'Updated By', sortable: false },
-
     {
       id: 'isExpired',
       label: 'Expired',
@@ -172,7 +169,7 @@ const InventoryTable: FC<InventoryTableProps> = ({
       renderCell: renderExpirySeverityCell,
     },
   ];
-
+  
   return (
     <Box>
       <CustomTable
@@ -180,7 +177,7 @@ const InventoryTable: FC<InventoryTableProps> = ({
         data={data}
         page={page}
         initialRowsPerPage={rowsPerPage}
-        rowsPerPageOptions={[10, 30, 50, 100]}
+        rowsPerPageOptions={[20, 50, 75, 100]}
         totalRecords={totalRecords}
         totalPages={totalPages}
         onPageChange={onPageChange}
@@ -190,4 +187,4 @@ const InventoryTable: FC<InventoryTableProps> = ({
   );
 };
 
-export default InventoryTable;
+export default LocationInventorySummaryTable;

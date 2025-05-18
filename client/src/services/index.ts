@@ -10,7 +10,7 @@ export { pricingTypeService } from './pricingTypeService';
 export { pricingService } from './pricingService';
 export { locationTypeService } from './locationTypeService';
 export { locationService } from './locationService';
-export { inventoryService } from './inventoryService';
+export { locationInventoryService } from './locationInventoryService.ts';
 export { warehouseService } from './warehouseService';
 export { warehouseInventoryService } from './warehouseInventoryService';
 export { lotAdjustmentTypeService } from './lotAdjustmentTypeService';

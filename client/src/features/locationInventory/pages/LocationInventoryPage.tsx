@@ -4,28 +4,34 @@ import Paper from '@mui/material/Paper';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import Skeleton from '@mui/material/Skeleton';
-// import useInventories from '@hooks/useInventories';
-import useWarehouseInventoryItemSummary from '@hooks/useWarehouseInventoryItemSummary.ts';
+import useLocationInventorySummary from '@hooks/useLocationInventorySummary';
+import useWarehouseInventoryItemSummary from '@hooks/useWarehouseInventoryItemSummary';
 import ErrorDisplay from '@components/shared/ErrorDisplay';
 import ErrorMessage from '@components/common/ErrorMessage';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
 
 // Lazy load heavy tables
-const InventorySummaryTable = lazy(() => import('@features/inventory/components/SkuInventorySummaryTable.tsx'));
-// const InventoryTable = lazy(() => import('@features/inventory/components/InventoryTable'));
+const InventorySummaryTable = lazy(() => import('@features/locationInventory/components/SkuInventorySummaryTable'));
+const LocationInventorySummaryTable = lazy(() => import('@features/locationInventory/components/LocationInventorySummaryTable'));
 
-const InventoryPage = () => {
+const LocationInventoryPage = () => {
   const [tab, setTab] = useState(0); // 0 = Summaries, 1 = List
   const [itemTypeTab, setItemTypeTab] = useState(0); // 0 = all, 1 = product, 2 = material
   const [page, setPage] = useState(1);
-  // const [limit, setLimit] = useState(20);
-  const [limit] = useState(20);
-  
+  const [limit, setLimit] = useState(20);
   
   const itemType = useMemo(() => {
     return itemTypeTab === 1 ? 'product' : itemTypeTab === 2 ? 'packing_material' : 'all';
   }, [itemTypeTab]);
+  
+  const {
+    data: locationInventorySummaryData,
+    pagination: locationInventorySummaryPagination,
+    loading: locationInventorySummaryLoading,
+    error: locationInventorySummaryError,
+    fetchData: fetchLocationInventorySummary,
+  } = useLocationInventorySummary();
   
   const {
     data: inventorySummaryData,
@@ -38,21 +44,40 @@ const InventoryPage = () => {
   // On tab switch, optionally refresh (or you can remove this entirely if autoFetch is true)
   useEffect(() => {
     if (tab === 0) {
-      fetchWarehouseInventorySummary({ page: 1, limit,  itemType });
+      fetchWarehouseInventorySummary({ page: 1, limit, itemType });
+    } else if (tab === 1) {
+      fetchLocationInventorySummary({ page: 1, limit });
     }
   }, [tab, itemType]);
-
-  const handleTabChange = (_: SyntheticEvent, newValue: number) => setTab(newValue);
+  
+  const handleTabChange = (_: SyntheticEvent, newValue: number) => {
+    setTab(newValue);
+    setPage(1);
+  };
+  
   const handleItemTypeTabChange = (_: SyntheticEvent, newValue: number) => {
     setItemTypeTab(newValue);
     setPage(1);
   };
   
-  // const handlePageChange = (newPage: number) => setPage(newPage + 1);
-  // const handleRowsPerPageChange = (newLimit: number) => {
-  //   setLimit(newLimit);
-  //   setPage(1);
-  // };
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage + 1);
+    if (tab === 0) {
+      fetchWarehouseInventorySummary({ page: newPage + 1, limit, itemType });
+    } else {
+      fetchLocationInventorySummary({ page: newPage + 1, limit });
+    }
+  };
+  
+  const handleRowsPerPageChange = (newLimit: number) => {
+    setLimit(newLimit);
+    setPage(1);
+    if (tab === 0) {
+      fetchWarehouseInventorySummary({ page: 1, limit: newLimit, itemType });
+    } else {
+      fetchLocationInventorySummary({ page: 1, limit: newLimit });
+    }
+  };
   
   const renderError = useMemo(
     () => (msg: string | null) => (
@@ -63,7 +88,7 @@ const InventoryPage = () => {
     []
   );
   
-  const isLoading = tab === 0 ? inventorySummaryLoading : inventorySummaryLoading;
+  const isLoading = tab === 0 ? inventorySummaryLoading : locationInventorySummaryLoading;
   
   return (
     <Box sx={{ p: 3 }}>
@@ -98,7 +123,7 @@ const InventoryPage = () => {
         </Box>
       ) : (
         <>
-          {tab === 0 && (
+          {tab === 0 ? (
             <>
               {inventorySummaryError && renderError(inventorySummaryError)}
               {inventorySummaryData.length === 0 ? (
@@ -107,38 +132,46 @@ const InventoryPage = () => {
                 <Suspense fallback={<Skeleton height={400} variant="rectangular" sx={{ borderRadius: 1 }} />}>
                   <InventorySummaryTable
                     data={inventorySummaryData}
-                    page={(inventorySummaryPagination?.page ?? 1) - 1}
-                    rowsPerPage={inventorySummaryPagination?.limit ?? 20}
+                    page={page - 1}
+                    rowsPerPage={limit}
                     totalRecords={inventorySummaryPagination?.totalRecords ?? 0}
                     totalPages={inventorySummaryPagination?.totalPages ?? 1}
-                    onPageChange={(newPage) => fetchWarehouseInventorySummary({ page: newPage + 1, limit, itemType })}
-                    onRowsPerPageChange={(newLimit) => fetchWarehouseInventorySummary({ page: 1, limit: newLimit, itemType })}
+                    onPageChange={handlePageChange}
+                    onRowsPerPageChange={handleRowsPerPageChange}
                   />
                 </Suspense>
               )}
-              <CustomButton onClick={() => fetchWarehouseInventorySummary({ page, limit, itemType })} sx={{ mt: 2 }}>
+              <CustomButton
+                onClick={() => fetchWarehouseInventorySummary({ page, limit, itemType })}
+                sx={{ mt: 2 }}
+              >
                 Refresh Summary
               </CustomButton>
             </>
-          )}
-          
-          {tab === 1 && (
+          ) : (
             <>
-              {/*{error && renderError(error)}*/}
-              {/*<Suspense fallback={<Skeleton height={400} variant="rectangular" sx={{ borderRadius: 1 }} />}>*/}
-              {/*  <InventoryTable*/}
-              {/*    data={inventories}*/}
-              {/*    page={page - 1}*/}
-              {/*    rowsPerPage={limit}*/}
-              {/*    totalRecords={pagination.totalRecords}*/}
-              {/*    totalPages={pagination.totalPages}*/}
-              {/*    onPageChange={handlePageChange}*/}
-              {/*    onRowsPerPageChange={handleRowsPerPageChange}*/}
-              {/*  />*/}
-              {/*</Suspense>*/}
-              {/*<CustomButton onClick={refreshInventories} sx={{ mt: 2 }}>*/}
-              {/*  Refresh Inventory*/}
-              {/*</CustomButton>*/}
+              {locationInventorySummaryError && renderError(locationInventorySummaryError)}
+              {locationInventorySummaryData.length === 0 ? (
+                <CustomTypography sx={{ mt: 2 }}>No location inventory data available.</CustomTypography>
+              ) : (
+                <Suspense fallback={<Skeleton height={400} variant="rectangular" sx={{ borderRadius: 1 }} />}>
+                  <LocationInventorySummaryTable
+                    data={locationInventorySummaryData}
+                    page={page - 1}
+                    rowsPerPage={limit}
+                    totalRecords={locationInventorySummaryPagination?.totalRecords ?? 0}
+                    totalPages={locationInventorySummaryPagination?.totalPages ?? 1}
+                    onPageChange={handlePageChange}
+                    onRowsPerPageChange={handleRowsPerPageChange}
+                  />
+                </Suspense>
+              )}
+              <CustomButton
+                onClick={() => fetchLocationInventorySummary({ page, limit })}
+                sx={{ mt: 2 }}
+              >
+                Refresh Inventory
+              </CustomButton>
             </>
           )}
         </>
@@ -147,4 +180,4 @@ const InventoryPage = () => {
   );
 };
 
-export default InventoryPage;
+export default LocationInventoryPage;

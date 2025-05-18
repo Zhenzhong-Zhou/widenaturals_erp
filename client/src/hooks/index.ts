@@ -29,7 +29,7 @@ export { default as useLocationTypes } from './useLocationTypes';
 export { default as useLocationTypeDetail } from './useLocationTypeDetail';
 
 // --- Inventory ---
-export { default as useInventories } from './useInventories';
+export { default as useInventories } from './useLocationInventorySummary.ts';
 export { default as useInventorySummary } from './useInventorySummary';
 export { default as useInventoryActivityLogs } from './useInventoryActivityLogs';
 export { default as useInventoryHistory } from './useInventoryHistory';

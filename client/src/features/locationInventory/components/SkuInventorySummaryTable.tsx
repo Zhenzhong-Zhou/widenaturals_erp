@@ -1,8 +1,8 @@
 import type { FC } from 'react';
 import { Link } from 'react-router-dom';
-import InventoryStatusChip from '@features/inventory/components/InventoryStatusChip';
-import StockLevelChip from '@features/inventory/components/StockLevelChip';
-import NearExpiryChip from '@features/inventory/components/NearExpiryChip';
+import InventoryStatusChip from '@features/locationInventory/components/InventoryStatusChip';
+import StockLevelChip from '@features/locationInventory/components/StockLevelChip';
+import NearExpiryChip from '@features/locationInventory/components/NearExpiryChip';
 import CustomTable from '@components/common/CustomTable';
 import { formatDate } from '@utils/dateTimeUtils';
 import type { BaseWarehouseInventoryItemSummary } from '@features/warehouseInventory/state';
