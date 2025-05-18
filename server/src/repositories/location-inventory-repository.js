@@ -48,11 +48,6 @@ const getHighLevelLocationInventorySummary = async ({
     'LEFT JOIN packaging_material_batches pmb ON br.packaging_material_batch_id = pmb.id',
     'LEFT JOIN packaging_material_suppliers pms ON pmb.packaging_material_supplier_id = pms.id',
     'LEFT JOIN packaging_materials pm ON pms.packaging_material_id = pm.id',
-    'LEFT JOIN part_materials pmx ON pmx.packaging_material_id = pm.id',
-    'LEFT JOIN parts pt ON pmx.part_id = pt.id',
-    'LEFT JOIN inventory_status s_status ON li.status_id = s_status.id',
-    'LEFT JOIN users u1 ON li.created_by = u1.id',
-    'LEFT JOIN users u2 ON li.updated_by = u2.id'
   ];
   
   const { whereClause, params } = buildLocationInventoryWhereClause(filters);
@@ -68,10 +63,6 @@ const getHighLevelLocationInventorySummary = async ({
       END AS item_id,
       br.batch_type AS item_type,
       CASE
-        WHEN br.batch_type = 'product' THEN s.sku
-        ELSE NULL
-      END AS sku,
-      CASE
         WHEN br.batch_type = 'product' THEN s.country_code
         ELSE NULL
       END AS country_code,
@@ -84,19 +75,7 @@ const getHighLevelLocationInventorySummary = async ({
         ELSE NULL
       END AS product_name,
       CASE
-        WHEN br.batch_type = 'product' THEN p.brand
-        ELSE NULL
-      END AS brand,
-      CASE
-        WHEN br.batch_type = 'packaging_material' THEN pt.name
-        ELSE NULL
-      END AS part_name,
-      CASE
-        WHEN br.batch_type = 'packaging_material' THEN pt.type
-        ELSE NULL
-      END AS part_type,
-      CASE
-        WHEN br.batch_type = 'packaging_material' THEN pm.name
+        WHEN br.batch_type = 'packaging_material' THEN pmb.material_snapshot_name
         ELSE NULL
       END AS material_name,
       COUNT(DISTINCT li.batch_id) AS total_lots,
@@ -124,7 +103,7 @@ const getHighLevelLocationInventorySummary = async ({
     GROUP BY
       br.batch_type,
       s.id, p.id,
-      pm.id, pt.id
+      pm.id, pmb.material_snapshot_name
   `;
   
   try {
