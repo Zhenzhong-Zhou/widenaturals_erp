@@ -7,7 +7,7 @@ exports.up = async function (knex) {
     table.uuid('id').primary().defaultTo(knex.raw('uuid_generate_v4()'));
     
     table.string('name', 150).notNullable().unique();
-    table.string('supplier_code', 50).notNullable().unique();
+    table.string('code', 50).notNullable().unique();
     table.string('contact_name', 255);
     table.string('contact_email', 150);
     table.string('contact_phone', 50);

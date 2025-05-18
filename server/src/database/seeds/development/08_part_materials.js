@@ -121,7 +121,7 @@ exports.seed = async function (knex) {
     const materialId = await fetchDynamicValue(knex, 'packaging_materials', 'code', entry.materialCode, 'id');
     
     if (!materialId) {
-      console.error(`❌ Material code not found: ${entry.materialCode}`);
+      console.error(`Material code not found: ${entry.materialCode}`);
       continue;
     }
     
@@ -146,7 +146,7 @@ exports.seed = async function (knex) {
     
     console.log(`${records.length} part-material links seeded successfully.`);
   } else {
-    console.warn('⚠️ No valid records to insert into part_materials.');
+    console.warn('No valid records to insert into part_materials.');
   }
 
   

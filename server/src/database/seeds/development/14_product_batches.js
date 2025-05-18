@@ -546,9 +546,12 @@ exports.seed = async function (knex) {
       notes: null,
       status_id: entry.status_id || activeStatusId,
       status_date: knex.fn.now(),
+      released_at: knex.fn.now(),
+      released_by: null,
+      released_by_manufacturer_id: null,
       created_at: knex.fn.now(),
-      updated_at: null,
       created_by: systemActionId,
+      updated_at: null,
       updated_by: null,
     });
   }

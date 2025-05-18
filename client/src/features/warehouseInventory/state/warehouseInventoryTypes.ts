@@ -1,7 +1,7 @@
 export interface FetchWarehouseInventoryItemSummaryParams {
   page?: number;
   limit?: number;
-  itemType?: 'product' | 'material' | 'all';
+  itemType?: 'product' | 'packing_material' | 'all';
 }
 
 export type StockLevel = 'none' | 'critical' | 'low' | 'normal';

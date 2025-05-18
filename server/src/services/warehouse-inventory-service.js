@@ -52,7 +52,7 @@ const fetchPaginatedWarehouseInventoryItemSummary = async ({
     throw AppError.validationError('Invalid pagination parameters.');
   }
   
-  if (itemType && !['all', 'product', 'material'].includes(itemType)) {
+  if (itemType && !['all', 'product', 'packing_material'].includes(itemType)) {
     throw AppError.validationError(`Invalid itemType filter: ${itemType}`);
   }
   

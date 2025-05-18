@@ -38,7 +38,7 @@ const { logError } = require('../utils/logger-helper');
  */
 const getPaginatedWarehouseInventoryItemSummary = async ({ page = 1, limit = 20, itemType, statusId }) => {
   const includeProducts = itemType === 'product' || itemType === 'all' || !itemType;
-  const includeMaterials = itemType === 'material' || itemType === 'all' || !itemType;
+  const includeMaterials = itemType === 'packing_material' || itemType === 'all' || !itemType;
   
   // CTE is needed only if we include products
   const baseCTE = includeProducts
@@ -131,7 +131,7 @@ const getPaginatedWarehouseInventoryItemSummary = async ({ page = 1, limit = 20,
   const materialSelect = `
     SELECT
       pm.id AS item_id,
-      'material' AS item_type,
+      'packaging_material' AS item_type,
       pm.code AS item_code,
       pm.name AS item_name,
       NULL AS brand,
@@ -151,12 +151,13 @@ const getPaginatedWarehouseInventoryItemSummary = async ({ page = 1, limit = 20,
       (pm.status_id = $1) AS is_active
     FROM location_inventory li
     JOIN batch_registry br ON li.batch_id = br.id
-    JOIN packaging_material_batches pmb ON br.product_batch_id = pmb.id
-    JOIN packaging_materials pm ON pmb.packaging_material_id = pm.id
+    JOIN packaging_material_batches pmb ON br.packaging_material_batch_id = pmb.id
+    JOIN packaging_material_suppliers pms ON pmb.packaging_material_supplier_id = pms.id
+    JOIN packaging_materials pm ON pms.packaging_material_id = pm.id
     WHERE
       pm.status_id = $1
       OR li.location_quantity > 0
-    GROUP BY pm.id, pm.code, pm.name
+    GROUP BY pm.id, pm.code, pm.name, pm.status_id
   `;
   
   const selectParts = [];

@@ -81,6 +81,18 @@ exports.seed = async function (knex) {
       created_by: systemActionId,
       updated_by: null,
     },
+    {
+      id: knex.raw('uuid_generate_v4()'),
+      code: 'UNSPECIFIED',
+      name: 'Unspecified Facility Type',
+      description: 'Facility type not specified or unknown at the time of entry',
+      status_id: activeStatusId,
+      status_date: knex.fn.now(),
+      created_at: knex.fn.now(),
+      updated_at: null,
+      created_by: systemActionId,
+      updated_by: null,
+    }
   ];
 
   for (const type of locationTypes) {

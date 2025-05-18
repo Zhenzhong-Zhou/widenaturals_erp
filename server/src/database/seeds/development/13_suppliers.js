@@ -15,6 +15,15 @@ exports.seed = async function (knex) {
   
   const supplierEntries = [
     {
+      name: 'Unspecified Supplier',
+      code: 'SUP-UNSPECIFIED',
+      contact_name: 'N/A',
+      contact_email: 'unspecified@supplier.local',
+      contact_phone: '+00-000-000-0000',
+      location_city: 'Unspecified',
+      description: `Unspecified supplier registered automatically due to missing data.`,
+    },
+    {
       name: 'Phyto-Matrix Inc.',
       contact_name: 'Anna Li',
       contact_email: 'anna.li@phytomatrix.com',
@@ -72,13 +81,13 @@ exports.seed = async function (knex) {
     const supplier = {
       id: knex.raw('uuid_generate_v4()'),
       name: entry.name,
-      supplier_code,
+      code: entry.code || supplier_code,
       contact_name: entry.contact_name,
       contact_email: entry.contact_email,
       contact_phone: entry.contact_phone,
       location_id: location.id,
       is_archived: false,
-      description: `Registered supplier: ${entry.name}, located in ${entry.location_city}`,
+      description: `Registered supplier: ${entry.name}, located in ${entry.location_city}` || entry.description,
       status_id: activeStatusId,
       status_date: knex.fn.now(),
       created_at: knex.fn.now(),
@@ -93,5 +102,5 @@ exports.seed = async function (knex) {
       .ignore();
   }
   
-  console.log('Suppliers seed completed.');
+  console.log(`${supplierEntries.length} Suppliers seed completed.`);
 };

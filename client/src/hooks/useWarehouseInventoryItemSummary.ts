@@ -14,14 +14,14 @@ import { fetchWarehouseInventoryItemSummaryThunk } from '@features/warehouseInve
  *
  * @param {object} options
  * @param {boolean} [options.autoFetch=true] - Whether to fetch data automatically on mount.
- * @param {'product' | 'material' | 'all'} [options.itemType='all'] - Optional item type filter.
+ * @param {'product' | 'packing_material' | 'all'} [options.itemType='all'] - Optional item type filter.
  */
 const useWarehouseInventoryItemSummary = ({
                                             autoFetch = true,
                                             itemType = 'all',
                                           }: {
   autoFetch?: boolean;
-  itemType?: 'product' | 'material' | 'all';
+  itemType?: 'product' | 'packing_material' | 'all';
 } = {}) => {
   const dispatch = useAppDispatch();
   

@@ -22,7 +22,6 @@ exports.up = async function (knex) {
     table.decimal('height_cm', 10, 2);
     table.decimal('weight_g', 10, 2);
     
-    table.uuid('supplier_id').nullable().references('id').inTable('suppliers');
     table.uuid('status_id').notNullable().references('id').inTable('status');
     table.timestamp('status_date', { useTz: true }).defaultTo(knex.fn.now());
     

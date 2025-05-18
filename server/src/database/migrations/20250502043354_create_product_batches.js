@@ -20,9 +20,13 @@ exports.up = async function (knex) {
     table.uuid('status_id').notNullable().references('id').inTable('batch_status');
     table.timestamp('status_date', { useTz: true }).defaultTo(knex.fn.now());
     
+    table.timestamp('released_at', { useTz: true }).defaultTo(knex.fn.now());
+    table.uuid('released_by').nullable().references('id').inTable('users');
+    table.uuid('released_by_manufacturer_id').nullable().references('id').inTable('manufacturers');
+    
     table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
-    table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
     table.uuid('created_by').references('id').inTable('users');
+    table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
     table.uuid('updated_by').references('id').inTable('users');
     
     table.index(['lot_number', 'sku_id'], 'idx_batches_batch_sku');

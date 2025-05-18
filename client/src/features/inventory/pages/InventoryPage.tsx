@@ -12,7 +12,7 @@ import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
 
 // Lazy load heavy tables
-const InventorySummaryTable = lazy(() => import('@features/inventory/components/InventorySummaryTable'));
+const InventorySummaryTable = lazy(() => import('@features/inventory/components/SkuInventorySummaryTable.tsx'));
 // const InventoryTable = lazy(() => import('@features/inventory/components/InventoryTable'));
 
 const InventoryPage = () => {
@@ -24,7 +24,7 @@ const InventoryPage = () => {
   
   
   const itemType = useMemo(() => {
-    return itemTypeTab === 1 ? 'product' : itemTypeTab === 2 ? 'material' : 'all';
+    return itemTypeTab === 1 ? 'product' : itemTypeTab === 2 ? 'packing_material' : 'all';
   }, [itemTypeTab]);
   
   const {

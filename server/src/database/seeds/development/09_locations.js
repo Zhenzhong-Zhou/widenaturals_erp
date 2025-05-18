@@ -100,6 +100,17 @@ exports.seed = async function (knex) {
       is_archived: true,
       status_id: discontinuedStatusId,
       status_date: '2024-11-01',
+    },
+    {
+      name: 'UNSPECIFIED Facility',
+      typeCode: 'UNSPECIFIED',
+      address_line1: 'N/A',
+      city: 'Unspecified',
+      province_or_state: 'N/A',
+      postal_code: '00000',
+      country: 'UNSPECIFIED',
+      is_archived: false,
+      status_id: activeStatusId,
     }
   ];
   
