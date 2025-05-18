@@ -16,7 +16,7 @@ const transformPaginatedResult = (paginatedResult, transformFn) => ({
 });
 
 /**
- * Derives stock and expiry status information from an inventory row.
+ * Derives high-level inventory status flags and severity from raw inventory data.
  *
  * @param {Object} row - Raw inventory row from SQL query
  * @param {Date | string} [row.nearest_expiry_date] - Earliest upcoming expiry date
@@ -35,9 +35,6 @@ const transformPaginatedResult = (paginatedResult, transformFn) => ({
  *   earliestManufactureDate: Date | null,
  *   nearestExpiryDate: Date | null,
  *   displayStatus: string | null,
- *   isExpired: boolean,
- *   isNearExpiry: boolean,
- *   isLowStock: boolean,
  *   stockLevel: 'expired' | 'low_stock' | 'in_stock',
  *   expirySeverity: 'critical' | 'warning' | 'normal'
  * }}
@@ -49,46 +46,59 @@ const deriveInventoryStatusFlags = (row, lowStockThreshold = 30, nearExpiryDays 
     ? new Date(row.nearest_expiry_date)
     : null;
   
+  const manufactureDate = row.earliest_manufacture_date
+    ? new Date(row.earliest_manufacture_date)
+    : null;
+  
   const availableQty = Number(row.available_quantity) || 0;
   const reservedQty = Number(row.reserved_quantity) || 0;
   const totalQty = Number(row.total_lot_quantity) || 0;
   
-  const isExpired = nearestExpiryDate ? nearestExpiryDate < now : false;
-  const isNearExpiry = nearestExpiryDate
-    ? nearestExpiryDate <= new Date(now.getTime() + nearExpiryDays * 24 * 60 * 60 * 1000)
-    : false;
-  const isLowStock = availableQty <= lowStockThreshold;
+  const stockLevel =
+    nearestExpiryDate && nearestExpiryDate < now
+      ? 'expired'
+      : availableQty <= lowStockThreshold
+        ? 'low_stock'
+        : 'in_stock';
   
-  const stockLevel = isExpired
-    ? 'expired'
-    : isLowStock
-      ? 'low_stock'
-      : 'in_stock';
-  
-  const expirySeverity = isExpired
-    ? 'critical'
-    : isNearExpiry
-      ? 'warning'
-      : 'normal';
+  const expirySeverity =
+    nearestExpiryDate && nearestExpiryDate < now
+      ? 'critical'
+      : nearestExpiryDate &&
+      nearestExpiryDate <= new Date(now.getTime() + nearExpiryDays * 86400000)
+        ? 'warning'
+        : 'normal';
   
   return {
     reservedQuantity: reservedQty,
     availableQuantity: availableQty,
     totalLotQuantity: totalQty,
-    earliestManufactureDate: row.earliest_manufacture_date
-      ? new Date(row.earliest_manufacture_date)
-      : null,
+    earliestManufactureDate: manufactureDate,
     nearestExpiryDate,
     displayStatus: row.display_status || null,
-    isExpired,
-    isNearExpiry,
-    isLowStock,
     stockLevel,
     expirySeverity,
   };
+};
+
+/**
+ * Removes all keys from an object whose values are `null` or `undefined`.
+ *
+ * This is useful for cleaning up transformed data structures before sending
+ * them to the client or storing them, especially when you want to omit
+ * irrelevant or empty fields based on type (e.g., product vs. material).
+ *
+ * @param {Object} obj - The object to clean.
+ * @returns {Object} A new object with only defined, non-null values.
+ */
+const cleanObject = (obj) => {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([_, v]) => v !== null && v !== undefined)
+  );
 }
 
 module.exports = {
   transformPaginatedResult,
   deriveInventoryStatusFlags,
+  cleanObject,
 };

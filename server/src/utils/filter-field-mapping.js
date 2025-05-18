@@ -24,8 +24,14 @@ const FILTERABLE_FIELDS = {
     validFrom: 'p.valid_from',
     validTo: 'p.valid_to',
   },
-  locationInventorySummary: {
-    lotNumber: 'lot_number',
+  locationInventorySummarySortMap: {
+    lotNumber: `
+      CASE
+        WHEN br.batch_type = 'product' THEN pb.lot_number
+        WHEN br.batch_type = 'packaging_material' THEN pmb.lot_number
+        ELSE NULL
+      END
+    `,
     sku: 's.sku',
     productName: 'p.name',
     materialName: 'pm.name',
@@ -40,7 +46,8 @@ const FILTERABLE_FIELDS = {
     status: 's_status.name',
     locationQuantity: 'li.location_quantity',
     reservedQuantity: 'li.reserved_quantity',
-    createdAt: 'li.created_at',
+    availableQuantity: '(li.location_quantity - li.reserved_quantity)',
+    createdAt: 'MAX(li.created_at)',
   },
 };
 

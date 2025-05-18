@@ -19,7 +19,7 @@ const { buildLocationInventoryWhereClause } = require('../utils/sql/build-locati
  * pagination, dynamic filters, and sorting.
  *
  * Handles both product-based and packaging material–based inventory entries.
- * Applies system-defined filters (e.g. non-zero quantity) and user-provided filters
+ * Applies system-defined filters (e.g., non-zero quantity) and user-provided filters
  * such as SKU, lot number, product/material name, dates, and status.
  *
  * @param {Object} options - Query parameters
@@ -36,7 +36,7 @@ const getHighLevelLocationInventorySummary = async ({
                                                       page = 1,
                                                       limit = 10,
                                                       filters = {},
-                                                      sortBy = 'created_at',
+                                                      sortBy = 'nearest_expiry_date',
                                                       sortOrder = 'DESC',
                                                     } = {}) => {
   const joins = [
@@ -61,51 +61,94 @@ const getHighLevelLocationInventorySummary = async ({
   
   const queryText = `
     SELECT
-      li.id AS location_inventory_id,
-      li.location_id,
-      l.name AS location_name,
-      li.batch_id,
-      br.batch_type,
       CASE
-        WHEN br.batch_type = 'product' THEN pb.lot_number
-        WHEN br.batch_type = 'packaging_material' THEN pmb.lot_number
+        WHEN br.batch_type = 'product' THEN s.id
+        WHEN br.batch_type = 'packaging_material' THEN pm.id
         ELSE NULL
-      END AS lot_number,
+      END AS item_id,
+      br.batch_type AS item_type,
       CASE
-        WHEN br.batch_type = 'product' THEN pb.manufacture_date
-        WHEN br.batch_type = 'packaging_material' THEN pmb.manufacture_date
+        WHEN br.batch_type = 'product' THEN s.sku
         ELSE NULL
-      END AS manufacture_date,
+      END AS sku,
       CASE
-        WHEN br.batch_type = 'product' THEN pb.expiry_date
-        WHEN br.batch_type = 'packaging_material' THEN pmb.expiry_date
+        WHEN br.batch_type = 'product' THEN s.barcode
         ELSE NULL
-      END AS expiry_date,
-      s.sku,
-      s.barcode,
-      s.country_code,
-      s.size_label,
-      p.name AS product_name,
-      p.brand,
-      p.series,
-      p.category,
-      pt.name AS part_name,
-      pt.type AS part_type,
-      pm.name AS material_name,
-      pm.code AS material_code,
-      pm.unit AS material_unit,
-      pm.material_composition,
-      li.location_quantity,
-      li.reserved_quantity,
-      li.inbound_date,
-      li.outbound_date,
-      li.status_id,
-      s_status.name AS status_name,
-      li.status_date,
-      li.created_at AS created_at
+      END AS barcode,
+      CASE
+        WHEN br.batch_type = 'product' THEN s.country_code
+        ELSE NULL
+      END AS country_code,
+      CASE
+        WHEN br.batch_type = 'product' THEN s.size_label
+        ELSE NULL
+      END AS size_label,
+      CASE
+        WHEN br.batch_type = 'product' THEN p.name
+        ELSE NULL
+      END AS product_name,
+      CASE
+        WHEN br.batch_type = 'product' THEN p.brand
+        ELSE NULL
+      END AS brand,
+      CASE
+        WHEN br.batch_type = 'product' THEN p.series
+        ELSE NULL
+      END AS series,
+      CASE
+        WHEN br.batch_type = 'product' THEN p.category
+        ELSE NULL
+      END AS category,
+      CASE
+        WHEN br.batch_type = 'packaging_material' THEN pt.name
+        ELSE NULL
+      END AS part_name,
+      CASE
+        WHEN br.batch_type = 'packaging_material' THEN pt.type
+        ELSE NULL
+      END AS part_type,
+      CASE
+        WHEN br.batch_type = 'packaging_material' THEN pm.name
+        ELSE NULL
+      END AS material_name,
+      CASE
+        WHEN br.batch_type = 'packaging_material' THEN pm.code
+        ELSE NULL
+      END AS material_code,
+      CASE
+        WHEN br.batch_type = 'packaging_material' THEN pm.unit
+        ELSE NULL
+      END AS material_unit,
+      CASE
+        WHEN br.batch_type = 'packaging_material' THEN pm.material_composition
+        ELSE NULL
+      END AS material_composition,
+      COUNT(DISTINCT li.batch_id) AS total_lots,
+      SUM(li.location_quantity) AS total_quantity,
+      SUM(li.location_quantity - li.reserved_quantity) AS available_quantity,
+      SUM(li.reserved_quantity) AS reserved_quantity,
+      MIN(
+        CASE
+          WHEN br.batch_type = 'product' THEN pb.manufacture_date
+          WHEN br.batch_type = 'packaging_material' THEN pmb.manufacture_date
+          ELSE NULL
+        END
+      ) AS earliest_manufacture_date,
+      MIN(
+        CASE
+          WHEN br.batch_type = 'product' THEN pb.expiry_date
+          WHEN br.batch_type = 'packaging_material' THEN pmb.expiry_date
+          ELSE NULL
+        END
+      ) AS nearest_expiry_date,
+      MAX(li.created_at) AS created_at
     FROM ${tableName}
     ${joins.join('\n')}
     WHERE ${whereClause}
+    GROUP BY
+      br.batch_type,
+      s.id, p.id,
+      pm.id, pt.id
   `;
   
   try {
