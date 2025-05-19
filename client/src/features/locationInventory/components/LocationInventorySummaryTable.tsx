@@ -1,8 +1,8 @@
 import { type FC, useCallback } from 'react';
 import type { LocationInventorySummary } from '../state';
 import Box from '@mui/material/Box';
-import StockLevelChip from '@features/locationInventory/components/StockLevelChip';
-import ExpirySeverityChip from '@features/locationInventory/components/ExpirySeverityChip';
+import StockLevelChip from '@features/inventoryShared/components/StockLevelChip';
+import ExpirySeverityChip from '@features/inventoryShared/components/ExpirySeverityChip';
 import type { Column } from '@components/common/CustomTable';
 import CustomTable from '@components/common/CustomTable';
 import { formatLabel } from '@utils/textUtils';
@@ -29,7 +29,7 @@ const LocationInventorySummaryTable: FC<LocationInventorySummaryTableProps> = ({
                                                                }) => {
   const renderStockLevelCell = useCallback(
     (row: LocationInventorySummary) => (
-      <StockLevelChip stockLevel={row.stockLevel} isLowStock={row.isLowStock} />
+      <StockLevelChip stockLevel={row.stockLevel} />
     ),
     []
   );

@@ -1,7 +1,7 @@
 import { memo, type FC } from 'react';
 import Chip from '@mui/material/Chip';
-import { formatLabel } from '@utils/textUtils';
-import { useThemeContext } from '@context/ThemeContext';
+import { formatLabel } from '@utils/textUtils.ts';
+import { useThemeContext } from '@context/ThemeContext.tsx';
 import type { Theme } from '@mui/material';
 
 interface Props {

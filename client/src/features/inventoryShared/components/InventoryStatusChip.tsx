@@ -1,8 +1,8 @@
 import type { FC } from 'react';
 import { memo, useMemo } from 'react';
 import Chip from '@mui/material/Chip';
-import { formatLabel } from '@utils/textUtils';
-import { useThemeContext } from '@context/ThemeContext';
+import { formatLabel } from '@utils/textUtils.ts';
+import { useThemeContext } from '@context/ThemeContext.tsx';
 
 interface Props {
   status: string;

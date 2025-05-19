@@ -1,8 +1,8 @@
 import { memo, type FC, useMemo } from 'react';
 import Chip from '@mui/material/Chip';
 import type { Palette, PaletteColor } from '@mui/material';
-import { useThemeContext } from '@context/ThemeContext';
-import { formatLabel } from '@utils/textUtils';
+import { useThemeContext } from '@context/ThemeContext.tsx';
+import { formatLabel } from '@utils/textUtils.ts';
 
 interface Props {
   stockLevel: 'none' | 'low' | 'critical' | 'normal' | 'expired';

@@ -1,8 +1,7 @@
 import type { FC } from 'react';
-import { Link } from 'react-router-dom';
-import InventoryStatusChip from '@features/locationInventory/components/InventoryStatusChip.tsx';
-import StockLevelChip from '@features/locationInventory/components/StockLevelChip.tsx';
-import ExpirySeverityChip from '@features/locationInventory/components/ExpirySeverityChip.tsx';
+import InventoryStatusChip from '@features/inventoryShared/components/InventoryStatusChip.tsx';
+import StockLevelChip from '@features/inventoryShared/components/StockLevelChip.tsx';
+import ExpirySeverityChip from '@features/inventoryShared/components/ExpirySeverityChip.tsx';
 import CustomTable, { type Column } from '@components/common/CustomTable.tsx';
 import { formatDate } from '@utils/dateTimeUtils.ts';
 import type {
@@ -33,17 +32,8 @@ const WarehouseInventorySummaryTable: FC<SkuInventorySummaryTableProps> = ({
       id: 'itemName',
       label: 'Item Name',
       sortable: true,
-      renderCell: (row: WarehouseInventoryItemSummary) =>
-        row.itemType === 'product' ? (
-          <Link
-            to={`/skus/${row.itemId}`}
-            style={{ textDecoration: 'none', color: 'blue' }}
-          >
-            {row.productName}
-          </Link>
-        ) : (
-          row.itemName
-        ),
+      format: (_value: any, row?: WarehouseInventoryItemSummary) =>
+        row?.itemType === 'product' ? row.productName : row?.itemName,
     },
     {
       id: 'availableQuantity',

@@ -134,6 +134,16 @@ export const routes = [
     },
   },
   {
+    path: '/inventory-overview',
+    component: lazy(() => import('@features/inventoryOverview/pages/InventoryOverviewPage')),
+    meta: {
+      requiresAuth: true,
+      title: 'Inventory Overview',
+      showInSidebar: true,
+      requiredPermission: 'view_inventory_overview',
+    },
+  },
+  {
     path: '/location-inventory',
     component: lazy(() => import('@features/locationInventory/pages/LocationInventoryPage')),
     meta: {

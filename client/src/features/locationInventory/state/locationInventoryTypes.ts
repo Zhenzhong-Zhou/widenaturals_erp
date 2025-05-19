@@ -1,4 +1,4 @@
-import type { InventoryHealthStatus, ItemType } from '../../../types/InventorySharedType.ts';
+import type { InventoryHealthStatus, ItemType } from '../../inventoryShared/types/InventorySharedType.ts';
 import type { PaginatedResponse, PaginatedState } from 'types/api';
 
 export type LocationInventorySummaryResponse = PaginatedResponse<LocationInventorySummary>;

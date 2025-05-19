@@ -8,7 +8,7 @@ import {
   selectWarehouseInventoryItemSummaryPagination
 } from '@features/warehouseInventory/state';
 import { fetchWarehouseInventoryItemSummaryThunk } from '@features/warehouseInventory/state/warehouseInventoryThunks';
-import type { ItemType } from '../types/InventorySharedType.ts';
+import type { ItemType } from '@features/inventoryShared/types/InventorySharedType.ts';
 
 /**
  * Custom hook to manage warehouse inventory summary state and trigger fetching logic.

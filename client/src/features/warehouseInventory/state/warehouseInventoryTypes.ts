@@ -1,4 +1,4 @@
-import type { InventoryHealthStatus, ItemType } from '../../../types/InventorySharedType';
+import type { InventoryHealthStatus, ItemType } from '../../inventoryShared/types/InventorySharedType.ts';
 
 export interface FetchWarehouseInventoryItemSummaryParams {
   page?: number;

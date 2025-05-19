@@ -106,7 +106,7 @@ const SkuWarehouseInventorySummarySection = () => {
         <CustomButton
           size="small"
           variant="outlined"
-          onClick={() => (window.location.href = '/location-inventory')}
+          onClick={() => (window.location.href = '/inventory-overview')}
         >
           View Detail
         </CustomButton>
