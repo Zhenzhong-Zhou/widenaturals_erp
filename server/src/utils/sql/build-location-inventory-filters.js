@@ -74,7 +74,7 @@ const buildLocationInventoryWhereClause = (filters = {}) => {
   
   if (filters.materialName) {
     params.push(`%${filters.materialName}%`);
-    whereClauses.push(`pm.name ILIKE $${params.length}`);
+    whereClauses.push(`pmb.material_snapshot_name ILIKE $${params.length}`);
   }
   
   if (filters.lotNumber) {

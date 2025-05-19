@@ -71,6 +71,10 @@ const getHighLevelLocationInventorySummary = async ({
         ELSE NULL
       END AS size_label,
       CASE
+        WHEN br.batch_type = 'product' THEN s.sku
+        ELSE NULL
+      END AS sku,
+      CASE
         WHEN br.batch_type = 'product' THEN p.name
         ELSE NULL
       END AS product_name,

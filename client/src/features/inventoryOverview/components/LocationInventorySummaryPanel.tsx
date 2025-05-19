@@ -4,6 +4,7 @@ import CustomButton from '@components/common/CustomButton';
 import CustomTypography from '@components/common/CustomTypography';
 import ErrorDisplay from '@components/shared/ErrorDisplay';
 import ErrorMessage from '@components/common/ErrorMessage';
+import LocationInventoryFilterPanel from '@features/locationInventory/components/LocationInventoryFilterPanel';
 import LocationInventorySummaryTable from '@features/locationInventory/components/LocationInventorySummaryTable';
 import useLocationInventorySummary from '@hooks/useLocationInventorySummary';
 import type { ItemType } from '@features/inventoryShared/types/InventorySharedType';
@@ -33,7 +34,7 @@ const LocationInventoryPanel: FC<Props> = ({
   
   useEffect(() => {
     fetchData({ page, limit, ...(itemType ? { batchType: itemType } : {}) });
-  }, [itemType]);
+  }, [page, limit, itemType]);
   
   const handleRefresh = () => {
     fetchData({ page, limit, ...(itemType ? { batchType: itemType } : {}) });
@@ -64,6 +65,24 @@ const LocationInventoryPanel: FC<Props> = ({
   return (
     <>
       <Suspense fallback={<Skeleton height={400} variant="rectangular" sx={{ borderRadius: 1 }} />}>
+        <LocationInventoryFilterPanel
+          visibleFields={['productName', 'materialName', 'sku']}
+          onApply={(filters) => {
+            fetchData({
+              page: 1,
+              limit,
+              ...filters,
+              ...(itemType ? { batchType: itemType } : {}),
+            });
+          }}
+          onReset={() => {
+            fetchData({
+              page: 1,
+              limit,
+              ...(itemType ? { batchType: itemType } : {}),
+            });
+          }}
+        />
         <LocationInventorySummaryTable
           data={data}
           page={page - 1}

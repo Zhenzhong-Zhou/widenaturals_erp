@@ -18,7 +18,7 @@ const { getProductDisplayName } = require('../utils/display-name-utils');
  * @param {Object} row - Raw SQL result row
  * @returns {Object} Transformed inventory record for frontend consumption
  */
-const transformLocationInventoryRow = (row) => {
+const transformLocationInventorySummaryRow = (row) => {
   const isProduct = row.item_type === 'product';
   const productName = getProductDisplayName(row);
   const statusInfo = deriveInventoryStatusFlags(row);
@@ -40,7 +40,7 @@ const transformLocationInventoryRow = (row) => {
 
 /**
  * Transforms a paginated SQL result of raw location inventory summary rows
- * into a fully structured, frontend-ready result using `transformLocationInventoryRow`.
+ * into a fully structured, frontend-ready result using `transformLocationInventorySummaryRow`.
  *
  * This includes:
  * - Row-level normalization (product/material shape)
@@ -61,7 +61,7 @@ const transformLocationInventoryRow = (row) => {
  * }} Transformed result for frontend consumption
  */
 const transformPaginatedLocationInventorySummaryResult = (paginatedResult) =>
-  transformPaginatedResult(paginatedResult, transformLocationInventoryRow);
+  transformPaginatedResult(paginatedResult, transformLocationInventorySummaryRow);
 
 /**
  * Transforms a single raw inventory record row from the database into a normalized object.

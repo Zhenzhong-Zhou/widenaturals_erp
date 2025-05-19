@@ -40,15 +40,9 @@ const getLocationInventorySummaryController = wrapAsync(async (req, res) => {
   
   const filters = {
     batchType: rawFilters.batchType,
-    productName: rawFilters.product_name,
-    lotNumber: rawFilters.lot_number,
+    productName: rawFilters.productName,
     sku: rawFilters.sku,
-    materialName: rawFilters.material_name,
-    inboundDate: rawFilters.inbound_date,
-    expiryDate: rawFilters.expiry_date,
-    status: rawFilters.status,
-    createdAt: rawFilters.created_at,
-    locationId: rawFilters.location_id,
+    materialName: rawFilters.materialName,
   };
   
   logInfo('Location inventory summary requested', req, {

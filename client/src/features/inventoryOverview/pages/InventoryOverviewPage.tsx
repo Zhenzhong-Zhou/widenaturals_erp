@@ -8,8 +8,8 @@ import ItemTypeTabs from '@features/inventoryShared/components/ItemTypeTabs';
 import type { ItemType } from '@features/inventoryShared/types/InventorySharedType';
 
 // Lazy loaded panels
-const LocationInventoryPanel = lazy(() => import('@features/inventoryOverview/components/LocationInventorySummaryPanel'));
-const WarehouseInventoryPanel = lazy(() => import('@features/inventoryOverview/components/WarehouseInventoryPanel'));
+const LocationInventorySummaryPanel = lazy(() => import('@features/inventoryOverview/components/LocationInventorySummaryPanel'));
+const WarehouseInventorySummaryPanel = lazy(() => import('@features/inventoryOverview/components/WarehouseInventorySummaryPanel'));
 
 const InventoryOverviewPage = () => {
   const [tab, setTab] = useState(0); // 0 = Location, 1 = Warehouse
@@ -61,7 +61,7 @@ const InventoryOverviewPage = () => {
       </Paper>
       
       {tab === 0 ? (
-        <LocationInventoryPanel
+        <LocationInventorySummaryPanel
           page={page}
           limit={limit}
           itemType={itemType}
@@ -69,7 +69,7 @@ const InventoryOverviewPage = () => {
           onRowsPerPageChange={handleRowsPerPageChange}
         />
       ) : (
-        <WarehouseInventoryPanel
+        <WarehouseInventorySummaryPanel
           page={page}
           limit={limit}
           itemType={itemType}

@@ -1,4 +1,4 @@
-import { type FC, Suspense } from 'react';
+import { type FC, Suspense, useEffect } from 'react';
 import Skeleton from '@mui/material/Skeleton';
 import CustomButton from '@components/common/CustomButton';
 import CustomTypography from '@components/common/CustomTypography';
@@ -16,7 +16,7 @@ interface Props {
   onRowsPerPageChange: (newLimit: number) => void;
 }
 
-const WarehouseInventoryPanel: FC<Props> = ({
+const WarehouseInventorySummaryPanel: FC<Props> = ({
                                               page,
                                               limit,
                                               itemType,
@@ -30,6 +30,10 @@ const WarehouseInventoryPanel: FC<Props> = ({
     error,
     fetchWarehouseInventorySummary,
   } = useWarehouseInventoryItemSummary({ itemType });
+  
+  useEffect(() => {
+    fetchWarehouseInventorySummary({ page, limit, itemType });
+  }, [page, limit, itemType]);
   
   const handleRefresh = () => {
     fetchWarehouseInventorySummary({ page, limit, itemType });
@@ -77,4 +81,4 @@ const WarehouseInventoryPanel: FC<Props> = ({
   );
 };
 
-export default WarehouseInventoryPanel;
+export default WarehouseInventorySummaryPanel;

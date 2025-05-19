@@ -7,6 +7,7 @@ import { formatDate } from '@utils/dateTimeUtils.ts';
 import type {
   WarehouseInventoryItemSummary,
 } from '@features/warehouseInventory/state';
+import { formatLabel } from '@utils/textUtils.ts';
 
 interface SkuInventorySummaryTableProps {
   data: WarehouseInventoryItemSummary[];
@@ -28,6 +29,12 @@ const WarehouseInventorySummaryTable: FC<SkuInventorySummaryTableProps> = ({
                                                                        onRowsPerPageChange,
                                                                      }) => {
   const columns: Column<WarehouseInventoryItemSummary>[] = [
+    {
+      id: 'itemType',
+      label: 'Item Type',
+      sortable: true,
+      format: (_value: any, row?: WarehouseInventoryItemSummary) => formatLabel(row?.itemType)
+    },
     {
       id: 'itemName',
       label: 'Item Name',
@@ -104,7 +111,7 @@ const WarehouseInventorySummaryTable: FC<SkuInventorySummaryTableProps> = ({
       data={data}
       page={page}
       initialRowsPerPage={rowsPerPage}
-      rowsPerPageOptions={[20, 30, 40, 50]}
+      rowsPerPageOptions={[20, 50, 75, 100]}
       totalPages={totalPages}
       totalRecords={totalRecords}
       onPageChange={onPageChange}
