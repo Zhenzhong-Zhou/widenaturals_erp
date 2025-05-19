@@ -8,20 +8,21 @@ import {
   selectWarehouseInventoryItemSummaryPagination
 } from '@features/warehouseInventory/state';
 import { fetchWarehouseInventoryItemSummaryThunk } from '@features/warehouseInventory/state/warehouseInventoryThunks';
+import type { ItemType } from '../types/InventorySharedType.ts';
 
 /**
  * Custom hook to manage warehouse inventory summary state and trigger fetching logic.
  *
  * @param {object} options
  * @param {boolean} [options.autoFetch=true] - Whether to fetch data automatically on mount.
- * @param {'product' | 'packing_material' | 'all'} [options.itemType='all'] - Optional item type filter.
+ * @param {'product' | 'packing_material'} [options.itemType=''] - Optional item type filter.
  */
 const useWarehouseInventoryItemSummary = ({
                                             autoFetch = true,
-                                            itemType = 'all',
+                                            itemType,
                                           }: {
   autoFetch?: boolean;
-  itemType?: 'product' | 'packing_material' | 'all';
+  itemType?: ItemType;
 } = {}) => {
   const dispatch = useAppDispatch();
   
@@ -31,7 +32,7 @@ const useWarehouseInventoryItemSummary = ({
   const error = useAppSelector(selectWarehouseInventoryItemSummaryError);
   const totalAvailableQuantity = useAppSelector(selectTotalAvailableQuantity);
   
-  const fetchWarehouseInventorySummary = (opts?: { page?: number; limit?: number, itemType: string }) => {
+  const fetchWarehouseInventorySummary = (opts?: { page?: number; limit?: number, itemType: ItemType }) => {
     dispatch(
       fetchWarehouseInventoryItemSummaryThunk({
         page: opts?.page ?? pagination?.page ?? 1,

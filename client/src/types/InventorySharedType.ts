@@ -11,3 +11,5 @@ export interface InventoryHealthStatus {
   stockLevel: 'none' | 'critical' | 'low' | 'normal';
   expirySeverity: 'expired' | 'expired_soon' | 'critical' | 'warning' | 'notice' | 'safe' | 'unknown';
 }
+
+export type ItemType = 'product' | 'packaging_material' | undefined;

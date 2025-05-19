@@ -10,7 +10,9 @@ import { formatLabel } from '@utils/textUtils';
 import { formatDate } from '@utils/dateTimeUtils';
 import { useThemeContext } from '@context/ThemeContext';
 import useWarehouseInventoryItemSummary from '@hooks/useWarehouseInventoryItemSummary.ts';
-import type { BaseWarehouseInventoryItemSummary } from '../state/warehouseInventoryTypes';
+import type {
+  ProductWarehouseInventorySummary,
+} from '../state/warehouseInventoryTypes';
 
 const SkuWarehouseInventorySummarySection = () => {
   const { theme } = useThemeContext();
@@ -27,10 +29,10 @@ const SkuWarehouseInventorySummarySection = () => {
   } = useWarehouseInventoryItemSummary({ itemType: 'product' });
   
   const highlightedItems = useMemo(() => {
-    return data.filter((item: BaseWarehouseInventoryItemSummary) =>
-      item.isLowStock ||
-      item.isNearExpiry ||
-      ['out_of_stock', 'unassigned', 'suspended'].includes(item.status)
+    return data.filter((item: ProductWarehouseInventorySummary) =>
+      ['none', 'low', 'critical'].includes(item.stockLevel) || // highlights low stock
+      ['expired', 'expired_soon', 'critical'].includes(item.expirySeverity) || // highlights expiry risk
+      ['out_of_stock', 'unassigned', 'suspended'].includes(item.status) // extra conditions
     );
   }, [data]);
   
@@ -56,11 +58,11 @@ const SkuWarehouseInventorySummarySection = () => {
       ) : (
         <>
           <Grid container spacing={2}>
-            {paginatedItems.map((item: BaseWarehouseInventoryItemSummary) => (
-              <Grid key={item.skuId} size={{xs: 12, sm: 6, md: 4, lg: 3}}>
+            {paginatedItems.map((item: ProductWarehouseInventorySummary) => (
+              <Grid key={item.itemId} size={{xs: 12, sm: 6, md: 4, lg: 3}}>
                 <CustomCard
                   title={item.productName}
-                  subtitle={`Status: ${formatLabel(item.status)}`}
+                  subtitle={`Status: ${formatLabel(item.displayStatus)}`}
                   ariaLabel={`Inventory summary card for ${item.productName}`}
                   sx={{ height: '100%' }}
                 >
@@ -71,14 +73,17 @@ const SkuWarehouseInventorySummarySection = () => {
                     Nearest Expiry: {item.nearestExpiryDate ? formatDate(item.nearestExpiryDate) : 'N/A'}
                   </CustomTypography>
                   
-                  {item.isLowStock && (
+                  {/* Stock-level feedback */}
+                  {['none', 'low', 'critical'].includes(item.stockLevel) && (
                     <CustomTypography sx={{ color: 'warning.main' }}>
-                      Low Stock ({formatLabel(item.stockLevel)})
+                      Stock Level: {formatLabel(item.stockLevel)}
                     </CustomTypography>
                   )}
-                  {item.isNearExpiry && (
+                  
+                  {/* Expiry risk feedback */}
+                  {['expired', 'expired_soon', 'critical'].includes(item.expirySeverity) && (
                     <CustomTypography sx={{ color: 'error.main' }}>
-                      Near Expiry
+                      Expiry Risk: {formatLabel(item.expirySeverity)}
                     </CustomTypography>
                   )}
                 </CustomCard>

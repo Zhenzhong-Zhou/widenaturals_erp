@@ -1,28 +1,21 @@
+import type { InventoryHealthStatus, ItemType } from '../../../types/InventorySharedType';
+
 export interface FetchWarehouseInventoryItemSummaryParams {
   page?: number;
   limit?: number;
-  itemType?: 'product' | 'packing_material' | 'all';
+  itemType?: ItemType;
 }
 
-export type StockLevel = 'none' | 'critical' | 'low' | 'normal';
-
-export interface BaseWarehouseInventoryItemSummary {
-  skuId: string;
-  sku: string;
-  productName: string;
+export interface BaseWarehouseInventoryItemSummary extends InventoryHealthStatus {
+  itemId: string;
+  itemType: ItemType;
+  itemName: string;
+  
   totalInventoryEntries: number;
-  recordedQuantity: number;
   actualQuantity: number;
-  availableQuantity: number;
-  reservedQuantity: number;
   totalLots: number;
   lotQuantity: number;
-  earliestManufactureDate: string; // ISO date string
-  nearestExpiryDate: string;       // ISO date string
   status: string;
-  isNearExpiry: boolean;
-  isLowStock: boolean;
-  stockLevel: StockLevel;
 }
 
 // Product-specific
@@ -32,13 +25,11 @@ export interface ProductWarehouseInventorySummary extends BaseWarehouseInventory
   sku: string;
   brand: string;
   productName: string;
-  countryCode: string;
-  sizeLabel: string;
 }
 
 // Material-specific
 export interface MaterialWarehouseInventorySummary extends BaseWarehouseInventoryItemSummary {
-  itemType: 'material';
+  itemType: 'packaging_material';
   materialId: string;
   materialCode: string;
   materialName: string;

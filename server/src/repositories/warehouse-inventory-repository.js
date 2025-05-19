@@ -37,13 +37,14 @@ const { logError } = require('../utils/logger-helper');
  * @returns {Promise<{ data: any[], meta: { page: number, total: number } }>} A paginated summary of warehouse inventory grouped by SKU or material code.
  */
 const getPaginatedWarehouseInventoryItemSummary = async ({ page = 1, limit = 20, itemType, statusId }) => {
-  const includeProducts = itemType === 'product' || itemType === 'all' || !itemType;
-  const includeMaterials = itemType === 'packing_material' || itemType === 'all' || !itemType;
+  const includeProducts = itemType === 'product' || itemType === undefined || itemType === null;
+  const includeMaterials = itemType === 'packaging_material' || itemType === undefined || itemType === null;
   
-  // CTE is needed only if we include products
-  const baseCTE = includeProducts
-    ? `
-      WITH lot_agg AS (
+  const ctes = [];
+  
+  if (includeProducts) {
+    ctes.push(`
+      product_lot_agg AS (
         SELECT
           pb.sku_id,
           COUNT(DISTINCT li.id) AS total_lots,
@@ -57,114 +58,135 @@ const getPaginatedWarehouseInventoryItemSummary = async ({ page = 1, limit = 20,
         JOIN product_batches pb ON br.product_batch_id = pb.id
         GROUP BY pb.sku_id
       ),
-      status_priority AS (
+      product_status_priority AS (
         SELECT
           pb.sku_id,
-          MIN(CASE ist.name
-            WHEN 'expired' THEN 1
-            WHEN 'suspended' THEN 2
-            WHEN 'unavailable' THEN 3
-            WHEN 'out_of_stock' THEN 4
-            WHEN 'in_stock' THEN 5
-            ELSE 6
-          END) AS min_priority
+          MIN(isp.priority) AS min_priority
         FROM warehouse_inventory wi
         JOIN batch_registry br ON wi.batch_id = br.id
         JOIN product_batches pb ON br.product_batch_id = pb.id
         JOIN inventory_status ist ON wi.status_id = ist.id
+        JOIN inventory_status_priority isp ON ist.name = isp.name
         GROUP BY pb.sku_id
-      ),
-      status_names AS (
-        SELECT * FROM (
-          VALUES
-            (1, 'expired'),
-            (2, 'suspended'),
-            (3, 'unavailable'),
-            (4, 'out_of_stock'),
-            (5, 'in_stock'),
-            (6, 'unassigned')
-        ) AS s(priority, name)
       )
-    `
-    : '';
+    `);
+  }
   
-  const productSelect = `
-    SELECT
-      s.id AS item_id,
-      'product' AS item_type,
-      s.sku AS item_code,
-      COALESCE(NULLIF(p.name, ''), s.sku) AS item_name,
-      p.brand,
-      s.country_code,
-      s.size_label,
-      COUNT(DISTINCT wi.id) AS total_inventory_entries,
-      COALESCE(SUM(wi.warehouse_quantity), 0) AS recorded_quantity,
-      COALESCE(l.total_lot_quantity, 0) AS actual_quantity,
-      COALESCE(l.total_available_quantity, 0) AS total_available_quantity,
-      COALESCE(l.total_reserved_quantity, 0) AS total_reserved_quantity,
-      COALESCE(l.total_lots, 0) AS total_lots,
-      COALESCE(l.total_lot_quantity, 0) AS total_lot_quantity,
-      l.earliest_manufacture_date,
-      l.nearest_expiry_date,
-      sp.min_priority,
-      COALESCE(sn.name, 'unassigned') AS display_status,
-      (p.status_id = $1 AND s.status_id = $1) AS is_active
-    FROM warehouse_inventory wi
-    JOIN batch_registry br ON wi.batch_id = br.id
-    JOIN product_batches pb ON br.product_batch_id = pb.id
-    JOIN skus s ON pb.sku_id = s.id
-    JOIN products p ON s.product_id = p.id
-    LEFT JOIN lot_agg l ON s.id = l.sku_id
-    LEFT JOIN status_priority sp ON s.id = sp.sku_id
-    LEFT JOIN status_names sn ON sp.min_priority = sn.priority
-    GROUP BY
-      s.id, s.sku, p.name, p.brand, s.country_code, s.size_label,
-      l.total_lots, l.total_lot_quantity,
-      l.total_available_quantity, l.total_reserved_quantity,
-      l.earliest_manufacture_date, l.nearest_expiry_date,
-      sp.min_priority, sn.name, p.status_id, s.status_id
-    HAVING
-      (p.status_id = $1 AND s.status_id = $1)
-      OR SUM(wi.warehouse_quantity) > 0
+  if (includeMaterials) {
+    ctes.push(`
+      material_status_priority AS (
+        SELECT
+          pm.id AS packaging_material_id,
+          MIN(isp.priority) AS min_priority
+        FROM warehouse_inventory wi
+        JOIN batch_registry br ON wi.batch_id = br.id
+        JOIN packaging_material_batches pmb ON br.packaging_material_batch_id = pmb.id
+        JOIN packaging_material_suppliers pms ON pmb.packaging_material_supplier_id = pms.id
+        JOIN packaging_materials pm ON pms.packaging_material_id = pm.id
+        JOIN inventory_status ist ON wi.status_id = ist.id
+        JOIN inventory_status_priority isp ON ist.name = isp.name
+        GROUP BY pm.id
+      )
+    `);
+  }
+  
+  const sharedCTE = `
+    inventory_status_priority AS (
+      SELECT * FROM (
+        VALUES
+          ('expired', 1),
+          ('suspended', 2),
+          ('unavailable', 3),
+          ('out_of_stock', 4),
+          ('in_stock', 5),
+          ('unassigned', 6)
+      ) AS isp(name, priority)
+    )
   `;
   
-  const materialSelect = `
-    SELECT
-      pm.id AS item_id,
-      'packaging_material' AS item_type,
-      pm.code AS item_code,
-      pm.name AS item_name,
-      NULL AS brand,
-      NULL AS country_code,
-      NULL AS size_label,
-      COUNT(DISTINCT li.id) AS total_inventory_entries,
-      COALESCE(SUM(li.location_quantity), 0) AS recorded_quantity,
-      COALESCE(SUM(li.location_quantity), 0) AS actual_quantity,
-      COALESCE(SUM(li.location_quantity - li.reserved_quantity), 0) AS total_available_quantity,
-      COALESCE(SUM(li.reserved_quantity), 0) AS total_reserved_quantity,
-      COUNT(DISTINCT pmb.id) AS total_lots,
-      COALESCE(SUM(li.location_quantity), 0) AS total_lot_quantity,
-      MIN(pmb.manufacture_date) AS earliest_manufacture_date,
-      MIN(pmb.expiry_date) AS nearest_expiry_date,
-      NULL AS min_priority,
-      'unassigned' AS display_status,
-      (pm.status_id = $1) AS is_active
-    FROM location_inventory li
-    JOIN batch_registry br ON li.batch_id = br.id
-    JOIN packaging_material_batches pmb ON br.packaging_material_batch_id = pmb.id
-    JOIN packaging_material_suppliers pms ON pmb.packaging_material_supplier_id = pms.id
-    JOIN packaging_materials pm ON pms.packaging_material_id = pm.id
-    WHERE
-      pm.status_id = $1
-      OR li.location_quantity > 0
-    GROUP BY pm.id, pm.code, pm.name, pm.status_id
-  `;
+  const fullCTE = `WITH\n${[sharedCTE, ...ctes].join(',\n')}`;
   
   const selectParts = [];
-  if (includeProducts) selectParts.push(productSelect);
-  if (includeMaterials) selectParts.push(materialSelect);
   
-  const finalQuery = baseCTE + '\n' + selectParts.join('\nUNION ALL\n');
+  if (includeProducts) {
+    selectParts.push(`
+      SELECT
+        s.id AS item_id,
+        'product' AS item_type,
+        s.sku,
+        COALESCE(NULLIF(p.name, ''), s.sku) AS item_name,
+        p.brand,
+        s.country_code,
+        s.size_label,
+        COUNT(DISTINCT wi.id) AS total_inventory_entries,
+        COALESCE(SUM(wi.warehouse_quantity), 0) AS recorded_quantity,
+        COALESCE(l.total_lot_quantity, 0) AS actual_quantity,
+        COALESCE(l.total_available_quantity, 0) AS total_available_quantity,
+        COALESCE(l.total_reserved_quantity, 0) AS total_reserved_quantity,
+        COALESCE(l.total_lots, 0) AS total_lots,
+        COALESCE(l.total_lot_quantity, 0) AS total_lot_quantity,
+        l.earliest_manufacture_date,
+        l.nearest_expiry_date,
+        sp.min_priority,
+        isp.name AS display_status,
+        (p.status_id = $1 AND s.status_id = $1) AS is_active
+      FROM warehouse_inventory wi
+      JOIN batch_registry br ON wi.batch_id = br.id
+      JOIN product_batches pb ON br.product_batch_id = pb.id
+      JOIN skus s ON pb.sku_id = s.id
+      JOIN products p ON s.product_id = p.id
+      LEFT JOIN product_lot_agg l ON s.id = l.sku_id
+      LEFT JOIN product_status_priority sp ON s.id = sp.sku_id
+      LEFT JOIN inventory_status_priority isp ON sp.min_priority = isp.priority
+      GROUP BY
+        s.id, s.sku, p.name, p.brand, s.country_code, s.size_label,
+        l.total_lots, l.total_lot_quantity,
+        l.total_available_quantity, l.total_reserved_quantity,
+        l.earliest_manufacture_date, l.nearest_expiry_date,
+        sp.min_priority, isp.name, p.status_id, s.status_id
+      HAVING
+        (p.status_id = $1 AND s.status_id = $1)
+        OR SUM(wi.warehouse_quantity) > 0
+    `);
+  }
+  
+  if (includeMaterials) {
+    selectParts.push(`
+      SELECT
+        pm.id AS item_id,
+        'packaging_material' AS item_type,
+        pm.code AS item_code,
+        pm.name AS item_name,
+        NULL AS brand,
+        NULL AS country_code,
+        NULL AS size_label,
+        COUNT(DISTINCT wi.id) AS total_inventory_entries,
+        COALESCE(SUM(wi.warehouse_quantity), 0) AS recorded_quantity,
+        COALESCE(SUM(wi.warehouse_quantity), 0) AS actual_quantity,
+        COALESCE(SUM(wi.warehouse_quantity - wi.reserved_quantity), 0) AS total_available_quantity,
+        COALESCE(SUM(wi.reserved_quantity), 0) AS total_reserved_quantity,
+        COUNT(DISTINCT pmb.id) AS total_lots,
+        COALESCE(SUM(wi.warehouse_quantity), 0) AS total_lot_quantity,
+        MIN(pmb.manufacture_date) AS earliest_manufacture_date,
+        MIN(pmb.expiry_date) AS nearest_expiry_date,
+        sp.min_priority,
+        isp.name AS display_status,
+        (pm.status_id = $1) AS is_active
+      FROM warehouse_inventory wi
+      JOIN batch_registry br ON wi.batch_id = br.id
+      JOIN packaging_material_batches pmb ON br.packaging_material_batch_id = pmb.id
+      JOIN packaging_material_suppliers pms ON pmb.packaging_material_supplier_id = pms.id
+      JOIN packaging_materials pm ON pms.packaging_material_id = pm.id
+      LEFT JOIN material_status_priority sp ON pm.id = sp.packaging_material_id
+      LEFT JOIN inventory_status_priority isp ON sp.min_priority = isp.priority
+      WHERE pm.status_id = $1 OR wi.warehouse_quantity > 0
+      GROUP BY
+        pm.id, pm.code, pm.name, pm.status_id,
+        sp.min_priority, isp.name
+    `);
+  }
+  
+  const finalQuery = `${fullCTE}\n${selectParts.join('\nUNION ALL\n')}`;
   
   try {
     logSystemInfo('Fetching paginated warehouse inventory summary (products + materials)', {

@@ -1,14 +1,16 @@
 import type { FC } from 'react';
 import { Link } from 'react-router-dom';
-import InventoryStatusChip from '@features/locationInventory/components/InventoryStatusChip';
-import StockLevelChip from '@features/locationInventory/components/StockLevelChip';
-import NearExpiryChip from '@features/locationInventory/components/NearExpiryChip';
-import CustomTable from '@components/common/CustomTable';
-import { formatDate } from '@utils/dateTimeUtils';
-import type { BaseWarehouseInventoryItemSummary } from '@features/warehouseInventory/state';
+import InventoryStatusChip from '@features/locationInventory/components/InventoryStatusChip.tsx';
+import StockLevelChip from '@features/locationInventory/components/StockLevelChip.tsx';
+import ExpirySeverityChip from '@features/locationInventory/components/ExpirySeverityChip.tsx';
+import CustomTable, { type Column } from '@components/common/CustomTable.tsx';
+import { formatDate } from '@utils/dateTimeUtils.ts';
+import type {
+  WarehouseInventoryItemSummary,
+} from '@features/warehouseInventory/state';
 
 interface SkuInventorySummaryTableProps {
-  data: BaseWarehouseInventoryItemSummary[];
+  data: WarehouseInventoryItemSummary[];
   page: number;
   rowsPerPage: number;
   totalRecords: number;
@@ -17,7 +19,7 @@ interface SkuInventorySummaryTableProps {
   onRowsPerPageChange: (newRowsPerPage: number) => void;
 }
 
-const SkuInventorySummaryTable: FC<SkuInventorySummaryTableProps> = ({
+const WarehouseInventorySummaryTable: FC<SkuInventorySummaryTableProps> = ({
                                                                        data,
                                                                        page,
                                                                        rowsPerPage,
@@ -26,24 +28,22 @@ const SkuInventorySummaryTable: FC<SkuInventorySummaryTableProps> = ({
                                                                        onPageChange,
                                                                        onRowsPerPageChange,
                                                                      }) => {
-  const columns = [
+  const columns: Column<WarehouseInventoryItemSummary>[] = [
     {
-      id: 'productName',
-      label: 'Product Name',
+      id: 'itemName',
+      label: 'Item Name',
       sortable: true,
-      renderCell: (row: BaseWarehouseInventoryItemSummary) => (
-        <Link
-          to={`/skus/${row.skuId}`}
-          style={{ textDecoration: 'none', color: 'blue' }}
-        >
-          {row.productName}
-        </Link>
-      ),
-    },
-    {
-      id: 'sku',
-      label: 'SKU',
-      sortable: true,
+      renderCell: (row: WarehouseInventoryItemSummary) =>
+        row.itemType === 'product' ? (
+          <Link
+            to={`/skus/${row.itemId}`}
+            style={{ textDecoration: 'none', color: 'blue' }}
+          >
+            {row.productName}
+          </Link>
+        ) : (
+          row.itemName
+        ),
     },
     {
       id: 'availableQuantity',
@@ -58,11 +58,6 @@ const SkuInventorySummaryTable: FC<SkuInventorySummaryTableProps> = ({
     {
       id: 'reservedQuantity',
       label: 'Reserved Qty',
-      sortable: true,
-    },
-    {
-      id: 'recordedQuantity',
-      label: 'Recorded Qty',
       sortable: true,
     },
     {
@@ -88,30 +83,27 @@ const SkuInventorySummaryTable: FC<SkuInventorySummaryTableProps> = ({
       format: (value: any) => (value ? formatDate(value) : 'N/A'),
     },
     {
-      id: 'status',
+      id: 'displayStatus',
       label: 'Status',
       sortable: true,
-      renderCell: (row: BaseWarehouseInventoryItemSummary) => (
-        <InventoryStatusChip status={row.status} />
+      renderCell: (row: WarehouseInventoryItemSummary) => (
+        <InventoryStatusChip status={row.displayStatus} />
       ),
     },
     {
       id: 'stockLevel',
       label: 'Stock Level',
       sortable: false,
-      renderCell: (row: BaseWarehouseInventoryItemSummary) => (
-        <StockLevelChip
-          stockLevel={row.stockLevel}
-          isLowStock={row.isLowStock}
-        />
+      renderCell: (row: WarehouseInventoryItemSummary) => (
+        <StockLevelChip stockLevel={row.stockLevel} />
       ),
     },
     {
-      id: 'isNearExpiry',
-      label: 'Near Expiry',
+      id: 'expirySeverity',
+      label: 'Expiry Severity',
       sortable: false,
-      renderCell: (row: BaseWarehouseInventoryItemSummary) => (
-        <NearExpiryChip isNearExpiry={row.isNearExpiry} />
+      renderCell: (row: WarehouseInventoryItemSummary) => (
+        <ExpirySeverityChip severity={row.expirySeverity} />
       ),
     },
   ];
@@ -131,4 +123,4 @@ const SkuInventorySummaryTable: FC<SkuInventorySummaryTableProps> = ({
   );
 };
 
-export default SkuInventorySummaryTable;
+export default WarehouseInventorySummaryTable;

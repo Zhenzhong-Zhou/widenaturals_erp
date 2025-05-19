@@ -100,8 +100,7 @@ router.use('/location-types', authenticate(), locationTypeRouts);
 
 router.use('/locations', authenticate(), locationRouts);
 
-// router.use('/location-inventory', authenticate(), locationInventoryRouts);
-router.use('/location-inventory', locationInventoryRouts);
+router.use('/location-inventory', authenticate(), locationInventoryRouts);
 
 router.use('/warehouses', authenticate(), warehouseRouts);
 

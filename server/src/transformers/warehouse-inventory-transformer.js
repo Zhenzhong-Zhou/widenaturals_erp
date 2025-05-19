@@ -3,6 +3,7 @@ const {
   getExpirySeverity,
 } = require('../utils/inventory-utils');
 const { getProductDisplayName } = require('../utils/display-name-utils');
+const { transformPaginatedResult, deriveInventoryStatusFlags, cleanObject } = require('../utils/transformer-utils');
 
 /**
  * Transforms a single warehouse inventory summary row (product or material) into application format.
@@ -13,107 +14,64 @@ const { getProductDisplayName } = require('../utils/display-name-utils');
 const transformWarehouseInventoryItemSummaryRow = (row) => {
   const isProduct = row.item_type === 'product';
   
-  const nearestExpiryDate = row.nearest_expiry_date
-    ? new Date(row.nearest_expiry_date)
-    : null;
-  
-  const now = new Date();
-  const expiryThreshold = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000); // 90 days
-  const availableQty = Number(row.total_available_quantity);
+  const status = deriveInventoryStatusFlags({
+    nearest_expiry_date: row.nearest_expiry_date,
+    earliest_manufacture_date: row.earliest_manufacture_date,
+    available_quantity: row.total_available_quantity,
+    reserved_quantity: row.total_reserved_quantity,
+    total_lot_quantity: row.total_lot_quantity,
+    display_status: row.display_status,
+  });
   
   const base = {
     itemId: row.item_id,
     itemType: row.item_type,
-    itemCode: row.item_code,
     itemName: row.item_name,
-    totalInventoryEntries: Number(row.total_inventory_entries),
-    recordedQuantity: Number(row.recorded_quantity),
     actualQuantity: Number(row.actual_quantity),
-    availableQuantity: availableQty,
+    availableQuantity: Number(row.total_available_quantity),
     reservedQuantity: Number(row.total_reserved_quantity),
     totalLots: Number(row.total_lots),
     lotQuantity: Number(row.total_lot_quantity),
-    
-    earliestManufactureDate: row.earliest_manufacture_date
-      ? new Date(row.earliest_manufacture_date)
-      : null,
-    nearestExpiryDate,
-    
-    status: row.display_status,
-    isActive: !!row.is_active,
+    earliestManufactureDate: row.earliest_manufacture_date,
+    nearestExpiryDate: row.nearest_expiry_date,
+    displayStatus: row.display_status,
+    ...status,
   };
   
-  if (isProduct) {
-    return {
-      ...base,
-      skuId: row.item_id,
-      sku: row.item_code,
-      productName: getProductDisplayName(row),
-      brand: row.brand,
-      lotQuantity: Number(row.total_lot_quantity),
-      isNearExpiry: nearestExpiryDate && nearestExpiryDate <= expiryThreshold,
-      isLowStock: availableQty <= 30,
-      stockLevel:
-        availableQty === 0
-          ? 'none'
-          : availableQty <= 10
-            ? 'critical'
-            : availableQty <= 30
-              ? 'low'
-              : 'normal',
-    };
-  } else {
-    return {
-      ...base,
-      materialId: row.item_id,
-      materialCode: row.item_code,
-      materialName: row.item_name,
-      brand: null,
-      countryCode: null,
-      sizeLabel: null,
-      isNearExpiry: nearestExpiryDate && nearestExpiryDate <= expiryThreshold,
-      isLowStock: availableQty <= 30,
-      stockLevel:
-        availableQty === 0
-          ? 'none'
-          : availableQty <= 10
-            ? 'critical'
-            : availableQty <= 30
-              ? 'low'
-              : 'normal',
-    };
-  }
+  return cleanObject({
+    ...base,
+    ...(isProduct
+      ? {
+        skuId: row.item_id,
+        sku: row.sku,
+        productName: getProductDisplayName(row),
+      }
+      : {
+        materialId: row.item_id,
+        materialCode: row.item_code,
+        materialName: row.item_name,
+      }),
+  });
 };
-
-/**
- * Transforms a list of warehouse inventory summary rows.
- *
- * @param {Array<object>} rows - Raw DB rows.
- * @returns {Array<object>} Transformed rows.
- */
-const transformWarehouseInventoryItemSummaryList = (rows = []) =>
-  rows.map(transformWarehouseInventoryItemSummaryRow);
 
 /**
  * Transforms a paginated inventory result with metadata and transformed rows.
  *
- * @param {object} paginatedResult
- * @param {Array<object>} paginatedResult.data
- * @param {number|string} paginatedResult.page
- * @param {number|string} paginatedResult.limit
- * @param {number|string} paginatedResult.totalRecords
- * @param {number|string} paginatedResult.totalPages
- * @returns {object}
+ * @param {Object} paginatedResult - The raw result from `paginateQuery`
+ * @param {Array<Object>} paginatedResult.data - Raw SQL rows
+ * @param {Object} paginatedResult.pagination - Pagination metadata (page, limit, totalRecords, totalPages)
+ * @returns {{
+ *   data: Array<Object>,
+ *   pagination: {
+ *     page: number,
+ *     limit: number,
+ *     totalRecords: number,
+ *     totalPages: number
+ *   }
+ * }} Transformed result for frontend consumption
  */
-const transformPaginatedWarehouseInventoryItemSummary = (paginatedResult) => ({
-  pagination: {
-    page: Number(paginatedResult.page),
-    limit: Number(paginatedResult.limit),
-    totalRecords: Number(paginatedResult.totalRecords),
-    totalPages: Number(paginatedResult.totalPages),
-  },
-  data: transformWarehouseInventoryItemSummaryList(paginatedResult.data),
-});
+const transformPaginatedWarehouseInventoryItemSummary = (paginatedResult) =>
+  transformPaginatedResult(paginatedResult, transformWarehouseInventoryItemSummaryRow);
 
 /**
  * Transforms a single enriched warehouse inventory summary row.

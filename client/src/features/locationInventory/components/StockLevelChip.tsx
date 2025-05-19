@@ -1,39 +1,51 @@
 import { memo, type FC, useMemo } from 'react';
 import Chip from '@mui/material/Chip';
+import type { Palette, PaletteColor } from '@mui/material';
+import { useThemeContext } from '@context/ThemeContext';
 import { formatLabel } from '@utils/textUtils';
-import { useThemeContext } from '@context/ThemeContext.tsx';
 
 interface Props {
-  stockLevel: 'none' | 'low' | 'critical' | 'normal';
-  isLowStock: boolean;
+  stockLevel: 'none' | 'low' | 'critical' | 'normal' | 'expired';
 }
 
-const StockLevelChip: FC<Props> = ({ stockLevel, isLowStock }) => {
+const StockLevelChip: FC<Props> = ({ stockLevel }) => {
   const { theme } = useThemeContext();
   
+  const getPaletteColor = (chipColor: keyof Palette): string => {
+    const paletteEntry = theme.palette[chipColor as keyof Palette] as PaletteColor | undefined;
+    return paletteEntry?.main || theme.palette.text.primary;
+  };
+  
   const chipProps = useMemo(() => {
-    const colorMap: Record<Props['stockLevel'], 'warning' | 'error' | 'success' | null> = {
-      none: null,
+    const colorMap: Record<
+      Props['stockLevel'],
+      'warning' | 'error' | 'success' | 'default'
+    > = {
+      none: 'default',
       low: 'warning',
       critical: 'error',
       normal: 'success',
+      expired: 'error',
     };
     
-    const chipColor = isLowStock ? colorMap[stockLevel] : 'success';
-    const label = isLowStock ? `Low (${formatLabel(stockLevel)})` : 'Normal';
-    const paletteColor = chipColor ? theme.palette[chipColor].main : theme.palette.text.primary;
+    const chipColor = colorMap[stockLevel];
+    const label = formatLabel(stockLevel);
+    const paletteColor =
+      chipColor === 'default'
+        ? theme.palette.text.primary
+        : getPaletteColor(chipColor);;
     
     return {
       label,
-      chipColor,
+      chipColor: chipColor === 'default' ? undefined : chipColor, // fallback to MUI default coloring
       paletteColor,
     };
-  }, [isLowStock, stockLevel, theme]);
+  }, [stockLevel, theme]);
   
   return (
     <Chip
       label={chipProps.label}
-      color={chipProps.chipColor || 'default'}
+      color={chipProps.chipColor}
       size="small"
       variant="outlined"
       sx={{

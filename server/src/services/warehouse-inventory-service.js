@@ -32,13 +32,9 @@ const { logSystemError } = require('../utils/system-logger');
 const fetchPaginatedWarehouseInventoryItemSummary = async ({
                                                              page = 1,
                                                              limit = 20,
-                                                             itemType= 'all',
+                                                             itemType,
                                                              user,
                                                            }) => {
-  if (!user) {
-    throw AppError.authenticationError('User is not authenticated.');
-  }
-  
   const statusId = getStatusId('sku_active');
   
   const isAllowed = await canViewWarehouseInventorySummary(user);
@@ -52,7 +48,7 @@ const fetchPaginatedWarehouseInventoryItemSummary = async ({
     throw AppError.validationError('Invalid pagination parameters.');
   }
   
-  if (itemType && !['all', 'product', 'packing_material'].includes(itemType)) {
+  if (itemType && !['product', 'packaging_material'].includes(itemType)) {
     throw AppError.validationError(`Invalid itemType filter: ${itemType}`);
   }
   

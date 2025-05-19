@@ -10,9 +10,11 @@ import ErrorDisplay from '@components/shared/ErrorDisplay';
 import ErrorMessage from '@components/common/ErrorMessage';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
+import ItemTypeTabs from '../components/ItemTypeTabs';
+import type { ItemType } from '../../../types/InventorySharedType';
 
 // Lazy load heavy tables
-const InventorySummaryTable = lazy(() => import('@features/locationInventory/components/SkuInventorySummaryTable'));
+const InventorySummaryTable = lazy(() => import('@features/warehouseInventory/components/WarehouseInventorySummaryTable.tsx'));
 const LocationInventorySummaryTable = lazy(() => import('@features/locationInventory/components/LocationInventorySummaryTable'));
 
 const LocationInventoryPage = () => {
@@ -21,9 +23,10 @@ const LocationInventoryPage = () => {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
   
-  const itemType = useMemo(() => {
-    return itemTypeTab === 1 ? 'product' : itemTypeTab === 2 ? 'packing_material' : 'all';
-  }, [itemTypeTab]);
+  const itemType: ItemType =
+    itemTypeTab === 1 ? 'product'
+      : itemTypeTab === 2 ? 'packaging_material'
+        : undefined; // means "all"
   
   const {
     data: locationInventorySummaryData,
@@ -44,9 +47,13 @@ const LocationInventoryPage = () => {
   // On tab switch, optionally refresh (or you can remove this entirely if autoFetch is true)
   useEffect(() => {
     if (tab === 0) {
-      fetchWarehouseInventorySummary({ page: 1, limit, itemType });
+      fetchLocationInventorySummary({
+        page: 1,
+        limit,
+        ...(itemType ? { batchType: itemType } : {}),
+      });
     } else if (tab === 1) {
-      fetchLocationInventorySummary({ page: 1, limit });
+      fetchWarehouseInventorySummary({ page: 1, limit, itemType });
     }
   }, [tab, itemType]);
   
@@ -64,9 +71,13 @@ const LocationInventoryPage = () => {
     const nextPage = newPage + 1;
     setPage(nextPage);
     if (tab === 0) {
-      fetchWarehouseInventorySummary({ page: nextPage, limit, itemType });
+      fetchLocationInventorySummary({
+        page: nextPage,
+        limit,
+        ...(itemType ? { batchType: itemType } : {}),
+      });
     } else {
-      fetchLocationInventorySummary({ page: nextPage, limit });
+      fetchWarehouseInventorySummary({ page: nextPage, limit, itemType });
     }
   };
   
@@ -74,9 +85,13 @@ const LocationInventoryPage = () => {
     setLimit(newLimit);
     setPage(1);
     if (tab === 0) {
-      fetchWarehouseInventorySummary({ page: 1, limit: newLimit, itemType });
+      fetchLocationInventorySummary({
+        page: 1,
+        limit: newLimit,
+        ...(itemType ? { batchType: itemType } : {}),
+      });
     } else {
-      fetchLocationInventorySummary({ page: 1, limit: newLimit });
+      fetchWarehouseInventorySummary({ page: 1, limit: newLimit, itemType });
     }
   };
   
@@ -89,7 +104,7 @@ const LocationInventoryPage = () => {
     []
   );
   
-  const isLoading = tab === 0 ? inventorySummaryLoading : locationInventorySummaryLoading;
+  const isLoading = tab === 0 ? locationInventorySummaryLoading : inventorySummaryLoading;
   
   return (
     <Box sx={{ p: 3 }}>
@@ -98,21 +113,12 @@ const LocationInventoryPage = () => {
           Inventory Management
         </CustomTypography>
         <Tabs value={tab} onChange={handleTabChange}>
-          <Tab label="Inventory Summary" />
-          <Tab label="Inventory List" />
+          <Tab label="Location Inventory Summary" />
+          <Tab label="Warehouse Inventory Summary" />
         </Tabs>
-        {tab === 0 && (
-          <Tabs
-            value={itemTypeTab}
-            onChange={handleItemTypeTabChange}
-            sx={{ mt: 2 }}
-            aria-label="Item Type Tabs"
-          >
-            <Tab label="All" />
-            <Tab label="Products" />
-            <Tab label="Materials" />
-          </Tabs>
-        )}
+        {tab === 0 || tab === 1 ? (
+          <ItemTypeTabs value={itemTypeTab} onChange={handleItemTypeTabChange} />
+        ) : null}
       </Paper>
       
       {/* Show Skeleton during top-level loading */}
@@ -125,31 +131,6 @@ const LocationInventoryPage = () => {
       ) : (
         <>
           {tab === 0 ? (
-            <>
-              {inventorySummaryError && renderError(inventorySummaryError)}
-              {inventorySummaryData.length === 0 ? (
-                <CustomTypography sx={{ mt: 2 }}>No inventory records found for this type.</CustomTypography>
-              ) : (
-                <Suspense fallback={<Skeleton height={400} variant="rectangular" sx={{ borderRadius: 1 }} />}>
-                  <InventorySummaryTable
-                    data={inventorySummaryData}
-                    page={page - 1}
-                    rowsPerPage={limit}
-                    totalRecords={inventorySummaryPagination?.totalRecords ?? 0}
-                    totalPages={inventorySummaryPagination?.totalPages ?? 1}
-                    onPageChange={handlePageChange}
-                    onRowsPerPageChange={handleRowsPerPageChange}
-                  />
-                </Suspense>
-              )}
-              <CustomButton
-                onClick={() => fetchWarehouseInventorySummary({ page, limit, itemType })}
-                sx={{ mt: 2 }}
-              >
-                Refresh Summary
-              </CustomButton>
-            </>
-          ) : (
             <>
               {locationInventorySummaryError && renderError(locationInventorySummaryError)}
               {locationInventorySummaryData.length === 0 ? (
@@ -171,7 +152,32 @@ const LocationInventoryPage = () => {
                 onClick={() => fetchLocationInventorySummary({ page, limit })}
                 sx={{ mt: 2 }}
               >
-                Refresh Inventory
+                Refresh Location Inventory Summary
+              </CustomButton>
+            </>
+          ) : (
+            <>
+              {inventorySummaryError && renderError(inventorySummaryError)}
+              {inventorySummaryData.length === 0 ? (
+                <CustomTypography sx={{ mt: 2 }}>No inventory records found for this type.</CustomTypography>
+              ) : (
+                <Suspense fallback={<Skeleton height={400} variant="rectangular" sx={{ borderRadius: 1 }} />}>
+                  <InventorySummaryTable
+                    data={inventorySummaryData}
+                    page={page - 1}
+                    rowsPerPage={limit}
+                    totalRecords={inventorySummaryPagination?.totalRecords ?? 0}
+                    totalPages={inventorySummaryPagination?.totalPages ?? 1}
+                    onPageChange={handlePageChange}
+                    onRowsPerPageChange={handleRowsPerPageChange}
+                  />
+                </Suspense>
+              )}
+              <CustomButton
+                onClick={() => fetchWarehouseInventorySummary({ page, limit, itemType })}
+                sx={{ mt: 2 }}
+              >
+                Refresh Warehouse Inventory Summary
               </CustomButton>
             </>
           )}

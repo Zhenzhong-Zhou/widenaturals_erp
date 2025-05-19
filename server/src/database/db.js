@@ -490,7 +490,7 @@ const paginateResults = async ({
     
     const totalRecords = parseInt(countResult.rows[0]?.total_count, 10) || 0;
     const totalPages = Math.ceil(totalRecords / limit);
-    console.log(paginatedQuery, paginatedParams);
+    
     return {
       data: dataRows.rows || [],
       pagination: {
