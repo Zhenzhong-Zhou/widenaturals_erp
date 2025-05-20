@@ -74,3 +74,30 @@ export interface PaginatedState<T> {
   /** Optional error message if the fetch operation fails. */
   error: string | null;
 }
+
+/**
+ * Interface representing common pagination parameters used across API requests.
+ *
+ * This interface is designed to be reusable for any paginated query or endpoint.
+ * It defines optional `page` and `limit` values that can be applied generically.
+ *
+ * Extend this interface in entity-specific request interfaces (e.g., for products, orders, users).
+ *
+ * @example
+ * interface ProductListParams extends PaginationParams {
+ *   categoryId?: string;
+ * }
+ */
+export interface PaginationParams {
+  /**
+   * The current page number (1-based). Defaults to 1 if not specified.
+   * Example: page=2 → fetch the second page of results.
+   */
+  page?: number;
+  
+  /**
+   * The number of records to return per page. Defaults to 10 or your backend default.
+   * Example: limit=25 → return 25 items per page.
+   */
+  limit?: number;
+}

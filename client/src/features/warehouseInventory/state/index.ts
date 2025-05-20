@@ -1,4 +1,5 @@
-import warehouseInventoryItemSummaryReducer from './warehouseInventoryItemSummarySlice.ts';
+import warehouseInventoryItemSummaryReducer from './warehouseInventoryItemSummarySlice';
+import warehouseInventorySummaryDetailReducer from './warehouseInventorySummaryDetailSlice';
 import warehouseInventorySummaryReducer from './warehouseInventorySummarySlice';
 import warehouseInventoriesReducer from './warehouseInventorySlice';
 import warehouseItemsReducer from './warehouseItemSummarySlice';
@@ -11,6 +12,7 @@ import insertedInventoryRecordsResponseReducer from './insertedInventoryRecordsR
 
 export const warehouseInventoryReducers = {
   warehouseInventoryItemSummary: warehouseInventoryItemSummaryReducer,
+  warehouseInventorySummaryDetail: warehouseInventorySummaryDetailReducer,
   warehouseInventoriesSummary: warehouseInventorySummaryReducer,
   warehouseInventories: warehouseInventoriesReducer,
   warehouseItems: warehouseItemsReducer,

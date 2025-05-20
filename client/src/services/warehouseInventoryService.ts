@@ -17,26 +17,58 @@ import type {
   FetchWarehouseInventoryItemSummaryParams,
   InventoryRecordInsertResponse,
   WarehouseInventoryItemSummary,
+  WarehouseInventorySummaryDetailsByItemIdResponse,
 } from '@features/warehouseInventory/state';
 import type { PaginatedResponse } from 'types/api';
 import type {
   AvailableInventoryLotsResponse, FetchAvailableInventoryRequest,
 } from '@features/inventoryAllocation';
+import type { InventorySummaryDetailByItemIdParams } from '@features/inventoryShared/types/InventorySharedType';
 
 /**
- * Fetches paginated inventory summary (products and/or materials).
+ * Fetches paginated warehouse inventory summary (products and/or materials).
  *
  * @param {FetchWarehouseInventoryItemSummaryParams} params - Pagination and filter parameters.
- * @returns {Promise<PaginatedResponse<WarehouseInventorySummary>>} - Typed paginated inventory response.
+ * @returns {Promise<PaginatedResponse<WarehouseInventoryItemSummary>>} - Typed paginated inventory response.
+ * @throws {AppError} If the API request fails.
  */
 const fetchWarehouseInventoryItemSummary = async (
   params: FetchWarehouseInventoryItemSummaryParams
 ): Promise<PaginatedResponse<WarehouseInventoryItemSummary>> => {
-  const response = await axiosInstance.get<PaginatedResponse<WarehouseInventoryItemSummary>>(
-    API_ENDPOINTS.WAREHOUSE_INVENTORY_SUMMARY,
-    { params }
-  );
-  return response.data;
+  try {
+    const response = await axiosInstance.get<PaginatedResponse<WarehouseInventoryItemSummary>>(
+      API_ENDPOINTS.WAREHOUSE_INVENTORY_SUMMARY,
+      { params }
+    );
+    
+    return response.data;
+  } catch (error) {
+    throw new Error('Failed to fetch warehouse inventory item summary.');
+  }
+};
+
+/**
+ * Fetch paginated warehouse inventory summary details by item ID.
+ *
+ * @param {InventorySummaryDetailByItemIdParams} params - Query parameters including itemId, page, and limit.
+ * @returns {Promise<WarehouseInventorySummaryDetailsByItemIdResponse>} - API response with paginated data.
+ * @throws {AppError} On network or API failure.
+ */
+export const fetchWarehouseInventorySummaryDetailsByItemId = async (
+  params: InventorySummaryDetailByItemIdParams
+): Promise<WarehouseInventorySummaryDetailsByItemIdResponse> => {
+  const { itemId, page = 1, limit = 10 } = params;
+  const endpoint = API_ENDPOINTS.WAREHOUSE_INVENTORY_SUMMARY_DETAIL.replace(':itemId', itemId);
+  
+  try {
+    const response = await axiosInstance.get(endpoint, {
+      params: { page, limit },
+    });
+    
+    return response.data;
+  } catch (error) {
+    throw new Error('Failed to fetch warehouse inventory summary details.');
+  }
 };
 
 /**
@@ -261,6 +293,7 @@ export const fetchAvailableInventoryLots = async (
 // Export the service
 export const warehouseInventoryService = {
   fetchWarehouseInventoryItemSummary,
+  fetchWarehouseInventorySummaryDetailsByItemId,
   fetchAllWarehouseInventories,
   fetchWarehouseInventorySummary,
   fetchWarehouseItemSummary,

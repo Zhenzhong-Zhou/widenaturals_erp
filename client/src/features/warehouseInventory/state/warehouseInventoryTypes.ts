@@ -1,3 +1,4 @@
+import type { PaginatedResponse, PaginatedState } from 'types/api.ts';
 import type { InventoryHealthStatus, ItemType } from '../../inventoryShared/types/InventorySharedType.ts';
 
 export interface FetchWarehouseInventoryItemSummaryParams {
@@ -39,6 +40,49 @@ export interface MaterialWarehouseInventorySummary extends BaseWarehouseInventor
 export type WarehouseInventoryItemSummary =
   | ProductWarehouseInventorySummary
   | MaterialWarehouseInventorySummary;
+
+export interface WarehouseInventorySummaryItemDetails {
+  warehouseInventoryId: string;
+  batchType: 'product' | 'packaging_material';
+  sku?: {
+    id: string;
+    code: string;
+    name: string;
+  };
+  material?: {
+    id: string;
+    code: string;
+    name: string;
+  };
+  lotNumber: string;
+  manufactureDate: string; // ISO format
+  expiryDate: string;
+  quantity: {
+    warehouseQuantity: number;
+    reserved: number;
+    available: number;
+  };
+  status: {
+    id: string;
+    date: string;
+  };
+  timestamps: {
+    lastUpdate: string;
+  };
+  warehouse: {
+    id: string;
+    name: string;
+  };
+}
+
+export type WarehouseInventorySummaryDetailsByItemIdResponse = PaginatedResponse<WarehouseInventorySummaryItemDetails>;
+
+export type WarehouseInventorySummaryDetailState = PaginatedState<WarehouseInventorySummaryItemDetails>;
+
+
+
+
+
 
 export interface Warehouse {
   id: string;

@@ -16,7 +16,9 @@ import type { PaginatedResponse } from 'types/api';
 import type {
   FetchWarehouseInventoryItemSummaryParams,
   WarehouseInventoryItemSummary,
+  WarehouseInventorySummaryDetailsByItemIdResponse,
 } from '@features/warehouseInventory/state/warehouseInventoryTypes.ts';
+import type { InventorySummaryDetailByItemIdParams } from '@features/inventoryShared/types/InventorySharedType.ts';
 
 /**
  * Redux thunk to fetch paginated warehouse inventory summary
@@ -35,6 +37,27 @@ export const fetchWarehouseInventoryItemSummaryThunk = createAsyncThunk<
       return await warehouseInventoryService.fetchWarehouseInventoryItemSummary(params);
     } catch (error) {
       return thunkAPI.rejectWithValue(error);
+    }
+  }
+);
+
+/**
+ * Redux thunk to fetch paginated warehouse inventory summary details for a specific item ID (SKU or material).
+ *
+ * @param {InventorySummaryDetailByItemIdParams} params - Query parameters including itemId, page, and limit.
+ * @returns {Promise<WarehouseInventorySummaryDetailsByItemIdResponse>} - Paginated inventory summary response.
+ */
+export const fetchWarehouseInventorySummaryByItemIdThunk = createAsyncThunk<
+  WarehouseInventorySummaryDetailsByItemIdResponse, // Return type
+  InventorySummaryDetailByItemIdParams,             // Arg type
+  { rejectValue: string }                           // Optional: custom error type
+>(
+  'warehouseInventory/fetchSummaryByItemId',
+  async (params, { rejectWithValue }) => {
+    try {
+      return await warehouseInventoryService.fetchWarehouseInventorySummaryDetailsByItemId(params);
+    } catch (error) {
+      return rejectWithValue('Failed to fetch warehouse inventory summary details.');
     }
   }
 );
