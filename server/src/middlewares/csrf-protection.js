@@ -9,8 +9,8 @@
  */
 
 const { loadEnv } = require('../config/env');
-const csrf = require('csurf');
-const { logWarn, logError } = require('../utils/logger-helper');
+const csrf = require('@dr.pogodin/csurf');
+const { logError } = require('../utils/logger-helper');
 const { logSystemInfo } = require('../utils/system-logger');
 const { ONE_HOUR } = require('../utils/constants/general/time');
 const AppError = require('../utils/AppError');
