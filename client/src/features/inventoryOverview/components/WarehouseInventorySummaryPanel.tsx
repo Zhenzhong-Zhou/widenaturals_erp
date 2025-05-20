@@ -1,4 +1,4 @@
-import { type FC, Suspense, useEffect, useState } from 'react';
+import { type FC, startTransition, Suspense, useCallback, useEffect, useState } from 'react';
 import Skeleton from '@mui/material/Skeleton';
 import CustomButton from '@components/common/CustomButton';
 import CustomTypography from '@components/common/CustomTypography';
@@ -9,6 +9,7 @@ import useWarehouseInventoryItemSummary from '@hooks/useWarehouseInventoryItemSu
 import type { ItemType } from '@features/inventoryShared/types/InventorySharedType';
 import useWarehouseInventorySummaryByItemId from '@hooks/useWarehouseInventorySummaryByItemId.ts';
 import type { WarehouseInventorySummaryItemDetails } from '@features/warehouseInventory/state';
+import { debounce } from '@mui/material';
 
 interface Props {
   page: number;
@@ -90,8 +91,23 @@ const WarehouseInventorySummaryPanel: FC<Props> = ({
     });
   };
   
-  const handleDrillDownToggle = (rowId: string) => {
-    setExpandedRowId((prev) => (prev === rowId ? null : rowId));
+  const handleDrillDownToggle = useCallback(
+    debounce((rowId: string) => {
+      startTransition(() => {
+        setExpandedRowId((prev) => (prev === rowId ? null : rowId));
+      });
+    }, 150),
+    []
+  );
+  
+  const handleRowHover = (rowId: string) => {
+    if (!detailCache[rowId]) {
+      fetchWarehouseInventorySummaryDetails({
+        itemId: rowId,
+        page: detailPage,
+        limit: detailLimit,
+      });
+    }
   };
   
   const handlePageChange = (newPage: number) => {
@@ -138,6 +154,7 @@ const WarehouseInventorySummaryPanel: FC<Props> = ({
           onRowsPerPageChange={onRowsPerPageChange}
           expandedRowId={expandedRowId}
           onDrillDownToggle={handleDrillDownToggle}
+          onRowHover={handleRowHover}
           detailDataMap={detailCache}
           detailErrorMap={detailErrorMap}
           detailLoadingMap={detailLoadingMap}

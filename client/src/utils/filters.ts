@@ -1,4 +1,4 @@
-export const BRANDS = ['Canaherb', 'Phyto-Genious', 'Wide Naturals'] as const;
+export const BRANDS = ['Canaherb', 'Phyto-Genious', 'WIDE Naturals'] as const;
 
 export const CATEGORIES = ['Herbal Natural', 'NMN', 'TCM', 'Marine Oil'] as const;
 

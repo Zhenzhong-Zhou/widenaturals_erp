@@ -1,4 +1,4 @@
-import { type FC } from 'react';
+import { type FC, memo } from 'react';
 import type { Column } from '@components/common/CustomTable';
 import CustomTable from '@components/common/CustomTable';
 import { formatDate } from '@utils/dateTimeUtils';
@@ -6,6 +6,7 @@ import { formatLabel } from '@utils/textUtils';
 import type { WarehouseInventorySummaryItemDetails } from '@features/warehouseInventory/state';
 
 interface Props {
+  expandedRowId?: string | null;
   data: WarehouseInventorySummaryItemDetails[];
   page: number;
   rowsPerPage: number;
@@ -16,6 +17,7 @@ interface Props {
 }
 
 const WarehouseInventorySummaryDetailTable: FC<Props> = ({
+                                                           expandedRowId,
                                                            data,
                                                            page,
                                                            rowsPerPage,
@@ -96,6 +98,7 @@ const WarehouseInventorySummaryDetailTable: FC<Props> = ({
   
   return (
     <CustomTable
+      rowsPerPageId={`rows-per-page-${expandedRowId}`}
       columns={columns}
       data={data}
       page={page}
@@ -109,4 +112,4 @@ const WarehouseInventorySummaryDetailTable: FC<Props> = ({
   );
 };
 
-export default WarehouseInventorySummaryDetailTable;
+export default memo(WarehouseInventorySummaryDetailTable);

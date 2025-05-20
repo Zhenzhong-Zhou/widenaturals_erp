@@ -1,4 +1,4 @@
-import { type FC, useCallback } from 'react';
+import { type FC, lazy, Suspense, useCallback } from 'react';
 import InventoryStatusChip from '@features/inventoryShared/components/InventoryStatusChip';
 import StockLevelChip from '@features/inventoryShared/components/StockLevelChip';
 import ExpirySeverityChip from '@features/inventoryShared/components/ExpirySeverityChip';
@@ -13,9 +13,11 @@ import { formatLabel } from '@utils/textUtils';
 import { createDrillDownColumn } from '@utils/table/createDrillDownColumn';
 import Skeleton from '@mui/material/Skeleton';
 import ErrorMessage from '@components/common/ErrorMessage';
-import WarehouseInventorySummaryDetailTable
-  from '@features/warehouseInventory/components/WarehouseInventorySummaryDetailTable';
-import { CustomButton } from '@components/index.ts';
+import CustomButton from '@components/common/CustomButton';
+
+const WarehouseInventorySummaryDetailTable = lazy(() =>
+  import('@features/warehouseInventory/components/WarehouseInventorySummaryDetailTable')
+);
 
 interface SkuInventorySummaryTableProps {
   data: WarehouseInventoryItemSummary[];
@@ -27,6 +29,7 @@ interface SkuInventorySummaryTableProps {
   onRowsPerPageChange: (newRowsPerPage: number) => void;
   expandedRowId?: string | null;
   onDrillDownToggle?: (rowId: string) => void;
+  onRowHover?: (rowId: string) => void;
   detailDataMap?: Record<string, WarehouseInventorySummaryItemDetails[]>;
   detailLoadingMap?: Record<string, boolean>;
   detailErrorMap?: Record<string, string | null>;
@@ -58,6 +61,7 @@ const WarehouseInventorySummaryTable: FC<SkuInventorySummaryTableProps> = ({
                                                                        onDetailPageChange,
                                                                        onDetailRowsPerPageChange,
                                                                        onDrillDownToggle,
+                                                                       onRowHover,
                                                                        onRefreshDetail,
                                                                      }) => {
   const columns: Column<WarehouseInventoryItemSummary>[] = [
@@ -138,9 +142,12 @@ const WarehouseInventorySummaryTable: FC<SkuInventorySummaryTableProps> = ({
     ...(onDrillDownToggle
       ? [
         createDrillDownColumn<WarehouseInventoryItemSummary>(
-          (row) => onDrillDownToggle(row.itemId),
-          (row) => expandedRowId === row.itemId
-        ),
+          (row) => onDrillDownToggle?.(row.itemId),
+          (row) => expandedRowId === row.itemId,
+          {
+            onMouseEnter: (row) => onRowHover?.(row.itemId),
+          }
+        )
       ]
       : []),
   ];
@@ -151,7 +158,13 @@ const WarehouseInventorySummaryTable: FC<SkuInventorySummaryTableProps> = ({
       const detailLoading = detailLoadingMap?.[row.itemId] ?? false;
       const detailError = detailErrorMap?.[row.itemId] ?? null;
       
-      if (detailLoading) return <Skeleton height={60} />;
+      if (detailLoading) {
+        return (
+          <Box sx={{ p: 2 }}>
+            <Skeleton height={80} variant="rectangular" sx={{ borderRadius: 1 }} />
+          </Box>
+        );
+      }
       if (detailError) return <ErrorMessage message={detailError} />;
       if (!detailData?.length)
         return (
@@ -162,15 +175,26 @@ const WarehouseInventorySummaryTable: FC<SkuInventorySummaryTableProps> = ({
       
       return (
         <Box sx={{ p: 2 }}>
-          <WarehouseInventorySummaryDetailTable
-            data={detailData}
-            page={detailPage - 1}
-            totalRecords={detailTotalRecords ?? 0}
-            totalPages={detailTotalPages ?? 1}
-            rowsPerPage={detailLimit}
-            onPageChange={onDetailPageChange}
-            onRowsPerPageChange={onDetailRowsPerPageChange}
-          />
+          <Suspense
+            fallback={
+              <Skeleton
+                height={80}
+                variant="rectangular"
+                sx={{ borderRadius: 1, mb: 1 }}
+              />
+            }
+          >
+            <WarehouseInventorySummaryDetailTable
+              data={detailData}
+              page={detailPage - 1}
+              totalRecords={detailTotalRecords ?? 0}
+              totalPages={detailTotalPages ?? 1}
+              rowsPerPage={detailLimit}
+              onPageChange={(newPage) => onDetailPageChange?.(newPage + 1)}
+              onRowsPerPageChange={onDetailRowsPerPageChange}
+            />
+          </Suspense>
+          
           {onRefreshDetail && (
             <Box mt={1}>
               <CustomButton size="small" onClick={() => onRefreshDetail(row.itemId)}>
