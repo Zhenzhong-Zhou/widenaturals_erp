@@ -94,6 +94,15 @@ const WarehouseInventorySummaryPanel: FC<Props> = ({
     setExpandedRowId((prev) => (prev === rowId ? null : rowId));
   };
   
+  const handlePageChange = (newPage: number) => {
+    setDetailPage(newPage + 1); // Component uses 0-based index
+  };
+  
+  const handleRowsPerPageChange = (newLimit: number) => {
+    setDetailLimit(newLimit);
+    setDetailPage(1);
+  };
+  
   if (summaryLoading) {
     return (
       <>
@@ -136,8 +145,8 @@ const WarehouseInventorySummaryPanel: FC<Props> = ({
           detailLimit={detailLimit}
           detailTotalRecords={detailsPagination.totalRecords}
           detailTotalPages={detailsPagination.totalPages}
-          onDetailPageChange={setDetailPage}
-          onDetailRowsPerPageChange={setDetailLimit}
+          onDetailPageChange={handlePageChange}
+          onDetailRowsPerPageChange={handleRowsPerPageChange}
           onRefreshDetail={handleDetailsRefresh}
         />
       </Suspense>

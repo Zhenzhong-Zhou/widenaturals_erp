@@ -43,17 +43,16 @@ export type WarehouseInventoryItemSummary =
 
 export interface WarehouseInventorySummaryItemDetails {
   warehouseInventoryId: string;
-  batchType: 'product' | 'packaging_material';
-  sku?: {
+  item: (
+    | {
     id: string;
     code: string;
-    name: string;
-  };
-  material?: {
+  }
+    | {
     id: string;
     code: string;
-    name: string;
-  };
+  }
+    );
   lotNumber: string;
   manufactureDate: string; // ISO format
   expiryDate: string;
@@ -64,6 +63,7 @@ export interface WarehouseInventorySummaryItemDetails {
   };
   status: {
     id: string;
+    name: string;
     date: string;
   };
   timestamps: {

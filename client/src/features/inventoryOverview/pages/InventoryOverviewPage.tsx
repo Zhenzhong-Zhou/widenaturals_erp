@@ -1,4 +1,4 @@
-import { useState, useEffect, type SyntheticEvent, lazy } from 'react';
+import { useState, useEffect, type SyntheticEvent, lazy, useCallback } from 'react';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Tabs from '@mui/material/Tabs';
@@ -33,14 +33,14 @@ const InventoryOverviewPage = () => {
     setItemTypeTab(newValue);
   };
   
-  const handlePageChange = (newPage: number) => {
+  const handlePageChange = useCallback((newPage: number) => {
     setPage(newPage + 1); // Component uses 0-based index
-  };
+  }, []);
   
-  const handleRowsPerPageChange = (newLimit: number) => {
+  const handleRowsPerPageChange = useCallback((newLimit: number) => {
     setLimit(newLimit);
     setPage(1);
-  };
+  }, []);
   
   return (
     <Box sx={{ p: 3 }}>

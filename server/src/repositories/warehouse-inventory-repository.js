@@ -229,10 +229,8 @@ const getWarehouseInventorySummaryDetailsByItemId = async ({ page, limit, itemId
       br.batch_type,
       s.id AS sku_id,
       s.sku,
-      p.name AS product_name,
       pm.id AS material_id,
       pm.code AS material_code,
-      pm.name AS material_name,
       CASE
         WHEN br.batch_type = 'product' THEN pb.lot_number
         WHEN br.batch_type = 'packaging_material' THEN pmb.lot_number
@@ -245,6 +243,7 @@ const getWarehouseInventorySummaryDetailsByItemId = async ({ page, limit, itemId
       wi.warehouse_quantity,
       wi.reserved_quantity,
       wi.status_id,
+      ist.name AS status_name,
       wi.status_date,
       wi.last_update,
       w.id AS warehouse_id,
@@ -258,6 +257,7 @@ const getWarehouseInventorySummaryDetailsByItemId = async ({ page, limit, itemId
     LEFT JOIN packaging_material_batches pmb ON br.packaging_material_batch_id = pmb.id
     LEFT JOIN packaging_material_suppliers pms ON pmb.packaging_material_supplier_id = pms.id
     LEFT JOIN packaging_materials pm ON pms.packaging_material_id = pm.id
+    JOIN inventory_status ist ON wi.status_id = ist.id
     WHERE
       (
         (br.batch_type = 'product' AND s.id = $1)

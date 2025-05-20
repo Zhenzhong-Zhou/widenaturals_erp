@@ -168,7 +168,7 @@ const WarehouseInventorySummaryTable: FC<SkuInventorySummaryTableProps> = ({
             totalRecords={detailTotalRecords ?? 0}
             totalPages={detailTotalPages ?? 1}
             rowsPerPage={detailLimit}
-            onPageChange={(newPage) => onDetailPageChange?.(newPage + 1)}
+            onPageChange={onDetailPageChange}
             onRowsPerPageChange={onDetailRowsPerPageChange}
           />
           {onRefreshDetail && (

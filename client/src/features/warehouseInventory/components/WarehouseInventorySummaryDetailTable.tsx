@@ -2,6 +2,7 @@ import { type FC } from 'react';
 import type { Column } from '@components/common/CustomTable';
 import CustomTable from '@components/common/CustomTable';
 import { formatDate } from '@utils/dateTimeUtils';
+import { formatLabel } from '@utils/textUtils';
 import type { WarehouseInventorySummaryItemDetails } from '@features/warehouseInventory/state';
 
 interface Props {
@@ -23,7 +24,6 @@ const WarehouseInventorySummaryDetailTable: FC<Props> = ({
                                                            onPageChange,
                                                            onRowsPerPageChange,
                                                          }) => {
-  console.log(data)
   const columns: Column<WarehouseInventorySummaryItemDetails>[] = [
     {
       id: 'warehouseName',
@@ -32,10 +32,10 @@ const WarehouseInventorySummaryDetailTable: FC<Props> = ({
       format: (_, row) => row?.warehouse?.name ?? 'N/A',
     },
     {
-      id: 'sku',
-      label: 'SKU',
+      id: 'skuOrMaterial',
+      label: 'Item Code',
       sortable: true,
-      format: (_, row) => row?.sku?.code,
+      format: (_, row) => row?.item?.code ?? '—',
     },
     {
       id: 'lotNumber',
@@ -76,11 +76,11 @@ const WarehouseInventorySummaryDetailTable: FC<Props> = ({
       id: 'status',
       label: 'Status',
       sortable: false,
-      format: (_, row) => row?.status?.id ?? 'Unknown',
+      format: (_, row) => formatLabel(row?.status?.name ?? 'Unknown'),
     },
     {
-      id: 'status',
-      label: 'Status',
+      id: 'statusDate',
+      label: 'Status Date',
       sortable: true,
       format: (_, row) =>
         row?.status?.date ? formatDate(row?.status?.date) : '-',
