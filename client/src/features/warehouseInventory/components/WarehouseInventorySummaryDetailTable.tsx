@@ -4,9 +4,9 @@ import CustomTable from '@components/common/CustomTable';
 import { formatDate } from '@utils/dateTimeUtils';
 import { formatLabel } from '@utils/textUtils';
 import type { WarehouseInventorySummaryItemDetails } from '@features/warehouseInventory/state';
+import { generateUniqueKey } from '@utils/generateUniqueKey';
 
 interface Props {
-  expandedRowId?: string | null;
   data: WarehouseInventorySummaryItemDetails[];
   page: number;
   rowsPerPage: number;
@@ -17,7 +17,6 @@ interface Props {
 }
 
 const WarehouseInventorySummaryDetailTable: FC<Props> = ({
-                                                           expandedRowId,
                                                            data,
                                                            page,
                                                            rowsPerPage,
@@ -26,6 +25,8 @@ const WarehouseInventorySummaryDetailTable: FC<Props> = ({
                                                            onPageChange,
                                                            onRowsPerPageChange,
                                                          }) => {
+  const id = generateUniqueKey();
+  
   const columns: Column<WarehouseInventorySummaryItemDetails>[] = [
     {
       id: 'warehouseName',
@@ -98,7 +99,7 @@ const WarehouseInventorySummaryDetailTable: FC<Props> = ({
   
   return (
     <CustomTable
-      rowsPerPageId={`rows-per-page-${expandedRowId}`}
+      rowsPerPageId={`rows-per-page-${id}`}
       columns={columns}
       data={data}
       page={page}

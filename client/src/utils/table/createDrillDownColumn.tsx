@@ -1,5 +1,8 @@
-import { ExpandLess, ExpandMore } from '@mui/icons-material';
-import { IconButton, Tooltip } from '@mui/material';
+import { startTransition } from 'react';
+import ExpandLess from '@mui/icons-material/ExpandLess';
+import ExpandMore from '@mui/icons-material/ExpandMore';
+import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
 import type { Column } from '@components/common/CustomTable';
 
 /**
@@ -29,7 +32,7 @@ export const createDrillDownColumn = <T,>(
       return (
         <Tooltip title={expanded ? 'Show Less' : 'Show More'}>
           <IconButton
-            onClick={() => onToggle(row)}
+            onClick={() => startTransition(() => onToggle(row))}
             onMouseEnter={() => extraHandlers?.onMouseEnter?.(row)}
             onFocus={() => extraHandlers?.onFocus?.(row)}
             onDoubleClick={() => extraHandlers?.onDoubleClick?.(row)}

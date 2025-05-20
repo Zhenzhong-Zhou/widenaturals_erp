@@ -48,17 +48,53 @@ const WarehouseInventorySummaryPanel: FC<Props> = ({
   } = useWarehouseInventorySummaryByItemId();
   
   useEffect(() => {
-    fetchWarehouseInventorySummary({ page, limit, itemType });
+    let idleCallbackId: number;
+    
+    const run = () => {
+      fetchWarehouseInventorySummary({ page, limit, itemType });
+    };
+    
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      idleCallbackId = (window as any).requestIdleCallback(run);
+    } else {
+      idleCallbackId = setTimeout(run, 100);
+    }
+    
+    return () => {
+      if (typeof window !== 'undefined' && 'cancelIdleCallback' in window && idleCallbackId) {
+        (window as any).cancelIdleCallback(idleCallbackId);
+      } else {
+        clearTimeout(idleCallbackId);
+      }
+    };
   }, [page, limit, itemType]);
   
   useEffect(() => {
-    if (expandedRowId && !detailCache[expandedRowId]) {
+    if (!expandedRowId || detailCache[expandedRowId]) return;
+    
+    let idleCallbackId: number;
+    
+    const run = () => {
       fetchWarehouseInventorySummaryDetails({
         itemId: expandedRowId,
         page: detailPage,
         limit: detailLimit,
       });
+    };
+    
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      idleCallbackId = (window as any).requestIdleCallback(run);
+    } else {
+      idleCallbackId = setTimeout(run, 100);
     }
+    
+    return () => {
+      if (typeof window !== 'undefined' && 'cancelIdleCallback' in window) {
+        (window as any).cancelIdleCallback(idleCallbackId);
+      } else {
+        clearTimeout(idleCallbackId);
+      }
+    };
   }, [expandedRowId, detailPage, detailLimit]);
   
   const detailLoadingMap = expandedRowId

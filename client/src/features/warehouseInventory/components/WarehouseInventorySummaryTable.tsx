@@ -158,20 +158,21 @@ const WarehouseInventorySummaryTable: FC<SkuInventorySummaryTableProps> = ({
       const detailLoading = detailLoadingMap?.[row.itemId] ?? false;
       const detailError = detailErrorMap?.[row.itemId] ?? null;
       
-      if (detailLoading) {
+      if (!detailData && !detailLoading) {
         return (
-          <Box sx={{ p: 2 }}>
-            <Skeleton height={80} variant="rectangular" sx={{ borderRadius: 1 }} />
+          <Box sx={{ height: 120, p: 2 }}>
+            <Skeleton variant="rectangular" height="100%" />
           </Box>
         );
       }
       if (detailError) return <ErrorMessage message={detailError} />;
-      if (!detailData?.length)
+      if (!detailData?.length && !detailLoading) {
         return (
           <CustomTypography sx={{ p: 2 }} variant="body2">
             No detail data available.
           </CustomTypography>
         );
+      }
       
       return (
         <Box sx={{ p: 2 }}>
@@ -185,7 +186,7 @@ const WarehouseInventorySummaryTable: FC<SkuInventorySummaryTableProps> = ({
             }
           >
             <WarehouseInventorySummaryDetailTable
-              data={detailData}
+              data={detailData ?? []}
               page={detailPage - 1}
               totalRecords={detailTotalRecords ?? 0}
               totalPages={detailTotalPages ?? 1}

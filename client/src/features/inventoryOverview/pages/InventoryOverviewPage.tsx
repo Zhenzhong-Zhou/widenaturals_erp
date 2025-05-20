@@ -1,8 +1,9 @@
-import { useState, useEffect, type SyntheticEvent, lazy, useCallback } from 'react';
+import { useState, type SyntheticEvent, lazy, useCallback, startTransition, Suspense } from 'react';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
+import Skeleton from '@mui/material/Skeleton';
 import CustomTypography from '@components/common/CustomTypography';
 import ItemTypeTabs from '@features/inventoryShared/components/ItemTypeTabs';
 import type { ItemType } from '@features/inventoryShared/types/InventorySharedType';
@@ -13,34 +14,45 @@ const WarehouseInventorySummaryPanel = lazy(() => import('@features/inventoryOve
 
 const InventoryOverviewPage = () => {
   const [tab, setTab] = useState(0); // 0 = Location, 1 = Warehouse
-  const [itemTypeTab, setItemTypeTab] = useState(0); // 0 = all, 1 = product, 2 = material
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(20);
+  const [locationState, setLocationState] = useState({ itemTypeTab: 0, page: 1, limit: 20 });
+  const [warehouseState, setWarehouseState] = useState({ itemTypeTab: 0, page: 1, limit: 20 });
+  
+  const { itemTypeTab, page, limit } = tab === 0 ? locationState : warehouseState;
   
   const itemType: ItemType | undefined =
     itemTypeTab === 1 ? 'product' : itemTypeTab === 2 ? 'packaging_material' : undefined;
   
-  useEffect(() => {
-    // Reset page on type/tab change
-    setPage(1);
-  }, [tab, itemTypeTab]);
-  
   const handleTabChange = (_: SyntheticEvent, newTab: number) => {
-    setTab(newTab);
+    startTransition(() => {
+      setTab(newTab);
+    });
   };
   
   const handleItemTypeTabChange = (_: SyntheticEvent, newValue: number) => {
-    setItemTypeTab(newValue);
+    startTransition(() => {
+      if (tab === 0) {
+        setLocationState((prev) => ({ ...prev, itemTypeTab: newValue, page: 1 }));
+      } else {
+        setWarehouseState((prev) => ({ ...prev, itemTypeTab: newValue, page: 1 }));
+      }
+    });
   };
   
   const handlePageChange = useCallback((newPage: number) => {
-    setPage(newPage + 1); // Component uses 0-based index
-  }, []);
+    if (tab === 0) {
+      setLocationState((prev) => ({ ...prev, page: newPage + 1 }));
+    } else {
+      setWarehouseState((prev) => ({ ...prev, page: newPage + 1 }));
+    }
+  }, [tab]);
   
   const handleRowsPerPageChange = useCallback((newLimit: number) => {
-    setLimit(newLimit);
-    setPage(1);
-  }, []);
+    if (tab === 0) {
+      setLocationState((prev) => ({ ...prev, limit: newLimit, page: 1 }));
+    } else {
+      setWarehouseState((prev) => ({ ...prev, limit: newLimit, page: 1 }));
+    }
+  }, [tab]);
   
   return (
     <Box sx={{ p: 3 }}>
@@ -60,23 +72,33 @@ const InventoryOverviewPage = () => {
         )}
       </Paper>
       
-      {tab === 0 ? (
-        <LocationInventorySummaryPanel
-          page={page}
-          limit={limit}
-          itemType={itemType}
-          onPageChange={handlePageChange}
-          onRowsPerPageChange={handleRowsPerPageChange}
-        />
-      ) : (
-        <WarehouseInventorySummaryPanel
-          page={page}
-          limit={limit}
-          itemType={itemType}
-          onPageChange={handlePageChange}
-          onRowsPerPageChange={handleRowsPerPageChange}
-        />
-      )}
+      <Suspense
+        fallback={
+          <Skeleton
+            height={400}
+            variant="rectangular"
+            sx={{ borderRadius: 1, mb: 2 }}
+          />
+        }
+      >
+        {tab === 0 ? (
+          <LocationInventorySummaryPanel
+            page={page}
+            limit={limit}
+            itemType={itemType}
+            onPageChange={handlePageChange}
+            onRowsPerPageChange={handleRowsPerPageChange}
+          />
+        ) : (
+          <WarehouseInventorySummaryPanel
+            page={page}
+            limit={limit}
+            itemType={itemType}
+            onPageChange={handlePageChange}
+            onRowsPerPageChange={handleRowsPerPageChange}
+          />
+        )}
+      </Suspense>
     </Box>
   );
 };
