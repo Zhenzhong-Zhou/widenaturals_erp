@@ -1,4 +1,4 @@
-import type { ApiSuccessResponse, PaginatedResponse } from "types/api";
+import type { ApiSuccessResponse, PaginatedResponse } from '@shared-types/api';
 
 export interface SkuProductCard {
   skuId: string;

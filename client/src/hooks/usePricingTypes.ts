@@ -9,7 +9,7 @@ import {
   type FetchPricingTypesParams,
 } from '@features/pricingType/state';
 import type { PricingType } from '@features/pricingType';
-import type { Pagination } from 'types/api';
+import type { Pagination } from '@shared-types/api';
 
 interface UsePricingTypesReturn {
   data: PricingType[];

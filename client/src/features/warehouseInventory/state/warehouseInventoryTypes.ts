@@ -1,5 +1,5 @@
-import type { PaginatedResponse, PaginatedState } from 'types/api.ts';
-import type { InventoryHealthStatus, ItemType } from '../../inventoryShared/types/InventorySharedType.ts';
+import type { PaginatedResponse, PaginatedState } from '@shared-types/api';
+import type { InventoryHealthStatus, ItemType } from '@features/inventoryShared/types/InventorySharedType';
 
 export interface FetchWarehouseInventoryItemSummaryParams {
   page?: number;

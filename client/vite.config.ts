@@ -32,6 +32,7 @@ export default defineConfig(({ mode }) => ({
       '@emotion/react': resolve(__dirname, 'node_modules/@emotion/react'),
       '@emotion/styled': resolve(__dirname, 'node_modules/@emotion/styled'),
       '@styles': resolve(__dirname, './src/styles'),
+      '@shared-types': resolve(__dirname, './src/types'),
       '@context': resolve(__dirname, './src/context'),
       '@components': resolve(__dirname, './src/components'),
       '@core': resolve(__dirname, './src/core'),
@@ -126,6 +127,8 @@ export default defineConfig(({ mode }) => ({
           }
           
           // --- Feature Chunks ---
+          if (id.includes('src/features/inventoryShared')) return 'inventory-shared';
+          if (id.includes('src/features/inventoryOverview')) return 'inventory-overview';
           if (id.includes('src/features/warehouseInventory')) return 'warehouse-inventory';
           if (id.includes('src/features/order')) return 'order';
           if (id.includes('src/features/report')) return 'report';

@@ -1,4 +1,4 @@
-import type { PaginationParams } from '../../../types/api';
+import type { PaginationParams } from '@shared-types/api';
 
 export interface InventoryHealthStatus {
   reservedQuantity: number;

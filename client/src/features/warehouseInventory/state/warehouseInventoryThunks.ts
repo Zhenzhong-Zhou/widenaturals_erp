@@ -12,13 +12,13 @@ import type {
 } from '@features/warehouseInventory';
 import { warehouseInventoryService } from '@services/warehouseInventoryService';
 import { dropdownService } from '@services/dropdownService';
-import type { PaginatedResponse } from 'types/api';
+import type { PaginatedResponse } from '@shared-types/api';
 import type {
   FetchWarehouseInventoryItemSummaryParams,
   WarehouseInventoryItemSummary,
   WarehouseInventorySummaryDetailsByItemIdResponse,
-} from '@features/warehouseInventory/state/warehouseInventoryTypes.ts';
-import type { InventorySummaryDetailByItemIdParams } from '@features/inventoryShared/types/InventorySharedType.ts';
+} from '@features/warehouseInventory/state/warehouseInventoryTypes';
+import type { InventorySummaryDetailByItemIdParams } from '@features/inventoryShared/types/InventorySharedType';
 
 /**
  * Redux thunk to fetch paginated warehouse inventory summary

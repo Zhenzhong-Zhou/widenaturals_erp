@@ -19,7 +19,7 @@ import type {
   WarehouseInventoryItemSummary,
   WarehouseInventorySummaryDetailsByItemIdResponse,
 } from '@features/warehouseInventory/state';
-import type { PaginatedResponse } from 'types/api';
+import type { PaginatedResponse } from '@shared-types/api';
 import type {
   AvailableInventoryLotsResponse, FetchAvailableInventoryRequest,
 } from '@features/inventoryAllocation';

@@ -5,7 +5,7 @@ import type {
   PricingTypeMetadataResponse,
 } from '@features/pricingType/state';
 import type { PricingType } from '@features/pricingType';
-import type { PaginatedResponse } from 'types/api';
+import type { PaginatedResponse } from '@shared-types/api';
 
 /**
  * Fetches a paginated list of pricing types with optional filters.

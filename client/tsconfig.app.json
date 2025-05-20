@@ -20,6 +20,7 @@
     "baseUrl": "./src",
     "paths": {
       "@styles/*": ["styles/*"],
+      "@shared-types/*": ["types/*"],
       "@context/*": ["context/*"],
       "@components/*": ["components/*"],
       "@core/*": ["core/*"],
