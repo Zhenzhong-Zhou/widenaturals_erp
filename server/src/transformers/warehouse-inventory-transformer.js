@@ -74,125 +74,64 @@ const transformPaginatedWarehouseInventoryItemSummary = (paginatedResult) =>
   transformPaginatedResult(paginatedResult, transformWarehouseInventoryItemSummaryRow);
 
 /**
- * Transforms a single enriched warehouse inventory summary row.
- * Includes calculated indicators such as stock level, expiry severity, and notes.
+ * Transform a single raw warehouse inventory summary record into clean structure.
  *
- * @param {object} row - A single row from the `getWarehouseInventories` query result.
- * @returns {object} - Transformed and enriched inventory summary.
+ * @param {Object} row - Raw DB row from warehouse inventory summary query.
+ * @returns {Object} Cleaned and enriched inventory record.
  */
-const transformWarehouseInventorySummary = (row) => {
-  const reserved = Number(row.reserved_quantity);
-  const available = Number(row.available_quantity);
-  const totalLot = Number(row.total_lot_quantity);
-  const lotReserved = Number(row.total_reserved_quantity);
-  const nearestExpiry = row.nearest_expiry_date
-    ? new Date(row.nearest_expiry_date)
-    : null;
-
-  const isExpired = nearestExpiry ? nearestExpiry < new Date() : false;
-  const isNearExpiry = nearestExpiry
-    ? nearestExpiry >= new Date() &&
-      (nearestExpiry - new Date()) / (1000 * 60 * 60 * 24) <= 90
-    : false;
-
-  const stockLevel = getStockLevel(available);
-  const expirySeverity = getExpirySeverity(nearestExpiry);
-  const isLowStock = available <= 30;
-
-  const notes = [];
-
-  if (reserved === totalLot && totalLot > 0) notes.push('All stock reserved');
-  if (available === 0 && totalLot > 0) notes.push('No stock available');
-  if (isExpired) notes.push('Expired stock');
-  if (isNearExpiry) notes.push('Expiring soon');
-  if (isLowStock) notes.push('Low stock');
-
-  const displayNote = notes.length > 0 ? notes.join(' • ') : null;
-
-  return {
+const transformWarehouseInventorySummaryDetailsItem = (row) =>
+  cleanObject({
     warehouseInventoryId: row.warehouse_inventory_id,
-    warehouse: {
+    batchType: row.batch_type,
+    
+    sku: row.sku_id && cleanObject({
+      id: row.sku_id,
+      code: row.sku,
+      name: row.product_name,
+    }),
+    
+    material: row.material_id && cleanObject({
+      id: row.material_id,
+      code: row.material_code,
+      name: row.material_name,
+    }),
+    
+    lotNumber: row.lot_number,
+    manufactureDate: row.product_manufacture_date || row.material_manufacture_date,
+    expiryDate: row.product_expiry_date || row.material_expiry_date,
+    
+    quantity: cleanObject({
+      warehouseQuantity: row.warehouse_quantity,
+      reserved: row.reserved_quantity,
+      available: Math.max(
+        (row.warehouse_quantity || 0) - (row.reserved_quantity || 0),
+        0
+      ),
+    }),
+    
+    status: cleanObject({
+      id: row.status_id,
+      date: row.status_date,
+    }),
+    
+    timestamps: cleanObject({
+      lastUpdate: row.last_update,
+    }),
+    
+    warehouse: cleanObject({
       id: row.warehouse_id,
       name: row.warehouse_name,
-      storageCapacity: Number(row.storage_capacity),
-      location: row.location_name,
-    },
-    inventory: {
-      id: row.inventory_id,
-      itemType: row.item_type,
-      itemName: row.item_name,
-    },
-    quantity: {
-      reserved,
-      available,
-      totalLot,
-      inStock: Number(row.in_stock_quantity),
-      lotReserved,
-    },
-    fees: {
-      warehouseFee: Number(row.warehouse_fee),
-    },
-    dates: {
-      lastUpdate: row.last_update ? new Date(row.last_update) : null,
-      earliestManufactureDate: row.earliest_manufacture_date
-        ? new Date(row.earliest_manufacture_date)
-        : null,
-      nearestExpiryDate: nearestExpiry,
-      displayStatusDate: row.display_status_date
-        ? new Date(row.display_status_date)
-        : null,
-    },
-    status: {
-      display: row.display_status,
-      isExpired,
-      isNearExpiry,
-      isLowStock,
-      stockLevel,
-      expirySeverity,
-      displayNote,
-    },
-    audit: {
-      createdAt: row.created_at ? new Date(row.created_at) : null,
-      updatedAt: row.updated_at ? new Date(row.updated_at) : null,
-      createdBy: row.created_by,
-      updatedBy: row.updated_by,
-    },
-  };
-};
+    }),
+  });
 
 /**
- * Transforms a list of enriched warehouse inventory summary rows.
+ * Transform a paginated warehouse inventory summary result.
  *
- * @param {Array<object>} rows - List of raw DB rows from `getWarehouseInventories`.
- * @returns {Array<object>} - List of enriched summaries.
+ * @param {Object} paginatedResult - Raw-paginated result from repository.
+ * @returns {Object} Transformed paginated result.
  */
-const transformWarehouseInventorySummaryList = (rows = []) => {
-  return rows.map(transformWarehouseInventorySummary);
-};
-
-/**
- * Transforms a paginated result set from `getWarehouseInventories` query
- * into enriched summary format with calculated indicators.
- *
- * @param {object} paginatedResult - Raw-paginated result with `pagination` and `data`.
- * @returns {object} - Transformed paginated response.
- */
-const transformPaginatedWarehouseInventorySummary = (paginatedResult = {}) => {
-  const {
-    pagination: { page = 1, limit = 20, totalRecords = 0, totalPages = 0 } = {},
-    data = [],
-  } = paginatedResult;
-
-  return {
-    pagination: {
-      page: Number(page),
-      limit: Number(limit),
-      totalRecords: Number(totalRecords),
-      totalPages: Number(totalPages),
-    },
-    data: transformWarehouseInventorySummaryList(data),
-  };
-};
+const transformPaginatedWarehouseInventorySummaryDetails = (paginatedResult) =>
+  transformPaginatedResult(paginatedResult, transformWarehouseInventorySummaryDetailsItem);
 
 /**
  * Transforms a single item summary row from warehouse inventory item summary results.
@@ -371,9 +310,7 @@ const transformWarehouseInventoryRecords = (dbResults) => {
 
 module.exports = {
   transformPaginatedWarehouseInventoryItemSummary,
-  transformWarehouseInventorySummary,
-  transformWarehouseInventorySummaryList,
-  transformPaginatedWarehouseInventorySummary,
+  transformPaginatedWarehouseInventorySummaryDetails,
   transformWarehouseItemSummaryRow,
   transformPaginatedWarehouseItemSummary,
   transformWarehouseInventoryLotDetail,

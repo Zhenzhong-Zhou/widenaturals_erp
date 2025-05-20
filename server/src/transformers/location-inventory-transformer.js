@@ -91,8 +91,12 @@ const transformLocationInventorySummaryDetailsItem = (row) =>
     expiryDate: row.product_expiry_date || row.material_expiry_date,
     
     quantity: cleanObject({
-      available: row.location_quantity,
+      locationQuantity: row.location_quantity,
       reserved: row.reserved_quantity,
+      available: Math.max(
+        (row.location_quantity || 0) - (row.reserved_quantity || 0),
+        0
+      ),
     }),
     
     timestamps: cleanObject({

@@ -4,12 +4,13 @@ const {
   retry,
   bulkInsert,
   lockRows,
-  formatBulkUpdateQuery, paginateResults,
+  formatBulkUpdateQuery,
+  paginateResults,
 } = require('../database/db');
 const AppError = require('../utils/AppError');
 const {
-  logSystemError,
-  logSystemInfo
+  logSystemInfo,
+  logSystemException
 } = require('../utils/system-logger');
 const { logError } = require('../utils/logger-helper');
 
@@ -201,12 +202,90 @@ const getPaginatedWarehouseInventoryItemSummary = async ({ page = 1, limit = 20,
       limit,
     });
   } catch (error) {
-    logSystemError('Error fetching paginated warehouse inventory summary (products + materials)', {
+    logSystemException('Error fetching paginated warehouse inventory summary (products + materials)', {
       context: 'warehouse-inventory-repository',
       error,
     });
     
     throw AppError.databaseError('Failed to fetch paginated warehouse inventory items summary');
+  }
+};
+
+/**
+ * Fetch paginated warehouse inventory summary details for a given item ID
+ * (product SKU or packaging material).
+ *
+ * @param {Object} options - Pagination and filter options
+ * @param {number} options.page - The page number for pagination
+ * @param {number} options.limit - Number of records per page
+ * @param {string} options.itemId - The SKU ID (for products) or Material ID (for packaging materials)
+ * @returns {Promise<Object>} Paginated result with raw warehouse inventory summary data
+ * @throws {AppError} If the database query fails
+ */
+const getWarehouseInventorySummaryDetailsByItemId = async ({ page, limit, itemId }) => {
+  const queryText = `
+    SELECT
+      wi.id AS warehouse_inventory_id,
+      br.batch_type,
+      s.id AS sku_id,
+      s.sku,
+      p.name AS product_name,
+      pm.id AS material_id,
+      pm.code AS material_code,
+      pm.name AS material_name,
+      CASE
+        WHEN br.batch_type = 'product' THEN pb.lot_number
+        WHEN br.batch_type = 'packaging_material' THEN pmb.lot_number
+        ELSE NULL
+      END AS lot_number,
+      pb.manufacture_date AS product_manufacture_date,
+      pb.expiry_date AS product_expiry_date,
+      pmb.manufacture_date AS material_manufacture_date,
+      pmb.expiry_date AS material_expiry_date,
+      wi.warehouse_quantity,
+      wi.reserved_quantity,
+      wi.status_id,
+      wi.status_date,
+      wi.last_update,
+      w.id AS warehouse_id,
+      w.name AS warehouse_name
+    FROM warehouse_inventory wi
+    JOIN warehouses w ON wi.warehouse_id = w.id
+    JOIN batch_registry br ON wi.batch_id = br.id
+    LEFT JOIN product_batches pb ON br.product_batch_id = pb.id
+    LEFT JOIN skus s ON pb.sku_id = s.id
+    LEFT JOIN products p ON s.product_id = p.id
+    LEFT JOIN packaging_material_batches pmb ON br.packaging_material_batch_id = pmb.id
+    LEFT JOIN packaging_material_suppliers pms ON pmb.packaging_material_supplier_id = pms.id
+    LEFT JOIN packaging_materials pm ON pms.packaging_material_id = pm.id
+    WHERE
+      (
+        (br.batch_type = 'product' AND s.id = $1)
+        OR
+        (br.batch_type = 'packaging_material' AND pm.id = $1)
+      )
+    ORDER BY wi.last_update DESC;
+  `;
+  
+  try {
+    return await paginateResults({
+      dataQuery: queryText,
+      params: [itemId],
+      page,
+      limit,
+      meta: {
+        context: 'warehouse-inventory-repository/getWarehouseInventorySummaryDetailsByItemId',
+      },
+    });
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch warehouse inventory summary details', {
+      context: 'warehouse-inventory-repository/getWarehouseInventorySummaryDetailsByItemId',
+      itemId,
+      page,
+      limit,
+    });
+    
+    throw AppError.databaseError('Failed to fetch warehouse inventory summary details by item ID');
   }
 };
 
@@ -917,6 +996,7 @@ const fetchWarehouseInventoryQuantities = async (items, client = null) => {
 
 module.exports = {
   getPaginatedWarehouseInventoryItemSummary,
+  getWarehouseInventorySummaryDetailsByItemId,
   getWarehouseInventories,
   getWarehouseItemSummary,
   getWarehouseInventoryDetailsByWarehouseId,

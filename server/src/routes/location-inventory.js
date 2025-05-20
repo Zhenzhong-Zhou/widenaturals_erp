@@ -4,15 +4,31 @@ const {
   getLocationInventorySummaryDetailsController,
   createInventoryRecordsController,
 } = require('../controllers/location-inventory-controller');
+const authorize = require('../middlewares/authorize');
 
 const router = express.Router();
 
 /**
- * @route GET /api/v1/location-inventory/summary
- * @desc Fetch paginated location inventory summary (products and materials)
- * @access Private
+ * @route GET /location-inventory/summary
+ * @group Location Inventory - Summary
+ * @description Returns a paginated summary of location-based inventory (products and materials),
+ * grouped by SKU or material code. Supports optional filters for item type.
+ *
+ * @access Protected
+ * @permission view_location_inventory - Required to view location inventory summaries.
+ * @param {string} itemType.query.optional - Optional filter: 'product', 'material', or 'all'
+ * @param {number} page.query.optional - Page number (default: 1)
+ * @param {number} limit.query.optional - Number of records per page (default: 10)
+ * @returns {object} 200 - Paginated inventory summary
+ * @returns {object} 403 - Forbidden if missing required permissions
  */
-router.get('/summary', getLocationInventorySummaryController);
+router.get('/summary',
+  authorize([
+    'view_inventory',
+    'view_location_inventory',
+    'view_inventory_summary'
+  ]),
+  getLocationInventorySummaryController);
 
 /**
  * @route GET /location-inventory/summary/:itemId/details
@@ -23,9 +39,18 @@ router.get('/summary', getLocationInventorySummaryController);
  * @param {number} limit.query.optional - Number of records per page (default: 10)
  * @returns {object} 200 - Success response with paginated location inventory summary
  * @returns {object} 400 - Validation error if itemId is missing or invalid
+ * @returns {object} 403 - Forbidden if permission is missing
  * @returns {object} 500 - Internal server error
+ * @permission view_location_inventory - Required to access location inventory summary
  */
-router.get('/summary/:itemId/details', getLocationInventorySummaryDetailsController);
+router.get('/summary/:itemId/details',
+  authorize([
+    'view_inventory',
+    'view_location_inventory',
+    'view_product_inventory',
+    'view_material_inventory'
+  ]),
+  getLocationInventorySummaryDetailsController);
 
 router.post('/add-inventory-records', createInventoryRecordsController);
 

@@ -131,7 +131,7 @@ const fetchLocationInventorySummaryByItemIdService = async ({ page, limit, itemI
     const rawResult = await getLocationInventorySummaryDetailsByItemId({ page, limit, itemId });
     
     logSystemInfo('Successfully fetched location inventory summary', {
-      context: 'location-inventory-service/fetchLocationInventorySummaryByItemId',
+      context: 'location-inventory-service/fetchLocationInventorySummaryByItemIdService',
       itemId,
       page,
       limit,
@@ -141,7 +141,7 @@ const fetchLocationInventorySummaryByItemIdService = async ({ page, limit, itemI
     return transformPaginatedLocationInventorySummaryDetails(rawResult);
   } catch (error) {
     logSystemException(error, 'Failed to fetch and transform location inventory summary', {
-      context: 'location-inventory-service/fetchLocationInventorySummaryByItemId',
+      context: 'location-inventory-service/fetchLocationInventorySummaryByItemIdService',
       itemId,
       page,
       limit,

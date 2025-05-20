@@ -2,9 +2,11 @@ const {
   fetchAllWarehouseInventories,
   fetchWarehouseItemSummary,
   fetchWarehouseInventoryDetailsByWarehouseId, fetchPaginatedWarehouseInventoryItemSummary,
+  fetchWarehouseInventorySummaryByItemIdService,
 } = require('../services/warehouse-inventory-service');
 const { logError, logInfo } = require('../utils/logger-helper');
 const wrapAsync = require('../utils/wrap-async');
+const AppError = require('../utils/AppError');
 
 /**
  * Controller: Handles GET request to fetch paginated warehouse inventory summary.
@@ -44,6 +46,33 @@ const getPaginatedWarehouseInventorySummaryController = wrapAsync(async (req, re
   res.status(200).json({
     success: true,
     message: 'Warehouse inventory summary fetched successfully.',
+    data,
+    pagination,
+  });
+});
+
+/**
+ * Controller to handle GET /warehouse-inventory/summary/:itemId/details
+ * Returns paginated warehouse inventory summary for a given item ID (SKU or packaging material).
+ *
+ * @param {import('express').Request} req - Express request object.
+ * @param {import('express').Response} res - Express response object.
+ * @param {import('express').NextFunction} next - Express next middleware function.
+ */
+const getWarehouseInventorySummaryDetailsController = wrapAsync(async (req, res, next) => {
+  const { itemId } = req.params;
+  const page = parseInt(req.query.page, 10) || 1;
+  const limit = parseInt(req.query.limit, 10) || 10;
+  
+  if (!itemId) {
+    return next(AppError.validationError('Missing required parameter: itemId'));
+  }
+  
+  const { data, pagination } = await fetchWarehouseInventorySummaryByItemIdService({ page, limit, itemId });
+  
+  return res.status(200).json({
+    success: true,
+    message: 'Successfully fetched warehouse inventory summary details by item ID',
     data,
     pagination,
   });
@@ -141,6 +170,7 @@ const getWarehouseInventoryDetailsController = wrapAsync(async (req, res) => {
 
 module.exports = {
   getPaginatedWarehouseInventorySummaryController,
+  getWarehouseInventorySummaryDetailsController,
   getAllWarehouseInventoriesController,
   getWarehouseItemSummaryController,
   getWarehouseInventoryDetailsController,
