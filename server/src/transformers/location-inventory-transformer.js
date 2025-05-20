@@ -64,6 +64,60 @@ const transformPaginatedLocationInventorySummaryResult = (paginatedResult) =>
   transformPaginatedResult(paginatedResult, transformLocationInventorySummaryRow);
 
 /**
+ * Transform a single raw location inventory summary record.
+ *
+ * @param {Object} row - Raw DB record.
+ * @returns {Object} Transformed and cleaned object.
+ */
+const transformLocationInventorySummaryDetailsItem = (row) =>
+  cleanObject({
+    locationInventoryId: row.location_inventory_id,
+    batchType: row.batch_type,
+    
+    sku: row.sku_id && cleanObject({
+      id: row.sku_id,
+      code: row.sku,
+      name: row.product_name,
+    }),
+    
+    material: row.material_id && cleanObject({
+      id: row.material_id,
+      code: row.material_code,
+      name: row.material_name,
+    }),
+    
+    lotNumber: row.lot_number,
+    manufactureDate: row.product_manufacture_date || row.material_manufacture_date,
+    expiryDate: row.product_expiry_date || row.material_expiry_date,
+    
+    quantity: cleanObject({
+      available: row.location_quantity,
+      reserved: row.reserved_quantity,
+    }),
+    
+    timestamps: cleanObject({
+      inboundDate: row.inbound_date,
+      outboundDate: row.outbound_date,
+      lastUpdate: row.last_update,
+    }),
+    
+    location: cleanObject({
+      id: row.location_id,
+      name: row.location_name,
+      type: row.location_type,
+    }),
+  });
+
+/**
+ * Transform a full paginated location inventory summary result.
+ *
+ * @param {Object} paginatedResult - The raw-paginated result.
+ * @returns {Object} Paginated and transformed result.
+ */
+const transformPaginatedLocationInventorySummaryDetails = (paginatedResult) =>
+  transformPaginatedResult(paginatedResult, transformLocationInventorySummaryDetailsItem);
+
+/**
  * Transforms a single raw inventory record row from the database into a normalized object.
  *
  * Adds calculated fields like:
@@ -162,6 +216,7 @@ const transformPaginatedInventoryRecords = (paginatedResult) => ({
 
 module.exports = {
   transformPaginatedLocationInventorySummaryResult,
+  transformPaginatedLocationInventorySummaryDetails,
   transformInventoryRecord,
   transformInventoryList,
   transformPaginatedInventoryRecords,

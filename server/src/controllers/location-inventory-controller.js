@@ -1,9 +1,10 @@
 const {
   fetchLocationInventorySummaryService,
-  createInventoryRecords,
+  createInventoryRecords, fetchLocationInventorySummaryByItemIdService,
 } = require('../services/location-inventory-service');
 const wrapAsync = require('../utils/wrap-async');
 const { logError, logInfo } = require('../utils/logger-helper');
+const AppError = require('../utils/AppError');
 
 /**
  * Controller to handle GET requests for location inventory summary.
@@ -72,6 +73,34 @@ const getLocationInventorySummaryController = wrapAsync(async (req, res) => {
 });
 
 /**
+ * Controller to handle GET /location-inventory/summary/:itemId/details
+ * Returns paginated location inventory summary for a given item ID (SKU or material).
+ *
+ * @param {import('express').Request} req - Express request object.
+ * @param {import('express').Response} res - Express response object.
+ * @param {import('express').NextFunction} next - Express next middleware function.
+ */
+const getLocationInventorySummaryDetailsController = wrapAsync(async (req, res, next) => {
+  
+  const { itemId } = req.params;
+  const page = parseInt(req.query.page, 10) || 1;
+  const limit = parseInt(req.query.limit, 10) || 10;
+  
+  if (!itemId) {
+    return next(AppError.validationError('Missing required parameter: itemId'));
+  }
+  
+  const { data, pagination } = await fetchLocationInventorySummaryByItemIdService({ page, limit, itemId });
+  
+  return res.status(200).json({
+    success: true,
+    message: 'Successfully fetched location inventory summary details by item ID',
+    data,
+    pagination,
+  });
+});
+
+/**
  * Express route handler to reposition inventory (handles both single and bulk insert).
  */
 const createInventoryRecordsController = wrapAsync(async (req, res, next) => {
@@ -96,5 +125,6 @@ const createInventoryRecordsController = wrapAsync(async (req, res, next) => {
 
 module.exports = {
   getLocationInventorySummaryController,
+  getLocationInventorySummaryDetailsController,
   createInventoryRecordsController,
 };

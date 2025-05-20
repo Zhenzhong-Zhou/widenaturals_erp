@@ -140,6 +140,94 @@ const getHighLevelLocationInventorySummary = async ({
 };
 
 /**
+ * Fetch enriched location inventory summary details for a given item ID (product SKU or packaging material).
+ *
+ * @param {Object} options
+ * @param {number} options.page - The current page number for pagination.
+ * @param {number} options.limit - The number of records per page.
+ * @param {string} options.itemId - The SKU ID (for products) or the Material ID (for packaging materials).
+ * @returns {Promise<Array>} A paginated array of location inventory summary detail records, including batch and location info.
+ * @throws {AppError} If the database query fails.
+ */
+const getLocationInventorySummaryDetailsByItemId = async ({ page, limit, itemId }) => {
+  const queryText = `
+    SELECT
+      li.id AS location_inventory_id,
+      br.batch_type,
+      s.id AS sku_id,
+      s.sku,
+      p.name AS product_name,
+      pm.id AS material_id,
+      pm.code AS material_code,
+      pm.name AS material_name,
+      CASE
+        WHEN br.batch_type = 'product' THEN pb.lot_number
+        WHEN br.batch_type = 'packaging_material' THEN pmb.lot_number
+        ELSE NULL
+      END AS lot_number,
+      pb.manufacture_date AS product_manufacture_date,
+      pb.expiry_date AS product_expiry_date,
+      pmb.manufacture_date AS material_manufacture_date,
+      pmb.expiry_date AS material_expiry_date,
+      li.location_quantity,
+      li.reserved_quantity,
+      li.inbound_date,
+      li.outbound_date,
+      li.last_update,
+      l.id AS location_id,
+      l.name AS location_name,
+      lt.name AS location_type
+    FROM location_inventory li
+    JOIN locations l ON li.location_id = l.id
+    JOIN location_types lt ON l.location_type_id = lt.id
+    JOIN batch_registry br ON li.batch_id = br.id
+    LEFT JOIN product_batches pb ON br.product_batch_id = pb.id
+    LEFT JOIN skus s ON pb.sku_id = s.id
+    LEFT JOIN products p ON s.product_id = p.id
+    LEFT JOIN packaging_material_batches pmb ON br.packaging_material_batch_id = pmb.id
+    LEFT JOIN packaging_material_suppliers pms ON pmb.packaging_material_supplier_id = pms.id
+    LEFT JOIN packaging_materials pm ON pms.packaging_material_id = pm.id
+    WHERE
+      (
+        (br.batch_type = 'product' AND s.id = $1)
+        OR
+        (br.batch_type = 'packaging_material' AND pm.id = $1)
+      )
+    ORDER BY li.last_update DESC;
+  `;
+  
+  try {
+    const result = await paginateResults({
+      dataQuery: queryText,
+      params: [itemId],
+      page,
+      limit,
+      meta: {
+        context: 'location-inventory-repository/getHighLevelLocationInventorySummary',
+      },
+    });
+    
+    logSystemInfo('Fetched location inventory summary successfully', {
+      context: 'location-inventory-repository/getLocationInventorySummaryDetailsByItemId',
+      itemId,
+      page,
+      limit,
+      resultCount: result?.data?.length ?? 0,
+    });
+    
+    return result;
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch location inventory summary details', {
+      context: 'location-inventory-repository/getLocationInventorySummaryDetailsByItemId',
+      itemId,
+      page,
+      limit,
+    });
+    throw AppError.databaseError('Error fetching location inventory summary details by item ID');
+  }
+};
+
+/**
  * Fetches the inventory ID associated with a given product ID.
  *
  * @param {string} productId - The unique identifier of the product.
@@ -539,6 +627,7 @@ const updateInventoryQuantity = async (client, inventoryUpdates, userId) => {
 
 module.exports = {
   getHighLevelLocationInventorySummary,
+  getLocationInventorySummaryDetailsByItemId,
   getInventoryId,
   checkInventoryExists,
   checkAndLockInventory,

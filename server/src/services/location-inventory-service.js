@@ -4,6 +4,7 @@ const {
   updateInventoryQuantity,
   checkInventoryExists,
   getProductIdOrIdentifierByInventoryIds,
+  getLocationInventorySummaryDetailsByItemId,
 } = require('../repositories/location-inventory-repository');
 const AppError = require('../utils/AppError');
 const { logError, logInfo, logWarn } = require('../utils/logger-helper');
@@ -39,13 +40,16 @@ const {
 const { generateChecksum } = require('../utils/crypto-utils');
 const {
   transformPaginatedLocationInventorySummaryResult,
+  transformPaginatedLocationInventorySummaryDetails,
 } = require('../transformers/location-inventory-transformer');
-const { canViewInventorySummary } = require('../business/warehouse-inventory-business');
 const {
   transformWarehouseInventoryRecords,
 } = require('../transformers/warehouse-inventory-transformer');
 const { sanitizeSortBy, sanitizeSortOrder } = require('../utils/sort-utils');
-const { logSystemException, logSystemInfo } = require('../utils/system-logger');
+const {
+  logSystemException,
+  logSystemInfo
+} = require('../utils/system-logger');
 
 /**
  * Fetches paginated location inventory summary records with filters, sorting, and
@@ -108,6 +112,42 @@ const fetchLocationInventorySummaryService = async ({ page, limit, filters, sort
     });
     
     throw AppError.serviceError('Failed to fetch location inventory summary');
+  }
+};
+
+/**
+ * Service to fetch and transform paginated location inventory summary details
+ * by item ID (product SKU or packaging material).
+ *
+ * @param {Object} options - Query options.
+ * @param {number} options.page - The current page number.
+ * @param {number} options.limit - The number of records per page.
+ * @param {string} options.itemId - The SKU ID or material ID to filter by.
+ * @returns {Promise<Object>} Paginated and transformed location inventory summary response.
+ * @throws {AppError} If the underlying query or transformation fails.
+ */
+const fetchLocationInventorySummaryByItemIdService = async ({ page, limit, itemId }) => {
+  try {
+    const rawResult = await getLocationInventorySummaryDetailsByItemId({ page, limit, itemId });
+    
+    logSystemInfo('Successfully fetched location inventory summary', {
+      context: 'location-inventory-service/fetchLocationInventorySummaryByItemId',
+      itemId,
+      page,
+      limit,
+      resultCount: rawResult?.data?.length ?? 0,
+    });
+    
+    return transformPaginatedLocationInventorySummaryDetails(rawResult);
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch and transform location inventory summary', {
+      context: 'location-inventory-service/fetchLocationInventorySummaryByItemId',
+      itemId,
+      page,
+      limit,
+    });
+    
+    throw AppError.serviceError('Unable to retrieve location inventory summary for the given item.');
   }
 };
 
@@ -571,6 +611,7 @@ const fetchRecentInsertWarehouseInventoryRecords = async (warehouseLotIds) => {
 
 module.exports = {
   fetchLocationInventorySummaryService,
+  fetchLocationInventorySummaryByItemIdService,
   createInventoryRecords,
   fetchRecentInsertWarehouseInventoryRecords,
 };
