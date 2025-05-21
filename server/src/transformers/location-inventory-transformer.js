@@ -25,7 +25,7 @@ const transformLocationInventorySummaryRow = (row) => {
   const statusInfo = deriveInventoryStatusFlags(row);
   
   return cleanObject({
-    id: row.item_id,
+    itemId: row.item_id,
     typeLabel: isProduct ? 'product' : 'packaging_material',
     displayName: isProduct
       ? productName || row.sku || '[Unnamed Product]'
@@ -75,17 +75,17 @@ const transformLocationInventorySummaryDetailsItem = (row) =>
     locationInventoryId: row.location_inventory_id,
     batchType: row.batch_type,
     
-    sku: row.sku_id && cleanObject({
-      id: row.sku_id,
-      code: row.sku,
-      name: row.product_name,
-    }),
-    
-    material: row.material_id && cleanObject({
-      id: row.material_id,
-      code: row.material_code,
-      name: row.material_name,
-    }),
+    item: row.batch_type === 'product'
+      ? cleanObject({
+        type: 'sku',
+        id: row.sku_id,
+        code: row.sku,
+      })
+      : cleanObject({
+        type: 'material',
+        id: row.material_id,
+        code: row.material_code,
+      }),
     
     lotNumber: row.lot_number,
     manufactureDate: row.product_manufacture_date || row.material_manufacture_date,

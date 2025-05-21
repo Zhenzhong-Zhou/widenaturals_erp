@@ -1,5 +1,8 @@
-import { type FC, useCallback } from 'react';
-import type { LocationInventorySummary } from '../state';
+import { type FC, Suspense, useCallback } from 'react';
+import type {
+  LocationInventorySummary,
+  LocationInventorySummaryItemDetail
+} from '../state';
 import Box from '@mui/material/Box';
 import StockLevelChip from '@features/inventoryShared/components/StockLevelChip';
 import ExpirySeverityChip from '@features/inventoryShared/components/ExpirySeverityChip';
@@ -7,6 +10,12 @@ import type { Column } from '@components/common/CustomTable';
 import CustomTable from '@components/common/CustomTable';
 import { formatLabel } from '@utils/textUtils';
 import { formatDate, formatDateTime } from '@utils/dateTimeUtils';
+import { createDrillDownColumn } from '@utils/table/createDrillDownColumn';
+import Skeleton from '@mui/material/Skeleton';
+import ErrorMessage from '@components/common/ErrorMessage.tsx';
+import CustomTypography from '@components/common/CustomTypography.tsx';
+import CustomButton from '@components/common/CustomButton.tsx';
+import LocationInventorySummaryDetailTable from './LocationInventorySummaryDetailTable';
 
 interface LocationInventorySummaryTableProps {
   data: LocationInventorySummary[];
@@ -16,16 +25,42 @@ interface LocationInventorySummaryTableProps {
   totalPages: number;
   onPageChange: (newPage: number) => void;
   onRowsPerPageChange: (newRowsPerPage: number) => void;
+  expandedRowId?: string | null;
+  onDrillDownToggle?: (rowId: string) => void;
+  onRowHover?: (rowId: string) => void;
+  detailDataMap?: Record<string, LocationInventorySummaryItemDetail[]>;
+  detailLoadingMap?: Record<string, boolean>;
+  detailErrorMap?: Record<string, string | null>;
+  detailPage: number;
+  detailLimit: number;
+  detailTotalRecords: number;
+  detailTotalPages: number;
+  onDetailPageChange: (newPage: number) => void;
+  onDetailRowsPerPageChange: (newLimit: number) => void;
+  onRefreshDetail: (rowId: string) => void;
 }
 
 const LocationInventorySummaryTable: FC<LocationInventorySummaryTableProps> = ({
-                                                                 data,
-                                                                 page,
-                                                                 rowsPerPage,
-                                                                 totalRecords,
-                                                                 totalPages,
-                                                                 onPageChange,
-                                                                 onRowsPerPageChange,
+                                                                                 data,
+                                                                                 page,
+                                                                                 rowsPerPage,
+                                                                                 totalRecords,
+                                                                                 totalPages,
+                                                                                 onPageChange,
+                                                                                 onRowsPerPageChange,
+                                                                                 expandedRowId,
+                                                                                 detailDataMap,
+                                                                                 detailLoadingMap,
+                                                                                 detailErrorMap,
+                                                                                 detailPage,
+                                                                                 detailLimit,
+                                                                                 detailTotalRecords,
+                                                                                 detailTotalPages,
+                                                                                 onDetailPageChange,
+                                                                                 onDetailRowsPerPageChange,
+                                                                                 onDrillDownToggle,
+                                                                                 onRowHover,
+                                                                                 onRefreshDetail,
                                                                }) => {
   const renderStockLevelCell = useCallback(
     (row: LocationInventorySummary) => (
@@ -103,7 +138,75 @@ const LocationInventorySummaryTable: FC<LocationInventorySummaryTableProps> = ({
       sortable: true,
       renderCell: renderExpirySeverityCell,
     },
+    ...(onDrillDownToggle
+      ? [
+        createDrillDownColumn<LocationInventorySummary>(
+          (row) => onDrillDownToggle?.(row.itemId),
+          (row) => expandedRowId === row.itemId,
+          {
+            onMouseEnter: (row) => onRowHover?.(row.itemId),
+          }
+        )
+      ]
+      : []),
   ];
+  
+  const expandedContent = useCallback(
+    (row: LocationInventorySummary) => {
+      const detailData = detailDataMap?.[row.itemId];
+      const detailLoading = detailLoadingMap?.[row.itemId] ?? false;
+      const detailError = detailErrorMap?.[row.itemId] ?? null;
+      
+      if (!detailData && !detailLoading) {
+        return (
+          <Box sx={{ height: 120, p: 2 }}>
+            <Skeleton variant="rectangular" height="100%" />
+          </Box>
+        );
+      }
+      if (detailError) return <ErrorMessage message={detailError} />;
+      if (!detailData?.length && !detailLoading) {
+        return (
+          <CustomTypography sx={{ p: 2 }} variant="body2">
+            No detail data available.
+          </CustomTypography>
+        );
+      }
+      
+      return (
+        <Box sx={{ p: 2 }}>
+          <Suspense
+            fallback={
+              <Skeleton
+                height={80}
+                variant="rectangular"
+                sx={{ borderRadius: 1, mb: 1 }}
+              />
+            }
+          >
+            <LocationInventorySummaryDetailTable
+              data={detailData ?? []}
+              page={detailPage - 1}
+              totalRecords={detailTotalRecords ?? 0}
+              totalPages={detailTotalPages ?? 1}
+              rowsPerPage={detailLimit}
+              onPageChange={(newPage) => onDetailPageChange?.(newPage + 1)}
+              onRowsPerPageChange={onDetailRowsPerPageChange}
+            />
+          </Suspense>
+          
+          {onRefreshDetail && (
+            <Box mt={1}>
+              <CustomButton size="small" onClick={() => onRefreshDetail(row.itemId)}>
+                Refresh Details
+              </CustomButton>
+            </Box>
+          )}
+        </Box>
+      );
+    },
+    [detailDataMap, detailLoadingMap, detailErrorMap, onRefreshDetail]
+  );
   
   return (
     <Box>
@@ -117,6 +220,11 @@ const LocationInventorySummaryTable: FC<LocationInventorySummaryTableProps> = ({
         totalPages={totalPages}
         onPageChange={onPageChange}
         onRowsPerPageChange={onRowsPerPageChange}
+        expandable={!!expandedRowId}
+        expandedRowIndex={
+          expandedRowId ? data.findIndex((row) => row.itemId === expandedRowId) : null
+        }
+        expandedContent={expandedContent}
       />
     </Box>
   );

@@ -107,7 +107,7 @@ const WarehouseInventorySummaryDetailTable: FC<Props> = ({
       label: 'Duration In Storage',
       sortable: true,
       format: (_, row) =>
-        row?.timestamps?.durationInStorage ? formatDate(row?.timestamps?.durationInStorage) : '-',
+        `${row?.timestamps?.durationInStorage} days`,
     },
     {
       id: 'lastUpdate',

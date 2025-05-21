@@ -21,7 +21,7 @@ const useLocationInventorySummary = () => {
   const loading = useAppSelector(selectLocationInventorySummaryLoading);
   const error = useAppSelector(selectLocationInventorySummaryError);
   
-  const fetchData = useCallback((params: LocationInventoryQueryParams) => {
+  const fetchLocationInventorySummary = useCallback((params: LocationInventoryQueryParams) => {
     dispatch(fetchLocationInventorySummaryThunk(params));
   }, [dispatch]);
   
@@ -30,7 +30,7 @@ const useLocationInventorySummary = () => {
     pagination,
     loading,
     error,
-    fetchData,
+    fetchLocationInventorySummary,
   };
 };
 

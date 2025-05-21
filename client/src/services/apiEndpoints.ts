@@ -21,6 +21,7 @@ export const API_ENDPOINTS = {
   LOCATION_TYPE_DETAILS: '/location-types/:id',
   ALL_LOCATIONS: '/locations',
   LOCATION_INVENTORY_SUMMARY: '/location-inventory/summary',
+  LOCATION_INVENTORY_SUMMARY_DETAIL: '/location-inventory/summary/:itemId/details',
   ALL_WAREHOUSES: '/warehouses',
   WAREHOUSE_DETAILS: '/warehouses/details/:id',
   WAREHOUSES_DROPDOWN: '/warehouses/dropdown',

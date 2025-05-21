@@ -1,4 +1,4 @@
-import { type FC, Suspense, useEffect } from 'react';
+import { type FC, startTransition, Suspense, useCallback, useEffect, useState } from 'react';
 import Skeleton from '@mui/material/Skeleton';
 import CustomButton from '@components/common/CustomButton';
 import CustomTypography from '@components/common/CustomTypography';
@@ -7,7 +7,10 @@ import ErrorMessage from '@components/common/ErrorMessage';
 import LocationInventoryFilterPanel from '@features/locationInventory/components/LocationInventoryFilterPanel';
 import LocationInventorySummaryTable from '@features/locationInventory/components/LocationInventorySummaryTable';
 import useLocationInventorySummary from '@hooks/useLocationInventorySummary';
+import useLocationInventorySummaryByItemId from '@hooks/useLocationInventorySummaryByItemId';
 import type { ItemType } from '@features/inventoryShared/types/InventorySharedType';
+import type { LocationInventorySummaryItemDetail } from '@features/locationInventory/state';
+import { debounce } from '@mui/material';
 
 interface Props {
   page: number;
@@ -24,23 +27,100 @@ const LocationInventoryPanel: FC<Props> = ({
                                              onPageChange,
                                              onRowsPerPageChange,
                                            }) => {
+  const [detailPage, setDetailPage] = useState(1);
+  const [detailLimit, setDetailLimit] = useState(5);
+  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
+  const [detailCache, setDetailCache] = useState<Record<string, LocationInventorySummaryItemDetail[]>>({});
+  
   const {
-    data,
-    pagination,
-    loading,
-    error,
-    fetchData,
+    data: summaryData,
+    pagination:  summaryPagination,
+    loading: summaryLoading,
+    error: summaryError,
+    fetchLocationInventorySummary,
   } = useLocationInventorySummary();
   
+  const {
+    data: detailData,
+    pagination: detailsPagination,
+    loading: detailLoading,
+    error: detailError,
+    fetchLocationInventorySummaryDetail,
+  } = useLocationInventorySummaryByItemId();
+  
   useEffect(() => {
-    fetchData({ page, limit, ...(itemType ? { batchType: itemType } : {}) });
+    fetchLocationInventorySummary({ page, limit, ...(itemType ? { batchType: itemType } : {}) });
   }, [page, limit, itemType]);
   
+  useEffect(() => {
+    if (!expandedRowId) return;
+    
+    fetchLocationInventorySummaryDetail({
+      itemId: expandedRowId,
+      page: detailPage,
+      limit: detailLimit,
+    });
+  }, [expandedRowId, detailPage, detailLimit]);
+  
+  const detailLoadingMap = expandedRowId
+    ? { [expandedRowId]: detailLoading }
+    : {};
+  
+  const detailErrorMap = expandedRowId && detailError
+    ? { [expandedRowId]: detailError }
+    : {};
+  
+  useEffect(() => {
+    if (expandedRowId && detailData?.length) {
+      setDetailCache((prev) => ({
+        ...prev,
+        [expandedRowId]: detailData,
+      }));
+    }
+  }, [detailData, expandedRowId]);
+  
   const handleRefresh = () => {
-    fetchData({ page, limit, ...(itemType ? { batchType: itemType } : {}) });
+    fetchLocationInventorySummary({ page, limit, ...(itemType ? { batchType: itemType } : {}) });
   };
   
-  if (loading) {
+  const handleDetailsRefresh = () => {
+    if (!expandedRowId) return;
+    fetchLocationInventorySummaryDetail({
+      itemId: expandedRowId,
+      page: detailPage,
+      limit: detailLimit,
+    });
+  };
+  
+  const handleDrillDownToggle = useCallback(
+    debounce((rowId: string) => {
+      startTransition(() => {
+        setExpandedRowId((prev) => (prev === rowId ? null : rowId));
+      });
+    }, 150),
+    []
+  );
+  
+  const handleRowHover = (rowId: string) => {
+    if (!detailCache[rowId]) {
+      fetchLocationInventorySummaryDetail({
+        itemId: rowId,
+        page: detailPage,
+        limit: detailLimit,
+      });
+    }
+  };
+  
+  const handlePageChange = (newPage: number) => {
+    setDetailPage(newPage + 1); // Component uses 0-based index
+  };
+  
+  const handleRowsPerPageChange = (newLimit: number) => {
+    setDetailLimit(newLimit);
+    setDetailPage(1);
+  };
+  
+  if (summaryLoading) {
     return (
       <>
         {[...Array(5)].map((_, i) => (
@@ -50,15 +130,15 @@ const LocationInventoryPanel: FC<Props> = ({
     );
   }
   
-  if (error) {
+  if (summaryError) {
     return (
       <ErrorDisplay>
-        <ErrorMessage message={error} />
+        <ErrorMessage message={summaryError} />
       </ErrorDisplay>
     );
   }
   
-  if (data.length === 0) {
+  if (summaryData.length === 0) {
     return <CustomTypography sx={{ mt: 2 }}>No location inventory data available.</CustomTypography>;
   }
   
@@ -68,7 +148,7 @@ const LocationInventoryPanel: FC<Props> = ({
         <LocationInventoryFilterPanel
           visibleFields={['productName', 'materialName', 'sku']}
           onApply={(filters) => {
-            fetchData({
+            fetchLocationInventorySummary({
               page: 1,
               limit,
               ...filters,
@@ -76,7 +156,7 @@ const LocationInventoryPanel: FC<Props> = ({
             });
           }}
           onReset={() => {
-            fetchData({
+            fetchLocationInventorySummary({
               page: 1,
               limit,
               ...(itemType ? { batchType: itemType } : {}),
@@ -84,13 +164,26 @@ const LocationInventoryPanel: FC<Props> = ({
           }}
         />
         <LocationInventorySummaryTable
-          data={data}
+          data={summaryData}
           page={page - 1}
           rowsPerPage={limit}
-          totalRecords={pagination?.totalRecords ?? 0}
-          totalPages={pagination?.totalPages ?? 1}
+          totalRecords={summaryPagination?.totalRecords ?? 0}
+          totalPages={summaryPagination?.totalPages ?? 1}
           onPageChange={onPageChange}
           onRowsPerPageChange={onRowsPerPageChange}
+          expandedRowId={expandedRowId}
+          onDrillDownToggle={handleDrillDownToggle}
+          onRowHover={handleRowHover}
+          detailDataMap={detailCache}
+          detailErrorMap={detailErrorMap}
+          detailLoadingMap={detailLoadingMap}
+          detailPage={detailPage}
+          detailLimit={detailLimit}
+          detailTotalRecords={detailsPagination.totalRecords}
+          detailTotalPages={detailsPagination.totalPages}
+          onDetailPageChange={handlePageChange}
+          onDetailRowsPerPageChange={handleRowsPerPageChange}
+          onRefreshDetail={handleDetailsRefresh}
         />
       </Suspense>
       <CustomButton onClick={handleRefresh} sx={{ mt: 2 }}>
