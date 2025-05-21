@@ -1,5 +1,10 @@
 import type { PaginatedResponse, PaginatedState } from '@shared-types/api';
-import type { InventoryHealthStatus, ItemType } from '@features/inventoryShared/types/InventorySharedType';
+import type {
+  BaseFlatInventoryRow,
+  BaseInventorySummaryItem,
+  InventoryHealthStatus,
+  ItemType,
+} from '@features/inventoryShared/types/InventorySharedType';
 
 export interface FetchWarehouseInventoryItemSummaryParams {
   page?: number;
@@ -41,36 +46,10 @@ export type WarehouseInventoryItemSummary =
   | ProductWarehouseInventorySummary
   | MaterialWarehouseInventorySummary;
 
-export interface WarehouseInventorySummaryItemDetails {
+export interface WarehouseInventorySummaryItemDetails extends BaseInventorySummaryItem {
   warehouseInventoryId: string;
-  item: (
-    | {
-    id: string;
-    code: string;
-  }
-    | {
-    id: string;
-    code: string;
-  }
-    );
-  lotNumber: string;
-  manufactureDate: string; // ISO format
-  expiryDate: string;
-  quantity: {
+  quantity: BaseInventorySummaryItem['quantity'] & {
     warehouseQuantity: number;
-    reserved: number;
-    available: number;
-  };
-  status: {
-    id: string;
-    name: string;
-    date: string;
-  };
-  timestamps: {
-    inboundDate: string;
-    outboundDate: string;
-    lastUpdate: string;
-    durationInStorage: string;
   };
   warehouse: {
     id: string;
@@ -81,6 +60,14 @@ export interface WarehouseInventorySummaryItemDetails {
 export type WarehouseInventorySummaryDetailsByItemIdResponse = PaginatedResponse<WarehouseInventorySummaryItemDetails>;
 
 export type WarehouseInventorySummaryDetailState = PaginatedState<WarehouseInventorySummaryItemDetails>;
+
+export interface FlatWarehouseInventorySummaryDetailRow extends BaseFlatInventoryRow {
+  warehouseInventoryId: string;
+  warehouseName: string;
+  warehouseQuantity: number;
+}
+
+
 
 
 

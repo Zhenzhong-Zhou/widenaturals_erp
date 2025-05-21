@@ -28,3 +28,43 @@ export interface InventorySummaryDetailByItemIdParams extends PaginationParams {
    */
   itemId: string;
 }
+
+export interface BaseInventorySummaryItem {
+  lotNumber: string;
+  item: {
+    id: string;
+    code: string;
+  };
+  manufactureDate: string;
+  expiryDate: string;
+  quantity: {
+    reserved: number;
+    available: number;
+  };
+  status: {
+    id: string;
+    name: string;
+    date: string;
+  };
+  timestamps: {
+    inboundDate?: string;
+    outboundDate?: string;
+    lastUpdate: string;
+  };
+  durationInStorage: number | string;
+}
+
+export interface BaseFlatInventoryRow {
+  itemCode: string;
+  lotNumber: string;
+  manufactureDate: string;
+  expiryDate: string;
+  reserved: number;
+  available: number;
+  statusName: string;
+  statusDate: string;
+  inboundDate?: string;
+  outboundDate?: string;
+  lastUpdate: string;
+  durationInStorage: number | string;
+}

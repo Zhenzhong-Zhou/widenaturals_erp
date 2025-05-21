@@ -1,12 +1,11 @@
 import type { FC, ReactNode } from 'react';
-import {
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
-  TableContainer,
-} from '@mui/material';
+import Table from '@mui/material/Table';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import TableCell from '@mui/material/TableCell';
+import TableBody from '@mui/material/TableBody';
+import TableContainer from '@mui/material/TableContainer';
+import TablePagination from '@mui/material/TablePagination';
 import NoDataFound from '@components/common/NoDataFound';
 
 export interface MiniColumn<T> {
@@ -18,18 +17,31 @@ export interface MiniColumn<T> {
 }
 
 interface MiniTableProps<T> {
+  rowsPerPageId?: string;
   columns: MiniColumn<T>[];
   data: T[];
   emptyMessage?: string;
   dense?: boolean;
+  page?: number;
+  initialRowsPerPage?: number;
+  totalRecords?: number;
+  totalPages?: number;
+  onPageChange?: (newPage: number) => void;
+  onRowsPerPageChange?: (newLimit: number) => void;
 }
 
 const CustomMiniTable = <T extends Record<string, any>>({
-                                                    columns,
-                                                    data,
-                                                    emptyMessage = 'No data found',
-                                                    dense = true,
-                                                  }: MiniTableProps<T>): ReturnType<FC> => {
+                                                          rowsPerPageId,
+                                                          columns,
+                                                          data,
+                                                          emptyMessage = 'No data found',
+                                                          dense = true,
+                                                          page,
+                                                          initialRowsPerPage = 10,
+                                                          totalRecords,
+                                                          onPageChange,
+                                                          onRowsPerPageChange,
+                                                        }: MiniTableProps<T>): ReturnType<FC> => {
   if (!data || data.length === 0) {
     return <NoDataFound message={emptyMessage} />;
   }
@@ -63,6 +75,28 @@ const CustomMiniTable = <T extends Record<string, any>>({
           ))}
         </TableBody>
       </Table>
+      
+      {typeof page === 'number' && typeof totalRecords === 'number' && (
+        <TablePagination
+          component="div"
+          count={totalRecords}
+          page={page}
+          rowsPerPage={initialRowsPerPage}
+          onPageChange={(_e, newPage) => onPageChange?.(newPage)}
+          onRowsPerPageChange={(e) =>
+            onRowsPerPageChange?.(parseInt(e.target.value, 10))
+          }
+          rowsPerPageOptions={[5, 10, 15, 20]}
+          slotProps={{
+            select: {
+              inputProps: {
+                name: 'rows-per-page',
+                id: rowsPerPageId || 'rows-per-page-selector',
+              },
+            },
+          }}
+        />
+      )}
     </TableContainer>
   );
 };

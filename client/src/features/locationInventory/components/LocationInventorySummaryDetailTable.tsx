@@ -1,9 +1,11 @@
-import { type FC, memo } from 'react';
-import type { Column } from '@components/common/CustomTable';
-import CustomTable from '@components/common/CustomTable';
+import { type FC, memo, useMemo } from 'react';
+import CustomMiniTable, { type MiniColumn } from '@components/common/CustomMiniTable';
+import type {
+  FlatLocationInventorySummaryDetailRow,
+  LocationInventorySummaryItemDetail,
+} from '@features/locationInventory/state';
 import { formatDate } from '@utils/dateTimeUtils';
 import { formatLabel } from '@utils/textUtils';
-import type { LocationInventorySummaryItemDetail } from '@features/locationInventory/state';
 import { generateUniqueKey } from '@utils/generateUniqueKey';
 
 interface Props {
@@ -27,94 +29,59 @@ const LocationInventorySummaryDetailTable: FC<Props> = ({
                                                         }) => {
   const id = generateUniqueKey();
   
-  const columns: Column<LocationInventorySummaryItemDetail>[] = [
-    {
-      id: 'locationType',
-      label: 'Type',
-      sortable: true,
-      format: (_, row) => row?.location?.type ?? 'N/A',
-    },
-    {
-      id: 'locationName',
-      label: 'Location',
-      sortable: true,
-      format: (_, row) => row?.location?.name ?? 'N/A',
-    },
-    {
-      id: 'lotNumber',
-      label: 'Lot Number',
-      sortable: true,
-    },
-    {
-      id: 'manufactureDate',
-      label: 'MFG Date',
-      sortable: true,
-      format: (_, row) => formatDate(row?.expiryDate ?? null),
-    },
-    {
-      id: 'expiryDate',
-      label: 'Expiry Date',
-      sortable: true,
-      format: (_, row) => formatDate(row?.expiryDate ?? null),
-    },
-    {
-      id: 'locationQuantity',
-      label: 'Location Qty',
-      sortable: true,
-      format: (_, row) => row?.quantity.locationQuantity,
-    },
-    {
-      id: 'reserved',
-      label: 'Reserved',
-      sortable: true,
-      format: (_, row) => row?.quantity.reserved,
-    },
-    {
-      id: 'available',
-      label: 'Available',
-      sortable: true,
-      format: (_, row) => row?.quantity.available,
-    },
-    {
-      id: 'status',
-      label: 'Status',
-      sortable: false,
-      format: (_, row) => formatLabel(row?.status?.name ?? 'Unknown'),
-    },
-    {
-      id: 'statusDate',
-      label: 'Status Date',
-      sortable: true,
-      format: (_, row) =>
-        row?.timestamps.lastUpdate ? formatDate(row.timestamps.lastUpdate) : '—',
-    },
-    {
-      id: 'inboundDate',
-      label: 'Inbound Date',
-      sortable: true,
-      format: (_, row) =>
-        row?.timestamps.inboundDate ? formatDate(row.timestamps.inboundDate) : '—',
-    },
-    {
-      id: 'outboundDate',
-      label: 'Outbound Date',
-      sortable: true,
-      format: (_, row) =>
-        row?.timestamps.outboundDate ? formatDate(row.timestamps.outboundDate) : '—',
-    },
+  const flattenLocationInventorySummaryDetailRow = (
+    item: LocationInventorySummaryItemDetail
+  ): FlatLocationInventorySummaryDetailRow => ({
+    locationInventoryId: item.locationInventoryId,
+    itemCode: item.item.code,
+    lotNumber: item.lotNumber,
+    manufactureDate: item.manufactureDate,
+    expiryDate: item.expiryDate,
+    locationQuantity: item.quantity.locationQuantity,
+    reserved: item.quantity.reserved,
+    available: item.quantity.available,
+    statusName: item.status.name,
+    statusDate: item.status.date,
+    inboundDate: item.timestamps.inboundDate,
+    outboundDate: item.timestamps.outboundDate,
+    lastUpdate: item.timestamps.lastUpdate,
+    durationInStorage: item.durationInStorage,
+    locationName: item.location.name,
+    locationType: item.location.type,
+  });
+  
+  const locationInventoryColumns: MiniColumn<FlatLocationInventorySummaryDetailRow>[] = [
+    { id: 'locationType', label: 'Type' },
+    { id: 'locationName', label: 'Location' },
+    { id: 'itemCode', label: 'Item Code' },
+    { id: 'lotNumber', label: 'Lot Number' },
+    { id: 'manufactureDate', label: 'MFG Date', format: (v) => formatDate(v) },
+    { id: 'expiryDate', label: 'Expiry Date', format: (v) => formatDate(v) },
+    { id: 'locationQuantity', label: 'Qty' },
+    { id: 'reserved', label: 'Reserved' },
+    { id: 'available', label: 'Available' },
+    { id: 'statusName', label: 'Status', format: (v) => formatLabel(v) },
+    { id: 'statusDate', label: 'Status Date', format: (v) => formatDate(v) },
+    { id: 'inboundDate', label: 'Inbound Date', format: (v) => formatDate(v) },
+    { id: 'outboundDate', label: 'Outbound Date', format: (v) => formatDate(v) },
     {
       id: 'durationInStorage',
-      label: 'Duration In Storage',
-      sortable: true,
-      format: (_, row) => `${row?.durationInStorage} days`,
+      label: 'Storage (Days)',
+      format: (v) => `${v} days`,
     },
+    { id: 'lastUpdate', label: 'Last Updated', format: (v) => formatDate(v) },
   ];
   
+  const flattenedData = useMemo(
+    () => data.map(flattenLocationInventorySummaryDetailRow),
+    [data]
+  );
+  
   return (
-    <CustomTable
+    <CustomMiniTable
       rowsPerPageId={`rows-per-page-${id}`}
-      columns={columns}
-      data={data}
+      columns={locationInventoryColumns}
+      data={flattenedData}
       page={page}
       initialRowsPerPage={rowsPerPage}
       totalRecords={totalRecords}

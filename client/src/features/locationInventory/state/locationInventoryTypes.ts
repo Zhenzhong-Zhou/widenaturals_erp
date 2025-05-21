@@ -1,4 +1,9 @@
-import type { InventoryHealthStatus, ItemType } from '@features/inventoryShared/types/InventorySharedType';
+import type {
+  BaseFlatInventoryRow,
+  BaseInventorySummaryItem,
+  InventoryHealthStatus,
+  ItemType,
+} from '@features/inventoryShared/types/InventorySharedType';
 import type { PaginatedResponse, PaginatedState } from '@shared-types/api';
 
 export type LocationInventorySummaryResponse = PaginatedResponse<LocationInventorySummary>;
@@ -36,37 +41,11 @@ export interface LocationInventoryQueryParams {
 
 export type LocationInventorySummaryState = PaginatedState<LocationInventorySummary>
 
-export interface LocationInventorySummaryItemDetail {
+export interface LocationInventorySummaryItemDetail extends BaseInventorySummaryItem {
   locationInventoryId: string;
-  item: (
-    | {
-    id: string;
-    code: string;
-  }
-    | {
-    id: string;
-    code: string;
-  }
-    );
-  lotNumber: string;
-  manufactureDate: string; // ISO date string
-  expiryDate: string;      // ISO date string
-  quantity: {
+  quantity: BaseInventorySummaryItem['quantity'] & {
     locationQuantity: number;
-    reserved: number;
-    available: number;
   };
-  status: {
-    id: string;
-    name: string;
-    date: string; // ISO date string
-  };
-  timestamps: {
-    inboundDate?: string;
-    outboundDate?: string;
-    lastUpdate: string;
-  };
-  durationInStorage: number;
   location: {
     id: string;
     name: string;
@@ -77,3 +56,10 @@ export interface LocationInventorySummaryItemDetail {
 export type LocationInventorySummaryDetailResponse = PaginatedResponse<LocationInventorySummaryItemDetail>;
 
 export type LocationInventorySummaryDetailState = PaginatedState<LocationInventorySummaryItemDetail>;
+
+export interface FlatLocationInventorySummaryDetailRow extends BaseFlatInventoryRow {
+  locationInventoryId: string;
+  locationQuantity: number;
+  locationName: string;
+  locationType: string;
+}

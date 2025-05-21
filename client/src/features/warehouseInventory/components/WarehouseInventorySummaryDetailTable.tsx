@@ -1,9 +1,11 @@
-import { type FC, memo } from 'react';
-import type { Column } from '@components/common/CustomTable';
-import CustomTable from '@components/common/CustomTable';
+import { type FC, memo, useMemo } from 'react';
+import CustomMiniTable, { type MiniColumn } from '@components/common/CustomMiniTable';
+import type {
+  FlatWarehouseInventorySummaryDetailRow,
+  WarehouseInventorySummaryItemDetails,
+} from '@features/warehouseInventory/state';
 import { formatDate } from '@utils/dateTimeUtils';
 import { formatLabel } from '@utils/textUtils';
-import type { WarehouseInventorySummaryItemDetails } from '@features/warehouseInventory/state';
 import { generateUniqueKey } from '@utils/generateUniqueKey';
 
 interface Props {
@@ -27,102 +29,53 @@ const WarehouseInventorySummaryDetailTable: FC<Props> = ({
                                                          }) => {
   const id = generateUniqueKey();
   
-  const columns: Column<WarehouseInventorySummaryItemDetails>[] = [
-    {
-      id: 'warehouseName',
-      label: 'Warehouse',
-      sortable: true,
-      format: (_, row) => row?.warehouse?.name ?? 'N/A',
-    },
-    {
-      id: 'skuOrMaterial',
-      label: 'Item Code',
-      sortable: true,
-      format: (_, row) => row?.item?.code ?? '—',
-    },
-    {
-      id: 'lotNumber',
-      label: 'Lot Number',
-      sortable: true,
-    },
-    {
-      id: 'manufactureDate',
-      label: 'MFG Date',
-      sortable: true,
-      format: (_, row) => formatDate(row?.manufactureDate ?? null),
-    },
-    {
-      id: 'expiryDate',
-      label: 'Expiry Date',
-      sortable: true,
-      format: (_, row) => formatDate(row?.expiryDate ?? null),
-    },
-    {
-      id: 'warehouseQuantity',
-      label: 'WH Qty',
-      sortable: true,
-      format: (_, row) => row?.quantity?.warehouseQuantity ?? 0,
-    },
-    {
-      id: 'reservedQuantity',
-      label: 'Reserved',
-      sortable: true,
-      format: (_, row) => row?.quantity?.reserved ?? 0,
-    },
-    {
-      id: 'availableQuantity',
-      label: 'Available',
-      sortable: true,
-      format: (_, row) => row?.quantity?.available ?? 0,
-    },
-    {
-      id: 'status',
-      label: 'Status',
-      sortable: false,
-      format: (_, row) => formatLabel(row?.status?.name ?? 'Unknown'),
-    },
-    {
-      id: 'statusDate',
-      label: 'Status Date',
-      sortable: true,
-      format: (_, row) =>
-        row?.status?.date ? formatDate(row?.status?.date) : '-',
-    },
-    {
-      id: 'inboundDate',
-      label: 'Inbound Date',
-      sortable: true,
-      format: (_, row) =>
-        row?.timestamps?.inboundDate ? formatDate(row?.timestamps?.inboundDate) : '-',
-    },
-    {
-      id: 'outboundDate',
-      label: 'Outbound Date',
-      sortable: true,
-      format: (_, row) =>
-        row?.timestamps?.outboundDate ? formatDate(row?.timestamps?.outboundDate) : '-',
-    },
-    {
-      id: 'durationInStorage',
-      label: 'Duration In Storage',
-      sortable: true,
-      format: (_, row) =>
-        `${row?.timestamps?.durationInStorage} days`,
-    },
-    {
-      id: 'lastUpdate',
-      label: 'Last Updated',
-      sortable: true,
-      format: (_, row) =>
-        row?.timestamps.lastUpdate ? formatDate(row.timestamps.lastUpdate) : '—'
-    },
+  const flattenWarehouseInventorySummaryDetailRow = (
+    item: WarehouseInventorySummaryItemDetails
+  ): FlatWarehouseInventorySummaryDetailRow => ({
+    warehouseInventoryId: item.warehouseInventoryId,
+    warehouseName: item.warehouse.name,
+    itemCode: item.item.code,
+    lotNumber: item.lotNumber,
+    manufactureDate: item.manufactureDate,
+    expiryDate: item.expiryDate,
+    warehouseQuantity: item.quantity.warehouseQuantity,
+    reserved: item.quantity.reserved,
+    available: item.quantity.available,
+    statusName: item.status.name,
+    statusDate: item.status.date,
+    inboundDate: item.timestamps.inboundDate,
+    outboundDate: item.timestamps.outboundDate,
+    durationInStorage: item.durationInStorage,
+    lastUpdate: item.timestamps.lastUpdate,
+  });
+  
+  const warehouseInventoryColumns: MiniColumn<FlatWarehouseInventorySummaryDetailRow>[] = [
+    { id: 'warehouseName', label: 'Warehouse' },
+    { id: 'itemCode', label: 'Item Code' },
+    { id: 'lotNumber', label: 'Lot Number' },
+    { id: 'manufactureDate', label: 'MFG Date', format: (v) => formatDate(v) },
+    { id: 'expiryDate', label: 'Expiry Date', format: (v) => formatDate(v) },
+    { id: 'warehouseQuantity', label: 'WH Qty' },
+    { id: 'reserved', label: 'Reserved' },
+    { id: 'available', label: 'Available' },
+    { id: 'statusName', label: 'Status', format: (v) => formatLabel(v) },
+    { id: 'statusDate', label: 'Status Date', format: (v) => formatDate(v) },
+    { id: 'inboundDate', label: 'Inbound Date', format: (v) => formatDate(v) },
+    { id: 'outboundDate', label: 'Outbound Date', format: (v) => formatDate(v) },
+    { id: 'durationInStorage', label: 'Storage (Days)', format: (v) => `${v} days` },
+    { id: 'lastUpdate', label: 'Last Updated', format: (v) => formatDate(v) },
   ];
   
+  const flattenedData = useMemo(
+    () => data.map(flattenWarehouseInventorySummaryDetailRow),
+    [data]
+  );
+  
   return (
-    <CustomTable
+    <CustomMiniTable
       rowsPerPageId={`rows-per-page-${id}`}
-      columns={columns}
-      data={data}
+      columns={warehouseInventoryColumns}
+      data={flattenedData}
       page={page}
       initialRowsPerPage={rowsPerPage}
       totalRecords={totalRecords}
