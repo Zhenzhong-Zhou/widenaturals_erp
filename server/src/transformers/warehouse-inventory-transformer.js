@@ -4,6 +4,7 @@ const {
 } = require('../utils/inventory-utils');
 const { getProductDisplayName } = require('../utils/display-name-utils');
 const { transformPaginatedResult, deriveInventoryStatusFlags, cleanObject } = require('../utils/transformer-utils');
+const { differenceInDays } = require('date-fns');
 
 /**
  * Transforms a single warehouse inventory summary row (product or material) into application format.
@@ -74,7 +75,7 @@ const transformPaginatedWarehouseInventoryItemSummary = (paginatedResult) =>
   transformPaginatedResult(paginatedResult, transformWarehouseInventoryItemSummaryRow);
 
 /**
- * Transform a single raw warehouse inventory summary record into clean structure.
+ * Transform a single raw warehouse inventory summary record into a clean structure.
  *
  * @param {Object} row - Raw DB row from warehouse inventory summary query.
  * @returns {Object} Cleaned and enriched inventory record.
@@ -115,8 +116,13 @@ const transformWarehouseInventorySummaryDetailsItem = (row) =>
     }),
     
     timestamps: cleanObject({
+      inboundDate: row.inbound_date,
+      outboundDate: row.outbound_date,
       lastUpdate: row.last_update,
     }),
+    durationInStorage: row.inbound_date
+      ? differenceInDays(new Date(), new Date(row.inbound_date))
+      : null,
     
     warehouse: cleanObject({
       id: row.warehouse_id,

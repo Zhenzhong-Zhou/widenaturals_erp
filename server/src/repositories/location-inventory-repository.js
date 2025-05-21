@@ -174,6 +174,9 @@ const getLocationInventorySummaryDetailsByItemId = async ({ page, limit, itemId 
       li.inbound_date,
       li.outbound_date,
       li.last_update,
+      li.status_id,
+      ist.name AS status_name,
+      li.status_date,
       l.id AS location_id,
       l.name AS location_name,
       lt.name AS location_type
@@ -187,6 +190,7 @@ const getLocationInventorySummaryDetailsByItemId = async ({ page, limit, itemId 
     LEFT JOIN packaging_material_batches pmb ON br.packaging_material_batch_id = pmb.id
     LEFT JOIN packaging_material_suppliers pms ON pmb.packaging_material_supplier_id = pms.id
     LEFT JOIN packaging_materials pm ON pms.packaging_material_id = pm.id
+    JOIN inventory_status ist ON li.status_id = ist.id
     WHERE
       (
         (br.batch_type = 'product' AND s.id = $1)

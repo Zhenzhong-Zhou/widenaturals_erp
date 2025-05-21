@@ -89,7 +89,7 @@ const retry = async (fn, retries = 3, backoffFactor = 1000) => {
  * @param {object|null} [clientOrPool=null] - Optional pg client for transaction use.
  * @param {number} [retries=3] - Number of retry attempts.
  * @param {number} [backoff=200] - Backoff in ms between retries.
- * @param {Object} meta={} - Optional metadata for logging (e.g. traceId, txId, context).
+ * @param {Object} meta={} - Optional metadata for logging (e.g., traceId, txId, context).
  * @returns {Promise<object>} - Query result.
  * @throws {AppError} - Custom database error if all retries fail.
  */
@@ -463,7 +463,7 @@ const getCountQuery = (queryText, alias = 'subquery') => {
  * @param {Array} [options.params=[]] - Parameters for the base query.
  * @param {number} [options.page=1] - Page number (1-based).
  * @param {number} [options.limit=20] - Page size.
- * @param {Object} [options.meta={}] - Optional metadata for logging (e.g. traceId, txId, context).
+ * @param {Object} [options.meta={}] - Optional metadata for logging (e.g., traceId, txId, context).
  * @returns {Promise<Object>} - Paginated results with metadata.
  */
 const paginateResults = async ({

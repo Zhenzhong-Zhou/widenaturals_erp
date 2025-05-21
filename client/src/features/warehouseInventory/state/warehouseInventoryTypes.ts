@@ -67,7 +67,10 @@ export interface WarehouseInventorySummaryItemDetails {
     date: string;
   };
   timestamps: {
+    inboundDate: string;
+    outboundDate: string;
     lastUpdate: string;
+    durationInStorage: string;
   };
   warehouse: {
     id: string;

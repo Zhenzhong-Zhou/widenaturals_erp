@@ -245,6 +245,8 @@ const getWarehouseInventorySummaryDetailsByItemId = async ({ page, limit, itemId
       wi.status_id,
       ist.name AS status_name,
       wi.status_date,
+      wi.inbound_date,
+      wi.outbound_date,
       wi.last_update,
       w.id AS warehouse_id,
       w.name AS warehouse_name

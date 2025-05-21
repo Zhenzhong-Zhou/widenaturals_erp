@@ -57,6 +57,8 @@ exports.seed = async function (knex) {
     warehouse_quantity: Math.floor(Number(b.quantity) || 0),
     reserved_quantity: 0,
     warehouse_fee: 0,
+    inbound_date: now,
+    outbound_date: null,
     last_update: now,
     status_id: inStockStatusId,
     status_date: now,

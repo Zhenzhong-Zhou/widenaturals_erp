@@ -89,6 +89,27 @@ const WarehouseInventorySummaryDetailTable: FC<Props> = ({
         row?.status?.date ? formatDate(row?.status?.date) : '-',
     },
     {
+      id: 'inboundDate',
+      label: 'Inbound Date',
+      sortable: true,
+      format: (_, row) =>
+        row?.timestamps?.inboundDate ? formatDate(row?.timestamps?.inboundDate) : '-',
+    },
+    {
+      id: 'outboundDate',
+      label: 'Outbound Date',
+      sortable: true,
+      format: (_, row) =>
+        row?.timestamps?.outboundDate ? formatDate(row?.timestamps?.outboundDate) : '-',
+    },
+    {
+      id: 'durationInStorage',
+      label: 'Duration In Storage',
+      sortable: true,
+      format: (_, row) =>
+        row?.timestamps?.durationInStorage ? formatDate(row?.timestamps?.durationInStorage) : '-',
+    },
+    {
       id: 'lastUpdate',
       label: 'Last Updated',
       sortable: true,

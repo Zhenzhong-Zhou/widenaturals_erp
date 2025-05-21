@@ -671,6 +671,8 @@ exports.seed = async function (knex) {
     ...entry,
     reserved_quantity: 0,
     warehouse_fee: 0,
+    inbound_date: knex.fn.now(),
+    outbound_date: null,
     last_update: knex.fn.now(),
     status_date: knex.fn.now(),
     created_at: knex.fn.now(),

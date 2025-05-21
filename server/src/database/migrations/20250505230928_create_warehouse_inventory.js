@@ -12,6 +12,8 @@ exports.up = async function (knex) {
     table.integer('reserved_quantity').notNullable().defaultTo(0);
     table.decimal('warehouse_fee', 10, 2).notNullable().defaultTo(0);
     
+    table.timestamp('inbound_date', { useTz: true }).notNullable().index();
+    table.timestamp('outbound_date', { useTz: true }).nullable().index();
     table.timestamp('last_update', { useTz: true }).defaultTo(knex.fn.now());
     
     table.uuid('status_id').notNullable().references('id').inTable('inventory_status').index();

@@ -7,6 +7,7 @@ const {
   deriveInventoryStatusFlags, cleanObject,
 } = require('../utils/transformer-utils');
 const { getProductDisplayName } = require('../utils/display-name-utils');
+const { differenceInDays } = require('date-fns');
 
 /**
  * Transforms a raw SQL row from the location inventory summary query
@@ -99,11 +100,20 @@ const transformLocationInventorySummaryDetailsItem = (row) =>
       ),
     }),
     
+    status: cleanObject({
+      id: row.status_id,
+      name: row.status_name,
+      date: row.status_date,
+    }),
+    
     timestamps: cleanObject({
       inboundDate: row.inbound_date,
       outboundDate: row.outbound_date,
       lastUpdate: row.last_update,
     }),
+    durationInStorage: row.inbound_date
+      ? differenceInDays(new Date(), new Date(row.inbound_date))
+      : null,
     
     location: cleanObject({
       id: row.location_id,
