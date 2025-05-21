@@ -221,9 +221,8 @@ const LocationInventorySummaryTable: FC<LocationInventorySummaryTableProps> = ({
         onPageChange={onPageChange}
         onRowsPerPageChange={onRowsPerPageChange}
         expandable={!!expandedRowId}
-        expandedRowIndex={
-          expandedRowId ? data.findIndex((row) => row.itemId === expandedRowId) : null
-        }
+        expandedRowId={expandedRowId}
+        getRowId={(row) => row.itemId}
         expandedContent={expandedContent}
       />
     </Box>

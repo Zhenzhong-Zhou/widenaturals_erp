@@ -37,7 +37,8 @@ interface CustomTableProps<T = any> {
   onRowsPerPageChange: (newRowsPerPage: number) => void;
   expandable?: boolean;
   expandedContent?: (row: T) => ReactNode;
-  expandedRowIndex?: number | null;
+  expandedRowId?: string | number | null;
+  getRowId?: (row: T) => string | number;
   emptyMessage?: string;
 }
 
@@ -55,7 +56,8 @@ const CustomTable = <T extends Record<string, any>>({
                                              onRowsPerPageChange,
                                              expandable = false,
                                              expandedContent,
-                                             expandedRowIndex,
+                                             expandedRowId,
+                                             getRowId,
                                              emptyMessage,
                                            }: CustomTableProps<T>) => {
   const { theme } = useThemeContext();
@@ -148,55 +150,61 @@ const CustomTable = <T extends Record<string, any>>({
           </TableHead>
           
           <TableBody>
-            {loading
-              ? [...Array(initialRowsPerPage)].map((_, i) => (
+            {loading ? (
+              [...Array(initialRowsPerPage)].map((_, i) => (
                 <TableRow key={`skeleton-${i}`}>
                   <TableCell colSpan={columns.length + 1} sx={{ py: 1.25, px: 2 }}>
                     <Skeleton variant="rectangular" height={48} animation="wave" />
                   </TableCell>
                 </TableRow>
-              )) : sortedData.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={columns.length + 1} align="center" sx={{ py: 3 }}>
-                    <NoDataFound message={emptyMessage} />
-                  </TableCell>
-                </TableRow>
-              ) : (
-                sortedData.map((row, rowIndex) => (
-                  <Fragment key={rowIndex}>
-                  <TableRow
-                    sx={{
-                      '&:nth-of-type(odd)': {
-                        backgroundColor: theme.palette.action.hover,
-                      },
-                    }}
-                  >
-                    <TableCell align="center" sx={{ py: 1.25, px: 2 }}>
-                      {safePage * initialRowsPerPage + rowIndex + 1}
-                    </TableCell>
-                    {columns.map((col) => (
-                      <TableCell key={col.id} align={col.align || 'left'} sx={{ py: 1.25, px: 2 }}>
-                        {col.renderCell
-                          ? col.renderCell(row, rowIndex)
-                          : col.format
-                            ? col.format(row[col.id], row)
-                            : (row[col.id] as ReactNode)}
+              ))
+            ) : sortedData.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={columns.length + 1} align="center" sx={{ py: 3 }}>
+                  <NoDataFound message={emptyMessage} />
+                </TableCell>
+              </TableRow>
+            ) : (
+              sortedData.map((row, rowIndex) => {
+                // Get a stable row ID (fallback to index if needed)
+                const rowId = getRowId ? getRowId(row) : row.id ?? row.itemId ?? rowIndex;
+                
+                return (
+                  <Fragment key={rowId}>
+                    <TableRow
+                      sx={{
+                        '&:nth-of-type(odd)': {
+                          backgroundColor: theme.palette.action.hover,
+                        },
+                      }}
+                    >
+                      <TableCell align="center" sx={{ py: 1.25, px: 2 }}>
+                        {safePage * initialRowsPerPage + rowIndex + 1}
                       </TableCell>
-                    ))}
-                  </TableRow>
-                  
-                  {expandable && (
-                    <TableRow>
-                      <TableCell colSpan={columns.length + 1} sx={{ p: 0 }}>
-                        <Collapse in={expandedRowIndex === rowIndex}>
-                          {expandedContent?.(row)}
-                        </Collapse>
-                      </TableCell>
+                      {columns.map((col) => (
+                        <TableCell key={col.id} align={col.align || 'left'} sx={{ py: 1.25, px: 2 }}>
+                          {col.renderCell
+                            ? col.renderCell(row, rowIndex)
+                            : col.format
+                              ? col.format(row[col.id], row)
+                              : (row[col.id] as ReactNode)}
+                        </TableCell>
+                      ))}
                     </TableRow>
-                  )}
-                </Fragment>
-                ))
-              )}
+                    
+                    {expandable && (
+                      <TableRow>
+                        <TableCell colSpan={columns.length + 1} sx={{ p: 0 }}>
+                          <Collapse in={expandedRowId === rowId}>
+                            {expandedContent?.(row)}
+                          </Collapse>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </Fragment>
+                );
+              })
+            )}
           </TableBody>
         </Table>
       </TableContainer>
