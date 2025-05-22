@@ -15,6 +15,112 @@ const { logInfo, logError, logWarn } = require('../utils/logger-helper');
 const { buildLocationInventoryWhereClause } = require('../utils/sql/build-location-inventory-filters');
 
 /**
+ * Fetches summarized KPI statistics for location inventory, grouped by item type.
+ *
+ * - Returns counts of products, materials, quantities, expired/near-expiry items, and stock status.
+ * - Supports optional filtering by item type (`'product'` or `'packaging_material'`).
+ * - If no `itemType` is provided, includes a total row in addition to grouped data.
+ *
+ * @param {Object} options - Query options.
+ * @param {'product' | 'packaging_material'} [options.itemType] - Optional filter to limit results by item type.
+ * @returns {Promise<Array>} An array of summary objects, grouped by item type and a total row if no filter is applied.
+ */
+const getLocationInventoryKpiSummary = async ({ itemType } = {}) => {
+  const filterCondition = itemType
+    ? `WHERE br.batch_type = '${itemType}'`
+    : '';
+  
+  const queryText = `
+    SELECT
+      br.batch_type::text AS batch_type,
+      COUNT(DISTINCT CASE WHEN br.batch_type = 'product' THEN s.id END) AS total_products,
+      COUNT(DISTINCT CASE WHEN br.batch_type = 'packaging_material' THEN pm.id END) AS total_materials,
+      COUNT(DISTINCT l.id) AS locations_count,
+      SUM(li.location_quantity) AS total_quantity,
+      SUM(li.reserved_quantity) AS total_reserved,
+      SUM(li.location_quantity - li.reserved_quantity) AS total_available,
+      COUNT(*) FILTER (
+        WHERE (
+          (br.batch_type = 'product' AND pb.expiry_date BETWEEN NOW() AND NOW() + INTERVAL '90 days') OR
+          (br.batch_type = 'packaging_material' AND pmb.expiry_date BETWEEN NOW() AND NOW() + INTERVAL '90 days')
+        )
+      ) AS near_expiry_inventory_records,
+      COUNT(*) FILTER (
+        WHERE (
+          (br.batch_type = 'product' AND pb.expiry_date < NOW()) OR
+          (br.batch_type = 'packaging_material' AND pmb.expiry_date < NOW())
+        )
+      ) AS expired_inventory_records,
+      COUNT(DISTINCT pb.id) FILTER (
+        WHERE br.batch_type = 'product' AND pb.expiry_date < NOW()
+      ) AS expired_product_batches,
+      COUNT(DISTINCT pmb.id) FILTER (
+        WHERE br.batch_type = 'packaging_material' AND pmb.expiry_date < NOW()
+      ) AS expired_material_batches,
+      COUNT(*) FILTER (WHERE li.location_quantity < 10) AS low_stock_count
+    FROM location_inventory li
+    JOIN batch_registry br ON li.batch_id = br.id
+    LEFT JOIN product_batches pb ON br.product_batch_id = pb.id
+    LEFT JOIN skus s ON pb.sku_id = s.id
+    LEFT JOIN packaging_material_batches pmb ON br.packaging_material_batch_id = pmb.id
+    LEFT JOIN packaging_material_suppliers pms ON pmb.packaging_material_supplier_id = pms.id
+    LEFT JOIN packaging_materials pm ON pms.packaging_material_id = pm.id
+    JOIN locations l ON li.location_id = l.id
+    ${filterCondition}
+    GROUP BY br.batch_type
+
+    ${itemType ? '' : `
+    UNION ALL
+
+    SELECT
+      'total' AS batch_type,
+      COUNT(DISTINCT CASE WHEN br.batch_type = 'product' THEN s.id END),
+      COUNT(DISTINCT CASE WHEN br.batch_type = 'packaging_material' THEN pm.id END),
+      COUNT(DISTINCT l.id),
+      SUM(li.location_quantity),
+      SUM(li.reserved_quantity),
+      SUM(li.location_quantity - li.reserved_quantity),
+      COUNT(*) FILTER (
+        WHERE (
+          (br.batch_type = 'product' AND pb.expiry_date BETWEEN NOW() AND NOW() + INTERVAL '90 days') OR
+          (br.batch_type = 'packaging_material' AND pmb.expiry_date BETWEEN NOW() AND NOW() + INTERVAL '90 days')
+        )
+      ),
+      COUNT(*) FILTER (
+        WHERE (
+          (br.batch_type = 'product' AND pb.expiry_date < NOW()) OR
+          (br.batch_type = 'packaging_material' AND pmb.expiry_date < NOW())
+        )
+      ),
+      COUNT(DISTINCT pb.id) FILTER (WHERE br.batch_type = 'product' AND pb.expiry_date < NOW()),
+      COUNT(DISTINCT pmb.id) FILTER (WHERE br.batch_type = 'packaging_material' AND pmb.expiry_date < NOW()),
+      COUNT(*) FILTER (WHERE li.location_quantity < 10)
+    FROM location_inventory li
+    JOIN batch_registry br ON li.batch_id = br.id
+    LEFT JOIN product_batches pb ON br.product_batch_id = pb.id
+    LEFT JOIN skus s ON pb.sku_id = s.id
+    LEFT JOIN packaging_material_batches pmb ON br.packaging_material_batch_id = pmb.id
+    LEFT JOIN packaging_material_suppliers pms ON pmb.packaging_material_supplier_id = pms.id
+    LEFT JOIN packaging_materials pm ON pms.packaging_material_id = pm.id
+    JOIN locations l ON li.location_id = l.id
+    `}
+  `;
+  try {
+    logSystemInfo('Fetching location inventory KPI stats', {
+      context: 'location-inventory-repository/getLocationInventoryKPIStats',
+      itemType,
+    });
+    const { rows } = await query(queryText);
+    return rows;
+  } catch (error) {
+    logSystemException(error, 'Error fetching location inventory KPI stats', {
+      context: 'location-inventory-repository/getLocationInventoryKPIStats',
+    });
+    throw AppError.databaseError('Failed to fetch location inventory KPI stats');
+  }
+};
+
+/**
  * Fetches high-level location inventory records with support for:
  * pagination, dynamic filters, and sorting.
  *
@@ -630,6 +736,7 @@ const updateInventoryQuantity = async (client, inventoryUpdates, userId) => {
 };
 
 module.exports = {
+  getLocationInventoryKpiSummary,
   getHighLevelLocationInventorySummary,
   getLocationInventorySummaryDetailsByItemId,
   getInventoryId,

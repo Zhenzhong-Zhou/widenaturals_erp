@@ -1,10 +1,35 @@
 const {
+  fetchLocationInventoryKpiSummaryService,
   fetchLocationInventorySummaryService,
-  createInventoryRecords, fetchLocationInventorySummaryByItemIdService,
+  fetchLocationInventorySummaryByItemIdService,
+  createInventoryRecords,
 } = require('../services/location-inventory-service');
 const wrapAsync = require('../utils/wrap-async');
 const { logError, logInfo } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
+
+/**
+ * Controller to handle fetching KPI summary metrics for location inventory.
+ *
+ * @route GET /api/location-inventory/kpi-summary
+ * @queryParam {string} [itemType] - Optional item type filter ('product' | 'packaging_material')
+ * @returns {200} JSON array of KPI summary objects grouped by item type, including a total row.
+ */
+const getLocationInventoryKpiSummaryController = wrapAsync(async (req, res) => {
+  const { itemType } = req.query;
+  
+  if (itemType && !['product', 'packaging_material'].includes(itemType)) {
+    return AppError.validationError('Invalid itemType. Must be "product" or "packaging_material".');
+  }
+  
+  const summary = await fetchLocationInventoryKpiSummaryService({ itemType });
+  
+  return res.status(200).json({
+    success: true,
+    message: 'Successfully fetched KPI summary',
+    summary
+  });
+});
 
 /**
  * Controller to handle GET requests for location inventory summary.
@@ -124,6 +149,7 @@ const createInventoryRecordsController = wrapAsync(async (req, res, next) => {
 });
 
 module.exports = {
+  getLocationInventoryKpiSummaryController,
   getLocationInventorySummaryController,
   getLocationInventorySummaryDetailsController,
   createInventoryRecordsController,

@@ -1,10 +1,11 @@
 const {
+  getLocationInventoryKpiSummary,
   getHighLevelLocationInventorySummary,
+  getLocationInventorySummaryDetailsByItemId,
   insertInventoryRecords,
   updateInventoryQuantity,
   checkInventoryExists,
   getProductIdOrIdentifierByInventoryIds,
-  getLocationInventorySummaryDetailsByItemId,
 } = require('../repositories/location-inventory-repository');
 const AppError = require('../utils/AppError');
 const { logError, logInfo, logWarn } = require('../utils/logger-helper');
@@ -40,7 +41,7 @@ const {
 const { generateChecksum } = require('../utils/crypto-utils');
 const {
   transformPaginatedLocationInventorySummaryResult,
-  transformPaginatedLocationInventorySummaryDetails,
+  transformPaginatedLocationInventorySummaryDetails, transformLocationInventoryKpiSummary,
 } = require('../transformers/location-inventory-transformer');
 const {
   transformWarehouseInventoryRecords,
@@ -50,6 +51,34 @@ const {
   logSystemException,
   logSystemInfo
 } = require('../utils/system-logger');
+
+/**
+ * Service to fetch and transform KPI summary data for location inventory.
+ *
+ * Retrieves summarized inventory metrics (e.g., totals, availability, expiry counts),
+ * optionally filtered by item type ('product' or 'packaging_material').
+ *
+ * @param {Object} options - Query options for the KPI summary.
+ * @param {'product' | 'packaging_material'} [options.itemType] - Optional filter to restrict results to a specific item type.
+ * @returns {Promise<Array<Object>>} A promise resolving to an array of transformed KPI summary objects.
+ */
+const fetchLocationInventoryKpiSummaryService = async ({ itemType } = {}) => {
+  try {
+    logSystemInfo('Fetching location inventory KPI summary', {
+      context: 'location-inventory-service/locationInventoryKpiService',
+      itemType: itemType ?? 'all',
+    });
+    
+    const rawRows = await getLocationInventoryKpiSummary({ itemType });
+    return transformLocationInventoryKpiSummary(rawRows);
+  } catch (error) {
+    logSystemException(error, 'Error fetching location inventory KPI summary', {
+      context: 'location-inventory-service/locationInventoryKpiService',
+      itemType,
+    });
+    throw AppError.serviceError('Failed to fetch location inventory KPI summary');
+  }
+};
 
 /**
  * Fetches paginated location inventory summary records with filters, sorting, and
@@ -610,6 +639,7 @@ const fetchRecentInsertWarehouseInventoryRecords = async (warehouseLotIds) => {
 };
 
 module.exports = {
+  fetchLocationInventoryKpiSummaryService,
   fetchLocationInventorySummaryService,
   fetchLocationInventorySummaryByItemIdService,
   createInventoryRecords,

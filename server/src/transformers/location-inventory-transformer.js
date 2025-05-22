@@ -10,6 +10,34 @@ const { getProductDisplayName } = require('../utils/display-name-utils');
 const { differenceInDays } = require('date-fns');
 
 /**
+ * Transforms raw KPI summary query result rows into structured output.
+ *
+ * @param {Array} rows - Raw rows returned from the KPI summary SQL query.
+ * @returns {Array} An array of transformed KPI summary objects.
+ */
+const transformLocationInventoryKpiSummary = (rows = []) => {
+  return rows.map((row) => ({
+    batchType: row.batch_type, // 'product' | 'packaging_material' | 'total'
+    
+    totalProducts: Number(row.total_products ?? 0),
+    totalMaterials: Number(row.total_materials ?? 0),
+    
+    locationsCount: Number(row.locations_count ?? 0),
+    totalQuantity: Number(row.total_quantity ?? 0),
+    totalReserved: Number(row.total_reserved ?? 0),
+    totalAvailable: Number(row.total_available ?? 0),
+    
+    nearExpiryInventoryRecords: Number(row.near_expiry_inventory_records ?? 0),
+    expiredInventoryRecords: Number(row.expired_inventory_records ?? 0),
+    
+    expiredProductBatches: Number(row.expired_product_batches ?? 0),
+    expiredMaterialBatches: Number(row.expired_material_batches ?? 0),
+    
+    lowStockCount: Number(row.low_stock_count ?? 0),
+  }));
+};
+
+/**
  * Transforms a raw SQL row from the location inventory summary query
  * into a normalized inventory record with derived stock/expiry info.
  *
@@ -229,6 +257,7 @@ const transformPaginatedInventoryRecords = (paginatedResult) => ({
 });
 
 module.exports = {
+  transformLocationInventoryKpiSummary,
   transformPaginatedLocationInventorySummaryResult,
   transformPaginatedLocationInventorySummaryDetails,
   transformInventoryRecord,

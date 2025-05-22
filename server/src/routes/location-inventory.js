@@ -1,5 +1,6 @@
 const express = require('express');
 const {
+  getLocationInventoryKpiSummaryController,
   getLocationInventorySummaryController,
   getLocationInventorySummaryDetailsController,
   createInventoryRecordsController,
@@ -7,6 +8,17 @@ const {
 const authorize = require('../middlewares/authorize');
 
 const router = express.Router();
+
+/**
+ * @route GET /api/location-inventory/kpi-summary
+ * @description Returns KPI summary metrics for location inventory.
+ *              Supports optional filtering by item type.
+ *
+ * @access Protected
+ * @queryParam {string} [itemType] - Optional filter: 'product' or 'packaging_material'
+ * @returns {200} JSON array containing grouped KPI metrics including total row
+ */
+router.get('/kpi-summary', getLocationInventoryKpiSummaryController);
 
 /**
  * @route GET /location-inventory/summary
