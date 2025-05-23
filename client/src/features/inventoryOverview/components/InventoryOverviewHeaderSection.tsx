@@ -21,10 +21,15 @@ const InventoryOverviewHeaderSection: FC = () => {
   };
   
   return (
-    <Box sx={{ mt: 4 }}>
-      <CustomTypography variant="h5" sx={{ mb: 2 }}>
-        Inventory KPI Summary
-      </CustomTypography>
+    <Box>
+      <Box>
+        <CustomTypography variant="h5" sx={{ mb: 2 }}>
+          Inventory KPI Summary
+        </CustomTypography>
+        <CustomTypography variant="body1" color="text.secondary">
+          Track key inventory metrics and summaries.
+        </CustomTypography>
+      </Box>
       
       <Grid container spacing={2} alignItems="center" justifyContent="space-between">
         <Grid size={{xs: 12, md: 6}}>
@@ -38,6 +43,7 @@ const InventoryOverviewHeaderSection: FC = () => {
               bgcolor: 'background.paper',
               borderRadius: 2,
               boxShadow: 1,
+              height: 40,
             }}
           >
             <ToggleButton value="total">Total</ToggleButton>
