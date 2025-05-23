@@ -18,7 +18,13 @@ const router = express.Router();
  * @queryParam {string} [itemType] - Optional filter: 'product' or 'packaging_material'
  * @returns {200} JSON array containing grouped KPI metrics including total row
  */
-router.get('/kpi-summary', getLocationInventoryKpiSummaryController);
+router.get('/kpi-summary',
+  authorize([
+    'view_inventory',
+    'view_location_inventory',
+    'view_inventory_summary'
+  ]),
+  getLocationInventoryKpiSummaryController);
 
 /**
  * @route GET /location-inventory/summary
