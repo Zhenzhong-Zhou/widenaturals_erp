@@ -101,3 +101,25 @@ export interface PaginationParams {
    */
   limit?: number;
 }
+
+/**
+ * A generic interface for managing async data state in Redux.
+ *
+ * @template T - The type of the data payload.
+ */
+export interface AsyncDataState<T> {
+  /**
+   * The data payload fetched from the API.
+   */
+  data: T;
+  
+  /**
+   * Indicates whether the data is currently being loaded.
+   */
+  loading: boolean;
+  
+  /**
+   * Contains the error message if the fetch failed, otherwise null.
+   */
+  error: string | null;
+}

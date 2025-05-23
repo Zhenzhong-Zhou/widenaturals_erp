@@ -27,7 +27,7 @@ const getLocationInventoryKpiSummaryController = wrapAsync(async (req, res) => {
   return res.status(200).json({
     success: true,
     message: 'Successfully fetched KPI summary',
-    summary
+    data: summary
   });
 });
 

@@ -64,20 +64,24 @@ const CustomCard: FC<CustomCardProps> = ({
       
       <CardContent sx={{ ...contentSx }}>
         {title && (
-          <CustomTypography
-            variant="h5"
-            align="center"
-            gutterBottom
-            sx={{
-              fontWeight: 700,
-              fontFamily: "'Roboto', sans-serif",
-              color: 'var(--text-primary)',
-              minHeight: '32px',
-              textRendering: 'optimizeLegibility',
-            }}
-          >
-            {title}
-          </CustomTypography>
+          typeof title === 'string' ? (
+            <CustomTypography
+              variant="h5"
+              align="center"
+              gutterBottom
+              sx={{
+                fontWeight: 700,
+                fontFamily: "'Roboto', sans-serif",
+                color: 'var(--text-primary)',
+                minHeight: '32px',
+                textRendering: 'optimizeLegibility',
+              }}
+            >
+              {title}
+            </CustomTypography>
+          ) : (
+            title // JSX already provided, like <Typography variant="h6">...</Typography>
+          )
         )}
         
         {subtitle && (

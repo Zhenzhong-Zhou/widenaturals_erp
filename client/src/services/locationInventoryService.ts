@@ -1,12 +1,40 @@
 import axiosInstance from '@utils/axiosConfig';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 import type {
+  LocationInventoryKpiSummaryResponse,
   LocationInventoryQueryParams,
   LocationInventorySummaryDetailResponse,
-  LocationInventorySummaryResponse
+  LocationInventorySummaryResponse,
 } from '@features/locationInventory/state';
 import { AppError } from '@utils/AppError';
-import type { InventorySummaryDetailByItemIdParams } from '@features/inventoryShared/types/InventorySharedType';
+import type {
+  InventorySummaryDetailByItemIdParams,
+  ItemType,
+} from '@features/inventoryShared/types/InventorySharedType';
+
+/**
+ * Fetches KPI summary for location inventory.
+ *
+ * @param {ItemType} [itemType] - Optional filter by item type ('product' or 'packaging_material').
+ * @returns {Promise<LocationInventoryKpiSummaryResponse>} A promise resolving to the KPI summary response.
+ * @throws Will throw an error if the API request fails.
+ */
+const fetchLocationInventoryKpiSummary = async (
+  itemType?: ItemType
+): Promise<LocationInventoryKpiSummaryResponse> => {
+  try {
+    const response = await axiosInstance.get<LocationInventoryKpiSummaryResponse>(
+      API_ENDPOINTS.LOCATION_INVENTORY.KPI_SUMMARY,
+      {
+        params: itemType ? { itemType } : {},
+      }
+    );
+    
+    return response.data;
+  } catch (error) {
+    throw new Error('Failed to fetch location inventoryKpiSummary');
+  }
+};
 
 /**
  * Fetch all inventory summaries (product or material) with pagination, filters, and sorting.
@@ -18,7 +46,7 @@ export const fetchLocationInventorySummary = async (
 ): Promise<LocationInventorySummaryResponse> => {
   try {
     const response = await axiosInstance.get<LocationInventorySummaryResponse>(
-      API_ENDPOINTS.LOCATION_INVENTORY_SUMMARY,
+      API_ENDPOINTS.LOCATION_INVENTORY.SUMMARY,
       { params }
     );
     return response.data;
@@ -41,7 +69,7 @@ export const fetchLocationInventorySummaryByItemId = async (
   params: InventorySummaryDetailByItemIdParams
 ): Promise<LocationInventorySummaryDetailResponse> => {
   const { itemId, page = 1, limit = 10 } = params;
-  const endpoint = API_ENDPOINTS.LOCATION_INVENTORY_SUMMARY_DETAIL.replace(':itemId', itemId);
+  const endpoint = API_ENDPOINTS.LOCATION_INVENTORY.SUMMARY_DETAIL(itemId);
   
   try {
     const response = await axiosInstance.get<LocationInventorySummaryDetailResponse>(endpoint,
@@ -56,6 +84,7 @@ export const fetchLocationInventorySummaryByItemId = async (
 };
 
 export const locationInventoryService = {
+  fetchLocationInventoryKpiSummary,
   fetchLocationInventorySummary,
   fetchLocationInventorySummaryByItemId,
 };

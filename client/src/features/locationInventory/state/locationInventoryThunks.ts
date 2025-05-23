@@ -1,11 +1,36 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import type {
+  LocationInventoryKpiSummaryResponse,
   LocationInventoryQueryParams,
   LocationInventorySummaryDetailResponse,
   LocationInventorySummaryResponse,
 } from './locationInventoryTypes';
 import { locationInventoryService } from '@services/locationInventoryService.ts';
-import type { InventorySummaryDetailByItemIdParams } from '@features/inventoryShared/types/InventorySharedType';
+import type {
+  InventorySummaryDetailByItemIdParams,
+  ItemType,
+} from '@features/inventoryShared/types/InventorySharedType';
+
+/**
+ * Thunk to fetch KPI summary for location inventory.
+ *
+ * @param {ItemType} [itemType] - Optional item type filter: 'product' or 'packaging_material'
+ * @returns {Promise<LocationInventoryKpiSummaryResponse>} The KPI summary data.
+ */
+export const fetchLocationInventoryKpiSummaryThunk = createAsyncThunk<
+  LocationInventoryKpiSummaryResponse,
+  ItemType
+>(
+  'locationInventory/fetchKpiSummary',
+  async (itemType, { rejectWithValue }) => {
+    try {
+      return await locationInventoryService.fetchLocationInventoryKpiSummary(itemType);
+    } catch (error: any) {
+      console.error('Failed to fetch KPI summary:', error);
+      return rejectWithValue(error?.response?.data?.message || 'Unknown error');
+    }
+  }
+);
 
 /**
  * Thunk to fetch paginated and filtered location inventory summary data.

@@ -1,7 +1,9 @@
+import locationInventoryKpiSummaryReducer from './locationInventoryKpiSummarySlice';
 import locationInventorySummaryReducer from './locationInventorySummarySlice';
 import locationInventorySummaryDetailReducer from './locationInventorySummaryDetailSlice';
 
 export const locationInventoryReducers = {
+  locationInventoryKpiSummary: locationInventoryKpiSummaryReducer,
   locationInventorySummary: locationInventorySummaryReducer,
   locationInventorySummaryDetail: locationInventorySummaryDetailReducer,
 };

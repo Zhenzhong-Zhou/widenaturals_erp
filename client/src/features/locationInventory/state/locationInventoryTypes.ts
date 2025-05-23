@@ -4,7 +4,7 @@ import type {
   InventoryHealthStatus,
   ItemType,
 } from '@features/inventoryShared/types/InventorySharedType';
-import type { PaginatedResponse, PaginatedState } from '@shared-types/api';
+import type { ApiSuccessResponse, AsyncDataState, PaginatedResponse, PaginatedState } from '@shared-types/api';
 
 export type LocationInventorySummaryResponse = PaginatedResponse<LocationInventorySummary>;
 
@@ -63,3 +63,25 @@ export interface FlatLocationInventorySummaryDetailRow extends BaseFlatInventory
   locationName: string;
   locationType: string;
 }
+
+export interface LocationInventoryKpiSummaryItem {
+  batchType: 'product' | 'packaging_material' | 'total';
+  totalProducts: number;
+  totalMaterials: number;
+  locationsCount: number;
+  totalQuantity: number;
+  totalReserved: number;
+  totalAvailable: number;
+  nearExpiryInventoryRecords: number;
+  expiredInventoryRecords: number;
+  expiredProductBatches: number;
+  expiredMaterialBatches: number;
+  lowStockCount: number;
+}
+
+export type LocationInventoryKpiSummaryResponse = ApiSuccessResponse<LocationInventoryKpiSummaryItem[]>;
+
+/**
+ * State slice for KPI summary in location inventory.
+ */
+export type LocationInventoryKpiSummaryState = AsyncDataState<LocationInventoryKpiSummaryItem[]>;
