@@ -388,7 +388,7 @@ exports.seed = async function (knex) {
       size_label: '60 Capsules',
       country_code: 'CA',
       lot_number: '12100004',
-      expiry_date: '2025APR18',
+      expiry_date: '2026APR18',
       quantity: 96,
       manufacturer: 'Phyto-Matrix Natural Technologies',
     },

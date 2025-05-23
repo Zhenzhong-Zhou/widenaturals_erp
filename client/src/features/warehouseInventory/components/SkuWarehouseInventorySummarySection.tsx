@@ -31,7 +31,7 @@ const SkuWarehouseInventorySummarySection = () => {
   const highlightedItems = useMemo(() => {
     return data.filter((item: ProductWarehouseInventorySummary) =>
       ['none', 'low', 'critical'].includes(item.stockLevel) || // highlights low stock
-      ['expired', 'expired_soon', 'critical'].includes(item.expirySeverity) || // highlights expiry risk
+      ['expired', 'warning', 'critical'].includes(item.expirySeverity) || // highlights expiry risk
       ['out_of_stock', 'unassigned', 'suspended'].includes(item.status) // extra conditions
     );
   }, [data]);
@@ -81,7 +81,7 @@ const SkuWarehouseInventorySummarySection = () => {
                   )}
                   
                   {/* Expiry risk feedback */}
-                  {['expired', 'expired_soon', 'critical'].includes(item.expirySeverity) && (
+                  {['expired', 'warning', 'critical'].includes(item.expirySeverity) && (
                     <CustomTypography sx={{ color: 'error.main' }}>
                       Expiry Risk: {formatLabel(item.expirySeverity)}
                     </CustomTypography>

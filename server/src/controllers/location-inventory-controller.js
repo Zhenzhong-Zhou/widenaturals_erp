@@ -1,12 +1,12 @@
 const {
   fetchLocationInventoryKpiSummaryService,
-  fetchLocationInventorySummaryService,
-  fetchLocationInventorySummaryByItemIdService,
-  createInventoryRecords,
+  fetchPaginatedLocationInventorySummaryService,
+  fetchPaginatedLocationInventorySummaryByItemIdService,
+  fetchPaginatedLocationInventoryRecordService,
 } = require('../services/location-inventory-service');
 const wrapAsync = require('../utils/wrap-async');
-const { logError, logInfo } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
+const { logInfo } = require('../utils/logger-helper');
 
 /**
  * Controller to handle fetching KPI summary metrics for location inventory.
@@ -81,7 +81,7 @@ const getLocationInventorySummaryController = wrapAsync(async (req, res) => {
     filters,
   });
   
-  const { data, pagination } = await fetchLocationInventorySummaryService({
+  const { data, pagination } = await fetchPaginatedLocationInventorySummaryService({
     page: parseInt(page, 10) || 1,
     limit: parseInt(limit, 10) || 10,
     filters,
@@ -98,15 +98,18 @@ const getLocationInventorySummaryController = wrapAsync(async (req, res) => {
 });
 
 /**
- * Controller to handle GET /location-inventory/summary/:itemId/details
- * Returns paginated location inventory summary for a given item ID (SKU or material).
+ * Controller: GET /location-inventory/summary/:itemId/details
+ *
+ * Handles request to fetch paginated location inventory summary details
+ * for a specific item ID (can be a SKU ID or a packaging material ID).
  *
  * @param {import('express').Request} req - Express request object.
  * @param {import('express').Response} res - Express response object.
  * @param {import('express').NextFunction} next - Express next middleware function.
+ *
+ * @returns {Promise<void>} Responds with paginated inventory summary in JSON format.
  */
 const getLocationInventorySummaryDetailsController = wrapAsync(async (req, res, next) => {
-  
   const { itemId } = req.params;
   const page = parseInt(req.query.page, 10) || 1;
   const limit = parseInt(req.query.limit, 10) || 10;
@@ -115,7 +118,7 @@ const getLocationInventorySummaryDetailsController = wrapAsync(async (req, res, 
     return next(AppError.validationError('Missing required parameter: itemId'));
   }
   
-  const { data, pagination } = await fetchLocationInventorySummaryByItemIdService({ page, limit, itemId });
+  const { data, pagination } = await fetchPaginatedLocationInventorySummaryByItemIdService({ page, limit, itemId });
   
   return res.status(200).json({
     success: true,
@@ -126,31 +129,64 @@ const getLocationInventorySummaryDetailsController = wrapAsync(async (req, res, 
 });
 
 /**
- * Express route handler to reposition inventory (handles both single and bulk insert).
+ * Controller: GET /location-inventory
+ *
+ * Handles incoming request to fetch paginated location inventory data.
+ * Parses query parameters, calls the service, and returns a JSON response.
+ *
+ * @route GET /location-inventory
+ * @group Location Inventory
+ * @queryparam {number} [page=1] - Page number for pagination
+ * @queryparam {number} [limit=20] - Number of items per page
+ * @queryparam {string} [batchType] - Filter by batch type ('product' | 'packaging_material')
+ * @queryparam {string} [locationName] - Filter by location name (ILIKE)
+ * @queryparam {string} [productName] - Filter by product name (ILIKE)
+ * @queryparam {string} [sku] - Filter by SKU (ILIKE)
+ * @queryparam {string} [materialName] - Filter by material name (ILIKE)
+ * @queryparam {string} [materialCode] - Filter by material code (ILIKE)
+ * @queryparam {string} [partName] - Filter by part name (ILIKE)
+ * @queryparam {string} [partCode] - Filter by part code (ILIKE)
+ * @queryparam {string} [partType] - Filter by part type (ILIKE)
+ * @queryparam {string} [lotNumber] - Filter by lot number (applies to both product/material lots)
+ * @queryparam {string} [status] - Filter by inventory status name
+ * @queryparam {string} [statusId] - Filter by inventory status ID
+ * @queryparam {string} [inboundDate] - Filter by inbound date (YYYY-MM-DD)
+ * @queryparam {string} [expiryDate] - Filter by expiry date (YYYY-MM-DD)
+ * @queryparam {string} [createdAt] - Filter by creation date (YYYY-MM-DD)
+ * @returns {200} 200 - Paginated inventory response
  */
-const createInventoryRecordsController = wrapAsync(async (req, res, next) => {
-  try {
-    const { inventoryData } = req.body;
-
-    const userId = req.user.id; // Extract from auth middleware
-
-    const { success, message, data, warehouseLots } =
-      await createInventoryRecords(inventoryData, userId);
-
-    if (!success) {
-      return res.status(400).json({ success, message, warehouseLots });
-    }
-
-    return res.status(201).json({ success: true, message, data });
-  } catch (error) {
-    logError('Controller error:', error.message);
-    next(error);
-  }
+const getLocationInventoryRecordController = wrapAsync(async (req, res) => {
+  const page = parseInt(req.query.page, 10) || 1;
+  const limit = parseInt(req.query.limit, 10) || 20;
+  const filters = {
+    batchType: req.query.batchType || undefined,
+    locationName: req.query.locationName || undefined,
+    productName: req.query.productName || undefined,
+    materialName: req.query.materialName || undefined,
+    materialCode: req.query.materialCode || undefined,
+    partName: req.query.partName || undefined,
+    partCode: req.query.partCode || undefined,
+    partType: req.query.partType || undefined,
+    sku: req.query.sku || undefined,
+    lotNumber: req.query.lotNumber || undefined,
+    status: req.query.status || undefined,
+    inboundDate: req.query.inboundDate || undefined, // format: yyyy-mm-dd
+    expiryDate: req.query.expiryDate || undefined,   // format: yyyy-mm-dd
+    createdAt: req.query.createdAt || undefined      // format: yyyy-mm-dd
+  };
+  
+  const result = await fetchPaginatedLocationInventoryRecordService({ page, limit, filters });
+  
+  res.status(200).json({
+    success: true,
+    message: 'Successfully fetched location inventory records',
+    data: result,
+  });
 });
 
 module.exports = {
   getLocationInventoryKpiSummaryController,
   getLocationInventorySummaryController,
   getLocationInventorySummaryDetailsController,
-  createInventoryRecordsController,
+  getLocationInventoryRecordController,
 };

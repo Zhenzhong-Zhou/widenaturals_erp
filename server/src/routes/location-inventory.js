@@ -3,11 +3,43 @@ const {
   getLocationInventoryKpiSummaryController,
   getLocationInventorySummaryController,
   getLocationInventorySummaryDetailsController,
-  createInventoryRecordsController,
+  getLocationInventoryRecordController,
 } = require('../controllers/location-inventory-controller');
 const authorize = require('../middlewares/authorize');
 
 const router = express.Router();
+
+/**
+ * @route GET /location-inventory
+ * @description Fetch paginated location inventory records with filtering support.
+ * @group Location Inventory - Endpoints for accessing inventory by location, batch, and metadata.
+ *
+ * @permission view_location_inventory - Required to access location inventory data.
+ *
+ * @queryparam {number} [page=1] - Page number for pagination
+ * @queryparam {number} [limit=20] - Number of items per page
+ * @queryparam {string} [batchType] - Filter by batch type ('product' | 'packaging_material')
+ * @queryparam {string} [locationName] - Filter by location name (ILIKE)
+ * @queryparam {string} [productName] - Filter by product name (ILIKE)
+ * @queryparam {string} [sku] - Filter by SKU (ILIKE)
+ * @queryparam {string} [materialName] - Filter by material name (ILIKE)
+ * @queryparam {string} [materialCode] - Filter by material code (ILIKE)
+ * @queryparam {string} [materialType] - Filter by material type (ILIKE)
+ * @queryparam {string} [partName] - Filter by part name (ILIKE)
+ * @queryparam {string} [partCode] - Filter by part code (ILIKE)
+ * @queryparam {string} [partType] - Filter by part type (ILIKE)
+ * @queryparam {string} [lotNumber] - Filter by lot number (ILIKE for product or material batches)
+ * @queryparam {string} [status] - Filter by inventory status name
+ * @queryparam {string} [statusId] - Filter by inventory status ID
+ * @queryparam {string} [inboundDate] - Exact match for inbound date (YYYY-MM-DD)
+ * @queryparam {string} [expiryDate] - Exact match for expiry date (YYYY-MM-DD)
+ * @queryparam {string} [createdAt] - Exact match for creation date (YYYY-MM-DD)
+ *
+ * @returns {200} 200 - A paginated list of inventory records
+ */
+router.get('/',
+  authorize(['view_location_inventory']),
+  getLocationInventoryRecordController);
 
 /**
  * @route GET /api/location-inventory/kpi-summary
@@ -69,7 +101,5 @@ router.get('/summary/:itemId/details',
     'view_material_inventory'
   ]),
   getLocationInventorySummaryDetailsController);
-
-router.post('/add-inventory-records', createInventoryRecordsController);
 
 module.exports = router;

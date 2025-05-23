@@ -338,43 +338,115 @@ const getLocationInventorySummaryDetailsByItemId = async ({ page, limit, itemId 
 };
 
 /**
- * Fetches the inventory ID associated with a given product ID.
+ * Fetches paginated and enriched location inventory records.
  *
- * @param {string} productId - The unique identifier of the product.
- * @param {string} [identifier] - An optional identifier for additional filtering.
- * @param {object} client - The database client instance.
- * @returns {Promise<string|null>} - Returns the inventory ID if found, otherwise null.
+ * This query includes related metadata such as location type, product/manufacturer info,
+ * packaging material/supplier, batch details, part mapping, and created/updated usernames.
+ *
+ * @param {Object} options
+ * @param {number} options.page - Current page number
+ * @param {number} options.limit - Number of records per page
+ * @param {Object} [options.filters] - Optional filter object
+ * @returns {Promise<Array>} A paginated result set with inventory and metadata
  */
-const getInventoryId = async (productId, identifier, client) => {
-  let queryText;
-  let params = [];
-
-  if (productId) {
-    queryText = `
-      SELECT id AS inventory_id
-      FROM inventory
-      WHERE product_id = $1
-      LIMIT 1;
-    `;
-    params = [productId];
-  } else if (identifier) {
-    queryText = `
-      SELECT id AS inventory_id
-      FROM inventory
-      WHERE identifier = $1
-      LIMIT 1;
-    `;
-    params = [identifier];
-  } else {
-    return null; // No valid input provided
-  }
-
+const getPaginatedLocationInventoryRecords = async ({ page, limit, filters }) => {
+  const tableName = 'location_inventory li';
+  
+  const joins = [
+    'LEFT JOIN locations loc ON li.location_id = loc.id',
+    'LEFT JOIN location_types lt ON loc.location_type_id = lt.id',
+    'LEFT JOIN inventory_status st ON li.status_id = st.id',
+    'LEFT JOIN users uc ON li.created_by = uc.id',
+    'LEFT JOIN users uu ON li.updated_by = uu.id',
+    'LEFT JOIN batch_registry br ON li.batch_id = br.id',
+    'LEFT JOIN product_batches pb ON br.product_batch_id = pb.id',
+    'LEFT JOIN skus s ON pb.sku_id = s.id',
+    'LEFT JOIN products p ON s.product_id = p.id',
+    'LEFT JOIN manufacturers mfp ON pb.manufacturer_id = mfp.id',
+    'LEFT JOIN packaging_material_batches pmb ON br.packaging_material_batch_id = pmb.id',
+    'LEFT JOIN packaging_material_suppliers pms ON pmb.packaging_material_supplier_id = pms.id',
+    'LEFT JOIN packaging_materials pm ON pms.packaging_material_id = pm.id',
+    'LEFT JOIN suppliers sup ON pms.supplier_id = sup.id',
+    'LEFT JOIN part_materials pmat ON pm.id = pmat.packaging_material_id',
+    'LEFT JOIN parts pt ON pmat.part_id = pt.id',
+  ];
+  
+  const { whereClause, params } = buildLocationInventoryWhereClause(filters);
+  
+  const queryText = `
+    SELECT
+      li.id AS location_inventory_id,
+      br.batch_type AS item_type,
+      li.location_id,
+      loc.name AS location_name,
+      lt.name AS location_type_name,
+      li.location_quantity,
+      li.reserved_quantity,
+      li.inbound_date,
+      li.outbound_date,
+      li.last_update,
+      li.created_at,
+      li.updated_at,
+      st.name AS status_name,
+      uc.firstname AS created_by_firstname,
+      uc.lastname AS created_by_lastname,
+      uu.firstname AS updated_by_firstname,
+      uu.lastname AS updated_by_lastname,
+      mfp.name AS product_manufacturer_name,
+      sup.name AS material_supplier_name,
+      pb.lot_number AS product_lot_number,
+      pb.manufacture_date AS product_manufacture_date,
+      pb.expiry_date AS product_expiry_date,
+      pmb.lot_number AS material_lot_number,
+      pmb.manufacture_date AS material_manufacture_date,
+      pmb.expiry_date AS material_expiry_date,
+      p.name AS product_name,
+      p.brand AS brand_name,
+      s.sku AS sku_code,
+      s.barcode AS barcode,
+      s.language AS language,
+      s.country_code AS country_code,
+      s.size_label AS size_label,
+      pm.name AS material_name,
+      pm.code AS material_code,
+      pm.color AS material_color,
+      pm.size AS material_size,
+      pm.unit AS material_unit,
+      pt.name AS part_name,
+      pt.code AS part_code,
+      pt.type AS part_type,
+      pt.unit_of_measure AS part_unit
+    FROM ${tableName}
+    ${joins.join('\n')}
+    WHERE ${whereClause}
+    ORDER BY loc.name, li.last_update DESC
+  `;
+  
   try {
-    const { rows } = await query(queryText, params, client);
-    return rows.length > 0 ? rows[0].inventory_id : null;
+    const result = await paginateResults({
+      dataQuery: queryText,
+      params,
+      page,
+      limit,
+      meta: {
+        context: 'location-inventory-repository/getPaginatedLocationInventoryRecords',
+      },
+    });
+    
+    logSystemInfo('Fetched location inventory records.', {
+      context: 'location-inventory-repository/getPaginatedLocationInventoryRecords',
+      page,
+      limit,
+      resultCount: result?.data?.length ?? 0,
+    });
+    
+    return result;
   } catch (error) {
-    logError('Error fetching inventory ID:', error);
-    throw AppError.databaseError('Database query failed');
+    logSystemException(error, 'Failed to fetch location inventory records.', {
+      context: 'location-inventory-repository/getPaginatedLocationInventoryRecords',
+    });
+    
+    throw AppError.databaseError('Failed to fetch location inventory data.');
   }
 };
 
@@ -739,10 +811,5 @@ module.exports = {
   getLocationInventoryKpiSummary,
   getHighLevelLocationInventorySummary,
   getLocationInventorySummaryDetailsByItemId,
-  getInventoryId,
-  checkInventoryExists,
-  checkAndLockInventory,
-  insertInventoryRecords,
-  getProductIdOrIdentifierByInventoryIds,
-  updateInventoryQuantity,
+  getPaginatedLocationInventoryRecords,
 };

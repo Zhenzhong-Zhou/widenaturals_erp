@@ -24,17 +24,20 @@
  * Builds WHERE clause and parameter list for location inventory summary filtering.
  *
  * @param {Object} filters - Filter options
- * @param {string} [filters.locationId] - Optional location ID to filter by
- * @param {string} [filters.batchType] - Optional batch type to filter by
+ * @param {string} [filters.locationName] - Optional location name to filter by (ILIKE)
+ * @param {string} [filters.batchType] - Optional batch type ('product' | 'packaging_material')
  * @param {string} [filters.sku] - Optional SKU keyword (ILIKE)
  * @param {string} [filters.productName] - Optional product name (ILIKE)
  * @param {string} [filters.materialName] - Optional material name (ILIKE)
- * @param {string} [filters.lotNumber] - Optional lot number (ILIKE, batch-type dependent)
- * @param {string} [filters.inboundDate] - Exact match for inbound date (yyyy-mm-dd)
- * @param {string} [filters.expiryDate] - Exact match for expiry date
- * @param {string} [filters.statusId] - Optional inventory status ID
- * @param {string} [filters.status] - Optional status fallback if statusId is missing
- * @param {string} [filters.createdAt] - Exact match for creation date
+ * @param {string} [filters.materialCode] - Optional material code (ILIKE)
+ * @param {string} [filters.partName] - Optional part name (ILIKE)
+ * @param {string} [filters.partCode] - Optional part code (ILIKE)
+ * @param {string} [filters.partType] - Optional part type (ILIKE)
+ * @param {string} [filters.lotNumber] - Optional lot number (ILIKE, applied to both product_batches and packaging_material_batches)
+ * @param {string} [filters.inboundDate] - Exact match for inbound date (YYYY-MM-DD)
+ * @param {string} [filters.expiryDate] - Exact match for expiry date (YYYY-MM-DD)
+ * @param {string} [filters.status] - Optional status name (fallback if statusId is missing)
+ * @param {string} [filters.createdAt] - Exact match for creation date (YYYY-MM-DD)
  * @returns {{ whereClause: string, params: any[] }} SQL-ready clause and parameter bindings
  */
 const buildLocationInventoryWhereClause = (filters = {}) => {
@@ -52,9 +55,9 @@ const buildLocationInventoryWhereClause = (filters = {}) => {
   `);
   
   // Dynamic filters
-  if (filters.locationId) {
-    params.push(filters.locationId);
-    whereClauses.push(`li.location_id = $${params.length}`);
+  if (filters.locationName) {
+    params.push(filters.locationName);
+    whereClauses.push(`loc.name ILIKE $${params.length}`);
   }
   
   if (filters.batchType) {
@@ -75,6 +78,31 @@ const buildLocationInventoryWhereClause = (filters = {}) => {
   if (filters.materialName) {
     params.push(`%${filters.materialName}%`);
     whereClauses.push(`pmb.material_snapshot_name ILIKE $${params.length}`);
+  }
+  
+  if (filters.materialCode) {
+    params.push(`%${filters.materialCode}%`);
+    whereClauses.push(`pm.code ILIKE $${params.length}`);
+  }
+  
+  if (filters.materialName) {
+    params.push(`%${filters.materialName}%`);
+    whereClauses.push(`pm.name ILIKE $${params.length}`);
+  }
+  
+  if (filters.partCode) {
+    params.push(`%${filters.partCode}%`);
+    whereClauses.push(`pt.code ILIKE $${params.length}`);
+  }
+  
+  if (filters.partName) {
+    params.push(`%${filters.partName}%`);
+    whereClauses.push(`pt.name ILIKE $${params.length}`);
+  }
+  
+  if (filters.partType) {
+    params.push(`%${filters.partType}%`);
+    whereClauses.push(`pt.type ILIKE $${params.length}`);
   }
   
   if (filters.lotNumber) {
@@ -104,10 +132,9 @@ const buildLocationInventoryWhereClause = (filters = {}) => {
     `);
   }
   
-  if (filters.statusId || filters.status) {
-    const value = filters.statusId || filters.status;
-    params.push(value);
-    whereClauses.push(`li.status_id = $${params.length}`);
+  if (filters.status) {
+    params.push(filters.status);
+    whereClauses.push(`st.name = $${params.length}`);
   }
   
   if (filters.createdAt) {
