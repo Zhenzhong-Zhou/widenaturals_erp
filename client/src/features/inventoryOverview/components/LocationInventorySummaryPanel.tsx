@@ -13,7 +13,7 @@ import { useExpandableDetailPanel } from '@features/inventoryOverview/hook/useEx
 import type { ItemType } from '@features/inventoryShared/types/InventorySharedType';
 import type { LocationInventorySummaryItemDetail } from '@features/locationInventory/state';
 
-const LocationInventoryFilterPanel = lazy(() => import('@features/locationInventory/components/LocationInventoryFilterPanel'));
+const LocationInventoryOverviewFilterPanel = lazy(() => import('@features/locationInventory/components/LocationInventoryOverviewFilterPanel'));
 const LocationInventorySummaryTable = lazy(() => import('@features/locationInventory/components/LocationInventorySummaryTable'));
 
 interface Props {
@@ -129,7 +129,7 @@ const LocationInventorySummaryPanel: FC<Props> = ({
   return (
     <>
       <Suspense fallback={<Skeleton height={400} variant="rectangular" sx={{ borderRadius: 1 }} />}>
-        <LocationInventoryFilterPanel
+        <LocationInventoryOverviewFilterPanel
           visibleFields={['productName', 'materialName', 'sku']}
           onApply={(filters) =>
             fetchLocationInventorySummary({

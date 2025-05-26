@@ -20,7 +20,7 @@ interface Props {
   visibleFields?: FilterField[];
 }
 
-const LocationInventoryFilterPanel: FC<Props> = ({
+const LocationInventoryOverviewFilterPanel: FC<Props> = ({
                                                    initialFilters = {},
                                                    onApply,
                                                    onReset,
@@ -169,4 +169,4 @@ const LocationInventoryFilterPanel: FC<Props> = ({
   );
 };
 
-export default LocationInventoryFilterPanel;
+export default LocationInventoryOverviewFilterPanel;
