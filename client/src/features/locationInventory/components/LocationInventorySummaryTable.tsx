@@ -12,6 +12,7 @@ import { formatLabel } from '@utils/textUtils';
 import { formatDate, formatDateTime } from '@utils/dateTimeUtils';
 import { createDrillDownColumn } from '@utils/table/createDrillDownColumn';
 import ExpandableDetailSection from '@components/common/ExpandableDetailSection';
+import { getDetailCacheKey } from '@features/inventoryShared/utils/cacheKeys';
 
 const LocationInventorySummaryDetailTable = lazy(() =>
   import('@features/locationInventory/components/LocationInventorySummaryDetailTable')
@@ -152,29 +153,41 @@ const LocationInventorySummaryTable: FC<LocationInventorySummaryTableProps> = ({
   ];
   
   const expandedContent = useCallback(
-    (row: LocationInventorySummary) => (
-      <ExpandableDetailSection
-        row={row}
-        detailData={detailDataMap?.[row.itemId]}
-        detailLoading={detailLoadingMap?.[row.itemId] ?? false}
-        detailError={detailErrorMap?.[row.itemId] ?? null}
-        detailPage={detailPage}
-        detailTotalRecords={detailTotalRecords ?? 0}
-        detailTotalPages={detailTotalPages ?? 1}
-        detailLimit={detailLimit}
-        onPageChange={(newPage) => {
-          if (onDetailPageChange) {
-            onDetailPageChange(newPage + 1);
-          }
-        }}
-        onRowsPerPageChange={onDetailRowsPerPageChange}
-        onRefreshDetail={onRefreshDetail}
-        DetailTableComponent={LocationInventorySummaryDetailTable}
-      />
-    ),
-    [detailDataMap, detailLoadingMap, detailErrorMap, detailPage,
-      detailTotalRecords, detailTotalPages, detailLimit, onDetailPageChange,
-      onDetailRowsPerPageChange, onRefreshDetail
+    (row: LocationInventorySummary) => {
+      const cacheKey = getDetailCacheKey(row.itemId, detailPage, detailLimit);
+      
+      return (
+        <ExpandableDetailSection
+          row={row}
+          detailData={detailDataMap?.[cacheKey]}
+          detailLoading={detailLoadingMap?.[cacheKey] ?? false}
+          detailError={detailErrorMap?.[cacheKey] ?? null}
+          detailPage={detailPage}
+          detailTotalRecords={detailTotalRecords ?? 0}
+          detailTotalPages={detailTotalPages ?? 1}
+          detailLimit={detailLimit}
+          onPageChange={(newPage) => {
+            if (onDetailPageChange) {
+              onDetailPageChange(newPage + 1);
+            }
+          }}
+          onRowsPerPageChange={onDetailRowsPerPageChange}
+          onRefreshDetail={onRefreshDetail}
+          DetailTableComponent={LocationInventorySummaryDetailTable}
+        />
+      );
+    },
+    [
+      detailDataMap,
+      detailLoadingMap,
+      detailErrorMap,
+      detailPage,
+      detailLimit,
+      detailTotalRecords,
+      detailTotalPages,
+      onDetailPageChange,
+      onDetailRowsPerPageChange,
+      onRefreshDetail
     ]
   );
   

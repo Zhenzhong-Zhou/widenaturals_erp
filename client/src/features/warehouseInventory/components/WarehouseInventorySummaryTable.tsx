@@ -10,6 +10,7 @@ import type {
 import { formatLabel } from '@utils/textUtils';
 import { createDrillDownColumn } from '@utils/table/createDrillDownColumn';
 import ExpandableDetailSection from '@components/common/ExpandableDetailSection';
+import { getDetailCacheKey } from '@features/inventoryShared/utils/cacheKeys';
 
 const WarehouseInventorySummaryDetailTable = lazy(() =>
   import('@features/warehouseInventory/components/WarehouseInventorySummaryDetailTable')
@@ -149,26 +150,30 @@ const WarehouseInventorySummaryTable: FC<SkuInventorySummaryTableProps> = ({
   ];
   
   const expandedContent = useCallback(
-    (row: WarehouseInventoryItemSummary) => (
-      <ExpandableDetailSection
-        row={row}
-        detailData={detailDataMap?.[row.itemId]}
-        detailLoading={detailLoadingMap?.[row.itemId] ?? false}
-        detailError={detailErrorMap?.[row.itemId] ?? null}
-        detailPage={detailPage}
-        detailLimit={detailLimit}
-        detailTotalRecords={detailTotalRecords ?? 0}
-        detailTotalPages={detailTotalPages ?? 1}
-        onPageChange={(newPage) => {
-          if (onDetailPageChange) {
-            onDetailPageChange(newPage + 1);
-          }
-        }}
-        onRowsPerPageChange={onDetailRowsPerPageChange ?? (() => {})}
-        onRefreshDetail={onRefreshDetail}
-        DetailTableComponent={WarehouseInventorySummaryDetailTable}
-      />
-    ),
+    (row: WarehouseInventoryItemSummary) => {
+      const cacheKey = getDetailCacheKey(row.itemId, detailPage, detailLimit);
+      
+      return (
+        <ExpandableDetailSection
+          row={row}
+          detailData={detailDataMap?.[cacheKey]}
+          detailLoading={detailLoadingMap?.[cacheKey] ?? false}
+          detailError={detailErrorMap?.[cacheKey] ?? null}
+          detailPage={detailPage}
+          detailLimit={detailLimit}
+          detailTotalRecords={detailTotalRecords ?? 0}
+          detailTotalPages={detailTotalPages ?? 1}
+          onPageChange={(newPage) => {
+            if (onDetailPageChange) {
+              onDetailPageChange(newPage + 1);
+            }
+          }}
+          onRowsPerPageChange={onDetailRowsPerPageChange ?? (() => {})}
+          onRefreshDetail={onRefreshDetail}
+          DetailTableComponent={WarehouseInventorySummaryDetailTable}
+        />
+      );
+    },
     [
       detailDataMap,
       detailLoadingMap,

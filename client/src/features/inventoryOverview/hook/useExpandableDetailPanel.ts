@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, startTransition } from 'react';
 import { debounce } from '@mui/material';
+import { getDetailCacheKey } from '@features/inventoryShared/utils/cacheKeys';
 
 export interface UseExpandableDetailPanelOptions<T> {
   fetchDetail: (params: { itemId: string; page: number; limit: number }) => void;
@@ -23,15 +24,20 @@ export const useExpandableDetailPanel = <T>(
   
   useEffect(() => {
     if (expandedRowId && detailData?.length) {
+      const cacheKey = getDetailCacheKey(expandedRowId, detailPage, detailLimit);
+      
       setDetailCache((prev) => ({
         ...prev,
-        [expandedRowId]: detailData,
+        [cacheKey]: detailData,
       }));
     }
-  }, [detailData, expandedRowId]);
+  }, [detailData, expandedRowId, detailPage, detailLimit]);
   
   useEffect(() => {
-    if (!expandedRowId || detailCache[expandedRowId]) return;
+    if (!expandedRowId) return;
+    
+    const cacheKey = getDetailCacheKey(expandedRowId, detailPage, detailLimit);
+    if (detailCache[cacheKey]) return;
     
     fetchDetail({ itemId: expandedRowId, page: detailPage, limit: detailLimit });
   }, [expandedRowId, detailPage, detailLimit]);

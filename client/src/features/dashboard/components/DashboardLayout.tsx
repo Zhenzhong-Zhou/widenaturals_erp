@@ -6,7 +6,7 @@ import InventoryOverviewHeaderSection from '@features/inventoryOverview/componen
 import SkuWarehouseInventorySummarySection from '@features/warehouseInventory/components/SkuWarehouseInventorySummarySection';
 import usePermissions from '@hooks/usePermissions';
 import { hasWarehouseInventoryAccess } from '@features/warehouseInventory/utils/hasWarehouseInventoryAccess';
-import { canViewInventoryOverview } from '@features/inventoryOverview/hasInventoryOverviewAccess';
+import { canViewInventoryOverview } from '@features/inventoryOverview/utils/hasInventoryOverviewAccess.ts';
 
 interface BaseDashboardLayoutProps {
   fullName?: string;
