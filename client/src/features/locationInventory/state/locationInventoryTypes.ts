@@ -201,4 +201,5 @@ export interface FlatLocationInventoryRow {
   expiryDate: string;
   lastUpdate: string;
   isGroupHeader?: boolean;
+  originalRecord: LocationInventoryRecord;
 }

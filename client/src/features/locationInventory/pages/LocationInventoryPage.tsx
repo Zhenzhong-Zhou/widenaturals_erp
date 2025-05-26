@@ -8,11 +8,13 @@ import Divider from '@mui/material/Divider';
 import StoreIcon from '@mui/icons-material/Store';
 import CustomTypography from '@components/common/CustomTypography';
 import LocationInventoryTable from '@features/locationInventory/components/LocationInventoryTable';
-import type { LocationInventoryRecord } from '@features/locationInventory/state';
+import type { FlatLocationInventoryRow, LocationInventoryRecord } from '@features/locationInventory/state';
+import LocationInventoryExpandedRow from '../components/LocationInventoryExpandedRow';
 
 const LocationInventoryPage = () => {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(30);
+  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
   
   const {
     records,
@@ -35,6 +37,12 @@ const LocationInventoryPage = () => {
     setLimit(newLimit);
     setPage(1); // reset to page 1
   }, []);
+  
+  const handleExpandToggle = (row: FlatLocationInventoryRow) => {
+    setExpandedRowId(prev => (prev === row.id ? null : row.id));
+  };
+  
+  const isRowExpanded = (row: FlatLocationInventoryRow) => expandedRowId === row.id;
   
   return (
     <Box sx={{ px: 4, py: 3 }}>
@@ -64,6 +72,10 @@ const LocationInventoryPage = () => {
           totalRecords={pagination.totalRecords}
           onPageChange={handlePageChange}
           onRowsPerPageChange={handleRowsPerPageChange}
+          expandedRowId={expandedRowId}
+          onExpandToggle={handleExpandToggle}
+          isRowExpanded={isRowExpanded}
+          expandedContent={(row) => <LocationInventoryExpandedRow record={row.originalRecord} />}
         />
       </Paper>
     </Box>

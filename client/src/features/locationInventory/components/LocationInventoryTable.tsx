@@ -1,4 +1,4 @@
-import { type FC, useCallback } from 'react';
+import { type FC, type ReactNode, useCallback } from 'react';
 import type { FlatLocationInventoryRow, LocationInventoryRecord } from '../state';
 import { formatDate, timeAgo } from '@utils/dateTimeUtils';
 import CustomTable, { type Column } from '@components/common/CustomTable';
@@ -9,6 +9,9 @@ import StockLevelChip, {
 import ExpirySeverityChip, {
   type ExpirySeverityChipProps,
 } from '@features/inventoryShared/components/ExpirySeverityChip';
+import IconButton from '@mui/material/IconButton';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 
 interface LocationInventoryTableProps {
   isLoading: boolean;
@@ -19,6 +22,10 @@ interface LocationInventoryTableProps {
   totalPages: number;
   onPageChange: (newPage: number) => void;
   onRowsPerPageChange: (newRowsPerPage: number) => void;
+  expandedRowId?: string | null;
+  onExpandToggle?: (row: FlatLocationInventoryRow) => void;
+  isRowExpanded?: (row: FlatLocationInventoryRow) => boolean;
+  expandedContent?: (row: FlatLocationInventoryRow) => ReactNode;
 }
 
 /**
@@ -33,6 +40,10 @@ const LocationInventoryTable: FC<LocationInventoryTableProps> = ({
                                                                    totalPages,
                                                                    onPageChange,
                                                                    onRowsPerPageChange,
+                                                                   expandedRowId,
+                                                                   onExpandToggle,
+                                                                   isRowExpanded,
+                                                                   expandedContent,
                                                                  }) => {
   const renderStockLevelCell = useCallback(
     (row: FlatLocationInventoryRow) => (
@@ -63,6 +74,17 @@ const LocationInventoryTable: FC<LocationInventoryTableProps> = ({
       label: 'Expiry Severity',
       renderCell: renderExpirySeverityCell
     },
+    {
+      id: 'expand',
+      label: '',
+      align: 'center',
+      renderCell: (row) =>
+        row.isGroupHeader ? null : (
+          <IconButton onClick={() => onExpandToggle?.(row)}>
+            {isRowExpanded?.(row) ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+          </IconButton>
+        ),
+    }
   ];
   
   // Flatten with group headers
@@ -100,6 +122,7 @@ const LocationInventoryTable: FC<LocationInventoryTableProps> = ({
         expirySeverity: item.status?.expirySeverity ?? '-',
         expiryDate: item.lot?.expiryDate ? formatDate(item.lot.expiryDate) : '-',
         lastUpdate: item.timestamps?.lastUpdate ? timeAgo(item.timestamps.lastUpdate) : '-',
+        originalRecord: item,
       });
     });
   });
@@ -128,6 +151,10 @@ const LocationInventoryTable: FC<LocationInventoryTableProps> = ({
           }
           : {}
       }
+      expandedContent={expandedContent}
+      expandable={!!expandedRowId}
+      expandedRowId={expandedRowId}
+      getRowId={(row) => row.id}
     />
   );
 };

@@ -1,114 +1,95 @@
 import { type FC, memo } from 'react';
 import Box from '@mui/material/Box';
+import Grid from '@mui/material/Grid';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import type { SxProps, Theme } from '@mui/system';
 import CustomTypography from '@components/common/CustomTypography';
 import { useThemeContext } from '@context/ThemeContext';
-import { formatLabel } from '@utils/textUtils';
+import type { ReactNode } from 'react';
+
+export interface DetailsSectionField {
+  label: string;
+  value: string | number | null | undefined;
+  format?: (value: any) => string | ReactNode;
+}
 
 interface DetailsSectionProps {
-  data: Record<string, any>;
+  fields: DetailsSectionField[];
+  sectionTitle?: string;
   sx?: SxProps<Theme>;
 }
 
-const INLINE_DISPLAY_LENGTH = 50; // Max length of text for inline display
+const INLINE_DISPLAY_LENGTH = 50;
 
-const DetailsSection: FC<DetailsSectionProps> = ({ data, sx }) => {
+const DetailsSection: FC<DetailsSectionProps> = ({ fields, sectionTitle, sx }) => {
   const { theme } = useThemeContext();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
   
+  const filteredFields = fields.filter(
+    ({ value }) =>
+      value !== undefined &&
+      value !== null &&
+      value !== '' &&
+      !(
+        typeof value === 'string' &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
+      )
+  );
+  
+  if (filteredFields.length === 0) return null;
+  
   return (
-    <Box
-      sx={{
-        mt: theme.spacing(2),
-        display: 'flex',
-        flexDirection: 'column',
-        gap: theme.spacing(1.25),
-        ...sx,
-      }}
-    >
-      {Object.entries(data)
-        .filter(
-          ([_, value]) =>
-            !(
-              typeof value === 'string' &&
-              /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-                value
-              )
-            )
-        )
-        .map(([key, value]) => {
-        const label = formatLabel(key);
-        const isNote = key.toLowerCase().includes('note');
-        const isLongText = typeof value === 'string' && value.length > INLINE_DISPLAY_LENGTH;
-        
-        const shouldInline = !isNote && !isSmallScreen && !isLongText;
-        
-        return (
-          <Box
-            key={key}
-            sx={{
-              display: shouldInline ? 'flex' : 'block',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              rowGap: 0.5,
-            }}
-          >
-            {/* Label */}
-            <CustomTypography
-              variant="body2"
-              component="span"
-              sx={{
-                fontWeight: 600,
-                color: theme.palette.text.primary,
-                mr: 1,
-                minWidth: 120,
-              }}
-              aria-label={`${label} label`}
-            >
-              {label}:
-            </CustomTypography>
-            
-            {/* Recursive Object or Array */}
-            {Array.isArray(value) ? (
-              <Box sx={{ pl: 2 }}>
-                {value.map((item, index) => (
-                  <DetailsSection
-                    key={`${key}-${index}`}
-                    data={item}
-                    sx={{ pl: 2 }}
-                  />
-                ))}
+    <Box sx={{ mt: theme.spacing(2), ...sx }}>
+      {sectionTitle && (
+        <CustomTypography
+          variant="subtitle1"
+          sx={{
+            fontWeight: 600,
+            mb: 1.5,
+            color: theme.palette.text.primary,
+          }}
+        >
+          {sectionTitle}
+        </CustomTypography>
+      )}
+      
+      <Grid container spacing={2}>
+        {filteredFields.map(({ label, value, format }, index) => {
+          const isLongText = typeof value === 'string' && value.length > INLINE_DISPLAY_LENGTH;
+          const shouldWrap = isLongText || isSmallScreen;
+          
+          return (
+            <Grid size={{xs:12, md: 6}} key={index}>
+              <Box>
+                <CustomTypography
+                  variant="body2"
+                  sx={{ fontWeight: 600, color: theme.palette.text.primary }}
+                >
+                  {label}:
+                </CustomTypography>
+                
+                <CustomTypography
+                  variant="body2"
+                  sx={{
+                    color: theme.palette.text.secondary,
+                    whiteSpace: shouldWrap ? 'normal' : 'nowrap',
+                    overflowWrap: 'break-word',
+                    wordBreak: 'break-word',
+                  }}
+                >
+                  {format
+                    ? format(value)
+                    : value !== null && value !== undefined
+                      ? value.toString()
+                      : 'N/A'}
+                </CustomTypography>
               </Box>
-            ) : typeof value === 'object' && value !== null ? (
-              <Box sx={{ pl: 2 }}>
-                <DetailsSection data={value} />
-              </Box>
-            ) : (
-              // Primitive value
-              <CustomTypography
-                variant="body2"
-                component="span"
-                sx={{
-                  color: theme.palette.text.secondary,
-                  whiteSpace: shouldInline ? 'nowrap' : 'normal',
-                  overflowWrap: 'break-word',
-                  wordBreak: 'break-word',
-                }}
-              >
-                {value !== null && value !== undefined
-                  ? value.toString()
-                  : 'N/A'}
-              </CustomTypography>
-            )}
-          </Box>
-        );
-      })}
+            </Grid>
+          );
+        })}
+      </Grid>
     </Box>
   );
 };
 
-// Export the memoized version
-const MemoizedDetailsSection = memo(DetailsSection);
-
-export default MemoizedDetailsSection;
+export default memo(DetailsSection);
