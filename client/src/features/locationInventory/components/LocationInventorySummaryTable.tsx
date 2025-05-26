@@ -1,4 +1,4 @@
-import { type FC, Suspense, useCallback } from 'react';
+import { type FC, lazy, useCallback } from 'react';
 import type {
   LocationInventorySummary,
   LocationInventorySummaryItemDetail
@@ -11,11 +11,11 @@ import CustomTable from '@components/common/CustomTable';
 import { formatLabel } from '@utils/textUtils';
 import { formatDate, formatDateTime } from '@utils/dateTimeUtils';
 import { createDrillDownColumn } from '@utils/table/createDrillDownColumn';
-import Skeleton from '@mui/material/Skeleton';
-import ErrorMessage from '@components/common/ErrorMessage.tsx';
-import CustomTypography from '@components/common/CustomTypography.tsx';
-import CustomButton from '@components/common/CustomButton.tsx';
-import LocationInventorySummaryDetailTable from './LocationInventorySummaryDetailTable';
+import ExpandableDetailSection from '@components/common/ExpandableDetailSection';
+
+const LocationInventorySummaryDetailTable = lazy(() =>
+  import('@features/locationInventory/components/LocationInventorySummaryDetailTable')
+);
 
 interface LocationInventorySummaryTableProps {
   data: LocationInventorySummary[];
@@ -152,60 +152,30 @@ const LocationInventorySummaryTable: FC<LocationInventorySummaryTableProps> = ({
   ];
   
   const expandedContent = useCallback(
-    (row: LocationInventorySummary) => {
-      const detailData = detailDataMap?.[row.itemId];
-      const detailLoading = detailLoadingMap?.[row.itemId] ?? false;
-      const detailError = detailErrorMap?.[row.itemId] ?? null;
-      
-      if (!detailData && !detailLoading) {
-        return (
-          <Box sx={{ height: 120, p: 2 }}>
-            <Skeleton variant="rectangular" height="100%" />
-          </Box>
-        );
-      }
-      if (detailError) return <ErrorMessage message={detailError} />;
-      if (!detailData?.length && !detailLoading) {
-        return (
-          <CustomTypography sx={{ p: 2 }} variant="body2">
-            No detail data available.
-          </CustomTypography>
-        );
-      }
-      
-      return (
-        <Box sx={{ p: 2 }}>
-          <Suspense
-            fallback={
-              <Skeleton
-                height={80}
-                variant="rectangular"
-                sx={{ borderRadius: 1, mb: 1 }}
-              />
-            }
-          >
-            <LocationInventorySummaryDetailTable
-              data={detailData ?? []}
-              page={detailPage - 1}
-              totalRecords={detailTotalRecords ?? 0}
-              totalPages={detailTotalPages ?? 1}
-              rowsPerPage={detailLimit}
-              onPageChange={(newPage) => onDetailPageChange?.(newPage + 1)}
-              onRowsPerPageChange={onDetailRowsPerPageChange}
-            />
-          </Suspense>
-          
-          {onRefreshDetail && (
-            <Box mt={1}>
-              <CustomButton size="small" onClick={() => onRefreshDetail(row.itemId)}>
-                Refresh Details
-              </CustomButton>
-            </Box>
-          )}
-        </Box>
-      );
-    },
-    [detailDataMap, detailLoadingMap, detailErrorMap, onRefreshDetail]
+    (row: LocationInventorySummary) => (
+      <ExpandableDetailSection
+        row={row}
+        detailData={detailDataMap?.[row.itemId]}
+        detailLoading={detailLoadingMap?.[row.itemId] ?? false}
+        detailError={detailErrorMap?.[row.itemId] ?? null}
+        detailPage={detailPage}
+        detailTotalRecords={detailTotalRecords ?? 0}
+        detailTotalPages={detailTotalPages ?? 1}
+        detailLimit={detailLimit}
+        onPageChange={(newPage) => {
+          if (onDetailPageChange) {
+            onDetailPageChange(newPage + 1);
+          }
+        }}
+        onRowsPerPageChange={onDetailRowsPerPageChange}
+        onRefreshDetail={onRefreshDetail}
+        DetailTableComponent={LocationInventorySummaryDetailTable}
+      />
+    ),
+    [detailDataMap, detailLoadingMap, detailErrorMap, detailPage,
+      detailTotalRecords, detailTotalPages, detailLimit, onDetailPageChange,
+      onDetailRowsPerPageChange, onRefreshDetail
+    ]
   );
   
   return (

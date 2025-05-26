@@ -1,19 +1,15 @@
-import { type FC, lazy, Suspense, useCallback } from 'react';
+import { type FC, lazy, useCallback } from 'react';
 import InventoryStatusChip from '@features/inventoryShared/components/InventoryStatusChip';
 import StockLevelChip from '@features/inventoryShared/components/StockLevelChip';
 import ExpirySeverityChip from '@features/inventoryShared/components/ExpirySeverityChip';
 import CustomTable, { type Column } from '@components/common/CustomTable';
-import Box from '@mui/material/Box';
-import CustomTypography from '@components/common/CustomTypography';
 import { formatDate } from '@utils/dateTimeUtils';
 import type {
   WarehouseInventoryItemSummary, WarehouseInventorySummaryItemDetails,
 } from '@features/warehouseInventory/state';
 import { formatLabel } from '@utils/textUtils';
 import { createDrillDownColumn } from '@utils/table/createDrillDownColumn';
-import Skeleton from '@mui/material/Skeleton';
-import ErrorMessage from '@components/common/ErrorMessage';
-import CustomButton from '@components/common/CustomButton';
+import ExpandableDetailSection from '@components/common/ExpandableDetailSection';
 
 const WarehouseInventorySummaryDetailTable = lazy(() =>
   import('@features/warehouseInventory/components/WarehouseInventorySummaryDetailTable')
@@ -153,60 +149,38 @@ const WarehouseInventorySummaryTable: FC<SkuInventorySummaryTableProps> = ({
   ];
   
   const expandedContent = useCallback(
-    (row: WarehouseInventoryItemSummary) => {
-      const detailData = detailDataMap?.[row.itemId];
-      const detailLoading = detailLoadingMap?.[row.itemId] ?? false;
-      const detailError = detailErrorMap?.[row.itemId] ?? null;
-      
-      if (!detailData && !detailLoading) {
-        return (
-          <Box sx={{ height: 120, p: 2 }}>
-            <Skeleton variant="rectangular" height="100%" />
-          </Box>
-        );
-      }
-      if (detailError) return <ErrorMessage message={detailError} />;
-      if (!detailData?.length && !detailLoading) {
-        return (
-          <CustomTypography sx={{ p: 2 }} variant="body2">
-            No detail data available.
-          </CustomTypography>
-        );
-      }
-      
-      return (
-        <Box sx={{ p: 2 }}>
-          <Suspense
-            fallback={
-              <Skeleton
-                height={80}
-                variant="rectangular"
-                sx={{ borderRadius: 1, mb: 1 }}
-              />
-            }
-          >
-            <WarehouseInventorySummaryDetailTable
-              data={detailData ?? []}
-              page={detailPage - 1}
-              totalRecords={detailTotalRecords ?? 0}
-              totalPages={detailTotalPages ?? 1}
-              rowsPerPage={detailLimit}
-              onPageChange={(newPage) => onDetailPageChange?.(newPage + 1)}
-              onRowsPerPageChange={onDetailRowsPerPageChange}
-            />
-          </Suspense>
-          
-          {onRefreshDetail && (
-            <Box mt={1}>
-              <CustomButton size="small" onClick={() => onRefreshDetail(row.itemId)}>
-                Refresh Details
-              </CustomButton>
-            </Box>
-          )}
-        </Box>
-      );
-    },
-    [detailDataMap, detailLoadingMap, detailErrorMap, onRefreshDetail]
+    (row: WarehouseInventoryItemSummary) => (
+      <ExpandableDetailSection
+        row={row}
+        detailData={detailDataMap?.[row.itemId]}
+        detailLoading={detailLoadingMap?.[row.itemId] ?? false}
+        detailError={detailErrorMap?.[row.itemId] ?? null}
+        detailPage={detailPage}
+        detailLimit={detailLimit}
+        detailTotalRecords={detailTotalRecords ?? 0}
+        detailTotalPages={detailTotalPages ?? 1}
+        onPageChange={(newPage) => {
+          if (onDetailPageChange) {
+            onDetailPageChange(newPage + 1);
+          }
+        }}
+        onRowsPerPageChange={onDetailRowsPerPageChange ?? (() => {})}
+        onRefreshDetail={onRefreshDetail}
+        DetailTableComponent={WarehouseInventorySummaryDetailTable}
+      />
+    ),
+    [
+      detailDataMap,
+      detailLoadingMap,
+      detailErrorMap,
+      detailPage,
+      detailLimit,
+      detailTotalRecords,
+      detailTotalPages,
+      onDetailPageChange,
+      onDetailRowsPerPageChange,
+      onRefreshDetail,
+    ]
   );
   
   return (
