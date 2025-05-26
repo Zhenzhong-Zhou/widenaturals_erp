@@ -1,7 +1,9 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import type {
+  FetchLocationInventoryArgs,
   LocationInventoryKpiSummaryResponse,
   LocationInventoryQueryParams,
+  LocationInventoryRecordsResponse,
   LocationInventorySummaryDetailResponse,
   LocationInventorySummaryResponse,
 } from './locationInventoryTypes';
@@ -75,6 +77,35 @@ export const fetchLocationInventorySummaryByItemIdThunk = createAsyncThunk<
       return await locationInventoryService.fetchLocationInventorySummaryByItemId(params);
     } catch (error: any) {
       return rejectWithValue(error?.response?.data?.message || 'Failed to fetch inventory summary detail');
+    }
+  }
+);
+
+/**
+ * Thunk to fetch paginated location inventory records from the server.
+ *
+ * This thunk:
+ * - Applies batch-type-specific filter cleanup via the service layer
+ * - Uses the provided pagination and filter parameters
+ * - Returns a structured response with records and pagination metadata
+ * - Handles and propagates errors using `rejectWithValue`
+ *
+ * Usage:
+ * dispatch(fetchLocationInventoryRecordsThunk({ pagination: { page: 1, limit: 20 }, filters }))
+ *
+ * @returns {Promise<LocationInventoryRecordsResponse>} Fulfilled with the fetched records or rejected with an error message
+ */
+export const fetchLocationInventoryRecordsThunk = createAsyncThunk<
+  LocationInventoryRecordsResponse,
+  FetchLocationInventoryArgs
+>(
+  'locationInventory/fetchRecords',
+  async ({ pagination, filters }, { rejectWithValue }) => {
+    try {
+      return await locationInventoryService.fetchLocationInventoryRecords(pagination, filters);
+    } catch (error: any) {
+      console.error('Thunk error fetching location inventory:', error);
+      return rejectWithValue(error.message || 'Failed to fetch location inventory records.');
     }
   }
 );

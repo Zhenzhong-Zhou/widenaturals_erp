@@ -6,8 +6,8 @@ import {
   selectKpiSummaryTotalRow,
   selectKpiSummaryProductRow,
   selectKpiSummaryMaterialRow,
-} from '@features/locationInventory/state/locationInventoryKpiSummarySelectors';
-import { fetchLocationInventoryKpiSummaryThunk } from '@features/locationInventory/state';
+  fetchLocationInventoryKpiSummaryThunk
+} from '@features/locationInventory/state';
 import type { ItemType } from '@features/inventoryShared/types/InventorySharedType';
 
 /**

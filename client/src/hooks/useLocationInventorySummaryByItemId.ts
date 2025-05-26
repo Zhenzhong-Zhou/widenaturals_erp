@@ -2,9 +2,9 @@ import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import { selectLocationInventorySummaryDetailData,
   selectLocationInventorySummaryDetailError,
   selectLocationInventorySummaryDetailLoading,
-  selectLocationInventorySummaryDetailPagination
-} from '@features/locationInventory/state/locationInventorySummaryDetailSelectors';
-import { fetchLocationInventorySummaryByItemIdThunk } from '@features/locationInventory/state/locationInventoryThunks';
+  selectLocationInventorySummaryDetailPagination,
+  fetchLocationInventorySummaryByItemIdThunk
+} from '@features/locationInventory/state';
 import type { InventorySummaryDetailByItemIdParams } from '@features/inventoryShared/types/InventorySharedType';
 
 /**

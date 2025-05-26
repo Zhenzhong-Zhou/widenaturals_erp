@@ -4,11 +4,11 @@ import type { Palette, PaletteColor } from '@mui/material';
 import { useThemeContext } from '@context/ThemeContext.tsx';
 import { formatLabel } from '@utils/textUtils.ts';
 
-interface Props {
-  stockLevel: 'none' | 'low' | 'critical' | 'normal' | 'expired';
+export interface StockLevelChipProps {
+  stockLevel: 'none' | 'low_stock' | 'critical' | 'normal' | 'expired';
 }
 
-const StockLevelChip: FC<Props> = ({ stockLevel }) => {
+const StockLevelChip: FC<StockLevelChipProps> = ({ stockLevel }) => {
   const { theme } = useThemeContext();
   
   const getPaletteColor = (chipColor: keyof Palette): string => {
@@ -18,11 +18,11 @@ const StockLevelChip: FC<Props> = ({ stockLevel }) => {
   
   const chipProps = useMemo(() => {
     const colorMap: Record<
-      Props['stockLevel'],
+      StockLevelChipProps['stockLevel'],
       'warning' | 'error' | 'success' | 'default'
     > = {
       none: 'default',
-      low: 'warning',
+      low_stock: 'warning',
       critical: 'error',
       normal: 'success',
       expired: 'error',
@@ -33,7 +33,7 @@ const StockLevelChip: FC<Props> = ({ stockLevel }) => {
     const paletteColor =
       chipColor === 'default'
         ? theme.palette.text.primary
-        : getPaletteColor(chipColor);;
+        : getPaletteColor(chipColor);
     
     return {
       label,

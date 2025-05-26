@@ -21,6 +21,7 @@ export const API_ENDPOINTS = {
   LOCATION_TYPE_DETAILS: '/location-types/:id',
   ALL_LOCATIONS: '/locations',
   LOCATION_INVENTORY: {
+    ALL_RECORDS: '/location-inventory',
     KPI_SUMMARY: '/location-inventory/kpi-summary',
     SUMMARY: '/location-inventory/summary',
     SUMMARY_DETAIL: (itemId: string) =>

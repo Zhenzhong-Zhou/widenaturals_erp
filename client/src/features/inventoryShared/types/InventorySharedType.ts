@@ -10,8 +10,8 @@ export interface InventoryHealthStatus {
   isExpired: boolean;
   isNearExpiry: boolean;
   isLowStock: boolean;
-  stockLevel: 'none' | 'critical' | 'low' | 'normal';
-  expirySeverity: 'expired' | 'expired_soon' | 'critical' | 'warning' | 'notice' | 'safe' | 'unknown';
+  stockLevel: 'none' | 'critical' | 'low_stock' | 'normal';
+  expirySeverity: 'expired' | 'expired_soon' | 'critical' | 'warning' | 'notice' | 'safe' | 'normal' | 'unknown';
 }
 
 export type ItemType = 'product' | 'packaging_material' | undefined;

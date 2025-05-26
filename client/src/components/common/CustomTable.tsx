@@ -40,6 +40,11 @@ interface CustomTableProps<T = any> {
   expandedRowId?: string | number | null;
   getRowId?: (row: T) => string | number;
   emptyMessage?: string;
+  getRowProps?: (row: T, index: number) => {
+    isGroupHeader?: boolean;
+    colSpan?: number;
+    sx?: object;
+  };
 }
 
 const CustomTable = <T extends Record<string, any>>({
@@ -59,6 +64,7 @@ const CustomTable = <T extends Record<string, any>>({
                                              expandedRowId,
                                              getRowId,
                                              emptyMessage,
+                                             getRowProps,
                                            }: CustomTableProps<T>) => {
   const { theme } = useThemeContext();
   const [order, setOrder] = useState<'asc' | 'desc'>('asc');
@@ -165,45 +171,70 @@ const CustomTable = <T extends Record<string, any>>({
                 </TableCell>
               </TableRow>
             ) : (
-              sortedData.map((row, rowIndex) => {
-                // Get a stable row ID (fallback to index if needed)
-                const rowId = getRowId ? getRowId(row) : row.id ?? row.itemId ?? rowIndex;
-                
-                return (
-                  <Fragment key={rowId}>
-                    <TableRow
-                      sx={{
-                        '&:nth-of-type(odd)': {
-                          backgroundColor: theme.palette.action.hover,
-                        },
-                      }}
-                    >
-                      <TableCell align="center" sx={{ py: 1.25, px: 2 }}>
-                        {safePage * initialRowsPerPage + rowIndex + 1}
-                      </TableCell>
-                      {columns.map((col) => (
-                        <TableCell key={col.id} align={col.align || 'left'} sx={{ py: 1.25, px: 2 }}>
-                          {col.renderCell
-                            ? col.renderCell(row, rowIndex)
-                            : col.format
-                              ? col.format(row[col.id], row)
-                              : (row[col.id] as ReactNode)}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                    
-                    {expandable && (
-                      <TableRow>
-                        <TableCell colSpan={columns.length + 1} sx={{ p: 0 }}>
-                          <Collapse in={expandedRowId === rowId}>
-                            {expandedContent?.(row)}
-                          </Collapse>
+              (() => {
+                let visibleRowIndex = 0;
+                return sortedData.map((row, rowIndex) => {
+                  const rowId = getRowId ? getRowId(row) : row.id ?? row.itemId ?? rowIndex;
+                  const rowProps = getRowProps?.(row, rowIndex);
+                  
+                  if (rowProps?.isGroupHeader) {
+                    return (
+                      <TableRow key={rowId}>
+                        <TableCell
+                          colSpan={rowProps.colSpan ?? columns.length + 1}
+                          sx={{
+                            py: 1.5,
+                            px: 2,
+                            fontWeight: 700,
+                            backgroundColor: theme.palette.action.selected,
+                            ...rowProps.sx,
+                          }}
+                        >
+                          {row.name ?? row.label ?? 'Group'}
                         </TableCell>
                       </TableRow>
-                    )}
-                  </Fragment>
-                );
-              })
+                    );
+                  }
+                  
+                  const displayRowNumber = safePage * initialRowsPerPage + visibleRowIndex + 1;
+                  visibleRowIndex++;
+                  
+                  return (
+                    <Fragment key={rowId}>
+                      <TableRow
+                        sx={{
+                          '&:nth-of-type(odd)': {
+                            backgroundColor: theme.palette.action.hover,
+                          },
+                        }}
+                      >
+                        <TableCell align="center" sx={{ py: 1.25, px: 2 }}>
+                          {displayRowNumber}
+                        </TableCell>
+                        {columns.map((col) => (
+                          <TableCell key={col.id} align={col.align || 'left'} sx={{ py: 1.25, px: 2 }}>
+                            {col.renderCell
+                              ? col.renderCell(row, rowIndex)
+                              : col.format
+                                ? col.format(row[col.id], row)
+                                : (row[col.id] as ReactNode)}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                      
+                      {expandable && (
+                        <TableRow>
+                          <TableCell colSpan={columns.length + 1} sx={{ p: 0 }}>
+                            <Collapse in={expandedRowId === rowId}>
+                              {expandedContent?.(row)}
+                            </Collapse>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </Fragment>
+                  );
+                });
+              })()
             )}
           </TableBody>
         </Table>

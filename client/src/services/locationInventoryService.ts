@@ -1,8 +1,9 @@
 import axiosInstance from '@utils/axiosConfig';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 import type {
+  LocationInventoryFilter,
   LocationInventoryKpiSummaryResponse,
-  LocationInventoryQueryParams,
+  LocationInventoryQueryParams, LocationInventoryRecordsResponse,
   LocationInventorySummaryDetailResponse,
   LocationInventorySummaryResponse,
 } from '@features/locationInventory/state';
@@ -11,6 +12,8 @@ import type {
   InventorySummaryDetailByItemIdParams,
   ItemType,
 } from '@features/inventoryShared/types/InventorySharedType';
+import { buildLocationInventoryFilters } from '@utils/filters/buildLocationInventoryFilters';
+import type { PaginationParams } from '@shared-types/api';
 
 /**
  * Fetches KPI summary for location inventory.
@@ -83,8 +86,43 @@ export const fetchLocationInventorySummaryByItemId = async (
   }
 };
 
+/**
+ * Fetches paginated location inventory records from the server.
+ * Automatically cleans and filters based on batchType before making the request.
+ *
+ * @param {PaginationParams} pagination - Pagination configuration (page and limit)
+ * @param {LocationInventoryFilter} rawFilters - Raw filter and pagination input
+ * @returns {Promise<LocationInventoryRecordsResponse>} - Paginated inventory record result
+ */
+const fetchLocationInventoryRecords = async (
+  pagination: PaginationParams,
+  rawFilters: LocationInventoryFilter
+): Promise<LocationInventoryRecordsResponse> => {
+  const { page = 1, limit = 10 } = pagination;
+  const filters = buildLocationInventoryFilters(rawFilters);
+  
+  try {
+    const response = await axiosInstance.get<LocationInventoryRecordsResponse>(
+      API_ENDPOINTS.LOCATION_INVENTORY.ALL_RECORDS,
+      {
+        params: {
+          page,
+          limit,
+          ...filters,
+        },
+      }
+    );
+    
+    return response.data;
+  } catch (error: any) {
+    console.error('Error fetching location inventory records:', error);
+    throw new Error('Failed to fetch location inventory records.');
+  }
+};
+
 export const locationInventoryService = {
   fetchLocationInventoryKpiSummary,
   fetchLocationInventorySummary,
   fetchLocationInventorySummaryByItemId,
+  fetchLocationInventoryRecords,
 };

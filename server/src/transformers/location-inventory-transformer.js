@@ -180,8 +180,9 @@ const transformLocationInventoryRecord = (row) => {
     : row.material_expiry_date;
   
   const statusFlags = deriveInventoryStatusFlags({
-    quantity: row.location_quantity,
-    expiryDate: displayExpiryDate,
+    available_quantity: row.location_quantity - row.reserved_quantity,
+    nearest_expiry_date: displayExpiryDate,
+    earliest_manufacture_date: isProduct ? row.product_manufacture_date : row.material_manufacture_date,
   });
   
   const status = cleanObject({
@@ -199,8 +200,9 @@ const transformLocationInventoryRecord = (row) => {
       type: row.location_type_name,
     },
     quantity: {
-      available: row.location_quantity,
-      reserved: row.reserved_quantity,
+      locationQuantity: row.location_quantity ?? 0,
+      available: Math.max((row.location_quantity ?? 0) - (row.reserved_quantity ?? 0), 0),
+      reserved: row.reserved_quantity ?? 0,
     },
     lot: {
       number: displayLotNumber,

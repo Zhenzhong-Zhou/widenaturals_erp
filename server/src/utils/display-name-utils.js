@@ -41,8 +41,8 @@ const getProductDisplayName = (row) => {
   // Prefer preformatted display_name if it exists
   if (row.display_name) return row.display_name;
   
-  const brand = row.brand;
-  const skuPrefix = row.sku?.slice(0, 2).toUpperCase();
+  const brand = row.brand || row.brand_name;
+  const skuPrefix = (row.sku || row.sku_code)?.slice(0, 2).toUpperCase();
   const countryCode = (row.country_code || '').toUpperCase();
   const productName = row.product_name || row.item_name || row.itemName || '';
   

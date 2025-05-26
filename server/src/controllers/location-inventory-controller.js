@@ -158,7 +158,8 @@ const getLocationInventorySummaryDetailsController = wrapAsync(async (req, res, 
 const getLocationInventoryRecordController = wrapAsync(async (req, res) => {
   const page = parseInt(req.query.page, 10) || 1;
   const limit = parseInt(req.query.limit, 10) || 20;
-  const filters = {
+  
+  let filters = {
     batchType: req.query.batchType || undefined,
     locationName: req.query.locationName || undefined,
     productName: req.query.productName || undefined,
@@ -174,13 +175,31 @@ const getLocationInventoryRecordController = wrapAsync(async (req, res) => {
     expiryDate: req.query.expiryDate || undefined,   // format: yyyy-mm-dd
     createdAt: req.query.createdAt || undefined      // format: yyyy-mm-dd
   };
+
+  // Sanitize filters based on batchType
+  const isProduct = filters.batchType === 'product';
+  const isMaterial = filters.batchType === 'packaging_material';
   
-  const result = await fetchPaginatedLocationInventoryRecordService({ page, limit, filters });
+  if (isProduct) {
+    // Remove material- and part-related filters
+    delete filters.materialName;
+    delete filters.materialCode;
+    delete filters.partName;
+    delete filters.partCode;
+    delete filters.partType;
+  } else if (isMaterial) {
+    // Remove product-related filters
+    delete filters.productName;
+    delete filters.sku;
+  }
+  
+  const { data, pagination } = await fetchPaginatedLocationInventoryRecordService({ page, limit, filters });
   
   res.status(200).json({
     success: true,
     message: 'Successfully fetched location inventory records',
-    data: result,
+    data,
+    pagination,
   });
 });
 
