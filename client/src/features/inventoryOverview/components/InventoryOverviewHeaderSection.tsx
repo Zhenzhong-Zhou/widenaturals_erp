@@ -1,12 +1,18 @@
 import { type FC, useEffect, useState } from 'react';
-import { Box, Grid, ToggleButton, ToggleButtonGroup } from '@mui/material';
+import { useLocation } from 'react-router';
+import { useNavigate } from 'react-router-dom';
+import Box from '@mui/material/Box';
+import Grid from '@mui/material/Grid';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
-import { useNavigate } from 'react-router-dom';
 import useLocationInventoryKpiSummary from '@hooks/useLocationInventoryKpiSummary';
 import KpiSummaryCards from '@features/locationInventory/components/KpiSummaryCards';
 
 const InventoryOverviewHeaderSection: FC = () => {
+  const location = useLocation();
+  const isOverviewPage = location.pathname === '/inventory-overview';
   const navigate = useNavigate();
   const [selectedType, setSelectedType] = useState<'total' | 'product' | 'packaging_material'>('total');
   
@@ -81,9 +87,11 @@ const InventoryOverviewHeaderSection: FC = () => {
           visibleTypes={[selectedType]}
           fetchKpiSummary={fetchKpiSummary}
         />
-        <CustomButton variant="outlined" size="small" onClick={() => navigate('/inventory-overview')}>
-          View More
-        </CustomButton>
+        {!isOverviewPage && (
+          <CustomButton variant="outlined" size="small" onClick={() => navigate('/inventory-overview')}>
+            View More
+          </CustomButton>
+        )}
       </Box>
     </Box>
   );
