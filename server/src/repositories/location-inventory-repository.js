@@ -340,16 +340,32 @@ const getLocationInventorySummaryDetailsByItemId = async ({ page, limit, itemId 
 /**
  * Fetches paginated and enriched location inventory records.
  *
- * This query includes related metadata such as location type, product/manufacturer info,
- * packaging material/supplier, batch details, part mapping, and created/updated usernames.
+ * This query joins related metadata from multiple tables such as
+ * - Location and location type
+ * - Inventory status
+ * - Product, SKU, manufacturer
+ * - Packaging material, material supplier, parts
+ * - Created/updated usernames
  *
- * @param {Object} options
- * @param {number} options.page - Current page number
+ * It supports dynamic filtering, sorting, and pagination.
+ *
+ * @param {Object} options - Query configuration object
+ * @param {number} options.page - Current page number (1-based)
  * @param {number} options.limit - Number of records per page
- * @param {Object} [options.filters] - Optional filter object
- * @returns {Promise<Array>} A paginated result set with inventory and metadata
+ * @param {Object} [options.filters] - Optional filters for narrowing the result set
+ * @param {string} [options.safeSortClause] - A pre-sanitized SQL ORDER BY clause
+ *
+ * @returns {Promise<{
+ *   data: Array<Object>,
+ *   pagination: {
+ *     page: number,
+ *     limit: number,
+ *     totalRecords: number,
+ *     totalPages: number
+ *   }
+ * }>} Paginated location inventory data with enriched metadata
  */
-const getPaginatedLocationInventoryRecords = async ({ page, limit, filters }) => {
+const getPaginatedLocationInventoryRecords = async ({ page, limit, filters, safeSortClause }) => {
   const tableName = 'location_inventory li';
   
   const joins = [
@@ -420,7 +436,7 @@ const getPaginatedLocationInventoryRecords = async ({ page, limit, filters }) =>
     FROM ${tableName}
     ${joins.join('\n')}
     WHERE ${whereClause}
-    ORDER BY loc.name, li.last_update DESC
+   ORDER BY ${safeSortClause};
   `;
   
   try {

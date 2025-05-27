@@ -131,69 +131,82 @@ const getLocationInventorySummaryDetailsController = wrapAsync(async (req, res, 
 /**
  * Controller: GET /location-inventory
  *
- * Handles incoming request to fetch paginated location inventory data.
- * Parses query parameters, calls the service, and returns a JSON response.
+ * Handles the request to fetch paginated location inventory records.
+ * Parses query parameters (filters, pagination, sorting), calls the service,
+ * and returns a formatted JSON response to the client.
  *
  * @route GET /location-inventory
  * @group Location Inventory
- * @queryparam {number} [page=1] - Page number for pagination
- * @queryparam {number} [limit=20] - Number of items per page
+ *
+ * @queryparam {number} [page=1] - Page number for pagination (1-based index)
+ * @queryparam {number} [limit=20] - Number of records per page
+ * @queryparam {string} [sortBy] - Field to sort by (e.g. 'productName', 'locationName')
+ * @queryparam {string} [sortOrder=ASC] - Sort order direction ('ASC' or 'DESC')
+ *
  * @queryparam {string} [batchType] - Filter by batch type ('product' | 'packaging_material')
- * @queryparam {string} [locationName] - Filter by location name (ILIKE)
- * @queryparam {string} [productName] - Filter by product name (ILIKE)
- * @queryparam {string} [sku] - Filter by SKU (ILIKE)
- * @queryparam {string} [materialName] - Filter by material name (ILIKE)
- * @queryparam {string} [materialCode] - Filter by material code (ILIKE)
- * @queryparam {string} [partName] - Filter by part name (ILIKE)
- * @queryparam {string} [partCode] - Filter by part code (ILIKE)
- * @queryparam {string} [partType] - Filter by part type (ILIKE)
- * @queryparam {string} [lotNumber] - Filter by lot number (applies to both product/material lots)
+ * @queryparam {string} [locationName] - Filter by location name (ILIKE match)
+ * @queryparam {string} [productName] - Filter by product name (ILIKE match)
+ * @queryparam {string} [sku] - Filter by SKU code (ILIKE match)
+ * @queryparam {string} [materialName] - Filter by packaging material name (ILIKE match)
+ * @queryparam {string} [materialCode] - Filter by material code (ILIKE match)
+ * @queryparam {string} [partName] - Filter by part name (ILIKE match)
+ * @queryparam {string} [partCode] - Filter by part code (ILIKE match)
+ * @queryparam {string} [partType] - Filter by part type (ILIKE match)
+ * @queryparam {string} [lotNumber] - Filter by lot number (product or material)
  * @queryparam {string} [status] - Filter by inventory status name
  * @queryparam {string} [statusId] - Filter by inventory status ID
  * @queryparam {string} [inboundDate] - Filter by inbound date (YYYY-MM-DD)
  * @queryparam {string} [expiryDate] - Filter by expiry date (YYYY-MM-DD)
  * @queryparam {string} [createdAt] - Filter by creation date (YYYY-MM-DD)
- * @returns {200} 200 - Paginated inventory response
+ *
+ * @returns {200} Paginated inventory data including metadata and counts
  */
 const getLocationInventoryRecordController = wrapAsync(async (req, res) => {
   const page = parseInt(req.query.page, 10) || 1;
   const limit = parseInt(req.query.limit, 10) || 20;
+  const { sortBy, sortOrder } = req.query;
   
-  let filters = {
-    batchType: req.query.batchType || undefined,
-    locationName: req.query.locationName || undefined,
-    productName: req.query.productName || undefined,
-    materialName: req.query.materialName || undefined,
-    materialCode: req.query.materialCode || undefined,
-    partName: req.query.partName || undefined,
-    partCode: req.query.partCode || undefined,
-    partType: req.query.partType || undefined,
-    sku: req.query.sku || undefined,
-    lotNumber: req.query.lotNumber || undefined,
-    status: req.query.status || undefined,
-    inboundDate: req.query.inboundDate || undefined, // format: yyyy-mm-dd
-    expiryDate: req.query.expiryDate || undefined,   // format: yyyy-mm-dd
-    createdAt: req.query.createdAt || undefined      // format: yyyy-mm-dd
+  const sanitizeLocationInventoryFilters = (query) => {
+    const filters = {
+      batchType: query.batchType || undefined,
+      locationName: query.locationName || undefined,
+      productName: query.productName || undefined,
+      materialName: query.materialName || undefined,
+      materialCode: query.materialCode || undefined,
+      partName: query.partName || undefined,
+      partCode: query.partCode || undefined,
+      partType: query.partType || undefined,
+      sku: query.sku || undefined,
+      lotNumber: query.lotNumber || undefined,
+      status: query.status || undefined,
+      inboundDate: req.query.inboundDate || undefined, // format: yyyy-mm-dd
+      expiryDate: req.query.expiryDate || undefined,   // format: yyyy-mm-dd
+      createdAt: req.query.createdAt || undefined      // format: yyyy-mm-dd
+    };
+    
+    if (filters.batchType === 'product') {
+      delete filters.materialName;
+      delete filters.materialCode;
+      delete filters.partName;
+      delete filters.partCode;
+      delete filters.partType;
+    } else if (filters.batchType === 'packaging_material') {
+      delete filters.productName;
+      delete filters.sku;
+    }
+    
+    return filters;
   };
-
-  // Sanitize filters based on batchType
-  const isProduct = filters.batchType === 'product';
-  const isMaterial = filters.batchType === 'packaging_material';
   
-  if (isProduct) {
-    // Remove material- and part-related filters
-    delete filters.materialName;
-    delete filters.materialCode;
-    delete filters.partName;
-    delete filters.partCode;
-    delete filters.partType;
-  } else if (isMaterial) {
-    // Remove product-related filters
-    delete filters.productName;
-    delete filters.sku;
-  }
+  const filters = sanitizeLocationInventoryFilters(req.query);
   
-  const { data, pagination } = await fetchPaginatedLocationInventoryRecordService({ page, limit, filters });
+  const { data, pagination } = await fetchPaginatedLocationInventoryRecordService({
+    page,
+    limit,
+    filters,
+    sortByRaw: sortBy,
+    sortOrderRaw: sortOrder,
+  });
   
   res.status(200).json({
     success: true,

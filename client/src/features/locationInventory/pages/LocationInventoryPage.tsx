@@ -7,6 +7,7 @@ import Stack from '@mui/material/Stack';
 import Divider from '@mui/material/Divider';
 import StoreIcon from '@mui/icons-material/Store';
 import CustomTypography from '@components/common/CustomTypography';
+import CustomButton from '@components/common/CustomButton';
 import LocationInventoryFilterPanel from '@features/locationInventory/components/LocationInventoryFilterPanel';
 import LocationInventoryTable from '@features/locationInventory/components/LocationInventoryTable';
 import type { FlatLocationInventoryRow, LocationInventoryQueryParams, LocationInventoryRecord } from '@features/locationInventory/state';
@@ -80,6 +81,7 @@ const LocationInventoryPage = () => {
           initialFilters={filters}
           onApply={handleApplyFilters}
           onReset={handleResetFilters}
+          showActionsWhenAll={true}
         />
         
         {/* Table */}
@@ -97,6 +99,14 @@ const LocationInventoryPage = () => {
           isRowExpanded={isRowExpanded}
           expandedContent={(row) => <LocationInventoryExpandedRow record={row.originalRecord} />}
         />
+        <Stack direction="row" justifyContent="flex-end" mt={2}>
+          <CustomButton
+            variant="outlined"
+            onClick={() => fetchRecords({ page, limit }, filters)}
+          >
+            Refresh Inventory
+          </CustomButton>
+        </Stack>
       </Paper>
     </Box>
   );

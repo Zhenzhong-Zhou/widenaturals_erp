@@ -16,6 +16,7 @@ const {
   transformPaginatedLocationInventoryRecordResults,
 } = require('../transformers/location-inventory-transformer');
 const { sanitizeSortBy, sanitizeSortOrder } = require('../utils/sort-utils');
+const { FILTERABLE_FIELDS } = require('../utils/filter-field-mapping');
 
 /**
  * Service to fetch and transform KPI summary data for location inventory.
@@ -146,20 +147,48 @@ const fetchPaginatedLocationInventorySummaryByItemIdService = async ({ page, lim
 };
 
 /**
- * Service to retrieve paginated location inventory with full metadata.
+ * Service to retrieve paginated location inventory records with full metadata.
  *
- * Fetches raw location inventory data from the database, transforms it into
- * structured and display-friendly format, and returns the paginated result.
+ * This service fetches raw location inventory data from the database using provided filters,
+ * applies dynamic sorting and pagination, and transforms the results into a structured,
+ * display-friendly format for frontend consumption.
  *
- * @param {Object} options
- * @param {number} options.page - Current page number
- * @param {number} options.limit - Items per page
- * @param {Object} [options.filters] - Optional filter object for narrowing results
- * @returns {Promise<Object>} Paginated and transformed location inventory data
+ * @param {Object} options - Parameters for querying the inventory data
+ * @param {number} options.page - The current page number (1-based index)
+ * @param {number} options.limit - The number of records per page
+ * @param {Object} [options.filters] - Optional filters for narrowing results by fields such as batchType, locationName, productName, etc.
+ * @param {string} [options.sortByRaw] - Optional raw sort key from frontend (e.g. "productName", "inboundDate")
+ * @param {string} [options.sortOrderRaw='ASC'] - Optional sort order direction: 'ASC' or 'DESC'
+ *
+ * @returns {Promise<Object>} - An object containing the paginated, filtered, and transformed location inventory results:
+ *    {
+ *      data: Array<Object>,        // Transformed location inventory records
+ *      pagination: {
+ *        page: number,             // Current page
+ *        limit: number,            // Items per page
+ *        totalRecords: number,     // Total matching records
+ *        totalPages: number        // Total number of pages
+ *      }
+ *    }
  */
-const fetchPaginatedLocationInventoryRecordService = async ({ page, limit, filters }) => {
+const fetchPaginatedLocationInventoryRecordService = async ({ page, limit, filters, sortByRaw, sortOrderRaw }) => {
   try {
-    const rawResult = await getPaginatedLocationInventoryRecords({ page, limit, filters });
+    const sortByExpression =
+      sortByRaw?.trim()
+        ? sanitizeSortBy(sortByRaw, 'locationInventorySortMap')
+        : FILTERABLE_FIELDS.locationInventorySortMap.defaultNaturalSort;
+
+    // Only append sortOrder if sortBy is a single column
+    const safeSortClause = sortByExpression.includes(',') || sortByExpression.includes('CASE')
+      ? sortByExpression
+      : `${sortByExpression} ${sanitizeSortOrder(sortOrderRaw)}`;
+    
+    const rawResult = await getPaginatedLocationInventoryRecords({
+      page,
+      limit,
+      filters,
+      safeSortClause
+    });
     return transformPaginatedLocationInventoryRecordResults(rawResult);
   } catch (error) {
     logSystemException(error, 'Failed in locationInventoryService.getPaginatedLocationInventory', {

@@ -49,6 +49,47 @@ const FILTERABLE_FIELDS = {
     availableQuantity: '(li.location_quantity - li.reserved_quantity)',
     createdAt: 'created_at',
   },
+  locationInventorySortMap: {
+    locationName: 'loc.name',
+    productName: 'p.name',
+    materialName: 'pmb.material_snapshot_name',
+    inboundDate: 'li.inbound_date',
+    outboundDate: 'li.outbound_date',
+    expiryDate: `
+      CASE
+        WHEN br.batch_type = 'product' THEN pb.expiry_date
+        WHEN br.batch_type = 'packaging_material' THEN pmb.expiry_date
+        ELSE NULL
+      END
+    `,
+    createdAt: 'li.created_at',
+    lastUpdate: 'li.last_update',
+    availableQuantity: '(li.location_quantity - li.reserved_quantity)',
+    status: 'st.name',
+    name: `
+      CASE
+        WHEN br.batch_type = 'product' THEN p.name
+        ELSE COALESCE(pmb.material_snapshot_name, pt.name, p.name)
+      END
+    `,
+    defaultNaturalSort: `
+      loc.name,
+      p.brand,
+      br.batch_type,
+      CASE
+        WHEN br.batch_type = 'product' THEN
+          CAST(NULLIF(REGEXP_REPLACE(p.name, '[^0-9]', '', 'g'), '') AS INTEGER)
+        ELSE
+          CAST(NULLIF(REGEXP_REPLACE(COALESCE(pmb.material_snapshot_name, pt.name), '[^0-9]', '', 'g'), '') AS INTEGER)
+      END NULLS LAST,
+      CASE
+        WHEN br.batch_type = 'product' THEN
+          CAST(NULLIF(REGEXP_REPLACE(p.name, '[^0-9]', '', 'g'), '') AS INTEGER)
+        ELSE NULL
+      END NULLS LAST,
+      li.last_update DESC
+    `,
+  },
 };
 
 module.exports = {
