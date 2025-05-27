@@ -10,6 +10,7 @@ import type {
   PaginatedResponse,
   PaginatedState,
   PaginationParams,
+  SortConfig,
 } from '@shared-types/api';
 
 export type LocationInventorySummaryResponse = PaginatedResponse<LocationInventorySummary>;
@@ -109,8 +110,7 @@ export type LocationInventoryKpiSummaryState = AsyncDataState<LocationInventoryK
 export interface FetchLocationInventoryArgs {
   pagination: PaginationParams;
   filters: LocationInventoryFilters;
-  sortBy?: string;
-  sortOrder?: 'ASC' | 'DESC';
+  sortConfig?: SortConfig;
 }
 
 export interface LocationInventoryRecord {

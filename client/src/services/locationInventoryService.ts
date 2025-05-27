@@ -3,7 +3,8 @@ import { API_ENDPOINTS } from '@services/apiEndpoints';
 import type {
   LocationInventoryFilters,
   LocationInventoryKpiSummaryResponse,
-  LocationInventoryQueryParams, LocationInventoryRecordsResponse,
+  LocationInventoryQueryParams,
+  LocationInventoryRecordsResponse,
   LocationInventorySummaryDetailResponse,
   LocationInventorySummaryResponse,
 } from '@features/locationInventory/state';
@@ -13,7 +14,7 @@ import type {
   ItemType,
 } from '@features/inventoryShared/types/InventorySharedType';
 import { buildLocationInventoryFilters } from '@utils/filters/buildLocationInventoryFilters';
-import type { PaginationParams } from '@shared-types/api';
+import type { PaginationParams, SortConfig } from '@shared-types/api.ts';
 
 /**
  * Fetches KPI summary for location inventory.
@@ -87,19 +88,24 @@ export const fetchLocationInventorySummaryByItemId = async (
 };
 
 /**
- * Fetches paginated location inventory records from the server.
- * Automatically cleans and filters based on batchType before making the request.
+ * Fetches paginated and filtered location inventory records from the server.
+ *
+ * Accepts optional query parameters including pagination, sorting, and filters.
+ * Filters will be sanitized (e.g., based on batchType: product vs. material) before being sent.
  *
  * @param {PaginationParams} pagination - Pagination configuration (page and limit)
- * @param {LocationInventoryFilters} rawFilters - Raw filter and pagination input
+ * @param {LocationInventoryFilters} rawFilters - Raw filter input to be cleaned and applied
+ * @param {SortConfig} rawSortConfig - Sorting options (sortBy field and sortOrder direction)
  * @returns {Promise<LocationInventoryRecordsResponse>} - Paginated inventory record result
  */
 const fetchLocationInventoryRecords = async (
   pagination: PaginationParams,
-  rawFilters: LocationInventoryFilters
+  rawFilters: LocationInventoryFilters,
+  rawSortConfig: SortConfig = {}
 ): Promise<LocationInventoryRecordsResponse> => {
   const { page = 1, limit = 10 } = pagination;
   const filters = buildLocationInventoryFilters(rawFilters);
+  const { sortBy, sortOrder } = rawSortConfig;
   
   try {
     const response = await axiosInstance.get<LocationInventoryRecordsResponse>(
@@ -109,6 +115,8 @@ const fetchLocationInventoryRecords = async (
           page,
           limit,
           ...filters,
+          ...(sortBy && { sortBy }),
+          ...(sortOrder && { sortOrder }),
         },
       }
     );

@@ -100,9 +100,13 @@ export const fetchLocationInventoryRecordsThunk = createAsyncThunk<
   FetchLocationInventoryArgs
 >(
   'locationInventory/fetchRecords',
-  async ({ pagination, filters }, { rejectWithValue }) => {
+  async ({ pagination, filters, sortConfig = {} }, { rejectWithValue }) => {
     try {
-      return await locationInventoryService.fetchLocationInventoryRecords(pagination, filters);
+      return await locationInventoryService.fetchLocationInventoryRecords(
+        pagination,
+        filters,
+        sortConfig
+      );
     } catch (error: any) {
       console.error('Thunk error fetching location inventory:', error);
       return rejectWithValue(error.message || 'Failed to fetch location inventory records.');

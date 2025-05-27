@@ -123,3 +123,24 @@ export interface AsyncDataState<T> {
    */
   error: string | null;
 }
+
+/**
+ * Represents sorting options for paginated data queries.
+ * This interface allows the client to specify which field to sort by,
+ * and in which direction (ascending or descending).
+ *
+ * It Can be combined with other query parameter types like pagination or filters.
+ *
+ * Example usage:
+ * {
+ *   sortBy: 'productName',
+ *   sortOrder: 'DESC'
+ * }
+ */
+export interface SortConfig {
+  /** The field name to sort by (must align with backend-supported fields). */
+  sortBy?: string;
+  
+  /** Sort direction: 'ASC' for ascending, 'DESC' for descending. Defaults to 'ASC' if not specified. */
+  sortOrder?: 'ASC' | 'DESC' | '';
+}

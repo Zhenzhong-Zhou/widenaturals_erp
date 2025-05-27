@@ -14,9 +14,13 @@ import LocationInventoryTable from '@features/locationInventory/components/Locat
 import type { FlatLocationInventoryRow, LocationInventoryQueryParams, LocationInventoryRecord } from '@features/locationInventory/state';
 import LocationInventoryExpandedRow from '../components/LocationInventoryExpandedRow';
 import type { ItemType } from '@features/inventoryShared/types/InventorySharedType';
+import SortControls from '@components/common/SortControls';
+import { LOCATION_INVENTORY_SORT_OPTIONS } from '../constants/sortOptions';
+import type { SortConfig } from '@shared-types/api';
 
 const LocationInventoryPage = () => {
   const [itemTypeTab, setItemTypeTab] = useState(0);
+  const [sortConfig, setSortConfig] = useState<SortConfig>({ sortBy: '', sortOrder: '' });
   const [filters, setFilters] = useState<LocationInventoryQueryParams>({});
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(30);
@@ -30,9 +34,9 @@ const LocationInventoryPage = () => {
   } = useLocationInventory();
   
   useEffect(() => {
-    fetchRecords({ page, limit }, filters);
-  }, [page, limit, filters]);
-
+    fetchRecords({ page, limit }, filters, sortConfig);
+  }, [page, limit, filters, sortConfig]);
+  
   // Convert tab to batchType
   const batchType: ItemType | undefined =
     itemTypeTab === 1 ? 'product' :
@@ -98,10 +102,40 @@ const LocationInventoryPage = () => {
         </Stack>
         
         <Stack spacing={3}>
-          {/* Item Type Tabs */}
-          <ItemTypeTabs value={itemTypeTab} onChange={handleItemTypeTabChange} />
+          {/* Tabs + Title + Sort */}
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            alignItems={{ xs: 'flex-start', sm: 'center' }}
+            justifyContent="space-between"
+            spacing={2}
+          >
+            {/* Tabs */}
+            <ItemTypeTabs value={itemTypeTab} onChange={handleItemTypeTabChange} />
+            
+            {/* Right-side controls */}
+            <Stack spacing={1}>
+              <CustomTypography
+                variant="body1"
+                color="text.secondary"
+                sx={{ ml: { sm: 'auto' } }}
+              >
+                Sort Options
+              </CustomTypography>
+              <SortControls
+                sortBy={sortConfig.sortBy ?? ''}
+                sortOrder={sortConfig.sortOrder ?? ''}
+                onSortByChange={(value) =>
+                  setSortConfig((prev) => ({ ...prev, sortBy: value }))
+                }
+                onSortOrderChange={(value) =>
+                  setSortConfig((prev) => ({ ...prev, sortOrder: value }))
+                }
+                sortOptions={LOCATION_INVENTORY_SORT_OPTIONS}
+              />
+            </Stack>
+          </Stack>
           
-          <Divider />
+          <Divider sx={{ display: { xs: 'none', sm: 'block' } }} />
           
           {/* Filter Panel */}
           <LocationInventoryFilterPanel
@@ -132,7 +166,7 @@ const LocationInventoryPage = () => {
         <Stack direction="row" justifyContent="flex-end" mt={3}>
           <CustomButton
             variant="outlined"
-            onClick={() => fetchRecords({ page, limit }, filters)}
+            onClick={() => fetchRecords({ page, limit }, filters, sortConfig)}
           >
             Refresh Inventory
           </CustomButton>

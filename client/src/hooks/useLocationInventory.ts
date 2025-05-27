@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   selectLocationInventoryError,
@@ -5,13 +6,14 @@ import {
   selectLocationInventoryPagination,
   selectLocationInventoryRecords,
 } from '@features/locationInventory/state/locationInventorySelectors';
-import type { PaginationParams } from '@shared-types/api';
-import { fetchLocationInventoryRecordsThunk, type LocationInventoryFilters } from '@features/locationInventory/state';
-import { useCallback } from 'react';
+import type { PaginationParams, SortConfig } from '@shared-types/api';
+import {
+  fetchLocationInventoryRecordsThunk,
+  type LocationInventoryFilters,
+} from '@features/locationInventory/state';
 
 /**
- * Custom hook to access and fetch location inventory records with optional filters.
- *
+ * Custom hook to access and fetch location inventory records with optional filters and sorting.
  */
 const useLocationInventory = () => {
   const dispatch = useAppDispatch();
@@ -26,10 +28,14 @@ const useLocationInventory = () => {
    *
    * @param {PaginationParams} pagination - Pagination settings
    * @param {LocationInventoryFilters} filters - Filter options
+   * @param {SortConfig} [sortConfig] - Optional sort configuration
    */
-  const fetchRecords = useCallback((pagination: PaginationParams, filters: LocationInventoryFilters) => {
-    dispatch(fetchLocationInventoryRecordsThunk({ pagination, filters }));
-  }, [dispatch]);
+  const fetchRecords = useCallback(
+    (pagination: PaginationParams, filters: LocationInventoryFilters, sortConfig?: SortConfig) => {
+      dispatch(fetchLocationInventoryRecordsThunk({ pagination, filters, sortConfig }));
+    },
+    [dispatch]
+  );
   
   return {
     records,
