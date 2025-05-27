@@ -436,7 +436,7 @@ const getPaginatedLocationInventoryRecords = async ({ page, limit, filters, safe
     FROM ${tableName}
     ${joins.join('\n')}
     WHERE ${whereClause}
-   ORDER BY ${safeSortClause};
+    ORDER BY ${safeSortClause};
   `;
   
   try {

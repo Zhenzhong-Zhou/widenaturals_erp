@@ -1,9 +1,10 @@
-import { Tabs, Tab } from '@mui/material';
-import type { FC } from 'react';
+import type { FC, SyntheticEvent } from 'react';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
 
 interface ItemTypeTabsProps {
   value: number;
-  onChange: (event: React.SyntheticEvent, newValue: number) => void;
+  onChange: (event: SyntheticEvent, newValue: number) => void;
 }
 
 const ItemTypeTabs: FC<ItemTypeTabsProps> = ({ value, onChange }) => (
