@@ -1,4 +1,4 @@
-import type { LocationInventoryFilter } from "@features/locationInventory/state";
+import type { LocationInventoryFilters } from "@features/locationInventory/state";
 import { cleanObject } from '@utils/objectUtils.ts';
 
 /**
@@ -7,12 +7,12 @@ import { cleanObject } from '@utils/objectUtils.ts';
  * Removes conflicting or irrelevant fields depending on whether the filters are for
  * 'product' or 'packaging_material' inventory, then returns a cleaned object.
  *
- * @param {LocationInventoryFilter} form - The raw filter input object (usually from the UI form or query params)
- * @returns {LocationInventoryFilter} - A cleaned and scoped filter object with only relevant fields
+ * @param {LocationInventoryFilters} form - The raw filter input object (usually from the UI form or query params)
+ * @returns {LocationInventoryFilters} - A cleaned and scoped filter object with only relevant fields
  */
 export const buildLocationInventoryFilters = (
-  form: LocationInventoryFilter
-): LocationInventoryFilter => {
+  form: LocationInventoryFilters
+): LocationInventoryFilters => {
   const { batchType, ...rest } = form;
   
   const fieldGroups = {

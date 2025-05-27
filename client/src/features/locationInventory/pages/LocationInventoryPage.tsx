@@ -7,11 +7,13 @@ import Stack from '@mui/material/Stack';
 import Divider from '@mui/material/Divider';
 import StoreIcon from '@mui/icons-material/Store';
 import CustomTypography from '@components/common/CustomTypography';
+import LocationInventoryFilterPanel from '@features/locationInventory/components/LocationInventoryFilterPanel';
 import LocationInventoryTable from '@features/locationInventory/components/LocationInventoryTable';
-import type { FlatLocationInventoryRow, LocationInventoryRecord } from '@features/locationInventory/state';
+import type { FlatLocationInventoryRow, LocationInventoryQueryParams, LocationInventoryRecord } from '@features/locationInventory/state';
 import LocationInventoryExpandedRow from '../components/LocationInventoryExpandedRow';
 
 const LocationInventoryPage = () => {
+  const [filters, setFilters] = useState<LocationInventoryQueryParams>({});
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(30);
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
@@ -24,10 +26,20 @@ const LocationInventoryPage = () => {
   } = useLocationInventory();
   
   useEffect(() => {
-    fetchRecords({ page, limit }, {});
-  }, [page, limit, fetchRecords]);
+    fetchRecords({ page, limit }, filters);
+  }, [page, limit, filters]);
   
   const groupedByLocation = groupBy(records, (record: LocationInventoryRecord) => record.location?.name || 'Unknown Location');
+  
+  const handleApplyFilters = (newFilters: LocationInventoryQueryParams) => {
+    setFilters(newFilters);
+    setPage(1); // reset to first page
+  };
+  
+  const handleResetFilters = () => {
+    setFilters({});
+    setPage(1);
+  };
   
   const handlePageChange = useCallback((newPage: number) => {
     setPage(newPage + 1);
@@ -63,6 +75,14 @@ const LocationInventoryPage = () => {
         
         <Divider sx={{ mb: 2 }} />
         
+        {/* Filter Panel */}
+        <LocationInventoryFilterPanel
+          initialFilters={filters}
+          onApply={handleApplyFilters}
+          onReset={handleResetFilters}
+        />
+        
+        {/* Table */}
         <LocationInventoryTable
           isLoading={loading}
           groupedData={groupedByLocation}

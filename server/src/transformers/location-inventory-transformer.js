@@ -224,6 +224,7 @@ const transformLocationInventoryRecord = (row) => {
     material: isMaterial
       ? {
         name: row.material_name,
+        received_name: row.received_label_name,
         code: row.material_code,
         color: row.material_color,
         size: row.material_size,

@@ -1,7 +1,7 @@
 import axiosInstance from '@utils/axiosConfig';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 import type {
-  LocationInventoryFilter,
+  LocationInventoryFilters,
   LocationInventoryKpiSummaryResponse,
   LocationInventoryQueryParams, LocationInventoryRecordsResponse,
   LocationInventorySummaryDetailResponse,
@@ -91,12 +91,12 @@ export const fetchLocationInventorySummaryByItemId = async (
  * Automatically cleans and filters based on batchType before making the request.
  *
  * @param {PaginationParams} pagination - Pagination configuration (page and limit)
- * @param {LocationInventoryFilter} rawFilters - Raw filter and pagination input
+ * @param {LocationInventoryFilters} rawFilters - Raw filter and pagination input
  * @returns {Promise<LocationInventoryRecordsResponse>} - Paginated inventory record result
  */
 const fetchLocationInventoryRecords = async (
   pagination: PaginationParams,
-  rawFilters: LocationInventoryFilter
+  rawFilters: LocationInventoryFilters
 ): Promise<LocationInventoryRecordsResponse> => {
   const { page = 1, limit = 10 } = pagination;
   const filters = buildLocationInventoryFilters(rawFilters);

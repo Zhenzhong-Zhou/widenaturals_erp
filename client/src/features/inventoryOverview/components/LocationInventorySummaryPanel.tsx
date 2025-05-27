@@ -13,7 +13,7 @@ import { useExpandableDetailPanel } from '@features/inventoryOverview/hook/useEx
 import type { ItemType } from '@features/inventoryShared/types/InventorySharedType';
 import type { LocationInventorySummaryItemDetail } from '@features/locationInventory/state';
 
-const LocationInventoryOverviewFilterPanel = lazy(() => import('@features/locationInventory/components/LocationInventoryOverviewFilterPanel'));
+const LocationInventoryFilterPanel = lazy(() => import('@features/locationInventory/components/LocationInventoryFilterPanel'));
 const LocationInventorySummaryTable = lazy(() => import('@features/locationInventory/components/LocationInventorySummaryTable'));
 
 interface Props {
@@ -129,8 +129,9 @@ const LocationInventorySummaryPanel: FC<Props> = ({
   return (
     <>
       <Suspense fallback={<Skeleton height={400} variant="rectangular" sx={{ borderRadius: 1 }} />}>
-        <LocationInventoryOverviewFilterPanel
-          visibleFields={['productName', 'materialName', 'sku']}
+        <LocationInventoryFilterPanel
+          initialFilters={{ batchType: 'product' }}
+          visibleFields={['batchType', 'productName', 'materialName', 'sku']}
           onApply={(filters) =>
             fetchLocationInventorySummary({
               page: 1,
@@ -139,13 +140,13 @@ const LocationInventorySummaryPanel: FC<Props> = ({
               ...(itemType ? { batchType: itemType } : {}),
             })
           }
-          onReset={() =>
+          onReset={() => {
             fetchLocationInventorySummary({
               page: 1,
               limit,
-              ...(itemType ? { batchType: itemType } : {}),
-            })
-          }
+              batchType: 'product',
+            });
+          }}
         />
         
         <LocationInventorySummaryTable

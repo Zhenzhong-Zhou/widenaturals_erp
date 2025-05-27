@@ -32,6 +32,7 @@ const LocationInventoryExpandedRow: FC<Props> = ({ record }) => {
     
     // Material (optional)
     { label: 'Material Name', value: record.material?.name },
+    { label: 'Received Name', value: record.material?.received_name },
     { label: 'Material Code', value: record.material?.code },
     { label: 'Material Unit', value: record.material?.unit },
     { label: 'Supplier', value: record.material?.supplier },

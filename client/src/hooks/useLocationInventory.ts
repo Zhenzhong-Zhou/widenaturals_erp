@@ -6,7 +6,7 @@ import {
   selectLocationInventoryRecords,
 } from '@features/locationInventory/state/locationInventorySelectors';
 import type { PaginationParams } from '@shared-types/api';
-import { fetchLocationInventoryRecordsThunk, type LocationInventoryFilter } from '@features/locationInventory/state';
+import { fetchLocationInventoryRecordsThunk, type LocationInventoryFilters } from '@features/locationInventory/state';
 import { useCallback } from 'react';
 
 /**
@@ -25,9 +25,9 @@ const useLocationInventory = () => {
    * Fetches location inventory records.
    *
    * @param {PaginationParams} pagination - Pagination settings
-   * @param {LocationInventoryFilter} filters - Filter options
+   * @param {LocationInventoryFilters} filters - Filter options
    */
-  const fetchRecords = useCallback((pagination: PaginationParams, filters: LocationInventoryFilter) => {
+  const fetchRecords = useCallback((pagination: PaginationParams, filters: LocationInventoryFilters) => {
     dispatch(fetchLocationInventoryRecordsThunk({ pagination, filters }));
   }, [dispatch]);
   

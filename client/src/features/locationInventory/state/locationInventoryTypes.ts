@@ -27,22 +27,36 @@ export interface LocationInventorySummary extends InventoryHealthStatus {
   createdAt: string;
 }
 
-export interface LocationInventoryQueryParams {
+export interface LocationInventoryFilters {
+  batchType?: 'product' | 'packaging_material';
+  locationName?: string;
+  
+  // Product-related
+  productName?: string;
+  sku?: string;
+  
+  // Material-related
+  materialName?: string;
+  materialCode?: string;
+  
+  // Part-related
+  partName?: string;
+  partCode?: string;
+  partType?: string;
+  
+  // Common
+  lotNumber?: string;
+  status?: string;
+  inboundDate?: string; // yyyy-mm-dd
+  expiryDate?: string;  // yyyy-mm-dd
+  createdAt?: string;   // yyyy-mm-dd
+}
+
+export interface LocationInventoryQueryParams extends LocationInventoryFilters {
   page?: number;
   limit?: number;
   sortBy?: string;
   sortOrder?: 'ASC' | 'DESC';
-  
-  batchType?: 'product' | 'packaging_material';
-  productName?: string;
-  lotNumber?: string;
-  sku?: string;
-  materialName?: string;
-  inboundDate?: string;   // ISO date or range (e.g., '2024-01-01')
-  expiryDate?: string;    // ISO date or range
-  status?: string;
-  createdAt?: string;     // ISO string or timestamp
-  locationId?: string;
 }
 
 export type LocationInventorySummaryState = PaginatedState<LocationInventorySummary>
@@ -92,34 +106,11 @@ export type LocationInventoryKpiSummaryResponse = ApiSuccessResponse<LocationInv
  */
 export type LocationInventoryKpiSummaryState = AsyncDataState<LocationInventoryKpiSummaryItem[]>;
 
-export interface LocationInventoryFilter {
-  batchType?: 'product' | 'packaging_material';
-  locationName?: string;
-  
-  // Product-related
-  productName?: string;
-  sku?: string;
-  
-  // Material-related
-  materialName?: string;
-  materialCode?: string;
-  
-  // Part-related
-  partName?: string;
-  partCode?: string;
-  partType?: string;
-  
-  // Common
-  lotNumber?: string;
-  status?: string;
-  inboundDate?: string; // yyyy-mm-dd
-  expiryDate?: string;  // yyyy-mm-dd
-  createdAt?: string;   // yyyy-mm-dd
-}
-
 export interface FetchLocationInventoryArgs {
   pagination: PaginationParams;
-  filters: LocationInventoryFilter;
+  filters: LocationInventoryFilters;
+  sortBy?: string;
+  sortOrder?: 'ASC' | 'DESC';
 }
 
 export interface LocationInventoryRecord {
@@ -152,6 +143,7 @@ export interface LocationInventoryRecord {
   };
   material?: {
     name: string;
+    received_name: string;
     code: string;
     color?: string | null;
     size?: string | null;

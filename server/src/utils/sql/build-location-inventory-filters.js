@@ -85,11 +85,6 @@ const buildLocationInventoryWhereClause = (filters = {}) => {
     whereClauses.push(`pm.code ILIKE $${params.length}`);
   }
   
-  if (filters.materialName) {
-    params.push(`%${filters.materialName}%`);
-    whereClauses.push(`pm.name ILIKE $${params.length}`);
-  }
-  
   if (filters.partCode) {
     params.push(`%${filters.partCode}%`);
     whereClauses.push(`pt.code ILIKE $${params.length}`);
