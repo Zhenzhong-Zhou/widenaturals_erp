@@ -1,4 +1,4 @@
-import { type SyntheticEvent, useCallback, useEffect, useState } from 'react';
+import { lazy, Suspense, type SyntheticEvent, useCallback, useEffect, useState } from 'react';
 import { groupBy } from 'lodash';
 import useLocationInventory from '@hooks/useLocationInventory';
 import Box from '@mui/material/Box';
@@ -10,13 +10,17 @@ import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
 import ItemTypeTabs from '@features/inventoryShared/components/ItemTypeTabs';
 import LocationInventoryFilterPanel from '@features/locationInventory/components/LocationInventoryFilterPanel';
-import LocationInventoryTable from '@features/locationInventory/components/LocationInventoryTable';
 import type { FlatLocationInventoryRow, LocationInventoryQueryParams, LocationInventoryRecord } from '@features/locationInventory/state';
 import LocationInventoryExpandedRow from '../components/LocationInventoryExpandedRow';
 import type { ItemType } from '@features/inventoryShared/types/InventorySharedType';
 import SortControls from '@components/common/SortControls';
 import { LOCATION_INVENTORY_SORT_OPTIONS } from '../constants/sortOptions';
 import type { SortConfig } from '@shared-types/api';
+import Skeleton from '@mui/material/Skeleton';
+import ErrorDisplay from '@components/shared/ErrorDisplay.tsx';
+import ErrorMessage from '@components/common/ErrorMessage.tsx';
+
+const LocationInventoryTable = lazy(() => import('@features/locationInventory/components/LocationInventoryTable'));
 
 const LocationInventoryPage = () => {
   const [itemTypeTab, setItemTypeTab] = useState(0);
@@ -30,6 +34,7 @@ const LocationInventoryPage = () => {
     records,
     loading,
     pagination,
+    error,
     fetchRecords,
   } = useLocationInventory();
   
@@ -82,6 +87,13 @@ const LocationInventoryPage = () => {
   };
   
   const isRowExpanded = (row: FlatLocationInventoryRow) => expandedRowId === row.id;
+  
+  if (error)
+    return (
+      <ErrorDisplay>
+        <ErrorMessage message={error} />
+      </ErrorDisplay>
+    );
   
   return (
     <Box sx={{ px: 4, py: 3 }}>
@@ -146,20 +158,22 @@ const LocationInventoryPage = () => {
           />
           
           {/* Table Section */}
-          <LocationInventoryTable
-            isLoading={loading}
-            groupedData={groupedByLocation}
-            page={page - 1}
-            rowsPerPage={limit}
-            totalPages={pagination.totalPages}
-            totalRecords={pagination.totalRecords}
-            onPageChange={handlePageChange}
-            onRowsPerPageChange={handleRowsPerPageChange}
-            expandedRowId={expandedRowId}
-            onExpandToggle={handleExpandToggle}
-            isRowExpanded={isRowExpanded}
-            expandedContent={(row) => <LocationInventoryExpandedRow record={row.originalRecord} />}
-          />
+          <Suspense fallback={<Skeleton height={180} width="100%" />} >
+            <LocationInventoryTable
+              isLoading={loading}
+              groupedData={groupedByLocation}
+              page={page - 1}
+              rowsPerPage={limit}
+              totalPages={pagination.totalPages}
+              totalRecords={pagination.totalRecords}
+              onPageChange={handlePageChange}
+              onRowsPerPageChange={handleRowsPerPageChange}
+              expandedRowId={expandedRowId}
+              onExpandToggle={handleExpandToggle}
+              isRowExpanded={isRowExpanded}
+              expandedContent={(row) => <LocationInventoryExpandedRow record={row.originalRecord} />}
+            />
+          </Suspense>
         </Stack>
         
         {/* Refresh Button */}

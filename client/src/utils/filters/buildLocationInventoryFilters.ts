@@ -1,42 +1,26 @@
 import type { LocationInventoryFilters } from "@features/locationInventory/state";
-import { cleanObject } from '@utils/objectUtils.ts';
+import { buildScopedInventoryFilters } from "./filter-utils";
 
 /**
- * Prepares a sanitized set of location inventory filters based on the batch type.
+ * Builds a cleaned and scoped set of location inventory filters.
  *
- * Removes conflicting or irrelevant fields depending on whether the filters are for
- * 'product' or 'packaging_material' inventory, then returns a cleaned object.
+ * Depending on the selected `batchType`, it removes fields that are not applicable
+ * (e.g., product fields when filtering packaging materials, and vice versa),
+ * then removes all undefined, null, or empty values.
  *
- * @param {LocationInventoryFilters} form - The raw filter input object (usually from the UI form or query params)
- * @returns {LocationInventoryFilters} - A cleaned and scoped filter object with only relevant fields
+ * @param {LocationInventoryFilters} form - Raw filter object from UI or query params
+ * @returns {LocationInventoryFilters} - Sanitized and type-scoped filter object
  */
 export const buildLocationInventoryFilters = (
   form: LocationInventoryFilters
-): LocationInventoryFilters => {
-  const { batchType, ...rest } = form;
-  
-  const fieldGroups = {
-    product: ['productName', 'sku'],
-    packaging_material: [
+): LocationInventoryFilters =>
+  buildScopedInventoryFilters(form, {
+    productFields: ['productName', 'sku'],
+    packagingMaterialFields: [
       'materialName',
       'materialCode',
-      'materialType',
       'partName',
       'partCode',
       'partType',
     ],
-  };
-  
-  const excludedFields =
-    batchType === 'product'
-      ? fieldGroups.packaging_material
-      : batchType === 'packaging_material'
-        ? fieldGroups.product
-        : [];
-  
-  const cleaned = Object.fromEntries(
-    Object.entries(rest).filter(([key]) => !excludedFields.includes(key))
-  );
-  
-  return cleanObject({ batchType, ...cleaned });
-};
+  }) as LocationInventoryFilters;

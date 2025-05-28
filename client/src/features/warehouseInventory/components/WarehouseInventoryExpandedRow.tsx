@@ -2,19 +2,18 @@ import { type FC } from 'react';
 import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
 import DetailsSection, { type DetailsSectionField } from '@components/common/DetailsSection';
-import type { LocationInventoryRecord } from '../state';
+import type { WarehouseInventoryRecord } from '../state';
 import { formatLabel } from '@utils/textUtils.ts';
 import { formatDate, formatDateTime } from '@utils/dateTimeUtils.ts';
 
 interface Props {
-  record: LocationInventoryRecord;
+  record: WarehouseInventoryRecord;
 }
 
 const LocationInventoryExpandedRow: FC<Props> = ({ record }) => {
   const details: DetailsSectionField[] = [
     { label: 'Item Type', value: record.itemType, format: (val) => formatLabel(val) },
-    { label: 'Location Name', value: record.location?.name },
-    { label: 'Location Type', value: record.location?.type },
+    { label: 'Warehouse Name', value: record.warehouse?.name },
     
     { label: 'Lot Number', value: record.lot?.number },
     { label: 'Manufacture Date', value: record.lot?.manufactureDate, format: (val) => formatDate(val) },

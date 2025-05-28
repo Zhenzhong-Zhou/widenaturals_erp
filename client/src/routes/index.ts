@@ -176,21 +176,6 @@ export const routes = [
     },
   },
   {
-    path: '/warehouse_inventories/:warehouseId',
-    component: lazy(
-      () =>
-        import(
-          '@features/warehouseInventory/pages/WarehouseInventoryDetailPage'
-        )
-    ),
-    meta: {
-      requiresAuth: true,
-      title: 'Warehouse Inventories Details',
-      showInSidebar: false,
-      requiredPermission: 'view_warehouses',
-    },
-  },
-  {
     path: '/reports/adjustments',
     component: lazy(
       () => import('@features/report/pages/AdjustmentReportPage')

@@ -68,6 +68,7 @@ const LocationInventoryTable: FC<LocationInventoryTableProps> = ({
     { id: 'reserved', label: 'Reserved' },
     { id: 'lastUpdate', label: 'Last Update' },
     { id: 'status', label: 'Status' },
+    { id: 'statusDate', label: 'Status Date' },
     { id: 'stockLevel', label: 'Stock Level', renderCell: renderStockLevelCell, },
     {
       id: 'expirySeverity',
@@ -118,6 +119,7 @@ const LocationInventoryTable: FC<LocationInventoryTableProps> = ({
         available: item.quantity.available ?? 0,
         reserved: item.quantity.reserved ?? 0,
         status: formatLabel(item.status?.name) ?? '-',
+        statusDate: item.timestamps?.statusDate ? formatDate(item.timestamps?.statusDate) : '-',
         stockLevel: item.status?.stockLevel ?? '-',
         expirySeverity: item.status?.expirySeverity ?? '-',
         expiryDate: item.lot?.expiryDate ? formatDate(item.lot.expiryDate) : '-',
@@ -139,6 +141,7 @@ const LocationInventoryTable: FC<LocationInventoryTableProps> = ({
       totalPages={totalPages}
       onPageChange={onPageChange}
       onRowsPerPageChange={onRowsPerPageChange}
+      emptyMessage="No location inventory records found."
       getRowProps={(row) =>
         row.isGroupHeader
           ? {

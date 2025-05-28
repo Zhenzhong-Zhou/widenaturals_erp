@@ -13,7 +13,6 @@ export { locationService } from './locationService';
 export { locationInventoryService } from './locationInventoryService.ts';
 export { warehouseService } from './warehouseService';
 export { warehouseInventoryService } from './warehouseInventoryService';
-export { lotAdjustmentTypeService } from './lotAdjustmentTypeService';
 export { dropdownService } from './dropdownService';
 export { reportService } from './reportService';
 export { orderTypeService } from './orderTypeService';

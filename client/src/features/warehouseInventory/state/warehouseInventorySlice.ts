@@ -1,63 +1,42 @@
-import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import {
-  fetchWarehouseInventoriesThunk,
-  type WarehouseInventory,
-  type WarehouseInventoryPagination,
-  type WarehouseInventoryResponse,
-} from '@features/warehouseInventory';
-
-interface WarehouseInventoryState {
-  inventories: WarehouseInventory[];
-  pagination: WarehouseInventoryPagination;
-  loading: boolean;
-  error: string | null;
-  message: string | null;
-}
+import { createSlice } from '@reduxjs/toolkit';
+import { fetchWarehouseInventoryRecordsThunk } from './warehouseInventoryThunks';
+import type { WarehouseInventoryState, } from './warehouseInventoryTypes';
 
 const initialState: WarehouseInventoryState = {
-  inventories: [],
+  data: [],
+  loading: false,
+  error: null,
   pagination: {
     page: 1,
     limit: 10,
     totalRecords: 0,
-    totalPages: 1,
+    totalPages: 0,
   },
-  loading: false,
-  error: null,
-  message: null,
 };
 
 const warehouseInventorySlice = createSlice({
   name: 'warehouseInventory',
   initialState,
   reducers: {
-    resetWarehouseInventory: () => initialState,
+    resetWarehouseInventoryState: () => initialState,
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchWarehouseInventoriesThunk.pending, (state) => {
+      .addCase(fetchWarehouseInventoryRecordsThunk.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(
-        fetchWarehouseInventoriesThunk.fulfilled,
-        (state, action: PayloadAction<WarehouseInventoryResponse>) => {
-          state.inventories = action.payload.data;
-          state.pagination = action.payload.pagination;
-          state.message = action.payload.message || null;
-          state.loading = false;
-        }
-      )
-      .addCase(
-        fetchWarehouseInventoriesThunk.rejected,
-        (state, action: PayloadAction<string | undefined>) => {
-          state.loading = false;
-          state.error =
-            action.payload || 'Failed to load warehouse inventories';
-        }
-      );
+      .addCase(fetchWarehouseInventoryRecordsThunk.fulfilled, (state, action) => {
+        state.loading = false;
+        state.data = action.payload.data;
+        state.pagination = action.payload.pagination;
+      })
+      .addCase(fetchWarehouseInventoryRecordsThunk.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      });
   },
 });
 
-export const { resetWarehouseInventory } = warehouseInventorySlice.actions;
+export const { resetWarehouseInventoryState } = warehouseInventorySlice.actions;
 export default warehouseInventorySlice.reducer;

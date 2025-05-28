@@ -30,19 +30,13 @@ export const API_ENDPOINTS = {
   ALL_WAREHOUSES: '/warehouses',
   WAREHOUSE_DETAILS: '/warehouses/details/:id',
   WAREHOUSES_DROPDOWN: '/warehouses/dropdown',
-  WAREHOUSE_INVENTORIES_SUMMARY: '/warehouses/inventory-overview',
-  ALL_WAREHOUSE_INVENTORIES: '/warehouse-inventory',
-  WAREHOUSE_INVENTORY_SUMMARY: '/warehouse-inventory/summary',
-  WAREHOUSE_INVENTORY_SUMMARY_DETAIL: '/warehouse-inventory/summary/:itemId/details',
-  WAREHOUSE_ITEMS_SUMMARY: '/warehouse-inventory/:id/items-summary',
-  WAREHOUSE_INVENTORY_DETAILS: '/warehouse-inventory/:id',
-  LOT_ADJUSTMENT_TYPES_DROPDOWN: '/lot-adjustment-types/dropdown',
-  WAREHOUSE_INVENTORY_LOT_SINGLE_ADJUST: '/warehouse-inventory-lots/adjust/:id',
-  WAREHOUSE_INVENTORY_LOT_BULK_ADJUST: '/warehouse-inventory-lots/adjust/bulk',
-  WAREHOUSE_INVENTORY_BULK_INSERT: '/inventories/add-inventory-records',
-  WAREHOUSE_INVENTORY_LOT_INSERT_RESPONSE:
-    '/warehouse-inventory-lots/inventory-records/recent-inserts',
-  WAREHOUSE_INVENTORY_LOT_INVENTORY_AVAILABLE: '/warehouse-inventory-lots/inventory/:inventoryId/lots',
+  WAREHOUSE_INVENTORY: {
+    ALL_RECORDS: '/warehouse-inventory',
+    SUMMARY: '/warehouse-inventory/summary',
+    SUMMARY_DETAIL: (itemId: string) =>
+      `/warehouse-inventory/summary/${itemId}/details`,
+  },
+  
   WAREHOUSE_INVENTORY_ADJUSTMENTS_REPORT: '/reports/adjustments',
   WAREHOUSE_INVENTORY_ACTIVITY_LOGS: '/reports/inventory-activity-logs',
   INVENTORY_HISTORY: '/reports/inventory-history',

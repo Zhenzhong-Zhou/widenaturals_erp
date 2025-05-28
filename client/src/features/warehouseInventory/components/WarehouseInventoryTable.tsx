@@ -1,262 +1,159 @@
-import { type FC, lazy, Suspense, useCallback, useState } from 'react';
-import { Link } from 'react-router-dom';
-import type { WarehouseInventory } from '@features/warehouseInventory';
-import { formatDateTime } from '@utils/dateTimeUtils';
-import { formatLabel } from '@utils/textUtils';
-import Box from '@mui/material/Box';
-import StockLevelChip from '@features/inventory/components/StockLevelChip';
-import ExpirySeverityChip from '@features/inventory/components/ExpirySeverityChip';
-import CustomTable, { type Column } from '@components/common/CustomTable';
-import Tooltip from '@mui/material/Tooltip';
+import { type FC, type ReactNode, useCallback } from 'react';
+import type { FlatWarehouseInventoryRow, WarehouseInventoryRecord } from '@features/warehouseInventory/state';
 import IconButton from '@mui/material/IconButton';
-import ExpandLessIcon from '@mui/icons-material/ExpandLess';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { useThemeContext } from '@context/ThemeContext.tsx';
-import WarehouseInventoryAuditDrawer
-  from '@features/warehouseInventory/components/WarehouseInventoryAuditDrawer.tsx';
-import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
-
-const WarehouseInventoryInlineDetailsSection = lazy(
-  () => import('@features/warehouseInventory/components/WarehouseInventoryInlineDetailsSection')
-);
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import CustomTable, { type Column } from '@components/common/CustomTable';
+import StockLevelChip, { type StockLevelChipProps } from '@features/inventoryShared/components/StockLevelChip';
+import ExpirySeverityChip, {
+  type ExpirySeverityChipProps,
+} from '@features/inventoryShared/components/ExpirySeverityChip.tsx';
+import { formatLabel } from '@utils/textUtils.ts';
+import { formatDate, timeAgo } from '@utils/dateTimeUtils.ts';
 
 interface WarehouseInventoryTableProps {
-  data: WarehouseInventory[];
+  isLoading: boolean;
+  groupedData: Record<string, WarehouseInventoryRecord[]>;
   page: number;
   rowsPerPage: number;
   totalRecords: number;
   totalPages: number;
   onPageChange: (newPage: number) => void;
   onRowsPerPageChange: (newRowsPerPage: number) => void;
+  expandedRowId?: string | null;
+  onExpandToggle?: (row: FlatWarehouseInventoryRow) => void;
+  isRowExpanded?: (row: FlatWarehouseInventoryRow) => boolean;
+  expandedContent?: (row: FlatWarehouseInventoryRow) => ReactNode;
 }
 
 const WarehouseInventoryTable: FC<WarehouseInventoryTableProps> = ({
-  data,
-  page,
-  rowsPerPage,
-  totalRecords,
-  totalPages,
-  onPageChange,
-  onRowsPerPageChange,
-}) => {
-  const { theme } = useThemeContext();
-  const [expandedRowIndex, setExpandedRowIndex] = useState<number | null>(null);
-  const [selectedAuditRow, setSelectedAuditRow] = useState<WarehouseInventory | null>(null);
-  const [auditDrawerOpen, setAuditDrawerOpen] = useState(false);
-  const hasStatus = (row: WarehouseInventory): boolean => !!row.status;
-  
-  const handleAuditInfoClick = (row: WarehouseInventory) => {
-    setSelectedAuditRow(row);
-    setAuditDrawerOpen(true);
-  };
-  
-  const renderWarehouseNameCell = useCallback(
-    (row: WarehouseInventory, rowIndex?: number) => (
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        {row.warehouse ? (
-          <Link
-            to={`/warehouse_inventories/${row.warehouse.id}`}
-            style={{ textDecoration: 'none', color: theme.palette.primary.main, fontWeight: 500 }}
-          >
-            {row.warehouse.name}
-          </Link>
-        ) : (
-          '—'
-        )}
-        
-        <Tooltip
-          title={rowIndex !== undefined && expandedRowIndex === rowIndex ? 'Hide Details' : 'Show Details'}
-        >
-          <IconButton
-            size="small"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (rowIndex !== undefined) {
-                setExpandedRowIndex((prev) => (prev === rowIndex ? null : rowIndex));
-              }
-            }}
-          >
-            {rowIndex !== undefined && expandedRowIndex === rowIndex ? (
-              <ExpandLessIcon fontSize="small" />
-            ) : (
-              <ExpandMoreIcon fontSize="small" />
-            )}
-          </IconButton>
-        </Tooltip>
-      </Box>
-    ),
-    [expandedRowIndex]
-  ) as Column<WarehouseInventory>['renderCell'];
-  
-  const renderExpandedContent = (row: WarehouseInventory) => (
-    <Suspense fallback={<Box sx={{ p: 2 }}>Loading...</Box>}>
-      <WarehouseInventoryInlineDetailsSection row={row} sx={{ pl: 2 }} />
-    </Suspense>
-  );
-  
+                                                                     isLoading,
+                                                                     groupedData,
+                                                                     page,
+                                                                     rowsPerPage,
+                                                                     totalRecords,
+                                                                     totalPages,
+                                                                     onPageChange,
+                                                                     onRowsPerPageChange,
+                                                                     expandedRowId,
+                                                                     onExpandToggle,
+                                                                     isRowExpanded,
+                                                                     expandedContent,
+                                                                   }) => {
   const renderStockLevelCell = useCallback(
-    (row: WarehouseInventory) =>
-      hasStatus(row) ? (
-        <StockLevelChip
-          stockLevel={row.status.stockLevel}
-          isLowStock={row.status.isLowStock}
-        />
-      ) : (
-        '—'
-      ),
+    (row: FlatWarehouseInventoryRow) => (
+      <StockLevelChip stockLevel={row.stockLevel as StockLevelChipProps['stockLevel']} />
+    ),
     []
   );
   
   const renderExpirySeverityCell = useCallback(
-    (row: WarehouseInventory) =>
-      hasStatus(row) ? (
-        <ExpirySeverityChip severity={row.status.expirySeverity} />
-      ) : (
-        '—'
-      ),
+    (row: FlatWarehouseInventoryRow) => (
+      <ExpirySeverityChip severity={row.expirySeverity as ExpirySeverityChipProps['severity']} />
+    ),
     []
   );
   
-  const renderActionsCell = useCallback(
-    (row: WarehouseInventory) => (
-      <Tooltip title="Audit Info">
-        <IconButton
-          size="small"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleAuditInfoClick(row);
-          }}
-        >
-          <InfoOutlinedIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
-    ),
-    [handleAuditInfoClick]
-  );
-  
-  const columns: Column<WarehouseInventory>[] = [
+  const columns: Column<FlatWarehouseInventoryRow>[] = [
+    { id: 'name', label: 'Name' },
+    { id: 'lotNumber', label: 'Lot #' },
+    { id: 'expiryDate', label: 'Expiry Date' },
+    { id: 'locationQuantity', label: 'Location QTY' },
+    { id: 'available', label: 'Available' },
+    { id: 'reserved', label: 'Reserved' },
+    { id: 'lastUpdate', label: 'Last Update' },
+    { id: 'status', label: 'Status' },
+    { id: 'statusDate', label: 'Status Date' },
+    { id: 'stockLevel', label: 'Stock Level', renderCell: renderStockLevelCell, },
     {
-      id: 'warehouse.name',
-      label: 'Warehouse',
-      sortable: true,
-      renderCell: renderWarehouseNameCell,
-    },
-    {
-      id: 'inventory.itemType',
-      label: 'Item Type',
-      sortable: true,
-      format: (_: any, row?: WarehouseInventory) =>
-        row?.inventory?.itemType ? formatLabel(row.inventory.itemType) : '—',
-    },
-    {
-      id: 'inventory.itemName',
-      label: 'Item Name',
-      sortable: true,
-      format: (_: any, row?: WarehouseInventory) => row?.inventory?.itemName ?? '—',
-    },
-    {
-      id: 'quantity.available',
-      label: 'Available Qty',
-      sortable: true,
-      format: (_: any, row?: WarehouseInventory) => row?.quantity?.available ?? 0,
-    },
-    {
-      id: 'quantity.lotReserved',
-      label: 'Lot Reserved Qty',
-      sortable: true,
-      format: (_: any, row?: WarehouseInventory) => row?.quantity?.lotReserved ?? 0,
-    },
-    {
-      id: 'quantity.reserved',
-      label: 'Reserved Qty',
-      sortable: true,
-      format: (_: any, row?: WarehouseInventory) => row?.quantity?.reserved ?? 0,
-    },
-    {
-      id: 'quantity.inStock',
-      label: 'In-Stock Qty',
-      sortable: true,
-      format: (_: any, row?: WarehouseInventory) => row?.quantity?.inStock ?? 0,
-    },
-    {
-      id: 'quantity.totalLot',
-      label: 'Total Lot Qty',
-      sortable: true,
-      format: (_: any, row?: WarehouseInventory) => row?.quantity?.totalLot ?? 0,
-    },
-    {
-      id: 'dates.lastUpdate',
-      label: 'Last Update',
-      sortable: true,
-      format: (_: any, row?: WarehouseInventory) =>
-        row?.dates?.lastUpdate ? formatDateTime(row.dates.lastUpdate) : '—',
-    },
-    {
-      id: 'status.display',
-      label: 'Display Status',
-      sortable: true,
-      format: (_: any, row?: WarehouseInventory) =>
-        row?.status?.display ? formatLabel(row.status.display) : '—',
-    },
-    {
-      id: 'status.stockLevel',
-      label: 'Stock Level',
-      sortable: true,
-      renderCell: renderStockLevelCell,
-    },
-    {
-      id: 'status.expirySeverity',
+      id: 'expirySeverity',
       label: 'Expiry Severity',
-      sortable: true,
-      renderCell: renderExpirySeverityCell,
+      renderCell: renderExpirySeverityCell
     },
     {
-      id: 'status.displayNote',
-      label: 'Display Note',
-      sortable: false,
-      format: (_: any, row?: WarehouseInventory) =>
-        row?.status?.displayNote || '—',
-    },
-    {
-      id: 'dates.displayStatusDate',
-      label: 'Display Status Date',
-      sortable: true,
-      format: (_: any, row?: WarehouseInventory) =>
-        row?.dates?.displayStatusDate
-          ? formatDateTime(row.dates.displayStatusDate)
-          : 'N/A',
-    },
-    {
-      id: 'actions',
-      label: 'Actions',
+      id: 'expand',
+      label: '',
       align: 'center',
-      renderCell: renderActionsCell,
-    },
+      renderCell: (row) =>
+        row.isGroupHeader ? null : (
+          <IconButton onClick={() => onExpandToggle?.(row)}>
+            {isRowExpanded?.(row) ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+          </IconButton>
+        ),
+    }
   ];
-
+  
+  // Flatten with group headers
+  const flattenedWithHeaders: FlatWarehouseInventoryRow[] = [];
+  
+  Object.entries(groupedData).forEach(([warehouseName, records]) => {
+    // Insert a synthetic group header row
+    flattenedWithHeaders.push({
+      id: `group-${warehouseName}`,
+      warehouse: warehouseName,
+      name: `-- ${warehouseName} --`,
+      lotNumber: '',
+      locationQuantity: 0,
+      available: 0,
+      reserved: 0,
+      status: '',
+      stockLevel: '',
+      expirySeverity: '',
+      expiryDate: '',
+      lastUpdate: '',
+      isGroupHeader: true,
+      itemType: 'Material', // Just to satisfy type; won't be rendered
+    } as any); // Cast if needed
+    
+    records.forEach((item) => {
+      flattenedWithHeaders.push({
+        id: item.id,
+        lotNumber: item.lot?.number ?? '-',
+        name: item.display.name,
+        locationQuantity: item.quantity.warehouseQuantity ?? 0,
+        available: item.quantity.available ?? 0,
+        reserved: item.quantity.reserved ?? 0,
+        status: formatLabel(item.status?.name) ?? '-',
+        statusDate: item.timestamps?.statusDate ? formatDate(item.timestamps?.statusDate) : '-',
+        stockLevel: item.status?.stockLevel ?? '-',
+        expirySeverity: item.status?.expirySeverity ?? '-',
+        expiryDate: item.lot?.expiryDate ? formatDate(item.lot.expiryDate) : '-',
+        lastUpdate: item.timestamps?.lastUpdate ? timeAgo(item.timestamps.lastUpdate) : '-',
+        originalRecord: item,
+      });
+    });
+  });
+  
   return (
-    <Box>
-      <CustomTable
-        columns={columns}
-        data={data}
-        page={page}
-        initialRowsPerPage={rowsPerPage}
-        rowsPerPageOptions={[10, 30, 50, 100]}
-        totalRecords={totalRecords}
-        totalPages={totalPages}
-        onPageChange={onPageChange}
-        onRowsPerPageChange={onRowsPerPageChange}
-        expandable={true}
-        expandedRowIndex={expandedRowIndex}
-        expandedContent={renderExpandedContent}
-      />
-      
-      <WarehouseInventoryAuditDrawer
-        open={auditDrawerOpen}
-        onClose={() => setAuditDrawerOpen(false)}
-        data={selectedAuditRow}
-      />
-    </Box>
+    <CustomTable
+      loading={isLoading}
+      columns={columns}
+      data={flattenedWithHeaders}
+      page={page}
+      initialRowsPerPage={rowsPerPage}
+      rowsPerPageOptions={[30, 50, 75, 100]}
+      totalRecords={totalRecords}
+      totalPages={totalPages}
+      onPageChange={onPageChange}
+      onRowsPerPageChange={onRowsPerPageChange}
+      emptyMessage="No warehouse inventory records found."
+      getRowProps={(row) =>
+        row.isGroupHeader
+          ? {
+            isGroupHeader: true,
+            colSpan: columns.length + 1,
+            sx: {
+              fontWeight: 600,
+              fontSize: '1rem',
+            },
+          }
+          : {}
+      }
+      expandedContent={expandedContent}
+      expandable={!!expandedRowId}
+      expandedRowId={expandedRowId}
+      getRowId={(row) => row.id}
+    />
   );
 };
 

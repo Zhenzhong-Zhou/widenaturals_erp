@@ -1,6 +1,47 @@
-import { RootState } from '@store/store';
+import { createSelector } from '@reduxjs/toolkit';
+import type { RootState } from '@store/store';
 
-export const selectWarehouseInventoryData = (state: RootState) => state.warehouseInventory.data;
-export const selectWarehouseInventoryLoading = (state: RootState) => state.warehouseInventory.loading;
-export const selectWarehouseInventoryError = (state: RootState) => state.warehouseInventory.error;
-export const selectWarehouseInventoryPagination = (state: RootState) => state.warehouseInventory.pagination;
+/**
+ * Base selector to access the warehouseInventory slice from the root state.
+ */
+const selectWarehouseInventoryState = (state: RootState) => state.warehouseInventory;
+
+/**
+ * Selector to get the inventory record list.
+ *
+ * @returns {WarehouseInventoryRecord[]} Array of warehouse inventory records.
+ */
+export const selectWarehouseInventoryRecords = createSelector(
+  [selectWarehouseInventoryState],
+  (state) => state.data
+);
+
+/**
+ * Selector to get the loading state for warehouse inventory.
+ *
+ * @returns {boolean} True if data is being fetched.
+ */
+export const selectWarehouseInventoryLoading = createSelector(
+  [selectWarehouseInventoryState],
+  (state) => state.loading
+);
+
+/**
+ * Selector to get the error state for warehouse inventory.
+ *
+ * @returns {string | null} Error message if request failed.
+ */
+export const selectWarehouseInventoryError = createSelector(
+  [selectWarehouseInventoryState],
+  (state) => state.error
+);
+
+/**
+ * Selector to get the pagination info for warehouse inventory.
+ *
+ * @returns {PaginationInfo | null} Pagination metadata (page, limit, totalRecords, etc.)
+ */
+export const selectWarehouseInventoryPagination = createSelector(
+  [selectWarehouseInventoryState],
+  (state) => state.pagination
+);
