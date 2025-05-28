@@ -13,6 +13,7 @@ const {
   logSystemException
 } = require('../utils/system-logger');
 const { logError } = require('../utils/logger-helper');
+const { buildWarehouseInventoryWhereClause } = require('../utils/sql/build-warehouse-inventory-filters');
 
 /**
  * Fetches a paginated summary of warehouse inventory items, including both product SKUs and packaging materials.
@@ -292,158 +293,132 @@ const getWarehouseInventorySummaryDetailsByItemId = async ({ page, limit, itemId
 };
 
 /**
- * Fetches a paginated list of enriched warehouse inventory records,
- * including associated product details and summarized lot-level data.
+ * Fetches paginated and enriched warehouse inventory records.
  *
- * The result includes fields such as:
- * - Total lot quantity and reserved quantity (from `warehouse_inventory_lots`)
- * - Status summary (`in_stock`, `expired`, etc.)
- * - Earliest manufacture and expiry dates
- * - Product name or identifier
- * - Warehouse location and metadata
+ * This query joins related metadata from multiple tables such as
+ * - Warehouse and inventory status
+ * - Product, SKU, and manufacturer (for product-type inventory)
+ * - Packaging material, supplier, and part (for packaging-material-type inventory)
+ * - Created/updated usernames
  *
- * @param {Object} params - Filter and pagination options.
- * @param {number} params.page - Page number for pagination.
- * @param {number} params.limit - Number of results per page.
- * @param {string} [params.sortBy] - Column to sort by (e.g., 'warehouse_name').
- * @param {string} [params.sortOrder='ASC'] - Sort direction ('ASC' or 'DESC').
- * @returns {Promise<Object>} Paginated result containing enriched warehouse inventory records.
+ * Key characteristics:
+ * - Includes all inventory records, even those with total_quantity = 0 or reserved_quantity = 0,
+ *   to reflect full warehouse inventory history and visibility.
+ * - Dynamically supports filtering, sorting, and pagination.
+ * - Filters can target either product-based or packaging-material-based inventory types.
+ *
+ * @param {Object} options - Query configuration object
+ * @param {number} options.page - Current page number (1-based)
+ * @param {number} options.limit - Number of records per page
+ * @param {Object} [options.filters] - Optional filters for narrowing the result set
+ * @param {string} [options.safeSortClause] - A pre-sanitized SQL ORDER BY clause (e.g., "wi.last_update DESC")
+ *
+ * @returns {Promise<{
+ *   data: Array<Object>,
+ *   pagination: {
+ *     page: number,
+ *     limit: number,
+ *     totalRecords: number,
+ *     totalPages: number
+ *   }
+ * }>} Paginated warehouse inventory data with enriched metadata
  */
-const getWarehouseInventories = async ({
-  page,
-  limit,
-  sortBy,
-  sortOrder = 'ASC',
-}) => {
-  const validSortColumns = {
-    warehouse_name: 'w.name',
-    location_name: 'l.name',
-    storage_capacity: 'w.storage_capacity',
-    created_at: 'wi.created_at',
-    updated_at: 'wi.updated_at',
-    item_name: 'item_name',
-    in_stock_quantity: 'in_stock_quantity',
-    total_reserved_quantity: 'total_reserved_quantity',
-    total_lot_quantity: 'total_lot_quantity',
-  };
-
-  // Default sorting (by warehouse name & creation time)
-  const defaultSortBy = 'w.name, w.created_at';
-  sortBy = validSortColumns[sortBy] || defaultSortBy;
-
-  // Validate sortOrder, default to 'ASC'
-  sortOrder = ['ASC', 'DESC'].includes(sortOrder?.toUpperCase())
-    ? sortOrder.toUpperCase()
-    : 'ASC';
-
+const getPaginatedWarehouseInventoryRecords = async ({ page, limit, filters, safeSortClause }) => {
   const tableName = 'warehouse_inventory wi';
-
+  
   const joins = [
-    'LEFT JOIN warehouses w ON wi.warehouse_id = w.id',
-    'LEFT JOIN inventory i ON wi.inventory_id = i.id',
-    'LEFT JOIN products p ON i.product_id = p.id',
-    'LEFT JOIN locations l ON w.location_id = l.id',
-    'LEFT JOIN warehouse_lot_status ws ON wi.status_id = ws.id',
-    'LEFT JOIN users u1 ON wi.created_by = u1.id',
-    'LEFT JOIN users u2 ON wi.updated_by = u2.id',
-    'LEFT JOIN warehouse_inventory_lots wil ON wi.warehouse_id = wil.warehouse_id AND wi.inventory_id = wil.inventory_id',
-    'LEFT JOIN warehouse_lot_status wls ON wil.status_id = wls.id',
+    'LEFT JOIN warehouses wh ON wi.warehouse_id = wh.id',
+    'LEFT JOIN inventory_status st ON wi.status_id = st.id',
+    'LEFT JOIN users uc ON wi.created_by = uc.id',
+    'LEFT JOIN users uu ON wi.updated_by = uu.id',
+    'LEFT JOIN batch_registry br ON wi.batch_id = br.id',
+    'LEFT JOIN product_batches pb ON br.product_batch_id = pb.id',
+    'LEFT JOIN skus s ON pb.sku_id = s.id',
+    'LEFT JOIN products p ON s.product_id = p.id',
+    'LEFT JOIN manufacturers mfp ON pb.manufacturer_id = mfp.id',
+    'LEFT JOIN packaging_material_batches pmb ON br.packaging_material_batch_id = pmb.id',
+    'LEFT JOIN packaging_material_suppliers pms ON pmb.packaging_material_supplier_id = pms.id',
+    'LEFT JOIN packaging_materials pm ON pms.packaging_material_id = pm.id',
+    'LEFT JOIN suppliers sup ON pms.supplier_id = sup.id',
+    'LEFT JOIN part_materials pmat ON pm.id = pmat.packaging_material_id',
+    'LEFT JOIN parts pt ON pmat.part_id = pt.id',
   ];
-
-  const whereClause = '1=1';
-
-  const baseQuery = `
+  
+  const { whereClause, params } = buildWarehouseInventoryWhereClause(filters);
+  
+  const queryText = `
     SELECT
       wi.id AS warehouse_inventory_id,
+      br.batch_type AS item_type,
       wi.warehouse_id,
-      w.name AS warehouse_name,
-      w.storage_capacity,
-      l.name AS location_name,
-      wi.inventory_id,
-      i.item_type,
-      COALESCE(NULLIF(p.product_name, ''), i.identifier) AS item_name,
+      wh.name AS warehouse_name,
+      wi.warehouse_quantity,
       wi.reserved_quantity,
-      wi.available_quantity,
       wi.warehouse_fee,
       wi.last_update,
       wi.created_at,
       wi.updated_at,
-      COALESCE(u1.firstname || ' ' || u1.lastname, 'Unknown') AS created_by,
-      COALESCE(u2.firstname || ' ' || u2.lastname, 'Unknown') AS updated_by,
-      (
-        SELECT SUM(wil2.quantity)
-        FROM warehouse_inventory_lots wil2
-        JOIN warehouse_lot_status wls2 ON wil2.status_id = wls2.id
-        WHERE wil2.inventory_id = wi.inventory_id
-          AND wil2.warehouse_id = wi.warehouse_id
-          AND wls2.name = 'in_stock'
-      ) AS in_stock_quantity,
-      SUM(wil.reserved_quantity) AS total_reserved_quantity,
-      SUM(wil.quantity) AS total_lot_quantity,
-      MIN(wil.manufacture_date) AS earliest_manufacture_date,
-      MIN(wil.expiry_date) AS nearest_expiry_date,
-      COALESCE(
-        (
-          SELECT wls2.name
-          FROM warehouse_inventory_lots wil2
-          JOIN warehouse_lot_status wls2 ON wil2.status_id = wls2.id
-          WHERE wil2.inventory_id = wi.inventory_id
-            AND wil2.warehouse_id = wi.warehouse_id
-          ORDER BY
-            CASE
-              WHEN wls2.name = 'expired' THEN 1
-              WHEN wls2.name = 'suspended' THEN 2
-              WHEN wls2.name = 'unavailable' THEN 3
-              WHEN wls2.name = 'out_of_stock' THEN 4
-              WHEN wls2.name = 'in_stock' THEN 5
-              ELSE 6
-            END
-          LIMIT 1
-        ),
-        'unassigned'
-      ) AS display_status,
-      (
-        SELECT wil2.status_date
-        FROM warehouse_inventory_lots wil2
-        JOIN warehouse_lot_status wls2 ON wil2.status_id = wls2.id
-        WHERE wil2.inventory_id = wi.inventory_id
-          AND wil2.warehouse_id = wi.warehouse_id
-        ORDER BY
-          CASE
-            WHEN wls2.name = 'expired' THEN 1
-            WHEN wls2.name = 'suspended' THEN 2
-            WHEN wls2.name = 'unavailable' THEN 3
-            WHEN wls2.name = 'out_of_stock' THEN 4
-            WHEN wls2.name = 'in_stock' THEN 5
-            ELSE 6
-          END
-        LIMIT 1
-      ) AS display_status_date
+      st.name AS status_name,
+      uc.firstname AS created_by_firstname,
+      uc.lastname AS created_by_lastname,
+      uu.firstname AS updated_by_firstname,
+      uu.lastname AS updated_by_lastname,
+      mfp.name AS product_manufacturer_name,
+      sup.name AS material_supplier_name,
+      pb.lot_number AS product_lot_number,
+      pb.manufacture_date AS product_manufacture_date,
+      pb.expiry_date AS product_expiry_date,
+      pmb.material_snapshot_name AS material_name,
+      pmb.received_label_name AS received_label_name,
+      pmb.lot_number AS material_lot_number,
+      pmb.manufacture_date AS material_manufacture_date,
+      pmb.expiry_date AS material_expiry_date,
+      p.name AS product_name,
+      p.brand AS brand_name,
+      s.sku AS sku_code,
+      s.barcode AS barcode,
+      s.language AS language,
+      s.country_code AS country_code,
+      s.size_label AS size_label,
+      pm.code AS material_code,
+      pm.color AS material_color,
+      pm.size AS material_size,
+      pm.unit AS material_unit,
+      pt.name AS part_name,
+      pt.code AS part_code,
+      pt.type AS part_type,
+      pt.unit_of_measure AS part_unit
     FROM ${tableName}
-    ${joins.join(' ')}
+    ${joins.join('\n')}
     WHERE ${whereClause}
-    GROUP BY
-      wi.id, w.id, l.id, i.id, p.product_name, i.identifier,
-      ws.id, ws.name, u1.firstname, u1.lastname, u2.firstname, u2.lastname
+    ORDER BY ${safeSortClause};
   `;
-
+  
   try {
-    return await retry(async () => {
-      return await paginateQuery({
-        queryText: baseQuery,
-        tableName,
-        joins,
-        whereClause,
-        params: [],
-        page,
-        limit,
-        sortBy,
-        sortOrder,
-      });
+    const result = await paginateResults({
+      dataQuery: queryText,
+      params,
+      page,
+      limit,
+      meta: {
+        context: 'warehouse-inventory-repository/getPaginatedWarehouseInventoryRecords',
+      },
     });
+    
+    logSystemInfo('Fetched warehouse inventory records.', {
+      context: 'warehouse-inventory-repository/getPaginatedWarehouseInventoryRecords',
+      page,
+      limit,
+      resultCount: result?.data?.length ?? 0,
+    });
+    
+    return result;
   } catch (error) {
-    logError('Error fetching all warehouse inventories:', error);
-    throw AppError.databaseError('Failed to fetch all warehouse inventories.');
+    logSystemException(error, 'Failed to fetch warehouse inventory records.', {
+      context: 'warehouse-inventory-repository/getPaginatedWarehouseInventoryRecords',
+    });
+    
+    throw AppError.databaseError('Failed to fetch warehouse inventory data.');
   }
 };
 
@@ -459,7 +434,7 @@ const getWarehouseInventories = async ({
  * @param {number} [params.page=1] - Page number for pagination.
  * @param {number} [params.limit=10] - Number of records per page.
  * @returns {Promise<Object>} - A paginated result of item inventory summaries.
- * @throws {AppError} - Throws a database error if query fails.
+ * @throws {AppError} - Throws a database error if a query fails.
  */
 const getWarehouseItemSummary = async ({
   warehouse_id,
@@ -709,7 +684,7 @@ const insertWarehouseInventoryRecords = async (client, inventoryData) => {
           'FOR UPDATE'
         ),
       3, // Retries up to 3 times
-      1000 // Initial delay of 1s, with exponential backoff
+      1000 // Initial delay of 1 s, with exponential backoff
     );
 
     // Step 2: Prepare Data for Bulk Insert
@@ -764,7 +739,7 @@ const insertWarehouseInventoryRecords = async (client, inventoryData) => {
             [] // Fields to do nothing on conflict
           ),
         3, // Retries up to 3 times
-        1000 // Initial delay of 1s, with exponential backoff
+        1000 // Initial delay of 1 s, with exponential backoff
       )) || []
     );
   } catch (error) {
@@ -955,7 +930,7 @@ const getRecentInsertWarehouseInventoryRecords = async (warehouseLotIds) => {
  *     ...
  *   }
  *
- * @throws {AppError} - Throws if DB query fails.
+ * @throws {AppError} - Throws if a DB query fails.
  */
 const fetchWarehouseInventoryQuantities = async (items, client = null) => {
   if (!Array.isArray(items) || items.length === 0) return {};
@@ -999,7 +974,7 @@ const fetchWarehouseInventoryQuantities = async (items, client = null) => {
 module.exports = {
   getPaginatedWarehouseInventoryItemSummary,
   getWarehouseInventorySummaryDetailsByItemId,
-  getWarehouseInventories,
+  getPaginatedWarehouseInventoryRecords,
   getWarehouseItemSummary,
   getWarehouseInventoryDetailsByWarehouseId,
   checkWarehouseInventoryBulk,

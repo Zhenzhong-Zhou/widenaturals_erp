@@ -1,12 +1,12 @@
-const {
-  fetchAllWarehouseInventories,
-  fetchWarehouseItemSummary,
-  fetchWarehouseInventoryDetailsByWarehouseId, fetchPaginatedWarehouseInventoryItemSummary,
-  fetchWarehouseInventorySummaryByItemIdService,
-} = require('../services/warehouse-inventory-service');
-const { logError, logInfo } = require('../utils/logger-helper');
 const wrapAsync = require('../utils/wrap-async');
+const {
+  fetchPaginatedWarehouseInventoryItemSummary,
+  fetchWarehouseInventorySummaryByItemIdService,
+  fetchPaginatedWarehouseInventoryRecordService,
+} = require('../services/warehouse-inventory-service');
+const { logInfo } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
+const { normalizePaginationAndSortParams, sanitizeCommonInventoryFilters } = require('../utils/query/inventory-query-utils');
 
 /**
  * Controller: Handles GET request to fetch paginated warehouse inventory summary.
@@ -79,91 +79,66 @@ const getWarehouseInventorySummaryDetailsController = wrapAsync(async (req, res,
 });
 
 /**
- * Controller to fetch all warehouse inventories with pagination, sorting, and filtering.
- * @param {import('express').Request} req - Express request object.
- * @param {import('express').Response} res - Express response object.
- * @param next
- */
-const getAllWarehouseInventoriesController = wrapAsync(
-  async (req, res, next) => {
-    try {
-      const { page = 1, limit = 10, sortBy, sortOrder } = req.query;
-
-      const { data, pagination } = await fetchAllWarehouseInventories({
-        page: Number(page),
-        limit: Number(limit),
-        sortBy,
-        sortOrder,
-      });
-
-      res.status(200).json({
-        success: true,
-        message: 'Warehouse inventories retrieved successfully',
-        data,
-        pagination,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-/**
- * Controller to get warehouse items.
+ * Controller: GET /warehouse-inventory
  *
- * @param {Object} req - Express request object.
- * @param {Object} res - Express response object.
- * @param next
- * @returns {Promise<void>}
+ * Handles the request to fetch paginated warehouse inventory records.
+ * Parses query parameters (filters, pagination, sorting), calls the service,
+ * and returns a formatted JSON response to the client.
+ *
+ * @route GET /warehouse-inventory
+ * @group Warehouse Inventory
+ *
+ * @queryparam {number} [page=1] - Page number for pagination (1-based index)
+ * @queryparam {number} [limit=20] - Number of records per page
+ * @queryparam {string} [sortBy] - Field to sort by (e.g. 'productName', 'warehouseName')
+ * @queryparam {string} [sortOrder=ASC] - Sort order direction ('ASC' or 'DESC')
+ *
+ * @queryparam {string} [batchType] - Filter by batch type ('product' | 'packaging_material')
+ * @queryparam {string} [warehouseName] - Filter by warehouse name (ILIKE match)
+ * @queryparam {string} [productName] - Filter by product name (ILIKE match)
+ * @queryparam {string} [sku] - Filter by SKU code (ILIKE match)
+ * @queryparam {string} [materialName] - Filter by packaging material name (ILIKE match)
+ * @queryparam {string} [materialCode] - Filter by material code (ILIKE match)
+ * @queryparam {string} [partName] - Filter by part name (ILIKE match)
+ * @queryparam {string} [partCode] - Filter by part code (ILIKE match)
+ * @queryparam {string} [partType] - Filter by part type (ILIKE match)
+ * @queryparam {string} [lotNumber] - Filter by lot number (product or material)
+ * @queryparam {string} [status] - Filter by inventory status name
+ * @queryparam {string} [createdAt] - Filter by creation date (YYYY-MM-DD)
+ *
+ * @returns {200} Paginated warehouse inventory data including metadata and counts
  */
-const getWarehouseItemSummaryController = wrapAsync(async (req, res, next) => {
-  try {
-    const { warehouse_id } = req.params; // Get warehouse ID from URL params
-    const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 10;
-
-    // Call the updated service
-    const { itemSummaryData, pagination } = await fetchWarehouseItemSummary(
-      warehouse_id,
-      page,
-      limit
-    );
-
-    // Return the response
-    return res.status(200).json({
-      success: true,
-      message: 'Warehouse items retrieved successfully.',
-      itemSummaryData,
-      pagination,
-    });
-  } catch (error) {
-    logError('Error in getWarehouseItemsController:', error);
-    next(error);
-  }
-});
-
-/**
- * Controller to get warehouse inventory details by warehouse ID.
- * @route GET /api/warehouse-inventory/:warehouse_id
- * @access Protected
- */
-const getWarehouseInventoryDetailsController = wrapAsync(async (req, res) => {
-  const { warehouse_id } = req.params;
-  const { page = 1, limit = 10 } = req.query; // Default pagination values
-
-  // Fetch inventory details from service
-  const { inventoryDetails, pagination } =
-    await fetchWarehouseInventoryDetailsByWarehouseId(
-      warehouse_id,
-      parseInt(page, 10),
-      parseInt(limit, 10)
-    );
-
-  // Send JSON response
+const getWarehouseInventoryRecordController = wrapAsync(async (req, res) => {
+  // Normalize req.query to a plain object to avoid [Object: null prototype] issues
+  const query = { ...req.query };
+  
+  // Extract pagination and sort clause
+  const { page, limit, safeSortClause } = normalizePaginationAndSortParams(
+    {
+      page: query.page,
+      limit: query.limit,
+      sortByRaw: query.sortBy,
+      sortOrderRaw: query.sortOrder,
+    },
+    'warehouseInventorySortMap'
+  );
+  
+  // Sanitize filters based on warehouse context
+  const filters = sanitizeCommonInventoryFilters(query, { type: 'warehouse' });
+  
+  // Fetch data using the service
+  const { data, pagination } = await fetchPaginatedWarehouseInventoryRecordService({
+    page,
+    limit,
+    filters,
+    safeSortClause,
+  });
+  
+  // Return successful response
   res.status(200).json({
     success: true,
-    message: 'Warehouse inventory details retrieved successfully.',
-    inventoryDetails,
+    message: 'Successfully fetched warehouse inventory records',
+    data,
     pagination,
   });
 });
@@ -171,7 +146,5 @@ const getWarehouseInventoryDetailsController = wrapAsync(async (req, res) => {
 module.exports = {
   getPaginatedWarehouseInventorySummaryController,
   getWarehouseInventorySummaryDetailsController,
-  getAllWarehouseInventoriesController,
-  getWarehouseItemSummaryController,
-  getWarehouseInventoryDetailsController,
+  getWarehouseInventoryRecordController,
 };

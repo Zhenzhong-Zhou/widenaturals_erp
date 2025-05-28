@@ -20,6 +20,8 @@
  * summary tables, detail views, export operations, or monitoring.
  */
 
+const { buildInventoryFilterConditions } = require('./build-inventorfilter-conditions');
+
 /**
  * Builds WHERE clause and parameter list for location inventory summary filtering.
  *
@@ -41,107 +43,27 @@
  * @returns {{ whereClause: string, params: any[] }} SQL-ready clause and parameter bindings
  */
 const buildLocationInventoryWhereClause = (filters = {}) => {
-  const whereClauses = [];
-  const params = [];
-  
-  // Core conditions (always applied)
-  whereClauses.push(`(li.location_quantity > 0 OR li.reserved_quantity > 0)`);
-  whereClauses.push(`
-    (
+  const whereClauses = [
+    `(li.location_quantity > 0 OR li.reserved_quantity > 0)`,
+    `(
       (br.batch_type = 'product' AND p.status_id IS NOT NULL AND s.status_id IS NOT NULL AND pb.status_id IS NOT NULL)
       OR
       (br.batch_type = 'packaging_material' AND pmb.id IS NOT NULL)
-    )
-  `);
+    )`,
+  ];
   
-  // Dynamic filters
-  if (filters.locationName) {
-    params.push(filters.locationName);
-    whereClauses.push(`loc.name ILIKE $${params.length}`);
-  }
-  
-  if (filters.batchType) {
-    params.push(filters.batchType);
-    whereClauses.push(`br.batch_type = $${params.length}`);
-  }
-  
-  if (filters.sku) {
-    params.push(`%${filters.sku}%`);
-    whereClauses.push(`s.sku ILIKE $${params.length}`);
-  }
-  
-  if (filters.productName) {
-    params.push(`%${filters.productName}%`);
-    whereClauses.push(`p.name ILIKE $${params.length}`);
-  }
-  
-  if (filters.materialName) {
-    params.push(`%${filters.materialName}%`);
-    whereClauses.push(`pmb.material_snapshot_name ILIKE $${params.length}`);
-  }
-  
-  if (filters.materialCode) {
-    params.push(`%${filters.materialCode}%`);
-    whereClauses.push(`pm.code ILIKE $${params.length}`);
-  }
-  
-  if (filters.partCode) {
-    params.push(`%${filters.partCode}%`);
-    whereClauses.push(`pt.code ILIKE $${params.length}`);
-  }
-  
-  if (filters.partName) {
-    params.push(`%${filters.partName}%`);
-    whereClauses.push(`pt.name ILIKE $${params.length}`);
-  }
-  
-  if (filters.partType) {
-    params.push(`%${filters.partType}%`);
-    whereClauses.push(`pt.type ILIKE $${params.length}`);
-  }
-  
-  if (filters.lotNumber) {
-    params.push(`%${filters.lotNumber}%`);
-    whereClauses.push(`
-      (
-        (br.batch_type = 'product' AND pb.lot_number ILIKE $${params.length})
-        OR
-        (br.batch_type = 'packaging_material' AND pmb.lot_number ILIKE $${params.length})
-      )
-    `);
-  }
-  
-  if (filters.inboundDate) {
-    params.push(filters.inboundDate);
-    whereClauses.push(`li.inbound_date::date = $${params.length}`);
-  }
-  
-  if (filters.expiryDate) {
-    params.push(filters.expiryDate);
-    whereClauses.push(`
-      (
-        (br.batch_type = 'product' AND pb.expiry_date = $${params.length})
-        OR
-        (br.batch_type = 'packaging_material' AND pmb.expiry_date = $${params.length})
-      )
-    `);
-  }
-  
-  if (filters.status) {
-    params.push(filters.status);
-    whereClauses.push(`st.name = $${params.length}`);
-  }
-  
-  if (filters.createdAt) {
-    params.push(filters.createdAt);
-    whereClauses.push(`li.created_at::date = $${params.length}`);
-  }
+  const { conditions, params } = buildInventoryFilterConditions(filters, {
+    prefix: 'li',
+    locationName: 'loc.name',
+    inboundDate: 'inbound_date',
+    createdAt: 'created_at',
+  });
   
   return {
-    whereClause: whereClauses.join(' AND '),
+    whereClause: [...whereClauses, ...conditions].join(' AND '),
     params,
   };
-}
+};
 
 module.exports = {
   buildLocationInventoryWhereClause,

@@ -2,9 +2,7 @@ const express = require('express');
 const {
   getPaginatedWarehouseInventorySummaryController,
   getWarehouseInventorySummaryDetailsController,
-  getAllWarehouseInventoriesController,
-  getWarehouseItemSummaryController,
-  getWarehouseInventoryDetailsController,
+  getWarehouseInventoryRecordController,
 } = require('../controllers/warehouse-inventory-controller');
 const authorize = require('../middlewares/authorize');
 const { sanitizeInput } = require('../middlewares/sanitize');
@@ -59,33 +57,49 @@ router.get(
   getWarehouseInventorySummaryDetailsController
 );
 
-// GET /api/warehouse-inventory - Fetch all warehouse inventories with pagination
+/**
+ * @route GET /warehouse-inventory
+ * @group Warehouse Inventory - Inventory overview at the warehouse level
+ * @middleware authorize - Ensures the user has appropriate permissions
+ * @middleware sanitizeInput - Sanitizes input query parameters to prevent injection
+ *
+ * @permissions
+ * Requires one of the following permissions:
+ * - view_warehouses
+ * - manage_warehouses
+ * - view_inventory
+ * - view_warehouse_inventory
+ * - view_product_inventory
+ * - view_material_inventory
+ *
+ * @queryparam {number} [page=1] - Page number for pagination (1-based)
+ * @queryparam {number} [limit=20] - Number of records per page
+ * @queryparam {string} [sortBy] - Field to sort by (e.g., 'productName', 'expiryDate')
+ * @queryparam {string} [sortOrder=ASC] - Sort direction ('ASC' or 'DESC')
+ *
+ * @queryparam {string} [batchType] - Filter by batch type ('product' | 'packaging_material')
+ * @queryparam {string} [warehouseName] - Filter by warehouse name (ILIKE match)
+ * @queryparam {string} [productName] - Filter by product name (ILIKE match)
+ * @queryparam {string} [materialName] - Filter by material name (ILIKE match)
+ * @queryparam {string} [sku] - Filter by SKU code
+ * @queryparam {string} [lotNumber] - Filter by lot number
+ * @queryparam {string} [status] - Filter by inventory status
+ * @queryparam {string} [createdAt] - Filter by creation date (YYYY-MM-DD)
+ *
+ * @returns {200} JSON object containing paginated warehouse inventory records
+ */
 router.get(
   '/',
-  authorize(['view_warehouses', 'manage_warehouses']),
-  getAllWarehouseInventoriesController
-);
-
-/**
- * @route GET /warehouse-inventories/:warehouse_id/items-summary
- * @desc Get warehouse item summary with pagination
- * @access Private
- */
-router.get(
-  '/:warehouse_id/items-summary',
-  authorize(['view_warehouses', 'manage_warehouses']),
-  getWarehouseItemSummaryController
-);
-
-/**
- * @route GET /api/warehouse-inventory/:warehouse_id
- * @desc Get inventory details for a specific warehouse
- * @access Protected
- */
-router.get(
-  '/:warehouse_id',
-  authorize(['view_warehouses', 'manage_warehouses']),
-  getWarehouseInventoryDetailsController
+  authorize([
+    'view_warehouses',
+    'manage_warehouses',
+    'view_inventory',
+    'view_warehouse_inventory',
+    'view_product_inventory',
+    'view_material_inventory'
+  ]),
+  sanitizeInput,
+  getWarehouseInventoryRecordController
 );
 
 module.exports = router;

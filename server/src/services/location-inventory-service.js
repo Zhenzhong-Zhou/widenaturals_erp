@@ -16,7 +16,7 @@ const {
   transformPaginatedLocationInventoryRecordResults,
 } = require('../transformers/location-inventory-transformer');
 const { sanitizeSortBy, sanitizeSortOrder } = require('../utils/sort-utils');
-const { FILTERABLE_FIELDS } = require('../utils/filter-field-mapping');
+const { normalizePaginationAndSortParams } = require('../utils/query/inventory-query-utils');
 
 /**
  * Service to fetch and transform KPI summary data for location inventory.
@@ -157,8 +157,7 @@ const fetchPaginatedLocationInventorySummaryByItemIdService = async ({ page, lim
  * @param {number} options.page - The current page number (1-based index)
  * @param {number} options.limit - The number of records per page
  * @param {Object} [options.filters] - Optional filters for narrowing results by fields such as batchType, locationName, productName, etc.
- * @param {string} [options.sortByRaw] - Optional raw sort key from frontend (e.g. "productName", "inboundDate")
- * @param {string} [options.sortOrderRaw='ASC'] - Optional sort order direction: 'ASC' or 'DESC'
+ * @param {string} options.safeSortClause - Fully sanitized SQL ORDER BY clause
  *
  * @returns {Promise<Object>} - An object containing the paginated, filtered, and transformed location inventory results:
  *    {
@@ -171,24 +170,15 @@ const fetchPaginatedLocationInventorySummaryByItemIdService = async ({ page, lim
  *      }
  *    }
  */
-const fetchPaginatedLocationInventoryRecordService = async ({ page, limit, filters, sortByRaw, sortOrderRaw }) => {
+const fetchPaginatedLocationInventoryRecordService = async ({ page, limit, filters, safeSortClause }) => {
   try {
-    const sortByExpression =
-      sortByRaw?.trim()
-        ? sanitizeSortBy(sortByRaw, 'locationInventorySortMap')
-        : FILTERABLE_FIELDS.locationInventorySortMap.defaultNaturalSort;
-
-    // Only append sortOrder if sortBy is a single column
-    const safeSortClause = sortByExpression.includes(',') || sortByExpression.includes('CASE')
-      ? sortByExpression
-      : `${sortByExpression} ${sanitizeSortOrder(sortOrderRaw)}`;
-    
     const rawResult = await getPaginatedLocationInventoryRecords({
       page,
       limit,
       filters,
-      safeSortClause
+      safeSortClause,
     });
+    
     return transformPaginatedLocationInventoryRecordResults(rawResult);
   } catch (error) {
     logSystemException(error, 'Failed in locationInventoryService.getPaginatedLocationInventory', {

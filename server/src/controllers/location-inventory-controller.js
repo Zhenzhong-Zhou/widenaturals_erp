@@ -1,12 +1,16 @@
+const wrapAsync = require('../utils/wrap-async');
+const AppError = require('../utils/AppError');
 const {
   fetchLocationInventoryKpiSummaryService,
   fetchPaginatedLocationInventorySummaryService,
   fetchPaginatedLocationInventorySummaryByItemIdService,
   fetchPaginatedLocationInventoryRecordService,
 } = require('../services/location-inventory-service');
-const wrapAsync = require('../utils/wrap-async');
-const AppError = require('../utils/AppError');
 const { logInfo } = require('../utils/logger-helper');
+const {
+  normalizePaginationAndSortParams,
+  sanitizeCommonInventoryFilters
+} = require('../utils/query/inventory-query-utils');
 
 /**
  * Controller to handle fetching KPI summary metrics for location inventory.
@@ -162,52 +166,33 @@ const getLocationInventorySummaryDetailsController = wrapAsync(async (req, res, 
  * @returns {200} Paginated inventory data including metadata and counts
  */
 const getLocationInventoryRecordController = wrapAsync(async (req, res) => {
-  const page = parseInt(req.query.page, 10) || 1;
-  const limit = parseInt(req.query.limit, 10) || 20;
-  const { sortBy, sortOrder } = req.query;
+  // Step 1: Normalize an incoming query to a plain object
+  const query = { ...req.query }; // ensures no null prototype issues
   
-  const sanitizeLocationInventoryFilters = (query) => {
-    const filters = {
-      batchType: query.batchType || undefined,
-      locationName: query.locationName || undefined,
-      productName: query.productName || undefined,
-      materialName: query.materialName || undefined,
-      materialCode: query.materialCode || undefined,
-      partName: query.partName || undefined,
-      partCode: query.partCode || undefined,
-      partType: query.partType || undefined,
-      sku: query.sku || undefined,
-      lotNumber: query.lotNumber || undefined,
-      status: query.status || undefined,
-      inboundDate: req.query.inboundDate || undefined, // format: yyyy-mm-dd
-      expiryDate: req.query.expiryDate || undefined,   // format: yyyy-mm-dd
-      createdAt: req.query.createdAt || undefined      // format: yyyy-mm-dd
-    };
-    
-    if (filters.batchType === 'product') {
-      delete filters.materialName;
-      delete filters.materialCode;
-      delete filters.partName;
-      delete filters.partCode;
-      delete filters.partType;
-    } else if (filters.batchType === 'packaging_material') {
-      delete filters.productName;
-      delete filters.sku;
-    }
-    
-    return filters;
-  };
+  // Step 2: Extract pagination and sort config
+  const { page: resolvedPage, limit: resolvedLimit, safeSortClause } =
+    normalizePaginationAndSortParams(
+      {
+        page: query.page,
+        limit: query.limit,
+        sortByRaw: query.sortBy,
+        sortOrderRaw: query.sortOrder,
+      },
+      'locationInventorySortMap'
+    );
   
-  const filters = sanitizeLocationInventoryFilters(req.query);
+  // Step 3: Sanitize filters
+  const filters = sanitizeCommonInventoryFilters(query, { type: 'location' });
   
+  // Step 4: Fetch data using service
   const { data, pagination } = await fetchPaginatedLocationInventoryRecordService({
-    page,
-    limit,
+    page: resolvedPage,
+    limit: resolvedLimit,
     filters,
-    sortByRaw: sortBy,
-    sortOrderRaw: sortOrder,
+    safeSortClause,
   });
   
+  // Step 5: Respond to a client
   res.status(200).json({
     success: true,
     message: 'Successfully fetched location inventory records',
