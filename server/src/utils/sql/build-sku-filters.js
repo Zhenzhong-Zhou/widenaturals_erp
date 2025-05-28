@@ -4,7 +4,7 @@
  * Used in repository layers to support paginated queries with optional filters.
  */
 
-const { FILTERABLE_FIELDS } = require('../filter-field-mapping');
+const { SORTABLE_FIELDS } = require('../sort-field-mapping');
 const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
 
@@ -22,7 +22,7 @@ const AppError = require('../AppError');
  */
 const buildWhereClauseAndParams = (productStatusId, filters = {}) => {
   try {
-    const fieldMap = FILTERABLE_FIELDS.skuProductCards;
+    const fieldMap = SORTABLE_FIELDS.skuProductCards;
     const conditions = [`p.status_id = $1`, `sku.status_id = $1`];
     const params = [productStatusId];
     let paramIndex = 2;

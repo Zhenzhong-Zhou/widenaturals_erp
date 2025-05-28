@@ -1,8 +1,8 @@
 /**
- * Maps frontend filter keys to fully qualified SQL fields,
+ * Maps frontend sort keys to fully qualified SQL fields,
  * organized by table/module for reuse across service and repository layers.
  */
-const FILTERABLE_FIELDS = {
+const SORTABLE_FIELDS = {
   skuProductCards: {
     brand: 'p.brand',
     category: 'p.category',
@@ -132,5 +132,5 @@ const FILTERABLE_FIELDS = {
 };
 
 module.exports = {
-  FILTERABLE_FIELDS,
+  SORTABLE_FIELDS,
 };

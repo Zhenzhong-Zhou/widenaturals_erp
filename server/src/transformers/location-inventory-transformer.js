@@ -172,7 +172,6 @@ const transformLocationInventoryRecord = (row) =>
     scopeNameField: 'location_name',
     scopeTypeField: 'location_type_name',
     quantityField: 'location_quantity',
-    includeInboundOutboundDates: true,
   });
 
 /**

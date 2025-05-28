@@ -151,7 +151,6 @@ const transformWarehouseInventoryRecord = (row) =>
     scopeIdField: 'warehouse_id',
     scopeNameField: 'warehouse_name',
     quantityField: 'warehouse_quantity',
-    includeInboundOutboundDates: false,
   });
 
 /**

@@ -1,5 +1,5 @@
 const { sanitizeSortOrder, sanitizeSortBy } = require('../sort-utils');
-const { FILTERABLE_FIELDS } = require('../filter-field-mapping');
+const { SORTABLE_FIELDS } = require('../sort-field-mapping');
 const { cleanObject } = require('../object-utils');
 
 /**
@@ -19,7 +19,7 @@ const normalizePaginationAndSortParams = ({ page, limit, sortByRaw, sortOrderRaw
   
   const sortByExpression = sortByRaw?.trim()
     ? sanitizeSortBy(sortByRaw, sortMapKey)
-    : FILTERABLE_FIELDS[sortMapKey].defaultNaturalSort;
+    : SORTABLE_FIELDS[sortMapKey].defaultNaturalSort;
   
   const safeSortClause =
     sortByExpression.includes(',') || sortByExpression.includes('CASE')

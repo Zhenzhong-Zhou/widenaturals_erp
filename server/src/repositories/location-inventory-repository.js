@@ -404,6 +404,7 @@ const getPaginatedLocationInventoryRecords = async ({ page, limit, filters, safe
       li.created_at,
       li.updated_at,
       st.name AS status_name,
+      li.status_date,
       uc.firstname AS created_by_firstname,
       uc.lastname AS created_by_lastname,
       uu.firstname AS updated_by_firstname,

@@ -62,10 +62,9 @@ const transformInventoryRecordBase = (row, config) => {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     lastUpdate: row.last_update,
-    ...(config.includeInboundOutboundDates && {
-      inboundDate: row.inbound_date,
-      outboundDate: row.outbound_date,
-    }),
+    inboundDate: row.inbound_date,
+    outboundDate: row.outbound_date,
+    statusDate: row.status_date,
   });
   
   return cleanObject({
