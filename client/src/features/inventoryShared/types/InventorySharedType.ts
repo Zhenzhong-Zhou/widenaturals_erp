@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { PaginationParams } from '@shared-types/api';
 
 export interface InventoryHealthStatus {
@@ -120,7 +121,7 @@ export interface BaseInventoryRecord {
   
   material?: {
     name: string;
-    received_name: string;
+    receivedName: string;
     code: string;
     color?: string | null;
     size?: string | null;
@@ -173,4 +174,19 @@ export interface FlatInventoryRowBase<T> {
   lastUpdate: string;
   isGroupHeader?: boolean;
   originalRecord: T;
+}
+
+export interface BaseInventoryTableProps<T, FlatT> {
+  isLoading: boolean;
+  groupedData: Record<string, T[]>;
+  page: number;
+  rowsPerPage: number;
+  totalRecords: number;
+  totalPages: number;
+  onPageChange: (newPage: number) => void;
+  onRowsPerPageChange: (newRowsPerPage: number) => void;
+  expandedRowId?: string | null;
+  onExpandToggle?: (row: FlatT) => void;
+  isRowExpanded?: (row: FlatT) => boolean;
+  expandedContent?: (row: FlatT) => ReactNode;
 }

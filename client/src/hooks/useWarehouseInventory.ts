@@ -20,7 +20,7 @@ const useWarehouseInventory = () => {
   
   const records = useMemo(() => data, [data]);
   
-  const fetchWarehouseInventory = (
+  const fetchRecords = (
     paginationParams: PaginationParams,
     filters: WarehouseInventoryFilters,
     sortConfig: SortConfig = {}
@@ -39,7 +39,7 @@ const useWarehouseInventory = () => {
     loading,
     error,
     pagination,
-    fetchWarehouseInventory, // exposed fetch function
+    fetchRecords, // exposed fetch function
   };
 };
 

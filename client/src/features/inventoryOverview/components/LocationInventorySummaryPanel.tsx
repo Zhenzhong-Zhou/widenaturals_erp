@@ -147,6 +147,8 @@ const LocationInventorySummaryPanel: FC<Props> = ({
               batchType: 'product',
             });
           }}
+          showActionsWhenAll={true}
+          requireBatchTypeForActions={true}
         />
         
         <LocationInventorySummaryTable

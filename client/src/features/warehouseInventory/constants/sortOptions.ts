@@ -1,6 +1,6 @@
 import { BASE_SORT_OPTIONS } from '@features/inventoryShared/constants/baseSortOptions.ts';
 
-export const LOCATION_INVENTORY_SORT_OPTIONS = [
-  { label: 'Location Name', value: 'locationName' },
+export const WAREHOUSE_INVENTORY_SORT_OPTIONS = [
+  { label: 'Warehouse Name', value: 'warehouseName' },
   ...BASE_SORT_OPTIONS,
 ];

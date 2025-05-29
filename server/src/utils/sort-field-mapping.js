@@ -112,7 +112,7 @@ const SORTABLE_FIELDS = {
       END
     `,
     defaultNaturalSort: `
-      wh.name,
+      wh.name DESC,
       p.brand,
       br.batch_type,
       CASE

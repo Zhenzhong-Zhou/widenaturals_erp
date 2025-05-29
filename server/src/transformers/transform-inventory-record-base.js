@@ -46,6 +46,8 @@ const transformInventoryRecordBase = (row, config) => {
   const reservedQuantity = row.reserved_quantity ?? 0;
   const available = Math.max(totalQuantity - reservedQuantity, 0);
   
+  const camelQuantityKey = config.quantityField.replace(/_([a-z])/g, (_, g) => g.toUpperCase());
+  
   const statusFlags = deriveInventoryStatusFlags({
     available_quantity: available,
     nearest_expiry_date: displayExpiryDate,
@@ -76,7 +78,7 @@ const transformInventoryRecordBase = (row, config) => {
       ...(config.scopeTypeField ? { type: row[config.scopeTypeField] } : {}),
     }),
     quantity: {
-      [config.quantityField]: totalQuantity,
+      [camelQuantityKey]: totalQuantity,
       reserved: reservedQuantity,
       available,
     },
@@ -100,7 +102,7 @@ const transformInventoryRecordBase = (row, config) => {
     material: isMaterial
       ? {
         name: row.material_name,
-        received_name: row.received_label_name,
+        receivedName: row.received_label_name,
         code: row.material_code,
         color: row.material_color,
         size: row.material_size,

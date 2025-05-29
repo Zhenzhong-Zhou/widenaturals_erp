@@ -2,7 +2,7 @@ import type {
   BaseFlatInventoryRow,
   BaseInventoryFilters,
   BaseInventoryRecord,
-  BaseInventorySummaryItem, FlatInventoryRowBase,
+  BaseInventorySummaryItem, BaseInventoryTableProps, FlatInventoryRowBase,
   InventoryHealthStatus,
   ItemType,
 } from '@features/inventoryShared/types/InventorySharedType';
@@ -110,6 +110,7 @@ export type LocationInventoryRecordsResponse = PaginatedResponse<LocationInvento
 
 export type LocationInventoryState = PaginatedState<LocationInventoryRecord>;
 
-
 export interface FlatLocationInventoryRow
   extends FlatInventoryRowBase<LocationInventoryRecord> {}
+
+export type LocationInventoryTableProps = BaseInventoryTableProps<LocationInventoryRecord, FlatLocationInventoryRow>;

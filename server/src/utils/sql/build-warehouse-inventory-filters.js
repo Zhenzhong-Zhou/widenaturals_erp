@@ -15,7 +15,7 @@
  * - Foreign keys: warehouseId, status
  */
 
-const { buildInventoryFilterConditions } = require('./build-inventorfilter-conditions');
+const { buildInventoryFilterConditions } = require('./build-inventory-filter-conditions');
 
 /**
  * Builds the SQL WHERE clause and parameter bindings for querying `warehouse_inventory`

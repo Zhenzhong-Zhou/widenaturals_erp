@@ -20,7 +20,7 @@
  * summary tables, detail views, export operations, or monitoring.
  */
 
-const { buildInventoryFilterConditions } = require('./build-inventorfilter-conditions');
+const { buildInventoryFilterConditions } = require('./build-inventory-filter-conditions');
 
 /**
  * Builds WHERE clause and parameter list for location inventory summary filtering.

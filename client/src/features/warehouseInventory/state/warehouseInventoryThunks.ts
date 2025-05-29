@@ -16,7 +16,7 @@ import type { InventorySummaryDetailByItemIdParams } from '@features/inventorySh
  * including both SKU-level (products) and material-level records.
  *
  * @param {FetchWarehouseInventoryItemSummaryParams} params - Pagination and filter input (page, limit, itemType).
- * @returns {PaginatedResponse<WarehouseInventorySummary>} - Paginated inventory summary response.
+ * @returns {PaginatedResponse<WarehouseInventoryItemSummary>} - Paginated inventory summary response.
  */
 export const fetchWarehouseInventoryItemSummaryThunk = createAsyncThunk<
   PaginatedResponse<WarehouseInventoryItemSummary>,

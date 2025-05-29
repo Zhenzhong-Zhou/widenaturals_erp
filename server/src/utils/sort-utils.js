@@ -9,7 +9,7 @@ const { logSystemWarn } = require('./system-logger');
  * @returns {string} - Safe SQL ORDER BY clause, e.g. "p.name, p.created_at"
  */
 const sanitizeSortBy = (sortByRaw = '', module = null) => {
-  const map = module && SORTABLE_FIELDS[module] ? FILTERABLE_FIELDS[module] : {};
+  const map = module && SORTABLE_FIELDS[module] ? SORTABLE_FIELDS[module] : {};
   
   const requestedKeys = sortByRaw.split(',').map((key) => key.trim());
   const mappedKeys = requestedKeys

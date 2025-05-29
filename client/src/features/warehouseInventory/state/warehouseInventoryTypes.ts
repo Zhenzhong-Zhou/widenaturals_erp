@@ -3,7 +3,7 @@ import type {
   BaseFlatInventoryRow,
   BaseInventoryFilters,
   BaseInventoryRecord,
-  BaseInventorySummaryItem,
+  BaseInventorySummaryItem, BaseInventoryTableProps,
   FlatInventoryRowBase,
   InventoryHealthStatus,
   ItemType,
@@ -95,12 +95,7 @@ export interface FetchWarehouseInventoryArgs {
 
 export type WarehouseInventoryState = PaginatedState<WarehouseInventoryRecord>;
 
-export interface WarehouseInventoryQueryParams extends WarehouseInventoryFilters {
-  page?: number;
-  limit?: number;
-  sortBy?: string;
-  sortOrder?: 'ASC' | 'DESC';
-}
-
 export interface FlatWarehouseInventoryRow
   extends FlatInventoryRowBase<WarehouseInventoryRecord> {}
+
+export type WarehouseInventoryTableProps = BaseInventoryTableProps<WarehouseInventoryRecord, FlatWarehouseInventoryRow>
