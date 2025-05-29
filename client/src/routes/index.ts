@@ -164,13 +164,13 @@ export const routes = [
     },
   },
   {
-    path: '/warehouse_inventories',
+    path: '/warehouse_inventory',
     component: lazy(
       () => import('@features/warehouseInventory/pages/WarehouseInventoryPage')
     ),
     meta: {
       requiresAuth: true,
-      title: 'Warehouse Inventories',
+      title: 'Warehouse Inventory',
       showInSidebar: true,
       requiredPermission: 'view_warehouses',
     },

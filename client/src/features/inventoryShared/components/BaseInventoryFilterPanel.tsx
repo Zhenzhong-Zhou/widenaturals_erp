@@ -1,4 +1,4 @@
-import type { BaseSyntheticEvent } from 'react';
+import { useId, type BaseSyntheticEvent } from 'react';
 import Paper from '@mui/material/Paper';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
@@ -93,8 +93,20 @@ const BaseInventoryFilterPanel = <T extends BaseInventoryFilters>({
                       );
                     }
                     if (type === 'select') {
+                      const fieldId = useId();
                       return (
-                        <BaseInput {...field} label={label} fullWidth size="small" select value={field.value ?? ''}>
+                        <BaseInput
+                          {...field}
+                          label={label}
+                          fullWidth
+                          size="small"
+                          select
+                          value={field.value ?? ''}
+                          slotProps={{
+                            input: { id: fieldId },
+                            inputLabel: { htmlFor: fieldId },
+                          }}
+                        >
                           {options?.map((opt) => (
                             <MenuItem key={opt.value} value={opt.value}>
                               {opt.label}

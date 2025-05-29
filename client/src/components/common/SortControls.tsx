@@ -1,4 +1,4 @@
-import type { FC } from 'react';
+import { type FC } from 'react';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import FormControl from '@mui/material/FormControl';
@@ -19,39 +19,48 @@ const SortControls: FC<SortControlsProps> = ({
                                                onSortByChange,
                                                onSortOrderChange,
                                                sortOptions,
-                                             }) => (
-  <Stack direction="row" spacing={2} sx={{ minHeight: 40, alignItems: 'center' }}>
-    <FormControl size="small" sx={{ minWidth: 140 }}>
-      <InputLabel id="sort-by-label">Sort By</InputLabel>
-      <Select
-        labelId="sort-by-label"
-        label="Sort By"
-        value={sortBy}
-        onChange={(e) => onSortByChange(e.target.value)}
-      >
-        <MenuItem value="">Select Sort Field</MenuItem>
-        {sortOptions.map((option) => (
-          <MenuItem key={option.value} value={option.value}>
-            {option.label}
-          </MenuItem>
-        ))}
-      </Select>
-    </FormControl>
-    
-    <FormControl size="small" sx={{ minWidth: 140 }}>
-      <InputLabel id="sort-order-label">Order</InputLabel>
-      <Select
-        labelId="sort-order-label"
-        label="Order"
-        value={sortOrder}
-        onChange={(e) => onSortOrderChange(e.target.value as '' | 'ASC' | 'DESC')}
-      >
-        <MenuItem value="">Select Order</MenuItem>
-        <MenuItem value="ASC">Ascending</MenuItem>
-        <MenuItem value="DESC">Descending</MenuItem>
-      </Select>
-    </FormControl>
-  </Stack>
-);
+                                             }) => {
+  const sortById = 'sort-by';
+  const sortOrderId = 'sort-order';
+  
+  return (
+    <Stack direction="row" spacing={2} sx={{ minHeight: 40, alignItems: 'center' }}>
+      <FormControl size="small" sx={{ minWidth: 140 }}>
+        <InputLabel id={`${sortById}-label`} htmlFor={`${sortById}-select`}>Sort By</InputLabel>
+        <Select
+          inputProps={{ id: `${sortById}-select` }}
+          labelId={`${sortById}-label`}
+          name="sortBy"
+          label="Sort By"
+          value={sortBy}
+          onChange={(e) => onSortByChange(e.target.value)}
+        >
+          <MenuItem value="">Select Sort Field</MenuItem>
+          {sortOptions.map((option) => (
+            <MenuItem key={option.value} value={option.value}>
+              {option.label}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+      
+      <FormControl size="small" sx={{ minWidth: 140 }}>
+        <InputLabel id={`${sortOrderId}-label`} htmlFor={`${sortOrderId}-select`}>Order</InputLabel>
+        <Select
+          inputProps={{ id: `${sortOrderId}-select` }}
+          labelId={`${sortOrderId}-label`}
+          name="sortOrder"
+          label="Order"
+          value={sortOrder}
+          onChange={(e) => onSortOrderChange(e.target.value as '' | 'ASC' | 'DESC')}
+        >
+          <MenuItem value="">Select Order</MenuItem>
+          <MenuItem value="ASC">Ascending</MenuItem>
+          <MenuItem value="DESC">Descending</MenuItem>
+        </Select>
+      </FormControl>
+    </Stack>
+  );
+};
 
 export default SortControls;
