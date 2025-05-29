@@ -2,6 +2,13 @@ const { fetchDynamicValue } = require('../03_utils');
 const { generateStandardizedCode, generateCodeOrSlug } = require('../../../utils/code-generators');
 
 exports.seed = async function (knex) {
+  // Pre-check: Skip seeding if any lot_adjustment_types already exist
+  const existing = await knex('lot_adjustment_types').select('id').limit(1);
+  if (existing.length > 0) {
+    console.log('Skipping lot_adjustment_types seed: data already exists.');
+    return;
+  }
+  
   const adminUserId = await fetchDynamicValue(
     knex,
     'users',
@@ -10,30 +17,46 @@ exports.seed = async function (knex) {
     'id'
   );
   
-  const lotAdjustmentTypes = [
-    { name: 'manual_stock_insert', description: 'Stock was manually inserted into the system.' },
-    { name: 'manual_stock_update', description: 'Stock records were manually updated after insertion.' },
-    { name: 'damaged', description: 'Lot is physically damaged and cannot be used.' },
-    { name: 'lost', description: 'Lot is missing or unaccounted for in stock.' },
-    { name: 'defective', description: 'Lot has quality issues and cannot be sold.' },
-    { name: 'expired', description: 'Lot has passed its expiration date and is unusable.' },
-    { name: 'stolen', description: 'Lot was stolen and must be removed from inventory.' },
-    { name: 'returned', description: 'Lot was returned by a customer or another department.' },
-    { name: 'recalled', description: 'Lot was recalled due to safety or compliance issues.' },
-    { name: 'adjustment', description: 'General adjustment due to stock discrepancies.' },
-    { name: 'reclassified', description: 'Lot was moved from one category to another.' },
-    { name: 'conversion', description: 'Lot was repurposed for another use (e.g., broken down into components).' },
-    { name: 'transferred', description: 'Lot was moved from one warehouse/location to another.' },
-    { name: 'quarantined', description: 'Lot was placed on hold for quality control or inspection.' },
-    { name: 'resampled', description: 'Lot was used for quality testing or sampling.' },
-    { name: 'repackaged', description: 'Lot was repackaged into a different size or configuration.' },
-  ];
+  const actionMap = {
+    'manual_stock_insert': 'manual_stock_insert',
+    'manual_stock_update': 'manual_stock_insert_update',
+    'damaged': 'damaged',
+    'lost': 'lost',
+    'defective': 'damaged',
+    'expired': 'expired',
+    'stolen': 'lost',
+    'returned': 'returned',
+    'recalled': 'recalled',
+    'adjustment': 'manual_adjustment',
+    'reclassified': 'manual_adjustment',
+    'conversion': 'repackaged',
+    'transferred': 'transferred',
+    'quarantined': 'quarantined',
+    'resampled': 'quarantined',
+    'repackaged': 'repackaged',
+  };
+  
+  const lotAdjustmentTypes = Object.entries(actionMap).map(([name, action]) => ({
+    name,
+    actionName: action,
+    description: name
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, (c) => c.toUpperCase()),
+  }));
   
   let sequence = 1;
   
   for (const type of lotAdjustmentTypes) {
     const code = generateStandardizedCode('LAT', type.name, { sequenceNumber: sequence++ });
     const slug = generateCodeOrSlug(type.name, { sequenceNumber: sequence++ });
+    
+    const actionTypeId = await fetchDynamicValue(
+      knex,
+      'inventory_action_types',
+      'name',
+      type.actionName,
+      'id'
+    );
     
     await knex('lot_adjustment_types')
       .insert({
@@ -42,6 +65,7 @@ exports.seed = async function (knex) {
         code,
         slug,
         description: type.description,
+        inventory_action_type_id: actionTypeId,
         is_active: true,
         created_at: knex.fn.now(),
         updated_at: knex.fn.now(),
@@ -52,5 +76,5 @@ exports.seed = async function (knex) {
       .ignore();
   }
   
-  console.log(`${lotAdjustmentTypes.length} lot adjustment types seeded successfully.`);
+  console.log(`${lotAdjustmentTypes.length} lot adjustment types seeded.`);
 };

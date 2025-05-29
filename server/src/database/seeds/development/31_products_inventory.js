@@ -1,10 +1,28 @@
 const AppError = require('../../../utils/AppError');
 const { fetchDynamicValue } = require('../03_utils');
+const { generateChecksum } = require('../../../utils/crypto-utils');
 
 /**
  * @param { import("knex").Knex } knex
  */
 exports.seed = async function (knex) {
+  const warehouseProductInventory = await knex('warehouse_inventory as wi')
+    .join('batch_registry as br', 'wi.batch_id', 'br.id')
+    .whereNotNull('br.product_batch_id')
+    .select('wi.id')
+    .limit(1);
+  
+  const locationProductInventory = await knex('location_inventory as li')
+    .join('batch_registry as br', 'li.batch_id', 'br.id')
+    .whereNotNull('br.product_batch_id')
+    .select('li.id')
+    .limit(1);
+  
+  if (warehouseProductInventory.length > 0 || locationProductInventory.length > 0) {
+    console.log('Skipping product inventory seed: product batches already in use.');
+    return;
+  }
+  
   console.log('Seeding location_inventory and warehouse_inventory...');
   
   const systemUserId = await knex('users')
@@ -656,14 +674,32 @@ exports.seed = async function (knex) {
   }));
   
   if (locationInventoryHistoryRows.length > 0) {
-    await knex('location_inventory_history')
-      .insert(locationInventoryHistoryRows)
-      .onConflict(['location_inventory_id', 'inventory_action_type_id', 'timestamp'])
+    const auditLogRows = locationInventoryHistoryRows.map((row) => ({
+      location_inventory_id: row.location_inventory_id,
+      warehouse_inventory_id: null, // not used in this case
+      inventory_action_type_id: row.inventory_action_type_id,
+      previous_quantity: row.previous_quantity,
+      quantity_change: row.quantity_change,
+      new_quantity: row.new_quantity,
+      status_id: row.status_id,
+      status_effective_at: row.status_effective_at ?? row.timestamp, // fallback
+      action_by: row.updated_by ?? row.created_by ?? systemUserId,
+      comments: row.comments ?? '',
+      checksum: generateChecksum(row),
+      metadata: row.metadata ?? {},
+      recorded_at: row.timestamp ?? new Date().toISOString(),
+      recorded_by: row.updated_by ?? row.created_by ?? systemUserId,
+      inventory_scope: 'location',
+    }));
+    
+    await knex('inventory_activity_audit_log')
+      .insert(auditLogRows)
+      .onConflict(['location_inventory_id', 'inventory_action_type_id', 'recorded_at'])
       .ignore();
     
-    console.log(`Inserted ${locationInventoryHistoryRows.length} location_inventory_history records`);
+    console.log(`Inserted ${auditLogRows.length} inventory_activity_audit_log records`);
   } else {
-    console.warn('No location_inventory_history records to insert.');
+    console.warn('No audit log records to insert.');
   }
   
   const warehouseInventoryEntries = Object.values(warehouseAggregates).map(entry => ({

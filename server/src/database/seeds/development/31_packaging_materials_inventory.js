@@ -5,6 +5,23 @@ const { fetchDynamicValue } = require('../03_utils');
  * @returns { Promise<void> }
  */
 exports.seed = async function (knex) {
+  const warehouseMaterialInventory = await knex('warehouse_inventory as wi')
+    .join('batch_registry as br', 'wi.batch_id', 'br.id')
+    .whereNotNull('br.packaging_material_batch_id')
+    .select('wi.id')
+    .limit(1);
+  
+  const locationMaterialInventory = await knex('location_inventory as li')
+    .join('batch_registry as br', 'li.batch_id', 'br.id')
+    .whereNotNull('br.packaging_material_batch_id')
+    .select('li.id')
+    .limit(1);
+  
+  if (warehouseMaterialInventory.length > 0 || locationMaterialInventory.length > 0) {
+    console.log('Skipping packaging material inventory seed: already exists.');
+    return;
+  }
+  
   console.log('Seeding packaging material inventory (Richmond)...');
   
   const systemUserId = await fetchDynamicValue(knex, 'users', 'email', 'system@internal.local', 'id');

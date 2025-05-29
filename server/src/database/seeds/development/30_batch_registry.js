@@ -5,6 +5,15 @@ const { fetchDynamicValue } = require('../03_utils');
  * @returns { Promise<void> }
  */
 exports.seed = async function (knex) {
+  const existing = await knex('batch_registry')
+    .select('id')
+    .limit(1);
+  
+  if (existing.length > 0) {
+    console.log('Skipping batch_registry seed: data already exists.');
+    return;
+  }
+  
   console.log('Seeding batch_registry from product_batches and packaging_material_batches...');
   
   const registeredBy = await fetchDynamicValue(

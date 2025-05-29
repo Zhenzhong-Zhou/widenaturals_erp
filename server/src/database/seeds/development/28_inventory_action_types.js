@@ -1,6 +1,15 @@
 const { fetchDynamicValue } = require('../03_utils');
 
 exports.seed = async function (knex) {
+  const existing = await knex('inventory_action_types')
+    .select('id')
+    .limit(1);
+  
+  if (existing.length > 0) {
+    console.log('Skipping inventory_action_types seed: data already exists.');
+    return;
+  }
+  
   const activeStatusId = await fetchDynamicValue(
     knex,
     'status',
@@ -8,97 +17,149 @@ exports.seed = async function (knex) {
     'active',
     'id'
   );
-
+  
+  const adminUserId = await fetchDynamicValue(
+    knex,
+    'users',
+    'email',
+    'admin@example.com',
+    'id'
+  );
+  
   const inventoryActions = [
     {
       name: 'initial_load',
       description: 'Initial inventory entry at system setup.',
-      status_id: activeStatusId,
-      default_action: true, // System default action
+      category: 'system',
+      is_adjustment: false,
+      affects_financials: false,
+      requires_audit: false,
+      default_action: true,
     },
     {
       name: 'manual_adjustment',
-      description: 'Manual stock adjustment',
-      status_id: activeStatusId,
-      default_action: true, // System default action
+      description: 'Manual adjustment for inventory correction.',
+      category: 'adjustment',
+      is_adjustment: true,
+      affects_financials: true,
+      requires_audit: true,
+      default_action: true,
     },
     {
       name: 'manual_stock_insert',
-      description: 'Manually insert stock data into the system.',
-      status_id: activeStatusId,
-      default_action: true, // Indicates this is a system-defined default action
+      description: 'Manual inventory input via UI.',
+      category: 'adjustment',
+      is_adjustment: true,
+      affects_financials: true,
+      requires_audit: true,
+      default_action: true,
     },
     {
       name: 'manual_stock_insert_update',
-      description:
-        'After manually inserting stock data, the system will update stock levels.',
-      status_id: activeStatusId,
-      default_action: true, // Indicates this is a system default action
+      description: 'Adjustment after manual insert.',
+      category: 'adjustment',
+      is_adjustment: true,
+      affects_financials: true,
+      requires_audit: true,
+      default_action: true,
     },
     {
       name: 'restock',
-      description: 'Stock added from supplier or production',
-      status_id: activeStatusId,
+      description: 'Stock replenishment from supplier/production.',
+      category: 'transaction',
+      is_adjustment: false,
+      affects_financials: true,
+      requires_audit: true,
       default_action: true,
     },
     {
       name: 'sold',
-      description: 'Stock deducted due to sales',
-      status_id: activeStatusId,
+      description: 'Stock deducted due to sales.',
+      category: 'transaction',
+      is_adjustment: false,
+      affects_financials: true,
+      requires_audit: true,
       default_action: true,
     },
     {
       name: 'damaged',
-      description: 'Stock deducted due to damage',
-      status_id: activeStatusId,
+      description: 'Stock loss due to damage.',
+      category: 'adjustment',
+      is_adjustment: true,
+      affects_financials: true,
+      requires_audit: true,
       default_action: true,
     },
     {
       name: 'lost',
-      description: 'Stock deducted due to loss or theft',
-      status_id: activeStatusId,
+      description: 'Inventory loss with no explanation.',
+      category: 'adjustment',
+      is_adjustment: true,
+      affects_financials: true,
+      requires_audit: true,
       default_action: false,
     },
     {
       name: 'returned',
-      description: 'Stock returned from customers or suppliers',
-      status_id: activeStatusId,
+      description: 'Stock returned by customer/supplier.',
+      category: 'transaction',
+      is_adjustment: false,
+      affects_financials: true,
+      requires_audit: true,
       default_action: true,
     },
     {
       name: 'expired',
-      description: 'Stock deducted due to expiration',
-      status_id: activeStatusId,
+      description: 'Stock removed due to expiration.',
+      category: 'adjustment',
+      is_adjustment: true,
+      affects_financials: true,
+      requires_audit: true,
       default_action: false,
     },
     {
       name: 'recalled',
-      description: 'Stock removed due to safety concerns',
-      status_id: activeStatusId,
+      description: 'Stock removed due to compliance/safety issue.',
+      category: 'adjustment',
+      is_adjustment: true,
+      affects_financials: true,
+      requires_audit: true,
       default_action: false,
     },
     {
       name: 'repackaged',
-      description: 'Stock modified (e.g., repackaged into smaller units)',
-      status_id: activeStatusId,
+      description: 'Stock repackaged into new form.',
+      category: 'conversion',
+      is_adjustment: false,
+      affects_financials: false,
+      requires_audit: false,
       default_action: false,
     },
     {
       name: 'quarantined',
-      description: 'Stock placed on hold for inspection or testing',
-      status_id: activeStatusId,
+      description: 'Stock placed on hold for QC.',
+      category: 'hold',
+      is_adjustment: false,
+      affects_financials: false,
+      requires_audit: false,
       default_action: false,
     },
     {
       name: 'transferred',
-      description: 'Stock moved between warehouses or locations',
-      status_id: activeStatusId,
+      description: 'Stock moved across locations.',
+      category: 'transfer',
+      is_adjustment: false,
+      affects_financials: false,
+      requires_audit: false,
       default_action: true,
     },
     {
       name: 'reserve',
-      description: 'Inventory reserved for order or transfer',
-      status_id: activeStatusId,
+      description: 'Inventory reserved for orders or transfers.',
+      category: 'reservation',
+      is_adjustment: false,
+      affects_financials: false,
+      requires_audit: false,
       default_action: false,
     },
   ];
@@ -110,16 +171,20 @@ exports.seed = async function (knex) {
         id: knex.raw('uuid_generate_v4()'),
         name: action.name,
         description: action.description,
-        status_id: action.status_id,
+        category: action.category,
+        is_adjustment: action.is_adjustment,
+        affects_financials: action.affects_financials,
+        requires_audit: action.requires_audit,
+        status_id: activeStatusId,
         default_action: action.default_action,
         created_at: knex.fn.now(),
         updated_at: knex.fn.now(),
+        created_by: adminUserId,
+        updated_by: adminUserId,
       })
       .onConflict('name')
       .ignore();
   }
-
-  console.log(
-    `${inventoryActions.length} Inventory action types seeded successfully.`
-  );
+  
+  console.log(`${inventoryActions.length} inventory action types seeded.`);
 };

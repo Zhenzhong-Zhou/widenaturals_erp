@@ -3,31 +3,30 @@
  * @returns {Knex.SchemaBuilder}
  */
 exports.up = function (knex) {
-  return knex.schema.createTable('location_inventory_history', (table) => {
-    table.uuid('id').primary().defaultTo(knex.raw('uuid_generate_v4()'));
-    table.uuid('location_inventory_id').notNullable().references('id').inTable('location_inventory');
+  return knex.schema.createTable('inventory_activity_audit_log', (table) => {
+    table.uuid('warehouse_inventory_id').nullable().references('id').inTable('warehouse_inventory');
+    table.uuid('location_inventory_id').nullable().references('id').inTable('location_inventory');
+    
     table.uuid('inventory_action_type_id').notNullable().references('id').inTable('inventory_action_types');
     table.integer('previous_quantity').notNullable();
     table.integer('quantity_change').notNullable();
     table.integer('new_quantity').notNullable();
+    
     table.uuid('status_id').notNullable().references('id').inTable('inventory_status');
     table.timestamp('status_effective_at', { useTz: true }).defaultTo(knex.fn.now());
-    table.timestamp('timestamp', { useTz: true }).defaultTo(knex.fn.now());
-    table.uuid('action_by').references('id').inTable('users').notNullable();
+    
+    table.uuid('action_by').notNullable().references('id').inTable('users');
     table.text('comments');
     table.text('checksum').notNullable();
-    table.json('metadata');
+    table.jsonb('metadata');
     
     table.timestamp('recorded_at', { useTz: true }).defaultTo(knex.fn.now());
     table.uuid('recorded_by').references('id').inTable('users');
 
-    // Indexes
-    table.index(['location_inventory_id', 'timestamp'], 'idx_loc_inv_hist_timestamp');
+    // Add this if needed:
+    table.enu('inventory_scope', ['warehouse', 'location']).notNullable();
     
-    table.unique(
-      ['location_inventory_id', 'inventory_action_type_id', 'timestamp'],
-      {indexName: 'uq_location_inventory_history_dedupe'}
-    );
+    table.unique(['location_inventory_id', 'inventory_action_type_id', 'recorded_at']);
   });
 };
 
@@ -36,5 +35,5 @@ exports.up = function (knex) {
  * @returns {Knex.SchemaBuilder}
  */
 exports.down = async function (knex) {
-  await knex.schema.dropTableIfExists('location_inventory_history');
+  await knex.schema.dropTableIfExists('inventory_activity_audit_log');
 };
