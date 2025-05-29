@@ -17,7 +17,7 @@ exports.seed = async function (knex) {
     .whereNotNull('br.product_batch_id')
     .select('li.id')
     .limit(1);
-  
+
   if (warehouseProductInventory.length > 0 || locationProductInventory.length > 0) {
     console.log('Skipping product inventory seed: product batches already in use.');
     return;
@@ -654,54 +654,27 @@ exports.seed = async function (knex) {
     'id'
   );
   if (!initialLoadActionId) throw new Error('Initial-load action ID not found.');
-  
-  const locationInventoryHistoryRows = insertedLocationInventory.map(row => ({
-    id: knex.raw('uuid_generate_v4()'),
+
+  // Location log entries
+  const locationLogs = insertedLocationInventory.map(row => ({
+    warehouse_inventory_id: null,
     location_inventory_id: row.id,
     inventory_action_type_id: initialLoadActionId,
+    adjustment_type_id: null,
+    order_id: null,
+    status_id: row.status_id,
     previous_quantity: 0,
     quantity_change: row.location_quantity,
     new_quantity: row.location_quantity,
-    status_id: row.status_id,
-    status_effective_at: row.status_date,
-    timestamp: row.created_at,
-    action_by: row.created_by,
+    performed_by: row.updated_by ?? row.created_by ?? systemUserId,
     comments: 'Initial inventory seed',
-    checksum: '',
-    metadata: JSON.stringify({ source: 'seed' }),
-    recorded_at: knex.fn.now(),
-    recorded_by: row.created_by,
+    metadata: { source: 'seed', inventory_scope: 'location' },
+    source_type: 'seed',
+    source_ref_id: null,
+    action_timestamp: row.created_at,
   }));
-  
-  if (locationInventoryHistoryRows.length > 0) {
-    const auditLogRows = locationInventoryHistoryRows.map((row) => ({
-      location_inventory_id: row.location_inventory_id,
-      warehouse_inventory_id: null, // not used in this case
-      inventory_action_type_id: row.inventory_action_type_id,
-      previous_quantity: row.previous_quantity,
-      quantity_change: row.quantity_change,
-      new_quantity: row.new_quantity,
-      status_id: row.status_id,
-      status_effective_at: row.status_effective_at ?? row.timestamp, // fallback
-      action_by: row.updated_by ?? row.created_by ?? systemUserId,
-      comments: row.comments ?? '',
-      checksum: generateChecksum(row),
-      metadata: row.metadata ?? {},
-      recorded_at: row.timestamp ?? new Date().toISOString(),
-      recorded_by: row.updated_by ?? row.created_by ?? systemUserId,
-      inventory_scope: 'location',
-    }));
-    
-    await knex('inventory_activity_audit_log')
-      .insert(auditLogRows)
-      .onConflict(['location_inventory_id', 'inventory_action_type_id', 'recorded_at'])
-      .ignore();
-    
-    console.log(`Inserted ${auditLogRows.length} inventory_activity_audit_log records`);
-  } else {
-    console.warn('No audit log records to insert.');
-  }
-  
+
+  // Insert warehouse inventory
   const warehouseInventoryEntries = Object.values(warehouseAggregates).map(entry => ({
     id: knex.raw('uuid_generate_v4()'),
     ...entry,
@@ -724,6 +697,68 @@ exports.seed = async function (knex) {
       .ignore();
     
     console.log(`Inserted ${warehouseInventoryEntries.length} warehouse_inventory records`);
+    
+    const insertedWarehouseInventory = await knex('warehouse_inventory')
+      .select('*')
+      .whereIn(['warehouse_id', 'batch_id'], warehouseInventoryEntries.map(e => [e.warehouse_id, e.batch_id]));
+    
+    const warehouseLogs = insertedWarehouseInventory.map(row => ({
+      warehouse_inventory_id: row.id,
+      location_inventory_id: null,
+      inventory_action_type_id: initialLoadActionId,
+      adjustment_type_id: null,
+      order_id: null,
+      status_id: row.status_id,
+      previous_quantity: 0,
+      quantity_change: row.warehouse_quantity,
+      new_quantity: row.warehouse_quantity,
+      performed_by: row.updated_by ?? row.created_by ?? systemUserId,
+      comments: 'Initial inventory seed',
+      metadata: { source: 'seed', inventory_scope: 'warehouse' },
+      source_type: 'seed',
+      source_ref_id: null,
+      action_timestamp: row.created_at,
+    }));
+    
+    // Combine all logs
+    const inventoryLogRows = [...warehouseLogs, ...locationLogs];
+    
+    const inventoryAuditRows = inventoryLogRows
+      .filter(row => row.location_inventory_id) // Only include location-based entries
+      .map(row => ({
+        warehouse_inventory_id: row.warehouse_inventory_id,
+        location_inventory_id: row.location_inventory_id,
+        inventory_action_type_id: row.inventory_action_type_id,
+        previous_quantity: row.previous_quantity,
+        quantity_change: row.quantity_change,
+        new_quantity: row.new_quantity,
+        status_id: row.status_id,
+        status_effective_at: row.action_timestamp,
+        action_by: row.performed_by,
+        comments: row.comments,
+        checksum: generateChecksum(row),
+        metadata: row.metadata,
+        recorded_at: row.action_timestamp,
+        recorded_by: row.performed_by,
+        inventory_scope: row.metadata?.inventory_scope || 'location',
+      }));
+    
+    // Insert into both activity_log and audit_log
+    if (inventoryLogRows.length > 0) {
+      await knex('inventory_activity_log')
+        .insert(inventoryLogRows)
+        .onConflict(['warehouse_inventory_id', 'location_inventory_id', 'inventory_action_type_id', 'action_timestamp'])
+        .ignore();
+      
+      await knex('inventory_activity_audit_log')
+        .insert(inventoryAuditRows)
+        .onConflict(['location_inventory_id', 'inventory_action_type_id', 'recorded_at'])
+        .ignore();
+      
+      console.log(`Inserted ${inventoryLogRows.length} records into inventory_activity_log and audit_log`);
+    } else {
+      console.warn('No inventory log records to insert.');
+    }
   } else {
     console.warn('No warehouse_inventory records to insert.');
   }

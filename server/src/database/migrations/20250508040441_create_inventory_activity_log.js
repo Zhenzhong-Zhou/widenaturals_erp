@@ -42,6 +42,8 @@ exports.up = function (knex) {
     // Indexes
     table.index(['warehouse_inventory_id', 'inventory_action_type_id'], 'idx_inventory_activity_wh');
     table.index(['location_inventory_id', 'inventory_action_type_id'], 'idx_inventory_activity_loc');
+    
+    table.unique(['warehouse_inventory_id', 'location_inventory_id', 'inventory_action_type_id', 'action_timestamp'], { indexName: 'uq_inventory_log_insert_once' });
   });
 };
 
