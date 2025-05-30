@@ -171,3 +171,80 @@ export interface AsyncRequestState<T> {
    */
   response: T | null;
 }
+
+/**
+ * A generic structure for successful dropdown-style paginated API responses.
+ *
+ * Designed for use in infinite-scroll or load-more UIs where full pagination
+ * metadata (e.g., totalRecords, totalPages) is not required.
+ *
+ * @template T - The type of each item in the `items` array.
+ */
+export interface DropdownSuccessResponse<T> {
+  /**
+   * Indicates the API call was successful.
+   */
+  success: true;
+  
+  /**
+   * A human-readable message describing the result.
+   */
+  message: string;
+  
+  /**
+   * The array of dropdown-compatible result items.
+   */
+  items: T[];
+  
+  /**
+   * Pagination limit (number of items per request).
+   */
+  limit: number;
+  
+  /**
+   * Pagination offset (starting index of returned items).
+   */
+  offset: number;
+  
+  /**
+   * Flag indicating if more items are available for loading.
+   */
+  hasMore: boolean;
+}
+
+/**
+ * Generic interface for managing the state of any paginated dropdown data.
+ *
+ * @template T - The type of individual dropdown items.
+ */
+export interface PaginatedDropdownState<T> {
+  /**
+   * Indicates if the dropdown data is currently being fetched.
+   */
+  loading: boolean;
+  
+  /**
+   * Error message if the fetch operation fails, otherwise `null`.
+   */
+  error: string | null;
+  
+  /**
+   * Array of dropdown items.
+   */
+  items: T[];
+  
+  /**
+   * Whether there are more items to load (used for infinite scrolling or "Load more").
+   */
+  hasMore: boolean;
+  
+  /**
+   * The number of items to fetch per page.
+   */
+  limit: number;
+  
+  /**
+   * The current offset for pagination.
+   */
+  offset: number;
+}

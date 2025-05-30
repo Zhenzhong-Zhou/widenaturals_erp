@@ -37,7 +37,9 @@ export const API_ENDPOINTS = {
       `/warehouse-inventory/summary/${itemId}/details`,
     ADD_RECORDS: '/warehouse-inventory',
   },
-  
+  DROPDOWN: {
+    BATCH_REGISTRY: '/dropdown/batch-registry',
+  },
   WAREHOUSE_INVENTORY_ADJUSTMENTS_REPORT: '/reports/adjustments',
   WAREHOUSE_INVENTORY_ACTIVITY_LOGS: '/reports/inventory-activity-logs',
   INVENTORY_HISTORY: '/reports/inventory-history',
