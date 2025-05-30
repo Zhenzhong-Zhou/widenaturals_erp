@@ -3,17 +3,45 @@
  *
  * @param {Object} paginatedResult - The paginated query result.
  * @param {Function} transformFn - Function to apply to each data row.
- * @returns {Object} Transformed result with formatted pagination and data.
+ * @param {Object} [options] - Optional behavior flags.
+ * @param {boolean} [options.includeLoadMore=false] - Include top-level `items`, `offset`, `hasMore`.
+ * @returns {Object} Transformed result with pagination and optionally load-more fields.
  */
-const transformPaginatedResult = (paginatedResult, transformFn) => ({
-  data: (paginatedResult.data || []).map(transformFn),
-  pagination: {
-    page: Number(paginatedResult.pagination?.page ?? 1),
-    limit: Number(paginatedResult.pagination?.limit ?? 10),
-    totalRecords: Number(paginatedResult.pagination?.totalRecords ?? 0),
-    totalPages: Number(paginatedResult.pagination?.totalPages ?? 1),
-  },
-});
+const transformPaginatedResult = (paginatedResult, transformFn, options = {}) => {
+  const {
+    data = [],
+    pagination = {},
+  } = paginatedResult;
+  
+  const page = Number(pagination.page ?? 1);
+  const limit = Number(pagination.limit ?? 10);
+  const totalRecords = Number(pagination.totalRecords ?? 0);
+  const totalPages = Number(pagination.totalPages ?? 1);
+  const offset = (page - 1) * limit;
+  
+  const transformedItems = data.map(transformFn);
+  
+  const baseResult = {
+    data: transformedItems,
+    pagination: {
+      page,
+      limit,
+      totalRecords,
+      totalPages,
+    },
+  };
+  
+  if (options.includeLoadMore) {
+    return {
+      items: transformedItems,
+      offset,
+      limit,
+      hasMore: offset + transformedItems.length < totalRecords,
+    };
+  }
+  
+  return baseResult;
+};
 
 /**
  * Derives high-level inventory status flags and severity from raw inventory data.

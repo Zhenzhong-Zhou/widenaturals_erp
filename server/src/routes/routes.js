@@ -29,6 +29,7 @@ const locationInventoryRoutes = require('./location-inventory');
 const warehouseRoutes = require('./warehouses');
 const warehouseInventoryRoutes = require('./warehouse-inventory');
 const warehouseLotAdjustmentRoutes = require('./lot-adjustment-type');
+const dropdownRoutes = require('./dropdown');
 const reportRoutes = require('./reports');
 const customerRoutes = require('./customers');
 const discountRoutes = require('./discounts');
@@ -132,5 +133,15 @@ router.use('/inventory-allocation', authenticate(), inventoryAllocationRoutes);
  * Report generation and exports
  */
 router.use('/reports', authenticate(), reportRoutes);
+
+/**
+ * Dropdown options and reference data routes
+ *
+ * Routes under `/dropdown` provide datasets used to populate frontend dropdowns,
+ * such as batch registries, locations, warehouses, pricing types, etc.
+ * These routes support filters and pagination, and require authentication.
+ */
+// router.use('/dropdown', authenticate(), dropdownRoutes);
+router.use('/dropdown', dropdownRoutes);
 
 module.exports = router;
