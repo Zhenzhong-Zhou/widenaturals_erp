@@ -141,7 +141,6 @@ router.use('/reports', authenticate(), reportRoutes);
  * such as batch registries, locations, warehouses, pricing types, etc.
  * These routes support filters and pagination, and require authentication.
  */
-// router.use('/dropdown', authenticate(), dropdownRoutes);
-router.use('/dropdown', dropdownRoutes);
+router.use('/dropdown', authenticate(), dropdownRoutes);
 
 module.exports = router;

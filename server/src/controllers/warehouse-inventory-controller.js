@@ -154,37 +154,33 @@ const getWarehouseInventoryRecordController = wrapAsync(async (req, res) => {
  * - Returns enriched inserted records.
  */
 const createWarehouseInventoryRecordController = wrapAsync(async (req, res, next) => {
-  try {
-    const records = req.body?.records;
-    
-    if (!records || !Array.isArray(records)) {
-      throw AppError.validationError('Request body must include a valid "records" array.');
-    }
-    
-    const userId = req.user?.id;
-    const enrichedRecords = records.map((r) => ({
-      ...r,
-      user_id: userId,
-    }));
-    
-    logInfo('Creating inventory records', req, {
-      context: 'warehouse-inventory-controller/createWarehouseInventoryRecordController',
-      recordCount: enrichedRecords.length,
-      requestedBy: userId,
-      requestId: req.id,
-      traceId: req.traceId,
-    });
-    
-    const result = await createInventoryRecordService(enrichedRecords);
-    
-    res.status(201).json({
-      success: true,
-      message: 'Successfully created warehouse and/or location inventory records',
-      data: result
-    });
-  } catch (err) {
-    next(err);
+  const records = req.body?.records;
+  
+  if (!records || !Array.isArray(records)) {
+    return next(AppError.validationError('Request body must include a valid "records" array.'));
   }
+  
+  const userId = req.user?.id;
+  const enrichedRecords = records.map((r) => ({
+    ...r,
+    user_id: userId,
+  }));
+  
+  logInfo('Creating inventory records', req, {
+    context: 'warehouse-inventory-controller/createWarehouseInventoryRecordController',
+    recordCount: enrichedRecords.length,
+    requestedBy: userId,
+    requestId: req.id,
+    traceId: req.traceId,
+  });
+  
+  const result = await createInventoryRecordService(enrichedRecords);
+  
+  res.status(201).json({
+    success: true,
+    message: 'Successfully created warehouse and/or location inventory records',
+    data: result
+  });
 });
 
 module.exports = {
