@@ -14,6 +14,7 @@ const {
 } = require('../utils/system-logger');
 const { logError } = require('../utils/logger-helper');
 const { buildWarehouseInventoryWhereClause } = require('../utils/sql/build-warehouse-inventory-filters');
+const { getStatusIdByQuantity } = require('../utils/query/inventory-query-utils');
 
 /**
  * Fetches a paginated summary of warehouse inventory items, including both product SKUs and packaging materials.
@@ -426,76 +427,139 @@ const getPaginatedWarehouseInventoryRecords = async ({ page, limit, filters, saf
 };
 
 /**
- * Retrieves a summarized view of items stored in a specific warehouse.
+ * Inserts or updates warehouse inventory records in bulk.
  *
- * Each item (including products and other inventory types) is grouped by inventory ID
- * and includes metrics such as total lots, reserved quantity, available quantity,
- * total quantity, lot-level reserved quantity, and expiry date ranges.
+ * - Performs `ON CONFLICT DO UPDATE` on (warehouse_id, batch_id)
+ * - Updates quantities, fees, status, and audit info
+ * - Automatically fills missing values with sensible defaults
+ * - Uses structured logging and standardized error handling
  *
- * @param {Object} params - Parameters for the summary query.
- * @param {string} params.warehouse_id - UUID of the warehouse.
- * @param {number} [params.page=1] - Page number for pagination.
- * @param {number} [params.limit=10] - Number of records per page.
- * @returns {Promise<Object>} - A paginated result of item inventory summaries.
- * @throws {AppError} - Throws a database error if a query fails.
+ * @param {Array<Object>} records - Inventory records to insert or update
+ * @param {Pool|Client} client - PostgreSQL client or pool
+ * @param {Object} meta - Optional metadata for tracing/debugging
+ * @returns {Promise<Array>} Inserted or updated row IDs
+ * @throws {AppError} If the insert operation fails
  */
-const getWarehouseItemSummary = async ({
-  warehouse_id,
-  page = 1,
-  limit = 10,
-}) => {
-  const tableName = 'warehouse_inventory wi';
-
-  const joins = [
-    'INNER JOIN warehouse_inventory_lots wil ON wi.warehouse_id = wil.warehouse_id AND wi.inventory_id = wil.inventory_id',
-    'JOIN inventory i ON wi.inventory_id = i.id', // Fetch from inventory
-    'LEFT JOIN products p ON i.product_id = p.id', // Referenced via inventory
+const insertWarehouseInventoryRecords = async (
+  records,
+  client,
+  meta = {}
+) => {
+  if (!Array.isArray(records) || records.length === 0) return [];
+  
+  const columns = [
+    'warehouse_id',
+    'batch_id',
+    'warehouse_quantity',
+    'warehouse_fee',
+    'inbound_date',
+    'outbound_date',
+    'status_id',
+    'status_date',
+    'created_by',
+    'updated_by',
   ];
-
-  // Dynamic WHERE clause
-  const whereClause = 'wi.warehouse_id = $1';
-  const params = [warehouse_id];
-
-  // Base Query
-  const baseQuery = `
-    SELECT
-        i.id AS inventory_id,
-        i.item_type,
-        COALESCE(NULLIF(p.product_name, ''), i.identifier) AS item_name,
-        COUNT(DISTINCT wil.lot_number) AS total_lots,
-        SUM(wi.reserved_quantity) AS total_reserved_stock,
-        SUM(wi.available_quantity) AS total_available_stock,
-        SUM(wil.reserved_quantity) AS total_lot_reserved_stock,
-        SUM(wil.quantity) AS total_quantity_stock,
-        COUNT(DISTINCT CASE WHEN wil.quantity = 0 THEN wil.lot_number END) AS total_zero_stock_lots,
-        MIN(CASE WHEN wil.quantity > 0 THEN wil.expiry_date ELSE NULL END) AS earliest_expiry,
-        MAX(CASE WHEN wil.quantity > 0 THEN wil.expiry_date ELSE NULL END) AS latest_expiry
-    FROM ${tableName}
-    ${joins.join(' ')}
-    WHERE ${whereClause}
-    GROUP BY i.id, i.item_type, i.identifier, p.product_name
-  `;
-
+  
+  const rows = records.map((r) => [
+    r.warehouse_id,
+    r.batch_id,
+    Number.isFinite(r.warehouse_quantity) ? r.warehouse_quantity : 0,
+    Number.isFinite(r.warehouse_fee) ? r.warehouse_fee : 0,
+    r.inbound_date,
+    null,
+    r.status_id ?? getStatusIdByQuantity(r.warehouse_quantity),
+    r.status_date ?? new Date(),
+    r.created_by ?? null,
+    null,
+  ]);
+  
+  const conflictColumns = ['warehouse_id', 'batch_id'];
+  const updateStrategies = {
+    warehouse_quantity: 'add',
+    warehouse_fee: 'overwrite',
+    status_id: 'overwrite',
+    status_date: 'overwrite',
+    last_update: 'overwrite',
+    updated_at: 'overwrite',
+    updated_by: 'overwrite',
+  };
+  
   try {
-    return await retry(async () => {
-      return await paginateQuery({
-        tableName,
-        joins,
-        whereClause,
-        queryText: baseQuery,
-        params,
-        page,
-        limit,
-        sortBy: 'item_name',
-        sortOrder: 'ASC',
-      });
-    });
-  } catch (error) {
-    logError(
-      `Error fetching warehouse item summary (warehouse_id: ${warehouse_id}, page: ${page}, limit: ${limit}):`,
-      error
+    return await bulkInsert(
+      'warehouse_inventory',
+      columns,
+      rows,
+      conflictColumns,
+      updateStrategies,
+      client,
+      meta,
+      'id AS warehouse_inventory_id'
     );
-    throw AppError.databaseError('Failed to fetch warehouse item summary.');
+  } catch (error) {
+    logSystemException(error, 'Failed to insert warehouse inventory records', {
+      context: 'warehouse-inventory-repository/insertWarehouseInventoryRecords',
+      meta,
+    });
+    
+    throw AppError.databaseError('Unable to insert/update warehouse inventory records', {
+      details: { table: 'warehouse_inventory', count: records.length },
+    });
+  }
+};
+
+/**
+ * Fetches lightweight enriched warehouse inventory records by IDs,
+ * including batch type, product or material info (lot number, name, expiry).
+ *
+ * - Supports both product and material batches via `batch_type`.
+ * - Returns only minimal fields for summary/confirmation UI.
+ *
+ * @param {string[]} ids - Array of warehouse_inventory UUIDs.
+ * @param {object} client - PostgreSQL client or pool instance.
+ * @returns {Promise<Array<Object>>} - Enriched inventory summaries.
+ */
+const getInsertedWarehouseInventoryByIds = async (ids, client) => {
+  if (!Array.isArray(ids) || ids.length === 0) return [];
+  
+  const placeholders = ids.map((_, i) => `$${i + 1}`).join(', ');
+  
+  const sql = `
+    SELECT
+      wi.id,
+      wi.warehouse_quantity,
+      wi.reserved_quantity,
+      br.batch_type,
+      pb.lot_number AS product_lot_number,
+      pb.expiry_date AS product_expiry_date,
+      p.name AS product_name,
+      p.brand,
+      s.sku,
+      s.country_code,
+      s.size_label,
+      pmb.lot_number AS material_lot_number,
+      pmb.expiry_date AS material_expiry_date,
+      pmb.material_snapshot_name AS material_name
+    FROM warehouse_inventory wi
+    JOIN batch_registry br ON wi.batch_id = br.id
+    LEFT JOIN product_batches pb ON br.product_batch_id = pb.id
+    LEFT JOIN skus s ON pb.sku_id = s.id
+    LEFT JOIN products p ON s.product_id = p.id
+    LEFT JOIN packaging_material_batches pmb ON br.packaging_material_batch_id = pmb.id
+    WHERE wi.id IN (${placeholders})
+  `;
+  
+  try {
+    const { rows } = await query(sql, ids, client);
+    return rows;
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch warehouse inventory summary by IDs', {
+      context: 'warehouse-inventory-repository/fetchInventorySummaryByIds',
+      ids,
+    });
+    
+    throw AppError.databaseError('Unable to fetch inventory summary data', {
+      details: { ids, message: error.message },
+    });
   }
 };
 
@@ -666,7 +730,7 @@ const checkWarehouseInventoryBulk = async (
  * @param {Array} inventoryData - List of inventory records to insert.
  * @returns {Promise<Array>} - List of inserted or updated warehouse inventory records.
  */
-const insertWarehouseInventoryRecords = async (client, inventoryData) => {
+const insertWarehouseInventoryRecoards = async (client, inventoryData) => {
   if (!Array.isArray(inventoryData) || inventoryData.length === 0) {
     throw AppError.validationError(
       'Invalid inventory data. Expected a non-empty array.'
@@ -978,10 +1042,10 @@ module.exports = {
   getPaginatedWarehouseInventoryItemSummary,
   getWarehouseInventorySummaryDetailsByItemId,
   getPaginatedWarehouseInventoryRecords,
-  getWarehouseItemSummary,
+  insertWarehouseInventoryRecords,
+  getInsertedWarehouseInventoryByIds,
   getWarehouseInventoryDetailsByWarehouseId,
   checkWarehouseInventoryBulk,
-  insertWarehouseInventoryRecords,
   updateWarehouseInventoryQuantity,
   getRecentInsertWarehouseInventoryRecords,
   fetchWarehouseInventoryQuantities,

@@ -77,7 +77,7 @@ router.use('/users', authenticate(), userRoutes);
  */
 router.use('/admin', authenticate(), adminRoutes);
 
-// Products route
+// Product route
 router.use('/products', authenticate(), productRoutes);
 
 router.use('/skus', authenticate(), skuRoutes);

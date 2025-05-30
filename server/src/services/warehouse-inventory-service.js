@@ -16,7 +16,6 @@ const {
 } = require('../transformers/warehouse-inventory-transformer');
 const { canViewWarehouseInventorySummary } = require('../business/warehouse-inventory-business');
 const { getStatusId } = require('../config/status-cache');
-const { normalizePaginationAndSortParams } = require('../utils/query/inventory-query-utils');
 
 /**
  * Fetches a paginated warehouse inventory item summary (products and/or materials).

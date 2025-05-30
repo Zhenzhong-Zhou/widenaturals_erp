@@ -8,9 +8,6 @@ const {
 } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logError, logWarn, logInfo } = require('../utils/logger-helper');
-const {
-  bulkInsertInventoryActivityLogs,
-} = require('./inventory-activity-log-repository');
 const { getActionTypeId } = require('./inventory-action-type-repository');
 const {
   bulkInsertInventoryHistory,

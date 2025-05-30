@@ -673,50 +673,89 @@ const lockRows = async (client, table, conditions, lockMode = 'FOR UPDATE', meta
 };
 
 /**
+ * Builds an update clause for a specific column based on the provided strategy.
+ *
+ * @param {string} col - Column name.
+ * @param {string} strategy - Strategy ('add', 'subtract', 'overwrite', etc.).
+ * @param {string} tableAlias - Optional alias (default: 'table').
+ * @returns {string} - SQL fragment for update.
+ */
+const applyUpdateRule = (col, strategy, tableAlias = 'table') => {
+  switch (strategy) {
+    case 'add': return `${col} = ${tableAlias}.${col} + EXCLUDED.${col}`;
+    case 'subtract': return `${col} = ${tableAlias}.${col} - EXCLUDED.${col}`;
+    case 'max': return `${col} = GREATEST(${tableAlias}.${col}, EXCLUDED.${col})`;
+    case 'min': return `${col} = LEAST(${tableAlias}.${col}, EXCLUDED.${col})`;
+    case 'coalesce': return `${col} = COALESCE(EXCLUDED.${col}, ${tableAlias}.${col})`;
+    case 'overwrite':
+    default: return `${col} = EXCLUDED.${col}`;
+  }
+};
+
+/**
  * Inserts multiple rows into a specified database table in bulk.
  *
- * This function dynamically generates an `INSERT` SQL statement for bulk insertion,
- * with support for conflict handling (`ON CONFLICT`) to either **do nothing** or **update specific columns**.
+ * Dynamically builds an `INSERT INTO ... VALUES` SQL statement, with optional
+ * `ON CONFLICT` handling to either ignore duplicates or perform an upsert.
+ * Supports returning specific columns (e.g., `id`, `*`, etc.) after execution.
+ * Supports multiple update strategies (add, subtract, etc.).
  *
- * @param {string} tableName - The name of the target table.
- * @param {string[]} columns - An array of column names for inserting values.
- * @param {Array<Array<any>>} rows - A 2D array where each inner array represents a row of values to insert.
- * @param {string[]} [conflictColumns=[]] - An array of column names that define a unique conflict condition.
- * @param {string[]} [updateColumns=[]] - An array of column names to update in case of conflict (if empty, `DO NOTHING` is applied).
- * @param {object} clientOrPool - The database client or pool instance to execute the query.
- * @param {Object} meta={} - Optional additional metadata.
- * @returns {Promise<Array<Object>>} - A promise resolving to an array of inserted/updated rows.
- * @throws {AppError} - Throws an error if the query execution fails.
+ * @param {string} tableName - Name of the target table.
+ * @param {string[]} columns - Array of column names to insert.
+ * @param {Array<Array<any>>} rows - 2D array of rows, each matching the column structure.
+ * @param {string[]} [conflictColumns=[]] - Columns that define a unique constraint for conflict resolution.
+ * @param {Object} [updateStrategies={}] - Map of columns to update strategy.
+ * @param {object} clientOrPool - The PostgreSQL client or pool to run the query.
+ * @param {Object} [meta={}] - Optional metadata for logging or tracing purposes.
+ * @param {string} [returning='RETURNING id'] - Custom RETURNING clause (e.g. `'RETURNING *'`, `'RETURNING id, status_id'`).
+ * @returns {Promise<Array<Object>>} - Resolves to inserted or updated rows if `RETURNING` is specified.
  *
- * @example
- * // Bulk insert without conflict handling
- * await bulkInsert('inventory', ['product_id', 'location_id', 'quantity'], [
- *   ['123', 'loc-1', 50],
- *   ['124', 'loc-2', 30]
- * ], [], [], pool);
+ * @throws {AppError} - Throws a wrapped database error on failure.
  *
  * @example
- * // Bulk insert with conflict handling (DO NOTHING)
- * await bulkInsert('inventory', ['product_id', 'location_id', 'quantity'], [
- *   ['123', 'loc-1', 50],
- *   ['124', 'loc-2', 30]
- * ], ['product_id', 'location_id'], [], pool);
+ * // Basic insert with no conflict handling
+ * await bulkInsert(
+ *   'inventory',
+ *   ['product_id', 'location_id', 'quantity'],
+ *   [['p1', 'loc-a', 100], ['p2', 'loc-b', 50]],
+ *   [],
+ *   [],
+ *   pool
+ * );
  *
  * @example
- * // Bulk insert with conflict handling (UPDATE quantity)
- * await bulkInsert('inventory', ['product_id', 'location_id', 'quantity'], [
- *   ['123', 'loc-1', 50],
- *   ['124', 'loc-2', 30]
- * ], ['product_id', 'location_id'], ['quantity'], pool);
+ * // Insert with DO NOTHING on conflict
+ * await bulkInsert(
+ *   'inventory',
+ *   ['product_id', 'location_id', 'quantity'],
+ *   [['p1', 'loc-a', 100]],
+ *   ['product_id', 'location_id'],
+ *   [],
+ *   pool
+ * );
+ *
+ * @example
+ * // Insert with DO UPDATE on conflict
+ * await bulkInsert(
+ *   'inventory',
+ *   ['product_id', 'location_id', 'quantity'],
+ *   [['p1', 'loc-a', 100]],
+ *   ['product_id', 'location_id'],
+ *   ['quantity'],
+ *   pool,
+ *   {},
+ *   'RETURNING *'
+ * );
  */
 const bulkInsert = async (
   tableName,
   columns,
   rows,
   conflictColumns = [],
-  updateColumns = [], // Specify columns to update or leave empty for DO NOTHING
+  updateStrategies = {},
   clientOrPool = pool,
-  meta={}
+  meta={},
+  returning = 'id'
 ) => {
   if (!rows.length) return 0;
 
@@ -741,48 +780,49 @@ const bulkInsert = async (
 
   // Handle conflict dynamically: Either `DO NOTHING` or `DO UPDATE`
   let conflictClause = '';
+  const updateCols = Object.keys(updateStrategies);
+  
   if (conflictColumns.length > 0) {
-    if (updateColumns.length > 0) {
-      // Construct dynamic UPDATE SET clause
-      const updateSet = updateColumns
-        .map((col) => `${col} = EXCLUDED.${col}`)
+    if (updateCols.length > 0) {
+      const updateSet = updateCols
+        .map((col) => applyUpdateRule(col, updateStrategies[col], tableName))
         .join(', ');
       conflictClause = `ON CONFLICT (${conflictColumns.join(', ')}) DO UPDATE SET ${updateSet}`;
     } else {
       conflictClause = `ON CONFLICT (${conflictColumns.join(', ')}) DO NOTHING`;
     }
   }
-
+  
+  const returningClause = returning ? `RETURNING ${returning}` : '';
+  
   // Construct SQL query
   const sql = `
     INSERT INTO ${tableName} (${columnNames})
     VALUES ${valuePlaceholders}
     ${conflictClause}
-    RETURNING id;
+    ${returningClause};
   `;
 
   // Flatten values for bulk insert
   const flattenedValues = rows.flat();
 
   try {
-    return await retry(async () => {
-      const { rows } = await clientOrPool.query(sql, flattenedValues);
-      return rows;
-    });
+    const result = await query(sql, flattenedValues, clientOrPool, 3, 1000, meta);
+    return result.rows;
   } catch (error) {
     logBulkInsertError(
       error,
       maskTableName(tableName),
       columns,
       conflictColumns,
-      updateColumns,
+      Object.keys(updateStrategies),
       flattenedValues,
       rows.length,
       { ...meta },
     );
     
     throw AppError.databaseError('Bulk insert failed', {
-      details: { tableName, columns, error: error.message },
+      details: { tableName, columns, conflictColumns, updateStrategies, error: error.message },
     });
   }
 };
@@ -919,6 +959,38 @@ const getStatusValue = async ({ table, where, select }, client, meta={}) => {
   }
 };
 
+/**
+ * Checks if a row exists in the specified table with the given condition.
+ *
+ * @param {object} client - pg Client or Pool instance
+ * @param {string} table - The table to check
+ * @param {object} condition - Key-value pairs for WHERE clause (e.g. { id: 'uuid' })
+ * @returns {Promise<boolean>} - True if the row exists, false otherwise
+ */
+const checkRecordExists = async (client, table, condition) => {
+  const keys = Object.keys(condition);
+  if (keys.length === 0) throw AppError.validationError('No condition provided');
+  
+  const whereClause = keys.map((key, i) => `${key} = $${i + 1}`).join(' AND ');
+  const values = Object.values(condition);
+  
+  const sql = `SELECT 1 FROM ${table} WHERE ${whereClause} LIMIT 1`;
+  
+  try {
+    const result = await client.query(sql, values);
+    return result.rowCount > 0;
+  } catch (error) {
+    logSystemException(error, 'Failed to check record existence', {
+      context: 'utils/db/checkRecordExists',
+      table,
+      condition,
+    });
+    throw AppError.databaseError(`Error checking existence in "${table}"`, {
+      details: { condition, error: error.message },
+    });
+  }
+};
+
 // Export the utilities
 module.exports = {
   pool,
@@ -938,4 +1010,5 @@ module.exports = {
   bulkInsert,
   formatBulkUpdateQuery,
   getStatusValue,
+  checkRecordExists,
 };

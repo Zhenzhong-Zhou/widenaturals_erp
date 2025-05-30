@@ -6,6 +6,11 @@ exports.up = function (knex) {
   return knex.schema.createTable('inventory_activity_audit_log', (table) => {
     table.uuid('warehouse_inventory_id').nullable().references('id').inTable('warehouse_inventory');
     table.uuid('location_inventory_id').nullable().references('id').inTable('location_inventory');
+    table.check(`
+      (warehouse_inventory_id IS NOT NULL AND location_inventory_id IS NULL)
+      OR
+      (warehouse_inventory_id IS NULL AND location_inventory_id IS NOT NULL)
+    `);
     
     table.uuid('inventory_action_type_id').notNullable().references('id').inTable('inventory_action_types');
     table.integer('previous_quantity').notNullable();
@@ -26,7 +31,14 @@ exports.up = function (knex) {
     // Add this if needed:
     table.enu('inventory_scope', ['warehouse', 'location']).notNullable();
     
-    table.unique(['location_inventory_id', 'inventory_action_type_id', 'recorded_at']);
+    table.unique(
+      ['warehouse_inventory_id', 'inventory_action_type_id', 'recorded_at'],
+      { indexName: 'uq_warehouse_inventory_action_recorded' }
+    );
+    table.unique(
+      ['location_inventory_id', 'inventory_action_type_id', 'recorded_at'],
+      { indexName: 'uq_location_inventory_action_recorded' }
+    );
   });
 };
 

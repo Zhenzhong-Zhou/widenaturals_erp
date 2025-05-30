@@ -28,9 +28,6 @@ const {
   updateWarehouseInventoryQuantity,
   fetchWarehouseInventoryQuantities,
 } = require('../repositories/warehouse-inventory-repository');
-const {
-  bulkInsertInventoryActivityLogs,
-} = require('../repositories/inventory-activity-log-repository');
 
 /**
  * Allocates inventory for a confirmed order item using FIFO or FEFO or manually selected lots.

@@ -2,7 +2,7 @@ const express = require('express');
 const {
   getPaginatedWarehouseInventorySummaryController,
   getWarehouseInventorySummaryDetailsController,
-  getWarehouseInventoryRecordController,
+  getWarehouseInventoryRecordController, createWarehouseInventoryRecordController,
 } = require('../controllers/warehouse-inventory-controller');
 const authorize = require('../middlewares/authorize');
 const { sanitizeInput } = require('../middlewares/sanitize');
@@ -100,6 +100,42 @@ router.get(
   ]),
   sanitizeInput,
   getWarehouseInventoryRecordController
+);
+
+/**
+ * @route POST /warehouse-inventory
+ * @group Warehouse Inventory - Operations related to warehouse and location inventory
+ * @summary Create new inventory records for both warehouse and location
+ * @description
+ * This endpoint handles the creation of inventory records, including both warehouse and location-level entries.
+ * It performs:
+ * - Validation of batch registry entries
+ * - Insertion of inventory records (warehouse and location)
+ * - Logging of inventory activity in the inventory log tables
+ *
+ * Requires permission: `manage_warehouse_inventory`
+ *
+ * Request body should contain an array of inventory records, each with:
+ * - `warehouse_id`: UUID of the warehouse
+ * - `location_id`: UUID of the location
+ * - `batch_id`: UUID from batch_registry
+ * - `batch_type`: Either `'product'` or `'packaging_material'`
+ * - `quantity`: Number
+ * - `inventory_action_type_id`: UUID (e.g., for 'initial load')
+ * - `adjustment_type_id`: (Optional) UUID for adjustment reason
+ * - `status_id`: (Optional) UUID for inventory status
+ * - `inbound_date`: Date string (ISO format)
+ * - `created_by`: UUID of the user performing the action
+ *
+ * @returns {Object} 200 - Created inventory records (grouped by warehouse and location)
+ * @returns {Error} 400 - Validation error
+ * @returns {Error} 500 - Server or service error
+ */
+router.post(
+  '/',
+  authorize(['manage_warehouse_inventory']), // Suggested permission
+  sanitizeInput,
+  createWarehouseInventoryRecordController
 );
 
 module.exports = router;

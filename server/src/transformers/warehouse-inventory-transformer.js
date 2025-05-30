@@ -165,8 +165,50 @@ const transformWarehouseInventoryRecord = (row) =>
 const transformPaginatedWarehouseInventoryRecordResults = (paginatedResult) =>
   transformPaginatedResult(paginatedResult, transformWarehouseInventoryRecord);
 
+/**
+ * Transforms raw warehouse inventory records from SQL result into a normalized structure.
+ *
+ * Dynamically merges product or material info into a single `itemInfo` field.
+ * Removes null/undefined fields using `cleanObject` for a cleaner response.
+ *
+ * @param {Array<Object>} rows - Raw DB rows from the warehouse inventory join query.
+ * @returns {Array<Object>} - Transformed and cleaned records.
+ */
+const transformInsertedWarehouseInventoryRecords = (rows) => {
+  if (!Array.isArray(rows)) return [];
+  
+  return rows.map((row) => {
+    const base = {
+      id: row.id,
+      quantity: row.warehouse_quantity,
+      reserved: row.reserved_quantity,
+      batchType: row.batch_type,
+    };
+    
+    const itemInfo =
+      row.batch_type === 'product'
+        ? {
+          lotNumber: row.product_lot_number,
+          expiryDate: row.product_expiry_date,
+          name: getProductDisplayName(row),
+          itemType: 'product',
+        }
+        : row.batch_type === 'packaging_material'
+          ? {
+            lotNumber: row.material_lot_number,
+            expiryDate: row.material_expiry_date,
+            name: row.material_name,
+            itemType: 'material',
+          }
+          : { itemType: 'unknown' };
+    
+    return cleanObject({ ...base, ...itemInfo });
+  });
+};
+
 module.exports = {
   transformPaginatedWarehouseInventoryItemSummary,
   transformPaginatedWarehouseInventorySummaryDetails,
   transformPaginatedWarehouseInventoryRecordResults,
+  transformInsertedWarehouseInventoryRecords,
 };

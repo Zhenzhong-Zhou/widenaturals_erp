@@ -13,6 +13,7 @@ const {
 } = require('../utils/system-logger');
 const { logInfo, logError, logWarn } = require('../utils/logger-helper');
 const { buildLocationInventoryWhereClause } = require('../utils/sql/build-location-inventory-filters');
+const { getStatusIdByQuantity } = require('../utils/query/inventory-query-utils');
 
 /**
  * Fetches summarized KPI statistics for location inventory, grouped by item type.
@@ -469,104 +470,136 @@ const getPaginatedLocationInventoryRecords = async ({ page, limit, filters, safe
 };
 
 /**
- * Checks if any inventory items exist for the given location(s), based on product_id or identifier.
+ * Inserts or upserts multiple location_inventory records in bulk.
  *
- * @param {Array<Object>} inventoryItems - List of inventory objects containing location_id, product_id, and/or identifier.
- * @param {string} inventoryItems[].location_id - The ID of the inventory location.
- * @param {string|null} [inventoryItems[].product_id] - The optional product ID (UUID).
- * @param {string|null} [inventoryItems[].identifier] - The optional inventory identifier.
- * @returns {Promise<Array<Object>>} - List of existing inventory records with location_id, product_id, and identifier.
+ * - Uses conflict handling to update records when (location_id, batch_id) already exists.
+ * - Assumes all quantities are validated before calling.
+ * - Logs and throws on failure.
+ *
+ * @param {Array<Object>} records - Array of location_inventory record objects.
+ * @param {object} client - Knex transaction or client instance.
+ * @param {Object} meta - Optional metadata for tracing/debugging
+ * @returns {Promise<number>} Number of rows inserted or updated.
+ * @throws {AppError} On failure.
  */
-const checkInventoryExists = async (inventoryItems) => {
-  if (!Array.isArray(inventoryItems) || inventoryItems.length === 0) return [];
-
-  let locationIds = new Set();
-  let productIds = new Set();
-  let identifiers = new Set();
-
-  inventoryItems.forEach(({ location_id, product_id, identifier }) => {
-    if (location_id) locationIds.add(location_id);
-    if (product_id) productIds.add(product_id);
-    if (identifier) identifiers.add(identifier);
-  });
-
-  if (locationIds.size === 0) return []; // Ensure at least one location_id exists
-
-  let queryText = `
-    SELECT id, location_id, product_id, identifier
-    FROM inventory
-    WHERE location_id = ANY($1::uuid[])
-    AND (
-      (CARDINALITY($2::text[]) > 0 AND identifier = ANY($2::text[]))
-      OR ($3::uuid[] IS NOT NULL AND CARDINALITY($3::uuid[]) > 0 AND product_id = ANY($3::uuid[]))
-    )
-  `;
-
-  let params = [
-    Array.from(locationIds),
-    identifiers.size > 0 ? Array.from(identifiers) : [],
-    productIds.size > 0 ? Array.from(productIds) : null, // Ensure it does not pass an empty array
+const insertLocationInventoryRecords = async (records, client, meta) => {
+  if (!Array.isArray(records) || records.length === 0) return 0;
+  
+  const columns = [
+    'batch_id',
+    'location_id',
+    'location_quantity',
+    'inbound_date',
+    'outbound_date',
+    'status_id',
+    'status_date',
+    'created_at',
+    'updated_at',
+    'created_by',
+    'updated_by',
   ];
-
+  
+  const rows = records.map((r) => [
+    r.batch_id ?? null,
+    r.location_id,
+    Number.isFinite(r.location_quantity) ? r.location_quantity : 0,
+    r.inbound_date,
+    null,
+    r.status_id ?? getStatusIdByQuantity(r.location_quantity),
+    r.status_date ?? new Date(),
+    r.created_at ?? new Date(),
+    null,
+    r.created_by ?? null,
+    null,
+  ]);
+  
+  const conflictColumns = ['location_id', 'batch_id'];
+  const updateStrategies = {
+    location_quantity: 'add',
+    status_id: 'overwrite',
+    status_date: 'overwrite',
+    last_update: 'overwrite',
+    updated_at: 'overwrite',
+    updated_by: 'overwrite',
+  };
+  
   try {
-    const { rows } = await query(queryText, params);
-    return rows;
+    return await bulkInsert(
+      'location_inventory',
+      columns,
+      rows,
+      conflictColumns,
+      updateStrategies,
+      client,
+      meta,
+      'id AS location_inventory_id'
+    );
   } catch (error) {
-    logError('Error checking inventory existence:', error);
-    throw error;
+    logSystemException(error, 'Failed to bulk insert location_inventory records', {
+      context: 'location-inventory-repository/insertLocationInventoryRecords',
+      count: records.length,
+    });
+    
+    throw AppError.databaseError('Unable to insert/update location inventory records', {
+      details: { table: 'location_inventory', count: records.length },
+    });
   }
 };
 
 /**
- * Checks and locks inventory rows if they exist.
- * @param {Object} client - Database client (transaction connection).
- * @param {Array} inventoryItems - List of inventory objects [{ location_id, product_id, identifier }]
- * @param {String} lockMode - Lock mode ('FOR UPDATE', 'FOR SHARE', etc.)
- * @returns {Promise<Array>} - List of locked inventory rows
+ * Fetches lightweight enriched location inventory records by IDs,
+ * including batch type, product or material info (lot number, name, expiry).
+ *
+ * - Supports both product and material batches via `batch_type`.
+ * - Returns only minimal fields for summary/confirmation UI.
+ *
+ * @param {string[]} ids - Array of location_inventory UUIDs.
+ * @param {object} client - PostgreSQL client or pool instance.
+ * @returns {Promise<Array<Object>>} - Enriched location inventory summaries.
  */
-const checkAndLockInventory = async (client, inventoryItems, lockMode) => {
-  if (!inventoryItems || inventoryItems.length === 0) return [];
-
-  // Step 1: Check existing inventory
-  const existingInventory = await checkInventoryExists(inventoryItems);
-
-  if (existingInventory.length === 0) {
-    logWarn('No existing inventory records found. Proceeding with inserts.');
-    return [];
+const getInsertedLocationInventoryByIds = async (ids, client) => {
+  if (!Array.isArray(ids) || ids.length === 0) return [];
+  
+  const placeholders = ids.map((_, i) => `$${i + 1}`).join(', ');
+  
+  const sql = `
+    SELECT
+      li.id,
+      li.location_quantity,
+      li.reserved_quantity,
+      br.batch_type,
+      pb.lot_number AS product_lot_number,
+      pb.expiry_date AS product_expiry_date,
+      p.name AS product_name,
+      p.brand,
+      s.sku,
+      s.country_code,
+      s.size_label,
+      pmb.lot_number AS material_lot_number,
+      pmb.expiry_date AS material_expiry_date,
+      pmb.material_snapshot_name AS material_name
+    FROM location_inventory li
+    JOIN batch_registry br ON li.batch_id = br.id
+    LEFT JOIN product_batches pb ON br.product_batch_id = pb.id
+    LEFT JOIN skus s ON pb.sku_id = s.id
+    LEFT JOIN products p ON s.product_id = p.id
+    LEFT JOIN packaging_material_batches pmb ON br.packaging_material_batch_id = pmb.id
+    WHERE li.id IN (${placeholders})
+  `;
+  
+  try {
+    const { rows } = await query(sql, ids, client);
+    return rows;
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch location inventory summary by IDs', {
+      context: 'location-inventory-repository/fetchInventorySummaryByIds',
+      ids,
+    });
+    
+    throw AppError.databaseError('Unable to fetch location inventory summary data', {
+      details: { ids, message: error.message },
+    });
   }
-
-  logInfo(`Locking ${existingInventory.length} existing inventory records...`);
-
-  // Step 2: Lock existing rows
-  const lockedRecords = [];
-  for (const item of existingInventory) {
-    const table = 'inventory'; // Inventory table
-    let inventoryId = null;
-
-    if (item.product_id) {
-      // Use product_id directly to find inventory
-      inventoryId = item.id;
-    } else if (item.identifier) {
-      inventoryId = item.id;
-    }
-
-    // Ensure inventoryId is valid before proceeding
-    if (!inventoryId) {
-      logError(`Invalid inventory ID for item:`, item);
-      continue; // Skip if inventoryId is still null
-    }
-
-    // Now lock the row using inventoryId
-    try {
-      const lockedRow = await lockRow(client, table, inventoryId, lockMode);
-      lockedRecords.push(lockedRow.id);
-    } catch (error) {
-      logError(`Failed to lock row in inventory:`, error);
-      throw error;
-    }
-  }
-
-  return lockedRecords;
 };
 
 /**
@@ -830,4 +863,6 @@ module.exports = {
   getHighLevelLocationInventorySummary,
   getLocationInventorySummaryDetailsByItemId,
   getPaginatedLocationInventoryRecords,
+  insertLocationInventoryRecords,
+  getInsertedLocationInventoryByIds,
 };

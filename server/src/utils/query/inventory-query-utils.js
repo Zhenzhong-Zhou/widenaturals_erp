@@ -1,6 +1,8 @@
 const { sanitizeSortOrder, sanitizeSortBy } = require('../sort-utils');
 const { SORTABLE_FIELDS } = require('../sort-field-mapping');
 const { cleanObject } = require('../object-utils');
+const { INVENTORY_STATUS } = require('../constants/domain/status-constants');
+const { getStatusId } = require('../../config/status-cache');
 
 /**
  * Normalizes pagination and sort clause for inventory queries.
@@ -88,7 +90,31 @@ const sanitizeCommonInventoryFilters = (query, { type }) => {
   return cleanObject(filters);
 };
 
+/**
+ * Returns the appropriate inventory status ID based on the quantity.
+ * Uses `getStatusId()` to resolve UUIDs from logical status keys.
+ *
+ * - If quantity > 0 → returns 'inventory_in_stock' ID
+ * - If quantity <= 0 → returns 'inventory_out_of_stock' ID
+ * - If neither found, falls back to 'inventory_unassigned'
+ *
+ * @param {number} quantity - Quantity to evaluate
+ * @param {string} [fallback=INVENTORY_STATUS.UNASSIGNED] - Fallback status key
+ * @returns {string} UUID status ID
+ * @throws {Error} If no valid status key or fallback is found
+ */
+const getStatusIdByQuantity = (quantity, fallback = INVENTORY_STATUS.UNASSIGNED) => {
+  const statusKey = quantity <= 0 ? INVENTORY_STATUS.OUT_OF_STOCK : INVENTORY_STATUS.IN_STOCK;
+  
+  try {
+    return getStatusId(statusKey);
+  } catch (err) {
+    return getStatusId(fallback);
+  }
+}
+
 module.exports = {
   normalizePaginationAndSortParams,
   sanitizeCommonInventoryFilters,
+  getStatusIdByQuantity,
 };

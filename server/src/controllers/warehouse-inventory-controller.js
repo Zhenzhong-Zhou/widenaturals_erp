@@ -7,6 +7,7 @@ const {
 const { logInfo } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
 const { normalizePaginationAndSortParams, sanitizeCommonInventoryFilters } = require('../utils/query/inventory-query-utils');
+const { createInventoryRecordService } = require('../services/inventory-service');
 
 /**
  * Controller: Handles GET request to fetch paginated warehouse inventory summary.
@@ -143,8 +144,52 @@ const getWarehouseInventoryRecordController = wrapAsync(async (req, res) => {
   });
 });
 
+/**
+ * Controller to handle the creation of inventory records for both warehouse and location.
+ *
+ * - Accepts a bulk array of records (max 20).
+ * - Validates batch references before insertion.
+ * - Inserts records into warehouse and location inventory tables.
+ * - Logs inventory activity for traceability.
+ * - Returns enriched inserted records.
+ */
+const createWarehouseInventoryRecordController = wrapAsync(async (req, res, next) => {
+  try {
+    const records = req.body?.records;
+    
+    if (!records || !Array.isArray(records)) {
+      throw AppError.validationError('Request body must include a valid "records" array.');
+    }
+    
+    const userId = req.user?.id;
+    const enrichedRecords = records.map((r) => ({
+      ...r,
+      user_id: userId,
+    }));
+    
+    logInfo('Creating inventory records', req, {
+      context: 'warehouse-inventory-controller/createWarehouseInventoryRecordController',
+      recordCount: enrichedRecords.length,
+      requestedBy: userId,
+      requestId: req.id,
+      traceId: req.traceId,
+    });
+    
+    const result = await createInventoryRecordService(enrichedRecords);
+    
+    res.status(201).json({
+      success: true,
+      message: 'Successfully created warehouse and/or location inventory records',
+      data: result
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = {
   getPaginatedWarehouseInventorySummaryController,
   getWarehouseInventorySummaryDetailsController,
   getWarehouseInventoryRecordController,
+  createWarehouseInventoryRecordController,
 };

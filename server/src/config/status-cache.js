@@ -22,7 +22,11 @@ const STATUS_KEY_LOOKUP = [
   { key: 'pricing_type_active', table: 'status', name: 'active' },
   { key: 'warehouse_active', table: 'status', name: 'active' },
   { key: 'sku_active', table: 'status', name: 'active' },
-  { key: 'lot_in_stock', table: 'inventory_status', name: 'in_stock' },
+  { key: 'inventory_in_stock', table: 'inventory_status', name: 'in_stock' },
+  { key: 'inventory_out_of_stock', table: 'inventory_status', name: 'out_of_stock' },
+  { key: 'inventory_unassigned', table: 'inventory_status', name: 'unassigned' },
+  { key: 'action_manual_stock_insert', table: 'inventory_action_types', name: 'manual_stock_insert' },
+  { key: 'adjustment_manual_stock_insert', table: 'lot_adjustment_types', name: 'manual_stock_insert' },
 ];
 
 /**
