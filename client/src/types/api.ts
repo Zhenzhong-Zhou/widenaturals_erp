@@ -144,3 +144,30 @@ export interface SortConfig {
   /** Sort direction: 'ASC' for ascending, 'DESC' for descending. Defaults to 'ASC' if not specified. */
   sortOrder?: 'ASC' | 'DESC' | '';
 }
+
+/**
+ * Represents the common async request state for API interactions in Redux slices.
+ *
+ * @template T - The type of the response data expected from the API.
+ */
+export interface AsyncRequestState<T> {
+  /**
+   * Indicates whether the request is currently in progress.
+   */
+  loading: boolean;
+  
+  /**
+   * Stores the error message if the request fails, or `null` if there's no error.
+   */
+  error: string | null;
+  
+  /**
+   * Indicates whether the request was completed successfully.
+   */
+  success: boolean;
+  
+  /**
+   * The response payload returned from the API, or `null` if not yet loaded.
+   */
+  response: T | null;
+}

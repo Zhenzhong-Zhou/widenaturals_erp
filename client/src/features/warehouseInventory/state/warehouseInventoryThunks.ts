@@ -1,6 +1,5 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { warehouseInventoryService } from '@services/warehouseInventoryService';
-import { dropdownService } from '@services/dropdownService';
 import type { PaginatedResponse } from '@shared-types/api';
 import type {
   FetchWarehouseInventoryArgs,
@@ -9,7 +8,11 @@ import type {
   WarehouseInventoryRecordsResponse,
   WarehouseInventorySummaryDetailsByItemIdResponse,
 } from '@features/warehouseInventory/state/warehouseInventoryTypes';
-import type { InventorySummaryDetailByItemIdParams } from '@features/inventoryShared/types/InventorySharedType';
+import type {
+  CreateInventoryRecordsRequest,
+  CreateInventoryRecordsResponse,
+  InventorySummaryDetailByItemIdParams,
+} from '@features/inventoryShared/types/InventorySharedType';
 
 /**
  * Redux thunk to fetch paginated warehouse inventory summary
@@ -87,35 +90,27 @@ export const fetchWarehouseInventoryRecordsThunk = createAsyncThunk<
 );
 
 /**
- * Fetches the list of warehouses for the dropdown.
- * This should run only once when the component mounts.
+ * Thunk to create warehouse and/or location inventory records.
+ *
+ * This thunk dispatches an API call to create new inventory records in both
+ * the warehouse and location inventory tables. It handles loading, success,
+ * and error states automatically via Redux Toolkit's `createAsyncThunk`.
+ *
+ * @param payload - The request payload containing inventory records to insert.
+ * @returns A promise resolving to the API response or a rejection message.
  */
-export const fetchWarehousesDropdownThunk = createAsyncThunk(
-  'dropdown/fetchWarehouses',
-  async (_, { rejectWithValue }) => {
+export const createWarehouseInventoryRecordsThunk = createAsyncThunk<
+  CreateInventoryRecordsResponse, // Return type
+  CreateInventoryRecordsRequest,  // Payload type
+  { rejectValue: string }         // Rejection type
+>(
+  'warehouseInventory/createWarehouseInventoryRecords',
+  async (payload, { rejectWithValue }) => {
     try {
-      return await dropdownService.fetchWarehousesForDropdown();
+      return await warehouseInventoryService.createWarehouseInventoryRecords(payload);
     } catch (error: any) {
-      console.error('Error fetching warehouses:', error);
-      return rejectWithValue(error.message || 'Failed to fetch warehouses');
-    }
-  }
-);
-
-/**
- * Fetches the list of products based on the selected warehouse.
- * This should run only when the user selects a warehouse.
- */
-export const fetchProductsDropDownByWarehouseThunk = createAsyncThunk(
-  'dropdown/fetchProductsByWarehouse',
-  async ({ warehouseId }: { warehouseId: string }, { rejectWithValue }) => {
-    try {
-      return await dropdownService.fetchProductsForWarehouseDropdown(
-        warehouseId
-      );
-    } catch (error: any) {
-      console.error('Error fetching products:', error);
-      return rejectWithValue(error.message || 'Failed to fetch products');
+      console.error('Error creating warehouse inventory records:', error);
+      return rejectWithValue(error?.message ?? 'Failed to create inventory records');
     }
   }
 );

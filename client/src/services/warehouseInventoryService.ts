@@ -7,7 +7,7 @@ import type {
   WarehouseInventorySummaryDetailsByItemIdResponse,
 } from '@features/warehouseInventory/state';
 import type { PaginatedResponse, PaginationParams, SortConfig } from '@shared-types/api';
-import type { InventorySummaryDetailByItemIdParams } from '@features/inventoryShared/types/InventorySharedType';
+import type { CreateInventoryRecordsRequest, CreateInventoryRecordsResponse, InventorySummaryDetailByItemIdParams } from '@features/inventoryShared/types/InventorySharedType';
 import { buildWarehouseInventoryFilters } from '@utils/filters/buildWarehouseInventoryFilters';
 
 /**
@@ -39,7 +39,7 @@ const fetchWarehouseInventoryItemSummary = async (
  * @returns {Promise<WarehouseInventorySummaryDetailsByItemIdResponse>} - API response with paginated data.
  * @throws {AppError} On network or API failure.
  */
-export const fetchWarehouseInventorySummaryDetailsByItemId = async (
+const fetchWarehouseInventorySummaryDetailsByItemId = async (
   params: InventorySummaryDetailByItemIdParams
 ): Promise<WarehouseInventorySummaryDetailsByItemIdResponse> => {
   const { itemId, page = 1, limit = 10 } = params;
@@ -67,7 +67,7 @@ export const fetchWarehouseInventorySummaryDetailsByItemId = async (
  * @param {SortConfig} rawSortConfig - Sorting options (sortBy field and sortOrder direction)
  * @returns {Promise<WarehouseInventoryRecordsResponse>} - Paginated inventory record result
  */
-export const fetchWarehouseInventoryRecords = async (
+const fetchWarehouseInventoryRecords = async (
   pagination: PaginationParams,
   rawFilters: WarehouseInventoryFilters,
   rawSortConfig: SortConfig = {}
@@ -97,9 +97,33 @@ export const fetchWarehouseInventoryRecords = async (
   }
 };
 
+/**
+ * Sends a request to create warehouse and/or location inventory records.
+ *
+ * @param {CreateInventoryRecordsRequest} payload - The request payload containing inventory records.
+ * @returns {Promise<CreateInventoryRecordsResponse>} The API response containing created inventory records.
+ * @throws Will throw an error if the request fails (to be caught by the caller).
+ */
+const createWarehouseInventoryRecords = async (
+  payload: CreateInventoryRecordsRequest
+): Promise<CreateInventoryRecordsResponse> => {
+  try {
+    const response = await axiosInstance.post<CreateInventoryRecordsResponse>(
+      '/warehouse-inventory',
+      payload
+    );
+    return response.data;
+  } catch (error) {
+    // You can enhance this by transforming the error or using a centralized error handler
+    console.error('Failed to create inventory records:', error);
+    throw error;
+  }
+};
+
 // Export the service
 export const warehouseInventoryService = {
   fetchWarehouseInventoryItemSummary,
   fetchWarehouseInventorySummaryDetailsByItemId,
   fetchWarehouseInventoryRecords,
+  createWarehouseInventoryRecords,
 };

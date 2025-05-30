@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { PaginationParams } from '@shared-types/api';
+import type { ApiSuccessResponse, PaginationParams } from '@shared-types/api';
 
 export interface InventoryHealthStatus {
   reservedQuantity: number;
@@ -190,3 +190,34 @@ export interface BaseInventoryTableProps<T, FlatT> {
   isRowExpanded?: (row: FlatT) => boolean;
   expandedContent?: (row: FlatT) => ReactNode;
 }
+
+export interface InventoryRecordInput {
+  warehouse_id: string;
+  location_id: string;
+  batch_id: string;
+  batch_type: 'product' | 'material'; // or string if more types are possible
+  quantity: number;
+  inbound_date: string; // ISO date string (e.g., "2025-05-28")
+}
+
+export interface CreateInventoryRecordsRequest {
+  records: InventoryRecordInput[];
+}
+
+export interface InventoryRecordOutput {
+  id: string;
+  quantity: number;
+  reserved: number;
+  batchType: 'product' | 'material'; // or string
+  lotNumber: string;
+  expiryDate: string; // ISO timestamp string (e.g., "2026-02-13T08:00:00.000Z")
+  name: string;
+  itemType: 'product' | 'material'; // or string
+}
+
+export interface CreateInventoryRecordsData {
+  warehouse: InventoryRecordOutput[];
+  location: InventoryRecordOutput[];
+}
+
+export type CreateInventoryRecordsResponse = ApiSuccessResponse<CreateInventoryRecordsData>;

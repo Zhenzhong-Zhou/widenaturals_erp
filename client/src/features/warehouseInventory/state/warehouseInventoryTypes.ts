@@ -1,9 +1,15 @@
-import type { PaginatedResponse, PaginatedState, PaginationParams, SortConfig } from '@shared-types/api';
+import type {
+  AsyncRequestState,
+  PaginatedResponse,
+  PaginatedState,
+  PaginationParams,
+  SortConfig,
+} from '@shared-types/api';
 import type {
   BaseFlatInventoryRow,
   BaseInventoryFilters,
   BaseInventoryRecord,
-  BaseInventorySummaryItem, BaseInventoryTableProps,
+  BaseInventorySummaryItem, BaseInventoryTableProps, CreateInventoryRecordsResponse,
   FlatInventoryRowBase,
   InventoryHealthStatus,
   ItemType,
@@ -99,3 +105,5 @@ export interface FlatWarehouseInventoryRow
   extends FlatInventoryRowBase<WarehouseInventoryRecord> {}
 
 export type WarehouseInventoryTableProps = BaseInventoryTableProps<WarehouseInventoryRecord, FlatWarehouseInventoryRow>
+
+export type CreateWarehouseInventoryState = AsyncRequestState<CreateInventoryRecordsResponse>;
