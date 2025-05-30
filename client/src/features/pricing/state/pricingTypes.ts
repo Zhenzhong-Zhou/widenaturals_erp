@@ -1,4 +1,4 @@
-import type { PaginatedResponse, PaginatedState } from '@shared-types/api';
+import type { PaginatedResponse, ReduxPaginatedState } from '@shared-types/api';
 
 // Define the Pricing Record structure
 export interface PricingRecord {
@@ -41,7 +41,7 @@ export type PaginatedPricingRecordsResponse = PaginatedResponse<PricingRecord>;
 /**
  * Redux state structure for managing a paginated list of pricing records.
  */
-export type PricingListState = PaginatedState<PricingRecord>;
+export type PricingListState = ReduxPaginatedState<PricingRecord>;
 
 export interface Product {
   product_id: string;
@@ -98,4 +98,4 @@ export interface PricingDetail {
 
 export type PaginatedPricingDetailsResponse = PaginatedResponse<PricingDetail>;
 
-export type PricingState = PaginatedState<PricingDetail>;
+export type PricingState = ReduxPaginatedState<PricingDetail>;

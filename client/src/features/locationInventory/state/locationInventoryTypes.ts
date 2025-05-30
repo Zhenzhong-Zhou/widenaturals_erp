@@ -8,9 +8,9 @@ import type {
 } from '@features/inventoryShared/types/InventorySharedType';
 import type {
   ApiSuccessResponse,
-  AsyncDataState,
+  AsyncState,
   PaginatedResponse,
-  PaginatedState,
+  ReduxPaginatedState,
   PaginationParams,
   SortConfig,
 } from '@shared-types/api';
@@ -41,7 +41,7 @@ export interface LocationInventoryQueryParams extends LocationInventoryFilters {
   sortOrder?: 'ASC' | 'DESC';
 }
 
-export type LocationInventorySummaryState = PaginatedState<LocationInventorySummary>
+export type LocationInventorySummaryState = ReduxPaginatedState<LocationInventorySummary>
 
 export interface LocationInventorySummaryItemDetail extends BaseInventorySummaryItem {
   locationInventoryId: string;
@@ -57,7 +57,7 @@ export interface LocationInventorySummaryItemDetail extends BaseInventorySummary
 
 export type LocationInventorySummaryDetailResponse = PaginatedResponse<LocationInventorySummaryItemDetail>;
 
-export type LocationInventorySummaryDetailState = PaginatedState<LocationInventorySummaryItemDetail>;
+export type LocationInventorySummaryDetailState = ReduxPaginatedState<LocationInventorySummaryItemDetail>;
 
 export interface FlatLocationInventorySummaryDetailRow extends BaseFlatInventoryRow {
   locationInventoryId: string;
@@ -86,7 +86,7 @@ export type LocationInventoryKpiSummaryResponse = ApiSuccessResponse<LocationInv
 /**
  * State slice for KPI summary in location inventory.
  */
-export type LocationInventoryKpiSummaryState = AsyncDataState<LocationInventoryKpiSummaryItem[]>;
+export type LocationInventoryKpiSummaryState = AsyncState<LocationInventoryKpiSummaryItem[]>;
 
 export interface FetchLocationInventoryArgs {
   pagination: PaginationParams;
@@ -108,7 +108,7 @@ export interface LocationInventoryRecord extends BaseInventoryRecord {
 
 export type LocationInventoryRecordsResponse = PaginatedResponse<LocationInventoryRecord>;
 
-export type LocationInventoryState = PaginatedState<LocationInventoryRecord>;
+export type LocationInventoryState = ReduxPaginatedState<LocationInventoryRecord>;
 
 export interface FlatLocationInventoryRow
   extends FlatInventoryRowBase<LocationInventoryRecord> {}

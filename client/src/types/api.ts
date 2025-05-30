@@ -57,21 +57,21 @@ export interface ApiSuccessResponse<T> {
 }
 
 /**
- * A generic interface for managing paginated asynchronous state in Redux or any data layer.
+ * Represents the Redux-managed state for paginated data.
  *
- * @template T - The type of the individual data item in the paginated list.
+ * @template T - Type of each item in the paginated list.
  */
-export interface PaginatedState<T> {
-  /** The array of transformed data items returned by the API. */
+export interface ReduxPaginatedState<T> {
+  /** Fetched data items. */
   data: T[];
   
-  /** Pagination metadata including page, limit, totalRecords, and totalPages. */
+  /** Pagination info for current view. */
   pagination: Pagination;
   
-  /** Indicates whether the data is currently being fetched. */
+  /** Whether data is currently being loaded. */
   loading: boolean;
   
-  /** Optional error message if the fetch operation fails. */
+  /** Error message if fetching fails. */
   error: string | null;
 }
 
@@ -103,23 +103,23 @@ export interface PaginationParams {
 }
 
 /**
- * A generic interface for managing async data state in Redux.
+ * Represents async state for any data fetch in Redux or UI state.
  *
- * @template T - The type of the data payload.
+ * @template T - Type of the data payload.
  */
-export interface AsyncDataState<T> {
+export interface AsyncState<T> {
   /**
-   * The data payload fetched from the API.
+   * The data payload (can be null before loading or on error).
    */
   data: T;
   
   /**
-   * Indicates whether the data is currently being loaded.
+   * Whether the request is currently loading.
    */
   loading: boolean;
   
   /**
-   * Contains the error message if the fetch failed, otherwise null.
+   * Error message if the request fails, otherwise null.
    */
   error: string | null;
 }
@@ -143,33 +143,6 @@ export interface SortConfig {
   
   /** Sort direction: 'ASC' for ascending, 'DESC' for descending. Defaults to 'ASC' if not specified. */
   sortOrder?: 'ASC' | 'DESC' | '';
-}
-
-/**
- * Represents the common async request state for API interactions in Redux slices.
- *
- * @template T - The type of the response data expected from the API.
- */
-export interface AsyncRequestState<T> {
-  /**
-   * Indicates whether the request is currently in progress.
-   */
-  loading: boolean;
-  
-  /**
-   * Stores the error message if the request fails, or `null` if there's no error.
-   */
-  error: string | null;
-  
-  /**
-   * Indicates whether the request was completed successfully.
-   */
-  success: boolean;
-  
-  /**
-   * The response payload returned from the API, or `null` if not yet loaded.
-   */
-  response: T | null;
 }
 
 /**
@@ -213,38 +186,17 @@ export interface DropdownSuccessResponse<T> {
 }
 
 /**
- * Generic interface for managing the state of any paginated dropdown data.
+ * Redux-managed state for dropdown data with load-more or infinite scroll.
  *
- * @template T - The type of individual dropdown items.
+ * @template T - Type of each dropdown item.
  */
-export interface PaginatedDropdownState<T> {
-  /**
-   * Indicates if the dropdown data is currently being fetched.
-   */
-  loading: boolean;
-  
-  /**
-   * Error message if the fetch operation fails, otherwise `null`.
-   */
-  error: string | null;
-  
-  /**
-   * Array of dropdown items.
-   */
-  items: T[];
-  
-  /**
-   * Whether there are more items to load (used for infinite scrolling or "Load more").
-   */
+export interface PaginatedDropdownState<T> extends AsyncState<T[]> {
+  /** Whether more items are available to load. */
   hasMore: boolean;
   
-  /**
-   * The number of items to fetch per page.
-   */
+  /** Number of items per request. */
   limit: number;
   
-  /**
-   * The current offset for pagination.
-   */
+  /** Current offset used for pagination. */
   offset: number;
 }

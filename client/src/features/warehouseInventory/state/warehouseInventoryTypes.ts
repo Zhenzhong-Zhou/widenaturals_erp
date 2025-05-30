@@ -1,7 +1,7 @@
 import type {
-  AsyncRequestState,
+  AsyncState,
   PaginatedResponse,
-  PaginatedState,
+  ReduxPaginatedState,
   PaginationParams,
   SortConfig,
 } from '@shared-types/api';
@@ -68,7 +68,7 @@ export interface WarehouseInventorySummaryItemDetails extends BaseInventorySumma
 
 export type WarehouseInventorySummaryDetailsByItemIdResponse = PaginatedResponse<WarehouseInventorySummaryItemDetails>;
 
-export type WarehouseInventorySummaryDetailState = PaginatedState<WarehouseInventorySummaryItemDetails>;
+export type WarehouseInventorySummaryDetailState = ReduxPaginatedState<WarehouseInventorySummaryItemDetails>;
 
 export interface FlatWarehouseInventorySummaryDetailRow extends BaseFlatInventoryRow {
   warehouseInventoryId: string;
@@ -99,11 +99,11 @@ export interface FetchWarehouseInventoryArgs {
   sortConfig?: SortConfig;
 }
 
-export type WarehouseInventoryState = PaginatedState<WarehouseInventoryRecord>;
+export type WarehouseInventoryState = ReduxPaginatedState<WarehouseInventoryRecord>;
 
 export interface FlatWarehouseInventoryRow
   extends FlatInventoryRowBase<WarehouseInventoryRecord> {}
 
 export type WarehouseInventoryTableProps = BaseInventoryTableProps<WarehouseInventoryRecord, FlatWarehouseInventoryRow>
 
-export type CreateWarehouseInventoryState = AsyncRequestState<CreateInventoryRecordsResponse>;
+export type CreateWarehouseInventoryState = AsyncState<CreateInventoryRecordsResponse>;
