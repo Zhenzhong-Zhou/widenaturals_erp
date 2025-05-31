@@ -1,4 +1,4 @@
-const { query, paginateQuery } = require('../database/db');
+const { query, paginateQueryByOffset } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logSystemException } = require('../utils/system-logger');
 const { buildBatchRegistryWhereClause } = require('../utils/sql/build-batch-registry-filters');
@@ -35,16 +35,17 @@ const getBatchRegistryById = async (batchRegistryId, client) => {
 };
 
 /**
- * Fetches batch registry records for dropdowns.
+ * Fetches paginated batch registry records for dropdowns using offset-based pagination.
  * Supports dynamic filtering, pagination, and optional exclusion of inventory batches.
  *
- * @param {Object} options - Query options.
- * @param {Object} options.filters - Filtering parameters.
- * @param {number} [options.limit=50] - Number of records to fetch.
- * @param {number} options.page - Current page number (1-based)
- * @returns {Promise<Object[]>} - Array of dropdown records.
+ * @param {object} options - Query options.
+ * @param {object} options.filters - Filtering parameters.
+ * @param {'product'|'packaging_material'} [filters.batchType] - Optional batch type.
+ * @param {'warehouse_only'|'location_only'|'any_inventory'} [filters.excludeFrom] - Inventory exclusion type.
+ * @param {number} options.offset - Number of records to skip for pagination (default: 0).
+ * @param {number} options.limit - Maximum number of records to return (default: 50).
  */
-const getBatchRegistryDropdown = async ({ filters, limit = 50, page = 1 }) => {
+const getBatchRegistryDropdown = async ({ filters, limit = 50, offset = 0 }) => {
   const tableName = 'batch_registry br';
   
   const joins = [
@@ -79,13 +80,13 @@ const getBatchRegistryDropdown = async ({ filters, limit = 50, page = 1 }) => {
   `;
   
   try {
-    return await paginateQuery({
+    return await paginateQueryByOffset({
       tableName,
       joins,
       whereClause,
       queryText,
       params,
-      page,
+      offset,
       limit,
       sortBy: 'br.registered_at',
       sortOrder: 'DESC',
@@ -95,7 +96,7 @@ const getBatchRegistryDropdown = async ({ filters, limit = 50, page = 1 }) => {
     logSystemException(error, 'Failed to fetch batch registry dropdown', {
       context: 'batch-registry-repository/getBatchRegistryDropdown',
       severity: 'error',
-      metadata: { filters, limit, page },
+      metadata: { filters, limit, offset },
     });
     throw AppError.databaseError('Unable to fetch batch registry dropdown at this time.');
   }

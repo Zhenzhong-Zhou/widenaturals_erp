@@ -13,23 +13,14 @@ const transformPaginatedResult = (paginatedResult, transformFn, options = {}) =>
     pagination = {},
   } = paginatedResult;
   
+  const transformedItems = data.map(transformFn);
+  
+  // Support both page and offset style
   const page = Number(pagination.page ?? 1);
   const limit = Number(pagination.limit ?? 10);
   const totalRecords = Number(pagination.totalRecords ?? 0);
-  const totalPages = Number(pagination.totalPages ?? 1);
-  const offset = (page - 1) * limit;
-  
-  const transformedItems = data.map(transformFn);
-  
-  const baseResult = {
-    data: transformedItems,
-    pagination: {
-      page,
-      limit,
-      totalRecords,
-      totalPages,
-    },
-  };
+  const offset = pagination.offset ?? (page - 1) * limit;
+  const totalPages = pagination.totalPages ?? Math.ceil(totalRecords / limit);
   
   if (options.includeLoadMore) {
     return {
@@ -40,7 +31,16 @@ const transformPaginatedResult = (paginatedResult, transformFn, options = {}) =>
     };
   }
   
-  return baseResult;
+  return {
+    data: transformedItems,
+    pagination: {
+      page,
+      limit,
+      totalRecords,
+      totalPages,
+      offset,
+    },
+  };
 };
 
 /**

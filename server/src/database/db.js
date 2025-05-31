@@ -349,6 +349,36 @@ const retryDatabaseConnection = async (config, retries = 5) => {
 };
 
 /**
+ * Appends ORDER BY, LIMIT, and OFFSET clauses to a base query.
+ *
+ * @param {string} baseQuery - The base SQL SELECT query (without LIMIT/OFFSET).
+ * @param {string | null} sortBy - Column to sort by (optional).
+ * @param {'ASC' | 'DESC'} sortOrder - Sort order (default: ASC).
+ * @param {number} paramIndex - Starting index for bind parameters (usually params.length).
+ * @returns {string} - The modified query with ORDER BY, LIMIT, and OFFSET.
+ */
+const buildPaginatedQuery = ({
+                               baseQuery,
+                               sortBy,
+                               sortOrder = 'ASC',
+                               paramIndex,
+                             }) => {
+  let query = baseQuery;
+  
+  if (sortBy) {
+    const validSortOrder = ['ASC', 'DESC'].includes(sortOrder.toUpperCase())
+      ? sortOrder.toUpperCase()
+      : 'ASC';
+    query += ` ORDER BY ${sortBy} ${validSortOrder}`;
+  }
+  
+  // LIMIT and OFFSET placeholders
+  query += ` LIMIT $${paramIndex + 1} OFFSET $${paramIndex + 2}`;
+  
+  return query;
+};
+
+/**
  * Executes a paginated SQL query with optional sorting and filtering.
  *
  * @param {Object} options - The options for the paginated query.
@@ -385,14 +415,12 @@ const paginateQuery = async ({
   const countQueryText = generateCountQuery(tableName, joins, whereClause);
 
   // Construct the paginated query
-  let paginatedQuery = queryText;
-  if (sortBy) {
-    const validSortOrder = ['ASC', 'DESC'].includes(sortOrder.toUpperCase())
-      ? sortOrder.toUpperCase()
-      : 'ASC';
-    paginatedQuery += ` ORDER BY ${sortBy} ${validSortOrder}`;
-  }
-  paginatedQuery += ` LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+  const paginatedQuery = buildPaginatedQuery({
+    baseQuery: queryText,
+    sortBy,
+    sortOrder,
+    paramIndex: params.length,
+  });
 
   // Append LIMIT and OFFSET to params
   const queryParams = [...params, limit, offset];
@@ -428,6 +456,95 @@ const paginateQuery = async ({
     });
     
     throw AppError.databaseError('Failed to execute paginated query.');
+  }
+};
+
+/**
+ * Executes a paginated SQL query using offset-based pagination.
+ *
+ * This utility is ideal for "Load More" or infinite scroll interfaces,
+ * where you fetch records using `offset` and `limit` rather than page numbers.
+ *
+ * It supports custom joins, dynamic filtering, sorting, and total record counting.
+ * The `queryText` should NOT include LIMIT or OFFSET clauses — they are added automatically.
+ *
+ * @param {string} tableName - The base table name or alias used in the query.
+ * @param {string[]} joins - Optional SQL join clauses to include in both count and data queries.
+ * @param {string} whereClause - SQL WHERE clause (default: '1=1') for filtering data.
+ * @param {string} queryText - The base SELECT SQL query (without LIMIT/OFFSET).
+ * @param {any[]} params - Array of query parameter values used in `queryText` and count query.
+ * @param {number} offset - Number of records to skip (default: 0).
+ * @param {number} limit - Number of records to return (default: 10).
+ * @param {string | null} sortBy - Column name to sort by (optional).
+ * @param {'ASC' | 'DESC'} sortOrder - Sort direction (default: 'ASC').
+ * @param {any} clientOrPool - pg client or pool instance (default: `pool`).
+ * @param {object} meta - Optional metadata used for logging context.
+ *
+ * @returns {Promise<{
+ *   data: Record<string, any>[],
+ *   pagination: {
+ *     offset: number,
+ *     limit: number,
+ *     totalRecords: number,
+ *     hasMore: boolean
+ *   }
+ * }>} - Returns the paginated result set and metadata.
+ *
+ * @throws {AppError} - Throws validation or database error if the query fails.
+ */
+const paginateQueryByOffset = async ({
+                                       tableName,
+                                       joins = [],
+                                       whereClause = '1=1',
+                                       queryText,
+                                       params = [],
+                                       offset = 0,
+                                       limit = 10,
+                                       sortBy = null,
+                                       sortOrder = 'ASC',
+                                       clientOrPool = pool,
+                                       meta = {},
+                                     }) => {
+  if (offset < 0 || limit < 1) {
+    throw AppError.validationError('Offset must be >= 0 and limit must be a positive integer.');
+  }
+  
+  const countQueryText = generateCountQuery(tableName, joins, whereClause);
+  
+  const paginatedQuery = buildPaginatedQuery({
+    baseQuery: queryText,
+    sortBy,
+    sortOrder,
+    paramIndex: params.length,
+  });
+  
+  const queryParams = [...params, limit, offset];
+  
+  try {
+    const [dataResult, countResult] = await Promise.all([
+      query(paginatedQuery, queryParams, clientOrPool),
+      query(countQueryText, params, clientOrPool),
+    ]);
+    
+    const totalRecords = parseInt(countResult.rows[0]?.total || 0, 10);
+    
+    return {
+      data: dataResult.rows,
+      pagination: {
+        offset,
+        limit,
+        totalRecords,
+        hasMore: offset + dataResult.rows.length < totalRecords,
+      },
+    };
+  } catch (error) {
+    logPaginatedQueryError(error, paginatedQuery, countQueryText, queryParams, {
+      offset,
+      limit,
+      ...meta,
+    });
+    
+    throw AppError.databaseError('Failed to execute offset-based paginated query.');
   }
 };
 
@@ -1003,6 +1120,7 @@ module.exports = {
   monitorPool,
   retryDatabaseConnection,
   paginateQuery,
+  paginateQueryByOffset,
   getCountQuery,
   paginateResults,
   lockRow,

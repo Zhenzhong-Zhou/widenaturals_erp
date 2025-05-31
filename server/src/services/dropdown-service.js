@@ -23,7 +23,6 @@ const fetchBatchRegistryDropdownService = async ({ filters = {}, limit = 50, off
   });
   
   const rawResult = await getBatchRegistryDropdown({ filters, limit, offset });
-  console.log(rawResult)
   return transformPaginatedDropdownResultList(rawResult);
 };
 
