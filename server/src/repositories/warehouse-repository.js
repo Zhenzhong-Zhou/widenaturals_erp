@@ -26,8 +26,7 @@ const getWarehouseDropdown = async ({ filters }) => {
       w.location_id,
       l.name AS location_name,
       l.location_type_id,
-      wt.name AS warehouse_type_name,
-      w.status_id
+      wt.name AS warehouse_type_name
     FROM warehouses w
     JOIN locations l ON w.location_id = l.id
     LEFT JOIN warehouse_types wt ON w.type_id = wt.id

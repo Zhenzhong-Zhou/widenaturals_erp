@@ -53,13 +53,10 @@ const transformWarehouseDropdownRows = (rows) => {
   
   return rows.map((row) => ({
     value: row.warehouse_id,
-    label: `${row.warehouse_name} (${row.location_name})`,
+    label: `${row.warehouse_name} (${row.location_name}${row.warehouse_type_name ? ' - ' + row.warehouse_type_name : ''})`,
     metadata: {
       locationId: row.location_id,
-      locationName: row.location_name,
       locationTypeId: row.location_type_id,
-      warehouseTypeName: row.warehouse_type_name ?? null,
-      statusId: row.status_id,
     },
   }));
 };
