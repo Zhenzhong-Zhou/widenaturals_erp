@@ -1,5 +1,8 @@
 const wrapAsync = require('../utils/wrap-async');
-const { fetchBatchRegistryDropdownService } = require('../services/dropdown-service');
+const {
+  fetchBatchRegistryDropdownService,
+  fetchWarehouseDropdownService
+} = require('../services/dropdown-service');
 const { logInfo } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
 
@@ -68,6 +71,31 @@ const getBatchRegistryDropdownController = wrapAsync(async (req, res, next) => {
   });
 });
 
+/**
+ * Controller to fetch a filtered warehouse dropdown list.
+ * Accepts optional query parameters: locationTypeId, warehouseTypeId, includeArchived.
+ *
+ * @param {import('express').Request} req - Express request object
+ * @param {import('express').Response} res - Express response object
+ * @returns {Promise<void>}
+ */
+const getWarehouseDropdownController = wrapAsync(async (req, res) => {
+  const filters = {
+    locationTypeId: req.query.locationTypeId || undefined,
+    warehouseTypeId: req.query.warehouseTypeId || undefined,
+    includeArchived: req.query.includeArchived === 'true',
+  };
+  
+  const dropdownItems = await fetchWarehouseDropdownService(filters);
+  
+  res.status(200).json({
+    success: true,
+    message: `Successfully retrieved warehouses dropdown`,
+    data: dropdownItems,
+  });
+});
+
 module.exports = {
   getBatchRegistryDropdownController,
+  getWarehouseDropdownController,
 };

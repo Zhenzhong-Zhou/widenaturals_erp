@@ -42,6 +42,29 @@ const transformBatchRegistryDropdownItem = (row) => {
 const transformPaginatedDropdownResultList = (paginatedResult) =>
   transformPaginatedResult(paginatedResult, transformBatchRegistryDropdownItem, { includeLoadMore: true });
 
+/**
+ * Transforms raw warehouse dropdown rows into dropdown-compatible format.
+ *
+ * @param {Array<Object>} rows - Raw rows from the warehouse dropdown query
+ * @returns {Array<Object>} Transformed dropdown items
+ */
+const transformWarehouseDropdownRows = (rows) => {
+  if (!Array.isArray(rows)) return [];
+  
+  return rows.map((row) => ({
+    value: row.warehouse_id,
+    label: `${row.warehouse_name} (${row.location_name})`,
+    metadata: {
+      locationId: row.location_id,
+      locationName: row.location_name,
+      locationTypeId: row.location_type_id,
+      warehouseTypeName: row.warehouse_type_name ?? null,
+      statusId: row.status_id,
+    },
+  }));
+};
+
 module.exports = {
   transformPaginatedDropdownResultList,
+  transformWarehouseDropdownRows,
 };
