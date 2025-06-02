@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   selectWarehouseInventorySummaryItemDetailsData,
@@ -12,13 +12,6 @@ import type { InventorySummaryDetailByItemIdParams } from '@features/inventorySh
 /**
  * Custom hook to access warehouse inventory summary state and fetch function.
  *
- * @returns {{
- *   data: WarehouseInventorySummaryItemDetails[],
- *   pagination: Pagination,
- *   loading: boolean,
- *   error: string | null,
- *   fetchData: (params: InventorySummaryDetailByItemIdParams) => void
- * }}
  */
 const useWarehouseInventorySummaryByItemId = () => {
   const dispatch = useAppDispatch();
@@ -40,13 +33,16 @@ const useWarehouseInventorySummaryByItemId = () => {
     [dispatch]
   );
   
-  return {
-    data,
-    pagination,
-    loading,
-    error,
-    fetchWarehouseInventorySummaryDetails,
-  };
+  return useMemo(
+    () => ({
+      data,
+      pagination,
+      loading,
+      error,
+      fetchWarehouseInventorySummaryDetails,
+    }),
+    [data, pagination, loading, error, fetchWarehouseInventorySummaryDetails]
+  );
 };
 
 export default useWarehouseInventorySummaryByItemId;
