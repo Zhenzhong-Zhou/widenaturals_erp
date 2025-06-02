@@ -44,6 +44,7 @@ interface BaseInventoryPageProps<T> {
   sortOptions: { label: string; value: string }[];
   rowKey: keyof T;
   extractGroupName: (record: T) => string;
+  topToolbar?: ReactNode;
 }
 
 const BaseInventoryPage = <T,>({
@@ -56,6 +57,7 @@ const BaseInventoryPage = <T,>({
                                  sortOptions,
                                  rowKey,
                                  extractGroupName,
+                                 topToolbar,
                                }: BaseInventoryPageProps<T>) => {
   const [itemTypeTab, setItemTypeTab] = useState(0);
   const [sortConfig, setSortConfig] = useState<SortConfig>({ sortBy: '', sortOrder: '' });
@@ -127,6 +129,8 @@ const BaseInventoryPage = <T,>({
           {Icon}
           <CustomTypography variant="h5" fontWeight={600}>{title}</CustomTypography>
         </Stack>
+        
+        {topToolbar && <Box mb={2}>{topToolbar}</Box>}
         
         <Stack spacing={3}>
           <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ xs: 'flex-start', sm: 'center' }} justifyContent="space-between" spacing={2}>

@@ -1,4 +1,4 @@
-import { type FC } from 'react';
+import { useMemo, type FC, type UIEvent } from 'react';
 import Autocomplete, { type AutocompleteProps } from '@mui/material/Autocomplete';
 import Box from '@mui/material/Box';
 import MenuItem from '@mui/material/MenuItem';
@@ -9,12 +9,15 @@ import { faPlus, faSyncAlt } from '@fortawesome/free-solid-svg-icons';
 import CustomTypography from '@components/common/CustomTypography';
 import BaseInput from '@components/common/BaseInput';
 import Loading from '@components/common/Loading';
+import ErrorMessage from '@components/common/ErrorMessage';
 import { useThemeContext } from '@context/ThemeContext';
 
 interface OptionType {
   value: string | null;
   label: string;
   icon?: typeof faSyncAlt;
+  type?: string; // e.g., 'product' | 'material' | etc.
+  [key: string]: any;
 }
 
 interface DropdownProps {
@@ -28,6 +31,13 @@ interface DropdownProps {
   onRefresh?: () => void;
   onAddNew?: () => void;
   loading?: boolean;
+  error?: string | null;
+  hasMore?: boolean;
+  pagination?: {
+    limit: number;
+    offset: number;onFetchMore?: () => void;
+  };
+  onFetchMore?: (params: { limit: number; offset: number }) => void;
 }
 
 const SPECIAL_OPTIONS: OptionType[] = [
@@ -45,12 +55,21 @@ const Dropdown: FC<DropdownProps> = ({
                                        sx,
                                        onRefresh,
                                        onAddNew = null,
-                                       loading = false, // ← NEW
+                                       loading = false,
+                                       error,
+                                       hasMore = false,
+                                       pagination,
+                                       onFetchMore,
                                      }) => {
   const { theme } = useThemeContext();
 
   // Modified options array with special items at the top
-  const modifiedOptions: OptionType[] = [...SPECIAL_OPTIONS, ...options];
+  const modifiedOptions = useMemo(() => {
+    const baseOptions = [...SPECIAL_OPTIONS, ...options];
+    return hasMore
+      ? [...baseOptions, { value: '__loading__', label: 'Loading more...', type: 'meta' }]
+      : baseOptions;
+  }, [options, hasMore]);
   
   return (
     <Box sx={{ minWidth: '200px', width: '100%', ...sx }}>
@@ -69,6 +88,7 @@ const Dropdown: FC<DropdownProps> = ({
             label={label}
             variant="outlined"
             disabled={disabled}
+            error={!!error}
           />
         )}
         slotProps={
@@ -94,6 +114,23 @@ const Dropdown: FC<DropdownProps> = ({
                 </>
               ),
             },
+            listbox: {
+              onScroll: (event: UIEvent<HTMLUListElement>) => {
+                const target = event.currentTarget;
+                const reachedBottom =
+                  target.scrollTop + target.clientHeight >= target.scrollHeight - 10;
+                
+                if (reachedBottom && hasMore && pagination) {
+                  const { limit, offset } = pagination;
+                  onFetchMore?.({ limit, offset: offset + limit });
+                }
+              },
+              style: {
+                maxHeight: 300,
+                overflowY: 'auto',
+                paddingBottom: hasMore ? 40 : 0,
+              },
+            },
           } as unknown as AutocompleteProps<OptionType, false, boolean, false>['slotProps']
         }
         loading={loading}
@@ -102,6 +139,20 @@ const Dropdown: FC<DropdownProps> = ({
         isOptionEqualToValue={(option, val) => option.value === val.value}
         renderOption={(props, option) => (
           <Box key={option.value}>
+            {option.value === '__loading__' && (
+              <Box
+                key="loading-indicator"
+                sx={{
+                  textAlign: 'center',
+                  py: 1,
+                  width: '100%',
+                  backgroundColor: theme.palette.background.paper,
+                }}
+              >
+                <Loading size={16} variant="dotted" />
+              </Box>
+            )}
+            
             {/* Divider before the regular options */}
             {option.value === 'add' && (
               <Divider
@@ -205,6 +256,11 @@ const Dropdown: FC<DropdownProps> = ({
                 )}
                 {option.label}
               </MenuItem>
+            )}
+            {error && (
+              <Box mt={1}>
+                <ErrorMessage message={error} />
+              </Box>
             )}
           </Box>
         )}

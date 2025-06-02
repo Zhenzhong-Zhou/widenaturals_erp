@@ -27,7 +27,7 @@ export const selectBatchRegistryDropdownError = createSelector(
  */
 export const selectBatchRegistryDropdownItems = createSelector(
   [selectBatchRegistryDropdownSlice],
-  (slice) => slice.items
+  (slice) => slice.data
 );
 
 /**
