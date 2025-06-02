@@ -80,3 +80,7 @@ export interface GetWarehouseDropdownFilters {
 
 export type WarehouseDropdownState = AsyncState<WarehouseDropdownItem[]>;
 
+export interface WarehouseOption {
+  label: string;
+  value: string;
+}

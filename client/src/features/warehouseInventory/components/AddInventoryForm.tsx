@@ -1,4 +1,4 @@
-import { type ChangeEvent, type Dispatch, type FC, type SetStateAction, useState } from 'react';
+import { type ChangeEvent, type Dispatch, type FC, type SetStateAction, useMemo, useState } from 'react';
 import CustomForm, { type FieldConfig } from '@components/common/CustomForm';
 import BatchRegistryDropdown from '@features/dropdown/components/BatchRegistryDropdown';
 import CustomDatePicker from '@components/common/CustomDatePicker';
@@ -8,36 +8,49 @@ import FormLabel from '@mui/material/FormLabel';
 import RadioGroup from '@mui/material/RadioGroup';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Radio from '@mui/material/Radio';
-import type { GetBatchRegistryDropdownParams } from '@features/dropdown/state';
+import type { GetBatchRegistryDropdownParams, GetWarehouseDropdownFilters } from '@features/dropdown/state';
+import WarehouseDropdown from '@features/dropdown/components/WarehouseDropdown';
 
 interface AddInventoryFormProps {
   onSubmit: (formData: Record<string, any>) => void;
   loading?: boolean;
-  dropdownOptions: { value: string; label: string }[];
+  batchDropdownOptions: { value: string; label: string }[];
   selectedBatch: { id: string; type: string } | null;
   setSelectedBatch: (value: { id: string; type: string } | null) => void;
   batchDropdownParams: GetBatchRegistryDropdownParams;
   setBatchDropdownParams: Dispatch<SetStateAction<GetBatchRegistryDropdownParams>>;
-  fetchDropdown: (params: GetBatchRegistryDropdownParams) => void;
+  fetchBatchDropdown: (params: GetBatchRegistryDropdownParams) => void;
   hasMore: boolean;
   pagination?: { limit: number; offset: number };
-  dropdownLoading?: boolean;
-  dropdownError?: string | null;
+  batchDropdownLoading?: boolean;
+  batchDropdownError?: string | null;
+  warehouseDropdownOptions: { value: string; label: string }[];
+  selectedWarehouse: { warehouseId: string; locationId: string } | null;
+  setSelectedWarehouse: (w: { warehouseId: string; locationId: string } | null) => void;
+  fetchWarehouseDropdown: (params: GetWarehouseDropdownFilters) => void;
+  warehouseDropdownLoading?: boolean;
+  warehouseDropdownError?: string | null;
 }
 
 const AddInventoryForm: FC<AddInventoryFormProps> = ({
                                                        onSubmit,
                                                        loading,
-                                                       dropdownOptions,
+                                                       batchDropdownOptions,
                                                        selectedBatch,
                                                        setSelectedBatch,
                                                        batchDropdownParams,
                                                        setBatchDropdownParams,
-                                                       fetchDropdown,
+                                                       fetchBatchDropdown,
                                                        hasMore,
                                                        pagination,
-                                                       dropdownLoading,
-                                                       dropdownError,
+                                                       batchDropdownLoading,
+                                                       batchDropdownError,
+                                                       warehouseDropdownOptions,
+                                                       selectedWarehouse,
+                                                       setSelectedWarehouse,
+                                                       fetchWarehouseDropdown,
+                                                       warehouseDropdownLoading,
+                                                       warehouseDropdownError,
                                                      }) => {
   const [batchType, setBatchType] = useState<'product' | 'packaging_material' | 'all'>('all');
   
@@ -50,14 +63,52 @@ const AddInventoryForm: FC<AddInventoryFormProps> = ({
     }));
   };
   
-  const fields: FieldConfig[] = [
-    {
-      id: 'batch_id',
-      label: 'Batch',
-      type: 'custom',
-      required: true,
-      customRender: ({ onChange }) => (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+  const fields: FieldConfig[] = useMemo(() => {
+    const baseFields: FieldConfig[] = [
+      {
+        id: 'warehouse_id',
+        label: 'Warehouse',
+        type: 'custom',
+        required: true,
+        customRender: ({ value, onChange }) => {
+          return (
+            <WarehouseDropdown
+              value={value ?? null}
+              onChange={(val) => {
+                if (!val || !val.includes('::')) {
+                  setSelectedWarehouse(null);
+                  onChange?.('');
+                  return;
+                }
+                const [warehouseId, locationId] = val.split('::');
+                if (!warehouseId || !locationId) {
+                  setSelectedWarehouse(null);
+                  onChange?.('');
+                  return;
+                }
+                setSelectedWarehouse({ warehouseId, locationId });
+                onChange?.(`${warehouseId}::${locationId}`);
+              }}
+              warehouseDropdownOptions={warehouseDropdownOptions}
+              warehouseDropdownLoading={warehouseDropdownLoading}
+              warehouseDropdownError={warehouseDropdownError}
+              onRefresh={fetchWarehouseDropdown}
+            />
+          );
+        },
+      },
+    ];
+    
+    if (!selectedWarehouse) return baseFields;
+    
+    return [
+      ...baseFields,
+      {
+        id: 'batch_id',
+        label: 'Batch',
+        type: 'custom',
+        required: true,
+        customRender: ({ onChange }) => (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             <FormControl component="fieldset">
               <FormLabel component="legend">Batch Type</FormLabel>
@@ -72,75 +123,81 @@ const AddInventoryForm: FC<AddInventoryFormProps> = ({
                 <FormControlLabel value="packaging_material" control={<Radio />} label="Packaging" />
               </RadioGroup>
             </FormControl>
+            
+            <BatchRegistryDropdown
+              value={selectedBatch ? `${selectedBatch.id}::${selectedBatch.type}` : null}
+              options={batchDropdownOptions}
+              onChange={(val) => {
+                if (!val || !val.includes('::')) {
+                  setSelectedBatch(null);
+                  return;
+                }
+                const [id, type] = val.split('::');
+                if (!id || !type) {
+                  setSelectedBatch(null);
+                  return;
+                }
+                setSelectedBatch({ id, type });
+                onChange?.(`${id}::${type}`);
+              }}
+              loading={batchDropdownLoading}
+              error={batchDropdownError}
+              hasMore={hasMore}
+              pagination={pagination}
+              fetchParams={batchDropdownParams}
+              setFetchParams={setBatchDropdownParams}
+              onRefresh={fetchBatchDropdown}
+            />
           </Box>
-          
-          <BatchRegistryDropdown
-            value={selectedBatch ? `${selectedBatch.id}::${selectedBatch.type}` : null}
-            options={dropdownOptions}
-            onChange={(val) => {
-              if (!val || !val.includes('::')) {
-                setSelectedBatch(null);
-                return;
-              }
-              const [id, type] = val.split('::');
-              if (!id || !type) {
-                setSelectedBatch(null);
-                return;
-              }
-              setSelectedBatch({ id, type });
-              onChange?.(`${id}::${type}`);
+        ),
+      },
+      {
+        id: 'quantity',
+        label: 'Quantity',
+        type: 'number',
+        required: true,
+        min: 1,
+      },
+      {
+        id: 'inbound_date',
+        label: 'Inbound Date',
+        type: 'custom',
+        customRender: ({ value, onChange }) => (
+          <CustomDatePicker
+            label="Inbound Date"
+            value={value && !isNaN(Date.parse(value)) ? new Date(value) : null}
+            onChange={(date: Date | null) => {
+              const isoString = date ? date.toISOString() : '';
+              onChange?.(isoString);
             }}
-            loading={dropdownLoading}
-            error={dropdownError}
-            hasMore={hasMore}
-            pagination={pagination}
-            fetchParams={batchDropdownParams}
-            setFetchParams={setBatchDropdownParams}
-            onRefresh={fetchDropdown}
           />
-        </Box>
-      ),
-    },
-    {
-      id: 'warehouse_id',
-      label: 'Warehouse',
-      type: 'text',
-      required: true,
-    },
-    {
-      id: 'location_id',
-      label: 'Location',
-      type: 'text',
-      required: true,
-    },
-    {
-      id: 'quantity',
-      label: 'Quantity',
-      type: 'number',
-      required: true,
-      min: 1,
-    },
-    {
-      id: 'inbound_date',
-      label: 'Inbound Date',
-      type: 'custom',
-      customRender: ({ value, onChange }) => (
-        <CustomDatePicker
-          label="Inbound Date"
-          value={value && !isNaN(Date.parse(value)) ? new Date(value) : null}
-          onChange={(date: Date | null) => {
-            const isoString = date ? date.toISOString() : ''; // convert Date back to string
-            onChange?.(isoString);
-          }}
-        />
-      )
-    },
-    {
-      id: 'comments',
-      label: 'Comments',
-      type: 'textarea',
-    },
-  ];
+        ),
+      },
+      {
+        id: 'comments',
+        label: 'Comments',
+        type: 'textarea',
+      },
+    ];
+  }, [
+    selectedWarehouse,
+    batchType,
+    selectedBatch,
+    warehouseDropdownOptions,
+    warehouseDropdownLoading,
+    warehouseDropdownError,
+    fetchWarehouseDropdown,
+    batchDropdownOptions,
+    batchDropdownError,
+    batchDropdownLoading,
+    hasMore,
+    pagination,
+    batchDropdownParams,
+    setBatchDropdownParams,
+    fetchBatchDropdown,
+    setSelectedWarehouse,
+    setSelectedBatch,
+  ]);
   
   return (
     <CustomForm

@@ -1,10 +1,15 @@
 import { type FC, useEffect, useMemo, useState } from 'react';
 import AddInventoryDialogWithModeToggle from '@features/warehouseInventory/components/AddInventoryDialogWithModeToggle.tsx';
 import useCreateWarehouseInventory from '@hooks/useCreateWarehouseInventory.ts';
-import type { BatchRegistryDropdownItem, GetBatchRegistryDropdownParams } from '@features/dropdown/state';
+import type {
+  BatchRegistryDropdownItem,
+  GetBatchRegistryDropdownParams,
+  WarehouseDropdownItem, WarehouseOption,
+} from '@features/dropdown/state';
 import { formatDate } from '@utils/dateTimeUtils.ts';
 import useBatchRegistryDropdown from '@hooks/useBatchRegistryDropdown.ts';
 import type { InventoryRecordInput } from '@features/inventoryShared/types/InventorySharedType';
+import useWarehouseDropdown from '@hooks/useWarehouseDropdown.ts';
 
 interface AddInventoryDialogProps {
   open: boolean;
@@ -17,6 +22,7 @@ const AddInventoryDialog: FC<AddInventoryDialogProps> = ({
                                                            onClose,
                                                            onSuccess,
                                                          }) => {
+  const [selectedWarehouse, setSelectedWarehouse] = useState<{ locationId: string; warehouseId: string; } | null>(null);
   const [selectedBatch, setSelectedBatch] = useState<{ id: string; type: string } | null>(null);
   const [batchDropdownParams, setBatchDropdownParams] = useState<GetBatchRegistryDropdownParams>({
     batchType: '',
@@ -36,23 +42,47 @@ const AddInventoryDialog: FC<AddInventoryDialogProps> = ({
   } = useCreateWarehouseInventory();
   
   const {
+    items: warehouseOptions,
+    loading: warehouseLoading,
+    error: warehouseError,
+    fetchDropdown: fetchWarehouseDropdown,
+  } = useWarehouseDropdown();
+  
+  const {
     items: batchOptions,
-    loading: dropdownLoading,
-    error: dropdownError,
+    loading: batchLoading,
+    error: batchError,
     hasMore,
     pagination,
-    fetchDropdown,
-    resetDropdown,
+    fetchDropdown: fetchBatchRegistryDropdown,
+    resetDropdown: restBatchRegistryDropdown,
   } = useBatchRegistryDropdown();
   
   useEffect(() => {
-    fetchDropdown({ ...batchDropdownParams, offset: 0 }); // initial load
-    return () => {
-      resetDropdown();
-    };
-  }, [fetchDropdown, resetDropdown, batchDropdownParams]);
+    fetchWarehouseDropdown();
+  }, [fetchWarehouseDropdown]);
   
-  const dropdownOptions = useMemo(() => {
+  useEffect(() => {
+    fetchBatchRegistryDropdown({ ...batchDropdownParams, offset: 0 }); // initial load
+    return () => {
+      restBatchRegistryDropdown();
+    };
+  }, [fetchBatchRegistryDropdown, restBatchRegistryDropdown, batchDropdownParams]);
+  
+  const transformWarehouseDropdownToOptions = (
+    items: WarehouseDropdownItem[]
+  ): WarehouseOption[] => {
+    return items.map(item => ({
+      label: item.label,
+      value: `${item.value}::${item.metadata.locationId}`,
+    }));
+  };
+  
+  const warehouseDropdownOptions = useMemo(() => {
+    return transformWarehouseDropdownToOptions(warehouseOptions);
+  }, [warehouseOptions]);
+  
+  const batchDropdownOptions = useMemo(() => {
     const seenValues = new Set<string>();
     
     return batchOptions.reduce(
@@ -112,16 +142,20 @@ const AddInventoryDialog: FC<AddInventoryDialogProps> = ({
   const handleFormSubmit = (formData: InventoryRecordInput) => {
     try {
       setSubmitting(true);
-      console.log(formData)
-      const [rawBatchId, rawBatchType] = (formData.batch_id || '').split('::');
       
-      const batch_id = rawBatchId || ''; // Ensure string
-      const batch_type = (rawBatchType as 'product' | 'material') || 'product'; // fallback or validate
+      // Parse warehouse_id::location_id
+      const [warehouse_id = '', location_id = ''] = (formData.warehouse_id ?? '').split('::');
       
+      // Parse batch_id::type
+      const [rawBatchId, rawBatchType] = (formData.batch_id ?? '').split('::');
+      
+      const batch_id = rawBatchId || '';
+      const batch_type: 'product' | 'material' =
+        rawBatchType === 'product' ? 'product' : 'material';
       
       const transformed: InventoryRecordInput = {
-        warehouse_id: formData.warehouse_id,
-        location_id: formData.location_id,
+        warehouse_id,
+        location_id,
         batch_id,
         batch_type,
         quantity: Number(formData.quantity),
@@ -129,9 +163,7 @@ const AddInventoryDialog: FC<AddInventoryDialogProps> = ({
         comments: formData.comments ?? '',
       };
       
-      console.log('Transformed:', transformed);
       createInventory({ records: [transformed] });
-      // createInventory({ records: [formData] });
     } catch (err) {
       console.error('Insert failed:', err);
     } finally {
@@ -146,16 +178,22 @@ const AddInventoryDialog: FC<AddInventoryDialogProps> = ({
       onSubmit={handleFormSubmit}
       submitting={submitting || createLoading}
       createError={createError}
-      dropdownOptions={dropdownOptions}
+      batchDropdownOptions={batchDropdownOptions}
       selectedBatch={selectedBatch}
       setSelectedBatch={setSelectedBatch}
       batchDropdownParams={batchDropdownParams}
       setBatchDropdownParams={setBatchDropdownParams}
-      fetchDropdown={fetchDropdown}
+      fetchBatchDropdown={fetchBatchRegistryDropdown}
       hasMore={hasMore}
       pagination={pagination}
-      dropdownLoading={dropdownLoading}
-      dropdownError={dropdownError}
+      batchDropdownLoading={batchLoading}
+      batchDropdownError={batchError}
+      warehouseDropdownOptions={warehouseDropdownOptions}
+      selectedWarehouse={selectedWarehouse}
+      setSelectedWarehouse={setSelectedWarehouse}
+      fetchWarehouseDropdown={fetchWarehouseDropdown}
+      warehouseDropdownLoading={warehouseLoading}
+      warehouseDropdownError={warehouseError}
     />
   );
 };
