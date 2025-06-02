@@ -7,9 +7,14 @@ export interface GetBatchRegistryDropdownParams {
   batchType?: 'product' | 'packaging_material' | string;
   
   /**
-   * Exclude specific batch registry IDs
+   * Optional warehouse ID to exclude batches already present in this warehouse
    */
-  excludeFrom?: string;
+  warehouseId?: string;
+  
+  /**
+   * Optional location ID to exclude batches already present in this location
+   */
+  locationId?: string;
   
   /**
    * Number of items to retrieve (pagination limit)

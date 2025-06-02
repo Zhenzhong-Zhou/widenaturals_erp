@@ -5,11 +5,12 @@ const AppError = require('../utils/AppError');
 
 /**
  * Controller to handle dropdown fetch requests for batch registry.
- * Supports query params for filtering, pagination, and exclusion logic.
+ * Supports query params for filtering, pagination, and inventory exclusion scoped to warehouse or location.
  *
  * @route GET /api/batch-registry/dropdown
  * @query {string} [batchType] - 'product' or 'packaging_material'
- * @query {string} [excludeFrom] - 'warehouse_only' | 'location_only' | 'any_inventory'
+ * @query {string} [warehouseId] - Optional warehouse ID to exclude batches already present in that warehouse
+ * @query {string} [locationId] - Optional location ID to exclude batches already present in that location
  * @query {number} [limit=50] - Pagination limit
  * @query {number} [offset=0] - Pagination offset
  */
@@ -27,7 +28,8 @@ const getBatchRegistryDropdownController = wrapAsync(async (req, res, next) => {
   
   const {
     batchType,
-    excludeFrom,
+    warehouseId,
+    locationId,
     limit = 50,
     offset = 0,
   } = query;
@@ -45,7 +47,8 @@ const getBatchRegistryDropdownController = wrapAsync(async (req, res, next) => {
   
   const filters = {};
   if (batchType) filters.batchType = batchType;
-  if (excludeFrom) filters.excludeFrom = excludeFrom;
+  if (warehouseId) filters.warehouseId = warehouseId;
+  if (locationId) filters.locationId = locationId;
   
   const dropdownResult = await fetchBatchRegistryDropdownService({
     filters,

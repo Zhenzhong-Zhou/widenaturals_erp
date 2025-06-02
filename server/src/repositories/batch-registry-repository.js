@@ -41,7 +41,6 @@ const getBatchRegistryById = async (batchRegistryId, client) => {
  * @param {object} options - Query options.
  * @param {object} options.filters - Filtering parameters.
  * @param {'product'|'packaging_material'} [filters.batchType] - Optional batch type.
- * @param {'warehouse_only'|'location_only'|'any_inventory'} [filters.excludeFrom] - Inventory exclusion type.
  * @param {number} options.offset - Number of records to skip for pagination (default: 0).
  * @param {number} options.limit - Maximum number of records to return (default: 50).
  */
