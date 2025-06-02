@@ -19,7 +19,7 @@ import type { SxProps, Theme } from '@mui/system';
 export interface FieldConfig {
   id: string;
   label: string;
-  type: 'text' | 'textarea' | 'select' | 'checkbox' | 'number' | 'phone';
+  type: 'text' | 'textarea' | 'select' | 'checkbox' | 'number' | 'phone' | 'custom';
   options?: { value: string | number; label: string }[];
   required?: boolean;
   defaultValue?: any;
@@ -30,6 +30,10 @@ export interface FieldConfig {
   max?: number;
   rows?: number;
   country?: string;
+  customRender?: (params: {
+    value?: any;
+    onChange?: (val: any) => void;
+  }) => ReactNode;
 }
 
 export interface CustomFormRef {
@@ -100,138 +104,161 @@ const CustomForm = forwardRef<CustomFormRef, FormProps>(({
       
       {fields.map((field) => (
         <Box key={field.id}>
-          {/** Text & Number Fields */}
-          {(field.type === 'text' || field.type === 'number') && (
+          {field.type === 'custom' && field.customRender ? (
             <Controller
               name={field.id}
               control={control}
               defaultValue={field.defaultValue ?? ''}
-              rules={{
-                required: field.required ? `${field.label} is required` : false,
-                min: field.min ? { value: field.min, message: `Min: ${field.min}` } : undefined,
-                max: field.max ? { value: field.max, message: `Max: ${field.max}` } : undefined,
+              render={({ field: controllerField }) => {
+                const rendered = field.customRender?.({
+                  value: controllerField.value,
+                  onChange: controllerField.onChange,
+                });
+                
+                if (!rendered || typeof rendered === 'boolean') {
+                  // fallback for safety
+                  return <></>;
+                }
+                
+                return <>{rendered}</>;
               }}
-              render={({ field: controllerField }) => (
-                <BaseInput
-                  fullWidth
-                  id={field.id}
-                  label={field.label}
-                  type={field.type}
-                  value={controllerField.value}
-                  onChange={controllerField.onChange}
-                  disabled={field.disabled}
-                  error={!!errors[field.id]}
-                  helperText={getError(errors, field.id, field.defaultHelperText)}
-                  placeholder={field.placeholder}
-                  slotProps={{
-                    htmlInput:
-                      field.type === 'number' ? { min: field.min, max: field.max } : {},
+            />
+          ) : (
+            <>
+              {/** Text & Number Fields */}
+              {(field.type === 'text' || field.type === 'number') && (
+                <Controller
+                  name={field.id}
+                  control={control}
+                  defaultValue={field.defaultValue ?? ''}
+                  rules={{
+                    required: field.required ? `${field.label} is required` : false,
+                    min: field.min ? { value: field.min, message: `Min: ${field.min}` } : undefined,
+                    max: field.max ? { value: field.max, message: `Max: ${field.max}` } : undefined,
                   }}
-                />
-              )}
-            />
-          )}
-
-          {/** Phone Number Field */}
-          {field.type === 'phone' && (
-            <Controller
-              name={field.id}
-              control={control}
-              defaultValue={field.defaultValue ?? ''}
-              rules={{
-                required: field.required ? `${field.label} is required` : false,
-              }}
-              render={({ field: controllerField }) => (
-                <CustomPhoneInput
-                  value={controllerField.value}
-                  onChange={controllerField.onChange}
-                  country={field.country || 'ca'}
-                />
-              )}
-            />
-          )}
-
-          {/** Textarea Support */}
-          {field.type === 'textarea' && (
-            <Controller
-              name={field.id}
-              control={control}
-              defaultValue={field.defaultValue ?? ''}
-              rules={{
-                required: field.required ? `${field.label} is required` : false,
-              }}
-              render={({ field: controllerField }) => (
-                <BaseInput
-                  fullWidth
-                  multiline
-                  rows={field.rows ?? 4}
-                  label={field.label}
-                  value={controllerField.value}
-                  onChange={controllerField.onChange}
-                  disabled={field.disabled}
-                  error={!!errors[field.id]}
-                  helperText={getError(errors, field.id, field.defaultHelperText)}
-                  placeholder={field.placeholder}
-                />
-              )}
-            />
-          )}
-
-          {/** Select Dropdown */}
-          {field.type === 'select' && (
-            <Controller
-              name={field.id}
-              control={control}
-              defaultValue={field.defaultValue ?? ''}
-              rules={{
-                required: field.required ? `${field.label} is required` : false,
-              }}
-              render={({ field: controllerField }) => (
-                <FormControl fullWidth error={!!errors[field.id]} sx={{ mb: theme.spacing(2) }}>
-                  <InputLabel>{field.label}</InputLabel>
-                  <Select
-                    id={field.id}
-                    value={controllerField.value}
-                    onChange={controllerField.onChange}
-                    disabled={field.disabled}
-                    label={field.label}
-                  >
-                    {field.options?.map((opt) => (
-                      <MenuItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                  <FormHelperText>{getError(errors, field.id, field.defaultHelperText)}</FormHelperText>
-                </FormControl>
-              )}
-            />
-          )}
-
-          {/** Checkbox */}
-          {field.type === 'checkbox' && (
-            <Controller
-              name={field.id}
-              control={control}
-              defaultValue={field.defaultValue ?? false}
-              render={({ field: controllerField }) => (
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={controllerField.value}
-                      onChange={(e) => controllerField.onChange(e.target.checked)}
-                      sx={{
-                        color: theme.palette.primary.main,
-                        '&.Mui-checked': {
-                          color: theme.palette.primary.main,
-                        },
+                  render={({ field: controllerField }) => (
+                    <BaseInput
+                      fullWidth
+                      id={field.id}
+                      label={field.label}
+                      type={field.type}
+                      value={controllerField.value}
+                      onChange={controllerField.onChange}
+                      disabled={field.disabled}
+                      error={!!errors[field.id]}
+                      helperText={getError(errors, field.id, field.defaultHelperText)}
+                      placeholder={field.placeholder}
+                      slotProps={{
+                        htmlInput:
+                          field.type === 'number' ? { min: field.min, max: field.max } : {},
                       }}
                     />
-                  }
-                  label={field.label}
+                  )}
                 />
               )}
-            />
+              
+              {/** Phone Number Field */}
+              {field.type === 'phone' && (
+                <Controller
+                  name={field.id}
+                  control={control}
+                  defaultValue={field.defaultValue ?? ''}
+                  rules={{
+                    required: field.required ? `${field.label} is required` : false,
+                  }}
+                  render={({ field: controllerField }) => (
+                    <CustomPhoneInput
+                      value={controllerField.value}
+                      onChange={controllerField.onChange}
+                      country={field.country || 'ca'}
+                    />
+                  )}
+                />
+              )}
+              
+              {/** Textarea Support */}
+              {field.type === 'textarea' && (
+                <Controller
+                  name={field.id}
+                  control={control}
+                  defaultValue={field.defaultValue ?? ''}
+                  rules={{
+                    required: field.required ? `${field.label} is required` : false,
+                  }}
+                  render={({ field: controllerField }) => (
+                    <BaseInput
+                      fullWidth
+                      multiline
+                      rows={field.rows ?? 4}
+                      label={field.label}
+                      value={controllerField.value}
+                      onChange={controllerField.onChange}
+                      disabled={field.disabled}
+                      error={!!errors[field.id]}
+                      helperText={getError(errors, field.id, field.defaultHelperText)}
+                      placeholder={field.placeholder}
+                    />
+                  )}
+                />
+              )}
+              
+              {/** Select Dropdown */}
+              {field.type === 'select' && (
+                <Controller
+                  name={field.id}
+                  control={control}
+                  defaultValue={field.defaultValue ?? ''}
+                  rules={{
+                    required: field.required ? `${field.label} is required` : false,
+                  }}
+                  render={({ field: controllerField }) => (
+                    <FormControl fullWidth error={!!errors[field.id]} sx={{ mb: theme.spacing(2) }}>
+                      <InputLabel>{field.label}</InputLabel>
+                      <Select
+                        id={field.id}
+                        value={controllerField.value}
+                        onChange={controllerField.onChange}
+                        disabled={field.disabled}
+                        label={field.label}
+                      >
+                        {field.options?.map((opt) => (
+                          <MenuItem key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      <FormHelperText>{getError(errors, field.id, field.defaultHelperText)}</FormHelperText>
+                    </FormControl>
+                  )}
+                />
+              )}
+              
+              {/** Checkbox */}
+              {field.type === 'checkbox' && (
+                <Controller
+                  name={field.id}
+                  control={control}
+                  defaultValue={field.defaultValue ?? false}
+                  render={({ field: controllerField }) => (
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={controllerField.value}
+                          onChange={(e) => controllerField.onChange(e.target.checked)}
+                          sx={{
+                            color: theme.palette.primary.main,
+                            '&.Mui-checked': {
+                              color: theme.palette.primary.main,
+                            },
+                          }}
+                        />
+                      }
+                      label={field.label}
+                    />
+                  )}
+                />
+              )}
+            </>
           )}
         </Box>
       ))}

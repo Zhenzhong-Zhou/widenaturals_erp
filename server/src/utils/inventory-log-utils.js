@@ -38,6 +38,7 @@ const buildInventoryLogRows = (records) => {
       status_id: record.status_id,
       status_effective_at: record.status_date,
       performed_by: record.user_id,
+      comments: record.comments,
       recorded_by: record.user_id,
       inventory_scope: scope,
       source_type: record.source_type || null,

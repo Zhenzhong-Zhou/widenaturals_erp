@@ -1,0 +1,163 @@
+import { type FC, useEffect, useMemo, useState } from 'react';
+import AddInventoryDialogWithModeToggle from '@features/warehouseInventory/components/AddInventoryDialogWithModeToggle.tsx';
+import useCreateWarehouseInventory from '@hooks/useCreateWarehouseInventory.ts';
+import type { BatchRegistryDropdownItem, GetBatchRegistryDropdownParams } from '@features/dropdown/state';
+import { formatDate } from '@utils/dateTimeUtils.ts';
+import useBatchRegistryDropdown from '@hooks/useBatchRegistryDropdown.ts';
+import type { InventoryRecordInput } from '@features/inventoryShared/types/InventorySharedType';
+
+interface AddInventoryDialogProps {
+  open: boolean;
+  onClose: () => void;
+  onSuccess?: () => void;
+}
+
+const AddInventoryDialog: FC<AddInventoryDialogProps> = ({
+                                                           open,
+                                                           onClose,
+                                                           onSuccess,
+                                                         }) => {
+  const [selectedBatch, setSelectedBatch] = useState<{ id: string; type: string } | null>(null);
+  const [batchDropdownParams, setBatchDropdownParams] = useState<GetBatchRegistryDropdownParams>({
+    batchType: '',
+    warehouseId: '',
+    locationId:'',
+    limit: 50,
+    offset: 0,
+  });
+  const [submitting, setSubmitting] = useState(false);
+  
+  const {
+    createInventory,
+    loading: createLoading,
+    success,
+    error: createError,
+    resetState,
+  } = useCreateWarehouseInventory();
+  
+  const {
+    items: batchOptions,
+    loading: dropdownLoading,
+    error: dropdownError,
+    hasMore,
+    pagination,
+    fetchDropdown,
+    resetDropdown,
+  } = useBatchRegistryDropdown();
+  
+  useEffect(() => {
+    fetchDropdown({ ...batchDropdownParams, offset: 0 }); // initial load
+    return () => {
+      resetDropdown();
+    };
+  }, [fetchDropdown, resetDropdown, batchDropdownParams]);
+  
+  const dropdownOptions = useMemo(() => {
+    const seenValues = new Set<string>();
+    
+    return batchOptions.reduce(
+      (acc: { value: string; label: string }[], item: BatchRegistryDropdownItem) => {
+        const optionValue = `${item.id}::${item.type}`;
+        
+        if (seenValues.has(optionValue)) {
+          console.warn(`Duplicate detected: ${optionValue}`);
+          return acc; // Skip duplicate
+        }
+        
+        seenValues.add(optionValue);
+        
+        if (item.type === 'product') {
+          const name = item.product?.name ?? 'Unknown Product';
+          const lot = item.product?.lotNumber ?? 'N/A';
+          const exp = formatDate(item.product?.expiryDate);
+          acc.push({
+            value: optionValue,
+            label: `${name} - ${lot} (Exp: ${exp})`,
+          });
+        } else if (item.type === 'packaging_material') {
+          const name = item.packagingMaterial?.snapshotName ?? 'Unknown Material';
+          const lot = item.packagingMaterial?.lotNumber ?? 'N/A';
+          const exp = formatDate(item.packagingMaterial?.expiryDate);
+          acc.push({
+            value: optionValue,
+            label: `${name} - ${lot} (Exp: ${exp})`,
+          });
+        } else {
+          acc.push({
+            value: optionValue,
+            label: 'Unknown Type',
+          });
+        }
+        
+        return acc;
+      },
+      [] // initial value
+    );
+  }, [batchOptions]);
+  
+  useEffect(() => {
+    if (success) {
+      onSuccess?.();
+      onClose();
+    }
+  }, [success, onSuccess, onClose]);
+  
+  useEffect(() => {
+    if (!open) {
+      resetState();
+      setSubmitting(false);
+    }
+  }, [open]);
+  
+  const handleFormSubmit = (formData: InventoryRecordInput) => {
+    try {
+      setSubmitting(true);
+      console.log(formData)
+      const [rawBatchId, rawBatchType] = (formData.batch_id || '').split('::');
+      
+      const batch_id = rawBatchId || ''; // Ensure string
+      const batch_type = (rawBatchType as 'product' | 'material') || 'product'; // fallback or validate
+      
+      
+      const transformed: InventoryRecordInput = {
+        warehouse_id: formData.warehouse_id,
+        location_id: formData.location_id,
+        batch_id,
+        batch_type,
+        quantity: Number(formData.quantity),
+        inbound_date: formData.inbound_date?.split('T')[0] ?? '',
+        comments: formData.comments ?? '',
+      };
+      
+      console.log('Transformed:', transformed);
+      createInventory({ records: [transformed] });
+      // createInventory({ records: [formData] });
+    } catch (err) {
+      console.error('Insert failed:', err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+  
+  return (
+    <AddInventoryDialogWithModeToggle
+      open={open}
+      onClose={onClose}
+      onSubmit={handleFormSubmit}
+      submitting={submitting || createLoading}
+      createError={createError}
+      dropdownOptions={dropdownOptions}
+      selectedBatch={selectedBatch}
+      setSelectedBatch={setSelectedBatch}
+      batchDropdownParams={batchDropdownParams}
+      setBatchDropdownParams={setBatchDropdownParams}
+      fetchDropdown={fetchDropdown}
+      hasMore={hasMore}
+      pagination={pagination}
+      dropdownLoading={dropdownLoading}
+      dropdownError={dropdownError}
+    />
+  );
+};
+
+export default AddInventoryDialog;

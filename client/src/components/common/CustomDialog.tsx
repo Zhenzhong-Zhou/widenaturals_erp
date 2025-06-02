@@ -70,7 +70,12 @@ const CustomDialog: FC<CustomDialogProps> = ({
           {actions}
           
           {showCancelButton && (
-            <CustomButton onClick={onClose} color="secondary">
+            <CustomButton
+              onClick={(e) => {
+                (e.currentTarget as HTMLButtonElement).blur();
+                onClose();
+              }}
+              color="secondary">
               Cancel
             </CustomButton>
           )}

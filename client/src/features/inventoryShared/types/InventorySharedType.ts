@@ -198,6 +198,7 @@ export interface InventoryRecordInput {
   batch_type: 'product' | 'material'; // or string if more types are possible
   quantity: number;
   inbound_date: string; // ISO date string (e.g., "2025-05-28")
+  comments?: string;
 }
 
 export interface CreateInventoryRecordsRequest {
