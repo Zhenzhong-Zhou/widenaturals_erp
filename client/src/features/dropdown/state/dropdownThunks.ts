@@ -1,7 +1,7 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import type {
   GetBatchRegistryDropdownParams,
-  GetBatchRegistryDropdownResponse,
+  GetBatchRegistryDropdownResponse, GetWarehouseDropdownFilters, GetWarehouseDropdownResponse,
 } from '@features/dropdown/state/dropdownTypes';
 import { dropdownService } from '@services/dropdownService';
 
@@ -24,6 +24,32 @@ export const fetchBatchRegistryDropdownThunk = createAsyncThunk<
       return await dropdownService.fetchBatchRegistryDropdown(params);
     } catch (error: any) {
       return rejectWithValue(error?.response?.data?.message || 'Failed to fetch dropdown items');
+    }
+  }
+);
+
+/**
+ * Async thunk to fetch warehouse dropdown options.
+ *
+ * Fetches a list of active or filtered warehouses for use in dropdown menus.
+ * Supports optional filters such as location type and warehouse type.
+ *
+ * @param {GetWarehouseDropdownFilters} [filters] - Optional filter parameters
+ * @returns {Promise<GetWarehouseDropdownResponse>} - API response with dropdown items
+ */
+export const fetchWarehouseDropdownThunk = createAsyncThunk<
+  GetWarehouseDropdownResponse,             // return type
+  GetWarehouseDropdownFilters | undefined  // argument type
+>(
+  'dropdown/fetchWarehouseDropdown',
+  async (filters = {}, { rejectWithValue }) => {
+    try {
+      return await dropdownService.fetchWarehouseDropdown(filters);
+    } catch (error: any) {
+      return rejectWithValue({
+        message: error?.response?.data?.message || 'Failed to load warehouse dropdown',
+        status: error?.response?.status || 500,
+      });
     }
   }
 );

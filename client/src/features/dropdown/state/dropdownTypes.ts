@@ -1,4 +1,9 @@
-import type { DropdownSuccessResponse, PaginatedDropdownState } from '@shared-types/api.ts';
+import type {
+  ApiSuccessResponse,
+  AsyncState,
+  DropdownSuccessResponse,
+  PaginatedDropdownState,
+} from '@shared-types/api.ts';
 
 export interface GetBatchRegistryDropdownParams {
   /**
@@ -55,3 +60,23 @@ export type BatchRegistryDropdownItem = ProductBatchDropdownItem | PackagingMate
 export type GetBatchRegistryDropdownResponse = DropdownSuccessResponse<BatchRegistryDropdownItem>;
 
 export type BatchRegistryDropdownState = PaginatedDropdownState<BatchRegistryDropdownItem>;
+
+export interface WarehouseDropdownItem {
+  value: string;
+  label: string;
+  metadata: {
+    locationId: string;
+    locationTypeId: string;
+  };
+}
+
+export type GetWarehouseDropdownResponse = ApiSuccessResponse<WarehouseDropdownItem[]>;
+
+export interface GetWarehouseDropdownFilters {
+  locationTypeId?: string;
+  warehouseTypeId?: string;
+  includeArchived?: boolean;
+}
+
+export type WarehouseDropdownState = AsyncState<WarehouseDropdownItem[]>;
+

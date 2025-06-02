@@ -2,7 +2,7 @@ import axiosInstance from '@utils/axiosConfig';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 import type {
   GetBatchRegistryDropdownParams,
-  GetBatchRegistryDropdownResponse,
+  GetBatchRegistryDropdownResponse, GetWarehouseDropdownFilters, GetWarehouseDropdownResponse,
 } from '@features/dropdown/state/dropdownTypes';
 
 /**
@@ -30,6 +30,34 @@ const fetchBatchRegistryDropdown = async (
   }
 };
 
+/**
+ * Fetches a list of warehouses for dropdown use.
+ *
+ * Supports filtering by:
+ * - `locationTypeId`: optional ID to filter warehouses by location type
+ * - `warehouseTypeId`: optional ID to filter warehouses by warehouse type
+ * - `includeArchived`: whether to include archived warehouses (default: false)
+ *
+ * @param {GetWarehouseDropdownFilters} filters - Optional query parameters to filter dropdown results
+ * @returns {Promise<GetWarehouseDropdownResponse>} Response containing warehouse dropdown items
+ * @throws {Error} Rethrows any error encountered during API call
+ */
+const fetchWarehouseDropdown = async (
+  filters: GetWarehouseDropdownFilters = {}
+): Promise<GetWarehouseDropdownResponse> => {
+  try {
+    const response = await axiosInstance.get<GetWarehouseDropdownResponse>(
+      API_ENDPOINTS.DROPDOWN.WAREHOUSES,
+      { params: filters }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Failed to fetch warehouse dropdown:', error);
+    throw error;
+  }
+};
+
 export const dropdownService = {
   fetchBatchRegistryDropdown,
+  fetchWarehouseDropdown,
 };
