@@ -38,6 +38,8 @@ interface DropdownProps {
     offset: number;onFetchMore?: () => void;
   };
   onFetchMore?: (params: { limit: number; offset: number }) => void;
+  placeholder?: string;
+  helperText?: string;
 }
 
 const SPECIAL_OPTIONS: OptionType[] = [
@@ -60,6 +62,8 @@ const Dropdown: FC<DropdownProps> = ({
                                        hasMore = false,
                                        pagination,
                                        onFetchMore,
+                                       placeholder,
+                                       helperText,
                                      }) => {
   const { theme } = useThemeContext();
 
@@ -89,6 +93,8 @@ const Dropdown: FC<DropdownProps> = ({
             variant="outlined"
             disabled={disabled}
             error={!!error}
+            placeholder={placeholder}
+            helperText={helperText}
           />
         )}
         slotProps={

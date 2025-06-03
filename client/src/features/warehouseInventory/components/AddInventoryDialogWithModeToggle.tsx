@@ -6,6 +6,7 @@ import CustomDialog from '@components/common/CustomDialog';
 import AddInventoryForm from '@features/warehouseInventory/components/AddInventoryForm';
 import Alert from '@mui/material/Alert';
 import type { GetBatchRegistryDropdownParams, GetWarehouseDropdownFilters } from '@features/dropdown/state';
+import AddBulkInventoryForm from '@features/warehouseInventory/components/AddBulkInventoryForm.tsx';
 // import AddBulkInventoryForm from '@features/warehouseInventory/components/AddBulkInventoryForm';
 
 interface AddInventoryDialogWithModeToggleProps {
@@ -104,7 +105,26 @@ const AddInventoryDialogWithModeToggle: FC<AddInventoryDialogWithModeToggleProps
             warehouseDropdownError={warehouseDropdownError}
           />
         ) : (
-          <></> // <AddBulkInventoryForm ... />
+          <AddBulkInventoryForm
+            onSubmit={onSubmit}
+            loading={submitting}
+            batchDropdownOptions={batchDropdownOptions}
+            selectedBatch={selectedBatch}
+            setSelectedBatch={setSelectedBatch}
+            batchDropdownParams={batchDropdownParams}
+            setBatchDropdownParams={setBatchDropdownParams}
+            fetchBatchDropdown={fetchBatchDropdown}
+            hasMore={hasMore}
+            pagination={pagination}
+            batchDropdownLoading={batchDropdownLoading}
+            batchDropdownError={batchDropdownError}
+            warehouseDropdownOptions={warehouseDropdownOptions}
+            selectedWarehouse={selectedWarehouse}
+            setSelectedWarehouse={setSelectedWarehouse}
+            fetchWarehouseDropdown={fetchWarehouseDropdown}
+            warehouseDropdownLoading={warehouseDropdownLoading}
+            warehouseDropdownError={warehouseDropdownError}
+          />
         )}
       </Box>
     </CustomDialog>

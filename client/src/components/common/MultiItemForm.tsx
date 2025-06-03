@@ -9,27 +9,38 @@ import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import Dropdown from '@components/common/Dropdown';
 import BaseInput from '@components/common/BaseInput';
 import CustomButton from '@components/common/CustomButton';
+import CustomDatePicker from '@components/common/CustomDatePicker';
 
-interface FieldConfig {
+export interface MultiItemFieldConfig {
   id: string;
   label: string;
-  type: 'text' | 'number' | 'select' | 'custom';
+  type: 'text' | 'number' | 'select' | 'date' | 'dropdown' | 'custom';
   options?: { value: string; label: string }[];
   component?: (props: {
     value: any;
     onChange: (value: string) => void;
+    disabled?: boolean;
+    required?: boolean;
+    placeholder?: string;
+    error?: string;
+    helperText?: string;
   }) => ReactNode;
   conditional?: (data: Record<string, any>) => boolean;
   validation?: (value: any) => string | undefined;
+  required?: boolean;
+  disabled?: boolean;
+  defaultHelperText?: string;
+  placeholder?: string;
 }
 
 interface MultiItemFormProps {
-  fields: FieldConfig[];
+  fields: MultiItemFieldConfig[];
   onSubmit: (formData: Record<string, any>[]) => void;
   defaultValues?: Record<string, any>[];
   validation?: (
     watch: (name: string) => any
   ) => Record<string, (value: any) => string | undefined>;
+  loading?: boolean;
 }
 
 const MultiItemForm: FC<MultiItemFormProps> = ({
@@ -37,6 +48,7 @@ const MultiItemForm: FC<MultiItemFormProps> = ({
   onSubmit,
   defaultValues = [{}],
   validation,
+  loading,
 }) => {
   const { control, handleSubmit, watch } = useForm<{
     items: Record<string, any>[];
@@ -135,10 +147,16 @@ const MultiItemForm: FC<MultiItemFormProps> = ({
                         control={control}
                         defaultValue={defaultValues[index]?.[field.id] || ''}
                         render={({ field: { onChange, value } }) => {
+                          const {
+                            disabled,
+                            required,
+                            placeholder,
+                            defaultHelperText,
+                          } = field;
+                          
                           const validateFn = validationRules[field.id];
-                          const errorMessage = validateFn
-                            ? validateFn(value)
-                            : undefined;
+                          const errorMessage = validateFn ? validateFn(value) : undefined;
+                          const helperText = errorMessage || defaultHelperText || '';
 
                           if (field.type === 'custom' && field.component) {
                             const CustomComponent = field.component;
@@ -146,6 +164,11 @@ const MultiItemForm: FC<MultiItemFormProps> = ({
                               <CustomComponent
                                 value={value}
                                 onChange={onChange}
+                                disabled={disabled}
+                                placeholder={placeholder}
+                                error={errorMessage}
+                                helperText={helperText}
+                                required={required}
                               />
                             );
                           }
@@ -158,10 +181,30 @@ const MultiItemForm: FC<MultiItemFormProps> = ({
                                 value={value}
                                 onChange={onChange}
                                 sx={{ width: '250px' }}
+                                disabled={disabled}
+                                placeholder={placeholder}
+                                error={errorMessage}
+                                helperText={helperText}
                               />
                             );
                           }
-
+                          
+                          if (field.type === 'date') {
+                            return (
+                              <CustomDatePicker
+                                label={field.label}
+                                value={value ? new Date(value) : null}
+                                onChange={(date) => {
+                                  const iso = date ? date.toISOString() : '';
+                                  onChange(iso);
+                                }}
+                                disabled={disabled}
+                                helperText={helperText}
+                                required={required}
+                              />
+                            );
+                          }
+                          
                           return (
                             <BaseInput
                               label={field.label}
@@ -171,7 +214,10 @@ const MultiItemForm: FC<MultiItemFormProps> = ({
                               fullWidth
                               sx={{ width: '250px' }}
                               error={!!errorMessage}
-                              helperText={errorMessage}
+                              helperText={helperText}
+                              disabled={disabled}
+                              required={required}
+                              placeholder={placeholder}
                             />
                           );
                         }}
@@ -198,11 +244,18 @@ const MultiItemForm: FC<MultiItemFormProps> = ({
           type="button"
           variant="outlined"
           onClick={() => append({ id: uuidv4() })}
+          disabled={loading}
         >
           <Add /> Add Another
         </CustomButton>
-
-        <CustomButton type="submit" variant="contained" color="primary">
+        
+        <CustomButton
+          type="submit"
+          variant="contained"
+          color="primary"
+          disabled={loading}
+          loading={loading}
+        >
           Submit All
         </CustomButton>
       </Box>

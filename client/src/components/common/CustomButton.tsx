@@ -3,6 +3,8 @@ import Button from '@mui/material/Button';
 import type { ButtonProps } from '@mui/material/Button';
 import { Link as RouterLink } from 'react-router-dom';
 import { useThemeContext } from '@context/ThemeContext';
+import Loading from '@components/common/Loading';
+import Box from '@mui/material/Box';
 
 interface CustomButtonProps extends ButtonProps {
   to?: string; // Optional 'to' prop for routing
@@ -10,6 +12,7 @@ interface CustomButtonProps extends ButtonProps {
   color?: 'primary' | 'secondary' | 'success' | 'error' | 'info' | 'warning';
   size?: 'small' | 'medium' | 'large';
   icon?: ReactNode;
+  loading?: boolean;
 }
 
 const CustomButton: FC<CustomButtonProps> = ({
@@ -19,6 +22,7 @@ const CustomButton: FC<CustomButtonProps> = ({
                                                color = 'primary',
                                                size = 'medium',
                                                icon,
+                                               loading,
                                                ...props
                                              }) => {
   const { theme } = useThemeContext();
@@ -48,7 +52,13 @@ const CustomButton: FC<CustomButtonProps> = ({
         ...props.sx,
       }}
     >
-      {children}
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 80 }}>
+        {loading ? (
+          <Loading size={20} variant="spinner" />
+        ) : (
+          children
+        )}
+      </Box>
     </Button>
   );
 };

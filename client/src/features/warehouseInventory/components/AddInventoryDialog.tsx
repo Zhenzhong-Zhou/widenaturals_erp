@@ -139,31 +139,32 @@ const AddInventoryDialog: FC<AddInventoryDialogProps> = ({
     }
   }, [open]);
   
-  const handleFormSubmit = (formData: InventoryRecordInput) => {
+  const handleFormSubmit = (formData: InventoryRecordInput | InventoryRecordInput[]) => {
     try {
       setSubmitting(true);
       
-      // Parse warehouse_id::location_id
-      const [warehouse_id = '', location_id = ''] = (formData.warehouse_id ?? '').split('::');
+      const items = Array.isArray(formData) ? formData : [formData];
+      console.log(items)
+      const transformedRecords = items.map((item) => {
+        const [warehouse_id = '', location_id = ''] = (item.warehouse_id ?? '').split('::');
+        const [rawBatchId, rawBatchType] = (item.batch_id ?? '').split('::');
+        
+        const batch_id = rawBatchId || '';
+        const batch_type: 'product' | 'material' =
+          rawBatchType === 'product' ? 'product' : 'material';
+        
+        return {
+          warehouse_id,
+          location_id,
+          batch_id,
+          batch_type,
+          quantity: Number(item.quantity),
+          inbound_date: item.inbound_date?.split('T')[0] ?? '',
+          comments: item.comments ?? '',
+        };
+      });
       
-      // Parse batch_id::type
-      const [rawBatchId, rawBatchType] = (formData.batch_id ?? '').split('::');
-      
-      const batch_id = rawBatchId || '';
-      const batch_type: 'product' | 'material' =
-        rawBatchType === 'product' ? 'product' : 'material';
-      
-      const transformed: InventoryRecordInput = {
-        warehouse_id,
-        location_id,
-        batch_id,
-        batch_type,
-        quantity: Number(formData.quantity),
-        inbound_date: formData.inbound_date?.split('T')[0] ?? '',
-        comments: formData.comments ?? '',
-      };
-      
-      createInventory({ records: [transformed] });
+      createInventory({ records: transformedRecords });
     } catch (err) {
       console.error('Insert failed:', err);
     } finally {

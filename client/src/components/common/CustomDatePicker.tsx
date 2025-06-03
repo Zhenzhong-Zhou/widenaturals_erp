@@ -16,6 +16,9 @@ interface CustomDatePickerProps {
   views?: ('year' | 'month' | 'day')[];
   openTo?: 'year' | 'month' | 'day';
   disabled?: boolean;
+  required?: boolean;
+  error?: boolean;
+  helperText?: string;
   defaultValue?: Date;
   sx?: object;
   inputSx?: object;
@@ -34,6 +37,9 @@ const CustomDatePicker: FC<CustomDatePickerProps> = ({
                                                        defaultValue,
                                                        sx,
                                                        inputSx,
+                                                       required,
+                                                       error,
+                                                       helperText,
                                                      }) => {
   const parsedValue = value instanceof Date ? value : value ? new Date(value) : null;
   
@@ -55,9 +61,10 @@ const CustomDatePicker: FC<CustomDatePickerProps> = ({
             textField: {
               fullWidth: true,
               variant: 'outlined',
+              required,
+              error,
+              helperText,
               sx: { width: '100%', ...inputSx },
-              error: false,
-              helperText: '', // Optional: avoids layout shift if form libraries used
             },
           }}
         />
