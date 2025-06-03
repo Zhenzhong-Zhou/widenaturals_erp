@@ -3,7 +3,7 @@ import MultiItemForm, { type MultiItemFieldConfig } from '@components/common/Mul
 import WarehouseDropdown from '@features/dropdown/components/WarehouseDropdown';
 import BatchRegistryDropdown from '@features/dropdown/components/BatchRegistryDropdown';
 import CustomDatePicker from '@components/common/CustomDatePicker';
-import Box from '@mui/material/Box';
+import Grid from '@mui/material/Grid';
 import FormControl from '@mui/material/FormControl';
 import FormLabel from '@mui/material/FormLabel';
 import RadioGroup from '@mui/material/RadioGroup';
@@ -107,47 +107,54 @@ const AddBulkInventoryForm: FC<AddBulkInventoryFormProps> = ({
         label: 'Batch',
         type: 'custom',
         required: true,
+        group: 'batch',
         component: ({ onChange }) => (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <FormControl component="fieldset">
-              <FormLabel component="legend">Batch Type</FormLabel>
-              <RadioGroup
-                row
-                name="batchType"
-                value={batchType}
-                onChange={handleBatchTypeChange}
-              >
-                <FormControlLabel value="all" control={<Radio />} label="All" />
-                <FormControlLabel value="product" control={<Radio />} label="Product" />
-                <FormControlLabel value="packaging_material" control={<Radio />} label="Packaging" />
-              </RadioGroup>
-            </FormControl>
+          <Grid container spacing={2}>
+            {/* Left: Batch Type RadioGroup */}
+            <Grid size={{xs:12, sm:6}}>
+              <FormControl component="fieldset" fullWidth>
+                <FormLabel component="legend">Batch Type</FormLabel>
+                <RadioGroup
+                  row
+                  name="batchType"
+                  value={batchType}
+                  onChange={handleBatchTypeChange}
+                >
+                  <FormControlLabel value="all" control={<Radio />} label="All" />
+                  <FormControlLabel value="product" control={<Radio />} label="Product" />
+                  <FormControlLabel value="packaging_material" control={<Radio />} label="Packaging" />
+                </RadioGroup>
+              </FormControl>
+            </Grid>
             
-            <BatchRegistryDropdown
-              value={selectedBatch ? `${selectedBatch.id}::${selectedBatch.type}` : null}
-              options={batchDropdownOptions}
-              onChange={(val) => {
-                if (!val || !val.includes('::')) {
-                  setSelectedBatch(null);
-                  return;
-                }
-                const [id, type] = val.split('::');
-                if (!id || !type) {
-                  setSelectedBatch(null);
-                  return;
-                }
-                setSelectedBatch({ id, type });
-                onChange(`${id}::${type}`);
-              }}
-              loading={batchDropdownLoading}
-              error={batchDropdownError}
-              hasMore={hasMore}
-              pagination={pagination}
-              fetchParams={batchDropdownParams}
-              setFetchParams={setBatchDropdownParams}
-              onRefresh={fetchBatchDropdown}
-            />
-          </Box>
+            {/* Right: Batch Registry Dropdown */}
+            <Grid size={{xs:12, sm:6}}>
+              <BatchRegistryDropdown
+                value={selectedBatch ? `${selectedBatch.id}::${selectedBatch.type}` : null}
+                options={batchDropdownOptions}
+                onChange={(val) => {
+                  if (!val || !val.includes('::')) {
+                    setSelectedBatch(null);
+                    return;
+                  }
+                  const [id, type] = val.split('::');
+                  if (!id || !type) {
+                    setSelectedBatch(null);
+                    return;
+                  }
+                  setSelectedBatch({ id, type });
+                  onChange(`${id}::${type}`);
+                }}
+                loading={batchDropdownLoading}
+                error={batchDropdownError}
+                hasMore={hasMore}
+                pagination={pagination}
+                fetchParams={batchDropdownParams}
+                setFetchParams={setBatchDropdownParams}
+                onRefresh={fetchBatchDropdown}
+              />
+            </Grid>
+          </Grid>
         ),
       },
       {
@@ -155,6 +162,7 @@ const AddBulkInventoryForm: FC<AddBulkInventoryFormProps> = ({
         label: 'Quantity',
         type: 'number',
         required: true,
+        group: 'qty_date',
         validation: (val) => (val > 0 ? undefined : 'Must be greater than 0'),
       },
       {
@@ -162,6 +170,7 @@ const AddBulkInventoryForm: FC<AddBulkInventoryFormProps> = ({
         label: 'Inbound Date',
         type: 'custom',
         required: true,
+        group: 'qty_date',
         component: ({ value, onChange, disabled, error }) => (
           <CustomDatePicker
             label="Inbound Date"
@@ -214,6 +223,13 @@ const AddBulkInventoryForm: FC<AddBulkInventoryFormProps> = ({
         )
       }
       loading={loading}
+      onItemReset={(index) => {
+        console.log('Resetting item', index);
+        setSelectedBatch(null); // or clear per-item batch if you track per row
+      }}
+      onFormReset={() => {
+        setSelectedBatch(null);
+      }}
     />
   );
 };

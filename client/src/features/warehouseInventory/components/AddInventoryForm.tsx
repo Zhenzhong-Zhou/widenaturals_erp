@@ -162,6 +162,7 @@ const AddInventoryForm: FC<AddInventoryFormProps> = ({
         id: 'inbound_date',
         label: 'Inbound Date',
         type: 'custom',
+        required: true,
         customRender: ({ value, onChange }) => (
           <CustomDatePicker
             label="Inbound Date"

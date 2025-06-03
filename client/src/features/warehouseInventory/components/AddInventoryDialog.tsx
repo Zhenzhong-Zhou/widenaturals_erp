@@ -8,7 +8,7 @@ import type {
 } from '@features/dropdown/state';
 import { formatDate } from '@utils/dateTimeUtils.ts';
 import useBatchRegistryDropdown from '@hooks/useBatchRegistryDropdown.ts';
-import type { InventoryRecordInput } from '@features/inventoryShared/types/InventorySharedType';
+import type { InventoryRecordInput, ItemType } from '@features/inventoryShared/types/InventorySharedType';
 import useWarehouseDropdown from '@hooks/useWarehouseDropdown.ts';
 
 interface AddInventoryDialogProps {
@@ -144,14 +144,14 @@ const AddInventoryDialog: FC<AddInventoryDialogProps> = ({
       setSubmitting(true);
       
       const items = Array.isArray(formData) ? formData : [formData];
-      console.log(items)
+      
       const transformedRecords = items.map((item) => {
         const [warehouse_id = '', location_id = ''] = (item.warehouse_id ?? '').split('::');
         const [rawBatchId, rawBatchType] = (item.batch_id ?? '').split('::');
         
         const batch_id = rawBatchId || '';
-        const batch_type: 'product' | 'material' =
-          rawBatchType === 'product' ? 'product' : 'material';
+        const batch_type: ItemType =
+          rawBatchType === 'product' ? 'product' : 'packaging_material';
         
         return {
           warehouse_id,

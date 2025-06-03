@@ -6,8 +6,7 @@ import CustomDialog from '@components/common/CustomDialog';
 import AddInventoryForm from '@features/warehouseInventory/components/AddInventoryForm';
 import Alert from '@mui/material/Alert';
 import type { GetBatchRegistryDropdownParams, GetWarehouseDropdownFilters } from '@features/dropdown/state';
-import AddBulkInventoryForm from '@features/warehouseInventory/components/AddBulkInventoryForm.tsx';
-// import AddBulkInventoryForm from '@features/warehouseInventory/components/AddBulkInventoryForm';
+import AddBulkInventoryForm from '@features/warehouseInventory/components/AddBulkInventoryForm';
 
 interface AddInventoryDialogWithModeToggleProps {
   open: boolean;
@@ -59,7 +58,9 @@ const AddInventoryDialogWithModeToggle: FC<AddInventoryDialogWithModeToggleProps
   const [mode, setMode] = useState<'single' | 'bulk'>('single');
   
   const handleModeChange = (_: SyntheticEvent, newValue: 'single' | 'bulk') => {
-    if (newValue !== null) setMode(newValue);
+    if (submitting || newValue === null) return;
+    setMode(newValue);
+    setSelectedBatch(null);
   };
   
   return (

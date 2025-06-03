@@ -1,6 +1,6 @@
-import type { ReactNode, ForwardedRef } from 'react';
+import { type ReactNode, type ForwardedRef, useMemo } from 'react';
 import { forwardRef, useImperativeHandle } from 'react';
-import { useForm, Controller, type FieldErrors } from 'react-hook-form';
+import { useForm, Controller, type FieldErrors, useWatch } from 'react-hook-form';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import Checkbox from '@mui/material/Checkbox';
@@ -69,6 +69,17 @@ const CustomForm = forwardRef<CustomFormRef, FormProps>(({
     reset,
   } = useForm({ mode: 'onChange', defaultValues: initialValues });
   
+  const watchedValues = useWatch({ control });
+  
+  const canSubmit = useMemo(() => {
+    return fields.length > 0 && fields.every((field) => {
+      if (!field.required) return true;
+      const value = watchedValues?.[field.id];
+      if (typeof value === 'boolean') return true;
+      return value !== undefined && value !== null && value !== '';
+    });
+  }, [fields, watchedValues]);
+
   useImperativeHandle(ref, () => ({
     resetForm: (values?: Record<string, any>) => reset(values || initialValues),
   }));
@@ -109,6 +120,9 @@ const CustomForm = forwardRef<CustomFormRef, FormProps>(({
               name={field.id}
               control={control}
               defaultValue={field.defaultValue ?? ''}
+              rules={{
+                required: field.required ? `${field.label} is required` : false,
+              }}
               render={({ field: controllerField }) => {
                 const rendered = field.customRender?.({
                   value: controllerField.value,
@@ -266,11 +280,19 @@ const CustomForm = forwardRef<CustomFormRef, FormProps>(({
       {children}
 
       {/** Render the Submit button only if `showSubmitButton` is true */}
-      {showSubmitButton && (
-        <CustomButton type="submit" variant="contained" color="primary">
-          {submitButtonLabel}
-        </CustomButton>
-      )}
+      <Box sx={{ minHeight: 40 }}>
+        {showSubmitButton && (
+          <CustomTypography sx={{ color:"warning.main" }} variant="body2">
+            Please complete all required fields to proceed.
+          </CustomTypography>
+        )}
+        
+        {showSubmitButton && canSubmit && (
+          <CustomButton type="submit" variant="contained" color="primary">
+            {submitButtonLabel}
+          </CustomButton>
+        )}
+      </Box>
     </Box>
   );
 });

@@ -195,7 +195,7 @@ export interface InventoryRecordInput {
   warehouse_id: string;
   location_id: string;
   batch_id: string;
-  batch_type: 'product' | 'material'; // or string if more types are possible
+  batch_type: ItemType; // or string if more types are possible
   quantity: number;
   inbound_date: string; // ISO date string (e.g., "2025-05-28")
   comments?: string;
@@ -209,11 +209,11 @@ export interface InventoryRecordOutput {
   id: string;
   quantity: number;
   reserved: number;
-  batchType: 'product' | 'material'; // or string
+  batchType: ItemType; // or string
   lotNumber: string;
   expiryDate: string; // ISO timestamp string (e.g., "2026-02-13T08:00:00.000Z")
   name: string;
-  itemType: 'product' | 'material'; // or string
+  itemType: ItemType; // or string
 }
 
 export interface CreateInventoryRecordsData {
