@@ -1,15 +1,20 @@
-const { withTransaction } = require('../database/db');
+const { withTransaction, lockRows } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logSystemException } = require('../utils/system-logger');
 const { validateBatchRegistryEntryById } = require('../business/batch-registry-business');
 const { insertWarehouseInventoryRecords, getInsertedWarehouseInventoryByIds } = require('../repositories/warehouse-inventory-repository');
-const { insertLocationInventoryRecords, getInsertedLocationInventoryByIds } = require('../repositories/location-inventory-repository');
+const { insertLocationInventoryRecords, getInsertedLocationInventoryByIds,
+  bulkUpdateLocationQuantities
+} = require('../repositories/location-inventory-repository');
 const { buildInventoryLogRows } = require('../utils/inventory-log-utils');
 const { insertInventoryActivityLogs } = require('../repositories/inventory-log-repository');
 const { transformInsertedWarehouseInventoryRecords } = require('../transformers/warehouse-inventory-transformer');
 const { transformInsertedLocationInventoryRecords } = require('../transformers/location-inventory-transformer');
 const { getStatusId } = require('../config/status-cache');
 const { deduplicateByCompositeKey } = require('../utils/array-utils');
+const { computeInventoryAdjustments } = require('../business/inventory-business');
+const { bulkUpdateWarehouseQuantities } = require('../repositories/warehouse-inventory-repository');
+const { InventorySourceTypes } = require('../utils/constants/domain/inventory-source-types');
 
 /**
  * Creates both warehouse and location inventory records and logs activity in a transaction.
@@ -85,13 +90,14 @@ const createInventoryRecordService = async (records) => {
       });
       
       // Step 7: Enrich for log building
-      const enrichedRecordsForLog = records.map((r, i) => ({
+      const enrichedRecordsForLog = records.map((r) => ({
         ...r,
         warehouse_inventory_id: warehouseMap.get(`${r.warehouse_id}::${r.batch_id}`) ?? null,
         location_inventory_id: locationMap.get(`${r.location_id}::${r.batch_id}`) ?? null,
         status_id: getStatusId('inventory_in_stock'),
         inventory_action_type_id: getStatusId('action_manual_stock_insert'),
         adjustment_type_id: getStatusId('adjustment_manual_stock_insert'),
+        source_type: InventorySourceTypes.MANUAL_INSERT,
       }));
       
       // Step 8: Build and insert inventory activity logs
@@ -126,6 +132,81 @@ const createInventoryRecordService = async (records) => {
   }
 };
 
+/**
+ * Executes a transactional adjustment of inventory quantities for both warehouse and location records.
+ *
+ * Responsibilities:
+ * - Delegates validation and update prep to `computeInventoryAdjustments`
+ * - Optionally locks affected inventory rows using `FOR UPDATE`
+ * - Performs updates to inventory quantities in bulk
+ * - Builds and logs inventory activity for auditability
+ *
+ * @param updates - An object keyed by a unique identifier, where each value may include:
+ *   - `warehouse_id`, `location_id`, `batch_id`
+ *   - `warehouse_quantity`, `location_quantity`
+ *   - `inventory_action_type_id`, `adjustment_type_id`, `comments`, and optional `meta`
+ * @param lockBeforeUpdate - If true, uses row-level locking to prevent concurrent modifications
+ * @returns Updated warehouse and location inventory rows
+ * @throws AppError if inventory records are missing or if reserved quantity validations fail
+ */
+const adjustInventoryQuantitiesService = async (updates, lockBeforeUpdate = true) => {
+  try {
+    return await withTransaction(async (client) => {
+      const {
+        warehouseInventoryUpdates,
+        locationInventoryUpdates,
+        warehouseCompositeKeys,
+        locationCompositeKeys,
+        logRecords,
+      } = await computeInventoryAdjustments(updates, client);
+      
+      // Lock rows if enabled
+      if (lockBeforeUpdate) {
+        if (warehouseCompositeKeys.length) {
+          await lockRows(client, 'warehouse_inventory', warehouseCompositeKeys, 'FOR UPDATE', {
+            purpose: 'Adjusting warehouse inventory quantities',
+          });
+        }
+        if (locationCompositeKeys.length) {
+          await lockRows(client, 'location_inventory', locationCompositeKeys, 'FOR UPDATE', {
+            purpose: 'Adjusting location inventory quantities',
+          });
+        }
+      }
+      
+      // Perform updates
+      const updatedWarehouseRows = await bulkUpdateWarehouseQuantities(
+        warehouseInventoryUpdates,
+        updates[0].user_id,
+        client
+      );
+      
+      const updatedLocationRows = await bulkUpdateLocationQuantities(
+        locationInventoryUpdates,
+        updates[0].user_id,
+        client
+      );
+     
+      const logRows = buildInventoryLogRows(logRecords);
+      await insertInventoryActivityLogs(logRows, client);
+      
+      return {
+        warehouse: updatedWarehouseRows,
+        location: updatedLocationRows,
+      };
+    });
+  } catch (error) {
+    logSystemException(error, 'Failed to adjust inventory quantities due to unexpected system error.', {
+      context: 'inventory-service/adjustInventoryQuantitiesService',
+      updates,
+      lockBeforeUpdate,
+    });
+    
+    throw AppError.serviceError('Failed to adjust inventory quantities. Please contact support.');
+  }
+};
+
 module.exports = {
   createInventoryRecordService,
+  adjustInventoryQuantitiesService,
 };

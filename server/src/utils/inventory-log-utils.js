@@ -43,7 +43,7 @@ const buildInventoryLogRows = (records) => {
       inventory_scope: scope,
       source_type: record.source_type || null,
       source_ref_id: record.source_ref_id || null,
-      metadata: { source: 'manual_insert', ...(record.metadata || {}) },
+      metadata: { source: record.source_type, ...(record.metadata || {}) },
     });
     
     return {

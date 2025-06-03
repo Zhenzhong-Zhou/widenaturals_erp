@@ -2,7 +2,7 @@ const express = require('express');
 const {
   getPaginatedWarehouseInventorySummaryController,
   getWarehouseInventorySummaryDetailsController,
-  getWarehouseInventoryRecordController, createWarehouseInventoryRecordController,
+  getWarehouseInventoryRecordController, createWarehouseInventoryRecordController, adjustInventoryQuantitiesController,
 } = require('../controllers/warehouse-inventory-controller');
 const authorize = require('../middlewares/authorize');
 const { sanitizeInput } = require('../middlewares/sanitize');
@@ -136,6 +136,42 @@ router.post(
   authorize(['manage_warehouse_inventory']), // Suggested permission
   sanitizeInput,
   createWarehouseInventoryRecordController
+);
+
+/**
+ * @route PATCH /warehouse-inventory/adjust-quantities
+ * @description Adjusts inventory quantities for warehouse and location inventory records.
+ *              Supports bulk updates (up to 20 records), with automatic deduplication and validation.
+ *              Also logs inventory activity with status changes and action metadata.
+ *
+ * @permissions Required:
+ *   - manage_inventory
+ *   - adjust_inventory
+ *   - manage_warehouses
+ *   - manage_warehouse_inventory
+ *
+ * @body {Array<Object>} records - List of inventory adjustment records.
+ * Each record must include:
+ *   - batch_type: 'product' | 'packaging_material'
+ *   - batch_id: string
+ *   - quantity: number
+ *   - warehouse_id or location_id: string
+ *   - inventory_action_type_id: string
+ *   - adjustment_type_id: string (optional)
+ *   - comments: string (optional)
+ *   - meta: object (optional)
+ *
+ * @returns {Object} Result containing updated inventory and log records.
+ */
+router.patch(
+  '/adjust-quantities',
+  authorize([
+    'manage_inventory',
+    'adjust_inventory',
+    'manage_warehouses',
+    'manage_warehouse_inventory',
+  ]),
+  adjustInventoryQuantitiesController
 );
 
 module.exports = router;

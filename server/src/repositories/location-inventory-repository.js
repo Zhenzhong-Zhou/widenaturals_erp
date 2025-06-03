@@ -1,17 +1,14 @@
 const {
   query,
   paginateResults,
-  retry,
   bulkInsert,
-  lockRow,
   formatBulkUpdateQuery,
 } = require('../database/db');
 const AppError = require('../utils/AppError');
 const {
   logSystemException,
-  logSystemInfo
+  logSystemInfo, logSystemWarn
 } = require('../utils/system-logger');
-const { logInfo, logError, logWarn } = require('../utils/logger-helper');
 const { buildLocationInventoryWhereClause } = require('../utils/sql/build-location-inventory-filters');
 const { getStatusIdByQuantity } = require('../utils/query/inventory-query-utils');
 
@@ -603,259 +600,93 @@ const getInsertedLocationInventoryByIds = async (ids, client) => {
 };
 
 /**
- * Inserts inventory records associated with a `product_id` from the `Products` table.
+ * Performs a bulk update of location quantities in the `location_inventory` table.
  *
- * @param {Object} client - Database transaction object.
- * @param {Array<Object>} productEntries - Array of inventory objects containing `product_id` and other relevant fields.
- * @returns {Promise<Array<Object>>} - A promise that resolves to an array of inserted inventory records.
+ * Each update is keyed by a composite key string in the format `'locationId-batchId'`,
+ * and contains values to update such as `location_quantity`, `status_id`, and `last_update`.
+ *
+ * @param {Record<string, { location_quantity: number, status_id: string, last_update: string }>} updates
+ * @param {string} userId - The UUID of the user performing the update.
+ * @param {import('pg').PoolClient} client - A PostgreSQL client instance.
+ * @returns {Promise<Array<{ location_id: string, batch_id: string }>>}
  */
-const insertProducts = async (client, productEntries) => {
-  if (!Array.isArray(productEntries) || productEntries.length === 0) return [];
-
-  const columns = [
-    'product_id',
-    'location_id',
-    'item_type',
-    'identifier',
-    'quantity',
-    'inbound_date',
-    'status_id',
-    'status_date',
-    'created_at',
-    'created_by',
-    'updated_at',
-    'updated_by',
-    'last_update',
-  ];
-
-  // Prepare rows for insertion
-  const rows = productEntries.map(
-    ({ product_id, location_id, item_type, status_id, userId }) => [
-      product_id,
-      location_id,
-      item_type,
-      null,
-      0,
-      new Date(),
-      status_id,
-      new Date(),
-      new Date(),
-      userId,
-      null,
-      null,
-      null,
-    ]
-  );
-
-  try {
-    // Step 1: Insert into inventory table (Ignore if conflict exists)
-    return (
-      (await bulkInsert(
-        'inventory',
-        columns,
-        rows,
-        ['location_id', 'product_id'], // Conflict columns
-        [] // DO NOTHING on conflict
-      )) || []
-    );
-  } catch (error) {
-    logError('Error inserting product inventory records:', error);
-    throw error;
-  }
-};
-
-/**
- * Inserts inventory records that do not have a `product_id`, such as raw materials, packaging, samples, and other non-product items.
- *
- * @param {Object} trx - Database transaction object.
- * @param {Array<Object>} otherEntries - Array of inventory objects that do not include a `product_id`.
- * @returns {Promise<Array<Object>>} - A promise that resolves to an array of inserted non-product inventory records.
- */
-const insertNonProducts = async (trx, otherEntries) => {
-  if (!Array.isArray(otherEntries) || otherEntries.length === 0) return [];
-
-  const columns = [
-    'product_id',
-    'location_id',
-    'item_type',
-    'identifier',
-    'quantity',
-    'inbound_date',
-    'status_id',
-    'status_date',
-    'created_at',
-    'created_by',
-    'updated_at',
-    'updated_by',
-    'last_update',
-  ];
-
-  const rows = otherEntries.map(
-    ({ location_id, type, identifier, status_id, userId }) => [
-      null,
-      location_id,
-      type,
-      identifier,
-      0,
-      new Date(),
-      status_id,
-      new Date(),
-      new Date(),
-      userId,
-      null,
-      null,
-      null,
-    ]
-  );
-
-  try {
-    return (
-      (await bulkInsert(
-        'inventory',
-        columns,
-        rows,
-        ['location_id', 'identifier'], // Conflict columns for non-product items
-        [] // DO NOTHING on conflict
-      )) || []
-    );
-  } catch (error) {
-    logError('Error inserting non-product inventory records:', error);
-    throw error;
-  }
-};
-
-/**
- * Inserts inventory records with row-level locking and database transactions to ensure data consistency.
- *
- * @param {Object} client - Database client or transaction object for executing queries.
- * @param {Array<Object>} inventoryData - Array of inventory objects containing:
- *   - `location_id` (UUID): The location where the inventory is stored.
- *   - `product_id` (UUID | null): The associated product ID, or null for non-product inventory.
- *   - `identifier` (String): Unique identifier for the inventory item.
- *   - `quantity` (Integer): The number of units available.
- * @returns {Promise<Object>} - A promise resolving to an object containing the inserted inventory records.
- */
-const insertInventoryRecords = async (client, inventoryData) => {
-  if (!Array.isArray(inventoryData) || inventoryData.length === 0) {
-    logError('No inventory data to insert.');
-    return {
-      success: false,
-      message: 'No inventory data provided.',
-      inventoryRecords: [],
-    };
-  }
-
-  try {
-    // Step 1: Separate Products & Other Inventory Types
-    const productEntries = inventoryData
-      .filter((item) => item.type === 'product' && item.product_id)
-      .map((e) => ({ ...e, item_type: 'product' }));
-
-    const otherEntries = inventoryData
-      .filter((item) => item.type !== 'product' && item.identifier)
-      .map((e) => ({ ...e, item_type: e.type }));
-
-    // Step 2: Insert New Inventory Records
-    const productResults =
-      productEntries.length > 0
-        ? await retry(() => insertProducts(client, productEntries), 3, 1000)
-        : [];
-
-    const otherTypeResults =
-      otherEntries.length > 0
-        ? await retry(() => insertNonProducts(client, otherEntries), 3, 1000)
-        : [];
-
-    // Step 3: Ensure inventoryRecords is always an array
-    const inventoryRecords = [...productResults, ...otherTypeResults];
-
-    return { success: true, inventoryRecords };
-  } catch (error) {
-    logError('Error inserting inventory records:', error);
-    return {
-      success: false,
-      message: 'Failed to insert inventory records',
-      error: error.message,
-      inventoryRecords: [],
-    };
-  }
-};
-
-/**
- * Retrieves product IDs and identifiers based on an array of inventory IDs.
- *
- * @param {object} client - The database client instance.
- * @param {Array<{id: string}>} newInventoryIds - An array of objects containing inventory IDs.
- * @returns {Promise<Array<{id: string, product_id: string, identifier: string | null}>>}
- *          - Returns an array of inventory records with `id`, `product_id`, and `identifier`, or an empty array if no records are found.
- * @throws {AppError} - Throws an error if the database query fails.
- */
-const getProductIdOrIdentifierByInventoryIds = async (
-  client,
-  newInventoryIds
-) => {
-  if (!Array.isArray(newInventoryIds) || newInventoryIds.length === 0)
-    return [];
-
-  const flatIds = newInventoryIds.map((obj) => obj.id);
-
-  if (flatIds.length === 0) return []; // No valid UUIDs found
-
-  const queryText = `
-    SELECT id , product_id, identifier
-    FROM inventory
-    WHERE id = ANY($1);
-  `;
-
-  try {
-    const { rows } = await client.query(queryText, [flatIds]);
-    return rows;
-  } catch (error) {
-    logError('Error fetching inventory IDs:', error);
-    throw AppError.databaseError(
-      'Database query failed to fetch inventory IDs'
-    );
-  }
-};
-
-/**
- * Updates the quantity of multiple inventory records in bulk using transactions.
- *
- * @param {Object} client - Database transaction object used to execute queries.
- * @param {Object} inventoryUpdates - An object mapping `inventory_id` (UUID) to the new quantity.
- *   Example: `{ "168bdc32-18a3-40f9-87c5-1ad77ad2258a": 6, "a430cacf-d7b5-4915-a01a-aa1715476300": 40 }`
- * @param {string} userId - The UUID of the user performing the update (stored in `updated_by`).
- * @returns {Promise<void>} - Resolves when the update operation completes successfully.
- *
- * @throws {Error} - Throws an error if the update query fails.
- */
-const updateInventoryQuantity = async (client, inventoryUpdates, userId) => {
+const bulkUpdateLocationQuantities = async (updates, userId, client) => {
+  const table = 'location_inventory';
+  const columns = ['location_quantity', 'status_id', 'last_update'];
+  const whereColumns = ['location_id', 'batch_id'];
   const columnTypes = {
-    quantity: 'integer',
+    location_quantity: 'integer',
+    status_id: 'uuid',
+    last_update: 'timestamptz',
   };
-
-  const { baseQuery, params } = await formatBulkUpdateQuery(
-    'inventory',
-    ['quantity'],
-    ['id'],
-    inventoryUpdates,
-    userId,
-    columnTypes
-  );
-
-  if (baseQuery) {
-    return await retry(
-      async () => {
-        const { rows } = await query(baseQuery, params, client);
-
-        return rows; // Return the updated inventory IDs
-      },
-      3, // Retry up to 3 times
-      1000 // Initial delay of 1 second (exponential backoff applied)
+  
+  try {
+    const queryData = formatBulkUpdateQuery(
+      table,
+      columns,
+      whereColumns,
+      updates,
+      userId,
+      columnTypes
     );
+    
+    if (!queryData) return [];
+    
+    const { baseQuery, params } = queryData;
+    const result = await query(baseQuery, params, client);
+    
+    return result.rows;
+  } catch (error) {
+    const message = 'Failed to bulk update location quantities';
+    logSystemException(error, message, {
+      context: 'location-inventory-repository/bulkUpdateLocationQuantities',
+      updates,
+      userId,
+    });
+    throw AppError.databaseError(message, { updates, userId });
   }
+};
 
-  return []; // Return an empty array if no updates were made
+/**
+ * Fetches multiple location_inventory rows by composite keys.
+ *
+ * @param {Array<{ location_id: string, batch_id: string }>} keys - List of composite keys.
+ * @param {import('pg').PoolClient} client - pg client instance.
+ * @returns {Promise<Array<{ id: string, location_id: string, batch_id: string, location_quantity: number, reserved_quantity: number, status_id: string }>>}
+ */
+const getLocationInventoryQuantities = async (keys, client) => {
+  const sql = `
+    SELECT id, location_id, batch_id, location_quantity, reserved_quantity, status_id
+    FROM location_inventory
+    WHERE ${keys
+    .map((_, i) => `(location_id = $${i * 2 + 1} AND batch_id = $${i * 2 + 2})`)
+    .join(' OR ')}
+  `;
+  const params = keys.flatMap(({ location_id, batch_id }) => [location_id, batch_id]);
+  
+  try {
+    const result = await query(sql, params, client);
+    
+    if (result.rows.length !== keys.length) {
+      const missingKeys = keys.filter(({ location_id, batch_id }) =>
+        !result.rows.some(row => row.location_id === location_id && row.batch_id === batch_id)
+      );
+      logSystemWarn('Missing location_inventory records detected', {
+        context: 'location-inventory-repository/getLocationInventoryQuantities',
+        missingKeys,
+        expected: keys.length,
+        found: result.rows.length,
+      });
+    }
+    
+    return result.rows;
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch location_inventory records', {
+      context: 'location-inventory-repository/getLocationInventoryQuantities',
+      keys,
+    });
+    throw AppError.databaseError('Failed to fetch location inventory records');
+  }
 };
 
 module.exports = {
@@ -865,4 +696,6 @@ module.exports = {
   getPaginatedLocationInventoryRecords,
   insertLocationInventoryRecords,
   getInsertedLocationInventoryByIds,
+  bulkUpdateLocationQuantities,
+  getLocationInventoryQuantities,
 };

@@ -3,14 +3,14 @@ const {
   paginateQuery,
   retry,
   bulkInsert,
-  lockRows,
   formatBulkUpdateQuery,
   paginateResults,
 } = require('../database/db');
 const AppError = require('../utils/AppError');
 const {
   logSystemInfo,
-  logSystemException
+  logSystemException,
+  logSystemWarn,
 } = require('../utils/system-logger');
 const { logError } = require('../utils/logger-helper');
 const { buildWarehouseInventoryWhereClause } = require('../utils/sql/build-warehouse-inventory-filters');
@@ -564,6 +564,128 @@ const getInsertedWarehouseInventoryByIds = async (ids, client) => {
 };
 
 /**
+ * Performs a bulk update of warehouse quantities in the `warehouse_inventory` table.
+ *
+ * Each update is keyed by a composite key string in the format `'warehouseId-batchId'`,
+ * and contains values to update such as `warehouse_quantity`, `status_id`, and `last_update`.
+ *
+ * Example:
+ * {
+ *   '9d0ae78c-7885-4002-921c-9481ff74d137-c5471be9-340d-4b3c-b4be-f69dd9561bf1': {
+ *     warehouse_quantity: 100,
+ *     status_id: '2a6c3b91-aaaa-bbbb-cccc-1234567890ab',
+ *     last_update: '2025-06-02T10:00:00Z'
+ *   }
+ * }
+ *
+ * @param {Record<string, { warehouse_quantity: number, status_id: string, last_update: string }>} updates
+ *   A map where each key is a composite of `warehouse_id-batch_id`, and the value contains the update payload.
+ *
+ * @param {string} userId - The UUID of the user performing the update (used to populate `updated_by`).
+ * @param {import('pg').PoolClient} client - A PostgreSQL client instance from the `pg` library.
+ *
+ * @returns {Promise<Array<{ warehouse_id: string, batch_id: string }>>}
+ *   Resolves with an array of the updated composite keys.
+ */
+const bulkUpdateWarehouseQuantities = async (
+  updates,
+  userId,
+  client
+) => {
+  const table = 'warehouse_inventory';
+  const columns = ['warehouse_quantity', 'status_id', 'last_update'];
+  const whereColumns = ['warehouse_id', 'batch_id'];
+  const columnTypes = {
+    warehouse_quantity: 'integer',
+    status_id: 'uuid',
+    last_update: 'timestamptz',
+  };
+  
+  try {
+    const queryData = formatBulkUpdateQuery(
+      table,
+      columns,
+      whereColumns,
+      updates,
+      userId,
+      columnTypes
+    );
+    
+    if (!queryData) return [];
+    
+    const { baseQuery, params } = queryData;
+    const result = await query(baseQuery, params, client);
+    
+    return result.rows;
+  } catch (error) {
+    const message = 'Failed to bulk update warehouse quantities';
+    
+    logSystemException(error, message, {
+      context: 'warehouse-inventory-repository/bulkUpdateWarehouseQuantities',
+      updates,
+      userId,
+    });
+    throw AppError.databaseError(message, {
+      updates,
+      userId,
+    });
+  }
+};
+
+/**
+ * Fetches multiple warehouse_inventory rows by composite keys.
+ *
+ * @param {Array<{ warehouse_id: string, batch_id: string }>} keys - List of composite keys.
+ * @param {import('pg').PoolClient} client - pg client instance.
+ * @returns {Promise<Array<{ id: string, warehouse_id: string, batch_id: string, warehouse_quantity: number, reserved_quantity: number, status_id: string }>>}
+ */
+const getWarehouseInventoryQuantities = async (keys, client) => {
+  const sql = `
+    SELECT id, warehouse_id, batch_id, warehouse_quantity, reserved_quantity, status_id
+    FROM warehouse_inventory
+    WHERE ${keys
+    .map(
+      (_, i) =>
+        `(warehouse_id = $${i * 2 + 1} AND batch_id = $${i * 2 + 2})`
+    )
+    .join(' OR ')}
+  `;
+  const params = keys.flatMap(({ warehouse_id, batch_id }) => [warehouse_id, batch_id]);
+  
+  try {
+    const result = await query(sql, params, client);
+    
+    if (result.rows.length !== keys.length) {
+      const missingKeys = keys.filter(({ warehouse_id, batch_id }) =>
+        !result.rows.some(row => row.warehouse_id === warehouse_id && row.batch_id === batch_id)
+      );
+      logSystemWarn('Missing warehouse_inventory records detected', {
+        context: 'warehouse-inventory-repository/getWarehouseInventoryQuantities',
+        missingKeys,
+        expected: keys.length,
+        found: result.rows.length,
+      });
+    }
+    
+    if (result.rows.length !== keys.length) {
+      logSystemWarn('Some warehouse_inventory records not found', {
+        context: 'warehouse-inventory-repository/getWarehouseInventoryQuantities',
+        expected: keys.length,
+        found: result.rows.length,
+      });
+    }
+    
+    return result.rows;
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch multiple warehouse_inventory records', {
+      context: 'warehouse-inventory-repository/getWarehouseInventoryQuantities',
+      keys,
+    });
+    throw AppError.databaseError('Failed to fetch warehouse inventory records');
+  }
+};
+
+/**
  * Retrieves detailed inventory and lot-level data for a given warehouse.
  *
  * This includes inventory item info, lot number, quantities, expiry/manufacture dates,
@@ -723,160 +845,6 @@ const checkWarehouseInventoryBulk = async (
 };
 
 /**
- * Inserts records into the warehouse_inventory table using transactions.
- * Handles conflicts and ensures existing records are locked before updating.
- *
- * @param {Object} client - Transaction client.
- * @param {Array} inventoryData - List of inventory records to insert.
- * @returns {Promise<Array>} - List of inserted or updated warehouse inventory records.
- */
-const insertWarehouseInventoryRecoards = async (client, inventoryData) => {
-  if (!Array.isArray(inventoryData) || inventoryData.length === 0) {
-    throw AppError.validationError(
-      'Invalid inventory data. Expected a non-empty array.'
-    );
-  }
-
-  try {
-    // Step 1: Lock Existing Rows Before Insert/Update (With Retry)
-    await retry(
-      () =>
-        lockRows(
-          client,
-          'warehouse_inventory',
-          inventoryData.map(({ warehouse_id, inventory_id }) => ({
-            warehouse_id,
-            inventory_id,
-          })),
-          'FOR UPDATE'
-        ),
-      3, // Retries up to 3 times
-      1000 // Initial delay of 1 s, with exponential backoff
-    );
-
-    // Step 2: Prepare Data for Bulk Insert
-    const columns = [
-      'warehouse_id',
-      'inventory_id',
-      'reserved_quantity',
-      'available_quantity',
-      'warehouse_fee',
-      'status_id',
-      'status_date',
-      'created_at',
-      'created_by',
-      'updated_at',
-      'updated_by',
-      'last_update',
-    ];
-
-    const rows = inventoryData.map(
-      ({
-        warehouse_id,
-        inventory_id,
-        available_quantity,
-        warehouse_fee,
-        status_id,
-        created_by,
-      }) => [
-        warehouse_id,
-        inventory_id,
-        0,
-        available_quantity || 0,
-        warehouse_fee || 0,
-        status_id,
-        new Date(),
-        new Date(),
-        created_by,
-        null,
-        null,
-        null,
-      ]
-    );
-
-    // Step 3: Bulk Insert with Retry and Conflict Handling
-    return (
-      (await retry(
-        () =>
-          bulkInsert(
-            'warehouse_inventory',
-            columns,
-            rows,
-            ['warehouse_id', 'inventory_id'], // Conflict Columns
-            [] // Fields to do nothing on conflict
-          ),
-        3, // Retries up to 3 times
-        1000 // Initial delay of 1 s, with exponential backoff
-      )) || []
-    );
-  } catch (error) {
-    logError('Error inserting warehouse inventory records:', error);
-    throw AppError.databaseError(
-      'Failed to insert warehouse inventory records.',
-      {
-        details: { error: error.message, inventoryData },
-      }
-    );
-  }
-};
-
-/**
- * Updates the available quantity of multiple inventory items across different warehouses in bulk using transactions.
- *
- * @param {Object} client - Database transaction object used to execute queries.
- * @param {Object} warehouseUpdates - An object mapping composite keys (`warehouse_id-inventory_id`) to the new quantity.
- *   - Example:
- *     ```js
- *     {
- *       "814cfc1d-e245-41be-b3f6-bcac548e1927-168bdc32-18a3-40f9-87c5-1ad77ad2258a": 6,
- *       "814cfc1d-e245-41be-b3f6-bcac548e1927-a430cacf-d7b5-4915-a01a-aa1715476300": 40
- *     }
- *     ```
- * @param {string} userId - The UUID of the user performing the update (stored in `updated_by`).
- * @returns {Promise<void>} - Resolves when the update operation completes successfully.
- *
- * @throws {Error} - Throws an error if the update query fails.
- *
- * @example
- * await updateWarehouseInventoryQuantity(client, {
- *   "814cfc1d-e245-41be-b3f6-bcac548e1927-168bdc32-18a3-40f9-87c5-1ad77ad2258a": 6,
- *   "814cfc1d-e245-41be-b3f6-bcac548e1927-a430cacf-d7b5-4915-a01a-aa1715476300": 40
- * }, "e9a62a2a-0350-4e36-95cc-86237a394fe0");
- */
-const updateWarehouseInventoryQuantity = async (
-  client,
-  warehouseUpdates,
-  userId
-) => {
-  const columnTypes = {
-    reserved_quantity: 'integer',
-    available_quantity: 'integer',
-  };
-
-  const { baseQuery, params } = await formatBulkUpdateQuery(
-    'warehouse_inventory',
-    ['reserved_quantity', 'available_quantity'],
-    ['warehouse_id', 'inventory_id'],
-    warehouseUpdates,
-    userId,
-    columnTypes
-  );
-
-  if (baseQuery) {
-    return await retry(
-      async () => {
-        const { rows } = await query(baseQuery, params, client);
-        return rows; // Return the updated inventory IDs
-      },
-      3, // Retry up to 3 times
-      1000 // Initial delay of 1 second (exponential backoff applied)
-    );
-  }
-
-  return [];
-};
-
-/**
  * Retrieves recently inserted warehouse inventory records based on warehouse lot IDs.
  *
  * @param {string[]} warehouseLotIds - An array of warehouse lot IDs.
@@ -982,71 +950,15 @@ const getRecentInsertWarehouseInventoryRecords = async (warehouseLotIds) => {
   }
 };
 
-/**
- * Fetches the available and reserved quantities from warehouse_inventory
- * for a list of (warehouse_id, inventory_id) pairs.
- *
- * @param {Array<{ warehouseId: string, inventoryId: string }>} items - List of warehouse-inventory pairs.
- * @param {Object} [client] - Optional DB client (for transaction support).
- * @returns {Promise<Object>} - Object keyed by 'warehouseId-inventoryId' with quantity info:
- *   {
- *     'warehouseId-inventoryId': {
- *       available_quantity: number,
- *       reserved_quantity: number
- *     },
- *     ...
- *   }
- *
- * @throws {AppError} - Throws if a DB query fails.
- */
-const fetchWarehouseInventoryQuantities = async (items, client = null) => {
-  if (!Array.isArray(items) || items.length === 0) return {};
-
-  try {
-    const conditions = items
-      .map((_, index) => `($${index * 2 + 1}::uuid, $${index * 2 + 2}::uuid)`)
-      .join(', ');
-
-    const params = items.flatMap(({ warehouseId, inventoryId }) => [
-      warehouseId,
-      inventoryId,
-    ]);
-
-    const queryText = `
-      SELECT warehouse_id, inventory_id, available_quantity, reserved_quantity
-      FROM warehouse_inventory
-      WHERE (warehouse_id, inventory_id) IN (${conditions})
-    `;
-
-    const { rows } = await query(queryText, params, client);
-
-    const result = {};
-    for (const row of rows) {
-      const key = `${row.warehouse_id}-${row.inventory_id}`;
-      result[key] = {
-        available_quantity: Number(row.available_quantity ?? 0),
-        reserved_quantity: Number(row.reserved_quantity ?? 0),
-      };
-    }
-
-    return result;
-  } catch (error) {
-    throw AppError.databaseError(
-      'Failed to fetch warehouse inventory quantities',
-      error
-    );
-  }
-};
-
 module.exports = {
   getPaginatedWarehouseInventoryItemSummary,
   getWarehouseInventorySummaryDetailsByItemId,
   getPaginatedWarehouseInventoryRecords,
   insertWarehouseInventoryRecords,
   getInsertedWarehouseInventoryByIds,
+  bulkUpdateWarehouseQuantities,
+  getWarehouseInventoryQuantities,
   getWarehouseInventoryDetailsByWarehouseId,
   checkWarehouseInventoryBulk,
-  updateWarehouseInventoryQuantity,
   getRecentInsertWarehouseInventoryRecords,
-  fetchWarehouseInventoryQuantities,
 };

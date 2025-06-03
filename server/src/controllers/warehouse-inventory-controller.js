@@ -4,10 +4,10 @@ const {
   fetchWarehouseInventorySummaryByItemIdService,
   fetchPaginatedWarehouseInventoryRecordService,
 } = require('../services/warehouse-inventory-service');
-const { logInfo } = require('../utils/logger-helper');
+const { logInfo, logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
 const { normalizePaginationAndSortParams, sanitizeCommonInventoryFilters } = require('../utils/query/inventory-query-utils');
-const { createInventoryRecordService } = require('../services/inventory-service');
+const { createInventoryRecordService, adjustInventoryQuantitiesService } = require('../services/inventory-service');
 
 /**
  * Controller: Handles GET request to fetch paginated warehouse inventory summary.
@@ -183,9 +183,52 @@ const createWarehouseInventoryRecordController = wrapAsync(async (req, res, next
   });
 });
 
+/**
+ * Controller for adjusting warehouse and/or location inventory quantities.
+ *
+ * Expects a JSON body containing an array of update records.
+ * Each record must include:
+ *  - batch_type: 'product' | 'packaging_material'
+ *  - batch_id: string
+ *  - quantity: number
+ *  - warehouse_id or location_id: string
+ *  - inventory_action_type_id: string
+ *  - adjustment_type_id: string (optional)
+ *  - comments: string (optional)
+ *  - meta: object (optional)
+ *
+ * Performs:
+ *  - Validation of batch registry entries
+ *  - Deduplication of updates by composite keys
+ *  - Status determination (in_stock / out_of_stock)
+ *  - Inventory updates and audit logging
+ */
+const adjustInventoryQuantitiesController = wrapAsync(async (req, res, next) => {
+  const updates = req.body?.updates;
+  const lock = req.body?.lock !== false; // defaults to true if undefined
+  const userId = req.user?.id;
+  
+  if (!updates || typeof updates !== 'object' || !userId) {
+    return next(AppError.validationError('Missing or invalid input data.'));
+  }
+  
+  const enrichedUpdates = updates.map((u) => ({
+    ...u,
+    user_id: userId,
+  }));
+  
+  const result = await adjustInventoryQuantitiesService(enrichedUpdates, lock);
+  
+  res.status(200).json({
+    message: 'Inventory quantities adjusted successfully.',
+    data: result,
+  });
+});
+
 module.exports = {
   getPaginatedWarehouseInventorySummaryController,
   getWarehouseInventorySummaryDetailsController,
   getWarehouseInventoryRecordController,
   createWarehouseInventoryRecordController,
+  adjustInventoryQuantitiesController,
 };
