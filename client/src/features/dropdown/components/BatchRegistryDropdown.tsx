@@ -42,7 +42,6 @@ const BatchRegistryDropdown: FC<BatchRegistryDropdownProps> = ({
                                                                  onRefresh,
                                                                  onAddNew,
                                                                }) => {
-
   return (
     <Dropdown
       label={label}

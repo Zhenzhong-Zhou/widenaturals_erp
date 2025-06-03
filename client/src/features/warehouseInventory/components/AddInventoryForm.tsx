@@ -88,6 +88,12 @@ const AddInventoryForm: FC<AddInventoryFormProps> = ({
                 }
                 setSelectedWarehouse({ warehouseId, locationId });
                 onChange?.(`${warehouseId}::${locationId}`);
+                
+                setBatchDropdownParams((prev) => ({
+                  ...prev,
+                  warehouseId,
+                  locationId,
+                }));
               }}
               warehouseDropdownOptions={warehouseDropdownOptions}
               warehouseDropdownLoading={warehouseDropdownLoading}
@@ -144,7 +150,11 @@ const AddInventoryForm: FC<AddInventoryFormProps> = ({
               error={batchDropdownError}
               hasMore={hasMore}
               pagination={pagination}
-              fetchParams={batchDropdownParams}
+              fetchParams={{
+                ...batchDropdownParams,
+                warehouseId: selectedWarehouse.warehouseId,
+                locationId: selectedWarehouse.locationId,
+              }}
               setFetchParams={setBatchDropdownParams}
               onRefresh={fetchBatchDropdown}
             />
