@@ -4,7 +4,7 @@ const {
   fetchWarehouseInventorySummaryByItemIdService,
   fetchPaginatedWarehouseInventoryRecordService,
 } = require('../services/warehouse-inventory-service');
-const { logInfo, logError } = require('../utils/logger-helper');
+const { logInfo } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
 const { normalizePaginationAndSortParams, sanitizeCommonInventoryFilters } = require('../utils/query/inventory-query-utils');
 const { createInventoryRecordService, adjustInventoryQuantitiesService } = require('../services/inventory-service');
@@ -160,21 +160,20 @@ const createWarehouseInventoryRecordController = wrapAsync(async (req, res, next
     return next(AppError.validationError('Request body must include a valid "records" array.'));
   }
   
-  const userId = req.user?.id;
-  const enrichedRecords = records.map((r) => ({
-    ...r,
-    user_id: userId,
-  }));
+  const user_id = req.user?.id;
+  if (!user_id) {
+    return next(AppError.validationError('Missing authenticated user.'));
+  }
   
   logInfo('Creating inventory records', req, {
     context: 'warehouse-inventory-controller/createWarehouseInventoryRecordController',
-    recordCount: enrichedRecords.length,
-    requestedBy: userId,
+    recordCount: records.length,
+    requestedBy: user_id,
     requestId: req.id,
     traceId: req.traceId,
   });
   
-  const result = await createInventoryRecordService(enrichedRecords);
+  const result = await createInventoryRecordService(records, user_id);
   
   res.status(201).json({
     success: true,
@@ -206,18 +205,21 @@ const createWarehouseInventoryRecordController = wrapAsync(async (req, res, next
 const adjustInventoryQuantitiesController = wrapAsync(async (req, res, next) => {
   const updates = req.body?.updates;
   const lock = req.body?.lock !== false; // defaults to true if undefined
-  const userId = req.user?.id;
+  const user_id = req.user?.id;
   
-  if (!updates || typeof updates !== 'object' || !userId) {
+  if (!Array.isArray(updates) || updates.length === 0 || !user_id) {
     return next(AppError.validationError('Missing or invalid input data.'));
   }
   
-  const enrichedUpdates = updates.map((u) => ({
-    ...u,
-    user_id: userId,
-  }));
+  const result = await adjustInventoryQuantitiesService(updates, user_id, lock);
   
-  const result = await adjustInventoryQuantitiesService(enrichedUpdates, lock);
+  logInfo('Inventory adjustment completed successfully.', req, {
+    context: 'warehouse-inventory-controller/adjustInventoryQuantitiesController',
+    user_id,
+    lock,
+    updated_record_count: updates.length,
+    timestamp: new Date().toISOString(),
+  });
   
   res.status(200).json({
     message: 'Inventory quantities adjusted successfully.',

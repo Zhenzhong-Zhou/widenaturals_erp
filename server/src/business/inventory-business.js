@@ -7,57 +7,164 @@ const { logSystemException } = require('../utils/system-logger');
 const { validateBatchRegistryEntryById } = require('./batch-registry-business');
 const { deduplicateByCompositeKey } = require('../utils/array-utils');
 
-const MAX_BULK_UPDATE = 20;
+/**
+ * Validates and normalizes inventory input records before insertion or adjustment.
+ *
+ * Responsibilities:
+ * - Ensures input is a non-empty array and within allowed bulk size.
+ * - Validates batch registry references using `batch_type` and `batch_id`.
+ * - Normalizes quantity fields (`warehouse_quantity`, `location_quantity`).
+ * - Deduplicates warehouse and location records by composite key (`warehouse_id` + `batch_id`, `location_id` + `batch_id`).
+ *
+ * @param {Array<Object>} records - Raw inventory records from the request payload.
+ * @param {import('pg').PoolClient} client - PostgreSQL client within a transaction context.
+ *
+ * @returns {Promise<{ dedupedWarehouseRecords: Array<Object>, dedupedLocationRecords: Array<Object> }>}
+ *   Object containing deduplicated warehouse and location records.
+ *
+ * @throws {AppError} If validation fails or unexpected system error occurs.
+ */
+const MAX_BULK_RECORDS = 20;
 
-const computeInventoryAdjustments = async (records, client) => {
+const validateAndNormalizeInventoryRecords = async (records, client) => {
   try {
+    // Step 1: Validate input type and size
     if (!Array.isArray(records) || records.length === 0) {
-      throw AppError.validationError('No inventory updates provided.');
+      throw AppError.validationError('No inventory records provided.');
+    }
+    if (records.length > MAX_BULK_RECORDS) {
+      throw AppError.validationError(`Bulk limit is ${MAX_BULK_RECORDS} records.`);
     }
     
-    if (records.length > MAX_BULK_UPDATE) {
-      throw AppError.validationError(`Bulk update limit is ${MAX_BULK_UPDATE} records.`);
-    }
-    
-    // Step 1: Validate batch registry references
+    // Step 2: Validate batch registry existence
     await Promise.all(
       records.map((r) =>
         validateBatchRegistryEntryById(r.batch_type, r.batch_id, client)
       )
     );
     
-    // Step 2: Normalize quantities
+    // Step 3: Normalize warehouse and location quantities
     const warehouseRecords = records.map((r) => ({
       ...r,
       warehouse_quantity: r.quantity ?? 0,
     }));
+    
     const locationRecords = records.map((r) => ({
       ...r,
       location_quantity: r.quantity ?? 0,
     }));
     
-    // Step 3: Deduplicate
-    const dedupedWarehouse = deduplicateByCompositeKey(warehouseRecords, ['warehouse_id', 'batch_id'], (a, b) => {
-      a.warehouse_quantity += b.warehouse_quantity ?? 0;
-    });
+    // Step 4: Deduplicate by composite keys (warehouse_id + batch_id, etc.)
+    const dedupedWarehouseRecords = deduplicateByCompositeKey(
+      warehouseRecords,
+      ['warehouse_id', 'batch_id'],
+      (a, b) => {
+        a.warehouse_quantity += b.warehouse_quantity ?? 0;
+      }
+    );
     
-    const dedupedLocation = deduplicateByCompositeKey(locationRecords, ['location_id', 'batch_id'], (a, b) => {
-      a.location_quantity += b.location_quantity ?? 0;
-    });
+    const dedupedLocationRecords = deduplicateByCompositeKey(
+      locationRecords,
+      ['location_id', 'batch_id'],
+      (a, b) => {
+        a.location_quantity += b.location_quantity ?? 0;
+      }
+    );
     
-    // Step 4: Merge deduped updates into a single array
-    const updates = [...dedupedWarehouse, ...dedupedLocation];
-    
-    // Step 5: Call original adjustment logic (unchanged below)
-    return await computeInventoryAdjustmentsCore(updates, client);
-    
+    return { dedupedWarehouseRecords, dedupedLocationRecords };
   } catch (error) {
-    const message = 'Failed to compute inventory adjustments due to unexpected system error.';
-    logSystemException(error, message, {
-      context: 'inventory-business/computeInventoryAdjustments',
-      records,
+    logSystemException(error, 'Failed to validate and normalize inventory records.', {
+      context: 'inventory-business/validateAndNormalizeInventoryRecords',
+      recordCount: records?.length,
     });
-    throw AppError.businessError(message);
+    throw AppError.businessError('Inventory validation or normalization failed.');
+  }
+};
+
+/**
+ * Enriches inventory input records with inserted inventory IDs and log metadata
+ * for building inventory activity log entries.
+ *
+ * Responsibilities:
+ * - Attaches `warehouse_inventory_id` and `location_inventory_id` by matching composite keys.
+ * - Injects system-level metadata fields needed for audit logging:
+ *     - `status_id`, `inventory_action_type_id`, `adjustment_type_id`, `source_type`
+ *     - `user_id` to reflect the actor performing the operation
+ *
+ * @param {Object} params
+ * @param {Array<Object>} params.originalRecords - Raw input inventory records (before insertion)
+ * @param {Map<string, string>} params.warehouseMap - Map of `warehouse_id::batch_id` → inserted `warehouse_inventory_id`
+ * @param {Map<string, string>} params.locationMap - Map of `location_id::batch_id` → inserted `location_inventory_id`
+ * @param {string} params.user_id - Authenticated user performing the operation
+ *
+ * @returns {Array<Object>} Enriched records suitable for log construction
+ */
+const buildEnrichedRecordsForLog = ({
+                                      originalRecords,
+                                      warehouseMap,
+                                      locationMap,
+                                      user_id,
+                                    }) =>
+  originalRecords.map((r) => ({
+    ...r,
+    
+    // Link to newly inserted inventory records
+    warehouse_inventory_id: warehouseMap.get(`${r.warehouse_id}::${r.batch_id}`) ?? null,
+    location_inventory_id: locationMap.get(`${r.location_id}::${r.batch_id}`) ?? null,
+    
+    // Default metadata for inventory creation logs
+    status_id: getStatusId('inventory_in_stock'),
+    inventory_action_type_id: getStatusId('action_manual_stock_insert'),
+    adjustment_type_id: getStatusId('adjustment_manual_stock_insert'),
+    source_type: InventorySourceTypes.MANUAL_INSERT,
+    
+    // Audit actor
+    user_id,
+  }));
+
+/**
+ * Validates and normalizes inventory adjustment records, then computes
+ * the resulting quantity changes and corresponding audit log records.
+ *
+ * Responsibilities:
+ * - Validates input format and record count using `validateAndNormalizeInventoryRecords`
+ * - Deduplicates records and normalizes quantity values
+ * - Delegates core quantity computation and status tracking to `computeInventoryAdjustmentsCore`
+ *
+ * @param {Array<Object>} records - Raw inventory adjustment records
+ *   Each record may include:
+ *     - `warehouse_id`, `location_id`, `batch_id`
+ *     - `quantity`, `inventory_action_type_id`, `adjustment_type_id`, `comments`, `meta`
+ *
+ * @param {import('pg').PoolClient} client - PostgreSQL client within transaction scope
+ *
+ * @returns {Promise<{
+ *   warehouseInventoryUpdates: Object,
+ *   locationInventoryUpdates: Object,
+ *   warehouseCompositeKeys: Array<Object>,
+ *   locationCompositeKeys: Array<Object>,
+ *   logRecords: Array<Object>
+ * }>}
+ *
+ * @throws {AppError} If validation fails or unexpected system error occurs
+ */
+const computeInventoryAdjustments = async (records, client) => {
+  try {
+    // Step 1: Validate and normalize input (quantity defaults, deduplication)
+    const { dedupedWarehouseRecords, dedupedLocationRecords } =
+      await validateAndNormalizeInventoryRecords(records, client);
+    
+    // Step 2: Combine normalized records for core adjustment computation
+    const updates = [...dedupedWarehouseRecords, ...dedupedLocationRecords];
+    
+    // Step 3: Compute final update payloads, status updates, and log entries
+    return await computeInventoryAdjustmentsCore(updates, client);
+  } catch (error) {
+    logSystemException(error, 'Failed to compute inventory adjustments.', {
+      context: 'inventory-business/computeInventoryAdjustments',
+      recordCount: records?.length,
+    });
+    throw AppError.businessError('Failed to compute inventory adjustments.');
   }
 };
 
@@ -103,7 +210,6 @@ const computeInventoryAdjustmentsCore = async (updates, client) => {
         inventory_action_type_id,
         adjustment_type_id,
         comments,
-        user_id,
         meta = {},
       } = updates[key];
       
@@ -142,7 +248,6 @@ const computeInventoryAdjustmentsCore = async (updates, client) => {
           quantity_change: diffQty,
           status_id,
           status_date: new Date().toISOString(),
-          user_id,
           inventory_action_type_id,
           adjustment_type_id,
           comments: comments ?? null,
@@ -181,7 +286,6 @@ const computeInventoryAdjustmentsCore = async (updates, client) => {
           quantity_change: diffQty,
           status_id,
           status_date: new Date().toISOString(),
-          user_id,
           inventory_action_type_id,
           adjustment_type_id,
           comments: comments ?? null,
@@ -210,5 +314,7 @@ const computeInventoryAdjustmentsCore = async (updates, client) => {
 };
 
 module.exports = {
+  validateAndNormalizeInventoryRecords,
+  buildEnrichedRecordsForLog,
   computeInventoryAdjustments,
 };
