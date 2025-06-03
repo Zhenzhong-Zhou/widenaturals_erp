@@ -110,8 +110,6 @@ const AddInventoryDialogWithModeToggle: FC<AddInventoryDialogWithModeToggleProps
             onSubmit={onSubmit}
             loading={submitting}
             batchDropdownOptions={batchDropdownOptions}
-            selectedBatch={selectedBatch}
-            setSelectedBatch={setSelectedBatch}
             batchDropdownParams={batchDropdownParams}
             setBatchDropdownParams={setBatchDropdownParams}
             fetchBatchDropdown={fetchBatchDropdown}

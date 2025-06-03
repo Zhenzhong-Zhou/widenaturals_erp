@@ -15,8 +15,6 @@ interface AddBulkInventoryFormProps {
   onSubmit: (formData: Record<string, any>) => void;
   loading?: boolean;
   batchDropdownOptions: { value: string; label: string }[];
-  selectedBatch: { id: string; type: string } | null;
-  setSelectedBatch: (value: { id: string; type: string } | null) => void;
   batchDropdownParams: GetBatchRegistryDropdownParams;
   setBatchDropdownParams: Dispatch<SetStateAction<GetBatchRegistryDropdownParams>>;
   fetchBatchDropdown: (params: GetBatchRegistryDropdownParams) => void;
@@ -36,8 +34,6 @@ const AddBulkInventoryForm: FC<AddBulkInventoryFormProps> = ({
                                                                onSubmit,
                                                                loading,
                                                                batchDropdownOptions,
-                                                               selectedBatch,
-                                                               setSelectedBatch,
                                                                batchDropdownParams,
                                                                setBatchDropdownParams,
                                                                fetchBatchDropdown,
@@ -108,7 +104,7 @@ const AddBulkInventoryForm: FC<AddBulkInventoryFormProps> = ({
         type: 'custom',
         required: true,
         group: 'batch',
-        component: ({ onChange }) => (
+        component: ({ value, onChange }) => (
           <Grid container spacing={2}>
             {/* Left: Batch Type RadioGroup */}
             <Grid size={{xs:12, sm:6}}>
@@ -130,20 +126,10 @@ const AddBulkInventoryForm: FC<AddBulkInventoryFormProps> = ({
             {/* Right: Batch Registry Dropdown */}
             <Grid size={{xs:12, sm:6}}>
               <BatchRegistryDropdown
-                value={selectedBatch ? `${selectedBatch.id}::${selectedBatch.type}` : null}
+                value={value || null}
                 options={batchDropdownOptions}
                 onChange={(val) => {
-                  if (!val || !val.includes('::')) {
-                    setSelectedBatch(null);
-                    return;
-                  }
-                  const [id, type] = val.split('::');
-                  if (!id || !type) {
-                    setSelectedBatch(null);
-                    return;
-                  }
-                  setSelectedBatch({ id, type });
-                  onChange(`${id}::${type}`);
+                  onChange(val ?? '');
                 }}
                 loading={batchDropdownLoading}
                 error={batchDropdownError}
@@ -194,7 +180,6 @@ const AddBulkInventoryForm: FC<AddBulkInventoryFormProps> = ({
   }, [
     selectedWarehouse,
     batchType,
-    selectedBatch,
     warehouseDropdownOptions,
     warehouseDropdownLoading,
     warehouseDropdownError,
@@ -208,7 +193,6 @@ const AddBulkInventoryForm: FC<AddBulkInventoryFormProps> = ({
     setBatchDropdownParams,
     fetchBatchDropdown,
     setSelectedWarehouse,
-    setSelectedBatch,
   ]);
   
   return (
@@ -223,13 +207,6 @@ const AddBulkInventoryForm: FC<AddBulkInventoryFormProps> = ({
         )
       }
       loading={loading}
-      onItemReset={(index) => {
-        console.log('Resetting item', index);
-        setSelectedBatch(null); // or clear per-item batch if you track per row
-      }}
-      onFormReset={() => {
-        setSelectedBatch(null);
-      }}
     />
   );
 };

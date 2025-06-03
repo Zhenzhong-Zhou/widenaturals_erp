@@ -43,8 +43,6 @@ interface MultiItemFormProps {
     watch: (name: string) => any
   ) => Record<string, (value: any) => string | undefined>;
   loading?: boolean;
-  onItemReset?: (index: number) => void;
-  onFormReset?: () => void;
 }
 
 const MultiItemForm: FC<MultiItemFormProps> = ({
@@ -53,8 +51,6 @@ const MultiItemForm: FC<MultiItemFormProps> = ({
   defaultValues = [{}],
   validation,
   loading,
-  onItemReset,
-  onFormReset,
 }) => {
   const { control, handleSubmit, watch, reset } = useForm<{
     items: Record<string, any>[];
@@ -99,8 +95,6 @@ const MultiItemForm: FC<MultiItemFormProps> = ({
     
     remove(index);
     insert(index, newRow);
-    
-    onItemReset?.(index);
   };
   
   const handleRemove = (id: string) => {
@@ -121,7 +115,6 @@ const MultiItemForm: FC<MultiItemFormProps> = ({
   
   const resetFrom = () => {
     reset({ items: [{ id: uuidv4() }] });  // Reset form state with one empty row
-    onFormReset?.();
   };
   
   return (
