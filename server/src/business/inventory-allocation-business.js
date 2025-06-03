@@ -4,10 +4,6 @@ const {
 } = require('../repositories/order-repository');
 const AppError = require('../utils/AppError');
 const {
-  getAvailableLotsForAllocation,
-  updateWarehouseInventoryLotQuantity, getSpecificLotsInOrder,
-} = require('../repositories/warehouse-inventory-lot-repository');
-const {
   insertInventoryAllocation,
   getAllocationsByOrderId,
   getTotalAllocatedForOrderItem,
@@ -17,9 +13,6 @@ const {
   transformOrderStatusAndItems,
   transformUpdatedOrderStatusResult,
 } = require('../transformers/order-transformer');
-const {
-  transformWarehouseLotResult,
-} = require('../transformers/warehouse-inventory-lot-transformer');
 const { getStatusValue, lockRow, retry } = require('../database/db');
 const {
   determineOrderStatusFromAllocations,

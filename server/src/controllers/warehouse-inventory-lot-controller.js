@@ -1,13 +1,9 @@
-const {
-  adjustWarehouseInventory,
-} = require('../services/warehouse-inventory-lot-service');
 const { logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
 const wrapAsync = require('../utils/wrap-async');
 const {
   fetchRecentInsertWarehouseInventoryRecords,
 } = require('../services/location-inventory-service');
-const { getAvailableInventoryLotsForClient } = require('../business/warehouse-inventory-lot-business');
 
 /**
  * API route to adjust inventory.
