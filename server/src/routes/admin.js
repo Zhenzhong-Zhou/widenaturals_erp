@@ -10,7 +10,7 @@ const {
   createAdminController,
 } = require('../controllers/admin-controller');
 const { ADMIN } = require('../utils/constants/domain/permissions');
-const { csrfProtection } = require('../middlewares/csrf-protection');
+const { csrfMiddleware } = require('../middlewares/csrf-protection');
 
 const router = express.Router();
 
@@ -21,7 +21,7 @@ const router = express.Router();
  */
 router.post(
   '/create',
-  csrfProtection(),
+  csrfMiddleware,
   authorize([ADMIN.CREATE]), // Restrict access to specific roles
   validate(adminSchema), // Validate input with Joi
   sanitizeFields(['description'], true), // Rich text sanitization

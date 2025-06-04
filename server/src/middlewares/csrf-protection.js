@@ -116,4 +116,5 @@ const csrfProtection = () => {
 
 module.exports = {
   csrfProtection,
+  csrfMiddleware,
 };
