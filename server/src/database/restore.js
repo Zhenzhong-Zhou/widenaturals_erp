@@ -1,5 +1,4 @@
-const { exec } = require('child_process');
-const { promisify } = require('util');
+const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const { loadEnv } = require('../config/env');
@@ -8,14 +7,48 @@ const {
   logSystemInfo,
   logSystemWarn, logSystemException
 } = require('../utils/system-logger');
-const { logInfo, logWarn, logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
 const { downloadFileFromS3 } = require('../utils/aws-s3-service');
 const { verifyFileIntegrity } = require('./file-management');
 
-const execAsync = promisify(exec);
 loadEnv();
+
 const bucketName = process.env.AWS_S3_BUCKET_NAME;
+
+/**
+ * Executes a safe pg_restore command using spawn with no shell interpolation.
+ */
+const runPgRestore = ({ decryptedFilePath, databaseName, dbUser, dbPassword }) => {
+  return new Promise((resolve, reject) => {
+    const args = [
+      '--clean',
+      '--if-exists',
+      '--jobs=4',
+      '--format=custom',
+      `--dbname=${databaseName}`,
+      `--username=${dbUser}`,
+      decryptedFilePath,
+    ];
+    
+    const env = { ...process.env };
+    if (dbPassword) env.PGPASSWORD = dbPassword;
+    
+    const restore = spawn('pg_restore', args, { env });
+    
+    let stdout = '';
+    let stderr = '';
+    
+    restore.stdout.on('data', (data) => (stdout += data.toString()));
+    restore.stderr.on('data', (data) => (stderr += data.toString()));
+    
+    restore.on('close', (code) => {
+      if (code !== 0) {
+        return reject(new Error(`pg_restore failed with code ${code}\n${stderr}`));
+      }
+      resolve({ stdout, stderr });
+    });
+  });
+};
 
 /**
  * Restores a decrypted SQL backup to the specified PostgreSQL database.
@@ -35,14 +68,13 @@ const restoreDatabase = async (
   s3KeyEnc = ''
 ) => {
   try {
-    // Download from S3 if specified
     if (!fs.existsSync(decryptedFilePath)) {
       logSystemInfo('Downloading file from S3...', {
         context: 'restore-db',
         s3Key: s3KeyEnc,
         targetPath: decryptedFilePath,
       });
-
+      
       await downloadFileFromS3(bucketName, s3KeyEnc, decryptedFilePath);
       
       logSystemInfo(`File downloaded from S3`, {
@@ -50,24 +82,23 @@ const restoreDatabase = async (
         decryptedFilePath,
       });
     }
-
-    if (!fs.existsSync(decryptedFilePath)) {
-      throw AppError.notFoundError(
-        `Decrypted file not found: ${decryptedFilePath}`
-      );
-    }
-
-    const restoreCommand = dbPassword
-      ? `PGPASSWORD=${dbPassword} pg_restore --clean --if-exists --jobs=4 --format=custom --dbname=${databaseName} --username=${dbUser} ${decryptedFilePath}`
-      : `pg_restore --clean --if-exists --jobs=4 --format=custom --dbname=${databaseName} --username=${dbUser} ${decryptedFilePath}`;
     
-    logSystemInfo('Executing pg_restore command', {
+    if (!fs.existsSync(decryptedFilePath)) {
+      throw AppError.notFoundError(`Decrypted file not found: ${decryptedFilePath}`);
+    }
+    
+    logSystemInfo('Executing pg_restore command (safe spawn)', {
       context: 'restore-db',
       database: databaseName,
-      command: restoreCommand,
+      decryptedFilePath,
     });
-
-    const { stdout, stderr } = await execAsync(restoreCommand);
+    
+    const { stdout, stderr } = await runPgRestore({
+      decryptedFilePath,
+      databaseName,
+      dbUser,
+      dbPassword,
+    });
     
     if (stdout) {
       logSystemInfo('Restore command output', {
@@ -96,7 +127,6 @@ const restoreDatabase = async (
       database: databaseName,
       s3Key: s3KeyEnc,
     });
-    
     throw AppError.databaseError(`Database restore failed: ${error.message}`);
   }
 };

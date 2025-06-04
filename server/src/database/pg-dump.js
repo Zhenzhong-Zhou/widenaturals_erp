@@ -1,69 +1,63 @@
-const { promisify } = require('util');
-const { exec } = require('child_process');
+const { spawn } = require('child_process');
 const {
   logSystemInfo,
   logSystemError,
   logSystemException
 } = require('../utils/system-logger');
 
-const execAsync = promisify(exec);
-
 /**
- * Runs the pg_dump command to create a database backup securely.
- * @param {string} dumpCommand - The pg_dump command to execute.
+ * Runs the pg_dump command safely using spawn.
+ * @param {string[]} args - The pg_dump argument list.
  * @param {boolean} isProduction - Whether running in production mode.
  * @param {string} dbUser - Database username.
  * @param {string} dbPassword - Database password.
  * @returns {Promise<void>}
  */
-const runPgDump = async (dumpCommand, isProduction, dbUser, dbPassword) => {
-  logSystemInfo('Starting pg_dump execution', {
-    context: 'pg-dump',
-    isProduction,
-  });
-  
-  const execOptions = {
-    timeout: 300000, // 5-minute timeout
-    env: {
-      ...process.env, // Preserve existing env variables
-    },
-  };
-  
-  if (!isProduction) {
-    execOptions.env.PGUSER = dbUser;
-    execOptions.env.PGPASSWORD = dbPassword;
-  }
-  
-  try {
-    const { stdout, stderr } = await execAsync(dumpCommand, execOptions);
-    
-    if (stdout) {
-      logSystemInfo('pg_dump stdout', {
-        context: 'pg-dump',
-        output: stdout,
-      });
-    }
-    
-    if (stderr) {
-      logSystemError('pg_dump stderr', {
-        context: 'pg-dump',
-        output: stderr,
-      });
-    }
-  } catch (error) {
-    logSystemException(error, 'pg_dump failed', {
+const runPgDump = async (args, isProduction, dbUser, dbPassword) => {
+  return new Promise((resolve, reject) => {
+    logSystemInfo('Starting pg_dump execution (safe spawn)', {
       context: 'pg-dump',
-      dumpCommand,
+      args,
       isProduction,
-      code: error.code,
-      signal: error.signal,
-      cmd: error.cmd,
-      stdout: error.stdout,
-      stderr: error.stderr,
     });
     
-    throw error;
-  }
+    const env = { ...process.env };
+    if (!isProduction) {
+      env.PGUSER = dbUser;
+      env.PGPASSWORD = dbPassword;
+    }
+    
+    const dump = spawn('pg_dump', args, { env });
+    
+    let stdout = '';
+    let stderr = '';
+    
+    dump.stdout.on('data', (data) => { stdout += data.toString(); });
+    dump.stderr.on('data', (data) => { stderr += data.toString(); });
+    
+    dump.on('close', (code) => {
+      if (stdout) {
+        logSystemInfo('pg_dump stdout', { context: 'pg-dump', output: stdout });
+      }
+      if (stderr) {
+        logSystemError('pg_dump stderr', { context: 'pg-dump', output: stderr });
+      }
+      
+      if (code === 0) {
+        return resolve();
+      }
+      
+      const error = new Error(`pg_dump failed with exit code ${code}`);
+      logSystemException(error, 'pg_dump failed', {
+        context: 'pg-dump',
+        args,
+        code,
+        stdout,
+        stderr,
+      });
+      reject(error);
+    });
+  });
 };
 
 module.exports = { runPgDump };

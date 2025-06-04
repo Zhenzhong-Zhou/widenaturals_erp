@@ -30,18 +30,18 @@ const applyGlobalMiddleware = (app) => {
 
   // 2. Global Rate Limiter
   app.use(createRateLimiter());
-
-  // 3. Cookie Parser Middleware
-  app.use(cookieParser());
-
-  // 4. CORS Middleware
+  
+  // 3. CORS Middleware
   app.use(corsMiddleware);
-
+  
+  // 4. Cookie Parser Middleware
+  app.use(cookieParser());
+  
   // 5. Body Parsing Middleware
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
-
-  // 6. CSRF Protection
+  
+  // 6. CSRF Protection (relies on cookies and body)
   app.use(csrfProtection());
 
   // 7. Request Logging

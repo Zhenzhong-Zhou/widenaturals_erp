@@ -63,12 +63,20 @@ const backupDatabase = async () => {
       backupDir,
     });
     
-    // Build the dump command without exposing credentials
-    const dumpCommand = `${pgDumpPath} --format=custom --no-owner --clean --if-exists --file=${backupFile} --username=${dbUser} --dbname=${targetDatabase}`;
+    // Build the pg_dump argument list
+    const dumpArgs = [
+      '--format=custom',
+      '--no-owner',
+      '--clean',
+      '--if-exists',
+      `--file=${backupFile}`,
+      `--username=${dbUser}`,
+      `--dbname=${targetDatabase}`,
+    ];
 
-    // Run pg_dump with credentials securely handled
-    await runPgDump(dumpCommand, isProduction, dbUser, dbPassword);
-
+    // Run pg_dump safely with spawn
+    await runPgDump(dumpArgs, isProduction, dbUser, dbPassword);
+    
     // Encrypt the SQL backup file
     const encryptionKey = process.env.BACKUP_ENCRYPTION_KEY;
     if (!encryptionKey || Buffer.from(encryptionKey, 'hex').length !== 32) {
