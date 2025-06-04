@@ -146,13 +146,12 @@ export const createWarehouseInventoryRecordsThunk = createAsyncThunk<
 export const adjustWarehouseInventoryQuantitiesThunk = createAsyncThunk<
   InventoryRecordsResponse,
   AdjustInventoryRequestBody
->(
-  'warehouseInventory/adjustQuantities',
-  async (data, { rejectWithValue }) => {
-    try {
-      return await warehouseInventoryService.adjustWarehouseInventoryQuantities(data);
-    } catch (error: any) {
-      return rejectWithValue(error?.response?.data || error.message);
-    }
+>('warehouseInventory/adjustQuantities', async (data, { rejectWithValue }) => {
+  try {
+    return await warehouseInventoryService.adjustWarehouseInventoryQuantities(
+      data
+    );
+  } catch (error: any) {
+    return rejectWithValue(error?.response?.data || error.message);
   }
-);
+});

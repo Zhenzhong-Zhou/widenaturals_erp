@@ -55,6 +55,12 @@ exports.up = async function (knex) {
     CHECK (reserved_quantity >= 0);
   `);
 
+  await knex.raw(`
+    ALTER TABLE warehouse_inventory
+    ADD CONSTRAINT warehouse_inventory_reserved_not_exceed_total_check
+    CHECK (reserved_quantity <= warehouse_quantity);
+  `);
+
   // Optimized indexes
   await knex.raw(`
     CREATE INDEX idx_warehouse_inventory_warehouse_batch ON warehouse_inventory (warehouse_id, batch_id);

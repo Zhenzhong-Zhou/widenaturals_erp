@@ -364,7 +364,7 @@ const getPaginatedWarehouseInventoryRecords = async ({
   safeSortClause,
 }) => {
   const tableName = 'warehouse_inventory wi';
-  
+
   const joins = [
     'LEFT JOIN warehouses wh ON wi.warehouse_id = wh.id',
     'LEFT JOIN locations l ON wh.location_id = l.id',
@@ -383,7 +383,7 @@ const getPaginatedWarehouseInventoryRecords = async ({
     'LEFT JOIN part_materials pmat ON pm.id = pmat.packaging_material_id',
     'LEFT JOIN parts pt ON pmat.part_id = pt.id',
   ];
-  
+
   const { whereClause, params } = buildWarehouseInventoryWhereClause(filters);
 
   const queryText = `
@@ -601,11 +601,12 @@ const getWarehouseInventoryResponseByIds = async (ids, client) => {
       error,
       'Error retrieving warehouse inventory response data by IDs',
       {
-        context: 'warehouse-inventory-repository/getWarehouseInventoryResponseByIds',
+        context:
+          'warehouse-inventory-repository/getWarehouseInventoryResponseByIds',
         ids,
       }
     );
-    
+
     throw AppError.databaseError('Failed to retrieve inventory response data', {
       details: {
         ids,

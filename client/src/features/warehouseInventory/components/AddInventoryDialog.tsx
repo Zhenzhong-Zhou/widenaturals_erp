@@ -43,7 +43,7 @@ const AddInventoryDialog: FC<AddInventoryDialogProps> = ({
       offset: 0,
     });
   const [submitting, setSubmitting] = useState(false);
-  
+
   const {
     createInventory,
     loading: isCreating,
@@ -54,7 +54,7 @@ const AddInventoryDialog: FC<AddInventoryDialogProps> = ({
     location,
     resetState,
   } = useCreateWarehouseInventory();
-  console.log(createMessage, warehouse, location)
+  console.log(createMessage, warehouse, location);
   const {
     items: warehouseOptions,
     loading: warehouseLoading,

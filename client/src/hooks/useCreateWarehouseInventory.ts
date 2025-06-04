@@ -17,27 +17,21 @@ import type { CreateInventoryRecordsRequest } from '@features/inventoryShared/ty
  */
 const useCreateWarehouseInventory = () => {
   const dispatch = useAppDispatch();
-  
-  const {
-    warehouse,
-    location,
-    loading,
-    error,
-    success,
-    message,
-  } = useAppSelector(selectCreatedWarehouseRecords);
-  
+
+  const { warehouse, location, loading, error, success, message } =
+    useAppSelector(selectCreatedWarehouseRecords);
+
   const createInventory = useCallback(
     (payload: CreateInventoryRecordsRequest) => {
       dispatch(createWarehouseInventoryRecordsThunk(payload));
     },
     [dispatch]
   );
-  
+
   const resetState = useCallback(() => {
     dispatch(resetCreateInventoryState());
   }, [dispatch]);
-  
+
   return {
     warehouse,
     location,

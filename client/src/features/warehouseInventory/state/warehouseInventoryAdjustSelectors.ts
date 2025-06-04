@@ -4,7 +4,8 @@ import type { RootState } from '@store/store';
 /**
  * Base selector for the warehouse inventory adjustment slice.
  */
-const selectAdjustInventorySlice = (state: RootState) => state.warehouseInventoryAdjust;
+const selectAdjustInventorySlice = (state: RootState) =>
+  state.warehouseInventoryAdjust;
 
 /**
  * Memoized selector for the adjusted warehouse inventory state.

@@ -49,12 +49,20 @@ exports.up = async function (knex) {
 
   await knex.raw(`
     ALTER TABLE location_inventory
-    ADD CONSTRAINT inventory_location_quantity_check CHECK (location_quantity >= 0);
+    ADD CONSTRAINT inventory_location_quantity_check
+    CHECK (location_quantity >= 0);
   `);
 
   await knex.raw(`
     ALTER TABLE location_inventory
-    ADD CONSTRAINT inventory_reserved_quantity_check CHECK (reserved_quantity >= 0);
+    ADD CONSTRAINT inventory_reserved_quantity_check
+    CHECK (reserved_quantity >= 0);
+  `);
+
+  await knex.raw(`
+    ALTER TABLE location_inventory
+    ADD CONSTRAINT location_inventory_reserved_not_exceed_total_check
+    CHECK (reserved_quantity <= location_quantity);
   `);
 
   // Optimized Indexes for Query Performance

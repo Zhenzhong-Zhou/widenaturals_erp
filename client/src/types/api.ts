@@ -222,12 +222,12 @@ export interface MutationState<T> {
    * Set to `null` before the request or if the request fails.
    */
   data: T | null;
-  
+
   /**
    * Indicates whether the mutation request is currently in progress.
    */
   loading: boolean;
-  
+
   /**
    * Error message if the mutation request fails; otherwise `null`.
    */

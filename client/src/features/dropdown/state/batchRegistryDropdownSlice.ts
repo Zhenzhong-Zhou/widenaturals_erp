@@ -1,6 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { fetchBatchRegistryDropdownThunk } from './dropdownThunks';
-import type { BatchRegistryDropdownState } from '../state/dropdownTypes';
+import type { BatchRegistryDropdownState } from './dropdownTypes';
 
 const initialState: BatchRegistryDropdownState = {
   loading: false,

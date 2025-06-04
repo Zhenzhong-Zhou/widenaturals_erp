@@ -634,17 +634,21 @@ const getLocationInventoryResponseByIds = async (ids, client) => {
       error,
       'Error retrieving location inventory response data by IDs',
       {
-        context: 'location-inventory-repository/getLocationInventoryResponseByIds',
+        context:
+          'location-inventory-repository/getLocationInventoryResponseByIds',
         ids,
       }
     );
-    
-    throw AppError.databaseError('Failed to retrieve location inventory response data', {
-      details: {
-        ids,
-        error: error.message,
-      },
-    });
+
+    throw AppError.databaseError(
+      'Failed to retrieve location inventory response data',
+      {
+        details: {
+          ids,
+          error: error.message,
+        },
+      }
+    );
   }
 };
 

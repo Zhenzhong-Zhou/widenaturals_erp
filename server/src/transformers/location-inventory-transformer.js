@@ -6,7 +6,8 @@ const { getProductDisplayName } = require('../utils/display-name-utils');
 const { cleanObject } = require('../utils/object-utils');
 const { differenceInDays } = require('date-fns');
 const {
-  transformInventoryRecordBase, transformInventoryRecordSummaryBase,
+  transformInventoryRecordBase,
+  transformInventoryRecordSummaryBase,
 } = require('./transform-inventory-record-base');
 
 /**

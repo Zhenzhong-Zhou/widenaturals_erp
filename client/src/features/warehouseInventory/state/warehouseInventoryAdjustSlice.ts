@@ -31,13 +31,19 @@ const warehouseInventoryAdjustSlice = createSlice({
           state.data = action.payload;
         }
       )
-      .addCase(adjustWarehouseInventoryQuantitiesThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error =
-          (action.payload as string) || action.error?.message || 'Failed to adjust inventory quantities';
-      });
+      .addCase(
+        adjustWarehouseInventoryQuantitiesThunk.rejected,
+        (state, action) => {
+          state.loading = false;
+          state.error =
+            (action.payload as string) ||
+            action.error?.message ||
+            'Failed to adjust inventory quantities';
+        }
+      );
   },
 });
 
-export const { resetAdjustInventoryState } = warehouseInventoryAdjustSlice.actions;
+export const { resetAdjustInventoryState } =
+  warehouseInventoryAdjustSlice.actions;
 export default warehouseInventoryAdjustSlice.reducer;

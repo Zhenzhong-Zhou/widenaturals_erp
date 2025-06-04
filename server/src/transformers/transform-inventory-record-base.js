@@ -83,8 +83,8 @@ const transformInventoryRecordBase = (row, config) => {
     }),
     location: row.location_id
       ? {
-        id: row.location_id,
-      }
+          id: row.location_id,
+        }
       : '',
     quantity: {
       [camelQuantityKey]: totalQuantity,
@@ -159,7 +159,7 @@ const transformInventoryRecordBase = (row, config) => {
  */
 const transformInventoryRecordSummaryBase = (rows, config) => {
   if (!Array.isArray(rows)) return [];
-  
+
   return rows.map((row) => {
     const base = {
       id: row.id,
@@ -168,22 +168,22 @@ const transformInventoryRecordSummaryBase = (rows, config) => {
       batchType: row.batch_type,
       itemType: row.batch_type,
     };
-    
+
     const itemInfo =
       row.batch_type === 'product'
         ? {
-          lotNumber: row.product_lot_number,
-          expiryDate: row.product_expiry_date,
-          name: config.getProductDisplayName(row),
-        }
+            lotNumber: row.product_lot_number,
+            expiryDate: row.product_expiry_date,
+            name: config.getProductDisplayName(row),
+          }
         : row.batch_type === 'packaging_material'
           ? {
-            lotNumber: row.material_lot_number,
-            expiryDate: row.material_expiry_date,
-            name: row.material_name,
-          }
+              lotNumber: row.material_lot_number,
+              expiryDate: row.material_expiry_date,
+              name: row.material_name,
+            }
           : {};
-    
+
     return config.cleanObject({ ...base, ...itemInfo });
   });
 };
