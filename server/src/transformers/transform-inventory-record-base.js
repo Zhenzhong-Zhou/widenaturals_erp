@@ -81,6 +81,11 @@ const transformInventoryRecordBase = (row, config) => {
       name: row[config.scopeNameField],
       ...(config.scopeTypeField ? { type: row[config.scopeTypeField] } : {}),
     }),
+    location: row.location_id
+      ? {
+        id: row.location_id,
+      }
+      : '',
     quantity: {
       [camelQuantityKey]: totalQuantity,
       reserved: reservedQuantity,
@@ -138,4 +143,52 @@ const transformInventoryRecordBase = (row, config) => {
   });
 };
 
-module.exports = { transformInventoryRecordBase };
+/**
+ * Transforms raw inventory records into a lightweight, normalized summary format.
+ *
+ * Designed for post-insert or post-adjustment responses, this function merges key product
+ * or material info into a unified shape. It supports dynamic configuration for warehouse
+ * or location inventory and strips out null/undefined fields for a cleaner API/UI response.
+ *
+ * @param {Array<Object>} rows - Raw inventory records returned from SQL queries.
+ * @param {Object} config - Configuration object.
+ * @param {string} config.quantityField - Field name representing the quantity in the row (e.g. 'warehouse_quantity' or 'location_quantity').
+ * @param {Function} config.getProductDisplayName - Function to generate a formatted product display name from the row.
+ * @param {Function} config.cleanObject - Function to remove null/undefined values from the returned object.
+ * @returns {Array<Object>} - Transformed and cleaned inventory summary records.
+ */
+const transformInventoryRecordSummaryBase = (rows, config) => {
+  if (!Array.isArray(rows)) return [];
+  
+  return rows.map((row) => {
+    const base = {
+      id: row.id,
+      quantity: row[config.quantityField],
+      reserved: row.reserved_quantity,
+      batchType: row.batch_type,
+      itemType: row.batch_type,
+    };
+    
+    const itemInfo =
+      row.batch_type === 'product'
+        ? {
+          lotNumber: row.product_lot_number,
+          expiryDate: row.product_expiry_date,
+          name: config.getProductDisplayName(row),
+        }
+        : row.batch_type === 'packaging_material'
+          ? {
+            lotNumber: row.material_lot_number,
+            expiryDate: row.material_expiry_date,
+            name: row.material_name,
+          }
+          : {};
+    
+    return config.cleanObject({ ...base, ...itemInfo });
+  });
+};
+
+module.exports = {
+  transformInventoryRecordBase,
+  transformInventoryRecordSummaryBase,
+};

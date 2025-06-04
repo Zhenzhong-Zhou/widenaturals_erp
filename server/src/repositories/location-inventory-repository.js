@@ -584,17 +584,19 @@ const insertLocationInventoryRecords = async (records, client, meta) => {
 };
 
 /**
- * Fetches lightweight enriched location inventory records by IDs,
- * including batch type, product or material info (lot number, name, expiry).
+ * Retrieves enriched location inventory response data by IDs.
+ *
+ * Used to construct API responses after insert or quantity adjustment operations.
+ * Returns minimal yet informative fields for confirmation or UI display.
  *
  * - Supports both product and material batches via `batch_type`.
- * - Returns only minimal fields for summary/confirmation UI.
+ * - Includes basic product/material, lot, and expiry details.
  *
  * @param {string[]} ids - Array of location_inventory UUIDs.
  * @param {object} client - PostgreSQL client or pool instance.
- * @returns {Promise<Array<Object>>} - Enriched location inventory summaries.
+ * @returns {Promise<Array<Object>>} - Enriched location inventory response data.
  */
-const getInsertedLocationInventoryByIds = async (ids, client) => {
+const getLocationInventoryResponseByIds = async (ids, client) => {
   if (!Array.isArray(ids) || ids.length === 0) return [];
 
   const placeholders = ids.map((_, i) => `$${i + 1}`).join(', ');
@@ -630,19 +632,19 @@ const getInsertedLocationInventoryByIds = async (ids, client) => {
   } catch (error) {
     logSystemException(
       error,
-      'Failed to fetch location inventory summary by IDs',
+      'Error retrieving location inventory response data by IDs',
       {
-        context: 'location-inventory-repository/fetchInventorySummaryByIds',
+        context: 'location-inventory-repository/getLocationInventoryResponseByIds',
         ids,
       }
     );
-
-    throw AppError.databaseError(
-      'Unable to fetch location inventory summary data',
-      {
-        details: { ids, message: error.message },
-      }
-    );
+    
+    throw AppError.databaseError('Failed to retrieve location inventory response data', {
+      details: {
+        ids,
+        error: error.message,
+      },
+    });
   }
 };
 
@@ -751,7 +753,7 @@ module.exports = {
   getLocationInventorySummaryDetailsByItemId,
   getPaginatedLocationInventoryRecords,
   insertLocationInventoryRecords,
-  getInsertedLocationInventoryByIds,
+  getLocationInventoryResponseByIds,
   bulkUpdateLocationQuantities,
   getLocationInventoryQuantities,
 };

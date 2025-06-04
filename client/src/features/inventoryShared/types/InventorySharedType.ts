@@ -224,10 +224,10 @@ export interface InventoryRecordOutput {
   itemType: ItemType; // or string
 }
 
-export interface CreateInventoryRecordsData {
+export interface InventoryRecordsPayload {
   warehouse: InventoryRecordOutput[];
   location: InventoryRecordOutput[];
 }
 
-export type CreateInventoryRecordsResponse =
-  ApiSuccessResponse<CreateInventoryRecordsData>;
+export type InventoryRecordsResponse =
+  ApiSuccessResponse<InventoryRecordsPayload>;

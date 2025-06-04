@@ -6,7 +6,7 @@ const { getProductDisplayName } = require('../utils/display-name-utils');
 const { cleanObject } = require('../utils/object-utils');
 const { differenceInDays } = require('date-fns');
 const {
-  transformInventoryRecordBase,
+  transformInventoryRecordBase, transformInventoryRecordSummaryBase,
 } = require('./transform-inventory-record-base');
 
 /**
@@ -197,43 +197,21 @@ const transformPaginatedLocationInventoryRecordResults = (paginatedResult) =>
   transformPaginatedResult(paginatedResult, transformLocationInventoryRecord);
 
 /**
- * Transforms raw location inventory records from SQL result into a normalized structure.
+ * Transforms lightweight enriched location inventory records
+ * (typically after insert or quantity adjustment) into a normalized response format.
  *
- * Dynamically merges product or material info into a single `itemInfo` field.
- * Removes null/undefined fields using `cleanObject` for a cleaner response.
+ * - Dynamically merges product or material info into a single `itemInfo` section.
+ * - Normalizes for summary/confirmation UI.
+ * - Strips null/undefined fields using `cleanObject`.
  *
  * @param {Array<Object>} rows - Raw DB rows from the location inventory join query.
- * @returns {Array<Object>} - Transformed and cleaned records.
+ * @returns {Array<InventoryRecordOutput>} - Transformed summary records.
  */
-const transformInsertedLocationInventoryRecords = (rows) => {
-  if (!Array.isArray(rows)) return [];
-
-  return rows.map((row) => {
-    const base = {
-      id: row.id,
-      quantity: row.location_quantity,
-      reserved: row.reserved_quantity,
-      batchType: row.batch_type,
-    };
-
-    const itemInfo =
-      row.batch_type === 'product'
-        ? {
-            lotNumber: row.product_lot_number,
-            expiryDate: row.product_expiry_date,
-            name: getProductDisplayName(row),
-            itemType: 'product',
-          }
-        : row.batch_type === 'packaging_material'
-          ? {
-              lotNumber: row.material_lot_number,
-              expiryDate: row.material_expiry_date,
-              name: row.material_name,
-              itemType: 'material',
-            }
-          : { itemType: 'unknown' };
-
-    return cleanObject({ ...base, ...itemInfo });
+const transformLocationInventoryResponseRecords = (rows) => {
+  return transformInventoryRecordSummaryBase(rows, {
+    quantityField: 'location_quantity',
+    getProductDisplayName,
+    cleanObject,
   });
 };
 
@@ -242,5 +220,5 @@ module.exports = {
   transformPaginatedLocationInventorySummaryResult,
   transformPaginatedLocationInventorySummaryDetails,
   transformPaginatedLocationInventoryRecordResults,
-  transformInsertedLocationInventoryRecords,
+  transformLocationInventoryResponseRecords,
 };

@@ -364,9 +364,10 @@ const getPaginatedWarehouseInventoryRecords = async ({
   safeSortClause,
 }) => {
   const tableName = 'warehouse_inventory wi';
-
+  
   const joins = [
     'LEFT JOIN warehouses wh ON wi.warehouse_id = wh.id',
+    'LEFT JOIN locations l ON wh.location_id = l.id',
     'LEFT JOIN inventory_status st ON wi.status_id = st.id',
     'LEFT JOIN users uc ON wi.created_by = uc.id',
     'LEFT JOIN users uu ON wi.updated_by = uu.id',
@@ -382,7 +383,7 @@ const getPaginatedWarehouseInventoryRecords = async ({
     'LEFT JOIN part_materials pmat ON pm.id = pmat.packaging_material_id',
     'LEFT JOIN parts pt ON pmat.part_id = pt.id',
   ];
-
+  
   const { whereClause, params } = buildWarehouseInventoryWhereClause(filters);
 
   const queryText = `
@@ -391,6 +392,7 @@ const getPaginatedWarehouseInventoryRecords = async ({
       br.batch_type AS item_type,
       wi.warehouse_id,
       wh.name AS warehouse_name,
+      l.id AS location_id,
       wi.warehouse_quantity,
       wi.reserved_quantity,
       wi.warehouse_fee,
@@ -548,17 +550,20 @@ const insertWarehouseInventoryRecords = async (records, client, meta = {}) => {
 };
 
 /**
- * Fetches lightweight enriched warehouse inventory records by IDs,
- * including batch type, product or material info (lot number, name, expiry).
+ * Fetches enriched warehouse inventory records for response payloads.
  *
- * - Supports both product and material batches via `batch_type`.
- * - Returns only minimal fields for summary/confirmation UI.
+ * Used after insert or update operations (e.g., adjustments).
+ * Provides essential data for confirmation or UI display.
  *
- * @param {string[]} ids - Array of warehouse_inventory UUIDs.
- * @param {object} client - PostgreSQL client or pool instance.
- * @returns {Promise<Array<Object>>} - Enriched inventory summaries.
+ * Supports:
+ * - Product and packaging material batches
+ * - Lot number, expiry date, name, SKU, and quantity fields
+ *
+ * @param {string[]} ids - Warehouse inventory UUIDs
+ * @param {object} client - PostgreSQL client or pool
+ * @returns {Promise<Array<Object>>} Lightweight enriched inventory records
  */
-const getInsertedWarehouseInventoryByIds = async (ids, client) => {
+const getWarehouseInventoryResponseByIds = async (ids, client) => {
   if (!Array.isArray(ids) || ids.length === 0) return [];
 
   const placeholders = ids.map((_, i) => `$${i + 1}`).join(', ');
@@ -594,15 +599,18 @@ const getInsertedWarehouseInventoryByIds = async (ids, client) => {
   } catch (error) {
     logSystemException(
       error,
-      'Failed to fetch warehouse inventory summary by IDs',
+      'Error retrieving warehouse inventory response data by IDs',
       {
-        context: 'warehouse-inventory-repository/fetchInventorySummaryByIds',
+        context: 'warehouse-inventory-repository/getWarehouseInventoryResponseByIds',
         ids,
       }
     );
-
-    throw AppError.databaseError('Unable to fetch inventory summary data', {
-      details: { ids, message: error.message },
+    
+    throw AppError.databaseError('Failed to retrieve inventory response data', {
+      details: {
+        ids,
+        error: error.message,
+      },
     });
   }
 };
@@ -1008,7 +1016,7 @@ module.exports = {
   getWarehouseInventorySummaryDetailsByItemId,
   getPaginatedWarehouseInventoryRecords,
   insertWarehouseInventoryRecords,
-  getInsertedWarehouseInventoryByIds,
+  getWarehouseInventoryResponseByIds,
   bulkUpdateWarehouseQuantities,
   getWarehouseInventoryQuantities,
   getWarehouseInventoryDetailsByWarehouseId,

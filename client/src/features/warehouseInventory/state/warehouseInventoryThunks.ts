@@ -10,7 +10,7 @@ import type {
 } from '@features/warehouseInventory/state/warehouseInventoryTypes';
 import type {
   CreateInventoryRecordsRequest,
-  CreateInventoryRecordsResponse,
+  InventoryRecordsResponse,
   InventorySummaryDetailByItemIdParams,
 } from '@features/inventoryShared/types/InventorySharedType';
 
@@ -108,7 +108,7 @@ export const fetchWarehouseInventoryRecordsThunk = createAsyncThunk<
  * @returns A promise resolving to the API response or a rejection message.
  */
 export const createWarehouseInventoryRecordsThunk = createAsyncThunk<
-  CreateInventoryRecordsResponse, // Return type
+  InventoryRecordsResponse, // Return type
   CreateInventoryRecordsRequest, // Payload type
   { rejectValue: string } // Rejection type
 >(

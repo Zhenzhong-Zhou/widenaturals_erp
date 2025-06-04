@@ -3,11 +3,11 @@ const AppError = require('../utils/AppError');
 const { logSystemException } = require('../utils/system-logger');
 const {
   insertWarehouseInventoryRecords,
-  getInsertedWarehouseInventoryByIds,
+  getWarehouseInventoryResponseByIds,
 } = require('../repositories/warehouse-inventory-repository');
 const {
   insertLocationInventoryRecords,
-  getInsertedLocationInventoryByIds,
+  getLocationInventoryResponseByIds,
   bulkUpdateLocationQuantities,
 } = require('../repositories/location-inventory-repository');
 const { buildInventoryLogRows } = require('../utils/inventory-log-utils');
@@ -15,10 +15,10 @@ const {
   insertInventoryActivityLogs,
 } = require('../repositories/inventory-log-repository');
 const {
-  transformInsertedWarehouseInventoryRecords,
+  transformWarehouseInventoryResponseRecords,
 } = require('../transformers/warehouse-inventory-transformer');
 const {
-  transformInsertedLocationInventoryRecords,
+  transformLocationInventoryResponseRecords,
 } = require('../transformers/location-inventory-transformer');
 const {
   computeInventoryAdjustments,
@@ -107,20 +107,20 @@ const createInventoryRecordService = async (records, user_id) => {
 
       // Step 6: Fetch full enriched inventory rows to return
       const [warehouseRaw, locationRaw] = await Promise.all([
-        getInsertedWarehouseInventoryByIds(
+        getWarehouseInventoryResponseByIds(
           insertedWarehouseRecords.map((r) => r.warehouse_inventory_id),
           client
         ),
-        getInsertedLocationInventoryByIds(
+        getLocationInventoryResponseByIds(
           insertedLocationRecords.map((r) => r.location_inventory_id),
           client
         ),
       ]);
-
+      
       // Step 7: Transform and return for client response
       return {
-        warehouse: transformInsertedWarehouseInventoryRecords(warehouseRaw),
-        location: transformInsertedLocationInventoryRecords(locationRaw),
+        warehouse: transformWarehouseInventoryResponseRecords(warehouseRaw),
+        location: transformLocationInventoryResponseRecords(locationRaw),
       };
     });
   } catch (error) {

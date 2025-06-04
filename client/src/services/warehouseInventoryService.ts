@@ -14,7 +14,7 @@ import type {
 } from '@shared-types/api';
 import type {
   CreateInventoryRecordsRequest,
-  CreateInventoryRecordsResponse,
+  InventoryRecordsResponse,
   InventorySummaryDetailByItemIdParams,
 } from '@features/inventoryShared/types/InventorySharedType';
 import { buildWarehouseInventoryFilters } from '@utils/filters/buildWarehouseInventoryFilters';
@@ -109,15 +109,15 @@ const fetchWarehouseInventoryRecords = async (
  * Sends a request to create warehouse and/or location inventory records.
  *
  * @param {CreateInventoryRecordsRequest} payload - The request payload containing inventory records.
- * @returns {Promise<CreateInventoryRecordsResponse>} The API response containing created inventory records.
+ * @returns {Promise<InventoryRecordsResponse>} The API response containing created inventory records.
  * @throws Will throw an error if the request fails (to be caught by the caller).
  */
 const createWarehouseInventoryRecords = async (
   payload: CreateInventoryRecordsRequest
-): Promise<CreateInventoryRecordsResponse> => {
+): Promise<InventoryRecordsResponse> => {
   try {
-    const response = await axiosInstance.post<CreateInventoryRecordsResponse>(
-      '/warehouse-inventory',
+    const response = await axiosInstance.post<InventoryRecordsResponse>(
+      API_ENDPOINTS.WAREHOUSE_INVENTORY.ADD_RECORDS,
       payload
     );
     return response.data;

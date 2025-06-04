@@ -11,7 +11,7 @@ import type {
   BaseInventoryRecord,
   BaseInventorySummaryItem,
   BaseInventoryTableProps,
-  CreateInventoryRecordsResponse,
+  InventoryRecordsResponse,
   FlatInventoryRowBase,
   InventoryHealthStatus,
   ItemType,
@@ -94,6 +94,10 @@ export interface WarehouseInventoryRecord extends BaseInventoryRecord {
     id: string;
     name: string;
   };
+  
+  location: {
+    id: string;
+  };
 
   quantity: BaseInventoryRecord['quantity'] & {
     warehouseQuantity: number;
@@ -121,4 +125,4 @@ export type WarehouseInventoryTableProps = BaseInventoryTableProps<
 >;
 
 export type CreateWarehouseInventoryState =
-  AsyncState<CreateInventoryRecordsResponse>;
+  AsyncState<InventoryRecordsResponse>;
