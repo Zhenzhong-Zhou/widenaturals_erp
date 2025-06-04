@@ -26,11 +26,14 @@ const locationInventorySlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchLocationInventoryRecordsThunk.fulfilled, (state, action) => {
-        state.loading = false;
-        state.data = action.payload.data;
-        state.pagination = action.payload.pagination;
-      })
+      .addCase(
+        fetchLocationInventoryRecordsThunk.fulfilled,
+        (state, action) => {
+          state.loading = false;
+          state.data = action.payload.data;
+          state.pagination = action.payload.pagination;
+        }
+      )
       .addCase(fetchLocationInventoryRecordsThunk.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;

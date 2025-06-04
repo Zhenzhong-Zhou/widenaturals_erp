@@ -16,7 +16,7 @@ const { logError } = require('../../utils/logger-helper');
  */
 const notFoundHandler = (req, res, next) => {
   const rawError = new Error(`Route not found: ${req.originalUrl}`);
-  
+
   // Normalize the error to AppError format
   const notFoundError = normalizeError(rawError, {
     status: 404,

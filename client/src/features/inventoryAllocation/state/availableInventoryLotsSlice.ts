@@ -43,5 +43,6 @@ const availableInventoryLotsSlice = createSlice({
   },
 });
 
-export const { clearAvailableInventoryLots } = availableInventoryLotsSlice.actions;
+export const { clearAvailableInventoryLots } =
+  availableInventoryLotsSlice.actions;
 export default availableInventoryLotsSlice.reducer;

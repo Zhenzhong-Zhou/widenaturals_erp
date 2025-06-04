@@ -22,18 +22,18 @@ export const buildScopedInventoryFilters = <T extends { batchType?: string }>(
   }
 ): Partial<T> => {
   const { batchType, ...rest } = form;
-  
+
   const excludedFields =
     batchType === 'product'
       ? packagingMaterialFields
       : batchType === 'packaging_material'
         ? productFields
         : [];
-  
+
   const merged = {
     ...(batchType !== undefined ? { batchType } : {}),
     ...rest,
   };
-  
+
   return cleanObject(merged as T, excludedFields);
 };

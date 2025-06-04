@@ -14,18 +14,18 @@ import {
  */
 const useWarehouseDropdown = () => {
   const dispatch = useAppDispatch();
-  
+
   const items = useAppSelector(selectWarehouseDropdownItems);
   const loading = useAppSelector(selectWarehouseDropdownLoading);
   const error = useAppSelector(selectWarehouseDropdownError);
-  
+
   const fetchDropdown = useCallback(
     (filters?: GetWarehouseDropdownFilters) => {
       dispatch(fetchWarehouseDropdownThunk(filters));
     },
     [dispatch]
   );
-  
+
   return useMemo(
     () => ({
       items,

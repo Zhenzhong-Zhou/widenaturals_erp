@@ -27,11 +27,14 @@ const warehouseDropdownSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchWarehouseDropdownThunk.fulfilled, (state, action: PayloadAction<GetWarehouseDropdownResponse>) => {
-        state.data = action.payload.data;
-        state.loading = false;
-        state.error = null;
-      })
+      .addCase(
+        fetchWarehouseDropdownThunk.fulfilled,
+        (state, action: PayloadAction<GetWarehouseDropdownResponse>) => {
+          state.data = action.payload.data;
+          state.loading = false;
+          state.error = null;
+        }
+      )
       .addCase(fetchWarehouseDropdownThunk.rejected, (state, action) => {
         state.error = action.payload as string;
         state.loading = false;

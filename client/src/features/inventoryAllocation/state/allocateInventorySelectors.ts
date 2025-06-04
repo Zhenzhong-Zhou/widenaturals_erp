@@ -3,7 +3,8 @@ import type { RootState } from '@store/store';
 import type { InventoryAllocationResponse } from '@features/inventoryAllocation';
 
 // Base selector for the allocateInventory slice
-const selectAllocateInventoryState = (state: RootState) => state.allocateInventory;
+const selectAllocateInventoryState = (state: RootState) =>
+  state.allocateInventory;
 
 // Memoized selector for loading state
 export const selectIsAllocatingInventory = createSelector(
@@ -33,12 +34,14 @@ export const selectInventoryAllocationData = createSelector(
 export const selectTotalAllocatedItems = createSelector(
   [selectInventoryAllocationData],
   (data: InventoryAllocationResponse | null) =>
-    data?.allocations.reduce((sum, result) => sum + result.updatedItemCount, 0) ?? 0
+    data?.allocations.reduce(
+      (sum, result) => sum + result.updatedItemCount,
+      0
+    ) ?? 0
 );
 
 // Memoized selector for total affected orders
 export const selectTotalAllocatedOrders = createSelector(
   [selectInventoryAllocationData],
-  (data: InventoryAllocationResponse | null) =>
-    data?.allocations.length ?? 0
+  (data: InventoryAllocationResponse | null) => data?.allocations.length ?? 0
 );

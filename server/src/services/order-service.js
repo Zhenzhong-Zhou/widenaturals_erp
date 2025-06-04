@@ -1,7 +1,9 @@
 const {
   createOrder,
   getOrderDetailsById,
-  getAllOrders, getAllocationEligibleOrders, getOrderAllocationDetailsById,
+  getAllOrders,
+  getAllocationEligibleOrders,
+  getOrderAllocationDetailsById,
 } = require('../repositories/order-repository');
 const { createSalesOrder } = require('../repositories/sales-order-repository');
 const {
@@ -13,7 +15,8 @@ const { logError } = require('../utils/logger-helper');
 const {
   transformOrderDetails,
   transformOrders,
-  transformUpdatedOrderStatusResult, transformOrderAllocationDetails,
+  transformUpdatedOrderStatusResult,
+  transformOrderAllocationDetails,
 } = require('../transformers/order-transformer');
 const {
   applyOrderDetailsBusinessLogic,
@@ -124,22 +127,24 @@ const handleOrderServiceFetch = async (
       const hasAccess = await checkPermissions(user, requiredPermissions, {
         requireAll: requireAllPermissions,
       });
-      
+
       if (!hasAccess) {
-        throw AppError.authorizationError('You do not have permission to access these orders.');
+        throw AppError.authorizationError(
+          'You do not have permission to access these orders.'
+        );
       }
     }
-    
+
     // Fetch, transform, validate
     const result = await fetchFn({ page, limit, sortBy, sortOrder });
-    
+
     const transformedOrders = transformOrders(result.data);
-    
+
     const validatedOrders = validateOrderNumbers(
       transformedOrders,
       verifyOrderNumbers
     );
-    
+
     return { ...result, data: validatedOrders };
   } catch (error) {
     logError('Error in order service fetch:', error);
@@ -166,7 +171,10 @@ const fetchAllOrdersService = (options = {}) =>
 const fetchAllocationEligibleOrdersService = (options = {}) =>
   handleOrderServiceFetch(getAllocationEligibleOrders, {
     ...options,
-    requiredPermissions: ['view_allocation_details', 'view_full_sales_order_details'],
+    requiredPermissions: [
+      'view_allocation_details',
+      'view_full_sales_order_details',
+    ],
     requireAllPermissions: false, // only one is needed
   });
 
@@ -216,25 +224,25 @@ const confirmOrderService = async (orderId, user) => {
 const fetchAllocationEligibleOrderDetails = async (orderId, user) => {
   const rows = await getOrderAllocationDetailsById(orderId);
   const order = transformOrderAllocationDetails(rows);
-  
+
   if (!order) {
     throw AppError.notFoundError('Order not found or not confirmed.');
   }
-  
+
   const isValid = verifyOrderNumber(order.order_number);
-  
+
   if (!isValid) {
     const canViewInvalid = await checkPermissions(user, [
       'root_access',
       'view_all_order_details',
       'view_order_allocation_details',
     ]);
-    
+
     if (!canViewInvalid) {
       throw AppError.validationError('Order number is invalid or not found.');
     }
   }
-  
+
   return order;
 };
 

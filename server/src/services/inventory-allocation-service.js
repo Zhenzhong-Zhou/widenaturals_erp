@@ -35,36 +35,31 @@ const allocateInventory = async (params) => {
  * @returns {Promise<Array>} List of allocation results, one per item.
  */
 const allocateMultipleInventoryItems = async ({
-                                                orderId,
-                                                items,
-                                                userId,
-                                                strategy: defaultStrategy = 'FEFO',
-                                              }) => {
+  orderId,
+  items,
+  userId,
+  strategy: defaultStrategy = 'FEFO',
+}) => {
   try {
     return await withTransaction(async (client) => {
       const allocations = [];
-      
+
       for (const item of items) {
-        const {
-          warehouseId,
-          inventoryId,
-          quantity,
-          strategy,
-        } = item;
-        
+        const { warehouseId, inventoryId, quantity, strategy } = item;
+
         if (!warehouseId || !inventoryId || !quantity) {
           throw AppError.validationError(
             'Each item must include warehouseId, inventoryId, and quantity.'
           );
         }
-        
+
         // Log only when allowPartial is inferred due to lotIds
         if (item.lotIds?.length && item.allowPartial === undefined) {
           logInfo(
             `Manual lotIds passed for inventory ${inventoryId}, but allowPartial flag is missing. This may cause allocation to fail if lots are insufficient.`
           );
         }
-        
+
         const allocation = await allocateInventory({
           orderId,
           warehouseId,
@@ -73,13 +68,13 @@ const allocateMultipleInventoryItems = async ({
           strategy: strategy || defaultStrategy,
           userId,
           lotIds: item.lotIds || [],
-          allowPartial: item.allowPartial ?? (item.lotIds?.length > 0),
+          allowPartial: item.allowPartial ?? item.lotIds?.length > 0,
           client, // Pass client if supported in business logic
         });
-        
+
         allocations.push(allocation);
       }
-      
+
       return allocations;
     });
   } catch (error) {

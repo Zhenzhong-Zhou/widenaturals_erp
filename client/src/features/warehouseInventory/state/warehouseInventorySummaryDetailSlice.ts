@@ -1,8 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { fetchWarehouseInventorySummaryByItemIdThunk } from './warehouseInventoryThunks';
-import type {
-  WarehouseInventorySummaryDetailState
-} from '@features/warehouseInventory/state/warehouseInventoryTypes';
+import type { WarehouseInventorySummaryDetailState } from '@features/warehouseInventory/state/warehouseInventoryTypes';
 
 const initialState: WarehouseInventorySummaryDetailState = {
   data: [],
@@ -28,15 +26,22 @@ const warehouseInventorySummaryDetailSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchWarehouseInventorySummaryByItemIdThunk.fulfilled, (state, action) => {
-        state.loading = false;
-        state.data = action.payload.data;
-        state.pagination = action.payload.pagination;
-      })
-      .addCase(fetchWarehouseInventorySummaryByItemIdThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload || 'Failed to fetch warehouse inventory summary.';
-      });
+      .addCase(
+        fetchWarehouseInventorySummaryByItemIdThunk.fulfilled,
+        (state, action) => {
+          state.loading = false;
+          state.data = action.payload.data;
+          state.pagination = action.payload.pagination;
+        }
+      )
+      .addCase(
+        fetchWarehouseInventorySummaryByItemIdThunk.rejected,
+        (state, action) => {
+          state.loading = false;
+          state.error =
+            action.payload || 'Failed to fetch warehouse inventory summary.';
+        }
+      );
   },
 });
 

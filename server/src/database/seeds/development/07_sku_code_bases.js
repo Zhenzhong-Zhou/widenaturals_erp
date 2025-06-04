@@ -4,34 +4,34 @@
  */
 exports.seed = async function (knex) {
   const brandCodeMap = {
-    'Canaherb': 'CH',
+    Canaherb: 'CH',
     'Phyto-Genious': 'PG',
     'WIDE Naturals': 'WN',
   };
-  
+
   const categoryCodeMap = {
     'Herbal Natural': 'HN',
     NMN: 'NM',
     TCM: 'TCM',
     'Marine Oil': 'MO',
   };
-  
+
   const baseCombinations = [
     ['Canaherb', 'Herbal Natural'],
     ['Phyto-Genious', 'NMN'],
     ['Phyto-Genious', 'TCM'],
     ['WIDE Naturals', 'Marine Oil'],
   ];
-  
+
   // Fetch dynamic values
   const [activeStatusId, systemUserId] = await Promise.all([
     knex('status').select('id').where('name', 'active').first(),
     knex('users').select('id').where('email', 'system@internal.local').first(),
   ]);
-  
+
   const inserts = [];
   let baseCode = 100;
-  
+
   for (const [brand, category] of baseCombinations) {
     inserts.push({
       id: knex.raw('uuid_generate_v4()'),
@@ -47,7 +47,7 @@ exports.seed = async function (knex) {
     });
     baseCode += 100;
   }
-  
+
   await knex('sku_code_bases')
     .insert(inserts)
     .onConflict(['brand_code', 'category_code'])

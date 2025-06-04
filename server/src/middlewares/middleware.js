@@ -23,20 +23,20 @@ const applyGlobalMiddleware = (app) => {
   logSystemInfo('Applying global middleware stack...', {
     context: 'applyGlobalMiddleware',
   });
-  
+
   // 1. Helmet Security Headers
   const isProduction = process.env.NODE_ENV === 'production';
   app.use(configureHelmet(isProduction));
 
   // 2. Global Rate Limiter
   app.use(createRateLimiter());
-  
+
   // 3. CORS Middleware
   app.use(corsMiddleware);
 
   // 4. Combined cookie + csrf middleware step
   app.use(cookieParser(), csrfProtection());
-  
+
   // 5. Body Parsing Middleware
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
@@ -52,7 +52,7 @@ const applyGlobalMiddleware = (app) => {
       mode: 'development',
     });
   }
-  
+
   logSystemInfo('Global middleware stack applied successfully.', {
     context: 'applyGlobalMiddleware',
   });

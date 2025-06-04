@@ -5,15 +5,19 @@ import ExpirySeverityChip from '@features/inventoryShared/components/ExpirySever
 import CustomTable, { type Column } from '@components/common/CustomTable';
 import { formatDate } from '@utils/dateTimeUtils';
 import type {
-  WarehouseInventoryItemSummary, WarehouseInventorySummaryItemDetails,
+  WarehouseInventoryItemSummary,
+  WarehouseInventorySummaryItemDetails,
 } from '@features/warehouseInventory/state';
 import { formatLabel } from '@utils/textUtils';
 import { createDrillDownColumn } from '@utils/table/createDrillDownColumn';
 import ExpandableDetailSection from '@components/common/ExpandableDetailSection';
 import { getDetailCacheKey } from '@features/inventoryShared/utils/cacheKeys';
 
-const WarehouseInventorySummaryDetailTable = lazy(() =>
-  import('@features/warehouseInventory/components/WarehouseInventorySummaryDetailTable')
+const WarehouseInventorySummaryDetailTable = lazy(
+  () =>
+    import(
+      '@features/warehouseInventory/components/WarehouseInventorySummaryDetailTable'
+    )
 );
 
 interface SkuInventorySummaryTableProps {
@@ -40,33 +44,34 @@ interface SkuInventorySummaryTableProps {
 }
 
 const WarehouseInventorySummaryTable: FC<SkuInventorySummaryTableProps> = ({
-                                                                       data,
-                                                                       page,
-                                                                       rowsPerPage,
-                                                                       totalRecords,
-                                                                       totalPages,
-                                                                       onPageChange,
-                                                                       onRowsPerPageChange,
-                                                                       expandedRowId,
-                                                                       detailDataMap,
-                                                                       detailLoadingMap,
-                                                                       detailErrorMap,
-                                                                       detailPage,
-                                                                       detailLimit,
-                                                                       detailTotalRecords,
-                                                                       detailTotalPages,
-                                                                       onDetailPageChange,
-                                                                       onDetailRowsPerPageChange,
-                                                                       onDrillDownToggle,
-                                                                       onRowHover,
-                                                                       onRefreshDetail,
-                                                                     }) => {
+  data,
+  page,
+  rowsPerPage,
+  totalRecords,
+  totalPages,
+  onPageChange,
+  onRowsPerPageChange,
+  expandedRowId,
+  detailDataMap,
+  detailLoadingMap,
+  detailErrorMap,
+  detailPage,
+  detailLimit,
+  detailTotalRecords,
+  detailTotalPages,
+  onDetailPageChange,
+  onDetailRowsPerPageChange,
+  onDrillDownToggle,
+  onRowHover,
+  onRefreshDetail,
+}) => {
   const columns: Column<WarehouseInventoryItemSummary>[] = [
     {
       id: 'itemType',
       label: 'Item Type',
       sortable: true,
-      format: (_value: any, row?: WarehouseInventoryItemSummary) => formatLabel(row?.itemType)
+      format: (_value: any, row?: WarehouseInventoryItemSummary) =>
+        formatLabel(row?.itemType),
     },
     {
       id: 'itemName',
@@ -138,21 +143,21 @@ const WarehouseInventorySummaryTable: FC<SkuInventorySummaryTableProps> = ({
     },
     ...(onDrillDownToggle
       ? [
-        createDrillDownColumn<WarehouseInventoryItemSummary>(
-          (row) => onDrillDownToggle?.(row.itemId),
-          (row) => expandedRowId === row.itemId,
-          {
-            onMouseEnter: (row) => onRowHover?.(row.itemId),
-          }
-        )
-      ]
+          createDrillDownColumn<WarehouseInventoryItemSummary>(
+            (row) => onDrillDownToggle?.(row.itemId),
+            (row) => expandedRowId === row.itemId,
+            {
+              onMouseEnter: (row) => onRowHover?.(row.itemId),
+            }
+          ),
+        ]
       : []),
   ];
-  
+
   const expandedContent = useCallback(
     (row: WarehouseInventoryItemSummary) => {
       const cacheKey = getDetailCacheKey(row.itemId, detailPage, detailLimit);
-      
+
       return (
         <ExpandableDetailSection
           row={row}
@@ -187,7 +192,7 @@ const WarehouseInventorySummaryTable: FC<SkuInventorySummaryTableProps> = ({
       onRefreshDetail,
     ]
   );
-  
+
   return (
     <CustomTable
       columns={columns}

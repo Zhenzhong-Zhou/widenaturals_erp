@@ -20,17 +20,17 @@ interface CustomDialogProps {
 }
 
 const CustomDialog: FC<CustomDialogProps> = ({
-                                               open,
-                                               onClose,
-                                               title,
-                                               children,
-                                               actions,
-                                               confirmButtonText,
-                                               onConfirm,
-                                               showCancelButton = true,
-                                               disableCloseOnBackdrop = false,
-                                               disableCloseOnEscape = false,
-                                             }) => {
+  open,
+  onClose,
+  title,
+  children,
+  actions,
+  confirmButtonText,
+  onConfirm,
+  showCancelButton = true,
+  disableCloseOnBackdrop = false,
+  disableCloseOnEscape = false,
+}) => {
   const handleClose = (
     _event: object,
     reason: 'backdropClick' | 'escapeKeyDown'
@@ -41,10 +41,10 @@ const CustomDialog: FC<CustomDialogProps> = ({
     ) {
       return;
     }
-    
+
     onClose();
   };
-  
+
   return (
     <Dialog
       open={open}
@@ -54,7 +54,7 @@ const CustomDialog: FC<CustomDialogProps> = ({
       aria-labelledby="custom-dialog-title"
     >
       <DialogTitle id="custom-dialog-title">{title}</DialogTitle>
-      
+
       {children && (
         <DialogContent dividers>
           {typeof children === 'string' ? (
@@ -64,24 +64,29 @@ const CustomDialog: FC<CustomDialogProps> = ({
           )}
         </DialogContent>
       )}
-      
+
       {(actions || confirmButtonText || showCancelButton) && (
         <DialogActions>
           {actions}
-          
+
           {showCancelButton && (
             <CustomButton
               onClick={(e) => {
                 (e.currentTarget as HTMLButtonElement).blur();
                 onClose();
               }}
-              color="secondary">
+              color="secondary"
+            >
               Cancel
             </CustomButton>
           )}
-          
+
           {confirmButtonText && onConfirm && (
-            <CustomButton variant="contained" onClick={onConfirm} color="primary">
+            <CustomButton
+              variant="contained"
+              onClick={onConfirm}
+              color="primary"
+            >
               {confirmButtonText}
             </CustomButton>
           )}

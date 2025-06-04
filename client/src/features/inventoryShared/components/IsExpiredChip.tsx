@@ -8,19 +8,19 @@ interface Props {
 
 const IsExpiredChip: FC<Props> = ({ isExpired }) => {
   const { theme } = useThemeContext();
-  
+
   const { label, color } = useMemo(() => {
     return isExpired
       ? {
-        label: 'Yes',
-        color: theme.palette.error.main,
-      }
+          label: 'Yes',
+          color: theme.palette.error.main,
+        }
       : {
-        label: 'No',
-        color: theme.palette.success.main,
-      };
+          label: 'No',
+          color: theme.palette.success.main,
+        };
   }, [isExpired, theme]);
-  
+
   return (
     <Chip
       label={label}

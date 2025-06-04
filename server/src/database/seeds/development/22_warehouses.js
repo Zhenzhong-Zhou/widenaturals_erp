@@ -16,7 +16,7 @@ exports.seed = async function (knex) {
     'active',
     'id'
   );
-  
+
   const systemActionId = await fetchDynamicValue(
     knex,
     'users',
@@ -24,7 +24,7 @@ exports.seed = async function (knex) {
     'system@internal.local',
     'id'
   );
-  
+
   const warehouseLocationTypeId = await fetchDynamicValue(
     knex,
     'location_types',
@@ -32,7 +32,7 @@ exports.seed = async function (knex) {
     'WAREHOUSE',
     'id'
   );
-  
+
   const warehouseTypeMap = await fetchDynamicValues(
     knex,
     'warehouse_types',
@@ -40,7 +40,7 @@ exports.seed = async function (knex) {
     ['distribution_center', 'storage_only'],
     'id'
   );
-  
+
   const warehouseData = [
     {
       warehouse_name: 'WIDE Naturals Inc.',
@@ -61,7 +61,7 @@ exports.seed = async function (knex) {
       type: 'storage_only',
     },
   ];
-  
+
   const warehouseLocations = await knex('locations')
     .where('location_type_id', warehouseLocationTypeId)
     .select('id', 'name');
@@ -72,16 +72,16 @@ exports.seed = async function (knex) {
       const location = warehouseLocations.find(
         (loc) => loc.name === entry.location_label
       );
-      
+
       const typeId = warehouseTypeMap[entry.type];
-      
+
       if (!location || !typeId) {
         console.warn(
           `Skipping warehouse "${entry.warehouse_name}" — missing location or warehouse type "${entry.type}".`
         );
         return null;
       }
-      
+
       return {
         id: knex.raw('uuid_generate_v4()'),
         name: entry.warehouse_name,
@@ -104,14 +104,14 @@ exports.seed = async function (knex) {
       };
     })
     .filter(Boolean);
-  
+
   // Insert warehouses & ignore duplicates
   if (warehouseEntries.length > 0) {
     await knex('warehouses')
       .insert(warehouseEntries)
       .onConflict(['name', 'location_id'])
       .ignore();
-    
+
     console.log(`${warehouseEntries.length} warehouses seeded successfully.`);
   } else {
     console.log('No warehouse entries to seed.');

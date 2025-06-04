@@ -16,7 +16,7 @@ const { logError } = require('../../utils/logger-helper');
  */
 const serviceErrorHandler = (err, req, res, next) => {
   if (err.name !== 'ServiceError') return next(err);
-  
+
   const normalizedError = normalizeError(err, {
     type: 'ServiceError',
     code: 'SERVICE_ERROR',
@@ -25,11 +25,11 @@ const serviceErrorHandler = (err, req, res, next) => {
     logLevel: 'warn',
     details: err.details || null,
   });
-  
+
   logError(normalizedError, req, {
     context: 'service-error-handler',
   });
-  
+
   return res.status(normalizedError.status).json(normalizedError.toJSON());
 };
 

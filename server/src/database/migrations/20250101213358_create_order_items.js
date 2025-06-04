@@ -21,7 +21,7 @@ exports.up = async function (knex) {
     table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
     table.uuid('created_by').references('id').inTable('users');
     table.uuid('updated_by').references('id').inTable('users');
-    
+
     // table.unique(['order_id', 'inventory_id', 'price_id', 'price']);
   });
 

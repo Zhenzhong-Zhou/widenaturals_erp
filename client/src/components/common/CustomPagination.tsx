@@ -14,16 +14,16 @@ interface PaginationComponentProps {
 }
 
 const CustomPagination: FC<PaginationComponentProps> = ({
-                                                          page,
-                                                          totalPages,
-                                                          totalRecords,
-                                                          onPageChange,
-                                                          itemsPerPage = 10,
-                                                          sx,
-                                                        }) => {
+  page,
+  totalPages,
+  totalRecords,
+  onPageChange,
+  itemsPerPage = 10,
+  sx,
+}) => {
   const startIndex = (page - 1) * itemsPerPage + 1;
   const endIndex = Math.min(page * itemsPerPage, totalRecords);
-  
+
   return (
     <Box
       sx={{
@@ -51,7 +51,7 @@ const CustomPagination: FC<PaginationComponentProps> = ({
           },
         }}
       />
-      
+
       {/* Pagination summary */}
       <CustomTypography
         variant="caption"

@@ -17,12 +17,12 @@ import {
  */
 const useLocationInventory = () => {
   const dispatch = useAppDispatch();
-  
+
   const records = useAppSelector(selectLocationInventoryRecords);
   const loading = useAppSelector(selectLocationInventoryLoading);
   const error = useAppSelector(selectLocationInventoryError);
   const pagination = useAppSelector(selectLocationInventoryPagination);
-  
+
   /**
    * Fetches location inventory records.
    *
@@ -31,12 +31,18 @@ const useLocationInventory = () => {
    * @param {SortConfig} [sortConfig] - Optional sort configuration
    */
   const fetchRecords = useCallback(
-    (pagination: PaginationParams, filters: LocationInventoryFilters, sortConfig?: SortConfig) => {
-      dispatch(fetchLocationInventoryRecordsThunk({ pagination, filters, sortConfig }));
+    (
+      pagination: PaginationParams,
+      filters: LocationInventoryFilters,
+      sortConfig?: SortConfig
+    ) => {
+      dispatch(
+        fetchLocationInventoryRecordsThunk({ pagination, filters, sortConfig })
+      );
     },
     [dispatch]
   );
-  
+
   return {
     records,
     loading,

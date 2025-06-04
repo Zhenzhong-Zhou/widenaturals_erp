@@ -5,7 +5,7 @@ import {
   selectWarehouseInventoryItemSummaryError,
   selectWarehouseInventoryItemSummaryData,
   selectWarehouseInventoryItemSummaryLoading,
-  selectWarehouseInventoryItemSummaryPagination
+  selectWarehouseInventoryItemSummaryPagination,
 } from '@features/warehouseInventory/state';
 import { fetchWarehouseInventoryItemSummaryThunk } from '@features/warehouseInventory/state/warehouseInventoryThunks';
 import type { ItemType } from '@features/inventoryShared/types/InventorySharedType.ts';
@@ -18,21 +18,27 @@ import type { ItemType } from '@features/inventoryShared/types/InventorySharedTy
  * @param {'product' | 'packing_material'} [options.itemType=''] - Optional item type filter.
  */
 const useWarehouseInventoryItemSummary = ({
-                                            autoFetch = true,
-                                            itemType,
-                                          }: {
+  autoFetch = true,
+  itemType,
+}: {
   autoFetch?: boolean;
   itemType?: ItemType;
 } = {}) => {
   const dispatch = useAppDispatch();
-  
+
   const data = useAppSelector(selectWarehouseInventoryItemSummaryData);
-  const pagination = useAppSelector(selectWarehouseInventoryItemSummaryPagination);
+  const pagination = useAppSelector(
+    selectWarehouseInventoryItemSummaryPagination
+  );
   const loading = useAppSelector(selectWarehouseInventoryItemSummaryLoading);
   const error = useAppSelector(selectWarehouseInventoryItemSummaryError);
   const totalAvailableQuantity = useAppSelector(selectTotalAvailableQuantity);
-  
-  const fetchWarehouseInventorySummary = (opts?: { page?: number; limit?: number, itemType: ItemType }) => {
+
+  const fetchWarehouseInventorySummary = (opts?: {
+    page?: number;
+    limit?: number;
+    itemType: ItemType;
+  }) => {
     dispatch(
       fetchWarehouseInventoryItemSummaryThunk({
         page: opts?.page ?? pagination?.page ?? 1,
@@ -41,10 +47,10 @@ const useWarehouseInventoryItemSummary = ({
       })
     );
   };
-  
+
   useEffect(() => {
     if (!autoFetch || loading) return;
-    
+
     dispatch(
       fetchWarehouseInventoryItemSummaryThunk({
         page: pagination?.page ?? 1,
@@ -53,7 +59,7 @@ const useWarehouseInventoryItemSummary = ({
       })
     );
   }, [autoFetch, itemType]);
-  
+
   return {
     data,
     pagination,

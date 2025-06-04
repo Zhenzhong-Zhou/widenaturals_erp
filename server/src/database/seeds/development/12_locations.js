@@ -26,10 +26,10 @@ exports.seed = async function (knex) {
     'system@internal.local',
     'id'
   );
-  
+
   const locationTypes = await knex('location_types').select('id', 'code');
   const getTypeId = (code) => locationTypes.find((t) => t.code === code)?.id;
-  
+
   const locations = [
     {
       name: 'Head Office Warehouse',
@@ -39,7 +39,7 @@ exports.seed = async function (knex) {
       city: 'Vancouver',
       province_or_state: 'BC',
       postal_code: 'V6E 4H1',
-      country: 'Canada'
+      country: 'Canada',
     },
     {
       name: 'Head Office Canada',
@@ -49,7 +49,7 @@ exports.seed = async function (knex) {
       city: 'Vancouver',
       province_or_state: 'BC',
       postal_code: 'V6E 4H1',
-      country: 'Canada'
+      country: 'Canada',
     },
     {
       name: 'Richmond Warehouse',
@@ -59,7 +59,7 @@ exports.seed = async function (knex) {
       city: 'Richmond',
       province_or_state: 'BC',
       postal_code: 'V6V 0B7',
-      country: 'Canada'
+      country: 'Canada',
     },
     {
       name: 'Viktor Temporarily Warehouse',
@@ -69,7 +69,7 @@ exports.seed = async function (knex) {
       city: 'Richmond',
       province_or_state: 'BC',
       postal_code: 'V6V 3B7',
-      country: 'Canada'
+      country: 'Canada',
     },
     {
       name: 'Novastown Health - Burnaby Facility',
@@ -78,7 +78,7 @@ exports.seed = async function (knex) {
       city: 'Burnaby',
       province_or_state: 'BC',
       postal_code: 'V5J 5H4',
-      country: 'Canada'
+      country: 'Canada',
     },
     {
       name: 'Canadian Phytopharmaceuticals - Richmond Facility',
@@ -87,7 +87,7 @@ exports.seed = async function (knex) {
       city: 'Richmond',
       province_or_state: 'BC',
       postal_code: 'V6W 1K8',
-      country: 'Canada'
+      country: 'Canada',
     },
     {
       name: 'Phyto-Matrix Natural Technologies - Kelowna Facility',
@@ -111,16 +111,16 @@ exports.seed = async function (knex) {
       country: 'UNSPECIFIED',
       is_archived: false,
       status_id: activeStatusId,
-    }
+    },
   ];
-  
+
   for (const loc of locations) {
     const location_type_id = getTypeId(loc.typeCode);
     if (!location_type_id) {
       console.warn(`Missing location type for: ${loc.name}`);
       continue;
     }
-    
+
     await knex('locations')
       .insert({
         id: knex.raw('uuid_generate_v4()'),
@@ -143,6 +143,6 @@ exports.seed = async function (knex) {
       .onConflict(['name', 'location_type_id'])
       .ignore();
   }
-  
+
   console.log(`${locations.length} locations seeded with structured address.`);
 };

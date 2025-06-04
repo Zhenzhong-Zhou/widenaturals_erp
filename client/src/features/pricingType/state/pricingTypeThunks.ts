@@ -19,18 +19,15 @@ export const fetchAllPricingTypesThunk = createAsyncThunk<
   PaginatedResponse<PricingType>,
   FetchPricingTypesParams,
   { rejectValue: string }
->(
-  'pricingTypes/fetchAllPricingTypes',
-  async (params, thunkAPI) => {
-    try {
-      return await pricingTypeService.fetchAllPricingTypes(params);
-    } catch (error: any) {
-      return thunkAPI.rejectWithValue(
-        error.message || 'Failed to fetch pricing types'
-      );
-    }
+>('pricingTypes/fetchAllPricingTypes', async (params, thunkAPI) => {
+  try {
+    return await pricingTypeService.fetchAllPricingTypes(params);
+  } catch (error: any) {
+    return thunkAPI.rejectWithValue(
+      error.message || 'Failed to fetch pricing types'
+    );
   }
-);
+});
 
 /**
  * Thunk to fetch pricing type metadata by ID.
@@ -55,7 +52,9 @@ export const fetchPricingTypeMetadataThunk = createAsyncThunk<
     const response = await pricingTypeService.fetchPricingTypeMetadataById(id);
     return response.data;
   } catch (error: any) {
-    return rejectWithValue(error.message || 'Failed to fetch pricing type metadata');
+    return rejectWithValue(
+      error.message || 'Failed to fetch pricing type metadata'
+    );
   }
 });
 

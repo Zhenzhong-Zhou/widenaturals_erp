@@ -23,12 +23,12 @@ const helmetErrorHandler = (err, req, res, next) => {
       isExpected: true,
       details: err.details || null,
     });
-    
+
     // Log with structured error logging
     logError(normalizedError, req, {
       context: 'helmet-error-handler',
     });
-    
+
     // Respond with the structured error response
     return res.status(normalizedError.status).json(normalizedError.toJSON());
   }

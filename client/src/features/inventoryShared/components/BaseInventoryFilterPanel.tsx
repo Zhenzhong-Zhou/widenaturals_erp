@@ -25,7 +25,9 @@ export interface InventoryFilterFieldConfig {
 
 interface Props<T> {
   control: any;
-  handleSubmit: (callback: (values: T) => void) => (e?: BaseSyntheticEvent) => void;
+  handleSubmit: (
+    callback: (values: T) => void
+  ) => (e?: BaseSyntheticEvent) => void;
   onApply: (filters: T) => void;
   onReset?: () => void;
   reset: (values?: T) => void;
@@ -38,39 +40,51 @@ interface Props<T> {
 }
 
 const BaseInventoryFilterPanel = <T extends BaseInventoryFilters>({
-                                        control,
-                                        handleSubmit,
-                                        onApply,
-                                        onReset,
-                                        reset,
-                                        watch,
-                                        initialFilters,
-                                        fields,
-                                        visibleFields,
-                                        showActionsWhenAll,
-                                        requireBatchTypeForActions,
-                                      }: Props<T>) => {
+  control,
+  handleSubmit,
+  onApply,
+  onReset,
+  reset,
+  watch,
+  initialFilters,
+  fields,
+  visibleFields,
+  showActionsWhenAll,
+  requireBatchTypeForActions,
+}: Props<T>) => {
   const batchType = watch('batchType');
-  
+
   const showField = (name: string) => {
     if (visibleFields && !visibleFields.includes(name as keyof T)) return false;
-    if ((name.startsWith('product') || name === 'sku') && batchType !== 'product') return false;
-    return !((name.startsWith('material') || name.startsWith('part')) && batchType !== 'packaging_material');
+    if (
+      (name.startsWith('product') || name === 'sku') &&
+      batchType !== 'product'
+    )
+      return false;
+    return !(
+      (name.startsWith('material') || name.startsWith('part')) &&
+      batchType !== 'packaging_material'
+    );
   };
-  
+
   const handleApply = (values: T) => {
     onApply(values);
   };
-  
+
   return (
     <Paper
       elevation={1}
-      sx={{ p: 3, borderRadius: 2, backgroundColor: (theme) => theme.palette.background.default, mb: 2 }}
+      sx={{
+        p: 3,
+        borderRadius: 2,
+        backgroundColor: (theme) => theme.palette.background.default,
+        mb: 2,
+      }}
     >
       <CustomTypography variant="body1" sx={{ mb: 2 }}>
         Filters
       </CustomTypography>
-      
+
       <Box component="form" onSubmit={handleSubmit(handleApply)} sx={{ mb: 2 }}>
         <Grid container spacing={2}>
           {fields.map(({ name, label, type = 'text', options }) =>
@@ -86,7 +100,11 @@ const BaseInventoryFilterPanel = <T extends BaseInventoryFilters>({
                           label={label}
                           value={field.value ? new Date(field.value) : null}
                           onChange={(date) =>
-                            field.onChange(date ? formatISO(date, { representation: 'date' }) : '')
+                            field.onChange(
+                              date
+                                ? formatISO(date, { representation: 'date' })
+                                : ''
+                            )
                           }
                           sx={{ size: 'small', fullWidth: true }}
                         />
@@ -115,31 +133,41 @@ const BaseInventoryFilterPanel = <T extends BaseInventoryFilters>({
                         </BaseInput>
                       );
                     }
-                    return <BaseInput {...field} label={label} fullWidth size="small" value={field.value ?? ''} />;
+                    return (
+                      <BaseInput
+                        {...field}
+                        label={label}
+                        fullWidth
+                        size="small"
+                        value={field.value ?? ''}
+                      />
+                    );
                   }}
                 />
               </Grid>
             ) : null
           )}
-          
-          {showActionsWhenAll && (!requireBatchTypeForActions || (batchType !== undefined && batchType !== '')) && (
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <Stack direction="row" spacing={2}>
-                <CustomButton type="submit" variant="contained">
-                  Apply Filters
-                </CustomButton>
-                <CustomButton
-                  variant="outlined"
-                  onClick={() => {
-                    reset(initialFilters);
-                    onReset?.();
-                  }}
-                >
-                  Reset
-                </CustomButton>
-              </Stack>
-            </Grid>
-          )}
+
+          {showActionsWhenAll &&
+            (!requireBatchTypeForActions ||
+              (batchType !== undefined && batchType !== '')) && (
+              <Grid size={{ xs: 12, sm: 6 }}>
+                <Stack direction="row" spacing={2}>
+                  <CustomButton type="submit" variant="contained">
+                    Apply Filters
+                  </CustomButton>
+                  <CustomButton
+                    variant="outlined"
+                    onClick={() => {
+                      reset(initialFilters);
+                      onReset?.();
+                    }}
+                  >
+                    Reset
+                  </CustomButton>
+                </Stack>
+              </Grid>
+            )}
         </Grid>
       </Box>
     </Paper>

@@ -1,6 +1,6 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { SkuDetails } from "./skuTypes";
-import { fetchSkuDetailsThunk } from "./skuThunks";
+import type { SkuDetails } from './skuTypes';
+import { fetchSkuDetailsThunk } from './skuThunks';
 
 interface SkuDetailsState {
   data: SkuDetails | null;
@@ -30,10 +30,13 @@ const skuDetailsSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchSkuDetailsThunk.fulfilled, (state, action: PayloadAction<SkuDetails>) => {
-        state.loading = false;
-        state.data = action.payload;
-      })
+      .addCase(
+        fetchSkuDetailsThunk.fulfilled,
+        (state, action: PayloadAction<SkuDetails>) => {
+          state.loading = false;
+          state.data = action.payload;
+        }
+      )
       .addCase(fetchSkuDetailsThunk.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || 'Unable to fetch SKU details.';

@@ -1,14 +1,15 @@
 const AppError = require('../utils/AppError');
-const { getBatchRegistryDropdown } = require('../repositories/batch-registry-repository');
-const { getWarehouseDropdown } = require('../repositories/warehouse-repository');
+const {
+  getBatchRegistryDropdown,
+} = require('../repositories/batch-registry-repository');
+const {
+  getWarehouseDropdown,
+} = require('../repositories/warehouse-repository');
 const {
   transformPaginatedDropdownResultList,
-  transformWarehouseDropdownRows
+  transformWarehouseDropdownRows,
 } = require('../transformers/dropdown-transformer');
-const {
-  logSystemInfo,
-  logSystemException
-} = require('../utils/system-logger');
+const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 
 /**
  * Service to fetch filtered and paginated batch registry records for dropdown UI.
@@ -19,32 +20,46 @@ const {
  * @param {number} [options.offset=0] - Offset for pagination.
  * @returns {Promise<Object[]>} - Transformed dropdown items.
  */
-const fetchBatchRegistryDropdownService = async ({ filters = {}, limit = 50, offset = 0 }) => {
+const fetchBatchRegistryDropdownService = async ({
+  filters = {},
+  limit = 50,
+  offset = 0,
+}) => {
   try {
     if (limit < 1 || offset < 0) {
       throw AppError.validationError('Invalid pagination parameters.');
     }
-    
+
     logSystemInfo('Fetching batch registry dropdown from service', {
       context: 'dropdown-service/fetchBatchRegistryDropdown',
       metadata: { filters, limit, offset },
     });
-    
-    const rawResult = await getBatchRegistryDropdown({ filters, limit, offset });
-    return transformPaginatedDropdownResultList(rawResult);
-    
-  } catch (err) {
-    logSystemException(err, 'Failed to fetch batch registry dropdown in service', {
-      context: 'dropdown-service/fetchBatchRegistryDropdown',
+
+    const rawResult = await getBatchRegistryDropdown({
       filters,
       limit,
       offset,
     });
-    
-    throw AppError.serviceError('Failed to fetch batch registry dropdown list.', {
-      details: err.message,
-      stage: 'fetchBatchRegistryDropdownService',
-    });
+    return transformPaginatedDropdownResultList(rawResult);
+  } catch (err) {
+    logSystemException(
+      err,
+      'Failed to fetch batch registry dropdown in service',
+      {
+        context: 'dropdown-service/fetchBatchRegistryDropdown',
+        filters,
+        limit,
+        offset,
+      }
+    );
+
+    throw AppError.serviceError(
+      'Failed to fetch batch registry dropdown list.',
+      {
+        details: err.message,
+        stage: 'fetchBatchRegistryDropdownService',
+      }
+    );
   }
 };
 
@@ -66,15 +81,19 @@ const fetchWarehouseDropdownService = async (filters = {}) => {
       context: 'warehouse-service/fetchWarehouseDropdownService',
       filters,
     });
-    
+
     const rawResult = await getWarehouseDropdown(filters);
     return transformWarehouseDropdownRows(rawResult);
   } catch (err) {
-    logSystemException(err, 'Failed to fetch warehouse dropdown in service layer', {
-      context: 'warehouse-service/fetchWarehouseDropdownService',
-      filters,
-    });
-    
+    logSystemException(
+      err,
+      'Failed to fetch warehouse dropdown in service layer',
+      {
+        context: 'warehouse-service/fetchWarehouseDropdownService',
+        filters,
+      }
+    );
+
     throw AppError.serviceError('Could not fetch warehouse dropdown', {
       details: err.message,
       stage: 'warehouse-service',

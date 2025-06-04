@@ -1,4 +1,4 @@
-import type { WarehouseInventoryFilters } from "@features/warehouseInventory/state";
+import type { WarehouseInventoryFilters } from '@features/warehouseInventory/state';
 import { buildScopedInventoryFilters } from '@utils/filters/filter-utils.ts';
 
 /**

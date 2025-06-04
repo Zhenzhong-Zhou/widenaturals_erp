@@ -37,12 +37,12 @@
 const buildBatchRegistryWhereClause = (filters = {}) => {
   const whereClauses = ['1=1'];
   const params = [];
-  
+
   if (filters.batchType) {
     params.push(filters.batchType);
     whereClauses.push(`br.batch_type = $${params.length}`);
   }
-  
+
   if (filters.warehouseId) {
     whereClauses.push(`
       NOT EXISTS (
@@ -52,7 +52,7 @@ const buildBatchRegistryWhereClause = (filters = {}) => {
     `);
     params.push(filters.warehouseId);
   }
-  
+
   if (filters.locationId) {
     whereClauses.push(`
       NOT EXISTS (
@@ -62,7 +62,7 @@ const buildBatchRegistryWhereClause = (filters = {}) => {
     `);
     params.push(filters.locationId);
   }
-  
+
   return {
     whereClause: whereClauses.join(' AND '),
     params,

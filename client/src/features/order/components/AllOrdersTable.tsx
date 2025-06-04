@@ -16,9 +16,9 @@ const AllOrdersTable: FC<OrdersTableProps> = ({ refreshTrigger }) => {
     manualRefresh,
     refreshCounter,
   } = useAllOrders();
-  
+
   const [isRefreshing, setIsRefreshing] = useState(false);
-  
+
   const handleManualRefresh = async () => {
     setIsRefreshing(true);
     try {
@@ -27,7 +27,7 @@ const AllOrdersTable: FC<OrdersTableProps> = ({ refreshTrigger }) => {
       setIsRefreshing(false);
     }
   };
-  
+
   return (
     <GenericOrdersTable
       orders={orders}

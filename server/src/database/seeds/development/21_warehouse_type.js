@@ -6,10 +6,16 @@ const { fetchDynamicValue } = require('../03_utils');
  */
 exports.seed = async function (knex) {
   console.log('Seeding warehouse_types...');
-  
-  const systemUserId = await fetchDynamicValue(knex, 'users', 'email', 'system@internal.local', 'id');
+
+  const systemUserId = await fetchDynamicValue(
+    knex,
+    'users',
+    'email',
+    'system@internal.local',
+    'id'
+  );
   const now = knex.fn.now();
-  
+
   const warehouseTypes = [
     {
       name: 'distribution_center',
@@ -32,7 +38,7 @@ exports.seed = async function (knex) {
       description: 'Operated by a third-party or offsite partner',
     },
   ];
-  
+
   const records = warehouseTypes.map((t) => ({
     id: knex.raw('uuid_generate_v4()'),
     name: t.name,
@@ -43,11 +49,8 @@ exports.seed = async function (knex) {
     created_by: systemUserId,
     updated_by: null,
   }));
-  
-  await knex('warehouse_types')
-    .insert(records)
-    .onConflict('name')
-    .ignore();
-  
+
+  await knex('warehouse_types').insert(records).onConflict('name').ignore();
+
   console.log(`Seeded ${records.length} warehouse types.`);
 };

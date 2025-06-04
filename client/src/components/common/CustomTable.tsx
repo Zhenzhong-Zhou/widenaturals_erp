@@ -40,7 +40,10 @@ interface CustomTableProps<T = any> {
   expandedRowId?: string | number | null;
   getRowId?: (row: T) => string | number;
   emptyMessage?: string;
-  getRowProps?: (row: T, index: number) => {
+  getRowProps?: (
+    row: T,
+    index: number
+  ) => {
     isGroupHeader?: boolean;
     colSpan?: number;
     sx?: object;
@@ -48,50 +51,50 @@ interface CustomTableProps<T = any> {
 }
 
 const CustomTable = <T extends Record<string, any>>({
-                                             rowsPerPageId,
-                                             loading,
-                                             columns,
-                                             data,
-                                             rowsPerPageOptions = [5, 10, 25],
-                                             initialRowsPerPage = 5,
-                                             totalPages,
-                                             totalRecords,
-                                             page,
-                                             onPageChange,
-                                             onRowsPerPageChange,
-                                             expandable = false,
-                                             expandedContent,
-                                             expandedRowId,
-                                             getRowId,
-                                             emptyMessage,
-                                             getRowProps,
-                                           }: CustomTableProps<T>) => {
+  rowsPerPageId,
+  loading,
+  columns,
+  data,
+  rowsPerPageOptions = [5, 10, 25],
+  initialRowsPerPage = 5,
+  totalPages,
+  totalRecords,
+  page,
+  onPageChange,
+  onRowsPerPageChange,
+  expandable = false,
+  expandedContent,
+  expandedRowId,
+  getRowId,
+  emptyMessage,
+  getRowProps,
+}: CustomTableProps<T>) => {
   const { theme } = useThemeContext();
   const [order, setOrder] = useState<'asc' | 'desc'>('asc');
   const [orderBy, setOrderBy] = useState<string | undefined>(undefined);
-  
+
   const handleSort = (columnId: string) => {
     const isAsc = orderBy === columnId && order === 'asc';
     setOrder(isAsc ? 'desc' : 'asc');
     setOrderBy(columnId);
   };
-  
+
   const sortedData = orderBy
     ? [...data].sort((a, b) => {
-      const aVal = a[orderBy as keyof typeof a];
-      const bVal = b[orderBy as keyof typeof b];
-      if (aVal === bVal) return 0;
-      if (aVal == null) return 1;
-      if (bVal == null) return -1;
-      return order === 'asc'
-        ? String(aVal).localeCompare(String(bVal))
-        : String(bVal).localeCompare(String(aVal));
-    })
+        const aVal = a[orderBy as keyof typeof a];
+        const bVal = b[orderBy as keyof typeof b];
+        if (aVal === bVal) return 0;
+        if (aVal == null) return 1;
+        if (bVal == null) return -1;
+        return order === 'asc'
+          ? String(aVal).localeCompare(String(bVal))
+          : String(bVal).localeCompare(String(aVal));
+      })
     : data;
-  
+
   // Use totalPages directly to ensure the page stays in range
   const safePage = Math.min(page, Math.max(0, (totalPages || 1) - 1));
-  
+
   return (
     <Paper
       sx={{
@@ -121,7 +124,7 @@ const CustomTable = <T extends Record<string, any>>({
               >
                 #
               </TableCell>
-              
+
               {columns.map((col) => (
                 <TableCell
                   key={col.id}
@@ -154,19 +157,30 @@ const CustomTable = <T extends Record<string, any>>({
               ))}
             </TableRow>
           </TableHead>
-          
+
           <TableBody>
             {loading ? (
               [...Array(initialRowsPerPage)].map((_, i) => (
                 <TableRow key={`skeleton-${i}`}>
-                  <TableCell colSpan={columns.length + 1} sx={{ py: 1.25, px: 2 }}>
-                    <Skeleton variant="rectangular" height={48} animation="wave" />
+                  <TableCell
+                    colSpan={columns.length + 1}
+                    sx={{ py: 1.25, px: 2 }}
+                  >
+                    <Skeleton
+                      variant="rectangular"
+                      height={48}
+                      animation="wave"
+                    />
                   </TableCell>
                 </TableRow>
               ))
             ) : sortedData.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={columns.length + 1} align="center" sx={{ py: 3 }}>
+                <TableCell
+                  colSpan={columns.length + 1}
+                  align="center"
+                  sx={{ py: 3 }}
+                >
                   <NoDataFound message={emptyMessage} />
                 </TableCell>
               </TableRow>
@@ -174,9 +188,11 @@ const CustomTable = <T extends Record<string, any>>({
               (() => {
                 let visibleRowIndex = 0;
                 return sortedData.map((row, rowIndex) => {
-                  const rowId = getRowId ? getRowId(row) : row.id ?? row.itemId ?? rowIndex;
+                  const rowId = getRowId
+                    ? getRowId(row)
+                    : (row.id ?? row.itemId ?? rowIndex);
                   const rowProps = getRowProps?.(row, rowIndex);
-                  
+
                   if (rowProps?.isGroupHeader) {
                     return (
                       <TableRow key={rowId}>
@@ -195,10 +211,11 @@ const CustomTable = <T extends Record<string, any>>({
                       </TableRow>
                     );
                   }
-                  
-                  const displayRowNumber = safePage * initialRowsPerPage + visibleRowIndex + 1;
+
+                  const displayRowNumber =
+                    safePage * initialRowsPerPage + visibleRowIndex + 1;
                   visibleRowIndex++;
-                  
+
                   return (
                     <Fragment key={rowId}>
                       <TableRow
@@ -212,7 +229,11 @@ const CustomTable = <T extends Record<string, any>>({
                           {displayRowNumber}
                         </TableCell>
                         {columns.map((col) => (
-                          <TableCell key={col.id} align={col.align || 'left'} sx={{ py: 1.25, px: 2 }}>
+                          <TableCell
+                            key={col.id}
+                            align={col.align || 'left'}
+                            sx={{ py: 1.25, px: 2 }}
+                          >
                             {col.renderCell
                               ? col.renderCell(row, rowIndex)
                               : col.format
@@ -221,7 +242,7 @@ const CustomTable = <T extends Record<string, any>>({
                           </TableCell>
                         ))}
                       </TableRow>
-                      
+
                       {expandable && (
                         <TableRow>
                           <TableCell colSpan={columns.length + 1} sx={{ p: 0 }}>
@@ -239,7 +260,7 @@ const CustomTable = <T extends Record<string, any>>({
           </TableBody>
         </Table>
       </TableContainer>
-      
+
       <TablePagination
         rowsPerPageOptions={rowsPerPageOptions}
         component="div"

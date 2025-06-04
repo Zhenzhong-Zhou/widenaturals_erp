@@ -46,14 +46,19 @@ const fetchAllPricingTypes = async (
  * @throws {Error} If the request fails.
  */
 export const fetchPricingTypeMetadataById = async (
-  pricingTypeId: string,
+  pricingTypeId: string
 ): Promise<PricingTypeMetadataResponse> => {
   try {
-    const endpoint = API_ENDPOINTS.PRICING_TYPE_METADATA.replace(':id', pricingTypeId);
-    const response = await axiosInstance.get<PricingTypeMetadataResponse>(endpoint);
+    const endpoint = API_ENDPOINTS.PRICING_TYPE_METADATA.replace(
+      ':id',
+      pricingTypeId
+    );
+    const response =
+      await axiosInstance.get<PricingTypeMetadataResponse>(endpoint);
     return response.data;
   } catch (error: any) {
-    const message = error?.response?.data?.message || error.message || 'Unknown error';
+    const message =
+      error?.response?.data?.message || error.message || 'Unknown error';
     throw new Error(`Failed to fetch pricing type metadata: ${message}`);
   }
 };

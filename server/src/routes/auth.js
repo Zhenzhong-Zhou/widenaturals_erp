@@ -19,11 +19,7 @@ const { csrfMiddleware } = require('../middlewares/csrf-protection');
 const router = express.Router();
 
 // Logout route
-router.post(
-  '/logout',
-  csrfMiddleware,
-  logoutController
-);
+router.post('/logout', csrfMiddleware, logoutController);
 
 router.post(
   '/reset-password',

@@ -2,7 +2,9 @@ const {
   createOrderByType,
   fetchOrderDetails,
   fetchAllOrdersService,
-  confirmOrderService, fetchAllocationEligibleOrdersService, fetchAllocationEligibleOrderDetails,
+  confirmOrderService,
+  fetchAllocationEligibleOrdersService,
+  fetchAllocationEligibleOrderDetails,
 } = require('../services/order-service');
 const AppError = require('../utils/AppError');
 const wrapAsync = require('../utils/wrap-async');
@@ -74,9 +76,9 @@ const createOrderFetchController = (serviceFn) =>
         sortOrder = 'DESC',
         verifyOrderNumbers = true,
       } = req.query;
-      
+
       const verifyOrderNumbersBool = verifyOrderNumbers !== 'false';
-      
+
       const result = await serviceFn({
         page: Number(page),
         limit: Number(limit),
@@ -84,7 +86,7 @@ const createOrderFetchController = (serviceFn) =>
         sortOrder,
         verifyOrderNumbers: verifyOrderNumbersBool,
       });
-      
+
       res.status(200).json({
         success: true,
         message: 'Orders fetched successfully',
@@ -103,7 +105,9 @@ const createOrderFetchController = (serviceFn) =>
  *
  * @type {Function}
  */
-const getAllOrdersController = createOrderFetchController(fetchAllOrdersService);
+const getAllOrdersController = createOrderFetchController(
+  fetchAllOrdersService
+);
 
 /**
  * Controller to handle fetching orders eligible for inventory allocation.
@@ -111,7 +115,9 @@ const getAllOrdersController = createOrderFetchController(fetchAllOrdersService)
  *
  * @type {Function}
  */
-const getAllocationEligibleOrdersController = createOrderFetchController(fetchAllocationEligibleOrdersService);
+const getAllocationEligibleOrdersController = createOrderFetchController(
+  fetchAllocationEligibleOrdersService
+);
 
 /**
  * Controller to confirm an order and its items.
@@ -145,18 +151,20 @@ const confirmOrderController = wrapAsync(async (req, res, next) => {
  * @route GET /api/orders/:orderId/allocation
  * @access Protected
  */
-const getAllocationEligibleOrderDetailsController = wrapAsync(async (req, res) => {
-  const { orderId } = req.params;
-  const user = req.user;
-  
-  const order = await fetchAllocationEligibleOrderDetails(orderId, user);
-  
-  res.status(200).json({
-    success: true,
-    message: 'Confirmed order allocation data fetched successfully',
-    data: order,
-  });
-});
+const getAllocationEligibleOrderDetailsController = wrapAsync(
+  async (req, res) => {
+    const { orderId } = req.params;
+    const user = req.user;
+
+    const order = await fetchAllocationEligibleOrderDetails(orderId, user);
+
+    res.status(200).json({
+      success: true,
+      message: 'Confirmed order allocation data fetched successfully',
+      data: order,
+    });
+  }
+);
 
 module.exports = {
   createOrderController,

@@ -99,7 +99,11 @@ router.use('/pricings', authenticate(), pricingRoutes);
  * Warehouse and inventory management
  */
 router.use('/warehouse-inventory', authenticate(), warehouseInventoryRoutes);
-router.use('/lot-adjustment-types', authenticate(), warehouseLotAdjustmentRoutes);
+router.use(
+  '/lot-adjustment-types',
+  authenticate(),
+  warehouseLotAdjustmentRoutes
+);
 
 /**
  * Location-related management

@@ -15,16 +15,16 @@ interface WarehouseDropdownProps {
 }
 
 const WarehouseDropdown: FC<WarehouseDropdownProps> = ({
-                                                         label = 'Select Warehouse',
-                                                         value,
-                                                         warehouseDropdownOptions,
-                                                         onChange,
-                                                         warehouseDropdownLoading = false,
-                                                         warehouseDropdownError = null,
-                                                         onRefresh,
-                                                         onAddNew,
-                                                         disabled = false,
-                                                       }) => {
+  label = 'Select Warehouse',
+  value,
+  warehouseDropdownOptions,
+  onChange,
+  warehouseDropdownLoading = false,
+  warehouseDropdownError = null,
+  onRefresh,
+  onAddNew,
+  disabled = false,
+}) => {
   return (
     <Dropdown
       label={label}

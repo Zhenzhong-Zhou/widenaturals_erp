@@ -25,7 +25,7 @@ const transformSkuProductCardRow = (row) => {
     row.status_name === row.sku_status_name
       ? row.status_name
       : { product: row.status_name, sku: row.sku_status_name };
-  
+
   return {
     skuId: row.sku_id,
     skuCode: row.sku,
@@ -84,7 +84,7 @@ const transformSkuDetailsWithMeta = (row) => {
     sku_created_by_lastname,
     sku_updated_by_firstname,
     sku_updated_by_lastname,
-    
+
     // Product-level
     product_id,
     product_name,
@@ -101,7 +101,7 @@ const transformSkuDetailsWithMeta = (row) => {
     product_created_by_lastname,
     product_updated_by_firstname,
     product_updated_by_lastname,
-    
+
     // Shared/meta
     sku_status_name,
     product_status_name,
@@ -109,31 +109,33 @@ const transformSkuDetailsWithMeta = (row) => {
     compliances = [],
     images = [],
   } = row;
-  
+
   const getAuditUser = (id, firstName, lastName) => {
     const fullName = getFullName(firstName, lastName);
     return id || fullName ? { id: id ?? null, fullName } : null;
   };
-  
+
   const status =
     sku_status_name === product_status_name
       ? sku_status_name
       : { sku: sku_status_name, product: product_status_name };
-  
-  const description = sku_description?.trim() || product_description?.trim() || '';
-  
+
+  const description =
+    sku_description?.trim() || product_description?.trim() || '';
+
   // Separate zoom and main
-  const zoomImages = images.filter(img => img.type === 'zoom');
-  const mainImages = images.filter(img => img.type === 'main');
+  const zoomImages = images.filter((img) => img.type === 'zoom');
+  const mainImages = images.filter((img) => img.type === 'main');
 
   // Fallback: if no zoom available, duplicate main as zoom
-  const effectiveZoomImages = zoomImages.length > 0
-    ? zoomImages
-    : mainImages.map(img => ({ ...img, type: 'zoom_fallback' }));
+  const effectiveZoomImages =
+    zoomImages.length > 0
+      ? zoomImages
+      : mainImages.map((img) => ({ ...img, type: 'zoom_fallback' }));
 
   // Merge for a final result (optional: remove duplicates)
   const filteredImages = [...mainImages, ...effectiveZoomImages];
-  
+
   return {
     skuId: sku_id,
     sku,
@@ -166,12 +168,28 @@ const transformSkuDetailsWithMeta = (row) => {
     audit: {
       createdAt: sku_created_at ?? product_created_at,
       createdBy:
-        getAuditUser(sku_created_by, sku_created_by_firstname, sku_created_by_lastname) ??
-        getAuditUser(product_created_by, product_created_by_firstname, product_created_by_lastname),
+        getAuditUser(
+          sku_created_by,
+          sku_created_by_firstname,
+          sku_created_by_lastname
+        ) ??
+        getAuditUser(
+          product_created_by,
+          product_created_by_firstname,
+          product_created_by_lastname
+        ),
       updatedAt: sku_updated_at ?? product_updated_at,
       updatedBy:
-        getAuditUser(sku_updated_by, sku_updated_by_firstname, sku_updated_by_lastname) ??
-        getAuditUser(product_updated_by, product_updated_by_firstname, product_updated_by_lastname),
+        getAuditUser(
+          sku_updated_by,
+          sku_updated_by_firstname,
+          sku_updated_by_lastname
+        ) ??
+        getAuditUser(
+          product_updated_by,
+          product_updated_by_firstname,
+          product_updated_by_lastname
+        ),
     },
     prices,
     compliances,

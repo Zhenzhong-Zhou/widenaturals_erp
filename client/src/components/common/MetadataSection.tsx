@@ -6,8 +6,7 @@ import type { SxProps, Theme } from '@mui/system';
 import { formatLabel } from '@utils/textUtils';
 
 // Exclude keys like id, uuid, etc.
-const shouldExcludeKey = (key: string): boolean =>
-  /(^|_)id$|uuid/i.test(key);
+const shouldExcludeKey = (key: string): boolean => /(^|_)id$|uuid/i.test(key);
 
 // Helper to check if value is a primitive or displayable
 const isSimpleValue = (value: any): boolean =>
@@ -22,14 +21,14 @@ interface MetadataSectionProps {
 
 const MetadataSection: FC<MetadataSectionProps> = ({ data, sx }) => {
   const { theme } = useThemeContext();
-  
+
   return (
     <Box sx={{ mt: theme.spacing(2), ...sx }}>
       {Object.entries(data).map(([key, value]) => {
         if (shouldExcludeKey(key)) return null;
-        
+
         const formattedKey = formatLabel(key);
-        
+
         return (
           <Box key={key} sx={{ mb: theme.spacing(1.5) }}>
             <Typography
@@ -41,7 +40,7 @@ const MetadataSection: FC<MetadataSectionProps> = ({ data, sx }) => {
             >
               {formattedKey}:
             </Typography>
-            
+
             {/* Recursive for nested values */}
             {Array.isArray(value) ? (
               <Box sx={{ pl: theme.spacing(2), pt: 0.5 }}>

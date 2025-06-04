@@ -15,16 +15,19 @@ import {
  */
 const useLocationInventorySummary = () => {
   const dispatch = useAppDispatch();
-  
+
   const data = useAppSelector(selectLocationInventorySummaryData);
   const pagination = useAppSelector(selectLocationInventorySummaryPagination);
   const loading = useAppSelector(selectLocationInventorySummaryLoading);
   const error = useAppSelector(selectLocationInventorySummaryError);
-  
-  const fetchLocationInventorySummary = useCallback((params: LocationInventoryQueryParams) => {
-    dispatch(fetchLocationInventorySummaryThunk(params));
-  }, [dispatch]);
-  
+
+  const fetchLocationInventorySummary = useCallback(
+    (params: LocationInventoryQueryParams) => {
+      dispatch(fetchLocationInventorySummaryThunk(params));
+    },
+    [dispatch]
+  );
+
   return {
     data,
     pagination,

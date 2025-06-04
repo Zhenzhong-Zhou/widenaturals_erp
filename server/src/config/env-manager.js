@@ -90,7 +90,7 @@ const loadAndValidateEnv = () => {
       context: 'env-loader',
       severity: 'critical',
     });
-    
+
     throw error;
   }
 };

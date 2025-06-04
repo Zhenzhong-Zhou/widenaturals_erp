@@ -5,7 +5,8 @@ import type { WarehouseDropdownItem } from '@features/dropdown/state/dropdownTyp
 /**
  * Selects the entire warehouse dropdown state slice.
  */
-const selectWarehouseDropdownState = (state: RootState) => state.warehouseDropdown;
+const selectWarehouseDropdownState = (state: RootState) =>
+  state.warehouseDropdown;
 
 /**
  * Memoized selector for warehouse dropdown items.

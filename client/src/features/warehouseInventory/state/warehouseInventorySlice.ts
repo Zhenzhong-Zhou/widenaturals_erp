@@ -1,6 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { fetchWarehouseInventoryRecordsThunk } from './warehouseInventoryThunks';
-import type { WarehouseInventoryState, } from './warehouseInventoryTypes';
+import type { WarehouseInventoryState } from './warehouseInventoryTypes';
 
 const initialState: WarehouseInventoryState = {
   data: [],
@@ -26,15 +26,21 @@ const warehouseInventorySlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchWarehouseInventoryRecordsThunk.fulfilled, (state, action) => {
-        state.loading = false;
-        state.data = action.payload.data;
-        state.pagination = action.payload.pagination;
-      })
-      .addCase(fetchWarehouseInventoryRecordsThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
-      });
+      .addCase(
+        fetchWarehouseInventoryRecordsThunk.fulfilled,
+        (state, action) => {
+          state.loading = false;
+          state.data = action.payload.data;
+          state.pagination = action.payload.pagination;
+        }
+      )
+      .addCase(
+        fetchWarehouseInventoryRecordsThunk.rejected,
+        (state, action) => {
+          state.loading = false;
+          state.error = action.payload as string;
+        }
+      );
   },
 });
 

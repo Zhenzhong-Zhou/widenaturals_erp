@@ -19,7 +19,7 @@ class GlobalErrorBoundary extends Component<Props, State> {
     super(props);
     this.state = { hasError: false, errorMessage: undefined };
   }
-  
+
   /**
    * Update state when an error is thrown.
    */
@@ -27,13 +27,13 @@ class GlobalErrorBoundary extends Component<Props, State> {
     const userMessage = mapErrorMessage(error);
     return { hasError: true, errorMessage: userMessage };
   }
-  
+
   /**
    * Custom error handling or logging.
    */
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Global error caught:', error, errorInfo);
-    
+
     const appError = new AppError('A global application error occurred.', 500, {
       type: ErrorType.GlobalError,
       details: {
@@ -41,7 +41,7 @@ class GlobalErrorBoundary extends Component<Props, State> {
         componentStack: errorInfo.componentStack || '',
       },
     });
-    
+
     // Log the error using errorUtils or a custom handler
     if (this.props.onError) {
       this.props.onError(appError, errorInfo);
@@ -50,7 +50,7 @@ class GlobalErrorBoundary extends Component<Props, State> {
       this.logErrorToServer(appError);
     }
   }
-  
+
   /**
    * Log to external service/server.
    */
@@ -73,18 +73,18 @@ class GlobalErrorBoundary extends Component<Props, State> {
       console.error('Failed to send error:', err);
     }
   };
-  
+
   /**
    * Reset boundary to allow retry rendering.
    */
   resetError = () => {
     this.setState({ hasError: false, errorMessage: undefined });
   };
-  
+
   render() {
     const { hasError, errorMessage } = this.state;
     const { fallback, children } = this.props;
-    
+
     if (hasError) {
       return (
         fallback || (
@@ -95,7 +95,7 @@ class GlobalErrorBoundary extends Component<Props, State> {
         )
       );
     }
-    
+
     return children;
   }
 }

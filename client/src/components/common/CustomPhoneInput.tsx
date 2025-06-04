@@ -15,14 +15,14 @@ interface PhoneInputProps {
 }
 
 const CustomPhoneInput: FC<PhoneInputProps> = ({
-                                                 value,
-                                                 onChange,
-                                                 country = 'ca',
-                                                 disabled = false,
-                                                 sx,
-                                                 required = true,
-                                                 label = 'Phone number',
-                                               }) => {
+  value,
+  onChange,
+  country = 'ca',
+  disabled = false,
+  sx,
+  required = true,
+  label = 'Phone number',
+}) => {
   return (
     <Box sx={{ width: '100%', ...sx }}>
       <PhoneInput

@@ -369,12 +369,12 @@ const updateOrderData = async (orderId, updateData, client) => {
  * @throws {AppError} - Throws a database error if query fails.
  */
 const getOrdersWithFilters = async ({
-                                      page = 1,
-                                      limit = 10,
-                                      sortBy = 'created_at',
-                                      sortOrder = 'DESC',
-                                      extraWhereClause = '',
-                                    } = {}) => {
+  page = 1,
+  limit = 10,
+  sortBy = 'created_at',
+  sortOrder = 'DESC',
+  extraWhereClause = '',
+} = {}) => {
   const tableName = 'orders o';
   const joins = [
     'JOIN order_types ot ON o.order_type_id = ot.id',
@@ -382,7 +382,7 @@ const getOrdersWithFilters = async ({
     'LEFT JOIN users u1 ON o.created_by = u1.id',
     'LEFT JOIN users u2 ON o.updated_by = u2.id',
   ];
-  
+
   const allowedSortFields = [
     'order_number',
     'category',
@@ -391,16 +391,16 @@ const getOrdersWithFilters = async ({
     'created_at',
     'updated_at',
   ];
-  
+
   const validatedSortBy = allowedSortFields.includes(sortBy)
     ? `o.${sortBy}`
     : 'o.created_at';
-  
+
   const whereClause = ['1=1'];
   if (extraWhereClause) {
     whereClause.push(extraWhereClause);
   }
-  
+
   const baseQuery = `
     SELECT
       o.id,
@@ -418,7 +418,7 @@ const getOrdersWithFilters = async ({
     ${joins.join(' ')}
     WHERE ${whereClause.join(' AND ')}
   `;
-  
+
   try {
     return await retry(
       () =>
@@ -470,7 +470,7 @@ const getAllOrders = (options = {}) => {
 const getAllocationEligibleOrders = (options = {}) => {
   return getOrdersWithFilters({
     ...options,
-    extraWhereClause: `os.code = ANY(ARRAY['${allocationEligibleStatuses.join("','")}'])`
+    extraWhereClause: `os.code = ANY(ARRAY['${allocationEligibleStatuses.join("','")}'])`,
   });
 };
 
@@ -666,7 +666,7 @@ const getOrderAllocationDetailsById = async (orderId) => {
     WHERE o.id = $1
       AND os.code = ANY($2::text[]);
   `;
-  
+
   try {
     const result = await query(sql, [orderId, allocationEligibleStatuses]);
     return result.rows;

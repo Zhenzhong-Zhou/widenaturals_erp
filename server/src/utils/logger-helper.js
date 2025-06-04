@@ -36,9 +36,9 @@ const getLogger = () => {
  */
 const extractRequestMeta = (req) => {
   const timestamp = new Date().toISOString();
-  
+
   if (!req) return { timestamp };
-  
+
   return {
     method: req.method || 'N/A',
     url: req.originalUrl || req.url || 'N/A',
@@ -117,13 +117,13 @@ const logError = (errOrMessage, req = null, meta = {}) => {
   let message = 'An unknown error occurred';
   let logLevel = 'error';
   let finalMeta = { ...meta };
-  
+
   if (errOrMessage instanceof AppError) {
     message = errOrMessage.message || message;
     logLevel = errOrMessage.logLevel || logLevel;
-    
+
     finalMeta = {
-      ...errOrMessage.toLog(req),  // includes stack, request info, etc.
+      ...errOrMessage.toLog(req), // includes stack, request info, etc.
       ...meta, // allows overrides
     };
   } else if (errOrMessage instanceof Error) {
@@ -131,7 +131,9 @@ const logError = (errOrMessage, req = null, meta = {}) => {
     finalMeta = {
       ...extractRequestMeta(req),
       ...meta,
-      ...(process.env.NODE_ENV !== 'production' ? { stack: errOrMessage.stack } : {}),
+      ...(process.env.NODE_ENV !== 'production'
+        ? { stack: errOrMessage.stack }
+        : {}),
     };
   } else if (typeof errOrMessage === 'string') {
     message = errOrMessage;
@@ -140,7 +142,7 @@ const logError = (errOrMessage, req = null, meta = {}) => {
       ...meta,
     };
   }
-  
+
   logWithLevel(logLevel, message, null, finalMeta); // `req` context already extracted
 };
 

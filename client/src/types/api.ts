@@ -4,13 +4,13 @@
 export interface Pagination {
   /** Current page number (1-based index) */
   page: number;
-  
+
   /** Number of records per page */
   limit: number;
-  
+
   /** Total number of records available across all pages */
   totalRecords: number;
-  
+
   /** Total number of pages based on the current limit and totalRecords */
   totalPages: number;
 }
@@ -23,13 +23,13 @@ export interface Pagination {
 export interface PaginatedResponse<T> {
   /** Indicates whether the request was successful */
   success: boolean;
-  
+
   /** Human-readable message associated with the response */
   message: string;
-  
+
   /** Array of data items of type T */
   data: T[];
-  
+
   /** Pagination metadata for the current response */
   pagination: Pagination;
 }
@@ -44,12 +44,12 @@ export interface ApiSuccessResponse<T> {
    * Indicates whether the request was successful.
    */
   success: true;
-  
+
   /**
    * A human-readable message describing the result.
    */
   message: string;
-  
+
   /**
    * The actual data payload of the response.
    */
@@ -64,13 +64,13 @@ export interface ApiSuccessResponse<T> {
 export interface ReduxPaginatedState<T> {
   /** Fetched data items. */
   data: T[];
-  
+
   /** Pagination info for current view. */
   pagination: Pagination;
-  
+
   /** Whether data is currently being loaded. */
   loading: boolean;
-  
+
   /** Error message if fetching fails. */
   error: string | null;
 }
@@ -94,7 +94,7 @@ export interface PaginationParams {
    * Example: page=2 → fetch the second page of results.
    */
   page?: number;
-  
+
   /**
    * The number of records to return per page. Defaults to 10 or your backend default.
    * Example: limit=25 → return 25 items per page.
@@ -112,12 +112,12 @@ export interface AsyncState<T> {
    * The data payload (can be null before loading or on error).
    */
   data: T;
-  
+
   /**
    * Whether the request is currently loading.
    */
   loading: boolean;
-  
+
   /**
    * Error message if the request fails, otherwise null.
    */
@@ -140,7 +140,7 @@ export interface AsyncState<T> {
 export interface SortConfig {
   /** The field name to sort by (must align with backend-supported fields). */
   sortBy?: string;
-  
+
   /** Sort direction: 'ASC' for ascending, 'DESC' for descending. Defaults to 'ASC' if not specified. */
   sortOrder?: 'ASC' | 'DESC' | '';
 }
@@ -158,27 +158,27 @@ export interface DropdownSuccessResponse<T> {
    * Indicates the API call was successful.
    */
   success: true;
-  
+
   /**
    * A human-readable message describing the result.
    */
   message: string;
-  
+
   /**
    * The array of dropdown-compatible result items.
    */
   items: T[];
-  
+
   /**
    * Pagination limit (number of items per request).
    */
   limit: number;
-  
+
   /**
    * Pagination offset (starting index of returned items).
    */
   offset: number;
-  
+
   /**
    * Flag indicating if more items are available for loading.
    */
@@ -193,10 +193,10 @@ export interface DropdownSuccessResponse<T> {
 export interface PaginatedDropdownState<T> extends AsyncState<T[]> {
   /** Whether more items are available to load. */
   hasMore: boolean;
-  
+
   /** Number of items per request. */
   limit: number;
-  
+
   /** Current offset used for pagination. */
   offset: number;
 }

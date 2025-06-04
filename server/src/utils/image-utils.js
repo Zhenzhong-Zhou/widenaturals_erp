@@ -9,12 +9,18 @@ const sharp = require('sharp');
  * @param {number} effort - Compression effort (0–6)
  * @returns {Promise<void>}
  */
-const resizeImage = async (sourcePath, targetPath, width, quality = 80, effort = 5) => {
+const resizeImage = async (
+  sourcePath,
+  targetPath,
+  width,
+  quality = 80,
+  effort = 5
+) => {
   await sharp(sourcePath)
     .resize({ width })
-    .webp( {quality, effort})
+    .webp({ quality, effort })
     .toFile(targetPath);
-}
+};
 
 module.exports = {
   resizeImage,

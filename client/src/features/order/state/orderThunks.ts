@@ -118,7 +118,9 @@ export const fetchAllocationEligibleOrderDetailsThunk = createAsyncThunk<
       return await orderService.fetchAllocationEligibleOrderDetails(orderId);
     } catch (error: any) {
       console.error('Thunk error:', error);
-      return rejectWithValue(error.message ?? 'Failed to load order allocation data.');
+      return rejectWithValue(
+        error.message ?? 'Failed to load order allocation data.'
+      );
     }
   }
 );

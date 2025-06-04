@@ -7,9 +7,7 @@ export type {
   PricingTypeDropdownItem,
   PricingTypeDropdownResponse,
 } from './state/pricingTypeTypes';
-export {
-  fetchPricingTypeDropdownThunk,
-} from './state/pricingTypeThunks';
+export { fetchPricingTypeDropdownThunk } from './state/pricingTypeThunks';
 export {
   selectPricingTypeDropdown,
   selectPricingTypeDropdownLoading,

@@ -4,7 +4,8 @@ import {
   cloneElement,
   type ReactElement,
   useEffect,
-  isValidElement, useMemo,
+  isValidElement,
+  useMemo,
 } from 'react';
 import { useThemeContext } from '@context/ThemeContext';
 import { useMediaQuery, useTheme } from '@mui/material';
@@ -62,13 +63,13 @@ const MainLayout = ({ children }: MainLayoutProps) => {
   useEffect(() => {
     setSidebarOpen(!isSmallScreen); // Automatically adjust sidebar state based on screen size
   }, [isSmallScreen]);
-  
+
   const injectedChild = useMemo(() => {
     return isValidElement(children)
       ? cloneElement(children, { fullName, roleName, permissions })
       : null;
   }, [children, fullName, roleName, permissions]);
-  
+
   if (userProfileLoading) {
     return <Loading fullPage={true} message="Loading user profile..." />;
   }

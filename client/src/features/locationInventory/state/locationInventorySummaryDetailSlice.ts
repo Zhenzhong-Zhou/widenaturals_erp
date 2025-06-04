@@ -26,20 +26,27 @@ const locationInventorySummaryDetailSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchLocationInventorySummaryByItemIdThunk.fulfilled, (state, action) => {
-        state.loading = false;
-        state.data = action.payload.data;
-        state.pagination = action.payload.pagination;
-      })
-      .addCase(fetchLocationInventorySummaryByItemIdThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload ?? 'Failed to load location inventory summary detail.';
-      });
+      .addCase(
+        fetchLocationInventorySummaryByItemIdThunk.fulfilled,
+        (state, action) => {
+          state.loading = false;
+          state.data = action.payload.data;
+          state.pagination = action.payload.pagination;
+        }
+      )
+      .addCase(
+        fetchLocationInventorySummaryByItemIdThunk.rejected,
+        (state, action) => {
+          state.loading = false;
+          state.error =
+            action.payload ??
+            'Failed to load location inventory summary detail.';
+        }
+      );
   },
 });
 
-export const {
-  resetLocationInventorySummaryDetail,
-} = locationInventorySummaryDetailSlice.actions;
+export const { resetLocationInventorySummaryDetail } =
+  locationInventorySummaryDetailSlice.actions;
 
 export default locationInventorySummaryDetailSlice.reducer;

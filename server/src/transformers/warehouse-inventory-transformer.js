@@ -1,8 +1,13 @@
 const { getProductDisplayName } = require('../utils/display-name-utils');
-const { transformPaginatedResult, deriveInventoryStatusFlags } = require('../utils/transformer-utils');
+const {
+  transformPaginatedResult,
+  deriveInventoryStatusFlags,
+} = require('../utils/transformer-utils');
 const { cleanObject } = require('../utils/object-utils');
 const { differenceInDays } = require('date-fns');
-const { transformInventoryRecordBase } = require('./transform-inventory-record-base');
+const {
+  transformInventoryRecordBase,
+} = require('./transform-inventory-record-base');
 
 /**
  * Transforms a single warehouse inventory summary row (product or material) into application format.
@@ -12,7 +17,7 @@ const { transformInventoryRecordBase } = require('./transform-inventory-record-b
  */
 const transformWarehouseInventoryItemSummaryRow = (row) => {
   const isProduct = row.item_type === 'product';
-  
+
   const status = deriveInventoryStatusFlags({
     nearest_expiry_date: row.nearest_expiry_date,
     earliest_manufacture_date: row.earliest_manufacture_date,
@@ -21,7 +26,7 @@ const transformWarehouseInventoryItemSummaryRow = (row) => {
     total_lot_quantity: row.total_lot_quantity,
     display_status: row.display_status,
   });
-  
+
   const base = {
     itemId: row.item_id,
     itemType: row.item_type,
@@ -36,20 +41,20 @@ const transformWarehouseInventoryItemSummaryRow = (row) => {
     displayStatus: row.display_status,
     ...status,
   };
-  
+
   return cleanObject({
     ...base,
     ...(isProduct
       ? {
-        skuId: row.item_id,
-        sku: row.sku,
-        productName: getProductDisplayName(row),
-      }
+          skuId: row.item_id,
+          sku: row.sku,
+          productName: getProductDisplayName(row),
+        }
       : {
-        materialId: row.item_id,
-        materialCode: row.item_code,
-        materialName: row.item_name,
-      }),
+          materialId: row.item_id,
+          materialCode: row.item_code,
+          materialName: row.item_name,
+        }),
   });
 };
 
@@ -70,7 +75,10 @@ const transformWarehouseInventoryItemSummaryRow = (row) => {
  * }} Transformed result for frontend consumption
  */
 const transformPaginatedWarehouseInventoryItemSummary = (paginatedResult) =>
-  transformPaginatedResult(paginatedResult, transformWarehouseInventoryItemSummaryRow);
+  transformPaginatedResult(
+    paginatedResult,
+    transformWarehouseInventoryItemSummaryRow
+  );
 
 /**
  * Transform a single raw warehouse inventory summary record into a clean structure.
@@ -81,23 +89,25 @@ const transformPaginatedWarehouseInventoryItemSummary = (paginatedResult) =>
 const transformWarehouseInventorySummaryDetailsItem = (row) =>
   cleanObject({
     warehouseInventoryId: row.warehouse_inventory_id,
-    
-    item: row.batch_type === 'product'
-      ? cleanObject({
-        type: 'sku',
-        id: row.sku_id,
-        code: row.sku,
-      })
-      : cleanObject({
-        type: 'material',
-        id: row.material_id,
-        code: row.material_code,
-      }),
-    
+
+    item:
+      row.batch_type === 'product'
+        ? cleanObject({
+            type: 'sku',
+            id: row.sku_id,
+            code: row.sku,
+          })
+        : cleanObject({
+            type: 'material',
+            id: row.material_id,
+            code: row.material_code,
+          }),
+
     lotNumber: row.lot_number,
-    manufactureDate: row.product_manufacture_date || row.material_manufacture_date,
+    manufactureDate:
+      row.product_manufacture_date || row.material_manufacture_date,
     expiryDate: row.product_expiry_date || row.material_expiry_date,
-    
+
     quantity: cleanObject({
       warehouseQuantity: row.warehouse_quantity,
       reserved: row.reserved_quantity,
@@ -106,13 +116,13 @@ const transformWarehouseInventorySummaryDetailsItem = (row) =>
         0
       ),
     }),
-    
+
     status: cleanObject({
       id: row.status_id,
       name: row.status_name,
       date: row.status_date,
     }),
-    
+
     timestamps: cleanObject({
       inboundDate: row.inbound_date,
       outboundDate: row.outbound_date,
@@ -121,7 +131,7 @@ const transformWarehouseInventorySummaryDetailsItem = (row) =>
     durationInStorage: row.inbound_date
       ? differenceInDays(new Date(), new Date(row.inbound_date))
       : null,
-    
+
     warehouse: cleanObject({
       id: row.warehouse_id,
       name: row.warehouse_name,
@@ -135,7 +145,10 @@ const transformWarehouseInventorySummaryDetailsItem = (row) =>
  * @returns {Object} Transformed paginated result.
  */
 const transformPaginatedWarehouseInventorySummaryDetails = (paginatedResult) =>
-  transformPaginatedResult(paginatedResult, transformWarehouseInventorySummaryDetailsItem);
+  transformPaginatedResult(
+    paginatedResult,
+    transformWarehouseInventorySummaryDetailsItem
+  );
 
 /**
  * Transforms a single raw warehouse inventory row into structured, display-ready data.
@@ -176,7 +189,7 @@ const transformPaginatedWarehouseInventoryRecordResults = (paginatedResult) =>
  */
 const transformInsertedWarehouseInventoryRecords = (rows) => {
   if (!Array.isArray(rows)) return [];
-  
+
   return rows.map((row) => {
     const base = {
       id: row.id,
@@ -184,24 +197,24 @@ const transformInsertedWarehouseInventoryRecords = (rows) => {
       reserved: row.reserved_quantity,
       batchType: row.batch_type,
     };
-    
+
     const itemInfo =
       row.batch_type === 'product'
         ? {
-          lotNumber: row.product_lot_number,
-          expiryDate: row.product_expiry_date,
-          name: getProductDisplayName(row),
-          itemType: 'product',
-        }
+            lotNumber: row.product_lot_number,
+            expiryDate: row.product_expiry_date,
+            name: getProductDisplayName(row),
+            itemType: 'product',
+          }
         : row.batch_type === 'packaging_material'
           ? {
-            lotNumber: row.material_lot_number,
-            expiryDate: row.material_expiry_date,
-            name: row.material_name,
-            itemType: 'material',
-          }
+              lotNumber: row.material_lot_number,
+              expiryDate: row.material_expiry_date,
+              name: row.material_name,
+              itemType: 'material',
+            }
           : { itemType: 'unknown' };
-    
+
     return cleanObject({ ...base, ...itemInfo });
   });
 };

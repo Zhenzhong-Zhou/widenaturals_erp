@@ -1,8 +1,19 @@
 import { type FC, useState } from 'react';
 import CustomDialog from '@components/common/CustomDialog';
 import { useForm } from 'react-hook-form';
-import type { AvailableInventoryLot, InventoryAllocationPayload } from '@features/inventoryAllocation';
-import { Box, Table, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
+import type {
+  AvailableInventoryLot,
+  InventoryAllocationPayload,
+} from '@features/inventoryAllocation';
+import {
+  Box,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  Typography,
+} from '@mui/material';
 import BaseInput from '@components/common/BaseInput.tsx';
 import CustomButton from '@components/common/CustomButton';
 import type { LotSelectionsState } from './InventoryAllocationDetailsTable';
@@ -19,27 +30,34 @@ interface AllocateInventoryDialogProps {
 }
 
 const AllocateInventoryDialog: FC<AllocateInventoryDialogProps> = ({
-                                                                     open,
-                                                                     onClose,
-                                                                     onSubmit,
-                                                                     orderId,
-                                                                     lotSelections,
-                                                                     visibleLots
-                                                                   }) => {
+  open,
+  onClose,
+  onSubmit,
+  orderId,
+  lotSelections,
+  visibleLots,
+}) => {
   const { handleSubmit } = useForm();
-  const [lotQuantities, setLotQuantities] = useState<Record<string, number>>({});
+  const [lotQuantities, setLotQuantities] = useState<Record<string, number>>(
+    {}
+  );
   const [allowPartial, setAllowPartial] = useState(true);
-  
+
   const buildInventoryAllocationPayload = (): InventoryAllocationPayload => {
     const items: InventoryAllocationPayload['items'] = [];
-    
+
     for (const [inventoryId, warehouseMap] of Object.entries(lotSelections)) {
       for (const [warehouseId, lotIds] of Object.entries(warehouseMap)) {
-        const filteredLotIds = lotIds.filter((lotId) => (lotQuantities[lotId] ?? 0) > 0);
-        
+        const filteredLotIds = lotIds.filter(
+          (lotId) => (lotQuantities[lotId] ?? 0) > 0
+        );
+
         if (filteredLotIds.length > 0) {
-          const totalQty = filteredLotIds.reduce((sum, lotId) => sum + (lotQuantities[lotId] || 0), 0);
-          
+          const totalQty = filteredLotIds.reduce(
+            (sum, lotId) => sum + (lotQuantities[lotId] || 0),
+            0
+          );
+
           items.push({
             inventoryId,
             warehouseId,
@@ -50,13 +68,13 @@ const AllocateInventoryDialog: FC<AllocateInventoryDialogProps> = ({
         }
       }
     }
-    
+
     return {
       orderId,
       items,
     };
   };
-  
+
   const handleFormSubmit = () => {
     const payload = buildInventoryAllocationPayload();
     if (payload.items.length === 0) {
@@ -66,7 +84,7 @@ const AllocateInventoryDialog: FC<AllocateInventoryDialogProps> = ({
     onSubmit(payload);
     onClose();
   };
-  
+
   return (
     <CustomDialog
       open={open}
@@ -120,9 +138,16 @@ const AllocateInventoryDialog: FC<AllocateInventoryDialogProps> = ({
           </TableBody>
         </Table>
       </Box>
-      
+
       {/* --- Allow Partial Checkbox + Submit Button --- */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', px: 2 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          px: 2,
+        }}
+      >
         <label style={{ display: 'flex', alignItems: 'center' }}>
           <input
             type="checkbox"
@@ -132,7 +157,7 @@ const AllocateInventoryDialog: FC<AllocateInventoryDialogProps> = ({
           />
           Allow Partial Allocation
         </label>
-        
+
         <CustomButton onClick={handleSubmit(handleFormSubmit)}>
           Allocate
         </CustomButton>

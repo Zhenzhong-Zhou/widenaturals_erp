@@ -33,14 +33,14 @@ const batchRegistryDropdownSlice = createSlice({
       .addCase(fetchBatchRegistryDropdownThunk.fulfilled, (state, action) => {
         const { items, limit, offset, hasMore } = action.payload;
         state.loading = false;
-        
+
         const MAX_ITEMS = 500;
-        
+
         state.data =
           offset === 0
             ? items // first page: replace
             : [...state.data, ...items].slice(-MAX_ITEMS); // append and trim
-        
+
         state.limit = limit;
         state.offset = offset;
         state.hasMore = hasMore;
@@ -52,5 +52,6 @@ const batchRegistryDropdownSlice = createSlice({
   },
 });
 
-export const { resetBatchRegistryDropdownState } = batchRegistryDropdownSlice.actions;
+export const { resetBatchRegistryDropdownState } =
+  batchRegistryDropdownSlice.actions;
 export default batchRegistryDropdownSlice.reducer;

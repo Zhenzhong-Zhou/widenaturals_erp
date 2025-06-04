@@ -4,7 +4,8 @@ import {
   selectAvailableInventoryLots,
   selectAvailableInventoryLotsLoading,
   selectAvailableInventoryLotsError,
-  selectTotalAvailableQuantity, fetchAvailableInventoryLotsThunk,
+  selectTotalAvailableQuantity,
+  fetchAvailableInventoryLotsThunk,
 } from '@features/inventoryAllocation/state';
 import type { FetchAvailableInventoryRequest } from '@features/inventoryAllocation';
 
@@ -13,14 +14,16 @@ import type { FetchAvailableInventoryRequest } from '@features/inventoryAllocati
  * Manual fetching only — no automatic effect on mount.
  *
  */
-const useAvailableInventoryLots = (requestParams: FetchAvailableInventoryRequest) => {
+const useAvailableInventoryLots = (
+  requestParams: FetchAvailableInventoryRequest
+) => {
   const dispatch = useAppDispatch();
-  
+
   const lots = useAppSelector(selectAvailableInventoryLots);
   const loading = useAppSelector(selectAvailableInventoryLotsLoading);
   const error = useAppSelector(selectAvailableInventoryLotsError);
   const totalAvailable = useAppSelector(selectTotalAvailableQuantity);
-  
+
   /**
    * Manually fetch inventory lots using the provided or initial requestParams.
    */
@@ -33,7 +36,7 @@ const useAvailableInventoryLots = (requestParams: FetchAvailableInventoryRequest
     },
     [dispatch, requestParams]
   );
-  
+
   return {
     lots,
     loading,

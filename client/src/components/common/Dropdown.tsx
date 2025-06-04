@@ -1,5 +1,7 @@
 import { useMemo, type FC, type UIEvent } from 'react';
-import Autocomplete, { type AutocompleteProps } from '@mui/material/Autocomplete';
+import Autocomplete, {
+  type AutocompleteProps,
+} from '@mui/material/Autocomplete';
 import Box from '@mui/material/Box';
 import MenuItem from '@mui/material/MenuItem';
 import Divider from '@mui/material/Divider';
@@ -35,7 +37,8 @@ interface DropdownProps {
   hasMore?: boolean;
   pagination?: {
     limit: number;
-    offset: number;onFetchMore?: () => void;
+    offset: number;
+    onFetchMore?: () => void;
   };
   onFetchMore?: (params: { limit: number; offset: number }) => void;
   placeholder?: string;
@@ -48,33 +51,36 @@ const SPECIAL_OPTIONS: OptionType[] = [
 ];
 
 const Dropdown: FC<DropdownProps> = ({
-                                       label,
-                                       options = [],
-                                       value,
-                                       onChange,
-                                       searchable = false,
-                                       disabled = false,
-                                       sx,
-                                       onRefresh,
-                                       onAddNew = null,
-                                       loading = false,
-                                       error,
-                                       hasMore = false,
-                                       pagination,
-                                       onFetchMore,
-                                       placeholder,
-                                       helperText,
-                                     }) => {
+  label,
+  options = [],
+  value,
+  onChange,
+  searchable = false,
+  disabled = false,
+  sx,
+  onRefresh,
+  onAddNew = null,
+  loading = false,
+  error,
+  hasMore = false,
+  pagination,
+  onFetchMore,
+  placeholder,
+  helperText,
+}) => {
   const { theme } = useThemeContext();
 
   // Modified options array with special items at the top
   const modifiedOptions = useMemo(() => {
     const baseOptions = [...SPECIAL_OPTIONS, ...options];
     return hasMore
-      ? [...baseOptions, { value: '__loading__', label: 'Loading more...', type: 'meta' }]
+      ? [
+          ...baseOptions,
+          { value: '__loading__', label: 'Loading more...', type: 'meta' },
+        ]
       : baseOptions;
   }, [options, hasMore]);
-  
+
   return (
     <Box sx={{ minWidth: '200px', width: '100%', ...sx }}>
       <Autocomplete
@@ -124,8 +130,9 @@ const Dropdown: FC<DropdownProps> = ({
               onScroll: (event: UIEvent<HTMLUListElement>) => {
                 const target = event.currentTarget;
                 const reachedBottom =
-                  target.scrollTop + target.clientHeight >= target.scrollHeight - 10;
-                
+                  target.scrollTop + target.clientHeight >=
+                  target.scrollHeight - 10;
+
                 if (reachedBottom && hasMore && pagination) {
                   const { limit, offset } = pagination;
                   onFetchMore?.({ limit, offset: offset + limit });
@@ -137,7 +144,12 @@ const Dropdown: FC<DropdownProps> = ({
                 paddingBottom: hasMore ? 40 : 0,
               },
             },
-          } as unknown as AutocompleteProps<OptionType, false, boolean, false>['slotProps']
+          } as unknown as AutocompleteProps<
+            OptionType,
+            false,
+            boolean,
+            false
+          >['slotProps']
         }
         loading={loading}
         disableClearable={!searchable}
@@ -158,7 +170,7 @@ const Dropdown: FC<DropdownProps> = ({
                 <Loading size={16} variant="dotted" />
               </Box>
             )}
-            
+
             {/* Divider before the regular options */}
             {option.value === 'add' && (
               <Divider
@@ -166,7 +178,7 @@ const Dropdown: FC<DropdownProps> = ({
                 sx={{ marginY: 0.5, borderColor: theme.palette.divider }}
               />
             )}
-            
+
             {option.value === 'refresh' && (
               <Stack
                 key="top-options"

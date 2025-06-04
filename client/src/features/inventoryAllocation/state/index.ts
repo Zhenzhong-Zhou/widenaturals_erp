@@ -26,13 +26,13 @@ export {
   selectAvailableInventoryLots,
   selectAvailableInventoryLotsLoading,
   selectAvailableInventoryLotsError,
-  selectTotalAvailableQuantity
-} from './availableInventoryLotsSelectors'
+  selectTotalAvailableQuantity,
+} from './availableInventoryLotsSelectors';
 export {
   selectIsAllocatingInventory,
   selectInventoryAllocationSuccess,
   selectInventoryAllocationError,
   selectInventoryAllocationData,
   selectTotalAllocatedItems,
-  selectTotalAllocatedOrders
-} from './allocateInventorySelectors'
+  selectTotalAllocatedOrders,
+} from './allocateInventorySelectors';

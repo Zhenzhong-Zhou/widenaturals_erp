@@ -17,48 +17,73 @@ export interface KpiSummaryCardsProps {
 }
 
 const KpiSummaryCards: FC<KpiSummaryCardsProps> = ({
-                                                     data,
-                                                     loading,
-                                                     error,
-                                                     visibleTypes,
-                                                     fetchKpiSummary,
-                                                   }) => {
-  const typesToShow = visibleTypes ?? ['product', 'packaging_material', 'total'];
+  data,
+  loading,
+  error,
+  visibleTypes,
+  fetchKpiSummary,
+}) => {
+  const typesToShow = visibleTypes ?? [
+    'product',
+    'packaging_material',
+    'total',
+  ];
   const filtered = data.filter((item) => typesToShow.includes(item.batchType));
-  
+
   if (loading) {
     return (
       <Grid container spacing={2}>
         {Array.from({ length: typesToShow.length }).map((_, i) => (
-          <Grid size={{xs: 12, sm: 6, md: 4}} key={i}>
-            <Skeleton variant="rectangular" height={160} sx={{ borderRadius: 2 }} />
+          <Grid size={{ xs: 12, sm: 6, md: 4 }} key={i}>
+            <Skeleton
+              variant="rectangular"
+              height={160}
+              sx={{ borderRadius: 2 }}
+            />
           </Grid>
         ))}
       </Grid>
     );
   }
-  
+
   if (error) return <ErrorMessage message={error} />;
-  if (!filtered.length) return <CustomTypography>No KPI data found.</CustomTypography>;
-  
+  if (!filtered.length)
+    return <CustomTypography>No KPI data found.</CustomTypography>;
+
   return (
     <Grid container spacing={2}>
       {filtered.map((item, index) => {
         const subtitle = (
           <>
-            <CustomTypography variant="body2">Total Products: {item.totalProducts}</CustomTypography>
-            <CustomTypography variant="body2">Total Materials: {item.totalMaterials}</CustomTypography>
-            <CustomTypography variant="body2">Total Quantity: {item.totalQuantity.toLocaleString()}</CustomTypography>
-            <CustomTypography variant="body2">Reserved: {item.totalReserved.toLocaleString()}</CustomTypography>
-            <CustomTypography variant="body2">Available: {item.totalAvailable.toLocaleString()}</CustomTypography>
-            <CustomTypography variant="body2">Near Expiry: {item.nearExpiryInventoryRecords}</CustomTypography>
-            <CustomTypography variant="body2">Expired: {item.expiredInventoryRecords}</CustomTypography>
-            <CustomTypography variant="body2">Low Stock: {item.lowStockCount}</CustomTypography>
+            <CustomTypography variant="body2">
+              Total Products: {item.totalProducts}
+            </CustomTypography>
+            <CustomTypography variant="body2">
+              Total Materials: {item.totalMaterials}
+            </CustomTypography>
+            <CustomTypography variant="body2">
+              Total Quantity: {item.totalQuantity.toLocaleString()}
+            </CustomTypography>
+            <CustomTypography variant="body2">
+              Reserved: {item.totalReserved.toLocaleString()}
+            </CustomTypography>
+            <CustomTypography variant="body2">
+              Available: {item.totalAvailable.toLocaleString()}
+            </CustomTypography>
+            <CustomTypography variant="body2">
+              Near Expiry: {item.nearExpiryInventoryRecords}
+            </CustomTypography>
+            <CustomTypography variant="body2">
+              Expired: {item.expiredInventoryRecords}
+            </CustomTypography>
+            <CustomTypography variant="body2">
+              Low Stock: {item.lowStockCount}
+            </CustomTypography>
           </>
         );
-        
+
         return (
-          <Grid size={{xs: 12, sm: 6, md: 4}} key={index}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }} key={index}>
             <CustomCard
               title={`${formatLabel(item.batchType.replace('_', ' '))} Summary`}
               ariaLabel={`${item.batchType} KPI`}
@@ -68,10 +93,12 @@ const KpiSummaryCards: FC<KpiSummaryCardsProps> = ({
           </Grid>
         );
       })}
-      
+
       {fetchKpiSummary && (
-        <Grid size={{xs: 12}}>
-          <CustomButton onClick={fetchKpiSummary}>Refresh KPI Summary</CustomButton>
+        <Grid size={{ xs: 12 }}>
+          <CustomButton onClick={fetchKpiSummary}>
+            Refresh KPI Summary
+          </CustomButton>
         </Grid>
       )}
     </Grid>

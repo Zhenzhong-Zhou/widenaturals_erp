@@ -13,13 +13,13 @@ interface ListProps<T> {
 }
 
 const CustomList = <T,>({
-                          items,
-                          renderItem,
-                          emptyMessage = 'No items found.',
-                          sx,
-                          role = 'list',
-                          ariaLabel = 'custom list',
-                        }: ListProps<T>): ReactNode => {
+  items,
+  renderItem,
+  emptyMessage = 'No items found.',
+  sx,
+  role = 'list',
+  ariaLabel = 'custom list',
+}: ListProps<T>): ReactNode => {
   return (
     <Box sx={{ ...sx }} role={role} aria-label={ariaLabel}>
       {items.length > 0 ? (

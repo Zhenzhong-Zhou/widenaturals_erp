@@ -4,7 +4,7 @@ const {
   logSystemFatal,
   logSystemInfo,
   logSystemWarn,
-  logSystemException
+  logSystemException,
 } = require('../utils/system-logger');
 const { userExists } = require('../repositories/user-repository');
 const {
@@ -46,10 +46,13 @@ const initializeRootAdmin = async () => {
   const password = process.env.ROOT_ADMIN_PASSWORD;
 
   if (!email || !password) {
-    logSystemFatal('Root admin credentials are missing in environment variables.', {
-      context: 'root-admin-init',
-      severity: 'critical',
-    });
+    logSystemFatal(
+      'Root admin credentials are missing in environment variables.',
+      {
+        context: 'root-admin-init',
+        severity: 'critical',
+      }
+    );
     await handleExit(1); // Terminate if credentials are missing
   }
 
@@ -57,7 +60,7 @@ const initializeRootAdmin = async () => {
     logSystemInfo('Initializing root admin account...', {
       context: 'root-admin-init',
     });
-    
+
     // Check if the root admin already exists
     const existingUser = await userExists('email', email);
     if (existingUser) {
@@ -91,7 +94,7 @@ const initializeRootAdmin = async () => {
     });
 
     const maskedEmail = maskSensitiveInfo(user.email, 'email');
-    
+
     logSystemInfo(`Root admin initialized successfully: ${maskedEmail}`, {
       context: 'root-admin-init',
       email: maskedEmail,
@@ -102,7 +105,7 @@ const initializeRootAdmin = async () => {
       severity: 'critical',
       email: maskSensitiveInfo(email, 'email'),
     });
-    
+
     logSystemFatal('Root admin initialization failed', {
       context: 'root-admin-init',
       errorMessage: error.message,

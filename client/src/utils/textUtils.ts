@@ -21,11 +21,11 @@ export const formatNullable = (
   if (value === null || value === undefined) {
     return fallback;
   }
-  
+
   if (typeof value === 'string' && value.trim() === '') {
     return emptyStringFallback ?? fallback;
   }
-  
+
   return String(value);
 };
 
@@ -68,10 +68,10 @@ export const formatCurrency = (
   if (value === null || value === undefined) {
     return `${currencySymbol}0.00`;
   }
-  
+
   const number = typeof value === 'string' ? parseFloat(value) : value;
   if (isNaN(number)) return `${currencySymbol}0.00`;
-  
+
   return `${currencySymbol}${number.toFixed(2)}`;
 };
 
@@ -96,16 +96,16 @@ export const formatPhoneNumber = (
   defaultCountry: CountryCode = 'CA'
 ): string => {
   if (!phoneNumber) return 'N/A';
-  
+
   // Normalize: remove all non-numeric except leading +
   const normalized = phoneNumber.trim().replace(/[^\d+]/g, '');
-  
+
   const parsedPhone = parsePhoneNumberFromString(normalized);
-  
+
   if (parsedPhone && parsedPhone.isValid()) {
     return parsedPhone.formatInternational(); // e.g. +1 234 567 8901
   }
-  
+
   try {
     // Fallback with AsYouType (doesn't validate but formats nicely)
     const typed = new AsYouType(defaultCountry).input(normalized);

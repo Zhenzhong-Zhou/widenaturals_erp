@@ -14,18 +14,21 @@ const InventoryOverviewHeaderSection: FC = () => {
   const location = useLocation();
   const isOverviewPage = location.pathname === '/inventory-overview';
   const navigate = useNavigate();
-  const [selectedType, setSelectedType] = useState<'total' | 'product' | 'packaging_material'>('total');
-  
-  const { data, loading, error, fetchKpiSummary } = useLocationInventoryKpiSummary();
-  
+  const [selectedType, setSelectedType] = useState<
+    'total' | 'product' | 'packaging_material'
+  >('total');
+
+  const { data, loading, error, fetchKpiSummary } =
+    useLocationInventoryKpiSummary();
+
   useEffect(() => {
     fetchKpiSummary();
   }, []);
-  
+
   const handleTypeChange = (_: any, newType: typeof selectedType) => {
     if (newType) setSelectedType(newType);
   };
-  
+
   return (
     <Box>
       <Box>
@@ -36,9 +39,14 @@ const InventoryOverviewHeaderSection: FC = () => {
           Track key inventory metrics and summaries.
         </CustomTypography>
       </Box>
-      
-      <Grid container spacing={2} alignItems="center" justifyContent="space-between">
-        <Grid size={{xs: 12, md: 6}}>
+
+      <Grid
+        container
+        spacing={2}
+        alignItems="center"
+        justifyContent="space-between"
+      >
+        <Grid size={{ xs: 12, md: 6 }}>
           <ToggleButtonGroup
             value={selectedType}
             exclusive
@@ -57,28 +65,44 @@ const InventoryOverviewHeaderSection: FC = () => {
             <ToggleButton value="packaging_material">Packaging</ToggleButton>
           </ToggleButtonGroup>
         </Grid>
-        
-        <Grid size={{xs: 12, md: 'auto'}}>
-          <Grid container spacing={1} justifyContent={{ xs: 'flex-start', md: 'flex-end' }}>
+
+        <Grid size={{ xs: 12, md: 'auto' }}>
+          <Grid
+            container
+            spacing={1}
+            justifyContent={{ xs: 'flex-start', md: 'flex-end' }}
+          >
             <Grid>
-              <CustomButton variant="outlined" size="small" onClick={() => navigate('/reports/adjustments')}>
+              <CustomButton
+                variant="outlined"
+                size="small"
+                onClick={() => navigate('/reports/adjustments')}
+              >
                 Adjustment Report
               </CustomButton>
             </Grid>
             <Grid>
-              <CustomButton variant="outlined" size="small" onClick={() => navigate('/reports/inventory_activities')}>
+              <CustomButton
+                variant="outlined"
+                size="small"
+                onClick={() => navigate('/reports/inventory_activities')}
+              >
                 Inventory Logs
               </CustomButton>
             </Grid>
             <Grid>
-              <CustomButton variant="outlined" size="small" onClick={() => navigate('/reports/inventory_histories')}>
+              <CustomButton
+                variant="outlined"
+                size="small"
+                onClick={() => navigate('/reports/inventory_histories')}
+              >
                 Inventory History
               </CustomButton>
             </Grid>
           </Grid>
         </Grid>
       </Grid>
-      
+
       <Box mt={4}>
         <KpiSummaryCards
           data={data}
@@ -88,7 +112,11 @@ const InventoryOverviewHeaderSection: FC = () => {
           fetchKpiSummary={fetchKpiSummary}
         />
         {!isOverviewPage && (
-          <CustomButton variant="outlined" size="small" onClick={() => navigate('/inventory-overview')}>
+          <CustomButton
+            variant="outlined"
+            size="small"
+            onClick={() => navigate('/inventory-overview')}
+          >
             View More
           </CustomButton>
         )}

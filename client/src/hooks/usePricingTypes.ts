@@ -25,19 +25,19 @@ interface UsePricingTypesReturn {
  */
 const usePricingTypes = (): UsePricingTypesReturn => {
   const dispatch = useAppDispatch();
-  
+
   const data = useAppSelector(selectPricingTypes);
   const pagination = useAppSelector(selectPagination);
   const isLoading = useAppSelector(selectIsLoading);
   const error = useAppSelector(selectError);
-  
+
   const refetchAllPricingTypes = useCallback(
     (params: FetchPricingTypesParams = {}) => {
       dispatch(fetchAllPricingTypesThunk(params));
     },
     [dispatch]
   );
-  
+
   return {
     data,
     pagination,

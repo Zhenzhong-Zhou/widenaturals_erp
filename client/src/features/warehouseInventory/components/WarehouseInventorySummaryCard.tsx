@@ -50,7 +50,7 @@ const WarehouseInventorySummaryCard: FC<WarehouseInventorySummaryProps> = ({
       </Box>
     );
   }
-  
+
   return (
     <Box sx={{ position: 'relative', width: '100%', textAlign: 'center' }}>
       {/* Refresh Data Button */}
@@ -86,7 +86,12 @@ const WarehouseInventorySummaryCard: FC<WarehouseInventorySummaryProps> = ({
                   <CustomTypography
                     variant="body1"
                     component="h1"
-                    sx={{ color: 'primary.main', fontSize: '1.125rem', fontWeight: 500, minHeight: '1.5rem' }}
+                    sx={{
+                      color: 'primary.main',
+                      fontSize: '1.125rem',
+                      fontWeight: 500,
+                      minHeight: '1.5rem',
+                    }}
                   >
                     {summary.warehouseName}
                   </CustomTypography>

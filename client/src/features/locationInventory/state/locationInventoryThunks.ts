@@ -26,7 +26,9 @@ export const fetchLocationInventoryKpiSummaryThunk = createAsyncThunk<
   'locationInventory/fetchKpiSummary',
   async (itemType, { rejectWithValue }) => {
     try {
-      return await locationInventoryService.fetchLocationInventoryKpiSummary(itemType);
+      return await locationInventoryService.fetchLocationInventoryKpiSummary(
+        itemType
+      );
     } catch (error: any) {
       console.error('Failed to fetch KPI summary:', error);
       return rejectWithValue(error?.response?.data?.message || 'Unknown error');
@@ -45,16 +47,20 @@ export const fetchLocationInventoryKpiSummaryThunk = createAsyncThunk<
  * @returns {Promise<LocationInventorySummaryResponse>} A response with summary data and pagination
  */
 export const fetchLocationInventorySummaryThunk = createAsyncThunk<
-  LocationInventorySummaryResponse,  // Return type on success
-  LocationInventoryQueryParams,      // Thunk input (params)
-  { rejectValue: string }            // Return type on failure
+  LocationInventorySummaryResponse, // Return type on success
+  LocationInventoryQueryParams, // Thunk input (params)
+  { rejectValue: string } // Return type on failure
 >(
   'locationInventory/fetchInventorySummary',
   async (params, { rejectWithValue }) => {
     try {
-      return await locationInventoryService.fetchLocationInventorySummary(params);
+      return await locationInventoryService.fetchLocationInventorySummary(
+        params
+      );
     } catch (error: any) {
-      return rejectWithValue(error.message || 'Failed to fetch inventory summary');
+      return rejectWithValue(
+        error.message || 'Failed to fetch inventory summary'
+      );
     }
   }
 );
@@ -67,16 +73,21 @@ export const fetchLocationInventorySummaryThunk = createAsyncThunk<
  * @throws {string} Rejected with a message if the request fails.
  */
 export const fetchLocationInventorySummaryByItemIdThunk = createAsyncThunk<
-  LocationInventorySummaryDetailResponse,                      // return type on success
-  InventorySummaryDetailByItemIdParams,                       // argument type
-  { rejectValue: string }                                     // optional error type
+  LocationInventorySummaryDetailResponse, // return type on success
+  InventorySummaryDetailByItemIdParams, // argument type
+  { rejectValue: string } // optional error type
 >(
   'locationInventory/fetchSummaryDetailByItemId',
   async (params, { rejectWithValue }) => {
     try {
-      return await locationInventoryService.fetchLocationInventorySummaryByItemId(params);
+      return await locationInventoryService.fetchLocationInventorySummaryByItemId(
+        params
+      );
     } catch (error: any) {
-      return rejectWithValue(error?.response?.data?.message || 'Failed to fetch inventory summary detail');
+      return rejectWithValue(
+        error?.response?.data?.message ||
+          'Failed to fetch inventory summary detail'
+      );
     }
   }
 );
@@ -109,7 +120,9 @@ export const fetchLocationInventoryRecordsThunk = createAsyncThunk<
       );
     } catch (error: any) {
       console.error('Thunk error fetching location inventory:', error);
-      return rejectWithValue(error.message || 'Failed to fetch location inventory records.');
+      return rejectWithValue(
+        error.message || 'Failed to fetch location inventory records.'
+      );
     }
   }
 );

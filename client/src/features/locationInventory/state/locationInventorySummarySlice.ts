@@ -1,8 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
 import type { LocationInventorySummaryState } from './locationInventoryTypes';
-import {
-  fetchLocationInventorySummaryThunk
-} from '@features/locationInventory/state/locationInventoryThunks';
+import { fetchLocationInventorySummaryThunk } from '@features/locationInventory/state/locationInventoryThunks';
 
 const initialState: LocationInventorySummaryState = {
   data: [],
@@ -33,18 +31,23 @@ export const locationInventorySummarySlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchLocationInventorySummaryThunk.fulfilled, (state, action) => {
-        state.loading = false;
-        state.data = action.payload.data;
-        state.pagination = action.payload.pagination;
-      })
+      .addCase(
+        fetchLocationInventorySummaryThunk.fulfilled,
+        (state, action) => {
+          state.loading = false;
+          state.data = action.payload.data;
+          state.pagination = action.payload.pagination;
+        }
+      )
       .addCase(fetchLocationInventorySummaryThunk.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload || 'Failed to fetch location inventory summary';
+        state.error =
+          action.payload || 'Failed to fetch location inventory summary';
       });
   },
 });
 
-export const { clearLocationInventorySummary } = locationInventorySummarySlice.actions;
+export const { clearLocationInventorySummary } =
+  locationInventorySummarySlice.actions;
 
 export default locationInventorySummarySlice.reducer;

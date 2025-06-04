@@ -14,13 +14,13 @@ interface ModalProps {
 }
 
 const CustomModal: FC<ModalProps> = ({
-                                       open,
-                                       onClose,
-                                       title,
-                                       children,
-                                       actions,
-                                       sx,
-                                     }) => {
+  open,
+  onClose,
+  title,
+  children,
+  actions,
+  sx,
+}) => {
   return (
     <Modal
       open={open}
@@ -68,11 +68,11 @@ const CustomModal: FC<ModalProps> = ({
             {title}
           </CustomTypography>
         )}
-        
+
         <Box id="modal-description" sx={{ mb: actions ? 3 : 0 }}>
           {children}
         </Box>
-        
+
         {actions && (
           <Box
             sx={{

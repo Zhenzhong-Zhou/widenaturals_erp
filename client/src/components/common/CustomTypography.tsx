@@ -9,12 +9,12 @@ interface CustomTypographyProps extends TypographyProps {
 }
 
 const CustomTypography: FC<CustomTypographyProps> = ({
-                                                       children,
-                                                       variant = 'body1',
-                                                       color = 'textPrimary',
-                                                       align = 'inherit',
-                                                       ...props
-                                                     }) => {
+  children,
+  variant = 'body1',
+  color = 'textPrimary',
+  align = 'inherit',
+  ...props
+}) => {
   return (
     <MuiTypography
       component={variant?.startsWith('h') ? variant : 'p'}

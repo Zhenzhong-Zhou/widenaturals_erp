@@ -13,14 +13,14 @@ interface DetailPageProps {
 }
 
 const DetailPage: FC<DetailPageProps> = ({
-                                           title,
-                                           isLoading,
-                                           error,
-                                           children,
-                                           sx,
-                                         }) => {
+  title,
+  isLoading,
+  error,
+  children,
+  sx,
+}) => {
   const { theme } = useThemeContext();
-  
+
   if (isLoading) {
     return (
       <Box
@@ -42,7 +42,7 @@ const DetailPage: FC<DetailPageProps> = ({
       </Box>
     );
   }
-  
+
   if (error) {
     return (
       <Box
@@ -62,7 +62,7 @@ const DetailPage: FC<DetailPageProps> = ({
       </Box>
     );
   }
-  
+
   return (
     <Box
       component="main"

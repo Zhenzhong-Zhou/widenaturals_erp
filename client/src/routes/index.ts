@@ -81,7 +81,9 @@ export const routes = [
   },
   {
     path: '/pricings',
-    component: lazy(() => import('@features/pricing/pages/PricingListPage.tsx')),
+    component: lazy(
+      () => import('@features/pricing/pages/PricingListPage.tsx')
+    ),
     meta: {
       requiresAuth: true,
       title: 'Prices',
@@ -135,7 +137,9 @@ export const routes = [
   },
   {
     path: '/inventory-overview',
-    component: lazy(() => import('@features/inventoryOverview/pages/InventoryOverviewPage')),
+    component: lazy(
+      () => import('@features/inventoryOverview/pages/InventoryOverviewPage')
+    ),
     meta: {
       requiresAuth: true,
       title: 'Inventory Overview',
@@ -145,7 +149,9 @@ export const routes = [
   },
   {
     path: '/location-inventory',
-    component: lazy(() => import('@features/locationInventory/pages/LocationInventoryPage')),
+    component: lazy(
+      () => import('@features/locationInventory/pages/LocationInventoryPage')
+    ),
     meta: {
       requiresAuth: true,
       title: 'Location Inventory',
@@ -296,12 +302,23 @@ export const routes = [
   },
   {
     path: '/orders/allocation-eligible',
-    component: lazy(() => import('@features/order/pages/AllocationEligibleOrderPage')),
-    meta: { requiresAuth: true, title: 'Allocation-Eligible Orders', showInSidebar: true },
+    component: lazy(
+      () => import('@features/order/pages/AllocationEligibleOrderPage')
+    ),
+    meta: {
+      requiresAuth: true,
+      title: 'Allocation-Eligible Orders',
+      showInSidebar: true,
+    },
   },
   {
     path: '/orders/:orderType/:orderId/allocate',
-    component: lazy(() => import('@features/inventoryAllocation/pages/OrderInventoryAllocationPage')),
+    component: lazy(
+      () =>
+        import(
+          '@features/inventoryAllocation/pages/OrderInventoryAllocationPage'
+        )
+    ),
     meta: {
       requiresAuth: true,
       title: 'Inventory Allocation',

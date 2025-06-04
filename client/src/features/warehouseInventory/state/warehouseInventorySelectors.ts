@@ -4,7 +4,8 @@ import type { RootState } from '@store/store';
 /**
  * Base selector to access the warehouseInventory slice from the root state.
  */
-const selectWarehouseInventoryState = (state: RootState) => state.warehouseInventory;
+const selectWarehouseInventoryState = (state: RootState) =>
+  state.warehouseInventory;
 
 /**
  * Selector to get the inventory record list.

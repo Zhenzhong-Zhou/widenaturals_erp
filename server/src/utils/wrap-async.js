@@ -26,7 +26,7 @@ const wrapAsync = (routes, options = { debug: false }) => {
     }
     return asyncHandler(routes);
   }
-  
+
   if (typeof routes !== 'object' || routes === null) {
     const error = normalizeError(
       new Error('wrapAsync expects a function or an object of route handlers'),

@@ -16,7 +16,7 @@ const {
   logSystemInfo,
   logSystemException,
   logSystemWarn,
-  logSystemError
+  logSystemError,
 } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 const readline = require('readline');
@@ -43,11 +43,11 @@ const promptForFilePath = () => {
       input: process.stdin,
       output: process.stdout,
     });
-    
+
     logSystemInfo('Prompting user for backup file path...', {
       context: 'promptForFilePath',
     });
-    
+
     rl.question(
       '\nPlease enter the backup file path you wish to restore: ',
       (filePath) => {
@@ -89,9 +89,12 @@ const promptForFilePath = () => {
     }
 
     if (!dbPassword) {
-      logSystemWarn('Database password not provided. Proceeding without password.', {
-        context: 'restore-backup',
-      });
+      logSystemWarn(
+        'Database password not provided. Proceeding without password.',
+        {
+          context: 'restore-backup',
+        }
+      );
     }
 
     // Ensure temporary directory exists
@@ -102,7 +105,7 @@ const promptForFilePath = () => {
         tempDir,
       });
     }
-    
+
     let localFilePath = encryptedFile;
 
     // If no encrypted file is provided, try fetching available backups from S3
@@ -111,7 +114,7 @@ const promptForFilePath = () => {
         context: 'restore-backup',
         bucket: bucketName,
       });
-      
+
       const backups = await listBackupsFromS3(bucketName);
 
       if (backups.length === 0) {
@@ -121,13 +124,13 @@ const promptForFilePath = () => {
         });
         return; // Graceful exit if no backups are found
       }
-      
+
       logSystemInfo('Available backups found in S3:', {
         context: 'restore-backup',
         bucket: bucketName,
         files: backups.map((file) => file.Key),
       });
-      
+
       logSystemInfo(
         'Please specify a backup file to restore or set ENCRYPTED_FILE.',
         { context: 'restore-backup' }
@@ -153,17 +156,17 @@ const promptForFilePath = () => {
           `Encrypted backup file not found locally: ${localFilePath}`
         );
       }
-      
+
       logSystemInfo('Downloading encrypted backup from S3...', {
         context: 'restore-backup',
         file: localFilePath,
       });
-      
+
       const s3KeyEnc = `backups/${path.basename(localFilePath)}`;
       localFilePath = path.join(tempDir, path.basename(localFilePath));
 
       await downloadFileFromS3(bucketName, s3KeyEnc, localFilePath);
-      
+
       logSystemInfo('Encrypted file downloaded successfully from S3.', {
         context: 'restore-backup',
         file: localFilePath,
@@ -184,17 +187,17 @@ const promptForFilePath = () => {
           `Encrypted backup file not found locally: ${localFilePath} and no S3 bucket provided.`
         );
       }
-      
+
       logSystemInfo('Downloading encrypted backup from S3...', {
         context: 'restore-backup',
         file: localFilePath,
       });
-      
+
       const s3KeyEnc = `backups/${path.basename(localFilePath)}`;
       localFilePath = path.join(tempDir, path.basename(localFilePath));
 
       await downloadFileFromS3(bucketName, s3KeyEnc, localFilePath);
-      
+
       logSystemInfo('Encrypted backup downloaded successfully from S3.', {
         context: 'restore-backup',
         file: localFilePath,
@@ -214,7 +217,7 @@ const promptForFilePath = () => {
         context: 'restore-backup',
         bucket: bucketName,
       });
-      
+
       const backups = await listBackupsFromS3(bucketName, 'backups/');
 
       if (backups.length === 0) {
@@ -222,41 +225,41 @@ const promptForFilePath = () => {
           `No backups found in S3 bucket: ${bucketName}`
         );
       }
-      
+
       logSystemInfo('Available backups retrieved from S3.', {
         context: 'restore-backup',
         bucket: bucketName,
         files: backups.map((file) => file.Key),
       });
-      
+
       logSystemInfo(
         'Prompting user to select a backup or define ENCRYPTED_FILE env var.',
         { context: 'restore-backup' }
       );
-      
+
       return; // Gracefully exit if no file is provided
     }
-    
+
     logSystemInfo('Decrypting backup file...', {
       context: 'restore-backup',
       file: localFilePath,
     });
-    
+
     await decryptFile(localFilePath, decryptedFile, encryptionKey, ivFile);
-    
+
     logSystemInfo('Restoring database from decrypted file...', {
       context: 'restore-backup',
       file: decryptedFile,
       db: databaseName,
     });
-    
+
     await restoreDatabase(decryptedFile, databaseName, dbUser, dbPassword);
 
     // Cleanup temporary files
     fs.unlinkSync(decryptedFile);
     if (localFilePath.startsWith(tempDir)) fs.unlinkSync(localFilePath);
     if (ivFile.startsWith(tempDir)) fs.unlinkSync(ivFile);
-    
+
     logSystemInfo('Restoration complete. Decrypted file deleted.', {
       context: 'restore-backup',
       deletedFiles: [decryptedFile],

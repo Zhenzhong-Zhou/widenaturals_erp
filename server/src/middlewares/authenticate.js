@@ -86,7 +86,7 @@ const authenticate = () => {
         logError('Invalid or expired access token encountered.', req, {
           error: error.message,
         });
-        
+
         throw AppError.accessTokenExpiredError(
           'Access token expired. Please use your refresh token.'
         );

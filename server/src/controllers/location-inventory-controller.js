@@ -9,7 +9,7 @@ const {
 const { logInfo } = require('../utils/logger-helper');
 const {
   normalizePaginationAndSortParams,
-  sanitizeCommonInventoryFilters
+  sanitizeCommonInventoryFilters,
 } = require('../utils/query/inventory-query-utils');
 
 /**
@@ -21,17 +21,19 @@ const {
  */
 const getLocationInventoryKpiSummaryController = wrapAsync(async (req, res) => {
   const { itemType } = req.query;
-  
+
   if (itemType && !['product', 'packaging_material'].includes(itemType)) {
-    return AppError.validationError('Invalid itemType. Must be "product" or "packaging_material".');
+    return AppError.validationError(
+      'Invalid itemType. Must be "product" or "packaging_material".'
+    );
   }
-  
+
   const summary = await fetchLocationInventoryKpiSummaryService({ itemType });
-  
+
   return res.status(200).json({
     success: true,
     message: 'Successfully fetched KPI summary',
-    data: summary
+    data: summary,
   });
 });
 
@@ -67,14 +69,14 @@ const getLocationInventorySummaryController = wrapAsync(async (req, res) => {
     sortOrder = 'DESC',
     ...rawFilters
   } = req.query;
-  
+
   const filters = {
     batchType: rawFilters.batchType,
     productName: rawFilters.productName,
     sku: rawFilters.sku,
     materialName: rawFilters.materialName,
   };
-  
+
   logInfo('Location inventory summary requested', req, {
     context: 'getLocationInventorySummaryController',
     userId: req.user?.id || 'anonymous',
@@ -84,15 +86,16 @@ const getLocationInventorySummaryController = wrapAsync(async (req, res) => {
     sortOrder,
     filters,
   });
-  
-  const { data, pagination } = await fetchPaginatedLocationInventorySummaryService({
-    page: parseInt(page, 10) || 1,
-    limit: parseInt(limit, 10) || 10,
-    filters,
-    sortBy,
-    sortOrder,
-  });
-  
+
+  const { data, pagination } =
+    await fetchPaginatedLocationInventorySummaryService({
+      page: parseInt(page, 10) || 1,
+      limit: parseInt(limit, 10) || 10,
+      filters,
+      sortBy,
+      sortOrder,
+    });
+
   res.status(200).json({
     success: true,
     message: 'Location inventory summary fetched successfully',
@@ -113,24 +116,34 @@ const getLocationInventorySummaryController = wrapAsync(async (req, res) => {
  *
  * @returns {Promise<void>} Responds with paginated inventory summary in JSON format.
  */
-const getLocationInventorySummaryDetailsController = wrapAsync(async (req, res, next) => {
-  const { itemId } = req.params;
-  const page = parseInt(req.query.page, 10) || 1;
-  const limit = parseInt(req.query.limit, 10) || 10;
-  
-  if (!itemId) {
-    return next(AppError.validationError('Missing required parameter: itemId'));
+const getLocationInventorySummaryDetailsController = wrapAsync(
+  async (req, res, next) => {
+    const { itemId } = req.params;
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
+
+    if (!itemId) {
+      return next(
+        AppError.validationError('Missing required parameter: itemId')
+      );
+    }
+
+    const { data, pagination } =
+      await fetchPaginatedLocationInventorySummaryByItemIdService({
+        page,
+        limit,
+        itemId,
+      });
+
+    return res.status(200).json({
+      success: true,
+      message:
+        'Successfully fetched location inventory summary details by item ID',
+      data,
+      pagination,
+    });
   }
-  
-  const { data, pagination } = await fetchPaginatedLocationInventorySummaryByItemIdService({ page, limit, itemId });
-  
-  return res.status(200).json({
-    success: true,
-    message: 'Successfully fetched location inventory summary details by item ID',
-    data,
-    pagination,
-  });
-});
+);
 
 /**
  * Controller: GET /location-inventory
@@ -168,30 +181,34 @@ const getLocationInventorySummaryDetailsController = wrapAsync(async (req, res, 
 const getLocationInventoryRecordController = wrapAsync(async (req, res) => {
   // Step 1: Normalize an incoming query to a plain object
   const query = { ...req.query }; // ensures no null prototype issues
-  
+
   // Step 2: Extract pagination and sort config
-  const { page: resolvedPage, limit: resolvedLimit, safeSortClause } =
-    normalizePaginationAndSortParams(
-      {
-        page: query.page,
-        limit: query.limit,
-        sortByRaw: query.sortBy,
-        sortOrderRaw: query.sortOrder,
-      },
-      'locationInventorySortMap'
-    );
-  
-  // Step 3: Sanitize filters
-  const filters = sanitizeCommonInventoryFilters(query, { type: 'location' });
-  
-  // Step 4: Fetch data using service
-  const { data, pagination } = await fetchPaginatedLocationInventoryRecordService({
+  const {
     page: resolvedPage,
     limit: resolvedLimit,
-    filters,
     safeSortClause,
-  });
-  
+  } = normalizePaginationAndSortParams(
+    {
+      page: query.page,
+      limit: query.limit,
+      sortByRaw: query.sortBy,
+      sortOrderRaw: query.sortOrder,
+    },
+    'locationInventorySortMap'
+  );
+
+  // Step 3: Sanitize filters
+  const filters = sanitizeCommonInventoryFilters(query, { type: 'location' });
+
+  // Step 4: Fetch data using service
+  const { data, pagination } =
+    await fetchPaginatedLocationInventoryRecordService({
+      page: resolvedPage,
+      limit: resolvedLimit,
+      filters,
+      safeSortClause,
+    });
+
   // Step 5: Respond to a client
   res.status(200).json({
     success: true,

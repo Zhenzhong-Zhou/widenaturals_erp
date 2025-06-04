@@ -18,7 +18,7 @@ const validationErrorHandler = (err, req, res, next) => {
   if (err.name !== 'ValidationError' && err.type !== 'ValidationError') {
     return next(err); // Not a validation error
   }
-  
+
   const normalizedError = normalizeError(err, {
     type: 'ValidationError',
     code: 'VALIDATION_ERROR',
@@ -26,11 +26,11 @@ const validationErrorHandler = (err, req, res, next) => {
     isExpected: true,
     details: err.details || null,
   });
-  
+
   logError(normalizedError, req, {
     context: 'validation-error-handler',
   });
-  
+
   return res.status(normalizedError.status).json(normalizedError.toJSON());
 };
 

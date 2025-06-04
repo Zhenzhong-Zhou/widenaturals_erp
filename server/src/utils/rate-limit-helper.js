@@ -23,10 +23,10 @@ const trustedIPs = process.env.TRUSTED_IPS
 const defaultRateLimitHandler = (req, res, next, options) => {
   const retryAfter = Math.ceil(options.windowMs / 1000);
   const clientKey = options.keyGenerator ? options.keyGenerator(req) : req.ip;
-  
+
   // Set Retry-After header (in seconds)
   res.set('Retry-After', retryAfter.toString());
-  
+
   // Log the rate limit event
   logError('Rate limit exceeded', req, {
     context: 'rate-limiter',
@@ -92,7 +92,7 @@ const createRateLimiter = ({
     // Bypass rate limiting in development mode
     return (req, res, next) => next();
   }
-  
+
   logSystemInfo('Rate limiter initialized.', {
     context,
     windowMs,
@@ -100,7 +100,7 @@ const createRateLimiter = ({
     statusCode,
     headers,
   });
-  
+
   return rateLimit({
     windowMs,
     max,

@@ -11,13 +11,13 @@ const { logError } = require('./logger-helper');
 const withErrorNormalization = (matcher, defaultOptions = {}) => {
   return (err, req, res, next) => {
     if (!matcher(err)) return next(err);
-    
+
     const normalized = normalizeError(err, defaultOptions);
-    
+
     logError(normalized, req, {
       context: `${normalized.type?.toLowerCase()}-handler`,
     });
-    
+
     res.status(normalized.status).json(normalized.toJSON());
   };
 };

@@ -12,24 +12,24 @@ loadEnv();
  */
 exports.seed = async function (knex) {
   console.log('Seeding sku_images...');
-  
+
   const isProd = process.env.NODE_ENV === 'production';
   const bucketName = process.env.AWS_S3_BUCKET_NAME;
-  
+
   const skuRecords = await knex('skus').select('id', 'sku');
-  const skuMap = Object.fromEntries(skuRecords.map(s => [s.sku, s.id]));
-  
+  const skuMap = Object.fromEntries(skuRecords.map((s) => [s.sku, s.id]));
+
   const systemUser = await knex('users')
     .where({ email: 'system@internal.local' })
     .first();
   if (!systemUser) throw new Error('System user not found');
-  
+
   const existingCount = await knex('sku_images').count('*').first();
   if (parseInt(existingCount.count) > 0) {
     console.warn('Skipping sku_images seeding: table already has data.');
     return;
   }
-  
+
   const seedData = [
     {
       sku: 'CH-HN100-R-CN',
@@ -524,79 +524,96 @@ exports.seed = async function (knex) {
       ],
     },
   ];
-  
+
   const rows = [];
-  
+
   for (const { sku, images } of seedData) {
     const skuId = skuMap[sku];
     if (!skuId) {
       console.warn(`SKU not found: ${sku}`);
       continue;
     }
-    
+
     for (const img of images) {
       const isLocal = !img.url.startsWith('http');
       if (!isLocal) {
         console.warn(`Remote images not supported for resizing: ${img.url}`);
         continue;
       }
-      
+
       const localPath = path.resolve(process.cwd(), img.url);
       if (!fs.existsSync(localPath)) {
         console.warn(`File not found: ${localPath}`);
         continue;
       }
-      
+
       try {
         const baseName = path.basename(localPath, path.extname(localPath)); // e.g., focus_CA
         const brandFolder = sku.slice(0, 2);
-        
+
         // Filenames
         const mainFileName = `${baseName}_main.webp`;
         const thumbFileName = `${baseName}_thumb.webp`;
         const zoomFileName = `${baseName}${path.extname(localPath)}`; // original
-        
+
         // Temp resize folder
         const skuFolder = path.join('temp', sku);
         fs.mkdirSync(skuFolder, { recursive: true });
-        
+
         const resizedMainPath = path.join(skuFolder, mainFileName);
         const resizedThumbPath = path.join(skuFolder, thumbFileName);
-        
+
         await resizeImage(localPath, resizedMainPath, 800, 70, 5);
         await resizeImage(localPath, resizedThumbPath, 200, 60, 4);
-        
+
         let s3MainUrl, s3ThumbUrl, s3ZoomUrl;
-        
+
         if (isProd) {
           const keyPrefix = `sku-images/${brandFolder}`;
-          s3MainUrl = await uploadSkuImageToS3(bucketName, resizedMainPath, keyPrefix, mainFileName);
-          s3ThumbUrl = await uploadSkuImageToS3(bucketName, resizedThumbPath, keyPrefix, thumbFileName);
-          s3ZoomUrl = await uploadSkuImageToS3(bucketName, localPath, keyPrefix, zoomFileName);
+          s3MainUrl = await uploadSkuImageToS3(
+            bucketName,
+            resizedMainPath,
+            keyPrefix,
+            mainFileName
+          );
+          s3ThumbUrl = await uploadSkuImageToS3(
+            bucketName,
+            resizedThumbPath,
+            keyPrefix,
+            thumbFileName
+          );
+          s3ZoomUrl = await uploadSkuImageToS3(
+            bucketName,
+            localPath,
+            keyPrefix,
+            zoomFileName
+          );
         } else {
-          const devOutputDir = path.resolve(`public/uploads/sku-images/${brandFolder}`);
+          const devOutputDir = path.resolve(
+            `public/uploads/sku-images/${brandFolder}`
+          );
           fs.mkdirSync(devOutputDir, { recursive: true });
-          
+
           const copiedMain = path.join(devOutputDir, mainFileName);
           const copiedThumb = path.join(devOutputDir, thumbFileName);
           const copiedZoom = path.join(devOutputDir, zoomFileName);
-          
+
           fs.copyFileSync(resizedMainPath, copiedMain);
           fs.copyFileSync(resizedThumbPath, copiedThumb);
           fs.copyFileSync(localPath, copiedZoom);
-          
+
           const publicBase = `/uploads/sku-images/${brandFolder}/${baseName}`;
           s3MainUrl = `${publicBase}_main.webp`;
           s3ThumbUrl = `${publicBase}_thumb.webp`;
           s3ZoomUrl = `${publicBase}${path.extname(localPath)}`;
         }
-        
+
         const mainStats = fs.statSync(resizedMainPath);
         const thumbStats = fs.statSync(resizedThumbPath);
         const zoomStats = fs.statSync(localPath);
         const zoomMime = mime.lookup(localPath);
         const zoomFormat = mime.extension(zoomMime) || 'bin';
-        
+
         rows.push(
           {
             id: knex.raw('uuid_generate_v4()'),
@@ -638,14 +655,14 @@ exports.seed = async function (knex) {
             uploaded_by: systemUser.id,
           }
         );
-        
+
         console.log(`Processed SKU ${sku} — main, thumbnail, zoom`);
       } catch (err) {
         console.error(`Failed to process ${img.url}:`, err.message);
       }
     }
   }
-  
+
   if (rows.length) {
     await knex('sku_images')
       .insert(rows)
@@ -655,7 +672,7 @@ exports.seed = async function (knex) {
   } else {
     console.warn('No sku_images to insert.');
   }
-  
+
   // Cleanup temp folder
   const tempPath = path.resolve('temp');
   if (fs.existsSync(tempPath)) {

@@ -12,9 +12,13 @@ const { logSystemException } = require('../utils/system-logger');
  * @returns {Promise<string[] | null>}
  */
 const getAllowedStatusIdsForUser = async (user) => {
-  const canViewAll = await checkPermissions(user, ['view_all_product_statuses'], {
-    allowRootAccess: true,
-  });
+  const canViewAll = await checkPermissions(
+    user,
+    ['view_all_product_statuses'],
+    {
+      allowRootAccess: true,
+    }
+  );
 
   return canViewAll ? null : [getStatusId('product_active')];
 };
@@ -49,13 +53,16 @@ const canAccessSku = async (user, skuId) => {
     const allowedStatusIds = await getAllowedStatusIdsForUser(user);
     if (!allowedStatusIds) return true; // root or elevated roles bypass restrictions
 
-    const { skuStatusId, productStatusId } = await getSkuAndProductStatus(skuId);
+    const { skuStatusId, productStatusId } =
+      await getSkuAndProductStatus(skuId);
 
     if (
       !allowedStatusIds.includes(skuStatusId) ||
       !allowedStatusIds.includes(productStatusId)
     ) {
-      throw AppError.authorizationError('You do not have permission to access this SKU');
+      throw AppError.authorizationError(
+        'You do not have permission to access this SKU'
+      );
     }
 
     return true;

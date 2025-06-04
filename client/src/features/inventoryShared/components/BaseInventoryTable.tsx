@@ -3,7 +3,9 @@ import IconButton from '@mui/material/IconButton';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import CustomTable, { type Column } from '@components/common/CustomTable';
-import StockLevelChip, { type StockLevelChipProps } from '@features/inventoryShared/components/StockLevelChip';
+import StockLevelChip, {
+  type StockLevelChipProps,
+} from '@features/inventoryShared/components/StockLevelChip';
 import ExpirySeverityChip, {
   type ExpirySeverityChipProps,
 } from '@features/inventoryShared/components/ExpirySeverityChip';
@@ -28,35 +30,45 @@ interface BaseInventoryTableProps<T> {
 }
 
 const BaseInventoryTable = <T,>({
-                                  isLoading,
-                                  groupedData,
-                                  page,
-                                  rowsPerPage,
-                                  totalRecords,
-                                  totalPages,
-                                  onPageChange,
-                                  onRowsPerPageChange,
-                                  expandedRowId,
-                                  onExpandToggle,
-                                  isRowExpanded,
-                                  expandedContent,
-                                  groupKey,
-                                  getRowData,
-                                  getGroupHeaderId,
-                                }: BaseInventoryTableProps<T>) => {
-  const quantityId = groupKey === 'warehouse' ? 'warehouseQuantity' : 'locationQuantity';
-  const quantityLabel = groupKey === 'warehouse' ? 'Warehouse QTY' : 'Location QTY';
-  
+  isLoading,
+  groupedData,
+  page,
+  rowsPerPage,
+  totalRecords,
+  totalPages,
+  onPageChange,
+  onRowsPerPageChange,
+  expandedRowId,
+  onExpandToggle,
+  isRowExpanded,
+  expandedContent,
+  groupKey,
+  getRowData,
+  getGroupHeaderId,
+}: BaseInventoryTableProps<T>) => {
+  const quantityId =
+    groupKey === 'warehouse' ? 'warehouseQuantity' : 'locationQuantity';
+  const quantityLabel =
+    groupKey === 'warehouse' ? 'Warehouse QTY' : 'Location QTY';
+
   const renderStockLevelCell = useCallback(
-    <T,>(row: FlatInventoryRowBase<T>) => <StockLevelChip stockLevel={row.stockLevel as StockLevelChipProps['stockLevel']} />,
+    <T,>(row: FlatInventoryRowBase<T>) => (
+      <StockLevelChip
+        stockLevel={row.stockLevel as StockLevelChipProps['stockLevel']}
+      />
+    ),
     []
   );
-  
+
   const renderExpirySeverityCell = useCallback(
-    <T,>(row: FlatInventoryRowBase<T>) => <ExpirySeverityChip severity={row.expirySeverity as ExpirySeverityChipProps['severity']} />,
+    <T,>(row: FlatInventoryRowBase<T>) => (
+      <ExpirySeverityChip
+        severity={row.expirySeverity as ExpirySeverityChipProps['severity']}
+      />
+    ),
     []
   );
-  
+
   const columns: Column<FlatInventoryRowBase<T>>[] = [
     { id: 'name', label: 'Name' },
     { id: 'lotNumber', label: 'Lot #' },
@@ -67,8 +79,16 @@ const BaseInventoryTable = <T,>({
     { id: 'lastUpdate', label: 'Last Update' },
     { id: 'status', label: 'Status' },
     { id: 'statusDate', label: 'Status Date' },
-    { id: 'stockLevel', label: 'Stock Level', renderCell: renderStockLevelCell },
-    { id: 'expirySeverity', label: 'Expiry Severity', renderCell: renderExpirySeverityCell },
+    {
+      id: 'stockLevel',
+      label: 'Stock Level',
+      renderCell: renderStockLevelCell,
+    },
+    {
+      id: 'expirySeverity',
+      label: 'Expiry Severity',
+      renderCell: renderExpirySeverityCell,
+    },
     {
       id: 'expand',
       label: '',
@@ -76,26 +96,30 @@ const BaseInventoryTable = <T,>({
       renderCell: (row) =>
         row.isGroupHeader ? null : (
           <IconButton onClick={() => onExpandToggle?.(row)}>
-            {isRowExpanded?.(row) ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+            {isRowExpanded?.(row) ? (
+              <KeyboardArrowUpIcon />
+            ) : (
+              <KeyboardArrowDownIcon />
+            )}
           </IconButton>
         ),
     },
   ];
-  
+
   const flattenedWithHeaders: any[] = [];
-  
+
   Object.entries(groupedData).forEach(([groupName, records]) => {
     flattenedWithHeaders.push({
       id: getGroupHeaderId(groupName),
       name: `-- ${groupName} --`,
       isGroupHeader: true,
     });
-    
+
     records.forEach((record) => {
       flattenedWithHeaders.push(getRowData(record));
     });
   });
-  
+
   return (
     <CustomTable
       loading={isLoading}
@@ -112,10 +136,10 @@ const BaseInventoryTable = <T,>({
       getRowProps={(row) =>
         row.isGroupHeader
           ? {
-            isGroupHeader: true,
-            colSpan: columns.length + 1,
-            sx: { fontWeight: 600, fontSize: '1rem' },
-          }
+              isGroupHeader: true,
+              colSpan: columns.length + 1,
+              sx: { fontWeight: 600, fontSize: '1rem' },
+            }
           : {}
       }
       expandedContent={expandedContent}

@@ -1,6 +1,6 @@
-import { formatDate } from "@utils/dateTimeUtils";
-import type { SkuDetails } from "../state";
-import { formatLabel } from "@utils/textUtils";
+import { formatDate } from '@utils/dateTimeUtils';
+import type { SkuDetails } from '../state';
+import { formatLabel } from '@utils/textUtils';
 
 interface FlatSkuDetails {
   skuId: string;
@@ -44,7 +44,7 @@ const transformFlatSkuDetails = (sku: SkuDetails): FlatSkuDetails => {
     expiry_date: null,
     description: '',
   };
-  
+
   const {
     lengthCm,
     widthCm,
@@ -55,7 +55,7 @@ const transformFlatSkuDetails = (sku: SkuDetails): FlatSkuDetails => {
     heightInch,
     weightLb,
   } = sku.dimensions;
-  
+
   return {
     skuId: sku.skuId,
     sku: sku.sku,
@@ -73,9 +73,10 @@ const transformFlatSkuDetails = (sku: SkuDetails): FlatSkuDetails => {
     heightInch,
     weightLb,
     description: sku.description,
-    status: typeof sku.status === 'string'
-      ? sku.status
-      : `SKU: ${sku.status.sku}, Product: ${sku.status.product}`,
+    status:
+      typeof sku.status === 'string'
+        ? sku.status
+        : `SKU: ${sku.status.sku}, Product: ${sku.status.product}`,
     statusDate: sku.statusDate,
     createdAt: sku.audit.createdAt,
     createdBy: sku.audit.createdBy?.fullName ?? '—',
@@ -93,9 +94,11 @@ const transformFlatSkuDetails = (sku: SkuDetails): FlatSkuDetails => {
   };
 };
 
-export const mapSkuToDisplayMetadata = (sku: SkuDetails): Record<string, Record<string, string>> => {
+export const mapSkuToDisplayMetadata = (
+  sku: SkuDetails
+): Record<string, Record<string, string>> => {
   const flat = transformFlatSkuDetails(sku);
-  
+
   return {
     'Basic Info': {
       SKU: flat.sku,
@@ -105,7 +108,7 @@ export const mapSkuToDisplayMetadata = (sku: SkuDetails): Record<string, Record<
       'Market Region': flat.marketRegion || 'N/A',
       'Size Label': flat.sizeLabel || 'N/A',
     },
-    'Compliance': {
+    Compliance: {
       'Compliance Type': flat.complianceType || 'N/A',
       'Compliance ID': flat.complianceId || 'N/A',
       'Issued Date': formatDate(flat.issuedDate) || 'N/A',
@@ -119,17 +122,17 @@ export const mapSkuToDisplayMetadata = (sku: SkuDetails): Record<string, Record<
       Category: flat.category || 'N/A',
       Description: flat.description || 'N/A',
     },
-    'Dimensions': {
-      'Length': `${flat.lengthCm} cm`,
-      'Width': `${flat.widthCm} cm`,
-      'Height': `${flat.heightCm} cm`,
-      'Weight': `${flat.weightG} g`,
+    Dimensions: {
+      Length: `${flat.lengthCm} cm`,
+      Width: `${flat.widthCm} cm`,
+      Height: `${flat.heightCm} cm`,
+      Weight: `${flat.weightG} g`,
       'Length (in)': `${flat.lengthInch} in`,
       'Width (in)': `${flat.widthInch} in`,
       'Height (in)': `${flat.heightInch} in`,
       'Weight (lb)': `${flat.weightLb} lb`,
     },
-    'Status': {
+    Status: {
       Status: formatLabel(flat.status),
       'Status Date': formatDate(flat.statusDate) || 'N/A',
     },

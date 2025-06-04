@@ -1,7 +1,7 @@
 const wrapAsync = require('../utils/wrap-async');
 const {
   fetchBatchRegistryDropdownService,
-  fetchWarehouseDropdownService
+  fetchWarehouseDropdownService,
 } = require('../services/dropdown-service');
 const { logInfo } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
@@ -26,41 +26,45 @@ const getBatchRegistryDropdownController = wrapAsync(async (req, res, next) => {
       ip: req.ip,
     },
   });
-  
+
   const query = { ...req.query };
-  
-  const {
-    batchType,
-    warehouseId,
-    locationId,
-    limit = 50,
-    offset = 0,
-  } = query;
-  
+
+  const { batchType, warehouseId, locationId, limit = 50, offset = 0 } = query;
+
   const numericLimit = Number(limit);
   const numericOffset = Number(offset);
-  
+
   if (!Number.isInteger(numericOffset) || numericOffset < 0) {
-    return next(AppError.validationError('Offset must be a non-negative integer.'));
+    return next(
+      AppError.validationError('Offset must be a non-negative integer.')
+    );
   }
-  
-  if (!Number.isInteger(numericLimit) || numericLimit <= 0 || numericLimit > 100) {
-    return next(AppError.validationError('Limit must be a positive integer no greater than 100.'));
+
+  if (
+    !Number.isInteger(numericLimit) ||
+    numericLimit <= 0 ||
+    numericLimit > 100
+  ) {
+    return next(
+      AppError.validationError(
+        'Limit must be a positive integer no greater than 100.'
+      )
+    );
   }
-  
+
   const filters = {};
   if (batchType) filters.batchType = batchType;
   if (warehouseId) filters.warehouseId = warehouseId;
   if (locationId) filters.locationId = locationId;
-  
+
   const dropdownResult = await fetchBatchRegistryDropdownService({
     filters,
     limit: numericLimit,
     offset: numericOffset,
   });
-  
+
   const { items, hasMore } = dropdownResult;
-  
+
   res.status(200).json({
     success: true,
     message: `Successfully retrieved batch registry dropdown`,
@@ -85,9 +89,9 @@ const getWarehouseDropdownController = wrapAsync(async (req, res) => {
     warehouseTypeId: req.query.warehouseTypeId || undefined,
     includeArchived: req.query.includeArchived === 'true',
   };
-  
+
   const dropdownItems = await fetchWarehouseDropdownService(filters);
-  
+
   res.status(200).json({
     success: true,
     message: `Successfully retrieved warehouses dropdown`,

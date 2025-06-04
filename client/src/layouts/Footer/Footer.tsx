@@ -6,7 +6,7 @@ import { useThemeContext } from '@context/ThemeContext';
 const Footer: FC = () => {
   const { theme } = useThemeContext(); // From context
   const currentYear = new Date().getFullYear();
-  
+
   return (
     <Container maxWidth="lg">
       <Box
@@ -33,7 +33,7 @@ const Footer: FC = () => {
         <Box sx={{ flexShrink: 0 }}>
           &copy; 2022 - {currentYear} Wide Naturals Inc. All Rights Reserved.
         </Box>
-        
+
         <Box sx={{ flexShrink: 0 }}>
           Powered by{' '}
           <Box

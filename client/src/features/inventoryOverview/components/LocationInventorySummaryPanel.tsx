@@ -1,7 +1,4 @@
-import {
-  type FC, lazy, memo,
-  Suspense, useEffect, useRef,
-} from 'react';
+import { type FC, lazy, memo, Suspense, useEffect, useRef } from 'react';
 import Skeleton from '@mui/material/Skeleton';
 import CustomButton from '@components/common/CustomButton';
 import CustomTypography from '@components/common/CustomTypography';
@@ -13,8 +10,18 @@ import { useExpandableDetailPanel } from '@features/inventoryOverview/hook/useEx
 import type { ItemType } from '@features/inventoryShared/types/InventorySharedType';
 import type { LocationInventorySummaryItemDetail } from '@features/locationInventory/state';
 
-const LocationInventoryFilterPanel = lazy(() => import('@features/locationInventory/components/LocationInventoryFilterPanel'));
-const LocationInventorySummaryTable = lazy(() => import('@features/locationInventory/components/LocationInventorySummaryTable'));
+const LocationInventoryFilterPanel = lazy(
+  () =>
+    import(
+      '@features/locationInventory/components/LocationInventoryFilterPanel'
+    )
+);
+const LocationInventorySummaryTable = lazy(
+  () =>
+    import(
+      '@features/locationInventory/components/LocationInventorySummaryTable'
+    )
+);
 
 interface Props {
   page: number;
@@ -25,14 +32,14 @@ interface Props {
 }
 
 const LocationInventorySummaryPanel: FC<Props> = ({
-                                             page,
-                                             limit,
-                                             itemType,
-                                             onPageChange,
-                                             onRowsPerPageChange,
-                                           }) => {
+  page,
+  limit,
+  itemType,
+  onPageChange,
+  onRowsPerPageChange,
+}) => {
   const hasFetchedRef = useRef(false);
-  
+
   const {
     data: summaryData,
     pagination: summaryPagination,
@@ -40,7 +47,7 @@ const LocationInventorySummaryPanel: FC<Props> = ({
     error: summaryError,
     fetchLocationInventorySummary,
   } = useLocationInventorySummary();
-  
+
   const {
     data: detailData,
     pagination: detailsPagination,
@@ -48,7 +55,7 @@ const LocationInventorySummaryPanel: FC<Props> = ({
     error: detailError,
     fetchLocationInventorySummaryDetail,
   } = useLocationInventorySummaryByItemId();
-  
+
   const {
     expandedRowId,
     detailPage,
@@ -66,35 +73,43 @@ const LocationInventorySummaryPanel: FC<Props> = ({
     detailError,
     detailLoading,
   });
-  
+
   useEffect(() => {
     const fetch = () => {
-      fetchLocationInventorySummary({ page, limit, ...(itemType ? { batchType: itemType } : {}) });
+      fetchLocationInventorySummary({
+        page,
+        limit,
+        ...(itemType ? { batchType: itemType } : {}),
+      });
     };
-    
+
     // Fetch only once on mount if you want to avoid early triggering
     if (!hasFetchedRef.current) {
       hasFetchedRef.current = true;
-      
+
       if ('requestIdleCallback' in window) {
         (window as any).requestIdleCallback(fetch);
       } else {
         setTimeout(fetch, 100); // fallback
       }
-      
+
       return;
     }
-    
+
     // Subsequent fetches (pagination / itemType changes)
     const debounceId = setTimeout(fetch, 100);
-    
+
     return () => clearTimeout(debounceId);
   }, [page, limit, itemType]);
-  
+
   const handleRefresh = () => {
-    fetchLocationInventorySummary({ page, limit, ...(itemType ? { batchType: itemType } : {}) });
+    fetchLocationInventorySummary({
+      page,
+      limit,
+      ...(itemType ? { batchType: itemType } : {}),
+    });
   };
-  
+
   const handleDetailsRefresh = () => {
     if (!expandedRowId) return;
     fetchLocationInventorySummaryDetail({
@@ -103,17 +118,22 @@ const LocationInventorySummaryPanel: FC<Props> = ({
       limit: detailLimit,
     });
   };
-  
+
   if (summaryLoading) {
     return (
       <>
         {Array.from({ length: 5 }, (_, i) => (
-          <Skeleton key={i} variant="rectangular" height={60} sx={{ borderRadius: 1, mb: 2 }} />
+          <Skeleton
+            key={i}
+            variant="rectangular"
+            height={60}
+            sx={{ borderRadius: 1, mb: 2 }}
+          />
         ))}
       </>
     );
   }
-  
+
   if (summaryError) {
     return (
       <ErrorDisplay>
@@ -121,14 +141,26 @@ const LocationInventorySummaryPanel: FC<Props> = ({
       </ErrorDisplay>
     );
   }
-  
+
   if (summaryData.length === 0) {
-    return <CustomTypography sx={{ mt: 2 }}>No location inventory data available.</CustomTypography>;
+    return (
+      <CustomTypography sx={{ mt: 2 }}>
+        No location inventory data available.
+      </CustomTypography>
+    );
   }
-  
+
   return (
     <>
-      <Suspense fallback={<Skeleton height={400} variant="rectangular" sx={{ borderRadius: 1 }} />}>
+      <Suspense
+        fallback={
+          <Skeleton
+            height={400}
+            variant="rectangular"
+            sx={{ borderRadius: 1 }}
+          />
+        }
+      >
         <LocationInventoryFilterPanel
           initialFilters={{ batchType: 'product' }}
           visibleFields={['batchType', 'productName', 'materialName', 'sku']}
@@ -150,7 +182,7 @@ const LocationInventorySummaryPanel: FC<Props> = ({
           showActionsWhenAll={true}
           requireBatchTypeForActions={true}
         />
-        
+
         <LocationInventorySummaryTable
           data={summaryData}
           page={page - 1}
@@ -174,7 +206,7 @@ const LocationInventorySummaryPanel: FC<Props> = ({
           onRefreshDetail={handleDetailsRefresh}
         />
       </Suspense>
-      
+
       <CustomButton onClick={handleRefresh} sx={{ mt: 2 }}>
         Refresh Location Inventory Summary
       </CustomButton>

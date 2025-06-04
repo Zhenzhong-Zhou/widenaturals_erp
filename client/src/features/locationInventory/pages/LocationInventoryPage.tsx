@@ -6,7 +6,9 @@ import { LOCATION_INVENTORY_SORT_OPTIONS } from '../constants/sortOptions';
 import LocationInventoryExpandedRow from '../components/LocationInventoryExpandedRow';
 import LocationInventoryFilterPanel from '../components/LocationInventoryFilterPanel';
 
-const LocationInventoryTable = lazy(() => import('../components/LocationInventoryTable'));
+const LocationInventoryTable = lazy(
+  () => import('../components/LocationInventoryTable')
+);
 
 export default () => (
   <BaseInventoryPage

@@ -6,7 +6,7 @@ import {
   selectKpiSummaryTotalRow,
   selectKpiSummaryProductRow,
   selectKpiSummaryMaterialRow,
-  fetchLocationInventoryKpiSummaryThunk
+  fetchLocationInventoryKpiSummaryThunk,
 } from '@features/locationInventory/state';
 import type { ItemType } from '@features/inventoryShared/types/InventorySharedType';
 
@@ -17,14 +17,14 @@ import type { ItemType } from '@features/inventoryShared/types/InventorySharedTy
  */
 const useLocationInventoryKpiSummary = () => {
   const dispatch = useAppDispatch();
-  
+
   const data = useAppSelector(selectKpiSummaryData);
   const loading = useAppSelector(selectKpiSummaryLoading);
   const error = useAppSelector(selectKpiSummaryError);
   const total = useAppSelector(selectKpiSummaryTotalRow);
   const product = useAppSelector(selectKpiSummaryProductRow);
   const material = useAppSelector(selectKpiSummaryMaterialRow);
-  
+
   /**
    * Fetches KPI summary from the server.
    *
@@ -33,7 +33,7 @@ const useLocationInventoryKpiSummary = () => {
   const fetchKpiSummary = (itemType?: ItemType) => {
     dispatch(fetchLocationInventoryKpiSummaryThunk(itemType));
   };
-  
+
   return {
     data,
     loading,

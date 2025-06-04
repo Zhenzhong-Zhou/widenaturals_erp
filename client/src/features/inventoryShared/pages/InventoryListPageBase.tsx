@@ -31,7 +31,11 @@ interface BaseInventoryPageProps<T> {
     loading: boolean;
     error: string | null;
     pagination: { totalPages: number; totalRecords: number };
-    fetchRecords: (pagination: { page: number; limit: number }, filters: any, sort: SortConfig) => void;
+    fetchRecords: (
+      pagination: { page: number; limit: number },
+      filters: any,
+      sort: SortConfig
+    ) => void;
   };
   FilterPanel: FC<{
     initialFilters: any;
@@ -48,72 +52,80 @@ interface BaseInventoryPageProps<T> {
 }
 
 const BaseInventoryPage = <T,>({
-                                 title,
-                                 Icon,
-                                 useInventoryHook,
-                                 FilterPanel,
-                                 TableComponent,
-                                 ExpandedRowComponent,
-                                 sortOptions,
-                                 rowKey,
-                                 extractGroupName,
-                                 topToolbar,
-                               }: BaseInventoryPageProps<T>) => {
+  title,
+  Icon,
+  useInventoryHook,
+  FilterPanel,
+  TableComponent,
+  ExpandedRowComponent,
+  sortOptions,
+  rowKey,
+  extractGroupName,
+  topToolbar,
+}: BaseInventoryPageProps<T>) => {
   const [itemTypeTab, setItemTypeTab] = useState(0);
-  const [sortConfig, setSortConfig] = useState<SortConfig>({ sortBy: '', sortOrder: '' });
+  const [sortConfig, setSortConfig] = useState<SortConfig>({
+    sortBy: '',
+    sortOrder: '',
+  });
   const [filters, setFilters] = useState<any>({});
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(30);
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
-  
-  const {
-    records,
-    loading,
-    error,
-    pagination,
-    fetchRecords,
-  } = useInventoryHook();
-  
+
+  const { records, loading, error, pagination, fetchRecords } =
+    useInventoryHook();
+
   const batchType: ItemType | undefined =
-    itemTypeTab === 1 ? 'product' :
-      itemTypeTab === 2 ? 'packaging_material' :
-        undefined;
-  
+    itemTypeTab === 1
+      ? 'product'
+      : itemTypeTab === 2
+        ? 'packaging_material'
+        : undefined;
+
   const grouped = groupBy(records, extractGroupName);
-  
+
   useEffect(() => {
     fetchRecords({ page, limit }, filters, sortConfig);
   }, [page, limit, filters, sortConfig]);
-  
+
   const handleItemTypeTabChange = (_: SyntheticEvent, newValue: number) => {
     setItemTypeTab(newValue);
-    const newBatchType = newValue === 1 ? 'product' : newValue === 2 ? 'packaging_material' : undefined;
+    const newBatchType =
+      newValue === 1
+        ? 'product'
+        : newValue === 2
+          ? 'packaging_material'
+          : undefined;
     setFilters((prev: any) => ({ ...prev, batchType: newBatchType }));
     setPage(1);
   };
-  
+
   const handleApplyFilters = (newFilters: any) => {
     setFilters({ ...newFilters, batchType });
     setPage(1);
   };
-  
+
   const handleResetFilters = () => {
     setFilters(batchType ? { batchType } : {});
     setPage(1);
   };
-  
-  const handlePageChange = useCallback((newPage: number) => setPage(newPage + 1), []);
+
+  const handlePageChange = useCallback(
+    (newPage: number) => setPage(newPage + 1),
+    []
+  );
   const handleRowsPerPageChange = useCallback((newLimit: number) => {
     setLimit(newLimit);
     setPage(1);
   }, []);
-  
+
   const handleExpandToggle = (row: any) => {
-    setExpandedRowId(prev => (prev === row[rowKey] ? null : row[rowKey]));
+    setExpandedRowId((prev) => (prev === row[rowKey] ? null : row[rowKey]));
   };
-  
+
   const isRowExpanded = (row: any) => expandedRowId === row[rowKey];
-  
+
   if (error) {
     return (
       <ErrorDisplay>
@@ -121,22 +133,41 @@ const BaseInventoryPage = <T,>({
       </ErrorDisplay>
     );
   }
-  
+
   return (
     <Box sx={{ px: 4, py: 3 }}>
-      <Paper elevation={3} sx={{ p: 3, borderRadius: 3, backgroundColor: (theme) => theme.palette.background.default }}>
+      <Paper
+        elevation={3}
+        sx={{
+          p: 3,
+          borderRadius: 3,
+          backgroundColor: (theme) => theme.palette.background.default,
+        }}
+      >
         <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
           {Icon}
-          <CustomTypography variant="h5" fontWeight={600}>{title}</CustomTypography>
+          <CustomTypography variant="h5" fontWeight={600}>
+            {title}
+          </CustomTypography>
         </Stack>
-        
+
         {topToolbar && <Box mb={2}>{topToolbar}</Box>}
-        
+
         <Stack spacing={3}>
-          <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ xs: 'flex-start', sm: 'center' }} justifyContent="space-between" spacing={2}>
-            <ItemTypeTabs value={itemTypeTab} onChange={handleItemTypeTabChange} />
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            alignItems={{ xs: 'flex-start', sm: 'center' }}
+            justifyContent="space-between"
+            spacing={2}
+          >
+            <ItemTypeTabs
+              value={itemTypeTab}
+              onChange={handleItemTypeTabChange}
+            />
             <Stack spacing={1}>
-              <CustomTypography variant="body1" color="text.secondary">Sort Options</CustomTypography>
+              <CustomTypography variant="body1" color="text.secondary">
+                Sort Options
+              </CustomTypography>
               <SortControls
                 sortBy={sortConfig.sortBy ?? ''}
                 sortOrder={sortConfig.sortOrder ?? ''}
@@ -150,17 +181,17 @@ const BaseInventoryPage = <T,>({
               />
             </Stack>
           </Stack>
-          
+
           <Divider sx={{ display: { xs: 'none', sm: 'block' } }} />
-          
+
           <FilterPanel
             initialFilters={filters}
             onApply={handleApplyFilters}
             onReset={handleResetFilters}
             showActionsWhenAll={true}
           />
-          
-          <Suspense fallback={<Skeleton height={180} width="100%" />} >
+
+          <Suspense fallback={<Skeleton height={180} width="100%" />}>
             <TableComponent
               isLoading={loading}
               groupedData={grouped}
@@ -173,13 +204,18 @@ const BaseInventoryPage = <T,>({
               expandedRowId={expandedRowId}
               onExpandToggle={handleExpandToggle}
               isRowExpanded={isRowExpanded}
-              expandedContent={(row: any) => <ExpandedRowComponent record={row.originalRecord} />}
+              expandedContent={(row: any) => (
+                <ExpandedRowComponent record={row.originalRecord} />
+              )}
             />
           </Suspense>
         </Stack>
-        
+
         <Stack direction="row" justifyContent="flex-end" mt={3}>
-          <CustomButton variant="outlined" onClick={() => fetchRecords({ page, limit }, filters, sortConfig)}>
+          <CustomButton
+            variant="outlined"
+            onClick={() => fetchRecords({ page, limit }, filters, sortConfig)}
+          >
             Refresh Inventory
           </CustomButton>
         </Stack>

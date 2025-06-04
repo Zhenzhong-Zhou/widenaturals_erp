@@ -35,7 +35,7 @@
 const buildInventoryFilterConditions = (filters, fieldMap) => {
   const conditions = [];
   const params = [];
-  
+
   const {
     prefix,
     warehouseName,
@@ -54,57 +54,57 @@ const buildInventoryFilterConditions = (filters, fieldMap) => {
     createdAt,
     status,
   } = filters;
-  
+
   if (locationName && fieldMap.locationName) {
     params.push(`%${locationName}%`);
     conditions.push(`${fieldMap.locationName} ILIKE $${params.length}`);
   }
-  
+
   if (warehouseName && fieldMap.warehouseName) {
     params.push(`%${warehouseName}%`);
     conditions.push(`${fieldMap.warehouseName} ILIKE $${params.length}`);
   }
-  
+
   if (batchType) {
     params.push(batchType);
     conditions.push(`br.batch_type = $${params.length}`);
   }
-  
+
   if (sku) {
     params.push(`%${sku}%`);
     conditions.push(`s.sku ILIKE $${params.length}`);
   }
-  
+
   if (productName) {
     params.push(`%${productName}%`);
     conditions.push(`p.name ILIKE $${params.length}`);
   }
-  
+
   if (materialName) {
     params.push(`%${materialName}%`);
     conditions.push(`pmb.material_snapshot_name ILIKE $${params.length}`);
   }
-  
+
   if (materialCode) {
     params.push(`%${materialCode}%`);
     conditions.push(`pm.code ILIKE $${params.length}`);
   }
-  
+
   if (partCode) {
     params.push(`%${partCode}%`);
     conditions.push(`pt.code ILIKE $${params.length}`);
   }
-  
+
   if (partName) {
     params.push(`%${partName}%`);
     conditions.push(`pt.name ILIKE $${params.length}`);
   }
-  
+
   if (partType) {
     params.push(`%${partType}%`);
     conditions.push(`pt.type ILIKE $${params.length}`);
   }
-  
+
   if (lotNumber) {
     params.push(`%${lotNumber}%`);
     conditions.push(`
@@ -115,12 +115,12 @@ const buildInventoryFilterConditions = (filters, fieldMap) => {
       )
     `);
   }
-  
+
   if (inboundDate && fieldMap.inboundDate) {
     params.push(inboundDate);
     conditions.push(`${fieldMap.inboundDate}::date = $${params.length}`);
   }
-  
+
   if (expiryDate) {
     params.push(expiryDate);
     conditions.push(`
@@ -131,22 +131,22 @@ const buildInventoryFilterConditions = (filters, fieldMap) => {
       )
     `);
   }
-  
+
   if (status) {
     params.push(status);
     conditions.push(`st.name = $${params.length}`);
   }
-  
+
   if (inboundDate && prefix) {
     params.push(inboundDate);
     conditions.push(`${prefix}.inbound_date::date = $${params.length}`);
   }
-  
+
   if (createdAt && prefix) {
     params.push(createdAt);
     conditions.push(`${prefix}.created_at::date = $${params.length}`);
   }
-  
+
   return { conditions, params };
 };
 

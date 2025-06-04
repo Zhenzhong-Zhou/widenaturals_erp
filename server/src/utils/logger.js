@@ -9,10 +9,7 @@ const path = require('path');
 const { createLogger, format, transports } = require('winston');
 const DailyRotateFile = require('winston-daily-rotate-file');
 const { loadEnv } = require('../config/env');
-const {
-  logSystemInfo,
-  logSystemException
-} = require('./system-logger');
+const { logSystemInfo, logSystemException } = require('./system-logger');
 const AppError = require('./AppError');
 const { uploadFileToS3 } = require('./aws-s3-service');
 
@@ -120,7 +117,7 @@ const compressFile = (sourceFile, destinationFile) =>
     const readStream = fs.createReadStream(sourceFile);
     const writeStream = fs.createWriteStream(destinationFile);
     const gzip = zlib.createGzip();
-    
+
     readStream
       .pipe(gzip)
       .pipe(writeStream)
@@ -149,22 +146,22 @@ const handleRotationAndUpload = (transport, s3PathPrefix) => {
       oldFilename,
       newFilename,
     });
-    
+
     try {
       // Compress file before uploading
       const compressedFilename = `${oldFilename}.gz`;
       await compressFile(oldFilename, compressedFilename);
-      
+
       // Prepare S3 key (path)
       const s3Key = `${s3PathPrefix}/${path.basename(compressedFilename)}`;
 
       // Upload a compressed file to S3
       await uploadFileToS3(compressedFilename, bucketName, s3Key);
-      
+
       // Cleanup - Remove the original & compressed file
       fs.unlinkSync(oldFilename);
       fs.unlinkSync(compressedFilename);
-      
+
       logSystemInfo('Log uploaded and cleaned up', {
         context: 'log-rotation',
         s3Key,

@@ -79,11 +79,15 @@ const transformPricingTypeMetadata = (row) => ({
   },
   createdBy: {
     id: row.created_by_id,
-    fullName: `${row.created_by_firstname || ''} ${row.created_by_lastname || ''}`.trim() || null,
+    fullName:
+      `${row.created_by_firstname || ''} ${row.created_by_lastname || ''}`.trim() ||
+      null,
   },
   updatedBy: {
     id: row.updated_by_id,
-    fullName: `${row.updated_by_firstname || ''} ${row.updated_by_lastname || ''}`.trim() || null,
+    fullName:
+      `${row.updated_by_firstname || ''} ${row.updated_by_lastname || ''}`.trim() ||
+      null,
   },
   createdAt: row.pricing_type_created_at,
   updatedAt: row.pricing_type_updated_at,

@@ -7,13 +7,14 @@ const { generateStandardizedCode } = require('../../../utils/code-generators');
  */
 exports.seed = async function (knex) {
   console.log('Seeding manufacturers...');
-  
-  const [activeStatusId, discontinuedStatusId, systemActionId] = await Promise.all([
-    fetchDynamicValue(knex, 'status', 'name', 'active', 'id'),
-    fetchDynamicValue(knex, 'status', 'name', 'discontinued', 'id'),
-    fetchDynamicValue(knex, 'users', 'email', 'system@internal.local', 'id'),
-  ]);
-  
+
+  const [activeStatusId, discontinuedStatusId, systemActionId] =
+    await Promise.all([
+      fetchDynamicValue(knex, 'status', 'name', 'active', 'id'),
+      fetchDynamicValue(knex, 'status', 'name', 'discontinued', 'id'),
+      fetchDynamicValue(knex, 'users', 'email', 'system@internal.local', 'id'),
+    ]);
+
   // Predefined manufacturer data
   const manufacturerLocations = [
     {
@@ -32,24 +33,30 @@ exports.seed = async function (knex) {
       status_date: '2024-11-01',
     },
   ];
-  
+
   for (const [index, entry] of manufacturerLocations.entries()) {
     const location = await knex('locations')
       .select('id')
       .whereILike('name', `%${entry.company_name}%`)
       .andWhereILike('city', entry.city)
       .first();
-    
+
     if (!location) {
-      console.warn(`No matching location for manufacturer "${entry.company_name}"`);
+      console.warn(
+        `No matching location for manufacturer "${entry.company_name}"`
+      );
       continue;
     }
-    
-    const manufacturer_code = generateStandardizedCode('MFG', entry.company_name, {
-      regionCode: entry.city.slice(0, 2).toUpperCase(), // e.g., 'BU' from 'Burnaby'
-      sequenceNumber: index + 1,
-    });
-    
+
+    const manufacturer_code = generateStandardizedCode(
+      'MFG',
+      entry.company_name,
+      {
+        regionCode: entry.city.slice(0, 2).toUpperCase(), // e.g., 'BU' from 'Burnaby'
+        sequenceNumber: index + 1,
+      }
+    );
+
     const manufacturer = {
       id: knex.raw('uuid_generate_v4()'),
       name: entry.company_name,
@@ -67,12 +74,12 @@ exports.seed = async function (knex) {
       created_by: systemActionId,
       updated_by: null,
     };
-    
+
     await knex('manufacturers')
       .insert(manufacturer)
       .onConflict(['name']) // unique constraint on name
       .ignore();
   }
-  
+
   console.log('Manufacturer seed completed.');
 };

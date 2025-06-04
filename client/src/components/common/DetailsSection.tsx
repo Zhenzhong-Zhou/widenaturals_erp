@@ -21,10 +21,14 @@ interface DetailsSectionProps {
 
 const INLINE_DISPLAY_LENGTH = 50;
 
-const DetailsSection: FC<DetailsSectionProps> = ({ fields, sectionTitle, sx }) => {
+const DetailsSection: FC<DetailsSectionProps> = ({
+  fields,
+  sectionTitle,
+  sx,
+}) => {
   const { theme } = useThemeContext();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
-  
+
   const filteredFields = fields.filter(
     ({ value }) =>
       value !== undefined &&
@@ -32,12 +36,14 @@ const DetailsSection: FC<DetailsSectionProps> = ({ fields, sectionTitle, sx }) =
       value !== '' &&
       !(
         typeof value === 'string' &&
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+          value
+        )
       )
   );
-  
+
   if (filteredFields.length === 0) return null;
-  
+
   return (
     <Box sx={{ mt: theme.spacing(2), ...sx }}>
       {sectionTitle && (
@@ -52,14 +58,15 @@ const DetailsSection: FC<DetailsSectionProps> = ({ fields, sectionTitle, sx }) =
           {sectionTitle}
         </CustomTypography>
       )}
-      
+
       <Grid container spacing={2}>
         {filteredFields.map(({ label, value, format }, index) => {
-          const isLongText = typeof value === 'string' && value.length > INLINE_DISPLAY_LENGTH;
+          const isLongText =
+            typeof value === 'string' && value.length > INLINE_DISPLAY_LENGTH;
           const shouldWrap = isLongText || isSmallScreen;
-          
+
           return (
-            <Grid size={{xs:12, md: 6}} key={index}>
+            <Grid size={{ xs: 12, md: 6 }} key={index}>
               <Box>
                 <CustomTypography
                   variant="body2"
@@ -67,7 +74,7 @@ const DetailsSection: FC<DetailsSectionProps> = ({ fields, sectionTitle, sx }) =
                 >
                   {label}:
                 </CustomTypography>
-                
+
                 <CustomTypography
                   variant="body2"
                   sx={{

@@ -7,10 +7,15 @@ const {
 const AppError = require('../utils/AppError');
 const {
   logSystemException,
-  logSystemInfo, logSystemWarn
+  logSystemInfo,
+  logSystemWarn,
 } = require('../utils/system-logger');
-const { buildLocationInventoryWhereClause } = require('../utils/sql/build-location-inventory-filters');
-const { getStatusIdByQuantity } = require('../utils/query/inventory-query-utils');
+const {
+  buildLocationInventoryWhereClause,
+} = require('../utils/sql/build-location-inventory-filters');
+const {
+  getStatusIdByQuantity,
+} = require('../utils/query/inventory-query-utils');
 
 /**
  * Fetches summarized KPI statistics for location inventory, grouped by item type.
@@ -24,10 +29,8 @@ const { getStatusIdByQuantity } = require('../utils/query/inventory-query-utils'
  * @returns {Promise<Array>} An array of summary objects, grouped by item type and a total row if no filter is applied.
  */
 const getLocationInventoryKpiSummary = async ({ itemType } = {}) => {
-  const filterCondition = itemType
-    ? `WHERE br.batch_type = '${itemType}'`
-    : '';
-  
+  const filterCondition = itemType ? `WHERE br.batch_type = '${itemType}'` : '';
+
   const queryText = `
     SELECT
       br.batch_type::text AS batch_type,
@@ -67,7 +70,10 @@ const getLocationInventoryKpiSummary = async ({ itemType } = {}) => {
     ${filterCondition}
     GROUP BY br.batch_type
 
-    ${itemType ? '' : `
+    ${
+      itemType
+        ? ''
+        : `
     UNION ALL
 
     SELECT
@@ -101,7 +107,8 @@ const getLocationInventoryKpiSummary = async ({ itemType } = {}) => {
     LEFT JOIN packaging_material_suppliers pms ON pmb.packaging_material_supplier_id = pms.id
     LEFT JOIN packaging_materials pm ON pms.packaging_material_id = pm.id
     JOIN locations l ON li.location_id = l.id
-    `}
+    `
+    }
   `;
   try {
     logSystemInfo('Fetching location inventory KPI stats', {
@@ -114,7 +121,9 @@ const getLocationInventoryKpiSummary = async ({ itemType } = {}) => {
     logSystemException(error, 'Error fetching location inventory KPI stats', {
       context: 'location-inventory-repository/getLocationInventoryKPIStats',
     });
-    throw AppError.databaseError('Failed to fetch location inventory KPI stats');
+    throw AppError.databaseError(
+      'Failed to fetch location inventory KPI stats'
+    );
   }
 };
 
@@ -137,12 +146,12 @@ const getLocationInventoryKpiSummary = async ({ itemType } = {}) => {
  * Returns paginated inventory rows and metadata.
  */
 const getHighLevelLocationInventorySummary = async ({
-                                                      page = 1,
-                                                      limit = 10,
-                                                      filters = {},
-                                                      sortBy = 'expiryDate',
-                                                      sortOrder = 'DESC',
-                                                    } = {}) => {
+  page = 1,
+  limit = 10,
+  filters = {},
+  sortBy = 'expiryDate',
+  sortOrder = 'DESC',
+} = {}) => {
   const joins = [
     'LEFT JOIN locations l ON li.location_id = l.id',
     'LEFT JOIN batch_registry br ON li.batch_id = br.id',
@@ -153,11 +162,11 @@ const getHighLevelLocationInventorySummary = async ({
     'LEFT JOIN packaging_material_suppliers pms ON pmb.packaging_material_supplier_id = pms.id',
     'LEFT JOIN packaging_materials pm ON pms.packaging_material_id = pm.id',
   ];
-  
+
   const { whereClause, params } = buildLocationInventoryWhereClause(filters);
-  
+
   const tableName = 'location_inventory li';
-  
+
   const queryText = `
     SELECT
       CASE
@@ -213,30 +222,33 @@ const getHighLevelLocationInventorySummary = async ({
       s.id, p.id,
       pm.id, pmb.material_snapshot_name
   `;
-  
+
   try {
     logSystemInfo('Fetching location inventory summary', {
-      context: 'location-inventory-repository/getHighLevelLocationInventorySummary',
+      context:
+        'location-inventory-repository/getHighLevelLocationInventorySummary',
       filters,
       page,
       limit,
       sortBy,
       sortOrder,
     });
-    
+
     return await paginateResults({
       dataQuery: queryText,
       params,
       page,
       limit,
       meta: {
-        context: 'location-inventory-repository/getHighLevelLocationInventorySummary',
+        context:
+          'location-inventory-repository/getHighLevelLocationInventorySummary',
         filters,
       },
     });
   } catch (error) {
     logSystemException(error, 'Error fetching location inventory summary', {
-      context: 'location-inventory-repository/getHighLevelLocationInventorySummary',
+      context:
+        'location-inventory-repository/getHighLevelLocationInventorySummary',
       filters,
     });
     throw AppError.databaseError('Failed to fetch location inventory summary');
@@ -253,7 +265,11 @@ const getHighLevelLocationInventorySummary = async ({
  * @returns {Promise<Array>} A paginated array of location inventory summary detail records, including batch and location info.
  * @throws {AppError} If the database query fails.
  */
-const getLocationInventorySummaryDetailsByItemId = async ({ page, limit, itemId }) => {
+const getLocationInventorySummaryDetailsByItemId = async ({
+  page,
+  limit,
+  itemId,
+}) => {
   const queryText = `
     SELECT
       li.id AS location_inventory_id,
@@ -303,7 +319,7 @@ const getLocationInventorySummaryDetailsByItemId = async ({ page, limit, itemId 
       )
     ORDER BY li.last_update DESC;
   `;
-  
+
   try {
     const result = await paginateResults({
       dataQuery: queryText,
@@ -311,27 +327,36 @@ const getLocationInventorySummaryDetailsByItemId = async ({ page, limit, itemId 
       page,
       limit,
       meta: {
-        context: 'location-inventory-repository/getHighLevelLocationInventorySummary',
+        context:
+          'location-inventory-repository/getHighLevelLocationInventorySummary',
       },
     });
-    
+
     logSystemInfo('Fetched location inventory summary successfully', {
-      context: 'location-inventory-repository/getLocationInventorySummaryDetailsByItemId',
+      context:
+        'location-inventory-repository/getLocationInventorySummaryDetailsByItemId',
       itemId,
       page,
       limit,
       resultCount: result?.data?.length ?? 0,
     });
-    
+
     return result;
   } catch (error) {
-    logSystemException(error, 'Failed to fetch location inventory summary details', {
-      context: 'location-inventory-repository/getLocationInventorySummaryDetailsByItemId',
-      itemId,
-      page,
-      limit,
-    });
-    throw AppError.databaseError('Error fetching location inventory summary details by item ID');
+    logSystemException(
+      error,
+      'Failed to fetch location inventory summary details',
+      {
+        context:
+          'location-inventory-repository/getLocationInventorySummaryDetailsByItemId',
+        itemId,
+        page,
+        limit,
+      }
+    );
+    throw AppError.databaseError(
+      'Error fetching location inventory summary details by item ID'
+    );
   }
 };
 
@@ -363,9 +388,14 @@ const getLocationInventorySummaryDetailsByItemId = async ({ page, limit, itemId 
  *   }
  * }>} Paginated location inventory data with enriched metadata
  */
-const getPaginatedLocationInventoryRecords = async ({ page, limit, filters, safeSortClause }) => {
+const getPaginatedLocationInventoryRecords = async ({
+  page,
+  limit,
+  filters,
+  safeSortClause,
+}) => {
   const tableName = 'location_inventory li';
-  
+
   const joins = [
     'LEFT JOIN locations loc ON li.location_id = loc.id',
     'LEFT JOIN location_types lt ON loc.location_type_id = lt.id',
@@ -384,9 +414,9 @@ const getPaginatedLocationInventoryRecords = async ({ page, limit, filters, safe
     'LEFT JOIN part_materials pmat ON pm.id = pmat.packaging_material_id',
     'LEFT JOIN parts pt ON pmat.part_id = pt.id',
   ];
-  
+
   const { whereClause, params } = buildLocationInventoryWhereClause(filters);
-  
+
   const queryText = `
     SELECT
       li.id AS location_inventory_id,
@@ -437,7 +467,7 @@ const getPaginatedLocationInventoryRecords = async ({ page, limit, filters, safe
     WHERE ${whereClause}
     ORDER BY ${safeSortClause};
   `;
-  
+
   try {
     const result = await paginateResults({
       dataQuery: queryText,
@@ -445,23 +475,26 @@ const getPaginatedLocationInventoryRecords = async ({ page, limit, filters, safe
       page,
       limit,
       meta: {
-        context: 'location-inventory-repository/getPaginatedLocationInventoryRecords',
+        context:
+          'location-inventory-repository/getPaginatedLocationInventoryRecords',
       },
     });
-    
+
     logSystemInfo('Fetched location inventory records.', {
-      context: 'location-inventory-repository/getPaginatedLocationInventoryRecords',
+      context:
+        'location-inventory-repository/getPaginatedLocationInventoryRecords',
       page,
       limit,
       resultCount: result?.data?.length ?? 0,
     });
-    
+
     return result;
   } catch (error) {
     logSystemException(error, 'Failed to fetch location inventory records.', {
-      context: 'location-inventory-repository/getPaginatedLocationInventoryRecords',
+      context:
+        'location-inventory-repository/getPaginatedLocationInventoryRecords',
     });
-    
+
     throw AppError.databaseError('Failed to fetch location inventory data.');
   }
 };
@@ -481,7 +514,7 @@ const getPaginatedLocationInventoryRecords = async ({ page, limit, filters, safe
  */
 const insertLocationInventoryRecords = async (records, client, meta) => {
   if (!Array.isArray(records) || records.length === 0) return 0;
-  
+
   const columns = [
     'batch_id',
     'location_id',
@@ -495,7 +528,7 @@ const insertLocationInventoryRecords = async (records, client, meta) => {
     'created_by',
     'updated_by',
   ];
-  
+
   const rows = records.map((r) => [
     r.batch_id ?? null,
     r.location_id,
@@ -509,7 +542,7 @@ const insertLocationInventoryRecords = async (records, client, meta) => {
     r.created_by ?? null,
     null,
   ]);
-  
+
   const conflictColumns = ['location_id', 'batch_id'];
   const updateStrategies = {
     location_quantity: 'add',
@@ -519,7 +552,7 @@ const insertLocationInventoryRecords = async (records, client, meta) => {
     updated_at: 'overwrite',
     updated_by: 'overwrite',
   };
-  
+
   try {
     return await bulkInsert(
       'location_inventory',
@@ -532,14 +565,21 @@ const insertLocationInventoryRecords = async (records, client, meta) => {
       'id AS location_inventory_id'
     );
   } catch (error) {
-    logSystemException(error, 'Failed to bulk insert location_inventory records', {
-      context: 'location-inventory-repository/insertLocationInventoryRecords',
-      count: records.length,
-    });
-    
-    throw AppError.databaseError('Unable to insert/update location inventory records', {
-      details: { table: 'location_inventory', count: records.length },
-    });
+    logSystemException(
+      error,
+      'Failed to bulk insert location_inventory records',
+      {
+        context: 'location-inventory-repository/insertLocationInventoryRecords',
+        count: records.length,
+      }
+    );
+
+    throw AppError.databaseError(
+      'Unable to insert/update location inventory records',
+      {
+        details: { table: 'location_inventory', count: records.length },
+      }
+    );
   }
 };
 
@@ -556,9 +596,9 @@ const insertLocationInventoryRecords = async (records, client, meta) => {
  */
 const getInsertedLocationInventoryByIds = async (ids, client) => {
   if (!Array.isArray(ids) || ids.length === 0) return [];
-  
+
   const placeholders = ids.map((_, i) => `$${i + 1}`).join(', ');
-  
+
   const sql = `
     SELECT
       li.id,
@@ -583,19 +623,26 @@ const getInsertedLocationInventoryByIds = async (ids, client) => {
     LEFT JOIN packaging_material_batches pmb ON br.packaging_material_batch_id = pmb.id
     WHERE li.id IN (${placeholders})
   `;
-  
+
   try {
     const { rows } = await query(sql, ids, client);
     return rows;
   } catch (error) {
-    logSystemException(error, 'Failed to fetch location inventory summary by IDs', {
-      context: 'location-inventory-repository/fetchInventorySummaryByIds',
-      ids,
-    });
-    
-    throw AppError.databaseError('Unable to fetch location inventory summary data', {
-      details: { ids, message: error.message },
-    });
+    logSystemException(
+      error,
+      'Failed to fetch location inventory summary by IDs',
+      {
+        context: 'location-inventory-repository/fetchInventorySummaryByIds',
+        ids,
+      }
+    );
+
+    throw AppError.databaseError(
+      'Unable to fetch location inventory summary data',
+      {
+        details: { ids, message: error.message },
+      }
+    );
   }
 };
 
@@ -619,7 +666,7 @@ const bulkUpdateLocationQuantities = async (updates, userId, client) => {
     status_id: 'uuid',
     last_update: 'timestamptz',
   };
-  
+
   try {
     const queryData = formatBulkUpdateQuery(
       table,
@@ -629,12 +676,12 @@ const bulkUpdateLocationQuantities = async (updates, userId, client) => {
       userId,
       columnTypes
     );
-    
+
     if (!queryData) return [];
-    
+
     const { baseQuery, params } = queryData;
     const result = await query(baseQuery, params, client);
-    
+
     return result.rows;
   } catch (error) {
     const message = 'Failed to bulk update location quantities';
@@ -659,17 +706,26 @@ const getLocationInventoryQuantities = async (keys, client) => {
     SELECT id, location_id, batch_id, location_quantity, reserved_quantity, status_id
     FROM location_inventory
     WHERE ${keys
-    .map((_, i) => `(location_id = $${i * 2 + 1} AND batch_id = $${i * 2 + 2})`)
-    .join(' OR ')}
+      .map(
+        (_, i) => `(location_id = $${i * 2 + 1} AND batch_id = $${i * 2 + 2})`
+      )
+      .join(' OR ')}
   `;
-  const params = keys.flatMap(({ location_id, batch_id }) => [location_id, batch_id]);
-  
+  const params = keys.flatMap(({ location_id, batch_id }) => [
+    location_id,
+    batch_id,
+  ]);
+
   try {
     const result = await query(sql, params, client);
-    
+
     if (result.rows.length !== keys.length) {
-      const missingKeys = keys.filter(({ location_id, batch_id }) =>
-        !result.rows.some(row => row.location_id === location_id && row.batch_id === batch_id)
+      const missingKeys = keys.filter(
+        ({ location_id, batch_id }) =>
+          !result.rows.some(
+            (row) =>
+              row.location_id === location_id && row.batch_id === batch_id
+          )
       );
       logSystemWarn('Missing location_inventory records detected', {
         context: 'location-inventory-repository/getLocationInventoryQuantities',
@@ -678,7 +734,7 @@ const getLocationInventoryQuantities = async (keys, client) => {
         found: result.rows.length,
       });
     }
-    
+
     return result.rows;
   } catch (error) {
     logSystemException(error, 'Failed to fetch location_inventory records', {

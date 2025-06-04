@@ -21,40 +21,42 @@
 const buildPricingFilters = (filters = {}, keyword = '') => {
   const whereConditions = ['1=1'];
   const params = [];
-  
+
   if (filters.brand) {
     params.push(filters.brand);
     whereConditions.push(`pr.brand = $${params.length}`);
   }
-  
+
   if (filters.pricingType) {
     params.push(filters.pricingType);
     whereConditions.push(`pt.name = $${params.length}`);
   }
-  
+
   if (filters.countryCode) {
     params.push(filters.countryCode);
     whereConditions.push(`s.country_code = $${params.length}`);
   }
-  
+
   if (filters.sizeLabel) {
     params.push(filters.sizeLabel);
     whereConditions.push(`s.size_label = $${params.length}`);
   }
-  
+
   if (filters.validFrom && filters.validTo) {
     params.push(filters.validFrom);
     whereConditions.push(`p.valid_from >= $${params.length}`);
-    
+
     params.push(filters.validTo);
     whereConditions.push(`p.valid_to <= $${params.length}`);
   }
-  
+
   if (keyword) {
     params.push(`%${keyword}%`);
-    whereConditions.push(`(pr.name ILIKE $${params.length} OR s.sku ILIKE $${params.length})`);
+    whereConditions.push(
+      `(pr.name ILIKE $${params.length} OR s.sku ILIKE $${params.length})`
+    );
   }
-  
+
   return {
     whereClause: whereConditions.join(' AND '),
     params,

@@ -27,17 +27,24 @@ const createWarehouseInventorySlice = createSlice({
         state.error = null;
         state.success = false;
       })
-      .addCase(createWarehouseInventoryRecordsThunk.fulfilled, (state, action) => {
-        state.loading = false;
-        state.success = true;
-        state.response = action.payload;
-      })
-      .addCase(createWarehouseInventoryRecordsThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload ?? 'Unknown error';
-      });
+      .addCase(
+        createWarehouseInventoryRecordsThunk.fulfilled,
+        (state, action) => {
+          state.loading = false;
+          state.success = true;
+          state.response = action.payload;
+        }
+      )
+      .addCase(
+        createWarehouseInventoryRecordsThunk.rejected,
+        (state, action) => {
+          state.loading = false;
+          state.error = action.payload ?? 'Unknown error';
+        }
+      );
   },
 });
 
-export const { resetCreateInventoryState } = createWarehouseInventorySlice.actions;
+export const { resetCreateInventoryState } =
+  createWarehouseInventorySlice.actions;
 export default createWarehouseInventorySlice.reducer;

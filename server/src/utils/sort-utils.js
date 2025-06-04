@@ -10,7 +10,7 @@ const { logSystemWarn } = require('./system-logger');
  */
 const sanitizeSortBy = (sortByRaw = '', module = null) => {
   const map = module && SORTABLE_FIELDS[module] ? SORTABLE_FIELDS[module] : {};
-  
+
   const requestedKeys = sortByRaw.split(',').map((key) => key.trim());
   const mappedKeys = requestedKeys
     .map((key) => {
@@ -24,9 +24,9 @@ const sanitizeSortBy = (sortByRaw = '', module = null) => {
       return mapped;
     })
     .filter(Boolean);
-  
+
   const mapped = mappedKeys.join(', ');
-  
+
   // If nothing valid is mapped, fallback safely
   return mapped || map.createdAt || 'created_at';
 };
@@ -45,5 +45,5 @@ const sanitizeSortOrder = (sortOrderRaw = '') => {
 
 module.exports = {
   sanitizeSortBy,
-  sanitizeSortOrder
+  sanitizeSortOrder,
 };

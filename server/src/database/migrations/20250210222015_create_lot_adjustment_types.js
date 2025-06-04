@@ -9,16 +9,22 @@ exports.up = async function (knex) {
     table.string('code', 50).unique().notNullable().index();
     table.string('slug', 50).unique();
     table.text('description');
-    
+
     table.boolean('is_active').notNullable().defaultTo(true);
-    
-    table.uuid('inventory_action_type_id').notNullable()
-      .references('id').inTable('inventory_action_types'); // parent action
-    
+
+    table
+      .uuid('inventory_action_type_id')
+      .notNullable()
+      .references('id')
+      .inTable('inventory_action_types'); // parent action
+
     table.string('group', 50).nullable(); // Optional grouping: 'loss', 'damage', etc.
-    
+
     // Timestamps
-    table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now()).index();
+    table
+      .timestamp('created_at', { useTz: true })
+      .defaultTo(knex.fn.now())
+      .index();
     table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
 
     // Foreign Keys

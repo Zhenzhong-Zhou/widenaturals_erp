@@ -1,7 +1,7 @@
 import { type FC, lazy, useCallback } from 'react';
 import type {
   LocationInventorySummary,
-  LocationInventorySummaryItemDetail
+  LocationInventorySummaryItemDetail,
 } from '../state';
 import Box from '@mui/material/Box';
 import StockLevelChip from '@features/inventoryShared/components/StockLevelChip';
@@ -14,8 +14,11 @@ import { createDrillDownColumn } from '@utils/table/createDrillDownColumn';
 import ExpandableDetailSection from '@components/common/ExpandableDetailSection';
 import { getDetailCacheKey } from '@features/inventoryShared/utils/cacheKeys';
 
-const LocationInventorySummaryDetailTable = lazy(() =>
-  import('@features/locationInventory/components/LocationInventorySummaryDetailTable')
+const LocationInventorySummaryDetailTable = lazy(
+  () =>
+    import(
+      '@features/locationInventory/components/LocationInventorySummaryDetailTable'
+    )
 );
 
 interface LocationInventorySummaryTableProps {
@@ -42,41 +45,41 @@ interface LocationInventorySummaryTableProps {
 }
 
 const LocationInventorySummaryTable: FC<LocationInventorySummaryTableProps> = ({
-                                                                                 data,
-                                                                                 page,
-                                                                                 rowsPerPage,
-                                                                                 totalRecords,
-                                                                                 totalPages,
-                                                                                 onPageChange,
-                                                                                 onRowsPerPageChange,
-                                                                                 expandedRowId,
-                                                                                 detailDataMap,
-                                                                                 detailLoadingMap,
-                                                                                 detailErrorMap,
-                                                                                 detailPage,
-                                                                                 detailLimit,
-                                                                                 detailTotalRecords,
-                                                                                 detailTotalPages,
-                                                                                 onDetailPageChange,
-                                                                                 onDetailRowsPerPageChange,
-                                                                                 onDrillDownToggle,
-                                                                                 onRowHover,
-                                                                                 onRefreshDetail,
-                                                               }) => {
+  data,
+  page,
+  rowsPerPage,
+  totalRecords,
+  totalPages,
+  onPageChange,
+  onRowsPerPageChange,
+  expandedRowId,
+  detailDataMap,
+  detailLoadingMap,
+  detailErrorMap,
+  detailPage,
+  detailLimit,
+  detailTotalRecords,
+  detailTotalPages,
+  onDetailPageChange,
+  onDetailRowsPerPageChange,
+  onDrillDownToggle,
+  onRowHover,
+  onRefreshDetail,
+}) => {
   const renderStockLevelCell = useCallback(
     (row: LocationInventorySummary) => (
       <StockLevelChip stockLevel={row.stockLevel} />
     ),
     []
   );
-  
+
   const renderExpirySeverityCell = useCallback(
     (row: LocationInventorySummary) => (
       <ExpirySeverityChip severity={row.expirySeverity} />
     ),
     []
   );
-  
+
   const columns: Column<LocationInventorySummary>[] = [
     {
       id: 'typeLabel',
@@ -141,21 +144,21 @@ const LocationInventorySummaryTable: FC<LocationInventorySummaryTableProps> = ({
     },
     ...(onDrillDownToggle
       ? [
-        createDrillDownColumn<LocationInventorySummary>(
-          (row) => onDrillDownToggle?.(row.itemId),
-          (row) => expandedRowId === row.itemId,
-          {
-            onMouseEnter: (row) => onRowHover?.(row.itemId),
-          }
-        )
-      ]
+          createDrillDownColumn<LocationInventorySummary>(
+            (row) => onDrillDownToggle?.(row.itemId),
+            (row) => expandedRowId === row.itemId,
+            {
+              onMouseEnter: (row) => onRowHover?.(row.itemId),
+            }
+          ),
+        ]
       : []),
   ];
-  
+
   const expandedContent = useCallback(
     (row: LocationInventorySummary) => {
       const cacheKey = getDetailCacheKey(row.itemId, detailPage, detailLimit);
-      
+
       return (
         <ExpandableDetailSection
           row={row}
@@ -187,10 +190,10 @@ const LocationInventorySummaryTable: FC<LocationInventorySummaryTableProps> = ({
       detailTotalPages,
       onDetailPageChange,
       onDetailRowsPerPageChange,
-      onRefreshDetail
+      onRefreshDetail,
     ]
   );
-  
+
   return (
     <Box>
       <CustomTable

@@ -11,44 +11,48 @@ exports.seed = async function (knex) {
     .whereNotNull('br.product_batch_id')
     .select('wi.id')
     .limit(1);
-  
+
   const locationProductInventory = await knex('location_inventory as li')
     .join('batch_registry as br', 'li.batch_id', 'br.id')
     .whereNotNull('br.product_batch_id')
     .select('li.id')
     .limit(1);
 
-  if (warehouseProductInventory.length > 0 || locationProductInventory.length > 0) {
-    console.log('Skipping product inventory seed: product batches already in use.');
+  if (
+    warehouseProductInventory.length > 0 ||
+    locationProductInventory.length > 0
+  ) {
+    console.log(
+      'Skipping product inventory seed: product batches already in use.'
+    );
     return;
   }
-  
+
   console.log('Seeding location_inventory and warehouse_inventory...');
-  
+
   const systemUserId = await knex('users')
     .where({ email: 'system@internal.local' })
     .first()
-    .then(row => row?.id);
-  
+    .then((row) => row?.id);
+
   if (!systemUserId) throw AppError.notFoundError('System user not found');
-  
-  const warehouses = await knex('warehouses').select('id', 'code', 'location_id');
+
+  const warehouses = await knex('warehouses').select(
+    'id',
+    'code',
+    'location_id'
+  );
   const statuses = await knex('inventory_status').select('id', 'name');
   const skus = await knex('skus as s')
     .join('products as p', 's.product_id', 'p.id')
-    .select(
-      's.id',
-      'p.name',
-      's.size_label',
-      's.country_code'
-    );
-  
-  const warehouseMap = Object.fromEntries(warehouses.map(w => [w.code, w]));
-  const statusMap = Object.fromEntries(statuses.map(s => [s.name, s.id]));
+    .select('s.id', 'p.name', 's.size_label', 's.country_code');
+
+  const warehouseMap = Object.fromEntries(warehouses.map((w) => [w.code, w]));
+  const statusMap = Object.fromEntries(statuses.map((s) => [s.name, s.id]));
   const skuMap = new Map(
-    skus.map(s => [`${s.name}__${s.size_label}__${s.country_code}`, s.id])
+    skus.map((s) => [`${s.name}__${s.size_label}__${s.country_code}`, s.id])
   );
-  
+
   const batches = await knex('batch_registry as br')
     .join('product_batches as pb', 'br.product_batch_id', 'pb.id')
     .select(
@@ -57,7 +61,7 @@ exports.seed = async function (knex) {
       'pb.initial_quantity',
       'pb.sku_id'
     );
-  
+
   const batchMap = new Map();
   const batchQtyMap = new Map();
   for (const b of batches) {
@@ -65,7 +69,7 @@ exports.seed = async function (knex) {
     batchMap.set(key, b.batch_id);
     batchQtyMap.set(key, b.initial_quantity);
   }
-  
+
   const lotSeedData = {
     'WH-WNI-CA01': [
       // Canaherb
@@ -477,7 +481,7 @@ exports.seed = async function (knex) {
         status: 'out_of_stock',
       },
     ],
-    'WH-VTW-CA03' : [
+    'WH-VTW-CA03': [
       {
         product: 'NMN 3000',
         size_label: '60 Capsules',
@@ -541,24 +545,24 @@ exports.seed = async function (knex) {
         warehouse_quantity: 132,
         status: 'in_stock',
       },
-    ]
+    ],
   };
-  
+
   const warehouseAggregates = {};
   const compositeKeyMap = new Map();
   const duplicates = [];
   const locationInventoryEntries = [];
-  
+
   for (const [warehouseCode, lots] of Object.entries(lotSeedData)) {
     const warehouse = warehouseMap[warehouseCode];
     if (!warehouse) {
       console.warn(`Missing warehouse for "${warehouseCode}"`);
       continue;
     }
-    
+
     const warehouseId = warehouse.id;
     const locationId = warehouse.location_id;
-    
+
     for (const lot of lots) {
       const productKey = `${lot.product_name || lot.product}__${lot.size_label}__${lot.country_code}`;
       const skuId = skuMap.get(productKey);
@@ -566,36 +570,48 @@ exports.seed = async function (knex) {
         console.warn(`No SKU found for key: ${productKey}`);
         continue;
       }
-      
+
       const batchKey = `${lot.lot_number}__${skuId}`;
       const batchId = batchMap.get(batchKey);
       const batchQty = batchQtyMap.get(batchKey);
-      
+
       if (!batchId) {
-        console.warn(`Skipping lot "${lot.lot_number}" — batch not found for SKU: ${skuId}`);
+        console.warn(
+          `Skipping lot "${lot.lot_number}" — batch not found for SKU: ${skuId}`
+        );
         continue;
       }
       if (batchQty === undefined) {
-        console.warn(`Skipping lot "${lot.lot_number}" — no initial quantity found`);
+        console.warn(
+          `Skipping lot "${lot.lot_number}" — no initial quantity found`
+        );
         continue;
       }
-      
+
       const statusId = statusMap[lot.status];
-      if (!statusId) throw new Error(`Missing inventory_status for ${lot.status}`);
-      
+      if (!statusId)
+        throw new Error(`Missing inventory_status for ${lot.status}`);
+
       const quantity = lot.warehouse_quantity;
       if (typeof quantity !== 'number' || quantity < 0) {
-        console.warn(`Skipping ${lot.lot_number} — invalid warehouse quantity: ${quantity}`);
+        console.warn(
+          `Skipping ${lot.lot_number} — invalid warehouse quantity: ${quantity}`
+        );
         continue;
       }
-      
+
       const key = `${locationId}_${batchId}`;
       if (compositeKeyMap.has(key)) {
-        duplicates.push({ warehouseCode, lot_number: lot.lot_number, locationId, batchId });
+        duplicates.push({
+          warehouseCode,
+          lot_number: lot.lot_number,
+          locationId,
+          batchId,
+        });
         continue; // Skip to avoid conflict
       }
       compositeKeyMap.set(key, true);
-      
+
       if (!warehouseAggregates[`${warehouseId}_${batchId}`]) {
         warehouseAggregates[`${warehouseId}_${batchId}`] = {
           warehouse_id: warehouseId,
@@ -604,7 +620,7 @@ exports.seed = async function (knex) {
           status_id: statusId,
         };
       }
-      
+
       locationInventoryEntries.push({
         id: knex.raw('uuid_generate_v4()'),
         location_id: locationId,
@@ -623,29 +639,38 @@ exports.seed = async function (knex) {
       });
     }
   }
-  
+
   if (duplicates.length) {
-    console.log(`Found ${duplicates.length} duplicate (location_id, batch_id) pairs:`);
-    duplicates.forEach(d =>
-      console.log(`Warehouse: ${d.warehouseCode}, Lot: ${d.lot_number}, Location ID: ${d.locationId}, Batch ID: ${d.batchId}`)
+    console.log(
+      `Found ${duplicates.length} duplicate (location_id, batch_id) pairs:`
+    );
+    duplicates.forEach((d) =>
+      console.log(
+        `Warehouse: ${d.warehouseCode}, Lot: ${d.lot_number}, Location ID: ${d.locationId}, Batch ID: ${d.batchId}`
+      )
     );
   }
-  
+
   if (locationInventoryEntries.length > 0) {
     await knex('location_inventory')
       .insert(locationInventoryEntries)
       .onConflict(['location_id', 'batch_id'])
       .ignore();
-    
-    console.log(`Inserted ${locationInventoryEntries.length} location_inventory records`);
+
+    console.log(
+      `Inserted ${locationInventoryEntries.length} location_inventory records`
+    );
   } else {
     console.warn('No location_inventory records to insert.');
   }
-  
+
   const insertedLocationInventory = await knex('location_inventory')
     .select('*')
-    .whereIn(['location_id', 'batch_id'], locationInventoryEntries.map(e => [e.location_id, e.batch_id]));
-  
+    .whereIn(
+      ['location_id', 'batch_id'],
+      locationInventoryEntries.map((e) => [e.location_id, e.batch_id])
+    );
+
   const initialLoadActionId = await fetchDynamicValue(
     knex,
     'inventory_action_types',
@@ -653,10 +678,11 @@ exports.seed = async function (knex) {
     'initial_load',
     'id'
   );
-  if (!initialLoadActionId) throw new Error('Initial-load action ID not found.');
+  if (!initialLoadActionId)
+    throw new Error('Initial-load action ID not found.');
 
   // Location log entries
-  const locationLogs = insertedLocationInventory.map(row => ({
+  const locationLogs = insertedLocationInventory.map((row) => ({
     warehouse_inventory_id: null,
     location_inventory_id: row.id,
     inventory_action_type_id: initialLoadActionId,
@@ -675,34 +701,41 @@ exports.seed = async function (knex) {
   }));
 
   // Insert warehouse inventory
-  const warehouseInventoryEntries = Object.values(warehouseAggregates).map(entry => ({
-    id: knex.raw('uuid_generate_v4()'),
-    ...entry,
-    reserved_quantity: 0,
-    warehouse_fee: 0,
-    inbound_date: knex.fn.now(),
-    outbound_date: null,
-    last_update: knex.fn.now(),
-    status_date: knex.fn.now(),
-    created_at: knex.fn.now(),
-    updated_at: null,
-    created_by: systemUserId,
-    updated_by: null,
-  }));
-  
+  const warehouseInventoryEntries = Object.values(warehouseAggregates).map(
+    (entry) => ({
+      id: knex.raw('uuid_generate_v4()'),
+      ...entry,
+      reserved_quantity: 0,
+      warehouse_fee: 0,
+      inbound_date: knex.fn.now(),
+      outbound_date: null,
+      last_update: knex.fn.now(),
+      status_date: knex.fn.now(),
+      created_at: knex.fn.now(),
+      updated_at: null,
+      created_by: systemUserId,
+      updated_by: null,
+    })
+  );
+
   if (warehouseInventoryEntries.length > 0) {
     await knex('warehouse_inventory')
       .insert(warehouseInventoryEntries)
       .onConflict(['warehouse_id', 'batch_id'])
       .ignore();
-    
-    console.log(`Inserted ${warehouseInventoryEntries.length} warehouse_inventory records`);
-    
+
+    console.log(
+      `Inserted ${warehouseInventoryEntries.length} warehouse_inventory records`
+    );
+
     const insertedWarehouseInventory = await knex('warehouse_inventory')
       .select('*')
-      .whereIn(['warehouse_id', 'batch_id'], warehouseInventoryEntries.map(e => [e.warehouse_id, e.batch_id]));
-    
-    const warehouseLogs = insertedWarehouseInventory.map(row => ({
+      .whereIn(
+        ['warehouse_id', 'batch_id'],
+        warehouseInventoryEntries.map((e) => [e.warehouse_id, e.batch_id])
+      );
+
+    const warehouseLogs = insertedWarehouseInventory.map((row) => ({
       warehouse_inventory_id: row.id,
       location_inventory_id: null,
       inventory_action_type_id: initialLoadActionId,
@@ -719,13 +752,13 @@ exports.seed = async function (knex) {
       source_ref_id: null,
       action_timestamp: row.created_at,
     }));
-    
+
     // Combine all logs
     const inventoryLogRows = [...warehouseLogs, ...locationLogs];
-    
+
     const inventoryAuditRows = inventoryLogRows
-      .filter(row => row.location_inventory_id) // Only include location-based entries
-      .map(row => ({
+      .filter((row) => row.location_inventory_id) // Only include location-based entries
+      .map((row) => ({
         warehouse_inventory_id: row.warehouse_inventory_id,
         location_inventory_id: row.location_inventory_id,
         inventory_action_type_id: row.inventory_action_type_id,
@@ -742,20 +775,31 @@ exports.seed = async function (knex) {
         recorded_by: row.performed_by,
         inventory_scope: row.metadata?.inventory_scope || 'location',
       }));
-    
+
     // Insert into both activity_log and audit_log
     if (inventoryLogRows.length > 0) {
       await knex('inventory_activity_log')
         .insert(inventoryLogRows)
-        .onConflict(['warehouse_inventory_id', 'location_inventory_id', 'inventory_action_type_id', 'action_timestamp'])
+        .onConflict([
+          'warehouse_inventory_id',
+          'location_inventory_id',
+          'inventory_action_type_id',
+          'action_timestamp',
+        ])
         .ignore();
-      
+
       await knex('inventory_activity_audit_log')
         .insert(inventoryAuditRows)
-        .onConflict(['location_inventory_id', 'inventory_action_type_id', 'recorded_at'])
+        .onConflict([
+          'location_inventory_id',
+          'inventory_action_type_id',
+          'recorded_at',
+        ])
         .ignore();
-      
-      console.log(`Inserted ${inventoryLogRows.length} records into inventory_activity_log and audit_log`);
+
+      console.log(
+        `Inserted ${inventoryLogRows.length} records into inventory_activity_log and audit_log`
+      );
     } else {
       console.warn('No inventory log records to insert.');
     }

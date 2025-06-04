@@ -18,11 +18,13 @@ const InventoryStatusChip: FC<Props> = ({ status }) => {
     'unassigned',
   ] as const;
   type StatusKey = (typeof statusKeys)[number];
-  
+
   const safeStatus = useMemo<StatusKey>(() => {
-    return statusKeys.includes(status as StatusKey) ? (status as StatusKey) : 'unassigned';
+    return statusKeys.includes(status as StatusKey)
+      ? (status as StatusKey)
+      : 'unassigned';
   }, [status]);
-  
+
   const statusColor = useMemo(() => {
     const map: Record<StatusKey, string> = {
       in_stock: theme.palette.success.main,
@@ -32,7 +34,7 @@ const InventoryStatusChip: FC<Props> = ({ status }) => {
     };
     return map[safeStatus];
   }, [safeStatus, theme]);
-  
+
   return (
     <Chip
       label={formatLabel(status)}

@@ -23,18 +23,20 @@ interface ThemeContextProps {
 // Create the context
 const ThemeContext = createContext<ThemeContextProps | undefined>(undefined);
 
-export const ThemeProviderWrapper: FC<{ children: ReactNode }> = ({ children }) => {
+export const ThemeProviderWrapper: FC<{ children: ReactNode }> = ({
+  children,
+}) => {
   const { mode, toggleTheme } = useThemeMode();
   const [mounted, setMounted] = useState(false);
-  
+
   // Memoize theme based on mode
   const theme = mode === 'dark' ? darkTheme : lightTheme;
-  
+
   // Avoid hydration mismatch flicker
   useLayoutEffect(() => {
     setMounted(true);
   }, []);
-  
+
   // Sync CSS variables (optional)
   useLayoutEffect(() => {
     const root = document.documentElement;
@@ -45,12 +47,15 @@ export const ThemeProviderWrapper: FC<{ children: ReactNode }> = ({ children }) 
     root.style.setProperty('--text-primary', theme.palette.text.primary);
     root.style.setProperty('--text-secondary', theme.palette.text.secondary);
     root.style.setProperty('--border-light', theme.palette.divider);
-    root.style.setProperty('--hover-bg', theme.palette.backgroundCustom?.customHover ?? '#eee');
+    root.style.setProperty(
+      '--hover-bg',
+      theme.palette.backgroundCustom?.customHover ?? '#eee'
+    );
   }, [theme]);
-  
+
   // Avoid rendering anything until hydration is consistent
   if (!mounted) return <Box style={{ opacity: 0 }}>Loading theme...</Box>;
-  
+
   return (
     <ThemeContext.Provider value={{ toggleTheme, theme, mode }}>
       <ThemeProvider theme={theme}>
@@ -65,7 +70,9 @@ export const ThemeProviderWrapper: FC<{ children: ReactNode }> = ({ children }) 
 export const useThemeContext = (): ThemeContextProps => {
   const context = useContext(ThemeContext);
   if (!context) {
-    throw new Error('useThemeContext must be used within a ThemeProviderWrapper');
+    throw new Error(
+      'useThemeContext must be used within a ThemeProviderWrapper'
+    );
   }
   return context;
 };

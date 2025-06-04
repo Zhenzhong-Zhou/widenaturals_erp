@@ -4,7 +4,8 @@ import type { RootState } from '@store/store';
 /**
  * Root selector for the locationInventorySummary slice of the Redux state.
  */
-const selectLocationInventorySummaryState = (state: RootState) => state.locationInventorySummary;
+const selectLocationInventorySummaryState = (state: RootState) =>
+  state.locationInventorySummary;
 
 /**
  * Selects the summary data array from the locationInventorySummary slice.

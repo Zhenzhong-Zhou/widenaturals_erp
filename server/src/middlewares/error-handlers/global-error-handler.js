@@ -29,7 +29,7 @@ const globalErrorHandler = (err, req, res, next) => {
     context: 'global-error-handler',
     stage: 'response-finalization',
   });
-  
+
   // Send structured error response
   res.status(normalizedError.status).json(normalizedError.toJSON());
 };

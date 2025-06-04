@@ -10,12 +10,12 @@ exports.up = function (knex) {
     table.string('name', 50).unique().notNullable().checkLength('>=', 3);
 
     table.text('description').nullable();
-    
+
     table.string('category', 50).notNullable(); // 'adjustment', 'transaction', 'system', etc.
     table.boolean('is_adjustment').notNullable().defaultTo(false);
     table.boolean('affects_financials').notNullable().defaultTo(false);
     table.boolean('requires_audit').notNullable().defaultTo(false);
-    
+
     // Status reference (ACTIVE, INACTIVE, etc.)
     table.uuid('status_id').notNullable().references('id').inTable('status');
     table.timestamp('status_date', { useTz: true }).defaultTo(knex.fn.now()); // When status was last updated

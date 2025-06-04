@@ -15,7 +15,7 @@ import { formatDate, formatDateTime } from '@utils/dateTimeUtils';
 
 const PricingTypeDetailPage = () => {
   const { id } = useParams<{ id: string }>();
-  
+
   if (!id) {
     return (
       <ErrorDisplay>
@@ -23,25 +23,20 @@ const PricingTypeDetailPage = () => {
       </ErrorDisplay>
     );
   }
-  
-  const {
-    data,
-    isLoading,
-    error,
-    fetchData,
-    statusName,
-  } = usePricingTypeMetadata();
-  
+
+  const { data, isLoading, error, fetchData, statusName } =
+    usePricingTypeMetadata();
+
   useEffect(() => {
     if (id) {
       fetchData(id);
     }
   }, [id, fetchData]);
-  
+
   if (!data) {
-    return <NoDataFound/>;
+    return <NoDataFound />;
   }
-  
+
   const flattenedData = {
     name: data.name,
     code: data.code,
@@ -54,9 +49,9 @@ const PricingTypeDetailPage = () => {
     updatedBy: formatNullable(data.updatedBy.fullName),
     updatedAt: formatDateTime(data.updatedAt),
   };
-  
+
   if (isLoading) return <Loading message="Fetching pricing type metadata..." />;
-  
+
   if (error) {
     return (
       <ErrorDisplay>
@@ -64,7 +59,7 @@ const PricingTypeDetailPage = () => {
       </ErrorDisplay>
     );
   }
-  
+
   return (
     <Box
       mt={{ xs: 3, md: 4 }}
@@ -99,7 +94,7 @@ const PricingTypeDetailPage = () => {
             display: 'grid',
             gridTemplateColumns: {
               xs: '1fr', // one column on mobile
-              sm: '1fr 1fr' // two columns on small screens and up
+              sm: '1fr 1fr', // two columns on small screens and up
             },
             columnGap: 4,
             rowGap: 2,

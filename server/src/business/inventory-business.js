@@ -1,8 +1,14 @@
 const { getStatusId } = require('../config/status-cache');
-const { getWarehouseInventoryQuantities } = require('../repositories/warehouse-inventory-repository');
+const {
+  getWarehouseInventoryQuantities,
+} = require('../repositories/warehouse-inventory-repository');
 const AppError = require('../utils/AppError');
-const { InventorySourceTypes } = require('../utils/constants/domain/inventory-source-types');
-const { getLocationInventoryQuantities } = require('../repositories/location-inventory-repository');
+const {
+  InventorySourceTypes,
+} = require('../utils/constants/domain/inventory-source-types');
+const {
+  getLocationInventoryQuantities,
+} = require('../repositories/location-inventory-repository');
 const { logSystemException } = require('../utils/system-logger');
 const { validateBatchRegistryEntryById } = require('./batch-registry-business');
 const { deduplicateByCompositeKey } = require('../utils/array-utils');
@@ -33,27 +39,29 @@ const validateAndNormalizeInventoryRecords = async (records, client) => {
       throw AppError.validationError('No inventory records provided.');
     }
     if (records.length > MAX_BULK_RECORDS) {
-      throw AppError.validationError(`Bulk limit is ${MAX_BULK_RECORDS} records.`);
+      throw AppError.validationError(
+        `Bulk limit is ${MAX_BULK_RECORDS} records.`
+      );
     }
-    
+
     // Step 2: Validate batch registry existence
     await Promise.all(
       records.map((r) =>
         validateBatchRegistryEntryById(r.batch_type, r.batch_id, client)
       )
     );
-    
+
     // Step 3: Normalize warehouse and location quantities
     const warehouseRecords = records.map((r) => ({
       ...r,
       warehouse_quantity: r.quantity ?? 0,
     }));
-    
+
     const locationRecords = records.map((r) => ({
       ...r,
       location_quantity: r.quantity ?? 0,
     }));
-    
+
     // Step 4: Deduplicate by composite keys (warehouse_id + batch_id, etc.)
     const dedupedWarehouseRecords = deduplicateByCompositeKey(
       warehouseRecords,
@@ -62,7 +70,7 @@ const validateAndNormalizeInventoryRecords = async (records, client) => {
         a.warehouse_quantity += b.warehouse_quantity ?? 0;
       }
     );
-    
+
     const dedupedLocationRecords = deduplicateByCompositeKey(
       locationRecords,
       ['location_id', 'batch_id'],
@@ -70,14 +78,20 @@ const validateAndNormalizeInventoryRecords = async (records, client) => {
         a.location_quantity += b.location_quantity ?? 0;
       }
     );
-    
+
     return { dedupedWarehouseRecords, dedupedLocationRecords };
   } catch (error) {
-    logSystemException(error, 'Failed to validate and normalize inventory records.', {
-      context: 'inventory-business/validateAndNormalizeInventoryRecords',
-      recordCount: records?.length,
-    });
-    throw AppError.businessError('Inventory validation or normalization failed.');
+    logSystemException(
+      error,
+      'Failed to validate and normalize inventory records.',
+      {
+        context: 'inventory-business/validateAndNormalizeInventoryRecords',
+        recordCount: records?.length,
+      }
+    );
+    throw AppError.businessError(
+      'Inventory validation or normalization failed.'
+    );
   }
 };
 
@@ -100,24 +114,26 @@ const validateAndNormalizeInventoryRecords = async (records, client) => {
  * @returns {Array<Object>} Enriched records suitable for log construction
  */
 const buildEnrichedRecordsForLog = ({
-                                      originalRecords,
-                                      warehouseMap,
-                                      locationMap,
-                                      user_id,
-                                    }) =>
+  originalRecords,
+  warehouseMap,
+  locationMap,
+  user_id,
+}) =>
   originalRecords.map((r) => ({
     ...r,
-    
+
     // Link to newly inserted inventory records
-    warehouse_inventory_id: warehouseMap.get(`${r.warehouse_id}::${r.batch_id}`) ?? null,
-    location_inventory_id: locationMap.get(`${r.location_id}::${r.batch_id}`) ?? null,
-    
+    warehouse_inventory_id:
+      warehouseMap.get(`${r.warehouse_id}::${r.batch_id}`) ?? null,
+    location_inventory_id:
+      locationMap.get(`${r.location_id}::${r.batch_id}`) ?? null,
+
     // Default metadata for inventory creation logs
     status_id: getStatusId('inventory_in_stock'),
     inventory_action_type_id: getStatusId('action_manual_stock_insert'),
     adjustment_type_id: getStatusId('adjustment_manual_stock_insert'),
     source_type: InventorySourceTypes.MANUAL_INSERT,
-    
+
     // Audit actor
     user_id,
   }));
@@ -153,10 +169,10 @@ const computeInventoryAdjustments = async (records, client) => {
     // Step 1: Validate and normalize input (quantity defaults, deduplication)
     const { dedupedWarehouseRecords, dedupedLocationRecords } =
       await validateAndNormalizeInventoryRecords(records, client);
-    
+
     // Step 2: Combine normalized records for core adjustment computation
     const updates = [...dedupedWarehouseRecords, ...dedupedLocationRecords];
-    
+
     // Step 3: Compute final update payloads, status updates, and log entries
     return await computeInventoryAdjustmentsCore(updates, client);
   } catch (error) {
@@ -192,15 +208,15 @@ const computeInventoryAdjustmentsCore = async (updates, client) => {
   try {
     const warehouseInventoryUpdates = {};
     const warehouseCompositeKeys = [];
-    
+
     const locationInventoryUpdates = {};
     const locationCompositeKeys = [];
-    
+
     const logRecords = [];
-    
+
     const inStockId = getStatusId('inventory_in_stock');
     const outOfStockId = getStatusId('inventory_out_of_stock');
-    
+
     for (const key of Object.keys(updates)) {
       const {
         warehouse_id,
@@ -212,35 +228,42 @@ const computeInventoryAdjustmentsCore = async (updates, client) => {
         comments,
         meta = {},
       } = updates[key];
-      
+
       // --- Warehouse Inventory ---
       let warehouseRecord, locationRecord;
       if (warehouse_id && batch_id) {
-        warehouseRecord = await getWarehouseInventoryQuantities([{ warehouse_id, batch_id }], client);
+        warehouseRecord = await getWarehouseInventoryQuantities(
+          [{ warehouse_id, batch_id }],
+          client
+        );
         if (warehouseRecord.length === 0) {
-          throw AppError.notFoundError(`No matching warehouse inventory record for ${key}`);
+          throw AppError.notFoundError(
+            `No matching warehouse inventory record for ${key}`
+          );
         }
-        
+
         const {
           id,
           warehouse_quantity: currentQty,
           reserved_quantity: reservedQty,
         } = warehouseRecord[0];
-        
+
         if (reservedQty > quantity) {
-          throw AppError.validationError(`Reserved quantity exceeds updated quantity for ${key}`);
+          throw AppError.validationError(
+            `Reserved quantity exceeds updated quantity for ${key}`
+          );
         }
-        
+
         const diffQty = quantity - currentQty;
         const status_id = quantity > 0 ? inStockId : outOfStockId;
-        
+
         warehouseInventoryUpdates[`${warehouse_id}-${batch_id}`] = {
-          warehouse_quantity : quantity,
+          warehouse_quantity: quantity,
           status_id,
           last_update: new Date().toISOString(),
         };
         warehouseCompositeKeys.push({ warehouse_id, batch_id });
-        
+
         logRecords.push({
           warehouse_inventory_id: id,
           quantity,
@@ -256,29 +279,40 @@ const computeInventoryAdjustmentsCore = async (updates, client) => {
           meta,
         });
       }
-      
+
       // --- Location Inventory ---
       if (location_id && batch_id) {
-        locationRecord = await getLocationInventoryQuantities([{ location_id, batch_id }], client);
+        locationRecord = await getLocationInventoryQuantities(
+          [{ location_id, batch_id }],
+          client
+        );
         if (locationRecord.length === 0) {
-          throw AppError.notFoundError(`No matching location inventory record for ${key}`);
+          throw AppError.notFoundError(
+            `No matching location inventory record for ${key}`
+          );
         }
-        
-        const { id, location_quantity: currentQty, reserved_quantity: reservedQty } = locationRecord[0];
+
+        const {
+          id,
+          location_quantity: currentQty,
+          reserved_quantity: reservedQty,
+        } = locationRecord[0];
         if (reservedQty > quantity) {
-          throw AppError.validationError(`Reserved quantity exceeds updated location quantity for ${key}`);
+          throw AppError.validationError(
+            `Reserved quantity exceeds updated location quantity for ${key}`
+          );
         }
-        
+
         const diffQty = quantity - currentQty;
         const status_id = quantity > 0 ? inStockId : outOfStockId;
-        
+
         locationInventoryUpdates[`${location_id}-${batch_id}`] = {
           location_quantity: quantity,
           status_id,
           last_update: new Date().toISOString(),
         };
         locationCompositeKeys.push({ location_id, batch_id });
-        
+
         logRecords.push({
           location_inventory_id: id,
           quantity,
@@ -295,7 +329,7 @@ const computeInventoryAdjustmentsCore = async (updates, client) => {
         });
       }
     }
-    
+
     return {
       warehouseInventoryUpdates,
       locationInventoryUpdates,
@@ -304,7 +338,8 @@ const computeInventoryAdjustmentsCore = async (updates, client) => {
       logRecords,
     };
   } catch (error) {
-    const message = 'Failed to compute inventory adjustments due to unexpected system error.'
+    const message =
+      'Failed to compute inventory adjustments due to unexpected system error.';
     logSystemException(error, message, {
       context: 'inventory-business/computeInventoryAdjustments',
       updates,

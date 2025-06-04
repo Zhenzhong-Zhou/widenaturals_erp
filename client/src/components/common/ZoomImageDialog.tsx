@@ -12,11 +12,11 @@ interface ZoomImageDialogProps {
 }
 
 const ZoomImageDialog: FC<ZoomImageDialogProps> = ({
-                                                     open,
-                                                     imageUrl,
-                                                     altText = 'Zoomed image',
-                                                     onClose,
-                                                   }) => {
+  open,
+  imageUrl,
+  altText = 'Zoomed image',
+  onClose,
+}) => {
   return (
     <Dialog
       open={open}

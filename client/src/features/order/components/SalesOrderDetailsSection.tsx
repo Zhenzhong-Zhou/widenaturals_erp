@@ -48,20 +48,24 @@ const SalesOrderDetailsSection: FC<SalesOrderDetailsSectionProps> = ({
       refresh(); // Trigger refresh after successful confirmation
     }
   }, [confirmData, successMessage]);
-  
+
   const filteredOrderDetails = useMemo(() => {
     if (!orderDetailsData?.data) return null;
-    
-    const orderDetails: Partial<OrderDetailsData> = structuredClone(orderDetailsData.data);
-    
+
+    const orderDetails: Partial<OrderDetailsData> = structuredClone(
+      orderDetailsData.data
+    );
+
     // Remove sensitive keys
     const sensitiveKeys: (keyof OrderDetailsData)[] = ['order_id'];
     sensitiveKeys.forEach((key) => delete orderDetails[key]);
-    
+
     // Format label fields
-    orderDetails.order_category = formatLabel(orderDetails.order_category ?? '');
+    orderDetails.order_category = formatLabel(
+      orderDetails.order_category ?? ''
+    );
     orderDetails.customer_name = formatLabel(orderDetails.customer_name ?? '');
-    
+
     // Format amounts (safely mutate)
     const currencyFields: (keyof OrderDetailsData)[] = [
       'discount_amount',
@@ -79,17 +83,19 @@ const SalesOrderDetailsSection: FC<SalesOrderDetailsSectionProps> = ({
         delete mutable[key];
       }
     });
-    
+
     // Format date
     if (typeof orderDetails.order_date === 'string') {
       orderDetails.order_date = formatDate(orderDetails.order_date);
     }
-    
+
     // Normalize delivery method
     if (orderDetails.delivery_info?.method) {
-      orderDetails.delivery_info.method = formatLabel(orderDetails.delivery_info.method);
+      orderDetails.delivery_info.method = formatLabel(
+        orderDetails.delivery_info.method
+      );
     }
-    
+
     // Normalize empty metadata
     if (
       !orderDetails.order_metadata ||
@@ -97,28 +103,30 @@ const SalesOrderDetailsSection: FC<SalesOrderDetailsSectionProps> = ({
     ) {
       orderDetails.order_metadata = { message: 'N/A' };
     }
-    
+
     // Format items
     if (Array.isArray(orderDetails.items)) {
       orderDetails.items = orderDetails.items.map((item) => {
         const transformed = { ...item };
         delete (transformed as Record<string, any>).order_item_id;
         delete (transformed as Record<string, any>).product_id;
-        
+
         if (transformed.system_price) {
           transformed.system_price = formatCurrency(transformed.system_price);
         }
         if (transformed.adjusted_price) {
-          transformed.adjusted_price = formatCurrency(transformed.adjusted_price);
+          transformed.adjusted_price = formatCurrency(
+            transformed.adjusted_price
+          );
         }
-        
+
         return transformed;
       });
     }
-    
+
     return orderDetails;
   }, [orderDetailsData]);
-  
+
   const canConfirm =
     filteredOrderDetails?.order_status &&
     ['pending', 'edited'].includes(

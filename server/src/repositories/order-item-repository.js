@@ -16,7 +16,7 @@ const addOrderItems = async (orderId, items, createdBy, client) => {
   if (!Array.isArray(items) || items.length === 0) {
     throw AppError.validationError('Order items cannot be empty.');
   }
-  
+
   const columns = [
     'order_id',
     'inventory_id',
@@ -34,7 +34,14 @@ const addOrderItems = async (orderId, items, createdBy, client) => {
   const itemMap = new Map();
 
   for (const item of items) {
-    const { inventory_id, price_type_id, price_id, price, quantity_ordered, status_id } = item;
+    const {
+      inventory_id,
+      price_type_id,
+      price_id,
+      price,
+      quantity_ordered,
+      status_id,
+    } = item;
 
     // Create a unique key based on merging conditions
     const itemKey = `${inventory_id}_${price_type_id}_${price_id}_${price}`;

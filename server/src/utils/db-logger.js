@@ -4,7 +4,12 @@
  */
 
 const { logSystemInfo, logSystemException } = require('./system-logger');
-const { logInfo, logWarn, logError, createSystemMeta } = require('./logger-helper');
+const {
+  logInfo,
+  logWarn,
+  logError,
+  createSystemMeta,
+} = require('./logger-helper');
 const { maskSensitiveParams } = require('./mask-logger-params');
 
 /**
@@ -108,10 +113,14 @@ const buildQueryErrorMeta = (query, params, error, extraMeta = {}) => ({
  * @param {Object} [meta={}] - Optional metadata (e.g., traceId, txId, context).
  */
 const logDbQuerySuccess = (text, params, duration, meta = {}) => {
-  logInfo('Query executed', null, buildQueryMeta(text, params, duration, {
-    status: 'success',
-    ...meta,
-  }));
+  logInfo(
+    'Query executed',
+    null,
+    buildQueryMeta(text, params, duration, {
+      status: 'success',
+      ...meta,
+    })
+  );
 };
 
 /**
@@ -123,10 +132,14 @@ const logDbQuerySuccess = (text, params, duration, meta = {}) => {
  * @param {Object} [meta={}] - Optional metadata (e.g., traceId, txId, context).
  */
 const logDbSlowQuery = (text, params, duration, meta = {}) => {
-  logWarn('Slow query detected', null, buildQueryMeta(text, params, duration, {
-    severity: 'slow',
-    ...meta,
-  }));
+  logWarn(
+    'Slow query detected',
+    null,
+    buildQueryMeta(text, params, duration, {
+      severity: 'slow',
+      ...meta,
+    })
+  );
 };
 
 /**
@@ -142,7 +155,7 @@ const logDbQueryError = (query, params, error, extraMeta = {}) => {
     severity: 'critical',
     ...extraMeta,
   });
-  
+
   logError('Query execution failed', null, meta);
 };
 
@@ -212,7 +225,7 @@ const logPaginatedQueryError = (
       ...extraMeta,
     }
   );
-  
+
   logError('Paginated query execution failed', null, logMeta);
 };
 
@@ -226,7 +239,14 @@ const logPaginatedQueryError = (
  * @param {string} lockMode - The lock mode used (e.g., 'FOR UPDATE').
  * @param {Object} [extraMeta={}] - Optional metadata (e.g., traceId, txId, context override).
  */
-const logLockRowError = (error, query, params, table, lockMode, extraMeta = {}) => {
+const logLockRowError = (
+  error,
+  query,
+  params,
+  table,
+  lockMode,
+  extraMeta = {}
+) => {
   const logMeta = buildQueryErrorMeta(query, params, error, {
     context: 'lock-row',
     table,
@@ -234,7 +254,7 @@ const logLockRowError = (error, query, params, table, lockMode, extraMeta = {}) 
     errorType: error.name,
     ...extraMeta,
   });
-  
+
   logError('Failed to lock row', null, logMeta);
 };
 
@@ -256,7 +276,7 @@ const logLockRowsError = (error, query, params, table, meta = {}) => {
     table,
     ...meta,
   });
-  
+
   logError(`Error locking rows in table ${table}`, null, logMeta);
 };
 
@@ -285,16 +305,21 @@ const logBulkInsertError = (
   rowCount,
   meta = {}
 ) => {
-  const logMeta = buildQueryErrorMeta('INSERT INTO ' + table, flattenedValues, error, {
-    context: 'bulk-insert',
-    table,
-    columns,
-    conflictColumns,
-    updateColumns,
-    rowCount,
-    ...meta,
-  });
-  
+  const logMeta = buildQueryErrorMeta(
+    'INSERT INTO ' + table,
+    flattenedValues,
+    error,
+    {
+      context: 'bulk-insert',
+      table,
+      columns,
+      conflictColumns,
+      updateColumns,
+      rowCount,
+      ...meta,
+    }
+  );
+
   logError('Bulk insert failed', null, logMeta);
 };
 
@@ -318,14 +343,19 @@ const logGetStatusValueError = (
   whereKey,
   meta = {}
 ) => {
-  const logMeta = buildQueryErrorMeta(query, { [whereKey]: whereValue }, error, {
-    context: 'get-status-value',
-    table,
-    column,
-    where: { [whereKey]: maskSensitiveParams(whereValue) },
-    ...meta,
-  });
-  
+  const logMeta = buildQueryErrorMeta(
+    query,
+    { [whereKey]: whereValue },
+    error,
+    {
+      context: 'get-status-value',
+      table,
+      column,
+      where: { [whereKey]: maskSensitiveParams(whereValue) },
+      ...meta,
+    }
+  );
+
   logError(`Failed to fetch "${column}" from "${table}"`, null, logMeta);
 };
 

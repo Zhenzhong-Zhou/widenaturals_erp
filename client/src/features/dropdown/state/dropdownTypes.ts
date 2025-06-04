@@ -10,22 +10,22 @@ export interface GetBatchRegistryDropdownParams {
    * Filter by batch type (e.g., 'product', 'packaging_material')
    */
   batchType?: 'product' | 'packaging_material' | string;
-  
+
   /**
    * Optional warehouse ID to exclude batches already present in this warehouse
    */
   warehouseId?: string;
-  
+
   /**
    * Optional location ID to exclude batches already present in this location
    */
   locationId?: string;
-  
+
   /**
    * Number of items to retrieve (pagination limit)
    */
   limit?: number;
-  
+
   /**
    * Offset for pagination
    */
@@ -55,11 +55,15 @@ export interface PackagingMaterialDropdownItem {
   };
 }
 
-export type BatchRegistryDropdownItem = ProductBatchDropdownItem | PackagingMaterialDropdownItem;
+export type BatchRegistryDropdownItem =
+  | ProductBatchDropdownItem
+  | PackagingMaterialDropdownItem;
 
-export type GetBatchRegistryDropdownResponse = DropdownSuccessResponse<BatchRegistryDropdownItem>;
+export type GetBatchRegistryDropdownResponse =
+  DropdownSuccessResponse<BatchRegistryDropdownItem>;
 
-export type BatchRegistryDropdownState = PaginatedDropdownState<BatchRegistryDropdownItem>;
+export type BatchRegistryDropdownState =
+  PaginatedDropdownState<BatchRegistryDropdownItem>;
 
 export interface WarehouseDropdownItem {
   value: string;
@@ -70,7 +74,9 @@ export interface WarehouseDropdownItem {
   };
 }
 
-export type GetWarehouseDropdownResponse = ApiSuccessResponse<WarehouseDropdownItem[]>;
+export type GetWarehouseDropdownResponse = ApiSuccessResponse<
+  WarehouseDropdownItem[]
+>;
 
 export interface GetWarehouseDropdownFilters {
   locationTypeId?: string;

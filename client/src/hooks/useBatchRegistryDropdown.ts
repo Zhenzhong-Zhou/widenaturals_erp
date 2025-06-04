@@ -9,7 +9,10 @@ import {
   selectBatchRegistryDropdownPagination,
 } from '@features/dropdown/state/batchRegistryDropdownSelectors';
 import { resetBatchRegistryDropdownState } from '@features/dropdown/state/batchRegistryDropdownSlice';
-import { fetchBatchRegistryDropdownThunk, type GetBatchRegistryDropdownParams } from '@features/dropdown/state';
+import {
+  fetchBatchRegistryDropdownThunk,
+  type GetBatchRegistryDropdownParams,
+} from '@features/dropdown/state';
 
 /**
  * Custom hook to access batch registry dropdown state and actions.
@@ -18,21 +21,24 @@ import { fetchBatchRegistryDropdownThunk, type GetBatchRegistryDropdownParams } 
  */
 const useBatchRegistryDropdown = () => {
   const dispatch = useAppDispatch();
-  
+
   const dropdownState = useAppSelector(selectBatchRegistryDropdownState);
   const items = useAppSelector(selectBatchRegistryDropdownItems);
   const loading = useAppSelector(selectBatchRegistryDropdownLoading);
   const error = useAppSelector(selectBatchRegistryDropdownError);
   const hasMore = useAppSelector(selectBatchRegistryDropdownHasMore);
   const pagination = useAppSelector(selectBatchRegistryDropdownPagination);
-  
+
   const fetchDropdown = useCallback(
     (params: GetBatchRegistryDropdownParams = {}) =>
       dispatch(fetchBatchRegistryDropdownThunk(params)),
     [dispatch]
   );
-  
-  const resetDropdown = useCallback(() => dispatch(resetBatchRegistryDropdownState()), [dispatch]);
+
+  const resetDropdown = useCallback(
+    () => dispatch(resetBatchRegistryDropdownState()),
+    [dispatch]
+  );
 
   return {
     ...dropdownState,

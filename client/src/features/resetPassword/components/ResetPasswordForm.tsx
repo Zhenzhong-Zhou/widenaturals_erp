@@ -1,7 +1,5 @@
 import type { FC } from 'react';
-import {
-  validatePassword,
-} from '@utils/validation';
+import { validatePassword } from '@utils/validation';
 import CustomForm from '@components/common/CustomForm';
 import type { FieldConfig } from '@components/common/CustomForm';
 
@@ -47,22 +45,23 @@ const resetPasswordFields: FieldConfig[] = [
 
 const ResetPasswordForm: FC<ResetPasswordFormProps> = ({ onSubmit }) => {
   const handleValidatedSubmit = (formData: Record<string, any>) => {
-    const { currentPassword, newPassword, confirmPassword } = formData as PasswordFormData;
-    
+    const { currentPassword, newPassword, confirmPassword } =
+      formData as PasswordFormData;
+
     const validationErrors = validatePassword({
       currentPassword,
       newPassword,
       confirmPassword,
     });
-    
+
     if (validationErrors) {
       // Throw errors that RHF will pick up
       throw validationErrors;
     }
-    
+
     onSubmit({ currentPassword, newPassword, confirmPassword });
   };
-  
+
   return (
     <CustomForm
       fields={resetPasswordFields}

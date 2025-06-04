@@ -23,14 +23,14 @@ interface SidebarProps {
 }
 
 const Sidebar: FC<SidebarProps> = ({
-                                     isOpen,
-                                     toggleSidebar,
-                                     roleName,
-                                     permissions,
-                                   }) => {
+  isOpen,
+  toggleSidebar,
+  roleName,
+  permissions,
+}) => {
   const { theme } = useThemeContext();
   const logo = theme.palette.mode === 'dark' ? logoDark : logoLight;
-  
+
   // Filter routes for sidebar
   const menuItems = routes.filter((route) => {
     const requiredPermission = route.meta?.requiredPermission || '';
@@ -41,7 +41,7 @@ const Sidebar: FC<SidebarProps> = ({
         hasPermission(requiredPermission, permissions, roleName))
     );
   });
-  
+
   return (
     <>
       {/* Sidebar Drawer */}
@@ -84,7 +84,7 @@ const Sidebar: FC<SidebarProps> = ({
               }}
             />
           </Box>
-          
+
           {isOpen && (
             <IconButton
               onClick={toggleSidebar}
@@ -95,7 +95,7 @@ const Sidebar: FC<SidebarProps> = ({
             </IconButton>
           )}
         </Box>
-        
+
         {/* Sidebar links */}
         <Box
           sx={{
@@ -144,7 +144,7 @@ const Sidebar: FC<SidebarProps> = ({
           </List>
         </Box>
       </Drawer>
-      
+
       {/* Mobile open button */}
       {!isOpen && (
         <IconButton

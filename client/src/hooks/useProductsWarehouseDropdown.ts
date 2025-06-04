@@ -20,7 +20,7 @@ import {
  */
 const useProductsWarehouseDropdown = (warehouseId?: string) => {
   const dispatch = useAppDispatch();
-  
+
   // Selectors
   const allProducts = useAppSelector(selectProductDropdown);
   const warehouses = useAppSelector(selectWarehouseDropdown);
@@ -28,27 +28,27 @@ const useProductsWarehouseDropdown = (warehouseId?: string) => {
   const productError = useAppSelector(selectProductDropdownError);
   const warehouseLoading = useAppSelector(selectWarehouseDropdownLoading);
   const warehouseError = useAppSelector(selectWarehouseDropdownError);
-  
+
   // Fetch warehouses on mount
   const fetchWarehouses = useCallback(() => {
     dispatch(fetchWarehousesDropdownThunk());
   }, [dispatch]);
-  
+
   useEffect(() => {
     fetchWarehouses();
   }, [fetchWarehouses]);
-  
+
   // Fetch products when warehouse changes
   const fetchProducts = useCallback(() => {
     if (warehouseId) {
       dispatch(fetchProductsDropDownByWarehouseThunk({ warehouseId }));
     }
   }, [dispatch, warehouseId]);
-  
+
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
-  
+
   // De-duplicate product list
   const uniqueProducts = useMemo(() => {
     const productMap = new Map<string, ProductDropdownItem>();
@@ -59,7 +59,7 @@ const useProductsWarehouseDropdown = (warehouseId?: string) => {
     }
     return [...productMap.values()];
   }, [allProducts]);
-  
+
   return {
     products: uniqueProducts,
     warehouses,

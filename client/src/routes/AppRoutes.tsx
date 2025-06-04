@@ -21,7 +21,7 @@ const LazyNotFoundPage = lazy(() =>
 const AppRoutes = () => {
   const { isAuthenticated } = useSession(); // Fetch authentication state
   const { roleName, permissions, error } = usePermissions(); // Fetch permissions
-  
+
   if (error) {
     return (
       <ErrorDisplay>
@@ -29,7 +29,7 @@ const AppRoutes = () => {
       </ErrorDisplay>
     );
   }
-  
+
   return (
     <PermissionsProvider
       roleName={roleName}
@@ -58,7 +58,7 @@ const AppRoutes = () => {
                   />
                 );
               }
-              
+
               return (
                 <Route
                   key={index}
@@ -73,7 +73,7 @@ const AppRoutes = () => {
                 />
               );
             }
-            
+
             if (path === '/login' || path === '/') {
               // Wrap login and homepage with GuestRoute
               return (
@@ -88,13 +88,13 @@ const AppRoutes = () => {
                 />
               );
             }
-            
+
             // Render other public routes directly
             return (
               <Route key={index} path={path} element={<LazyComponent />} />
             );
           })}
-          
+
           {/* 404 Page for Invalid Routes */}
           <Route
             path="*"

@@ -62,7 +62,8 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({
   ]); // Initialized with one item
   const priceUpdatedRef = useRef(false);
 
-  const { fetchPriceValue, priceValueData, priceValueLoading } = usePricingList();
+  const { fetchPriceValue, priceValueData, priceValueLoading } =
+    usePricingList();
 
   // Initialize useForm with your defined structure
   const methods = useForm<SalesOrder>({
@@ -299,7 +300,7 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({
               )}
             />
           </Grid>
-          
+
           <Grid size={{ xs: 12, md: 6 }}>
             <Controller
               name="order_date"
@@ -317,7 +318,7 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({
               )}
             />
           </Grid>
-          
+
           <Grid size={{ xs: 12, md: 6 }}>
             <Controller
               name="discount_id"
@@ -331,7 +332,7 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({
               )}
             />
           </Grid>
-          
+
           <Grid size={{ xs: 12, md: 6 }}>
             <Controller
               name="tax_rate_id"
@@ -345,7 +346,7 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({
               )}
             />
           </Grid>
-          
+
           <Grid size={{ xs: 12, md: 6 }}>
             <Controller
               name="delivery_method_id"
@@ -518,7 +519,11 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({
         </CustomTypography>
 
         {items.map((item, index) => (
-          <Card key={index} variant="outlined" sx={{ mb: 3, borderRadius: 2, boxShadow: 1 }}>
+          <Card
+            key={index}
+            variant="outlined"
+            sx={{ mb: 3, borderRadius: 2, boxShadow: 1 }}
+          >
             <CardContent>
               <Grid container spacing={2} alignItems="center">
                 <Grid size={{ xs: 12, md: 6 }}>
@@ -542,7 +547,7 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({
                     )}
                   />
                 </Grid>
-                
+
                 <Grid size={{ xs: 12, md: 6 }}>
                   <Controller
                     name={`items.${index}.price_type_id`} // Corrected name syntax for react-hook-form
@@ -569,7 +574,7 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({
                     )}
                   />
                 </Grid>
-                
+
                 <Grid size={{ xs: 12, md: 6 }}>
                   <Controller
                     name={`items.${index}.price`}
@@ -600,7 +605,7 @@ const CreateSaleOrderForm: FC<SaleOrderFormProps> = ({
                     )}
                   />
                 </Grid>
-                
+
                 <Grid size={{ xs: 12, md: 6 }}>
                   <Controller
                     name={`items.${index}.quantity_ordered`}

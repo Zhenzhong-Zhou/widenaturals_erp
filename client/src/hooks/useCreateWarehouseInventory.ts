@@ -17,20 +17,22 @@ import { resetCreateInventoryState } from '@features/warehouseInventory/state/wa
  */
 const useCreateWarehouseInventory = () => {
   const dispatch = useAppDispatch();
-  
-  const { loading, error, success, response } = useAppSelector(selectCreateWarehouseInventoryState);
-  
+
+  const { loading, error, success, response } = useAppSelector(
+    selectCreateWarehouseInventoryState
+  );
+
   const createInventory = useCallback(
     (payload: CreateInventoryRecordsRequest) => {
       dispatch(createWarehouseInventoryRecordsThunk(payload));
     },
     [dispatch]
   );
-  
+
   const resetState = useCallback(() => {
     dispatch(resetCreateInventoryState());
   }, [dispatch]);
-  
+
   return {
     loading,
     success,

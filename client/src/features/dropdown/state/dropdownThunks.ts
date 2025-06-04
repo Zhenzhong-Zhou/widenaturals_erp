@@ -1,7 +1,9 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import type {
   GetBatchRegistryDropdownParams,
-  GetBatchRegistryDropdownResponse, GetWarehouseDropdownFilters, GetWarehouseDropdownResponse,
+  GetBatchRegistryDropdownResponse,
+  GetWarehouseDropdownFilters,
+  GetWarehouseDropdownResponse,
 } from '@features/dropdown/state/dropdownTypes';
 import { dropdownService } from '@services/dropdownService';
 
@@ -15,15 +17,17 @@ import { dropdownService } from '@services/dropdownService';
  */
 export const fetchBatchRegistryDropdownThunk = createAsyncThunk<
   GetBatchRegistryDropdownResponse, // Return type on success
-  GetBatchRegistryDropdownParams,  // Argument type
-  { rejectValue: string }          // Rejection payload type
+  GetBatchRegistryDropdownParams, // Argument type
+  { rejectValue: string } // Rejection payload type
 >(
   'dropdown/fetchBatchRegistryDropdown',
   async (params, { rejectWithValue }) => {
     try {
       return await dropdownService.fetchBatchRegistryDropdown(params);
     } catch (error: any) {
-      return rejectWithValue(error?.response?.data?.message || 'Failed to fetch dropdown items');
+      return rejectWithValue(
+        error?.response?.data?.message || 'Failed to fetch dropdown items'
+      );
     }
   }
 );
@@ -38,8 +42,8 @@ export const fetchBatchRegistryDropdownThunk = createAsyncThunk<
  * @returns {Promise<GetWarehouseDropdownResponse>} - API response with dropdown items
  */
 export const fetchWarehouseDropdownThunk = createAsyncThunk<
-  GetWarehouseDropdownResponse,             // return type
-  GetWarehouseDropdownFilters | undefined  // argument type
+  GetWarehouseDropdownResponse, // return type
+  GetWarehouseDropdownFilters | undefined // argument type
 >(
   'dropdown/fetchWarehouseDropdown',
   async (filters = {}, { rejectWithValue }) => {
@@ -47,7 +51,8 @@ export const fetchWarehouseDropdownThunk = createAsyncThunk<
       return await dropdownService.fetchWarehouseDropdown(filters);
     } catch (error: any) {
       return rejectWithValue({
-        message: error?.response?.data?.message || 'Failed to load warehouse dropdown',
+        message:
+          error?.response?.data?.message || 'Failed to load warehouse dropdown',
         status: error?.response?.status || 500,
       });
     }

@@ -32,14 +32,14 @@ interface PricingTableProps {
 }
 
 const PricingListTable: FC<PricingTableProps> = ({
-                                               data,
-                                               page,
-                                               rowsPerPage,
-                                               totalRecords,
-                                               totalPages,
-                                               onPageChange,
-                                               onRowsPerPageChange,
-                                             }) => {
+  data,
+  page,
+  rowsPerPage,
+  totalRecords,
+  totalPages,
+  onPageChange,
+  onRowsPerPageChange,
+}) => {
   const { theme } = useThemeContext();
   const columns: Column<PricingRow>[] = [
     {
@@ -49,7 +49,11 @@ const PricingListTable: FC<PricingTableProps> = ({
       renderCell: (row: PricingRow) => (
         <Link
           to={`/pricings/${row.pricingTypeSlug}/${row.pricingTypeId}`}
-          style={{ textDecoration: 'none',  color: theme.palette.primary.main, fontWeight: 500 }}
+          style={{
+            textDecoration: 'none',
+            color: theme.palette.primary.main,
+            fontWeight: 500,
+          }}
         >
           {row.skuValue}
         </Link>
@@ -104,7 +108,7 @@ const PricingListTable: FC<PricingTableProps> = ({
       format: (value) => formatDateTime(value),
     },
   ];
-  
+
   return (
     <CustomTable
       columns={columns}

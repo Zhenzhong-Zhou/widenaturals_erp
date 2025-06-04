@@ -30,13 +30,13 @@ const createCsrfMiddleware = () => {
     sameSite: process.env.COOKIE_SAMESITE || 'strict', // Enforce same-site policy
     maxAge: parseInt(process.env.CSRF_COOKIE_MAXAGE, 10) || ONE_HOUR, // Set cookie expiration
   };
-  
+
   // Log the resolved CSRF cookie configuration for traceability and debugging
   logSystemInfo('Initialized CSRF middleware with cookie settings.', {
     context: 'csrf-protection',
     cookie: csrfCookieOptions,
   });
-  
+
   // Create the CSRF middleware instance using the configured cookie policy
   return csrf({ cookie: csrfCookieOptions });
 };
@@ -77,7 +77,9 @@ const shouldBypassCSRF = (req) => {
   ) {
     logError('CSRF validation bypassed', req, {
       context: 'csrf-protection',
-      reason: exemptMethods.includes(req.method) ? 'exempt method' : 'exempt path',
+      reason: exemptMethods.includes(req.method)
+        ? 'exempt method'
+        : 'exempt path',
     });
     return true;
   }
@@ -104,7 +106,7 @@ const csrfProtection = () => {
         context: 'csrf-protection',
         stage: 'token-validation',
       });
-      
+
       next(
         AppError.csrfError('CSRF token validation failed.', {
           details: process.env.NODE_ENV !== 'production' ? error.message : null,

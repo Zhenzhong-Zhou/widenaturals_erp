@@ -28,12 +28,12 @@ const authorizationErrorHandler = (err, req, res, next) => {
       logLevel: 'warn',
       isExpected: true,
     });
-    
+
     // Log with structured metadata
     logError(normalizedError, req, {
       context: 'authorization-error-handler',
     });
-    
+
     // Respond with structured error response
     return res.status(normalizedError.status).json(normalizedError.toJSON());
   }

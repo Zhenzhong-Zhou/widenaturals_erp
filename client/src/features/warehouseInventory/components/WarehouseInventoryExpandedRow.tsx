@@ -9,7 +9,7 @@ interface Props {
 
 const WarehouseInventoryExpandedRow: FC<Props> = ({ record }) => {
   const { details, metadata } = getInventoryDetailsFields(record);
-  
+
   return <BaseInventoryExpandedRow details={details} metadata={metadata} />;
 };
 

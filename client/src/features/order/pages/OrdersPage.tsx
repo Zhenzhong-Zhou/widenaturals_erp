@@ -9,7 +9,9 @@ import Loading from '@components/common/Loading';
 import OrderFormModal from '@features/order/components/OrderFormModal';
 import CreateSaleOrderForm from '@features/order/components/CreateSaleOrderForm';
 
-const AllOrdersTable = lazy(() => import('@features/order/components/AllOrdersTable'));
+const AllOrdersTable = lazy(
+  () => import('@features/order/components/AllOrdersTable')
+);
 
 const OrderPage: FC = () => {
   const [selectedOrderType, setSelectedOrderType] = useState<{
@@ -73,10 +75,8 @@ const OrderPage: FC = () => {
 
   return (
     <Box>
-      <CustomTypography>
-        Create New Order
-      </CustomTypography>
-      <GoBackButton sx={{ borderRadius: 20 }}/>
+      <CustomTypography>Create New Order</CustomTypography>
+      <GoBackButton sx={{ borderRadius: 20 }} />
       <OrderTypesDropdown
         value={selectedOrderType?.id || null}
         onChange={handleOrderTypeChange}

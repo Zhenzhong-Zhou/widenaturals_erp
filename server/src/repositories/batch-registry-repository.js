@@ -1,7 +1,9 @@
 const { query, paginateQueryByOffset } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logSystemException } = require('../utils/system-logger');
-const { buildBatchRegistryWhereClause } = require('../utils/sql/build-batch-registry-filters');
+const {
+  buildBatchRegistryWhereClause,
+} = require('../utils/sql/build-batch-registry-filters');
 
 /**
  * Fetches a batch_registry row by its ID.
@@ -18,7 +20,7 @@ const getBatchRegistryById = async (batchRegistryId, client) => {
     WHERE id = $1
     LIMIT 1
   `;
-  
+
   try {
     const { rows } = await query(sql, [batchRegistryId], client);
     return rows[0] || null;
@@ -27,7 +29,7 @@ const getBatchRegistryById = async (batchRegistryId, client) => {
       context: 'batch-registry-repository/getBatchRegistryById',
       batchRegistryId,
     });
-    
+
     throw AppError.databaseError('Failed to fetch batch_registry entry', {
       details: error.message,
     });
@@ -44,18 +46,22 @@ const getBatchRegistryById = async (batchRegistryId, client) => {
  * @param {number} options.offset - Number of records to skip for pagination (default: 0).
  * @param {number} options.limit - Maximum number of records to return (default: 50).
  */
-const getBatchRegistryDropdown = async ({ filters, limit = 50, offset = 0 }) => {
+const getBatchRegistryDropdown = async ({
+  filters,
+  limit = 50,
+  offset = 0,
+}) => {
   const tableName = 'batch_registry br';
-  
+
   const joins = [
     'LEFT JOIN product_batches pb ON br.product_batch_id = pb.id',
     'LEFT JOIN skus s ON pb.sku_id = s.id',
     'LEFT JOIN products p ON s.product_id = p.id',
     'LEFT JOIN packaging_material_batches pmb ON br.packaging_material_batch_id = pmb.id',
   ];
-  
+
   const { whereClause, params } = buildBatchRegistryWhereClause(filters);
-  
+
   const queryText = `
     SELECT
       br.id AS batch_registry_id,
@@ -77,7 +83,7 @@ const getBatchRegistryDropdown = async ({ filters, limit = 50, offset = 0 }) => 
     ${joins.join('\n')}
     WHERE ${whereClause}
   `;
-  
+
   try {
     return await paginateQueryByOffset({
       tableName,
@@ -97,11 +103,13 @@ const getBatchRegistryDropdown = async ({ filters, limit = 50, offset = 0 }) => 
       severity: 'error',
       metadata: { filters, limit, offset },
     });
-    throw AppError.databaseError('Unable to fetch batch registry dropdown at this time.');
+    throw AppError.databaseError(
+      'Unable to fetch batch registry dropdown at this time.'
+    );
   }
 };
 
 module.exports = {
   getBatchRegistryById,
-  getBatchRegistryDropdown
+  getBatchRegistryDropdown,
 };

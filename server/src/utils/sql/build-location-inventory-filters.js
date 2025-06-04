@@ -20,7 +20,9 @@
  * summary tables, detail views, export operations, or monitoring.
  */
 
-const { buildInventoryFilterConditions } = require('./build-inventory-filter-conditions');
+const {
+  buildInventoryFilterConditions,
+} = require('./build-inventory-filter-conditions');
 
 /**
  * Builds WHERE clause and parameter list for location inventory summary filtering.
@@ -51,14 +53,14 @@ const buildLocationInventoryWhereClause = (filters = {}) => {
       (br.batch_type = 'packaging_material' AND pmb.id IS NOT NULL)
     )`,
   ];
-  
+
   const { conditions, params } = buildInventoryFilterConditions(filters, {
     prefix: 'li',
     locationName: 'loc.name',
     inboundDate: 'inbound_date',
     createdAt: 'created_at',
   });
-  
+
   return {
     whereClause: [...whereClauses, ...conditions].join(' AND '),
     params,

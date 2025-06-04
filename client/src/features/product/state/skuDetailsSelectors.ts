@@ -45,5 +45,7 @@ export const selectSkuImages = createSelector(
 export const selectPrimaryMainImage = createSelector(
   [selectSkuDetails],
   (data): ImageInfo | null =>
-    data?.images?.find((img: ImageInfo) => img.type === 'main' && img.is_primary) || null
+    data?.images?.find(
+      (img: ImageInfo) => img.type === 'main' && img.is_primary
+    ) || null
 );

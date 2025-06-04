@@ -19,15 +19,19 @@ const { generateChecksum } = require('./crypto-utils');
 const buildInventoryLogRows = (records) => {
   return records.map((record) => {
     if (!record.warehouse_inventory_id && !record.location_inventory_id) {
-      throw AppError.validationError('Either warehouse_inventory_id or location_inventory_id must be provided');
+      throw AppError.validationError(
+        'Either warehouse_inventory_id or location_inventory_id must be provided'
+      );
     }
-    
+
     const isWarehouse = Boolean(record.warehouse_inventory_id);
-    const inventoryFieldKey = isWarehouse ? 'warehouse_inventory_id' : 'location_inventory_id';
+    const inventoryFieldKey = isWarehouse
+      ? 'warehouse_inventory_id'
+      : 'location_inventory_id';
     const inventoryId = record[inventoryFieldKey] ?? record.id ?? null;
-    
+
     const scope = isWarehouse ? 'warehouse' : 'location';
-    
+
     const checksumPayload = cleanObject({
       [inventoryFieldKey]: inventoryId,
       inventory_action_type_id: record.inventory_action_type_id,
@@ -45,7 +49,7 @@ const buildInventoryLogRows = (records) => {
       source_ref_id: record.source_ref_id || null,
       metadata: { source: record.source_type, ...(record.metadata || {}) },
     });
-    
+
     return {
       [inventoryFieldKey]: inventoryId,
       inventory_action_type_id: record.inventory_action_type_id,
@@ -76,10 +80,14 @@ const buildInventoryLogRows = (records) => {
  * @throws {Error} - If checksum mismatch is detected.
  */
 const validateInventoryLogChecksum = (record) => {
-  const isWarehouse = Boolean(record.warehouse_inventory_id || record.inventory_scope === 'warehouse');
-  const inventoryFieldKey = isWarehouse ? 'warehouse_inventory_id' : 'location_inventory_id';
+  const isWarehouse = Boolean(
+    record.warehouse_inventory_id || record.inventory_scope === 'warehouse'
+  );
+  const inventoryFieldKey = isWarehouse
+    ? 'warehouse_inventory_id'
+    : 'location_inventory_id';
   const inventoryId = record[inventoryFieldKey];
-  
+
   const checksumPayload = cleanObject({
     [inventoryFieldKey]: inventoryId,
     inventory_action_type_id: record.inventory_action_type_id,
@@ -96,13 +104,13 @@ const validateInventoryLogChecksum = (record) => {
     source_ref_id: record.source_ref_id || null,
     metadata: record.metadata,
   });
-  
+
   const generatedChecksum = generateChecksum(checksumPayload);
-  
+
   if (generatedChecksum !== record.checksum) {
     throw new Error('Inventory log integrity check failed: checksum mismatch.');
   }
-  
+
   return true;
 };
 

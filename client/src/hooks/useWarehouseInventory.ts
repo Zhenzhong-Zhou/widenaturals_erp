@@ -12,14 +12,14 @@ import type { PaginationParams, SortConfig } from '@shared-types/api';
 
 const useWarehouseInventory = () => {
   const dispatch = useAppDispatch();
-  
+
   const data = useAppSelector(selectWarehouseInventoryRecords);
   const loading = useAppSelector(selectWarehouseInventoryLoading);
   const error = useAppSelector(selectWarehouseInventoryError);
   const pagination = useAppSelector(selectWarehouseInventoryPagination);
-  
+
   const records = useMemo(() => data, [data]);
-  
+
   const fetchRecords = (
     paginationParams: PaginationParams,
     filters: WarehouseInventoryFilters,
@@ -33,7 +33,7 @@ const useWarehouseInventory = () => {
       })
     );
   };
-  
+
   return {
     records,
     loading,

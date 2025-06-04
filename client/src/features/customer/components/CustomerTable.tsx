@@ -64,7 +64,7 @@ const CustomerTable: FC = () => {
       id: 'phone_number',
       label: 'Phone',
       sortable: true,
-      format: (value: string | null) => formatPhoneNumber(value)
+      format: (value: string | null) => formatPhoneNumber(value),
     },
     {
       id: 'status_name',

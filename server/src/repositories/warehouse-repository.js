@@ -1,7 +1,9 @@
 const { query } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logSystemException } = require('../utils/system-logger');
-const { buildWarehouseFilter } = require('../utils/sql/build-warehouse-filters');
+const {
+  buildWarehouseFilter,
+} = require('../utils/sql/build-warehouse-filters');
 const { getStatusId } = require('../config/status-cache');
 
 /**
@@ -17,8 +19,11 @@ const { getStatusId } = require('../config/status-cache');
  */
 const getWarehouseDropdown = async ({ filters }) => {
   const defaultActiveStatusId = getStatusId('warehouse_active');
-  const { whereClause, params } = buildWarehouseFilter(defaultActiveStatusId, filters);
-  
+  const { whereClause, params } = buildWarehouseFilter(
+    defaultActiveStatusId,
+    filters
+  );
+
   const sql = `
     SELECT
       w.id AS warehouse_id,
@@ -33,7 +38,7 @@ const getWarehouseDropdown = async ({ filters }) => {
     WHERE ${whereClause}
     ORDER BY w.name ASC;
   `;
-  
+
   try {
     const result = await query(sql, params);
     return result.rows;

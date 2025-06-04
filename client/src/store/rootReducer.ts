@@ -57,10 +57,10 @@ const appReducer = combineReducers(
     orderTypeReducers,
     orderReducers,
     inventoryAllocationReducers,
-    
+
     // Reporting
     reportReducers,
-    
+
     // Dropdown
     dropdownReducers,
 

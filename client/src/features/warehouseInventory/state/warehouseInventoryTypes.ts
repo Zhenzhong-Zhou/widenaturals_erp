@@ -9,7 +9,9 @@ import type {
   BaseFlatInventoryRow,
   BaseInventoryFilters,
   BaseInventoryRecord,
-  BaseInventorySummaryItem, BaseInventoryTableProps, CreateInventoryRecordsResponse,
+  BaseInventorySummaryItem,
+  BaseInventoryTableProps,
+  CreateInventoryRecordsResponse,
   FlatInventoryRowBase,
   InventoryHealthStatus,
   ItemType,
@@ -21,11 +23,12 @@ export interface FetchWarehouseInventoryItemSummaryParams {
   itemType?: ItemType;
 }
 
-export interface BaseWarehouseInventoryItemSummary extends InventoryHealthStatus {
+export interface BaseWarehouseInventoryItemSummary
+  extends InventoryHealthStatus {
   itemId: string;
   itemType: ItemType;
   itemName: string;
-  
+
   totalInventoryEntries: number;
   actualQuantity: number;
   totalLots: number;
@@ -34,7 +37,8 @@ export interface BaseWarehouseInventoryItemSummary extends InventoryHealthStatus
 }
 
 // Product-specific
-export interface ProductWarehouseInventorySummary extends BaseWarehouseInventoryItemSummary {
+export interface ProductWarehouseInventorySummary
+  extends BaseWarehouseInventoryItemSummary {
   itemType: 'product';
   skuId: string;
   sku: string;
@@ -43,7 +47,8 @@ export interface ProductWarehouseInventorySummary extends BaseWarehouseInventory
 }
 
 // Material-specific
-export interface MaterialWarehouseInventorySummary extends BaseWarehouseInventoryItemSummary {
+export interface MaterialWarehouseInventorySummary
+  extends BaseWarehouseInventoryItemSummary {
   itemType: 'packaging_material';
   materialId: string;
   materialCode: string;
@@ -55,7 +60,8 @@ export type WarehouseInventoryItemSummary =
   | ProductWarehouseInventorySummary
   | MaterialWarehouseInventorySummary;
 
-export interface WarehouseInventorySummaryItemDetails extends BaseInventorySummaryItem {
+export interface WarehouseInventorySummaryItemDetails
+  extends BaseInventorySummaryItem {
   warehouseInventoryId: string;
   quantity: BaseInventorySummaryItem['quantity'] & {
     warehouseQuantity: number;
@@ -66,11 +72,14 @@ export interface WarehouseInventorySummaryItemDetails extends BaseInventorySumma
   };
 }
 
-export type WarehouseInventorySummaryDetailsByItemIdResponse = PaginatedResponse<WarehouseInventorySummaryItemDetails>;
+export type WarehouseInventorySummaryDetailsByItemIdResponse =
+  PaginatedResponse<WarehouseInventorySummaryItemDetails>;
 
-export type WarehouseInventorySummaryDetailState = ReduxPaginatedState<WarehouseInventorySummaryItemDetails>;
+export type WarehouseInventorySummaryDetailState =
+  ReduxPaginatedState<WarehouseInventorySummaryItemDetails>;
 
-export interface FlatWarehouseInventorySummaryDetailRow extends BaseFlatInventoryRow {
+export interface FlatWarehouseInventorySummaryDetailRow
+  extends BaseFlatInventoryRow {
   warehouseInventoryId: string;
   warehouseName: string;
   warehouseQuantity: number;
@@ -85,13 +94,14 @@ export interface WarehouseInventoryRecord extends BaseInventoryRecord {
     id: string;
     name: string;
   };
-  
+
   quantity: BaseInventoryRecord['quantity'] & {
     warehouseQuantity: number;
   };
 }
 
-export type WarehouseInventoryRecordsResponse = PaginatedResponse<WarehouseInventoryRecord>;
+export type WarehouseInventoryRecordsResponse =
+  PaginatedResponse<WarehouseInventoryRecord>;
 
 export interface FetchWarehouseInventoryArgs {
   pagination: PaginationParams;
@@ -99,11 +109,16 @@ export interface FetchWarehouseInventoryArgs {
   sortConfig?: SortConfig;
 }
 
-export type WarehouseInventoryState = ReduxPaginatedState<WarehouseInventoryRecord>;
+export type WarehouseInventoryState =
+  ReduxPaginatedState<WarehouseInventoryRecord>;
 
 export interface FlatWarehouseInventoryRow
   extends FlatInventoryRowBase<WarehouseInventoryRecord> {}
 
-export type WarehouseInventoryTableProps = BaseInventoryTableProps<WarehouseInventoryRecord, FlatWarehouseInventoryRow>
+export type WarehouseInventoryTableProps = BaseInventoryTableProps<
+  WarehouseInventoryRecord,
+  FlatWarehouseInventoryRow
+>;
 
-export type CreateWarehouseInventoryState = AsyncState<CreateInventoryRecordsResponse>;
+export type CreateWarehouseInventoryState =
+  AsyncState<CreateInventoryRecordsResponse>;

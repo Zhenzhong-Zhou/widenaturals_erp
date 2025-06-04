@@ -85,7 +85,7 @@ export default defineConfig(({ mode }) => ({
         moduleSideEffects: false,
         preset: 'smallest',
       },
-      
+
       output: {
         manualChunks(id) {
           // --- External Libraries ---
@@ -105,10 +105,10 @@ export default defineConfig(({ mode }) => ({
             if (id.includes('libphonenumber-js')) return 'phone-utils-vendor';
             if (id.includes('slugify')) return 'slugify-vendor';
             if (id.includes('jwt-decode')) return 'jwt-vendor';
-            
+
             return 'misc-vendor'; // fallback for unclassified external deps
           }
-          
+
           // --- Shared UI Components ---
           if (id.includes('src/components/common/')) {
             if (
@@ -125,14 +125,17 @@ export default defineConfig(({ mode }) => ({
             }
             return 'components'; // fallback for other common components
           }
-          
+
           // --- Feature Chunks ---
-          if (id.includes('src/features/inventoryShared')) return 'inventory-shared';
-          if (id.includes('src/features/inventoryOverview')) return 'inventory-overview';
-          if (id.includes('src/features/warehouseInventory')) return 'warehouse-inventory';
+          if (id.includes('src/features/inventoryShared'))
+            return 'inventory-shared';
+          if (id.includes('src/features/inventoryOverview'))
+            return 'inventory-overview';
+          if (id.includes('src/features/warehouseInventory'))
+            return 'warehouse-inventory';
           if (id.includes('src/features/order')) return 'order';
           if (id.includes('src/features/report')) return 'report';
-          
+
           // --- Internal Code Splits ---
           if (id.includes('src/features/')) return 'features';
           if (id.includes('src/layouts/')) return 'layouts';
@@ -141,10 +144,10 @@ export default defineConfig(({ mode }) => ({
           if (id.includes('src/services/')) return 'services';
           if (id.includes('src/store/')) return 'store';
           if (id.includes('src/utils/')) return 'utils';
-          
+
           return undefined; // fallback
         },
-      }
+      },
     },
   },
 

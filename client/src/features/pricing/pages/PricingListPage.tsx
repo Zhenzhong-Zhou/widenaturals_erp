@@ -1,5 +1,8 @@
 import { useEffect, useState, useCallback } from 'react';
-import type { FetchPricingParams, PricingRecord } from '@features/pricing/state';
+import type {
+  FetchPricingParams,
+  PricingRecord,
+} from '@features/pricing/state';
 import Box from '@mui/material/Box';
 import Loading from '@components/common/Loading';
 import ErrorDisplay from '@components/shared/ErrorDisplay';
@@ -16,10 +19,13 @@ import { extractPricingFilterOptions } from '../utils/extractPricingFilterOption
 import { useThemeContext } from '@context/ThemeContext';
 
 const PricingListPage = () => {
-  const [params, setParams] = useState<FetchPricingParams>({ page: 1, limit: 25 });
+  const [params, setParams] = useState<FetchPricingParams>({
+    page: 1,
+    limit: 25,
+  });
   const [exportOpen, setExportOpen] = useState(false);
   const { theme } = useThemeContext();
-  
+
   const {
     data: pricingData,
     pagination,
@@ -28,25 +34,26 @@ const PricingListPage = () => {
     isEmpty,
     fetchData,
   } = usePricingList(params);
-  
+
   useEffect(() => {
     fetchData(params); // Will only trigger when params change
   }, [params, fetchData]);
-  
-  const { brands, countryCodes, pricingTypes, sizeLabels } = extractPricingFilterOptions(pricingData);
-  
+
+  const { brands, countryCodes, pricingTypes, sizeLabels } =
+    extractPricingFilterOptions(pricingData);
+
   const handlePageChange = useCallback((newPage: number) => {
     setParams((prev) => ({ ...prev, page: newPage }));
   }, []);
-  
+
   const handleRowsPerPageChange = useCallback((newLimit: number) => {
     setParams((prev) => ({ ...prev, page: 1, limit: newLimit }));
   }, []);
-  
+
   const handleRefresh = () => {
     fetchData(params); // Refetch current params
   };
-  
+
   const flattened = pricingData.map((item: PricingRecord) => ({
     pricingId: item.pricingId,
     price: item.price,
@@ -65,11 +72,11 @@ const PricingListPage = () => {
     validFrom: item.validFrom,
     validTo: item.validTo,
   }));
-  
+
   if (isLoading) {
     return <Loading message="Fetching pricing records..." />;
   }
-  
+
   if (error) {
     return (
       <ErrorDisplay>
@@ -77,7 +84,7 @@ const PricingListPage = () => {
       </ErrorDisplay>
     );
   }
-  
+
   return (
     <Box
       sx={{
@@ -87,10 +94,8 @@ const PricingListPage = () => {
         boxShadow: 1,
       }}
     >
-      <CustomTypography variant="h4">
-        Pricing List
-      </CustomTypography>
-      
+      <CustomTypography variant="h4">Pricing List</CustomTypography>
+
       <Stack
         direction="row"
         justifyContent="space-between"
@@ -108,8 +113,8 @@ const PricingListPage = () => {
           onApply={(newParams: FetchPricingParams) => {
             setParams((prev) => ({
               ...prev,
-              filters: newParams.filters ?? {},  // set filters directly
-              keyword: newParams.keyword ?? '',  // optional: reset keyword
+              filters: newParams.filters ?? {}, // set filters directly
+              keyword: newParams.keyword ?? '', // optional: reset keyword
               page: 1, // reset page
             }));
           }}
@@ -128,16 +133,20 @@ const PricingListPage = () => {
           Refresh
         </CustomButton>
       </Stack>
-      
-      <CustomModal open={exportOpen} onClose={() => setExportOpen(false)} title="Export Pricing Data">
-        <ExportPricingForm
-          onClose={() => setExportOpen(false)}
-        />
+
+      <CustomModal
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        title="Export Pricing Data"
+      >
+        <ExportPricingForm onClose={() => setExportOpen(false)} />
       </CustomModal>
-      
+
       {isEmpty ? (
-        <CustomTypography variant={'h6'}>No pricing records found.</CustomTypography>
-        ) : (
+        <CustomTypography variant={'h6'}>
+          No pricing records found.
+        </CustomTypography>
+      ) : (
         <PricingListTable
           data={flattened}
           page={(pagination.page ?? 1) - 1}

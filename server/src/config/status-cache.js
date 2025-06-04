@@ -1,7 +1,7 @@
 const { query } = require('../database/db');
 const {
   logSystemException,
-  logSystemError
+  logSystemError,
 } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 
@@ -23,10 +23,26 @@ const STATUS_KEY_LOOKUP = [
   { key: 'warehouse_active', table: 'status', name: 'active' },
   { key: 'sku_active', table: 'status', name: 'active' },
   { key: 'inventory_in_stock', table: 'inventory_status', name: 'in_stock' },
-  { key: 'inventory_out_of_stock', table: 'inventory_status', name: 'out_of_stock' },
-  { key: 'inventory_unassigned', table: 'inventory_status', name: 'unassigned' },
-  { key: 'action_manual_stock_insert', table: 'inventory_action_types', name: 'manual_stock_insert' },
-  { key: 'adjustment_manual_stock_insert', table: 'lot_adjustment_types', name: 'manual_stock_insert' },
+  {
+    key: 'inventory_out_of_stock',
+    table: 'inventory_status',
+    name: 'out_of_stock',
+  },
+  {
+    key: 'inventory_unassigned',
+    table: 'inventory_status',
+    name: 'unassigned',
+  },
+  {
+    key: 'action_manual_stock_insert',
+    table: 'inventory_action_types',
+    name: 'manual_stock_insert',
+  },
+  {
+    key: 'adjustment_manual_stock_insert',
+    table: 'lot_adjustment_types',
+    name: 'manual_stock_insert',
+  },
 ];
 
 /**
@@ -49,36 +65,38 @@ const getStatusIdMap = async () => {
   try {
     const nameSet = new Set();
     const unions = [];
-    
+
     for (const { table, name } of STATUS_KEY_LOOKUP) {
       nameSet.add(`${table}:${name}`);
     }
-    
+
     const uniquePairs = Array.from(nameSet);
-    
+
     for (const entry of uniquePairs) {
       const [table, name] = entry.split(':');
       unions.push(`
         SELECT '${table}' AS source, LOWER(name) AS name, id FROM ${table} WHERE LOWER(name) = '${name.toLowerCase()}'
       `);
     }
-    
+
     const sql = unions.join(' UNION ALL ');
-    
+
     const { rows } = await query(sql);
-    
+
     const map = {};
     for (const { key, table, name } of STATUS_KEY_LOOKUP) {
-      const row = rows.find(r => r.source === table && r.name === name.toLowerCase());
+      const row = rows.find(
+        (r) => r.source === table && r.name === name.toLowerCase()
+      );
       if (row) map[key] = row.id;
     }
-    
+
     return Object.freeze(map);
   } catch (error) {
     logSystemException(error, 'Failed to fetch status IDs', {
       context: 'get-status-id-map',
     });
-    
+
     throw AppError.databaseError('Failed to initialize status map', {
       details: error.message,
     });
@@ -108,9 +126,11 @@ const initStatusCache = async () => {
  */
 const getStatusId = (key) => {
   if (!statusMap) {
-    throw AppError.initializationError(`Status map not initialized. Cannot fetch key: "${key}"`);
+    throw AppError.initializationError(
+      `Status map not initialized. Cannot fetch key: "${key}"`
+    );
   }
-  
+
   if (!statusMap[key]) {
     logSystemError('Status key not found in cache', {
       context: 'get-status-id',
@@ -118,7 +138,7 @@ const getStatusId = (key) => {
     });
     throw AppError.notFoundError(`Missing status ID for key: "${key}"`);
   }
-  
+
   return statusMap[key];
 };
 

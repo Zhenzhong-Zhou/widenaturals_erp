@@ -7,7 +7,8 @@ import type { RootState } from '@store/store';
  * @param state - The Redux root state.
  * @returns The state slice for create warehouse inventory.
  */
-const selectCreateWarehouseInventorySlice = (state: RootState) => state.createWarehouseInventory;
+const selectCreateWarehouseInventorySlice = (state: RootState) =>
+  state.createWarehouseInventory;
 
 /**
  * Composite selector for the entire inventory creation state.

@@ -115,11 +115,12 @@ const createSalesOrder = async (salesOrderData) => {
       const manualPriceOverrides = [];
 
       for (const item of items) {
-        const { product_id, price_type_id, price, quantity_ordered, ...rest } = item;
-        
+        const { product_id, price_type_id, price, quantity_ordered, ...rest } =
+          item;
+
         // Fetch inventory_id from product_id
         const inventory_id = await getInventoryId(product_id, client);
-        
+
         // Fetch product price including location-based pricing
         const productPrice = await getActiveProductPrice(
           product_id,

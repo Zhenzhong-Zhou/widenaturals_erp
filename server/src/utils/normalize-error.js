@@ -9,7 +9,7 @@ const AppError = require('./AppError');
  */
 const normalizeError = (err, fallbackOptions = {}) => {
   if (err instanceof AppError) return err;
-  
+
   const message = err.message || 'An unexpected error occurred.';
   return AppError.generalError(message, {
     status: err.status || 500,

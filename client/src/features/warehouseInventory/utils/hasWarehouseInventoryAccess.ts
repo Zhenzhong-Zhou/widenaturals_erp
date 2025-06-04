@@ -7,7 +7,9 @@
  * @param {string[]} permissions - Array of permission strings assigned to the user.
  * @returns {boolean} True if the user has any matching permission; otherwise false.
  */
-export const hasWarehouseInventoryAccess = (permissions: string[] = []): boolean => {
+export const hasWarehouseInventoryAccess = (
+  permissions: string[] = []
+): boolean => {
   const allowed = [
     'root_access',
     'view_inventory_summary',
@@ -15,6 +17,6 @@ export const hasWarehouseInventoryAccess = (permissions: string[] = []): boolean
     'view_warehouse_inventory',
     'view_inventory_report',
   ];
-  
+
   return permissions.some((perm) => allowed.includes(perm));
 };

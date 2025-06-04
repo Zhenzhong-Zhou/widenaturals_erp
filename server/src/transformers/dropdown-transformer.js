@@ -14,20 +14,20 @@ const transformBatchRegistryDropdownItem = (row) => {
     type: row.batch_type,
     product: row.product_batch_id
       ? {
-        id: row.product_batch_id,
-        name: getProductDisplayName(row),
-        lotNumber: row.product_lot_number,
-        expiryDate: row.product_expiry_date,
-      }
+          id: row.product_batch_id,
+          name: getProductDisplayName(row),
+          lotNumber: row.product_lot_number,
+          expiryDate: row.product_expiry_date,
+        }
       : null,
     packagingMaterial: row.packaging_material_batch_id
       ? {
-        id: row.packaging_material_batch_id,
-        lotNumber: row.material_lot_number,
-        expiryDate: row.material_expiry_date,
-        snapshotName: row.material_snapshot_name,
-        receivedLabel: row.received_label_name,
-      }
+          id: row.packaging_material_batch_id,
+          lotNumber: row.material_lot_number,
+          expiryDate: row.material_expiry_date,
+          snapshotName: row.material_snapshot_name,
+          receivedLabel: row.received_label_name,
+        }
       : null,
   });
 };
@@ -40,7 +40,11 @@ const transformBatchRegistryDropdownItem = (row) => {
  * @returns {Object} Transformed response including items, limit, offset, and hasMore flag.
  */
 const transformPaginatedDropdownResultList = (paginatedResult) =>
-  transformPaginatedResult(paginatedResult, transformBatchRegistryDropdownItem, { includeLoadMore: true });
+  transformPaginatedResult(
+    paginatedResult,
+    transformBatchRegistryDropdownItem,
+    { includeLoadMore: true }
+  );
 
 /**
  * Transforms raw warehouse dropdown rows into dropdown-compatible format.
@@ -50,7 +54,7 @@ const transformPaginatedDropdownResultList = (paginatedResult) =>
  */
 const transformWarehouseDropdownRows = (rows) => {
   if (!Array.isArray(rows)) return [];
-  
+
   return rows.map((row) => ({
     value: row.warehouse_id,
     label: `${row.warehouse_name} (${row.location_name}${row.warehouse_type_name ? ' - ' + row.warehouse_type_name : ''})`,

@@ -9,17 +9,19 @@ import type {
 import { inventoryAllocationService } from '@services/inventoryAllocationService.ts';
 
 export const fetchAvailableInventoryLotsThunk = createAsyncThunk<
-  AvailableInventoryLot[],                    // Return type (payload)
-  FetchAvailableInventoryRequest              // Argument type
+  AvailableInventoryLot[], // Return type (payload)
+  FetchAvailableInventoryRequest // Argument type
 >(
   'inventoryAllocation/fetchAvailableInventoryLots',
   async (params, { rejectWithValue }) => {
     try {
-      const res = await warehouseInventoryService.fetchAvailableInventoryLots(params);
+      const res =
+        await warehouseInventoryService.fetchAvailableInventoryLots(params);
       return res?.data ?? []; // safe fallback
     } catch (error: any) {
       return rejectWithValue(
-        error?.response?.data?.message || 'Failed to fetch available inventory lots'
+        error?.response?.data?.message ||
+          'Failed to fetch available inventory lots'
       );
     }
   }
@@ -36,15 +38,12 @@ export const fetchAvailableInventoryLotsThunk = createAsyncThunk<
  * dispatch(postInventoryAllocationThunk(payload))
  */
 export const postInventoryAllocationThunk = createAsyncThunk<
-  InventoryAllocationResponse,       // return type
-  InventoryAllocationPayload         // argument type
->(
-  'inventory/allocation/post',
-  async (payload, { rejectWithValue }) => {
-    try {
-      return await inventoryAllocationService.postInventoryAllocation(payload);
-    } catch (error) {
-      return rejectWithValue('Failed to allocate inventory.');
-    }
+  InventoryAllocationResponse, // return type
+  InventoryAllocationPayload // argument type
+>('inventory/allocation/post', async (payload, { rejectWithValue }) => {
+  try {
+    return await inventoryAllocationService.postInventoryAllocation(payload);
+  } catch (error) {
+    return rejectWithValue('Failed to allocate inventory.');
   }
-);
+});

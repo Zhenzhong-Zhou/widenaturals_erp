@@ -4,7 +4,11 @@ import { parseISO } from 'date-fns/parseISO';
 import { differenceInDays } from 'date-fns/differenceInDays';
 import { differenceInMinutes } from 'date-fns/differenceInMinutes';
 import { isValid } from 'date-fns/isValid';
-import { differenceInHours, differenceInMonths, differenceInSeconds } from 'date-fns';
+import {
+  differenceInHours,
+  differenceInMonths,
+  differenceInSeconds,
+} from 'date-fns';
 
 /**
  * Validates a date input and ensures it matches a recognized format.
@@ -170,16 +174,16 @@ export const formatDateTime = (
   timezone: string = 'America/Vancouver'
 ): string => {
   if (!timestamp) return 'N/A'; // Handle null or undefined inputs gracefully
-  
+
   const rawDate =
     typeof timestamp === 'string' ? parseISO(timestamp) : new Date(timestamp);
   if (!isValid(rawDate)) return 'N/A';
-  
+
   const { date: localDate, timezoneAbbreviation } = convertToLocalTime(
     rawDate,
     timezone
   );
-  
+
   // Format with zero-padded values for consistency
   const year = localDate.getFullYear();
   const month = String(localDate.getMonth() + 1).padStart(2, '0');
@@ -200,19 +204,22 @@ export const formatDateTime = (
 export const timeAgo = (date: Date | string): string => {
   const parsedDate = typeof date === 'string' ? parseISO(date) : date;
   const now = new Date();
-  
+
   const diffSeconds = differenceInSeconds(now, parsedDate);
-  if (diffSeconds < 60) return `${diffSeconds} second${diffSeconds === 1 ? '' : 's'} ago`;
-  
+  if (diffSeconds < 60)
+    return `${diffSeconds} second${diffSeconds === 1 ? '' : 's'} ago`;
+
   const diffMinutes = differenceInMinutes(now, parsedDate);
-  if (diffMinutes < 60) return `${diffMinutes} minute${diffMinutes === 1 ? '' : 's'} ago`;
-  
+  if (diffMinutes < 60)
+    return `${diffMinutes} minute${diffMinutes === 1 ? '' : 's'} ago`;
+
   const diffHours = differenceInHours(now, parsedDate);
-  if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
-  
+  if (diffHours < 24)
+    return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+
   const diffDays = differenceInDays(now, parsedDate);
   if (diffDays < 30) return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
-  
+
   const diffMonths = differenceInMonths(now, parsedDate);
   return `${diffMonths} month${diffMonths === 1 ? '' : 's'} ago`;
 };

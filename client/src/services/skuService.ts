@@ -3,8 +3,8 @@ import type {
   SkuDetailResponse,
   SkuProductCardFilters,
 } from '@features/product/state';
-import axiosInstance from "@utils/axiosConfig";
-import { API_ENDPOINTS } from "./apiEndpoints";
+import axiosInstance from '@utils/axiosConfig';
+import { API_ENDPOINTS } from './apiEndpoints';
 import type { AxiosError } from 'axios';
 
 /**
@@ -34,7 +34,7 @@ const fetchActiveSkuProductCards = async (
         },
       }
     );
-    
+
     return response.data;
   } catch (error: any) {
     console.error('Failed to fetch active SKU product cards:', error);
@@ -57,12 +57,12 @@ export const getSkuDetails = async (
   if (!skuId) {
     throw new Error('SKU ID is required to fetch details.');
   }
-  
+
   const endpoint = API_ENDPOINTS.SKU_DETAILS.replace(
     ':skuId',
     encodeURIComponent(skuId)
   );
-  
+
   try {
     const response = await axiosInstance.get<SkuDetailResponse>(endpoint);
     return response.data;

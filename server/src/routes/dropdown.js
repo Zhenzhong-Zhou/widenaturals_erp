@@ -1,5 +1,8 @@
 const express = require('express');
-const { getBatchRegistryDropdownController, getWarehouseDropdownController } = require('../controllers/dropdown-controller');
+const {
+  getBatchRegistryDropdownController,
+  getWarehouseDropdownController,
+} = require('../controllers/dropdown-controller');
 const authorize = require('../middlewares/authorize');
 const { sanitizeInput } = require('../middlewares/sanitize');
 
@@ -15,10 +18,7 @@ const router = express.Router();
  */
 router.get(
   '/batch-registry',
-  authorize([
-    'view_batch_registry_dropdown',
-    'access_inventory_utilities'
-  ]),
+  authorize(['view_batch_registry_dropdown', 'access_inventory_utilities']),
   sanitizeInput,
   getBatchRegistryDropdownController
 );
@@ -62,11 +62,8 @@ router.get(
  */
 router.get(
   '/warehouses',
-  authorize([
-    'view_batch_registry_dropdown',
-    'access_inventory_utilities'
-  ]),
-  getWarehouseDropdownController,
+  authorize(['view_batch_registry_dropdown', 'access_inventory_utilities']),
+  getWarehouseDropdownController
 );
 
 module.exports = router;

@@ -22,10 +22,11 @@ export const selectWarehouseInventorySummaryItemDetailsData = createSelector(
  *
  * @returns {Pagination} Pagination object including page, limit, totalRecords, and totalPages.
  */
-export const selectWarehouseInventorySummaryItemDetailsPagination = createSelector(
-  [selectWarehouseInventorySummaryDetailState],
-  (state) => state.pagination
-);
+export const selectWarehouseInventorySummaryItemDetailsPagination =
+  createSelector(
+    [selectWarehouseInventorySummaryDetailState],
+    (state) => state.pagination
+  );
 
 /**
  * Selector for checking if the warehouse inventory summary data is being loaded.

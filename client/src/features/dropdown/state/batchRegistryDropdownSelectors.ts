@@ -4,7 +4,8 @@ import type { RootState } from '@store/store';
 /**
  * Base selector to access the batch registry dropdown state slice.
  */
-const selectBatchRegistryDropdownSlice = (state: RootState) => state.batchRegistryDropdown;
+const selectBatchRegistryDropdownSlice = (state: RootState) =>
+  state.batchRegistryDropdown;
 
 /**
  * Selector to get loading state of the dropdown.

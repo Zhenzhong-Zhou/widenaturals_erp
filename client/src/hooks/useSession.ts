@@ -2,7 +2,8 @@ import { useCallback, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   selectAccessToken,
-  selectIsAuthenticated, selectLoading,
+  selectIsAuthenticated,
+  selectLoading,
   selectUser,
 } from '@features/session/state/sessionSelectors';
 import { selectCsrfToken } from '@features/csrf/state/csrfSelector';

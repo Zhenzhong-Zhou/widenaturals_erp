@@ -26,13 +26,13 @@ const validatePasswordStrength = (req, res, next) => {
         suggestions: strengthResult.feedback.suggestions || [],
         warning: strengthResult.feedback.warning || '',
       };
-      
+
       // Create the error instance
       const error = AppError.validationError('Password is too weak.', {
         details: feedback,
         type: 'PasswordStrengthError',
       });
-      
+
       // Log the error in non-production environments
       if (process.env.NODE_ENV !== 'production') {
         logError(error, req, {
@@ -40,7 +40,7 @@ const validatePasswordStrength = (req, res, next) => {
           stage: 'strength-check',
         });
       }
-      
+
       throw error;
     }
 

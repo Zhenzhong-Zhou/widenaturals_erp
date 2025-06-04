@@ -3,7 +3,11 @@
  * @description Application entry point.
  */
 
-const { logSystemInfo, logSystemError, logSystemCrash } = require('./utils/system-logger');
+const {
+  logSystemInfo,
+  logSystemError,
+  logSystemCrash,
+} = require('./utils/system-logger');
 const { startServer, shutdownServer } = require('./server');
 const { setServer, handleExit } = require('./utils/on-exit');
 const { loadAndValidateEnv } = require('./config/env-manager'); // Load and validate environment variables
@@ -20,10 +24,10 @@ const initializeApp = async () => {
     logSystemInfo(
       `Environment variables loaded and validated for environment: ${env}`
     );
-    
+
     logSystemInfo('Starting server...');
     const serverInstance = await startServer();
-    
+
     logSystemInfo('Signal handlers registered.');
     setServer(serverInstance); // Pass server reference for cleanup
 
@@ -36,14 +40,14 @@ const initializeApp = async () => {
       logSystemInfo('SIGTERM received. Shutting down gracefully...');
       await handleShutdown(0);
     });
-    
+
     process.on('unhandledRejection', (reason, promise) => {
       logSystemError('Unhandled Rejection occurred', {
         reason,
         promise,
       });
     });
-    
+
     logSystemInfo('Application started successfully.');
     return serverInstance;
   } catch (error) {
@@ -65,7 +69,7 @@ const handleShutdown = async (exitCode) => {
 
     // Perform server-specific cleanup
     await shutdownServer(); // Call server-specific shutdown logic
-    
+
     logSystemInfo('Application shutdown completed.');
     process.exit(0);
   } catch (error) {

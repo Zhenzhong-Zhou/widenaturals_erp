@@ -11,7 +11,7 @@ export const canViewInventoryOverview = (permissions: string[]): boolean => {
     'view_location_inventory',
     'view_inventory_summary',
   ];
-  
+
   return requiredPermissions.some((perm) => permissions.includes(perm));
 };
 

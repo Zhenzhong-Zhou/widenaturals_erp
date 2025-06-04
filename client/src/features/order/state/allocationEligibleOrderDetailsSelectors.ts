@@ -3,7 +3,8 @@ import type { RootState } from '@store/store';
 import type { AllocationEligibleOrderItem } from '@features/order';
 
 // Root slice selector
-const selectAllocationEligibleOrderDetailsState = (state: RootState) => state.allocationEligibleOrderDetails;
+const selectAllocationEligibleOrderDetailsState = (state: RootState) =>
+  state.allocationEligibleOrderDetails;
 
 // Selector: allocation data
 export const selectAllocationEligibleOrderDetails = createSelector(
@@ -33,10 +34,7 @@ export const selectAllocationItems = createSelector(
 export const selectAllocatableItems = createSelector(
   [selectAllocationItems],
   (items: AllocationEligibleOrderItem[]): AllocationEligibleOrderItem[] =>
-    items.filter(
-      (item) =>
-        typeof item.available_quantity === 'number'
-    )
+    items.filter((item) => typeof item.available_quantity === 'number')
 );
 
 // Selector: order metadata (e.g., number + status)

@@ -28,24 +28,21 @@ const AppError = require('../AppError');
  * @throws {AppError} - Throws databaseError if-clause construction fails.
  */
 const buildWarehouseFilter = (
-  statusId ,
+  statusId,
   filters = {},
-  {
-    overrideDefaultStatus = false,
-    includeArchived = false,
-  } = {}
+  { overrideDefaultStatus = false, includeArchived = false } = {}
 ) => {
   try {
     const conditions = ['1=1'];
     const params = [];
     let paramIndex = 1;
-    
+
     if (!overrideDefaultStatus && statusId) {
       conditions.push(`w.status_id = $${paramIndex}`);
       params.push(statusId);
       paramIndex++;
     }
-    
+
     if (!includeArchived) {
       conditions.push(`w.is_archived = false`);
     } else if (filters.isArchived !== undefined) {
@@ -53,19 +50,19 @@ const buildWarehouseFilter = (
       params.push(filters.isArchived);
       paramIndex++;
     }
-    
+
     if (filters.locationTypeId) {
       conditions.push(`l.location_type_id = $${paramIndex}`);
       params.push(filters.locationTypeId);
       paramIndex++;
     }
-    
+
     if (filters.warehouseTypeId) {
       conditions.push(`w.type_id = $${paramIndex}`);
       params.push(filters.warehouseTypeId);
       paramIndex++;
     }
-    
+
     return {
       whereClause: conditions.join(' AND '),
       params,
@@ -77,13 +74,16 @@ const buildWarehouseFilter = (
       filters,
       statusId,
     });
-    throw AppError.databaseError('Failed to prepare warehouse dropdown filter', {
-      details: err.message,
-      stage: 'build-warehouse-where-clause',
-    });
+    throw AppError.databaseError(
+      'Failed to prepare warehouse dropdown filter',
+      {
+        details: err.message,
+        stage: 'build-warehouse-where-clause',
+      }
+    );
   }
 };
 
 module.exports = {
-  buildWarehouseFilter
+  buildWarehouseFilter,
 };

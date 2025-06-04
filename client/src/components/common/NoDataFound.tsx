@@ -8,8 +8,8 @@ interface NoDataFoundProps {
 }
 
 const NoDataFound: FC<NoDataFoundProps> = ({
-                                             message = 'No records found.',
-                                           }) => {
+  message = 'No records found.',
+}) => {
   return (
     <Box
       sx={{
@@ -29,7 +29,7 @@ const NoDataFound: FC<NoDataFoundProps> = ({
       >
         {message}
       </CustomTypography>
-      
+
       <GoBackButton
         sx={{
           mt: 1,

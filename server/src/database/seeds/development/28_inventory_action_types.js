@@ -1,15 +1,13 @@
 const { fetchDynamicValue } = require('../03_utils');
 
 exports.seed = async function (knex) {
-  const existing = await knex('inventory_action_types')
-    .select('id')
-    .limit(1);
-  
+  const existing = await knex('inventory_action_types').select('id').limit(1);
+
   if (existing.length > 0) {
     console.log('Skipping inventory_action_types seed: data already exists.');
     return;
   }
-  
+
   const activeStatusId = await fetchDynamicValue(
     knex,
     'status',
@@ -17,7 +15,7 @@ exports.seed = async function (knex) {
     'active',
     'id'
   );
-  
+
   const adminUserId = await fetchDynamicValue(
     knex,
     'users',
@@ -25,7 +23,7 @@ exports.seed = async function (knex) {
     'admin@example.com',
     'id'
   );
-  
+
   const inventoryActions = [
     {
       name: 'initial_load',
@@ -185,6 +183,6 @@ exports.seed = async function (knex) {
       .onConflict('name')
       .ignore();
   }
-  
+
   console.log(`${inventoryActions.length} inventory action types seeded.`);
 };

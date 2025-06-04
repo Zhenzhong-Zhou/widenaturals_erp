@@ -23,7 +23,10 @@ const getFullName = (first, last) => {
  * @param {string} [timeZone='America/Los_Angeles']
  * @returns {string} e.g., 'pricing_export_20250515_213045.csv'
  */
-const generateTimestampedFilename = (baseName, timeZone = 'America/Los_Angeles') => {
+const generateTimestampedFilename = (
+  baseName,
+  timeZone = 'America/Los_Angeles'
+) => {
   const [name, ext] = baseName.split('.');
   const timestamp = format(new Date(), 'yyyyMMdd_HHmmss', { timeZone });
   return `${name}_${timestamp}.${ext}`;

@@ -3,7 +3,9 @@ const {
   createOrderController,
   getOrderDetailsController,
   getAllOrdersController,
-  confirmOrderController, getAllocationEligibleOrdersController, getAllocationEligibleOrderDetailsController,
+  confirmOrderController,
+  getAllocationEligibleOrdersController,
+  getAllocationEligibleOrderDetailsController,
 } = require('../controllers/order-controller');
 
 const router = express.Router();

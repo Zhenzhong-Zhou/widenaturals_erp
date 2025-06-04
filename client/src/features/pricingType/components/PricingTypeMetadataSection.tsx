@@ -11,21 +11,32 @@ interface Props {
 }
 
 const PricingTypeMetadataSection = ({
-                                      slug,
-                                      status,
-                                      createdBy,
-                                      createdAt,
-                                      updatedBy,
-                                      updatedAt,
-                                    }: Props) => (
+  slug,
+  status,
+  createdBy,
+  createdAt,
+  updatedBy,
+  updatedAt,
+}: Props) => (
   <Box mt={2}>
-    <CustomTypography variant="body1"><strong>Slug:</strong> {slug}</CustomTypography>
-    <CustomTypography variant="body1"><strong>Status:</strong> {status}</CustomTypography>
-    <CustomTypography variant="body1"><strong>Created By:</strong> {createdBy}</CustomTypography>
-    <CustomTypography variant="body1"><strong>Created At:</strong> {new Date(createdAt).toLocaleString()}</CustomTypography>
-    <CustomTypography variant="body1"><strong>Updated By:</strong> {updatedBy}</CustomTypography>
     <CustomTypography variant="body1">
-      <strong>Updated At:</strong> {updatedAt ? new Date(updatedAt).toLocaleString() : '—'}
+      <strong>Slug:</strong> {slug}
+    </CustomTypography>
+    <CustomTypography variant="body1">
+      <strong>Status:</strong> {status}
+    </CustomTypography>
+    <CustomTypography variant="body1">
+      <strong>Created By:</strong> {createdBy}
+    </CustomTypography>
+    <CustomTypography variant="body1">
+      <strong>Created At:</strong> {new Date(createdAt).toLocaleString()}
+    </CustomTypography>
+    <CustomTypography variant="body1">
+      <strong>Updated By:</strong> {updatedBy}
+    </CustomTypography>
+    <CustomTypography variant="body1">
+      <strong>Updated At:</strong>{' '}
+      {updatedAt ? new Date(updatedAt).toLocaleString() : '—'}
     </CustomTypography>
   </Box>
 );

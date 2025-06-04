@@ -5,8 +5,11 @@ const {
   getPricingDetailsByPricingTypeId,
   getActiveProductPrice,
 } = require('../repositories/pricing-repository');
-const { transformPaginatedPricingResult, transformExportPricingData, transformPricingDetailRow,
-  transformPaginatedPricingDetailResult
+const {
+  transformPaginatedPricingResult,
+  transformExportPricingData,
+  transformPricingDetailRow,
+  transformPaginatedPricingDetailResult,
 } = require('../transformers/pricing-transformer');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 
@@ -26,29 +29,39 @@ const { logSystemException, logSystemInfo } = require('../utils/system-logger');
  * @returns {Promise<Object>} - Returns transformed pricing data with pagination metadata.
  */
 const fetchPaginatedPricingRecordsService = async ({
-                                  page = 1,
-                                  limit = 10,
-                                  sortBy = 'brand',
-                                  sortOrder = 'ASC',
-                                  filters = {},
-                                  keyword,
-                                }) => {
+  page = 1,
+  limit = 10,
+  sortBy = 'brand',
+  sortOrder = 'ASC',
+  filters = {},
+  keyword,
+}) => {
   // Validate inputs
   if (!Number.isInteger(page) || page < 1) {
-    throw AppError.validationError('Invalid page number. Must be a positive integer.');
+    throw AppError.validationError(
+      'Invalid page number. Must be a positive integer.'
+    );
   }
-  
+
   if (!Number.isInteger(limit) || limit < 1) {
-    throw AppError.validationError('Invalid limit. Must be a positive integer.');
+    throw AppError.validationError(
+      'Invalid limit. Must be a positive integer.'
+    );
   }
-  
-  if ((filters.validFrom && !filters.validTo) || (!filters.validFrom && filters.validTo)) {
-    throw AppError.validationError('Both validFrom and validTo must be provided together for date filtering.');
+
+  if (
+    (filters.validFrom && !filters.validTo) ||
+    (!filters.validFrom && filters.validTo)
+  ) {
+    throw AppError.validationError(
+      'Both validFrom and validTo must be provided together for date filtering.'
+    );
   }
-  
+
   const sanitizedSortBy = sanitizeSortBy(sortBy, 'pricingRecords');
-  const resolvedSortOrder = sortOrder?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
-  
+  const resolvedSortOrder =
+    sortOrder?.toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+
   try {
     const rawResult = await getAllPricingRecords({
       page,
@@ -58,7 +71,7 @@ const fetchPaginatedPricingRecordsService = async ({
       filters,
       keyword,
     });
-    
+
     if (!rawResult || !rawResult.data || rawResult.data.length === 0) {
       return {
         success: true,
@@ -72,7 +85,7 @@ const fetchPaginatedPricingRecordsService = async ({
         },
       };
     }
-    
+
     return transformPaginatedPricingResult(rawResult);
   } catch (error) {
     logSystemException(error, 'Failed to fetch pricing records', {
@@ -84,7 +97,7 @@ const fetchPaginatedPricingRecordsService = async ({
       filters,
       keyword,
     });
-    
+
     throw AppError.serviceError('Failed to fetch pricing records', 500, error);
   }
 };
@@ -102,7 +115,7 @@ const exportPricingRecordsService = async (filters = {}, format = 'csv') => {
     filters,
     format,
   });
-  
+
   try {
     const rawData = await getAllPricingRecords({
       page: 1,
@@ -111,11 +124,11 @@ const exportPricingRecordsService = async (filters = {}, format = 'csv') => {
       sortOrder: 'ASC',
       filters,
     });
-    
+
     if (!rawData.data || rawData.data.length === 0) {
       return [];
     }
-    
+
     return transformExportPricingData(rawData.data, format);
   } catch (error) {
     logSystemException(error, 'Failed to export pricing records', {
@@ -123,7 +136,7 @@ const exportPricingRecordsService = async (filters = {}, format = 'csv') => {
       filters,
       format,
     });
-    
+
     throw AppError.serviceError('Failed to export pricing records', 500, error);
   }
 };
@@ -137,35 +150,42 @@ const exportPricingRecordsService = async (filters = {}, format = 'csv') => {
  * @returns {Promise<Object>} Paginated pricing detail records.
  * @throws {AppError} If validation fails or no records are found.
  */
-const fetchPricingDetailsByPricingTypeId = async (pricingTypeId, page, limit) => {
+const fetchPricingDetailsByPricingTypeId = async (
+  pricingTypeId,
+  page,
+  limit
+) => {
   try {
     // Input validation
     if (!pricingTypeId) {
       throw AppError.validationError('Pricing type ID is required', 400);
     }
-    
+
     if (page < 1 || limit < 1) {
-      throw AppError.validationError('Page and limit must be positive integers', 400);
+      throw AppError.validationError(
+        'Page and limit must be positive integers',
+        400
+      );
     }
-    
+
     logSystemInfo('Fetching pricing details by pricing type ID', {
       context: 'pricing-service/fetchPricingDetailsByPricingTypeId',
       pricingTypeId,
       page,
       limit,
     });
-    
+
     // Repository fetch
     const pricingRawData = await getPricingDetailsByPricingTypeId({
       pricingTypeId,
       page,
       limit,
     });
-   
+
     if (!pricingRawData.data.length || pricingRawData.data.length === 0) {
       return [];
     }
-    
+
     return transformPaginatedPricingDetailResult(pricingRawData);
   } catch (error) {
     logSystemException('Failed to fetch pricing details', {

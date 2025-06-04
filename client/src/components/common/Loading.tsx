@@ -13,29 +13,29 @@ interface LoadingProps {
 }
 
 const Loading: FC<LoadingProps> = ({
-                                     size = 40,
-                                     message,
-                                     color = 'primary',
-                                     variant = 'spinner',
-                                     fullPage = false,
-                                   }) => {
+  size = 40,
+  message,
+  color = 'primary',
+  variant = 'spinner',
+  fullPage = false,
+}) => {
   const { theme } = useThemeContext();
 
   // Utility function to generate full-page styles
   const fullPageStyles = fullPage
     ? {
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      width: '100%',
-      height: '100%',
-      zIndex: theme.zIndex.modal,
-      backgroundColor:
-        theme.palette.mode === 'dark'
-          ? 'rgba(18, 18, 18, 0.85)'
-          : 'rgba(255, 255, 255, 0.85)',
-      backdropFilter: 'blur(2px)',
-    }
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        zIndex: theme.zIndex.modal,
+        backgroundColor:
+          theme.palette.mode === 'dark'
+            ? 'rgba(18, 18, 18, 0.85)'
+            : 'rgba(255, 255, 255, 0.85)',
+        backdropFilter: 'blur(2px)',
+      }
     : {};
 
   // Dotted Loader Styles
@@ -72,7 +72,7 @@ const Loading: FC<LoadingProps> = ({
         return <CircularProgress size={size} color={color} />;
     }
   };
-  
+
   return (
     <Box
       role="status"

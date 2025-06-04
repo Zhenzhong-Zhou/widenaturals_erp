@@ -2,7 +2,9 @@ import axiosInstance from '@utils/axiosConfig';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 import type {
   GetBatchRegistryDropdownParams,
-  GetBatchRegistryDropdownResponse, GetWarehouseDropdownFilters, GetWarehouseDropdownResponse,
+  GetBatchRegistryDropdownResponse,
+  GetWarehouseDropdownFilters,
+  GetWarehouseDropdownResponse,
 } from '@features/dropdown/state/dropdownTypes';
 
 /**

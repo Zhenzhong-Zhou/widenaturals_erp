@@ -19,12 +19,12 @@ const DashboardLayout: FC<BaseDashboardLayoutProps> = ({
   children,
 }) => {
   const { permissions } = usePermissions();
-  
+
   const inventoryOverview = canViewInventoryOverview(permissions);
   const canView = hasWarehouseInventoryAccess(permissions);
-  
+
   if (!canView) return null;
-  
+
   return (
     <Box sx={{ padding: 3 }}>
       {fullName ? (
@@ -61,7 +61,7 @@ const DashboardLayout: FC<BaseDashboardLayoutProps> = ({
       )}
 
       {children}
-      
+
       {inventoryOverview && <InventoryOverviewHeaderSection />}
       {canView && <SkuWarehouseInventorySummarySection />}
     </Box>

@@ -1,4 +1,3 @@
-
 const { logError } = require('../utils/logger-helper');
 const { query } = require('../database/db');
 const AppError = require('../utils/AppError');
@@ -19,17 +18,21 @@ const getBaseCodeForBrandCategory = async (brandCode, categoryCode) => {
       WHERE brand_code = $1 AND category_code = $2
       LIMIT 1
     `;
-    
+
     const values = [brandCode, categoryCode];
     const { rows } = await query(sql, values);
-    
+
     return rows.length ? rows[0].base_code : null;
   } catch (error) {
-    logError?.('[getBaseCodeForBrandCategory] Failed to fetch base code', error);
-    throw AppError.databaseError('Failed to fetch base code for brand/category');
+    logError?.(
+      '[getBaseCodeForBrandCategory] Failed to fetch base code',
+      error
+    );
+    throw AppError.databaseError(
+      'Failed to fetch base code for brand/category'
+    );
   }
 };
-
 
 /**
  * Fetches the brand_code and category_code from sku_code_bases using case-insensitive match.
@@ -49,25 +52,29 @@ const getBrandCategoryCodes = async (brand, category) => {
         AND LOWER(category_code) = LOWER($2)
       LIMIT 1
     `;
-    
+
     const values = [brand, category];
     const { rows } = await query(sql, values);
-    
+
     if (rows.length) {
       return {
         brandCode: rows[0].brand_code,
         categoryCode: rows[0].category_code,
       };
     }
-    
-    throw new AppError.databaseError(`sku_code_bases missing for brand: "${brand}", category: "${category}"`);
+
+    throw new AppError.databaseError(
+      `sku_code_bases missing for brand: "${brand}", category: "${category}"`
+    );
   } catch (err) {
     logError('[getBrandCategoryCodes] Failed to fetch:', err.message);
-    throw AppError.databaseError('Failed to resolve brand/category code from sku_code_bases');
+    throw AppError.databaseError(
+      'Failed to resolve brand/category code from sku_code_bases'
+    );
   }
 };
 
 module.exports = {
   getBaseCodeForBrandCategory,
-  getBrandCategoryCodes
+  getBrandCategoryCodes,
 };

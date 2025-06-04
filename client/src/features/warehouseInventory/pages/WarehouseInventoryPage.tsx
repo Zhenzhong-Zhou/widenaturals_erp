@@ -9,11 +9,13 @@ import WarehouseInventoryFilterPanel from '../components/WarehouseInventoryFilte
 import CustomButton from '@components/common/CustomButton';
 import AddInventoryDialog from '@features/warehouseInventory/components/AddInventoryDialog';
 
-const WarehouseInventoryTable = lazy(() => import('../components/WarehouseInventoryTable'));
+const WarehouseInventoryTable = lazy(
+  () => import('../components/WarehouseInventoryTable')
+);
 
 const WarehouseInventoryPage = () => {
   const [open, setOpen] = useState(false);
-  
+
   return (
     <BaseInventoryPage
       title="All Warehouse Inventory"
@@ -24,7 +26,9 @@ const WarehouseInventoryPage = () => {
       ExpandedRowComponent={WarehouseInventoryExpandedRow}
       sortOptions={WAREHOUSE_INVENTORY_SORT_OPTIONS}
       rowKey="id"
-      extractGroupName={(record) => record.warehouse?.name || 'Unknown Warehouse'}
+      extractGroupName={(record) =>
+        record.warehouse?.name || 'Unknown Warehouse'
+      }
       topToolbar={
         <Box display="flex" gap={2}>
           <CustomButton
@@ -32,7 +36,9 @@ const WarehouseInventoryPage = () => {
               setOpen(true);
               (e.currentTarget as HTMLButtonElement).blur(); // remove focus
             }}
-          >Add Inventory</CustomButton>
+          >
+            Add Inventory
+          </CustomButton>
           <AddInventoryDialog open={open} onClose={() => setOpen(false)} />
         </Box>
       }

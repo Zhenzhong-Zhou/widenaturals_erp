@@ -14,19 +14,25 @@ interface SortControlsProps {
 }
 
 const SortControls: FC<SortControlsProps> = ({
-                                               sortBy,
-                                               sortOrder,
-                                               onSortByChange,
-                                               onSortOrderChange,
-                                               sortOptions,
-                                             }) => {
+  sortBy,
+  sortOrder,
+  onSortByChange,
+  onSortOrderChange,
+  sortOptions,
+}) => {
   const sortById = 'sort-by';
   const sortOrderId = 'sort-order';
-  
+
   return (
-    <Stack direction="row" spacing={2} sx={{ minHeight: 40, alignItems: 'center' }}>
+    <Stack
+      direction="row"
+      spacing={2}
+      sx={{ minHeight: 40, alignItems: 'center' }}
+    >
       <FormControl size="small" sx={{ minWidth: 140 }}>
-        <InputLabel id={`${sortById}-label`} htmlFor={`${sortById}-select`}>Sort By</InputLabel>
+        <InputLabel id={`${sortById}-label`} htmlFor={`${sortById}-select`}>
+          Sort By
+        </InputLabel>
         <Select
           inputProps={{ id: `${sortById}-select` }}
           labelId={`${sortById}-label`}
@@ -43,16 +49,23 @@ const SortControls: FC<SortControlsProps> = ({
           ))}
         </Select>
       </FormControl>
-      
+
       <FormControl size="small" sx={{ minWidth: 140 }}>
-        <InputLabel id={`${sortOrderId}-label`} htmlFor={`${sortOrderId}-select`}>Order</InputLabel>
+        <InputLabel
+          id={`${sortOrderId}-label`}
+          htmlFor={`${sortOrderId}-select`}
+        >
+          Order
+        </InputLabel>
         <Select
           inputProps={{ id: `${sortOrderId}-select` }}
           labelId={`${sortOrderId}-label`}
           name="sortOrder"
           label="Order"
           value={sortOrder}
-          onChange={(e) => onSortOrderChange(e.target.value as '' | 'ASC' | 'DESC')}
+          onChange={(e) =>
+            onSortOrderChange(e.target.value as '' | 'ASC' | 'DESC')
+          }
         >
           <MenuItem value="">Select Order</MenuItem>
           <MenuItem value="ASC">Ascending</MenuItem>

@@ -1,9 +1,6 @@
 const { query, paginateQuery, retry } = require('../database/db');
 const AppError = require('../utils/AppError');
-const {
-  logSystemInfo,
-  logSystemException
-} = require('../utils/system-logger');
+const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const { logError } = require('../utils/logger-helper');
 const { buildPricingFilters } = require('../utils/sql/build-pricing-filters');
 
@@ -34,23 +31,23 @@ const { buildPricingFilters } = require('../utils/sql/build-pricing-filters');
  * @throws {AppError} - On validation failure or database error.
  */
 const getAllPricingRecords = async ({
-                                             page,
-                                             limit,
-                                             sortBy = 'brand',
-                                             sortOrder,
-                                             filters = {},
-                                             keyword,
-                                           }) => {
+  page,
+  limit,
+  sortBy = 'brand',
+  sortOrder,
+  filters = {},
+  keyword,
+}) => {
   const tableName = 'pricing p';
   const joins = [
     'JOIN pricing_types pt ON pt.id = p.price_type_id',
     'JOIN skus s ON s.id = p.sku_id',
     'JOIN products pr ON pr.id = s.product_id',
   ];
-  
+
   // Use extracted filter logic
   const { whereClause, params } = buildPricingFilters(filters, keyword);
-  
+
   const baseQueryText = `
     SELECT
       p.id AS pricing_id,
@@ -73,7 +70,7 @@ const getAllPricingRecords = async ({
     ${joins.join(' ')}
     WHERE ${whereClause}
   `;
-  
+
   try {
     logSystemInfo('Fetching paginated pricing records', {
       context: 'pricing-repository/getAllPricingRecords',
@@ -84,7 +81,7 @@ const getAllPricingRecords = async ({
       filters,
       keyword,
     });
-    
+
     return await paginateQuery({
       tableName,
       joins,
@@ -97,7 +94,7 @@ const getAllPricingRecords = async ({
       sortOrder,
     });
   } catch (error) {
-    logSystemException(error,'Failed to fetch pricing records', {
+    logSystemException(error, 'Failed to fetch pricing records', {
       context: 'pricing-repository/getAllPricingRecords',
       page,
       limit,
@@ -106,7 +103,7 @@ const getAllPricingRecords = async ({
       filters,
       keyword,
     });
-    
+
     throw AppError.databaseError('Failed to fetch pricing list', error);
   }
 };
@@ -125,19 +122,23 @@ const getAllPricingRecords = async ({
  *
  * @throws {AppError} Throws a database error if the query fails.
  */
-const getPricingDetailsByPricingTypeId = async ({ pricingTypeId, page, limit }) => {
+const getPricingDetailsByPricingTypeId = async ({
+  pricingTypeId,
+  page,
+  limit,
+}) => {
   const tableName = 'pricing p';
   const joins = [
     'JOIN pricing_types pt ON pt.id = p.price_type_id',
     'JOIN skus s ON s.id = p.sku_id',
     'JOIN products pr ON pr.id = s.product_id',
     'LEFT JOIN locations l ON l.id = p.location_id',
-    'LEFT JOIN status pts ON pts.id = p.status_id',       // pricing status
-    'LEFT JOIN users uc ON uc.id = p.created_by',         // pricing created_by
-    'LEFT JOIN users uu ON uu.id = p.updated_by',         // pricing updated_by
+    'LEFT JOIN status pts ON pts.id = p.status_id', // pricing status
+    'LEFT JOIN users uc ON uc.id = p.created_by', // pricing created_by
+    'LEFT JOIN users uu ON uu.id = p.updated_by', // pricing updated_by
   ];
   const whereClause = 'p.price_type_id = $1';
-  
+
   const pricingDetailsQuery = `
     SELECT
       pt.name AS pricing_type,
@@ -171,7 +172,7 @@ const getPricingDetailsByPricingTypeId = async ({ pricingTypeId, page, limit }) 
       p.updated_by, uu.firstname, uu.lastname, s.sku, s.barcode, s.country_code,
       s.size_label, pr.name, pr.brand
   `;
-  
+
   try {
     logSystemInfo('Fetching pricing details by pricing type ID', {
       context: 'getPricingDetailsByPricingTypeId',
@@ -199,7 +200,7 @@ const getPricingDetailsByPricingTypeId = async ({ pricingTypeId, page, limit }) 
       limit,
       error,
     });
-    
+
     throw AppError.databaseError('Failed to fetch pricing details', error);
   }
 };

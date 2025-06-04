@@ -28,20 +28,27 @@ const allocationEligibleOrderDetailsSlice = createSlice({
       })
       .addCase(
         fetchAllocationEligibleOrderDetailsThunk.fulfilled,
-        (state, action: PayloadAction<{ data: AllocationEligibleOrderDetails }>) => {
+        (
+          state,
+          action: PayloadAction<{ data: AllocationEligibleOrderDetails }>
+        ) => {
           state.loading = false;
           state.data = action.payload.data;
         }
       )
-      .addCase(fetchAllocationEligibleOrderDetailsThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload || 'Failed to fetch allocation-eligible order details';
-      });
+      .addCase(
+        fetchAllocationEligibleOrderDetailsThunk.rejected,
+        (state, action) => {
+          state.loading = false;
+          state.error =
+            action.payload ||
+            'Failed to fetch allocation-eligible order details';
+        }
+      );
   },
 });
 
-export const {
-  resetAllocationEligibleOrderDetailsState,
-} = allocationEligibleOrderDetailsSlice.actions;
+export const { resetAllocationEligibleOrderDetailsState } =
+  allocationEligibleOrderDetailsSlice.actions;
 
 export default allocationEligibleOrderDetailsSlice.reducer;

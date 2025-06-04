@@ -1,18 +1,33 @@
 const { withTransaction, lockRows } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logSystemException } = require('../utils/system-logger');
-const { insertWarehouseInventoryRecords, getInsertedWarehouseInventoryByIds } = require('../repositories/warehouse-inventory-repository');
-const { insertLocationInventoryRecords, getInsertedLocationInventoryByIds,
-  bulkUpdateLocationQuantities
+const {
+  insertWarehouseInventoryRecords,
+  getInsertedWarehouseInventoryByIds,
+} = require('../repositories/warehouse-inventory-repository');
+const {
+  insertLocationInventoryRecords,
+  getInsertedLocationInventoryByIds,
+  bulkUpdateLocationQuantities,
 } = require('../repositories/location-inventory-repository');
 const { buildInventoryLogRows } = require('../utils/inventory-log-utils');
-const { insertInventoryActivityLogs } = require('../repositories/inventory-log-repository');
-const { transformInsertedWarehouseInventoryRecords } = require('../transformers/warehouse-inventory-transformer');
-const { transformInsertedLocationInventoryRecords } = require('../transformers/location-inventory-transformer');
-const { computeInventoryAdjustments, buildEnrichedRecordsForLog,
-  validateAndNormalizeInventoryRecords
+const {
+  insertInventoryActivityLogs,
+} = require('../repositories/inventory-log-repository');
+const {
+  transformInsertedWarehouseInventoryRecords,
+} = require('../transformers/warehouse-inventory-transformer');
+const {
+  transformInsertedLocationInventoryRecords,
+} = require('../transformers/location-inventory-transformer');
+const {
+  computeInventoryAdjustments,
+  buildEnrichedRecordsForLog,
+  validateAndNormalizeInventoryRecords,
 } = require('../business/inventory-business');
-const { bulkUpdateWarehouseQuantities } = require('../repositories/warehouse-inventory-repository');
+const {
+  bulkUpdateWarehouseQuantities,
+} = require('../repositories/warehouse-inventory-repository');
 
 /**
  * Creates both warehouse and location inventory records and logs activity in a transaction.
@@ -50,22 +65,34 @@ const createInventoryRecordService = async (records, user_id) => {
       // Step 1: Validate and deduplicate input records
       const { dedupedWarehouseRecords, dedupedLocationRecords } =
         await validateAndNormalizeInventoryRecords(records, client);
-      
+
       // Step 2: Insert into warehouse and location inventory tables
-      const insertedWarehouseRecords = await insertWarehouseInventoryRecords(dedupedWarehouseRecords, client);
-      const insertedLocationRecords = await insertLocationInventoryRecords(dedupedLocationRecords, client);
-      
+      const insertedWarehouseRecords = await insertWarehouseInventoryRecords(
+        dedupedWarehouseRecords,
+        client
+      );
+      const insertedLocationRecords = await insertLocationInventoryRecords(
+        dedupedLocationRecords,
+        client
+      );
+
       // Step 3: Build mappings from a composite key → inserted inventory IDs
       const warehouseMap = new Map();
       dedupedWarehouseRecords.forEach((r, i) =>
-        warehouseMap.set(`${r.warehouse_id}::${r.batch_id}`, insertedWarehouseRecords[i].warehouse_inventory_id)
+        warehouseMap.set(
+          `${r.warehouse_id}::${r.batch_id}`,
+          insertedWarehouseRecords[i].warehouse_inventory_id
+        )
       );
-      
+
       const locationMap = new Map();
       dedupedLocationRecords.forEach((r, i) =>
-        locationMap.set(`${r.location_id}::${r.batch_id}`, insertedLocationRecords[i].location_inventory_id)
+        locationMap.set(
+          `${r.location_id}::${r.batch_id}`,
+          insertedLocationRecords[i].location_inventory_id
+        )
       );
-      
+
       // Step 4: Enrich logs with inventory IDs and user context
       const enrichedForLog = buildEnrichedRecordsForLog({
         originalRecords: records,
@@ -73,11 +100,11 @@ const createInventoryRecordService = async (records, user_id) => {
         locationMap,
         user_id,
       });
-      
+
       // Step 5: Build and insert log rows
       const logRows = buildInventoryLogRows(enrichedForLog);
       await insertInventoryActivityLogs(logRows, client);
-      
+
       // Step 6: Fetch full enriched inventory rows to return
       const [warehouseRaw, locationRaw] = await Promise.all([
         getInsertedWarehouseInventoryByIds(
@@ -89,7 +116,7 @@ const createInventoryRecordService = async (records, user_id) => {
           client
         ),
       ]);
-      
+
       // Step 7: Transform and return for client response
       return {
         warehouse: transformInsertedWarehouseInventoryRecords(warehouseRaw),
@@ -134,7 +161,11 @@ const createInventoryRecordService = async (records, user_id) => {
  *
  * @throws {AppError} If inventory validation fails or DB operations encounter issues.
  */
-const adjustInventoryQuantitiesService = async (updates, user_id, lockBeforeUpdate = true) => {
+const adjustInventoryQuantitiesService = async (
+  updates,
+  user_id,
+  lockBeforeUpdate = true
+) => {
   try {
     return await withTransaction(async (client) => {
       // Step 1: Validate updates and compute what needs to be changed
@@ -145,46 +176,69 @@ const adjustInventoryQuantitiesService = async (updates, user_id, lockBeforeUpda
         locationCompositeKeys,
         logRecords,
       } = await computeInventoryAdjustments(updates, client);
-      
+
       // Step 2: Lock inventory rows to prevent concurrent updates (optional)
       if (lockBeforeUpdate) {
         if (warehouseCompositeKeys.length > 0) {
-          await lockRows(client, 'warehouse_inventory', warehouseCompositeKeys, 'FOR UPDATE', {
-            purpose: 'Adjusting warehouse inventory quantities',
-          });
+          await lockRows(
+            client,
+            'warehouse_inventory',
+            warehouseCompositeKeys,
+            'FOR UPDATE',
+            {
+              purpose: 'Adjusting warehouse inventory quantities',
+            }
+          );
         }
         if (locationCompositeKeys.length > 0) {
-          await lockRows(client, 'location_inventory', locationCompositeKeys, 'FOR UPDATE', {
-            purpose: 'Adjusting location inventory quantities',
-          });
+          await lockRows(
+            client,
+            'location_inventory',
+            locationCompositeKeys,
+            'FOR UPDATE',
+            {
+              purpose: 'Adjusting location inventory quantities',
+            }
+          );
         }
       }
-      
+
       // Step 3: Apply inventory quantity updates
       const [warehouseRows, locationRows] = await Promise.all([
-        bulkUpdateWarehouseQuantities(warehouseInventoryUpdates, user_id, client),
+        bulkUpdateWarehouseQuantities(
+          warehouseInventoryUpdates,
+          user_id,
+          client
+        ),
         bulkUpdateLocationQuantities(locationInventoryUpdates, user_id, client),
       ]);
-      
+
       // Step 4: Enrich log records with user context
       const enrichedLogs = logRecords.map((log) => ({
         ...log,
         user_id,
       }));
-      
+
       // Step 5: Insert inventory activity logs
-      await insertInventoryActivityLogs(buildInventoryLogRows(enrichedLogs), client);
-      
+      await insertInventoryActivityLogs(
+        buildInventoryLogRows(enrichedLogs),
+        client
+      );
+
       return {
         warehouse: warehouseRows,
         location: locationRows,
       };
     });
   } catch (error) {
-    logSystemException(error, 'Failed to adjust inventory quantities due to unexpected system error.', {
-      context: 'inventory-service/adjustInventoryQuantitiesService',
-      updates,
-    });
+    logSystemException(
+      error,
+      'Failed to adjust inventory quantities due to unexpected system error.',
+      {
+        context: 'inventory-service/adjustInventoryQuantitiesService',
+        updates,
+      }
+    );
     throw AppError.serviceError('Failed to adjust inventory quantities.');
   }
 };

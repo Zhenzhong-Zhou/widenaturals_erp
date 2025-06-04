@@ -10,21 +10,21 @@ interface Props {
 
 const NearExpiryChip: FC<Props> = ({ isNearExpiry }) => {
   const { theme } = useThemeContext();
-  
+
   const statusConfig = isNearExpiry
     ? {
-      label: 'Near Expiry',
-      color: 'error',
-      icon: <ErrorIcon fontSize="small" />,
-      paletteColor: theme.palette.error.main,
-    }
+        label: 'Near Expiry',
+        color: 'error',
+        icon: <ErrorIcon fontSize="small" />,
+        paletteColor: theme.palette.error.main,
+      }
     : {
-      label: 'OK',
-      color: 'success',
-      icon: <CheckCircleIcon fontSize="small" />,
-      paletteColor: theme.palette.success.main,
-    };
-  
+        label: 'OK',
+        color: 'success',
+        icon: <CheckCircleIcon fontSize="small" />,
+        paletteColor: theme.palette.success.main,
+      };
+
   return (
     <Chip
       label={statusConfig.label}
