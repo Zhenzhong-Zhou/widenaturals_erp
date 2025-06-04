@@ -256,6 +256,7 @@ const adjustInventoryQuantitiesController = wrapAsync(
     });
 
     res.status(200).json({
+      success: true,
       message: 'Inventory quantities adjusted successfully.',
       data: result,
     });

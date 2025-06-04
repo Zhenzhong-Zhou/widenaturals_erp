@@ -43,15 +43,18 @@ const AddInventoryDialog: FC<AddInventoryDialogProps> = ({
       offset: 0,
     });
   const [submitting, setSubmitting] = useState(false);
-
+  
   const {
     createInventory,
-    loading: createLoading,
-    success,
+    loading: isCreating,
+    success: isCreateSuccess,
     error: createError,
+    message: createMessage,
+    warehouse,
+    location,
     resetState,
   } = useCreateWarehouseInventory();
-
+  console.log(createMessage, warehouse, location)
   const {
     items: warehouseOptions,
     loading: warehouseLoading,
@@ -145,11 +148,11 @@ const AddInventoryDialog: FC<AddInventoryDialogProps> = ({
   }, [batchOptions]);
 
   useEffect(() => {
-    if (success) {
+    if (isCreateSuccess) {
       onSuccess?.();
       onClose();
     }
-  }, [success, onSuccess, onClose]);
+  }, [isCreateSuccess, onSuccess, onClose]);
 
   useEffect(() => {
     if (!open) {
@@ -200,7 +203,7 @@ const AddInventoryDialog: FC<AddInventoryDialogProps> = ({
       open={open}
       onClose={onClose}
       onSubmit={handleFormSubmit}
-      submitting={submitting || createLoading}
+      submitting={submitting || isCreating}
       createError={createError}
       batchDropdownOptions={batchDropdownOptions}
       selectedBatch={selectedBatch}

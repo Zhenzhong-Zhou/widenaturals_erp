@@ -200,3 +200,36 @@ export interface PaginatedDropdownState<T> extends AsyncState<T[]> {
   /** Current offset used for pagination. */
   offset: number;
 }
+
+/**
+ * Represents the state of a data-modifying API operation (e.g., POST, PUT, DELETE).
+ * Commonly used to track the status and response of a mutation request.
+ *
+ * @template T - The type of the response payload returned from the mutation.
+ *
+ * Example usage:
+ * ```ts
+ * const initialState: MutationState<UserResponse> = {
+ *   data: null,
+ *   loading: false,
+ *   error: null,
+ * };
+ * ```
+ */
+export interface MutationState<T> {
+  /**
+   * The response payload returned from a successful mutation request.
+   * Set to `null` before the request or if the request fails.
+   */
+  data: T | null;
+  
+  /**
+   * Indicates whether the mutation request is currently in progress.
+   */
+  loading: boolean;
+  
+  /**
+   * Error message if the mutation request fails; otherwise `null`.
+   */
+  error: string | null;
+}
