@@ -33,9 +33,10 @@ const applyGlobalMiddleware = (app) => {
   
   // 3. CORS Middleware
   app.use(corsMiddleware);
+
+  // 4. Combined cookie + csrf middleware step
+  app.use(cookieParser(), csrfProtection());
   
-  // 4. Cookie Parser Middleware
-  app.use(cookieParser());
   // 5. CSRF Protection (relies on cookies)
   app.use(csrfProtection());
   
@@ -43,10 +44,10 @@ const applyGlobalMiddleware = (app) => {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
-  // 7. Request Logging
+  // 6. Request Logging
   app.use(requestLogger);
 
-  // 8. Development Tools
+  // 7. Development Tools
   if (process.env.NODE_ENV === 'development') {
     app.use(morgan('dev')); // Use 'dev' logging format in development
     logSystemInfo('Development logging middleware (morgan) applied.', {
