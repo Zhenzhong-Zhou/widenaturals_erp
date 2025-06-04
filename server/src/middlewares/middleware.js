@@ -37,10 +37,7 @@ const applyGlobalMiddleware = (app) => {
   // 4. Combined cookie + csrf middleware step
   app.use(cookieParser(), csrfProtection());
   
-  // 5. CSRF Protection (relies on cookies)
-  app.use(csrfProtection());
-  
-  // 6. Body Parsing Middleware
+  // 5. Body Parsing Middleware
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
