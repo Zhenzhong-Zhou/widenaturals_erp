@@ -1,9 +1,8 @@
 import type {
-  AsyncState,
   PaginatedResponse,
   ReduxPaginatedState,
   PaginationParams,
-  SortConfig,
+  SortConfig, MutationState,
 } from '@shared-types/api';
 import type {
   BaseFlatInventoryRow,
@@ -11,10 +10,9 @@ import type {
   BaseInventoryRecord,
   BaseInventorySummaryItem,
   BaseInventoryTableProps,
-  InventoryRecordsResponse,
   FlatInventoryRowBase,
   InventoryHealthStatus,
-  ItemType,
+  ItemType, InventoryRecordsResponse,
 } from '@features/inventoryShared/types/InventorySharedType';
 
 export interface FetchWarehouseInventoryItemSummaryParams {
@@ -124,5 +122,8 @@ export type WarehouseInventoryTableProps = BaseInventoryTableProps<
   FlatWarehouseInventoryRow
 >;
 
-export type CreateWarehouseInventoryState =
-  AsyncState<InventoryRecordsResponse>;
+/**
+ * Redux state for tracking the createWarehouseInventory mutation.
+ * Includes status and response data for inserted inventory records.
+ */
+export type CreateWarehouseInventoryState = MutationState<InventoryRecordsResponse>;
