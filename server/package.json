@@ -68,7 +68,8 @@
     "winston": "^3.17.0",
     "winston-daily-rotate-file": "^5.0.0",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
-    "zxcvbn": "^4.4.2"
+    "zxcvbn": "^4.4.2",
+    "lusca": "^1.7.0"
   },
   "devDependencies": {
     "dotenv-cli": "^8.0.0",

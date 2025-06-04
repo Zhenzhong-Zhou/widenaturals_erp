@@ -36,7 +36,6 @@ const applyGlobalMiddleware = (app) => {
   
   // 4. Cookie Parser Middleware
   app.use(cookieParser());
-  
   // 5. CSRF Protection (relies on cookies)
   app.use(csrfProtection());
   
