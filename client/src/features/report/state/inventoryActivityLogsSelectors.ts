@@ -1,6 +1,6 @@
 import { createSelector } from '@reduxjs/toolkit';
-import { RootState } from '../../../store/store.ts';
-import { InventoryActivityLogsState } from './reportTypes.ts';
+import type { RootState } from '@store/store';
+import type { InventoryActivityLogsState } from '@features/report';
 
 // **Base Selectors**
 const selectInventoryActivityLogsState = (state: RootState) =>

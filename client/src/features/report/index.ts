@@ -11,20 +11,21 @@ export type {
   InventoryHistoryParams,
   InventoryHistoryResponse,
   InventoryHistoryState,
-} from '../report/state/reportTypes.ts';
+} from '../report/state/reportTypes';
 export {
   fetchAdjustmentReportThunk,
   exportAdjustmentReportThunk,
   fetchInventoryActivityLogsThunk,
   exportInventoryActivityLogsThunk,
-} from '../report/state/reportThunks.ts';
-export { selectAdjustmentReport } from '../report/state/adjustmentReportSelectors.ts';
-export { default as ExportReportModal } from './components/ExportReportModal.tsx';
-export { default as AdjustmentReportTable } from '../report/components/AdjustmentReportTable.tsx';
-export { default as InventoryActivityLogTable } from '../report/components/InventoryActivityLogTable.tsx';
-export { default as ReportFilters } from './components/ReportFilters.tsx';
-export { selectInventoryActivityLogs } from '../report/state/inventoryActivityLogsSelectors.ts';
-export { default as useReportPageLogic } from '../report/hook/useReportPageLogic.ts';
-export { default as ReportPageLayout } from '../report/components/ReportPageLayout.tsx';
-export { selectInventoryHistory } from '../report/state/inventoryHistorySelectors.ts';
-export { default as InventoryHistoryTable } from '../report/components/InventoryHistoryTable.tsx';
+} from '../report/state/reportThunks';
+export { selectAdjustmentReport } from '../report/state/adjustmentReportSelectors';
+export { default as ExportReportModal } from './components/ExportReportModal';
+export { default as AdjustmentReportTable } from '../report/components/AdjustmentReportTable';
+export { default as InventoryActivityLogTable } from '../report/components/InventoryActivityLogTable';
+export { default as ReportFilters } from './components/ReportFilters';
+export { selectInventoryActivityLogs } from '../report/state/inventoryActivityLogsSelectors';
+export { default as useReportPageLogic } from '../report/hook/useReportPageLogic';
+export { default as ReportPageLayout } from '../report/components/ReportPageLayout';
+export { selectInventoryHistory } from '../report/state/inventoryHistorySelectors';
+export { default as InventoryHistoryTable } from '../report/components/InventoryHistoryTable';
+export { reportReducers } from './state';

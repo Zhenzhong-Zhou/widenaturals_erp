@@ -1,9 +1,9 @@
 import { createSelector } from '@reduxjs/toolkit';
-import { RootState } from '../../../store/store.ts';
+import type { RootState } from '@store/store';
 
 export const selectOrderTypesState = (state: RootState) => state.orderTypes;
 
-// ✅ Memoized selector for order types
+// Memoized selector for order types
 export const selectOrderTypes = createSelector(
   [selectOrderTypesState],
   (orderTypesState) => orderTypesState.data
@@ -17,13 +17,13 @@ export const selectOrderTypesPagination = createSelector(
   (orderTypesState) => orderTypesState.pagination
 );
 
-// ✅ Memoized selector for loading state
+// Memoized selector for loading state
 export const selectOrderTypesLoading = createSelector(
   [selectOrderTypesState],
   (orderTypesState) => orderTypesState.loading
 );
 
-// ✅ Memoized selector for error state
+// Memoized selector for error state
 export const selectOrderTypesError = createSelector(
   [selectOrderTypesState],
   (orderTypesState) => orderTypesState.error

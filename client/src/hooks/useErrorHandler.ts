@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { handleError, mapErrorMessage } from '../utils/errorUtils';
-import { AppError, ErrorType } from '../utils/AppError';
+import { handleError, mapErrorMessage } from '@utils/errorUtils';
+import { AppError, ErrorType } from '@utils/AppError';
 
 interface ErrorHandler {
   errorMessage: string | null;

@@ -1,6 +1,6 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { publicHealthStatusService } from '../../../services';
-import { HealthState } from './healthStatusState.ts';
+import type { HealthState } from '@features/health/state/healthStatusState';
+import { publicHealthStatusService } from '@services/publicHealthStatusService';
 
 export const fetchHealthStatus = createAsyncThunk<
   HealthState,

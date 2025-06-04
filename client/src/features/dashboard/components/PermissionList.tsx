@@ -1,6 +1,6 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import Box from '@mui/material/Box';
-import { Typography } from '@components/index.ts';
+import CustomTypography from '@components/common/CustomTypography';
 
 interface PermissionListProps {
   permissions: string[];
@@ -9,9 +9,9 @@ interface PermissionListProps {
 const PermissionList: FC<PermissionListProps> = ({ permissions }) => (
   <Box component="ul" sx={{ pl: 2, mb: 3 }}>
     {permissions?.map((permission) => (
-      <Typography key={permission} component="li" variant="body2">
+      <CustomTypography key={permission} component="li" variant="body2">
         {permission}
-      </Typography>
+      </CustomTypography>
     ))}
   </Box>
 );

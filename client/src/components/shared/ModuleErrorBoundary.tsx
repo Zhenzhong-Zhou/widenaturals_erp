@@ -1,43 +1,40 @@
-import { Component, ReactNode, ErrorInfo } from 'react';
+import { Component, type ReactNode, type ErrorInfo } from 'react';
+import type { NavigateFunction } from 'react-router-dom';
 import Box from '@mui/material/Box';
-import { CustomButton, ErrorDisplay, Typography } from '@components/index.ts';
-import { AppError, ErrorType } from '@utils/AppError.tsx';
-import { handleError, mapErrorMessage } from '@utils/errorUtils.ts'; // Import error utilities
+import ErrorDisplay from '@components/shared/ErrorDisplay';
+import CustomTypography from '@components/common/CustomTypography';
+import { AppError, ErrorType } from '@utils/AppError';
+import { handleError, mapErrorMessage } from '@utils/errorUtils';
 
-interface Props {
-  children: ReactNode; // The component's children
-  fallback?: ReactNode; // Custom fallback UI
-  onError?: (error: AppError, errorInfo: ErrorInfo) => void; // Optional error logging callback
+// Props passed from hook wrapper
+export interface ModuleErrorBoundaryProps {
+  children: ReactNode;
+  fallback?: ReactNode;
+  onError?: (error: AppError, errorInfo: ErrorInfo) => void;
+  navigate: NavigateFunction;
 }
 
 interface State {
   hasError: boolean;
-  errorMessage?: string; // Store error message for display
-  errorType?: ErrorType; // Error type for more detailed messaging
+  errorMessage?: string;
+  errorType?: ErrorType;
 }
 
-class ModuleErrorBoundary extends Component<Props, State> {
-  constructor(props: Props) {
+class ModuleErrorBoundary extends Component<ModuleErrorBoundaryProps, State> {
+  constructor(props: ModuleErrorBoundaryProps) {
     super(props);
-    this.state = {
-      hasError: false,
-      errorMessage: undefined,
-      errorType: undefined,
-    };
+    this.state = { hasError: false };
   }
 
   /**
    * Update the error state when an error is caught.
    */
   static getDerivedStateFromError(error: Error): State {
-    const errorMessage = mapErrorMessage(error); // Map user-friendly error message
-    const errorType =
-      error instanceof AppError ? error.type : ErrorType.UnknownError; // Use ErrorType enum for consistency
-
     return {
       hasError: true,
-      errorMessage,
-      errorType,
+      errorMessage: mapErrorMessage(error),
+      errorType:
+        error instanceof AppError ? error.type : ErrorType.UnknownError,
     };
   }
 
@@ -52,20 +49,19 @@ class ModuleErrorBoundary extends Component<Props, State> {
       error instanceof AppError
         ? error
         : new AppError('An unknown error occurred.', 500, {
-            type: ErrorType.UnknownError,
-            details: {
-              originalError: error.message || 'Unknown error',
-              componentStack:
-                errorInfo.componentStack || 'No stack trace available',
-            },
-          });
-
+          type: ErrorType.UnknownError,
+          details: {
+            originalError: error.message || 'Unknown error',
+            componentStack: errorInfo.componentStack || '',
+          },
+        });
+    
     if (this.props.onError) {
-      this.props.onError(appError, errorInfo); // Pass error to parent-defined handler
+      this.props.onError(appError, errorInfo);
     } else {
-      handleError(appError, (loggedError) => {
-        console.error('Error logged:', loggedError);
-      }); // Log the normalized error
+      handleError(appError, (loggedError) =>
+        console.error('Error logged:', loggedError)
+      );
     }
   }
 
@@ -79,58 +75,54 @@ class ModuleErrorBoundary extends Component<Props, State> {
       errorType: undefined,
     });
   };
-
+  
   render() {
     const { hasError, errorMessage, errorType } = this.state;
-    const { fallback } = this.props;
-
+    const { fallback, children } = this.props;
+    
     if (hasError) {
       return (
         fallback || (
           <ErrorDisplay
-            message={
-              errorMessage ||
-              'Something went wrong in this module. Please try again later.'
-            }
+            message={errorMessage || 'Module crashed. Try again later.'}
             onRetry={this.resetError}
           >
             <Box
+              aria-live="polite"
               sx={{
-                textAlign: 'center',
-                padding: 4,
-                backgroundColor: 'background.default',
-                color: 'text.primary',
+                mt: 2,
+                p: 3,
                 borderRadius: 1,
-                boxShadow: 1,
+                backgroundColor: '#fff',
+                color: '#444',
+                textAlign: 'center',
               }}
             >
-              <Typography variant="h4" color="error" gutterBottom>
+              <CustomTypography variant="h4" color="error" gutterBottom>
                 Module Error
-              </Typography>
-              <Typography variant="body1" gutterBottom>
+              </CustomTypography>
+              
+              <CustomTypography variant="body1" gutterBottom>
                 {errorMessage ||
-                  'Something went wrong in this module. Please try again later.'}
-              </Typography>
+                  'Something went wrong in this module. Please try again.'}
+              </CustomTypography>
+              
               {errorType && (
-                <Typography variant="body2" color="textSecondary" gutterBottom>
+                <CustomTypography
+                  variant="body2"
+                  color="textSecondary"
+                  sx={{ fontStyle: 'italic' }}
+                >
                   Error Type: {errorType}
-                </Typography>
+                </CustomTypography>
               )}
-              <CustomButton
-                variant="contained"
-                color="primary"
-                onClick={this.resetError}
-                sx={{ marginTop: 2 }}
-              >
-                Retry
-              </CustomButton>
             </Box>
           </ErrorDisplay>
         )
       );
     }
-
-    return this.props.children;
+    
+    return children;
   }
 }
 

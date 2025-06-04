@@ -1,8 +1,8 @@
-import { FC } from 'react';
-import { CustomTable } from '@components/index.ts';
-import { Compliance } from '../state/complianceTypes.ts';
-import { capitalizeFirstLetter, toUpperCase } from '@utils/textUtils.ts';
-import { formatDate } from '@utils/dateTimeUtils.ts';
+import type { FC } from 'react';
+import CustomTable, { type Column } from '@components/common/CustomTable';
+import type { Compliance } from '@features/compliance/state/complianceTypes';
+import { formatLabel, toUpperCase } from '@utils/textUtils';
+import { formatDate } from '@utils/dateTimeUtils';
 
 interface ComplianceTableProps {
   data: Compliance[];
@@ -23,7 +23,7 @@ const ComplianceTable: FC<ComplianceTableProps> = ({
   onPageChange,
   onRowsPerPageChange,
 }) => {
-  const columns = [
+  const columns: Column<Compliance>[] = [
     {
       id: 'product_name',
       label: 'Product Name',
@@ -35,7 +35,7 @@ const ComplianceTable: FC<ComplianceTableProps> = ({
       label: 'Type',
       minWidth: 150,
       sortable: true,
-      format: (value: string) => toUpperCase(value),
+      format: (value: string | null) => toUpperCase(value),
     },
     {
       id: 'compliance_id',
@@ -52,28 +52,28 @@ const ComplianceTable: FC<ComplianceTableProps> = ({
       label: 'Issued Date',
       minWidth: 100,
       sortable: true,
-      format: (value: string) => formatDate(value),
+      format: (value: string | null) => formatDate(value),
     },
     {
       id: 'expiry_date',
       label: 'Expiry Date',
       minWidth: 100,
       sortable: true,
-      format: (value: string) => formatDate(value),
+      format: (value: string | null) => formatDate(value),
     },
     {
       id: 'status_name',
       label: 'Status',
       minWidth: 100,
       sortable: true,
-      format: (value: string) => capitalizeFirstLetter(value),
+      format: (value: string | null) => formatLabel(value),
     },
     {
       id: 'status_date',
       label: 'Status Date',
       minWidth: 100,
       sortable: true,
-      format: (value: string) => formatDate(value),
+      format: (value: string | null) => formatDate(value),
     },
     {
       id: 'created_by',
@@ -86,7 +86,7 @@ const ComplianceTable: FC<ComplianceTableProps> = ({
       label: 'Created At',
       minWidth: 100,
       sortable: true,
-      format: (value: string) => formatDate(value),
+      format: (value: string | null) => formatDate(value),
     },
     {
       id: 'updated_by',
@@ -99,7 +99,7 @@ const ComplianceTable: FC<ComplianceTableProps> = ({
       label: 'Updated At',
       minWidth: 100,
       sortable: true,
-      format: (value: string) => formatDate(value),
+      format: (value: string | null) => formatDate(value),
     },
   ];
 

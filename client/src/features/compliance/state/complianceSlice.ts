@@ -1,10 +1,10 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import {
-  Compliance,
-  CompliancePagination,
-  ComplianceResponse,
-} from './complianceTypes.ts';
-import { fetchAllCompliancesThunk } from './complianceThunks.ts';
+  type Compliance,
+  type CompliancePagination,
+  type ComplianceResponse,
+  fetchAllCompliancesThunk,
+} from '@features/compliance';
 
 interface ComplianceState {
   data: Compliance[];

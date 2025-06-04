@@ -4,7 +4,7 @@
  */
 
 const asyncHandler = require('express-async-handler');
-const AppError = require('./AppError');
+const normalizeError = require('./normalize-error');
 const { logDebug, logError } = require('./logger-helper');
 
 /**
@@ -20,29 +20,33 @@ const { logDebug, logError } = require('./logger-helper');
 const wrapAsync = (routes, options = { debug: false }) => {
   if (typeof routes === 'function') {
     if (options.debug) {
-      logDebug(`Wrapping single route handler.`);
+      logDebug('Wrapping single route handler.', null, {
+        context: 'wrapAsync',
+      });
     }
     return asyncHandler(routes);
   }
-
+  
   if (typeof routes !== 'object' || routes === null) {
-    const error = new AppError(
-      'wrapAsync expects a function or an object of route handlers',
-      500,
+    const error = normalizeError(
+      new Error('wrapAsync expects a function or an object of route handlers'),
       {
         type: 'InvalidInputError',
-        details: { providedType: typeof routes },
+        code: 'WRAP_ASYNC_TYPE_ERROR',
         isExpected: false,
+        details: { providedType: typeof routes },
       }
     );
-    logError('Invalid input to wrapAsync:', error.toJSON());
+    logError(error, null, { context: 'wrapAsync' });
     throw error;
   }
 
   return Object.entries(routes).reduce((wrappedRoutes, [key, value]) => {
     if (typeof value === 'function') {
       if (options.debug) {
-        logDebug(`Wrapping route handler: ${key}`);
+        logDebug(`Wrapping route handler: ${key}`, null, {
+          context: 'wrapAsync',
+        });
       }
       wrappedRoutes[key] = asyncHandler(value);
     } else if (typeof value === 'object' && value !== null) {

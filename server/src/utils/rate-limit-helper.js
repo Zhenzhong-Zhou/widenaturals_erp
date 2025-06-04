@@ -1,6 +1,7 @@
 const { loadEnv } = require('../config/env');
 const rateLimit = require('express-rate-limit');
-const { logWarn } = require('./logger-helper');
+const { logError } = require('./logger-helper');
+const { logSystemInfo } = require('./system-logger');
 const AppError = require('./AppError');
 const RATE_LIMIT = require('../utils/constants/domain/rate-limit');
 
@@ -12,25 +13,26 @@ const trustedIPs = process.env.TRUSTED_IPS
 
 /**
  * Default custom handler for rate-limited requests.
+ * Logs rate-limit violations and forwards a structured AppError to the error handler.
  *
- * @param {object} req - Express request object.
- * @param {object} res - Express response object.
- * @param {Function} next - Express next middleware function.
+ * @param {import('express').Request} req - The Express request object.
+ * @param {import('express').Response} res - The Express response object.
+ * @param {Function} next - The next middleware function in the stack.
+ * @param {object} options - Rate limiter options, including windowMs used to calculate retry delay.
  */
 const defaultRateLimitHandler = (req, res, next, options) => {
   const retryAfter = Math.ceil(options.windowMs / 1000);
-  const logDetails = {
-    ip: req.ip,
-    userAgent: req.headers['user-agent'] || 'Unknown',
-    method: req.method,
-    route: req.originalUrl,
-    retryAfter,
-  };
-
+  const clientKey = options.keyGenerator ? options.keyGenerator(req) : req.ip;
+  
+  // Set Retry-After header (in seconds)
+  res.set('Retry-After', retryAfter.toString());
+  
   // Log the rate limit event
-  logWarn('Rate limit exceeded:', {
-    timestamp: new Date().toISOString(),
-    ...logDetails,
+  logError('Rate limit exceeded', req, {
+    context: 'rate-limiter',
+    retryAfter,
+    maxRequests: options.max,
+    clientKey,
   });
 
   // Return a structured JSON response using AppError
@@ -39,7 +41,14 @@ const defaultRateLimitHandler = (req, res, next, options) => {
       'You have exceeded the allowed number of requests. Please try again later.',
       retryAfter,
       {
-        details: logDetails,
+        details: {
+          ip: req.ip,
+          method: req.method,
+          route: req.originalUrl,
+          userAgent: req.headers['user-agent'] || 'Unknown',
+          retryAfter,
+          clientKey,
+        },
       }
     )
   );
@@ -70,14 +79,28 @@ const createRateLimiter = ({
   statusCode = 429,
   keyGenerator = (req) => req.ip,
   skip = (req) => trustedIPs.includes(req.ip),
-  handler = defaultRateLimitHandler, // Use default handler if none is provided
+  handler = defaultRateLimitHandler, // Use the default handler if none is provided
   disableInDev = false,
+  context = 'rate-limiter',
 } = {}) => {
   if (disableInDev && process.env.NODE_ENV === 'development') {
+    logSystemInfo('Rate limiter disabled in development mode.', {
+      context,
+      windowMs,
+      max,
+    });
     // Bypass rate limiting in development mode
     return (req, res, next) => next();
   }
-
+  
+  logSystemInfo('Rate limiter initialized.', {
+    context,
+    windowMs,
+    max,
+    statusCode,
+    headers,
+  });
+  
   return rateLimit({
     windowMs,
     max,

@@ -1,10 +1,10 @@
 import { useCallback, useEffect } from 'react';
-import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
-  BulkCustomerRequest,
+  type BulkCustomerRequest,
   createBulkCustomersThunk,
   createCustomerThunk,
-  CustomerQueryParams,
+  type CustomerQueryParams,
   fetchCustomersThunk,
   fetchCustomerByIdThunk,
   selectCustomerError,
@@ -17,7 +17,7 @@ import {
   selectCustomerDetail,
   selectCustomerDetailLoading,
   selectCustomerDetailError,
-} from '../features/customer';
+} from '@features/customer';
 
 /**
  * Custom hook to manage customer-related state and actions.

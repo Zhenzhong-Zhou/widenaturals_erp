@@ -3,7 +3,13 @@ export interface CustomerRequest {
   lastname: string;
   email: string;
   phone_number: string;
-  address: string;
+  address_line1: string;
+  address_line2?: string;
+  city: string;
+  state: string;
+  postal_code: string;
+  country: string;
+  region?: string;
   note?: string; // Optional field
 }
 
@@ -56,22 +62,34 @@ export interface CustomerListResponse {
 
 export interface CustomerDetails {
   id: string;
-  customer_name: string;
+  customerName: string;
   email: string;
-  phone_number: string;
+  phoneNumber: string | null;
   address: string;
-  note?: string;
-  status_id: string;
-  status_name: string;
-  status_date: string;
-  created_at: string;
-  updated_at: string | null;
-  created_by: string;
-  updated_by: string;
+  note: string | null;
+  statusId: string;
+  statusName: string;
+  statusDate: string;
+  createdAt: string;
+  updatedAt: string | null;
+  createdBy: string;
+  updatedBy: string;
 }
 
 export interface CustomerDetailsResponse {
   success: boolean;
   message: string;
   data: CustomerDetails;
+}
+
+// Represents a single customer dropdown option
+export interface CustomerDropdownOption {
+  id: string; // UUID of the customer
+  label: string; // Formatted label (name, email, or phone based on search)
+}
+
+// Response type for fetching customers dropdown
+export interface FetchCustomersDropdownResponse {
+  success: boolean;
+  data: CustomerDropdownOption[];
 }

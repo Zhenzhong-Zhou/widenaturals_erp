@@ -1,6 +1,6 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { fetchCustomersThunk } from './customerThunks';
-import {
+import type {
   Customer,
   CustomerListResponse,
   CustomerPagination,

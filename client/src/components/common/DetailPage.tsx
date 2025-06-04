@@ -1,7 +1,8 @@
-import { FC, ReactNode } from 'react';
+import type { FC, ReactNode } from 'react';
 import Box from '@mui/material/Box';
-import { Typography, Loading } from '@components/index.ts';
-import { useThemeContext } from '../../context/ThemeContext';
+import CustomTypography from '@components/common/CustomTypography';
+import Loading from '@components/common/Loading';
+import { useThemeContext } from '@context/ThemeContext';
 
 interface DetailPageProps {
   title: string;
@@ -12,20 +13,24 @@ interface DetailPageProps {
 }
 
 const DetailPage: FC<DetailPageProps> = ({
-  title,
-  isLoading,
-  error,
-  children,
-  sx,
-}) => {
+                                           title,
+                                           isLoading,
+                                           error,
+                                           children,
+                                           sx,
+                                         }) => {
   const { theme } = useThemeContext();
-
+  
   if (isLoading) {
     return (
       <Box
+        component="main"
+        role="main"
+        aria-busy="true"
         sx={{
           width: '100%',
-          height: '100vh',
+          maxWidth: '1200px',
+          minHeight: '100vh',
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
@@ -33,28 +38,56 @@ const DetailPage: FC<DetailPageProps> = ({
           ...sx,
         }}
       >
-        <Loading message={`Loading ${title.toLowerCase()}...`} />
+        <Loading message={`Loading ${title.toLowerCase()}...`} fullPage />
       </Box>
     );
   }
-
+  
   if (error) {
     return (
-      <Box sx={{ textAlign: 'center', padding: theme.spacing(3), ...sx }}>
-        <Typography variant="h6" color={theme.palette.error.main}>
-          {error}
-        </Typography>
+      <Box
+        component="main"
+        role="alert"
+        sx={{
+          textAlign: 'center',
+          py: theme.spacing(6),
+          px: theme.spacing(2),
+          maxWidth: 800,
+          mx: 'auto',
+          color: theme.palette.error.main,
+          ...sx,
+        }}
+      >
+        <CustomTypography variant="h6">{error}</CustomTypography>
       </Box>
     );
   }
-
+  
   return (
     <Box
-      sx={{ padding: theme.spacing(3), maxWidth: 900, margin: '0 auto', ...sx }}
+      component="main"
+      sx={{
+        py: theme.spacing(4),
+        px: theme.spacing(2),
+        maxWidth: 900,
+        mx: 'auto',
+        color: theme.palette.text.primary,
+        fontFamily: "'Roboto', sans-serif",
+        WebkitFontSmoothing: 'antialiased',
+        ...sx,
+      }}
     >
-      <Typography variant="h4" sx={{ marginBottom: theme.spacing(2) }}>
+      <CustomTypography
+        variant="h4"
+        sx={{
+          mb: theme.spacing(3),
+          fontWeight: 600,
+          lineHeight: 1.4,
+          color: theme.palette.text.primary,
+        }}
+      >
         {title}
-      </Typography>
+      </CustomTypography>
       {children}
     </Box>
   );

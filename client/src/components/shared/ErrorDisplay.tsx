@@ -1,79 +1,102 @@
-import { FC, ReactNode } from 'react';
+import type { FC, ReactNode } from 'react';
 import Box from '@mui/material/Box';
-import { Typography, CustomButton } from '@components/index';
-import { monitorCsrfStatus } from '@utils/monitorCsrfStatus.ts';
-import {
-  selectCsrfStatus,
-  selectCsrfError,
-} from '../../features/csrf/state/csrfSelector';
-import { useAppSelector } from '../../store/storeHooks';
+import CustomTypography from '@components/common/CustomTypography';
+import CustomButton from '@components/common/CustomButton';
+import { monitorCsrfStatus } from '@utils/monitorCsrfStatus';
+import { selectCsrfStatus, selectCsrfError } from '@features/csrf/state';
+import { useAppSelector } from '@store/storeHooks';
+import GoBackButton from '@components/common/GoBackButton.tsx';
+import { useNavigate } from 'react-router-dom';
 
 interface ErrorDisplayProps {
-  message?: string; // Custom error message to display
-  onRetry?: () => void; // Optional retry handler
-  children?: ReactNode; // Optional custom children for additional error details
+  message?: string;
+  onRetry?: () => void;
+  children?: ReactNode;
 }
 
-const ErrorDisplay: FC<ErrorDisplayProps> = ({
-  message,
-  onRetry,
-  children,
-}) => {
-  // Select CSRF status and error from Redux store
+const ErrorDisplay: FC<ErrorDisplayProps> = ({ message, onRetry, children }) => {
   const csrfStatus = useAppSelector(selectCsrfStatus);
   const csrfError = useAppSelector(selectCsrfError);
+  
+  const navigate = useNavigate();
 
   // Monitor CSRF status and handle potential issues
   const csrfErrorMessage = (() => {
     try {
       monitorCsrfStatus(csrfStatus, csrfError);
       return null;
-    } catch (error) {
+    } catch {
       return 'An error occurred during CSRF token initialization.';
     }
   })();
-
+  
   return (
     <Box
       sx={{
+        minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        height: '100vh',
         textAlign: 'center',
         padding: 4,
-        backgroundColor: 'background.default',
-        color: 'text.primary',
+        backgroundColor: '#fdfdfd',
+        color: '#222',
       }}
     >
-      <Typography variant="h4" color="error" gutterBottom>
+      <CustomTypography
+        variant="h4"
+        gutterBottom
+        sx={{
+          color: '#d32f2f',
+          fontWeight: 700,
+          textRendering: 'optimizeLegibility',
+          minHeight: '48px',
+        }}
+      >
         {message || csrfErrorMessage || 'An unexpected error occurred.'}
-      </Typography>
+      </CustomTypography>
+      
       {children && (
         <Box
           sx={{
-            marginTop: 2,
-            padding: 2,
-            borderRadius: 1,
-            backgroundColor: 'background.paper',
-            color: 'text.secondary',
+            mt: 2,
+            p: 2,
+            borderRadius: 2,
+            backgroundColor: '#fff',
+            color: '#666',
             textAlign: 'left',
+            maxWidth: 600,
+            width: '100%',
+            fontSize: '0.95rem',
           }}
         >
           {children}
         </Box>
       )}
+      
       {onRetry && (
         <CustomButton
           variant="contained"
           color="primary"
           onClick={onRetry}
-          sx={{ marginTop: 2 }}
+          sx={{ mt: 3 }}
         >
           Retry
         </CustomButton>
       )}
+      
+      <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+        <GoBackButton />
+        
+        <CustomButton
+          variant="outlined"
+          color="secondary"
+          onClick={() => navigate('/')}
+        >
+          Go to Home
+        </CustomButton>
+      </Box>
     </Box>
   );
 };

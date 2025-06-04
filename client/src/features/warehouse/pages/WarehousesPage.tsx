@@ -1,8 +1,10 @@
-import { FC, useState } from 'react';
-import { useWarehouses } from '../../../hooks';
-import { WarehouseTable } from '../index.ts';
+import { type FC, useState } from 'react';
 import Box from '@mui/material/Box';
-import { CustomButton, ErrorMessage, Loading } from '@components/index.ts';
+import useWarehouses from '@hooks/useWarehouses';
+import Loading from '@components/common/Loading';
+import ErrorMessage from '@components/common/ErrorMessage';
+import WarehouseTable from '@features/warehouse/components/WarehouseTable';
+import CustomButton from '@components/common/CustomButton';
 
 const WarehousesPage: FC = () => {
   const [page, setPage] = useState(1);

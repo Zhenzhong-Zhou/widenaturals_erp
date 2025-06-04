@@ -1,12 +1,12 @@
 import { useEffect, useCallback } from 'react';
-import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   selectLocationTypes,
   selectLocationTypesPagination,
   selectLocationTypesLoading,
   selectLocationTypesError,
-} from '../features/locationTypes/state/locationTypesSelectors.ts';
-import { fetchLocationTypes } from '../features/locationTypes/state/locationTypesThunks.ts';
+  fetchLocationTypesThunk,
+} from '@features/locationType/state';
 
 /**
  * Custom hook for fetching and managing location types.
@@ -30,7 +30,7 @@ const useLocationTypes = () => {
       if (page < 1) return; // Prevent invalid page numbers
 
       try {
-        dispatch(fetchLocationTypes({ page, limit })).unwrap();
+        dispatch(fetchLocationTypesThunk({ page, limit })).unwrap();
       } catch (err) {
         console.error('Failed to fetch location types:', err);
       }

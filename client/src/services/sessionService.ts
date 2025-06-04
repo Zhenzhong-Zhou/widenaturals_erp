@@ -1,13 +1,13 @@
-import axiosInstance from '../utils/axiosConfig';
-import { handleError, mapErrorMessage } from '../utils/errorUtils';
-import { AppError, ErrorType } from '../utils/AppError';
-import { clearTokens, getToken } from '../utils/tokenManager';
-import { withRetry } from '../utils/retryUtils';
-import { withTimeout } from '../utils/timeoutUtils';
-import { selectCsrfToken } from '../features/csrf/state/csrfSelector.ts';
-import { store } from '../store/store.ts';
-import { logoutThunk } from '../features/session/state/sessionThunks.ts';
-import { API_ENDPOINTS } from './apiEndponits.ts';
+import axiosInstance from '@utils/axiosConfig';
+import { API_ENDPOINTS } from '@services/apiEndpoints';
+import { handleError, mapErrorMessage } from '@utils/errorUtils';
+import { AppError, ErrorType } from '@utils/AppError';
+import { clearTokens, getToken } from '@utils/tokenManager';
+import { withRetry } from '@utils/retryUtils';
+import { withTimeout } from '@utils/timeoutUtils';
+import { selectCsrfToken } from '@features/csrf/state';
+import { store } from '@store/store';
+import { logoutThunk } from '@features/session/state';
 
 interface LoginResponse {
   accessToken: string;
@@ -95,9 +95,10 @@ const refreshToken = async (): Promise<{ accessToken: string }> => {
     refreshAttemptCount += 1;
     const state = store.getState();
     const csrfToken = selectCsrfToken(state);
-
+    
     const response = await axiosInstance.post<{ accessToken: string }>(
       API_ENDPOINTS.REFRESH_TOKEN,
+      {},
       {
         headers: {
           'X-CSRF-Token': csrfToken,
@@ -107,7 +108,7 @@ const refreshToken = async (): Promise<{ accessToken: string }> => {
         withCredentials: true,
       }
     );
-
+    
     // Update Axios headers to use the new access token
     axiosInstance.defaults.headers.common['Authorization'] =
       `Bearer ${response.data.accessToken}`;

@@ -1,96 +1,158 @@
 const {
   getAllPriceTypes,
   getPricingTypeById,
+  getPricingTypesForDropdown,
 } = require('../repositories/pricing-type-repository');
-const { logInfo, logError } = require('../utils/logger-helper');
+const { logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
+const { logSystemInfo, logSystemError } = require('../utils/system-logger');
 const {
   getPricingDetailsByPricingTypeId,
 } = require('../repositories/pricing-repository');
+const { canViewPricingTypes } = require('../business/pricing-type-business');
+const { transformPaginatedPricingTypeResult, transformPricingTypeMetadata } = require('../transformers/pricing-type-transformer');
+const { getStatusId } = require('../config/status-cache');
 
 /**
- * Service to fetch all price types with pagination and optional filtering.
- * @param {Object} params - Query parameters for pagination and filtering.
- * @param {number} [params.page=1] - The page number for pagination.
- * @param {number} [params.limit=10] - The number of items per page.
- * @param {string} [params.name] - Optional filter for price type name.
- * @param {string} [params.status] - Optional filter for status.
- * @returns {Promise<Object>} - The paginated list of price types and metadata.
+ * Service: Fetches all pricing types with pagination and filtering.
+ *
+ * Applies business logic for permission checking, optional filtering,
+ * and formats results using transformer utilities.
+ *
+ * @param {object} params - Query parameters.
+ * @param {number} [params.page=1] - Page number for pagination.
+ * @param {number} [params.limit=10] - Records per page.
+ * @param {string} [params.name] - Optional name/code search filter.
+ * @param {string} [params.startDate] - Optional filter start range (ISO date).
+ * @param {string} [params.endDate] - Optional filter end range (ISO date).
+ * @param {object} params.user - Authenticated user object.
+ * @returns {Promise<object>} - Transformed paginated price types.
  */
-const fetchAllPriceTypes = async ({ page, limit, name, status }) => {
+const fetchAllPriceTypes = async ({
+                                    page = 1,
+                                    limit = 10,
+                                    name,
+                                    startDate,
+                                    endDate,
+                                    user,
+                                  }) => {
+  if (!user) {
+    throw AppError.authenticationError('User authentication required');
+  }
+  
+  if ((startDate && !endDate) || (!startDate && endDate)) {
+    throw AppError.validationError('Both startDate and endDate must be provided together.');
+  }
+  
+  const canViewAllStatuses = await canViewPricingTypes(user);
+
+  // Determine effective statusId to pass to repository
+  const statusId = canViewAllStatuses ? null : getStatusId('pricing_type_active');
+  
+  const search = name?.trim() || null;
+  
   try {
-    // Construct filters dynamically
-    const filters = {};
-    if (name) filters.name = name.trim();
-    if (status) filters.status = status.trim();
-
-    logInfo('Fetching price types', { page, limit, filters });
-
-    // Call the repository layer, which handles pagination
-    const { data, pagination } = await getAllPriceTypes({
+    logSystemInfo('Fetching pricing types', {
+      context: 'pricing-type-service',
       page,
       limit,
-      filters,
+      statusId,
+      search,
+      startDate,
+      endDate,
+      canViewAllStatuses,
+      userId: user.id,
     });
-
-    logInfo('Price types fetched successfully', {
-      resultCount: data.length,
-      pagination,
+    
+    const rawResult = await getAllPriceTypes({
+      page,
+      limit,
+      statusId,
+      search,
+      startDate,
+      endDate,
+      canViewAllStatuses,
     });
-
-    return {
-      data,
-      pagination,
-    };
+    
+    const result = transformPaginatedPricingTypeResult(rawResult);
+    
+    logSystemInfo('Successfully fetched pricing types', {
+      context: 'pricing-type-service',
+      resultCount: result.data.length,
+    });
+    
+    return result;
   } catch (error) {
-    logError('Error in fetchAllPriceTypes', {
-      message: error.message,
-      stack: error.stack,
+    logSystemError('Failed to fetch pricing types', {
+      context: 'pricing-type-service',
+      error,
     });
-
-    throw AppError.serviceError('Failed to fetch price types', {
-      originalError: error.message,
+    
+    throw AppError.serviceError('Failed to fetch pricing types', {
+      cause: error,
     });
   }
 };
 
 /**
- * Service function to fetch pricing details by pricing type ID.
- * @param {string} pricingTypeId - The ID of the pricing type to fetch details for.
- * @param page
- * @param limit
- * @returns {Promise<Object[]>} - The list of pricing details.
+ * Service function to fetch pricing type metadata by ID.
+ *
+ * @param {string} pricingTypeId - UUID of the pricing type.
+ * @returns {Promise<object>} The transformed pricing type metadata.
+ * @throws {AppError} If the pricing type is not found or a database error occurs.
  */
-const fetchPricingTypeDetailsByPricingTypeId = async (
-  pricingTypeId,
-  page,
-  limit
-) => {
+const fetchPricingTypeByIdWithMetadataService = async (pricingTypeId) => {
   try {
-    const pricingTypeDetails = await getPricingTypeById(pricingTypeId);
-    if (!pricingTypeDetails) {
+    const pricingTypeRow = await getPricingTypeById(pricingTypeId);
+    
+    if (!pricingTypeRow) {
       throw AppError.notFoundError('Pricing type not found');
     }
-
-    const pricingDetails = await getPricingDetailsByPricingTypeId({
-      pricingTypeId,
-      page,
-      limit,
-    });
-
-    return {
-      pricingTypeDetails,
-      pricingDetails: pricingDetails.data,
-      pagination: pricingDetails.pagination,
-    };
+    
+    return transformPricingTypeMetadata(pricingTypeRow);
   } catch (error) {
-    throw AppError.serviceError('Failed to fetch pricing type with details', {
-      originalError: error.message,
+    logSystemError('Failed to fetch pricing type metadata', {
+      context: 'pricing-types-service/fetchPricingTypeByIdWithMetadata',
+      pricingTypeId,
+      error,
     });
+    
+    throw AppError.serviceError('Unable to retrieve pricing type metadata.', { cause: error });
+  }
+};
+
+/**
+ * Service function to fetch active pricing types for dropdown.
+ * Applies business logic such as formatting labels and validating product ID.
+ * Labels are formatted as: 'PricingTypeName - $Price'.
+ *
+ * @param {string} productId - The ID of the product to fetch related pricing types.
+ * @returns {Promise<Array<{ id: string, label: string }>>} - List of pricing types formatted for dropdown use.
+ * @throws {Error} - Throws an error if the productId is missing or fetching data fails.
+ */
+const fetchAvailablePricingTypesForDropdown = async (productId) => {
+  try {
+    if (!productId) {
+      throw AppError.validationError(
+        'Product ID is required to fetch pricing types.'
+      );
+    }
+
+    const pricingTypes = await getPricingTypesForDropdown(productId);
+
+    // Apply additional formatting or filtering if needed (e.g., logging, auditing)
+    return pricingTypes.map((type) => ({
+      id: type.id,
+      label: type.label,
+    }));
+  } catch (error) {
+    logError('Error fetching pricing types in service:', error);
+    throw AppError.serviceError('Failed to fetch pricing types for dropdown');
   }
 };
 
 module.exports = {
   fetchAllPriceTypes,
-  fetchPricingTypeDetailsByPricingTypeId,
+  fetchPricingTypeByIdWithMetadataService,
+  fetchAvailablePricingTypesForDropdown,
 };

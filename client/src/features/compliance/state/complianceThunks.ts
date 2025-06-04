@@ -1,9 +1,9 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import {
+import type {
   ComplianceResponse,
   FetchAllCompliancesParams,
-} from './complianceTypes.ts';
-import { complianceService } from '../../../services';
+} from '@features/compliance';
+import { complianceService } from '@services/complianceService';
 
 export const fetchAllCompliancesThunk = createAsyncThunk<
   ComplianceResponse,

@@ -1,8 +1,9 @@
-import { FC } from 'react';
-import { CustomCard, Typography } from '@components/index.ts';
+import type { FC } from 'react';
+import type { UsersCardProps } from '@features/user';
 import Box from '@mui/material/Box';
 import Avatar from '@mui/material/Avatar';
-import { UsersCardProps } from '../state/userTypes.ts';
+import CustomCard from '@components/common/CustomCard';
+import CustomTypography from '@components/common/CustomTypography';
 
 const UsersCard: FC<UsersCardProps> = ({ user }) => {
   const userInfo = [
@@ -46,13 +47,13 @@ const UsersCard: FC<UsersCardProps> = ({ user }) => {
       </Box>
 
       {/* User Information */}
-      <Typography variant="h6" gutterBottom align="center">
+      <CustomTypography variant="h6" gutterBottom align="center">
         {user.fullname}
-      </Typography>
+      </CustomTypography>
       {userInfo.map((info, index) => (
-        <Typography key={index} variant="body2">
+        <CustomTypography key={index} variant="body2">
           {info.label}: {info.value || 'N/A'}
-        </Typography>
+        </CustomTypography>
       ))}
     </CustomCard>
   );

@@ -1,8 +1,9 @@
-import { FC } from 'react';
-import Box from '@mui/material/Box';
+import type { FC } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CustomButton, Typography } from '@components/index.ts';
-import { useThemeContext } from '../context/ThemeContext';
+import Box from '@mui/material/Box';
+import CustomButton from '@components/common//CustomButton';
+import CustomTypography from '@components/common/CustomTypography';
+import { useThemeContext } from '@context/ThemeContext';
 
 const HomePage: FC = () => {
   const { theme } = useThemeContext(); // Get theme from context
@@ -14,7 +15,7 @@ const HomePage: FC = () => {
 
   return (
     <Box>
-      <Typography>Welcome</Typography>
+      <CustomTypography>Welcome</CustomTypography>
       <CustomButton
         variant="contained"
         size="large"

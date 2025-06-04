@@ -1,44 +1,40 @@
 const AppError = require('../utils/AppError');
-const { getStatusIdByName } = require('../repositories/status-repository');
-const { validateCustomer } = require('../validators/customer-validator');
 const {
   bulkCreateCustomers,
   getAllCustomers,
   getCustomersForDropdown,
-  getCustomerById,
+  getCustomerDetailsById,
 } = require('../repositories/customer-repository');
+const { prepareCustomersForInsert } = require('../shared/customer-utils');
 const { logError } = require('../utils/logger-helper');
+const { withTransaction } = require('../database/db');
+const {
+  transformCustomerDetails,
+} = require('../transformers/customer-transformer');
 
 /**
- * Creates multiple customers in bulk.
+ * Creates multiple customers in bulk with validation and conflict handling.
+ * Wraps the insertion in a database transaction.
+ *
  * @param {Array} customers - List of customer objects.
- * @param {String} createdBy - User ID from JWT token.
- * @returns {Promise<Array>} - The inserted customers.
+ * @param {String} createdBy - ID of the user initiating the operation.
+ * @returns {Promise<Array>} - Inserted or updated customer records.
  */
 const createCustomers = async (customers, createdBy) => {
-  if (!Array.isArray(customers) || customers.length === 0) {
-    throw AppError.validationError('Customer list is empty.');
-  }
-
-  // Fetch the active status ID
-  const activeStatusId = await getStatusIdByName('active');
-  if (!activeStatusId) {
-    throw AppError.databaseError('Active status ID not found.');
-  }
-
-  // Validate customers concurrently
-  await Promise.all(customers.map(validateCustomer));
-
-  // Transform customers with default values
-  const transformedCustomers = customers.map((customer) => ({
-    ...customer,
-    status_id: activeStatusId, // Always set status as active
-    created_by: createdBy, // Extract from token
-    updated_by: createdBy, // Updated by same user initially
-  }));
-
-  // Bulk insert customers (handling conflicts)
-  return bulkCreateCustomers(transformedCustomers);
+  return withTransaction(async (client) => {
+    try {
+      const preparedCustomers = await prepareCustomersForInsert(
+        customers,
+        createdBy
+      );
+      return await bulkCreateCustomers(preparedCustomers, client);
+    } catch (error) {
+      throw AppError.serviceError(
+        'Failed to create customers in transaction',
+        error
+      );
+    }
+  });
 };
 
 /**
@@ -103,9 +99,19 @@ const fetchCustomersDropdown = async (search = '', limit = 100) => {
  * Fetch customer details service function.
  * @param {string} customerId - Customer ID to retrieve details.
  * @returns {Promise<Object>} - Returns customer details.
+ * @throws Will throw an error if the fetch fails.
  */
 const fetchCustomerDetails = async (customerId) => {
-  return await getCustomerById(customerId);
+  try {
+    const row = await getCustomerDetailsById(customerId);
+    if (!row) {
+      throw AppError.notFoundError('Customer not found');
+    }
+    return transformCustomerDetails(row);
+  } catch (error) {
+    logError('Error fetching customer details:', error.message);
+    throw AppError.serviceError('Failed to fetch customer details.');
+  }
 };
 
 module.exports = {

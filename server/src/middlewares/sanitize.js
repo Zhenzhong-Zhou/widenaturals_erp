@@ -1,5 +1,8 @@
-const customSanitization = require('../utils/custom-sanitization');
-const sanitizeRichText = require('../utils/sanitize-html');
+const {
+  sanitizeRequestBody,
+  sanitizeQueryParams,
+  sanitizeParams
+} = require('../utils/sanitization-utils');
 const AppError = require('../utils/AppError');
 const { logError } = require('../utils/logger-helper');
 
@@ -8,29 +11,16 @@ const { logError } = require('../utils/logger-helper');
  */
 const sanitizeInput = (req, res, next) => {
   try {
-    // Sanitize request body
-    if (req.body) {
-      req.body = customSanitization(req.body);
-    }
-
-    // Sanitize query parameters
-    if (req.query) {
-      req.query = customSanitization(req.query);
-    }
-
-    // Sanitize URL parameters
-    if (req.params) {
-      req.params = customSanitization(req.params);
-    }
-
+    sanitizeRequestBody(req, Object.keys(req.body || {}));
+    sanitizeQueryParams(req);
+    sanitizeParams(req);
     next();
   } catch (error) {
-    logError('Input sanitization failed:', {
-      method: req.method,
-      route: req.originalUrl,
-      error: error.message,
+    logError(error, req, {
+      context: 'input-sanitizer',
+      stage: 'sanitization',
     });
-
+    
     next(
       AppError.sanitizationError('Input sanitization failed.', {
         details: error.message,
@@ -49,23 +39,16 @@ const sanitizeInput = (req, res, next) => {
 const sanitizeFields = (fields, isRichText = false) => {
   return (req, res, next) => {
     try {
-      fields.forEach((field) => {
-        if (req.body[field]) {
-          req.body[field] = isRichText
-            ? sanitizeRichText(req.body[field])
-            : customSanitization(req.body[field]);
-        }
-      });
-
+      sanitizeRequestBody(req, fields, isRichText);
+      
       next();
     } catch (error) {
-      logError('Field sanitization failed:', {
-        method: req.method,
-        route: req.originalUrl,
+      logError(error, req, {
+        context: 'field-sanitizer',
         fields,
-        error: error.message,
+        isRichText,
       });
-
+      
       next(
         AppError.sanitizationError('Field sanitization failed.', {
           details: error.message,

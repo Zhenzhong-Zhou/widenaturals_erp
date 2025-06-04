@@ -1,7 +1,8 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import Box from '@mui/material/Box';
-import { useThemeContext } from '../../../context/ThemeContext';
-import { GoBackButton, Typography } from '@components/index.ts';
+import { useThemeContext } from '@context/ThemeContext';
+import GoBackButton from '@components/common/GoBackButton';
+import CustomTypography from '@components/common/CustomTypography';
 
 interface CustomerDetailHeaderProps {
   customerName: string;
@@ -16,7 +17,7 @@ const CustomerDetailHeader: FC<CustomerDetailHeaderProps> = ({
     <Box sx={{ textAlign: 'center', marginBottom: theme.spacing(3) }}>
       <GoBackButton />
       {/* Customer Name */}
-      <Typography
+      <CustomTypography
         variant="h6"
         sx={{
           marginTop: theme.spacing(2),
@@ -24,7 +25,7 @@ const CustomerDetailHeader: FC<CustomerDetailHeaderProps> = ({
         }}
       >
         Customer Name: {customerName} Info
-      </Typography>
+      </CustomTypography>
     </Box>
   );
 };

@@ -8,61 +8,78 @@ const createGlobalRateLimiter = () =>
   createRateLimiter({
     windowMs: RATE_LIMIT.GLOBAL.WINDOW_MS,
     max: RATE_LIMIT.GLOBAL.MAX,
+    context: 'global-rate-limiter',
+    disableInDev: true,
   });
 
 /**
- * Creates an API-specific rate limiter for `/api` routes.
+ * Creates a rate limiter for general API routes (`/api`).
  */
 const createApiRateLimiter = () =>
   createRateLimiter({
     windowMs: RATE_LIMIT.API.WINDOW_MS,
     max: RATE_LIMIT.API.MAX,
+    context: 'api-rate-limiter',
   });
 
-// CSRF Token Route Rate Limiter
+/**
+ * Creates a rate limiter for the CSRF token endpoint.
+ */
 const createCsrfTokenRateLimiter = () =>
   createRateLimiter({
     windowMs: RATE_LIMIT.CSRF.WINDOW_MS,
     max: RATE_LIMIT.CSRF.MAX,
+    context: 'csrf-token-rate-limiter',
   });
 
 /**
- * Creates a login-specific rate limiter to limit login attempts.
+ * Creates a rate limiter to control login attempts.
  */
 const createLoginRateLimiter = () =>
   createRateLimiter({
     windowMs: RATE_LIMIT.LOGIN.WINDOW_MS,
     max: RATE_LIMIT.LOGIN.MAX,
+    context: 'login-rate-limiter',
   });
 
-// Refresh Token Route Rate Limiter
+/**
+ * Creates a rate limiter for the refresh token endpoint.
+ */
 const createRefreshRateLimiter = () =>
   createRateLimiter({
     windowMs: RATE_LIMIT.REFRESH.WINDOW_MS,
     max: RATE_LIMIT.REFRESH.MAX,
+    context: 'refresh-token-rate-limiter',
   });
 
-// User Profile Route Rate Limiter
+/**
+ * Creates a rate limiter for user profile actions (e.g. updates).
+ */
 const createUserProfileRateLimiter = () =>
   createRateLimiter({
     windowMs: RATE_LIMIT.USER_PROFILE.WINDOW_MS,
     max: RATE_LIMIT.USER_PROFILE.MAX,
+    context: 'user-profile-rate-limiter',
   });
 
-// Reset Password Route Rate Limiter
+/**
+ * Creates a rate limiter for password reset requests.
+ */
 const createResetPasswordRateLimiter = () =>
   createRateLimiter({
     windowMs: RATE_LIMIT.PASSWORD_RESET.WINDOW_MS,
     max: RATE_LIMIT.PASSWORD_RESET.MAX,
+    context: 'reset-password-rate-limiter',
   });
 
 /**
- * Creates an admin-specific rate limiter for admin routes.
+ * Creates a rate limiter for admin-protected routes.
  */
 const createAdminRateLimiter = () =>
   createRateLimiter({
     windowMs: RATE_LIMIT.ADMIN.WINDOW_MS,
     max: RATE_LIMIT.ADMIN.MAX,
+    context: 'admin-rate-limiter',
   });
 
 module.exports = {

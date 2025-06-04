@@ -1,8 +1,8 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { fetchPermissionsThunk } from './authorizeThunk.ts';
+import { fetchPermissionsThunk } from '@features/authorize/state/authorizeThunk';
 
 // Initial state
-interface PermissionsState {
+export interface PermissionsState {
   roleName: string;
   permissions: string[];
   loading: boolean;

@@ -2,11 +2,11 @@ const {
   createCustomers,
   fetchCustomersService,
   fetchCustomersDropdown,
-  fetchCustomerDetails,
 } = require('../services/customer-service');
 const AppError = require('../utils/AppError');
 const wrapAsync = require('../utils/wrap-async');
 const { logError } = require('../utils/logger-helper');
+const { getCustomerDetailsLogic } = require('../business/customer-business');
 
 /**
  * Handles creating a single customer or multiple customers.
@@ -89,18 +89,14 @@ const getCustomersDropdownController = wrapAsync(async (req, res, next) => {
  * @param {Response} res - Express response object.
  */
 const getCustomerByIdController = wrapAsync(async (req, res, next) => {
-  try {
-    const { id } = req.params; // Get customer ID from request params
-    const customer = await fetchCustomerDetails(id);
+  const { id } = req.params; // Get customer ID from request params
+  const customer = await getCustomerDetailsLogic(id);
 
-    res.status(200).json({
-      success: true,
-      message: 'Customer retrieved successfully.',
-      data: customer,
-    });
-  } catch (error) {
-    next(error);
-  }
+  res.status(200).json({
+    success: true,
+    message: 'Customer retrieved successfully.',
+    data: customer,
+  });
 });
 
 module.exports = {

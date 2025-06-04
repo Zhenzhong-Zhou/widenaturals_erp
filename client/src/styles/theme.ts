@@ -1,28 +1,136 @@
-import { createTheme, ThemeOptions, Theme } from '@mui/material/styles';
+import {
+  createTheme,
+  type ThemeOptions,
+  type Theme,
+} from '@mui/material/styles';
 
-// Sync global CSS variables with theme
-const syncGlobalVariables = (theme: Theme) => {
-  const root = document.documentElement;
-  root.style.setProperty('--primary-color', theme.palette.primary.main);
-  root.style.setProperty('--secondary-color', theme.palette.secondary.main);
-  root.style.setProperty('--bg-light', theme.palette.background.default);
-  root.style.setProperty('--text-light', theme.palette.text.primary);
-  root.style.setProperty('--border-light', theme.palette.divider);
-};
+// Extend the palette with custom colors
+declare module '@mui/material/styles' {
+  interface Palette {
+    actionCustom: {
+      addNew: string;
+      refresh: string;
+    };
+    backgroundCustom: {
+      customDark: string;
+      customHover: string;
+    };
+  }
+  interface PaletteOptions {
+    actionCustom?: {
+      addNew?: string;
+      refresh?: string;
+    };
+    backgroundCustom?: {
+      customDark?: string;
+      customHover?: string;
+    };
+  }
+  interface Palette {
+    stack: string;
+  }
+  interface PaletteOptions {
+    stack?: string;
+  }
+}
 
-// Shared tokens
+// Define your shared tokens for consistency
 const sharedTokens: ThemeOptions = {
   typography: {
     fontFamily: "'Roboto', sans-serif",
-    fontSize: 16, // Base font size
-    h1: { fontSize: '2.5rem', fontWeight: 700 },
-    h2: { fontSize: '2rem', fontWeight: 700 },
-    h3: { fontSize: '1.5rem', fontWeight: 900 },
-    h6: { fontSize: '1.3rem', fontWeight: 700 },
-    body1: { fontSize: '1rem', lineHeight: 1.7 },
-    body2: { fontSize: '0.875rem', lineHeight: 1.6 },
+    h1: {
+      fontSize: 'clamp(2.5rem, 5vw, 3.5rem)',
+      fontWeight: 700,
+    },
+    h2: {
+      fontSize: 'clamp(2rem, 4vw, 3rem)',
+      fontWeight: 700,
+    },
+    h3: {
+      fontSize: 'clamp(1.5rem, 3vw, 2.5rem)',
+      fontWeight: 600,
+    },
+    h4: {
+      fontSize: '1.75rem',
+      fontWeight: 600,
+    },
+    h5: {
+      fontSize: 'clamp(1.25rem, 2vw, 1.5rem)', // 20px–24px
+      fontWeight: 600,
+    },
+    h6: {
+      fontSize: 'clamp(1rem, 1.5vw, 1.25rem)', // 16px–20px
+      fontWeight: 600,
+    },
+    body1: {
+      fontSize: '1rem',
+      lineHeight: 1.6,
+    },
+    body2: {
+      fontSize: '0.875rem',
+      lineHeight: 1.6,
+    },
+    caption: {
+      fontSize: '0.8125rem', // ~13px
+      fontWeight: 600,
+      lineHeight: 1.4,
+    },
+    subtitle1: {
+      fontSize: '0.875rem',
+      fontWeight: 500,
+      lineHeight: 1.5,
+    },
+    subtitle2: {
+      fontSize: '0.8125rem',
+      fontWeight: 400,
+      lineHeight: 1.5,
+    },
+    overline: {
+      fontSize: '0.75rem',
+      fontWeight: 500,
+      letterSpacing: '0.08em',
+      textTransform: 'uppercase',
+      lineHeight: 1.6,
+    },
   },
   spacing: 8,
+  shape: {
+    borderRadius: 8,
+  },
+  zIndex: {
+    mobileStepper: 1000,
+    appBar: 1100,
+    drawer: 1200,
+    modal: 1300,
+    snackbar: 1400,
+    tooltip: 1500,
+  },
+  breakpoints: {
+    values: {
+      xs: 0,
+      sm: 600,
+      md: 900,
+      lg: 1200,
+      xl: 1536,
+    },
+  },
+  transitions: {
+    duration: {
+      shortest: 150,
+      shorter: 200,
+      short: 250,
+      standard: 300,
+      complex: 375,
+      enteringScreen: 225,
+      leavingScreen: 195,
+    },
+    easing: {
+      easeInOut: 'cubic-bezier(0.4, 0, 0.2, 1)',
+      easeOut: 'cubic-bezier(0.0, 0, 0.2, 1)',
+      easeIn: 'cubic-bezier(0.4, 0, 1, 1)',
+      sharp: 'cubic-bezier(0.4, 0, 0.6, 1)',
+    },
+  },
 };
 
 // Light theme
@@ -35,10 +143,19 @@ const lightTheme = createTheme({
     background: { default: '#f4f4f4', paper: '#ffffff' },
     text: { primary: '#333', secondary: '#555' },
     divider: '#dcdcdc',
+    stack: '#f5f5f5',
     success: { main: '#28a745' },
     warning: { main: '#ffc107' },
     error: { main: '#dc3545' },
     info: { main: '#17a2b8' },
+    actionCustom: {
+      addNew: '#28a745',
+      refresh: '#007bff',
+    },
+    backgroundCustom: {
+      customDark: '#1a1a1a',
+      customHover: '#2b2b2b',
+    },
   },
 });
 
@@ -52,16 +169,21 @@ const darkTheme = createTheme({
     background: { default: '#121212', paper: '#1e1e1e' },
     text: { primary: '#f4f4f4', secondary: '#ccc' },
     divider: '#333',
+    stack: '#424242',
     success: { main: '#28a745' },
     warning: { main: '#ffc107' },
     error: { main: '#dc3545' },
     info: { main: '#17a2b8' },
+    actionCustom: {
+      addNew: '#28a745',
+      refresh: '#007bff',
+    },
+    backgroundCustom: {
+      customDark: '#1a1a1a',
+      customHover: '#2b2b2b',
+    },
   },
 });
-
-// Apply global variables dynamically
-syncGlobalVariables(lightTheme);
-syncGlobalVariables(darkTheme);
 
 export { lightTheme, darkTheme };
 export type { Theme };

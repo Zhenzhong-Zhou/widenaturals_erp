@@ -1,18 +1,41 @@
 import { createSelector } from '@reduxjs/toolkit';
-import { RootState } from '../../../store/store.ts';
-import { UseUsersResponse } from './userTypes';
+import type { RootState } from '@store/store';
+import type { UsersState } from '@features/user';
 
-// Base selectors
-export const selectUsers = (state: RootState): UseUsersResponse =>
-  state.users.users;
+/**
+ * Base selector for the users slice.
+ * Type assertion ensures correct type inference.
+ */
+const selectUsersState = (state: RootState): UsersState =>
+  state.users as UsersState;
 
-export const selectUsersLoading = (state: RootState): boolean =>
-  state.users.loading;
+/**
+ * Selects the array of user data.
+ */
+export const selectUsers = createSelector(
+  selectUsersState,
+  (state) => state.users
+);
 
-export const selectUsersError = (state: RootState): string | null =>
-  state.users.error;
+/**
+ * Selects the loading status of users.
+ */
+export const selectUsersLoading = createSelector(
+  selectUsersState,
+  (state) => state.loading
+);
 
-// Memoized Selector (Combining Selectors)
+/**
+ * Selects the error message related to users.
+ */
+export const selectUsersError = createSelector(
+  selectUsersState,
+  (state) => state.error
+);
+
+/**
+ * Combines user data, loading, and error state into one object.
+ */
 export const selectUsersData = createSelector(
   [selectUsers, selectUsersLoading, selectUsersError],
   (users, loading, error) => ({

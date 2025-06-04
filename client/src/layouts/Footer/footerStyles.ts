@@ -1,4 +1,4 @@
-import { SxProps, Theme } from '@mui/material/styles';
+import type { SxProps, Theme } from '@mui/material/styles';
 
 export const footerStyles = (theme: Theme): SxProps<Theme> => ({
   width: '100%', // Adjust width dynamically

@@ -5,13 +5,19 @@
 exports.up = async function (knex) {
   await knex.schema.createTable('locations', (table) => {
     table.uuid('id').primary().defaultTo(knex.raw('uuid_generate_v4()'));
-    table
-      .uuid('location_type_id')
-      .notNullable()
-      .references('id')
-      .inTable('location_types');
+    table.uuid('location_type_id').notNullable().references('id').inTable('location_types');
     table.string('name', 100).notNullable();
-    table.text('address');
+    
+    // Structured address fields
+    table.string('address_line1', 150);
+    table.string('address_line2', 150);
+    table.string('city', 100);
+    table.string('province_or_state', 100);
+    table.string('postal_code', 20);
+    table.string('country', 100);
+    
+    table.boolean('is_archived').defaultTo(false);
+    
     table.uuid('status_id').notNullable().references('id').inTable('status');
     table.timestamp('status_date', { useTz: true }).defaultTo(knex.fn.now());
     table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());

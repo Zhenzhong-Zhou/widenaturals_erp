@@ -1,12 +1,12 @@
 import { useEffect, useCallback, useMemo } from 'react';
-import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchAllCompliancesThunk,
   selectCompliances,
   selectCompliancesPagination, // Ensure correct selector name
   selectCompliancesError,
   selectCompliancesLoading,
-} from '../features/compliance';
+} from '@features/compliance';
 
 const useCompliances = (
   page: number,

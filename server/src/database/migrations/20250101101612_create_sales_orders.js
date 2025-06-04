@@ -22,7 +22,7 @@ exports.up = async function (knex) {
       table.decimal('subtotal', 10, 2).notNullable();
       table
         .uuid('tax_rate_id')
-        .nullable()
+        .notNullable()
         .references('id')
         .inTable('tax_rates'); // Ensure tax rate consistency
 
@@ -31,22 +31,16 @@ exports.up = async function (knex) {
       table.decimal('total_amount', 10, 2).notNullable();
       table
         .uuid('delivery_method_id')
-        .references('id')
-        .inTable('delivery_methods');
-      table
-        .uuid('order_status_id')
         .notNullable()
         .references('id')
-        .inTable('order_status');
-      table.timestamp('status_date', { useTz: true }).defaultTo(knex.fn.now());
-      table.text('note');
+        .inTable('delivery_methods');
       table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
       table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
       table.uuid('created_by').references('id').inTable('users');
       table.uuid('updated_by').references('id').inTable('users');
 
       table.index('delivery_method_id');
-      table.index(['customer_id', 'order_status_id', 'tax_rate_id']);
+      table.index(['customer_id', 'tax_rate_id']);
     });
   }
 };

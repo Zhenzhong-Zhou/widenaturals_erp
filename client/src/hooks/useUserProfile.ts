@@ -1,10 +1,10 @@
 import { useEffect } from 'react';
-import { useAppDispatch, useAppSelector } from '../store/storeHooks';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchUserProfileThunk,
   selectUserProfileData,
-  UserProfileResponse,
-} from '../features/user';
+  type UserProfileResponse,
+} from '@features/user';
 
 /**
  * Custom hook to fetch and manage the user profile.

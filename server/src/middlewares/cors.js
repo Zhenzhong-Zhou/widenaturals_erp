@@ -29,22 +29,30 @@ const corsMiddleware = cors({
           }
         );
       }
-
+      
+      const isDev = process.env.NODE_ENV === 'development';
+      
       // Read allowed origins from environment variables
       const allowedOrigins = process.env.ALLOWED_ORIGINS
-        ? process.env.ALLOWED_ORIGINS.split(',').filter(Boolean)
-        : [];
-
+        ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim().toLowerCase()).filter(Boolean)
+        : isDev
+          ? ['http://localhost:5173']
+          : [];
+      
       if (!origin) {
         // Handle requests without an Origin header
         if (allowedOrigins.length === 0) {
           logWarn(
-            'No allowed origins specified in ALLOWED_ORIGINS. CORS may be overly permissive.'
+            'CORS: No ALLOWED_ORIGINS set. All requests without origin may be allowed.',
+            null,
+            { middleware: 'cors', mode: process.env.NODE_ENV }
           );
         }
 
         // Log and allow requests without an origin (e.g., server-to-server or preflight)
-        logWarn('CORS request received without an Origin header.');
+        logWarn('CORS: Request without Origin header allowed.', null, {
+          middleware: 'cors',
+        });
         return callback(null, true);
       }
 
@@ -60,17 +68,25 @@ const corsMiddleware = cors({
           details: { origin },
         }
       );
-      logWarn(corsError.message, { origin });
+      
+      logWarn(corsError.message, null, {
+        origin,
+        middleware: 'cors',
+      });
+      
       return callback(corsError);
     } catch (error) {
-      logError('Error configuring CORS:', {
-        message: error.message,
-        stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined,
+      logError(error, null, {
+        middleware: 'cors',
+        context: 'CORS origin validation',
+        origin,
       });
+      
       const corsError = AppError.corsError('CORS configuration failed.', {
         details: { error: error.message },
       });
-      callback(corsError);
+      
+      return callback(corsError);
     }
   },
   methods: process.env.ALLOWED_METHODS?.split(',') || [
@@ -90,7 +106,7 @@ const corsMiddleware = cors({
     'Origin',
     'X-CSRF-Token',
   ], // Allowed headers
-  exposedHeaders: process.env.EXPOSED_HEADERS?.split(',') || [], // Exposed headers
+  exposedHeaders: process.env.EXPOSED_HEADERS?.split(',') || ['Content-Disposition'], // Exposed headers
   credentials: process.env.ALLOW_CREDENTIALS === 'true', // Allow credentials (cookies, Authorization header, etc.)
   optionsSuccessStatus: parseInt(process.env.OPTIONS_SUCCESS_STATUS, 10) || 204, // Response status for preflight requests
 });

@@ -4,13 +4,14 @@ import {
   loginSuccess,
   logout,
   updateAccessToken,
-} from './sessionSlice.ts';
-import { csrfService, sessionService } from '../../../services';
+} from '@features/session/state/sessionSlice';
+import { sessionService } from '@services/sessionService';
+import { csrfService } from '@services/csrfService';
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { AppError, ErrorType } from '@utils/AppError.tsx';
-import { handleError } from '@utils/errorUtils.ts';
-import { updateCsrfToken } from '../../csrf/state/csrfSlice.ts';
-import { persistor } from '../../../store/store.ts';
+import { AppError, ErrorType } from '@utils/AppError';
+import { handleError } from '@utils/errorUtils';
+import { updateCsrfToken } from '@features/csrf/state';
+import { persistor } from '@store/store';
 
 export const loginThunk = createAsyncThunk(
   'session/login',

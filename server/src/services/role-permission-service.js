@@ -43,6 +43,41 @@ const fetchPermissions = async (roleId) => {
   }
 };
 
+/**
+ * Checks whether the user has the required permissions.
+ *
+ * @param {object} user - The user object, must include `id` and `role`.
+ * @param {string[]} requiredPermissions - Array of permissions to check.
+ * @param {object} [options] - Optional flags.
+ * @param {boolean} [options.requireAll=false] - If true, requires all permissions.
+ * @param {boolean} [options.allowRootAccess=true] - If true, root_access bypasses check.
+ * @returns {Promise<boolean>} - True if user has permission.
+ */
+const checkPermissions = async (
+  user,
+  requiredPermissions = [],
+  {
+    requireAll = false,
+    allowRootAccess = true,
+  } = {}
+) => {
+  if (!user || !user.id || !user.role) return false;
+  
+  const { permissions } = await fetchPermissions(user.role); // cached or DB
+  
+  if (!permissions || permissions.length === 0) return false;
+  
+  // Root override
+  if (allowRootAccess && permissions.includes('root_access')) {
+    return true;
+  }
+  
+  return requireAll
+    ? requiredPermissions.every((perm) => permissions.includes(perm))
+    : requiredPermissions.some((perm) => permissions.includes(perm));
+};
+
 module.exports = {
   fetchPermissions,
+  checkPermissions,
 };

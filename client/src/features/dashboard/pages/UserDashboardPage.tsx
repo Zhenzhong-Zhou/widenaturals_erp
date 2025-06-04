@@ -1,10 +1,8 @@
-import { FC } from 'react';
-import { Typography } from '@components/index.ts';
-import {
-  DashboardLayout,
-  DashboardPageProps,
-  PermissionList,
-} from '../index.ts';
+import type { FC } from 'react';
+import type { DashboardPageProps } from '@features/dashboard';
+import DashboardLayout from '@features/dashboard/components/DashboardLayout';
+import CustomTypography from '@components/common/CustomTypography';
+import PermissionList from '@features/dashboard/components/PermissionList';
 
 const UserDashboardPage: FC<DashboardPageProps> = ({
   fullName,
@@ -12,14 +10,14 @@ const UserDashboardPage: FC<DashboardPageProps> = ({
 }) => {
   return (
     <DashboardLayout fullName={fullName}>
-      <Typography variant="body1" gutterBottom>
+      <CustomTypography variant="body1" gutterBottom>
         Your Permissions:
-      </Typography>
+      </CustomTypography>
       <PermissionList permissions={permissions} />
-      <Typography variant="body1">
+      <CustomTypography variant="body1">
         This is the user dashboard, where you can access reports, manage your
         profile, and view notifications.
-      </Typography>
+      </CustomTypography>
     </DashboardLayout>
   );
 };

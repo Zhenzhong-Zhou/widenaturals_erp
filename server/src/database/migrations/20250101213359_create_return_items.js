@@ -6,11 +6,11 @@ exports.up = function (knex) {
   return knex.schema.createTable('return_items', (table) => {
     table.uuid('id').primary();
     table.uuid('return_id').notNullable().references('id').inTable('returns');
-    table
-      .uuid('inventory_id')
-      .notNullable()
-      .references('id')
-      .inTable('inventory');
+    // table
+    //   .uuid('inventory_id')
+    //   .notNullable()
+    //   .references('id')
+    //   .inTable('inventory');
     table.integer('quantity_returned').notNullable();
     table.text('reason');
     table.uuid('price_id').notNullable().references('id').inTable('pricing');
@@ -27,10 +27,10 @@ exports.up = function (knex) {
     table.uuid('updated_by').references('id').inTable('users');
 
     // Indexes
-    table.index(
-      ['return_id', 'inventory_id'],
-      'idx_return_items_return_inventory'
-    );
+    // table.index(
+    //   ['return_id', 'inventory_id'],
+    //   'idx_return_items_return_inventory'
+    // );
   });
 };
 

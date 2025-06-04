@@ -1,4 +1,4 @@
-import { AppError, ErrorType } from './AppError';
+import { AppError, ErrorType } from '@utils/AppError';
 import { AxiosError } from 'axios';
 
 /**

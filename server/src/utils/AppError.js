@@ -45,17 +45,23 @@ class AppError extends Error {
   toLog(req = null) {
     return {
       ...this.toJSON(),
+      logLevel: this.logLevel,
       stack: process.env.NODE_ENV !== 'production' ? this.stack : undefined,
       method: req?.method || 'Unknown',
       route: req?.originalUrl || 'Unknown',
       userAgent: req?.headers?.['user-agent'] || 'Unknown',
       ip: req?.ip || 'Unknown',
       timestamp: new Date().toISOString(),
-      additionalContext: 'Error caught in global error handler',
     };
   }
-
+  
+  // =========================
   // Common Errors
+  // =========================
+  
+  /**
+   * Authorization failure (e.g., missing permission).
+   */
   static authorizationError(message, options = {}) {
     return new AppError(message, 403, {
       type: 'AuthorizationError',
@@ -64,7 +70,10 @@ class AppError extends Error {
       ...options,
     });
   }
-
+  
+  /**
+   * The Account is locked (e.g., due to failed login attempts).
+   */
   static accountLockedError(message, options = {}) {
     return new AppError(message, 403, {
       type: 'AccountLockedError',
@@ -73,7 +82,10 @@ class AppError extends Error {
       ...options,
     });
   }
-
+  
+  /**
+   * User session has expired (e.g., due to inactivity).
+   */
   static sessionExpiredError(message, options = {}) {
     return new AppError(message, 401, {
       type: 'SessionExpiredError',
@@ -82,7 +94,10 @@ class AppError extends Error {
       ...options,
     });
   }
-
+  
+  /**
+   * Access token is expired and cannot be used.
+   */
   static accessTokenExpiredError(message, options = {}) {
     return new AppError(message, 401, {
       type: 'AccessTokenExpiredError',
@@ -91,7 +106,10 @@ class AppError extends Error {
       ...options,
     });
   }
-
+  
+  /**
+   * Access token is missing or invalid.
+   */
   static accessTokenError(message, options = {}) {
     return new AppError(message, 401, {
       type: 'AccessTokenError',
@@ -100,7 +118,10 @@ class AppError extends Error {
       ...options,
     });
   }
-
+  
+  /**
+   * Refresh token has expired.
+   */
   static refreshTokenExpiredError(message, options = {}) {
     return new AppError(message, 401, {
       type: 'RefreshTokenExpiredError',
@@ -109,7 +130,10 @@ class AppError extends Error {
       ...options,
     });
   }
-
+  
+  /**
+   * Refresh token is missing or invalid.
+   */
   static refreshTokenError(message, options = {}) {
     return new AppError(message, 401, {
       type: 'RefreshTokenError',
@@ -118,7 +142,10 @@ class AppError extends Error {
       ...options,
     });
   }
-
+  
+  /**
+   * The Token has been revoked or blocklisted.
+   */
   static tokenRevokedError(message, options = {}) {
     return new AppError(message, 401, {
       type: 'TokenRevokedError',
@@ -127,7 +154,10 @@ class AppError extends Error {
       ...options,
     });
   }
-
+  
+  /**
+   * Generic authentication failure.
+   */
   static authenticationError(message, options = {}) {
     return new AppError(message, 401, {
       type: 'AuthenticationError',
@@ -136,7 +166,10 @@ class AppError extends Error {
       ...options,
     });
   }
-
+  
+  /**
+   * Input failed validation schema or logic.
+   */
   static validationError(message, options = {}) {
     return new AppError(message, 400, {
       type: 'ValidationError',
@@ -145,7 +178,10 @@ class AppError extends Error {
       ...options,
     });
   }
-
+  
+  /**
+   * Hashing or cryptographic error (e.g., bcrypt failure).
+   */
   static hashError(message, options = {}) {
     return new AppError(message, 429, {
       type: 'HashError',
@@ -155,7 +191,10 @@ class AppError extends Error {
       ...options,
     });
   }
-
+  
+  /**
+   * Too many requests — rate limit exceeded.
+   */
   static rateLimitError(message, options = {}) {
     return new AppError(message, 429, {
       type: 'RateLimitError',
@@ -165,8 +204,14 @@ class AppError extends Error {
       ...options,
     });
   }
-
+  
+  // =========================
   // Security and Input Errors
+  // =========================
+  
+  /**
+   * CSRF token error or violation.
+   */
   static csrfError(message, options = {}) {
     return new AppError(message, 403, {
       type: 'CSRFError',
@@ -176,7 +221,10 @@ class AppError extends Error {
       ...options,
     });
   }
-
+  
+  /**
+   * CORS origin not allowed or misconfigured.
+   */
   static corsError(message, options = {}) {
     return new AppError(message, 403, {
       type: 'CORSError',
@@ -185,7 +233,10 @@ class AppError extends Error {
       ...options,
     });
   }
-
+  
+  /**
+   * Helmet security middleware failure.
+   */
   static helmetError(message, options = {}) {
     return new AppError(message, 500, {
       type: 'HelmetError',
@@ -194,7 +245,10 @@ class AppError extends Error {
       ...options,
     });
   }
-
+  
+  /**
+   * Sanitization failure (e.g., unsafe input).
+   */
   static sanitizationError(message, options = {}) {
     return new AppError(message, 422, {
       type: 'SanitizationError',
@@ -203,8 +257,14 @@ class AppError extends Error {
       ...options,
     });
   }
-
+  
+  // =========================
   // Domain-Specific Errors
+  // =========================
+  
+  /**
+   * Failure in application service layer.
+   */
   static serviceError(message, options = {}) {
     return new AppError(message, 500, {
       type: 'ServiceError',
@@ -214,7 +274,10 @@ class AppError extends Error {
       ...options,
     });
   }
-
+  
+  /**
+   * Failure in database query or connection.
+   */
   static databaseError(message, options = {}) {
     return new AppError(message, 500, {
       type: 'DatabaseError',
@@ -224,8 +287,53 @@ class AppError extends Error {
       ...options,
     });
   }
-
+  
+  /**
+   * Business rule violation (e.g., invalid status transition).
+   */
+  static businessError(message, options = {}) {
+    return new AppError(message, 400, {
+      type: 'BusinessLogicError',
+      code: 'BUSINESS_LOGIC_ERROR',
+      logLevel: 'warn',
+      isExpected: true,
+      ...options,
+    });
+  }
+  
+  /**
+   * Controller-level error (e.g., misuse of request/response).
+   */
+  static controllerError(message, options = {}) {
+    return new AppError(message, 400, {
+      type: 'ControllerError',
+      code: 'CONTROLLER_ERROR',
+      logLevel: 'warn',
+      isExpected: true,
+      ...options,
+    });
+  }
+  
+  /**
+   * Transformer or DTO conversion failure.
+   */
+  static transformerError(message, options = {}) {
+    return new AppError(message, 500, {
+      type: 'TransformerError',
+      code: 'TRANSFORMER_ERROR',
+      logLevel: 'error',
+      isExpected: false,
+      ...options,
+    });
+  }
+  
+  // =========================
   // Specialized Errors
+  // =========================
+  
+  /**
+   * File upload failure (e.g., size limit, file type).
+   */
   static fileUploadError(message, options = {}) {
     return new AppError(message, 400, {
       type: 'FileUploadError',
@@ -234,7 +342,10 @@ class AppError extends Error {
       ...options,
     });
   }
-
+  
+  /**
+   * Health check or dependency failure.
+   */
   static healthCheckError(message, options = {}) {
     return new AppError(message, 503, {
       type: 'HealthCheckError',
@@ -243,8 +354,14 @@ class AppError extends Error {
       ...options,
     });
   }
-
+  
+  // =========================
   // General Errors
+  // =========================
+  
+  /**
+   * Requested resource not found.
+   */
   static notFoundError(message, options = {}) {
     return new AppError(message, 404, {
       type: 'NotFoundError',
@@ -253,7 +370,10 @@ class AppError extends Error {
       ...options,
     });
   }
-
+  
+  /**
+   * Conflict occurred (e.g., unique constraint violation).
+   */
   static conflictError(message, options = {}) {
     return new AppError(message, 409, {
       type: 'ConflictError',
@@ -262,7 +382,31 @@ class AppError extends Error {
       ...options,
     });
   }
-
+  
+  /**
+   * Initialization failure — used when a critical system part fails to initialize.
+   * Commonly thrown during application startup, preloading, or dependency setup.
+   *
+   * @param {string} message - The error message.
+   * @param {object} [options={}] - Additional metadata or overrides.
+   * @returns {AppError} - Structured initialization error.
+   *
+   * @example
+   * throw AppError.initializationError('Status map failed to load from cache');
+   */
+  static initializationError(message, options = {}) {
+    return new AppError(message, 500, {
+      type: 'InitializationError',
+      code: 'INIT_FAILURE',
+      logLevel: 'error',
+      isExpected: false,
+      ...options,
+    });
+  }
+  
+  /**
+   * Fallback general error (unexpected exception).
+   */
   static generalError(message, options = {}) {
     return new AppError(message, 500, {
       type: 'GeneralError',

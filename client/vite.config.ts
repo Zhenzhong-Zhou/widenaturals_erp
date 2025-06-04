@@ -4,76 +4,158 @@ import { resolve } from 'path';
 import { visualizer } from 'rollup-plugin-visualizer';
 import compression from 'vite-plugin-compression';
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
-    compression({ algorithm: 'brotliCompress', ext: '.br' }), // Enable Brotli compression
-    process.env.NODE_ENV === 'development' ? visualizer({ filename: 'dist/stats.html' }) : null, // Only use visualizer in development
-  ],
+
+    // Enable Brotli compression in production
+    mode === 'production' &&
+      compression({
+        algorithm: 'brotliCompress',
+        ext: '.br',
+        deleteOriginFile: false, // Set to true only if you want to keep only compressed files
+        verbose: true,
+      }),
+
+    // Bundle analyzer only in development
+    mode === 'development' &&
+      visualizer({
+        filename: './dist/stats.html',
+        open: true,
+        gzipSize: true,
+        brotliSize: true,
+      }),
+  ].filter(Boolean), // filter out false plugins
+
   resolve: {
     alias: {
+      '@emotion/react': resolve(__dirname, 'node_modules/@emotion/react'),
+      '@emotion/styled': resolve(__dirname, 'node_modules/@emotion/styled'),
       '@styles': resolve(__dirname, './src/styles'),
+      '@shared-types': resolve(__dirname, './src/types'),
       '@context': resolve(__dirname, './src/context'),
       '@components': resolve(__dirname, './src/components'),
+      '@core': resolve(__dirname, './src/core'),
       '@utils': resolve(__dirname, './src/utils'),
       '@pages': resolve(__dirname, './src/pages'),
       '@routes': resolve(__dirname, './src/routes'),
       '@services': resolve(__dirname, './src/services'),
       '@features': resolve(__dirname, './src/features'),
       '@store': resolve(__dirname, './src/store'),
-      '@assets': resolve(__dirname, './src/assets'),  // Images, icons, fonts, static files
-      '@hooks': resolve(__dirname, './src/hooks'),  // Custom React hooks
-      '@layouts': resolve(__dirname, './src/layouts'),  // Layout components
-      '@middleware': resolve(__dirname, './src/middleware'),  // Middleware functions
-      '@constants': resolve(__dirname, './src/constants'),  // Constants and enums
-      '@redux': resolve(__dirname, './src/redux'),  // Redux-related logic
-      '@themes': resolve(__dirname, './src/themes'),  // Theme configuration for MUI or styled-components
-      '@lib': resolve(__dirname, './src/lib'),  // Utility libraries, API clients, etc.
-      '@config': resolve(__dirname, './src/config'),  // App-wide configuration files
+      '@assets': resolve(__dirname, './src/assets'),
+      '@hooks': resolve(__dirname, './src/hooks'),
+      '@layouts': resolve(__dirname, './src/layouts'),
+      '@middleware': resolve(__dirname, './src/middleware'),
+      '@constants': resolve(__dirname, './src/constants'),
+      '@redux': resolve(__dirname, './src/redux'),
+      '@themes': resolve(__dirname, './src/themes'),
+      '@lib': resolve(__dirname, './src/lib'),
+      '@config': resolve(__dirname, './src/config'),
     },
   },
-  
+
   optimizeDeps: {
     include: [
-      '@mui/material',
-      '@mui/icons-material',
-      '@mui/x-date-pickers',
-      'date-fns',
-      'axios',
-      'lodash',
       'react',
       'react-dom',
       'react/jsx-runtime',
+      '@mui/material',
+      '@mui/icons-material',
+      '@mui/x-date-pickers',
+      '@emotion/react',
+      '@emotion/styled',
+      '@mui/material',
+      '@mui/system',
+      'date-fns',
+      'lodash',
+      'axios',
     ],
+    exclude: [], // Can add libraries to skip pre-bundling if needed
   },
-  
+
   build: {
     target: 'esnext',
-    sourcemap: process.env.NODE_ENV === 'development', // Allow sourcemaps in dev, disable in prod
-    minify: 'esbuild',
+    sourcemap: mode === 'development',
+    minify: 'esbuild', // fastest and default
+
+    chunkSizeWarningLimit: 500, // KB
+
     rollupOptions: {
       treeshake: {
-        moduleSideEffects: false, // Remove unused modules
-        preset: 'smallest', // Ensures aggressive tree-shaking
+        moduleSideEffects: false,
+        preset: 'smallest',
       },
+      
       output: {
         manualChunks(id) {
+          // --- External Libraries ---
           if (id.includes('node_modules')) {
-            if (id.includes('@mui/material')) return 'mui-core'; // Separate MUI Core
-            if (id.includes('@mui/icons-material')) return 'mui-icons'; // Separate MUI Icons
-            if (id.includes('@mui/x-date-pickers')) return 'mui-datepickers'; // Separate MUI Date Pickers
+            if (id.includes('@mui/material')) return 'mui-core';
+            if (id.includes('@mui/icons-material')) return 'mui-icons';
+            if (id.includes('@mui/x-date-pickers')) return 'mui-datepickers';
             if (id.includes('date-fns')) return 'date-fns-vendor';
             if (id.includes('lodash')) return 'lodash-vendor';
             if (id.includes('axios')) return 'axios-vendor';
+            if (id.includes('react-hook-form')) return 'react-hook-form-vendor';
+            if (id.includes('uuid')) return 'uuid-vendor';
+            if (id.includes('classnames')) return 'classnames-vendor';
+            if (id.includes('react-redux')) return 'redux-vendor';
+            if (id.includes('redux-persist')) return 'redux-persist-vendor';
+            if (id.includes('fontawesome')) return 'fontawesome-vendor';
+            if (id.includes('libphonenumber-js')) return 'phone-utils-vendor';
+            if (id.includes('slugify')) return 'slugify-vendor';
+            if (id.includes('jwt-decode')) return 'jwt-vendor';
             
-            return 'vendor'; // Default chunk for remaining dependencies
+            return 'misc-vendor'; // fallback for unclassified external deps
           }
-          if (id.includes('src/components/')) {
-            return 'components'; // Split components into their own chunk
+          
+          // --- Shared UI Components ---
+          if (id.includes('src/components/common/')) {
+            if (
+              id.includes('CustomButton') ||
+              id.includes('Typography') ||
+              id.includes('ErrorDisplay') ||
+              id.includes('ErrorMessage') ||
+              id.includes('Loading') ||
+              id.includes('BaseInput') ||
+              id.includes('Dropdown') ||
+              id.includes('DetailsSection')
+            ) {
+              return 'ui';
+            }
+            return 'components'; // fallback for other common components
           }
+          
+          // --- Feature Chunks ---
+          if (id.includes('src/features/inventoryShared')) return 'inventory-shared';
+          if (id.includes('src/features/inventoryOverview')) return 'inventory-overview';
+          if (id.includes('src/features/warehouseInventory')) return 'warehouse-inventory';
+          if (id.includes('src/features/order')) return 'order';
+          if (id.includes('src/features/report')) return 'report';
+          
+          // --- Internal Code Splits ---
+          if (id.includes('src/features/')) return 'features';
+          if (id.includes('src/layouts/')) return 'layouts';
+          if (id.includes('src/pages/')) return 'pages';
+          if (id.includes('src/hooks/')) return 'hooks';
+          if (id.includes('src/services/')) return 'services';
+          if (id.includes('src/store/')) return 'store';
+          if (id.includes('src/utils/')) return 'utils';
+          
+          return undefined; // fallback
         },
-      },
+      }
     },
-    chunkSizeWarningLimit: 500, // Warn if chunks exceed 500KB
   },
-});
+
+  server: {
+    port: 5173,
+    strictPort: true,
+    open: true,
+  },
+
+  preview: {
+    port: 4173,
+    strictPort: true,
+  },
+}));

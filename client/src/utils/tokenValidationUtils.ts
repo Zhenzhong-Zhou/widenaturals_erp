@@ -1,5 +1,5 @@
 import { jwtDecode } from 'jwt-decode';
-import { AppError, ErrorType } from '@utils/AppError.tsx';
+import { AppError, ErrorType } from '@utils/AppError';
 
 /**
  * Validates if the given access token is still valid based on its expiration time.

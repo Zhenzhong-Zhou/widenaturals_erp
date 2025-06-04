@@ -1,8 +1,9 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import { BrowserRouter } from 'react-router-dom';
-import { GlobalErrorBoundary, FallbackUI } from '@components/index.ts';
-import { ThemeProviderWrapper, LoadingProvider } from './context';
-import AppContent from './core/AppContent';
+import GlobalErrorBoundary from '@components/shared/GlobalErrorBoundary';
+import FallbackUI from '@components/shared/FallbackUI';
+import { ThemeProviderWrapper, LoadingProvider } from '@context/index';
+import AppContent from '@core/AppContent';
 
 const App: FC = () => (
   <GlobalErrorBoundary

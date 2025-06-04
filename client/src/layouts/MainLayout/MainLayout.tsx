@@ -1,37 +1,51 @@
 import {
-  ReactNode,
   useState,
   Suspense,
   cloneElement,
-  ReactElement,
+  type ReactElement,
+  useEffect,
+  isValidElement, useMemo,
 } from 'react';
-import { Sidebar, Header, Footer } from '../index';
-import { useThemeContext } from '../../context/ThemeContext';
+import { useThemeContext } from '@context/ThemeContext';
+import { useMediaQuery, useTheme } from '@mui/material';
 import Box from '@mui/material/Box';
-import {
-  layoutStyles,
-  contentContainerStyles,
-  mainContentStyles,
-} from './layoutStyles';
-import {
-  ErrorDisplay,
-  ErrorMessage,
-  FallbackUI,
-  Loading,
-  ModuleErrorBoundary,
-} from '@components/index';
+import Loading from '@components/common/Loading';
+import ErrorDisplay from '@components/shared/ErrorDisplay';
+import ErrorMessage from '@components/common/ErrorMessage';
+import ModuleErrorBoundaryWrapper from '@components/shared/ModuleErrorBoundaryWrapper';
+import FallbackUI from '@components/shared/FallbackUI';
+import Sidebar from '@layouts/Sidebar/Sidebar';
+import Header from '@layouts/Header/Header';
+import Footer from '@layouts/Footer/Footer';
 import { AppError } from '@utils/AppError';
 import { getErrorLog } from '@utils/errorUtils';
-import { useLogout, useTokenRefresh, useUserProfile } from '../../hooks';
-import { usePermissionsContext } from '../../context/PermissionsContext';
+import { usePermissionsContext } from '@context/PermissionsContext';
+import useUserProfile from '@hooks/useUserProfile';
+import useLogout from '@hooks/useLogout';
+import useTokenRefresh from '@hooks/useTokenRefresh';
+import {
+  contentContainerStyles,
+  layoutStyles,
+  mainContentStyles,
+} from '@layouts/MainLayout/layoutStyles';
+
+interface InjectedProps {
+  fullName: string;
+  roleName: string;
+  permissions: string[];
+}
 
 interface MainLayoutProps {
-  children: ReactNode; // Allow any React elements to be passed as children
+  children: ReactElement<InjectedProps>;
 }
 
 const MainLayout = ({ children }: MainLayoutProps) => {
-  const { theme } = useThemeContext(); // Access the current theme from context
-  const [isSidebarOpen, setSidebarOpen] = useState(true); // Sidebar state
+  const { theme } = useThemeContext();
+  const muiTheme = useTheme();
+  const isSmallScreen = useMediaQuery(muiTheme.breakpoints.down('md')); // Change breakpoint as needed
+
+  const [isSidebarOpen, setSidebarOpen] = useState(!isSmallScreen); // Open if large screen, close if small screen
+
   const {
     data: userProfile,
     loading: userProfileLoading,
@@ -39,15 +53,24 @@ const MainLayout = ({ children }: MainLayoutProps) => {
   } = useUserProfile();
   const fullName =
     `${userProfile.firstname ?? ''} ${userProfile.lastname ?? ''}`.trim();
-  const { logout } = useLogout(); // Logout handler
-  useTokenRefresh(); // Token refresh handling
-  const { roleName, permissions } = usePermissionsContext(); // Access role and permissions
+  const { logout } = useLogout();
+  useTokenRefresh();
+  const { roleName, permissions } = usePermissionsContext();
 
   const toggleSidebar = () => setSidebarOpen((prev) => !prev);
 
-  // Handle global loading for user profile
+  useEffect(() => {
+    setSidebarOpen(!isSmallScreen); // Automatically adjust sidebar state based on screen size
+  }, [isSmallScreen]);
+  
+  const injectedChild = useMemo(() => {
+    return isValidElement(children)
+      ? cloneElement(children, { fullName, roleName, permissions })
+      : null;
+  }, [children, fullName, roleName, permissions]);
+  
   if (userProfileLoading) {
-    return <Loading message="Loading user profile..." />;
+    return <Loading fullPage={true} message="Loading user profile..." />;
   }
 
   // Handle global error for user profile
@@ -66,7 +89,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
   return (
     <Box className="layout" sx={layoutStyles(theme)}>
       {/* Sidebar */}
-      <ModuleErrorBoundary
+      <ModuleErrorBoundaryWrapper
         fallback={
           <FallbackUI
             title="Sidebar Error"
@@ -82,18 +105,20 @@ const MainLayout = ({ children }: MainLayoutProps) => {
           />
         }
       >
-        <Sidebar
-          isOpen={isSidebarOpen}
-          toggleSidebar={toggleSidebar}
-          roleName={roleName}
-          permissions={permissions}
-        />
-      </ModuleErrorBoundary>
+        <Suspense fallback={<Loading message="Loading sidebar..." />}>
+          <Sidebar
+            isOpen={isSidebarOpen}
+            toggleSidebar={toggleSidebar}
+            roleName={roleName}
+            permissions={permissions}
+          />
+        </Suspense>
+      </ModuleErrorBoundaryWrapper>
 
       {/* Content Container */}
       <Box className="content-container" sx={contentContainerStyles(theme)}>
         {/* Header */}
-        <ModuleErrorBoundary
+        <ModuleErrorBoundaryWrapper
           fallback={
             <FallbackUI
               title="Header Error"
@@ -112,10 +137,10 @@ const MainLayout = ({ children }: MainLayoutProps) => {
           <Suspense fallback={<Loading message="Loading header..." />}>
             <Header user={userProfile} onLogout={logout} />
           </Suspense>
-        </ModuleErrorBoundary>
+        </ModuleErrorBoundaryWrapper>
 
         {/* Main Content */}
-        <ModuleErrorBoundary
+        <ModuleErrorBoundaryWrapper
           fallback={
             <FallbackUI
               title="Content Error"
@@ -131,18 +156,12 @@ const MainLayout = ({ children }: MainLayoutProps) => {
           }
         >
           <Suspense fallback={<Loading message="Loading content..." />}>
-            <Box sx={mainContentStyles(theme)}>
-              {cloneElement(children as ReactElement<any>, {
-                fullName,
-                roleName,
-                permissions,
-              })}
-            </Box>
+            <Box sx={mainContentStyles(theme)}>{injectedChild}</Box>
           </Suspense>
-        </ModuleErrorBoundary>
+        </ModuleErrorBoundaryWrapper>
 
         {/* Footer */}
-        <ModuleErrorBoundary
+        <ModuleErrorBoundaryWrapper
           fallback={
             <FallbackUI
               title="Footer Error"
@@ -161,7 +180,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
           <Suspense fallback={<Loading message="Loading footer..." />}>
             <Footer />
           </Suspense>
-        </ModuleErrorBoundary>
+        </ModuleErrorBoundaryWrapper>
       </Box>
     </Box>
   );

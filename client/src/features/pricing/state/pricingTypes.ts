@@ -1,37 +1,47 @@
+import type { PaginatedResponse, ReduxPaginatedState } from '@shared-types/api';
+
 // Define the Pricing Record structure
-export interface Pricing {
-  pricing_id: string;
-  product_name: string;
-  price_type_name: string;
-  location_name: string;
-  price: string;
-  valid_from: string; // ISO Timestamp
-  valid_to: string; // ISO Timestamp
-  status_name: 'active' | 'inactive' | 'pending'; // Expand based on actual statuses
-  status_date: string;
-  created_at: string;
-  updated_at: string;
-  created_by: string;
-  updated_by: string;
+export interface PricingRecord {
+  pricingId: string;
+  price: number;
+  validFrom: string; // ISO date string
+  validTo: string | null;
+  pricingType: {
+    id: string;
+    name: string;
+    code: string;
+    slug: string;
+  };
+  sku: {
+    id: string;
+    value: string;
+    countryCode: string;
+    sizeLabel: string;
+    barcode: string;
+  };
+  product: {
+    id: string;
+    name: string;
+    brand: string;
+  };
 }
 
-// Define the Pagination Metadata structure
-export interface Pagination {
-  page: number;
-  limit: number;
-  totalRecords: number;
-  totalPages: number;
+export interface FetchPricingParams {
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: 'ASC' | 'DESC';
+  filters?: Record<string, string>;
+  keyword?: string;
 }
 
 // Define the API Response structure
-export interface PricingResponse {
-  success: boolean;
-  message: string;
-  data: {
-    data: Pricing[];
-    pagination: Pagination;
-  };
-}
+export type PaginatedPricingRecordsResponse = PaginatedResponse<PricingRecord>;
+
+/**
+ * Redux state structure for managing a paginated list of pricing records.
+ */
+export type PricingListState = ReduxPaginatedState<PricingRecord>;
 
 export interface Product {
   product_id: string;
@@ -42,31 +52,50 @@ export interface Product {
   market_region: string;
 }
 
-export interface LocationType {
-  type_id: string;
-  type_name: string;
+export interface PricingType {
+  name: string;
 }
 
-export interface Location {
-  location_id: string;
-  location_name: string;
-  location_type: LocationType;
-}
-
-/**
- * Extended interface for detailed pricing records.
- * Now supports multiple products & locations.
- */
-export interface PricingDetails extends Pricing {
-  products: Product[]; // Changed from single object to array
-  locations: Location[]; // Changed from single object to array
-}
-
-export interface PricingDetailsResponse {
-  success: boolean;
-  message: string;
-  data: {
-    pricing: PricingDetails;
-    pagination: Pagination;
+export interface Pricing {
+  locationId: string;
+  locationName: string;
+  price: string; // If this should be a number, change to: number
+  validFrom: string; // ISO date string
+  validTo: string | null;
+  status: {
+    id: string;
+    name: string;
+  };
+  createdAt: string;
+  createdBy: {
+    fullname: string;
+  };
+  updatedAt: string | null;
+  updatedBy: {
+    fullname: string;
   };
 }
+
+export interface SKU {
+  sku: string;
+  barcode: string;
+  countryCode: string;
+  sizeLabel: string;
+}
+
+export interface Product {
+  productName: string;
+  brand: string;
+}
+
+export interface PricingDetail {
+  pricingType: PricingType;
+  pricing: Pricing;
+  sku: SKU;
+  product: Product;
+  productCount: number;
+}
+
+export type PaginatedPricingDetailsResponse = PaginatedResponse<PricingDetail>;
+
+export type PricingState = ReduxPaginatedState<PricingDetail>;

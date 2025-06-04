@@ -1,9 +1,12 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import {
   createCustomerThunk,
   createBulkCustomersThunk,
 } from './customerThunks';
-import { BulkCustomerResponse, CustomerResponse } from './customerTypes';
+import {
+  type BulkCustomerResponse,
+  type CustomerResponse,
+} from './customerTypes';
 
 interface CustomerState {
   customers: CustomerResponse[]; // Stores created customers

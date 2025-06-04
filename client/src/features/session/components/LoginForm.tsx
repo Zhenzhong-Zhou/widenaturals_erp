@@ -1,8 +1,10 @@
-import { FC, FormEvent, useState } from 'react';
+import { type FC, type FormEvent, useState } from 'react';
+import { useAppSelector } from '@store/storeHooks';
+import { selectLoading } from '@features/session/state';
 import Box from '@mui/material/Box';
-import { BaseInput, CustomButton, PasswordInput } from '@components/index.ts';
-import { useAppSelector } from '../../../store/storeHooks.ts';
-import { selectLoading } from '../state/sessionSelectors.ts';
+import BaseInput from '@components/common/BaseInput';
+import PasswordInput from '@components/common/PasswordInput';
+import CustomButton from '@components/common/CustomButton';
 
 interface LoginFormProps {
   onSubmit: (data: { email: string; password: string }) => void;

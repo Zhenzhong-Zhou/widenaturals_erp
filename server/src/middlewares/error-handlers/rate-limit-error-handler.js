@@ -3,8 +3,8 @@
  * @description Middleware to handle rate limiting errors.
  */
 
-const AppError = require('../../utils/AppError');
-const { logWarn } = require('../../utils/logger-helper');
+const normalizeError = require('../../utils/normalize-error');
+const { logError } = require('../../utils/logger-helper');
 
 /**
  * Middleware to handle rate limiting errors.
@@ -15,36 +15,30 @@ const { logWarn } = require('../../utils/logger-helper');
  * @param {function} next - The Express next middleware function.
  */
 const rateLimitErrorHandler = (err, req, res, next) => {
-  // Check if the error is related to rate limiting
-  if (
-    err.name === 'RateLimitError' ||
-    err.message.includes('Rate limit exceeded')
-  ) {
-    // Use AppError factory method to create a structured error
-    const rateLimitError = AppError.rateLimitError('Too Many Requests', {
-      code: 'RATE_LIMIT_EXCEEDED',
-      type: 'RateLimitError',
-      details: {
-        retryAfter: err.retryAfter || null, // Include retry-after time if available
-      },
-    });
-
-    // Log the rate limit error with metadata
-    logWarn('Rate Limit Exceeded', {
-      message: rateLimitError.message,
-      ip: req.ip,
-      method: req.method,
-      url: req.originalUrl,
-      userAgent: req.headers['user-agent'] || 'Unknown',
-      retryAfter: rateLimitError.details.retryAfter,
-    });
-
-    // Respond with a structured error response
-    return res.status(rateLimitError.status).json(rateLimitError.toJSON());
-  }
-
-  // Pass other errors to the next middleware
-  next(err);
+  const isRateLimitError =
+    err.name === 'RateLimitError' || err.message?.includes('Rate limit exceeded');
+  
+  if (!isRateLimitError) return next(err);
+  
+  const retryAfter = err.retryAfter || null;
+  
+  // Normalize the error using centralized utility
+  const normalizedError = normalizeError(err, {
+    type: 'RateLimitError',
+    code: 'RATE_LIMIT_EXCEEDED',
+    status: 429,
+    isExpected: true,
+    logLevel: 'warn',
+    details: { retryAfter },
+  });
+  
+  // Log the rate-limit event
+  logError(normalizedError, req, {
+    context: 'rate-limit-handler',
+  });
+  
+  // Send structured error response
+  return res.status(normalizedError.status).json(normalizedError.toJSON());
 };
 
 module.exports = rateLimitErrorHandler;

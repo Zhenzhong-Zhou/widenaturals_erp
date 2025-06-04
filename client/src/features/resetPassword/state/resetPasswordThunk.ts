@@ -1,9 +1,9 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { resetPasswordService } from '../../../services';
-import {
+import type {
   ResetPasswordError,
   ResetPasswordResponse,
-} from './resetPasswordInterfaces.ts';
+} from '@features/resetPassword/state/resetPasswordTypes';
+import { resetPasswordService } from '@services/resetPasswordService';
 
 /**
  * Thunk for resetting the user's password using createAsyncThunk.

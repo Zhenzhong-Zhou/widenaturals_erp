@@ -22,9 +22,26 @@ const customerSchema = Joi.object({
 
   phone_number: validatePhoneNumber,
 
-  address: Joi.string().max(255).optional(),
+  // Structured Address Fields
+  address_line1: Joi.string().max(255).required().messages({
+    'any.required': 'Address Line 1 is required',
+  }),
+  address_line2: Joi.string().max(255).allow('', null),
+  city: Joi.string().max(100).required().messages({
+    'any.required': 'City is required',
+  }),
+  state: Joi.string().max(100).required().messages({
+    'any.required': 'State/Province is required',
+  }),
+  postal_code: Joi.string().max(20).required().messages({
+    'any.required': 'Postal Code is required',
+  }),
+  country: Joi.string().max(100).required().messages({
+    'any.required': 'Country is required',
+  }),
+  region: Joi.string().max(100).allow('', null),
 
-  note: Joi.string().max(500).optional(),
+  note: Joi.string().max(500).allow('').optional(),
 });
 
 /**

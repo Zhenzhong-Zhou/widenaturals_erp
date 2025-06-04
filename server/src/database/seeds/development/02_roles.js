@@ -103,7 +103,8 @@ exports.seed = async function (knex) {
     {
       id: knex.raw('uuid_generate_v4()'),
       name: 'manufacturing_director',
-      description: 'Oversees manufacturing operations, production planning, and quality control',
+      description:
+        'Oversees manufacturing operations, production planning, and quality control',
       is_active: true,
       status_id: activeStatusId,
       created_at: knex.fn.now(),

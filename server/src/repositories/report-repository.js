@@ -49,7 +49,9 @@ const getAdjustmentReport = async ({
       lat.name AS adjustment_type,
       ws.name AS status,
       COALESCE(u.firstname, 'System') || ' ' || COALESCE(u.lastname, 'Action') AS adjusted_by,
-      wa.comments
+      wa.comments,
+      wa.order_id,
+      COALESCE(o.order_number, '—') AS order_number
     FROM warehouse_lot_adjustments wa
     JOIN warehouse_inventory_lots wil ON wa.warehouse_inventory_lot_id = wil.id
     JOIN warehouses w ON wil.warehouse_id = w.id
@@ -58,6 +60,7 @@ const getAdjustmentReport = async ({
     JOIN lot_adjustment_types lat ON wa.adjustment_type_id = lat.id
     LEFT JOIN users u ON wa.adjusted_by = u.id
     LEFT JOIN warehouse_lot_status ws ON wa.status_id = ws.id
+    LEFT JOIN orders o ON wa.order_id = o.id
     WHERE wa.adjustment_date AT TIME ZONE 'UTC' AT TIME ZONE $1 >=
       CASE
         WHEN $2::TEXT = 'weekly' THEN (CURRENT_DATE - INTERVAL '7 days') AT TIME ZONE $1
@@ -188,6 +191,7 @@ const getInventoryActivityLogs = async ({
         ws.name AS status,
         lat.name AS adjustment_type,
         o.id AS order_id,
+        COALESCE(o.order_number, '—') AS order_number,
         COALESCE(u.firstname, 'System') || ' ' || COALESCE(u.lastname, 'Action') AS user_name,
         (ial.timestamp AT TIME ZONE 'UTC') AT TIME ZONE $1 AS local_timestamp,
         ial.comments,

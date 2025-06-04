@@ -1,9 +1,9 @@
-import { FC } from 'react';
-import CustomTable from '@components/common/CustomTable.tsx';
-import { formatDate, formatDateTime } from '@utils/dateTimeUtils.ts';
-import { capitalizeFirstLetter } from '@utils/textUtils.ts';
-import { Column } from '@components/common/CustomTable.tsx';
-import { InventoryHistoryParams } from '../state/reportTypes.ts';
+import type { FC } from 'react';
+import type { Column } from '@components/common/CustomTable';
+import CustomTable from '@components/common/CustomTable';
+import { formatDate, formatDateTime } from '@utils/dateTimeUtils';
+import { formatLabel } from '@utils/textUtils';
+import type { InventoryHistoryParams } from '@features/report';
 
 interface InventoryHistoryTableProps {
   data: any[];
@@ -33,7 +33,7 @@ const InventoryHistoryTable: FC<InventoryHistoryTableProps> = ({
       id: 'action_type',
       label: 'Action Type',
       sortable: true,
-      format: (value) => capitalizeFirstLetter(value),
+      format: (value) => formatLabel(value),
     },
     {
       id: 'previous_quantity',
@@ -54,7 +54,7 @@ const InventoryHistoryTable: FC<InventoryHistoryTableProps> = ({
       id: 'status',
       label: 'Status',
       sortable: true,
-      format: (value) => capitalizeFirstLetter(value),
+      format: (value) => formatLabel(value),
     },
     {
       id: 'status_date',

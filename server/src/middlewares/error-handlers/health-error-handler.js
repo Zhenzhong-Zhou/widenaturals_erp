@@ -3,8 +3,8 @@
  * @description Middleware for handling health-check specific errors.
  */
 
-const AppError = require('../../utils/AppError');
-const { logWarn } = require('../../utils/logger-helper');
+const normalizeError = require('../../utils/normalize-error');
+const { logError } = require('../../utils/logger-helper');
 
 /**
  * Middleware to handle health-check errors.
@@ -16,36 +16,28 @@ const { logWarn } = require('../../utils/logger-helper');
  */
 const healthErrorHandler = (err, req, res, next) => {
   if (err.type === 'HealthCheckError') {
-    // Normalize to an AppError instance if not already
-    const healthError = AppError.healthCheckError(
-      err.message || 'Service Unavailable',
-      {
-        code: err.code || 'SERVICE_UNAVAILABLE',
-        status: err.status || 503,
-      }
-    );
-
-    // Log the health-check error as a warning
-    logWarn('Health-Check Error Detected:', {
-      message: healthError.message,
-      type: healthError.type,
-      code: healthError.code,
-      status: healthError.status,
-      route: req.originalUrl,
-      method: req.method,
-      userAgent: req.headers['user-agent'] || 'Unknown',
-      ip: req.ip,
+    const normalizedError = normalizeError(err, {
+      type: 'HealthCheckError',
+      code: err.code || 'SERVICE_UNAVAILABLE',
+      status: err.status || 503,
+      logLevel: 'warn',
+      isExpected: true,
     });
 
-    // Return a structured 503 Service Unavailable response
-    return res.status(healthError.status).json({
-      ...healthError.toJSON(),
+    // Log the health-check error as a warning
+    logError(normalizedError, req, {
+      context: 'health-check-handler',
+    });
+    
+    // Return a structured 503-Service Unavailable response
+    return res.status(normalizedError.status).json({
+      ...normalizedError.toJSON(),
       timestamp: new Date().toISOString(),
     });
   }
 
   // Pass to the next error handler if not a health-check specific error
-  next(err);
+  next(err); // Not a HealthCheckError, pass to the next handler
 };
 
 module.exports = healthErrorHandler;

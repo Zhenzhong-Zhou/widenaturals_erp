@@ -1,27 +1,16 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import Box from '@mui/material/Box';
-import {
-  CustomButton,
-  ErrorDisplay,
-  ErrorMessage,
-  Loading,
-  MetadataSection,
-} from '@components/index';
-import { formatDateTime } from '@utils/dateTimeUtils.ts';
+import type { CustomerDetails } from '@features/customer';
+import Loading from '@components/common/Loading';
+import ErrorDisplay from '@components/shared/ErrorDisplay';
+import ErrorMessage from '@components/common/ErrorMessage';
+import MetadataSection from '@components/common/MetadataSection';
+import CustomButton from '@components/common/CustomButton';
+import { formatDateTime } from '@utils/dateTimeUtils';
+import { formatPhoneNumber } from '@utils/textUtils';
 
 interface CustomerDetailsProps {
-  customer: {
-    email: string;
-    phone_number: string;
-    address: string;
-    note?: string;
-    status_name: string;
-    status_date: string;
-    created_by: string;
-    created_at: string;
-    updated_by: string;
-    updated_at?: string | null;
-  };
+  customer: CustomerDetails;
   loading: boolean;
   error: string | null;
 }
@@ -45,17 +34,15 @@ const CustomerDetailSection: FC<CustomerDetailsProps> = ({
       <MetadataSection
         data={{
           Email: customer.email,
-          'Phone Number': customer.phone_number,
-          Address: customer.address,
+          'Phone Number': formatPhoneNumber(customer.phoneNumber),
+          Address: customer.address || 'N/A',
           Note: customer.note || 'N/A',
-          Status: customer.status_name,
-          'Status Date': formatDateTime(customer.status_date),
-          'Created By': customer.created_by,
-          'Created At': formatDateTime(customer.created_at),
-          'Updated By': customer.updated_by,
-          'Updated At': customer.updated_at
-            ? formatDateTime(customer.updated_at)
-            : 'N/A',
+          Status: customer.statusName,
+          'Status Date': formatDateTime(customer.statusDate),
+          'Created By': customer.createdBy,
+          'Created At': formatDateTime(customer.createdAt),
+          'Updated By': customer.updatedBy,
+          'Updated At': formatDateTime(customer.updatedAt),
         }}
         sx={{
           backgroundColor: 'rgba(0, 0, 0, 0.05)',

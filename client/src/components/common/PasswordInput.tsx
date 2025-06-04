@@ -1,11 +1,10 @@
-import { FC, useState } from 'react';
-import { TypeRestrictedInput } from '@components/index.ts';
+import { type FC, useState } from 'react';
+import TypeRestrictedInput from '@components/common/TypeRestrictedInput';
 import InputAdornment from '@mui/material/InputAdornment';
 import IconButton from '@mui/material/IconButton';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEye } from '@fortawesome/free-solid-svg-icons/faEye';
-import { faEyeSlash } from '@fortawesome/free-solid-svg-icons/faEyeSlash';
-import { TextFieldProps } from '@mui/material/TextField';
+import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
+import type { TextFieldProps } from '@mui/material/TextField';
 
 interface PasswordInputProps extends Omit<TextFieldProps, 'type'> {
   label: string;
@@ -30,6 +29,7 @@ const PasswordInput: FC<PasswordInputProps> = ({
       type={showPassword ? 'text' : 'password'} // Toggle type dynamically
       errorText={errorText || ''} // Only show errorText when it exists
       helperText={errorText ? '' : helperText} // Show helperText only if no error
+      error={!!errorText}
       slotProps={{
         input: {
           endAdornment: (
@@ -37,7 +37,9 @@ const PasswordInput: FC<PasswordInputProps> = ({
               <IconButton
                 onClick={toggleVisibility}
                 edge="end"
-                aria-label="toggle password visibility"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                size="small"
+                sx={{ minWidth: 40 }}
               >
                 <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
               </IconButton>

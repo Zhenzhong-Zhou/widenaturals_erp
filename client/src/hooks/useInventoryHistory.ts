@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo } from 'react';
-import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
-  InventoryHistoryParams,
+  type InventoryHistoryParams,
   selectInventoryHistory,
-} from '../features/report';
+} from '@features/report';
 import {
   exportInventoryHistoryThunk,
   fetchInventoryHistoryThunk,
-} from '../features/report/state/reportThunks.ts';
+} from '@features/report/state';
 
 /**
  * Custom hook for fetching and managing inventory history.

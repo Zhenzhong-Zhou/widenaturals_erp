@@ -1,58 +1,92 @@
-import { ReactNode } from 'react';
+import type { FC, ReactNode } from 'react';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
-import { CustomButton, Typography } from '@components/index.ts';
+import CustomTypography from '@components/common/CustomTypography';
+import CustomButton from '@components/common/CustomButton';
 
-interface CommonDialogProps {
+interface CustomDialogProps {
   open: boolean;
   onClose: () => void;
   title: string;
-  children?: ReactNode; // Optional content
-  actions?: ReactNode; // New prop for action buttons
-  confirmButtonText?: string; // Optional confirm button
-  onConfirm?: () => void; // Optional confirm button action
+  children?: ReactNode;
+  actions?: ReactNode;
+  confirmButtonText?: string;
+  onConfirm?: () => void;
+  showCancelButton?: boolean;
+  disableCloseOnBackdrop?: boolean;
+  disableCloseOnEscape?: boolean;
 }
 
-const CustomDialog: React.FC<CommonDialogProps> = ({
-  open,
-  onClose,
-  title,
-  children,
-  actions,
-  confirmButtonText,
-  onConfirm,
-}) => {
+const CustomDialog: FC<CustomDialogProps> = ({
+                                               open,
+                                               onClose,
+                                               title,
+                                               children,
+                                               actions,
+                                               confirmButtonText,
+                                               onConfirm,
+                                               showCancelButton = true,
+                                               disableCloseOnBackdrop = false,
+                                               disableCloseOnEscape = false,
+                                             }) => {
+  const handleClose = (
+    _event: object,
+    reason: 'backdropClick' | 'escapeKeyDown'
+  ) => {
+    if (
+      (disableCloseOnBackdrop && reason === 'backdropClick') ||
+      (disableCloseOnEscape && reason === 'escapeKeyDown')
+    ) {
+      return;
+    }
+    
+    onClose();
+  };
+  
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
-      <DialogTitle>{title}</DialogTitle>
+    <Dialog
+      open={open}
+      onClose={handleClose}
+      fullWidth
+      maxWidth="md"
+      aria-labelledby="custom-dialog-title"
+    >
+      <DialogTitle id="custom-dialog-title">{title}</DialogTitle>
+      
       {children && (
         <DialogContent dividers>
           {typeof children === 'string' ? (
-            <Typography>{children}</Typography>
+            <CustomTypography>{children}</CustomTypography>
           ) : (
             children
           )}
         </DialogContent>
       )}
-      <DialogActions>
-        {actions}
-        {confirmButtonText && onConfirm && (
-          <>
-            <CustomButton onClick={onClose} color="secondary">
+      
+      {(actions || confirmButtonText || showCancelButton) && (
+        <DialogActions>
+          {actions}
+          
+          {showCancelButton && (
+            <CustomButton
+              onClick={(e) => {
+                (e.currentTarget as HTMLButtonElement).blur();
+                onClose();
+              }}
+              color="secondary">
               Cancel
             </CustomButton>
-            <CustomButton
-              variant="contained"
-              onClick={onConfirm}
-              color="primary"
-            >
+          )}
+          
+          {confirmButtonText && onConfirm && (
+            <CustomButton variant="contained" onClick={onConfirm} color="primary">
               {confirmButtonText}
             </CustomButton>
-          </>
-        )}
-      </DialogActions>
+          )}
+        </DialogActions>
+      )}
     </Dialog>
   );
 };

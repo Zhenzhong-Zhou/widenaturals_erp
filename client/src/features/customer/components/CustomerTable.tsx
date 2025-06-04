@@ -1,11 +1,13 @@
-import { FC, useState } from 'react';
-import { Box, Typography } from '@mui/material';
-import { useCustomers } from '../../../hooks';
-import { CustomButton, CustomTable } from '@components/index.ts';
-import { Customer } from '../state/customerTypes';
-import { capitalizeFirstLetter, formatPhoneNumber } from '@utils/textUtils.ts';
-import { formatDate } from '@utils/dateTimeUtils.ts';
+import { type FC, useState } from 'react';
 import { Link } from 'react-router-dom';
+import Box from '@mui/material/Box';
+import CustomTypography from '@components/common/CustomTypography';
+import CustomButton from '@components/common/CustomButton';
+import CustomTable, { type Column } from '@components/common/CustomTable';
+import type { Customer } from '@features/customer';
+import { formatLabel, formatPhoneNumber } from '@utils/textUtils';
+import { formatDate } from '@utils/dateTimeUtils';
+import useCustomers from '@hooks/useCustomers';
 
 const CustomerTable: FC = () => {
   const {
@@ -35,7 +37,7 @@ const CustomerTable: FC = () => {
   };
 
   // Table column definitions
-  const columns = [
+  const columns: Column<Customer>[] = [
     {
       id: 'customer_name',
       label: 'Customer Name',
@@ -62,19 +64,19 @@ const CustomerTable: FC = () => {
       id: 'phone_number',
       label: 'Phone',
       sortable: true,
-      format: (value: string) => formatPhoneNumber(value),
+      format: (value: string | null) => formatPhoneNumber(value)
     },
     {
       id: 'status_name',
       label: 'Status',
       sortable: false,
-      format: (value: string) => capitalizeFirstLetter(value),
+      format: (value: string | null) => formatLabel(value),
     },
     {
       id: 'created_at',
       label: 'Created At',
       sortable: true,
-      format: (value: string) => formatDate(value),
+      format: (value: string | null) => formatDate(value),
     },
     {
       id: 'created_by',
@@ -85,7 +87,7 @@ const CustomerTable: FC = () => {
       id: 'updated_at',
       label: 'Updated At',
       sortable: true,
-      format: (value: string) => formatDate(value),
+      format: (value: string | null) => formatDate(value),
     },
     {
       id: 'updated_by',
@@ -96,9 +98,15 @@ const CustomerTable: FC = () => {
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
+      <CustomTypography
+        sx={{
+          fontWeight: 600,
+          lineHeight: 1.3,
+          minHeight: '1.25rem',
+        }}
+      >
         Customer List
-      </Typography>
+      </CustomTypography>
 
       <CustomButton
         variant="contained"
@@ -108,8 +116,8 @@ const CustomerTable: FC = () => {
         Refresh Data
       </CustomButton>
 
-      {loading && <Typography>Loading customers...</Typography>}
-      {error && <Typography color="error">{error}</Typography>}
+      {loading && <CustomTypography>Loading customers...</CustomTypography>}
+      {error && <CustomTypography color="error">{error}</CustomTypography>}
 
       <CustomTable
         columns={columns}

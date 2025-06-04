@@ -1,10 +1,10 @@
-import axiosInstance from '@utils/axiosConfig.ts';
-import { API_ENDPOINTS } from './apiEndponits.ts';
-import {
+import axiosInstance from '@utils/axiosConfig';
+import { API_ENDPOINTS } from '@services/apiEndpoints';
+import type {
   WarehouseDetailsResponse,
   WarehouseResponse,
-} from '../features/warehouse';
-import { AppError } from '@utils/AppError.tsx';
+} from '@features/warehouse';
+import { AppError } from '@utils/AppError';
 
 const fetchAllWarehouses = async (
   page: number,

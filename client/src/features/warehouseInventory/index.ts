@@ -1,0 +1,1 @@
+export { warehouseInventoryReducers } from './state';

@@ -1,10 +1,12 @@
-import { FC } from 'react';
-import { CustomTable, Typography } from '@components/index.ts';
-import { Location } from '../state/locationTypes.ts';
-import { capitalizeFirstLetter } from '@utils/textUtils.ts';
-import { formatDateTime } from '@utils/dateTimeUtils.ts';
+import type { FC } from 'react';
+// import { Link } from 'react-router-dom';
+// import { Link } from 'react-router-dom';
+import type { Location } from '@features/location';
+import { formatLabel } from '@utils/textUtils';
+import { formatDateTime } from '@utils/dateTimeUtils';
 import Box from '@mui/material/Box';
-import { Link } from 'react-router-dom';
+import CustomTypography from '@components/common/CustomTypography';
+import CustomTable, { type Column } from '@components/common/CustomTable';
 
 interface LocationTableProps {
   data: Location[];
@@ -25,46 +27,46 @@ const LocationTable: FC<LocationTableProps> = ({
   onPageChange,
   onRowsPerPageChange,
 }) => {
-  const columns = [
+  const columns: Column<Location>[] = [
     { id: 'location_type_name', label: 'Location Type', sortable: true },
     {
       id: 'location_name',
       label: 'Location Name',
       sortable: true,
-      format: (value: string) => value,
-      renderCell: (row: any) => (
-        <Link
-          to={`/locations/${row.location_id || 'unknown'}`}
-          style={{ textDecoration: 'none', color: 'blue' }}
-        >
-          {row.location_name}
-        </Link>
-      ),
+      format: (value) => value as string,
+      // renderCell: (row: any) => (
+      //   <Link
+      //     to={`/locations/${row.location_id || 'unknown'}`}
+      //     style={{ textDecoration: 'none', color: 'blue' }}
+      //   >
+      //     {row.location_name}
+      //   </Link>
+      // ),
     },
     { id: 'address', label: 'Address', sortable: false },
     {
       id: 'status_name',
       label: 'Status',
       sortable: true,
-      format: (value: string) => capitalizeFirstLetter(value),
+      format: (value) => formatLabel(value as string),
     },
     {
       id: 'status_date',
       label: 'Status Date',
       sortable: true,
-      format: (value: string) => formatDateTime(value),
+      format: (value) => formatDateTime(value as string),
     },
     {
       id: 'created_at',
       label: 'Created At',
       sortable: true,
-      format: (value: string) => formatDateTime(value),
+      format: (value) => formatDateTime(value as string),
     },
     {
       id: 'updated_at',
       label: 'Updated At',
       sortable: true,
-      format: (value: string) => formatDateTime(value),
+      format: (value) => formatDateTime(value as string),
     },
     { id: 'created_by', label: 'Created By', sortable: false },
     { id: 'updated_by', label: 'Updated By', sortable: false },
@@ -73,9 +75,9 @@ const LocationTable: FC<LocationTableProps> = ({
   return (
     <Box>
       {data.length === 0 ? (
-        <Typography sx={{ textAlign: 'center', padding: 2 }}>
+        <CustomTypography sx={{ textAlign: 'center', padding: 2 }}>
           No locations found.
-        </Typography>
+        </CustomTypography>
       ) : (
         <CustomTable
           columns={columns}

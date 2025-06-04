@@ -1,9 +1,12 @@
-import { lazy } from 'react';
-import Dropdown from '@components/common/Dropdown.tsx';
-import { BaseReportParams } from '../state/reportTypes.ts';
-import { formatDate } from '@utils/dateTimeUtils.ts';
+import { lazy, Suspense } from 'react';
+import Dropdown from '@components/common/Dropdown';
+import Loading from '@components/common/Loading';
+import type { BaseReportParams } from '@features/report';
+import { formatDate } from '@utils/dateTimeUtils';
 
-const CustomDatePicker = lazy(() => import('@components/common/CustomDatePicker.tsx'));
+const CustomDatePicker = lazy(
+  () => import('@components/common/CustomDatePicker')
+);
 
 interface ReportFiltersProps<T extends BaseReportParams> {
   filters: T;
@@ -52,20 +55,27 @@ const ReportFilters = <T extends BaseReportParams>({
         value={filters.reportType || ''}
         onChange={handleReportTypeChange}
       />
-      <CustomDatePicker
-        label="Start Date"
-        value={
-          filters.startDate ? new Date(`${filters.startDate}T00:00:00`) : null
-        }
-        onChange={handleStartDateChange}
-        disabled={!!filters.reportType}
-      />
-      <CustomDatePicker
-        label="End Date"
-        value={filters.endDate ? new Date(`${filters.endDate}T00:00:00`) : null}
-        onChange={handleEndDateChange}
-        disabled={!!filters.reportType}
-      />
+      <Suspense fallback={<Loading message="Loading start date picker..." />}>
+        <CustomDatePicker
+          label="Start Date"
+          value={
+            filters.startDate ? new Date(`${filters.startDate}T00:00:00`) : null
+          }
+          onChange={handleStartDateChange}
+          disabled={!!filters.reportType}
+        />
+      </Suspense>
+
+      <Suspense fallback={<Loading message="Loading end date picker..." />}>
+        <CustomDatePicker
+          label="End Date"
+          value={
+            filters.endDate ? new Date(`${filters.endDate}T00:00:00`) : null
+          }
+          onChange={handleEndDateChange}
+          disabled={!!filters.reportType}
+        />
+      </Suspense>
     </div>
   );
 };

@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo } from 'react';
-import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   selectLocationError,
   selectLocationLoading,
   selectLocationPagination,
   selectLocations,
   fetchAllLocations,
-} from '../features/location';
+} from '@features/location';
 
 /**
  * Custom hook for fetching and managing locations.

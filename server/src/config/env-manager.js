@@ -3,7 +3,7 @@
  * @description Handles loading and validating environment variables.
  */
 
-const { logFatal } = require('../utils/logger-helper');
+const { logSystemFatal } = require('../utils/system-logger');
 const { loadEnv, validateEnv, loadSecret } = require('./env');
 
 const loadAndValidateEnv = () => {
@@ -84,9 +84,13 @@ const loadAndValidateEnv = () => {
     validateEnv(environmentGroups);
     return env;
   } catch (error) {
-    logFatal(`Environment validation failed: ${error.message}`, {
-      stack: error.stack,
+    logSystemFatal('Environment validation failed', {
+      errorMessage: error.message,
+      stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined,
+      context: 'env-loader',
+      severity: 'critical',
     });
+    
     throw error;
   }
 };

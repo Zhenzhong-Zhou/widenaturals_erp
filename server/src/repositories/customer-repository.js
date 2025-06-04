@@ -1,38 +1,65 @@
-const {
-  withTransaction,
-  bulkInsert,
-  query,
-  retry,
-  paginateQuery,
-} = require('../database/db');
+const { bulkInsert, query, retry, paginateQuery } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logError } = require('../utils/logger-helper');
 
 /**
- * Checks if a customer exists by email or phone.
+ * Repository function to check if a customer exists by ID.
+ * @param {string} customerId - The UUID of the customer.
+ * @param {object} client - Optional database transaction client.
+ * @returns {Promise<boolean>} - Returns true if the customer exists, otherwise false.
+ */
+const checkCustomerExistsById = async (customerId, client = null) => {
+  try {
+    const queryText = `SELECT EXISTS (SELECT 1 FROM customers WHERE id = $1) AS exists;`;
+    const { rows } = await query(queryText, [customerId], client);
+    return rows[0]?.exists || false;
+  } catch (error) {
+    logError('Error checking customer existence by ID:', error);
+    throw AppError.databaseError('Failed to check customer existence by ID');
+  }
+};
+
+/**
+ * Repository function to check if a customer exists by email or phone number.
  * @param {string} email - Customer email.
  * @param {string} phone_number - Customer phone number.
- * @returns {Promise<boolean>} - True if customer exists, otherwise false.
+ * @param {object} client - Optional database transaction client.
+ * @returns {Promise<boolean>} - True if the customer exists, otherwise false.
  */
-const checkCustomerExists = async (email, phone_number) => {
+const checkCustomerExistsByEmailOrPhone = async (
+  email,
+  phone_number,
+  client = null
+) => {
   if (!email && !phone_number) return false;
 
-  const sql = `
-    SELECT id FROM customers
-    WHERE email = $1 OR phone_number = $2
-    LIMIT 1;
-  `;
-
-  const result = await query(sql, [email || null, phone_number || null]);
-  return result.rows.length > 0;
+  try {
+    const sql = `
+      SELECT EXISTS (
+        SELECT 1 FROM customers WHERE email = $1 OR phone_number = $2
+      ) AS exists;
+    `;
+    const { rows } = await query(
+      sql,
+      [email || null, phone_number || null],
+      client
+    );
+    return rows[0]?.exists || false;
+  } catch (error) {
+    logError('Error checking customer existence by email or phone:', error);
+    throw AppError.databaseError(
+      'Failed to check customer existence by email or phone'
+    );
+  }
 };
 
 /**
  * Inserts multiple customers into the database in a transaction.
  * @param {Array} customers - List of customer objects.
+ * @param client
  * @returns {Promise<Array>} - The inserted customers.
  */
-const bulkCreateCustomers = async (customers) => {
+const bulkCreateCustomers = async (customers, client) => {
   if (!Array.isArray(customers) || customers.length === 0) {
     throw AppError('Customer list is empty.', 400, {
       code: 'VALIDATION_ERROR',
@@ -44,7 +71,13 @@ const bulkCreateCustomers = async (customers) => {
     'lastname',
     'email',
     'phone_number',
-    'address',
+    'address_line1',
+    'address_line2',
+    'city',
+    'state',
+    'postal_code',
+    'country',
+    'region',
     'status_id',
     'note',
     'status_date',
@@ -59,33 +92,51 @@ const bulkCreateCustomers = async (customers) => {
     customer.lastname,
     customer.email || null,
     customer.phone_number || null,
-    customer.address || null,
+    customer.address_line1,
+    customer.address_line2 || null,
+    customer.city,
+    customer.state,
+    customer.postal_code,
+    customer.country,
+    customer.region || null,
     customer.status_id,
     customer.note || null,
     new Date(), // status_date
     new Date(), // created_at
     null, // updated_at
     customer.created_by,
-    null,
+    null, // updated_by
   ]);
 
-  return withTransaction(async (client) => {
-    try {
-      return await bulkInsert(
-        'customers',
-        columns,
-        rows,
-        ['email', 'phone_number'], // Conflict resolution based on email, phone
-        ['firstname', 'lastname', 'address', 'status_id', 'updated_at'], // Update on conflict
-        client
-      );
-    } catch (error) {
-      logError('Bulk Insert Failed:', error);
-      throw AppError.databaseError('Bulk insert operation failed', {
-        details: { tableName: 'customers', columns, error: error.message },
-      });
-    }
-  });
+  try {
+    return await bulkInsert(
+      'customers',
+      columns,
+      rows,
+      ['email', 'phone_number'], // Conflict resolution based on email, phone
+      [
+        'firstname',
+        'lastname',
+        'address_line1',
+        'address_line2',
+        'city',
+        'state',
+        'postal_code',
+        'country',
+        'region',
+        'status_id',
+        'note',
+        'updated_at',
+        'updated_by',
+      ], // Update on conflict
+      client
+    );
+  } catch (error) {
+    logError('Bulk Insert Failed:', error);
+    throw AppError.databaseError('Bulk insert operation failed', {
+      details: { tableName: 'customers', columns, error: error.message },
+    });
+  }
 };
 
 /**
@@ -167,61 +218,77 @@ const getAllCustomers = async (
 };
 
 /**
- * Fetches customer data for a dropdown selection.
+ * Fetches customer data for a dropdown selection, including optional shipping info.
  *
  * This function retrieves customers from the database with a limit on the number of results.
  * If a search term is provided, it filters customers by their firstname, lastname, email, or phone number.
+ * Returns customer id, label (name + contact), and shipping address fields for auto-filling.
  *
  * @param {string} [search=""] - The search term to filter customers (matches firstname, lastname, email, or phone_number).
  * @param {number} [limit=100] - The maximum number of customers to return.
- * @returns {Promise<Array<{ id: string, label: string }>>} - A promise that resolves to an array of customer objects with `id` and `label`.
+ * @returns {Promise<Array<{
+ *   id: string,
+ *   fullname: string | null,
+ *   label: string,
+ *   phone: string | null,
+ *   email: string | null,
+ *   address: string | null,
+ *   address_line2: string | null,
+ *   city: string | null,
+ *   state: string | null,
+ *   postal_code: string | null,
+ *   country: string | null,
+ *   region: string | null
+ * }>>} - A promise resolving to customer dropdown entries with shipping details.
+ *
  * @throws {Error} - Throws an error if the database query fails.
  *
  * @example
- * // Fetch first 100 customers for dropdown
- * const customers = await getCustomersForDropdown(query);
+ * // Fetch default customer list
+ * const customers = await getCustomersForDropdown();
  *
  * @example
- * // Fetch customers with search term "Alice"
- * const customers = await getCustomersForDropdown(query, "Alice");
+ * // Fetch with search filter
+ * const customers = await getCustomersForDropdown("Alice");
  */
 const getCustomersForDropdown = async (search = '', limit = 100) => {
   try {
-    let whereClause = '1=1'; // Default matches all customers
+    let whereClause = '';
     let params = [];
-    let searchCondition = '';
-    let labelFormat = "c.firstname || ' ' || c.lastname"; // Default label format
 
     if (search) {
-      searchCondition = `LOWER(c.firstname) ILIKE LOWER($1)
-                         OR LOWER(c.lastname) ILIKE LOWER($1)
-                         OR LOWER(c.email) ILIKE LOWER($1)
-                         OR c.phone_number ILIKE $1`;
-
-      whereClause += ` AND (${searchCondition})`;
+      whereClause = `WHERE LOWER(c.firstname) ILIKE LOWER($1)
+                     OR LOWER(c.lastname) ILIKE LOWER($1)
+                     OR LOWER(c.email) ILIKE LOWER($1)
+                     OR c.phone_number ILIKE $1`;
       params.push(`%${search}%`);
-
-      // Adjust label format based on search type
-      if (/\S+@\S+\.\S+/.test(search)) {
-        // If search contains '@', assume email
-        labelFormat = `c.firstname || ' ' || c.lastname || ' - ' || c.email`;
-      } else if (/^\+?\d[\d -]{8,}\d$/.test(search)) {
-        // If search looks like a phone number
-        labelFormat = `c.firstname || ' ' || c.lastname || ' - ' || c.phone_number`;
-      }
     }
 
+    // Ensure proper query structure (avoid unnecessary WHERE when search is empty)
+    // Use `COALESCE` to prioritize email, fallback to phone if email is null
     const sql = `
       SELECT
         c.id,
-        ${labelFormat} AS label
+        c.firstname || ' ' || c.lastname ||
+        CASE
+          WHEN c.email IS NOT NULL THEN ' - ' || c.email
+          WHEN c.phone_number IS NOT NULL THEN ' - ' || c.phone_number
+          ELSE ''
+        END AS label,
+        c.address_line1,
+        c.address_line2,
+        c.city,
+        c.state,
+        c.postal_code,
+        c.country,
+        c.region
       FROM customers c
-      WHERE ${whereClause}
+      ${whereClause}
       ORDER BY c.created_at DESC
-      LIMIT $2;
+      LIMIT $${params.length + 1};
     `;
 
-    params.push(limit); // Limit parameter
+    params.push(limit); // Ensure proper parameter binding
 
     const result = await query(sql, params);
     return result.rows;
@@ -237,7 +304,7 @@ const getCustomersForDropdown = async (search = '', limit = 100) => {
  * @returns {Promise<Object>} - Returns the customer details if found.
  * @throws {AppError} - Throws an error if the customer is not found or if a database error occurs.
  */
-const getCustomerById = async (customerId) => {
+const getCustomerDetailsById = async (customerId) => {
   try {
     const queryText = `
       SELECT
@@ -245,7 +312,13 @@ const getCustomerById = async (customerId) => {
         COALESCE(c.firstname || ' ' || c.lastname, 'Unknown') AS customer_name,
         c.email,
         c.phone_number,
-        c.address,
+        c.address_line1,
+        c.address_line2,
+        c.city,
+        c.state,
+        c.postal_code,
+        c.country,
+        c.region,
         c.note,
         c.status_id,
         s.name AS status_name,
@@ -275,9 +348,10 @@ const getCustomerById = async (customerId) => {
 };
 
 module.exports = {
-  checkCustomerExists,
+  checkCustomerExistsById,
+  checkCustomerExistsByEmailOrPhone,
   bulkCreateCustomers,
   getAllCustomers,
   getCustomersForDropdown,
-  getCustomerById,
+  getCustomerDetailsById,
 };

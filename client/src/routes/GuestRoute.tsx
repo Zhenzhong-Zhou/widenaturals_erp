@@ -1,6 +1,7 @@
-import { ReactNode, FC } from 'react';
+import type { ReactNode, FC } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
-import { useSession } from '../hooks';
+import useSession from '@hooks/useSession';
+import Loading from '@components/common/Loading';
 
 // Define props explicitly
 interface GuestRouteProps {
@@ -8,9 +9,19 @@ interface GuestRouteProps {
 }
 
 const GuestRoute: FC<GuestRouteProps> = ({ children = <Outlet /> }) => {
-  const { isAuthenticated } = useSession(); // Fetch authentication status
+  const { isAuthenticated, isLoading } = useSession(); // Fetch authentication status
 
-  return isAuthenticated ? <Navigate to="/dashboard" replace /> : children;
+  // While checking session, show full-page loading to avoid layout shift
+  if (isLoading) {
+    return <Loading fullPage message="Checking session..." />;
+  }
+  
+  // Redirect to dashboard if authenticated
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  
+  return children;
 };
 
 export default GuestRoute;

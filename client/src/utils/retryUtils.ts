@@ -1,4 +1,4 @@
-import { AppError, ErrorType } from '@utils/AppError.tsx';
+import { AppError, ErrorType } from '@utils/AppError';
 
 export const withRetry = async <T>(
   fn: () => Promise<T>,

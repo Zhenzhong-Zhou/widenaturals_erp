@@ -1,73 +1,58 @@
 import {
   createContext,
-  useState,
-  useEffect,
   useContext,
-  ReactNode,
-  FC,
+  useLayoutEffect,
+  useState,
+  type FC,
+  type ReactNode,
 } from 'react';
-import ThemeProvider from '@mui/material/styles/ThemeProvider';
+import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import { lightTheme, darkTheme } from '../styles/theme';
-import { Theme } from '@mui/material/styles';
+import Box from '@mui/material/Box';
+import { lightTheme, darkTheme } from '@styles/theme';
+import type { Theme } from '@mui/material/styles';
+import useThemeMode from '@hooks/useThemeMode.ts';
 
-// Define the shape of the context
+// Context type
 interface ThemeContextProps {
   toggleTheme: () => void;
   theme: Theme;
+  mode: 'light' | 'dark';
 }
 
 // Create the context
 const ThemeContext = createContext<ThemeContextProps | undefined>(undefined);
 
-// Helper function to get the initial theme
-const getInitialTheme = (): Theme => {
-  // Check localStorage for a saved theme
-  const savedTheme = localStorage.getItem('theme');
-  if (savedTheme === 'dark') {
-    return darkTheme;
-  }
-  if (savedTheme === 'light') {
-    return lightTheme;
-  }
-
-  // Fallback to system preference
-  return window.matchMedia('(prefers-color-scheme: dark)').matches
-    ? darkTheme
-    : lightTheme;
-};
-
-// Create a provider component
-export const ThemeProviderWrapper: FC<{ children: ReactNode }> = ({
-  children,
-}) => {
-  const [theme, setTheme] = useState<Theme>(getInitialTheme);
-
-  // Toggle theme and persist user preference
-  const toggleTheme = () => {
-    setTheme((prevTheme) => {
-      const newTheme = prevTheme === darkTheme ? lightTheme : darkTheme;
-      localStorage.setItem('theme', newTheme === darkTheme ? 'dark' : 'light');
-      return newTheme;
-    });
-  };
-
-  // Listen for system theme changes
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = () => {
-      // If no user preference is set, update based on system theme
-      if (!localStorage.getItem('theme')) {
-        setTheme(mediaQuery.matches ? darkTheme : lightTheme);
-      }
-    };
-
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
+export const ThemeProviderWrapper: FC<{ children: ReactNode }> = ({ children }) => {
+  const { mode, toggleTheme } = useThemeMode();
+  const [mounted, setMounted] = useState(false);
+  
+  // Memoize theme based on mode
+  const theme = mode === 'dark' ? darkTheme : lightTheme;
+  
+  // Avoid hydration mismatch flicker
+  useLayoutEffect(() => {
+    setMounted(true);
   }, []);
-
+  
+  // Sync CSS variables (optional)
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty('--primary-color', theme.palette.primary.main);
+    root.style.setProperty('--secondary-color', theme.palette.secondary.main);
+    root.style.setProperty('--bg-default', theme.palette.background.default);
+    root.style.setProperty('--bg-paper', theme.palette.background.paper);
+    root.style.setProperty('--text-primary', theme.palette.text.primary);
+    root.style.setProperty('--text-secondary', theme.palette.text.secondary);
+    root.style.setProperty('--border-light', theme.palette.divider);
+    root.style.setProperty('--hover-bg', theme.palette.backgroundCustom?.customHover ?? '#eee');
+  }, [theme]);
+  
+  // Avoid rendering anything until hydration is consistent
+  if (!mounted) return <Box style={{ opacity: 0 }}>Loading theme...</Box>;
+  
   return (
-    <ThemeContext.Provider value={{ toggleTheme, theme }}>
+    <ThemeContext.Provider value={{ toggleTheme, theme, mode }}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
         {children}
@@ -76,13 +61,11 @@ export const ThemeProviderWrapper: FC<{ children: ReactNode }> = ({
   );
 };
 
-// Custom hook for using the theme context
+// Hook
 export const useThemeContext = (): ThemeContextProps => {
   const context = useContext(ThemeContext);
   if (!context) {
-    throw new Error(
-      'useThemeContext must be used within a ThemeProviderWrapper'
-    );
+    throw new Error('useThemeContext must be used within a ThemeProviderWrapper');
   }
   return context;
 };

@@ -1,5 +1,5 @@
 import { createSelector } from '@reduxjs/toolkit';
-import { RootState } from '../../../store/store.ts';
+import type { RootState } from '@store/store';
 
 /**
  * Select the entire locations state.

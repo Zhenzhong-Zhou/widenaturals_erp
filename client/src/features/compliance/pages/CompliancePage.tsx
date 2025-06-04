@@ -1,14 +1,13 @@
-import { useState } from 'react';
+import { useState, lazy } from 'react';
 import Box from '@mui/material/Box';
-import {
-  CustomButton,
-  ErrorDisplay,
-  ErrorMessage,
-  Loading,
-  Typography,
-} from '@components/index.ts';
-import { useCompliances } from '../../../hooks';
-import { ComplianceTable } from '../index.ts';
+import CustomButton from '@components/common/CustomButton';
+import ErrorDisplay from '@components/shared/ErrorDisplay';
+import ErrorMessage from '@components/common/ErrorMessage';
+import Loading from '@components/common/Loading';
+import CustomTypography from '@components/common/CustomTypography';
+import useCompliances from '@hooks/useCompliances';
+
+const ComplianceTable = lazy(() => import('../components/ComplianceTable'));
 
 const CompliancePage = () => {
   const [page, setPage] = useState<number>(1);
@@ -24,9 +23,9 @@ const CompliancePage = () => {
 
   return (
     <Box sx={{ padding: 3 }}>
-      <Typography variant="h4" gutterBottom>
+      <CustomTypography variant="h4" gutterBottom>
         Compliance Records
-      </Typography>
+      </CustomTypography>
 
       <CustomButton variant="contained" onClick={refresh} sx={{ mb: 2 }}>
         Refresh Data
@@ -56,9 +55,9 @@ const CompliancePage = () => {
               }}
             />
           ) : (
-            <Typography variant="h6" align="center" sx={{ mt: 2 }}>
+            <CustomTypography variant="h6" align="center" sx={{ mt: 2 }}>
               No compliance records found.
-            </Typography>
+            </CustomTypography>
           )}
         </>
       )}

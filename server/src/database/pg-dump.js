@@ -1,6 +1,10 @@
 const { promisify } = require('util');
 const { exec } = require('child_process');
-const { logInfo, logError } = require('../utils/logger-helper');
+const {
+  logSystemInfo,
+  logSystemError,
+  logSystemException
+} = require('../utils/system-logger');
 
 const execAsync = promisify(exec);
 
@@ -13,37 +17,51 @@ const execAsync = promisify(exec);
  * @returns {Promise<void>}
  */
 const runPgDump = async (dumpCommand, isProduction, dbUser, dbPassword) => {
+  logSystemInfo('Starting pg_dump execution', {
+    context: 'pg-dump',
+    isProduction,
+  });
+  
+  const execOptions = {
+    timeout: 300000, // 5-minute timeout
+    env: {
+      ...process.env, // Preserve existing env variables
+    },
+  };
+  
+  if (!isProduction) {
+    execOptions.env.PGUSER = dbUser;
+    execOptions.env.PGPASSWORD = dbPassword;
+  }
+  
   try {
-    logInfo('Starting pg_dump execution...');
-
-    const execOptions = {
-      timeout: 300000, // 5-minute timeout
-      env: {
-        ...process.env, // Preserve existing env variables
-      },
-    };
-
-    if (!isProduction) {
-      execOptions.env.PGUSER = dbUser;
-      execOptions.env.PGPASSWORD = dbPassword;
-    }
-
     const { stdout, stderr } = await execAsync(dumpCommand, execOptions);
-
-    if (stdout) logInfo(`pg_dump output: ${stdout}`);
-    if (stderr) logError(`pg_dump error output: ${stderr}`);
+    
+    if (stdout) {
+      logSystemInfo('pg_dump stdout', {
+        context: 'pg-dump',
+        output: stdout,
+      });
+    }
+    
+    if (stderr) {
+      logSystemError('pg_dump stderr', {
+        context: 'pg-dump',
+        output: stderr,
+      });
+    }
   } catch (error) {
-    logError('pg_dump failed:', {
-      message: error.message,
+    logSystemException(error, 'pg_dump failed', {
+      context: 'pg-dump',
+      dumpCommand,
+      isProduction,
       code: error.code,
       signal: error.signal,
       cmd: error.cmd,
+      stdout: error.stdout,
+      stderr: error.stderr,
     });
-
-    // Log full error output
-    if (error.stdout) logError(`pg_dump stdout: ${error.stdout}`);
-    if (error.stderr) logError(`pg_dump stderr: ${error.stderr}`);
-
+    
     throw error;
   }
 };

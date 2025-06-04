@@ -4,6 +4,7 @@
  */
 
 const { checkDatabaseHealth } = require('../monitors/db-health');
+const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 
 let monitorPool;
 setImmediate(() => {
@@ -30,19 +31,42 @@ const checkServerHealth = async () => {
 
   // Perform database health check
   try {
-    status.services.database = await checkDatabaseHealth();
+    const dbStatus = await checkDatabaseHealth();
+    status.services.database = dbStatus;
+    
+    logSystemInfo('Database health check passed', {
+      context: 'health-check',
+      service: 'database',
+      result: dbStatus,
+    });
   } catch (error) {
     status.server = 'unhealthy';
     status.services.database = { status: 'unhealthy', error: error.message };
+    
+    logSystemException(error, 'Database health check failed', {
+      context: 'health-check',
+      service: 'database',
+    });
   }
 
   // Perform pool health check
   try {
     const poolMetrics = await monitorPool();
     status.services.pool = { status: 'healthy', metrics: poolMetrics };
+    
+    logSystemInfo('Pool health check passed', {
+      context: 'health-check',
+      service: 'pool',
+      result: poolMetrics,
+    });
   } catch (error) {
     status.server = 'unhealthy';
     status.services.pool = { status: 'unhealthy', error: error.message };
+    
+    logSystemException(error, 'Pool health check failed', {
+      context: 'health-check',
+      service: 'pool',
+    });
   }
 
   return status;

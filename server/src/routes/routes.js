@@ -1,6 +1,12 @@
 /**
  * @file routes.js
- * @description Centralized router configuration for the application.
+ * @description Centralized router configuration for all API routes in the application.
+ * Defines route entry points and applies middleware such as authentication and rate-limiting.
+ *
+ * All routes are organized by resource and access level:
+ * - Public: No authentication required
+ * - Protected: Authenticated user access
+ * - Internal/System: Used by infrastructure or background jobs
  */
 
 const express = require('express');
@@ -13,20 +19,24 @@ const authRoutes = require('./auth');
 const userRoutes = require('./users');
 const adminRoutes = require('./admin');
 const productRoutes = require('./products');
+const skuRoutes = require('./skus');
 const complianceRoutes = require('./compliances');
-const priceTypeRouts = require('./pricing_types');
-const pricingRouts = require('./pricings');
-const locationTypeRouts = require('./locations_types');
-const locationRouts = require('./locations');
-const inventoryRouts = require('./inventory');
-const warehouseRouts = require('./warehouses');
-const warehouseInventoryRouts = require('./warehouse-inventory');
-const warehouseInventoryLotRouts = require('./warehouse-invnetory-lot');
+const priceTypeRoutes = require('./pricing-types');
+const pricingRoutes = require('./pricings');
+const locationTypeRoutes = require('./locations-types');
+const locationRoutes = require('./locations');
+const locationInventoryRoutes = require('./location-inventory');
+const warehouseInventoryRoutes = require('./warehouse-inventory');
 const warehouseLotAdjustmentRoutes = require('./lot-adjustment-type');
+const dropdownRoutes = require('./dropdown');
 const reportRoutes = require('./reports');
 const customerRoutes = require('./customers');
+const discountRoutes = require('./discounts');
+const deliveryMethodRoutes = require('./delivery-methods');
 const orderTypeRoutes = require('./order-types');
 const orderRoutes = require('./orders');
+const taxRateRoutes = require('./tax-rates');
+const inventoryAllocationRoutes = require('./inventory-allocation');
 const { createApiRateLimiter } = require('../middlewares/rate-limiter');
 const authenticate = require('../middlewares/authenticate');
 
@@ -36,90 +46,99 @@ const router = express.Router();
 const apiRateLimiter = createApiRateLimiter();
 router.use(apiRateLimiter);
 
-// Public routes (no authentication required)
 /**
- * Routes under `/public` are open to everyone.
+ * Public routes (no auth required)
  */
 router.use('/public', publicRoute);
 
+/**
+ * CSRF token and protection utilities
+ */
 router.use('/csrf', csrfRoute);
 
-// Internal routes (system-level operations)
 /**
- * Routes under `/internal` are for internal services and require proper authorization.
+ * Internal routes for service-to-service communication
  */
 router.use('/internal', authenticate(), internalRoute);
 
-// System routes (health checks, monitoring, etc.)
 /**
- * Routes under `/system` handle operational tasks such as status and monitoring.
+ * System routes (e.g., health check, monitoring)
  */
 router.use('/system', authenticate(), systemRoute);
 
-// Authentication routes
 /**
- * Routes under `/session` manage user login and authentication flows.
+ * Session management (login/logout, session refresh)
  */
-router.use('/session', sessionRoute); // Public login
-router.use('/auth', authenticate(), authRoutes); // Authenticated routes
+router.use('/session', sessionRoute); // Login/logout
 
-// Users routes
+/**
+ * Authenticated user profile and token validation routes
+ */
+router.use('/auth', authenticate(), authRoutes);
+
+/**
+ * User and admin account management
+ */
 router.use('/users', authenticate(), userRoutes);
-
-// Admin routes
-/**
- * Routes under `/admin` handle administrative operations and require authentication.
- */
 router.use('/admin', authenticate(), adminRoutes);
 
-// Products route
-router.use('/products', authenticate(), productRoutes);
-
-// router.use('/compliances', authenticate(), complianceRoutes);
-router.use('/compliances', complianceRoutes);
-
-// Price Types route
-router.use('/pricing-types', authenticate(), priceTypeRouts);
-
-// Pricing route
 /**
- * @route GET /api/pricings
- * @desc Fetch paginated pricing records
- * @access Protected
+ * Product and SKU catalog management
  */
-router.use('/pricings', authenticate(), pricingRouts);
+router.use('/products', authenticate(), productRoutes);
+router.use('/skus', authenticate(), skuRoutes);
+router.use('/compliances', authenticate(), complianceRoutes);
 
-// Location Types route
-router.use('/location-types', authenticate(), locationTypeRouts);
+/**
+ * Pricing types and pricing records
+ */
+router.use('/pricing-types', authenticate(), priceTypeRoutes);
+router.use('/pricings', authenticate(), pricingRoutes);
 
-router.use('/locations', authenticate(), locationRouts);
+/**
+ * Warehouse and inventory management
+ */
+router.use('/warehouse-inventory', authenticate(), warehouseInventoryRoutes);
+router.use('/lot-adjustment-types', authenticate(), warehouseLotAdjustmentRoutes);
 
-router.use('/inventories', authenticate(), inventoryRouts);
+/**
+ * Location-related management
+ */
+router.use('/location-types', authenticate(), locationTypeRoutes);
+router.use('/locations', authenticate(), locationRoutes);
+router.use('/location-inventory', authenticate(), locationInventoryRoutes);
 
-router.use('/warehouses', authenticate(), warehouseRouts);
+/**
+ * Order processing and customer-related endpoints
+ */
+router.use('/customers', authenticate(), customerRoutes);
+router.use('/orders', authenticate(), orderRoutes);
+router.use('/order-types', authenticate(), orderTypeRoutes);
 
-router.use('/warehouse-inventories', authenticate(), warehouseInventoryRouts);
+/**
+ * Discounts, delivery, and tax settings
+ */
+router.use('/discounts', authenticate(), discountRoutes);
+router.use('/delivery-methods', authenticate(), deliveryMethodRoutes);
+router.use('/tax-rates', authenticate(), taxRateRoutes);
 
-router.use(
-  '/warehouse-inventory-lots',
-  authenticate(),
-  warehouseInventoryLotRouts
-);
+/**
+ * Inventory allocation processing
+ */
+router.use('/inventory-allocation', authenticate(), inventoryAllocationRoutes);
 
-router.use(
-  '/lot-adjustment-types',
-  authenticate(),
-  warehouseLotAdjustmentRoutes
-);
-
+/**
+ * Report generation and exports
+ */
 router.use('/reports', authenticate(), reportRoutes);
 
-router.use('/customers', authenticate(), customerRoutes);
-
-// router.use('/orders', authenticate(), orderRoutes);
-router.use('/orders', orderRoutes);
-
-// router.use('/order-types', authenticate(), orderTypeRoutes);
-router.use('/order-types', orderTypeRoutes);
+/**
+ * Dropdown options and reference data routes
+ *
+ * Routes under `/dropdown` provide datasets used to populate frontend dropdowns,
+ * such as batch registries, locations, warehouses, pricing types, etc.
+ * These routes support filters and pagination, and require authentication.
+ */
+router.use('/dropdown', authenticate(), dropdownRoutes);
 
 module.exports = router;

@@ -1,8 +1,10 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import Box from '@mui/material/Box';
-import { useInitializeApp, useValidateAndRefreshToken } from '../hooks';
-import AppRoutes from '../routes/AppRoutes.tsx';
-import { Loading, ErrorDisplay } from '@components/index.ts';
+import useInitializeApp from '@hooks/useInitializeApp';
+import { useValidateAndRefreshToken } from '@hooks/useValidateAndRefreshToken';
+import AppRoutes from '@routes/AppRoutes';
+import Loading from '@components/common/Loading';
+import ErrorDisplay from '@components/shared/ErrorDisplay';
 
 /**
  * AppContent Component
@@ -24,51 +26,64 @@ const AppContent: FC = () => {
     initializationError?.message.includes('Server is currently unavailable')
   ) {
     return (
-      <ErrorDisplay
-        message="The server is currently unavailable. Please try again later."
-        onRetry={() => window.location.reload()}
-      />
+      <Box
+        sx={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#fefefe', // Static fallback bg
+          color: '#111',
+        }}
+      >
+        <ErrorDisplay
+          message="The server is currently unavailable. Please try again later."
+          onRetry={() => window.location.reload()}
+        />
+      </Box>
     );
   }
 
   // Render the app while token refreshing happens in the background
   return (
-    <Box className="app">
+    <Box className="app" sx={{ minHeight: '100vh', position: 'relative' }}>
+      {/* LCP-optimized init overlay */}
       {isInitializing && (
         <Box
           sx={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
+            position: 'fixed',
+            inset: 0,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: 'background.default',
-            zIndex: 10,
+            backgroundColor: '#fff', // Avoid dynamic theme eval
+            zIndex: 9999,
           }}
         >
-          <Loading message="Initializing application..." />
+          <Loading variant="linear" message="Initializing application..." />
         </Box>
       )}
-
+      
+      {/* INP-friendly background token refresh */}
       {isTokenRefreshing && (
         <Box
           sx={{
-            position: 'absolute',
+            position: 'fixed',
             bottom: 16,
             right: 16,
-            backgroundColor: 'background.paper',
+            backgroundColor: '#fff',
+            color: '#333',
             padding: '8px 16px',
             borderRadius: '8px',
-            boxShadow: 3,
+            boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+            fontSize: '0.875rem',
+            zIndex: 1000,
           }}
         >
           <Loading message="Refreshing token..." variant="spinner" />
         </Box>
       )}
-
+      
       <AppRoutes />
     </Box>
   );

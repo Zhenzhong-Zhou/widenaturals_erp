@@ -1,6 +1,6 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { fetchCustomerByIdThunk } from './customerThunks';
-import { CustomerDetails } from './customerTypes';
+import type { CustomerDetails } from './customerTypes';
 
 interface CustomerDetailState {
   customer: CustomerDetails | null;

@@ -1,12 +1,14 @@
-import { refreshTokenThunk } from '../features/session';
-import { updateCsrfToken } from '../features/csrf/state/csrfSlice';
-import { isTokenValid } from '../utils/tokenValidationUtils';
-import { logoutThunk } from '../features/session/state/sessionThunks';
-import axiosInstance from '../utils/axiosConfig';
-import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
-import { selectAccessToken } from '../features/session/state/sessionSelectors.ts';
-import { selectCsrfToken } from '../features/csrf/state/csrfSelector';
 import { useCallback, useEffect, useState } from 'react';
+import axiosInstance from '@utils/axiosConfig';
+import { isTokenValid } from '@utils/tokenValidationUtils';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
+import {
+  refreshTokenThunk,
+  logoutThunk,
+} from '@features/session/state/sessionThunks';
+import { selectAccessToken } from '@features/session/state/sessionSelectors';
+import { updateCsrfToken } from '@features/csrf/state/csrfSlice';
+import { selectCsrfToken } from '@features/csrf/state/csrfSelector';
 
 interface UseValidateAndRefreshTokenResult {
   loading: boolean;

@@ -1,6 +1,8 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { fetchWarehouseDetailsThunk } from './warehouseThunks';
-import { WarehouseDetailsResponse } from './warehouseTypes.ts';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import {
+  fetchWarehouseDetailsThunk,
+  type WarehouseDetailsResponse,
+} from '@features/warehouse';
 
 interface WarehouseState {
   warehouseDetails: WarehouseDetailsResponse | null;

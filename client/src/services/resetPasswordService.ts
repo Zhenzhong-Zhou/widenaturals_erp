@@ -1,12 +1,12 @@
-import axiosInstance from '@utils/axiosConfig.ts';
-import { AppError, ErrorType } from '@utils/AppError.tsx';
-import { withRetry } from '@utils/retryUtils.ts';
-import { withTimeout } from '@utils/timeoutUtils.ts';
-import {
+import axiosInstance from '@utils/axiosConfig';
+import { API_ENDPOINTS } from '@services/apiEndpoints';
+import { AppError, ErrorType } from '@utils/AppError';
+import { withRetry } from '@utils/retryUtils';
+import { withTimeout } from '@utils/timeoutUtils';
+import type {
   ResetPasswordError,
   ResetPasswordResponse,
-} from '../features/resetPassword/state/resetPasswordInterfaces.ts';
-import { API_ENDPOINTS } from './apiEndponits.ts';
+} from '@features/resetPassword/state/resetPasswordTypes';
 
 /**
  * Reset Password API Service

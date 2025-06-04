@@ -3,7 +3,7 @@
  * @description Middleware to handle validation errors.
  */
 
-const AppError = require('../../utils/AppError');
+const normalizeError = require('../../utils/normalize-error');
 const { logError } = require('../../utils/logger-helper');
 
 /**
@@ -15,28 +15,23 @@ const { logError } = require('../../utils/logger-helper');
  * @param {function} next - The Express next middleware function.
  */
 const validationErrorHandler = (err, req, res, next) => {
-  if (err.name === 'ValidationError' || err.type === 'ValidationError') {
-    // Use the AppError factory method for validation errors
-    const validationError = AppError.validationError(
-      err.message || 'Validation failed.',
-      {
-        details: err.details || null, // Include validation details if available
-      }
-    );
-
-    // Log the validation error with detailed metadata
-    if (process.env.NODE_ENV !== 'production') {
-      logError(validationError, req, {
-        additionalContext: 'Validation middleware encountered an error.',
-      });
-    }
-
-    // Respond with a structured error response
-    return res.status(validationError.status).json(validationError.toJSON());
+  if (err.name !== 'ValidationError' && err.type !== 'ValidationError') {
+    return next(err); // Not a validation error
   }
-
-  // If it's not a validation error, pass it to the next middleware
-  next(err);
+  
+  const normalizedError = normalizeError(err, {
+    type: 'ValidationError',
+    code: 'VALIDATION_ERROR',
+    status: 400,
+    isExpected: true,
+    details: err.details || null,
+  });
+  
+  logError(normalizedError, req, {
+    context: 'validation-error-handler',
+  });
+  
+  return res.status(normalizedError.status).json(normalizedError.toJSON());
 };
 
 module.exports = validationErrorHandler;

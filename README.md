@@ -156,52 +156,57 @@ Before starting, ensure you have the following installed:
       ```bash
       npx knex migrate:rollback --all --env development
       ```
-3.  **Seeds**: - Create a seed file:
-    `bash
-npx knex seed:make seed_name
-` - Run seed files:
-    `bash
- npm run seed
- `
-    **Cron**: - Backup Database:
-4.  **Test the Backup Process Manually**:
+3.  **Seeds**: 
+   - Create a seed file:
+      ```bash
+      npx knex seed:make seed_name
+     ```
+   - Run seed files:
+      ```bash
+      npm run seed
+      ```
+     
+**Cron**: 
+
+  - Backup Database:
+  **Test the Backup Process Manually**:
     ```bash
     node /path/to/backup-scheduler.js
     ```
-5.  **Find the absolute path**:
+    **Find the absolute path**:
     ```bash
     realpath /path/to/backup-scheduler.js
     realpath /path/to/backup.log
     ```
-6.  **Node.js Path:**:
+    **Node.js Path:**:
     ```bash
     which node
     ```
-7.  **For system-wide crontab:**:
+    **For system-wide crontab:**:
     ```bash
     sudo crontab -e
     crontab -e
     ```
-8.  \*Update Cron Job:\*\*:
+    *Update Cron Job:\*\*:
     ```bash
     PATH=/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin
     NODE_ENV=development
     TZ=UTC
     0 2 * * * NODE_ENV=development /usr/bin/node /home/user/project/src/tasks/schedulers/backup-scheduler.js >> /home/user/project/dev_logs/backup.log 2>&1
     ```
-9.  **Test the Cron Job Run the script manually to ensure it works:**:
+    **Test the Cron Job Run the script manually to ensure it works:**:
     ```bash
     /usr/bin/node /path/to/backup-scheduler.js
     ```
-10. **Run the following command to see if cron is restricted for your user:**:
-    ```bash
-    sudo crontab -l
-    crontab -l
-    ```
-11. **Monitor Logs:**:
-    ```bash
-    tail -f /path/to/backup.log
-    ```
+    **Run the following command to see if cron is restricted for your user:**:
+       ```bash
+       sudo crontab -l
+       crontab -l
+       ```
+    **Monitor Logs:**:
+   ```bash
+   tail -f /path/to/backup.log
+   ```
 
 **Redis**
 

@@ -1,5 +1,5 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { getCsrfTokenThunk } from './csrfThunk';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { getCsrfTokenThunk } from '@features/csrf/state/csrfThunk';
 
 // Define a type for the state
 interface CSRFState {

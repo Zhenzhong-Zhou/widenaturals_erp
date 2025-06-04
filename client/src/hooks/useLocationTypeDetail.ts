@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo } from 'react';
-import { useAppDispatch, useAppSelector } from '../store/storeHooks.ts';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   selectLocations,
   selectLocationTypeDetail,
   selectLocationTypeError,
   selectLocationTypeLoading,
   selectLocationTypePagination,
-} from '../features/locationTypes/state/locationTypeDetailSelectors.ts';
-import { fetchLocationTypeDetail } from '../features/locationTypes/state/locationTypesThunks.ts';
+} from '@features/locationType/state/locationTypeDetailSelectors';
+import { fetchLocationTypeDetailsThunk } from '@features/locationType/state';
 
 /**
  * Custom hook for fetching and managing location type details.
@@ -36,7 +36,9 @@ const useLocationTypeDetail = (
    */
   useEffect(() => {
     if (id) {
-      dispatch(fetchLocationTypeDetail({ id, page, limit, sortBy, sortOrder }));
+      dispatch(
+        fetchLocationTypeDetailsThunk({ id, page, limit, sortBy, sortOrder })
+      );
     }
   }, [dispatch, id, page, limit, sortBy, sortOrder]);
 
@@ -45,7 +47,9 @@ const useLocationTypeDetail = (
    */
   const refresh = useCallback(() => {
     if (id) {
-      dispatch(fetchLocationTypeDetail({ id, page, limit, sortBy, sortOrder }));
+      dispatch(
+        fetchLocationTypeDetailsThunk({ id, page, limit, sortBy, sortOrder })
+      );
     }
   }, [dispatch, id, page, limit, sortBy, sortOrder]);
 

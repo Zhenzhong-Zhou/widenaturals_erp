@@ -1,12 +1,10 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import {
-  fetchAdjustmentReportThunk,
+  type AdjustmentReportState,
   exportAdjustmentReportThunk,
-} from './reportThunks.ts';
-import {
-  AdjustmentReportState,
-  PaginatedAdjustmentReportResponse,
-} from './reportTypes.ts';
+  fetchAdjustmentReportThunk,
+  type PaginatedAdjustmentReportResponse,
+} from '@features/report';
 
 const initialState: AdjustmentReportState = {
   data: [], // Holds paginated data for UI

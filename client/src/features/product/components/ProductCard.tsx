@@ -1,33 +1,54 @@
-import { FC } from 'react';
+import type { FC } from 'react';
 import Box from '@mui/material/Box';
-import {
-  CustomButton,
-  CustomCard,
-  PriceDisplay,
-  Typography,
-} from '@components/index';
-import { GeneralProductInfo } from '../state/productTypes.ts';
-import productPlaceholder from '../../../assets/Virility_CA.jpg';
-import { capitalizeFirstLetter } from '@utils/textUtils.ts';
+import CustomCard from '@components/common/CustomCard';
+import CustomButton from '@components/common/CustomButton';
+import CustomTypography from '@components/common/CustomTypography';
+import { formatLabel } from '@utils/textUtils';
+import type { SkuProductCard } from '@features/product/state';
+import { formatImageUrl } from '@utils/formatImageUrl.ts';
+import { Skeleton } from '@mui/material';
 
 interface ProductCardProps {
-  product: GeneralProductInfo; // Use the subset type
+  isLoading: boolean;
+  product: SkuProductCard;
 }
 
-const ProductCard: FC<ProductCardProps> = ({ product }) => {
+const ProductCard: FC<ProductCardProps> = ({ isLoading, product }) => {
+  if (isLoading) {
+    return (
+      <Box sx={{ p: 1 }}>
+        <CustomCard
+          title={<Skeleton width="80%" />}
+          imageUrl=""
+          imageAlt=""
+          actions={
+            <>
+              <Skeleton variant="rectangular" width={80} height={32} />
+              <Skeleton variant="rectangular" width={100} height={32} />
+            </>
+          }
+        >
+          {[...Array(6)].map((_, idx) => (
+            <Skeleton key={idx} width="100%" height={20} sx={{ mb: 1 }} />
+          ))}
+        </CustomCard>
+      </Box>
+    );
+  }
+  
   const {
-    id,
-    product_name,
-    series,
+    skuId,
+    displayName,
     brand,
-    category,
-    npn_info,
+    series,
+    status,
     barcode,
-    market_region,
-    prices,
-    status_name,
+    msrpPrice,
+    npnComplianceId,
+    imageUrl,
+    imageAltText,
   } = product;
-
+  
   return (
     <Box
       sx={{
@@ -39,8 +60,9 @@ const ProductCard: FC<ProductCardProps> = ({ product }) => {
       }}
     >
       <CustomCard
-        title={product_name}
-        imageUrl={productPlaceholder}
+        title={displayName}
+        imageUrl={formatImageUrl(imageUrl) || ''}
+        imageAlt={imageAltText || displayName}
         actions={
           <>
             <CustomButton size="small" color="primary" variant="contained">
@@ -50,26 +72,21 @@ const ProductCard: FC<ProductCardProps> = ({ product }) => {
               size="small"
               color="secondary"
               variant="outlined"
-              to={`/products/${id}`}
+              to={`/products/${skuId}`}
             >
               View Details
             </CustomButton>
           </>
         }
       >
-        <Typography variant="body2">Series: {series || 'N/A'}</Typography>
-        <Typography variant="body2">Brand: {brand || 'N/A'}</Typography>
-        <Typography variant="body2">Category: {category || 'N/A'}</Typography>
-        <Typography variant="body2">NPN: {npn_info[0].npn || 'N/A'}</Typography>
-        <Typography variant="body2">Barcode: {barcode || 'N/A'}</Typography>
-        <Typography variant="body2">
-          Region: {market_region || 'N/A'}
-        </Typography>
-        <Typography variant="body2">
-          Status: {capitalizeFirstLetter(status_name)}
-        </Typography>
-        {/* Price Display */}
-        <PriceDisplay prices={prices} />
+        <CustomTypography variant="body2">Brand: {brand || 'N/A'}</CustomTypography>
+        <CustomTypography variant="body2">Series: {series || 'N/A'}</CustomTypography>
+        <CustomTypography variant="body2">Barcode: {barcode || 'N/A'}</CustomTypography>
+        <CustomTypography variant="body2">NPN: {npnComplianceId || 'N/A'}</CustomTypography>
+        <CustomTypography variant="body2">
+          MSRP: {msrpPrice != null ? `$${msrpPrice.toFixed(2)}` : 'N/A'}
+        </CustomTypography>
+        <CustomTypography variant="body2">Status: {formatLabel(status)}</CustomTypography>
       </CustomCard>
     </Box>
   );

@@ -1,10 +1,11 @@
-import { FC, useEffect } from 'react';
-import Box from '@mui/material/Box';
-import { Typography } from '@components/index.ts';
-import { CustomerDetailHeader, CustomerDetailSection } from '../index.ts';
-import { useCustomers } from '../../../hooks';
+import { type FC, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
+import CustomTypography from '@components/common/CustomTypography';
+import CustomerDetailHeader from '@features/customer/components/CustomerDetailHeader';
+import CustomerDetailSection from '@features/customer/components/CustomerDetailSection';
+import useCustomers from '@hooks/useCustomers';
 
 const CustomerDetailsPage: FC = () => {
   const { customerId } = useParams<{ customerId: string }>();
@@ -26,18 +27,20 @@ const CustomerDetailsPage: FC = () => {
     <Box sx={{ display: 'flex', gap: 4, p: 3, flexWrap: 'wrap' }}>
       {/* Show loading state */}
       {customerDetailLoading && (
-        <Typography>Loading customer details...</Typography>
+        <CustomTypography>Loading customer details...</CustomTypography>
       )}
 
       {/* Show error message */}
       {customerDetailError && (
-        <Typography color="error">Error: {customerDetailError}</Typography>
+        <CustomTypography color="error">
+          Error: {customerDetailError}
+        </CustomTypography>
       )}
 
       {/* Show customer details when available */}
       {customerDetail && (
         <Box sx={{ flex: 1, minWidth: 350 }}>
-          <CustomerDetailHeader customerName={customerDetail.customer_name} />
+          <CustomerDetailHeader customerName={customerDetail.customerName} />
           <CustomerDetailSection
             customer={customerDetail}
             loading={customerDetailLoading}
@@ -53,9 +56,9 @@ const CustomerDetailsPage: FC = () => {
 
           {/* Right: Related Data */}
           <Box sx={{ flex: 2, minWidth: 500 }}>
-            <Typography variant="h6" sx={{ mb: 2 }}>
+            <CustomTypography variant="h6" sx={{ mb: 2 }}>
               Customer Orders
-            </Typography>
+            </CustomTypography>
             {/*<OrdersList customerId={customerId} />*/}
           </Box>
         </Box>

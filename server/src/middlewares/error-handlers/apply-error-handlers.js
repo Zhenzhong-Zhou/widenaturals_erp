@@ -3,6 +3,7 @@
  * @description Combines and applies all error-handling middleware.
  */
 
+const { logSystemInfo } = require('../../utils/system-logger');
 const helmetErrorHandler = require('./helmet-error-handler');
 const csrfErrorHandler = require('./csrf-error-handler');
 const authErrorHandler = require('./authenticate-error-handler');
@@ -24,6 +25,10 @@ const globalErrorHandler = require('./global-error-handler');
  * @param {object} app - The Express application instance.
  */
 const applyErrorHandlers = (app) => {
+  logSystemInfo('Applying structured error handlers...', {
+    context: 'error-handler-init',
+  });
+  
   // Security and input-related error handlers
   app.use(helmetErrorHandler); // Helmet-related errors
   app.use(csrfErrorHandler); // CSRF token errors
@@ -51,6 +56,26 @@ const applyErrorHandlers = (app) => {
 
   // Global error handler (catch-all)
   app.use(globalErrorHandler); // Catch-all for uncaught errors
+  
+  logSystemInfo('All error handlers successfully registered.', {
+    context: 'error-handler-init',
+    order: [
+      'helmet',
+      'csrf',
+      'cors',
+      'rateLimit',
+      'auth',
+      'authorization',
+      'validation',
+      'sanitization',
+      'fileUpload',
+      'health',
+      'service',
+      'db',
+      'notFound',
+      'global',
+    ],
+  });
 };
 
 module.exports = applyErrorHandlers;

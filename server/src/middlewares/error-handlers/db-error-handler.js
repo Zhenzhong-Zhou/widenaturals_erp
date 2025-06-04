@@ -3,7 +3,7 @@
  * @description Middleware for handling database-related errors.
  */
 
-const AppError = require('../../utils/AppError');
+const normalizeError = require('../../utils/normalize-error');
 const { logError } = require('../../utils/logger-helper');
 
 /**
@@ -16,62 +16,43 @@ const { logError } = require('../../utils/logger-helper');
  * @param {Function} next - Express next middleware function
  */
 const dbErrorHandler = (err, req, res, next) => {
-  // Check if the error is a database error (identified by `err.code`)
-  if (!err.code) {
-    return next(err); // Not a database error, pass it to the next handler
-  }
-
-  // Ensure defaults for error properties
-  const message = err.message || 'Unknown database error occurred.';
-  const code = err.code || 'UNKNOWN_DB_ERROR';
-
-  // Handle unique constraint violation
-  if (code === '23505') {
-    logError('Database Error: Unique constraint violation', {
-      message,
-      table: err.table || 'unknown',
-      constraint: err.constraint || 'unknown',
-      route: req.originalUrl,
-      method: req.method,
-      ip: req.ip,
+  // Skip if the error doesn't appear to be DB-related
+  if (!err.code) return next(err);
+  
+  const { table = 'unknown', constraint = 'unknown', code = 'UNKNOWN_DB_ERROR' } = err;
+  
+  let errorResponse;
+  
+  if (err.code === '23505') {
+    // Unique constraint violation
+    errorResponse = normalizeError(err, {
+      message: 'Duplicate entry detected.',
+      type: 'DatabaseError',
+      code: 'DB_UNIQUE_CONSTRAINT',
+      isExpected: true,
+      details: { table, constraint, pgCode: code },
     });
-
-    const errorResponse = AppError.validationError(
-      'Duplicate entry detected.',
-      {
-        type: 'DatabaseError',
-        code: 'DB_UNIQUE_CONSTRAINT',
-        isExpected: true,
-      }
-    );
-
+  } else if (err.code === '23503') {
+    // Foreign key constraint violation
+    errorResponse = normalizeError(err, {
+      message: 'Foreign key constraint violated.',
+      type: 'DatabaseError',
+      code: 'DB_FOREIGN_KEY_CONSTRAINT',
+      isExpected: true,
+      details: { table, constraint, pgCode: code },
+    });
+  }
+  
+  if (errorResponse) {
+    logError(errorResponse, req, {
+      context: 'db-error-handler',
+    });
+    
     return res.status(errorResponse.status).json(errorResponse.toJSON());
   }
-
-  // Handle foreign key constraint violation
-  if (code === '23503') {
-    logError('Database Error: Foreign key constraint violation', {
-      message,
-      table: err.table || 'unknown',
-      constraint: err.constraint || 'unknown',
-      route: req.originalUrl,
-      method: req.method,
-      ip: req.ip,
-    });
-
-    const errorResponse = AppError.validationError(
-      'Foreign key constraint violated.',
-      {
-        type: 'DatabaseError',
-        code: 'DB_FOREIGN_KEY_CONSTRAINT',
-        isExpected: true,
-      }
-    );
-
-    return res.status(errorResponse.status).json(errorResponse.toJSON());
-  }
-
-  return next(err); // Pass to the general error handler
+  
+  // Unknown DB error — pass through
+  next(err);
 };
 
 module.exports = dbErrorHandler;

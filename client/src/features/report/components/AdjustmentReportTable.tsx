@@ -1,9 +1,9 @@
-import { FC } from 'react';
-import CustomTable from '@components/common/CustomTable.tsx';
-import { formatDate } from '@utils/dateTimeUtils.ts';
-import { capitalizeFirstLetter } from '@utils/textUtils.ts';
-import { Column } from '@components/common/CustomTable.tsx';
-import { AdjustmentReportParams } from '../state/reportTypes.ts';
+import type { FC } from 'react';
+import CustomTable from '@components/common/CustomTable';
+import type { Column } from '@components/common/CustomTable';
+import type { AdjustmentReportParams } from '@features/report';
+import { formatDate } from '@utils/dateTimeUtils';
+import { formatLabel } from '@utils/textUtils';
 
 interface AdjustmentReportTableProps {
   data: any[];
@@ -27,6 +27,11 @@ const AdjustmentReportTable: FC<AdjustmentReportTableProps> = ({
     {
       id: 'warehouse_name',
       label: 'Warehouse Name',
+      sortable: true,
+    },
+    {
+      id: 'order_number',
+      label: 'Order Number',
       sortable: true,
     },
     {
@@ -55,7 +60,7 @@ const AdjustmentReportTable: FC<AdjustmentReportTableProps> = ({
       id: 'adjustment_type',
       label: 'Adjustment Type',
       sortable: true,
-      format: (value) => capitalizeFirstLetter(value),
+      format: (value) => formatLabel(value),
     },
     { id: 'previous_quantity', label: 'Previous Quantity', sortable: true },
     { id: 'adjusted_quantity', label: 'Adjusted Quantity', sortable: true },
@@ -65,7 +70,7 @@ const AdjustmentReportTable: FC<AdjustmentReportTableProps> = ({
       id: 'status',
       label: 'Status',
       sortable: true,
-      format: (value) => capitalizeFirstLetter(value),
+      format: (value) => formatLabel(value),
     },
     { id: 'adjusted_by', label: 'Adjusted By', sortable: true },
     {

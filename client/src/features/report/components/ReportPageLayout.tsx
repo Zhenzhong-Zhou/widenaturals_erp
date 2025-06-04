@@ -1,18 +1,14 @@
-import { FC, ReactNode } from 'react';
+import type { FC, ReactNode } from 'react';
+import type { BaseReportParams } from '@features/report';
 import Box from '@mui/material/Box';
-import {
-  CustomButton,
-  ErrorDisplay,
-  ErrorMessage,
-  GoBackButton,
-  Loading,
-  Typography,
-} from '@components/index.ts';
-import {
-  ReportFilters,
-  BaseReportParams,
-  ExportReportModal,
-} from '../index.ts';
+import Loading from '@components/common/Loading';
+import ErrorDisplay from '@components/shared/ErrorDisplay';
+import ErrorMessage from '@components/common/ErrorMessage';
+import GoBackButton from '@components/common/GoBackButton';
+import CustomTypography from '@components/common/CustomTypography';
+import ReportFilters from '@features/report/components/ReportFilters';
+import CustomButton from '@components/common/CustomButton';
+import ExportReportModal from '@features/report/components/ExportReportModal';
 
 interface ReportPageLayoutProps {
   title: string;
@@ -53,12 +49,12 @@ const ReportPageLayout: FC<ReportPageLayoutProps> = ({
     <Box sx={{ padding: 2, marginBottom: 3 }}>
       <GoBackButton />
       <Box sx={{ textAlign: 'center', marginBottom: 4 }}>
-        <Typography variant="h4" component="h1" fontWeight="bold">
+        <CustomTypography variant="h4" component="h1" fontWeight="bold">
           {title}
-        </Typography>
-        <Typography variant="subtitle1" color="textSecondary">
+        </CustomTypography>
+        <CustomTypography variant="subtitle1" color="textSecondary">
           {subtitle}
-        </Typography>
+        </CustomTypography>
       </Box>
 
       {/* Filters */}

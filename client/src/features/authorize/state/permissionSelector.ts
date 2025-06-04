@@ -1,16 +1,38 @@
-import { RootState } from '../../../store/store';
+import { createSelector } from '@reduxjs/toolkit';
+import type { RootState } from '@store/store';
+import type { PermissionsState } from './permissionSlice';
 
-// Select permissions array
-export const selectPermissions = (state: RootState) =>
-  state.permissions.permissions;
+const getPermissionsState = (state: RootState): PermissionsState =>
+  state.permissions as PermissionsState;
 
-// Select loading state
-export const selectPermissionsLoading = (state: RootState) =>
-  state.permissions.loading;
+/**
+ * Select the permissions array.
+ */
+export const selectPermissions = createSelector(
+  getPermissionsState,
+  (state) => state.permissions
+);
 
-// Select error state
-export const selectPermissionsError = (state: RootState) =>
-  state.permissions.error;
+/**
+ * Select loading status.
+ */
+export const selectPermissionsLoading = createSelector(
+  getPermissionsState,
+  (state) => state.loading
+);
 
-// Select role name
-export const selectRoleName = (state: RootState) => state.permissions.roleName;
+/**
+ * Select error state.
+ */
+export const selectPermissionsError = createSelector(
+  getPermissionsState,
+  (state) => state.error
+);
+
+/**
+ * Select the current role name.
+ */
+export const selectRoleName = createSelector(
+  getPermissionsState,
+  (state) => state.roleName
+);

@@ -5,8 +5,9 @@
 
 const express = require('express');
 const {
-  getPricingsController,
+  getPaginatedPricingRecordsController,
   getPricingDetailsController,
+  getPriceByProductAndPriceTypeController, exportPricingRecordsController,
 } = require('../controllers/pricing-controller');
 const authorize = require('../middlewares/authorize');
 
@@ -16,13 +17,20 @@ const router = express.Router();
 router.get(
   '/',
   authorize(['view_prices', 'manage_prices']),
-  getPricingsController
+  getPaginatedPricingRecordsController
 );
 
+router.get('/export', authorize([
+  'export_pricing',
+  'manage_prices',
+]), exportPricingRecordsController);
+
 router.get(
-  '/:id',
+  '/by-type/:id/details',
   authorize(['view_prices', 'manage_prices']),
   getPricingDetailsController
 );
+
+router.get('/fetch-price', getPriceByProductAndPriceTypeController);
 
 module.exports = router;

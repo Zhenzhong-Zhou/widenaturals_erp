@@ -1,9 +1,9 @@
-import axiosInstance from '@utils/axiosConfig.ts';
-import { API_ENDPOINTS } from './apiEndponits.ts';
-import {
+import axiosInstance from '@utils/axiosConfig';
+import { API_ENDPOINTS } from '@services/apiEndpoints';
+import type {
   LocationTypeResponse,
   LocationTypesResponse,
-} from '../features/locationTypes';
+} from '@features/locationType';
 
 /**
  * Fetches all location types from the server.

@@ -3,8 +3,8 @@
  * @description Middleware to handle authorization errors.
  */
 
-const AppError = require('../../utils/AppError');
-const { logWarn } = require('../../utils/logger-helper');
+const normalizeError = require('../../utils/normalize-error');
+const { logError } = require('../../utils/logger-helper');
 
 /**
  * Middleware to handle authorization errors.
@@ -15,28 +15,27 @@ const { logWarn } = require('../../utils/logger-helper');
  * @param {function} next - Express next middleware function.
  */
 const authorizationErrorHandler = (err, req, res, next) => {
-  if (err.name === 'AuthorizationError') {
-    // Use AppError static factory method for consistency
-    const errorResponse = AppError.authorizationError(
-      err.message || 'You are not authorized to perform this action.',
-      {
-        details: err.details || null, // Include additional details if provided
-        logLevel: 'warn',
-      }
-    );
-
-    // Log the authorization error as a warning
-    logWarn('Authorization Error:', {
-      message: errorResponse.message,
-      route: req.originalUrl,
-      method: req.method,
-      userAgent: req.headers['user-agent'] || 'Unknown',
-      ip: req.ip,
-      details: errorResponse.details,
+  if (
+    err.name === 'AuthorizationError' ||
+    err.type === 'AuthorizationError' ||
+    err.code === 'AUTHORIZATION_ERROR'
+  ) {
+    // Normalize raw errors into AppError
+    const normalizedError = normalizeError(err, {
+      type: 'AuthorizationError',
+      code: 'AUTHORIZATION_ERROR',
+      status: 403,
+      logLevel: 'warn',
+      isExpected: true,
     });
-
-    // Send structured error response
-    return res.status(errorResponse.status).json(errorResponse.toJSON());
+    
+    // Log with structured metadata
+    logError(normalizedError, req, {
+      context: 'authorization-error-handler',
+    });
+    
+    // Respond with structured error response
+    return res.status(normalizedError.status).json(normalizedError.toJSON());
   }
 
   // Pass to the next error handler if not an authorization error

@@ -1,16 +1,19 @@
 import { Suspense, lazy } from 'react';
 import { Route, Routes } from 'react-router-dom';
-import { routes } from './index';
-import ProtectedRoutes from './ProtectedRoutes.tsx';
-import GuestRoute from './GuestRoute.tsx';
-import { ErrorDisplay, ErrorMessage, Loading } from '@components/index.ts';
-import { MainLayout } from '../layouts';
-import { usePermissions, useSession } from '../hooks';
-import { PermissionsProvider } from '../context';
-import { hasPermission } from '@utils/permissionUtils.ts';
+import { routes } from '@routes/index';
+import ProtectedRoutes from '@routes/ProtectedRoutes';
+import GuestRoute from '@routes/GuestRoute';
+import useSession from '@hooks/useSession';
+import usePermissions from '@hooks/usePermissions';
+import ErrorDisplay from '@components/shared/ErrorDisplay';
+import ErrorMessage from '@components/common/ErrorMessage';
+import { PermissionsProvider } from '@context/PermissionsContext';
+import Loading from '@components/common/Loading';
+import MainLayout from '@layouts/MainLayout/MainLayout';
+import { hasPermission } from '@utils/permissionUtils';
 
 const LazyNotFoundPage = lazy(() =>
-  import('../pages/NotFoundPage').then((module) => ({
+  import('@pages/NotFoundPage').then((module) => ({
     default: module.default,
   }))
 );
@@ -18,7 +21,7 @@ const LazyNotFoundPage = lazy(() =>
 const AppRoutes = () => {
   const { isAuthenticated } = useSession(); // Fetch authentication state
   const { roleName, permissions, error } = usePermissions(); // Fetch permissions
-
+  
   if (error) {
     return (
       <ErrorDisplay>
@@ -26,7 +29,7 @@ const AppRoutes = () => {
       </ErrorDisplay>
     );
   }
-
+  
   return (
     <PermissionsProvider
       roleName={roleName}
@@ -55,7 +58,7 @@ const AppRoutes = () => {
                   />
                 );
               }
-
+              
               return (
                 <Route
                   key={index}
@@ -70,7 +73,7 @@ const AppRoutes = () => {
                 />
               );
             }
-
+            
             if (path === '/login' || path === '/') {
               // Wrap login and homepage with GuestRoute
               return (
@@ -85,13 +88,13 @@ const AppRoutes = () => {
                 />
               );
             }
-
+            
             // Render other public routes directly
             return (
               <Route key={index} path={path} element={<LazyComponent />} />
             );
           })}
-
+          
           {/* 404 Page for Invalid Routes */}
           <Route
             path="*"

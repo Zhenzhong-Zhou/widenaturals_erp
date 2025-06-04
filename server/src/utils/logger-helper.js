@@ -16,10 +16,45 @@ const getLogger = () => {
 };
 
 /**
+ * Extracts standardized request metadata from an Express `req` object.
+ *
+ * This helper is used to enrich log entries with request-level context such as
+ * HTTP method, URL, IP address, user agent, and timestamp. If no `req` object
+ * is provided (e.g., in system-level logs), it returns only the current timestamp.
+ *
+ * @param {import('express').Request|null} req - The Express request object, or `null` for system logs.
+ * @returns {Object} An object containing contextual metadata:
+ *   - method: HTTP method (e.g., 'GET', 'POST') or 'N/A'
+ *   - url: Request URL or 'N/A'
+ *   - ip: Client IP address or 'N/A'
+ *   - userAgent: User-Agent header or 'N/A'
+ *   - timestamp: ISO-formatted timestamp
+ *
+ * @example
+ * const meta = extractRequestMeta(req);
+ * logInfo('User login attempt', req, meta);
+ */
+const extractRequestMeta = (req) => {
+  const timestamp = new Date().toISOString();
+  
+  if (!req) return { timestamp };
+  
+  return {
+    method: req.method || 'N/A',
+    url: req.originalUrl || req.url || 'N/A',
+    ip: req.ip || req.socket?.remoteAddress || 'N/A',
+    userAgent: req.headers?.['user-agent'] || 'N/A',
+    timestamp: new Date().toISOString(),
+    traceId: req.traceId || global.traceId || 'unknown',
+    referer: req.headers?.referer || null,
+  };
+};
+
+/**
  * Centralized logging function with dynamic log levels and optional sanitization.
  *
  * @param {string} level - Log level (e.g., 'info', 'warn', 'error', 'debug').
- * @param {string} message - Log message.
+ * @param {string} message - Log a message.
  * @param {Object} [req=null] - Optional Express request object for context.
  * @param {Object} [meta={}] - Additional metadata.
  * @param {boolean} [sanitize=false] - Whether to sanitize the message.
@@ -40,17 +75,7 @@ const logWithLevel = (
         : JSON.stringify(message);
 
   // Safely extract context from the request object if available
-  const context = req
-    ? {
-        method: req?.method || 'N/A',
-        url: req?.originalUrl || req?.url || 'N/A',
-        ip: req?.ip || 'N/A',
-        userAgent: req?.headers?.['user-agent'] || 'N/A',
-        timestamp: new Date().toISOString(),
-      }
-    : {
-        timestamp: new Date().toISOString(),
-      };
+  const context = extractRequestMeta(req);
 
   // Combine context and meta into a single `meta` object
   const logPayload = {
@@ -89,50 +114,60 @@ const logFatal = (message, req = null, meta = {}) =>
  * @param {Object} [meta={}] - Additional metadata.
  */
 const logError = (errOrMessage, req = null, meta = {}) => {
-  let message, stack, logLevel, errorMeta;
-
+  let message = 'An unknown error occurred';
+  let logLevel = 'error';
+  let finalMeta = { ...meta };
+  
   if (errOrMessage instanceof AppError) {
-    message = errOrMessage.message || 'An unknown error occurred';
-    stack =
-      process.env.NODE_ENV !== 'production' ? errOrMessage.stack : undefined;
-    logLevel = errOrMessage.logLevel || 'error';
-    errorMeta = {
-      status: errOrMessage.status,
-      type: errOrMessage.type,
-      code: errOrMessage.code,
-      isExpected: errOrMessage.isExpected,
-      details: errOrMessage.details || null,
+    message = errOrMessage.message || message;
+    logLevel = errOrMessage.logLevel || logLevel;
+    
+    finalMeta = {
+      ...errOrMessage.toLog(req),  // includes stack, request info, etc.
+      ...meta, // allows overrides
     };
   } else if (errOrMessage instanceof Error) {
-    message = errOrMessage.message || 'An unknown error occurred';
-    stack =
-      process.env.NODE_ENV !== 'production' ? errOrMessage.stack : undefined;
-    logLevel = 'error';
-    errorMeta = {};
-  } else {
+    message = errOrMessage.message || message;
+    finalMeta = {
+      ...extractRequestMeta(req),
+      ...meta,
+      ...(process.env.NODE_ENV !== 'production' ? { stack: errOrMessage.stack } : {}),
+    };
+  } else if (typeof errOrMessage === 'string') {
     message = errOrMessage;
-    stack = undefined;
-    logLevel = 'error';
-    errorMeta = {};
+    finalMeta = {
+      ...extractRequestMeta(req),
+      ...meta,
+    };
   }
-
-  // Extract metadata from the request object
-  const reqMeta = req
-    ? {
-        method: req?.method || 'Unknown',
-        route: req?.originalUrl || req?.url || 'Unknown',
-        userAgent: req?.headers?.['user-agent'] || 'Unknown',
-        ip: req?.ip || 'Unknown',
-        timestamp: new Date().toISOString(),
-      }
-    : {};
-
-  // Merge all metadata
-  const combinedMeta = { ...errorMeta, ...meta, ...reqMeta, stack };
-
-  // Pass to the logging function
-  logWithLevel(logLevel, message, null, combinedMeta);
+  
+  logWithLevel(logLevel, message, null, finalMeta); // `req` context already extracted
 };
+
+/**
+ * Generates standardized metadata for system-level log entries.
+ *
+ * This function is intended for use in non-request-driven contexts such as
+ * background jobs, database tasks, startup scripts, or system health checks.
+ * It returns a consistent object structure to ensure uniform logging and
+ * easier downstream processing in log aggregators.
+ *
+ * @returns {Object} System-level log metadata including context, timestamp, process ID, and host.
+ *
+ * @example
+ * logInfo('Backup completed successfully', null, createSystemMeta());
+ */
+const createSystemMeta = () => ({
+  context: 'system',
+  ip: null,
+  method: null,
+  url: null,
+  userAgent: null,
+  timestamp: new Date().toISOString(),
+  pid: process.pid,
+  host: require('os').hostname(),
+  traceId: global.traceId ?? 'system-startup',
+});
 
 module.exports = {
   logInfo,
@@ -141,4 +176,5 @@ module.exports = {
   logFatal,
   logError,
   logWithLevel,
+  createSystemMeta,
 };

@@ -1,38 +1,61 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { PricingDetailsResponse, PricingResponse } from './pricingTypes.ts';
-import { pricingService } from '../../../services';
+import type { FetchPricingParams, PaginatedPricingDetailsResponse, PaginatedPricingRecordsResponse } from '@features/pricing/state/pricingTypes.ts';
+import { pricingService } from '@services/pricingService';
 
 /**
- * Async thunk to fetch paginated pricing records.
+ * Async thunk to fetch paginated pricing records with filters, sorting, and keyword search.
+ *
+ * @param params - Object including page, limit, filters, sortBy, sortOrder, and keyword
+ * @returns PaginatedPricingRecordsResponse
  */
-export const fetchPricingData = createAsyncThunk<
-  PricingResponse, // Return type
-  { page: number; limit: number }, // Argument type
-  { rejectValue: string } // Error type
->('pricing/fetchPricingData', async ({ page, limit }, { rejectWithValue }) => {
+export const fetchPricingListDataThunk = createAsyncThunk<
+  PaginatedPricingRecordsResponse,        // Return type
+  FetchPricingParams,                     // Parameter type
+  { rejectValue: string }                 // Rejection error message type
+>('pricing/fetchPricingData', async (params, { rejectWithValue }) => {
   try {
-    return await pricingService.fetchAllPricings(page, limit);
-  } catch (error) {
-    return rejectWithValue('Failed to fetch pricing data');
+    return await pricingService.fetchPaginatedPricingRecords(params);
+  } catch (error: any) {
+    return rejectWithValue(error.message || 'Failed to fetch pricing data');
   }
 });
 
 /**
- * Thunk to fetch pricing details by ID.
+ * Thunk to fetch paginated pricing details by pricing type ID.
+ *
+ * Dispatches a request to retrieve enriched pricing records associated with a specific pricing type,
+ * including product, SKU, location, and audit metadata. Support pagination.
+ *
+ * Used for detailed views of pricing configurations under a given pricing type.
+ *
+ * @example
+ * dispatch(getPricingDetailsByTypeThunk({ pricingTypeId: 'uuid', page: 1, limit: 10 }));
  */
-export const getPricingDetails = createAsyncThunk<
-  PricingDetailsResponse, // Return type
-  { pricingId: string; page?: number; limit?: number }, // Payload type
-  { rejectValue: string } // Rejected value type
+export const fetchPricingDetailsByTypeThunk = createAsyncThunk<
+  PaginatedPricingDetailsResponse, // Return type
+  { pricingTypeId: string; page?: number; limit?: number }, // Payload
+  { rejectValue: string } // Error
 >(
-  'pricing/getPricingDetails',
-  async ({ pricingId, page = 1, limit = 10 }, { rejectWithValue }) => {
+  'pricing/getPricingDetailsByType',
+  async ({ pricingTypeId, page = 1, limit = 10 }, { rejectWithValue }) => {
     try {
-      return await pricingService.fetchPricingDetails(pricingId, page, limit);
+      return await pricingService.fetchPricingDetailsByType(pricingTypeId, page, limit);
     } catch (error: any) {
       return rejectWithValue(
-        error.response?.data?.message || 'Failed to fetch pricing details'
+        error?.response?.data?.message || 'Unable to fetch pricing details'
       );
     }
   }
 );
+
+// export const fetchPriceValueThunk = createAsyncThunk<
+//   PriceResponse,
+//   PriceRequestParams
+// >('pricing/fetchPriceValue', async (params, { rejectWithValue }) => {
+//   try {
+//     return await pricingService.fetchPriceByProductIdAndPriceTypeId(params);
+//   } catch (error: any) {
+//     console.error('Failed to fetch price:', error);
+//     return rejectWithValue(error.response?.data || 'Failed to fetch price');
+//   }
+// });

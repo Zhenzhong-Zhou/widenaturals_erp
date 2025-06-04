@@ -1,9 +1,10 @@
-import { AppError, ErrorType } from '@utils/AppError.tsx';
+import { AppError, ErrorType } from '@utils/AppError';
 import { parse } from 'date-fns/parse';
 import { parseISO } from 'date-fns/parseISO';
 import { differenceInDays } from 'date-fns/differenceInDays';
 import { differenceInMinutes } from 'date-fns/differenceInMinutes';
 import { isValid } from 'date-fns/isValid';
+import { differenceInHours, differenceInMonths, differenceInSeconds } from 'date-fns';
 
 /**
  * Validates a date input and ensures it matches a recognized format.
@@ -12,7 +13,7 @@ import { isValid } from 'date-fns/isValid';
  * - Throws an `AppError` if the input is invalid when `isFinalValidation` is `true`.
  * - Returns `true` for valid dates and `false` for partial or incomplete inputs.
  *
- * @param {string | Date} input - The date input to validate. Can be a string or a `Date` object.
+ * @param {string | Date} input - The date input to validate. It Can be a string or a `Date` object.
  * @throws {AppError} If `isFinalValidation` is `true` and the date is invalid.
  * @returns {boolean} - `true` if the date is valid, `false` if the input is incomplete or still being typed.
  */
@@ -169,15 +170,16 @@ export const formatDateTime = (
   timezone: string = 'America/Vancouver'
 ): string => {
   if (!timestamp) return 'N/A'; // Handle null or undefined inputs gracefully
-
-  const date = new Date(timestamp);
-  if (isNaN(date.getTime())) return 'Invalid Date'; // Handle invalid date values
-
+  
+  const rawDate =
+    typeof timestamp === 'string' ? parseISO(timestamp) : new Date(timestamp);
+  if (!isValid(rawDate)) return 'N/A';
+  
   const { date: localDate, timezoneAbbreviation } = convertToLocalTime(
-    date,
+    rawDate,
     timezone
   );
-
+  
   // Format with zero-padded values for consistency
   const year = localDate.getFullYear();
   const month = String(localDate.getMonth() + 1).padStart(2, '0');
@@ -190,29 +192,46 @@ export const formatDateTime = (
 };
 
 /**
- * Returns relative time (e.g., "2 days ago", "10 minutes ago")
+ * Returned a human-readable "time ago" string for a given date.
+ *
+ * @param {Date | string} date - The input date (can be an ISO string or Date object)
+ * @returns {string} A relative time description (e.g., "5 minutes ago", "2 days ago")
  */
 export const timeAgo = (date: Date | string): string => {
   const parsedDate = typeof date === 'string' ? parseISO(date) : date;
-  const diffMinutes = differenceInMinutes(new Date(), parsedDate);
-
-  if (diffMinutes < 60) return `${diffMinutes} minutes ago`;
-  const diffDays = differenceInDays(new Date(), parsedDate);
-  return diffDays === 0 ? 'Today' : `${diffDays} days ago`;
+  const now = new Date();
+  
+  const diffSeconds = differenceInSeconds(now, parsedDate);
+  if (diffSeconds < 60) return `${diffSeconds} second${diffSeconds === 1 ? '' : 's'} ago`;
+  
+  const diffMinutes = differenceInMinutes(now, parsedDate);
+  if (diffMinutes < 60) return `${diffMinutes} minute${diffMinutes === 1 ? '' : 's'} ago`;
+  
+  const diffHours = differenceInHours(now, parsedDate);
+  if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+  
+  const diffDays = differenceInDays(now, parsedDate);
+  if (diffDays < 30) return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+  
+  const diffMonths = differenceInMonths(now, parsedDate);
+  return `${diffMonths} month${diffMonths === 1 ? '' : 's'} ago`;
 };
 
 /**
  * Converts a date input to YYYY-MM-DD format.
  */
-export const formatToISODate = (dateInput: any): string => {
+export const formatToISODate = (
+  dateInput: string | Date | null | undefined
+): string => {
   if (!dateInput) return 'N/A'; // Handle null, undefined, empty
 
   // Convert string timestamps to Date objects
   const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
 
-  if (!(date instanceof Date) || isNaN(date.getTime())) {
-    return 'N/A'; // Ensure valid date
-  }
+  if (isNaN(date.getTime())) return 'N/A';
 
-  return date.toISOString().split('T')[0]; // Extract YYYY-MM-DD
+  const isoString = date.toISOString();
+  const parts = isoString.split('T');
+
+  return parts[0] ?? 'N/A'; // Extract YYYY-MM-DD
 };

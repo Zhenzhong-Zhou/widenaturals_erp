@@ -1,11 +1,14 @@
 /**
  * @file request-logger.js
- * @description Middleware for logging HTTP requests with enhanced non-2xx response handling.
+ * @description Middleware for logging HTTP requests with structured logging and correlation ID support.
  */
 
-const { logWithLevel } = require('../utils/logger-helper');
-const AppError = require('../utils/AppError');
 const { v4: uuidv4 } = require('uuid');
+const {
+  logSystemInfo,
+  logSystemWarn,
+  logSystemException,
+} = require('../utils/system-logger');
 
 /**
  * Middleware for logging incoming HTTP requests and responses.
@@ -20,78 +23,64 @@ const requestLogger = (req, res, next) => {
   if (ignoredRoutes.includes(req.originalUrl)) {
     return next();
   }
-
-  // Generate a correlation ID
+  
+  // Set and propagate correlation ID
   const correlationId = req.headers['x-correlation-id'] || uuidv4();
   req.correlationId = correlationId;
+  global.traceId = correlationId;
   res.setHeader('X-Correlation-ID', correlationId);
 
   // Hook into the response finish event to log details
   res.on('finish', () => {
-    const duration = process.hrtime(startTime);
-    const responseTime = (duration[0] * 1e3 + duration[1] * 1e-6).toFixed(2); // Convert to ms
-
+    const [sec, nano] = process.hrtime(startTime);
+    const responseTime = (sec * 1000 + nano / 1e6).toFixed(2);
+    
     const statusCode = res.statusCode;
-    const isClientError = statusCode >= 400 && statusCode < 500;
-    const isServerError = statusCode >= 500;
-
-    const logLevel = isServerError ? 'error' : isClientError ? 'warn' : 'info';
-    const message = `Request: ${req.method} ${req.originalUrl} from ${req.ip}`;
-    const metadata = {
-      statusCode,
-      responseTime: `${responseTime}ms`,
+    const logMeta = {
       method: req.method,
       route: req.originalUrl,
       ip: req.ip,
-      userAgent: req.headers['user-agent'] || 'Unknown',
+      userAgent: req.headers['user-agent'] || 'unknown',
+      statusCode,
+      responseTime: `${responseTime}ms`,
       queryParams: req.query,
       correlationId,
     };
-
-    // Redact sensitive fields in request body for client errors
-    const redactSensitiveFields = (body) => {
-      const redacted = { ...body };
-      if (redacted.password) redacted.password = '***';
-      if (redacted.token) redacted.token = '***';
-      return redacted;
+    
+    // Redact sensitive fields if needed
+    const redact = (body) => {
+      if (!body) return undefined;
+      const clone = { ...body };
+      if (clone.password) clone.password = '***';
+      if (clone.token) clone.token = '***';
+      return clone;
     };
-
-    // Include request body for client errors in development mode
-    if (isClientError && process.env.NODE_ENV === 'development') {
-      metadata.requestBody = redactSensitiveFields(req.body);
-    }
-
-    // Include error details for server errors
-    const error = res.locals.error;
-    if (error) {
-      if (error instanceof AppError) {
-        // Use AppError's structure
-        metadata.error = {
-          message: error.message,
-          status: error.status,
-          type: error.type,
-          code: error.code,
-          isExpected: error.isExpected,
-          details:
-            process.env.NODE_ENV !== 'production' ? error.details : undefined, // Hide details in production
-        };
+    
+    const error = res.locals?.error;
+    
+    if (statusCode >= 500) {
+      if (error) {
+        logSystemException(error, 'Internal server error during request', {
+          ...logMeta,
+          errorType: error?.type || 'UnknownError',
+        });
       } else {
-        // Fallback for non-AppError errors
-        metadata.error = {
-          message: error.message || 'Unknown error',
-          status: statusCode,
-          type: 'UnknownError',
-          code: 'UNKNOWN_ERROR',
-          isExpected: false,
-          details:
-            process.env.NODE_ENV !== 'production' ? error.stack : undefined, // Hide stack in production
-        };
+        logSystemException(
+          new Error('Unknown server error'),
+          'Unhandled server error occurred',
+          logMeta
+        );
       }
+    } else if (statusCode >= 400) {
+      if (process.env.NODE_ENV === 'development') {
+        logMeta.requestBody = redact(req.body);
+      }
+      logSystemWarn('Client error during request', logMeta);
+    } else {
+      logSystemInfo('Request handled successfully', logMeta);
     }
-
-    logWithLevel(logLevel, message, metadata);
   });
-
+  
   next();
 };
 

@@ -1,14 +1,12 @@
-import { FC, useState } from 'react';
-import { useOrderTypes } from '../../../hooks';
-import {
-  CustomButton,
-  ErrorDisplay,
-  ErrorMessage,
-  Loading,
-  Typography,
-} from '@components/index.ts';
-import { OrderTypesTable } from '../index.ts';
+import { type FC, useState } from 'react';
 import Box from '@mui/material/Box';
+import useOrderTypes from '@hooks/useOrderTypes';
+import Loading from '@components/common/Loading';
+import ErrorDisplay from '@components/shared/ErrorDisplay';
+import ErrorMessage from '@components/common/ErrorMessage';
+import CustomTypography from '@components/common/CustomTypography';
+import CustomButton from '@components/common/CustomButton';
+import OrderTypesTable from '@features/orderType/components/OrderTypesTable';
 
 const OrderTypesPage: FC = () => {
   const [page, setPage] = useState<number>(1);
@@ -31,9 +29,9 @@ const OrderTypesPage: FC = () => {
 
   return (
     <Box sx={{ padding: 3 }}>
-      <Typography variant="h4" gutterBottom>
+      <CustomTypography variant="h4" gutterBottom>
         Order Types
-      </Typography>
+      </CustomTypography>
 
       <CustomButton variant="contained" onClick={refresh} sx={{ mb: 2 }}>
         Refresh Data
@@ -57,9 +55,9 @@ const OrderTypesPage: FC = () => {
               }}
             />
           ) : (
-            <Typography variant="h6" align="center" sx={{ mt: 2 }}>
+            <CustomTypography variant="h6" align="center" sx={{ mt: 2 }}>
               No order types found.
-            </Typography>
+            </CustomTypography>
           )}
         </>
       )}

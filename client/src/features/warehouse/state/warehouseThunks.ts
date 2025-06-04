@@ -1,9 +1,9 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import {
+import type {
   WarehouseDetailsResponse,
   WarehouseResponse,
-} from './warehouseTypes.ts';
-import { warehouseService } from '../../../services';
+} from '@features/warehouse';
+import { warehouseService } from '@services/warehouseService';
 
 // Define API Thunk
 export const fetchWarehousesThunk = createAsyncThunk<

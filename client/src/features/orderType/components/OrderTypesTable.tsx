@@ -1,8 +1,8 @@
-import { FC } from 'react';
-import { CustomTable } from '@components/index.ts';
-import { OrderType } from '../state/orderTypeTypes.ts';
-import { capitalizeFirstLetter } from '@utils/textUtils.ts';
-import { formatDate } from '@utils/dateTimeUtils.ts';
+import type { FC } from 'react';
+import type { OrderType } from '@features/order';
+import CustomTable from '@components/common/CustomTable';
+import { formatLabel } from '@utils/textUtils';
+import { formatDate } from '@utils/dateTimeUtils';
 
 interface OrderTypesTableProps {
   data: OrderType[];
@@ -35,7 +35,7 @@ const OrderTypesTable: FC<OrderTypesTableProps> = ({
       label: 'Category',
       minWidth: 150,
       sortable: true,
-      format: (value: string) => capitalizeFirstLetter(value),
+      format: (value: string) => formatLabel(value),
     },
     {
       id: 'description',
@@ -47,7 +47,7 @@ const OrderTypesTable: FC<OrderTypesTableProps> = ({
       label: 'Status',
       minWidth: 100,
       sortable: true,
-      format: (value: string) => capitalizeFirstLetter(value),
+      format: (value: string) => formatLabel(value),
     },
     {
       id: 'status_date',

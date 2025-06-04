@@ -8,30 +8,40 @@ export type {
   CustomerListResponse,
   CustomerDetails,
   CustomerDetailsResponse,
-} from './state/customerTypes.ts';
+  CustomerDropdownOption,
+  FetchCustomersDropdownResponse,
+} from './state/customerTypes';
 export {
   createCustomerThunk,
   createBulkCustomersThunk,
   fetchCustomersThunk,
   fetchCustomerByIdThunk,
-} from './state/customerThunks.ts';
+  fetchCustomersForDropdownThunk,
+} from './state/customerThunks';
 export {
   selectCustomersCreate,
   selectCustomersCreateLoading,
   selectCustomersCreateError,
-} from './state/customerCreateSelectors.ts';
-export { default as CreateCustomerModal } from './components/CreateCustomerModal.tsx';
+} from './state/customerCreateSelectors';
+export { default as CreateCustomerModal } from './components/CreateCustomerModal';
 export {
   selectCustomers,
   selectCustomerPagination,
   selectCustomerLoading,
   selectCustomerError,
-} from './state/customerSelectors.ts';
-export { default as CustomerTable } from './components/CustomerTable.tsx';
+} from './state/customerSelectors';
+export { default as CustomerTable } from './components/CustomerTable';
 export {
   selectCustomerDetail,
   selectCustomerDetailLoading,
   selectCustomerDetailError,
-} from './state/customerDetailSelectors.ts';
-export { default as CustomerDetailSection } from './components/CustomerDetailSection.tsx';
-export { default as CustomerDetailHeader } from './components/CustomerDetailHeader.tsx';
+} from './state/customerDetailSelectors';
+export { default as CustomerDetailSection } from './components/CustomerDetailSection';
+export { default as CustomerDetailHeader } from './components/CustomerDetailHeader';
+export {
+  selectCustomerDropdownData,
+  selectCustomerDropdownLoading,
+  selectCustomerDropdownError,
+} from './state/customerDropdownSelectors';
+export { default as CustomerDropdown } from './components/CustomerDropdown';
+export { customerReducers } from './state';
