@@ -1093,7 +1093,7 @@ const formatBulkUpdateQuery = (
     FROM (VALUES ${valuesSql.join(',\n')})
       AS data(${[...whereColumns, ...columns].join(', ')})
     WHERE ${whereColumns.map((col) => `${table}.${col} = data.${col}`).join(' AND ')}
-    RETURNING ${whereColumns.map((col) => `${table}.${col}`).join(', ')};
+    RETURNING ${table}.id;
   `;
 
   return { baseQuery, params };

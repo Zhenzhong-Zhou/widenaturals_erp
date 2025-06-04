@@ -204,12 +204,8 @@ const adjustInventoryQuantitiesService = async (
       }
 
       // Step 3: Apply inventory quantity updates
-      const [warehouseRows, locationRows] = await Promise.all([
-        bulkUpdateWarehouseQuantities(
-          warehouseInventoryUpdates,
-          user_id,
-          client
-        ),
+      const [updatedWarehouseIds, updatedLocationIds] = await Promise.all([
+        bulkUpdateWarehouseQuantities(warehouseInventoryUpdates, user_id, client),
         bulkUpdateLocationQuantities(locationInventoryUpdates, user_id, client),
       ]);
 
@@ -224,10 +220,17 @@ const adjustInventoryQuantitiesService = async (
         buildInventoryLogRows(enrichedLogs),
         client
       );
-
+      
+      // Step 6: Fetch full enriched inventory rows to return
+      const [warehouseRows, locationRows] = await Promise.all([
+        getWarehouseInventoryResponseByIds(updatedWarehouseIds.map((r) => r.id), client),
+        getLocationInventoryResponseByIds(updatedLocationIds.map((r) => r.id), client),
+      ]);
+      
+      // Step 7: Transform and return for client response
       return {
-        warehouse: warehouseRows,
-        location: locationRows,
+        warehouse: transformWarehouseInventoryResponseRecords(warehouseRows),
+        location: transformLocationInventoryResponseRecords(locationRows),
       };
     });
   } catch (error) {
