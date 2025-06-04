@@ -14,11 +14,16 @@ const {
   createResetPasswordRateLimiter,
 } = require('../middlewares/rate-limiter');
 const validatePasswordStrength = require('../middlewares/validate-password-strength');
+const { csrfProtection } = require('../middlewares/csrf-protection');
 
 const router = express.Router();
 
 // Logout route
-router.post('/logout', logoutController);
+router.post(
+  '/logout',
+  csrfProtection(),
+  logoutController
+);
 
 router.post(
   '/reset-password',

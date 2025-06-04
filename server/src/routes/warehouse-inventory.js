@@ -6,6 +6,7 @@ const {
 } = require('../controllers/warehouse-inventory-controller');
 const authorize = require('../middlewares/authorize');
 const { sanitizeInput } = require('../middlewares/sanitize');
+const { csrfProtection } = require('../middlewares/csrf-protection');
 
 const router = express.Router();
 
@@ -133,6 +134,7 @@ router.get(
  */
 router.post(
   '/',
+  csrfProtection(),
   authorize(['manage_warehouse_inventory']), // Suggested permission
   sanitizeInput,
   createWarehouseInventoryRecordController
@@ -165,6 +167,7 @@ router.post(
  */
 router.patch(
   '/adjust-quantities',
+  csrfProtection(),
   authorize([
     'manage_inventory',
     'adjust_inventory',
