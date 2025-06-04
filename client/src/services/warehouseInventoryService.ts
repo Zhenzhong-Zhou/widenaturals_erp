@@ -13,6 +13,7 @@ import type {
   SortConfig,
 } from '@shared-types/api';
 import type {
+  AdjustInventoryRequestBody,
   CreateInventoryRecordsRequest,
   InventoryRecordsResponse,
   InventorySummaryDetailByItemIdParams,
@@ -128,10 +129,36 @@ const createWarehouseInventoryRecords = async (
   }
 };
 
+/**
+ * Sends a request to adjust warehouse inventory quantities.
+ *
+ * This function is typically used for manual or system-initiated inventory adjustments,
+ * and expects an array of adjustment payloads for batch or individual records.
+ *
+ * @param data - The adjustment request body containing inventory update details.
+ * @returns A promise resolving to the updated inventory records (warehouse and location).
+ * @throws Error if the API request fails.
+ */
+const adjustWarehouseInventoryQuantities = async (
+  data: AdjustInventoryRequestBody
+): Promise<InventoryRecordsResponse> => {
+  try {
+    const response = await axiosInstance.post<InventoryRecordsResponse>(
+      API_ENDPOINTS.WAREHOUSE_INVENTORY.ADJUST_QUANTITIES,
+      data
+    );
+    return response.data;
+  } catch (error) {
+    // Optionally log or normalize error
+    throw new Error('Failed to adjust warehouse inventory quantities');
+  }
+};
+
 // Export the service
 export const warehouseInventoryService = {
   fetchWarehouseInventoryItemSummary,
   fetchWarehouseInventorySummaryDetailsByItemId,
   fetchWarehouseInventoryRecords,
   createWarehouseInventoryRecords,
+  adjustWarehouseInventoryQuantities,
 };

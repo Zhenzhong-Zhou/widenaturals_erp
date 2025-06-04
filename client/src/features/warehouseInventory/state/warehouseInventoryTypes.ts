@@ -127,3 +127,9 @@ export type WarehouseInventoryTableProps = BaseInventoryTableProps<
  * Includes status and response data for inserted inventory records.
  */
 export type CreateWarehouseInventoryState = MutationState<InventoryRecordsResponse>;
+
+/**
+ * Redux state for tracking the adjustWarehouseInventory mutation.
+ * Includes status and response data for adjusted inventory records.
+ */
+export type AdjustInventoryState = MutationState<InventoryRecordsResponse>;

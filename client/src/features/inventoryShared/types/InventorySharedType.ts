@@ -224,6 +224,20 @@ export interface InventoryRecordOutput {
   itemType: ItemType; // or string
 }
 
+export interface InventoryAdjustmentInput {
+  warehouse_id: string;
+  location_id: string;
+  batch_id: string;
+  batch_type: 'product' | 'packaging_material';
+  quantity: number;
+  inventory_action_type_id: string;
+  adjustment_type_id: string;
+}
+
+export interface AdjustInventoryRequestBody {
+  updates: InventoryAdjustmentInput[];
+}
+
 export interface InventoryRecordsPayload {
   warehouse: InventoryRecordOutput[];
   location: InventoryRecordOutput[];

@@ -36,6 +36,7 @@ export const API_ENDPOINTS = {
     SUMMARY_DETAIL: (itemId: string) =>
       `/warehouse-inventory/summary/${itemId}/details`,
     ADD_RECORDS: '/warehouse-inventory',
+    ADJUST_QUANTITIES: '/warehouse-inventory/adjust-quantities',
   },
   DROPDOWN: {
     BATCH_REGISTRY: '/dropdown/batch-registry',
