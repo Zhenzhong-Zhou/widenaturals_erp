@@ -15,12 +15,12 @@ exports.seed = async function (knex) {
     'active',
     'id'
   );
-
-  const adminUserId = await fetchDynamicValue(
+  
+  const systemUserId = await fetchDynamicValue(
     knex,
     'users',
     'email',
-    'admin@example.com',
+    'system@internal.local',
     'id'
   );
 
@@ -176,9 +176,9 @@ exports.seed = async function (knex) {
         status_id: activeStatusId,
         default_action: action.default_action,
         created_at: knex.fn.now(),
-        updated_at: knex.fn.now(),
-        created_by: adminUserId,
-        updated_by: adminUserId,
+        updated_at: null,
+        created_by: systemUserId,
+        updated_by: null,
       })
       .onConflict('name')
       .ignore();

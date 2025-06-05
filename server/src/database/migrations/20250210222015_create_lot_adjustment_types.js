@@ -19,6 +19,7 @@ exports.up = async function (knex) {
       .inTable('inventory_action_types'); // parent action
 
     table.string('group', 50).nullable(); // Optional grouping: 'loss', 'damage', etc.
+    table.string('department_group', 50).nullable();
 
     // Timestamps
     table
