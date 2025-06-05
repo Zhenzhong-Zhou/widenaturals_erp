@@ -10,7 +10,7 @@ import type {
 import { formatDate } from '@utils/dateTimeUtils.ts';
 import useBatchRegistryDropdown from '@hooks/useBatchRegistryDropdown.ts';
 import type {
-  InventoryRecordInput,
+  CreateInventoryRecordsRequest,
   ItemType,
 } from '@features/inventoryShared/types/InventorySharedType';
 import useWarehouseDropdown from '@hooks/useWarehouseDropdown.ts';
@@ -162,7 +162,7 @@ const AddInventoryDialog: FC<AddInventoryDialogProps> = ({
   }, [open]);
 
   const handleFormSubmit = (
-    formData: InventoryRecordInput | InventoryRecordInput[]
+    formData: CreateInventoryRecordsRequest
   ) => {
     try {
       setSubmitting(true);

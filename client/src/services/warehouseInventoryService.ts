@@ -143,7 +143,7 @@ const adjustWarehouseInventoryQuantities = async (
   data: AdjustInventoryRequestBody
 ): Promise<InventoryRecordsResponse> => {
   try {
-    const response = await axiosInstance.post<InventoryRecordsResponse>(
+    const response = await axiosInstance.patch<InventoryRecordsResponse>(
       API_ENDPOINTS.WAREHOUSE_INVENTORY.ADJUST_QUANTITIES,
       data
     );

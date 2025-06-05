@@ -409,6 +409,7 @@ const getPaginatedWarehouseInventoryRecords = async ({
       uu.lastname AS updated_by_lastname,
       mfp.name AS product_manufacturer_name,
       sup.name AS material_supplier_name,
+      br.id AS batch_id,
       pb.lot_number AS product_lot_number,
       pb.manufacture_date AS product_manufacture_date,
       pb.expiry_date AS product_expiry_date,

@@ -2,6 +2,7 @@ import { type ReactNode, useCallback } from 'react';
 import IconButton from '@mui/material/IconButton';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import EditIcon from '@mui/icons-material/Edit';
 import CustomTable, { type Column } from '@components/common/CustomTable';
 import StockLevelChip, {
   type StockLevelChipProps,
@@ -10,6 +11,7 @@ import ExpirySeverityChip, {
   type ExpirySeverityChipProps,
 } from '@features/inventoryShared/components/ExpirySeverityChip';
 import type { FlatInventoryRowBase } from '@features/inventoryShared/types/InventorySharedType.ts';
+import Tooltip from '@mui/material/Tooltip';
 
 interface BaseInventoryTableProps<T> {
   isLoading: boolean;
@@ -27,6 +29,7 @@ interface BaseInventoryTableProps<T> {
   groupKey: 'location' | 'warehouse';
   getRowData: (record: T) => any;
   getGroupHeaderId: (groupName: string) => string;
+  onAdjustSingle?: (row: any) => void;
 }
 
 const BaseInventoryTable = <T,>({
@@ -45,6 +48,7 @@ const BaseInventoryTable = <T,>({
   groupKey,
   getRowData,
   getGroupHeaderId,
+  onAdjustSingle,
 }: BaseInventoryTableProps<T>) => {
   const quantityId =
     groupKey === 'warehouse' ? 'warehouseQuantity' : 'locationQuantity';
@@ -102,6 +106,19 @@ const BaseInventoryTable = <T,>({
               <KeyboardArrowDownIcon />
             )}
           </IconButton>
+        ),
+    },
+    {
+      id: 'actions',
+      label: 'Actions',
+      align: 'center',
+      renderCell: (row) =>
+        !row.isGroupHeader && onAdjustSingle && (
+          <Tooltip title="Adjust Quantity">
+            <IconButton onClick={() => onAdjustSingle(row)}>
+              <EditIcon />
+            </IconButton>
+          </Tooltip>
         ),
     },
   ];

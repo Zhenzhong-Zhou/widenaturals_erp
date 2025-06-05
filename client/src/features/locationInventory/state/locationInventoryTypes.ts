@@ -107,6 +107,10 @@ export interface FetchLocationInventoryArgs {
 }
 
 export interface LocationInventoryRecord extends BaseInventoryRecord {
+  warehouse: {
+    id: string;
+  }
+  
   location: {
     id: string;
     name: string;

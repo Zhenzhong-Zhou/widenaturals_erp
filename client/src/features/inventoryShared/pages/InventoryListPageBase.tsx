@@ -22,6 +22,7 @@ import ErrorMessage from '@components/common/ErrorMessage';
 import type { SortConfig } from '@shared-types/api';
 import { groupBy } from 'lodash';
 import type { ItemType } from '@features/inventoryShared/types/InventorySharedType.ts';
+import AdjustInventoryDialog from '@features/warehouseInventory/components/AdjustInventoryDialog';
 
 interface BaseInventoryPageProps<T> {
   title: string;
@@ -72,7 +73,11 @@ const BaseInventoryPage = <T,>({
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(30);
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
-
+  const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
+  const [adjustTarget, setAdjustTarget] = useState<any | null>(null); // for single adjust modal
+  const [isAdjustDialogOpen, setIsAdjustDialogOpen] = useState(false);
+  const [isBulkAdjustOpen, setIsBulkAdjustOpen] = useState(false);
+  
   const { records, loading, error, pagination, fetchRecords } =
     useInventoryHook();
 
@@ -125,7 +130,34 @@ const BaseInventoryPage = <T,>({
   };
 
   const isRowExpanded = (row: any) => expandedRowId === row[rowKey];
+  
+  // Single Adjust
+  const handleAdjustSingle = (row: any) => {
+    setAdjustTarget(row.originalRecord); // Or just `row` depending on your structure
+    setIsAdjustDialogOpen(true);
+  };
 
+  // Bulk Adjust
+  const handleBulkAdjust = () => {
+    setIsBulkAdjustOpen(true);
+  };
+  
+  // Close dialog only
+  const handleAdjustDialogClose = () => {
+    setIsAdjustDialogOpen(false);
+    setIsBulkAdjustOpen(false);
+  };
+
+  // Refresh inventory after the dialog fully closes
+  const handleAdjustDialogExited = () => {
+    fetchRecords({ page, limit }, filters, sortConfig);
+  };
+  
+  // Selection change from table
+  const handleSelectionChange = (ids: string[]) => {
+    setSelectedRowIds(ids);
+  };
+  
   if (error) {
     return (
       <ErrorDisplay>
@@ -190,7 +222,38 @@ const BaseInventoryPage = <T,>({
             onReset={handleResetFilters}
             showActionsWhenAll={true}
           />
-
+          
+          {selectedRowIds.length > 0 && (
+            <Box display="flex" justifyContent="flex-end">
+              <CustomButton
+                variant="contained"
+                onClick={handleBulkAdjust}
+                size="small"
+              >
+                Adjust Selected ({selectedRowIds.length})
+              </CustomButton>
+            </Box>
+          )}
+          
+          {isAdjustDialogOpen && adjustTarget && (
+            <AdjustInventoryDialog
+              open={isAdjustDialogOpen}
+              record={adjustTarget}
+              onClose={handleAdjustDialogClose}
+              onExited={handleAdjustDialogExited}
+            />
+          )}
+          
+          {/*{isBulkAdjustDialogOpen && selectedRowIds.length > 0 && (*/}
+          {/*  <BulkAdjustInventoryDialog*/}
+          {/*    open={isBulkAdjustOpen}*/}
+          {/*    selectedIds={selectedRowIds}*/}
+          {/*    onClose={handleAdjustDialogClose}*/}
+          {/*    onExited={handleAdjustDialogExited}*/}
+          {/*  />*/}
+          {/*)}*/}
+          
+          
           <Suspense fallback={<Skeleton height={180} width="100%" />}>
             <TableComponent
               isLoading={loading}
@@ -207,6 +270,9 @@ const BaseInventoryPage = <T,>({
               expandedContent={(row: any) => (
                 <ExpandedRowComponent record={row.originalRecord} />
               )}
+              selectedRowIds={selectedRowIds}
+              onSelectionChange={handleSelectionChange}
+              onAdjustSingle={handleAdjustSingle}
             />
           </Suspense>
         </Stack>

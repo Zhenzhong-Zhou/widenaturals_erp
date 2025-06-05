@@ -78,7 +78,7 @@ export interface BaseFlatInventoryRow {
 }
 
 export interface BaseInventoryFilters {
-  batchType?: 'product' | 'packaging_material';
+  batchType?: ItemType;
 
   // Product-related
   productName?: string;
@@ -103,7 +103,7 @@ export interface BaseInventoryFilters {
 
 export interface BaseInventoryRecord {
   id: string;
-  itemType: 'product' | 'packaging_material';
+  itemType: ItemType;
 
   quantity: {
     available: number;
@@ -111,6 +111,7 @@ export interface BaseInventoryRecord {
   };
 
   lot: {
+    batchId: string;
     number: string;
     manufactureDate: string | null;
     expiryDate: string | null;
@@ -228,14 +229,22 @@ export interface InventoryAdjustmentInput {
   warehouse_id: string;
   location_id: string;
   batch_id: string;
-  batch_type: 'product' | 'packaging_material';
+  batch_type: ItemType;
   quantity: number;
   inventory_action_type_id: string;
   adjustment_type_id: string;
+  comments?: string;
 }
 
 export interface AdjustInventoryRequestBody {
   updates: InventoryAdjustmentInput[];
+}
+
+export interface InventoryAdjustmentFormData {
+  newQuantity: string;
+  inventory_action_type_id: string;
+  adjustment_type_id: string;
+  note?: string;
 }
 
 export interface InventoryRecordsPayload {
@@ -245,3 +254,19 @@ export interface InventoryRecordsPayload {
 
 export type InventoryRecordsResponse =
   ApiSuccessResponse<InventoryRecordsPayload>;
+
+export interface AdjustedInventoryData {
+  id: string;
+  warehouseId: string;
+  locationId: string;
+  batchId: string;
+  batchType: 'product' | 'packaging_material';
+  warehouseName?: string;
+  locationName?: string;
+  displayName: string;
+  lotNumber: string;
+  expiryDate: string;
+  warehouseQuantity?: number;
+  locationQuantity?: number;
+  status: string;
+}

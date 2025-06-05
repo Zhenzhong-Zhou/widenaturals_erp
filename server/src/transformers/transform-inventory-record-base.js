@@ -92,6 +92,7 @@ const transformInventoryRecordBase = (row, config) => {
       available,
     },
     lot: {
+      batchId: row.batch_id,
       number: displayLotNumber,
       manufactureDate: displayManufactureDate,
       expiryDate: displayExpiryDate,
