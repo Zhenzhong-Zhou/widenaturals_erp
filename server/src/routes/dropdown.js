@@ -1,7 +1,7 @@
 const express = require('express');
 const {
   getBatchRegistryDropdownController,
-  getWarehouseDropdownController,
+  getWarehouseDropdownController, getLotAdjustmentDropdownController,
 } = require('../controllers/dropdown-controller');
 const authorize = require('../middlewares/authorize');
 const { sanitizeInput } = require('../middlewares/sanitize');
@@ -62,8 +62,42 @@ router.get(
  */
 router.get(
   '/warehouses',
-  authorize(['view_batch_registry_dropdown', 'access_inventory_utilities']),
+  authorize([
+    'view_batch_registry_dropdown',
+    'access_inventory_utilities'
+  ]),
+  sanitizeInput,
   getWarehouseDropdownController
+);
+
+/**
+ * @route GET /lot-adjustment-types
+ * @description Retrieves active lot adjustment types for dropdown selection.
+ * Supports optional filtering to exclude internal-only types via query param `?excludeInternal=true`.
+ * Requires one of the following permissions:
+ * - 'manage_inventory'
+ * - 'view_batch_registry_dropdown'
+ * - 'access_inventory_utilities'
+ *
+ * @access Protected
+ * @returns {200} Array of dropdown options:
+ *   [
+ *     {
+ *       value: string, // lot_adjustment_type_id
+ *       label: string, // name
+ *       actionTypeId: string // inventory_action_type_id
+ *     }
+ *   ]
+ */
+router.get(
+  '/lot-adjustment-types',
+  authorize([
+    'manage_inventory',
+    'view_batch_registry_dropdown',
+    'access_inventory_utilities'
+  ]),
+  sanitizeInput,
+  getLotAdjustmentDropdownController
 );
 
 module.exports = router;

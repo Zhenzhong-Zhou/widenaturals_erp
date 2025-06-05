@@ -27,7 +27,6 @@ const locationTypeRoutes = require('./locations-types');
 const locationRoutes = require('./locations');
 const locationInventoryRoutes = require('./location-inventory');
 const warehouseInventoryRoutes = require('./warehouse-inventory');
-const warehouseLotAdjustmentRoutes = require('./lot-adjustment-type');
 const dropdownRoutes = require('./dropdown');
 const reportRoutes = require('./reports');
 const customerRoutes = require('./customers');
@@ -99,11 +98,6 @@ router.use('/pricings', authenticate(), pricingRoutes);
  * Warehouse and inventory management
  */
 router.use('/warehouse-inventory', authenticate(), warehouseInventoryRoutes);
-router.use(
-  '/lot-adjustment-types',
-  authenticate(),
-  warehouseLotAdjustmentRoutes
-);
 
 /**
  * Location-related management

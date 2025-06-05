@@ -1,9 +1,9 @@
 const wrapAsync = require('../utils/wrap-async');
 const {
   fetchBatchRegistryDropdownService,
-  fetchWarehouseDropdownService,
+  fetchWarehouseDropdownService, fetchLotAdjustmentDropdownService,
 } = require('../services/dropdown-service');
-const { logInfo } = require('../utils/logger-helper');
+const { logInfo, logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
 
 /**
@@ -99,7 +99,28 @@ const getWarehouseDropdownController = wrapAsync(async (req, res) => {
   });
 });
 
+/**
+ * @function getLotAdjustmentDropdownController
+ * @description Express controller to return lot adjustment dropdown options.
+ * Accepts optional query param `excludeInternal=true` to filter internal-only actions.
+ *
+ * @route GET /adjustments/dropdown
+ * @returns {200} Array of lot adjustment options with id, label, and action type.
+ */
+const getLotAdjustmentDropdownController = wrapAsync(async (req, res) => {
+  const excludeInternal = req.query.excludeInternal === 'true';
+  
+  const options = await fetchLotAdjustmentDropdownService({ excludeInternal });
+  
+  res.status(200).json({
+    success: true,
+    message: `Successfully retrieved lot adjustment dropdown`,
+    data: options,
+  });
+});
+
 module.exports = {
   getBatchRegistryDropdownController,
   getWarehouseDropdownController,
+  getLotAdjustmentDropdownController,
 };

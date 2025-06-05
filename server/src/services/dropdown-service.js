@@ -7,9 +7,10 @@ const {
 } = require('../repositories/warehouse-repository');
 const {
   transformPaginatedDropdownResultList,
-  transformWarehouseDropdownRows,
+  transformWarehouseDropdownRows, transformLotAdjustmentDropdownOptions,
 } = require('../transformers/dropdown-transformer');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
+const { getLotAdjustmentTypesForDropdown } = require('../repositories/lot-adjustment-type-repository');
 
 /**
  * Service to fetch filtered and paginated batch registry records for dropdown UI.
@@ -78,7 +79,7 @@ const fetchBatchRegistryDropdownService = async ({
 const fetchWarehouseDropdownService = async (filters = {}) => {
   try {
     logSystemInfo('Fetching warehouse dropdown in service', {
-      context: 'warehouse-service/fetchWarehouseDropdownService',
+      context: 'dropdown-service/fetchWarehouseDropdownService',
       filters,
     });
 
@@ -89,19 +90,48 @@ const fetchWarehouseDropdownService = async (filters = {}) => {
       err,
       'Failed to fetch warehouse dropdown in service layer',
       {
-        context: 'warehouse-service/fetchWarehouseDropdownService',
+        context: 'dropdown-service/fetchWarehouseDropdownService',
         filters,
       }
     );
 
     throw AppError.serviceError('Could not fetch warehouse dropdown', {
       details: err.message,
-      stage: 'warehouse-service',
+      stage: 'dropdown-service',
     });
+  }
+};
+
+/**
+ * @function fetchLotAdjustmentDropdownService
+ * @description Service to fetch and transform active lot adjustment types for dropdowns.
+ * Excludes internal-only actions (e.g., manual insert/update) if `excludeInternal` is true.
+ *
+ * @param {Object} [filters={}] - Optional filtering options.
+ * @param {boolean} [filters.excludeInternal=false] - Whether to exclude internal-use adjustment types.
+ * @returns {Promise<Array<{ value: string, label: string, actionTypeId: string }>>}
+ * A list of dropdown options with:
+ * - `value`: lot adjustment type ID,
+ * - `label`: display name,
+ * - `actionTypeId`: linked inventory action type ID.
+ *
+ * @throws {AppError} If database fetch or transformation fails.
+ */
+const fetchLotAdjustmentDropdownService = async (filters = {}) => {
+  try {
+    const rows = await getLotAdjustmentTypesForDropdown(filters);
+    return transformLotAdjustmentDropdownOptions(rows);
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch and transform lot adjustment types', {
+      context: 'dropdown-service/fetchLotAdjustmentDropdownService',
+      filters,
+    });
+    throw AppError.serviceError('Unable to retrieve adjustment dropdown options');
   }
 };
 
 module.exports = {
   fetchBatchRegistryDropdownService,
   fetchWarehouseDropdownService,
+  fetchLotAdjustmentDropdownService,
 };

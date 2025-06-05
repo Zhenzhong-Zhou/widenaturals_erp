@@ -65,7 +65,29 @@ const transformWarehouseDropdownRows = (rows) => {
   }));
 };
 
+/**
+ * @function transformLotAdjustmentDropdownOptions
+ * @description Transforms raw lot adjustment types from DB into dropdown-friendly format.
+ *
+ * @param {Array} rows - Raw query result rows from lot_adjustment_types join.
+ * @returns {Array<{ value: string, label: string, actionTypeId: string }>}
+ *
+ * @example
+ * const transformed = transformLotAdjustmentDropdownOptions(rows);
+ * // Result: [{ value: '581f...', label: 'adjustment', actionTypeId: 'a7c1...' }, ...]
+ */
+const transformLotAdjustmentDropdownOptions = (rows) => {
+  if (!Array.isArray(rows)) return [];
+  
+  return rows.map((row) => ({
+    value: row.lot_adjustment_type_id,
+    label: row.name,
+    actionTypeId: row.inventory_action_type_id,
+  }));
+};
+
 module.exports = {
   transformPaginatedDropdownResultList,
   transformWarehouseDropdownRows,
+  transformLotAdjustmentDropdownOptions
 };
