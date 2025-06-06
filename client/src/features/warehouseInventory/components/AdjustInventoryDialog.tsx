@@ -1,4 +1,4 @@
-import { type FC } from 'react';
+import { type FC, useEffect } from 'react';
 import CustomDialog from '@components/common/CustomDialog';
 import AdjustInventoryForm from '@features/warehouseInventory/components/AdjustInventoryForm';
 import {
@@ -10,6 +10,10 @@ import type {
   AdjustInventoryRequestBody, InventoryAdjustmentFormData,
   InventoryAdjustmentInput,
 } from '@features/inventoryShared/types/InventorySharedType.ts';
+import useLotAdjustmentTypeDropdown from '@hooks/useLotAdjustmentTypeDropdown.ts';
+import InventorySuccessDialog from '@features/inventoryShared/components/InventorySuccessDialog.tsx';
+import Loading from '@components/common/Loading.tsx';
+import Alert from '@mui/material/Alert';
 
 interface AdjustInventoryDialogProps {
   open: boolean;
@@ -29,19 +33,25 @@ const AdjustInventoryDialog: FC<AdjustInventoryDialogProps> = ({
     location,
     message,
     success,
-    loading,
-    error,
+    loading: isSubmitting,
+    error: submitError,
     adjustInventory,
     resetState,
   } = useAdjustWarehouseInventory();
   
+  const {
+    options: dropdownOptions,
+    loading: isDropdownLoading,
+    error: dropdownError,
+    fetchLotAdjustmentTypeDropdown,
+  } = useLotAdjustmentTypeDropdown();
+  
+  useEffect(() => {
+    fetchLotAdjustmentTypeDropdown();
+  }, [fetchLotAdjustmentTypeDropdown]);
+  
   const mapped = mapInventoryRecordToAdjustData(record);
-  console.log(warehouse,
-    location,
-    message,
-    success,
-    loading,
-    error)
+  
   const initialQuantity =
     typeof mapped.warehouseQuantity === 'number'
       ? mapped.warehouseQuantity
@@ -49,14 +59,23 @@ const AdjustInventoryDialog: FC<AdjustInventoryDialogProps> = ({
   
   const handleAdjustSubmit = (formData: InventoryAdjustmentFormData) => {
     try {
+      // Destructure the combined value from the dropdown
+      const [adjustment_type_id, inventory_action_type_id] =
+      formData.adjustment_type_id?.split('::') ?? [];
+      
+      if (!adjustment_type_id || !inventory_action_type_id) {
+        console.error('Invalid adjustment type selection.');
+        return;
+      }
+      
       const enrichedData: InventoryAdjustmentInput = {
         warehouse_id: mapped.warehouseId,
         location_id: mapped.locationId,
         batch_id: mapped.batchId,
         batch_type: mapped.batchType,
         quantity: Number(formData.newQuantity),
-        inventory_action_type_id: formData.inventory_action_type_id,
-        adjustment_type_id: formData.adjustment_type_id,
+        inventory_action_type_id,
+        adjustment_type_id,
         comments: formData.note || '',
       };
       
@@ -64,11 +83,18 @@ const AdjustInventoryDialog: FC<AdjustInventoryDialogProps> = ({
         updates: [enrichedData],
       };
       
-      console.log(payload);
       adjustInventory(payload);
-      // onClose();
     } catch (error) {
       console.error('Adjustment failed', error);
+    }
+  };
+  
+  const handleConfirmClose = () => {
+    resetState();
+    onClose(); // now exit dialog
+    // Refreshes data after dialog exits
+    if (typeof onExited === 'function') {
+      onExited();
     }
   };
   
@@ -80,13 +106,39 @@ const AdjustInventoryDialog: FC<AdjustInventoryDialogProps> = ({
       disableCloseOnBackdrop={false}
       disableCloseOnEscape={false}
     >
-      <AdjustInventoryForm
-        initialQuantity={initialQuantity}
-        contextData={mapped}
-        inventoryActionOptions={[]}
-        adjustmentTypeOptions={[]}
-        onSubmit={handleAdjustSubmit}
-      />
+      {isSubmitting ? (
+        <Loading variant="dotted" size={24}  message="Submitting adjustment..." />
+      ) : (
+        <>
+          {submitError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {typeof submitError === 'string'
+                  ? submitError
+                  : 'An unexpected error occurred.'}
+            </Alert>
+          )}
+          
+          <AdjustInventoryForm
+            initialQuantity={initialQuantity}
+            contextData={mapped}
+            adjustmentTypeOptions={dropdownOptions}
+            dropdownLoading={isDropdownLoading}
+            dropdownError={dropdownError ?? ''}
+            onSubmit={handleAdjustSubmit}
+            onRefresh={fetchLotAdjustmentTypeDropdown}
+          />
+        </>
+      )}
+      
+      {success && (
+        <InventorySuccessDialog
+          onClose={handleConfirmClose}
+          open={success}
+          warehouse={warehouse}
+          location={location}
+          message={message}
+        />
+      )}
     </CustomDialog>
   );
 };

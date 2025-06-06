@@ -41,6 +41,7 @@ export const API_ENDPOINTS = {
   DROPDOWN: {
     BATCH_REGISTRY: '/dropdown/batch-registry',
     WAREHOUSES: '/dropdown/warehouses',
+    LOT_ADJUSTMENT_TYPES: '/dropdown/lot-adjustment-types'
   },
   WAREHOUSE_INVENTORY_ADJUSTMENTS_REPORT: '/reports/adjustments',
   WAREHOUSE_INVENTORY_ACTIVITY_LOGS: '/reports/inventory-activity-logs',

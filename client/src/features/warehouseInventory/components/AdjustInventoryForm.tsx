@@ -11,6 +11,7 @@ import { formatLabel } from '@utils/textUtils.ts';
 import type {
   InventoryAdjustmentFormData,
 } from '@features/inventoryShared/types/InventorySharedType';
+import LotAdjustmentTypeDropdown from '@features/dropdown/components/LotAdjustmentTypeDropdown';
 
 interface DropdownOption {
   label: string;
@@ -19,7 +20,6 @@ interface DropdownOption {
 
 interface AdjustInventoryFormProps {
   initialQuantity: number;
-  inventoryActionOptions: DropdownOption[];
   adjustmentTypeOptions: DropdownOption[];
   onSubmit: (formData: InventoryAdjustmentFormData) => void;
   contextData: {
@@ -33,14 +33,19 @@ interface AdjustInventoryFormProps {
     locationQuantity?: number;
     status?: string;
   };
+  dropdownLoading: boolean;
+  dropdownError: string;
+  onRefresh: () => void;
 }
 
 const AdjustInventoryForm: FC<AdjustInventoryFormProps> = ({
                                                              initialQuantity,
-                                                             inventoryActionOptions,
                                                              adjustmentTypeOptions,
                                                              onSubmit,
                                                              contextData,
+                                                             dropdownLoading,
+                                                             dropdownError,
+                                                             onRefresh,
                                                            }) => {
   const {
     batchType,
@@ -64,18 +69,21 @@ const AdjustInventoryForm: FC<AdjustInventoryFormProps> = ({
       defaultValue: initialQuantity,
     },
     {
-      id: 'inventory_action_type_id',
-      label: 'Inventory Action',
-      type: 'text',
-      required: true,
-      options: inventoryActionOptions,
-    },
-    {
       id: 'adjustment_type_id',
       label: 'Adjustment Type',
-      type: 'text',
+      type: 'custom',
       required: true,
-      options: adjustmentTypeOptions,
+      customRender: ({ value, onChange }) =>
+        onChange ? (
+          <LotAdjustmentTypeDropdown
+            value={value}
+            onChange={onChange as (val: string) => void}
+            lotAdjustmentTypeOptions={adjustmentTypeOptions}
+            lotAdjustmentTypeLoading={dropdownLoading}
+            lotAdjustmentTypeError={dropdownError}
+            onRefresh={onRefresh}
+          />
+        ) : null,
     },
     {
       id: 'note',

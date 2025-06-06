@@ -242,7 +242,6 @@ export interface AdjustInventoryRequestBody {
 
 export interface InventoryAdjustmentFormData {
   newQuantity: string;
-  inventory_action_type_id: string;
   adjustment_type_id: string;
   note?: string;
 }

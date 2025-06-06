@@ -5,6 +5,7 @@ import type {
   GetBatchRegistryDropdownResponse,
   GetWarehouseDropdownFilters,
   GetWarehouseDropdownResponse,
+  LotAdjustmentTypeDropdownResponse,
 } from '@features/dropdown/state/dropdownTypes';
 
 /**
@@ -59,7 +60,39 @@ const fetchWarehouseDropdown = async (
   }
 };
 
+/**
+ * Fetches active lot adjustment types for dropdown use.
+ * By default, it excludes internal-use-only types such as manual stock insert/update.
+ * These types are typically system-facing and not intended for regular user selection.
+ *
+ * This function is intended for use in forms or selection inputs where the user needs to choose
+ * from available adjustment types (e.g., 'damaged', 'expired', 'lost', etc.).
+ *
+ * @function fetchLotAdjustmentTypeDropdown
+ * @param {boolean} [excludeInternal=true] - If true (default), excludes internal-use-only adjustment types.
+ * @returns {Promise<LotAdjustmentTypeDropdownResponse>} A promise that resolves to a list of formatted dropdown options.
+ * @throws Will throw if the HTTP request fails.
+ */
+const fetchLotAdjustmentTypeDropdown = async (
+  excludeInternal: boolean = true
+): Promise<LotAdjustmentTypeDropdownResponse> => {
+  try {
+    const response = await axiosInstance.get<LotAdjustmentTypeDropdownResponse>(
+      API_ENDPOINTS.DROPDOWN.LOT_ADJUSTMENT_TYPES,
+      {
+        params: { excludeInternal },
+      }
+    );
+    
+    return response.data;
+  } catch (error) {
+    console.error('Failed to fetch lot adjustment dropdown:', error);
+    throw error;
+  }
+};
+
 export const dropdownService = {
   fetchBatchRegistryDropdown,
   fetchWarehouseDropdown,
+  fetchLotAdjustmentTypeDropdown,
 };

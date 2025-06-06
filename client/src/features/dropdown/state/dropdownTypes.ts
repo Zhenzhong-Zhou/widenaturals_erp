@@ -90,3 +90,33 @@ export interface WarehouseOption {
   label: string;
   value: string;
 }
+
+/**
+ * Represents a single option in the lot adjustment dropdown.
+ */
+export interface LotAdjustmentTypeDropdownItem {
+  /**
+   * The unique identifier of the lot adjustment type.
+   * Used as the `value` in dropdown menus.
+   */
+  value: string;
+  
+  /**
+   * The display label of the lot adjustment type.
+   * Typically shown as the visible text in the dropdown option.
+   */
+  label: string;
+  
+  /**
+   * The unique identifier of the related inventory action type.
+   * Used for internal mapping or further logic.
+   */
+  actionTypeId: string;
+}
+
+/**
+ * Typed API response for fetching lot adjustment dropdown options.
+ */
+export type LotAdjustmentTypeDropdownResponse = ApiSuccessResponse<LotAdjustmentTypeDropdownItem[]>;
+
+export type LotAdjustmentTypeDropdownState = AsyncState<LotAdjustmentTypeDropdownItem[]>;
