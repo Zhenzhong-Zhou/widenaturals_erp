@@ -18,13 +18,13 @@ import useWarehouseDropdown from '@hooks/useWarehouseDropdown.ts';
 interface AddInventoryDialogProps {
   open: boolean;
   onClose: () => void;
-  onSuccess?: () => void;
+  onExited?: () => void;
 }
 
 const AddInventoryDialog: FC<AddInventoryDialogProps> = ({
   open,
   onClose,
-  onSuccess,
+  onExited,
 }) => {
   const [selectedWarehouse, setSelectedWarehouse] = useState<{
     locationId: string;
@@ -54,7 +54,7 @@ const AddInventoryDialog: FC<AddInventoryDialogProps> = ({
     location,
     resetState,
   } = useCreateWarehouseInventory();
-  console.log(createMessage, warehouse, location);
+  
   const {
     items: warehouseOptions,
     loading: warehouseLoading,
@@ -148,14 +148,8 @@ const AddInventoryDialog: FC<AddInventoryDialogProps> = ({
   }, [batchOptions]);
 
   useEffect(() => {
-    if (isCreateSuccess) {
-      onSuccess?.();
-      onClose();
-    }
-  }, [isCreateSuccess, onSuccess, onClose]);
-
-  useEffect(() => {
     if (!open) {
+      setSelectedBatch(null);
       resetState();
       setSubmitting(false);
     }
@@ -197,6 +191,15 @@ const AddInventoryDialog: FC<AddInventoryDialogProps> = ({
       setSubmitting(false);
     }
   };
+  
+  const handleSuccessDialogClose = () => {
+    setSelectedBatch(null);
+    onClose();     // close the main dialog
+    resetState();
+    if (typeof onExited === 'function') {
+      onExited();
+    }
+  };
 
   return (
     <AddInventoryDialogWithModeToggle
@@ -204,6 +207,11 @@ const AddInventoryDialog: FC<AddInventoryDialogProps> = ({
       onClose={onClose}
       onSubmit={handleFormSubmit}
       submitting={submitting || isCreating}
+      successOpen={isCreateSuccess}
+      successMessage={createMessage}
+      onSuccessClose={handleSuccessDialogClose}
+      warehouse={warehouse}
+      location={location}
       createError={createError}
       batchDropdownOptions={batchDropdownOptions}
       selectedBatch={selectedBatch}

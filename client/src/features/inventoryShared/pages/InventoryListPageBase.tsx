@@ -7,6 +7,7 @@ import {
   useCallback,
   type SyntheticEvent,
   type LazyExoticComponent,
+  type MouseEvent,
 } from 'react';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
@@ -23,6 +24,7 @@ import type { SortConfig } from '@shared-types/api';
 import { groupBy } from 'lodash';
 import type { ItemType } from '@features/inventoryShared/types/InventorySharedType.ts';
 import AdjustInventoryDialog from '@features/warehouseInventory/components/AdjustInventoryDialog';
+import AddInventoryDialog from '@features/warehouseInventory/components/AddInventoryDialog.tsx';
 
 interface BaseInventoryPageProps<T> {
   title: string;
@@ -73,6 +75,7 @@ const BaseInventoryPage = <T,>({
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(30);
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
+  const [isAddInventoryDialogOpen, setIsAddInventoryDialogOpen] = useState(false);
   const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
   const [adjustTarget, setAdjustTarget] = useState<any | null>(null); // for single adjust modal
   const [isAdjustDialogOpen, setIsAdjustDialogOpen] = useState(false);
@@ -131,6 +134,15 @@ const BaseInventoryPage = <T,>({
 
   const isRowExpanded = (row: any) => expandedRowId === row[rowKey];
   
+  const handleAddOpen = (e: MouseEvent<HTMLButtonElement>) => {
+    e.currentTarget.blur(); // Remove focus before dialog renders
+    setIsAddInventoryDialogOpen(true);
+  };
+  
+  const handleAddClose = () => {
+    setIsAddInventoryDialogOpen(false);
+  };
+  
   // Single Adjust
   const handleAdjustSingle = (row: any) => {
     setAdjustTarget(row.originalRecord); // Or just `row` depending on your structure
@@ -184,6 +196,21 @@ const BaseInventoryPage = <T,>({
         </Stack>
 
         {topToolbar && <Box mb={2}>{topToolbar}</Box>}
+        
+        <Box mb={2}>
+          <Box display="flex" gap={2}>
+            <CustomButton
+              onClick={handleAddOpen}
+            >
+              Add Inventory
+            </CustomButton>
+            <AddInventoryDialog
+              open={isAddInventoryDialogOpen}
+              onClose={handleAddClose}
+              onExited={handleAdjustDialogExited}
+            />
+          </Box>
+        </Box>
 
         <Stack spacing={3}>
           <Stack
@@ -252,7 +279,6 @@ const BaseInventoryPage = <T,>({
           {/*    onExited={handleAdjustDialogExited}*/}
           {/*  />*/}
           {/*)}*/}
-          
           
           <Suspense fallback={<Skeleton height={180} width="100%" />}>
             <TableComponent
