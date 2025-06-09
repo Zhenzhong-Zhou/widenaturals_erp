@@ -9,6 +9,7 @@ import Stack from '@mui/material/Stack';
 import { formatDate } from '@utils/dateTimeUtils';
 import { formatLabel } from '@utils/textUtils.ts';
 import type {
+  InventoryAdjustmentSingleContext,
   InventoryAdjustmentFormData,
 } from '@features/inventoryShared/types/InventorySharedType';
 import LotAdjustmentTypeDropdown from '@features/dropdown/components/LotAdjustmentTypeDropdown';
@@ -18,17 +19,7 @@ interface AdjustInventoryFormProps {
   initialQuantity: number;
   adjustmentTypeOptions: AdjustmentTypeOption[];
   onSubmit: (formData: InventoryAdjustmentFormData) => void;
-  contextData: {
-    batchType: string;
-    warehouseName?: string;
-    locationName?: string;
-    displayName: string;
-    lotNumber: string;
-    expiryDate: string;
-    warehouseQuantity?: number;
-    locationQuantity?: number;
-    status?: string;
-  };
+  contextData: InventoryAdjustmentSingleContext;
   dropdownLoading: boolean;
   dropdownError: string;
   onRefresh: () => void;

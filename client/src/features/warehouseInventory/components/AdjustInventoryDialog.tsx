@@ -1,19 +1,16 @@
-import { type FC, useEffect } from 'react';
+import { type FC } from 'react';
 import CustomDialog from '@components/common/CustomDialog';
 import AdjustInventoryForm from '@features/warehouseInventory/components/AdjustInventoryForm';
-import {
-  mapInventoryRecordToAdjustData,
-} from '@features/inventoryShared/utils/adjustInventoryRecordMapper';
-import useAdjustWarehouseInventory from '@hooks/useAdjustWarehouseInventory.ts';
-import type {
-  AdjustInventoryRequestBody, InventoryAdjustmentFormData,
-  InventoryAdjustmentInput,
-  InventoryRecord,
-} from '@features/inventoryShared/types/InventorySharedType.ts';
-import useLotAdjustmentTypeDropdown from '@hooks/useLotAdjustmentTypeDropdown.ts';
-import InventorySuccessDialog from '@features/inventoryShared/components/InventorySuccessDialog.tsx';
-import Loading from '@components/common/Loading.tsx';
+import Loading from '@components/common/Loading';
 import Alert from '@mui/material/Alert';
+import InventorySuccessDialog from '@features/inventoryShared/components/InventorySuccessDialog';
+import type {
+  InventoryAdjustmentFormData,
+  InventoryRecord,
+} from '@features/inventoryShared/types/InventorySharedType';
+import {
+  useInventoryAdjustmentDialogLogic
+} from '@features/inventoryShared/utils/useInventoryAdjustmentDialogLogic.ts';
 
 interface AdjustInventoryDialogProps {
   open: boolean;
@@ -33,67 +30,29 @@ const AdjustInventoryDialog: FC<AdjustInventoryDialogProps> = ({
     location,
     message,
     success,
-    loading: isSubmitting,
-    error: submitError,
-    adjustInventory,
-    resetState,
-  } = useAdjustWarehouseInventory();
-  
-  const {
-    options: dropdownOptions,
-    loading: isDropdownLoading,
-    error: dropdownError,
+    isSubmitting,
+    submitError,
+    dropdownOptions,
+    isDropdownLoading,
+    dropdownError,
+    mappedRecords,
+    initialQuantities,
     fetchLotAdjustmentTypeDropdown,
-  } = useLotAdjustmentTypeDropdown();
+    handleSubmit,
+    resetState,
+  } = useInventoryAdjustmentDialogLogic({
+    mode: 'single',
+    records: [record],
+  });
   
-  useEffect(() => {
-    fetchLotAdjustmentTypeDropdown();
-  }, [fetchLotAdjustmentTypeDropdown]);
+  const [mapped] = mappedRecords;
+  const [initialQuantity] = initialQuantities;
   
-  if (!record) return null;
-  const mapped = mapInventoryRecordToAdjustData(record);
-  
-  const initialQuantity =
-    typeof mapped.warehouseQuantity === 'number'
-      ? mapped.warehouseQuantity
-      : mapped.locationQuantity ?? 0;
-  
-  const handleAdjustSubmit = (formData: InventoryAdjustmentFormData) => {
-    try {
-      // Destructure the combined value from the dropdown
-      const [adjustment_type_id, inventory_action_type_id] =
-      formData.adjustment_type_id?.split('::') ?? [];
-      
-      if (!adjustment_type_id || !inventory_action_type_id) {
-        console.error('Invalid adjustment type selection.');
-        return;
-      }
-      
-      const enrichedData: InventoryAdjustmentInput = {
-        warehouse_id: mapped.warehouseId,
-        location_id: mapped.locationId,
-        batch_id: mapped.batchId,
-        batch_type: mapped.batchType,
-        quantity: Number(formData.newQuantity),
-        inventory_action_type_id,
-        adjustment_type_id,
-        comments: formData.note || '',
-      };
-      
-      const payload: AdjustInventoryRequestBody = {
-        updates: [enrichedData],
-      };
-      
-      adjustInventory(payload);
-    } catch (error) {
-      console.error('Adjustment failed', error);
-    }
-  };
+  if (!mapped || initialQuantity === undefined) return null;
   
   const handleConfirmClose = () => {
     resetState();
-    onClose(); // now exit dialog
-    // Refreshes data after dialog exits
+    onClose();
     if (typeof onExited === 'function') {
       onExited();
     }
@@ -102,20 +61,28 @@ const AdjustInventoryDialog: FC<AdjustInventoryDialogProps> = ({
   return (
     <CustomDialog
       open={open}
-      title={`Adjust Inventory: ${mapped.displayName}`}
+      title={`Adjust Inventory: ${mappedRecords[0]?.displayName ?? ''}`}
       onClose={onClose}
       disableCloseOnBackdrop={false}
       disableCloseOnEscape={false}
     >
       {isSubmitting ? (
-        <Loading variant="dotted" size={24}  message="Submitting adjustment..." />
+        <Loading variant="dotted" size={24} message="Submitting adjustment..." />
+      ) : success ? (
+        <InventorySuccessDialog
+          open={true}
+          onClose={handleConfirmClose}
+          warehouse={warehouse}
+          location={location}
+          message={message}
+        />
       ) : (
         <>
           {submitError && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {typeof submitError === 'string'
-                  ? submitError
-                  : 'An unexpected error occurred.'}
+                ? submitError
+                : 'An unexpected error occurred.'}
             </Alert>
           )}
           
@@ -125,22 +92,11 @@ const AdjustInventoryDialog: FC<AdjustInventoryDialogProps> = ({
             adjustmentTypeOptions={dropdownOptions}
             dropdownLoading={isDropdownLoading}
             dropdownError={dropdownError ?? ''}
-            onSubmit={handleAdjustSubmit}
+            onSubmit={handleSubmit as (data: InventoryAdjustmentFormData) => void}
             onRefresh={fetchLotAdjustmentTypeDropdown}
             loading={isSubmitting}
           />
         </>
-      )}
-      
-      {/* Success Confirmation Dialog */}
-      {success && (
-        <InventorySuccessDialog
-          open={success}
-          onClose={handleConfirmClose}
-          warehouse={warehouse}
-          location={location}
-          message={message}
-        />
       )}
     </CustomDialog>
   );

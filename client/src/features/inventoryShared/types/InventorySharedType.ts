@@ -273,3 +273,21 @@ export interface AdjustedInventoryData {
 }
 
 export type InventoryRecord = WarehouseInventoryRecord | LocationInventoryRecord;
+
+export interface InventoryAdjustmentContextBase {
+  id: string;
+  batchType: string;
+  displayName: string;
+  lotNumber: string;
+  expiryDate: string;
+  status?: string;
+  warehouseName?: string;
+  warehouseQuantity?: number;
+  locationName?: string;
+  locationQuantity?: number;
+}
+
+export type InventoryAdjustmentSingleContext = InventoryAdjustmentContextBase;
+
+export type InventoryAdjustmentBulkContext = InventoryAdjustmentContextBase[];
+

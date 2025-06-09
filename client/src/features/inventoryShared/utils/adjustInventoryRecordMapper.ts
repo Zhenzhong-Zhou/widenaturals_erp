@@ -1,23 +1,5 @@
-import type { WarehouseInventoryRecord } from "@features/warehouseInventory/state";
-import type { LocationInventoryRecord } from '@features/locationInventory/state';
 import type { AdjustedInventoryData, InventoryRecord } from '@features/inventoryShared/types/InventorySharedType';
 import { cleanObject } from '@utils/objectUtils';
-
-const isWarehouseRecord = (record: InventoryRecord): record is WarehouseInventoryRecord => {
-  return (
-    'warehouse' in record &&
-    typeof record.warehouse === 'object' &&
-    'name' in record.warehouse
-  );
-}
-
-const isLocationRecord = (record: InventoryRecord): record is LocationInventoryRecord => {
-  return (
-    'location' in record &&
-    typeof record.location === 'object' &&
-    'name' in record.location
-  );
-}
 
 /**
  * Maps a single InventoryRecord to AdjustedInventoryData.
@@ -31,25 +13,15 @@ export const mapInventoryRecordToAdjustData = (
     display: { name: displayName },
     lot: { batchId, number: lotNumber, expiryDate },
     status: { name: status },
+    warehouse,
+    location,
+    quantity,
   } = record;
   
   const batchType = itemType ?? 'product';
   
-  const optionalFields: Partial<AdjustedInventoryData> = {};
-  
-  if (isWarehouseRecord(record)) {
-    optionalFields.warehouseName = record.warehouse.name;
-    optionalFields.warehouseId = record.warehouse.id;
-    optionalFields.warehouseQuantity = record.quantity.warehouseQuantity;
-  }
-  
-  if (isLocationRecord(record)) {
-    optionalFields.locationName = record.location.name;
-    optionalFields.locationId = record.location.id;
-    optionalFields.locationQuantity = record.quantity.locationQuantity;
-  }
-  
-  return cleanObject({
+  // Required fields always present
+  const required: AdjustedInventoryData = {
     id,
     batchType,
     displayName,
@@ -57,8 +29,22 @@ export const mapInventoryRecordToAdjustData = (
     lotNumber,
     expiryDate: expiryDate ?? '',
     status,
-    ...optionalFields,
-  }) as AdjustedInventoryData;
+    warehouseId: warehouse.id,
+    locationId: location.id,
+  };
+  
+  // Conditionally add optional fields
+  const optionalFields: Partial<AdjustedInventoryData> = {
+    warehouseName: 'name' in warehouse ? warehouse.name : undefined,
+    warehouseQuantity: 'warehouseQuantity' in quantity ? quantity.warehouseQuantity : undefined,
+    locationName: 'name' in location ? location.name : undefined,
+    locationQuantity: 'locationQuantity' in quantity ? quantity.locationQuantity : undefined,
+  };
+  
+  return {
+    ...required,
+    ...cleanObject(optionalFields),
+  };
 };
 
 /**

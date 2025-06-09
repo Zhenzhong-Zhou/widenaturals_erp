@@ -11,6 +11,7 @@ import { formatDate } from '@utils/dateTimeUtils';
 import { formatLabel } from '@utils/textUtils';
 import LotAdjustmentTypeDropdown from '@features/dropdown/components/LotAdjustmentTypeDropdown';
 import type {
+  InventoryAdjustmentBulkContext,
   InventoryAdjustmentFormData,
 } from '@features/inventoryShared/types/InventorySharedType';
 import type { AdjustmentTypeOption } from '@features/dropdown/state';
@@ -20,18 +21,7 @@ interface AdjustBulkInventoryFormProps {
   initialQuantities: number[];
   adjustmentTypeOptions: AdjustmentTypeOption[];
   onSubmit: (formData: InventoryAdjustmentFormData[]) => void;
-  contextData: {
-    id: string;
-    batchType: string;
-    warehouseName?: string;
-    locationName?: string;
-    displayName: string;
-    lotNumber: string;
-    expiryDate: string;
-    warehouseQuantity?: number;
-    locationQuantity?: number;
-    status?: string;
-  }[];
+  contextData: InventoryAdjustmentBulkContext;
   dropdownLoading: boolean;
   dropdownError: string;
   onRefresh: () => void;
