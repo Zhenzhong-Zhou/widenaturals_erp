@@ -8,6 +8,7 @@ import {
   type SyntheticEvent,
   type LazyExoticComponent,
   type MouseEvent,
+  useMemo,
 } from 'react';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
@@ -86,13 +87,14 @@ const BaseInventoryPage = <T extends InventoryRecord>({
   const { records, loading, error, pagination, fetchRecords } =
     useInventoryHook();
 
-  const batchType: ItemType | undefined =
-    itemTypeTab === 1
+  const batchType: ItemType | undefined = useMemo(() => {
+    return itemTypeTab === 1
       ? 'product'
       : itemTypeTab === 2
         ? 'packaging_material'
         : undefined;
-
+  }, [itemTypeTab]);
+  
   const grouped = groupBy(records, extractGroupName);
 
   useEffect(() => {
@@ -136,6 +138,10 @@ const BaseInventoryPage = <T extends InventoryRecord>({
 
   const isRowExpanded = (row: any) => expandedRowId === row[rowKey];
   
+  const handleRefresh = () => {
+    fetchRecords({ page, limit }, filters, sortConfig);
+  };
+  
   const handleAddOpen = (e: MouseEvent<HTMLButtonElement>) => {
     e.currentTarget.blur(); // Remove focus before dialog renders
     setIsAddInventoryDialogOpen(true);
@@ -156,6 +162,11 @@ const BaseInventoryPage = <T extends InventoryRecord>({
     setIsBulkAdjustOpen(true);
   };
   
+  const showBulkAdjust = useMemo(
+    () => selectedRowIds.length > 0 && selectedRecords.length > 0,
+    [selectedRowIds, selectedRecords]
+  );
+  
   // Close dialog only
   const handleAdjustDialogClose = () => {
     setIsAdjustDialogOpen(false);
@@ -170,7 +181,7 @@ const BaseInventoryPage = <T extends InventoryRecord>({
   // Selection change from table
   const handleSelectionChange = (ids: string[], records: any[]) => {
     setSelectedRowIds(ids);
-    const selected = records.map((r) => r.originalRecord).filter(Boolean);
+    const selected = records.map((r) => r.originalRecord as T).filter(Boolean);
     setSelectedRecords(selected);
   };
   
@@ -183,7 +194,7 @@ const BaseInventoryPage = <T extends InventoryRecord>({
   }
 
   return (
-    <Box sx={{ px: 4, py: 3 }}>
+    <Box sx={{ px: { xs: 2, sm: 4 }, py: 3 }}>
       <Paper
         elevation={3}
         sx={{
@@ -198,24 +209,25 @@ const BaseInventoryPage = <T extends InventoryRecord>({
             {title}
           </CustomTypography>
         </Stack>
-
-        {topToolbar && <Box mb={2}>{topToolbar}</Box>}
         
-        <Box mb={2}>
-          <Box display="flex" gap={2}>
-            <CustomButton
-              onClick={handleAddOpen}
-            >
-              Add Inventory
-            </CustomButton>
-            <AddInventoryDialog
-              open={isAddInventoryDialogOpen}
-              onClose={handleAddClose}
-              onExited={handleAdjustDialogExited}
-            />
-          </Box>
-        </Box>
-
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          justifyContent="space-between"
+          alignItems="center"
+          spacing={2}
+          mb={2}
+        >
+          {topToolbar && <Box>{topToolbar}</Box>}
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+            <CustomButton onClick={handleAddOpen}>Add Inventory</CustomButton>
+            {selectedRowIds.length > 0 && (
+              <CustomButton variant="contained" onClick={handleBulkAdjust} size="small">
+                Adjust Selected ({selectedRowIds.length})
+              </CustomButton>
+            )}
+          </Stack>
+        </Stack>
+        
         <Stack spacing={3}>
           <Stack
             direction={{ xs: 'column', sm: 'row' }}
@@ -254,38 +266,7 @@ const BaseInventoryPage = <T extends InventoryRecord>({
             showActionsWhenAll={true}
           />
           
-          {selectedRowIds.length > 0 && (
-            <Box display="flex" justifyContent="flex-end">
-              <CustomButton
-                variant="contained"
-                onClick={handleBulkAdjust}
-                size="small"
-              >
-                Adjust Selected ({selectedRowIds.length})
-              </CustomButton>
-            </Box>
-          )}
-          
-          {isAdjustDialogOpen && adjustTarget && (
-            <AdjustInventoryDialog
-              open={isAdjustDialogOpen}
-              record={adjustTarget}
-              onClose={handleAdjustDialogClose}
-              onExited={handleAdjustDialogExited}
-            />
-          )}
-          
-          {isBulkAdjustOpen && selectedRowIds.length > 0 && selectedRecords.length > 0 && (
-            <AdjustBulkInventoryDialog
-              open={isBulkAdjustOpen}
-              selectedRowIds={selectedRowIds}
-              selectedRecords={selectedRecords ?? []}
-              onClose={handleAdjustDialogClose}
-              onExited={handleAdjustDialogExited}
-            />
-          )}
-          
-          <Suspense fallback={<Skeleton height={180} width="100%" />}>
+          <Suspense fallback={<Skeleton variant="rectangular" height={180} width="100%" />} >
             <TableComponent
               isLoading={loading}
               groupedData={grouped}
@@ -309,14 +290,35 @@ const BaseInventoryPage = <T extends InventoryRecord>({
         </Stack>
 
         <Stack direction="row" justifyContent="flex-end" mt={3}>
-          <CustomButton
-            variant="outlined"
-            onClick={() => fetchRecords({ page, limit }, filters, sortConfig)}
-          >
+          <CustomButton variant="outlined" onClick={handleRefresh}>
             Refresh Inventory
           </CustomButton>
         </Stack>
       </Paper>
+      <AddInventoryDialog
+        open={isAddInventoryDialogOpen}
+        onClose={handleAddClose}
+        onExited={handleAdjustDialogExited}
+      />
+      
+      {isAdjustDialogOpen && adjustTarget && (
+        <AdjustInventoryDialog
+          open={isAdjustDialogOpen}
+          record={adjustTarget}
+          onClose={handleAdjustDialogClose}
+          onExited={handleAdjustDialogExited}
+        />
+      )}
+      
+      {isBulkAdjustOpen && showBulkAdjust && (
+        <AdjustBulkInventoryDialog
+          open={isBulkAdjustOpen}
+          selectedRowIds={selectedRowIds}
+          selectedRecords={selectedRecords ?? []}
+          onClose={handleAdjustDialogClose}
+          onExited={handleAdjustDialogExited}
+        />
+      )}
     </Box>
   );
 };

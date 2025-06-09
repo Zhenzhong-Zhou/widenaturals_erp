@@ -3,7 +3,7 @@ import CustomDialog from '@components/common/CustomDialog';
 import AdjustInventoryForm from '@features/warehouseInventory/components/AdjustInventoryForm';
 import {
   mapInventoryRecordToAdjustData,
-} from '@features/inventoryShared/utils/mapInventoryRecordToAdjustData';
+} from '@features/inventoryShared/utils/adjustInventoryRecordMapper';
 import useAdjustWarehouseInventory from '@hooks/useAdjustWarehouseInventory.ts';
 import type {
   AdjustInventoryRequestBody, InventoryAdjustmentFormData,

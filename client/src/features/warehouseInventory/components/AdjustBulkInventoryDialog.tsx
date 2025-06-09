@@ -3,8 +3,8 @@ import CustomDialog from '@components/common/CustomDialog';
 import AdjustBulkInventoryForm from '@features/warehouseInventory/components/AdjustBulkInventoryForm';
 import {
   mapInventoryRecordsToAdjustData,
-} from '@features/inventoryShared/utils/mapInventoryRecordToAdjustData';
-import useAdjustWarehouseInventory from '@hooks/useAdjustWarehouseInventory.ts';
+} from '@features/inventoryShared/utils/adjustInventoryRecordMapper';
+import useAdjustWarehouseInventory from '@hooks/useAdjustWarehouseInventory';
 import type {
   InventoryAdjustmentFormData,
   InventoryAdjustmentInput,

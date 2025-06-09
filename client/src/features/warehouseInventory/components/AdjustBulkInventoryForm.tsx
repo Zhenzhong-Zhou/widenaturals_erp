@@ -114,7 +114,7 @@ const AdjustBulkInventoryForm: FC<AdjustBulkInventoryFormProps> = ({
           <MultiItemForm
             getItemTitle={(index, item) =>
               item._meta?.displayName
-                ? `Item ${item._meta.displayName}`
+                ? `Item Name: ${item._meta.displayName}`
                 : `Item ${index + 1}`
             }
             fields={fields}
