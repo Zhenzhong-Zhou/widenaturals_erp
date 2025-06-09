@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
 import type { ApiSuccessResponse, PaginationParams } from '@shared-types/api';
+import type { WarehouseInventoryRecord } from '@features/warehouseInventory/state';
+import type { LocationInventoryRecord } from '@features/locationInventory/state';
 
 export interface InventoryHealthStatus {
   reservedQuantity: number;
@@ -269,3 +271,5 @@ export interface AdjustedInventoryData {
   locationQuantity?: number;
   status: string;
 }
+
+export type InventoryRecord = WarehouseInventoryRecord | LocationInventoryRecord;

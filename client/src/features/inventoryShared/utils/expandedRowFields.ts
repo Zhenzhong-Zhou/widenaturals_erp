@@ -4,23 +4,39 @@ import type { LocationInventoryRecord } from '@features/locationInventory/state'
 import { formatDate, formatDateTime } from '@utils/dateTimeUtils';
 import { formatLabel } from '@utils/textUtils';
 
-export function getInventoryDetailsFields(
+const isWarehouseInventoryRecord = (
+  record: WarehouseInventoryRecord | LocationInventoryRecord
+): record is WarehouseInventoryRecord => {
+  return (
+    'warehouse' in record
+  );
+};
+
+const isLocationInventoryRecord = (
+  record: WarehouseInventoryRecord | LocationInventoryRecord
+): record is LocationInventoryRecord => {
+  return (
+    'location' in record
+  );
+};
+
+export const getInventoryDetailsFields = (
   record: WarehouseInventoryRecord | LocationInventoryRecord
 ): {
   details: DetailsSectionField[];
   metadata: DetailsSectionField[];
-} {
-  const isWarehouseRecord = 'warehouse' in record;
-  const isLocationRecord = 'location' in record;
+} => {
+  const isWarehouseRecord = isWarehouseInventoryRecord(record);
+  const isLocationRecord = isLocationInventoryRecord(record);
 
   const details: DetailsSectionField[] = [
     { label: 'Item Type', value: record.itemType, format: formatLabel },
     ...(isWarehouseRecord
-      ? [{ label: 'Warehouse Name', value: record.warehouse.name }]
+      ? [{ label: 'Warehouse Name', value: record.warehouse?.name }]
       : isLocationRecord
         ? [
-            { label: 'Location Name', value: record.location.name },
-            { label: 'Location Type', value: record.location.type },
+          { label: 'Location Name', value: record.location?.name },
+          { label: 'Location Type', value: record.location?.type },
           ]
         : []),
     { label: 'Lot Number', value: record.lot?.number },

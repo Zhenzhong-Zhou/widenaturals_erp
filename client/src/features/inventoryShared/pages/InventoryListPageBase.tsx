@@ -22,9 +22,10 @@ import ErrorDisplay from '@components/shared/ErrorDisplay';
 import ErrorMessage from '@components/common/ErrorMessage';
 import type { SortConfig } from '@shared-types/api';
 import { groupBy } from 'lodash';
-import type { ItemType } from '@features/inventoryShared/types/InventorySharedType.ts';
+import type { InventoryRecord, ItemType } from '@features/inventoryShared/types/InventorySharedType';
 import AdjustInventoryDialog from '@features/warehouseInventory/components/AdjustInventoryDialog';
-import AddInventoryDialog from '@features/warehouseInventory/components/AddInventoryDialog.tsx';
+import AddInventoryDialog from '@features/warehouseInventory/components/AddInventoryDialog';
+import AdjustBulkInventoryDialog from '@features/warehouseInventory/components/AdjustBulkInventoryDialog';
 
 interface BaseInventoryPageProps<T> {
   title: string;
@@ -54,7 +55,7 @@ interface BaseInventoryPageProps<T> {
   topToolbar?: ReactNode;
 }
 
-const BaseInventoryPage = <T,>({
+const BaseInventoryPage = <T extends InventoryRecord>({
   title,
   Icon,
   useInventoryHook,
@@ -78,6 +79,7 @@ const BaseInventoryPage = <T,>({
   const [isAddInventoryDialogOpen, setIsAddInventoryDialogOpen] = useState(false);
   const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
   const [adjustTarget, setAdjustTarget] = useState<any | null>(null); // for single adjust modal
+  const [selectedRecords, setSelectedRecords] = useState<T[]>([]);
   const [isAdjustDialogOpen, setIsAdjustDialogOpen] = useState(false);
   const [isBulkAdjustOpen, setIsBulkAdjustOpen] = useState(false);
   
@@ -166,8 +168,10 @@ const BaseInventoryPage = <T,>({
   };
   
   // Selection change from table
-  const handleSelectionChange = (ids: string[]) => {
+  const handleSelectionChange = (ids: string[], records: any[]) => {
     setSelectedRowIds(ids);
+    const selected = records.map((r) => r.originalRecord).filter(Boolean);
+    setSelectedRecords(selected);
   };
   
   if (error) {
@@ -271,14 +275,15 @@ const BaseInventoryPage = <T,>({
             />
           )}
           
-          {/*{isBulkAdjustDialogOpen && selectedRowIds.length > 0 && (*/}
-          {/*  <BulkAdjustInventoryDialog*/}
-          {/*    open={isBulkAdjustOpen}*/}
-          {/*    selectedIds={selectedRowIds}*/}
-          {/*    onClose={handleAdjustDialogClose}*/}
-          {/*    onExited={handleAdjustDialogExited}*/}
-          {/*  />*/}
-          {/*)}*/}
+          {isBulkAdjustOpen && selectedRowIds.length > 0 && selectedRecords.length > 0 && (
+            <AdjustBulkInventoryDialog
+              open={isBulkAdjustOpen}
+              selectedRowIds={selectedRowIds}
+              selectedRecords={selectedRecords ?? []}
+              onClose={handleAdjustDialogClose}
+              onExited={handleAdjustDialogExited}
+            />
+          )}
           
           <Suspense fallback={<Skeleton height={180} width="100%" />}>
             <TableComponent

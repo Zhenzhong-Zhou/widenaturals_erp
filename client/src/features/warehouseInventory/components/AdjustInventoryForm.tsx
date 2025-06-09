@@ -12,15 +12,11 @@ import type {
   InventoryAdjustmentFormData,
 } from '@features/inventoryShared/types/InventorySharedType';
 import LotAdjustmentTypeDropdown from '@features/dropdown/components/LotAdjustmentTypeDropdown';
-
-interface DropdownOption {
-  label: string;
-  value: string;
-}
+import type { AdjustmentTypeOption } from '@features/dropdown/state';
 
 interface AdjustInventoryFormProps {
   initialQuantity: number;
-  adjustmentTypeOptions: DropdownOption[];
+  adjustmentTypeOptions: AdjustmentTypeOption[];
   onSubmit: (formData: InventoryAdjustmentFormData) => void;
   contextData: {
     batchType: string;
@@ -36,6 +32,7 @@ interface AdjustInventoryFormProps {
   dropdownLoading: boolean;
   dropdownError: string;
   onRefresh: () => void;
+  loading: boolean;
 }
 
 const AdjustInventoryForm: FC<AdjustInventoryFormProps> = ({

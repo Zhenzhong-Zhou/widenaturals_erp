@@ -12,6 +12,7 @@ import ExpirySeverityChip, {
 } from '@features/inventoryShared/components/ExpirySeverityChip';
 import type { FlatInventoryRowBase } from '@features/inventoryShared/types/InventorySharedType.ts';
 import Tooltip from '@mui/material/Tooltip';
+import { getGroupedRowProps } from '@utils/table/tableRowPropsUtils.ts';
 
 interface BaseInventoryTableProps<T> {
   isLoading: boolean;
@@ -30,6 +31,8 @@ interface BaseInventoryTableProps<T> {
   getRowData: (record: T) => any;
   getGroupHeaderId: (groupName: string) => string;
   onAdjustSingle?: (row: any) => void;
+  selectedRowIds?: string[];
+  onSelectionChange?: (selectedIds: string[], selectedRecords: T[]) => void;
 }
 
 const BaseInventoryTable = <T,>({
@@ -49,6 +52,8 @@ const BaseInventoryTable = <T,>({
   getRowData,
   getGroupHeaderId,
   onAdjustSingle,
+  selectedRowIds,
+  onSelectionChange
 }: BaseInventoryTableProps<T>) => {
   const quantityId =
     groupKey === 'warehouse' ? 'warehouseQuantity' : 'locationQuantity';
@@ -136,7 +141,9 @@ const BaseInventoryTable = <T,>({
       flattenedWithHeaders.push(getRowData(record));
     });
   });
-
+  
+  const selectableRows = flattenedWithHeaders.filter((row) => !row.isGroupHeader);
+  
   return (
     <CustomTable
       loading={isLoading}
@@ -150,19 +157,20 @@ const BaseInventoryTable = <T,>({
       onPageChange={onPageChange}
       onRowsPerPageChange={onRowsPerPageChange}
       emptyMessage="No inventory records found."
-      getRowProps={(row) =>
-        row.isGroupHeader
-          ? {
-              isGroupHeader: true,
-              colSpan: columns.length + 1,
-              sx: { fontWeight: 600, fontSize: '1rem' },
-            }
-          : {}
-      }
+      getRowProps={getGroupedRowProps(columns.length)}
       expandedContent={expandedContent}
       expandable={!!expandedRowId}
       expandedRowId={expandedRowId}
       getRowId={(row) => row.id}
+      selectedRowIds={selectedRowIds}
+      onSelectionChange={(ids: string[]) => {
+        if (onSelectionChange) {
+          const selectedRecords = selectableRows.filter((row) =>
+            ids.includes(row.id)
+          );
+          onSelectionChange(ids, selectedRecords);
+        }
+      }}
     />
   );
 };

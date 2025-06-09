@@ -1,12 +1,12 @@
 import { type FC, useEffect } from 'react';
 import CustomDialog from '@components/common/CustomDialog';
-import AdjustInventoryForm from '@features/warehouseInventory/components/AdjustInventoryForm';
+import AdjustBulkInventoryForm from '@features/warehouseInventory/components/AdjustBulkInventoryForm';
 import {
-  mapInventoryRecordToAdjustData,
+  mapInventoryRecordsToAdjustData,
 } from '@features/inventoryShared/utils/mapInventoryRecordToAdjustData';
 import useAdjustWarehouseInventory from '@hooks/useAdjustWarehouseInventory.ts';
 import type {
-  AdjustInventoryRequestBody, InventoryAdjustmentFormData,
+  InventoryAdjustmentFormData,
   InventoryAdjustmentInput,
   InventoryRecord,
 } from '@features/inventoryShared/types/InventorySharedType.ts';
@@ -15,16 +15,17 @@ import InventorySuccessDialog from '@features/inventoryShared/components/Invento
 import Loading from '@components/common/Loading.tsx';
 import Alert from '@mui/material/Alert';
 
-interface AdjustInventoryDialogProps {
+interface AdjustBulkInventoryDialogProps {
   open: boolean;
-  record: InventoryRecord;
+  selectedRowIds: string[];
+  selectedRecords: InventoryRecord[];
   onClose: () => void;
   onExited?: () => void;
 }
 
-const AdjustInventoryDialog: FC<AdjustInventoryDialogProps> = ({
+const AdjustBulkInventoryDialog: FC<AdjustBulkInventoryDialogProps> = ({
                                                                  open,
-                                                                 record,
+                                                                 selectedRecords,
                                                                  onClose,
                                                                  onExited,
                                                                }) => {
@@ -38,7 +39,7 @@ const AdjustInventoryDialog: FC<AdjustInventoryDialogProps> = ({
     adjustInventory,
     resetState,
   } = useAdjustWarehouseInventory();
-  
+
   const {
     options: dropdownOptions,
     loading: isDropdownLoading,
@@ -50,43 +51,44 @@ const AdjustInventoryDialog: FC<AdjustInventoryDialogProps> = ({
     fetchLotAdjustmentTypeDropdown();
   }, [fetchLotAdjustmentTypeDropdown]);
   
-  if (!record) return null;
-  const mapped = mapInventoryRecordToAdjustData(record);
+  if (!selectedRecords) return null;
+  const mappedArray = mapInventoryRecordsToAdjustData(selectedRecords);
   
-  const initialQuantity =
+  const initialQuantities = mappedArray.map((mapped) =>
     typeof mapped.warehouseQuantity === 'number'
       ? mapped.warehouseQuantity
-      : mapped.locationQuantity ?? 0;
+      : mapped.locationQuantity ?? 0
+  );
   
-  const handleAdjustSubmit = (formData: InventoryAdjustmentFormData) => {
+  const handleAdjustSubmit = (formDataArray: InventoryAdjustmentFormData[]) => {
     try {
-      // Destructure the combined value from the dropdown
-      const [adjustment_type_id, inventory_action_type_id] =
-      formData.adjustment_type_id?.split('::') ?? [];
+      const updates: InventoryAdjustmentInput[] = formDataArray.map((formData, index) => {
+        const record = mappedArray[index];
+        if (!record) {
+          throw new Error(`No corresponding inventory record found for form entry at index ${index}`);
+        }
+        const [adjustment_type_id, inventory_action_type_id] =
+        formData.adjustment_type_id?.split('::') ?? [];
+        
+        if (!adjustment_type_id || !inventory_action_type_id) {
+          throw new Error('Invalid adjustment type selection.');
+        }
+        
+        return {
+          warehouse_id: record.warehouseId,
+          location_id: record.locationId,
+          batch_id: record.batchId,
+          batch_type: record.batchType,
+          quantity: Number(formData.newQuantity),
+          inventory_action_type_id,
+          adjustment_type_id,
+          comments: formData.note || '',
+        };
+      });
       
-      if (!adjustment_type_id || !inventory_action_type_id) {
-        console.error('Invalid adjustment type selection.');
-        return;
-      }
-      
-      const enrichedData: InventoryAdjustmentInput = {
-        warehouse_id: mapped.warehouseId,
-        location_id: mapped.locationId,
-        batch_id: mapped.batchId,
-        batch_type: mapped.batchType,
-        quantity: Number(formData.newQuantity),
-        inventory_action_type_id,
-        adjustment_type_id,
-        comments: formData.note || '',
-      };
-      
-      const payload: AdjustInventoryRequestBody = {
-        updates: [enrichedData],
-      };
-      
-      adjustInventory(payload);
+      adjustInventory({ updates });
     } catch (error) {
-      console.error('Adjustment failed', error);
+      console.error('Bulk adjustment failed', error);
     }
   };
   
@@ -102,7 +104,7 @@ const AdjustInventoryDialog: FC<AdjustInventoryDialogProps> = ({
   return (
     <CustomDialog
       open={open}
-      title={`Adjust Inventory: ${mapped.displayName}`}
+      title={'Bulk Inventory Adjustment'}
       onClose={onClose}
       disableCloseOnBackdrop={false}
       disableCloseOnEscape={false}
@@ -114,14 +116,14 @@ const AdjustInventoryDialog: FC<AdjustInventoryDialogProps> = ({
           {submitError && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {typeof submitError === 'string'
-                  ? submitError
-                  : 'An unexpected error occurred.'}
+                ? submitError
+                : 'An unexpected error occurred.'}
             </Alert>
           )}
           
-          <AdjustInventoryForm
-            initialQuantity={initialQuantity}
-            contextData={mapped}
+          <AdjustBulkInventoryForm
+            initialQuantities={initialQuantities}
+            contextData={mappedArray}
             adjustmentTypeOptions={dropdownOptions}
             dropdownLoading={isDropdownLoading}
             dropdownError={dropdownError ?? ''}
@@ -146,4 +148,4 @@ const AdjustInventoryDialog: FC<AdjustInventoryDialogProps> = ({
   );
 };
 
-export default AdjustInventoryDialog;
+export default AdjustBulkInventoryDialog;

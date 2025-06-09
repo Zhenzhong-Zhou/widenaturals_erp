@@ -5,6 +5,17 @@ import type {
   PaginatedDropdownState,
 } from '@shared-types/api.ts';
 
+/**
+ * Represents a generic option item used in dropdown components.
+ * Can be reused across forms, selectors, or any UI where value-label pairs are needed.
+ */
+export interface DropdownOption {
+  /** Display label shown to the user */
+  label: string;
+  /** Underlying value submitted or used in logic */
+  value: string;
+}
+
 export interface GetBatchRegistryDropdownParams {
   /**
    * Filter by batch type (e.g., 'product', 'packaging_material')
@@ -86,10 +97,11 @@ export interface GetWarehouseDropdownFilters {
 
 export type WarehouseDropdownState = AsyncState<WarehouseDropdownItem[]>;
 
-export interface WarehouseOption {
-  label: string;
-  value: string;
-}
+/**
+ * Specialized alias for warehouse dropdown options.
+ * Reuses the generic DropdownOption structure.
+ */
+export type WarehouseOption = DropdownOption;
 
 /**
  * Represents a single option in the lot adjustment dropdown.
@@ -120,3 +132,8 @@ export interface LotAdjustmentTypeDropdownItem {
 export type LotAdjustmentTypeDropdownResponse = ApiSuccessResponse<LotAdjustmentTypeDropdownItem[]>;
 
 export type LotAdjustmentTypeDropdownState = AsyncState<LotAdjustmentTypeDropdownItem[]>;
+
+/**
+ * Specialized alias for lot adjustment type dropdown options.
+ */
+export type AdjustmentTypeOption = DropdownOption;

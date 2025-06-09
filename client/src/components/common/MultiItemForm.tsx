@@ -43,6 +43,7 @@ export interface MultiItemFieldConfig {
 }
 
 interface MultiItemFormProps {
+  getItemTitle?: (index: number, item: Record<string, any>) => string;
   fields: MultiItemFieldConfig[];
   onSubmit: (formData: Record<string, any>[]) => void;
   defaultValues?: Record<string, any>[];
@@ -50,14 +51,17 @@ interface MultiItemFormProps {
     watch: (name: string) => any
   ) => Record<string, (value: any) => string | undefined>;
   loading?: boolean;
+  renderBeforeFields?: (item: Record<string, any>, index: number) => ReactNode;
 }
 
 const MultiItemForm: FC<MultiItemFormProps> = ({
+  getItemTitle,
   fields,
   onSubmit,
   defaultValues = [{}],
   validation,
   loading,
+  renderBeforeFields,
 }) => {
   const { control, handleSubmit, watch, reset } = useForm<{
     items: Record<string, any>[];
@@ -155,7 +159,9 @@ const MultiItemForm: FC<MultiItemFormProps> = ({
                   padding: '4px',
                 }}
               >
-                <strong>Item {index + 1}</strong>
+                <strong>
+                  {getItemTitle?.(index, allFields[index] ?? {}) ?? `Item ${index + 1}`}
+                </strong>
                 <IconButton
                   onClick={() => resetItem(index)}
                   color="primary"
@@ -173,7 +179,9 @@ const MultiItemForm: FC<MultiItemFormProps> = ({
                   </IconButton>
                 )}
               </Box>
-
+              
+              {renderBeforeFields?.(allFields[index] ?? {}, index)}
+              
               {/* Form Fields (Stacked in Vertical Layout Inside Each Form) */}
               {groupFieldsByRow(fields).map((group, gIdx) => (
                 <Grid container spacing={2} key={`group-${gIdx}`}>
@@ -289,51 +297,51 @@ const MultiItemForm: FC<MultiItemFormProps> = ({
                   ))}
                 </Grid>
               ))}
+              
+              {/* Buttons shown only after the last item */}
+              {index === fieldArray.length - 1 && canSubmit && (
+                <Box
+                  sx={{
+                    display: 'flex',
+                    gap: 2,
+                    justifyContent: 'flex-start',
+                    marginTop: 2,
+                  }}
+                >
+                  <CustomButton
+                    type="button"
+                    variant="outlined"
+                    onClick={() => append({ id: uuidv4() })}
+                    disabled={loading}
+                  >
+                    <Add /> Add Another
+                  </CustomButton>
+                  
+                  <CustomButton
+                    type="submit"
+                    variant="contained"
+                    color="primary"
+                    disabled={loading}
+                    loading={loading}
+                  >
+                    Submit All
+                  </CustomButton>
+                  
+                  <CustomButton
+                    type="button"
+                    variant="outlined"
+                    color="secondary"
+                    onClick={resetFrom}
+                    disabled={loading}
+                  >
+                    Reset Form
+                  </CustomButton>
+                </Box>
+              )}
             </Grid>
           );
         })}
       </Box>
-
-      {/* Buttons for adding and submitting */}
-      {canSubmit && (
-        <Box
-          sx={{
-            display: 'flex',
-            gap: 2,
-            justifyContent: 'flex-start',
-            marginTop: 2,
-          }}
-        >
-          <CustomButton
-            type="button"
-            variant="outlined"
-            onClick={() => append({ id: uuidv4() })}
-            disabled={loading}
-          >
-            <Add /> Add Another
-          </CustomButton>
-
-          <CustomButton
-            type="submit"
-            variant="contained"
-            color="primary"
-            disabled={loading}
-            loading={loading}
-          >
-            Submit All
-          </CustomButton>
-
-          <CustomButton
-            type="button"
-            variant="outlined"
-            color="secondary"
-            onClick={resetFrom}
-            disabled={loading}
-          >
-            Reset Form
-          </CustomButton>
-        </Box>
-      )}
     </Box>
   );
 };

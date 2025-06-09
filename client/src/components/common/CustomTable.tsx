@@ -12,6 +12,7 @@ import Skeleton from '@mui/material/Skeleton';
 import Collapse from '@mui/material/Collapse';
 import NoDataFound from '@components/common/NoDataFound';
 import { useThemeContext } from '@context/ThemeContext';
+import Checkbox from '@mui/material/Checkbox';
 
 export interface Column<T = any> {
   id: string;
@@ -48,6 +49,8 @@ interface CustomTableProps<T = any> {
     colSpan?: number;
     sx?: object;
   };
+  selectedRowIds?: string[];
+  onSelectionChange?: (ids: string[]) => void;
 }
 
 const CustomTable = <T extends Record<string, any>>({
@@ -68,6 +71,8 @@ const CustomTable = <T extends Record<string, any>>({
   getRowId,
   emptyMessage,
   getRowProps,
+  selectedRowIds,
+  onSelectionChange,
 }: CustomTableProps<T>) => {
   const { theme } = useThemeContext();
   const [order, setOrder] = useState<'asc' | 'desc'>('asc');
@@ -94,7 +99,9 @@ const CustomTable = <T extends Record<string, any>>({
 
   // Use totalPages directly to ensure the page stays in range
   const safePage = Math.min(page, Math.max(0, (totalPages || 1) - 1));
-
+  
+  const totalColCount = columns.length + 2;
+  
   return (
     <Paper
       sx={{
@@ -112,6 +119,28 @@ const CustomTable = <T extends Record<string, any>>({
         <Table aria-label="Custom data table">
           <TableHead>
             <TableRow>
+              <TableCell padding="checkbox">
+                <Checkbox
+                  indeterminate={
+                    selectedRowIds &&
+                    selectedRowIds.length > 0 &&
+                    selectedRowIds.length < data.filter((r) => !getRowProps?.(r, 0)?.isGroupHeader).length
+                  }
+                  checked={
+                    selectedRowIds &&
+                    selectedRowIds.length ===
+                    data.filter((r) => !getRowProps?.(r, 0)?.isGroupHeader).length
+                  }
+                  onChange={(e) => {
+                    const shouldSelectAll = e.target.checked;
+                    const allIds = data
+                      .filter((r, i) => !getRowProps?.(r, i)?.isGroupHeader)
+                      .map((r) => getRowId?.(r) ?? r.id);
+                    onSelectionChange?.(shouldSelectAll ? allIds : []);
+                  }}
+                />
+              </TableCell>
+              
               <TableCell
                 align="center"
                 sx={{
@@ -163,7 +192,7 @@ const CustomTable = <T extends Record<string, any>>({
               [...Array(initialRowsPerPage)].map((_, i) => (
                 <TableRow key={`skeleton-${i}`}>
                   <TableCell
-                    colSpan={columns.length + 1}
+                    colSpan={totalColCount}
                     sx={{ py: 1.25, px: 2 }}
                   >
                     <Skeleton
@@ -177,7 +206,7 @@ const CustomTable = <T extends Record<string, any>>({
             ) : sortedData.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={columns.length + 1}
+                  colSpan={totalColCount}
                   align="center"
                   sx={{ py: 3 }}
                 >
@@ -197,7 +226,7 @@ const CustomTable = <T extends Record<string, any>>({
                     return (
                       <TableRow key={rowId}>
                         <TableCell
-                          colSpan={rowProps.colSpan ?? columns.length + 1}
+                          colSpan={rowProps.colSpan ?? totalColCount}
                           sx={{
                             py: 1.5,
                             px: 2,
@@ -225,6 +254,20 @@ const CustomTable = <T extends Record<string, any>>({
                           },
                         }}
                       >
+                        <TableCell padding="checkbox">
+                          <Checkbox
+                            checked={selectedRowIds?.includes(rowId)}
+                            onChange={(e) => {
+                              const isChecked = e.target.checked;
+                              if (!onSelectionChange) return;
+                              if (isChecked) {
+                                onSelectionChange([...selectedRowIds ?? [], rowId]);
+                              } else {
+                                onSelectionChange((selectedRowIds ?? []).filter((id) => id !== rowId));
+                              }
+                            }}
+                          />
+                        </TableCell>
                         <TableCell align="center" sx={{ py: 1.25, px: 2 }}>
                           {displayRowNumber}
                         </TableCell>
@@ -245,7 +288,7 @@ const CustomTable = <T extends Record<string, any>>({
 
                       {expandable && (
                         <TableRow>
-                          <TableCell colSpan={columns.length + 1} sx={{ p: 0 }}>
+                          <TableCell colSpan={totalColCount} sx={{ p: 0 }}>
                             <Collapse in={expandedRowId === rowId}>
                               {expandedContent?.(row)}
                             </Collapse>

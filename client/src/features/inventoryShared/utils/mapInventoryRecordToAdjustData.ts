@@ -1,9 +1,7 @@
 import type { WarehouseInventoryRecord } from "@features/warehouseInventory/state";
 import type { LocationInventoryRecord } from '@features/locationInventory/state';
-import type { AdjustedInventoryData } from '@features/inventoryShared/types/InventorySharedType';
-import { cleanObject } from '@utils/objectUtils.ts';
-
-export type InventoryRecord = WarehouseInventoryRecord | LocationInventoryRecord;
+import type { AdjustedInventoryData, InventoryRecord } from '@features/inventoryShared/types/InventorySharedType';
+import { cleanObject } from '@utils/objectUtils';
 
 const isWarehouseRecord = (record: InventoryRecord): record is WarehouseInventoryRecord => {
   return (
@@ -21,6 +19,9 @@ const isLocationRecord = (record: InventoryRecord): record is LocationInventoryR
   );
 }
 
+/**
+ * Maps a single InventoryRecord to AdjustedInventoryData.
+ */
 export const mapInventoryRecordToAdjustData = (record: InventoryRecord): AdjustedInventoryData => {
   const batchType = record.itemType ?? 'product';
   
@@ -67,4 +68,13 @@ export const mapInventoryRecordToAdjustData = (record: InventoryRecord): Adjuste
     ...requiredFields,
     ...optionalFields,
   };
+};
+
+/**
+ * Maps an array of InventoryRecords to AdjustedInventoryData[]
+ */
+export const mapInventoryRecordsToAdjustData = (
+  records: InventoryRecord[]
+): AdjustedInventoryData[] => {
+  return records.map(mapInventoryRecordToAdjustData);
 };
