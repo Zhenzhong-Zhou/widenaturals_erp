@@ -3,18 +3,36 @@ const { cleanObject } = require('./object-utils');
 const { generateChecksum } = require('./crypto-utils');
 
 /**
- * Builds inventory activity log entries (for both active and audit tables).
+ * Builds inventory activity log entries for both active and audit log tables.
  *
- * Each record should include:
- * - Either `warehouse_inventory_id` or `location_inventory_id`
- * - `inventory_action_type_id` (required)
- * - `status_id`, `created_by`, `quantity`, and `status_date`
+ * Responsibilities:
+ * - Constructs structured log records from enriched warehouse or location inventory data.
+ * - Determines inventory scope (`warehouse` or `location`) based on provided inventory ID.
+ * - Calculates `previous_quantity`, `quantity_change`, and `new_quantity` values.
+ * - Sets `status_effective_at` based on provided `status_date`, or defaults to current time.
+ * - Builds metadata payload and generates a checksum for integrity and traceability.
  *
- * Optional:
- * - `adjustment_type_id`, `order_id`, `comments`, `metadata`, `source_type`, `source_ref_id`
+ * Required fields in each input record:
+ * - `inventory_action_type_id`: Action performed (e.g., manual insert).
+ * - `status_id`: Inventory status after the change (e.g., in_stock).
+ * - `quantity` or `quantity_change`: Amount changed.
+ * - `user_id`: User performing the action.
+ * - Either `warehouse_inventory_id` or `location_inventory_id` must be present.
+ *
+ * Optional fields:
+ * - `adjustment_type_id`, `order_id`, `comments`, `meta`, `metadata`
+ * - `source_type`, `source_ref_id`, `previous_quantity`, `new_quantity`, `status_date`
  *
  * @param {Array<Object>} records - Enriched warehouse or location inventory records.
- * @returns {Array<Object>} Structured log objects with checksum for insertion.
+ * @returns {Array<Object>} Structured log objects ready for DB insertion.
+ *
+ * Notes:
+ * - The `inventory_scope` field is set to `'warehouse'` or `'location'` for context.
+ * - Metadata is merged with `{ source, record_scope }` and included in the checksum payload.
+ * - Ensures accurate audit tracking by computing a stable checksum from log content.
+ * - Falls back to `new Date()` if `status_date` or `inbound_date` is not available.
+ *
+ * @throws {AppError} If neither warehouse nor location inventory ID is provided.
  */
 const buildInventoryLogRows = (records) => {
   return records.map((record) => {
@@ -23,43 +41,60 @@ const buildInventoryLogRows = (records) => {
         'Either warehouse_inventory_id or location_inventory_id must be provided'
       );
     }
-
+    
     const isWarehouse = Boolean(record.warehouse_inventory_id);
     const inventoryFieldKey = isWarehouse
       ? 'warehouse_inventory_id'
       : 'location_inventory_id';
     const inventoryId = record[inventoryFieldKey] ?? record.id ?? null;
-
     const scope = isWarehouse ? 'warehouse' : 'location';
-
+    
+    const previousQty = record.previous_quantity ?? 0;
+    const changeQty =
+      record.quantity_change ?? record.quantity ?? 0;
+    const newQty =
+      record.new_quantity ??
+      (record.quantity != null && previousQty != null
+        ? previousQty + changeQty
+        : record.quantity ?? 0);
+    
+    const metadata =
+      record.meta ??
+      record.metadata ??
+      {}; // fallback for backward compatibility
+    
     const checksumPayload = cleanObject({
       [inventoryFieldKey]: inventoryId,
       inventory_action_type_id: record.inventory_action_type_id,
       adjustment_type_id: record.adjustment_type_id || null,
       order_id: record.order_id || null,
-      quantity_change: record.quantity,
-      new_quantity: record.quantity,
+      quantity_change: changeQty,
+      new_quantity: newQty,
       status_id: record.status_id,
-      status_effective_at: record.status_date,
+      status_effective_at: record.status_date || new Date(),
       performed_by: record.user_id,
       comments: record.comments,
       recorded_by: record.user_id,
       inventory_scope: scope,
       source_type: record.source_type || null,
       source_ref_id: record.source_ref_id || null,
-      metadata: { source: record.source_type, ...(record.metadata || {}) },
+      metadata: {
+        source: record.source_type,
+        record_scope: record.record_scope,
+        ...metadata,
+      },
     });
-
+    
     return {
       [inventoryFieldKey]: inventoryId,
       inventory_action_type_id: record.inventory_action_type_id,
       adjustment_type_id: record.adjustment_type_id || null,
       order_id: record.order_id || null,
-      previous_quantity: 0,
-      quantity_change: record.quantity,
-      new_quantity: record.quantity,
+      previous_quantity: previousQty,
+      quantity_change: changeQty,
+      new_quantity: newQty,
       status_id: record.status_id,
-      status_effective_at: record.status_date,
+      status_effective_at: record.status_date || new Date(),
       performed_by: record.user_id,
       recorded_by: record.user_id,
       comments: record.comments || null,

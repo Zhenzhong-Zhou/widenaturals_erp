@@ -35,37 +35,42 @@ const {
  * Responsibilities:
  * - Validates batch references before inserting (ensures foreign keys are correct).
  * - Deduplicates and normalizes warehouse/location records by composite keys.
+ * - Merges quantities, latest `inbound_date`, concatenated `comments`, and shallow metadata.
  * - Inserts deduplicated records into `warehouse_inventory` and `location_inventory`.
- * - Maps inserted inventory IDs back to original input using composite keys.
- * - Enriches log records with inventory references and user context.
- * - Logs activity into `inventory_activity_log` and/or `inventory_activity_audit_log`.
+ * - Maps inserted inventory IDs back to the original input using composite keys.
+ * - Enriches log records with inventory references, scope (`warehouse` or `location`), and user context.
+ * - Logs activity into `inventory_activity_log` (and optionally `inventory_activity_audit_log`).
  * - Returns enriched inserted records for client consumption.
  *
  * @param {Array<Object>} records - Raw inventory input records from the request.
  *   Each record should contain:
- *     - `batch_id`: UUID of the batch
- *     - `batch_type`: e.g., 'product' or 'packaging_material'
- *     - `warehouse_id`: UUID of the target warehouse
- *     - `location_id`: UUID of the physical location
- *     - `quantity`: Quantity to insert (defaulted to 0 if not provided)
- *     - (optional) `comments`, `metadata`, etc.
+ *     - `batch_id`: UUID of the batch.
+ *     - `batch_type`: e.g., 'product' or 'packaging_material'.
+ *     - `warehouse_id`: UUID of the target warehouse.
+ *     - `location_id`: UUID of the physical location.
+ *     - `quantity`: Quantity to insert (defaulted to 0 if not provided).
+ *     - (optional) `inbound_date`, `comments`, `meta`, etc.
  *
- * @param {string} user_id - ID of the authenticated user performing the insert action
+ * @param {string} user_id - ID of the authenticated user performing the insert action.
  *
  * @returns {Promise<{ warehouse: Array<Object>, location: Array<Object> }>}
  *   An object containing:
- *     - `warehouse`: Transformed warehouse inventory records with metadata
- *     - `location`: Transformed location inventory records with metadata
+ *     - `warehouse`: Transformed warehouse inventory records with metadata.
+ *     - `location`: Transformed location inventory records with metadata.
+ *
+ * Notes:
+ * - Each log entry is explicitly tagged with a `record_scope` (`warehouse` or `location`) to
+ *   enable downstream filtering and UI-level deduplication where applicable.
  *
  * @throws {AppError} If validation fails or any DB operation encounters an error.
  */
 const createInventoryRecordService = async (records, user_id) => {
   try {
     return await withTransaction(async (client) => {
-      // Step 1: Validate and deduplicate input records
+      // Step 1: Validate, normalize, and deduplicate input records
       const { dedupedWarehouseRecords, dedupedLocationRecords } =
         await validateAndNormalizeInventoryRecords(records, client);
-
+      
       // Step 2: Insert into warehouse and location inventory tables
       const insertedWarehouseRecords = await insertWarehouseInventoryRecords(
         dedupedWarehouseRecords,
@@ -75,7 +80,7 @@ const createInventoryRecordService = async (records, user_id) => {
         dedupedLocationRecords,
         client
       );
-
+      
       // Step 3: Build mappings from a composite key → inserted inventory IDs
       const warehouseMap = new Map();
       dedupedWarehouseRecords.forEach((r, i) =>
@@ -84,7 +89,7 @@ const createInventoryRecordService = async (records, user_id) => {
           insertedWarehouseRecords[i].warehouse_inventory_id
         )
       );
-
+      
       const locationMap = new Map();
       dedupedLocationRecords.forEach((r, i) =>
         locationMap.set(
@@ -92,19 +97,22 @@ const createInventoryRecordService = async (records, user_id) => {
           insertedLocationRecords[i].location_inventory_id
         )
       );
-
+      
       // Step 4: Enrich logs with inventory IDs and user context
       const enrichedForLog = buildEnrichedRecordsForLog({
-        originalRecords: records,
+        originalRecords: [
+          ...dedupedWarehouseRecords.map((r) => ({ ...r, record_scope: 'warehouse' })),
+          ...dedupedLocationRecords.map((r) => ({ ...r, record_scope: 'location' })),
+        ],
         warehouseMap,
         locationMap,
         user_id,
       });
-
+      
       // Step 5: Build and insert log rows
       const logRows = buildInventoryLogRows(enrichedForLog);
       await insertInventoryActivityLogs(logRows, client);
-
+      
       // Step 6: Fetch full enriched inventory rows to return
       const [warehouseRaw, locationRaw] = await Promise.all([
         getWarehouseInventoryResponseByIds(
@@ -116,7 +124,7 @@ const createInventoryRecordService = async (records, user_id) => {
           client
         ),
       ]);
-
+      
       // Step 7: Transform and return for client response
       return {
         warehouse: transformWarehouseInventoryResponseRecords(warehouseRaw),
