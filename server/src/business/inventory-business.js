@@ -13,6 +13,7 @@ const { logSystemException } = require('../utils/system-logger');
 const { validateBatchRegistryEntryById } = require('./batch-registry-business');
 const { deduplicateByCompositeKey } = require('../utils/array-utils');
 const { mergeInventoryFields } = require('./utils/mergeInventoryFields');
+const processInventoryUpdate = require('./utils/processInventoryUpdate');
 
 const MAX_BULK_RECORDS = 20;
 
@@ -194,35 +195,41 @@ const computeInventoryAdjustments = async (records, client) => {
 };
 
 /**
- * Computes inventory updates and audit logs based on the provided quantity adjustments.
+ * Computes inventory updates and generates audit logs for manual quantity adjustments.
  *
- * Responsibilities:
- * - Fetches current warehouse/location inventory records
- * - Validates that reserved quantities do not exceed the updated target quantities
- * - Determines inventory status (`in_stock` or `out_stock`) based on final quantity
- * - Prepares update payloads and audit log records
+ * This function:
+ * - Delegates inventory record processing to `processInventoryUpdate`
+ * - Validates that reserved quantities do not exceed updated quantities
+ * - Applies business rules to determine status updates (in_stock or out_of_stock only if previously so)
+ * - Aggregates update payloads and corresponding audit log records
  *
- * @param updates - An object keyed by unique identifiers, where each entry includes:
- *   - `warehouse_id`, `location_id`, `batch_id`
- *   - `warehouse_quantity`, `location_quantity`
- *   - `inventory_action_type_id`, `adjustment_type_id`, `comments`, and optional `meta`
- * @param client - Postgres client used for querying inside a transaction
- * @returns An object containing:
- *   - `warehouseInventoryUpdates`, `locationInventoryUpdates`: Maps of updates to apply
- *   - `warehouseCompositeKeys`, `locationCompositeKeys`: Keys for optional locking
- *   - `logRecords`: Prepared audit log rows
- * @throws AppError if validation fails or records are missing
+ * @param updates - Array of inventory adjustment inputs, each containing:
+ *   - `warehouse_id`, `location_id`, `batch_id`, `quantity`
+ *   - `inventory_action_type_id`, `adjustment_type_id`, `comments`
+ *   - Optional `meta` and transaction `client`
+ *
+ * @param client - Postgres client (used within a transaction context)
+ *
+ * @returns {
+ *   warehouseInventoryUpdates: Record<string, object>,
+ *   locationInventoryUpdates: Record<string, object>,
+ *   warehouseCompositeKeys: Array<{ warehouse_id: string, batch_id: string }>,
+ *   locationCompositeKeys: Array<{ location_id: string, batch_id: string }>,
+ *   logRecords: Array<object>
+ * }
+ *
+ * @throws AppError if any inventory record is not found or reserved quantity exceeds target
  */
 const computeInventoryAdjustmentsCore = async (updates, client) => {
   try {
     const warehouseInventoryUpdates = {};
     const warehouseCompositeKeys = [];
-
+    
     const locationInventoryUpdates = {};
     const locationCompositeKeys = [];
-
+    
     const logRecords = [];
-
+    
     const inStockId = getStatusId('inventory_in_stock');
     const outOfStockId = getStatusId('inventory_out_of_stock');
     
@@ -230,131 +237,39 @@ const computeInventoryAdjustmentsCore = async (updates, client) => {
     const seenLocationKeys = new Set();
     
     for (const update of updates) {
-      const {
-        warehouse_id,
-        location_id,
-        batch_id,
-        quantity,
-        inventory_action_type_id,
-        adjustment_type_id,
-        comments,
-      } = update;
+      const sharedParams = {
+        update: { ...update, client },
+        inStockId,
+        outOfStockId,
+      };
       
-      // --- Warehouse Inventory ---
-      let warehouseRecord, locationRecord;
-      if (warehouse_id && batch_id) {
-        const compositeKey = `${warehouse_id}::${batch_id}`;
-        if (seenWarehouseKeys.has(compositeKey)) continue;
-        seenWarehouseKeys.add(compositeKey);
-        
-        warehouseRecord = await getWarehouseInventoryQuantities(
-          [{ warehouse_id, batch_id }],
-          client
-        );
-        if (warehouseRecord.length === 0) {
-          throw AppError.notFoundError(
-            `No matching warehouse inventory record for ${compositeKey}`
-          );
-        }
-
-        const {
-          id,
-          warehouse_quantity: currentQty,
-          reserved_quantity: reservedQty,
-        } = warehouseRecord[0];
-
-        if (reservedQty > quantity) {
-          throw AppError.validationError(
-            `Reserved quantity exceeds updated quantity for ${compositeKey}`
-          );
-        }
-
-        const diffQty = quantity - currentQty;
-        const status_id = quantity > 0 ? inStockId : outOfStockId;
-
-        warehouseInventoryUpdates[`${warehouse_id}-${batch_id}`] = {
-          warehouse_quantity: quantity,
-          status_id,
-          last_update: new Date().toISOString(),
-        };
-        warehouseCompositeKeys.push({ warehouse_id, batch_id });
-        
-        logRecords.push({
-          warehouse_inventory_id: id,
-          quantity,
-          previous_quantity: currentQty,
-          quantity_change: diffQty,
-          status_id,
-          status_date: new Date().toISOString(),
-          inventory_action_type_id,
-          adjustment_type_id,
-          comments: comments ?? null,
-          source_type: InventorySourceTypes.MANUAL_UPDATE,
-          source_ref_id: null,
-          meta: {
-            ...(update?.meta ?? {}),
-            source_level: 'warehouse',
-          },
-        });
-      }
-
-      // --- Location Inventory ---
-      if (location_id && batch_id) {
-        const compositeKey = `${location_id}::${batch_id}`;
-        if (seenLocationKeys.has(compositeKey)) continue;
-        seenLocationKeys.add(compositeKey);
-        
-        locationRecord = await getLocationInventoryQuantities(
-          [{ location_id, batch_id }],
-          client
-        );
-        if (locationRecord.length === 0) {
-          throw AppError.notFoundError(
-            `No matching location inventory record for ${compositeKey}`
-          );
-        }
-
-        const {
-          id,
-          location_quantity: currentQty,
-          reserved_quantity: reservedQty,
-        } = locationRecord[0];
-        if (reservedQty > quantity) {
-          throw AppError.validationError(
-            `Reserved quantity exceeds updated location quantity for ${compositeKey}`
-          );
-        }
-
-        const diffQty = quantity - currentQty;
-        const status_id = quantity > 0 ? inStockId : outOfStockId;
-
-        locationInventoryUpdates[`${location_id}-${batch_id}`] = {
-          location_quantity: quantity,
-          status_id,
-          last_update: new Date().toISOString(),
-        };
-        locationCompositeKeys.push({ location_id, batch_id });
-
-        logRecords.push({
-          location_inventory_id: id,
-          quantity,
-          previous_quantity: currentQty,
-          quantity_change: diffQty,
-          status_id,
-          status_date: new Date().toISOString(),
-          inventory_action_type_id,
-          adjustment_type_id,
-          comments: comments ?? null,
-          source_type: InventorySourceTypes.MANUAL_UPDATE,
-          source_ref_id: null,
-          meta: {
-            ...(update?.meta ?? {}),
-            source_level: 'location',
-          },
-        });
-      }
+      // Process warehouse update
+      const warehouseLog = await processInventoryUpdate({
+        ...sharedParams,
+        scope: 'warehouse',
+        idKey: 'warehouse_id',
+        qtyKey: 'warehouse_quantity',
+        fetchFn: getWarehouseInventoryQuantities,
+        updatesMap: warehouseInventoryUpdates,
+        compositeKeys: warehouseCompositeKeys,
+        seenKeys: seenWarehouseKeys,
+      });
+      if (warehouseLog) logRecords.push(warehouseLog);
+      
+      // Process location update
+      const locationLog = await processInventoryUpdate({
+        ...sharedParams,
+        scope: 'location',
+        idKey: 'location_id',
+        qtyKey: 'location_quantity',
+        fetchFn: getLocationInventoryQuantities,
+        updatesMap: locationInventoryUpdates,
+        compositeKeys: locationCompositeKeys,
+        seenKeys: seenLocationKeys,
+      });
+      if (locationLog) logRecords.push(locationLog);
     }
-
+    
     return {
       warehouseInventoryUpdates,
       locationInventoryUpdates,
@@ -363,8 +278,7 @@ const computeInventoryAdjustmentsCore = async (updates, client) => {
       logRecords,
     };
   } catch (error) {
-    const message =
-      'Failed to compute inventory adjustments due to unexpected system error.';
+    const message = 'Failed to compute inventory adjustments due to unexpected system error.';
     logSystemException(error, message, {
       context: 'inventory-business/computeInventoryAdjustments',
       updates,

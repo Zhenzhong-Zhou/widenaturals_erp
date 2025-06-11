@@ -111,7 +111,7 @@ const insertInventoryActivityLogs = async (logs, client, meta) => {
       log.quantity_change,
       log.new_quantity,
       log.status_id,
-      log.status_effective_at || now,
+      log.status_effective_at,
       log.performed_by,
       log.comments || null,
       log.checksum,
