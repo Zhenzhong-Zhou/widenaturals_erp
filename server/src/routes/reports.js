@@ -1,37 +1,29 @@
 const express = require('express');
-const {
-  getAdjustmentReportController,
-  getInventoryActivityLogsController,
-  getInventoryHistoryController,
-} = require('../controllers/report-controller');
+const { getInventoryActivityLogsController } = require('../controllers/report-controller');
+const authorize = require('../middlewares/authorize');
+const { sanitizeInput } = require('../middlewares/sanitize');
 
 const router = express.Router();
 
 /**
- * @route GET /api/v1/reports/adjustments
- * @desc Fetch paginated inventory adjustment reports with optional export.
- * @queryParam {string} reportType - 'daily', 'weekly', 'monthly', 'yearly', or 'custom'.
- * @queryParam {string} userTimezone - User's timezone for date conversion.
- * @queryParam {string} [startDate] - Start date for custom range (optional).
- * @queryParam {string} [endDate] - End date for custom range (optional).
- * @queryParam {string} [warehouseId] - Filter by warehouse ID (optional).
- * @queryParam {string} [inventoryId] - Filter by inventory ID (optional).
- * @queryParam {number} [page=1] - Page number for pagination (optional).
- * @queryParam {number} [limit=50] - Number of records per page (optional).
- * @queryParam {string} [sortBy='local_adjustment_date'] - Sorting field (optional).
- * @queryParam {string} [sortOrder='DESC'] - Sorting order: 'ASC' or 'DESC' (optional).
- * @queryParam {string} [exportFormat] - 'csv' or 'json' to export data (optional).
- * @access Private
+ * GET /inventory-activity-logs
+ *
+ * Requires basic permission: 'view_inventory_logs'.
+ * More granular access (e.g., per-warehouse or role-level filtering)
+ * is enforced inside `fetchInventoryActivityLogsService`.
+ *
+ * Accepts optional query parameters:
+ *   - fromDate, toDate
+ *   - warehouseIds[], locationIds[]
+ *   - skuIds[], productIds[]
+ *   - actionTypeIds[], adjustmentTypeId
+ *
+ * Logs and filters access attempts in audit log.
  */
-router.get('/adjustments', getAdjustmentReportController);
-
-/**
- * @route GET /api/inventory/logs
- * @desc Fetch and export inventory logs.
- * @access Protected
- */
-router.get('/inventory-activity-logs', getInventoryActivityLogsController);
-
-router.get('/inventory-history', getInventoryHistoryController);
+router.get(
+  '/inventory-activity-logs',
+  authorize(['view_inventory_logs']),
+  sanitizeInput,
+  getInventoryActivityLogsController);
 
 module.exports = router;

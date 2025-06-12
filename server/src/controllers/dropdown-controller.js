@@ -3,7 +3,7 @@ const {
   fetchBatchRegistryDropdownService,
   fetchWarehouseDropdownService, fetchLotAdjustmentDropdownService,
 } = require('../services/dropdown-service');
-const { logInfo, logError } = require('../utils/logger-helper');
+const { logInfo } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
 
 /**
