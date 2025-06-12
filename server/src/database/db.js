@@ -30,7 +30,6 @@ const {
   maskSensitiveInfo,
   maskTableName,
 } = require('../utils/sensitive-data-utils');
-const { generateCountQuery } = require('../utils/db-utils');
 const {
   logSystemException,
   logSystemInfo,
@@ -410,6 +409,24 @@ const buildPaginatedQuery = ({
   query += ` LIMIT $${paramIndex + 1} OFFSET $${paramIndex + 2}`;
 
   return query;
+};
+
+/**
+ * Generates a dynamic SQL COUNT query.
+ *
+ * @param {string} tableName - The name of the main table.
+ * @param {Array<string>} joins - Array of JOIN clauses.
+ * @param {string} whereClause - The WHERE clause for filtering.
+ * @returns {string} - The dynamically generated COUNT SQL query.
+ */
+const generateCountQuery = (tableName, joins = [], whereClause = '1=1') => {
+  const joinClause = joins.join(' '); // Combine all JOIN clauses
+  return `
+    SELECT COUNT(*) AS total
+    FROM ${tableName}
+    ${joinClause}
+    WHERE ${whereClause}
+  `;
 };
 
 /**

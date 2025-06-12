@@ -15,7 +15,12 @@ const { logError } = require('../../utils/logger-helper');
  * @param {function} next - Express next middleware function.
  */
 const serviceErrorHandler = (err, req, res, next) => {
-  if (err.name !== 'ServiceError') return next(err);
+  const isServiceError =
+    err?.name === 'ServiceError' ||
+    err?.type === 'ServiceError' ||
+    err?.code === 'SERVICE_ERROR';
+  
+  if (!isServiceError) return next(err);
 
   const normalizedError = normalizeError(err, {
     type: 'ServiceError',

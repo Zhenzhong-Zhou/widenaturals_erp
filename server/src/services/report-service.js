@@ -64,10 +64,9 @@ const fetchInventoryActivityLogsService = async ({ filters = {}, page = 1, limit
       page,
       limit: finalLimit,
     });
-    console.log(rawResult);
+    
     return transformInventoryActivityLogs(rawResult);
   } catch (error) {
-    console.error("??????",error);
     logSystemError('Failed to fetch inventory activity logs', {
       context: 'fetchInventoryActivityLogsService',
       error,
