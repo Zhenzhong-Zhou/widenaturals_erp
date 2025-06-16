@@ -1,66 +1,138 @@
 const { checkPermissions } = require('../../services/role-permission-service');
+const AppError = require('../../utils/AppError');
+const { enforceAllowedFilters, hasValidFilters } = require('../../utils/inventory-log-utils');
 
 /**
- * Determines if the user has basic access to inventory activity logs.
- * Allows viewing limited or scoped activity logs (e.g., own actions or assigned entities).
+ * Rejects scoped users if no valid filters are provided.
+ * Optionally also enforces allowed filters if `allowedKeys` are provided.
+ *
+ * @param {Object} scope - User inventory access scope
+ * @param {Object} filters - Filters passed in
+ * @param {string[]} [allowedKeys] - Optional list of allowed filter keys
+ * @throws {AppError.AuthorizationError}
  */
-const canViewInventoryLogs = async (user) => {
-  return await checkPermissions(user, ['view_inventory_logs', 'root_access']);
+const rejectEmptyFiltersForScopedAccess = (scope, filters, allowedKeys = null) => {
+  const isScopedUser = !scope.hasFullAccess;
+  
+  if (allowedKeys) {
+    enforceAllowedFilters(filters, allowedKeys);
+  }
+  
+  if (isScopedUser && !hasValidFilters(filters)) {
+    throw AppError.authorizationError(
+      'You must provide at least one valid filter to access inventory activity logs.'
+    );
+  }
 };
 
 /**
- * Determines if the user can access inventory logs across all warehouses.
- * Grants unrestricted access to the warehouse filter in reports.
+ * Checks if the user has full access to all inventory logs.
+ * Grants unrestricted access across all filters and actions.
+ *
+ * @param {Object} user - Authenticated user object
+ * @returns {Promise<boolean>}
  */
-const canViewAllWarehouses = async (user) => {
-  return await checkPermissions(user, ['view_all_warehouses', 'root_access']);
+const hasFullInventoryLogAccess = async (user) => {
+  return await checkPermissions(user, [
+    'view_full_inventory_logs',
+    'admin_access',
+    'root_access',
+  ]);
 };
 
 /**
- * Determines if the user can access inventory logs across all locations.
- * Grants unrestricted access to the location filter in reports.
+ * Checks if the user can view inventory logs for all products.
+ * Used to bypass product-level filtering.
+ *
+ * @param {Object} user
+ * @returns {Promise<boolean>}
  */
-const canViewAllLocations = async (user) => {
-  return await checkPermissions(user, ['view_all_locations', 'root_access']);
-};
-
-/**
- * Determines if the user can view all inventory action types in logs.
- * Grants unrestricted access to the inventory_action_type_id filter in reports.
- */
-const canViewAllActionTypes = async (user) => {
-  return await checkPermissions(user, ['view_all_action_types', 'root_access']);
-};
-
-/**
- * Determines if the user can access inventory logs for all products.
- * Used to bypass product-level filtering in activity reports.
- */
-const canViewAllProducts = async (user) => {
+const canViewProductLevelLogs = async (user) => {
   return await checkPermissions(user, ['view_all_products', 'root_access']);
 };
 
 /**
- * Determines if the user can access inventory logs across all SKUs.
+ * Checks if the user can view inventory logs for all SKUs.
+ *
+ * @param {Object} user
+ * @returns {Promise<boolean>}
  */
-const canViewAllSkus = async (user) => {
+const canViewSkuLevelLogs = async (user) => {
   return await checkPermissions(user, ['view_all_skus', 'root_access']);
 };
 
 /**
- * Determines if the user can access all inventory activity logs without restriction.
- * Applies to full-report access across all filters and entities.
+ * Checks if the user can view inventory logs for all batches.
+ *
+ * @param {Object} user
+ * @returns {Promise<boolean>}
  */
-const canViewAllInventoryLogs = async (user) => {
-  return await checkPermissions(user, ['view_all_inventory_logs', 'root_access']);
+const canViewBatchLevelLogs = async (user) => {
+  return await checkPermissions(user, ['view_all_batches', 'root_access']);
+};
+
+/**
+ * Checks if the user can view logs across all warehouse locations.
+ * Grants unrestricted access to the warehouse filter.
+ *
+ * @param {Object} user
+ * @returns {Promise<boolean>}
+ */
+const canViewAllWarehouses = async (user) => {
+  return await checkPermissions(user, ['view_warehouses', 'view_all_warehouses', 'root_access']);
+};
+
+/**
+ * Checks if the user can view logs across all physical locations.
+ * Grants unrestricted access to the location filter.
+ *
+ * @param {Object} user
+ * @returns {Promise<boolean>}
+ */
+const canViewAllLocations = async (user) => {
+  return await checkPermissions(user, ['view_all_locations', 'view_full_warehouse_logs', 'root_access']);
+};
+
+/**
+ * Determines the user's inventory access scope for activity log filters.
+ * Maps access levels to permission tiers used in PERMISSION_FILTERS_MAP.
+ *
+ * @param {Object} user - Authenticated user object
+ * @returns {Promise<Object>} Access scope flags and the derived permissionKey.
+ */
+const getUserInventoryAccessScope = async (user) => {
+  const hasFullAccess = await hasFullInventoryLogAccess(user);
+  const hasProductAccess = await canViewProductLevelLogs(user);
+  const hasSkuAccess = await canViewSkuLevelLogs(user);
+  const hasBatchAccess = await canViewBatchLevelLogs(user);
+  const hasLocationAccess = await canViewAllLocations(user);
+  const hasWarehouseAccess = await canViewAllWarehouses(user);
+  
+  const isBaseAccess = !hasFullAccess &&
+    !hasProductAccess &&
+    !hasSkuAccess &&
+    !hasBatchAccess &&
+    !hasLocationAccess &&
+    !hasWarehouseAccess;
+  
+  return {
+    hasFullAccess,
+    hasProductAccess,
+    hasSkuAccess,
+    hasBatchAccess,
+    hasLocationAccess,
+    hasWarehouseAccess,
+    isBaseAccess,
+  };
 };
 
 module.exports = {
-  canViewInventoryLogs,
+  getUserInventoryAccessScope,
+  rejectEmptyFiltersForScopedAccess,
+  hasFullInventoryLogAccess,
+  canViewProductLevelLogs,
+  canViewSkuLevelLogs,
+  canViewBatchLevelLogs,
   canViewAllWarehouses,
   canViewAllLocations,
-  canViewAllActionTypes,
-  canViewAllProducts,
-  canViewAllSkus,
-  canViewAllInventoryLogs,
 };

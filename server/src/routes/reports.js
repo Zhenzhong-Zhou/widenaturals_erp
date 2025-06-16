@@ -22,8 +22,11 @@ const router = express.Router();
  */
 router.get(
   '/inventory-activity-logs',
-  authorize(['view_inventory_logs']),
+  authorize([
+    'view_inventory_logs'
+  ]),
   sanitizeInput,
-  getInventoryActivityLogsController);
+  getInventoryActivityLogsController
+);
 
 module.exports = router;

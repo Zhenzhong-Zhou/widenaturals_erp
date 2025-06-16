@@ -77,92 +77,33 @@ const transformInventoryActivityLogRow = (row) => {
 };
 
 /**
- * Groups and merges inventory activity log rows that represent the same action.
- * Groups by composite key:
- * - action_timestamp
- * - source_type
- * - source_ref_id
- * - batch_type
+ * Transforms a flat array of inventory activity logs using row transformer.
  *
- * Deduplicates repeated warehouse/location metadata and merges associated
- * product or packaging information into the grouped result.
+ * For base-permission-limited responses without pagination metadata.
  *
- * @param {Array<Object>} rows - Array of raw log rows from database
- * @returns {Array<Object>} Cleaned and grouped log entries
+ * @param {Array} rows - Raw inventory activity log rows
+ * @returns {{ data: Array }} Transformed result
  */
-const mergeDuplicateInventoryActivityLogs = (rows = []) => {
-  const mergedMap = new Map();
-  
-  for (const row of rows) {
-    const key = `${row.action_timestamp}::${row.source_type}::${row.source_ref_id}::${row.batch_type}`;
-    
-    if (!mergedMap.has(key)) {
-      mergedMap.set(key, buildBaseInventoryActivityLogEntry(row));
-    }
-    
-    const record = mergedMap.get(key);
-    
-    if (!record.productInfo && row.batch_type === 'product') {
-      record.productInfo = {
-        sku: row.sku_code,
-        productName: getProductDisplayName(row),
-        brand: row.product_brand,
-        category: row.product_category,
-      };
-    }
-    
-    if (!record.packagingMaterialInfo && row.batch_type === 'packaging_material') {
-      record.packagingMaterialInfo = {
-        lotNumber: row.material_lot_number,
-        snapshotName: row.material_snapshot_name,
-        receivedLabelName: row.received_label_name,
-        quantity: row.material_quantity,
-        unit: row.material_unit,
-      };
-    }
-  }
-  
-  return Array.from(mergedMap.values()).map(cleanObject);
+const transformFlatInventoryActivityLogs = (rows) => {
+  return {
+    data: rows.map(transformInventoryActivityLogRow),
+  };
 };
 
 /**
- * Transforms a paginated inventory activity log result into frontend format.
+ * Transforms a paginated inventory activity log result into a flat frontend-friendly format.
  *
- * Options:
- * - `merge: true`: applies grouping logic for logical actions (e.g., transfers)
- * - `includeLoadMore: true`: returns { items, offset, limit, hasMore } instead of traditional pagination
+ * Applies a flat transformation to each row using `transformInventoryActivityLogRow`.
+ * Designed for use with standard page-based pagination (page/limit).
  *
  * @param {Object} result - Raw-paginated query result: { data: Array, pagination: Object }
- * @param {Object} [options={}] - Transformation options
- * @param {boolean} [options.merge=false] - Whether to group duplicate logs
- * @param {boolean} [options.includeLoadMore=false] - Use load-more pagination style
- * @returns {Object} Transformed result with formatted `data` or `items`, plus pagination metadata
+ * @returns {Object} Transformed result with `data` and pagination metadata
  */
-const transformInventoryActivityLogs = (result, options = {}) => {
-  const { merge = false, includeLoadMore = false } = options;
-  
-  if (merge) {
-    const { pagination = {}, data = [] } = result;
-    const mergedData = mergeDuplicateInventoryActivityLogs(data);
-    
-    return {
-      data: mergedData,
-      pagination: {
-        ...pagination,
-        totalRecords: mergedData.length,
-        totalPages: Math.ceil(mergedData.length / (pagination.limit || 10)),
-      },
-    };
-  }
-  
-  // Default: flat transformation with pagination
-  return transformPaginatedResult(result, transformInventoryActivityLogRow, {
-    includeLoadMore,
-  });
+const transformInventoryActivityLogs = (result) => {
+  return transformPaginatedResult(result, transformInventoryActivityLogRow,);
 };
 
 module.exports = {
-  transformInventoryActivityLogRow,
-  mergeDuplicateInventoryActivityLogs,
+  transformFlatInventoryActivityLogs,
   transformInventoryActivityLogs,
 };

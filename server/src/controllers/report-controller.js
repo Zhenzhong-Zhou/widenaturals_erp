@@ -15,12 +15,19 @@ const { fetchInventoryActivityLogsService } = require('../services/report-servic
  * @param {Response} res - Express response object
  */
 const getInventoryActivityLogsController = wrapAsync(async (req, res) => {
+  const normalizeParamArray = (value) => {
+    if (!value) return undefined;
+    if (Array.isArray(value)) return value;
+    return value.split(',').map((v) => v.trim()).filter(Boolean);
+  };
+  
   const filters = {
-    warehouseIds: req.query.warehouseIds ? [].concat(req.query.warehouseIds) : undefined,
-    locationIds: req.query.locationIds ? [].concat(req.query.locationIds) : undefined,
-    productIds: req.query.productIds ? [].concat(req.query.productIds) : undefined,
-    skuIds: req.query.skuIds ? [].concat(req.query.skuIds) : undefined,
-    actionTypeIds: req.query.actionTypeIds ? [].concat(req.query.actionTypeIds) : undefined,
+    warehouseIds: normalizeParamArray(req.query.warehouseIds),
+    locationIds: normalizeParamArray(req.query.locationIds),
+    productIds: normalizeParamArray(req.query.productIds),
+    skuIds: normalizeParamArray(req.query.skuIds),
+    batchIds: normalizeParamArray(req.query.batchIds),
+    actionTypeIds: normalizeParamArray(req.query.actionTypeIds),
     orderId: req.query.orderId ?? null,
     statusId: req.query.statusId ?? null,
     adjustmentTypeId: req.query.adjustmentTypeId ?? null,
@@ -35,12 +42,13 @@ const getInventoryActivityLogsController = wrapAsync(async (req, res) => {
   const limit = req.query.limit ? parseInt(req.query.limit, 10) : 20;
   const user = req.user;
   
-  const result = await fetchInventoryActivityLogsService({ filters, page, limit }, user);
+  const { data, pagination } = await fetchInventoryActivityLogsService({ filters, page, limit }, user);
   
   res.status(200).json({
     success: true,
     message: 'Inventory activity logs fetched successfully',
-    data: result,
+    data,
+    pagination,
   });
 });
 

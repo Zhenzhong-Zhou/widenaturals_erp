@@ -149,7 +149,51 @@ const validateInventoryLogChecksum = (record) => {
   return true;
 };
 
+/**
+ * Enforces that only allowed filter keys are used based on the user's permission scope.
+ *
+ * Throws an authorization error if any disallowed filter key is found in the input.
+ * Typically used in inventory or report services to restrict data access based on roles.
+ *
+ * @param {Object} filters - The filters object received from the client (e.g., { productIds, skuIds, ... })
+ * @param {string[]} allowedKeys - An array of allowed filter keys based on user permissions
+ * @throws {AppError} Throws an authorization error if any unauthorized filter is present
+ */
+const enforceAllowedFilters = (filters, allowedKeys) => {
+  for (const key of Object.keys(filters)) {
+    if (
+      filters[key] !== undefined &&
+      filters[key] !== null &&
+      !allowedKeys.includes(key)
+    ) {
+      throw AppError.authorizationError(
+        `Filter "${key}" is not allowed with your permission.`
+      );
+    }
+  }
+};
+
+/**
+ * Checks if the provided filters object contain at least one meaningful filter.
+ *
+ * A filter is considered valid if:
+ * - It is not null or undefined.
+ * - It is not an empty array.
+ *
+ * @param {Object} filters - The filters object to validate.
+ * @returns {boolean} Returns true if at least one valid filter exists; otherwise, false.
+ */
+const hasValidFilters = (filters) =>
+  Object.values(filters || {}).some(
+    (value) =>
+      value !== null &&
+      value !== undefined &&
+      !(Array.isArray(value) && value.length === 0)
+  );
+
 module.exports = {
   buildInventoryLogRows,
   validateInventoryLogChecksum,
+  enforceAllowedFilters,
+  hasValidFilters,
 };
