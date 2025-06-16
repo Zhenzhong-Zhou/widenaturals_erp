@@ -1,5 +1,6 @@
 const wrapAsync = require('../utils/wrap-async');
 const { fetchInventoryActivityLogsService } = require('../services/report-service');
+const { normalizeParamArray } = require('../utils/object-utils');
 
 /**
  * Controller: Handle request to get an inventory activity logs report
@@ -15,12 +16,6 @@ const { fetchInventoryActivityLogsService } = require('../services/report-servic
  * @param {Response} res - Express response object
  */
 const getInventoryActivityLogsController = wrapAsync(async (req, res) => {
-  const normalizeParamArray = (value) => {
-    if (!value) return undefined;
-    if (Array.isArray(value)) return value;
-    return value.split(',').map((v) => v.trim()).filter(Boolean);
-  };
-  
   const filters = {
     warehouseIds: normalizeParamArray(req.query.warehouseIds),
     locationIds: normalizeParamArray(req.query.locationIds),
