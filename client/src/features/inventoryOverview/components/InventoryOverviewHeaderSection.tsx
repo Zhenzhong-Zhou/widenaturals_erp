@@ -85,7 +85,7 @@ const InventoryOverviewHeaderSection: FC = () => {
               <CustomButton
                 variant="outlined"
                 size="small"
-                onClick={() => navigate('/reports/inventory_activities')}
+                onClick={() => navigate('/reports/inventory-activity-logs')}
               >
                 Inventory Logs
               </CustomButton>

@@ -15,7 +15,6 @@ export { default as useUsers } from './useUsers';
 
 // --- Product ---
 export { default as useProducts } from './useSkuProductCards.ts';
-export { default as useProductsWarehouseDropdown } from './useProductsWarehouseDropdown';
 
 // --- Pricing ---
 export { default as usePricing } from './usePricingList.ts';
@@ -30,25 +29,14 @@ export { default as useLocationTypeDetail } from './useLocationTypeDetail';
 
 // --- Inventory ---
 export { default as useInventories } from './useLocationInventorySummary.ts';
-export { default as useInventorySummary } from './useInventorySummary';
 export { default as useInventoryActivityLogs } from './useInventoryActivityLogs';
-export { default as useInventoryHistory } from './useInventoryHistory';
-export { default as useLotAdjustmentTypes } from './useLotAdjustmentTypes';
-export { default as useLotAdjustmentQty } from './useLotAdjustmentQty';
-export { default as useBulkInsertWarehouseInventory } from './useBulkInsertWarehouseInventory';
-export { default as useInsertedInventoryRecordsResponse } from './useInsertedInventoryRecordsResponse';
 
 // --- Warehouse ---
 export { default as useWarehouses } from './useWarehouses';
 export { default as useWarehouseDetails } from './useWarehouseDetails';
-export { default as useWarehouseInventories } from './useWarehouseInventories';
-export { default as useWarehouseInventoriesSummary } from './useWarehouseInventoriesSummary';
-export { default as useWarehouseInventoryDetails } from './useWarehouseInventoryDetails';
-export { default as useWarehouseItemSummary } from './useWarehouseItemSummary';
 
 // --- Compliance & Reporting ---
 export { default as useCompliances } from './useCompliances';
-export { default as useAdjustmentReport } from './useAdjustmentReport';
 
 // --- Orders & Process ---
 export { default as useAllOrders } from './useAllOrders';

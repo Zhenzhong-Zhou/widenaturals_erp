@@ -43,9 +43,9 @@ export const API_ENDPOINTS = {
     WAREHOUSES: '/dropdown/warehouses',
     LOT_ADJUSTMENT_TYPES: '/dropdown/lot-adjustment-types'
   },
-  WAREHOUSE_INVENTORY_ADJUSTMENTS_REPORT: '/reports/adjustments',
-  WAREHOUSE_INVENTORY_ACTIVITY_LOGS: '/reports/inventory-activity-logs',
-  INVENTORY_HISTORY: '/reports/inventory-history',
+  REPORTS: {
+    INVENTORY_ACTIVITY_LOGS: 'reports/inventory-activity-logs',
+  },
   ALL_ORDER_TYPES: '/order-types',
   ORDER_TYPES_DROPDOWN: '/order-types/dropdown',
   ADD_NEW_CUSTOMER: '/customers/add-new-customer',

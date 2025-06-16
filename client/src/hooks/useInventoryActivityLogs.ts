@@ -1,95 +1,51 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
-  type InventoryActivityLogParams,
-  fetchInventoryActivityLogsThunk,
-  exportInventoryActivityLogsThunk,
-  selectInventoryActivityLogs,
-} from '@features/report';
+  selectBaseInventoryLogs,
+  selectBaseLogsError,
+  selectBaseLogsLoading,
+  selectPaginatedInventoryLogs,
+  selectPaginatedLogsError,
+  selectPaginatedLogsLoading,
+  selectPaginatedLogsPagination,
+} from '@features/report/state';
+import {
+  fetchBaseInventoryActivityLogsThunk,
+  fetchPaginatedInventoryActivityLogsThunk,
+} from '@features/report/state';
+import type { InventoryActivityLogQueryParams } from '@features/report/state';
 
 /**
- * Custom hook to fetch and manage inventory activity logs.
+ * Hook to get base (non-paginated) inventory activity logs and trigger fetch.
  */
-const useInventoryActivityLogs = (
-  initialParams?: Partial<InventoryActivityLogParams>
-) => {
+export const useBaseInventoryActivityLogs = () => {
   const dispatch = useAppDispatch();
-  const inventoryActivityLogState = useAppSelector(selectInventoryActivityLogs);
-
-  // Memoize state values to prevent unnecessary recomputations
-  const {
-    inventoryLogs,
-    isLoading,
-    error,
-    pagination,
-    exportData,
-    exportFormat,
-    exportLoading,
-    exportError,
-  } = useMemo(() => inventoryActivityLogState, [inventoryActivityLogState]);
-
-  /**
-   * Fetch paginated inventory logs.
-   */
-  const fetchInventoryActivityLogs = useCallback(
-    (params?: Partial<InventoryActivityLogParams>) => {
-      const formattedParams = {
-        ...initialParams,
-        ...(params || {}),
-      };
-      dispatch(fetchInventoryActivityLogsThunk(formattedParams));
-    },
-    [dispatch, initialParams]
-  );
-
-  /**
-   * Export inventory logs (CSV, PDF, TXT).
-   */
-  const exportLogs = useCallback(
-    (params: Partial<InventoryActivityLogParams>) => {
-      const formattedParams = {
-        ...params,
-        page: undefined,
-        limit: undefined,
-        totalRecords: undefined,
-        totalPages: undefined,
-      };
-      dispatch(exportInventoryActivityLogsThunk(formattedParams));
-    },
-    [dispatch]
-  );
-
-  // Auto-fetch logs on mount
-  useEffect(() => {
-    fetchInventoryActivityLogs();
-  }, [fetchInventoryActivityLogs]);
-
-  return useMemo(
-    () => ({
-      inventoryLogs,
-      isLoading,
-      error,
-      pagination,
-      fetchInventoryActivityLogs,
-      exportLogs,
-      exportData,
-      exportFormat,
-      exportLoading,
-      exportError,
-    }),
-    [
-      inventoryLogs,
-      isLoading,
-      error,
-      pagination,
-      fetchInventoryActivityLogs,
-      exportLogs,
-      exportData,
-      exportFormat,
-      exportLoading,
-      exportError,
-    ]
-  );
+  
+  const data = useAppSelector(selectBaseInventoryLogs);
+  const loading = useAppSelector(selectBaseLogsLoading);
+  const error = useAppSelector(selectBaseLogsError);
+  
+  const fetchLogs = useCallback(() => {
+    dispatch(fetchBaseInventoryActivityLogsThunk());
+  }, [dispatch]);
+  
+  return { data, loading, error, fetchLogs };
 };
 
-export default useInventoryActivityLogs;
+/**
+ * Hook to get paginated inventory activity logs and trigger fetch.
+ */
+export const usePaginatedInventoryActivityLogs = () => {
+  const dispatch = useAppDispatch();
+  
+  const data = useAppSelector(selectPaginatedInventoryLogs);
+  const pagination = useAppSelector(selectPaginatedLogsPagination);
+  const loading = useAppSelector(selectPaginatedLogsLoading);
+  const error = useAppSelector(selectPaginatedLogsError);
+  
+  const fetchLogs = useCallback((params: InventoryActivityLogQueryParams) => {
+    dispatch(fetchPaginatedInventoryActivityLogsThunk(params));
+  }, [dispatch]);
+  
+  return { data, pagination, loading, error, fetchLogs };
+};

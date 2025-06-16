@@ -182,75 +182,15 @@ export const routes = [
     },
   },
   {
-    path: '/reports/adjustments',
+    path: '/reports/inventory-activity-logs',
     component: lazy(
-      () => import('@features/report/pages/AdjustmentReportPage')
-    ),
-    meta: {
-      requiresAuth: true,
-      title: 'Adjustment Report',
-      showInSidebar: false,
-      requiredPermission: 'view_adjustment_reports',
-    },
-  },
-  {
-    path: '/reports/adjustments/lot_adjustments/:warehouseId?/:inventoryId?/:warehouseInventoryLotId?',
-    component: lazy(
-      () => import('@features/report/pages/AdjustmentReportPage')
-    ),
-    meta: {
-      requiresAuth: true,
-      title: 'Adjustment Report',
-      showInSidebar: false,
-      requiredPermission: 'view_adjustment_reports',
-    },
-  },
-  {
-    path: '/reports/inventory_activities',
-    component: lazy(
-      () => import('@features/report/pages/InventoryActivityLogPage')
+      () => import('@features/report/pages/InventoryActivityLogsPage')
     ),
     meta: {
       requiresAuth: true,
       title: 'Inventory Activity Logs',
-      showInSidebar: false,
-      requiredPermission: 'view_inventory_activity_logs',
-    },
-  },
-  {
-    path: '/reports/inventory_activities/logs/:warehouseId?/:inventoryId?/:warehouseInventoryLotId?',
-    component: lazy(
-      () => import('@features/report/pages/InventoryActivityLogPage')
-    ),
-    meta: {
-      requiresAuth: true,
-      title: 'Inventory Activity Logs',
-      showInSidebar: false,
-      requiredPermission: 'view_inventory_activity_logs',
-    },
-  },
-  {
-    path: '/reports/inventory_histories',
-    component: lazy(
-      () => import('@features/report/pages/InventoryHistoryPage')
-    ),
-    meta: {
-      requiresAuth: true,
-      title: 'Inventory Activity Logs',
-      showInSidebar: false,
-      requiredPermission: 'view_inventory_activity_logs',
-    },
-  },
-  {
-    path: '/reports/inventory_histories/histories/:inventoryId?',
-    component: lazy(
-      () => import('@features/report/pages/InventoryHistoryPage')
-    ),
-    meta: {
-      requiresAuth: true,
-      title: 'Inventory Activity Logs',
-      showInSidebar: false,
-      requiredPermission: 'view_inventory_activity_logs',
+      showInSidebar: true,
+      requiredPermission: 'view_inventory_logs',
     },
   },
   {

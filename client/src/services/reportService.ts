@@ -1,205 +1,56 @@
 import axiosInstance from '@utils/axiosConfig';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 import type {
-  AdjustmentReportParams,
-  InventoryHistoryResponse,
-  InventoryActivityLogParams,
-  InventoryActivityLogsResponse,
-  PaginatedAdjustmentReportResponse,
-  InventoryHistoryParams,
-} from '@features/report';
-import { AppError } from '@utils/AppError';
-import { isCustomAxiosError } from '@utils/axiosUtils';
+  InventoryActivityLogBaseDataResponse,
+  InventoryActivityLogPaginatedResponse,
+  InventoryActivityLogQueryParams,
+} from '@features/report/state';
 
 /**
- * Fetch adjustment report (paginated, for UI).
+ * Fetches the base (non-paginated) inventory activity logs.
+ * Typically used for standard users with access to general inventory log data.
+ *
+ * @returns A promise resolving to an array of inventory activity log entries
+ *          wrapped in a success response structure.
+ * @throws If the API request fails, the error will be propagated for higher-level handling.
  */
-export const fetchAdjustmentReport = async (
-  params: Partial<AdjustmentReportParams>
-): Promise<PaginatedAdjustmentReportResponse> => {
+const fetchBaseInventoryActivityLogs = async (): Promise<InventoryActivityLogBaseDataResponse> => {
   try {
-    const response = await axiosInstance.get(
-      API_ENDPOINTS.WAREHOUSE_INVENTORY_ADJUSTMENTS_REPORT,
+    const response = await axiosInstance.get<InventoryActivityLogBaseDataResponse>(
+      API_ENDPOINTS.REPORTS.INVENTORY_ACTIVITY_LOGS
+    );
+    return response.data;
+  } catch (error) {
+    // Optional: You can log the error here if not handled globally
+    // console.error('Failed to fetch base inventory activity logs', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetches a paginated list of inventory activity logs based on query filters.
+ *
+ * @param params - Query parameters including filters and pagination options
+ * @returns A paginated response containing inventory activity log entries
+ * @throws Error if the request fails
+ */
+const fetchPaginatedInventoryActivityLogs = async (
+  params: InventoryActivityLogQueryParams
+): Promise<InventoryActivityLogPaginatedResponse> => {
+  try {
+    const response = await axiosInstance.get<InventoryActivityLogPaginatedResponse>(
+      API_ENDPOINTS.REPORTS.INVENTORY_ACTIVITY_LOGS,
       { params }
     );
     return response.data;
   } catch (error) {
-    console.error('Error fetching adjustment report:', error);
-    throw new AppError('Failed to fetch adjustment report');
-  }
-};
-
-/**
- * Export adjustment report (returns a downloadable file in CSV, PDF, or TXT format).
- */
-export const exportAdjustmentReport = async (
-  params: Partial<AdjustmentReportParams>
-): Promise<Blob> => {
-  try {
-    const response = await axiosInstance.get(
-      API_ENDPOINTS.WAREHOUSE_INVENTORY_ADJUSTMENTS_REPORT,
-      {
-        params,
-        responseType: 'blob',
-      }
-    );
-
-    // Validate response MIME type based on export format
-    const contentType = response.headers['content-type'];
-    if (
-      !contentType.includes('pdf') &&
-      !contentType.includes('csv') &&
-      !contentType.includes('plain')
-    ) {
-      console.error('Invalid content type:', contentType);
-      throw new AppError(
-        'Received invalid file format. Expected CSV, PDF, or TXT.'
-      );
-    }
-
-    return response.data;
-  } catch (error) {
-    console.error('Error exporting adjustment report:', error);
-    throw new AppError('Failed to export adjustment report');
-  }
-};
-
-/**
- * Fetches inventory activity logs based on given parameters.
- *
- * @param {Partial<InventoryActivityLogParams>} params - Query parameters for filtering logs.
- * @returns {Promise<InventoryActivityLogsResponse>} - A promise resolving to the fetched logs.
- * @throws {AppError} - Throws an error if the request fails.
- */
-export const fetchInventoryActivityLogs = async (
-  params: Partial<InventoryActivityLogParams>
-): Promise<InventoryActivityLogsResponse> => {
-  try {
-    const response = await axiosInstance.get(
-      API_ENDPOINTS.WAREHOUSE_INVENTORY_ACTIVITY_LOGS,
-      { params }
-    );
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching inventory activity logs:', error);
-    throw new AppError('Failed to fetch inventory activity logs');
-  }
-};
-
-/**
- * Exports inventory activity logs as a file (CSV, PDF, or TXT).
- *
- * @param {Partial<InventoryActivityLogParams>} params - Query parameters for filtering logs.
- * @returns {Promise<Blob>} - A promise resolving to the exported file as a Blob.
- * @throws {AppError} - Throws an error if the request fails or receives an invalid format.
- */
-export const exportInventoryActivityLogs = async (
-  params: Partial<InventoryActivityLogParams>
-): Promise<Blob> => {
-  try {
-    const response = await axiosInstance.get(
-      API_ENDPOINTS.WAREHOUSE_INVENTORY_ACTIVITY_LOGS,
-      {
-        params,
-        responseType: 'blob',
-      }
-    );
-
-    // Validate response MIME type based on export format
-    const contentType = response.headers['content-type'];
-    if (
-      !contentType.includes('pdf') &&
-      !contentType.includes('csv') &&
-      !contentType.includes('plain')
-    ) {
-      console.error('Invalid content type:', contentType);
-      throw new AppError(
-        'Received invalid file format. Expected CSV, PDF, or TXT.'
-      );
-    }
-
-    return response.data;
-  } catch (error) {
-    console.error('Error exporting inventory activity logs:', error);
-    throw new AppError('Failed to export inventory activity logs');
-  }
-};
-
-/**
- * Fetches inventory history based on given parameters.
- *
- * @param {Partial<InventoryActivityLogParams>} params - Query parameters for filtering logs.
- * @returns {Promise<InventoryActivityLogsResponse>} - A promise resolving to the fetched logs.
- * @throws {AppError} - Throws an error if the request fails.
- */
-export const fetchInventoryHistory = async (
-  params: Partial<InventoryHistoryParams>
-): Promise<InventoryHistoryResponse> => {
-  try {
-    const response = await axiosInstance.get(API_ENDPOINTS.INVENTORY_HISTORY, {
-      params,
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching inventory history:', error);
-    if (isCustomAxiosError(error)) {
-      throw new AppError('Failed to fetch inventory history');
-    }
-    throw new AppError(
-      'An unexpected error occurred while fetching inventory history.'
-    );
-  }
-};
-
-/**
- * Exports inventory history as a file (CSV, PDF, or TXT).
- *
- * @param {Partial<InventoryActivityLogParams>} params - Query parameters for filtering logs.
- * @returns {Promise<Blob>} - A promise resolving to the exported file as a Blob.
- * @throws {AppError} - Throws an error if the request fails or receives an invalid format.
- */
-export const exportInventoryHistory = async (
-  params: Partial<InventoryHistoryParams>
-): Promise<Blob> => {
-  try {
-    const response = await axiosInstance.get(API_ENDPOINTS.INVENTORY_HISTORY, {
-      params,
-      responseType: 'blob',
-    });
-
-    // Validate response MIME type based on export format
-    const contentType = response.headers['content-type'];
-    if (
-      !contentType.includes('pdf') &&
-      !contentType.includes('csv') &&
-      !contentType.includes('plain')
-    ) {
-      console.error('Invalid content type:', contentType);
-      throw new AppError(
-        'Received invalid file format. Expected CSV, PDF, or TXT.'
-      );
-    }
-
-    return response.data;
-  } catch (error) {
-    console.error('Error exporting inventory history:', error);
-
-    if (isCustomAxiosError(error)) {
-      throw new AppError('Failed to export inventory history');
-    }
-
-    throw new AppError(
-      'An unexpected error occurred while exporting inventory history.'
-    );
+    // Optionally handle/log error or throw for higher-level catch
+    throw error;
   }
 };
 
 // Export the service object
 export const reportService = {
-  fetchAdjustmentReport,
-  exportAdjustmentReport,
-  fetchInventoryActivityLogs,
-  exportInventoryActivityLogs,
-  fetchInventoryHistory,
-  exportInventoryHistory,
+  fetchBaseInventoryActivityLogs,
+  fetchPaginatedInventoryActivityLogs,
 };

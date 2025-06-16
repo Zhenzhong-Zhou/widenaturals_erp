@@ -39,7 +39,6 @@ const transformPaginatedResult = (
       limit,
       totalRecords,
       totalPages,
-      offset,
     },
   };
 };
