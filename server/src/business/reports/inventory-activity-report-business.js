@@ -72,6 +72,17 @@ const canViewBatchLevelLogs = async (user) => {
 };
 
 /**
+ * Checks if the user can view logs related to all packing materials.
+ * Grants unrestricted access to packaging material filters.
+ *
+ * @param {Object} user
+ * @returns {Promise<boolean>}
+ */
+const canViewAllPackingMaterials = async (user) => {
+  return await checkPermissions(user, ['view_all_packing_materials', 'root_access']);
+};
+
+/**
  * Checks if the user can view logs across all warehouse locations.
  * Grants unrestricted access to the warehouse filter.
  *
@@ -79,7 +90,7 @@ const canViewBatchLevelLogs = async (user) => {
  * @returns {Promise<boolean>}
  */
 const canViewAllWarehouses = async (user) => {
-  return await checkPermissions(user, ['view_warehouses', 'view_all_warehouses', 'root_access']);
+  return await checkPermissions(user, ['view_all_warehouses', 'root_access']);
 };
 
 /**
@@ -105,6 +116,7 @@ const getUserInventoryAccessScope = async (user) => {
   const hasProductAccess = await canViewProductLevelLogs(user);
   const hasSkuAccess = await canViewSkuLevelLogs(user);
   const hasBatchAccess = await canViewBatchLevelLogs(user);
+  const hasPackingMaterialAccess = await canViewAllPackingMaterials(user);
   const hasLocationAccess = await canViewAllLocations(user);
   const hasWarehouseAccess = await canViewAllWarehouses(user);
   
@@ -112,6 +124,7 @@ const getUserInventoryAccessScope = async (user) => {
     !hasProductAccess &&
     !hasSkuAccess &&
     !hasBatchAccess &&
+    !hasPackingMaterialAccess &&
     !hasLocationAccess &&
     !hasWarehouseAccess;
   
@@ -120,6 +133,7 @@ const getUserInventoryAccessScope = async (user) => {
     hasProductAccess,
     hasSkuAccess,
     hasBatchAccess,
+    hasPackingMaterialAccess,
     hasLocationAccess,
     hasWarehouseAccess,
     isBaseAccess,
@@ -129,10 +143,4 @@ const getUserInventoryAccessScope = async (user) => {
 module.exports = {
   getUserInventoryAccessScope,
   rejectEmptyFiltersForScopedAccess,
-  hasFullInventoryLogAccess,
-  canViewProductLevelLogs,
-  canViewSkuLevelLogs,
-  canViewBatchLevelLogs,
-  canViewAllWarehouses,
-  canViewAllLocations,
 };

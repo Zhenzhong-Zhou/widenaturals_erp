@@ -253,16 +253,39 @@ const getSkuIdsByProductIds = async (productIds = []) => {
 };
 
 /**
- * Fetch distinct batch IDs from inventory activity logs linked to given product IDs.
- * Traverses: inventory_activity_log → warehouse/location inventory → batch_registry → product_batches → skus → products
+ * Fetch distinct batch IDs from inventory activity logs linked to either product IDs or packaging material batch IDs.
  *
- * @param {string[]} productIds - Array of product UUIDs
+ * If `productIds` are provided, traverses:
+ *   inventory_activity_log → warehouse/location inventory → batch_registry → product_batches → skus → products
+ *
+ * If `packagingMaterialBatchIds` are provided, use:
+ *   inventory_activity_log → warehouse/location inventory → batch_registry → packaging_material_batches
+ *
+ * @param {Object} params
+ * @param {string[]} [params.productIds] - Array of product UUIDs
+ * @param {string[]} [params.packagingMaterialBatchIds] - Array of packaging material batch UUIDs
  * @returns {Promise<string[]>} - Array of matching batch IDs
  */
-const getBatchIdsByProductIds = async (productIds = []) => {
-  if (!Array.isArray(productIds) || productIds.length === 0) return [];
+const getBatchIdsBySourceIds = async ({ productIds = [], packagingMaterialBatchIds = [] } = {}) => {
+  if (!Array.isArray(productIds) || !Array.isArray(packagingMaterialBatchIds)) {
+    throw AppError.validationError('Invalid input: expected arrays for IDs.');
+  }
   
-  const placeholders = productIds.map((_, i) => `$${i + 1}`).join(', ');
+  const filters = [];
+  const params = [];
+  let paramIndex = 1;
+  
+  if (productIds.length > 0) {
+    filters.push(`p.id IN (${productIds.map(() => `$${paramIndex++}`).join(', ')})`);
+    params.push(...productIds);
+  }
+  
+  if (packagingMaterialBatchIds.length > 0) {
+    filters.push(`pmb.id IN (${packagingMaterialBatchIds.map(() => `$${paramIndex++}`).join(', ')})`);
+    params.push(...packagingMaterialBatchIds);
+  }
+  
+  if (filters.length === 0) return [];
   
   const sql = `
     SELECT br.id AS batch_id
@@ -273,20 +296,22 @@ const getBatchIdsByProductIds = async (productIds = []) => {
     LEFT JOIN product_batches AS pb ON pb.id = br.product_batch_id
     LEFT JOIN skus AS s ON s.id = pb.sku_id
     LEFT JOIN products AS p ON p.id = s.product_id
-    WHERE p.id IN (${placeholders})
+    LEFT JOIN packaging_material_batches AS pmb ON pmb.id = br.packaging_material_batch_id
+    WHERE (${filters.join(' OR ')})
       AND br.id IS NOT NULL
     GROUP BY br.id
   `;
   
   try {
-    const result = await query(sql, productIds);
+    const result = await query(sql, params);
     return result.rows.map(row => row.batch_id);
   } catch (error) {
-    logSystemException(error, 'Failed to get batch IDs by product IDs', {
-      context: 'inventory-activity-report/getBatchIdsByProductIds',
+    logSystemException(error, 'Failed to get batch IDs by source IDs', {
+      context: 'inventory-activity-report/getBatchIdsBySourceIds',
       productIds,
+      packagingMaterialBatchIds,
     });
-    throw AppError.databaseError('Unable to resolve batch access by product.');
+    throw AppError.databaseError('Unable to resolve batch access by source.');
   }
 };
 
@@ -294,5 +319,5 @@ module.exports = {
   getInventoryActivityLogs,
   getLatestFilteredInventoryActivityLogs,
   getSkuIdsByProductIds,
-  getBatchIdsByProductIds,
+  getBatchIdsBySourceIds,
 };

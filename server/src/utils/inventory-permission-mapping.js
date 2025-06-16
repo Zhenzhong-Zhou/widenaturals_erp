@@ -14,8 +14,15 @@ const PERMISSION_FILTERS_MAP = {
   product: ['productIds', 'skuIds', 'batchIds', 'locationIds', 'warehouseIds'],
   sku: ['skuIds', 'batchIds', 'locationIds', 'warehouseIds'],
   batch: ['batchIds', 'locationIds', 'warehouseIds'],
-  warehouse: ['warehouseIds', 'productIds', 'skuIds', 'batchIds'],
-  location: ['locationIds', 'productIds', 'skuIds', 'batchIds'],
+  packing_material: ['packingMaterialIds', 'locationIds', 'warehouseIds'],
+  warehouse: [
+    'warehouseIds', 'productIds', 'skuIds', 'batchIds',
+    'packingMaterialIds'
+  ],
+  location: [
+    'locationIds', 'productIds', 'skuIds', 'batchIds',
+    'packingMaterialIds'
+  ],
   base: [],
 };
 
