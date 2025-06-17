@@ -5,10 +5,11 @@ import CustomTypography from '@components/common/CustomTypography';
 import DetailsSection from '@components/common/DetailsSection';
 import { formatDate } from '@utils/dateTimeUtils';
 import { formatLabel } from '@utils/textUtils';
+import type { InventoryActivityLogEntry } from '@features/report/state';
 import type { MergedInventoryActivityLogEntry } from '../utils/logUtils';
 
 interface Props {
-  row: MergedInventoryActivityLogEntry;
+  row: InventoryActivityLogEntry | MergedInventoryActivityLogEntry;
 }
 
 const InventoryActivityLogExpandedContent: FC<Props> = ({ row }) => (
@@ -26,7 +27,13 @@ const InventoryActivityLogExpandedContent: FC<Props> = ({ row }) => (
             { label: 'Order Type', value: row.order.type, format: formatLabel },
             { label: 'Order Status', value: row.order.status, format: formatLabel },
             { label: 'Adjustment Type', value: row.adjustmentType, format: formatLabel },
-            { label: 'Location / Warehouse', value: row.combinedNames ?? [row.locationName, row.warehouseName].filter(Boolean).join(', ') },
+            {
+              label: 'Location / Warehouse',
+              value:
+                'combinedNames' in row
+                  ? row.combinedNames
+                  : [row.locationName, row.warehouseName].filter(Boolean).join(', ')
+            },
             { label: 'Source', value: row.source?.type, format: formatLabel },
             { label: 'Ref ID', value: row.source?.refId },
           ]}

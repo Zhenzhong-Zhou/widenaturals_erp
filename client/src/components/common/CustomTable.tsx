@@ -121,6 +121,11 @@ const CustomTable = <T extends Record<string, any>>({
             <TableRow>
               <TableCell padding="checkbox">
                 <Checkbox
+                  slotProps={{
+                    input: {
+                      name: 'select-all-checkbox',
+                    },
+                  }}
                   indeterminate={
                     selectedRowIds &&
                     selectedRowIds.length > 0 &&
@@ -256,6 +261,12 @@ const CustomTable = <T extends Record<string, any>>({
                       >
                         <TableCell padding="checkbox">
                           <Checkbox
+                            slotProps={{
+                              input: {
+                                name: `row-checkbox-${rowId}`, // unique name per row
+                                id: `checkbox-${rowId}`,       // optional: adds id for labels or testing
+                              },
+                            }}
                             checked={selectedRowIds?.includes(rowId)}
                             onChange={(e) => {
                               const isChecked = e.target.checked;

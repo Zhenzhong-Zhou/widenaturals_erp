@@ -11,6 +11,7 @@ import CustomButton from '@components/common/CustomButton';
 import CustomTypography from '@components/common/CustomTypography';
 import type { InventoryActivityLogEntry, InventoryActivityLogQueryParams } from '@features/report/state';
 import { mergeInventoryActivityLogs, type MergedInventoryActivityLogEntry } from '../utils/logUtils';
+import InventoryActivityLogFilterPanel from '../components/InventoryActivityLogFilterPanel';
 
 const InventoryActivityLogsTable = lazy(() =>
   import('@features/report/components/InventoryActivityLogsTable')
@@ -28,6 +29,7 @@ const InventoryActivityLogsPage: FC = () => {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(25);
   const [filters, setFilters] = useState<Partial<InventoryActivityLogQueryParams>>({});
+  const [stagedFilters, setStagedFilters] = useState<Partial<InventoryActivityLogQueryParams>>({});
   
   const mergedData: MergedInventoryActivityLogEntry[] = useMemo(
     () => mergeInventoryActivityLogs(data),
@@ -100,6 +102,23 @@ const InventoryActivityLogsPage: FC = () => {
             <CustomButton variant="outlined" onClick={() => fetchLogs(queryParams)}>
               Refresh Logs
             </CustomButton>
+          </Box>
+          
+          {/* Filter Panel */}
+          <Box sx={{ mb: 2 }}>
+            <InventoryActivityLogFilterPanel
+              filters={stagedFilters}
+              onChange={setStagedFilters}
+              onApply={() => {
+                setFilters(stagedFilters);
+                setPage(1); // reset to page 1
+              }}
+              onReset={() => {
+                setStagedFilters({});
+                setFilters({});
+                setPage(1);
+              }}
+            />
           </Box>
           
           <Divider sx={{ mb: 3 }} />
