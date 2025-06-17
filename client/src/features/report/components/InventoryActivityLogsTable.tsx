@@ -1,15 +1,17 @@
-import type { FC } from 'react';
-import CustomTable, { type Column } from '@components/common/CustomTable';
-import type { InventoryActivityLogEntry } from '@features/report/state';
-import { formatDate, formatDateTime } from '@utils/dateTimeUtils';
-import { formatLabel } from '@utils/textUtils.ts';
-import DetailsSection from '@components/common/DetailsSection.tsx';
-import CustomTypography from '@components/common/CustomTypography.tsx';
+import { type FC, lazy, Suspense, useCallback, useMemo } from 'react';
 import IconButton from '@mui/material/IconButton';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
-import Box from '@mui/material/Box';
-import Grid from '@mui/material/Grid';
+import CustomTypography from '@components/common/CustomTypography';
+import CustomTable, { type Column } from '@components/common/CustomTable';
+import SkeletonExpandedRow from '@components/common/SkeletonExpandedRow';
+import type { InventoryActivityLogEntry } from '@features/report/state';
+import { formatDateTime } from '@utils/dateTimeUtils';
+import { formatLabel } from '@utils/textUtils';
+
+const InventoryActivityLogExpandedContent = lazy(() =>
+  import('./InventoryActivityLogExpandedContent')
+);
 
 interface InventoryActivityLogTableProps {
   data: InventoryActivityLogEntry[];
@@ -42,7 +44,9 @@ const InventoryActivityLogsTable: FC<InventoryActivityLogTableProps> = ({
                                                                          onExpandToggle,
                                                                          isRowExpanded,
                                                                        }) => {
-  const columns: Column<InventoryActivityLogEntry>[] = [
+  const getRowId = useCallback((row: InventoryActivityLogEntry) => row.id, []);
+  
+  const columns = useMemo<Column<InventoryActivityLogEntry>[]>(() => [
     {
       id: 'skuOrCode',
       label: 'SKU / Code',
@@ -134,86 +138,15 @@ const InventoryActivityLogsTable: FC<InventoryActivityLogTableProps> = ({
           </IconButton>
         ),
     },
-  ];
+  ], [onExpandToggle, isRowExpanded]);
   
-  const renderExpandedContent = (row: InventoryActivityLogEntry) => (
-    <Box sx={{ px: 3, py: 2 }}>
-      <CustomTypography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
-        Log Details
-      </CustomTypography>
-      
-      <Grid container spacing={2}>
-        {/* Left column */}
-        <Grid size={{ xs: 12, md: 6 }}>
-          <DetailsSection
-            fields={[
-              {
-                label: 'Order Number',
-                value: row.order.number,
-              },
-              {
-                label: 'Order Type',
-                value: row.order.type,
-                format: formatLabel,
-              },
-              {
-                label: 'Order Status',
-                value: row.order.status,
-                format: formatLabel,
-              },
-              {
-                label: 'Adjustment Type',
-                value: row.adjustmentType,
-                format: formatLabel,
-              },
-              {
-                label: 'Location / Warehouse',
-                value: row.locationName ?? row.warehouseName,
-              },
-              {
-                label: 'Source',
-                value: row.source?.type,
-                format: formatLabel,
-              },
-              {
-                label: 'Ref ID',
-                value: row.source?.refId,
-              },
-            ]}
-          />
-        </Grid>
-        
-        {/* Right column */}
-        <Grid size={{ xs: 12, md: 6 }}>
-          <DetailsSection
-            fields={[
-              {
-                label: 'Expiry Date',
-                value:
-                  row.batchType === 'product'
-                    ? row.productInfo?.expiryDate
-                    : row.packagingMaterialInfo?.expiryDate,
-                format: formatDate,
-              },
-              {
-                label: 'Metadata Source',
-                value: row.metadata?.source,
-                format: formatLabel,
-              },
-              {
-                label: 'Metadata Scope',
-                value: row.metadata?.source_level,
-                format: formatLabel,
-              },
-              {
-                label: 'Comments',
-                value: row.comments,
-              },
-            ]}
-          />
-        </Grid>
-      </Grid>
-    </Box>
+  const renderExpandedContent = useCallback(
+    (row: InventoryActivityLogEntry) => (
+      <Suspense fallback={<SkeletonExpandedRow />}>
+        <InventoryActivityLogExpandedContent row={row} />
+      </Suspense>
+    ),
+    []
   );
   
   return (
@@ -228,7 +161,7 @@ const InventoryActivityLogsTable: FC<InventoryActivityLogTableProps> = ({
       rowsPerPageOptions={[25, 50, 75]}
       onPageChange={onPageChange}
       onRowsPerPageChange={onRowsPerPageChange}
-      getRowId={(row) => row.id}
+      getRowId={getRowId}
       selectedRowIds={selectedRowIds}
       onSelectionChange={onSelectionChange}
       expandable={isRowExpanded}

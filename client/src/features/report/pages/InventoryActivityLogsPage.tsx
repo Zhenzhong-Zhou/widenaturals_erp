@@ -1,5 +1,5 @@
-import type { FC } from 'react';
-import { useEffect, useState } from 'react';
+import { type FC, lazy, Suspense, useMemo } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { usePaginatedInventoryActivityLogs } from '@hooks/useInventoryActivityLogs';
 import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
@@ -9,8 +9,11 @@ import ErrorMessage from '@components/common/ErrorMessage';
 import NoDataFound from '@components/common/NoDataFound';
 import CustomButton from '@components/common/CustomButton';
 import CustomTypography from '@components/common/CustomTypography';
-import InventoryActivityLogsTable from '@features/report/components/InventoryActivityLogsTable';
 import type { InventoryActivityLogEntry, InventoryActivityLogQueryParams } from '@features/report/state';
+
+const InventoryActivityLogsTable = lazy(() =>
+  import('@features/report/components/InventoryActivityLogsTable')
+);
 
 const InventoryActivityLogsPage: FC = () => {
   const {
@@ -25,24 +28,36 @@ const InventoryActivityLogsPage: FC = () => {
   const [limit, setLimit] = useState(25);
   const [filters, setFilters] = useState<Partial<InventoryActivityLogQueryParams>>({});
   
-  const queryParams: InventoryActivityLogQueryParams = {
+  const queryParams = useMemo(() => ({
     page,
     limit,
-    ...filters, // will include optional keys later
-  };
+    ...filters,
+  }), [page, limit, filters]);
   
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
   
-  const handleExpandToggle = (row: InventoryActivityLogEntry) => {
+  const handleExpandToggle = useCallback((row: InventoryActivityLogEntry) => {
     setExpandedRowId((prevId) => (prevId === row.id ? null : row.id));
-  };
+  }, []);
   
-  const isRowExpanded = (row: InventoryActivityLogEntry) => row.id === expandedRowId;
+  const isRowExpanded = useCallback(
+    (row: InventoryActivityLogEntry) => row.id === expandedRowId,
+    [expandedRowId]
+  );
   
   // Fetch on mount or when page/limit changes
   useEffect(() => {
     fetchLogs(queryParams); // server expects 1-based page
-  }, [page, limit, filters, fetchLogs]);
+  }, [queryParams, fetchLogs]);
+  
+  const handlePageChange = useCallback((newPage: number) => {
+    setPage(newPage + 1); // Convert MUI's 0-based to 1-based
+  }, []);
+  
+  const handleRowsPerPageChange = useCallback((newLimit: number) => {
+    setLimit(newLimit);
+    setPage(1); // reset page
+  }, []);
   
   if (loading) return <Loading message="Loading activity logs..." />;
   if (error)
@@ -84,24 +99,23 @@ const InventoryActivityLogsPage: FC = () => {
           <Divider sx={{ mb: 3 }} />
           
           {/* Table */}
-          <InventoryActivityLogsTable
-            data={data}
-            loading={loading}
-            page={page - 1}
-            totalPages={pagination?.totalPages ?? 1}
-            totalRecords={pagination?.totalRecords ?? 0}
-            rowsPerPage={limit}
-            onPageChange={(newPage) => setPage(newPage + 1)}
-            onRowsPerPageChange={(newLimit) => {
-              setLimit(newLimit);
-              setPage(1); // Reset to first page when changing rowsPerPage
-            }}
-            onExpandToggle={handleExpandToggle}
-            isRowExpanded={isRowExpanded}
-            expandedRowId={expandedRowId}
-          />
+          <Suspense fallback={<Loading message="Loading table..." />}>
+            <InventoryActivityLogsTable
+              data={data}
+              loading={loading}
+              page={page - 1}
+              totalPages={pagination?.totalPages ?? 1}
+              totalRecords={pagination?.totalRecords ?? 0}
+              rowsPerPage={limit}
+              onPageChange={handlePageChange}
+              onRowsPerPageChange={handleRowsPerPageChange}
+              onExpandToggle={handleExpandToggle}
+              isRowExpanded={isRowExpanded}
+              expandedRowId={expandedRowId}
+            />
+          </Suspense>
         </Box>
-      ) : (
+      ) : loading ? null : (
         <NoDataFound message="No inventory activity logs available." />
       )}
     </>
