@@ -10,6 +10,7 @@ import NoDataFound from '@components/common/NoDataFound';
 import CustomButton from '@components/common/CustomButton';
 import CustomTypography from '@components/common/CustomTypography';
 import type { InventoryActivityLogEntry, InventoryActivityLogQueryParams } from '@features/report/state';
+import { mergeInventoryActivityLogs, type MergedInventoryActivityLogEntry } from '../utils/logUtils';
 
 const InventoryActivityLogsTable = lazy(() =>
   import('@features/report/components/InventoryActivityLogsTable')
@@ -27,6 +28,11 @@ const InventoryActivityLogsPage: FC = () => {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(25);
   const [filters, setFilters] = useState<Partial<InventoryActivityLogQueryParams>>({});
+  
+  const mergedData: MergedInventoryActivityLogEntry[] = useMemo(
+    () => mergeInventoryActivityLogs(data),
+    [data]
+  );
   
   const queryParams = useMemo(() => ({
     page,
@@ -101,7 +107,7 @@ const InventoryActivityLogsPage: FC = () => {
           {/* Table */}
           <Suspense fallback={<Loading message="Loading table..." />}>
             <InventoryActivityLogsTable
-              data={data}
+              data={mergedData}
               loading={loading}
               page={page - 1}
               totalPages={pagination?.totalPages ?? 1}
