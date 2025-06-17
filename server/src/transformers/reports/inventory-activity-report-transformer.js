@@ -58,18 +58,17 @@ const transformInventoryActivityLogRow = (row) => {
     base.productInfo = {
       sku: row.sku_code,
       productName: getProductDisplayName(row),
-      brand: row.product_brand,
-      category: row.product_category,
+      lotNumber: row.product_lot_number,
+      expiryDate: row.product_expiry_date,
     };
   }
   
   if (row.batch_type === 'packaging_material') {
     base.packagingMaterialInfo = {
       lotNumber: row.material_lot_number,
+      expiryDate: row.material_expiry_date,
       snapshotName: row.material_snapshot_name,
-      receivedLabelName: row.received_label_name,
-      quantity: row.material_quantity,
-      unit: row.material_unit,
+      code: row.material_code,
     };
   }
   

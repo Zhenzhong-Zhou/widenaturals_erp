@@ -57,7 +57,9 @@ const getInventoryActivityLogs = async ({
     'LEFT JOIN product_batches AS pb ON pb.id = br.product_batch_id',
     'LEFT JOIN skus AS s ON s.id = pb.sku_id',
     'LEFT JOIN products AS p ON p.id = s.product_id',
-    'LEFT JOIN packaging_material_batches AS pmb ON pmb.id = br.packaging_material_batch_id'
+    'LEFT JOIN packaging_material_batches AS pmb ON pmb.id = br.packaging_material_batch_id',
+    'LEFT JOIN packaging_material_suppliers AS pms ON pms.id = pmb.packaging_material_supplier_id',
+    'LEFT JOIN packaging_materials AS pm ON pm.id = pms.packaging_material_id',
   ];
   
   const baseQueryText = `
@@ -81,15 +83,15 @@ const getInventoryActivityLogs = async ({
       br.batch_type,
       s.sku AS sku_code,
       s.size_label,
-      s.market_region,
+      s.country_code AS country_code,
       p.name AS product_name,
       p.brand AS product_brand,
-      p.category AS product_category,
+      pb.lot_number AS product_lot_number,
+      pb.expiry_date AS product_expiry_date,
       pmb.lot_number AS material_lot_number,
+      pmb.expiry_date AS material_expiry_date,
       pmb.material_snapshot_name,
-      pmb.received_label_name,
-      pmb.quantity AS material_quantity,
-      pmb.unit AS material_unit,
+      pm.code AS material_code,
       wh.name AS warehouse_name,
       loc.name AS location_name
     FROM ${tableName}
@@ -154,7 +156,9 @@ const getLatestFilteredInventoryActivityLogs = async ({ limit = 10 }) => {
     'LEFT JOIN product_batches AS pb ON pb.id = br.product_batch_id',
     'LEFT JOIN skus AS s ON s.id = pb.sku_id',
     'LEFT JOIN products AS p ON p.id = s.product_id',
-    'LEFT JOIN packaging_material_batches AS pmb ON pmb.id = br.packaging_material_batch_id'
+    'LEFT JOIN packaging_material_batches AS pmb ON pmb.id = br.packaging_material_batch_id',
+    'LEFT JOIN packaging_material_suppliers AS pms ON pms.id = pmb.packaging_material_supplier_id',
+    'LEFT JOIN packaging_materials AS pm ON pm.id = pms.packaging_material_id',
   ];
   
   const queryText = `
@@ -183,15 +187,16 @@ const getLatestFilteredInventoryActivityLogs = async ({ limit = 10 }) => {
       br.batch_type,
       s.sku AS sku_code,
       s.size_label,
-      s.market_region,
+      s.country_code AS country_code,
       p.name AS product_name,
       p.brand AS product_brand,
-      p.category AS product_category,
+      pb.lot_number AS product_lot_number,
+      pb.expiry_date AS product_expiry_date,
       pmb.lot_number AS material_lot_number,
+      pmb.expiry_date AS material_expiry_date,
       pmb.material_snapshot_name,
-      pmb.received_label_name,
       pmb.quantity AS material_quantity,
-      pmb.unit AS material_unit,
+      pm.code AS material_code,
       wh.name AS warehouse_name,
       loc.name AS location_name
     FROM latest_10 AS ial

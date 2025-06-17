@@ -30,7 +30,7 @@ export interface InventoryActivityLogEntry {
   comments: string;
   metadata: {
     source: string;
-    inventory_scope?: string;
+    source_level?: string;
   };
   batchType: 'product' | 'packaging_material';
   locationName: string;
@@ -40,15 +40,14 @@ export interface InventoryActivityLogEntry {
   productInfo?: {
     sku: string;
     productName: string;
-    brand: string;
-    category: string;
+    lotNumber: string;
+    expiryDate: string;
   };
   packagingMaterialInfo?: {
     lotNumber: string;
+    expiryDate: string;
     snapshotName: string;
-    receivedLabelName: string;
-    quantity: string;
-    unit: string;
+    code: string;
   };
 }
 

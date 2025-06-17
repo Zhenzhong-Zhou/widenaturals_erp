@@ -36,7 +36,7 @@ interface CustomTableProps<T = any> {
   page: number;
   onPageChange: (newPage: number) => void;
   onRowsPerPageChange: (newRowsPerPage: number) => void;
-  expandable?: boolean;
+  expandable?: boolean | ((row: T) => boolean);
   expandedContent?: (row: T) => ReactNode;
   expandedRowId?: string | number | null;
   getRowId?: (row: T) => string | number;
