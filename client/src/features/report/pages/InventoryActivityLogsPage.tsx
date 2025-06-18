@@ -13,8 +13,8 @@ import type { InventoryActivityLogEntry, InventoryActivityLogQueryParams } from 
 import { mergeInventoryActivityLogs, type MergedInventoryActivityLogEntry } from '../utils/logUtils';
 import InventoryActivityLogFilterPanel from '../components/InventoryActivityLogFilterPanel';
 import useBatchRegistryLookup from '@hooks/useBatchRegistryLookup.ts';
-import type { BatchRegistryLookupItem, GetBatchRegistryLookupParams } from '@features/lookup/state';
-import { formatDate } from '@utils/dateTimeUtils.ts';
+import type { BatchLookupOption, GetBatchRegistryLookupParams } from '@features/lookup/state';
+import { mapBatchLookupToOptions } from '@features/lookup/utils/batchRegistryUtils';
 
 const InventoryActivityLogsTable = lazy(() =>
   import('@features/report/components/InventoryActivityLogsTable')
@@ -91,50 +91,7 @@ const InventoryActivityLogsPage: FC = () => {
   }, [restBatchRegistryLookup]);
   
   const batchLookupOptions = useMemo(() => {
-    const seenValues = new Set<string>();
-    
-    return batchOptions.reduce(
-      (
-        acc: { value: string; label: string }[],
-        item: BatchRegistryLookupItem
-      ) => {
-        const optionValue = `${item.id}`;
-        
-        if (seenValues.has(optionValue)) {
-          console.warn(`Duplicate detected: ${optionValue}`);
-          return acc; // Skip duplicate
-        }
-        
-        seenValues.add(optionValue);
-        
-        if (item.type === 'product') {
-          const name = item.product?.name ?? 'Unknown Product';
-          const lot = item.product?.lotNumber ?? 'N/A';
-          const exp = formatDate(item.product?.expiryDate);
-          acc.push({
-            value: optionValue,
-            label: `${name} - ${lot} (Exp: ${exp})`,
-          });
-        } else if (item.type === 'packaging_material') {
-          const name =
-            item.packagingMaterial?.snapshotName ?? 'Unknown Material';
-          const lot = item.packagingMaterial?.lotNumber ?? 'N/A';
-          const exp = formatDate(item.packagingMaterial?.expiryDate);
-          acc.push({
-            value: optionValue,
-            label: `${name} - ${lot} (Exp: ${exp})`,
-          });
-        } else {
-          acc.push({
-            value: optionValue,
-            label: 'Unknown Type',
-          });
-        }
-        
-        return acc;
-      },
-      [] // initial value
-    );
+    return mapBatchLookupToOptions(batchOptions, false) as BatchLookupOption[];
   }, [batchOptions]);
   
   const handlePageChange = useCallback((newPage: number) => {

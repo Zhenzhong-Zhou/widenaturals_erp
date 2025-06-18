@@ -2,18 +2,17 @@ import { type FC, useEffect, useMemo, useState } from 'react';
 import AddInventoryDialogWithModeToggle from '@features/warehouseInventory/components/AddInventoryDialogWithModeToggle.tsx';
 import useCreateWarehouseInventory from '@hooks/useCreateWarehouseInventory.ts';
 import type {
-  BatchRegistryLookupItem,
   GetBatchRegistryLookupParams,
   WarehouseLookupItem,
   WarehouseOption,
 } from '@features/lookup/state';
-import { formatDate } from '@utils/dateTimeUtils.ts';
 import useBatchRegistryLookup from '@hooks/useBatchRegistryLookup';
 import type {
   CreateInventoryRecordsRequest,
   ItemType,
 } from '@features/inventoryShared/types/InventorySharedType';
 import useWarehouseLookup from '@hooks/useWarehouseLookup';
+import { mapBatchLookupToOptions } from '@features/lookup/utils/batchRegistryUtils.ts';
 
 interface AddInventoryDialogProps {
   open: boolean;
@@ -101,53 +100,11 @@ const AddInventoryDialog: FC<AddInventoryDialogProps> = ({
   const warehouseLookupOptions = useMemo(() => {
     return transformWarehouseLookupToOptions(warehouseOptions);
   }, [warehouseOptions]);
-
-  const batchLookupOptions = useMemo(() => {
-    const seenValues = new Set<string>();
-
-    return batchOptions.reduce(
-      (
-        acc: { value: string; label: string }[],
-        item: BatchRegistryLookupItem
-      ) => {
-        const optionValue = `${item.id}::${item.type}`;
-
-        if (seenValues.has(optionValue)) {
-          console.warn(`Duplicate detected: ${optionValue}`);
-          return acc; // Skip duplicate
-        }
-
-        seenValues.add(optionValue);
-
-        if (item.type === 'product') {
-          const name = item.product?.name ?? 'Unknown Product';
-          const lot = item.product?.lotNumber ?? 'N/A';
-          const exp = formatDate(item.product?.expiryDate);
-          acc.push({
-            value: optionValue,
-            label: `${name} - ${lot} (Exp: ${exp})`,
-          });
-        } else if (item.type === 'packaging_material') {
-          const name =
-            item.packagingMaterial?.snapshotName ?? 'Unknown Material';
-          const lot = item.packagingMaterial?.lotNumber ?? 'N/A';
-          const exp = formatDate(item.packagingMaterial?.expiryDate);
-          acc.push({
-            value: optionValue,
-            label: `${name} - ${lot} (Exp: ${exp})`,
-          });
-        } else {
-          acc.push({
-            value: optionValue,
-            label: 'Unknown Type',
-          });
-        }
-
-        return acc;
-      },
-      [] // initial value
-    );
-  }, [batchOptions]);
+  
+  const batchLookupOptions = useMemo(
+    () => mapBatchLookupToOptions(batchOptions, true),
+    [batchOptions]
+  );
 
   useEffect(() => {
     if (!open) {

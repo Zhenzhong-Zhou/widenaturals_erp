@@ -12,6 +12,7 @@ import CustomDialog from '@components/common/CustomDialog';
 import AddInventoryForm from '@features/warehouseInventory/components/AddInventoryForm';
 import Alert from '@mui/material/Alert';
 import type {
+  BatchLookupOption,
   GetBatchRegistryLookupParams,
   GetWarehouseLookupFilters,
 } from '@features/lookup/state';
@@ -30,7 +31,7 @@ interface AddInventoryDialogWithModeToggleProps {
   warehouse?: InventoryRecordOutput | InventoryRecordOutput[];
   location?: InventoryRecordOutput | InventoryRecordOutput[];
   createError?: string | null;
-  batchLookupOptions: { value: string; label: string }[];
+  batchLookupOptions: BatchLookupOption[];
   selectedBatch: { id: string; type: string } | null;
   setSelectedBatch: (batch: { id: string; type: string } | null) => void;
   batchLookupParams: GetBatchRegistryLookupParams;

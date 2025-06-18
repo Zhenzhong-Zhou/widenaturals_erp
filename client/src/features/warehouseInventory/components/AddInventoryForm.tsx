@@ -17,6 +17,7 @@ import RadioGroup from '@mui/material/RadioGroup';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Radio from '@mui/material/Radio';
 import type {
+  BatchLookupOption,
   GetBatchRegistryLookupParams,
   GetWarehouseLookupFilters,
 } from '@features/lookup/state';
@@ -24,7 +25,7 @@ import type {
 interface AddInventoryFormProps {
   onSubmit: (formData: Record<string, any>) => void;
   loading?: boolean;
-  batchLookupOptions: { value: string; label: string }[];
+  batchLookupOptions: BatchLookupOption[];
   selectedBatch: { id: string; type: string } | null;
   setSelectedBatch: (value: { id: string; type: string } | null) => void;
   batchLookupParams: GetBatchRegistryLookupParams;

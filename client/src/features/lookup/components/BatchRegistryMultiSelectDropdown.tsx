@@ -1,10 +1,10 @@
 import type { Dispatch, FC, SetStateAction } from 'react';
-import type { GetBatchRegistryLookupParams } from '@features/lookup/state';
+import type { BatchLookupOption, GetBatchRegistryLookupParams } from '@features/lookup/state';
 import MultiSelectDropdown, { type MultiSelectOption } from '@components/common/MultiSelectDropdown';
 
 interface BatchRegistryMultiSelectDropdownProps {
   label?: string;
-  batchLookupOptions: { value: string; label: string; }[];
+  batchLookupOptions: BatchLookupOption[];
   selectedBatches: { id: string; type: string }[];
   onSelectedBatchesChange: (value: { id: string; type: string }[]) => void;
   batchLookupParams: GetBatchRegistryLookupParams;

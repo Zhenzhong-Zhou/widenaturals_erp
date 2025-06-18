@@ -6,7 +6,7 @@ import CustomButton from '@components/common/CustomButton';
 import CustomDatePicker from '@components/common/CustomDatePicker';
 import type { InventoryActivityLogQueryParams } from '@features/report/state';
 import BatchRegistryMultiSelectDropdown from '@features/lookup/components/BatchRegistryMultiSelectDropdown.tsx';
-import type { GetBatchRegistryLookupParams } from '@features/lookup/state';
+import type { BatchLookupOption, GetBatchRegistryLookupParams } from '@features/lookup/state';
 
 interface PaginationWithFetchMore {
   limit: number;
@@ -19,7 +19,7 @@ interface InventoryActivityLogFilterPanelProps {
   onChange: (filters: Partial<InventoryActivityLogQueryParams>) => void;
   onApply: () => void;
   onReset: () => void;
-  batchLookupOptions: { value: string; label: string }[];
+  batchLookupOptions: BatchLookupOption[];
   selectedBatches: { id: string; type: string }[];
   onSelectedBatchesChange: (value: { id: string; type: string }[]) => void;
   batchLookupParams: GetBatchRegistryLookupParams;

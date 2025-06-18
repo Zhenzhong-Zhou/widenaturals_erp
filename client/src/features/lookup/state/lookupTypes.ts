@@ -137,3 +137,9 @@ export type LotAdjustmentTypeLookupState = AsyncState<LotAdjustmentTypeLookupIte
  * Specialized alias for lot adjustment type lookup options.
  */
 export type AdjustmentTypeOption = LookupOption;
+
+export type BatchLookupOption = {
+  value: string;
+  label: string;
+  type: string;
+};
