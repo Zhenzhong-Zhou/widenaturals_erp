@@ -1,3 +1,4 @@
+import qs from 'qs';
 import axiosInstance from '@utils/axiosConfig';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 import type {
@@ -40,7 +41,11 @@ const fetchPaginatedInventoryActivityLogs = async (
   try {
     const response = await axiosInstance.get<InventoryActivityLogPaginatedResponse>(
       API_ENDPOINTS.REPORTS.INVENTORY_ACTIVITY_LOGS,
-      { params }
+      {
+        params,
+        paramsSerializer: (params) =>
+          qs.stringify(params, { arrayFormat: 'repeat' }) // <-- key part
+      }
     );
     return response.data;
   } catch (error) {

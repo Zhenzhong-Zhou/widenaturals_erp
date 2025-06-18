@@ -12,7 +12,7 @@ import CustomTypography from '@components/common/CustomTypography';
 import type { InventoryActivityLogEntry, InventoryActivityLogQueryParams } from '@features/report/state';
 import { mergeInventoryActivityLogs, type MergedInventoryActivityLogEntry } from '../utils/logUtils';
 import InventoryActivityLogFilterPanel from '../components/InventoryActivityLogFilterPanel';
-import useBatchRegistryLookup from '@hooks/useBatchRegistryLookup.ts';
+import useBatchRegistryLookup from '@hooks/useBatchRegistryLookup';
 import type { BatchLookupOption, GetBatchRegistryLookupParams } from '@features/lookup/state';
 import { mapBatchLookupToOptions } from '@features/lookup/utils/batchRegistryUtils';
 
@@ -25,7 +25,7 @@ const InventoryActivityLogsPage: FC = () => {
   const [limit, setLimit] = useState(25);
   const [filters, setFilters] = useState<Partial<InventoryActivityLogQueryParams>>({});
   const [stagedFilters, setStagedFilters] = useState<Partial<InventoryActivityLogQueryParams>>({});
-  const [selectedBatches, setSelectedBatches] = useState<{ id: string; type: string }[]>([]);
+  const [selectedBatches, setSelectedBatches] = useState<BatchLookupOption[]>([]);
   const [batchLookupParams, setBatchLookupParams] =
     useState<GetBatchRegistryLookupParams>({
       batchType: '',
@@ -51,8 +51,7 @@ const InventoryActivityLogsPage: FC = () => {
     fetchLookup: fetchBatchRegistryLookup,
     resetLookup: restBatchRegistryLookup,
   } = useBatchRegistryLookup();
-  console.log(batchOptions)
-  console.log(batchLookupParams)
+  
   const mergedData: MergedInventoryActivityLogEntry[] = useMemo(
     () => mergeInventoryActivityLogs(data),
     [data]
@@ -173,6 +172,7 @@ const InventoryActivityLogsPage: FC = () => {
               onReset={() => {
                 setStagedFilters({});
                 setFilters({});
+                setSelectedBatches([]);
                 setPage(1);
               }}
               batchLookupOptions={batchLookupOptions}

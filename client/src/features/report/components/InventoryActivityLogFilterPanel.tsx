@@ -5,8 +5,9 @@ import BaseInput from '@components/common/BaseInput';
 import CustomButton from '@components/common/CustomButton';
 import CustomDatePicker from '@components/common/CustomDatePicker';
 import type { InventoryActivityLogQueryParams } from '@features/report/state';
-import BatchRegistryMultiSelectDropdown from '@features/lookup/components/BatchRegistryMultiSelectDropdown.tsx';
+import BatchRegistryMultiSelectDropdown from '@features/lookup/components/BatchRegistryMultiSelectDropdown';
 import type { BatchLookupOption, GetBatchRegistryLookupParams } from '@features/lookup/state';
+import type { MultiSelectOption } from '@components/common/MultiSelectDropdown';
 
 interface PaginationWithFetchMore {
   limit: number;
@@ -20,8 +21,8 @@ interface InventoryActivityLogFilterPanelProps {
   onApply: () => void;
   onReset: () => void;
   batchLookupOptions: BatchLookupOption[];
-  selectedBatches: { id: string; type: string }[];
-  onSelectedBatchesChange: (value: { id: string; type: string }[]) => void;
+  selectedBatches: BatchLookupOption[];
+  onSelectedBatchesChange: (value: BatchLookupOption[]) => void;
   batchLookupParams: GetBatchRegistryLookupParams;
   setBatchLookupParams: Dispatch<
     SetStateAction<GetBatchRegistryLookupParams>
@@ -55,6 +56,20 @@ const InventoryActivityLogFilterPanel: FC<InventoryActivityLogFilterPanelProps> 
         onChange({ ...filters, [field]: value });
       };
   
+  const handleBatchDropdownChange = (selected: MultiSelectOption[]) => {
+    const newSelected: BatchLookupOption[] = selected.map((opt) => {
+      const matched = batchLookupOptions.find((item) => item.value === opt.value);
+      return {
+        value: opt.value,
+        label: opt.label,
+        type: matched?.type ?? 'product',
+      };
+    });
+    
+    onSelectedBatchesChange(newSelected); // For UI sync
+    handleChange('batchIds')(newSelected.map((item) => item.value)); // Update filter for backend
+  };
+  
   return (
     <Box sx={{ mb: 2 }}>
       <Grid container spacing={2}>
@@ -63,8 +78,8 @@ const InventoryActivityLogFilterPanel: FC<InventoryActivityLogFilterPanelProps> 
           <BatchRegistryMultiSelectDropdown
             label="Select Batches"
             batchLookupOptions={batchLookupOptions}
-            selectedBatches={selectedBatches}
-            onSelectedBatchesChange={onSelectedBatchesChange}
+            selectedOptions={selectedBatches}
+            onChange={handleBatchDropdownChange}
             batchLookupParams={batchLookupParams}
             setFetchParams={setBatchLookupParams}
             fetchBatchLookup={fetchBatchLookup}

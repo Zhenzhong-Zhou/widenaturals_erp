@@ -26,7 +26,6 @@ export const fetchBaseInventoryActivityLogsThunk = createAsyncThunk<
   }
 });
 
-
 /**
  * Thunk to fetch a paginated list of inventory activity logs based on filters.
  *

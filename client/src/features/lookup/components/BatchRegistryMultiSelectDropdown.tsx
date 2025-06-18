@@ -5,8 +5,8 @@ import MultiSelectDropdown, { type MultiSelectOption } from '@components/common/
 interface BatchRegistryMultiSelectDropdownProps {
   label?: string;
   batchLookupOptions: BatchLookupOption[];
-  selectedBatches: { id: string; type: string }[];
-  onSelectedBatchesChange: (value: { id: string; type: string }[]) => void;
+  selectedOptions: MultiSelectOption[];
+  onChange: (selected: MultiSelectOption[]) => void;
   batchLookupParams: GetBatchRegistryLookupParams;
   fetchBatchLookup: (params: GetBatchRegistryLookupParams) => void;
   setFetchParams: Dispatch<SetStateAction<GetBatchRegistryLookupParams>>;
@@ -25,8 +25,8 @@ interface BatchRegistryMultiSelectDropdownProps {
 const BatchRegistryMultiSelectDropdown: FC<BatchRegistryMultiSelectDropdownProps> = ({
                                                                                        label = 'Select Batches',
                                                                                        batchLookupOptions,
-                                                                                       selectedBatches,
-                                                                                       onSelectedBatchesChange,
+                                                                                       selectedOptions,
+                                                                                       onChange,
                                                                                        loading,
                                                                                        disabled,
                                                                                        error,
@@ -36,29 +36,12 @@ const BatchRegistryMultiSelectDropdown: FC<BatchRegistryMultiSelectDropdownProps
                                                                                        sx,
                                                                                        placeholder = 'Choose batches...',
                                                                                      }) => {
-  // Convert selectedBatches to dropdown-compatible format
-  const mappedSelected: MultiSelectOption[] = batchLookupOptions.filter((opt) =>
-    selectedBatches.some((b) => b.id === opt.value)
-  );
-  console.log(mappedSelected);
-  // Handle selection change
-  const handleChange = (selectedOptions: MultiSelectOption[]) => {
-    const newSelected = selectedOptions.map((opt) => {
-      const matched = batchLookupOptions.find((item) => item.value === opt.value);
-      return {
-        id: opt.value,
-        type: matched?.type ?? 'product', // fallback
-      };
-    });
-    onSelectedBatchesChange(newSelected);
-  };
-  
   return (
     <MultiSelectDropdown
       label={label}
       options={batchLookupOptions}
-      selectedOptions={mappedSelected}
-      onChange={handleChange}
+      selectedOptions={selectedOptions}
+      onChange={onChange}
       loading={loading}
       disabled={disabled}
       error={error}
