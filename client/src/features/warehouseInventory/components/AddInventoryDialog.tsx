@@ -2,18 +2,18 @@ import { type FC, useEffect, useMemo, useState } from 'react';
 import AddInventoryDialogWithModeToggle from '@features/warehouseInventory/components/AddInventoryDialogWithModeToggle.tsx';
 import useCreateWarehouseInventory from '@hooks/useCreateWarehouseInventory.ts';
 import type {
-  BatchRegistryDropdownItem,
-  GetBatchRegistryDropdownParams,
-  WarehouseDropdownItem,
+  BatchRegistryLookupItem,
+  GetBatchRegistryLookupParams,
+  WarehouseLookupItem,
   WarehouseOption,
-} from '@features/dropdown/state';
+} from '@features/lookup/state';
 import { formatDate } from '@utils/dateTimeUtils.ts';
-import useBatchRegistryDropdown from '@hooks/useBatchRegistryDropdown.ts';
+import useBatchRegistryLookup from '@hooks/useBatchRegistryLookup';
 import type {
   CreateInventoryRecordsRequest,
   ItemType,
 } from '@features/inventoryShared/types/InventorySharedType';
-import useWarehouseDropdown from '@hooks/useWarehouseDropdown.ts';
+import useWarehouseLookup from '@hooks/useWarehouseLookup';
 
 interface AddInventoryDialogProps {
   open: boolean;
@@ -34,8 +34,8 @@ const AddInventoryDialog: FC<AddInventoryDialogProps> = ({
     id: string;
     type: string;
   } | null>(null);
-  const [batchDropdownParams, setBatchDropdownParams] =
-    useState<GetBatchRegistryDropdownParams>({
+  const [batchLookupParams, setBatchLookupParams] =
+    useState<GetBatchRegistryLookupParams>({
       batchType: '',
       warehouseId: '',
       locationId: '',
@@ -59,8 +59,8 @@ const AddInventoryDialog: FC<AddInventoryDialogProps> = ({
     items: warehouseOptions,
     loading: warehouseLoading,
     error: warehouseError,
-    fetchDropdown: fetchWarehouseDropdown,
-  } = useWarehouseDropdown();
+    fetchLookup: fetchWarehouseLookup,
+  } = useWarehouseLookup();
 
   const {
     items: batchOptions,
@@ -68,27 +68,27 @@ const AddInventoryDialog: FC<AddInventoryDialogProps> = ({
     error: batchError,
     hasMore,
     pagination,
-    fetchDropdown: fetchBatchRegistryDropdown,
-    resetDropdown: restBatchRegistryDropdown,
-  } = useBatchRegistryDropdown();
+    fetchLookup: fetchBatchRegistryLookup,
+    resetLookup: restBatchRegistryLookup,
+  } = useBatchRegistryLookup();
 
   useEffect(() => {
-    fetchWarehouseDropdown();
-  }, [fetchWarehouseDropdown]);
+    fetchWarehouseLookup();
+  }, [fetchWarehouseLookup]);
 
   useEffect(() => {
-    fetchBatchRegistryDropdown({ ...batchDropdownParams, offset: 0 }); // initial load
+    fetchBatchRegistryLookup({ ...batchLookupParams, offset: 0 }); // initial load
     return () => {
-      restBatchRegistryDropdown();
+      restBatchRegistryLookup();
     };
   }, [
-    fetchBatchRegistryDropdown,
-    restBatchRegistryDropdown,
-    batchDropdownParams,
+    fetchBatchRegistryLookup,
+    restBatchRegistryLookup,
+    batchLookupParams,
   ]);
 
-  const transformWarehouseDropdownToOptions = (
-    items: WarehouseDropdownItem[]
+  const transformWarehouseLookupToOptions = (
+    items: WarehouseLookupItem[]
   ): WarehouseOption[] => {
     return items.map((item) => ({
       label: item.label,
@@ -96,17 +96,17 @@ const AddInventoryDialog: FC<AddInventoryDialogProps> = ({
     }));
   };
 
-  const warehouseDropdownOptions = useMemo(() => {
-    return transformWarehouseDropdownToOptions(warehouseOptions);
+  const warehouseLookupOptions = useMemo(() => {
+    return transformWarehouseLookupToOptions(warehouseOptions);
   }, [warehouseOptions]);
 
-  const batchDropdownOptions = useMemo(() => {
+  const batchLookupOptions = useMemo(() => {
     const seenValues = new Set<string>();
 
     return batchOptions.reduce(
       (
         acc: { value: string; label: string }[],
-        item: BatchRegistryDropdownItem
+        item: BatchRegistryLookupItem
       ) => {
         const optionValue = `${item.id}::${item.type}`;
 
@@ -213,22 +213,22 @@ const AddInventoryDialog: FC<AddInventoryDialogProps> = ({
       warehouse={warehouse}
       location={location}
       createError={createError}
-      batchDropdownOptions={batchDropdownOptions}
+      batchLookupOptions={batchLookupOptions}
       selectedBatch={selectedBatch}
       setSelectedBatch={setSelectedBatch}
-      batchDropdownParams={batchDropdownParams}
-      setBatchDropdownParams={setBatchDropdownParams}
-      fetchBatchDropdown={fetchBatchRegistryDropdown}
+      batchLookupParams={batchLookupParams}
+      setBatchLookupParams={setBatchLookupParams}
+      fetchBatchLookup={fetchBatchRegistryLookup}
       hasMore={hasMore}
       pagination={pagination}
-      batchDropdownLoading={batchLoading}
-      batchDropdownError={batchError}
-      warehouseDropdownOptions={warehouseDropdownOptions}
+      batchLookupLoading={batchLoading}
+      batchLookupError={batchError}
+      warehouseLookupOptions={warehouseLookupOptions}
       selectedWarehouse={selectedWarehouse}
       setSelectedWarehouse={setSelectedWarehouse}
-      fetchWarehouseDropdown={fetchWarehouseDropdown}
-      warehouseDropdownLoading={warehouseLoading}
-      warehouseDropdownError={warehouseError}
+      fetchWarehouseLookup={fetchWarehouseLookup}
+      warehouseLookupLoading={warehouseLoading}
+      warehouseLookupError={warehouseError}
     />
   );
 };

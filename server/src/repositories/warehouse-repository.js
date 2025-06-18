@@ -7,7 +7,7 @@ const {
 const { getStatusId } = require('../config/status-cache');
 
 /**
- * Fetches a list of warehouses for dropdown use.
+ * Fetches a list of warehouses for lookup use.
  *
  * Filters:
  * - locationTypeId (optional): Filter warehouses by location type
@@ -15,9 +15,9 @@ const { getStatusId } = require('../config/status-cache');
  * - includeArchived (optional): Include archived warehouses (default: false)
  *
  * @param {Object} filters - Filtering options
- * @returns {Promise<Array>} List of warehouse dropdown rows
+ * @returns {Promise<Array>} List of warehouse lookup rows
  */
-const getWarehouseDropdown = async ({ filters }) => {
+const getWarehouseLookup = async ({ filters }) => {
   const defaultActiveStatusId = getStatusId('warehouse_active');
   const { whereClause, params } = buildWarehouseFilter(
     defaultActiveStatusId,
@@ -43,10 +43,10 @@ const getWarehouseDropdown = async ({ filters }) => {
     const result = await query(sql, params);
     return result.rows;
   } catch (error) {
-    logSystemException(error, 'Error fetching warehouse dropdown options:', {
-      context: 'warehouse-repository/getWarehouseDropdown',
+    logSystemException(error, 'Error fetching warehouse lookup options:', {
+      context: 'warehouse-repository/getWarehouseLookup',
     });
-    throw AppError.databaseError('Failed to fetch warehouse dropdown', {
+    throw AppError.databaseError('Failed to fetch warehouse lookup', {
       details: error.message,
       stage: 'query-execution',
     });
@@ -54,5 +54,5 @@ const getWarehouseDropdown = async ({ filters }) => {
 };
 
 module.exports = {
-  getWarehouseDropdown,
+  getWarehouseLookup,
 };

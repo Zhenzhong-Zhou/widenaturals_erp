@@ -30,12 +30,12 @@ const AdjustBulkInventoryDialog: FC<AdjustBulkInventoryDialogProps> = ({
     success,
     isSubmitting,
     submitError,
-    dropdownOptions,
-    isDropdownLoading,
-    dropdownError,
+    lookupOptions,
+    isLookupLoading,
+    lookupError,
     mappedRecords,
     initialQuantities,
-    fetchLotAdjustmentTypeDropdown,
+    fetchLotAdjustmentTypeLookup,
     handleSubmit,
     resetState,
   } = useInventoryAdjustmentDialogLogic({
@@ -80,11 +80,11 @@ const AdjustBulkInventoryDialog: FC<AdjustBulkInventoryDialogProps> = ({
           <AdjustBulkInventoryForm
             initialQuantities={initialQuantities}
             contextData={mappedRecords}
-            adjustmentTypeOptions={dropdownOptions}
-            dropdownLoading={isDropdownLoading}
-            dropdownError={dropdownError ?? ''}
+            adjustmentTypeOptions={lookupOptions}
+            dropdownLoading={isLookupLoading}
+            dropdownError={lookupError ?? ''}
             onSubmit={handleSubmit}
-            onRefresh={fetchLotAdjustmentTypeDropdown}
+            onRefresh={fetchLotAdjustmentTypeLookup}
             loading={isSubmitting}
           />
         </>

@@ -146,14 +146,14 @@ export interface SortConfig {
 }
 
 /**
- * A generic structure for successful dropdown-style paginated API responses.
+ * A generic structure for successful lookup-style paginated API responses.
  *
  * Designed for use in infinite-scroll or load-more UIs where full pagination
  * metadata (e.g., totalRecords, totalPages) is not required.
  *
  * @template T - The type of each item in the `items` array.
  */
-export interface DropdownSuccessResponse<T> {
+export interface LookupSuccessResponse<T> {
   /**
    * Indicates the API call was successful.
    */
@@ -165,7 +165,7 @@ export interface DropdownSuccessResponse<T> {
   message: string;
 
   /**
-   * The array of dropdown-compatible result items.
+   * The array of lookup-compatible result items.
    */
   items: T[];
 
@@ -186,11 +186,11 @@ export interface DropdownSuccessResponse<T> {
 }
 
 /**
- * Redux-managed state for dropdown data with load-more or infinite scroll.
+ * Redux-managed state for lookup data with load-more or infinite scroll.
  *
- * @template T - Type of each dropdown item.
+ * @template T - Type of each lookup item.
  */
-export interface PaginatedDropdownState<T> extends AsyncState<T[]> {
+export interface PaginatedLookupState<T> extends AsyncState<T[]> {
   /** Whether more items are available to load. */
   hasMore: boolean;
 

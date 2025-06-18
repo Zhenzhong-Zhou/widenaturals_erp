@@ -38,10 +38,10 @@ export const API_ENDPOINTS = {
     ADD_RECORDS: '/warehouse-inventory',
     ADJUST_QUANTITIES: '/warehouse-inventory/adjust-quantities',
   },
-  DROPDOWN: {
-    BATCH_REGISTRY: '/dropdown/batch-registry',
-    WAREHOUSES: '/dropdown/warehouses',
-    LOT_ADJUSTMENT_TYPES: '/dropdown/lot-adjustment-types'
+  LOOKUP: {
+    BATCH_REGISTRY: '/lookups/batch-registry',
+    WAREHOUSES: '/lookups/warehouses',
+    LOT_ADJUSTMENT_TYPES: '/lookups/lot-adjustment-types',
   },
   REPORTS: {
     INVENTORY_ACTIVITY_LOGS: 'reports/inventory-activity-logs',

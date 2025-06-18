@@ -46,7 +46,7 @@ const getBatchRegistryById = async (batchRegistryId, client) => {
  * @param {number} options.offset - Number of records to skip for pagination (default: 0).
  * @param {number} options.limit - Maximum number of records to return (default: 50).
  */
-const getBatchRegistryDropdown = async ({
+const getBatchRegistryLookup = async ({
   filters,
   limit = 50,
   offset = 0,
@@ -98,18 +98,18 @@ const getBatchRegistryDropdown = async ({
       meta: { filters },
     });
   } catch (error) {
-    logSystemException(error, 'Failed to fetch batch registry dropdown', {
-      context: 'batch-registry-repository/getBatchRegistryDropdown',
+    logSystemException(error, 'Failed to fetch batch registry lookup', {
+      context: 'batch-registry-repository/getBatchRegistryLookup',
       severity: 'error',
       metadata: { filters, limit, offset },
     });
     throw AppError.databaseError(
-      'Unable to fetch batch registry dropdown at this time.'
+      'Unable to fetch batch registry lookup at this time.'
     );
   }
 };
 
 module.exports = {
   getBatchRegistryById,
-  getBatchRegistryDropdown,
+  getBatchRegistryLookup,
 };

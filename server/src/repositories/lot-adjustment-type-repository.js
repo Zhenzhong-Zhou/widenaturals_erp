@@ -1,10 +1,10 @@
-const { query, paginateQuery, retry, bulkInsert } = require('../database/db');
+const { query } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { buildLotAdjustmentWhereClause } = require('../utils/sql/lot-adjustment-type-filters');
 const { logSystemException } = require('../utils/system-logger');
 
 /**
- * @function getLotAdjustmentTypesForDropdown
+ * @function getLotAdjustmentTypeLookupOptions
  * @description
  * Fetches active lot adjustment types linked to inventory action types of category 'adjustment'.
  * Excludes internal/system-use-only types (e.g., 'manual_stock_insert', 'manual_stock_update') by default,
@@ -16,13 +16,13 @@ const { logSystemException } = require('../utils/system-logger');
  *
  * @example
  * // Default usage (excludes internal)
- * const options = await getLotAdjustmentTypesForDropdown();
+ * const options = await getLotAdjustmentTypeLookupOptions();
  *
  * @example
  * // Admin usage (include all types)
- * const options = await getLotAdjustmentTypesForDropdown({ excludeInternal: false });
+ * const options = await getLotAdjustmentTypeLookupOptions({ excludeInternal: false });
  */
-const getLotAdjustmentTypesForDropdown = async (filters = {}) => {
+const getLotAdjustmentTypeLookupOptions = async (filters = {}) => {
   const { whereClause, params } = buildLotAdjustmentWhereClause(filters);
     
     const sql = `
@@ -39,18 +39,18 @@ const getLotAdjustmentTypesForDropdown = async (filters = {}) => {
      const result = await query(sql, params);
      return result.rows;
    } catch (error) {
-      logSystemException(error, 'Failed to fetch lot adjustment types for dropdown', {
-        context: 'lot-adjustment-type-repository/getLotAdjustmentTypesForDropdown',
+      logSystemException(error, 'Failed to fetch lot adjustment types for lookup', {
+        context: 'lot-adjustment-type-repository/getLotAdjustmentTypeLookupOptions',
         filters,
         params,
       });
       
-      throw AppError.databaseError('Unable to load lot adjustment dropdown options', {
-        stage: 'getLotAdjustmentTypesForDropdown',
+      throw AppError.databaseError('Unable to load lot adjustment lookup options', {
+        stage: 'lot-adjustment-type-repository/getLotAdjustmentTypeLookupOptions',
       });
     }
 };
 
 module.exports = {
-  getLotAdjustmentTypesForDropdown,
+  getLotAdjustmentTypeLookupOptions,
 };

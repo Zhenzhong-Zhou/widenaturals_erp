@@ -7,7 +7,8 @@ import {
   useState,
 } from 'react';
 import CustomForm, { type FieldConfig } from '@components/common/CustomForm';
-import BatchRegistryDropdown from '@features/dropdown/components/BatchRegistryDropdown';
+import BatchRegistryDropdown from '@features/lookup/components/BatchRegistryDropdown';
+import WarehouseDropdown from '@features/lookup/components/WarehouseDropdown';
 import CustomDatePicker from '@components/common/CustomDatePicker';
 import Box from '@mui/material/Box';
 import FormControl from '@mui/material/FormControl';
@@ -16,55 +17,54 @@ import RadioGroup from '@mui/material/RadioGroup';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Radio from '@mui/material/Radio';
 import type {
-  GetBatchRegistryDropdownParams,
-  GetWarehouseDropdownFilters,
-} from '@features/dropdown/state';
-import WarehouseDropdown from '@features/dropdown/components/WarehouseDropdown';
+  GetBatchRegistryLookupParams,
+  GetWarehouseLookupFilters,
+} from '@features/lookup/state';
 
 interface AddInventoryFormProps {
   onSubmit: (formData: Record<string, any>) => void;
   loading?: boolean;
-  batchDropdownOptions: { value: string; label: string }[];
+  batchLookupOptions: { value: string; label: string }[];
   selectedBatch: { id: string; type: string } | null;
   setSelectedBatch: (value: { id: string; type: string } | null) => void;
-  batchDropdownParams: GetBatchRegistryDropdownParams;
-  setBatchDropdownParams: Dispatch<
-    SetStateAction<GetBatchRegistryDropdownParams>
+  batchLookupParams: GetBatchRegistryLookupParams;
+  setBatchLookupParams: Dispatch<
+    SetStateAction<GetBatchRegistryLookupParams>
   >;
-  fetchBatchDropdown: (params: GetBatchRegistryDropdownParams) => void;
+  fetchBatchLookup: (params: GetBatchRegistryLookupParams) => void;
   hasMore: boolean;
   pagination?: { limit: number; offset: number };
-  batchDropdownLoading?: boolean;
-  batchDropdownError?: string | null;
-  warehouseDropdownOptions: { value: string; label: string }[];
+  batchLookupLoading?: boolean;
+  batchLookupError?: string | null;
+  warehouseLookupOptions: { value: string; label: string }[];
   selectedWarehouse: { warehouseId: string; locationId: string } | null;
   setSelectedWarehouse: (
     w: { warehouseId: string; locationId: string } | null
   ) => void;
-  fetchWarehouseDropdown: (params: GetWarehouseDropdownFilters) => void;
-  warehouseDropdownLoading?: boolean;
-  warehouseDropdownError?: string | null;
+  fetchWarehouseLookup: (params: GetWarehouseLookupFilters) => void;
+  warehouseLookupLoading?: boolean;
+  warehouseLookupError?: string | null;
 }
 
 const AddInventoryForm: FC<AddInventoryFormProps> = ({
   onSubmit,
   loading,
-  batchDropdownOptions,
+  batchLookupOptions,
   selectedBatch,
   setSelectedBatch,
-  batchDropdownParams,
-  setBatchDropdownParams,
-  fetchBatchDropdown,
+  batchLookupParams,
+  setBatchLookupParams,
+  fetchBatchLookup,
   hasMore,
   pagination,
-  batchDropdownLoading,
-  batchDropdownError,
-  warehouseDropdownOptions,
+  batchLookupLoading,
+  batchLookupError,
+  warehouseLookupOptions,
   selectedWarehouse,
   setSelectedWarehouse,
-  fetchWarehouseDropdown,
-  warehouseDropdownLoading,
-  warehouseDropdownError,
+  fetchWarehouseLookup,
+  warehouseLookupLoading,
+  warehouseLookupError,
 }) => {
   const [batchType, setBatchType] = useState<
     'product' | 'packaging_material' | 'all'
@@ -76,7 +76,7 @@ const AddInventoryForm: FC<AddInventoryFormProps> = ({
       | 'packaging_material'
       | 'all';
     setBatchType(value);
-    setBatchDropdownParams((prev: GetBatchRegistryDropdownParams) => ({
+    setBatchLookupParams((prev: GetBatchRegistryLookupParams) => ({
       ...prev,
       batchType: value === 'all' ? undefined : value,
     }));
@@ -108,16 +108,16 @@ const AddInventoryForm: FC<AddInventoryFormProps> = ({
                 setSelectedWarehouse({ warehouseId, locationId });
                 onChange?.(`${warehouseId}::${locationId}`);
 
-                setBatchDropdownParams((prev) => ({
+                setBatchLookupParams((prev) => ({
                   ...prev,
                   warehouseId,
                   locationId,
                 }));
               }}
-              warehouseDropdownOptions={warehouseDropdownOptions}
-              warehouseDropdownLoading={warehouseDropdownLoading}
-              warehouseDropdownError={warehouseDropdownError}
-              onRefresh={fetchWarehouseDropdown}
+              warehouseLookupOptions={warehouseLookupOptions}
+              warehouseLookupLoading={warehouseLookupLoading}
+              warehouseLookupError={warehouseLookupError}
+              onRefresh={() => fetchWarehouseLookup({})}
             />
           );
         },
@@ -163,7 +163,7 @@ const AddInventoryForm: FC<AddInventoryFormProps> = ({
                   ? `${selectedBatch.id}::${selectedBatch.type}`
                   : null
               }
-              options={batchDropdownOptions}
+              options={batchLookupOptions}
               onChange={(val) => {
                 if (!val || !val.includes('::')) {
                   setSelectedBatch(null);
@@ -177,17 +177,17 @@ const AddInventoryForm: FC<AddInventoryFormProps> = ({
                 setSelectedBatch({ id, type });
                 onChange?.(`${id}::${type}`);
               }}
-              loading={batchDropdownLoading}
-              error={batchDropdownError}
+              loading={batchLookupLoading}
+              error={batchLookupError}
               hasMore={hasMore}
               pagination={pagination}
               fetchParams={{
-                ...batchDropdownParams,
+                ...batchLookupParams,
                 warehouseId: selectedWarehouse.warehouseId,
                 locationId: selectedWarehouse.locationId,
               }}
-              setFetchParams={setBatchDropdownParams}
-              onRefresh={fetchBatchDropdown}
+              setFetchParams={setBatchLookupParams}
+              onRefresh={fetchBatchLookup}
             />
           </Box>
         ),
@@ -225,18 +225,18 @@ const AddInventoryForm: FC<AddInventoryFormProps> = ({
     selectedWarehouse,
     batchType,
     selectedBatch,
-    warehouseDropdownOptions,
-    warehouseDropdownLoading,
-    warehouseDropdownError,
-    fetchWarehouseDropdown,
-    batchDropdownOptions,
-    batchDropdownError,
-    batchDropdownLoading,
+    warehouseLookupOptions,
+    warehouseLookupLoading,
+    warehouseLookupError,
+    fetchWarehouseLookup,
+    batchLookupOptions,
+    batchLookupError,
+    batchLookupLoading,
     hasMore,
     pagination,
-    batchDropdownParams,
-    setBatchDropdownParams,
-    fetchBatchDropdown,
+    batchLookupParams,
+    setBatchLookupParams,
+    fetchBatchLookup,
     setSelectedWarehouse,
     setSelectedBatch,
   ]);

@@ -1,15 +1,15 @@
 import { type FC } from 'react';
 import Dropdown from '@components/common/Dropdown';
-import type { GetWarehouseDropdownFilters } from '@features/dropdown/state';
+import type { GetWarehouseLookupFilters } from '@features/lookup/state';
 
 interface WarehouseDropdownProps {
   label?: string;
   value: string | null;
-  warehouseDropdownOptions: { value: string; label: string }[];
-  warehouseDropdownLoading?: boolean;
-  warehouseDropdownError?: string | null;
+  warehouseLookupOptions: { value: string; label: string }[];
+  warehouseLookupLoading?: boolean;
+  warehouseLookupError?: string | null;
   onChange: (value: string) => void;
-  onRefresh: (params: GetWarehouseDropdownFilters) => void;
+  onRefresh?: (params: GetWarehouseLookupFilters) => void;
   onAddNew?: () => void;
   disabled?: boolean;
 }
@@ -17,10 +17,10 @@ interface WarehouseDropdownProps {
 const WarehouseDropdown: FC<WarehouseDropdownProps> = ({
   label = 'Select Warehouse',
   value,
-  warehouseDropdownOptions,
+  warehouseLookupOptions,
   onChange,
-  warehouseDropdownLoading = false,
-  warehouseDropdownError = null,
+  warehouseLookupLoading = false,
+  warehouseLookupError = null,
   onRefresh,
   onAddNew,
   disabled = false,
@@ -29,10 +29,10 @@ const WarehouseDropdown: FC<WarehouseDropdownProps> = ({
     <Dropdown
       label={label}
       value={value}
-      options={warehouseDropdownOptions}
+      options={warehouseLookupOptions}
       onChange={onChange}
-      loading={warehouseDropdownLoading}
-      error={warehouseDropdownError}
+      loading={warehouseLookupLoading}
+      error={warehouseLookupError}
       onRefresh={() => onRefresh?.({})}
       onAddNew={onAddNew}
       disabled={disabled}

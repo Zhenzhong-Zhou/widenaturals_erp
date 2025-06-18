@@ -12,8 +12,8 @@ import type {
   InventoryAdjustmentSingleContext,
   InventoryAdjustmentFormData,
 } from '@features/inventoryShared/types/InventorySharedType';
-import LotAdjustmentTypeDropdown from '@features/dropdown/components/LotAdjustmentTypeDropdown';
-import type { AdjustmentTypeOption } from '@features/dropdown/state';
+import LotAdjustmentTypeDropdown from '@features/lookup/components/LotAdjustmentTypeDropdown';
+import type { AdjustmentTypeOption } from '@features/lookup/state';
 
 interface AdjustInventoryFormProps {
   initialQuantity: number;

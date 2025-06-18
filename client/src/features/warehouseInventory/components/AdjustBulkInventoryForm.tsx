@@ -9,12 +9,12 @@ import MultiItemForm, {
 } from '@components/common/MultiItemForm';
 import { formatDate } from '@utils/dateTimeUtils';
 import { formatLabel } from '@utils/textUtils';
-import LotAdjustmentTypeDropdown from '@features/dropdown/components/LotAdjustmentTypeDropdown';
+import LotAdjustmentTypeDropdown from '@features/lookup/components/LotAdjustmentTypeDropdown';
 import type {
   InventoryAdjustmentBulkContext,
   InventoryAdjustmentFormData,
 } from '@features/inventoryShared/types/InventorySharedType';
-import type { AdjustmentTypeOption } from '@features/dropdown/state';
+import type { AdjustmentTypeOption } from '@features/lookup/state';
 import Alert from '@mui/material/Alert';
 
 interface AdjustBulkInventoryFormProps {

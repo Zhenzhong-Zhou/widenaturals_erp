@@ -1,16 +1,16 @@
 const express = require('express');
 const {
-  getBatchRegistryDropdownController,
-  getWarehouseDropdownController, getLotAdjustmentDropdownController,
-} = require('../controllers/dropdown-controller');
+  getBatchRegistryLookupController,
+  getWarehouseLookupController, getLotAdjustmentLookupController,
+} = require('../controllers/lookup-controller');
 const authorize = require('../middlewares/authorize');
 const { sanitizeInput } = require('../middlewares/sanitize');
 
 const router = express.Router();
 
 /**
- * @route GET /dropdown/batch-registry
- * @desc Fetch dropdown options for batch registry records.
+ * @route GET /lookups/batch-registry
+ * @desc Lookup batch registry options for form filters and dropdowns.
  *       Supports filters like batch type and exclusion criteria, with pagination.
  *       Used to populate batch selection menus in inventory forms.
  * @access Protected
@@ -20,13 +20,14 @@ router.get(
   '/batch-registry',
   authorize(['view_batch_registry_dropdown', 'access_inventory_utilities']),
   sanitizeInput,
-  getBatchRegistryDropdownController
+  getBatchRegistryLookupController
 );
 
 /**
- * GET /dropdown/warehouses
+ * GET /lookups/warehouses
  *
- * Returns a filtered list of warehouses for dropdown use.
+ * @desc Lookup warehouse records for UI dropdowns and filters.
+ *       Supports filtering by locationTypeId, warehouseTypeId, and includeArchived.
  *
  * Query Parameters:
  * - locationTypeId (optional): Filter warehouses by location type
@@ -34,7 +35,7 @@ router.get(
  * - includeArchived (optional): Include archived warehouses if true
  *
  * Permissions Required:
- * - view_batch_registry_dropdown
+ * - view_batch_registry_lookup
  * - access_inventory_utilities
  *
  * Middleware:
@@ -63,24 +64,24 @@ router.get(
 router.get(
   '/warehouses',
   authorize([
-    'view_batch_registry_dropdown',
+    'view_batch_registry_lookup',
     'access_inventory_utilities'
   ]),
   sanitizeInput,
-  getWarehouseDropdownController
+  getWarehouseLookupController
 );
 
 /**
- * @route GET /lot-adjustment-types
- * @description Retrieves active lot adjustment types for dropdown selection.
+ * @route GET /lookups/lot-adjustment-types
+ * @description Lookup lot adjustment types for inventory UI.
  * Supports optional filtering to exclude internal-only types via query param `?excludeInternal=true`.
  * Requires one of the following permissions:
  * - 'manage_inventory'
- * - 'view_batch_registry_dropdown'
+ * - 'view_batch_registry_lookup'
  * - 'access_inventory_utilities'
  *
  * @access Protected
- * @returns {200} Array of dropdown options:
+ * @returns {200} Array of lookup options:
  *   [
  *     {
  *       value: string, // lot_adjustment_type_id
@@ -93,11 +94,11 @@ router.get(
   '/lot-adjustment-types',
   authorize([
     'manage_inventory',
-    'view_batch_registry_dropdown',
+    'view_batch_registry_lookup',
     'access_inventory_utilities'
   ]),
   sanitizeInput,
-  getLotAdjustmentDropdownController
+  getLotAdjustmentLookupController
 );
 
 module.exports = router;

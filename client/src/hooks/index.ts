@@ -14,11 +14,11 @@ export { default as usePermissions } from './usePermissions';
 export { default as useUsers } from './useUsers';
 
 // --- Product ---
-export { default as useProducts } from './useSkuProductCards.ts';
+export { default as useProducts } from './useSkuProductCards';
 
 // --- Pricing ---
-export { default as usePricing } from './usePricingList.ts';
-export { default as usePricingDetail } from './usePricingListByType.ts';
+export { default as usePricing } from './usePricingList';
+export { default as usePricingDetail } from './usePricingListByType';
 export { default as usePricingTypes } from './usePricingTypes';
 export { default as usePricingTypeDropdown } from './usePricingTypeDropdown';
 
@@ -28,8 +28,7 @@ export { default as useLocationTypes } from './useLocationTypes';
 export { default as useLocationTypeDetail } from './useLocationTypeDetail';
 
 // --- Inventory ---
-export { default as useInventories } from './useLocationInventorySummary.ts';
-export { default as useInventoryActivityLogs } from './useInventoryActivityLogs';
+export { default as useInventories } from './useLocationInventorySummary';
 
 // --- Warehouse ---
 export { default as useWarehouses } from './useWarehouses';

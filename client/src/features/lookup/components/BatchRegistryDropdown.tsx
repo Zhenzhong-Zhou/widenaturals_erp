@@ -1,6 +1,6 @@
 import { type Dispatch, type FC, type SetStateAction } from 'react';
 import Dropdown from '@components/common/Dropdown';
-import type { GetBatchRegistryDropdownParams } from '../state';
+import type { GetBatchRegistryLookupParams } from '../state';
 
 export interface BatchRegistryDropdownProps {
   label?: string;
@@ -16,10 +16,10 @@ export interface BatchRegistryDropdownProps {
     limit: number;
     offset: number;
   };
-  fetchParams: GetBatchRegistryDropdownParams;
-  setFetchParams: Dispatch<SetStateAction<GetBatchRegistryDropdownParams>>;
+  fetchParams: GetBatchRegistryLookupParams;
+  setFetchParams: Dispatch<SetStateAction<GetBatchRegistryLookupParams>>;
   onChange: (value: string) => void;
-  onRefresh: (params: GetBatchRegistryDropdownParams) => void;
+  onRefresh: (params: GetBatchRegistryLookupParams) => void;
   onAddNew?: () => void;
 }
 

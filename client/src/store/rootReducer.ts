@@ -18,7 +18,7 @@ import { pricingReducers } from '@features/pricing';
 import { pricingTypeReducers } from '@features/pricingType';
 import { skuReducers } from '@features/product';
 import { reportReducers } from '@features/report';
-import { dropdownReducers } from '@features/dropdown';
+import { lookupReducers } from '@features/lookup';
 import { resetPasswordReducers } from '@features/resetPassword';
 import { sessionReducers } from '@features/session';
 import { taxRateReducers } from '@features/taxRate';
@@ -62,7 +62,7 @@ const appReducer = combineReducers(
     reportReducers,
 
     // Dropdown
-    dropdownReducers,
+    lookupReducers,
 
     // Misc
     discountReducers,

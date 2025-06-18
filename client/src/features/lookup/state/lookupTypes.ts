@@ -1,22 +1,22 @@
 import type {
   ApiSuccessResponse,
   AsyncState,
-  DropdownSuccessResponse,
-  PaginatedDropdownState,
-} from '@shared-types/api.ts';
+  LookupSuccessResponse,
+  PaginatedLookupState,
+} from '@shared-types/api';
 
 /**
- * Represents a generic option item used in dropdown components.
+ * Represents a generic option item used in lookup components.
  * Can be reused across forms, selectors, or any UI where value-label pairs are needed.
  */
-export interface DropdownOption {
+export interface LookupOption {
   /** Display label shown to the user */
   label: string;
   /** Underlying value submitted or used in logic */
   value: string;
 }
 
-export interface GetBatchRegistryDropdownParams {
+export interface GetBatchRegistryLookupParams {
   /**
    * Filter by batch type (e.g., 'product', 'packaging_material')
    */
@@ -43,7 +43,7 @@ export interface GetBatchRegistryDropdownParams {
   offset?: number;
 }
 
-export interface ProductBatchDropdownItem {
+export interface ProductBatchLookupItem {
   id: string;
   type: 'product';
   product: {
@@ -54,7 +54,7 @@ export interface ProductBatchDropdownItem {
   };
 }
 
-export interface PackagingMaterialDropdownItem {
+export interface PackagingMaterialLookupItem {
   id: string;
   type: 'packaging_material';
   packagingMaterial: {
@@ -66,17 +66,17 @@ export interface PackagingMaterialDropdownItem {
   };
 }
 
-export type BatchRegistryDropdownItem =
-  | ProductBatchDropdownItem
-  | PackagingMaterialDropdownItem;
+export type BatchRegistryLookupItem =
+  | ProductBatchLookupItem
+  | PackagingMaterialLookupItem;
 
-export type GetBatchRegistryDropdownResponse =
-  DropdownSuccessResponse<BatchRegistryDropdownItem>;
+export type GetBatchRegistryLookupResponse =
+  LookupSuccessResponse<BatchRegistryLookupItem>;
 
-export type BatchRegistryDropdownState =
-  PaginatedDropdownState<BatchRegistryDropdownItem>;
+export type BatchRegistryLookupState =
+  PaginatedLookupState<BatchRegistryLookupItem>;
 
-export interface WarehouseDropdownItem {
+export interface WarehouseLookupItem {
   value: string;
   label: string;
   metadata: {
@@ -85,37 +85,37 @@ export interface WarehouseDropdownItem {
   };
 }
 
-export type GetWarehouseDropdownResponse = ApiSuccessResponse<
-  WarehouseDropdownItem[]
+export type GetWarehouseLookupResponse = ApiSuccessResponse<
+  WarehouseLookupItem[]
 >;
 
-export interface GetWarehouseDropdownFilters {
+export interface GetWarehouseLookupFilters {
   locationTypeId?: string;
   warehouseTypeId?: string;
   includeArchived?: boolean;
 }
 
-export type WarehouseDropdownState = AsyncState<WarehouseDropdownItem[]>;
+export type WarehouseLookupState = AsyncState<WarehouseLookupItem[]>;
 
 /**
- * Specialized alias for warehouse dropdown options.
- * Reuses the generic DropdownOption structure.
+ * Specialized alias for warehouse lookup options.
+ * Reuses the generic LookupOption structure.
  */
-export type WarehouseOption = DropdownOption;
+export type WarehouseOption = LookupOption;
 
 /**
- * Represents a single option in the lot adjustment dropdown.
+ * Represents a single option in the lot adjustment lookup.
  */
-export interface LotAdjustmentTypeDropdownItem {
+export interface LotAdjustmentTypeLookupItem {
   /**
    * The unique identifier of the lot adjustment type.
-   * Used as the `value` in dropdown menus.
+   * Used as the `value` in lookup menus.
    */
   value: string;
   
   /**
    * The display label of the lot adjustment type.
-   * Typically shown as the visible text in the dropdown option.
+   * Typically shown as the visible text in the lookup option.
    */
   label: string;
   
@@ -127,13 +127,13 @@ export interface LotAdjustmentTypeDropdownItem {
 }
 
 /**
- * Typed API response for fetching lot adjustment dropdown options.
+ * Typed API response for fetching lot adjustment lookup options.
  */
-export type LotAdjustmentTypeDropdownResponse = ApiSuccessResponse<LotAdjustmentTypeDropdownItem[]>;
+export type LotAdjustmentTypeLookupResponse = ApiSuccessResponse<LotAdjustmentTypeLookupItem[]>;
 
-export type LotAdjustmentTypeDropdownState = AsyncState<LotAdjustmentTypeDropdownItem[]>;
+export type LotAdjustmentTypeLookupState = AsyncState<LotAdjustmentTypeLookupItem[]>;
 
 /**
- * Specialized alias for lot adjustment type dropdown options.
+ * Specialized alias for lot adjustment type lookup options.
  */
-export type AdjustmentTypeOption = DropdownOption;
+export type AdjustmentTypeOption = LookupOption;

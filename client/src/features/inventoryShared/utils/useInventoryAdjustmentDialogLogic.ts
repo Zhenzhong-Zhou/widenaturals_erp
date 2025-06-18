@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import useAdjustWarehouseInventory from '@hooks/useAdjustWarehouseInventory.ts';
-import useLotAdjustmentTypeDropdown from '@hooks/useLotAdjustmentTypeDropdown.ts';
+import useLotAdjustmentTypeLookup from '@hooks/useLotAdjustmentTypeLookup.ts';
 import {
   mapInventoryRecordToAdjustData,
   mapInventoryRecordsToAdjustData,
@@ -31,15 +31,15 @@ export const useInventoryAdjustmentDialogLogic = ({ mode, records }: UseAdjustme
   } = useAdjustWarehouseInventory();
   
   const {
-    options: dropdownOptions,
-    loading: isDropdownLoading,
-    error: dropdownError,
-    fetchLotAdjustmentTypeDropdown,
-  } = useLotAdjustmentTypeDropdown();
+    options: lookupOptions,
+    loading: isLookupLoading,
+    error: lookupError,
+    fetchLotAdjustmentTypeLookup,
+  } = useLotAdjustmentTypeLookup();
   
   useEffect(() => {
-    fetchLotAdjustmentTypeDropdown();
-  }, [fetchLotAdjustmentTypeDropdown]);
+    fetchLotAdjustmentTypeLookup();
+  }, [fetchLotAdjustmentTypeLookup]);
   
   const mappedRecords = useMemo(() => {
     if (mode === 'single') {
@@ -98,10 +98,10 @@ export const useInventoryAdjustmentDialogLogic = ({ mode, records }: UseAdjustme
     success,
     isSubmitting,
     submitError,
-    dropdownOptions,
-    isDropdownLoading,
-    dropdownError,
-    fetchLotAdjustmentTypeDropdown,
+    lookupOptions,
+    isLookupLoading,
+    lookupError,
+    fetchLotAdjustmentTypeLookup,
     mappedRecords,
     initialQuantities,
     handleSubmit,

@@ -1,8 +1,8 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { fetchBatchRegistryDropdownThunk } from './dropdownThunks';
-import type { BatchRegistryDropdownState } from './dropdownTypes';
+import { fetchBatchRegistryLookupThunk } from './lookupThunks';
+import type { BatchRegistryLookupState } from '@features/lookup/state/lookupTypes';
 
-const initialState: BatchRegistryDropdownState = {
+const initialState: BatchRegistryLookupState = {
   loading: false,
   error: null,
   data: [],
@@ -11,11 +11,11 @@ const initialState: BatchRegistryDropdownState = {
   offset: 0,
 };
 
-const batchRegistryDropdownSlice = createSlice({
-  name: 'batchRegistryDropdown',
+const batchRegistryLookupSlice = createSlice({
+  name: 'batchRegistryLookup',
   initialState,
   reducers: {
-    resetBatchRegistryDropdownState: (state) => {
+    resetBatchRegistryLookupState: (state) => {
       state.loading = false;
       state.error = null;
       state.data = [];
@@ -26,11 +26,11 @@ const batchRegistryDropdownSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchBatchRegistryDropdownThunk.pending, (state) => {
+      .addCase(fetchBatchRegistryLookupThunk.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchBatchRegistryDropdownThunk.fulfilled, (state, action) => {
+      .addCase(fetchBatchRegistryLookupThunk.fulfilled, (state, action) => {
         const { items, limit, offset, hasMore } = action.payload;
         state.loading = false;
 
@@ -45,13 +45,13 @@ const batchRegistryDropdownSlice = createSlice({
         state.offset = offset;
         state.hasMore = hasMore;
       })
-      .addCase(fetchBatchRegistryDropdownThunk.rejected, (state, action) => {
+      .addCase(fetchBatchRegistryLookupThunk.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload ?? 'Failed to fetch dropdown items';
+        state.error = action.payload ?? 'Failed to fetch lookup items';
       });
   },
 });
 
-export const { resetBatchRegistryDropdownState } =
-  batchRegistryDropdownSlice.actions;
-export default batchRegistryDropdownSlice.reducer;
+export const { resetBatchRegistryLookupState } =
+  batchRegistryLookupSlice.actions;
+export default batchRegistryLookupSlice.reducer;

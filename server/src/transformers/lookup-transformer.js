@@ -3,12 +3,12 @@ const { cleanObject } = require('../utils/object-utils');
 const { transformPaginatedResult } = require('../utils/transformer-utils');
 
 /**
- * Transforms an array of raw batch registry rows into dropdown-friendly shapes.
+ * Transforms an array of raw batch registry rows into lookup-friendly shapes.
  *
  * @param {object} row - A single row from the DB result.
- * @returns {object} - Array of transformed dropdown objects.
+ * @returns {object} - Array of transformed lookup objects.
  */
-const transformBatchRegistryDropdownItem = (row) => {
+const transformBatchRegistryLookupItem = (row) => {
   return cleanObject({
     id: row.batch_registry_id,
     type: row.batch_type,
@@ -33,26 +33,26 @@ const transformBatchRegistryDropdownItem = (row) => {
 };
 
 /**
- * Transforms a paginated result of batch registry records for dropdown usage,
+ * Transforms a paginated result of batch registry records for lookup usage,
  * applying a row-level transformer and formatting the response for load-more support.
  *
  * @param {Object} paginatedResult - The raw paginated query result.
  * @returns {Object} Transformed response including items, limit, offset, and hasMore flag.
  */
-const transformPaginatedDropdownResultList = (paginatedResult) =>
+const transformPaginatedLookupResultList = (paginatedResult) =>
   transformPaginatedResult(
     paginatedResult,
-    transformBatchRegistryDropdownItem,
+    transformBatchRegistryLookupItem,
     { includeLoadMore: true }
   );
 
 /**
- * Transforms raw warehouse dropdown rows into dropdown-compatible format.
+ * Transforms raw warehouse lookup rows into lookup-compatible format.
  *
- * @param {Array<Object>} rows - Raw rows from the warehouse dropdown query
- * @returns {Array<Object>} Transformed dropdown items
+ * @param {Array<Object>} rows - Raw rows from the warehouse lookup query
+ * @returns {Array<Object>} Transformed lookup items
  */
-const transformWarehouseDropdownRows = (rows) => {
+const transformWarehouseLookupRows = (rows) => {
   if (!Array.isArray(rows)) return [];
 
   return rows.map((row) => ({
@@ -66,17 +66,17 @@ const transformWarehouseDropdownRows = (rows) => {
 };
 
 /**
- * @function transformLotAdjustmentDropdownOptions
- * @description Transforms raw lot adjustment types from DB into dropdown-friendly format.
+ * @function transformLotAdjustmentLookupOptions
+ * @description Transforms raw lot adjustment types from DB into lookup-friendly format.
  *
  * @param {Array} rows - Raw query result rows from lot_adjustment_types join.
  * @returns {Array<{ value: string, label: string, actionTypeId: string }>}
  *
  * @example
- * const transformed = transformLotAdjustmentDropdownOptions(rows);
+ * const transformed = transformLotAdjustmentLookupOptions(rows);
  * // Result: [{ value: '581f...', label: 'adjustment', actionTypeId: 'a7c1...' }, ...]
  */
-const transformLotAdjustmentDropdownOptions = (rows) => {
+const transformLotAdjustmentLookupOptions = (rows) => {
   if (!Array.isArray(rows)) return [];
   
   return rows.map((row) => ({
@@ -87,7 +87,7 @@ const transformLotAdjustmentDropdownOptions = (rows) => {
 };
 
 module.exports = {
-  transformPaginatedDropdownResultList,
-  transformWarehouseDropdownRows,
-  transformLotAdjustmentDropdownOptions
+  transformPaginatedLookupResultList,
+  transformWarehouseLookupRows,
+  transformLotAdjustmentLookupOptions
 };

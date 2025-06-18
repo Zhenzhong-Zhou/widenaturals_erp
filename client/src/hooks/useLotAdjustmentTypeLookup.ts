@@ -1,20 +1,20 @@
 import { useMemo, useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
-  fetchLotAdjustmentTypeDropdownThunk,
+  fetchLotAdjustmentTypeLookupThunk,
   selectLotAdjustmentTypeError,
   selectLotAdjustmentTypeItems,
   selectLotAdjustmentTypeLoading,
-} from '@features/dropdown/state';
+} from '@features/lookup/state';
 import { formatLabel } from '@utils/textUtils';
 
 /**
- * Custom hook to manage lot adjustment type dropdown.
+ * Custom hook to manage lot adjustment type lookup.
  * Fetches data on mount and exposes a manual fetch method.
  *
  * @param excludeInternal - Whether to exclude internal-only types (default: true).
  */
-const useLotAdjustmentTypeDropdown = (excludeInternal: boolean = true) => {
+const useLotAdjustmentTypeLookup = (excludeInternal: boolean = true) => {
   const dispatch = useAppDispatch();
   
   const items = useAppSelector(selectLotAdjustmentTypeItems);
@@ -22,12 +22,12 @@ const useLotAdjustmentTypeDropdown = (excludeInternal: boolean = true) => {
   const error = useAppSelector(selectLotAdjustmentTypeError);
   
   // Expose a function instead of dispatching immediately
-  const fetchLotAdjustmentTypeDropdown = useCallback(() => {
-    dispatch(fetchLotAdjustmentTypeDropdownThunk(excludeInternal));
+  const fetchLotAdjustmentTypeLookup = useCallback(() => {
+    dispatch(fetchLotAdjustmentTypeLookupThunk(excludeInternal));
   }, [dispatch, excludeInternal]);
   
   // Memoize mapped options
-  const dropdownOptions = useMemo(
+  const lookupOptions = useMemo(
     () =>
       items.map((item) => ({
         value: `${item.value}::${item.actionTypeId}`,
@@ -37,11 +37,11 @@ const useLotAdjustmentTypeDropdown = (excludeInternal: boolean = true) => {
   );
   
   return {
-    options: dropdownOptions,
+    options: lookupOptions,
     loading,
     error,
-    fetchLotAdjustmentTypeDropdown, // Exposed for manual control
+    fetchLotAdjustmentTypeLookup, // Exposed for manual control
   };
 };
 
-export default useLotAdjustmentTypeDropdown;
+export default useLotAdjustmentTypeLookup;
