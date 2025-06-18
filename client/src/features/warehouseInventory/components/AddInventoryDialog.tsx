@@ -78,14 +78,16 @@ const AddInventoryDialog: FC<AddInventoryDialogProps> = ({
 
   useEffect(() => {
     fetchBatchRegistryLookup({ ...batchLookupParams, offset: 0 }); // initial load
-    return () => {
-      restBatchRegistryLookup();
-    };
   }, [
     fetchBatchRegistryLookup,
-    restBatchRegistryLookup,
     batchLookupParams,
   ]);
+  
+  useEffect(() => {
+    return () => {
+      restBatchRegistryLookup(); // reset only on unmounting
+    };
+  }, [restBatchRegistryLookup]);
 
   const transformWarehouseLookupToOptions = (
     items: WarehouseLookupItem[]

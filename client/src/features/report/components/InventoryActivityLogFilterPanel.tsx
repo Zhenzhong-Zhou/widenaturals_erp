@@ -1,28 +1,80 @@
-import { type FC } from 'react';
+import { type Dispatch, type FC, type SetStateAction } from 'react';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import BaseInput from '@components/common/BaseInput';
 import CustomButton from '@components/common/CustomButton';
 import CustomDatePicker from '@components/common/CustomDatePicker';
 import type { InventoryActivityLogQueryParams } from '@features/report/state';
+import BatchRegistryMultiSelectDropdown from '@features/lookup/components/BatchRegistryMultiSelectDropdown.tsx';
+import type { GetBatchRegistryLookupParams } from '@features/lookup/state';
 
+interface PaginationWithFetchMore {
+  limit: number;
+  offset: number;
+  onFetchMore?: () => void;
+}
 
 interface InventoryActivityLogFilterPanelProps {
   filters: Partial<InventoryActivityLogQueryParams>;
   onChange: (filters: Partial<InventoryActivityLogQueryParams>) => void;
   onApply: () => void;
   onReset: () => void;
+  batchLookupOptions: { value: string; label: string }[];
+  selectedBatches: { id: string; type: string }[];
+  onSelectedBatchesChange: (value: { id: string; type: string }[]) => void;
+  batchLookupParams: GetBatchRegistryLookupParams;
+  setBatchLookupParams: Dispatch<
+    SetStateAction<GetBatchRegistryLookupParams>
+  >;
+  fetchBatchLookup: (params: GetBatchRegistryLookupParams) => void;
+  hasMore: boolean;
+  pagination: PaginationWithFetchMore;
+  batchLookupLoading?: boolean;
+  batchLookupError?: string | null;
 }
 
-const InventoryActivityLogFilterPanel: FC<InventoryActivityLogFilterPanelProps> = ({ filters, onChange, onApply, onReset }) => {
-  const handleChange = (field: keyof InventoryActivityLogQueryParams) => (value: any) => {
-    onChange({ ...filters, [field]: value });
-  };
+const InventoryActivityLogFilterPanel: FC<InventoryActivityLogFilterPanelProps> = ({
+                                                                                     filters,
+                                                                                     onChange,
+                                                                                     onApply,
+                                                                                     onReset,
+                                                                                     batchLookupOptions,
+                                                                                     selectedBatches,
+                                                                                     onSelectedBatchesChange,
+                                                                                     batchLookupParams,
+                                                                                     setBatchLookupParams,
+                                                                                     fetchBatchLookup,
+                                                                                     hasMore,
+                                                                                     pagination,
+                                                                                     batchLookupLoading,
+                                                                                     batchLookupError,
+                                                                                   }) => {
+  const handleChange =
+    <K extends keyof InventoryActivityLogQueryParams>(field: K) =>
+      (value: InventoryActivityLogQueryParams[K]) => {
+        onChange({ ...filters, [field]: value });
+      };
   
   return (
     <Box sx={{ mb: 2 }}>
       <Grid container spacing={2}>
         {/* Left column */}
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          <BatchRegistryMultiSelectDropdown
+            label="Select Batches"
+            batchLookupOptions={batchLookupOptions}
+            selectedBatches={selectedBatches}
+            onSelectedBatchesChange={onSelectedBatchesChange}
+            batchLookupParams={batchLookupParams}
+            setFetchParams={setBatchLookupParams}
+            fetchBatchLookup={fetchBatchLookup}
+            hasMore={hasMore}
+            pagination={pagination}
+            batchLookupLoading={batchLookupLoading}
+            batchLookupError={batchLookupError}
+          />
+        </Grid>
+        
         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <BaseInput
             label="Performed By"
