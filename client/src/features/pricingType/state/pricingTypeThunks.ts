@@ -1,6 +1,5 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { pricingTypeService } from '@services/pricingTypeService.ts';
-import { dropdownService } from '@services/dropdownService.ts';
 import type { PaginatedResponse } from '@shared-types/api';
 import type {
   FetchPricingTypesParams,

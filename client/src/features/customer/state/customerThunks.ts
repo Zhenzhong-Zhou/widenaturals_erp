@@ -9,7 +9,6 @@ import type {
   FetchCustomersDropdownResponse,
 } from '@features/customer';
 import { customerService } from '@services/customerService';
-import { dropdownService } from '@services/dropdownService';
 
 // Thunk for creating a single customer
 export const createCustomerThunk = createAsyncThunk<
