@@ -6,8 +6,9 @@ import CustomButton from '@components/common/CustomButton';
 import CustomDatePicker from '@components/common/CustomDatePicker';
 import type { InventoryActivityLogQueryParams } from '@features/report/state';
 import BatchRegistryMultiSelectDropdown from '@features/lookup/components/BatchRegistryMultiSelectDropdown';
-import type { BatchLookupOption, GetBatchRegistryLookupParams } from '@features/lookup/state';
+import type { BatchLookupOption, GetBatchRegistryLookupParams, WarehouseOption } from '@features/lookup/state';
 import type { MultiSelectOption } from '@components/common/MultiSelectDropdown';
+import WarehouseMultiSelectDropdown from '@features/lookup/components/WarehouseMultiSelectDropdown';
 
 interface PaginationWithFetchMore {
   limit: number;
@@ -32,6 +33,11 @@ interface InventoryActivityLogFilterPanelProps {
   pagination: PaginationWithFetchMore;
   batchLookupLoading?: boolean;
   batchLookupError?: string | null;
+  warehouseOptions: WarehouseOption[];
+  selectedWarehouses: WarehouseOption[];
+  onSelectedWarehousesChange: (value: WarehouseOption[]) => void;
+  warehouseLoading?: boolean;
+  warehouseError?: string | null;
 }
 
 const InventoryActivityLogFilterPanel: FC<InventoryActivityLogFilterPanelProps> = ({
@@ -49,6 +55,11 @@ const InventoryActivityLogFilterPanel: FC<InventoryActivityLogFilterPanelProps> 
                                                                                      pagination,
                                                                                      batchLookupLoading,
                                                                                      batchLookupError,
+                                                                                     warehouseOptions,
+                                                                                     selectedWarehouses,
+                                                                                     onSelectedWarehousesChange,
+                                                                                     warehouseLoading,
+                                                                                     warehouseError,
                                                                                    }) => {
   const handleChange =
     <K extends keyof InventoryActivityLogQueryParams>(field: K) =>
@@ -70,6 +81,13 @@ const InventoryActivityLogFilterPanel: FC<InventoryActivityLogFilterPanelProps> 
     handleChange('batchIds')(newSelected.map((item) => item.value)); // Update filter for backend
   };
   
+  const handleWarehouseDropdownChange = (selected: WarehouseOption[]) => {
+    onSelectedWarehousesChange(selected); // Update UI
+    
+    const selectedWarehouseIds = selected.map((w) => w.value);
+    handleChange('warehouseIds')(selectedWarehouseIds); // Update filters
+  };
+  
   return (
     <Box sx={{ mb: 2 }}>
       <Grid container spacing={2}>
@@ -87,6 +105,17 @@ const InventoryActivityLogFilterPanel: FC<InventoryActivityLogFilterPanelProps> 
             pagination={pagination}
             batchLookupLoading={batchLookupLoading}
             batchLookupError={batchLookupError}
+          />
+        </Grid>
+        
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          <WarehouseMultiSelectDropdown
+            label="Select Warehouses"
+            options={warehouseOptions}
+            selectedOptions={selectedWarehouses}
+            onChange={handleWarehouseDropdownChange}
+            loading={warehouseLoading}
+            error={warehouseError}
           />
         </Grid>
         

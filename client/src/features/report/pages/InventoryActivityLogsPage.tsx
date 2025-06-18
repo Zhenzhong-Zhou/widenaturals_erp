@@ -13,8 +13,14 @@ import type { InventoryActivityLogEntry, InventoryActivityLogQueryParams } from 
 import { mergeInventoryActivityLogs, type MergedInventoryActivityLogEntry } from '../utils/logUtils';
 import InventoryActivityLogFilterPanel from '../components/InventoryActivityLogFilterPanel';
 import useBatchRegistryLookup from '@hooks/useBatchRegistryLookup';
-import type { BatchLookupOption, GetBatchRegistryLookupParams } from '@features/lookup/state';
+import type {
+  BatchLookupOption,
+  GetBatchRegistryLookupParams,
+  WarehouseLookupItem,
+  WarehouseOption,
+} from '@features/lookup/state';
 import { mapBatchLookupToOptions } from '@features/lookup/utils/batchRegistryUtils';
+import useWarehouseLookup from '@hooks/useWarehouseLookup.ts';
 
 const InventoryActivityLogsTable = lazy(() =>
   import('@features/report/components/InventoryActivityLogsTable')
@@ -32,13 +38,14 @@ const InventoryActivityLogsPage: FC = () => {
       limit: 50,
       offset: 0,
     });
+  const [selectedWarehouses, setSelectedWarehouses] = useState<WarehouseOption[]>([]);
   const isFetchingRef = useRef(false);
   
   const {
-    data,
+    data: logData,
     pagination,
-    loading,
-    error,
+    loading: logLoading,
+    error: logError,
     fetchLogs,
   } = usePaginatedInventoryActivityLogs();
   
@@ -52,9 +59,16 @@ const InventoryActivityLogsPage: FC = () => {
     resetLookup: restBatchRegistryLookup,
   } = useBatchRegistryLookup();
   
+  const {
+    items: warehouseOptions,
+    loading: warehouseLoading,
+    error: warehouseError,
+    fetchLookup: fetchWarehouseLookup,
+  } = useWarehouseLookup();
+  
   const mergedData: MergedInventoryActivityLogEntry[] = useMemo(
-    () => mergeInventoryActivityLogs(data),
-    [data]
+    () => mergeInventoryActivityLogs(logData),
+    [logData]
   );
   
   const queryParams = useMemo(() => ({
@@ -89,9 +103,26 @@ const InventoryActivityLogsPage: FC = () => {
     };
   }, [restBatchRegistryLookup]);
   
+  useEffect(() => {
+    fetchWarehouseLookup();
+  }, [fetchWarehouseLookup]);
+  
   const batchLookupOptions = useMemo(() => {
     return mapBatchLookupToOptions(batchOptions, false) as BatchLookupOption[];
   }, [batchOptions]);
+  
+  const transformWarehouseLookupToOptions = (
+    items: WarehouseLookupItem[]
+  ): WarehouseOption[] => {
+    return items.map((item) => ({
+      label: item.label,
+      value: item.value,
+    }));
+  };
+  
+  const warehouseLookupOptions = useMemo(() => {
+    return transformWarehouseLookupToOptions(warehouseOptions);
+  }, [warehouseOptions]);
   
   const handlePageChange = useCallback((newPage: number) => {
     setPage(newPage + 1); // Convert MUI's 0-based to 1-based
@@ -123,17 +154,17 @@ const InventoryActivityLogsPage: FC = () => {
     }, 500);
   };
   
-  if (loading) return <Loading message="Loading activity logs..." />;
-  if (error)
+  if (logLoading) return <Loading message="Loading activity logs..." />;
+  if (logError)
     return (
       <ErrorDisplay>
-        <ErrorMessage message={error} />
+        <ErrorMessage message={logError} />
       </ErrorDisplay>
     );
   
   return (
     <>
-      {Array.isArray(data) && data.length > 0 ? (
+      {Array.isArray(logData) && logData.length > 0 ? (
         <Box
           sx={{
             p: 3,
@@ -189,6 +220,11 @@ const InventoryActivityLogsPage: FC = () => {
               }}
               batchLookupLoading={batchLoading}
               batchLookupError={batchError}
+              warehouseOptions={warehouseLookupOptions}
+              selectedWarehouses={selectedWarehouses}
+              onSelectedWarehousesChange={setSelectedWarehouses}
+              warehouseLoading={warehouseLoading}
+              warehouseError={warehouseError}
             />
           </Box>
           
@@ -198,7 +234,7 @@ const InventoryActivityLogsPage: FC = () => {
           <Suspense fallback={<Loading message="Loading table..." />}>
             <InventoryActivityLogsTable
               data={mergedData}
-              loading={loading}
+              loading={logLoading}
               page={page - 1}
               totalPages={pagination?.totalPages ?? 1}
               totalRecords={pagination?.totalRecords ?? 0}
@@ -211,7 +247,7 @@ const InventoryActivityLogsPage: FC = () => {
             />
           </Suspense>
         </Box>
-      ) : loading ? null : (
+      ) : logLoading ? null : (
         <NoDataFound message="No inventory activity logs available." />
       )}
     </>
