@@ -10,16 +10,20 @@ const LocationInventoryTable = lazy(
   () => import('../components/LocationInventoryTable')
 );
 
-export default () => (
-  <BaseInventoryPage
-    title="All Location Inventory"
-    Icon={<StoreIcon fontSize="medium" color="primary" />}
-    useInventoryHook={useLocationInventory}
-    FilterPanel={LocationInventoryFilterPanel}
-    TableComponent={LocationInventoryTable}
-    ExpandedRowComponent={LocationInventoryExpandedRow}
-    sortOptions={LOCATION_INVENTORY_SORT_OPTIONS}
-    rowKey="id"
-    extractGroupName={(record) => record.location?.name || 'Unknown Location'}
-  />
-);
+const LocationInventoryPage = () => {
+  return (
+    <BaseInventoryPage
+      title="All Location Inventory"
+      Icon={<StoreIcon fontSize="medium" color="primary" />}
+      useInventoryHook={useLocationInventory}
+      FilterPanel={LocationInventoryFilterPanel}
+      TableComponent={LocationInventoryTable}
+      ExpandedRowComponent={LocationInventoryExpandedRow}
+      sortOptions={LOCATION_INVENTORY_SORT_OPTIONS}
+      rowKey="id"
+      extractGroupName={(record) => record.location?.name || 'Unknown Location'}
+    />
+  )
+};
+
+export default LocationInventoryPage;

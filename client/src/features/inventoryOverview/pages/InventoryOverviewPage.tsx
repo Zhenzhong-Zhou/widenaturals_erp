@@ -11,11 +11,13 @@ import Paper from '@mui/material/Paper';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import Skeleton from '@mui/material/Skeleton';
+import Divider from '@mui/material/Divider';
 import CustomTypography from '@components/common/CustomTypography';
 import ItemTypeTabs from '@features/inventoryShared/components/ItemTypeTabs';
 import type { ItemType } from '@features/inventoryShared/types/InventorySharedType';
 import InventoryOverviewHeaderSection from '@features/inventoryOverview/components/InventoryOverviewHeaderSection';
-import Divider from '@mui/material/Divider';
+import usePermissions from '@hooks/usePermissions';
+import useHasPermission from '@features/authorize/hooks/useHasPermission';
 
 // Lazy loaded panels
 const LocationInventorySummaryPanel = lazy(
@@ -29,6 +31,9 @@ const WarehouseInventorySummaryPanel = lazy(
     import(
       '@features/inventoryOverview/components/WarehouseInventorySummaryPanel'
     )
+);
+const RecentInventoryActivitySection = lazy(
+  () => import('@features/report/components/RecentInventoryActivitySection')
 );
 
 const InventoryOverviewPage = () => {
@@ -53,7 +58,14 @@ const InventoryOverviewPage = () => {
       : itemTypeTab === 2
         ? 'packaging_material'
         : undefined;
-
+  
+  const { permissions } = usePermissions();
+  const hasPermission = useHasPermission(permissions);
+  
+  const canViewBasicLogs = hasPermission(['view_inventory_logs']);
+  const canViewProductLogs = hasPermission(['view_all_product_logs']);
+  const canViewSkuLogs = hasPermission(['view_all_sku_logs']);
+  
   const handleTabChange = (_: SyntheticEvent, newTab: number) => {
     startTransition(() => {
       setTab(newTab);
@@ -104,7 +116,20 @@ const InventoryOverviewPage = () => {
     <Box sx={{ px: 4, py: 3 }}>
       {/* Page Header */}
       <InventoryOverviewHeaderSection />
-
+      
+      {canViewBasicLogs && (
+        <>
+          {/* Spacer */}
+          <Divider sx={{ mt: 4, mb: 4 }} />
+          
+          {/* Logs section */}
+          <Suspense fallback={<Skeleton height={200} />}>
+            <RecentInventoryActivitySection />
+          </Suspense>
+        </>
+      )}
+      
+      {/* Spacer */}
       <Divider sx={{ mt: 4, mb: 4 }} />
 
       {/* Inventory Management */}

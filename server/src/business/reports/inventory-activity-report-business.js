@@ -48,7 +48,7 @@ const hasFullInventoryLogAccess = async (user) => {
  * @returns {Promise<boolean>}
  */
 const canViewProductLevelLogs = async (user) => {
-  return await checkPermissions(user, ['view_all_products', 'root_access']);
+  return await checkPermissions(user, ['view_all_product_logs', 'root_access']);
 };
 
 /**
@@ -58,7 +58,7 @@ const canViewProductLevelLogs = async (user) => {
  * @returns {Promise<boolean>}
  */
 const canViewSkuLevelLogs = async (user) => {
-  return await checkPermissions(user, ['view_all_skus', 'root_access']);
+  return await checkPermissions(user, ['view_all_sku_logs', 'root_access']);
 };
 
 /**
@@ -68,7 +68,7 @@ const canViewSkuLevelLogs = async (user) => {
  * @returns {Promise<boolean>}
  */
 const canViewBatchLevelLogs = async (user) => {
-  return await checkPermissions(user, ['view_all_batches', 'root_access']);
+  return await checkPermissions(user, ['view_all_batch_logs', 'root_access']);
 };
 
 /**
@@ -79,7 +79,7 @@ const canViewBatchLevelLogs = async (user) => {
  * @returns {Promise<boolean>}
  */
 const canViewAllPackingMaterials = async (user) => {
-  return await checkPermissions(user, ['view_all_packing_materials', 'root_access']);
+  return await checkPermissions(user, ['view_all_packing_material_logs', 'root_access']);
 };
 
 /**
@@ -90,7 +90,7 @@ const canViewAllPackingMaterials = async (user) => {
  * @returns {Promise<boolean>}
  */
 const canViewAllWarehouses = async (user) => {
-  return await checkPermissions(user, ['view_all_warehouses', 'root_access']);
+  return await checkPermissions(user, ['view_all_warehouse_logs', 'root_access']);
 };
 
 /**
@@ -101,7 +101,7 @@ const canViewAllWarehouses = async (user) => {
  * @returns {Promise<boolean>}
  */
 const canViewAllLocations = async (user) => {
-  return await checkPermissions(user, ['view_all_locations', 'view_full_warehouse_logs', 'root_access']);
+  return await checkPermissions(user, ['view_all_location_logs', 'root_access']);
 };
 
 /**
