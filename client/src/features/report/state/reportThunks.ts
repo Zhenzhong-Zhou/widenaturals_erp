@@ -10,17 +10,18 @@ import type {
  * Thunk to fetch the base (non-paginated) inventory activity logs.
  *
  * This is typically used for general users who only have access to
- * their scope of activity logs. It returns all available logs without pagination.
+ * their scope of activity logs. It returns a fixed first page with a specified limit.
  *
+ * @param limit - The number of records to fetch (default is 30).
  * @returns A thunk action that resolves with `InventoryActivityLogBaseDataResponse`
  *          or dispatches a rejected action on failure.
  */
 export const fetchBaseInventoryActivityLogsThunk = createAsyncThunk<
   InventoryActivityLogBaseDataResponse,
-  void
->('report/fetchBaseInventoryActivityLogs', async (_, thunkAPI) => {
+  number | undefined
+>('report/fetchBaseInventoryActivityLogs', async (limit = 30, thunkAPI) => {
   try {
-    return await reportService.fetchBaseInventoryActivityLogs();
+    return await reportService.fetchBaseInventoryActivityLogs({ limit });
   } catch (error) {
     return thunkAPI.rejectWithValue(error);
   }

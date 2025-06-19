@@ -9,7 +9,7 @@ import TablePagination from '@mui/material/TablePagination';
 import NoDataFound from '@components/common/NoDataFound';
 
 export interface MiniColumn<T> {
-  id: keyof T | 'select';
+  id: keyof T | 'select' | string;
   label: string;
   align?: 'left' | 'right' | 'center';
   format?: (value: any, row: T) => ReactNode;

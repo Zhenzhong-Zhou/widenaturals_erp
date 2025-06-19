@@ -17,6 +17,8 @@ import type { InventoryActivityLogQueryParams } from '@features/report/state';
 
 /**
  * Hook to get base (non-paginated) inventory activity logs and trigger fetch.
+ *
+ * @returns Object containing data, loading, error, and a fetchLogs method that accepts an optional limit.
  */
 export const useBaseInventoryActivityLogs = () => {
   const dispatch = useAppDispatch();
@@ -25,8 +27,8 @@ export const useBaseInventoryActivityLogs = () => {
   const loading = useAppSelector(selectBaseLogsLoading);
   const error = useAppSelector(selectBaseLogsError);
   
-  const fetchLogs = useCallback(() => {
-    dispatch(fetchBaseInventoryActivityLogsThunk());
+  const fetchLogs = useCallback((limit?: number) => {
+    dispatch(fetchBaseInventoryActivityLogsThunk(limit));
   }, [dispatch]);
   
   return { data, loading, error, fetchLogs };

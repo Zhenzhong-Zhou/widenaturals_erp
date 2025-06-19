@@ -6,24 +6,32 @@ import type {
   InventoryActivityLogPaginatedResponse,
   InventoryActivityLogQueryParams,
 } from '@features/report/state';
+import type { PaginationParams } from '@shared-types/api';
 
 /**
  * Fetches the base (non-paginated) inventory activity logs.
  * Typically used for standard users with access to general inventory log data.
  *
+ * @param params - Pagination parameters; only `limit` is used, page is fixed at 1.
  * @returns A promise resolving to an array of inventory activity log entries
  *          wrapped in a success response structure.
  * @throws If the API request fails, the error will be propagated for higher-level handling.
  */
-const fetchBaseInventoryActivityLogs = async (): Promise<InventoryActivityLogBaseDataResponse> => {
+const fetchBaseInventoryActivityLogs = async (
+  params: Omit<PaginationParams, 'page'> // accept limit only
+): Promise<InventoryActivityLogBaseDataResponse> => {
   try {
     const response = await axiosInstance.get<InventoryActivityLogBaseDataResponse>(
-      API_ENDPOINTS.REPORTS.INVENTORY_ACTIVITY_LOGS
+      API_ENDPOINTS.REPORTS.INVENTORY_ACTIVITY_LOGS,
+      {
+        params: {
+          page: 1,
+          limit: params.limit,
+        },
+      }
     );
     return response.data;
   } catch (error) {
-    // Optional: You can log the error here if not handled globally
-    // console.error('Failed to fetch base inventory activity logs', error);
     throw error;
   }
 };
