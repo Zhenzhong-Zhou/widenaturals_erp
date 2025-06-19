@@ -16,11 +16,13 @@ import useBatchRegistryLookup from '@hooks/useBatchRegistryLookup';
 import type {
   BatchLookupOption,
   GetBatchRegistryLookupParams,
+  LookupOption,
   WarehouseLookupItem,
   WarehouseOption,
 } from '@features/lookup/state';
 import { mapBatchLookupToOptions } from '@features/lookup/utils/batchRegistryUtils';
 import useWarehouseLookup from '@hooks/useWarehouseLookup.ts';
+import useLotAdjustmentTypeLookup from '@hooks/useLotAdjustmentTypeLookup.ts';
 
 const InventoryActivityLogsTable = lazy(() =>
   import('@features/report/components/InventoryActivityLogsTable')
@@ -39,6 +41,7 @@ const InventoryActivityLogsPage: FC = () => {
       offset: 0,
     });
   const [selectedWarehouses, setSelectedWarehouses] = useState<WarehouseOption[]>([]);
+  const [selectedLotAdjustments, setSelectedLotAdjustments] = useState<LookupOption[]>([]);
   const isFetchingRef = useRef(false);
   
   const {
@@ -65,6 +68,13 @@ const InventoryActivityLogsPage: FC = () => {
     error: warehouseError,
     fetchLookup: fetchWarehouseLookup,
   } = useWarehouseLookup();
+  
+  const {
+    options: adjustmentTypeOptions,
+    loading: isAdjustmentTypeLoading,
+    error: adjustmentTypeError,
+    fetchLotAdjustmentTypeLookup,
+  } = useLotAdjustmentTypeLookup();
   
   const mergedData: MergedInventoryActivityLogEntry[] = useMemo(
     () => mergeInventoryActivityLogs(logData),
@@ -107,6 +117,10 @@ const InventoryActivityLogsPage: FC = () => {
     fetchWarehouseLookup();
   }, [fetchWarehouseLookup]);
   
+  useEffect(() => {
+    fetchLotAdjustmentTypeLookup();
+  }, [fetchLotAdjustmentTypeLookup]);
+  
   const batchLookupOptions = useMemo(() => {
     return mapBatchLookupToOptions(batchOptions, false) as BatchLookupOption[];
   }, [batchOptions]);
@@ -123,6 +137,17 @@ const InventoryActivityLogsPage: FC = () => {
   const warehouseLookupOptions = useMemo(() => {
     return transformWarehouseLookupToOptions(warehouseOptions);
   }, [warehouseOptions]);
+  
+  const adjustmentTypeOnlyOptions: LookupOption[] = useMemo(() => {
+    return adjustmentTypeOptions
+      .map(({ label, value }) => {
+        const [lotAdjustmentTypeId] = value.split('::');
+        return lotAdjustmentTypeId
+          ? { value: lotAdjustmentTypeId, label }
+          : null;
+      })
+      .filter((item): item is LookupOption => item !== null);
+  }, [adjustmentTypeOptions]);
   
   const handlePageChange = useCallback((newPage: number) => {
     setPage(newPage + 1); // Convert MUI's 0-based to 1-based
@@ -216,6 +241,11 @@ const InventoryActivityLogsPage: FC = () => {
             onSelectedWarehousesChange={setSelectedWarehouses}
             warehouseLoading={warehouseLoading}
             warehouseError={warehouseError}
+            lotAdjustmentOptions={adjustmentTypeOnlyOptions}
+            selectedLotAdjustments={selectedLotAdjustments}
+            onSelectedLotAdjustmentsChange={setSelectedLotAdjustments}
+            lotAdjustmentLoading={isAdjustmentTypeLoading}
+            lotAdjustmentError={adjustmentTypeError}
           />
         </Box>
         

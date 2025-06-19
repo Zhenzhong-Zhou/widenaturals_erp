@@ -6,9 +6,15 @@ import CustomButton from '@components/common/CustomButton';
 import CustomDatePicker from '@components/common/CustomDatePicker';
 import type { InventoryActivityLogQueryParams } from '@features/report/state';
 import BatchRegistryMultiSelectDropdown from '@features/lookup/components/BatchRegistryMultiSelectDropdown';
-import type { BatchLookupOption, GetBatchRegistryLookupParams, WarehouseOption } from '@features/lookup/state';
+import type {
+  BatchLookupOption,
+  GetBatchRegistryLookupParams,
+  LookupOption,
+  WarehouseOption,
+} from '@features/lookup/state';
 import type { MultiSelectOption } from '@components/common/MultiSelectDropdown';
 import WarehouseMultiSelectDropdown from '@features/lookup/components/WarehouseMultiSelectDropdown';
+import LotAdjustmentTypeMultiSelectDropdown from '@features/lookup/components/LotAdjustmentTypeMultiSelectDropdown';
 
 interface PaginationWithFetchMore {
   limit: number;
@@ -38,6 +44,11 @@ interface InventoryActivityLogFilterPanelProps {
   onSelectedWarehousesChange: (value: WarehouseOption[]) => void;
   warehouseLoading?: boolean;
   warehouseError?: string | null;
+  lotAdjustmentOptions: LookupOption[]; // list of lot adjustment type options
+  selectedLotAdjustments: LookupOption[];
+  onSelectedLotAdjustmentsChange: (value: LookupOption[]) => void;
+  lotAdjustmentLoading?: boolean;
+  lotAdjustmentError?: string | null;
 }
 
 const InventoryActivityLogFilterPanel: FC<InventoryActivityLogFilterPanelProps> = ({
@@ -60,6 +71,11 @@ const InventoryActivityLogFilterPanel: FC<InventoryActivityLogFilterPanelProps> 
                                                                                      onSelectedWarehousesChange,
                                                                                      warehouseLoading,
                                                                                      warehouseError,
+                                                                                     lotAdjustmentOptions,
+                                                                                     selectedLotAdjustments,
+                                                                                     onSelectedLotAdjustmentsChange,
+                                                                                     lotAdjustmentLoading,
+                                                                                     lotAdjustmentError,
                                                                                    }) => {
   const handleChange =
     <K extends keyof InventoryActivityLogQueryParams>(field: K) =>
@@ -86,6 +102,15 @@ const InventoryActivityLogFilterPanel: FC<InventoryActivityLogFilterPanelProps> 
     
     const selectedWarehouseIds = selected.map((w) => w.value);
     handleChange('warehouseIds')(selectedWarehouseIds); // Update filters
+  };
+  
+  const handleSelectedLotAdjustmentsChange = (selected: LookupOption[]) => {
+    const selectedValue = selected[0]?.value ?? '';
+    onSelectedLotAdjustmentsChange(selected);
+    onChange({
+      ...filters,
+      adjustmentTypeId: selectedValue,
+    });
   };
   
   return (
@@ -116,6 +141,18 @@ const InventoryActivityLogFilterPanel: FC<InventoryActivityLogFilterPanelProps> 
             onChange={handleWarehouseDropdownChange}
             loading={warehouseLoading}
             error={warehouseError}
+          />
+        </Grid>
+        
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          <LotAdjustmentTypeMultiSelectDropdown
+            label="Adjustment Types"
+            options={lotAdjustmentOptions}
+            selectedOptions={selectedLotAdjustments}
+            onChange={handleSelectedLotAdjustmentsChange}
+            loading={lotAdjustmentLoading}
+            error={lotAdjustmentError}
+            placeholder="Select adjustment types"
           />
         </Grid>
         

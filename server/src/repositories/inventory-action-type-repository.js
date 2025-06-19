@@ -1,7 +1,4 @@
-const { query, withTransaction, retry } = require('../database/db');
-const {
-  insertWarehouseLotAdjustment,
-} = require('./warehouse-lot-adjustment-repository');
+const { query, retry } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logError } = require('../utils/logger-helper');
 
