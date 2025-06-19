@@ -154,102 +154,103 @@ const InventoryActivityLogsPage: FC = () => {
     }, 500);
   };
   
-  if (logLoading) return <Loading message="Loading activity logs..." />;
-  if (logError)
-    return (
-      <ErrorDisplay>
-        <ErrorMessage message={logError} />
-      </ErrorDisplay>
-    );
-  
   return (
     <>
-      {Array.isArray(logData) && logData.length > 0 ? (
+      <Box
+        sx={{
+          p: 3,
+          borderRadius: 2,
+          backgroundColor: 'background.paper',
+          boxShadow: 1,
+        }}
+      >
+        {/* Section Header */}
         <Box
           sx={{
-            p: 3,
-            borderRadius: 2,
-            backgroundColor: 'background.paper',
-            boxShadow: 1,
+            mb: 2,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
           }}
         >
-          {/* Section Header */}
-          <Box
-            sx={{
-              mb: 2,
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
-            <CustomTypography variant="h6">
-              Inventory Activity Logs
-            </CustomTypography>
-            
-            <CustomButton variant="outlined" onClick={() => fetchLogs(queryParams)}>
-              Refresh Logs
-            </CustomButton>
-          </Box>
+          <CustomTypography variant="h6">
+            Inventory Activity Logs
+          </CustomTypography>
           
-          {/* Filter Panel */}
-          <Box sx={{ mb: 2 }}>
-            <InventoryActivityLogFilterPanel
-              filters={stagedFilters}
-              onChange={setStagedFilters}
-              onApply={() => {
-                setFilters(stagedFilters);
-                setPage(1); // reset to page 1
-              }}
-              onReset={() => {
-                setStagedFilters({});
-                setFilters({});
-                setSelectedBatches([]);
-                setPage(1);
-              }}
-              batchLookupOptions={batchLookupOptions}
-              selectedBatches={selectedBatches}
-              onSelectedBatchesChange={setSelectedBatches}
-              batchLookupParams={batchLookupParams}
-              setBatchLookupParams={setBatchLookupParams}
-              fetchBatchLookup={fetchBatchRegistryLookup}
-              hasMore={hasMore}
-              pagination={{
-                limit: batchPagination.limit,
-                offset: batchPagination.offset,
-                onFetchMore: handleFetchMoreBatches,
-              }}
-              batchLookupLoading={batchLoading}
-              batchLookupError={batchError}
-              warehouseOptions={warehouseLookupOptions}
-              selectedWarehouses={selectedWarehouses}
-              onSelectedWarehousesChange={setSelectedWarehouses}
-              warehouseLoading={warehouseLoading}
-              warehouseError={warehouseError}
-            />
-          </Box>
-          
-          <Divider sx={{ mb: 3 }} />
-          
-          {/* Table */}
-          <Suspense fallback={<Loading message="Loading table..." />}>
-            <InventoryActivityLogsTable
-              data={mergedData}
-              loading={logLoading}
-              page={page - 1}
-              totalPages={pagination?.totalPages ?? 1}
-              totalRecords={pagination?.totalRecords ?? 0}
-              rowsPerPage={limit}
-              onPageChange={handlePageChange}
-              onRowsPerPageChange={handleRowsPerPageChange}
-              onExpandToggle={handleExpandToggle}
-              isRowExpanded={isRowExpanded}
-              expandedRowId={expandedRowId}
-            />
-          </Suspense>
+          <CustomButton variant="outlined" onClick={() => fetchLogs(queryParams)}>
+            Refresh Logs
+          </CustomButton>
         </Box>
-      ) : logLoading ? null : (
-        <NoDataFound message="No inventory activity logs available." />
-      )}
+        
+        {/* Filter Panel */}
+        <Box sx={{ mb: 2 }}>
+          <InventoryActivityLogFilterPanel
+            filters={stagedFilters}
+            onChange={setStagedFilters}
+            onApply={() => {
+              setFilters(stagedFilters);
+              setPage(1);
+            }}
+            onReset={() => {
+              setStagedFilters({});
+              setFilters({});
+              setSelectedBatches([]);
+              setPage(1);
+            }}
+            batchLookupOptions={batchLookupOptions}
+            selectedBatches={selectedBatches}
+            onSelectedBatchesChange={setSelectedBatches}
+            batchLookupParams={batchLookupParams}
+            setBatchLookupParams={setBatchLookupParams}
+            fetchBatchLookup={fetchBatchRegistryLookup}
+            hasMore={hasMore}
+            pagination={{
+              limit: batchPagination.limit,
+              offset: batchPagination.offset,
+              onFetchMore: handleFetchMoreBatches,
+            }}
+            batchLookupLoading={batchLoading}
+            batchLookupError={batchError}
+            warehouseOptions={warehouseLookupOptions}
+            selectedWarehouses={selectedWarehouses}
+            onSelectedWarehousesChange={setSelectedWarehouses}
+            warehouseLoading={warehouseLoading}
+            warehouseError={warehouseError}
+          />
+        </Box>
+        
+        <Divider sx={{ mb: 3 }} />
+        
+        {/* Table Section */}
+        <Box>
+          {logError ? (
+            <ErrorDisplay>
+              <ErrorMessage message={logError} />
+              <CustomButton onClick={() => fetchLogs(queryParams)}>Retry</CustomButton>
+            </ErrorDisplay>
+          ) : logLoading ? (
+            <Loading message="Loading inventory activity logs table..." />
+          ) : Array.isArray(logData) && logData.length > 0 ? (
+            <Suspense fallback={<Loading message="Loading table..." />}>
+              <InventoryActivityLogsTable
+                data={mergedData}
+                loading={logLoading}
+                page={page - 1}
+                totalPages={pagination?.totalPages ?? 1}
+                totalRecords={pagination?.totalRecords ?? 0}
+                rowsPerPage={limit}
+                onPageChange={handlePageChange}
+                onRowsPerPageChange={handleRowsPerPageChange}
+                onExpandToggle={handleExpandToggle}
+                isRowExpanded={isRowExpanded}
+                expandedRowId={expandedRowId}
+              />
+            </Suspense>
+          ) : (
+            <NoDataFound message="No inventory activity logs available." />
+          )}
+        </Box>
+      </Box>
     </>
   );
 };
