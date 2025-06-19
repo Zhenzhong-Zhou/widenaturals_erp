@@ -12,16 +12,19 @@ const AppError = require('../AppError');
  *
  * @param {Object} [filters={}] - Optional filter settings.
  * @param {boolean} [filters.excludeInternal=false] - Whether to exclude internal-only adjustments (e.g., manual inserts).
+ * @param {boolean} [filters.restrictToQtyAdjustment=false] - Whether to restrict results to inventory quantity adjustment types (i.e., those with category = 'adjustment').
  * @returns {{ whereClause: string, params: Array<any> }} SQL-safe clause and parameters.
  */
-const buildLotAdjustmentWhereClause = (filters = {}) => {
+const  buildLotAdjustmentWhereClause = (filters = {}) => {
   try {
-    const { excludeInternal = true } = filters;
-    
-    const conditions = [`lat.is_active = true`, `iat.category = 'adjustment'`];
+    const conditions = [`lat.is_active = true`];
     const params = [];
     
-    if (excludeInternal) {
+    if (filters.restrictToQtyAdjustment) {
+      conditions.push(`iat.category = 'adjustment'`);
+    }
+    
+    if (filters.excludeInternal) {
       conditions.push(`lat.name NOT IN ('manual_stock_insert', 'manual_stock_update')`);
     }
     

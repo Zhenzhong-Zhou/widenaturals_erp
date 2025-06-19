@@ -100,17 +100,25 @@ const getWarehouseLookupController = wrapAsync(async (req, res) => {
 });
 
 /**
- * @function getLotAdjustmentLookupController
- * @description Controller to return lot adjustment type options for lookup.
- * Accepts optional query param `excludeInternal=true` to filter internal-only actions.
+ * Handles HTTP GET requests to retrieve lot adjustment type options for lookup purposes.
+ *
+ * Supports optional query parameter `excludeInternal=true` to filter out internal-only types
+ * such as `'manual_stock_insert'` and `'manual_stock_update'`.
  *
  * @route GET /lookups/lot-adjustment-types
- * @returns {200} Array of lot adjustment options with id, label, and action type.
+ * @query {boolean} [excludeInternal=true] - Whether to exclude internal-use adjustment types.
+ * @returns {200} JSON array of lot adjustment type options, each containing:
+ * - `value`: lot adjustment type ID,
+ * - `label`: display name,
+ * - `actionTypeId`: associated inventory action type ID.
  */
 const getLotAdjustmentLookupController = wrapAsync(async (req, res) => {
-  const excludeInternal = req.query.excludeInternal === 'true';
+  const filters = {
+    excludeInternal: req.query.excludeInternal === 'true',
+    restrictToQtyAdjustment: req.query.restrictToQtyAdjustment === 'true',
+  };
   
-  const options = await fetchLotAdjustmentLookupService({ excludeInternal });
+  const options = await fetchLotAdjustmentLookupService(filters);
   
   res.status(200).json({
     success: true,

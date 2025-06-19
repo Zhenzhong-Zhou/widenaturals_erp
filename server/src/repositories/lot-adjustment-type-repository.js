@@ -4,23 +4,22 @@ const { buildLotAdjustmentWhereClause } = require('../utils/sql/lot-adjustment-t
 const { logSystemException } = require('../utils/system-logger');
 
 /**
- * @function getLotAdjustmentTypeLookupOptions
- * @description
- * Fetches active lot adjustment types linked to inventory action types of category 'adjustment'.
- * Excludes internal/system-use-only types (e.g., 'manual_stock_insert', 'manual_stock_update') by default,
- * unless overridden via filters.
+ * Retrieves active lot adjustment types linked to inventory action types categorized as 'adjustment'.
  *
- * @param {Object} [filters={}] - Optional filters to modify query behavior.
- * @param {boolean} [filters.excludeInternal=true] - Whether to exclude internal-only types.
- * @returns {Promise<Array>} List of lot adjustment types with their corresponding action types.
+ * By default, internal/system-only types such as `'manual_stock_insert'` and `'manual_stock_update'`
+ * are excluded unless explicitly included via the `filters` parameter.
  *
- * @example
- * // Default usage (excludes internal)
- * const options = await getLotAdjustmentTypeLookupOptions();
+ * @param {Object} [filters={}] - Optional configuration to control query behavior.
+ * @param {boolean} [filters.excludeInternal=true] - If true, excludes internal adjustment types.
+ * @returns {Promise<Array>} A promise that resolves to a list of lot adjustment types and their related action types.
  *
  * @example
- * // Admin usage (include all types)
- * const options = await getLotAdjustmentTypeLookupOptions({ excludeInternal: false });
+ * // Default (excludes internal types)
+ * const types = await getLotAdjustmentTypeLookupOptions();
+ *
+ * @example
+ * // Include internal/system adjustment types
+ * const types = await getLotAdjustmentTypeLookupOptions({ excludeInternal: false });
  */
 const getLotAdjustmentTypeLookupOptions = async (filters = {}) => {
   const { whereClause, params } = buildLotAdjustmentWhereClause(filters);

@@ -106,19 +106,19 @@ const fetchWarehouseLookupService = async (filters = {}) => {
 };
 
 /**
- * @function fetchLotAdjustmentLookupService
- * @description Service to fetch and transform active lot adjustment types for lookup.
- * Excludes internal-only actions (e.g., manual insert/update) if `excludeInternal` is true.
+ * Fetches and transforms active lot adjustment types into lookup-friendly format.
  *
- * @param {Object} [filters={}] - Optional filtering options.
- * @param {boolean} [filters.excludeInternal=false] - Whether to exclude internal-use adjustment types.
- * @returns {Promise<Array<{ value: string, label: string, actionTypeId: string }>>}
- * A list of lookup options with:
- * - `value`: lot adjustment type ID,
- * - `label`: display name,
- * - `actionTypeId`: linked inventory action type ID.
+ * Internal-use types (e.g., `'manual_stock_insert'`, `'manual_stock_update'`) are excluded by default,
+ * unless `excludeInternal` is explicitly set to `false`.
  *
- * @throws {AppError} If database fetch or transformation fails.
+ * @param {Object} [filters={}] - Optional filter options.
+ * @param {boolean} [filters.excludeInternal=false] - If true, excludes internal-only adjustment types.
+ * @returns {Promise<Array<{ value: string, label: string, actionTypeId: string }>>} A list of transformed lookup options:
+ * - `value`: the lot adjustment type ID,
+ * - `label`: the display name,
+ * - `actionTypeId`: the associated inventory action type ID.
+ *
+ * @throws {AppError} If fetching or transforming data fails.
  */
 const fetchLotAdjustmentLookupService = async (filters = {}) => {
   try {
