@@ -4,6 +4,7 @@ import type {
   GetBatchRegistryLookupResponse,
   GetWarehouseLookupFilters,
   GetWarehouseLookupResponse,
+  LotAdjustmentLookupQueryParams,
   LotAdjustmentTypeLookupResponse,
 } from '@features/lookup/state/lookupTypes';
 import { lookupService } from '@services/lookupService';
@@ -69,28 +70,27 @@ export const fetchWarehouseLookupThunk = createAsyncThunk<
  *
  * By default, it excludes internal-only adjustment types like `manual_stock_insert`
  * and `manual_stock_update`, which are used internally by system processes and not
- * meant for user-facing selection. This behavior can be overridden by setting the
- * `excludeInternal` flag to `false`.
+ * meant for user-facing selection. This behavior can be controlled using the filter options.
  *
- * @param {boolean} [excludeInternal=true] - If `true`, filters out internal-only adjustment types.
- * @returns {Promise<LotAdjustmentTypeLookupResponse,>} A promise resolving to a list of lot adjustment types formatted for Lookups.
+ * @param {LotAdjustmentLookupQueryParams} [filters] - Optional filters to control query behavior.
+ * @returns {Promise<LotAdjustmentTypeLookupResponse>} A promise resolving to a list of lot adjustment types formatted for Lookups.
  *
  * @example
  * // Fetch adjustment types for lookup, excluding internal-only one's
- * dispatch(fetchLotAdjustmentLookupThunk());
+ * dispatch(fetchLotAdjustmentTypeLookupThunk({ excludeInternal: true }));
  *
  * @example
  * // Fetch all adjustment types, including internal-use types
- * dispatch(fetchLotAdjustmentLookupThunk(false));
+ * dispatch(fetchLotAdjustmentTypeLookupThunk({ excludeInternal: false }));
  */
 export const fetchLotAdjustmentTypeLookupThunk = createAsyncThunk<
-  LotAdjustmentTypeLookupResponse, // return type
-  boolean | undefined // input param type
+  LotAdjustmentTypeLookupResponse,                // return type
+  LotAdjustmentLookupQueryParams | undefined      // input param type
 >(
   'Lookups/fetchLotAdjustmentTypeLookup',
-  async (excludeInternal = true, { rejectWithValue }) => {
+  async (filters = {}, { rejectWithValue }) => {
     try {
-      return await lookupService.fetchLotAdjustmentTypeLookup(excludeInternal);
+      return await lookupService.fetchLotAdjustmentTypeLookup(filters);
     } catch (error: any) {
       return rejectWithValue(error?.response?.data || error.message);
     }

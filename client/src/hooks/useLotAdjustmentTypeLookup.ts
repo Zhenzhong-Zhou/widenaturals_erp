@@ -2,31 +2,38 @@ import { useMemo, useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchLotAdjustmentTypeLookupThunk,
+  type LotAdjustmentLookupQueryParams,
   selectLotAdjustmentTypeError,
   selectLotAdjustmentTypeItems,
   selectLotAdjustmentTypeLoading,
 } from '@features/lookup/state';
 import { formatLabel } from '@utils/textUtils';
+import { resetLotAdjustmentTypeLookup } from '@features/lookup/state/lotAdjustmentTypeLookupSlice';
 
 /**
  * Custom hook to manage lot adjustment type lookup.
- * Fetches data on mount and exposes a manual fetch method.
+ * Allows flexible filtering via query params and exposes manual fetch/reset.
  *
- * @param excludeInternal - Whether to exclude internal-only types (default: true).
  */
-const useLotAdjustmentTypeLookup = (excludeInternal: boolean = true) => {
+const useLotAdjustmentTypeLookup = () => {
   const dispatch = useAppDispatch();
   
   const items = useAppSelector(selectLotAdjustmentTypeItems);
   const loading = useAppSelector(selectLotAdjustmentTypeLoading);
   const error = useAppSelector(selectLotAdjustmentTypeError);
   
-  // Expose a function instead of dispatching immediately
-  const fetchLotAdjustmentTypeLookup = useCallback(() => {
-    dispatch(fetchLotAdjustmentTypeLookupThunk(excludeInternal));
-  }, [dispatch, excludeInternal]);
+  // Dispatch fetch with object param
+  const fetchLotAdjustmentTypeLookup = useCallback(
+    (params: LotAdjustmentLookupQueryParams = {}) => {
+      dispatch(fetchLotAdjustmentTypeLookupThunk(params));
+    },
+    [dispatch]
+  );
   
-  // Memoize mapped options
+  const clearLotAdjustmentTypeLookup = useCallback(() => {
+    dispatch(resetLotAdjustmentTypeLookup());
+  }, [dispatch]);
+  
   const lookupOptions = useMemo(
     () =>
       items.map((item) => ({
@@ -40,7 +47,8 @@ const useLotAdjustmentTypeLookup = (excludeInternal: boolean = true) => {
     options: lookupOptions,
     loading,
     error,
-    fetchLotAdjustmentTypeLookup, // Exposed for manual control
+    fetchLotAdjustmentTypeLookup,
+    clearLotAdjustmentTypeLookup,
   };
 };
 

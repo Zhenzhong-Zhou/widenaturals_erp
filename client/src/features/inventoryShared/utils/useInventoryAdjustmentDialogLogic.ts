@@ -35,11 +35,19 @@ export const useInventoryAdjustmentDialogLogic = ({ mode, records }: UseAdjustme
     loading: isLookupLoading,
     error: lookupError,
     fetchLotAdjustmentTypeLookup,
+    clearLotAdjustmentTypeLookup,
   } = useLotAdjustmentTypeLookup();
   
   useEffect(() => {
-    fetchLotAdjustmentTypeLookup();
-  }, [fetchLotAdjustmentTypeLookup]);
+    fetchLotAdjustmentTypeLookup({
+      excludeInternal: true,
+      restrictToQtyAdjustment: true,
+    });
+    
+    return () => {
+      clearLotAdjustmentTypeLookup();
+    };
+  }, [fetchLotAdjustmentTypeLookup, clearLotAdjustmentTypeLookup]);
   
   const mappedRecords = useMemo(() => {
     if (mode === 'single') {

@@ -43,6 +43,26 @@ export interface GetBatchRegistryLookupParams {
   offset?: number;
 }
 
+/**
+ * Query parameters for fetching lot adjustment type lookup options.
+ */
+export interface LotAdjustmentLookupQueryParams {
+  /**
+   * Whether to exclude internal-only adjustment types such as
+   * 'manual_stock_insert' and 'manual_stock_update'.
+   * Defaults to `true` on the server if omitted.
+   */
+  excludeInternal?: boolean;
+  
+  /**
+   * Whether to restrict results to only quantity adjustment types.
+   * Useful for inventory adjustment forms where only quantity-related
+   * actions are relevant.
+   * Default to `false` if omitted.
+   */
+  restrictToQtyAdjustment?: boolean;
+}
+
 export interface ProductBatchLookupItem {
   id: string;
   type: 'product';

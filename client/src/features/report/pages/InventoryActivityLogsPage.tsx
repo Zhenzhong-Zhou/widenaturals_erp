@@ -74,6 +74,7 @@ const InventoryActivityLogsPage: FC = () => {
     loading: isAdjustmentTypeLoading,
     error: adjustmentTypeError,
     fetchLotAdjustmentTypeLookup,
+    clearLotAdjustmentTypeLookup,
   } = useLotAdjustmentTypeLookup();
   
   const mergedData: MergedInventoryActivityLogEntry[] = useMemo(
@@ -118,8 +119,14 @@ const InventoryActivityLogsPage: FC = () => {
   }, [fetchWarehouseLookup]);
   
   useEffect(() => {
-    fetchLotAdjustmentTypeLookup();
-  }, [fetchLotAdjustmentTypeLookup]);
+    fetchLotAdjustmentTypeLookup({
+      excludeInternal: true,
+    });
+    
+    return () => {
+      clearLotAdjustmentTypeLookup(); // typically dispatch(reset...)
+    };
+  }, [fetchLotAdjustmentTypeLookup, clearLotAdjustmentTypeLookup]);
   
   const batchLookupOptions = useMemo(() => {
     return mapBatchLookupToOptions(batchOptions, false) as BatchLookupOption[];

@@ -93,7 +93,7 @@ const AdjustInventoryDialog: FC<AdjustInventoryDialogProps> = ({
             dropdownLoading={isLookupLoading}
             dropdownError={lookupError ?? ''}
             onSubmit={handleSubmit as (data: InventoryAdjustmentFormData) => void}
-            onRefresh={fetchLotAdjustmentTypeLookup}
+            onRefresh={() => fetchLotAdjustmentTypeLookup({ excludeInternal: true, restrictToQtyAdjustment: true })}
             loading={isSubmitting}
           />
         </>

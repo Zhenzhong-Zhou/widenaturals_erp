@@ -4,7 +4,7 @@ import type {
   GetBatchRegistryLookupParams,
   GetBatchRegistryLookupResponse,
   GetWarehouseLookupFilters,
-  GetWarehouseLookupResponse,
+  GetWarehouseLookupResponse, LotAdjustmentLookupQueryParams,
   LotAdjustmentTypeLookupResponse,
 } from '@features/lookup/state/lookupTypes';
 
@@ -68,19 +68,18 @@ const fetchWarehouseLookup = async (
  * This function is intended for use in forms or selection inputs where the user needs to choose
  * from available adjustment types (e.g., 'damaged', 'expired', 'lost', etc.).
  *
- * @function fetchLotAdjustmentTypeLookup
- * @param {boolean} [excludeInternal=true] - If true (default), excludes internal-use-only adjustment types.
+ * @param {LotAdjustmentLookupQueryParams} [params={}] - Optional query parameters to control lookup results.
  * @returns {Promise<LotAdjustmentTypeLookupResponse>} A promise that resolves to a list of formatted lookup options.
  * @throws Will throw if the HTTP request fails.
  */
 const fetchLotAdjustmentTypeLookup = async (
-  excludeInternal: boolean = true
+  params: LotAdjustmentLookupQueryParams = {}
 ): Promise<LotAdjustmentTypeLookupResponse> => {
   try {
     const response = await axiosInstance.get<LotAdjustmentTypeLookupResponse>(
       API_ENDPOINTS.LOOKUP.LOT_ADJUSTMENT_TYPES,
       {
-        params: { excludeInternal },
+        params,
       }
     );
     
