@@ -24,7 +24,7 @@ export const createDrillDownColumn = <T,>(
   }
 ): Column<T> => {
   return {
-    id: 'actions',
+    id: 'drilldown-toggle',
     label: '',
     align: 'right',
     renderCell: (row) => {

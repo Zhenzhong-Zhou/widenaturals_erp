@@ -51,6 +51,9 @@ interface CustomTableProps<T = any> {
   };
   selectedRowIds?: string[];
   onSelectionChange?: (ids: string[]) => void;
+  showCheckboxes?: boolean; // for conditional checkbox
+  showActionsColumn?: boolean; // optional actions column
+  renderActions?: (row: T, rowIndex?: number) => ReactNode; // optional action cell renderer
 }
 
 const CustomTable = <T extends Record<string, any>>({
@@ -73,11 +76,29 @@ const CustomTable = <T extends Record<string, any>>({
   getRowProps,
   selectedRowIds,
   onSelectionChange,
+  showCheckboxes = false,
+  showActionsColumn = false,
+  renderActions,
 }: CustomTableProps<T>) => {
   const { theme } = useThemeContext();
   const [order, setOrder] = useState<'asc' | 'desc'>('asc');
   const [orderBy, setOrderBy] = useState<string | undefined>(undefined);
-
+  const finalColumns = [...columns];
+  
+  if (
+    showActionsColumn &&
+    renderActions &&
+    !columns.some((col) => col.id === 'action' || col.id === 'actions')
+  ) {
+    finalColumns.push({
+      id: 'action',
+      label: '',
+      align: 'right',
+      minWidth: 48,
+      renderCell: renderActions,
+    });
+  }
+  
   const handleSort = (columnId: string) => {
     const isAsc = orderBy === columnId && order === 'asc';
     setOrder(isAsc ? 'desc' : 'asc');
@@ -100,7 +121,7 @@ const CustomTable = <T extends Record<string, any>>({
   // Use totalPages directly to ensure the page stays in range
   const safePage = Math.min(page, Math.max(0, (totalPages || 1) - 1));
   
-  const totalColCount = columns.length + 2;
+  const totalColCount = finalColumns.length + (showCheckboxes ? 2 : 1);
   
   return (
     <Paper
@@ -119,32 +140,34 @@ const CustomTable = <T extends Record<string, any>>({
         <Table aria-label="Custom data table">
           <TableHead>
             <TableRow>
-              <TableCell padding="checkbox">
-                <Checkbox
-                  slotProps={{
-                    input: {
+              {showCheckboxes && (
+                <TableCell padding="checkbox">
+                  <Checkbox
+                    slotProps={{
+                      input: {
                       name: 'select-all-checkbox',
-                    },
-                  }}
-                  indeterminate={
-                    selectedRowIds &&
-                    selectedRowIds.length > 0 &&
-                    selectedRowIds.length < data.filter((r) => !getRowProps?.(r, 0)?.isGroupHeader).length
-                  }
-                  checked={
-                    selectedRowIds &&
-                    selectedRowIds.length ===
-                    data.filter((r) => !getRowProps?.(r, 0)?.isGroupHeader).length
-                  }
-                  onChange={(e) => {
-                    const shouldSelectAll = e.target.checked;
-                    const allIds = data
-                      .filter((r, i) => !getRowProps?.(r, i)?.isGroupHeader)
-                      .map((r) => getRowId?.(r) ?? r.id);
-                    onSelectionChange?.(shouldSelectAll ? allIds : []);
-                  }}
-                />
-              </TableCell>
+                      },
+                    }}
+                    indeterminate={
+                      selectedRowIds &&
+                      selectedRowIds.length > 0 &&
+                      selectedRowIds.length < data.filter((r) => !getRowProps?.(r, 0)?.isGroupHeader).length
+                    }
+                    checked={
+                      selectedRowIds &&
+                      selectedRowIds.length ===
+                      data.filter((r) => !getRowProps?.(r, 0)?.isGroupHeader).length
+                    }
+                    onChange={(e) => {
+                      const shouldSelectAll = e.target.checked;
+                      const allIds = data
+                        .filter((r, i) => !getRowProps?.(r, i)?.isGroupHeader)
+                        .map((r) => getRowId?.(r) ?? r.id);
+                      onSelectionChange?.(shouldSelectAll ? allIds : []);
+                    }}
+                  />
+                </TableCell>
+              )}
               
               <TableCell
                 align="center"
@@ -159,7 +182,7 @@ const CustomTable = <T extends Record<string, any>>({
                 #
               </TableCell>
 
-              {columns.map((col) => (
+              {finalColumns.map((col) => (
                 <TableCell
                   key={col.id}
                   align={col.align || 'left'}
@@ -259,30 +282,32 @@ const CustomTable = <T extends Record<string, any>>({
                           },
                         }}
                       >
-                        <TableCell padding="checkbox">
-                          <Checkbox
-                            slotProps={{
-                              input: {
-                                name: `row-checkbox-${rowId}`, // unique name per row
-                                id: `checkbox-${rowId}`,       // optional: adds id for labels or testing
-                              },
-                            }}
-                            checked={selectedRowIds?.includes(rowId)}
-                            onChange={(e) => {
-                              const isChecked = e.target.checked;
-                              if (!onSelectionChange) return;
-                              if (isChecked) {
-                                onSelectionChange([...selectedRowIds ?? [], rowId]);
-                              } else {
-                                onSelectionChange((selectedRowIds ?? []).filter((id) => id !== rowId));
-                              }
-                            }}
-                          />
-                        </TableCell>
+                        {showCheckboxes && (
+                          <TableCell padding="checkbox">
+                            <Checkbox
+                              slotProps={{
+                                input: {
+                                  name: `row-checkbox-${rowId}`, // unique name per row
+                                  id: `checkbox-${rowId}`,       // optional: adds id for labels or testing
+                                },
+                              }}
+                              checked={selectedRowIds?.includes(rowId)}
+                              onChange={(e) => {
+                                const isChecked = e.target.checked;
+                                if (!onSelectionChange) return;
+                                if (isChecked) {
+                                  onSelectionChange([...selectedRowIds ?? [], rowId]);
+                                } else {
+                                  onSelectionChange((selectedRowIds ?? []).filter((id) => id !== rowId));
+                                }
+                              }}
+                            />
+                          </TableCell>
+                        )}
                         <TableCell align="center" sx={{ py: 1.25, px: 2 }}>
                           {displayRowNumber}
                         </TableCell>
-                        {columns.map((col) => (
+                        {finalColumns.map((col) => (
                           <TableCell
                             key={col.id}
                             align={col.align || 'left'}
