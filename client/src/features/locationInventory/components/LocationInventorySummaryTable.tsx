@@ -1,4 +1,4 @@
-import { type FC, lazy, useCallback } from 'react';
+import { type FC, lazy, memo, useCallback } from 'react';
 import type {
   LocationInventorySummary,
   LocationInventorySummaryItemDetail,
@@ -203,7 +203,11 @@ const LocationInventorySummaryTable: FC<LocationInventorySummaryTableProps> = ({
       onRefreshDetail,
     ]
   );
-
+  
+  const MemoizedRowActionMenu = memo(({ row, onViewLogs }: { row: LocationInventorySummary, onViewLogs: any }) => (
+    <RowActionMenu row={row} actions={getDefaultRowActions(onViewLogs)} />
+  ));
+  
   return (
     <Box>
       <CustomTable
@@ -222,7 +226,7 @@ const LocationInventorySummaryTable: FC<LocationInventorySummaryTableProps> = ({
         expandedContent={expandedContent}
         showActionsColumn={canViewInventoryLogs}
         renderActions={(row) => (
-          <RowActionMenu row={row} actions={getDefaultRowActions(onViewLogs)} />
+          <MemoizedRowActionMenu row={row} onViewLogs={onViewLogs} />
         )}
       />
     </Box>

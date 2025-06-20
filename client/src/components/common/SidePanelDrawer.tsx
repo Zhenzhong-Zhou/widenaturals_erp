@@ -27,6 +27,12 @@ const SidePanelDrawer = ({
       anchor={anchor}
       open={open}
       onClose={onClose}
+      disableEnforceFocus
+      disableRestoreFocus
+      keepMounted
+      ModalProps={{
+        keepMounted: true,
+      }}
       slotProps={{
         paper: {
           sx: {
