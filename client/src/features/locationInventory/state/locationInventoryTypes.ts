@@ -22,7 +22,7 @@ export type LocationInventorySummaryResponse =
 
 export interface LocationInventorySummary extends InventoryHealthStatus {
   itemId: string;
-  typeLabel: ItemType; // Use 'material' to match transformed value
+  itemType: ItemType; // Use 'material' to match transformed value
   displayName: string;
   totalLots: number;
   totalLotQuantity: number;

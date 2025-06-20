@@ -93,14 +93,12 @@ const KpiSummaryCards: FC<KpiSummaryCardsProps> = ({
           </Grid>
         );
       })}
-
-      {fetchKpiSummary && (
-        <Grid size={{ xs: 12 }}>
-          <CustomButton onClick={fetchKpiSummary}>
-            Refresh KPI Summary
-          </CustomButton>
-        </Grid>
-      )}
+      
+      <Grid size={{ xs: 12 }}>
+        <CustomButton onClick={fetchKpiSummary}>
+          Refresh KPI Summary
+        </CustomButton>
+      </Grid>
     </Grid>
   );
 };

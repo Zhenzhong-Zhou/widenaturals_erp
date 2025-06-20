@@ -171,6 +171,7 @@ const BaseInventoryTable = <T,>({
           onSelectionChange(ids, selectedRecords);
         }
       }}
+      showCheckboxes={true}
     />
   );
 };

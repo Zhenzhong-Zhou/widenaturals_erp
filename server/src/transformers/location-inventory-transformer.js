@@ -55,7 +55,7 @@ const transformLocationInventorySummaryRow = (row) => {
 
   return cleanObject({
     itemId: row.item_id,
-    typeLabel: isProduct ? 'product' : 'packaging_material',
+    itemType: isProduct ? 'product' : 'packaging_material',
     displayName: isProduct
       ? productName || row.sku || '[Unnamed Product]'
       : row.material_name || row.material_code || '[Unnamed Material]',

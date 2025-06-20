@@ -2,7 +2,9 @@ import { type FC, lazy, useCallback } from 'react';
 import InventoryStatusChip from '@features/inventoryShared/components/InventoryStatusChip';
 import StockLevelChip from '@features/inventoryShared/components/StockLevelChip';
 import ExpirySeverityChip from '@features/inventoryShared/components/ExpirySeverityChip';
+import ExpandableDetailSection from '@components/common/ExpandableDetailSection';
 import CustomTable, { type Column } from '@components/common/CustomTable';
+import RowActionMenu from '@components/common/RowActionMenu';
 import { formatDate } from '@utils/dateTimeUtils';
 import type {
   WarehouseInventoryItemSummary,
@@ -10,8 +12,9 @@ import type {
 } from '@features/warehouseInventory/state';
 import { formatLabel } from '@utils/textUtils';
 import { createDrillDownColumn } from '@utils/table/createDrillDownColumn';
-import ExpandableDetailSection from '@components/common/ExpandableDetailSection';
 import { getDetailCacheKey } from '@features/inventoryShared/utils/cacheKeys';
+import type { InventoryActivityLogQueryParams, InventoryLogSource } from '@features/report/state';
+import { getDefaultRowActions } from '@utils/table/getDefaultRowActions';
 
 const WarehouseInventorySummaryDetailTable = lazy(
   () =>
@@ -41,6 +44,8 @@ interface SkuInventorySummaryTableProps {
   onDetailPageChange: (newPage: number) => void;
   onDetailRowsPerPageChange: (newLimit: number) => void;
   onRefreshDetail: (rowId: string) => void;
+  canViewInventoryLogs: boolean;
+  onViewLogs: (row: InventoryLogSource, extraFilters?: Partial<InventoryActivityLogQueryParams>) => void;
 }
 
 const WarehouseInventorySummaryTable: FC<SkuInventorySummaryTableProps> = ({
@@ -64,6 +69,8 @@ const WarehouseInventorySummaryTable: FC<SkuInventorySummaryTableProps> = ({
   onDrillDownToggle,
   onRowHover,
   onRefreshDetail,
+  canViewInventoryLogs,
+  onViewLogs,
 }) => {
   const columns: Column<WarehouseInventoryItemSummary>[] = [
     {
@@ -208,6 +215,10 @@ const WarehouseInventorySummaryTable: FC<SkuInventorySummaryTableProps> = ({
       expandedRowId={expandedRowId}
       getRowId={(row) => row.itemId}
       expandedContent={expandedContent}
+      showActionsColumn={canViewInventoryLogs}
+      renderActions={(row) => (
+        <RowActionMenu row={row} actions={getDefaultRowActions(onViewLogs)} />
+      )}
     />
   );
 };

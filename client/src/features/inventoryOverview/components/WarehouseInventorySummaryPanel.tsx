@@ -9,6 +9,7 @@ import useWarehouseInventorySummaryByItemId from '@hooks/useWarehouseInventorySu
 import { useExpandableDetailPanel } from '@features/inventoryOverview/hook/useExpandableDetailPanel';
 import type { ItemType } from '@features/inventoryShared/types/InventorySharedType';
 import type { WarehouseInventorySummaryItemDetails } from '@features/warehouseInventory/state';
+import type { InventoryActivityLogQueryParams, InventoryLogSource } from '@features/report/state';
 
 const WarehouseInventorySummaryTable = lazy(
   () =>
@@ -23,6 +24,8 @@ interface Props {
   itemType?: ItemType;
   onPageChange: (newPage: number) => void;
   onRowsPerPageChange: (newLimit: number) => void;
+  canViewInventoryLogs: boolean;
+  onViewLogs: (row: InventoryLogSource, extraFilters?: Partial<InventoryActivityLogQueryParams>) => void;
 }
 
 const WarehouseInventorySummaryPanel: FC<Props> = ({
@@ -31,6 +34,8 @@ const WarehouseInventorySummaryPanel: FC<Props> = ({
   itemType,
   onPageChange,
   onRowsPerPageChange,
+  canViewInventoryLogs,
+  onViewLogs,
 }) => {
   const {
     data: summaryData,
@@ -142,6 +147,8 @@ const WarehouseInventorySummaryPanel: FC<Props> = ({
           onDetailPageChange={handleDetailPageChange}
           onDetailRowsPerPageChange={handleDetailRowsPerPageChange}
           onRefreshDetail={handleDetailsRefresh}
+          canViewInventoryLogs={canViewInventoryLogs}
+          onViewLogs={onViewLogs}
         />
       </Suspense>
       <CustomButton onClick={handleRefresh} sx={{ mt: 2 }}>

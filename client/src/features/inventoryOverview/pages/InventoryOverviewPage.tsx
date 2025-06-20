@@ -4,7 +4,7 @@ import {
   lazy,
   useCallback,
   startTransition,
-  Suspense,
+  Suspense, useMemo, useEffect,
 } from 'react';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
@@ -18,6 +18,9 @@ import type { ItemType } from '@features/inventoryShared/types/InventorySharedTy
 import InventoryOverviewHeaderSection from '@features/inventoryOverview/components/InventoryOverviewHeaderSection';
 import usePermissions from '@hooks/usePermissions';
 import useHasPermission from '@features/authorize/hooks/useHasPermission';
+import type { InventoryActivityLogEntry, InventoryActivityLogQueryParams, InventoryLogSource } from '@features/report/state';
+import { usePaginatedInventoryActivityLogs } from '@hooks/useInventoryActivityLogs';
+import { type MergedInventoryActivityLogEntry, mergeInventoryActivityLogs } from '@features/report/utils/logUtils';
 
 // Lazy loaded panels
 const LocationInventorySummaryPanel = lazy(
@@ -35,6 +38,7 @@ const WarehouseInventorySummaryPanel = lazy(
 const RecentInventoryActivitySection = lazy(
   () => import('@features/report/components/RecentInventoryActivitySection')
 );
+const InventoryLogDrawer = lazy(() => import('@features/report/components/InventoryLogDrawer'));
 
 const InventoryOverviewPage = () => {
   const [tab, setTab] = useState(0); // 0 = Location, 1 = Warehouse
@@ -48,7 +52,15 @@ const InventoryOverviewPage = () => {
     page: 1,
     limit: 20,
   });
-
+  const [logDrawerOpen, setLogDrawerOpen] = useState(false);
+  const [logDrawerRow, setLogDrawerRow] = useState<InventoryLogSource | null>(null);
+  const [logPage, setLogPage] = useState(1);
+  const [logLimit, setLogLimit] = useState(25);
+  const [filters, setFilters] = useState<Partial<InventoryActivityLogQueryParams>>({});
+  // const [stagedFilters, setStagedFilters] = useState<Partial<InventoryActivityLogQueryParams>>({});
+  const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
+  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
+  
   const { itemTypeTab, page, limit } =
     tab === 0 ? locationState : warehouseState;
 
@@ -63,8 +75,31 @@ const InventoryOverviewPage = () => {
   const hasPermission = useHasPermission(permissions);
   
   const canViewBasicLogs = hasPermission(['view_inventory_logs']);
-  const canViewProductLogs = hasPermission(['view_all_product_logs']);
-  const canViewSkuLogs = hasPermission(['view_all_sku_logs']);
+  const canViewInventoryLogs = hasPermission(['view_all_sku_logs', 'view_all_packing_material_logs']);
+  
+  const {
+    data: logData,
+    pagination,
+    loading: logLoading,
+    error: logError,
+    fetchLogs,
+  } = usePaginatedInventoryActivityLogs();
+  
+  const queryParams = useMemo(() => ({
+    logPage,
+    logLimit,
+    ...filters,
+  }), [logPage, logLimit, filters]);
+  
+  // Fetch on mount or when page/limit changes
+  useEffect(() => {
+    fetchLogs(queryParams); // server expects 1-based page
+  }, [queryParams, fetchLogs]);
+  
+  const mergedData: MergedInventoryActivityLogEntry[] = useMemo(
+    () => mergeInventoryActivityLogs(logData),
+    [logData]
+  );
   
   const handleTabChange = (_: SyntheticEvent, newTab: number) => {
     startTransition(() => {
@@ -111,7 +146,45 @@ const InventoryOverviewPage = () => {
     },
     [tab]
   );
-
+  
+  const handleViewLogs = (
+    row: InventoryLogSource,
+    extraFilters: Partial<InventoryActivityLogQueryParams> = {}
+  ) => {
+    const itemId = row.itemId;
+    const type = row.itemType;
+    
+    const baseFilter: Partial<InventoryActivityLogQueryParams> =
+      type === 'product'
+        ? { skuIds: [itemId] }
+        : type === 'packaging_material'
+          ? { packagingMaterialIds: [itemId] }
+          : {};
+    
+    const mergedFilter = { ...baseFilter, ...extraFilters };
+    
+    setFilters(mergedFilter);
+    setLogDrawerRow({
+      itemId,
+      itemType: type,
+    });
+    setLogDrawerOpen(true);
+    setLogPage(1); // reset pagination when switching rows
+  };
+  
+  const handleLogSelectionChange = (ids: string[]) => {
+    setSelectedRowIds(ids);
+  };
+  
+  const handleExpandToggle = (row: InventoryActivityLogEntry) => {
+    const rowId = row.id ?? '';
+    setExpandedRowId((prev) => (prev === rowId ? null : rowId));
+  };
+  
+  const isRowExpanded = (row: InventoryActivityLogEntry) => {
+    return row.id === expandedRowId;
+  };
+  
   return (
     <Box sx={{ px: 4, py: 3 }}>
       {/* Page Header */}
@@ -169,6 +242,8 @@ const InventoryOverviewPage = () => {
             itemType={itemType}
             onPageChange={handlePageChange}
             onRowsPerPageChange={handleRowsPerPageChange}
+            canViewInventoryLogs={canViewInventoryLogs}
+            onViewLogs={handleViewLogs}
           />
         ) : (
           <WarehouseInventorySummaryPanel
@@ -177,9 +252,34 @@ const InventoryOverviewPage = () => {
             itemType={itemType}
             onPageChange={handlePageChange}
             onRowsPerPageChange={handleRowsPerPageChange}
+            canViewInventoryLogs={canViewInventoryLogs}
+            onViewLogs={handleViewLogs}
           />
         )}
       </Suspense>
+      
+      {logDrawerRow && (
+        <InventoryLogDrawer
+          open={logDrawerOpen}
+          onClose={() => setLogDrawerOpen(false)}
+          row={logDrawerRow}
+          data={mergedData}
+          loading={logLoading}
+          error={logError}
+          page={logPage}
+          totalPages={pagination?.totalPages ?? 1}
+          totalRecords={pagination?.totalRecords ?? 0}
+          rowsPerPage={logLimit}
+          onPageChange={setLogPage}
+          onRowsPerPageChange={setLogLimit}
+          selectedRowIds={selectedRowIds}
+          onSelectionChange={handleLogSelectionChange}
+          expandedRowId={expandedRowId}
+          onExpandToggle={handleExpandToggle}
+          isRowExpanded={isRowExpanded}
+          onRetry={() => fetchLogs(queryParams)}
+        />
+      )}
     </Box>
   );
 };

@@ -9,6 +9,7 @@ import useLocationInventorySummaryByItemId from '@hooks/useLocationInventorySumm
 import { useExpandableDetailPanel } from '@features/inventoryOverview/hook/useExpandableDetailPanel';
 import type { ItemType } from '@features/inventoryShared/types/InventorySharedType';
 import type { LocationInventorySummaryItemDetail } from '@features/locationInventory/state';
+import type { InventoryActivityLogQueryParams, InventoryLogSource } from '@features/report/state';
 
 const LocationInventoryFilterPanel = lazy(
   () =>
@@ -29,6 +30,8 @@ interface Props {
   itemType?: ItemType;
   onPageChange: (newPage: number) => void;
   onRowsPerPageChange: (newLimit: number) => void;
+  canViewInventoryLogs: boolean;
+  onViewLogs: (row: InventoryLogSource, extraFilters?: Partial<InventoryActivityLogQueryParams>) => void;
 }
 
 const LocationInventorySummaryPanel: FC<Props> = ({
@@ -37,6 +40,8 @@ const LocationInventorySummaryPanel: FC<Props> = ({
   itemType,
   onPageChange,
   onRowsPerPageChange,
+  canViewInventoryLogs,
+  onViewLogs,
 }) => {
   const hasFetchedRef = useRef(false);
 
@@ -204,6 +209,8 @@ const LocationInventorySummaryPanel: FC<Props> = ({
           onDetailPageChange={handleDetailPageChange}
           onDetailRowsPerPageChange={handleDetailRowsPerPageChange}
           onRefreshDetail={handleDetailsRefresh}
+          canViewInventoryLogs={canViewInventoryLogs}
+          onViewLogs={onViewLogs}
         />
       </Suspense>
 

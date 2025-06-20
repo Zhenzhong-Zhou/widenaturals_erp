@@ -109,7 +109,7 @@ const InventoryOverviewHeaderSection: FC = () => {
           error={error}
           loading={loading}
           visibleTypes={[selectedType]}
-          fetchKpiSummary={fetchKpiSummary}
+          fetchKpiSummary={() => fetchKpiSummary()}
         />
         {!isOverviewPage && (
           <CustomButton

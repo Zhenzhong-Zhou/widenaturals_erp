@@ -8,11 +8,17 @@ import StockLevelChip from '@features/inventoryShared/components/StockLevelChip'
 import ExpirySeverityChip from '@features/inventoryShared/components/ExpirySeverityChip';
 import type { Column } from '@components/common/CustomTable';
 import CustomTable from '@components/common/CustomTable';
+import ExpandableDetailSection from '@components/common/ExpandableDetailSection';
+import RowActionMenu from '@components/common/RowActionMenu';
 import { formatLabel } from '@utils/textUtils';
 import { formatDate, formatDateTime } from '@utils/dateTimeUtils';
 import { createDrillDownColumn } from '@utils/table/createDrillDownColumn';
-import ExpandableDetailSection from '@components/common/ExpandableDetailSection';
 import { getDetailCacheKey } from '@features/inventoryShared/utils/cacheKeys';
+import { getDefaultRowActions } from '@utils/table/getDefaultRowActions';
+import type {
+  InventoryActivityLogQueryParams,
+  InventoryLogSource,
+} from '@features/report/state';
 
 const LocationInventorySummaryDetailTable = lazy(
   () =>
@@ -42,6 +48,8 @@ interface LocationInventorySummaryTableProps {
   onDetailPageChange: (newPage: number) => void;
   onDetailRowsPerPageChange: (newLimit: number) => void;
   onRefreshDetail: (rowId: string) => void;
+  canViewInventoryLogs: boolean;
+  onViewLogs: (row: InventoryLogSource, extraFilters?: Partial<InventoryActivityLogQueryParams>) => void;
 }
 
 const LocationInventorySummaryTable: FC<LocationInventorySummaryTableProps> = ({
@@ -65,6 +73,8 @@ const LocationInventorySummaryTable: FC<LocationInventorySummaryTableProps> = ({
   onDrillDownToggle,
   onRowHover,
   onRefreshDetail,
+  canViewInventoryLogs,
+  onViewLogs,
 }) => {
   const renderStockLevelCell = useCallback(
     (row: LocationInventorySummary) => (
@@ -82,7 +92,7 @@ const LocationInventorySummaryTable: FC<LocationInventorySummaryTableProps> = ({
 
   const columns: Column<LocationInventorySummary>[] = [
     {
-      id: 'typeLabel',
+      id: 'itemType',
       label: 'Type',
       sortable: true,
       format: (value) => formatLabel(value as string),
@@ -210,6 +220,10 @@ const LocationInventorySummaryTable: FC<LocationInventorySummaryTableProps> = ({
         expandedRowId={expandedRowId}
         getRowId={(row) => row.itemId}
         expandedContent={expandedContent}
+        showActionsColumn={canViewInventoryLogs}
+        renderActions={(row) => (
+          <RowActionMenu row={row} actions={getDefaultRowActions(onViewLogs)} />
+        )}
       />
     </Box>
   );
