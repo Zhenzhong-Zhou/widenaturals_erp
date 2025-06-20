@@ -18,7 +18,7 @@ const AppError = require('../AppError');
  * @param {string[]} [filters.productIds] - Array of product IDs.
  * @param {string[]} [filters.skuIds] - Array of SKU IDs.
  * @param {string[]} [filters.batchIds] - Array of batch registry IDs.
- * @param {string[]} [filters.packingMaterialIds] - Array of packing material IDs.
+ * @param {string[]} [filters.packagingMaterialIds] - Array of packaging material IDs.
  * @param {string}   [filters.orderId] - Order ID to filter logs.
  * @param {string}   [filters.statusId] - Inventory status ID.
  * @param {string[]} [filters.actionTypeIds] - Array of inventory action type IDs.
@@ -61,9 +61,9 @@ const buildInventoryLogWhereClause = (filters = {}) => {
       params.push(filters.batchIds);
     }
     
-    if (filters.packingMaterialIds?.length) {
-      conditions.push(`pmb.id = ANY($${paramIndex++})`);
-      params.push(filters.packingMaterialIds);
+    if (filters.packagingMaterialIds?.length) {
+      conditions.push(`pm.id = ANY($${paramIndex++})`);
+      params.push(filters.packagingMaterialIds);
     }
     
     if (filters.orderId) {

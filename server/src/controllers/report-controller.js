@@ -22,7 +22,7 @@ const getInventoryActivityLogsController = wrapAsync(async (req, res) => {
     productIds: normalizeParamArray(req.query.productIds),
     skuIds: normalizeParamArray(req.query.skuIds),
     batchIds: normalizeParamArray(req.query.batchIds),
-    packingMaterialIds: normalizeParamArray(req.query.packingMaterialIds),
+    packagingMaterialIds: normalizeParamArray(req.query.packagingMaterialIds),
     actionTypeIds: normalizeParamArray(req.query.actionTypeIds),
     orderId: req.query.orderId ?? null,
     statusId: req.query.statusId ?? null,
