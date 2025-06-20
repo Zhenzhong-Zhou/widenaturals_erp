@@ -5,6 +5,7 @@ import type {
   PaginationParams,
   ReduxPaginatedState,
 } from '@shared-types/api.ts';
+import type { ItemType } from '@features/inventoryShared/types/InventorySharedType.ts';
 
 export interface InventoryActivityLogEntry {
   id: string;
@@ -61,7 +62,7 @@ export interface InventoryActivityLogQueryParams extends PaginationParams {
   productIds?: string[];           // array of product UUIDs
   skuIds?: string[];               // array of SKU UUIDs
   batchIds?: string[];             // array of batch UUIDs
-  packingMaterialIds?: string[];   // array of packaging material UUIDs
+  packagingMaterialIds?: string[];   // array of packaging material UUIDs
   actionTypeIds?: string[];        // array of action type IDs or keys
   
   orderId?: string | null;         // single order UUID
@@ -85,4 +86,9 @@ export interface InventoryActivityLogsState {
    * Paginated log data (used in privileged views with filters).
    */
   paginated: ReduxPaginatedState<InventoryActivityLogEntry>;
+}
+
+export interface InventoryLogSource {
+  itemId: string;
+  itemType: ItemType;
 }
