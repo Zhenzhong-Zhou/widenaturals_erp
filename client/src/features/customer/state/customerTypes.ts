@@ -1,3 +1,6 @@
+import type { ApiSuccessResponse, MutationState } from '@shared-types/api';
+
+// Represents a single customer creation request payload
 export interface CustomerRequest {
   firstname: string;
   lastname: string;
@@ -10,37 +13,37 @@ export interface CustomerRequest {
   postal_code: string;
   country: string;
   region?: string;
-  note?: string; // Optional field
+  note?: string;
 }
 
-export interface CustomerPayload {
+// Request payload, always an array (even for one customer)
+export type CreateCustomersRequest = CustomerRequest[];
+
+// Represents a sanitized/enriched customer returned by API
+export interface CustomerResponse {
+  id: string;
   firstname: string;
   lastname: string;
   email: string;
-  phone_number: string;
-  address_line1: string;
-  address_line2?: string | null;
-  city: string;
-  state: string;
-  postal_code: string;
-  country: string;
-  region?: string | null;
-  note?: string | null;
+  phoneNumber: string;
+  status: {
+    name: string;
+  };
 }
 
+// Success wrapper for single customer creation
+export type CreateSingleCustomerResponse = ApiSuccessResponse<CustomerResponse>;
 
-// Bulk request type (array of customers)
-export type BulkCustomerRequest = CustomerRequest[];
+// Success wrapper for bulk customer creation
+export type CreateBulkCustomerResponse = ApiSuccessResponse<CustomerResponse[]>;
 
-export interface CustomerResponse {
-  id: string;
-}
+// Union type for dynamic response handling
+export type CreateCustomerResponse =
+  | CreateSingleCustomerResponse
+  | CreateBulkCustomerResponse;
 
-export interface BulkCustomerResponse {
-  success: boolean;
-  message: string;
-  customers: CustomerResponse[];
-}
+
+export type CustomerCreateState = MutationState<CustomerResponse[]>;
 
 export interface CustomerQueryParams {
   page?: number; // Optional, defaults to 1

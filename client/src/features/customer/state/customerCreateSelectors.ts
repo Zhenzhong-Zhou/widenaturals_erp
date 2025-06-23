@@ -1,23 +1,44 @@
 import { createSelector } from '@reduxjs/toolkit';
 import type { RootState } from '@store/store';
+import type { CustomerResponse } from '@features/customer/state/customerTypes';
 
-// Base state selector
-const selectCustomerCreateState = (state: RootState) => state.customersCreate;
+/**
+ * Base selector for accessing the customer creation slice state.
+ */
+const selectCustomerCreateState = (state: RootState) => state.customerCreate;
 
-// Select customers list
-export const selectCustomersCreate = createSelector(
+/**
+ * Selector to get the loading status of the customer creation request.
+ */
+export const selectCustomerCreateLoading = createSelector(
   [selectCustomerCreateState],
-  (customerState) => customerState.customers
+  (customerCreate) => customerCreate.loading
 );
 
-// Select loading state
-export const selectCustomersCreateLoading = createSelector(
+/**
+ * Selector to get any error message from the customer creation request.
+ */
+export const selectCustomerCreateError = createSelector(
   [selectCustomerCreateState],
-  (customerState) => customerState.loading
+  (customerCreate) => customerCreate.error
 );
 
-// Select error state
-export const selectCustomersCreateError = createSelector(
+/**
+ * Selector to retrieve the full list of successfully created customers.
+ */
+export const selectCreatedCustomers = createSelector(
   [selectCustomerCreateState],
-  (customerState) => customerState.error
+  (customerCreate) => customerCreate.data
+);
+
+/**
+ * Selector to derive and memoize the full names of created customers.
+ * Returns an array of formatted strings: "Firstname Lastname".
+ */
+export const selectCreatedCustomerNames = createSelector(
+  [selectCustomerCreateState],
+  (customerCreate) =>
+    customerCreate.data?.map((customer: CustomerResponse) =>
+      `${customer.firstname} ${customer.lastname}`
+    ) || []
 );

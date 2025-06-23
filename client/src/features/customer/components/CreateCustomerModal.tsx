@@ -1,10 +1,10 @@
 import type { FC } from 'react';
 import { useForm } from 'react-hook-form';
 import Box from '@mui/material/Box';
-import useCustomers from '@hooks/useCustomers';
+
 import CustomForm, { type FieldConfig } from '@components/common/CustomForm';
 import CustomModal from '@components/common/CustomModal';
-import type { BulkCustomerRequest, CustomerRequest } from '@features/customer';
+
 
 interface CreateCustomerModalProps {
   open: boolean;
