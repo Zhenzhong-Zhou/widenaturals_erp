@@ -13,6 +13,22 @@ export interface CustomerRequest {
   note?: string; // Optional field
 }
 
+export interface CustomerPayload {
+  firstname: string;
+  lastname: string;
+  email: string;
+  phone_number: string;
+  address_line1: string;
+  address_line2?: string | null;
+  city: string;
+  state: string;
+  postal_code: string;
+  country: string;
+  region?: string | null;
+  note?: string | null;
+}
+
+
 // Bulk request type (array of customers)
 export type BulkCustomerRequest = CustomerRequest[];
 

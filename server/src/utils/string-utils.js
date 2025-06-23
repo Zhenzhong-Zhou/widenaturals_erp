@@ -72,9 +72,29 @@ const formatDiscount = (discountType, discountValue) => {
   return 'N/A';
 };
 
+/**
+ * Formats a full address from individual components.
+ *
+ * @param {Object} row - Raw DB row with address parts.
+ * @returns {string} - Formatted address string.
+ */
+const formatAddress = (row) => {
+  const parts = [
+    row.address_line1,
+    row.address_line2,
+    row.city,
+    row.state,
+    row.postal_code,
+    row.country,
+    row.region,
+  ].filter(Boolean); // remove null/undefined
+  return parts.join(', ');
+};
+
 module.exports = {
   formatHeader,
   processHeaders,
   convertToKey,
   formatDiscount,
+  formatAddress,
 };

@@ -18,9 +18,9 @@ const { getCustomerDetailsLogic } = require('../business/customer-business');
  */
 const createCustomerController = wrapAsync(async (req, res, next) => {
   const customers = req.body;
-  const user_id = req.user?.id;
+  const user = req.user;
   
-  if (!user_id) {
+  if (!user?.id) {
     return next(AppError.validationError('Missing authenticated user.'));
   }
   
@@ -33,12 +33,12 @@ const createCustomerController = wrapAsync(async (req, res, next) => {
   logInfo('Creating customer record(s)', req, {
     context: 'customer-controller/createCustomerController',
     recordCount: customers.length,
-    requestedBy: user_id,
+    requestedBy: user.id,
     requestId: req.id,
     traceId: req.traceId,
   });
   
-  const result = await createCustomersService(customers, user_id);
+  const result = await createCustomersService(customers, user);
   
   res.status(201).json({
     success: true,

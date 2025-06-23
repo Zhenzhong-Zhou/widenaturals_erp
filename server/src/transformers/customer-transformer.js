@@ -1,55 +1,55 @@
-const { logError } = require('../utils/logger-helper');
-const AppError = require('../utils/AppError');
+const { cleanObject } = require('../utils/object-utils');
+const { formatAddress } = require('../utils/string-utils');
 
 /**
- * Formats a full address from individual components.
+ * Transforms a raw DB row with joins into a clean enriched customer object.
  *
- * @param {Object} row - Raw DB row with address parts.
- * @returns {string} - Formatted address string.
+ * @param {object} row - Raw DB result row.
+ * @returns {object} Transformed and cleaned a customer object.
  */
-const formatAddress = (row) => {
-  const parts = [
-    row.address_line1,
-    row.address_line2,
-    row.city,
-    row.state,
-    row.postal_code,
-    row.country,
-    row.region,
-  ].filter(Boolean); // remove null/undefined
-  return parts.join(', ');
+const transformEnrichedCustomer = (row) => {
+  const transformed = {
+    id: row.id ?? null,
+    firstname: row.firstname ?? null,
+    lastname: row.lastname ?? null,
+    email: row.email ?? null,
+    phoneNumber: row.phone_number ?? null,
+    address: formatAddress(row),
+    note: row.note ?? null,
+    status: {
+      id: row.status_id ?? null,
+      name: row.status_name ?? null,
+    },
+    createdAt: row.created_at ?? null,
+    updatedAt: row.updated_at ?? null,
+    createdBy: {
+      firstname: row.created_by_firstname ?? null,
+      lastname: row.created_by_lastname ?? null,
+    },
+    updatedBy: {
+      firstname: row.updated_by_firstname ?? null,
+      lastname: row.updated_by_lastname ?? null,
+    },
+  };
+  
+  return cleanObject(transformed); // final clean sweep
 };
 
 /**
- * Transforms a raw database row into a structured customer details object.
+ * Transforms an array of enriched customer rows from the database into
+ * clean and structured customer objects.
  *
- * @param {Object} row - Raw row returned from the database query.
- * @returns {Object} Transformed customer details.
- * @throws Will throw an AppError if transformation fails.
+ * - Use `transformEnrichedCustomer` to format and sanitize each row.
+ * - Ensures input is an array; returns an empty array if not.
+ *
+ * @param {Array<object>} rows - Array of raw DB rows with customer, status, and user metadata.
+ * @returns {Array<object>} Array of cleaned and transformed customer objects.
  */
-const transformCustomerDetails = (row) => {
-  try {
-    return {
-      id: row.id,
-      customerName: row.customer_name || 'Unknown',
-      email: row.email,
-      phoneNumber: row.phone_number,
-      address: formatAddress(row),
-      note: row.note || null,
-      statusId: row.status_id,
-      statusName: row.status_name,
-      statusDate: row.status_date,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-      createdBy: row.created_by || 'Unknown',
-      updatedBy: row.updated_by || 'Unknown',
-    };
-  } catch (error) {
-    logError('Failed to transform customer details:', error.message);
-    throw AppError.transformerError('Data transformation error');
-  }
+const transformEnrichedCustomers = (rows) => {
+  if (!Array.isArray(rows)) return [];
+  return rows.map(transformEnrichedCustomer);
 };
 
 module.exports = {
-  transformCustomerDetails,
+  transformEnrichedCustomers,
 };

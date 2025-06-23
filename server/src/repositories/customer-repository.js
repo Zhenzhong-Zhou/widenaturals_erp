@@ -115,6 +115,48 @@ const insertCustomerRecords = async (customers, client) => {
 };
 
 /**
+ * Fetches enriched customer records by ID.
+ *
+ * - Retrieves customer details along with status and creator/updater metadata.
+ * - Performs LEFT JOINs with `status`, `users` (as created_by and updated_by).
+ * - Designed for use in audit views, admin panels, or enriched display.
+ *
+ * @param {string[]} ids - Array of customer UUIDs to fetch.
+ * @param {object} [client] - Optional PostgreSQL client for transactional context.
+ * @returns {Promise<Array<Object>>} - Array of enriched customer records.
+ * @throws {AppError} If query fails or invalid parameters are passed.
+ */
+const getEnrichedCustomersByIds = async(ids, client) => {
+  const sql = `
+    SELECT
+      c.id, c.firstname, c.lastname, c.email, c.phone_number,
+      c.address_line1, c.address_line2,
+      c.city, c.state, c.postal_code, c.country, c.region,
+      c.note,
+      c.status_id, s.name AS status_name,
+      c.created_at, c.updated_at,
+      cu.firstname AS created_by_firstname, cu.lastname AS created_by_lastname,
+      uu.firstname AS updated_by_firstname, uu.lastname AS updated_by_lastname
+    FROM customers c
+    LEFT JOIN status s ON s.id = c.status_id
+    LEFT JOIN users cu ON cu.id = c.created_by
+    LEFT JOIN users uu ON uu.id = c.updated_by
+    WHERE c.id = ANY($1)
+  `;
+  
+  try {
+    const result = await query(sql, [ids], client);
+    return result.rows;
+  } catch (error) {
+    logSystemException(error,'Failed to fetch enriched customer records', {
+      context: 'customer-repository/getEnrichedCustomersByIds',
+      ids,
+    });
+    throw AppError.databaseError('Failed to retrieve customer records.');
+  }
+};
+
+/**
  * Repository function to check if a customer exists by ID.
  * @param {string} customerId - The UUID of the customer.
  * @param {object} client - Optional database transaction client.
@@ -324,60 +366,11 @@ const getCustomersForDropdown = async (search = '', limit = 100) => {
   }
 };
 
-/**
- * Fetch customer details by ID from the database.
- * @param {string} customerId - The UUID of the customer.
- * @returns {Promise<Object>} - Returns the customer details if found.
- * @throws {AppError} - Throws an error if the customer is not found or if a database error occurs.
- */
-const getCustomerDetailsById = async (customerId) => {
-  try {
-    const queryText = `
-      SELECT
-        c.id,
-        COALESCE(c.firstname || ' ' || c.lastname, 'Unknown') AS customer_name,
-        c.email,
-        c.phone_number,
-        c.address_line1,
-        c.address_line2,
-        c.city,
-        c.state,
-        c.postal_code,
-        c.country,
-        c.region,
-        c.note,
-        c.status_id,
-        s.name AS status_name,
-        c.status_date,
-        c.created_at,
-        c.updated_at,
-        COALESCE(u1.firstname || ' ' || u1.lastname, 'Unknown') AS created_by,
-        COALESCE(u2.firstname || ' ' || u2.lastname, 'Unknown') AS updated_by
-      FROM customers c
-      INNER JOIN status s ON c.status_id = s.id
-      LEFT JOIN users u1 ON c.created_by = u1.id
-      LEFT JOIN users u2 ON c.updated_by = u2.id
-      WHERE c.id = $1
-    `;
-
-    const { rows } = await retry(() => query(queryText, [customerId]));
-
-    if (rows.length === 0) {
-      throw AppError.notFoundError('Customer not found', 404);
-    }
-
-    return rows[0];
-  } catch (error) {
-    logError('Error fetching customer by ID:', error);
-    throw AppError.databaseError('Failed to fetch customer details.');
-  }
-};
-
 module.exports = {
   insertCustomerRecords,
+  getEnrichedCustomersByIds,
   checkCustomerExistsById,
   checkCustomerExistsByEmailOrPhone,
   getAllCustomers,
   getCustomersForDropdown,
-  getCustomerDetailsById,
 };
