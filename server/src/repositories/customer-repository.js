@@ -4,17 +4,19 @@ const { logError } = require('../utils/logger-helper');
 const { logSystemException } = require('../utils/system-logger');
 
 /**
- * Bulk creates or updates customers.
+ * Bulk inserts customer records with conflict handling.
  *
- * Performs validation, maps input to DB-compatible format, and uses the bulkInsert utility.
- * On conflict (email + phone_number), updates selected fields.
+ * - Transforms and inserts validated customer data into the database.
+ * - On conflict (matching `email` + `phone_number`), updates defined fields
+ *   (e.g., address, status, note, metadata).
+ * - Primarily used for insert operations, with conflict resolution as fallback.
  *
- * @param {Array<Object>} customers - List of customer objects to insert.
- * @param {*} client - Optional DB client for transaction context.
- * @returns {Promise<Array>} Inserted or updated customer records.
- * @throws {AppError} If validation fails or database operation fails.
+ * @param {Array<Object>} customers - Array of validated customer objects.
+ * @param {Object} client - Optional DB client for transactional context.
+ * @returns {Promise<Array<Object>>} - Array of inserted or updated customer records.
+ * @throws {AppError} - Throws on validation or database error.
  */
-const bulkCreateCustomers = async (customers, client) => {
+const insertCustomerRecords = async (customers, client) => {
   const columns = [
     'firstname',
     'lastname',
@@ -372,7 +374,7 @@ const getCustomerDetailsById = async (customerId) => {
 };
 
 module.exports = {
-  bulkCreateCustomers,
+  insertCustomerRecords,
   checkCustomerExistsById,
   checkCustomerExistsByEmailOrPhone,
   getAllCustomers,

@@ -1,5 +1,5 @@
 const {
-  createCustomers,
+  createCustomersService,
   fetchCustomersService,
   fetchCustomersDropdown,
 } = require('../services/customer-service');
@@ -38,7 +38,7 @@ const createCustomerController = wrapAsync(async (req, res, next) => {
     traceId: req.traceId,
   });
   
-  const result = await createCustomers(customers, user_id);
+  const result = await createCustomersService(customers, user_id);
   
   res.status(201).json({
     success: true,

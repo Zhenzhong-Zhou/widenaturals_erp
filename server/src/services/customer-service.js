@@ -1,6 +1,6 @@
 const AppError = require('../utils/AppError');
 const {
-  bulkCreateCustomers,
+  insertCustomerRecords,
   getAllCustomers,
   getCustomersForDropdown,
   getCustomerDetailsById,
@@ -29,7 +29,7 @@ const {
  * @returns {Promise<Array<Object>>} - Created or updated customer rows
  * @throws {AppError} - Wrapped service-level error
  */
-const createCustomers = async (customers, createdBy) => {
+const createCustomersService = async (customers, createdBy) => {
   return withTransaction(async (client) => {
     try {
       logSystemInfo('Preparing customer data for insert', {
@@ -42,7 +42,7 @@ const createCustomers = async (customers, createdBy) => {
         createdBy
       );
       
-      const inserted = await bulkCreateCustomers(preparedCustomers, client);
+      const inserted = await insertCustomerRecords(preparedCustomers, client);
       
       logSystemInfo('Customer bulk insert completed', {
         insertedCount: inserted.length,
@@ -142,7 +142,7 @@ const fetchCustomerDetails = async (customerId) => {
 };
 
 module.exports = {
-  createCustomers,
+  createCustomersService,
   fetchCustomersService,
   fetchCustomersDropdown,
   fetchCustomerDetails,
