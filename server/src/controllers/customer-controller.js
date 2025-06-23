@@ -5,49 +5,51 @@ const {
 } = require('../services/customer-service');
 const AppError = require('../utils/AppError');
 const wrapAsync = require('../utils/wrap-async');
-const { logError } = require('../utils/logger-helper');
+const { logError, logInfo } = require('../utils/logger-helper');
 const { getCustomerDetailsLogic } = require('../business/customer-business');
 
 /**
- * Handles creating a single customer or multiple customers.
- * Determines if the request is for bulk or single insert based on input type.
+ * Controller to handle the creation of one or multiple customers.
  *
- * @param {Object} req - Express request object.
- * @param {Object} res - Express response object.
- * @param {Function} next - Express next function.
+ * - Accepts an array of customer objects (even single inserts must be wrapped in an array).
+ * - Validates the structure and enforces non-empty input.
+ * - Adds created_by metadata from the authenticated user.
+ * - Returns inserted customer records.
  */
 const createCustomerController = wrapAsync(async (req, res, next) => {
-  try {
-    let customers = req.body;
-    const createdBy = req.user.id; // Extract user from token
-
-    if (!Array.isArray(customers) && typeof customers !== 'object') {
-      throw AppError.validationError(
-        'Invalid input: Expected an object or an array of objects.'
-      );
-    }
-
-    let result;
-    if (Array.isArray(customers)) {
-      // Bulk Insert
-      result = await createCustomers(customers, createdBy);
-      res.status(201).json({
-        success: true,
-        message: 'Bulk customers created successfully.',
-        customers: result,
-      });
-    } else {
-      // Single Insert
-      result = await createCustomers(customers, createdBy);
-      res.status(201).json({
-        success: true,
-        message: 'Customer created successfully.',
-        customer: result,
-      });
-    }
-  } catch (error) {
-    next(error);
+  const customers = req.body;
+  const user_id = req.user?.id;
+  
+  if (!user_id) {
+    return next(AppError.validationError('Missing authenticated user.'));
   }
+  
+  if (!Array.isArray(customers) || customers.length === 0) {
+    return next(
+      AppError.validationError('Expected a non-empty array of customers.')
+    );
+  }
+  
+  logInfo('Creating customer record(s)', req, {
+    context: 'customer-controller/createCustomerController',
+    recordCount: customers.length,
+    requestedBy: user_id,
+    requestId: req.id,
+    traceId: req.traceId,
+  });
+  
+  const result = await createCustomers(customers, user_id);
+  
+  res.status(201).json({
+    success: true,
+    message:
+      customers.length > 1
+        ? 'Bulk customers created successfully.'
+        : 'Customer created successfully.',
+    ...(customers.length > 1
+      ? { customers: result }
+      : { customer: result[0] }),
+  });
 });
 
 const getCustomersController = wrapAsync(async (req, res, next) => {

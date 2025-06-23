@@ -1,6 +1,116 @@
 const { bulkInsert, query, retry, paginateQuery } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logError } = require('../utils/logger-helper');
+const { logSystemException } = require('../utils/system-logger');
+
+/**
+ * Bulk creates or updates customers.
+ *
+ * Performs validation, maps input to DB-compatible format, and uses the bulkInsert utility.
+ * On conflict (email + phone_number), updates selected fields.
+ *
+ * @param {Array<Object>} customers - List of customer objects to insert.
+ * @param {*} client - Optional DB client for transaction context.
+ * @returns {Promise<Array>} Inserted or updated customer records.
+ * @throws {AppError} If validation fails or database operation fails.
+ */
+const bulkCreateCustomers = async (customers, client) => {
+  const columns = [
+    'firstname',
+    'lastname',
+    'email',
+    'phone_number',
+    'address_line1',
+    'address_line2',
+    'city',
+    'state',
+    'postal_code',
+    'country',
+    'region',
+    'status_id',
+    'note',
+    'status_date',
+    'created_at',
+    'updated_at',
+    'created_by',
+    'updated_by',
+  ];
+  
+  const updateColumns = [
+    'firstname',
+    'lastname',
+    'address_line1',
+    'address_line2',
+    'city',
+    'state',
+    'postal_code',
+    'country',
+    'region',
+    'status_id',
+    'note',
+    'updated_at',
+    'updated_by',
+  ];
+  
+  const updateStrategies = Object.fromEntries(updateColumns.map((col) => [col, 'overwrite']));
+  
+  const now = new Date();
+  const rows = customers.map((customer) => [
+    customer.firstname,
+    customer.lastname,
+    customer.email || null,
+    customer.phone_number || null,
+    customer.address_line1,
+    customer.address_line2 || null,
+    customer.city,
+    customer.state,
+    customer.postal_code,
+    customer.country,
+    customer.region || null,
+    customer.status_id,
+    customer.note || null,
+    now,
+    now,
+    null, // updated_at
+    customer.created_by,
+    null, // updated_by
+  ]);
+  
+  const invalidIndex = rows.findIndex(
+    (row) => !Array.isArray(row) || row.length !== columns.length
+  );
+  
+  if (invalidIndex !== -1) {
+    const actualLength = Array.isArray(rows[invalidIndex])
+      ? rows[invalidIndex].length
+      : 'non-array';
+    
+    throw AppError.validationError(
+      `Invalid data: Row ${invalidIndex} contains ${actualLength} values, but expected ${columns.length}`
+    );
+  }
+  
+  try {
+    return await bulkInsert(
+      'customers',
+      columns,
+      rows,
+      ['email', 'phone_number'],
+      updateStrategies,
+      client
+    );
+  } catch (error) {
+    logSystemException(error, 'Bulk Insert Failed', {
+      context: 'customer-repository/bulkCreateCustomers',
+      table: 'customers',
+      columns,
+      conflictColumns: ['email', 'phone_number'],
+    });
+    throw AppError.databaseError('Bulk insert operation failed', {
+      details: { tableName: 'customers', error: error.message },
+    });
+  }
+};
 
 /**
  * Repository function to check if a customer exists by ID.
@@ -50,92 +160,6 @@ const checkCustomerExistsByEmailOrPhone = async (
     throw AppError.databaseError(
       'Failed to check customer existence by email or phone'
     );
-  }
-};
-
-/**
- * Inserts multiple customers into the database in a transaction.
- * @param {Array} customers - List of customer objects.
- * @param client
- * @returns {Promise<Array>} - The inserted customers.
- */
-const bulkCreateCustomers = async (customers, client) => {
-  if (!Array.isArray(customers) || customers.length === 0) {
-    throw AppError('Customer list is empty.', 400, {
-      code: 'VALIDATION_ERROR',
-    });
-  }
-
-  const columns = [
-    'firstname',
-    'lastname',
-    'email',
-    'phone_number',
-    'address_line1',
-    'address_line2',
-    'city',
-    'state',
-    'postal_code',
-    'country',
-    'region',
-    'status_id',
-    'note',
-    'status_date',
-    'created_at',
-    'updated_at',
-    'created_by',
-    'updated_by',
-  ];
-
-  const rows = customers.map((customer) => [
-    customer.firstname,
-    customer.lastname,
-    customer.email || null,
-    customer.phone_number || null,
-    customer.address_line1,
-    customer.address_line2 || null,
-    customer.city,
-    customer.state,
-    customer.postal_code,
-    customer.country,
-    customer.region || null,
-    customer.status_id,
-    customer.note || null,
-    new Date(), // status_date
-    new Date(), // created_at
-    null, // updated_at
-    customer.created_by,
-    null, // updated_by
-  ]);
-
-  try {
-    return await bulkInsert(
-      'customers',
-      columns,
-      rows,
-      ['email', 'phone_number'], // Conflict resolution based on email, phone
-      [
-        'firstname',
-        'lastname',
-        'address_line1',
-        'address_line2',
-        'city',
-        'state',
-        'postal_code',
-        'country',
-        'region',
-        'status_id',
-        'note',
-        'updated_at',
-        'updated_by',
-      ], // Update on conflict
-      client
-    );
-  } catch (error) {
-    logError('Bulk Insert Failed:', error);
-    throw AppError.databaseError('Bulk insert operation failed', {
-      details: { tableName: 'customers', columns, error: error.message },
-    });
   }
 };
 
@@ -348,9 +372,9 @@ const getCustomerDetailsById = async (customerId) => {
 };
 
 module.exports = {
+  bulkCreateCustomers,
   checkCustomerExistsById,
   checkCustomerExistsByEmailOrPhone,
-  bulkCreateCustomers,
   getAllCustomers,
   getCustomersForDropdown,
   getCustomerDetailsById,

@@ -5,6 +5,10 @@ const {
   getCustomersForDropdown,
   getCustomerDetailsById,
 } = require('../repositories/customer-repository');
+const {
+  logSystemInfo,
+  logSystemException
+} = require('../utils/system-logger');
 const { prepareCustomersForInsert } = require('../shared/customer-utils');
 const { logError } = require('../utils/logger-helper');
 const { withTransaction } = require('../database/db');
@@ -14,21 +18,44 @@ const {
 
 /**
  * Creates multiple customers in bulk with validation and conflict handling.
- * Wraps the insertion in a database transaction.
+ * Wraps the insertion in a database transaction to ensure atomicity.
  *
- * @param {Array} customers - List of customer objects.
- * @param {String} createdBy - ID of the user initiating the operation.
- * @returns {Promise<Array>} - Inserted or updated customer records.
+ * - Validates and enriches customer data (status, created_by, etc.)
+ * - Uses `ON CONFLICT` upsert behavior on email + phone_number
+ * - Returns inserted or updated customer records
+ *
+ * @param {Array<Object>} customers - List of raw customer objects to insert
+ * @param {String} createdBy - User ID of the initiator
+ * @returns {Promise<Array<Object>>} - Created or updated customer rows
+ * @throws {AppError} - Wrapped service-level error
  */
 const createCustomers = async (customers, createdBy) => {
   return withTransaction(async (client) => {
     try {
+      logSystemInfo('Preparing customer data for insert', {
+        count: customers.length,
+        context: 'customer-service/createCustomers',
+      });
+      
       const preparedCustomers = await prepareCustomersForInsert(
         customers,
         createdBy
       );
-      return await bulkCreateCustomers(preparedCustomers, client);
+      
+      const inserted = await bulkCreateCustomers(preparedCustomers, client);
+      
+      logSystemInfo('Customer bulk insert completed', {
+        insertedCount: inserted.length,
+        context: 'customer-service/createCustomers',
+      });
+      
+      return inserted;
     } catch (error) {
+      logSystemException(error, 'Failed to create customers in transaction', {
+        customerCount: customers?.length,
+        context: 'customer-service/createCustomers',
+      });
+      
       throw AppError.serviceError(
         'Failed to create customers in transaction',
         error
