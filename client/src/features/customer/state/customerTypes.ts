@@ -1,4 +1,4 @@
-import type { ApiSuccessResponse, MutationState } from '@shared-types/api';
+import type { ApiSuccessResponse, CreateMode, MutationState } from '@shared-types/api';
 
 // Represents a single customer creation request payload
 export interface CustomerRequest {
@@ -44,6 +44,12 @@ export type CreateCustomerResponse =
 
 
 export type CustomerCreateState = MutationState<CustomerResponse[]>;
+
+/**
+ * Alias of `CreateMode`, specifically for customer creation workflows.
+ * This improves clarity in customer-specific components while reusing the shared type.
+ */
+export type CustomerCreateMode = CreateMode;
 
 export interface CustomerQueryParams {
   page?: number; // Optional, defaults to 1

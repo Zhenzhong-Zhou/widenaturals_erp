@@ -46,9 +46,7 @@ const createCustomerController = wrapAsync(async (req, res, next) => {
       customers.length > 1
         ? 'Bulk customers created successfully.'
         : 'Customer created successfully.',
-    ...(customers.length > 1
-      ? { customers: result }
-      : { customer: result[0] }),
+    data: customers.length > 1 ? result : result[0],
   });
 });
 

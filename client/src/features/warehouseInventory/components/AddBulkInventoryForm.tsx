@@ -218,7 +218,7 @@ const AddBulkInventoryForm: FC<AddBulkInventoryFormProps> = ({
       {
         id: 'comments',
         label: 'Comments',
-        type: 'text',
+        type: 'textarea',
       },
     ];
   }, [

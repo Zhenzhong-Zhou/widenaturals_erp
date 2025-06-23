@@ -2,11 +2,10 @@ import { type FC, useState } from 'react';
 import Box from '@mui/material/Box';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
-import CreateCustomerModal from '@features/customer/components/CreateCustomerModal';
-import CustomerTable from '@features/customer/components/CustomerTable';
+import CustomerCreateDialog from '@features/customer/components/CustomerCreateDialog';
 
 const CustomersPage: FC = () => {
-  const [modalOpen, setModalOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   return (
     <Box sx={{ p: 3 }}>
@@ -21,17 +20,16 @@ const CustomersPage: FC = () => {
       </CustomTypography>
 
       {/* Separate Button to Open Modal */}
-      <CustomButton variant="contained" onClick={() => setModalOpen(true)}>
+      <CustomButton variant="contained" onClick={() => setDialogOpen(true)}>
         Create Customer
       </CustomButton>
-
-      {/* Modal: Controlled by State */}
-      <CreateCustomerModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
+      
+      <CustomerCreateDialog
+        onClose={() => setDialogOpen(false)}
+        open={dialogOpen}
       />
 
-      <CustomerTable />
+      {/*<CustomerTable />*/}
     </Box>
   );
 };

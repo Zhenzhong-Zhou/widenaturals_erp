@@ -233,3 +233,10 @@ export interface MutationState<T> {
    */
   error: string | null;
 }
+
+/**
+ * Represents the available entry modes for creating records,
+ * such as customers or inventory. Used to toggle between
+ * single-entry and bulk-entry forms.
+ */
+export type CreateMode = 'single' | 'bulk';

@@ -31,9 +31,11 @@ export interface FieldConfig {
     | 'checkbox'
     | 'number'
     | 'phone'
+    | 'email'
     | 'custom';
   options?: { value: string | number; label: string }[];
   required?: boolean;
+  validation?: (value: any) => string | undefined;
   defaultValue?: any;
   disabled?: boolean;
   defaultHelperText?: string;
@@ -225,6 +227,37 @@ const CustomForm = forwardRef<CustomFormRef, FormProps>(
                         value={controllerField.value}
                         onChange={controllerField.onChange}
                         country={field.country || 'ca'}
+                      />
+                    )}
+                  />
+                )}
+                
+                {/** Email Field */}
+                {field.type === 'email' && (
+                  <Controller
+                    name={field.id}
+                    control={control}
+                    defaultValue={field.defaultValue ?? ''}
+                    rules={{
+                      required: field.required
+                        ? `${field.label} is required`
+                        : false,
+                      validate: field.validation,
+                    }}
+                    render={({ field: controllerField }) => (
+                      <BaseInput
+                        fullWidth
+                        label={field.label}
+                        value={controllerField.value}
+                        onChange={controllerField.onChange}
+                        disabled={field.disabled}
+                        error={!!errors[field.id]}
+                        helperText={getError(
+                          errors,
+                          field.id,
+                          field.defaultHelperText
+                        )}
+                        placeholder={field.placeholder}
                       />
                     )}
                   />

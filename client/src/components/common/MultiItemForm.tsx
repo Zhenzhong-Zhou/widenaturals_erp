@@ -11,6 +11,7 @@ import Dropdown from '@components/common/Dropdown';
 import BaseInput from '@components/common/BaseInput';
 import CustomButton from '@components/common/CustomButton';
 import CustomDatePicker from '@components/common/CustomDatePicker';
+import { CustomPhoneInput } from '@components/index.ts';
 
 export interface MultiItemFieldConfig {
   id: string;
@@ -22,7 +23,11 @@ export interface MultiItemFieldConfig {
     | 'date'
     | 'dropdown'
     | 'custom'
-    | 'checkbox';
+    | 'checkbox'
+    | 'phone'
+    | 'email'
+    | 'textarea';
+  country?: string;
   options?: { value: string; label: string }[];
   component?: (props: {
     value: any;
@@ -90,8 +95,7 @@ const MultiItemForm: FC<MultiItemFormProps> = ({
 
   const canSubmit = allFields.every((row) =>
     fields.every((field) => {
-      if (field.id === 'comments' || field.id === 'notes') return true; // skip optional
-      if (field.required === false) return true;
+      if (!field.required) return true;
       const value = row?.[field.id];
       return value !== undefined && value !== null && value !== '';
     })
@@ -127,7 +131,7 @@ const MultiItemForm: FC<MultiItemFormProps> = ({
   const resetFrom = () => {
     reset({ items: [{ id: uuidv4() }] }); // Reset form state with one empty row
   };
-
+  
   return (
     <Box
       component="form"
@@ -255,7 +259,53 @@ const MultiItemForm: FC<MultiItemFormProps> = ({
                               />
                             );
                           }
-
+                          
+                          if (field.type === 'phone') {
+                            return (
+                              <CustomPhoneInput
+                                value={value}
+                                onChange={onChange}
+                                country={field.country || 'ca'}
+                              />
+                            );
+                          }
+                          
+                          if (field.type === 'email') {
+                            return (
+                              <BaseInput
+                                label={field.label}
+                                type="email"
+                                value={value || ''}
+                                onChange={onChange}
+                                fullWidth
+                                error={!!errorMessage}
+                                helperText={helperText}
+                                disabled={disabled}
+                                required={required}
+                                placeholder={placeholder}
+                              />
+                            );
+                          }
+                          
+                          if (field.type === 'textarea') {
+                            return (
+                              <BaseInput
+                                label={field.label}
+                                value={value || ''}
+                                onChange={onChange}
+                                fullWidth
+                                multiline
+                                minRows={3}
+                                maxRows={6}
+                                error={!!errorMessage}
+                                helperText={helperText}
+                                disabled={disabled}
+                                required={required}
+                                placeholder={placeholder}
+                              />
+                            );
+                          }
+                          
                           if (field.type === 'text') {
                             return (
                               <BaseInput
@@ -264,9 +314,6 @@ const MultiItemForm: FC<MultiItemFormProps> = ({
                                 value={value || ''}
                                 onChange={onChange}
                                 fullWidth
-                                multiline
-                                minRows={3}
-                                maxRows={6}
                                 error={!!errorMessage}
                                 helperText={helperText}
                                 disabled={disabled}

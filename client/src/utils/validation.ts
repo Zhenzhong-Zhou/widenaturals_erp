@@ -1,3 +1,5 @@
+import validator from 'validator';
+
 export interface PasswordValidationInput {
   currentPassword: string;
   newPassword: string;
@@ -53,4 +55,9 @@ export const validatePassword = ({
   const hasErrors = Object.values(errors).some((error) => error !== null);
 
   return hasErrors ? errors : null;
+};
+
+export const emailValidator = (value: string): string | undefined => {
+  if (!value) return undefined; // let `required: true` handle empty
+  return validator.isEmail(value) ? undefined : 'Invalid email address';
 };

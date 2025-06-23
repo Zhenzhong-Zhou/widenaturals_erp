@@ -1,7 +1,7 @@
 import { type FC, useState, useEffect } from 'react';
 
 import Dropdown from '@components/common/Dropdown';
-import CreateCustomerModal from '@features/customer/components/CreateCustomerModal';
+import SingleCustomerForm from '@features/customer/components/SingleCustomerForm.tsx';
 
 interface CustomerDropdownProps {
   label?: string;
@@ -52,7 +52,7 @@ const CustomerDropdown: FC<CustomerDropdownProps> = ({
       />
 
       {/*/!* Modal: Controlled by CustomerDropdown *!/*/}
-      <CreateCustomerModal
+      <SingleCustomerForm
         open={modalOpen}
         onClose={() => setModalOpen(false)}
       />

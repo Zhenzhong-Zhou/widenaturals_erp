@@ -49,8 +49,6 @@ export { default as useAvailableInventoryLots } from './useAvailableInventoryLot
 export { default as useAllocationEligibleOrderDetails } from './useAllocationEligibleOrderDetails';
 
 // --- Customer & Dropdowns ---
-export { default as useCustomers } from './useCustomers';
-export { default as useCustomerDropdown } from './useCustomerDropdown';
 export { default as useDiscountDropdown } from './useDiscountDropdown';
 export { default as useTaxRateDropdown } from './useTaxRateDropdown';
 export { default as useDeliveryMethodDropdown } from './useDeliveryMethodDropdown';

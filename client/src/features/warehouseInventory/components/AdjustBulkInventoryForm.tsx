@@ -75,7 +75,7 @@ const AdjustBulkInventoryForm: FC<AdjustBulkInventoryFormProps> = ({
     {
       id: 'note',
       label: 'Note (Optional)',
-      type: 'text',
+      type: 'textarea',
       required: false,
       placeholder: 'Reason for adjustment (optional)',
     },

@@ -4,10 +4,8 @@ import Box from '@mui/material/Box';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
 import CustomTable, { type Column } from '@components/common/CustomTable';
-import type { Customer } from '@features/customer';
 import { formatLabel, formatPhoneNumber } from '@utils/textUtils';
 import { formatDate } from '@utils/dateTimeUtils';
-import useCustomers from '@hooks/useCustomers';
 
 const CustomerTable: FC = () => {
   const {
