@@ -42,7 +42,6 @@ export type CreateCustomerResponse =
   | CreateSingleCustomerResponse
   | CreateBulkCustomerResponse;
 
-
 export type CustomerCreateState = MutationState<CustomerResponse[]>;
 
 /**

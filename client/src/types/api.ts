@@ -205,7 +205,7 @@ export interface PaginatedLookupState<T> extends AsyncState<T[]> {
  * Represents the state of a data-modifying API operation (e.g., POST, PUT, DELETE).
  * Commonly used to track the status and response of a mutation request.
  *
- * @template T - The type of the response payload returned from the mutation.
+ * @template T - The type of single response item. The `data` field will be an array of T.
  *
  * Example usage:
  * ```ts
@@ -219,19 +219,31 @@ export interface PaginatedLookupState<T> extends AsyncState<T[]> {
 export interface MutationState<T> {
   /**
    * The response payload returned from a successful mutation request.
+   * Always an array of type T (even for single-item operations).
    * Set to `null` before the request or if the request fails.
    */
   data: T | null;
-
+  
   /**
    * Indicates whether the mutation request is currently in progress.
    */
   loading: boolean;
-
+  
   /**
    * Error message if the mutation request fails; otherwise `null`.
    */
   error: string | null;
+  
+  /**
+   * Indicates if the mutation was successful.
+   * Useful for showing success messages or conditional UI rendering.
+   */
+  success?: boolean;
+  
+  /**
+   * Server-provided success message or status message, if any.
+   */
+  message?: string;
 }
 
 /**

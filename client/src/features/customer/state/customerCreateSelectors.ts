@@ -24,11 +24,16 @@ export const selectCustomerCreateError = createSelector(
 );
 
 /**
- * Selector to retrieve the full list of successfully created customers.
+ * Selector to retrieve the full response after customer creation.
+ * Includes success flag, message, and created customer data.
  */
-export const selectCreatedCustomers = createSelector(
+export const selectCustomerCreateResponse = createSelector(
   [selectCustomerCreateState],
-  (customerCreate) => customerCreate.data
+  (customerCreate) => ({
+      success: customerCreate.success ?? false,
+      message: customerCreate.message ?? '',
+      data: customerCreate.data ?? [],
+  })
 );
 
 /**

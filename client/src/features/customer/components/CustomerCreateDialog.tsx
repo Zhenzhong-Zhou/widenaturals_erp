@@ -17,9 +17,11 @@ const CustomerCreateDialog = ({ open, onClose }: CustomerCreateDialogProps) => {
   const [mode, setMode] = useState<CustomerCreateMode>('single');
   
   const {
-    createCustomers,
     loading,
     error,
+    customerCreateResponse,
+    customerNames,
+    createCustomers,
     resetCustomerCreate,
   } = useCustomerCreate();
   
@@ -42,21 +44,23 @@ const CustomerCreateDialog = ({ open, onClose }: CustomerCreateDialogProps) => {
       showCancelButton={!loading}
       disableCloseOnBackdrop={loading}
       disableCloseOnEscape={loading}
+      maxWidth="md"
+      fullWidth
     >
-      <CustomerCreateToggle value={mode} onChange={setMode} />
-      
-      <Box sx={{ mt: 2 }}>
+      <Box sx={{ px: 2, py: 1 }}>
+        <CustomerCreateToggle value={mode} onChange={setMode} />
         {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
+          <Alert severity="error" sx={{ mt: 2 }}>
             {error}
           </Alert>
         )}
-        
-        {mode === 'single' ? (
-          <SingleCustomerForm loading={loading} onSubmit={handleSubmit} />
-        ) : (
-          <BulkCustomerForm loading={loading} onSubmit={handleSubmit} />
-        )}
+        <Box sx={{ mt: 2 }}>
+          {mode === 'single' ? (
+            <SingleCustomerForm loading={loading} onSubmit={handleSubmit} />
+          ) : (
+            <BulkCustomerForm loading={loading} onSubmit={handleSubmit} />
+          )}
+        </Box>
       </Box>
     </CustomDialog>
   );

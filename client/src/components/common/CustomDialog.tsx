@@ -1,12 +1,12 @@
 import type { FC, ReactNode } from 'react';
-import Dialog from '@mui/material/Dialog';
+import Dialog, { type DialogProps } from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
 
-interface CustomDialogProps {
+export interface CustomDialogProps extends Partial<DialogProps> {
   open: boolean;
   onClose: () => void;
   title: string;
@@ -30,6 +30,7 @@ const CustomDialog: FC<CustomDialogProps> = ({
   showCancelButton = true,
   disableCloseOnBackdrop = false,
   disableCloseOnEscape = false,
+  ...rest
 }) => {
   const handleClose = (
     _event: object,
@@ -52,6 +53,7 @@ const CustomDialog: FC<CustomDialogProps> = ({
       fullWidth
       maxWidth="md"
       aria-labelledby="custom-dialog-title"
+      {...rest}
     >
       <DialogTitle id="custom-dialog-title">{title}</DialogTitle>
 

@@ -1,7 +1,7 @@
 import type { MouseEvent } from 'react';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
-import Box from '@mui/material/Box';
+import Stack from '@mui/material/Stack';
 import CustomTypography from '@components/common/CustomTypography';
 import type { CustomerCreateMode } from '@features/customer/state';
 
@@ -21,8 +21,8 @@ const CustomerCreateToggle = ({ value, onChange }: CustomerCreateToggleProps) =>
   };
   
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', mb: 2 }}>
-      <CustomTypography variant="body1" sx={{ mb: 1 }}>
+    <Stack direction="column" spacing={1} sx={{ mb: 2 }}>
+      <CustomTypography variant="body1">
         Entry Mode
       </CustomTypography>
       <ToggleButtonGroup
@@ -35,7 +35,7 @@ const CustomerCreateToggle = ({ value, onChange }: CustomerCreateToggleProps) =>
         <ToggleButton value="single">Single</ToggleButton>
         <ToggleButton value="bulk">Bulk</ToggleButton>
       </ToggleButtonGroup>
-    </Box>
+    </Stack>
   );
 };
 

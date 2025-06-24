@@ -2,7 +2,7 @@ import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   selectCustomerCreateError,
   selectCustomerCreateLoading,
-  selectCreatedCustomers,
+  selectCustomerCreateResponse,
   selectCreatedCustomerNames,
 } from '@features/customer/state/customerCreateSelectors';
 import { createCustomersThunk, type CreateCustomersRequest } from '@features/customer/state';
@@ -17,7 +17,7 @@ const useCustomerCreate = () => {
   
   const loading = useAppSelector(selectCustomerCreateLoading);
   const error = useAppSelector(selectCustomerCreateError);
-  const customers = useAppSelector(selectCreatedCustomers);
+  const customerCreateResponse = useAppSelector(selectCustomerCreateResponse);
   const customerNames = useAppSelector(selectCreatedCustomerNames);
   
   /**
@@ -38,7 +38,7 @@ const useCustomerCreate = () => {
   return {
     loading,
     error,
-    customers,
+    customerCreateResponse,
     customerNames,
     createCustomers,
     resetCustomerCreate,

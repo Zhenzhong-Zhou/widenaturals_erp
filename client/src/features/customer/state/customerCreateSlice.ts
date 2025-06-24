@@ -24,20 +24,20 @@ const customerCreateSlice = createSlice({
         state.error = null;
         state.data = null;
       })
-      .addCase(createCustomersThunk.fulfilled, (state, action) => {
-        state.loading = false;
-        
-        const result = action.payload as CreateCustomerResponse;
-        
-        if (Array.isArray(result.data)) {
-          // Bulk creation: result.data is CustomerResponse[]
-          state.data = result.data;
-        } else {
-          // Single creation: result.data is CustomerResponse
-          state.data = [result.data];
-        }
-      })
-    .addCase(createCustomersThunk.rejected, (state, action) => {
+    .addCase(createCustomersThunk.fulfilled, (state, action) => {
+      state.loading = false;
+      state.error = null;
+      
+      const result = action.payload as CreateCustomerResponse;
+      
+      // Always normalize data to an array form
+      state.data = Array.isArray(result.data) ? result.data : [result.data];
+      
+      // Store success and message (optional fields in the interface)
+      state.success = result.success;
+      state.message = result.message;
+    })
+  .addCase(createCustomersThunk.rejected, (state, action) => {
       state.loading = false;
       state.error =
         (action.payload as Error)?.message || 'Failed to create customer(s)';
