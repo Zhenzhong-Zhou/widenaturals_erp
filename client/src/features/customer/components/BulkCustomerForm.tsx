@@ -21,7 +21,7 @@ const customerFields: MultiItemFieldConfig[] = [
   { id: 'postal_code', label: 'Postal Code', type: 'text', required: true },
   { id: 'country', label: 'Country', type: 'text', required: true },
   { id: 'region', label: 'Region', type: 'text', required: true },
-  { id: 'notes', label: 'Note', type: 'textarea' },
+  { id: 'note', label: 'Note', type: 'textarea' },
 ];
 
 const BulkCustomerForm: FC<BulkCustomerFormProps> = ({ onSubmit, loading }) => {
