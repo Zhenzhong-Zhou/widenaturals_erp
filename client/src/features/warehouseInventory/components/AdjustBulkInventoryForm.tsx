@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
+import Alert from '@mui/material/Alert';
 import DetailsSection from '@components/common/DetailsSection';
 import MultiItemForm, {
   type MultiItemFieldConfig,
@@ -15,7 +16,6 @@ import type {
   InventoryAdjustmentFormData,
 } from '@features/inventoryShared/types/InventorySharedType';
 import type { AdjustmentTypeOption } from '@features/lookup/state';
-import Alert from '@mui/material/Alert';
 
 interface AdjustBulkInventoryFormProps {
   initialQuantities: number[];
@@ -44,23 +44,11 @@ const AdjustBulkInventoryForm: FC<AdjustBulkInventoryFormProps> = ({
   
   const fields: MultiItemFieldConfig[] = [
     {
-      id: 'newQuantity',
-      label: 'New Quantity',
-      type: 'number',
-      required: true,
-      validation: (value) =>
-        value === undefined || value === ''
-          ? 'Required'
-          : value < 0
-            ? 'Must be 0 or greater'
-            : undefined,
-      placeholder: 'Enter adjusted quantity',
-    },
-    {
       id: 'adjustment_type_id',
       label: 'Adjustment Type',
       type: 'custom',
       required: true,
+      group: 'adjustment',
       component: ({ value, onChange }) => (
         <LotAdjustmentTypeDropdown
           value={value}
@@ -71,6 +59,20 @@ const AdjustBulkInventoryForm: FC<AdjustBulkInventoryFormProps> = ({
           onRefresh={onRefresh}
         />
       ),
+    },
+    {
+      id: 'newQuantity',
+      label: 'New Quantity',
+      type: 'number',
+      required: true,
+      group: 'adjustment',
+      validation: (value) =>
+        value === undefined || value === ''
+          ? 'Required'
+          : value < 0
+            ? 'Must be 0 or greater'
+            : undefined,
+      placeholder: 'Enter adjusted quantity',
     },
     {
       id: 'note',

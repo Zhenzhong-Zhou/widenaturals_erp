@@ -330,7 +330,7 @@ const MultiItemForm: FC<MultiItemFormProps> = ({
                               value={value || ''}
                               onChange={onChange}
                               fullWidth
-                              sx={{ width: '250px' }}
+                              sx={{ width: '100%' }}
                               error={!!errorMessage}
                               helperText={helperText}
                               disabled={disabled}

@@ -10,7 +10,7 @@ import CustomForm, { type FieldConfig } from '@components/common/CustomForm';
 import BatchRegistryDropdown from '@features/lookup/components/BatchRegistryDropdown';
 import WarehouseDropdown from '@features/lookup/components/WarehouseDropdown';
 import CustomDatePicker from '@components/common/CustomDatePicker';
-import Box from '@mui/material/Box';
+import Grid from '@mui/material/Grid';
 import FormControl from '@mui/material/FormControl';
 import FormLabel from '@mui/material/FormLabel';
 import RadioGroup from '@mui/material/RadioGroup';
@@ -90,6 +90,7 @@ const AddInventoryForm: FC<AddInventoryFormProps> = ({
         label: 'Warehouse',
         type: 'custom',
         required: true,
+        grid: { xs: 12 },
         customRender: ({ value, onChange }) => {
           return (
             <WarehouseDropdown
@@ -134,63 +135,58 @@ const AddInventoryForm: FC<AddInventoryFormProps> = ({
         label: 'Batch',
         type: 'custom',
         required: true,
+        grid: { xs: 12 },
         customRender: ({ onChange }) => (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-            <FormControl component="fieldset">
-              <FormLabel component="legend">Batch Type</FormLabel>
-              <RadioGroup
-                row
-                name="batchType"
-                value={batchType}
-                onChange={handleBatchTypeChange}
-              >
-                <FormControlLabel value="all" control={<Radio />} label="All" />
-                <FormControlLabel
-                  value="product"
-                  control={<Radio />}
-                  label="Product"
-                />
-                <FormControlLabel
-                  value="packaging_material"
-                  control={<Radio />}
-                  label="Packaging"
-                />
-              </RadioGroup>
-            </FormControl>
-
-            <BatchRegistryDropdown
-              value={
-                selectedBatch
-                  ? `${selectedBatch.id}::${selectedBatch.type}`
-                  : null
-              }
-              options={batchLookupOptions}
-              onChange={(val) => {
-                if (!val || !val.includes('::')) {
-                  setSelectedBatch(null);
-                  return;
+          <Grid container spacing={2}>
+            <Grid size={{xs: 12}}>
+              <FormControl component="fieldset">
+                <FormLabel component="legend">Batch Type</FormLabel>
+                <RadioGroup
+                  row
+                  name="batchType"
+                  value={batchType}
+                  onChange={handleBatchTypeChange}
+                >
+                  <FormControlLabel value="all" control={<Radio />} label="All" />
+                  <FormControlLabel value="product" control={<Radio />} label="Product" />
+                  <FormControlLabel value="packaging_material" control={<Radio />} label="Packaging" />
+                </RadioGroup>
+              </FormControl>
+            </Grid>
+            
+            <Grid size={{xs: 12}}>
+              <BatchRegistryDropdown
+                value={
+                  selectedBatch ? `${selectedBatch.id}::${selectedBatch.type}` : null
                 }
-                const [id, type] = val.split('::');
-                if (!id || !type) {
-                  setSelectedBatch(null);
-                  return;
-                }
-                setSelectedBatch({ id, type });
-                onChange?.(`${id}::${type}`);
-              }}
-              loading={batchLookupLoading}
-              error={batchLookupError}
-              hasMore={hasMore}
-              pagination={pagination}
-              fetchParams={{
-                ...batchLookupParams,
-                warehouseId: selectedWarehouse.warehouseId,
-                locationId: selectedWarehouse.locationId,
-              }}
-              setFetchParams={setBatchLookupParams}
-              onRefresh={fetchBatchLookup}
-            />
-          </Box>
+                options={batchLookupOptions}
+                onChange={(val) => {
+                  if (!val || !val.includes('::')) {
+                    setSelectedBatch(null);
+                    return;
+                  }
+                  const [id, type] = val.split('::');
+                  if (!id || !type) {
+                    setSelectedBatch(null);
+                    return;
+                  }
+                  setSelectedBatch({ id, type });
+                  onChange?.(`${id}::${type}`);
+                }}
+                loading={batchLookupLoading}
+                error={batchLookupError}
+                hasMore={hasMore}
+                pagination={pagination}
+                fetchParams={{
+                  ...batchLookupParams,
+                  warehouseId: selectedWarehouse.warehouseId,
+                  locationId: selectedWarehouse.locationId,
+                }}
+                setFetchParams={setBatchLookupParams}
+                onRefresh={fetchBatchLookup}
+              />
+            </Grid>
+          </Grid>
         ),
       },
       {
@@ -198,6 +194,7 @@ const AddInventoryForm: FC<AddInventoryFormProps> = ({
         label: 'Quantity',
         type: 'number',
         required: true,
+        grid: { xs: 12, sm: 6 },
         min: 1,
       },
       {
@@ -205,6 +202,7 @@ const AddInventoryForm: FC<AddInventoryFormProps> = ({
         label: 'Inbound Date',
         type: 'custom',
         required: true,
+        grid: { xs: 12, sm: 6 },
         customRender: ({ value, onChange }) => (
           <CustomDatePicker
             label="Inbound Date"
@@ -221,6 +219,7 @@ const AddInventoryForm: FC<AddInventoryFormProps> = ({
         id: 'comments',
         label: 'Comments',
         type: 'textarea',
+        grid: { xs: 12 },
       },
     ];
   }, [

@@ -23,6 +23,7 @@ const resetPasswordFields: FieldConfig[] = [
     label: 'Current Password',
     type: 'text',
     required: true,
+    grid: { xs: 12 },
     placeholder: 'Enter your current password',
   },
   {
@@ -30,6 +31,7 @@ const resetPasswordFields: FieldConfig[] = [
     label: 'New Password',
     type: 'text',
     required: true,
+    grid: { xs: 12 },
     placeholder: 'Enter your new password',
     defaultHelperText:
       'Password must be 8–64 characters, include upper/lowercase letters, a number, and a special character.',
@@ -39,6 +41,7 @@ const resetPasswordFields: FieldConfig[] = [
     label: 'Confirm New Password',
     type: 'text',
     required: true,
+    grid: { xs: 12 },
     placeholder: 'Confirm your new password',
   },
 ];

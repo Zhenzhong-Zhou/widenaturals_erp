@@ -12,6 +12,7 @@ import Checkbox from '@mui/material/Checkbox';
 import FormControl from '@mui/material/FormControl';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import InputLabel from '@mui/material/InputLabel';
+import Grid from '@mui/material/Grid';
 import Box from '@mui/material/Box';
 import FormHelperText from '@mui/material/FormHelperText';
 import BaseInput from '@components/common/BaseInput';
@@ -49,6 +50,12 @@ export interface FieldConfig {
     onChange?: (val: any) => void;
     required?: boolean;
   }) => ReactNode;
+  grid?: {
+    xs?: number;
+    sm?: number;
+    md?: number;
+    lg?: number;
+  };
 }
 
 export interface CustomFormRef {
@@ -117,12 +124,10 @@ const CustomForm = forwardRef<CustomFormRef, FormProps>(
     };
 
     return (
-      <Box
+      <Grid container spacing={2}
         component="form"
         onSubmit={handleSubmit(onSubmit)}
         sx={{
-          display: 'flex',
-          flexDirection: 'column',
           gap: 2,
           maxWidth: 600,
           width: '100%',
@@ -141,7 +146,7 @@ const CustomForm = forwardRef<CustomFormRef, FormProps>(
         )}
 
         {fields.map((field) => (
-          <Box key={field.id}>
+          <Grid size={field.grid || { xs: 12, sm: 6 }} key={field.id}>
             {field.type === 'custom' && field.customRender ? (
               <Controller
                 name={field.id}
@@ -369,7 +374,7 @@ const CustomForm = forwardRef<CustomFormRef, FormProps>(
                 )}
               </>
             )}
-          </Box>
+          </Grid>
         ))}
 
         {children}
@@ -388,7 +393,7 @@ const CustomForm = forwardRef<CustomFormRef, FormProps>(
             </CustomButton>
           )}
         </Box>
-      </Box>
+      </Grid>
     );
   }
 );

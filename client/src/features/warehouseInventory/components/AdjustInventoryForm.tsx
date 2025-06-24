@@ -49,18 +49,11 @@ const AdjustInventoryForm: FC<AdjustInventoryFormProps> = ({
   
   const fields: FieldConfig[] = [
     {
-      id: 'newQuantity',
-      label: 'New Quantity',
-      type: 'number',
-      required: true,
-      min: 0,
-      defaultValue: initialQuantity,
-    },
-    {
       id: 'adjustment_type_id',
       label: 'Adjustment Type',
       type: 'custom',
       required: true,
+      grid: { xs: 12, sm: 6 },
       customRender: ({ value, onChange }) =>
         onChange ? (
           <LotAdjustmentTypeDropdown
@@ -74,11 +67,21 @@ const AdjustInventoryForm: FC<AdjustInventoryFormProps> = ({
         ) : null,
     },
     {
+      id: 'newQuantity',
+      label: 'New Quantity',
+      type: 'number',
+      required: true,
+      grid: { xs: 12, sm: 6 },
+      min: 0,
+      defaultValue: initialQuantity,
+    },
+    {
       id: 'note',
       label: 'Note (Optional)',
       type: 'textarea',
       rows: 3,
       required: false,
+      grid: { xs: 12 },
       placeholder: 'Reason for adjustment (optional)',
     },
   ];
