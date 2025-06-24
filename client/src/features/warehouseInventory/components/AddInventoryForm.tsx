@@ -213,6 +213,7 @@ const AddInventoryForm: FC<AddInventoryFormProps> = ({
               const isoString = date ? date.toISOString() : '';
               onChange?.(isoString);
             }}
+            required={true}
           />
         ),
       },

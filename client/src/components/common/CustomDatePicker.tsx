@@ -59,7 +59,7 @@ const CustomDatePicker: FC<CustomDatePickerProps> = ({
             textField: {
               fullWidth: true,
               variant: 'outlined',
-              required,
+              required: required,
               error,
               helperText,
               sx: { width: '100%', ...inputSx },

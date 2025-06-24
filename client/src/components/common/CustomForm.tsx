@@ -47,6 +47,7 @@ export interface FieldConfig {
   customRender?: (params: {
     value?: any;
     onChange?: (val: any) => void;
+    required?: boolean;
   }) => ReactNode;
 }
 
@@ -155,6 +156,7 @@ const CustomForm = forwardRef<CustomFormRef, FormProps>(
                   const rendered = field.customRender?.({
                     value: controllerField.value,
                     onChange: controllerField.onChange,
+                    required: field.required,
                   });
 
                   if (!rendered || typeof rendered === 'boolean') {
@@ -191,6 +193,7 @@ const CustomForm = forwardRef<CustomFormRef, FormProps>(
                         label={field.label}
                         type={field.type}
                         value={controllerField.value}
+                        required={field.required}
                         onChange={controllerField.onChange}
                         disabled={field.disabled}
                         error={!!errors[field.id]}
@@ -224,6 +227,7 @@ const CustomForm = forwardRef<CustomFormRef, FormProps>(
                     }}
                     render={({ field: controllerField }) => (
                       <CustomPhoneInput
+                        required={field.required}
                         value={controllerField.value}
                         onChange={controllerField.onChange}
                         country={field.country || 'ca'}
@@ -251,6 +255,7 @@ const CustomForm = forwardRef<CustomFormRef, FormProps>(
                         value={controllerField.value}
                         onChange={controllerField.onChange}
                         disabled={field.disabled}
+                        required={field.required}
                         error={!!errors[field.id]}
                         helperText={getError(
                           errors,
@@ -282,6 +287,7 @@ const CustomForm = forwardRef<CustomFormRef, FormProps>(
                         label={field.label}
                         value={controllerField.value}
                         onChange={controllerField.onChange}
+                        required={field.required}
                         disabled={field.disabled}
                         error={!!errors[field.id]}
                         helperText={getError(
