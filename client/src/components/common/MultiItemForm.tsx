@@ -5,6 +5,9 @@ import Grid from '@mui/material/Grid';
 import Add from '@mui/icons-material/Add';
 import ReplayIcon from '@mui/icons-material/Replay';
 import Delete from '@mui/icons-material/Delete';
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
+import FormHelperText from '@mui/material/FormHelperText';
 import { v4 as uuidv4 } from 'uuid';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import Dropdown from '@components/common/Dropdown';
@@ -45,6 +48,12 @@ export interface MultiItemFieldConfig {
   defaultHelperText?: string;
   placeholder?: string;
   group?: string;
+  grid?: {
+    xs?: number;
+    sm?: number;
+    md?: number;
+    lg?: number;
+  };
 }
 
 interface MultiItemFormProps {
@@ -191,7 +200,7 @@ const MultiItemForm: FC<MultiItemFormProps> = ({
                 <Grid container spacing={2} key={`group-${gIdx}`}>
                   {group.map((field) => (
                     <Grid
-                      size={{ xs: 12, sm: group.length === 1 ? 12 : 6 }}
+                      size={ field.grid || { xs: 12, sm: group.length === 1 ? 12 : 6 }}
                       key={field.id}
                     >
                       <Controller
@@ -261,12 +270,25 @@ const MultiItemForm: FC<MultiItemFormProps> = ({
                           }
                           
                           if (field.type === 'phone') {
+                            const validateFn = validationRules[field.id];
+                            const errorMessage = validateFn ? validateFn(value) : undefined;
+                            const helperText = errorMessage || field.defaultHelperText || '';
+                            
                             return (
-                              <CustomPhoneInput
-                                value={value}
-                                onChange={onChange}
-                                country={field.country || 'ca'}
-                              />
+                              <FormControl fullWidth error={!!errorMessage}>
+                                {field.label && (
+                                  <InputLabel shrink required={field.required}>
+                                    {field.label}
+                                  </InputLabel>
+                                )}
+                                <CustomPhoneInput
+                                  value={value}
+                                  onChange={onChange}
+                                  country={field.country || 'ca'}
+                                  required={field.required}
+                                />
+                                <FormHelperText>{helperText}</FormHelperText>
+                              </FormControl>
                             );
                           }
                           

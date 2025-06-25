@@ -139,12 +139,14 @@ const CustomForm = forwardRef<CustomFormRef, FormProps>(
           ...sx,
         }}
       >
-        {Object.keys(errors).length > 0 && (
-          <CustomTypography color="error" variant="body2">
-            Please correct the highlighted fields below.
-          </CustomTypography>
-        )}
-
+        <Grid size={{ xs:12 }} sx={{ minHeight: 24 }}>
+          {Object.keys(errors).length > 0 && (
+            <CustomTypography color="error" variant="body2">
+              Please correct the highlighted fields below.
+            </CustomTypography>
+          )}
+        </Grid>
+        
         {fields.map((field) => (
           <Grid size={field.grid || { xs: 12, sm: 6 }} key={field.id}>
             {field.type === 'custom' && field.customRender ? (
@@ -221,24 +223,38 @@ const CustomForm = forwardRef<CustomFormRef, FormProps>(
 
                 {/** Phone Number Field */}
                 {field.type === 'phone' && (
-                  <Controller
-                    name={field.id}
-                    control={control}
-                    defaultValue={field.defaultValue ?? ''}
-                    rules={{
-                      required: field.required
-                        ? `${field.label} is required`
-                        : false,
-                    }}
-                    render={({ field: controllerField }) => (
-                      <CustomPhoneInput
-                        required={field.required}
-                        value={controllerField.value}
-                        onChange={controllerField.onChange}
-                        country={field.country || 'ca'}
-                      />
+                  <FormControl
+                    fullWidth
+                    error={!!errors[field.id]}
+                    sx={{ mb: theme.spacing(2) }}
+                  >
+                    {field.label && (
+                      <InputLabel shrink required={field.required}>
+                        {field.label}
+                      </InputLabel>
                     )}
-                  />
+                    
+                    <Controller
+                      name={field.id}
+                      control={control}
+                      defaultValue={field.defaultValue ?? ''}
+                      rules={{
+                        required: field.required ? `${field.label} is required` : false,
+                      }}
+                      render={({ field: controllerField }) => (
+                        <CustomPhoneInput
+                          required={field.required}
+                          value={controllerField.value}
+                          onChange={controllerField.onChange}
+                          country={field.country || 'ca'}
+                        />
+                      )}
+                    />
+                    
+                    <FormHelperText>
+                      {getError(errors, field.id, field.defaultHelperText)}
+                    </FormHelperText>
+                  </FormControl>
                 )}
                 
                 {/** Email Field */}

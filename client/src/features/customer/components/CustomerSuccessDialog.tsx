@@ -21,7 +21,7 @@ const CustomerSuccessDialog: FC<CustomerSuccessDialogProps> = ({
                                                                  customers,
                                                                }) => {
   const transformFields = (data: CustomerResponse): DetailsSectionField[] => [
-    { label: 'Name', value: `${data.firstname} ${data.lastname}`, format: (value) => formatLabel(value) },
+    { label: 'Customer Name', value: `${data.firstname} ${data.lastname}`, format: (value) => formatLabel(value) },
     { label: 'Email', value: data.email },
     { label: 'Phone Number', value: data.phoneNumber },
     { label: 'Status', value: data.status?.name ?? '—', format: (value) => formatLabel(value) },
