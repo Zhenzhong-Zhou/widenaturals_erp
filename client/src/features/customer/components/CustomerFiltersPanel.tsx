@@ -38,6 +38,7 @@ const CustomerFiltersPanel: FC<Props> = ({ filters, onChange, onApply, onReset }
     <Box mb={2} p={2} border="1px solid #ccc" borderRadius={2}>
       <form onSubmit={handleSubmit(submitFilters)}>
         <Grid container spacing={2}>
+          {/* Filter fields */}
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Controller
               name="keyword"
@@ -47,97 +48,73 @@ const CustomerFiltersPanel: FC<Props> = ({ filters, onChange, onApply, onReset }
               )}
             />
           </Grid>
-          
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Controller
               name="region"
               control={control}
-              render={({ field }) => (
-                <BaseInput {...field} label="Region" />
-              )}
+              render={({ field }) => <BaseInput {...field} value={field.value ?? ''} label="Region" />}
             />
           </Grid>
-          
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Controller
               name="country"
               control={control}
-              render={({ field }) => (
-                <BaseInput {...field} label="Country" />
-              )}
+              render={({ field }) => <BaseInput {...field} value={field.value ?? ''} label="Country" />}
             />
           </Grid>
-          
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Controller
               name="createdBy"
               control={control}
-              render={({ field }) => (
-                <BaseInput {...field} label="Created By" />
-              )}
+              render={({ field }) => <BaseInput {...field} value={field.value ?? ''} label="Created By" />}
             />
           </Grid>
-          
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Controller
               name="createdAfter"
               control={control}
               render={({ field }) => (
-                <CustomDatePicker
-                  {...field}
-                  value={field.value ?? null}
-                  label="Created After"
-                />
+                <CustomDatePicker {...field} value={field.value ?? ''} label="Created After" />
               )}
             />
           </Grid>
-          
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Controller
               name="createdBefore"
               control={control}
               render={({ field }) => (
-                <CustomDatePicker
-                  {...field}
-                  value={field.value ?? null}
-                  label="Created Before"
-                />
+                <CustomDatePicker {...field} value={field.value ?? ''} label="Created Before" />
               )}
             />
           </Grid>
-          
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Controller
               name="statusDateAfter"
               control={control}
               render={({ field }) => (
-                <CustomDatePicker
-                  {...field}
-                  value={field.value ?? null}
-                  label="Status Date After"
-                />
+                <CustomDatePicker {...field} value={field.value ?? ''} label="Status Date After" />
               )}
             />
           </Grid>
-          
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Controller
               name="statusDateBefore"
               control={control}
               render={({ field }) => (
-                <CustomDatePicker
-                  {...field}
-                  value={field.value ?? null}
-                  label="Status Date Before"
-                />
+                <CustomDatePicker {...field} value={field.value ?? ''} label="Status Date Before" />
               )}
             />
           </Grid>
         </Grid>
         
-        <Box mt={2} display="flex" gap={2}>
-          <CustomButton type="submit" variant="contained">Apply</CustomButton>
-          <CustomButton variant="outlined" onClick={resetFilters}>Reset</CustomButton>
+        {/* Filter Actions */}
+        <Box display="flex" flexWrap="wrap" gap={2} mt={3}>
+          <CustomButton type="submit" variant="contained">
+            Apply
+          </CustomButton>
+          <CustomButton variant="outlined" onClick={resetFilters}>
+            Reset
+          </CustomButton>
         </Box>
       </form>
     </Box>

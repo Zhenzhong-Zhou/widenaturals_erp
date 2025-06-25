@@ -54,15 +54,15 @@ const CustomerCreateDialog = ({ open, onClose }: CustomerCreateDialogProps) => {
   return (
     <>
       {showSuccessDialog? (
-          <CustomerSuccessDialog
-            open={showSuccessDialog}
-            onClose={() => {
-              setShowSuccessDialog(false);
-              handleClose();
-            }}
-            message={customerCreateResponse?.message}
-            customers={customerCreateResponse?.data}
-          />
+        <CustomerSuccessDialog
+          open={showSuccessDialog}
+          onClose={() => {
+            setShowSuccessDialog(false);
+            handleClose();
+          }}
+          message={customerCreateResponse?.message}
+          customers={customerCreateResponse?.data}
+        />
       ) : (
         <CustomDialog
           open={open}
@@ -74,7 +74,7 @@ const CustomerCreateDialog = ({ open, onClose }: CustomerCreateDialogProps) => {
           maxWidth="md"
           fullWidth
         >
-          <Box sx={{ px: 2, py: 1 }}>
+          <Box sx={{ px: 2, py: 1 }} >
             <CustomerCreateToggle value={mode} onChange={setMode} />
             {error && (
               <Alert severity="error" sx={{ mt: 2 }}>

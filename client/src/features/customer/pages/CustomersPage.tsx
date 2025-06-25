@@ -1,5 +1,7 @@
-import { type FC, useEffect, useState } from 'react';
+import { type FC, useEffect, useRef, useState } from 'react';
 import Box from '@mui/material/Box';
+import Grid from '@mui/material/Grid';
+import Card from '@mui/material/Card';
 import Divider from '@mui/material/Divider';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
@@ -13,6 +15,7 @@ import usePaginatedCustomers from '@hooks/usePaginatedCustomers';
 import type { CustomerFilters, CustomerSortField } from '@features/customer/state';
 
 const CustomersPage: FC = () => {
+  const createButtonRef = useRef<HTMLButtonElement>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(25);
@@ -40,6 +43,27 @@ const CustomersPage: FC = () => {
     });
   }, [page, limit, sortBy, sortOrder, filters]);
   
+  // Open handler
+  const handleOpenDialog = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.currentTarget.blur();          // remove focus right before opening
+    requestAnimationFrame(() => {
+      setDialogOpen(true);          // open on next tick to avoid race
+    });
+  };
+
+  // Dialog close handler
+  const handleCloseDialog = () => {
+    setDialogOpen(false);
+    
+    // Delay more than dialog transition to ensure aria-hidden is gone
+    setTimeout(() => {
+      // Only restore focus if the dialog is definitely closed
+      if (!dialogOpen) {
+        createButtonRef.current?.focus();
+      }
+    }, 300); // Increase from 200 to 300+
+  };
+  
   const handleRefresh = () => {
     fetchCustomers({ page, limit, sortBy, sortOrder, filters });
   };
@@ -60,7 +84,7 @@ const CustomersPage: FC = () => {
   
   return (
     <Box sx={{ px: 4, py: 3 }}>
-      {/* Header Section */}
+      {/* Header */}
       <Box
         display="flex"
         justifyContent="space-between"
@@ -73,56 +97,70 @@ const CustomersPage: FC = () => {
           Customer Management
         </CustomTypography>
         
-        <Box display="flex" gap={2}>
-          <CustomButton
-            variant="contained"
-            onClick={() => setDialogOpen(true)}
-            sx={{ boxShadow: 2 }}
-          >
-            Create Customer
-          </CustomButton>
-        </Box>
+        <CustomButton
+          ref={createButtonRef}
+          variant="contained"
+          onClick={handleOpenDialog}
+          sx={{ boxShadow: 2 }}
+        >
+          Create Customer
+        </CustomButton>
       </Box>
       
-      <Divider sx={{ mt: 2, mb: 4}}/>
+      <Divider sx={{ mb: 3 }} />
+      
+      {/* Filter + Sort Controls in Card */}
+      <Card sx={{ p: 3, mb: 4, borderRadius: 2 }}>
+        <Grid container spacing={2}>
+          {/* Filter fields */}
+          <Grid size={{ xs: 12, sm: 6, md: 9 }}>
+            <CustomerFiltersPanel
+              filters={filters}
+              onChange={setFilters}
+              onApply={() => setPage(1)}
+              onReset={handleResetFilters}
+            />
+          </Grid>
+          
+          {/* Sort Controls */}
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <CustomerSortControls
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onSortByChange={setSortBy}
+              onSortOrderChange={setSortOrder}
+            />
+          </Grid>
+        </Grid>
+      </Card>
       
       {/* Dialog */}
-      <CustomerCreateDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />
-      
-      {/* Filter Panel */}
-      <CustomerFiltersPanel
-        filters={filters}
-        onChange={setFilters}
-        onApply={() => setPage(1)} // Trigger re-fetch via useEffect
-        onReset={handleResetFilters}
+      <CustomerCreateDialog
+        open={dialogOpen}
+        onClose={handleCloseDialog}
       />
       
-      <CustomerSortControls
-        sortBy={sortBy}
-        sortOrder={sortOrder}
-        onSortByChange={setSortBy}
-        onSortOrderChange={setSortOrder}
-      />
-      
-      {/* Main Content */}
-      {loading ? (
-        <Loading variant="dotted" message="Loading customers..." />
-      ) : error ? (
-        <CustomTypography color="error">{error}</CustomTypography>
-      ) : customers.length === 0 ? (
-        <NoDataFound message="No customers found." />
-      ) : (
-        <CustomerTable
-          data={customers}
-          onRefresh={handleRefresh}
-          page={page - 1}
-          rowsPerPage={limit}
-          totalRecords={totalRecords}
-          totalPages={totalPages}
-          onPageChange={handlePageChange}
-          onRowsPerPageChange={handleRowsPerPageChange}
-        />
-      )}
+      {/* Customer Table Section */}
+      <Box>
+        {loading ? (
+          <Loading variant="dotted" message="Loading customers..." />
+        ) : error ? (
+          <CustomTypography color="error">{error}</CustomTypography>
+        ) : customers.length === 0 ? (
+          <NoDataFound message="No customers found." />
+        ) : (
+          <CustomerTable
+            data={customers}
+            page={page - 1}
+            rowsPerPage={limit}
+            totalRecords={totalRecords}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+            onRowsPerPageChange={handleRowsPerPageChange}
+            onRefresh={handleRefresh}
+          />
+        )}
+      </Box>
     </Box>
   );
 };
