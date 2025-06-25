@@ -1,4 +1,5 @@
 const { checkPermissions } = require('../services/role-permission-service');
+const { getStatusId } = require('../config/status-cache');
 
 /**
  * Filters and returns a customer object based on the viewer's role and purpose.
@@ -45,6 +46,27 @@ const filterCustomerForViewer = (customer, user, purpose = 'detail_view') => {
   return base;
 };
 
+/**
+ * Determines status and visibility flags for customer queries based on user permissions.
+ *
+ * @param {Object} user - Authenticated user object
+ * @returns {{
+ *   statusId?: string,
+ *   overrideDefaultStatus: boolean,
+ *   includeArchived: boolean
+ * }}
+ */
+const resolveCustomerQueryOptions = (user) => {
+  const canViewAll = checkPermissions(user, 'view_all_customers');
+  
+  return {
+    statusId: canViewAll ? undefined : getStatusId('customer_active'),
+    overrideDefaultStatus: canViewAll,
+    includeArchived: canViewAll,
+  };
+};
+
 module.exports = {
   filterCustomerForViewer,
+  resolveCustomerQueryOptions,
 };

@@ -3,7 +3,6 @@ const {
   fetchPaginatedSkuProductCardsService,
   getSkuDetailsForUserService,
 } = require('../services/sku-service');
-const { sanitizeSortBy } = require('../utils/sort-utils');
 const { logInfo } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
 

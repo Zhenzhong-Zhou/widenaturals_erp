@@ -1,7 +1,10 @@
-const { bulkInsert, query, retry, paginateQuery } = require('../database/db');
+const { bulkInsert, query, paginateQuery } = require('../database/db');
 const AppError = require('../utils/AppError');
-const { logError } = require('../utils/logger-helper');
-const { logSystemException } = require('../utils/system-logger');
+const {
+  logSystemException,
+  logSystemInfo
+} = require('../utils/system-logger');
+const { buildCustomerFilter } = require('../utils/sql/build-customer-filters');
 
 /**
  * Bulk inserts customer records with conflict handling.
@@ -157,6 +160,107 @@ const getEnrichedCustomersByIds = async(ids, client) => {
 };
 
 /**
+ * Fetches paginated customer records with optional filtering and sorting.
+ *
+ * This function builds a dynamic SQL query using filters like status, region,
+ * keyword search, and date ranges. It applies pagination and sorting, and joins
+ * user and status metadata for enriched results.
+ *
+ * @param {Object} options - Query options
+ * @param {Object} [options.filters={}] - Optional filter object for customers
+ * @param {string} [options.statusId] - Optional default status filter (e.g. 'active')
+ * @param {boolean} [options.overrideDefaultStatus=false] - Whether to ignore status filter
+ * @param {boolean} [options.includeArchived=false] - Whether to include archived customers
+ * @param {number} [options.page=1] - Current page number for pagination
+ * @param {number} [options.limit=10] - Number of records per page
+ * @param {string} [options.sortBy='created_at'] - Column to sort by
+ * @param {string} [options.sortOrder='DESC'] - Sort direction
+ *
+ * @returns {Promise<Array>} - Paginated customer result
+ *
+ * @throws {AppError} - Throws databaseError on failure
+ */
+const getPaginatedCustomers = async ({
+                                       filters = {},
+                                       statusId,
+                                       overrideDefaultStatus = false,
+                                       includeArchived = false,
+                                       page = 1,
+                                       limit = 10,
+                                       sortBy = 'created_at',
+                                       sortOrder = 'DESC',
+                                     }) => {
+  const { whereClause, params } = buildCustomerFilter(statusId, filters, {
+    overrideDefaultStatus,
+    includeArchived,
+  });
+  
+  const tableName = 'customers c';
+  const joins = [
+    'INNER JOIN status s ON c.status_id = s.id',
+    'LEFT JOIN users u1 ON c.created_by = u1.id',
+    'LEFT JOIN users u2 ON c.updated_by = u2.id',
+  ];
+  
+  const baseQuery = `
+    SELECT
+      c.id,
+      c.firstname,
+      c.lastname,
+      c.email,
+      c.phone_number,
+      c.status_id,
+      s.name AS status_name,
+      c.created_at,
+      c.updated_at,
+      u1.firstname AS created_by_firstname,
+      u1.lastname AS created_by_lastname,
+      u2.firstname AS updated_by_firstname,
+      u2.lastname AS updated_by_lastname
+    FROM ${tableName}
+    ${joins.join('\n')}
+    WHERE ${whereClause}
+  `;
+  
+  try {
+    const result = await paginateQuery({
+      tableName,
+      joins,
+      whereClause,
+      queryText: baseQuery,
+      params,
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+    });
+    
+    logSystemInfo('Fetched paginated customers', {
+      context: 'customer-repository/fetchPaginatedCustomers',
+      filters,
+      statusId,
+      overrideDefaultStatus,
+      includeArchived,
+      pagination: { page, limit },
+      sorting: { sortBy, sortOrder },
+    });
+    
+    return result;
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch paginated customers', {
+      context: 'customer-repository/fetchPaginatedCustomers',
+      filters,
+      statusId,
+      overrideDefaultStatus,
+      includeArchived,
+      pagination: { page, limit },
+      sorting: { sortBy, sortOrder },
+    });
+    throw AppError.databaseError('Failed to fetch customers.');
+  }
+};
+
+/**
  * Repository function to check if a customer exists by ID.
  * @param {string} customerId - The UUID of the customer.
  * @param {object} client - Optional database transaction client.
@@ -168,7 +272,7 @@ const checkCustomerExistsById = async (customerId, client = null) => {
     const { rows } = await query(queryText, [customerId], client);
     return rows[0]?.exists || false;
   } catch (error) {
-    logError('Error checking customer existence by ID:', error);
+    logSystemException(error, 'Error checking customer existence by ID:');
     throw AppError.databaseError('Failed to check customer existence by ID');
   }
 };
@@ -200,88 +304,10 @@ const checkCustomerExistsByEmailOrPhone = async (
     );
     return rows[0]?.exists || false;
   } catch (error) {
-    logError('Error checking customer existence by email or phone:', error);
+    logSystemException(error,'Error checking customer existence by email or phone:');
     throw AppError.databaseError(
       'Failed to check customer existence by email or phone'
     );
-  }
-};
-
-/**
- * Fetch paginated customer data with sorting and joining related tables.
- *
- * This function retrieves customers from the database with pagination, sorting, and optional filters.
- * It joins the `status` table to get the status name and the `users` table to retrieve the created_by and updated_by names.
- *
- * @param {number} [page=1] - The current page number for pagination.
- * @param {number} [limit=10] - The number of records to return per page.
- * @param {string} [sortBy='created_at'] - The field to sort the results by (allowed: firstname, lastname, email, created_at, updated_at).
- * @param {string} [sortOrder='DESC'] - Sorting order (ASC or DESC).
- * @returns {Promise<Object>} - Returns an object containing paginated customer data.
- * @throws {AppError} - Throws a database error if the query fails.
- */
-const getAllCustomers = async (
-  page = 1,
-  limit = 10,
-  sortBy = 'created_at',
-  sortOrder = 'DESC'
-) => {
-  const tableName = 'customers c';
-  const joins = [
-    'INNER JOIN status s ON c.status_id = s.id',
-    'LEFT JOIN users u1 ON c.created_by = u1.id',
-    'LEFT JOIN users u2 ON c.updated_by = u2.id',
-  ];
-  const whereClause = '1=1';
-
-  const allowedSortFields = [
-    'firstname',
-    'lastname',
-    'email',
-    'created_at',
-    'updated_at',
-  ];
-
-  // Validate the sortBy field
-  const validatedSortBy = allowedSortFields.includes(sortBy)
-    ? `c.${sortBy}`
-    : 'c.created_at';
-
-  const baseQuery = `
-      SELECT
-        c.id,
-        COALESCE(c.firstname || ' ' || c.lastname, 'Unknown') AS customer_name,
-        c.email,
-        c.phone_number,
-        c.status_id,
-        s.name AS status_name,
-        c.created_at,
-        c.updated_at,
-        COALESCE(u1.firstname || ' ' || u1.lastname, 'Unknown') AS created_by,
-        COALESCE(u2.firstname || ' ' || u2.lastname, 'Unknown') AS updated_by
-      FROM ${tableName}
-      ${joins.join(' ')}
-    `;
-
-  try {
-    return await retry(
-      () =>
-        paginateQuery({
-          tableName,
-          joins,
-          whereClause,
-          queryText: baseQuery,
-          params: [],
-          page,
-          limit,
-          sortBy: validatedSortBy,
-          sortOrder,
-        }),
-      3 // Retry up to 3 times
-    );
-  } catch (error) {
-    logError('Error fetching customers:', error);
-    throw AppError.databaseError('Failed to fetch customers.');
   }
 };
 
@@ -290,7 +316,7 @@ const getAllCustomers = async (
  *
  * This function retrieves customers from the database with a limit on the number of results.
  * If a search term is provided, it filters customers by their firstname, lastname, email, or phone number.
- * Returns customer id, label (name + contact), and shipping address fields for auto-filling.
+ * Returns customer id, label (name + contact), and shipping address fields for autofilling.
  *
  * @param {string} [search=""] - The search term to filter customers (matches firstname, lastname, email, or phone_number).
  * @param {number} [limit=100] - The maximum number of customers to return.
@@ -361,7 +387,7 @@ const getCustomersForDropdown = async (search = '', limit = 100) => {
     const result = await query(sql, params);
     return result.rows;
   } catch (error) {
-    logError('Error fetching customers for dropdown:', error);
+    logSystemException(error,'Error fetching customers for dropdown:');
     throw AppError.databaseError('Failed to fetch customer dropdown data.');
   }
 };
@@ -369,8 +395,8 @@ const getCustomersForDropdown = async (search = '', limit = 100) => {
 module.exports = {
   insertCustomerRecords,
   getEnrichedCustomersByIds,
+  getPaginatedCustomers,
   checkCustomerExistsById,
   checkCustomerExistsByEmailOrPhone,
-  getAllCustomers,
   getCustomersForDropdown,
 };

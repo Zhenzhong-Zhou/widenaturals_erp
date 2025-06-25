@@ -2,6 +2,7 @@ const AppError = require('../utils/AppError');
 const {
   insertCustomerRecords,
   getEnrichedCustomersByIds,
+  getPaginatedCustomers,
 } = require('../repositories/customer-repository');
 const {
   logSystemInfo,
@@ -11,8 +12,10 @@ const { prepareCustomersForInsert } = require('../shared/customer-utils');
 const { withTransaction } = require('../database/db');
 const {
   transformEnrichedCustomers,
+  transformPaginatedCustomerResults,
 } = require('../transformers/customer-transformer');
-const { filterCustomerForViewer } = require('../business/customer-business');
+const { filterCustomerForViewer, resolveCustomerQueryOptions } = require('../business/customer-business');
+const { sanitizeSortBy } = require('../utils/sort-utils');
 
 /**
  * Creates multiple customers in bulk with validation and conflict handling.
@@ -89,6 +92,98 @@ const createCustomersService = async (customers, user, purpose = 'insert_respons
   });
 };
 
+/**
+ * Fetches paginated customer records with optional filters and permission-based visibility control.
+ *
+ * This service function:
+ * - Applies permission-aware defaults (e.g., only fetch active customers unless the user has 'view_all_customers')
+ * - Supports flexible filtering, pagination, and sorting
+ * - Delegates database access to the repository layer and response formatting to the transformer layer
+ * - Sanitizes `sortBy` using the customerSortMap to prevent invalid SQL expressions
+ *
+ * @param {Object} user - Authenticated user object (used to determine permission scope)
+ * @param {Object} [filters={}] - Optional filters to apply:
+ * @param {string} [filters.region] - Filter by region
+ * @param {string} [filters.country] - Filter by country
+ * @param {string} [filters.createdBy] - Filter by creator user ID
+ * @param {string} [filters.keyword] - Keyword search on name, email, or phone
+ * @param {string} [filters.createdAfter] - Filter by creation date (after)
+ * @param {string} [filters.createdBefore] - Filter by creation date (before)
+ * @param {string} [filters.statusDateAfter] - Filter by status date (after)
+ * @param {string} [filters.statusDateBefore] - Filter by status date (before)
+ * @param {boolean} [filters.isArchived] - Explicitly filter archived vs non-archived
+ *
+ * @param {number} [page=1] - Page number for pagination (1-based)
+ * @param {number} [limit=10] - Number of items per page
+ * @param {string} [sortBy='createdAt'] - Logical field to sort by (must match keys in customerSortMap)
+ * @param {string} [sortOrder='DESC'] - Sort direction ('ASC' or 'DESC')
+ *
+ * @returns {Promise<{
+ *   data: CustomerResponse[],
+ *   pagination: {
+ *     page: number,
+ *     limit: number,
+ *     totalRecords: number,
+ *     totalPages: number
+ *   }
+ * }>} - Paginated, transformed customer result
+ *
+ * @throws {AppError} - Throws if the query or transformation fails
+ */
+const fetchPaginatedCustomersService = async ({
+                                                filters = {},
+                                                user,
+                                                page = 1,
+                                                limit = 10,
+                                                sortBy = 'created_at',
+                                                sortOrder = 'DESC',
+                                              }) => {
+  try {
+    const {
+      statusId,
+      overrideDefaultStatus,
+      includeArchived,
+    } = resolveCustomerQueryOptions(user);
+    
+    // Sanitize sortBy based on customerSortMap
+    const sortField = sanitizeSortBy(sortBy, 'customerSortMap');
+    
+    const rawResult = await getPaginatedCustomers({
+      filters,
+      statusId,
+      overrideDefaultStatus,
+      includeArchived,
+      page,
+      limit,
+      sortBy: sortField,
+      sortOrder,
+    });
+    
+    const result = transformPaginatedCustomerResults(rawResult);
+    
+    logSystemInfo('Fetched paginated customers', {
+      context: 'customer-service/fetchPaginatedCustomersService',
+      userId: user?.id,
+      filters,
+      pagination: { page, limit },
+      sort: { sortBy: sortField, sortOrder },
+    });
+    
+    return result;
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch paginated customers', {
+      context: 'customer-service/fetchPaginatedCustomersService',
+      userId: user?.id,
+      filters,
+      pagination: { page, limit },
+      sort: { sortBy, sortOrder },
+    });
+    
+    throw AppError.serviceError('Failed to fetch customer list.');
+  }
+};
+
 module.exports = {
   createCustomersService,
+  fetchPaginatedCustomersService,
 };

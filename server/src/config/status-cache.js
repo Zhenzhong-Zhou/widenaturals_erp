@@ -43,6 +43,11 @@ const STATUS_KEY_LOOKUP = [
     table: 'lot_adjustment_types',
     name: 'manual_stock_insert',
   },
+  {
+    key: 'customer_active',
+    table: 'status',
+    name: 'active',
+  },
 ];
 
 /**

@@ -1,7 +1,7 @@
 const express = require('express');
 const {
   createCustomerController,
-  getCustomersController,
+  getPaginatedCustomersController,
   getCustomersDropdownController,
   getCustomerByIdController,
 } = require('../controllers/customer-controller');
@@ -27,7 +27,32 @@ router.post(
   createCustomerController
 );
 
-router.get('/', getCustomersController);
+/**
+ * GET /customers
+ *
+ * Fetches a paginated list of customers with optional filters and sorting.
+ *
+ * Query Parameters:
+ * - page (number): Page number (default: 1)
+ * - limit (number): Items per page (default: 10, max: 100)
+ * - sortBy (string): Field to sort by (mapped in customerSortMap)
+ * - sortOrder (string): 'ASC' or 'DESC' (default: 'DESC')
+ * - isArchived (boolean): true/false
+ * - region, country, createdBy, keyword, createdAfter, etc.
+ *
+ * Authorization:
+ * - Requires `view_customer` permission
+ *
+ * Middleware:
+ * - authorize
+ * - sanitizeInput
+ */
+router.get(
+  '/',
+  authorize(['view_customer']),
+  sanitizeInput,
+  getPaginatedCustomersController
+);
 
 router.get('/dropdown', getCustomersDropdownController);
 
