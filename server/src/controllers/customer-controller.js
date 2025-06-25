@@ -123,7 +123,7 @@ const getCustomersDropdownController = wrapAsync(async (req, res, next) => {
  * @param {Request} req - Express request object.
  * @param {Response} res - Express response object.
  */
-const getCustomerByIdController = wrapAsync(async (req, res, next) => {
+const getCustomerByIdController = wrapAsync(async (req, res) => {
   const { id } = req.params; // Get customer ID from request params
   const customer = await getCustomerDetailsLogic(id);
 

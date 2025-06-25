@@ -26,7 +26,7 @@ const { sanitizeSortBy } = require('../utils/sort-utils');
  * - Returns inserted or updated customer records (filtered by permission)
  *
  * @param {Array<Object>} customers - List of raw customer objects to insert
- * @param {Object} user - Authenticated user object with role and id
+ * @param {Object} user - Authenticated user object with a role and id
  * @param {string} [purpose='insert_response'] - Use-case-specific filtering key
  * @returns {Promise<Array<Object>>} - Filtered inserted/enriched customer records
  * @throws {AppError} - Wrapped service-level error
