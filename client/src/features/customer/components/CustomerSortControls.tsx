@@ -33,8 +33,8 @@ const CustomerSortControls: FC<CustomerSortControlsProps> = ({
                                                                onSortOrderChange,
                                                              }) => {
   return (
-    <Stack direction="row" spacing={2} alignItems="center">
-      <FormControl size="small" sx={{ minWidth: 160 }}>
+    <Stack direction="row" spacing={2} alignItems="center" sx={{ minHeight: 56 }}>
+      <FormControl size="small" sx={{ minWidth: 160, minHeight: 56 }}>
         <InputLabel id="sort-by-label">Sort By</InputLabel>
         <Select
           labelId="sort-by-label"

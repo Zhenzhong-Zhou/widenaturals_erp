@@ -110,7 +110,7 @@ const CustomersPage: FC = () => {
       <Divider sx={{ mb: 3 }} />
       
       {/* Filter + Sort Controls in Card */}
-      <Card sx={{ p: 3, mb: 4, borderRadius: 2 }}>
+      <Card sx={{ p: 3, mb: 4, borderRadius: 2, minHeight: 200 }}>
         <Grid container spacing={2}>
           {/* Filter fields */}
           <Grid size={{ xs: 12, sm: 6, md: 9 }}>

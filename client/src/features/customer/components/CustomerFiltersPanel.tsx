@@ -37,14 +37,14 @@ const CustomerFiltersPanel: FC<Props> = ({ filters, onChange, onApply, onReset }
   return (
     <Box mb={2} p={2} border="1px solid #ccc" borderRadius={2}>
       <form onSubmit={handleSubmit(submitFilters)}>
-        <Grid container spacing={2}>
+        <Grid container spacing={2} sx={{ minHeight: 160 }}>
           {/* Filter fields */}
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Controller
               name="keyword"
               control={control}
               render={({ field }) => (
-                <BaseInput {...field} label="Search Keyword" placeholder="Name, Email, etc." />
+                <BaseInput {...field} label="Search Keyword" placeholder="Name, Email, etc." sx={{ minHeight: 56 }} />
               )}
             />
           </Grid>
@@ -52,21 +52,25 @@ const CustomerFiltersPanel: FC<Props> = ({ filters, onChange, onApply, onReset }
             <Controller
               name="region"
               control={control}
-              render={({ field }) => <BaseInput {...field} value={field.value ?? ''} label="Region" />}
+              render={({ field }) =>
+                <BaseInput {...field} value={field.value ?? ''} label="Region" sx={{ minHeight: 56 }}/>
+            }
             />
           </Grid>
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Controller
               name="country"
               control={control}
-              render={({ field }) => <BaseInput {...field} value={field.value ?? ''} label="Country" />}
+              render={({ field }) =>
+                <BaseInput {...field} value={field.value ?? ''} label="Country" sx={{ minHeight: 56 }} />
+            }
             />
           </Grid>
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Controller
               name="createdBy"
               control={control}
-              render={({ field }) => <BaseInput {...field} value={field.value ?? ''} label="Created By" />}
+              render={({ field }) => <BaseInput {...field} value={field.value ?? ''} label="Created By" sx={{ minHeight: 56 }} />}
             />
           </Grid>
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
@@ -74,7 +78,7 @@ const CustomerFiltersPanel: FC<Props> = ({ filters, onChange, onApply, onReset }
               name="createdAfter"
               control={control}
               render={({ field }) => (
-                <CustomDatePicker {...field} value={field.value ?? ''} label="Created After" />
+                <CustomDatePicker {...field} value={field.value ?? ''} label="Created After" sx={{ minHeight: 56 }} />
               )}
             />
           </Grid>
@@ -83,7 +87,7 @@ const CustomerFiltersPanel: FC<Props> = ({ filters, onChange, onApply, onReset }
               name="createdBefore"
               control={control}
               render={({ field }) => (
-                <CustomDatePicker {...field} value={field.value ?? ''} label="Created Before" />
+                <CustomDatePicker {...field} value={field.value ?? ''} label="Created Before" sx={{ minHeight: 56 }} />
               )}
             />
           </Grid>
@@ -92,7 +96,7 @@ const CustomerFiltersPanel: FC<Props> = ({ filters, onChange, onApply, onReset }
               name="statusDateAfter"
               control={control}
               render={({ field }) => (
-                <CustomDatePicker {...field} value={field.value ?? ''} label="Status Date After" />
+                <CustomDatePicker {...field} value={field.value ?? ''} label="Status Date After" sx={{ minHeight: 56 }} />
               )}
             />
           </Grid>
@@ -101,7 +105,7 @@ const CustomerFiltersPanel: FC<Props> = ({ filters, onChange, onApply, onReset }
               name="statusDateBefore"
               control={control}
               render={({ field }) => (
-                <CustomDatePicker {...field} value={field.value ?? ''} label="Status Date Before" />
+                <CustomDatePicker {...field} value={field.value ?? ''} label="Status Date Before" sx={{ minHeight: 56 }} />
               )}
             />
           </Grid>
