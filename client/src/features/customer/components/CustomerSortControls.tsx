@@ -52,7 +52,7 @@ const CustomerSortControls: FC<CustomerSortControlsProps> = ({
         </Select>
       </FormControl>
       
-      <FormControl size="small" sx={{ minWidth: 140 }}>
+      <FormControl size="small" sx={{ minWidth: 140, minHeight: 56 }}>
         <InputLabel id="sort-order-label">Order</InputLabel>
         <Select
           labelId="sort-order-label"
