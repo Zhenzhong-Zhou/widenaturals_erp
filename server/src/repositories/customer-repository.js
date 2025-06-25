@@ -170,7 +170,6 @@ const getEnrichedCustomersByIds = async(ids, client) => {
  * @param {Object} [options.filters={}] - Optional filter object for customers
  * @param {string} [options.statusId] - Optional default status filter (e.g. 'active')
  * @param {boolean} [options.overrideDefaultStatus=false] - Whether to ignore status filter
- * @param {boolean} [options.includeArchived=false] - Whether to include archived customers
  * @param {number} [options.page=1] - Current page number for pagination
  * @param {number} [options.limit=10] - Number of records per page
  * @param {string} [options.sortBy='created_at'] - Column to sort by
@@ -184,7 +183,6 @@ const getPaginatedCustomers = async ({
                                        filters = {},
                                        statusId,
                                        overrideDefaultStatus = false,
-                                       includeArchived = false,
                                        page = 1,
                                        limit = 10,
                                        sortBy = 'created_at',
@@ -192,7 +190,6 @@ const getPaginatedCustomers = async ({
                                      }) => {
   const { whereClause, params } = buildCustomerFilter(statusId, filters, {
     overrideDefaultStatus,
-    includeArchived,
   });
   
   const tableName = 'customers c';
@@ -240,7 +237,6 @@ const getPaginatedCustomers = async ({
       filters,
       statusId,
       overrideDefaultStatus,
-      includeArchived,
       pagination: { page, limit },
       sorting: { sortBy, sortOrder },
     });
@@ -252,7 +248,6 @@ const getPaginatedCustomers = async ({
       filters,
       statusId,
       overrideDefaultStatus,
-      includeArchived,
       pagination: { page, limit },
       sorting: { sortBy, sortOrder },
     });

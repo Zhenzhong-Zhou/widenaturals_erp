@@ -22,10 +22,8 @@ const AppError = require('../AppError');
  * @param {string} [filters.createdBefore] - ISO date string to filter by created_at <=.
  * @param {string} [filters.statusDateAfter] - Filter by status_date >=.
  * @param {string} [filters.statusDateBefore] - Filter by status_date <=.
- * @param {boolean} [filters.isArchived] - Optional archived flag.
  * @param {Object} [options={}] - Optional options for control flags.
  * @param {boolean} [options.overrideDefaultStatus=false] - Skip filtering by status if true.
- * @param {boolean} [options.includeArchived=false] - Allow archived filter usage.
  *
  * @returns {{ whereClause: string, params: any[] }} - WHERE clause and parameter values.
  *
@@ -34,7 +32,7 @@ const AppError = require('../AppError');
 const buildCustomerFilter = (
   statusId,
   filters = {},
-  { overrideDefaultStatus = false, includeArchived = false } = {}
+  { overrideDefaultStatus = false } = {}
 ) => {
   try {
     const conditions = ['1=1'];
@@ -44,14 +42,6 @@ const buildCustomerFilter = (
     if (!overrideDefaultStatus && statusId) {
       conditions.push(`c.status_id = $${paramIndex}`);
       params.push(statusId);
-      paramIndex++;
-    }
-    
-    if (!includeArchived) {
-      conditions.push(`c.is_archived = false`);
-    } else if (filters.isArchived !== undefined) {
-      conditions.push(`c.is_archived = $${paramIndex}`);
-      params.push(filters.isArchived);
       paramIndex++;
     }
     

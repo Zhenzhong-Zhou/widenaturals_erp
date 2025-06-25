@@ -76,22 +76,16 @@ const createCustomerController = wrapAsync(async (req, res, next) => {
 const getPaginatedCustomersController = wrapAsync(async (req, res) => {
   const { page, limit, sortOrder } = normalizePaginationParams(req.query);
   
-  const filters = {
-    ...req.query,
-    isArchived:
-      req.query.isArchived === 'true'
-        ? true
-        : req.query.isArchived === 'false'
-          ? false
-          : undefined,
-  };
+  const { sortBy = 'createdAt', ...restQuery } = req.query;
+  
+  const filters = { ...restQuery };
   
   const { data, pagination} = await fetchPaginatedCustomersService({
     user: req.user,
     filters,
     page,
     limit,
-    sortBy: req.query.sortBy ?? 'createdAt',
+    sortBy,
     sortOrder,
   });
   

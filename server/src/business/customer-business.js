@@ -53,7 +53,6 @@ const filterCustomerForViewer = (customer, user, purpose = 'detail_view') => {
  * @returns {{
  *   statusId?: string,
  *   overrideDefaultStatus: boolean,
- *   includeArchived: boolean
  * }}
  */
 const resolveCustomerQueryOptions = (user) => {
@@ -62,7 +61,6 @@ const resolveCustomerQueryOptions = (user) => {
   return {
     statusId: canViewAll ? undefined : getStatusId('customer_active'),
     overrideDefaultStatus: canViewAll,
-    includeArchived: canViewAll,
   };
 };
 

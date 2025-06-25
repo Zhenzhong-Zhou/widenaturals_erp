@@ -1,132 +1,109 @@
-import { type FC, useState } from 'react';
+import { type FC } from 'react';
 import { Link } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import CustomTypography from '@components/common/CustomTypography';
-import CustomButton from '@components/common/CustomButton';
 import CustomTable, { type Column } from '@components/common/CustomTable';
+import CustomButton from '@components/common/CustomButton';
 import { formatLabel, formatPhoneNumber } from '@utils/textUtils';
 import { formatDate } from '@utils/dateTimeUtils';
+import type { CustomerListItem } from '@features/customer/state';
 
-const CustomerTable: FC = () => {
-  const {
-    allCustomers,
-    pagination,
-    loading,
-    error,
-    fetchCustomers,
-    refreshCustomers,
-  } = useCustomers();
+interface CustomerTableProps {
+  data: CustomerListItem[];
+  page: number;
+  rowsPerPage: number;
+  totalPages: number;
+  totalRecords: number;
+  onPageChange: (page: number) => void;
+  onRowsPerPageChange: (rowsPerPage: number) => void;
+  onRefresh: () => void;
+}
 
-  // Table Pagination State
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-
-  // Handle page change
-  const handlePageChange = (newPage: number) => {
-    setPage(newPage);
-    fetchCustomers({ page: newPage + 1, limit: rowsPerPage });
-  };
-
-  // Handle rows per page change
-  const handleRowsPerPageChange = (newRowsPerPage: number) => {
-    setRowsPerPage(newRowsPerPage);
-    setPage(0);
-    fetchCustomers({ page: 1, limit: newRowsPerPage });
-  };
-
-  // Table column definitions
-  const columns: Column<Customer>[] = [
+const CustomerTable: FC<CustomerTableProps> = ({
+                                                 data,
+                                                 page,
+                                                 rowsPerPage,
+                                                 totalPages,
+                                                 totalRecords,
+                                                 onPageChange,
+                                                 onRowsPerPageChange,
+                                                 onRefresh,
+                                               }) => {
+  const columns: Column<CustomerListItem>[] = [
     {
-      id: 'customer_name',
+      id: 'customerName',
       label: 'Customer Name',
       sortable: true,
-      renderCell: (row: Customer) => (
+      renderCell: (row) => (
         <Link
-          to={`/customers/customer/${row.id}`} // Navigate to customer detail page
-          style={{
-            textDecoration: 'none',
-            color: '#1976D2',
-            fontWeight: 'bold',
-          }}
+          to={`/customers/customer/${row.id}`}
+          style={{ textDecoration: 'none', color: '#1976D2', fontWeight: 'bold' }}
         >
-          {row.customer_name}
+          {row.customerName}
         </Link>
       ),
     },
+    { id: 'email', label: 'Email', sortable: true },
     {
-      id: 'email',
-      label: 'Email',
-      sortable: true,
-    },
-    {
-      id: 'phone_number',
+      id: 'phoneNumber',
       label: 'Phone',
       sortable: true,
-      format: (value: string | null) => formatPhoneNumber(value),
+      format: (value) => formatPhoneNumber(value),
     },
     {
-      id: 'status_name',
+      id: 'statusName',
       label: 'Status',
       sortable: false,
-      format: (value: string | null) => formatLabel(value),
+      format: (value) => formatLabel(value),
     },
     {
-      id: 'created_at',
+      id: 'createdAt',
       label: 'Created At',
       sortable: true,
-      format: (value: string | null) => formatDate(value),
+      format: (value) => formatDate(value),
     },
+    { id: 'createdBy', label: 'Created By', sortable: true },
     {
-      id: 'created_by',
-      label: 'Created By',
-      sortable: true,
-    },
-    {
-      id: 'updated_at',
+      id: 'updatedAt',
       label: 'Updated At',
       sortable: true,
-      format: (value: string | null) => formatDate(value),
+      format: (value) => formatDate(value),
     },
-    {
-      id: 'updated_by',
-      label: 'Updated By',
-      sortable: true,
-    },
+    { id: 'updatedBy', label: 'Updated By', sortable: true },
   ];
-
+  
   return (
     <Box>
-      <CustomTypography
-        sx={{
-          fontWeight: 600,
-          lineHeight: 1.3,
-          minHeight: '1.25rem',
-        }}
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        mb={2}
       >
-        Customer List
-      </CustomTypography>
-
-      <CustomButton
-        variant="contained"
-        onClick={refreshCustomers}
-        sx={{ mb: 2 }}
-      >
-        Refresh Data
-      </CustomButton>
-
-      {loading && <CustomTypography>Loading customers...</CustomTypography>}
-      {error && <CustomTypography color="error">{error}</CustomTypography>}
-
+        <CustomTypography variant="h6" fontWeight={600}>
+          Customer List
+        </CustomTypography>
+        
+        <CustomButton
+          onClick={onRefresh}
+          variant="outlined"
+          sx={{ color: 'primary', fontWeight: 500 }}
+        >
+          Refresh
+        </CustomButton>
+      </Box>
+      
       <CustomTable
         columns={columns}
-        data={allCustomers as Customer[]}
-        rowsPerPageOptions={[10, 25, 50, 75]}
-        initialRowsPerPage={rowsPerPage}
-        totalPages={pagination?.totalPages || 1}
-        totalRecords={pagination?.totalRecords || 0}
+        data={data}
         page={page}
-        onPageChange={handlePageChange}
-        onRowsPerPageChange={handleRowsPerPageChange}
+        initialRowsPerPage={rowsPerPage}
+        totalPages={totalPages}
+        totalRecords={totalRecords}
+        rowsPerPageOptions={[25, 50, 75, 100]}
+        onPageChange={onPageChange}
+        onRowsPerPageChange={onRowsPerPageChange}
+        emptyMessage="No customers found."
       />
     </Box>
   );

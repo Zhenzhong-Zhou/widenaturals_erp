@@ -142,7 +142,6 @@ const fetchPaginatedCustomersService = async ({
     const {
       statusId,
       overrideDefaultStatus,
-      includeArchived,
     } = resolveCustomerQueryOptions(user);
     
     // Sanitize sortBy based on customerSortMap
@@ -152,7 +151,6 @@ const fetchPaginatedCustomersService = async ({
       filters,
       statusId,
       overrideDefaultStatus,
-      includeArchived,
       page,
       limit,
       sortBy: sortField,

@@ -81,7 +81,6 @@ export interface CustomerFilters {
   createdBefore?: string;
   statusDateAfter?: string;
   statusDateBefore?: string;
-  isArchived?: boolean;
 }
 
 export interface FetchPaginatedCustomersParams extends PaginationParams, SortConfig {
@@ -89,3 +88,15 @@ export interface FetchPaginatedCustomersParams extends PaginationParams, SortCon
 }
 
 export type PaginatedCustomerState = ReduxPaginatedState<CustomerListItem>;
+
+export type CustomerSortField =
+  | 'customerName'
+  | 'email'
+  | 'phoneNumber'
+  | 'region'
+  | 'country'
+  | 'status'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'createdBy'
+  | 'updatedBy';

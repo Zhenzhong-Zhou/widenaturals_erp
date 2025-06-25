@@ -49,9 +49,15 @@ const fetchPaginatedCustomers = async (
   params: FetchPaginatedCustomersParams = {}
 ): Promise<PaginatedCustomerListResponse> => {
   try {
+    const { filters = {}, ...rest } = params;
+    
+    const flatParams = {
+      ...rest,
+      ...filters,
+    };
     return await getRequest<PaginatedCustomerListResponse>(
       API_ENDPOINTS.CUSTOMERS.ALL_CUSTOMERS,
-      { params } // pass as `params` to Axios
+      { params: flatParams }
     );
   } catch (error) {
     console.error('Failed to fetch paginated customers:', error);
