@@ -1,4 +1,11 @@
-import type { ApiSuccessResponse, CreateMode, MutationState } from '@shared-types/api';
+import type {
+  ApiSuccessResponse,
+  CreateMode,
+  MutationState,
+  PaginatedResponse,
+  PaginationParams, ReduxPaginatedState,
+  SortConfig,
+} from '@shared-types/api';
 
 // Represents a single customer creation request payload
 export interface CustomerRequest {
@@ -50,70 +57,35 @@ export type CustomerCreateState = MutationState<CustomerResponse[]>;
  */
 export type CustomerCreateMode = CreateMode;
 
-export interface CustomerQueryParams {
-  page?: number; // Optional, defaults to 1
-  limit?: number; // Optional, defaults to 10
-  sortBy?: 'firstname' | 'lastname' | 'email' | 'created_at' | 'updated_at'; // Allowed fields
-  sortOrder?: 'ASC' | 'DESC'; // Sorting direction
-}
-
-export interface Customer {
-  id: string;
-  customer_name: string;
-  email: string;
-  phone_number: string | null; // Can be null if missing
-  status_id: string;
-  status_name: string;
-  created_at: string;
-  updated_at: string | null;
-  created_by: string;
-  updated_by: string;
-}
-
-export interface CustomerPagination {
-  page: number;
-  limit: number;
-  totalRecords: number;
-  totalPages: number;
-}
-
-export interface CustomerListResponse {
-  success: boolean;
-  message: string;
-  data: Customer[];
-  pagination: CustomerPagination;
-}
-
-export interface CustomerDetails {
+export interface CustomerListItem {
   id: string;
   customerName: string;
   email: string;
-  phoneNumber: string | null;
-  address: string;
-  note: string | null;
+  phoneNumber: string;
   statusId: string;
   statusName: string;
-  statusDate: string;
   createdAt: string;
-  updatedAt: string | null;
+  updatedAt: string;
   createdBy: string;
   updatedBy: string;
 }
 
-export interface CustomerDetailsResponse {
-  success: boolean;
-  message: string;
-  data: CustomerDetails;
+export type PaginatedCustomerListResponse = PaginatedResponse<CustomerListItem>;
+
+export interface CustomerFilters {
+  region?: string;
+  country?: string;
+  createdBy?: string;
+  keyword?: string;
+  createdAfter?: string;
+  createdBefore?: string;
+  statusDateAfter?: string;
+  statusDateBefore?: string;
+  isArchived?: boolean;
 }
 
-// Represents a single customer dropdown option
-export interface CustomerDropdownOption {
-  id: string; // UUID of the customer
-  label: string; // Formatted label (name, email, or phone based on search)
+export interface FetchPaginatedCustomersParams extends PaginationParams, SortConfig {
+  filters?: CustomerFilters;
 }
 
-// Response type for fetching customers dropdown
-export interface FetchCustomersDropdownResponse {
-  success: boolean;
-  data: CustomerDropdownOption[];
-}
+export type PaginatedCustomerState = ReduxPaginatedState<CustomerListItem>;

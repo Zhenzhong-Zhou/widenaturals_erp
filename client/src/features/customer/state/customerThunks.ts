@@ -1,5 +1,5 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import type { CreateCustomersRequest, CreateCustomerResponse } from '../state/customerTypes';
+import type { CreateCustomersRequest, CreateCustomerResponse, PaginatedCustomerListResponse, FetchPaginatedCustomersParams } from '../state/customerTypes';
 import { customerService } from '@services/customerService';
 
 /**
@@ -23,3 +23,30 @@ export const createCustomersThunk = createAsyncThunk<
     return thunkAPI.rejectWithValue(error);
   }
 });
+
+/**
+ * Thunk to fetch paginated customer data with optional filters and sorting.
+ *
+ * Dispatch this thunk with:
+ * - pagination info (page, limit)
+ * - sort config (sortBy, sortOrder)
+ * - filters (region, country, keyword, etc.)
+ *
+ * @example
+ * dispatch(fetchPaginatedCustomersThunk({ page: 1, limit: 20, filters: { region: 'CA' } }))
+ */
+export const fetchPaginatedCustomersThunk = createAsyncThunk<
+  PaginatedCustomerListResponse,         // Return type
+  FetchPaginatedCustomersParams,         // Arg type
+  { rejectValue: string }                // Error handling
+>(
+  'customers/fetchPaginated',
+  async (params, { rejectWithValue }) => {
+    try {
+      return await customerService.fetchPaginatedCustomers(params);
+    } catch (error: any) {
+      console.error('Thunk fetch error:', error);
+      return rejectWithValue(error.message ?? 'Failed to fetch customers');
+    }
+  }
+);
