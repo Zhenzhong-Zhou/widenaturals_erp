@@ -1197,6 +1197,47 @@ const checkRecordExists = async (client, table, condition) => {
   }
 };
 
+/**
+ * Fetches a specific column (default: 'name') from a table by its primary key (id).
+ *
+ * This utility is safe, generic, and transaction-aware. It can be used across different tables
+ * that follow a common pattern (UUID `id` as PK and `name` or similar as lookup field).
+ *
+ * @param {string} table - Table name (e.g., 'order_types')
+ * @param {string} id - Primary key value to match (typically UUID)
+ * @param {string} [selectField='name'] - Column to select from the table
+ * @param {object|null} [client=null] - Optional pg client for transaction context
+ * @returns {Promise<string|null>} - The value of the selected field, or null if not found
+ *
+ * @throws {AppError} - Throws databaseError if query fails
+ */
+const getFieldById =  async (table, id, selectField = 'name', client = null) => {
+  if (!table || typeof table !== 'string' || !id) {
+    throw AppError.validationError('Invalid parameters for getFieldById');
+  }
+  
+  const safeField = selectField.replace(/[^a-zA-Z0-9_]/g, '');
+  const sql = `
+    SELECT ${safeField}
+    FROM ${table}
+    WHERE id = $1
+    LIMIT 1;
+  `;
+  
+  try {
+    const { rows } = await query(sql, [id], client);
+    return rows?.[0]?.[safeField] ?? null;
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch field by ID', {
+      context: 'getFieldById',
+      table,
+      id,
+      selectField,
+    });
+    throw AppError.databaseError(`Failed to fetch ${safeField} from ${table}`);
+  }
+}
+
 // Export the utilities
 module.exports = {
   pool,
@@ -1218,4 +1259,5 @@ module.exports = {
   formatBulkUpdateQuery,
   getStatusValue,
   checkRecordExists,
+  getFieldById,
 };

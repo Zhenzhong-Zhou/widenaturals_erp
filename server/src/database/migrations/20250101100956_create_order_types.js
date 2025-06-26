@@ -23,6 +23,7 @@ exports.up = function (knex) {
         'adjustment',
       ]);
     table.string('code', 20).unique().notNullable();
+    table.boolean('requires_payment').defaultTo(false);
     table.text('description').nullable();
     table.uuid('status_id').notNullable().references('id').inTable('status');
     table.timestamp('status_date', { useTz: true }).defaultTo(knex.fn.now()); // Auto-set on creation in UTC

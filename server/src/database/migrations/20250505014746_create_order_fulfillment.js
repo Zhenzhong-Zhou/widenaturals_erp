@@ -11,9 +11,13 @@ exports.up = async function (knex) {
       .notNullable()
       .references('id')
       .inTable('order_items');
-
+    
+    table.uuid('allocation_id').references('id').inTable('inventory_allocations').nullable();
+    
     table.integer('quantity_shipped').notNullable().checkPositive();
-
+    
+    table.uuid('status_id').references('id').inTable('fulfillment_status').nullable();
+    
     table
       .uuid('shipment_id')
       .notNullable()
@@ -27,6 +31,8 @@ exports.up = async function (knex) {
 
     table.uuid('fulfilled_by').references('id').inTable('users');
     table.uuid('updated_by').references('id').inTable('users');
+    
+    table.unique(['order_item_id', 'shipment_id'], { indexName: 'uniq_order_item_shipment' });
   });
 
   await knex.raw(`

@@ -1,4 +1,7 @@
+const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
+const { getFieldById } = require('../database/db');
+const AppError = require('./AppError');
 
 /**
  * Maps category names to short prefixes.
@@ -12,6 +15,26 @@ const categoryToPrefixMap = {
   adjustment: 'AO',
   logistics: 'LO',
 };
+
+/**
+ * Generates a new order ID and order number based on category and order_type_id.
+ *
+ * @param {string} category - e.g., "sales", "purchase", etc.
+ * @param {string} order_type_id - The order type ID (used to fetch name)
+ * @returns {id, orderNumber} Object containing order ID and generated number
+ */
+const generateOrderIdentifiers = async(category, order_type_id) => {
+  const id = uuidv4();
+  const orderTypeName = await getFieldById('order_types', order_type_id, 'name');
+  
+  if (!orderTypeName) {
+    throw AppError.notFoundError(`Order type not found for ID: ${order_type_id}`);
+  }
+  
+  const orderNumber = generateOrderNumber(category, orderTypeName, id);
+
+  return { id, orderNumber };
+}
 
 /**
  * Generates a prefix by taking the first letter of each word in the order type name.
@@ -33,6 +56,10 @@ const generateOrderNamePrefix = (orderTypeName) => {
  * @returns {string} - Generated order number.
  */
 const generateOrderNumber = (category, orderTypeName, orderId) => {
+  if (!orderTypeName || typeof orderTypeName !== 'string') {
+    throw AppError.validationError('Invalid orderTypeName provided.');
+  }
+  
   const categoryPrefix = categoryToPrefixMap[category] || 'UN'; // 'UN' = Undefined if category not mapped
   const orderTypePrefix = generateOrderNamePrefix(orderTypeName);
 
@@ -81,6 +108,6 @@ const verifyOrderNumber = (orderNumber) => {
 };
 
 module.exports = {
-  generateOrderNumber,
+  generateOrderIdentifiers,
   verifyOrderNumber,
 };

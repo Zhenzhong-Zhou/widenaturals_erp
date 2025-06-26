@@ -6,13 +6,22 @@ exports.up = async function (knex) {
   const exists = await knex.schema.hasTable('sales_orders');
   if (!exists) {
     return knex.schema.createTable('sales_orders', (table) => {
-      table.uuid('id').primary();
+      table
+        .uuid('id')
+        .primary()
+        .references('id')
+        .inTable('orders');
       table
         .uuid('customer_id')
         .notNullable()
         .references('id')
         .inTable('customers');
       table.date('order_date').notNullable();
+      table.uuid('payment_status_id').references('id').inTable('payment_status');
+      table.uuid('payment_method_id').references('id').inTable('payment_methods');
+      table.string('currency_code', 3).defaultTo('CAD');
+      table.decimal('exchange_rate', 10, 4).nullable();
+      table.decimal('base_currency_amount', 10, 2).nullable(); // amount in CAD, for example
       table
         .uuid('discount_id')
         .nullable()
@@ -41,6 +50,8 @@ exports.up = async function (knex) {
 
       table.index('delivery_method_id');
       table.index(['customer_id', 'tax_rate_id']);
+      table.index('payment_status_id');
+      table.index('payment_method_id');
     });
   }
 };
