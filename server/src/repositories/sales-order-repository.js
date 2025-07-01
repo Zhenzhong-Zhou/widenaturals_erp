@@ -1,287 +1,144 @@
-const { withTransaction, query, getStatusValue } = require('../database/db');
-const { createOrder, updateOrderData } = require('./order-repository');
+const { query } = require('../database/db');
 const AppError = require('../utils/AppError');
-const { addOrderItems } = require('./order-item-repository');
-const { getValidDiscountById } = require('./discount-repository');
-const {
-  getActiveTaxRateById,
-  checkTaxRateExists,
-} = require('./tax-rate-repository');
-const { getActiveProductPrice } = require('./pricing-repository');
-const { logError } = require('../utils/logger-helper');
-const { checkDeliveryMethodExists } = require('./delivery-method-repository');
-const { checkCustomerExistsById } = require('./customer-repository');
-const { getInventoryId } = require('./location-inventory-repository');
+const { logSystemException } = require('../utils/system-logger');
 
 /**
- * Creates a sales order in the `sales_orders` table using raw SQL.
- * Uses the provided transaction client instead of the global query().
+ * Inserts a new sales order record into the `sales_orders` table.
  *
- * @param {Object} salesOrderData - Sales order details.
- * @returns {Promise<Object>} - The created sales order.
+ * This function assumes that a corresponding `orders` entry (with the same ID) has already been created.
+ * It records sales-specific fields such as payment details, tax, discount, delivery method, and amounts.
+ *
+ * @function insertSalesOrder
+ * @param {Object} salesOrderData - The sales order data payload.
+ * @param {string} salesOrderData.id - UUID of the corresponding order (must exist in `orders` table).
+ * @param {string} salesOrderData.customer_id - UUID of the customer placing the order.
+ * @param {string} salesOrderData.order_date - ISO-formatted order date (e.g., '2025-06-25').
+ * @param {string} [salesOrderData.payment_status_id] - Optional UUID reference to `payment_status`.
+ * @param {string} [salesOrderData.payment_method_id] - Optional UUID reference to `payment_methods`.
+ * @param {string} [salesOrderData.currency_code='CAD'] - Currency code (e.g., 'CAD', 'USD').
+ * @param {number} [salesOrderData.exchange_rate] - Optional exchange rate to base currency.
+ * @param {number} [salesOrderData.base_currency_amount] - Optional amount in base currency.
+ * @param {string} [salesOrderData.discount_id] - Optional UUID reference to `discounts`.
+ * @param {number} [salesOrderData.discount_amount=0] - Discount amount (default 0).
+ * @param {number} salesOrderData.subtotal - Subtotal before tax and fees.
+ * @param {string} salesOrderData.tax_rate_id - UUID of the applied tax rate.
+ * @param {number} [salesOrderData.tax_amount=0] - Tax amount (default 0).
+ * @param {number} [salesOrderData.shipping_fee=0] - Shipping fee (default 0).
+ * @param {number} salesOrderData.total_amount - Final total amount after all adjustments.
+ * @param {string} salesOrderData.delivery_method_id - UUID reference to `delivery_methods`.
+ * @param {string} [salesOrderData.created_by] - Optional user ID of the creator.
+ * @param {import('pg').PoolClient} client - PostgreSQL client with an active transaction context.
+ *
+ * @throws {AppError} Throws a database error if the insert fails.
+ *
+ * @returns {Promise<void>} Resolves when the sales order has been successfully inserted.
+ *
+ * @example
+ * await insertSalesOrder(client, {
+ *   id: 'a1b2c3d4-...',
+ *   customer_id: 'c123...',
+ *   order_date: '2025-06-25',
+ *   subtotal: 100.0,
+ *   tax_rate_id: 't456...',
+ *   total_amount: 113.0,
+ *   delivery_method_id: 'd789...',
+ *   created_by: 'u001...'
+ * });
  */
-const createSalesOrder = async (salesOrderData) => {
-  return withTransaction(async (client) => {
-    try {
-      const status_id = await getStatusValue(
-        {
-          table: 'order_status',
-          where: { code: 'ORDER_PENDING' },
-          select: 'id',
-        },
-        client
-      );
-
-      // Validate customer ID
-      const customerExists = await checkCustomerExistsById(
-        salesOrderData.customer_id,
-        client
-      );
-      if (!customerExists) {
-        throw AppError.validationError(
-          'Invalid or non-existent customer provided.'
-        );
-      }
-
-      // Validate delivery method ID if provided
-      if (salesOrderData.delivery_method_id) {
-        const deliveryMethodExists = await checkDeliveryMethodExists(
-          salesOrderData.delivery_method_id,
-          client
-        );
-        if (!deliveryMethodExists) {
-          throw AppError.validationError(
-            'Invalid or non-existent delivery method provided.'
-          );
-        }
-      }
-
-      // Validate tax rate ID if provided
-      if (salesOrderData.tax_rate_id) {
-        const taxRateExists = await checkTaxRateExists(
-          salesOrderData.tax_rate_id,
-          client
-        );
-        if (!taxRateExists) {
-          throw AppError.validationError('Invalid tax rate provided.');
-        }
-      }
-
-      // Destructure shipping info safely
-      const {
-        has_shipping_info = false,
-        shipping_info = {},
-        items,
-      } = salesOrderData;
-
-      const {
-        shipping_fullname,
-        shipping_phone,
-        shipping_email,
-        shipping_address_line1,
-        shipping_address_line2,
-        shipping_city,
-        shipping_state,
-        shipping_postal_code,
-        shipping_country,
-        shipping_region,
-      } = shipping_info;
-
-      // Step 1: Create a general order in the `orders` table
-      const order = await createOrder({
-        order_type_id: salesOrderData.order_type_id,
-        order_date: salesOrderData.order_date,
-        order_status_id: status_id,
-        has_shipping_address: has_shipping_info,
-        shipping_fullname,
-        shipping_phone,
-        shipping_email,
-        shipping_address_line1,
-        shipping_address_line2,
-        shipping_city,
-        shipping_state,
-        shipping_postal_code,
-        shipping_country,
-        shipping_region,
-        metadata: salesOrderData.metadata,
-        note: salesOrderData.note,
-        created_by: salesOrderData.created_by,
-        updated_by: salesOrderData.updated_by,
-      });
-
-      // Step 2: Fetch Prices & Calculate Subtotal
-      let subtotal = 0;
-      const processedItems = [];
-      const manualPriceOverrides = [];
-
-      for (const item of items) {
-        const { product_id, price_type_id, price, quantity_ordered, ...rest } =
-          item;
-
-        // Fetch inventory_id from product_id
-        const inventory_id = await getInventoryId(product_id, client);
-
-        // Fetch product price including location-based pricing
-        const productPrice = await getActiveProductPrice(
-          product_id,
-          price_type_id,
-          client
-        );
-
-        if (!productPrice) {
-          throw AppError.validationError(
-            `No active price found for product ${product_id} at the given location.`
-          );
-        }
-
-        // Convert database price to Number if necessary
-        const dbPrice = parseFloat(productPrice.price);
-
-        // Check if input price matches the database price or is null
-        const is_manual_price =
-          price !== null &&
-          price !== undefined &&
-          !isNaN(price) &&
-          price > 0 &&
-          price !== dbPrice; // Compare using dbPrice as Number
-
-        // Use input price if provided and different from DB, otherwise use DB price
-        const final_price =
-          price === 0 ? dbPrice : is_manual_price ? price : dbPrice;
-
-        // Compute item total and add to subtotal
-        const itemTotal = final_price * quantity_ordered;
-        subtotal += itemTotal;
-
-        // Store price_id from pricing table for tracking
-        processedItems.push({
-          ...rest,
-          inventory_id,
-          price_id: productPrice.id,
-          price: final_price,
-          quantity_ordered,
-          price_type_id,
-          status_id,
-        });
-
-        // Track manual price overrides
-        if (is_manual_price) {
-          manualPriceOverrides.push({
-            product_id,
-            price_type_id,
-            original_price: dbPrice,
-            overridden_price: final_price,
-            reason: 'Price Overridden',
-          });
-        }
-      }
-
-      // Step 3: Fetch discount details (if discount ID is provided)
-      let discountAmount = 0;
-      if (salesOrderData.discount_id) {
-        const discount = await getValidDiscountById(
-          salesOrderData.discount_id,
-          client
-        );
-
-        if (!discount) {
-          throw AppError.validationError(
-            'Invalid or expired discount provided.'
-          );
-        }
-
-        // Correctly calculate discount amount
-        discountAmount =
-          discount.discount_type === 'PERCENTAGE'
-            ? (subtotal * discount.discount_value) / 100
-            : discount.discount_value;
-
-        // Prevent discount from exceeding the subtotal
-        discountAmount = Math.min(discountAmount, subtotal);
-      }
-
-      // Step 4: Fetch Tax Rate
-      const taxRate = salesOrderData.tax_rate_id
-        ? await getActiveTaxRateById(salesOrderData.tax_rate_id, client)
-        : 0;
-
-      // Step 5: Calculate Tax & Final Total
-      const taxableAmount = Math.max(subtotal - discountAmount, 0); // Ensure it never goes below 0
-
-      const taxAmount = taxableAmount * (taxRate / 100);
-
-      const finalTotal = taxableAmount + taxAmount;
-
-      // Step 6: Create the sales order using the same order ID
-      const salesOrderSql = `
-        INSERT INTO sales_orders (
-          id, customer_id, order_date, discount_id, discount_amount, subtotal,
-          tax_rate_id, tax_amount, delivery_method_id, total_amount, created_by,
-          updated_at, updated_by
-        )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-        RETURNING id;
-      `;
-
-      const salesOrderValues = [
-        order.id, // Use the same order ID
-        salesOrderData.customer_id,
-        salesOrderData.order_date,
-        salesOrderData.discount_id || null,
-        discountAmount, // Store actual discount value applied
-        subtotal, // Store calculated subtotal
-        salesOrderData.tax_rate_id || null,
-        taxAmount, // Store calculated tax amount
-        salesOrderData.delivery_method_id || null,
-        finalTotal, // Store final total after discount and tax
-        salesOrderData.created_by,
-        null,
-        null,
-      ];
-
-      const salesOrderResult = await client.query(
-        salesOrderSql,
-        salesOrderValues
-      );
-      const salesOrder = salesOrderResult.rows[0];
-
-      // Step 7: Ensure order items exist
-      if (!processedItems.length) {
-        throw AppError.validationError(
-          'Sales order must have at least one item.'
-        );
-      }
-
-      // Step 8: Add order items using transaction client
-      await addOrderItems(
-        order.id,
-        processedItems,
-        salesOrderData.created_by,
-        client
-      );
-
-      // Step 9: If manual price overrides exist, update order metadata
-      if (manualPriceOverrides.length > 0) {
-        await updateOrderData(
-          order.id,
-          {
-            manual_price_overrides: manualPriceOverrides,
-            updated_by: salesOrderData.created_by,
-          },
-          client
-        );
-      }
-
-      return { order, salesOrder };
-    } catch (error) {
-      logError('Sales Order Creation Error:', error);
-      throw AppError.databaseError(
-        `Failed to create sales order: ${error.message}`
-      );
-    }
-  });
+const insertSalesOrder = async(salesOrderData, client) => {
+  const {
+    id,
+    customer_id,
+    order_date,
+    payment_status_id = null,
+    payment_method_id = null,
+    currency_code = 'CAD',
+    exchange_rate = null,
+    base_currency_amount = null,
+    discount_id = null,
+    discount_amount = 0,
+    subtotal,
+    tax_rate_id,
+    tax_amount = 0,
+    shipping_fee = 0,
+    total_amount,
+    delivery_method_id,
+    metadata = null,
+    created_by = null,
+    updated_at = null,
+    updated_by = null,
+  } = salesOrderData;
+  
+  const sql = `
+    INSERT INTO sales_orders (
+      id,
+      customer_id,
+      order_date,
+      payment_status_id,
+      payment_method_id,
+      currency_code,
+      exchange_rate,
+      base_currency_amount,
+      discount_id,
+      discount_amount,
+      subtotal,
+      tax_rate_id,
+      tax_amount,
+      shipping_fee,
+      total_amount,
+      delivery_method_id,
+      metadata,
+      created_at,
+      updated_at,
+      created_by,
+      updated_by
+    )
+    VALUES (
+      $1,  $2, $3, $4, $5,
+      $6,  $7, $8, $9, $10,
+      $11, $12, $13, $14, $15,
+      $16, $17, NOW(), $18, $19,
+      $20
+    )
+    RETURNING id;
+  `;
+  
+  const values = [
+    id,
+    customer_id,
+    order_date,
+    payment_status_id,
+    payment_method_id,
+    currency_code,
+    exchange_rate,
+    base_currency_amount,
+    discount_id,
+    discount_amount,
+    subtotal,
+    tax_rate_id,
+    tax_amount,
+    shipping_fee,
+    total_amount,
+    delivery_method_id,
+    metadata,
+    updated_at,
+    created_by,
+    updated_by
+  ];
+  
+  try {
+    const { rows } = await query(sql, values, client);
+    return rows[0]?.id;
+  } catch (error) {
+    logSystemException(error, 'Database insert failed while creating a new sales order', {
+      context: 'sales-order-repository/insertSalesOrder',
+      payload: salesOrderData,
+    });
+    
+    throw AppError.databaseError('Database insert failed: could not create new sales order.');
+  }
 };
 
 module.exports = {
-  createSalesOrder,
+  insertSalesOrder,
 };

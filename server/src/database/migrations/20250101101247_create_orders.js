@@ -25,7 +25,6 @@ exports.up = function (knex) {
       .inTable('order_status');
 
     table.timestamp('status_date', { useTz: true }).defaultTo(knex.fn.now());
-    table.jsonb('metadata').nullable();
     table.text('note').nullable();
 
     // Shipping Information (optional)

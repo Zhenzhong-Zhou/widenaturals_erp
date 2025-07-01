@@ -29,21 +29,22 @@ const allocationEligibleStatuses = [
  * @param {string|null} [orderData.billing_address_id] - FK to `addresses` table (nullable).
  * @param {string} orderData.created_by - User ID who created the order.
  * @param {string|null} [orderData.updated_by] - User ID for last update (optional).
+ * @param {import('pg').PoolClient} client - PostgreSQL client with an active transaction context.
  *
  * @returns {Promise<string>} The ID of the newly inserted order.
  */
-const insertOrder = async (orderData) => {
+const insertOrder = async (orderData, client) => {
   const {
     id,
     order_number,
     order_type_id,
     order_date,
     order_status_id,
-    metadata = null,
     note = null,
     shipping_address_id = null,
     billing_address_id = null,
     created_by,
+    updated_at = null,
     updated_by = null,
   } = orderData;
   
@@ -54,16 +55,16 @@ const insertOrder = async (orderData) => {
       order_type_id,
       order_date,
       order_status_id,
-      metadata,
       note,
       shipping_address_id,
       billing_address_id,
       created_by,
+      updated_at,
       updated_by
     )
     VALUES (
       $1, $2, $3, $4, $5, $6,
-      $7, $8, $9, $10, $11, $12
+      $7, $8, $9, $10, $11
     )
     RETURNING id;
   `;
@@ -74,23 +75,23 @@ const insertOrder = async (orderData) => {
     order_type_id,
     order_date,
     order_status_id,
-    metadata,
     note,
     shipping_address_id,
     billing_address_id,
     created_by,
+    updated_at,
     updated_by,
   ];
   
   try {
-    const { rows } = await query(insertOrderSQL, values);
+    const { rows } = await query(insertOrderSQL, values, client);
     return rows[0]?.id;
   } catch (error) {
-    logSystemException(error, {
-      context: 'orderRepository.insertOrder',
-      message: 'Database insert failed while creating a new order',
+    logSystemException(error, 'Database insert failed while creating a new order',{
+      context: 'order-repository/insertOrder',
       payload: orderData,
     });
+    
     throw AppError.databaseError('Database insert failed: could not create new order.');
   }
 };

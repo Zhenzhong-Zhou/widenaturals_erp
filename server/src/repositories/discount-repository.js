@@ -1,29 +1,33 @@
 const { query } = require('../database/db');
 const AppError = require('../utils/AppError');
+const { logSystemException } = require('../utils/system-logger');
 const { logError } = require('../utils/logger-helper');
 
 /**
- * Retrieves a valid discount by ID.
- * Ensures the discount is within its valid time range.
+ * Retrieves discount details by ID.
+ * Does not perform validity checks (e.g., time range); use a lookup/service function if needed.
  *
  * @param {UUID} discountId - The ID of the discount to fetch.
  * @param {Object} client - Optional transaction client.
- * @returns {Promise<Object|null>} - The discount details or null if not found.
+ * @returns {Promise<Object|null>} - The discount details (e.g., type, value, validity dates) or null if not found.
  */
-const getValidDiscountById = async (discountId, client = null) => {
-  if (!discountId) return null; // Return null if no discount is provided
-
+const getDiscountById = async (discountId, client = null) => {
   const sql = `
     SELECT discount_type, discount_value
     FROM discounts
     WHERE id = $1
-      AND NOW() BETWEEN valid_from AND COALESCE(valid_to, NOW())
   `;
 
   try {
     const result = await query(sql, [discountId], client);
     return result.rows[0] || null; // Return the discount object or null if not found
   } catch (error) {
+    logSystemException(error, 'Failed to fetch discount by ID', {
+      context: 'discount-repository/getDiscountById',
+      query: sql,
+      discountId,
+    });
+    
     throw AppError.databaseError(`Failed to fetch discount: ${error.message}`);
   }
 };
@@ -57,6 +61,6 @@ const getActiveDiscounts = async () => {
 };
 
 module.exports = {
-  getValidDiscountById,
+  getDiscountById,
   getActiveDiscounts,
 };

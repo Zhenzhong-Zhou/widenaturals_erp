@@ -137,7 +137,7 @@ const query = async (
         logDbQuerySuccess(text, params, duration, meta);
         return result;
       } catch (error) {
-        logDbQueryError(text, params, error, { context: 'pg-query', ...meta });
+        logDbQueryError(text, params, error, { context: 'db/query/pg-query', ...meta });
 
         throw AppError.databaseError('Database query failed', {
           details: { query: text, params, error: error.message },
@@ -164,7 +164,7 @@ const getClient = async () => {
     return await pool.connect();
   } catch (error) {
     logSystemException(error, 'Failed to acquire a database client', {
-      context: 'db-client',
+      context: 'db/getClient/db-client',
       severity: 'critical',
     });
 
@@ -213,7 +213,7 @@ const withTransaction = async (callback) => {
 
     logSystemException(error, 'Transaction failed', {
       txId,
-      context: 'database',
+      context: 'db/withTransaction/database',
       severity: 'critical',
     });
 
@@ -241,11 +241,11 @@ const testConnection = async () => {
   try {
     await query('SELECT 1'); // Simple query to test connectivity
     logSystemInfo('Database connection is healthy.', {
-      context: 'healthcheck',
+      context: 'db/testConnection/healthcheck',
     });
   } catch (error) {
     logSystemException(error, 'Database connection test failed', {
-      context: 'healthcheck',
+      context: 'db/testConnection/healthcheck',
       severity: 'critical',
     });
 
@@ -292,21 +292,21 @@ const closePool = async () => {
     logSystemWarn(
       'Attempted to close the database connection pool, but it is already closed.',
       {
-        context: 'shutdown',
+        context: 'db/closePool/shutdown',
       }
     );
     return; // Prevent multiple calls
   }
 
-  logSystemInfo('Closing database connection pool...', { context: 'shutdown' });
+  logSystemInfo('Closing database connection pool...', { context: 'db/closePool/shutdown' });
 
   try {
     await pool.end(); // Close all connections in the pool
-    logSystemInfo('Database connection pool closed.', { context: 'shutdown' });
+    logSystemInfo('Database connection pool closed.', { context: 'db/closePool/shutdown' });
     poolClosed = true; // Mark the pool as closed
   } catch (error) {
     logSystemException(error, 'Error closing database connection pool', {
-      context: 'shutdown',
+      context: 'db/closePool/shutdown',
       severity: 'critical',
     });
 
@@ -337,7 +337,7 @@ const retryDatabaseConnection = async (config, retries = 5) => {
     try {
       const client = await tempPool.connect(); // Attempt to connect using the pool
       logSystemInfo('Database connected successfully!', {
-        context: 'db-connection-retry',
+        context: 'db/retryDatabaseConnection/db-connection-retry',
         attempt: attempts + 1,
         retries,
       });
@@ -349,7 +349,7 @@ const retryDatabaseConnection = async (config, retries = 5) => {
       attempts++;
 
       logSystemWarn(`Database connection attempt ${attempts} failed`, {
-        context: 'db-connection-retry',
+        context: 'db/retryDatabaseConnection/db-connection-retry',
         attempt: attempts,
         retries,
         errorMessage: error.message,
@@ -361,7 +361,7 @@ const retryDatabaseConnection = async (config, retries = 5) => {
           error,
           'All retry attempts to connect to the database failed',
           {
-            context: 'db-connection-retry',
+            context: 'db/retryDatabaseConnection/db-connection-retry',
             attempts,
             retries,
             severity: 'critical',
@@ -384,7 +384,7 @@ const retryDatabaseConnection = async (config, retries = 5) => {
 /**
  * Appends ORDER BY, LIMIT, and OFFSET clauses to a base query.
  *
- * @param {string} baseQuery - The base SQL SELECT query (without LIMIT/OFFSET).
+ * @param {string} baseQuery - The base SQL SELECT a query (without LIMIT/OFFSET).
  * @param {string | null} sortBy - Column to sort by (optional).
  * @param {'ASC' | 'DESC'} sortOrder - Sort order (default: ASC).
  * @param {number} paramIndex - Starting index for bind parameters (usually params.length).
@@ -617,7 +617,7 @@ const getCountQuery = (queryText, alias = 'subquery') => {
 
   if (process.env.NODE_ENV !== 'production') {
     logSystemDebug('Generated count query', {
-      context: 'query-builder',
+      context: 'db/getCountQuery/query-builder',
       baseQuery: trimmedQuery,
       countQuery,
     });
@@ -837,7 +837,7 @@ const lockRows = async (
       // Log missing rows
       if (rows.length !== conditions.length) {
         logSystemWarn(`Some rows were not found in "${maskedTable}"`, {
-          context: 'data-validation',
+          context: 'db/lockRows/data-validation',
           table: maskedTable,
           expected: conditions.length,
           found: rows.length,
@@ -878,7 +878,14 @@ const applyUpdateRule = (col, strategy, tableAlias = 'table') => {
       return `${col} = LEAST(${tableAlias}.${col}, EXCLUDED.${col})`;
     case 'coalesce':
       return `${col} = COALESCE(EXCLUDED.${col}, ${tableAlias}.${col})`;
-    case 'overwrite':
+    case 'recalculate_subtotal':
+      return `subtotal = (EXCLUDED.price * (${tableAlias}.quantity_ordered + EXCLUDED.quantity_ordered))`;
+    case 'merge':
+      return `${col} = ${tableAlias}.${col} || EXCLUDED.${col}`;
+    case 'keep':
+      // Do not change this column; skip including it in SET
+      return null;
+      case 'overwrite':
     default:
       return `${col} = EXCLUDED.${col}`;
   }
@@ -1117,36 +1124,55 @@ const formatBulkUpdateQuery = (
 };
 
 /**
- * Retrieves a status value from a given table by `code` or `id`.
+ * Retrieves a unique scalar value from a specified table based on a given condition.
  *
- * @param {Object} params
- * @param {string} params.table - The table name to search (e.g., 'inventory_allocation_status')
- * @param {Object} params.where - The where clause key-value, e.g., { code: 'ALLOC_COMPLETED' } or { id: 'uuid' }
- * @param {string} params.select - The column to return (e.g., 'id' or 'code')
- * @param {import('pg').PoolClient} [client] - Optional PostgreSQL client for transactional execution.
- * @param {Object} meta={} - Optional additional metadata (e.g., traceId, txId).
- * @returns {Promise<string|null>} - The matched value or null
- * @throws {AppError} - On database or input validation errors
+ * This function executes an SQL `SELECT` query using the provided table name, `where` condition,
+ * and the scalar field to retrieve. It enforces that only one row should match the condition,
+ * and throws an error if multiple rows are found. If no row is found, it returns `null`.
+ *
+ * @param {Object} params - The query parameters.
+ * @param {string} params.table - The name of the table to query.
+ * @param {Object} params.where - An object containing a single key-value pair for the WHERE clause.
+ * @param {string} params.select - The field name to select and return from the matched row.
+ * @param {Object} [client] - Optional database client instance (e.g., for transactions).
+ * @param {Object} [meta={}] - Optional metadata for logging purposes.
+ *
+ * @returns {Promise<any|null>} - The scalar value if found, `null` if no match is found.
+ *
+ * @throws {AppError} - Throws validation error if inputs are invalid,
+ *                      or database error if the query fails or returns multiple rows.
+ *
+ * @example
+ * const value = await getUniqueScalarValue({
+ *   table: 'users',
+ *   where: { email: 'test@example.com' },
+ *   select: 'id'
+ * });
+ * // value might be '123e4567-e89b-12d3-a456-426614174000'
  */
-const getStatusValue = async ({ table, where, select }, client, meta = {}) => {
+const getUniqueScalarValue = async ({ table, where, select }, client, meta = {}) => {
   if (!table || typeof where !== 'object' || !select) {
-    throw AppError.validationError('Invalid parameters for getStatusValue.');
+    throw AppError.validationError('Invalid parameters for getScalarFieldValue.');
   }
-
+  
   const maskedTable = maskTableName(table);
-  const whereKey = Object.keys(where)[0];
+  const whereKey = Object.keys(where ?? {})[0] ?? 'id';
   const whereValue = where[whereKey];
-
+  
   const sql = `
     SELECT ${select}
     FROM ${table}
     WHERE ${whereKey} = $1
     LIMIT 1
   `;
-
+  
   try {
     const result = await query(sql, [whereValue], client);
-    return result.rows?.[0]?.[select] || null;
+    if (result.rows.length === 0) return null;
+    if (result.rows.length > 1) {
+      throw AppError.databaseError(`Multiple rows found in "${maskedTable}" for ${whereKey} = ${whereValue}`);
+    }
+    return result.rows[0][select];
   } catch (error) {
     logGetStatusValueError(
       error,
@@ -1157,86 +1183,105 @@ const getStatusValue = async ({ table, where, select }, client, meta = {}) => {
       whereKey,
       { ...meta }
     );
-
+    
     throw AppError.databaseError(
-      `Failed to fetch ${select} from ${maskedTable}: ${error.message}`
+      `Failed to fetch value '${select}' from '${maskedTable}': ${error.message}`
     );
   }
 };
 
 /**
- * Checks if a row exists in the specified table with the given condition.
+ * Safely checks if a record exists in the specified table with the given condition.
  *
- * @param {object} client - pg Client or Pool instance
- * @param {string} table - The table to check
- * @param {object} condition - Key-value pairs for WHERE clause (e.g. { id: 'uuid' })
- * @returns {Promise<boolean>} - True if the row exists, false otherwise
+ * @param {string} table - The name of the table (validated against injection).
+ * @param {object} condition - Key-value pairs for the WHERE clause (e.g., { id: 'uuid' }).
+ * @param {PoolClient} [client] - Optional PostgreSQL client or transaction context.
+ * @returns {Promise<boolean>} - Resolves to true if a matching record exists, false otherwise.
  */
-const checkRecordExists = async (client, table, condition) => {
+const checkRecordExists = async (table, condition, client = null) => {
+  if (!table || typeof table !== 'string') {
+    throw AppError.validationError('Invalid table name');
+  }
+  
+  if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(table)) {
+    throw AppError.validationError('Unsafe table name');
+  }
+  
   const keys = Object.keys(condition);
-  if (keys.length === 0)
+  if (keys.length === 0) {
     throw AppError.validationError('No condition provided');
-
-  const whereClause = keys.map((key, i) => `${key} = $${i + 1}`).join(' AND ');
+  }
+  
+  const whereClause = keys.map((key, idx) => `${key} = $${idx + 1}`).join(' AND ');
   const values = Object.values(condition);
-
-  const sql = `SELECT 1 FROM ${table} WHERE ${whereClause} LIMIT 1`;
-
+  const sql = `SELECT EXISTS (SELECT 1 FROM ${table} WHERE ${whereClause}) AS exists;`;
+  
   try {
-    const result = await client.query(sql, values);
-    return result.rowCount > 0;
+    const { rows } = await query(sql, values, client);
+    return rows.length > 0 && rows[0].exists === true;
   } catch (error) {
     logSystemException(error, 'Failed to check record existence', {
-      context: 'utils/db/checkRecordExists',
+      context: 'db/checkRecordExists',
       table,
       condition,
     });
-    throw AppError.databaseError(`Error checking existence in "${table}"`, {
-      details: { condition, error: error.message },
-    });
+    throw AppError.databaseError(`Failed to check existence in "${table}"`);
   }
 };
 
 /**
- * Fetches a specific column (default: 'name') from a table by its primary key (id).
+ * Fetches one or more specific columns (default: ['name']) from a table by its primary key (`id`).
  *
- * This utility is safe, generic, and transaction-aware. It can be used across different tables
- * that follow a common pattern (UUID `id` as PK and `name` or similar as lookup field).
+ * This utility is safe, generic, and transaction-aware. It supports fetching multiple fields
+ * and can be used across different tables that follow a common pattern (UUID `id` as PK).
  *
  * @param {string} table - Table name (e.g., 'order_types')
- * @param {string} id - Primary key value to match (typically UUID)
- * @param {string} [selectField='name'] - Column to select from the table
- * @param {object|null} [client=null] - Optional pg client for transaction context
- * @returns {Promise<string|null>} - The value of the selected field, or null if not found
+ * @param {string} id - Primary key value to match (typically a UUID)
+ * @param {string|string[]} [selectFields='name'] - Single field or array of fields to retrieve
+ * @param {object|null} [client=null] - an Optional pg client for transaction context
  *
- * @throws {AppError} - Throws databaseError if query fails
+ * @returns {Promise<object|null>} - If multiple fields are requested, returns an object like
+ *   `{ name: '...', category: '...' }`; if a single field is requested, returns the raw value.
+ *
+ * @throws {AppError} - Throws databaseError if a query fails or validationError if input is invalid
  */
-const getFieldById =  async (table, id, selectField = 'name', client = null) => {
+const getFieldsById = async (table, id, selectFields = ['name'], client = null) => {
   if (!table || typeof table !== 'string' || !id) {
-    throw AppError.validationError('Invalid parameters for getFieldById');
+    throw AppError.validationError('Invalid parameters for getFieldsById');
   }
   
-  const safeField = selectField.replace(/[^a-zA-Z0-9_]/g, '');
+  const safeFields = selectFields
+    .map((field) => field.replace(/[^a-zA-Z0-9_]/g, ''))
+    .filter(Boolean);
+  
+  if (safeFields.length === 0) {
+    throw AppError.validationError(`Invalid select fields: ${selectFields}`);
+  }
+  
   const sql = `
-    SELECT ${safeField}
+    SELECT ${safeFields.join(', ')}
     FROM ${table}
     WHERE id = $1
-    LIMIT 1;
   `;
   
   try {
-    const { rows } = await query(sql, [id], client);
-    return rows?.[0]?.[safeField] ?? null;
+    const result = await query(sql, [id], client);
+    if (result.rows.length === 0) return null;
+    if (result.rows.length > 1) {
+      throw AppError.databaseError(`Duplicate id in table '${maskTableName(table)}': ${id}`);
+    }
+    
+    return result.rows[0]; // returns an object like { name: ..., category: ... }
   } catch (error) {
-    logSystemException(error, 'Failed to fetch field by ID', {
-      context: 'getFieldById',
-      table,
+    logSystemException(error, 'Failed to fetch fields by ID', {
+      context: 'db/getFieldsById',
+      table: maskTableName(table),
       id,
-      selectField,
+      selectFields: safeFields,
     });
-    throw AppError.databaseError(`Failed to fetch ${safeField} from ${table}`);
+    throw AppError.databaseError(`Failed to fetch fields from '${maskTableName(table)}'`);
   }
-}
+};
 
 // Export the utilities
 module.exports = {
@@ -1257,7 +1302,7 @@ module.exports = {
   lockRows,
   bulkInsert,
   formatBulkUpdateQuery,
-  getStatusValue,
+  getUniqueScalarValue,
   checkRecordExists,
-  getFieldById,
+  getFieldsById,
 };

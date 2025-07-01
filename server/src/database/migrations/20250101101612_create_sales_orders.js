@@ -43,6 +43,7 @@ exports.up = async function (knex) {
         .notNullable()
         .references('id')
         .inTable('delivery_methods');
+      table.jsonb('metadata').nullable();
       table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
       table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
       table.uuid('created_by').references('id').inTable('users');

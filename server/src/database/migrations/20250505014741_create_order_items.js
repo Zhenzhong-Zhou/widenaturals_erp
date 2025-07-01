@@ -8,7 +8,7 @@ exports.up = async function (knex) {
     table.uuid('order_id').notNullable().references('id').inTable('orders');
     
     // Flexible item references
-    table.uuid('product_id').nullable().references('id').inTable('products');
+    table.uuid('sku_id').nullable().references('id').inTable('skus');
     table.uuid('packaging_material_id').nullable().references('id').inTable('packaging_materials');
     
     table.integer('quantity_ordered').notNullable();
@@ -23,11 +23,14 @@ exports.up = async function (knex) {
       .references('id')
       .inTable('order_status');
     table.timestamp('status_date', { useTz: true }).defaultTo(knex.fn.now());
+    table.jsonb('metadata').nullable();
     
     table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
     table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
     table.uuid('created_by').references('id').inTable('users');
     table.uuid('updated_by').references('id').inTable('users');
+    
+    table.unique(['order_id', 'sku_id', 'packaging_material_id'], { indexName: 'unique_order_item' })
   });
   
   await knex.raw(`
@@ -44,7 +47,7 @@ exports.up = async function (knex) {
     ALTER TABLE order_items
     ADD CONSTRAINT check_one_item_type_provided
     CHECK (
-      (product_id IS NOT NULL)::int +
+      (sku_id IS NOT NULL)::int +
       (packaging_material_id IS NOT NULL)::int = 1
     );
   `);

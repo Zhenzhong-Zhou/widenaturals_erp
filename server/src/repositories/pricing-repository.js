@@ -4,6 +4,14 @@ const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const { logError } = require('../utils/logger-helper');
 const { buildPricingFilters } = require('../utils/sql/build-pricing-filters');
 
+// const sq = `
+// SELECT p.*
+// FROM pricing p
+// JOIN skus s ON s.id = p.sku_id
+// WHERE s.id = '7dbc9b37-43ea-426b-8fd2-44d4b0ef10ad';
+// `;
+
+
 /**
  * Fetches a paginated list of pricing records with enriched SKU and product data.
  *
@@ -206,6 +214,41 @@ const getPricingDetailsByPricingTypeId = async ({
 };
 
 /**
+ * Fetches the price value for a given price ID and SKU ID.
+ *
+ * This function retrieves the price record where the provided price_id matches
+ * the provided sku_id. It does not perform validation — it simply fetches the data.
+ *
+ * @param {string} price_id - The price ID to query.
+ * @param {string} sku_id - The SKU ID to verify association with the price ID.
+ * @param {object|null} client - Optional database client for transaction context.
+ *
+ * @returns {Promise<{ price: string } | null>} - The price record if found, or null.
+ *
+ * @throws {AppError} - If the query fails.
+ */
+const getPriceByIdAndSku = async (price_id, sku_id, client = null) => {
+  try {
+    const sql = `
+      SELECT price
+      FROM pricing
+      WHERE id = $1 AND sku_id = $2
+    `;
+    const result = await query(sql, [price_id, sku_id], client);
+    return result.rows[0] || null;
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch price for SKU', {
+      context: 'pricing-repository/getPriceByIdAndSku',
+      price_id,
+      sku_id,
+    });
+    throw AppError.databaseError(`Failed to fetch price for SKU.`, {
+      details: error.message,
+    });
+  }
+};
+
+/**
  * Fetch pricing details with product, location, and created/updated user full names.
  * @param {Object} params - The parameters.
  * @param {string} params.pricingId - The UUID of the pricing record.
@@ -229,40 +272,40 @@ const getPricingDetailsByPricingId = async ({ pricingId, page, limit }) => {
   const whereClause = 'p.id = $1';
 
   const baseQuery = `
-      SELECT
-        p.id AS pricing_id,
-        pt.name AS price_type_name,
-        p.price,
-        p.valid_from,
-        p.valid_to,
-        s.name AS status_name,
-        p.status_date,
-        p.created_at,
-        p.updated_at,
-        COALESCE(u1.firstname || ' ' || u1.lastname, 'Unknown') AS created_by,
-        COALESCE(u2.firstname || ' ' || u2.lastname, 'Unknown') AS updated_by,
-        jsonb_agg(DISTINCT jsonb_build_object(
-            'product_id', pr.id,
-            'name', pr.product_name,
-            'brand', pr.brand,
-            'category', pr.category,
-            'barcode', pr.barcode,
-            'market_region', pr.market_region
-        )) AS products,
-        jsonb_agg(DISTINCT jsonb_build_object(
-            'location_id', l.id,
-            'location_name', l.name,
-            'location_type', jsonb_build_object(
-                'type_id', lt.id,
-                'type_name', lt.name
-            )
-        )) AS locations
-      FROM ${tableName}
-      ${joins.join(' ')}
-      WHERE ${whereClause}
-      GROUP BY p.id, pt.name, p.price, p.valid_from, p.valid_to,
-      s.name, p.status_date, p.created_at, p.updated_at,
-      u1.firstname, u1.lastname, u2.firstname, u2.lastname
+    SELECT
+      p.id AS pricing_id,
+      pt.name AS price_type_name,
+      p.price,
+      p.valid_from,
+      p.valid_to,
+      s.name AS status_name,
+      p.status_date,
+      p.created_at,
+      p.updated_at,
+      COALESCE(u1.firstname || ' ' || u1.lastname, 'Unknown') AS created_by,
+      COALESCE(u2.firstname || ' ' || u2.lastname, 'Unknown') AS updated_by,
+      jsonb_agg(DISTINCT jsonb_build_object(
+        'product_id', pr.id,
+        'name', pr.product_name,
+        'brand', pr.brand,
+        'category', pr.category,
+        'barcode', pr.barcode,
+        'market_region', pr.market_region
+      )) AS products,
+      jsonb_agg(DISTINCT jsonb_build_object(
+        'location_id', l.id,
+        'location_name', l.name,
+        'location_type', jsonb_build_object(
+            'type_id', lt.id,
+            'type_name', lt.name
+        )
+      )) AS locations
+    FROM ${tableName}
+    ${joins.join(' ')}
+    WHERE ${whereClause}
+    GROUP BY p.id, pt.name, p.price, p.valid_from, p.valid_to,
+    s.name, p.status_date, p.created_at, p.updated_at,
+    u1.firstname, u1.lastname, u2.firstname, u2.lastname
   `;
 
   try {
@@ -327,6 +370,6 @@ const getActiveProductPrice = async (productId, priceTypeId, client) => {
 module.exports = {
   getAllPricingRecords,
   getPricingDetailsByPricingTypeId,
-  getPricingDetailsByPricingId,
+  getPriceByIdAndSku,
   getActiveProductPrice,
 };

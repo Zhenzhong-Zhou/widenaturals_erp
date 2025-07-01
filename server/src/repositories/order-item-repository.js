@@ -1,95 +1,103 @@
 const { bulkInsert } = require('../database/db');
 const AppError = require('../utils/AppError');
+const { logSystemException } = require('../utils/system-logger');
 
 /**
- * Adds items to an order.
- * Supports bulk insert with conflict handling.
- * Uses a transaction client if provided.
+ * Inserts multiple order items in bulk for a given order.
  *
- * @param {UUID} orderId - The ID of the order.
- * @param {Array} items - The list of order items.
- * @param {UUID} createdBy - User who created the order.
- * @param {Object} client - Optional transaction client.
- * @returns {Promise<Array>} - The inserted or updated order items.
+ * - Skips insertion if `orderItems` is empty.
+ * - Automatically sets `created_at` and `updated_at` to current time.
+ * - Applies conflict resolution on `(order_id, product_id, packaging_material_id)`:
+ *   - `quantity_ordered` is added to existing.
+ *   - `price` is overwritten.
+ *   - `subtotal` is recalculated as `(EXCLUDED.price * (existing.quantity_ordered + EXCLUDED.quantity_ordered))`.
+ *   - `updated_at` is overwritten.
+ *
+ * @param {string} orderId - The associated order ID.
+ * @param {Array<Object>} orderItems - List of order items to insert. Each item must include:
+ * @param {string} orderItems[].order_id - Associated order ID
+ * @param {string|null} [orderItems[].sku_id] - Optional sku reference
+ * @param {string|null} [orderItems[].packaging_material_id] - Optional packaging material reference
+ * @param {number} orderItems[].quantity_ordered - Quantity ordered
+ * @param {string|null} [orderItems[].price_id] - Optional price reference
+ * @param {number|null} [orderItems[].price] - Unit price
+ * @param {number} orderItems[].subtotal - Line subtotal (used or recalculated on conflict)
+ * @param {string} orderItems[].status_id - Status ID
+ * @param {string|Date} [orderItems[].status_date] - Optional status timestamp (default: now)
+ * @param {string|null} [orderItems[].created_by] - User ID who created the record
+ * @param {string|null} [orderItems[].updated_by] - User ID who last updated the record
+ *
+ * @param {import('pg').PoolClient} client - Active PostgreSQL transaction client
+ *
+ * @throws {AppError} Throws database error if insertion fails
  */
-const addOrderItems = async (orderId, items, createdBy, client) => {
-  if (!Array.isArray(items) || items.length === 0) {
-    throw AppError.validationError('Order items cannot be empty.');
-  }
-
+const insertOrderItemsBulk = async (orderId, orderItems, client) => {
+  const now = new Date();
+  
+  const rows = orderItems.map((item) => [
+    orderId,
+    item.sku_id ?? null,
+    item.packaging_material_id ?? null,
+    item.quantity_ordered,
+    item.price_id ?? null,
+    item.price ?? null,
+    item.subtotal,
+    item.status_id,
+    item.status_date ?? now,
+    item.metadata ?? null,
+    now,
+    null,
+    item.created_by ?? null,
+    item.updated_by ?? null,
+  ]);
+  
   const columns = [
     'order_id',
-    'inventory_id',
+    'sku_id',
+    'packaging_material_id',
     'quantity_ordered',
     'price_id',
     'price',
     'subtotal',
     'status_id',
     'status_date',
+    'metadata',
+    'created_at',
+    'updated_at',
     'created_by',
     'updated_by',
   ];
-
-  // Step 1: Aggregate items that have the same `product_id`, `price_type_id`, `price_id`, and `price`
-  const itemMap = new Map();
-
-  for (const item of items) {
-    const {
-      inventory_id,
-      price_type_id,
-      price_id,
-      price,
-      quantity_ordered,
-      status_id,
-    } = item;
-
-    // Create a unique key based on merging conditions
-    const itemKey = `${inventory_id}_${price_type_id}_${price_id}_${price}`;
-
-    if (itemMap.has(itemKey)) {
-      // If same product, price_type_id, price_id, and price → Sum quantities
-      const existingItem = itemMap.get(itemKey);
-      existingItem.quantity_ordered += quantity_ordered;
-      existingItem.subtotal =
-        existingItem.price * existingItem.quantity_ordered; // Recalculate subtotal
-      itemMap.set(itemKey, existingItem);
-    } else {
-      // Otherwise, store as a new line item
-      itemMap.set(itemKey, {
-        inventory_id,
-        price_type_id,
-        price_id,
-        price,
-        quantity_ordered,
-        status_id,
-        subtotal: price * quantity_ordered,
-      });
-    }
+  
+  const conflictColumns = ['order_id', 'sku_id', 'packaging_material_id'];
+  
+  const updateStrategies = {
+    quantity_ordered: 'add',                     // adds EXCLUDED.quantity_ordered to existing data
+    price: 'overwrite',                          // simply overwrites if present
+    subtotal: 'recalculate_subtotal',            // subtotal already precalculated
+    metadata: 'merge',
+    updated_at: 'overwrite',                     // overwrites with EXCLUDED.updated_at (usually set to NOW())
+  };
+  
+  try {
+    await bulkInsert(
+      'order_items',
+      columns,
+      rows,
+      conflictColumns,
+      updateStrategies,
+      client,
+      { context: 'order-item-repository/insertOrderItemsBulk' }
+    );
+  } catch (error) {
+    logSystemException(error, 'Failed to bulk insert order items',{
+      context: 'order-item-repository/insertOrderItemsBulk',
+      data: orderItems,
+    });
+    
+    throw AppError.databaseError('Unable to insert order items in bulk.');
   }
-
-  // Step 2: Convert aggregated items into an array for insertion
-  const rows = Array.from(itemMap.values()).map((item) => [
-    orderId, // Ensure order_id is correctly set
-    item.inventory_id,
-    item.quantity_ordered,
-    item.price_id,
-    item.price,
-    item.subtotal, // Adding subtotal for each row
-    item.status_id,
-    new Date(), // status_date
-    createdBy,
-    null, // updated_by is null during creation
-  ]);
-
-  // Step 3: Perform bulk insert with conflict handling
-  return bulkInsert(
-    'order_items',
-    columns,
-    rows,
-    ['order_id', 'inventory_id', 'price_id', 'price'], // Unique constraint check
-    ['quantity_ordered', 'subtotal', 'status_id', 'updated_by', 'status_date'], // Fields that can be updated
-    client
-  );
 };
 
-module.exports = { addOrderItems };
+module.exports = {
+  insertOrderItemsBulk,
+};

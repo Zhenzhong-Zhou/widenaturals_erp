@@ -23,8 +23,8 @@ exports.up = async function (knex) {
     
     table.text('note').nullable(); // optional delivery notes or tags
     
-    table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now()).notNullable();
-    table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now()).notNullable();
+    table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
+    table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
     table.uuid('created_by').references('id').inTable('users');
     table.uuid('updated_by').references('id').inTable('users');
     
