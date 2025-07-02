@@ -6,6 +6,8 @@ const {
   getCustomerByIdController,
 } = require('../controllers/customer-controller');
 const authorize = require('../middlewares/authorize');
+const validate = require('../middlewares/validate');
+const customerArraySchema = require('../validators/customer-validator');
 const { sanitizeInput } = require('../middlewares/sanitize');
 
 const router = express.Router();
@@ -17,12 +19,16 @@ const router = express.Router();
  *          Accepts a JSON array of customer objects (single or bulk).
  *          Requires authentication and 'create_customer' permission.
  *
- * @body    {Array<Object>} customers - Customer objects to be created.
- * @returns {201} On success, returns created customer(s) with metadata.
+ * @body    {Array<Object>} body - Array of customer objects to be created.
+ *
+ * @returns {201} Created customer records with metadata
+ * @returns {400} Validation error (invalid payload)
+ * @returns {403} Authorization error (insufficient permission)
  */
 router.post(
   '/add-new-customers',
   authorize(['create_customer']),
+  validate(customerArraySchema, 'body'),
   sanitizeInput,
   createCustomerController
 );

@@ -10,10 +10,12 @@ const { getStatusId } = require('../config/status-cache');
 
 /**
  * Prepares customer data by validating and enriching it with default fields.
- * @param {Array} customers - Array of customer objects.
+ *
+ * @param {Array<Object>} customers - Array of pre-validated customer objects.
  * @param {String} createdBy - ID of the user creating the records.
- * @returns {Promise<Array>} - Validated and transformed customers.
- * @throws {AppError} - Throws validation or database error.
+ * @returns {Promise<Array<Object>>} - Enriched customer objects ready for insertion.
+ *
+ * @throws {AppError} - Throws database or enrichment error.
  */
 const prepareCustomersForInsert = async (customers, createdBy) => {
   try {
@@ -27,8 +29,6 @@ const prepareCustomersForInsert = async (customers, createdBy) => {
       logSystemError('Customer preparation failed: Missing active status ID');
       throw AppError.notFoundError('Active status ID not found.');
     }
-    
-    await Promise.all(customers.map(validateCustomer));
     
     return customers.map((customer) => ({
       ...customer,

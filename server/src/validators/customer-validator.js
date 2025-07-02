@@ -1,5 +1,4 @@
 const Joi = require('joi');
-const AppError = require('../utils/AppError');
 const { validateEmail, validatePhoneNumber } = require('./general-validators');
 
 /**
@@ -28,22 +27,8 @@ const customerSchema = Joi.object({
 });
 
 /**
- * Validates customer data using Joi.
- * @param {Object} customerData - The customer data to validate.
- * @throws {AppError} Throws an error if validation fails.
+ * Joi schema for validating an array of customers.
  */
-const validateCustomer = (customerData) => {
-  const { error, value } = customerSchema.validate(customerData, {
-    abortEarly: false, // Show all errors, not just the first one
-  });
+const customerArraySchema = Joi.array().items(customerSchema).min(1).required();
 
-  if (error) {
-    throw AppError.validationError('Customer validation failed', {
-      details: error.details.map((err) => err.message),
-    });
-  }
-
-  return value; // Return validated data
-};
-
-module.exports = { validateCustomer, customerSchema };
+module.exports = customerArraySchema;
