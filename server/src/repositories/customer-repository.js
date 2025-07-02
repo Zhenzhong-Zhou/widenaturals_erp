@@ -11,7 +11,7 @@ const { buildCustomerFilter } = require('../utils/sql/build-customer-filters');
  *
  * - Transforms and inserts validated customer data into the database.
  * - On conflict (matching `email` + `phone_number`), updates defined fields
- *   (e.g., address, status, note, metadata).
+ *   (e.g., status, note, metadata).
  * - Primarily used for insert operations, with conflict resolution as fallback.
  *
  * @param {Array<Object>} customers - Array of validated customer objects.
@@ -25,13 +25,6 @@ const insertCustomerRecords = async (customers, client) => {
     'lastname',
     'email',
     'phone_number',
-    'address_line1',
-    'address_line2',
-    'city',
-    'state',
-    'postal_code',
-    'country',
-    'region',
     'status_id',
     'note',
     'status_date',
@@ -44,13 +37,6 @@ const insertCustomerRecords = async (customers, client) => {
   const updateColumns = [
     'firstname',
     'lastname',
-    'address_line1',
-    'address_line2',
-    'city',
-    'state',
-    'postal_code',
-    'country',
-    'region',
     'status_id',
     'note',
     'updated_at',
@@ -65,20 +51,13 @@ const insertCustomerRecords = async (customers, client) => {
     customer.lastname,
     customer.email || null,
     customer.phone_number || null,
-    customer.address_line1,
-    customer.address_line2 || null,
-    customer.city,
-    customer.state,
-    customer.postal_code,
-    customer.country,
-    customer.region || null,
     customer.status_id,
     customer.note || null,
-    now,
-    now,
-    null, // updated_at
-    customer.created_by,
-    null, // updated_by
+    now,               // status_date
+    now,               // created_at
+    null,              // updated_at (no update info at insert)
+    customer.created_by || null,
+    null,              // updated_by (no update info at insert)
   ]);
   
   const invalidIndex = rows.findIndex(
@@ -106,7 +85,7 @@ const insertCustomerRecords = async (customers, client) => {
     );
   } catch (error) {
     logSystemException(error, 'Bulk Insert Failed', {
-      context: 'customer-repository/bulkCreateCustomers',
+      context: 'customer-repository/insertCustomerRecords',
       table: 'customers',
       columns,
       conflictColumns: ['email', 'phone_number'],
@@ -132,14 +111,20 @@ const insertCustomerRecords = async (customers, client) => {
 const getEnrichedCustomersByIds = async(ids, client) => {
   const sql = `
     SELECT
-      c.id, c.firstname, c.lastname, c.email, c.phone_number,
-      c.address_line1, c.address_line2,
-      c.city, c.state, c.postal_code, c.country, c.region,
+      c.id,
+      c.firstname,
+      c.lastname,
+      c.email,
+      c.phone_number,
       c.note,
-      c.status_id, s.name AS status_name,
-      c.created_at, c.updated_at,
-      cu.firstname AS created_by_firstname, cu.lastname AS created_by_lastname,
-      uu.firstname AS updated_by_firstname, uu.lastname AS updated_by_lastname
+      c.status_id,
+      s.name AS status_name,
+      c.created_at,
+      c.updated_at,
+      cu.firstname AS created_by_firstname,
+      cu.lastname AS created_by_lastname,
+      uu.firstname AS updated_by_firstname,
+      uu.lastname AS updated_by_lastname
     FROM customers c
     LEFT JOIN status s ON s.id = c.status_id
     LEFT JOIN users cu ON cu.id = c.created_by

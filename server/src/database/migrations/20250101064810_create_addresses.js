@@ -6,6 +6,8 @@ exports.up = async function (knex) {
   await knex.schema.createTable('addresses', (table) => {
     table.uuid('id').primary().defaultTo(knex.raw('uuid_generate_v4()'));
     
+    table.uuid('customer_id').nullable().references('id').inTable('customers');
+    
     table.string('full_name', 150).nullable(); // for recipient name
     table.string('phone', 20).nullable();
     table.string('email', 150).nullable();
@@ -23,11 +25,14 @@ exports.up = async function (knex) {
     
     table.text('note').nullable(); // optional delivery notes or tags
     
+    table.string('address_hash', 64).nullable();
+    
     table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
     table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
     table.uuid('created_by').references('id').inTable('users');
     table.uuid('updated_by').references('id').inTable('users');
     
+    table.index(['customer_id']);
     table.index(['country', 'postal_code']);
   });
 };

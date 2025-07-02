@@ -23,11 +23,22 @@ exports.seed = async function (knex) {
   
   const now = knex.fn.now();
   
+  // Dynamically fetch customer IDs
+  const johnCustomerId = await fetchDynamicValue(knex, 'customers', 'email', 'john.doe@example.com', 'id');
+  const janeCustomerId = await fetchDynamicValue(knex, 'customers', 'email', 'jane.smith@example.com', 'id');
+  const aliceCustomerId = await fetchDynamicValue(knex, 'customers', 'email', 'alice.wong@example.com', 'id');
+  
+  const customerEmailMap = {
+    'johndoe@example.com': johnCustomerId,
+    'janesmith@example.com': janeCustomerId,
+    'alice.wong@example.com': aliceCustomerId,
+  };
+  
   const addressList = [
     {
       full_name: 'John Doe',
-      phone: '604-123-4567',
       email: 'johndoe@example.com',
+      phone: '604-123-4567',
       label: 'Home',
       address_line1: '123 Main Street',
       address_line2: 'Unit 4B',
@@ -40,8 +51,8 @@ exports.seed = async function (knex) {
     },
     {
       full_name: 'Jane Smith',
-      phone: '778-987-6543',
       email: 'janesmith@example.com',
+      phone: '778-987-6543',
       label: 'Work',
       address_line1: '456 Market Avenue',
       address_line2: null,
@@ -54,8 +65,8 @@ exports.seed = async function (knex) {
     },
     {
       full_name: 'Acme Corp',
-      phone: '604-555-1212',
       email: 'shipping@acmecorp.com',
+      phone: '604-555-1212',
       label: 'Shipping',
       address_line1: '789 Industrial Way',
       address_line2: null,
@@ -68,8 +79,8 @@ exports.seed = async function (knex) {
     },
     {
       full_name: 'Acme Corp',
-      phone: '604-555-1313',
       email: 'billing@acmecorp.com',
+      phone: '604-555-1313',
       label: 'Billing',
       address_line1: '101 Financial Ave',
       address_line2: 'Suite 500',
@@ -82,8 +93,8 @@ exports.seed = async function (knex) {
     },
     {
       full_name: 'Global Supplies',
-      phone: '416-222-3333',
       email: 'ship@globalsupplies.com',
+      phone: '416-222-3333',
       label: 'Shipping',
       address_line1: '202 Logistic Blvd',
       address_line2: '',
@@ -96,8 +107,8 @@ exports.seed = async function (knex) {
     },
     {
       full_name: 'Global Supplies',
-      phone: '416-222-4444',
       email: 'bill@globalsupplies.com',
+      phone: '416-222-4444',
       label: 'Billing',
       address_line1: '303 Accounting Rd',
       address_line2: 'Floor 2',
@@ -112,6 +123,7 @@ exports.seed = async function (knex) {
   
   const records = addressList.map((addr) => ({
     id: knex.raw('uuid_generate_v4()'),
+    customer_id: customerEmailMap[addr.email] ?? null,
     full_name: addr.full_name,
     phone: addr.phone,
     email: addr.email,

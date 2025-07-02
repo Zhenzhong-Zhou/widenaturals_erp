@@ -1,22 +1,32 @@
 const { cleanObject } = require('../utils/object-utils');
-const { formatAddress } = require('../utils/string-utils');
 const { getFullName } = require('../utils/name-utils');
 const { transformPaginatedResult } = require('../utils/transformer-utils');
 
 /**
- * Transforms a raw DB row with joins into a clean enriched customer object.
+ * Transforms a customer row into a structured or flat object.
  *
- * @param {object} row - Raw DB result row.
- * @returns {object} Transformed and cleaned a customer object.
+ * - Handles data from queries that join status and user metadata.
+ * - Can output either nested or flat format depending on options.
+ * - Cleans null/undefined properties using `cleanObject`.
+ *
+ * @param {object} row - Raw customer DB row with joined fields.
+ * @param {object} [options] - Transformation options.
+ * @param {('nested'|'flat')} [options.format='nested'] - Output format.
+ *   - 'nested': returns nested objects (e.g. status, createdBy, updatedBy).
+ *   - 'flat': returns flattened presentation-friendly structure.
+ * @returns {object} Transformed customer object.
+ *
+ * @example
+ * transformCustomerRow(row, { format: 'nested' });
+ * transformCustomerRow(row, { format: 'flat' });
  */
-const transformEnrichedCustomer = (row) => {
-  const transformed = {
+const transformCustomerRow = (row, { format = 'nested' } = {}) => {
+  const base = {
     id: row.id ?? null,
     firstname: row.firstname ?? null,
     lastname: row.lastname ?? null,
     email: row.email ?? null,
     phoneNumber: row.phone_number ?? null,
-    address: formatAddress(row),
     note: row.note ?? null,
     status: {
       id: row.status_id ?? null,
@@ -34,14 +44,29 @@ const transformEnrichedCustomer = (row) => {
     },
   };
   
-  return cleanObject(transformed); // final clean sweep
+  if (format === 'flat') {
+    return cleanObject({
+      id: base.id,
+      customerName: getFullName(base.firstname, base.lastname),
+      email: base.email,
+      phoneNumber: base.phoneNumber,
+      statusId: base.status.id,
+      statusName: base.status.name,
+      createdAt: base.createdAt,
+      updatedAt: base.updatedAt,
+      createdBy: getFullName(base.createdBy.firstname, base.createdBy.lastname),
+      updatedBy: getFullName(base.updatedBy.firstname, base.updatedBy.lastname),
+    });
+  }
+  
+  return cleanObject(base);
 };
 
 /**
- * Transforms an array of enriched customer rows from the database into
- * clean and structured customer objects.
+ * Transforms an array of customer rows from the database into
+ * clean and structured customer objects (nested format).
  *
- * - Use `transformEnrichedCustomer` to format and sanitize each row.
+ * - Applies `transformCustomerRow` in nested mode.
  * - Ensures input is an array; returns an empty array if not.
  *
  * @param {Array<object>} rows - Array of raw DB rows with customer, status, and user metadata.
@@ -49,44 +74,19 @@ const transformEnrichedCustomer = (row) => {
  */
 const transformEnrichedCustomers = (rows) => {
   if (!Array.isArray(rows)) return [];
-  return rows.map(transformEnrichedCustomer);
+  return rows.map((row) => transformCustomerRow(row, { format: 'nested' }));
 };
-
-/**
- * Transforms a raw customer row into a formatted customer object.
- *
- * - Combines first and last names into `customerName`, `createdBy`, and `updatedBy`
- * - Normalizes null/empty values
- * - Cleans up any undefined/null values in the output
- *
- * @param {Object} row - Raw DB row from customer query
- * @returns {Object} Transformed and cleaned a customer object
- */
-const transformCustomerRow = (row) =>
-  cleanObject({
-    id: row.id,
-    customerName: getFullName(row.firstname, row.lastname),
-    email: row.email,
-    phoneNumber: row.phone_number,
-    statusId: row.status_id,
-    statusName: row.status_name,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-    createdBy: getFullName(row.created_by_firstname, row.created_by_lastname),
-    updatedBy: getFullName(row.updated_by_firstname, row.updated_by_lastname),
-  });
 
 /**
  * Transforms a paginated result set of raw customer rows into structured, display-ready objects.
  *
- * Applies `transformCustomerRow` to each row in the result set and preserves pagination metadata.
- * This function is a wrapper around `transformPaginatedResult` specialized for customer records.
+ * Applies `transformCustomerRow` in flat mode to each row in the result set and preserves pagination metadata.
  *
  * @param {Object} paginatedResult - The raw paginated customer result from the repository layer
  * @returns {{ data: CustomerResponse[], pagination: Object }} - Transformed customer data with pagination
  */
 const transformPaginatedCustomerResults = (paginatedResult) =>
-  transformPaginatedResult(paginatedResult, transformCustomerRow);
+  transformPaginatedResult(paginatedResult, (row) => transformCustomerRow(row, { format: 'flat' }));
 
 module.exports = {
   transformEnrichedCustomers,

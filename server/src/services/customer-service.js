@@ -8,13 +8,16 @@ const {
   logSystemInfo,
   logSystemException
 } = require('../utils/system-logger');
-const { prepareCustomersForInsert } = require('../shared/customer-utils');
 const { withTransaction } = require('../database/db');
 const {
   transformEnrichedCustomers,
   transformPaginatedCustomerResults,
 } = require('../transformers/customer-transformer');
-const { filterCustomerForViewer, resolveCustomerQueryOptions } = require('../business/customer-business');
+const {
+  prepareCustomersForInsert,
+  filterCustomerForViewer,
+  resolveCustomerQueryOptions
+} = require('../business/customer-business');
 const { sanitizeSortBy } = require('../utils/sort-utils');
 
 /**
