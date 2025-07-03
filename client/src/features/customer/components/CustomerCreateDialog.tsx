@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
+import type { CreateMode } from '@shared-types/shared';
 import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
 import CustomDialog from '@components/common/CustomDialog';
-import type { CustomerCreateMode } from '@features/customer/state';
-import CustomerCreateToggle from '@features/customer/components/CustomerCreateToggle';
+import type { CustomerResponse } from '@features/customer/state';
+import CreateModeToggle from '@components/common/CreateModeToggle';
 import useCustomerCreate from '@hooks/useCustomerCreate';
 import SingleCustomerForm from './SingleCustomerForm';
 import BulkCustomerForm from './BulkCustomerForm';
 import CustomerSuccessDialog from '@features/customer/components/CustomerSuccessDialog';
+import AddressCreateDialog from '@features/address/components/AddressCreateDialog';
 
 interface CustomerCreateDialogProps {
   open: boolean;
@@ -15,14 +17,15 @@ interface CustomerCreateDialogProps {
 }
 
 const CustomerCreateDialog = ({ open, onClose }: CustomerCreateDialogProps) => {
-  const [mode, setMode] = useState<CustomerCreateMode>('single');
+  const [mode, setMode] = useState<CreateMode>('single');
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [showAddressDialog, setShowAddressDialog] = useState(false);
   
   const {
     loading,
     error,
     customerCreateResponse,
-    // customerNames,
+    customerNames,
     createCustomers,
     resetCustomerCreate,
   } = useCustomerCreate();
@@ -35,25 +38,25 @@ const CustomerCreateDialog = ({ open, onClose }: CustomerCreateDialogProps) => {
   
   const handleClose = () => {
     resetCustomerCreate();
-    setMode('single'); // reset mode
+    setMode('single');
     onClose();
   };
   
-  const handleSubmit = useCallback(async (data: any) => {
-    const dataArray = mode === 'single' ? [data] : data;
-    
-    // Strip `id` field from each item before submission
-    const payload = dataArray.map((item: Record<string, any>) => {
-      const { id, ...rest } = item;
-      return rest;
-    });
-    
-    await createCustomers(payload);
-  }, [mode, createCustomers]);
+  const handleSubmit = useCallback(
+    async (data: any) => {
+      const dataArray = mode === 'single' ? [data] : data;
+      const payload = dataArray.map((item: Record<string, any>) => {
+        const { id, ...rest } = item;
+        return rest;
+      });
+      await createCustomers(payload);
+    },
+    [mode, createCustomers]
+  );
   
   return (
     <>
-      {showSuccessDialog? (
+      {showSuccessDialog ? (
         <CustomerSuccessDialog
           open={showSuccessDialog}
           onClose={() => {
@@ -62,6 +65,12 @@ const CustomerCreateDialog = ({ open, onClose }: CustomerCreateDialogProps) => {
           }}
           message={customerCreateResponse?.message}
           customers={customerCreateResponse?.data}
+          onAddAddressClick={() => {
+            setShowSuccessDialog(false);
+            setTimeout(() => {
+              setShowAddressDialog(true);
+            }, 50); // 50-100 ms is usually enough
+          }}
         />
       ) : (
         <CustomDialog
@@ -74,8 +83,12 @@ const CustomerCreateDialog = ({ open, onClose }: CustomerCreateDialogProps) => {
           maxWidth="md"
           fullWidth
         >
-          <Box sx={{ px: 2, py: 1 }} >
-            <CustomerCreateToggle value={mode} onChange={setMode} />
+          <Box sx={{ px: 2, py: 1 }}>
+            <CreateModeToggle
+              value={mode}
+              onChange={setMode}
+              label="Customer Entry Mode"
+            />
             {error && (
               <Alert severity="error" sx={{ mt: 2 }}>
                 {error}
@@ -90,6 +103,19 @@ const CustomerCreateDialog = ({ open, onClose }: CustomerCreateDialogProps) => {
             </Box>
           </Box>
         </CustomDialog>
+      )}
+      
+      {/* Address creation dialog after customer creation */}
+      {showAddressDialog && (
+        <AddressCreateDialog
+          open={showAddressDialog}
+          onClose={() => {
+            setShowAddressDialog(false);
+            handleClose(); // Optionally reset everything when address done
+          }}
+          customerNames={customerNames}
+          customerIds={customerCreateResponse?.data.map((c: CustomerResponse) => c.id) ?? []}
+        />
       )}
     </>
   );

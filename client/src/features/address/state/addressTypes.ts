@@ -57,6 +57,7 @@ export interface AddressResponse {
   email: string | null;
   label: string | null;
   displayAddress: string;
+  note: string | null;
   customer: AddressCustomerSummary;
   createdBy: AddressUserSummary;
   updatedBy: AddressUserSummary;

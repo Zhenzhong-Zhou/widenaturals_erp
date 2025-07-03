@@ -3,17 +3,22 @@ import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import Stack from '@mui/material/Stack';
 import CustomTypography from '@components/common/CustomTypography';
-import type { CustomerCreateMode } from '@features/customer/state';
+import type { CreateMode } from '@shared-types/shared.ts';
 
-interface CustomerCreateToggleProps {
-  value: CustomerCreateMode;
-  onChange: (mode: CustomerCreateMode) => void;
+interface CreateModeToggleProps<T extends CreateMode = CreateMode> {
+  value: T;
+  onChange: (mode: T) => void;
+  label?: string;  // optional label override (default: Entry Mode)
 }
 
-const CustomerCreateToggle = ({ value, onChange }: CustomerCreateToggleProps) => {
+const CreateModeToggle = <T extends CreateMode>({
+                                                  value,
+                                                  onChange,
+                                                  label = 'Entry Mode',
+                                                }: CreateModeToggleProps<T>) => {
   const handleChange = (
     _event: MouseEvent<HTMLElement>,
-    newValue: CustomerCreateMode | null
+    newValue: T | null
   ) => {
     if (newValue) {
       onChange(newValue);
@@ -22,9 +27,7 @@ const CustomerCreateToggle = ({ value, onChange }: CustomerCreateToggleProps) =>
   
   return (
     <Stack direction="column" spacing={1} sx={{ mb: 2 }}>
-      <CustomTypography variant="body1">
-        Entry Mode
-      </CustomTypography>
+      <CustomTypography variant="body1">{label}</CustomTypography>
       <ToggleButtonGroup
         value={value}
         exclusive
@@ -39,4 +42,4 @@ const CustomerCreateToggle = ({ value, onChange }: CustomerCreateToggleProps) =>
   );
 };
 
-export default CustomerCreateToggle;
+export default CreateModeToggle;

@@ -6,12 +6,18 @@ import Stack from '@mui/material/Stack';
 import Box from '@mui/material/Box';
 import type { CustomerResponse } from '@features/customer/state';
 import { formatLabel } from '@utils/textUtils.ts';
+import AddAddressButton from '@features/address/components/AddAddressButton';
 
 interface CustomerSuccessDialogProps {
   open: boolean;
   onClose: () => void;
   message?: string;
   customers?: CustomerResponse | CustomerResponse[];
+  
+  /**
+   * Callback to trigger address creation dialog.
+   */
+  onAddAddressClick?: () => void;
 }
 
 const CustomerSuccessDialog: FC<CustomerSuccessDialogProps> = ({
@@ -19,6 +25,7 @@ const CustomerSuccessDialog: FC<CustomerSuccessDialogProps> = ({
                                                                  onClose,
                                                                  message = 'Customer(s) created successfully.',
                                                                  customers,
+                                                                 onAddAddressClick,
                                                                }) => {
   const transformFields = (data: CustomerResponse): DetailsSectionField[] => [
     { label: 'Customer Name', value: `${data.firstname} ${data.lastname}`, format: (value) => formatLabel(value) },
@@ -57,6 +64,14 @@ const CustomerSuccessDialog: FC<CustomerSuccessDialogProps> = ({
             />
           ))}
         </Stack>
+        
+        <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
+          <AddAddressButton
+            onClick={onAddAddressClick}  // Trigger the address dialog
+            variant="outlined"
+            color="primary"
+          />
+        </Box>
       </Box>
     </CustomDialog>
   );
