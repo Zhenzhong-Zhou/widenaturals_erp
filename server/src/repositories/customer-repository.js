@@ -5,6 +5,7 @@ const {
   logSystemInfo
 } = require('../utils/system-logger');
 const { buildCustomerFilter } = require('../utils/sql/build-customer-filters');
+const { validateBulkInsertRows } = require('../database/db-utils');
 
 /**
  * Bulk inserts customer records with conflict handling.
@@ -60,21 +61,9 @@ const insertCustomerRecords = async (customers, client) => {
     null,              // updated_by (no update info at insert)
   ]);
   
-  const invalidIndex = rows.findIndex(
-    (row) => !Array.isArray(row) || row.length !== columns.length
-  );
-  
-  if (invalidIndex !== -1) {
-    const actualLength = Array.isArray(rows[invalidIndex])
-      ? rows[invalidIndex].length
-      : 'non-array';
-    
-    throw AppError.validationError(
-      `Invalid data: Row ${invalidIndex} contains ${actualLength} values, but expected ${columns.length}`
-    );
-  }
-  
   try {
+    validateBulkInsertRows(rows, columns.length);
+    
     return await bulkInsert(
       'customers',
       columns,

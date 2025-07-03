@@ -30,6 +30,7 @@ const warehouseInventoryRoutes = require('./warehouse-inventory');
 const lookupRoutes = require('./lookups');
 const reportRoutes = require('./reports');
 const customerRoutes = require('./customers');
+const addressRoutes = require('./addresses');
 const discountRoutes = require('./discounts');
 const deliveryMethodRoutes = require('./delivery-methods');
 const orderTypeRoutes = require('./order-types');
@@ -110,6 +111,7 @@ router.use('/location-inventory', authenticate(), locationInventoryRoutes);
  * Order processing and customer-related endpoints
  */
 router.use('/customers', authenticate(), customerRoutes);
+router.use('/addresses', authenticate(), addressRoutes);
 router.use('/orders', authenticate(), orderRoutes);
 router.use('/order-types', authenticate(), orderTypeRoutes);
 

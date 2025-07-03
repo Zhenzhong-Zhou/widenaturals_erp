@@ -1,4 +1,16 @@
 /**
+ * Applies a transformer function to an array of rows safely.
+ *
+ * @param {Array} rows - The raw rows to transform.
+ * @param {Function} transformer - The function to apply to each row.
+ * @returns {Array} The transformed rows.
+ */
+const transformRows = (rows, transformer) => {
+  if (!Array.isArray(rows)) return [];
+  return rows.map(transformer);
+};
+
+/**
  * Transforms a generic paginated result using a row-level transformer.
  *
  * @param {Object} paginatedResult - The paginated query result.
@@ -115,6 +127,7 @@ const deriveInventoryStatusFlags = (
 };
 
 module.exports = {
+  transformRows,
   transformPaginatedResult,
   deriveInventoryStatusFlags,
 };

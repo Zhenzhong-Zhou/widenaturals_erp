@@ -19,11 +19,6 @@ const { getStatusId } = require('../config/status-cache');
  */
 const prepareCustomersForInsert = async (customers, createdBy) => {
   try {
-    if (!Array.isArray(customers) || customers.length === 0) {
-      logSystemError('Customer preparation failed: Empty array received');
-      throw AppError.validationError('Customer list is empty.');
-    }
-    
     const activeStatusId = await getStatusIdByName('active');
     if (!activeStatusId) {
       logSystemError('Customer preparation failed: Missing active status ID');

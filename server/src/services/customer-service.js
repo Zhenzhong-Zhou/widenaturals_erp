@@ -1,3 +1,5 @@
+const MAX_LIMITS = require('../utils/constants/general/max-limits');
+const { validateBulkInputSize } = require('../utils/bulk-input-validator');
 const AppError = require('../utils/AppError');
 const {
   insertCustomerRecords,
@@ -35,22 +37,14 @@ const { sanitizeSortBy } = require('../utils/sort-utils');
  * @throws {AppError} - Wrapped service-level error
  */
 const createCustomersService = async (customers, user, purpose = 'insert_response') => {
-  if (!Array.isArray(customers) || customers.length === 0) {
-    throw AppError.validationError(
-      'Input must be a non-empty array of customer objects.'
-    );
-  }
-  
-  if (customers.length > 20) {
-    throw AppError.validationError(
-      'Cannot insert more than 20 customers at once.'
-    );
-  }
-  
   const createdBy = user.id;
   
   return withTransaction(async (client) => {
     try {
+      const max = MAX_LIMITS.BULK_INPUT_LIMITS.MAX_UI_INSERT_SIZE;
+      
+      validateBulkInputSize(customers, max, 'customer-service/createCustomersService', 'customers');
+      
       logSystemInfo('Preparing customer data for insert', {
         count: customers.length,
         context: 'customer-service/createCustomers',
@@ -82,9 +76,9 @@ const createCustomersService = async (customers, user, purpose = 'insert_respons
       );
     } catch (error) {
       logSystemException(error, 'Failed to create customers in transaction', {
-        customerCount: customers?.length,
-        requestedBy: createdBy,
         context: 'customer-service/createCustomers',
+        requestedBy: createdBy,
+        customerCount: customers?.length,
       });
       
       throw AppError.serviceError(

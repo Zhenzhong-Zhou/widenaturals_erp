@@ -25,7 +25,7 @@ exports.up = async function (knex) {
     
     table.text('note').nullable(); // optional delivery notes or tags
     
-    table.string('address_hash', 64).nullable();
+    table.string('address_hash', 64).notNullable();
     
     table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
     table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
@@ -34,6 +34,8 @@ exports.up = async function (knex) {
     
     table.index(['customer_id']);
     table.index(['country', 'postal_code']);
+    
+    table.unique(['customer_id', 'address_hash'], { indexName: 'unique_customer_address_hash' });
   });
 };
 

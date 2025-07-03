@@ -3,7 +3,6 @@ const {
   fetchPaginatedCustomersService,
   fetchCustomersDropdown,
 } = require('../services/customer-service');
-const AppError = require('../utils/AppError');
 const wrapAsync = require('../utils/wrap-async');
 const { logError, logInfo } = require('../utils/logger-helper');
 const { getCustomerDetailsLogic } = require('../business/customer-business');
@@ -17,19 +16,9 @@ const { normalizePaginationParams } = require('../utils/request-utils');
  * - Adds created_by metadata from the authenticated user.
  * - Returns inserted customer records.
  */
-const createCustomerController = wrapAsync(async (req, res, next) => {
+const createCustomerController = wrapAsync(async (req, res) => {
   const customers = req.body;
   const user = req.user;
-  
-  if (!user?.id) {
-    return next(AppError.validationError('Missing authenticated user.'));
-  }
-  
-  if (!Array.isArray(customers) || customers.length === 0) {
-    return next(
-      AppError.validationError('Expected a non-empty array of customers.')
-    );
-  }
   
   logInfo('Creating customer record(s)', req, {
     context: 'customer-controller/createCustomerController',
