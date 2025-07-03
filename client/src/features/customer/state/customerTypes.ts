@@ -13,13 +13,6 @@ export interface CustomerRequest {
   lastname: string;
   email: string;
   phone_number: string;
-  address_line1: string;
-  address_line2?: string;
-  city: string;
-  state: string;
-  postal_code: string;
-  country: string;
-  region?: string;
   note?: string;
 }
 
@@ -73,8 +66,6 @@ export interface CustomerListItem {
 export type PaginatedCustomerListResponse = PaginatedResponse<CustomerListItem>;
 
 export interface CustomerFilters {
-  region?: string;
-  country?: string;
   createdBy?: string;
   keyword?: string;
   createdAfter?: string;
@@ -93,8 +84,6 @@ export type CustomerSortField =
   | 'customerName'
   | 'email'
   | 'phoneNumber'
-  | 'region'
-  | 'country'
   | 'status'
   | 'createdAt'
   | 'updatedAt'

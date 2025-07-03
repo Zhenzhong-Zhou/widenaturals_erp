@@ -230,23 +230,6 @@ const getPaginatedCustomers = async ({
 };
 
 /**
- * Repository function to check if a customer exists by ID.
- * @param {string} customerId - The UUID of the customer.
- * @param {object} client - Optional database transaction client.
- * @returns {Promise<boolean>} - Returns true if the customer exists, otherwise false.
- */
-const checkCustomerExistsById = async (customerId, client = null) => {
-  try {
-    const queryText = `SELECT EXISTS (SELECT 1 FROM customers WHERE id = $1) AS exists;`;
-    const { rows } = await query(queryText, [customerId], client);
-    return rows[0]?.exists || false;
-  } catch (error) {
-    logSystemException(error, 'Error checking customer existence by ID:');
-    throw AppError.databaseError('Failed to check customer existence by ID');
-  }
-};
-
-/**
  * Repository function to check if a customer exists by email or phone number.
  * @param {string} email - Customer email.
  * @param {string} phone_number - Customer phone number.
@@ -365,7 +348,6 @@ module.exports = {
   insertCustomerRecords,
   getEnrichedCustomersByIds,
   getPaginatedCustomers,
-  checkCustomerExistsById,
   checkCustomerExistsByEmailOrPhone,
   getCustomersForDropdown,
 };

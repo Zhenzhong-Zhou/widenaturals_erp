@@ -50,24 +50,6 @@ const CustomerFiltersPanel: FC<Props> = ({ filters, onChange, onApply, onReset }
           </Grid>
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Controller
-              name="region"
-              control={control}
-              render={({ field }) =>
-                <BaseInput {...field} value={field.value ?? ''} label="Region" sx={{ minHeight: 56 }}/>
-            }
-            />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <Controller
-              name="country"
-              control={control}
-              render={({ field }) =>
-                <BaseInput {...field} value={field.value ?? ''} label="Country" sx={{ minHeight: 56 }} />
-            }
-            />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <Controller
               name="createdBy"
               control={control}
               render={({ field }) => <BaseInput {...field} value={field.value ?? ''} label="Created By" sx={{ minHeight: 56 }} />}

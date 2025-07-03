@@ -45,18 +45,6 @@ const buildCustomerFilter = (
       paramIndex++;
     }
     
-    if (filters.region) {
-      conditions.push(`c.region = $${paramIndex}`);
-      params.push(filters.region);
-      paramIndex++;
-    }
-    
-    if (filters.country) {
-      conditions.push(`c.country = $${paramIndex}`);
-      params.push(filters.country);
-      paramIndex++;
-    }
-    
     if (filters.createdBy) {
       conditions.push(`c.created_by = $${paramIndex}`);
       params.push(filters.createdBy);
