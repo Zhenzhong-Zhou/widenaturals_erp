@@ -1,4 +1,4 @@
-import { type FC, useEffect, useRef, useState } from 'react';
+import { type FC, type MouseEvent, useEffect, useRef, useState } from 'react';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import Card from '@mui/material/Card';
@@ -44,7 +44,7 @@ const CustomersPage: FC = () => {
   }, [page, limit, sortBy, sortOrder, filters]);
   
   // Open handler
-  const handleOpenDialog = (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleOpenDialog = (e: MouseEvent<HTMLButtonElement>) => {
     e.currentTarget.blur();          // remove focus right before opening
     requestAnimationFrame(() => {
       setDialogOpen(true);          // open on next tick to avoid race
@@ -138,6 +138,7 @@ const CustomersPage: FC = () => {
       <CustomerCreateDialog
         open={dialogOpen}
         onClose={handleCloseDialog}
+        onCreated={handleRefresh}
       />
       
       {/* Customer Table Section */}

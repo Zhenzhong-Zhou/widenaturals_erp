@@ -1,6 +1,5 @@
 import type {
   ApiSuccessResponse,
-  CreateMode,
   MutationState,
   PaginatedResponse,
   PaginationParams, ReduxPaginatedState,
@@ -43,12 +42,6 @@ export type CreateCustomerResponse =
   | CreateBulkCustomerResponse;
 
 export type CustomerCreateState = MutationState<CustomerResponse[]>;
-
-/**
- * Alias of `CreateMode`, specifically for customer creation workflows.
- * This improves clarity in customer-specific components while reusing the shared type.
- */
-export type CustomerCreateMode = CreateMode;
 
 export interface CustomerListItem {
   id: string;

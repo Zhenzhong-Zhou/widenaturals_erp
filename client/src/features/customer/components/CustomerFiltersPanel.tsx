@@ -15,6 +15,14 @@ interface Props {
 }
 
 const CustomerFiltersPanel: FC<Props> = ({ filters, onChange, onApply, onReset }) => {
+  const emptyFilters: CustomerFilters = {
+    keyword: '',
+    createdBy: '',
+    createdAfter: '',
+    createdBefore: '',
+    statusDateAfter: '',
+    statusDateBefore: '',
+  };
   const { control, handleSubmit, reset } = useForm<CustomerFilters>({
     defaultValues: filters
   });
@@ -30,7 +38,7 @@ const CustomerFiltersPanel: FC<Props> = ({ filters, onChange, onApply, onReset }
   };
   
   const resetFilters = () => {
-    reset(filters);
+    reset(emptyFilters);
     onReset();
   };
   
@@ -44,7 +52,7 @@ const CustomerFiltersPanel: FC<Props> = ({ filters, onChange, onApply, onReset }
               name="keyword"
               control={control}
               render={({ field }) => (
-                <BaseInput {...field} label="Search Keyword" placeholder="Name, Email, etc." sx={{ minHeight: 56 }} />
+                <BaseInput {...field} value={field.value ?? ''} label="Search Keyword" placeholder="Name, Email, etc." sx={{ minHeight: 56 }} />
               )}
             />
           </Grid>

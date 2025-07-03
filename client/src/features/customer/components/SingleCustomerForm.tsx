@@ -1,7 +1,7 @@
 import type { FC } from 'react';
 import CustomForm from '@components/common/CustomForm';
 import type { FieldConfig } from '@components/common/CustomForm';
-import { emailValidator } from '@utils/validation.ts';
+import { emailValidator } from '@utils/validation';
 
 interface SingleCustomerFormProps {
   onSubmit: (data: Record<string, any>) => void | Promise<void>;

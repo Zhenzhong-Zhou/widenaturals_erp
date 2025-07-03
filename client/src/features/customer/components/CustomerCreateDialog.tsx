@@ -14,11 +14,13 @@ import AddressCreateDialog from '@features/address/components/AddressCreateDialo
 interface CustomerCreateDialogProps {
   open: boolean;
   onClose: () => void;
+  onCreated: () => void;
 }
 
-const CustomerCreateDialog = ({ open, onClose }: CustomerCreateDialogProps) => {
+const CustomerCreateDialog = ({ open, onClose, onCreated }: CustomerCreateDialogProps) => {
   const [mode, setMode] = useState<CreateMode>('single');
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [addressStarted, setAddressStarted] = useState(false);
   const [showAddressDialog, setShowAddressDialog] = useState(false);
   
   const {
@@ -54,15 +56,27 @@ const CustomerCreateDialog = ({ open, onClose }: CustomerCreateDialogProps) => {
     [mode, createCustomers]
   );
   
+  const handleSuccessDialogClose = () => {
+    setShowSuccessDialog(false);
+    if (!addressStarted) {
+      onCreated();
+      handleClose();
+    }
+  };
+  
+  const handleAddressDialogClose = () => {
+    setShowAddressDialog(false);
+    setAddressStarted(false);
+    onCreated();
+    handleClose();
+  };
+  
   return (
     <>
       {showSuccessDialog ? (
         <CustomerSuccessDialog
           open={showSuccessDialog}
-          onClose={() => {
-            setShowSuccessDialog(false);
-            handleClose();
-          }}
+          onClose={handleSuccessDialogClose}
           message={customerCreateResponse?.message}
           customers={customerCreateResponse?.data}
           onAddAddressClick={() => {
@@ -109,10 +123,7 @@ const CustomerCreateDialog = ({ open, onClose }: CustomerCreateDialogProps) => {
       {showAddressDialog && (
         <AddressCreateDialog
           open={showAddressDialog}
-          onClose={() => {
-            setShowAddressDialog(false);
-            handleClose(); // Optionally reset everything when address done
-          }}
+          onClose={handleAddressDialogClose}
           customerNames={customerNames}
           customerIds={customerCreateResponse?.data.map((c: CustomerResponse) => c.id) ?? []}
         />
