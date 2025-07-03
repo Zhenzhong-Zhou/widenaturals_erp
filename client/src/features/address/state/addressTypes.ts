@@ -1,0 +1,120 @@
+import type { ApiSuccessResponse, MutationState } from '@shared-types/api';
+
+/**
+ * Represents a single address input record for creation or update.
+ *
+ * - Used in client-side forms, API requests, or service calls.
+ * - Includes physical location fields and optional metadata.
+ *
+ * @property {string | null} customer_id - Linked customer ID (nullable for guest or standalone address).
+ * @property {string | null} [full_name] - Recipient's full name (optional).
+ * @property {string | null} [phone] - Recipient's phone number in international format (optional).
+ * @property {string | null} [email] - Recipient's email (optional).
+ * @property {string | null} [label] - Address label (e.g., Home, Work, Shipping) (optional).
+ * @property {string} address_line1 - The main address line (required).
+ * @property {string | null} [address_line2] - Additional address info (e.g., unit, suite) (optional).
+ * @property {string} city - City name (required).
+ * @property {string | null} [state] - State or province (optional, depending on country).
+ * @property {string} postal_code - Postal or ZIP code (required).
+ * @property {string} country - Country code or name (required).
+ * @property {string | null} [region] - Region, province, or territory (optional).
+ * @property {string | null} [note] - Additional delivery note (optional).
+ */
+export interface AddressInput {
+  customer_id: string | null;          // UUID or null for guest / standalone address
+  full_name?: string | null;           // Recipient's full name
+  phone?: string | null;               // Phone in international format
+  email?: string | null;               // Optional email
+  label?: string | null;               // e.g., "Home", "Shipping"
+  address_line1: string;               // Required
+  address_line2?: string | null;       // Optional
+  city: string;                        // Required
+  state?: string | null;               // Optional (depending on country)
+  postal_code: string;                 // Required
+  country: string;                     // Required
+  region?: string | null;              // Optional, for provinces, territories, etc.
+  note?: string | null;                // Optional delivery instructions
+}
+
+/**
+ * Represents an array of address input records.
+ *
+ * - Used in bulk creation or update operations.
+ * - Each element must conform to the `AddressInput` structure.
+ *
+ * @type {AddressInput[]}
+ */
+export type AddressInputArray = AddressInput[];
+
+/**
+ * Represents a detailed address record returned by the API.
+ */
+export interface AddressResponse {
+  id: string;
+  customerId: string | null;
+  recipientName: string | null;
+  phone: string | null;
+  email: string | null;
+  label: string | null;
+  displayAddress: string;
+  customer: AddressCustomerSummary;
+  createdBy: AddressUserSummary;
+  updatedBy: AddressUserSummary;
+  createdAt: string;  // ISO string
+  updatedAt?: string | null; // Optional, since not shown in example
+}
+
+/**
+ * A minimal summary of customer info associated with the address.
+ */
+export interface AddressCustomerSummary {
+  fullName: string | null;
+  email: string | null;
+  phoneNumber: string | null;
+}
+
+/**
+ * Contains basic information about the user who created or updated the address record.
+ */
+export interface AddressUserSummary {
+  firstname: string | null;
+  lastname: string | null;
+  fullName: string;
+}
+
+/**
+ * Represents the API response when creating a single address.
+ *
+ * - `data` contains a single `AddressResponse` object.
+ * - `success` and `message` provide API-level status info.
+ */
+export type CreateSingleAddressResponse = ApiSuccessResponse<AddressResponse>;
+
+/**
+ * Represents the API response when creating multiple addresses (bulk insert).
+ *
+ * - `data` contains an array of `AddressResponse` objects.
+ * - Useful when the API supports creating multiple addresses in one call.
+ */
+export type CreateBulkAddressResponse = ApiSuccessResponse<AddressResponse[]>;
+
+/**
+ * Represents the API response for creating addresses, supporting both single and bulk insert cases.
+ *
+ * This is a union of `CreateSingleAddressResponse` and `CreateBulkAddressResponse`.
+ * It allows the reducer or service layer to handle either type of response dynamically.
+ */
+export type CreateAddressApiResponse =
+  | CreateSingleAddressResponse
+  | CreateBulkAddressResponse;
+
+/**
+ * Represents the client-side state for address creation in Redux (RTK).
+ *
+ * - `data`: Always normalized to an array of `AddressResponse` (even for single-item creation).
+ * - `loading`: Indicates if a creation request is in progress.
+ * - `error`: Contains an error message if the request fails.
+ * - `success`: Indicates if the last request succeeded.
+ * - `message`: Optional message from the API.
+ */
+export type AddressCreationState = MutationState<AddressResponse[]>;

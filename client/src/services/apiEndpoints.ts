@@ -52,6 +52,9 @@ export const API_ENDPOINTS = {
     ALL_CUSTOMERS: '/customers',
     CUSTOMER_DETAILS: '/customers/:id',
   },
+  ADDRESSES: {
+    ADD_NEW_ADDRESSES: '/addresses/add-new-addresses',
+  },
   ALL_ORDERS: '/orders',
   ALLOCATION_ELIGIBLE_ORDERS: '/orders/allocation-eligible',
   CREATE_SALES_ORDERS: '/orders/order-types/:orderTypeId',

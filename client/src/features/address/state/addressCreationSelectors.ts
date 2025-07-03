@@ -1,0 +1,42 @@
+import { createSelector } from '@reduxjs/toolkit';
+import type { RootState } from '@store/store';
+
+/**
+ * Base selector to access the address creation slice of state.
+ */
+const selectAddressCreationState = (state: RootState) => state.addressCreation;
+
+/**
+ * Selects the loading state for address creation.
+ */
+export const selectAddressCreationLoading = createSelector(
+  [selectAddressCreationState],
+  (state) => state.loading
+);
+
+/**
+ * Selects the error message (if any) from address creation.
+ */
+export const selectAddressCreationError = createSelector(
+  [selectAddressCreationState],
+  (state) => state.error
+);
+
+/**
+ * Selects the created address data (array of address records).
+ */
+export const selectAddressCreationData = createSelector(
+  [selectAddressCreationState],
+  (state) => state.data
+);
+
+/**
+ * Selects the success flag and message from address creation.
+ */
+export const selectAddressCreationSuccessMessage = createSelector(
+  [selectAddressCreationState],
+  (state) => ({
+    success: state.success,
+    message: state.message,
+  })
+);
