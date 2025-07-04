@@ -37,7 +37,6 @@ const {
   logSystemDebug,
 } = require('../utils/system-logger');
 const { generateTraceId } = require('../utils/id-utils');
-const { maskSensitiveParams } = require('../utils/mask-logger-params');
 
 // Get environment-specific connection configuration
 loadEnv();

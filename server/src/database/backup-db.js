@@ -9,7 +9,6 @@ const {
   cleanupOldBackups,
 } = require('./file-management');
 const { encryptFile } = require('./encryption');
-const { logInfo, logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
 const { uploadFileToS3 } = require('../utils/aws-s3-service');
 const {
@@ -34,7 +33,6 @@ const ivFile = `${encryptedFile}.iv`; // Initialization vector file path
 const hashFile = `${encryptedFile}.sha256`; // Hash file path
 const dbUser = process.env.DB_USER;
 const dbPassword = process.env.DB_PASSWORD;
-const pgDumpPath = process.env.PG_DUMP_PATH || 'pg_dump'; // Path to the pg_dump binary
 const maxBackups = parseInt(process.env.MAX_BACKUPS, 10) || 15; // Maximum number of backups to keep
 const bucketName = process.env.AWS_S3_BUCKET_NAME; // S3 Bucket name
 
@@ -94,7 +92,7 @@ const backupDatabase = async () => {
     // Remove the plain-text backup file
     await fs.unlink(backupFile);
 
-    // Generate a SHA-256 hash of the encrypted file
+    // Generate an SHA-256 hash of the encrypted file
     const hash = await generateHash(encryptedFile);
     await saveHashToFile(hash, hashFile);
 

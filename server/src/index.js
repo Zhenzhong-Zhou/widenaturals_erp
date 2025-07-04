@@ -47,7 +47,17 @@ const initializeApp = async () => {
         promise,
       });
     });
-
+    
+    process.on('uncaughtException', (err) => {
+      logSystemError('Uncaught Exception occurred', {
+        error: err,
+        timestamp: new Date().toISOString(),
+        pid: process.pid,
+        traceId: 'uncaught-exception',
+      });
+      process.exit(1);
+    });
+    
     logSystemInfo('Application started successfully.');
     return serverInstance;
   } catch (error) {
