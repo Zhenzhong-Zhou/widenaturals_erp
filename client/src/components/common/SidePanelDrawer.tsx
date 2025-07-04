@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react';
+import { useEffect, type ReactNode, type RefObject } from 'react';
 import Drawer from '@mui/material/Drawer';
 import IconButton from '@mui/material/IconButton';
 import CloseIcon from '@mui/icons-material/Close';
@@ -12,6 +12,7 @@ interface SidePanelDrawerProps {
   onClose: () => void;
   anchor?: 'right' | 'left'; // default right
   width?: number | string; // default 400
+  returnFocusRef?: RefObject<HTMLElement | null>;
 }
 
 const SidePanelDrawer = ({
@@ -21,7 +22,19 @@ const SidePanelDrawer = ({
                            onClose,
                            anchor = 'right',
                            width = 400,
+                           returnFocusRef,
                          }: SidePanelDrawerProps) => {
+  
+  // Restore focus only after the drawer has fully closed
+  useEffect(() => {
+    if (!open && returnFocusRef?.current) {
+      // Use requestAnimationFrame to ensure DOM updates first
+      requestAnimationFrame(() => {
+        returnFocusRef.current?.focus();
+      });
+    }
+  }, [open, returnFocusRef]);
+  
   return (
     <Drawer
       anchor={anchor}
@@ -55,7 +68,16 @@ const SidePanelDrawer = ({
         }}
       >
         <CustomTypography variant="h6">{title ?? 'Details'}</CustomTypography>
-        <IconButton onClick={onClose} aria-label="Close panel">
+        <IconButton
+          onClick={(e) => {
+            // Remove focus from the button immediately
+            (e.currentTarget as HTMLElement).blur();
+            
+            // Trigger close
+            onClose();
+          }}
+          aria-label="Close panel"
+        >
           <CloseIcon />
         </IconButton>
       </Box>

@@ -1,4 +1,4 @@
-import { type FC } from 'react';
+import { type FC, type RefObject } from 'react';
 import Box from '@mui/material/Box';
 import SidePanelDrawer from '@components/common/SidePanelDrawer';
 import LogHeader from './LogHeader';
@@ -9,7 +9,7 @@ import ErrorDisplay from '@components/shared/ErrorDisplay.tsx';
 import ErrorMessage from '@components/common/ErrorMessage.tsx';
 import CustomButton from '@components/common/CustomButton.tsx';
 
-interface Props {
+interface SidePanelDrawerProps {
   open: boolean;
   onClose: () => void;
   row: InventoryLogSource;
@@ -28,9 +28,10 @@ interface Props {
   onExpandToggle?: (row: MergedInventoryActivityLogEntry) => void;
   isRowExpanded?: (row: MergedInventoryActivityLogEntry) => boolean;
   onRetry: () => void;
+  returnFocusRef?: RefObject<HTMLElement | null>;
 }
 
-const InventoryLogDrawer: FC<Props> = ({
+const InventoryLogDrawer: FC<SidePanelDrawerProps> = ({
                                          open,
                                          onClose,
                                          row,
@@ -49,6 +50,7 @@ const InventoryLogDrawer: FC<Props> = ({
                                          onExpandToggle,
                                          isRowExpanded,
                                          onRetry,
+                                         returnFocusRef
                                        }) => {
   if (!row) return null;
   
@@ -58,6 +60,7 @@ const InventoryLogDrawer: FC<Props> = ({
       title="Inventory Activity Logs"
       onClose={onClose}
       width={1000}
+      returnFocusRef={returnFocusRef}
     >
       {row && (
         <Box>

@@ -5,6 +5,7 @@ import {
   useCallback,
   startTransition,
   Suspense, useMemo, useEffect,
+  useRef,
 } from 'react';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
@@ -60,6 +61,7 @@ const InventoryOverviewPage = () => {
   // const [stagedFilters, setStagedFilters] = useState<Partial<InventoryActivityLogQueryParams>>({});
   const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
+  const openButtonRef = useRef<HTMLElement>(null);
   
   const { itemTypeTab, page, limit } =
     tab === 0 ? locationState : warehouseState;
@@ -176,6 +178,15 @@ const InventoryOverviewPage = () => {
     setSelectedRowIds(ids);
   };
   
+  const handleClose = () => {
+    setLogDrawerOpen(false);
+    setTimeout(() => {
+      if (!logDrawerOpen) {
+        openButtonRef.current?.focus();
+      }
+    }, 300);
+  };
+  
   const handleExpandToggle = (row: InventoryActivityLogEntry) => {
     const rowId = row.id ?? '';
     setExpandedRowId((prev) => (prev === rowId ? null : rowId));
@@ -261,8 +272,9 @@ const InventoryOverviewPage = () => {
       {logDrawerRow && (
         <InventoryLogDrawer
           open={logDrawerOpen}
-          onClose={() => setLogDrawerOpen(false)}
+          onClose={handleClose}
           row={logDrawerRow}
+          returnFocusRef={openButtonRef}
           data={mergedData}
           loading={logLoading}
           error={logError}

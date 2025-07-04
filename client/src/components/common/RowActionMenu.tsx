@@ -1,4 +1,4 @@
-import { useState, type MouseEvent, type ReactNode } from 'react';
+import { useState, type MouseEvent, type ReactNode, type RefObject } from 'react';
 import IconButton from '@mui/material/IconButton';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import Menu from '@mui/material/Menu';
@@ -9,6 +9,7 @@ export interface RowActionItem<T = any> {
   onClick: (row: T) => void;
   icon?: ReactNode;
   disabled?: boolean;
+  buttonRef?: RefObject<HTMLElement>; // optional ref for a11y focus mgmt
 }
 
 interface RowActionMenuProps<T = any> {
@@ -50,6 +51,13 @@ const RowActionMenu = <T,>({
             onClick={() => {
               action.onClick(row);
               handleClose();
+              
+              // If a ref is provided, manually set focus for accessibility
+              if (action.buttonRef?.current) {
+                setTimeout(() => {
+                  action.buttonRef?.current?.focus();
+                }, 0);
+              }
             }}
             disabled={action.disabled}
           >

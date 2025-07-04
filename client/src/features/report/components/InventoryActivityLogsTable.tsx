@@ -142,7 +142,7 @@ const InventoryActivityLogsTable: FC<InventoryActivityLogTableProps> = ({
   
   const renderExpandedContent = useCallback(
     (row: InventoryActivityLogEntry) => (
-      <Suspense fallback={<SkeletonExpandedRow />}>
+      <Suspense fallback={<SkeletonExpandedRow showSummary={false} fieldPairs={3} />}>
         <InventoryActivityLogExpandedContent row={row} />
       </Suspense>
     ),

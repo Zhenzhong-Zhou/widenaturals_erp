@@ -1,3 +1,4 @@
+import type { RefObject } from 'react';
 import HistoryIcon from '@mui/icons-material/History';
 import type { RowActionItem } from '@components/common/RowActionMenu';
 
@@ -5,7 +6,8 @@ import type { RowActionItem } from '@components/common/RowActionMenu';
  * Returns the default row actions for an inventory summary row.
  */
 export const getDefaultRowActions = <T,>(
-  onViewLogs: (row: T) => void
+  onViewLogs: (row: T) => void,
+  focusRef?: RefObject<HTMLElement> // add optional ref
 ): RowActionItem<T>[] => [
   {
     label: 'View Activity Logs',
@@ -16,5 +18,6 @@ export const getDefaultRowActions = <T,>(
         style={{ marginRight: 2, verticalAlign: 'middle' }}
       />
     ),
+    buttonRef: focusRef, // custom property you pass along
   },
 ];

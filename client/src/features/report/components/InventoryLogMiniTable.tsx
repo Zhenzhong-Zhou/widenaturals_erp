@@ -99,7 +99,7 @@ const InventoryLogMiniTable: FC<InventoryLogMiniTableProps> = ({
   
   const renderExpandedContent = useCallback(
     (row: MergedInventoryActivityLogEntry) => (
-      <Suspense fallback={<SkeletonExpandedRow />}>
+      <Suspense fallback={<SkeletonExpandedRow showSummary={false} fieldPairs={3} />}>
         <InventoryLogMiniExpandedContent row={row} />
       </Suspense>
     ),

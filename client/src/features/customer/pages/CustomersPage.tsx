@@ -1,4 +1,4 @@
-import { type FC, type MouseEvent, useEffect, useRef, useState } from 'react';
+import { type FC, useEffect, useRef, useState } from 'react';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import Card from '@mui/material/Card';
@@ -13,6 +13,8 @@ import CustomerFiltersPanel from '@features/customer/components/CustomerFiltersP
 import CustomerSortControls from '../components/CustomerSortControls';
 import usePaginatedCustomers from '@hooks/usePaginatedCustomers';
 import type { CustomerFilters, CustomerSortField } from '@features/customer/state';
+import { useDialogFocusHandlers } from '@utils/hooks/useDialogFocusHandlers';
+import { usePaginationHandlers } from '@utils/hooks/usePaginationHandlers';
 
 const CustomersPage: FC = () => {
   const createButtonRef = useRef<HTMLButtonElement>(null);
@@ -22,6 +24,13 @@ const CustomersPage: FC = () => {
   const [sortBy, setSortBy] = useState<CustomerSortField>('createdAt');
   const [sortOrder, setSortOrder] = useState<'' | 'ASC' | 'DESC'>('');
   const [filters, setFilters] = useState<CustomerFilters>({});
+  
+  const { handleOpenDialog, handleCloseDialog } = useDialogFocusHandlers(
+    setDialogOpen,
+    createButtonRef,
+    () => dialogOpen
+  );
+  const { handlePageChange, handleRowsPerPageChange } = usePaginationHandlers(setPage, setLimit);
   
   const {
     customers,
@@ -43,27 +52,6 @@ const CustomersPage: FC = () => {
     });
   }, [page, limit, sortBy, sortOrder, filters]);
   
-  // Open handler
-  const handleOpenDialog = (e: MouseEvent<HTMLButtonElement>) => {
-    e.currentTarget.blur();          // remove focus right before opening
-    requestAnimationFrame(() => {
-      setDialogOpen(true);          // open on next tick to avoid race
-    });
-  };
-
-  // Dialog close handler
-  const handleCloseDialog = () => {
-    setDialogOpen(false);
-    
-    // Delay more than dialog transition to ensure aria-hidden is gone
-    setTimeout(() => {
-      // Only restore focus if the dialog is definitely closed
-      if (!dialogOpen) {
-        createButtonRef.current?.focus();
-      }
-    }, 300); // Increase from 200 to 300+
-  };
-  
   const handleRefresh = () => {
     fetchCustomers({ page, limit, sortBy, sortOrder, filters });
   };
@@ -71,15 +59,6 @@ const CustomersPage: FC = () => {
   const handleResetFilters = () => {
     setFilters({});
     setPage(1); // Optional: reset to first page
-  };
-  
-  const handlePageChange = (newPage: number) => {
-    setPage(newPage + 1); // Backend is 1-based
-  };
-  
-  const handleRowsPerPageChange = (newLimit: number) => {
-    setLimit(newLimit);
-    setPage(1); // Reset to first page on limit change
   };
   
   return (
