@@ -66,7 +66,7 @@ export interface ReduxPaginatedState<T> {
   data: T[];
 
   /** Pagination info for current view. */
-  pagination: Pagination;
+  pagination: Pagination | null;
 
   /** Whether data is currently being loaded. */
   loading: boolean;
@@ -244,4 +244,37 @@ export interface MutationState<T> {
    * Server-provided success message or status message, if any.
    */
   message?: string;
+}
+
+/**
+ * Filter for date ranges on created and updated timestamps.
+ *
+ * Useful for querying resources within a specific creation or update date range (ISO 8601 strings).
+ * Applies >= or <= conditions on backend queries.
+ */
+export interface CreatedUpdatedDateFilter {
+  /** Include records created on or after this ISO timestamp (>= condition) */
+  createdAfter?: string;
+  
+  /** Include records created on or before this ISO timestamp (<= condition) */
+  createdBefore?: string;
+  
+  /** Include records updated on or after this ISO timestamp (>= condition) */
+  updatedAfter?: string;
+  
+  /** Include records updated on or before this ISO timestamp (<= condition) */
+  updatedBefore?: string;
+}
+
+/**
+ * Filter for querying by who created or last updated the record.
+ *
+ * Useful for audit queries or admin-level filtering by user.
+ */
+export interface CreatedUpdatedByFilter {
+  /** Filter by creator's user ID (UUID v4) */
+  createdBy?: string;
+  
+  /** Filter by updater's user ID (UUID v4) */
+  updatedBy?: string;
 }

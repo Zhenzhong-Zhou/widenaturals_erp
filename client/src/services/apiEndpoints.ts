@@ -54,6 +54,7 @@ export const API_ENDPOINTS = {
   },
   ADDRESSES: {
     ADD_NEW_ADDRESSES: '/addresses/add-new-addresses',
+    ALL_RECORDS: '/addresses',
   },
   ALL_ORDERS: '/orders',
   ALLOCATION_ELIGIBLE_ORDERS: '/orders/allocation-eligible',

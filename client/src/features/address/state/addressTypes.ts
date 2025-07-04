@@ -1,4 +1,12 @@
-import type { ApiSuccessResponse, MutationState } from '@shared-types/api';
+import type {
+  ApiSuccessResponse, CreatedUpdatedByFilter,
+  CreatedUpdatedDateFilter,
+  MutationState,
+  PaginatedResponse,
+  PaginationParams,
+  ReduxPaginatedState,
+  SortConfig,
+} from '@shared-types/api';
 
 /**
  * Represents a single address input record for creation or update.
@@ -119,3 +127,109 @@ export type CreateAddressApiResponse =
  * - `message`: Optional message from the API.
  */
 export type AddressCreationState = MutationState<AddressResponse[]>;
+
+/**
+ * Filters that can be applied when querying the address list from the API.
+ *
+ * Combines pagination, sorting, date range filtering, and created/updated by user filtering.
+ * Useful for advanced search forms, admin dashboards, and API query params.
+ */
+export interface AddressFilters
+  extends PaginationParams,
+    SortConfig,
+    CreatedUpdatedDateFilter,
+    CreatedUpdatedByFilter {
+  /** Filter by country */
+  country?: string;
+  
+  /** Filter by city */
+  city?: string;
+  
+  /** Filter by region */
+  region?: string;
+  
+  /** Filter by associated customer ID (UUID v4) */
+  customerId?: string;
+  
+  /** Search keyword (applies to label, recipient name, email, phone, city) */
+  keyword?: string;
+}
+
+/**
+ * Represents a single address item as returned in a paginated API response.
+ * Contains both address details and associated customer metadata.
+ */
+export interface AddressListItem {
+  /** Unique identifier for the address */
+  id: string;
+  
+  /** Associated customer ID */
+  customerId: string;
+  
+  /** Customer's display name */
+  customerName: string;
+  
+  /** Customer's email address */
+  customerEmail: string;
+  
+  /** Label for the address (e.g. "Home", "Office") */
+  label: string;
+  
+  /** Name of the recipient for this address */
+  recipientName: string;
+  
+  /** Recipient's phone number */
+  phone: string;
+  
+  /** Recipient's email address */
+  email: string;
+  
+  /** Structured address details */
+  address: {
+    /** First line of the address (e.g. street, building) */
+    line1: string;
+    
+    /** City name */
+    city: string;
+    
+    /** State or province */
+    state: string;
+    
+    /** Postal or ZIP code */
+    postalCode: string;
+    
+    /** Country */
+    country: string;
+    
+    /** Region (if applicable) */
+    region: string;
+  };
+  
+  /** Pre-formatted address string for display purposes */
+  displayAddress: string;
+  
+  /** ISO timestamp of when the address was created */
+  createdAt: string;
+  
+  /** User who created the address (display name or ID) */
+  createdBy: string;
+  
+  /** User who last updated the address (display name or ID) */
+  updatedBy: string;
+}
+
+/**
+ * API response type for a paginated address list request.
+ * Wraps the list of addresses along with pagination metadata.
+ */
+export type PaginatedAddressResponse = PaginatedResponse<AddressListItem>;
+
+/**
+ * Redux state type for paginated address data.
+ *
+ * Wraps {@link AddressListItem} with pagination, loading, and error tracking,
+ * based on the generic {@link ReduxPaginatedState} structure.
+ *
+ * Used in paginated address slices to manage address list views.
+ */
+export type PaginateAddressState = ReduxPaginatedState<AddressListItem>;
