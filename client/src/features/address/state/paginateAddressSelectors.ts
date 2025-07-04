@@ -4,22 +4,22 @@ import type { RootState } from '@store/store';
 /**
  * Base selector to access the paginate address slice state.
  */
-const selectPaginateAddressState = (state: RootState) => state.paginateAddress;
+const selectPaginateAddressState = (state: RootState) => state.paginatedAddress;
 
 /**
  * Selector to get the list of paginated address records.
  */
 export const selectPaginatedAddresses = createSelector(
   selectPaginateAddressState,
-  (state) => state.data
+  (state) => state?.data ?? []
 );
 
 /**
- * Selector to get the pagination metadata (e.g. page, limit, totalRecords, totalPages).
+ * Selector to get the pagination metadata (e.g., page, limit, totalRecords, totalPages).
  */
 export const selectPaginationMeta = createSelector(
   selectPaginateAddressState,
-  (state) => state.pagination
+  (state) => state?.pagination ?? null
 );
 
 /**
@@ -27,7 +27,7 @@ export const selectPaginationMeta = createSelector(
  */
 export const selectPaginateLoading = createSelector(
   selectPaginateAddressState,
-  (state) => state.loading
+  (state) => state?.loading ?? false
 );
 
 /**
@@ -35,5 +35,5 @@ export const selectPaginateLoading = createSelector(
  */
 export const selectPaginateError = createSelector(
   selectPaginateAddressState,
-  (state) => state.error
+  (state) => state?.error ?? null
 );
