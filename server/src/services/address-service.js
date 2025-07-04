@@ -3,10 +3,11 @@ const MAX_LIMITS = require('../utils/constants/general/max-limits');
 const { validateBulkInputSize } = require('../utils/bulk-input-validator');
 const AppError = require('../utils/AppError');
 const { generateAddressHash } = require('../utils/crypto-utils');
-const { insertAddressRecords, getEnrichedAddressesByIds } = require('../repositories/address-repository');
+const { insertAddressRecords, getEnrichedAddressesByIds, getPaginatedAddresses } = require('../repositories/address-repository');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
-const { transformEnrichedAddresses } = require('../transformers/address-transformer');
+const { transformEnrichedAddresses, transformPaginatedAddressResults } = require('../transformers/address-transformer');
 const { filterAddressForViewer } = require('../business/address-business');
+const { sanitizeSortBy } = require('../utils/sort-utils');
 
 /**
  * Creates bulk address records with hash generation and DB insertion.
@@ -72,6 +73,70 @@ const createAddressService = async (addresses, user, purpose = 'insert_response'
   });
 };
 
+/**
+ * Fetches paginated addresses with optional filtering, sorting, and logging.
+ *
+ * Applies sorting rules based on the address sort map,
+ * transforms raw DB rows into client-friendly format,
+ * and logs the operation for monitoring.
+ *
+ * @param {Object} options - Service options.
+ * @param {Object} [options.filters={}] - Filters to apply (e.g., city, country, customerId).
+ * @param {Object} [options.user] - The user performing the request (for logging).
+ * @param {number} [options.page=1] - Page number (1-based).
+ * @param {number} [options.limit=10] - Number of records per page.
+ * @param {string} [options.sortBy='created_at'] - Field to sort by (uses addressSortMap).
+ * @param {'ASC'|'DESC'} [options.sortOrder='DESC'] - Sort direction.
+ *
+ * @returns {Promise<Object>} Paginated result containing transformed address rows and pagination metadata.
+ *
+ * @throws {AppError} Throws a service error if fetching fails.
+ */
+const fetchPaginatedAddressesService = async ({
+                                                filters = {},
+                                                user,
+                                                page = 1,
+                                                limit = 10,
+                                                sortBy = 'created_at',
+                                                sortOrder = 'DESC',
+                                              }) => {
+  try {
+    // Sanitize sortBy based on addressSortMap (you should define this map)
+    const sortField = sanitizeSortBy(sortBy, 'addressSortMap');
+    
+    const rawResult = await getPaginatedAddresses({
+      filters,
+      page,
+      limit,
+      sortBy: sortField,
+      sortOrder,
+    });
+    
+    const result = transformPaginatedAddressResults(rawResult);
+    
+    logSystemInfo('Fetched paginated addresses', {
+      context: 'address-service/fetchPaginatedAddressesService',
+      userId: user?.id,
+      filters,
+      pagination: { page, limit },
+      sort: { sortBy: sortField, sortOrder },
+    });
+    
+    return result;
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch paginated addresses', {
+      context: 'address-service/fetchPaginatedAddressesService',
+      userId: user?.id,
+      filters,
+      pagination: { page, limit },
+      sort: { sortBy, sortOrder },
+    });
+    
+    throw AppError.serviceError('Failed to fetch address list.');
+  }
+};
+
 module.exports = {
-  createAddressService
+  createAddressService,
+  fetchPaginatedAddressesService,
 };

@@ -153,6 +153,24 @@ const SORTABLE_FIELDS = {
     c.created_at DESC
   `,
   },
+  addressSortMap: {
+    created_at: 'a.created_at',        // Standard default sort
+    updated_at: 'a.updated_at',        // For recently modified addresses
+    
+    city: 'a.city',
+    state: 'a.state',
+    postal_code: 'a.postal_code',
+    country: 'a.country',
+    region: 'a.region',
+    
+    label: 'a.label',                  // Often used for identifying purpose (e.g. "Shipping", "Billing")
+    recipient_name: 'a.full_name',     // Useful for sorting by recipient
+    email: 'a.email',                  // In the case of email-based workflows
+    phone: 'a.phone',                  // Rare, but could be useful
+    
+    customer_name: 'c.firstname',
+    customer_email: 'c.email',
+  },
 };
 
 module.exports = {

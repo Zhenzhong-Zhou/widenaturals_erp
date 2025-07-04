@@ -1,7 +1,8 @@
 const { validateBulkInsertRows } = require('../database/db-utils');
-const { bulkInsert, query } = require('../database/db');
-const { logSystemException } = require('../utils/system-logger');
+const { bulkInsert, query, paginateQuery } = require('../database/db');
+const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
+const { buildAddressFilter } = require('../utils/sql/build-address-filters');
 
 /**
  * Bulk inserts address records with conflict handling.
@@ -135,7 +136,6 @@ const getEnrichedAddressesByIds = async (ids, client) => {
       a.country,
       a.region,
       a.note,
-      a.address_hash,
       a.created_at,
       a.updated_at,
       cu.firstname AS created_by_firstname,
@@ -165,7 +165,102 @@ const getEnrichedAddressesByIds = async (ids, client) => {
   }
 };
 
+/**
+ * Fetches paginated addresses with optional filtering and sorting.
+ *
+ * Joins customer and user information for display purposes.
+ *
+ * @param {Object} options - Options for pagination, filtering, and sorting.
+ * @param {Object} [options.filters={}] - Filters to apply to the address query.
+ * @param {number} [options.page=1] - Page number (1-based).
+ * @param {number} [options.limit=10] - Number of records per page.
+ * @param {string} [options.sortBy='created_at'] - Field to sort by.
+ * @param {'ASC'|'DESC'} [options.sortOrder='DESC'] - Sort order.
+ *
+ * @returns {Promise<Object>} Paginated result with data and metadata (e.g. total records).
+ *
+ * @throws {AppError} When the query fails.
+ */
+const getPaginatedAddresses = async ({
+                                       filters = {},
+                                       page = 1,
+                                       limit = 10,
+                                       sortBy = 'created_at',
+                                       sortOrder = 'DESC',
+                                     }) => {
+  const { whereClause, params } = buildAddressFilter(filters);
+  
+  const tableName = 'addresses a';
+  const joins = [
+    'LEFT JOIN users u1 ON a.created_by = u1.id',
+    'LEFT JOIN users u2 ON a.updated_by = u2.id',
+    'LEFT JOIN customers c ON a.customer_id = c.id',
+  ];
+  
+  const baseQuery = `
+    SELECT
+      a.id,
+      a.customer_id,
+      a.label,
+      a.full_name AS recipient_name,
+      a.phone,
+      a.email,
+      a.address_line1,
+      a.address_line2,
+      a.city,
+      a.state,
+      a.postal_code,
+      a.country,
+      a.region,
+      a.note,
+      a.created_at,
+      a.updated_at,
+      u1.firstname AS created_by_firstname,
+      u1.lastname AS created_by_lastname,
+      u2.firstname AS updated_by_firstname,
+      u2.lastname AS updated_by_lastname,
+      c.firstname AS customer_firstname,
+      c.lastname AS customer_lastname,
+      c.email AS customer_email
+    FROM ${tableName}
+    ${joins.join('\n')}
+    WHERE ${whereClause}
+  `;
+  
+  try {
+    const result = await paginateQuery({
+      tableName,
+      joins,
+      whereClause,
+      queryText: baseQuery,
+      params,
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+    });
+    
+    logSystemInfo('Fetched paginated addresses', {
+      context: 'address-repository/fetchPaginatedAddresses',
+      filters,
+      pagination: { page, limit },
+      sorting: { sortBy, sortOrder },
+    });
+    
+    return result;
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch paginated addresses', {
+      context: 'address-repository/fetchPaginatedAddresses',
+      filters,
+      pagination: { page, limit },
+      sorting: { sortBy, sortOrder },
+    });
+    throw AppError.databaseError('Failed to fetch addresses.');
+  }
+};
+
 module.exports = {
   insertAddressRecords,
   getEnrichedAddressesByIds,
+  getPaginatedAddresses,
 };

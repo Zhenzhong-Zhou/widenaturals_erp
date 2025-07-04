@@ -53,10 +53,26 @@ const validateOrderNumber = Joi.string()
     'any.required': 'Order number is required.',
   });
 
+/**
+ * Reusable safe string validator
+ *
+ * Allows letters, numbers, spaces, hyphens. Use for fields like country, city, etc.
+ *
+ * @param {string} label - The name of the field for error messages.
+ * @param {number} max - Max length of the string (default 100).
+ * @returns {Joi.StringSchema}
+ */
+const safeString = (label, max = 100) =>
+  Joi.string()
+    .max(max)
+    .pattern(/^[\w\s\-]+$/)
+    .message(`${label} contains invalid characters`);
+
 module.exports = {
   validateEmail,
   validateUUID,
   validateString,
   validatePhoneNumber,
   validateOrderNumber,
+  safeString,
 };
