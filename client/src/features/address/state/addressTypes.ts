@@ -129,30 +129,39 @@ export type CreateAddressApiResponse =
 export type AddressCreationState = MutationState<AddressResponse[]>;
 
 /**
- * Filters that can be applied when querying the address list from the API.
+ * Filter conditions for querying address records.
  *
- * Combines pagination, sorting, date range filtering, and created/updated by user filtering.
- * Useful for advanced search forms, admin dashboards, and API query params.
+ * Includes standard audit fields (created/updated dates and user IDs),
+ * along with address-specific fields like country, city, region, customer ID, and keyword search.
  */
-export interface AddressFilters
-  extends PaginationParams,
-    SortConfig,
-    CreatedUpdatedDateFilter,
+export interface AddressFilterConditions
+  extends CreatedUpdatedDateFilter,
     CreatedUpdatedByFilter {
-  /** Filter by country */
+  /** Filter by country code or name */
   country?: string;
   
-  /** Filter by city */
+  /** Filter by city name */
   city?: string;
   
-  /** Filter by region */
+  /** Filter by region or province name */
   region?: string;
   
   /** Filter by associated customer ID (UUID v4) */
   customerId?: string;
   
-  /** Search keyword (applies to label, recipient name, email, phone, city) */
+  /** Keyword search across label, recipient name, email, phone, city */
   keyword?: string;
+}
+
+/**
+ * Query parameters for paginated address API requests.
+ *
+ * Combines pagination, sorting, and filter conditions.
+ * Intended for constructing API calls that list addresses with flexible criteria.
+ */
+export interface AddressQueryParams extends PaginationParams, SortConfig {
+  /** Optional filter conditions to apply to the address query */
+  filters?: AddressFilterConditions;
 }
 
 /**

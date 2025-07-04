@@ -1,6 +1,6 @@
 import type {
-  AddressFilters,
   AddressInputArray,
+  AddressQueryParams,
   CreateAddressApiResponse,
   PaginatedAddressResponse,
 } from '@features/address/state/addressTypes';
@@ -34,12 +34,13 @@ export const createAddresses = async (
 };
 
 /**
- * Fetch paginated address records from the API using optional filters.
+ * Fetch paginated address records from the API using optional query parameters.
  *
- * Makes a GET request to the `ALL_RECORDS` address endpoint with query parameters.
+ * Makes a GET request to the `ALL_RECORDS` address endpoint with pagination,
+ * sorting, and filtering options.
  * Intended for use in domain services or UI layers where address listings are displayed.
  *
- * @param filters Optional filters to apply to the query (e.g., page, limit, keyword).
+ * @param queryParams Optional query parameters including pagination, sort, and filters.
  *
  * @returns {Promise<PaginatedAddressResponse>}
  * A promise that resolves to the paginated list of addresses along with pagination metadata.
@@ -49,16 +50,16 @@ export const createAddresses = async (
  * (e.g., UI notifications, logging, or error boundaries).
  */
 const fetchPaginatedAddresses = async (
-  filters?: AddressFilters
+  queryParams?: AddressQueryParams
 ): Promise<PaginatedAddressResponse> => {
   const url = API_ENDPOINTS.ADDRESSES.ALL_RECORDS;
   
   try {
     return await getRequest<PaginatedAddressResponse>(url, {
-      params: filters,
+      params: queryParams,
     });
   } catch (error) {
-    console.error('[fetchPaginatedAddresses] Failed to fetch addresses:', { filters, error });
+    console.error('[fetchPaginatedAddresses] Failed to fetch addresses:', { queryParams, error });
     throw error;
   }
 };

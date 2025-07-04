@@ -1,5 +1,10 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import type { AddressFilters, AddressInputArray, CreateAddressApiResponse, PaginatedAddressResponse } from './addressTypes';
+import type {
+  AddressInputArray,
+  AddressQueryParams,
+  CreateAddressApiResponse,
+  PaginatedAddressResponse
+} from './addressTypes';
 import { addressService } from '@services/addressService.ts';
 
 /**
@@ -34,7 +39,7 @@ export const createAddressesThunk = createAsyncThunk<
 );
 
 /**
- * Redux thunk to fetch a paginated list of addresses from the API using filters.
+ * Redux thunk to fetch a paginated list of addresses from the API using query parameters.
  *
  * Dispatches pending, fulfilled, and rejected actions automatically.
  * Intended for use in address list views where pagination, search, or filtering is needed.
@@ -47,21 +52,21 @@ export const createAddressesThunk = createAsyncThunk<
  *
  * Action type prefix: `addresses/fetchPaginated`
  *
- * @param filters Optional address filters for pagination, search, etc.
+ * @param queryParams Optional query parameters including filters, pagination, and sort options.
  *
  * @returns {Promise<PaginatedAddressResponse>} The resolved API data or rejected error message.
  */
 export const fetchPaginatedAddressesThunk = createAsyncThunk<
-  PaginatedAddressResponse,      // Return type on success
-  AddressFilters | undefined,    // Argument type (filters)
-  { rejectValue: string }        // Type of the rejected value
+  PaginatedAddressResponse,           // Return type on success
+  AddressQueryParams | undefined,     // Argument type (query parameters)
+  { rejectValue: string }             // Type of the rejected value
 >(
   'addresses/fetchPaginated',
-  async (filters, { rejectWithValue }) => {
+  async (queryParams, { rejectWithValue }) => {
     try {
-      return await addressService.fetchPaginatedAddresses(filters);
+      return await addressService.fetchPaginatedAddresses(queryParams);
     } catch (error: any) {
-      console.error('[fetchPaginatedAddressesThunk] Error:', { filters, error });
+      console.error('[fetchPaginatedAddressesThunk] Error:', { queryParams, error });
       return rejectWithValue(error.message || 'Failed to fetch addresses');
     }
   }

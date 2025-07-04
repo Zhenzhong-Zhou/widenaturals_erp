@@ -3,6 +3,23 @@ const { logInfo } = require('../utils/logger-helper');
 const { createAddressService, fetchPaginatedAddressesService } = require('../services/address-service');
 const { normalizePaginationParams } = require('../utils/request-utils');
 
+/**
+ * Controller for creating one or more address records.
+ *
+ * Expects an array of address objects in the request body.
+ * Logs the creation request with contextual metadata (record count, requester, trace ID).
+ * Delegates to the service layer for actual creation.
+ *
+ * On success:
+ * - Responds with 201 Created status and a success message.
+ * - Returns created address data (single object or array depending on input size).
+ *
+ * @param req Express request containing the address data and authenticated user.
+ * @param res Express response that returns the creation result.
+ *
+ * @returns {Promise<void>}
+ * Sends the HTTP response with created data or lets wrapAsync handle errors.
+ */
 const createAddressController = wrapAsync(async (req, res) => {
   const addresses = req.body;
   const user = req.user;
