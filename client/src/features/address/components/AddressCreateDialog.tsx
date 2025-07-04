@@ -12,8 +12,8 @@ import BulkAddressForm from '@features/address/components/BulkAddressForm';
 interface AddressCreateDialogProps {
   open: boolean;
   onClose: () => void;
-  customerNames: string[];
-  customerIds: string[];
+  customerNames?: string[];
+  customerIds?: string[];
 }
 
 const AddressCreateDialog = ({ open, onClose, customerNames, customerIds }: AddressCreateDialogProps) => {
@@ -46,24 +46,37 @@ const AddressCreateDialog = ({ open, onClose, customerNames, customerIds }: Addr
     async (data: any) => {
       const dataArray = mode === 'single' ? [data] : data;
       
-      if (customerIds.length !== dataArray.length && customerIds.length !== 1) {
-        throw new Error('Customer IDs and address data mismatch. Ensure they align.');
+      // Validate customerIds if provided
+      if (customerIds) {
+        if (
+          customerIds.length !== dataArray.length &&
+          customerIds.length !== 1
+        ) {
+          throw new Error(
+            'Customer IDs and address data mismatch. Ensure they align.'
+          );
+        }
       }
       
-      // Remove `id` field if present
-      const payload = dataArray.map((item: Record<string, any>, idx: number) => {
-        const { id, ...rest } = item;
-        return {
-          ...rest,
-          customer_id: customerIds.length === 1
-            ? customerIds[0] // Single customer
-            : customerIds[idx] // Bulk, align by index
-        };
-      });
+      const payload = dataArray.map(
+        (item: Record<string, any>, idx: number) => {
+          const { id, ...rest } = item;
+          return {
+            ...rest,
+            // Add customer_id if provided, otherwise omit
+            ...(customerIds && {
+              customer_id:
+                customerIds.length === 1
+                  ? customerIds[0]
+                  : customerIds[idx],
+            }),
+          };
+        }
+      );
       
       await createAddresses(payload);
     },
-    [mode, createAddresses]
+    [mode, createAddresses, customerIds]
   );
   
   return (

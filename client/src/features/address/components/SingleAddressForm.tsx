@@ -7,7 +7,7 @@ import CustomTypography from '@components/common/CustomTypography.tsx';
 interface SingleAddressFormProps {
   loading?: boolean;
   onSubmit: (data: Record<string, any>) => void | Promise<void>;
-  customerNames: string[];
+  customerNames?: string[];
 }
 
 const addressFormFields: FieldConfig[] = [
@@ -26,9 +26,12 @@ const addressFormFields: FieldConfig[] = [
 ];
 
 const SingleAddressForm: FC<SingleAddressFormProps> = ({ loading, onSubmit, customerNames }) => {
-  const displayName = customerNames.length === 1
-    ? customerNames[0]
-    : customerNames.join(', '); // fallback if an array has more
+  const displayName =
+    customerNames?.length === 1
+      ? customerNames[0]
+      : customerNames?.length
+        ? customerNames.join(', ')
+        : 'N/A';
   
   return (
     <>

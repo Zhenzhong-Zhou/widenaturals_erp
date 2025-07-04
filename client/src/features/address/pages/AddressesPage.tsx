@@ -16,6 +16,7 @@ import type { AddressFilterConditions, AddressSortField } from '../state';
 import { useDialogFocusHandlers } from '@utils/hooks/useDialogFocusHandlers';
 import { usePaginationHandlers } from '@utils/hooks/usePaginationHandlers';
 import type { SortOrder } from '@shared-types/api';
+import AddressCreateDialog from '../components/AddressCreateDialog';
 
 const AddressesPage: FC = () => {
   const createButtonRef = useRef<HTMLButtonElement>(null);
@@ -87,7 +88,10 @@ const AddressesPage: FC = () => {
         {/* Filters & sort controls can go here */}
       </Card>
       
-      {/*<AddressCreateDialog open={dialogOpen} onClose={handleCloseDialog} onCreated={handleRefresh} />*/}
+      <AddressCreateDialog
+        open={dialogOpen}
+        onClose={handleCloseDialog}
+      />
       
       <Box>
         {addressLoading ? (
