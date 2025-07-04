@@ -225,8 +225,11 @@ export interface AddressListItem {
   
   /** Structured address details */
   address: {
-    /** First line of the address (e.g. street, building) */
+    /** First line of the address (e.g., street, building) */
     line1: string;
+    
+    /** Second line of the address (e.g., unit) */
+    line2: string;
     
     /** City name */
     city: string;

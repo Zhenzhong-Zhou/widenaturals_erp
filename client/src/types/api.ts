@@ -125,11 +125,23 @@ export interface AsyncState<T> {
 }
 
 /**
+ * Represents the sort order direction for query or UI sorting logic.
+ *
+ * - 'ASC': Ascending order (e.g., A → Z, 0 → 9).
+ * - 'DESC': Descending order (e.g., Z → A, 9 → 0).
+ * - '': No sort applied (or default to backend sorting).
+ */
+export type SortOrder = 'ASC' | 'DESC' | '';
+
+
+/**
  * Represents sorting options for paginated data queries.
- * This interface allows the client to specify which field to sort by,
+ *
+ * Allows the client to specify which field to sort by,
  * and in which direction (ascending or descending).
  *
- * It Can be combined with other query parameter types like pagination or filters.
+ * It Can be combined with other query types like pagination or filters
+ * to build flexible API requests.
  *
  * Example usage:
  * {
@@ -138,11 +150,19 @@ export interface AsyncState<T> {
  * }
  */
 export interface SortConfig {
-  /** The field name to sort by (must align with backend-supported fields). */
+  /**
+   * The field name to sort by (must align with backend-supported fields).
+   * Example: 'createdAt', 'customerName'
+   */
   sortBy?: string;
-
-  /** Sort direction: 'ASC' for ascending, 'DESC' for descending. Defaults to 'ASC' if not specified. */
-  sortOrder?: 'ASC' | 'DESC' | '';
+  
+  /**
+   * Sort direction.
+   * - 'ASC' for ascending (A → Z / 0 → 9)
+   * - 'DESC' for descending (Z → A / 9 → 0)
+   * - '' if no specific sort order
+   */
+  sortOrder?: SortOrder;
 }
 
 /**

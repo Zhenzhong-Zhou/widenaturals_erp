@@ -211,6 +211,11 @@ export const routes = [
     },
   },
   {
+    path: '/addresses',
+    component: lazy(() => import('@features/address/pages/AddressesPage')),
+    meta: { requiresAuth: true, title: 'Addresses', showInSidebar: true },
+  },
+  {
     path: '/order_types',
     component: lazy(() => import('@features/orderType/pages/OrderTypesPage')),
     meta: { requiresAuth: true, title: 'Order Types', showInSidebar: true },
