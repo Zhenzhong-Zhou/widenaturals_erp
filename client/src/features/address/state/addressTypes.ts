@@ -154,12 +154,42 @@ export interface AddressFilterConditions
 }
 
 /**
+ * Valid sort field names for addresses (used in frontend and API query parameters).
+ */
+export type AddressSortField =
+  | 'createdAt'
+  | 'updatedAt'
+  | 'city'
+  | 'state'
+  | 'postalCode'
+  | 'country'
+  | 'region'
+  | 'label'
+  | 'recipientName'
+  | 'email'
+  | 'phone'
+  | 'customerName'
+  | 'customerEmail';
+
+/**
+ * Sort configuration specific to address queries.
+ *
+ * Restricts `sortBy` to valid `AddressSortField` values to ensure type safety.
+ * Includes standard sort order options.
+ */
+export interface AddressSortConfig extends SortConfig {
+  /** Field to sort by (must be a valid AddressSortField) */
+  sortBy?: AddressSortField;
+}
+
+/**
  * Query parameters for paginated address API requests.
  *
- * Combines pagination, sorting, and filter conditions.
- * Intended for constructing API calls that list addresses with flexible criteria.
+ * Combines pagination (page, limit), address-specific sorting,
+ * and optional filter conditions for flexible querying.
+ * Intended for constructing API calls that list addresses with filtering, sorting, and pagination.
  */
-export interface AddressQueryParams extends PaginationParams, SortConfig {
+export interface AddressQueryParams extends PaginationParams, AddressSortConfig {
   /** Optional filter conditions to apply to the address query */
   filters?: AddressFilterConditions;
 }
