@@ -1,6 +1,6 @@
 const { query } = require('../database/db');
 const AppError = require('../utils/AppError');
-const { buildLotAdjustmentWhereClause } = require('../utils/sql/lot-adjustment-type-filters');
+const { buildLotAdjustmentWhereClause } = require('../utils/sql/build-lot-adjustment-type-filters');
 const { logSystemException } = require('../utils/system-logger');
 
 /**
