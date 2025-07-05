@@ -1,4 +1,4 @@
-const { bulkInsert, query, paginateQuery } = require('../database/db');
+const { bulkInsert, query, paginateQuery, paginateQueryByOffset } = require('../database/db');
 const AppError = require('../utils/AppError');
 const {
   logSystemException,
@@ -230,117 +230,92 @@ const getPaginatedCustomers = async ({
 };
 
 /**
- * Repository function to check if a customer exists by email or phone number.
- * @param {string} email - Customer email.
- * @param {string} phone_number - Customer phone number.
- * @param {object} client - Optional database transaction client.
- * @returns {Promise<boolean>} - True if the customer exists, otherwise false.
+ * Fetches customer records for lookup dropdowns or autocomplete components.
+ *
+ * This function retrieves a lightweight, paginated list of customers,
+ * applying optional keyword search and status filtering. Results are sorted
+ * by firstname, lastname, and creation date for consistent dropdown ordering.
+ *
+ * It is optimized for lookup use cases where small, fast result sets are required.
+ *
+ * @param {Object} options - Options for the lookup query.
+ * @param {string} [options.keyword=''] - Partial search term for firstname, lastname, email, or phone number.
+ * @param {string} [options.statusId] - Optional status ID to filter customers.
+ * @param {number} [options.limit=50] - Number of records to return (default: 50).
+ * @param {number} [options.offset=0] - Number of records to skip for pagination (default: 0).
+ * @param {boolean} [options.overrideDefaultStatus=false] - If true, disables automatic status filtering (e.g. show all statuses).
+ *
+ * @returns {Promise<{
+ *   data: Array<{ id: string, firstname: string, lastname: string, email: string }>,
+ *   pagination: {
+ *     offset: number,
+ *     limit: number,
+ *     totalRecords: number,
+ *     hasMore: boolean
+ *   }
+ * }>} Paginated list of customers and pagination metadata.
+ *
+ * @throws {AppError} Throws a database error if the query fails.
  */
-const checkCustomerExistsByEmailOrPhone = async (
-  email,
-  phone_number,
-  client = null
-) => {
-  if (!email && !phone_number) return false;
-
+const getCustomerLookup = async ({
+                                   keyword = '',
+                                   statusId,
+                                   limit = 50,
+                                   offset = 0,
+                                   overrideDefaultStatus = false,
+                                 }) => {
+  const tableName = 'customers c';
+  
+  // Build dynamic WHERE clause + params
+  const { whereClause, params } = buildCustomerFilter(
+    statusId,
+    { keyword },
+    { overrideDefaultStatus }
+  );
+  
+  // Base query text
+  const queryText = `
+    SELECT
+      c.id,
+      c.firstname,
+      c.lastname,
+      c.email
+    FROM ${tableName}
+    WHERE ${whereClause}
+  `;
+  
   try {
-    const sql = `
-      SELECT EXISTS (
-        SELECT 1 FROM customers WHERE email = $1 OR phone_number = $2
-      ) AS exists;
-    `;
-    const { rows } = await query(
-      sql,
-      [email || null, phone_number || null],
-      client
-    );
-    return rows[0]?.exists || false;
+    // Execute with pagination and sorting
+    const result = await paginateQueryByOffset({
+      tableName,
+      whereClause,
+      queryText,
+      params,
+      offset,
+      limit,
+      sortBy: 'c.firstname',  // primary sort field
+      sortOrder: 'ASC',
+      additionalSort: 'c.lastname ASC, c.created_at DESC', // optional extra sorts
+    });
+    
+    logSystemInfo('Fetched customer lookup data', {
+      context: 'customer-repository/getCustomerLookup',
+      keyword,
+      statusId,
+      offset,
+      limit,
+    });
+    
+    return result;
   } catch (error) {
-    logSystemException(error,'Error checking customer existence by email or phone:');
-    throw AppError.databaseError(
-      'Failed to check customer existence by email or phone'
-    );
-  }
-};
-
-/**
- * Fetches customer data for a dropdown selection, including optional shipping info.
- *
- * This function retrieves customers from the database with a limit on the number of results.
- * If a search term is provided, it filters customers by their firstname, lastname, email, or phone number.
- * Returns customer id, label (name + contact), and shipping address fields for autofilling.
- *
- * @param {string} [search=""] - The search term to filter customers (matches firstname, lastname, email, or phone_number).
- * @param {number} [limit=100] - The maximum number of customers to return.
- * @returns {Promise<Array<{
- *   id: string,
- *   fullname: string | null,
- *   label: string,
- *   phone: string | null,
- *   email: string | null,
- *   address: string | null,
- *   address_line2: string | null,
- *   city: string | null,
- *   state: string | null,
- *   postal_code: string | null,
- *   country: string | null,
- *   region: string | null
- * }>>} - A promise resolving to customer dropdown entries with shipping details.
- *
- * @throws {Error} - Throws an error if the database query fails.
- *
- * @example
- * // Fetch default customer list
- * const customers = await getCustomersForDropdown();
- *
- * @example
- * // Fetch with search filter
- * const customers = await getCustomersForDropdown("Alice");
- */
-const getCustomersForDropdown = async (search = '', limit = 100) => {
-  try {
-    let whereClause = '';
-    let params = [];
-
-    if (search) {
-      whereClause = `WHERE LOWER(c.firstname) ILIKE LOWER($1)
-                     OR LOWER(c.lastname) ILIKE LOWER($1)
-                     OR LOWER(c.email) ILIKE LOWER($1)
-                     OR c.phone_number ILIKE $1`;
-      params.push(`%${search}%`);
-    }
-
-    // Ensure proper query structure (avoid unnecessary WHERE when search is empty)
-    // Use `COALESCE` to prioritize email, fallback to phone if email is null
-    const sql = `
-      SELECT
-        c.id,
-        c.firstname || ' ' || c.lastname ||
-        CASE
-          WHEN c.email IS NOT NULL THEN ' - ' || c.email
-          WHEN c.phone_number IS NOT NULL THEN ' - ' || c.phone_number
-          ELSE ''
-        END AS label,
-        c.address_line1,
-        c.address_line2,
-        c.city,
-        c.state,
-        c.postal_code,
-        c.country,
-        c.region
-      FROM customers c
-      ${whereClause}
-      ORDER BY c.created_at DESC
-      LIMIT $${params.length + 1};
-    `;
-
-    params.push(limit); // Ensure proper parameter binding
-
-    const result = await query(sql, params);
-    return result.rows;
-  } catch (error) {
-    logSystemException(error,'Error fetching customers for dropdown:');
-    throw AppError.databaseError('Failed to fetch customer dropdown data.');
+    logSystemException(error, 'Failed to fetch customer lookup data', {
+      context: 'customer-repository/getCustomerLookup',
+      keyword,
+      statusId,
+      offset,
+      limit,
+    });
+    throw AppError.databaseError('Failed to fetch customer lookup data.');
   }
 };
 
@@ -348,6 +323,5 @@ module.exports = {
   insertCustomerRecords,
   getEnrichedCustomersByIds,
   getPaginatedCustomers,
-  checkCustomerExistsByEmailOrPhone,
-  getCustomersForDropdown,
+  getCustomerLookup,
 };

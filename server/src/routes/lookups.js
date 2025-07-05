@@ -1,10 +1,14 @@
 const express = require('express');
 const {
   getBatchRegistryLookupController,
-  getWarehouseLookupController, getLotAdjustmentLookupController,
+  getWarehouseLookupController,
+  getLotAdjustmentLookupController,
+  fetchCustomerLookupController,
 } = require('../controllers/lookup-controller');
 const authorize = require('../middlewares/authorize');
 const { sanitizeInput } = require('../middlewares/sanitize');
+const validate = require('../middlewares/validate');
+const { customerLookupQuerySchema } = require('../validators/lookup-validators');
 
 const router = express.Router();
 
@@ -99,6 +103,43 @@ router.get(
   ]),
   sanitizeInput,
   getLotAdjustmentLookupController
+);
+
+/**
+ * GET /lookup/customer-addresses
+ *
+ * Endpoint to retrieve paginated customer lookup data for dropdown/autocomplete.
+ *
+ * Query parameters:
+ * - keyword: Optional string for partial search (default: '').
+ * - limit: Optional integer for max records to return (default: 50, max: 100).
+ * - offset: Optional integer for pagination offset (default: 0).
+ *
+ * Authorization: Requires 'view_customer' permission.
+ *
+ * Middlewares:
+ * - authorize: Checks user permission.
+ * - sanitizeInput: Sanitizes incoming query params.
+ * - validate: Validates query params against customerLookupQuerySchema.
+ *
+ * Response:
+ * 200 OK with JSON { success, message, data (lookup result + pagination info) }
+ */
+router.get(
+  '/lookup/customers',
+  authorize(['view_customer']),
+  sanitizeInput,
+  validate(
+    customerLookupQuerySchema,
+    'query',
+    {
+      abortEarly: false,
+      stripUnknown: true,
+      convert: true,
+    },
+    'Invalid query parameters.'
+  ),
+  fetchCustomerLookupController
 );
 
 module.exports = router;

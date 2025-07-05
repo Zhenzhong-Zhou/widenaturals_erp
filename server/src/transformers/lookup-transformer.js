@@ -1,6 +1,7 @@
 const { getProductDisplayName } = require('../utils/display-name-utils');
 const { cleanObject } = require('../utils/object-utils');
 const { transformPaginatedResult } = require('../utils/transformer-utils');
+const { getFullName } = require('../utils/name-utils');
 
 /**
  * Transforms an array of raw batch registry rows into lookup-friendly shapes.
@@ -39,7 +40,7 @@ const transformBatchRegistryLookupItem = (row) => {
  * @param {Object} paginatedResult - The raw paginated query result.
  * @returns {Object} Transformed response including items, limit, offset, and hasMore flag.
  */
-const transformPaginatedLookupResultList = (paginatedResult) =>
+const transformBatchRegistryPaginatedLookupResult = (paginatedResult) =>
   transformPaginatedResult(
     paginatedResult,
     transformBatchRegistryLookupItem,
@@ -66,15 +67,19 @@ const transformWarehouseLookupRows = (rows) => {
 };
 
 /**
- * @function transformLotAdjustmentLookupOptions
- * @description Transforms raw lot adjustment types from DB into lookup-friendly format.
+ * Transforms a result set of lot adjustment type records into lookup-friendly options,
+ * applying formatting for value, label, and associated action type.
  *
- * @param {Array} rows - Raw query result rows from lot_adjustment_types join.
+ * @param {Array<Object>} rows - Raw query result rows from lot_adjustment_types join.
  * @returns {Array<{ value: string, label: string, actionTypeId: string }>}
+ * Transformed options for use in dropdowns or autocomplete components.
  *
  * @example
  * const transformed = transformLotAdjustmentLookupOptions(rows);
- * // Result: [{ value: '581f...', label: 'adjustment', actionTypeId: 'a7c1...' }, ...]
+ * // [
+ * // { value: '581f...', label: 'Adjustment Type A', actionTypeId: 'a7c1...' },
+ * // { value: '1234...', label: 'Adjustment Type B', actionTypeId: 'b2d4...' }
+ * // ]
  */
 const transformLotAdjustmentLookupOptions = (rows) => {
   if (!Array.isArray(rows)) return [];
@@ -86,8 +91,38 @@ const transformLotAdjustmentLookupOptions = (rows) => {
   }));
 };
 
+/**
+ * Transforms raw customer records into lookup-friendly format.
+ *
+ * @param {Array<{ id: string, firstname: string, lastname: string, email: string }>} rows
+ * @returns {Array<{ id: string, label: string }>}
+ */
+const transformCustomerLookup = (rows) => {
+  if (!Array.isArray(rows)) return [];
+  
+  return rows.map((c) => ({
+    id: c.id,
+    label: `${getFullName(c.firstname, c.lastname)} (${c.email || 'no-email'})`,
+  }));
+};
+
+/**
+ * Transforms a paginated result of customer records for lookup usage,
+ * applying a row-level transformer and formatting the response for load-more support.
+ *
+ * @param {Object} paginatedResult - The raw paginated query result.
+ * @returns {Object} Transformed response including items, limit, offset, and hasMore flag.
+ */
+const transformCustomerPaginatedLookupResult = (paginatedResult) =>
+  transformPaginatedResult(
+    paginatedResult,
+    transformCustomerLookup,
+    { includeLoadMore: true }
+  );
+
 module.exports = {
-  transformPaginatedLookupResultList,
+  transformBatchRegistryPaginatedLookupResult,
   transformWarehouseLookupRows,
-  transformLotAdjustmentLookupOptions
+  transformLotAdjustmentLookupOptions,
+  transformCustomerPaginatedLookupResult,
 };

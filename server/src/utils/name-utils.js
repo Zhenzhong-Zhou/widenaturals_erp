@@ -9,11 +9,11 @@ const { format } = require('date-fns-tz');
  * @returns {string} Full name string (e.g. "Jane Doe")
  */
 const getFullName = (first, last) => {
-  const full = [first, last]
+  const parts = [first, last]
     .map((s) => (s ? String(s).trim() : ''))
-    .filter(Boolean)
-    .join(' ');
-  return full || '—';
+    .filter(Boolean);
+    
+  return parts.length > 0 ? parts.join(' ') : '—';
 };
 
 /**
