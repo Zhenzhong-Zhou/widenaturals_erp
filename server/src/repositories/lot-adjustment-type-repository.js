@@ -15,13 +15,13 @@ const { logSystemException } = require('../utils/system-logger');
  *
  * @example
  * // Default (excludes internal types)
- * const types = await getLotAdjustmentTypeLookupOptions();
+ * const types = await getLotAdjustmentTypeLookup();
  *
  * @example
  * // Include internal/system adjustment types
- * const types = await getLotAdjustmentTypeLookupOptions({ excludeInternal: false });
+ * const types = await getLotAdjustmentTypeLookup({ excludeInternal: false });
  */
-const getLotAdjustmentTypeLookupOptions = async (filters = {}) => {
+const getLotAdjustmentTypeLookup = async (filters = {}) => {
   const { whereClause, params } = buildLotAdjustmentWhereClause(filters);
     
     const sql = `
@@ -39,17 +39,17 @@ const getLotAdjustmentTypeLookupOptions = async (filters = {}) => {
      return result.rows;
    } catch (error) {
       logSystemException(error, 'Failed to fetch lot adjustment types for lookup', {
-        context: 'lot-adjustment-type-repository/getLotAdjustmentTypeLookupOptions',
+        context: 'lot-adjustment-type-repository/getLotAdjustmentTypeLookup',
         filters,
         params,
       });
       
       throw AppError.databaseError('Unable to load lot adjustment lookup options', {
-        stage: 'lot-adjustment-type-repository/getLotAdjustmentTypeLookupOptions',
+        stage: 'lot-adjustment-type-repository/getLotAdjustmentTypeLookup',
       });
     }
 };
 
 module.exports = {
-  getLotAdjustmentTypeLookupOptions,
+  getLotAdjustmentTypeLookup,
 };
