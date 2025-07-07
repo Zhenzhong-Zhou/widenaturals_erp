@@ -31,6 +31,8 @@ const LocationInventoryTable: FC<LocationInventoryTableProps> = (props) => {
         expirySeverity: item.status?.expirySeverity ?? '-',
         originalRecord: item,
       })}
+      showCheckboxes={false}
+      showActions={false}
     />
   );
 };

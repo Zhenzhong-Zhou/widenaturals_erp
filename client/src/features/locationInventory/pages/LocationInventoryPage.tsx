@@ -15,6 +15,8 @@ const LocationInventoryPage = () => {
     <BaseInventoryPage
       title="All Location Inventory"
       Icon={<StoreIcon fontSize="medium" color="primary" />}
+      showAddButton={false}
+      showAdjustButton={false}
       useInventoryHook={useLocationInventory}
       FilterPanel={LocationInventoryFilterPanel}
       TableComponent={LocationInventoryTable}

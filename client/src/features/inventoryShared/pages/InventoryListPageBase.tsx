@@ -31,6 +31,8 @@ import AdjustBulkInventoryDialog from '@features/warehouseInventory/components/A
 interface BaseInventoryPageProps<T> {
   title: string;
   Icon: ReactNode;
+  showAddButton?: boolean;     // default true
+  showAdjustButton?: boolean;  // default true
   useInventoryHook: () => {
     records: T[];
     loading: boolean;
@@ -59,6 +61,8 @@ interface BaseInventoryPageProps<T> {
 const BaseInventoryPage = <T extends InventoryRecord>({
   title,
   Icon,
+  showAddButton = true,
+  showAdjustButton = true,
   useInventoryHook,
   FilterPanel,
   TableComponent,
@@ -219,8 +223,10 @@ const BaseInventoryPage = <T extends InventoryRecord>({
         >
           {topToolbar && <Box>{topToolbar}</Box>}
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-            <CustomButton onClick={handleAddOpen}>Add Inventory</CustomButton>
-            {selectedRowIds.length > 0 && (
+            {showAddButton && (
+              <CustomButton onClick={handleAddOpen}>Add Inventory</CustomButton>
+            )}
+            {showAdjustButton && selectedRowIds.length > 0 && (
               <CustomButton variant="contained" onClick={handleBulkAdjust} size="small">
                 Adjust Selected ({selectedRowIds.length})
               </CustomButton>

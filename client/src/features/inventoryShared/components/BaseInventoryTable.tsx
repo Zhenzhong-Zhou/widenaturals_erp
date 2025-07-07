@@ -1,4 +1,4 @@
-import { type ReactNode, useCallback } from 'react';
+import { type ReactNode, useCallback, useMemo } from 'react';
 import IconButton from '@mui/material/IconButton';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
@@ -23,6 +23,8 @@ interface BaseInventoryTableProps<T> {
   totalPages: number;
   onPageChange: (newPage: number) => void;
   onRowsPerPageChange: (newRowsPerPage: number) => void;
+  showCheckboxes?: boolean;
+  showActions?: boolean;
   expandedRowId?: string | null;
   onExpandToggle?: (row: any) => void;
   isRowExpanded?: (row: any) => boolean;
@@ -44,6 +46,8 @@ const BaseInventoryTable = <T,>({
   totalPages,
   onPageChange,
   onRowsPerPageChange,
+  showCheckboxes = true,
+  showActions = true,
   expandedRowId,
   onExpandToggle,
   isRowExpanded,
@@ -59,75 +63,90 @@ const BaseInventoryTable = <T,>({
     groupKey === 'warehouse' ? 'warehouseQuantity' : 'locationQuantity';
   const quantityLabel =
     groupKey === 'warehouse' ? 'Warehouse QTY' : 'Location QTY';
-
+  
   const renderStockLevelCell = useCallback(
-    <T,>(row: FlatInventoryRowBase<T>) => (
+    (row: FlatInventoryRowBase<T>) => (
       <StockLevelChip
         stockLevel={row.stockLevel as StockLevelChipProps['stockLevel']}
       />
     ),
     []
   );
-
+  
   const renderExpirySeverityCell = useCallback(
-    <T,>(row: FlatInventoryRowBase<T>) => (
+    (row: FlatInventoryRowBase<T>) => (
       <ExpirySeverityChip
         severity={row.expirySeverity as ExpirySeverityChipProps['severity']}
       />
     ),
     []
   );
-
-  const columns: Column<FlatInventoryRowBase<T>>[] = [
-    { id: 'name', label: 'Name' },
-    { id: 'lotNumber', label: 'Lot #' },
-    { id: 'expiryDate', label: 'Expiry Date' },
-    { id: quantityId, label: quantityLabel },
-    { id: 'available', label: 'Available' },
-    { id: 'reserved', label: 'Reserved' },
-    { id: 'lastUpdate', label: 'Last Update' },
-    { id: 'status', label: 'Status' },
-    { id: 'statusDate', label: 'Status Date' },
-    {
-      id: 'stockLevel',
-      label: 'Stock Level',
-      renderCell: renderStockLevelCell,
-    },
-    {
-      id: 'expirySeverity',
-      label: 'Expiry Severity',
-      renderCell: renderExpirySeverityCell,
-    },
-    {
-      id: 'expand',
-      label: '',
-      align: 'center',
-      renderCell: (row) =>
-        row.isGroupHeader ? null : (
-          <IconButton onClick={() => onExpandToggle?.(row)}>
-            {isRowExpanded?.(row) ? (
-              <KeyboardArrowUpIcon />
-            ) : (
-              <KeyboardArrowDownIcon />
-            )}
-          </IconButton>
-        ),
-    },
-    {
-      id: 'actions',
-      label: 'Actions',
-      align: 'center',
-      renderCell: (row) =>
-        !row.isGroupHeader && onAdjustSingle && (
-          <Tooltip title="Adjust Quantity">
-            <IconButton onClick={() => onAdjustSingle(row)}>
-              <EditIcon />
+  
+  const columns: Column<FlatInventoryRowBase<T>>[] = useMemo(() => {
+    return [
+      { id: 'name', label: 'Name' },
+      { id: 'lotNumber', label: 'Lot #' },
+      { id: 'expiryDate', label: 'Expiry Date' },
+      { id: quantityId, label: quantityLabel },
+      { id: 'available', label: 'Available' },
+      { id: 'reserved', label: 'Reserved' },
+      { id: 'lastUpdate', label: 'Last Update' },
+      { id: 'status', label: 'Status' },
+      { id: 'statusDate', label: 'Status Date' },
+      {
+        id: 'stockLevel',
+        label: 'Stock Level',
+        renderCell: renderStockLevelCell,
+      },
+      {
+        id: 'expirySeverity',
+        label: 'Expiry Severity',
+        renderCell: renderExpirySeverityCell,
+      },
+      {
+        id: 'expand',
+        label: '',
+        align: 'center' as const,
+        renderCell: (row) =>
+          row.isGroupHeader ? null : (
+            <IconButton onClick={() => onExpandToggle?.(row)}>
+              {isRowExpanded?.(row) ? (
+                <KeyboardArrowUpIcon />
+              ) : (
+                <KeyboardArrowDownIcon />
+              )}
             </IconButton>
-          </Tooltip>
-        ),
-    },
-  ];
-
+          ),
+      },
+      ...(showActions
+        ? [
+          {
+            id: 'actions',
+            label: 'Actions',
+            align: 'center' as const,
+            renderCell: (row: FlatInventoryRowBase<T>) =>
+              !row.isGroupHeader && onAdjustSingle && (
+                <Tooltip title="Adjust Quantity">
+                  <IconButton onClick={() => onAdjustSingle(row)}>
+                    <EditIcon />
+                  </IconButton>
+                </Tooltip>
+              ),
+          },
+        ]
+        : []),
+    ];
+  }, [
+    quantityId,
+    quantityLabel,
+    renderStockLevelCell,
+    renderExpirySeverityCell,
+    onExpandToggle,
+    isRowExpanded,
+    showActions,
+    onAdjustSingle,
+  ]);
+  
   const flattenedWithHeaders: any[] = [];
 
   Object.entries(groupedData).forEach(([groupName, records]) => {
@@ -163,15 +182,19 @@ const BaseInventoryTable = <T,>({
       expandedRowId={expandedRowId}
       getRowId={(row) => row.id}
       selectedRowIds={selectedRowIds}
-      onSelectionChange={(ids: string[]) => {
-        if (onSelectionChange) {
-          const selectedRecords = selectableRows.filter((row) =>
-            ids.includes(row.id)
-          );
-          onSelectionChange(ids, selectedRecords);
-        }
-      }}
-      showCheckboxes={true}
+      onSelectionChange={
+        showCheckboxes
+          ? (ids: string[]) => {
+            if (onSelectionChange) {
+              const selectedRecords = selectableRows.filter((row) =>
+                ids.includes(row.id)
+              );
+              onSelectionChange(ids, selectedRecords);
+            }
+          }
+          : undefined
+      }
+      showCheckboxes={showCheckboxes}
     />
   );
 };
