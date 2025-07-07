@@ -92,19 +92,26 @@ const transformLotAdjustmentLookupOptions = (rows) => {
 };
 
 /**
- * Transforms raw customer records into lookup-friendly format.
+ * Transforms a single raw customer record into a lookup-friendly format.
  *
- * @param {Array<{ id: string, firstname: string, lastname: string, email: string }>} rows
- * @returns {Array<{ id: string, label: string }>}
+ * @param {{ id: string, firstname: string, lastname: string, email: string }} row
+ *   The raw customer record.
+ * @returns {{ id: string, label: string }}
+ *   The transformed lookup item with id and label.
+ *
+ * @example
+ * const result = transformCustomerLookup({
+ *   id: 'abc123',
+ *   firstname: 'John',
+ *   lastname: 'Doe',
+ *   email: 'john@example.com'
+ * });
+ * // result: { id: 'abc123', label: 'John Doe (john@example.com)' }
  */
-const transformCustomerLookup = (rows) => {
-  if (!Array.isArray(rows)) return [];
-  
-  return rows.map((c) => ({
-    id: c.id,
-    label: `${getFullName(c.firstname, c.lastname)} (${c.email || 'no-email'})`,
-  }));
-};
+const transformCustomerLookup = (row) => ({
+  id: row.id,
+  label: `${getFullName(row.firstname, row.lastname)} (${row.email || 'no-email'})`,
+});
 
 /**
  * Transforms a paginated result of customer records for lookup usage,

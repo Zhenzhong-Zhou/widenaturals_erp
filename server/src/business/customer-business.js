@@ -1,5 +1,4 @@
 const { getStatusIdByName } = require('../repositories/status-repository');
-const { validateCustomer } = require('../validators/customer-validator');
 const AppError = require('../utils/AppError');
 const {
   logSystemException,
@@ -90,18 +89,34 @@ const filterCustomerForViewer = (customer, user, purpose = 'detail_view') => {
 /**
  * Determines status and visibility flags for customer queries based on user permissions.
  *
- * @param {Object} user - Authenticated user object
- * @returns {{
- *   statusId?: string,
- *   overrideDefaultStatus: boolean,
- * }}
+ * This function checks whether the user has permissions to view all customers or only active customers,
+ * and builds query options accordingly. If the user has no applicable permissions,
+ * it will either fall back to active customers or throw a forbidden error (based on your implementation).
+ *
+ * @param {Object} user - Authenticated user object.
+ * @returns {Promise<{ statusId?: string, overrideDefaultStatus: boolean }>}
+ *   A promise resolving to query options:
+ *   - `statusId`: Status UUID to filter customers by, if applicable.
+ *   - `overrideDefaultStatus`: Whether to override the default status filter (for users with view_all permissions).
+ *
+ * @throws {AppError} If the user lacks permission to view any customers (if strict mode is enforced).
  */
-const resolveCustomerQueryOptions = (user) => {
-  const canViewAll = checkPermissions(user, 'view_all_customers');
+const resolveCustomerQueryOptions = async (user) => {
+  if (await checkPermissions(user, ['view_all_customers'])) {
+    return { statusId: undefined, overrideDefaultStatus: true };
+  }
   
+  if (await checkPermissions(user, ['view_active_customers'])) {
+    return {
+      statusId: getStatusId('customer_active'),
+      overrideDefaultStatus: false,
+    };
+  }
+  
+  // Default to active if no permission (legacy behavior)
   return {
-    statusId: canViewAll ? undefined : getStatusId('customer_active'),
-    overrideDefaultStatus: canViewAll,
+    statusId: getStatusId('customer_active'),
+    overrideDefaultStatus: false,
   };
 };
 

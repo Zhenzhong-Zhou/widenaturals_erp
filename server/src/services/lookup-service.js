@@ -8,14 +8,16 @@ const {
 const {
   transformBatchRegistryPaginatedLookupResult,
   transformWarehouseLookupRows,
-  transformLotAdjustmentLookupOptions, transformCustomerPaginatedLookupResult,
+  transformLotAdjustmentLookupOptions,
+  transformCustomerPaginatedLookupResult,
 } = require('../transformers/lookup-transformer');
 const {
   logSystemInfo,
   logSystemException
 } = require('../utils/system-logger');
-const { getLotAdjustmentTypeLookupOptions } = require('../repositories/lot-adjustment-type-repository');
+const { getLotAdjustmentTypeLookup } = require('../repositories/lot-adjustment-type-repository');
 const { getCustomerLookup } = require('../repositories/customer-repository');
+const { resolveCustomerQueryOptions } = require('../business/customer-business');
 
 /**
  * Service to fetch filtered and paginated batch registry records for lookup UI.
@@ -124,7 +126,7 @@ const fetchWarehouseLookupService = async (filters = {}) => {
  */
 const fetchLotAdjustmentLookupService = async (filters = {}) => {
   try {
-    const rows = await getLotAdjustmentTypeLookupOptions(filters);
+    const rows = await getLotAdjustmentTypeLookup(filters);
     return transformLotAdjustmentLookupOptions(rows);
   } catch (error) {
     logSystemException(error, 'Failed to fetch and transform lot adjustment types', {
@@ -137,50 +139,69 @@ const fetchLotAdjustmentLookupService = async (filters = {}) => {
 
 /**
  * Service to fetch filtered and paginated customer records for lookup UI,
- * using keyword search only.
+ * with keyword search and permission-based status filtering.
  *
  * This service provides customer lookup data for dropdowns, autocomplete,
- * or other selection components. It supports partial matching on customer fields
- * (e.g., name, email) with pagination.
+ * or other selection components. It supports:
+ * - Partial matching on customer fields (e.g., name, email, phone)
+ * - Pagination with limit and offset
+ * - Automatic application of user permission rules (e.g., all customers, active customers)
  *
  * @param {Object} options - Query options.
  * @param {string} [options.keyword=''] - Partial search term for lookup.
  * @param {number} [options.limit=50] - Number of records to fetch (default: 50).
  * @param {number} [options.offset=0] - Offset for pagination (default: 0).
- * @returns {Promise<Object>} Transformed lookup items with pagination metadata.
+ * @param {Object} user - Authenticated user object (for permission checks).
+ *
+ * @returns {Promise<Object>} Transformed lookup items with pagination metadata:
+ *   {
+ *     items: Array<{ id: string, label: string }>,
+ *     offset: number,
+ *     limit: number,
+ *     hasMore: boolean
+ *   }
+ *
+ * @throws {AppError} When permissions are not enough, or query fails.
  *
  * @example
- * const result = await fetchCustomerLookupService({ keyword: 'john', limit: 20 });
- * // result = { items: [...], offset: 0, limit: 20, hasMore: true, loadMore: true }
+ * const result = await fetchCustomerLookupService({ keyword: 'john', limit: 20 }, user);
+ * // result = { items: [...], offset: 0, limit: 20, hasMore: true }
  */
-const fetchCustomerLookupService = async ({
-                                                   keyword = '',
-                                                   limit = 50,
-                                                   offset = 0,
-                                                 }) => {
+const fetchCustomerLookupService = async (
+  {
+    keyword = '',
+    limit = 50,
+    offset = 0,
+  },
+  user
+) => {
   try {
     if (limit < 1 || offset < 0) {
       throw AppError.validationError('Invalid pagination parameters.');
     }
     
-    logSystemInfo('Fetching customer address lookup from service', {
-      context: 'lookup-service/fetchCustomerAddressLookupService',
+    logSystemInfo('Fetching customer lookup from service', {
+      context: 'lookup-service/fetchCustomerLookupService',
       metadata: { keyword, limit, offset },
     });
     
+    const { statusId, overrideDefaultStatus } = await resolveCustomerQueryOptions(user);
+    
     const rawResult = await getCustomerLookup({
       keyword,
+      statusId,
       limit,
       offset,
+      overrideDefaultStatus,
     });
     
     return transformCustomerPaginatedLookupResult(rawResult);
   } catch (err) {
     logSystemException(
       err,
-      'Failed to fetch customer address lookup in service',
+      'Failed to fetch customer lookup in service',
       {
-        context: 'lookup-service/fetchCustomerAddressLookupService',
+        context: 'lookup-service/fetchCustomerLookupService',
         keyword,
         limit,
         offset,
@@ -188,10 +209,10 @@ const fetchCustomerLookupService = async ({
     );
     
     throw AppError.serviceError(
-      'Failed to fetch customer address lookup list.',
+      'Failed to fetch customer lookup list.',
       {
         details: err.message,
-        stage: 'lookup-service/fetchCustomerAddressLookupService',
+        stage: 'lookup-service/fetchCustomerLookupService',
       }
     );
   }

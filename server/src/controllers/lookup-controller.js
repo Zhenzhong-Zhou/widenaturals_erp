@@ -135,28 +135,37 @@ const getLotAdjustmentLookupController = wrapAsync(async (req, res) => {
  * This controller receives query parameters (keyword, limit, offset),
  * delegates to the service layer, and responds with transformed lookup data.
  *
- * @param {import('express').Request} req - Express request object containing query params.
+ * @param {import('express').Request} req - Express a request object containing query params.
  * @param {import('express').Response} res - Express response object used to return JSON response.
  *
  * @returns {Promise<void>} Sends JSON response with customer lookup data.
  */
 const fetchCustomerLookupController = wrapAsync(async (req, res) => {
+  const user = req.user;
   const {
     keyword = '',
     limit = 50,
     offset = 0,
   } = req.query;
   
-  const result = await fetchCustomerLookupService({
-    keyword,
-    limit,
-    offset,
-  });
+  const dropdownResult = await fetchCustomerLookupService(
+    {
+      keyword,
+      limit,
+      offset,
+    },
+    user
+  );
+  
+  const { items, hasMore } = dropdownResult;
   
   res.status(200).json({
     success: true,
     message: 'Customer address lookup data retrieved successfully.',
-    data: result,
+    items,
+    offset,
+    limit,
+    hasMore,
   });
 });
 

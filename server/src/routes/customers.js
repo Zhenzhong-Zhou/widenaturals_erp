@@ -2,8 +2,6 @@ const express = require('express');
 const {
   createCustomerController,
   getPaginatedCustomersController,
-  getCustomersDropdownController,
-  getCustomerByIdController,
 } = require('../controllers/customer-controller');
 const authorize = require('../middlewares/authorize');
 const validate = require('../middlewares/validate');
@@ -59,9 +57,5 @@ router.get(
   sanitizeInput,
   getPaginatedCustomersController
 );
-
-router.get('/dropdown', getCustomersDropdownController);
-
-router.get('/:id', getCustomerByIdController);
 
 module.exports = router;

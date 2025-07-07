@@ -1,11 +1,9 @@
 const {
   createCustomersService,
   fetchPaginatedCustomersService,
-  fetchCustomersDropdown,
 } = require('../services/customer-service');
 const wrapAsync = require('../utils/wrap-async');
-const { logError, logInfo } = require('../utils/logger-helper');
-const { getCustomerDetailsLogic } = require('../business/customer-business');
+const { logInfo } = require('../utils/logger-helper');
 const { normalizePaginationParams } = require('../utils/request-utils');
 
 /**
@@ -86,40 +84,7 @@ const getPaginatedCustomersController = wrapAsync(async (req, res) => {
   });
 });
 
-const getCustomersDropdownController = wrapAsync(async (req, res, next) => {
-  try {
-    const { search } = req.query;
-    const customers = await fetchCustomersDropdown(search);
-
-    return res.status(200).json({
-      success: true,
-      data: customers,
-    });
-  } catch (error) {
-    logError('Controller Error: Failed to fetch customer dropdown', error);
-    next(error);
-  }
-});
-
-/**
- * Controller to fetch customer details by ID.
- * @param {Request} req - Express request object.
- * @param {Response} res - Express response object.
- */
-const getCustomerByIdController = wrapAsync(async (req, res) => {
-  const { id } = req.params; // Get customer ID from request params
-  const customer = await getCustomerDetailsLogic(id);
-
-  res.status(200).json({
-    success: true,
-    message: 'Customer retrieved successfully.',
-    data: customer,
-  });
-});
-
 module.exports = {
   createCustomerController,
   getPaginatedCustomersController,
-  getCustomersDropdownController,
-  getCustomerByIdController,
 };

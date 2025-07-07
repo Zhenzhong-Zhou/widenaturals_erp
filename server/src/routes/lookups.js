@@ -126,7 +126,7 @@ router.get(
  * 200 OK with JSON { success, message, data (lookup result + pagination info) }
  */
 router.get(
-  '/lookup/customers',
+  '/customers',
   authorize(['view_customer']),
   sanitizeInput,
   validate(

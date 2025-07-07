@@ -139,7 +139,7 @@ const fetchPaginatedCustomersService = async ({
     const {
       statusId,
       overrideDefaultStatus,
-    } = resolveCustomerQueryOptions(user);
+    } = await resolveCustomerQueryOptions(user);
     
     // Sanitize sortBy based on customerSortMap
     const sortField = sanitizeSortBy(sortBy, 'customerSortMap');
