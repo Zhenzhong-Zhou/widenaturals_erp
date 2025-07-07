@@ -20,7 +20,7 @@ const verifyOrderCreationPermission = async (user, category) => {
   
   const permissionNeeded = `create_${category}`;
   
-  const hasPermission = await checkPermissions(user, [permissionNeeded, 'root_access']);
+  const hasPermission = await checkPermissions(user, [permissionNeeded]);
   
   if (!hasPermission) {
     logSystemWarn('Permission denied for order creation', {
@@ -107,7 +107,6 @@ const applyOrderDetailsBusinessLogic = async (order, user) => {
   if (!isOrderNumberValid) {
     // Check if the user has permission to view invalid orders
     const canViewInvalidOrder = await checkPermissions(user, [
-      'root_access',
       'view_full_sales_order_details',
       'view_all_order_details',
     ]);
@@ -145,7 +144,6 @@ const applyOrderDetailsBusinessLogic = async (order, user) => {
 
   // Check if the user has permission to view metadata and category
   const canViewMetadata = checkPermissions(user, [
-    'root_access',
     'view_all_order_details',
     'view_full_sales_order_details',
   ]);
@@ -169,7 +167,6 @@ const applyOrderDetailsBusinessLogic = async (order, user) => {
  */
 const confirmOrderWithItems = async (orderId, user, client) => {
   const hasPermission = await checkPermissions(user, [
-    'root_access',
     'confirm_order',
     'confirm_sales_order',
   ]);

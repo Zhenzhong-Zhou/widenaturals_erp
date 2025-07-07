@@ -55,11 +55,12 @@ const buildCustomerFilter = (
       conditions.push(`(
         c.firstname ILIKE $${paramIndex} OR
         c.lastname ILIKE $${paramIndex} OR
-        c.email ILIKE $${paramIndex} OR
-        c.phone_number ILIKE $${paramIndex}
+        c.email ILIKE $${paramIndex + 1} OR
+        c.phone_number ILIKE $${paramIndex + 1}
       )`);
+      params.push(`${filters.keyword}%`);
       params.push(`%${filters.keyword}%`);
-      paramIndex++;
+      paramIndex += 2;
     }
     
     if (filters.createdAfter) {

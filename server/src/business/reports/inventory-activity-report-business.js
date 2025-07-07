@@ -36,7 +36,6 @@ const hasFullInventoryLogAccess = async (user) => {
   return await checkPermissions(user, [
     'view_full_inventory_logs',
     'admin_access',
-    'root_access',
   ]);
 };
 
@@ -48,7 +47,7 @@ const hasFullInventoryLogAccess = async (user) => {
  * @returns {Promise<boolean>}
  */
 const canViewProductLevelLogs = async (user) => {
-  return await checkPermissions(user, ['view_all_product_logs', 'root_access']);
+  return await checkPermissions(user, ['view_all_product_logs']);
 };
 
 /**
@@ -58,7 +57,7 @@ const canViewProductLevelLogs = async (user) => {
  * @returns {Promise<boolean>}
  */
 const canViewSkuLevelLogs = async (user) => {
-  return await checkPermissions(user, ['view_all_sku_logs', 'root_access']);
+  return await checkPermissions(user, ['view_all_sku_logs']);
 };
 
 /**
@@ -68,7 +67,7 @@ const canViewSkuLevelLogs = async (user) => {
  * @returns {Promise<boolean>}
  */
 const canViewBatchLevelLogs = async (user) => {
-  return await checkPermissions(user, ['view_all_batch_logs', 'root_access']);
+  return await checkPermissions(user, ['view_all_batch_logs']);
 };
 
 /**
@@ -79,7 +78,7 @@ const canViewBatchLevelLogs = async (user) => {
  * @returns {Promise<boolean>}
  */
 const canViewAllPackingMaterials = async (user) => {
-  return await checkPermissions(user, ['view_all_packing_material_logs', 'root_access']);
+  return await checkPermissions(user, ['view_all_packing_material_logs']);
 };
 
 /**
@@ -90,7 +89,7 @@ const canViewAllPackingMaterials = async (user) => {
  * @returns {Promise<boolean>}
  */
 const canViewAllWarehouses = async (user) => {
-  return await checkPermissions(user, ['view_all_warehouse_logs', 'root_access']);
+  return await checkPermissions(user, ['view_all_warehouse_logs']);
 };
 
 /**
@@ -101,7 +100,7 @@ const canViewAllWarehouses = async (user) => {
  * @returns {Promise<boolean>}
  */
 const canViewAllLocations = async (user) => {
-  return await checkPermissions(user, ['view_all_location_logs', 'root_access']);
+  return await checkPermissions(user, ['view_all_location_logs']);
 };
 
 /**
