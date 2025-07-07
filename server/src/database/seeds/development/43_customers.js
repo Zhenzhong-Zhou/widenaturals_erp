@@ -21,23 +21,25 @@ exports.seed = async function (knex) {
     'id'
   );
   
-  const activeStatusId = await fetchDynamicValue(
-    knex,
-    'status',
-    'name',
-    'active',
-    'id'
-  );
-  
   const now = knex.fn.now();
   
+  const statusMap = {
+    active: await fetchDynamicValue(knex, 'status', 'name', 'active', 'id'),
+    inactive: await fetchDynamicValue(knex, 'status', 'name', 'inactive', 'id'),
+    pending: await fetchDynamicValue(knex, 'status', 'name', 'pending', 'id'),
+    discontinued: await fetchDynamicValue(knex, 'status', 'name', 'discontinued', 'id'),
+    archived: await fetchDynamicValue(knex, 'status', 'name', 'archived', 'id'),
+  };
+  
   const customerList = [
+    // Active customers
     {
       firstname: 'John',
       lastname: 'Doe',
       email: 'john.doe@example.com',
       phone_number: '6041234567',
       note: 'VIP customer',
+      status: 'active',
     },
     {
       firstname: 'Jane',
@@ -45,6 +47,7 @@ exports.seed = async function (knex) {
       email: 'jane.smith@example.com',
       phone_number: '7789876543',
       note: null,
+      status: 'active',
     },
     {
       firstname: 'Alice',
@@ -52,6 +55,7 @@ exports.seed = async function (knex) {
       email: 'alice.wong@example.com',
       phone_number: '4162223333',
       note: 'Prefers email communication',
+      status: 'active',
     },
     {
       firstname: 'Carlos',
@@ -59,6 +63,7 @@ exports.seed = async function (knex) {
       email: 'carlos.diaz@example.com',
       phone_number: '6475551234',
       note: 'Spanish-speaking support preferred',
+      status: 'active',
     },
     {
       firstname: 'Fatima',
@@ -66,6 +71,7 @@ exports.seed = async function (knex) {
       email: 'fatima.ali@example.com',
       phone_number: '5873217654',
       note: 'Frequent buyer',
+      status: 'active',
     },
     {
       firstname: 'Liam',
@@ -73,6 +79,7 @@ exports.seed = async function (knex) {
       email: 'liam.nguyen@example.com',
       phone_number: '7781112233',
       note: null,
+      status: 'active',
     },
     {
       firstname: 'Sophie',
@@ -80,6 +87,7 @@ exports.seed = async function (knex) {
       email: 'sophie.martin@example.com',
       phone_number: '5149876543',
       note: 'Billing contact for Acme Corp',
+      status: 'active',
     },
     {
       firstname: 'David',
@@ -87,6 +95,7 @@ exports.seed = async function (knex) {
       email: 'david.brown@example.com',
       phone_number: '9052223344',
       note: null,
+      status: 'active',
     },
     {
       firstname: 'Chen',
@@ -94,6 +103,7 @@ exports.seed = async function (knex) {
       email: 'chen.zhao@example.com',
       phone_number: '4031237890',
       note: 'Contact via WeChat if urgent',
+      status: 'active',
     },
     {
       firstname: 'Emily',
@@ -101,7 +111,44 @@ exports.seed = async function (knex) {
       email: 'emily.wilson@example.com',
       phone_number: '2505556789',
       note: 'Seasonal customer',
-    }
+      status: 'active',
+    },
+    // Inactive customer
+    {
+      firstname: 'Inactive',
+      lastname: 'Customer',
+      email: 'inactive.customer@example.com',
+      phone_number: '6040000000',
+      note: 'No longer active',
+      status: 'inactive',
+    },
+    // Pending customer
+    {
+      firstname: 'Pending',
+      lastname: 'Customer',
+      email: 'pending.customer@example.com',
+      phone_number: '7780000000',
+      note: 'Awaiting verification',
+      status: 'pending',
+    },
+    // Discontinued customer
+    {
+      firstname: 'Discontinued',
+      lastname: 'Customer',
+      email: 'discontinued.customer@example.com',
+      phone_number: '4160000000',
+      note: 'Legacy record',
+      status: 'discontinued',
+    },
+    // Archived customer
+    {
+      firstname: 'Archived',
+      lastname: 'Customer',
+      email: 'archived.customer@example.com',
+      phone_number: '9050000000',
+      note: 'Historical reference',
+      status: 'archived',
+    },
   ];
   
   const records = customerList.map((cust) => ({
@@ -110,7 +157,7 @@ exports.seed = async function (knex) {
     lastname: cust.lastname,
     email: cust.email,
     phone_number: cust.phone_number,
-    status_id: activeStatusId,
+    status_id: statusMap[cust.status],
     note: cust.note,
     status_date: now,
     created_at: now,
