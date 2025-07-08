@@ -16,6 +16,17 @@ export interface LookupOption {
   value: string;
 }
 
+/**
+ * Represents a generic lookup item returned from the API.
+ * Used as a standard structure for paginated lookup responses before client mapping.
+ */
+export interface LookupItem {
+  /** Unique identifier of the record, typically a database ID or UUID */
+  id: string;
+  /** Display label constructed for the client */
+  label: string;
+}
+
 export interface GetBatchRegistryLookupParams {
   /**
    * Filter by batch type (e.g., 'product', 'packaging_material')
@@ -163,3 +174,15 @@ export type BatchLookupOption = {
   label: string;
   type: string;
 };
+
+export interface CustomerLookupQuery {
+  keyword?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export type CustomerLookupItem = LookupItem;
+
+export type CustomerLookupResponse = LookupSuccessResponse<CustomerLookupItem>;
+
+export type CustomerLookupState = AsyncState<CustomerLookupItem[]>;

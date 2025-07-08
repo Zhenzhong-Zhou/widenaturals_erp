@@ -1,5 +1,7 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import type {
+  CustomerLookupQuery,
+  CustomerLookupResponse,
   GetBatchRegistryLookupParams,
   GetBatchRegistryLookupResponse,
   GetWarehouseLookupFilters,
@@ -93,6 +95,32 @@ export const fetchLotAdjustmentTypeLookupThunk = createAsyncThunk<
       return await lookupService.fetchLotAdjustmentTypeLookup(filters);
     } catch (error: any) {
       return rejectWithValue(error?.response?.data || error.message);
+    }
+  }
+);
+
+/**
+ * Thunk to fetch customer lookup data from the server with optional filters.
+ *
+ * - Dispatches `pending`, `fulfilled`, and `rejected` actions automatically.
+ * - Useful for dropdowns, autocompletes, or selection inputs that list customers.
+ *
+ * @param params - Optional filters such as `keyword`, `limit`, and `offset`
+ * @returns A thunk action resolving to customer lookup data or error payload
+ */
+export const fetchCustomerLookupThunk = createAsyncThunk<
+  CustomerLookupResponse, // The resolved data shape on success
+  CustomerLookupQuery | undefined, // The argument passed to the thunk
+  {
+    rejectValue: string | object; // Type for the reject payload
+  }
+>(
+  'lookup/fetchCustomerLookup',
+  async (params, { rejectWithValue }) => {
+    try {
+      return await lookupService.fetchCustomerLookup(params);
+    } catch (error: any) {
+      return rejectWithValue(error?.response?.data || 'Failed to fetch customer lookup');
     }
   }
 );

@@ -41,6 +41,7 @@ export const API_ENDPOINTS = {
     BATCH_REGISTRY: '/lookups/batch-registry',
     WAREHOUSES: '/lookups/warehouses',
     LOT_ADJUSTMENT_TYPES: '/lookups/lot-adjustment-types',
+    CUSTOMERS: '/lookups/customers',
   },
   REPORTS: {
     INVENTORY_ACTIVITY_LOGS: 'reports/inventory-activity-logs',
