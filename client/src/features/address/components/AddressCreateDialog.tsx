@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { CreateMode } from '@shared-types/shared';
 import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
 import CustomDialog from '@components/common/CustomDialog';
 import useAddressCreation from '@hooks/useAddressCreation';
+import useCustomerLookup from '@hooks/useCustomerLookup';
 import CreateModeToggle from '@components/common/CreateModeToggle';
 import SingleAddressForm from '@features/address/components/SingleAddressForm';
 import AddressSuccessDialog from '@features/address/components/AddressSuccessDialog';
@@ -21,21 +22,36 @@ const AddressCreateDialog = ({ open, onClose, customerNames, customerIds }: Addr
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   
   const {
-    loading,
-    error,
-    data,
-    success,
-    message,
+    loading: isCreatingAddress,
+    error: creationError,
+    data: createdAddresses,
+    success: creationSuccess,
+    message: creationMessage,
     createAddresses,
     resetAddressesCreation,
   } = useAddressCreation();
   
+  const {
+    loading: customerLookupLoading,
+    error: customerLookupError,
+    options: customerDropdownOptions,
+    meta: customerLookupPaginationMeta,
+    fetchLookup: fetchCustomerDropdownOptions,
+  } = useCustomerLookup();
+  
   useEffect(() => {
-    if (success) {
+    if (creationSuccess) {
       setShowSuccessDialog(true);
     }
-  }, [success]);
+  }, [creationSuccess]);
   
+  const deduplicatedOptions = useMemo(() => {
+    return Array.from(
+      new Map(customerDropdownOptions.map((opt) => [opt.value, opt])).values()
+    );
+  }, [customerDropdownOptions]);
+  
+  // todo: refresh
   const handleClose = () => {
     resetAddressesCreation();
     setMode('single');
@@ -46,7 +62,7 @@ const AddressCreateDialog = ({ open, onClose, customerNames, customerIds }: Addr
     async (data: any) => {
       const dataArray = mode === 'single' ? [data] : data;
       
-      // Validate customerIds if provided
+      // If customerIds are provided, override customer_id in payload
       if (customerIds) {
         if (
           customerIds.length !== dataArray.length &&
@@ -58,21 +74,16 @@ const AddressCreateDialog = ({ open, onClose, customerNames, customerIds }: Addr
         }
       }
       
-      const payload = dataArray.map(
-        (item: Record<string, any>, idx: number) => {
-          const { id, ...rest } = item;
-          return {
-            ...rest,
-            // Add customer_id if provided, otherwise omit
-            ...(customerIds && {
-              customer_id:
-                customerIds.length === 1
-                  ? customerIds[0]
-                  : customerIds[idx],
-            }),
-          };
-        }
-      );
+      const payload = dataArray.map((item: Record<string, any>, idx: number) => {
+        const { id, ...rest } = item;
+        
+        return {
+          ...rest,
+          customer_id: customerIds?.length === 1
+            ? customerIds[0]
+            : customerIds?.[idx] ?? rest.customer_id, // fallback to form-provided customer_id
+        };
+      });
       
       await createAddresses(payload);
     },
@@ -88,17 +99,17 @@ const AddressCreateDialog = ({ open, onClose, customerNames, customerIds }: Addr
             setShowSuccessDialog(false);
             handleClose();
           }}
-          message={message}
-          addresses={data}
+          message={creationMessage}
+          addresses={createdAddresses}
         />
       ) : (
         <CustomDialog
           open={open}
           onClose={handleClose}
           title="Add Address"
-          showCancelButton={!loading}
-          disableCloseOnBackdrop={loading}
-          disableCloseOnEscape={loading}
+          showCancelButton={!isCreatingAddress}
+          disableCloseOnBackdrop={isCreatingAddress}
+          disableCloseOnEscape={isCreatingAddress}
           maxWidth="md"
           fullWidth
         >
@@ -108,23 +119,40 @@ const AddressCreateDialog = ({ open, onClose, customerNames, customerIds }: Addr
               onChange={setMode}
               label="Address Entry Mode"
             />
-            {error && (
+            {creationError && (
               <Alert severity="error" sx={{ mt: 2 }}>
-                {error}
+                {creationError}
               </Alert>
             )}
             <Box sx={{ mt: 2 }}>
               {mode === 'single' ? (
                 <SingleAddressForm
-                  loading={loading}
+                  loading={isCreatingAddress}
                   onSubmit={handleSubmit}
                   customerNames={customerNames}
+                  customerIds={customerIds}
+                  customerDropdownOptions={deduplicatedOptions}
+                  fetchCustomerDropdownOptions={fetchCustomerDropdownOptions}
+                  customerLookupLoading={customerLookupLoading}
+                  customerLookupError={customerLookupError}
+                  customerLookupMeta={customerLookupPaginationMeta}
                 />
               ) : (
                 <BulkAddressForm
-                loading={loading}
+                loading={isCreatingAddress}
+                defaultValues={
+                  customerIds?.length
+                    ? customerIds.map((id) => ({ customer_id: id }))
+                    : [{}]
+                }
                 onSubmit={handleSubmit}
                 customerNames={customerNames}
+                customerIds={customerIds}
+                customerDropdownOptions={deduplicatedOptions}
+                fetchCustomerDropdownOptions={fetchCustomerDropdownOptions}
+                customerLookupLoading={customerLookupLoading}
+                customerLookupError={customerLookupError}
+                customerLookupMeta={customerLookupPaginationMeta}
                 />
               )}
             </Box>

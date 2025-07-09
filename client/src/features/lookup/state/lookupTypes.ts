@@ -27,6 +27,23 @@ export interface LookupItem {
   label: string;
 }
 
+/**
+ * Metadata used to control paginated lookup queries.
+ *
+ * This interface is typically used to manage client-side pagination parameters
+ * when fetching lookup options (e.g., customer search).
+ */
+export interface LookupPaginationMeta {
+  /** Maximum number of results to fetch per request */
+  limit: number;
+  
+  /** Offset for the current page, used to skip records */
+  offset: number;
+  
+  /** Whether more results are available beyond the current page */
+  hasMore?: boolean;
+}
+
 export interface GetBatchRegistryLookupParams {
   /**
    * Filter by batch type (e.g., 'product', 'packaging_material')
@@ -185,4 +202,6 @@ export type CustomerLookupItem = LookupItem;
 
 export type CustomerLookupResponse = LookupSuccessResponse<CustomerLookupItem>;
 
-export type CustomerLookupState = AsyncState<CustomerLookupItem[]>;
+export type CustomerLookupState = PaginatedLookupState<CustomerLookupItem>;
+
+export type CustomerOption = LookupOption;

@@ -14,7 +14,6 @@ import CardContent from '@mui/material/CardContent';
 import Divider from '@mui/material/Divider';
 import InputAdornment from '@mui/material/InputAdornment';
 import CustomForm from '@components/common/CustomForm';
-import CustomerDropdown from '@features/customer/components/CustomerDropdown';
 import DiscountDropdown from '@features/discount/components/DiscountDropdown';
 import TaxRateDropdown from '@features/taxRate/components/TaxRateDropdown';
 import DeliveryMethodDropdown from '@features/deliveryMethod/components/DeliveryMethodDropdown';

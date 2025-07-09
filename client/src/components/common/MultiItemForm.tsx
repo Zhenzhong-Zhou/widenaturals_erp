@@ -16,6 +16,17 @@ import CustomButton from '@components/common/CustomButton';
 import CustomDatePicker from '@components/common/CustomDatePicker';
 import { CustomPhoneInput } from '@components/index.ts';
 
+export interface RowAwareComponentProps {
+  value: any;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+  required?: boolean;
+  placeholder?: string;
+  error?: string;
+  helperText?: string;
+  rowIndex: number;
+}
+
 export interface MultiItemFieldConfig {
   id: string;
   label: string;
@@ -32,15 +43,7 @@ export interface MultiItemFieldConfig {
     | 'textarea';
   country?: string;
   options?: { value: string; label: string }[];
-  component?: (props: {
-    value: any;
-    onChange: (value: string) => void;
-    disabled?: boolean;
-    required?: boolean;
-    placeholder?: string;
-    error?: string;
-    helperText?: string;
-  }) => ReactNode;
+  component?: (props: RowAwareComponentProps) => ReactNode;
   conditional?: (data: Record<string, any>) => boolean;
   validation?: (value: any) => string | undefined;
   required?: boolean;
@@ -233,6 +236,7 @@ const MultiItemForm: FC<MultiItemFormProps> = ({
                                 error={errorMessage}
                                 helperText={helperText}
                                 required={required}
+                                rowIndex={index}
                               />
                             );
                           }

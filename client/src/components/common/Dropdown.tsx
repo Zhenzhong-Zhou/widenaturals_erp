@@ -1,4 +1,4 @@
-import { useMemo, type FC, type UIEvent } from 'react';
+import { useMemo, type FC, type SyntheticEvent, type UIEvent } from 'react';
 import Autocomplete, {
   type AutocompleteProps,
 } from '@mui/material/Autocomplete';
@@ -43,6 +43,8 @@ interface DropdownProps {
   onFetchMore?: (params: { limit: number; offset: number }) => void;
   placeholder?: string;
   helperText?: string;
+  inputValue?: string;
+  onInputChange?: (event: SyntheticEvent, value: string) => void;
 }
 
 const SPECIAL_OPTIONS: OptionType[] = [
@@ -67,6 +69,8 @@ const Dropdown: FC<DropdownProps> = ({
   onFetchMore,
   placeholder,
   helperText,
+  inputValue,
+  onInputChange,
 }) => {
   const { theme } = useThemeContext();
 
@@ -87,6 +91,8 @@ const Dropdown: FC<DropdownProps> = ({
         options={modifiedOptions}
         getOptionLabel={(option) => option.label || ''}
         value={modifiedOptions.find((option) => option.value === value) || null}
+        inputValue={inputValue}
+        onInputChange={onInputChange}
         onChange={(_, newValue) => {
           if (newValue?.value === 'add' && onAddNew) onAddNew();
           else if (newValue?.value === 'refresh' && onRefresh) onRefresh();

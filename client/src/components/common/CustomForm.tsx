@@ -24,7 +24,7 @@ import type { SxProps, Theme } from '@mui/system';
 
 export interface FieldConfig {
   id: string;
-  label: string;
+  label?: string;
   type:
     | 'text'
     | 'textarea'

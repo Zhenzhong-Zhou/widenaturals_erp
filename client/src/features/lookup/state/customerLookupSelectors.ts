@@ -13,7 +13,7 @@ const selectCustomerLookupState = (state: RootState) => state.customerLookup;
 /**
  * Selector to retrieve the raw customer lookup items.
  *
- * @returns An array of `CustomerLookupItem` entries
+ * @returns An array of customer lookup items
  */
 export const selectCustomerLookupItems = createSelector(
   [selectCustomerLookupState],
@@ -23,7 +23,7 @@ export const selectCustomerLookupItems = createSelector(
 /**
  * Selector to retrieve the loading status of the customer lookup request.
  *
- * @returns A boolean indicating whether the request is in progress
+ * @returns A boolean indicating loading state
  */
 export const selectCustomerLookupLoading = createSelector(
   [selectCustomerLookupState],
@@ -33,7 +33,7 @@ export const selectCustomerLookupLoading = createSelector(
 /**
  * Selector to retrieve any error message from the customer lookup request.
  *
- * @returns A string error message or `null` if no error occurred
+ * @returns A string error message or null if no error
  */
 export const selectCustomerLookupError = createSelector(
   [selectCustomerLookupState],
@@ -41,9 +41,21 @@ export const selectCustomerLookupError = createSelector(
 );
 
 /**
- * Selector to transform customer lookup items into `{ label, value }` format.
+ * Selector to retrieve pagination metadata for the customer lookup.
  *
- * Useful for feeding into dropdown components or form controls.
+ * @returns An object containing `hasMore`, `limit`, and `offset`
+ */
+export const selectCustomerLookupMeta = createSelector(
+  [selectCustomerLookupState],
+  (state) => ({
+    hasMore: state.hasMore,
+    limit: state.limit,
+    offset: state.offset,
+  })
+);
+
+/**
+ * Selector to transform customer lookup items into `{ label, value }` format.
  *
  * @returns An array of dropdown-compatible options
  */

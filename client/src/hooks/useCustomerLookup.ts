@@ -3,49 +3,53 @@ import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   type CustomerLookupQuery,
   fetchCustomerLookupThunk,
-  selectCustomerLookupError,
-  selectCustomerLookupItems,
   selectCustomerLookupLoading,
+  selectCustomerLookupError,
   selectCustomerLookupOptions,
+  selectCustomerLookupMeta,
 } from '@features/lookup/state';
 
 /**
- * Hook to access customer lookup state and trigger lookup fetching.
+ * Hook to access customer lookup state and trigger customer fetching.
  *
  * @param initialParams - Optional query params (e.g., keyword, limit, offset)
- * @returns Object containing items, loading, error, options, and fetch trigger
+ * @param autoFetch - Whether to auto-fetch on mount (default: true)
+ * @returns Object containing items, options, loading, error, fetch trigger, and pagination metadata
  */
-const useCustomerLookup = (initialParams?: CustomerLookupQuery) => {
+const useCustomerLookup = (
+  initialParams?: CustomerLookupQuery,
+  autoFetch = true
+) => {
   const dispatch = useAppDispatch();
   
   // Capture initialParams in a ref to ensure stability in useCallback
   const initialParamsRef = useRef(initialParams);
   
-  const items = useAppSelector(selectCustomerLookupItems);
+  const options = useAppSelector(selectCustomerLookupOptions);
   const loading = useAppSelector(selectCustomerLookupLoading);
   const error = useAppSelector(selectCustomerLookupError);
-  const options = useAppSelector(selectCustomerLookupOptions);
+  const meta = useAppSelector(selectCustomerLookupMeta); // { hasMore, limit, offset }
   
   // Memoized trigger for refetching
   const fetchLookup = useCallback(
     (params?: CustomerLookupQuery) => {
       dispatch(fetchCustomerLookupThunk(params ?? initialParamsRef.current));
     },
-    [dispatch] // no dependency on `initialParams`
+    [dispatch]
   );
   
   // Auto-fetch on mount if initialParams provided
   useEffect(() => {
-    if (initialParamsRef.current) {
+    if (autoFetch && initialParamsRef.current) {
       fetchLookup();
     }
-  }, [fetchLookup]);
+  }, [autoFetch, fetchLookup]);
   
   return {
-    items,
+    options,
     loading,
     error,
-    options,
+    meta, // Grouped pagination info
     fetchLookup,
   };
 };
