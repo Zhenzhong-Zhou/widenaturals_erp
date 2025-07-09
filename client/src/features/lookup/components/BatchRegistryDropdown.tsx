@@ -1,74 +1,18 @@
-import { type Dispatch, type FC, type SetStateAction } from 'react';
-import Dropdown from '@components/common/Dropdown';
 import type { GetBatchRegistryLookupParams } from '../state';
+import type { PaginatedDropdownProps } from '@components/common/PaginatedDropdown';
+import PaginatedDropdown from '@components/common/PaginatedDropdown';
 
-export interface BatchRegistryDropdownProps {
-  label?: string;
-  value: string | null;
-  options: {
-    value: string;
-    label: string;
-  }[];
-  loading?: boolean;
-  error?: string | null;
-  hasMore?: boolean;
-  pagination?: {
-    limit: number;
-    offset: number;
-  };
-  fetchParams: GetBatchRegistryLookupParams;
-  setFetchParams: Dispatch<SetStateAction<GetBatchRegistryLookupParams>>;
-  onChange: (value: string) => void;
-  onRefresh: (params: GetBatchRegistryLookupParams) => void;
-  onAddNew?: () => void;
-}
+type BatchRegistryDropdownProps = PaginatedDropdownProps<GetBatchRegistryLookupParams>;
 
 /**
  * Dropdown component for selecting a batch from the batch registry.
  *
  * Fully controlled via props: `value`, `options`, `onChange`, and optional actions.
  */
-const BatchRegistryDropdown: FC<BatchRegistryDropdownProps> = ({
-  label = 'Select Batch',
-  value,
-  options,
-  onChange,
-  loading,
-  error,
-  hasMore,
-  pagination,
-  fetchParams,
-  setFetchParams,
-  onRefresh,
-  onAddNew,
-}) => {
-  return (
-    <Dropdown
-      label={label}
-      value={value}
-      options={options}
-      onChange={onChange}
-      loading={loading}
-      error={error}
-      hasMore={hasMore}
-      pagination={pagination}
-      onRefresh={() => onRefresh?.(fetchParams)}
-      onAddNew={onAddNew}
-      onFetchMore={() => {
-        const limit = pagination?.limit || 50;
-        const currentOffset = pagination?.offset || 0;
-        const nextOffset = currentOffset + limit;
-
-        setFetchParams((prev) => ({
-          ...prev,
-          limit,
-          offset: nextOffset,
-        }));
-
-        onRefresh({ ...fetchParams, limit, offset: nextOffset });
-      }}
-    />
-  );
-};
+export const BatchRegistryDropdown = (
+  props: BatchRegistryDropdownProps
+) => (
+  <PaginatedDropdown label="Select Batch" {...props} />
+);
 
 export default BatchRegistryDropdown;

@@ -32,35 +32,15 @@ export const selectBatchRegistryLookupItems = createSelector(
 );
 
 /**
- * Selector to get `hasMore` flag for pagination.
+ * Composite selector for lookup metadata (pagination + availability).
+ *
+ * @returns Object containing limit, offset, and hasMore
  */
-export const selectBatchRegistryLookupHasMore = createSelector(
-  [selectBatchRegistryLookupSlice],
-  (slice) => slice.hasMore
-);
-
-/**
- * Selector to get pagination values: limit and offset.
- */
-export const selectBatchRegistryLookupPagination = createSelector(
+export const selectBatchRegistryLookupMeta = createSelector(
   [selectBatchRegistryLookupSlice],
   (slice) => ({
     limit: slice.limit,
     offset: slice.offset,
-  })
-);
-
-/**
- * Composite selector to get the entire lookup state.
- */
-export const selectBatchRegistryLookupState = createSelector(
-  [selectBatchRegistryLookupSlice],
-  (slice) => ({
-    loading: slice.loading,
-    error: slice.error,
-    items: slice.items,
     hasMore: slice.hasMore,
-    limit: slice.limit,
-    offset: slice.offset,
   })
 );

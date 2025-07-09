@@ -19,7 +19,7 @@ import Radio from '@mui/material/Radio';
 import type {
   BatchLookupOption,
   GetBatchRegistryLookupParams,
-  GetWarehouseLookupFilters,
+  GetWarehouseLookupFilters, LookupPaginationMeta,
 } from '@features/lookup/state';
 
 interface AddInventoryFormProps {
@@ -33,8 +33,7 @@ interface AddInventoryFormProps {
     SetStateAction<GetBatchRegistryLookupParams>
   >;
   fetchBatchLookup: (params: GetBatchRegistryLookupParams) => void;
-  hasMore: boolean;
-  pagination?: { limit: number; offset: number };
+  batchLookupPaginationMeta: LookupPaginationMeta;
   batchLookupLoading?: boolean;
   batchLookupError?: string | null;
   warehouseLookupOptions: { value: string; label: string }[];
@@ -56,8 +55,7 @@ const AddInventoryForm: FC<AddInventoryFormProps> = ({
   batchLookupParams,
   setBatchLookupParams,
   fetchBatchLookup,
-  hasMore,
-  pagination,
+  batchLookupPaginationMeta,
   batchLookupLoading,
   batchLookupError,
   warehouseLookupOptions,
@@ -175,8 +173,7 @@ const AddInventoryForm: FC<AddInventoryFormProps> = ({
                 }}
                 loading={batchLookupLoading}
                 error={batchLookupError}
-                hasMore={hasMore}
-                pagination={pagination}
+                paginationMeta={batchLookupPaginationMeta}
                 fetchParams={{
                   ...batchLookupParams,
                   warehouseId: selectedWarehouse.warehouseId,
@@ -233,8 +230,7 @@ const AddInventoryForm: FC<AddInventoryFormProps> = ({
     batchLookupOptions,
     batchLookupError,
     batchLookupLoading,
-    hasMore,
-    pagination,
+    batchLookupPaginationMeta,
     batchLookupParams,
     setBatchLookupParams,
     fetchBatchLookup,

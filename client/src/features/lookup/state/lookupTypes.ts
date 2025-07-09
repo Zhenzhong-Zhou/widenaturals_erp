@@ -28,20 +28,24 @@ export interface LookupItem {
 }
 
 /**
- * Metadata used to control paginated lookup queries.
+ * Metadata used to control and manage paginated lookup queries.
  *
- * This interface is typically used to manage client-side pagination parameters
- * when fetching lookup options (e.g., customer search).
+ * This interface is commonly used in components that support infinite scroll
+ * or paginated dropdowns, where client-side pagination behavior is required
+ * to load more options (e.g., customers, batches, etc.).
  */
 export interface LookupPaginationMeta {
-  /** Maximum number of results to fetch per request */
+  /** The maximum number of results to retrieve per request */
   limit: number;
   
-  /** Offset for the current page, used to skip records */
+  /** The number of records to skip (i.e., pagination offset) */
   offset: number;
   
-  /** Whether more results are available beyond the current page */
+  /** Indicates if more results are available beyond the current set */
   hasMore?: boolean;
+  
+  /** Optional handler to fetch the next set of results when needed */
+  onFetchMore?: () => void;
 }
 
 export interface GetBatchRegistryLookupParams {

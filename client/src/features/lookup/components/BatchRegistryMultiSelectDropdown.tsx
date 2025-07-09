@@ -1,5 +1,5 @@
 import type { Dispatch, FC, SetStateAction } from 'react';
-import type { BatchLookupOption, GetBatchRegistryLookupParams } from '@features/lookup/state';
+import type { BatchLookupOption, GetBatchRegistryLookupParams, LookupPaginationMeta } from '@features/lookup/state';
 import MultiSelectDropdown, { type MultiSelectOption } from '@components/common/MultiSelectDropdown';
 
 interface BatchRegistryMultiSelectDropdownProps {
@@ -10,8 +10,7 @@ interface BatchRegistryMultiSelectDropdownProps {
   batchLookupParams: GetBatchRegistryLookupParams;
   fetchBatchLookup: (params: GetBatchRegistryLookupParams) => void;
   setFetchParams: Dispatch<SetStateAction<GetBatchRegistryLookupParams>>;
-  hasMore: boolean;
-  pagination?: { limit: number; offset: number };
+  batchLookupMeta: LookupPaginationMeta;
   batchLookupLoading?: boolean;
   batchLookupError?: string | null;
   loading?: boolean;
@@ -31,8 +30,7 @@ const BatchRegistryMultiSelectDropdown: FC<BatchRegistryMultiSelectDropdownProps
                                                                                        disabled,
                                                                                        error,
                                                                                        helperText,
-                                                                                       hasMore,
-                                                                                       pagination,
+                                                                                       batchLookupMeta,
                                                                                        sx,
                                                                                        placeholder = 'Choose batches...',
                                                                                      }) => {
@@ -46,8 +44,7 @@ const BatchRegistryMultiSelectDropdown: FC<BatchRegistryMultiSelectDropdownProps
       disabled={disabled}
       error={error}
       helperText={helperText}
-      hasMore={hasMore}
-      pagination={pagination}
+      paginationMeta={batchLookupMeta}
       sx={sx}
       placeholder={placeholder}
     />

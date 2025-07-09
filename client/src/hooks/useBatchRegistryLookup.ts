@@ -3,48 +3,44 @@ import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchBatchRegistryLookupThunk,
   selectBatchRegistryLookupError,
-  selectBatchRegistryLookupHasMore,
   selectBatchRegistryLookupItems,
   selectBatchRegistryLookupLoading,
-  selectBatchRegistryLookupPagination,
-  selectBatchRegistryLookupState,
+  selectBatchRegistryLookupMeta,
   type GetBatchRegistryLookupParams,
 } from '@features/lookup/state';
-import { resetBatchRegistryLookupState } from '@features/lookup/state/batchRegistryLookupSlice.ts';
+import { resetBatchRegistryLookupState } from '@features/lookup/state/batchRegistryLookupSlice';
 
 /**
  * Custom hook to access batch registry lookup state and actions.
  *
- * Provides memoized state values and helper actions for fetching and resetting lookup items.
+ * Provides memoized lookup state values and helper actions for fetching and resetting.
+ *
+ * @returns Object containing lookup data, loading state, error, pagination metadata, and actions
  */
 const useBatchRegistryLookup = () => {
   const dispatch = useAppDispatch();
-
-  const lookupState = useAppSelector(selectBatchRegistryLookupState);
+  
   const items = useAppSelector(selectBatchRegistryLookupItems);
   const loading = useAppSelector(selectBatchRegistryLookupLoading);
   const error = useAppSelector(selectBatchRegistryLookupError);
-  const hasMore = useAppSelector(selectBatchRegistryLookupHasMore);
-  const pagination = useAppSelector(selectBatchRegistryLookupPagination);
-
+  const meta = useAppSelector(selectBatchRegistryLookupMeta);
+  
   const fetchLookup = useCallback(
     (params: GetBatchRegistryLookupParams = {}) =>
       dispatch(fetchBatchRegistryLookupThunk(params)),
     [dispatch]
   );
-
+  
   const resetLookup = useCallback(
     () => dispatch(resetBatchRegistryLookupState()),
     [dispatch]
   );
-
+  
   return {
-    ...lookupState,
     items,
     loading,
     error,
-    hasMore,
-    pagination,
+    meta,
     fetchLookup,
     resetLookup,
   };

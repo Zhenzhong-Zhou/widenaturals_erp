@@ -4,6 +4,7 @@ import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
 import CircularProgress from '@mui/material/CircularProgress';
 import BaseInput from '@components/common/BaseInput';
+import type { LookupPaginationMeta } from '@features/lookup/state';
 
 export interface MultiSelectOption {
   value: string;
@@ -21,12 +22,7 @@ interface MultiSelectDropdownProps {
   placeholder?: string;
   error?: string | null;
   helperText?: string;
-  hasMore?: boolean;
-  pagination?: {
-    limit: number;
-    offset: number;
-    onFetchMore?: () => void;
-  };
+  paginationMeta?: LookupPaginationMeta
   sx?: object;
 }
 
@@ -40,10 +36,11 @@ const MultiSelectDropdown: FC<MultiSelectDropdownProps> = ({
                                                              placeholder,
                                                              error,
                                                              helperText,
-                                                             hasMore = false,
-                                                             pagination,
+                                                             paginationMeta,
                                                              sx = {},
                                                            }) => {
+  const { hasMore, onFetchMore } = paginationMeta ?? {};
+  
   const modifiedOptions = useMemo(() => {
     return hasMore
       ? [
@@ -98,8 +95,8 @@ const MultiSelectDropdown: FC<MultiSelectDropdownProps> = ({
               const bottom =
                 target.scrollTop + target.clientHeight >= target.scrollHeight - 10;
               
-              if (bottom && hasMore && pagination?.onFetchMore) {
-                pagination.onFetchMore();
+              if (bottom && hasMore && onFetchMore) {
+                onFetchMore();
               }
             },
             style: { maxHeight: 300, overflowY: 'auto' },

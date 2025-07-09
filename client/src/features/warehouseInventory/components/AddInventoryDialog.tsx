@@ -65,8 +65,7 @@ const AddInventoryDialog: FC<AddInventoryDialogProps> = ({
     items: batchOptions,
     loading: batchLoading,
     error: batchError,
-    hasMore,
-    pagination,
+    meta: batchLookupPaginationMeta,
     fetchLookup: fetchBatchRegistryLookup,
     resetLookup: restBatchRegistryLookup,
   } = useBatchRegistryLookup();
@@ -178,8 +177,7 @@ const AddInventoryDialog: FC<AddInventoryDialogProps> = ({
       batchLookupParams={batchLookupParams}
       setBatchLookupParams={setBatchLookupParams}
       fetchBatchLookup={fetchBatchRegistryLookup}
-      hasMore={hasMore}
-      pagination={pagination}
+      lookupPaginationMeta={batchLookupPaginationMeta}
       batchLookupLoading={batchLoading}
       batchLookupError={batchError}
       warehouseLookupOptions={warehouseLookupOptions}

@@ -14,7 +14,7 @@ import Alert from '@mui/material/Alert';
 import type {
   BatchLookupOption,
   GetBatchRegistryLookupParams,
-  GetWarehouseLookupFilters,
+  GetWarehouseLookupFilters, LookupPaginationMeta,
 } from '@features/lookup/state';
 import AddBulkInventoryForm from '@features/warehouseInventory/components/AddBulkInventoryForm';
 import InventorySuccessDialog from '@features/inventoryShared/components/InventorySuccessDialog';
@@ -39,8 +39,7 @@ interface AddInventoryDialogWithModeToggleProps {
     SetStateAction<GetBatchRegistryLookupParams>
   >;
   fetchBatchLookup: (params: GetBatchRegistryLookupParams) => void;
-  hasMore: boolean;
-  pagination: { limit: number; offset: number };
+  lookupPaginationMeta: LookupPaginationMeta;
   batchLookupLoading?: boolean;
   batchLookupError?: string | null;
   warehouseLookupOptions: { value: string; label: string }[];
@@ -72,8 +71,7 @@ const AddInventoryDialogWithModeToggle: FC<
   batchLookupParams,
   setBatchLookupParams,
   fetchBatchLookup,
-  hasMore,
-  pagination,
+  lookupPaginationMeta,
   batchLookupLoading,
   batchLookupError,
   warehouseLookupOptions,
@@ -132,8 +130,7 @@ const AddInventoryDialogWithModeToggle: FC<
                 batchLookupParams={batchLookupParams}
                 setBatchLookupParams={setBatchLookupParams}
                 fetchBatchLookup={fetchBatchLookup}
-                hasMore={hasMore}
-                pagination={pagination}
+                batchLookupPaginationMeta={lookupPaginationMeta}
                 batchLookupLoading={batchLookupLoading}
                 batchLookupError={batchLookupError}
                 warehouseLookupOptions={warehouseLookupOptions}
@@ -151,8 +148,7 @@ const AddInventoryDialogWithModeToggle: FC<
                 batchLookupParams={batchLookupParams}
                 setBatchLookupParams={setBatchLookupParams}
                 fetchBatchLookup={fetchBatchLookup}
-                hasMore={hasMore}
-                pagination={pagination}
+                batchLookupPaginationMeta={lookupPaginationMeta}
                 batchLookupLoading={batchLookupLoading}
                 batchLookupError={batchLookupError}
                 warehouseLookupOptions={warehouseLookupOptions}

@@ -9,18 +9,12 @@ import BatchRegistryMultiSelectDropdown from '@features/lookup/components/BatchR
 import type {
   BatchLookupOption,
   GetBatchRegistryLookupParams,
-  LookupOption,
+  LookupOption, LookupPaginationMeta,
   WarehouseOption,
 } from '@features/lookup/state';
 import type { MultiSelectOption } from '@components/common/MultiSelectDropdown';
 import WarehouseMultiSelectDropdown from '@features/lookup/components/WarehouseMultiSelectDropdown';
 import LotAdjustmentTypeMultiSelectDropdown from '@features/lookup/components/LotAdjustmentTypeMultiSelectDropdown';
-
-interface PaginationWithFetchMore {
-  limit: number;
-  offset: number;
-  onFetchMore?: () => void;
-}
 
 interface InventoryActivityLogFilterPanelProps {
   filters: Partial<InventoryActivityLogQueryParams>;
@@ -35,8 +29,7 @@ interface InventoryActivityLogFilterPanelProps {
     SetStateAction<GetBatchRegistryLookupParams>
   >;
   fetchBatchLookup: (params: GetBatchRegistryLookupParams) => void;
-  hasMore: boolean;
-  pagination: PaginationWithFetchMore;
+  batchLookupMeta: LookupPaginationMeta;
   batchLookupLoading?: boolean;
   batchLookupError?: string | null;
   warehouseOptions: WarehouseOption[];
@@ -62,8 +55,7 @@ const InventoryActivityLogFilterPanel: FC<InventoryActivityLogFilterPanelProps> 
                                                                                      batchLookupParams,
                                                                                      setBatchLookupParams,
                                                                                      fetchBatchLookup,
-                                                                                     hasMore,
-                                                                                     pagination,
+                                                                                     batchLookupMeta,
                                                                                      batchLookupLoading,
                                                                                      batchLookupError,
                                                                                      warehouseOptions,
@@ -126,8 +118,7 @@ const InventoryActivityLogFilterPanel: FC<InventoryActivityLogFilterPanelProps> 
             batchLookupParams={batchLookupParams}
             setFetchParams={setBatchLookupParams}
             fetchBatchLookup={fetchBatchLookup}
-            hasMore={hasMore}
-            pagination={pagination}
+            batchLookupMeta={batchLookupMeta}
             batchLookupLoading={batchLookupLoading}
             batchLookupError={batchLookupError}
           />

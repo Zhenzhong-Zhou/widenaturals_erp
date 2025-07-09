@@ -56,8 +56,7 @@ const InventoryActivityLogsPage: FC = () => {
     items: batchOptions,
     loading: batchLoading,
     error: batchError,
-    hasMore,
-    pagination: batchPagination,
+    meta: batchLookupPaginationMeta,
     fetchLookup: fetchBatchRegistryLookup,
     resetLookup: restBatchRegistryLookup,
   } = useBatchRegistryLookup();
@@ -166,7 +165,7 @@ const InventoryActivityLogsPage: FC = () => {
   }, []);
   
   const handleFetchMoreBatches = () => {
-    if (!hasMore || isFetchingRef.current) return;
+    if (!batchLookupPaginationMeta.hasMore || isFetchingRef.current) return;
     
     isFetchingRef.current = true;
     
@@ -235,10 +234,8 @@ const InventoryActivityLogsPage: FC = () => {
             batchLookupParams={batchLookupParams}
             setBatchLookupParams={setBatchLookupParams}
             fetchBatchLookup={fetchBatchRegistryLookup}
-            hasMore={hasMore}
-            pagination={{
-              limit: batchPagination.limit,
-              offset: batchPagination.offset,
+            batchLookupMeta={{
+              ...batchLookupPaginationMeta,
               onFetchMore: handleFetchMoreBatches,
             }}
             batchLookupLoading={batchLoading}
