@@ -134,7 +134,46 @@ const transformPaginatedAddressResults = (paginatedResult) => {
   );
 };
 
+/**
+ * Transforms a single raw address row into a minimal client-friendly format.
+ *
+ * The returned object includes essential fields for display and selection,
+ * including a formatted address string and a cleaned address sub-object.
+ *
+ * @param {Object} row - A single raw address row from the database
+ * @param {string} row.id - Unique address ID
+ * @param {string} row.recipient_name - Name of the recipient
+ * @param {string|null} row.label - Optional label (e.g., 'Shipping', 'Billing')
+ * @param {string} row.address_line1
+ * @param {string|null} row.address_line2
+ * @param {string} row.city
+ * @param {string|null} row.state
+ * @param {string} row.postal_code
+ * @param {string} row.country
+ * @param {string|null} row.region
+ * @returns {Object} Transformed address object with cleaned and formatted fields
+ */
+const transformCustomerAddressRow = (row) => {
+  const base = {
+    id: row.id,
+    recipient_name: row.recipient_name,
+    label: row.label ?? null,
+    formatted_address: formatAddress(row),
+  };
+  return cleanObject(base);
+};
+
+/**
+ * Transforms raw address rows into minimal client-friendly format.
+ *
+ * @param {Array<Object>} rows - Raw rows returned from the database
+ * @returns {Array<Object>} Transformed address objects
+ */
+const transformCustomerAddresses = (rows) =>
+  transformRows(rows, transformCustomerAddressRow);
+
 module.exports = {
   transformEnrichedAddresses,
-  transformPaginatedAddressResults
+  transformPaginatedAddressResults,
+  transformCustomerAddresses,
 };

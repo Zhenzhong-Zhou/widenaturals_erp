@@ -1,8 +1,8 @@
 const express = require('express');
-const { createAddressController, getPaginatedAddressesController } = require('../controllers/address-controller');
+const { createAddressController, getPaginatedAddressesController, getCustomerAddressesController } = require('../controllers/address-controller');
 const authorize = require('../middlewares/authorize');
 const validate = require('../middlewares/validate');
-const { addressArraySchema, addressQuerySchema } = require('../validators/address-validators');
+const { addressArraySchema, addressQuerySchema, getCustomerAddressesQuerySchema } = require('../validators/address-validators');
 const { sanitizeInput } = require('../middlewares/sanitize');
 
 const router = express.Router();
@@ -75,8 +75,50 @@ router.get(
   '/',
   authorize(['view_address']),
   sanitizeInput,
-  validate(addressQuerySchema, 'query', { stripUnknown: true, convert: true }, 'Invalid query parameters.'),
+  validate(
+    addressQuerySchema,
+    'query',
+    { stripUnknown: true, convert: true },
+    'Invalid query parameters.'
+  ),
   getPaginatedAddressesController
+);
+
+/**
+ * GET /addresses/by-customer
+ *
+ * Retrieves all addresses associated with a given customer.
+ * Expect a `customerId` as a UUID query parameter.
+ *
+ * This endpoint is used in workflows like:
+ * - Sales order creation
+ * - Shipping/billing address selection
+ * - Customer profile display
+ *
+ * Access Control:
+ * - Requires authentication
+ * - Requires `view_customer` permission
+ *
+ * Query Parameters:
+ * - customerId (string, required): UUID of the customer
+ *
+ * Responses:
+ * - 200: Returns an array of simplified, client-friendly address objects
+ * - 400: Invalid query parameters (e.g., missing or malformed customerId)
+ * - 403: Unauthorized access
+ * - 500: Internal server or service-level error
+ */
+router.get(
+  '/by-customer',
+  authorize(['view_customer']),
+  sanitizeInput,
+  validate(
+    getCustomerAddressesQuerySchema,
+    'query',
+    { stripUnknown: true, convert: true },
+    'Invalid query parameters.'
+  ),
+  getCustomerAddressesController
 );
 
 module.exports = router;

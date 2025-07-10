@@ -11,12 +11,29 @@ const validateEmail = Joi.string().email().required().messages({
 });
 
 /**
- * Validates that the input is a valid UUID.
+ * Returns a Joi schema that validates a required UUID string.
+ *
+ * This helper allows dynamic labeling of the field name for cleaner,
+ * reusable, and context-aware error messages.
+ *
+ * Commonly used to validate UUIDs such as
+ * - customerId
+ * - userId
+ * - orderId
+ *
+ * @param {string} [fieldName='id'] - The name of the field to label in validation messages.
+ * @returns {Joi.StringSchema} Joi validation schema for a required UUID string.
+ *
+ * @example
+ * const schema = validateUUID('customerId');
+ * const { error } = schema.validate('abc123'); // returns validation error
  */
-const validateUUID = Joi.string().uuid().required().messages({
-  'string.guid': 'Invalid UUID format',
-  'any.required': 'ID is required',
-});
+const validateUUID = (fieldName = 'id') =>
+  Joi.string().uuid().required().label(fieldName).messages({
+    'string.guid': '{{#label}} must be a valid UUID',
+    'any.required': '{{#label}} is required',
+    'string.empty': '{{#label}} cannot be empty',
+  });
 
 const validateString = (
   fieldName,

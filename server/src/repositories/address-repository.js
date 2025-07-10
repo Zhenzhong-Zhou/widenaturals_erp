@@ -259,8 +259,66 @@ const getPaginatedAddresses = async ({
   }
 };
 
+/**
+ * Retrieves all addresses associated with a given customer ID.
+ *
+ * This function is used to fetch minimal address information for display
+ * or selection purposes (e.g., shipping or billing address choices).
+ * The returned data includes only essential fields to keep the payload lightweight.
+ *
+ * Address results are ordered by creation time (newest first).
+ *
+ * @function getAddressesByCustomerId
+ * @param {string} customerId - The UUID of the customer whose addresses are being retrieved.
+ * @returns {Promise<Array<{
+ *   id: string,
+ *   recipient_name: string,
+ *   label: string | null,
+ *   address_line1: string,
+ *   city: string,
+ *   state: string,
+ *   postal_code: string,
+ *   country: string
+ * }>>} A promise that resolves to an array of simplified address objects.
+ *
+ * @throws {AppError} Throws a database error if the query fails.
+ */
+const getAddressesByCustomerId = async (customerId) => {
+  const queryText = `
+    SELECT
+      id,
+      full_name AS recipient_name,
+      label,
+      address_line1,
+      city,
+      state,
+      postal_code,
+      country
+    FROM addresses
+    WHERE customer_id = $1
+    ORDER BY created_at DESC;
+  `;
+  
+  try {
+    logSystemInfo('Fetching customer addresses', {
+      context: 'address-repository/getAddressesByCustomerId',
+      customerId,
+    });
+    
+    const { rows } = await query(queryText, [customerId]);
+    return rows;
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch addresses by customer ID', {
+      context: 'address-repository/getAddressesByCustomerId',
+      customerId,
+    });
+    throw AppError.databaseError('Failed to fetch addresses.');
+  }
+};
+
 module.exports = {
   insertAddressRecords,
   getEnrichedAddressesByIds,
   getPaginatedAddresses,
+  getAddressesByCustomerId
 };
