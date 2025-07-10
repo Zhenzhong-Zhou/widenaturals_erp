@@ -1,6 +1,9 @@
 const wrapAsync = require('../utils/wrap-async');
 const { logInfo } = require('../utils/logger-helper');
-const { createAddressService, fetchPaginatedAddressesService, getCustomerAddressesService } = require('../services/address-service');
+const {
+  createAddressService,
+  fetchPaginatedAddressesService,
+} = require('../services/address-service');
 const { normalizePaginationParams } = require('../utils/request-utils');
 
 /**
@@ -91,43 +94,7 @@ const getPaginatedAddressesController = wrapAsync(async (req, res) => {
   });
 });
 
-/**
- * Controller to handle HTTP GET request for fetching all addresses linked to a customer.
- *
- * This endpoint is used to retrieve and return a list of all active addresses
- * associated with the provided `customerId` as a query parameter. The result is
- * transformed into a minimal, client-friendly format for selection or display use cases.
- *
- * This controller is commonly used in workflows such as
- * - Sales order creation
- * - Shipping/billing address selection
- * - Customer profile display
- *
- * Expected query parameter:
- *   - customerId (string, required): UUID of the customer
- *
- * @route GET /addresses/by-customer?customerId={UUID}
- * @access Protected
- * @permission view_customer - Required to access customer address data
- *
- * @returns {200} JSON response containing the transformed list of addresses
- * @throws {400} If `customerId` is missing or too many addresses exist
- * @throws {500} If address retrieval or transformation fails
- */
-const getCustomerAddressesController = wrapAsync(async (req, res) => {
-  const customerId = req.query.customerId;
-  
-  const addresses = await getCustomerAddressesService(customerId);
-  
-  res.status(200).json({
-    success: true,
-    message: 'Customer addresses retrieved successfully.',
-    data: addresses,
-  });
-});
-
 module.exports = {
   createAddressController,
   getPaginatedAddressesController,
-  getCustomerAddressesController
 };

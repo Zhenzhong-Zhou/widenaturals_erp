@@ -1,12 +1,14 @@
 import { getRequest } from '@utils/apiRequest';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 import type {
+  AddressByCustomerLookupResponse,
   CustomerLookupQuery,
   CustomerLookupResponse,
   GetBatchRegistryLookupParams,
   GetBatchRegistryLookupResponse,
   GetWarehouseLookupFilters,
-  GetWarehouseLookupResponse, LotAdjustmentLookupQueryParams,
+  GetWarehouseLookupResponse,
+  LotAdjustmentLookupQueryParams,
   LotAdjustmentTypeLookupResponse,
 } from '@features/lookup/state/lookupTypes';
 
@@ -128,9 +130,35 @@ const fetchCustomerLookup = async (
   }
 };
 
+/**
+ * Fetches all addresses associated with a given customer ID.
+ *
+ * Used in workflows such as
+ * - Sales order creation
+ * - Shipping/billing address selection
+ * - Customer profile display
+ *
+ * @param {string} customerId - UUID of the customer to fetch addresses for
+ * @returns {Promise<AddressByCustomerLookupResponse>} - API response containing an array of addresses
+ * @throws Will rethrow the error if the request fails (caller must handle it)
+ */
+const fetchAddressesByCustomerId = async (
+  customerId: string
+): Promise<AddressByCustomerLookupResponse> => {
+  const url = `${API_ENDPOINTS.ADDRESSES.ADDRESSES_BY_CUSTOMER}?customerId=${customerId}`;
+  
+  try {
+    return await getRequest<AddressByCustomerLookupResponse>(url);
+  } catch (error) {
+    console.error('Failed to fetch addresses by customer ID:', error);
+    throw error; // or optionally wrap in custom error if needed
+  }
+};
+
 export const lookupService = {
   fetchBatchRegistryLookup,
   fetchWarehouseLookup,
   fetchLotAdjustmentTypeLookup,
   fetchCustomerLookup,
+  fetchAddressesByCustomerId,
 };

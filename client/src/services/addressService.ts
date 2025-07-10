@@ -1,5 +1,4 @@
 import type {
-  AddressByCustomerResponse,
   AddressInputArray,
   AddressQueryParams,
   CreateAddressApiResponse,
@@ -65,33 +64,7 @@ const fetchPaginatedAddresses = async (
   }
 };
 
-/**
- * Fetches all addresses associated with a given customer ID.
- *
- * Used in workflows such as
- * - Sales order creation
- * - Shipping/billing address selection
- * - Customer profile display
- *
- * @param {string} customerId - UUID of the customer to fetch addresses for
- * @returns {Promise<AddressByCustomerResponse>} - API response containing an array of addresses
- * @throws Will rethrow the error if the request fails (caller must handle it)
- */
-const fetchAddressesByCustomerId = async (
-  customerId: string
-): Promise<AddressByCustomerResponse> => {
-  const url = `${API_ENDPOINTS.ADDRESSES.ADDRESSES_BY_CUSTOMER}?customerId=${customerId}`;
-  
-  try {
-    return await getRequest<AddressByCustomerResponse>(url);
-  } catch (error) {
-    console.error('Failed to fetch addresses by customer ID:', error);
-    throw error; // or optionally wrap in custom error if needed
-  }
-};
-
 export const addressService = {
   createAddresses,
   fetchPaginatedAddresses,
-  fetchAddressesByCustomerId,
 };

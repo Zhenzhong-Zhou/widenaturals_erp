@@ -1,7 +1,8 @@
 const { getProductDisplayName } = require('../utils/display-name-utils');
 const { cleanObject } = require('../utils/object-utils');
-const { transformPaginatedResult } = require('../utils/transformer-utils');
+const { transformPaginatedResult, transformRows } = require('../utils/transformer-utils');
 const { getFullName } = require('../utils/name-utils');
+const { formatAddress } = require('../utils/string-utils');
 
 /**
  * Transforms an array of raw batch registry rows into lookup-friendly shapes.
@@ -127,9 +128,51 @@ const transformCustomerPaginatedLookupResult = (paginatedResult) =>
     { includeLoadMore: true }
   );
 
+/**
+ * Transforms a single raw address row into a minimal client-friendly format
+ * for customer address lookup purposes (e.g., dropdown selections).
+ *
+ * The returned object includes essential fields for display,
+ * including a formatted address string.
+ *
+ * @param {Object} row - A raw address row from the database
+ * @param {string} row.id - Unique address ID
+ * @param {string} row.recipient_name - Name of the recipient
+ * @param {string|null} row.label - Optional label (e.g., 'Shipping', 'Billing')
+ * @param {string} row.address_line1
+ * @param {string|null} row.address_line2
+ * @param {string} row.city
+ * @param {string|null} row.state
+ * @param {string} row.postal_code
+ * @param {string} row.country
+ * @param {string|null} row.region
+ * @returns {Object} Transformed address object for lookup UI
+ */
+const transformCustomerAddressLookupRow = (row) => {
+  const base = {
+    id: row.id,
+    recipient_name: row.recipient_name,
+    label: row.label ?? null,
+    formatted_address: formatAddress(row),
+  };
+  return cleanObject(base);
+};
+
+/**
+ * Transforms an array of raw address rows into minimal client-friendly format
+ * for use in customer address lookup features (e.g., dropdowns).
+ *
+ * @param {Array<Object>} rows - Raw address rows from the database
+ * @returns {Array<Object>} Transformed lookup address objects
+ */
+const transformCustomerAddressesLookupResult = (rows) =>
+  transformRows(rows, transformCustomerAddressLookupRow);
+
+
 module.exports = {
   transformBatchRegistryPaginatedLookupResult,
   transformWarehouseLookupRows,
   transformLotAdjustmentLookupOptions,
   transformCustomerPaginatedLookupResult,
+  transformCustomerAddressesLookupResult,
 };

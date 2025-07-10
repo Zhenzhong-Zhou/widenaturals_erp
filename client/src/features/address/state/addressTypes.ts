@@ -1,5 +1,6 @@
 import type {
-  ApiSuccessResponse, AsyncState, CreatedUpdatedByFilter,
+  ApiSuccessResponse,
+  CreatedUpdatedByFilter,
   CreatedUpdatedDateFilter,
   MutationState,
   PaginatedResponse,
@@ -275,51 +276,3 @@ export type PaginatedAddressResponse = PaginatedResponse<AddressListItem>;
  * Used in paginated address slices to manage address list views.
  */
 export type PaginateAddressState = ReduxPaginatedState<AddressListItem>;
-
-/**
- * Represents a minimal address object associated with a customer.
- * Typically used for selection or display in order-related workflows.
- */
-export interface AddressByCustomer {
-  /**
-   * Unique identifier for the address.
-   */
-  id: string;
-  
-  /**
-   * The name of the recipient for the address.
-   */
-  recipient_name: string;
-  
-  /**
-   * Optional label to distinguish the address (e.g., "Shipping", "Billing").
-   */
-  label: string;
-  
-  /**
-   * A fully formatted, human-readable version of the address.
-   */
-  formatted_address: string;
-}
-
-/**
- * API response containing a list of addresses for a specific customer.
- * Used in endpoints like GET /addresses/by-customer.
- */
-export type AddressByCustomerResponse = ApiSuccessResponse<AddressByCustomer[]>;
-
-/**
- * Represents the Redux state for storing addresses retrieved by customer ID.
- *
- * This state is used in conjunction with the `addressByCustomerSlice` and
- * typically supports workflows such as
- * - Sales order creation
- * - Shipping/billing address selection
- * - Customer profile display
- *
- * Extends the generic `AsyncState<T>` to include:
- * - `data`: an array of addresses associated with the customer
- * - `loading`: whether the address fetch request is in progress
- * - `error`: any error message encountered during the fetch
- */
-export type AddressByCustomerState = AsyncState<AddressByCustomer[]>;

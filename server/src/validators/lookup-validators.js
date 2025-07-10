@@ -1,4 +1,5 @@
 const Joi = require('joi');
+const { validateUUID } = require('./general-validators');
 
 /**
  * Base Joi schema for validating common lookup query parameters.
@@ -35,6 +36,23 @@ const baseLookupQuerySchema = {
  */
 const customerLookupQuerySchema = Joi.object(baseLookupQuerySchema);
 
+/**
+ * Joi schema to validate query parameters for customer address lookup.
+ *
+ * Ensures `customerId` is present and formatted as a valid UUID.
+ * This schema is used in the GET /addresses/by-customer route
+ * to validate the input before querying for address lookup data.
+ *
+ * Example:
+ *   GET /addresses/by-customer?customerId=abc123
+ *
+ * @returns {Joi.ObjectSchema} Joi validation schema for the customer lookup query.
+ */
+const customerAddressLookupQuerySchema = Joi.object({
+  customerId: validateUUID('customerId'),
+});
+
 module.exports = {
   customerLookupQuerySchema,
+  customerAddressLookupQuerySchema,
 };

@@ -10,6 +10,7 @@ const {
   transformWarehouseLookupRows,
   transformLotAdjustmentLookupOptions,
   transformCustomerPaginatedLookupResult,
+  transformCustomerAddressesLookupResult,
 } = require('../transformers/lookup-transformer');
 const {
   logSystemInfo,
@@ -18,6 +19,9 @@ const {
 const { getLotAdjustmentTypeLookup } = require('../repositories/lot-adjustment-type-repository');
 const { getCustomerLookup } = require('../repositories/customer-repository');
 const { resolveCustomerQueryOptions } = require('../business/customer-business');
+const { getCustomerAddressLookupById } = require('../repositories/address-repository');
+const { ADDRESSES } = require('../utils/constants/domain/lookup-constants');
+const LOOKUPS = require('../utils/constants/domain/lookup-constants');
 
 /**
  * Service to fetch filtered and paginated batch registry records for lookup UI.
@@ -218,9 +222,43 @@ const fetchCustomerLookupService = async (
   }
 };
 
+/**
+ * Retrieves and transforms all addresses associated with a given customer
+ * for address lookup purposes.
+ *
+ * This service fetches raw address records by customer ID and transforms them
+ * into lightweight, client-friendly address objects (suitable for dropdowns, selections, etc.).
+ *
+ * A soft cap of 20 addresses is enforced to prevent performance or data integrity issues.
+ *
+ * Commonly used in workflows like sales order creation, shipping setup,
+ * or customer address management UIs.
+ *
+ * @param {string} customerId - The UUID of the customer whose addresses are being retrieved
+ * @returns {Promise<Array<Object>>} - A promise resolving to minimal lookup address objects
+ *
+ * @throws {AppError} Throws a service-level error if retrieval or transformation fails
+ */
+const fetchCustomerAddressLookupService = async (customerId) => {
+  try {
+    const rawRows = await getCustomerAddressLookupById(customerId);
+
+    if (rawRows.length > LOOKUPS.ADDRESSES.MAX_BY_CUSTOMER) {
+      throw AppError.validationError(
+        'Customer has too many addresses — possible data issue.'
+      );
+    }
+
+    return transformCustomerAddressesLookupResult(rawRows);
+  } catch (error) {
+    throw AppError.serviceError('Unable to retrieve customer address lookup data.');
+  }
+};
+
 module.exports = {
   fetchBatchRegistryLookupService,
   fetchWarehouseLookupService,
   fetchLotAdjustmentLookupService,
   fetchCustomerLookupService,
+  fetchCustomerAddressLookupService,
 };

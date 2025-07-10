@@ -1,5 +1,6 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import type {
+  AddressByCustomerLookupResponse,
   CustomerLookupQuery,
   CustomerLookupResponse,
   GetBatchRegistryLookupParams,
@@ -121,6 +122,41 @@ export const fetchCustomerLookupThunk = createAsyncThunk<
       return await lookupService.fetchCustomerLookup(params);
     } catch (error: any) {
       return rejectWithValue(error?.response?.data || 'Failed to fetch customer lookup');
+    }
+  }
+);
+
+/**
+ * Thunk action to fetch all addresses associated with a given customer ID.
+ *
+ * This thunk dispatches the following async action types:
+ * - pending: when the request is initiated
+ * - fulfilled: when address data is successfully retrieved
+ * - rejected: when the request fails (e.g., network error or invalid customer ID)
+ *
+ * Used in workflows such as
+ * - Sales order creation
+ * - Shipping/billing address selection
+ *
+ * @param {string} customerId - UUID of the customer to fetch addresses for
+ * @returns {Promise<AddressByCustomerLookupResponse>} - Promise resolving with address data
+ */
+export const fetchCustomerAddressesLookupThunk = createAsyncThunk<
+  AddressByCustomerLookupResponse,
+  string,
+  {
+    rejectValue: { message: string };
+  }
+>(
+  'addresses/fetchByCustomerId',
+  async (customerId, { rejectWithValue }) => {
+    try {
+      return await lookupService.fetchAddressesByCustomerId(customerId);
+    } catch (error) {
+      console.error('fetchCustomerAddressesThunk failed:', error);
+      return rejectWithValue({
+        message: 'Failed to load customer addresses',
+      });
     }
   }
 );

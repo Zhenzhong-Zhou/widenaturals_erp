@@ -1,6 +1,5 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import type {
-  AddressByCustomerResponse,
   AddressInputArray,
   AddressQueryParams,
   CreateAddressApiResponse,
@@ -69,41 +68,6 @@ export const fetchPaginatedAddressesThunk = createAsyncThunk<
     } catch (error: any) {
       console.error('[fetchPaginatedAddressesThunk] Error:', { queryParams, error });
       return rejectWithValue(error.message || 'Failed to fetch addresses');
-    }
-  }
-);
-
-/**
- * Thunk action to fetch all addresses associated with a given customer ID.
- *
- * This thunk dispatches the following async action types:
- * - pending: when the request is initiated
- * - fulfilled: when address data is successfully retrieved
- * - rejected: when the request fails (e.g., network error or invalid customer ID)
- *
- * Used in workflows such as
- * - Sales order creation
- * - Shipping/billing address selection
- *
- * @param {string} customerId - UUID of the customer to fetch addresses for
- * @returns {Promise<AddressByCustomerResponse>} - Promise resolving with address data
- */
-export const fetchCustomerAddressesThunk = createAsyncThunk<
-  AddressByCustomerResponse,
-  string,
-  {
-    rejectValue: { message: string };
-  }
->(
-  'addresses/fetchByCustomerId',
-  async (customerId, { rejectWithValue }) => {
-    try {
-      return await addressService.fetchAddressesByCustomerId(customerId);
-    } catch (error) {
-      console.error('fetchCustomerAddressesThunk failed:', error);
-      return rejectWithValue({
-        message: 'Failed to load customer addresses',
-      });
     }
   }
 );

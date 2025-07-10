@@ -209,3 +209,51 @@ export type CustomerLookupResponse = LookupSuccessResponse<CustomerLookupItem>;
 export type CustomerLookupState = PaginatedLookupState<CustomerLookupItem>;
 
 export type CustomerOption = LookupOption;
+
+/**
+ * Represents a minimal address object returned by a customer-address lookup.
+ * Typically used for selection or display in read-only workflows, such as orders.
+ */
+export interface AddressByCustomerLookup {
+  /**
+   * Unique identifier for the address.
+   */
+  id: string;
+  
+  /**
+   * The name of the recipient for the address.
+   */
+  recipient_name: string;
+  
+  /**
+   * Optional label to distinguish the address (e.g., "Shipping", "Billing").
+   */
+  label: string;
+  
+  /**
+   * A fully formatted, human-readable version of the address.
+   */
+  formatted_address: string;
+}
+
+/**
+ * API response containing a list of address lookup entries for a specific customer.
+ * Used in endpoints like GET /addresses/by-customer.
+ */
+export type AddressByCustomerLookupResponse = ApiSuccessResponse<AddressByCustomerLookup[]>;
+
+/**
+ * Redux state for managing address lookup results by customer ID.
+ *
+ * This state is used in conjunction with the `addressByCustomerLookupSlice`
+ * to support workflows such as
+ * - Sales order creation
+ * - Shipping/billing address selection
+ * - Customer profile viewing
+ *
+ * Extends the generic `AsyncState<T>` to include:
+ * - `data`: an array of address lookup entries
+ * - `loading`: whether the lookup request is in progress
+ * - `error`: any error message encountered during the fetch
+ */
+export type AddressByCustomerLookupState = AsyncState<AddressByCustomerLookup[]>;

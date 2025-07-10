@@ -4,11 +4,15 @@ const {
   getWarehouseLookupController,
   getLotAdjustmentLookupController,
   fetchCustomerLookupController,
+  getCustomerAddressLookupController,
 } = require('../controllers/lookup-controller');
 const authorize = require('../middlewares/authorize');
 const { sanitizeInput } = require('../middlewares/sanitize');
 const validate = require('../middlewares/validate');
-const { customerLookupQuerySchema } = require('../validators/lookup-validators');
+const {
+  customerLookupQuerySchema,
+  customerAddressLookupQuerySchema
+} = require('../validators/lookup-validators');
 
 const router = express.Router();
 
@@ -140,6 +144,43 @@ router.get(
     'Invalid query parameters.'
   ),
   fetchCustomerLookupController
+);
+
+/**
+ * GET /lookups/address/by-customer
+ *
+ * Retrieves minimal address records associated with a given customer.
+ * Used for address lookup scenarios (e.g., dropdowns, selection UIs).
+ *
+ * Query Parameters:
+ * - customerId (string, required): UUID of the customer
+ *
+ * Use Cases:
+ * - Sales order creation
+ * - Shipping/billing address selection
+ * - Customer profile dropdowns
+ *
+ * Access Control:
+ * - Requires authentication
+ * - Requires `view_customer` permission
+ *
+ * Responses:
+ * - 200: Simplified address array for lookup use
+ * - 400: Missing or invalid customerId
+ * - 403: Unauthorized
+ * - 500: Internal service or transformation failure
+ */
+router.get(
+  '/address/by-customer',
+  authorize(['view_customer']),
+  sanitizeInput,
+  validate(
+    customerAddressLookupQuerySchema,
+    'query',
+    { stripUnknown: true, convert: true },
+    'Invalid query parameters.'
+  ),
+  getCustomerAddressLookupController
 );
 
 module.exports = router;

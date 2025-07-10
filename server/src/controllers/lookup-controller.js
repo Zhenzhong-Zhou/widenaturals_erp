@@ -4,6 +4,7 @@ const {
   fetchWarehouseLookupService,
   fetchLotAdjustmentLookupService,
   fetchCustomerLookupService,
+  fetchCustomerAddressLookupService,
 } = require('../services/lookup-service');
 const { logInfo } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
@@ -169,9 +170,45 @@ const fetchCustomerLookupController = wrapAsync(async (req, res) => {
   });
 });
 
+/**
+ * Controller to handle HTTP GET request for fetching customer address lookup data.
+ *
+ * This endpoint retrieves a list of simplified, active addresses associated
+ * with the provided `customerId` (passed as a query parameter). It returns
+ * minimal address objects optimized for client-side selection or display.
+ *
+ * Common use cases include:
+ * - Sales order creation
+ * - Shipping/billing address selection
+ * - Customer profile dropdowns
+ *
+ * Expected query parameter:
+ *   - customerId (string, required): UUID of the customer
+ *
+ * @route GET /addresses/by-customer?customerId={UUID}
+ * @access Protected
+ * @permission view_customer - Required to access customer address data
+ *
+ * @returns {200} JSON response containing the transformed lookup address list
+ * @throws {400} If `customerId` is missing or too many addresses exist
+ * @throws {500} If address retrieval or transformation fails
+ */
+const getCustomerAddressLookupController = wrapAsync(async (req, res) => {
+  const customerId = req.query.customerId;
+
+  const addresses = await fetchCustomerAddressLookupService(customerId);
+
+  res.status(200).json({
+    success: true,
+    message: 'Customer address lookup data retrieved successfully.',
+    data: addresses,
+  });
+});
+
 module.exports = {
   getBatchRegistryLookupController,
   getWarehouseLookupController,
   getLotAdjustmentLookupController,
   fetchCustomerLookupController,
+  getCustomerAddressLookupController,
 };

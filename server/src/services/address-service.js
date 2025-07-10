@@ -3,9 +3,19 @@ const MAX_LIMITS = require('../utils/constants/general/max-limits');
 const { validateBulkInputSize } = require('../utils/bulk-input-validator');
 const AppError = require('../utils/AppError');
 const { generateAddressHash } = require('../utils/crypto-utils');
-const { insertAddressRecords, getEnrichedAddressesByIds, getPaginatedAddresses, getAddressesByCustomerId } = require('../repositories/address-repository');
-const { logSystemException, logSystemInfo } = require('../utils/system-logger');
-const { transformEnrichedAddresses, transformPaginatedAddressResults, transformCustomerAddresses } = require('../transformers/address-transformer');
+const {
+  insertAddressRecords,
+  getEnrichedAddressesByIds,
+  getPaginatedAddresses
+} = require('../repositories/address-repository');
+const {
+  logSystemException,
+  logSystemInfo
+} = require('../utils/system-logger');
+const {
+  transformEnrichedAddresses,
+  transformPaginatedAddressResults
+} = require('../transformers/address-transformer');
 const { filterAddressForViewer } = require('../business/address-business');
 const { sanitizeSortBy } = require('../utils/sort-utils');
 
@@ -136,37 +146,7 @@ const fetchPaginatedAddressesService = async ({
   }
 };
 
-/**
- * Retrieves and transforms all addresses associated with a given customer.
- * Enforces a practical upper limit on address count to avoid misuse or error.
- *
- * This service fetches raw address records by customer ID and transforms them
- * into lightweight, client-friendly address objects for display or selection.
- *
- * Commonly used in workflows like sales order creation, shipping setup,
- * or customer address management.
- *
- * @param {string} customerId - The UUID of the customer whose addresses are being retrieved
- * @returns {Promise<Array<Object>>} - A promise that resolves to an array of simplified address objects
- *
- * @throws {AppError} Throws a service-level error if retrieval fails
- */
-const getCustomerAddressesService = async (customerId) => {
-  try {
-    const rawResults = await getAddressesByCustomerId(customerId);
-    
-    if (rawResults.length > 20) {
-      throw AppError.validationError('Customer has too many addresses — possible data issue.');
-    }
-    
-    return transformCustomerAddresses(rawResults);
-  } catch (error) {
-    throw AppError.serviceError('Unable to retrieve customer addresses.');
-  }
-};
-
 module.exports = {
   createAddressService,
   fetchPaginatedAddressesService,
-  getCustomerAddressesService,
 };

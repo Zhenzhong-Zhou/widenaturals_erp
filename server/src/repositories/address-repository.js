@@ -262,13 +262,12 @@ const getPaginatedAddresses = async ({
 /**
  * Retrieves all addresses associated with a given customer ID.
  *
- * This function is used to fetch minimal address information for display
- * or selection purposes (e.g., shipping or billing address choices).
- * The returned data includes only essential fields to keep the payload lightweight.
+ * This function fetches minimal address data for customer selection contexts
+ * such as shipping or billing options. The payload includes only essential fields
+ * for lightweight rendering.
  *
- * Address results are ordered by creation time (newest first).
+ * Results are ordered by creation time in descending order (newest first).
  *
- * @function getAddressesByCustomerId
  * @param {string} customerId - The UUID of the customer whose addresses are being retrieved.
  * @returns {Promise<Array<{
  *   id: string,
@@ -279,11 +278,11 @@ const getPaginatedAddresses = async ({
  *   state: string,
  *   postal_code: string,
  *   country: string
- * }>>} A promise that resolves to an array of simplified address objects.
+ * }>>} A promise resolving to an array of simplified address objects.
  *
  * @throws {AppError} Throws a database error if the query fails.
  */
-const getAddressesByCustomerId = async (customerId) => {
+const getCustomerAddressLookupById = async (customerId) => {
   const queryText = `
     SELECT
       id,
@@ -300,19 +299,19 @@ const getAddressesByCustomerId = async (customerId) => {
   `;
   
   try {
-    logSystemInfo('Fetching customer addresses', {
-      context: 'address-repository/getAddressesByCustomerId',
+    logSystemInfo('Fetching customer address lookup data', {
+      context: 'address-repository/getCustomerAddressLookupById',
       customerId,
     });
     
     const { rows } = await query(queryText, [customerId]);
     return rows;
   } catch (error) {
-    logSystemException(error, 'Failed to fetch addresses by customer ID', {
-      context: 'address-repository/getAddressesByCustomerId',
+    logSystemException(error, 'Failed to fetch customer address lookup data', {
+      context: 'address-repository/getCustomerAddressLookupById',
       customerId,
     });
-    throw AppError.databaseError('Failed to fetch addresses.');
+    throw AppError.databaseError('Failed to fetch customer addresses.');
   }
 };
 
@@ -320,5 +319,5 @@ module.exports = {
   insertAddressRecords,
   getEnrichedAddressesByIds,
   getPaginatedAddresses,
-  getAddressesByCustomerId
+  getCustomerAddressLookupById,
 };

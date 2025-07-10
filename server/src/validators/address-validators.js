@@ -1,5 +1,9 @@
 const Joi = require('joi');
-const { validateEmail, validatePhoneNumber, safeString, validateUUID } = require('./general-validators');
+const {
+  validateEmail,
+  validatePhoneNumber,
+  safeString
+} = require('./general-validators');
 
 /**
  * Joi schema for address validation.
@@ -70,23 +74,7 @@ const addressQuerySchema = Joi.object({
   updatedBefore: Joi.date().iso().allow(null, ''),
 });
 
-/**
- * Joi schema to validate the query parameters for fetching customer addresses.
- *
- * Validates that `customerId` is present and in valid UUID format.
- * This schema is used in the GET /addresses/by-customer route.
- *
- * Example:
- *   GET /addresses/by-customer?customerId=abc123
- *
- * @returns {Joi.ObjectSchema} Joi validation schema for the query object.
- */
-const getCustomerAddressesQuerySchema = Joi.object({
-  customerId: validateUUID('customerId'),
-});
-
 module.exports = {
   addressArraySchema,
   addressQuerySchema,
-  getCustomerAddressesQuerySchema,
 };

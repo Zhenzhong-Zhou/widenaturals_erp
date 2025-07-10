@@ -1,11 +1,14 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { AddressByCustomer, AddressByCustomerState } from './addressTypes';
-import { fetchCustomerAddressesThunk } from './addressThunks';
+import type {
+  AddressByCustomerLookup,
+  AddressByCustomerLookupState
+} from '@features/lookup/state/lookupTypes';
+import { fetchCustomerAddressesLookupThunk } from '@features/lookup/state/lookupThunks';
 
 /**
  * Initial state for addressByCustomerSlice.
  */
-const initialState: AddressByCustomerState = {
+const initialState: AddressByCustomerLookupState = {
   data: [],
   loading: false,
   error: null,
@@ -15,7 +18,7 @@ const initialState: AddressByCustomerState = {
  * Redux slice for managing addresses fetched by customer ID.
  * Supports async lifecycle with pending/fulfilled/rejected states.
  */
-const addressByCustomerSlice = createSlice({
+const addressByCustomerLookupSlice = createSlice({
   name: 'addressByCustomer',
   initialState,
   reducers: {
@@ -30,18 +33,18 @@ const addressByCustomerSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchCustomerAddressesThunk.pending, (state) => {
+      .addCase(fetchCustomerAddressesLookupThunk.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(
-        fetchCustomerAddressesThunk.fulfilled,
-        (state, action: PayloadAction<{ data: AddressByCustomer[] }>) => {
+        fetchCustomerAddressesLookupThunk.fulfilled,
+        (state, action: PayloadAction<{ data: AddressByCustomerLookup[] }>) => {
           state.loading = false;
           state.data = action.payload.data;
         }
       )
-      .addCase(fetchCustomerAddressesThunk.rejected, (state, action) => {
+      .addCase(fetchCustomerAddressesLookupThunk.rejected, (state, action) => {
         state.loading = false;
         state.error =
           (action.payload as { message?: string })?.message ??
@@ -51,5 +54,5 @@ const addressByCustomerSlice = createSlice({
   },
 });
 
-export const { resetCustomerAddresses } = addressByCustomerSlice.actions;
-export default addressByCustomerSlice.reducer;
+export const { resetCustomerAddresses } = addressByCustomerLookupSlice.actions;
+export default addressByCustomerLookupSlice.reducer;
