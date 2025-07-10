@@ -1,23 +1,40 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { CreateMode } from '@shared-types/shared';
 import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
 import CustomDialog from '@components/common/CustomDialog';
 import useAddressCreation from '@hooks/useAddressCreation';
-import useCustomerLookup from '@hooks/useCustomerLookup';
 import CreateModeToggle from '@components/common/CreateModeToggle';
 import SingleAddressForm from '@features/address/components/SingleAddressForm';
 import AddressSuccessDialog from '@features/address/components/AddressSuccessDialog';
 import BulkAddressForm from '@features/address/components/BulkAddressForm';
+import type { CustomerOption, LookupPaginationMeta } from '@features/lookup/state';
 
 interface AddressCreateDialogProps {
   open: boolean;
   onClose: () => void;
+  onSuccess?: () => void;
   customerNames?: string[];
   customerIds?: string[];
+  customerDropdownOptions?: CustomerOption[];
+  fetchCustomerDropdownOptions?: (params: any) => void;
+  customerLookupLoading?: boolean;
+  customerLookupError?: string | null;
+  customerLookupMeta?: LookupPaginationMeta;
 }
 
-const AddressCreateDialog = ({ open, onClose, customerNames, customerIds }: AddressCreateDialogProps) => {
+const AddressCreateDialog = ({
+                               open,
+                               onClose,
+                               onSuccess,
+                               customerNames,
+                               customerIds,
+                               customerDropdownOptions,
+                               fetchCustomerDropdownOptions,
+                               customerLookupLoading,
+                               customerLookupError,
+                               customerLookupMeta,
+                             }: AddressCreateDialogProps) => {
   const [mode, setMode] = useState<CreateMode>('single');
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   
@@ -31,27 +48,12 @@ const AddressCreateDialog = ({ open, onClose, customerNames, customerIds }: Addr
     resetAddressesCreation,
   } = useAddressCreation();
   
-  const {
-    loading: customerLookupLoading,
-    error: customerLookupError,
-    options: customerDropdownOptions,
-    meta: customerLookupPaginationMeta,
-    fetchLookup: fetchCustomerDropdownOptions,
-  } = useCustomerLookup();
-  
   useEffect(() => {
     if (creationSuccess) {
       setShowSuccessDialog(true);
     }
   }, [creationSuccess]);
   
-  const deduplicatedOptions = useMemo(() => {
-    return Array.from(
-      new Map(customerDropdownOptions.map((opt) => [opt.value, opt])).values()
-    );
-  }, [customerDropdownOptions]);
-  
-  // todo: refresh
   const handleClose = () => {
     resetAddressesCreation();
     setMode('single');
@@ -98,6 +100,7 @@ const AddressCreateDialog = ({ open, onClose, customerNames, customerIds }: Addr
           onClose={() => {
             setShowSuccessDialog(false);
             handleClose();
+            onSuccess?.();
           }}
           message={creationMessage}
           addresses={createdAddresses}
@@ -131,11 +134,11 @@ const AddressCreateDialog = ({ open, onClose, customerNames, customerIds }: Addr
                   onSubmit={handleSubmit}
                   customerNames={customerNames}
                   customerIds={customerIds}
-                  customerDropdownOptions={deduplicatedOptions}
+                  customerDropdownOptions={customerDropdownOptions}
                   fetchCustomerDropdownOptions={fetchCustomerDropdownOptions}
                   customerLookupLoading={customerLookupLoading}
                   customerLookupError={customerLookupError}
-                  customerLookupMeta={customerLookupPaginationMeta}
+                  customerLookupMeta={customerLookupMeta}
                 />
               ) : (
                 <BulkAddressForm
@@ -148,11 +151,11 @@ const AddressCreateDialog = ({ open, onClose, customerNames, customerIds }: Addr
                 onSubmit={handleSubmit}
                 customerNames={customerNames}
                 customerIds={customerIds}
-                customerDropdownOptions={deduplicatedOptions}
+                customerDropdownOptions={customerDropdownOptions}
                 fetchCustomerDropdownOptions={fetchCustomerDropdownOptions}
                 customerLookupLoading={customerLookupLoading}
                 customerLookupError={customerLookupError}
-                customerLookupMeta={customerLookupPaginationMeta}
+                customerLookupMeta={customerLookupMeta}
                 />
               )}
             </Box>

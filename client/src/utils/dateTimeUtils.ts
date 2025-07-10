@@ -5,9 +5,10 @@ import { differenceInDays } from 'date-fns/differenceInDays';
 import { differenceInMinutes } from 'date-fns/differenceInMinutes';
 import { isValid } from 'date-fns/isValid';
 import {
+  addDays,
   differenceInHours,
   differenceInMonths,
-  differenceInSeconds,
+  differenceInSeconds, startOfDay,
 } from 'date-fns';
 
 /**
@@ -241,4 +242,19 @@ export const formatToISODate = (
   const parts = isoString.split('T');
 
   return parts[0] ?? 'N/A'; // Extract YYYY-MM-DD
+};
+
+/**
+ * Adjusts a "before" date to make filtering inclusive:
+ * Adds 1 day and sets time to start of day (00:00),
+ * so dates like '2025-07-08' include the full day in filtering.
+ *
+ * @param input - Date string (e.g., '2025-07-08') or undefined
+ * @returns ISO string for start of the next day (e.g., '2025-07-09T00:00:00.000Z'), or '' if invalid
+ */
+export const adjustBeforeDateInclusive = (input?: string): string => {
+  const date = input ? new Date(input) : null;
+  return date && isValid(date)
+    ? startOfDay(addDays(date, 1)).toISOString()
+    : '';
 };

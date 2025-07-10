@@ -1,22 +1,24 @@
-import { type FC, type MouseEvent, useEffect, useRef, useState } from 'react';
+import { type FC, useEffect, useMemo, useRef, useState } from 'react';
 import Box from '@mui/material/Box';
-import Grid from '@mui/material/Grid';
 import Card from '@mui/material/Card';
+import Grid from '@mui/material/Grid';
 import Divider from '@mui/material/Divider';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
-// import AddressCreateDialog from '@features/address/components/AddressCreateDialog';
+import AddressCreateDialog from '@features/address/components/AddressCreateDialog';
 import AddressesTable from '@features/address/components/AddressesTable';
 import NoDataFound from '@components/common/NoDataFound';
 import Loading from '@components/common/Loading';
-// import AddressFiltersPanel from '@features/address/components/AddressFiltersPanel';
-// import AddressSortControls from '@features/address/components/AddressSortControls';
+import AddressFiltersPanel from '@features/address/components/AddressFiltersPanel';
+import AddressSortControls from '@features/address/components/AddressSortControls';
 import usePaginateAddresses from '@hooks/usePaginateAddresses';
 import type { AddressFilterConditions, AddressSortField } from '../state';
 import { useDialogFocusHandlers } from '@utils/hooks/useDialogFocusHandlers';
 import { usePaginationHandlers } from '@utils/hooks/usePaginationHandlers';
 import type { SortOrder } from '@shared-types/api';
-import AddressCreateDialog from '../components/AddressCreateDialog';
+import useCustomerLookup from '@hooks/useCustomerLookup';
+import type { CustomerLookupQuery } from '@features/lookup/state';
+import { applyFiltersAndSorting } from '@utils/queryUtils.ts';
 
 const AddressesPage: FC = () => {
   const createButtonRef = useRef<HTMLButtonElement>(null);
@@ -26,7 +28,12 @@ const AddressesPage: FC = () => {
   const [sortBy, setSortBy] = useState<AddressSortField>('createdAt');
   const [sortOrder, setSortOrder] = useState<SortOrder>('');
   const [filters, setFilters] = useState<AddressFilterConditions>({});
-  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);  // NEW: Track expanded row
+  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
+  const [fetchParams, setFetchParams] = useState<CustomerLookupQuery>({
+    keyword: '',
+    offset: 0,
+    limit: 10,
+  });
   
   const { handleOpenDialog, handleCloseDialog } = useDialogFocusHandlers(
     setDialogOpen,
@@ -44,21 +51,45 @@ const AddressesPage: FC = () => {
   } = usePaginateAddresses();
   
   useEffect(() => {
-    fetchAddresses({
+    applyFiltersAndSorting({
       page,
       limit,
-      // sortBy,
-      // sortOrder,
-      // ...filters,
+      sortBy,
+      sortOrder,
+      filters,
+      fetchFn: fetchAddresses,
     });
   }, [page, limit, sortBy, sortOrder, filters]);
   
+  const {
+    loading: customerLookupLoading,
+    error: customerLookupError,
+    options: customerDropdownOptions,
+    meta: customerLookupPaginationMeta,
+    fetchLookup: fetchCustomerDropdownOptions,
+  } = useCustomerLookup(fetchParams);
+  
+  const deduplicatedOptions = useMemo(() => {
+    return Array.from(
+      new Map(customerDropdownOptions.map((opt) => [opt.value, opt])).values()
+    );
+  }, [customerDropdownOptions]);
+  
   const handleRefresh = () => {
-    fetchAddresses({ page, limit, sortBy, sortOrder, ...filters });
+    applyFiltersAndSorting({
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+      filters,
+      fetchFn: fetchAddresses,
+    });
   };
   
   const handleResetFilters = () => {
     setFilters({});
+    setSortBy('createdAt');
+    setSortOrder('')
     setPage(1);
   };
   
@@ -85,12 +116,45 @@ const AddressesPage: FC = () => {
       <Divider sx={{ mb: 3 }} />
       
       <Card sx={{ p: 3, mb: 4, borderRadius: 2, minHeight: 200 }}>
-        {/* Filters & sort controls can go here */}
+        <Grid container spacing={2}>
+          {/* Filter fields */}
+          <Grid size={{ xs: 12, sm: 6, md: 9 }}>
+            <AddressFiltersPanel
+              filters={filters}
+              onChange={setFilters}
+              onApply={() => setPage(1)}
+              onReset={handleResetFilters}
+              customerDropdownOptions={deduplicatedOptions}
+              fetchCustomerDropdownOptions={fetchCustomerDropdownOptions}
+              customerLookupLoading={customerLookupLoading}
+              customerLookupError={customerLookupError}
+              customerLookupMeta={customerLookupPaginationMeta}
+              fetchParams={fetchParams}
+              setFetchParams={setFetchParams}
+            />
+          </Grid>
+          
+          {/* Sort Controls */}
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <AddressSortControls
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onSortByChange={setSortBy}
+              onSortOrderChange={setSortOrder}
+            />
+          </Grid>
+        </Grid>
       </Card>
       
       <AddressCreateDialog
         open={dialogOpen}
         onClose={handleCloseDialog}
+        onSuccess={handleRefresh}
+        customerDropdownOptions={deduplicatedOptions}
+        fetchCustomerDropdownOptions={fetchCustomerDropdownOptions}
+        customerLookupLoading={customerLookupLoading}
+        customerLookupError={customerLookupError}
+        customerLookupMeta={customerLookupPaginationMeta}
       />
       
       <Box>

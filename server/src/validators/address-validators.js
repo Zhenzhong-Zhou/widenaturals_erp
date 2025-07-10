@@ -38,7 +38,7 @@ const addressArraySchema = Joi.array().items(addressSchema).min(1).required();
  * Allowed values for sortOrder in address queries.
  * Standard SQL sorting directions: ASC (ascending) or DESC (descending).
  */
-const allowedSortOrders = ['ASC', 'DESC'];
+const allowedSortOrders = ['ASC', 'DESC', ''];
 
 /**
  * Joi schema for validating address query parameters (pagination, sorting, filters).
@@ -54,18 +54,20 @@ const addressQuerySchema = Joi.object({
   page: Joi.number().integer().min(1).default(1),
   limit: Joi.number().integer().min(1).max(100).default(10),
   sortBy: Joi.string().trim().default('created_at'),
-  sortOrder: Joi.string().uppercase().valid(...allowedSortOrders).default('DESC'),
-  country: safeString('Country'),
-  city: safeString('City'),
-  region: safeString('Region'),
-  customerId: Joi.string().guid({ version: 'uuidv4' }),
-  createdBy: Joi.string().guid({ version: 'uuidv4' }),
-  updatedBy: Joi.string().guid({ version: 'uuidv4' }),
-  keyword: Joi.string().max(100),
-  createdAfter: Joi.date().iso(),
-  createdBefore: Joi.date().iso(),
-  updatedAfter: Joi.date().iso(),
-  updatedBefore: Joi.date().iso(),
+  sortOrder: Joi.string().uppercase().valid(...allowedSortOrders).default('').label('Sort Order'),
+  
+  // Filters
+  country: safeString('Country').allow('', null),
+  city: safeString('City').allow('', null),
+  region: safeString('Region').allow('', null),
+  customerId: Joi.string().guid({ version: 'uuidv4' }).allow('', null),
+  createdBy: Joi.string().guid({ version: 'uuidv4' }).allow('', null),
+  updatedBy: Joi.string().guid({ version: 'uuidv4' }).allow('', null),
+  keyword: Joi.string().max(100).allow('', null),
+  createdAfter: Joi.date().iso().allow(null, ''),
+  createdBefore: Joi.date().iso().allow(null, ''),
+  updatedAfter: Joi.date().iso().allow(null, ''),
+  updatedBefore: Joi.date().iso().allow(null, ''),
 });
 
 module.exports = {
