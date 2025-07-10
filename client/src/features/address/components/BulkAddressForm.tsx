@@ -46,11 +46,10 @@ const BulkAddressForm: FC<BulkAddressFormProps> = ({
     ...(shouldShowDropdown
       ? [
         {
-        id: 'customer_id',
-        label: 'Customer',
-        type: 'custom' as const,
-        required: true,
-        group: 'basic',
+          id: 'customer_id',
+          label: 'Customer',
+          type: 'custom' as const,
+          required: true,
           component: ({
                         value,
                         onChange,
@@ -110,7 +109,7 @@ const BulkAddressForm: FC<BulkAddressFormProps> = ({
               onRefresh={(params) => fetchCustomerDropdownOptions?.(params)}
             />
           );
-        },
+          },
         },
       ]
       : []),

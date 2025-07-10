@@ -6,7 +6,7 @@ import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
 import type { AddressListItem } from '@features/address/state/addressTypes';
 import { formatDateTime } from '@utils/dateTimeUtils';
-import { formatLabel } from '@utils/textUtils';
+import { formatLabel, toUpperCase } from '@utils/textUtils';
 import { createDrillDownColumn } from '@utils/table/createDrillDownColumn';
 
 const AddressExpandedContent = lazy(() => import('./AddressExpandedContent'));
@@ -48,7 +48,7 @@ const AddressesTable: FC<AddressesTableProps> = ({
       { id: 'label', label: 'Label', minWidth: 100, renderCell: (row) => formatLabel(row.label) },
       { id: 'recipientName', label: 'Recipient', minWidth: 120, renderCell: (row) => formatLabel(row.recipientName) },
       { id: 'city', label: 'City', minWidth: 100, renderCell: (row) => formatLabel(row.address.city) },
-      { id: 'state', label: 'State', minWidth: 100, renderCell: (row) => formatLabel(row.address.state) },
+      { id: 'state', label: 'State', minWidth: 100, renderCell: (row) => toUpperCase(row.address.state) },
       { id: 'country', label: 'Country', minWidth: 100, renderCell: (row) => formatLabel(row.address.country) },
       { id: 'createdAt', label: 'Created At', minWidth: 150, sortable: true, renderCell: (row) => formatDateTime(row.createdAt) },
     ];
