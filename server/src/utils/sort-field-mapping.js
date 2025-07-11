@@ -131,27 +131,30 @@ const SORTABLE_FIELDS = {
   },
   customerSortMap: {
     customerName: `
-    COALESCE(TRIM(c.firstname || ' ' || c.lastname), '')
-  `,
+      COALESCE(TRIM(c.firstname || ' ' || c.lastname), '')
+    `,
     email: 'c.email',
     phoneNumber: 'c.phone_number',
-    region: 'c.region',
-    country: 'c.country',
-    status: 's.name', // joined via status s ON c.status_id = s.id
+    status: 's.name',
+    hasAddress: `
+      EXISTS (
+        SELECT 1 FROM addresses a WHERE a.customer_id = c.id
+      )
+    `,
     createdAt: 'c.created_at',
     updatedAt: 'c.updated_at',
     createdBy: `
-    COALESCE(TRIM(u1.firstname || ' ' || u1.lastname), '')
-  `,
+      COALESCE(TRIM(u1.firstname || ' ' || u1.lastname), '')
+    `,
     updatedBy: `
-    COALESCE(TRIM(u2.firstname || ' ' || u2.lastname), '')
-  `,
+      COALESCE(TRIM(u2.firstname || ' ' || u2.lastname), '')
+    `,
     defaultNaturalSort: `
-    c.region,
-    s.name,
-    COALESCE(TRIM(c.firstname || ' ' || c.lastname), ''),
-    c.created_at DESC
-  `,
+      c.region,
+      s.name,
+      COALESCE(TRIM(c.firstname || ' ' || c.lastname), ''),
+      c.created_at DESC
+    `,
   },
   addressSortMap: {
     created_at: 'a.created_at',        // Standard default sort

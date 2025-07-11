@@ -95,23 +95,37 @@ const transformLotAdjustmentLookupOptions = (rows) => {
 /**
  * Transforms a single raw customer record into a lookup-friendly format.
  *
- * @param {{ id: string, firstname: string, lastname: string, email: string }} row
- *   The raw customer record.
- * @returns {{ id: string, label: string }}
- *   The transformed lookup item with id and label.
+ * Adds a `hasAddress` boolean flag indicating whether the customer
+ * has at least one address assigned.
+ *
+ * @param {{
+ *   id: string,
+ *   firstname: string,
+ *   lastname: string,
+ *   email: string | null,
+ *   has_address?: boolean
+ * }} row - The raw customer record from the database query.
+ *
+ * @returns {{
+ *   id: string,
+ *   label: string,
+ *   hasAddress: boolean
+ * }} The transformed lookup item with ID, label, and address status.
  *
  * @example
  * const result = transformCustomerLookup({
  *   id: 'abc123',
  *   firstname: 'John',
  *   lastname: 'Doe',
- *   email: 'john@example.com'
+ *   email: 'john@example.com',
+ *   has_address: true
  * });
- * // result: { id: 'abc123', label: 'John Doe (john@example.com)' }
+ * // result: { id: 'abc123', label: 'John Doe (john@example.com)', hasAddress: true }
  */
 const transformCustomerLookup = (row) => ({
   id: row.id,
   label: `${getFullName(row.firstname, row.lastname)} (${row.email || 'no-email'})`,
+  hasAddress: row.has_address === true, // Normalize to boolean
 });
 
 /**

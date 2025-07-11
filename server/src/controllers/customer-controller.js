@@ -65,7 +65,22 @@ const getPaginatedCustomersController = wrapAsync(async (req, res) => {
   
   const { sortBy = 'createdAt', ...restQuery } = req.query;
   
-  const filters = { ...restQuery };
+  const raw = req.query.onlyWithAddress;
+  
+  const onlyWithAddress =
+    raw === true || raw === false
+      ? raw
+      : raw === 'true'
+        ? true
+        : raw === 'false'
+          ? false
+          : undefined;
+
+  // Update the filter object with parsed boolean
+  const filters = {
+    ...restQuery,
+    onlyWithAddress, // override the raw value with parsed boolean
+  };
   
   const { data, pagination} = await fetchPaginatedCustomersService({
     user: req.user,

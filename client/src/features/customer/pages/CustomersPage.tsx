@@ -15,6 +15,7 @@ import usePaginatedCustomers from '@hooks/usePaginatedCustomers';
 import type { CustomerFilters, CustomerSortField } from '@features/customer/state';
 import { useDialogFocusHandlers } from '@utils/hooks/useDialogFocusHandlers';
 import { usePaginationHandlers } from '@utils/hooks/usePaginationHandlers';
+import { applyFiltersAndSorting } from '@utils/queryUtils';
 
 const CustomersPage: FC = () => {
   const createButtonRef = useRef<HTMLButtonElement>(null);
@@ -43,17 +44,25 @@ const CustomersPage: FC = () => {
   
   // Fetch when dependency change
   useEffect(() => {
-    fetchCustomers({
+    applyFiltersAndSorting({
       page,
       limit,
       sortBy,
       sortOrder,
       filters,
+      fetchFn: fetchCustomers,
     });
   }, [page, limit, sortBy, sortOrder, filters]);
   
   const handleRefresh = () => {
-    fetchCustomers({ page, limit, sortBy, sortOrder, filters });
+    applyFiltersAndSorting({
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+      filters,
+      fetchFn: fetchCustomers,
+    });
   };
   
   const handleResetFilters = () => {

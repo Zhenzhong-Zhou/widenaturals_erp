@@ -12,22 +12,28 @@ const AppError = require('../AppError');
 /**
  * Dynamically builds an SQL WHERE clause and parameter list for filtering customers.
  *
+ * Supports various filters such as region, creator, keyword search, date ranges, and
+ * address presence via `onlyWithAddress` (has or doesn't have associated addresses).
+ *
  * @param {string} [statusId] - Optional customer status ID. Defaults to active unless overridden.
- * @param {Object} [filters={}] - Optional filters such as region or archived flag.
- * @param {string} [filters.region] - Optional region filter.
- * @param {string} [filters.country] - Optional country filter.
- * @param {string} [filters.createdBy] - Optional creator user ID.
- * @param {string} [filters.keyword] - Matches firstname, lastname, email, or phone (ILIKE).
- * @param {string} [filters.createdAfter] - ISO date string to filter by created_at >=.
- * @param {string} [filters.createdBefore] - ISO date string to filter by created_at <=.
- * @param {string} [filters.statusDateAfter] - Filter by status_date >=.
- * @param {string} [filters.statusDateBefore] - Filter by status_date <=.
- * @param {Object} [options={}] - Optional options for control flags.
- * @param {boolean} [options.overrideDefaultStatus=false] - Skip filtering by status if true.
+ * @param {Object} [filters={}] - Optional filters to refine the customer query.
+ * @param {string} [filters.region] - Optional region filter (not implemented here, placeholder).
+ * @param {string} [filters.country] - Optional country filter (not implemented here, placeholder).
+ * @param {string} [filters.createdBy] - Optional creator user ID filter.
+ * @param {string} [filters.keyword] - Optional keyword to search in firstname, lastname, email, or phone (ILIKE).
+ * @param {string} [filters.createdAfter] - ISO date string to filter by `created_at >=`.
+ * @param {string} [filters.createdBefore] - ISO date string to filter by `created_at <=`.
+ * @param {string} [filters.statusDateAfter] - ISO date string to filter by `status_date >=`.
+ * @param {string} [filters.statusDateBefore] - ISO date string to filter by `status_date <=`.
+ * @param {boolean} [filters.onlyWithAddress] - If true, only include customers who have at least one address.
+ *                                              If false, only include customers without any addresses.
+ *                                              If undefined, no filtering by address.
+ * @param {Object} [options={}] - Optional options to control query behavior.
+ * @param {boolean} [options.overrideDefaultStatus=false] - If true, disables filtering by statusId.
  *
- * @returns {{ whereClause: string, params: any[] }} - WHERE clause and parameter values.
+ * @returns {{ whereClause: string, params: any[] }} - SQL-safe WHERE clause string and corresponding parameter array.
  *
- * @throws {AppError} - Throws on failure to build condition.
+ * @throws {AppError} - Throws if filter construction fails due to unexpected error.
  */
 const buildCustomerFilter = (
   statusId,
@@ -87,6 +93,12 @@ const buildCustomerFilter = (
       paramIndex++;
     }
     
+    if (filters.onlyWithAddress === true) {
+      conditions.push(`EXISTS (SELECT 1 FROM addresses a WHERE a.customer_id = c.id)`);
+    } else if (filters.onlyWithAddress === false) {
+      conditions.push(`NOT EXISTS (SELECT 1 FROM addresses a WHERE a.customer_id = c.id)`);
+    }
+   
     return {
       whereClause: conditions.join(' AND '),
       params,

@@ -1,6 +1,10 @@
 import { type FC, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
+import FormControl from '@mui/material/FormControl';
+import InputLabel from '@mui/material/InputLabel';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
 import BaseInput from '@components/common/BaseInput';
 import CustomDatePicker from '@components/common/CustomDatePicker';
 import CustomButton from '@components/common/CustomButton';
@@ -22,6 +26,7 @@ const CustomerFiltersPanel: FC<Props> = ({ filters, onChange, onApply, onReset }
     createdBefore: '',
     statusDateAfter: '',
     statusDateBefore: '',
+    onlyWithAddress: undefined,
   };
   const { control, handleSubmit, reset } = useForm<CustomerFilters>({
     defaultValues: filters
@@ -53,6 +58,30 @@ const CustomerFiltersPanel: FC<Props> = ({ filters, onChange, onApply, onReset }
               control={control}
               render={({ field }) => (
                 <BaseInput {...field} value={field.value ?? ''} label="Search Keyword" placeholder="Name, Email, etc." sx={{ minHeight: 56 }} />
+              )}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <Controller
+              name="onlyWithAddress"
+              control={control}
+              render={({ field }) => (
+                <FormControl fullWidth sx={{ minHeight: 56 }}>
+                  <InputLabel>Address Filter</InputLabel>
+                  <Select
+                    {...field}
+                    value={field.value ?? ''}
+                    label="Address Filter"
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      field.onChange(val === '' ? undefined : val === 'true');
+                    }}
+                  >
+                    <MenuItem value="">All Customers</MenuItem>
+                    <MenuItem value="true">Only with Address</MenuItem>
+                    <MenuItem value="false">Only without Address</MenuItem>
+                  </Select>
+                </FormControl>
               )}
             />
           </Grid>

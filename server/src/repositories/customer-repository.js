@@ -182,6 +182,9 @@ const getPaginatedCustomers = async ({
       c.phone_number,
       c.status_id,
       s.name AS status_name,
+      EXISTS (
+        SELECT 1 FROM addresses a WHERE a.customer_id = c.id
+      ) AS has_address,
       c.created_at,
       c.updated_at,
       u1.firstname AS created_by_firstname,
@@ -279,7 +282,12 @@ const getCustomerLookup = async ({
       c.id,
       c.firstname,
       c.lastname,
-      c.email
+      c.email,
+      EXISTS (
+        SELECT 1
+        FROM addresses a
+        WHERE a.customer_id = c.id
+      ) AS has_address
     FROM ${tableName}
     WHERE ${whereClause}
   `;

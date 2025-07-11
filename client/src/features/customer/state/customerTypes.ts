@@ -50,6 +50,7 @@ export interface CustomerListItem {
   phoneNumber: string;
   statusId: string;
   statusName: string;
+  hasAddress: boolean;
   createdAt: string;
   updatedAt: string;
   createdBy: string;
@@ -65,6 +66,7 @@ export interface CustomerFilters {
   createdBefore?: string;
   statusDateAfter?: string;
   statusDateBefore?: string;
+  onlyWithAddress?: boolean;
 }
 
 export interface FetchPaginatedCustomersParams extends PaginationParams, SortConfig {
@@ -78,6 +80,7 @@ export type CustomerSortField =
   | 'email'
   | 'phoneNumber'
   | 'status'
+  | 'hasAddress'
   | 'createdAt'
   | 'updatedAt'
   | 'createdBy'

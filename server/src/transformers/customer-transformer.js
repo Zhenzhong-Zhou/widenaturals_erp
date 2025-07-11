@@ -32,6 +32,7 @@ const transformCustomerRow = (row, { format = 'nested' } = {}) => {
       id: row.status_id ?? null,
       name: row.status_name ?? null,
     },
+    hasAddress: row.has_address ?? null,
     createdAt: row.created_at ?? null,
     updatedAt: row.updated_at ?? null,
     createdBy: {
@@ -52,6 +53,7 @@ const transformCustomerRow = (row, { format = 'nested' } = {}) => {
       phoneNumber: base.phoneNumber,
       statusId: base.status.id,
       statusName: base.status.name,
+      hasAddress: base.hasAddress,
       createdAt: base.createdAt,
       updatedAt: base.updatedAt,
       createdBy: getFullName(base.createdBy.firstname, base.createdBy.lastname),

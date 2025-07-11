@@ -5,7 +5,10 @@ const {
 } = require('../controllers/customer-controller');
 const authorize = require('../middlewares/authorize');
 const validate = require('../middlewares/validate');
-const customerArraySchema = require('../validators/customer-validator');
+const {
+  customerArraySchema,
+  customerFilterSchema
+} = require('../validators/customer-validator');
 const { sanitizeInput } = require('../middlewares/sanitize');
 
 const router = express.Router();
@@ -39,10 +42,18 @@ router.post(
  * Query Parameters:
  * - page (number): Page number (default: 1)
  * - limit (number): Items per page (default: 10, max: 100)
- * - sortBy (string): Field to sort by (mapped in customerSortMap)
- * - sortOrder (string): 'ASC' or 'DESC' (default: 'DESC')
- * - isArchived (boolean): true/false
- * - region, country, createdBy, keyword, createdAfter, etc.
+ * - sortBy (string): Field to sort by (default: 'created_at')
+ * - sortOrder (string): 'ASC' or 'DESC'
+ * - filters (object): Optional nested filter object. Supported fields:
+ *   - region (string|null)
+ *   - country (string|null)
+ *   - createdBy (UUID|null)
+ *   - keyword (string|null): Partial match on name, email, or phone
+ *   - createdAfter (ISO date string|null): Filter by created_at >=
+ *   - createdBefore (ISO date string|null): Filter by created_at <=
+ *   - statusDateAfter (ISO date string|null): Filter by status_date >=
+ *   - statusDateBefore (ISO date string|null): Filter by status_date <=
+ *   - onlyWithAddress (boolean|null): true = only customers with addresses, false = only without
  *
  * Authorization:
  * - Requires `view_customer` permission
@@ -50,11 +61,21 @@ router.post(
  * Middleware:
  * - authorize
  * - sanitizeInput
+ * - validate (query parameters using Joi schema)
  */
 router.get(
   '/',
   authorize(['view_customer']),
   sanitizeInput,
+  validate(
+    customerFilterSchema,
+    'query',
+    {
+      convert: true,
+      stripUnknown: true,
+    },
+    'Invalid query parameters.'
+  ),
   getPaginatedCustomersController
 );
 

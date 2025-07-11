@@ -7,7 +7,7 @@ import Stack from '@mui/material/Stack';
 import type { CustomerSortField } from '../state';
 
 interface CustomerSortControlsProps {
-  sortBy: string;
+  sortBy: CustomerSortField | '';
   sortOrder: '' | 'ASC' | 'DESC';
   onSortByChange: (value: CustomerSortField) => void;
   onSortOrderChange: (value: '' | 'ASC' | 'DESC') => void;
@@ -17,8 +17,7 @@ const sortOptions = [
   { label: 'Customer Name', value: 'customerName' },
   { label: 'Email', value: 'email' },
   { label: 'Phone Number', value: 'phoneNumber' },
-  { label: 'Region', value: 'region' },
-  { label: 'Country', value: 'country' },
+  { label: 'Has Address', value: 'hasAddress' },
   { label: 'Status', value: 'status' },
   { label: 'Created At', value: 'createdAt' },
   { label: 'Updated At', value: 'updatedAt' },

@@ -1,6 +1,8 @@
 import { type FC } from 'react';
 import { Link } from 'react-router-dom';
 import Box from '@mui/material/Box';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CancelIcon from '@mui/icons-material/Cancel';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomTable, { type Column } from '@components/common/CustomTable';
 import CustomButton from '@components/common/CustomButton';
@@ -48,26 +50,45 @@ const CustomerTable: FC<CustomerTableProps> = ({
       id: 'phoneNumber',
       label: 'Phone',
       sortable: true,
-      format: (value) => formatPhoneNumber(value),
+      format: (value) =>
+        typeof value === 'string' ? formatPhoneNumber(value) : 'Unknown',
     },
     {
       id: 'statusName',
       label: 'Status',
       sortable: false,
-      format: (value) => formatLabel(value),
+      format: (value) =>
+        typeof value === 'string' ? formatLabel(value) : 'Unknown',
+    },
+    {
+      id: 'hasAddress',
+      label: 'Has Address',
+      sortable: true,
+      renderCell: (row) =>
+        row.hasAddress ? (
+          <CheckCircleIcon color="success" fontSize="small" />
+        ) : (
+          <CancelIcon color="disabled" fontSize="small" />
+        ),
     },
     {
       id: 'createdAt',
       label: 'Created At',
       sortable: true,
-      format: (value) => formatDate(value),
+      format: (value) =>
+        typeof value === 'string' ? formatDate(value) : '-',
     },
-    { id: 'createdBy', label: 'Created By', sortable: true },
+    {
+      id: 'createdBy',
+      label: 'Created By',
+      sortable: true,
+    },
     {
       id: 'updatedAt',
       label: 'Updated At',
       sortable: true,
-      format: (value) => formatDate(value),
+      format: (value) =>
+        typeof value === 'string' ? formatDate(value) : '-',
     },
     { id: 'updatedBy', label: 'Updated By', sortable: true },
   ];
