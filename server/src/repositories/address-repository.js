@@ -177,7 +177,7 @@ const getEnrichedAddressesByIds = async (ids, client) => {
  * @param {string} [options.sortBy='created_at'] - Field to sort by.
  * @param {'ASC'|'DESC'} [options.sortOrder='DESC'] - Sort order.
  *
- * @returns {Promise<Object>} Paginated result with data and metadata (e.g. total records).
+ * @returns {Promise<Object>} Paginated result with data and metadata (e.g., total records).
  *
  * @throws {AppError} When the query fails.
  */

@@ -225,6 +225,7 @@ const createSalesOrder = async (orderData, client) => {
     const salesOrder = await insertSalesOrder({
       ...salesData,
       id: order_id,
+      customer_id,
       currency_code,
       exchange_rate,
       base_currency_amount: baseCurrencyAmount,
