@@ -37,6 +37,11 @@ exports.up = async function (knex) {
     
     table.unique(['customer_id', 'address_hash'], { indexName: 'unique_customer_address_hash' });
   });
+  await knex.raw(`
+    CREATE INDEX IF NOT EXISTS idx_addresses_customer_id_null
+    ON addresses(customer_id)
+    WHERE customer_id IS NULL
+  `);
 };
 
 /**

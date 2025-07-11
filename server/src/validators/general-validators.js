@@ -85,6 +85,12 @@ const safeString = (label, max = 100) =>
     .pattern(/^[\w\s\-]+$/)
     .message(`${label} contains invalid characters`);
 
+/**
+ * Allowed values for sortOrder in address queries.
+ * Standard SQL sorting directions: ASC (ascending) or DESC (descending).
+ */
+const allowedSortOrders = ['ASC', 'DESC', ''];
+
 module.exports = {
   validateEmail,
   validateUUID,
@@ -92,4 +98,5 @@ module.exports = {
   validatePhoneNumber,
   validateOrderNumber,
   safeString,
+  allowedSortOrders,
 };

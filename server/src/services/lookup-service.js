@@ -19,8 +19,10 @@ const {
 const { getLotAdjustmentTypeLookup } = require('../repositories/lot-adjustment-type-repository');
 const { getCustomerLookup } = require('../repositories/customer-repository');
 const { resolveCustomerQueryOptions } = require('../business/customer-business');
-const { getCustomerAddressLookupById } = require('../repositories/address-repository');
-const { ADDRESSES } = require('../utils/constants/domain/lookup-constants');
+const {
+  getCustomerAddressLookupById,
+  hasAssignedAddresses
+} = require('../repositories/address-repository');
 const LOOKUPS = require('../utils/constants/domain/lookup-constants');
 
 /**
@@ -223,32 +225,46 @@ const fetchCustomerLookupService = async (
 };
 
 /**
- * Retrieves and transforms all addresses associated with a given customer
- * for address lookup purposes.
+ * Retrieves and transforms address records for a given customer,
+ * including unassigned addresses if the customer has none.
  *
- * This service fetches raw address records by customer ID and transforms them
- * into lightweight, client-friendly address objects (suitable for dropdowns, selections, etc.).
+ * This service fetches lightweight address data optimized for lookup purposes,
+ * such as dropdowns, selection lists, or quick UI previews. If the specified
+ * customer does not have any assigned addresses, the service will include
+ * globally unassigned addresses (`customer_id IS NULL`) as a fallback.
  *
- * A soft cap of 20 addresses is enforced to prevent performance or data integrity issues.
+ * A soft cap of 20 address records is enforced to prevent excessive payloads
+ * and flag potential data integrity issues.
  *
- * Commonly used in workflows like sales order creation, shipping setup,
- * or customer address management UIs.
+ * Common use cases include:
+ * - Sales order creation or editing
+ * - Shipping/billing address selection
+ * - Customer profile form or settings
  *
- * @param {string} customerId - The UUID of the customer whose addresses are being retrieved
- * @returns {Promise<Array<Object>>} - A promise resolving to minimal lookup address objects
+ * @param {string} customerId - The UUID of the customer for whom addresses are being retrieved
+ * @returns {Promise<Array<Object>>} A promise resolving to an array of minimal, client-ready address objects
  *
- * @throws {AppError} Throws a service-level error if retrieval or transformation fails
+ * @throws {AppError} Throws a service-level error if address retrieval or transformation fails
  */
 const fetchCustomerAddressLookupService = async (customerId) => {
   try {
-    const rawRows = await getCustomerAddressLookupById(customerId);
-
+    // Step 1: Check if customer has any assigned addresses
+    const hasAddresses = await hasAssignedAddresses(customerId);
+    
+    // Step 2: Fallback to unassigned addresses if none found
+    const includeUnassigned = !hasAddresses;
+    
+    const rawRows = await getCustomerAddressLookupById({
+      filters: { customerId },
+      includeUnassigned,
+    });
+    
     if (rawRows.length > LOOKUPS.ADDRESSES.MAX_BY_CUSTOMER) {
       throw AppError.validationError(
         'Customer has too many addresses — possible data issue.'
       );
     }
-
+    
     return transformCustomerAddressesLookupResult(rawRows);
   } catch (error) {
     throw AppError.serviceError('Unable to retrieve customer address lookup data.');

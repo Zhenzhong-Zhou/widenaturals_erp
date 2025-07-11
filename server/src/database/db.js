@@ -1201,8 +1201,15 @@ const getUniqueScalarValue = async ({ table, where, select }, client, meta = {})
 /**
  * Safely checks if a record exists in the specified table with the given condition.
  *
- * @param {string} table - The name of the table (validated against injection).
- * @param {object} condition - Key-value pairs for the WHERE clause (e.g., { id: 'uuid' }).
+ * Supports `null` values by automatically converting them to `IS NULL` in the WHERE clause.
+ *
+ * Example:
+ *   checkRecordExists('addresses', { customer_id: null }) → WHERE customer_id IS NULL
+ *
+ * @param {string} table - The name of the table (validated to prevent SQL injection).
+ * @param {object} condition - Key-value pairs for the WHERE clause.
+ *                             Null values will be translated to `IS NULL`.
+ *                             (e.g., { id: 'uuid' }, { customer_id: null })
  * @param {PoolClient} [client] - Optional PostgreSQL client or transaction context.
  * @returns {Promise<boolean>} - Resolves to true if a matching record exists, false otherwise.
  */
@@ -1220,8 +1227,13 @@ const checkRecordExists = async (table, condition, client = null) => {
     throw AppError.validationError('No condition provided');
   }
   
-  const whereClause = keys.map((key, idx) => `${key} = $${idx + 1}`).join(' AND ');
-  const values = Object.values(condition);
+  const whereClause = keys
+    .map((key, idx) =>
+      condition[key] === null ? `${key} IS NULL` : `${key} = $${idx + 1}`
+    )
+    .join(' AND ');
+  
+  const values = Object.values(condition).filter((v) => v !== null);
   const sql = `SELECT EXISTS (SELECT 1 FROM ${table} WHERE ${whereClause}) AS exists;`;
   
   try {

@@ -2,7 +2,7 @@ const Joi = require('joi');
 const {
   validateEmail,
   validatePhoneNumber,
-  safeString
+  safeString, allowedSortOrders
 } = require('./general-validators');
 
 /**
@@ -37,12 +37,6 @@ const addressSchema = Joi.object({
  * Joi schema for validating an array of addresses.
  */
 const addressArraySchema = Joi.array().items(addressSchema).min(1).required();
-
-/**
- * Allowed values for sortOrder in address queries.
- * Standard SQL sorting directions: ASC (ascending) or DESC (descending).
- */
-const allowedSortOrders = ['ASC', 'DESC', ''];
 
 /**
  * Joi schema for validating address query parameters (pagination, sorting, filters).

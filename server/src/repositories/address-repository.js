@@ -1,5 +1,5 @@
 const { validateBulkInsertRows } = require('../database/db-utils');
-const { bulkInsert, query, paginateQuery } = require('../database/db');
+const { bulkInsert, query, paginateQuery, checkRecordExists } = require('../database/db');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 const { buildAddressFilter } = require('../utils/sql/build-address-filters');
@@ -260,15 +260,18 @@ const getPaginatedAddresses = async ({
 };
 
 /**
- * Retrieves all addresses associated with a given customer ID.
+ * Retrieves lightweight address lookup data for a given customer.
  *
- * This function fetches minimal address data for customer selection contexts
- * such as shipping or billing options. The payload includes only essential fields
- * for lightweight rendering.
+ * This function fetches simplified address records for use in customer-related
+ * selection interfaces, such as shipping/billing dropdowns or sales order forms.
+ * It supports optionally including addresses that are not yet assigned to any customer.
  *
- * Results are ordered by creation time in descending order (newest first).
+ * Results are ordered by creation time (newest first).
  *
- * @param {string} customerId - The UUID of the customer whose addresses are being retrieved.
+ * @param {Object} params - Parameters for address lookup.
+ * @param {Object} [params.filters={}] - Optional filters (e.g., customerId).
+ * @param {boolean} [params.includeUnassigned=false] - If true, also include addresses where customer_id is NULL.
+ *
  * @returns {Promise<Array<{
  *   id: string,
  *   recipient_name: string,
@@ -278,11 +281,16 @@ const getPaginatedAddresses = async ({
  *   state: string,
  *   postal_code: string,
  *   country: string
- * }>>} A promise resolving to an array of simplified address objects.
+ * }>>} A promise resolving to an array of minimal address lookup objects.
  *
  * @throws {AppError} Throws a database error if the query fails.
  */
-const getCustomerAddressLookupById = async (customerId) => {
+const getCustomerAddressLookupById = async ({
+                                              filters = {},
+                                              includeUnassigned = false,
+                                            }) => {
+  const { whereClause, params } = buildAddressFilter(filters, includeUnassigned);
+  
   const queryText = `
     SELECT
       id,
@@ -293,26 +301,54 @@ const getCustomerAddressLookupById = async (customerId) => {
       state,
       postal_code,
       country
-    FROM addresses
-    WHERE customer_id = $1
+    FROM addresses a
+    WHERE ${whereClause}
     ORDER BY created_at DESC;
   `;
   
   try {
     logSystemInfo('Fetching customer address lookup data', {
       context: 'address-repository/getCustomerAddressLookupById',
-      customerId,
+      filters,
     });
     
-    const { rows } = await query(queryText, [customerId]);
+    const { rows } = await query(queryText, params);
     return rows;
   } catch (error) {
     logSystemException(error, 'Failed to fetch customer address lookup data', {
       context: 'address-repository/getCustomerAddressLookupById',
-      customerId,
+      filters,
     });
     throw AppError.databaseError('Failed to fetch customer addresses.');
   }
+};
+
+/**
+ * Checks whether there are any addresses in the system
+ * that are not yet assigned to any customer (i.e., customer_id IS NULL).
+ *
+ * Typically used in admin flows or order creation fallback logic
+ * to determine whether generic/unlinked addresses exist.
+ *
+ * @returns {Promise<boolean>} - Resolves to true if at least one unassigned address exists.
+ * @throws {AppError} - If the underlying database check fails.
+ */
+const hasUnassignedAddresses = async () => {
+  return await checkRecordExists('addresses', { customer_id: null });
+};
+
+/**
+ * Checks whether the specified customer has any assigned addresses.
+ *
+ * Used to determine if the customer already has their own address records,
+ * before deciding whether to include fallback unassigned addresses.
+ *
+ * @param {string} customerId - The UUID of the customer to check.
+ * @returns {Promise<boolean>} - Resolves to true if the customer has any addresses.
+ * @throws {AppError} - If the underlying database check fails.
+ */
+const hasAssignedAddresses = async (customerId) => {
+  return await checkRecordExists('addresses', { customer_id: customerId });
 };
 
 module.exports = {
@@ -320,4 +356,6 @@ module.exports = {
   getEnrichedAddressesByIds,
   getPaginatedAddresses,
   getCustomerAddressLookupById,
+  hasUnassignedAddresses,
+  hasAssignedAddresses,
 };

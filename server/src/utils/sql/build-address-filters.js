@@ -23,19 +23,24 @@ const AppError = require('../AppError');
  * @param {string} [filters.createdBefore] - Filter by created_at <=.
  * @param {string} [filters.updatedAfter] - (Optional) Filter by updated_at >=.
  * @param {string} [filters.updatedBefore] - (Optional) Filter by updated_at <=.
+ * @param {boolean} [includeUnassigned=false] - If true, include addresses where customer_id is null in addition to matching customerId.
  *
  * @returns {{ whereClause: string, params: any[] }} - WHERE clause + parameters.
  *
  * @throws {AppError} - Throws on failure to build condition.
  */
-const buildAddressFilter = (filters = {}) => {
+const buildAddressFilter = (filters = {}, includeUnassigned = false) => {
   try {
     const conditions = ['1=1'];
     const params = [];
     let paramIndex = 1;
     
     if (filters.customerId) {
-      conditions.push(`a.customer_id = $${paramIndex}`);
+      if (includeUnassigned) {
+        conditions.push(`(a.customer_id = $${paramIndex} OR a.customer_id IS NULL)`);
+      } else {
+        conditions.push(`a.customer_id = $${paramIndex}`);
+      }
       params.push(filters.customerId);
       paramIndex++;
     }
@@ -109,7 +114,6 @@ const buildAddressFilter = (filters = {}) => {
       context: 'address-repository/buildAddressFilter',
       error: err.message,
       filters,
-      statusId,
     });
     throw AppError.databaseError(
       'Failed to prepare address filter',
