@@ -53,9 +53,9 @@ const prepareCustomersForInsert = async (customers, createdBy) => {
  * @param {string} purpose - Context of the filtering, e.g., 'insert_response', 'detail_view'.
  * @returns {object} Filtered customer object.
  */
-const filterCustomerForViewer = (customer, user, purpose = 'detail_view') => {
-  const canViewAudit = checkPermissions(user, ['view_customer_audit']);
-  const canViewDetails = checkPermissions(user, ['view_customer_detail']);
+const filterCustomerForViewer = async (customer, user, purpose = 'detail_view') => {
+  const canViewAudit = await checkPermissions(user, ['view_customer_audit']);
+  const canViewDetails = await checkPermissions(user, ['view_customer_detail']);
   
   const base = {
     id: customer.id,

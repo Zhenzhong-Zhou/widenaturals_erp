@@ -174,6 +174,21 @@ const SORTABLE_FIELDS = {
     customer_name: 'c.firstname',
     customer_email: 'c.email',
   },
+  orderTypeSortMap: {
+    name: 'ot.name',
+    category: 'ot.category',
+    requires_payment: 'ot.requires_payment',
+    description: 'ot.description',
+    
+    status_name: 's.name',
+    status_date: 'ot.status_date',
+    
+    created_at: 'ot.created_at',
+    updated_at: 'ot.updated_at',
+    
+    created_by: 'u1.firstname', // or concat name if joined properly
+    updated_by: 'u2.firstname',
+  },
 };
 
 module.exports = {

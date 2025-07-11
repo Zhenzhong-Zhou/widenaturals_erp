@@ -15,9 +15,9 @@ const { getAddressById, assignCustomerToAddress } = require('../repositories/add
  * @param {string} [purpose='detail_view'] - The purpose of the response ('insert_response', 'detail_view', 'admin_view').
  * @returns {Object} The filtered address object suitable for the viewer.
  */
-const filterAddressForViewer = (address, user, purpose = 'detail_view') => {
-  const canViewAudit = checkPermissions(user, ['view_address_audit']);
-  const canViewDetails = checkPermissions(user, ['view_address_detail']);
+const filterAddressForViewer = async (address, user, purpose = 'detail_view') => {
+  const canViewAudit = await checkPermissions(user, ['view_address_audit']);
+  const canViewDetails = await checkPermissions(user, ['view_address_detail']);
   
   const base = {
     id: address.id,

@@ -1,64 +1,91 @@
-const {
-  getAllOrderTypes,
-  getOrderTypes,
-} = require('../repositories/order-type-repository');
-const { logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
+const { sanitizeSortBy } = require('../utils/sort-utils');
+const {
+  logSystemException,
+  logSystemInfo
+} = require('../utils/system-logger');
+const {
+  getPaginatedOrderTypes,
+} = require('../repositories/order-type-repository');
+const { transformPaginatedOrderTypes } = require('../transformers/order-type-transformer');
+const { canViewOrderTypeCode } = require('../business/order-type-business');
 
 /**
- * Fetch all order types with business logic
- * @returns {Promise<Array>} List of order types
+ * Fetches paginated order types with optional filtering, sorting, and logging.
+ *
+ * Applies sorting rules based on the order type sort map,
+ * transforms raw DB rows into client-friendly format,
+ * and logs the operation for monitoring.
+ *
+ * @param {Object} options - Service options.
+ * @param {Object} [options.filters={}] - Filters to apply (e.g., category, keyword, requiresPayment).
+ * @param {Object} [options.user] - The user performing the request (for audit logging).
+ * @param {number} [options.page=1] - Page number (1-based).
+ * @param {number} [options.limit=10] - Number of records per page.
+ * @param {string} [options.sortBy='name'] - Field to sort by (uses orderTypeSortMap).
+ * @param {'ASC'|'DESC'} [options.sortOrder='ASC'] - Sort direction.
+ *
+ * @returns {Promise<Object>} Paginated result containing transformed order type rows and pagination metadata.
+ *
+ * @throws {AppError} Throws a service error if fetching fails.
  */
-const fetchAllOrderTypes = async (
-  page = 1,
-  limit = 10,
-  sortBy = 'name',
-  sortOrder = 'ASC'
-) => {
+const fetchPaginatedOrderTypesService = async ({
+                                                 filters = {},
+                                                 user,
+                                                 page = 1,
+                                                 limit = 10,
+                                                 sortBy = 'name',
+                                                 sortOrder = 'ASC',
+                                               }) => {
   try {
-    // Ensure valid pagination params
-    if (page < 1 || limit < 1) {
-      throw AppError.validationError('Invalid pagination parameters');
-    }
+    // Restrict use of `code` in filtering and sorting if a user lacks permission
+    const canViewCode = await canViewOrderTypeCode(user);
 
-    const { data, pagination } = await getAllOrderTypes(
+    // Prevent unauthorized filtering by `code`
+    if (!canViewCode && 'code' in filters) {
+      throw AppError.authorizationError('Filtering by code is not allowed.');
+    }
+    
+    // Prevent unauthorized sorting by `code`
+    if (!canViewCode && sortBy === 'code') {
+      throw AppError.authorizationError('Sorting by code is not allowed.');
+    }
+    
+    // Sanitize sort field using the orderTypeSortMap
+    const sortField = sanitizeSortBy(sortBy, 'orderTypeSortMap');
+    
+    const rawResult = await getPaginatedOrderTypes({
+      filters,
       page,
       limit,
-      sortBy,
-      sortOrder
-    );
-
-    if (!data || data.length === 0) {
-      return {
-        message: 'No order types found',
-        data: [],
-        pagination: { page: 0, limit: 0, totalRecords: 0, totalPages: 0 },
-      };
-    }
-
-    return { message: 'Order types retrieved successfully', data, pagination };
+      sortBy: sortField,
+      sortOrder,
+    });
+    
+    const result = transformPaginatedOrderTypes(rawResult, user);
+    
+    logSystemInfo('Fetched paginated order types', {
+      context: 'order-type-service/fetchPaginatedOrderTypesService',
+      userId: user?.id,
+      filters,
+      pagination: { page, limit },
+      sort: { sortBy: sortField, sortOrder },
+    });
+    
+    return result;
   } catch (error) {
-    logError('Error in getAllOrderTypes service:', error);
-    throw AppError.serviceError('Failed to retrieve order types');
-  }
-};
-
-const fetchOrderTypesForDropdown = async () => {
-  try {
-    const orderTypes = await getOrderTypes('dropdown');
-
-    if (!orderTypes || orderTypes.length === 0) {
-      return { data: [] };
-    }
-
-    return { data: orderTypes };
-  } catch (error) {
-    logError('Service Error - getOrderTypesForDropdown:', error);
-    throw AppError.serviceError('Failed to fetch order types for dropdown.');
+    logSystemException(error, 'Failed to fetch paginated order types', {
+      context: 'order-type-service/fetchPaginatedOrderTypesService',
+      userId: user?.id,
+      filters,
+      pagination: { page, limit },
+      sort: { sortBy, sortOrder },
+    });
+    
+    throw AppError.serviceError('Failed to fetch order type list.');
   }
 };
 
 module.exports = {
-  fetchAllOrderTypes,
-  fetchOrderTypesForDropdown,
+  fetchPaginatedOrderTypesService,
 };

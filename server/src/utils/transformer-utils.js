@@ -12,29 +12,31 @@ const transformRows = (rows, transformer) => {
 
 /**
  * Transforms a generic paginated result using a row-level transformer.
+ * Supports both synchronous and asynchronous transform functions.
  *
- * @param {Object} paginatedResult - The paginated query result.
- * @param {Function} transformFn - Function to apply to each data row.
+ * @param {Object} paginatedResult - The paginated query result with `data` and `pagination`.
+ * @param {Function} transformFn - Transformer function to apply to each data row.
+ *   Can return either a plain object or a Promise that resolves to one.
  * @param {Object} [options] - Optional behavior flags.
- * @param {boolean} [options.includeLoadMore=false] - Include top-level `items`, `offset`, `hasMore`.
- * @returns {Object} Transformed result with pagination and optionally load-more fields.
+ * @param {boolean} [options.includeLoadMore=false] - Include load-more structure instead of pagination.
+ * @returns {Promise<Object>} Transformed result with pagination or loadMore format.
  */
-const transformPaginatedResult = (
+const transformPaginatedResult = async (
   paginatedResult,
   transformFn,
   options = {}
 ) => {
   const { data = [], pagination = {} } = paginatedResult;
-
-  const transformedItems = data.map(transformFn);
-
+  
+  const transformedItems = await Promise.all(data.map(transformFn));
+  
   // Support both page and offset style
   const page = Number(pagination.page ?? 1);
   const limit = Number(pagination.limit ?? 10);
   const totalRecords = Number(pagination.totalRecords ?? 0);
   const offset = pagination.offset ?? (page - 1) * limit;
   const totalPages = pagination.totalPages ?? Math.ceil(totalRecords / limit);
-
+  
   if (options.includeLoadMore) {
     return {
       items: transformedItems,
@@ -43,7 +45,7 @@ const transformPaginatedResult = (
       hasMore: offset + transformedItems.length < totalRecords,
     };
   }
-
+  
   return {
     data: transformedItems,
     pagination: {
