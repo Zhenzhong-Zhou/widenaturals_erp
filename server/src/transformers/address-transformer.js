@@ -128,10 +128,7 @@ const transformPaginatedAddressRow = (row) => {
  * cleaned and formatted address data.
  */
 const transformPaginatedAddressResults = (paginatedResult) => {
-  return transformPaginatedResult(
-    paginatedResult,
-    (row) => transformPaginatedAddressRow(row)
-  );
+  return transformPaginatedResult(paginatedResult, transformPaginatedAddressRow);
 };
 
 module.exports = {
