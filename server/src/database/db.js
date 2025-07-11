@@ -1048,6 +1048,83 @@ const bulkInsert = async (
 };
 
 /**
+ * Generic PG-based single-record update by ID with optional metadata fields.
+ *
+ * Performs a parameterized SQL UPDATE for a given table and ID, optionally injecting
+ * audit metadata fields like `updated_at` and `updated_by`. This function is safe for use
+ * inside transactions and supports customizable field names via the `options` parameter.
+ *
+ * @param {string} table - The name of the table to update.
+ * @param {string} id - The primary key (UUID) of the record to update.
+ * @param {object} updates - An object representing the fields and values to update.
+ * @param {string} [userId] - Optional user ID to populate the `updated_by` field.
+ * @param {object} client - The PostgreSQL client or transaction object.
+ * @param {object} [options] - Optional configuration for metadata fields.
+ * @param {string} [options.updatedAtField='updated_at'] - Name of the timestamp field.
+ * @param {string} [options.updatedByField='updated_by'] - Name of the user ID field.
+ *
+ * @returns {Promise<object>} The updated record's ID: `{ id: string }`.
+ *
+ * @throws {AppError} Throws a validation error for bad input, or a database error if the update fails.
+ *
+ * @warning Ensure that the target table contains the metadata fields (`updated_at`, `updated_by`) or their configured equivalents.
+ *          If these columns are not present, the query will fail at runtime.
+ */
+const updateById = async (
+  table,
+  id,
+  updates = {},
+  userId,
+  client,
+  options = {}
+) => {
+  const {
+    updatedAtField = 'updated_at',
+    updatedByField = 'updated_by',
+  } = options;
+  
+  if (!id || typeof id !== 'string' || !table || typeof table !== 'string') {
+    throw AppError.validationError('Invalid parameters for updateById');
+  }
+  
+  const updateData = { ...updates };
+  
+  if (updatedAtField) updateData[updatedAtField] = new Date();
+  if (userId && updatedByField) updateData[updatedByField] = userId;
+  
+  const fields = Object.keys(updateData);
+  if (fields.length === 0) {
+    throw AppError.validationError('No fields provided to update.');
+  }
+  
+  const setClauses = fields.map((field, idx) => `${field} = $${idx + 2}`);
+  const values = [id, ...fields.map((f) => updateData[f])];
+  
+  const sql = `
+    UPDATE ${table}
+    SET ${setClauses.join(', ')}
+    WHERE id = $1
+    RETURNING id
+  `;
+  
+  try {
+    const result = await client.query(sql, values);
+    if (result.rowCount === 0) {
+      throw AppError.notFoundError(`Record not found in '${table}' with id: ${id}`);
+    }
+    return result.rows[0]; // { id: '...' }
+  } catch (error) {
+    logSystemException(error, 'Failed to update record by ID', {
+      context: 'db/updateById',
+      table,
+      id,
+      fields: Object.keys(updates),
+    });
+    throw AppError.databaseError(`Failed to update ${table} record.`);
+  }
+};
+
+/**
  * Generates a bulk update SQL query for updating multiple rows in a given table.
  *
  * @param {string} table - The name of the table to update.
@@ -1321,6 +1398,7 @@ module.exports = {
   lockRow,
   lockRows,
   bulkInsert,
+  updateById,
   formatBulkUpdateQuery,
   getUniqueScalarValue,
   checkRecordExists,

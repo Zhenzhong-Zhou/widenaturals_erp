@@ -1,5 +1,5 @@
 const { validateBulkInsertRows } = require('../database/db-utils');
-const { bulkInsert, query, paginateQuery, checkRecordExists } = require('../database/db');
+const { bulkInsert, query, paginateQuery, checkRecordExists, getFieldsById, updateById } = require('../database/db');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 const { buildAddressFilter } = require('../utils/sql/build-address-filters');
@@ -351,6 +351,50 @@ const hasAssignedAddresses = async (customerId) => {
   return await checkRecordExists('addresses', { customer_id: customerId });
 };
 
+/**
+ * Retrieves an address by its ID, returning only the `id` and `customer_id` fields.
+ * This function is primarily used for validating or assigning customer ownership
+ * during sales order creation and related business logic.
+ *
+ * @param {string} id - The unique identifier of the address.
+ * @param {object} client - The database transaction client (e.g., pg or Knex).
+ * @returns {Promise<{ id: string, customer_id: string | null } | null>}
+ *   A partial address object if found, otherwise null.
+ *
+ * @throws {AppError} If invalid input is provided or a database error occurs.
+ */
+const getAddressById = async (id, client) => {
+  return await getFieldsById('addresses', id, ['id', 'customer_id'], client);
+};
+
+/**
+ * Assigns a customer to an existing address by updating the `customer_id` field.
+ * Typically used when a customer is claiming an orphan (unassigned) address during order creation.
+ *
+ * This function performs a safe, audited update and relies on `updateById` for validation,
+ * metadata injection (`updated_at`, `updated_by`), and error handling.
+ *
+ * @param {string} addressId - The ID of the address to assign.
+ * @param {string} customerId - The customer ID to associate with the address.
+ * @param {object} client - The PostgreSQL client or transaction object.
+ * @param {string} [userId] - Optional ID of the user performing the operation.
+ *
+ * @returns {Promise<{ id: string }>} An object containing the updated address ID.
+ *
+ * @throws {AppError} If the address does not exist or the update fails.
+ */
+const assignCustomerToAddress = async (addressId, customerId, client, userId) => {
+  return await updateById(
+    'addresses',
+    addressId,
+    { customer_id: customerId },
+    userId,
+    client
+    // optional: pass custom metadata fields as 6th arg if needed
+    // { updatedAtField: 'modified_at', updatedByField: 'modified_by' }
+  );
+};
+
 module.exports = {
   insertAddressRecords,
   getEnrichedAddressesByIds,
@@ -358,4 +402,6 @@ module.exports = {
   getCustomerAddressLookupById,
   hasUnassignedAddresses,
   hasAssignedAddresses,
+  getAddressById,
+  assignCustomerToAddress,
 };

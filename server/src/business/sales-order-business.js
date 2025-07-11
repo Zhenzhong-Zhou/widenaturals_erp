@@ -8,6 +8,7 @@ const { getTaxRateById } = require('../repositories/tax-rate-repository');
 const { calculateTaxableAmount } = require('./tax-rate-business');
 const { insertSalesOrder } = require('../repositories/sales-order-repository');
 const { insertOrderItemsBulk } = require('../repositories/order-item-repository');
+const { validateAndAssignAddressOwnership } = require('./address-business');
 
 /**
  * Validates the existence of foreign key IDs in a sales order payload.
@@ -24,8 +25,6 @@ const validateSalesOrderIds = async (orderData, client) => {
   try {
     const {
       customer_id,
-      shipping_address_id,
-      billing_address_id,
       payment_status_id,
       payment_method_id,
       delivery_method_id,
@@ -34,8 +33,6 @@ const validateSalesOrderIds = async (orderData, client) => {
     
     const validations = [
       [customer_id, 'customers'],
-      [shipping_address_id, 'addresses'],
-      [billing_address_id, 'addresses'],
       [payment_status_id, 'payment_status'],
       [payment_method_id, 'payment_methods'],
       [delivery_method_id, 'delivery_methods'],
@@ -119,17 +116,33 @@ const buildOrderMetadata = (enrichedItems) => {
 };
 
 /**
- * Creates a sales order with associated pricing calculations and item inserts.
+ * Creates a sales order with calculated totals and associated order item inserts.
  *
- * @param {object} orderData - The full order payload.
- * @param {PoolClient} client - DB client inside a transaction.
- * @returns {Promise<object>} - The inserted sales order record.
- * @throws {AppError} - If any validation or insertion fails.
+ * This function handles business-layer validations including
+ * - Ensuring the presence of at least one order item
+ * - Enforcing the presence of shipping and billing addresses
+ * - Verifying address ownership against the customer
+ * - Validating all referenced foreign keys (products, pricing, etc.)
+ * - Applying discounts, taxes, and calculating totals
+ *
+ * @param {object} orderData - Full sales order input payload including items, addresses, and pricing data.
+ * @param {PoolClient} client - PostgreSQL client within an open transaction.
+ *
+ * @returns {Promise<object>} The inserted sales order record.
+ *
+ * @throws {AppError} If validation fails or insertion errors occur. Specific errors include:
+ * - Missing order items
+ * - Missing shipping or billing address
+ * - Address ownership mismatch
+ * - Invalid foreign key references (product, customer, tax rate, etc.)
  */
 const createSalesOrder = async (orderData, client) => {
   try {
     const {
       id: order_id,
+      customer_id,
+      shipping_address_id,
+      billing_address_id,
       order_items = [],
       discount_id,
       tax_rate_id,
@@ -140,8 +153,8 @@ const createSalesOrder = async (orderData, client) => {
       ...salesData
     } = orderData;
     
-    // Validate that order contains at least one item.
-    // This prevents creating empty sales orders, which could break downstream logic.
+    // Ensure the order includes at least one item.
+    // Prevents creating empty sales orders that would break downstream logic.
     if (!Array.isArray(order_items) || order_items.length === 0) {
       logSystemException(new Error('Empty order_items'), 'Missing order items for sales order', {
         context: 'sales-order-business/createSalesOrder',
@@ -152,16 +165,21 @@ const createSalesOrder = async (orderData, client) => {
       throw AppError.validationError('Sales order must include at least one item.');
     }
 
-    // Ensure shipping address is provided for fulfillment.
-    // Enforced at the business layer to allow DB flexibility (nullable columns for drafts, etc.)
-    if (!orderData.shipping_address_id) {
+    // Ensure shipping address is provided (required for fulfillment).
+    // This is enforced in the business layer, even if the DB allows nulls for drafts.
+    if (!shipping_address_id) {
       throw AppError.validationError('Shipping address is required.');
     }
 
-    // Ensure billing address is provided for invoicing and tax compliance.
-    if (!orderData.billing_address_id) {
+    // Ensure billing address is provided (required for invoicing and tax compliance).
+    if (!billing_address_id) {
       throw AppError.validationError('Billing address is required.');
     }
+
+    // Validate that each address belongs to the given customer.
+    // Assigns the customer to the address if it's unclaimed.
+    await validateAndAssignAddressOwnership(shipping_address_id, customer_id, client);
+    await validateAndAssignAddressOwnership(billing_address_id, customer_id, client);
     
     // Step 1: Validate all IDs
     await validateSalesOrderIds(orderData, client);

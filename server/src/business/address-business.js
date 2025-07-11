@@ -1,4 +1,7 @@
 const { checkPermissions } = require('../services/role-permission-service');
+const AppError = require('../utils/AppError');
+const { logSystemInfo, logSystemException } = require('../utils/system-logger');
+const { getAddressById, assignCustomerToAddress } = require('../repositories/address-repository');
 
 /**
  * Filters and formats an address record for the viewer based on permissions and purpose.
@@ -56,6 +59,49 @@ const filterAddressForViewer = (address, user, purpose = 'detail_view') => {
   return base;
 };
 
+/**
+ * Validates that the given address belongs to the specified customer.
+ * If the address is unassigned (customer_id is null), it will be assigned to the customer.
+ *
+ * This function enforces address ownership constraints required for sales order creation.
+ * It also performs the mutation safely within the passed transaction client.
+ *
+ * @param {string} addressId - The ID of the address to validate.
+ * @param {string} customerId - The ID of the customer that must own the address.
+ * @param {object} client - The database transaction client (e.g., pg or Knex transaction).
+ * @throws {AppError} - If address is not found or owned by another customer.
+ */
+const validateAndAssignAddressOwnership = async (addressId, customerId, client) => {
+  try {
+    const address = await getAddressById(addressId, client);
+    
+    if (!address) {
+      throw AppError.notFoundError(`Address not found: ${addressId}`);
+    }
+    
+    if (address.customer_id && address.customer_id !== customerId) {
+      throw AppError.validationError(`Address ${addressId} does not belong to the selected customer`);
+    }
+    
+    if (!address.customer_id) {
+      await assignCustomerToAddress(addressId, customerId, client);
+      logSystemInfo('Assigned orphan address to customer', {
+        context: 'addressBusiness/validateAndAssignAddressOwnership',
+        address_id: addressId,
+        assigned_to_customer_id: customerId,
+      });
+    }
+  } catch (error) {
+    logSystemException(error, 'Failed to validate or assign address ownership', {
+      context: 'addressBusiness/validateAndAssignAddressOwnership',
+      address_id: addressId,
+      customer_id: customerId,
+    });
+    throw AppError.businessError('Address ownership validation failed.');
+  }
+};
+
 module.exports = {
   filterAddressForViewer,
+  validateAndAssignAddressOwnership,
 }
