@@ -55,15 +55,19 @@ export const selectCustomerLookupMeta = createSelector(
 );
 
 /**
- * Selector to transform customer lookup items into `{ label, value }` format.
+ * Selector to transform customer lookup items into `{ label, value, hasAddress }` format.
  *
- * @returns An array of dropdown-compatible options
+ * This is useful for dropdowns or autocomplete components that need to display
+ * whether a customer has an associated address.
+ *
+ * @returns An array of customer options with `label`, `value`, and `hasAddress` fields
  */
 export const selectCustomerLookupOptions = createSelector(
   [selectCustomerLookupItems],
-  (items: CustomerLookupItem[]): { label: string; value: string }[] =>
+  (items: CustomerLookupItem[]): { label: string; value: string; hasAddress: boolean }[] =>
     items.map((item) => ({
       label: item.label,
       value: item.id,
+      hasAddress: item.hasAddress ?? false,
     }))
 );

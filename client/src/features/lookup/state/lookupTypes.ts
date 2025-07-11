@@ -202,13 +202,17 @@ export interface CustomerLookupQuery {
   offset?: number;
 }
 
-export type CustomerLookupItem = LookupItem;
+export interface CustomerLookupItem extends LookupItem {
+  hasAddress: boolean;
+}
 
 export type CustomerLookupResponse = LookupSuccessResponse<CustomerLookupItem>;
 
 export type CustomerLookupState = PaginatedLookupState<CustomerLookupItem>;
 
-export type CustomerOption = LookupOption;
+export interface CustomerOption extends LookupOption {
+  hasAddress: boolean;
+}
 
 /**
  * Represents a minimal address object returned by a customer-address lookup.

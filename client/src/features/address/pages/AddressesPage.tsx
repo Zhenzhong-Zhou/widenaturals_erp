@@ -3,6 +3,10 @@ import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
 import Divider from '@mui/material/Divider';
+import {
+  faMapMarkerAlt,
+  faQuestionCircle,
+} from '@fortawesome/free-solid-svg-icons';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
 import AddressCreateDialog from '@features/address/components/AddressCreateDialog';
@@ -18,7 +22,7 @@ import { usePaginationHandlers } from '@utils/hooks/usePaginationHandlers';
 import type { SortOrder } from '@shared-types/api';
 import useCustomerLookup from '@hooks/useCustomerLookup';
 import type { CustomerLookupQuery } from '@features/lookup/state';
-import { applyFiltersAndSorting } from '@utils/queryUtils.ts';
+import { applyFiltersAndSorting } from '@utils/queryUtils';
 
 const AddressesPage: FC = () => {
   const createButtonRef = useRef<HTMLButtonElement>(null);
@@ -71,7 +75,21 @@ const AddressesPage: FC = () => {
   
   const deduplicatedOptions = useMemo(() => {
     return Array.from(
-      new Map(customerDropdownOptions.map((opt) => [opt.value, opt])).values()
+      new Map(
+        customerDropdownOptions.map((opt) => {
+          const hasAddr = opt.hasAddress ?? false;
+          
+          return [
+            opt.value,
+            {
+              ...opt,
+              icon: hasAddr ? faMapMarkerAlt : faQuestionCircle,
+              tooltip: hasAddr ? 'Has Address' : 'No Address',
+              iconColor: hasAddr ? 'green' : 'gray',
+            },
+          ];
+        })
+      ).values()
     );
   }, [customerDropdownOptions]);
   

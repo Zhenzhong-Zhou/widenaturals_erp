@@ -1,4 +1,11 @@
-import { useMemo, type FC, type SyntheticEvent, type UIEvent } from 'react';
+import {
+  useMemo,
+  type FC,
+  type SyntheticEvent,
+  type UIEvent,
+  type JSX,
+  isValidElement,
+} from 'react';
 import Autocomplete, {
   type AutocompleteProps,
 } from '@mui/material/Autocomplete';
@@ -6,7 +13,9 @@ import Box from '@mui/material/Box';
 import MenuItem from '@mui/material/MenuItem';
 import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
+import Tooltip from '@mui/material/Tooltip';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import type { IconProp } from '@fortawesome/fontawesome-svg-core';
 import { faPlus, faSyncAlt } from '@fortawesome/free-solid-svg-icons';
 import CustomTypography from '@components/common/CustomTypography';
 import BaseInput from '@components/common/BaseInput';
@@ -14,11 +23,13 @@ import Loading from '@components/common/Loading';
 import ErrorMessage from '@components/common/ErrorMessage';
 import { useThemeContext } from '@context/ThemeContext';
 
-interface OptionType {
+export interface OptionType {
   value: string | null;
   label: string;
-  icon?: typeof faSyncAlt;
   type?: string; // e.g., 'product' | 'material' | etc.
+  icon?: IconProp | JSX.Element;
+  iconColor?: string;
+  tooltip?: string;
   [key: string]: any;
 }
 
@@ -250,35 +261,45 @@ const Dropdown: FC<DropdownProps> = ({
                 key={`option-${option.value}`}
                 data-value={option.value}
                 sx={{
-                  backgroundColor:
-                    option.value === 'add' || option.value === 'refresh'
-                      ? theme.palette.backgroundCustom.customDark
-                      : 'inherit',
-                  color:
-                    option.value === 'add'
-                      ? theme.palette.actionCustom.addNew
-                      : option.value === 'refresh'
-                        ? theme.palette.actionCustom.refresh
-                        : 'inherit',
-                  '&:hover': {
-                    backgroundColor:
-                      option.value === 'add' || option.value === 'refresh'
-                        ? theme.palette.backgroundCustom.customHover
-                        : 'inherit',
-                    textDecoration:
-                      option.value === 'add' || option.value === 'refresh'
-                        ? 'underline'
-                        : 'none',
-                  },
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
                 }}
               >
+                {/* Support both FontAwesomeIcon and JSX */}
                 {option.icon && (
-                  <FontAwesomeIcon
-                    icon={option.icon}
-                    style={{ marginRight: 8 }}
-                  />
+                  <Box
+                    component="span"
+                    sx={{ display: 'flex', alignItems: 'center', marginRight: 1 }}
+                  >
+                    {option.tooltip ? (
+                      <Tooltip title={option.tooltip}>
+                        <span>
+                          {isValidElement(option.icon) ? (
+                            option.icon
+                          ) : (
+                            <FontAwesomeIcon
+                              icon={option.icon as IconProp}
+                              color={option.iconColor ?? 'inherit'}
+                              style={{ marginRight: 8 }}
+                            />
+                          )}
+                        </span>
+                      </Tooltip>
+                    ) : (
+                      isValidElement(option.icon) ? (
+                        option.icon
+                      ) : (
+                        <FontAwesomeIcon
+                          icon={option.icon as IconProp}
+                          color={option.iconColor ?? 'inherit'}
+                          style={{ marginRight: 8 }}
+                        />
+                      )
+                    )}
+                  </Box>
                 )}
-                {option.label}
+                <span>{option.label}</span>
               </MenuItem>
             )}
             {error && (

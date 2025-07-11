@@ -1,11 +1,11 @@
 import type { Dispatch, SetStateAction } from 'react';
 import type { LookupPaginationMeta } from '@features/lookup/state';
-import Dropdown from '@components/common/Dropdown';
+import Dropdown, { type OptionType } from '@components/common/Dropdown';
 
 export interface PaginatedDropdownProps<TParams> {
   label?: string;
   value: string | null;
-  options: { value: string; label: string }[];
+  options: OptionType[];
   loading?: boolean;
   error?: string | null;
   paginationMeta?: LookupPaginationMeta;

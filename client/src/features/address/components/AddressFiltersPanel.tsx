@@ -76,7 +76,7 @@ const AddressFiltersPanel: FC<Props> = ({
     <Box mb={2} p={2} border="1px solid #ccc" borderRadius={2}>
       <form onSubmit={handleSubmit(submitFilters)}>
         <Grid container spacing={2} sx={{ minHeight: 160 }}>
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <Controller
               name="customerId"
               control={control}
@@ -105,34 +105,7 @@ const AddressFiltersPanel: FC<Props> = ({
               )}
             />
           </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <Controller
-              name="keyword"
-              control={control}
-              render={({ field }) => (
-                <BaseInput {...field} value={field.value ?? ''} label="Search Keyword" placeholder="Label, Name, Email, etc." sx={{ minHeight: 56 }} />
-              )}
-            />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <Controller
-              name="region"
-              control={control}
-              render={({ field }) => (
-                <BaseInput {...field} value={field.value ?? ''} label="Region" sx={{ minHeight: 56 }} />
-              )}
-            />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <Controller
-              name="country"
-              control={control}
-              render={({ field }) => (
-                <BaseInput {...field} value={field.value ?? ''} label="Country" sx={{ minHeight: 56 }} />
-              )}
-            />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <Controller
               name="updatedBy"
               control={control}
@@ -141,9 +114,36 @@ const AddressFiltersPanel: FC<Props> = ({
               )}
             />
           </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+            <Controller
+              name="keyword"
+              control={control}
+              render={({ field }) => (
+                <BaseInput {...field} value={field.value ?? ''} label="Search Keyword" placeholder="Label, Name, Email, etc." sx={{ minHeight: 56 }} />
+              )}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+            <Controller
+              name="region"
+              control={control}
+              render={({ field }) => (
+                <BaseInput {...field} value={field.value ?? ''} label="Region" sx={{ minHeight: 56 }} />
+              )}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+            <Controller
+              name="country"
+              control={control}
+              render={({ field }) => (
+                <BaseInput {...field} value={field.value ?? ''} label="Country" sx={{ minHeight: 56 }} />
+              )}
+            />
+          </Grid>
           
           {/* Date Fields */}
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <Controller
               name="createdAfter"
               control={control}
@@ -152,7 +152,7 @@ const AddressFiltersPanel: FC<Props> = ({
               )}
             />
           </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <Controller
               name="createdBefore"
               control={control}
@@ -161,7 +161,7 @@ const AddressFiltersPanel: FC<Props> = ({
               )}
             />
           </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <Controller
               name="updatedAfter"
               control={control}
@@ -170,7 +170,7 @@ const AddressFiltersPanel: FC<Props> = ({
               )}
             />
           </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <Grid size={{ xs: 12, sm: 6 }}>
             <Controller
               name="updatedBefore"
               control={control}
