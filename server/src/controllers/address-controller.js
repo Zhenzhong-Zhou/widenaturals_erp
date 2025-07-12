@@ -4,7 +4,7 @@ const {
   createAddressService,
   fetchPaginatedAddressesService,
 } = require('../services/address-service');
-const { normalizePaginationParams } = require('../utils/request-utils');
+const { normalizePaginationParams } = require('../utils/query-normalizers');
 
 /**
  * Controller for creating one or more address records.

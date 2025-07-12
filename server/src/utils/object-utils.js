@@ -14,20 +14,6 @@ const cleanObject = (obj) => {
   );
 };
 
-/**
- * Normalizes a value into an array of trimmed strings.
- * Accepts comma-separated strings or arrays. Returns undefined if input is falsy.
- *
- * @param {string|string[]|undefined|null} value
- * @returns {string[]|undefined}
- */
-const normalizeParamArray = (value) => {
-  if (!value) return undefined;
-  if (Array.isArray(value)) return value;
-  return value.split(',').map((v) => v.trim()).filter(Boolean);
-};
-
 module.exports = {
   cleanObject,
-  normalizeParamArray,
 };

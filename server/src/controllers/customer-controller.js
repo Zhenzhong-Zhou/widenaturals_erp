@@ -4,7 +4,7 @@ const {
 } = require('../services/customer-service');
 const wrapAsync = require('../utils/wrap-async');
 const { logInfo } = require('../utils/logger-helper');
-const { normalizePaginationParams } = require('../utils/request-utils');
+const { normalizePaginationParams } = require('../utils/query-normalizers');
 
 /**
  * Controller to handle the creation of one or multiple customers.

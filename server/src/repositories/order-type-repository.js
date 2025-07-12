@@ -69,6 +69,7 @@ const getPaginatedOrderTypes = async ({
       u2.lastname AS updated_by_lastname
     FROM ${tableName}
     ${joins.join('\n')}
+    WHERE ${whereClause}
   `;
 
   try {

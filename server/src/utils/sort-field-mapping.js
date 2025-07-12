@@ -176,6 +176,7 @@ const SORTABLE_FIELDS = {
   },
   orderTypeSortMap: {
     name: 'ot.name',
+    code: 'ot.code',
     category: 'ot.category',
     requires_payment: 'ot.requires_payment',
     description: 'ot.description',

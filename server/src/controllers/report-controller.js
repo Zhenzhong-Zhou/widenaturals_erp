@@ -1,6 +1,6 @@
 const wrapAsync = require('../utils/wrap-async');
 const { fetchInventoryActivityLogsService } = require('../services/report-service');
-const { normalizeParamArray } = require('../utils/object-utils');
+const { normalizeParamArray } = require('../utils/query-normalizers');
 
 /**
  * Controller: Handle request to get an inventory activity logs report

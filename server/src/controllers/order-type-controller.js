@@ -1,9 +1,11 @@
 const wrapAsync = require('../utils/wrap-async');
-const { normalizePaginationParams } = require('../utils/request-utils');
+const {
+  normalizeFilterKeys,
+  normalizePaginationParams
+} = require('../utils/query-normalizers');
 const {
   fetchPaginatedOrderTypesService,
 } = require('../services/order-type-service');
-const { normalizeFilterKeys } = require('../utils/query-normalizers');
 
 /**
  * Controller for fetching paginated order type records.
@@ -31,10 +33,13 @@ const { normalizeFilterKeys } = require('../utils/query-normalizers');
  * @throws {AppError} On service failure (handled by wrapAsync).
  */
 const getPaginatedOrderTypesController = wrapAsync(async (req, res) => {
-  const { page, limit, sortOrder } = normalizePaginationParams(req.query);
-  const { sortBy = 'name', ...rawFilters } = req.query;
-  
-  const filters = normalizeFilterKeys(rawFilters);
+  const {
+    page,
+    limit,
+    sortBy,
+    sortOrder,
+    filters,
+  } = req.normalizedQuery;
   
   const { data, pagination } = await fetchPaginatedOrderTypesService({
     user: req.user,

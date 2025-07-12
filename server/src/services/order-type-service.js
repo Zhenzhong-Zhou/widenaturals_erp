@@ -51,14 +51,11 @@ const fetchPaginatedOrderTypesService = async ({
       throw AppError.authorizationError('Sorting by code is not allowed.');
     }
     
-    // Sanitize sort field using the orderTypeSortMap
-    const sortField = sanitizeSortBy(sortBy, 'orderTypeSortMap');
-    
     const rawResult = await getPaginatedOrderTypes({
       filters,
       page,
       limit,
-      sortBy: sortField,
+      sortBy,
       sortOrder,
     });
     
@@ -69,7 +66,7 @@ const fetchPaginatedOrderTypesService = async ({
       userId: user?.id,
       filters,
       pagination: { page, limit },
-      sort: { sortBy: sortField, sortOrder },
+      sort: { sortBy, sortOrder },
     });
     
     return result;
