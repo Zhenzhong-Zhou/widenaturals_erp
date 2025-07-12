@@ -4,7 +4,6 @@ const {
   createAddressService,
   fetchPaginatedAddressesService,
 } = require('../services/address-service');
-const { normalizePaginationParams } = require('../utils/query-normalizers');
 
 /**
  * Controller for creating one or more address records.
@@ -72,10 +71,13 @@ const createAddressController = wrapAsync(async (req, res) => {
  * @throws {AppError} On service failure (handled by wrapAsync).
  */
 const getPaginatedAddressesController = wrapAsync(async (req, res) => {
-  const { page, limit, sortOrder } = normalizePaginationParams(req.query);
-  const { sortBy = 'createdAt', ...restQuery } = req.query;
-  
-  const filters = { ...restQuery };
+  const {
+    page,
+    limit,
+    sortBy,
+    sortOrder,
+    filters,
+  } = req.normalizedQuery;
   
   const { data, pagination } = await fetchPaginatedAddressesService({
     user: req.user,

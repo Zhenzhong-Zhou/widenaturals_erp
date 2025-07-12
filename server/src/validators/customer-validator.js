@@ -62,7 +62,7 @@ const customerFilterSchema = Joi.object({
   
   region: Joi.string().optional().allow(null),
   country: Joi.string().optional().allow(null),
-  createdBy: Joi.string().uuid().optional().allow(null),
+  createdBy: Joi.string().guid({ version: 'uuidv4' }).optional().allow(null),
   keyword: Joi.string().trim().optional().allow(null),
   createdAfter: Joi.date().iso().optional().allow(null),
   createdBefore: Joi.date().iso().optional().allow(null),

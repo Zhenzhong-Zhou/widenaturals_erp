@@ -4,7 +4,6 @@ const {
 } = require('../services/customer-service');
 const wrapAsync = require('../utils/wrap-async');
 const { logInfo } = require('../utils/logger-helper');
-const { normalizePaginationParams } = require('../utils/query-normalizers');
 
 /**
  * Controller to handle the creation of one or multiple customers.
@@ -61,26 +60,13 @@ const createCustomerController = wrapAsync(async (req, res) => {
  * @returns {Promise<void>} - Responds with JSON on success
  */
 const getPaginatedCustomersController = wrapAsync(async (req, res) => {
-  const { page, limit, sortOrder } = normalizePaginationParams(req.query);
-  
-  const { sortBy = 'createdAt', ...restQuery } = req.query;
-  
-  const raw = req.query.onlyWithAddress;
-  
-  const onlyWithAddress =
-    raw === true || raw === false
-      ? raw
-      : raw === 'true'
-        ? true
-        : raw === 'false'
-          ? false
-          : undefined;
-
-  // Update the filter object with parsed boolean
-  const filters = {
-    ...restQuery,
-    onlyWithAddress, // override the raw value with parsed boolean
-  };
+  const {
+    page,
+    limit,
+    sortBy,
+    sortOrder,
+    filters,
+  } = req.normalizedQuery;
   
   const { data, pagination} = await fetchPaginatedCustomersService({
     user: req.user,

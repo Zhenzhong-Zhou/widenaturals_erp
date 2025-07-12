@@ -10,6 +10,7 @@ const {
   customerFilterSchema
 } = require('../validators/customer-validator');
 const { sanitizeInput } = require('../middlewares/sanitize');
+const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
 
 const router = express.Router();
 
@@ -66,14 +67,16 @@ router.post(
 router.get(
   '/',
   authorize(['view_customer']),
+  createQueryNormalizationMiddleware(
+    ['createdBy', 'updatedBy'],         // array keys
+    ['onlyWithAddress'],                // boolean keys
+    'customerSortMap'                   // sort map module
+  ),
   sanitizeInput,
   validate(
     customerFilterSchema,
     'query',
-    {
-      convert: true,
-      stripUnknown: true,
-    },
+    { convert: true },
     'Invalid query parameters.'
   ),
   getPaginatedCustomersController

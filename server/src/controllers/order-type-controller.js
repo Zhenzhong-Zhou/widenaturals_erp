@@ -1,9 +1,5 @@
 const wrapAsync = require('../utils/wrap-async');
 const {
-  normalizeFilterKeys,
-  normalizePaginationParams
-} = require('../utils/query-normalizers');
-const {
   fetchPaginatedOrderTypesService,
 } = require('../services/order-type-service');
 

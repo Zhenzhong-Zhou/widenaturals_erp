@@ -1,5 +1,4 @@
 const AppError = require('../utils/AppError');
-const { sanitizeSortBy } = require('../utils/sort-utils');
 const {
   logSystemException,
   logSystemInfo

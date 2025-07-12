@@ -17,7 +17,6 @@ const {
   transformPaginatedAddressResults
 } = require('../transformers/address-transformer');
 const { filterAddressForViewer } = require('../business/address-business');
-const { sanitizeSortBy } = require('../utils/sort-utils');
 
 /**
  * Creates bulk address records with hash generation and DB insertion.
@@ -111,14 +110,11 @@ const fetchPaginatedAddressesService = async ({
                                                 sortOrder = 'DESC',
                                               }) => {
   try {
-    // Sanitize sortBy based on addressSortMap (you should define this map)
-    const sortField = sanitizeSortBy(sortBy, 'addressSortMap');
-    
     const rawResult = await getPaginatedAddresses({
       filters,
       page,
       limit,
-      sortBy: sortField,
+      sortBy,
       sortOrder,
     });
     
@@ -129,7 +125,7 @@ const fetchPaginatedAddressesService = async ({
       userId: user?.id,
       filters,
       pagination: { page, limit },
-      sort: { sortBy: sortField, sortOrder },
+      sort: { sortBy, sortOrder },
     });
     
     return result;

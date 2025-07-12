@@ -20,7 +20,6 @@ const {
   filterCustomerForViewer,
   resolveCustomerQueryOptions
 } = require('../business/customer-business');
-const { sanitizeSortBy } = require('../utils/sort-utils');
 
 /**
  * Creates multiple customers in bulk with validation and conflict handling.
@@ -141,16 +140,13 @@ const fetchPaginatedCustomersService = async ({
       overrideDefaultStatus,
     } = await resolveCustomerQueryOptions(user);
     
-    // Sanitize sortBy based on customerSortMap
-    const sortField = sanitizeSortBy(sortBy, 'customerSortMap');
-    
     const rawResult = await getPaginatedCustomers({
       filters,
       statusId,
       overrideDefaultStatus,
       page,
       limit,
-      sortBy: sortField,
+      sortBy,
       sortOrder,
     });
     
@@ -161,7 +157,7 @@ const fetchPaginatedCustomersService = async ({
       userId: user?.id,
       filters,
       pagination: { page, limit },
-      sort: { sortBy: sortField, sortOrder },
+      sort: { sortBy, sortOrder },
     });
     
     return result;
