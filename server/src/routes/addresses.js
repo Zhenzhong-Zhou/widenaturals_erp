@@ -107,7 +107,7 @@ router.get(
   authorize(['view_address']),
   createQueryNormalizationMiddleware(
     'addressSortMap',
-    ['customerId', 'createdBy', 'updatedBy'],
+    [],
     [],
     addressQuerySchema
   ),

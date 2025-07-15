@@ -95,9 +95,10 @@ const createQueryNormalizationMiddleware = (
     }
     
     // 6. Filter plain fields
+    const reservedKeys = new Set(['page', 'limit', 'offset', 'sortBy', 'sortOrder']);
     const filters = {};
     for (const key of filterKeys) {
-      if (trimmedQuery[key] !== undefined) {
+      if (!reservedKeys.has(key) && trimmedQuery[key] !== undefined) {
         filters[key] = trimmedQuery[key];
       }
     }
