@@ -10,6 +10,7 @@ import type {
   LotAdjustmentLookupQueryParams,
   LotAdjustmentTypeLookupResponse,
 } from '@features/lookup/state/lookupTypes';
+import { buildQueryString } from '@utils/buildQueryString';
 
 /**
  * Fetches lookup-compatible batch registry records.
@@ -17,7 +18,7 @@ import type {
  * Supports filtering by batch type (e.g., 'product', 'packaging_material'),
  * exclusion of specific IDs, and pagination controls (limit/offset).
  *
- * Internally uses a shared API utility (`getRequest`) for consistent HTTP handling.
+ * Automatically constructs query string using `buildQueryString`.
  *
  * @param params - Optional filters and pagination options.
  * @returns A promise resolving to the batch registry lookup response.
@@ -26,11 +27,11 @@ import type {
 const fetchBatchRegistryLookup = async (
   params: GetBatchRegistryLookupParams = {}
 ): Promise<GetBatchRegistryLookupResponse> => {
+  const queryString = buildQueryString(params);
+  const url = `${API_ENDPOINTS.LOOKUPS.BATCH_REGISTRY}${queryString}`;
+  
   try {
-    return await getRequest<GetBatchRegistryLookupResponse>(
-      API_ENDPOINTS.LOOKUPS.BATCH_REGISTRY,
-      { params }
-    );
+    return await getRequest<GetBatchRegistryLookupResponse>(url);
   } catch (error) {
     console.error('Failed to fetch batch registry lookup:', error);
     throw error;
@@ -43,7 +44,7 @@ const fetchBatchRegistryLookup = async (
  * Optionally filters by `warehouseTypeId`.
  * Designed for populating dropdowns or filter menus where only a warehouse type is relevant.
  *
- * Internally uses the `getRequest` utility for consistent error handling and logging.
+ * Constructs query string using `buildQueryString`.
  *
  * @param {string} [warehouseTypeId] - Optional ID to filter warehouses by warehouse type
  * @returns {Promise<GetWarehouseLookupResponse>} Response containing warehouse lookup items
@@ -52,13 +53,12 @@ const fetchBatchRegistryLookup = async (
 const fetchWarehouseLookup = async (
   warehouseTypeId?: string
 ): Promise<GetWarehouseLookupResponse> => {
+  const params = warehouseTypeId ? { warehouseTypeId } : {};
+  const queryString = buildQueryString(params);
+  const url = `${API_ENDPOINTS.LOOKUPS.WAREHOUSES}${queryString}`;
+  
   try {
-    const params = warehouseTypeId ? { warehouseTypeId } : {};
-    
-    return await getRequest<GetWarehouseLookupResponse>(
-      API_ENDPOINTS.LOOKUPS.WAREHOUSES,
-      { params }
-    );
+    return await getRequest<GetWarehouseLookupResponse>(url);
   } catch (error) {
     console.error('Failed to fetch warehouse lookup:', error);
     throw error;
@@ -71,7 +71,7 @@ const fetchWarehouseLookup = async (
  * Excludes internal system-only types like "manual stock insert/update" by default.
  * Useful for user-facing forms requiring options such as "damaged", "lost", "expired", etc.
  *
- * Internally relies on the shared API utility (`getRequest`) for consistent network handling.
+ * Use `buildQueryString` to construct a clean query string.
  *
  * @param {LotAdjustmentLookupQueryParams} [params={}] - Optional query parameters to control lookup results.
  * @returns {Promise<LotAdjustmentTypeLookupResponse>} A promise that resolves to a list of formatted lookup options.
@@ -80,11 +80,11 @@ const fetchWarehouseLookup = async (
 const fetchLotAdjustmentTypeLookup = async (
   params: LotAdjustmentLookupQueryParams = {}
 ): Promise<LotAdjustmentTypeLookupResponse> => {
+  const queryString = buildQueryString(params);
+  const url = `${API_ENDPOINTS.LOOKUPS.LOT_ADJUSTMENT_TYPES}${queryString}`;
+  
   try {
-    return await getRequest<LotAdjustmentTypeLookupResponse>(
-      API_ENDPOINTS.LOOKUPS.LOT_ADJUSTMENT_TYPES,
-      { params }
-    );
+    return await getRequest<LotAdjustmentTypeLookupResponse>(url);
   } catch (error) {
     console.error('Failed to fetch lot adjustment lookup:', error);
     throw error;
@@ -113,19 +113,12 @@ const fetchCustomerLookup = async (
   params?: CustomerLookupQuery
 ): Promise<CustomerLookupResponse> => {
   try {
-    const searchParams = new URLSearchParams();
-    
-    if (params?.keyword) searchParams.append('keyword', params.keyword);
-    if (params?.limit != null) searchParams.append('limit', params.limit.toString());
-    if (params?.offset != null) searchParams.append('offset', params.offset.toString());
-    
-    const queryString = searchParams.toString();
-    const url = `${API_ENDPOINTS.LOOKUPS.CUSTOMERS}${queryString ? `?${queryString}` : ''}`;
-    
+    const queryString = buildQueryString(params);
+    const url = `${API_ENDPOINTS.LOOKUPS.CUSTOMERS}${queryString}`;
     return await getRequest<CustomerLookupResponse>(url);
   } catch (error) {
     console.error('Failed to fetch customer lookup:', error);
-    throw error; // rethrow for global error handlers or React Query
+    throw error;
   }
 };
 
@@ -137,6 +130,8 @@ const fetchCustomerLookup = async (
  * - Shipping/billing address selection
  * - Customer profile display
  *
+ * Constructs query string using `buildQueryString` to safely include the customerId.
+ *
  * @param {string} customerId - UUID of the customer to fetch addresses for
  * @returns {Promise<AddressByCustomerLookupResponse>} - API response containing an array of addresses
  * @throws Will rethrow the error if the request fails (caller must handle it)
@@ -144,13 +139,14 @@ const fetchCustomerLookup = async (
 const fetchAddressesByCustomerId = async (
   customerId: string
 ): Promise<AddressByCustomerLookupResponse> => {
-  const url = `${API_ENDPOINTS.ADDRESSES.ADDRESSES_BY_CUSTOMER}?customerId=${customerId}`;
+  const queryString = buildQueryString({ customerId });
+  const url = `${API_ENDPOINTS.ADDRESSES.ADDRESSES_BY_CUSTOMER}${queryString}`;
   
   try {
     return await getRequest<AddressByCustomerLookupResponse>(url);
   } catch (error) {
     console.error('Failed to fetch addresses by customer ID:', error);
-    throw error; // or optionally wrap in custom error if needed
+    throw error;
   }
 };
 

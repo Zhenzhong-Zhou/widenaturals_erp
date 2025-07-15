@@ -6,6 +6,7 @@ import type {
 } from '@features/address/state/addressTypes';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 import { getRequest, postRequest } from '@utils/apiRequest';
+import { buildQueryString } from '@utils/buildQueryString';
 
 /**
  * Submits one or more addresses to the API for creation.
@@ -34,32 +35,30 @@ export const createAddresses = async (
 };
 
 /**
- * Fetch paginated address records from the API using optional query parameters.
+ * Fetches paginated address records from the API using optional query parameters.
  *
  * Makes a GET request to the `ALL_RECORDS` address endpoint with pagination,
  * sorting, and filtering options.
+ * Use `buildQueryString` to serialize query parameters into the URL.
  * Intended for use in domain services or UI layers where address listings are displayed.
  *
- * @param queryParams Optional query parameters including pagination, sort, and filters.
- *
- * @returns {Promise<PaginatedAddressResponse>}
- * A promise that resolves to the paginated list of addresses along with pagination metadata.
- *
- * @throws {Error}
- * Re-throws any error that occurs during the request for higher-level handling
- * (e.g., UI notifications, logging, or error boundaries).
+ * @param {AddressQueryParams} [queryParams] - Optional query parameters including pagination, sort, and filters.
+ * @returns {Promise<PaginatedAddressResponse>} - A promise that resolves to the paginated list of addresses with metadata.
+ * @throws {Error} - Re-throws any error that occurs during the request for higher-level handling.
  */
 const fetchPaginatedAddresses = async (
   queryParams?: AddressQueryParams
 ): Promise<PaginatedAddressResponse> => {
-  const url = API_ENDPOINTS.ADDRESSES.ALL_RECORDS;
+  const queryString = buildQueryString(queryParams);
+  const url = `${API_ENDPOINTS.ADDRESSES.ALL_RECORDS}${queryString}`;
   
   try {
-    return await getRequest<PaginatedAddressResponse>(url, {
-      params: queryParams,
-    });
+    return await getRequest<PaginatedAddressResponse>(url);
   } catch (error) {
-    console.error('[fetchPaginatedAddresses] Failed to fetch addresses:', { queryParams, error });
+    console.error('[fetchPaginatedAddresses] Failed to fetch addresses:', {
+      queryParams,
+      error,
+    });
     throw error;
   }
 };

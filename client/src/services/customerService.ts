@@ -6,6 +6,7 @@ import type {
   PaginatedCustomerListResponse,
 } from '@features/customer/state';
 import { getRequest, postRequest } from '@utils/apiRequest';
+import { buildQueryString } from '@utils/buildQueryString';
 
 /**
  * Sends a request to create one or more customers.
@@ -39,6 +40,7 @@ const createCustomers = async (
  * This function:
  * - Sends a GET request to the customers endpoint
  * - Supports pagination, sorting, and filtering via query parameters
+ * - Uses `buildQueryString` to generate the query string from pagination, sort, and filter fields
  * - Handles typed responses for consistent client behavior
  *
  * @param {FetchPaginatedCustomersParams} [params={}] - Query parameters including pagination, filters, and sort config
@@ -55,10 +57,11 @@ const fetchPaginatedCustomers = async (
       ...rest,
       ...filters,
     };
-    return await getRequest<PaginatedCustomerListResponse>(
-      API_ENDPOINTS.CUSTOMERS.ALL_CUSTOMERS,
-      { params: flatParams }
-    );
+    
+    const queryString = buildQueryString(flatParams);
+    const url = `${API_ENDPOINTS.CUSTOMERS.ALL_CUSTOMERS}${queryString}`;
+    
+    return await getRequest<PaginatedCustomerListResponse>(url);
   } catch (error) {
     console.error('Failed to fetch paginated customers:', error);
     throw error;
