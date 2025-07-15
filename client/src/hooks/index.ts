@@ -43,7 +43,7 @@ export { default as useAllocationEligibleOrders } from './useAllocationEligibleO
 export { default as useSalesOrders } from './useSalesOrders';
 export { default as useConfirmSalesOrder } from './useConfirmSalesOrder';
 export { default as useSalesOrderDetails } from './useSalesOrderDetails';
-export { default as useOrderTypes } from './useOrderTypes';
+export { default as useOrderTypes } from './usePaginateOrderTypes.ts';
 export { default as useOrderTypesDropdown } from './useOrderTypesDropdown';
 export { default as useAvailableInventoryLots } from './useAvailableInventoryLots';
 export { default as useAllocationEligibleOrderDetails } from './useAllocationEligibleOrderDetails';

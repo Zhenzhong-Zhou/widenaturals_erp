@@ -46,7 +46,9 @@ export const API_ENDPOINTS = {
   REPORTS: {
     INVENTORY_ACTIVITY_LOGS: 'reports/inventory-activity-logs',
   },
-  ALL_ORDER_TYPES: '/order-types',
+  ORDER_TYPES: {
+    ALL_RECORDS: '/order-types',
+  },
   ORDER_TYPES_DROPDOWN: '/order-types/dropdown',
   CUSTOMERS: {
     ADD_NEW_CUSTOMERS: '/customers/add-new-customers',

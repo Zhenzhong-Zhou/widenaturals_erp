@@ -1,10 +1,10 @@
-import orderTypesReducer from './orderTypeSlice';
+import paginatedOrderTypesReducer from './paginatedOrderTypesSlice';
 
 export const orderTypeReducers = {
-  orderTypes: orderTypesReducer,
+  paginatedOrderTypes: paginatedOrderTypesReducer,
 };
 
 // Optional: export thunks, selectors, and types
-export * from './orderTypeSelectors';
+export * from './paginatedOrderTypesSelectors.ts';
 export * from './orderTypeThunks';
 export * from './orderTypeTypes';

@@ -1,6 +1,6 @@
 import { type FC, useState } from 'react';
 import Box from '@mui/material/Box';
-import useOrderTypes from '@hooks/useOrderTypes';
+import usePaginateOrderTypes from '@hooks/usePaginateOrderTypes.ts';
 import Loading from '@components/common/Loading';
 import ErrorDisplay from '@components/shared/ErrorDisplay';
 import ErrorMessage from '@components/common/ErrorMessage';
@@ -13,7 +13,7 @@ const OrderTypesPage: FC = () => {
   const [limit, setLimit] = useState<number>(10);
   // const [sortBy, setSortBy] = useState<string>('created_at'); // Default valid field
   // const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('DESC'); // Ensure correct type
-  const { orderTypes, pagination, isLoading, error, refresh } = useOrderTypes(
+  const { orderTypes, pagination, isLoading, error, refresh } = usePaginateOrderTypes(
     page,
     limit
     // sortBy, sortOrder
