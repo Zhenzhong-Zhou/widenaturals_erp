@@ -141,12 +141,6 @@ export type GetWarehouseLookupResponse = ApiSuccessResponse<
   WarehouseLookupItem[]
 >;
 
-export interface GetWarehouseLookupFilters {
-  locationTypeId?: string;
-  warehouseTypeId?: string;
-  includeArchived?: boolean;
-}
-
 export type WarehouseLookupState = AsyncState<WarehouseLookupItem[]>;
 
 /**

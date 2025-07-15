@@ -129,6 +129,45 @@ const SORTABLE_FIELDS = {
       wi.last_update DESC
     `,
   },
+  inventoryActivityLogSortMap: {
+    actionTimestamp: 'ial.action_timestamp',
+    quantityChange: 'ial.quantity_change',
+    previousQuantity: 'ial.previous_quantity',
+    newQuantity: 'ial.new_quantity',
+    sourceType: 'ial.source_type',
+    batchType: 'br.batch_type',
+    
+    // Action + Adjustment
+    actionType: 'iat.name',
+    adjustmentType: 'lat.name',
+    
+    // Performed by
+    performedBy: `(u.firstname || ' ' || u.lastname)`,
+    
+    // Product & Material Info
+    productName: 'p.name',
+    productBrand: 'p.brand',
+    sku: 's.sku',
+    sizeLabel: 's.size_label',
+    countryCode: 's.country_code',
+    productLotNumber: 'pb.lot_number',
+    productExpiryDate: 'pb.expiry_date',
+    materialLotNumber: 'pmb.lot_number',
+    materialExpiryDate: 'pmb.expiry_date',
+    materialName: 'pmb.material_snapshot_name',
+    
+    // Order Info
+    orderNumber: 'o.order_number',
+    orderType: 'ot.name',
+    orderStatus: 'os.name',
+    
+    // Warehouse & Location
+    warehouseName: 'wh.name',
+    locationName: 'loc.name',
+    
+    // Fallback default
+    defaultNaturalSort: 'ial.action_timestamp DESC',
+  },
   customerSortMap: {
     customerName: `
       COALESCE(TRIM(c.firstname || ' ' || c.lastname), '')
@@ -157,38 +196,40 @@ const SORTABLE_FIELDS = {
     `,
   },
   addressSortMap: {
-    created_at: 'a.created_at',        // Standard default sort
-    updated_at: 'a.updated_at',        // For recently modified addresses
+    createdAt: 'a.created_at',        // Standard default sort
+    updatedAt: 'a.updated_at',        // For recently modified addresses
     
     city: 'a.city',
     state: 'a.state',
-    postal_code: 'a.postal_code',
+    postalCode: 'a.postal_code',
     country: 'a.country',
     region: 'a.region',
     
     label: 'a.label',                  // Often used for identifying purpose (e.g. "Shipping", "Billing")
-    recipient_name: 'a.full_name',     // Useful for sorting by recipient
+    recipientName: 'a.full_name',     // Useful for sorting by recipient
     email: 'a.email',                  // In the case of email-based workflows
     phone: 'a.phone',                  // Rare, but could be useful
     
-    customer_name: 'c.firstname',
-    customer_email: 'c.email',
+    customerName: 'c.firstname',
+    customerEmail: 'c.email',
   },
   orderTypeSortMap: {
     name: 'ot.name',
     code: 'ot.code',
     category: 'ot.category',
-    requires_payment: 'ot.requires_payment',
+    requiresPayment: 'ot.requires_payment',
     description: 'ot.description',
     
-    status_name: 's.name',
-    status_date: 'ot.status_date',
+    statusName: 's.name',
+    statusDate: 'ot.status_date',
     
-    created_at: 'ot.created_at',
-    updated_at: 'ot.updated_at',
+    createdAt: 'ot.created_at',
+    updatedAt: 'ot.updated_at',
     
-    created_by: 'u1.firstname', // or concat name if joined properly
-    updated_by: 'u2.firstname',
+    createdBy: 'u1.firstname', // or concat name if joined properly
+    updatedBy: 'u2.firstname',
+    
+    defaultNaturalSort: 'a.created_at',
   },
 };
 

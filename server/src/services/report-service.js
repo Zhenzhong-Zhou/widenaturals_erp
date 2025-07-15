@@ -48,19 +48,31 @@ const determinePermissionKey = (scope) => {
  * - Enforce filter-level permission validation based on scope
  * - Reject requests with missing or unauthorized filters for scoped users
  * - Support optimized handling for base-level access (limited filter and record constraints)
- * - Retrieve and transform log data from repository based on valid filter input
+ * - Retrieve and transform log data from the repository based on valid filter input
+ * - Support pagination and sorting for large log sets
  *
  * @param {Object} params - Parameters for the report.
  * @param {Object} params.filters - Filtering options (e.g., warehouseIds, skuIds, batchIds, date range).
  * @param {number} [params.page=1] - Page number for pagination.
  * @param {number} [params.limit=20] - Number of records per page.
+ * @param {string} [params.sortBy='action_timestamp'] - Column to sort by (validated against sort map).
+ * @param {string} [params.sortOrder='DESC'] - Sort order direction ('ASC' or 'DESC').
  * @param {Object} user - Authenticated user object.
- * @returns {Promise<Object>} Transformed inventory activity logs with pagination metadata.
+ *
+ * @returns {Promise<Object>} Resolves with transformed inventory activity logs and pagination metadata.
  *
  * @throws {AppError.AuthorizationError} If permission is denied or filters are invalid.
- * @throws {AppError.serviceError} If the logs could not be retrieved due to internal issues.
+ * @throws {AppError.ServiceError} If the logs could not be retrieved due to internal issues.
  */
-const fetchInventoryActivityLogsService = async ({ filters = {}, page = 1, limit = 20 } = {}, user) => {
+const fetchInventoryActivityLogsService = async (
+  {
+    filters = {},
+    page = 1,
+    limit = 20,
+    sortBy = 'action_timestamp',
+    sortOrder = 'DESC',
+  } = {}, user
+) => {
   try {
     const scope = await getUserInventoryAccessScope(user);
     const permissionKey = determinePermissionKey(scope);
@@ -130,14 +142,23 @@ const fetchInventoryActivityLogsService = async ({ filters = {}, page = 1, limit
       }
     }
     
-    const result = await getInventoryActivityLogs({ filters, page, limit });
+    const result = await getInventoryActivityLogs({
+      filters,
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+    });
     return transformInventoryActivityLogs(result);
   } catch (error) {
     if (error?.type === 'AuthorizationError') throw error;
     
     logSystemException(error, 'Failed to fetch inventory activity logs', {
       context: 'report-service/fetchInventoryActivityLogsService',
+      userId: user?.id,
       filters,
+      pagination: { page, limit },
+      sort: { sortBy, sortOrder },
     });
     
     throw AppError.serviceError('Unable to retrieve inventory activity log report.');

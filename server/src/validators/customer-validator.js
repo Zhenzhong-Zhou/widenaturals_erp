@@ -1,76 +1,83 @@
 const Joi = require('joi');
-const { validateEmail, validatePhoneNumber, allowedSortOrders } = require('./general-validators');
+const {
+  validateEmail,
+  validatePhoneNumber,
+  validateString,
+  createBooleanFlag,
+  paginationSchema,
+  createSortSchema,
+  validateOptionalUUID,
+  validateKeyword,
+  createArraySchema,
+  createdDateRangeSchema,
+  statusDateRangeSchema,
+} = require('./general-validators');
 
 /**
  * Joi schema for customer validation.
  */
 const customerSchema = Joi.object({
-  firstname: Joi.string().min(2).max(50).trim().required().messages({
-    'string.min': 'Firstname must be at least 2 characters long',
-    'string.max': 'Firstname must not exceed 50 characters',
-    'any.required': 'Firstname is required',
-  }),
-
-  lastname: Joi.string().min(2).max(50).trim().required().messages({
-    'string.min': 'Lastname must be at least 2 characters long',
-    'string.max': 'Lastname must not exceed 50 characters',
-    'any.required': 'Lastname is required',
-  }),
-
+  firstname: validateString('Firstname', 2, 50),
+  lastname: validateString('Lastname', 2, 50),
   email: validateEmail,
-
   phone_number: validatePhoneNumber,
-  
-  region: Joi.string().max(100).allow('', null),
-
   note: Joi.string().max(500).allow('').optional(),
 });
 
 /**
  * Joi schema for validating an array of customers.
  */
-const customerArraySchema = Joi.array().items(customerSchema).min(1).required();
+const customerArraySchema = createArraySchema(customerSchema, 1, 'Customer list');
+
+/**
+ * Joi schema for base customer filtering fields.
+ *
+ * These fields are commonly used across customer-related list or search endpoints.
+ * Includes support for basic filters like a region, country, and metadata such as creator or keyword.
+ *
+ * - `region`: Optional string representing a region filter (e.g., 'North America')
+ * - `country`: Optional string representing a country code or name
+ * - `createdBy`: Optional UUID of the user who created the customer
+ * - `keyword`: Optional string used for searching by name, email, etc.
+ * - `onlyWithAddress`: Optional boolean (truthy/falsy) indicating if only customers with addresses should be included
+ *
+ * Typically combined with pagination, sorting, and date filters using `.concat(...)`.
+ *
+ * @type {Joi.ObjectSchema}
+ */
+const baseCustomerFields = Joi.object({
+  region: Joi.string().optional().allow(null),
+  country: Joi.string().optional().allow(null),
+  createdBy: validateOptionalUUID('Created By'),
+  keyword: validateKeyword('Customer keyword'),
+  onlyWithAddress: createBooleanFlag('onlyWithAddress'),
+});
 
 /**
  * Joi schema for validating customer list query parameters.
  *
- * This schema supports pagination, sorting, and advanced filtering.
- * It includes:
- * - Pagination: page number and result limit
- * - Sorting: by field and sort order
- * - Filtering: by region, country, creator, keyword, created/updated dates, and address presence
+ * This schema supports:
+ * - Pagination (page, limit)
+ * - Sorting (sortBy, sortOrder) — sortBy is logical and mapped in the backend
+ * - Date range filtering (createdAfter, createdBefore, statusDateAfter, statusDateBefore)
+ * - Basic customer filters (region, country, createdBy, keyword, onlyWithAddress)
  *
- * @property {number} page - Page number (min 1, default: 1)
- * @property {number} limit - Items per page (min 1, max 100, default: 10)
- * @property {string} sortBy - Field to sort by (default: 'created_at')
- * @property {string} sortOrder - Sort direction ('ASC' or 'DESC', default: 'DESC')
- * @property {string|null} region - Optional region filter
- * @property {string|null} country - Optional country filter
- * @property {string|null} createdBy - Optional UUID of the creator
- * @property {string|null} keyword - Optional keyword (name, email, etc.)
- * @property {string|null} createdAfter - ISO date string for filtering created after
- * @property {string|null} createdBefore - ISO date string for filtering created before
- * @property {string|null} statusDateAfter - ISO date string for filtering status change after
- * @property {string|null} statusDateBefore - ISO date string for filtering status change before
- * @property {boolean|null} onlyWithAddress - Whether to include only customers with addresses (accepts 'true'/'false' as strings)
+ * This schema is composed of reusable base validators:
+ * - `paginationSchema` (page, limit)
+ * - `createSortSchema('created_at')` (sortBy, sortOrder)
+ * - `dateRangeSchema` (date-based filters)
+ * - `baseCustomerFields` (domain-specific filters)
+ *
+ * @example Query Parameters
+ * ?page=2&limit=20&sortBy=createdAt&sortOrder=DESC&region=NA&createdAfter=2024-01-01
+ *
+ * @type {Joi.ObjectSchema}
  */
-const customerFilterSchema = Joi.object({
-  page: Joi.number().integer().min(1).default(1),
-  limit: Joi.number().integer().min(1).max(100).default(10),
-  sortBy: Joi.string().trim().default('created_at'),
-  sortOrder: Joi.string().uppercase().valid(...allowedSortOrders).default('DESC'),
-  
-  region: Joi.string().optional().allow(null),
-  country: Joi.string().optional().allow(null),
-  createdBy: Joi.string().guid({ version: 'uuidv4' }).optional().allow(null),
-  keyword: Joi.string().trim().optional().allow(null),
-  createdAfter: Joi.date().iso().optional().allow(null),
-  createdBefore: Joi.date().iso().optional().allow(null),
-  statusDateAfter: Joi.date().iso().optional().allow(null),
-  statusDateBefore: Joi.date().iso().optional().allow(null),
-  
-  onlyWithAddress: Joi.boolean().truthy('true').falsy('false').optional().allow(null),
-});
+const customerFilterSchema = paginationSchema
+  .concat(createSortSchema('created_at'))
+  .concat(createdDateRangeSchema)
+  .concat(statusDateRangeSchema)
+  .concat(baseCustomerFields);
 
 module.exports = {
   customerArraySchema,

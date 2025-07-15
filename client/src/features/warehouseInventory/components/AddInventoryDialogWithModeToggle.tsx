@@ -14,7 +14,7 @@ import Alert from '@mui/material/Alert';
 import type {
   BatchLookupOption,
   GetBatchRegistryLookupParams,
-  GetWarehouseLookupFilters, LookupPaginationMeta,
+  LookupPaginationMeta,
 } from '@features/lookup/state';
 import AddBulkInventoryForm from '@features/warehouseInventory/components/AddBulkInventoryForm';
 import InventorySuccessDialog from '@features/inventoryShared/components/InventorySuccessDialog';
@@ -47,7 +47,7 @@ interface AddInventoryDialogWithModeToggleProps {
   setSelectedWarehouse: (
     w: { warehouseId: string; locationId: string } | null
   ) => void;
-  fetchWarehouseLookup: (params: GetWarehouseLookupFilters) => void;
+  fetchWarehouseLookup: (filters?: { warehouseTypeId?: string }) => void;
   warehouseLookupLoading?: boolean;
   warehouseLookupError?: string | null;
 }

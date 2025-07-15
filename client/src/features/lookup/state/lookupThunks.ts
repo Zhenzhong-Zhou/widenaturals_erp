@@ -5,7 +5,6 @@ import type {
   CustomerLookupResponse,
   GetBatchRegistryLookupParams,
   GetBatchRegistryLookupResponse,
-  GetWarehouseLookupFilters,
   GetWarehouseLookupResponse,
   LotAdjustmentLookupQueryParams,
   LotAdjustmentTypeLookupResponse,
@@ -40,20 +39,19 @@ export const fetchBatchRegistryLookupThunk = createAsyncThunk<
 /**
  * Async thunk to fetch warehouse lookup options.
  *
- * Fetches a list of active or filtered warehouses for use in lookup menus.
- * Supports optional filters such as location type and warehouse type.
+ * Fetches a list of active warehouses, optionally filtered by warehouse type.
  *
- * @param {GetWarehouseLookupFilters} [filters] - Optional filter parameters
+ * @param {string | undefined} [warehouseTypeId] - Optional warehouse type ID for filtering
  * @returns {Promise<GetWarehouseLookupResponse>} - API response with lookup items
  */
 export const fetchWarehouseLookupThunk = createAsyncThunk<
   GetWarehouseLookupResponse, // return type
-  GetWarehouseLookupFilters | undefined // argument type
+  string | undefined // argument type (warehouseTypeId)
 >(
   'lookup/fetchWarehouseLookup',
-  async (filters = {}, { rejectWithValue }) => {
+  async (warehouseTypeId, { rejectWithValue }) => {
     try {
-      return await lookupService.fetchWarehouseLookup(filters);
+      return await lookupService.fetchWarehouseLookup(warehouseTypeId);
     } catch (error: any) {
       return rejectWithValue({
         message:

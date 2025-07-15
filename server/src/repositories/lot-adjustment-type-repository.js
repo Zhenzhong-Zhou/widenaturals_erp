@@ -37,7 +37,7 @@ const getLotAdjustmentTypeLookup = async (filters = {}) => {
     try {
      const result = await query(sql, params);
      return result.rows;
-   } catch (error) {
+    } catch (error) {
       logSystemException(error, 'Failed to fetch lot adjustment types for lookup', {
         context: 'lot-adjustment-type-repository/getLotAdjustmentTypeLookup',
         filters,

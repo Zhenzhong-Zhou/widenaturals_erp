@@ -1,6 +1,5 @@
 import { type FC } from 'react';
 import Dropdown from '@components/common/Dropdown';
-import type { GetWarehouseLookupFilters } from '@features/lookup/state';
 
 interface WarehouseDropdownProps {
   label?: string;
@@ -9,7 +8,7 @@ interface WarehouseDropdownProps {
   warehouseLookupLoading?: boolean;
   warehouseLookupError?: string | null;
   onChange: (value: string) => void;
-  onRefresh?: (params: GetWarehouseLookupFilters) => void;
+  onRefresh?: (filters?: { warehouseTypeId?: string }) => void;
   onAddNew?: () => void;
   disabled?: boolean;
 }

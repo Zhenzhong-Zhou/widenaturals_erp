@@ -1,5 +1,10 @@
 const Joi = require('joi');
-const { validateUUID } = require('./general-validators');
+const {
+  validateUUID,
+  validateOptionalUUID,
+  createBooleanFlag,
+  validateKeyword
+} = require('./general-validators');
 
 /**
  * Base Joi schema for validating common lookup query parameters.
@@ -16,10 +21,52 @@ const { validateUUID } = require('./general-validators');
  * @type {Object}
  */
 const baseLookupQuerySchema = {
-  keyword: Joi.string().allow('').max(100).label('Keyword'),
+  keyword: validateKeyword('Keyword'),
   limit: Joi.number().integer().min(1).max(100).default(50).label('Limit'),
   offset: Joi.number().integer().min(0).default(0).label('Offset'),
 };
+
+/**
+ * Joi schema for validating batch registry lookup query parameters.
+ *
+ * Inherits base lookup options and adds:
+ * - batchType: 'product' | 'packaging_material' (optional)
+ * - warehouseId: UUID (optional)
+ * - locationId: UUID (optional)
+ */
+const batchRegistryLookupQuerySchema = Joi.object({
+  batchType: Joi.string()
+    .valid('product', 'packaging_material')
+    .optional()
+    .allow('', null)
+    .label('Batch Type'),
+  
+  warehouseId: validateUUID('Warehouse ID').optional().allow('', null),
+  locationId: validateUUID('Location ID').optional().allow('', null),
+  
+  ...baseLookupQuerySchema,
+});
+
+/**
+ * Schema for validating warehouse lookup query parameters.
+ */
+const warehouseLookupQuerySchema = Joi.object({
+  warehouseTypeId: validateOptionalUUID('Warehouse Type ID'),
+});
+
+/**
+ * Validation schema for querying lot adjustment types in lookup endpoints.
+ *
+ * Supported Query Parameters:
+ * - excludeInternal (boolean, optional): If true, excludes internal/system-only adjustment types.
+ * - restrictToQtyAdjustment (boolean, optional): If true, only includes adjustment types that affect quantity.
+ *
+ * These flags are typically used to customize dropdown options in inventory-related forms.
+ */
+const lotAdjustmentTypeLookupSchema = Joi.object({
+  excludeInternal: createBooleanFlag('Exclude Internal Types'),
+  restrictToQtyAdjustment: createBooleanFlag('Restrict to Quantity Adjustments'),
+});
 
 /**
  * Joi validation schema for customer lookup query parameters.
@@ -53,6 +100,9 @@ const customerAddressLookupQuerySchema = Joi.object({
 });
 
 module.exports = {
+  batchRegistryLookupQuerySchema,
+  warehouseLookupQuerySchema,
+  lotAdjustmentTypeLookupSchema,
   customerLookupQuerySchema,
   customerAddressLookupQuerySchema,
 };

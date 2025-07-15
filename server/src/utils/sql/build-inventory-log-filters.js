@@ -6,29 +6,38 @@
 
 const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
+const { toPgArray } = require('../query/query-utils');
 
 /**
- * Builds a dynamic SQL WHERE clause and parameter array for filtering inventory activity logs.
+ * Builds a dynamic SQL WHERE clause and parameters array based on provided inventory activity log filters.
  *
- * Supports both singular and array-based filters using PostgreSQL's `ANY()` operator.
+ * - Handles both scalar and array-based filters.
+ * - Uses `ANY()` syntax for array filters (e.g., warehouseIds, skuIds).
+ * - Dynamically indexes positional parameters for safe binding in parameterized queries.
+ * - Returns a SQL-ready `whereClause` string and a `params` array in order of appearance.
+ * - Gracefully handles missing or empty filters.
+ * - Wraps errors with logging and a standardized AppError for downstream handling.
  *
- * @param {Object} filters - Optional filters to apply.
- * @param {string[]} [filters.warehouseIds] - Array of warehouse IDs.
- * @param {string[]} [filters.locationIds] - Array of location IDs.
- * @param {string[]} [filters.productIds] - Array of product IDs.
- * @param {string[]} [filters.skuIds] - Array of SKU IDs.
- * @param {string[]} [filters.batchIds] - Array of batch registry IDs.
- * @param {string[]} [filters.packagingMaterialIds] - Array of packaging material IDs.
- * @param {string}   [filters.orderId] - Order ID to filter logs.
- * @param {string}   [filters.statusId] - Inventory status ID.
+ * @param {Object} [filters={}] - Optional filters used to narrow inventory activity log queries.
+ * @param {string[]} [filters.warehouseIds] - Array of warehouse UUIDs.
+ * @param {string[]} [filters.locationIds] - Array of location UUIDs.
+ * @param {string[]} [filters.productIds] - Array of product UUIDs.
+ * @param {string[]} [filters.skuIds] - Array of SKU UUIDs.
+ * @param {string[]} [filters.batchIds] - Array of batch registry UUIDs.
+ * @param {string[]} [filters.packagingMaterialIds] - Array of packaging material UUIDs.
  * @param {string[]} [filters.actionTypeIds] - Array of inventory action type IDs.
- * @param {string}   [filters.adjustmentTypeId] - Adjustment type ID.
- * @param {string}   [filters.performedBy] - User ID who performed the action.
- * @param {string}   [filters.sourceType] - Source type (e.g., 'transfer', 'return').
- * @param {string}   [filters.batchType] - 'product' or 'packaging_material'.
- * @param {string}   [filters.fromDate] - Start date (inclusive).
- * @param {string}   [filters.toDate] - End date (inclusive).
- * @returns {{ whereClause: string, params: any[] }} SQL-safe WHERE clause and parameter list.
+ * @param {string}   [filters.orderId] - Filter by associated order ID.
+ * @param {string}   [filters.statusId] - Filter by inventory status ID.
+ * @param {string}   [filters.adjustmentTypeId] - Filter by adjustment type ID.
+ * @param {string}   [filters.performedBy] - Filter by user ID who performed the action.
+ * @param {string}   [filters.sourceType] - Filter by source type (e.g., 'transfer', 'return').
+ * @param {string}   [filters.batchType] - Filter by batch type (e.g., 'product', 'packaging_material').
+ * @param {string}   [filters.fromDate] - Start date (inclusive, ISO string).
+ * @param {string}   [filters.toDate] - End date (inclusive, ISO string).
+ *
+ * @returns {{ whereClause: string, params: any[] }} An object containing the SQL WHERE clause and bound parameter values.
+ *
+ * @throws {AppError} Throws a transformer error if filter processing fails, with context and logging.
  */
 const buildInventoryLogWhereClause = (filters = {}) => {
   try {
@@ -38,32 +47,37 @@ const buildInventoryLogWhereClause = (filters = {}) => {
     
     if (filters.warehouseIds?.length) {
       conditions.push(`wi.warehouse_id = ANY($${paramIndex++})`);
-      params.push(filters.warehouseIds);
+      params.push(toPgArray(filters.warehouseIds));
     }
     
     if (filters.locationIds?.length) {
       conditions.push(`li.location_id = ANY($${paramIndex++})`);
-      params.push(filters.locationIds);
+      params.push(toPgArray(filters.locationIds));
     }
     
     if (filters.productIds?.length) {
       conditions.push(`p.id = ANY($${paramIndex++})`);
-      params.push(filters.productIds);
+      params.push(toPgArray(filters.productIds));
     }
     
     if (filters.skuIds?.length) {
       conditions.push(`s.id = ANY($${paramIndex++})`);
-      params.push(filters.skuIds);
+      params.push(toPgArray(filters.skuIds));
     }
     
     if (filters.batchIds?.length) {
       conditions.push(`br.id = ANY($${paramIndex++})`);
-      params.push(filters.batchIds);
+      params.push(toPgArray(filters.batchIds));
     }
     
     if (filters.packagingMaterialIds?.length) {
       conditions.push(`pm.id = ANY($${paramIndex++})`);
-      params.push(filters.packagingMaterialIds);
+      params.push(toPgArray(filters.packagingMaterialIds));
+    }
+    
+    if (filters.actionTypeIds?.length) {
+      conditions.push(`ial.inventory_action_type_id = ANY($${paramIndex++})`);
+      params.push(toPgArray(filters.actionTypeIds));
     }
     
     if (filters.orderId) {
@@ -74,11 +88,6 @@ const buildInventoryLogWhereClause = (filters = {}) => {
     if (filters.statusId) {
       conditions.push(`ial.status_id = $${paramIndex++}`);
       params.push(filters.statusId);
-    }
-    
-    if (filters.actionTypeIds?.length) {
-      conditions.push(`ial.inventory_action_type_id = ANY($${paramIndex++})`);
-      params.push(filters.actionTypeIds);
     }
     
     if (filters.adjustmentTypeId) {

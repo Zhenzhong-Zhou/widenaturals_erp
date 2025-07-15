@@ -24,6 +24,8 @@ const {
   hasAssignedAddresses
 } = require('../repositories/address-repository');
 const LOOKUPS = require('../utils/constants/domain/lookup-constants');
+const { resolveWarehouseFiltersByPermission } = require('../business/warehouse-business');
+const { enforceExternalAccessPermission } = require('../business/lot-adjustment-type-business');
 
 /**
  * Service to fetch filtered and paginated batch registry records for lookup UI.
@@ -78,25 +80,34 @@ const fetchBatchRegistryLookupService = async ({
 };
 
 /**
- * Service to fetch a filtered list of warehouses for lookup use.
+ * Service to fetch a filtered list of warehouses for lookup dropdowns or filter panels.
  *
- * Supports filtering by location type, warehouse type, and archived status.
+ * Applies permission-based visibility:
+ * - Regular users see only active and non-archived warehouses.
+ * - Elevated users (with specific permissions) may see all statuses or archived entries.
  *
- * @param {Object} filters - Filtering options
- * @param {string} [filters.locationTypeId] - Optional location type ID to filter warehouses
- * @param {string} [filters.warehouseTypeId] - Optional warehouse type ID to filter warehouses
- * @param {boolean} [filters.includeArchived] - Whether to include archived warehouses
- * @returns {Promise<Array>} Resolved list of transformed warehouse lookup items
- * @throws {AppError} Throws a service-level error if retrieval or transformation fails
+ * @param {Object} user - Authenticated user object used for permission evaluation
+ * @param {Object} filters - Optional filtering criteria
+ * @param {string} [filters.warehouseTypeId] - Filter by warehouse type
+ * @param {string} [filters.locationTypeId] - (Deprecated) Included for compatibility but not used
+ * @param {boolean} [filters.isArchived] - Optional override to fetch archived records (if permitted)
+ * @param {string} [filters.statusId] - Optional override to filter by specific status (if permitted)
+ *
+ * @returns {Promise<Array>} - List of transformed warehouse lookup results
+ *
+ * @throws {AppError} - Throws a service-level error if data fetching or transformation fails
  */
-const fetchWarehouseLookupService = async (filters = {}) => {
+const fetchWarehouseLookupService = async (user, filters = {}) => {
   try {
     logSystemInfo('Fetching warehouse lookup in service', {
       context: 'lookup-service/fetchWarehouseLookupService',
       filters,
     });
-
-    const rawResult = await getWarehouseLookup(filters);
+    
+    // Resolve filters based on user permission
+    const resolvedFilters = await resolveWarehouseFiltersByPermission(user, filters);
+    
+    const rawResult = await getWarehouseLookup({ filters: resolvedFilters });
     return transformWarehouseLookupRows(rawResult);
   } catch (err) {
     logSystemException(
@@ -104,6 +115,7 @@ const fetchWarehouseLookupService = async (filters = {}) => {
       'Failed to fetch warehouse lookup in service layer',
       {
         context: 'lookup-service/fetchWarehouseLookupService',
+        userId: user.id,
         filters,
       }
     );
@@ -116,27 +128,39 @@ const fetchWarehouseLookupService = async (filters = {}) => {
 };
 
 /**
- * Fetches and transforms active lot adjustment types into lookup-friendly format.
+ * Fetches and transforms lot adjustment types into a lookup-friendly format.
  *
- * Internal-use types (e.g., `'manual_stock_insert'`, `'manual_stock_update'`) are excluded by default,
- * unless `excludeInternal` is explicitly set to `false`.
+ * By default, internal-only types such as `'manual_stock_insert'` and `'manual_stock_update'`
+ * are excluded unless `excludeInternal` is explicitly set to `false`.
  *
- * @param {Object} [filters={}] - Optional filter options.
- * @param {boolean} [filters.excludeInternal=false] - If true, excludes internal-only adjustment types.
- * @returns {Promise<Array<{ value: string, label: string, actionTypeId: string }>>} A list of transformed lookup options:
- * - `value`: the lot adjustment type ID,
- * - `label`: the display name,
- * - `actionTypeId`: the associated inventory action type ID.
+ * If `includeExternal` is true, the user must have `view_external_data` permission,
+ * or a business-level error will be thrown.
  *
- * @throws {AppError} If fetching or transforming data fails.
+ * @param {Object} user - The authenticated user object.
+ * @param {Object} [filters={}] - Optional filter flags.
+ * @param {boolean} [filters.excludeInternal=false] - Whether to exclude internal-only adjustment types.
+ * @param {boolean} [filters.includeExternal=false] - Whether to include external-only adjustment types.
+ *
+ * @returns {Promise<Array<{ value: string, label: string, actionTypeId: string }>>} Transformed lookup options:
+ * - `value`: The lot adjustment type ID
+ * - `label`: The display name
+ * - `actionTypeId`: The associated inventory action type ID
+ *
+ * @throws {AppError} If fetching or transforming data fails, or if access to external data is not permitted.
  */
-const fetchLotAdjustmentLookupService = async (filters = {}) => {
+const fetchLotAdjustmentLookupService = async (user, filters = {}) => {
   try {
+    const includeExternal = !!filters.includeExternal;
+    
+    // Enforce permission if external types are requested
+    await enforceExternalAccessPermission(user, includeExternal);
+    
     const rows = await getLotAdjustmentTypeLookup(filters);
     return transformLotAdjustmentLookupOptions(rows);
   } catch (error) {
     logSystemException(error, 'Failed to fetch and transform lot adjustment types', {
       context: 'lookup-service/fetchLotAdjustmentLookupService',
+      userId: user?.id,
       filters,
     });
     throw AppError.serviceError('Unable to retrieve adjustment lookup options');

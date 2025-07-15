@@ -12,6 +12,7 @@ const { csrfProtection } = require('./csrf-protection');
 const requestLogger = require('./request-logger');
 const { createRateLimiter } = require('../utils/rate-limit-helper');
 const { logSystemInfo } = require('../utils/system-logger');
+const { sanitizeInput } = require('./sanitize');
 
 /**
  * Applies global middleware to the application.
@@ -43,8 +44,11 @@ const applyGlobalMiddleware = (app) => {
 
   // 6. Request Logging
   app.use(requestLogger);
-
-  // 7. Development Tools
+  
+  // 7. Input Sanitization Middleware
+  app.use(sanitizeInput);
+  
+  // 8. Development Tools
   if (process.env.NODE_ENV === 'development') {
     app.use(morgan('dev')); // Use 'dev' logging format in development
     logSystemInfo('Development logging middleware (morgan) applied.', {

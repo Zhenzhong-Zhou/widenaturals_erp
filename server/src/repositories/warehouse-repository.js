@@ -4,25 +4,29 @@ const { logSystemException } = require('../utils/system-logger');
 const {
   buildWarehouseFilter,
 } = require('../utils/sql/build-warehouse-filters');
-const { getStatusId } = require('../config/status-cache');
 
 /**
- * Fetches a list of warehouses for lookup use.
+ * Fetches a filtered list of warehouses for lookup purposes.
+ *
+ * Joins relevant tables (locations and warehouse types) to enrich the result set,
+ * and supports optional filters such as warehouse type.
  *
  * Filters:
- * - locationTypeId (optional): Filter warehouses by location type
- * - warehouseTypeId (optional): Filter by warehouse type
- * - includeArchived (optional): Include archived warehouses (default: false)
+ * - warehouseTypeId (optional): Filter by specific warehouse type ID
  *
- * @param {Object} filters - Filtering options
- * @returns {Promise<Array>} List of warehouse lookup rows
+ * @param {Object} params
+ * @param {Object} params.filters - Optional filtering options used in WHERE clause
+ * @returns {Promise<Array>} List of raw warehouse lookup rows, each containing:
+ *   - warehouse_id: UUID of the warehouse
+ *   - warehouse_name: Name of the warehouse
+ *   - location_id: UUID of the associated location
+ *   - location_name: Name of the associated location
+ *   - warehouse_type_name: Name of the warehouse type (nullable)
+ *
+ * @throws {AppError} If the query execution fails
  */
-const getWarehouseLookup = async ({ filters }) => {
-  const defaultActiveStatusId = getStatusId('warehouse_active');
-  const { whereClause, params } = buildWarehouseFilter(
-    defaultActiveStatusId,
-    filters
-  );
+const getWarehouseLookup = async ({ filters = {} }) => {
+  const { whereClause, params } = buildWarehouseFilter(filters);
 
   const sql = `
     SELECT
@@ -30,7 +34,6 @@ const getWarehouseLookup = async ({ filters }) => {
       w.name AS warehouse_name,
       w.location_id,
       l.name AS location_name,
-      l.location_type_id,
       wt.name AS warehouse_type_name
     FROM warehouses w
     JOIN locations l ON w.location_id = l.id

@@ -14,46 +14,30 @@ const AppError = require('../AppError');
 /**
  * Dynamically builds an SQL WHERE clause and parameter list for filtering warehouses.
  *
- * @param {string} [statusId] - Optional warehouse status ID. Defaults to active status unless overridden.
- * @param {Object} [filters={}] - Optional filters for location and warehouse attributes.
- * @param {boolean} [filters.isArchived] - Optional flag to filter archived warehouses. Only effective if includeArchived is true.
- * @param {string} [filters.locationTypeId] - Optional location type ID to filter by.
+ * @param {Object} [filters={}] - Optional filters to narrow down warehouse results.
+ * @param {string} [filters.statusId] - Optional warehouse status ID to filter by.
+ * @param {boolean} [filters.isArchived] - Whether to include archived warehouses.
  * @param {string} [filters.warehouseTypeId] - Optional warehouse type ID to filter by.
- * @param {Object} [options={}] - Optional flags to control behavior.
- * @param {boolean} [options.overrideDefaultStatus=false] - If true, skips filtering by statusId.
- * @param {boolean} [options.includeArchived=false] - If true, allows archived filters to be included.
  *
- * @returns {{ whereClause: string, params: any[] }} - SQL WHERE clause and parameter values.
+ * @returns {{ whereClause: string, params: any[] }} - An object containing the SQL WHERE clause and associated query parameters.
  *
- * @throws {AppError} - Throws databaseError if-clause construction fails.
+ * @throws {Error} - Throws a generic Error if filter construction fails.
  */
-const buildWarehouseFilter = (
-  statusId,
-  filters = {},
-  { overrideDefaultStatus = false, includeArchived = false } = {}
-) => {
+const buildWarehouseFilter = (filters = {}) => {
   try {
     const conditions = ['1=1'];
     const params = [];
     let paramIndex = 1;
-
-    if (!overrideDefaultStatus && statusId) {
+    
+    if (filters.statusId) {
       conditions.push(`w.status_id = $${paramIndex}`);
-      params.push(statusId);
+      params.push(filters.statusId);
       paramIndex++;
     }
-
-    if (!includeArchived) {
-      conditions.push(`w.is_archived = false`);
-    } else if (filters.isArchived !== undefined) {
+    
+    if (filters.isArchived !== undefined) {
       conditions.push(`w.is_archived = $${paramIndex}`);
       params.push(filters.isArchived);
-      paramIndex++;
-    }
-
-    if (filters.locationTypeId) {
-      conditions.push(`l.location_type_id = $${paramIndex}`);
-      params.push(filters.locationTypeId);
       paramIndex++;
     }
 
@@ -72,7 +56,6 @@ const buildWarehouseFilter = (
       context: 'warehouse-repository/buildWarehouseDropdownFilter',
       error: err.message,
       filters,
-      statusId,
     });
     throw AppError.databaseError(
       'Failed to prepare warehouse dropdown filter',

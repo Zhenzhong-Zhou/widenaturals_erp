@@ -1,44 +1,41 @@
 const wrapAsync = require('../utils/wrap-async');
 const { fetchInventoryActivityLogsService } = require('../services/report-service');
-const { normalizeParamArray } = require('../utils/query-normalizers');
 
 /**
- * Controller: Handle request to get an inventory activity logs report
+ * Controller: Handles request to fetch inventory activity logs with filtering and pagination.
  *
  * This controller:
- * - Extracts query parameters and pagination options
- * - Uses the authenticated user to apply access control
- * - Calls the service layer to fetch and transform logs
- * - Returns the transformed data in a standard response format
+ * - Extracts normalized query parameters from `req.normalizedQuery` (provided by middleware)
+ * - Extracts authenticated user from `req.user` for access control
+ * - Passes filters, pagination, and sorting options to the service layer
+ * - Returns the transformed logs along with pagination metadata
  *
  * @route GET /reports/inventory-activity
- * @param {Request} req - Express request object (with user, query filters, page, and limit)
- * @param {Response} res - Express response object
+ * @param {import('express').Request} req - Express request with `normalizedQuery` and `user` properties
+ * @param {import('express').Response} res - Express response object
+ * @returns {void}
  */
 const getInventoryActivityLogsController = wrapAsync(async (req, res) => {
-  const filters = {
-    warehouseIds: normalizeParamArray(req.query.warehouseIds),
-    locationIds: normalizeParamArray(req.query.locationIds),
-    productIds: normalizeParamArray(req.query.productIds),
-    skuIds: normalizeParamArray(req.query.skuIds),
-    batchIds: normalizeParamArray(req.query.batchIds),
-    packagingMaterialIds: normalizeParamArray(req.query.packagingMaterialIds),
-    actionTypeIds: normalizeParamArray(req.query.actionTypeIds),
-    orderId: req.query.orderId ?? null,
-    statusId: req.query.statusId ?? null,
-    adjustmentTypeId: req.query.adjustmentTypeId ?? null,
-    performedBy: req.query.performedBy ?? null,
-    sourceType: req.query.sourceType ?? null,
-    batchType: req.query.batchType ?? null,
-    fromDate: req.query.fromDate ?? null,
-    toDate: req.query.toDate ?? null,
-  };
+  const {
+    page,
+    limit,
+    sortBy,
+    sortOrder,
+    filters,
+  } = req.normalizedQuery;
   
-  const page = req.query.page ? parseInt(req.query.page, 10) : 1;
-  const limit = req.query.limit ? parseInt(req.query.limit, 10) : 20;
   const user = req.user;
   
-  const { data, pagination } = await fetchInventoryActivityLogsService({ filters, page, limit }, user);
+  const { data, pagination } = await fetchInventoryActivityLogsService(
+    {
+      filters,
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+    },
+    user
+  );
   
   res.status(200).json({
     success: true,

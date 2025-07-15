@@ -9,70 +9,84 @@ const {
   customerArraySchema,
   customerFilterSchema
 } = require('../validators/customer-validator');
-const { sanitizeInput } = require('../middlewares/sanitize');
+const { sanitizeFields } = require('../middlewares/sanitize');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
 
 const router = express.Router();
 
 /**
  * @route   POST /add-new-customers
- * @access  protected
- * @desc    Create one or more customer records.
- *          Accepts a JSON array of customer objects (single or bulk).
- *          Requires authentication and 'create_customer' permission.
+ * @access  Protected
+ * @permission create_customer
  *
- * @body    {Array<Object>} body - Array of customer objects to be created.
+ * @desc    Creates one or more customer records.
+ *          Accepts a JSON array of customer objects (bulk or single insert).
+ *          Requires authentication and the `create_customer` permission.
+ *
+ * Middleware:
+ * - authorize: Ensures the user has 'create_customer' permission
+ * - sanitizeFields: Cleans free-text fields like 'note' to prevent XSS
+ * - validate: Validates each customer object against `customerArraySchema`
+ *
+ * Request Body:
+ * - Array of customer objects with fields like firstname, lastname, email, phone_number, region, note, etc.
  *
  * @returns {201} Created customer records with metadata
- * @returns {400} Validation error (invalid payload)
- * @returns {403} Authorization error (insufficient permission)
+ * @returns {400} Validation error (invalid customer object)
+ * @returns {403} Authorization error (permission denied)
  */
 router.post(
   '/add-new-customers',
   authorize(['create_customer']),
+  sanitizeFields(['note']),
   validate(customerArraySchema, 'body'),
-  sanitizeInput,
   createCustomerController
 );
 
 /**
- * GET /customers
+ * @route   GET /customers
+ * @access  Protected
+ * @permission view_customer
  *
- * Fetches a paginated list of customers with optional filters and sorting.
- *
- * Query Parameters:
- * - page (number): Page number (default: 1)
- * - limit (number): Items per page (default: 10, max: 100)
- * - sortBy (string): Field to sort by (default: 'created_at')
- * - sortOrder (string): 'ASC' or 'DESC'
- * - filters (object): Optional nested filter object. Supported fields:
- *   - region (string|null)
- *   - country (string|null)
- *   - createdBy (UUID|null)
- *   - keyword (string|null): Partial match on name, email, or phone
- *   - createdAfter (ISO date string|null): Filter by created_at >=
- *   - createdBefore (ISO date string|null): Filter by created_at <=
- *   - statusDateAfter (ISO date string|null): Filter by status_date >=
- *   - statusDateBefore (ISO date string|null): Filter by status_date <=
- *   - onlyWithAddress (boolean|null): true = only customers with addresses, false = only without
- *
- * Authorization:
- * - Requires `view_customer` permission
+ * @desc    Fetches a paginated list of customers with filtering and sorting support.
  *
  * Middleware:
- * - authorize
- * - sanitizeInput
- * - validate (query parameters using Joi schema)
+ * - authorize: Ensures the user has 'view_customer' permission
+ * - createQueryNormalizationMiddleware:
+ *     - Normalizes array fields like 'createdBy', 'updatedBy'
+ *     - Converts string booleans like 'true'/'false' into real booleans (e.g., onlyWithAddress)
+ *     - Resolves sortBy keys via 'customerSortMap'
+ * - sanitizeFields: Cleans string inputs (e.g., 'keyword', 'region', 'country')
+ * - validate: Validates query parameters against `customerFilterSchema`
+ *
+ * Query Parameters:
+ * - page (number, default: 1)
+ * - limit (number, default: 10, max: 100)
+ * - sortBy (string, default: 'created_at')
+ * - sortOrder (string: 'ASC' | 'DESC', default: 'DESC')
+ * - region (string|null)
+ * - country (string|null)
+ * - createdBy (UUID|null)
+ * - keyword (string|null) — partial match on name, email, or phone
+ * - createdAfter (ISO date|string|null)
+ * - createdBefore (ISO date|string|null)
+ * - statusDateAfter (ISO date|string|null)
+ * - statusDateBefore (ISO date|string|null)
+ * - onlyWithAddress (boolean|null)
+ *
+ * @returns {200} Paginated list of customers with metadata
+ * @returns {400} Invalid query parameters
+ * @returns {403} Authorization error (permission denied)
  */
 router.get(
   '/',
   authorize(['view_customer']),
   createQueryNormalizationMiddleware(
-    ['createdBy', 'updatedBy'],         // array keys
+    'customerSortMap',                   // sort map module
+    ['createdBy', 'updatedBy'],           // array keys
     ['onlyWithAddress'],                // boolean keys
-    'customerSortMap'                   // sort map module
   ),
-  sanitizeInput,
+  sanitizeFields(['keyword', 'region', 'country']),
   validate(
     customerFilterSchema,
     'query',

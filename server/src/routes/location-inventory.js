@@ -6,7 +6,6 @@ const {
   getLocationInventoryRecordController,
 } = require('../controllers/location-inventory-controller');
 const authorize = require('../middlewares/authorize');
-const { sanitizeInput } = require('../middlewares/sanitize');
 
 const router = express.Router();
 
@@ -26,7 +25,6 @@ router.get(
     'view_location_inventory',
     'view_inventory_summary',
   ]),
-  sanitizeInput,
   getLocationInventoryKpiSummaryController
 );
 
@@ -51,7 +49,6 @@ router.get(
     'view_location_inventory',
     'view_inventory_summary',
   ]),
-  sanitizeInput,
   getLocationInventorySummaryController
 );
 
@@ -76,7 +73,6 @@ router.get(
     'view_product_inventory',
     'view_material_inventory',
   ]),
-  sanitizeInput,
   getLocationInventorySummaryDetailsController
 );
 
@@ -111,7 +107,6 @@ router.get(
 router.get(
   '/',
   authorize(['view_inventory', 'view_location_inventory']),
-  sanitizeInput,
   getLocationInventoryRecordController
 );
 

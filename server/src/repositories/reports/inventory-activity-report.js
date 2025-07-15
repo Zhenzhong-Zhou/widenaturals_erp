@@ -12,30 +12,33 @@ const { buildInventoryLogWhereClause } = require('../../utils/sql/build-inventor
  * Joins data from inventory actions, orders, product batches, packaging material batches,
  * warehouse/location inventory, status, users, and reference metadata.
  *
- * Supports pagination, sorting, and optional filtering (to be injected dynamically).
+ * Supports:
+ * - Pagination (page, limit)
+ * - Sorting (sortBy mapped via a module-level sort map, and sortOrder)
+ * - Optional filtering (e.g., date range, warehouse ID, SKU, product, batch type)
  *
- * Example usage includes generating reports for:
- * - Inventory adjustments (damage, loss, transfers)
- * - Order-related inventory movements (allocation, outbound, completion)
- * - Warehouse and location-level tracking
+ * Common use cases include:
+ * - Inventory adjustments (e.g., damaged, discarded, transferred)
+ * - Order-driven movements (e.g., allocations, outbound shipments, completions)
+ * - Warehouse and location-level audit trails
  *
- * @function getInventoryActivityLogs
  * @param {Object} options - Query options.
- * @param {Object} [options.filters={}] - Optional filters for building dynamic WHERE clause (e.g., date range, warehouse ID, SKU).
- * @param {number} [options.page=1] - Page number for pagination.
+ * @param {Object} [options.filters={}] - Dynamic filters used to build WHERE clause.
+ * @param {number} [options.page=1] - Page number for paginated results.
  * @param {number} [options.limit=20] - Number of records per page.
- * @param {string} [options.sortBy='ial.action_timestamp'] - Column to sort by.
- * @param {string} [options.sortOrder='desc'] - Sort direction ('asc' or 'desc').
- * @returns {Promise<Object>} Paginated inventory activity results with joined metadata.
+ * @param {string} [options.sortBy='action_timestamp'] - Logical sort key (resolved via a sort map).
+ * @param {string} [options.sortOrder='DESC'] - Sort direction, either 'ASC' or 'DESC'.
  *
- * @throws {AppError} If the query fails or result formatting encounters an error.
+ * @returns {Promise<Object>} Paginated inventory activity log records with relational metadata.
+ *
+ * @throws {AppError.databaseError} If the database query fails.
  */
 const getInventoryActivityLogs = async ({
                                           filters = {},
                                           page = 1,
                                           limit = 20,
-                                          sortBy = 'ial.action_timestamp',
-                                          sortOrder = 'desc',
+                                          sortBy = 'action_timestamp',
+                                          sortOrder = 'DESC',
                                         }) => {
   const { whereClause, params } = buildInventoryLogWhereClause(filters);
   

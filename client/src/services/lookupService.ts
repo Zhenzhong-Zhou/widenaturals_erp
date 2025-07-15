@@ -6,7 +6,6 @@ import type {
   CustomerLookupResponse,
   GetBatchRegistryLookupParams,
   GetBatchRegistryLookupResponse,
-  GetWarehouseLookupFilters,
   GetWarehouseLookupResponse,
   LotAdjustmentLookupQueryParams,
   LotAdjustmentTypeLookupResponse,
@@ -41,24 +40,24 @@ const fetchBatchRegistryLookup = async (
 /**
  * Fetches a list of warehouses for lookup use.
  *
- * Supports filtering by:
- * - `locationTypeId`: optional ID to filter warehouses by location type
- * - `warehouseTypeId`: optional ID to filter warehouses by warehouse type
- * - `includeArchived`: whether to include archived warehouses (default: false)
+ * Optionally filters by `warehouseTypeId`.
+ * Designed for populating dropdowns or filter menus where only a warehouse type is relevant.
  *
  * Internally uses the `getRequest` utility for consistent error handling and logging.
  *
- * @param {GetWarehouseLookupFilters} filters - Optional query parameters to filter lookup results
+ * @param {string} [warehouseTypeId] - Optional ID to filter warehouses by warehouse type
  * @returns {Promise<GetWarehouseLookupResponse>} Response containing warehouse lookup items
- * @throws Rethrows any error encountered during the API call.
+ * @throws Rethrows any error encountered during the API call
  */
 const fetchWarehouseLookup = async (
-  filters: GetWarehouseLookupFilters = {}
+  warehouseTypeId?: string
 ): Promise<GetWarehouseLookupResponse> => {
   try {
+    const params = warehouseTypeId ? { warehouseTypeId } : {};
+    
     return await getRequest<GetWarehouseLookupResponse>(
       API_ENDPOINTS.LOOKUPS.WAREHOUSES,
-      { params: filters }
+      { params }
     );
   } catch (error) {
     console.error('Failed to fetch warehouse lookup:', error);

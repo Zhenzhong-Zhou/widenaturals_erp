@@ -13,48 +13,58 @@
  */
 
 const Joi = require('joi');
-const { allowedSortOrders, safeString } = require('./general-validators');
+const {
+  safeString,
+  validateUUID,
+  validateKeyword,
+  paginationSchema,
+  createSortSchema,
+  createdDateRangeSchema,
+  updatedDateRangeSchema
+} = require('./general-validators');
+
+/**
+ * Joi schema for filtering order types.
+ *
+ * Includes optional filters for:
+ * - name, code, category: Partial string matches
+ * - statusId: UUID of associated status
+ * - requiresPayment: Boolean flag (true/false)
+ * - createdBy / updatedBy: UUIDs of the creating or updating user
+ * - keyword: General fuzzy match across fields
+ *
+ * All fields are optional and support null or empty string where applicable.
+ *
+ * Typically used for query validation in paginated list endpoints.
+ */
+const orderTypeFiltersSchema = Joi.object({
+  name: safeString('Name').allow('', null),
+  code: safeString('Code').allow('', null),
+  category: safeString('Category').allow('', null),
+  statusId: validateUUID('Status ID').allow('', null),
+  requiresPayment: Joi.boolean().truthy('true').falsy('false').optional(),
+  createdBy: validateUUID('Created By').allow('', null),
+  updatedBy: validateUUID('Updated By').allow('', null),
+  keyword: validateKeyword('Keyword'),
+});
 
 /**
  * Joi schema for validating order type query parameters.
  *
- * Fields:
- * - page: Integer, page number (default: 1)
- * - limit: Integer, records per page (default: 10, max: 100)
- * - sortBy: Field to sort by (default: 'name')
- * - sortOrder: ASC or DESC (default: ASC)
- * - name: Partial match on order type name
- * - code: Partial match on internal code (internal use only)
- * - category: Filter by category (e.g., 'sales', 'purchase')
- * - statusId: UUID of status (optional)
- * - requiresPayment: Boolean filter (optional)
- * - createdBy / updatedBy: UUIDs of user who created/updated the record
- * - keyword: Fuzzy match across name, code, and description
- * - createdAfter / createdBefore: ISO date range for creation
- * - updatedAfter / updatedBefore: ISO date range for updates
+ * Validates and normalizes:
+ * - Pagination (page, limit)
+ * - Sorting (sortBy, sortOrder)
+ * - Filters (name, code, category, statusId, requiresPayment, user IDs, keyword)
+ * - Date ranges (createdAfter/Before, updatedAfter/Before)
+ *
+ * Example: `?page=1&limit=10&sortBy=name&sortOrder=DESC&keyword=sale`
  */
-const orderTypeQuerySchema = Joi.object({
-  page: Joi.number().integer().min(1).default(1),
-  limit: Joi.number().integer().min(1).max(100).default(10),
-  
-  sortBy: Joi.string().trim().default('name'),
-  sortOrder: Joi.string().uppercase().valid(...allowedSortOrders).default('ASC').label('Sort Order'),
-  
-  // Filters
-  name: safeString('Name').allow('', null),
-  code:safeString('Code').allow('', null).optional(),
-  category: safeString('Category').allow('', null),
-  statusId: Joi.string().guid({ version: 'uuidv4' }).allow('', null).optional(),
-  requiresPayment: Joi.boolean().truthy('true').falsy('false').optional(),
-  
-  createdBy:Joi.string().guid({ version: 'uuidv4' }).allow('', null).optional(),
-  updatedBy: Joi.string().guid({ version: 'uuidv4' }).allow('', null).optional(),
-  keyword: Joi.string().max(100).allow('', null),
-  
-  createdAfter: Joi.date().iso().allow('', null).optional(),
-  createdBefore: Joi.date().iso().allow('', null).optional(),
-  updatedAfter: Joi.date().iso().allow('', null).optional(),
-  updatedBefore: Joi.date().iso().allow('', null).optional(),
-});
+const orderTypeQuerySchema = paginationSchema
+  .concat(createSortSchema('name')) // default sort by name
+  .concat(orderTypeFiltersSchema)
+  .concat(createdDateRangeSchema)
+  .concat(updatedDateRangeSchema);
 
-module.exports = { orderTypeQuerySchema };
+module.exports = {
+  orderTypeQuerySchema,
+};

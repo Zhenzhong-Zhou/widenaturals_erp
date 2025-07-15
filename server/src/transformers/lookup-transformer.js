@@ -62,7 +62,6 @@ const transformWarehouseLookupRows = (rows) => {
     label: `${row.warehouse_name} (${row.location_name}${row.warehouse_type_name ? ' - ' + row.warehouse_type_name : ''})`,
     metadata: {
       locationId: row.location_id,
-      locationTypeId: row.location_type_id,
     },
   }));
 };

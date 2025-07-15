@@ -246,7 +246,7 @@ const getPaginatedCustomers = async ({
  * @param {string} [options.statusId] - Optional status ID to filter customers.
  * @param {number} [options.limit=50] - Number of records to return (default: 50).
  * @param {number} [options.offset=0] - Number of records to skip for pagination (default: 0).
- * @param {boolean} [options.overrideDefaultStatus=false] - If true, disables automatic status filtering (e.g. show all statuses).
+ * @param {boolean} [options.overrideDefaultStatus=false] - If true, disables automatic status filtering (e.g., show all statuses).
  *
  * @returns {Promise<{
  *   data: Array<{ id: string, firstname: string, lastname: string, email: string }>,

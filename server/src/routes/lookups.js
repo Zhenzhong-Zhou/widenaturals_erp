@@ -7,75 +7,102 @@ const {
   getCustomerAddressLookupController,
 } = require('../controllers/lookup-controller');
 const authorize = require('../middlewares/authorize');
-const { sanitizeInput } = require('../middlewares/sanitize');
+const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
+const { sanitizeFields } = require('../middlewares/sanitize');
 const validate = require('../middlewares/validate');
 const {
+  batchRegistryLookupQuerySchema,
+  warehouseLookupQuerySchema,
   customerLookupQuerySchema,
-  customerAddressLookupQuerySchema
+  customerAddressLookupQuerySchema,
+  lotAdjustmentTypeLookupSchema,
 } = require('../validators/lookup-validators');
 
 const router = express.Router();
 
 /**
  * @route GET /lookups/batch-registry
- * @desc Lookup batch registry options for form filters and dropdowns.
- *       Supports filters like batch type and exclusion criteria, with pagination.
- *       Used to populate batch selection menus in inventory forms.
+ * @group Lookups - Batch Registry
+ * @summary Retrieve batch registry records for dropdowns and inventory utilities.
+ *
+ * @description
+ * Provides filtered and paginated batch registry results for use in inventory-related
+ * dropdowns and forms. Supports optional filters such as:
+ *
+ * - `batchType`: Filter by batch type (`product` or `packaging_material`)
+ * - `warehouseId`: Exclude batches already linked to a given warehouse
+ * - `locationId`: Exclude batches already linked to a given location
+ * - `limit`, `offset`: Supports cursor-based pagination
+ *
+ * Does **not** support sorting.
+ *
  * @access Protected
- * @permission Requires 'view_batch_registry_dropdown' and 'access_inventory_utilities'
+ * @permission Required:
+ * - `view_batch_registry_dropdown`
+ *
+ * @returns {BatchRegistryDropdown[]} 200 - A list of filtered batch registry records
  */
 router.get(
   '/batch-registry',
-  authorize(['view_batch_registry_dropdown', 'access_inventory_utilities']),
-  sanitizeInput,
+  authorize(['view_batch_registry_dropdown']),
+  createQueryNormalizationMiddleware(
+    '',
+    [],
+    [],
+    ['batchType', 'warehouseId', 'locationId'],
+    { includePagination: true, includeSorting: false }
+  ),
+  sanitizeFields(['batchType']),
+  validate(batchRegistryLookupQuerySchema, 'query'),
   getBatchRegistryLookupController
 );
 
 /**
- * GET /lookups/warehouses
+ * @route GET /lookups/warehouses
  *
- * @desc Lookup warehouse records for UI dropdowns and filters.
- *       Supports filtering by locationTypeId, warehouseTypeId, and includeArchived.
+ * @description
+ * Fetches a list of warehouse records for UI dropdowns and filters.
+ * Supports optional filtering by warehouse type.
  *
- * Query Parameters:
- * - locationTypeId (optional): Filter warehouses by location type
- * - warehouseTypeId (optional): Filter warehouses by warehouse type
- * - includeArchived (optional): Include archived warehouses if true
+ * @query
+ * - warehouseTypeId (string, optional): Filter by warehouse type
  *
- * Permissions Required:
- * - view_batch_registry_lookup
- * - access_inventory_utilities
+ * @permissions
+ * - view_warehouse_lookup
  *
- * Middleware:
- * - authorize: Ensures the user has the required permissions
+ * @middleware
+ * - authorize: Verifies the user has the required permission
+ * - createQueryNormalizationMiddleware: Normalizes query parameters
+ * - sanitizeFields: Cleans specific query fields
+ * - validate: Validates query against schema
  *
- * Response:
- * 200 OK
+ * @response 200 - OK
  * {
  *   success: true,
  *   data: [
  *     {
- *       value: string,            // warehouse_id
- *       label: string,            // formatted name (e.g., "Main Warehouse (Toronto)")
+ *       value: string, // Warehouse ID
+ *       label: string, // Display name, e.g., "Main Warehouse (Toronto)"
  *       metadata: {
  *         locationId: string,
- *         locationName: string,
- *         locationTypeId: string,
- *         warehouseTypeName: string | null,
- *         statusId: string
  *       }
  *     },
  *     ...
- *   ],
+ *   ]
  * }
  */
 router.get(
   '/warehouses',
-  authorize([
-    'view_batch_registry_lookup',
-    'access_inventory_utilities'
-  ]),
-  sanitizeInput,
+  authorize(['view_warehouse_lookup']),
+  createQueryNormalizationMiddleware(
+    '',
+    [],
+    [],
+    ['warehouseTypeId'], // filterKeys
+    { includePagination: false, includeSorting: false }
+  ),
+  sanitizeFields(['warehouseTypeId']),
+  validate(warehouseLookupQuerySchema, 'query'),
   getWarehouseLookupController
 );
 
@@ -100,45 +127,63 @@ router.get(
  */
 router.get(
   '/lot-adjustment-types',
-  authorize([
-    'manage_inventory',
-    'view_batch_registry_lookup',
-    'access_inventory_utilities'
-  ]),
-  sanitizeInput,
+  authorize(['view_lot_adjustment_type_lookup']),
+  createQueryNormalizationMiddleware(
+    '',
+    [],
+    ['excludeInternal', 'restrictToQtyAdjustment'],
+  ),
+  sanitizeFields(['excludeInternal', 'restrictToQtyAdjustment']),
+  validate(lotAdjustmentTypeLookupSchema, 'query'),
   getLotAdjustmentLookupController
 );
 
 /**
- * GET /lookup/customer-addresses
+ * GET /lookups/customers
  *
- * Endpoint to retrieve paginated customer lookup data for dropdown/autocomplete.
+ * Retrieves a paginated list of customers for use in dropdowns or autocomplete fields.
  *
- * Query parameters:
- * - keyword: Optional string for partial search (default: '').
- * - limit: Optional integer for max records to return (default: 50, max: 100).
- * - offset: Optional integer for pagination offset (default: 0).
+ * Query Parameters:
+ * - keyword (optional): Search term for partial matches on customer name or code. Default is an empty string.
+ * - limit (optional): Maximum number of results to return. Default is 50, maximum is 100.
+ * - offset (optional): Number of records to skip for pagination. Default is 0.
  *
- * Authorization: Requires 'view_customer' permission.
+ * Authorization:
+ * - Requires the `view_customer` permission.
  *
  * Middlewares:
- * - authorize: Checks user permission.
- * - sanitizeInput: Sanitizes incoming query params.
- * - validate: Validates query params against customerLookupQuerySchema.
+ * - authorize: Ensures the authenticated user has the required permission.
+ * - createQueryNormalizationMiddleware: Normalizes keyword, limit, and offset into a structured query.
+ * - sanitizeFields: Trims and sanitizes keyword field.
+ * - validate: Validates the final query against `customerLookupQuerySchema`.
  *
  * Response:
- * 200 OK with JSON { success, message, data (lookup result + pagination info) }
+ * - 200 OK
+ * {
+ *   success: true,
+ *   message: "Customer lookup fetched successfully",
+ *   data: {
+ *     results: Array<{ value: string, label: string, metadata: {...} }>,
+ *     pagination: { total: number, limit: number, offset: number, hasMore: boolean }
+ *   }
+ * }
  */
 router.get(
   '/customers',
   authorize(['view_customer']),
-  sanitizeInput,
+  createQueryNormalizationMiddleware(
+    '',                         // moduleKey (optional for sorting)
+    [],                           // arrayKeys (e.g., ['statusId'] if needed)
+    [],                           // booleanKeys (e.g., ['includeArchived'])
+    ['keyword'],                  // filterKeys: what to extract into `filters`
+    { includePagination: true, includeSorting: false }   // enable pagination normalization
+  ),
+  sanitizeFields(['keyword']),
   validate(
     customerLookupQuerySchema,
     'query',
     {
       abortEarly: false,
-      stripUnknown: true,
       convert: true,
     },
     'Invalid query parameters.'
@@ -149,31 +194,49 @@ router.get(
 /**
  * GET /lookups/address/by-customer
  *
- * Retrieves minimal address records associated with a given customer.
- * Used for address lookup scenarios (e.g., dropdowns, selection UIs).
+ * Retrieves minimal address records associated with a specific customer.
+ * Intended for use in lookup UIs such as dropdowns or address selectors.
  *
  * Query Parameters:
- * - customerId (string, required): UUID of the customer
+ * - customerId (string, required): UUID of the customer whose addresses should be retrieved.
  *
  * Use Cases:
  * - Sales order creation
  * - Shipping/billing address selection
- * - Customer profile dropdowns
+ * - Customer profile and CRM dropdowns
  *
  * Access Control:
- * - Requires authentication
+ * - Requires user authentication
  * - Requires `view_customer` permission
  *
+ * Middleware:
+ * - authorize: Verifies permission to view customer data
+ * - createQueryNormalizationMiddleware: Normalizes query keys (e.g., parses `customerId` as array-safe)
+ * - sanitizeFields: Cleans and trims `customerId`
+ * - validate: Validates query using `customerAddressLookupQuerySchema`
+ *
  * Responses:
- * - 200: Simplified address array for lookup use
- * - 400: Missing or invalid customerId
- * - 403: Unauthorized
- * - 500: Internal service or transformation failure
+ * - 200 OK: Returns an array of address lookup entries:
+ *   [
+ *     {
+ *       value: string,         // address ID
+ *       label: string,         // formatted short address
+ *       metadata: { ... }      // optional metadata (e.g., full address, type)
+ *     },
+ *     ...
+ *   ]
+ * - 400 Bad Request: Missing or invalid `customerId`
+ * - 403 Forbidden: Unauthorized access
+ * - 500 Internal Server Error: Failed to fetch or transform address records
  */
 router.get(
   '/address/by-customer',
   authorize(['view_customer']),
-  sanitizeInput,
+  createQueryNormalizationMiddleware(
+    '',
+    ['customerId'],
+  ),
+  sanitizeFields(['customerId']),
   validate(
     customerAddressLookupQuerySchema,
     'query',

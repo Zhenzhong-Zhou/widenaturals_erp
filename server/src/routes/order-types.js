@@ -1,6 +1,6 @@
 const express = require('express');
 const authorize = require('../middlewares/authorize');
-const { sanitizeInput } = require('../middlewares/sanitize');
+const { sanitizeFields } = require('../middlewares/sanitize');
 const validate = require('../middlewares/validate');
 const { orderTypeQuerySchema } = require('../validators/order-type-validators');
 const {
@@ -18,7 +18,7 @@ const router = express.Router();
  *
  * Requires `view_order_type` permission.
  *
- * Query Parameters (automatically normalized):
+ * Query Parameters (normalized and sanitized automatically):
  * - page (integer, optional): Page number (default: 1)
  * - limit (integer, optional): Number of records per page (default: 10, max: 100)
  * - sortBy (string, optional): Field to sort by (default: 'name'). Must match allowed fields for the module.
@@ -59,10 +59,15 @@ router.get(
   '/',
   authorize(['view_order_type']),
   createQueryNormalizationMiddleware(
+    'orderTypeSortMap',
     ['statusId', 'createdBy', 'updatedBy'],
-    'orderTypeSortMap'
   ),
-  sanitizeInput,
+  sanitizeFields([
+    'name',
+    'code',
+    'category',
+    'keyword'
+  ]),
   validate(
     orderTypeQuerySchema,
     'query',

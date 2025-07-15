@@ -21,7 +21,7 @@ import Radio from '@mui/material/Radio';
 import type {
   BatchLookupOption,
   GetBatchRegistryLookupParams,
-  GetWarehouseLookupFilters, LookupPaginationMeta,
+  LookupPaginationMeta,
 } from '@features/lookup/state';
 
 interface AddBulkInventoryFormProps {
@@ -41,7 +41,7 @@ interface AddBulkInventoryFormProps {
   setSelectedWarehouse: (
     w: { warehouseId: string; locationId: string } | null
   ) => void;
-  fetchWarehouseLookup: (params: GetWarehouseLookupFilters) => void;
+  fetchWarehouseLookup: (filters?: { warehouseTypeId?: string }) => void;
   warehouseLookupLoading?: boolean;
   warehouseLookupError?: string | null;
 }

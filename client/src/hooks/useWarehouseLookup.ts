@@ -2,7 +2,6 @@ import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks.ts';
 import {
   fetchWarehouseLookupThunk,
-  type GetWarehouseLookupFilters,
   selectWarehouseLookupError,
   selectWarehouseLookupItems,
   selectWarehouseLookupLoading,
@@ -18,14 +17,14 @@ const useWarehouseLookup = () => {
   const items = useAppSelector(selectWarehouseLookupItems);
   const loading = useAppSelector(selectWarehouseLookupLoading);
   const error = useAppSelector(selectWarehouseLookupError);
-
+  
   const fetchLookup = useCallback(
-    (filters?: GetWarehouseLookupFilters) => {
-      dispatch(fetchWarehouseLookupThunk(filters));
+    (warehouseTypeId?: string) => {
+      dispatch(fetchWarehouseLookupThunk(warehouseTypeId));
     },
     [dispatch]
   );
-
+  
   return useMemo(
     () => ({
       items,

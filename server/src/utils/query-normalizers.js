@@ -1,14 +1,27 @@
 /**
- * Normalizes a value into an array of trimmed strings.
- * Accepts comma-separated strings or arrays. Returns undefined if input is falsy.
+ * Normalizes a query parameter into an array of trimmed strings.
  *
- * @param {string|string[]|undefined|null} value
- * @returns {string[]|undefined}
+ * - If the input is a comma-separated string, splits it into an array.
+ * - If the input is already an array, returns a filtered array (removing falsy values).
+ * - If the input is a single non-empty string, wraps it in an array.
+ * - If the input is null or undefined, returns undefined.
+ * - If the input is any other type (e.g., number), converts it to a string and wraps in an array.
+ *
+ * @param {string | string[] | undefined | null | any} value - The raw query parameter value.
+ * @returns {string[] | undefined} - Normalized array of trimmed strings, or undefined.
  */
 const normalizeParamArray = (value) => {
-  if (!value) return undefined;
-  if (Array.isArray(value)) return value;
-  return value.split(',').map((v) => v.trim()).filter(Boolean);
+  if (value === undefined || value === null) return undefined;
+  
+  if (Array.isArray(value)) return value.filter(Boolean);
+  
+  if (typeof value === 'string') {
+    return value.includes(',')
+      ? value.split(',').map((v) => v.trim()).filter(Boolean)
+      : [value.trim()];
+  }
+  
+  return [String(value).trim()];
 };
 
 /**

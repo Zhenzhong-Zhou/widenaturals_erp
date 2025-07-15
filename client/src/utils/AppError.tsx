@@ -8,6 +8,7 @@ enum ErrorType {
   GlobalError = 'GlobalError',
   SevereError = 'SevereError',
   ServerError = 'ServerError',
+  ServiceError = 'ServiceError',
   RateLimitError = 'RateLimitError',
   RuntimeError = 'RuntimeError',
   GeneralError = 'GeneralError',
@@ -88,16 +89,6 @@ class AppError extends Error {
           : { description: this.details },
       correlationId: this.correlationId,
     };
-  }
-
-  log() {
-    const logLevel = this.status >= 500 ? 'error' : 'warn';
-    console[logLevel](`AppError: ${this.message}`, {
-      status: this.status,
-      type: this.type,
-      details: this.details,
-      correlationId: this.correlationId,
-    });
   }
 
   getRecoverySuggestion(): string {

@@ -7,7 +7,6 @@ const {
   fetchCustomerAddressLookupService,
 } = require('../services/lookup-service');
 const { logInfo } = require('../utils/logger-helper');
-const AppError = require('../utils/AppError');
 
 /**
  * Controller to handle batch registry lookup requests.
@@ -20,7 +19,7 @@ const AppError = require('../utils/AppError');
  * @query {number} [limit=50] - Pagination limit
  * @query {number} [offset=0] - Pagination offset
  */
-const getBatchRegistryLookupController = wrapAsync(async (req, res, next) => {
+const getBatchRegistryLookupController = wrapAsync(async (req, res) => {
   logInfo('Incoming request for batch registry lookup', req, {
     context: 'lookup-controller/getBatchRegistryLookup',
     metadata: {
@@ -29,41 +28,25 @@ const getBatchRegistryLookupController = wrapAsync(async (req, res, next) => {
       ip: req.ip,
     },
   });
-
-  const query = { ...req.query };
-
-  const { batchType, warehouseId, locationId, limit = 50, offset = 0 } = query;
-
-  const numericLimit = Number(limit);
-  const numericOffset = Number(offset);
-
-  if (!Number.isInteger(numericOffset) || numericOffset < 0) {
-    return next(
-      AppError.validationError('Offset must be a non-negative integer.')
-    );
-  }
-
-  if (
-    !Number.isInteger(numericLimit) ||
-    numericLimit <= 0 ||
-    numericLimit > 100
-  ) {
-    return next(
-      AppError.validationError(
-        'Limit must be a positive integer no greater than 100.'
-      )
-    );
-  }
-
-  const filters = {};
-  if (batchType) filters.batchType = batchType;
-  if (warehouseId) filters.warehouseId = warehouseId;
-  if (locationId) filters.locationId = locationId;
-
+  
+  const {
+    batchType,
+    warehouseId,
+    locationId,
+    limit,
+    offset
+  } = req.normalizedQuery.filters;
+  
+  const filters = {
+    ...(batchType !== undefined && { batchType }),
+    ...(warehouseId !== undefined && { warehouseId }),
+    ...(locationId !== undefined && { locationId }),
+  };
+ 
   const dropdownResult = await fetchBatchRegistryLookupService({
     filters,
-    limit: numericLimit,
-    offset: numericOffset,
+    limit,
+    offset,
   });
 
   const { items, hasMore } = dropdownResult;
@@ -72,8 +55,8 @@ const getBatchRegistryLookupController = wrapAsync(async (req, res, next) => {
     success: true,
     message: `Successfully retrieved batch registry lookup`,
     items,
-    limit: numericLimit,
-    offset: numericOffset,
+    limit,
+    offset,
     hasMore,
   });
 });
@@ -87,13 +70,16 @@ const getBatchRegistryLookupController = wrapAsync(async (req, res, next) => {
  * @returns {Promise<void>}
  */
 const getWarehouseLookupController = wrapAsync(async (req, res) => {
-  const filters = {
-    locationTypeId: req.query.locationTypeId || undefined,
-    warehouseTypeId: req.query.warehouseTypeId || undefined,
-    includeArchived: req.query.includeArchived === 'true',
-  };
+  const  user = req.user;
+  const {
+    warehouseTypeId,
+  } = req.normalizedQuery.filters ?? {};
 
-  const dropdownItems = await fetchWarehouseLookupService(filters);
+  const filters = {
+    ...(warehouseTypeId !== undefined && { warehouseTypeId }),
+  };
+  
+  const dropdownItems = await fetchWarehouseLookupService(user, filters);
 
   res.status(200).json({
     success: true,
@@ -116,12 +102,13 @@ const getWarehouseLookupController = wrapAsync(async (req, res) => {
  * - `actionTypeId`: associated inventory action type ID.
  */
 const getLotAdjustmentLookupController = wrapAsync(async (req, res) => {
+  const user = req.user;
   const filters = {
-    excludeInternal: req.query.excludeInternal === 'true',
-    restrictToQtyAdjustment: req.query.restrictToQtyAdjustment === 'true',
-  };
+    excludeInternal,
+    restrictToQtyAdjustment
+  } = req.normalizedQuery.filters;
   
-  const options = await fetchLotAdjustmentLookupService(filters);
+  const options = await fetchLotAdjustmentLookupService(user, filters);
   
   res.status(200).json({
     success: true,
@@ -145,9 +132,9 @@ const fetchCustomerLookupController = wrapAsync(async (req, res) => {
   const user = req.user;
   const {
     keyword = '',
-    limit = 50,
-    offset = 0,
-  } = req.query;
+    limit,
+    offset
+  } = req.normalizedQuery.filters;
   
   const dropdownResult = await fetchCustomerLookupService(
     {
