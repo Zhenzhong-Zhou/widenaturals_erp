@@ -15,12 +15,13 @@
 const Joi = require('joi');
 const {
   safeString,
-  validateUUID,
+  validateOptionalUUID,
   validateKeyword,
   paginationSchema,
   createSortSchema,
   createdDateRangeSchema,
-  updatedDateRangeSchema
+  updatedDateRangeSchema,
+  createBooleanFlag,
 } = require('./general-validators');
 
 /**
@@ -41,10 +42,10 @@ const orderTypeFiltersSchema = Joi.object({
   name: safeString('Name').allow('', null),
   code: safeString('Code').allow('', null),
   category: safeString('Category').allow('', null),
-  statusId: validateUUID('Status ID').allow('', null),
-  requiresPayment: Joi.boolean().truthy('true').falsy('false').optional(),
-  createdBy: validateUUID('Created By').allow('', null),
-  updatedBy: validateUUID('Updated By').allow('', null),
+  statusId: validateOptionalUUID('Status ID'),
+  requiresPayment: createBooleanFlag('Requires Payment'),
+  createdBy: validateOptionalUUID('Created By'),
+  updatedBy: validateOptionalUUID('Updated By'),
   keyword: validateKeyword('Keyword'),
 });
 
