@@ -108,6 +108,8 @@ router.get(
   createQueryNormalizationMiddleware(
     'addressSortMap',
     ['customerId', 'createdBy', 'updatedBy'],
+    [],
+    addressQuerySchema
   ),
   sanitizeFields(['country', 'city', 'region', 'keyword']),
   validate(

@@ -3,10 +3,11 @@ const {
   normalizePaginationParams,
   normalizeParamArray,
 } = require('../utils/query-normalizers');
+
 const {
   sanitizeSortBy,
   sanitizeSortOrder,
-  getSortMapForModule
+  getSortMapForModule,
 } = require('../utils/sort-utils');
 
 /**
@@ -15,19 +16,19 @@ const {
  * Normalization steps:
  * - Trims all query keys and values
  * - Converts pagination fields (`page`, `limit`) to integers
- * - Sanitizes `sortBy` and `sortOrder` based on the provided module's allowed sort field map
- * - Normalizes specified keys into arrays (e.g., 'statusId', 'createdBy')
- * - Converts specified keys to booleans (e.g., 'onlyWithAddress')
- * - Optionally limits which keys are included in the `filters` object
- * - Allows selective inclusion of pagination and sorting fields in `req.normalizedQuery`
+ * - Sanitizes `sortBy` and `sortOrder` using module's sort map
+ * - Normalizes specified keys into arrays (e.g., ['statusId', 'createdBy'])
+ * - Converts specified keys to booleans (e.g., ['onlyWithAddress'])
+ * - Injects only whitelisted filter keys into `filters` object
+ * - Optionally includes pagination and sorting fields
  *
- * @param {string|null} moduleKey - Optional module key for sort mapping (e.g., 'orderTypeSortMap')
- * @param {string[]} arrayKeys - List of query keys to normalize as arrays (e.g., ['statusId', 'createdBy'])
- * @param {string[]} booleanKeys - List of query keys to normalize as booleans (e.g., ['onlyWithAddress'])
- * @param {string[]} filterKeys - List of keys to include in the `filters` object (e.g., ['statusId', 'orderType'])
- * @param {object} [options] - Optional configuration flags
- * @param {boolean} [options.includePagination=true] - Whether to include pagination fields (`limit`, `offset`, `page`)
- * @param {boolean} [options.includeSorting=true] - Whether to include sorting fields (`sortBy`, `sortOrder`)
+ * @param {string|null} moduleKey - Optional sort map key (e.g., 'orderTypeSortMap')
+ * @param {string[]} arrayKeys - Query keys to normalize as arrays
+ * @param {string[]} booleanKeys - Query keys to normalize as booleans
+ * @param {string[]|object} filterKeysOrSchema - Explicit filter keys or Joi schema
+ * @param {object} [options] - Optional config
+ * @param {boolean} [options.includePagination=true] - Include pagination fields
+ * @param {boolean} [options.includeSorting=true] - Include sorting fields
  *
  * @returns {function} Express middleware that sets `req.normalizedQuery`
  */
@@ -35,57 +36,73 @@ const createQueryNormalizationMiddleware = (
   moduleKey = '',
   arrayKeys = [],
   booleanKeys = [],
-  filterKeys = [],
-  options = { includePagination: true, includeSorting: true }
+  filterKeysOrSchema = [],
+  options = {}
 ) => {
+  const finalOptions = {
+    includePagination: true,
+    includeSorting: true,
+    ...options,
+  };
+  
+  let filterKeys = [];
+  
+  if (Array.isArray(filterKeysOrSchema)) {
+    filterKeys = filterKeysOrSchema;
+  } else if (filterKeysOrSchema?.describe) {
+    filterKeys = Object.keys(filterKeysOrSchema.describe().keys);
+  } else {
+    throw new Error(
+      'filterKeysOrSchema must be an array of strings or a Joi schema object'
+    );
+  }
+  
   return (req, res, next) => {
     const rawQuery = req.query ?? {};
     
-    // Step 1: Trim all keys and values in the raw query string
+    // 1. Trim all keys/values
     const trimmedQuery = normalizeFilterKeys(rawQuery);
     
-    // Step 2: Extract and normalize pagination parameters
+    // 2. Normalize pagination
     const { page, limit, sortOrder: rawSortOrder } = normalizePaginationParams(trimmedQuery);
     
-    // Step 3: Retrieve module-specific sort field mapping and sanitize sort fields
+    // 3. Sanitize sorting
     const sortMap = getSortMapForModule(moduleKey);
-    const rawSortBy = trimmedQuery.sortBy ?? undefined;
+    const rawSortBy = trimmedQuery.sortBy;
     const sanitizedSortBy = sanitizeSortBy(rawSortBy, moduleKey) ?? sortMap?.defaultNaturalSort;
     const sanitizedSortOrder = sanitizeSortOrder(rawSortOrder);
     
-    // Step 4: Normalize specified keys into arrays (e.g., statusId=1,2 => ['1', '2'])
+    // 4. Normalize arrays
     const normalizedArrays = {};
     for (const key of arrayKeys) {
-      if (key in trimmedQuery) {
-        const normalized = normalizeParamArray(trimmedQuery[key]);
-        if (normalized?.length > 0) {
-          normalizedArrays[key] = normalized;
-        }
+      if (trimmedQuery[key] != null) {
+        const result = normalizeParamArray(trimmedQuery[key]);
+        if (result.length > 0) normalizedArrays[key] = result;
       }
     }
     
-    // Step 5: Normalize specified keys into booleans (e.g., onlyActive='true' => true)
+    // 5. Normalize booleans
     const normalizedBooleans = {};
     for (const key of booleanKeys) {
-      if (key in trimmedQuery) {
+      if (trimmedQuery[key] != null) {
         const val = trimmedQuery[key];
-        if (val === true || val === 'true') {
-          normalizedBooleans[key] = true;
-        } else if (val === false || val === 'false') {
-          normalizedBooleans[key] = false;
-        } else {
-          normalizedBooleans[key] = undefined;
-        }
+        normalizedBooleans[key] =
+          val === true ||
+          val === 'true' ||
+          val === '1' ||
+          val === 1;
       }
     }
     
-    // Step 6: Filter query keys to include only those explicitly allowed in `filterKeys`
+    // 6. Filter plain fields
     const filters = {};
     for (const key of filterKeys) {
-      if (trimmedQuery[key] !== undefined) filters[key] = trimmedQuery[key];
+      if (trimmedQuery[key] !== undefined) {
+        filters[key] = trimmedQuery[key];
+      }
     }
     
-    // Step 7: Build the final normalized object to be attached to the request
+    // 7. Assemble final object
     const normalized = {
       filters: {
         ...filters,
@@ -94,24 +111,20 @@ const createQueryNormalizationMiddleware = (
       },
     };
     
-    // Step 8: Conditionally attach pagination fields
-    if (options.includePagination !== false) {
+    // 8. Add pagination
+    if (finalOptions.includePagination) {
       normalized.limit = limit;
       normalized.offset = Number(trimmedQuery.offset ?? 0);
+      if (page !== undefined) normalized.page = page;
     }
     
-    // Step 9: Conditionally attach sorting fields
-    if (options.includeSorting !== false) {
+    // 9. Add sorting
+    if (finalOptions.includeSorting) {
       normalized.sortBy = sanitizedSortBy;
       normalized.sortOrder = sanitizedSortOrder;
     }
     
-    // Step 10: Attach page only if pagination is included and page exists
-    if (options.includePagination && page !== undefined) {
-      normalized.page = page;
-    }
-    
-    // Step 11: Attach a final result to request for downstream use
+    // 10. Attach to request
     req.normalizedQuery = normalized;
     
     next();

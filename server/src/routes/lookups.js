@@ -235,6 +235,8 @@ router.get(
   createQueryNormalizationMiddleware(
     '',
     ['customerId'],
+    [],
+    customerAddressLookupQuerySchema
   ),
   sanitizeFields(['customerId']),
   validate(

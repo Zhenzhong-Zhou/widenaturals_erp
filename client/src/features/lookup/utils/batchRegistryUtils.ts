@@ -13,7 +13,6 @@ export const mapBatchLookupToOptions = (
       : `${item.id}`;
     
     if (seenValues.has(optionValue)) {
-      console.warn(`Duplicate detected: ${optionValue}`);
       return acc;
     }
     

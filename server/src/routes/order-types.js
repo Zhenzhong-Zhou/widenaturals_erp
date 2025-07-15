@@ -61,6 +61,8 @@ router.get(
   createQueryNormalizationMiddleware(
     'orderTypeSortMap',
     ['statusId', 'createdBy', 'updatedBy'],
+    [],
+    orderTypeQuerySchema
   ),
   sanitizeFields([
     'name',

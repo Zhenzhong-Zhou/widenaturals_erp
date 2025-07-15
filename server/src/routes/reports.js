@@ -48,6 +48,8 @@ router.get(
       'adjustmentTypeId',
       'performedBy',
     ],
+    [],
+    inventoryActivityLogQuerySchema
   ),
   sanitizeFields([
     'sourceType',

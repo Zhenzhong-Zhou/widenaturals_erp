@@ -85,6 +85,7 @@ router.get(
     'customerSortMap',                   // sort map module
     ['createdBy', 'updatedBy'],           // array keys
     ['onlyWithAddress'],                // boolean keys
+    customerFilterSchema
   ),
   sanitizeFields(['keyword', 'region', 'country']),
   validate(
