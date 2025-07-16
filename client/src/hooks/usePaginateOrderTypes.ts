@@ -8,49 +8,48 @@ import {
   selectOrderTypesLoading,
 } from '@features/orderType/state';
 import { fetchPaginatedOrderTypesThunk } from '@features/orderType/state/orderTypeThunks';
+import { resetOrderTypesState } from '@features/orderType/state/paginatedOrderTypesSlice';
 
 /**
- * Hook to manage and fetch paginated order types with sorting and optional refresh.
- *
- * @param page - Current page number (starting from 1)
- * @param limit - Number of records per page
- * @param sortBy - Field to sort by (default: 'name')
- * @param sortOrder - Sort direction: 'ASC' or 'DESC' (default: 'ASC')
+ * Hook to access paginated order types data and utilities.
  *
  * @returns Object containing:
- *   - `orderTypes`: List of fetched order type records
+ *   - `data`: List of fetched order type records
  *   - `pagination`: Pagination state (page, limit, totalRecords, totalPages)
- *   - `isLoading`: Whether data is currently being fetched
+ *   - `loading`: Whether data is currently being fetched
  *   - `error`: Error message, if any
- *   - `refresh`: Function to manually re-trigger data fetch
+ *   - `fetchData`: Function to trigger fetch with params
+ *   - `reset`: Function to reset state to initial
  */
-const usePaginateOrderTypes = (
-  page: number,
-  limit: number,
-  sortBy: string = 'name',
-  sortOrder: 'ASC' | 'DESC' = 'ASC'
-) => {
+const usePaginateOrderTypes = () => {
   const dispatch = useAppDispatch();
   
-  const orderTypes = useAppSelector(selectOrderTypeList);
+  const data = useAppSelector(selectOrderTypeList);
   const pagination = useAppSelector(selectOrderTypePagination);
-  const isLoading = useAppSelector(selectOrderTypesLoading);
+  const loading = useAppSelector(selectOrderTypesLoading);
   const error = useAppSelector(selectOrderTypesError);
   
-  const fetchData = useCallback(() => {
-    const params: FetchPaginatedOrderTypesParams = { page, limit, sortBy, sortOrder };
-    dispatch(fetchPaginatedOrderTypesThunk(params));
-  }, [dispatch, page, limit, sortBy, sortOrder]);
+  const fetchData = useCallback(
+    (params: FetchPaginatedOrderTypesParams) => {
+      dispatch(fetchPaginatedOrderTypesThunk(params));
+    },
+    [dispatch]
+  );
+  
+  const reset = useCallback(() => {
+    dispatch(resetOrderTypesState());
+  }, [dispatch]);
   
   return useMemo(
     () => ({
-      orderTypes,
+      data,
       pagination,
-      isLoading,
+      loading,
       error,
       fetchData,
+      reset,
     }),
-    [orderTypes, pagination, isLoading, error, fetchData]
+    [data, pagination, loading, error, fetchData, reset]
   );
 };
 

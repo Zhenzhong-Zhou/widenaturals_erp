@@ -258,3 +258,26 @@ export const adjustBeforeDateInclusive = (input?: string): string => {
     ? startOfDay(addDays(date, 1)).toISOString()
     : '';
 };
+
+/**
+ * Safely converts a date-like input to an ISO 8601 string (`YYYY-MM-DDTHH:mm:ss.sssZ`).
+ *
+ * Accepts a `Date` object or a valid date string and returns its ISO string representation.
+ * Returns `undefined` if the input is invalid, empty, or not parseable.
+ *
+ * This function is useful for transforming client-side date inputs
+ * (e.g., from a date picker or filter form) into valid ISO strings for backend query parameters.
+ *
+ * @param value - The input value to convert (Date, ISO string, or null/undefined).
+ * @returns A valid ISO 8601 string or `undefined` if the input is invalid.
+ */
+export const toISO = (value: string | Date | null | undefined): string | undefined => {
+  if (value instanceof Date && !isNaN(value.getTime())) {
+    return value.toISOString();
+  }
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = new Date(value);
+    return !isNaN(parsed.getTime()) ? parsed.toISOString() : undefined;
+  }
+  return undefined;
+};

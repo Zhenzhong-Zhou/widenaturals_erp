@@ -105,6 +105,9 @@ export interface OrderTypeListItem {
   /** Name or ID of the user who created the record */
   createdBy: string;
   
+  /** Timestamp when the record was updated (ISO 8601) */
+  updatedAt: string;
+  
   /** Name or ID of the user who last updated the record */
   updatedBy: string;
   

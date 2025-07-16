@@ -1,4 +1,5 @@
-import { type FC } from 'react';
+import type { FC } from 'react';
+import type { SortOrder } from '@shared-types/api';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import FormControl from '@mui/material/FormControl';
@@ -7,9 +8,9 @@ import Stack from '@mui/material/Stack';
 
 interface SortControlsProps {
   sortBy: string;
-  sortOrder: '' | 'ASC' | 'DESC';
+  sortOrder: SortOrder;
   onSortByChange: (value: string) => void;
-  onSortOrderChange: (value: '' | 'ASC' | 'DESC') => void;
+  onSortOrderChange: (value: SortOrder) => void;
   sortOptions: { label: string; value: string }[];
 }
 
