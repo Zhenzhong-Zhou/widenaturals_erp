@@ -29,20 +29,22 @@ const getBatchRegistryLookupController = wrapAsync(async (req, res) => {
     },
   });
   
+  const { limit, offset, filters: rawFilters = {} } = req.normalizedQuery;
+  
   const {
     batchType,
     warehouseId,
     locationId,
-    limit,
-    offset
-  } = req.normalizedQuery.filters;
+    ...restFilters // in case there are more filters later
+  } = rawFilters;
   
   const filters = {
     ...(batchType !== undefined && { batchType }),
     ...(warehouseId !== undefined && { warehouseId }),
     ...(locationId !== undefined && { locationId }),
+    ...restFilters, // optional: include any other filters dynamically
   };
- 
+  
   const dropdownResult = await fetchBatchRegistryLookupService({
     filters,
     limit,
@@ -50,7 +52,7 @@ const getBatchRegistryLookupController = wrapAsync(async (req, res) => {
   });
 
   const { items, hasMore } = dropdownResult;
-
+console.log(">>>>dropdownResult",dropdownResult);
   res.status(200).json({
     success: true,
     message: `Successfully retrieved batch registry lookup`,

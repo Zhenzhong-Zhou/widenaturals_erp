@@ -11,7 +11,7 @@ import { buildQueryString } from '@utils/buildQueryString';
 /**
  * Sends a request to create one or more customers.
  *
- * - Accepts an array of customer payloads (even for single customer).
+ * - Accepts an array of customer payloads (even for a single customer).
  * - Returns either a single customer response or a bulk customer response,
  *   wrapped in a standard API success structure.
  * - Automatically handles API response types for both single and bulk creation.

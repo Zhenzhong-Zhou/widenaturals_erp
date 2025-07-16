@@ -19,8 +19,8 @@ const useWarehouseLookup = () => {
   const error = useAppSelector(selectWarehouseLookupError);
   
   const fetchLookup = useCallback(
-    (warehouseTypeId?: string) => {
-      dispatch(fetchWarehouseLookupThunk(warehouseTypeId));
+    (params?: { warehouseTypeId?: string }) => {
+      dispatch(fetchWarehouseLookupThunk(params));
     },
     [dispatch]
   );

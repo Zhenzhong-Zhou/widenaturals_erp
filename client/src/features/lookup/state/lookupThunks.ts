@@ -46,12 +46,12 @@ export const fetchBatchRegistryLookupThunk = createAsyncThunk<
  */
 export const fetchWarehouseLookupThunk = createAsyncThunk<
   GetWarehouseLookupResponse, // return type
-  string | undefined // argument type (warehouseTypeId)
+  { warehouseTypeId?: string } | undefined
 >(
   'lookup/fetchWarehouseLookup',
-  async (warehouseTypeId, { rejectWithValue }) => {
+  async (params, { rejectWithValue }) => {
     try {
-      return await lookupService.fetchWarehouseLookup(warehouseTypeId);
+      return await lookupService.fetchWarehouseLookup(params?.warehouseTypeId);
     } catch (error: any) {
       return rejectWithValue({
         message:

@@ -1,5 +1,4 @@
 import {
-  type ChangeEvent,
   type Dispatch,
   type FC,
   type SetStateAction,
@@ -21,6 +20,9 @@ import type {
   GetBatchRegistryLookupParams,
   LookupPaginationMeta,
 } from '@features/lookup/state';
+import { useBatchTypeHandler } from '@features/warehouseInventory/hooks/useBatchTypeHandler.ts';
+import { getVisibleBatchOptions } from '@features/warehouseInventory/utils/getVisibleBatchOptions.ts';
+import type { BatchType } from '@features/inventoryShared/types/InventorySharedType.ts';
 
 interface AddInventoryFormProps {
   onSubmit: (formData: Record<string, any>) => void;
@@ -33,6 +35,7 @@ interface AddInventoryFormProps {
     SetStateAction<GetBatchRegistryLookupParams>
   >;
   fetchBatchLookup: (params: GetBatchRegistryLookupParams) => void;
+  resetBatchLookup: () => void;
   batchLookupPaginationMeta: LookupPaginationMeta;
   batchLookupLoading?: boolean;
   batchLookupError?: string | null;
@@ -55,6 +58,7 @@ const AddInventoryForm: FC<AddInventoryFormProps> = ({
   batchLookupParams,
   setBatchLookupParams,
   fetchBatchLookup,
+  resetBatchLookup,
   batchLookupPaginationMeta,
   batchLookupLoading,
   batchLookupError,
@@ -65,22 +69,17 @@ const AddInventoryForm: FC<AddInventoryFormProps> = ({
   warehouseLookupLoading,
   warehouseLookupError,
 }) => {
-  const [batchType, setBatchType] = useState<
-    'product' | 'packaging_material' | 'all'
-  >('all');
-
-  const handleBatchTypeChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const value = event.target.value as
-      | 'product'
-      | 'packaging_material'
-      | 'all';
-    setBatchType(value);
-    setBatchLookupParams((prev: GetBatchRegistryLookupParams) => ({
-      ...prev,
-      batchType: value === 'all' ? undefined : value,
-    }));
-  };
-
+  const [batchType, setBatchType] = useState<BatchType>('all');
+  
+  const visibleOptions = getVisibleBatchOptions(batchType, batchLookupOptions);
+  
+  const { handleBatchTypeChange } = useBatchTypeHandler({
+    setBatchType,
+    setBatchLookupParams,
+    resetBatchLookup,
+    fetchBatchLookup,
+  });
+  
   const fields: FieldConfig[] = useMemo(() => {
     const baseFields: FieldConfig[] = [
       {
@@ -157,7 +156,7 @@ const AddInventoryForm: FC<AddInventoryFormProps> = ({
                 value={
                   selectedBatch ? `${selectedBatch.id}::${selectedBatch.type}` : null
                 }
-                options={batchLookupOptions}
+                options={visibleOptions}
                 onChange={(val) => {
                   if (!val || !val.includes('::')) {
                     setSelectedBatch(null);
@@ -181,6 +180,10 @@ const AddInventoryForm: FC<AddInventoryFormProps> = ({
                 }}
                 setFetchParams={setBatchLookupParams}
                 onRefresh={fetchBatchLookup}
+                noOptionsMessage={
+                   visibleOptions.length === 0
+                      ? 'No matching batches found' : ''
+                }
               />
             </Grid>
           </Grid>

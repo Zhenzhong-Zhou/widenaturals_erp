@@ -39,6 +39,7 @@ interface AddInventoryDialogWithModeToggleProps {
     SetStateAction<GetBatchRegistryLookupParams>
   >;
   fetchBatchLookup: (params: GetBatchRegistryLookupParams) => void;
+  resetBatchLookup: () => void;
   lookupPaginationMeta: LookupPaginationMeta;
   batchLookupLoading?: boolean;
   batchLookupError?: string | null;
@@ -71,6 +72,7 @@ const AddInventoryDialogWithModeToggle: FC<
   batchLookupParams,
   setBatchLookupParams,
   fetchBatchLookup,
+  resetBatchLookup,
   lookupPaginationMeta,
   batchLookupLoading,
   batchLookupError,
@@ -130,6 +132,7 @@ const AddInventoryDialogWithModeToggle: FC<
                 batchLookupParams={batchLookupParams}
                 setBatchLookupParams={setBatchLookupParams}
                 fetchBatchLookup={fetchBatchLookup}
+                resetBatchLookup={resetBatchLookup}
                 batchLookupPaginationMeta={lookupPaginationMeta}
                 batchLookupLoading={batchLookupLoading}
                 batchLookupError={batchLookupError}
@@ -148,6 +151,7 @@ const AddInventoryDialogWithModeToggle: FC<
                 batchLookupParams={batchLookupParams}
                 setBatchLookupParams={setBatchLookupParams}
                 fetchBatchLookup={fetchBatchLookup}
+                resetBatchLookup={resetBatchLookup}
                 batchLookupPaginationMeta={lookupPaginationMeta}
                 batchLookupLoading={batchLookupLoading}
                 batchLookupError={batchLookupError}

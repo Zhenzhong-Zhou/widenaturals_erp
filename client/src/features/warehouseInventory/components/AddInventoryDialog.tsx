@@ -69,21 +69,30 @@ const AddInventoryDialog: FC<AddInventoryDialogProps> = ({
     fetchLookup: fetchBatchRegistryLookup,
     resetLookup: restBatchRegistryLookup,
   } = useBatchRegistryLookup();
-
-  useEffect(() => {
-    fetchWarehouseLookup();
-  }, [fetchWarehouseLookup]);
-
-  useEffect(() => {
-    fetchBatchRegistryLookup({ ...batchLookupParams, offset: 0 }); // initial load
-  }, [
-    fetchBatchRegistryLookup,
-    batchLookupParams,
-  ]);
   
   useEffect(() => {
+    if (open) {
+      fetchWarehouseLookup();
+    }
+  }, [open, fetchWarehouseLookup]);
+
+  useEffect(() => {
+    if (open && selectedWarehouse) {
+      fetchBatchRegistryLookup({ ...batchLookupParams, offset: 0 });
+    }
+  }, [open, fetchBatchRegistryLookup, batchLookupParams]);
+
+  // Reset on close
+  useEffect(() => {
+    if (!open) {
+      restBatchRegistryLookup();
+    }
+  }, [open, restBatchRegistryLookup]);
+
+  // Also reset on unmounting (as fallback)
+  useEffect(() => {
     return () => {
-      restBatchRegistryLookup(); // reset only on unmounting
+      restBatchRegistryLookup();
     };
   }, [restBatchRegistryLookup]);
 
@@ -177,6 +186,7 @@ const AddInventoryDialog: FC<AddInventoryDialogProps> = ({
       batchLookupParams={batchLookupParams}
       setBatchLookupParams={setBatchLookupParams}
       fetchBatchLookup={fetchBatchRegistryLookup}
+      resetBatchLookup={restBatchRegistryLookup}
       lookupPaginationMeta={batchLookupPaginationMeta}
       batchLookupLoading={batchLoading}
       batchLookupError={batchError}

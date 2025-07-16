@@ -56,6 +56,7 @@ interface DropdownProps {
   helperText?: string;
   inputValue?: string;
   onInputChange?: (event: SyntheticEvent, value: string) => void;
+  noOptionsMessage?: string;
 }
 
 const SPECIAL_OPTIONS: OptionType[] = [
@@ -82,20 +83,29 @@ const Dropdown: FC<DropdownProps> = ({
   helperText,
   inputValue,
   onInputChange,
+  noOptionsMessage,
 }) => {
   const { theme } = useThemeContext();
 
   // Modified options array with special items at the top
   const modifiedOptions = useMemo(() => {
-    const baseOptions = [...SPECIAL_OPTIONS, ...options];
+    const baseOptions = [...SPECIAL_OPTIONS];
+    
+    if (!loading && !error && options.length === 0) {
+      baseOptions.push({
+        value: '__no_options__',
+        label: noOptionsMessage ?? 'No options available',
+        type: 'meta',
+      });
+    }
+    
+    baseOptions.push(...options);
+    
     return hasMore
-      ? [
-          ...baseOptions,
-          { value: '__loading__', label: 'Loading more...', type: 'meta' },
-        ]
+      ? [...baseOptions, { value: '__loading__', label: 'Loading more...', type: 'meta' }]
       : baseOptions;
-  }, [options, hasMore]);
-
+  }, [options, hasMore, loading, error, noOptionsMessage]);
+  
   return (
     <Box sx={{ minWidth: '200px', width: '100%', ...sx }}>
       <Autocomplete

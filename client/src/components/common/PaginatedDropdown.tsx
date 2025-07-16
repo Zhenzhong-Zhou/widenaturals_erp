@@ -16,6 +16,7 @@ export interface PaginatedDropdownProps<TParams> {
   onAddNew?: () => void;
   inputValue?: string;
   onInputChange?: (event: any, newValue: string) => void;
+  noOptionsMessage?: string;
 }
 
 const PaginatedDropdown = <TParams,>({
@@ -32,6 +33,7 @@ const PaginatedDropdown = <TParams,>({
                                        onAddNew,
                                        inputValue,
                                        onInputChange,
+                                       noOptionsMessage,
                                      }: PaginatedDropdownProps<TParams>) => {
   return (
     <Dropdown
@@ -60,6 +62,7 @@ const PaginatedDropdown = <TParams,>({
       }}
       inputValue={inputValue}
       onInputChange={onInputChange}
+      noOptionsMessage={noOptionsMessage}
     />
   );
 };

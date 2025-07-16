@@ -27,6 +27,8 @@ export interface InventoryHealthStatus {
 
 export type ItemType = 'product' | 'packaging_material' | undefined;
 
+export type BatchType = 'product' | 'packaging_material' | 'all';
+
 /**
  * Interface for fetching inventory summary details by item ID with pagination.
  *
