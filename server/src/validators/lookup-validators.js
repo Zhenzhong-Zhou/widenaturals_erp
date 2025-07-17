@@ -99,10 +99,25 @@ const customerAddressLookupQuerySchema = Joi.object({
   customerId: validateUUID('customerId'),
 });
 
+/**
+ * Validation schema for order type lookup query parameters.
+ *
+ * This schema ensures the optional `keyword` is a trimmed string
+ * and follows the constraints defined in `validateKeyword`.
+ * Used to filter order types by name or code.
+ *
+ * Example:
+ *   /api/lookups/order-types?keyword=sale
+ */
+const orderTypeLookupQuerySchema = Joi.object({
+  keyword: validateKeyword('Order Types Keyword'),
+});
+
 module.exports = {
   batchRegistryLookupQuerySchema,
   warehouseLookupQuerySchema,
   lotAdjustmentTypeLookupSchema,
   customerLookupQuerySchema,
   customerAddressLookupQuerySchema,
+  orderTypeLookupQuerySchema,
 };

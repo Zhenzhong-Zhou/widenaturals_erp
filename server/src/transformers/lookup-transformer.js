@@ -181,6 +181,33 @@ const transformCustomerAddressLookupRow = (row) => {
 const transformCustomerAddressesLookupResult = (rows) =>
   transformRows(rows, transformCustomerAddressLookupRow);
 
+/**
+ * Transforms a raw order type row into a minimal lookup object.
+ *
+ * @param {Object|null|undefined} row - Raw DB row
+ * @returns {Object|null} Transformed object or null if invalid
+ */
+const transformOrderTypeLookup = (row) => {
+  if (!row || typeof row !== 'object') return null;
+  
+  const result = {
+    id: row.id,
+    name: row.name,
+    category: row.category,
+  };
+  
+  return cleanObject(result);
+};
+
+/**
+ * Converts an array of raw DB rows into `{ value, label }` list.
+ *
+ * @param {Array} rows - DB rows
+ * @returns {Array} List of lookup options
+ */
+const transformOrderTypeLookupResult = (rows) => {
+  return transformRows(rows, (row) => transformOrderTypeLookup(row));
+};
 
 module.exports = {
   transformBatchRegistryPaginatedLookupResult,
@@ -188,4 +215,5 @@ module.exports = {
   transformLotAdjustmentLookupOptions,
   transformCustomerPaginatedLookupResult,
   transformCustomerAddressesLookupResult,
+  transformOrderTypeLookupResult,
 };

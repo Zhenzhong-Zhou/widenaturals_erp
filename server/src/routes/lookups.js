@@ -4,7 +4,7 @@ const {
   getWarehouseLookupController,
   getLotAdjustmentLookupController,
   fetchCustomerLookupController,
-  getCustomerAddressLookupController,
+  getCustomerAddressLookupController, getOrderTypeLookupController,
 } = require('../controllers/lookup-controller');
 const authorize = require('../middlewares/authorize');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
@@ -15,7 +15,7 @@ const {
   warehouseLookupQuerySchema,
   customerLookupQuerySchema,
   customerAddressLookupQuerySchema,
-  lotAdjustmentTypeLookupSchema,
+  lotAdjustmentTypeLookupSchema, orderTypeLookupQuerySchema,
 } = require('../validators/lookup-validators');
 
 const router = express.Router();
@@ -242,10 +242,50 @@ router.get(
   validate(
     customerAddressLookupQuerySchema,
     'query',
-    { stripUnknown: true, convert: true },
+    { convert: true },
     'Invalid query parameters.'
   ),
   getCustomerAddressLookupController
+);
+
+/**
+ * GET /lookups/order-types
+ *
+ * Retrieves a filtered list of order types for dropdown use, based on the user's permissions and optional keyword search.
+ *
+ * Middlewares:
+ * - `authorize(['create_orders'])`: Ensures the user has basic permission to initiate orders.
+ * - `createQueryNormalizationMiddleware`: Preprocesses query parameters if needed.
+ * - `sanitizeFields(['keyword'])`: Trims and sanitizes the keyword.
+ * - `validate(orderTypeLookupQuerySchema, 'query')`: Validates query parameters using Joi schema.
+ *
+ * Query Parameters:
+ * - `keyword` (optional): Filters order types by name/code using case-insensitive match.
+ *
+ * Response: 200 OK
+ * {
+ *   success: true,
+ *   message: "Successfully retrieved order type lookup",
+ *   data: [ { id, name }, ... ]
+ * }
+ */
+router.get(
+  '/order-types',
+  authorize(['create_orders']),
+  createQueryNormalizationMiddleware(
+    '',
+    [],
+    [],
+    orderTypeLookupQuerySchema
+  ),
+  sanitizeFields(['keyword']),
+  validate(
+    orderTypeLookupQuerySchema,
+    'query',
+    { convert: true },
+    'Invalid query parameters.'
+  ),
+  getOrderTypeLookupController
 );
 
 module.exports = router;

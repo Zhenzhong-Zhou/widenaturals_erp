@@ -11,6 +11,7 @@ const {
   transformLotAdjustmentLookupOptions,
   transformCustomerPaginatedLookupResult,
   transformCustomerAddressesLookupResult,
+  transformOrderTypeLookupResult,
 } = require('../transformers/lookup-transformer');
 const {
   logSystemInfo,
@@ -26,6 +27,8 @@ const {
 const LOOKUPS = require('../utils/constants/domain/lookup-constants');
 const { resolveWarehouseFiltersByPermission } = require('../business/warehouse-business');
 const { enforceExternalAccessPermission } = require('../business/lot-adjustment-type-business');
+const { getOrderTypeLookup } = require('../repositories/order-type-repository');
+const { getFilteredOrderTypes, filterOrderTypeLookupResultByPermission } = require('../business/order-type-business');
 
 /**
  * Service to fetch filtered and paginated batch registry records for lookup UI.
@@ -295,10 +298,49 @@ const fetchCustomerAddressLookupService = async (customerId) => {
   }
 };
 
+/**
+ * Fetches order types for dropdowns based on a user role, permission, and filters.
+ *
+ * - Applies permission-based filtering (e.g., restricts category or status).
+ * - Returns minimal `{ id, name }` for restricted users.
+ * - Full data for users with `view_order_type` permission.
+ *
+ * @param {Object} params
+ * @param {Object} params.filters - Optional filter object (e.g. { keyword })
+ * @param {Object} user - Authenticated user object
+ * @returns {Promise<Array>} Transformed lookup result
+ */
+const fetchOrderTypeLookupService = async ({ filters = {} }, user) => {
+  try {
+    const { keyword } = filters;
+    
+    // Step 1: Build filters based on user access
+    const filteredQuery = await getFilteredOrderTypes(user, keyword);
+    
+    // Step 2: Fetch matching order types from DB
+    const rawResult = await getOrderTypeLookup({ filters: filteredQuery });
+    
+    // Step 3: Restrict fields based on user permission
+    const filteredResult = await filterOrderTypeLookupResultByPermission(user, rawResult);
+    
+    // Step 4: Transform result for lookup dropdown
+    return transformOrderTypeLookupResult(filteredResult);
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch order type lookup', {
+      context: 'lookup-service/fetchOrderTypeLookupService',
+      userId: user?.id,
+      role: user?.role,
+    });
+    
+    throw AppError.serviceError('Unable to fetch order type lookup');
+  }
+};
+
 module.exports = {
   fetchBatchRegistryLookupService,
   fetchWarehouseLookupService,
   fetchLotAdjustmentLookupService,
   fetchCustomerLookupService,
   fetchCustomerAddressLookupService,
+  fetchOrderTypeLookupService,
 };

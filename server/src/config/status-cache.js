@@ -22,7 +22,11 @@ const STATUS_KEY_LOOKUP = [
   { key: 'pricing_type_active', table: 'status', name: 'active' },
   { key: 'warehouse_active', table: 'status', name: 'active' },
   { key: 'sku_active', table: 'status', name: 'active' },
-  { key: 'inventory_in_stock', table: 'inventory_status', name: 'in_stock' },
+  {
+    key: 'inventory_in_stock',
+    table: 'inventory_status',
+    name: 'in_stock'
+  },
   {
     key: 'inventory_out_of_stock',
     table: 'inventory_status',
@@ -45,6 +49,11 @@ const STATUS_KEY_LOOKUP = [
   },
   {
     key: 'customer_active',
+    table: 'status',
+    name: 'active',
+  },
+  {
+    key: 'order_type_active',
     table: 'status',
     name: 'active',
   },

@@ -4,7 +4,7 @@ const {
   fetchWarehouseLookupService,
   fetchLotAdjustmentLookupService,
   fetchCustomerLookupService,
-  fetchCustomerAddressLookupService,
+  fetchCustomerAddressLookupService, fetchOrderTypeLookupService,
 } = require('../services/lookup-service');
 const { logInfo } = require('../utils/logger-helper');
 
@@ -52,7 +52,7 @@ const getBatchRegistryLookupController = wrapAsync(async (req, res) => {
   });
 
   const { items, hasMore } = dropdownResult;
-console.log(">>>>dropdownResult",dropdownResult);
+  
   res.status(200).json({
     success: true,
     message: `Successfully retrieved batch registry lookup`,
@@ -194,10 +194,39 @@ const getCustomerAddressLookupController = wrapAsync(async (req, res) => {
   });
 });
 
+/**
+ * Controller to handle order type lookup for dropdown components.
+ *
+ * - Retrieve the authenticated user and query filters (e.g., `keyword`).
+ * - Applies permission-based filtering and category restriction via service layer.
+ * - Returns a minimal or full transformed result based on user permissions.
+ *
+ * Example query: `GET /api/lookup/order-types?keyword=transfer`
+ *
+ * @function
+ * @async
+ * @param {import('express').Request} req - Express request object, expects `req.user` and `req.normalizedQuery.filters`
+ * @param {import('express').Response} res - Express response object used to send JSON response
+ * @returns {Promise<void>} JSON response with transformed order type lookup data
+ */
+const getOrderTypeLookupController = wrapAsync(async (req, res) => {
+  const user = req.user;
+  const { filters = {} } = req.normalizedQuery;
+  
+  const result = await fetchOrderTypeLookupService({ filters }, user);
+  
+  return res.status(200).json({
+    success: true,
+    message: 'Successfully retrieved order type lookup',
+    data: result,
+  });
+});
+
 module.exports = {
   getBatchRegistryLookupController,
   getWarehouseLookupController,
   getLotAdjustmentLookupController,
   fetchCustomerLookupController,
   getCustomerAddressLookupController,
+  getOrderTypeLookupController,
 };

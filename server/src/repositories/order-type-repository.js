@@ -1,5 +1,5 @@
 const { buildOrderTypeFilter } = require('../utils/sql/build-order-type-filters');
-const { paginateQuery } = require('../database/db');
+const { paginateQuery, query } = require('../database/db');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 
@@ -106,6 +106,49 @@ const getPaginatedOrderTypes = async ({
   }
 };
 
+/**
+ * Fetches a list of order types for lookup purposes.
+ *
+ * This function is optimized for small datasets (<100 rows) and is typically used
+ * in dropdowns, filters, and selection UIs. It optionally applies filter conditions.
+ *
+ * @param {Object} [options] - Optional parameters
+ * @param {Object} [options.filters] - Optional filters to narrow results (e.g., statusId, category)
+ * @returns {Promise<Array>} Resolves to an array of order type objects (id, name, category, code, status_id)
+ * @throws {AppError} Throws if a database query fails
+ */
+const getOrderTypeLookup = async ({ filters = {} } = {}) => {
+  const { whereClause, params } = buildOrderTypeFilter(filters);
+  
+  const queryText = `
+    SELECT
+      id,
+      name,
+      category
+    FROM order_types ot
+    WHERE ${whereClause}
+    ORDER BY name ASC
+  `;
+  
+  try {
+    const { rows } = await query(queryText, params);
+    
+    logSystemInfo('Fetched order type lookup', {
+      context: 'orderType-repository/getOrderTypeLookup',
+      filters,
+    });
+    
+    return rows;
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch order type lookup', {
+      context: 'orderType-repository/getOrderTypeLookup',
+      filters,
+    });
+    throw AppError.databaseError('Failed to fetch order type lookup');
+  }
+};
+
 module.exports = {
   getPaginatedOrderTypes,
+  getOrderTypeLookup,
 };
