@@ -4,12 +4,18 @@ import InputLabel from '@mui/material/InputLabel';
 import Select, { type SelectChangeEvent } from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 
+export interface BooleanSelectOption {
+  value: string;
+  label: string;
+}
+
 interface BooleanSelectProps {
   label: string;
   value: boolean | undefined | null | '';
   onChange: (value: boolean | undefined) => void;
   allowAll?: boolean;
   fullWidth?: boolean;
+  options?: BooleanSelectOption[];
 }
 
 const BooleanSelect: FC<BooleanSelectProps> = ({
@@ -18,6 +24,7 @@ const BooleanSelect: FC<BooleanSelectProps> = ({
                                                  onChange,
                                                  allowAll = true,
                                                  fullWidth = true,
+                                                 options,
                                                }) => {
   const handleChange = (e: SelectChangeEvent) => {
     const val = e.target.value;
@@ -25,6 +32,19 @@ const BooleanSelect: FC<BooleanSelectProps> = ({
     else if (val === 'false') onChange(false);
     else onChange(undefined);
   };
+  
+  const defaultOptions: BooleanSelectOption[] = [];
+  
+  if (allowAll) {
+    defaultOptions.push({ value: '', label: 'All' });
+  }
+  
+  defaultOptions.push(
+    { value: 'true', label: 'Yes' },
+    { value: 'false', label: 'No' }
+  );
+  
+  const renderedOptions = options ?? defaultOptions;
   
   return (
     <FormControl fullWidth={fullWidth}>
@@ -34,9 +54,11 @@ const BooleanSelect: FC<BooleanSelectProps> = ({
         label={label}
         onChange={handleChange}
       >
-        {allowAll && <MenuItem value="">All</MenuItem>}
-        <MenuItem value="true">Yes</MenuItem>
-        <MenuItem value="false">No</MenuItem>
+        {renderedOptions.map((opt) => (
+          <MenuItem key={opt.value} value={opt.value}>
+            {opt.label}
+          </MenuItem>
+        ))}
       </Select>
     </FormControl>
   );

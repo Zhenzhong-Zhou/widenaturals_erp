@@ -1,5 +1,5 @@
 import type { WarehouseInventoryFilters } from '@features/warehouseInventory/state';
-import { buildScopedInventoryFilters } from '@utils/filters/filter-utils.ts';
+import { buildScopedInventoryFilters } from '@utils/filters/buildScopedInventoryFilters';
 
 /**
  * Builds a cleaned and scoped set of warehouse inventory filters.

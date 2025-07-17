@@ -1,4 +1,4 @@
-import { type FC, useEffect, useMemo, useRef, useState } from 'react';
+import { type FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
@@ -54,16 +54,21 @@ const AddressesPage: FC = () => {
     fetchAddresses,
   } = usePaginateAddresses();
   
-  useEffect(() => {
-    applyFiltersAndSorting({
+  const queryParams = useMemo(
+    () => ({
       page,
       limit,
       sortBy,
       sortOrder,
       filters,
       fetchFn: fetchAddresses,
-    });
-  }, [page, limit, sortBy, sortOrder, filters]);
+    }),
+    [page, limit, sortBy, sortOrder, filters, fetchAddresses]
+  );
+  
+  useEffect(() => {
+    applyFiltersAndSorting(queryParams);
+  }, [queryParams]);
   
   const {
     loading: customerLookupLoading,
@@ -93,16 +98,9 @@ const AddressesPage: FC = () => {
     );
   }, [customerDropdownOptions]);
   
-  const handleRefresh = () => {
-    applyFiltersAndSorting({
-      page,
-      limit,
-      sortBy,
-      sortOrder,
-      filters,
-      fetchFn: fetchAddresses,
-    });
-  };
+  const handleRefresh = useCallback(() => {
+    applyFiltersAndSorting(queryParams);
+  }, [queryParams]);
   
   const handleResetFilters = () => {
     setFilters({});

@@ -1,15 +1,15 @@
 import type { FC } from 'react';
 import { useEffect } from 'react';
-import { Controller, useForm } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import Box from '@mui/material/Box';
-import Grid from '@mui/material/Grid';
 import FilterPanelLayout from '@components/common/FilterPanelLayout';
-import BaseInput from '@components/common/BaseInput';
-import BooleanSelect from '@components/common/BooleanSelect';
-import CustomDatePicker from '@components/common/CustomDatePicker';
 import { adjustBeforeDateInclusive, toISO } from '@utils/dateTimeUtils';
 import type { OrderTypeFilters } from '@features/orderType/state';
-import { normalizeDateValue } from '@utils/formUtils';
+import {
+  renderBooleanSelectField,
+  renderDateField,
+  renderInputField
+} from '@utils/filters/filterUtils';
 
 interface Props {
   filters: OrderTypeFilters;
@@ -80,49 +80,13 @@ const OrderTypeFiltersPanel: FC<Props> = ({ filters, onChange, onApply, onReset 
     <Box mb={2} p={2} border="1px solid #ccc" borderRadius={2}>
       <form onSubmit={handleSubmit(submitFilters)}>
         <FilterPanelLayout onReset={resetFilters}>
-          {textFields.map(({ name, label }) => (
-            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={name}>
-              <Controller
-                name={name}
-                control={control}
-                render={({ field }) =>
-                  <BaseInput
-                    {...field}
-                    value={field.value ?? ''}
-                    label={label}
-                    sx={{ minHeight: 56 }}
-                  />
-              }
-              />
-            </Grid>
-          ))}
-          
-          {dateFields.map(({ name, label }) => (
-            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={name}>
-              <Controller
-                name={name}
-                control={control}
-                render={({ field }) => (
-                  <CustomDatePicker
-                    {...field}
-                    value={normalizeDateValue(field.value)}
-                    label={label}
-                    sx={{ minHeight: 56 }}
-                  />
-                )}
-              />
-            </Grid>
-          ))}
-          
-          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-            <Controller
-              name="requiresPayment"
-              control={control}
-              render={({ field }) => (
-                <BooleanSelect {...field} label="Requires Payment" />
-              )}
-            />
-          </Grid>
+          {textFields.map(({ name, label }) =>
+            renderInputField(control, name, label)
+          )}
+          {dateFields.map(({ name, label }) =>
+            renderDateField(control, name, label)
+          )}
+          {renderBooleanSelectField(control, 'requiresPayment', 'Requires Payment')}
         </FilterPanelLayout>
       </form>
     </Box>

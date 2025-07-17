@@ -1,14 +1,22 @@
 import { type Dispatch, type FC, type SetStateAction, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
-import BaseInput from '@components/common/BaseInput';
-import CustomDatePicker from '@components/common/CustomDatePicker';
 import CustomButton from '@components/common/CustomButton';
 import { Controller, useForm } from 'react-hook-form';
-import type { AddressFilterConditions } from '@features/address/state';
-import type { CustomerLookupQuery, CustomerOption, LookupPaginationMeta } from '@features/lookup/state';
-import CustomerDropdown from '@features/lookup/components/CustomerDropdown.tsx';
-import { adjustBeforeDateInclusive } from '@utils/dateTimeUtils.ts';
+import CustomerDropdown from '@features/lookup/components/CustomerDropdown';
+import type {
+  AddressFilterConditions,
+} from '@features/address/state';
+import type {
+  CustomerLookupQuery,
+  CustomerOption,
+  LookupPaginationMeta,
+} from '@features/lookup/state';
+import { adjustBeforeDateInclusive } from '@utils/dateTimeUtils';
+import {
+  renderDateField,
+  renderInputField
+} from '@utils/filters/filterUtils';
 
 interface Props {
   filters: AddressFilterConditions;
@@ -24,6 +32,17 @@ interface Props {
   setFetchParams: Dispatch<SetStateAction<CustomerLookupQuery>>;
 }
 
+const emptyFilters: AddressFilterConditions = {
+  keyword: '',
+  region: '',
+  country: '',
+  createdAfter: '',
+  createdBefore: '',
+  updatedAfter: '',
+  updatedBefore: '',
+  updatedBy: '',
+};
+
 const AddressFiltersPanel: FC<Props> = ({
                                           filters,
                                           onChange,
@@ -37,16 +56,23 @@ const AddressFiltersPanel: FC<Props> = ({
                                           fetchParams,
                                           setFetchParams,
                                         }) => {
-  const emptyFilters: AddressFilterConditions = {
-    keyword: '',
-    region: '',
-    country: '',
-    createdAfter: '',
-    createdBefore: '',
-    updatedAfter: '',
-    updatedBefore: '',
-    updatedBy: '',
-  };
+  const textFields: {
+    name: keyof AddressFilterConditions;
+    label: string;
+    placeholder?: string;
+  }[] = [
+    { name: 'updatedBy', label: 'Updated By' },
+    { name: 'keyword', label: 'Search Keyword', placeholder: 'Label, Name, Email, etc.' },
+    { name: 'region', label: 'Region' },
+    { name: 'country', label: 'Country' },
+  ];
+  
+  const dateFields: { name: keyof AddressFilterConditions; label: string }[] = [
+    { name: 'createdAfter', label: 'Created After' },
+    { name: 'createdBefore', label: 'Created Before' },
+    { name: 'updatedAfter', label: 'Updated After' },
+    { name: 'updatedBefore', label: 'Updated Before' },
+  ];
   
   const { control, handleSubmit, reset } = useForm<AddressFilterConditions>({
     defaultValues: filters,
@@ -57,13 +83,12 @@ const AddressFiltersPanel: FC<Props> = ({
   }, [filters, reset]);
   
   const submitFilters = (data: AddressFilterConditions) => {
-    const adjustedFilters: AddressFilterConditions = {
+    const adjusted: AddressFilterConditions = {
       ...data,
       createdBefore: adjustBeforeDateInclusive(data.createdBefore),
       updatedBefore: adjustBeforeDateInclusive(data.updatedBefore),
     };
-    
-    onChange(adjustedFilters);
+    onChange(adjusted);
     onApply();
   };
   
@@ -105,80 +130,15 @@ const AddressFiltersPanel: FC<Props> = ({
               )}
             />
           </Grid>
-          <Grid size={{ xs: 12, sm: 6 }}>
-            <Controller
-              name="updatedBy"
-              control={control}
-              render={({ field }) => (
-                <BaseInput {...field} value={field.value ?? ''} label="Updated By" sx={{ minHeight: 56 }} />
-              )}
-            />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-            <Controller
-              name="keyword"
-              control={control}
-              render={({ field }) => (
-                <BaseInput {...field} value={field.value ?? ''} label="Search Keyword" placeholder="Label, Name, Email, etc." sx={{ minHeight: 56 }} />
-              )}
-            />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-            <Controller
-              name="region"
-              control={control}
-              render={({ field }) => (
-                <BaseInput {...field} value={field.value ?? ''} label="Region" sx={{ minHeight: 56 }} />
-              )}
-            />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-            <Controller
-              name="country"
-              control={control}
-              render={({ field }) => (
-                <BaseInput {...field} value={field.value ?? ''} label="Country" sx={{ minHeight: 56 }} />
-              )}
-            />
-          </Grid>
           
-          {/* Date Fields */}
-          <Grid size={{ xs: 12, sm: 6 }}>
-            <Controller
-              name="createdAfter"
-              control={control}
-              render={({ field }) => (
-                <CustomDatePicker {...field} value={field.value ?? ''} label="Created After" sx={{ minHeight: 56 }} />
-              )}
-            />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6 }}>
-            <Controller
-              name="createdBefore"
-              control={control}
-              render={({ field }) => (
-                <CustomDatePicker {...field} value={field.value ?? ''} label="Created Before" sx={{ minHeight: 56 }} />
-              )}
-            />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6 }}>
-            <Controller
-              name="updatedAfter"
-              control={control}
-              render={({ field }) => (
-                <CustomDatePicker {...field} value={field.value ?? ''} label="Updated After" sx={{ minHeight: 56 }} />
-              )}
-            />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6 }}>
-            <Controller
-              name="updatedBefore"
-              control={control}
-              render={({ field }) => (
-                <CustomDatePicker {...field} value={field.value ?? ''} label="Updated Before" sx={{ minHeight: 56 }} />
-              )}
-            />
-          </Grid>
+          {textFields.map(({ name, label, placeholder }) =>
+            renderInputField(control, name, label, placeholder)
+          )}
+          
+          {dateFields.map(({ name, label }) =>
+            renderDateField(control, name, label)
+          )}
+        
         </Grid>
         
         <Box display="flex" flexWrap="wrap" gap={2} mt={3}>

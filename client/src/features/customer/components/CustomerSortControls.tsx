@@ -1,19 +1,16 @@
 import { type FC } from 'react';
-import MenuItem from '@mui/material/MenuItem';
-import Select from '@mui/material/Select';
-import FormControl from '@mui/material/FormControl';
-import InputLabel from '@mui/material/InputLabel';
-import Stack from '@mui/material/Stack';
 import type { CustomerSortField } from '../state';
+import type { SortOrder } from '@shared-types/api';
+import SortControls from '@components/common/SortControls';
 
 interface CustomerSortControlsProps {
   sortBy: CustomerSortField | '';
-  sortOrder: '' | 'ASC' | 'DESC';
+  sortOrder: SortOrder;
   onSortByChange: (value: CustomerSortField) => void;
-  onSortOrderChange: (value: '' | 'ASC' | 'DESC') => void;
+  onSortOrderChange: (value: SortOrder) => void;
 }
 
-const sortOptions = [
+const customerSortOptions: { label: string; value: CustomerSortField }[] = [
   { label: 'Customer Name', value: 'customerName' },
   { label: 'Email', value: 'email' },
   { label: 'Phone Number', value: 'phoneNumber' },
@@ -32,40 +29,13 @@ const CustomerSortControls: FC<CustomerSortControlsProps> = ({
                                                                onSortOrderChange,
                                                              }) => {
   return (
-    <Stack direction="row" spacing={2} alignItems="center" sx={{ minHeight: 56 }}>
-      <FormControl size="small" sx={{ minWidth: 160, minHeight: 56 }}>
-        <InputLabel id="sort-by-label">Sort By</InputLabel>
-        <Select
-          labelId="sort-by-label"
-          name="sortBy"
-          label="Sort By"
-          value={sortBy}
-          onChange={(e) => onSortByChange(e.target.value as CustomerSortField)}
-        >
-          <MenuItem value="">Default</MenuItem>
-          {sortOptions.map((option) => (
-            <MenuItem key={option.value} value={option.value}>
-              {option.label}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
-      
-      <FormControl size="small" sx={{ minWidth: 140, minHeight: 56 }}>
-        <InputLabel id="sort-order-label">Order</InputLabel>
-        <Select
-          labelId="sort-order-label"
-          name="sortOrder"
-          label="Order"
-          value={sortOrder}
-          onChange={(e) => onSortOrderChange(e.target.value as '' | 'ASC' | 'DESC')}
-        >
-          <MenuItem value="">Default</MenuItem>
-          <MenuItem value="ASC">Ascending</MenuItem>
-          <MenuItem value="DESC">Descending</MenuItem>
-        </Select>
-      </FormControl>
-    </Stack>
+    <SortControls
+      sortBy={sortBy}
+      sortOrder={sortOrder}
+      sortOptions={customerSortOptions}
+      onSortByChange={(val) => onSortByChange(val as CustomerSortField)}
+      onSortOrderChange={onSortOrderChange}
+    />
   );
 };
 

@@ -1,4 +1,4 @@
-import { cleanObject } from '@utils/objectUtils.ts';
+import { cleanObject } from '@utils/objectUtils';
 
 /**
  * Generic utility to build cleaned and scoped inventory filters.
@@ -37,3 +37,4 @@ export const buildScopedInventoryFilters = <T extends { batchType?: string }>(
 
   return cleanObject(merged as T, excludedFields);
 };
+

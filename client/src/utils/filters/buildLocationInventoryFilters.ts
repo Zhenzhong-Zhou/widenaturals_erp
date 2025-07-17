@@ -1,5 +1,5 @@
 import type { LocationInventoryFilters } from '@features/locationInventory/state';
-import { buildScopedInventoryFilters } from './filter-utils';
+import { buildScopedInventoryFilters } from './buildScopedInventoryFilters';
 
 /**
  * Builds a cleaned and scoped set of location inventory filters.

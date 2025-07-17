@@ -1,4 +1,4 @@
-import { type FC, useEffect, useRef, useState } from 'react';
+import { type FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import Card from '@mui/material/Card';
@@ -42,28 +42,28 @@ const CustomersPage: FC = () => {
     fetchCustomers,
   } = usePaginatedCustomers();
   
+  // Memoize the query parameters to avoid unnecessary re-renders or function calls
+  const queryParams = useMemo(
+    () => ({
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+      filters,
+      fetchFn: fetchCustomers,
+    }),
+    [page, limit, sortBy, sortOrder, filters, fetchCustomers]
+  );
+
   // Fetch when dependency change
   useEffect(() => {
-    applyFiltersAndSorting({
-      page,
-      limit,
-      sortBy,
-      sortOrder,
-      filters,
-      fetchFn: fetchCustomers,
-    });
-  }, [page, limit, sortBy, sortOrder, filters]);
-  
-  const handleRefresh = () => {
-    applyFiltersAndSorting({
-      page,
-      limit,
-      sortBy,
-      sortOrder,
-      filters,
-      fetchFn: fetchCustomers,
-    });
-  };
+    applyFiltersAndSorting(queryParams);
+  }, [queryParams]);
+
+  // Stable refresh handler
+  const handleRefresh = useCallback(() => {
+    applyFiltersAndSorting(queryParams);
+  }, [queryParams]);
   
   const handleResetFilters = () => {
     setFilters({});

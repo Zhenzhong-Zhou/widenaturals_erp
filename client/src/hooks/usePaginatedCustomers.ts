@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   selectPaginatedCustomers,
@@ -29,9 +29,9 @@ const usePaginatedCustomers = () => {
   const totalPages = useAppSelector(selectPaginatedCustomersTotalPages);
   const totalRecords = useAppSelector(selectPaginatedCustomersTotalRecords);
   
-  const fetchCustomers = (params?: FetchPaginatedCustomersParams) => {
+  const fetchCustomers = useCallback((params?: FetchPaginatedCustomersParams) => {
     dispatch(fetchPaginatedCustomersThunk(params ?? {}));
-  };
+  }, [dispatch]);
   
   return useMemo(() => ({
     customers,

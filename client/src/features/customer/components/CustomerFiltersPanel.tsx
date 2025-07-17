@@ -1,15 +1,14 @@
 import { type FC, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
-import FormControl from '@mui/material/FormControl';
-import InputLabel from '@mui/material/InputLabel';
-import Select from '@mui/material/Select';
-import MenuItem from '@mui/material/MenuItem';
-import BaseInput from '@components/common/BaseInput';
-import CustomDatePicker from '@components/common/CustomDatePicker';
 import CustomButton from '@components/common/CustomButton';
-import { Controller, useForm } from 'react-hook-form';
 import type { CustomerFilters } from '@features/customer/state';
+import {
+  renderBooleanSelectField,
+  renderDateField,
+  renderInputField,
+} from '@utils/filters/filterUtils';
 
 interface Props {
   filters: CustomerFilters;
@@ -18,27 +17,37 @@ interface Props {
   onReset: () => void;
 }
 
+const emptyFilters: CustomerFilters = {
+  keyword: '',
+  createdBy: '',
+  createdAfter: '',
+  createdBefore: '',
+  statusDateAfter: '',
+  statusDateBefore: '',
+  onlyWithAddress: undefined,
+};
+
+const textFields: { name: keyof CustomerFilters; label: string; placeholder?: string }[] = [
+  { name: 'keyword', label: 'Search Keyword', placeholder: 'Name, Email, etc.' },
+  { name: 'createdBy', label: 'Created By' },
+];
+
+const dateFields: { name: keyof CustomerFilters; label: string }[] = [
+  { name: 'createdAfter', label: 'Created After' },
+  { name: 'createdBefore', label: 'Created Before' },
+  { name: 'statusDateAfter', label: 'Status Date After' },
+  { name: 'statusDateBefore', label: 'Status Date Before' },
+];
+
 const CustomerFiltersPanel: FC<Props> = ({ filters, onChange, onApply, onReset }) => {
-  const emptyFilters: CustomerFilters = {
-    keyword: '',
-    createdBy: '',
-    createdAfter: '',
-    createdBefore: '',
-    statusDateAfter: '',
-    statusDateBefore: '',
-    onlyWithAddress: undefined,
-  };
-  const { control, handleSubmit, reset } = useForm<CustomerFilters>({
-    defaultValues: filters
-  });
+  const { control, handleSubmit, reset } = useForm<CustomerFilters>({ defaultValues: filters });
   
-  // Sync form reset when `filters` prop changes
   useEffect(() => {
     reset(filters);
   }, [filters, reset]);
   
   const submitFilters = (data: CustomerFilters) => {
-    onChange(data); // this will now be passed as query params directly
+    onChange(data);
     onApply();
   };
   
@@ -51,86 +60,21 @@ const CustomerFiltersPanel: FC<Props> = ({ filters, onChange, onApply, onReset }
     <Box mb={2} p={2} border="1px solid #ccc" borderRadius={2}>
       <form onSubmit={handleSubmit(submitFilters)}>
         <Grid container spacing={2} sx={{ minHeight: 160 }}>
-          {/* Filter fields */}
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <Controller
-              name="keyword"
-              control={control}
-              render={({ field }) => (
-                <BaseInput {...field} value={field.value ?? ''} label="Search Keyword" placeholder="Name, Email, etc." sx={{ minHeight: 56 }} />
-              )}
-            />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <Controller
-              name="onlyWithAddress"
-              control={control}
-              render={({ field }) => (
-                <FormControl fullWidth sx={{ minHeight: 56 }}>
-                  <InputLabel>Address Filter</InputLabel>
-                  <Select
-                    {...field}
-                    value={field.value ?? ''}
-                    label="Address Filter"
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      field.onChange(val === '' ? undefined : val === 'true');
-                    }}
-                  >
-                    <MenuItem value="">All Customers</MenuItem>
-                    <MenuItem value="true">Only with Address</MenuItem>
-                    <MenuItem value="false">Only without Address</MenuItem>
-                  </Select>
-                </FormControl>
-              )}
-            />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <Controller
-              name="createdBy"
-              control={control}
-              render={({ field }) => <BaseInput {...field} value={field.value ?? ''} label="Created By" sx={{ minHeight: 56 }} />}
-            />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <Controller
-              name="createdAfter"
-              control={control}
-              render={({ field }) => (
-                <CustomDatePicker {...field} value={field.value ?? ''} label="Created After" sx={{ minHeight: 56 }} />
-              )}
-            />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <Controller
-              name="createdBefore"
-              control={control}
-              render={({ field }) => (
-                <CustomDatePicker {...field} value={field.value ?? ''} label="Created Before" sx={{ minHeight: 56 }} />
-              )}
-            />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <Controller
-              name="statusDateAfter"
-              control={control}
-              render={({ field }) => (
-                <CustomDatePicker {...field} value={field.value ?? ''} label="Status Date After" sx={{ minHeight: 56 }} />
-              )}
-            />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <Controller
-              name="statusDateBefore"
-              control={control}
-              render={({ field }) => (
-                <CustomDatePicker {...field} value={field.value ?? ''} label="Status Date Before" sx={{ minHeight: 56 }} />
-              )}
-            />
-          </Grid>
+          {textFields.map(({ name, label, placeholder }) =>
+            renderInputField(control, name, label, placeholder)
+          )}
+          {
+            renderBooleanSelectField(control, 'onlyWithAddress', 'Address Filter', [
+              { value: '', label: 'All Customers' },
+              { value: 'true', label: 'Only with Address' },
+              { value: 'false', label: 'Only without Address' },
+            ])
+          }
+          {dateFields.map(({ name, label }) =>
+            renderDateField(control, name, label)
+          )}
         </Grid>
         
-        {/* Filter Actions */}
         <Box display="flex" flexWrap="wrap" gap={2} mt={3}>
           <CustomButton type="submit" variant="contained">
             Apply
