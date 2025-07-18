@@ -21,15 +21,15 @@ const useCustomerLookup = (
   autoFetch = true
 ) => {
   const dispatch = useAppDispatch();
-  
+
   // Capture initialParams in a ref to ensure stability in useCallback
   const initialParamsRef = useRef(initialParams);
-  
+
   const options = useAppSelector(selectCustomerLookupOptions);
   const loading = useAppSelector(selectCustomerLookupLoading);
   const error = useAppSelector(selectCustomerLookupError);
   const meta = useAppSelector(selectCustomerLookupMeta); // { hasMore, limit, offset }
-  
+
   // Memoized trigger for refetching
   const fetchLookup = useCallback(
     (params?: CustomerLookupQuery) => {
@@ -37,14 +37,14 @@ const useCustomerLookup = (
     },
     [dispatch]
   );
-  
+
   // Auto-fetch on mount if initialParams provided
   useEffect(() => {
     if (autoFetch && initialParamsRef.current) {
       fetchLookup();
     }
   }, [autoFetch, fetchLookup]);
-  
+
   return {
     options,
     loading,

@@ -27,7 +27,7 @@ const OrderTypesPage: FC = () => {
   const [sortBy, setSortBy] = useState<OrderTypeSortBy>('name');
   const [sortOrder, setSortOrder] = useState<SortOrder>('');
   const [filters, setFilters] = useState<OrderTypeFilters>({});
-  
+
   const {
     data: orderTypes,
     pagination: orderTypePagination,
@@ -36,7 +36,7 @@ const OrderTypesPage: FC = () => {
     fetchData: fetchOrderTypes,
     reset: resetOrderTypes,
   } = usePaginateOrderTypes();
-  
+
   const queryParams = useMemo(
     () => ({
       page,
@@ -48,25 +48,28 @@ const OrderTypesPage: FC = () => {
     }),
     [page, limit, sortBy, sortOrder, filters, fetchOrderTypes]
   );
-  
+
   useEffect(() => {
     applyFiltersAndSorting(queryParams);
   }, [queryParams]);
-  
-  const { handlePageChange, handleRowsPerPageChange } = usePaginationHandlers(setPage, setLimit);
-  
+
+  const { handlePageChange, handleRowsPerPageChange } = usePaginationHandlers(
+    setPage,
+    setLimit
+  );
+
   const handleRefresh = () => {
     resetOrderTypes();
     applyFiltersAndSorting(queryParams);
   };
-  
+
   const handleResetFilters = () => {
     setFilters({});
     setSortBy('name');
-    setSortOrder('')
+    setSortOrder('');
     setPage(1);
   };
-  
+
   return (
     <Box sx={{ px: 4, py: 3 }}>
       {/* Page Header */}
@@ -83,9 +86,9 @@ const OrderTypesPage: FC = () => {
         </CustomTypography>
         {/* Add a button or right-hand action here if needed */}
       </Stack>
-      
+
       <Divider sx={{ mb: 3 }} />
-      
+
       {/* Filters and Sorting Panel */}
       <Card sx={{ p: 3, mb: 4, borderRadius: 2 }}>
         <Grid container spacing={2}>
@@ -98,7 +101,7 @@ const OrderTypesPage: FC = () => {
               onReset={handleResetFilters}
             />
           </Grid>
-          
+
           {/* Sort controls or action area */}
           <Grid size={{ xs: 12, md: 3 }}>
             <OrderTypeSortControls
@@ -110,7 +113,7 @@ const OrderTypesPage: FC = () => {
           </Grid>
         </Grid>
       </Card>
-      
+
       {/* Table + Result Handling */}
       <Box>
         {isOrderTypeLoading ? (

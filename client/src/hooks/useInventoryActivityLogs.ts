@@ -22,15 +22,18 @@ import type { InventoryActivityLogQueryParams } from '@features/report/state';
  */
 export const useBaseInventoryActivityLogs = () => {
   const dispatch = useAppDispatch();
-  
+
   const data = useAppSelector(selectBaseInventoryLogs);
   const loading = useAppSelector(selectBaseLogsLoading);
   const error = useAppSelector(selectBaseLogsError);
-  
-  const fetchLogs = useCallback((limit?: number) => {
-    dispatch(fetchBaseInventoryActivityLogsThunk(limit));
-  }, [dispatch]);
-  
+
+  const fetchLogs = useCallback(
+    (limit?: number) => {
+      dispatch(fetchBaseInventoryActivityLogsThunk(limit));
+    },
+    [dispatch]
+  );
+
   return { data, loading, error, fetchLogs };
 };
 
@@ -39,15 +42,18 @@ export const useBaseInventoryActivityLogs = () => {
  */
 export const usePaginatedInventoryActivityLogs = () => {
   const dispatch = useAppDispatch();
-  
+
   const data = useAppSelector(selectPaginatedInventoryLogs);
   const pagination = useAppSelector(selectPaginatedLogsPagination);
   const loading = useAppSelector(selectPaginatedLogsLoading);
   const error = useAppSelector(selectPaginatedLogsError);
-  
-  const fetchLogs = useCallback((params: InventoryActivityLogQueryParams) => {
-    dispatch(fetchPaginatedInventoryActivityLogsThunk(params));
-  }, [dispatch]);
-  
+
+  const fetchLogs = useCallback(
+    (params: InventoryActivityLogQueryParams) => {
+      dispatch(fetchPaginatedInventoryActivityLogsThunk(params));
+    },
+    [dispatch]
+  );
+
   return { data, pagination, loading, error, fetchLogs };
 };

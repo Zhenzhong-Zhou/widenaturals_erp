@@ -1,5 +1,7 @@
 import type { FC } from 'react';
-import MultiSelectDropdown, { type MultiSelectOption } from '@components/common/MultiSelectDropdown';
+import MultiSelectDropdown, {
+  type MultiSelectOption,
+} from '@components/common/MultiSelectDropdown';
 
 interface WarehouseMultiSelectDropdownProps {
   label?: string;
@@ -15,17 +17,17 @@ interface WarehouseMultiSelectDropdownProps {
 }
 
 const WarehouseMultiSelectDropdown: FC<WarehouseMultiSelectDropdownProps> = ({
-                                                                               label = 'Select Warehouses',
-                                                                               options,
-                                                                               selectedOptions,
-                                                                               onChange,
-                                                                               loading,
-                                                                               disabled,
-                                                                               error,
-                                                                               helperText,
-                                                                               sx,
-                                                                               placeholder = 'Choose warehouses...',
-                                                                             }) => {
+  label = 'Select Warehouses',
+  options,
+  selectedOptions,
+  onChange,
+  loading,
+  disabled,
+  error,
+  helperText,
+  sx,
+  placeholder = 'Choose warehouses...',
+}) => {
   return (
     <MultiSelectDropdown
       label={label}

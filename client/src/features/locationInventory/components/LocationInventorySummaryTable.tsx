@@ -49,7 +49,10 @@ interface LocationInventorySummaryTableProps {
   onDetailRowsPerPageChange: (newLimit: number) => void;
   onRefreshDetail: (rowId: string) => void;
   canViewInventoryLogs: boolean;
-  onViewLogs: (row: InventoryLogSource, extraFilters?: Partial<InventoryActivityLogQueryParams>) => void;
+  onViewLogs: (
+    row: InventoryLogSource,
+    extraFilters?: Partial<InventoryActivityLogQueryParams>
+  ) => void;
 }
 
 const LocationInventorySummaryTable: FC<LocationInventorySummaryTableProps> = ({
@@ -203,11 +206,17 @@ const LocationInventorySummaryTable: FC<LocationInventorySummaryTableProps> = ({
       onRefreshDetail,
     ]
   );
-  
-  const MemoizedRowActionMenu = memo(({ row, onViewLogs }: { row: LocationInventorySummary, onViewLogs: any }) => (
-    <RowActionMenu row={row} actions={getDefaultRowActions(onViewLogs)} />
-  ));
-  
+
+  const MemoizedRowActionMenu = memo(
+    ({
+      row,
+      onViewLogs,
+    }: {
+      row: LocationInventorySummary;
+      onViewLogs: any;
+    }) => <RowActionMenu row={row} actions={getDefaultRowActions(onViewLogs)} />
+  );
+
   return (
     <Box>
       <CustomTable

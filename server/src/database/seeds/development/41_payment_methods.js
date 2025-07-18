@@ -20,9 +20,9 @@ exports.seed = async function (knex) {
     'system@internal.local',
     'id'
   );
-  
+
   const now = knex.fn.now();
-  
+
   const methodList = [
     {
       name: 'Credit Card',
@@ -69,7 +69,8 @@ exports.seed = async function (knex) {
     {
       name: 'Wire Transfer',
       code: 'WIRE_TRANSFER',
-      description: 'International or domestic wire transfer via financial institution',
+      description:
+        'International or domestic wire transfer via financial institution',
       is_active: false,
       display_order: 7,
     },
@@ -130,7 +131,7 @@ exports.seed = async function (knex) {
       display_order: 15,
     },
   ];
-  
+
   const records = methodList.map((method) => ({
     id: knex.raw('uuid_generate_v4()'),
     name: method.name,
@@ -143,8 +144,8 @@ exports.seed = async function (knex) {
     created_by: systemUserId,
     updated_by: null,
   }));
-  
+
   await knex('payment_methods').insert(records).onConflict('code').ignore();
-  
+
   console.log(`Seeded ${records.length} payment methods.`);
 };

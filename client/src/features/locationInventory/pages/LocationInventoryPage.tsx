@@ -25,7 +25,7 @@ const LocationInventoryPage = () => {
       rowKey="id"
       extractGroupName={(record) => record.location?.name || 'Unknown Location'}
     />
-  )
+  );
 };
 
 export default LocationInventoryPage;

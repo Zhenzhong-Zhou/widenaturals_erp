@@ -16,7 +16,7 @@ const { logInfo } = require('../utils/logger-helper');
 const createCustomerController = wrapAsync(async (req, res) => {
   const customers = req.body;
   const user = req.user;
-  
+
   logInfo('Creating customer record(s)', req, {
     context: 'customer-controller/createCustomerController',
     recordCount: customers.length,
@@ -24,9 +24,9 @@ const createCustomerController = wrapAsync(async (req, res) => {
     requestId: req.id,
     traceId: req.traceId,
   });
-  
+
   const result = await createCustomersService(customers, user);
-  
+
   res.status(201).json({
     success: true,
     message:
@@ -60,15 +60,9 @@ const createCustomerController = wrapAsync(async (req, res) => {
  * @returns {Promise<void>} - Responds with JSON on success
  */
 const getPaginatedCustomersController = wrapAsync(async (req, res) => {
-  const {
-    page,
-    limit,
-    sortBy,
-    sortOrder,
-    filters,
-  } = req.normalizedQuery;
-  
-  const { data, pagination} = await fetchPaginatedCustomersService({
+  const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
+
+  const { data, pagination } = await fetchPaginatedCustomersService({
     user: req.user,
     filters,
     page,
@@ -76,7 +70,7 @@ const getPaginatedCustomersController = wrapAsync(async (req, res) => {
     sortBy,
     sortOrder,
   });
-  
+
   res.status(200).json({
     success: true,
     message: 'Customers retrieved successfully.',

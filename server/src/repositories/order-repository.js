@@ -47,7 +47,7 @@ const insertOrder = async (orderData, client) => {
     updated_at = null,
     updated_by = null,
   } = orderData;
-  
+
   const insertOrderSQL = `
     INSERT INTO orders (
       id,
@@ -68,7 +68,7 @@ const insertOrder = async (orderData, client) => {
     )
     RETURNING id;
   `;
-  
+
   const values = [
     id,
     order_number,
@@ -82,17 +82,23 @@ const insertOrder = async (orderData, client) => {
     updated_at,
     updated_by,
   ];
-  
+
   try {
     const { rows } = await query(insertOrderSQL, values, client);
     return rows[0]?.id;
   } catch (error) {
-    logSystemException(error, 'Database insert failed while creating a new order',{
-      context: 'order-repository/insertOrder',
-      payload: orderData,
-    });
-    
-    throw AppError.databaseError('Database insert failed: could not create new order.');
+    logSystemException(
+      error,
+      'Database insert failed while creating a new order',
+      {
+        context: 'order-repository/insertOrder',
+        payload: orderData,
+      }
+    );
+
+    throw AppError.databaseError(
+      'Database insert failed: could not create new order.'
+    );
   }
 };
 

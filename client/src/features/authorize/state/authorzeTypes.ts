@@ -28,7 +28,7 @@ export type PermissionCheckOptions = {
    * @default false
    */
   requireAll?: boolean;
-  
+
   /**
    * List of special permissions that **bypass all checks**.
    * If a user has any of these, permission check will always return true.

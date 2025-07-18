@@ -17,7 +17,7 @@ const fetchPermissions = async (): Promise<{
     const response = await axiosInstance.get<PermissionResponse>(
       API_ENDPOINTS.USER_PERMISSION
     );
-    
+
     // Extract and transform data to match the expected return type
     const { roleName, permissions } = response.data.data;
 

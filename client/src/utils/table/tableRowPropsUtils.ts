@@ -22,6 +22,6 @@ export const getGroupedRowProps = (columnsLength: number) => (row: any) => {
       },
     };
   }
-  
+
   return {};
 };

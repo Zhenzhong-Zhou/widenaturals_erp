@@ -1,6 +1,9 @@
 const { cleanObject } = require('../utils/object-utils');
 const { getFullName } = require('../utils/name-utils');
-const { transformPaginatedResult, transformRows } = require('../utils/transformer-utils');
+const {
+  transformPaginatedResult,
+  transformRows,
+} = require('../utils/transformer-utils');
 
 /**
  * Transforms a customer row into a structured or flat object.
@@ -44,7 +47,7 @@ const transformCustomerRow = (row, { format = 'nested' } = {}) => {
       lastname: row.updated_by_lastname ?? null,
     },
   };
-  
+
   if (format === 'flat') {
     return cleanObject({
       id: base.id,
@@ -60,7 +63,7 @@ const transformCustomerRow = (row, { format = 'nested' } = {}) => {
       updatedBy: getFullName(base.updatedBy.firstname, base.updatedBy.lastname),
     });
   }
-  
+
   return cleanObject(base);
 };
 
@@ -75,8 +78,7 @@ const transformCustomerRow = (row, { format = 'nested' } = {}) => {
  * @returns {Array<object>} Array of cleaned and transformed customer objects.
  */
 const transformEnrichedCustomers = (rows) =>
-  transformRows(rows, (row) =>
-    transformCustomerRow(row, { format: 'nested' }));
+  transformRows(rows, (row) => transformCustomerRow(row, { format: 'nested' }));
 
 /**
  * Transforms a paginated result set of raw customer rows into structured, display-ready objects.
@@ -88,9 +90,8 @@ const transformEnrichedCustomers = (rows) =>
  * @returns {{ data: CustomerResponse[], pagination: Object }} Transformed customer data with pagination info.
  */
 const transformPaginatedCustomerResults = (paginatedResult) => {
-  return transformPaginatedResult(
-    paginatedResult,
-    (row) => transformCustomerRow(row, { format: 'flat' })
+  return transformPaginatedResult(paginatedResult, (row) =>
+    transformCustomerRow(row, { format: 'flat' })
   );
 };
 

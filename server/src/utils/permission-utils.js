@@ -1,6 +1,6 @@
 const {
   ORDER_CATEGORIES,
-  CATEGORY_PERMISSION_MAP
+  CATEGORY_PERMISSION_MAP,
 } = require('./constants/domain/order-type-constants');
 
 /**

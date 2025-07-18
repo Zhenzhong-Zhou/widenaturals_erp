@@ -1,6 +1,8 @@
 import { type FC } from 'react';
 import CustomDialog from '@components/common/CustomDialog';
-import DetailsSection, { type DetailsSectionField } from '@components/common/DetailsSection';
+import DetailsSection, {
+  type DetailsSectionField,
+} from '@components/common/DetailsSection';
 import CustomTypography from '@components/common/CustomTypography';
 import Stack from '@mui/material/Stack';
 import Divider from '@mui/material/Divider';
@@ -18,13 +20,15 @@ interface InventorySuccessDialogProps {
 }
 
 const InventorySuccessDialog: FC<InventorySuccessDialogProps> = ({
-                                                                   open,
-                                                                   onClose,
-                                                                   message = 'Inventory submitted successfully.',
-                                                                   warehouse,
-                                                                   location,
-                                                                 }) => {
-  const transformFields = (data: InventoryRecordOutput): DetailsSectionField[] => [
+  open,
+  onClose,
+  message = 'Inventory submitted successfully.',
+  warehouse,
+  location,
+}) => {
+  const transformFields = (
+    data: InventoryRecordOutput
+  ): DetailsSectionField[] => [
     {
       label: 'Item Type',
       value: data.itemType,
@@ -40,10 +44,18 @@ const InventorySuccessDialog: FC<InventorySuccessDialogProps> = ({
       format: (value) => formatDate(value),
     },
   ];
-  
-  const warehouseList = Array.isArray(warehouse) ? warehouse : warehouse ? [warehouse] : [];
-  const locationList = Array.isArray(location) ? location : location ? [location] : [];
-  
+
+  const warehouseList = Array.isArray(warehouse)
+    ? warehouse
+    : warehouse
+      ? [warehouse]
+      : [];
+  const locationList = Array.isArray(location)
+    ? location
+    : location
+      ? [location]
+      : [];
+
   return (
     <CustomDialog
       open={open}
@@ -57,7 +69,7 @@ const InventorySuccessDialog: FC<InventorySuccessDialogProps> = ({
         <CustomTypography variant="body1" sx={{ mb: 2 }}>
           {message}
         </CustomTypography>
-        
+
         <Stack spacing={4}>
           {warehouseList.map((record, idx) => (
             <DetailsSection
@@ -71,9 +83,9 @@ const InventorySuccessDialog: FC<InventorySuccessDialogProps> = ({
               fields={transformFields(record)}
             />
           ))}
-          
+
           {warehouseList.length > 0 && locationList.length > 0 && <Divider />}
-          
+
           {locationList.map((record, idx) => (
             <DetailsSection
               key={`location-${idx}`}

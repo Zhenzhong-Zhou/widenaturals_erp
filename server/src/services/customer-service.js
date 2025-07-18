@@ -6,10 +6,7 @@ const {
   getEnrichedCustomersByIds,
   getPaginatedCustomers,
 } = require('../repositories/customer-repository');
-const {
-  logSystemInfo,
-  logSystemException
-} = require('../utils/system-logger');
+const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const { withTransaction } = require('../database/db');
 const {
   transformEnrichedCustomers,
@@ -18,7 +15,7 @@ const {
 const {
   prepareCustomersForInsert,
   filterCustomerForViewer,
-  resolveCustomerQueryOptions
+  resolveCustomerQueryOptions,
 } = require('../business/customer-business');
 
 /**
@@ -35,38 +32,47 @@ const {
  * @returns {Promise<Array<Object>>} - Filtered inserted/enriched customer records
  * @throws {AppError} - Wrapped service-level error
  */
-const createCustomersService = async (customers, user, purpose = 'insert_response') => {
+const createCustomersService = async (
+  customers,
+  user,
+  purpose = 'insert_response'
+) => {
   const createdBy = user.id;
-  
+
   return withTransaction(async (client) => {
     try {
       const max = MAX_LIMITS.BULK_INPUT_LIMITS.MAX_UI_INSERT_SIZE;
-      
-      validateBulkInputSize(customers, max, 'customer-service/createCustomersService', 'customers');
-      
+
+      validateBulkInputSize(
+        customers,
+        max,
+        'customer-service/createCustomersService',
+        'customers'
+      );
+
       logSystemInfo('Preparing customer data for insert', {
         count: customers.length,
         context: 'customer-service/createCustomers',
       });
-      
+
       const preparedCustomers = await prepareCustomersForInsert(
         customers,
         createdBy
       );
-      
+
       const inserted = await insertCustomerRecords(preparedCustomers, client);
-      
+
       if (!Array.isArray(inserted) || inserted.length === 0) {
         throw AppError.databaseError('No customer records were inserted.');
       }
-      
+
       const insertedIds = inserted.map((row) => row.id);
-      
+
       logSystemInfo('Customer bulk insert completed', {
         insertedCount: inserted.length,
         context: 'customer-service/createCustomers',
       });
-      
+
       const rawResult = await getEnrichedCustomersByIds(insertedIds, client);
       const enrichedRecords = transformEnrichedCustomers(rawResult);
 
@@ -79,7 +85,7 @@ const createCustomersService = async (customers, user, purpose = 'insert_respons
         requestedBy: createdBy,
         customerCount: customers?.length,
       });
-      
+
       throw AppError.serviceError(
         'Failed to create customers in transaction',
         error
@@ -127,19 +133,17 @@ const createCustomersService = async (customers, user, purpose = 'insert_respons
  * @throws {AppError} - Throws if the query or transformation fails
  */
 const fetchPaginatedCustomersService = async ({
-                                                filters = {},
-                                                user,
-                                                page = 1,
-                                                limit = 10,
-                                                sortBy = 'created_at',
-                                                sortOrder = 'DESC',
-                                              }) => {
+  filters = {},
+  user,
+  page = 1,
+  limit = 10,
+  sortBy = 'created_at',
+  sortOrder = 'DESC',
+}) => {
   try {
-    const {
-      statusId,
-      overrideDefaultStatus,
-    } = await resolveCustomerQueryOptions(user);
-    
+    const { statusId, overrideDefaultStatus } =
+      await resolveCustomerQueryOptions(user);
+
     const rawResult = await getPaginatedCustomers({
       filters,
       statusId,
@@ -149,9 +153,9 @@ const fetchPaginatedCustomersService = async ({
       sortBy,
       sortOrder,
     });
-    
+
     const result = transformPaginatedCustomerResults(rawResult);
-    
+
     logSystemInfo('Fetched paginated customers', {
       context: 'customer-service/fetchPaginatedCustomersService',
       userId: user?.id,
@@ -159,7 +163,7 @@ const fetchPaginatedCustomersService = async ({
       pagination: { page, limit },
       sort: { sortBy, sortOrder },
     });
-    
+
     return result;
   } catch (error) {
     logSystemException(error, 'Failed to fetch paginated customers', {
@@ -169,7 +173,7 @@ const fetchPaginatedCustomersService = async ({
       pagination: { page, limit },
       sort: { sortBy, sortOrder },
     });
-    
+
     throw AppError.serviceError('Failed to fetch customer list.');
   }
 };

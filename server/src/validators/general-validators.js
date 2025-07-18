@@ -74,10 +74,7 @@ const validateUUIDArray = (fieldName = 'IDs') =>
  * Returns a Joi schema for pagination integers with optional default.
  */
 const validatePositiveInteger = (defaultValue = undefined) =>
-  Joi.number()
-    .integer()
-    .min(1)
-    .default(defaultValue);
+  Joi.number().integer().min(1).default(defaultValue);
 
 /**
  * Creates a reusable Joi string validator with trimming, length constraints, and custom error messages.
@@ -204,7 +201,10 @@ const paginationSchema = Joi.object({
 const createSortSchema = (defaultSortBy = 'created_at') =>
   Joi.object({
     sortBy: Joi.string().trim().default(defaultSortBy),
-    sortOrder: Joi.string().uppercase().valid(...allowedSortOrders).default('DESC'),
+    sortOrder: Joi.string()
+      .uppercase()
+      .valid(...allowedSortOrders)
+      .default('DESC'),
   });
 
 /**
@@ -219,8 +219,16 @@ const createSortSchema = (defaultSortBy = 'created_at') =>
  * @type {Joi.ObjectSchema}
  */
 const createdDateRangeSchema = Joi.object({
-  createdAfter: Joi.date().iso().optional().allow(null, '').label('Created After'),
-  createdBefore: Joi.date().iso().optional().allow(null, '').label('Created Before'),
+  createdAfter: Joi.date()
+    .iso()
+    .optional()
+    .allow(null, '')
+    .label('Created After'),
+  createdBefore: Joi.date()
+    .iso()
+    .optional()
+    .allow(null, '')
+    .label('Created Before'),
 });
 
 /**
@@ -235,8 +243,16 @@ const createdDateRangeSchema = Joi.object({
  * @type {Joi.ObjectSchema}
  */
 const updatedDateRangeSchema = Joi.object({
-  updatedAfter: Joi.date().iso().optional().allow(null, '').label('Updated After'),
-  updatedBefore: Joi.date().iso().optional().allow(null, '').label('Updated Before'),
+  updatedAfter: Joi.date()
+    .iso()
+    .optional()
+    .allow(null, '')
+    .label('Updated After'),
+  updatedBefore: Joi.date()
+    .iso()
+    .optional()
+    .allow(null, '')
+    .label('Updated Before'),
 });
 
 /**
@@ -251,8 +267,16 @@ const updatedDateRangeSchema = Joi.object({
  * @type {Joi.ObjectSchema}
  */
 const statusDateRangeSchema = Joi.object({
-  statusDateAfter: Joi.date().iso().optional().allow(null, '').label('Status Date After'),
-  statusDateBefore: Joi.date().iso().optional().allow(null, '').label('Status Date Before'),
+  statusDateAfter: Joi.date()
+    .iso()
+    .optional()
+    .allow(null, '')
+    .label('Status Date After'),
+  statusDateBefore: Joi.date()
+    .iso()
+    .optional()
+    .allow(null, '')
+    .label('Status Date Before'),
 });
 
 /**
@@ -266,7 +290,12 @@ const statusDateRangeSchema = Joi.object({
  * @returns {Joi.BooleanSchema} Joi boolean schema with truthy/falsy handling.
  */
 const createBooleanFlag = (fieldName) =>
-  Joi.boolean().truthy('true').falsy('false').optional().allow(null).label(fieldName);
+  Joi.boolean()
+    .truthy('true')
+    .falsy('false')
+    .optional()
+    .allow(null)
+    .label(fieldName);
 
 /**
  * Creates a Joi string validator for keyword-style text filters.
@@ -282,12 +311,7 @@ const createBooleanFlag = (fieldName) =>
  * @returns {Joi.StringSchema} Joi schema for optional, safe keyword input
  */
 const validateKeyword = (label = 'keyword', max = 100) =>
-  Joi.string()
-    .trim()
-    .max(max)
-    .optional()
-    .allow(null, '')
-    .label(label);
+  Joi.string().trim().max(max).optional().allow(null, '').label(label);
 
 /**
  * Creates a reusable Joi array schema for validating lists of items.

@@ -27,14 +27,14 @@ interface AdjustInventoryFormProps {
 }
 
 const AdjustInventoryForm: FC<AdjustInventoryFormProps> = ({
-                                                             initialQuantity,
-                                                             adjustmentTypeOptions,
-                                                             onSubmit,
-                                                             contextData,
-                                                             dropdownLoading,
-                                                             dropdownError,
-                                                             onRefresh,
-                                                           }) => {
+  initialQuantity,
+  adjustmentTypeOptions,
+  onSubmit,
+  contextData,
+  dropdownLoading,
+  dropdownError,
+  onRefresh,
+}) => {
   const {
     batchType,
     warehouseName,
@@ -46,7 +46,7 @@ const AdjustInventoryForm: FC<AdjustInventoryFormProps> = ({
     locationQuantity,
     status,
   } = contextData;
-  
+
   const fields: FieldConfig[] = [
     {
       id: 'adjustment_type_id',
@@ -85,7 +85,7 @@ const AdjustInventoryForm: FC<AdjustInventoryFormProps> = ({
       placeholder: 'Reason for adjustment (optional)',
     },
   ];
-  
+
   return (
     <Box
       sx={{
@@ -95,63 +95,63 @@ const AdjustInventoryForm: FC<AdjustInventoryFormProps> = ({
         py: 4,
       }}
     >
-     <Paper
-       elevation={2}
-       sx={{
-         p: 3,
-         borderRadius: 3,
-         maxWidth: 720, // set a reasonable max width
-         width: '100%',
-         backgroundColor: (theme) => theme.palette.background.paper,
-       }}
-     >
-       {/* Details Section */}
-       <Box sx={{ mb: 3 }}>
-         <DetailsSection
-           sectionTitle="Inventory Details"
-           fields={[
-             { label: 'Warehouse', value: warehouseName },
-             { label: 'Location', value: locationName },
-             { label: 'Item', value: displayName },
-             {
-               label: 'Type',
-               value: batchType,
-               format: (value) => formatLabel(value),
-             },
-             { label: 'Lot Number', value: lotNumber },
-             {
-               label: 'Expiry Date',
-               value: expiryDate,
-               format: (value) => formatDate(value),
-             },
-             { label: 'Warehouse Qty', value: warehouseQuantity },
-             { label: 'Location Qty', value: locationQuantity },
-             {
-               label: 'Status',
-               value: status,
-               format: (value) => formatLabel(value),
-             },
-           ]}
-         />
-       </Box>
-       
-       {/* Divider for visual separation */}
-       <Divider sx={{ mb: 3 }} />
-       
-       {/* Form Section */}
-       <Stack spacing={2}>
-         <CustomForm
-           fields={fields}
-           initialValues={{ newQuantity: initialQuantity }}
-           onSubmit={(formData: Record<string, any>) => {
-             onSubmit(formData as InventoryAdjustmentFormData);
-           }}
-           submitButtonLabel="Adjust Inventory"
-           showSubmitButton
-         />
-       </Stack>
-     </Paper>
-   </Box>
+      <Paper
+        elevation={2}
+        sx={{
+          p: 3,
+          borderRadius: 3,
+          maxWidth: 720, // set a reasonable max width
+          width: '100%',
+          backgroundColor: (theme) => theme.palette.background.paper,
+        }}
+      >
+        {/* Details Section */}
+        <Box sx={{ mb: 3 }}>
+          <DetailsSection
+            sectionTitle="Inventory Details"
+            fields={[
+              { label: 'Warehouse', value: warehouseName },
+              { label: 'Location', value: locationName },
+              { label: 'Item', value: displayName },
+              {
+                label: 'Type',
+                value: batchType,
+                format: (value) => formatLabel(value),
+              },
+              { label: 'Lot Number', value: lotNumber },
+              {
+                label: 'Expiry Date',
+                value: expiryDate,
+                format: (value) => formatDate(value),
+              },
+              { label: 'Warehouse Qty', value: warehouseQuantity },
+              { label: 'Location Qty', value: locationQuantity },
+              {
+                label: 'Status',
+                value: status,
+                format: (value) => formatLabel(value),
+              },
+            ]}
+          />
+        </Box>
+
+        {/* Divider for visual separation */}
+        <Divider sx={{ mb: 3 }} />
+
+        {/* Form Section */}
+        <Stack spacing={2}>
+          <CustomForm
+            fields={fields}
+            initialValues={{ newQuantity: initialQuantity }}
+            onSubmit={(formData: Record<string, any>) => {
+              onSubmit(formData as InventoryAdjustmentFormData);
+            }}
+            submitButtonLabel="Adjust Inventory"
+            showSubmitButton
+          />
+        </Stack>
+      </Paper>
+    </Box>
   );
 };
 

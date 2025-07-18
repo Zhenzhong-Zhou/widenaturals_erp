@@ -31,22 +31,35 @@ const categoryToPrefixMap = {
  * @throws {AppError} - Throws notFoundError if an order type not found,
  *                     or validationError if category mismatch
  */
-const generateOrderIdentifiers = async (order_type_id, expectedCategory, client) => {
+const generateOrderIdentifiers = async (
+  order_type_id,
+  expectedCategory,
+  client
+) => {
   const id = uuidv4();
-  
-  const orderTypeFields = await getFieldsById('order_types', order_type_id, ['name', 'category'], client);
+
+  const orderTypeFields = await getFieldsById(
+    'order_types',
+    order_type_id,
+    ['name', 'category'],
+    client
+  );
   if (!orderTypeFields) {
-    throw AppError.notFoundError(`Order type not found for ID: ${order_type_id}`);
+    throw AppError.notFoundError(
+      `Order type not found for ID: ${order_type_id}`
+    );
   }
-  
+
   const { name, category } = orderTypeFields;
-  
+
   if (category !== expectedCategory.toLowerCase()) {
-    throw AppError.validationError(`Order type ID does not belong to category ${expectedCategory}`);
+    throw AppError.validationError(
+      `Order type ID does not belong to category ${expectedCategory}`
+    );
   }
-  
+
   const orderNumber = generateOrderNumber(name, category, id);
-  
+
   return { id, orderNumber };
 };
 
@@ -73,7 +86,7 @@ const generateOrderNumber = (category, orderTypeName, orderId) => {
   if (!orderTypeName || typeof orderTypeName !== 'string') {
     throw AppError.validationError('Invalid orderTypeName provided.');
   }
-  
+
   const categoryPrefix = categoryToPrefixMap[category] || 'UN'; // 'UN' = Undefined if category not mapped
   const orderTypePrefix = generateOrderNamePrefix(orderTypeName);
 

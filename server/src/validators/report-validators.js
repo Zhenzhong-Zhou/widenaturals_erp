@@ -1,9 +1,9 @@
 const Joi = require('joi');
 const {
-    validateUUIDArray,
-    validateOptionalUUID,
-    paginationSchema,
-    createSortSchema
+  validateUUIDArray,
+  validateOptionalUUID,
+  paginationSchema,
+  createSortSchema,
 } = require('./general-validators');
 
 /**
@@ -52,15 +52,17 @@ const inventoryActivityLogQuerySchema = Joi.object({})
     batchIds: validateUUIDArray('Batch IDs'),
     packagingMaterialIds: validateUUIDArray('Packaging Material IDs'),
     actionTypeIds: validateUUIDArray('Action Type IDs'),
-    
+
     orderId: validateOptionalUUID('Order ID'),
     statusId: validateOptionalUUID('Status ID'),
     adjustmentTypeId: validateOptionalUUID('Adjustment Type ID'),
     performedBy: validateOptionalUUID('Performed By'),
-    
+
     sourceType: Joi.string().max(50).allow('', null),
-    batchType: Joi.string().valid('product', 'packaging_material').allow('', null),
-    
+    batchType: Joi.string()
+      .valid('product', 'packaging_material')
+      .allow('', null),
+
     fromDate: Joi.date().iso().allow('', null),
     toDate: Joi.date().iso().allow('', null),
   });

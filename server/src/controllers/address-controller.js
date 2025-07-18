@@ -25,7 +25,7 @@ const {
 const createAddressController = wrapAsync(async (req, res) => {
   const addresses = req.body;
   const user = req.user;
-  
+
   logInfo('Creating address record(s)', req, {
     context: 'address-controller/createAddressController',
     recordCount: addresses.length,
@@ -33,9 +33,9 @@ const createAddressController = wrapAsync(async (req, res) => {
     requestId: req.id,
     traceId: req.traceId,
   });
-  
+
   const result = await createAddressService(addresses, user);
-  
+
   res.status(201).json({
     success: true,
     message:
@@ -71,14 +71,8 @@ const createAddressController = wrapAsync(async (req, res) => {
  * @throws {AppError} On service failure (handled by wrapAsync).
  */
 const getPaginatedAddressesController = wrapAsync(async (req, res) => {
-  const {
-    page,
-    limit,
-    sortBy,
-    sortOrder,
-    filters,
-  } = req.normalizedQuery;
-  
+  const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
+
   const { data, pagination } = await fetchPaginatedAddressesService({
     user: req.user,
     filters,
@@ -87,7 +81,7 @@ const getPaginatedAddressesController = wrapAsync(async (req, res) => {
     sortBy,
     sortOrder,
   });
-  
+
   res.status(200).json({
     success: true,
     message: 'Addresses retrieved successfully.',

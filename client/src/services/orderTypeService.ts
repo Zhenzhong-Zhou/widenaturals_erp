@@ -1,6 +1,6 @@
 import type {
   FetchPaginatedOrderTypesParams,
-  OrderTypeListResponse
+  OrderTypeListResponse,
 } from '@features/orderType/state';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 import { buildQueryString } from '@utils/buildQueryString';
@@ -27,7 +27,7 @@ export const fetchPaginatedOrderTypes = async (
   try {
     const queryString = buildQueryString(params);
     const url = `${API_ENDPOINTS.ORDER_TYPES.ALL_RECORDS}${queryString}`;
-    
+
     return getRequest<OrderTypeListResponse>(url);
   } catch (error) {
     console.error('Error fetching order types:', error);

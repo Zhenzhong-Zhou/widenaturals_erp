@@ -17,28 +17,38 @@ const InventoryLogMiniExpandedContent: FC<Props> = ({ row }) => (
     <CustomTypography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>
       Log Details
     </CustomTypography>
-    
+
     <Grid container spacing={2}>
       <Grid size={{ xs: 12, sm: 6 }}>
         <DetailsSection
           fields={[
-            { label: 'Adjustment Type', value: row.adjustmentType, format: formatLabel },
+            {
+              label: 'Adjustment Type',
+              value: row.adjustmentType,
+              format: formatLabel,
+            },
             { label: 'Order Number', value: row.order.number },
             { label: 'Order Type', value: row.order.type, format: formatLabel },
-            { label: 'Order Status', value: row.order.status, format: formatLabel },
+            {
+              label: 'Order Status',
+              value: row.order.status,
+              format: formatLabel,
+            },
             {
               label: 'Location / Warehouse',
               value:
                 'combinedNames' in row
                   ? row.combinedNames
-                  : [row.locationName, row.warehouseName].filter(Boolean).join(', ')
+                  : [row.locationName, row.warehouseName]
+                      .filter(Boolean)
+                      .join(', '),
             },
             { label: 'Source', value: row.source?.type, format: formatLabel },
             { label: 'Ref ID', value: row.source?.refId },
           ]}
         />
       </Grid>
-      
+
       <Grid size={{ xs: 12, sm: 6 }}>
         <DetailsSection
           fields={[
@@ -50,9 +60,21 @@ const InventoryLogMiniExpandedContent: FC<Props> = ({ row }) => (
                   : row.packagingMaterialInfo?.expiryDate,
               format: formatDate,
             },
-            { label: 'Source Type', value: row.source?.type, format: formatLabel },
-            { label: 'Metadata Source', value: row.metadata?.source, format: formatLabel },
-            { label: 'Metadata Source Level', value: row.metadata?.source_level, format: formatLabel },
+            {
+              label: 'Source Type',
+              value: row.source?.type,
+              format: formatLabel,
+            },
+            {
+              label: 'Metadata Source',
+              value: row.metadata?.source,
+              format: formatLabel,
+            },
+            {
+              label: 'Metadata Source Level',
+              value: row.metadata?.source_level,
+              format: formatLabel,
+            },
             { label: 'Comments', value: row.comments },
           ]}
         />

@@ -9,21 +9,21 @@ interface LogHeaderProps {
 const LogHeader: FC<LogHeaderProps> = ({ entry }) => {
   const isProduct = !!entry?.productInfo;
   const isMaterial = !!entry?.packagingMaterialInfo;
-  
+
   const name = isProduct
-    ? entry.productInfo?.productName ?? '—'
+    ? (entry.productInfo?.productName ?? '—')
     : isMaterial
-      ? entry.packagingMaterialInfo?.snapshotName ?? '—'
+      ? (entry.packagingMaterialInfo?.snapshotName ?? '—')
       : '—';
-  
+
   const subtitle = isProduct
     ? `Product • SKU: ${entry.productInfo?.sku ?? '—'}`
     : isMaterial
       ? `Packaging • Code: ${entry.packagingMaterialInfo?.code ?? '—'}`
       : `Batch Type: ${entry?.batchType ?? '-'}`;
-  
+
   const avatarFallback = isProduct ? 'P' : isMaterial ? 'M' : '?';
-  
+
   return (
     <DetailHeader
       name={name}

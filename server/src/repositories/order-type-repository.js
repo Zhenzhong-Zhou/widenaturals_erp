@@ -1,4 +1,6 @@
-const { buildOrderTypeFilter } = require('../utils/sql/build-order-type-filters');
+const {
+  buildOrderTypeFilter,
+} = require('../utils/sql/build-order-type-filters');
 const { paginateQuery, query } = require('../database/db');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
@@ -34,22 +36,22 @@ const AppError = require('../utils/AppError');
  * });
  */
 const getPaginatedOrderTypes = async ({
-                                  filters = {},
-                                  page = 1,
-                                  limit = 10,
-                                  sortBy = 'name',
-                                  sortOrder = 'ASC',
-                                }) => {
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy = 'name',
+  sortOrder = 'ASC',
+}) => {
   const { whereClause, params } = buildOrderTypeFilter(filters);
-  
+
   const tableName = 'order_types ot';
-  
+
   const joins = [
     'INNER JOIN status s ON ot.status_id = s.id',
     'LEFT JOIN users u1 ON ot.created_by = u1.id',
     'LEFT JOIN users u2 ON ot.updated_by = u2.id',
   ];
-  
+
   const baseQuery = `
     SELECT
       ot.id,
@@ -84,7 +86,7 @@ const getPaginatedOrderTypes = async ({
       sortBy,
       sortOrder,
     });
-    
+
     logSystemInfo('Fetched order types successfully', {
       context: 'order-type-repository/getPaginatedOrderTypes',
       resultCount: result?.data?.length,
@@ -92,17 +94,23 @@ const getPaginatedOrderTypes = async ({
       pagination: { page, limit },
       sorting: { sortBy, sortOrder },
     });
-    
+
     return result;
   } catch (error) {
-    logSystemException(error, 'Failed to fetch paginated order types from database', {
-      context: 'order-type-repository/getPaginatedOrderTypes',
-      filters,
-      pagination: { page, limit },
-      sorting: { sortBy, sortOrder },
-    });
-    
-    throw AppError.databaseError('Unable to retrieve order types. Please try again later.');
+    logSystemException(
+      error,
+      'Failed to fetch paginated order types from database',
+      {
+        context: 'order-type-repository/getPaginatedOrderTypes',
+        filters,
+        pagination: { page, limit },
+        sorting: { sortBy, sortOrder },
+      }
+    );
+
+    throw AppError.databaseError(
+      'Unable to retrieve order types. Please try again later.'
+    );
   }
 };
 
@@ -119,7 +127,7 @@ const getPaginatedOrderTypes = async ({
  */
 const getOrderTypeLookup = async ({ filters = {} } = {}) => {
   const { whereClause, params } = buildOrderTypeFilter(filters);
-  
+
   const queryText = `
     SELECT
       id,
@@ -129,15 +137,15 @@ const getOrderTypeLookup = async ({ filters = {} } = {}) => {
     WHERE ${whereClause}
     ORDER BY name ASC
   `;
-  
+
   try {
     const { rows } = await query(queryText, params);
-    
+
     logSystemInfo('Fetched order type lookup', {
       context: 'orderType-repository/getOrderTypeLookup',
       filters,
     });
-    
+
     return rows;
   } catch (error) {
     logSystemException(error, 'Failed to fetch order type lookup', {

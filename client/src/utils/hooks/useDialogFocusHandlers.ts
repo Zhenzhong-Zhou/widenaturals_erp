@@ -5,11 +5,14 @@ export const useDialogFocusHandlers = (
   createButtonRef: RefObject<HTMLButtonElement | null>,
   getDialogOpen: () => boolean
 ) => {
-  const handleOpenDialog = useCallback((e: MouseEvent<HTMLButtonElement>) => {
-    e.currentTarget.blur();
-    requestAnimationFrame(() => setDialogOpen(true));
-  }, [setDialogOpen]);
-  
+  const handleOpenDialog = useCallback(
+    (e: MouseEvent<HTMLButtonElement>) => {
+      e.currentTarget.blur();
+      requestAnimationFrame(() => setDialogOpen(true));
+    },
+    [setDialogOpen]
+  );
+
   const handleCloseDialog = useCallback(() => {
     setDialogOpen(false);
     setTimeout(() => {
@@ -19,6 +22,6 @@ export const useDialogFocusHandlers = (
       }
     }, 300); // match your dialog transition and extra buffer
   }, [setDialogOpen, createButtonRef, getDialogOpen]);
-  
+
   return { handleOpenDialog, handleCloseDialog };
 };

@@ -27,8 +27,16 @@ const emptyFilters: CustomerFilters = {
   onlyWithAddress: undefined,
 };
 
-const textFields: { name: keyof CustomerFilters; label: string; placeholder?: string }[] = [
-  { name: 'keyword', label: 'Search Keyword', placeholder: 'Name, Email, etc.' },
+const textFields: {
+  name: keyof CustomerFilters;
+  label: string;
+  placeholder?: string;
+}[] = [
+  {
+    name: 'keyword',
+    label: 'Search Keyword',
+    placeholder: 'Name, Email, etc.',
+  },
   { name: 'createdBy', label: 'Created By' },
 ];
 
@@ -39,23 +47,30 @@ const dateFields: { name: keyof CustomerFilters; label: string }[] = [
   { name: 'statusDateBefore', label: 'Status Date Before' },
 ];
 
-const CustomerFiltersPanel: FC<Props> = ({ filters, onChange, onApply, onReset }) => {
-  const { control, handleSubmit, reset } = useForm<CustomerFilters>({ defaultValues: filters });
-  
+const CustomerFiltersPanel: FC<Props> = ({
+  filters,
+  onChange,
+  onApply,
+  onReset,
+}) => {
+  const { control, handleSubmit, reset } = useForm<CustomerFilters>({
+    defaultValues: filters,
+  });
+
   useEffect(() => {
     reset(filters);
   }, [filters, reset]);
-  
+
   const submitFilters = (data: CustomerFilters) => {
     onChange(data);
     onApply();
   };
-  
+
   const resetFilters = () => {
     reset(emptyFilters);
     onReset();
   };
-  
+
   return (
     <Box mb={2} p={2} border="1px solid #ccc" borderRadius={2}>
       <form onSubmit={handleSubmit(submitFilters)}>
@@ -63,18 +78,21 @@ const CustomerFiltersPanel: FC<Props> = ({ filters, onChange, onApply, onReset }
           {textFields.map(({ name, label, placeholder }) =>
             renderInputField(control, name, label, placeholder)
           )}
-          {
-            renderBooleanSelectField(control, 'onlyWithAddress', 'Address Filter', [
+          {renderBooleanSelectField(
+            control,
+            'onlyWithAddress',
+            'Address Filter',
+            [
               { value: '', label: 'All Customers' },
               { value: 'true', label: 'Only with Address' },
               { value: 'false', label: 'Only without Address' },
-            ])
-          }
+            ]
+          )}
           {dateFields.map(({ name, label }) =>
             renderDateField(control, name, label)
           )}
         </Grid>
-        
+
         <Box display="flex" flexWrap="wrap" gap={2} mt={3}>
           <CustomButton type="submit" variant="contained">
             Apply

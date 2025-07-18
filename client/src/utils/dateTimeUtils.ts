@@ -8,7 +8,8 @@ import {
   addDays,
   differenceInHours,
   differenceInMonths,
-  differenceInSeconds, startOfDay,
+  differenceInSeconds,
+  startOfDay,
 } from 'date-fns';
 
 /**
@@ -271,7 +272,9 @@ export const adjustBeforeDateInclusive = (input?: string): string => {
  * @param value - The input value to convert (Date, ISO string, or null/undefined).
  * @returns A valid ISO 8601 string or `undefined` if the input is invalid.
  */
-export const toISO = (value: string | Date | null | undefined): string | undefined => {
+export const toISO = (
+  value: string | Date | null | undefined
+): string | undefined => {
   if (value instanceof Date && !isNaN(value.getTime())) {
     return value.toISOString();
   }

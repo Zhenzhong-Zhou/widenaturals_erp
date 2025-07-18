@@ -16,16 +16,22 @@ const PERMISSION_FILTERS_MAP = {
   batch: ['batchIds', 'locationIds', 'warehouseIds'],
   packing_material: ['packingMaterialIds', 'locationIds', 'warehouseIds'],
   warehouse: [
-    'warehouseIds', 'productIds', 'skuIds', 'batchIds',
-    'packingMaterialIds'
+    'warehouseIds',
+    'productIds',
+    'skuIds',
+    'batchIds',
+    'packingMaterialIds',
   ],
   location: [
-    'locationIds', 'productIds', 'skuIds', 'batchIds',
-    'packingMaterialIds'
+    'locationIds',
+    'productIds',
+    'skuIds',
+    'batchIds',
+    'packingMaterialIds',
   ],
   base: [],
 };
 
 module.exports = {
-  PERMISSION_FILTERS_MAP
+  PERMISSION_FILTERS_MAP,
 };

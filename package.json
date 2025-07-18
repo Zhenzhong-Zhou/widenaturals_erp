@@ -2,7 +2,13 @@
   "name": "widenaturals-erp",
   "version": "2.1.0",
   "description": "Monorepo for WIDE Naturals Inc. ERP system, including client and server.",
-  "keywords": ["erp", "monorepo", "widenaturals", "client", "server"],
+  "keywords": [
+    "erp",
+    "monorepo",
+    "widenaturals",
+    "client",
+    "server"
+  ],
   "type": "module",
   "private": true,
   "lint-staged": {

@@ -30,19 +30,19 @@ import type {
  * @property {string | null} [note] - Additional delivery note (optional).
  */
 export interface AddressInput {
-  customer_id: string | null;          // UUID or null for guest / standalone address
-  full_name?: string | null;           // Recipient's full name
-  phone?: string | null;               // Phone in international format
-  email?: string | null;               // Optional email
-  label?: string | null;               // e.g., "Home", "Shipping"
-  address_line1: string;               // Required
-  address_line2?: string | null;       // Optional
-  city: string;                        // Required
-  state?: string | null;               // Optional (depending on country)
-  postal_code: string;                 // Required
-  country: string;                     // Required
-  region?: string | null;              // Optional, for provinces, territories, etc.
-  note?: string | null;                // Optional delivery instructions
+  customer_id: string | null; // UUID or null for guest / standalone address
+  full_name?: string | null; // Recipient's full name
+  phone?: string | null; // Phone in international format
+  email?: string | null; // Optional email
+  label?: string | null; // e.g., "Home", "Shipping"
+  address_line1: string; // Required
+  address_line2?: string | null; // Optional
+  city: string; // Required
+  state?: string | null; // Optional (depending on country)
+  postal_code: string; // Required
+  country: string; // Required
+  region?: string | null; // Optional, for provinces, territories, etc.
+  note?: string | null; // Optional delivery instructions
 }
 
 /**
@@ -70,7 +70,7 @@ export interface AddressResponse {
   customer: AddressCustomerSummary;
   createdBy: AddressUserSummary;
   updatedBy: AddressUserSummary;
-  createdAt: string;  // ISO string
+  createdAt: string; // ISO string
   updatedAt?: string | null; // Optional, since not shown in example
 }
 
@@ -140,16 +140,16 @@ export interface AddressFilterConditions
     CreatedUpdatedByFilter {
   /** Filter by country code or name */
   country?: string;
-  
+
   /** Filter by city name */
   city?: string;
-  
+
   /** Filter by region or province name */
   region?: string;
-  
+
   /** Filter by associated customer ID (UUID v4) */
   customerId?: string;
-  
+
   /** Keyword search across label, recipient name, email, phone, city */
   keyword?: string;
 }
@@ -190,7 +190,9 @@ export interface AddressSortConfig extends SortConfig {
  * and optional filter conditions for flexible querying.
  * Intended for constructing API calls that list addresses with filtering, sorting, and pagination.
  */
-export interface AddressQueryParams extends PaginationParams, AddressSortConfig {
+export interface AddressQueryParams
+  extends PaginationParams,
+    AddressSortConfig {
   /** Optional filter conditions to apply to the address query */
   filters?: AddressFilterConditions;
 }
@@ -202,61 +204,61 @@ export interface AddressQueryParams extends PaginationParams, AddressSortConfig 
 export interface AddressListItem {
   /** Unique identifier for the address */
   id: string;
-  
+
   /** Associated customer ID */
   customerId: string;
-  
+
   /** Customer's display name */
   customerName: string;
-  
+
   /** Customer's email address */
   customerEmail: string;
-  
+
   /** Label for the address (e.g. "Home", "Office") */
   label: string;
-  
+
   /** Name of the recipient for this address */
   recipientName: string;
-  
+
   /** Recipient's phone number */
   phone: string;
-  
+
   /** Recipient's email address */
   email: string;
-  
+
   /** Structured address details */
   address: {
     /** First line of the address (e.g., street, building) */
     line1: string;
-    
+
     /** Second line of the address (e.g., unit) */
     line2: string;
-    
+
     /** City name */
     city: string;
-    
+
     /** State or province */
     state: string;
-    
+
     /** Postal or ZIP code */
     postalCode: string;
-    
+
     /** Country */
     country: string;
-    
+
     /** Region (if applicable) */
     region: string;
   };
-  
+
   /** Pre-formatted address string for display purposes */
   displayAddress: string;
-  
+
   /** ISO timestamp of when the address was created */
   createdAt: string;
-  
+
   /** User who created the address (display name or ID) */
   createdBy: string;
-  
+
   /** User who last updated the address (display name or ID) */
   updatedBy: string;
 }

@@ -12,15 +12,18 @@
  */
 const normalizeParamArray = (value) => {
   if (value === undefined || value === null) return undefined;
-  
+
   if (Array.isArray(value)) return value.filter(Boolean);
-  
+
   if (typeof value === 'string') {
     return value.includes(',')
-      ? value.split(',').map((v) => v.trim()).filter(Boolean)
+      ? value
+          .split(',')
+          .map((v) => v.trim())
+          .filter(Boolean)
       : [value.trim()];
   }
-  
+
   return [String(value).trim()];
 };
 
@@ -36,10 +39,13 @@ const normalizeParamArray = (value) => {
 const normalizePaginationParams = (query = {}) => {
   const page = Math.max(1, parseInt(query.page, 10) || 1);
   const limit = Math.min(100, Math.max(1, parseInt(query.limit, 10) || 10));
-  
-  const sortOrderRaw = typeof query.sortOrder === 'string' ? query.sortOrder.toUpperCase() : 'DESC';
+
+  const sortOrderRaw =
+    typeof query.sortOrder === 'string'
+      ? query.sortOrder.toUpperCase()
+      : 'DESC';
   const sortOrder = sortOrderRaw === 'ASC' ? 'ASC' : 'DESC';
-  
+
   return { page, limit, sortOrder };
 };
 
@@ -54,7 +60,7 @@ const normalizePaginationParams = (query = {}) => {
  */
 const normalizeFilterKeys = (rawFilters) => {
   if (!rawFilters || typeof rawFilters !== 'object') return {};
-  
+
   return Object.fromEntries(
     Object.entries(rawFilters).map(([key, value]) => [key.trim(), value])
   );

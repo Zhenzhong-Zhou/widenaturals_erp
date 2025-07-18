@@ -90,7 +90,7 @@ const Dropdown: FC<DropdownProps> = ({
   // Modified options array with special items at the top
   const modifiedOptions = useMemo(() => {
     const baseOptions = [...SPECIAL_OPTIONS];
-    
+
     if (!loading && !error && options.length === 0) {
       baseOptions.push({
         value: '__no_options__',
@@ -98,14 +98,17 @@ const Dropdown: FC<DropdownProps> = ({
         type: 'meta',
       });
     }
-    
+
     baseOptions.push(...options);
-    
+
     return hasMore
-      ? [...baseOptions, { value: '__loading__', label: 'Loading more...', type: 'meta' }]
+      ? [
+          ...baseOptions,
+          { value: '__loading__', label: 'Loading more...', type: 'meta' },
+        ]
       : baseOptions;
   }, [options, hasMore, loading, error, noOptionsMessage]);
-  
+
   return (
     <Box sx={{ minWidth: '200px', width: '100%', ...sx }}>
       <Autocomplete
@@ -280,7 +283,11 @@ const Dropdown: FC<DropdownProps> = ({
                 {option.icon && (
                   <Box
                     component="span"
-                    sx={{ display: 'flex', alignItems: 'center', marginRight: 1 }}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      marginRight: 1,
+                    }}
                   >
                     {option.tooltip ? (
                       <Tooltip title={option.tooltip}>
@@ -296,16 +303,14 @@ const Dropdown: FC<DropdownProps> = ({
                           )}
                         </span>
                       </Tooltip>
+                    ) : isValidElement(option.icon) ? (
+                      option.icon
                     ) : (
-                      isValidElement(option.icon) ? (
-                        option.icon
-                      ) : (
-                        <FontAwesomeIcon
-                          icon={option.icon as IconProp}
-                          color={option.iconColor ?? 'inherit'}
-                          style={{ marginRight: 8 }}
-                        />
-                      )
+                      <FontAwesomeIcon
+                        icon={option.icon as IconProp}
+                        color={option.iconColor ?? 'inherit'}
+                        style={{ marginRight: 8 }}
+                      />
                     )}
                   </Box>
                 )}

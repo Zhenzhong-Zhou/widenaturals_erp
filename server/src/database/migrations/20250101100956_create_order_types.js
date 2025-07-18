@@ -31,8 +31,11 @@ exports.up = function (knex) {
     table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now()); // Auto-set on creation in UTC
     table.uuid('created_by').references('id').inTable('users');
     table.uuid('updated_by').references('id').inTable('users');
-    
-    table.index(['category', 'status_id'], 'order_types_category_status_id_index');
+
+    table.index(
+      ['category', 'status_id'],
+      'order_types_category_status_id_index'
+    );
   });
 };
 

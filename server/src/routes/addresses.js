@@ -14,7 +14,7 @@ const authorize = require('../middlewares/authorize');
 const validate = require('../middlewares/validate');
 const {
   addressArraySchema,
-  addressQuerySchema
+  addressQuerySchema,
 } = require('../validators/address-validators');
 const { sanitizeFields } = require('../middlewares/sanitize');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');

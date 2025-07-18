@@ -1,6 +1,8 @@
 import { type FC } from 'react';
 import CustomDialog from '@components/common/CustomDialog';
-import DetailsSection, { type DetailsSectionField } from '@components/common/DetailsSection';
+import DetailsSection, {
+  type DetailsSectionField,
+} from '@components/common/DetailsSection';
 import CustomTypography from '@components/common/CustomTypography';
 import Stack from '@mui/material/Stack';
 import Box from '@mui/material/Box';
@@ -13,7 +15,7 @@ interface CustomerSuccessDialogProps {
   onClose: () => void;
   message?: string;
   customers?: CustomerResponse | CustomerResponse[];
-  
+
   /**
    * Callback to trigger address creation dialog.
    */
@@ -21,21 +23,33 @@ interface CustomerSuccessDialogProps {
 }
 
 const CustomerSuccessDialog: FC<CustomerSuccessDialogProps> = ({
-                                                                 open,
-                                                                 onClose,
-                                                                 message = 'Customer(s) created successfully.',
-                                                                 customers,
-                                                                 onAddAddressClick,
-                                                               }) => {
+  open,
+  onClose,
+  message = 'Customer(s) created successfully.',
+  customers,
+  onAddAddressClick,
+}) => {
   const transformFields = (data: CustomerResponse): DetailsSectionField[] => [
-    { label: 'Customer Name', value: `${data.firstname} ${data.lastname}`, format: (value) => formatLabel(value) },
+    {
+      label: 'Customer Name',
+      value: `${data.firstname} ${data.lastname}`,
+      format: (value) => formatLabel(value),
+    },
     { label: 'Email', value: data.email },
     { label: 'Phone Number', value: data.phoneNumber },
-    { label: 'Status', value: data.status?.name ?? '—', format: (value) => formatLabel(value) },
+    {
+      label: 'Status',
+      value: data.status?.name ?? '—',
+      format: (value) => formatLabel(value),
+    },
   ];
-  
-  const customerList = Array.isArray(customers) ? customers : customers ? [customers] : [];
-  
+
+  const customerList = Array.isArray(customers)
+    ? customers
+    : customers
+      ? [customers]
+      : [];
+
   return (
     <CustomDialog
       open={open}
@@ -49,7 +63,7 @@ const CustomerSuccessDialog: FC<CustomerSuccessDialogProps> = ({
         <CustomTypography variant="body1" sx={{ mb: 2 }}>
           {message}
         </CustomTypography>
-        
+
         <Stack spacing={4}>
           {customerList.map((customer, idx) => (
             <DetailsSection
@@ -64,10 +78,10 @@ const CustomerSuccessDialog: FC<CustomerSuccessDialogProps> = ({
             />
           ))}
         </Stack>
-        
+
         <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
           <AddAddressButton
-            onClick={onAddAddressClick}  // Trigger the address dialog
+            onClick={onAddAddressClick} // Trigger the address dialog
             variant="outlined"
             color="primary"
           />

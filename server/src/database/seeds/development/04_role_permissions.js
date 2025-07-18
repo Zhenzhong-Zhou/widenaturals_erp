@@ -9,18 +9,18 @@ const { fetchDynamicValue } = require('../03_utils');
 exports.seed = async function (knex) {
   const [{ count }] = await knex('role_permissions').count('id');
   const total = Number(count) || 0;
-  
+
   if (total > 0) {
     console.log(
       `[${new Date().toISOString()}] [SEED] Skipping seed for [role_permissions] table: ${total} records found.`
     );
     return;
   }
-  
+
   console.log(
     `[${new Date().toISOString()}] [SEED] Inserting role-permission mappings into [role_permissions] table...`
   );
-  
+
   const systemUserId = await fetchDynamicValue(
     knex,
     'users',
@@ -28,24 +28,26 @@ exports.seed = async function (knex) {
     'system@internal.local',
     'id'
   );
-  
+
   const activeStatusId = await knex('status')
     .select('id')
     .where('name', 'active')
     .first()
     .then((row) => row?.id);
-  
+
   if (!activeStatusId) {
     console.error('[SEED] Active status ID not found. Aborting.');
     return;
   }
-  
+
   const roles = await knex('roles').select('id', 'name');
   const roleMap = Object.fromEntries(roles.map((r) => [r.name, r.id]));
-  
+
   const permissions = await knex('permissions').select('id', 'key');
-  const permissionMap = Object.fromEntries(permissions.map((p) => [p.key, p.id]));
-  
+  const permissionMap = Object.fromEntries(
+    permissions.map((p) => [p.key, p.id])
+  );
+
   // Define role-permission mapping
   const rolePermissionsData = {
     root_admin: Object.keys(permissionMap), // All permissions
@@ -117,30 +119,29 @@ exports.seed = async function (knex) {
       'view_locations',
       'manage_locations',
     ],
-    user: [
-      'view_customer',
-      'create_orders',
-    ],
+    user: ['view_customer', 'create_orders'],
   };
-  
+
   let insertedCount = 0;
-  
+
   for (const [roleKey, permissionKeys] of Object.entries(rolePermissionsData)) {
     const roleId = roleMap[roleKey];
-    
+
     if (!roleId) {
       console.warn(`[SEED] Role '${roleKey}' not found. Skipping.`);
       continue;
     }
-    
+
     for (const permissionKey of permissionKeys) {
       const permissionId = permissionMap[permissionKey];
-      
+
       if (!permissionId) {
-        console.warn(`[SEED] Permission '${permissionKey}' not found. Skipping.`);
+        console.warn(
+          `[SEED] Permission '${permissionKey}' not found. Skipping.`
+        );
         continue;
       }
-      
+
       await knex('role_permissions')
         .insert({
           id: knex.raw('uuid_generate_v4()'),
@@ -154,10 +155,10 @@ exports.seed = async function (knex) {
         })
         .onConflict(['role_id', 'permission_id'])
         .ignore();
-      
+
       insertedCount++;
     }
   }
-  
+
   console.log(`[SEED] Inserted ${insertedCount} role-permission mappings.`);
 };

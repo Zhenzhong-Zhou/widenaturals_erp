@@ -8,13 +8,13 @@ interface AddAddressButtonProps {
    * If not provided and `onClick` is given, button triggers that handler instead.
    */
   to?: string;
-  
+
   /**
    * Callback function to a toggle address form (single or bulk).
    * Ignored if `to` is provided.
    */
   onClick?: () => void;
-  
+
   size?: 'small' | 'medium' | 'large';
   variant?: 'contained' | 'outlined' | 'text';
   color?: 'primary' | 'secondary' | 'success' | 'info';
@@ -22,13 +22,13 @@ interface AddAddressButtonProps {
 }
 
 const AddAddressButton: FC<AddAddressButtonProps> = ({
-                                                       to,
-                                                       onClick,
-                                                       size = 'medium',
-                                                       variant = 'contained',
-                                                       color = 'primary',
-                                                       loading = false,
-                                                     }) => (
+  to,
+  onClick,
+  size = 'medium',
+  variant = 'contained',
+  color = 'primary',
+  loading = false,
+}) => (
   <CustomButton
     to={to}
     onClick={!to ? onClick : undefined}

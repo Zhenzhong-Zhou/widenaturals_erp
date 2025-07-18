@@ -1,9 +1,11 @@
-const { bulkInsert, query, paginateQuery, paginateQueryByOffset } = require('../database/db');
-const AppError = require('../utils/AppError');
 const {
-  logSystemException,
-  logSystemInfo
-} = require('../utils/system-logger');
+  bulkInsert,
+  query,
+  paginateQuery,
+  paginateQueryByOffset,
+} = require('../database/db');
+const AppError = require('../utils/AppError');
+const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 const { buildCustomerFilter } = require('../utils/sql/build-customer-filters');
 const { validateBulkInsertRows } = require('../database/db-utils');
 
@@ -34,7 +36,7 @@ const insertCustomerRecords = async (customers, client) => {
     'created_by',
     'updated_by',
   ];
-  
+
   const updateColumns = [
     'firstname',
     'lastname',
@@ -43,9 +45,11 @@ const insertCustomerRecords = async (customers, client) => {
     'updated_at',
     'updated_by',
   ];
-  
-  const updateStrategies = Object.fromEntries(updateColumns.map((col) => [col, 'overwrite']));
-  
+
+  const updateStrategies = Object.fromEntries(
+    updateColumns.map((col) => [col, 'overwrite'])
+  );
+
   const now = new Date();
   const rows = customers.map((customer) => [
     customer.firstname,
@@ -54,16 +58,16 @@ const insertCustomerRecords = async (customers, client) => {
     customer.phone_number || null,
     customer.status_id,
     customer.note || null,
-    now,               // status_date
-    now,               // created_at
-    null,              // updated_at (no update info at insert)
+    now, // status_date
+    now, // created_at
+    null, // updated_at (no update info at insert)
     customer.created_by || null,
-    null,              // updated_by (no update info at insert)
+    null, // updated_by (no update info at insert)
   ]);
-  
+
   try {
     validateBulkInsertRows(rows, columns.length);
-    
+
     return await bulkInsert(
       'customers',
       columns,
@@ -97,7 +101,7 @@ const insertCustomerRecords = async (customers, client) => {
  * @returns {Promise<Array<Object>>} - Array of enriched customer records.
  * @throws {AppError} If query fails or invalid parameters are passed.
  */
-const getEnrichedCustomersByIds = async(ids, client) => {
+const getEnrichedCustomersByIds = async (ids, client) => {
   const sql = `
     SELECT
       c.id,
@@ -120,12 +124,12 @@ const getEnrichedCustomersByIds = async(ids, client) => {
     LEFT JOIN users uu ON uu.id = c.updated_by
     WHERE c.id = ANY($1)
   `;
-  
+
   try {
     const result = await query(sql, [ids], client);
     return result.rows;
   } catch (error) {
-    logSystemException(error,'Failed to fetch enriched customer records', {
+    logSystemException(error, 'Failed to fetch enriched customer records', {
       context: 'customer-repository/getEnrichedCustomersByIds',
       ids,
     });
@@ -154,25 +158,25 @@ const getEnrichedCustomersByIds = async(ids, client) => {
  * @throws {AppError} - Throws databaseError on failure
  */
 const getPaginatedCustomers = async ({
-                                       filters = {},
-                                       statusId,
-                                       overrideDefaultStatus = false,
-                                       page = 1,
-                                       limit = 10,
-                                       sortBy = 'created_at',
-                                       sortOrder = 'DESC',
-                                     }) => {
+  filters = {},
+  statusId,
+  overrideDefaultStatus = false,
+  page = 1,
+  limit = 10,
+  sortBy = 'created_at',
+  sortOrder = 'DESC',
+}) => {
   const { whereClause, params } = buildCustomerFilter(statusId, filters, {
     overrideDefaultStatus,
   });
-  
+
   const tableName = 'customers c';
   const joins = [
     'INNER JOIN status s ON c.status_id = s.id',
     'LEFT JOIN users u1 ON c.created_by = u1.id',
     'LEFT JOIN users u2 ON c.updated_by = u2.id',
   ];
-  
+
   const baseQuery = `
     SELECT
       c.id,
@@ -195,7 +199,7 @@ const getPaginatedCustomers = async ({
     ${joins.join('\n')}
     WHERE ${whereClause}
   `;
-  
+
   try {
     const result = await paginateQuery({
       tableName,
@@ -208,7 +212,7 @@ const getPaginatedCustomers = async ({
       sortBy,
       sortOrder,
     });
-    
+
     logSystemInfo('Fetched paginated customers', {
       context: 'customer-repository/fetchPaginatedCustomers',
       filters,
@@ -217,7 +221,7 @@ const getPaginatedCustomers = async ({
       pagination: { page, limit },
       sorting: { sortBy, sortOrder },
     });
-    
+
     return result;
   } catch (error) {
     logSystemException(error, 'Failed to fetch paginated customers', {
@@ -261,21 +265,21 @@ const getPaginatedCustomers = async ({
  * @throws {AppError} Throws a database error if the query fails.
  */
 const getCustomerLookup = async ({
-                                   keyword = '',
-                                   statusId,
-                                   limit = 50,
-                                   offset = 0,
-                                   overrideDefaultStatus = false,
-                                 }) => {
+  keyword = '',
+  statusId,
+  limit = 50,
+  offset = 0,
+  overrideDefaultStatus = false,
+}) => {
   const tableName = 'customers c';
-  
+
   // Build dynamic WHERE clause + params
   const { whereClause, params } = buildCustomerFilter(
     statusId,
     { keyword },
     { overrideDefaultStatus }
   );
-  
+
   // Base query text
   const queryText = `
     SELECT
@@ -291,7 +295,7 @@ const getCustomerLookup = async ({
     FROM ${tableName}
     WHERE ${whereClause}
   `;
-  
+
   try {
     // Execute with pagination and sorting
     const result = await paginateQueryByOffset({
@@ -301,11 +305,11 @@ const getCustomerLookup = async ({
       params,
       offset,
       limit,
-      sortBy: 'c.firstname',  // primary sort field
+      sortBy: 'c.firstname', // primary sort field
       sortOrder: 'ASC',
       additionalSort: 'c.lastname ASC, c.created_at DESC', // optional extra sorts
     });
-    
+
     logSystemInfo('Fetched customer lookup data', {
       context: 'customer-repository/getCustomerLookup',
       keyword,
@@ -313,7 +317,7 @@ const getCustomerLookup = async ({
       offset,
       limit,
     });
-    
+
     return result;
   } catch (error) {
     logSystemException(error, 'Failed to fetch customer lookup data', {

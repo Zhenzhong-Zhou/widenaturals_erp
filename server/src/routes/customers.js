@@ -7,7 +7,7 @@ const authorize = require('../middlewares/authorize');
 const validate = require('../middlewares/validate');
 const {
   customerArraySchema,
-  customerFilterSchema
+  customerFilterSchema,
 } = require('../validators/customer-validator');
 const { sanitizeFields } = require('../middlewares/sanitize');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
@@ -82,9 +82,9 @@ router.get(
   '/',
   authorize(['view_customer']),
   createQueryNormalizationMiddleware(
-    'customerSortMap',                   // sort map module
-    ['createdBy', 'updatedBy'],           // array keys
-    ['onlyWithAddress'],                // boolean keys
+    'customerSortMap', // sort map module
+    ['createdBy', 'updatedBy'], // array keys
+    ['onlyWithAddress'], // boolean keys
     customerFilterSchema
   ),
   sanitizeFields(['keyword', 'region', 'country']),

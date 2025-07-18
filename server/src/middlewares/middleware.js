@@ -44,10 +44,10 @@ const applyGlobalMiddleware = (app) => {
 
   // 6. Request Logging
   app.use(requestLogger);
-  
+
   // 7. Input Sanitization Middleware
   app.use(sanitizeInput);
-  
+
   // 8. Development Tools
   if (process.env.NODE_ENV === 'development') {
     app.use(morgan('dev')); // Use 'dev' logging format in development

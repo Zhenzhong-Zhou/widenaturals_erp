@@ -1,7 +1,10 @@
 const { checkPermissions } = require('../services/role-permission-service');
 const AppError = require('../utils/AppError');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
-const { getAddressById, assignCustomerToAddress } = require('../repositories/address-repository');
+const {
+  getAddressById,
+  assignCustomerToAddress,
+} = require('../repositories/address-repository');
 
 /**
  * Filters and formats an address record for the viewer based on permissions and purpose.
@@ -15,10 +18,14 @@ const { getAddressById, assignCustomerToAddress } = require('../repositories/add
  * @param {string} [purpose='detail_view'] - The purpose of the response ('insert_response', 'detail_view', 'admin_view').
  * @returns {Object} The filtered address object suitable for the viewer.
  */
-const filterAddressForViewer = async (address, user, purpose = 'detail_view') => {
+const filterAddressForViewer = async (
+  address,
+  user,
+  purpose = 'detail_view'
+) => {
   const canViewAudit = await checkPermissions(user, ['view_address_audit']);
   const canViewDetails = await checkPermissions(user, ['view_address_detail']);
-  
+
   const base = {
     id: address.id,
     customerId: address.customerId,
@@ -33,7 +40,7 @@ const filterAddressForViewer = async (address, user, purpose = 'detail_view') =>
       phoneNumber: address.customer?.phoneNumber ?? null,
     },
   };
-  
+
   if (purpose !== 'insert_response') {
     // Include full fields only if not insert response
     base.addressLine1 = address.addressLine1;
@@ -44,18 +51,18 @@ const filterAddressForViewer = async (address, user, purpose = 'detail_view') =>
     base.country = address.country;
     base.region = address.region;
   }
-  
+
   if (canViewDetails || purpose === 'detail_view') {
     base.note = address.note;
   }
-  
+
   if (canViewAudit || purpose === 'admin_view') {
     base.createdBy = address.createdBy;
     base.updatedBy = address.updatedBy;
     base.createdAt = address.createdAt;
     base.updatedAt = address.updatedAt;
   }
-  
+
   return base;
 };
 
@@ -71,18 +78,24 @@ const filterAddressForViewer = async (address, user, purpose = 'detail_view') =>
  * @param {object} client - The database transaction client (e.g., pg or Knex transaction).
  * @throws {AppError} - If address is not found or owned by another customer.
  */
-const validateAndAssignAddressOwnership = async (addressId, customerId, client) => {
+const validateAndAssignAddressOwnership = async (
+  addressId,
+  customerId,
+  client
+) => {
   try {
     const address = await getAddressById(addressId, client);
-    
+
     if (!address) {
       throw AppError.notFoundError(`Address not found: ${addressId}`);
     }
-    
+
     if (address.customer_id && address.customer_id !== customerId) {
-      throw AppError.validationError(`Address ${addressId} does not belong to the selected customer`);
+      throw AppError.validationError(
+        `Address ${addressId} does not belong to the selected customer`
+      );
     }
-    
+
     if (!address.customer_id) {
       await assignCustomerToAddress(addressId, customerId, client);
       logSystemInfo('Assigned orphan address to customer', {
@@ -92,11 +105,15 @@ const validateAndAssignAddressOwnership = async (addressId, customerId, client) 
       });
     }
   } catch (error) {
-    logSystemException(error, 'Failed to validate or assign address ownership', {
-      context: 'addressBusiness/validateAndAssignAddressOwnership',
-      address_id: addressId,
-      customer_id: customerId,
-    });
+    logSystemException(
+      error,
+      'Failed to validate or assign address ownership',
+      {
+        context: 'addressBusiness/validateAndAssignAddressOwnership',
+        address_id: addressId,
+        customer_id: customerId,
+      }
+    );
     throw AppError.businessError('Address ownership validation failed.');
   }
 };
@@ -104,4 +121,4 @@ const validateAndAssignAddressOwnership = async (addressId, customerId, client) 
 module.exports = {
   filterAddressForViewer,
   validateAndAssignAddressOwnership,
-}
+};

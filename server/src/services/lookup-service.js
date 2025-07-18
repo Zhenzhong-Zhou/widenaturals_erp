@@ -2,35 +2,46 @@ const AppError = require('../utils/AppError');
 const {
   getBatchRegistryLookup,
 } = require('../repositories/batch-registry-repository');
-const {
-  getWarehouseLookup,
-} = require('../repositories/warehouse-repository');
+const { getWarehouseLookup } = require('../repositories/warehouse-repository');
 const {
   transformBatchRegistryPaginatedLookupResult,
   transformWarehouseLookupRows,
   transformLotAdjustmentLookupOptions,
   transformCustomerPaginatedLookupResult,
   transformCustomerAddressesLookupResult,
-  transformOrderTypeLookupResult, transformPaymentMethodPaginatedLookupResult,
+  transformOrderTypeLookupResult,
+  transformPaymentMethodPaginatedLookupResult,
 } = require('../transformers/lookup-transformer');
+const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const {
-  logSystemInfo,
-  logSystemException
-} = require('../utils/system-logger');
-const { getLotAdjustmentTypeLookup } = require('../repositories/lot-adjustment-type-repository');
+  getLotAdjustmentTypeLookup,
+} = require('../repositories/lot-adjustment-type-repository');
 const { getCustomerLookup } = require('../repositories/customer-repository');
-const { resolveCustomerQueryOptions } = require('../business/customer-business');
+const {
+  resolveCustomerQueryOptions,
+} = require('../business/customer-business');
 const {
   getCustomerAddressLookupById,
-  hasAssignedAddresses
+  hasAssignedAddresses,
 } = require('../repositories/address-repository');
 const LOOKUPS = require('../utils/constants/domain/lookup-constants');
-const { resolveWarehouseFiltersByPermission } = require('../business/warehouse-business');
-const { enforceExternalAccessPermission } = require('../business/lot-adjustment-type-business');
+const {
+  resolveWarehouseFiltersByPermission,
+} = require('../business/warehouse-business');
+const {
+  enforceExternalAccessPermission,
+} = require('../business/lot-adjustment-type-business');
 const { getOrderTypeLookup } = require('../repositories/order-type-repository');
-const { getFilteredOrderTypes, filterOrderTypeLookupResultByPermission } = require('../business/order-type-business');
-const { enforcePaymentMethodAccessControl } = require('../business/payment-method-business');
-const { getPaymentMethodLookup } = require('../repositories/payment-method-repository');
+const {
+  getFilteredOrderTypes,
+  filterOrderTypeLookupResultByPermission,
+} = require('../business/order-type-business');
+const {
+  enforcePaymentMethodAccessControl,
+} = require('../business/payment-method-business');
+const {
+  getPaymentMethodLookup,
+} = require('../repositories/payment-method-repository');
 
 /**
  * Service to fetch filtered and paginated batch registry records for lookup UI.
@@ -74,13 +85,10 @@ const fetchBatchRegistryLookupService = async ({
       }
     );
 
-    throw AppError.serviceError(
-      'Failed to fetch batch registry lookup list.',
-      {
-        details: err.message,
-        stage: 'lookup-service/fetchBatchRegistryLookupService',
-      }
-    );
+    throw AppError.serviceError('Failed to fetch batch registry lookup list.', {
+      details: err.message,
+      stage: 'lookup-service/fetchBatchRegistryLookupService',
+    });
   }
 };
 
@@ -108,10 +116,13 @@ const fetchWarehouseLookupService = async (user, filters = {}) => {
       context: 'lookup-service/fetchWarehouseLookupService',
       filters,
     });
-    
+
     // Resolve filters based on user permission
-    const resolvedFilters = await resolveWarehouseFiltersByPermission(user, filters);
-    
+    const resolvedFilters = await resolveWarehouseFiltersByPermission(
+      user,
+      filters
+    );
+
     const rawResult = await getWarehouseLookup({ filters: resolvedFilters });
     return transformWarehouseLookupRows(rawResult);
   } catch (err) {
@@ -156,18 +167,22 @@ const fetchWarehouseLookupService = async (user, filters = {}) => {
 const fetchLotAdjustmentLookupService = async (user, filters = {}) => {
   try {
     const includeExternal = !!filters.includeExternal;
-    
+
     // Enforce permission if external types are requested
     await enforceExternalAccessPermission(user, includeExternal);
-    
+
     const rows = await getLotAdjustmentTypeLookup(filters);
     return transformLotAdjustmentLookupOptions(rows);
   } catch (error) {
-    logSystemException(error, 'Failed to fetch and transform lot adjustment types', {
-      context: 'lookup-service/fetchLotAdjustmentLookupService',
-      userId: user?.id,
-      filters,
-    });
+    logSystemException(
+      error,
+      'Failed to fetch and transform lot adjustment types',
+      {
+        context: 'lookup-service/fetchLotAdjustmentLookupService',
+        userId: user?.id,
+        filters,
+      }
+    );
     throw AppError.serviceError('Unable to retrieve adjustment lookup options');
   }
 };
@@ -203,25 +218,22 @@ const fetchLotAdjustmentLookupService = async (user, filters = {}) => {
  * // result = { items: [...], offset: 0, limit: 20, hasMore: true }
  */
 const fetchCustomerLookupService = async (
-  {
-    keyword = '',
-    limit = 50,
-    offset = 0,
-  },
+  { keyword = '', limit = 50, offset = 0 },
   user
 ) => {
   try {
     if (limit < 1 || offset < 0) {
       throw AppError.validationError('Invalid pagination parameters.');
     }
-    
+
     logSystemInfo('Fetching customer lookup from service', {
       context: 'lookup-service/fetchCustomerLookupService',
       metadata: { keyword, limit, offset },
     });
-    
-    const { statusId, overrideDefaultStatus } = await resolveCustomerQueryOptions(user);
-    
+
+    const { statusId, overrideDefaultStatus } =
+      await resolveCustomerQueryOptions(user);
+
     const rawResult = await getCustomerLookup({
       keyword,
       statusId,
@@ -229,27 +241,20 @@ const fetchCustomerLookupService = async (
       offset,
       overrideDefaultStatus,
     });
-    
+
     return transformCustomerPaginatedLookupResult(rawResult);
   } catch (err) {
-    logSystemException(
-      err,
-      'Failed to fetch customer lookup in service',
-      {
-        context: 'lookup-service/fetchCustomerLookupService',
-        keyword,
-        limit,
-        offset,
-      }
-    );
-    
-    throw AppError.serviceError(
-      'Failed to fetch customer lookup list.',
-      {
-        details: err.message,
-        stage: 'lookup-service/fetchCustomerLookupService',
-      }
-    );
+    logSystemException(err, 'Failed to fetch customer lookup in service', {
+      context: 'lookup-service/fetchCustomerLookupService',
+      keyword,
+      limit,
+      offset,
+    });
+
+    throw AppError.serviceError('Failed to fetch customer lookup list.', {
+      details: err.message,
+      stage: 'lookup-service/fetchCustomerLookupService',
+    });
   }
 };
 
@@ -279,24 +284,26 @@ const fetchCustomerAddressLookupService = async (customerId) => {
   try {
     // Step 1: Check if customer has any assigned addresses
     const hasAddresses = await hasAssignedAddresses(customerId);
-    
+
     // Step 2: Fallback to unassigned addresses if none found
     const includeUnassigned = !hasAddresses;
-    
+
     const rawRows = await getCustomerAddressLookupById({
       filters: { customerId },
       includeUnassigned,
     });
-    
+
     if (rawRows.length > LOOKUPS.ADDRESSES.MAX_BY_CUSTOMER) {
       throw AppError.validationError(
         'Customer has too many addresses — possible data issue.'
       );
     }
-    
+
     return transformCustomerAddressesLookupResult(rawRows);
   } catch (error) {
-    throw AppError.serviceError('Unable to retrieve customer address lookup data.');
+    throw AppError.serviceError(
+      'Unable to retrieve customer address lookup data.'
+    );
   }
 };
 
@@ -315,16 +322,19 @@ const fetchCustomerAddressLookupService = async (customerId) => {
 const fetchOrderTypeLookupService = async ({ filters = {} }, user) => {
   try {
     const { keyword } = filters;
-    
+
     // Step 1: Build filters based on user access
     const filteredQuery = await getFilteredOrderTypes(user, keyword);
-    
+
     // Step 2: Fetch matching order types from DB
     const rawResult = await getOrderTypeLookup({ filters: filteredQuery });
-    
+
     // Step 3: Restrict fields based on user permission
-    const filteredResult = await filterOrderTypeLookupResultByPermission(user, rawResult);
-    
+    const filteredResult = await filterOrderTypeLookupResultByPermission(
+      user,
+      rawResult
+    );
+
     // Step 4: Transform result for lookup dropdown
     return transformOrderTypeLookupResult(filteredResult);
   } catch (error) {
@@ -333,7 +343,7 @@ const fetchOrderTypeLookupService = async ({ filters = {} }, user) => {
       userId: user?.id,
       role: user?.role,
     });
-    
+
     throw AppError.serviceError('Unable to fetch order type lookup');
   }
 };
@@ -349,22 +359,24 @@ const fetchOrderTypeLookupService = async ({ filters = {} }, user) => {
  * @param {number} [options.offset=0] - Pagination offset
  * @returns {Promise<{ items: { label: string, value: string }[], hasMore: boolean }>}
  */
-const fetchPaginatedPaymentMethodLookupService = async (user, {
-  filters = {},
-  limit = 50,
-  offset = 0,
-}) => {
+const fetchPaginatedPaymentMethodLookupService = async (
+  user,
+  { filters = {}, limit = 50, offset = 0 }
+) => {
   try {
     // 1. Enforce business-layer rules on filters (e.g., isActive, keyword scope)
-    const adjustedFilters = await enforcePaymentMethodAccessControl(user, filters);
-    
+    const adjustedFilters = await enforcePaymentMethodAccessControl(
+      user,
+      filters
+    );
+
     // 2. Fetch raw-paginated records from repository
     const paginatedResult = await getPaymentMethodLookup({
       filters: adjustedFilters,
       limit,
       offset,
     });
-    
+
     // 3. Transform raw rows to UI-friendly format
     return transformPaymentMethodPaginatedLookupResult(paginatedResult);
   } catch (err) {
@@ -375,7 +387,7 @@ const fetchPaginatedPaymentMethodLookupService = async (user, {
       limit,
       offset,
     });
-    
+
     throw AppError.serviceError('Unable to retrieve payment method lookup.');
   }
 };

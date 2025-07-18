@@ -1,5 +1,8 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { OrderTypeLookupResponse, OrderTypeLookupState } from './lookupTypes';
+import type {
+  OrderTypeLookupResponse,
+  OrderTypeLookupState,
+} from './lookupTypes';
 import { fetchOrderTypeLookupThunk } from './lookupThunks';
 
 const initialState: OrderTypeLookupState = {

@@ -23,11 +23,11 @@ const customerSortOptions: { label: string; value: CustomerSortField }[] = [
 ];
 
 const CustomerSortControls: FC<CustomerSortControlsProps> = ({
-                                                               sortBy,
-                                                               sortOrder,
-                                                               onSortByChange,
-                                                               onSortOrderChange,
-                                                             }) => {
+  sortBy,
+  sortOrder,
+  onSortByChange,
+  onSortOrderChange,
+}) => {
   return (
     <SortControls
       sortBy={sortBy}

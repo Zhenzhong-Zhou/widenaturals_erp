@@ -8,7 +8,8 @@ import type { LotAdjustmentTypeLookupItem } from './lookupTypes.ts';
  * @param state - The root Redux store state.
  * @returns The lot adjustment type lookup state.
  */
-const selectLotAdjustmentTypeLookupState = (state: RootState) => state.lotAdjustmentTypeLookup;
+const selectLotAdjustmentTypeLookupState = (state: RootState) =>
+  state.lotAdjustmentTypeLookup;
 
 /**
  * Selector to retrieve the list of lot adjustment type lookup items.

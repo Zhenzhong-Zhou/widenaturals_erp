@@ -5,8 +5,7 @@ import type { WarehouseLookupItem } from '@features/lookup/state/lookupTypes.ts'
 /**
  * Selects the entire warehouse lookup state slice.
  */
-const selectWarehouseLookupState = (state: RootState) =>
-  state.warehouseLookup;
+const selectWarehouseLookupState = (state: RootState) => state.warehouseLookup;
 
 /**
  * Memoized selector for warehouse lookup items.

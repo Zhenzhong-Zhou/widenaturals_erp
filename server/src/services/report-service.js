@@ -1,17 +1,23 @@
 const {
-  getUserInventoryAccessScope, rejectEmptyFiltersForScopedAccess,
+  getUserInventoryAccessScope,
+  rejectEmptyFiltersForScopedAccess,
 } = require('../business/reports/inventory-activity-report-business');
 const {
   getInventoryActivityLogs,
   getLatestFilteredInventoryActivityLogs,
   getSkuIdsByProductIds,
-  getBatchIdsBySourceIds
+  getBatchIdsBySourceIds,
 } = require('../repositories/reports/inventory-activity-report');
-const { transformInventoryActivityLogs, transformFlatInventoryActivityLogs } = require('../transformers/reports/inventory-activity-report-transformer');
+const {
+  transformInventoryActivityLogs,
+  transformFlatInventoryActivityLogs,
+} = require('../transformers/reports/inventory-activity-report-transformer');
 const { logSystemException } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 const { enforceAllowedFilters } = require('../utils/inventory-log-utils');
-const { PERMISSION_FILTERS_MAP } = require('../utils/inventory-permission-mapping');
+const {
+  PERMISSION_FILTERS_MAP,
+} = require('../utils/inventory-permission-mapping');
 
 /**
  * Determines the permission key based on the user's inventory access scope.
@@ -71,77 +77,128 @@ const fetchInventoryActivityLogsService = async (
     limit = 20,
     sortBy = 'action_timestamp',
     sortOrder = 'DESC',
-  } = {}, user
+  } = {},
+  user
 ) => {
   try {
     const scope = await getUserInventoryAccessScope(user);
     const permissionKey = determinePermissionKey(scope);
     const allowedKeys = PERMISSION_FILTERS_MAP[permissionKey];
-    
+
     // Full access: allow everything
     if (allowedKeys.includes('*')) {
       const result = await getInventoryActivityLogs({ filters, page, limit });
       return transformInventoryActivityLogs(result);
     }
-    
+
     // Base access
     if (permissionKey === 'base') {
       if (limit > 30) {
-        throw AppError.authorizationError('You do not have permission to request more than 30 records.');
+        throw AppError.authorizationError(
+          'You do not have permission to request more than 30 records.'
+        );
       }
-      
+
       const { batchIds = [] } = filters;
       enforceAllowedFilters(filters, allowedKeys);
-      
+
       if (batchIds.length > 0 && !scope.hasBatchAccess) {
-        throw AppError.authorizationError('You do not have permission to view activity logs for this batch.');
+        throw AppError.authorizationError(
+          'You do not have permission to view activity logs for this batch.'
+        );
       }
-      
+
       const result = await getLatestFilteredInventoryActivityLogs({
         filters: batchIds.length > 0 ? { batchIds } : {},
         limit,
       });
       return transformFlatInventoryActivityLogs(result);
     }
-    
+
     // Scoped access: enforce filters
     rejectEmptyFiltersForScopedAccess(scope, filters, allowedKeys);
-    
-    const { productIds = [], skuIds = [], batchIds = [], packingMaterialIds = [], warehouseIds = [], locationIds = [] } = filters;
-    
+
+    const {
+      productIds = [],
+      skuIds = [],
+      batchIds = [],
+      packingMaterialIds = [],
+      warehouseIds = [],
+      locationIds = [],
+    } = filters;
+
     // Enforce warehouse/location dependency
-    const dependentFilters = productIds.length + skuIds.length + batchIds.length + packingMaterialIds.length > 0;
-    
-    if (scope.hasWarehouseAccess && !scope.hasFullAccess && dependentFilters && warehouseIds.length === 0) {
-      throw AppError.authorizationError('You must specify warehouseIds when using product, SKU, batch, or packing material filters.');
+    const dependentFilters =
+      productIds.length +
+        skuIds.length +
+        batchIds.length +
+        packingMaterialIds.length >
+      0;
+
+    if (
+      scope.hasWarehouseAccess &&
+      !scope.hasFullAccess &&
+      dependentFilters &&
+      warehouseIds.length === 0
+    ) {
+      throw AppError.authorizationError(
+        'You must specify warehouseIds when using product, SKU, batch, or packing material filters.'
+      );
     }
-    
-    if (scope.hasLocationAccess && !scope.hasFullAccess && dependentFilters && locationIds.length === 0) {
-      throw AppError.authorizationError('You must specify locationIds when using product, SKU, batch, or packing material filters.');
+
+    if (
+      scope.hasLocationAccess &&
+      !scope.hasFullAccess &&
+      dependentFilters &&
+      locationIds.length === 0
+    ) {
+      throw AppError.authorizationError(
+        'You must specify locationIds when using product, SKU, batch, or packing material filters.'
+      );
     }
-    
+
     // Product-scoped validation
-    if (scope.hasProductAccess && !scope.hasFullAccess && !scope.hasSkuAccess && !scope.hasBatchAccess &&
-      !scope.hasWarehouseAccess && !scope.hasLocationAccess && !scope.hasPackingMaterialAccess) {
+    if (
+      scope.hasProductAccess &&
+      !scope.hasFullAccess &&
+      !scope.hasSkuAccess &&
+      !scope.hasBatchAccess &&
+      !scope.hasWarehouseAccess &&
+      !scope.hasLocationAccess &&
+      !scope.hasPackingMaterialAccess
+    ) {
       const allowedSkuIds = await getSkuIdsByProductIds(productIds);
       const allowedBatchIds = await getBatchIdsBySourceIds(productIds);
-      
-      if (skuIds.some(id => !allowedSkuIds.includes(id)) ||
-        batchIds.some(id => !allowedBatchIds.includes(id))) {
-        throw AppError.authorizationError('Some SKUs or batches are outside your product access.');
+
+      if (
+        skuIds.some((id) => !allowedSkuIds.includes(id)) ||
+        batchIds.some((id) => !allowedBatchIds.includes(id))
+      ) {
+        throw AppError.authorizationError(
+          'Some SKUs or batches are outside your product access.'
+        );
       }
     }
-    
+
     // Packing material-scoped validation
-    if (scope.hasPackingMaterialAccess && !scope.hasFullAccess && !scope.hasProductAccess &&
-      !scope.hasSkuAccess && !scope.hasBatchAccess && !scope.hasWarehouseAccess && !scope.hasLocationAccess) {
+    if (
+      scope.hasPackingMaterialAccess &&
+      !scope.hasFullAccess &&
+      !scope.hasProductAccess &&
+      !scope.hasSkuAccess &&
+      !scope.hasBatchAccess &&
+      !scope.hasWarehouseAccess &&
+      !scope.hasLocationAccess
+    ) {
       const allowedBatchIds = await getBatchIdsBySourceIds(packingMaterialIds);
-      
-      if (batchIds.some(id => !allowedBatchIds.includes(id))) {
-        throw AppError.authorizationError('Some batches are outside your packing material access.');
+
+      if (batchIds.some((id) => !allowedBatchIds.includes(id))) {
+        throw AppError.authorizationError(
+          'Some batches are outside your packing material access.'
+        );
       }
     }
-    
+
     const result = await getInventoryActivityLogs({
       filters,
       page,
@@ -152,7 +209,7 @@ const fetchInventoryActivityLogsService = async (
     return transformInventoryActivityLogs(result);
   } catch (error) {
     if (error?.type === 'AuthorizationError') throw error;
-    
+
     logSystemException(error, 'Failed to fetch inventory activity logs', {
       context: 'report-service/fetchInventoryActivityLogsService',
       userId: user?.id,
@@ -160,8 +217,10 @@ const fetchInventoryActivityLogsService = async (
       pagination: { page, limit },
       sort: { sortBy, sortOrder },
     });
-    
-    throw AppError.serviceError('Unable to retrieve inventory activity log report.');
+
+    throw AppError.serviceError(
+      'Unable to retrieve inventory activity log report.'
+    );
   }
 };
 

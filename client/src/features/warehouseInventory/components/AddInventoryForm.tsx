@@ -31,9 +31,7 @@ interface AddInventoryFormProps {
   selectedBatch: { id: string; type: string } | null;
   setSelectedBatch: (value: { id: string; type: string } | null) => void;
   batchLookupParams: GetBatchRegistryLookupParams;
-  setBatchLookupParams: Dispatch<
-    SetStateAction<GetBatchRegistryLookupParams>
-  >;
+  setBatchLookupParams: Dispatch<SetStateAction<GetBatchRegistryLookupParams>>;
   fetchBatchLookup: (params: GetBatchRegistryLookupParams) => void;
   resetBatchLookup: () => void;
   batchLookupPaginationMeta: LookupPaginationMeta;
@@ -70,16 +68,16 @@ const AddInventoryForm: FC<AddInventoryFormProps> = ({
   warehouseLookupError,
 }) => {
   const [batchType, setBatchType] = useState<BatchType>('all');
-  
+
   const visibleOptions = getVisibleBatchOptions(batchType, batchLookupOptions);
-  
+
   const { handleBatchTypeChange } = useBatchTypeHandler({
     setBatchType,
     setBatchLookupParams,
     resetBatchLookup,
     fetchBatchLookup,
   });
-  
+
   const fields: FieldConfig[] = useMemo(() => {
     const baseFields: FieldConfig[] = [
       {
@@ -135,7 +133,7 @@ const AddInventoryForm: FC<AddInventoryFormProps> = ({
         grid: { xs: 12 },
         customRender: ({ onChange }) => (
           <Grid container spacing={2}>
-            <Grid size={{xs: 12}}>
+            <Grid size={{ xs: 12 }}>
               <FormControl component="fieldset">
                 <FormLabel component="legend">Batch Type</FormLabel>
                 <RadioGroup
@@ -144,17 +142,31 @@ const AddInventoryForm: FC<AddInventoryFormProps> = ({
                   value={batchType}
                   onChange={handleBatchTypeChange}
                 >
-                  <FormControlLabel value="all" control={<Radio />} label="All" />
-                  <FormControlLabel value="product" control={<Radio />} label="Product" />
-                  <FormControlLabel value="packaging_material" control={<Radio />} label="Packaging" />
+                  <FormControlLabel
+                    value="all"
+                    control={<Radio />}
+                    label="All"
+                  />
+                  <FormControlLabel
+                    value="product"
+                    control={<Radio />}
+                    label="Product"
+                  />
+                  <FormControlLabel
+                    value="packaging_material"
+                    control={<Radio />}
+                    label="Packaging"
+                  />
                 </RadioGroup>
               </FormControl>
             </Grid>
-            
-            <Grid size={{xs: 12}}>
+
+            <Grid size={{ xs: 12 }}>
               <BatchRegistryDropdown
                 value={
-                  selectedBatch ? `${selectedBatch.id}::${selectedBatch.type}` : null
+                  selectedBatch
+                    ? `${selectedBatch.id}::${selectedBatch.type}`
+                    : null
                 }
                 options={visibleOptions}
                 onChange={(val) => {
@@ -181,8 +193,7 @@ const AddInventoryForm: FC<AddInventoryFormProps> = ({
                 setFetchParams={setBatchLookupParams}
                 onRefresh={fetchBatchLookup}
                 noOptionsMessage={
-                   visibleOptions.length === 0
-                      ? 'No matching batches found' : ''
+                  visibleOptions.length === 0 ? 'No matching batches found' : ''
                 }
               />
             </Grid>

@@ -1,7 +1,7 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type {
   AddressByCustomerLookup,
-  AddressByCustomerLookupState
+  AddressByCustomerLookupState,
 } from '@features/lookup/state/lookupTypes';
 import { fetchCustomerAddressesLookupThunk } from '@features/lookup/state/lookupThunks';
 

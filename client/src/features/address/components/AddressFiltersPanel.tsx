@@ -4,19 +4,14 @@ import Grid from '@mui/material/Grid';
 import CustomButton from '@components/common/CustomButton';
 import { Controller, useForm } from 'react-hook-form';
 import CustomerDropdown from '@features/lookup/components/CustomerDropdown';
-import type {
-  AddressFilterConditions,
-} from '@features/address/state';
+import type { AddressFilterConditions } from '@features/address/state';
 import type {
   CustomerLookupQuery,
   CustomerOption,
   LookupPaginationMeta,
 } from '@features/lookup/state';
 import { adjustBeforeDateInclusive } from '@utils/dateTimeUtils';
-import {
-  renderDateField,
-  renderInputField
-} from '@utils/filters/filterUtils';
+import { renderDateField, renderInputField } from '@utils/filters/filterUtils';
 
 interface Props {
   filters: AddressFilterConditions;
@@ -44,44 +39,48 @@ const emptyFilters: AddressFilterConditions = {
 };
 
 const AddressFiltersPanel: FC<Props> = ({
-                                          filters,
-                                          onChange,
-                                          onApply,
-                                          onReset,
-                                          customerDropdownOptions,
-                                          fetchCustomerDropdownOptions,
-                                          customerLookupLoading,
-                                          customerLookupError,
-                                          customerLookupMeta,
-                                          fetchParams,
-                                          setFetchParams,
-                                        }) => {
+  filters,
+  onChange,
+  onApply,
+  onReset,
+  customerDropdownOptions,
+  fetchCustomerDropdownOptions,
+  customerLookupLoading,
+  customerLookupError,
+  customerLookupMeta,
+  fetchParams,
+  setFetchParams,
+}) => {
   const textFields: {
     name: keyof AddressFilterConditions;
     label: string;
     placeholder?: string;
   }[] = [
     { name: 'updatedBy', label: 'Updated By' },
-    { name: 'keyword', label: 'Search Keyword', placeholder: 'Label, Name, Email, etc.' },
+    {
+      name: 'keyword',
+      label: 'Search Keyword',
+      placeholder: 'Label, Name, Email, etc.',
+    },
     { name: 'region', label: 'Region' },
     { name: 'country', label: 'Country' },
   ];
-  
+
   const dateFields: { name: keyof AddressFilterConditions; label: string }[] = [
     { name: 'createdAfter', label: 'Created After' },
     { name: 'createdBefore', label: 'Created Before' },
     { name: 'updatedAfter', label: 'Updated After' },
     { name: 'updatedBefore', label: 'Updated Before' },
   ];
-  
+
   const { control, handleSubmit, reset } = useForm<AddressFilterConditions>({
     defaultValues: filters,
   });
-  
+
   useEffect(() => {
     reset(filters);
   }, [filters, reset]);
-  
+
   const submitFilters = (data: AddressFilterConditions) => {
     const adjusted: AddressFilterConditions = {
       ...data,
@@ -91,12 +90,12 @@ const AddressFiltersPanel: FC<Props> = ({
     onChange(adjusted);
     onApply();
   };
-  
+
   const resetFilters = () => {
     reset(emptyFilters);
     onReset();
   };
-  
+
   return (
     <Box mb={2} p={2} border="1px solid #ccc" borderRadius={2}>
       <form onSubmit={handleSubmit(submitFilters)}>
@@ -130,17 +129,16 @@ const AddressFiltersPanel: FC<Props> = ({
               )}
             />
           </Grid>
-          
+
           {textFields.map(({ name, label, placeholder }) =>
             renderInputField(control, name, label, placeholder)
           )}
-          
+
           {dateFields.map(({ name, label }) =>
             renderDateField(control, name, label)
           )}
-        
         </Grid>
-        
+
         <Box display="flex" flexWrap="wrap" gap={2} mt={3}>
           <CustomButton type="submit" variant="contained">
             Apply

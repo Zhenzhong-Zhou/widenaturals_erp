@@ -35,37 +35,37 @@ const buildPaymentMethodFilter = (filters = {}) => {
     const conditions = ['1=1'];
     const params = [];
     let paramIndex = 1;
-    
+
     if (filters.name) {
       conditions.push(`pm.name = $${paramIndex}`);
       params.push(filters.name);
       paramIndex++;
     }
-    
+
     if (filters.code) {
       conditions.push(`pm.code = $${paramIndex}`);
       params.push(filters.code);
       paramIndex++;
     }
-    
+
     if (filters.isActive !== undefined) {
       conditions.push(`pm.is_active = $${paramIndex}`);
       params.push(filters.isActive);
       paramIndex++;
     }
-    
+
     if (filters.createdBy) {
       conditions.push(`pm.created_by = $${paramIndex}`);
       params.push(filters.createdBy);
       paramIndex++;
     }
-    
+
     if (filters.updatedBy) {
       conditions.push(`pm.updated_by = $${paramIndex}`);
       params.push(filters.updatedBy);
       paramIndex++;
     }
-    
+
     if (filters.keyword) {
       if (filters._restrictKeywordToNameOnly) {
         conditions.push(`pm.name ILIKE $${paramIndex}`);
@@ -79,19 +79,19 @@ const buildPaymentMethodFilter = (filters = {}) => {
       params.push(`%${filters.keyword}%`);
       paramIndex++;
     }
-    
+
     if (filters.createdAfter) {
       conditions.push(`pm.created_at >= $${paramIndex}`);
       params.push(filters.createdAfter);
       paramIndex++;
     }
-    
+
     if (filters.createdBefore) {
       conditions.push(`pm.created_at <= $${paramIndex}`);
       params.push(filters.createdBefore);
       paramIndex++;
     }
-    
+
     return {
       whereClause: conditions.join(' AND '),
       params,
@@ -102,13 +102,10 @@ const buildPaymentMethodFilter = (filters = {}) => {
       error: err.message,
       filters,
     });
-    throw AppError.databaseError(
-      'Failed to prepare payment method filter',
-      {
-        details: err.message,
-        stage: 'build-payment-method-where-clause',
-      }
-    );
+    throw AppError.databaseError('Failed to prepare payment method filter', {
+      details: err.message,
+      stage: 'build-payment-method-where-clause',
+    });
   }
 };
 

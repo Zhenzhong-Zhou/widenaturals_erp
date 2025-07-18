@@ -37,4 +37,3 @@ export const buildScopedInventoryFilters = <T extends { batchType?: string }>(
 
   return cleanObject(merged as T, excludedFields);
 };
-

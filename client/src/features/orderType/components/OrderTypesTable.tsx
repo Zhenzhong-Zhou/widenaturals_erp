@@ -4,7 +4,10 @@ import CustomTable, { type Column } from '@components/common/CustomTable';
 import CustomButton from '@components/common/CustomButton';
 import Tooltip from '@mui/material/Tooltip';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCheckCircle, faTimesCircle } from '@fortawesome/free-solid-svg-icons';
+import {
+  faCheckCircle,
+  faTimesCircle,
+} from '@fortawesome/free-solid-svg-icons';
 import type { OrderTypeListItem } from '@features/orderType/state';
 import { formatLabel } from '@utils/textUtils';
 import { formatDate } from '@utils/dateTimeUtils';
@@ -56,13 +59,15 @@ const orderTypeColumns: Column<OrderTypeListItem>[] = [
     renderCell: (row) => {
       const requiresPayment = row.requiresPayment;
       return (
-        <Tooltip title={requiresPayment ? 'Payment required' : 'No payment required'}>
-        <span>
-          <FontAwesomeIcon
-            icon={requiresPayment ? faCheckCircle : faTimesCircle}
-            color={requiresPayment ? 'green' : 'gray'}
-          />
-        </span>
+        <Tooltip
+          title={requiresPayment ? 'Payment required' : 'No payment required'}
+        >
+          <span>
+            <FontAwesomeIcon
+              icon={requiresPayment ? faCheckCircle : faTimesCircle}
+              color={requiresPayment ? 'green' : 'gray'}
+            />
+          </span>
         </Tooltip>
       );
     },
@@ -80,9 +85,7 @@ const orderTypeColumns: Column<OrderTypeListItem>[] = [
     minWidth: 100,
     sortable: true,
     format: (value: string | boolean) =>
-      value && value !== 'Invalid Date'
-        ? formatDate(String(value))
-        : '—',
+      value && value !== 'Invalid Date' ? formatDate(String(value)) : '—',
   },
   {
     id: 'createdAt',
@@ -90,9 +93,7 @@ const orderTypeColumns: Column<OrderTypeListItem>[] = [
     minWidth: 100,
     sortable: true,
     format: (value: string | boolean) =>
-      value && value !== 'Invalid Date'
-        ? formatDate(String(value))
-        : '—',
+      value && value !== 'Invalid Date' ? formatDate(String(value)) : '—',
   },
   {
     id: 'createdBy',
@@ -112,47 +113,53 @@ const orderTypeColumns: Column<OrderTypeListItem>[] = [
     minWidth: 100,
     sortable: true,
     format: (value: string | boolean) =>
-      value && value !== 'Invalid Date'
-        ? formatDate(String(value))
-        : '—',
+      value && value !== 'Invalid Date' ? formatDate(String(value)) : '—',
   },
 ];
 
 const OrderTypesTable: FC<OrderTypesTableProps> = ({
-                                                     data,
-                                                     page,
-                                                     rowsPerPage,
-                                                     totalRecords,
-                                                     totalPages,
-                                                     loading,
-                                                     onPageChange,
-                                                     onRowsPerPageChange,
-                                                     onRefresh,
-                                                   }) => {
-  
+  data,
+  page,
+  rowsPerPage,
+  totalRecords,
+  totalPages,
+  loading,
+  onPageChange,
+  onRowsPerPageChange,
+  onRefresh,
+}) => {
   return (
-   <Box>
-     <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-       <CustomTypography variant="h6">Order Type List</CustomTypography>
-       <CustomButton onClick={onRefresh} variant="outlined" sx={{ color: 'primary' }}>
-         Refresh Data
-       </CustomButton>
-     </Box>
-     
-     <CustomTable
-       columns={orderTypeColumns}
-       data={data}
-       page={page}
-       initialRowsPerPage={rowsPerPage}
-       rowsPerPageOptions={[10, 25, 50]}
-       totalRecords={totalRecords}
-       totalPages={totalPages}
-       onPageChange={onPageChange}
-       onRowsPerPageChange={onRowsPerPageChange}
-       loading={loading}
-       emptyMessage="No order types found."
-     />
-   </Box>
+    <Box>
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        mb={2}
+      >
+        <CustomTypography variant="h6">Order Type List</CustomTypography>
+        <CustomButton
+          onClick={onRefresh}
+          variant="outlined"
+          sx={{ color: 'primary' }}
+        >
+          Refresh Data
+        </CustomButton>
+      </Box>
+
+      <CustomTable
+        columns={orderTypeColumns}
+        data={data}
+        page={page}
+        initialRowsPerPage={rowsPerPage}
+        rowsPerPageOptions={[10, 25, 50]}
+        totalRecords={totalRecords}
+        totalPages={totalPages}
+        onPageChange={onPageChange}
+        onRowsPerPageChange={onRowsPerPageChange}
+        loading={loading}
+        emptyMessage="No order types found."
+      />
+    </Box>
   );
 };
 

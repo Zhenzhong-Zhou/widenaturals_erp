@@ -22,9 +22,9 @@ const authorizationErrorHandler = (err, req, res, next) => {
     err?.name === 'AuthorizationError' ||
     err?.type === 'AuthorizationError' ||
     err?.code === 'AUTHORIZATION_ERROR';
-  
+
   if (!isAuthorizationError) return next(err);
-  
+
   const normalizedError = normalizeError(err, {
     type: 'AuthorizationError',
     code: 'AUTHORIZATION_ERROR',
@@ -32,11 +32,11 @@ const authorizationErrorHandler = (err, req, res, next) => {
     logLevel: 'warn',
     isExpected: true,
   });
-  
+
   logError(normalizedError, req, {
     context: 'authorization-error-handler',
   });
-  
+
   return res.status(normalizedError.status).json(normalizedError.toJSON());
 };
 

@@ -8,7 +8,7 @@ import type { OrderTypeFilters } from '@features/orderType/state';
 import {
   renderBooleanSelectField,
   renderDateField,
-  renderInputField
+  renderInputField,
 } from '@utils/filters/filterUtils';
 
 interface Props {
@@ -33,7 +33,12 @@ const emptyFilters: OrderTypeFilters = {
   updatedBefore: '',
 };
 
-const OrderTypeFiltersPanel: FC<Props> = ({ filters, onChange, onApply, onReset }) => {
+const OrderTypeFiltersPanel: FC<Props> = ({
+  filters,
+  onChange,
+  onApply,
+  onReset,
+}) => {
   const textFields: { name: keyof OrderTypeFilters; label: string }[] = [
     { name: 'name', label: 'Name' },
     { name: 'code', label: 'Code' },
@@ -43,22 +48,22 @@ const OrderTypeFiltersPanel: FC<Props> = ({ filters, onChange, onApply, onReset 
     { name: 'createdBy', label: 'Created By' },
     { name: 'updatedBy', label: 'Updated By' },
   ];
-  
+
   const dateFields: { name: keyof OrderTypeFilters; label: string }[] = [
     { name: 'createdAfter', label: 'Created After' },
     { name: 'createdBefore', label: 'Created Before' },
     { name: 'updatedAfter', label: 'Updated After' },
     { name: 'updatedBefore', label: 'Updated Before' },
   ];
-  
+
   const { control, handleSubmit, reset } = useForm<OrderTypeFilters>({
     defaultValues: filters,
   });
-  
+
   useEffect(() => {
     reset(filters);
   }, [filters, reset]);
-  
+
   const submitFilters = (data: OrderTypeFilters) => {
     const adjusted: OrderTypeFilters = {
       ...data,
@@ -70,12 +75,12 @@ const OrderTypeFiltersPanel: FC<Props> = ({ filters, onChange, onApply, onReset 
     onChange(adjusted);
     onApply();
   };
-  
+
   const resetFilters = () => {
     reset(emptyFilters);
     onReset();
   };
-  
+
   return (
     <Box mb={2} p={2} border="1px solid #ccc" borderRadius={2}>
       <form onSubmit={handleSubmit(submitFilters)}>
@@ -86,7 +91,11 @@ const OrderTypeFiltersPanel: FC<Props> = ({ filters, onChange, onApply, onReset 
           {dateFields.map(({ name, label }) =>
             renderDateField(control, name, label)
           )}
-          {renderBooleanSelectField(control, 'requiresPayment', 'Requires Payment')}
+          {renderBooleanSelectField(
+            control,
+            'requiresPayment',
+            'Requires Payment'
+          )}
         </FilterPanelLayout>
       </form>
     </Box>

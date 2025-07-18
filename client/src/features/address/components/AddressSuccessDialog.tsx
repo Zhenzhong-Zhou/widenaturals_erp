@@ -1,6 +1,8 @@
 import { type FC } from 'react';
 import CustomDialog from '@components/common/CustomDialog';
-import DetailsSection, { type DetailsSectionField } from '@components/common/DetailsSection';
+import DetailsSection, {
+  type DetailsSectionField,
+} from '@components/common/DetailsSection';
 import CustomTypography from '@components/common/CustomTypography';
 import Stack from '@mui/material/Stack';
 import Box from '@mui/material/Box';
@@ -15,11 +17,11 @@ interface AddressSuccessDialogProps {
 }
 
 const AddressSuccessDialog: FC<AddressSuccessDialogProps> = ({
-                                                               open,
-                                                               onClose,
-                                                               message = 'Address(es) created successfully.',
-                                                               addresses,
-                                                             }) => {
+  open,
+  onClose,
+  message = 'Address(es) created successfully.',
+  addresses,
+}) => {
   const transformFields = (data: AddressResponse): DetailsSectionField[] => [
     { label: 'Customer', value: data.customer?.fullName ?? '—' },
     { label: 'Customer Email', value: data.customer?.fullName ?? '—' },
@@ -34,9 +36,13 @@ const AddressSuccessDialog: FC<AddressSuccessDialogProps> = ({
     { label: 'Created At', value: formatDateTime(data.createdAt) },
     { label: 'Updated By', value: data.updatedBy?.fullName ?? '-' },
   ];
-  
-  const addressList = Array.isArray(addresses) ? addresses : addresses ? [addresses] : [];
-  
+
+  const addressList = Array.isArray(addresses)
+    ? addresses
+    : addresses
+      ? [addresses]
+      : [];
+
   return (
     <CustomDialog
       open={open}
@@ -50,7 +56,7 @@ const AddressSuccessDialog: FC<AddressSuccessDialogProps> = ({
         <CustomTypography variant="body1" sx={{ mb: 2 }}>
           {message}
         </CustomTypography>
-        
+
         <Stack spacing={4}>
           {addressList.map((address, idx) => (
             <DetailsSection

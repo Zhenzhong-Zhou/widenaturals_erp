@@ -37,13 +37,13 @@ export interface LookupItem {
 export interface LookupPaginationMeta {
   /** The maximum number of results to retrieve per request */
   limit: number;
-  
+
   /** The number of records to skip (i.e., pagination offset) */
   offset: number;
-  
+
   /** Indicates if more results are available beyond the current set */
   hasMore?: boolean;
-  
+
   /** Optional handler to fetch the next set of results when needed */
   onFetchMore?: () => void;
 }
@@ -85,7 +85,7 @@ export interface LotAdjustmentLookupQueryParams {
    * Defaults to `true` on the server if omitted.
    */
   excludeInternal?: boolean;
-  
+
   /**
    * Whether to restrict results to only quantity adjustment types.
    * Useful for inventory adjustment forms where only quantity-related
@@ -158,13 +158,13 @@ export interface LotAdjustmentTypeLookupItem {
    * Used as the `value` in lookup menus.
    */
   value: string;
-  
+
   /**
    * The display label of the lot adjustment type.
    * Typically shown as the visible text in the lookup option.
    */
   label: string;
-  
+
   /**
    * The unique identifier of the related inventory action type.
    * Used for internal mapping or further logic.
@@ -175,9 +175,13 @@ export interface LotAdjustmentTypeLookupItem {
 /**
  * Typed API response for fetching lot adjustment lookup options.
  */
-export type LotAdjustmentTypeLookupResponse = ApiSuccessResponse<LotAdjustmentTypeLookupItem[]>;
+export type LotAdjustmentTypeLookupResponse = ApiSuccessResponse<
+  LotAdjustmentTypeLookupItem[]
+>;
 
-export type LotAdjustmentTypeLookupState = AsyncState<LotAdjustmentTypeLookupItem[]>;
+export type LotAdjustmentTypeLookupState = AsyncState<
+  LotAdjustmentTypeLookupItem[]
+>;
 
 /**
  * Specialized alias for lot adjustment type lookup options.
@@ -217,17 +221,17 @@ export interface AddressByCustomerLookup {
    * Unique identifier for the address.
    */
   id: string;
-  
+
   /**
    * The name of the recipient for the address.
    */
   recipient_name: string;
-  
+
   /**
    * Optional label to distinguish the address (e.g., "Shipping", "Billing").
    */
   label: string;
-  
+
   /**
    * A fully formatted, human-readable version of the address.
    */
@@ -238,7 +242,9 @@ export interface AddressByCustomerLookup {
  * API response containing a list of address lookup entries for a specific customer.
  * Used in endpoints like GET /addresses/by-customer.
  */
-export type AddressByCustomerLookupResponse = ApiSuccessResponse<AddressByCustomerLookup[]>;
+export type AddressByCustomerLookupResponse = ApiSuccessResponse<
+  AddressByCustomerLookup[]
+>;
 
 /**
  * Redux state for managing address lookup results by customer ID.
@@ -254,7 +260,9 @@ export type AddressByCustomerLookupResponse = ApiSuccessResponse<AddressByCustom
  * - `loading`: whether the lookup request is in progress
  * - `error`: any error message encountered during the fetch
  */
-export type AddressByCustomerLookupState = AsyncState<AddressByCustomerLookup[]>;
+export type AddressByCustomerLookupState = AsyncState<
+  AddressByCustomerLookup[]
+>;
 
 export interface OrderTypeLookupQueryParams {
   /**

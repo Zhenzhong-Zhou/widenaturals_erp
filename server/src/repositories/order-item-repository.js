@@ -33,7 +33,7 @@ const { logSystemException } = require('../utils/system-logger');
  */
 const insertOrderItemsBulk = async (orderId, orderItems, client) => {
   const now = new Date();
-  
+
   const rows = orderItems.map((item) => [
     orderId,
     item.sku_id ?? null,
@@ -50,7 +50,7 @@ const insertOrderItemsBulk = async (orderId, orderItems, client) => {
     item.created_by ?? null,
     item.updated_by ?? null,
   ]);
-  
+
   const columns = [
     'order_id',
     'sku_id',
@@ -67,17 +67,17 @@ const insertOrderItemsBulk = async (orderId, orderItems, client) => {
     'created_by',
     'updated_by',
   ];
-  
+
   const conflictColumns = ['order_id', 'sku_id', 'packaging_material_id'];
-  
+
   const updateStrategies = {
-    quantity_ordered: 'add',                     // adds EXCLUDED.quantity_ordered to existing data
-    price: 'overwrite',                          // simply overwrites if present
-    subtotal: 'recalculate_subtotal',            // subtotal already precalculated
+    quantity_ordered: 'add', // adds EXCLUDED.quantity_ordered to existing data
+    price: 'overwrite', // simply overwrites if present
+    subtotal: 'recalculate_subtotal', // subtotal already precalculated
     metadata: 'merge',
-    updated_at: 'overwrite',                     // overwrites with EXCLUDED.updated_at (usually set to NOW())
+    updated_at: 'overwrite', // overwrites with EXCLUDED.updated_at (usually set to NOW())
   };
-  
+
   try {
     await bulkInsert(
       'order_items',
@@ -89,11 +89,11 @@ const insertOrderItemsBulk = async (orderId, orderItems, client) => {
       { context: 'order-item-repository/insertOrderItemsBulk' }
     );
   } catch (error) {
-    logSystemException(error, 'Failed to bulk insert order items',{
+    logSystemException(error, 'Failed to bulk insert order items', {
       context: 'order-item-repository/insertOrderItemsBulk',
       data: orderItems,
     });
-    
+
     throw AppError.databaseError('Unable to insert order items in bulk.');
   }
 };

@@ -7,17 +7,13 @@ import { formatLabel } from '@utils/textUtils';
 const isWarehouseInventoryRecord = (
   record: WarehouseInventoryRecord | LocationInventoryRecord
 ): record is WarehouseInventoryRecord => {
-  return (
-    'warehouse' in record
-  );
+  return 'warehouse' in record;
 };
 
 const isLocationInventoryRecord = (
   record: WarehouseInventoryRecord | LocationInventoryRecord
 ): record is LocationInventoryRecord => {
-  return (
-    'location' in record
-  );
+  return 'location' in record;
 };
 
 export const getInventoryDetailsFields = (
@@ -35,8 +31,8 @@ export const getInventoryDetailsFields = (
       ? [{ label: 'Warehouse Name', value: record.warehouse?.name }]
       : isLocationRecord
         ? [
-          { label: 'Location Name', value: record.location?.name },
-          { label: 'Location Type', value: record.location?.type },
+            { label: 'Location Name', value: record.location?.name },
+            { label: 'Location Type', value: record.location?.type },
           ]
         : []),
     { label: 'Lot Number', value: record.lot?.number },
@@ -99,4 +95,4 @@ export const getInventoryDetailsFields = (
   ];
 
   return { details, metadata };
-}
+};

@@ -4,7 +4,8 @@ import type { RootState } from '@store/store';
 /**
  * Root selector to access the inventory activity logs slice.
  */
-const selectInventoryActivityLogsState = (state: RootState) => state.inventoryActivityLogs;
+const selectInventoryActivityLogsState = (state: RootState) =>
+  state.inventoryActivityLogs;
 
 //
 // Base (non-paginated) log selectors

@@ -70,7 +70,7 @@ const createInventoryRecordService = async (records, user_id) => {
       // Step 1: Validate, normalize, and deduplicate input records
       const { dedupedWarehouseRecords, dedupedLocationRecords } =
         await validateAndNormalizeInventoryRecords(records, client);
-      
+
       // Step 2: Insert into warehouse and location inventory tables
       const insertedWarehouseRecords = await insertWarehouseInventoryRecords(
         dedupedWarehouseRecords,
@@ -80,7 +80,7 @@ const createInventoryRecordService = async (records, user_id) => {
         dedupedLocationRecords,
         client
       );
-      
+
       // Step 3: Build mappings from a composite key → inserted inventory IDs
       const warehouseMap = new Map();
       dedupedWarehouseRecords.forEach((r, i) =>
@@ -89,7 +89,7 @@ const createInventoryRecordService = async (records, user_id) => {
           insertedWarehouseRecords[i].warehouse_inventory_id
         )
       );
-      
+
       const locationMap = new Map();
       dedupedLocationRecords.forEach((r, i) =>
         locationMap.set(
@@ -97,22 +97,28 @@ const createInventoryRecordService = async (records, user_id) => {
           insertedLocationRecords[i].location_inventory_id
         )
       );
-      
+
       // Step 4: Enrich logs with inventory IDs and user context
       const enrichedForLog = buildEnrichedRecordsForLog({
         originalRecords: [
-          ...dedupedWarehouseRecords.map((r) => ({ ...r, record_scope: 'warehouse' })),
-          ...dedupedLocationRecords.map((r) => ({ ...r, record_scope: 'location' })),
+          ...dedupedWarehouseRecords.map((r) => ({
+            ...r,
+            record_scope: 'warehouse',
+          })),
+          ...dedupedLocationRecords.map((r) => ({
+            ...r,
+            record_scope: 'location',
+          })),
         ],
         warehouseMap,
         locationMap,
         user_id,
       });
-      
+
       // Step 5: Build and insert log rows
       const logRows = buildInventoryLogRows(enrichedForLog);
       await insertInventoryActivityLogs(logRows, client);
-      
+
       // Step 6: Fetch full enriched inventory rows to return
       const [warehouseRaw, locationRaw] = await Promise.all([
         getWarehouseInventoryResponseByIds(
@@ -124,7 +130,7 @@ const createInventoryRecordService = async (records, user_id) => {
           client
         ),
       ]);
-      
+
       // Step 7: Transform and return for client response
       return {
         warehouse: transformWarehouseInventoryResponseRecords(warehouseRaw),

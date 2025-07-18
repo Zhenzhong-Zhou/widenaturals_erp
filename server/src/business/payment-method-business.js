@@ -1,4 +1,6 @@
-const { resolveUserPermissionContext } = require('../services/role-permission-service');
+const {
+  resolveUserPermissionContext,
+} = require('../services/role-permission-service');
 const AppError = require('../utils/AppError');
 const { logSystemException } = require('../utils/system-logger');
 
@@ -20,49 +22,55 @@ const { logSystemException } = require('../utils/system-logger');
  */
 const enforcePaymentMethodAccessControl = async (user, filters = {}) => {
   const adjustedFilters = { ...filters };
-  
+
   try {
     // Fetch all permissions once
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
-    
-    const has = (perm) =>
-      isRoot || permissions.includes(perm); // respect allowRootAccess
-    
+
+    const has = (perm) => isRoot || permissions.includes(perm); // respect allowRootAccess
+
     // 1. Enforce isActive if user lacks elevated permission
     if (!has('view_all_payment_methods')) {
       adjustedFilters.isActive = true;
     } else {
       delete adjustedFilters.isActive;
     }
-    
+
     // 2. Restrict keyword scope if lacking permission
     if (!has('view_payment_code') && 'keyword' in adjustedFilters) {
       const keyword = adjustedFilters.keyword.trim();
-      
+
       if (/^[A-Z0-9_]+$/.test(keyword)) {
         logSystemException(
           new Error('Unauthorized code-based keyword search'),
           'Blocked keyword search by code without permission',
           {
-            context: 'payment-method-business/enforcePaymentMethodAccessControl',
+            context:
+              'payment-method-business/enforcePaymentMethodAccessControl',
             userId: user.id,
             keyword,
           }
         );
         throw AppError.authorizationError('Filtering by code is not allowed.');
       }
-      
+
       adjustedFilters._restrictKeywordToNameOnly = true;
     }
-    
+
     return adjustedFilters;
   } catch (err) {
-    logSystemException(err, 'Access control check failed for payment method lookup', {
-      context: 'payment-method-business/enforcePaymentMethodAccessControl',
-      filters,
-      userId: user.id,
-    });
-    throw AppError.businessError('Failed to enforce access control for payment method lookup.');
+    logSystemException(
+      err,
+      'Access control check failed for payment method lookup',
+      {
+        context: 'payment-method-business/enforcePaymentMethodAccessControl',
+        filters,
+        userId: user.id,
+      }
+    );
+    throw AppError.businessError(
+      'Failed to enforce access control for payment method lookup.'
+    );
   }
 };
 

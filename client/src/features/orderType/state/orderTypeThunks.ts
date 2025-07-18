@@ -1,7 +1,7 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import type {
   FetchPaginatedOrderTypesParams,
-  OrderTypeListResponse
+  OrderTypeListResponse,
 } from '@features/orderType/state/orderTypeTypes';
 import { orderTypeService } from '@services/orderTypeService';
 
@@ -19,16 +19,14 @@ export const fetchPaginatedOrderTypesThunk = createAsyncThunk<
   OrderTypeListResponse,
   FetchPaginatedOrderTypesParams,
   { rejectValue: string }
->(
-  'orderTypes/fetchPaginated',
-  async (params, { rejectWithValue }) => {
-    try {
-      return await orderTypeService.fetchPaginatedOrderTypes(params);
-    } catch (error: any) {
-      console.error('Error fetching order types:', error);
-      return rejectWithValue(
-        error?.response?.data?.message || 'An error occurred while fetching order types.'
-      );
-    }
+>('orderTypes/fetchPaginated', async (params, { rejectWithValue }) => {
+  try {
+    return await orderTypeService.fetchPaginatedOrderTypes(params);
+  } catch (error: any) {
+    console.error('Error fetching order types:', error);
+    return rejectWithValue(
+      error?.response?.data?.message ||
+        'An error occurred while fetching order types.'
+    );
   }
-);
+});

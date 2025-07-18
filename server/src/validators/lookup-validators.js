@@ -3,7 +3,7 @@ const {
   validateUUID,
   validateOptionalUUID,
   createBooleanFlag,
-  validateKeyword
+  validateKeyword,
 } = require('./general-validators');
 
 /**
@@ -40,10 +40,10 @@ const batchRegistryLookupQuerySchema = Joi.object({
     .optional()
     .allow('', null)
     .label('Batch Type'),
-  
+
   warehouseId: validateUUID('Warehouse ID').optional().allow('', null),
   locationId: validateUUID('Location ID').optional().allow('', null),
-  
+
   ...baseLookupQuerySchema,
 });
 
@@ -65,7 +65,9 @@ const warehouseLookupQuerySchema = Joi.object({
  */
 const lotAdjustmentTypeLookupSchema = Joi.object({
   excludeInternal: createBooleanFlag('Exclude Internal Types'),
-  restrictToQtyAdjustment: createBooleanFlag('Restrict to Quantity Adjustments'),
+  restrictToQtyAdjustment: createBooleanFlag(
+    'Restrict to Quantity Adjustments'
+  ),
 });
 
 /**

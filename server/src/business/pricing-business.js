@@ -15,15 +15,15 @@ const { logSystemWarn } = require('../utils/system-logger');
 const resolveFinalPrice = (submittedPrice, dbPrice) => {
   const cleanSubmittedPrice = parseFloat(submittedPrice);
   const cleanDbPrice = parseFloat(dbPrice);
-  
+
   if (isNaN(cleanSubmittedPrice)) {
     return cleanDbPrice;
   }
-  
+
   if (cleanSubmittedPrice === cleanDbPrice) {
     return cleanDbPrice;
   }
-  
+
   if (cleanSubmittedPrice > 0 && cleanSubmittedPrice !== cleanDbPrice) {
     logSystemWarn('Manual price override applied', {
       submittedPrice: cleanSubmittedPrice,
@@ -32,7 +32,7 @@ const resolveFinalPrice = (submittedPrice, dbPrice) => {
     // Optionally log manual override here if you want
     return cleanSubmittedPrice;
   }
-  
+
   return cleanDbPrice;
 };
 

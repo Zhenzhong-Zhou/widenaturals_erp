@@ -64,7 +64,9 @@ export const selectCustomerLookupMeta = createSelector(
  */
 export const selectCustomerLookupOptions = createSelector(
   [selectCustomerLookupItems],
-  (items: CustomerLookupItem[]): { label: string; value: string; hasAddress: boolean }[] =>
+  (
+    items: CustomerLookupItem[]
+  ): { label: string; value: string; hasAddress: boolean }[] =>
     items.map((item) => ({
       label: item.label,
       value: item.id,

@@ -25,20 +25,22 @@ const CustomPhoneInput: FC<PhoneInputProps> = ({
   label,
 }) => {
   return (
-    <Box  sx={{
-      '& .custom-phone-container': {
-        width: '100%',
-      },
-      '& .custom-phone-input': {
-        width: '100%',
-        height: '56px',
-        paddingLeft: '50px',
-        paddingRight: '12px',
-        fontSize: '16px',
-        borderRadius: 1,
-      },
-      ...sx
-    }}>
+    <Box
+      sx={{
+        '& .custom-phone-container': {
+          width: '100%',
+        },
+        '& .custom-phone-input': {
+          width: '100%',
+          height: '56px',
+          paddingLeft: '50px',
+          paddingRight: '12px',
+          fontSize: '16px',
+          borderRadius: 1,
+        },
+        ...sx,
+      }}
+    >
       {label && (
         <InputLabel shrink required={required}>
           {label}

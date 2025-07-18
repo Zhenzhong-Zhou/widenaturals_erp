@@ -3,7 +3,12 @@
   "version": "2.1.0",
   "private": true,
   "description": "Frontend client for  WIDE Naturals Inc. ERP system, built with React.",
-  "keywords": ["erp", "client", "frontend", "react"],
+  "keywords": [
+    "erp",
+    "client",
+    "frontend",
+    "react"
+  ],
   "type": "module",
   "scripts": {
     "dev": "vite",

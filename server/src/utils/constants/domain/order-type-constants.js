@@ -24,7 +24,10 @@ const ORDER_CATEGORIES = [
  * This avoids manual duplication and ensures consistency.
  */
 const PERMISSIONS = Object.fromEntries(
-  ORDER_CATEGORIES.map(cat => [`CREATE_${cat.toUpperCase()}_ORDER`, `create_${cat}_order`])
+  ORDER_CATEGORIES.map((cat) => [
+    `CREATE_${cat.toUpperCase()}_ORDER`,
+    `create_${cat}_order`,
+  ])
 );
 
 /**

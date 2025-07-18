@@ -7,9 +7,13 @@ const { calculateDiscountAmount } = require('./discount-business');
 const { getTaxRateById } = require('../repositories/tax-rate-repository');
 const { calculateTaxableAmount } = require('./tax-rate-business');
 const { insertSalesOrder } = require('../repositories/sales-order-repository');
-const { insertOrderItemsBulk } = require('../repositories/order-item-repository');
+const {
+  insertOrderItemsBulk,
+} = require('../repositories/order-item-repository');
 const { validateAndAssignAddressOwnership } = require('./address-business');
-const { getPaymentStatusIdByCode } = require('../repositories/payment-status-repository');
+const {
+  getPaymentStatusIdByCode,
+} = require('../repositories/payment-status-repository');
 
 /**
  * Validates the existence of foreign key IDs in a sales order payload.
@@ -30,36 +34,31 @@ const validateSalesOrderIds = async (orderData, client) => {
       delivery_method_id,
       order_items = [],
     } = orderData;
-    
+
     const validations = [
       [customer_id, 'customers'],
       [payment_method_id, 'payment_methods'],
       [delivery_method_id, 'delivery_methods'],
     ];
-    
+
     // Validate top-level IDs
     for (const [id, table] of validations) {
       if (id != null) {
         await validateIdExists(table, id, client);
       }
     }
-    
+
     // Validate each order item's IDs
     for (const item of order_items) {
-      const {
-        product_id,
-        packaging_material_id,
-        price_id,
-        status_id,
-      } = item;
-      
+      const { product_id, packaging_material_id, price_id, status_id } = item;
+
       const itemValidations = [
         [product_id, 'products'],
         [packaging_material_id, 'packaging_materials'],
         [price_id, 'pricing'],
         [status_id, 'order_status'],
       ];
-      
+
       for (const [id, table] of itemValidations) {
         if (id != null) {
           await validateIdExists(table, id, client);
@@ -71,7 +70,9 @@ const validateSalesOrderIds = async (orderData, client) => {
       context: 'sales-order-business/validateSalesOrderIds',
       orderData,
     });
-    throw AppError.validationError('One or more referenced IDs are invalid or missing.');
+    throw AppError.validationError(
+      'One or more referenced IDs are invalid or missing.'
+    );
   }
 };
 
@@ -97,19 +98,19 @@ const validateSalesOrderIds = async (orderData, client) => {
  */
 const buildOrderMetadata = (enrichedItems) => {
   const overrides = enrichedItems
-    .filter(i => i.metadata && i.metadata.reason === 'manual override')
-    .map(i => ({
+    .filter((i) => i.metadata && i.metadata.reason === 'manual override')
+    .map((i) => ({
       sku_id: i.sku_id,
       submitted_price: i.metadata.submitted_price,
       db_price: i.metadata.db_price,
     }));
-  
+
   return {
     price_override_summary: {
       has_override: overrides.length > 0,
       override_count: overrides.length,
       overrides,
-      generated_at: new Date().toISOString()
+      generated_at: new Date().toISOString(),
     },
   };
 };
@@ -151,17 +152,23 @@ const createSalesOrder = async (orderData, client) => {
       status_id,
       ...salesData
     } = orderData;
-    
+
     // Ensure the order includes at least one item.
     // Prevents creating empty sales orders that would break downstream logic.
     if (!Array.isArray(order_items) || order_items.length === 0) {
-      logSystemException(new Error('Empty order_items'), 'Missing order items for sales order', {
-        context: 'sales-order-business/createSalesOrder',
-        order_id,
-        order_items,
-        created_by: orderData.created_by,
-      });
-      throw AppError.validationError('Sales order must include at least one item.');
+      logSystemException(
+        new Error('Empty order_items'),
+        'Missing order items for sales order',
+        {
+          context: 'sales-order-business/createSalesOrder',
+          order_id,
+          order_items,
+          created_by: orderData.created_by,
+        }
+      );
+      throw AppError.validationError(
+        'Sales order must include at least one item.'
+      );
     }
 
     // Ensure shipping address is provided (required for fulfillment).
@@ -177,18 +184,29 @@ const createSalesOrder = async (orderData, client) => {
 
     // Validate that each address belongs to the given customer.
     // Assigns the customer to the address if it's unclaimed.
-    await validateAndAssignAddressOwnership(shipping_address_id, customer_id, client);
-    await validateAndAssignAddressOwnership(billing_address_id, customer_id, client);
-    
+    await validateAndAssignAddressOwnership(
+      shipping_address_id,
+      customer_id,
+      client
+    );
+    await validateAndAssignAddressOwnership(
+      billing_address_id,
+      customer_id,
+      client
+    );
+
     // Step 1: Validate all IDs
     await validateSalesOrderIds(orderData, client);
-    
+
     // Step 2: Calculate item subtotals
-    const { enrichedItems, subtotal } = await enrichOrderItemsWithResolvedPrice(order_items, client);
-    
+    const { enrichedItems, subtotal } = await enrichOrderItemsWithResolvedPrice(
+      order_items,
+      client
+    );
+
     // Step 2b: Build order-level metadata
     const orderMetadata = buildOrderMetadata(enrichedItems);
-    
+
     // Step 3: Apply discount
     let discountAmount = 0;
     if (discount_id) {
@@ -198,9 +216,9 @@ const createSalesOrder = async (orderData, client) => {
       }
       discountAmount = calculateDiscountAmount(subtotal, discount);
     }
-    
+
     const discountedSubtotal = Math.max(subtotal - discountAmount, 0);
-    
+
     // Step 4: Calculate tax
     let taxAmount = 0;
     if (tax_rate_id) {
@@ -211,51 +229,54 @@ const createSalesOrder = async (orderData, client) => {
       const result = calculateTaxableAmount(subtotal, discountAmount, taxRate);
       taxAmount = result.taxAmount;
     }
-    
+
     // Step 5: Total
     const totalAmount = discountedSubtotal + taxAmount + shipping_fee;
-    
+
     // Step 6: Base currency
     const baseCurrencyAmount = exchange_rate
       ? Math.round(totalAmount * exchange_rate * 100) / 100
       : null;
-    
+
     // Step 7a: Get default payment status ID (e.g., 'unpaid')
     const paymentStatus = await getPaymentStatusIdByCode('UNPAID', client); // or your actual function & code
     if (!paymentStatus) {
       throw AppError.validationError('Missing default payment status: UNPAID');
     }
     const payment_status_id = paymentStatus.id;
-    
+
     // Step 7: Insert sales order
-    const salesOrder = await insertSalesOrder({
-      ...salesData,
-      id: order_id,
-      customer_id,
-      currency_code,
-      exchange_rate,
-      base_currency_amount: baseCurrencyAmount,
-      discount_id,
-      discount_amount: discountAmount,
-      subtotal,
-      tax_rate_id,
-      tax_amount: taxAmount,
-      shipping_fee,
-      total_amount: totalAmount,
-      metadata: orderMetadata,
-      payment_status_id,
-    }, client);
-    
+    const salesOrder = await insertSalesOrder(
+      {
+        ...salesData,
+        id: order_id,
+        customer_id,
+        currency_code,
+        exchange_rate,
+        base_currency_amount: baseCurrencyAmount,
+        discount_id,
+        discount_amount: discountAmount,
+        subtotal,
+        tax_rate_id,
+        tax_amount: taxAmount,
+        shipping_fee,
+        total_amount: totalAmount,
+        metadata: orderMetadata,
+        payment_status_id,
+      },
+      client
+    );
+
     // Step 8: Insert order items
     if (Array.isArray(order_items) && order_items.length > 0) {
-      const enrichedItemsWithStatus = enrichedItems.map(item => ({
+      const enrichedItemsWithStatus = enrichedItems.map((item) => ({
         ...item,
         status_id,
       }));
-      
+
       await insertOrderItemsBulk(order_id, enrichedItemsWithStatus, client);
     }
-    
+
     return salesOrder;
   } catch (error) {
     logSystemException(error, 'Failed to create sales order', {

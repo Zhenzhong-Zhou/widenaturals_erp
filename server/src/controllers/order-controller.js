@@ -38,7 +38,7 @@ const createOrderController = wrapAsync(async (req, res, next) => {
   const orderData = req.body;
   const user = req.user;
   const userId = user?.id;
-  
+
   if (!category) {
     logSystemWarn('Missing category in request params', {
       context: 'order-controller/createOrderController',
@@ -46,9 +46,9 @@ const createOrderController = wrapAsync(async (req, res, next) => {
     });
     return next(AppError.validationError('Order category is required.'));
   }
-  
+
   const cleanCategory = category.trim().toLowerCase();
-  
+
   if (!orderData || typeof orderData !== 'object') {
     logSystemWarn('Missing or invalid order data payload', {
       context: 'order-controller/createOrderController',
@@ -57,25 +57,25 @@ const createOrderController = wrapAsync(async (req, res, next) => {
     });
     return next(AppError.validationError('Order data payload is required.'));
   }
-  
+
   // Inject creator info
   orderData.created_by = userId;
-  
+
   logSystemInfo('Starting order creation', {
     context: 'order-controller/createOrderController',
     userId,
     category: cleanCategory,
   });
-  
+
   const result = await createOrderService(orderData, cleanCategory, user);
-  
+
   logSystemInfo('Order created successfully', {
     context: 'order-controller/createOrderController',
     userId,
     category: cleanCategory,
     orderId: result.baseOrderId,
   });
-  
+
   res.status(201).json({
     success: true,
     message: 'Order created successfully',

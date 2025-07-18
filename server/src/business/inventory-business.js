@@ -53,7 +53,7 @@ const validateAndNormalizeInventoryRecords = async (records, client) => {
         validateBatchRegistryEntryById(r.batch_type, r.batch_id, client)
       )
     );
-    
+
     // Step 3: Normalize quantities into a unified record
     const normalizedRecords = records.map((r) => ({
       ...r,
@@ -62,18 +62,20 @@ const validateAndNormalizeInventoryRecords = async (records, client) => {
       location_quantity: r.quantity ?? 0,
       meta: r.meta ?? {},
     }));
-    
+
     // Step 4: Deduplicate globally across warehouse_id + location_id + batch_id
     const dedupedRecords = deduplicateByCompositeKey(
       normalizedRecords,
       ['warehouse_id', 'location_id', 'batch_id'],
       mergeInventoryFields
     );
-    
+
     // Step 5: Split back into two target groups
-    const dedupedWarehouseRecords = dedupedRecords.filter((r) => r.warehouse_id);
+    const dedupedWarehouseRecords = dedupedRecords.filter(
+      (r) => r.warehouse_id
+    );
     const dedupedLocationRecords = dedupedRecords.filter((r) => r.location_id);
-    
+
     return { dedupedWarehouseRecords, dedupedLocationRecords };
   } catch (error) {
     logSystemException(
@@ -116,33 +118,35 @@ const validateAndNormalizeInventoryRecords = async (records, client) => {
  * @throws {Error} If `record_scope` is missing or invalid for any record.
  */
 const buildEnrichedRecordsForLog = ({
-                                      originalRecords,
-                                      warehouseMap,
-                                      locationMap,
-                                      user_id,
-                                    }) =>
+  originalRecords,
+  warehouseMap,
+  locationMap,
+  user_id,
+}) =>
   originalRecords.map((r) => {
     const isWarehouse = r.record_scope === 'warehouse';
     const isLocation = r.record_scope === 'location';
-    
+
     return {
       ...r,
-      
+
       // Attach correct inventory ID
-      warehouse_inventory_id:
-        isWarehouse ? warehouseMap.get(`${r.warehouse_id}::${r.batch_id}`) ?? null : null,
-      location_inventory_id:
-        isLocation ? locationMap.get(`${r.location_id}::${r.batch_id}`) ?? null : null,
-      
+      warehouse_inventory_id: isWarehouse
+        ? (warehouseMap.get(`${r.warehouse_id}::${r.batch_id}`) ?? null)
+        : null,
+      location_inventory_id: isLocation
+        ? (locationMap.get(`${r.location_id}::${r.batch_id}`) ?? null)
+        : null,
+
       // Identify scope
       record_scope: r.record_scope, // 'warehouse' or 'location'
-      
+
       // Enrich log metadata
       status_id: getStatusId('inventory_in_stock'),
       inventory_action_type_id: getStatusId('action_manual_stock_insert'),
       adjustment_type_id: getStatusId('adjustment_manual_stock_insert'),
       source_type: InventorySourceTypes.MANUAL_INSERT,
-      
+
       // Audit actor
       user_id,
     };
@@ -224,25 +228,25 @@ const computeInventoryAdjustmentsCore = async (updates, client) => {
   try {
     const warehouseInventoryUpdates = {};
     const warehouseCompositeKeys = [];
-    
+
     const locationInventoryUpdates = {};
     const locationCompositeKeys = [];
-    
+
     const logRecords = [];
-    
+
     const inStockId = getStatusId('inventory_in_stock');
     const outOfStockId = getStatusId('inventory_out_of_stock');
-    
+
     const seenWarehouseKeys = new Set();
     const seenLocationKeys = new Set();
-    
+
     for (const update of updates) {
       const sharedParams = {
         update: { ...update, client },
         inStockId,
         outOfStockId,
       };
-      
+
       // Process warehouse update
       const warehouseLog = await processInventoryUpdate({
         ...sharedParams,
@@ -255,7 +259,7 @@ const computeInventoryAdjustmentsCore = async (updates, client) => {
         seenKeys: seenWarehouseKeys,
       });
       if (warehouseLog) logRecords.push(warehouseLog);
-      
+
       // Process location update
       const locationLog = await processInventoryUpdate({
         ...sharedParams,
@@ -269,7 +273,7 @@ const computeInventoryAdjustmentsCore = async (updates, client) => {
       });
       if (locationLog) logRecords.push(locationLog);
     }
-    
+
     return {
       warehouseInventoryUpdates,
       locationInventoryUpdates,
@@ -278,7 +282,8 @@ const computeInventoryAdjustmentsCore = async (updates, client) => {
       logRecords,
     };
   } catch (error) {
-    const message = 'Failed to compute inventory adjustments due to unexpected system error.';
+    const message =
+      'Failed to compute inventory adjustments due to unexpected system error.';
     logSystemException(error, message, {
       context: 'inventory-business/computeInventoryAdjustments',
       updates,

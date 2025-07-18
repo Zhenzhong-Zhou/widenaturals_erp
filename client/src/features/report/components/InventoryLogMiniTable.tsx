@@ -27,65 +27,70 @@ interface InventoryLogMiniTableProps {
 }
 
 const InventoryLogMiniTable: FC<InventoryLogMiniTableProps> = ({
-                                            data,
-                                            loading,
-                                            page,
-                                            totalPages,
-                                            totalRecords,
-                                            rowsPerPage,
-                                            onPageChange,
-                                            onRowsPerPageChange,
-                                            selectedRowIds,
-                                            onSelectionChange,
-                                            expandedRowId,
-                                            onExpandToggle,
-                                            isRowExpanded,
-                                          }) => {
-  const getRowId = useCallback((row: MergedInventoryActivityLogEntry) => row.id, []);
-  
-  const columns = useMemo<Column<MergedInventoryActivityLogEntry>[]>(() => [
-    {
-      id: 'actionType',
-      label: 'Action Type',
-      format: (val) => formatLabel(val as string),
-    },
-    {
-      id: 'quantity',
-      label: 'Quantity Change',
-      renderCell: (row) => {
-        const { change, previous, new: newQty } = row.quantity;
-        const color =
-          change > 0 ? 'success.main' :
-            change < 0 ? 'error.main' :
-              'text.secondary';
-        return (
-          <CustomTypography variant={'subtitle1'} sx={{ color }}>
-            {`${change > 0 ? '+' : ''}${change} (${previous} → ${newQty})`}
-          </CustomTypography>
-        );
+  data,
+  loading,
+  page,
+  totalPages,
+  totalRecords,
+  rowsPerPage,
+  onPageChange,
+  onRowsPerPageChange,
+  selectedRowIds,
+  onSelectionChange,
+  expandedRowId,
+  onExpandToggle,
+  isRowExpanded,
+}) => {
+  const getRowId = useCallback(
+    (row: MergedInventoryActivityLogEntry) => row.id,
+    []
+  );
+
+  const columns = useMemo<Column<MergedInventoryActivityLogEntry>[]>(
+    () => [
+      {
+        id: 'actionType',
+        label: 'Action Type',
+        format: (val) => formatLabel(val as string),
       },
-    },
-    {
-      id: 'status',
-      label: 'Status',
-      format: (val) => formatLabel(val as string),
-    },
-    {
-      id: 'actionTimestamp',
-      label: 'Date',
-      format: (val) => formatDateTime(val as string),
-    },
-    {
-      id: 'performedBy',
-      label: 'Performed By',
-      format: (val) => formatLabel(val as string),
-    },
-    {
-      id: 'expand',
-      label: '',
-      align: 'center',
-      renderCell: (row) =>
-        (
+      {
+        id: 'quantity',
+        label: 'Quantity Change',
+        renderCell: (row) => {
+          const { change, previous, new: newQty } = row.quantity;
+          const color =
+            change > 0
+              ? 'success.main'
+              : change < 0
+                ? 'error.main'
+                : 'text.secondary';
+          return (
+            <CustomTypography variant={'subtitle1'} sx={{ color }}>
+              {`${change > 0 ? '+' : ''}${change} (${previous} → ${newQty})`}
+            </CustomTypography>
+          );
+        },
+      },
+      {
+        id: 'status',
+        label: 'Status',
+        format: (val) => formatLabel(val as string),
+      },
+      {
+        id: 'actionTimestamp',
+        label: 'Date',
+        format: (val) => formatDateTime(val as string),
+      },
+      {
+        id: 'performedBy',
+        label: 'Performed By',
+        format: (val) => formatLabel(val as string),
+      },
+      {
+        id: 'expand',
+        label: '',
+        align: 'center',
+        renderCell: (row) => (
           <IconButton onClick={() => onExpandToggle?.(row)}>
             {isRowExpanded?.(row) ? (
               <KeyboardArrowUpIcon />
@@ -94,18 +99,22 @@ const InventoryLogMiniTable: FC<InventoryLogMiniTableProps> = ({
             )}
           </IconButton>
         ),
-    },
-  ], [onExpandToggle, isRowExpanded]);
-  
+      },
+    ],
+    [onExpandToggle, isRowExpanded]
+  );
+
   const renderExpandedContent = useCallback(
     (row: MergedInventoryActivityLogEntry) => (
-      <Suspense fallback={<SkeletonExpandedRow showSummary={false} fieldPairs={3} />}>
+      <Suspense
+        fallback={<SkeletonExpandedRow showSummary={false} fieldPairs={3} />}
+      >
         <InventoryLogMiniExpandedContent row={row} />
       </Suspense>
     ),
     []
   );
-  
+
   return (
     <CustomTable
       columns={columns}

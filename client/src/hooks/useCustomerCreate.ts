@@ -5,7 +5,10 @@ import {
   selectCustomerCreateResponse,
   selectCreatedCustomerNames,
 } from '@features/customer/state/customerCreateSelectors';
-import { createCustomersThunk, type CreateCustomersRequest } from '@features/customer/state';
+import {
+  createCustomersThunk,
+  type CreateCustomersRequest,
+} from '@features/customer/state';
 import { resetCustomerCreateState } from '@features/customer/state/customerCreateSlice';
 
 /**
@@ -14,12 +17,12 @@ import { resetCustomerCreateState } from '@features/customer/state/customerCreat
  */
 const useCustomerCreate = () => {
   const dispatch = useAppDispatch();
-  
+
   const loading = useAppSelector(selectCustomerCreateLoading);
   const error = useAppSelector(selectCustomerCreateError);
   const customerCreateResponse = useAppSelector(selectCustomerCreateResponse);
   const customerNames = useAppSelector(selectCreatedCustomerNames);
-  
+
   /**
    * Dispatches the thunk to create customers.
    * @param requestBody CreateCustomersRequest - an array of customers to create.
@@ -27,14 +30,14 @@ const useCustomerCreate = () => {
   const createCustomers = async (requestBody: CreateCustomersRequest) => {
     return dispatch(createCustomersThunk(requestBody));
   };
-  
+
   /**
    * Resets the customer creation state to initial.
    */
   const resetCustomerCreate = () => {
     dispatch(resetCustomerCreateState());
   };
-  
+
   return {
     loading,
     error,
@@ -43,6 +46,6 @@ const useCustomerCreate = () => {
     createCustomers,
     resetCustomerCreate,
   };
-}
+};
 
 export default useCustomerCreate;

@@ -24,9 +24,12 @@ export const createAddresses = async (
   addresses: AddressInputArray
 ): Promise<CreateAddressApiResponse> => {
   const url = API_ENDPOINTS.ADDRESSES.ADD_NEW_ADDRESSES;
-  
+
   try {
-    return await postRequest<AddressInputArray, CreateAddressApiResponse>(url, addresses);
+    return await postRequest<AddressInputArray, CreateAddressApiResponse>(
+      url,
+      addresses
+    );
   } catch (error) {
     // Optional: Add structured logging if desired
     console.error('Failed to create addresses:', error);
@@ -51,7 +54,7 @@ const fetchPaginatedAddresses = async (
 ): Promise<PaginatedAddressResponse> => {
   const queryString = buildQueryString(queryParams);
   const url = `${API_ENDPOINTS.ADDRESSES.ALL_RECORDS}${queryString}`;
-  
+
   try {
     return await getRequest<PaginatedAddressResponse>(url);
   } catch (error) {

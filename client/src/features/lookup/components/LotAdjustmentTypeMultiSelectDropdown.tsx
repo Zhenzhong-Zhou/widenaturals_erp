@@ -1,5 +1,7 @@
 import { type FC } from 'react';
-import MultiSelectDropdown, { type MultiSelectOption } from '@components/common/MultiSelectDropdown';
+import MultiSelectDropdown, {
+  type MultiSelectOption,
+} from '@components/common/MultiSelectDropdown';
 
 interface LotAdjustmentTypeMultiSelectDropdownProps {
   label?: string;
@@ -17,18 +19,20 @@ interface LotAdjustmentTypeMultiSelectDropdownProps {
 /**
  * Reusable multi-select dropdown component for selecting multiple lot adjustment types.
  */
-const LotAdjustmentTypeMultiSelectDropdown: FC<LotAdjustmentTypeMultiSelectDropdownProps> = ({
-                                                                                               label = 'Select Lot Adjustment Types',
-                                                                                               options,
-                                                                                               selectedOptions,
-                                                                                               onChange,
-                                                                                               loading,
-                                                                                               disabled,
-                                                                                               error,
-                                                                                               helperText,
-                                                                                               sx,
-                                                                                               placeholder = 'Choose lot adjustment types...',
-                                                                                             }) => {
+const LotAdjustmentTypeMultiSelectDropdown: FC<
+  LotAdjustmentTypeMultiSelectDropdownProps
+> = ({
+  label = 'Select Lot Adjustment Types',
+  options,
+  selectedOptions,
+  onChange,
+  loading,
+  disabled,
+  error,
+  helperText,
+  sx,
+  placeholder = 'Choose lot adjustment types...',
+}) => {
   return (
     <MultiSelectDropdown
       label={label}

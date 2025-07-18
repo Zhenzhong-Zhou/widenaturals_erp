@@ -1,6 +1,9 @@
 import { createSelector } from '@reduxjs/toolkit';
 import type { RootState } from '@store/store';
-import type { LookupOption, OrderTypeLookupItem } from '@features/lookup/state/lookupTypes';
+import type {
+  LookupOption,
+  OrderTypeLookupItem,
+} from '@features/lookup/state/lookupTypes';
 
 /**
  * Base selector to access the order type lookup slice from the Redux store.

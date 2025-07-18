@@ -1,15 +1,14 @@
 const AppError = require('../utils/AppError');
-const {
-  logSystemException,
-  logSystemInfo
-} = require('../utils/system-logger');
+const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 const {
   getPaginatedOrderTypes,
 } = require('../repositories/order-type-repository');
-const { transformPaginatedOrderTypes } = require('../transformers/order-type-transformer');
+const {
+  transformPaginatedOrderTypes,
+} = require('../transformers/order-type-transformer');
 const {
   enforceOrderTypeCodeAccessControl,
-  filterOrderTypeRowsByPermission
+  filterOrderTypeRowsByPermission,
 } = require('../business/order-type-business');
 
 /**
@@ -32,20 +31,20 @@ const {
  * @throws {AppError} Throws a service error if fetching fails.
  */
 const fetchPaginatedOrderTypesService = async ({
-                                                 filters = {},
-                                                 user,
-                                                 page = 1,
-                                                 limit = 10,
-                                                 sortBy = 'name',
-                                                 sortOrder = 'ASC',
-                                               }) => {
+  filters = {},
+  user,
+  page = 1,
+  limit = 10,
+  sortBy = 'name',
+  sortOrder = 'ASC',
+}) => {
   try {
     await enforceOrderTypeCodeAccessControl({
       user,
       filters,
       sortBy,
     });
-    
+
     const rawResult = await getPaginatedOrderTypes({
       filters,
       page,
@@ -53,11 +52,11 @@ const fetchPaginatedOrderTypesService = async ({
       sortBy,
       sortOrder,
     });
-   
+
     const filteredRows = await filterOrderTypeRowsByPermission(rawResult, user);
-    
+
     const result = transformPaginatedOrderTypes(filteredRows, user);
-    
+
     logSystemInfo('Fetched paginated order types', {
       context: 'order-type-service/fetchPaginatedOrderTypesService',
       userId: user?.id,
@@ -65,7 +64,7 @@ const fetchPaginatedOrderTypesService = async ({
       pagination: { page, limit },
       sort: { sortBy, sortOrder },
     });
-    
+
     return result;
   } catch (error) {
     logSystemException(error, 'Failed to fetch paginated order types', {
@@ -75,7 +74,7 @@ const fetchPaginatedOrderTypesService = async ({
       pagination: { page, limit },
       sort: { sortBy, sortOrder },
     });
-    
+
     throw AppError.serviceError('Failed to fetch order type list.');
   }
 };

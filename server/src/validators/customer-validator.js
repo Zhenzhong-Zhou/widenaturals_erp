@@ -27,7 +27,11 @@ const customerSchema = Joi.object({
 /**
  * Joi schema for validating an array of customers.
  */
-const customerArraySchema = createArraySchema(customerSchema, 1, 'Customer list');
+const customerArraySchema = createArraySchema(
+  customerSchema,
+  1,
+  'Customer list'
+);
 
 /**
  * Joi schema for base customer filtering fields.

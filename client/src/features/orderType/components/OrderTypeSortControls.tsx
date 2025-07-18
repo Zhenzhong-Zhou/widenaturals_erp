@@ -26,11 +26,11 @@ const sortOptions: { label: string; value: OrderTypeSortBy }[] = [
 ];
 
 const OrderTypeSortControls: FC<OrderTypeSortControlsProps> = ({
-                                                                 sortBy,
-                                                                 sortOrder,
-                                                                 onSortByChange,
-                                                                 onSortOrderChange,
-                                                               }) => {
+  sortBy,
+  sortOrder,
+  onSortByChange,
+  onSortOrderChange,
+}) => {
   return (
     <SortControls
       sortBy={sortBy}

@@ -6,8 +6,8 @@
  */
 const toPgArray = (input) => {
   return Array.isArray(input) ? input : input ? [input] : [];
-}
+};
 
 module.exports = {
-  toPgArray
+  toPgArray,
 };

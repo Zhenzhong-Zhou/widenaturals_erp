@@ -6,9 +6,7 @@ import Loading from '@components/common/Loading';
 import { useBaseInventoryActivityLogs } from '@hooks/useInventoryActivityLogs';
 import { mergeInventoryActivityLogs } from '@features/report/utils/logUtils';
 
-const PermissionLogMiniTable = lazy(
-  () => import('./PermissionLogMiniTable')
-);
+const PermissionLogMiniTable = lazy(() => import('./PermissionLogMiniTable'));
 
 const RecentInventoryActivitySection = () => {
   const {
@@ -17,13 +15,16 @@ const RecentInventoryActivitySection = () => {
     error: logError,
     fetchLogs,
   } = useBaseInventoryActivityLogs();
-  
+
   useEffect(() => {
     fetchLogs(30); // Fetch top 30 logs on mount
   }, [fetchLogs]);
-  
-  const mergedData = useMemo(() => mergeInventoryActivityLogs(logData), [logData]);
-  
+
+  const mergedData = useMemo(
+    () => mergeInventoryActivityLogs(logData),
+    [logData]
+  );
+
   return (
     <Box sx={{ px: { xs: 2, sm: 4 }, pb: 4 }}>
       <CustomTypography variant="h6" fontWeight={600} gutterBottom>

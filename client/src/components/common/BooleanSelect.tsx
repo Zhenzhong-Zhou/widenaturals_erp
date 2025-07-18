@@ -19,33 +19,33 @@ interface BooleanSelectProps {
 }
 
 const BooleanSelect: FC<BooleanSelectProps> = ({
-                                                 label,
-                                                 value,
-                                                 onChange,
-                                                 allowAll = true,
-                                                 fullWidth = true,
-                                                 options,
-                                               }) => {
+  label,
+  value,
+  onChange,
+  allowAll = true,
+  fullWidth = true,
+  options,
+}) => {
   const handleChange = (e: SelectChangeEvent) => {
     const val = e.target.value;
     if (val === 'true') onChange(true);
     else if (val === 'false') onChange(false);
     else onChange(undefined);
   };
-  
+
   const defaultOptions: BooleanSelectOption[] = [];
-  
+
   if (allowAll) {
     defaultOptions.push({ value: '', label: 'All' });
   }
-  
+
   defaultOptions.push(
     { value: 'true', label: 'Yes' },
     { value: 'false', label: 'No' }
   );
-  
+
   const renderedOptions = options ?? defaultOptions;
-  
+
   return (
     <FormControl fullWidth={fullWidth}>
       <InputLabel>{label}</InputLabel>

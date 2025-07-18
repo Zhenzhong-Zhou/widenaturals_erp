@@ -1,6 +1,9 @@
 const { checkPermissions } = require('../../services/role-permission-service');
 const AppError = require('../../utils/AppError');
-const { enforceAllowedFilters, hasValidFilters } = require('../../utils/inventory-log-utils');
+const {
+  enforceAllowedFilters,
+  hasValidFilters,
+} = require('../../utils/inventory-log-utils');
 
 /**
  * Rejects scoped users if no valid filters are provided.
@@ -11,13 +14,17 @@ const { enforceAllowedFilters, hasValidFilters } = require('../../utils/inventor
  * @param {string[]} [allowedKeys] - Optional list of allowed filter keys
  * @throws {AppError.AuthorizationError}
  */
-const rejectEmptyFiltersForScopedAccess = (scope, filters, allowedKeys = null) => {
+const rejectEmptyFiltersForScopedAccess = (
+  scope,
+  filters,
+  allowedKeys = null
+) => {
   const isScopedUser = !scope.hasFullAccess;
-  
+
   if (allowedKeys) {
     enforceAllowedFilters(filters, allowedKeys);
   }
-  
+
   if (isScopedUser && !hasValidFilters(filters)) {
     throw AppError.authorizationError(
       'You must provide at least one valid filter to access inventory activity logs.'
@@ -118,15 +125,16 @@ const getUserInventoryAccessScope = async (user) => {
   const hasPackingMaterialAccess = await canViewAllPackingMaterials(user);
   const hasLocationAccess = await canViewAllLocations(user);
   const hasWarehouseAccess = await canViewAllWarehouses(user);
-  
-  const isBaseAccess = !hasFullAccess &&
+
+  const isBaseAccess =
+    !hasFullAccess &&
     !hasProductAccess &&
     !hasSkuAccess &&
     !hasBatchAccess &&
     !hasPackingMaterialAccess &&
     !hasLocationAccess &&
     !hasWarehouseAccess;
-  
+
   return {
     hasFullAccess,
     hasProductAccess,

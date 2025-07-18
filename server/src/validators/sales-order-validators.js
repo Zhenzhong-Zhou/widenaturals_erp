@@ -31,7 +31,7 @@ const salesOrderSchema = baseOrderSchema.keys({
   tax_rate_id: Joi.string().uuid().required(),
   shipping_fee: Joi.number().precision(2).min(0).allow(null),
   delivery_method_id: Joi.string().uuid().required(),
-  order_items: Joi.array().items(salesOrderItemSchema).min(1).required()
+  order_items: Joi.array().items(salesOrderItemSchema).min(1).required(),
 });
 
 module.exports = salesOrderSchema;

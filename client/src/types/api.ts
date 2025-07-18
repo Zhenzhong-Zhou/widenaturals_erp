@@ -133,7 +133,6 @@ export interface AsyncState<T> {
  */
 export type SortOrder = 'ASC' | 'DESC' | '';
 
-
 /**
  * Represents sorting options for paginated data queries.
  *
@@ -155,7 +154,7 @@ export interface SortConfig {
    * Example: 'createdAt', 'customerName'
    */
   sortBy?: string;
-  
+
   /**
    * Sort direction.
    * - 'ASC' for ascending (A → Z / 0 → 9)
@@ -243,23 +242,23 @@ export interface MutationState<T> {
    * Set to `null` before the request or if the request fails.
    */
   data: T | null;
-  
+
   /**
    * Indicates whether the mutation request is currently in progress.
    */
   loading: boolean;
-  
+
   /**
    * Error message if the mutation request fails; otherwise `null`.
    */
   error: string | null;
-  
+
   /**
    * Indicates if the mutation was successful.
    * Useful for showing success messages or conditional UI rendering.
    */
   success?: boolean;
-  
+
   /**
    * Server-provided success message or status message, if any.
    */
@@ -275,13 +274,13 @@ export interface MutationState<T> {
 export interface CreatedUpdatedDateFilter {
   /** Include records created on or after this ISO timestamp (>= condition) */
   createdAfter?: string;
-  
+
   /** Include records created on or before this ISO timestamp (<= condition) */
   createdBefore?: string;
-  
+
   /** Include records updated on or after this ISO timestamp (>= condition) */
   updatedAfter?: string;
-  
+
   /** Include records updated on or before this ISO timestamp (<= condition) */
   updatedBefore?: string;
 }
@@ -294,7 +293,7 @@ export interface CreatedUpdatedDateFilter {
 export interface CreatedUpdatedByFilter {
   /** Filter by creator's user ID (UUID v4) */
   createdBy?: string;
-  
+
   /** Filter by updater's user ID (UUID v4) */
   updatedBy?: string;
 }

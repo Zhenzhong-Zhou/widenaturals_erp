@@ -28,13 +28,13 @@ const buildWarehouseFilter = (filters = {}) => {
     const conditions = ['1=1'];
     const params = [];
     let paramIndex = 1;
-    
+
     if (filters.statusId) {
       conditions.push(`w.status_id = $${paramIndex}`);
       params.push(filters.statusId);
       paramIndex++;
     }
-    
+
     if (filters.isArchived !== undefined) {
       conditions.push(`w.is_archived = $${paramIndex}`);
       params.push(filters.isArchived);

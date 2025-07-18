@@ -30,9 +30,9 @@ export const selectCustomerCreateError = createSelector(
 export const selectCustomerCreateResponse = createSelector(
   [selectCustomerCreateState],
   (customerCreate) => ({
-      success: customerCreate.success ?? false,
-      message: customerCreate.message ?? '',
-      data: customerCreate.data ?? [],
+    success: customerCreate.success ?? false,
+    message: customerCreate.message ?? '',
+    data: customerCreate.data ?? [],
   })
 );
 
@@ -43,7 +43,8 @@ export const selectCustomerCreateResponse = createSelector(
 export const selectCreatedCustomerNames = createSelector(
   [selectCustomerCreateState],
   (customerCreate) =>
-    customerCreate.data?.map((customer: CustomerResponse) =>
-      `${customer.firstname} ${customer.lastname}`
+    customerCreate.data?.map(
+      (customer: CustomerResponse) =>
+        `${customer.firstname} ${customer.lastname}`
     ) || []
 );

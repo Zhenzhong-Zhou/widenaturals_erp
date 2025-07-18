@@ -1,6 +1,6 @@
 const {
   checkPermissions,
-  resolveOrderAccessContext
+  resolveOrderAccessContext,
 } = require('../services/role-permission-service');
 const { getStatusId } = require('../config/status-cache');
 const { logSystemException } = require('../utils/system-logger');
@@ -31,12 +31,12 @@ const canViewOrderTypeCode = async (user) => {
  */
 const enforceOrderTypeCodeAccessControl = async ({ user, filters, sortBy }) => {
   const canViewCode = await canViewOrderTypeCode(user);
-  
+
   if (!canViewCode) {
     if ('code' in filters) {
       throw AppError.authorizationError('Filtering by code is not allowed.');
     }
-    
+
     if (sortBy === 'code') {
       throw AppError.authorizationError('Sorting by code is not allowed.');
     }
@@ -60,9 +60,9 @@ const enforceOrderTypeCodeAccessControl = async ({ user, filters, sortBy }) => {
  */
 const filterOrderTypeRowsByPermission = async (result, user) => {
   const canViewCode = await canViewOrderTypeCode(user);
-  
+
   if (!result?.data || !Array.isArray(result.data)) return result;
-  
+
   const filteredData = result.data.map((row) => {
     if (!canViewCode) {
       const { code, ...rest } = row;
@@ -70,7 +70,7 @@ const filterOrderTypeRowsByPermission = async (result, user) => {
     }
     return row;
   });
-  
+
   return {
     ...result,
     data: filteredData,
@@ -94,22 +94,23 @@ const filterOrderTypeRowsByPermission = async (result, user) => {
  */
 const getFilteredOrderTypes = async (user, keyword) => {
   try {
-    const { isRoot, accessibleCategories } = await resolveOrderAccessContext(user);
-    
+    const { isRoot, accessibleCategories } =
+      await resolveOrderAccessContext(user);
+
     // Root access bypasses all restrictions
     if (isRoot) {
       return keyword ? { keyword } : {};
     }
-    
+
     const filters = {
       category: accessibleCategories,
       statusId: getStatusId('order_type_active'),
     };
-    
+
     if (keyword) {
       filters.keyword = keyword;
     }
-    
+
     return filters;
   } catch (error) {
     logSystemException(error, 'Failed to build filtered order type query', {
@@ -118,7 +119,7 @@ const getFilteredOrderTypes = async (user, keyword) => {
       role: user?.role,
       keyword,
     });
-    
+
     throw AppError.businessError('Unable to generate order type filters');
   }
 };
@@ -135,11 +136,11 @@ const getFilteredOrderTypes = async (user, keyword) => {
  */
 const filterOrderTypeLookupResultByPermission = async (user, rawResult) => {
   const canViewAll = await checkPermissions(user, ['view_order_type']);
-  
+
   if (canViewAll) {
     return rawResult;
   }
-  
+
   // Strip sensitive fields for limited-permission users
   return rawResult.map(({ id, name }) => ({ id, name }));
 };

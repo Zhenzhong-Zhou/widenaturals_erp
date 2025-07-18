@@ -17,14 +17,14 @@ const useWarehouseLookup = () => {
   const items = useAppSelector(selectWarehouseLookupItems);
   const loading = useAppSelector(selectWarehouseLookupLoading);
   const error = useAppSelector(selectWarehouseLookupError);
-  
+
   const fetchLookup = useCallback(
     (params?: { warehouseTypeId?: string }) => {
       dispatch(fetchWarehouseLookupThunk(params));
     },
     [dispatch]
   );
-  
+
   return useMemo(
     () => ({
       items,

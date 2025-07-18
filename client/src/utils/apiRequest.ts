@@ -31,7 +31,10 @@ export const postRequest = async <T, R>(url: string, data: T): Promise<R> => {
  * @returns {Promise<R>} - A promise resolving to the typed response data
  * @throws {Error} - If the HTTP request fails or the response is invalid
  */
-export const getRequest = async <R>(url: string, config?: AxiosRequestConfig): Promise<R> => {
+export const getRequest = async <R>(
+  url: string,
+  config?: AxiosRequestConfig
+): Promise<R> => {
   const response = await axiosInstance.get<R>(url, config);
   return response.data;
 };

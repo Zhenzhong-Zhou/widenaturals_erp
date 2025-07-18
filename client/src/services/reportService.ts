@@ -21,15 +21,16 @@ const fetchBaseInventoryActivityLogs = async (
   params: Omit<PaginationParams, 'page'> // accept limit only
 ): Promise<InventoryActivityLogBaseDataResponse> => {
   try {
-    const response = await axiosInstance.get<InventoryActivityLogBaseDataResponse>(
-      API_ENDPOINTS.REPORTS.INVENTORY_ACTIVITY_LOGS,
-      {
-        params: {
-          page: 1,
-          limit: params.limit,
-        },
-      }
-    );
+    const response =
+      await axiosInstance.get<InventoryActivityLogBaseDataResponse>(
+        API_ENDPOINTS.REPORTS.INVENTORY_ACTIVITY_LOGS,
+        {
+          params: {
+            page: 1,
+            limit: params.limit,
+          },
+        }
+      );
     return response.data;
   } catch (error) {
     throw error;
@@ -47,14 +48,15 @@ const fetchPaginatedInventoryActivityLogs = async (
   params: InventoryActivityLogQueryParams
 ): Promise<InventoryActivityLogPaginatedResponse> => {
   try {
-    const response = await axiosInstance.get<InventoryActivityLogPaginatedResponse>(
-      API_ENDPOINTS.REPORTS.INVENTORY_ACTIVITY_LOGS,
-      {
-        params,
-        paramsSerializer: (params) =>
-          qs.stringify(params, { arrayFormat: 'repeat' }) // <-- key part
-      }
-    );
+    const response =
+      await axiosInstance.get<InventoryActivityLogPaginatedResponse>(
+        API_ENDPOINTS.REPORTS.INVENTORY_ACTIVITY_LOGS,
+        {
+          params,
+          paramsSerializer: (params) =>
+            qs.stringify(params, { arrayFormat: 'repeat' }), // <-- key part
+        }
+      );
     return response.data;
   } catch (error) {
     // Optionally handle/log error or throw for higher-level catch

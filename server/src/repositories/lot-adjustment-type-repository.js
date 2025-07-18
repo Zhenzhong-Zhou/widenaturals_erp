@@ -1,6 +1,8 @@
 const { query } = require('../database/db');
 const AppError = require('../utils/AppError');
-const { buildLotAdjustmentWhereClause } = require('../utils/sql/build-lot-adjustment-type-filters');
+const {
+  buildLotAdjustmentWhereClause,
+} = require('../utils/sql/build-lot-adjustment-type-filters');
 const { logSystemException } = require('../utils/system-logger');
 
 /**
@@ -23,8 +25,8 @@ const { logSystemException } = require('../utils/system-logger');
  */
 const getLotAdjustmentTypeLookup = async (filters = {}) => {
   const { whereClause, params } = buildLotAdjustmentWhereClause(filters);
-    
-    const sql = `
+
+  const sql = `
       SELECT
         lat.id AS lot_adjustment_type_id,
         iat.id AS inventory_action_type_id,
@@ -34,20 +36,27 @@ const getLotAdjustmentTypeLookup = async (filters = {}) => {
       WHERE ${whereClause}
       ORDER BY lat.name ASC;
     `;
-    try {
-     const result = await query(sql, params);
-     return result.rows;
-    } catch (error) {
-      logSystemException(error, 'Failed to fetch lot adjustment types for lookup', {
+  try {
+    const result = await query(sql, params);
+    return result.rows;
+  } catch (error) {
+    logSystemException(
+      error,
+      'Failed to fetch lot adjustment types for lookup',
+      {
         context: 'lot-adjustment-type-repository/getLotAdjustmentTypeLookup',
         filters,
         params,
-      });
-      
-      throw AppError.databaseError('Unable to load lot adjustment lookup options', {
+      }
+    );
+
+    throw AppError.databaseError(
+      'Unable to load lot adjustment lookup options',
+      {
         stage: 'lot-adjustment-type-repository/getLotAdjustmentTypeLookup',
-      });
-    }
+      }
+    );
+  }
 };
 
 module.exports = {

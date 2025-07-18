@@ -1,5 +1,12 @@
 const { validateBulkInsertRows } = require('../database/db-utils');
-const { bulkInsert, query, paginateQuery, checkRecordExists, getFieldsById, updateById } = require('../database/db');
+const {
+  bulkInsert,
+  query,
+  paginateQuery,
+  checkRecordExists,
+  getFieldsById,
+  updateById,
+} = require('../database/db');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 const { buildAddressFilter } = require('../utils/sql/build-address-filters');
@@ -37,7 +44,7 @@ const insertAddressRecords = async (addresses, client) => {
     'created_by',
     'updated_by',
   ];
-  
+
   const updateColumns = [
     'full_name',
     'phone',
@@ -55,11 +62,13 @@ const insertAddressRecords = async (addresses, client) => {
     'updated_at',
     'updated_by',
   ];
-  
-  const updateStrategies = Object.fromEntries(updateColumns.map((col) => [col, 'overwrite']));
-  
+
+  const updateStrategies = Object.fromEntries(
+    updateColumns.map((col) => [col, 'overwrite'])
+  );
+
   const now = new Date();
-  
+
   const rows = addresses.map((address) => [
     address.customer_id || null,
     address.full_name || null,
@@ -75,15 +84,15 @@ const insertAddressRecords = async (addresses, client) => {
     address.region || null,
     address.note || null,
     address.address_hash || null,
-    now,                  // created_at
-    null,                 // updated_at at insert time
+    now, // created_at
+    null, // updated_at at insert time
     address.created_by || null,
-    null,                 // updated_by at insert time
+    null, // updated_by at insert time
   ]);
-  
+
   try {
     validateBulkInsertRows(rows, columns.length);
-    
+
     return await bulkInsert(
       'addresses',
       columns,
@@ -98,7 +107,7 @@ const insertAddressRecords = async (addresses, client) => {
       table: 'addresses',
       columns,
       conflictColumns: ['address_hash'],
-      rowCount: rows.length
+      rowCount: rows.length,
     });
     throw AppError.databaseError('Bulk insert operation failed', {
       details: { tableName: 'addresses', error: error.message },
@@ -152,7 +161,7 @@ const getEnrichedAddressesByIds = async (ids, client) => {
     LEFT JOIN users uu ON uu.id = a.updated_by
     WHERE a.id = ANY($1)
   `;
-  
+
   try {
     const result = await query(sql, [ids], client);
     return result.rows;
@@ -182,21 +191,21 @@ const getEnrichedAddressesByIds = async (ids, client) => {
  * @throws {AppError} When the query fails.
  */
 const getPaginatedAddresses = async ({
-                                       filters = {},
-                                       page = 1,
-                                       limit = 10,
-                                       sortBy = 'created_at',
-                                       sortOrder = 'DESC',
-                                     }) => {
+  filters = {},
+  page = 1,
+  limit = 10,
+  sortBy = 'created_at',
+  sortOrder = 'DESC',
+}) => {
   const { whereClause, params } = buildAddressFilter(filters);
-  
+
   const tableName = 'addresses a';
   const joins = [
     'LEFT JOIN users u1 ON a.created_by = u1.id',
     'LEFT JOIN users u2 ON a.updated_by = u2.id',
     'LEFT JOIN customers c ON a.customer_id = c.id',
   ];
-  
+
   const baseQuery = `
     SELECT
       a.id,
@@ -226,7 +235,7 @@ const getPaginatedAddresses = async ({
     ${joins.join('\n')}
     WHERE ${whereClause}
   `;
-  
+
   try {
     const result = await paginateQuery({
       tableName,
@@ -239,14 +248,14 @@ const getPaginatedAddresses = async ({
       sortBy,
       sortOrder,
     });
-    
+
     logSystemInfo('Fetched paginated addresses', {
       context: 'address-repository/fetchPaginatedAddresses',
       filters,
       pagination: { page, limit },
       sorting: { sortBy, sortOrder },
     });
-    
+
     return result;
   } catch (error) {
     logSystemException(error, 'Failed to fetch paginated addresses', {
@@ -286,11 +295,14 @@ const getPaginatedAddresses = async ({
  * @throws {AppError} Throws a database error if the query fails.
  */
 const getCustomerAddressLookupById = async ({
-                                              filters = {},
-                                              includeUnassigned = false,
-                                            }) => {
-  const { whereClause, params } = buildAddressFilter(filters, includeUnassigned);
-  
+  filters = {},
+  includeUnassigned = false,
+}) => {
+  const { whereClause, params } = buildAddressFilter(
+    filters,
+    includeUnassigned
+  );
+
   const queryText = `
     SELECT
       id,
@@ -305,13 +317,13 @@ const getCustomerAddressLookupById = async ({
     WHERE ${whereClause}
     ORDER BY created_at DESC;
   `;
-  
+
   try {
     logSystemInfo('Fetching customer address lookup data', {
       context: 'address-repository/getCustomerAddressLookupById',
       filters,
     });
-    
+
     const { rows } = await query(queryText, params);
     return rows;
   } catch (error) {
@@ -383,7 +395,12 @@ const getAddressById = async (id, client) => {
  *
  * @throws {AppError} If the address does not exist or the update fails.
  */
-const assignCustomerToAddress = async (addressId, customerId, client, userId) => {
+const assignCustomerToAddress = async (
+  addressId,
+  customerId,
+  client,
+  userId
+) => {
   return await updateById(
     'addresses',
     addressId,

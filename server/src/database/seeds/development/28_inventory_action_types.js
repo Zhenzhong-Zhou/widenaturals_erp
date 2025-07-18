@@ -15,7 +15,7 @@ exports.seed = async function (knex) {
     'active',
     'id'
   );
-  
+
   const systemUserId = await fetchDynamicValue(
     knex,
     'users',

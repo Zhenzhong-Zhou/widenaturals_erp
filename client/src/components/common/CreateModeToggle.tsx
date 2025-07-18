@@ -8,14 +8,14 @@ import type { CreateMode } from '@shared-types/shared.ts';
 interface CreateModeToggleProps<T extends CreateMode = CreateMode> {
   value: T;
   onChange: (mode: T) => void;
-  label?: string;  // optional label override (default: Entry Mode)
+  label?: string; // optional label override (default: Entry Mode)
 }
 
 const CreateModeToggle = <T extends CreateMode>({
-                                                  value,
-                                                  onChange,
-                                                  label = 'Entry Mode',
-                                                }: CreateModeToggleProps<T>) => {
+  value,
+  onChange,
+  label = 'Entry Mode',
+}: CreateModeToggleProps<T>) => {
   const handleChange = (
     _event: MouseEvent<HTMLElement>,
     newValue: T | null
@@ -24,7 +24,7 @@ const CreateModeToggle = <T extends CreateMode>({
       onChange(newValue);
     }
   };
-  
+
   return (
     <Stack direction="column" spacing={1} sx={{ mb: 2 }}>
       <CustomTypography variant="body1">{label}</CustomTypography>

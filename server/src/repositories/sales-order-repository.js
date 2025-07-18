@@ -45,7 +45,7 @@ const { logSystemException } = require('../utils/system-logger');
  *   created_by: 'u001...'
  * });
  */
-const insertSalesOrder = async(salesOrderData, client) => {
+const insertSalesOrder = async (salesOrderData, client) => {
   const {
     id,
     customer_id,
@@ -68,7 +68,7 @@ const insertSalesOrder = async(salesOrderData, client) => {
     updated_at = null,
     updated_by = null,
   } = salesOrderData;
-  
+
   const sql = `
     INSERT INTO sales_orders (
       id,
@@ -102,7 +102,7 @@ const insertSalesOrder = async(salesOrderData, client) => {
     )
     RETURNING id;
   `;
-  
+
   const values = [
     id,
     customer_id,
@@ -123,19 +123,25 @@ const insertSalesOrder = async(salesOrderData, client) => {
     metadata,
     updated_at,
     created_by,
-    updated_by
+    updated_by,
   ];
-  
+
   try {
     const { rows } = await query(sql, values, client);
     return rows[0]?.id;
   } catch (error) {
-    logSystemException(error, 'Database insert failed while creating a new sales order', {
-      context: 'sales-order-repository/insertSalesOrder',
-      payload: salesOrderData,
-    });
-    
-    throw AppError.databaseError('Database insert failed: could not create new sales order.');
+    logSystemException(
+      error,
+      'Database insert failed while creating a new sales order',
+      {
+        context: 'sales-order-repository/insertSalesOrder',
+        payload: salesOrderData,
+      }
+    );
+
+    throw AppError.databaseError(
+      'Database insert failed: could not create new sales order.'
+    );
   }
 };
 

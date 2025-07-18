@@ -2,9 +2,11 @@ const { paginateQuery, query } = require('../../database/db');
 const AppError = require('../../utils/AppError');
 const {
   logSystemInfo,
-  logSystemException
+  logSystemException,
 } = require('../../utils/system-logger');
-const { buildInventoryLogWhereClause } = require('../../utils/sql/build-inventory-log-filters');
+const {
+  buildInventoryLogWhereClause,
+} = require('../../utils/sql/build-inventory-log-filters');
 
 /**
  * Fetches detailed inventory activity logs with full relational context.
@@ -34,16 +36,16 @@ const { buildInventoryLogWhereClause } = require('../../utils/sql/build-inventor
  * @throws {AppError.databaseError} If the database query fails.
  */
 const getInventoryActivityLogs = async ({
-                                          filters = {},
-                                          page = 1,
-                                          limit = 20,
-                                          sortBy = 'action_timestamp',
-                                          sortOrder = 'DESC',
-                                        }) => {
+  filters = {},
+  page = 1,
+  limit = 20,
+  sortBy = 'action_timestamp',
+  sortOrder = 'DESC',
+}) => {
   const { whereClause, params } = buildInventoryLogWhereClause(filters);
-  
+
   const tableName = 'inventory_activity_log AS ial';
-  
+
   const joins = [
     'LEFT JOIN inventory_action_types AS iat ON ial.inventory_action_type_id = iat.id',
     'LEFT JOIN lot_adjustment_types AS lat ON ial.adjustment_type_id = lat.id',
@@ -64,7 +66,7 @@ const getInventoryActivityLogs = async ({
     'LEFT JOIN packaging_material_suppliers AS pms ON pms.id = pmb.packaging_material_supplier_id',
     'LEFT JOIN packaging_materials AS pm ON pm.id = pms.packaging_material_id',
   ];
-  
+
   const baseQueryText = `
     SELECT
       ial.id,
@@ -101,7 +103,7 @@ const getInventoryActivityLogs = async ({
     ${joins.join('\n')}
     WHERE ${whereClause}
   `;
-  
+
   try {
     logSystemInfo('Executing inventory activity log report query', {
       context: 'inventory-activity-report/getInventoryActivityLogs',
@@ -111,7 +113,7 @@ const getInventoryActivityLogs = async ({
       sortOrder,
       filters,
     });
-    
+
     return await paginateQuery({
       tableName,
       joins,
@@ -124,9 +126,13 @@ const getInventoryActivityLogs = async ({
       sortOrder,
     });
   } catch (error) {
-    logSystemException(error, 'Error during inventory activity log report query', {
-      context: 'inventory-activity-report/getInventoryActivityLogs',
-    });
+    logSystemException(
+      error,
+      'Error during inventory activity log report query',
+      {
+        context: 'inventory-activity-report/getInventoryActivityLogs',
+      }
+    );
     throw AppError.databaseError('Unable to fetch inventory activity logs');
   }
 };
@@ -142,7 +148,6 @@ const getInventoryActivityLogs = async ({
  * @returns {Promise<Array>} Array of the latest inventory activity log entries
  */
 const getLatestFilteredInventoryActivityLogs = async ({ limit = 10 }) => {
-  
   const joins = [
     'LEFT JOIN inventory_action_types AS iat ON ial.inventory_action_type_id = iat.id',
     'LEFT JOIN lot_adjustment_types AS lat ON ial.adjustment_type_id = lat.id',
@@ -163,7 +168,7 @@ const getLatestFilteredInventoryActivityLogs = async ({ limit = 10 }) => {
     'LEFT JOIN packaging_material_suppliers AS pms ON pms.id = pmb.packaging_material_supplier_id',
     'LEFT JOIN packaging_materials AS pm ON pm.id = pms.packaging_material_id',
   ];
-  
+
   const queryText = `
     WITH latest_10 AS (
       SELECT * FROM inventory_activity_log
@@ -205,20 +210,31 @@ const getLatestFilteredInventoryActivityLogs = async ({ limit = 10 }) => {
     FROM latest_10 AS ial
     ${joins.join('\n')}
   `;
-  
+
   try {
-    logSystemInfo('Executing limited inventory activity log query for base-permission user', {
-      context: 'inventory-activity-report/getLatestFilteredInventoryActivityLogs',
-      limit,
-    });
-    
+    logSystemInfo(
+      'Executing limited inventory activity log query for base-permission user',
+      {
+        context:
+          'inventory-activity-report/getLatestFilteredInventoryActivityLogs',
+        limit,
+      }
+    );
+
     const result = await query(queryText, [limit]);
     return result.rows;
   } catch (error) {
-    logSystemException(error, 'Error fetching latest filtered inventory activity logs', {
-      context: 'inventory-activity-report/getLatestFilteredInventoryActivityLogs',
-    });
-    throw AppError.databaseError('Unable to fetch latest filtered inventory activity logs.');
+    logSystemException(
+      error,
+      'Error fetching latest filtered inventory activity logs',
+      {
+        context:
+          'inventory-activity-report/getLatestFilteredInventoryActivityLogs',
+      }
+    );
+    throw AppError.databaseError(
+      'Unable to fetch latest filtered inventory activity logs.'
+    );
   }
 };
 
@@ -231,9 +247,9 @@ const getLatestFilteredInventoryActivityLogs = async ({ limit = 10 }) => {
  */
 const getSkuIdsByProductIds = async (productIds = []) => {
   if (!Array.isArray(productIds) || productIds.length === 0) return [];
-  
+
   const placeholders = productIds.map((_, i) => `$${i + 1}`).join(', ');
-  
+
   const sql = `
     SELECT s.id AS sku_id
     FROM inventory_activity_log AS ial
@@ -247,12 +263,12 @@ const getSkuIdsByProductIds = async (productIds = []) => {
       AND s.id IS NOT NULL
     GROUP BY s.id
   `;
-  
+
   try {
     const result = await query(sql, productIds);
-    return result.rows.map(row => row.sku_id);
+    return result.rows.map((row) => row.sku_id);
   } catch (error) {
-    logSystemException( error, 'Failed to get SKU IDs by product IDs', {
+    logSystemException(error, 'Failed to get SKU IDs by product IDs', {
       context: 'inventory-activity-report/getSkuIdsByProductIds',
       productIds,
     });
@@ -274,27 +290,34 @@ const getSkuIdsByProductIds = async (productIds = []) => {
  * @param {string[]} [params.packagingMaterialBatchIds] - Array of packaging material batch UUIDs
  * @returns {Promise<string[]>} - Array of matching batch IDs
  */
-const getBatchIdsBySourceIds = async ({ productIds = [], packagingMaterialBatchIds = [] } = {}) => {
+const getBatchIdsBySourceIds = async ({
+  productIds = [],
+  packagingMaterialBatchIds = [],
+} = {}) => {
   if (!Array.isArray(productIds) || !Array.isArray(packagingMaterialBatchIds)) {
     throw AppError.validationError('Invalid input: expected arrays for IDs.');
   }
-  
+
   const filters = [];
   const params = [];
   let paramIndex = 1;
-  
+
   if (productIds.length > 0) {
-    filters.push(`p.id IN (${productIds.map(() => `$${paramIndex++}`).join(', ')})`);
+    filters.push(
+      `p.id IN (${productIds.map(() => `$${paramIndex++}`).join(', ')})`
+    );
     params.push(...productIds);
   }
-  
+
   if (packagingMaterialBatchIds.length > 0) {
-    filters.push(`pmb.id IN (${packagingMaterialBatchIds.map(() => `$${paramIndex++}`).join(', ')})`);
+    filters.push(
+      `pmb.id IN (${packagingMaterialBatchIds.map(() => `$${paramIndex++}`).join(', ')})`
+    );
     params.push(...packagingMaterialBatchIds);
   }
-  
+
   if (filters.length === 0) return [];
-  
+
   const sql = `
     SELECT br.id AS batch_id
     FROM inventory_activity_log AS ial
@@ -309,10 +332,10 @@ const getBatchIdsBySourceIds = async ({ productIds = [], packagingMaterialBatchI
       AND br.id IS NOT NULL
     GROUP BY br.id
   `;
-  
+
   try {
     const result = await query(sql, params);
-    return result.rows.map(row => row.batch_id);
+    return result.rows.map((row) => row.batch_id);
   } catch (error) {
     logSystemException(error, 'Failed to get batch IDs by source IDs', {
       context: 'inventory-activity-report/getBatchIdsBySourceIds',
