@@ -113,6 +113,31 @@ const orderTypeLookupQuerySchema = Joi.object({
   keyword: validateKeyword('Order Types Keyword'),
 });
 
+/**
+ * Joi schema for validating query parameters for the payment method lookup endpoint.
+ *
+ * This schema is composed using the shared `baseLookupQuerySchema`, and is used to validate and
+ * sanitize input for:
+ *   - GET /lookups/payment-methods
+ *
+ * Fields (inherited from baseLookupQuerySchema):
+ * @property {string} [keyword] - Optional search keyword for matching payment method name or code.
+ *   Validated using `validateKeyword()` to enforce length, format, and sanitization rules.
+ *
+ * @property {number} [limit=50] - Number of records to return per page. Must be between 1 and 100.
+ *
+ * @property {number} [offset=0] - Number of records to skip. Must be zero or greater.
+ *
+ * Example usage:
+ *   GET /lookups/payment-methods?keyword=paypal&limit=20&offset=40
+ *
+ * Used by:
+ * - Query validation middleware before reaching the controller.
+ */
+const paymentMethodLookupQuerySchema = Joi.object({
+  ...baseLookupQuerySchema,
+});
+
 module.exports = {
   batchRegistryLookupQuerySchema,
   warehouseLookupQuerySchema,
@@ -120,4 +145,5 @@ module.exports = {
   customerLookupQuerySchema,
   customerAddressLookupQuerySchema,
   orderTypeLookupQuerySchema,
+  paymentMethodLookupQuerySchema,
 };

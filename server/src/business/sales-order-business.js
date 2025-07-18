@@ -9,6 +9,7 @@ const { calculateTaxableAmount } = require('./tax-rate-business');
 const { insertSalesOrder } = require('../repositories/sales-order-repository');
 const { insertOrderItemsBulk } = require('../repositories/order-item-repository');
 const { validateAndAssignAddressOwnership } = require('./address-business');
+const { getPaymentStatusIdByCode } = require('../repositories/payment-status-repository');
 
 /**
  * Validates the existence of foreign key IDs in a sales order payload.
@@ -25,7 +26,6 @@ const validateSalesOrderIds = async (orderData, client) => {
   try {
     const {
       customer_id,
-      payment_status_id,
       payment_method_id,
       delivery_method_id,
       order_items = [],
@@ -33,7 +33,6 @@ const validateSalesOrderIds = async (orderData, client) => {
     
     const validations = [
       [customer_id, 'customers'],
-      [payment_status_id, 'payment_status'],
       [payment_method_id, 'payment_methods'],
       [delivery_method_id, 'delivery_methods'],
     ];
@@ -221,6 +220,13 @@ const createSalesOrder = async (orderData, client) => {
       ? Math.round(totalAmount * exchange_rate * 100) / 100
       : null;
     
+    // Step 7a: Get default payment status ID (e.g., 'unpaid')
+    const paymentStatus = await getPaymentStatusIdByCode('UNPAID', client); // or your actual function & code
+    if (!paymentStatus) {
+      throw AppError.validationError('Missing default payment status: UNPAID');
+    }
+    const payment_status_id = paymentStatus.id;
+    
     // Step 7: Insert sales order
     const salesOrder = await insertSalesOrder({
       ...salesData,
@@ -237,6 +243,7 @@ const createSalesOrder = async (orderData, client) => {
       shipping_fee,
       total_amount: totalAmount,
       metadata: orderMetadata,
+      payment_status_id,
     }, client);
     
     // Step 8: Insert order items

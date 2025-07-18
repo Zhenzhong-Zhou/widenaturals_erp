@@ -11,7 +11,7 @@ const {
   transformLotAdjustmentLookupOptions,
   transformCustomerPaginatedLookupResult,
   transformCustomerAddressesLookupResult,
-  transformOrderTypeLookupResult,
+  transformOrderTypeLookupResult, transformPaymentMethodPaginatedLookupResult,
 } = require('../transformers/lookup-transformer');
 const {
   logSystemInfo,
@@ -29,6 +29,8 @@ const { resolveWarehouseFiltersByPermission } = require('../business/warehouse-b
 const { enforceExternalAccessPermission } = require('../business/lot-adjustment-type-business');
 const { getOrderTypeLookup } = require('../repositories/order-type-repository');
 const { getFilteredOrderTypes, filterOrderTypeLookupResultByPermission } = require('../business/order-type-business');
+const { enforcePaymentMethodAccessControl } = require('../business/payment-method-business');
+const { getPaymentMethodLookup } = require('../repositories/payment-method-repository');
 
 /**
  * Service to fetch filtered and paginated batch registry records for lookup UI.
@@ -336,6 +338,48 @@ const fetchOrderTypeLookupService = async ({ filters = {} }, user) => {
   }
 };
 
+/**
+ * Service function to retrieve a paginated and filtered list of payment methods
+ * for dropdown or lookup components, with permission-aware filtering and transformation.
+ *
+ * @param {Object} user - Authenticated user object
+ * @param {Object} options
+ * @param {Object} [options.filters={}] - Query filters (e.g., keyword)
+ * @param {number} [options.limit=50] - Number of records per page
+ * @param {number} [options.offset=0] - Pagination offset
+ * @returns {Promise<{ items: { label: string, value: string }[], hasMore: boolean }>}
+ */
+const fetchPaginatedPaymentMethodLookupService = async (user, {
+  filters = {},
+  limit = 50,
+  offset = 0,
+}) => {
+  try {
+    // 1. Enforce business-layer rules on filters (e.g., isActive, keyword scope)
+    const adjustedFilters = await enforcePaymentMethodAccessControl(user, filters);
+    
+    // 2. Fetch raw-paginated records from repository
+    const paginatedResult = await getPaymentMethodLookup({
+      filters: adjustedFilters,
+      limit,
+      offset,
+    });
+    
+    // 3. Transform raw rows to UI-friendly format
+    return transformPaymentMethodPaginatedLookupResult(paginatedResult);
+  } catch (err) {
+    logSystemException(err, 'Failed to fetch payment method lookup', {
+      context: 'lookup-service/fetchPaginatedPaymentMethodLookupService',
+      userId: user?.id,
+      filters,
+      limit,
+      offset,
+    });
+    
+    throw AppError.serviceError('Unable to retrieve payment method lookup.');
+  }
+};
+
 module.exports = {
   fetchBatchRegistryLookupService,
   fetchWarehouseLookupService,
@@ -343,4 +387,5 @@ module.exports = {
   fetchCustomerLookupService,
   fetchCustomerAddressLookupService,
   fetchOrderTypeLookupService,
+  fetchPaginatedPaymentMethodLookupService,
 };

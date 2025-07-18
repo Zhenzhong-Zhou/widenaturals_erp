@@ -4,7 +4,7 @@ const {
   fetchWarehouseLookupService,
   fetchLotAdjustmentLookupService,
   fetchCustomerLookupService,
-  fetchCustomerAddressLookupService, fetchOrderTypeLookupService,
+  fetchCustomerAddressLookupService, fetchOrderTypeLookupService, fetchPaginatedPaymentMethodLookupService,
 } = require('../services/lookup-service');
 const { logInfo } = require('../utils/logger-helper');
 
@@ -222,6 +222,57 @@ const getOrderTypeLookupController = wrapAsync(async (req, res) => {
   });
 });
 
+/**
+ * Controller to handle GET /lookups/payment-methods
+ *
+ * Retrieves a paginated and optionally filtered list of active payment methods,
+ * transformed for use in dropdown or autocomplete components.
+ *
+ * Query Parameters (via req.normalizedQuery):
+ * @param {string} [keyword] - Optional search term to match name (and code if permitted).
+ * @param {number} [limit=50] - Number of records to return (pagination limit).
+ * @param {number} [offset=0] - Number of records to skip (pagination offset).
+ *
+ * Response Format:
+ * {
+ *   success: true,
+ *   message: 'Successfully retrieved payment method lookup',
+ *   data: {
+ *     items: [{ label: string, value: string }],
+ *     hasMore: boolean
+ *   }
+ * }
+ *
+ * Access Control:
+ * - Requires authenticated user (req.user)
+ * - Results and filtering may be adjusted based on permissions (e.g., view_all_payment_methods, view_payment_code)
+ */
+const getPaymentMethodLookupController = wrapAsync(async (req, res) => {
+  const user = req.user;
+  const {
+    filters = {},
+    limit = 50,
+    offset = 0,
+  } = req.normalizedQuery;
+  
+  const dropdownResult = await fetchPaginatedPaymentMethodLookupService(user, {
+    filters,
+    limit,
+    offset,
+  });
+  
+  const { items, hasMore } = dropdownResult;
+  
+  res.status(200).json({
+    success: true,
+    message: 'Successfully retrieved payment method lookup',
+    items,
+    offset,
+    limit,
+    hasMore,
+  });
+});
+
 module.exports = {
   getBatchRegistryLookupController,
   getWarehouseLookupController,
@@ -229,4 +280,5 @@ module.exports = {
   fetchCustomerLookupController,
   getCustomerAddressLookupController,
   getOrderTypeLookupController,
+  getPaymentMethodLookupController
 };

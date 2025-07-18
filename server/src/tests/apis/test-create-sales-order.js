@@ -47,12 +47,6 @@ const { createOrderService } = require('../../services/order-service');
       select: 'id',
     }, client);
     
-    const payment_status_id = await getUniqueScalarValue({
-      table: 'payment_status',
-      where: { code: 'PENDING' },
-      select: 'id',
-    }, client);
-    
     const payment_method_id = await getUniqueScalarValue({
       table: 'payment_methods',
       where: { code: 'CREDIT_CARD' },
@@ -92,7 +86,6 @@ const { createOrderService } = require('../../services/order-service');
     const orderData = {
       order_type_id,
       order_date: now,
-      order_status_id,
       note: 'Test sales order from service',
       shipping_address_id,
       billing_address_id,
@@ -100,7 +93,6 @@ const { createOrderService } = require('../../services/order-service');
       updated_at: null,
       updated_by: null,
       customer_id,
-      payment_status_id,
       payment_method_id,
       currency_code: 'USD',
       exchange_rate: '1.41',

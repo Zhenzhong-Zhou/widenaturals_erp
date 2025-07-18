@@ -209,6 +209,41 @@ const transformOrderTypeLookupResult = (rows) => {
   return transformRows(rows, (row) => transformOrderTypeLookup(row));
 };
 
+/**
+ * Transforms a single raw payment method row into a dropdown option format.
+ *
+ * @param {Object} row - Raw DB row from payment_methods query
+ * @param {string} row.id - UUID of the payment method
+ * @param {string} row.name - Display name of the payment method
+ * @returns {{ label: string, value: string }} - Transformed dropdown option
+ */
+const transformPaymentMethodLookup = (row) => {
+  const  result = {
+    value: row.id,
+    label: row.name,
+  };
+  
+  return cleanObject(result);
+};
+
+/**
+ * Transforms a paginated raw payment method result into a dropdown-compatible format.
+ *
+ * Each row will be transformed using `transformPaymentMethodLookup`, returning a list
+ * of `{ label, value }` items and a `hasMore` flag for pagination.
+ *
+ * @param {Object} paginatedResult - Raw-paginated query result
+ * @param {Object[]} paginatedResult.rows - Array of payment method rows
+ * @param {boolean} paginatedResult.hasMore - Whether more results exist
+ * @returns {{ items: { label: string, value: string }[], hasMore: boolean }} Transformed result
+ */
+const transformPaymentMethodPaginatedLookupResult = (paginatedResult) =>
+  transformPaginatedResult(
+    paginatedResult,
+    transformPaymentMethodLookup,
+    { includeLoadMore: true }
+  );
+
 module.exports = {
   transformBatchRegistryPaginatedLookupResult,
   transformWarehouseLookupRows,
@@ -216,4 +251,5 @@ module.exports = {
   transformCustomerPaginatedLookupResult,
   transformCustomerAddressesLookupResult,
   transformOrderTypeLookupResult,
+  transformPaymentMethodPaginatedLookupResult,
 };

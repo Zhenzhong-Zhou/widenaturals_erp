@@ -1,4 +1,5 @@
 const { fetchDynamicValue } = require('../03_utils');
+const { generateAddressHash } = require('../../../utils/crypto-utils');
 
 /**
  * @param {import("knex").Knex} knex
@@ -136,6 +137,7 @@ exports.seed = async function (knex) {
     country: addr.country,
     region: addr.region,
     note: addr.note,
+    address_hash: generateAddressHash(addr),
     created_at: now,
     updated_at: null,
     created_by: systemUserId,

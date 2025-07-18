@@ -4,7 +4,9 @@ const {
   getWarehouseLookupController,
   getLotAdjustmentLookupController,
   fetchCustomerLookupController,
-  getCustomerAddressLookupController, getOrderTypeLookupController,
+  getCustomerAddressLookupController,
+  getOrderTypeLookupController,
+  getPaymentMethodLookupController,
 } = require('../controllers/lookup-controller');
 const authorize = require('../middlewares/authorize');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
@@ -15,7 +17,9 @@ const {
   warehouseLookupQuerySchema,
   customerLookupQuerySchema,
   customerAddressLookupQuerySchema,
-  lotAdjustmentTypeLookupSchema, orderTypeLookupQuerySchema,
+  lotAdjustmentTypeLookupSchema,
+  orderTypeLookupQuerySchema,
+  paymentMethodLookupQuerySchema,
 } = require('../validators/lookup-validators');
 
 const router = express.Router();
@@ -286,6 +290,59 @@ router.get(
     'Invalid query parameters.'
   ),
   getOrderTypeLookupController
+);
+
+/**
+ * GET /lookups/payment-methods
+ *
+ * Retrieves a paginated list of payment methods for use in dropdowns or lookup components.
+ * Applies role-based access control and keyword-based filtering, and respects pagination params.
+ *
+ * Middleware Stack:
+ * - `authorize(['view_payment_method_lookup'])`: Ensures user has lookup permission
+ * - `createQueryNormalizationMiddleware(...)`: Extracts and normalizes query parameters:
+ *    - `filters.keyword` (for search)
+ *    - `pagination.limit`, `pagination.offset`
+ * - `sanitizeFields(['keyword'])`: Trims and sanitizes the keyword field
+ * - `validate(paymentMethodLookupQuerySchema, 'query', ...)`: Validates query against Joi schema
+ * - `getPaymentMethodLookupController`: Fetches results using service → business → repo → transform
+ *
+ * Query Parameters:
+ * @query {string} [keyword] - Optional keyword to search by name/code (if permitted)
+ * @query {number} [limit=50] - Number of records per page (1–100)
+ * @query {number} [offset=0] - Pagination offset (≥ 0)
+ *
+ * Response Format:
+ * {
+ *   success: true,
+ *   message: 'Successfully retrieved payment method lookup',
+ *   data: {
+ *     items: [{ label: string, value: string }],
+ *     hasMore: boolean
+ *   }
+ * }
+ */
+router.get(
+  '/payment-methods',
+  authorize(['view_payment_method_lookup']),
+  createQueryNormalizationMiddleware(
+    '',                         // moduleKey (optional for sorting)
+    [],                           // arrayKeys (e.g., ['statusId'] if needed)
+    [],                           // booleanKeys (e.g., ['includeArchived'])
+    ['keyword'],                  // filterKeys: what to extract into `filters`
+    { includePagination: true, includeSorting: false }   // enable pagination normalization
+  ),
+  sanitizeFields(['keyword']),
+  validate(
+    paymentMethodLookupQuerySchema,
+    'query',
+    {
+      abortEarly: false,
+      convert: true,
+    },
+    'Invalid query parameters.'
+  ),
+  getPaymentMethodLookupController
 );
 
 module.exports = router;
