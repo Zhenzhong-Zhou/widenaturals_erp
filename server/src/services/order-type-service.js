@@ -7,7 +7,10 @@ const {
   getPaginatedOrderTypes,
 } = require('../repositories/order-type-repository');
 const { transformPaginatedOrderTypes } = require('../transformers/order-type-transformer');
-const { canViewOrderTypeCode } = require('../business/order-type-business');
+const {
+  enforceOrderTypeCodeAccessControl,
+  filterOrderTypeRowsByPermission
+} = require('../business/order-type-business');
 
 /**
  * Fetches paginated order types with optional filtering, sorting, and logging.
@@ -37,18 +40,11 @@ const fetchPaginatedOrderTypesService = async ({
                                                  sortOrder = 'ASC',
                                                }) => {
   try {
-    // Restrict use of `code` in filtering and sorting if a user lacks permission
-    const canViewCode = await canViewOrderTypeCode(user);
-
-    // Prevent unauthorized filtering by `code`
-    if (!canViewCode && 'code' in filters) {
-      throw AppError.authorizationError('Filtering by code is not allowed.');
-    }
-    
-    // Prevent unauthorized sorting by `code`
-    if (!canViewCode && sortBy === 'code') {
-      throw AppError.authorizationError('Sorting by code is not allowed.');
-    }
+    await enforceOrderTypeCodeAccessControl({
+      user,
+      filters,
+      sortBy,
+    });
     
     const rawResult = await getPaginatedOrderTypes({
       filters,
@@ -57,8 +53,10 @@ const fetchPaginatedOrderTypesService = async ({
       sortBy,
       sortOrder,
     });
+   
+    const filteredRows = await filterOrderTypeRowsByPermission(rawResult, user);
     
-    const result = transformPaginatedOrderTypes(rawResult, user);
+    const result = transformPaginatedOrderTypes(filteredRows, user);
     
     logSystemInfo('Fetched paginated order types', {
       context: 'order-type-service/fetchPaginatedOrderTypesService',
