@@ -255,3 +255,20 @@ export type AddressByCustomerLookupResponse = ApiSuccessResponse<AddressByCustom
  * - `error`: any error message encountered during the fetch
  */
 export type AddressByCustomerLookupState = AsyncState<AddressByCustomerLookup[]>;
+
+export interface OrderTypeLookupQueryParams {
+  /**
+   * Optional search keyword for filtering order types by name or category.
+   */
+  keyword?: string;
+}
+
+export interface OrderTypeLookupItem {
+  id: string;
+  name: string;
+  category: string;
+}
+
+export type OrderTypeLookupResponse = ApiSuccessResponse<OrderTypeLookupItem[]>;
+
+export type OrderTypeLookupState = AsyncState<OrderTypeLookupItem[]>;

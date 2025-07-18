@@ -8,7 +8,7 @@ import type {
   GetBatchRegistryLookupResponse,
   GetWarehouseLookupResponse,
   LotAdjustmentLookupQueryParams,
-  LotAdjustmentTypeLookupResponse,
+  LotAdjustmentTypeLookupResponse, OrderTypeLookupQueryParams, OrderTypeLookupResponse,
 } from '@features/lookup/state/lookupTypes';
 import { buildQueryString } from '@utils/buildQueryString';
 
@@ -140,12 +140,35 @@ const fetchAddressesByCustomerId = async (
   customerId: string
 ): Promise<AddressByCustomerLookupResponse> => {
   const queryString = buildQueryString({ customerId });
-  const url = `${API_ENDPOINTS.ADDRESSES.ADDRESSES_BY_CUSTOMER}${queryString}`;
+  const url = `${API_ENDPOINTS.LOOKUPS.ADDRESSES_BY_CUSTOMER}${queryString}`;
   
   try {
     return await getRequest<AddressByCustomerLookupResponse>(url);
   } catch (error) {
     console.error('Failed to fetch addresses by customer ID:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetches a list of order types from the server for use in lookup UIs.
+ *
+ * Supports optional keyword-based filtering via query parameters.
+ *
+ * @param params - Optional query parameters to filter the order types (e.g., { keyword: 'manufacturing' }).
+ * @returns A promise resolving to an {@link OrderTypeLookupResponse}, containing metadata and a list of matching order types.
+ * @throws Error if the network request fails or the response is invalid.
+ */
+const fetchOrderTypeLookup = async (
+  params?: OrderTypeLookupQueryParams
+): Promise<OrderTypeLookupResponse> => {
+  const queryString = buildQueryString(params);
+  const url = `${API_ENDPOINTS.LOOKUPS.ORDER_TYPES}${queryString}`;
+  
+  try {
+    return await getRequest<OrderTypeLookupResponse>(url);
+  } catch (error) {
+    console.error('Failed to fetch order type lookup:', error);
     throw error;
   }
 };
@@ -156,4 +179,5 @@ export const lookupService = {
   fetchLotAdjustmentTypeLookup,
   fetchCustomerLookup,
   fetchAddressesByCustomerId,
+  fetchOrderTypeLookup,
 };

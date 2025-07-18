@@ -1,4 +1,3 @@
-import orderTypesDropDownReducer from './orderTypeDropdownSlice';
 import createSalesOrderReducer from './createSalesOrderSlice';
 import confirmSalesOrderReducer from './confirmSalesOrderSlice';
 import allOrdersReducer from '@features/order/state/allOrderSlice';
@@ -7,7 +6,6 @@ import allocationEligibleOrderReducer from '@features/order/state/allocationElig
 import allocationEligibleOrderDetailsReducer from '@features/order/state/allocationEligibleOrderDetailsSlice.ts';
 
 export const orderReducers = {
-  orderTypesDropdown: orderTypesDropDownReducer,
   createSalesOrder: createSalesOrderReducer,
   confirmSalesOrder: confirmSalesOrderReducer,
   allOrders: allOrdersReducer,

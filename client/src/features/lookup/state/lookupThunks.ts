@@ -7,7 +7,8 @@ import type {
   GetBatchRegistryLookupResponse,
   GetWarehouseLookupResponse,
   LotAdjustmentLookupQueryParams,
-  LotAdjustmentTypeLookupResponse,
+  LotAdjustmentTypeLookupResponse, OrderTypeLookupQueryParams,
+  OrderTypeLookupResponse,
 } from '@features/lookup/state/lookupTypes';
 import { lookupService } from '@services/lookupService';
 
@@ -155,6 +156,37 @@ export const fetchCustomerAddressesLookupThunk = createAsyncThunk<
       return rejectWithValue({
         message: 'Failed to load customer addresses',
       });
+    }
+  }
+);
+
+/**
+ * Thunk to fetch order type lookup data with optional query parameters.
+ *
+ * This is typically used for populating dynamic dropdowns, filters, or
+ * selection menus related to order categories (e.g., manufacturing, retail).
+ *
+ * @param params - Optional query parameters such as `{ keyword: 'manufacturing' }`
+ *                 to filter the list of order types by name or category.
+ * @returns A promise that resolves to an `OrderTypeLookupResponse`, which contains
+ *          a success flag, message, and a list of matched order types.
+ *
+ * @example
+ * dispatch(fetchOrderTypeLookupThunk({ keyword: 'retail' }));
+ *
+ * @throws Will propagate and reject with the error message if the API request fails.
+ */
+export const fetchOrderTypeLookupThunk = createAsyncThunk<
+  OrderTypeLookupResponse,                // return type
+  OrderTypeLookupQueryParams | undefined // input type
+>(
+  'lookups/fetchOrderTypeLookup',
+  async (params, thunkAPI) => {
+    try {
+      return await lookupService.fetchOrderTypeLookup(params);
+    } catch (error: any) {
+      console.error('Thunk failed to fetch order type lookup:', error);
+      return thunkAPI.rejectWithValue(error?.message ?? 'Unknown error');
     }
   }
 );

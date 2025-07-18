@@ -1,5 +1,5 @@
 import type { FC } from 'react';
-import useOrderTypesDropdown from '@hooks/useOrderTypesDropdown';
+import useOrderTypeLookup from '@hooks/useOrderTypeLookup';
 import Dropdown from '@components/common/Dropdown';
 
 interface OrderTypeDropdownProps {
@@ -17,20 +17,26 @@ const OrderTypeDropdown: FC<OrderTypeDropdownProps> = ({
   sx = {},
   category,
 }) => {
-  const { dropdownOptions, loading, error, refreshOrderTypes } =
-    useOrderTypesDropdown(category); // Use category for filtering
+  const {
+    options,
+    loading,
+    error,
+    fetchData,
+    resetData
+  } =
+    useOrderTypeLookup(); // Use category for filtering
 
   return (
     <>
       <Dropdown
         label={label}
-        options={dropdownOptions.map((option) => ({
+        options={options.map((option) => ({
           value: option.value,
           label: option.label,
         }))} // Map options to maintain structure
         value={value}
         onChange={(id) => {
-          const selectedOption = dropdownOptions.find(
+          const selectedOption = options.find(
             (option) => option.value === id
           );
           if (selectedOption) {

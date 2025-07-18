@@ -1,28 +1,13 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { lookupService } from '@services/lookupService.ts';
 import {
   type AllocationEligibleOrderDetailsResponse,
   createOrderThunk,
   type CreateSalesOrderResponse,
   type OrderDetailsResponse,
   type OrderStatusUpdateResponse,
-  type OrderType,
   type SalesOrder,
 } from '@features/order';
 import { orderService } from '@services/orderService';
-
-export const fetchOrderTypesDropDownThunk = createAsyncThunk<
-  OrderType[], // Expected return type
-  void, // No arguments needed
-  { rejectValue: string } // Error type
->('orderTypes/fetchDropdown', async (_, { rejectWithValue }) => {
-  try {
-    return await lookupService.fetchOrderTypesForDropdown(); // Must return OrderType[]
-  } catch (error) {
-    console.error('Error fetching order types:', error);
-    return rejectWithValue('Failed to fetch order types.');
-  }
-});
 
 // Define Thunk for creating a sales order
 export const createSalesOrderThunk = createAsyncThunk<

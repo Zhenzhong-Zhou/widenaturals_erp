@@ -42,6 +42,8 @@ export const API_ENDPOINTS = {
     WAREHOUSES: '/lookups/warehouses',
     LOT_ADJUSTMENT_TYPES: '/lookups/lot-adjustment-types',
     CUSTOMERS: '/lookups/customers',
+    ADDRESSES_BY_CUSTOMER: 'addresses/by-customer',
+    ORDER_TYPES: '/lookups/order-types',
   },
   REPORTS: {
     INVENTORY_ACTIVITY_LOGS: 'reports/inventory-activity-logs',
@@ -49,7 +51,6 @@ export const API_ENDPOINTS = {
   ORDER_TYPES: {
     ALL_RECORDS: '/order-types',
   },
-  ORDER_TYPES_DROPDOWN: '/order-types/dropdown',
   CUSTOMERS: {
     ADD_NEW_CUSTOMERS: '/customers/add-new-customers',
     ALL_CUSTOMERS: '/customers',
@@ -58,7 +59,6 @@ export const API_ENDPOINTS = {
   ADDRESSES: {
     ADD_NEW_ADDRESSES: '/addresses/add-new-addresses',
     ALL_RECORDS: '/addresses',
-    ADDRESSES_BY_CUSTOMER: 'addresses/by-customer',
   },
   ALL_ORDERS: '/orders',
   ALLOCATION_ELIGIBLE_ORDERS: '/orders/allocation-eligible',

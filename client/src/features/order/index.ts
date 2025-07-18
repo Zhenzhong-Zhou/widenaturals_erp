@@ -16,7 +16,6 @@ export type {
 } from './state/orderTypes';
 export * from '@features/order/state/utils/index';
 export {
-  fetchOrderTypesDropDownThunk,
   createSalesOrderThunk,
   fetchAllOrdersThunk,
   fetchAllocationEligibleOrdersThunk,
@@ -25,20 +24,11 @@ export {
   fetchAllocationEligibleOrderDetailsThunk,
 } from './state/orderThunks';
 export {
-  selectOrderTypesDropdown,
-  selectOrderTypesByCategory,
-  selectOrderTypesDropdownLoading,
-  selectOrderTypesDropdownError,
-} from './state/orderTypesDropdownSelectors';
-export { default as OrderTypesDropdown } from './components/OrderTypesDropdown';
-export { default as OrderFormModal } from './components/OrderFormModal';
-export {
   selectCreatedSalesOrderLoading,
   selectCreatedSalesOrderSuccess,
   selectCreatedSalesOrderId,
   selectCreatedSalesOrderError,
 } from './state/createSalesOrderSelectors';
-export { default as CreateSaleOrderForm } from './components/CreateSaleOrderForm';
 export {
   selectAllOrders,
   selectOrdersLoading,
@@ -61,8 +51,6 @@ export {
   selectSalesOrderDetailsError,
   selectOrderNumber,
 } from './state/salesOrderDetailSelectors';
-export { default as SalesOrderDetailsSection } from './components/SalesOrderDetailsSection';
-export { default as OrderItemsTable } from './components/OrderItemsTable';
 export { orderItemsColumns } from './components/OrderItemsTableColumns';
 export {
   selectConfirmOrderData,
