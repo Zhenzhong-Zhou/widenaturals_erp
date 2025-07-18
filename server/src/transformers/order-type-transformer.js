@@ -33,7 +33,7 @@ const { transformPaginatedResult } = require('../utils/transformer-utils');
  * //   createdBy: 'John Doe'
  * // }
  */
-const transformOrderTypeRow = async (row) => {
+const transformOrderTypeRow = (row) => {
   if (!row) return null;
   
   const result = {
