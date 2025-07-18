@@ -4,7 +4,7 @@ const {
   logSystemException,
   logSystemError
 } = require('../utils/system-logger');
-const { checkPermissions } = require('../services/role-permission-service');
+const { checkPermissions, resolveUserPermissionContext } = require('../services/role-permission-service');
 const { getStatusId } = require('../config/status-cache');
 
 /**
@@ -102,11 +102,13 @@ const filterCustomerForViewer = async (customer, user, purpose = 'detail_view') 
  * @throws {AppError} If the user lacks permission to view any customers (if strict mode is enforced).
  */
 const resolveCustomerQueryOptions = async (user) => {
-  if (await checkPermissions(user, ['view_all_customers'])) {
+  const { permissions, isRoot } = await resolveUserPermissionContext(user);
+  
+  if (isRoot || permissions.includes('view_all_customers')) {
     return { statusId: undefined, overrideDefaultStatus: true };
   }
   
-  if (await checkPermissions(user, ['view_active_customers'])) {
+  if (permissions.includes('view_active_customers')) {
     return {
       statusId: getStatusId('customer_active'),
       overrideDefaultStatus: false,

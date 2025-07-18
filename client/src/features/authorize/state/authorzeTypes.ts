@@ -3,7 +3,7 @@ export interface PermissionResponse {
   success: boolean; // Indicates if the request was successful
   message: string; // Success or error message
   data: {
-    role_name: string; // Role name returned from the backend
+    roleName: string; // Role name returned from the backend
     permissions: string[]; // Array of permission keys
   };
 }
