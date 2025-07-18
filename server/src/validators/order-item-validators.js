@@ -30,17 +30,23 @@ const baseOrderItemSchema = Joi.object({
  *
  * @type {Joi.ObjectSchema}
  */
-const salesOrderItemSchema = baseOrderItemSchema.keys({
-  sku_id: Joi.string().uuid().required(),
-  packaging_material_id: Joi.string().uuid().allow(null)
-}).custom((value, helpers) => {
-  const count = (value.sku_id ? 1 : 0) + (value.packaging_material_id ? 1 : 0);
-  if (count !== 1) {
-    return helpers.error('any.invalid', { message: 'Exactly one of sku_id or packaging_material_id must be provided' });
-  }
-  return value;
-}, 'Sales item type check');
+const salesOrderItemSchema = baseOrderItemSchema
+  .keys({
+    sku_id: Joi.string().uuid().required(),
+    packaging_material_id: Joi.string().uuid().allow(null),
+  })
+  .custom((value, helpers) => {
+    const count =
+      (value.sku_id ? 1 : 0) + (value.packaging_material_id ? 1 : 0);
+    if (count !== 1) {
+      return helpers.error('any.invalid', {
+        message:
+          'Exactly one of sku_id or packaging_material_id must be provided',
+      });
+    }
+    return value;
+  }, 'Sales item type check');
 
 module.exports = {
-  salesOrderItemSchema
+  salesOrderItemSchema,
 };

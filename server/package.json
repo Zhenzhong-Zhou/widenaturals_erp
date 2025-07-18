@@ -1,10 +1,16 @@
 {
-  "name": "widenaturals_erp_server",
-  "version": "1.0.0",
-  "description": "The backend server for WideNaturals Inc, ERP.",
+  "name": "widenaturals-erp-server",
+  "version": "2.1.0",
+  "description": "Backend server for WIDE Naturals Inc. ERP system. Includes APIs, database access, and business logic.",
   "keywords": [
-    "erp"
+    "erp",
+    "server",
+    "api",
+    "backend",
+    "inventory",
+    "orders"
   ],
+  "private": true,
   "homepage": "https://github.com/Zhenzhong-Zhou/widenaturals_erp#readme",
   "bugs": {
     "url": "https://github.com/Zhenzhong-Zhou/widenaturals_erp/issues"

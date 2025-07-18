@@ -3,8 +3,12 @@ const authorize = require('../middlewares/authorize');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
 const { sanitizeFields } = require('../middlewares/sanitize');
 const validate = require('../middlewares/validate');
-const { inventoryActivityLogQuerySchema } = require('../validators/report-validators');
-const { getInventoryActivityLogsController } = require('../controllers/report-controller');
+const {
+  inventoryActivityLogQuerySchema,
+} = require('../validators/report-validators');
+const {
+  getInventoryActivityLogsController,
+} = require('../controllers/report-controller');
 
 const router = express.Router();
 
@@ -51,12 +55,7 @@ router.get(
     [],
     inventoryActivityLogQuerySchema
   ),
-  sanitizeFields([
-    'sourceType',
-    'batchType',
-    'sortBy',
-    'sortOrder'
-  ]),
+  sanitizeFields(['sourceType', 'batchType', 'sortBy', 'sortOrder']),
   validate(
     inventoryActivityLogQuerySchema,
     'query',

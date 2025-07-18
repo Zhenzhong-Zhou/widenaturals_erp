@@ -5,7 +5,8 @@ import type { CustomerListItem } from './customerTypes';
 /**
  * Base selector for the paginatedCustomers slice.
  */
-const selectPaginatedCustomersState = (state: RootState) => state.paginatedCustomers;
+const selectPaginatedCustomersState = (state: RootState) =>
+  state.paginatedCustomers;
 
 /**
  * Selector for the list of customers.

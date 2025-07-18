@@ -1,4 +1,7 @@
-const { transformRows, transformPaginatedResult } = require('../utils/transformer-utils');
+const {
+  transformRows,
+  transformPaginatedResult,
+} = require('../utils/transformer-utils');
 const { cleanObject } = require('../utils/object-utils');
 const { getFullName } = require('../utils/name-utils');
 const { formatAddress } = require('../utils/string-utils');
@@ -27,7 +30,7 @@ const buildAddressObject = (row) => ({
  */
 const transformEnrichedAddress = (row) => {
   const addressObj = buildAddressObject(row);
-  
+
   const transformedAddress = {
     id: row.id,
     customerId: row.customer_id ?? null,
@@ -35,13 +38,13 @@ const transformEnrichedAddress = (row) => {
     phone: row.phone ?? null,
     email: row.email ?? null,
     label: row.label ?? null,
-    
+
     ...addressObj,
-    
+
     note: row.note ?? null,
     createdAt: row.created_at ?? null,
     updatedAt: row.updated_at ?? null,
-    
+
     createdBy: {
       firstname: row.created_by_firstname ?? null,
       lastname: row.created_by_lastname ?? null,
@@ -59,10 +62,10 @@ const transformEnrichedAddress = (row) => {
       email: row.customer_email ?? null,
       phoneNumber: row.customer_phone_number ?? null,
     },
-    
+
     displayAddress: formatAddress(addressObj),
   };
-  
+
   return cleanObject(transformedAddress);
 };
 
@@ -87,29 +90,29 @@ const transformEnrichedAddresses = (rows) =>
  */
 const transformPaginatedAddressRow = (row) => {
   const addressObj = buildAddressObject(row);
-  
+
   const result = {
     id: row.id,
     customerId: row.customer_id,
     customerName: getFullName(row.customer_firstname, row.customer_lastname),
     customerEmail: row.customer_email ?? null,
-    
+
     label: row.label ?? null,
     recipientName: row.recipient_name ?? null,
     phone: row.phone ?? null,
     email: row.email ?? null,
-    
+
     address: cleanObject(addressObj),
     displayAddress: formatAddress(addressObj),
-    
+
     note: row.note ?? null,
     createdAt: row.created_at ?? null,
     updatedAt: row.updated_at ?? null,
-    
+
     createdBy: getFullName(row.created_by_firstname, row.created_by_lastname),
     updatedBy: getFullName(row.updated_by_firstname, row.updated_by_lastname),
   };
-  
+
   return cleanObject(result);
 };
 
@@ -128,7 +131,10 @@ const transformPaginatedAddressRow = (row) => {
  * cleaned and formatted address data.
  */
 const transformPaginatedAddressResults = (paginatedResult) => {
-  return transformPaginatedResult(paginatedResult, transformPaginatedAddressRow);
+  return transformPaginatedResult(
+    paginatedResult,
+    transformPaginatedAddressRow
+  );
 };
 
 module.exports = {

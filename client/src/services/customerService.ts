@@ -52,15 +52,15 @@ const fetchPaginatedCustomers = async (
 ): Promise<PaginatedCustomerListResponse> => {
   try {
     const { filters = {}, ...rest } = params;
-    
+
     const flatParams = {
       ...rest,
       ...filters,
     };
-    
+
     const queryString = buildQueryString(flatParams);
     const url = `${API_ENDPOINTS.CUSTOMERS.ALL_CUSTOMERS}${queryString}`;
-    
+
     return await getRequest<PaginatedCustomerListResponse>(url);
   } catch (error) {
     console.error('Failed to fetch paginated customers:', error);

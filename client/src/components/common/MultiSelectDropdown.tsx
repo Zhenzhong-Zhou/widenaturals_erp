@@ -22,38 +22,38 @@ interface MultiSelectDropdownProps {
   placeholder?: string;
   error?: string | null;
   helperText?: string;
-  paginationMeta?: LookupPaginationMeta
+  paginationMeta?: LookupPaginationMeta;
   sx?: object;
 }
 
 const MultiSelectDropdown: FC<MultiSelectDropdownProps> = ({
-                                                             label,
-                                                             options,
-                                                             selectedOptions,
-                                                             onChange,
-                                                             loading = false,
-                                                             disabled = false,
-                                                             placeholder,
-                                                             error,
-                                                             helperText,
-                                                             paginationMeta,
-                                                             sx = {},
-                                                           }) => {
+  label,
+  options,
+  selectedOptions,
+  onChange,
+  loading = false,
+  disabled = false,
+  placeholder,
+  error,
+  helperText,
+  paginationMeta,
+  sx = {},
+}) => {
   const { hasMore, onFetchMore } = paginationMeta ?? {};
-  
+
   const modifiedOptions = useMemo(() => {
     return hasMore
       ? [
-        ...options,
-        {
-          value: '__loading__',
-          label: 'Loading more...',
-          type: 'meta',
-        },
-      ]
+          ...options,
+          {
+            value: '__loading__',
+            label: 'Loading more...',
+            type: 'meta',
+          },
+        ]
       : options;
   }, [options, hasMore]);
-  
+
   return (
     <Box sx={{ width: '100%', minWidth: 250, ...sx }}>
       <Autocomplete
@@ -64,7 +64,9 @@ const MultiSelectDropdown: FC<MultiSelectDropdownProps> = ({
         isOptionEqualToValue={(opt, val) => opt.value === val.value}
         onChange={(_, newValue) => {
           // Ignore special meta option
-          const filtered = newValue.filter((opt) => opt.value !== '__loading__');
+          const filtered = newValue.filter(
+            (opt) => opt.value !== '__loading__'
+          );
           onChange(filtered);
         }}
         loading={loading}
@@ -93,8 +95,9 @@ const MultiSelectDropdown: FC<MultiSelectDropdownProps> = ({
             onScroll: (event: UIEvent<HTMLUListElement>) => {
               const target = event.currentTarget;
               const bottom =
-                target.scrollTop + target.clientHeight >= target.scrollHeight - 10;
-              
+                target.scrollTop + target.clientHeight >=
+                target.scrollHeight - 10;
+
               if (bottom && hasMore && onFetchMore) {
                 onFetchMore();
               }

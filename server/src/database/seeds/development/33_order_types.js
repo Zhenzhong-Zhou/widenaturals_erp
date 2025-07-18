@@ -4,14 +4,14 @@
  */
 exports.seed = async function (knex) {
   console.log('Seeding order_types...');
-  
+
   // Check if already seeded
   const existing = await knex('order_types').count('id as count').first();
   if (existing?.count > 0) {
     console.log('Order types already seeded. Skipping.');
     return;
   }
-  
+
   // Fetch active status ID and admin user ID
   const [activeStatus, systemAction] = await Promise.all([
     knex('status').select('id').where('name', 'active').first(),
@@ -108,7 +108,8 @@ exports.seed = async function (knex) {
   const orderTypeRecords = orderTypes.map((type) => ({
     id: knex.raw('uuid_generate_v4()'),
     ...type,
-    requires_payment: 'requires_payment' in type ? type.requires_payment : false,
+    requires_payment:
+      'requires_payment' in type ? type.requires_payment : false,
     status_id: activeStatusId,
     status_date: knex.fn.now(),
     created_at: knex.fn.now(),

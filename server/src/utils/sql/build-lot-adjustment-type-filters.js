@@ -15,19 +15,21 @@ const AppError = require('../AppError');
  * @param {boolean} [filters.restrictToQtyAdjustment=false] - Whether to restrict results to inventory quantity adjustment types (i.e., those with category = 'adjustment').
  * @returns {{ whereClause: string, params: Array<any> }} SQL-safe clause and parameters.
  */
-const  buildLotAdjustmentWhereClause = (filters = {}) => {
+const buildLotAdjustmentWhereClause = (filters = {}) => {
   try {
     const conditions = [`lat.is_active = true`];
     const params = [];
-    
+
     if (filters.restrictToQtyAdjustment) {
       conditions.push(`iat.category = 'adjustment'`);
     }
-    
+
     if (filters.excludeInternal) {
-      conditions.push(`lat.name NOT IN ('manual_stock_insert', 'manual_stock_update')`);
+      conditions.push(
+        `lat.name NOT IN ('manual_stock_insert', 'manual_stock_update')`
+      );
     }
-    
+
     return {
       whereClause: conditions.join(' AND '),
       params,
@@ -38,7 +40,7 @@ const  buildLotAdjustmentWhereClause = (filters = {}) => {
       error: err.message,
       filters,
     });
-    
+
     throw AppError.transformerError('Failed to prepare adjustment filters', {
       details: err.message,
       stage: 'build-lot-adjustment-where',

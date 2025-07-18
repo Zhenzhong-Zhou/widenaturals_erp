@@ -25,7 +25,7 @@ const STATUS_KEY_LOOKUP = [
   {
     key: 'inventory_in_stock',
     table: 'inventory_status',
-    name: 'in_stock'
+    name: 'in_stock',
   },
   {
     key: 'inventory_out_of_stock',
@@ -86,13 +86,13 @@ const getStatusIdMap = async () => {
     const unions = [];
     const params = [];
     let paramIndex = 1;
-    
+
     for (const { table, name } of STATUS_KEY_LOOKUP) {
       nameSet.add(`${table}:${name}`);
     }
-    
+
     const uniquePairs = Array.from(nameSet);
-    
+
     for (const entry of uniquePairs) {
       const [table, name] = entry.split(':');
       unions.push(`
@@ -103,11 +103,11 @@ const getStatusIdMap = async () => {
       params.push(name.toLowerCase());
       paramIndex++;
     }
-    
+
     const sql = unions.join(' UNION ALL ');
-    
+
     const { rows } = await query(sql, params);
-    
+
     const map = {};
     for (const { key, table, name } of STATUS_KEY_LOOKUP) {
       const row = rows.find(
@@ -117,13 +117,13 @@ const getStatusIdMap = async () => {
         map[key] = row.id;
       }
     }
-    
+
     return Object.freeze(map);
   } catch (error) {
     logSystemException(error, 'Failed to fetch status IDs', {
       context: 'get-status-id-map',
     });
-    
+
     throw AppError.databaseError('Failed to initialize status map', {
       details: error.message,
     });

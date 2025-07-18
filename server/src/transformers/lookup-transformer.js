@@ -1,6 +1,9 @@
 const { getProductDisplayName } = require('../utils/display-name-utils');
 const { cleanObject } = require('../utils/object-utils');
-const { transformPaginatedResult, transformRows } = require('../utils/transformer-utils');
+const {
+  transformPaginatedResult,
+  transformRows,
+} = require('../utils/transformer-utils');
 const { getFullName } = require('../utils/name-utils');
 const { formatAddress } = require('../utils/string-utils');
 
@@ -42,11 +45,9 @@ const transformBatchRegistryLookupItem = (row) => {
  * @returns {Object} Transformed response including items, limit, offset, and hasMore flag.
  */
 const transformBatchRegistryPaginatedLookupResult = (paginatedResult) =>
-  transformPaginatedResult(
-    paginatedResult,
-    transformBatchRegistryLookupItem,
-    { includeLoadMore: true }
-  );
+  transformPaginatedResult(paginatedResult, transformBatchRegistryLookupItem, {
+    includeLoadMore: true,
+  });
 
 /**
  * Transforms raw warehouse lookup rows into lookup-compatible format.
@@ -83,7 +84,7 @@ const transformWarehouseLookupRows = (rows) => {
  */
 const transformLotAdjustmentLookupOptions = (rows) => {
   if (!Array.isArray(rows)) return [];
-  
+
   return rows.map((row) => ({
     value: row.lot_adjustment_type_id,
     label: row.name,
@@ -135,11 +136,9 @@ const transformCustomerLookup = (row) => ({
  * @returns {Object} Transformed response including items, limit, offset, and hasMore flag.
  */
 const transformCustomerPaginatedLookupResult = (paginatedResult) =>
-  transformPaginatedResult(
-    paginatedResult,
-    transformCustomerLookup,
-    { includeLoadMore: true }
-  );
+  transformPaginatedResult(paginatedResult, transformCustomerLookup, {
+    includeLoadMore: true,
+  });
 
 /**
  * Transforms a single raw address row into a minimal client-friendly format
@@ -189,13 +188,13 @@ const transformCustomerAddressesLookupResult = (rows) =>
  */
 const transformOrderTypeLookup = (row) => {
   if (!row || typeof row !== 'object') return null;
-  
+
   const result = {
     id: row.id,
     name: row.name,
     category: row.category,
   };
-  
+
   return cleanObject(result);
 };
 
@@ -218,11 +217,11 @@ const transformOrderTypeLookupResult = (rows) => {
  * @returns {{ label: string, value: string }} - Transformed dropdown option
  */
 const transformPaymentMethodLookup = (row) => {
-  const  result = {
+  const result = {
     value: row.id,
     label: row.name,
   };
-  
+
   return cleanObject(result);
 };
 
@@ -238,11 +237,9 @@ const transformPaymentMethodLookup = (row) => {
  * @returns {{ items: { label: string, value: string }[], hasMore: boolean }} Transformed result
  */
 const transformPaymentMethodPaginatedLookupResult = (paginatedResult) =>
-  transformPaginatedResult(
-    paginatedResult,
-    transformPaymentMethodLookup,
-    { includeLoadMore: true }
-  );
+  transformPaginatedResult(paginatedResult, transformPaymentMethodLookup, {
+    includeLoadMore: true,
+  });
 
 module.exports = {
   transformBatchRegistryPaginatedLookupResult,

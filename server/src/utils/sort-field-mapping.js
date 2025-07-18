@@ -136,14 +136,14 @@ const SORTABLE_FIELDS = {
     newQuantity: 'ial.new_quantity',
     sourceType: 'ial.source_type',
     batchType: 'br.batch_type',
-    
+
     // Action + Adjustment
     actionType: 'iat.name',
     adjustmentType: 'lat.name',
-    
+
     // Performed by
     performedBy: `(u.firstname || ' ' || u.lastname)`,
-    
+
     // Product & Material Info
     productName: 'p.name',
     productBrand: 'p.brand',
@@ -155,16 +155,16 @@ const SORTABLE_FIELDS = {
     materialLotNumber: 'pmb.lot_number',
     materialExpiryDate: 'pmb.expiry_date',
     materialName: 'pmb.material_snapshot_name',
-    
+
     // Order Info
     orderNumber: 'o.order_number',
     orderType: 'ot.name',
     orderStatus: 'os.name',
-    
+
     // Warehouse & Location
     warehouseName: 'wh.name',
     locationName: 'loc.name',
-    
+
     // Fallback default
     defaultNaturalSort: 'ial.action_timestamp DESC',
   },
@@ -196,20 +196,20 @@ const SORTABLE_FIELDS = {
     `,
   },
   addressSortMap: {
-    createdAt: 'a.created_at',        // Standard default sort
-    updatedAt: 'a.updated_at',        // For recently modified addresses
-    
+    createdAt: 'a.created_at', // Standard default sort
+    updatedAt: 'a.updated_at', // For recently modified addresses
+
     city: 'a.city',
     state: 'a.state',
     postalCode: 'a.postal_code',
     country: 'a.country',
     region: 'a.region',
-    
-    label: 'a.label',                  // Often used for identifying purpose (e.g. "Shipping", "Billing")
-    recipientName: 'a.full_name',     // Useful for sorting by recipient
-    email: 'a.email',                  // In the case of email-based workflows
-    phone: 'a.phone',                  // Rare, but could be useful
-    
+
+    label: 'a.label', // Often used for identifying purpose (e.g. "Shipping", "Billing")
+    recipientName: 'a.full_name', // Useful for sorting by recipient
+    email: 'a.email', // In the case of email-based workflows
+    phone: 'a.phone', // Rare, but could be useful
+
     customerName: 'c.firstname',
     customerEmail: 'c.email',
   },
@@ -219,16 +219,16 @@ const SORTABLE_FIELDS = {
     category: 'ot.category',
     requiresPayment: 'ot.requires_payment',
     description: 'ot.description',
-    
+
     statusName: 's.name',
     statusDate: 'ot.status_date',
-    
+
     createdAt: 'ot.created_at',
     updatedAt: 'ot.updated_at',
-    
+
     createdBy: 'u1.firstname', // or concat name if joined properly
     updatedBy: 'u2.firstname',
-    
+
     defaultNaturalSort: 'a.created_at',
   },
 };

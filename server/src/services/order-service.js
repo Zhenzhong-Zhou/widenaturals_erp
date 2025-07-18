@@ -1,9 +1,14 @@
 const { withTransaction } = require('../database/db');
 const { validateIdExists } = require('../validators/entity-id-validators');
 const { generateOrderIdentifiers } = require('../utils/order-number-utils');
-const { getOrderStatusIdByCode } = require('../repositories/order-status-repository');
+const {
+  getOrderStatusIdByCode,
+} = require('../repositories/order-status-repository');
 const { insertOrder } = require('../repositories/order-repository');
-const { createOrderWithType, verifyOrderCreationPermission } = require('../business/order-business');
+const {
+  createOrderWithType,
+  verifyOrderCreationPermission,
+} = require('../business/order-business');
 const AppError = require('../utils/AppError');
 const { logSystemException } = require('../utils/system-logger');
 
@@ -37,33 +42,44 @@ const createOrderService = async (orderData, category, user) => {
   try {
     return await withTransaction(async (client) => {
       const { order_type_id } = orderData;
-      
+
       // 1. Validate order type exists
-      await validateIdExists('order_types', order_type_id, client, 'Order Type');
-      
+      await validateIdExists(
+        'order_types',
+        order_type_id,
+        client,
+        'Order Type'
+      );
+
       // 2. Generate order number
-      const { id, orderNumber } = await generateOrderIdentifiers(order_type_id, category, client);
-      
+      const { id, orderNumber } = await generateOrderIdentifiers(
+        order_type_id,
+        category,
+        client
+      );
+
       // 3. Verify permission to create this category of order
       await verifyOrderCreationPermission(user, category);
-      
+
       // 4. Get default status ID
       const status_id = await getOrderStatusIdByCode('ORDER_PENDING', client);
       if (!status_id) {
-        throw AppError.validationError('Invalid default order status: ORDER_PENDING');
+        throw AppError.validationError(
+          'Invalid default order status: ORDER_PENDING'
+        );
       }
-      
+
       // 5. Insert base order
       const baseOrderId = await insertOrder(
         {
           ...orderData,
           id,
           order_number: orderNumber,
-          order_status_id: status_id
+          order_status_id: status_id,
         },
         client
       );
-      
+
       // 6. Insert type-specific order (e.g., into sales_orders, transfer_orders)
       const typeOrderId = await createOrderWithType(
         category,
@@ -71,22 +87,22 @@ const createOrderService = async (orderData, category, user) => {
           ...orderData,
           id: baseOrderId,
           order_number: orderNumber,
-          status_id
+          status_id,
         },
         client
       );
-      
+
       // 7. Return result
       return {
         baseOrderId,
-        typeOrderId
+        typeOrderId,
       };
     });
   } catch (error) {
     logSystemException(error, 'Failed to create order', {
       context: 'order-service/createOrderService',
       category,
-      orderData
+      orderData,
     });
     throw AppError.businessError('Unable to create order');
   }

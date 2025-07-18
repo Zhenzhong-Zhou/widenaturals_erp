@@ -135,7 +135,7 @@ router.get(
   createQueryNormalizationMiddleware(
     '',
     [],
-    ['excludeInternal', 'restrictToQtyAdjustment'],
+    ['excludeInternal', 'restrictToQtyAdjustment']
   ),
   sanitizeFields(['excludeInternal', 'restrictToQtyAdjustment']),
   validate(lotAdjustmentTypeLookupSchema, 'query'),
@@ -176,11 +176,11 @@ router.get(
   '/customers',
   authorize(['view_customer_lookup']),
   createQueryNormalizationMiddleware(
-    '',                         // moduleKey (optional for sorting)
-    [],                           // arrayKeys (e.g., ['statusId'] if needed)
-    [],                           // booleanKeys (e.g., ['includeArchived'])
-    ['keyword'],                  // filterKeys: what to extract into `filters`
-    { includePagination: true, includeSorting: false }   // enable pagination normalization
+    '', // moduleKey (optional for sorting)
+    [], // arrayKeys (e.g., ['statusId'] if needed)
+    [], // booleanKeys (e.g., ['includeArchived'])
+    ['keyword'], // filterKeys: what to extract into `filters`
+    { includePagination: true, includeSorting: false } // enable pagination normalization
   ),
   sanitizeFields(['keyword']),
   validate(
@@ -276,12 +276,7 @@ router.get(
 router.get(
   '/order-types',
   authorize(['view_order_type_lookup']),
-  createQueryNormalizationMiddleware(
-    '',
-    [],
-    [],
-    orderTypeLookupQuerySchema
-  ),
+  createQueryNormalizationMiddleware('', [], [], orderTypeLookupQuerySchema),
   sanitizeFields(['keyword']),
   validate(
     orderTypeLookupQuerySchema,
@@ -326,11 +321,11 @@ router.get(
   '/payment-methods',
   authorize(['view_payment_method_lookup']),
   createQueryNormalizationMiddleware(
-    '',                         // moduleKey (optional for sorting)
-    [],                           // arrayKeys (e.g., ['statusId'] if needed)
-    [],                           // booleanKeys (e.g., ['includeArchived'])
-    ['keyword'],                  // filterKeys: what to extract into `filters`
-    { includePagination: true, includeSorting: false }   // enable pagination normalization
+    '', // moduleKey (optional for sorting)
+    [], // arrayKeys (e.g., ['statusId'] if needed)
+    [], // booleanKeys (e.g., ['includeArchived'])
+    ['keyword'], // filterKeys: what to extract into `filters`
+    { includePagination: true, includeSorting: false } // enable pagination normalization
   ),
   sanitizeFields(['keyword']),
   validate(

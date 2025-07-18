@@ -35,9 +35,7 @@ interface AddInventoryDialogWithModeToggleProps {
   selectedBatch: { id: string; type: string } | null;
   setSelectedBatch: (batch: { id: string; type: string } | null) => void;
   batchLookupParams: GetBatchRegistryLookupParams;
-  setBatchLookupParams: Dispatch<
-    SetStateAction<GetBatchRegistryLookupParams>
-  >;
+  setBatchLookupParams: Dispatch<SetStateAction<GetBatchRegistryLookupParams>>;
   fetchBatchLookup: (params: GetBatchRegistryLookupParams) => void;
   resetBatchLookup: () => void;
   lookupPaginationMeta: LookupPaginationMeta;
@@ -90,7 +88,7 @@ const AddInventoryDialogWithModeToggle: FC<
     setMode(newValue);
     setSelectedBatch(null);
   };
-  
+
   return (
     <>
       {successOpen ? (
@@ -114,14 +112,14 @@ const AddInventoryDialogWithModeToggle: FC<
             <Tab label="Single Entry" value="single" />
             <Tab label="Bulk Entry" value="bulk" />
           </Tabs>
-          
+
           <Box sx={{ mt: 2, px: 2 }}>
-          {createError && (
+            {createError && (
               <Alert severity="error" sx={{ mb: 2 }}>
                 {createError}
               </Alert>
             )}
-            
+
             {mode === 'single' ? (
               <AddInventoryForm
                 onSubmit={onSubmit}

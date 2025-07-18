@@ -13,11 +13,11 @@ import {
  */
 const useCustomerAddressesLookup = () => {
   const dispatch = useAppDispatch();
-  
+
   const addresses = useAppSelector(selectCustomerAddressLookupData);
   const loading = useAppSelector(selectCustomerAddressLookupLoading);
   const error = useAppSelector(selectCustomerAddressLookupError);
-  
+
   // Memoized fetch function using the lookup thunk
   const fetchAddresses = useCallback(
     (customerId: string) => {
@@ -25,7 +25,7 @@ const useCustomerAddressesLookup = () => {
     },
     [dispatch]
   );
-  
+
   return {
     addresses,
     loading,

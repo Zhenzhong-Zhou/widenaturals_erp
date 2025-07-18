@@ -47,7 +47,7 @@ const initializeApp = async () => {
         promise,
       });
     });
-    
+
     process.on('uncaughtException', (err) => {
       logSystemError('Uncaught Exception occurred', {
         error: err,
@@ -57,7 +57,7 @@ const initializeApp = async () => {
       });
       process.exit(1);
     });
-    
+
     logSystemInfo('Application started successfully.');
     return serverInstance;
   } catch (error) {

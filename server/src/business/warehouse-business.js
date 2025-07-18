@@ -18,25 +18,29 @@ const AppError = require('../utils/AppError');
  */
 const resolveWarehouseFiltersByPermission = async (user, rawFilters = {}) => {
   try {
-    const canViewAllStatuses = await checkPermissions(user, ['view_all_warehouse_statuses']);
-    const canViewArchived = await checkPermissions(user, ['view_archived_warehouses']);
-    
+    const canViewAllStatuses = await checkPermissions(user, [
+      'view_all_warehouse_statuses',
+    ]);
+    const canViewArchived = await checkPermissions(user, [
+      'view_archived_warehouses',
+    ]);
+
     const defaultActiveStatusId = getStatusId('warehouse_active');
-    
+
     const resolvedFilters = { ...rawFilters };
-    
+
     // Apply status restriction if not allowed to view all statuses
     if (canViewAllStatuses) {
       delete resolvedFilters.statusId;
     } else if (!resolvedFilters.statusId) {
       resolvedFilters.statusId = defaultActiveStatusId;
     }
-    
+
     // Enforce isArchived = false if user is not allowed to view archived
     if (!canViewArchived && resolvedFilters.isArchived === undefined) {
       resolvedFilters.isArchived = false;
     }
-    
+
     return resolvedFilters;
   } catch (error) {
     logSystemException(
@@ -48,11 +52,13 @@ const resolveWarehouseFiltersByPermission = async (user, rawFilters = {}) => {
         filters: rawFilters,
       }
     );
-    
-    throw AppError.businessError('Failed to resolve warehouse filters by permission.');
+
+    throw AppError.businessError(
+      'Failed to resolve warehouse filters by permission.'
+    );
   }
 };
 
 module.exports = {
-  resolveWarehouseFiltersByPermission
+  resolveWarehouseFiltersByPermission,
 };

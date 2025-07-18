@@ -17,7 +17,7 @@ const InventoryActivityLogExpandedContent: FC<Props> = ({ row }) => (
     <CustomTypography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
       Log Details
     </CustomTypography>
-    
+
     <Grid container spacing={2}>
       {/* Left column */}
       <Grid size={{ xs: 12, md: 6 }}>
@@ -25,21 +25,31 @@ const InventoryActivityLogExpandedContent: FC<Props> = ({ row }) => (
           fields={[
             { label: 'Order Number', value: row.order.number },
             { label: 'Order Type', value: row.order.type, format: formatLabel },
-            { label: 'Order Status', value: row.order.status, format: formatLabel },
-            { label: 'Adjustment Type', value: row.adjustmentType, format: formatLabel },
+            {
+              label: 'Order Status',
+              value: row.order.status,
+              format: formatLabel,
+            },
+            {
+              label: 'Adjustment Type',
+              value: row.adjustmentType,
+              format: formatLabel,
+            },
             {
               label: 'Location / Warehouse',
               value:
                 'combinedNames' in row
                   ? row.combinedNames
-                  : [row.locationName, row.warehouseName].filter(Boolean).join(', ')
+                  : [row.locationName, row.warehouseName]
+                      .filter(Boolean)
+                      .join(', '),
             },
             { label: 'Source', value: row.source?.type, format: formatLabel },
             { label: 'Ref ID', value: row.source?.refId },
           ]}
         />
       </Grid>
-      
+
       {/* Right column */}
       <Grid size={{ xs: 12, md: 6 }}>
         <DetailsSection
@@ -52,8 +62,16 @@ const InventoryActivityLogExpandedContent: FC<Props> = ({ row }) => (
                   : row.packagingMaterialInfo?.expiryDate,
               format: formatDate,
             },
-            { label: 'Metadata Source', value: row.metadata?.source, format: formatLabel },
-            { label: 'Metadata Scope', value: row.metadata?.source_level, format: formatLabel },
+            {
+              label: 'Metadata Source',
+              value: row.metadata?.source,
+              format: formatLabel,
+            },
+            {
+              label: 'Metadata Scope',
+              value: row.metadata?.source_level,
+              format: formatLabel,
+            },
             { label: 'Comments', value: row.comments },
           ]}
         />

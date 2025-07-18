@@ -27,7 +27,7 @@ const getDiscountById = async (discountId, client = null) => {
       query: sql,
       discountId,
     });
-    
+
     throw AppError.databaseError(`Failed to fetch discount: ${error.message}`);
   }
 };

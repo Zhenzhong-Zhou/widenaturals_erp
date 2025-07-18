@@ -12,7 +12,7 @@ const getFullName = (first, last) => {
   const parts = [first, last]
     .map((s) => (s ? String(s).trim() : ''))
     .filter(Boolean);
-    
+
   return parts.length > 0 ? parts.join(' ') : '—';
 };
 

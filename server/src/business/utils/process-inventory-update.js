@@ -1,5 +1,7 @@
 const AppError = require('../../utils/AppError');
-const { InventorySourceTypes } = require('../../utils/constants/domain/inventory-source-types');
+const {
+  InventorySourceTypes,
+} = require('../../utils/constants/domain/inventory-source-types');
 
 /**
  * Processes an inventory quantity update for either warehouse or location scope.
@@ -27,44 +29,57 @@ const { InventorySourceTypes } = require('../../utils/constants/domain/inventory
  * @throws {AppError} If the inventory record does not exist or reserved quantity exceeds updated quantity.
  */
 const processInventoryUpdate = async ({
-                                        scope, // 'warehouse' or 'location'
-                                        idKey,
-                                        qtyKey,
-                                        fetchFn,
-                                        updatesMap,
-                                        compositeKeys,
-                                        seenKeys,
-                                        update,
-                                        inStockId,
-                                        outOfStockId,
-                                      }) => {
-  const { batch_id, quantity, inventory_action_type_id, adjustment_type_id, comments } = update;
+  scope, // 'warehouse' or 'location'
+  idKey,
+  qtyKey,
+  fetchFn,
+  updatesMap,
+  compositeKeys,
+  seenKeys,
+  update,
+  inStockId,
+  outOfStockId,
+}) => {
+  const {
+    batch_id,
+    quantity,
+    inventory_action_type_id,
+    adjustment_type_id,
+    comments,
+  } = update;
   const scope_id = update[idKey];
-  
+
   if (!scope_id || !batch_id) return null;
-  
+
   const compositeKey = `${scope_id}::${batch_id}`;
   if (seenKeys.has(compositeKey)) return null;
   seenKeys.add(compositeKey);
-  
-  const [record] = await fetchFn([{ [idKey]: scope_id, batch_id }], update.client);
+
+  const [record] = await fetchFn(
+    [{ [idKey]: scope_id, batch_id }],
+    update.client
+  );
   if (!record) {
-    throw AppError.notFoundError(`No matching ${scope} inventory record for ${compositeKey}`);
+    throw AppError.notFoundError(
+      `No matching ${scope} inventory record for ${compositeKey}`
+    );
   }
-  
+
   const {
     id,
     [qtyKey]: currentQty,
     reserved_quantity: reservedQty,
     status_id: previousStatus,
   } = record;
-  
+
   if (reservedQty > quantity) {
-    throw AppError.validationError(`Reserved quantity exceeds updated ${scope} quantity for ${compositeKey}`);
+    throw AppError.validationError(
+      `Reserved quantity exceeds updated ${scope} quantity for ${compositeKey}`
+    );
   }
-  
+
   const diffQty = quantity - currentQty;
-  
+
   // === Status logic ===
   let newStatus = previousStatus;
   let statusChanged = false;
@@ -74,7 +89,7 @@ const processInventoryUpdate = async ({
     statusChanged = previousStatus !== newStatus;
     statusDate = statusChanged ? new Date().toISOString() : null;
   }
-  
+
   // Build an update map and composite key
   updatesMap[`${scope_id}-${batch_id}`] = {
     [qtyKey]: quantity,
@@ -83,7 +98,7 @@ const processInventoryUpdate = async ({
     last_update: new Date().toISOString(),
   };
   compositeKeys.push({ [idKey]: scope_id, batch_id });
-  
+
   return {
     [`${scope}_inventory_id`]: id,
     quantity,

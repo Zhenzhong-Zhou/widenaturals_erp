@@ -46,13 +46,13 @@ export const buildQueryParams = (
  * @param fetchFn - Callback function that performs the data fetch with built parameters
  */
 export const applyFiltersAndSorting = ({
-                                         page,
-                                         limit,
-                                         sortBy,
-                                         sortOrder,
-                                         filters,
-                                         fetchFn,
-                                       }: {
+  page,
+  limit,
+  sortBy,
+  sortOrder,
+  filters,
+  fetchFn,
+}: {
   page: number;
   limit: number;
   sortBy?: string;
@@ -60,6 +60,12 @@ export const applyFiltersAndSorting = ({
   filters?: Record<string, any>;
   fetchFn: (params: Record<string, any>) => void;
 }): void => {
-  const queryParams = buildQueryParams(page, limit, sortBy, sortOrder, filters ?? {});
+  const queryParams = buildQueryParams(
+    page,
+    limit,
+    sortBy,
+    sortOrder,
+    filters ?? {}
+  );
   fetchFn(queryParams);
 };

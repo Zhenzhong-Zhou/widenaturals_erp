@@ -2,13 +2,15 @@ import { Controller, type Control } from 'react-hook-form';
 import Grid from '@mui/material/Grid';
 import BaseInput from '@components/common/BaseInput';
 import CustomDatePicker from '@components/common/CustomDatePicker';
-import BooleanSelect, { type BooleanSelectOption } from '@components/common/BooleanSelect';
+import BooleanSelect, {
+  type BooleanSelectOption,
+} from '@components/common/BooleanSelect';
 
 /**
  * Renders a reusable controlled BaseInput field for a filter panel.
  */
 export const renderInputField = <
-  TFieldValues extends Record<string, any> = any
+  TFieldValues extends Record<string, any> = any,
 >(
   control: Control<TFieldValues>,
   name: keyof TFieldValues,
@@ -35,9 +37,7 @@ export const renderInputField = <
 /**
  * Renders a reusable controlled CustomDatePicker field for a filter panel.
  */
-export const renderDateField = <
-  TFieldValues extends Record<string, any> = any
->(
+export const renderDateField = <TFieldValues extends Record<string, any> = any>(
   control: Control<TFieldValues>,
   name: keyof TFieldValues,
   label: string

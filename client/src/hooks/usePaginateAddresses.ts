@@ -4,11 +4,11 @@ import {
   selectPaginatedAddresses,
   selectPaginateError,
   selectPaginateLoading,
-  selectPaginationMeta
+  selectPaginationMeta,
 } from '@features/address/state/paginateAddressSelectors';
 import {
   fetchPaginatedAddressesThunk,
-  type AddressQueryParams
+  type AddressQueryParams,
 } from '@features/address/state';
 import { resetPaginatedAddresses } from '@features/address/state/paginateAddressSlice';
 
@@ -20,13 +20,13 @@ import { resetPaginatedAddresses } from '@features/address/state/paginateAddress
  */
 const usePaginateAddresses = () => {
   const dispatch = useAppDispatch();
-  
+
   // Selectors
   const data = useAppSelector(selectPaginatedAddresses);
   const pagination = useAppSelector(selectPaginationMeta);
   const loading = useAppSelector(selectPaginateLoading);
   const error = useAppSelector(selectPaginateError);
-  
+
   // Dispatch fetch thunk with query parameters
   const fetchAddresses = useCallback(
     (queryParams?: AddressQueryParams) => {
@@ -34,12 +34,12 @@ const usePaginateAddresses = () => {
     },
     [dispatch]
   );
-  
+
   // Dispatch reset action
   const resetAddresses = useCallback(() => {
     dispatch(resetPaginatedAddresses());
   }, [dispatch]);
-  
+
   return {
     /** List of address items in current pagination */
     data,

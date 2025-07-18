@@ -41,28 +41,24 @@ const buildInventoryLogRows = (records) => {
         'Either warehouse_inventory_id or location_inventory_id must be provided'
       );
     }
-    
+
     const isWarehouse = Boolean(record.warehouse_inventory_id);
     const inventoryFieldKey = isWarehouse
       ? 'warehouse_inventory_id'
       : 'location_inventory_id';
     const inventoryId = record[inventoryFieldKey] ?? record.id ?? null;
     const scope = isWarehouse ? 'warehouse' : 'location';
-    
+
     const previousQty = record.previous_quantity ?? 0;
-    const changeQty =
-      record.quantity_change ?? record.quantity ?? 0;
+    const changeQty = record.quantity_change ?? record.quantity ?? 0;
     const newQty =
       record.new_quantity ??
       (record.quantity != null && previousQty != null
         ? previousQty + changeQty
-        : record.quantity ?? 0);
-    
-    const metadata =
-      record.meta ??
-      record.metadata ??
-      {}; // fallback for backward compatibility
-    
+        : (record.quantity ?? 0));
+
+    const metadata = record.meta ?? record.metadata ?? {}; // fallback for backward compatibility
+
     const checksumPayload = cleanObject({
       [inventoryFieldKey]: inventoryId,
       inventory_action_type_id: record.inventory_action_type_id,
@@ -84,7 +80,7 @@ const buildInventoryLogRows = (records) => {
         ...metadata,
       },
     });
-    
+
     return {
       [inventoryFieldKey]: inventoryId,
       inventory_action_type_id: record.inventory_action_type_id,

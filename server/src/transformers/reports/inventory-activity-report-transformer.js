@@ -53,7 +53,7 @@ const buildBaseInventoryActivityLogEntry = (row) => ({
  */
 const transformInventoryActivityLogRow = (row) => {
   const base = buildBaseInventoryActivityLogEntry(row);
-  
+
   if (row.batch_type === 'product') {
     base.productInfo = {
       sku: row.sku_code,
@@ -62,7 +62,7 @@ const transformInventoryActivityLogRow = (row) => {
       expiryDate: row.product_expiry_date,
     };
   }
-  
+
   if (row.batch_type === 'packaging_material') {
     base.packagingMaterialInfo = {
       lotNumber: row.material_lot_number,
@@ -71,7 +71,7 @@ const transformInventoryActivityLogRow = (row) => {
       code: row.material_code,
     };
   }
-  
+
   return cleanObject(base);
 };
 
@@ -99,7 +99,7 @@ const transformFlatInventoryActivityLogs = (rows) => {
  * @returns {Object} Transformed result with `data` and pagination metadata
  */
 const transformInventoryActivityLogs = (result) => {
-  return transformPaginatedResult(result, transformInventoryActivityLogRow,);
+  return transformPaginatedResult(result, transformInventoryActivityLogRow);
 };
 
 module.exports = {

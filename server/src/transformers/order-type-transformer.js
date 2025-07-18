@@ -35,7 +35,7 @@ const { transformPaginatedResult } = require('../utils/transformer-utils');
  */
 const transformOrderTypeRow = (row) => {
   if (!row) return null;
-  
+
   const result = {
     id: row.id,
     name: row.name,
@@ -51,7 +51,7 @@ const transformOrderTypeRow = (row) => {
     createdBy: getFullName(row.created_by_firstname, row.created_by_lastname),
     updatedBy: getFullName(row.updated_by_firstname, row.updated_by_lastname),
   };
-  
+
   return cleanObject(result);
 };
 
@@ -68,7 +68,9 @@ const transformOrderTypeRow = (row) => {
  * const transformed = transformPaginatedOrderTypes(filteredResult);
  */
 const transformPaginatedOrderTypes = (paginatedResult) => {
-  return transformPaginatedResult(paginatedResult, (row) => transformOrderTypeRow(row));
+  return transformPaginatedResult(paginatedResult, (row) =>
+    transformOrderTypeRow(row)
+  );
 };
 
 module.exports = {

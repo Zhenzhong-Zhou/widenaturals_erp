@@ -40,30 +40,44 @@ export const inventoryActivityLogsSlice = createSlice({
         state.base.loading = true;
         state.base.error = null;
       })
-      .addCase(fetchBaseInventoryActivityLogsThunk.fulfilled, (state, action) => {
-        state.base.loading = false;
-        state.base.data = action.payload.data;
-      })
-      .addCase(fetchBaseInventoryActivityLogsThunk.rejected, (state, action) => {
-        state.base.loading = false;
-        state.base.error = action.error.message ?? 'Failed to fetch base inventory logs.';
-      });
-    
+      .addCase(
+        fetchBaseInventoryActivityLogsThunk.fulfilled,
+        (state, action) => {
+          state.base.loading = false;
+          state.base.data = action.payload.data;
+        }
+      )
+      .addCase(
+        fetchBaseInventoryActivityLogsThunk.rejected,
+        (state, action) => {
+          state.base.loading = false;
+          state.base.error =
+            action.error.message ?? 'Failed to fetch base inventory logs.';
+        }
+      );
+
     // Paginated logs
     builder
       .addCase(fetchPaginatedInventoryActivityLogsThunk.pending, (state) => {
         state.paginated.loading = true;
         state.paginated.error = null;
       })
-      .addCase(fetchPaginatedInventoryActivityLogsThunk.fulfilled, (state, action) => {
-        state.paginated.loading = false;
-        state.paginated.data = action.payload.data;
-        state.paginated.pagination = action.payload.pagination;
-      })
-      .addCase(fetchPaginatedInventoryActivityLogsThunk.rejected, (state, action) => {
-        state.paginated.loading = false;
-        state.paginated.error = action.error.message ?? 'Failed to fetch paginated inventory logs.';
-      });
+      .addCase(
+        fetchPaginatedInventoryActivityLogsThunk.fulfilled,
+        (state, action) => {
+          state.paginated.loading = false;
+          state.paginated.data = action.payload.data;
+          state.paginated.pagination = action.payload.pagination;
+        }
+      )
+      .addCase(
+        fetchPaginatedInventoryActivityLogsThunk.rejected,
+        (state, action) => {
+          state.paginated.loading = false;
+          state.paginated.error =
+            action.error.message ?? 'Failed to fetch paginated inventory logs.';
+        }
+      );
   },
 });
 

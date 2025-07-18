@@ -133,7 +133,7 @@ const validateChecksum = (record) => {
  */
 const generateAddressHash = (address) => {
   const clean = (val) => (val || '').trim().toLowerCase();
-  
+
   const hashInput = [
     clean(address.customer_id),
     clean(address.label),
@@ -142,9 +142,9 @@ const generateAddressHash = (address) => {
     clean(address.city),
     clean(address.state),
     clean(address.postal_code),
-    clean(address.country)
+    clean(address.country),
   ].join('|');
-  
+
   return crypto.createHash('sha256').update(hashInput).digest('hex');
 };
 

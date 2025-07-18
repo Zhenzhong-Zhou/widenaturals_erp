@@ -36,7 +36,7 @@ export interface InventoryActivityLogEntry {
   batchType: 'product' | 'packaging_material';
   locationName: string;
   warehouseName: string;
-  
+
   // Conditional data
   productInfo?: {
     sku: string;
@@ -52,28 +52,31 @@ export interface InventoryActivityLogEntry {
   };
 }
 
-export type InventoryActivityLogBaseDataResponse = ApiSuccessResponse<InventoryActivityLogEntry[]>;
+export type InventoryActivityLogBaseDataResponse = ApiSuccessResponse<
+  InventoryActivityLogEntry[]
+>;
 
-export type InventoryActivityLogPaginatedResponse = PaginatedResponse<InventoryActivityLogEntry>;
+export type InventoryActivityLogPaginatedResponse =
+  PaginatedResponse<InventoryActivityLogEntry>;
 
 export interface InventoryActivityLogQueryParams extends PaginationParams {
-  warehouseIds?: string[];         // array of warehouse UUIDs
-  locationIds?: string[];          // array of location UUIDs
-  productIds?: string[];           // array of product UUIDs
-  skuIds?: string[];               // array of SKU UUIDs
-  batchIds?: string[];             // array of batch UUIDs
-  packagingMaterialIds?: string[];   // array of packaging material UUIDs
-  actionTypeIds?: string[];        // array of action type IDs or keys
-  
-  orderId?: string | null;         // single order UUID
-  statusId?: string | null;        // single status UUID
-  adjustmentTypeId?: string | null;// single adjustment type UUID
-  performedBy?: string | null;     // user ID or name
-  sourceType?: string | null;      // enum/string (e.g. 'manual_insert')
-  batchType?: string | null;       // 'product' | 'packaging_material'
-  
-  fromDate?: string | null;        // ISO 8601 date string
-  toDate?: string | null;          // ISO 8601 date string
+  warehouseIds?: string[]; // array of warehouse UUIDs
+  locationIds?: string[]; // array of location UUIDs
+  productIds?: string[]; // array of product UUIDs
+  skuIds?: string[]; // array of SKU UUIDs
+  batchIds?: string[]; // array of batch UUIDs
+  packagingMaterialIds?: string[]; // array of packaging material UUIDs
+  actionTypeIds?: string[]; // array of action type IDs or keys
+
+  orderId?: string | null; // single order UUID
+  statusId?: string | null; // single status UUID
+  adjustmentTypeId?: string | null; // single adjustment type UUID
+  performedBy?: string | null; // user ID or name
+  sourceType?: string | null; // enum/string (e.g. 'manual_insert')
+  batchType?: string | null; // 'product' | 'packaging_material'
+
+  fromDate?: string | null; // ISO 8601 date string
+  toDate?: string | null; // ISO 8601 date string
 }
 
 export interface InventoryActivityLogsState {
@@ -81,7 +84,7 @@ export interface InventoryActivityLogsState {
    * Non-paginated log data (used in base views).
    */
   base: AsyncState<InventoryActivityLogEntry[]>;
-  
+
   /**
    * Paginated log data (used in privileged views with filters).
    */

@@ -9,14 +9,42 @@ interface SingleCustomerFormProps {
 }
 
 const customerFormFields: FieldConfig[] = [
-  { id: 'firstname', label: 'First Name', type: 'text', required: true, grid: { xs: 12, sm: 6 } },
-  { id: 'lastname', label: 'Last Name', type: 'text', required: true, grid: { xs: 12, sm: 6 } },
-  { id: 'email', label: 'Email', type: 'email', required: true, validation: emailValidator, grid: { xs: 12, sm: 6 } },
-  { id: 'phone_number', label: 'Phone Number', type: 'phone', required: true, grid: { xs: 12, sm: 6 } },
+  {
+    id: 'firstname',
+    label: 'First Name',
+    type: 'text',
+    required: true,
+    grid: { xs: 12, sm: 6 },
+  },
+  {
+    id: 'lastname',
+    label: 'Last Name',
+    type: 'text',
+    required: true,
+    grid: { xs: 12, sm: 6 },
+  },
+  {
+    id: 'email',
+    label: 'Email',
+    type: 'email',
+    required: true,
+    validation: emailValidator,
+    grid: { xs: 12, sm: 6 },
+  },
+  {
+    id: 'phone_number',
+    label: 'Phone Number',
+    type: 'phone',
+    required: true,
+    grid: { xs: 12, sm: 6 },
+  },
   { id: 'note', label: 'Note', type: 'textarea', grid: { xs: 12 } },
 ];
 
-const SingleCustomerForm: FC<SingleCustomerFormProps> = ({ onSubmit, loading }) => {
+const SingleCustomerForm: FC<SingleCustomerFormProps> = ({
+  onSubmit,
+  loading,
+}) => {
   return (
     <CustomForm
       fields={customerFormFields}

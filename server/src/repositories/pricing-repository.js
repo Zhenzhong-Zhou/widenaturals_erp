@@ -11,7 +11,6 @@ const { buildPricingFilters } = require('../utils/sql/build-pricing-filters');
 // WHERE s.id = '7dbc9b37-43ea-426b-8fd2-44d4b0ef10ad';
 // `;
 
-
 /**
  * Fetches a paginated list of pricing records with enriched SKU and product data.
  *

@@ -4,7 +4,9 @@ const {
   fetchWarehouseLookupService,
   fetchLotAdjustmentLookupService,
   fetchCustomerLookupService,
-  fetchCustomerAddressLookupService, fetchOrderTypeLookupService, fetchPaginatedPaymentMethodLookupService,
+  fetchCustomerAddressLookupService,
+  fetchOrderTypeLookupService,
+  fetchPaginatedPaymentMethodLookupService,
 } = require('../services/lookup-service');
 const { logInfo } = require('../utils/logger-helper');
 
@@ -28,23 +30,23 @@ const getBatchRegistryLookupController = wrapAsync(async (req, res) => {
       ip: req.ip,
     },
   });
-  
+
   const { limit, offset, filters: rawFilters = {} } = req.normalizedQuery;
-  
+
   const {
     batchType,
     warehouseId,
     locationId,
     ...restFilters // in case there are more filters later
   } = rawFilters;
-  
+
   const filters = {
     ...(batchType !== undefined && { batchType }),
     ...(warehouseId !== undefined && { warehouseId }),
     ...(locationId !== undefined && { locationId }),
     ...restFilters, // optional: include any other filters dynamically
   };
-  
+
   const dropdownResult = await fetchBatchRegistryLookupService({
     filters,
     limit,
@@ -52,7 +54,7 @@ const getBatchRegistryLookupController = wrapAsync(async (req, res) => {
   });
 
   const { items, hasMore } = dropdownResult;
-  
+
   res.status(200).json({
     success: true,
     message: `Successfully retrieved batch registry lookup`,
@@ -72,15 +74,13 @@ const getBatchRegistryLookupController = wrapAsync(async (req, res) => {
  * @returns {Promise<void>}
  */
 const getWarehouseLookupController = wrapAsync(async (req, res) => {
-  const  user = req.user;
-  const {
-    warehouseTypeId,
-  } = req.normalizedQuery.filters ?? {};
+  const user = req.user;
+  const { warehouseTypeId } = req.normalizedQuery.filters ?? {};
 
   const filters = {
     ...(warehouseTypeId !== undefined && { warehouseTypeId }),
   };
-  
+
   const dropdownItems = await fetchWarehouseLookupService(user, filters);
 
   res.status(200).json({
@@ -105,13 +105,11 @@ const getWarehouseLookupController = wrapAsync(async (req, res) => {
  */
 const getLotAdjustmentLookupController = wrapAsync(async (req, res) => {
   const user = req.user;
-  const filters = {
-    excludeInternal,
-    restrictToQtyAdjustment
-  } = req.normalizedQuery.filters;
-  
+  const filters = ({ excludeInternal, restrictToQtyAdjustment } =
+    req.normalizedQuery.filters);
+
   const options = await fetchLotAdjustmentLookupService(user, filters);
-  
+
   res.status(200).json({
     success: true,
     message: `Successfully retrieved lot adjustment lookup`,
@@ -132,12 +130,8 @@ const getLotAdjustmentLookupController = wrapAsync(async (req, res) => {
  */
 const fetchCustomerLookupController = wrapAsync(async (req, res) => {
   const user = req.user;
-  const {
-    keyword = '',
-    limit,
-    offset
-  } = req.normalizedQuery.filters;
-  
+  const { keyword = '', limit, offset } = req.normalizedQuery.filters;
+
   const dropdownResult = await fetchCustomerLookupService(
     {
       keyword,
@@ -146,9 +140,9 @@ const fetchCustomerLookupController = wrapAsync(async (req, res) => {
     },
     user
   );
-  
+
   const { items, hasMore } = dropdownResult;
-  
+
   res.status(200).json({
     success: true,
     message: 'Customer address lookup data retrieved successfully.',
@@ -212,9 +206,9 @@ const getCustomerAddressLookupController = wrapAsync(async (req, res) => {
 const getOrderTypeLookupController = wrapAsync(async (req, res) => {
   const user = req.user;
   const { filters = {} } = req.normalizedQuery;
-  
+
   const result = await fetchOrderTypeLookupService({ filters }, user);
-  
+
   return res.status(200).json({
     success: true,
     message: 'Successfully retrieved order type lookup',
@@ -249,20 +243,16 @@ const getOrderTypeLookupController = wrapAsync(async (req, res) => {
  */
 const getPaymentMethodLookupController = wrapAsync(async (req, res) => {
   const user = req.user;
-  const {
-    filters = {},
-    limit = 50,
-    offset = 0,
-  } = req.normalizedQuery;
-  
+  const { filters = {}, limit = 50, offset = 0 } = req.normalizedQuery;
+
   const dropdownResult = await fetchPaginatedPaymentMethodLookupService(user, {
     filters,
     limit,
     offset,
   });
-  
+
   const { items, hasMore } = dropdownResult;
-  
+
   res.status(200).json({
     success: true,
     message: 'Successfully retrieved payment method lookup',
@@ -280,5 +270,5 @@ module.exports = {
   fetchCustomerLookupController,
   getCustomerAddressLookupController,
   getOrderTypeLookupController,
-  getPaymentMethodLookupController
+  getPaymentMethodLookupController,
 };

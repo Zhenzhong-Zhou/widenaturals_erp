@@ -18,17 +18,19 @@ const AppError = require('../utils/AppError');
 const calculateDiscountAmount = (subtotal, discount) => {
   try {
     if (!discount) return 0;
-    
+
     if (discount.discount_type === 'PERCENTAGE') {
       return subtotal * (discount.discount_value / 100);
     }
-    
+
     if (discount.discount_type === 'FIXED_AMOUNT') {
       return discount.discount_value;
     }
-    
+
     // Throw for unsupported type
-    throw AppError.validationError(`Unsupported discount type: ${discount.discount_type}`);
+    throw AppError.validationError(
+      `Unsupported discount type: ${discount.discount_type}`
+    );
   } catch (error) {
     logSystemException(error, 'Failed to calculate discount amount', {
       context: 'discount-business/calculateDiscountAmount',

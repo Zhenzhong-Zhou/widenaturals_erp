@@ -1,6 +1,12 @@
 import type { Dispatch, FC, SetStateAction } from 'react';
-import type { BatchLookupOption, GetBatchRegistryLookupParams, LookupPaginationMeta } from '@features/lookup/state';
-import MultiSelectDropdown, { type MultiSelectOption } from '@components/common/MultiSelectDropdown';
+import type {
+  BatchLookupOption,
+  GetBatchRegistryLookupParams,
+  LookupPaginationMeta,
+} from '@features/lookup/state';
+import MultiSelectDropdown, {
+  type MultiSelectOption,
+} from '@components/common/MultiSelectDropdown';
 
 interface BatchRegistryMultiSelectDropdownProps {
   label?: string;
@@ -21,19 +27,21 @@ interface BatchRegistryMultiSelectDropdownProps {
   placeholder?: string;
 }
 
-const BatchRegistryMultiSelectDropdown: FC<BatchRegistryMultiSelectDropdownProps> = ({
-                                                                                       label = 'Select Batches',
-                                                                                       batchLookupOptions,
-                                                                                       selectedOptions,
-                                                                                       onChange,
-                                                                                       loading,
-                                                                                       disabled,
-                                                                                       error,
-                                                                                       helperText,
-                                                                                       batchLookupMeta,
-                                                                                       sx,
-                                                                                       placeholder = 'Choose batches...',
-                                                                                     }) => {
+const BatchRegistryMultiSelectDropdown: FC<
+  BatchRegistryMultiSelectDropdownProps
+> = ({
+  label = 'Select Batches',
+  batchLookupOptions,
+  selectedOptions,
+  onChange,
+  loading,
+  disabled,
+  error,
+  helperText,
+  batchLookupMeta,
+  sx,
+  placeholder = 'Choose batches...',
+}) => {
   return (
     <MultiSelectDropdown
       label={label}

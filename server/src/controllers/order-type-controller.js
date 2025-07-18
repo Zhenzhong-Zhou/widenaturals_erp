@@ -29,14 +29,8 @@ const {
  * @throws {AppError} On service failure (handled by wrapAsync).
  */
 const getPaginatedOrderTypesController = wrapAsync(async (req, res) => {
-  const {
-    page,
-    limit,
-    sortBy,
-    sortOrder,
-    filters,
-  } = req.normalizedQuery;
-  
+  const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
+
   const { data, pagination } = await fetchPaginatedOrderTypesService({
     user: req.user,
     filters,

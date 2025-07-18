@@ -10,7 +10,7 @@ export const usePaginationHandlers = (
     },
     [setPage]
   );
-  
+
   const handleRowsPerPageChange = useCallback(
     (newLimit: number) => {
       setLimit(newLimit);
@@ -18,6 +18,6 @@ export const usePaginationHandlers = (
     },
     [setLimit, setPage]
   );
-  
+
   return { handlePageChange, handleRowsPerPageChange };
 };

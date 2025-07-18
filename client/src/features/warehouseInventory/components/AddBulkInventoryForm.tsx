@@ -31,9 +31,7 @@ interface AddBulkInventoryFormProps {
   loading?: boolean;
   batchLookupOptions: BatchLookupOption[];
   batchLookupParams: GetBatchRegistryLookupParams;
-  setBatchLookupParams: Dispatch<
-    SetStateAction<GetBatchRegistryLookupParams>
-  >;
+  setBatchLookupParams: Dispatch<SetStateAction<GetBatchRegistryLookupParams>>;
   fetchBatchLookup: (params: GetBatchRegistryLookupParams) => void;
   resetBatchLookup: () => void;
   batchLookupPaginationMeta: LookupPaginationMeta;
@@ -68,16 +66,16 @@ const AddBulkInventoryForm: FC<AddBulkInventoryFormProps> = ({
   warehouseLookupError,
 }) => {
   const [batchType, setBatchType] = useState<BatchType>('all');
-  
+
   const visibleOptions = getVisibleBatchOptions(batchType, batchLookupOptions);
-  
+
   const { handleBatchTypeChange } = useBatchTypeHandler({
     setBatchType,
     setBatchLookupParams,
     resetBatchLookup,
     fetchBatchLookup,
   });
-  
+
   const fields: MultiItemFieldConfig[] = useMemo(() => {
     const baseFields: MultiItemFieldConfig[] = [
       {
@@ -179,8 +177,7 @@ const AddBulkInventoryForm: FC<AddBulkInventoryFormProps> = ({
                 setFetchParams={setBatchLookupParams}
                 onRefresh={fetchBatchLookup}
                 noOptionsMessage={
-                  visibleOptions.length === 0
-                    ? 'No matching batches found' : ''
+                  visibleOptions.length === 0 ? 'No matching batches found' : ''
                 }
               />
             </Grid>

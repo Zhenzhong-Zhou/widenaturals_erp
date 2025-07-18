@@ -29,19 +29,19 @@ interface AdjustBulkInventoryFormProps {
 }
 
 const AdjustBulkInventoryForm: FC<AdjustBulkInventoryFormProps> = ({
-                                                             initialQuantities,
-                                                             adjustmentTypeOptions,
-                                                             onSubmit,
-                                                             contextData,
-                                                             dropdownLoading,
-                                                             dropdownError,
-                                                             onRefresh,
-                                                             loading,
-                                                           }) => {
+  initialQuantities,
+  adjustmentTypeOptions,
+  onSubmit,
+  contextData,
+  dropdownLoading,
+  dropdownError,
+  onRefresh,
+  loading,
+}) => {
   if (!contextData || contextData.length === 0) {
     return <Alert severity="warning">No inventory records selected</Alert>;
   }
-  
+
   const fields: MultiItemFieldConfig[] = [
     {
       id: 'adjustment_type_id',
@@ -82,7 +82,7 @@ const AdjustBulkInventoryForm: FC<AdjustBulkInventoryFormProps> = ({
       placeholder: 'Reason for adjustment (optional)',
     },
   ];
-  
+
   const defaultValues = contextData.map((record, index) => ({
     id: uuidv4(),
     newQuantity: initialQuantities[index],
@@ -91,7 +91,7 @@ const AdjustBulkInventoryForm: FC<AdjustBulkInventoryFormProps> = ({
     recordId: record.id,
     _meta: record,
   }));
-  
+
   return (
     <Stack spacing={3}>
       <Paper
@@ -122,12 +122,24 @@ const AdjustBulkInventoryForm: FC<AdjustBulkInventoryFormProps> = ({
                   fields={[
                     { label: 'Warehouse', value: record.warehouseName },
                     { label: 'Location', value: record.locationName },
-                    { label: 'Type', value: record.batchType, format: formatLabel },
+                    {
+                      label: 'Type',
+                      value: record.batchType,
+                      format: formatLabel,
+                    },
                     { label: 'Lot Number', value: record.lotNumber },
-                    { label: 'Expiry Date', value: record.expiryDate, format: formatDate },
+                    {
+                      label: 'Expiry Date',
+                      value: record.expiryDate,
+                      format: formatDate,
+                    },
                     { label: 'Warehouse Qty', value: record.warehouseQuantity },
                     { label: 'Location Qty', value: record.locationQuantity },
-                    { label: 'Status', value: record.status, format: formatLabel },
+                    {
+                      label: 'Status',
+                      value: record.status,
+                      format: formatLabel,
+                    },
                   ]}
                 />
               );

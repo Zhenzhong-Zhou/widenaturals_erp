@@ -1,4 +1,9 @@
-import { useState, type MouseEvent, type ReactNode, type RefObject } from 'react';
+import {
+  useState,
+  type MouseEvent,
+  type ReactNode,
+  type RefObject,
+} from 'react';
 import IconButton from '@mui/material/IconButton';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import Menu from '@mui/material/Menu';
@@ -19,23 +24,27 @@ interface RowActionMenuProps<T = any> {
 }
 
 const RowActionMenu = <T,>({
-                             row,
-                             actions,
-                             buttonAriaLabel = 'Row actions',
-                           }: RowActionMenuProps<T>) => {
+  row,
+  actions,
+  buttonAriaLabel = 'Row actions',
+}: RowActionMenuProps<T>) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
-  
+
   const handleOpen = (event: MouseEvent<HTMLElement>) => {
     event.stopPropagation(); // Prevent row clicks
     setAnchorEl(event.currentTarget);
   };
-  
+
   const handleClose = () => setAnchorEl(null);
-  
+
   return (
     <>
-      <IconButton onClick={handleOpen} aria-label={buttonAriaLabel} size="small">
+      <IconButton
+        onClick={handleOpen}
+        aria-label={buttonAriaLabel}
+        size="small"
+      >
         <MoreVertIcon fontSize="small" />
       </IconButton>
       <Menu
@@ -51,7 +60,7 @@ const RowActionMenu = <T,>({
             onClick={() => {
               action.onClick(row);
               handleClose();
-              
+
               // If a ref is provided, manually set focus for accessibility
               if (action.buttonRef?.current) {
                 setTimeout(() => {
@@ -61,7 +70,9 @@ const RowActionMenu = <T,>({
             }}
             disabled={action.disabled}
           >
-            {action.icon && <span style={{ marginRight: 8 }}>{action.icon}</span>}
+            {action.icon && (
+              <span style={{ marginRight: 8 }}>{action.icon}</span>
+            )}
             {action.label}
           </MenuItem>
         ))}

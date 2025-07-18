@@ -1,4 +1,11 @@
-import { type FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  type FC,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import Card from '@mui/material/Card';
@@ -12,7 +19,10 @@ import Loading from '@components/common/Loading';
 import CustomerFiltersPanel from '@features/customer/components/CustomerFiltersPanel';
 import CustomerSortControls from '../components/CustomerSortControls';
 import usePaginatedCustomers from '@hooks/usePaginatedCustomers';
-import type { CustomerFilters, CustomerSortField } from '@features/customer/state';
+import type {
+  CustomerFilters,
+  CustomerSortField,
+} from '@features/customer/state';
 import { useDialogFocusHandlers } from '@utils/hooks/useDialogFocusHandlers';
 import { usePaginationHandlers } from '@utils/hooks/usePaginationHandlers';
 import { applyFiltersAndSorting } from '@utils/queryUtils';
@@ -25,14 +35,17 @@ const CustomersPage: FC = () => {
   const [sortBy, setSortBy] = useState<CustomerSortField>('createdAt');
   const [sortOrder, setSortOrder] = useState<'' | 'ASC' | 'DESC'>('');
   const [filters, setFilters] = useState<CustomerFilters>({});
-  
+
   const { handleOpenDialog, handleCloseDialog } = useDialogFocusHandlers(
     setDialogOpen,
     createButtonRef,
     () => dialogOpen
   );
-  const { handlePageChange, handleRowsPerPageChange } = usePaginationHandlers(setPage, setLimit);
-  
+  const { handlePageChange, handleRowsPerPageChange } = usePaginationHandlers(
+    setPage,
+    setLimit
+  );
+
   const {
     customers,
     totalPages,
@@ -41,7 +54,7 @@ const CustomersPage: FC = () => {
     error,
     fetchCustomers,
   } = usePaginatedCustomers();
-  
+
   // Memoize the query parameters to avoid unnecessary re-renders or function calls
   const queryParams = useMemo(
     () => ({
@@ -64,12 +77,12 @@ const CustomersPage: FC = () => {
   const handleRefresh = useCallback(() => {
     applyFiltersAndSorting(queryParams);
   }, [queryParams]);
-  
+
   const handleResetFilters = () => {
     setFilters({});
     setPage(1); // Optional: reset to first page
   };
-  
+
   return (
     <Box sx={{ px: 4, py: 3 }}>
       {/* Header */}
@@ -84,7 +97,7 @@ const CustomersPage: FC = () => {
         <CustomTypography variant="h5" fontWeight={700}>
           Customer Management
         </CustomTypography>
-        
+
         <CustomButton
           ref={createButtonRef}
           variant="contained"
@@ -94,9 +107,9 @@ const CustomersPage: FC = () => {
           Create Customer
         </CustomButton>
       </Box>
-      
+
       <Divider sx={{ mb: 3 }} />
-      
+
       {/* Filter + Sort Controls in Card */}
       <Card sx={{ p: 3, mb: 4, borderRadius: 2, minHeight: 200 }}>
         <Grid container spacing={2}>
@@ -109,7 +122,7 @@ const CustomersPage: FC = () => {
               onReset={handleResetFilters}
             />
           </Grid>
-          
+
           {/* Sort Controls */}
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <CustomerSortControls
@@ -121,14 +134,14 @@ const CustomersPage: FC = () => {
           </Grid>
         </Grid>
       </Card>
-      
+
       {/* Dialog */}
       <CustomerCreateDialog
         open={dialogOpen}
         onClose={handleCloseDialog}
         onCreated={handleRefresh}
       />
-      
+
       {/* Customer Table Section */}
       <Box>
         {loading ? (

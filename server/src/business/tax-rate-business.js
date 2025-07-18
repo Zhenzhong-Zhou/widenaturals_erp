@@ -21,7 +21,7 @@ const calculateTaxableAmount = (subtotal, discountAmount, taxRate) => {
   try {
     const taxableAmount = Math.max(subtotal - discountAmount, 0);
     const taxAmount = taxableAmount * (taxRate / 100);
-    
+
     return {
       taxableAmount,
       taxAmount,
@@ -33,7 +33,7 @@ const calculateTaxableAmount = (subtotal, discountAmount, taxRate) => {
       discountAmount,
       taxRate,
     });
-    
+
     throw AppError.businessError('Unable to calculate tax amounts.');
   }
 };

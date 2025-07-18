@@ -23,23 +23,23 @@ import { resetOrderTypesState } from '@features/orderType/state/paginatedOrderTy
  */
 const usePaginateOrderTypes = () => {
   const dispatch = useAppDispatch();
-  
+
   const data = useAppSelector(selectOrderTypeList);
   const pagination = useAppSelector(selectOrderTypePagination);
   const loading = useAppSelector(selectOrderTypesLoading);
   const error = useAppSelector(selectOrderTypesError);
-  
+
   const fetchData = useCallback(
     (params: FetchPaginatedOrderTypesParams) => {
       dispatch(fetchPaginatedOrderTypesThunk(params));
     },
     [dispatch]
   );
-  
+
   const reset = useCallback(() => {
     dispatch(resetOrderTypesState());
   }, [dispatch]);
-  
+
   return useMemo(
     () => ({
       data,

@@ -64,12 +64,7 @@ router.get(
     [],
     orderTypeQuerySchema
   ),
-  sanitizeFields([
-    'name',
-    'code',
-    'category',
-    'keyword'
-  ]),
+  sanitizeFields(['name', 'code', 'category', 'keyword']),
   validate(
     orderTypeQuerySchema,
     'query',

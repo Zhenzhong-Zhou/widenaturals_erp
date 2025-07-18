@@ -2,9 +2,12 @@ const { getStatusIdByName } = require('../repositories/status-repository');
 const AppError = require('../utils/AppError');
 const {
   logSystemException,
-  logSystemError
+  logSystemError,
 } = require('../utils/system-logger');
-const { checkPermissions, resolveUserPermissionContext } = require('../services/role-permission-service');
+const {
+  checkPermissions,
+  resolveUserPermissionContext,
+} = require('../services/role-permission-service');
 const { getStatusId } = require('../config/status-cache');
 
 /**
@@ -23,7 +26,7 @@ const prepareCustomersForInsert = async (customers, createdBy) => {
       logSystemError('Customer preparation failed: Missing active status ID');
       throw AppError.notFoundError('Active status ID not found.');
     }
-    
+
     return customers.map((customer) => ({
       ...customer,
       status_id: activeStatusId,
@@ -32,9 +35,9 @@ const prepareCustomersForInsert = async (customers, createdBy) => {
     }));
   } catch (error) {
     logSystemException(error, 'Failed to prepare customers for insert', {
-      traceContext: 'prepareCustomersForInsert'
+      traceContext: 'prepareCustomersForInsert',
     });
-    
+
     throw AppError.businessError(
       'Customer preparation failed: Validation or enrichment error.',
       error
@@ -53,10 +56,14 @@ const prepareCustomersForInsert = async (customers, createdBy) => {
  * @param {string} purpose - Context of the filtering, e.g., 'insert_response', 'detail_view'.
  * @returns {object} Filtered customer object.
  */
-const filterCustomerForViewer = async (customer, user, purpose = 'detail_view') => {
+const filterCustomerForViewer = async (
+  customer,
+  user,
+  purpose = 'detail_view'
+) => {
   const canViewAudit = await checkPermissions(user, ['view_customer_audit']);
   const canViewDetails = await checkPermissions(user, ['view_customer_detail']);
-  
+
   const base = {
     id: customer.id,
     firstname: customer.firstname,
@@ -65,16 +72,16 @@ const filterCustomerForViewer = async (customer, user, purpose = 'detail_view') 
     phoneNumber: customer.phoneNumber,
     status: { name: customer.status?.name },
   };
-  
+
   if (purpose === 'insert_response') {
     // Minimal info to confirm creation
     return base;
   }
-  
+
   if (canViewDetails || purpose === 'detail_view') {
     base.note = customer.note;
   }
-  
+
   if (canViewAudit || purpose === 'admin_view') {
     base.createdBy = customer.createdBy;
     base.updatedBy = customer.updatedBy;
@@ -82,7 +89,7 @@ const filterCustomerForViewer = async (customer, user, purpose = 'detail_view') 
     base.updatedAt = customer.updatedAt;
     base.status = customer.status;
   }
-  
+
   return base;
 };
 
@@ -103,18 +110,18 @@ const filterCustomerForViewer = async (customer, user, purpose = 'detail_view') 
  */
 const resolveCustomerQueryOptions = async (user) => {
   const { permissions, isRoot } = await resolveUserPermissionContext(user);
-  
+
   if (isRoot || permissions.includes('view_all_customers')) {
     return { statusId: undefined, overrideDefaultStatus: true };
   }
-  
+
   if (permissions.includes('view_active_customers')) {
     return {
       statusId: getStatusId('customer_active'),
       overrideDefaultStatus: false,
     };
   }
-  
+
   // Default to active if no permission (legacy behavior)
   return {
     statusId: getStatusId('customer_active'),

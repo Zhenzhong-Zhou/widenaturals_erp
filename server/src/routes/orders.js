@@ -1,7 +1,5 @@
 const express = require('express');
-const {
-  createOrderController,
-} = require('../controllers/order-controller');
+const { createOrderController } = require('../controllers/order-controller');
 const authorize = require('../middlewares/authorize');
 const validate = require('../middlewares/validate');
 const salesOrderSchema = require('../validators/sales-order-validators');
@@ -83,7 +81,9 @@ router.post(
     const category = req.params.category.toLowerCase();
     const schema = schemaMap[category];
     if (!schema) {
-      return next(AppError.validationError(`Unsupported order category: ${category}`));
+      return next(
+        AppError.validationError(`Unsupported order category: ${category}`)
+      );
     }
     return validate(schema, 'body')(req, res, next);
   },

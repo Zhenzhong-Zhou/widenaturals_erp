@@ -7,13 +7,13 @@ const { generateAddressHash } = require('../../../utils/crypto-utils');
  */
 exports.seed = async function (knex) {
   console.log('Seeding addresses...');
-  
+
   const existing = await knex('addresses').count('id as count').first();
   if (existing?.count > 0) {
     console.log('Addresses already seeded. Skipping.');
     return;
   }
-  
+
   const systemUserId = await fetchDynamicValue(
     knex,
     'users',
@@ -21,20 +21,38 @@ exports.seed = async function (knex) {
     'system@internal.local',
     'id'
   );
-  
+
   const now = knex.fn.now();
-  
+
   // Dynamically fetch customer IDs
-  const johnCustomerId = await fetchDynamicValue(knex, 'customers', 'email', 'john.doe@example.com', 'id');
-  const janeCustomerId = await fetchDynamicValue(knex, 'customers', 'email', 'jane.smith@example.com', 'id');
-  const aliceCustomerId = await fetchDynamicValue(knex, 'customers', 'email', 'alice.wong@example.com', 'id');
-  
+  const johnCustomerId = await fetchDynamicValue(
+    knex,
+    'customers',
+    'email',
+    'john.doe@example.com',
+    'id'
+  );
+  const janeCustomerId = await fetchDynamicValue(
+    knex,
+    'customers',
+    'email',
+    'jane.smith@example.com',
+    'id'
+  );
+  const aliceCustomerId = await fetchDynamicValue(
+    knex,
+    'customers',
+    'email',
+    'alice.wong@example.com',
+    'id'
+  );
+
   const customerEmailMap = {
     'johndoe@example.com': johnCustomerId,
     'janesmith@example.com': janeCustomerId,
     'alice.wong@example.com': aliceCustomerId,
   };
-  
+
   const addressList = [
     {
       full_name: 'John Doe',
@@ -121,7 +139,7 @@ exports.seed = async function (knex) {
       note: 'Include PO number on all invoices',
     },
   ];
-  
+
   const records = addressList.map((addr) => ({
     id: knex.raw('uuid_generate_v4()'),
     customer_id: customerEmailMap[addr.email] ?? null,
@@ -143,8 +161,8 @@ exports.seed = async function (knex) {
     created_by: systemUserId,
     updated_by: null,
   }));
-  
+
   await knex('addresses').insert(records);
-  
+
   console.log(`Seeded ${records.length} addresses.`);
 };

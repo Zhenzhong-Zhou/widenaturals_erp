@@ -19,20 +19,20 @@ interface OrderTypeDropdownProps {
 }
 
 const OrderTypeDropdown: FC<OrderTypeDropdownProps> = ({
-                                                         value,
-                                                         orderTypeOptions,
-                                                         orderTypeLoading,
-                                                         orderTypeError,
-                                                         onChange,
-                                                         onKeywordSearch,
-                                                         disabled,
-                                                         searchable = true,
-                                                         sx,
-                                                         helperText,
-                                                         placeholder = 'Select order type',
-                                                         onRefresh,
-                                                         onAddNew,
-                                                       }) => {
+  value,
+  orderTypeOptions,
+  orderTypeLoading,
+  orderTypeError,
+  onChange,
+  onKeywordSearch,
+  disabled,
+  searchable = true,
+  sx,
+  helperText,
+  placeholder = 'Select order type',
+  onRefresh,
+  onAddNew,
+}) => {
   return (
     <Dropdown
       label="Order Type"

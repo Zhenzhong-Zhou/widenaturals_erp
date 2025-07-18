@@ -17,12 +17,16 @@ interface CustomerCreateDialogProps {
   onCreated: () => void;
 }
 
-const CustomerCreateDialog = ({ open, onClose, onCreated }: CustomerCreateDialogProps) => {
+const CustomerCreateDialog = ({
+  open,
+  onClose,
+  onCreated,
+}: CustomerCreateDialogProps) => {
   const [mode, setMode] = useState<CreateMode>('single');
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [addressStarted, setAddressStarted] = useState(false);
   const [showAddressDialog, setShowAddressDialog] = useState(false);
-  
+
   const {
     loading,
     error,
@@ -31,19 +35,19 @@ const CustomerCreateDialog = ({ open, onClose, onCreated }: CustomerCreateDialog
     createCustomers,
     resetCustomerCreate,
   } = useCustomerCreate();
-  
+
   useEffect(() => {
     if (customerCreateResponse?.success) {
       setShowSuccessDialog(true);
     }
   }, [customerCreateResponse]);
-  
+
   const handleClose = () => {
     resetCustomerCreate();
     setMode('single');
     onClose();
   };
-  
+
   const handleSubmit = useCallback(
     async (data: any) => {
       const dataArray = mode === 'single' ? [data] : data;
@@ -55,7 +59,7 @@ const CustomerCreateDialog = ({ open, onClose, onCreated }: CustomerCreateDialog
     },
     [mode, createCustomers]
   );
-  
+
   const handleSuccessDialogClose = () => {
     setShowSuccessDialog(false);
     if (!addressStarted) {
@@ -63,14 +67,14 @@ const CustomerCreateDialog = ({ open, onClose, onCreated }: CustomerCreateDialog
       handleClose();
     }
   };
-  
+
   const handleAddressDialogClose = () => {
     setShowAddressDialog(false);
     setAddressStarted(false);
     onCreated();
     handleClose();
   };
-  
+
   return (
     <>
       {showSuccessDialog ? (
@@ -118,14 +122,17 @@ const CustomerCreateDialog = ({ open, onClose, onCreated }: CustomerCreateDialog
           </Box>
         </CustomDialog>
       )}
-      
+
       {/* Address creation dialog after customer creation */}
       {showAddressDialog && (
         <AddressCreateDialog
           open={showAddressDialog}
           onClose={handleAddressDialogClose}
           customerNames={customerNames}
-          customerIds={customerCreateResponse?.data.map((c: CustomerResponse) => c.id) ?? []}
+          customerIds={
+            customerCreateResponse?.data.map((c: CustomerResponse) => c.id) ??
+            []
+          }
         />
       )}
     </>

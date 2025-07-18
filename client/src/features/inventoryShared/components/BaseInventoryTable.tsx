@@ -57,13 +57,13 @@ const BaseInventoryTable = <T,>({
   getGroupHeaderId,
   onAdjustSingle,
   selectedRowIds,
-  onSelectionChange
+  onSelectionChange,
 }: BaseInventoryTableProps<T>) => {
   const quantityId =
     groupKey === 'warehouse' ? 'warehouseQuantity' : 'locationQuantity';
   const quantityLabel =
     groupKey === 'warehouse' ? 'Warehouse QTY' : 'Location QTY';
-  
+
   const renderStockLevelCell = useCallback(
     (row: FlatInventoryRowBase<T>) => (
       <StockLevelChip
@@ -72,7 +72,7 @@ const BaseInventoryTable = <T,>({
     ),
     []
   );
-  
+
   const renderExpirySeverityCell = useCallback(
     (row: FlatInventoryRowBase<T>) => (
       <ExpirySeverityChip
@@ -81,7 +81,7 @@ const BaseInventoryTable = <T,>({
     ),
     []
   );
-  
+
   const columns: Column<FlatInventoryRowBase<T>>[] = useMemo(() => {
     return [
       { id: 'name', label: 'Name' },
@@ -120,20 +120,21 @@ const BaseInventoryTable = <T,>({
       },
       ...(showActions
         ? [
-          {
-            id: 'actions',
-            label: 'Actions',
-            align: 'center' as const,
-            renderCell: (row: FlatInventoryRowBase<T>) =>
-              !row.isGroupHeader && onAdjustSingle && (
-                <Tooltip title="Adjust Quantity">
-                  <IconButton onClick={() => onAdjustSingle(row)}>
-                    <EditIcon />
-                  </IconButton>
-                </Tooltip>
-              ),
-          },
-        ]
+            {
+              id: 'actions',
+              label: 'Actions',
+              align: 'center' as const,
+              renderCell: (row: FlatInventoryRowBase<T>) =>
+                !row.isGroupHeader &&
+                onAdjustSingle && (
+                  <Tooltip title="Adjust Quantity">
+                    <IconButton onClick={() => onAdjustSingle(row)}>
+                      <EditIcon />
+                    </IconButton>
+                  </Tooltip>
+                ),
+            },
+          ]
         : []),
     ];
   }, [
@@ -146,7 +147,7 @@ const BaseInventoryTable = <T,>({
     showActions,
     onAdjustSingle,
   ]);
-  
+
   const flattenedWithHeaders: any[] = [];
 
   Object.entries(groupedData).forEach(([groupName, records]) => {
@@ -160,9 +161,11 @@ const BaseInventoryTable = <T,>({
       flattenedWithHeaders.push(getRowData(record));
     });
   });
-  
-  const selectableRows = flattenedWithHeaders.filter((row) => !row.isGroupHeader);
-  
+
+  const selectableRows = flattenedWithHeaders.filter(
+    (row) => !row.isGroupHeader
+  );
+
   return (
     <CustomTable
       loading={isLoading}
@@ -185,13 +188,13 @@ const BaseInventoryTable = <T,>({
       onSelectionChange={
         showCheckboxes
           ? (ids: string[]) => {
-            if (onSelectionChange) {
-              const selectedRecords = selectableRows.filter((row) =>
-                ids.includes(row.id)
-              );
-              onSelectionChange(ids, selectedRecords);
+              if (onSelectionChange) {
+                const selectedRecords = selectableRows.filter((row) =>
+                  ids.includes(row.id)
+                );
+                onSelectionChange(ids, selectedRecords);
+              }
             }
-          }
           : undefined
       }
       showCheckboxes={showCheckboxes}

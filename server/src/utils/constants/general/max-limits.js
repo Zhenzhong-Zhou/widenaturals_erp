@@ -36,8 +36,8 @@ const MAX_LIMITS = {
     DEFAULT_MAX_LENGTH: 255,
   },
   BULK_INPUT_LIMITS: {
-    MAX_UI_INSERT_SIZE: 20
-  }
+    MAX_UI_INSERT_SIZE: 20,
+  },
 };
 
 module.exports = MAX_LIMITS;

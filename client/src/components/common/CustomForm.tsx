@@ -124,7 +124,9 @@ const CustomForm = forwardRef<CustomFormRef, FormProps>(
     };
 
     return (
-      <Grid container spacing={2}
+      <Grid
+        container
+        spacing={2}
         component="form"
         onSubmit={handleSubmit(onSubmit)}
         sx={{
@@ -139,14 +141,14 @@ const CustomForm = forwardRef<CustomFormRef, FormProps>(
           ...sx,
         }}
       >
-        <Grid size={{ xs:12 }} sx={{ minHeight: 24 }}>
+        <Grid size={{ xs: 12 }} sx={{ minHeight: 24 }}>
           {Object.keys(errors).length > 0 && (
             <CustomTypography color="error" variant="body2">
               Please correct the highlighted fields below.
             </CustomTypography>
           )}
         </Grid>
-        
+
         {fields.map((field) => (
           <Grid size={field.grid || { xs: 12, sm: 6 }} key={field.id}>
             {field.type === 'custom' && field.customRender ? (
@@ -233,13 +235,15 @@ const CustomForm = forwardRef<CustomFormRef, FormProps>(
                         {field.label}
                       </InputLabel>
                     )}
-                    
+
                     <Controller
                       name={field.id}
                       control={control}
                       defaultValue={field.defaultValue ?? ''}
                       rules={{
-                        required: field.required ? `${field.label} is required` : false,
+                        required: field.required
+                          ? `${field.label} is required`
+                          : false,
                       }}
                       render={({ field: controllerField }) => (
                         <CustomPhoneInput
@@ -250,13 +254,13 @@ const CustomForm = forwardRef<CustomFormRef, FormProps>(
                         />
                       )}
                     />
-                    
+
                     <FormHelperText>
                       {getError(errors, field.id, field.defaultHelperText)}
                     </FormHelperText>
                   </FormControl>
                 )}
-                
+
                 {/** Email Field */}
                 {field.type === 'email' && (
                   <Controller

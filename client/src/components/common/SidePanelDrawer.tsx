@@ -16,15 +16,14 @@ interface SidePanelDrawerProps {
 }
 
 const SidePanelDrawer = ({
-                           open,
-                           title,
-                           children,
-                           onClose,
-                           anchor = 'right',
-                           width = 400,
-                           returnFocusRef,
-                         }: SidePanelDrawerProps) => {
-  
+  open,
+  title,
+  children,
+  onClose,
+  anchor = 'right',
+  width = 400,
+  returnFocusRef,
+}: SidePanelDrawerProps) => {
   // Restore focus only after the drawer has fully closed
   useEffect(() => {
     if (!open && returnFocusRef?.current) {
@@ -34,7 +33,7 @@ const SidePanelDrawer = ({
       });
     }
   }, [open, returnFocusRef]);
-  
+
   return (
     <Drawer
       anchor={anchor}
@@ -72,7 +71,7 @@ const SidePanelDrawer = ({
           onClick={(e) => {
             // Remove focus from the button immediately
             (e.currentTarget as HTMLElement).blur();
-            
+
             // Trigger close
             onClose();
           }}
@@ -81,7 +80,7 @@ const SidePanelDrawer = ({
           <CloseIcon />
         </IconButton>
       </Box>
-      
+
       <Box sx={{ px: 2, py: 2, overflowY: 'auto', height: '100%' }}>
         {children}
       </Box>

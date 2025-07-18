@@ -53,7 +53,7 @@ const AddInventoryDialog: FC<AddInventoryDialogProps> = ({
     location,
     resetState,
   } = useCreateWarehouseInventory();
-  
+
   const {
     items: warehouseOptions,
     loading: warehouseLoading,
@@ -69,7 +69,7 @@ const AddInventoryDialog: FC<AddInventoryDialogProps> = ({
     fetchLookup: fetchBatchRegistryLookup,
     resetLookup: restBatchRegistryLookup,
   } = useBatchRegistryLookup();
-  
+
   useEffect(() => {
     if (open) {
       fetchWarehouseLookup();
@@ -108,7 +108,7 @@ const AddInventoryDialog: FC<AddInventoryDialogProps> = ({
   const warehouseLookupOptions = useMemo(() => {
     return transformWarehouseLookupToOptions(warehouseOptions);
   }, [warehouseOptions]);
-  
+
   const batchLookupOptions = useMemo(
     () => mapBatchLookupToOptions(batchOptions, true),
     [batchOptions]
@@ -122,9 +122,7 @@ const AddInventoryDialog: FC<AddInventoryDialogProps> = ({
     }
   }, [open]);
 
-  const handleFormSubmit = (
-    formData: CreateInventoryRecordsRequest
-  ) => {
+  const handleFormSubmit = (formData: CreateInventoryRecordsRequest) => {
     try {
       setSubmitting(true);
 
@@ -158,10 +156,10 @@ const AddInventoryDialog: FC<AddInventoryDialogProps> = ({
       setSubmitting(false);
     }
   };
-  
+
   const handleSuccessDialogClose = () => {
     setSelectedBatch(null);
-    onClose();     // close the main dialog
+    onClose(); // close the main dialog
     resetState();
     if (typeof onExited === 'function') {
       onExited();

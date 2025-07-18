@@ -6,13 +6,13 @@ const { fetchDynamicValue } = require('../03_utils');
  */
 exports.seed = async function (knex) {
   console.log('Seeding customers...');
-  
+
   const existing = await knex('customers').count('id as count').first();
   if (existing?.count > 0) {
     console.log('Customers already seeded. Skipping.');
     return;
   }
-  
+
   const systemUserId = await fetchDynamicValue(
     knex,
     'users',
@@ -20,17 +20,23 @@ exports.seed = async function (knex) {
     'system@internal.local',
     'id'
   );
-  
+
   const now = knex.fn.now();
-  
+
   const statusMap = {
     active: await fetchDynamicValue(knex, 'status', 'name', 'active', 'id'),
     inactive: await fetchDynamicValue(knex, 'status', 'name', 'inactive', 'id'),
     pending: await fetchDynamicValue(knex, 'status', 'name', 'pending', 'id'),
-    discontinued: await fetchDynamicValue(knex, 'status', 'name', 'discontinued', 'id'),
+    discontinued: await fetchDynamicValue(
+      knex,
+      'status',
+      'name',
+      'discontinued',
+      'id'
+    ),
     archived: await fetchDynamicValue(knex, 'status', 'name', 'archived', 'id'),
   };
-  
+
   const customerList = [
     // Active customers
     {
@@ -150,7 +156,7 @@ exports.seed = async function (knex) {
       status: 'archived',
     },
   ];
-  
+
   const records = customerList.map((cust) => ({
     id: knex.raw('uuid_generate_v4()'),
     firstname: cust.firstname,
@@ -165,11 +171,11 @@ exports.seed = async function (knex) {
     created_by: systemUserId,
     updated_by: null,
   }));
-  
+
   await knex('customers')
     .insert(records)
     .onConflict(['email', 'phone_number'])
     .ignore();
-  
+
   console.log(`Seeded ${records.length} customers.`);
 };

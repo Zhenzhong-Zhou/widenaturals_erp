@@ -29,7 +29,7 @@ const customerLookupSlice = createSlice({
       })
       .addCase(fetchCustomerLookupThunk.fulfilled, (state, action) => {
         const { items, hasMore, limit, offset } = action.payload;
-        
+
         state.data = offset === 0 ? items : [...state.data, ...items];
         state.hasMore = hasMore;
         state.limit = limit;
@@ -40,7 +40,7 @@ const customerLookupSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       });
-    },
+  },
 });
 
 export const { resetCustomerLookup } = customerLookupSlice.actions;

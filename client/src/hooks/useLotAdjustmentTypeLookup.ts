@@ -17,11 +17,11 @@ import { resetLotAdjustmentTypeLookup } from '@features/lookup/state/lotAdjustme
  */
 const useLotAdjustmentTypeLookup = () => {
   const dispatch = useAppDispatch();
-  
+
   const items = useAppSelector(selectLotAdjustmentTypeItems);
   const loading = useAppSelector(selectLotAdjustmentTypeLoading);
   const error = useAppSelector(selectLotAdjustmentTypeError);
-  
+
   // Dispatch fetch with object param
   const fetchLotAdjustmentTypeLookup = useCallback(
     (params: LotAdjustmentLookupQueryParams = {}) => {
@@ -29,11 +29,11 @@ const useLotAdjustmentTypeLookup = () => {
     },
     [dispatch]
   );
-  
+
   const clearLotAdjustmentTypeLookup = useCallback(() => {
     dispatch(resetLotAdjustmentTypeLookup());
   }, [dispatch]);
-  
+
   const lookupOptions = useMemo(
     () =>
       items.map((item) => ({
@@ -42,7 +42,7 @@ const useLotAdjustmentTypeLookup = () => {
       })),
     [items]
   );
-  
+
   return {
     options: lookupOptions,
     loading,

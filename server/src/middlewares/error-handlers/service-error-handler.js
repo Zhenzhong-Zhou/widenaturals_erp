@@ -19,7 +19,7 @@ const serviceErrorHandler = (err, req, res, next) => {
     err?.name === 'ServiceError' ||
     err?.type === 'ServiceError' ||
     err?.code === 'SERVICE_ERROR';
-  
+
   if (!isServiceError) return next(err);
 
   const normalizedError = normalizeError(err, {

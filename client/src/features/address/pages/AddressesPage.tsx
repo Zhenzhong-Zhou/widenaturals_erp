@@ -1,4 +1,11 @@
-import { type FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  type FC,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
@@ -38,14 +45,17 @@ const AddressesPage: FC = () => {
     offset: 0,
     limit: 10,
   });
-  
+
   const { handleOpenDialog, handleCloseDialog } = useDialogFocusHandlers(
     setDialogOpen,
     createButtonRef,
     () => dialogOpen
   );
-  const { handlePageChange, handleRowsPerPageChange } = usePaginationHandlers(setPage, setLimit);
-  
+  const { handlePageChange, handleRowsPerPageChange } = usePaginationHandlers(
+    setPage,
+    setLimit
+  );
+
   const {
     data: addresses,
     pagination: addressPagination,
@@ -53,7 +63,7 @@ const AddressesPage: FC = () => {
     error,
     fetchAddresses,
   } = usePaginateAddresses();
-  
+
   const queryParams = useMemo(
     () => ({
       page,
@@ -65,11 +75,11 @@ const AddressesPage: FC = () => {
     }),
     [page, limit, sortBy, sortOrder, filters, fetchAddresses]
   );
-  
+
   useEffect(() => {
     applyFiltersAndSorting(queryParams);
   }, [queryParams]);
-  
+
   const {
     loading: customerLookupLoading,
     error: customerLookupError,
@@ -77,13 +87,13 @@ const AddressesPage: FC = () => {
     meta: customerLookupPaginationMeta,
     fetchLookup: fetchCustomerDropdownOptions,
   } = useCustomerLookup(fetchParams);
-  
+
   const deduplicatedOptions = useMemo(() => {
     return Array.from(
       new Map(
         customerDropdownOptions.map((opt) => {
           const hasAddr = opt.hasAddress ?? false;
-          
+
           return [
             opt.value,
             {
@@ -97,25 +107,32 @@ const AddressesPage: FC = () => {
       ).values()
     );
   }, [customerDropdownOptions]);
-  
+
   const handleRefresh = useCallback(() => {
     applyFiltersAndSorting(queryParams);
   }, [queryParams]);
-  
+
   const handleResetFilters = () => {
     setFilters({});
     setSortBy('createdAt');
-    setSortOrder('')
+    setSortOrder('');
     setPage(1);
   };
-  
+
   const handleDrillDownToggle = (rowId: string) => {
     setExpandedRowId((current) => (current === rowId ? null : rowId));
   };
-  
+
   return (
     <Box sx={{ px: 4, py: 3 }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" mb={3} gap={2}>
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        flexWrap="wrap"
+        mb={3}
+        gap={2}
+      >
         <CustomTypography variant="h5" fontWeight={700}>
           Address Management
         </CustomTypography>
@@ -128,9 +145,9 @@ const AddressesPage: FC = () => {
           Create Address
         </CustomButton>
       </Box>
-      
+
       <Divider sx={{ mb: 3 }} />
-      
+
       <Card sx={{ p: 3, mb: 4, borderRadius: 2, minHeight: 200 }}>
         <Grid container spacing={2}>
           {/* Filter fields */}
@@ -149,7 +166,7 @@ const AddressesPage: FC = () => {
               setFetchParams={setFetchParams}
             />
           </Grid>
-          
+
           {/* Sort Controls */}
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <AddressSortControls
@@ -161,7 +178,7 @@ const AddressesPage: FC = () => {
           </Grid>
         </Grid>
       </Card>
-      
+
       <AddressCreateDialog
         open={dialogOpen}
         onClose={handleCloseDialog}
@@ -172,7 +189,7 @@ const AddressesPage: FC = () => {
         customerLookupError={customerLookupError}
         customerLookupMeta={customerLookupPaginationMeta}
       />
-      
+
       <Box>
         {addressLoading ? (
           <Loading variant="dotted" message="Loading addresses..." />

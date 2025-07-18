@@ -274,7 +274,9 @@ export interface AdjustedInventoryData {
   status: string;
 }
 
-export type InventoryRecord = WarehouseInventoryRecord | LocationInventoryRecord;
+export type InventoryRecord =
+  | WarehouseInventoryRecord
+  | LocationInventoryRecord;
 
 export interface InventoryAdjustmentContextBase {
   id: string;
@@ -292,4 +294,3 @@ export interface InventoryAdjustmentContextBase {
 export type InventoryAdjustmentSingleContext = InventoryAdjustmentContextBase;
 
 export type InventoryAdjustmentBulkContext = InventoryAdjustmentContextBase[];
-

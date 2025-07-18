@@ -4,7 +4,9 @@ const {
 } = require('../repositories/role-permission-repository');
 const AppError = require('../utils/AppError');
 const { logSystemException } = require('../utils/system-logger');
-const { getAccessibleOrderCategoriesFromPermissions } = require('../utils/permission-utils');
+const {
+  getAccessibleOrderCategoriesFromPermissions,
+} = require('../utils/permission-utils');
 
 /**
  * Fetches the permissions and role name for a given role ID, with Redis caching.
@@ -19,25 +21,25 @@ const { getAccessibleOrderCategoriesFromPermissions } = require('../utils/permis
  */
 const fetchPermissions = async (roleId) => {
   const cacheKey = `role_permissions:${roleId}`;
-  
+
   try {
     const cachedData = await redisClient.get(cacheKey);
     if (cachedData) {
       return JSON.parse(cachedData);
     }
-    
+
     const { role_name, permissions } = await getRolePermissionsByRoleId(roleId);
-    
+
     const dataToCache = { roleName: role_name, permissions };
     await redisClient.set(cacheKey, JSON.stringify(dataToCache), 'EX', 3600); // 1-hour TTL
-    
+
     return dataToCache;
   } catch (error) {
     logSystemException(error, 'Failed to fetch role permissions', {
       context: 'permission-service/fetchPermissions',
       roleId,
     });
-    
+
     throw AppError.serviceError('Failed to fetch permissions and role name.', {
       roleId,
       cause: error,
@@ -63,17 +65,19 @@ const hasRootAccessSync = (permissions = []) =>
  */
 const resolveUserPermissionContext = async (user) => {
   if (!user?.role) {
-    throw AppError.authorizationError('User role is required for permission check.');
+    throw AppError.authorizationError(
+      'User role is required for permission check.'
+    );
   }
-  
+
   const { permissions = [] } = await fetchPermissions(user.role);
-  
+
   if (permissions.length === 0) {
     throw AppError.authorizationError('User has no assigned permissions.');
   }
-  
+
   const isRoot = hasRootAccessSync(permissions);
-  
+
   return { permissions, isRoot };
 };
 
@@ -96,9 +100,9 @@ const checkPermissions = async (
   { requireAll = false, allowRootAccess = true } = {}
 ) => {
   if (!user || !user.id || !user.role) return false;
-  
+
   const { permissions, isRoot } = await resolveUserPermissionContext(user);
-  
+
   // Root override
   if (allowRootAccess && isRoot) {
     return true;
@@ -123,12 +127,15 @@ const checkPermissions = async (
  */
 const resolveOrderAccessContext = async (user) => {
   const { permissions, isRoot } = await resolveUserPermissionContext(user);
-  const accessibleCategories = getAccessibleOrderCategoriesFromPermissions(permissions);
-  
+  const accessibleCategories =
+    getAccessibleOrderCategoriesFromPermissions(permissions);
+
   if (!isRoot && accessibleCategories.length === 0) {
-    throw AppError.authorizationError('You do not have permission to view any order types');
+    throw AppError.authorizationError(
+      'You do not have permission to view any order types'
+    );
   }
-  
+
   return { isRoot, accessibleCategories };
 };
 

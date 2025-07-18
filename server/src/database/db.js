@@ -136,7 +136,10 @@ const query = async (
         logDbQuerySuccess(text, params, duration, meta);
         return result;
       } catch (error) {
-        logDbQueryError(text, params, error, { context: 'db/query/pg-query', ...meta });
+        logDbQueryError(text, params, error, {
+          context: 'db/query/pg-query',
+          ...meta,
+        });
 
         throw AppError.databaseError('Database query failed', {
           details: { query: text, params, error: error.message },
@@ -297,11 +300,15 @@ const closePool = async () => {
     return; // Prevent multiple calls
   }
 
-  logSystemInfo('Closing database connection pool...', { context: 'db/closePool/shutdown' });
+  logSystemInfo('Closing database connection pool...', {
+    context: 'db/closePool/shutdown',
+  });
 
   try {
     await pool.end(); // Close all connections in the pool
-    logSystemInfo('Database connection pool closed.', { context: 'db/closePool/shutdown' });
+    logSystemInfo('Database connection pool closed.', {
+      context: 'db/closePool/shutdown',
+    });
     poolClosed = true; // Mark the pool as closed
   } catch (error) {
     logSystemException(error, 'Error closing database connection pool', {
@@ -391,26 +398,26 @@ const retryDatabaseConnection = async (config, retries = 5) => {
  * @returns {string} - The modified query with ORDER BY, LIMIT, and OFFSET.
  */
 const buildPaginatedQuery = ({
-                               baseQuery,
-                               sortBy,
-                               sortOrder = 'ASC',
-                               additionalSort,
-                               paramIndex,
-                             }) => {
+  baseQuery,
+  sortBy,
+  sortOrder = 'ASC',
+  additionalSort,
+  paramIndex,
+}) => {
   let query = baseQuery;
-  
+
   if (sortBy) {
     const validSortOrder = ['ASC', 'DESC'].includes(sortOrder.toUpperCase())
       ? sortOrder.toUpperCase()
       : 'ASC';
-    
+
     query += ` ORDER BY ${sortBy} ${validSortOrder}`;
-    
+
     if (additionalSort) {
       query += `, ${additionalSort}`;
     }
   }
-  
+
   query += ` LIMIT $${paramIndex + 1} OFFSET $${paramIndex + 2}`;
   return query;
 };
@@ -550,27 +557,27 @@ const paginateQuery = async ({
  * @throws {AppError} - Throws validation or database error if the query fails.
  */
 const paginateQueryByOffset = async ({
-                                       tableName,
-                                       joins = [],
-                                       whereClause = '1=1',
-                                       queryText,
-                                       params = [],
-                                       offset = 0,
-                                       limit = 10,
-                                       sortBy = null,
-                                       sortOrder = 'ASC',
-                                       additionalSort = null,
-                                       clientOrPool = pool,
-                                       meta = {},
-                                     }) => {
+  tableName,
+  joins = [],
+  whereClause = '1=1',
+  queryText,
+  params = [],
+  offset = 0,
+  limit = 10,
+  sortBy = null,
+  sortOrder = 'ASC',
+  additionalSort = null,
+  clientOrPool = pool,
+  meta = {},
+}) => {
   if (offset < 0 || limit < 1) {
     throw AppError.validationError(
       'Offset must be >= 0 and limit must be a positive integer.'
     );
   }
-  
+
   const countQueryText = generateCountQuery(tableName, joins, whereClause);
-  
+
   const paginatedQuery = buildPaginatedQuery({
     baseQuery: queryText,
     sortBy,
@@ -578,17 +585,17 @@ const paginateQueryByOffset = async ({
     additionalSort,
     paramIndex: params.length,
   });
-  
+
   const queryParams = [...params, limit, offset];
-  
+
   try {
     const [dataResult, countResult] = await Promise.all([
       query(paginatedQuery, queryParams, clientOrPool),
       query(countQueryText, params, clientOrPool),
     ]);
-    
+
     const totalRecords = parseInt(countResult.rows[0]?.total || 0, 10);
-    
+
     return {
       data: dataResult.rows,
       pagination: {
@@ -604,7 +611,7 @@ const paginateQueryByOffset = async ({
       limit,
       ...meta,
     });
-    
+
     throw AppError.databaseError(
       'Failed to execute offset-based paginated query.'
     );
@@ -893,7 +900,7 @@ const applyUpdateRule = (col, strategy, tableAlias = 'table') => {
     case 'keep':
       // Do not change this column; skip including it in SET
       return null;
-      case 'overwrite':
+    case 'overwrite':
     default:
       return `${col} = EXCLUDED.${col}`;
   }
@@ -1078,39 +1085,39 @@ const updateById = async (
   client,
   options = {}
 ) => {
-  const {
-    updatedAtField = 'updated_at',
-    updatedByField = 'updated_by',
-  } = options;
-  
+  const { updatedAtField = 'updated_at', updatedByField = 'updated_by' } =
+    options;
+
   if (!id || typeof id !== 'string' || !table || typeof table !== 'string') {
     throw AppError.validationError('Invalid parameters for updateById');
   }
-  
+
   const updateData = { ...updates };
-  
+
   if (updatedAtField) updateData[updatedAtField] = new Date();
   if (userId && updatedByField) updateData[updatedByField] = userId;
-  
+
   const fields = Object.keys(updateData);
   if (fields.length === 0) {
     throw AppError.validationError('No fields provided to update.');
   }
-  
+
   const setClauses = fields.map((field, idx) => `${field} = $${idx + 2}`);
   const values = [id, ...fields.map((f) => updateData[f])];
-  
+
   const sql = `
     UPDATE ${table}
     SET ${setClauses.join(', ')}
     WHERE id = $1
     RETURNING id
   `;
-  
+
   try {
     const result = await client.query(sql, values);
     if (result.rowCount === 0) {
-      throw AppError.notFoundError(`Record not found in '${table}' with id: ${id}`);
+      throw AppError.notFoundError(
+        `Record not found in '${table}' with id: ${id}`
+      );
     }
     return result.rows[0]; // { id: '...' }
   } catch (error) {
@@ -1235,27 +1242,35 @@ const formatBulkUpdateQuery = (
  * });
  * // value might be '123e4567-e89b-12d3-a456-426614174000'
  */
-const getUniqueScalarValue = async ({ table, where, select }, client, meta = {}) => {
+const getUniqueScalarValue = async (
+  { table, where, select },
+  client,
+  meta = {}
+) => {
   if (!table || typeof where !== 'object' || !select) {
-    throw AppError.validationError('Invalid parameters for getScalarFieldValue.');
+    throw AppError.validationError(
+      'Invalid parameters for getScalarFieldValue.'
+    );
   }
-  
+
   const maskedTable = maskTableName(table);
   const whereKey = Object.keys(where ?? {})[0] ?? 'id';
   const whereValue = where[whereKey];
-  
+
   const sql = `
     SELECT ${select}
     FROM ${table}
     WHERE ${whereKey} = $1
     LIMIT 1
   `;
-  
+
   try {
     const result = await query(sql, [whereValue], client);
     if (result.rows.length === 0) return null;
     if (result.rows.length > 1) {
-      throw AppError.databaseError(`Multiple rows found in "${maskedTable}" for ${whereKey} = ${whereValue}`);
+      throw AppError.databaseError(
+        `Multiple rows found in "${maskedTable}" for ${whereKey} = ${whereValue}`
+      );
     }
     return result.rows[0][select];
   } catch (error) {
@@ -1268,7 +1283,7 @@ const getUniqueScalarValue = async ({ table, where, select }, client, meta = {})
       whereKey,
       { ...meta }
     );
-    
+
     throw AppError.databaseError(
       `Failed to fetch value '${select}' from '${maskedTable}': ${error.message}`
     );
@@ -1294,25 +1309,25 @@ const checkRecordExists = async (table, condition, client = null) => {
   if (!table || typeof table !== 'string') {
     throw AppError.validationError('Invalid table name');
   }
-  
+
   if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(table)) {
     throw AppError.validationError('Unsafe table name');
   }
-  
+
   const keys = Object.keys(condition);
   if (keys.length === 0) {
     throw AppError.validationError('No condition provided');
   }
-  
+
   const whereClause = keys
     .map((key, idx) =>
       condition[key] === null ? `${key} IS NULL` : `${key} = $${idx + 1}`
     )
     .join(' AND ');
-  
+
   const values = Object.values(condition).filter((v) => v !== null);
   const sql = `SELECT EXISTS (SELECT 1 FROM ${table} WHERE ${whereClause}) AS exists;`;
-  
+
   try {
     const { rows } = await query(sql, values, client);
     return rows.length > 0 && rows[0].exists === true;
@@ -1342,32 +1357,39 @@ const checkRecordExists = async (table, condition, client = null) => {
  *
  * @throws {AppError} - Throws databaseError if a query fails or validationError if input is invalid
  */
-const getFieldsById = async (table, id, selectFields = ['name'], client = null) => {
+const getFieldsById = async (
+  table,
+  id,
+  selectFields = ['name'],
+  client = null
+) => {
   if (!table || typeof table !== 'string' || !id) {
     throw AppError.validationError('Invalid parameters for getFieldsById');
   }
-  
+
   const safeFields = selectFields
     .map((field) => field.replace(/[^a-zA-Z0-9_]/g, ''))
     .filter(Boolean);
-  
+
   if (safeFields.length === 0) {
     throw AppError.validationError(`Invalid select fields: ${selectFields}`);
   }
-  
+
   const sql = `
     SELECT ${safeFields.join(', ')}
     FROM ${table}
     WHERE id = $1
   `;
-  
+
   try {
     const result = await query(sql, [id], client);
     if (result.rows.length === 0) return null;
     if (result.rows.length > 1) {
-      throw AppError.databaseError(`Duplicate id in table '${maskTableName(table)}': ${id}`);
+      throw AppError.databaseError(
+        `Duplicate id in table '${maskTableName(table)}': ${id}`
+      );
     }
-    
+
     return result.rows[0]; // returns an object like { name: ..., category: ... }
   } catch (error) {
     logSystemException(error, 'Failed to fetch fields by ID', {
@@ -1376,7 +1398,9 @@ const getFieldsById = async (table, id, selectFields = ['name'], client = null) 
       id,
       selectFields: safeFields,
     });
-    throw AppError.databaseError(`Failed to fetch fields from '${maskTableName(table)}'`);
+    throw AppError.databaseError(
+      `Failed to fetch fields from '${maskTableName(table)}'`
+    );
   }
 };
 

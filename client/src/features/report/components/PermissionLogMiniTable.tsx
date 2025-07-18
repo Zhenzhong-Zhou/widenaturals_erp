@@ -4,7 +4,9 @@ import Loading from '@components/common/Loading';
 import ErrorDisplay from '@components/shared/ErrorDisplay';
 import ErrorMessage from '@components/common/ErrorMessage';
 import CustomTypography from '@components/common/CustomTypography';
-import CustomMiniTable, { type MiniColumn } from '@components/common/CustomMiniTable';
+import CustomMiniTable, {
+  type MiniColumn,
+} from '@components/common/CustomMiniTable';
 import type { InventoryActivityLogEntry } from '@features/report/state';
 import { formatDateTime } from '@utils/dateTimeUtils';
 import { formatLabel } from '@utils/textUtils';
@@ -16,68 +18,71 @@ interface Props {
 }
 
 const PermissionLogMiniTable: FC<Props> = ({ data, loading, error }) => {
-  const columns = useMemo<MiniColumn<InventoryActivityLogEntry>[]>(() => [
-    {
-      id: 'skuOrCode',
-      label: 'SKU / Code',
-      renderCell: (row) =>
-        row.batchType === 'product'
-          ? row.productInfo?.sku ?? '—'
-          : row.packagingMaterialInfo?.code ?? '—',
-    },
-    {
-      id: 'itemName',
-      label: 'Item Name',
-      renderCell: (row) =>
-        row.batchType === 'product'
-          ? row.productInfo?.productName ?? '—'
-          : row.packagingMaterialInfo?.snapshotName ?? '—',
-    },
-    {
-      id: 'lotNumber',
-      label: 'Lot #',
-      renderCell: (row) =>
-        row.batchType === 'product'
-          ? row.productInfo?.lotNumber ?? '—'
-          : row.packagingMaterialInfo?.lotNumber ?? '—',
-    },
-    {
-      id: 'quantity',
-      label: 'Change',
-      renderCell: (row) => {
-        const { change, previous, new: newQty } = row.quantity;
-        const isIncrease = change > 0;
-        const isDecrease = change < 0;
-        const color = isIncrease
-          ? 'success.main'
-          : isDecrease
-            ? 'error.main'
-            : 'text.secondary';
-        return (
-          <CustomTypography variant={"subtitle2"} sx={{ color }}>
-            {`${change > 0 ? '+' : ''}${change} (${previous} → ${newQty})`}
-          </CustomTypography>
-        );
+  const columns = useMemo<MiniColumn<InventoryActivityLogEntry>[]>(
+    () => [
+      {
+        id: 'skuOrCode',
+        label: 'SKU / Code',
+        renderCell: (row) =>
+          row.batchType === 'product'
+            ? (row.productInfo?.sku ?? '—')
+            : (row.packagingMaterialInfo?.code ?? '—'),
       },
-    },
-    {
-      id: 'status',
-      label: 'Status',
-      format: (value) => formatLabel(value as string),
-    },
-    {
-      id: 'actionTimestamp',
-      label: 'Date',
-      format: (value) => formatDateTime(value as string),
-    },
-  ], []);
-  
+      {
+        id: 'itemName',
+        label: 'Item Name',
+        renderCell: (row) =>
+          row.batchType === 'product'
+            ? (row.productInfo?.productName ?? '—')
+            : (row.packagingMaterialInfo?.snapshotName ?? '—'),
+      },
+      {
+        id: 'lotNumber',
+        label: 'Lot #',
+        renderCell: (row) =>
+          row.batchType === 'product'
+            ? (row.productInfo?.lotNumber ?? '—')
+            : (row.packagingMaterialInfo?.lotNumber ?? '—'),
+      },
+      {
+        id: 'quantity',
+        label: 'Change',
+        renderCell: (row) => {
+          const { change, previous, new: newQty } = row.quantity;
+          const isIncrease = change > 0;
+          const isDecrease = change < 0;
+          const color = isIncrease
+            ? 'success.main'
+            : isDecrease
+              ? 'error.main'
+              : 'text.secondary';
+          return (
+            <CustomTypography variant={'subtitle2'} sx={{ color }}>
+              {`${change > 0 ? '+' : ''}${change} (${previous} → ${newQty})`}
+            </CustomTypography>
+          );
+        },
+      },
+      {
+        id: 'status',
+        label: 'Status',
+        format: (value) => formatLabel(value as string),
+      },
+      {
+        id: 'actionTimestamp',
+        label: 'Date',
+        format: (value) => formatDateTime(value as string),
+      },
+    ],
+    []
+  );
+
   const slicedData = data.slice(0, 30); // Show max 30 entries
-  
+
   if (loading) {
     return <Loading message="Loading recent permission logs..." />;
   }
-  
+
   if (error) {
     return (
       <ErrorDisplay>
@@ -85,7 +90,7 @@ const PermissionLogMiniTable: FC<Props> = ({ data, loading, error }) => {
       </ErrorDisplay>
     );
   }
-  
+
   return (
     <Box
       sx={{

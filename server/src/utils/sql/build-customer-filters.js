@@ -44,19 +44,19 @@ const buildCustomerFilter = (
     const conditions = ['1=1'];
     const params = [];
     let paramIndex = 1;
-    
+
     if (!overrideDefaultStatus && statusId) {
       conditions.push(`c.status_id = $${paramIndex}`);
       params.push(statusId);
       paramIndex++;
     }
-    
+
     if (filters.createdBy) {
       conditions.push(`c.created_by = $${paramIndex}`);
       params.push(filters.createdBy);
       paramIndex++;
     }
-    
+
     if (filters.keyword) {
       conditions.push(`(
         c.firstname ILIKE $${paramIndex} OR
@@ -68,37 +68,41 @@ const buildCustomerFilter = (
       params.push(`%${filters.keyword}%`);
       paramIndex += 2;
     }
-    
+
     if (filters.createdAfter) {
       conditions.push(`c.created_at >= $${paramIndex}`);
       params.push(filters.createdAfter);
       paramIndex++;
     }
-    
+
     if (filters.createdBefore) {
       conditions.push(`c.created_at <= $${paramIndex}`);
       params.push(filters.createdBefore);
       paramIndex++;
     }
-    
+
     if (filters.statusDateAfter) {
       conditions.push(`c.status_date >= $${paramIndex}`);
       params.push(filters.statusDateAfter);
       paramIndex++;
     }
-    
+
     if (filters.statusDateBefore) {
       conditions.push(`c.status_date <= $${paramIndex}`);
       params.push(filters.statusDateBefore);
       paramIndex++;
     }
-    
+
     if (filters.onlyWithAddress === true) {
-      conditions.push(`EXISTS (SELECT 1 FROM addresses a WHERE a.customer_id = c.id)`);
+      conditions.push(
+        `EXISTS (SELECT 1 FROM addresses a WHERE a.customer_id = c.id)`
+      );
     } else if (filters.onlyWithAddress === false) {
-      conditions.push(`NOT EXISTS (SELECT 1 FROM addresses a WHERE a.customer_id = c.id)`);
+      conditions.push(
+        `NOT EXISTS (SELECT 1 FROM addresses a WHERE a.customer_id = c.id)`
+      );
     }
-   
+
     return {
       whereClause: conditions.join(' AND '),
       params,
@@ -110,13 +114,10 @@ const buildCustomerFilter = (
       filters,
       statusId,
     });
-    throw AppError.databaseError(
-      'Failed to prepare customer dropdown filter',
-      {
-        details: err.message,
-        stage: 'build-customer-where-clause',
-      }
-    );
+    throw AppError.databaseError('Failed to prepare customer dropdown filter', {
+      details: err.message,
+      stage: 'build-customer-where-clause',
+    });
   }
 };
 

@@ -143,7 +143,7 @@ const MultiItemForm: FC<MultiItemFormProps> = ({
   const resetFrom = () => {
     reset({ items: [{ id: uuidv4() }] }); // Reset form state with one empty row
   };
-  
+
   return (
     <Box
       component="form"
@@ -176,7 +176,8 @@ const MultiItemForm: FC<MultiItemFormProps> = ({
                 }}
               >
                 <strong>
-                  {getItemTitle?.(index, allFields[index] ?? {}) ?? `Item ${index + 1}`}
+                  {getItemTitle?.(index, allFields[index] ?? {}) ??
+                    `Item ${index + 1}`}
                 </strong>
                 <IconButton
                   onClick={() => resetItem(index)}
@@ -195,15 +196,20 @@ const MultiItemForm: FC<MultiItemFormProps> = ({
                   </IconButton>
                 )}
               </Box>
-              
+
               {renderBeforeFields?.(allFields[index] ?? {}, index)}
-              
+
               {/* Form Fields (Stacked in Vertical Layout Inside Each Form) */}
               {groupFieldsByRow(fields).map((group, gIdx) => (
                 <Grid container spacing={2} key={`group-${gIdx}`}>
                   {group.map((field) => (
                     <Grid
-                      size={ field.grid || { xs: 12, sm: group.length === 1 ? 12 : 6 }}
+                      size={
+                        field.grid || {
+                          xs: 12,
+                          sm: group.length === 1 ? 12 : 6,
+                        }
+                      }
                       key={field.id}
                     >
                       <Controller
@@ -272,12 +278,15 @@ const MultiItemForm: FC<MultiItemFormProps> = ({
                               />
                             );
                           }
-                          
+
                           if (field.type === 'phone') {
                             const validateFn = validationRules[field.id];
-                            const errorMessage = validateFn ? validateFn(value) : undefined;
-                            const helperText = errorMessage || field.defaultHelperText || '';
-                            
+                            const errorMessage = validateFn
+                              ? validateFn(value)
+                              : undefined;
+                            const helperText =
+                              errorMessage || field.defaultHelperText || '';
+
                             return (
                               <FormControl fullWidth error={!!errorMessage}>
                                 {field.label && (
@@ -295,7 +304,7 @@ const MultiItemForm: FC<MultiItemFormProps> = ({
                               </FormControl>
                             );
                           }
-                          
+
                           if (field.type === 'email') {
                             return (
                               <BaseInput
@@ -312,7 +321,7 @@ const MultiItemForm: FC<MultiItemFormProps> = ({
                               />
                             );
                           }
-                          
+
                           if (field.type === 'textarea') {
                             return (
                               <BaseInput
@@ -331,7 +340,7 @@ const MultiItemForm: FC<MultiItemFormProps> = ({
                               />
                             );
                           }
-                          
+
                           if (field.type === 'text') {
                             return (
                               <BaseInput
@@ -370,7 +379,7 @@ const MultiItemForm: FC<MultiItemFormProps> = ({
                   ))}
                 </Grid>
               ))}
-              
+
               {/* Buttons shown only after the last item */}
               {index === fieldArray.length - 1 && canSubmit && (
                 <Box
@@ -389,7 +398,7 @@ const MultiItemForm: FC<MultiItemFormProps> = ({
                   >
                     <Add /> Add Another
                   </CustomButton>
-                  
+
                   <CustomButton
                     type="submit"
                     variant="contained"
@@ -399,7 +408,7 @@ const MultiItemForm: FC<MultiItemFormProps> = ({
                   >
                     Submit All
                   </CustomButton>
-                  
+
                   <CustomButton
                     type="button"
                     variant="outlined"

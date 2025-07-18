@@ -1,9 +1,7 @@
 import { type FC } from 'react';
 import CustomDialog from '@components/common/CustomDialog';
 import AdjustBulkInventoryForm from '@features/warehouseInventory/components/AdjustBulkInventoryForm';
-import {
-  useInventoryAdjustmentDialogLogic
-} from '@features/inventoryShared/utils/useInventoryAdjustmentDialogLogic.ts';
+import { useInventoryAdjustmentDialogLogic } from '@features/inventoryShared/utils/useInventoryAdjustmentDialogLogic.ts';
 import InventorySuccessDialog from '@features/inventoryShared/components/InventorySuccessDialog';
 import Loading from '@components/common/Loading';
 import Alert from '@mui/material/Alert';
@@ -18,11 +16,11 @@ interface AdjustBulkInventoryDialogProps {
 }
 
 const AdjustBulkInventoryDialog: FC<AdjustBulkInventoryDialogProps> = ({
-                                                                         open,
-                                                                         selectedRecords,
-                                                                         onClose,
-                                                                         onExited,
-                                                                       }) => {
+  open,
+  selectedRecords,
+  onClose,
+  onExited,
+}) => {
   const {
     warehouse,
     location,
@@ -42,13 +40,13 @@ const AdjustBulkInventoryDialog: FC<AdjustBulkInventoryDialogProps> = ({
     mode: 'bulk',
     records: selectedRecords,
   });
-  
+
   const handleConfirmClose = () => {
     resetState();
     onClose();
     if (onExited) onExited();
   };
-  
+
   return (
     <CustomDialog
       open={open}
@@ -58,7 +56,11 @@ const AdjustBulkInventoryDialog: FC<AdjustBulkInventoryDialogProps> = ({
       disableCloseOnEscape={false}
     >
       {isSubmitting ? (
-        <Loading variant="dotted" size={24} message="Submitting adjustment..." />
+        <Loading
+          variant="dotted"
+          size={24}
+          message="Submitting adjustment..."
+        />
       ) : success ? (
         // Render success view inside the dialog
         <InventorySuccessDialog
@@ -84,7 +86,12 @@ const AdjustBulkInventoryDialog: FC<AdjustBulkInventoryDialogProps> = ({
             dropdownLoading={isLookupLoading}
             dropdownError={lookupError ?? ''}
             onSubmit={handleSubmit}
-            onRefresh={() => fetchLotAdjustmentTypeLookup({ excludeInternal: true, restrictToQtyAdjustment: true })}
+            onRefresh={() =>
+              fetchLotAdjustmentTypeLookup({
+                excludeInternal: true,
+                restrictToQtyAdjustment: true,
+              })
+            }
             loading={isSubmitting}
           />
         </>

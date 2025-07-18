@@ -13,7 +13,10 @@ import type {
 import { formatLabel } from '@utils/textUtils';
 import { createDrillDownColumn } from '@utils/table/createDrillDownColumn';
 import { getDetailCacheKey } from '@features/inventoryShared/utils/cacheKeys';
-import type { InventoryActivityLogQueryParams, InventoryLogSource } from '@features/report/state';
+import type {
+  InventoryActivityLogQueryParams,
+  InventoryLogSource,
+} from '@features/report/state';
 import { getDefaultRowActions } from '@utils/table/getDefaultRowActions';
 
 const WarehouseInventorySummaryDetailTable = lazy(
@@ -45,7 +48,10 @@ interface SkuInventorySummaryTableProps {
   onDetailRowsPerPageChange: (newLimit: number) => void;
   onRefreshDetail: (rowId: string) => void;
   canViewInventoryLogs: boolean;
-  onViewLogs: (row: InventoryLogSource, extraFilters?: Partial<InventoryActivityLogQueryParams>) => void;
+  onViewLogs: (
+    row: InventoryLogSource,
+    extraFilters?: Partial<InventoryActivityLogQueryParams>
+  ) => void;
 }
 
 const WarehouseInventorySummaryTable: FC<SkuInventorySummaryTableProps> = ({

@@ -19,23 +19,23 @@ import { resetBatchRegistryLookupState } from '@features/lookup/state/batchRegis
  */
 const useBatchRegistryLookup = () => {
   const dispatch = useAppDispatch();
-  
+
   const items = useAppSelector(selectBatchRegistryLookupItems);
   const loading = useAppSelector(selectBatchRegistryLookupLoading);
   const error = useAppSelector(selectBatchRegistryLookupError);
   const meta = useAppSelector(selectBatchRegistryLookupMeta);
-  
+
   const fetchLookup = useCallback(
     (params: GetBatchRegistryLookupParams = {}) =>
       dispatch(fetchBatchRegistryLookupThunk(params)),
     [dispatch]
   );
-  
+
   const resetLookup = useCallback(
     () => dispatch(resetBatchRegistryLookupState()),
     [dispatch]
   );
-  
+
   return {
     items,
     loading,

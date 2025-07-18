@@ -34,41 +34,43 @@ const buildAddressFilter = (filters = {}, includeUnassigned = false) => {
     const conditions = ['1=1'];
     const params = [];
     let paramIndex = 1;
-    
+
     if (filters.customerId) {
       if (includeUnassigned) {
-        conditions.push(`(a.customer_id = $${paramIndex} OR a.customer_id IS NULL)`);
+        conditions.push(
+          `(a.customer_id = $${paramIndex} OR a.customer_id IS NULL)`
+        );
       } else {
         conditions.push(`a.customer_id = $${paramIndex}`);
       }
       params.push(filters.customerId);
       paramIndex++;
     }
-    
+
     if (filters.createdBy) {
       conditions.push(`a.created_by = $${paramIndex}`);
       params.push(filters.createdBy);
       paramIndex++;
     }
-    
+
     if (filters.updatedBy) {
       conditions.push(`a.updated_by = $${paramIndex}`);
       params.push(filters.updatedBy);
       paramIndex++;
     }
-    
+
     if (filters.region) {
       conditions.push(`a.region = $${paramIndex}`);
       params.push(filters.region);
       paramIndex++;
     }
-    
+
     if (filters.country) {
       conditions.push(`a.country = $${paramIndex}`);
       params.push(filters.country);
       paramIndex++;
     }
-    
+
     if (filters.keyword) {
       conditions.push(`(
         a.label ILIKE $${paramIndex} OR
@@ -80,31 +82,31 @@ const buildAddressFilter = (filters = {}, includeUnassigned = false) => {
       params.push(`%${filters.keyword}%`);
       paramIndex++;
     }
-    
+
     if (filters.createdAfter) {
       conditions.push(`a.created_at >= $${paramIndex}`);
       params.push(filters.createdAfter);
       paramIndex++;
     }
-    
+
     if (filters.createdBefore) {
       conditions.push(`a.created_at <= $${paramIndex}`);
       params.push(filters.createdBefore);
       paramIndex++;
     }
-    
+
     if (filters.updatedAfter) {
       conditions.push(`a.updated_at >= $${paramIndex}`);
       params.push(filters.updatedAfter);
       paramIndex++;
     }
-    
+
     if (filters.updatedBefore) {
       conditions.push(`a.updated_at <= $${paramIndex}`);
       params.push(filters.updatedBefore);
       paramIndex++;
     }
-    
+
     return {
       whereClause: conditions.join(' AND '),
       params,
@@ -115,13 +117,10 @@ const buildAddressFilter = (filters = {}, includeUnassigned = false) => {
       error: err.message,
       filters,
     });
-    throw AppError.databaseError(
-      'Failed to prepare address filter',
-      {
-        details: err.message,
-        stage: 'build-address-where-clause',
-      }
-    );
+    throw AppError.databaseError('Failed to prepare address filter', {
+      details: err.message,
+      stage: 'build-address-where-clause',
+    });
   }
 };
 

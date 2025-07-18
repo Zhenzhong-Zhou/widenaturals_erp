@@ -1,5 +1,8 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { AddressCreationState, CreateAddressApiResponse } from './addressTypes';
+import type {
+  AddressCreationState,
+  CreateAddressApiResponse,
+} from './addressTypes';
 import { createAddressesThunk } from '@features/address/state/addressThunks.ts';
 
 const initialState: AddressCreationState = {
@@ -29,13 +32,13 @@ export const addressCreationSlice = createSlice({
         (state, action: PayloadAction<CreateAddressApiResponse>) => {
           state.loading = false;
           state.error = null;
-          
+
           // Access the data directly
           const { data, success, message } = action.payload;
-          
+
           // Normalize to array
           state.data = Array.isArray(data) ? data : [data];
-          
+
           // Optionally store success and message if your API provides these
           state.success = success;
           state.message = message;
@@ -43,7 +46,8 @@ export const addressCreationSlice = createSlice({
       )
       .addCase(createAddressesThunk.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload || 'An error occurred while creating addresses.';
+        state.error =
+          action.payload || 'An error occurred while creating addresses.';
       });
   },
 });

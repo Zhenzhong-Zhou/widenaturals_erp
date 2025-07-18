@@ -38,5 +38,6 @@ const lotAdjustmentTypeLookupSlice = createSlice({
   },
 });
 
-export const { resetLotAdjustmentTypeLookup } = lotAdjustmentTypeLookupSlice.actions;
+export const { resetLotAdjustmentTypeLookup } =
+  lotAdjustmentTypeLookupSlice.actions;
 export default lotAdjustmentTypeLookupSlice.reducer;

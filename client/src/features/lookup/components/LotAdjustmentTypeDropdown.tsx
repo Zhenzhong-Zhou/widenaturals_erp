@@ -18,16 +18,16 @@ interface LotAdjustmentTypeDropdownProps {
  *
  */
 const LotAdjustmentTypeDropdown: FC<LotAdjustmentTypeDropdownProps> = ({
-                                                                         label = 'Select Lot Adjustment Type',
-                                                                         value,
-                                                                         lotAdjustmentTypeOptions,
-                                                                         lotAdjustmentTypeLoading = false,
-                                                                         lotAdjustmentTypeError = null,
-                                                                         onChange,
-                                                                         onRefresh,
-                                                                         onAddNew,
-                                                                         disabled = false,
-                                                                       }) => {
+  label = 'Select Lot Adjustment Type',
+  value,
+  lotAdjustmentTypeOptions,
+  lotAdjustmentTypeLoading = false,
+  lotAdjustmentTypeError = null,
+  onChange,
+  onRefresh,
+  onAddNew,
+  disabled = false,
+}) => {
   return (
     <Dropdown
       label={label}

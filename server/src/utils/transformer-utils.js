@@ -27,16 +27,16 @@ const transformPaginatedResult = async (
   options = {}
 ) => {
   const { data = [], pagination = {} } = paginatedResult;
-  
+
   const transformedItems = await Promise.all(data.map(transformFn));
-  
+
   // Support both page and offset style
   const page = Number(pagination.page ?? 1);
   const limit = Number(pagination.limit ?? 10);
   const totalRecords = Number(pagination.totalRecords ?? 0);
   const offset = pagination.offset ?? (page - 1) * limit;
   const totalPages = pagination.totalPages ?? Math.ceil(totalRecords / limit);
-  
+
   if (options.includeLoadMore) {
     return {
       items: transformedItems,
@@ -45,7 +45,7 @@ const transformPaginatedResult = async (
       hasMore: offset + transformedItems.length < totalRecords,
     };
   }
-  
+
   return {
     data: transformedItems,
     pagination: {

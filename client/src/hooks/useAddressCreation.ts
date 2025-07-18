@@ -2,9 +2,13 @@ import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   selectAddressCreationData,
   selectAddressCreationError,
-  selectAddressCreationLoading, selectAddressCreationSuccessMessage,
+  selectAddressCreationLoading,
+  selectAddressCreationSuccessMessage,
 } from '@features/address/state/addressCreationSelectors';
-import { createAddressesThunk, type AddressInputArray } from '@features/address/state';
+import {
+  createAddressesThunk,
+  type AddressInputArray,
+} from '@features/address/state';
 import { resetAddressCreation } from '@features/address/state/addressCreationSlice';
 
 /**
@@ -14,12 +18,14 @@ import { resetAddressCreation } from '@features/address/state/addressCreationSli
  */
 const useAddressCreation = () => {
   const dispatch = useAppDispatch();
-  
+
   const loading = useAppSelector(selectAddressCreationLoading);
   const error = useAppSelector(selectAddressCreationError);
   const data = useAppSelector(selectAddressCreationData);
-  const { success, message } = useAppSelector(selectAddressCreationSuccessMessage);
-  
+  const { success, message } = useAppSelector(
+    selectAddressCreationSuccessMessage
+  );
+
   /**
    * Dispatches the createAddressesThunk.
    * @param addresses The address input array to create.
@@ -27,7 +33,7 @@ const useAddressCreation = () => {
    */
   const createAddresses = (addresses: AddressInputArray) =>
     dispatch(createAddressesThunk(addresses));
-  
+
   /**
    * Resets the address creation state to its initial values.
    *
@@ -35,7 +41,7 @@ const useAddressCreation = () => {
    * - Useful for cleaning up state after form submission or when leaving a page.
    */
   const resetAddressesCreation = () => dispatch(resetAddressCreation());
-  
+
   return {
     loading,
     error,

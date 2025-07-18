@@ -8,9 +8,7 @@ import type {
   InventoryAdjustmentFormData,
   InventoryRecord,
 } from '@features/inventoryShared/types/InventorySharedType';
-import {
-  useInventoryAdjustmentDialogLogic
-} from '@features/inventoryShared/utils/useInventoryAdjustmentDialogLogic.ts';
+import { useInventoryAdjustmentDialogLogic } from '@features/inventoryShared/utils/useInventoryAdjustmentDialogLogic.ts';
 
 interface AdjustInventoryDialogProps {
   open: boolean;
@@ -20,11 +18,11 @@ interface AdjustInventoryDialogProps {
 }
 
 const AdjustInventoryDialog: FC<AdjustInventoryDialogProps> = ({
-                                                                 open,
-                                                                 record,
-                                                                 onClose,
-                                                                 onExited,
-                                                               }) => {
+  open,
+  record,
+  onClose,
+  onExited,
+}) => {
   const {
     warehouse,
     location,
@@ -44,12 +42,12 @@ const AdjustInventoryDialog: FC<AdjustInventoryDialogProps> = ({
     mode: 'single',
     records: [record],
   });
-  
+
   const [mapped] = mappedRecords;
   const [initialQuantity] = initialQuantities;
-  
+
   if (!mapped || initialQuantity === undefined) return null;
-  
+
   const handleConfirmClose = () => {
     resetState();
     onClose();
@@ -57,7 +55,7 @@ const AdjustInventoryDialog: FC<AdjustInventoryDialogProps> = ({
       onExited();
     }
   };
-  
+
   return (
     <CustomDialog
       open={open}
@@ -67,7 +65,11 @@ const AdjustInventoryDialog: FC<AdjustInventoryDialogProps> = ({
       disableCloseOnEscape={false}
     >
       {isSubmitting ? (
-        <Loading variant="dotted" size={24} message="Submitting adjustment..." />
+        <Loading
+          variant="dotted"
+          size={24}
+          message="Submitting adjustment..."
+        />
       ) : success ? (
         <InventorySuccessDialog
           open={true}
@@ -85,15 +87,22 @@ const AdjustInventoryDialog: FC<AdjustInventoryDialogProps> = ({
                 : 'An unexpected error occurred.'}
             </Alert>
           )}
-          
+
           <AdjustInventoryForm
             initialQuantity={initialQuantity}
             contextData={mapped}
             adjustmentTypeOptions={lookupOptions}
             dropdownLoading={isLookupLoading}
             dropdownError={lookupError ?? ''}
-            onSubmit={handleSubmit as (data: InventoryAdjustmentFormData) => void}
-            onRefresh={() => fetchLotAdjustmentTypeLookup({ excludeInternal: true, restrictToQtyAdjustment: true })}
+            onSubmit={
+              handleSubmit as (data: InventoryAdjustmentFormData) => void
+            }
+            onRefresh={() =>
+              fetchLotAdjustmentTypeLookup({
+                excludeInternal: true,
+                restrictToQtyAdjustment: true,
+              })
+            }
             loading={isSubmitting}
           />
         </>

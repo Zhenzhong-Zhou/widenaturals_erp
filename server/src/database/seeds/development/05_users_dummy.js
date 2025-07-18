@@ -8,12 +8,14 @@ exports.seed = async function (knex) {
   const total = parseInt(count, 10) || 0;
 
   if (total > 0) {
-    console.log(`[${new Date().toISOString()}] [SEED] Skipping users seed: ${total} records already exist.`);
+    console.log(
+      `[${new Date().toISOString()}] [SEED] Skipping users seed: ${total} records already exist.`
+    );
     return;
   }
 
   console.log(`[${new Date().toISOString()}] [SEED] Starting users seeding...`);
-  
+
   const systemUserId = await fetchDynamicValue(
     knex,
     'users',
@@ -21,7 +23,7 @@ exports.seed = async function (knex) {
     'system@internal.local',
     'id'
   );
-  
+
   const statusIds = await fetchDynamicValues(
     knex,
     'status',
@@ -29,7 +31,7 @@ exports.seed = async function (knex) {
     ['active', 'inactive', 'discontinued', 'archived', 'deleted'],
     'id'
   );
-  
+
   const roleIds = await fetchDynamicValues(
     knex,
     'roles',
@@ -49,18 +51,18 @@ exports.seed = async function (knex) {
     ],
     'id'
   );
-  
+
   const now = new Date().toISOString();
-  
+
   const baseFields = {
-    status_id: statusIds.active,       // Use named lookup for clarity
+    status_id: statusIds.active, // Use named lookup for clarity
     status_date: now,
     created_at: now,
-    updated_at: now,                   // Set to `now` instead of `null` for consistency
+    updated_at: now, // Set to `now` instead of `null` for consistency
     created_by: systemUserId,
-    updated_by: systemUserId,         // Also set to systemUserId for traceability
+    updated_by: systemUserId, // Also set to systemUserId for traceability
   };
-  
+
   const seedUsers = [
     {
       email: 'system@erp.local',
@@ -353,29 +355,31 @@ exports.seed = async function (knex) {
       status_id: statusIds.pending,
     },
   ];
-  
+
   let insertedCount = 0;
-  
+
   for (const user of seedUsers) {
     const id = knex.raw('uuid_generate_v4()');
-    
+
     const data = {
       id,
       ...user,
       ...baseFields,
     };
-    
+
     const result = await knex('users')
       .insert(data)
       .onConflict('email')
       .ignore();
-    
+
     if (result.rowCount === 0) {
       console.warn(`[SEED] Skipped duplicate user email: ${user.email}`);
     } else {
       insertedCount++;
     }
   }
-  
-  console.log(`[${new Date().toISOString()}] [SEED] Inserted ${insertedCount} new users.`);
+
+  console.log(
+    `[${new Date().toISOString()}] [SEED] Inserted ${insertedCount} new users.`
+  );
 };

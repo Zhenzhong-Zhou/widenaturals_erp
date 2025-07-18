@@ -9,8 +9,8 @@ import type { InventoryActivityLogEntry } from '@features/report/state';
 import { formatDateTime } from '@utils/dateTimeUtils';
 import { formatLabel } from '@utils/textUtils';
 
-const InventoryActivityLogExpandedContent = lazy(() =>
-  import('./InventoryActivityLogExpandedContent')
+const InventoryActivityLogExpandedContent = lazy(
+  () => import('./InventoryActivityLogExpandedContent')
 );
 
 interface InventoryActivityLogTableProps {
@@ -30,105 +30,105 @@ interface InventoryActivityLogTableProps {
 }
 
 const InventoryActivityLogsTable: FC<InventoryActivityLogTableProps> = ({
-                                                                         data,
-                                                                         loading,
-                                                                         page,
-                                                                         totalPages,
-                                                                         totalRecords,
-                                                                         rowsPerPage,
-                                                                         onPageChange,
-                                                                         onRowsPerPageChange,
-                                                                         selectedRowIds,
-                                                                         onSelectionChange,
-                                                                         expandedRowId,
-                                                                         onExpandToggle,
-                                                                         isRowExpanded,
-                                                                       }) => {
+  data,
+  loading,
+  page,
+  totalPages,
+  totalRecords,
+  rowsPerPage,
+  onPageChange,
+  onRowsPerPageChange,
+  selectedRowIds,
+  onSelectionChange,
+  expandedRowId,
+  onExpandToggle,
+  isRowExpanded,
+}) => {
   const getRowId = useCallback((row: InventoryActivityLogEntry) => row.id, []);
-  
-  const columns = useMemo<Column<InventoryActivityLogEntry>[]>(() => [
-    {
-      id: 'skuOrCode',
-      label: 'SKU / Code',
-      sortable: true,
-      renderCell: (row) =>
-        row.batchType === 'product'
-          ? row.productInfo?.sku ?? '—'
-          : row.packagingMaterialInfo?.code ?? '—',
-    },
-    {
-      id: 'batchType',
-      label: 'Batch Type',
-      sortable: true,
-      format: (value) => formatLabel(value as string),
-    },
-    {
-      id: 'itemName',
-      label: 'Item Name',
-      sortable: true,
-      renderCell: (row) =>
-        row.batchType === 'product'
-          ? row.productInfo?.productName ?? '—'
-          : row.packagingMaterialInfo?.snapshotName ?? '—',
-    },
-    {
-      id: 'lotNumber',
-      label: 'Lot #',
-      renderCell: (row) =>
-        row.batchType === 'product'
-          ? row.productInfo?.lotNumber ?? '—'
-          : row.packagingMaterialInfo?.lotNumber ?? '—',
-    },
-    {
-      id: 'quantity',
-      label: 'Quantity Change',
-      renderCell: (row) => {
-        const { change, previous, new: newQty } = row.quantity;
-        const isIncrease = change > 0;
-        const isDecrease = change < 0;
-        
-        const color = isIncrease
-          ? 'success.main'
-          : isDecrease
-            ? 'error.main'
-            : 'text.secondary';
-        
-        return (
-          <CustomTypography sx={{ color }}>
-            {`${change > 0 ? '+' : ''}${change} (${previous} → ${newQty})`}
-          </CustomTypography>
-        );
+
+  const columns = useMemo<Column<InventoryActivityLogEntry>[]>(
+    () => [
+      {
+        id: 'skuOrCode',
+        label: 'SKU / Code',
+        sortable: true,
+        renderCell: (row) =>
+          row.batchType === 'product'
+            ? (row.productInfo?.sku ?? '—')
+            : (row.packagingMaterialInfo?.code ?? '—'),
       },
-    },
-    {
-      id: 'status',
-      label: 'Status',
-      sortable: true,
-      format: (value) => formatLabel(value as string),
-    },
-    {
-      id: 'actionTimestamp',
-      label: 'Action Date',
-      sortable: true,
-      format: (value) => formatDateTime(value as string),
-    },
-    {
-      id: 'performedBy',
-      label: 'Performed By',
-      sortable: true,
-    },
-    {
-      id: 'actionType',
-      label: 'Action Type',
-      sortable: true,
-      format: (value) => formatLabel(value as string),
-    },
-    {
-      id: 'expand',
-      label: '',
-      align: 'center',
-      renderCell: (row) =>
-        (
+      {
+        id: 'batchType',
+        label: 'Batch Type',
+        sortable: true,
+        format: (value) => formatLabel(value as string),
+      },
+      {
+        id: 'itemName',
+        label: 'Item Name',
+        sortable: true,
+        renderCell: (row) =>
+          row.batchType === 'product'
+            ? (row.productInfo?.productName ?? '—')
+            : (row.packagingMaterialInfo?.snapshotName ?? '—'),
+      },
+      {
+        id: 'lotNumber',
+        label: 'Lot #',
+        renderCell: (row) =>
+          row.batchType === 'product'
+            ? (row.productInfo?.lotNumber ?? '—')
+            : (row.packagingMaterialInfo?.lotNumber ?? '—'),
+      },
+      {
+        id: 'quantity',
+        label: 'Quantity Change',
+        renderCell: (row) => {
+          const { change, previous, new: newQty } = row.quantity;
+          const isIncrease = change > 0;
+          const isDecrease = change < 0;
+
+          const color = isIncrease
+            ? 'success.main'
+            : isDecrease
+              ? 'error.main'
+              : 'text.secondary';
+
+          return (
+            <CustomTypography sx={{ color }}>
+              {`${change > 0 ? '+' : ''}${change} (${previous} → ${newQty})`}
+            </CustomTypography>
+          );
+        },
+      },
+      {
+        id: 'status',
+        label: 'Status',
+        sortable: true,
+        format: (value) => formatLabel(value as string),
+      },
+      {
+        id: 'actionTimestamp',
+        label: 'Action Date',
+        sortable: true,
+        format: (value) => formatDateTime(value as string),
+      },
+      {
+        id: 'performedBy',
+        label: 'Performed By',
+        sortable: true,
+      },
+      {
+        id: 'actionType',
+        label: 'Action Type',
+        sortable: true,
+        format: (value) => formatLabel(value as string),
+      },
+      {
+        id: 'expand',
+        label: '',
+        align: 'center',
+        renderCell: (row) => (
           <IconButton onClick={() => onExpandToggle?.(row)}>
             {isRowExpanded?.(row) ? (
               <KeyboardArrowUpIcon />
@@ -137,18 +137,22 @@ const InventoryActivityLogsTable: FC<InventoryActivityLogTableProps> = ({
             )}
           </IconButton>
         ),
-    },
-  ], [onExpandToggle, isRowExpanded]);
-  
+      },
+    ],
+    [onExpandToggle, isRowExpanded]
+  );
+
   const renderExpandedContent = useCallback(
     (row: InventoryActivityLogEntry) => (
-      <Suspense fallback={<SkeletonExpandedRow showSummary={false} fieldPairs={3} />}>
+      <Suspense
+        fallback={<SkeletonExpandedRow showSummary={false} fieldPairs={3} />}
+      >
         <InventoryActivityLogExpandedContent row={row} />
       </Suspense>
     ),
     []
   );
-  
+
   return (
     <CustomTable
       columns={columns}

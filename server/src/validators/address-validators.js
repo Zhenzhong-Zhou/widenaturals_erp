@@ -11,7 +11,7 @@ const {
   paginationSchema,
   createSortSchema,
   updatedDateRangeSchema,
-  createdDateRangeSchema
+  createdDateRangeSchema,
 } = require('./general-validators');
 
 /**
@@ -26,23 +26,23 @@ const {
  */
 const addressSchema = Joi.object({
   customer_id: validateOptionalUUID('Customer ID'),
-  
+
   full_name: validateOptionalString('Full name', 150),
-  
+
   phone: validatePhoneNumber,
   email: validateEmail,
   label: validateOptionalString('Label', 50),
-  
+
   address_line1: validateString('Address line 1', 10, 255),
   address_line2: validateOptionalString('Address line 2', 255),
-  
+
   city: validateString('City', 2, 100),
   state: validateOptionalString('State', 100),
-  
+
   postal_code: validateString('Postal code', 3, 20),
-  
+
   country: Joi.string().trim().max(100).default('Canada').required(),
-  
+
   region: validateOptionalString('Region', 100),
   note: validateOptionalString('Note', 500),
 });

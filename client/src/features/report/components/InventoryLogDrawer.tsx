@@ -32,28 +32,28 @@ interface SidePanelDrawerProps {
 }
 
 const InventoryLogDrawer: FC<SidePanelDrawerProps> = ({
-                                         open,
-                                         onClose,
-                                         row,
-                                         data,
-                                         loading,
-                                         error,
-                                         page,
-                                         totalPages,
-                                         totalRecords,
-                                         rowsPerPage,
-                                         onPageChange,
-                                         onRowsPerPageChange,
-                                         selectedRowIds,
-                                         onSelectionChange,
-                                         expandedRowId,
-                                         onExpandToggle,
-                                         isRowExpanded,
-                                         onRetry,
-                                         returnFocusRef
-                                       }) => {
+  open,
+  onClose,
+  row,
+  data,
+  loading,
+  error,
+  page,
+  totalPages,
+  totalRecords,
+  rowsPerPage,
+  onPageChange,
+  onRowsPerPageChange,
+  selectedRowIds,
+  onSelectionChange,
+  expandedRowId,
+  onExpandToggle,
+  isRowExpanded,
+  onRetry,
+  returnFocusRef,
+}) => {
   if (!row) return null;
-  
+
   return (
     <SidePanelDrawer
       open={open}

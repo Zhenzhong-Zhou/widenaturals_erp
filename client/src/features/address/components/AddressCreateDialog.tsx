@@ -8,7 +8,10 @@ import CreateModeToggle from '@components/common/CreateModeToggle';
 import SingleAddressForm from '@features/address/components/SingleAddressForm';
 import AddressSuccessDialog from '@features/address/components/AddressSuccessDialog';
 import BulkAddressForm from '@features/address/components/BulkAddressForm';
-import type { CustomerOption, LookupPaginationMeta } from '@features/lookup/state';
+import type {
+  CustomerOption,
+  LookupPaginationMeta,
+} from '@features/lookup/state';
 
 interface AddressCreateDialogProps {
   open: boolean;
@@ -24,20 +27,20 @@ interface AddressCreateDialogProps {
 }
 
 const AddressCreateDialog = ({
-                               open,
-                               onClose,
-                               onSuccess,
-                               customerNames,
-                               customerIds,
-                               customerDropdownOptions,
-                               fetchCustomerDropdownOptions,
-                               customerLookupLoading,
-                               customerLookupError,
-                               customerLookupMeta,
-                             }: AddressCreateDialogProps) => {
+  open,
+  onClose,
+  onSuccess,
+  customerNames,
+  customerIds,
+  customerDropdownOptions,
+  fetchCustomerDropdownOptions,
+  customerLookupLoading,
+  customerLookupError,
+  customerLookupMeta,
+}: AddressCreateDialogProps) => {
   const [mode, setMode] = useState<CreateMode>('single');
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
-  
+
   const {
     loading: isCreatingAddress,
     error: creationError,
@@ -47,23 +50,23 @@ const AddressCreateDialog = ({
     createAddresses,
     resetAddressesCreation,
   } = useAddressCreation();
-  
+
   useEffect(() => {
     if (creationSuccess) {
       setShowSuccessDialog(true);
     }
   }, [creationSuccess]);
-  
+
   const handleClose = () => {
     resetAddressesCreation();
     setMode('single');
     onClose();
   };
-  
+
   const handleSubmit = useCallback(
     async (data: any) => {
       const dataArray = mode === 'single' ? [data] : data;
-      
+
       // If customerIds are provided, override customer_id in payload
       if (customerIds) {
         if (
@@ -75,23 +78,26 @@ const AddressCreateDialog = ({
           );
         }
       }
-      
-      const payload = dataArray.map((item: Record<string, any>, idx: number) => {
-        const { id, ...rest } = item;
-        
-        return {
-          ...rest,
-          customer_id: customerIds?.length === 1
-            ? customerIds[0]
-            : customerIds?.[idx] ?? rest.customer_id, // fallback to form-provided customer_id
-        };
-      });
-      
+
+      const payload = dataArray.map(
+        (item: Record<string, any>, idx: number) => {
+          const { id, ...rest } = item;
+
+          return {
+            ...rest,
+            customer_id:
+              customerIds?.length === 1
+                ? customerIds[0]
+                : (customerIds?.[idx] ?? rest.customer_id), // fallback to form-provided customer_id
+          };
+        }
+      );
+
       await createAddresses(payload);
     },
     [mode, createAddresses, customerIds]
   );
-  
+
   return (
     <>
       {showSuccessDialog ? (
@@ -142,20 +148,20 @@ const AddressCreateDialog = ({
                 />
               ) : (
                 <BulkAddressForm
-                loading={isCreatingAddress}
-                defaultValues={
-                  customerIds?.length
-                    ? customerIds.map((id) => ({ customer_id: id }))
-                    : [{}]
-                }
-                onSubmit={handleSubmit}
-                customerNames={customerNames}
-                customerIds={customerIds}
-                customerDropdownOptions={customerDropdownOptions}
-                fetchCustomerDropdownOptions={fetchCustomerDropdownOptions}
-                customerLookupLoading={customerLookupLoading}
-                customerLookupError={customerLookupError}
-                customerLookupMeta={customerLookupMeta}
+                  loading={isCreatingAddress}
+                  defaultValues={
+                    customerIds?.length
+                      ? customerIds.map((id) => ({ customer_id: id }))
+                      : [{}]
+                  }
+                  onSubmit={handleSubmit}
+                  customerNames={customerNames}
+                  customerIds={customerIds}
+                  customerDropdownOptions={customerDropdownOptions}
+                  fetchCustomerDropdownOptions={fetchCustomerDropdownOptions}
+                  customerLookupLoading={customerLookupLoading}
+                  customerLookupError={customerLookupError}
+                  customerLookupMeta={customerLookupMeta}
                 />
               )}
             </Box>

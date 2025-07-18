@@ -17,26 +17,25 @@ import { addressService } from '@services/addressService.ts';
  * @returns {Promise<CreateAddressApiResponse>} The resolved API response data.
  */
 export const createAddressesThunk = createAsyncThunk<
-  CreateAddressApiResponse,   // return type
-  AddressInputArray,          // argument type
-  { rejectValue: string }      // error type for rejectWithValue
->(
-  'addresses/createAddresses',
-  async (addresses, { rejectWithValue }) => {
-    try {
-      const response = await addressService.createAddresses(addresses);
-      if (!response || !response.data) {
-        return rejectWithValue('Invalid API response.');
-      }
-      return response;
-    } catch (error: any) {
-      // Extract a friendly error message or default fallback
-      const message =
-        error?.response?.data?.message || error?.message || 'Failed to create addresses.';
-      return rejectWithValue(message);
+  CreateAddressApiResponse, // return type
+  AddressInputArray, // argument type
+  { rejectValue: string } // error type for rejectWithValue
+>('addresses/createAddresses', async (addresses, { rejectWithValue }) => {
+  try {
+    const response = await addressService.createAddresses(addresses);
+    if (!response || !response.data) {
+      return rejectWithValue('Invalid API response.');
     }
+    return response;
+  } catch (error: any) {
+    // Extract a friendly error message or default fallback
+    const message =
+      error?.response?.data?.message ||
+      error?.message ||
+      'Failed to create addresses.';
+    return rejectWithValue(message);
   }
-);
+});
 
 /**
  * Redux thunk to fetch a paginated list of addresses from the API using query parameters.
@@ -57,17 +56,17 @@ export const createAddressesThunk = createAsyncThunk<
  * @returns {Promise<PaginatedAddressResponse>} The resolved API data or rejected error message.
  */
 export const fetchPaginatedAddressesThunk = createAsyncThunk<
-  PaginatedAddressResponse,           // Return type on success
-  AddressQueryParams | undefined,     // Argument type (query parameters)
-  { rejectValue: string }             // Type of the rejected value
->(
-  'addresses/fetchPaginated',
-  async (queryParams, { rejectWithValue }) => {
-    try {
-      return await addressService.fetchPaginatedAddresses(queryParams);
-    } catch (error: any) {
-      console.error('[fetchPaginatedAddressesThunk] Error:', { queryParams, error });
-      return rejectWithValue(error.message || 'Failed to fetch addresses');
-    }
+  PaginatedAddressResponse, // Return type on success
+  AddressQueryParams | undefined, // Argument type (query parameters)
+  { rejectValue: string } // Type of the rejected value
+>('addresses/fetchPaginated', async (queryParams, { rejectWithValue }) => {
+  try {
+    return await addressService.fetchPaginatedAddresses(queryParams);
+  } catch (error: any) {
+    console.error('[fetchPaginatedAddressesThunk] Error:', {
+      queryParams,
+      error,
+    });
+    return rejectWithValue(error.message || 'Failed to fetch addresses');
   }
-);
+});

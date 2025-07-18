@@ -7,7 +7,8 @@ import type {
   GetBatchRegistryLookupResponse,
   GetWarehouseLookupResponse,
   LotAdjustmentLookupQueryParams,
-  LotAdjustmentTypeLookupResponse, OrderTypeLookupQueryParams,
+  LotAdjustmentTypeLookupResponse,
+  OrderTypeLookupQueryParams,
   OrderTypeLookupResponse,
 } from '@features/lookup/state/lookupTypes';
 import { lookupService } from '@services/lookupService';
@@ -24,18 +25,15 @@ export const fetchBatchRegistryLookupThunk = createAsyncThunk<
   GetBatchRegistryLookupResponse, // Return type on success
   GetBatchRegistryLookupParams, // Argument type
   { rejectValue: string } // Rejection payload type
->(
-  'lookup/fetchBatchRegistryLookup',
-  async (params, { rejectWithValue }) => {
-    try {
-      return await lookupService.fetchBatchRegistryLookup(params);
-    } catch (error: any) {
-      return rejectWithValue(
-        error?.response?.data?.message || 'Failed to fetch lookup items'
-      );
-    }
+>('lookup/fetchBatchRegistryLookup', async (params, { rejectWithValue }) => {
+  try {
+    return await lookupService.fetchBatchRegistryLookup(params);
+  } catch (error: any) {
+    return rejectWithValue(
+      error?.response?.data?.message || 'Failed to fetch lookup items'
+    );
   }
-);
+});
 
 /**
  * Async thunk to fetch warehouse lookup options.
@@ -48,20 +46,17 @@ export const fetchBatchRegistryLookupThunk = createAsyncThunk<
 export const fetchWarehouseLookupThunk = createAsyncThunk<
   GetWarehouseLookupResponse, // return type
   { warehouseTypeId?: string } | undefined
->(
-  'lookup/fetchWarehouseLookup',
-  async (params, { rejectWithValue }) => {
-    try {
-      return await lookupService.fetchWarehouseLookup(params?.warehouseTypeId);
-    } catch (error: any) {
-      return rejectWithValue({
-        message:
-          error?.response?.data?.message || 'Failed to load warehouse lookup',
-        status: error?.response?.status || 500,
-      });
-    }
+>('lookup/fetchWarehouseLookup', async (params, { rejectWithValue }) => {
+  try {
+    return await lookupService.fetchWarehouseLookup(params?.warehouseTypeId);
+  } catch (error: any) {
+    return rejectWithValue({
+      message:
+        error?.response?.data?.message || 'Failed to load warehouse lookup',
+      status: error?.response?.status || 500,
+    });
   }
-);
+});
 
 /**
  * Thunk to fetch active lot adjustment types for lookup use.
@@ -86,8 +81,8 @@ export const fetchWarehouseLookupThunk = createAsyncThunk<
  * dispatch(fetchLotAdjustmentTypeLookupThunk({ excludeInternal: false }));
  */
 export const fetchLotAdjustmentTypeLookupThunk = createAsyncThunk<
-  LotAdjustmentTypeLookupResponse,                // return type
-  LotAdjustmentLookupQueryParams | undefined      // input param type
+  LotAdjustmentTypeLookupResponse, // return type
+  LotAdjustmentLookupQueryParams | undefined // input param type
 >(
   'Lookups/fetchLotAdjustmentTypeLookup',
   async (filters = {}, { rejectWithValue }) => {
@@ -114,16 +109,15 @@ export const fetchCustomerLookupThunk = createAsyncThunk<
   {
     rejectValue: string | object; // Type for the reject payload
   }
->(
-  'lookup/fetchCustomerLookup',
-  async (params, { rejectWithValue }) => {
-    try {
-      return await lookupService.fetchCustomerLookup(params);
-    } catch (error: any) {
-      return rejectWithValue(error?.response?.data || 'Failed to fetch customer lookup');
-    }
+>('lookup/fetchCustomerLookup', async (params, { rejectWithValue }) => {
+  try {
+    return await lookupService.fetchCustomerLookup(params);
+  } catch (error: any) {
+    return rejectWithValue(
+      error?.response?.data || 'Failed to fetch customer lookup'
+    );
   }
-);
+});
 
 /**
  * Thunk action to fetch all addresses associated with a given customer ID.
@@ -146,19 +140,16 @@ export const fetchCustomerAddressesLookupThunk = createAsyncThunk<
   {
     rejectValue: { message: string };
   }
->(
-  'addresses/fetchByCustomerId',
-  async (customerId, { rejectWithValue }) => {
-    try {
-      return await lookupService.fetchAddressesByCustomerId(customerId);
-    } catch (error) {
-      console.error('fetchCustomerAddressesThunk failed:', error);
-      return rejectWithValue({
-        message: 'Failed to load customer addresses',
-      });
-    }
+>('addresses/fetchByCustomerId', async (customerId, { rejectWithValue }) => {
+  try {
+    return await lookupService.fetchAddressesByCustomerId(customerId);
+  } catch (error) {
+    console.error('fetchCustomerAddressesThunk failed:', error);
+    return rejectWithValue({
+      message: 'Failed to load customer addresses',
+    });
   }
-);
+});
 
 /**
  * Thunk to fetch order type lookup data with optional query parameters.
@@ -177,16 +168,13 @@ export const fetchCustomerAddressesLookupThunk = createAsyncThunk<
  * @throws Will propagate and reject with the error message if the API request fails.
  */
 export const fetchOrderTypeLookupThunk = createAsyncThunk<
-  OrderTypeLookupResponse,                // return type
+  OrderTypeLookupResponse, // return type
   OrderTypeLookupQueryParams | undefined // input type
->(
-  'lookups/fetchOrderTypeLookup',
-  async (params, thunkAPI) => {
-    try {
-      return await lookupService.fetchOrderTypeLookup(params);
-    } catch (error: any) {
-      console.error('Thunk failed to fetch order type lookup:', error);
-      return thunkAPI.rejectWithValue(error?.message ?? 'Unknown error');
-    }
+>('lookups/fetchOrderTypeLookup', async (params, thunkAPI) => {
+  try {
+    return await lookupService.fetchOrderTypeLookup(params);
+  } catch (error: any) {
+    console.error('Thunk failed to fetch order type lookup:', error);
+    return thunkAPI.rejectWithValue(error?.message ?? 'Unknown error');
   }
-);
+});

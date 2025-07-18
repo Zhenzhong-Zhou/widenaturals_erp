@@ -27,11 +27,11 @@ const sortOptions: { label: string; value: AddressSortField }[] = [
 ];
 
 const AddressSortControls: FC<AddressSortControlsProps> = ({
-                                                             sortBy,
-                                                             sortOrder,
-                                                             onSortByChange,
-                                                             onSortOrderChange,
-                                                           }) => {
+  sortBy,
+  sortOrder,
+  onSortByChange,
+  onSortOrderChange,
+}) => {
   return (
     <SortControls
       sortBy={sortBy}

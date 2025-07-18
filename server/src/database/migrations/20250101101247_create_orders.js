@@ -14,9 +14,7 @@ exports.up = function (knex) {
       .references('id')
       .inTable('order_types');
 
-    table
-      .timestamp('order_date', { useTz: true })
-      .notNullable();
+    table.timestamp('order_date', { useTz: true }).notNullable();
 
     table
       .uuid('order_status_id')
@@ -28,17 +26,19 @@ exports.up = function (knex) {
     table.text('note').nullable();
 
     // Shipping Information (optional)
-    table.uuid('shipping_address_id')
+    table
+      .uuid('shipping_address_id')
       .nullable()
       .references('id')
       .inTable('addresses');
-    
+
     // Billing Information (optional)
-    table.uuid('billing_address_id')
+    table
+      .uuid('billing_address_id')
       .nullable()
       .references('id')
       .inTable('addresses');
-    
+
     // Audit fields
     table
       .timestamp('created_at', { useTz: true })
@@ -48,7 +48,7 @@ exports.up = function (knex) {
     table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
     table.uuid('created_by').references('id').inTable('users');
     table.uuid('updated_by').references('id').inTable('users');
-    
+
     table.index(['order_type_id'], 'idx_orders_order_type');
     table.index(['order_status_id'], 'idx_orders_order_status');
     table.index(['created_at'], 'idx_orders_created_at');

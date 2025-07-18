@@ -22,15 +22,15 @@ interface CustomerTableProps {
 }
 
 const CustomerTable: FC<CustomerTableProps> = ({
-                                                 data,
-                                                 page,
-                                                 rowsPerPage,
-                                                 totalPages,
-                                                 totalRecords,
-                                                 onPageChange,
-                                                 onRowsPerPageChange,
-                                                 onRefresh,
-                                               }) => {
+  data,
+  page,
+  rowsPerPage,
+  totalPages,
+  totalRecords,
+  onPageChange,
+  onRowsPerPageChange,
+  onRefresh,
+}) => {
   const columns: Column<CustomerListItem>[] = [
     {
       id: 'customerName',
@@ -39,7 +39,11 @@ const CustomerTable: FC<CustomerTableProps> = ({
       renderCell: (row) => (
         <Link
           to={`/customers/customer/${row.id}`}
-          style={{ textDecoration: 'none', color: '#1976D2', fontWeight: 'bold' }}
+          style={{
+            textDecoration: 'none',
+            color: '#1976D2',
+            fontWeight: 'bold',
+          }}
         >
           {row.customerName}
         </Link>
@@ -75,8 +79,7 @@ const CustomerTable: FC<CustomerTableProps> = ({
       id: 'createdAt',
       label: 'Created At',
       sortable: true,
-      format: (value) =>
-        typeof value === 'string' ? formatDate(value) : '-',
+      format: (value) => (typeof value === 'string' ? formatDate(value) : '-'),
     },
     {
       id: 'createdBy',
@@ -87,12 +90,11 @@ const CustomerTable: FC<CustomerTableProps> = ({
       id: 'updatedAt',
       label: 'Updated At',
       sortable: true,
-      format: (value) =>
-        typeof value === 'string' ? formatDate(value) : '-',
+      format: (value) => (typeof value === 'string' ? formatDate(value) : '-'),
     },
     { id: 'updatedBy', label: 'Updated By', sortable: true },
   ];
-  
+
   return (
     <Box>
       <Box
@@ -104,7 +106,7 @@ const CustomerTable: FC<CustomerTableProps> = ({
         <CustomTypography variant="h6" fontWeight={600}>
           Customer List
         </CustomTypography>
-        
+
         <CustomButton
           onClick={onRefresh}
           variant="outlined"
@@ -113,7 +115,7 @@ const CustomerTable: FC<CustomerTableProps> = ({
           Refresh
         </CustomButton>
       </Box>
-      
+
       <CustomTable
         columns={columns}
         data={data}

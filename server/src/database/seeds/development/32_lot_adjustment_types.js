@@ -6,14 +6,14 @@ const {
 
 exports.seed = async function (knex) {
   const table = 'lot_adjustment_types';
-  
+
   // Skip if data already exists
   const existing = await knex(table).select('id').limit(1);
   if (existing.length > 0) {
     console.log(`Skipping ${table} seed: data already exists.`);
     return;
   }
-  
+
   const systemUserId = await fetchDynamicValue(
     knex,
     'users',
@@ -21,7 +21,7 @@ exports.seed = async function (knex) {
     'system@internal.local',
     'id'
   );
-  
+
   const actionMap = {
     manual_stock_insert: 'manual_stock_insert',
     manual_stock_update: 'manual_stock_insert_update',
@@ -40,7 +40,7 @@ exports.seed = async function (knex) {
     resampled: 'quarantined',
     repackaged: 'repackaged',
   };
-  
+
   const descriptionsMap = {
     manual_stock_insert: 'Manual stock insertion into the system',
     manual_stock_update: 'Manual update of stock quantity or status',
@@ -59,7 +59,7 @@ exports.seed = async function (knex) {
     resampled: 'Inventory resampled for QA purposes',
     repackaged: 'Inventory repackaged due to damage or requirement',
   };
-  
+
   const departmentGroupMap = {
     manual_stock_insert: 'warehouse_ops',
     manual_stock_update: 'warehouse_ops',
@@ -78,15 +78,15 @@ exports.seed = async function (knex) {
     resampled: 'quality_control',
     repackaged: 'supply_chain',
   };
-  
+
   let sequence = 1;
-  
+
   for (const [name, actionName] of Object.entries(actionMap)) {
     const code = generateStandardizedCode('LAT', name, {
       sequenceNumber: sequence++,
     });
     const slug = generateCodeOrSlug(name, { sequenceNumber: sequence++ });
-    
+
     const actionTypeId = await fetchDynamicValue(
       knex,
       'inventory_action_types',
@@ -94,7 +94,7 @@ exports.seed = async function (knex) {
       actionName,
       'id'
     );
-    
+
     await knex(table)
       .insert({
         id: knex.raw('uuid_generate_v4()'),
@@ -113,6 +113,6 @@ exports.seed = async function (knex) {
       .onConflict('name')
       .ignore();
   }
-  
+
   console.log(`${Object.keys(actionMap).length} ${table} records seeded.`);
 };

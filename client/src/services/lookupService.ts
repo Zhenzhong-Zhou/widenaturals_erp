@@ -8,7 +8,9 @@ import type {
   GetBatchRegistryLookupResponse,
   GetWarehouseLookupResponse,
   LotAdjustmentLookupQueryParams,
-  LotAdjustmentTypeLookupResponse, OrderTypeLookupQueryParams, OrderTypeLookupResponse,
+  LotAdjustmentTypeLookupResponse,
+  OrderTypeLookupQueryParams,
+  OrderTypeLookupResponse,
 } from '@features/lookup/state/lookupTypes';
 import { buildQueryString } from '@utils/buildQueryString';
 
@@ -29,7 +31,7 @@ const fetchBatchRegistryLookup = async (
 ): Promise<GetBatchRegistryLookupResponse> => {
   const queryString = buildQueryString(params);
   const url = `${API_ENDPOINTS.LOOKUPS.BATCH_REGISTRY}${queryString}`;
-  
+
   try {
     return await getRequest<GetBatchRegistryLookupResponse>(url);
   } catch (error) {
@@ -56,7 +58,7 @@ const fetchWarehouseLookup = async (
   const params = warehouseTypeId ? { warehouseTypeId } : {};
   const queryString = buildQueryString(params);
   const url = `${API_ENDPOINTS.LOOKUPS.WAREHOUSES}${queryString}`;
-  
+
   try {
     return await getRequest<GetWarehouseLookupResponse>(url);
   } catch (error) {
@@ -82,7 +84,7 @@ const fetchLotAdjustmentTypeLookup = async (
 ): Promise<LotAdjustmentTypeLookupResponse> => {
   const queryString = buildQueryString(params);
   const url = `${API_ENDPOINTS.LOOKUPS.LOT_ADJUSTMENT_TYPES}${queryString}`;
-  
+
   try {
     return await getRequest<LotAdjustmentTypeLookupResponse>(url);
   } catch (error) {
@@ -141,7 +143,7 @@ const fetchAddressesByCustomerId = async (
 ): Promise<AddressByCustomerLookupResponse> => {
   const queryString = buildQueryString({ customerId });
   const url = `${API_ENDPOINTS.LOOKUPS.ADDRESSES_BY_CUSTOMER}${queryString}`;
-  
+
   try {
     return await getRequest<AddressByCustomerLookupResponse>(url);
   } catch (error) {
@@ -164,7 +166,7 @@ const fetchOrderTypeLookup = async (
 ): Promise<OrderTypeLookupResponse> => {
   const queryString = buildQueryString(params);
   const url = `${API_ENDPOINTS.LOOKUPS.ORDER_TYPES}${queryString}`;
-  
+
   try {
     return await getRequest<OrderTypeLookupResponse>(url);
   } catch (error) {

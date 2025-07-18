@@ -2,7 +2,9 @@ const { checkPermissions } = require('../services/role-permission-service');
 const AppError = require('../utils/AppError');
 const { logSystemWarn } = require('../utils/system-logger');
 const { createSalesOrder } = require('./sales-order-business');
-const { resolveOrderAccessContext } = require('../services/role-permission-service');
+const {
+  resolveOrderAccessContext,
+} = require('../services/role-permission-service');
 
 /**
  * Verifies if the user has permission to create an order of the specified category.
@@ -15,10 +17,11 @@ const { resolveOrderAccessContext } = require('../services/role-permission-servi
  * @throws {AppError} - If user lacks permission.
  */
 const verifyOrderCreationPermission = async (user, category) => {
-  const { isRoot, accessibleCategories } = await resolveOrderAccessContext(user);
-  
+  const { isRoot, accessibleCategories } =
+    await resolveOrderAccessContext(user);
+
   if (isRoot) return;
-  
+
   if (!accessibleCategories.includes(category)) {
     logSystemWarn('Permission denied for order creation', {
       context: 'verifyOrderCreationPermission',
@@ -26,8 +29,10 @@ const verifyOrderCreationPermission = async (user, category) => {
       attemptedCategory: category,
       accessibleCategories,
     });
-    
-    throw AppError.authorizationError(`You do not have permission to create ${category} orders.`);
+
+    throw AppError.authorizationError(
+      `You do not have permission to create ${category} orders.`
+    );
   }
 };
 
@@ -55,11 +60,11 @@ const orderCreationStrategies = {
  */
 const createOrderWithType = async (category, orderData, client) => {
   const createFn = orderCreationStrategies[category];
-  
+
   if (!createFn) {
     throw AppError.validationError(`Unsupported order category: ${category}`);
   }
-  
+
   return await createFn(orderData, client);
 };
 

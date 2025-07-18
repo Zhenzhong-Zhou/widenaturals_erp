@@ -46,73 +46,73 @@ const buildOrderTypeFilter = (filters = {}) => {
     const conditions = ['1=1'];
     const params = [];
     let paramIndex = 1;
-    
+
     if (filters.name) {
       conditions.push(`ot.name ILIKE $${paramIndex}`);
       params.push(`%${filters.name}%`);
       paramIndex++;
     }
-    
+
     if (filters.code) {
       conditions.push(`ot.code ILIKE $${paramIndex}`);
       params.push(`%${filters.code}%`);
       paramIndex++;
     }
-    
+
     if (filters.category) {
       conditions.push(`ot.category = $${paramIndex}`);
       params.push(filters.category);
       paramIndex++;
     }
-    
+
     if (filters.statusId) {
       conditions.push(`ot.status_id = $${paramIndex}`);
       params.push(filters.statusId);
       paramIndex++;
     }
-    
+
     if (filters.requiresPayment !== undefined) {
       conditions.push(`ot.requires_payment = $${paramIndex}`);
       params.push(filters.requiresPayment);
       paramIndex++;
     }
-    
+
     if (filters.createdBy) {
       conditions.push(`ot.created_by = $${paramIndex}`);
       params.push(filters.createdBy);
       paramIndex++;
     }
-    
+
     if (filters.updatedBy) {
       conditions.push(`ot.updated_by = $${paramIndex}`);
       params.push(filters.updatedBy);
       paramIndex++;
     }
-    
+
     if (filters.createdAfter) {
       conditions.push(`ot.created_at >= $${paramIndex}`);
       params.push(filters.createdAfter);
       paramIndex++;
     }
-    
+
     if (filters.createdBefore) {
       conditions.push(`ot.created_at <= $${paramIndex}`);
       params.push(filters.createdBefore);
       paramIndex++;
     }
-    
+
     if (filters.updatedAfter) {
       conditions.push(`ot.updated_at >= $${paramIndex}`);
       params.push(filters.updatedAfter);
       paramIndex++;
     }
-    
+
     if (filters.updatedBefore) {
       conditions.push(`ot.updated_at <= $${paramIndex}`);
       params.push(filters.updatedBefore);
       paramIndex++;
     }
-    
+
     if (filters.keyword) {
       conditions.push(`(
         ot.name ILIKE $${paramIndex} OR
@@ -121,7 +121,7 @@ const buildOrderTypeFilter = (filters = {}) => {
       params.push(`%${filters.keyword}%`);
       paramIndex++;
     }
-    
+
     return {
       whereClause: conditions.join(' AND '),
       params,

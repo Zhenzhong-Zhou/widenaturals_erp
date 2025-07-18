@@ -2,7 +2,8 @@ import type {
   ApiSuccessResponse,
   MutationState,
   PaginatedResponse,
-  PaginationParams, ReduxPaginatedState,
+  PaginationParams,
+  ReduxPaginatedState,
   SortConfig,
 } from '@shared-types/api';
 
@@ -69,7 +70,9 @@ export interface CustomerFilters {
   onlyWithAddress?: boolean;
 }
 
-export interface FetchPaginatedCustomersParams extends PaginationParams, SortConfig {
+export interface FetchPaginatedCustomersParams
+  extends PaginationParams,
+    SortConfig {
   filters?: CustomerFilters;
 }
 

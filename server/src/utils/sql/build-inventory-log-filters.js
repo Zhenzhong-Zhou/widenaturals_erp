@@ -44,92 +44,101 @@ const buildInventoryLogWhereClause = (filters = {}) => {
     const conditions = [];
     const params = [];
     let paramIndex = 1;
-    
+
     if (filters.warehouseIds?.length) {
       conditions.push(`wi.warehouse_id = ANY($${paramIndex++})`);
       params.push(toPgArray(filters.warehouseIds));
     }
-    
+
     if (filters.locationIds?.length) {
       conditions.push(`li.location_id = ANY($${paramIndex++})`);
       params.push(toPgArray(filters.locationIds));
     }
-    
+
     if (filters.productIds?.length) {
       conditions.push(`p.id = ANY($${paramIndex++})`);
       params.push(toPgArray(filters.productIds));
     }
-    
+
     if (filters.skuIds?.length) {
       conditions.push(`s.id = ANY($${paramIndex++})`);
       params.push(toPgArray(filters.skuIds));
     }
-    
+
     if (filters.batchIds?.length) {
       conditions.push(`br.id = ANY($${paramIndex++})`);
       params.push(toPgArray(filters.batchIds));
     }
-    
+
     if (filters.packagingMaterialIds?.length) {
       conditions.push(`pm.id = ANY($${paramIndex++})`);
       params.push(toPgArray(filters.packagingMaterialIds));
     }
-    
+
     if (filters.actionTypeIds?.length) {
       conditions.push(`ial.inventory_action_type_id = ANY($${paramIndex++})`);
       params.push(toPgArray(filters.actionTypeIds));
     }
-    
+
     if (filters.orderId) {
       conditions.push(`o.id = $${paramIndex++}`);
       params.push(filters.orderId);
     }
-    
+
     if (filters.statusId) {
       conditions.push(`ial.status_id = $${paramIndex++}`);
       params.push(filters.statusId);
     }
-    
+
     if (filters.adjustmentTypeId) {
       conditions.push(`ial.adjustment_type_id = $${paramIndex++}`);
       params.push(filters.adjustmentTypeId);
     }
-    
+
     if (filters.performedBy) {
       conditions.push(`ial.performed_by = $${paramIndex++}`);
       params.push(filters.performedBy);
     }
-    
+
     if (filters.sourceType) {
       conditions.push(`ial.source_type = $${paramIndex++}`);
       params.push(filters.sourceType);
     }
-    
+
     if (filters.batchType) {
       conditions.push(`br.batch_type = $${paramIndex++}`);
       params.push(filters.batchType);
     }
-    
+
     if (filters.fromDate) {
       conditions.push(`ial.action_timestamp >= $${paramIndex++}`);
       params.push(filters.fromDate);
     }
-    
+
     if (filters.toDate) {
       conditions.push(`ial.action_timestamp <= $${paramIndex++}`);
       params.push(filters.toDate);
     }
-    
-    const whereClause = conditions.length ? `${conditions.join(' AND ')}` : '1=1';
+
+    const whereClause = conditions.length
+      ? `${conditions.join(' AND ')}`
+      : '1=1';
     return { whereClause, params };
   } catch (err) {
-    logSystemException(err, 'Error building inventory activity log filter WHERE clause', {
-      context: 'report-repository/buildInventoryLogWhereClause',
-      filters,
-    });
-    throw AppError.transformerError('Error building filter conditions for inventory log report', {
-      details: err.message,
-    });
+    logSystemException(
+      err,
+      'Error building inventory activity log filter WHERE clause',
+      {
+        context: 'report-repository/buildInventoryLogWhereClause',
+        filters,
+      }
+    );
+    throw AppError.transformerError(
+      'Error building filter conditions for inventory log report',
+      {
+        details: err.message,
+      }
+    );
   }
 };
 

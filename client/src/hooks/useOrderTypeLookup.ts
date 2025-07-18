@@ -18,30 +18,33 @@ import { clearOrderTypeLookup } from '@features/lookup/state/orderTypeLookupSlic
  */
 const useOrderTypeLookup = () => {
   const dispatch = useAppDispatch();
-  
+
   const options = useAppSelector(selectOrderTypeOptions);
   const loading = useAppSelector(selectOrderTypeLoading);
   const error = useAppSelector(selectOrderTypeError);
-  
+
   const fetchData = useCallback(
     (params?: OrderTypeLookupQueryParams) => {
       dispatch(fetchOrderTypeLookupThunk(params));
     },
     [dispatch]
   );
-  
+
   const resetData = useCallback(
     () => dispatch(clearOrderTypeLookup()),
     [dispatch]
   );
-  
-  return useMemo(() => ({
-    options,
-    loading,
-    error,
-    fetchData,
-    resetData
-  }), [options, loading, error, fetchData, resetData]);
+
+  return useMemo(
+    () => ({
+      options,
+      loading,
+      error,
+      fetchData,
+      resetData,
+    }),
+    [options, loading, error, fetchData, resetData]
+  );
 };
 
 export default useOrderTypeLookup;

@@ -23,7 +23,10 @@ import ErrorDisplay from '@components/shared/ErrorDisplay';
 import ErrorMessage from '@components/common/ErrorMessage';
 import type { SortConfig } from '@shared-types/api';
 import { groupBy } from 'lodash';
-import type { InventoryRecord, ItemType } from '@features/inventoryShared/types/InventorySharedType';
+import type {
+  InventoryRecord,
+  ItemType,
+} from '@features/inventoryShared/types/InventorySharedType';
 import AdjustInventoryDialog from '@features/warehouseInventory/components/AdjustInventoryDialog';
 import AddInventoryDialog from '@features/warehouseInventory/components/AddInventoryDialog';
 import AdjustBulkInventoryDialog from '@features/warehouseInventory/components/AdjustBulkInventoryDialog';
@@ -31,8 +34,8 @@ import AdjustBulkInventoryDialog from '@features/warehouseInventory/components/A
 interface BaseInventoryPageProps<T> {
   title: string;
   Icon: ReactNode;
-  showAddButton?: boolean;     // default true
-  showAdjustButton?: boolean;  // default true
+  showAddButton?: boolean; // default true
+  showAdjustButton?: boolean; // default true
   useInventoryHook: () => {
     records: T[];
     loading: boolean;
@@ -81,13 +84,14 @@ const BaseInventoryPage = <T extends InventoryRecord>({
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(30);
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
-  const [isAddInventoryDialogOpen, setIsAddInventoryDialogOpen] = useState(false);
+  const [isAddInventoryDialogOpen, setIsAddInventoryDialogOpen] =
+    useState(false);
   const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
   const [adjustTarget, setAdjustTarget] = useState<any | null>(null); // for single adjust modal
   const [selectedRecords, setSelectedRecords] = useState<T[]>([]);
   const [isAdjustDialogOpen, setIsAdjustDialogOpen] = useState(false);
   const [isBulkAdjustOpen, setIsBulkAdjustOpen] = useState(false);
-  
+
   const { records, loading, error, pagination, fetchRecords } =
     useInventoryHook();
 
@@ -98,7 +102,7 @@ const BaseInventoryPage = <T extends InventoryRecord>({
         ? 'packaging_material'
         : undefined;
   }, [itemTypeTab]);
-  
+
   const grouped = groupBy(records, extractGroupName);
 
   useEffect(() => {
@@ -141,20 +145,20 @@ const BaseInventoryPage = <T extends InventoryRecord>({
   };
 
   const isRowExpanded = (row: any) => expandedRowId === row[rowKey];
-  
+
   const handleRefresh = () => {
     fetchRecords({ page, limit }, filters, sortConfig);
   };
-  
+
   const handleAddOpen = (e: MouseEvent<HTMLButtonElement>) => {
     e.currentTarget.blur(); // Remove focus before dialog renders
     setIsAddInventoryDialogOpen(true);
   };
-  
+
   const handleAddClose = () => {
     setIsAddInventoryDialogOpen(false);
   };
-  
+
   // Single Adjust
   const handleAdjustSingle = (row: any) => {
     setAdjustTarget(row.originalRecord); // Or just `row` depending on your structure
@@ -165,12 +169,12 @@ const BaseInventoryPage = <T extends InventoryRecord>({
   const handleBulkAdjust = () => {
     setIsBulkAdjustOpen(true);
   };
-  
+
   const showBulkAdjust = useMemo(
     () => selectedRowIds.length > 0 && selectedRecords.length > 0,
     [selectedRowIds, selectedRecords]
   );
-  
+
   // Close dialog only
   const handleAdjustDialogClose = () => {
     setIsAdjustDialogOpen(false);
@@ -181,14 +185,14 @@ const BaseInventoryPage = <T extends InventoryRecord>({
   const handleAdjustDialogExited = () => {
     fetchRecords({ page, limit }, filters, sortConfig);
   };
-  
+
   // Selection change from table
   const handleSelectionChange = (ids: string[], records: any[]) => {
     setSelectedRowIds(ids);
     const selected = records.map((r) => r.originalRecord as T).filter(Boolean);
     setSelectedRecords(selected);
   };
-  
+
   if (error) {
     return (
       <ErrorDisplay>
@@ -213,7 +217,7 @@ const BaseInventoryPage = <T extends InventoryRecord>({
             {title}
           </CustomTypography>
         </Stack>
-        
+
         <Stack
           direction={{ xs: 'column', sm: 'row' }}
           justifyContent="space-between"
@@ -227,13 +231,17 @@ const BaseInventoryPage = <T extends InventoryRecord>({
               <CustomButton onClick={handleAddOpen}>Add Inventory</CustomButton>
             )}
             {showAdjustButton && selectedRowIds.length > 0 && (
-              <CustomButton variant="contained" onClick={handleBulkAdjust} size="small">
+              <CustomButton
+                variant="contained"
+                onClick={handleBulkAdjust}
+                size="small"
+              >
                 Adjust Selected ({selectedRowIds.length})
               </CustomButton>
             )}
           </Stack>
         </Stack>
-        
+
         <Stack spacing={3}>
           <Stack
             direction={{ xs: 'column', sm: 'row' }}
@@ -271,8 +279,12 @@ const BaseInventoryPage = <T extends InventoryRecord>({
             onReset={handleResetFilters}
             showActionsWhenAll={true}
           />
-          
-          <Suspense fallback={<Skeleton variant="rectangular" height={180} width="100%" />} >
+
+          <Suspense
+            fallback={
+              <Skeleton variant="rectangular" height={180} width="100%" />
+            }
+          >
             <TableComponent
               isLoading={loading}
               groupedData={grouped}
@@ -306,7 +318,7 @@ const BaseInventoryPage = <T extends InventoryRecord>({
         onClose={handleAddClose}
         onExited={handleAdjustDialogExited}
       />
-      
+
       {isAdjustDialogOpen && adjustTarget && (
         <AdjustInventoryDialog
           open={isAdjustDialogOpen}
@@ -315,7 +327,7 @@ const BaseInventoryPage = <T extends InventoryRecord>({
           onExited={handleAdjustDialogExited}
         />
       )}
-      
+
       {isBulkAdjustOpen && showBulkAdjust && (
         <AdjustBulkInventoryDialog
           open={isBulkAdjustOpen}

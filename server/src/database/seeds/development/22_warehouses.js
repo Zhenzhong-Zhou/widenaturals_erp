@@ -7,7 +7,7 @@ const { generateStandardizedCode } = require('../../../utils/code-generators');
  */
 exports.seed = async function (knex) {
   console.log('Seeding warehouses...');
-  
+
   // Skip if warehouses table is already populated
   const existingCount = await knex('warehouses').count('* as count').first();
   if (existingCount?.count > 0) {
@@ -23,7 +23,7 @@ exports.seed = async function (knex) {
     ['active', 'inactive', 'pending', 'discontinued', 'archived'],
     'id'
   );
-  
+
   const systemActionId = await fetchDynamicValue(
     knex,
     'users',
@@ -31,7 +31,7 @@ exports.seed = async function (knex) {
     'system@internal.local',
     'id'
   );
-  
+
   const warehouseLocationTypeId = await fetchDynamicValue(
     knex,
     'location_types',
@@ -39,7 +39,7 @@ exports.seed = async function (knex) {
     'WAREHOUSE',
     'id'
   );
-  
+
   const warehouseTypeMap = await fetchDynamicValues(
     knex,
     'warehouse_types',
@@ -53,7 +53,7 @@ exports.seed = async function (knex) {
     ],
     'id'
   );
-  
+
   const warehouseData = [
     {
       warehouse_name: 'WIDE Naturals Inc.',
@@ -105,11 +105,11 @@ exports.seed = async function (knex) {
       status: 'archived',
     },
   ];
-  
+
   const warehouseLocations = await knex('locations')
     .where('location_type_id', warehouseLocationTypeId)
     .select('id', 'name');
-  
+
   // Ensure each warehouse has a valid location, type, and status
   const warehouseEntries = warehouseData
     .map((entry, index) => {
@@ -118,7 +118,7 @@ exports.seed = async function (knex) {
       );
       const typeId = warehouseTypeMap[entry.type];
       const statusId = statusMap[entry.status];
-      
+
       if (!location || !typeId || !statusId) {
         console.warn(
           `Skipping warehouse "${entry.warehouse_name}" — missing ${
@@ -127,7 +127,7 @@ exports.seed = async function (knex) {
         );
         return null;
       }
-      
+
       return {
         id: knex.raw('uuid_generate_v4()'),
         name: entry.warehouse_name,
@@ -157,7 +157,7 @@ exports.seed = async function (knex) {
       .insert(warehouseEntries)
       .onConflict(['name', 'location_id'])
       .ignore();
-    
+
     console.log(`${warehouseEntries.length} warehouses seeded successfully.`);
   } else {
     console.log('No valid warehouse entries to seed.');

@@ -14,11 +14,11 @@ interface SkeletonExpandedProps {
 }
 
 const SkeletonExpandedRow: FC<SkeletonExpandedProps> = ({
-                                                          showSummary = true,
-                                                          fieldPairs = 4,
-                                                          summaryHeight = 80,
-                                                          spacing = 1,
-                                                        }) => (
+  showSummary = true,
+  fieldPairs = 4,
+  summaryHeight = 80,
+  spacing = 1,
+}) => (
   <Box sx={{ px: 3, py: 2 }}>
     {showSummary && (
       <Skeleton
@@ -28,7 +28,7 @@ const SkeletonExpandedRow: FC<SkeletonExpandedProps> = ({
         sx={{ mb: 2 }}
       />
     )}
-    
+
     {[...Array(fieldPairs)].map((_, i) => (
       <Box key={i} sx={{ mb: spacing }}>
         <Skeleton variant="text" width="40%" height={24} animation="wave" />

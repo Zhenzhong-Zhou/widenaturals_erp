@@ -6,15 +6,12 @@ const { generateAddressHash } = require('../utils/crypto-utils');
 const {
   insertAddressRecords,
   getEnrichedAddressesByIds,
-  getPaginatedAddresses
+  getPaginatedAddresses,
 } = require('../repositories/address-repository');
-const {
-  logSystemException,
-  logSystemInfo
-} = require('../utils/system-logger');
+const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 const {
   transformEnrichedAddresses,
-  transformPaginatedAddressResults
+  transformPaginatedAddressResults,
 } = require('../transformers/address-transformer');
 const { filterAddressForViewer } = require('../business/address-business');
 
@@ -32,42 +29,46 @@ const { filterAddressForViewer } = require('../business/address-business');
  * @returns {Promise<Array>} Inserted or upserted address records formatted for the viewer.
  * @throws {AppError} On validation or database error.
  */
-const createAddressService = async (addresses, user, purpose = 'insert_response') => {
+const createAddressService = async (
+  addresses,
+  user,
+  purpose = 'insert_response'
+) => {
   const createdBy = user.id;
-  
+
   return withTransaction(async (client) => {
     try {
       const max = MAX_LIMITS.BULK_INPUT_LIMITS.MAX_UI_INSERT_SIZE;
-      
+
       validateBulkInputSize(
         addresses,
         max,
         'address-service/createAddressRecords',
         'addresses'
       );
-      
+
       const enrichedAddresses = addresses.map((address) => ({
         ...address,
         address_hash: generateAddressHash(address),
         created_by: createdBy,
       }));
-      
-      const inserted =  await insertAddressRecords(enrichedAddresses, client);
-      
+
+      const inserted = await insertAddressRecords(enrichedAddresses, client);
+
       if (!Array.isArray(inserted) || inserted.length === 0) {
         throw AppError.databaseError('No customer records were inserted.');
       }
-      
+
       const insertedIds = inserted.map((row) => row.id);
-      
+
       logSystemInfo('Address bulk insert completed', {
         insertedCount: inserted.length,
         context: 'address-service/createAddressService',
       });
-      
+
       const rawResult = await getEnrichedAddressesByIds(insertedIds, client);
       const enrichedRecords = transformEnrichedAddresses(rawResult);
-      
+
       return enrichedRecords.map((address) =>
         filterAddressForViewer(address, user, purpose)
       );
@@ -102,13 +103,13 @@ const createAddressService = async (addresses, user, purpose = 'insert_response'
  * @throws {AppError} Throws a service error if fetching fails.
  */
 const fetchPaginatedAddressesService = async ({
-                                                filters = {},
-                                                user,
-                                                page = 1,
-                                                limit = 10,
-                                                sortBy = 'created_at',
-                                                sortOrder = 'DESC',
-                                              }) => {
+  filters = {},
+  user,
+  page = 1,
+  limit = 10,
+  sortBy = 'created_at',
+  sortOrder = 'DESC',
+}) => {
   try {
     const rawResult = await getPaginatedAddresses({
       filters,
@@ -117,9 +118,9 @@ const fetchPaginatedAddressesService = async ({
       sortBy,
       sortOrder,
     });
-    
+
     const result = transformPaginatedAddressResults(rawResult);
-    
+
     logSystemInfo('Fetched paginated addresses', {
       context: 'address-service/fetchPaginatedAddressesService',
       userId: user?.id,
@@ -127,7 +128,7 @@ const fetchPaginatedAddressesService = async ({
       pagination: { page, limit },
       sort: { sortBy, sortOrder },
     });
-    
+
     return result;
   } catch (error) {
     logSystemException(error, 'Failed to fetch paginated addresses', {
@@ -137,7 +138,7 @@ const fetchPaginatedAddressesService = async ({
       pagination: { page, limit },
       sort: { sortBy, sortOrder },
     });
-    
+
     throw AppError.serviceError('Failed to fetch address list.');
   }
 };

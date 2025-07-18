@@ -31,12 +31,12 @@ const getSortMapForModule = (moduleKey) => {
  */
 const sanitizeSortBy = (sortByRaw = '', module = null) => {
   const sortMap = getSortMapForModule(module);
-  
+
   const requestedKeys = sortByRaw
     .split(',')
     .map((key) => key.trim())
     .filter(Boolean);
-  
+
   const mappedKeys = requestedKeys
     .map((key) => {
       const mapped = sortMap[key];
@@ -49,9 +49,9 @@ const sanitizeSortBy = (sortByRaw = '', module = null) => {
       return mapped;
     })
     .filter(Boolean);
-  
+
   const mapped = mappedKeys.join(', ');
-  
+
   // Fallback: 'createdAt' or first defined key in the map
   return mapped || sortMap['createdAt'] || Object.values(sortMap)[0];
 };

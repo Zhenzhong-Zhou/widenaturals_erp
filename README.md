@@ -201,9 +201,9 @@ Before starting, ensure you have the following installed:
   ```
   **Run the following command to see if cron is restricted for your user:**:
   `bash
-   sudo crontab -l
-   crontab -l
-   `
+ sudo crontab -l
+ crontab -l
+ `
   **Monitor Logs:**:
 
 ```bash

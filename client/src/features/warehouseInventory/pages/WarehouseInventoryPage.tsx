@@ -21,8 +21,10 @@ const WarehouseInventoryPage = () => {
       ExpandedRowComponent={WarehouseInventoryExpandedRow}
       sortOptions={WAREHOUSE_INVENTORY_SORT_OPTIONS}
       rowKey="id"
-      extractGroupName={(record) => record.warehouse?.name || 'Unknown Warehouse'}
-   />
+      extractGroupName={(record) =>
+        record.warehouse?.name || 'Unknown Warehouse'
+      }
+    />
   );
 };
 

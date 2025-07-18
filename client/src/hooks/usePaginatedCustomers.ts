@@ -11,7 +11,7 @@ import {
 } from '@features/customer/state/paginatedCustomersSelectors';
 import {
   type FetchPaginatedCustomersParams,
-  fetchPaginatedCustomersThunk
+  fetchPaginatedCustomersThunk,
 } from '@features/customer/state';
 
 /**
@@ -20,7 +20,7 @@ import {
  */
 const usePaginatedCustomers = () => {
   const dispatch = useAppDispatch();
-  
+
   const customers = useAppSelector(selectPaginatedCustomers);
   const loading = useAppSelector(selectPaginatedCustomersLoading);
   const error = useAppSelector(selectPaginatedCustomersError);
@@ -28,21 +28,27 @@ const usePaginatedCustomers = () => {
   const limit = useAppSelector(selectPaginatedCustomersLimit);
   const totalPages = useAppSelector(selectPaginatedCustomersTotalPages);
   const totalRecords = useAppSelector(selectPaginatedCustomersTotalRecords);
-  
-  const fetchCustomers = useCallback((params?: FetchPaginatedCustomersParams) => {
-    dispatch(fetchPaginatedCustomersThunk(params ?? {}));
-  }, [dispatch]);
-  
-  return useMemo(() => ({
-    customers,
-    page,
-    limit,
-    totalPages,
-    totalRecords,
-    loading,
-    error,
-    fetchCustomers,
-  }), [customers, page, limit, totalPages, totalRecords, loading, error]);
+
+  const fetchCustomers = useCallback(
+    (params?: FetchPaginatedCustomersParams) => {
+      dispatch(fetchPaginatedCustomersThunk(params ?? {}));
+    },
+    [dispatch]
+  );
+
+  return useMemo(
+    () => ({
+      customers,
+      page,
+      limit,
+      totalPages,
+      totalRecords,
+      loading,
+      error,
+      fetchCustomers,
+    }),
+    [customers, page, limit, totalPages, totalRecords, loading, error]
+  );
 };
 
 export default usePaginatedCustomers;

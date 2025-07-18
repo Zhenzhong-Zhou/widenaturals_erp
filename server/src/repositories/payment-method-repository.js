@@ -1,5 +1,7 @@
 const { paginateQueryByOffset } = require('../database/db');
-const { buildPaymentMethodFilter } = require('../utils/sql/build-payment-method-filters');
+const {
+  buildPaymentMethodFilter,
+} = require('../utils/sql/build-payment-method-filters');
 const AppError = require('../utils/AppError');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 
@@ -18,14 +20,14 @@ const { logSystemException, logSystemInfo } = require('../utils/system-logger');
  * @throws {AppError} - If the database query fails
  */
 const getPaymentMethodLookup = async ({
-                                        limit = 50,
-                                        offset = 0,
-                                        filters = {},
-                                      }) => {
+  limit = 50,
+  offset = 0,
+  filters = {},
+}) => {
   const tableName = 'payment_methods pm';
-  
+
   const { whereClause, params } = buildPaymentMethodFilter(filters);
-  
+
   const queryText = `
     SELECT
       pm.id,
@@ -33,7 +35,7 @@ const getPaymentMethodLookup = async ({
     FROM ${tableName}
     WHERE ${whereClause}
   `;
-  
+
   try {
     const result = await paginateQueryByOffset({
       tableName,
@@ -46,7 +48,7 @@ const getPaymentMethodLookup = async ({
       sortOrder: 'ASC',
       additionalSort: 'pm.display_order ASC, pm.name ASC',
     });
-    
+
     logSystemInfo('Fetched payment method dropdown successfully', {
       context: 'payment-method-repository/getPaymentMethodLookup',
       totalFetched: result.items?.length ?? 0,
@@ -54,7 +56,7 @@ const getPaymentMethodLookup = async ({
       limit,
       filters,
     });
-    
+
     return result;
   } catch (error) {
     logSystemException(error, 'Failed to fetch payment method dropdown', {

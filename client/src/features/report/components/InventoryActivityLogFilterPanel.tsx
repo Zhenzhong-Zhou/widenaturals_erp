@@ -9,7 +9,8 @@ import BatchRegistryMultiSelectDropdown from '@features/lookup/components/BatchR
 import type {
   BatchLookupOption,
   GetBatchRegistryLookupParams,
-  LookupOption, LookupPaginationMeta,
+  LookupOption,
+  LookupPaginationMeta,
   WarehouseOption,
 } from '@features/lookup/state';
 import type { MultiSelectOption } from '@components/common/MultiSelectDropdown';
@@ -25,9 +26,7 @@ interface InventoryActivityLogFilterPanelProps {
   selectedBatches: BatchLookupOption[];
   onSelectedBatchesChange: (value: BatchLookupOption[]) => void;
   batchLookupParams: GetBatchRegistryLookupParams;
-  setBatchLookupParams: Dispatch<
-    SetStateAction<GetBatchRegistryLookupParams>
-  >;
+  setBatchLookupParams: Dispatch<SetStateAction<GetBatchRegistryLookupParams>>;
   fetchBatchLookup: (params: GetBatchRegistryLookupParams) => void;
   batchLookupMeta: LookupPaginationMeta;
   batchLookupLoading?: boolean;
@@ -44,58 +43,62 @@ interface InventoryActivityLogFilterPanelProps {
   lotAdjustmentError?: string | null;
 }
 
-const InventoryActivityLogFilterPanel: FC<InventoryActivityLogFilterPanelProps> = ({
-                                                                                     filters,
-                                                                                     onChange,
-                                                                                     onApply,
-                                                                                     onReset,
-                                                                                     batchLookupOptions,
-                                                                                     selectedBatches,
-                                                                                     onSelectedBatchesChange,
-                                                                                     batchLookupParams,
-                                                                                     setBatchLookupParams,
-                                                                                     fetchBatchLookup,
-                                                                                     batchLookupMeta,
-                                                                                     batchLookupLoading,
-                                                                                     batchLookupError,
-                                                                                     warehouseOptions,
-                                                                                     selectedWarehouses,
-                                                                                     onSelectedWarehousesChange,
-                                                                                     warehouseLoading,
-                                                                                     warehouseError,
-                                                                                     lotAdjustmentOptions,
-                                                                                     selectedLotAdjustments,
-                                                                                     onSelectedLotAdjustmentsChange,
-                                                                                     lotAdjustmentLoading,
-                                                                                     lotAdjustmentError,
-                                                                                   }) => {
+const InventoryActivityLogFilterPanel: FC<
+  InventoryActivityLogFilterPanelProps
+> = ({
+  filters,
+  onChange,
+  onApply,
+  onReset,
+  batchLookupOptions,
+  selectedBatches,
+  onSelectedBatchesChange,
+  batchLookupParams,
+  setBatchLookupParams,
+  fetchBatchLookup,
+  batchLookupMeta,
+  batchLookupLoading,
+  batchLookupError,
+  warehouseOptions,
+  selectedWarehouses,
+  onSelectedWarehousesChange,
+  warehouseLoading,
+  warehouseError,
+  lotAdjustmentOptions,
+  selectedLotAdjustments,
+  onSelectedLotAdjustmentsChange,
+  lotAdjustmentLoading,
+  lotAdjustmentError,
+}) => {
   const handleChange =
     <K extends keyof InventoryActivityLogQueryParams>(field: K) =>
-      (value: InventoryActivityLogQueryParams[K]) => {
-        onChange({ ...filters, [field]: value });
-      };
-  
+    (value: InventoryActivityLogQueryParams[K]) => {
+      onChange({ ...filters, [field]: value });
+    };
+
   const handleBatchDropdownChange = (selected: MultiSelectOption[]) => {
     const newSelected: BatchLookupOption[] = selected.map((opt) => {
-      const matched = batchLookupOptions.find((item) => item.value === opt.value);
+      const matched = batchLookupOptions.find(
+        (item) => item.value === opt.value
+      );
       return {
         value: opt.value,
         label: opt.label,
         type: matched?.type ?? 'product',
       };
     });
-    
+
     onSelectedBatchesChange(newSelected); // For UI sync
     handleChange('batchIds')(newSelected.map((item) => item.value)); // Update filter for backend
   };
-  
+
   const handleWarehouseDropdownChange = (selected: WarehouseOption[]) => {
     onSelectedWarehousesChange(selected); // Update UI
-    
+
     const selectedWarehouseIds = selected.map((w) => w.value);
     handleChange('warehouseIds')(selectedWarehouseIds); // Update filters
   };
-  
+
   const handleSelectedLotAdjustmentsChange = (selected: LookupOption[]) => {
     const selectedValue = selected[0]?.value ?? '';
     onSelectedLotAdjustmentsChange(selected);
@@ -104,7 +107,7 @@ const InventoryActivityLogFilterPanel: FC<InventoryActivityLogFilterPanelProps> 
       adjustmentTypeId: selectedValue,
     });
   };
-  
+
   return (
     <Box sx={{ mb: 2 }}>
       <Grid container spacing={2}>
@@ -123,7 +126,7 @@ const InventoryActivityLogFilterPanel: FC<InventoryActivityLogFilterPanelProps> 
             batchLookupError={batchLookupError}
           />
         </Grid>
-        
+
         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <WarehouseMultiSelectDropdown
             label="Select Warehouses"
@@ -134,7 +137,7 @@ const InventoryActivityLogFilterPanel: FC<InventoryActivityLogFilterPanelProps> 
             error={warehouseError}
           />
         </Grid>
-        
+
         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <LotAdjustmentTypeMultiSelectDropdown
             label="Adjustment Types"
@@ -146,7 +149,7 @@ const InventoryActivityLogFilterPanel: FC<InventoryActivityLogFilterPanelProps> 
             placeholder="Select adjustment types"
           />
         </Grid>
-        
+
         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <BaseInput
             label="Performed By"
@@ -155,7 +158,7 @@ const InventoryActivityLogFilterPanel: FC<InventoryActivityLogFilterPanelProps> 
             onChange={(e) => handleChange('performedBy')(e.target.value)}
           />
         </Grid>
-        
+
         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <BaseInput
             label="Order ID"
@@ -164,7 +167,7 @@ const InventoryActivityLogFilterPanel: FC<InventoryActivityLogFilterPanelProps> 
             onChange={(e) => handleChange('orderId')(e.target.value)}
           />
         </Grid>
-        
+
         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <BaseInput
             label="Source Type"
@@ -173,24 +176,28 @@ const InventoryActivityLogFilterPanel: FC<InventoryActivityLogFilterPanelProps> 
             onChange={(e) => handleChange('sourceType')(e.target.value)}
           />
         </Grid>
-        
+
         {/* Dates */}
         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <CustomDatePicker
             label="From Date"
             value={filters.fromDate ?? null}
-            onChange={(date) => handleChange('fromDate')(date?.toISOString() ?? null)}
+            onChange={(date) =>
+              handleChange('fromDate')(date?.toISOString() ?? null)
+            }
           />
         </Grid>
-        
+
         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <CustomDatePicker
             label="To Date"
             value={filters.toDate ?? null}
-            onChange={(date) => handleChange('toDate')(date?.toISOString() ?? null)}
+            onChange={(date) =>
+              handleChange('toDate')(date?.toISOString() ?? null)
+            }
           />
         </Grid>
-        
+
         {/* Action + Reset */}
         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <Box display="flex" gap={1}>

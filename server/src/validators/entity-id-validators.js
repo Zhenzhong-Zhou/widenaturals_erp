@@ -15,7 +15,7 @@ const validateIdExists = async (table, id, client = null, label = 'Record') => {
   if (!id) {
     throw AppError.validationError(`Missing ID for ${label}`);
   }
-  
+
   const exists = await checkRecordExists(table, { id }, client);
   if (!exists) {
     throw AppError.notFoundError(`${label} ID not found: ${id}`);

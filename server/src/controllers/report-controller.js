@@ -1,5 +1,7 @@
 const wrapAsync = require('../utils/wrap-async');
-const { fetchInventoryActivityLogsService } = require('../services/report-service');
+const {
+  fetchInventoryActivityLogsService,
+} = require('../services/report-service');
 
 /**
  * Controller: Handles request to fetch inventory activity logs with filtering and pagination.
@@ -16,16 +18,10 @@ const { fetchInventoryActivityLogsService } = require('../services/report-servic
  * @returns {void}
  */
 const getInventoryActivityLogsController = wrapAsync(async (req, res) => {
-  const {
-    page,
-    limit,
-    sortBy,
-    sortOrder,
-    filters,
-  } = req.normalizedQuery;
-  
+  const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
+
   const user = req.user;
-  
+
   const { data, pagination } = await fetchInventoryActivityLogsService(
     {
       filters,
@@ -36,7 +32,7 @@ const getInventoryActivityLogsController = wrapAsync(async (req, res) => {
     },
     user
   );
-  
+
   res.status(200).json({
     success: true,
     message: 'Inventory activity logs fetched successfully',

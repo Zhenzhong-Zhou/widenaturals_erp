@@ -46,11 +46,7 @@ const getBatchRegistryById = async (batchRegistryId, client) => {
  * @param {number} options.offset - Number of records to skip for pagination (default: 0).
  * @param {number} options.limit - Maximum number of records to return (default: 50).
  */
-const getBatchRegistryLookup = async ({
-  filters,
-  limit = 50,
-  offset = 0,
-}) => {
+const getBatchRegistryLookup = async ({ filters, limit = 50, offset = 0 }) => {
   const tableName = 'batch_registry br';
 
   const joins = [

@@ -20,21 +20,21 @@ export interface PaginatedDropdownProps<TParams> {
 }
 
 const PaginatedDropdown = <TParams,>({
-                                       label = 'Select',
-                                       value,
-                                       options,
-                                       onChange,
-                                       loading,
-                                       error,
-                                       paginationMeta,
-                                       fetchParams,
-                                       setFetchParams,
-                                       onRefresh,
-                                       onAddNew,
-                                       inputValue,
-                                       onInputChange,
-                                       noOptionsMessage,
-                                     }: PaginatedDropdownProps<TParams>) => {
+  label = 'Select',
+  value,
+  options,
+  onChange,
+  loading,
+  error,
+  paginationMeta,
+  fetchParams,
+  setFetchParams,
+  onRefresh,
+  onAddNew,
+  inputValue,
+  onInputChange,
+  noOptionsMessage,
+}: PaginatedDropdownProps<TParams>) => {
   return (
     <Dropdown
       label={label}
@@ -44,20 +44,24 @@ const PaginatedDropdown = <TParams,>({
       loading={loading}
       error={error}
       hasMore={paginationMeta?.hasMore}
-      pagination={paginationMeta ? { limit: paginationMeta.limit, offset: paginationMeta.offset } : undefined}
+      pagination={
+        paginationMeta
+          ? { limit: paginationMeta.limit, offset: paginationMeta.offset }
+          : undefined
+      }
       onRefresh={() => onRefresh(fetchParams)}
       onAddNew={onAddNew}
       onFetchMore={() => {
         const limit = paginationMeta?.limit || 50;
         const currentOffset = paginationMeta?.offset || 0;
         const nextOffset = currentOffset + limit;
-        
+
         setFetchParams((prev) => ({
           ...prev,
           limit,
           offset: nextOffset,
         }));
-        
+
         onRefresh({ ...fetchParams, limit, offset: nextOffset });
       }}
       inputValue={inputValue}

@@ -9,7 +9,10 @@ import useLocationInventorySummaryByItemId from '@hooks/useLocationInventorySumm
 import { useExpandableDetailPanel } from '@features/inventoryOverview/hook/useExpandableDetailPanel';
 import type { ItemType } from '@features/inventoryShared/types/InventorySharedType';
 import type { LocationInventorySummaryItemDetail } from '@features/locationInventory/state';
-import type { InventoryActivityLogQueryParams, InventoryLogSource } from '@features/report/state';
+import type {
+  InventoryActivityLogQueryParams,
+  InventoryLogSource,
+} from '@features/report/state';
 
 const LocationInventoryFilterPanel = lazy(
   () =>
@@ -31,7 +34,10 @@ interface Props {
   onPageChange: (newPage: number) => void;
   onRowsPerPageChange: (newLimit: number) => void;
   canViewInventoryLogs: boolean;
-  onViewLogs: (row: InventoryLogSource, extraFilters?: Partial<InventoryActivityLogQueryParams>) => void;
+  onViewLogs: (
+    row: InventoryLogSource,
+    extraFilters?: Partial<InventoryActivityLogQueryParams>
+  ) => void;
 }
 
 const LocationInventorySummaryPanel: FC<Props> = ({

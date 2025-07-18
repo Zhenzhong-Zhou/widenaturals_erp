@@ -21,7 +21,7 @@ const baseOrderSchema = Joi.object({
   note: Joi.string().max(1000).allow(null, ''),
   shipping_address_id: Joi.string().uuid().allow(null),
   billing_address_id: Joi.string().uuid().allow(null),
-  metadata: Joi.object().optional()
+  metadata: Joi.object().optional(),
 });
 
 module.exports = baseOrderSchema;
