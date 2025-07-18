@@ -1,9 +1,18 @@
 const { hashPasswordWithSalt } = require('../../../utils/password-helper');
-
 const { fetchDynamicValue } = require('../03_utils');
 
 exports.seed = async function (knex) {
-  // Fetch existing users
+  // Count existing user_auth records
+  const [{ count: existingAuthCount }] = await knex('user_auth').count('id');
+  const totalAuth = parseInt(existingAuthCount, 10) || 0;
+  
+  // Check if auth already populated
+  if (totalAuth > 0) {
+    console.log(`[${new Date().toISOString()}] [SEED] Skipping user_auth seed: ${totalAuth} records already exist.`);
+    return;
+  }
+  
+  // Fetch all users
   const users = await knex('users').select(
     'id',
     'email',
@@ -11,15 +20,13 @@ exports.seed = async function (knex) {
     'lastname',
     'role_id'
   );
-
+  
   if (!users || users.length === 0) {
-    console.error(
-      'No users found in the database. Please seed the users table first.'
-    );
+    console.error(`[${new Date().toISOString()}] [SEED] No users found. Please seed users table first.`);
     return;
   }
-
-  // Fetch the system role ID dynamically
+  
+  // Fetch system role ID
   const systemRoleId = await fetchDynamicValue(
     knex,
     'roles',
@@ -27,8 +34,10 @@ exports.seed = async function (knex) {
     'system',
     'id'
   );
-
-  // Define base passwords
+  
+  // Get already-authenticated user IDs to skip
+  const existingAuthUserIds = new Set(await knex('user_auth').pluck('user_id'));
+  
   const basePasswords = [
     'Passw0rd!@#',
     'Secur3P@$$!!',
@@ -41,30 +50,32 @@ exports.seed = async function (knex) {
     'P@$$wordMagic!!',
     'SeCurE!@12345',
   ];
-
-  // Generate additional passwords dynamically if needed
-  const totalPasswords = users.length;
+  
   const passwords = [...basePasswords];
-
-  for (let i = passwords.length; i < totalPasswords; i++) {
-    passwords.push(`AutoGenP@$$${i + 1}!!`);
+  while (passwords.length < users.length) {
+    passwords.push(`AutoGenP@$$${passwords.length + 1}!!`);
   }
-
-  // Define user_auth data
+  
   const userAuthData = [];
   let passwordIndex = 0;
-
+  
   for (const user of users) {
-    // Skip password hashing for the system user
+    // Skip system role
     if (systemRoleId && user.role_id === systemRoleId) {
-      console.log(`Skipping password creation for system user: ${user.email}`);
+      console.log(`Skipping system user: ${user.email}`);
       continue;
     }
-
+    
+    // Skip already-existing auth
+    if (existingAuthUserIds.has(user.id)) {
+      console.log(`Skipping existing auth for user: ${user.email}`);
+      continue;
+    }
+    
     const { passwordHash, passwordSalt } = await hashPasswordWithSalt(
       passwords[passwordIndex]
     );
-
+    
     userAuthData.push({
       id: knex.raw('uuid_generate_v4()'),
       user_id: user.id,
@@ -79,22 +90,21 @@ exports.seed = async function (knex) {
         location: `City ${passwordIndex + 1}`,
       }),
       created_at: knex.fn.now(),
-      updated_at: knex.fn.now(),
+      updated_at: null,
       last_changed_at: knex.fn.now(),
     });
-
+    
     passwordIndex++;
   }
-
-  // Insert user_auth data
+  
   if (userAuthData.length > 0) {
     await knex('user_auth')
       .insert(userAuthData)
-      .onConflict('user_id') // Skip if user_id already exists
+      .onConflict('user_id')
       .ignore();
   }
-
+  
   console.log(
-    `${userAuthData.length} user_auth records seeded successfully (excluding system user).`
+    `[${new Date().toISOString()}] [SEED] ${userAuthData.length} user_auth records seeded successfully (excluding system or already-seeded users).`
   );
 };

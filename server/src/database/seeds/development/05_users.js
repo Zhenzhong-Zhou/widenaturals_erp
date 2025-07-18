@@ -5,6 +5,16 @@ const { fetchDynamicValue, fetchDynamicValues } = require('../03_utils');
  * @returns { Promise<void> }
  */
 exports.seed = async function (knex) {
+  const [{ count }] = await knex('users').count('id');
+  const total = Number(count) || 0;
+
+  if (total > 0) {
+    console.log(`[${new Date().toISOString()}] [SEED] Skipping seed for [users] table: ${total} records found.`);
+    return;
+  }
+
+  console.log(`[${new Date().toISOString()}] [SEED] Inserting users into [users] table...`);
+
   // Fetch required status ID
   const activeStatusId = await fetchDynamicValue(
     knex,
