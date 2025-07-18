@@ -1,5 +1,6 @@
 const { loadEnv } = require('../config/env');
 const rateLimit = require('express-rate-limit');
+const { ipKeyGenerator } = require('express-rate-limit');
 const { logError } = require('./logger-helper');
 const { logSystemInfo } = require('./system-logger');
 const AppError = require('./AppError');
@@ -77,7 +78,7 @@ const createRateLimiter = ({
     : RATE_LIMIT.DEFAULT_MAX,
   headers = true,
   statusCode = 429,
-  keyGenerator = (req) => req.ip,
+  keyGenerator = ipKeyGenerator,
   skip = (req) => trustedIPs.includes(req.ip),
   handler = defaultRateLimitHandler, // Use the default handler if none is provided
   disableInDev = false,
