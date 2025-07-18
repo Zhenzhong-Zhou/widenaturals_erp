@@ -4,7 +4,7 @@ import Skeleton from '@mui/material/Skeleton';
 import useSalesOrders from '@hooks/useSalesOrders';
 import CustomTypography from '@components/common/CustomTypography';
 import GoBackButton from '@components/common/GoBackButton';
-import OrderTypesDropdown from '@features/order/components/OrderTypesDropdown';
+import OrderTypesDropdown from '@features/lookup/components/OrderTypesDropdown';
 import Loading from '@components/common/Loading';
 import OrderFormModal from '@features/order/components/OrderFormModal';
 import CreateSaleOrderForm from '@features/order/components/CreateSaleOrderForm';
