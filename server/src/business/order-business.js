@@ -2,6 +2,7 @@ const { checkPermissions } = require('../services/role-permission-service');
 const AppError = require('../utils/AppError');
 const { logSystemWarn } = require('../utils/system-logger');
 const { createSalesOrder } = require('./sales-order-business');
+const { resolveOrderAccessContext } = require('../services/role-permission-service');
 
 /**
  * Verifies if the user has permission to create an order of the specified category.
@@ -14,20 +15,16 @@ const { createSalesOrder } = require('./sales-order-business');
  * @throws {AppError} - If user lacks permission.
  */
 const verifyOrderCreationPermission = async (user, category) => {
-  if (!user || !user.role) {
-    throw AppError.authorizationError('User role is required for permission check.');
-  }
+  const { isRoot, accessibleCategories } = await resolveOrderAccessContext(user);
   
-  const permissionNeeded = `create_${category}`;
+  if (isRoot) return;
   
-  const hasPermission = await checkPermissions(user, [permissionNeeded]);
-  
-  if (!hasPermission) {
+  if (!accessibleCategories.includes(category)) {
     logSystemWarn('Permission denied for order creation', {
       context: 'verifyOrderCreationPermission',
       role: user.role,
-      requiredPermission: permissionNeeded,
-      category
+      attemptedCategory: category,
+      accessibleCategories,
     });
     
     throw AppError.authorizationError(`You do not have permission to create ${category} orders.`);
@@ -161,7 +158,7 @@ const applyOrderDetailsBusinessLogic = async (order, user) => {
  * Business logic to confirm an order and its items.
  *
  * @param {string} orderId - The UUID of the order to confirm.
- * @param {object} user - Authenticated user object (must contain role).
+ * @param {object} user - an Authenticated user object (must contain a role).
  * @param {object} client - Optional PostgreSQL client (for transaction support).
  * @returns {Promise<Object>} Raw confirmation result.
  */

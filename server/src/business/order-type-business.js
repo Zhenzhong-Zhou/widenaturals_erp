@@ -1,6 +1,8 @@
-const { checkPermissions, fetchPermissions } = require('../services/role-permission-service');
+const {
+  checkPermissions,
+  resolveOrderAccessContext
+} = require('../services/role-permission-service');
 const { getStatusId } = require('../config/status-cache');
-const { ORDER_CATEGORIES, CATEGORY_PERMISSION_MAP } = require('../utils/constants/domain/order-type-constants');
 const { logSystemException } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 
@@ -79,39 +81,24 @@ const filterOrderTypeRowsByPermission = async (result, user) => {
  * Builds dynamic filters for fetching order types based on user permissions and an optional keyword.
  *
  * Behavior:
- * - Users with `root_access` bypass all restrictions (return all categories and statuses).
- * - If the user has no specific `create_*_order` permissions, they are treated as elevated (e.g., admin)
- *   and can view all order types and statuses.
- * - If the user has category-specific permissions (e.g., `create_sales_order`, `create_transfer_order`),
- *   filters will restrict to those categories and enforce `active` status.
- * - If no accessible categories are found, an empty array is returned to indicate no access.
- * - If a `keyword` is provided, it is applied to filter by `name` or `code` (case-insensitive).
+ * - Users with `root_access` bypass all restrictions (returning unrestricted filters).
+ * - Users with category-specific permissions (e.g., `create_sales_order`) will be restricted
+ *   to those categories and only include `active` order types.
+ * - If a user has no access to any order categories (and is not a root user), an authorization error is thrown.
+ * - If a `keyword` is provided, it is applied to filter order types by `name` or `code` (case-insensitive).
  *
  * @param {Object} user - Authenticated user object; must include a `role` field.
  * @param {string} [keyword] - Optional keyword to filter order types by name/code.
- * @returns {Promise<Object|Array>} Returns a filter object for DB lookup (`category`, `statusId`, `keyword`),
- *                                  or an empty array if no access.
+ * @returns {Promise<Object>} Returns a filter object containing `category`, `statusId`, and optionally `keyword`.
+ * @throws {AppError} If the user does not have permission to view any order types.
  */
 const getFilteredOrderTypes = async (user, keyword) => {
   try {
-    const { permissions = [] } = await fetchPermissions(user.role);
+    const { isRoot, accessibleCategories } = await resolveOrderAccessContext(user);
     
     // Root access bypasses all restrictions
-    const isRoot = permissions.includes('root_access');
     if (isRoot) {
       return keyword ? { keyword } : {};
-    }
-    
-    // Derive accessible categories
-    const accessibleCategories = ORDER_CATEGORIES.filter((category) =>
-      permissions.includes(CATEGORY_PERMISSION_MAP[category])
-    );
-    
-    const isElevated = accessibleCategories.length === 0;
-    
-    // Deny access if a user has no category permissions and is not root
-    if (isElevated) {
-      throw AppError.authorizationError('You do not have permission to view any order types');
     }
     
     const filters = {
