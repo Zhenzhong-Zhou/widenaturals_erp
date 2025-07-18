@@ -1,7 +1,7 @@
 const { query } = require('../database/db');
 const {
   logSystemException,
-  logSystemError
+  logSystemError,
 } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 
@@ -22,33 +22,70 @@ const STATUS_KEY_LOOKUP = [
   { key: 'pricing_type_active', table: 'status', name: 'active' },
   { key: 'warehouse_active', table: 'status', name: 'active' },
   { key: 'sku_active', table: 'status', name: 'active' },
-  { key: 'inventory_in_stock', table: 'inventory_status', name: 'in_stock' },
-  { key: 'inventory_out_of_stock', table: 'inventory_status', name: 'out_of_stock' },
-  { key: 'inventory_unassigned', table: 'inventory_status', name: 'unassigned' },
-  { key: 'action_manual_stock_insert', table: 'inventory_action_types', name: 'manual_stock_insert' },
-  { key: 'adjustment_manual_stock_insert', table: 'lot_adjustment_types', name: 'manual_stock_insert' },
+  {
+    key: 'inventory_in_stock',
+    table: 'inventory_status',
+    name: 'in_stock'
+  },
+  {
+    key: 'inventory_out_of_stock',
+    table: 'inventory_status',
+    name: 'out_of_stock',
+  },
+  {
+    key: 'inventory_unassigned',
+    table: 'inventory_status',
+    name: 'unassigned',
+  },
+  {
+    key: 'action_manual_stock_insert',
+    table: 'inventory_action_types',
+    name: 'manual_stock_insert',
+  },
+  {
+    key: 'adjustment_manual_stock_insert',
+    table: 'lot_adjustment_types',
+    name: 'manual_stock_insert',
+  },
+  {
+    key: 'customer_active',
+    table: 'status',
+    name: 'active',
+  },
+  {
+    key: 'order_type_active',
+    table: 'status',
+    name: 'active',
+  },
 ];
 
 /**
  * Fetches a map of application-level status keys to actual status UUIDs,
- * by dynamically resolving entries defined in the `status_keys` table.
+ * by dynamically resolving entries defined in the `STATUS_KEY_LOOKUP` array
+ * through safe parameterized SQL queries.
+ *
+ * This map enables system-wide usage of logical status keys
+ * without hardcoding UUIDs in application logic.
  *
  * Example output:
  * {
  *   product_active: 'uuid-...',
  *   warehouse_active: 'uuid-...',
- *   lot_in_stock: 'uuid-...'
+ *   inventory_in_stock: 'uuid-...'
  * }
  *
- * This allows central configuration of logical status keys and prevents hardcoding.
+ * @returns {Promise<Readonly<Record<string, string>>>}
+ *   A frozen map where each key is a logical status key and each value is the corresponding UUID.
  *
- * @returns {Promise<Readonly<Record<string, string>>>} A frozen map of { a key: UUID }
- * @throws {AppError} When the status map query fails
+ * @throws {AppError}
+ *   Throws if the status map query fails or if initialization fails.
  */
 const getStatusIdMap = async () => {
   try {
     const nameSet = new Set();
     const unions = [];
+    const params = [];
+    let paramIndex = 1;
     
     for (const { table, name } of STATUS_KEY_LOOKUP) {
       nameSet.add(`${table}:${name}`);
@@ -59,18 +96,26 @@ const getStatusIdMap = async () => {
     for (const entry of uniquePairs) {
       const [table, name] = entry.split(':');
       unions.push(`
-        SELECT '${table}' AS source, LOWER(name) AS name, id FROM ${table} WHERE LOWER(name) = '${name.toLowerCase()}'
+        SELECT '${table}' AS source, LOWER(name) AS name, id
+        FROM ${table}
+        WHERE LOWER(name) = $${paramIndex}
       `);
+      params.push(name.toLowerCase());
+      paramIndex++;
     }
     
     const sql = unions.join(' UNION ALL ');
     
-    const { rows } = await query(sql);
+    const { rows } = await query(sql, params);
     
     const map = {};
     for (const { key, table, name } of STATUS_KEY_LOOKUP) {
-      const row = rows.find(r => r.source === table && r.name === name.toLowerCase());
-      if (row) map[key] = row.id;
+      const row = rows.find(
+        (r) => r.source === table && r.name === name.toLowerCase()
+      );
+      if (row) {
+        map[key] = row.id;
+      }
     }
     
     return Object.freeze(map);
@@ -102,15 +147,17 @@ const initStatusCache = async () => {
 
 /**
  * Retrieves a cached status ID by key, e.g., "product_active", "lot_in_stock".
- * @param {string} key
+ * @param {keyof typeof STATUS_KEY_LOOKUP | string} key
  * @returns {string} UUID of the status
  * @throws Error if status cache is not initialized or key is missing
  */
 const getStatusId = (key) => {
-  if (!statusMap) {
-    throw AppError.initializationError(`Status map not initialized. Cannot fetch key: "${key}"`);
+  if (!statusMap || typeof statusMap !== 'object') {
+    throw AppError.initializationError(
+      `Status map not properly initialized. Cannot fetch key: "${key}"`
+    );
   }
-  
+
   if (!statusMap[key]) {
     logSystemError('Status key not found in cache', {
       context: 'get-status-id',
@@ -118,7 +165,7 @@ const getStatusId = (key) => {
     });
     throw AppError.notFoundError(`Missing status ID for key: "${key}"`);
   }
-  
+
   return statusMap[key];
 };
 

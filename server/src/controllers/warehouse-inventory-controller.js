@@ -6,8 +6,14 @@ const {
 } = require('../services/warehouse-inventory-service');
 const { logInfo } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
-const { normalizePaginationAndSortParams, sanitizeCommonInventoryFilters } = require('../utils/query/inventory-query-utils');
-const { createInventoryRecordService, adjustInventoryQuantitiesService } = require('../services/inventory-service');
+const {
+  normalizePaginationAndSortParams,
+  sanitizeCommonInventoryFilters,
+} = require('../utils/query/inventory-query-utils');
+const {
+  createInventoryRecordService,
+  adjustInventoryQuantitiesService,
+} = require('../services/inventory-service');
 
 /**
  * Controller: Handles GET request to fetch paginated warehouse inventory summary.
@@ -26,31 +32,34 @@ const { createInventoryRecordService, adjustInventoryQuantitiesService } = requi
  * @param {function} next - Express next middleware function
  * @returns {void}
  */
-const getPaginatedWarehouseInventorySummaryController = wrapAsync(async (req, res) => {
-  const { page, limit, itemType } = req.query;
-  const user = req.user;
-  
-  const { data, pagination } = await fetchPaginatedWarehouseInventoryItemSummary({
-    page,
-    limit,
-    itemType,
-    user,
-  });
-  
-  logInfo('Paginated warehouse inventory summary fetched', req, {
-    context: 'warehouse-inventory-controller',
-    userId: user.id,
-    page,
-    limit,
-  });
-  
-  res.status(200).json({
-    success: true,
-    message: 'Warehouse inventory summary fetched successfully.',
-    data,
-    pagination,
-  });
-});
+const getPaginatedWarehouseInventorySummaryController = wrapAsync(
+  async (req, res) => {
+    const { page, limit, itemType } = req.query;
+    const user = req.user;
+
+    const { data, pagination } =
+      await fetchPaginatedWarehouseInventoryItemSummary({
+        page,
+        limit,
+        itemType,
+        user,
+      });
+
+    logInfo('Paginated warehouse inventory summary fetched', req, {
+      context: 'warehouse-inventory-controller',
+      userId: user.id,
+      page,
+      limit,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Warehouse inventory summary fetched successfully.',
+      data,
+      pagination,
+    });
+  }
+);
 
 /**
  * Controller to handle GET /warehouse-inventory/summary/:itemId/details
@@ -60,24 +69,34 @@ const getPaginatedWarehouseInventorySummaryController = wrapAsync(async (req, re
  * @param {import('express').Response} res - Express response object.
  * @param {import('express').NextFunction} next - Express next middleware function.
  */
-const getWarehouseInventorySummaryDetailsController = wrapAsync(async (req, res, next) => {
-  const { itemId } = req.params;
-  const page = parseInt(req.query.page, 10) || 1;
-  const limit = parseInt(req.query.limit, 10) || 10;
-  
-  if (!itemId) {
-    return next(AppError.validationError('Missing required parameter: itemId'));
+const getWarehouseInventorySummaryDetailsController = wrapAsync(
+  async (req, res, next) => {
+    const { itemId } = req.params;
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
+
+    if (!itemId) {
+      return next(
+        AppError.validationError('Missing required parameter: itemId')
+      );
+    }
+
+    const { data, pagination } =
+      await fetchWarehouseInventorySummaryByItemIdService({
+        page,
+        limit,
+        itemId,
+      });
+
+    return res.status(200).json({
+      success: true,
+      message:
+        'Successfully fetched warehouse inventory summary details by item ID',
+      data,
+      pagination,
+    });
   }
-  
-  const { data, pagination } = await fetchWarehouseInventorySummaryByItemIdService({ page, limit, itemId });
-  
-  return res.status(200).json({
-    success: true,
-    message: 'Successfully fetched warehouse inventory summary details by item ID',
-    data,
-    pagination,
-  });
-});
+);
 
 /**
  * Controller: GET /warehouse-inventory
@@ -112,7 +131,7 @@ const getWarehouseInventorySummaryDetailsController = wrapAsync(async (req, res,
 const getWarehouseInventoryRecordController = wrapAsync(async (req, res) => {
   // Normalize req.query to a plain object to avoid [Object: null prototype] issues
   const query = { ...req.query };
-  
+
   // Extract pagination and sort clause
   const { page, limit, safeSortClause } = normalizePaginationAndSortParams(
     {
@@ -123,18 +142,19 @@ const getWarehouseInventoryRecordController = wrapAsync(async (req, res) => {
     },
     'warehouseInventorySortMap'
   );
-  
+
   // Sanitize filters based on warehouse context
   const filters = sanitizeCommonInventoryFilters(query, { type: 'warehouse' });
-  
+
   // Fetch data using the service
-  const { data, pagination } = await fetchPaginatedWarehouseInventoryRecordService({
-    page,
-    limit,
-    filters,
-    safeSortClause,
-  });
-  
+  const { data, pagination } =
+    await fetchPaginatedWarehouseInventoryRecordService({
+      page,
+      limit,
+      filters,
+      safeSortClause,
+    });
+
   // Return successful response
   res.status(200).json({
     success: true,
@@ -153,34 +173,42 @@ const getWarehouseInventoryRecordController = wrapAsync(async (req, res) => {
  * - Logs inventory activity for traceability.
  * - Returns enriched inserted records.
  */
-const createWarehouseInventoryRecordController = wrapAsync(async (req, res, next) => {
-  const records = req.body?.records;
-  
-  if (!records || !Array.isArray(records)) {
-    return next(AppError.validationError('Request body must include a valid "records" array.'));
+const createWarehouseInventoryRecordController = wrapAsync(
+  async (req, res, next) => {
+    const records = req.body?.records;
+
+    if (!records || !Array.isArray(records)) {
+      return next(
+        AppError.validationError(
+          'Request body must include a valid "records" array.'
+        )
+      );
+    }
+
+    const user_id = req.user?.id;
+    if (!user_id) {
+      return next(AppError.validationError('Missing authenticated user.'));
+    }
+
+    logInfo('Creating inventory records', req, {
+      context:
+        'warehouse-inventory-controller/createWarehouseInventoryRecordController',
+      recordCount: records.length,
+      requestedBy: user_id,
+      requestId: req.id,
+      traceId: req.traceId,
+    });
+
+    const result = await createInventoryRecordService(records, user_id);
+
+    res.status(201).json({
+      success: true,
+      message:
+        'Successfully created warehouse and/or location inventory records',
+      data: result,
+    });
   }
-  
-  const user_id = req.user?.id;
-  if (!user_id) {
-    return next(AppError.validationError('Missing authenticated user.'));
-  }
-  
-  logInfo('Creating inventory records', req, {
-    context: 'warehouse-inventory-controller/createWarehouseInventoryRecordController',
-    recordCount: records.length,
-    requestedBy: user_id,
-    requestId: req.id,
-    traceId: req.traceId,
-  });
-  
-  const result = await createInventoryRecordService(records, user_id);
-  
-  res.status(201).json({
-    success: true,
-    message: 'Successfully created warehouse and/or location inventory records',
-    data: result
-  });
-});
+);
 
 /**
  * Controller for adjusting warehouse and/or location inventory quantities.
@@ -202,30 +230,38 @@ const createWarehouseInventoryRecordController = wrapAsync(async (req, res, next
  *  - Status determination (in_stock / out_of_stock)
  *  - Inventory updates and audit logging
  */
-const adjustInventoryQuantitiesController = wrapAsync(async (req, res, next) => {
-  const updates = req.body?.updates;
-  const lock = req.body?.lock !== false; // defaults to true if undefined
-  const user_id = req.user?.id;
-  
-  if (!Array.isArray(updates) || updates.length === 0 || !user_id) {
-    return next(AppError.validationError('Missing or invalid input data.'));
+const adjustInventoryQuantitiesController = wrapAsync(
+  async (req, res, next) => {
+    const updates = req.body?.updates;
+    const lock = req.body?.lock !== false; // defaults to true if undefined
+    const user_id = req.user?.id;
+
+    if (!Array.isArray(updates) || updates.length === 0 || !user_id) {
+      return next(AppError.validationError('Missing or invalid input data.'));
+    }
+
+    const result = await adjustInventoryQuantitiesService(
+      updates,
+      user_id,
+      lock
+    );
+
+    logInfo('Inventory adjustment completed successfully.', req, {
+      context:
+        'warehouse-inventory-controller/adjustInventoryQuantitiesController',
+      user_id,
+      lock,
+      updated_record_count: updates.length,
+      timestamp: new Date().toISOString(),
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Inventory quantities adjusted successfully.',
+      data: result,
+    });
   }
-  
-  const result = await adjustInventoryQuantitiesService(updates, user_id, lock);
-  
-  logInfo('Inventory adjustment completed successfully.', req, {
-    context: 'warehouse-inventory-controller/adjustInventoryQuantitiesController',
-    user_id,
-    lock,
-    updated_record_count: updates.length,
-    timestamp: new Date().toISOString(),
-  });
-  
-  res.status(200).json({
-    message: 'Inventory quantities adjusted successfully.',
-    data: result,
-  });
-});
+);
 
 module.exports = {
   getPaginatedWarehouseInventorySummaryController,

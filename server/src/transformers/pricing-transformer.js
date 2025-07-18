@@ -13,14 +13,14 @@ const transformPricingListRecord = (row) => ({
   price: row.price !== null ? Number(row.price) : null,
   validFrom: row.valid_from ?? null,
   validTo: row.valid_to ?? null,
-  
+
   pricingType: {
     id: row.pricing_type_id,
     name: row.pricing_type,
     code: row.pricing_type_code,
     slug: row.pricing_type_slug,
   },
-  
+
   sku: {
     id: row.sku_id,
     value: row.sku,
@@ -28,7 +28,7 @@ const transformPricingListRecord = (row) => ({
     sizeLabel: row.size_label,
     barcode: row.barcode ?? null,
   },
-  
+
   product: {
     id: row.product_id,
     name: getProductDisplayName(row),
@@ -55,7 +55,7 @@ const transformPaginatedPricingResult = (paginatedResult) =>
  * @returns {Array<Object>} - Flattened and human-readable rows
  */
 const transformExportPricingData = (rows = [], format = 'csv') => {
-  return rows.map(row => ({
+  return rows.map((row) => ({
     SKU: row.sku,
     Brand: row.brand,
     'Product Name': getProductDisplayName(row),
@@ -93,11 +93,17 @@ const transformPricingDetailRow = (row) => {
       },
       createdAt: row.pricing_created_at,
       createdBy: {
-        fullname: getFullName(row.created_by_firstname, row.created_by_lastname),
+        fullname: getFullName(
+          row.created_by_firstname,
+          row.created_by_lastname
+        ),
       },
       updatedAt: row.pricing_updated_at,
       updatedBy: {
-        fullname: getFullName(row.updated_by_firstname, row.updated_by_lastname),
+        fullname: getFullName(
+          row.updated_by_firstname,
+          row.updated_by_lastname
+        ),
       },
     },
     sku: {
@@ -110,9 +116,10 @@ const transformPricingDetailRow = (row) => {
       productName: getProductDisplayName(row),
       brand: row.brand_name,
     },
-    productCount: row.product_count !== undefined ? Number(row.product_count) : undefined,
+    productCount:
+      row.product_count !== undefined ? Number(row.product_count) : undefined,
   };
-}
+};
 
 /**
  * Transforms a paginated pricing detail result using the shared pagination transformer.

@@ -6,7 +6,9 @@ import ErrorDisplay from '@components/shared/ErrorDisplay';
 import ErrorMessage from '@components/common/ErrorMessage';
 import NoDataFound from '@components/common/NoDataFound';
 import CustomTypography from '@components/common/CustomTypography';
-import PricingTypeFilterPanel, { type PricingTypeFilterParams } from '@features/pricingType/components/PricingTypeFilterPanel';
+import PricingTypeFilterPanel, {
+  type PricingTypeFilterParams,
+} from '@features/pricingType/components/PricingTypeFilterPanel';
 import PricingTypeTable from '@features/pricingType/components/PricingTypeTable';
 import CustomButton from '@components/common/CustomButton';
 import usePricingTypes from '@hooks/usePricingTypes';
@@ -19,15 +21,10 @@ const PricingTypePage = () => {
     startDate: '',
     endDate: '',
   });
-  
-  const {
-    data,
-    pagination,
-    isLoading,
-    error,
-    refetchAllPricingTypes,
-  } = usePricingTypes();
-  
+
+  const { data, pagination, isLoading, error, refetchAllPricingTypes } =
+    usePricingTypes();
+
   // Fetch data when page/limit/filters change
   useEffect(() => {
     refetchAllPricingTypes({
@@ -36,12 +33,12 @@ const PricingTypePage = () => {
       ...filters,
     });
   }, [page, limit, filters]);
-  
+
   const handleFilterChange = (updatedFilters: PricingTypeFilterParams) => {
     setFilters(updatedFilters);
     setPage(1); // reset page on filter change
   };
-  
+
   const handleResetFilters = () => {
     setFilters({
       name: '',
@@ -50,11 +47,11 @@ const PricingTypePage = () => {
     });
     setPage(1);
   };
-  
+
   if (isLoading) {
     return <Loading message="Loading All Pricing Types..." />;
   }
-  
+
   if (error) {
     return (
       <ErrorDisplay>
@@ -62,21 +59,26 @@ const PricingTypePage = () => {
       </ErrorDisplay>
     );
   }
-  
+
   if (!data) {
     return <NoDataFound message={'No pricing types found.'} />;
   }
-  
+
   return (
-    <Box sx={{ padding: 3, backgroundColor: 'background.paper', borderRadius: 2, boxShadow: 1 }}>
+    <Box
+      sx={{
+        padding: 3,
+        backgroundColor: 'background.paper',
+        borderRadius: 2,
+        boxShadow: 1,
+      }}
+    >
       {/* Page Title */}
-      <CustomTypography variant="h5">
-        Pricing Types
-      </CustomTypography>
-      
+      <CustomTypography variant="h5">Pricing Types</CustomTypography>
+
       {/* Divider */}
       <Divider sx={{ mb: 3 }} />
-      
+
       {/* Filter Panel */}
       <Box sx={{ mb: 3 }}>
         <PricingTypeFilterPanel
@@ -85,7 +87,7 @@ const PricingTypePage = () => {
           onReset={handleResetFilters}
         />
       </Box>
-      
+
       {/* Table */}
       <PricingTypeTable
         data={data}
@@ -99,7 +101,7 @@ const PricingTypePage = () => {
           setPage(1);
         }}
       />
-      
+
       {/* Footer actions */}
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
         <CustomButton onClick={() => refetchAllPricingTypes({ page, limit })}>

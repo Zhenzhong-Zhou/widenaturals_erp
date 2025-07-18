@@ -1,6 +1,8 @@
 const wrapAsync = require('../utils/wrap-async');
-const { fetchPaginatedSkuProductCardsService, getSkuDetailsForUserService } = require('../services/sku-service');
-const { sanitizeSortBy } = require('../utils/sort-utils');
+const {
+  fetchPaginatedSkuProductCardsService,
+  getSkuDetailsForUserService,
+} = require('../services/sku-service');
 const { logInfo } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
 
@@ -30,14 +32,14 @@ const getActiveSkuProductCardsController = wrapAsync(async (req, res) => {
     sizeLabel,
     keyword,
   } = req.query;
-  
+
   const filters = { brand, category, marketRegion, sizeLabel, keyword };
-  
+
   logInfo('Fetching active SKU product cards', req, {
     context: 'sku-controller',
     query: { page, limit, sortBy, sortOrder, filters },
   });
-  
+
   const result = await fetchPaginatedSkuProductCardsService({
     page: Number(page),
     limit: Number(limit),
@@ -45,15 +47,15 @@ const getActiveSkuProductCardsController = wrapAsync(async (req, res) => {
     sortOrder,
     filters,
   });
-  
+
   const { data, pagination } = result;
-  
+
   logInfo('Fetched active SKU product cards successfully', req, {
     context: 'sku-controller',
     resultCount: data.length,
     pagination,
   });
-  
+
   res.status(200).json({
     success: true,
     message: 'Fetched active SKU product cards successfully',
@@ -75,17 +77,17 @@ const getSkuDetailsController = wrapAsync(async (req, res) => {
   }
 
   const data = await getSkuDetailsForUserService(user, skuId);
-  
+
   logInfo('SKU details retrieved successfully', req, {
     context: 'sku-controller',
     userId: user.id,
     skuId,
   });
-  
+
   res.status(200).json({
     success: true,
     message: 'SKU details retrieved successfully.',
-    data
+    data,
   });
 });
 

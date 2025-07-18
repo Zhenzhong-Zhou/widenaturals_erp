@@ -19,22 +19,22 @@ interface PriceDisplayProps {
 }
 
 const PriceDisplay: FC<PriceDisplayProps> = ({
-                                               prices,
-                                               originalPrice,
-                                               currency = '$',
-                                             }) => {
+  prices,
+  originalPrice,
+  currency = '$',
+}) => {
   const { theme } = useThemeContext();
-  
+
   // Find retail price for comparison (if needed)
   const retail = prices.find((p) => p.pricing_type === 'Retail');
   const retailPrice = retail?.price;
-  
+
   // Determine if there is a discount
   const isDiscounted =
     typeof originalPrice === 'number' &&
     typeof retailPrice === 'number' &&
     originalPrice > retailPrice;
-  
+
   return (
     <Box
       display="flex"
@@ -56,9 +56,7 @@ const PriceDisplay: FC<PriceDisplayProps> = ({
           sx={{ minHeight: 32 }}
         >
           <Box>
-            <CustomTypography variant="h6">
-              {pricing_type}
-            </CustomTypography>
+            <CustomTypography variant="h6">{pricing_type}</CustomTypography>
             {(location || location_type) && (
               <CustomTypography
                 variant="caption"
@@ -68,7 +66,7 @@ const PriceDisplay: FC<PriceDisplayProps> = ({
               </CustomTypography>
             )}
           </Box>
-          
+
           <CustomTypography
             variant="body2"
             sx={{ color: theme.palette.primary.main, fontWeight: 600 }}
@@ -78,7 +76,7 @@ const PriceDisplay: FC<PriceDisplayProps> = ({
           </CustomTypography>
         </Box>
       ))}
-      
+
       {/* Discount Info */}
       {isDiscounted && retailPrice && (
         <Box display="flex" alignItems="center" gap={1} mt={1}>
@@ -106,10 +104,7 @@ const PriceDisplay: FC<PriceDisplayProps> = ({
               fontWeight: 600,
             }}
           >
-            -
-            {Math.round(
-              ((originalPrice - retailPrice) / originalPrice) * 100
-            )}
+            -{Math.round(((originalPrice - retailPrice) / originalPrice) * 100)}
             %
           </CustomTypography>
         </Box>

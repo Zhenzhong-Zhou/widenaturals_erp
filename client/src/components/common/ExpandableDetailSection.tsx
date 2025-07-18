@@ -31,19 +31,19 @@ interface ExpandableDetailSectionProps<T> {
 }
 
 const ExpandableDetailSection = <T extends { itemId: string }>({
-                                                                  row,
-                                                                  detailData,
-                                                                  detailLoading,
-                                                                  detailError,
-                                                                  detailPage,
-                                                                  detailTotalRecords,
-                                                                  detailTotalPages,
-                                                                  detailLimit,
-                                                                  onPageChange,
-                                                                  onRowsPerPageChange,
-                                                                  onRefreshDetail,
-                                                                  DetailTableComponent,
-                                                                }: ExpandableDetailSectionProps<T>) => {
+  row,
+  detailData,
+  detailLoading,
+  detailError,
+  detailPage,
+  detailTotalRecords,
+  detailTotalPages,
+  detailLimit,
+  onPageChange,
+  onRowsPerPageChange,
+  onRefreshDetail,
+  DetailTableComponent,
+}: ExpandableDetailSectionProps<T>) => {
   if (!detailData && !detailLoading) {
     return (
       <Box sx={{ height: 120, p: 2 }}>
@@ -51,11 +51,11 @@ const ExpandableDetailSection = <T extends { itemId: string }>({
       </Box>
     );
   }
-  
+
   if (detailError) {
     return <ErrorMessage message={detailError} />;
   }
-  
+
   if (!detailData?.length && !detailLoading) {
     return (
       <CustomTypography sx={{ p: 2 }} variant="body2">
@@ -63,12 +63,16 @@ const ExpandableDetailSection = <T extends { itemId: string }>({
       </CustomTypography>
     );
   }
-  
+
   return (
     <Box sx={{ p: 2 }}>
       <Suspense
         fallback={
-          <Skeleton height={80} variant="rectangular" sx={{ borderRadius: 1, mb: 1 }} />
+          <Skeleton
+            height={80}
+            variant="rectangular"
+            sx={{ borderRadius: 1, mb: 1 }}
+          />
         }
       >
         <DetailTableComponent
@@ -81,10 +85,13 @@ const ExpandableDetailSection = <T extends { itemId: string }>({
           onRowsPerPageChange={onRowsPerPageChange ?? (() => {})}
         />
       </Suspense>
-      
+
       {onRefreshDetail && (
         <Box mt={1}>
-          <CustomButton size="small" onClick={() => onRefreshDetail(row.itemId)}>
+          <CustomButton
+            size="small"
+            onClick={() => onRefreshDetail(row.itemId)}
+          >
             Refresh Details
           </CustomButton>
         </Box>

@@ -16,7 +16,7 @@
  */
 const deduplicateByCompositeKey = (records, keyFields = [], mergeFn = null) => {
   const map = new Map();
-  
+
   for (const r of records) {
     const key = keyFields.map((k) => r[k]).join('::');
     if (!map.has(key)) {
@@ -27,7 +27,7 @@ const deduplicateByCompositeKey = (records, keyFields = [], mergeFn = null) => {
       throw new Error(`Duplicate key encountered without mergeFn: ${key}`);
     }
   }
-  
+
   return Array.from(map.values());
 };
 

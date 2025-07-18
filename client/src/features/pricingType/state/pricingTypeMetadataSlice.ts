@@ -41,7 +41,8 @@ const pricingTypeMetadataSlice = createSlice({
         fetchPricingTypeMetadataThunk.rejected,
         (state, action: PayloadAction<string | undefined>) => {
           state.isLoading = false;
-          state.error = action.payload || 'Failed to fetch pricing type metadata.';
+          state.error =
+            action.payload || 'Failed to fetch pricing type metadata.';
         }
       );
   },

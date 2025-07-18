@@ -2,7 +2,9 @@ import type {
   BaseFlatInventoryRow,
   BaseInventoryFilters,
   BaseInventoryRecord,
-  BaseInventorySummaryItem, BaseInventoryTableProps, FlatInventoryRowBase,
+  BaseInventorySummaryItem,
+  BaseInventoryTableProps,
+  FlatInventoryRowBase,
   InventoryHealthStatus,
   ItemType,
 } from '@features/inventoryShared/types/InventorySharedType';
@@ -15,11 +17,12 @@ import type {
   SortConfig,
 } from '@shared-types/api';
 
-export type LocationInventorySummaryResponse = PaginatedResponse<LocationInventorySummary>;
+export type LocationInventorySummaryResponse =
+  PaginatedResponse<LocationInventorySummary>;
 
 export interface LocationInventorySummary extends InventoryHealthStatus {
   itemId: string;
-  typeLabel: ItemType; // Use 'material' to match transformed value
+  itemType: ItemType; // Use 'material' to match transformed value
   displayName: string;
   totalLots: number;
   totalLotQuantity: number;
@@ -41,9 +44,11 @@ export interface LocationInventoryQueryParams extends LocationInventoryFilters {
   sortOrder?: 'ASC' | 'DESC';
 }
 
-export type LocationInventorySummaryState = ReduxPaginatedState<LocationInventorySummary>
+export type LocationInventorySummaryState =
+  ReduxPaginatedState<LocationInventorySummary>;
 
-export interface LocationInventorySummaryItemDetail extends BaseInventorySummaryItem {
+export interface LocationInventorySummaryItemDetail
+  extends BaseInventorySummaryItem {
   locationInventoryId: string;
   quantity: BaseInventorySummaryItem['quantity'] & {
     locationQuantity: number;
@@ -55,11 +60,14 @@ export interface LocationInventorySummaryItemDetail extends BaseInventorySummary
   };
 }
 
-export type LocationInventorySummaryDetailResponse = PaginatedResponse<LocationInventorySummaryItemDetail>;
+export type LocationInventorySummaryDetailResponse =
+  PaginatedResponse<LocationInventorySummaryItemDetail>;
 
-export type LocationInventorySummaryDetailState = ReduxPaginatedState<LocationInventorySummaryItemDetail>;
+export type LocationInventorySummaryDetailState =
+  ReduxPaginatedState<LocationInventorySummaryItemDetail>;
 
-export interface FlatLocationInventorySummaryDetailRow extends BaseFlatInventoryRow {
+export interface FlatLocationInventorySummaryDetailRow
+  extends BaseFlatInventoryRow {
   locationInventoryId: string;
   locationQuantity: number;
   locationName: string;
@@ -81,12 +89,16 @@ export interface LocationInventoryKpiSummaryItem {
   lowStockCount: number;
 }
 
-export type LocationInventoryKpiSummaryResponse = ApiSuccessResponse<LocationInventoryKpiSummaryItem[]>;
+export type LocationInventoryKpiSummaryResponse = ApiSuccessResponse<
+  LocationInventoryKpiSummaryItem[]
+>;
 
 /**
  * State slice for KPI summary in location inventory.
  */
-export type LocationInventoryKpiSummaryState = AsyncState<LocationInventoryKpiSummaryItem[]>;
+export type LocationInventoryKpiSummaryState = AsyncState<
+  LocationInventoryKpiSummaryItem[]
+>;
 
 export interface FetchLocationInventoryArgs {
   pagination: PaginationParams;
@@ -95,22 +107,31 @@ export interface FetchLocationInventoryArgs {
 }
 
 export interface LocationInventoryRecord extends BaseInventoryRecord {
+  warehouse: {
+    id: string;
+  }
+  
   location: {
     id: string;
     name: string;
     type: string;
   };
-  
+
   quantity: BaseInventoryRecord['quantity'] & {
     locationQuantity: number;
   };
 }
 
-export type LocationInventoryRecordsResponse = PaginatedResponse<LocationInventoryRecord>;
+export type LocationInventoryRecordsResponse =
+  PaginatedResponse<LocationInventoryRecord>;
 
-export type LocationInventoryState = ReduxPaginatedState<LocationInventoryRecord>;
+export type LocationInventoryState =
+  ReduxPaginatedState<LocationInventoryRecord>;
 
 export interface FlatLocationInventoryRow
   extends FlatInventoryRowBase<LocationInventoryRecord> {}
 
-export type LocationInventoryTableProps = BaseInventoryTableProps<LocationInventoryRecord, FlatLocationInventoryRow>;
+export type LocationInventoryTableProps = BaseInventoryTableProps<
+  LocationInventoryRecord,
+  FlatLocationInventoryRow
+>;

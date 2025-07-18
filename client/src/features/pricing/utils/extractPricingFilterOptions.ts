@@ -20,14 +20,14 @@ export const extractPricingFilterOptions = (
   const countryCodes = new Set<string>();
   const pricingTypes = new Set<string>();
   const sizeLabels = new Set<string>();
-  
+
   for (const record of pricingData) {
     if (record.product?.brand) brands.add(record.product.brand);
     if (record.sku?.countryCode) countryCodes.add(record.sku.countryCode);
     if (record.pricingType?.name) pricingTypes.add(record.pricingType.name);
     if (record.sku?.sizeLabel) sizeLabels.add(record.sku.sizeLabel);
   }
-  
+
   return {
     brands: Array.from(brands).sort(),
     countryCodes: Array.from(countryCodes).sort(),

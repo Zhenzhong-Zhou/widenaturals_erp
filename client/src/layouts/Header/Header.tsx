@@ -24,14 +24,16 @@ const Header: FC<HeaderProps> = ({ user, onLogout }) => {
   const { theme, toggleTheme } = useThemeContext();
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  
+
   const handleMenuOpen = (event: MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
   };
-  
+
   const handleMenuClose = () => setAnchorEl(null);
-  
-  const getStatusColor = (status: string): 'success' | 'warning' | 'error' | 'info' | 'default' => {
+
+  const getStatusColor = (
+    status: string
+  ): 'success' | 'warning' | 'error' | 'info' | 'default' => {
     switch (status.toLowerCase()) {
       case 'healthy':
         return 'success';
@@ -45,7 +47,7 @@ const Header: FC<HeaderProps> = ({ user, onLogout }) => {
         return 'default';
     }
   };
-  
+
   return (
     <Box
       sx={{
@@ -71,7 +73,7 @@ const Header: FC<HeaderProps> = ({ user, onLogout }) => {
       >
         WIDE Naturals Inc.
       </CustomTypography>
-      
+
       {/* Right: Status, Theme, Avatar */}
       <Box
         sx={{
@@ -83,7 +85,7 @@ const Header: FC<HeaderProps> = ({ user, onLogout }) => {
       >
         {/* Server Health */}
         <HealthStatus getStatusColor={getStatusColor} sx={{ ml: 'auto' }} />
-        
+
         {/* Theme Toggle */}
         <CustomButton
           variant="outlined"
@@ -101,10 +103,12 @@ const Header: FC<HeaderProps> = ({ user, onLogout }) => {
             mr: 2,
           }}
         >
-          <FontAwesomeIcon icon={theme.palette.mode === 'dark' ? faSun : faMoon} />
+          <FontAwesomeIcon
+            icon={theme.palette.mode === 'dark' ? faSun : faMoon}
+          />
           {theme.palette.mode === 'dark' ? 'Light' : 'Dark'} Mode
         </CustomButton>
-        
+
         {/* Avatar & Menu */}
         <IconButton
           onClick={handleMenuOpen}
@@ -129,7 +133,7 @@ const Header: FC<HeaderProps> = ({ user, onLogout }) => {
             {user?.firstname?.charAt(0).toUpperCase() || 'G'}
           </Avatar>
         </IconButton>
-        
+
         {/* Dropdown Menu */}
         <Menu
           anchorEl={anchorEl}
@@ -147,9 +151,9 @@ const Header: FC<HeaderProps> = ({ user, onLogout }) => {
               {user?.firstname || 'Guest'}
             </CustomTypography>
           </MenuItem>
-          
+
           <Divider />
-          
+
           <MenuItem
             onClick={() => {
               handleMenuClose();
@@ -158,7 +162,7 @@ const Header: FC<HeaderProps> = ({ user, onLogout }) => {
           >
             Profile
           </MenuItem>
-          
+
           <MenuItem
             onClick={() => {
               handleMenuClose();

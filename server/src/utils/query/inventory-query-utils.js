@@ -15,19 +15,22 @@ const { getStatusId } = require('../../config/status-cache');
  * @param {string} sortMapKey - e.g. 'locationInventorySortMap' or 'warehouseInventorySortMap'
  * @returns {{ page: number, limit: number, safeSortClause: string }}
  */
-const normalizePaginationAndSortParams = ({ page, limit, sortByRaw, sortOrderRaw }, sortMapKey) => {
+const normalizePaginationAndSortParams = (
+  { page, limit, sortByRaw, sortOrderRaw },
+  sortMapKey
+) => {
   const resolvedPage = parseInt(page, 10) || 1;
   const resolvedLimit = parseInt(limit, 10) || 20;
-  
+
   const sortByExpression = sortByRaw?.trim()
     ? sanitizeSortBy(sortByRaw, sortMapKey)
     : SORTABLE_FIELDS[sortMapKey].defaultNaturalSort;
-  
+
   const safeSortClause =
     sortByExpression.includes(',') || sortByExpression.includes('CASE')
       ? sortByExpression
       : `${sortByExpression} ${sanitizeSortOrder(sortOrderRaw)}`;
-  
+
   return {
     page: resolvedPage,
     limit: resolvedLimit,
@@ -53,7 +56,7 @@ const normalizePaginationAndSortParams = ({ page, limit, sortByRaw, sortOrderRaw
 const sanitizeCommonInventoryFilters = (query, { type }) => {
   const isLocation = type === 'location';
   const isWarehouse = type === 'warehouse';
-  
+
   const filters = {
     batchType: query.batchType || undefined,
     productName: query.productName || undefined,
@@ -75,7 +78,7 @@ const sanitizeCommonInventoryFilters = (query, { type }) => {
       warehouseName: query.warehouseName || undefined,
     }),
   };
-  
+
   if (filters.batchType === 'product') {
     delete filters.materialName;
     delete filters.materialCode;
@@ -86,7 +89,7 @@ const sanitizeCommonInventoryFilters = (query, { type }) => {
     delete filters.productName;
     delete filters.sku;
   }
-  
+
   return cleanObject(filters);
 };
 
@@ -103,15 +106,19 @@ const sanitizeCommonInventoryFilters = (query, { type }) => {
  * @returns {string} UUID status ID
  * @throws {Error} If no valid status key or fallback is found
  */
-const getStatusIdByQuantity = (quantity, fallback = INVENTORY_STATUS.UNASSIGNED) => {
-  const statusKey = quantity <= 0 ? INVENTORY_STATUS.OUT_OF_STOCK : INVENTORY_STATUS.IN_STOCK;
-  
+const getStatusIdByQuantity = (
+  quantity,
+  fallback = INVENTORY_STATUS.UNASSIGNED
+) => {
+  const statusKey =
+    quantity <= 0 ? INVENTORY_STATUS.OUT_OF_STOCK : INVENTORY_STATUS.IN_STOCK;
+
   try {
     return getStatusId(statusKey);
   } catch (err) {
     return getStatusId(fallback);
   }
-}
+};
 
 module.exports = {
   normalizePaginationAndSortParams,

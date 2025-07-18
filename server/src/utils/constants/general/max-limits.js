@@ -35,6 +35,9 @@ const MAX_LIMITS = {
     GENERIC_FIELD: 255, // Maximum length for generic text fields
     DEFAULT_MAX_LENGTH: 255,
   },
+  BULK_INPUT_LIMITS: {
+    MAX_UI_INSERT_SIZE: 20
+  }
 };
 
 module.exports = MAX_LIMITS;

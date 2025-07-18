@@ -4,13 +4,13 @@
 export interface Pagination {
   /** Current page number (1-based index) */
   page: number;
-  
+
   /** Number of records per page */
   limit: number;
-  
+
   /** Total number of records available across all pages */
   totalRecords: number;
-  
+
   /** Total number of pages based on the current limit and totalRecords */
   totalPages: number;
 }
@@ -23,13 +23,13 @@ export interface Pagination {
 export interface PaginatedResponse<T> {
   /** Indicates whether the request was successful */
   success: boolean;
-  
+
   /** Human-readable message associated with the response */
   message: string;
-  
+
   /** Array of data items of type T */
   data: T[];
-  
+
   /** Pagination metadata for the current response */
   pagination: Pagination;
 }
@@ -44,12 +44,12 @@ export interface ApiSuccessResponse<T> {
    * Indicates whether the request was successful.
    */
   success: true;
-  
+
   /**
    * A human-readable message describing the result.
    */
   message: string;
-  
+
   /**
    * The actual data payload of the response.
    */
@@ -64,13 +64,13 @@ export interface ApiSuccessResponse<T> {
 export interface ReduxPaginatedState<T> {
   /** Fetched data items. */
   data: T[];
-  
+
   /** Pagination info for current view. */
-  pagination: Pagination;
-  
+  pagination: Pagination | null;
+
   /** Whether data is currently being loaded. */
   loading: boolean;
-  
+
   /** Error message if fetching fails. */
   error: string | null;
 }
@@ -94,7 +94,7 @@ export interface PaginationParams {
    * Example: page=2 → fetch the second page of results.
    */
   page?: number;
-  
+
   /**
    * The number of records to return per page. Defaults to 10 or your backend default.
    * Example: limit=25 → return 25 items per page.
@@ -112,12 +112,12 @@ export interface AsyncState<T> {
    * The data payload (can be null before loading or on error).
    */
   data: T;
-  
+
   /**
    * Whether the request is currently loading.
    */
   loading: boolean;
-  
+
   /**
    * Error message if the request fails, otherwise null.
    */
@@ -125,11 +125,23 @@ export interface AsyncState<T> {
 }
 
 /**
+ * Represents the sort order direction for query or UI sorting logic.
+ *
+ * - 'ASC': Ascending order (e.g., A → Z, 0 → 9).
+ * - 'DESC': Descending order (e.g., Z → A, 9 → 0).
+ * - '': No sort applied (or default to backend sorting).
+ */
+export type SortOrder = 'ASC' | 'DESC' | '';
+
+
+/**
  * Represents sorting options for paginated data queries.
- * This interface allows the client to specify which field to sort by,
+ *
+ * Allows the client to specify which field to sort by,
  * and in which direction (ascending or descending).
  *
- * It Can be combined with other query parameter types like pagination or filters.
+ * It Can be combined with other query types like pagination or filters
+ * to build flexible API requests.
  *
  * Example usage:
  * {
@@ -138,47 +150,55 @@ export interface AsyncState<T> {
  * }
  */
 export interface SortConfig {
-  /** The field name to sort by (must align with backend-supported fields). */
+  /**
+   * The field name to sort by (must align with backend-supported fields).
+   * Example: 'createdAt', 'customerName'
+   */
   sortBy?: string;
   
-  /** Sort direction: 'ASC' for ascending, 'DESC' for descending. Defaults to 'ASC' if not specified. */
-  sortOrder?: 'ASC' | 'DESC' | '';
+  /**
+   * Sort direction.
+   * - 'ASC' for ascending (A → Z / 0 → 9)
+   * - 'DESC' for descending (Z → A / 9 → 0)
+   * - '' if no specific sort order
+   */
+  sortOrder?: SortOrder;
 }
 
 /**
- * A generic structure for successful dropdown-style paginated API responses.
+ * A generic structure for successful lookup-style paginated API responses.
  *
  * Designed for use in infinite-scroll or load-more UIs where full pagination
  * metadata (e.g., totalRecords, totalPages) is not required.
  *
  * @template T - The type of each item in the `items` array.
  */
-export interface DropdownSuccessResponse<T> {
+export interface LookupSuccessResponse<T> {
   /**
    * Indicates the API call was successful.
    */
   success: true;
-  
+
   /**
    * A human-readable message describing the result.
    */
   message: string;
-  
+
   /**
-   * The array of dropdown-compatible result items.
+   * The array of lookup-compatible result items.
    */
   items: T[];
-  
+
   /**
    * Pagination limit (number of items per request).
    */
   limit: number;
-  
+
   /**
    * Pagination offset (starting index of returned items).
    */
   offset: number;
-  
+
   /**
    * Flag indicating if more items are available for loading.
    */
@@ -186,17 +206,95 @@ export interface DropdownSuccessResponse<T> {
 }
 
 /**
- * Redux-managed state for dropdown data with load-more or infinite scroll.
+ * Redux-managed state for lookup data with load-more or infinite scroll.
  *
- * @template T - Type of each dropdown item.
+ * @template T - Type of each lookup item.
  */
-export interface PaginatedDropdownState<T> extends AsyncState<T[]> {
+export interface PaginatedLookupState<T> extends AsyncState<T[]> {
   /** Whether more items are available to load. */
   hasMore: boolean;
-  
+
   /** Number of items per request. */
   limit: number;
-  
+
   /** Current offset used for pagination. */
   offset: number;
+}
+
+/**
+ * Represents the state of a data-modifying API operation (e.g., POST, PUT, DELETE).
+ * Commonly used to track the status and response of a mutation request.
+ *
+ * @template T - The type of single response item. The `data` field will be an array of T.
+ *
+ * Example usage:
+ * ```ts
+ * const initialState: MutationState<UserResponse> = {
+ *   data: null,
+ *   loading: false,
+ *   error: null,
+ * };
+ * ```
+ */
+export interface MutationState<T> {
+  /**
+   * The response payload returned from a successful mutation request.
+   * Always an array of type T (even for single-item operations).
+   * Set to `null` before the request or if the request fails.
+   */
+  data: T | null;
+  
+  /**
+   * Indicates whether the mutation request is currently in progress.
+   */
+  loading: boolean;
+  
+  /**
+   * Error message if the mutation request fails; otherwise `null`.
+   */
+  error: string | null;
+  
+  /**
+   * Indicates if the mutation was successful.
+   * Useful for showing success messages or conditional UI rendering.
+   */
+  success?: boolean;
+  
+  /**
+   * Server-provided success message or status message, if any.
+   */
+  message?: string;
+}
+
+/**
+ * Filter for date ranges on created and updated timestamps.
+ *
+ * Useful for querying resources within a specific creation or update date range (ISO 8601 strings).
+ * Applies >= or <= conditions on backend queries.
+ */
+export interface CreatedUpdatedDateFilter {
+  /** Include records created on or after this ISO timestamp (>= condition) */
+  createdAfter?: string;
+  
+  /** Include records created on or before this ISO timestamp (<= condition) */
+  createdBefore?: string;
+  
+  /** Include records updated on or after this ISO timestamp (>= condition) */
+  updatedAfter?: string;
+  
+  /** Include records updated on or before this ISO timestamp (<= condition) */
+  updatedBefore?: string;
+}
+
+/**
+ * Filter for querying by who created or last updated the record.
+ *
+ * Useful for audit queries or admin-level filtering by user.
+ */
+export interface CreatedUpdatedByFilter {
+  /** Filter by creator's user ID (UUID v4) */
+  createdBy?: string;
+  
+  /** Filter by updater's user ID (UUID v4) */
+  updatedBy?: string;
 }

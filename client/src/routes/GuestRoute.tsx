@@ -15,12 +15,12 @@ const GuestRoute: FC<GuestRouteProps> = ({ children = <Outlet /> }) => {
   if (isLoading) {
     return <Loading fullPage message="Checking session..." />;
   }
-  
+
   // Redirect to dashboard if authenticated
   if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
   }
-  
+
   return children;
 };
 

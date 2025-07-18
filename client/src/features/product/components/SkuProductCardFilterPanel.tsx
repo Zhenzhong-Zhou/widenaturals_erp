@@ -7,7 +7,13 @@ import Autocomplete from '@mui/material/Autocomplete';
 import IconButton from '@mui/material/IconButton';
 import TextField from '@mui/material/TextField';
 import SearchIcon from '@mui/icons-material/Search';
-import { BRANDS, CATEGORIES, KEYWORD_SUGGESTIONS, MARKET_REGIONS, SIZE_LABELS } from '@utils/filters';
+import {
+  BRANDS,
+  CATEGORIES,
+  KEYWORD_SUGGESTIONS,
+  MARKET_REGIONS,
+  SIZE_LABELS,
+} from '@utils/filters';
 
 export interface SkuProductCardFilters {
   brand?: string;
@@ -24,34 +30,34 @@ interface SkuProductCardFilterPanelProps {
 }
 
 const SkuProductCardFilterPanel: React.FC<SkuProductCardFilterPanelProps> = ({
-                                                                               filters,
-                                                                               onChange,
-                                                                               showReset = true,
-                                                                             }) => {
+  filters,
+  onChange,
+  showReset = true,
+}) => {
   const [localKeyword, setLocalKeyword] = useState(filters.keyword ?? '');
-  
+
   const handleChange =
     (key: keyof SkuProductCardFilters) =>
-      (event: React.ChangeEvent<HTMLInputElement>) => {
-        const value = event.target.value || undefined;
-        onChange({ ...filters, [key]: value });
-      };
-  
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const value = event.target.value || undefined;
+      onChange({ ...filters, [key]: value });
+    };
+
   const handleReset = () => {
     setLocalKeyword('');
     onChange({});
   };
-  
+
   const handleSearch = () => {
     onChange({ ...filters, keyword: localKeyword.trim() || undefined });
   };
-  
+
   const handleKeywordKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === 'Enter') {
       handleSearch();
     }
   };
-  
+
   return (
     <Stack
       direction={{ xs: 'column', sm: 'row' }}
@@ -61,13 +67,33 @@ const SkuProductCardFilterPanel: React.FC<SkuProductCardFilterPanelProps> = ({
       sx={{ mb: 3 }}
     >
       {[
-        { label: 'Brand', value: filters.brand ?? '', options: BRANDS, key: 'brand' },
-        { label: 'Category', value: filters.category ?? '', options: CATEGORIES, key: 'category' },
-        { label: 'Market', value: filters.marketRegion ?? '', options: MARKET_REGIONS, key: 'marketRegion' },
-        { label: 'Size', value: filters.sizeLabel ?? '', options: SIZE_LABELS, key: 'sizeLabel' },
+        {
+          label: 'Brand',
+          value: filters.brand ?? '',
+          options: BRANDS,
+          key: 'brand',
+        },
+        {
+          label: 'Category',
+          value: filters.category ?? '',
+          options: CATEGORIES,
+          key: 'category',
+        },
+        {
+          label: 'Market',
+          value: filters.marketRegion ?? '',
+          options: MARKET_REGIONS,
+          key: 'marketRegion',
+        },
+        {
+          label: 'Size',
+          value: filters.sizeLabel ?? '',
+          options: SIZE_LABELS,
+          key: 'sizeLabel',
+        },
       ].map(({ label, value, options, key }) => {
         const inputId = `filter-${key}`;
-        
+
         return (
           <BaseInput
             key={label}
@@ -97,7 +123,7 @@ const SkuProductCardFilterPanel: React.FC<SkuProductCardFilterPanelProps> = ({
           </BaseInput>
         );
       })}
-      
+
       {/* Keyword search with search icon */}
       <Autocomplete
         freeSolo
@@ -131,10 +157,7 @@ const SkuProductCardFilterPanel: React.FC<SkuProductCardFilterPanelProps> = ({
                 ...params.InputProps,
                 startAdornment: (
                   <>
-                    <IconButton
-                      size="small"
-                      onClick={handleSearch}
-                    >
+                    <IconButton size="small" onClick={handleSearch}>
                       <SearchIcon fontSize="small" />
                     </IconButton>
                   </>
@@ -144,7 +167,7 @@ const SkuProductCardFilterPanel: React.FC<SkuProductCardFilterPanelProps> = ({
           />
         )}
       />
-      
+
       {/* Reset Button */}
       {showReset && (
         <CustomButton

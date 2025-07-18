@@ -23,7 +23,7 @@ const requestLogger = (req, res, next) => {
   if (ignoredRoutes.includes(req.originalUrl)) {
     return next();
   }
-  
+
   // Set and propagate correlation ID
   const correlationId = req.headers['x-correlation-id'] || uuidv4();
   req.correlationId = correlationId;
@@ -34,7 +34,7 @@ const requestLogger = (req, res, next) => {
   res.on('finish', () => {
     const [sec, nano] = process.hrtime(startTime);
     const responseTime = (sec * 1000 + nano / 1e6).toFixed(2);
-    
+
     const statusCode = res.statusCode;
     const logMeta = {
       method: req.method,
@@ -46,7 +46,7 @@ const requestLogger = (req, res, next) => {
       queryParams: req.query,
       correlationId,
     };
-    
+
     // Redact sensitive fields if needed
     const redact = (body) => {
       if (!body) return undefined;
@@ -55,9 +55,9 @@ const requestLogger = (req, res, next) => {
       if (clone.token) clone.token = '***';
       return clone;
     };
-    
+
     const error = res.locals?.error;
-    
+
     if (statusCode >= 500) {
       if (error) {
         logSystemException(error, 'Internal server error during request', {
@@ -80,7 +80,7 @@ const requestLogger = (req, res, next) => {
       logSystemInfo('Request handled successfully', logMeta);
     }
   });
-  
+
   next();
 };
 

@@ -3,8 +3,15 @@
  * @returns { Promise<void> }
  */
 exports.seed = async function (knex) {
-  console.log('🌱 Seeding order_types...');
-
+  console.log('Seeding order_types...');
+  
+  // Check if already seeded
+  const existing = await knex('order_types').count('id as count').first();
+  if (existing?.count > 0) {
+    console.log('Order types already seeded. Skipping.');
+    return;
+  }
+  
   // Fetch active status ID and admin user ID
   const [activeStatus, systemAction] = await Promise.all([
     knex('status').select('id').where('name', 'active').first(),
@@ -15,7 +22,7 @@ exports.seed = async function (knex) {
   const systemActionId = systemAction?.id;
 
   if (!activeStatusId || !systemActionId) {
-    throw new Error('❌ Missing required references for status or admin user!');
+    throw new Error('Missing required references for status or admin user!');
   }
 
   // Define seed data
@@ -24,6 +31,7 @@ exports.seed = async function (knex) {
       name: 'Purchase Order',
       category: 'purchase',
       code: 'PUR_ORDER',
+      requires_payment: true,
       description: 'Order placed with a supplier',
     },
     {
@@ -42,6 +50,7 @@ exports.seed = async function (knex) {
       name: 'Standard Sales Order',
       category: 'sales',
       code: 'SALES_STD',
+      requires_payment: true,
       description: 'Customer order for products',
     },
     {
@@ -60,6 +69,7 @@ exports.seed = async function (knex) {
       name: 'Manufacturing Order',
       category: 'manufacturing',
       code: 'MFG_ORDER',
+      requires_payment: true,
       description: 'Production order for manufacturing goods',
     },
     {
@@ -98,6 +108,7 @@ exports.seed = async function (knex) {
   const orderTypeRecords = orderTypes.map((type) => ({
     id: knex.raw('uuid_generate_v4()'),
     ...type,
+    requires_payment: 'requires_payment' in type ? type.requires_payment : false,
     status_id: activeStatusId,
     status_date: knex.fn.now(),
     created_at: knex.fn.now(),
@@ -112,5 +123,5 @@ exports.seed = async function (knex) {
     .onConflict('name') // Ensure uniqueness
     .ignore();
 
-  console.log(`✅ Seeded ${orderTypes.length} order types successfully!`);
+  console.log(`Seeded ${orderTypes.length} order types successfully!`);
 };

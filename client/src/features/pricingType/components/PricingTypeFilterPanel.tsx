@@ -18,23 +18,24 @@ interface PricingTypeFilterPanelProps {
 }
 
 const PricingTypeFilterPanel: FC<PricingTypeFilterPanelProps> = ({
-                                                                   filters,
-                                                                   onChange,
-                                                                   onReset,
-                                                                 }) => {
-  const [localFilters, setLocalFilters] = useState<PricingTypeFilterParams>(filters);
-  
+  filters,
+  onChange,
+  onReset,
+}) => {
+  const [localFilters, setLocalFilters] =
+    useState<PricingTypeFilterParams>(filters);
+
   const handleApply = () => {
     onChange(localFilters);
   };
-  
+
   const handleReset = () => {
     const cleared = { name: '', startDate: '', endDate: '' };
     setLocalFilters(cleared);
     onChange(cleared);
     if (onReset) onReset();
   };
-  
+
   return (
     <Box
       sx={{
@@ -58,11 +59,13 @@ const PricingTypeFilterPanel: FC<PricingTypeFilterPanelProps> = ({
           label="Search by Name or Code"
           variant="outlined"
           value={localFilters.name || ''}
-          onChange={(e) => setLocalFilters({ ...localFilters, name: e.target.value })}
+          onChange={(e) =>
+            setLocalFilters({ ...localFilters, name: e.target.value })
+          }
           size="small"
           sx={{ minWidth: 240 }}
         />
-        
+
         <CustomDatePicker
           label="Start Date"
           value={localFilters.startDate || null}
@@ -74,7 +77,7 @@ const PricingTypeFilterPanel: FC<PricingTypeFilterPanelProps> = ({
           }
           sx={{ maxWidth: 50 }}
         />
-        
+
         <CustomDatePicker
           label="End Date"
           value={localFilters.endDate || null}
@@ -86,7 +89,7 @@ const PricingTypeFilterPanel: FC<PricingTypeFilterPanelProps> = ({
           }
           sx={{ maxWidth: 50 }}
         />
-        
+
         <Stack direction="row" spacing={1}>
           <Button
             variant="contained"

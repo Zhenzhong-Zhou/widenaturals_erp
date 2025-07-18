@@ -49,7 +49,9 @@ const fetchOrdersByEndpoint = async (
   params: FetchOrdersParams
 ): Promise<OrdersResponse> => {
   try {
-    const response = await axiosInstance.get<OrdersResponse>(endpoint, { params });
+    const response = await axiosInstance.get<OrdersResponse>(endpoint, {
+      params,
+    });
     return response.data;
   } catch (error) {
     console.error(`Error fetching orders from ${endpoint}:`, error);
@@ -68,7 +70,9 @@ const fetchAllOrders = (params: FetchOrdersParams): Promise<OrdersResponse> =>
  *
  * Includes orders in statuses like CONFIRMED, ALLOCATING, ALLOCATED, and PARTIAL.
  */
-const fetchAllocationEligibleOrders = (params: FetchOrdersParams): Promise<OrdersResponse> =>
+const fetchAllocationEligibleOrders = (
+  params: FetchOrdersParams
+): Promise<OrdersResponse> =>
   fetchOrdersByEndpoint(API_ENDPOINTS.ALLOCATION_ELIGIBLE_ORDERS, params);
 
 /**
@@ -139,8 +143,12 @@ export const fetchAllocationEligibleOrderDetails = async (
   orderId: string
 ): Promise<AllocationEligibleOrderDetailsResponse> => {
   try {
-    const endpoint = API_ENDPOINTS.ALLOCATION_ELIGIBLE_ORDER_DETAILS.replace(':id', orderId);
-    const response = await axiosInstance.get<AllocationEligibleOrderDetailsResponse>(endpoint);
+    const endpoint = API_ENDPOINTS.ALLOCATION_ELIGIBLE_ORDER_DETAILS.replace(
+      ':id',
+      orderId
+    );
+    const response =
+      await axiosInstance.get<AllocationEligibleOrderDetailsResponse>(endpoint);
     return response.data;
   } catch (error) {
     console.error('Error fetching allocation-eligible order details:', error);

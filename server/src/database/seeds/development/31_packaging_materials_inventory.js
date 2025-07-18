@@ -10,47 +10,60 @@ exports.seed = async function (knex) {
     .whereNotNull('br.packaging_material_batch_id')
     .select('wi.id')
     .limit(1);
-  
+
   const locationMaterialInventory = await knex('location_inventory as li')
     .join('batch_registry as br', 'li.batch_id', 'br.id')
     .whereNotNull('br.packaging_material_batch_id')
     .select('li.id')
     .limit(1);
-  
-  if (warehouseMaterialInventory.length > 0 || locationMaterialInventory.length > 0) {
+
+  if (
+    warehouseMaterialInventory.length > 0 ||
+    locationMaterialInventory.length > 0
+  ) {
     console.log('Skipping packaging material inventory seed: already exists.');
     return;
   }
-  
+
   console.log('Seeding packaging material inventory (Richmond)...');
-  
-  const systemUserId = await fetchDynamicValue(knex, 'users', 'email', 'system@internal.local', 'id');
+
+  const systemUserId = await fetchDynamicValue(
+    knex,
+    'users',
+    'email',
+    'system@internal.local',
+    'id'
+  );
   if (!systemUserId) throw new Error('System user not found');
-  
-  const warehouse = await knex('warehouses').whereILike('code', 'WH-RS-CA02').first();
+
+  const warehouse = await knex('warehouses')
+    .whereILike('code', 'WH-RS-CA02')
+    .first();
   if (!warehouse) throw new Error('Richmond warehouse (WH-WNI-CA01) not found');
-  
-  const inStockStatusId = await fetchDynamicValue(knex, 'inventory_status', 'name', 'in_stock', 'id');
-  
+
+  const inStockStatusId = await fetchDynamicValue(
+    knex,
+    'inventory_status',
+    'name',
+    'in_stock',
+    'id'
+  );
+
   const locationId = warehouse.location_id;
   const warehouseId = warehouse.id;
-  
+
   const packagingBatches = await knex('packaging_material_batches as pmb')
     .join('batch_registry as br', 'br.packaging_material_batch_id', 'pmb.id')
-    .select(
-      'br.id as batch_id',
-      'pmb.quantity',
-      'pmb.status_id'
-    );
-  
+    .select('br.id as batch_id', 'pmb.quantity', 'pmb.status_id');
+
   if (!packagingBatches.length) {
     console.warn('No packaging material batches found.');
     return;
   }
-  
+
   const now = knex.fn.now();
-  
-  const locationInventory = packagingBatches.map(b => ({
+
+  const locationInventory = packagingBatches.map((b) => ({
     id: knex.raw('uuid_generate_v4()'),
     location_id: locationId,
     batch_id: b.batch_id,
@@ -66,8 +79,8 @@ exports.seed = async function (knex) {
     created_by: systemUserId,
     updated_by: null,
   }));
-  
-  const warehouseInventory = packagingBatches.map(b => ({
+
+  const warehouseInventory = packagingBatches.map((b) => ({
     id: knex.raw('uuid_generate_v4()'),
     warehouse_id: warehouseId,
     batch_id: b.batch_id,
@@ -84,16 +97,18 @@ exports.seed = async function (knex) {
     created_by: systemUserId,
     updated_by: null,
   }));
-  
+
   await knex('location_inventory')
     .insert(locationInventory)
     .onConflict(['location_id', 'batch_id'])
     .ignore();
-  
+
   await knex('warehouse_inventory')
     .insert(warehouseInventory)
     .onConflict(['warehouse_id', 'batch_id'])
     .ignore();
-  
-  console.log(`Inserted ${locationInventory.length} location_inventory records and ${warehouseInventory.length} warehouse_inventory records for packaging materials.`);
+
+  console.log(
+    `Inserted ${locationInventory.length} location_inventory records and ${warehouseInventory.length} warehouse_inventory records for packaging materials.`
+  );
 };

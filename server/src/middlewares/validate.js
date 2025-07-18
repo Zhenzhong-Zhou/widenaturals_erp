@@ -41,11 +41,11 @@ const validate = (
                 message,
                 path: path.join('.'),
               }));
-        
+
         const appError = AppError.validationError(errorMessage, {
           details: sanitizedDetails,
         });
-        
+
         // Log only in non-prod for developer visibility
         if (process.env.NODE_ENV !== 'production') {
           logError(appError, req, {
@@ -54,10 +54,10 @@ const validate = (
             target,
           });
         }
-        
+
         throw appError;
       }
-      
+
       req[target] = value; // Replace it with validated input
       next();
     } catch (err) {

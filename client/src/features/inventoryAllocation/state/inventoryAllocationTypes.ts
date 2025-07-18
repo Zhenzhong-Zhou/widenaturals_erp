@@ -7,7 +7,8 @@ export interface InventoryLotQuery {
   strategy?: 'FIFO' | 'LIFO' | 'FEFO' | string; // optional and extendable
 }
 
-export type FetchAvailableInventoryRequest = InventoryLotParams & InventoryLotQuery;
+export type FetchAvailableInventoryRequest = InventoryLotParams &
+  InventoryLotQuery;
 
 export interface AvailableInventoryLot {
   lotId: string;
@@ -38,11 +39,11 @@ export interface AllocationItem {
   warehouseId: string;
   inventoryId: string;
   quantity: number;
-  
+
   // For custom manual allocation
   lotIds?: string[]; // optional: only needed for manual strategy
   allowPartial?: boolean; // optional: only used when lotIds are provided
-  
+
   // Optional override of defaultStrategy for this item
   strategy?: AllocationStrategy;
 }

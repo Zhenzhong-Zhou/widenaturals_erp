@@ -17,42 +17,47 @@ interface CreateUseOrdersProps {
   selectors: UseOrdersSelectors;
 }
 
-export const createUseOrders = ({ fetchThunk, selectors }: CreateUseOrdersProps) => {
+export const createUseOrders = ({
+  fetchThunk,
+  selectors,
+}: CreateUseOrdersProps) => {
   return () => {
     const dispatch = useAppDispatch();
     const [refreshCounter, setRefreshCounter] = useState(0);
-    
+
     const orders = useAppSelector(selectors.selectOrders);
     const loading = useAppSelector(selectors.selectLoading);
     const error = useAppSelector(selectors.selectError);
     const pagination = useAppSelector(selectors.selectPagination);
-    
+
     const memoizedOrders = useMemo(() => orders, [orders]);
     const memoizedLoading = useMemo(() => loading, [loading]);
     const memoizedError = useMemo(() => error, [error]);
     const memoizedPagination = useMemo(() => pagination, [pagination]);
-    
+
     const fetchOrders = useCallback(
       (params: FetchOrdersParams) => dispatch(fetchThunk(params)),
       [dispatch]
     );
-    
+
     const manualRefresh = useCallback(() => {
       setRefreshCounter((prev) => prev + 1);
     }, []);
-    
+
     const getOrdersByStatus = useCallback(
       (status: string) =>
-        useAppSelector((state) => selectors.selectOrdersByStatus(status)(state)),
+        useAppSelector((state) =>
+          selectors.selectOrdersByStatus(status)(state)
+        ),
       []
     );
-    
+
     const getOrderById = useCallback(
       (orderId: string) =>
         useAppSelector((state) => selectors.selectOrderById(orderId)(state)),
       []
     );
-    
+
     return {
       orders: memoizedOrders,
       loading: memoizedLoading,

@@ -1,10 +1,7 @@
 const crypto = require('crypto');
 const fs = require('fs').promises; // Use promise-based fs methods
 const { createReadStream, createWriteStream } = require('fs');
-const {
-  logSystemInfo,
-  logSystemException
-} = require('../utils/system-logger');
+const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 
 /**
@@ -22,11 +19,11 @@ const encryptFile = async (
   ivFilePath
 ) => {
   const iv = crypto.randomBytes(16); // Generate IV
-  
+
   try {
     // Save IV to a file asynchronously
     await fs.writeFile(ivFilePath, iv);
-  
+
     const cipher = crypto.createCipheriv(
       'aes-256-cbc',
       Buffer.from(encryptionKey, 'hex'),
@@ -34,10 +31,10 @@ const encryptFile = async (
     );
     const input = createReadStream(filePath);
     const output = createWriteStream(encryptedFilePath);
-  
+
     // Pipe the input through the cipher into the output
     input.pipe(cipher).pipe(output);
-    
+
     return new Promise((resolve, reject) => {
       output.on('finish', () => {
         logSystemInfo('File encryption completed.', {
@@ -90,45 +87,45 @@ const decryptFile = async (
       `Initialization Vector (IV) file not found: ${ivFilePath}`
     );
   }
- try {
-   const decipher = crypto.createDecipheriv(
-     'aes-256-cbc',
-     Buffer.from(encryptionKey, 'hex'),
-     iv
-   );
-   const input = createReadStream(encryptedFilePath);
-   const output = createWriteStream(decryptedFilePath);
-   
-   // Pipe the input through the deciphering into the output
-   input.pipe(decipher).pipe(output);
-   
-   return new Promise((resolve, reject) => {
-     output.on('finish', () => {
-       logSystemInfo('File decryption completed.', {
-         context: 'decryption',
-         encryptedFilePath,
-         decryptedFilePath,
-         ivFilePath,
-       });
-       resolve();
-     });
-     output.on('error', (err) => {
-       logSystemException(err, 'Error writing decrypted file', {
-         context: 'decryption',
-         encryptedFilePath,
-         decryptedFilePath,
-       });
-       reject(err);
-     });
-   });
- } catch (error) {
-   logSystemException(error, 'Decryption failed', {
-     context: 'decryption',
-     encryptedFilePath,
-     decryptedFilePath,
-   });
-   throw error;
- }
+  try {
+    const decipher = crypto.createDecipheriv(
+      'aes-256-cbc',
+      Buffer.from(encryptionKey, 'hex'),
+      iv
+    );
+    const input = createReadStream(encryptedFilePath);
+    const output = createWriteStream(decryptedFilePath);
+
+    // Pipe the input through the deciphering into the output
+    input.pipe(decipher).pipe(output);
+
+    return new Promise((resolve, reject) => {
+      output.on('finish', () => {
+        logSystemInfo('File decryption completed.', {
+          context: 'decryption',
+          encryptedFilePath,
+          decryptedFilePath,
+          ivFilePath,
+        });
+        resolve();
+      });
+      output.on('error', (err) => {
+        logSystemException(err, 'Error writing decrypted file', {
+          context: 'decryption',
+          encryptedFilePath,
+          decryptedFilePath,
+        });
+        reject(err);
+      });
+    });
+  } catch (error) {
+    logSystemException(error, 'Decryption failed', {
+      context: 'decryption',
+      encryptedFilePath,
+      decryptedFilePath,
+    });
+    throw error;
+  }
 };
 
 module.exports = {

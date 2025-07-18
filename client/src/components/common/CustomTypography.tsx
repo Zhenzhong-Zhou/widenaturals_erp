@@ -9,12 +9,12 @@ interface CustomTypographyProps extends TypographyProps {
 }
 
 const CustomTypography: FC<CustomTypographyProps> = ({
-                                                       children,
-                                                       variant = 'body1',
-                                                       color = 'textPrimary',
-                                                       align = 'inherit',
-                                                       ...props
-                                                     }) => {
+  children,
+  variant = 'body1',
+  color = 'textPrimary',
+  align = 'inherit',
+  ...props
+}) => {
   return (
     <MuiTypography
       component={variant?.startsWith('h') ? variant : 'p'}
@@ -27,7 +27,7 @@ const CustomTypography: FC<CustomTypographyProps> = ({
         fontFamily: "'Roboto', sans-serif",
         fontWeight: variant?.startsWith('h') ? 700 : 400,
         fontSize: variant === 'h5' ? '1.5rem' : undefined, // static for faster paint
-        color: 'var(--text-primary)', // Use CSS variable
+        ...(!color && { color: 'var(--text-primary)' }), // fallback only
         minHeight: variant?.startsWith('h') ? '32px' : '24px', // avoid CLS
         textRendering: 'optimizeLegibility',
         ...props.sx,

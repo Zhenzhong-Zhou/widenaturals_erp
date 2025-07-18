@@ -1,8 +1,5 @@
 const { query } = require('../database/db');
-const {
-  logSystemInfo,
-  logSystemException
-} = require('../utils/system-logger');
+const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 
 /**
@@ -12,18 +9,18 @@ const AppError = require('../utils/AppError');
  */
 const checkDatabaseHealth = async () => {
   const queryText = 'SELECT 1';
-  
+
   try {
     const startTime = Date.now();
     await query(queryText);
     const duration = Date.now() - startTime;
-    
+
     logSystemInfo('Database health check passed', {
       context: 'health-check',
       query: queryText,
       durationMs: duration,
     });
-    
+
     return {
       status: 'healthy',
       dbConnectionStatus: 'connected',
@@ -37,7 +34,7 @@ const checkDatabaseHealth = async () => {
       query: queryText,
       severity: 'critical',
     });
-    
+
     throw AppError.healthCheckError('Database is not healthy', 500, {
       type: 'DatabaseHealthError',
       details: error.message,

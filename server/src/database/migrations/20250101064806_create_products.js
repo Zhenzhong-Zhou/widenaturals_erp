@@ -10,10 +10,10 @@ exports.up = async function (knex) {
     table.string('brand', 100);
     table.string('category', 100);
     table.text('description');
-    
+
     table.uuid('status_id').notNullable().references('id').inTable('status');
     table.timestamp('status_date', { useTz: true }).defaultTo(knex.fn.now());
-    
+
     table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now());
     table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
     table.uuid('created_by').references('id').inTable('users');
@@ -21,7 +21,7 @@ exports.up = async function (knex) {
 
     // Indexes
     table.index(['name'], 'idx_products_name');
-    
+
     table.unique(['name', 'brand', 'series', 'category']);
   });
 };

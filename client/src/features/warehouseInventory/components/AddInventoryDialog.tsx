@@ -2,42 +2,55 @@ import { type FC, useEffect, useMemo, useState } from 'react';
 import AddInventoryDialogWithModeToggle from '@features/warehouseInventory/components/AddInventoryDialogWithModeToggle.tsx';
 import useCreateWarehouseInventory from '@hooks/useCreateWarehouseInventory.ts';
 import type {
-  BatchRegistryDropdownItem,
-  GetBatchRegistryDropdownParams,
-  WarehouseDropdownItem, WarehouseOption,
-} from '@features/dropdown/state';
-import { formatDate } from '@utils/dateTimeUtils.ts';
-import useBatchRegistryDropdown from '@hooks/useBatchRegistryDropdown.ts';
-import type { InventoryRecordInput, ItemType } from '@features/inventoryShared/types/InventorySharedType';
-import useWarehouseDropdown from '@hooks/useWarehouseDropdown.ts';
+  GetBatchRegistryLookupParams,
+  WarehouseLookupItem,
+  WarehouseOption,
+} from '@features/lookup/state';
+import useBatchRegistryLookup from '@hooks/useBatchRegistryLookup';
+import type {
+  CreateInventoryRecordsRequest,
+  ItemType,
+} from '@features/inventoryShared/types/InventorySharedType';
+import useWarehouseLookup from '@hooks/useWarehouseLookup';
+import { mapBatchLookupToOptions } from '@features/lookup/utils/batchRegistryUtils.ts';
 
 interface AddInventoryDialogProps {
   open: boolean;
   onClose: () => void;
-  onSuccess?: () => void;
+  onExited?: () => void;
 }
 
 const AddInventoryDialog: FC<AddInventoryDialogProps> = ({
-                                                           open,
-                                                           onClose,
-                                                           onSuccess,
-                                                         }) => {
-  const [selectedWarehouse, setSelectedWarehouse] = useState<{ locationId: string; warehouseId: string; } | null>(null);
-  const [selectedBatch, setSelectedBatch] = useState<{ id: string; type: string } | null>(null);
-  const [batchDropdownParams, setBatchDropdownParams] = useState<GetBatchRegistryDropdownParams>({
-    batchType: '',
-    warehouseId: '',
-    locationId:'',
-    limit: 50,
-    offset: 0,
-  });
+  open,
+  onClose,
+  onExited,
+}) => {
+  const [selectedWarehouse, setSelectedWarehouse] = useState<{
+    locationId: string;
+    warehouseId: string;
+  } | null>(null);
+  const [selectedBatch, setSelectedBatch] = useState<{
+    id: string;
+    type: string;
+  } | null>(null);
+  const [batchLookupParams, setBatchLookupParams] =
+    useState<GetBatchRegistryLookupParams>({
+      batchType: '',
+      warehouseId: '',
+      locationId: '',
+      limit: 50,
+      offset: 0,
+    });
   const [submitting, setSubmitting] = useState(false);
-  
+
   const {
     createInventory,
-    loading: createLoading,
-    success,
+    loading: isCreating,
+    success: isCreateSuccess,
     error: createError,
+    message: createMessage,
+    warehouse,
+    location,
     resetState,
   } = useCreateWarehouseInventory();
   
@@ -45,114 +58,88 @@ const AddInventoryDialog: FC<AddInventoryDialogProps> = ({
     items: warehouseOptions,
     loading: warehouseLoading,
     error: warehouseError,
-    fetchDropdown: fetchWarehouseDropdown,
-  } = useWarehouseDropdown();
-  
+    fetchLookup: fetchWarehouseLookup,
+  } = useWarehouseLookup();
+
   const {
     items: batchOptions,
     loading: batchLoading,
     error: batchError,
-    hasMore,
-    pagination,
-    fetchDropdown: fetchBatchRegistryDropdown,
-    resetDropdown: restBatchRegistryDropdown,
-  } = useBatchRegistryDropdown();
+    meta: batchLookupPaginationMeta,
+    fetchLookup: fetchBatchRegistryLookup,
+    resetLookup: restBatchRegistryLookup,
+  } = useBatchRegistryLookup();
   
   useEffect(() => {
-    fetchWarehouseDropdown();
-  }, [fetchWarehouseDropdown]);
-  
+    if (open) {
+      fetchWarehouseLookup();
+    }
+  }, [open, fetchWarehouseLookup]);
+
   useEffect(() => {
-    fetchBatchRegistryDropdown({ ...batchDropdownParams, offset: 0 }); // initial load
+    if (open && selectedWarehouse) {
+      fetchBatchRegistryLookup({ ...batchLookupParams, offset: 0 });
+    }
+  }, [open, fetchBatchRegistryLookup, batchLookupParams]);
+
+  // Reset on close
+  useEffect(() => {
+    if (!open) {
+      restBatchRegistryLookup();
+    }
+  }, [open, restBatchRegistryLookup]);
+
+  // Also reset on unmounting (as fallback)
+  useEffect(() => {
     return () => {
-      restBatchRegistryDropdown();
+      restBatchRegistryLookup();
     };
-  }, [fetchBatchRegistryDropdown, restBatchRegistryDropdown, batchDropdownParams]);
-  
-  const transformWarehouseDropdownToOptions = (
-    items: WarehouseDropdownItem[]
+  }, [restBatchRegistryLookup]);
+
+  const transformWarehouseLookupToOptions = (
+    items: WarehouseLookupItem[]
   ): WarehouseOption[] => {
-    return items.map(item => ({
+    return items.map((item) => ({
       label: item.label,
       value: `${item.value}::${item.metadata.locationId}`,
     }));
   };
-  
-  const warehouseDropdownOptions = useMemo(() => {
-    return transformWarehouseDropdownToOptions(warehouseOptions);
+
+  const warehouseLookupOptions = useMemo(() => {
+    return transformWarehouseLookupToOptions(warehouseOptions);
   }, [warehouseOptions]);
   
-  const batchDropdownOptions = useMemo(() => {
-    const seenValues = new Set<string>();
-    
-    return batchOptions.reduce(
-      (acc: { value: string; label: string }[], item: BatchRegistryDropdownItem) => {
-        const optionValue = `${item.id}::${item.type}`;
-        
-        if (seenValues.has(optionValue)) {
-          console.warn(`Duplicate detected: ${optionValue}`);
-          return acc; // Skip duplicate
-        }
-        
-        seenValues.add(optionValue);
-        
-        if (item.type === 'product') {
-          const name = item.product?.name ?? 'Unknown Product';
-          const lot = item.product?.lotNumber ?? 'N/A';
-          const exp = formatDate(item.product?.expiryDate);
-          acc.push({
-            value: optionValue,
-            label: `${name} - ${lot} (Exp: ${exp})`,
-          });
-        } else if (item.type === 'packaging_material') {
-          const name = item.packagingMaterial?.snapshotName ?? 'Unknown Material';
-          const lot = item.packagingMaterial?.lotNumber ?? 'N/A';
-          const exp = formatDate(item.packagingMaterial?.expiryDate);
-          acc.push({
-            value: optionValue,
-            label: `${name} - ${lot} (Exp: ${exp})`,
-          });
-        } else {
-          acc.push({
-            value: optionValue,
-            label: 'Unknown Type',
-          });
-        }
-        
-        return acc;
-      },
-      [] // initial value
-    );
-  }, [batchOptions]);
-  
-  useEffect(() => {
-    if (success) {
-      onSuccess?.();
-      onClose();
-    }
-  }, [success, onSuccess, onClose]);
-  
+  const batchLookupOptions = useMemo(
+    () => mapBatchLookupToOptions(batchOptions, true),
+    [batchOptions]
+  );
+
   useEffect(() => {
     if (!open) {
+      setSelectedBatch(null);
       resetState();
       setSubmitting(false);
     }
   }, [open]);
-  
-  const handleFormSubmit = (formData: InventoryRecordInput | InventoryRecordInput[]) => {
+
+  const handleFormSubmit = (
+    formData: CreateInventoryRecordsRequest
+  ) => {
     try {
       setSubmitting(true);
-      
+
       const items = Array.isArray(formData) ? formData : [formData];
-      
+
       const transformedRecords = items.map((item) => {
-        const [warehouse_id = '', location_id = ''] = (item.warehouse_id ?? '').split('::');
+        const [warehouse_id = '', location_id = ''] = (
+          item.warehouse_id ?? ''
+        ).split('::');
         const [rawBatchId, rawBatchType] = (item.batch_id ?? '').split('::');
-        
+
         const batch_id = rawBatchId || '';
         const batch_type: ItemType =
           rawBatchType === 'product' ? 'product' : 'packaging_material';
-        
+
         return {
           warehouse_id,
           location_id,
@@ -163,7 +150,7 @@ const AddInventoryDialog: FC<AddInventoryDialogProps> = ({
           comments: item.comments ?? '',
         };
       });
-      
+
       createInventory({ records: transformedRecords });
     } catch (err) {
       console.error('Insert failed:', err);
@@ -172,29 +159,43 @@ const AddInventoryDialog: FC<AddInventoryDialogProps> = ({
     }
   };
   
+  const handleSuccessDialogClose = () => {
+    setSelectedBatch(null);
+    onClose();     // close the main dialog
+    resetState();
+    if (typeof onExited === 'function') {
+      onExited();
+    }
+  };
+
   return (
     <AddInventoryDialogWithModeToggle
       open={open}
       onClose={onClose}
       onSubmit={handleFormSubmit}
-      submitting={submitting || createLoading}
+      submitting={submitting || isCreating}
+      successOpen={isCreateSuccess}
+      successMessage={createMessage}
+      onSuccessClose={handleSuccessDialogClose}
+      warehouse={warehouse}
+      location={location}
       createError={createError}
-      batchDropdownOptions={batchDropdownOptions}
+      batchLookupOptions={batchLookupOptions}
       selectedBatch={selectedBatch}
       setSelectedBatch={setSelectedBatch}
-      batchDropdownParams={batchDropdownParams}
-      setBatchDropdownParams={setBatchDropdownParams}
-      fetchBatchDropdown={fetchBatchRegistryDropdown}
-      hasMore={hasMore}
-      pagination={pagination}
-      batchDropdownLoading={batchLoading}
-      batchDropdownError={batchError}
-      warehouseDropdownOptions={warehouseDropdownOptions}
+      batchLookupParams={batchLookupParams}
+      setBatchLookupParams={setBatchLookupParams}
+      fetchBatchLookup={fetchBatchRegistryLookup}
+      resetBatchLookup={restBatchRegistryLookup}
+      lookupPaginationMeta={batchLookupPaginationMeta}
+      batchLookupLoading={batchLoading}
+      batchLookupError={batchError}
+      warehouseLookupOptions={warehouseLookupOptions}
       selectedWarehouse={selectedWarehouse}
       setSelectedWarehouse={setSelectedWarehouse}
-      fetchWarehouseDropdown={fetchWarehouseDropdown}
-      warehouseDropdownLoading={warehouseLoading}
-      warehouseDropdownError={warehouseError}
+      fetchWarehouseLookup={fetchWarehouseLookup}
+      warehouseLookupLoading={warehouseLoading}
+      warehouseLookupError={warehouseError}
     />
   );
 };

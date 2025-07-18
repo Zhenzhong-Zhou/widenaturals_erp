@@ -9,7 +9,7 @@ import TablePagination from '@mui/material/TablePagination';
 import NoDataFound from '@components/common/NoDataFound';
 
 export interface MiniColumn<T> {
-  id: keyof T | 'select';
+  id: keyof T | 'select' | string;
   label: string;
   align?: 'left' | 'right' | 'center';
   format?: (value: any, row: T) => ReactNode;
@@ -31,21 +31,21 @@ interface MiniTableProps<T> {
 }
 
 const CustomMiniTable = <T extends Record<string, any>>({
-                                                          rowsPerPageId,
-                                                          columns,
-                                                          data,
-                                                          emptyMessage = 'No data found',
-                                                          dense = true,
-                                                          page,
-                                                          initialRowsPerPage = 10,
-                                                          totalRecords,
-                                                          onPageChange,
-                                                          onRowsPerPageChange,
-                                                        }: MiniTableProps<T>): ReturnType<FC> => {
+  rowsPerPageId,
+  columns,
+  data,
+  emptyMessage = 'No data found',
+  dense = true,
+  page,
+  initialRowsPerPage = 10,
+  totalRecords,
+  onPageChange,
+  onRowsPerPageChange,
+}: MiniTableProps<T>): ReturnType<FC> => {
   if (!data || data.length === 0) {
     return <NoDataFound message={emptyMessage} />;
   }
-  
+
   return (
     <TableContainer>
       <Table size={dense ? 'small' : 'medium'}>
@@ -58,7 +58,7 @@ const CustomMiniTable = <T extends Record<string, any>>({
             ))}
           </TableRow>
         </TableHead>
-        
+
         <TableBody>
           {data.map((row, rowIndex) => (
             <TableRow key={rowIndex}>
@@ -68,14 +68,14 @@ const CustomMiniTable = <T extends Record<string, any>>({
                     ? col.renderCell(row, rowIndex)
                     : col.format
                       ? col.format(row[col.id], row)
-                      : row[col.id] ?? '-'}
+                      : (row[col.id] ?? '-')}
                 </TableCell>
               ))}
             </TableRow>
           ))}
         </TableBody>
       </Table>
-      
+
       {typeof page === 'number' && typeof totalRecords === 'number' && (
         <TablePagination
           component="div"

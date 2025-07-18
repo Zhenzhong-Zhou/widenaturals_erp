@@ -16,25 +16,23 @@ import {
  *
  * @param initialParams - Initial pagination and filter parameters.
  */
-const usePricingList = (
-  initialParams: FetchPricingParams
-) => {
+const usePricingList = (initialParams: FetchPricingParams) => {
   const dispatch = useAppDispatch();
-  
+
   const data = useAppSelector(selectPricingListData);
   const pagination = useAppSelector(selectPricingListPagination);
   const isLoading = useAppSelector(selectPricingLoading);
   const error = useAppSelector(selectPricingError);
   const totalCount = useAppSelector(selectPricingTotalCount);
   const isEmpty = useAppSelector(selectIsPricingListEmpty);
-  
+
   const fetchData = useCallback(
     (params: FetchPricingParams = initialParams) => {
       dispatch(fetchPricingListDataThunk(params));
     },
     [dispatch, initialParams]
   );
-  
+
   return {
     data,
     pagination,

@@ -10,47 +10,46 @@ import { formatLabel } from '@utils/textUtils';
 import { formatDate } from '@utils/dateTimeUtils';
 import { useThemeContext } from '@context/ThemeContext';
 import useWarehouseInventoryItemSummary from '@hooks/useWarehouseInventoryItemSummary.ts';
-import type {
-  ProductWarehouseInventorySummary,
-} from '../state/warehouseInventoryTypes';
+import type { ProductWarehouseInventorySummary } from '../state/warehouseInventoryTypes';
 
 const SkuWarehouseInventorySummarySection = () => {
   const { theme } = useThemeContext();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const cardsPerPage = isSmallScreen ? 1 : 4;
-  
+
   const [page, setPage] = useState(1);
-  
-  const {
-    data,
-    loading,
-    error,
-    fetchWarehouseInventorySummary,
-  } = useWarehouseInventoryItemSummary({ itemType: 'product' });
-  
+
+  const { data, loading, error, fetchWarehouseInventorySummary } =
+    useWarehouseInventoryItemSummary({ itemType: 'product' });
+
   const highlightedItems = useMemo(() => {
-    return data.filter((item: ProductWarehouseInventorySummary) =>
-      ['none', 'low', 'critical'].includes(item.stockLevel) || // highlights low stock
-      ['expired', 'warning', 'critical'].includes(item.expirySeverity) || // highlights expiry risk
-      ['out_of_stock', 'unassigned', 'suspended'].includes(item.status) // extra conditions
+    return data.filter(
+      (item: ProductWarehouseInventorySummary) =>
+        ['none', 'low', 'critical'].includes(item.stockLevel) || // highlights low stock
+        ['expired', 'warning', 'critical'].includes(item.expirySeverity) || // highlights expiry risk
+        ['out_of_stock', 'unassigned', 'suspended'].includes(item.status) // extra conditions
     );
   }, [data]);
-  
+
   const paginatedItems = useMemo(() => {
     const start = (page - 1) * cardsPerPage;
     return highlightedItems.slice(start, start + cardsPerPage);
   }, [highlightedItems, page, cardsPerPage]);
-  
+
   const totalPages = Math.ceil(highlightedItems.length / cardsPerPage);
-  
+
   return (
     <Box sx={{ mt: 5 }}>
       <CustomTypography variant="h5" gutterBottom>
         Inventory Alerts
       </CustomTypography>
-      
+
       {loading ? (
-        <Loading size={32} variant="dotted" message="Loading inventory summary..." />
+        <Loading
+          size={32}
+          variant="dotted"
+          message="Loading inventory summary..."
+        />
       ) : error ? (
         <ErrorMessage message={error} />
       ) : paginatedItems.length === 0 ? (
@@ -59,29 +58,40 @@ const SkuWarehouseInventorySummarySection = () => {
         <>
           <Grid container spacing={2}>
             {paginatedItems.map((item: ProductWarehouseInventorySummary) => (
-              <Grid key={item.itemId} size={{xs: 12, sm: 6, md: 4, lg: 3}}>
+              <Grid key={item.itemId} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
                 <CustomCard
                   title={item.productName}
                   subtitle={`Status: ${formatLabel(item.displayStatus)}`}
                   ariaLabel={`Inventory summary card for ${item.productName}`}
                   sx={{ height: '100%' }}
                 >
-                  <CustomTypography>Available: {item.availableQuantity}</CustomTypography>
-                  <CustomTypography>Reserved: {item.reservedQuantity}</CustomTypography>
-                  <CustomTypography>Total Lots: {item.totalLots}</CustomTypography>
                   <CustomTypography>
-                    Nearest Expiry: {item.nearestExpiryDate ? formatDate(item.nearestExpiryDate) : 'N/A'}
+                    Available: {item.availableQuantity}
                   </CustomTypography>
-                  
+                  <CustomTypography>
+                    Reserved: {item.reservedQuantity}
+                  </CustomTypography>
+                  <CustomTypography>
+                    Total Lots: {item.totalLots}
+                  </CustomTypography>
+                  <CustomTypography>
+                    Nearest Expiry:{' '}
+                    {item.nearestExpiryDate
+                      ? formatDate(item.nearestExpiryDate)
+                      : 'N/A'}
+                  </CustomTypography>
+
                   {/* Stock-level feedback */}
                   {['none', 'low', 'critical'].includes(item.stockLevel) && (
                     <CustomTypography sx={{ color: 'warning.main' }}>
                       Stock Level: {formatLabel(item.stockLevel)}
                     </CustomTypography>
                   )}
-                  
+
                   {/* Expiry risk feedback */}
-                  {['expired', 'warning', 'critical'].includes(item.expirySeverity) && (
+                  {['expired', 'warning', 'critical'].includes(
+                    item.expirySeverity
+                  ) && (
                     <CustomTypography sx={{ color: 'error.main' }}>
                       Expiry Risk: {formatLabel(item.expirySeverity)}
                     </CustomTypography>
@@ -90,7 +100,7 @@ const SkuWarehouseInventorySummarySection = () => {
               </Grid>
             ))}
           </Grid>
-          
+
           <CustomPagination
             page={page}
             totalPages={totalPages}
@@ -100,9 +110,19 @@ const SkuWarehouseInventorySummarySection = () => {
           />
         </>
       )}
-      
+
       <Box sx={{ mt: 2, textAlign: 'center' }}>
-        <CustomButton onClick={() => fetchWarehouseInventorySummary({ page: 1, limit: 50 , itemType: 'product'})}>Refresh Summary</CustomButton>
+        <CustomButton
+          onClick={() =>
+            fetchWarehouseInventorySummary({
+              page: 1,
+              limit: 50,
+              itemType: 'product',
+            })
+          }
+        >
+          Refresh Summary
+        </CustomButton>
         <CustomButton
           size="small"
           variant="outlined"

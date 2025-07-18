@@ -1,9 +1,10 @@
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
-import { selectLocationInventorySummaryDetailData,
+import {
+  selectLocationInventorySummaryDetailData,
   selectLocationInventorySummaryDetailError,
   selectLocationInventorySummaryDetailLoading,
   selectLocationInventorySummaryDetailPagination,
-  fetchLocationInventorySummaryByItemIdThunk
+  fetchLocationInventorySummaryByItemIdThunk,
 } from '@features/locationInventory/state';
 import type { InventorySummaryDetailByItemIdParams } from '@features/inventoryShared/types/InventorySharedType';
 
@@ -13,21 +14,25 @@ import type { InventorySummaryDetailByItemIdParams } from '@features/inventorySh
  */
 const useLocationInventorySummary = () => {
   const dispatch = useAppDispatch();
-  
+
   const data = useAppSelector(selectLocationInventorySummaryDetailData);
-  const pagination = useAppSelector(selectLocationInventorySummaryDetailPagination);
+  const pagination = useAppSelector(
+    selectLocationInventorySummaryDetailPagination
+  );
   const loading = useAppSelector(selectLocationInventorySummaryDetailLoading);
   const error = useAppSelector(selectLocationInventorySummaryDetailError);
-  
+
   /**
    * Dispatches the thunk to fetch location inventory summary by item ID.
    *
    * @param {InventorySummaryDetailByItemIdParams} params - The item ID and optional pagination.
    */
-  const fetchLocationInventorySummaryDetail = (params: InventorySummaryDetailByItemIdParams) => {
+  const fetchLocationInventorySummaryDetail = (
+    params: InventorySummaryDetailByItemIdParams
+  ) => {
     dispatch(fetchLocationInventorySummaryByItemIdThunk(params));
   };
-  
+
   return {
     data,
     pagination,

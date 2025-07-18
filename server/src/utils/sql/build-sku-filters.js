@@ -26,12 +26,12 @@ const buildWhereClauseAndParams = (productStatusId, filters = {}) => {
     const conditions = [`p.status_id = $1`, `sku.status_id = $1`];
     const params = [productStatusId];
     let paramIndex = 2;
-    
+
     for (const [key, value] of Object.entries(filters)) {
       if (value !== undefined && value !== null && value !== '') {
         const field = fieldMap[key];
         if (!field) continue;
-        
+
         if (key === 'keyword') {
           conditions.push(`${field} ILIKE $${paramIndex}`);
           params.push(`%${value}%`);
@@ -39,11 +39,11 @@ const buildWhereClauseAndParams = (productStatusId, filters = {}) => {
           conditions.push(`${field} = $${paramIndex}`);
           params.push(value);
         }
-        
+
         paramIndex++;
       }
     }
-    
+
     return {
       whereClause: conditions.join(' AND '),
       params,

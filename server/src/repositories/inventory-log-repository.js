@@ -31,11 +31,11 @@ const AppError = require('../utils/AppError');
  *   checksum: string
  * }
  */
-const insertInventoryActivityLogs = async(logs, client, meta) => {
+const insertInventoryActivityLogs = async (logs, client, meta) => {
   if (!Array.isArray(logs) || logs.length === 0) return;
-  
+
   const now = new Date();
-  
+
   try {
     // === Inventory Activity Log (Active Table) ===
     const activityColumns = [
@@ -55,7 +55,7 @@ const insertInventoryActivityLogs = async(logs, client, meta) => {
       'source_ref_id',
       'action_timestamp',
     ];
-    
+
     const activityRows = logs.map((log) => [
       log.warehouse_inventory_id || null,
       log.location_inventory_id || null,
@@ -73,7 +73,7 @@ const insertInventoryActivityLogs = async(logs, client, meta) => {
       log.source_ref_id || null,
       log.recorded_at || now,
     ]);
-    
+
     await bulkInsert(
       'inventory_activity_log',
       activityColumns,
@@ -83,7 +83,7 @@ const insertInventoryActivityLogs = async(logs, client, meta) => {
       client,
       meta
     );
-    
+
     // === Inventory Activity Audit Log ===
     const auditColumns = [
       'warehouse_inventory_id',
@@ -102,7 +102,7 @@ const insertInventoryActivityLogs = async(logs, client, meta) => {
       'recorded_by',
       'inventory_scope',
     ];
-    
+
     const auditRows = logs.map((log) => [
       log.warehouse_inventory_id || null,
       log.location_inventory_id || null,
@@ -111,7 +111,7 @@ const insertInventoryActivityLogs = async(logs, client, meta) => {
       log.quantity_change,
       log.new_quantity,
       log.status_id,
-      log.status_effective_at || now,
+      log.status_effective_at,
       log.performed_by,
       log.comments || null,
       log.checksum,
@@ -120,19 +120,21 @@ const insertInventoryActivityLogs = async(logs, client, meta) => {
       log.recorded_by || log.performed_by,
       log.inventory_scope ?? 'warehouse',
     ]);
-    
+
     for (const log of logs) {
       if (
         (log.warehouse_inventory_id && log.location_inventory_id) ||
         (!log.warehouse_inventory_id && !log.location_inventory_id)
       ) {
-        throw AppError.validationError('Each log must have exactly one of warehouse_inventory_id or location_inventory_id');
+        throw AppError.validationError(
+          'Each log must have exactly one of warehouse_inventory_id or location_inventory_id'
+        );
       }
     }
-    
+
     const warehouseAuditRows = auditRows.filter((r) => r[0] !== null);
     const locationAuditRows = auditRows.filter((r) => r[1] !== null);
-    
+
     // Insert warehouse-scope logs
     if (warehouseAuditRows.length) {
       await bulkInsert(
@@ -164,10 +166,12 @@ const insertInventoryActivityLogs = async(logs, client, meta) => {
     logSystemException(error, 'Failed to insert inventory activity logs', {
       context: 'inventory-log-repository/insertInventoryActivityLogs',
     });
-    throw AppError.databaseError('Failed to insert inventory activity logs. See logs for details.');
+    throw AppError.databaseError(
+      'Failed to insert inventory activity logs. See logs for details.'
+    );
   }
-}
+};
 
 module.exports = {
-  insertInventoryActivityLogs
+  insertInventoryActivityLogs,
 };

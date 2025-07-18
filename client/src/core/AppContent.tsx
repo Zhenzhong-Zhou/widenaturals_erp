@@ -63,7 +63,7 @@ const AppContent: FC = () => {
           <Loading variant="linear" message="Initializing application..." />
         </Box>
       )}
-      
+
       {/* INP-friendly background token refresh */}
       {isTokenRefreshing && (
         <Box
@@ -83,7 +83,7 @@ const AppContent: FC = () => {
           <Loading message="Refreshing token..." variant="spinner" />
         </Box>
       )}
-      
+
       <AppRoutes />
     </Box>
   );

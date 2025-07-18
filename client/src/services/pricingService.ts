@@ -19,12 +19,12 @@ const fetchPaginatedPricingRecords = async (
 ): Promise<PaginatedPricingRecordsResponse> => {
   try {
     const { filters = {}, ...rest } = params;
-    
+
     const flatParams = {
       ...rest,
       ...filters,
     };
-    
+
     const response = await axiosInstance.get<PaginatedPricingRecordsResponse>(
       API_ENDPOINTS.PRICING_LIST,
       { params: flatParams }
@@ -49,13 +49,13 @@ const exportPricingRecords = async (
 ): Promise<Blob> => {
   try {
     const { filters = {}, ...rest } = params;
-    
+
     const queryParams = {
-      ...rest,         // page, limit, keyword, sortBy, etc.
-      ...filters,      // flatten filters
-      exportFormat,    // additional export option
+      ...rest, // page, limit, keyword, sortBy, etc.
+      ...filters, // flatten filters
+      exportFormat, // additional export option
     };
-    
+
     const response = await axiosInstance.get<Blob>(
       API_ENDPOINTS.PRICING_LIST_EXPORT,
       {
@@ -63,21 +63,21 @@ const exportPricingRecords = async (
         responseType: 'blob',
       }
     );
-    
+
     // Extract filename from Content-Disposition
     const disposition = response.headers['content-disposition'];
     let filename = 'pricing-export.csv';
-    
+
     if (disposition && disposition.includes('filename=')) {
       const match = disposition.match(/filename="?([^"]+)"?/);
       if (match && match[1]) {
         filename = match[1];
       }
     }
-    
+
     // Save the file
     saveAs(response.data, filename);
-    
+
     return response.data;
   } catch (error) {
     console.error('Failed to export pricing records', error);
@@ -100,7 +100,10 @@ const fetchPricingDetailsByType = async (
   limit = 10
 ): Promise<PaginatedPricingDetailsResponse> => {
   try {
-    const endpoint = API_ENDPOINTS.PRICING_DETAILS_BY_TYPE.replace(':id', pricingTypeId);
+    const endpoint = API_ENDPOINTS.PRICING_DETAILS_BY_TYPE.replace(
+      ':id',
+      pricingTypeId
+    );
     const response = await axiosInstance.get<PaginatedPricingDetailsResponse>(
       `${endpoint}?page=${page}&limit=${limit}`
     );

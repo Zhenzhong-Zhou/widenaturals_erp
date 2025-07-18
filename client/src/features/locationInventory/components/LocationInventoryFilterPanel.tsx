@@ -6,11 +6,16 @@ import BaseInventoryFilterPanel, {
 } from '@features/inventoryShared/components/BaseInventoryFilterPanel';
 
 const fields: InventoryFilterFieldConfig[] = [
-  { name: 'batchType', label: 'Batch Type', type: 'select', options: [
+  {
+    name: 'batchType',
+    label: 'Batch Type',
+    type: 'select',
+    options: [
       { label: 'All', value: '' },
       { label: 'Product', value: 'product' },
       { label: 'Packaging Material', value: 'packaging_material' },
-    ]},
+    ],
+  },
   { name: 'locationName', label: 'Location Name' },
   { name: 'productName', label: 'Product Name' },
   { name: 'sku', label: 'SKU' },
@@ -34,10 +39,11 @@ const LocationInventoryFilterPanel: FC<{
   showActionsWhenAll?: boolean;
   requireBatchTypeForActions?: boolean;
 }> = (props) => {
-  const { control, handleSubmit, reset, watch } = useForm<LocationInventoryFilters>({
-    defaultValues: { ...props.initialFilters, batchType: undefined },
-  });
-  
+  const { control, handleSubmit, reset, watch } =
+    useForm<LocationInventoryFilters>({
+      defaultValues: { ...props.initialFilters, batchType: undefined },
+    });
+
   return (
     <BaseInventoryFilterPanel
       {...props}

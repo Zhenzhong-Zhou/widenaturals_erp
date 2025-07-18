@@ -38,14 +38,17 @@ const createDatabaseAndInitialize = async () => {
     await handleExit(1);
     return;
   }
-  
+
   const adminPool = new Pool(adminConnectionConfig); // Temporary admin pool
-  
+
   try {
-    logSystemInfo(`Checking for database: '${targetDatabase}' in '${env}' environment`, {
-      context: 'create-db',
-    });
-    
+    logSystemInfo(
+      `Checking for database: '${targetDatabase}' in '${env}' environment`,
+      {
+        context: 'create-db',
+      }
+    );
+
     // Ensure admin connection is ready
     await retryDatabaseConnection(adminConnectionConfig, 5);
 
@@ -54,11 +57,14 @@ const createDatabaseAndInitialize = async () => {
       `SELECT 1 FROM pg_database WHERE datname = $1`,
       [targetDatabase]
     );
-    
+
     if (result.rowCount === 0) {
-      logSystemInfo(`Database '${targetDatabase}' does not exist. Creating...`, {
-        context: 'create-db',
-      });
+      logSystemInfo(
+        `Database '${targetDatabase}' does not exist. Creating...`,
+        {
+          context: 'create-db',
+        }
+      );
       await adminPool.query(`CREATE DATABASE "${targetDatabase}"`);
       logSystemInfo(`Database '${targetDatabase}' created successfully.`, {
         context: 'create-db',
@@ -68,15 +74,19 @@ const createDatabaseAndInitialize = async () => {
         context: 'create-db',
       });
     }
-    
+
     logSystemInfo('Running database migrations...', { context: 'create-db' });
     await knex.migrate.latest();
-    logSystemInfo('Database migrations completed successfully.', { context: 'create-db' });
-    
+    logSystemInfo('Database migrations completed successfully.', {
+      context: 'create-db',
+    });
+
     // Run seeds
     logSystemInfo('Running database seeds...', { context: 'create-db' });
     await knex.seed.run();
-    logSystemInfo('Database seeds executed successfully.', { context: 'create-db' });
+    logSystemInfo('Database seeds executed successfully.', {
+      context: 'create-db',
+    });
   } catch (error) {
     logSystemException(error, 'Database creation or initialization failed', {
       context: 'create-db',
@@ -88,7 +98,9 @@ const createDatabaseAndInitialize = async () => {
   } finally {
     await adminPool.end(); // Close the temporary admin pool
     await knex.destroy(); // Close Knex connection
-    logSystemInfo('Database setup process completed.', { context: 'create-db' });
+    logSystemInfo('Database setup process completed.', {
+      context: 'create-db',
+    });
   }
 };
 
@@ -99,9 +111,12 @@ module.exports = { createDatabaseAndInitialize };
 if (require.main === module) {
   createDatabaseAndInitialize()
     .then(() =>
-      logSystemInfo('Database creation and initialization completed successfully.', {
-        context: 'create-db',
-      })
+      logSystemInfo(
+        'Database creation and initialization completed successfully.',
+        {
+          context: 'create-db',
+        }
+      )
     )
     .catch(async (error) => {
       logSystemException(error, 'Failed to set up database', {

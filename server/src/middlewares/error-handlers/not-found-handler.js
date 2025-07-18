@@ -3,35 +3,28 @@
  * @description Middleware for handling 404 errors.
  */
 
-const normalizeError = require('../../utils/normalize-error');
+const AppError = require('../../utils/AppError');
 const { logError } = require('../../utils/logger-helper');
 
 /**
  * Not found handler middleware.
- * Logs 404 errors and sends a structured response.
+ *
+ * Express 404 handler for unmatched routes.
+ * Logs and returns a standardized not-found error respond.
  *
  * @param {Object} req - Express request object
  * @param {Object} res - Express response object
- * @param {Function} next - Express next middleware function
  */
-const notFoundHandler = (req, res, next) => {
-  const rawError = new Error(`Route not found: ${req.originalUrl}`);
-  
-  // Normalize the error to AppError format
-  const notFoundError = normalizeError(rawError, {
-    status: 404,
-    type: 'NotFoundError',
-    code: 'RESOURCE_NOT_FOUND',
-    isExpected: true,
-  });
+const notFoundHandler = (req, res) => {
+  const error = AppError.notFoundError(`Route not found: ${req.originalUrl}`);
 
   // Log the 404 error with relevant metadata
-  logError(notFoundError, req, {
+  logError(error, req, {
     context: 'not-found-handler',
   });
 
   // Send structured error response
-  res.status(notFoundError.status).json(notFoundError.toJSON());
+  res.status(error.status).json(error.toJSON());
 };
 
 module.exports = notFoundHandler;

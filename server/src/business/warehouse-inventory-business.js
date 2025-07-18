@@ -9,7 +9,6 @@ const { checkPermissions } = require('../services/role-permission-service');
  */
 const canViewWarehouseInventorySummary = async (user) => {
   return await checkPermissions(user, [
-    'root_access',
     'view_inventory_summary',
     'view_warehouse_inventory_summary',
     'view_warehouse_inventory',

@@ -21,17 +21,17 @@ interface CustomCardProps {
 }
 
 const CustomCard: FC<CustomCardProps> = ({
-                                           title,
-                                           subtitle,
-                                           children,
-                                           imageUrl,
-                                           imageAlt,
-                                           actions,
-                                           sx,
-                                           contentSx,
-                                           ariaLabel,
-                                           role = 'region',
-                                         }) => {
+  title,
+  subtitle,
+  children,
+  imageUrl,
+  imageAlt,
+  actions,
+  sx,
+  contentSx,
+  ariaLabel,
+  role = 'region',
+}) => {
   return (
     <Card
       aria-label={ariaLabel}
@@ -61,10 +61,10 @@ const CustomCard: FC<CustomCardProps> = ({
           }}
         />
       )}
-      
+
       <CardContent sx={{ ...contentSx }}>
-        {title && (
-          typeof title === 'string' ? (
+        {title &&
+          (typeof title === 'string' ? (
             <CustomTypography
               variant="h5"
               align="center"
@@ -81,9 +81,8 @@ const CustomCard: FC<CustomCardProps> = ({
             </CustomTypography>
           ) : (
             title // JSX already provided, like <Typography variant="h6">...</Typography>
-          )
-        )}
-        
+          ))}
+
         {subtitle && (
           <CustomTypography
             variant="body1"
@@ -97,10 +96,10 @@ const CustomCard: FC<CustomCardProps> = ({
             {subtitle}
           </CustomTypography>
         )}
-        
+
         {children && <Box mt={2}>{children}</Box>}
       </CardContent>
-      
+
       {actions ? (
         <CardActions sx={{ justifyContent: 'center' }}>{actions}</CardActions>
       ) : (

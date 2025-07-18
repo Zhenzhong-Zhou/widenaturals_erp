@@ -6,7 +6,6 @@ import CustomTypography from '@components/common/CustomTypography';
 const ManagerDashboardPage: FC<DashboardPageProps> = ({
   fullName = 'Unknown User',
 }) => {
-  
   return (
     <DashboardLayout fullName={fullName}>
       <CustomTypography variant="body1" sx={{ mb: 2 }}>

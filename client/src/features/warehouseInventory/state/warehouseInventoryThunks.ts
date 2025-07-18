@@ -9,8 +9,9 @@ import type {
   WarehouseInventorySummaryDetailsByItemIdResponse,
 } from '@features/warehouseInventory/state/warehouseInventoryTypes';
 import type {
+  AdjustInventoryRequestBody,
   CreateInventoryRecordsRequest,
-  CreateInventoryRecordsResponse,
+  InventoryRecordsResponse,
   InventorySummaryDetailByItemIdParams,
 } from '@features/inventoryShared/types/InventorySharedType';
 
@@ -28,7 +29,9 @@ export const fetchWarehouseInventoryItemSummaryThunk = createAsyncThunk<
   'warehouseInventory/fetchWarehouseInventorySummary',
   async (params, thunkAPI) => {
     try {
-      return await warehouseInventoryService.fetchWarehouseInventoryItemSummary(params);
+      return await warehouseInventoryService.fetchWarehouseInventoryItemSummary(
+        params
+      );
     } catch (error) {
       return thunkAPI.rejectWithValue(error);
     }
@@ -43,15 +46,19 @@ export const fetchWarehouseInventoryItemSummaryThunk = createAsyncThunk<
  */
 export const fetchWarehouseInventorySummaryByItemIdThunk = createAsyncThunk<
   WarehouseInventorySummaryDetailsByItemIdResponse, // Return type
-  InventorySummaryDetailByItemIdParams,             // Arg type
-  { rejectValue: string }                           // Optional: custom error type
+  InventorySummaryDetailByItemIdParams, // Arg type
+  { rejectValue: string } // Optional: custom error type
 >(
   'warehouseInventory/fetchSummaryByItemId',
   async (params, { rejectWithValue }) => {
     try {
-      return await warehouseInventoryService.fetchWarehouseInventorySummaryDetailsByItemId(params);
+      return await warehouseInventoryService.fetchWarehouseInventorySummaryDetailsByItemId(
+        params
+      );
     } catch (error) {
-      return rejectWithValue('Failed to fetch warehouse inventory summary details.');
+      return rejectWithValue(
+        'Failed to fetch warehouse inventory summary details.'
+      );
     }
   }
 );
@@ -84,7 +91,9 @@ export const fetchWarehouseInventoryRecordsThunk = createAsyncThunk<
       );
     } catch (error: any) {
       console.error('Thunk error fetching warehouse inventory:', error);
-      return rejectWithValue(error.message || 'Failed to fetch warehouse inventory records.');
+      return rejectWithValue(
+        error.message || 'Failed to fetch warehouse inventory records.'
+      );
     }
   }
 );
@@ -100,17 +109,49 @@ export const fetchWarehouseInventoryRecordsThunk = createAsyncThunk<
  * @returns A promise resolving to the API response or a rejection message.
  */
 export const createWarehouseInventoryRecordsThunk = createAsyncThunk<
-  CreateInventoryRecordsResponse, // Return type
-  CreateInventoryRecordsRequest,  // Payload type
-  { rejectValue: string }         // Rejection type
+  InventoryRecordsResponse, // Return type
+  CreateInventoryRecordsRequest, // Payload type
+  { rejectValue: string } // Rejection type
 >(
   'warehouseInventory/createWarehouseInventoryRecords',
   async (payload, { rejectWithValue }) => {
     try {
-      return await warehouseInventoryService.createWarehouseInventoryRecords(payload);
+      return await warehouseInventoryService.createWarehouseInventoryRecords(
+        payload
+      );
     } catch (error: any) {
       console.error('Error creating warehouse inventory records:', error);
-      return rejectWithValue(error?.message ?? 'Failed to create inventory records');
+      return rejectWithValue(
+        error?.message ?? 'Failed to create inventory records'
+      );
     }
   }
 );
+
+/**
+ * Thunk to adjust warehouse and location inventory quantities.
+ *
+ * This thunk:
+ * - Sends an adjustment payload to the backend service
+ * - Applies updates to warehouse and/or location inventory records
+ * - Returns updated inventory records enriched with product or material info
+ * - Handles and propagates errors using `rejectWithValue`
+ *
+ * Usage:
+ * dispatch(adjustWarehouseInventoryQuantitiesThunk([{ warehouse_id, batch_id, quantity, ... }]))
+ *
+ * @param {AdjustInventoryRequestBody} data - Adjustment payload containing batch and quantity change details
+ * @returns {Promise<InventoryRecordsResponse>} Fulfilled with updated inventory records or rejected with an error message
+ */
+export const adjustWarehouseInventoryQuantitiesThunk = createAsyncThunk<
+  InventoryRecordsResponse,
+  AdjustInventoryRequestBody
+>('warehouseInventory/adjustQuantities', async (data, { rejectWithValue }) => {
+  try {
+    return await warehouseInventoryService.adjustWarehouseInventoryQuantities(
+      data
+    );
+  } catch (error: any) {
+    return rejectWithValue(error?.response?.data || error.message);
+  }
+});

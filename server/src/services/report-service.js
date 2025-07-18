@@ -1,333 +1,170 @@
 const {
-  getAdjustmentReport,
+  getUserInventoryAccessScope, rejectEmptyFiltersForScopedAccess,
+} = require('../business/reports/inventory-activity-report-business');
+const {
   getInventoryActivityLogs,
-  getInventoryHistory,
-} = require('../repositories/report-repository');
-const { generateEmptyExport, exportData } = require('../utils/export-utils');
+  getLatestFilteredInventoryActivityLogs,
+  getSkuIdsByProductIds,
+  getBatchIdsBySourceIds
+} = require('../repositories/reports/inventory-activity-report');
+const { transformInventoryActivityLogs, transformFlatInventoryActivityLogs } = require('../transformers/reports/inventory-activity-report-transformer');
+const { logSystemException } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
-const { logError, logWarn } = require('../utils/logger-helper');
-const { validateChecksum } = require('../utils/crypto-utils');
+const { enforceAllowedFilters } = require('../utils/inventory-log-utils');
+const { PERMISSION_FILTERS_MAP } = require('../utils/inventory-permission-mapping');
 
 /**
- * Fetch adjustment report with optional export support.
- * @param {Object} params - Request parameters.
- * @param {string} params.reportType - 'daily', 'weekly', 'monthly', 'yearly', or 'custom'.
- * @param {string} params.userTimezone - User's timezone.
- * @param {string} [params.startDate] - Custom start date (optional).
- * @param {string} [params.endDate] - Custom end date (optional).
- * @param {string} [params.warehouseId] - Warehouse ID (optional).
- * @param {string} [params.warehouseInventoryLotId] - The ID of the specific warehouse inventory lot (optional).
- * @param {number} [params.page] - Page number for pagination (optional).
- * @param {number} [params.limit] - Items per page (optional).
- * @param {string} [params.sortBy] - Sort column (optional).
- * @param {string} [params.sortOrder] - Sorting order (ASC/DESC) (optional).
- * @param {string} [params.exportFormat] - 'csv', 'pdf', or 'txt' for export (optional).
- * @returns {Promise<Object|Buffer>} - JSON response for paginated data or file buffer for export.
+ * Determines the permission key based on the user's inventory access scope.
+ *
+ * The returned key corresponds to the user's highest access level,
+ * in order of priority from full access down to base-level access.
+ *
+ * @param {Object} scope - The user's access scope object.
+ * @param {boolean} scope.hasFullAccess - Full system-wide access.
+ * @param {boolean} scope.hasProductAccess - Access restricted to specific products.
+ * @param {boolean} scope.hasSkuAccess - Access restricted to specific SKUs.
+ * @param {boolean} scope.hasPackingMaterialAccess - Access to packing material data.
+ * @param {boolean} scope.hasBatchAccess - Access restricted to inventory batches.
+ * @param {boolean} scope.hasWarehouseAccess - Access to specific warehouses.
+ * @param {boolean} scope.hasLocationAccess - Access to specific locations.
+ * @returns {string} The permission key (e.g., 'full', 'product', 'sku', etc.)
  */
-const fetchAdjustmentReport = async ({
-  reportType = null,
-  userTimezone = 'UTC',
-  startDate = null,
-  endDate = null,
-  warehouseId = null,
-  warehouseInventoryLotId = null,
-  page = 1,
-  limit = 50,
-  sortBy = 'local_adjustment_date',
-  sortOrder = 'DESC',
-  exportFormat = null, // Export format: 'csv', 'pdf', 'txt'
-}) => {
-  try {
-    const isExport = !!exportFormat; // If exportFormat is provided, fetch all data
+const determinePermissionKey = (scope) => {
+  if (scope.hasFullAccess) return 'full';
+  if (scope.hasProductAccess) return 'product';
+  if (scope.hasSkuAccess) return 'sku';
+  if (scope.hasPackingMaterialAccess) return 'packing_material';
+  if (scope.hasBatchAccess) return 'batch';
+  if (scope.hasWarehouseAccess) return 'warehouse';
+  if (scope.hasLocationAccess) return 'location';
+  return 'base';
+};
 
-    // Fetch report from repository (paginated or full)
-    const reportData = await getAdjustmentReport({
-      reportType,
-      userTimezone,
-      startDate,
-      endDate,
-      warehouseId,
-      warehouseInventoryLotId,
+/**
+ * Service: Fetch and transform inventory activity logs for reporting.
+ *
+ * Core Responsibilities:
+ * - Determine the user's inventory access scope (e.g., full, product, SKU, warehouse, etc.)
+ * - Enforce filter-level permission validation based on scope
+ * - Reject requests with missing or unauthorized filters for scoped users
+ * - Support optimized handling for base-level access (limited filter and record constraints)
+ * - Retrieve and transform log data from the repository based on valid filter input
+ * - Support pagination and sorting for large log sets
+ *
+ * @param {Object} params - Parameters for the report.
+ * @param {Object} params.filters - Filtering options (e.g., warehouseIds, skuIds, batchIds, date range).
+ * @param {number} [params.page=1] - Page number for pagination.
+ * @param {number} [params.limit=20] - Number of records per page.
+ * @param {string} [params.sortBy='action_timestamp'] - Column to sort by (validated against sort map).
+ * @param {string} [params.sortOrder='DESC'] - Sort order direction ('ASC' or 'DESC').
+ * @param {Object} user - Authenticated user object.
+ *
+ * @returns {Promise<Object>} Resolves with transformed inventory activity logs and pagination metadata.
+ *
+ * @throws {AppError.AuthorizationError} If permission is denied or filters are invalid.
+ * @throws {AppError.ServiceError} If the logs could not be retrieved due to internal issues.
+ */
+const fetchInventoryActivityLogsService = async (
+  {
+    filters = {},
+    page = 1,
+    limit = 20,
+    sortBy = 'action_timestamp',
+    sortOrder = 'DESC',
+  } = {}, user
+) => {
+  try {
+    const scope = await getUserInventoryAccessScope(user);
+    const permissionKey = determinePermissionKey(scope);
+    const allowedKeys = PERMISSION_FILTERS_MAP[permissionKey];
+    
+    // Full access: allow everything
+    if (allowedKeys.includes('*')) {
+      const result = await getInventoryActivityLogs({ filters, page, limit });
+      return transformInventoryActivityLogs(result);
+    }
+    
+    // Base access
+    if (permissionKey === 'base') {
+      if (limit > 30) {
+        throw AppError.authorizationError('You do not have permission to request more than 30 records.');
+      }
+      
+      const { batchIds = [] } = filters;
+      enforceAllowedFilters(filters, allowedKeys);
+      
+      if (batchIds.length > 0 && !scope.hasBatchAccess) {
+        throw AppError.authorizationError('You do not have permission to view activity logs for this batch.');
+      }
+      
+      const result = await getLatestFilteredInventoryActivityLogs({
+        filters: batchIds.length > 0 ? { batchIds } : {},
+        limit,
+      });
+      return transformFlatInventoryActivityLogs(result);
+    }
+    
+    // Scoped access: enforce filters
+    rejectEmptyFiltersForScopedAccess(scope, filters, allowedKeys);
+    
+    const { productIds = [], skuIds = [], batchIds = [], packingMaterialIds = [], warehouseIds = [], locationIds = [] } = filters;
+    
+    // Enforce warehouse/location dependency
+    const dependentFilters = productIds.length + skuIds.length + batchIds.length + packingMaterialIds.length > 0;
+    
+    if (scope.hasWarehouseAccess && !scope.hasFullAccess && dependentFilters && warehouseIds.length === 0) {
+      throw AppError.authorizationError('You must specify warehouseIds when using product, SKU, batch, or packing material filters.');
+    }
+    
+    if (scope.hasLocationAccess && !scope.hasFullAccess && dependentFilters && locationIds.length === 0) {
+      throw AppError.authorizationError('You must specify locationIds when using product, SKU, batch, or packing material filters.');
+    }
+    
+    // Product-scoped validation
+    if (scope.hasProductAccess && !scope.hasFullAccess && !scope.hasSkuAccess && !scope.hasBatchAccess &&
+      !scope.hasWarehouseAccess && !scope.hasLocationAccess && !scope.hasPackingMaterialAccess) {
+      const allowedSkuIds = await getSkuIdsByProductIds(productIds);
+      const allowedBatchIds = await getBatchIdsBySourceIds(productIds);
+      
+      if (skuIds.some(id => !allowedSkuIds.includes(id)) ||
+        batchIds.some(id => !allowedBatchIds.includes(id))) {
+        throw AppError.authorizationError('Some SKUs or batches are outside your product access.');
+      }
+    }
+    
+    // Packing material-scoped validation
+    if (scope.hasPackingMaterialAccess && !scope.hasFullAccess && !scope.hasProductAccess &&
+      !scope.hasSkuAccess && !scope.hasBatchAccess && !scope.hasWarehouseAccess && !scope.hasLocationAccess) {
+      const allowedBatchIds = await getBatchIdsBySourceIds(packingMaterialIds);
+      
+      if (batchIds.some(id => !allowedBatchIds.includes(id))) {
+        throw AppError.authorizationError('Some batches are outside your packing material access.');
+      }
+    }
+    
+    const result = await getInventoryActivityLogs({
+      filters,
       page,
       limit,
       sortBy,
       sortOrder,
-      isExport,
     });
-
-    const { data, pagination } = reportData;
-
-    // Handle No Data Case
-    if (!data || data.length === 0) {
-      logWarn('No adjustment records found for the given criteria.');
-
-      if (!isExport) {
-        return {
-          success: true,
-          data: [],
-          pagination: { page: 0, limit: 0, totalRecords: 0, totalPages: 0 },
-          message: 'No adjustment records found for the given criteria.',
-        };
-      }
-
-      return generateEmptyExport(
-        exportFormat,
-        'adjustment_report',
-        false,
-        true
-      );
-    }
-
-    if (!isExport) {
-      // Return JSON response for paginated data
-      return {
-        success: true,
-        data,
-        pagination,
-      };
-    }
-
-    // Handle Export (Regular Data)
-    return await exportData({
-      data,
-      exportFormat,
-      filename: 'adjustment_report',
-      title: 'Adjustment Report',
-      landscape: true,
-      summary: false,
-    });
+    return transformInventoryActivityLogs(result);
   } catch (error) {
-    logError('Failed to fetch adjustment report', error);
-    throw AppError.serviceError('Failed to fetch adjustment report', error);
-  }
-};
-
-/**
- * Fetches inventory logs with business logic validation.
- *
- * @param {Object} params - Query parameters for filtering and pagination.
- * @param {string|null} params.inventoryId - Filter by inventory ID.
- * @param {string|null} params.warehouseId - Filter by warehouse ID.
- * @param {string|null} params.lotId - Filter by lot ID.
- * @param {string|null} params.orderId - Filter by order ID.
- * @param {string|null} params.actionTypeId - Filter by inventory action type ID.
- * @param {string|null} params.statusId - Filter by inventory status ID.
- * @param {string|null} params.userId - Filter by user ID.
- * @param {string|null} params.startDate - Start date for filtering by timestamp.
- * @param {string|null} params.endDate - End date for filtering by timestamp.
- * @param {string} params.reportType - 'daily', 'weekly', 'monthly', 'yearly', or 'custom'.
- * @param {string} [params.timezone='UTC'] - Frontend-provided time zone for displaying timestamps.
- * @param {number} [params.page=1] - Current page number for pagination.
- * @param {number} [params.limit=50] - Number of records per page.
- * @param {string} [params.sortBy='timestamp'] - Column to sort by.
- * @param {string} [params.sortOrder='DESC'] - Sorting order ('ASC' or 'DESC').
- * @returns {Promise<Object>} - Returns paginated results and total count.
- */
-const fetchInventoryActivityLogs = async ({
-  inventoryId,
-  warehouseId,
-  lotId,
-  orderId,
-  actionTypeId,
-  statusId,
-  userId,
-  startDate,
-  endDate,
-  reportType,
-  timezone = 'UTC',
-  page = 1,
-  limit = 50,
-  sortBy = 'timestamp',
-  sortOrder = 'DESC',
-  exportFormat = null,
-}) => {
-  // Ensure `page` and `limit` are valid numbers
-  const pageNumber = Math.max(Number(page), 1);
-  const limitNumber = Math.min(Math.max(Number(limit), 1), 100); // Limit max 100 records per page
-
-  const isExport = !!exportFormat; // If exportFormat is provided, fetch all data
-
-  // Fetch inventory logs from repository
-  const logs = await getInventoryActivityLogs({
-    inventoryId,
-    warehouseId,
-    lotId,
-    orderId,
-    actionTypeId,
-    statusId,
-    userId,
-    startDate,
-    endDate,
-    reportType,
-    timezone,
-    page: pageNumber,
-    limit: limitNumber,
-    sortBy,
-    sortOrder,
-    isExport,
-  });
-
-  const { data, pagination } = logs;
-
-  // Handle No Data Case
-  if (!logs || data.length === 0) {
-    logWarn('No inventory logs found for the given filters.');
-
-    if (isExport) {
-      return generateEmptyExport(
-        exportFormat,
-        'empty_inventory_activity_logs',
-        false,
-        true
-      );
-    }
-
-    return {
-      success: true,
-      data: [],
-      pagination: { page: 0, limit: 0, totalRecords: 0, totalPages: 0 },
-      message: 'No adjustment records found for the given criteria.',
-    };
-  }
-
-  // Export Handling
-  if (isExport) {
-    return await exportData({
-      data,
-      exportFormat,
-      filename: 'inventory_logs',
-      title: 'Inventory Logs',
-      landscape: true,
-      summary: false,
+    if (error?.type === 'AuthorizationError') throw error;
+    
+    logSystemException(error, 'Failed to fetch inventory activity logs', {
+      context: 'report-service/fetchInventoryActivityLogsService',
+      userId: user?.id,
+      filters,
+      pagination: { page, limit },
+      sort: { sortBy, sortOrder },
     });
-  }
-
-  // Return paginated data
-  return {
-    data,
-    pagination: isExport
-      ? null
-      : {
-          page: pageNumber,
-          limit: limitNumber,
-          totalRecords: pagination.totalRecords,
-          totalPages: pagination.totalPages,
-        },
-  };
-};
-
-/**
- * Fetch inventory history with checksum validation.
- * Ensures data integrity and logs violations if found.
- *
- * @param {Object} params - Query parameters
- * @returns {Promise<Object>} - Validated inventory history records with pagination
- */
-const fetchInventoryHistoryWithValidation = async ({
-  inventoryId,
-  actionTypeId,
-  statusId,
-  userId,
-  startDate,
-  endDate,
-  reportType,
-  timezone = 'UTC',
-  sortBy = 'timestamp',
-  sortOrder = 'DESC',
-  page = 1,
-  limit = 50,
-  exportFormat = null,
-}) => {
-  try {
-    // Ensure `page` and `limit` are valid numbers
-    const pageNumber = Math.max(Number(page) || 1, 1);
-    const limitNumber = Math.min(Math.max(Number(limit) || 1, 1), 100); // Limit max 100 records per page
-
-    // Determine if export mode is enabled
-    const isExport = Boolean(exportFormat);
-
-    // Fetch records from repository
-    const { data, pagination } = await getInventoryHistory({
-      inventoryId,
-      actionTypeId,
-      statusId,
-      userId,
-      startDate,
-      endDate,
-      reportType,
-      timezone,
-      sortBy,
-      sortOrder,
-      page: pageNumber,
-      limit: limitNumber,
-      isExport,
-    });
-
-    // Handle No Data Case
-    if (!data || data.length === 0) {
-      logWarn('No inventory history found for the given filters.');
-
-      if (isExport) {
-        return generateEmptyExport(
-          exportFormat,
-          'empty_inventory_history',
-          false,
-          true
-        );
-      }
-
-      return {
-        success: true,
-        data: [],
-        pagination: { page: 0, limit: 0, totalRecords: 0, totalPages: 0 },
-        message: 'No inventory history records found for the given criteria.',
-      };
-    }
-
-    // Validate checksum for each record and log mismatches
-    for (const record of data) {
-      if (!validateChecksum(record)) {
-        logError(
-          `⚠ Data Integrity Violation: Inventory log ${record.id} checksum mismatch!`
-        );
-        // Optional: Store this in an audit log
-      }
-    }
-
-    // Transform Data: Remove `checksum`**
-    const transformedData = data.map(({ checksum, ...record }) => record);
-
-    // Export Handling
-    if (isExport) {
-      return await exportData({
-        data: transformedData,
-        exportFormat,
-        filename: 'inventory_history',
-        title: 'Inventory History',
-        landscape: true,
-        summary: false,
-      });
-    }
-
-    // Return paginated data
-    return {
-      success: true,
-      data: transformedData,
-      pagination: {
-        page: pageNumber,
-        limit: limitNumber,
-        totalRecords: pagination?.totalRecords || 0,
-        totalPages: pagination?.totalPages || 0,
-      },
-    };
-  } catch (error) {
-    logError('Error fetching inventory history:', error);
-    throw AppError.serviceError('Failed to fetch inventory history', error);
+    
+    throw AppError.serviceError('Unable to retrieve inventory activity log report.');
   }
 };
 
 module.exports = {
-  fetchAdjustmentReport,
-  fetchInventoryActivityLogs,
-  fetchInventoryHistoryWithValidation,
+  fetchInventoryActivityLogsService,
 };

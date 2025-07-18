@@ -7,12 +7,11 @@ const {
   logSystemInfo,
   logSystemException,
   logSystemFatal,
-  logSystemWarn
+  logSystemWarn,
 } = require('./system-logger');
 
 let server; // Server reference
 let cleanupCalled = false;
-
 
 /**
  * Sets the server reference to be closed during shutdown.
@@ -28,13 +27,11 @@ const setServer = (serverInstance) => {
  */
 const cleanupLogic = async () => {
   if (cleanupCalled) {
-    logSystemWarn(
-      'Cleanup already in progress. Skipping redundant call.'
-    );
+    logSystemWarn('Cleanup already in progress. Skipping redundant call.');
     return;
   }
   cleanupCalled = true;
-  
+
   logSystemInfo('Starting cleanup logic...');
 
   try {
@@ -58,7 +55,7 @@ const cleanupLogic = async () => {
     // Remove signal handlers
     process.removeAllListeners('SIGINT');
     process.removeAllListeners('SIGTERM');
-    
+
     logSystemInfo('Database pool closed.');
   } catch (error) {
     logSystemException(error, 'Error during cleanup logic', {
@@ -78,7 +75,7 @@ const handleExit = async (code = 0) => {
 
     // Set a timeout for the cleanup process
     const timeout = setTimeout(() => {
-     logSystemFatal('Cleanup exceeded timeout. Forcing exit.', {
+      logSystemFatal('Cleanup exceeded timeout. Forcing exit.', {
         context: 'on-exit',
       });
       process.exit(code);
@@ -86,7 +83,7 @@ const handleExit = async (code = 0) => {
 
     await cleanupLogic();
     clearTimeout(timeout);
-    
+
     logSystemInfo('Cleanup completed successfully.');
   } catch (error) {
     logSystemException(error, 'Unexpected error during exit', {

@@ -5,6 +5,8 @@ const { fetchDynamicValue } = require('../03_utils');
  * @returns {Promise<void>}
  */
 exports.seed = async function (knex) {
+  console.log('Seeding locations...');
+  
   const activeStatusId = await fetchDynamicValue(
     knex,
     'status',
@@ -12,6 +14,7 @@ exports.seed = async function (knex) {
     'active',
     'id'
   );
+  
   const discontinuedStatusId = await fetchDynamicValue(
     knex,
     'status',
@@ -19,6 +22,7 @@ exports.seed = async function (knex) {
     'discontinued',
     'id'
   );
+  
   const systemActionId = await fetchDynamicValue(
     knex,
     'users',
@@ -39,7 +43,7 @@ exports.seed = async function (knex) {
       city: 'Vancouver',
       province_or_state: 'BC',
       postal_code: 'V6E 4H1',
-      country: 'Canada'
+      country: 'Canada',
     },
     {
       name: 'Head Office Canada',
@@ -49,7 +53,7 @@ exports.seed = async function (knex) {
       city: 'Vancouver',
       province_or_state: 'BC',
       postal_code: 'V6E 4H1',
-      country: 'Canada'
+      country: 'Canada',
     },
     {
       name: 'Richmond Warehouse',
@@ -59,7 +63,7 @@ exports.seed = async function (knex) {
       city: 'Richmond',
       province_or_state: 'BC',
       postal_code: 'V6V 0B7',
-      country: 'Canada'
+      country: 'Canada',
     },
     {
       name: 'Viktor Temporarily Warehouse',
@@ -69,7 +73,7 @@ exports.seed = async function (knex) {
       city: 'Richmond',
       province_or_state: 'BC',
       postal_code: 'V6V 3B7',
-      country: 'Canada'
+      country: 'Canada',
     },
     {
       name: 'Novastown Health - Burnaby Facility',
@@ -78,7 +82,7 @@ exports.seed = async function (knex) {
       city: 'Burnaby',
       province_or_state: 'BC',
       postal_code: 'V5J 5H4',
-      country: 'Canada'
+      country: 'Canada',
     },
     {
       name: 'Canadian Phytopharmaceuticals - Richmond Facility',
@@ -87,7 +91,7 @@ exports.seed = async function (knex) {
       city: 'Richmond',
       province_or_state: 'BC',
       postal_code: 'V6W 1K8',
-      country: 'Canada'
+      country: 'Canada',
     },
     {
       name: 'Phyto-Matrix Natural Technologies - Kelowna Facility',
@@ -111,8 +115,49 @@ exports.seed = async function (knex) {
       country: 'UNSPECIFIED',
       is_archived: false,
       status_id: activeStatusId,
-    }
+    },
+    {
+      name: 'Delta Reserve Warehouse',
+      typeCode: 'WAREHOUSE',
+      address_line1: '123 Delta St',
+      address_line2: 'Bldg A',
+      city: 'Delta',
+      province_or_state: 'BC',
+      postal_code: 'V4K 3N2',
+      country: 'Canada',
+    },
+    {
+      name: 'Cold Storage Area',
+      typeCode: 'WAREHOUSE',
+      address_line1: '999 Icebox Ln',
+      address_line2: 'Suite C',
+      city: 'Vancouver',
+      province_or_state: 'BC',
+      postal_code: 'V5K 1A1',
+      country: 'Canada',
+    },
+    {
+      name: 'Quarantine Area',
+      typeCode: 'WAREHOUSE',
+      address_line1: '888 Isolate Rd',
+      city: 'Burnaby',
+      province_or_state: 'BC',
+      postal_code: 'V5G 3H9',
+      country: 'Canada',
+    },
+    {
+      name: '3PL Partner Warehouse',
+      typeCode: 'WAREHOUSE',
+      address_line1: '777 Logistics Blvd',
+      address_line2: 'Dock 4',
+      city: 'Surrey',
+      province_or_state: 'BC',
+      postal_code: 'V3Z 0L5',
+      country: 'Canada',
+    },
   ];
+  
+  let insertedCount = 0;
   
   for (const loc of locations) {
     const location_type_id = getTypeId(loc.typeCode);
@@ -121,28 +166,38 @@ exports.seed = async function (knex) {
       continue;
     }
     
-    await knex('locations')
-      .insert({
-        id: knex.raw('uuid_generate_v4()'),
-        name: loc.name,
-        location_type_id,
-        address_line1: loc.address_line1,
-        address_line2: loc.address_line2 || null,
-        city: loc.city,
-        province_or_state: loc.province_or_state,
-        postal_code: loc.postal_code,
-        country: loc.country,
-        is_archived: loc.is_archived ?? false,
-        status_id: loc.status_id || activeStatusId,
-        status_date: loc.status_date || knex.fn.now(),
-        created_at: knex.fn.now(),
-        updated_at: null,
-        created_by: systemActionId,
-        updated_by: null,
-      })
-      .onConflict(['name', 'location_type_id'])
-      .ignore();
+    const exists = await knex('locations')
+      .where({ name: loc.name, location_type_id })
+      .first();
+
+    if (exists) {
+      console.log(`Skipping existing location: ${loc.name}`);
+      continue;
+    }
+    
+    await knex('locations').insert({
+      id: knex.raw('uuid_generate_v4()'),
+      name: loc.name,
+      location_type_id,
+      address_line1: loc.address_line1,
+      address_line2: loc.address_line2 || null,
+      city: loc.city,
+      province_or_state: loc.province_or_state,
+      postal_code: loc.postal_code,
+      country: loc.country,
+      is_archived: loc.is_archived ?? false,
+      status_id: loc.status_id || activeStatusId,
+      status_date: loc.status_date || knex.fn.now(),
+      created_at: knex.fn.now(),
+      updated_at: null,
+      created_by: systemActionId,
+      updated_by: null,
+    })
+    .onConflict(['name', 'location_type_id'])
+    .ignore();
+    
+    insertedCount++;
   }
   
-  console.log(`${locations.length} locations seeded with structured address.`);
+  console.log(`${insertedCount} locations inserted.`);
 };

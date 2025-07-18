@@ -1,9 +1,6 @@
 import type { FC } from 'react';
 import Box from '@mui/material/Box';
-import {
-  LocalizationProvider,
-  DatePicker,
-} from '@mui/x-date-pickers';
+import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 
 interface CustomDatePickerProps {
@@ -25,24 +22,25 @@ interface CustomDatePickerProps {
 }
 
 const CustomDatePicker: FC<CustomDatePickerProps> = ({
-                                                       label = 'Select Date',
-                                                       value,
-                                                       onChange,
-                                                       format: dateFormat = 'yyyy-MM-dd',
-                                                       minDate,
-                                                       maxDate,
-                                                       views = ['year', 'month', 'day'],
-                                                       openTo = 'day',
-                                                       disabled = false,
-                                                       defaultValue,
-                                                       sx,
-                                                       inputSx,
-                                                       required,
-                                                       error,
-                                                       helperText,
-                                                     }) => {
-  const parsedValue = value instanceof Date ? value : value ? new Date(value) : null;
-  
+  label = 'Select Date',
+  value,
+  onChange,
+  format: dateFormat = 'yyyy-MM-dd',
+  minDate,
+  maxDate,
+  views = ['year', 'month', 'day'],
+  openTo = 'day',
+  disabled = false,
+  defaultValue,
+  sx,
+  inputSx,
+  required,
+  error,
+  helperText,
+}) => {
+  const parsedValue =
+    value instanceof Date ? value : value ? new Date(value) : null;
+
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <Box sx={{ minWidth: 200, flexGrow: 1, ...sx }}>
@@ -61,7 +59,7 @@ const CustomDatePicker: FC<CustomDatePickerProps> = ({
             textField: {
               fullWidth: true,
               variant: 'outlined',
-              required,
+              required: required,
               error,
               helperText,
               sx: { width: '100%', ...inputSx },

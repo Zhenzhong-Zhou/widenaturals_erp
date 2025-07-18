@@ -1,4 +1,10 @@
-const { logInfo, logWarn, logError, logDebug, logFatal } = require('./logger-helper');
+const {
+  logInfo,
+  logWarn,
+  logError,
+  logDebug,
+  logFatal,
+} = require('./logger-helper');
 const { createSystemMeta } = require('./logger-helper');
 
 /**

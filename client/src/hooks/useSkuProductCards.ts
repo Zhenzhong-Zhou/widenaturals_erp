@@ -17,19 +17,23 @@ import {
  */
 const useSkuProductCards = (initialFilters: SkuProductCardFilters = {}) => {
   const dispatch = useAppDispatch();
-  
+
   const skuCardList = useAppSelector(selectSkuProductCards);
   const skuCardPagination = useAppSelector(selectSkuProductPagination);
   const isSkuCardLoading = useAppSelector(selectSkuProductLoading);
   const skuCardError = useAppSelector(selectSkuProductError);
-  
+
   const refreshSkuCards = useCallback(
-    (page: number = 1, limit: number = 10, filters: SkuProductCardFilters = initialFilters) => {
+    (
+      page: number = 1,
+      limit: number = 10,
+      filters: SkuProductCardFilters = initialFilters
+    ) => {
       dispatch(fetchSkuProductCardsThunk({ page, limit, filters }));
     },
     [dispatch, initialFilters]
   );
-  
+
   return {
     skuCardList,
     skuCardPagination,

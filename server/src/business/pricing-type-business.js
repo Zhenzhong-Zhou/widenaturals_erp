@@ -8,7 +8,6 @@ const { checkPermissions } = require('../services/role-permission-service');
  */
 const canViewPricingTypes = async (user) => {
   return await checkPermissions(user, [
-    'root_access',
     'view_pricing_types',
     'view_pricing_config',
     'manage_pricing',

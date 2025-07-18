@@ -3,7 +3,9 @@ import {
   selectInventoryAllocationData,
   selectInventoryAllocationError,
   selectInventoryAllocationSuccess,
-  selectIsAllocatingInventory, selectTotalAllocatedItems, selectTotalAllocatedOrders,
+  selectIsAllocatingInventory,
+  selectTotalAllocatedItems,
+  selectTotalAllocatedOrders,
 } from '@features/inventoryAllocation';
 
 /**
@@ -16,7 +18,7 @@ const useAllocateInventory = () => {
   const data = useAppSelector(selectInventoryAllocationData);
   const totalItems = useAppSelector(selectTotalAllocatedItems);
   const totalOrders = useAppSelector(selectTotalAllocatedOrders);
-  
+
   return {
     isLoading,
     isSuccess,

@@ -3,6 +3,7 @@ import PhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
 import type { SxProps, Theme } from '@mui/system';
 import Box from '@mui/material/Box';
+import InputLabel from '@mui/material/InputLabel';
 
 interface PhoneInputProps {
   value: string;
@@ -15,16 +16,34 @@ interface PhoneInputProps {
 }
 
 const CustomPhoneInput: FC<PhoneInputProps> = ({
-                                                 value,
-                                                 onChange,
-                                                 country = 'ca',
-                                                 disabled = false,
-                                                 sx,
-                                                 required = true,
-                                                 label = 'Phone number',
-                                               }) => {
+  value,
+  onChange,
+  country = 'ca',
+  disabled = false,
+  sx,
+  required = true,
+  label,
+}) => {
   return (
-    <Box sx={{ width: '100%', ...sx }}>
+    <Box  sx={{
+      '& .custom-phone-container': {
+        width: '100%',
+      },
+      '& .custom-phone-input': {
+        width: '100%',
+        height: '56px',
+        paddingLeft: '50px',
+        paddingRight: '12px',
+        fontSize: '16px',
+        borderRadius: 1,
+      },
+      ...sx
+    }}>
+      {label && (
+        <InputLabel shrink required={required}>
+          {label}
+        </InputLabel>
+      )}
       <PhoneInput
         country={country}
         value={value}

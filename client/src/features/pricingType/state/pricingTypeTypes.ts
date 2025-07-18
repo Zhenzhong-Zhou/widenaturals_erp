@@ -1,11 +1,15 @@
-import type { ApiSuccessResponse, PaginatedResponse, Pagination } from '@shared-types/api';
+import type {
+  ApiSuccessResponse,
+  PaginatedResponse,
+  Pagination,
+} from '@shared-types/api';
 
 export interface FetchPricingTypesParams {
   page?: number;
   limit?: number;
-  name?: string;             // Search keyword for name/code
-  startDate?: string;        // ISO format date string
-  endDate?: string;          // ISO format date string
+  name?: string; // Search keyword for name/code
+  startDate?: string; // ISO format date string
+  endDate?: string; // ISO format date string
 }
 
 // Interface for a single PricingType
@@ -74,7 +78,8 @@ export interface PricingTypeMetadata {
 }
 
 // Interface for API Response
-export type PricingTypeMetadataResponse = ApiSuccessResponse<PricingTypeMetadata>;
+export type PricingTypeMetadataResponse =
+  ApiSuccessResponse<PricingTypeMetadata>;
 
 // Interface for a single Product Detail
 export interface ProductDetail {
@@ -122,7 +127,7 @@ export type PricingTypeTableRow = {
   // Pricing (flattened)
   pricing_id: string;
   price: string;
-  
+
   // Product Details
   product_id: string | null;
   product_name: string;
@@ -131,26 +136,26 @@ export type PricingTypeTableRow = {
   product_category: string;
   product_barcode: string;
   product_market_region: string;
-  
+
   // Location Details
   location_id: string | null;
   location_name: string;
   location_type: string;
-  
+
   // Created By Details
   created_by_id: string | null;
   created_by_name: string;
-  
+
   // Updated By Details
   updated_by_id: string | null;
   updated_by_name: string;
-  
+
   // Status & Dates
   status: string;
   status_date: string | null;
   valid_from: string | null;
   valid_to: string | null;
-  
+
   // Audit Timestamps
   created_at: string | null;
   updated_at: string | null;

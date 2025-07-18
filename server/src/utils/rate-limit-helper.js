@@ -1,5 +1,6 @@
 const { loadEnv } = require('../config/env');
 const rateLimit = require('express-rate-limit');
+const { ipKeyGenerator } = require('express-rate-limit');
 const { logError } = require('./logger-helper');
 const { logSystemInfo } = require('./system-logger');
 const AppError = require('./AppError');
@@ -23,10 +24,10 @@ const trustedIPs = process.env.TRUSTED_IPS
 const defaultRateLimitHandler = (req, res, next, options) => {
   const retryAfter = Math.ceil(options.windowMs / 1000);
   const clientKey = options.keyGenerator ? options.keyGenerator(req) : req.ip;
-  
+
   // Set Retry-After header (in seconds)
   res.set('Retry-After', retryAfter.toString());
-  
+
   // Log the rate limit event
   logError('Rate limit exceeded', req, {
     context: 'rate-limiter',
@@ -77,7 +78,7 @@ const createRateLimiter = ({
     : RATE_LIMIT.DEFAULT_MAX,
   headers = true,
   statusCode = 429,
-  keyGenerator = (req) => req.ip,
+  keyGenerator = ipKeyGenerator,
   skip = (req) => trustedIPs.includes(req.ip),
   handler = defaultRateLimitHandler, // Use the default handler if none is provided
   disableInDev = false,
@@ -92,7 +93,7 @@ const createRateLimiter = ({
     // Bypass rate limiting in development mode
     return (req, res, next) => next();
   }
-  
+
   logSystemInfo('Rate limiter initialized.', {
     context,
     windowMs,
@@ -100,7 +101,7 @@ const createRateLimiter = ({
     statusCode,
     headers,
   });
-  
+
   return rateLimit({
     windowMs,
     max,

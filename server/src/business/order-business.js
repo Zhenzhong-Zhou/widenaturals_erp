@@ -1,15 +1,67 @@
-const { formatDiscount } = require('../utils/string-utils');
 const { checkPermissions } = require('../services/role-permission-service');
-const { verifyOrderNumber } = require('../utils/order-number-utils');
 const AppError = require('../utils/AppError');
-const { logError } = require('../utils/logger-helper');
-const {
-  updateOrderAndItemStatus,
-  getOrderAndItemStatusCodes,
-} = require('../repositories/order-repository');
-const {
-  transformOrderStatusCodes,
-} = require('../transformers/order-transformer');
+const { logSystemWarn } = require('../utils/system-logger');
+const { createSalesOrder } = require('./sales-order-business');
+const { resolveOrderAccessContext } = require('../services/role-permission-service');
+
+/**
+ * Verifies if the user has permission to create an order of the specified category.
+ * Uses dynamic permission naming + checkPermissions for consistency.
+ *
+ * @param {object} user - Authenticated user object (must include `role`).
+ * @param {string} category - Order category (e.g., 'sales', 'purchase', 'transfer').
+ * @returns {Promise<void>}
+ *
+ * @throws {AppError} - If user lacks permission.
+ */
+const verifyOrderCreationPermission = async (user, category) => {
+  const { isRoot, accessibleCategories } = await resolveOrderAccessContext(user);
+  
+  if (isRoot) return;
+  
+  if (!accessibleCategories.includes(category)) {
+    logSystemWarn('Permission denied for order creation', {
+      context: 'verifyOrderCreationPermission',
+      role: user.role,
+      attemptedCategory: category,
+      accessibleCategories,
+    });
+    
+    throw AppError.authorizationError(`You do not have permission to create ${category} orders.`);
+  }
+};
+
+/**
+ * Order creation strategy map
+ */
+const orderCreationStrategies = {
+  sales: createSalesOrder,
+  // TRANSFER: createTransferOrder,
+  // PURCHASE: createPurchaseOrder,
+};
+
+/**
+ * Creates an order based on the specified category using the mapped strategy.
+ *
+ * This function:
+ * - Look up the creation strategy for the given category.
+ * - Delegates the insert logic to the corresponding strategy function.
+ *
+ * @param {string} category - The order category (e.g., 'sales', 'purchase', 'transfer').
+ * @param {object} orderData - Full order payload.
+ * @param {PoolClient} client - DB client within transaction.
+ * @returns {Promise<object>} - Inserted order object (type-specific).
+ * @throws {AppError} - If category is unsupported or creation fails.
+ */
+const createOrderWithType = async (category, orderData, client) => {
+  const createFn = orderCreationStrategies[category];
+  
+  if (!createFn) {
+    throw AppError.validationError(`Unsupported order category: ${category}`);
+  }
+  
+  return await createFn(orderData, client);
+};
 
 /**
  * Validates a list of orders by their order numbers.
@@ -52,7 +104,6 @@ const applyOrderDetailsBusinessLogic = async (order, user) => {
   if (!isOrderNumberValid) {
     // Check if the user has permission to view invalid orders
     const canViewInvalidOrder = await checkPermissions(user, [
-      'root_access',
       'view_full_sales_order_details',
       'view_all_order_details',
     ]);
@@ -90,7 +141,6 @@ const applyOrderDetailsBusinessLogic = async (order, user) => {
 
   // Check if the user has permission to view metadata and category
   const canViewMetadata = checkPermissions(user, [
-    'root_access',
     'view_all_order_details',
     'view_full_sales_order_details',
   ]);
@@ -108,13 +158,12 @@ const applyOrderDetailsBusinessLogic = async (order, user) => {
  * Business logic to confirm an order and its items.
  *
  * @param {string} orderId - The UUID of the order to confirm.
- * @param {object} user - Authenticated user object (must contain role).
+ * @param {object} user - an Authenticated user object (must contain a role).
  * @param {object} client - Optional PostgreSQL client (for transaction support).
  * @returns {Promise<Object>} Raw confirmation result.
  */
 const confirmOrderWithItems = async (orderId, user, client) => {
   const hasPermission = await checkPermissions(user, [
-    'root_access',
     'confirm_order',
     'confirm_sales_order',
   ]);
@@ -172,6 +221,8 @@ const canConfirmOrder = async (orderId, client) => {
 };
 
 module.exports = {
+  verifyOrderCreationPermission,
+  createOrderWithType,
   validateOrderNumbers,
   applyOrderDetailsBusinessLogic,
   confirmOrderWithItems,

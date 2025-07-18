@@ -6,7 +6,7 @@
 const { backupDatabase } = require('../../database/backup-db');
 const {
   logSystemInfo,
-  logSystemException
+  logSystemException,
 } = require('../../utils/system-logger');
 const { handleExit } = require('../../utils/on-exit');
 
@@ -17,7 +17,7 @@ const runBackup = async () => {
   logSystemInfo('Starting manual database backup process...', {
     context: 'run-backup',
   });
-  
+
   try {
     await backupDatabase();
     logSystemInfo('Manual database backup completed successfully.', {

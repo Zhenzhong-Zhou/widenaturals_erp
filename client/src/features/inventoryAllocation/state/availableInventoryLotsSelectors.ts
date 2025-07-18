@@ -3,9 +3,8 @@ import type { RootState } from '@store/store';
 import type { AvailableInventoryLot } from '@features/inventoryAllocation';
 
 // Base selector
-export const selectAvailableInventoryLotsState = (
-  state: RootState
-) => state.availableInventoryLots;
+export const selectAvailableInventoryLotsState = (state: RootState) =>
+  state.availableInventoryLots;
 
 // Individual selectors
 export const selectAvailableInventoryLots = createSelector(

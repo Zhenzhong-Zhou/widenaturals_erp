@@ -10,10 +10,7 @@ const path = require('path');
 const mime = require('mime-types');
 const s3Client = require('../config/aws-s3-config');
 const { logInfo, logError } = require('./logger-helper');
-const {
-  logSystemInfo,
-  logSystemError
-} = require('./system-logger');
+const { logSystemInfo, logSystemError } = require('./system-logger');
 
 /**
  * Generic S3 operation with retry logic.
@@ -47,14 +44,14 @@ const executeWithRetry = async (s3Command, maxRetries = 3) => {
         });
         throw error; // Throw the error if all attempts fail
       }
-      
+
       logSystemInfo('Retrying S3 operation...', {
         context: 's3-retry',
         attempt,
         maxRetries,
         nextRetryInMs: 2000,
       });
-      
+
       await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 2 seconds before retrying
     }
   }
@@ -77,7 +74,7 @@ const uploadFileToS3 = async (
   contentType = 'application/octet-stream'
 ) => {
   const context = 'uploadFileToS3';
-  
+
   // Input validation
   if (!bucketName || !filePath || !key) {
     const missing = [
@@ -122,14 +119,14 @@ const uploadFileToS3 = async (
     const response = await executeWithRetry(() =>
       s3Client.send(new PutObjectCommand(uploadParams))
     );
-    
+
     logSystemInfo(`Successfully uploaded file to S3`, {
       context,
       bucketName,
       key,
       filePath,
     });
-    
+
     return response;
   } catch (error) {
     logSystemError('Upload to S3 failed', {
@@ -139,7 +136,7 @@ const uploadFileToS3 = async (
       key,
       errorMessage: error.message,
     });
-    
+
     throw error;
   }
 };
@@ -161,10 +158,10 @@ const downloadFileFromS3 = async (
 ) => {
   const context = 's3-download';
   const meta = { context, bucket: bucketName, key, downloadPath };
-  
+
   try {
     logSystemInfo(`Attempting to download file from S3`, meta);
-    
+
     const command = new GetObjectCommand({ Bucket: bucketName, Key: key });
     const response = await s3Client.send(command);
 
@@ -212,7 +209,7 @@ const downloadFileFromS3 = async (
 const deleteFileFromS3 = async (bucketName, key) => {
   const context = 's3-delete-single';
   const meta = { context, bucket: bucketName, key };
-  
+
   if (!bucketName || !key) {
     logSystemError('Missing required parameters for deletion.', meta);
     throw new Error('Bucket name and key are required.');
@@ -224,7 +221,7 @@ const deleteFileFromS3 = async (bucketName, key) => {
     await executeWithRetry(() =>
       s3Client.send(new DeleteObjectCommand({ Bucket: bucketName, Key: key }))
     );
-    
+
     logSystemInfo('File deleted from S3 successfully.', meta);
   } catch (error) {
     logSystemError('Failed to delete file from S3.', meta);
@@ -241,7 +238,7 @@ const deleteFileFromS3 = async (bucketName, key) => {
 const deleteFilesFromS3 = async (bucketName, keys) => {
   const context = 's3-delete-multiple';
   const meta = { context, bucket: bucketName, keys };
-  
+
   if (!bucketName || !Array.isArray(keys) || keys.length === 0) {
     logSystemError('Missing required parameters or empty keys array.', meta);
     throw new Error('Bucket name and a non-empty keys array are required.');
@@ -258,10 +255,10 @@ const deleteFilesFromS3 = async (bucketName, keys) => {
     await executeWithRetry(() =>
       s3Client.send(new DeleteObjectsCommand(deleteParams))
     );
-    
+
     logSystemInfo('Batch file deletion from S3 completed.', meta);
   } catch (error) {
-    logSystemError('Failed to delete multiple files from S3.',meta);
+    logSystemError('Failed to delete multiple files from S3.', meta);
     throw error;
   }
 };
@@ -275,7 +272,7 @@ const deleteFilesFromS3 = async (bucketName, keys) => {
 const listFilesInS3 = async (bucketName, prefix) => {
   const context = 's3-list-files';
   const meta = { context, bucket: bucketName, prefix };
-  
+
   try {
     const command = new ListObjectsV2Command({
       Bucket: bucketName,
@@ -283,12 +280,12 @@ const listFilesInS3 = async (bucketName, prefix) => {
     });
 
     const response = await executeWithRetry(() => s3Client.send(command));
-    
+
     logSystemInfo(`Listed S3 objects successfully.`, {
       ...meta,
       fileCount: response?.Contents?.length || 0,
     });
-    
+
     return response.Contents || [];
   } catch (error) {
     logSystemError('Failed to list files in S3.', meta);
@@ -307,13 +304,13 @@ const listFilesInS3 = async (bucketName, prefix) => {
 const listBackupsFromS3 = async (bucketName, folderPrefix = 'backups/') => {
   const context = 's3-list-backups';
   const meta = { context, bucket: bucketName, folderPrefix };
-  
+
   try {
     if (!bucketName) {
       logSystemError('Bucket name is required.', meta);
       throw new Error('Bucket name is required.');
     }
-    
+
     logSystemInfo(`Fetching backups from folder...`, meta);
 
     const command = new ListObjectsV2Command({
@@ -356,12 +353,12 @@ const listBackupsFromS3 = async (bucketName, folderPrefix = 'backups/') => {
           return (order[aExt] ?? 99) - (order[bExt] ?? 99);
         })
     );
-    
+
     logSystemInfo(`Found ${sortedGroupedBackups.length} backup items.`, {
       ...meta,
       itemCount: sortedGroupedBackups.length,
     });
-    
+
     return sortedGroupedBackups;
   } catch (error) {
     logSystemError('Failed to list backups from S3.', meta);
@@ -378,9 +375,14 @@ const listBackupsFromS3 = async (bucketName, folderPrefix = 'backups/') => {
  * @param {string|null} keyName - Optional name for the S3 key (uses local filename if not provided).
  * @returns {Promise<string>} - The public S3 URL of the uploaded image.
  */
-const uploadSkuImageToS3 = async (bucketName, localFilePath, keyPrefix, keyName = null) => {
+const uploadSkuImageToS3 = async (
+  bucketName,
+  localFilePath,
+  keyPrefix,
+  keyName = null
+) => {
   const context = 's3-upload-sku-image';
-  
+
   if (!bucketName) {
     logSystemError('Missing bucket name.', { context });
     throw new Error('Bucket name is required.');
@@ -391,18 +393,18 @@ const uploadSkuImageToS3 = async (bucketName, localFilePath, keyPrefix, keyName 
     const contentType = mime.lookup(ext) || 'application/octet-stream';
     const baseFileName = keyName || path.basename(localFilePath);
     const s3Key = `${keyPrefix}/${baseFileName}`;
-    
+
     const command = new PutObjectCommand({
       Bucket: bucketName,
       Key: s3Key,
       Body: fileStream,
       ContentType: contentType,
     });
-    
+
     await s3Client.send(command);
-    
+
     const publicUrl = `https://${bucketName}.s3.${process.env.AWS_REGION}.amazonaws.com/${s3Key}`;
-    
+
     logSystemInfo('SKU image uploaded to S3.', {
       context,
       bucketName,
@@ -410,7 +412,7 @@ const uploadSkuImageToS3 = async (bucketName, localFilePath, keyPrefix, keyName 
       contentType,
       publicUrl,
     });
-    
+
     return publicUrl;
   } catch (error) {
     logSystemError('Failed to upload SKU image to S3.', {
@@ -420,7 +422,7 @@ const uploadSkuImageToS3 = async (bucketName, localFilePath, keyPrefix, keyName 
     });
     throw error;
   }
-}
+};
 
 module.exports = {
   uploadFileToS3,
@@ -429,5 +431,5 @@ module.exports = {
   deleteFilesFromS3,
   listFilesInS3,
   listBackupsFromS3,
-  uploadSkuImageToS3
+  uploadSkuImageToS3,
 };

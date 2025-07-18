@@ -13,9 +13,6 @@ exports.up = function (knex) {
         'draft',
         'confirmation',
         'processing',
-        'fulfillment',
-        'shipment',
-        'payment',
         'return',
         'completion',
       ]); // High-level category of status

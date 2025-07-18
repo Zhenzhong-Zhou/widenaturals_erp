@@ -6,13 +6,13 @@ const { fetchDynamicValue } = require('../03_utils');
  */
 exports.seed = async function (knex) {
   console.log('Seeding compliance records for NPN...');
-  
+
   // Fetch required IDs
   const [activeStatusId, systemUserId] = await Promise.all([
     fetchDynamicValue(knex, 'status', 'name', 'active', 'id'),
     fetchDynamicValue(knex, 'users', 'email', 'system@internal.local', 'id'),
   ]);
-  
+
   // Define smart compliance mapping: productName::sizeLabel::countryCode => complianceId
   const npnMap = {
     'Focus::60 Capsules::CA': '80102618',
@@ -54,10 +54,12 @@ exports.seed = async function (knex) {
     'Omega-3 + MultiVitamin Fish Oil::120 Softgels::UN': '80107082',
     'Algal Oil Pure + DHA (Kids)::30 Softgels::UN': '80111230',
     'Algal Oil Pure + DHA (Kids)::60 Softgels::UN': '80111230',
-    'DHA Algal Oil for Pregnancy and Breastfeeding::30 Softgels::UN': '80111182',
-    'DHA Algal Oil for Pregnancy and Breastfeeding::60 Softgels::UN': '80111182',
+    'DHA Algal Oil for Pregnancy and Breastfeeding::30 Softgels::UN':
+      '80111182',
+    'DHA Algal Oil for Pregnancy and Breastfeeding::60 Softgels::UN':
+      '80111182',
   };
-  
+
   // Join skus with products to get product name, size, country code
   const rows = await knex('skus as s')
     .join('products as p', 's.product_id', 'p.id')
@@ -68,18 +70,18 @@ exports.seed = async function (knex) {
       'p.name',
       's.sku'
     );
-  
+
   const complianceRecords = [];
-  
+
   for (const row of rows) {
     const key = `${row.name}::${row.size_label}::${row.country_code}`;
     const complianceId = npnMap[key];
-    
+
     if (!complianceId) {
       console.warn(`No match for: ${key}`);
       continue;
     }
-    
+
     complianceRecords.push({
       id: knex.raw('uuid_generate_v4()'),
       sku_id: row.sku_id,
@@ -96,16 +98,16 @@ exports.seed = async function (knex) {
       updated_by: null,
     });
   }
-  
+
   if (!complianceRecords.length) {
     console.warn('No compliance records to insert.');
     return;
   }
-  
+
   await knex('compliances')
     .insert(complianceRecords)
     .onConflict(['sku_id', 'type'])
     .ignore();
-  
+
   console.log(`Inserted ${complianceRecords.length} NPN compliance records.`);
 };

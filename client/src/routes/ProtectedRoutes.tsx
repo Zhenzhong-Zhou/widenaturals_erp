@@ -19,13 +19,12 @@ const ProtectedRoutes: FC<ProtectedRoutesProps> = ({
 }) => {
   const { isAuthenticated, isLoading } = useSession();
   const location = useLocation(); // Capture current location for redirect after login
-  
+
   // If session is still being validated, show loading to prevent layout shift
   if (isLoading) {
     return <Loading fullPage message="Checking authentication..." />;
   }
-  
-  
+
   // Get public routes from the routes configuration
   const publicPaths = routes
     .filter((route) => !route.meta?.requiresAuth)
@@ -33,7 +32,7 @@ const ProtectedRoutes: FC<ProtectedRoutesProps> = ({
 
   // Redirect unauthenticated users to login
   const isPublicPath = publicPaths.includes(location.pathname);
-  
+
   if (!isAuthenticated && !isPublicPath) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }

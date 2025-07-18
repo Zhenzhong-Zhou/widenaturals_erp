@@ -1,8 +1,14 @@
 const { restoreBackup } = require('../database/restore');
 const {
-  logSystemInfo, logSystemError, logSystemException
+  logSystemInfo,
+  logSystemError,
+  logSystemException,
 } = require('../utils/system-logger');
-const { logInfo, logError, createSystemMeta } = require('../utils/logger-helper');
+const {
+  logInfo,
+  logError,
+  createSystemMeta,
+} = require('../utils/logger-helper');
 const { loadEnv } = require('../config/env');
 const { listBackupsFromS3 } = require('../utils/aws-s3-service');
 const readline = require('readline');
@@ -29,12 +35,12 @@ const promptForFilePath = (promptText) => {
       input: process.stdin,
       output: process.stdout,
     });
-    
+
     logSystemInfo('Prompting user for file path input...', {
       context: 'promptForFilePath',
       promptText,
     });
-    
+
     rl.question(`\n${promptText}: `, (filePath) => {
       rl.close();
       const trimmed = filePath.trim();
@@ -58,18 +64,15 @@ const promptForFilePath = (promptText) => {
     const dbPassword = process.env.DB_PASSWORD;
 
     if (!databaseName || !encryptionKey || !dbUser || !dbPassword) {
-      logSystemError(
-        'Essential environment variables are missing.',
-        {
-          context: 'restore-verify',
-          missing: {
-            DB_NAME: !!databaseName,
-            BACKUP_ENCRYPTION_KEY: !!encryptionKey,
-            DB_USER: !!dbUser,
-            DB_PASSWORD: !!dbPassword,
-          },
-        }
-      );
+      logSystemError('Essential environment variables are missing.', {
+        context: 'restore-verify',
+        missing: {
+          DB_NAME: !!databaseName,
+          BACKUP_ENCRYPTION_KEY: !!encryptionKey,
+          DB_USER: !!dbUser,
+          DB_PASSWORD: !!dbPassword,
+        },
+      });
       process.exit(1);
     }
 
@@ -89,7 +92,7 @@ const promptForFilePath = (promptText) => {
           });
           process.exit(1);
         }
-        
+
         logSystemInfo('Available backups:', {
           context: 'restore-verify',
           files: backups.map((file) => file.Key),
@@ -110,14 +113,17 @@ const promptForFilePath = (promptText) => {
       s3KeySha256 = await promptForFilePath('Enter SHA256 File Path');
 
     if (!s3KeyEnc || !s3KeyIv || !s3KeySha256) {
-      logSystemError('Missing required paths. Make sure to provide paths for all files.', {
-        context: 'restore-backup',
-        missing: {
-          s3KeyEnc: !!s3KeyEnc,
-          s3KeyIv: !!s3KeyIv,
-          s3KeySha256: !!s3KeySha256,
-        },
-      });
+      logSystemError(
+        'Missing required paths. Make sure to provide paths for all files.',
+        {
+          context: 'restore-backup',
+          missing: {
+            s3KeyEnc: !!s3KeyEnc,
+            s3KeyIv: !!s3KeyIv,
+            s3KeySha256: !!s3KeySha256,
+          },
+        }
+      );
       process.exit(1);
     }
 
@@ -129,7 +135,7 @@ const promptForFilePath = (promptText) => {
       dbPassword,
       isProduction
     );
-    
+
     logSystemInfo('Database restoration completed successfully.', {
       context: 'restore-backup',
     });

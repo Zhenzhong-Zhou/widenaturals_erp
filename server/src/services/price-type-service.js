@@ -10,7 +10,10 @@ const {
   getPricingDetailsByPricingTypeId,
 } = require('../repositories/pricing-repository');
 const { canViewPricingTypes } = require('../business/pricing-type-business');
-const { transformPaginatedPricingTypeResult, transformPricingTypeMetadata } = require('../transformers/pricing-type-transformer');
+const {
+  transformPaginatedPricingTypeResult,
+  transformPricingTypeMetadata,
+} = require('../transformers/pricing-type-transformer');
 const { getStatusId } = require('../config/status-cache');
 
 /**
@@ -29,28 +32,32 @@ const { getStatusId } = require('../config/status-cache');
  * @returns {Promise<object>} - Transformed paginated price types.
  */
 const fetchAllPriceTypes = async ({
-                                    page = 1,
-                                    limit = 10,
-                                    name,
-                                    startDate,
-                                    endDate,
-                                    user,
-                                  }) => {
+  page = 1,
+  limit = 10,
+  name,
+  startDate,
+  endDate,
+  user,
+}) => {
   if (!user) {
     throw AppError.authenticationError('User authentication required');
   }
-  
+
   if ((startDate && !endDate) || (!startDate && endDate)) {
-    throw AppError.validationError('Both startDate and endDate must be provided together.');
+    throw AppError.validationError(
+      'Both startDate and endDate must be provided together.'
+    );
   }
-  
+
   const canViewAllStatuses = await canViewPricingTypes(user);
 
   // Determine effective statusId to pass to repository
-  const statusId = canViewAllStatuses ? null : getStatusId('pricing_type_active');
-  
+  const statusId = canViewAllStatuses
+    ? null
+    : getStatusId('pricing_type_active');
+
   const search = name?.trim() || null;
-  
+
   try {
     logSystemInfo('Fetching pricing types', {
       context: 'pricing-type-service',
@@ -63,7 +70,7 @@ const fetchAllPriceTypes = async ({
       canViewAllStatuses,
       userId: user.id,
     });
-    
+
     const rawResult = await getAllPriceTypes({
       page,
       limit,
@@ -73,21 +80,21 @@ const fetchAllPriceTypes = async ({
       endDate,
       canViewAllStatuses,
     });
-    
+
     const result = transformPaginatedPricingTypeResult(rawResult);
-    
+
     logSystemInfo('Successfully fetched pricing types', {
       context: 'pricing-type-service',
       resultCount: result.data.length,
     });
-    
+
     return result;
   } catch (error) {
     logSystemError('Failed to fetch pricing types', {
       context: 'pricing-type-service',
       error,
     });
-    
+
     throw AppError.serviceError('Failed to fetch pricing types', {
       cause: error,
     });
@@ -104,11 +111,11 @@ const fetchAllPriceTypes = async ({
 const fetchPricingTypeByIdWithMetadataService = async (pricingTypeId) => {
   try {
     const pricingTypeRow = await getPricingTypeById(pricingTypeId);
-    
+
     if (!pricingTypeRow) {
       throw AppError.notFoundError('Pricing type not found');
     }
-    
+
     return transformPricingTypeMetadata(pricingTypeRow);
   } catch (error) {
     logSystemError('Failed to fetch pricing type metadata', {
@@ -116,8 +123,10 @@ const fetchPricingTypeByIdWithMetadataService = async (pricingTypeId) => {
       pricingTypeId,
       error,
     });
-    
-    throw AppError.serviceError('Unable to retrieve pricing type metadata.', { cause: error });
+
+    throw AppError.serviceError('Unable to retrieve pricing type metadata.', {
+      cause: error,
+    });
   }
 };
 

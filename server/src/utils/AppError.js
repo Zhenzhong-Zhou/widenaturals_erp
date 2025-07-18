@@ -54,11 +54,11 @@ class AppError extends Error {
       timestamp: new Date().toISOString(),
     };
   }
-  
+
   // =========================
   // Common Errors
   // =========================
-  
+
   /**
    * Authorization failure (e.g., missing permission).
    */
@@ -70,7 +70,7 @@ class AppError extends Error {
       ...options,
     });
   }
-  
+
   /**
    * The Account is locked (e.g., due to failed login attempts).
    */
@@ -82,7 +82,7 @@ class AppError extends Error {
       ...options,
     });
   }
-  
+
   /**
    * User session has expired (e.g., due to inactivity).
    */
@@ -94,7 +94,7 @@ class AppError extends Error {
       ...options,
     });
   }
-  
+
   /**
    * Access token is expired and cannot be used.
    */
@@ -106,7 +106,7 @@ class AppError extends Error {
       ...options,
     });
   }
-  
+
   /**
    * Access token is missing or invalid.
    */
@@ -118,7 +118,7 @@ class AppError extends Error {
       ...options,
     });
   }
-  
+
   /**
    * Refresh token has expired.
    */
@@ -130,7 +130,7 @@ class AppError extends Error {
       ...options,
     });
   }
-  
+
   /**
    * Refresh token is missing or invalid.
    */
@@ -142,7 +142,7 @@ class AppError extends Error {
       ...options,
     });
   }
-  
+
   /**
    * The Token has been revoked or blocklisted.
    */
@@ -154,7 +154,7 @@ class AppError extends Error {
       ...options,
     });
   }
-  
+
   /**
    * Generic authentication failure.
    */
@@ -166,7 +166,7 @@ class AppError extends Error {
       ...options,
     });
   }
-  
+
   /**
    * Input failed validation schema or logic.
    */
@@ -178,7 +178,7 @@ class AppError extends Error {
       ...options,
     });
   }
-  
+
   /**
    * Hashing or cryptographic error (e.g., bcrypt failure).
    */
@@ -191,7 +191,7 @@ class AppError extends Error {
       ...options,
     });
   }
-  
+
   /**
    * Too many requests — rate limit exceeded.
    */
@@ -204,11 +204,11 @@ class AppError extends Error {
       ...options,
     });
   }
-  
+
   // =========================
   // Security and Input Errors
   // =========================
-  
+
   /**
    * CSRF token error or violation.
    */
@@ -221,7 +221,7 @@ class AppError extends Error {
       ...options,
     });
   }
-  
+
   /**
    * CORS origin not allowed or misconfigured.
    */
@@ -233,7 +233,7 @@ class AppError extends Error {
       ...options,
     });
   }
-  
+
   /**
    * Helmet security middleware failure.
    */
@@ -245,7 +245,7 @@ class AppError extends Error {
       ...options,
     });
   }
-  
+
   /**
    * Sanitization failure (e.g., unsafe input).
    */
@@ -257,11 +257,11 @@ class AppError extends Error {
       ...options,
     });
   }
-  
+
   // =========================
   // Domain-Specific Errors
   // =========================
-  
+
   /**
    * Failure in application service layer.
    */
@@ -274,7 +274,7 @@ class AppError extends Error {
       ...options,
     });
   }
-  
+
   /**
    * Failure in database query or connection.
    */
@@ -287,7 +287,7 @@ class AppError extends Error {
       ...options,
     });
   }
-  
+
   /**
    * Business rule violation (e.g., invalid status transition).
    */
@@ -300,7 +300,7 @@ class AppError extends Error {
       ...options,
     });
   }
-  
+
   /**
    * Controller-level error (e.g., misuse of request/response).
    */
@@ -313,7 +313,7 @@ class AppError extends Error {
       ...options,
     });
   }
-  
+
   /**
    * Transformer or DTO conversion failure.
    */
@@ -326,11 +326,11 @@ class AppError extends Error {
       ...options,
     });
   }
-  
+
   // =========================
   // Specialized Errors
   // =========================
-  
+
   /**
    * File upload failure (e.g., size limit, file type).
    */
@@ -342,7 +342,7 @@ class AppError extends Error {
       ...options,
     });
   }
-  
+
   /**
    * Health check or dependency failure.
    */
@@ -354,11 +354,11 @@ class AppError extends Error {
       ...options,
     });
   }
-  
+
   // =========================
   // General Errors
   // =========================
-  
+
   /**
    * Requested resource not found.
    */
@@ -370,7 +370,7 @@ class AppError extends Error {
       ...options,
     });
   }
-  
+
   /**
    * Conflict occurred (e.g., unique constraint violation).
    */
@@ -382,7 +382,7 @@ class AppError extends Error {
       ...options,
     });
   }
-  
+
   /**
    * Initialization failure — used when a critical system part fails to initialize.
    * Commonly thrown during application startup, preloading, or dependency setup.
@@ -403,7 +403,7 @@ class AppError extends Error {
       ...options,
     });
   }
-  
+
   /**
    * Fallback general error (unexpected exception).
    */

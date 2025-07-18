@@ -6,18 +6,26 @@ import { LOCATION_INVENTORY_SORT_OPTIONS } from '../constants/sortOptions';
 import LocationInventoryExpandedRow from '../components/LocationInventoryExpandedRow';
 import LocationInventoryFilterPanel from '../components/LocationInventoryFilterPanel';
 
-const LocationInventoryTable = lazy(() => import('../components/LocationInventoryTable'));
-
-export default () => (
-  <BaseInventoryPage
-    title="All Location Inventory"
-    Icon={<StoreIcon fontSize="medium" color="primary" />}
-    useInventoryHook={useLocationInventory}
-    FilterPanel={LocationInventoryFilterPanel}
-    TableComponent={LocationInventoryTable}
-    ExpandedRowComponent={LocationInventoryExpandedRow}
-    sortOptions={LOCATION_INVENTORY_SORT_OPTIONS}
-    rowKey="id"
-    extractGroupName={(record) => record.location?.name || 'Unknown Location'}
-  />
+const LocationInventoryTable = lazy(
+  () => import('../components/LocationInventoryTable')
 );
+
+const LocationInventoryPage = () => {
+  return (
+    <BaseInventoryPage
+      title="All Location Inventory"
+      Icon={<StoreIcon fontSize="medium" color="primary" />}
+      showAddButton={false}
+      showAdjustButton={false}
+      useInventoryHook={useLocationInventory}
+      FilterPanel={LocationInventoryFilterPanel}
+      TableComponent={LocationInventoryTable}
+      ExpandedRowComponent={LocationInventoryExpandedRow}
+      sortOptions={LOCATION_INVENTORY_SORT_OPTIONS}
+      rowKey="id"
+      extractGroupName={(record) => record.location?.name || 'Unknown Location'}
+    />
+  )
+};
+
+export default LocationInventoryPage;

@@ -1,4 +1,4 @@
-import { type FC} from 'react';
+import { type FC } from 'react';
 import BaseInventoryTable from '@features/inventoryShared/components/BaseInventoryTable';
 import { formatLabel } from '@utils/textUtils';
 import { formatDate, timeAgo } from '@utils/dateTimeUtils';
@@ -8,23 +8,31 @@ const LocationInventoryTable: FC<LocationInventoryTableProps> = (props) => {
   return (
     <BaseInventoryTable
       {...props}
-      groupKey='location'
+      groupKey="location"
       getGroupHeaderId={(name) => `group-${name}`}
       getRowData={(item) => ({
         id: item.id,
         name: item.display.name,
         lotNumber: item.lot?.number ?? '-',
-        expiryDate: item.lot?.expiryDate ? formatDate(item.lot.expiryDate) : '-',
+        expiryDate: item.lot?.expiryDate
+          ? formatDate(item.lot.expiryDate)
+          : '-',
         locationQuantity: item.quantity.locationQuantity ?? 0,
         available: item.quantity.available ?? 0,
         reserved: item.quantity.reserved ?? 0,
-        lastUpdate: item.timestamps?.lastUpdate ? timeAgo(item.timestamps.lastUpdate) : '-',
+        lastUpdate: item.timestamps?.lastUpdate
+          ? timeAgo(item.timestamps.lastUpdate)
+          : '-',
         status: formatLabel(item.status?.name) ?? '-',
-        statusDate: item.timestamps?.statusDate ? formatDate(item.timestamps.statusDate) : '-',
+        statusDate: item.timestamps?.statusDate
+          ? formatDate(item.timestamps.statusDate)
+          : '-',
         stockLevel: item.status?.stockLevel ?? '-',
         expirySeverity: item.status?.expirySeverity ?? '-',
         originalRecord: item,
       })}
+      showCheckboxes={false}
+      showActions={false}
     />
   );
 };

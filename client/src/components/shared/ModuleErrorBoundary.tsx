@@ -49,13 +49,13 @@ class ModuleErrorBoundary extends Component<ModuleErrorBoundaryProps, State> {
       error instanceof AppError
         ? error
         : new AppError('An unknown error occurred.', 500, {
-          type: ErrorType.UnknownError,
-          details: {
-            originalError: error.message || 'Unknown error',
-            componentStack: errorInfo.componentStack || '',
-          },
-        });
-    
+            type: ErrorType.UnknownError,
+            details: {
+              originalError: error.message || 'Unknown error',
+              componentStack: errorInfo.componentStack || '',
+            },
+          });
+
     if (this.props.onError) {
       this.props.onError(appError, errorInfo);
     } else {
@@ -75,11 +75,11 @@ class ModuleErrorBoundary extends Component<ModuleErrorBoundaryProps, State> {
       errorType: undefined,
     });
   };
-  
+
   render() {
     const { hasError, errorMessage, errorType } = this.state;
     const { fallback, children } = this.props;
-    
+
     if (hasError) {
       return (
         fallback || (
@@ -101,12 +101,12 @@ class ModuleErrorBoundary extends Component<ModuleErrorBoundaryProps, State> {
               <CustomTypography variant="h4" color="error" gutterBottom>
                 Module Error
               </CustomTypography>
-              
+
               <CustomTypography variant="body1" gutterBottom>
                 {errorMessage ||
                   'Something went wrong in this module. Please try again.'}
               </CustomTypography>
-              
+
               {errorType && (
                 <CustomTypography
                   variant="body2"
@@ -121,7 +121,7 @@ class ModuleErrorBoundary extends Component<ModuleErrorBoundaryProps, State> {
         )
       );
     }
-    
+
     return children;
   }
 }

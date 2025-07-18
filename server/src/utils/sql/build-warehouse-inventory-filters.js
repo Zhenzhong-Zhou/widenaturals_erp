@@ -15,7 +15,9 @@
  * - Foreign keys: warehouseId, status
  */
 
-const { buildInventoryFilterConditions } = require('./build-inventory-filter-conditions');
+const {
+  buildInventoryFilterConditions,
+} = require('./build-inventory-filter-conditions');
 
 /**
  * Builds the SQL WHERE clause and parameter bindings for querying `warehouse_inventory`
@@ -51,17 +53,17 @@ const buildWarehouseInventoryWhereClause = (filters = {}) => {
       (br.batch_type = 'packaging_material' AND pmb.id IS NOT NULL)
     )`,
   ];
-  
+
   if (filters.excludeZeroQuantity) {
     whereClauses.push(`(wi.total_quantity > 0 OR wi.reserved_quantity > 0)`);
   }
-  
+
   const { conditions, params } = buildInventoryFilterConditions(filters, {
     prefix: 'wi',
     warehouseName: 'wh.name',
     createdAt: 'created_at',
   });
-  
+
   return {
     whereClause: [...whereClauses, ...conditions].join(' AND '),
     params,

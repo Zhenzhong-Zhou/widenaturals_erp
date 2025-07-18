@@ -18,7 +18,7 @@ import type { ImageInfo, PricingInfo } from '../state';
 const ProductDetailPage: FC = () => {
   const { skuId } = useParams<{ skuId: string }>();
   const [openZoom, setOpenZoom] = useState(false);
-  
+
   const { permissions } = usePermissions();
   const {
     skuDetails,
@@ -28,41 +28,39 @@ const ProductDetailPage: FC = () => {
     primaryMainImage,
     refresh,
   } = useSkuDetails(skuId!);
-  
-  const canViewInactive = ['root_access', 'view_all_product_statuses'].some((perm) =>
-    permissions.includes(perm)
+
+  const canViewInactive = ['root_access', 'view_all_product_statuses'].some(
+    (perm) => permissions.includes(perm)
   );
-  
-  const canViewAllPrices = ['root_access', 'view_all_pricing_types'].some((perm) =>
-    permissions.includes(perm)
+
+  const canViewAllPrices = ['root_access', 'view_all_pricing_types'].some(
+    (perm) => permissions.includes(perm)
   );
-  
+
   const filteredPrices = canViewAllPrices
     ? skuDetails && skuDetails.prices
     : (skuDetails.prices || []).filter((p: PricingInfo) =>
-      ['msrp', 'retail'].includes(p.pricing_type.toLowerCase())
-    );
-  
+        ['msrp', 'retail'].includes(p.pricing_type.toLowerCase())
+      );
+
   // Early guard: unauthorized access to non-active product
-  if (
-    skuDetails &&
-    skuDetails.status !== 'active' &&
-    !canViewInactive
-  ) {
+  if (skuDetails && skuDetails.status !== 'active' && !canViewInactive) {
     return <Navigate to="/404" replace />;
   }
-  
+
   const zoomImage = skuImages.find((img: ImageInfo) => img.type === 'zoom');
-  
-  const displayImageUrl = openZoom && zoomImage?.image_url
-    ? formatImageUrl(zoomImage.image_url)
-    : formatImageUrl(primaryMainImage?.image_url ?? null);
-  
+
+  const displayImageUrl =
+    openZoom && zoomImage?.image_url
+      ? formatImageUrl(zoomImage.image_url)
+      : formatImageUrl(primaryMainImage?.image_url ?? null);
+
   const pageTitle =
-    skuDetails?.product?.displayName && skuDetails.product.displayName.length > 50
+    skuDetails?.product?.displayName &&
+    skuDetails.product.displayName.length > 50
       ? `${skuDetails.product.displayName.slice(0, 50)}... - Product Details`
       : `${skuDetails?.product?.displayName || 'Product Details'} - Product Details`;
-  
+
   return (
     <DetailPage
       title={pageTitle}
@@ -81,9 +79,9 @@ const ProductDetailPage: FC = () => {
         <CustomButton sx={{ minWidth: 160 }} onClick={refresh}>
           Refetch SKU Details
         </CustomButton>
-        <GoBackButton sx={{ minWidth: 160}} />
+        <GoBackButton sx={{ minWidth: 160 }} />
       </Box>
-      
+
       {/* Main Content */}
       {skuDetails && (
         <Box
@@ -118,16 +116,18 @@ const ProductDetailPage: FC = () => {
             {/* Zoom Dialog (renders on click) */}
             <ZoomImageDialog
               open={openZoom}
-              imageUrl={formatImageUrl(zoomImage?.image_url || primaryMainImage?.image_url || '')}
+              imageUrl={formatImageUrl(
+                zoomImage?.image_url || primaryMainImage?.image_url || ''
+              )}
               altText={primaryMainImage?.alt_text}
               onClose={() => setOpenZoom(false)}
             />
           </Box>
-          
+
           {/* Right: Metadata + Pricing */}
           <Box flex={1} minWidth={0}>
             <SkuDetailsSection data={skuDetails} />
-            
+
             <Box mt={5}>
               <CustomTypography variant="h5" mb={2}>
                 Pricing
@@ -137,7 +137,7 @@ const ProductDetailPage: FC = () => {
                 sx={{
                   p: 2,
                   borderRadius: 2,
-                  backgroundColor: theme => theme.palette.background.default,
+                  backgroundColor: (theme) => theme.palette.background.default,
                 }}
               >
                 <PriceDisplay prices={filteredPrices} />

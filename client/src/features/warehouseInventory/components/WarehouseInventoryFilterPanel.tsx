@@ -38,13 +38,14 @@ const WarehouseInventoryFilterPanel: FC<{
   visibleFields?: (keyof WarehouseInventoryFilters)[];
   showActionsWhenAll?: boolean;
 }> = (props) => {
-  const { control, handleSubmit, reset, watch } = useForm<WarehouseInventoryFilters>({
-    defaultValues: {
-      ...props.initialFilters,
-      batchType: undefined,
-    },
-  });
-  
+  const { control, handleSubmit, reset, watch } =
+    useForm<WarehouseInventoryFilters>({
+      defaultValues: {
+        ...props.initialFilters,
+        batchType: undefined,
+      },
+    });
+
   return (
     <BaseInventoryFilterPanel
       {...props}

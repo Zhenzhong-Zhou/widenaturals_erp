@@ -28,7 +28,7 @@ const healthErrorHandler = (err, req, res, next) => {
     logError(normalizedError, req, {
       context: 'health-check-handler',
     });
-    
+
     // Return a structured 503-Service Unavailable response
     return res.status(normalizedError.status).json({
       ...normalizedError.toJSON(),

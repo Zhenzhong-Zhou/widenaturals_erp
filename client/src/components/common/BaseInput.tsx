@@ -10,7 +10,7 @@ import { useThemeContext } from '@context/ThemeContext';
  */
 const BaseInput: FC<TextFieldProps> = ({ sx = {}, slotProps, ...props }) => {
   const { theme } = useThemeContext();
-  
+
   return (
     <TextField
       {...props}
@@ -27,10 +27,11 @@ const BaseInput: FC<TextFieldProps> = ({ sx = {}, slotProps, ...props }) => {
         '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
           borderColor: 'var(--primary-color)',
         },
-        '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
-          borderColor: 'var(--primary-color)',
-          boxShadow: `0 0 0 3px ${theme.palette.primary.light}`, // Keep dynamic for clarity
-        },
+        '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline':
+          {
+            borderColor: 'var(--primary-color)',
+            boxShadow: `0 0 0 3px ${theme.palette.primary.light}`, // Keep dynamic for clarity
+          },
         '& .MuiFormHelperText-root': {
           color: 'var(--text-secondary)',
         },

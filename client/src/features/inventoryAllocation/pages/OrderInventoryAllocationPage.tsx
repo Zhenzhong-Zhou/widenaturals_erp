@@ -9,19 +9,21 @@ import ErrorMessage from '@components/common/ErrorMessage';
 import GoBackButton from '@components/common/GoBackButton';
 import Loading from '@components/common/Loading';
 import useAllocationEligibleOrderDetails from '@hooks/useAllocationEligibleOrderDetails';
-import InventoryAllocationDetailsTable
-  from '@features/inventoryAllocation/components/InventoryAllocationDetailsTable';
+import InventoryAllocationDetailsTable from '@features/inventoryAllocation/components/InventoryAllocationDetailsTable';
 import { getStatusColor } from '@utils/statusColorUtils';
 import { useThemeContext } from '@context/ThemeContext';
 import CustomButton from '@components/common/CustomButton';
 import useProductsWarehouseDropdown from '@hooks/useProductsWarehouseDropdown';
 
 const OrderInventoryAllocationPage: FC = () => {
-  const { orderType, orderId } = useParams<{ orderType: string; orderId: string }>();
+  const { orderType, orderId } = useParams<{
+    orderType: string;
+    orderId: string;
+  }>();
   const location = useLocation();
   const { orderNumber } = (location.state || {}) as { orderNumber?: string };
   const { theme } = useThemeContext();
-  
+
   const {
     data: order,
     allocatableItems,
@@ -30,15 +32,16 @@ const OrderInventoryAllocationPage: FC = () => {
     fetchAllocationData,
     manualRefresh,
   } = useAllocationEligibleOrderDetails(orderId || '');
-  
-  const { warehouses, refreshWarehouses, warehouseLoading, warehouseError } = useProductsWarehouseDropdown();
-  
+
+  const { warehouses, refreshWarehouses, warehouseLoading, warehouseError } =
+    useProductsWarehouseDropdown();
+
   useEffect(() => {
     if (orderId) {
       fetchAllocationData();
     }
   }, [orderId, fetchAllocationData]);
-  
+
   if (!orderType || !orderId) {
     return (
       <ErrorDisplay>
@@ -46,11 +49,11 @@ const OrderInventoryAllocationPage: FC = () => {
       </ErrorDisplay>
     );
   }
-  
+
   if (eligibleOrderDetailsLoading) {
     return <Loading message="Loading allocation details..." />;
   }
-  
+
   if (error || warehouseError) {
     return (
       <ErrorDisplay>
@@ -58,7 +61,7 @@ const OrderInventoryAllocationPage: FC = () => {
       </ErrorDisplay>
     );
   }
-  
+
   return (
     <Box sx={{ p: 3 }}>
       <Stack
@@ -70,7 +73,7 @@ const OrderInventoryAllocationPage: FC = () => {
         <CustomTypography variant="h4">
           {orderNumber || order?.order_number} – Inventory Allocation
         </CustomTypography>
-        
+
         {order?.order_status && (
           <Chip
             label={order.order_status}
@@ -82,14 +85,12 @@ const OrderInventoryAllocationPage: FC = () => {
           />
         )}
       </Stack>
-      
+
       <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 3 }}>
         <GoBackButton />
-        <CustomButton onClick={manualRefresh}>
-          Refresh Data
-        </CustomButton>
+        <CustomButton onClick={manualRefresh}>Refresh Data</CustomButton>
       </Stack>
-      
+
       <InventoryAllocationDetailsTable
         items={allocatableItems}
         eligibleOrderDetailsLoading={eligibleOrderDetailsLoading}

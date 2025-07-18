@@ -6,19 +6,42 @@ const { fetchDynamicValue } = require('../03_utils');
  */
 exports.seed = async function (knex) {
   console.log('Seeding batches...');
-  
-  const activeStatusId = await fetchDynamicValue(knex, 'batch_status', 'name', 'active', 'id');
-  const suspendedStatusId = await fetchDynamicValue(knex, 'batch_status', 'name', 'suspended', 'id');
-  const systemActionId = await fetchDynamicValue(knex, 'users', 'email', 'system@internal.local', 'id');
-  
+
+  const activeStatusId = await fetchDynamicValue(
+    knex,
+    'batch_status',
+    'name',
+    'active',
+    'id'
+  );
+  const suspendedStatusId = await fetchDynamicValue(
+    knex,
+    'batch_status',
+    'name',
+    'suspended',
+    'id'
+  );
+  const systemActionId = await fetchDynamicValue(
+    knex,
+    'users',
+    'email',
+    'system@internal.local',
+    'id'
+  );
+
   // Load manufacturers
   const manufacturers = await knex('manufacturers').select('id', 'name');
   const manufacturerMap = {
-    'Phyto-Matrix Natural Technologies': manufacturers.find(m => m.name.includes('Phyto-Matrix'))?.id,
-    'Novastown Health': manufacturers.find(m => m.name.includes('Novastown'))?.id,
-    'Canadian Phytopharmaceuticals': manufacturers.find(m => m.name.includes('Canadian Phytopharmaceuticals'))?.id,
+    'Phyto-Matrix Natural Technologies': manufacturers.find((m) =>
+      m.name.includes('Phyto-Matrix')
+    )?.id,
+    'Novastown Health': manufacturers.find((m) => m.name.includes('Novastown'))
+      ?.id,
+    'Canadian Phytopharmaceuticals': manufacturers.find((m) =>
+      m.name.includes('Canadian Phytopharmaceuticals')
+    )?.id,
   };
-  
+
   // Lot data (standardized format)
   const lotData = [
     {
@@ -346,7 +369,7 @@ exports.seed = async function (knex) {
       quantity: 16,
       manufacturer: 'Canadian Phytopharmaceuticals',
     },
-    
+
     {
       product_name: 'NMN 3000',
       size_label: '60 Capsules',
@@ -473,7 +496,7 @@ exports.seed = async function (knex) {
       quantity: 388,
       manufacturer: 'Canadian Phytopharmaceuticals',
     },
-    
+
     {
       product_name: 'Seal Oil Omega-3 500mg',
       size_label: '120 Softgels',
@@ -493,12 +516,12 @@ exports.seed = async function (knex) {
       manufacturer: 'Novastown Health',
     },
   ];
-  
+
   const parseDate = (str) => {
     const d = new Date(str);
     return isNaN(d) ? null : d.toISOString().split('T')[0];
   };
-  
+
   const getSkuId = async (knex, name, size, country) => {
     const row = await knex('skus')
       .join('products', 'skus.product_id', 'products.id')
@@ -507,33 +530,44 @@ exports.seed = async function (knex) {
       .andWhere('skus.size_label', size)
       .andWhere('skus.country_code', country)
       .first();
-    
+
     return row?.id || null;
   };
-  
+
   const batches = [];
-  
+
   for (const entry of lotData) {
-    const skuId = await getSkuId(knex, entry.product_name, entry.size_label, entry.country_code);
+    const skuId = await getSkuId(
+      knex,
+      entry.product_name,
+      entry.size_label,
+      entry.country_code
+    );
     const manufacturerId = manufacturerMap[entry.manufacturer];
     const expiry = parseDate(entry.expiry_date);
-    
+
     if (!skuId) {
-      console.warn(`SKU not found for ${entry.product_name} | ${entry.size_label} | ${entry.country_code}`);
+      console.warn(
+        `SKU not found for ${entry.product_name} | ${entry.size_label} | ${entry.country_code}`
+      );
       continue;
     }
     if (!manufacturerId) {
-      console.warn(`Skipping batch: Unknown manufacturer "${entry.manufacturer}"`);
+      console.warn(
+        `Skipping batch: Unknown manufacturer "${entry.manufacturer}"`
+      );
       continue;
     }
     if (!expiry) {
-      console.warn(`Skipping batch: Invalid expiry date "${entry.expiry_date}"`);
+      console.warn(
+        `Skipping batch: Invalid expiry date "${entry.expiry_date}"`
+      );
       continue;
     }
-    
+
     const manufactureDate = new Date(expiry);
     manufactureDate.setFullYear(manufactureDate.getFullYear() - 3);
-    
+
     batches.push({
       id: knex.raw('uuid_generate_v4()'),
       lot_number: entry.lot_number,
@@ -555,9 +589,11 @@ exports.seed = async function (knex) {
       updated_by: null,
     });
   }
-  
-  console.log(`Prepared ${batches.length} valid batches out of ${lotData.length} total entries`);
-  
+
+  console.log(
+    `Prepared ${batches.length} valid batches out of ${lotData.length} total entries`
+  );
+
   if (batches.length > 0) {
     await knex('product_batches')
       .insert(batches)

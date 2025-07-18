@@ -4,7 +4,13 @@
  */
 
 const http = require('http');
-const { logSystemInfo, logSystemError, logMissingEnvVar, logSystemDebug, logSystemException } = require('./utils/system-logger');
+const {
+  logSystemInfo,
+  logSystemError,
+  logMissingEnvVar,
+  logSystemDebug,
+  logSystemException,
+} = require('./utils/system-logger');
 const AppError = require('./utils/AppError');
 const { handleExit } = require('./utils/on-exit');
 const app = require('./app');
@@ -34,50 +40,53 @@ const activeIntervals = new Set(); // Tracks active intervals for cleanup
 const startServer = async () => {
   const PORT = process.env.PORT;
   if (!PORT) {
-    const error = new AppError('PORT environment variable is missing or undefined');
+    const error = new AppError(
+      'PORT environment variable is missing or undefined'
+    );
     logMissingEnvVar('PORT', error);
     await handleExit(1);
   }
-  
+
   try {
     // Database initialization
     logSystemInfo('Initializing database...');
     await createDatabaseAndInitialize();
-    
+
     logSystemInfo('Testing database connection...');
     await testConnection();
     logSystemInfo('Database connected successfully.');
-    
+
     logSystemInfo('Initializing status ID cache...');
     await initStatusCache();
     logSystemInfo('Status ID cache initialized.');
-    
+
     // Root admin initialization
     logSystemInfo('Initializing root admin...');
     await initializeRootAdmin();
     logSystemInfo('Root admin initialization completed.');
-    
+
     // Starting the server
     logSystemInfo('Starting server...');
     server = http.createServer(app);
-    
+
     // Health check scheduling
-    const healthCheckInterval = parseInt(process.env.HEALTH_CHECK_INTERVAL, 10) || ONE_MINUTE;
+    const healthCheckInterval =
+      parseInt(process.env.HEALTH_CHECK_INTERVAL, 10) || ONE_MINUTE;
     await startHealthCheck(healthCheckInterval);
-    
+
     // Log health check at the same interval
     const healthCheckId = setInterval(() => {
       logSystemInfo('Health check running...');
     }, healthCheckInterval);
     activeIntervals.add(healthCheckId);
-    
+
     // Start pool monitoring
     startPoolMonitoring();
-    
+
     server.listen(PORT, () => {
       logSystemInfo(`Server running at http://localhost:${PORT}`);
     });
-    
+
     return server;
   } catch (error) {
     logSystemException(error, 'Failed to start server', {
@@ -167,7 +176,9 @@ const shutdownServer = async () => {
     logSystemInfo('Cleanup completed successfully.');
   } catch (error) {
     clearTimeout(timeout);
-    logSystemException(error, 'Error during shutdown', { severity: 'critical' });
+    logSystemException(error, 'Error during shutdown', {
+      severity: 'critical',
+    });
     await handleExit(1); // Exit with failure
   }
 };

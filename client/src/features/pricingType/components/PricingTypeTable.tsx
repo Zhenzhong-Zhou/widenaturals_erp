@@ -8,16 +8,16 @@ import { useThemeContext } from '@context/ThemeContext.tsx';
 import type { PricingTypeTableProps } from '../state';
 
 const PricingTypeTable: FC<PricingTypeTableProps> = ({
-                                                       data,
-                                                       page,
-                                                       rowsPerPage,
-                                                       totalRecords,
-                                                       totalPages,
-                                                       onPageChange,
-                                                       onRowsPerPageChange,
-                                                     }) => {
+  data,
+  page,
+  rowsPerPage,
+  totalRecords,
+  totalPages,
+  onPageChange,
+  onRowsPerPageChange,
+}) => {
   const { theme } = useThemeContext();
-  
+
   const columns: Column<PricingType>[] = [
     {
       id: 'name',
@@ -26,7 +26,11 @@ const PricingTypeTable: FC<PricingTypeTableProps> = ({
       renderCell: (row: PricingType) => (
         <Link
           to={`/pricing-types/${row.slug}/${row.id}`}
-          style={{ textDecoration: 'none', color: theme.palette.primary.main, fontWeight: 500 }}
+          style={{
+            textDecoration: 'none',
+            color: theme.palette.primary.main,
+            fontWeight: 500,
+          }}
         >
           {row.name}
         </Link>
@@ -35,7 +39,7 @@ const PricingTypeTable: FC<PricingTypeTableProps> = ({
     {
       id: 'code',
       label: 'Code',
-      sortable: false
+      sortable: false,
     },
     {
       id: 'slug',
@@ -81,7 +85,7 @@ const PricingTypeTable: FC<PricingTypeTableProps> = ({
       format: (value) => formatNullable(value),
     },
   ];
-  
+
   return (
     <CustomTable
       columns={columns}

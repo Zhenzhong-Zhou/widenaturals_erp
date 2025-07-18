@@ -19,18 +19,18 @@ interface WarehouseDropdownProps {
 }
 
 const WarehouseDropdown: FC<WarehouseDropdownProps> = ({
-                                                         label,
-                                                         options,
-                                                         value,
-                                                         onChange,
-                                                         onRefresh,
-                                                         searchable = true,
-                                                         disabled = false,
-                                                         loading = false,
-                                                       }) => {
+  label,
+  options,
+  value,
+  onChange,
+  onRefresh,
+  searchable = true,
+  disabled = false,
+  loading = false,
+}) => {
   // Optionally filter out disabled warehouses
   const filteredOptions = options.filter((w) => !w.disabled);
-  
+
   return (
     <Dropdown
       label={label}

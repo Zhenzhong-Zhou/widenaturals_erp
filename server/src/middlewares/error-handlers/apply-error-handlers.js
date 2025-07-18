@@ -28,7 +28,7 @@ const applyErrorHandlers = (app) => {
   logSystemInfo('Applying structured error handlers...', {
     context: 'error-handler-init',
   });
-  
+
   // Security and input-related error handlers
   app.use(helmetErrorHandler); // Helmet-related errors
   app.use(csrfErrorHandler); // CSRF token errors
@@ -56,7 +56,7 @@ const applyErrorHandlers = (app) => {
 
   // Global error handler (catch-all)
   app.use(globalErrorHandler); // Catch-all for uncaught errors
-  
+
   logSystemInfo('All error handlers successfully registered.', {
     context: 'error-handler-init',
     order: [

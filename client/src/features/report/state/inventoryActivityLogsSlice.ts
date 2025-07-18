@@ -1,84 +1,71 @@
-import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { createSlice } from '@reduxjs/toolkit';
 import {
-  exportInventoryActivityLogsThunk,
-  fetchInventoryActivityLogsThunk,
-  type InventoryActivityLogsResponse,
-  type InventoryActivityLogsState,
-} from '@features/report';
+  fetchBaseInventoryActivityLogsThunk,
+  fetchPaginatedInventoryActivityLogsThunk,
+} from '@features/report/state';
+import type { InventoryActivityLogsState } from '@features/report/state';
 
-/**
- * Initial state for Inventory Activity Logs
- * - Uses `ReportBaseState<InventoryActivityLog>`
- * - Ensures consistency with other reports
- */
 const initialState: InventoryActivityLogsState = {
-  data: [], // Now an array (not null) to prevent type errors
-  exportData: null,
-  exportFormat: null,
-  loading: false,
-  exportLoading: false,
-  error: null,
-  exportError: null,
-  pagination: { page: 1, limit: 50, totalRecords: 0, totalPages: 1 },
+  base: {
+    data: [],
+    loading: false,
+    error: null,
+  },
+  paginated: {
+    data: [],
+    pagination: {
+      page: 1,
+      limit: 20,
+      totalRecords: 0,
+      totalPages: 0,
+    },
+    loading: false,
+    error: null,
+  },
 };
 
-const inventoryLogsSlice = createSlice({
+export const inventoryActivityLogsSlice = createSlice({
   name: 'inventoryActivityLogs',
   initialState,
   reducers: {
     /**
-     * Reset function to clear all states
-     * - Ensures structure consistency
+     * Resets both base and paginated inventory log state to initial values.
      */
-    resetInventoryLogs: (state) => {
-      state.data = [];
-      state.exportData = null;
-      state.exportFormat = null;
-      state.loading = false;
-      state.exportLoading = false;
-      state.error = null;
-      state.exportError = null;
-      state.pagination = { page: 1, limit: 50, totalRecords: 0, totalPages: 1 };
-    },
+    resetActivityLogsState: () => initialState,
   },
   extraReducers: (builder) => {
+    // Base (non-paginated) logs
     builder
-      // Fetch Inventory Logs
-      .addCase(fetchInventoryActivityLogsThunk.pending, (state) => {
-        state.loading = true;
-        state.error = null;
+      .addCase(fetchBaseInventoryActivityLogsThunk.pending, (state) => {
+        state.base.loading = true;
+        state.base.error = null;
       })
-      .addCase(
-        fetchInventoryActivityLogsThunk.fulfilled,
-        (state, action: PayloadAction<InventoryActivityLogsResponse>) => {
-          state.loading = false;
-          state.data = action.payload.data; // Ensure it assigns correctly
-          state.pagination = action.payload.pagination;
-        }
-      )
-      .addCase(fetchInventoryActivityLogsThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
+      .addCase(fetchBaseInventoryActivityLogsThunk.fulfilled, (state, action) => {
+        state.base.loading = false;
+        state.base.data = action.payload.data;
       })
-
-      // Export Inventory Logs
-      .addCase(exportInventoryActivityLogsThunk.pending, (state) => {
-        state.exportLoading = true;
-        state.exportError = null;
+      .addCase(fetchBaseInventoryActivityLogsThunk.rejected, (state, action) => {
+        state.base.loading = false;
+        state.base.error = action.error.message ?? 'Failed to fetch base inventory logs.';
+      });
+    
+    // Paginated logs
+    builder
+      .addCase(fetchPaginatedInventoryActivityLogsThunk.pending, (state) => {
+        state.paginated.loading = true;
+        state.paginated.error = null;
       })
-      .addCase(
-        exportInventoryActivityLogsThunk.fulfilled,
-        (state, action: PayloadAction<Blob>) => {
-          state.exportLoading = false;
-          state.exportData = action.payload;
-        }
-      )
-      .addCase(exportInventoryActivityLogsThunk.rejected, (state, action) => {
-        state.exportLoading = false;
-        state.exportError = action.payload as string;
+      .addCase(fetchPaginatedInventoryActivityLogsThunk.fulfilled, (state, action) => {
+        state.paginated.loading = false;
+        state.paginated.data = action.payload.data;
+        state.paginated.pagination = action.payload.pagination;
+      })
+      .addCase(fetchPaginatedInventoryActivityLogsThunk.rejected, (state, action) => {
+        state.paginated.loading = false;
+        state.paginated.error = action.error.message ?? 'Failed to fetch paginated inventory logs.';
       });
   },
 });
 
-export const { resetInventoryLogs } = inventoryLogsSlice.actions;
-export default inventoryLogsSlice.reducer;
+export const { resetActivityLogsState } = inventoryActivityLogsSlice.actions;
+export default inventoryActivityLogsSlice.reducer;

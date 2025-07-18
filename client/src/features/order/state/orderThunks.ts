@@ -1,28 +1,13 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { dropdownService } from '@services/dropdownService';
 import {
   type AllocationEligibleOrderDetailsResponse,
   createOrderThunk,
   type CreateSalesOrderResponse,
   type OrderDetailsResponse,
   type OrderStatusUpdateResponse,
-  type OrderType,
   type SalesOrder,
 } from '@features/order';
 import { orderService } from '@services/orderService';
-
-export const fetchOrderTypesDropDownThunk = createAsyncThunk<
-  OrderType[], // Expected return type
-  void, // No arguments needed
-  { rejectValue: string } // Error type
->('orderTypes/fetchDropdown', async (_, { rejectWithValue }) => {
-  try {
-    return await dropdownService.fetchOrderTypesForDropdown(); // Must return OrderType[]
-  } catch (error) {
-    console.error('Error fetching order types:', error);
-    return rejectWithValue('Failed to fetch order types.');
-  }
-});
 
 // Define Thunk for creating a sales order
 export const createSalesOrderThunk = createAsyncThunk<
@@ -118,7 +103,9 @@ export const fetchAllocationEligibleOrderDetailsThunk = createAsyncThunk<
       return await orderService.fetchAllocationEligibleOrderDetails(orderId);
     } catch (error: any) {
       console.error('Thunk error:', error);
-      return rejectWithValue(error.message ?? 'Failed to load order allocation data.');
+      return rejectWithValue(
+        error.message ?? 'Failed to load order allocation data.'
+      );
     }
   }
 );

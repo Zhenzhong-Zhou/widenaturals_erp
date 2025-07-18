@@ -1,6 +1,12 @@
 import { useEffect, useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks.ts';
-import { selectPrimaryMainImage, selectSkuDetails, selectSkuDetailsError, selectSkuDetailsLoading, selectSkuImages } from '@features/product/state/skuDetailsSelectors';
+import {
+  selectPrimaryMainImage,
+  selectSkuDetails,
+  selectSkuDetailsError,
+  selectSkuDetailsLoading,
+  selectSkuImages,
+} from '@features/product/state/skuDetailsSelectors';
 import { fetchSkuDetailsThunk } from '@features/product/state';
 
 /**
@@ -15,13 +21,13 @@ import { fetchSkuDetailsThunk } from '@features/product/state';
  */
 const useSkuDetails = (skuId: string, autoFetch = true) => {
   const dispatch = useAppDispatch();
-  
+
   const skuDetails = useAppSelector(selectSkuDetails);
   const skuDetailsLoading = useAppSelector(selectSkuDetailsLoading);
   const skuDetailsError = useAppSelector(selectSkuDetailsError);
   const skuImages = useAppSelector(selectSkuImages);
   const primaryMainImage = useAppSelector(selectPrimaryMainImage);
-  
+
   /**
    * Manually re-fetches SKU details by dispatching the async thunk.
    */
@@ -30,13 +36,13 @@ const useSkuDetails = (skuId: string, autoFetch = true) => {
       dispatch(fetchSkuDetailsThunk(skuId));
     }
   }, [dispatch, skuId]);
-  
+
   useEffect(() => {
     if (autoFetch) {
       refresh();
     }
   }, [autoFetch, refresh]);
-  
+
   return {
     skuDetails,
     skuDetailsLoading,

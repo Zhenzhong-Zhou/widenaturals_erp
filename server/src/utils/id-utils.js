@@ -1,6 +1,5 @@
 const { randomUUID } = require('crypto');
 
-
 /**
  * Generates a custom trace ID based on a timestamp and a UUID-derived random suffix.
  *
@@ -14,7 +13,10 @@ const { randomUUID } = require('crypto');
  * generateTraceId('tx'); // → tx-20240509123000-abc123ef
  */
 const generateTraceId = (prefix = 'trace') => {
-  const timestamp = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14); // YYYYMMDDHHMMSS
+  const timestamp = new Date()
+    .toISOString()
+    .replace(/[-:TZ.]/g, '')
+    .slice(0, 14); // YYYYMMDDHHMMSS
   const random = randomUUID().replace(/-/g, '').substring(0, 8); // 8-char alphanumeric
   return `${prefix}-${timestamp}-${random}`;
 };
@@ -33,5 +35,5 @@ const isUUID = (value) => {
 
 module.exports = {
   generateTraceId,
-  isUUID
+  isUUID,
 };

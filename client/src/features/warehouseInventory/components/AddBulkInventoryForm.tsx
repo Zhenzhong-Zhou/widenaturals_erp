@@ -1,7 +1,15 @@
-import { useMemo, useState, type ChangeEvent, type Dispatch, type FC, type SetStateAction } from 'react';
-import MultiItemForm, { type MultiItemFieldConfig } from '@components/common/MultiItemForm';
-import WarehouseDropdown from '@features/dropdown/components/WarehouseDropdown';
-import BatchRegistryDropdown from '@features/dropdown/components/BatchRegistryDropdown';
+import {
+  useMemo,
+  useState,
+  type Dispatch,
+  type FC,
+  type SetStateAction,
+} from 'react';
+import MultiItemForm, {
+  type MultiItemFieldConfig,
+} from '@components/common/MultiItemForm';
+import WarehouseDropdown from '@features/lookup/components/WarehouseDropdown';
+import BatchRegistryDropdown from '@features/lookup/components/BatchRegistryDropdown';
 import CustomDatePicker from '@components/common/CustomDatePicker';
 import Grid from '@mui/material/Grid';
 import FormControl from '@mui/material/FormControl';
@@ -9,55 +17,66 @@ import FormLabel from '@mui/material/FormLabel';
 import RadioGroup from '@mui/material/RadioGroup';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Radio from '@mui/material/Radio';
-import type { GetBatchRegistryDropdownParams, GetWarehouseDropdownFilters } from '@features/dropdown/state';
+import type {
+  BatchLookupOption,
+  GetBatchRegistryLookupParams,
+  LookupPaginationMeta,
+} from '@features/lookup/state';
+import { useBatchTypeHandler } from '../hooks/useBatchTypeHandler';
+import { getVisibleBatchOptions } from '../utils/getVisibleBatchOptions';
+import type { BatchType } from '@features/inventoryShared/types/InventorySharedType.ts';
 
 interface AddBulkInventoryFormProps {
   onSubmit: (formData: Record<string, any>) => void;
   loading?: boolean;
-  batchDropdownOptions: { value: string; label: string }[];
-  batchDropdownParams: GetBatchRegistryDropdownParams;
-  setBatchDropdownParams: Dispatch<SetStateAction<GetBatchRegistryDropdownParams>>;
-  fetchBatchDropdown: (params: GetBatchRegistryDropdownParams) => void;
-  hasMore: boolean;
-  pagination?: { limit: number; offset: number };
-  batchDropdownLoading?: boolean;
-  batchDropdownError?: string | null;
-  warehouseDropdownOptions: { value: string; label: string }[];
+  batchLookupOptions: BatchLookupOption[];
+  batchLookupParams: GetBatchRegistryLookupParams;
+  setBatchLookupParams: Dispatch<
+    SetStateAction<GetBatchRegistryLookupParams>
+  >;
+  fetchBatchLookup: (params: GetBatchRegistryLookupParams) => void;
+  resetBatchLookup: () => void;
+  batchLookupPaginationMeta: LookupPaginationMeta;
+  batchLookupLoading?: boolean;
+  batchLookupError?: string | null;
+  warehouseLookupOptions: { value: string; label: string }[];
   selectedWarehouse: { warehouseId: string; locationId: string } | null;
-  setSelectedWarehouse: (w: { warehouseId: string; locationId: string } | null) => void;
-  fetchWarehouseDropdown: (params: GetWarehouseDropdownFilters) => void;
-  warehouseDropdownLoading?: boolean;
-  warehouseDropdownError?: string | null;
+  setSelectedWarehouse: (
+    w: { warehouseId: string; locationId: string } | null
+  ) => void;
+  fetchWarehouseLookup: (filters?: { warehouseTypeId?: string }) => void;
+  warehouseLookupLoading?: boolean;
+  warehouseLookupError?: string | null;
 }
 
 const AddBulkInventoryForm: FC<AddBulkInventoryFormProps> = ({
-                                                               onSubmit,
-                                                               loading,
-                                                               batchDropdownOptions,
-                                                               batchDropdownParams,
-                                                               setBatchDropdownParams,
-                                                               fetchBatchDropdown,
-                                                               hasMore,
-                                                               pagination,
-                                                               batchDropdownLoading,
-                                                               batchDropdownError,
-                                                               warehouseDropdownOptions,
-                                                               selectedWarehouse,
-                                                               setSelectedWarehouse,
-                                                               fetchWarehouseDropdown,
-                                                               warehouseDropdownLoading,
-                                                               warehouseDropdownError,
-                                                             }) => {
-  const [batchType, setBatchType] = useState<'product' | 'packaging_material' | 'all'>('all');
+  onSubmit,
+  loading,
+  batchLookupOptions,
+  batchLookupParams,
+  setBatchLookupParams,
+  fetchBatchLookup,
+  resetBatchLookup,
+  batchLookupPaginationMeta,
+  batchLookupLoading,
+  batchLookupError,
+  warehouseLookupOptions,
+  selectedWarehouse,
+  setSelectedWarehouse,
+  fetchWarehouseLookup,
+  warehouseLookupLoading,
+  warehouseLookupError,
+}) => {
+  const [batchType, setBatchType] = useState<BatchType>('all');
   
-  const handleBatchTypeChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const value = event.target.value as 'product' | 'packaging_material' | 'all';
-    setBatchType(value);
-    setBatchDropdownParams((prev: GetBatchRegistryDropdownParams) => ({
-      ...prev,
-      batchType: value === 'all' ? undefined : value,
-    }));
-  };
+  const visibleOptions = getVisibleBatchOptions(batchType, batchLookupOptions);
+  
+  const { handleBatchTypeChange } = useBatchTypeHandler({
+    setBatchType,
+    setBatchLookupParams,
+    resetBatchLookup,
+    fetchBatchLookup,
+  });
   
   const fields: MultiItemFieldConfig[] = useMemo(() => {
     const baseFields: MultiItemFieldConfig[] = [
@@ -83,25 +102,25 @@ const AddBulkInventoryForm: FC<AddBulkInventoryFormProps> = ({
               }
               setSelectedWarehouse({ warehouseId, locationId });
               onChange(`${warehouseId}::${locationId}`);
-              
-              setBatchDropdownParams((prev) => ({
+
+              setBatchLookupParams((prev) => ({
                 ...prev,
                 warehouseId,
                 locationId,
               }));
             }}
-            warehouseDropdownOptions={warehouseDropdownOptions}
-            warehouseDropdownLoading={warehouseDropdownLoading}
-            warehouseDropdownError={warehouseDropdownError}
-            onRefresh={fetchWarehouseDropdown}
+            warehouseLookupOptions={warehouseLookupOptions}
+            warehouseLookupLoading={warehouseLookupLoading}
+            warehouseLookupError={warehouseLookupError}
+            onRefresh={fetchWarehouseLookup}
             disabled={disabled}
           />
         ),
       },
     ];
-    
+
     if (!selectedWarehouse) return baseFields;
-    
+
     return [
       ...baseFields,
       {
@@ -113,7 +132,7 @@ const AddBulkInventoryForm: FC<AddBulkInventoryFormProps> = ({
         component: ({ value, onChange }) => (
           <Grid container spacing={2}>
             {/* Left: Batch Type RadioGroup */}
-            <Grid size={{xs:12, sm:6}}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <FormControl component="fieldset" fullWidth>
                 <FormLabel component="legend">Batch Type</FormLabel>
                 <RadioGroup
@@ -122,32 +141,47 @@ const AddBulkInventoryForm: FC<AddBulkInventoryFormProps> = ({
                   value={batchType}
                   onChange={handleBatchTypeChange}
                 >
-                  <FormControlLabel value="all" control={<Radio />} label="All" />
-                  <FormControlLabel value="product" control={<Radio />} label="Product" />
-                  <FormControlLabel value="packaging_material" control={<Radio />} label="Packaging" />
+                  <FormControlLabel
+                    value="all"
+                    control={<Radio />}
+                    label="All"
+                  />
+                  <FormControlLabel
+                    value="product"
+                    control={<Radio />}
+                    label="Product"
+                  />
+                  <FormControlLabel
+                    value="packaging_material"
+                    control={<Radio />}
+                    label="Packaging"
+                  />
                 </RadioGroup>
               </FormControl>
             </Grid>
-            
-            {/* Right: Batch Registry Dropdown */}
-            <Grid size={{xs:12, sm:6}}>
+
+            {/* Right: Batch Registry lookup */}
+            <Grid size={{ xs: 12, sm: 6 }}>
               <BatchRegistryDropdown
                 value={value || null}
-                options={batchDropdownOptions}
+                options={visibleOptions}
                 onChange={(val) => {
                   onChange(val ?? '');
                 }}
-                loading={batchDropdownLoading}
-                error={batchDropdownError}
-                hasMore={hasMore}
-                pagination={pagination}
+                loading={batchLookupLoading}
+                error={batchLookupError}
+                paginationMeta={batchLookupPaginationMeta}
                 fetchParams={{
-                  ...batchDropdownParams,
+                  ...batchLookupParams,
                   warehouseId: selectedWarehouse?.warehouseId,
                   locationId: selectedWarehouse?.locationId,
                 }}
-                setFetchParams={setBatchDropdownParams}
-                onRefresh={fetchBatchDropdown}
+                setFetchParams={setBatchLookupParams}
+                onRefresh={fetchBatchLookup}
+                noOptionsMessage={
+                  visibleOptions.length === 0
+                    ? 'No matching batches found' : ''
+                }
               />
             </Grid>
           </Grid>
@@ -184,36 +218,33 @@ const AddBulkInventoryForm: FC<AddBulkInventoryFormProps> = ({
       {
         id: 'comments',
         label: 'Comments',
-        type: 'text',
+        type: 'textarea',
       },
     ];
   }, [
     selectedWarehouse,
     batchType,
-    warehouseDropdownOptions,
-    warehouseDropdownLoading,
-    warehouseDropdownError,
-    fetchWarehouseDropdown,
-    batchDropdownOptions,
-    batchDropdownError,
-    batchDropdownLoading,
-    hasMore,
-    pagination,
-    batchDropdownParams,
-    setBatchDropdownParams,
-    fetchBatchDropdown,
+    warehouseLookupOptions,
+    warehouseLookupLoading,
+    warehouseLookupError,
+    fetchWarehouseLookup,
+    batchLookupOptions,
+    batchLookupError,
+    batchLookupLoading,
+    batchLookupPaginationMeta,
+    batchLookupParams,
+    setBatchLookupParams,
+    fetchBatchLookup,
     setSelectedWarehouse,
   ]);
-  
+
   return (
     <MultiItemForm
       fields={fields}
       onSubmit={onSubmit}
       validation={() =>
         Object.fromEntries(
-          fields
-            .filter((f) => f.validation)
-            .map((f) => [f.id, f.validation!])
+          fields.filter((f) => f.validation).map((f) => [f.id, f.validation!])
         )
       }
       loading={loading}

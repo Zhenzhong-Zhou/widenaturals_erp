@@ -1,37 +1,86 @@
 const {
-  createOrderByType,
+  createOrderService,
   fetchOrderDetails,
   fetchAllOrdersService,
-  confirmOrderService, fetchAllocationEligibleOrdersService, fetchAllocationEligibleOrderDetails,
+  confirmOrderService,
+  fetchAllocationEligibleOrdersService,
+  fetchAllocationEligibleOrderDetails,
 } = require('../services/order-service');
 const AppError = require('../utils/AppError');
 const wrapAsync = require('../utils/wrap-async');
-const { logError } = require('../utils/logger-helper');
+const { logSystemInfo, logSystemWarn } = require('../utils/system-logger');
 
 /**
- * API Controller for creating an order.
+ * Controller to handle creating a new order.
+ *
+ * This controller:
+ * - Validates that `category` is provided in the route params.
+ * - Validates that `orderTypeCode` is provided in the request body.
+ * - Validates that the request body contains order data.
+ * - Automatically injects creator info (`created_by`).
+ * - Delegates creation logic to the service layer.
+ * - Returns a 201 response with the created order details.
+ *
+ * Logs warnings for validation failures and info on success.
+ *
+ * @param {import('express').Request} req - Express request object. Expects:
+ *   - `params.category`: string (required)
+ *   - `body.orderTypeCode`: string (required)
+ *   - `body`: object containing order payload
+ *   - `user`: authenticated user object
+ * @param {import('express').Response} res - Express response object
+ * @param {import('express').NextFunction} next - Express next middleware function
+ *
+ * @returns {Promise<void>} - Sends a JSON response or passes error to next()
  */
 const createOrderController = wrapAsync(async (req, res, next) => {
-  try {
-    const { orderTypeId } = req.params; // Extract order type ID from URL
-    const orderData = req.body;
-
-    if (!orderTypeId) {
-      throw AppError.validationError('Order type is required.');
-    }
-
-    orderData.created_by = req.user.id; // Extract `created_by` from token
-    orderData.order_type_id = orderTypeId; // Assign order type ID
-
-    const { salesOrder } = await createOrderByType(orderData);
-    res.status(201).json({
-      success: true,
-      message: 'Order created successfully.',
-      salesOrderId: salesOrder.id,
+  const { category } = req.params;
+  const orderData = req.body;
+  const user = req.user;
+  const userId = user?.id;
+  
+  if (!category) {
+    logSystemWarn('Missing category in request params', {
+      context: 'order-controller/createOrderController',
+      userId,
     });
-  } catch (error) {
-    next(error);
+    return next(AppError.validationError('Order category is required.'));
   }
+  
+  const cleanCategory = category.trim().toLowerCase();
+  
+  if (!orderData || typeof orderData !== 'object') {
+    logSystemWarn('Missing or invalid order data payload', {
+      context: 'order-controller/createOrderController',
+      userId,
+      category: cleanCategory,
+    });
+    return next(AppError.validationError('Order data payload is required.'));
+  }
+  
+  // Inject creator info
+  orderData.created_by = userId;
+  
+  logSystemInfo('Starting order creation', {
+    context: 'order-controller/createOrderController',
+    userId,
+    category: cleanCategory,
+  });
+  
+  const result = await createOrderService(orderData, cleanCategory, user);
+  
+  logSystemInfo('Order created successfully', {
+    context: 'order-controller/createOrderController',
+    userId,
+    category: cleanCategory,
+    orderId: result.baseOrderId,
+  });
+  
+  res.status(201).json({
+    success: true,
+    message: 'Order created successfully',
+    data: result,
+  });
 });
 
 /**
@@ -74,9 +123,9 @@ const createOrderFetchController = (serviceFn) =>
         sortOrder = 'DESC',
         verifyOrderNumbers = true,
       } = req.query;
-      
+
       const verifyOrderNumbersBool = verifyOrderNumbers !== 'false';
-      
+
       const result = await serviceFn({
         page: Number(page),
         limit: Number(limit),
@@ -84,7 +133,7 @@ const createOrderFetchController = (serviceFn) =>
         sortOrder,
         verifyOrderNumbers: verifyOrderNumbersBool,
       });
-      
+
       res.status(200).json({
         success: true,
         message: 'Orders fetched successfully',
@@ -103,7 +152,9 @@ const createOrderFetchController = (serviceFn) =>
  *
  * @type {Function}
  */
-const getAllOrdersController = createOrderFetchController(fetchAllOrdersService);
+const getAllOrdersController = createOrderFetchController(
+  fetchAllOrdersService
+);
 
 /**
  * Controller to handle fetching orders eligible for inventory allocation.
@@ -111,7 +162,9 @@ const getAllOrdersController = createOrderFetchController(fetchAllOrdersService)
  *
  * @type {Function}
  */
-const getAllocationEligibleOrdersController = createOrderFetchController(fetchAllocationEligibleOrdersService);
+const getAllocationEligibleOrdersController = createOrderFetchController(
+  fetchAllocationEligibleOrdersService
+);
 
 /**
  * Controller to confirm an order and its items.
@@ -145,24 +198,21 @@ const confirmOrderController = wrapAsync(async (req, res, next) => {
  * @route GET /api/orders/:orderId/allocation
  * @access Protected
  */
-const getAllocationEligibleOrderDetailsController = wrapAsync(async (req, res) => {
-  const { orderId } = req.params;
-  const user = req.user;
-  
-  const order = await fetchAllocationEligibleOrderDetails(orderId, user);
-  
-  res.status(200).json({
-    success: true,
-    message: 'Confirmed order allocation data fetched successfully',
-    data: order,
-  });
-});
+const getAllocationEligibleOrderDetailsController = wrapAsync(
+  async (req, res) => {
+    const { orderId } = req.params;
+    const user = req.user;
+
+    const order = await fetchAllocationEligibleOrderDetails(orderId, user);
+
+    res.status(200).json({
+      success: true,
+      message: 'Confirmed order allocation data fetched successfully',
+      data: order,
+    });
+  }
+);
 
 module.exports = {
   createOrderController,
-  getOrderDetailsController,
-  getAllOrdersController,
-  getAllocationEligibleOrdersController,
-  confirmOrderController,
-  getAllocationEligibleOrderDetailsController,
 };

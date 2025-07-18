@@ -15,12 +15,16 @@ import type { InventorySummaryDetailByItemIdParams } from '@features/inventorySh
  */
 const useWarehouseInventorySummaryByItemId = () => {
   const dispatch = useAppDispatch();
-  
+
   const data = useAppSelector(selectWarehouseInventorySummaryItemDetailsData);
-  const pagination = useAppSelector(selectWarehouseInventorySummaryItemDetailsPagination);
-  const loading = useAppSelector(selectWarehouseInventorySummaryItemDetailsLoading);
+  const pagination = useAppSelector(
+    selectWarehouseInventorySummaryItemDetailsPagination
+  );
+  const loading = useAppSelector(
+    selectWarehouseInventorySummaryItemDetailsLoading
+  );
   const error = useAppSelector(selectWarehouseInventorySummaryItemDetailsError);
-  
+
   /**
    * Fetch warehouse inventory summary detail by item ID.
    *
@@ -32,7 +36,7 @@ const useWarehouseInventorySummaryByItemId = () => {
     },
     [dispatch]
   );
-  
+
   return useMemo(
     () => ({
       data,

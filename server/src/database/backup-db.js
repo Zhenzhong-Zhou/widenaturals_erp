@@ -9,10 +9,13 @@ const {
   cleanupOldBackups,
 } = require('./file-management');
 const { encryptFile } = require('./encryption');
-const { logInfo, logError } = require('../utils/logger-helper');
 const AppError = require('../utils/AppError');
 const { uploadFileToS3 } = require('../utils/aws-s3-service');
-const { logSystemError, logSystemInfo, logSystemException } = require('../utils/system-logger');
+const {
+  logSystemError,
+  logSystemInfo,
+  logSystemException,
+} = require('../utils/system-logger');
 
 // Load environment variables
 loadEnv();
@@ -30,7 +33,6 @@ const ivFile = `${encryptedFile}.iv`; // Initialization vector file path
 const hashFile = `${encryptedFile}.sha256`; // Hash file path
 const dbUser = process.env.DB_USER;
 const dbPassword = process.env.DB_PASSWORD;
-const pgDumpPath = process.env.PG_DUMP_PATH || 'pg_dump'; // Path to the pg_dump binary
 const maxBackups = parseInt(process.env.MAX_BACKUPS, 10) || 15; // Maximum number of backups to keep
 const bucketName = process.env.AWS_S3_BUCKET_NAME; // S3 Bucket name
 
@@ -41,7 +43,7 @@ if (!Number.isInteger(maxBackups) || maxBackups <= 0 || maxBackups % 3 !== 0) {
     context: 'backup-config',
     severity: 'critical',
   });
-  
+
   throw AppError.validationError(
     `Invalid MAX_BACKUPS value: ${maxBackups}. It must be a positive multiple of 3 (e.g., 3, 6, 9, etc.).`
   );
@@ -62,7 +64,7 @@ const backupDatabase = async () => {
       context: 'backup',
       backupDir,
     });
-    
+
     // Build the pg_dump argument list
     const dumpArgs = [
       '--format=custom',
@@ -76,7 +78,7 @@ const backupDatabase = async () => {
 
     // Run pg_dump safely with spawn
     await runPgDump(dumpArgs, isProduction, dbUser, dbPassword);
-    
+
     // Encrypt the SQL backup file
     const encryptionKey = process.env.BACKUP_ENCRYPTION_KEY;
     if (!encryptionKey || Buffer.from(encryptionKey, 'hex').length !== 32) {
@@ -90,18 +92,18 @@ const backupDatabase = async () => {
     // Remove the plain-text backup file
     await fs.unlink(backupFile);
 
-    // Generate a SHA-256 hash of the encrypted file
+    // Generate an SHA-256 hash of the encrypted file
     const hash = await generateHash(encryptedFile);
     await saveHashToFile(hash, hashFile);
 
     // Cleanup old backups
     await cleanupOldBackups(backupDir, maxBackups, isProduction, bucketName);
-    
+
     logSystemInfo('Backup encrypted and saved', {
       context: 'backup',
       encryptedFile,
     });
-    
+
     // Upload to S3 if in production
     if (isProduction && bucketName) {
       try {
@@ -124,7 +126,7 @@ const backupDatabase = async () => {
           'application/octet-stream'
         );
         await uploadFileToS3(hashFile, bucketName, s3KeySha256, 'text/plain');
-        
+
         logSystemInfo('Successfully uploaded backup files to S3', {
           context: 'backup-upload',
           files: [s3KeyEnc, s3KeyIv, s3KeySha256],
@@ -135,17 +137,24 @@ const backupDatabase = async () => {
         await fs.unlink(ivFile); // Also delete the initialization vector
         await fs.unlink(hashFile); // And the hash file
       } catch (uploadError) {
-        logSystemException(uploadError, 'Failed to upload encrypted backup to S3', {
-          context: 'backup-upload',
-          severity: 'error',
-        });
-        
+        logSystemException(
+          uploadError,
+          'Failed to upload encrypted backup to S3',
+          {
+            context: 'backup-upload',
+            severity: 'error',
+          }
+        );
+
         throw uploadError;
       }
     } else {
-      logSystemInfo('Skipping S3 upload: Not in production or no bucket name provided.', {
-        context: 'backup-upload',
-      });
+      logSystemInfo(
+        'Skipping S3 upload: Not in production or no bucket name provided.',
+        {
+          context: 'backup-upload',
+        }
+      );
     }
   } catch (error) {
     logSystemException(error, 'Error during backup operation', {

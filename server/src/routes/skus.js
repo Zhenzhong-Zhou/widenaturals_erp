@@ -1,7 +1,7 @@
 const express = require('express');
 const {
   getActiveSkuProductCardsController,
-  getSkuDetailsController
+  getSkuDetailsController,
 } = require('../controllers/sku-controller');
 
 const router = express.Router();

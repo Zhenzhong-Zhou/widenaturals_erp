@@ -9,15 +9,15 @@ const SENSITIVE_KEYWORDS = require('./sensitive-keywords');
  */
 const maskSensitiveParams = (params) => {
   if (!params) return params;
-  
+
   return Array.isArray(params)
     ? params.map(maskValue)
     : Object.fromEntries(
-      Object.entries(params).map(([key, value]) => [
-        key,
-        isSensitiveKey(key) ? '[REDACTED]' : maskValue(value),
-      ])
-    );
+        Object.entries(params).map(([key, value]) => [
+          key,
+          isSensitiveKey(key) ? '[REDACTED]' : maskValue(value),
+        ])
+      );
 };
 
 const isSensitiveKey = (key) =>

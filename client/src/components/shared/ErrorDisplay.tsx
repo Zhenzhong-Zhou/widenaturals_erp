@@ -14,10 +14,14 @@ interface ErrorDisplayProps {
   children?: ReactNode;
 }
 
-const ErrorDisplay: FC<ErrorDisplayProps> = ({ message, onRetry, children }) => {
+const ErrorDisplay: FC<ErrorDisplayProps> = ({
+  message,
+  onRetry,
+  children,
+}) => {
   const csrfStatus = useAppSelector(selectCsrfStatus);
   const csrfError = useAppSelector(selectCsrfError);
-  
+
   const navigate = useNavigate();
 
   // Monitor CSRF status and handle potential issues
@@ -29,7 +33,7 @@ const ErrorDisplay: FC<ErrorDisplayProps> = ({ message, onRetry, children }) => 
       return 'An error occurred during CSRF token initialization.';
     }
   })();
-  
+
   return (
     <Box
       sx={{
@@ -56,7 +60,7 @@ const ErrorDisplay: FC<ErrorDisplayProps> = ({ message, onRetry, children }) => 
       >
         {message || csrfErrorMessage || 'An unexpected error occurred.'}
       </CustomTypography>
-      
+
       {children && (
         <Box
           sx={{
@@ -74,7 +78,7 @@ const ErrorDisplay: FC<ErrorDisplayProps> = ({ message, onRetry, children }) => 
           {children}
         </Box>
       )}
-      
+
       {onRetry && (
         <CustomButton
           variant="contained"
@@ -85,10 +89,10 @@ const ErrorDisplay: FC<ErrorDisplayProps> = ({ message, onRetry, children }) => 
           Retry
         </CustomButton>
       )}
-      
+
       <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
         <GoBackButton />
-        
+
         <CustomButton
           variant="outlined"
           color="secondary"

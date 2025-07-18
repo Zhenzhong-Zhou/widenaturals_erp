@@ -2,7 +2,8 @@ const wrapAsync = require('../utils/wrap-async');
 const {
   fetchPaginatedPricingRecordsService,
   fetchPricingDetailsByPricingTypeId,
-  fetchPriceByProductAndPriceType, exportPricingRecordsService,
+  fetchPriceByProductAndPriceType,
+  exportPricingRecordsService,
 } = require('../services/pricing-service');
 const { logInfo } = require('../utils/logger-helper');
 const { exportData } = require('../utils/export-utils');
@@ -28,11 +29,11 @@ const getPaginatedPricingRecordsController = wrapAsync(async (req, res) => {
     validFrom,
     validTo,
   } = req.query;
-  
+
   // Parse and normalize numeric values
   const parsedPage = parseInt(page, 10) || 1;
   const parsedLimit = parseInt(limit, 10) || 10;
-  
+
   // Build filters object
   const filters = {
     ...(brand && { brand }),
@@ -42,7 +43,7 @@ const getPaginatedPricingRecordsController = wrapAsync(async (req, res) => {
     ...(validFrom && { validFrom }),
     ...(validTo && { validTo }),
   };
-  
+
   const pricingData = await fetchPaginatedPricingRecordsService({
     page: parsedPage,
     limit: parsedLimit,
@@ -51,7 +52,7 @@ const getPaginatedPricingRecordsController = wrapAsync(async (req, res) => {
     filters,
     keyword,
   });
-  
+
   return res.status(200).json({
     success: true,
     message: 'Pricing records fetched successfully.',
@@ -67,13 +68,9 @@ const getPaginatedPricingRecordsController = wrapAsync(async (req, res) => {
  * @param {Response} res - Express response object
  */
 const exportPricingRecordsController = wrapAsync(async (req, res) => {
-  const {
-    exportFormat,
-    brand,
-    pricingType,
-    countryCode,
-    sizeLabel, } = req.query;
-  
+  const { exportFormat, brand, pricingType, countryCode, sizeLabel } =
+    req.query;
+
   // Build filters object
   const filters = {
     ...(brand && { brand }),
@@ -81,18 +78,18 @@ const exportPricingRecordsController = wrapAsync(async (req, res) => {
     ...(countryCode && { countryCode }),
     ...(sizeLabel && { sizeLabel }),
   };
-  
+
   const context = 'pricing-controller/exportPricingRecordsController';
-  
+
   logInfo('Starting pricing export', req, {
     context,
     exportFormat,
     filters,
   });
-  
+
   // Fetch raw export data using filters
   const exportRows = await exportPricingRecordsService(filters, exportFormat);
-  
+
   // Export a final file using utility (handles formatting and content-type), handles an empty case inside
   const { fileBuffer, contentType, filename } = await exportData({
     data: exportRows,
@@ -100,9 +97,12 @@ const exportPricingRecordsController = wrapAsync(async (req, res) => {
     filename: 'pricing_export',
     title: 'Pricing Export',
   });
-  
+
   res.setHeader('Content-Type', contentType);
-  res.setHeader('Content-Disposition', `attachment; filename="${generateTimestampedFilename(filename)}"`);
+  res.setHeader(
+    'Content-Disposition',
+    `attachment; filename="${generateTimestampedFilename(filename)}"`
+  );
   res.status(200).send(fileBuffer);
 });
 

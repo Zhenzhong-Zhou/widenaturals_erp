@@ -5,12 +5,22 @@
 exports.up = async function (knex) {
   await knex.schema.createTable('location_inventory', (table) => {
     table.uuid('id').primary().defaultTo(knex.raw('uuid_generate_v4()'));
-    table.uuid('batch_id').nullable().references('id').inTable('batch_registry').index();
-    table.uuid('location_id').notNullable().references('id').inTable('locations').index();
-    
+    table
+      .uuid('batch_id')
+      .nullable()
+      .references('id')
+      .inTable('batch_registry')
+      .index();
+    table
+      .uuid('location_id')
+      .notNullable()
+      .references('id')
+      .inTable('locations')
+      .index();
+
     table.integer('location_quantity').notNullable().defaultTo(0);
     table.integer('reserved_quantity').notNullable().defaultTo(0);
-    
+
     table.timestamp('inbound_date', { useTz: true }).notNullable().index();
     table.timestamp('outbound_date', { useTz: true }).nullable().index();
     table.timestamp('last_update', { useTz: true }).defaultTo(knex.fn.now());
@@ -21,8 +31,14 @@ exports.up = async function (knex) {
       .references('id')
       .inTable('inventory_status')
       .index();
-    table.timestamp('status_date', { useTz: true }).defaultTo(knex.fn.now()).index();
-    table.timestamp('created_at', { useTz: true }).defaultTo(knex.fn.now()).index();
+    table
+      .timestamp('status_date', { useTz: true })
+      .defaultTo(knex.fn.now())
+      .index();
+    table
+      .timestamp('created_at', { useTz: true })
+      .defaultTo(knex.fn.now())
+      .index();
     table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
 
     table.uuid('created_by').references('id').inTable('users');
@@ -33,12 +49,20 @@ exports.up = async function (knex) {
 
   await knex.raw(`
     ALTER TABLE location_inventory
-    ADD CONSTRAINT inventory_location_quantity_check CHECK (location_quantity >= 0);
+    ADD CONSTRAINT inventory_location_quantity_check
+    CHECK (location_quantity >= 0);
   `);
-  
+
   await knex.raw(`
     ALTER TABLE location_inventory
-    ADD CONSTRAINT inventory_reserved_quantity_check CHECK (reserved_quantity >= 0);
+    ADD CONSTRAINT inventory_reserved_quantity_check
+    CHECK (reserved_quantity >= 0);
+  `);
+
+  await knex.raw(`
+    ALTER TABLE location_inventory
+    ADD CONSTRAINT location_inventory_reserved_not_exceed_total_check
+    CHECK (reserved_quantity <= location_quantity);
   `);
 
   // Optimized Indexes for Query Performance

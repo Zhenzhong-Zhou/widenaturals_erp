@@ -14,14 +14,14 @@ interface DetailHeaderProps {
 }
 
 const DetailHeader: FC<DetailHeaderProps> = ({
-                                               avatarSrc,
-                                               avatarFallback,
-                                               name,
-                                               subtitle,
-                                               sx,
-                                             }) => {
+  avatarSrc,
+  avatarFallback,
+  name,
+  subtitle,
+  sx,
+}) => {
   const { theme } = useThemeContext();
-  
+
   return (
     <Box
       sx={{
@@ -46,7 +46,7 @@ const DetailHeader: FC<DetailHeaderProps> = ({
       >
         {avatarFallback || name.charAt(0).toUpperCase()}
       </Avatar>
-      
+
       <CustomTypography
         variant="h6"
         sx={{
@@ -59,7 +59,7 @@ const DetailHeader: FC<DetailHeaderProps> = ({
       >
         {name}
       </CustomTypography>
-      
+
       {subtitle && (
         <CustomTypography
           variant="body2"

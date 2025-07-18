@@ -33,7 +33,7 @@ const checkServerHealth = async () => {
   try {
     const dbStatus = await checkDatabaseHealth();
     status.services.database = dbStatus;
-    
+
     logSystemInfo('Database health check passed', {
       context: 'health-check',
       service: 'database',
@@ -42,7 +42,7 @@ const checkServerHealth = async () => {
   } catch (error) {
     status.server = 'unhealthy';
     status.services.database = { status: 'unhealthy', error: error.message };
-    
+
     logSystemException(error, 'Database health check failed', {
       context: 'health-check',
       service: 'database',
@@ -53,7 +53,7 @@ const checkServerHealth = async () => {
   try {
     const poolMetrics = await monitorPool();
     status.services.pool = { status: 'healthy', metrics: poolMetrics };
-    
+
     logSystemInfo('Pool health check passed', {
       context: 'health-check',
       service: 'pool',
@@ -62,7 +62,7 @@ const checkServerHealth = async () => {
   } catch (error) {
     status.server = 'unhealthy';
     status.services.pool = { status: 'unhealthy', error: error.message };
-    
+
     logSystemException(error, 'Pool health check failed', {
       context: 'health-check',
       service: 'pool',

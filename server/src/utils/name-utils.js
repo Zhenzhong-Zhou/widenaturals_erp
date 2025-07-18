@@ -9,11 +9,11 @@ const { format } = require('date-fns-tz');
  * @returns {string} Full name string (e.g. "Jane Doe")
  */
 const getFullName = (first, last) => {
-  const full = [first, last]
+  const parts = [first, last]
     .map((s) => (s ? String(s).trim() : ''))
-    .filter(Boolean)
-    .join(' ');
-  return full || '—';
+    .filter(Boolean);
+    
+  return parts.length > 0 ? parts.join(' ') : '—';
 };
 
 /**
@@ -23,7 +23,10 @@ const getFullName = (first, last) => {
  * @param {string} [timeZone='America/Los_Angeles']
  * @returns {string} e.g., 'pricing_export_20250515_213045.csv'
  */
-const generateTimestampedFilename = (baseName, timeZone = 'America/Los_Angeles') => {
+const generateTimestampedFilename = (
+  baseName,
+  timeZone = 'America/Los_Angeles'
+) => {
   const [name, ext] = baseName.split('.');
   const timestamp = format(new Date(), 'yyyyMMdd_HHmmss', { timeZone });
   return `${name}_${timestamp}.${ext}`;

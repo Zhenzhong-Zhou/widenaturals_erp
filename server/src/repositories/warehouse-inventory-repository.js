@@ -13,8 +13,12 @@ const {
   logSystemWarn,
 } = require('../utils/system-logger');
 const { logError } = require('../utils/logger-helper');
-const { buildWarehouseInventoryWhereClause } = require('../utils/sql/build-warehouse-inventory-filters');
-const { getStatusIdByQuantity } = require('../utils/query/inventory-query-utils');
+const {
+  buildWarehouseInventoryWhereClause,
+} = require('../utils/sql/build-warehouse-inventory-filters');
+const {
+  getStatusIdByQuantity,
+} = require('../utils/query/inventory-query-utils');
 
 /**
  * Fetches a paginated summary of warehouse inventory items, including both product SKUs and packaging materials.
@@ -39,12 +43,21 @@ const { getStatusIdByQuantity } = require('../utils/query/inventory-query-utils'
  * @param {string} [options.itemType] - Optional. `'product'`, `'material'`, or omitted for both.
  * @returns {Promise<{ data: any[], meta: { page: number, total: number } }>} A paginated summary of warehouse inventory grouped by SKU or material code.
  */
-const getPaginatedWarehouseInventoryItemSummary = async ({ page = 1, limit = 20, itemType, statusId }) => {
-  const includeProducts = itemType === 'product' || itemType === undefined || itemType === null;
-  const includeMaterials = itemType === 'packaging_material' || itemType === undefined || itemType === null;
-  
+const getPaginatedWarehouseInventoryItemSummary = async ({
+  page = 1,
+  limit = 20,
+  itemType,
+  statusId,
+}) => {
+  const includeProducts =
+    itemType === 'product' || itemType === undefined || itemType === null;
+  const includeMaterials =
+    itemType === 'packaging_material' ||
+    itemType === undefined ||
+    itemType === null;
+
   const ctes = [];
-  
+
   if (includeProducts) {
     ctes.push(`
       product_lot_agg AS (
@@ -74,7 +87,7 @@ const getPaginatedWarehouseInventoryItemSummary = async ({ page = 1, limit = 20,
       )
     `);
   }
-  
+
   if (includeMaterials) {
     ctes.push(`
       material_status_priority AS (
@@ -92,7 +105,7 @@ const getPaginatedWarehouseInventoryItemSummary = async ({ page = 1, limit = 20,
       )
     `);
   }
-  
+
   const sharedCTE = `
     inventory_status_priority AS (
       SELECT * FROM (
@@ -106,11 +119,11 @@ const getPaginatedWarehouseInventoryItemSummary = async ({ page = 1, limit = 20,
       ) AS isp(name, priority)
     )
   `;
-  
+
   const fullCTE = `WITH\n${[sharedCTE, ...ctes].join(',\n')}`;
-  
+
   const selectParts = [];
-  
+
   if (includeProducts) {
     selectParts.push(`
       SELECT
@@ -152,7 +165,7 @@ const getPaginatedWarehouseInventoryItemSummary = async ({ page = 1, limit = 20,
         OR SUM(wi.warehouse_quantity) > 0
     `);
   }
-  
+
   if (includeMaterials) {
     selectParts.push(`
       SELECT
@@ -188,15 +201,18 @@ const getPaginatedWarehouseInventoryItemSummary = async ({ page = 1, limit = 20,
         sp.min_priority, isp.name
     `);
   }
-  
+
   const finalQuery = `${fullCTE}\n${selectParts.join('\nUNION ALL\n')}`;
-  
+
   try {
-    logSystemInfo('Fetching paginated warehouse inventory summary (products + materials)', {
-      context: 'warehouse-inventory-repository',
-      params: { page, limit, statusId, itemType },
-    });
-    
+    logSystemInfo(
+      'Fetching paginated warehouse inventory summary (products + materials)',
+      {
+        context: 'warehouse-inventory-repository',
+        params: { page, limit, statusId, itemType },
+      }
+    );
+
     return await paginateResults({
       dataQuery: finalQuery,
       params: [statusId],
@@ -204,12 +220,17 @@ const getPaginatedWarehouseInventoryItemSummary = async ({ page = 1, limit = 20,
       limit,
     });
   } catch (error) {
-    logSystemException('Error fetching paginated warehouse inventory summary (products + materials)', {
-      context: 'warehouse-inventory-repository',
-      error,
-    });
-    
-    throw AppError.databaseError('Failed to fetch paginated warehouse inventory items summary');
+    logSystemException(
+      'Error fetching paginated warehouse inventory summary (products + materials)',
+      {
+        context: 'warehouse-inventory-repository',
+        error,
+      }
+    );
+
+    throw AppError.databaseError(
+      'Failed to fetch paginated warehouse inventory items summary'
+    );
   }
 };
 
@@ -224,7 +245,11 @@ const getPaginatedWarehouseInventoryItemSummary = async ({ page = 1, limit = 20,
  * @returns {Promise<Object>} Paginated result with raw warehouse inventory summary data
  * @throws {AppError} If the database query fails
  */
-const getWarehouseInventorySummaryDetailsByItemId = async ({ page, limit, itemId }) => {
+const getWarehouseInventorySummaryDetailsByItemId = async ({
+  page,
+  limit,
+  itemId,
+}) => {
   const queryText = `
     SELECT
       wi.id AS warehouse_inventory_id,
@@ -270,7 +295,7 @@ const getWarehouseInventorySummaryDetailsByItemId = async ({ page, limit, itemId
       )
     ORDER BY wi.last_update DESC;
   `;
-  
+
   try {
     return await paginateResults({
       dataQuery: queryText,
@@ -278,18 +303,26 @@ const getWarehouseInventorySummaryDetailsByItemId = async ({ page, limit, itemId
       page,
       limit,
       meta: {
-        context: 'warehouse-inventory-repository/getWarehouseInventorySummaryDetailsByItemId',
+        context:
+          'warehouse-inventory-repository/getWarehouseInventorySummaryDetailsByItemId',
       },
     });
   } catch (error) {
-    logSystemException(error, 'Failed to fetch warehouse inventory summary details', {
-      context: 'warehouse-inventory-repository/getWarehouseInventorySummaryDetailsByItemId',
-      itemId,
-      page,
-      limit,
-    });
-    
-    throw AppError.databaseError('Failed to fetch warehouse inventory summary details by item ID');
+    logSystemException(
+      error,
+      'Failed to fetch warehouse inventory summary details',
+      {
+        context:
+          'warehouse-inventory-repository/getWarehouseInventorySummaryDetailsByItemId',
+        itemId,
+        page,
+        limit,
+      }
+    );
+
+    throw AppError.databaseError(
+      'Failed to fetch warehouse inventory summary details by item ID'
+    );
   }
 };
 
@@ -324,11 +357,17 @@ const getWarehouseInventorySummaryDetailsByItemId = async ({ page, limit, itemId
  *   }
  * }>} Paginated warehouse inventory data with enriched metadata
  */
-const getPaginatedWarehouseInventoryRecords = async ({ page, limit, filters, safeSortClause }) => {
+const getPaginatedWarehouseInventoryRecords = async ({
+  page,
+  limit,
+  filters,
+  safeSortClause,
+}) => {
   const tableName = 'warehouse_inventory wi';
-  
+
   const joins = [
     'LEFT JOIN warehouses wh ON wi.warehouse_id = wh.id',
+    'LEFT JOIN locations l ON wh.location_id = l.id',
     'LEFT JOIN inventory_status st ON wi.status_id = st.id',
     'LEFT JOIN users uc ON wi.created_by = uc.id',
     'LEFT JOIN users uu ON wi.updated_by = uu.id',
@@ -344,15 +383,16 @@ const getPaginatedWarehouseInventoryRecords = async ({ page, limit, filters, saf
     'LEFT JOIN part_materials pmat ON pm.id = pmat.packaging_material_id',
     'LEFT JOIN parts pt ON pmat.part_id = pt.id',
   ];
-  
+
   const { whereClause, params } = buildWarehouseInventoryWhereClause(filters);
-  
+
   const queryText = `
     SELECT
       wi.id AS warehouse_inventory_id,
       br.batch_type AS item_type,
       wi.warehouse_id,
       wh.name AS warehouse_name,
+      l.id AS location_id,
       wi.warehouse_quantity,
       wi.reserved_quantity,
       wi.warehouse_fee,
@@ -369,6 +409,7 @@ const getPaginatedWarehouseInventoryRecords = async ({ page, limit, filters, saf
       uu.lastname AS updated_by_lastname,
       mfp.name AS product_manufacturer_name,
       sup.name AS material_supplier_name,
+      br.id AS batch_id,
       pb.lot_number AS product_lot_number,
       pb.manufacture_date AS product_manufacture_date,
       pb.expiry_date AS product_expiry_date,
@@ -397,7 +438,7 @@ const getPaginatedWarehouseInventoryRecords = async ({ page, limit, filters, saf
     WHERE ${whereClause}
     ORDER BY ${safeSortClause};
   `;
-  
+
   try {
     const result = await paginateResults({
       dataQuery: queryText,
@@ -405,23 +446,26 @@ const getPaginatedWarehouseInventoryRecords = async ({ page, limit, filters, saf
       page,
       limit,
       meta: {
-        context: 'warehouse-inventory-repository/getPaginatedWarehouseInventoryRecords',
+        context:
+          'warehouse-inventory-repository/getPaginatedWarehouseInventoryRecords',
       },
     });
-    
+
     logSystemInfo('Fetched warehouse inventory records.', {
-      context: 'warehouse-inventory-repository/getPaginatedWarehouseInventoryRecords',
+      context:
+        'warehouse-inventory-repository/getPaginatedWarehouseInventoryRecords',
       page,
       limit,
       resultCount: result?.data?.length ?? 0,
     });
-    
+
     return result;
   } catch (error) {
     logSystemException(error, 'Failed to fetch warehouse inventory records.', {
-      context: 'warehouse-inventory-repository/getPaginatedWarehouseInventoryRecords',
+      context:
+        'warehouse-inventory-repository/getPaginatedWarehouseInventoryRecords',
     });
-    
+
     throw AppError.databaseError('Failed to fetch warehouse inventory data.');
   }
 };
@@ -440,13 +484,9 @@ const getPaginatedWarehouseInventoryRecords = async ({ page, limit, filters, saf
  * @returns {Promise<Array>} Inserted or updated row IDs
  * @throws {AppError} If the insert operation fails
  */
-const insertWarehouseInventoryRecords = async (
-  records,
-  client,
-  meta = {}
-) => {
+const insertWarehouseInventoryRecords = async (records, client, meta = {}) => {
   if (!Array.isArray(records) || records.length === 0) return [];
-  
+
   const columns = [
     'warehouse_id',
     'batch_id',
@@ -459,7 +499,7 @@ const insertWarehouseInventoryRecords = async (
     'created_by',
     'updated_by',
   ];
-  
+
   const rows = records.map((r) => [
     r.warehouse_id,
     r.batch_id,
@@ -472,7 +512,7 @@ const insertWarehouseInventoryRecords = async (
     r.created_by ?? null,
     null,
   ]);
-  
+
   const conflictColumns = ['warehouse_id', 'batch_id'];
   const updateStrategies = {
     warehouse_quantity: 'add',
@@ -483,7 +523,7 @@ const insertWarehouseInventoryRecords = async (
     updated_at: 'overwrite',
     updated_by: 'overwrite',
   };
-  
+
   try {
     return await bulkInsert(
       'warehouse_inventory',
@@ -500,29 +540,35 @@ const insertWarehouseInventoryRecords = async (
       context: 'warehouse-inventory-repository/insertWarehouseInventoryRecords',
       meta,
     });
-    
-    throw AppError.databaseError('Unable to insert/update warehouse inventory records', {
-      details: { table: 'warehouse_inventory', count: records.length },
-    });
+
+    throw AppError.databaseError(
+      'Unable to insert/update warehouse inventory records',
+      {
+        details: { table: 'warehouse_inventory', count: records.length },
+      }
+    );
   }
 };
 
 /**
- * Fetches lightweight enriched warehouse inventory records by IDs,
- * including batch type, product or material info (lot number, name, expiry).
+ * Fetches enriched warehouse inventory records for response payloads.
  *
- * - Supports both product and material batches via `batch_type`.
- * - Returns only minimal fields for summary/confirmation UI.
+ * Used after insert or update operations (e.g., adjustments).
+ * Provides essential data for confirmation or UI display.
  *
- * @param {string[]} ids - Array of warehouse_inventory UUIDs.
- * @param {object} client - PostgreSQL client or pool instance.
- * @returns {Promise<Array<Object>>} - Enriched inventory summaries.
+ * Supports:
+ * - Product and packaging material batches
+ * - Lot number, expiry date, name, SKU, and quantity fields
+ *
+ * @param {string[]} ids - Warehouse inventory UUIDs
+ * @param {object} client - PostgreSQL client or pool
+ * @returns {Promise<Array<Object>>} Lightweight enriched inventory records
  */
-const getInsertedWarehouseInventoryByIds = async (ids, client) => {
+const getWarehouseInventoryResponseByIds = async (ids, client) => {
   if (!Array.isArray(ids) || ids.length === 0) return [];
-  
+
   const placeholders = ids.map((_, i) => `$${i + 1}`).join(', ');
-  
+
   const sql = `
     SELECT
       wi.id,
@@ -547,18 +593,26 @@ const getInsertedWarehouseInventoryByIds = async (ids, client) => {
     LEFT JOIN packaging_material_batches pmb ON br.packaging_material_batch_id = pmb.id
     WHERE wi.id IN (${placeholders})
   `;
-  
+
   try {
     const { rows } = await query(sql, ids, client);
     return rows;
   } catch (error) {
-    logSystemException(error, 'Failed to fetch warehouse inventory summary by IDs', {
-      context: 'warehouse-inventory-repository/fetchInventorySummaryByIds',
-      ids,
-    });
-    
-    throw AppError.databaseError('Unable to fetch inventory summary data', {
-      details: { ids, message: error.message },
+    logSystemException(
+      error,
+      'Error retrieving warehouse inventory response data by IDs',
+      {
+        context:
+          'warehouse-inventory-repository/getWarehouseInventoryResponseByIds',
+        ids,
+      }
+    );
+
+    throw AppError.databaseError('Failed to retrieve inventory response data', {
+      details: {
+        ids,
+        error: error.message,
+      },
     });
   }
 };
@@ -587,11 +641,7 @@ const getInsertedWarehouseInventoryByIds = async (ids, client) => {
  * @returns {Promise<Array<{ warehouse_id: string, batch_id: string }>>}
  *   Resolves with an array of the updated composite keys.
  */
-const bulkUpdateWarehouseQuantities = async (
-  updates,
-  userId,
-  client
-) => {
+const bulkUpdateWarehouseQuantities = async (updates, userId, client) => {
   const table = 'warehouse_inventory';
   const columns = ['warehouse_quantity', 'status_id', 'last_update'];
   const whereColumns = ['warehouse_id', 'batch_id'];
@@ -600,7 +650,7 @@ const bulkUpdateWarehouseQuantities = async (
     status_id: 'uuid',
     last_update: 'timestamptz',
   };
-  
+
   try {
     const queryData = formatBulkUpdateQuery(
       table,
@@ -610,16 +660,16 @@ const bulkUpdateWarehouseQuantities = async (
       userId,
       columnTypes
     );
-    
+
     if (!queryData) return [];
-    
+
     const { baseQuery, params } = queryData;
     const result = await query(baseQuery, params, client);
-    
+
     return result.rows;
   } catch (error) {
     const message = 'Failed to bulk update warehouse quantities';
-    
+
     logSystemException(error, message, {
       context: 'warehouse-inventory-repository/bulkUpdateWarehouseQuantities',
       updates,
@@ -644,43 +694,56 @@ const getWarehouseInventoryQuantities = async (keys, client) => {
     SELECT id, warehouse_id, batch_id, warehouse_quantity, reserved_quantity, status_id
     FROM warehouse_inventory
     WHERE ${keys
-    .map(
-      (_, i) =>
-        `(warehouse_id = $${i * 2 + 1} AND batch_id = $${i * 2 + 2})`
-    )
-    .join(' OR ')}
+      .map(
+        (_, i) => `(warehouse_id = $${i * 2 + 1} AND batch_id = $${i * 2 + 2})`
+      )
+      .join(' OR ')}
   `;
-  const params = keys.flatMap(({ warehouse_id, batch_id }) => [warehouse_id, batch_id]);
-  
+  const params = keys.flatMap(({ warehouse_id, batch_id }) => [
+    warehouse_id,
+    batch_id,
+  ]);
+
   try {
     const result = await query(sql, params, client);
-    
+
     if (result.rows.length !== keys.length) {
-      const missingKeys = keys.filter(({ warehouse_id, batch_id }) =>
-        !result.rows.some(row => row.warehouse_id === warehouse_id && row.batch_id === batch_id)
+      const missingKeys = keys.filter(
+        ({ warehouse_id, batch_id }) =>
+          !result.rows.some(
+            (row) =>
+              row.warehouse_id === warehouse_id && row.batch_id === batch_id
+          )
       );
       logSystemWarn('Missing warehouse_inventory records detected', {
-        context: 'warehouse-inventory-repository/getWarehouseInventoryQuantities',
+        context:
+          'warehouse-inventory-repository/getWarehouseInventoryQuantities',
         missingKeys,
         expected: keys.length,
         found: result.rows.length,
       });
     }
-    
+
     if (result.rows.length !== keys.length) {
       logSystemWarn('Some warehouse_inventory records not found', {
-        context: 'warehouse-inventory-repository/getWarehouseInventoryQuantities',
+        context:
+          'warehouse-inventory-repository/getWarehouseInventoryQuantities',
         expected: keys.length,
         found: result.rows.length,
       });
     }
-    
+
     return result.rows;
   } catch (error) {
-    logSystemException(error, 'Failed to fetch multiple warehouse_inventory records', {
-      context: 'warehouse-inventory-repository/getWarehouseInventoryQuantities',
-      keys,
-    });
+    logSystemException(
+      error,
+      'Failed to fetch multiple warehouse_inventory records',
+      {
+        context:
+          'warehouse-inventory-repository/getWarehouseInventoryQuantities',
+        keys,
+      }
+    );
     throw AppError.databaseError('Failed to fetch warehouse inventory records');
   }
 };
@@ -955,7 +1018,7 @@ module.exports = {
   getWarehouseInventorySummaryDetailsByItemId,
   getPaginatedWarehouseInventoryRecords,
   insertWarehouseInventoryRecords,
-  getInsertedWarehouseInventoryByIds,
+  getWarehouseInventoryResponseByIds,
   bulkUpdateWarehouseQuantities,
   getWarehouseInventoryQuantities,
   getWarehouseInventoryDetailsByWarehouseId,

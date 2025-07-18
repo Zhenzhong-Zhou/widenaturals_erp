@@ -5,7 +5,8 @@ const { loadEnv } = require('../config/env');
 const { decryptFile } = require('./encryption');
 const {
   logSystemInfo,
-  logSystemWarn, logSystemException
+  logSystemWarn,
+  logSystemException,
 } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 const { downloadFileFromS3 } = require('../utils/aws-s3-service');
@@ -18,7 +19,12 @@ const bucketName = process.env.AWS_S3_BUCKET_NAME;
 /**
  * Executes a safe pg_restore command using spawn with no shell interpolation.
  */
-const runPgRestore = ({ decryptedFilePath, databaseName, dbUser, dbPassword }) => {
+const runPgRestore = ({
+  decryptedFilePath,
+  databaseName,
+  dbUser,
+  dbPassword,
+}) => {
   return new Promise((resolve, reject) => {
     const args = [
       '--clean',
@@ -29,21 +35,23 @@ const runPgRestore = ({ decryptedFilePath, databaseName, dbUser, dbPassword }) =
       `--username=${dbUser}`,
       decryptedFilePath,
     ];
-    
+
     const env = { ...process.env };
     if (dbPassword) env.PGPASSWORD = dbPassword;
-    
+
     const restore = spawn('pg_restore', args, { env });
-    
+
     let stdout = '';
     let stderr = '';
-    
+
     restore.stdout.on('data', (data) => (stdout += data.toString()));
     restore.stderr.on('data', (data) => (stderr += data.toString()));
-    
+
     restore.on('close', (code) => {
       if (code !== 0) {
-        return reject(new Error(`pg_restore failed with code ${code}\n${stderr}`));
+        return reject(
+          new Error(`pg_restore failed with code ${code}\n${stderr}`)
+        );
       }
       resolve({ stdout, stderr });
     });
@@ -74,32 +82,34 @@ const restoreDatabase = async (
         s3Key: s3KeyEnc,
         targetPath: decryptedFilePath,
       });
-      
+
       await downloadFileFromS3(bucketName, s3KeyEnc, decryptedFilePath);
-      
+
       logSystemInfo(`File downloaded from S3`, {
         context: 'restore-db',
         decryptedFilePath,
       });
     }
-    
+
     if (!fs.existsSync(decryptedFilePath)) {
-      throw AppError.notFoundError(`Decrypted file not found: ${decryptedFilePath}`);
+      throw AppError.notFoundError(
+        `Decrypted file not found: ${decryptedFilePath}`
+      );
     }
-    
+
     logSystemInfo('Executing pg_restore command (safe spawn)', {
       context: 'restore-db',
       database: databaseName,
       decryptedFilePath,
     });
-    
+
     const { stdout, stderr } = await runPgRestore({
       decryptedFilePath,
       databaseName,
       dbUser,
       dbPassword,
     });
-    
+
     if (stdout) {
       logSystemInfo('Restore command output', {
         context: 'restore-db',
@@ -107,7 +117,7 @@ const restoreDatabase = async (
         stdout,
       });
     }
-    
+
     if (stderr) {
       logSystemWarn('Restore command warnings', {
         context: 'restore-db',
@@ -115,7 +125,7 @@ const restoreDatabase = async (
         stderr,
       });
     }
-    
+
     logSystemInfo('Database restore completed successfully', {
       context: 'restore-db',
       database: databaseName,
@@ -162,7 +172,7 @@ const restoreBackup = async (
       isProduction,
       databaseName,
     });
-    
+
     if (isProduction) {
       if (!bucketName)
         throw AppError.validationError('AWS_S3_BUCKET_NAME is not set.');
@@ -184,7 +194,7 @@ const restoreBackup = async (
           null,
           true
         );
-        
+
         logSystemInfo('SHA256 file downloaded', {
           context: 'restore-backup',
           s3Key: `${s3KeyEnc}.sha256`,
@@ -195,7 +205,7 @@ const restoreBackup = async (
           s3Key: `${s3KeyEnc}.sha256`,
         });
       }
-      
+
       logSystemInfo('All necessary files downloaded from S3', {
         context: 'restore-backup',
         files: [s3KeyEnc, `${s3KeyEnc}.iv`],
@@ -219,7 +229,7 @@ const restoreBackup = async (
           'Required backup files not found locally.'
         );
       }
-      
+
       logSystemInfo('Local encrypted and IV files found.', {
         context: 'restore-backup',
         encryptedFilePath,
@@ -240,7 +250,7 @@ const restoreBackup = async (
       databaseName,
       s3Key: s3KeyEnc,
     });
-    
+
     throw error;
   } finally {
     [encryptedFilePath, ivFilePath, decryptedFilePath].forEach((file) => {

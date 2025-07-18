@@ -17,7 +17,10 @@ export interface ExpirySeverityChipProps {
 }
 
 // Optional: move outside component to prevent recreation on render
-const getSeverityColor = (severity: ExpirySeverityChipProps['severity'], theme: Theme): string => {
+const getSeverityColor = (
+  severity: ExpirySeverityChipProps['severity'],
+  theme: Theme
+): string => {
   const map: Record<ExpirySeverityChipProps['severity'], string> = {
     expired: theme.palette.error.main,
     expired_soon: theme.palette.error.light,
@@ -34,7 +37,7 @@ const getSeverityColor = (severity: ExpirySeverityChipProps['severity'], theme: 
 const ExpirySeverityChip: FC<ExpirySeverityChipProps> = ({ severity }) => {
   const { theme } = useThemeContext(); // more idiomatic than custom context if only palette is used
   const color = getSeverityColor(severity, theme);
-  
+
   return (
     <Chip
       label={formatLabel(severity)} // already handles underscores/spaces

@@ -7,12 +7,12 @@ const { generateStandardizedCode } = require('../../../utils/code-generators');
  */
 exports.seed = async function (knex) {
   console.log('Seeding suppliers...');
-  
+
   const [activeStatusId, systemUserId] = await Promise.all([
     fetchDynamicValue(knex, 'status', 'name', 'active', 'id'),
     fetchDynamicValue(knex, 'users', 'email', 'system@internal.local', 'id'),
   ]);
-  
+
   const supplierEntries = [
     {
       name: 'Unspecified Supplier',
@@ -59,25 +59,25 @@ exports.seed = async function (knex) {
       location_city: 'Richmond',
     },
   ];
-  
+
   for (let i = 0; i < supplierEntries.length; i++) {
     const entry = supplierEntries[i];
-    
+
     const location = await knex('locations')
       .select('id')
       .whereILike('city', entry.location_city)
       .first();
-    
+
     if (!location) {
       console.warn(`No matching location for supplier "${entry.name}"`);
       continue;
     }
-    
+
     const supplier_code = generateStandardizedCode('SUP', entry.name, {
       regionCode: entry.location_city.slice(0, 2).toUpperCase(),
       sequenceNumber: i + 1,
     });
-    
+
     const supplier = {
       id: knex.raw('uuid_generate_v4()'),
       name: entry.name,
@@ -87,7 +87,9 @@ exports.seed = async function (knex) {
       contact_phone: entry.contact_phone,
       location_id: location.id,
       is_archived: false,
-      description: `Registered supplier: ${entry.name}, located in ${entry.location_city}` || entry.description,
+      description:
+        `Registered supplier: ${entry.name}, located in ${entry.location_city}` ||
+        entry.description,
       status_id: activeStatusId,
       status_date: knex.fn.now(),
       created_at: knex.fn.now(),
@@ -95,12 +97,9 @@ exports.seed = async function (knex) {
       created_by: systemUserId,
       updated_by: null,
     };
-    
-    await knex('suppliers')
-      .insert(supplier)
-      .onConflict(['name'])
-      .ignore();
+
+    await knex('suppliers').insert(supplier).onConflict(['name']).ignore();
   }
-  
+
   console.log(`${supplierEntries.length} Suppliers seed completed.`);
 };

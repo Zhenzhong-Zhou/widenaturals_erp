@@ -1,4 +1,6 @@
-const { getBatchRegistryById } = require('../repositories/batch-registry-repository');
+const {
+  getBatchRegistryById,
+} = require('../repositories/batch-registry-repository');
 const AppError = require('../utils/AppError');
 const { logSystemException } = require('../utils/system-logger');
 
@@ -16,14 +18,20 @@ const { logSystemException } = require('../utils/system-logger');
  *
  * @throws {AppError} If not found or mismatched type.
  */
-const validateBatchRegistryEntryById = async (expectedType, batchRegistryId, client) => {
+const validateBatchRegistryEntryById = async (
+  expectedType,
+  batchRegistryId,
+  client
+) => {
   try {
     const row = await getBatchRegistryById(batchRegistryId, client);
-    
+
     if (!row) {
-      throw AppError.notFoundError(`No batch registry found with ID: ${batchRegistryId}`);
+      throw AppError.notFoundError(
+        `No batch registry found with ID: ${batchRegistryId}`
+      );
     }
-    
+
     if (row.batch_type !== expectedType) {
       throw AppError.validationError(
         `Batch type mismatch: expected "${expectedType}", found "${row.batch_type}" for ID "${batchRegistryId}"`
@@ -35,7 +43,7 @@ const validateBatchRegistryEntryById = async (expectedType, batchRegistryId, cli
       batchRegistryId,
       expectedType,
     });
-    
+
     throw AppError.businessError('Batch validation failed', {
       details: { batchRegistryId, expectedType, error: err.message },
     });

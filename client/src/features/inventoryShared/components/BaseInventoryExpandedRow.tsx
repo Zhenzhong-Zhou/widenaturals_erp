@@ -1,14 +1,19 @@
 import { type FC } from 'react';
 import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
-import DetailsSection, { type DetailsSectionField } from '@components/common/DetailsSection';
+import DetailsSection, {
+  type DetailsSectionField,
+} from '@components/common/DetailsSection';
 
 interface BaseInventoryExpandedRowProps {
   details: DetailsSectionField[];
   metadata: DetailsSectionField[];
 }
 
-const BaseInventoryExpandedRow: FC<BaseInventoryExpandedRowProps> = ({ details, metadata }) => {
+const BaseInventoryExpandedRow: FC<BaseInventoryExpandedRowProps> = ({
+  details,
+  metadata,
+}) => {
   return (
     <Box
       display="flex"

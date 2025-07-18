@@ -2,7 +2,9 @@ const fs = require('fs').promises;
 const path = require('path');
 const crypto = require('crypto');
 const {
-  logSystemInfo, logSystemException, logSystemWarn
+  logSystemInfo,
+  logSystemException,
+  logSystemWarn,
 } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 const { deleteFilesFromS3, listFilesInS3 } = require('../utils/aws-s3-service');
@@ -33,7 +35,7 @@ const ensureDirectory = async (dir) => {
         operation: 'ensureDirectory',
         path: dir,
       });
-      
+
       throw error; // Re-throw other errors
     }
   }
@@ -91,7 +93,7 @@ const verifyFileIntegrity = async (filePath, originalHash) => {
       operation: 'verifyFileIntegrity',
       filePath,
     });
-    
+
     throw error;
   }
 };
@@ -122,7 +124,7 @@ const cleanupOldBackups = async (
         `Invalid MAX_BACKUPS value: ${maxFiles}. It must be a positive multiple of 3 (e.g., 3, 6, 9, etc.).`
       );
     }
-    
+
     if (isProduction && bucketName) {
       // Production Mode: Delete from S3
       logSystemInfo('Starting backup cleanup process...', {
@@ -170,11 +172,14 @@ const cleanupOldBackups = async (
       );
 
       if (groupsToDelete.length === 0) {
-        logSystemInfo(`All backups are within limit (${maxFiles}). No files deleted.`, {
-          context: 'backup',
-          operation: 'cleanupOldBackups',
-        });
-        
+        logSystemInfo(
+          `All backups are within limit (${maxFiles}). No files deleted.`,
+          {
+            context: 'backup',
+            operation: 'cleanupOldBackups',
+          }
+        );
+
         return;
       }
 
@@ -186,7 +191,7 @@ const cleanupOldBackups = async (
 
       // Delete files from S3
       await deleteFilesFromS3(bucketName, keysToDelete);
-      
+
       logSystemInfo('Old backups deleted from S3', {
         context: 'backup-cleanup',
         environment: 'production',
@@ -221,7 +226,7 @@ const cleanupOldBackups = async (
           context: 'backup-cleanup',
           mode: 'local',
         });
-        
+
         return;
       }
 
@@ -235,7 +240,7 @@ const cleanupOldBackups = async (
           limit: maxFiles,
           deleted: 0,
         });
-        
+
         return;
       }
 
@@ -250,29 +255,25 @@ const cleanupOldBackups = async (
               mode: 'local',
               file: file.name,
             });
-            
+
             // Attempt to delete associated files
             const hashFilePath = `${filePath}.sha256`;
             const ivFilePath = `${filePath}.iv`;
 
-            await fs
-              .unlink(hashFilePath)
-              .catch(() =>
-                logSystemWarn('No hash file to delete', {
-                  context: 'backup-cleanup',
-                  file: file.name,
-                  type: 'sha256',
-                })
-              );
-            await fs
-              .unlink(ivFilePath)
-              .catch(() =>
-                logSystemWarn('No IV file to delete', {
-                  context: 'backup-cleanup',
-                  file: file.name,
-                  type: 'iv',
-                })
-              );
+            await fs.unlink(hashFilePath).catch(() =>
+              logSystemWarn('No hash file to delete', {
+                context: 'backup-cleanup',
+                file: file.name,
+                type: 'sha256',
+              })
+            );
+            await fs.unlink(ivFilePath).catch(() =>
+              logSystemWarn('No IV file to delete', {
+                context: 'backup-cleanup',
+                file: file.name,
+                type: 'iv',
+              })
+            );
           } catch (deleteError) {
             logSystemException(deleteError, 'Failed to delete backup file', {
               context: 'backup-cleanup',
@@ -281,7 +282,7 @@ const cleanupOldBackups = async (
           }
         })
       );
-      
+
       logSystemInfo('Cleanup of old backups completed', {
         context: 'backup-cleanup',
         deletedCount: filesToDelete.length,
@@ -293,7 +294,7 @@ const cleanupOldBackups = async (
       context: 'backup-cleanup',
       environment: isProduction ? 'production' : 'development',
     });
-    
+
     throw error;
   }
 };

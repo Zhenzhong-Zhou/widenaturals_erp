@@ -1,69 +1,74 @@
-import type {
-  BulkCustomerRequest,
-  BulkCustomerResponse,
-  CustomerDetailsResponse,
-  CustomerListResponse,
-  CustomerQueryParams,
-} from '@features/customer';
-import axiosInstance from '@utils/axiosConfig';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
-
-// Generic post function for reducing redundancy
-const postRequest = async <T, R>(url: string, data: T): Promise<R> => {
-  const response = await axiosInstance.post<R>(url, data);
-  return response.data;
-};
-
-// Create a single customer
-const createCustomer = (
-  customer: BulkCustomerRequest
-): Promise<BulkCustomerResponse> =>
-  postRequest<BulkCustomerRequest, BulkCustomerResponse>(
-    API_ENDPOINTS.ADD_NEW_CUSTOMER,
-    customer
-  );
-
-// Create multiple customers
-const createBulkCustomers = (
-  customers: BulkCustomerRequest
-): Promise<BulkCustomerResponse> =>
-  postRequest<BulkCustomerRequest, BulkCustomerResponse>(
-    API_ENDPOINTS.ADD_NEW_CUSTOMERS_BULK,
-    customers
-  );
+import type {
+  CreateCustomerResponse,
+  CreateCustomersRequest,
+  FetchPaginatedCustomersParams,
+  PaginatedCustomerListResponse,
+} from '@features/customer/state';
+import { getRequest, postRequest } from '@utils/apiRequest';
+import { buildQueryString } from '@utils/buildQueryString';
 
 /**
- * Fetch paginated customer data with sorting.
+ * Sends a request to create one or more customers.
  *
- * @param {CustomerQueryParams} params - Query parameters (pagination, sorting)
- * @returns {Promise<CustomerListResponse>} - API response containing customer data
+ * - Accepts an array of customer payloads (even for a single customer).
+ * - Returns either a single customer response or a bulk customer response,
+ *   wrapped in a standard API success structure.
+ * - Automatically handles API response types for both single and bulk creation.
+ *
+ * @param {CreateCustomersRequest} customers - List of customer data to be created.
+ * @returns {Promise<CreateCustomerResponse>} - API response containing created customer(s).
+ * @throws {Error} - If the request fails or the API responds with an error.
  */
-export const fetchCustomers = async (
-  params: CustomerQueryParams = {
-    page: 1,
-    limit: 10,
-    sortBy: 'created_at',
-    sortOrder: 'DESC',
+const createCustomers = async (
+  customers: CreateCustomersRequest
+): Promise<CreateCustomerResponse> => {
+  try {
+    return await postRequest<CreateCustomersRequest, CreateCustomerResponse>(
+      API_ENDPOINTS.CUSTOMERS.ADD_NEW_CUSTOMERS,
+      customers
+    );
+  } catch (error) {
+    console.error('Failed to create customers', error);
+    throw error;
   }
-): Promise<CustomerListResponse> => {
-  const response = await axiosInstance.get<CustomerListResponse>(
-    API_ENDPOINTS.ALL_CUSTOMERS,
-    { params }
-  );
-  return response.data;
 };
 
-const fetchCustomerDetailsById = async (
-  customerId: string
-): Promise<CustomerDetailsResponse> => {
-  const endpoint = API_ENDPOINTS.CUSTOMER_DETAILS.replace(':id', customerId);
-  const response = await axiosInstance.get<CustomerDetailsResponse>(endpoint);
-  return response.data;
+/**
+ * Fetches paginated customer data from the server with optional filters and sorting.
+ *
+ * This function:
+ * - Sends a GET request to the customers endpoint
+ * - Supports pagination, sorting, and filtering via query parameters
+ * - Uses `buildQueryString` to generate the query string from pagination, sort, and filter fields
+ * - Handles typed responses for consistent client behavior
+ *
+ * @param {FetchPaginatedCustomersParams} [params={}] - Query parameters including pagination, filters, and sort config
+ * @returns {Promise<PaginatedCustomerListResponse>} - A promise that resolves to a paginated list of customers
+ * @throws {Error} - If the request fails or the server returns an error
+ */
+const fetchPaginatedCustomers = async (
+  params: FetchPaginatedCustomersParams = {}
+): Promise<PaginatedCustomerListResponse> => {
+  try {
+    const { filters = {}, ...rest } = params;
+    
+    const flatParams = {
+      ...rest,
+      ...filters,
+    };
+    
+    const queryString = buildQueryString(flatParams);
+    const url = `${API_ENDPOINTS.CUSTOMERS.ALL_CUSTOMERS}${queryString}`;
+    
+    return await getRequest<PaginatedCustomerListResponse>(url);
+  } catch (error) {
+    console.error('Failed to fetch paginated customers:', error);
+    throw error;
+  }
 };
 
 export const customerService = {
-  createCustomer,
-  createBulkCustomers,
-  fetchCustomers,
-  fetchCustomerDetailsById,
+  createCustomers,
+  fetchPaginatedCustomers,
 };

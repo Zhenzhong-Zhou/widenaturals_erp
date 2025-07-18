@@ -1,93 +1,163 @@
+const { fetchDynamicValue } = require('../03_utils');
+
 /**
  * Seed the `role_permissions` table with initial data.
- * Ensures that roles have the appropriate permissions.
+ * Assigns relevant permissions to each role based on modern ERP access control.
  *
- * @param {import('knex').Knex} knex - The Knex instance.
- * @returns {Promise<void>}
+ * @param {import('knex').Knex} knex
  */
 exports.seed = async function (knex) {
-  // Fetch the active status ID dynamically
+  const [{ count }] = await knex('role_permissions').count('id');
+  const total = Number(count) || 0;
+  
+  if (total > 0) {
+    console.log(
+      `[${new Date().toISOString()}] [SEED] Skipping seed for [role_permissions] table: ${total} records found.`
+    );
+    return;
+  }
+  
+  console.log(
+    `[${new Date().toISOString()}] [SEED] Inserting role-permission mappings into [role_permissions] table...`
+  );
+  
+  const systemUserId = await fetchDynamicValue(
+    knex,
+    'users',
+    'email',
+    'system@internal.local',
+    'id'
+  );
+  
   const activeStatusId = await knex('status')
     .select('id')
     .where('name', 'active')
     .first()
-    .then((row) => row.id);
-
-  // Define roles and their associated permissions (by `key`)
+    .then((row) => row?.id);
+  
+  if (!activeStatusId) {
+    console.error('[SEED] Active status ID not found. Aborting.');
+    return;
+  }
+  
+  const roles = await knex('roles').select('id', 'name');
+  const roleMap = Object.fromEntries(roles.map((r) => [r.name, r.id]));
+  
+  const permissions = await knex('permissions').select('id', 'key');
+  const permissionMap = Object.fromEntries(permissions.map((p) => [p.key, p.id]));
+  
+  // Define role-permission mapping
   const rolePermissionsData = {
-    root_admin: ['root_access'],
+    root_admin: Object.keys(permissionMap), // All permissions
     admin: [
       'manage_users',
       'view_prices',
       'manage_prices',
-      'view_locations',
-      'manage_locations',
+      'view_inventory',
+      'manage_inventory',
       'view_warehouses',
       'manage_warehouses',
+      'view_locations',
+      'manage_locations',
+      'manage_catalog',
+      'manage_pricing',
+      'export_pricing',
+      'view_system',
+      'view_system_status',
     ],
     manager: [
-      'manage_users',
       'view_prices',
       'manage_prices',
-      'view_locations',
-      'manage_locations',
+      'view_inventory',
+      'view_inventory_summary',
       'view_warehouses',
+      'view_locations',
+      'view_customer',
+      'view_active_customers',
+      'create_customer',
+      'create_orders',
     ],
-    sales: ['view_prices', 'view_locations', 'view_warehouses'],
-    marketing: ['view_prices'],
-    qa: [],
-    product_manager: ['view_prices'],
-    account: ['view_prices', 'manage_prices'],
+    sales: [
+      'view_prices',
+      'view_customer',
+      'create_customer',
+      'create_orders',
+      'view_order_type',
+    ],
+    marketing: [
+      'view_prices',
+      'manage_catalog',
+      'view_customer',
+      'create_customer',
+    ],
+    qa: [
+      'view_inventory',
+      'view_product_inventory',
+      'view_material_inventory',
+      'view_inventory_log',
+    ],
+    product_manager: [
+      'view_prices',
+      'manage_catalog',
+      'view_inventory_summary',
+      'view_batch_registry_dropdown',
+    ],
+    account: [
+      'view_prices',
+      'manage_prices',
+      'view_pricing_types',
+      'manage_pricing',
+    ],
     inventory: [
+      'view_inventory',
+      'manage_inventory',
+      'adjust_inventory',
+      'view_warehouse_inventory',
+      'manage_warehouse_inventory',
       'view_locations',
       'manage_locations',
-      'view_warehouses',
-      'manage_warehouses',
     ],
-    user: [], // No explicit permissions needed, they already get basic access
+    user: [
+      'view_customer',
+      'create_orders',
+    ],
   };
-
-  // Insert role-permissions
-  for (const [roleKey, permissionsKeys] of Object.entries(
-    rolePermissionsData
-  )) {
-    // Fetch role ID by key
-    const role = await knex('roles')
-      .select('id')
-      .where('name', roleKey)
-      .first();
-
-    if (!role) {
-      console.warn(`Role ${roleKey} not found. Skipping.`);
+  
+  let insertedCount = 0;
+  
+  for (const [roleKey, permissionKeys] of Object.entries(rolePermissionsData)) {
+    const roleId = roleMap[roleKey];
+    
+    if (!roleId) {
+      console.warn(`[SEED] Role '${roleKey}' not found. Skipping.`);
       continue;
     }
-
-    for (const permissionKey of permissionsKeys) {
-      // Fetch permission ID by key
-      const permission = await knex('permissions')
-        .select('id')
-        .where('key', permissionKey)
-        .first();
-
-      if (!permission) {
-        console.warn(`Permission ${permissionKey} not found. Skipping.`);
+    
+    for (const permissionKey of permissionKeys) {
+      const permissionId = permissionMap[permissionKey];
+      
+      if (!permissionId) {
+        console.warn(`[SEED] Permission '${permissionKey}' not found. Skipping.`);
         continue;
       }
-
-      // Insert role-permission mapping
+      
       await knex('role_permissions')
         .insert({
           id: knex.raw('uuid_generate_v4()'),
-          role_id: role.id,
-          permission_id: permission.id,
+          role_id: roleId,
+          permission_id: permissionId,
           status_id: activeStatusId,
           created_at: knex.fn.now(),
-          updated_at: knex.fn.now(),
+          created_by: systemUserId,
+          updated_at: null,
+          updated_by: null,
         })
-        .onConflict(['role_id', 'permission_id']) // Avoid duplicate entries
+        .onConflict(['role_id', 'permission_id'])
         .ignore();
+      
+      insertedCount++;
     }
   }
-
-  console.log('Role-Permissions seeded successfully.');
+  
+  console.log(`[SEED] Inserted ${insertedCount} role-permission mappings.`);
 };

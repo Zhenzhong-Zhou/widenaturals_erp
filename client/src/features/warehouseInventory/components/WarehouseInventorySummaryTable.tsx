@@ -2,18 +2,25 @@ import { type FC, lazy, useCallback } from 'react';
 import InventoryStatusChip from '@features/inventoryShared/components/InventoryStatusChip';
 import StockLevelChip from '@features/inventoryShared/components/StockLevelChip';
 import ExpirySeverityChip from '@features/inventoryShared/components/ExpirySeverityChip';
+import ExpandableDetailSection from '@components/common/ExpandableDetailSection';
 import CustomTable, { type Column } from '@components/common/CustomTable';
+import RowActionMenu from '@components/common/RowActionMenu';
 import { formatDate } from '@utils/dateTimeUtils';
 import type {
-  WarehouseInventoryItemSummary, WarehouseInventorySummaryItemDetails,
+  WarehouseInventoryItemSummary,
+  WarehouseInventorySummaryItemDetails,
 } from '@features/warehouseInventory/state';
 import { formatLabel } from '@utils/textUtils';
 import { createDrillDownColumn } from '@utils/table/createDrillDownColumn';
-import ExpandableDetailSection from '@components/common/ExpandableDetailSection';
 import { getDetailCacheKey } from '@features/inventoryShared/utils/cacheKeys';
+import type { InventoryActivityLogQueryParams, InventoryLogSource } from '@features/report/state';
+import { getDefaultRowActions } from '@utils/table/getDefaultRowActions';
 
-const WarehouseInventorySummaryDetailTable = lazy(() =>
-  import('@features/warehouseInventory/components/WarehouseInventorySummaryDetailTable')
+const WarehouseInventorySummaryDetailTable = lazy(
+  () =>
+    import(
+      '@features/warehouseInventory/components/WarehouseInventorySummaryDetailTable'
+    )
 );
 
 interface SkuInventorySummaryTableProps {
@@ -37,36 +44,41 @@ interface SkuInventorySummaryTableProps {
   onDetailPageChange: (newPage: number) => void;
   onDetailRowsPerPageChange: (newLimit: number) => void;
   onRefreshDetail: (rowId: string) => void;
+  canViewInventoryLogs: boolean;
+  onViewLogs: (row: InventoryLogSource, extraFilters?: Partial<InventoryActivityLogQueryParams>) => void;
 }
 
 const WarehouseInventorySummaryTable: FC<SkuInventorySummaryTableProps> = ({
-                                                                       data,
-                                                                       page,
-                                                                       rowsPerPage,
-                                                                       totalRecords,
-                                                                       totalPages,
-                                                                       onPageChange,
-                                                                       onRowsPerPageChange,
-                                                                       expandedRowId,
-                                                                       detailDataMap,
-                                                                       detailLoadingMap,
-                                                                       detailErrorMap,
-                                                                       detailPage,
-                                                                       detailLimit,
-                                                                       detailTotalRecords,
-                                                                       detailTotalPages,
-                                                                       onDetailPageChange,
-                                                                       onDetailRowsPerPageChange,
-                                                                       onDrillDownToggle,
-                                                                       onRowHover,
-                                                                       onRefreshDetail,
-                                                                     }) => {
+  data,
+  page,
+  rowsPerPage,
+  totalRecords,
+  totalPages,
+  onPageChange,
+  onRowsPerPageChange,
+  expandedRowId,
+  detailDataMap,
+  detailLoadingMap,
+  detailErrorMap,
+  detailPage,
+  detailLimit,
+  detailTotalRecords,
+  detailTotalPages,
+  onDetailPageChange,
+  onDetailRowsPerPageChange,
+  onDrillDownToggle,
+  onRowHover,
+  onRefreshDetail,
+  canViewInventoryLogs,
+  onViewLogs,
+}) => {
   const columns: Column<WarehouseInventoryItemSummary>[] = [
     {
       id: 'itemType',
       label: 'Item Type',
       sortable: true,
-      format: (_value: any, row?: WarehouseInventoryItemSummary) => formatLabel(row?.itemType)
+      format: (_value: any, row?: WarehouseInventoryItemSummary) =>
+        formatLabel(row?.itemType),
     },
     {
       id: 'itemName',
@@ -138,21 +150,21 @@ const WarehouseInventorySummaryTable: FC<SkuInventorySummaryTableProps> = ({
     },
     ...(onDrillDownToggle
       ? [
-        createDrillDownColumn<WarehouseInventoryItemSummary>(
-          (row) => onDrillDownToggle?.(row.itemId),
-          (row) => expandedRowId === row.itemId,
-          {
-            onMouseEnter: (row) => onRowHover?.(row.itemId),
-          }
-        )
-      ]
+          createDrillDownColumn<WarehouseInventoryItemSummary>(
+            (row) => onDrillDownToggle?.(row.itemId),
+            (row) => expandedRowId === row.itemId,
+            {
+              onMouseEnter: (row) => onRowHover?.(row.itemId),
+            }
+          ),
+        ]
       : []),
   ];
-  
+
   const expandedContent = useCallback(
     (row: WarehouseInventoryItemSummary) => {
       const cacheKey = getDetailCacheKey(row.itemId, detailPage, detailLimit);
-      
+
       return (
         <ExpandableDetailSection
           row={row}
@@ -187,7 +199,7 @@ const WarehouseInventorySummaryTable: FC<SkuInventorySummaryTableProps> = ({
       onRefreshDetail,
     ]
   );
-  
+
   return (
     <CustomTable
       columns={columns}
@@ -203,6 +215,10 @@ const WarehouseInventorySummaryTable: FC<SkuInventorySummaryTableProps> = ({
       expandedRowId={expandedRowId}
       getRowId={(row) => row.itemId}
       expandedContent={expandedContent}
+      showActionsColumn={canViewInventoryLogs}
+      renderActions={(row) => (
+        <RowActionMenu row={row} actions={getDefaultRowActions(onViewLogs)} />
+      )}
     />
   );
 };

@@ -1,66 +1,85 @@
 const Joi = require('joi');
-const AppError = require('../utils/AppError');
-const { validateEmail, validatePhoneNumber } = require('./general-validators');
+const {
+  validateEmail,
+  validatePhoneNumber,
+  validateString,
+  createBooleanFlag,
+  paginationSchema,
+  createSortSchema,
+  validateOptionalUUID,
+  validateKeyword,
+  createArraySchema,
+  createdDateRangeSchema,
+  statusDateRangeSchema,
+} = require('./general-validators');
 
 /**
  * Joi schema for customer validation.
  */
 const customerSchema = Joi.object({
-  firstname: Joi.string().min(2).max(50).trim().required().messages({
-    'string.min': 'Firstname must be at least 2 characters long',
-    'string.max': 'Firstname must not exceed 50 characters',
-    'any.required': 'Firstname is required',
-  }),
-
-  lastname: Joi.string().min(2).max(50).trim().required().messages({
-    'string.min': 'Lastname must be at least 2 characters long',
-    'string.max': 'Lastname must not exceed 50 characters',
-    'any.required': 'Lastname is required',
-  }),
-
+  firstname: validateString('Firstname', 2, 50),
+  lastname: validateString('Lastname', 2, 50),
   email: validateEmail,
-
   phone_number: validatePhoneNumber,
-
-  // Structured Address Fields
-  address_line1: Joi.string().max(255).required().messages({
-    'any.required': 'Address Line 1 is required',
-  }),
-  address_line2: Joi.string().max(255).allow('', null),
-  city: Joi.string().max(100).required().messages({
-    'any.required': 'City is required',
-  }),
-  state: Joi.string().max(100).required().messages({
-    'any.required': 'State/Province is required',
-  }),
-  postal_code: Joi.string().max(20).required().messages({
-    'any.required': 'Postal Code is required',
-  }),
-  country: Joi.string().max(100).required().messages({
-    'any.required': 'Country is required',
-  }),
-  region: Joi.string().max(100).allow('', null),
-
   note: Joi.string().max(500).allow('').optional(),
 });
 
 /**
- * Validates customer data using Joi.
- * @param {Object} customerData - The customer data to validate.
- * @throws {AppError} Throws an error if validation fails.
+ * Joi schema for validating an array of customers.
  */
-const validateCustomer = (customerData) => {
-  const { error, value } = customerSchema.validate(customerData, {
-    abortEarly: false, // Show all errors, not just the first one
-  });
+const customerArraySchema = createArraySchema(customerSchema, 1, 'Customer list');
 
-  if (error) {
-    throw AppError.validationError('Customer validation failed', {
-      details: error.details.map((err) => err.message),
-    });
-  }
+/**
+ * Joi schema for base customer filtering fields.
+ *
+ * These fields are commonly used across customer-related list or search endpoints.
+ * Includes support for basic filters like a region, country, and metadata such as creator or keyword.
+ *
+ * - `region`: Optional string representing a region filter (e.g., 'North America')
+ * - `country`: Optional string representing a country code or name
+ * - `createdBy`: Optional UUID of the user who created the customer
+ * - `keyword`: Optional string used for searching by name, email, etc.
+ * - `onlyWithAddress`: Optional boolean (truthy/falsy) indicating if only customers with addresses should be included
+ *
+ * Typically combined with pagination, sorting, and date filters using `.concat(...)`.
+ *
+ * @type {Joi.ObjectSchema}
+ */
+const baseCustomerFields = Joi.object({
+  region: Joi.string().optional().allow(null),
+  country: Joi.string().optional().allow(null),
+  createdBy: validateOptionalUUID('Created By'),
+  keyword: validateKeyword('Customer keyword'),
+  onlyWithAddress: createBooleanFlag('onlyWithAddress'),
+});
 
-  return value; // Return validated data
+/**
+ * Joi schema for validating customer list query parameters.
+ *
+ * This schema supports:
+ * - Pagination (page, limit)
+ * - Sorting (sortBy, sortOrder) — sortBy is logical and mapped in the backend
+ * - Date range filtering (createdAfter, createdBefore, statusDateAfter, statusDateBefore)
+ * - Basic customer filters (region, country, createdBy, keyword, onlyWithAddress)
+ *
+ * This schema is composed of reusable base validators:
+ * - `paginationSchema` (page, limit)
+ * - `createSortSchema('created_at')` (sortBy, sortOrder)
+ * - `dateRangeSchema` (date-based filters)
+ * - `baseCustomerFields` (domain-specific filters)
+ *
+ * @example Query Parameters
+ * ?page=2&limit=20&sortBy=createdAt&sortOrder=DESC&region=NA&createdAfter=2024-01-01
+ *
+ * @type {Joi.ObjectSchema}
+ */
+const customerFilterSchema = paginationSchema
+  .concat(createSortSchema('created_at'))
+  .concat(createdDateRangeSchema)
+  .concat(statusDateRangeSchema)
+  .concat(baseCustomerFields);
+
+module.exports = {
+  customerArraySchema,
+  customerFilterSchema,
 };
-
-module.exports = { validateCustomer, customerSchema };

@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
 import type { ApiSuccessResponse, PaginationParams } from '@shared-types/api';
+import type { WarehouseInventoryRecord } from '@features/warehouseInventory/state';
+import type { LocationInventoryRecord } from '@features/locationInventory/state';
 
 export interface InventoryHealthStatus {
   reservedQuantity: number;
@@ -12,10 +14,20 @@ export interface InventoryHealthStatus {
   isNearExpiry: boolean;
   isLowStock: boolean;
   stockLevel: 'none' | 'critical' | 'low_stock' | 'normal';
-  expirySeverity: 'expired' | 'expired_soon' | 'critical' | 'warning' | 'notice' | 'safe' | 'normal' | 'unknown';
+  expirySeverity:
+    | 'expired'
+    | 'expired_soon'
+    | 'critical'
+    | 'warning'
+    | 'notice'
+    | 'safe'
+    | 'normal'
+    | 'unknown';
 }
 
 export type ItemType = 'product' | 'packaging_material' | undefined;
+
+export type BatchType = 'product' | 'packaging_material' | 'all';
 
 /**
  * Interface for fetching inventory summary details by item ID with pagination.
@@ -70,44 +82,45 @@ export interface BaseFlatInventoryRow {
 }
 
 export interface BaseInventoryFilters {
-  batchType?: 'product' | 'packaging_material';
-  
+  batchType?: ItemType;
+
   // Product-related
   productName?: string;
   sku?: string;
-  
+
   // Material-related
   materialName?: string;
   materialCode?: string;
-  
+
   // Part-related
   partName?: string;
   partCode?: string;
   partType?: string;
-  
+
   // Common
   lotNumber?: string;
   status?: string;
   inboundDate?: string; // yyyy-mm-dd
-  expiryDate?: string;  // yyyy-mm-dd
-  createdAt?: string;   // yyyy-mm-dd
+  expiryDate?: string; // yyyy-mm-dd
+  createdAt?: string; // yyyy-mm-dd
 }
 
 export interface BaseInventoryRecord {
   id: string;
-  itemType: 'product' | 'packaging_material';
-  
+  itemType: ItemType;
+
   quantity: {
     available: number;
     reserved: number;
   };
-  
+
   lot: {
+    batchId: string;
     number: string;
     manufactureDate: string | null;
     expiryDate: string | null;
   };
-  
+
   product?: {
     name: string;
     brand?: string;
@@ -118,7 +131,7 @@ export interface BaseInventoryRecord {
     sizeLabel?: string;
     manufacturer?: string;
   };
-  
+
   material?: {
     name: string;
     receivedName: string;
@@ -128,27 +141,27 @@ export interface BaseInventoryRecord {
     unit: string;
     supplier?: string;
   };
-  
+
   part?: {
     name: string;
     code: string;
     type: string;
     unit: string;
   };
-  
+
   createdBy: string | null;
   updatedBy?: string | null;
-  
+
   status: {
     name: string;
     stockLevel: 'in_stock' | 'low_stock' | 'out_of_stock' | string;
     expirySeverity: 'normal' | 'expired' | 'expired_soon' | string;
   };
-  
+
   display: {
     name: string;
   };
-  
+
   timestamps: {
     createdAt: string;
     updatedAt: string | null;
@@ -216,9 +229,67 @@ export interface InventoryRecordOutput {
   itemType: ItemType; // or string
 }
 
-export interface CreateInventoryRecordsData {
+export interface InventoryAdjustmentInput {
+  warehouse_id: string;
+  location_id: string;
+  batch_id: string;
+  batch_type: ItemType;
+  quantity: number;
+  inventory_action_type_id: string;
+  adjustment_type_id: string;
+  comments?: string;
+}
+
+export interface AdjustInventoryRequestBody {
+  updates: InventoryAdjustmentInput[];
+}
+
+export interface InventoryAdjustmentFormData {
+  newQuantity: string;
+  adjustment_type_id: string;
+  note?: string;
+}
+
+export interface InventoryRecordsPayload {
   warehouse: InventoryRecordOutput[];
   location: InventoryRecordOutput[];
 }
 
-export type CreateInventoryRecordsResponse = ApiSuccessResponse<CreateInventoryRecordsData>;
+export type InventoryRecordsResponse =
+  ApiSuccessResponse<InventoryRecordsPayload>;
+
+export interface AdjustedInventoryData {
+  id: string;
+  warehouseId: string;
+  locationId: string;
+  batchId: string;
+  batchType: 'product' | 'packaging_material';
+  warehouseName?: string;
+  locationName?: string;
+  displayName: string;
+  lotNumber: string;
+  expiryDate: string;
+  warehouseQuantity?: number;
+  locationQuantity?: number;
+  status: string;
+}
+
+export type InventoryRecord = WarehouseInventoryRecord | LocationInventoryRecord;
+
+export interface InventoryAdjustmentContextBase {
+  id: string;
+  batchType: string;
+  displayName: string;
+  lotNumber: string;
+  expiryDate: string;
+  status?: string;
+  warehouseName?: string;
+  warehouseQuantity?: number;
+  locationName?: string;
+  locationQuantity?: number;
+}
+
+export type InventoryAdjustmentSingleContext = InventoryAdjustmentContextBase;
+
+export type InventoryAdjustmentBulkContext = InventoryAdjustmentContextBase[];
+

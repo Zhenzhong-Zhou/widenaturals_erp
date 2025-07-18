@@ -2,6 +2,7 @@ import { combineReducers, type PayloadAction } from '@reduxjs/toolkit';
 import { createReducerMap } from '@utils/reducerUtils';
 
 // Reducer groups
+import { addressReducers } from '@features/address';
 import { authorizeReducers } from '@features/authorize';
 import { complianceReducers } from '@features/compliance';
 import { csrfReducers } from '@features/csrf';
@@ -18,7 +19,7 @@ import { pricingReducers } from '@features/pricing';
 import { pricingTypeReducers } from '@features/pricingType';
 import { skuReducers } from '@features/product';
 import { reportReducers } from '@features/report';
-import { dropdownReducers } from '@features/dropdown';
+import { lookupReducers } from '@features/lookup';
 import { resetPasswordReducers } from '@features/resetPassword';
 import { sessionReducers } from '@features/session';
 import { taxRateReducers } from '@features/taxRate';
@@ -38,7 +39,6 @@ const appReducer = combineReducers(
 
     // User
     userReducers,
-    customerReducers,
 
     // Product & Pricing
     skuReducers,
@@ -54,15 +54,17 @@ const appReducer = combineReducers(
     warehouseInventoryReducers,
 
     // Orders && Process
+    customerReducers,
+    addressReducers,
     orderTypeReducers,
     orderReducers,
     inventoryAllocationReducers,
-    
+
     // Reporting
     reportReducers,
-    
+
     // Dropdown
-    dropdownReducers,
+    lookupReducers,
 
     // Misc
     discountReducers,

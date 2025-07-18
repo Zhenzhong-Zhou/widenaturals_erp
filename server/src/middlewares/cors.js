@@ -29,16 +29,18 @@ const corsMiddleware = cors({
           }
         );
       }
-      
+
       const isDev = process.env.NODE_ENV === 'development';
-      
+
       // Read allowed origins from environment variables
       const allowedOrigins = process.env.ALLOWED_ORIGINS
-        ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim().toLowerCase()).filter(Boolean)
+        ? process.env.ALLOWED_ORIGINS.split(',')
+            .map((o) => o.trim().toLowerCase())
+            .filter(Boolean)
         : isDev
           ? ['http://localhost:5173']
           : [];
-      
+
       if (!origin) {
         // Handle requests without an Origin header
         if (allowedOrigins.length === 0) {
@@ -68,12 +70,12 @@ const corsMiddleware = cors({
           details: { origin },
         }
       );
-      
+
       logWarn(corsError.message, null, {
         origin,
         middleware: 'cors',
       });
-      
+
       return callback(corsError);
     } catch (error) {
       logError(error, null, {
@@ -81,11 +83,11 @@ const corsMiddleware = cors({
         context: 'CORS origin validation',
         origin,
       });
-      
+
       const corsError = AppError.corsError('CORS configuration failed.', {
         details: { error: error.message },
       });
-      
+
       return callback(corsError);
     }
   },
@@ -106,7 +108,9 @@ const corsMiddleware = cors({
     'Origin',
     'X-CSRF-Token',
   ], // Allowed headers
-  exposedHeaders: process.env.EXPOSED_HEADERS?.split(',') || ['Content-Disposition'], // Exposed headers
+  exposedHeaders: process.env.EXPOSED_HEADERS?.split(',') || [
+    'Content-Disposition',
+  ], // Exposed headers
   credentials: process.env.ALLOW_CREDENTIALS === 'true', // Allow credentials (cookies, Authorization header, etc.)
   optionsSuccessStatus: parseInt(process.env.OPTIONS_SUCCESS_STATUS, 10) || 204, // Response status for preflight requests
 });

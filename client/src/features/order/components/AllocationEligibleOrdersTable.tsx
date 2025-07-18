@@ -10,7 +10,9 @@ interface AllocationEligibleOrdersTableProps {
  * Component to display orders eligible for inventory allocation.
  * Supports pagination, sorting, and manual refresh.
  */
-const AllocationEligibleOrdersTable: FC<AllocationEligibleOrdersTableProps> = ({ refreshTrigger }) => {
+const AllocationEligibleOrdersTable: FC<AllocationEligibleOrdersTableProps> = ({
+  refreshTrigger,
+}) => {
   const {
     orders,
     loading,
@@ -20,9 +22,9 @@ const AllocationEligibleOrdersTable: FC<AllocationEligibleOrdersTableProps> = ({
     manualRefresh,
     refreshCounter,
   } = useAllocationEligibleOrders();
-  
+
   const [isRefreshing, setIsRefreshing] = useState(false);
-  
+
   const handleManualRefresh = async () => {
     setIsRefreshing(true);
     try {
@@ -31,7 +33,7 @@ const AllocationEligibleOrdersTable: FC<AllocationEligibleOrdersTableProps> = ({
       setIsRefreshing(false);
     }
   };
-  
+
   return (
     <GenericOrdersTable
       orders={orders}

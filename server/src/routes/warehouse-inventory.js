@@ -2,10 +2,11 @@ const express = require('express');
 const {
   getPaginatedWarehouseInventorySummaryController,
   getWarehouseInventorySummaryDetailsController,
-  getWarehouseInventoryRecordController, createWarehouseInventoryRecordController, adjustInventoryQuantitiesController,
+  getWarehouseInventoryRecordController,
+  createWarehouseInventoryRecordController,
+  adjustInventoryQuantitiesController,
 } = require('../controllers/warehouse-inventory-controller');
 const authorize = require('../middlewares/authorize');
-const { sanitizeInput } = require('../middlewares/sanitize');
 const { csrfMiddleware } = require('../middlewares/csrf-protection');
 
 const router = express.Router();
@@ -24,14 +25,15 @@ const router = express.Router();
  * @returns {object} 200 - Paginated inventory summary
  * @returns {object} 403 - Forbidden if missing required permissions
  */
-router.get('/summary',
+router.get(
+  '/summary',
   authorize([
     'view_inventory',
     'view_warehouse_inventory',
-    'view_inventory_summary'
+    'view_inventory_summary',
   ]),
-  sanitizeInput,
-  getPaginatedWarehouseInventorySummaryController);
+  getPaginatedWarehouseInventorySummaryController
+);
 
 /**
  * @route GET /warehouse-inventory/summary/:itemId/details
@@ -52,9 +54,8 @@ router.get(
     'view_inventory',
     'view_warehouse_inventory',
     'view_product_inventory',
-    'view_material_inventory'
+    'view_material_inventory',
   ]),
-  sanitizeInput,
   getWarehouseInventorySummaryDetailsController
 );
 
@@ -97,9 +98,8 @@ router.get(
     'view_inventory',
     'view_warehouse_inventory',
     'view_product_inventory',
-    'view_material_inventory'
+    'view_material_inventory',
   ]),
-  sanitizeInput,
   getWarehouseInventoryRecordController
 );
 
@@ -136,7 +136,6 @@ router.post(
   '/',
   csrfMiddleware,
   authorize(['manage_warehouse_inventory']), // Suggested permission
-  sanitizeInput,
   createWarehouseInventoryRecordController
 );
 

@@ -1,71 +1,94 @@
-const {
-  createOrder,
-  getOrderDetailsById,
-  getAllOrders, getAllocationEligibleOrders, getOrderAllocationDetailsById,
-} = require('../repositories/order-repository');
-const { createSalesOrder } = require('../repositories/sales-order-repository');
-const {
-  getOrderTypeByIdOrName,
-  checkOrderTypeExists,
-} = require('../repositories/order-type-repository');
-const AppError = require('../utils/AppError');
-const { logError } = require('../utils/logger-helper');
-const {
-  transformOrderDetails,
-  transformOrders,
-  transformUpdatedOrderStatusResult, transformOrderAllocationDetails,
-} = require('../transformers/order-transformer');
-const {
-  applyOrderDetailsBusinessLogic,
-  validateOrderNumbers,
-  confirmOrderWithItems,
-  canConfirmOrder,
-} = require('../business/order-business');
 const { withTransaction } = require('../database/db');
-const { verifyOrderNumber } = require('../utils/order-number-utils');
-const { checkPermissions } = require('./role-permission-service');
+const { validateIdExists } = require('../validators/entity-id-validators');
+const { generateOrderIdentifiers } = require('../utils/order-number-utils');
+const { getOrderStatusIdByCode } = require('../repositories/order-status-repository');
+const { insertOrder } = require('../repositories/order-repository');
+const { createOrderWithType, verifyOrderCreationPermission } = require('../business/order-business');
+const AppError = require('../utils/AppError');
+const { logSystemException } = require('../utils/system-logger');
 
 /**
- * Creates an order dynamically based on its type.
- * Dynamically determines order processing based on category.
+ * Service function to create a new order within the specified category.
  *
- * @param {Object} orderData - Order details.
- * @returns {Promise<Object>} - The created order.
+ * This function:
+ * - Validates that the provided `order_type_id` exists and matches the category.
+ * - Generates a new order ID and order number.
+ * - Verifies the user's permission to create the specified order category.
+ * - Inserts the base order record.
+ * - Delegates type-specific insert logic (e.g., sales, transfer).
+ *
+ * @param {object} orderData - Full order payload, including base and subtype fields. Must contain `order_type_id`.
+ * @param {string} category - The order category (e.g., 'sales', 'purchase', 'transfer').
+ * @param {object} user - Authenticated user object (must include at least `id` and `role`).
+ *
+ * @returns {Promise<object>} - Result containing created order IDs:
+ *   {
+ *     baseOrderId: string, // ID of the base order
+ *     typeOrderId: string // ID of the subtype-specific record
+ *   }
+ *
+ * @throws {AppError} - If validation fails, permission is denied, or DB operations fail.
+ *
+ * @example
+ * const result = await createOrderService(orderData, 'sales', currentUser);
+ * console.log(result); // { baseOrderId: '...', typeOrderId: '...' }
  */
-const createOrderByType = async (orderData) => {
-  // Step 1: Check if order type exists
-  const orderTypeExists = await checkOrderTypeExists(orderData.order_type_id);
-
-  if (!orderTypeExists) {
-    throw AppError.validationError('Invalid order type provided.');
-  }
-
-  // Step 2: Fetch order type details based on `order_type_id`
-  const orderType = await getOrderTypeByIdOrName({
-    id: orderData.order_type_id,
-  });
-
-  if (!orderType) {
-    throw AppError.databaseError('Failed to fetch order type details.');
-  }
-
-  // Step 3: Route to the correct order creation function
-  switch (orderType.category) {
-    case 'sales':
-      return createSalesOrder(orderData);
-
-    case 'purchase':
-    case 'transfer':
-    case 'return':
-    case 'manufacturing':
-    case 'adjustment':
-    case 'logistics':
-      return createOrder(orderData);
-
-    default:
-      throw AppError.validationError(
-        `Unsupported order category: ${orderType.category}`
+const createOrderService = async (orderData, category, user) => {
+  try {
+    return await withTransaction(async (client) => {
+      const { order_type_id } = orderData;
+      
+      // 1. Validate order type exists
+      await validateIdExists('order_types', order_type_id, client, 'Order Type');
+      
+      // 2. Generate order number
+      const { id, orderNumber } = await generateOrderIdentifiers(order_type_id, category, client);
+      
+      // 3. Verify permission to create this category of order
+      await verifyOrderCreationPermission(user, category);
+      
+      // 4. Get default status ID
+      const status_id = await getOrderStatusIdByCode('ORDER_PENDING', client);
+      if (!status_id) {
+        throw AppError.validationError('Invalid default order status: ORDER_PENDING');
+      }
+      
+      // 5. Insert base order
+      const baseOrderId = await insertOrder(
+        {
+          ...orderData,
+          id,
+          order_number: orderNumber,
+          order_status_id: status_id
+        },
+        client
       );
+      
+      // 6. Insert type-specific order (e.g., into sales_orders, transfer_orders)
+      const typeOrderId = await createOrderWithType(
+        category,
+        {
+          ...orderData,
+          id: baseOrderId,
+          order_number: orderNumber,
+          status_id
+        },
+        client
+      );
+      
+      // 7. Return result
+      return {
+        baseOrderId,
+        typeOrderId
+      };
+    });
+  } catch (error) {
+    logSystemException(error, 'Failed to create order', {
+      context: 'order-service/createOrderService',
+      category,
+      orderData
+    });
+    throw AppError.businessError('Unable to create order');
   }
 };
 
@@ -124,22 +147,24 @@ const handleOrderServiceFetch = async (
       const hasAccess = await checkPermissions(user, requiredPermissions, {
         requireAll: requireAllPermissions,
       });
-      
+
       if (!hasAccess) {
-        throw AppError.authorizationError('You do not have permission to access these orders.');
+        throw AppError.authorizationError(
+          'You do not have permission to access these orders.'
+        );
       }
     }
-    
+
     // Fetch, transform, validate
     const result = await fetchFn({ page, limit, sortBy, sortOrder });
-    
+
     const transformedOrders = transformOrders(result.data);
-    
+
     const validatedOrders = validateOrderNumbers(
       transformedOrders,
       verifyOrderNumbers
     );
-    
+
     return { ...result, data: validatedOrders };
   } catch (error) {
     logError('Error in order service fetch:', error);
@@ -166,7 +191,10 @@ const fetchAllOrdersService = (options = {}) =>
 const fetchAllocationEligibleOrdersService = (options = {}) =>
   handleOrderServiceFetch(getAllocationEligibleOrders, {
     ...options,
-    requiredPermissions: ['view_allocation_details', 'view_full_sales_order_details'],
+    requiredPermissions: [
+      'view_allocation_details',
+      'view_full_sales_order_details',
+    ],
     requireAllPermissions: false, // only one is needed
   });
 
@@ -177,7 +205,7 @@ const fetchAllocationEligibleOrdersService = (options = {}) =>
  * @param {string} orderId - The ID of the order to confirm.
  * @param {object} user - The user performing the confirmation.
  * @returns {Promise<object>} - Transformed result of the confirmed order.
- * @throws {AppError} - If order ID is missing or order cannot be confirmed.
+ * @throws {AppError} - If order ID is missing, or order cannot be confirmed.
  */
 const confirmOrderService = async (orderId, user) => {
   if (!orderId) {
@@ -216,30 +244,30 @@ const confirmOrderService = async (orderId, user) => {
 const fetchAllocationEligibleOrderDetails = async (orderId, user) => {
   const rows = await getOrderAllocationDetailsById(orderId);
   const order = transformOrderAllocationDetails(rows);
-  
+
   if (!order) {
     throw AppError.notFoundError('Order not found or not confirmed.');
   }
-  
+
   const isValid = verifyOrderNumber(order.order_number);
-  
+
   if (!isValid) {
     const canViewInvalid = await checkPermissions(user, [
       'root_access',
       'view_all_order_details',
       'view_order_allocation_details',
     ]);
-    
+
     if (!canViewInvalid) {
       throw AppError.validationError('Order number is invalid or not found.');
     }
   }
-  
+
   return order;
 };
 
 module.exports = {
-  createOrderByType,
+  createOrderService,
   fetchOrderDetails,
   fetchAllOrdersService,
   fetchAllocationEligibleOrdersService,

@@ -4,7 +4,12 @@ import { parseISO } from 'date-fns/parseISO';
 import { differenceInDays } from 'date-fns/differenceInDays';
 import { differenceInMinutes } from 'date-fns/differenceInMinutes';
 import { isValid } from 'date-fns/isValid';
-import { differenceInHours, differenceInMonths, differenceInSeconds } from 'date-fns';
+import {
+  addDays,
+  differenceInHours,
+  differenceInMonths,
+  differenceInSeconds, startOfDay,
+} from 'date-fns';
 
 /**
  * Validates a date input and ensures it matches a recognized format.
@@ -170,16 +175,16 @@ export const formatDateTime = (
   timezone: string = 'America/Vancouver'
 ): string => {
   if (!timestamp) return 'N/A'; // Handle null or undefined inputs gracefully
-  
+
   const rawDate =
     typeof timestamp === 'string' ? parseISO(timestamp) : new Date(timestamp);
   if (!isValid(rawDate)) return 'N/A';
-  
+
   const { date: localDate, timezoneAbbreviation } = convertToLocalTime(
     rawDate,
     timezone
   );
-  
+
   // Format with zero-padded values for consistency
   const year = localDate.getFullYear();
   const month = String(localDate.getMonth() + 1).padStart(2, '0');
@@ -200,19 +205,22 @@ export const formatDateTime = (
 export const timeAgo = (date: Date | string): string => {
   const parsedDate = typeof date === 'string' ? parseISO(date) : date;
   const now = new Date();
-  
+
   const diffSeconds = differenceInSeconds(now, parsedDate);
-  if (diffSeconds < 60) return `${diffSeconds} second${diffSeconds === 1 ? '' : 's'} ago`;
-  
+  if (diffSeconds < 60)
+    return `${diffSeconds} second${diffSeconds === 1 ? '' : 's'} ago`;
+
   const diffMinutes = differenceInMinutes(now, parsedDate);
-  if (diffMinutes < 60) return `${diffMinutes} minute${diffMinutes === 1 ? '' : 's'} ago`;
-  
+  if (diffMinutes < 60)
+    return `${diffMinutes} minute${diffMinutes === 1 ? '' : 's'} ago`;
+
   const diffHours = differenceInHours(now, parsedDate);
-  if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
-  
+  if (diffHours < 24)
+    return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+
   const diffDays = differenceInDays(now, parsedDate);
   if (diffDays < 30) return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
-  
+
   const diffMonths = differenceInMonths(now, parsedDate);
   return `${diffMonths} month${diffMonths === 1 ? '' : 's'} ago`;
 };
@@ -234,4 +242,42 @@ export const formatToISODate = (
   const parts = isoString.split('T');
 
   return parts[0] ?? 'N/A'; // Extract YYYY-MM-DD
+};
+
+/**
+ * Adjusts a "before" date to make filtering inclusive:
+ * Adds 1 day and sets time to start of day (00:00),
+ * so dates like '2025-07-08' include the full day in filtering.
+ *
+ * @param input - Date string (e.g., '2025-07-08') or undefined
+ * @returns ISO string for start of the next day (e.g., '2025-07-09T00:00:00.000Z'), or '' if invalid
+ */
+export const adjustBeforeDateInclusive = (input?: string): string => {
+  const date = input ? new Date(input) : null;
+  return date && isValid(date)
+    ? startOfDay(addDays(date, 1)).toISOString()
+    : '';
+};
+
+/**
+ * Safely converts a date-like input to an ISO 8601 string (`YYYY-MM-DDTHH:mm:ss.sssZ`).
+ *
+ * Accepts a `Date` object or a valid date string and returns its ISO string representation.
+ * Returns `undefined` if the input is invalid, empty, or not parseable.
+ *
+ * This function is useful for transforming client-side date inputs
+ * (e.g., from a date picker or filter form) into valid ISO strings for backend query parameters.
+ *
+ * @param value - The input value to convert (Date, ISO string, or null/undefined).
+ * @returns A valid ISO 8601 string or `undefined` if the input is invalid.
+ */
+export const toISO = (value: string | Date | null | undefined): string | undefined => {
+  if (value instanceof Date && !isNaN(value.getTime())) {
+    return value.toISOString();
+  }
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = new Date(value);
+    return !isNaN(parsed.getTime()) ? parsed.toISOString() : undefined;
+  }
+  return undefined;
 };

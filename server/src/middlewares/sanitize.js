@@ -1,7 +1,7 @@
 const {
   sanitizeRequestBody,
   sanitizeQueryParams,
-  sanitizeParams
+  sanitizeParams,
 } = require('../utils/sanitization-utils');
 const AppError = require('../utils/AppError');
 const { logError } = require('../utils/logger-helper');
@@ -20,7 +20,7 @@ const sanitizeInput = (req, res, next) => {
       context: 'input-sanitizer',
       stage: 'sanitization',
     });
-    
+
     next(
       AppError.sanitizationError('Input sanitization failed.', {
         details: error.message,
@@ -40,7 +40,7 @@ const sanitizeFields = (fields, isRichText = false) => {
   return (req, res, next) => {
     try {
       sanitizeRequestBody(req, fields, isRichText);
-      
+
       next();
     } catch (error) {
       logError(error, req, {
@@ -48,7 +48,7 @@ const sanitizeFields = (fields, isRichText = false) => {
         fields,
         isRichText,
       });
-      
+
       next(
         AppError.sanitizationError('Field sanitization failed.', {
           details: error.message,

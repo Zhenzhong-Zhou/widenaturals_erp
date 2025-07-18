@@ -90,11 +90,11 @@ export const handleInventoryHistoryRedirect = (
  */
 export const getOrderRoutePath = (row: Order): string => {
   const orderTypeSlug = getOrderTypeSlug(row.order_type);
-  
+
   switch (row.status_code) {
     case 'ORDER_PENDING':
     case 'ORDER_EDITED':
-      return`/orders/${orderTypeSlug}/${row.id}/edit`
+      return `/orders/${orderTypeSlug}/${row.id}/edit`;
     case 'ORDER_CONFIRMED':
     case 'ORDER_ALLOCATING':
     case 'ORDER_ALLOCATED':

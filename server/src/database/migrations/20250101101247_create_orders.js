@@ -16,7 +16,6 @@ exports.up = function (knex) {
 
     table
       .timestamp('order_date', { useTz: true })
-      .defaultTo(knex.fn.now())
       .notNullable();
 
     table
@@ -26,23 +25,20 @@ exports.up = function (knex) {
       .inTable('order_status');
 
     table.timestamp('status_date', { useTz: true }).defaultTo(knex.fn.now());
-    table.jsonb('metadata').nullable();
     table.text('note').nullable();
 
     // Shipping Information (optional)
-    table.boolean('has_shipping_address').defaultTo(false);
-    table.string('shipping_fullname', 150).nullable();
-    table.string('shipping_phone', 20).nullable();
-    table.string('shipping_email', 150).nullable(); // optional for tracking/notifications
-
-    table.string('shipping_address_line1', 255).nullable();
-    table.string('shipping_address_line2', 255).nullable();
-    table.string('shipping_city', 100).nullable();
-    table.string('shipping_state', 100).nullable();
-    table.string('shipping_postal_code', 20).nullable();
-    table.string('shipping_country', 100).nullable(); // usually 'Canada', 'US', etc.
-    table.string('shipping_region', 100).nullable(); // e.g., Alberta, California, Guangdong
-
+    table.uuid('shipping_address_id')
+      .nullable()
+      .references('id')
+      .inTable('addresses');
+    
+    // Billing Information (optional)
+    table.uuid('billing_address_id')
+      .nullable()
+      .references('id')
+      .inTable('addresses');
+    
     // Audit fields
     table
       .timestamp('created_at', { useTz: true })
@@ -52,6 +48,10 @@ exports.up = function (knex) {
     table.timestamp('updated_at', { useTz: true }).defaultTo(knex.fn.now());
     table.uuid('created_by').references('id').inTable('users');
     table.uuid('updated_by').references('id').inTable('users');
+    
+    table.index(['order_type_id'], 'idx_orders_order_type');
+    table.index(['order_status_id'], 'idx_orders_order_status');
+    table.index(['created_at'], 'idx_orders_created_at');
   });
 };
 

@@ -20,46 +20,51 @@ const { logError, logWarn } = require('../utils/logger-helper');
  * @returns {Promise<object>} Paginated pricing types.
  */
 const getAllPriceTypes = async ({
-                                  page,
-                                  limit,
-                                  statusId,
-                                  search,
-                                  startDate,
-                                  endDate,
-                                  canViewAllStatuses = false,
-                                }) => {
+  page,
+  limit,
+  statusId,
+  search,
+  startDate,
+  endDate,
+  canViewAllStatuses = false,
+}) => {
   const tableName = 'pricing_types pt';
   const joins = [
     'JOIN status s ON pt.status_id = s.id',
     'LEFT JOIN users cu ON pt.created_by = cu.id',
     'LEFT JOIN users uu ON pt.updated_by = uu.id',
   ];
-  
+
   const params = [];
   const whereClauses = [];
   let paramIndex = 1;
-  
+
   // Apply status filter if permission doesn't allow unrestricted view
   if (!canViewAllStatuses || (canViewAllStatuses && statusId)) {
     whereClauses.push(`pt.status_id = $${paramIndex++}`);
     params.push(statusId);
   }
-  
+
   // Optional keyword search
   if (search) {
-    whereClauses.push(`(LOWER(pt.name) ILIKE $${paramIndex} OR LOWER(pt.code) ILIKE $${paramIndex})`);
+    whereClauses.push(
+      `(LOWER(pt.name) ILIKE $${paramIndex} OR LOWER(pt.code) ILIKE $${paramIndex})`
+    );
     params.push(`%${search.toLowerCase()}%`);
     paramIndex++;
   }
-  
+
   // Optional status_date range filter
   if (startDate && endDate) {
-    whereClauses.push(`pt.status_date BETWEEN $${paramIndex++} AND $${paramIndex++}`);
+    whereClauses.push(
+      `pt.status_date BETWEEN $${paramIndex++} AND $${paramIndex++}`
+    );
     params.push(startDate, endDate);
   }
-  
-  const whereClause = whereClauses.length > 0 ? whereClauses.join(' AND ') : '1=1';
-  
+
+  const whereClause =
+    whereClauses.length > 0 ? whereClauses.join(' AND ') : '1=1';
+
   const baseQuery = `
     SELECT
       pt.id,
@@ -77,7 +82,7 @@ const getAllPriceTypes = async ({
     ${joins.join(' ')}
     WHERE ${whereClause}
   `;
-  
+
   try {
     const result = await paginateQuery({
       tableName,
@@ -90,14 +95,14 @@ const getAllPriceTypes = async ({
       sortBy: 'pt.name',
       sortOrder: 'ASC',
     });
-    
+
     logSystemInfo('Fetched paginated pricing types', {
       context: 'pricing-types-repository',
       page,
       limit,
       resultCount: result.data.length,
     });
-    
+
     return result;
   } catch (error) {
     logSystemError('Failed to fetch paginated pricing types', {
@@ -106,8 +111,10 @@ const getAllPriceTypes = async ({
       limit,
       error,
     });
-    
-    throw AppError.databaseError('Unable to retrieve pricing types at this time.');
+
+    throw AppError.databaseError(
+      'Unable to retrieve pricing types at this time.'
+    );
   }
 };
 
@@ -143,7 +150,7 @@ const getPricingTypeById = async (pricingTypeId) => {
     LEFT JOIN users updated_by_user ON pt.updated_by = updated_by_user.id
     WHERE pt.id = $1;
   `;
-  
+
   try {
     const result = await query(pricingTypeQuery, [pricingTypeId]);
     return result.rows.length > 0 ? result.rows[0] : null;
@@ -153,7 +160,10 @@ const getPricingTypeById = async (pricingTypeId) => {
       pricingTypeId,
       error,
     });
-    throw AppError.databaseError('Unable to retrieve pricing type details from the database.', { cause: error });
+    throw AppError.databaseError(
+      'Unable to retrieve pricing type details from the database.',
+      { cause: error }
+    );
   }
 };
 

@@ -16,12 +16,13 @@ const { logError } = require('../../utils/logger-helper');
  */
 const rateLimitErrorHandler = (err, req, res, next) => {
   const isRateLimitError =
-    err.name === 'RateLimitError' || err.message?.includes('Rate limit exceeded');
-  
+    err.name === 'RateLimitError' ||
+    err.message?.includes('Rate limit exceeded');
+
   if (!isRateLimitError) return next(err);
-  
+
   const retryAfter = err.retryAfter || null;
-  
+
   // Normalize the error using centralized utility
   const normalizedError = normalizeError(err, {
     type: 'RateLimitError',
@@ -31,12 +32,12 @@ const rateLimitErrorHandler = (err, req, res, next) => {
     logLevel: 'warn',
     details: { retryAfter },
   });
-  
+
   // Log the rate-limit event
   logError(normalizedError, req, {
     context: 'rate-limit-handler',
   });
-  
+
   // Send structured error response
   return res.status(normalizedError.status).json(normalizedError.toJSON());
 };

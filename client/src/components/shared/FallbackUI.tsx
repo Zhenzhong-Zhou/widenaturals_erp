@@ -15,17 +15,17 @@ interface FallbackUIProps {
 }
 
 const FallbackUI: FC<FallbackUIProps> = ({
-                                           title = 'Oops! Something went wrong.',
-                                           description = 'Please try again later or contact support.',
-                                           errorCode,
-                                           errorLog,
-                                           onRetry,
-                                         }) => {
+  title = 'Oops! Something went wrong.',
+  description = 'Please try again later or contact support.',
+  errorCode,
+  errorLog,
+  onRetry,
+}) => {
   const [showDetails, setShowDetails] = useState(false);
   const navigate = useNavigate();
-  
+
   const handleGoHome = () => navigate('/');
-  
+
   return (
     <Box
       sx={{
@@ -47,15 +47,12 @@ const FallbackUI: FC<FallbackUIProps> = ({
       >
         {title}
       </CustomTypography>
-      
+
       {/* Error Description */}
-      <CustomTypography
-        variant="body1"
-        sx={{ color: '#444', marginBottom: 2 }}
-      >
+      <CustomTypography variant="body1" sx={{ color: '#444', marginBottom: 2 }}>
         {description}
       </CustomTypography>
-      
+
       {/* Optional Error Code */}
       {errorCode && (
         <ErrorMessage
@@ -64,7 +61,7 @@ const FallbackUI: FC<FallbackUIProps> = ({
           sx={{ marginBottom: 2 }}
         />
       )}
-      
+
       {/* Expandable Error Log */}
       {errorLog && (
         <Box>
@@ -76,7 +73,7 @@ const FallbackUI: FC<FallbackUIProps> = ({
           >
             {showDetails ? 'Hide Details' : 'Show Details'}
           </CustomButton>
-          
+
           {showDetails && (
             <Box
               component="pre"
@@ -97,7 +94,7 @@ const FallbackUI: FC<FallbackUIProps> = ({
           )}
         </Box>
       )}
-      
+
       {/* Actions */}
       <Box
         sx={{
@@ -125,7 +122,7 @@ const FallbackUI: FC<FallbackUIProps> = ({
             Retry
           </CustomButton>
         )}
-        
+
         {/* Go Back */}
         <GoBackButton
           color="success"
@@ -138,7 +135,7 @@ const FallbackUI: FC<FallbackUIProps> = ({
             mt: 0, // override default spacing
           }}
         />
-        
+
         {/* Go Home */}
         <CustomButton
           variant="outlined"

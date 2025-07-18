@@ -1,8 +1,5 @@
 const { query, paginateResults } = require('../database/db');
-const {
-  logSystemInfo,
-  logSystemException
-} = require('../utils/system-logger');
+const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 const { buildWhereClauseAndParams } = require('../utils/sql/build-sku-filters');
 
@@ -18,7 +15,7 @@ const { buildWhereClauseAndParams } = require('../utils/sql/build-sku-filters');
 const getLastSku = async (brandCode, categoryCode) => {
   try {
     const pattern = `${brandCode}-${categoryCode}%`; // e.g., 'CH-HN%'
-    
+
     const sql = `
       SELECT sku
       FROM skus
@@ -26,18 +23,18 @@ const getLastSku = async (brandCode, categoryCode) => {
       ORDER BY sku DESC
       LIMIT 1
     `;
-    
+
     const result = await query(sql, [pattern]);
-    
+
     const lastSku = result.rows[0]?.sku || null;
-    
+
     logSystemInfo('[getLastSku] Retrieved last SKU', {
       brandCode,
       categoryCode,
       pattern,
       lastSku,
     });
-    
+
     return lastSku;
   } catch (error) {
     logSystemException(error, 'Failed to fetch last SKU', {
@@ -86,16 +83,19 @@ const getLastSku = async (brandCode, categoryCode) => {
  * }
  */
 const fetchPaginatedActiveSkusWithProductCards = async ({
-                                                          page = 1,
-                                                          limit = 10,
-                                                          sortBy = 'name, created_at',
-                                                          sortOrder = 'DESC',
-                                                          productStatusId,
-                                                          filters = {},
-                                                        }) => {
+  page = 1,
+  limit = 10,
+  sortBy = 'name, created_at',
+  sortOrder = 'DESC',
+  productStatusId,
+  filters = {},
+}) => {
   try {
-    const { whereClause, params } = buildWhereClauseAndParams(productStatusId, filters);
-    
+    const { whereClause, params } = buildWhereClauseAndParams(
+      productStatusId,
+      filters
+    );
+
     const queryText = `
       SELECT
         p.name AS product_name,
@@ -140,7 +140,7 @@ const fetchPaginatedActiveSkusWithProductCards = async ({
         img.image_url, img.alt_text
       ORDER BY ${sortBy} ${sortOrder}
     `;
-    
+
     logSystemInfo('Fetching paginated active SKUs with product cards', null, {
       context: 'sku-repository/fetchPaginatedActiveSkusWithProductCards',
       filters,
@@ -149,7 +149,7 @@ const fetchPaginatedActiveSkusWithProductCards = async ({
       page,
       limit,
     });
-    
+
     return await paginateResults({
       dataQuery: queryText,
       params,
@@ -224,10 +224,7 @@ const getSkuAndProductStatus = async (skuId) => {
  */
 const getSkuDetailsWithPricingAndMeta = async (
   skuId,
-  {
-    allowedStatusIds = null,
-    allowedPricingTypes = null,
-  } = {}
+  { allowedStatusIds = null, allowedPricingTypes = null } = {}
 ) => {
   const queryText = `
     SELECT
@@ -339,7 +336,11 @@ const getSkuDetailsWithPricingAndMeta = async (
   `;
 
   try {
-    const result = await query(queryText, [skuId, allowedStatusIds, allowedPricingTypes]);
+    const result = await query(queryText, [
+      skuId,
+      allowedStatusIds,
+      allowedPricingTypes,
+    ]);
 
     if (result.rows.length === 0) {
       logSystemInfo('SKU not found or filtered out by status', {
@@ -349,9 +350,11 @@ const getSkuDetailsWithPricingAndMeta = async (
         allowedPricingTypes,
       });
 
-      throw AppError.notFoundError('SKU not found or not visible under current status filter');
+      throw AppError.notFoundError(
+        'SKU not found or not visible under current status filter'
+      );
     }
-    
+
     return result.rows[0];
   } catch (error) {
     logSystemException(error, 'Failed to fetch SKU details with meta', {

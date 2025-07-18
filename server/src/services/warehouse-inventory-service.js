@@ -7,14 +7,16 @@ const AppError = require('../utils/AppError');
 const {
   logSystemError,
   logSystemException,
-  logSystemInfo
+  logSystemInfo,
 } = require('../utils/system-logger');
 const {
   transformPaginatedWarehouseInventoryItemSummary,
   transformPaginatedWarehouseInventorySummaryDetails,
   transformPaginatedWarehouseInventoryRecordResults,
 } = require('../transformers/warehouse-inventory-transformer');
-const { canViewWarehouseInventorySummary } = require('../business/warehouse-inventory-business');
+const {
+  canViewWarehouseInventorySummary,
+} = require('../business/warehouse-inventory-business');
 const { getStatusId } = require('../config/status-cache');
 
 /**
@@ -33,28 +35,28 @@ const { getStatusId } = require('../config/status-cache');
  * @returns {Promise<object>} - Transformed paginated warehouse inventory summary with metadata.
  */
 const fetchPaginatedWarehouseInventoryItemSummary = async ({
-                                                             page = 1,
-                                                             limit = 20,
-                                                             itemType,
-                                                             user,
-                                                           }) => {
+  page = 1,
+  limit = 20,
+  itemType,
+  user,
+}) => {
   const statusId = getStatusId('sku_active');
-  
+
   const isAllowed = await canViewWarehouseInventorySummary(user);
   if (!isAllowed) {
     throw AppError.authorizationError(
       'You do not have permission to view warehouse inventory summary.'
     );
   }
-  
+
   if (page < 1 || limit < 1) {
     throw AppError.validationError('Invalid pagination parameters.');
   }
-  
+
   if (itemType && !['product', 'packaging_material'].includes(itemType)) {
     throw AppError.validationError(`Invalid itemType filter: ${itemType}`);
   }
-  
+
   try {
     const rawResult = await getPaginatedWarehouseInventoryItemSummary({
       page,
@@ -62,7 +64,7 @@ const fetchPaginatedWarehouseInventoryItemSummary = async ({
       itemType,
       statusId,
     });
-    
+
     return transformPaginatedWarehouseInventoryItemSummary(rawResult);
   } catch (error) {
     logSystemError('Failed to fetch paginated warehouse inventory summary', {
@@ -70,8 +72,10 @@ const fetchPaginatedWarehouseInventoryItemSummary = async ({
       params: { page, limit, itemType, userId: user.id },
       error,
     });
-    
-    throw AppError.serviceError('Unable to fetch warehouse inventory summary at this time.');
+
+    throw AppError.serviceError(
+      'Unable to fetch warehouse inventory summary at this time.'
+    );
   }
 };
 
@@ -86,28 +90,47 @@ const fetchPaginatedWarehouseInventoryItemSummary = async ({
  * @returns {Promise<Object>} Transformed and paginated warehouse inventory summary result.
  * @throws {AppError} On database or transformation failure.
  */
-const fetchWarehouseInventorySummaryByItemIdService = async ({ page, limit, itemId }) => {
+const fetchWarehouseInventorySummaryByItemIdService = async ({
+  page,
+  limit,
+  itemId,
+}) => {
   try {
-    const rawResult = await getWarehouseInventorySummaryDetailsByItemId({ page, limit, itemId });
-    
-    logSystemInfo('Successfully fetched warehouse inventory summary by item ID', {
-      context: 'warehouse-inventory-service/fetchWarehouseInventorySummaryByItemId',
-      itemId,
+    const rawResult = await getWarehouseInventorySummaryDetailsByItemId({
       page,
       limit,
-      resultCount: rawResult?.data?.length ?? 0,
+      itemId,
     });
-    
+
+    logSystemInfo(
+      'Successfully fetched warehouse inventory summary by item ID',
+      {
+        context:
+          'warehouse-inventory-service/fetchWarehouseInventorySummaryByItemId',
+        itemId,
+        page,
+        limit,
+        resultCount: rawResult?.data?.length ?? 0,
+      }
+    );
+
     return transformPaginatedWarehouseInventorySummaryDetails(rawResult);
   } catch (error) {
-    logSystemException(error, 'Failed to fetch and transform warehouse inventory summary', {
-      context: 'warehouse-inventory-service/fetchWarehouseInventorySummaryByItemIdService',
-      itemId,
-      page,
-      limit,
-    });
-    
-    throw AppError.serviceError('Unable to retrieve warehouse inventory summary for the given item.');
+    logSystemException(
+      error,
+      'Failed to fetch and transform warehouse inventory summary',
+      {
+        context:
+          'warehouse-inventory-service/fetchWarehouseInventorySummaryByItemIdService',
+        itemId,
+        page,
+        limit,
+      }
+    );
+
+    throw AppError.serviceError(
+      'Unable to retrieve warehouse inventory summary for the given item.'
+    );
   }
 };
 
@@ -138,11 +161,11 @@ const fetchWarehouseInventorySummaryByItemIdService = async ({ page, limit, item
  *     }
  */
 const fetchPaginatedWarehouseInventoryRecordService = async ({
-                                                               page,
-                                                               limit,
-                                                               filters,
-                                                               safeSortClause,
-                                                             }) => {
+  page,
+  limit,
+  filters,
+  safeSortClause,
+}) => {
   try {
     const rawResult = await getPaginatedWarehouseInventoryRecords({
       page,
@@ -150,16 +173,20 @@ const fetchPaginatedWarehouseInventoryRecordService = async ({
       filters,
       safeSortClause,
     });
-    
+
     return transformPaginatedWarehouseInventoryRecordResults(rawResult);
   } catch (error) {
-    logSystemException(error, 'Failed in warehouseInventoryService.getPaginatedWarehouseInventory', {
-      context: 'warehouse-inventory-service/getPaginatedWarehouseInventory',
-      page,
-      limit,
-      filters,
-    });
-    
+    logSystemException(
+      error,
+      'Failed in warehouseInventoryService.getPaginatedWarehouseInventory',
+      {
+        context: 'warehouse-inventory-service/getPaginatedWarehouseInventory',
+        page,
+        limit,
+        filters,
+      }
+    );
+
     throw AppError.serviceError('Failed to retrieve warehouse inventory data.');
   }
 };

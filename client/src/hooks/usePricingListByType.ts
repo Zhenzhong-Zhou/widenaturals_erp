@@ -13,12 +13,12 @@ import {
  */
 const usePricingListByType = () => {
   const dispatch = useAppDispatch();
-  
+
   const data = useAppSelector(selectPricingListByType);
   const pagination = useAppSelector(selectPricingListByTypePagination);
   const loading = useAppSelector(selectPricingListByTypeLoading);
   const error = useAppSelector(selectPricingListByTypeError);
-  
+
   /**
    * Dispatches the thunk to fetch a pricing list by type ID.
    *
@@ -29,7 +29,7 @@ const usePricingListByType = () => {
   const fetchData = (pricingTypeId: string, page = 1, limit = 10) => {
     dispatch(fetchPricingDetailsByTypeThunk({ pricingTypeId, page, limit }));
   };
-  
+
   return {
     data,
     pagination,

@@ -1,16 +1,13 @@
-import customersCreateReducer from './customerCreateSlice';
-import customersReducer from './customerSlice';
-import customerDetailReducer from './customerDetailSlice';
-import customerDropdownReducer from './customerDropdownSlice';
+import customerCreateReducer from './customerCreateSlice';
+import paginatedCustomersReducer from './paginatedCustomersSlice';
 
 export const customerReducers = {
-  customersCreate: customersCreateReducer,
-  customers: customersReducer,
-  customerDetail: customerDetailReducer,
-  customerDropdown: customerDropdownReducer,
+  customerCreate: customerCreateReducer,
+  paginatedCustomers: paginatedCustomersReducer,
 };
 
 // Optional: export selectors, thunks, and types
-export * from './customerSelectors';
+export * from './customerCreateSelectors';
+export * from './paginatedCustomersSelectors';
 export * from './customerThunks';
 export * from './customerTypes';

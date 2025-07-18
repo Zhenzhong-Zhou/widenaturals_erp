@@ -1,13 +1,19 @@
 const { getStatusId } = require('../config/status-cache');
-const { fetchPaginatedActiveSkusWithProductCards, getSkuDetailsWithPricingAndMeta } = require('../repositories/sku-repository');
-const { transformPaginatedSkuProductCardResult, transformSkuDetailsWithMeta } = require('../transformers/sku-transformer');
-const AppError = require('../utils/AppError');
 const {
-  logSystemException,
-  logSystemInfo
-} = require('../utils/system-logger');
+  fetchPaginatedActiveSkusWithProductCards,
+  getSkuDetailsWithPricingAndMeta,
+} = require('../repositories/sku-repository');
+const {
+  transformPaginatedSkuProductCardResult,
+  transformSkuDetailsWithMeta,
+} = require('../transformers/sku-transformer');
+const AppError = require('../utils/AppError');
+const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 const { sanitizeSortBy } = require('../utils/sort-utils');
-const { getAllowedStatusIdsForUser, getAllowedPricingTypesForUser } = require('../business/sku-business');
+const {
+  getAllowedStatusIdsForUser,
+  getAllowedPricingTypesForUser,
+} = require('../business/sku-business');
 
 /**
  * Service to fetch a paginated list of active SKU product cards.
@@ -29,17 +35,17 @@ const { getAllowedStatusIdsForUser, getAllowedPricingTypesForUser } = require('.
  * }
  */
 const fetchPaginatedSkuProductCardsService = async ({
-                                                      page = 1,
-                                                      limit = 10,
-                                                      sortBy = 'name,created_at',
-                                                      sortOrder = 'DESC',
-                                                      filters = {},
-                                                    }) => {
+  page = 1,
+  limit = 10,
+  sortBy = 'name,created_at',
+  sortOrder = 'DESC',
+  filters = {},
+}) => {
   try {
     // Fetch the active status ID
     const productStatusId = getStatusId('product_active');
     const sanitizedSortBy = sanitizeSortBy(sortBy, 'skuProductCards');
-    
+
     logSystemInfo('Fetching paginated SKU product cards from DB', {
       context: 'sku-service/fetchPaginatedSkuProductCardsService',
       page,
@@ -49,17 +55,20 @@ const fetchPaginatedSkuProductCardsService = async ({
       filters,
       productStatusId,
     });
-    
-    const paginatedActiveSkusWithProductRawData = await fetchPaginatedActiveSkusWithProductCards({
-      page,
-      limit,
-      sortBy: sanitizedSortBy,
-      sortOrder,
-      productStatusId,
-      filters,
-    });
 
-    return transformPaginatedSkuProductCardResult(paginatedActiveSkusWithProductRawData);
+    const paginatedActiveSkusWithProductRawData =
+      await fetchPaginatedActiveSkusWithProductCards({
+        page,
+        limit,
+        sortBy: sanitizedSortBy,
+        sortOrder,
+        productStatusId,
+        filters,
+      });
+
+    return transformPaginatedSkuProductCardResult(
+      paginatedActiveSkusWithProductRawData
+    );
   } catch (error) {
     logSystemException('Failed to fetch SKU product cards', null, {
       context: 'sku-service/fetchPaginatedSkuProductCardsService',

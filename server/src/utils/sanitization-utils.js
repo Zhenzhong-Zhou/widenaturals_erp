@@ -6,7 +6,7 @@ const customSanitization = require('./custom-sanitization');
  */
 const sanitizeRequestBody = (req, fields, isRichText = false) => {
   req.sanitizedBody = req.sanitizedBody || {};
-  
+
   fields.forEach((field) => {
     if (req.body && req.body[field]) {
       req.sanitizedBody[field] = isRichText

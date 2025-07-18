@@ -6,7 +6,7 @@
 const {
   logSystemWarn,
   logSystemInfo,
-  logSystemException
+  logSystemException,
 } = require('../utils/system-logger');
 const { ONE_MINUTE } = require('../utils/constants/general/time');
 
@@ -40,7 +40,7 @@ const startPoolMonitoring = (
     });
     clearInterval(monitoringIntervalId);
   }
-  
+
   logSystemInfo('Starting pool monitoring', {
     context: 'pool-monitor',
     interval,

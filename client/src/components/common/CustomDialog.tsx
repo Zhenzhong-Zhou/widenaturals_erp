@@ -1,12 +1,12 @@
 import type { FC, ReactNode } from 'react';
-import Dialog from '@mui/material/Dialog';
+import Dialog, { type DialogProps } from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
 
-interface CustomDialogProps {
+export interface CustomDialogProps extends Partial<DialogProps> {
   open: boolean;
   onClose: () => void;
   title: string;
@@ -20,17 +20,18 @@ interface CustomDialogProps {
 }
 
 const CustomDialog: FC<CustomDialogProps> = ({
-                                               open,
-                                               onClose,
-                                               title,
-                                               children,
-                                               actions,
-                                               confirmButtonText,
-                                               onConfirm,
-                                               showCancelButton = true,
-                                               disableCloseOnBackdrop = false,
-                                               disableCloseOnEscape = false,
-                                             }) => {
+  open,
+  onClose,
+  title,
+  children,
+  actions,
+  confirmButtonText,
+  onConfirm,
+  showCancelButton = true,
+  disableCloseOnBackdrop = false,
+  disableCloseOnEscape = false,
+  ...rest
+}) => {
   const handleClose = (
     _event: object,
     reason: 'backdropClick' | 'escapeKeyDown'
@@ -41,10 +42,10 @@ const CustomDialog: FC<CustomDialogProps> = ({
     ) {
       return;
     }
-    
+
     onClose();
   };
-  
+
   return (
     <Dialog
       open={open}
@@ -52,9 +53,10 @@ const CustomDialog: FC<CustomDialogProps> = ({
       fullWidth
       maxWidth="md"
       aria-labelledby="custom-dialog-title"
+      {...rest}
     >
       <DialogTitle id="custom-dialog-title">{title}</DialogTitle>
-      
+
       {children && (
         <DialogContent dividers>
           {typeof children === 'string' ? (
@@ -64,24 +66,29 @@ const CustomDialog: FC<CustomDialogProps> = ({
           )}
         </DialogContent>
       )}
-      
+
       {(actions || confirmButtonText || showCancelButton) && (
         <DialogActions>
           {actions}
-          
+
           {showCancelButton && (
             <CustomButton
               onClick={(e) => {
                 (e.currentTarget as HTMLButtonElement).blur();
                 onClose();
               }}
-              color="secondary">
+              color="secondary"
+            >
               Cancel
             </CustomButton>
           )}
-          
+
           {confirmButtonText && onConfirm && (
-            <CustomButton variant="contained" onClick={onConfirm} color="primary">
+            <CustomButton
+              variant="contained"
+              onClick={onConfirm}
+              color="primary"
+            >
               {confirmButtonText}
             </CustomButton>
           )}

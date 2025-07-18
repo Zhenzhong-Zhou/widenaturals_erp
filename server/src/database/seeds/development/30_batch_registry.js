@@ -5,17 +5,17 @@ const { fetchDynamicValue } = require('../03_utils');
  * @returns { Promise<void> }
  */
 exports.seed = async function (knex) {
-  const existing = await knex('batch_registry')
-    .select('id')
-    .limit(1);
-  
+  const existing = await knex('batch_registry').select('id').limit(1);
+
   if (existing.length > 0) {
     console.log('Skipping batch_registry seed: data already exists.');
     return;
   }
-  
-  console.log('Seeding batch_registry from product_batches and packaging_material_batches...');
-  
+
+  console.log(
+    'Seeding batch_registry from product_batches and packaging_material_batches...'
+  );
+
   const registeredBy = await fetchDynamicValue(
     knex,
     'users',
@@ -23,16 +23,16 @@ exports.seed = async function (knex) {
     'system@internal.local',
     'id'
   );
-  
+
   // Step 1: Seed from product_batches
   const existingProductBatchIds = await knex('batch_registry')
     .whereNotNull('product_batch_id')
     .pluck('product_batch_id');
-  
+
   const productBatches = await knex('product_batches')
     .select('id')
     .whereNotIn('id', existingProductBatchIds);
-  
+
   const productRows = productBatches.map((batch) => ({
     id: knex.raw('uuid_generate_v4()'),
     batch_type: 'product',
@@ -41,16 +41,16 @@ exports.seed = async function (knex) {
     registered_by: registeredBy,
     registered_at: knex.fn.now(),
   }));
-  
+
   // Step 2: Seed from packaging_material_batches
   const existingPMBatchIds = await knex('batch_registry')
     .whereNotNull('packaging_material_batch_id')
     .pluck('packaging_material_batch_id');
-  
+
   const packagingMaterialBatches = await knex('packaging_material_batches')
     .select('id')
     .whereNotIn('id', existingPMBatchIds);
-  
+
   const pmRows = packagingMaterialBatches.map((batch) => ({
     id: knex.raw('uuid_generate_v4()'),
     batch_type: 'packaging_material',
@@ -59,14 +59,16 @@ exports.seed = async function (knex) {
     registered_by: registeredBy,
     registered_at: knex.fn.now(),
   }));
-  
+
   const allRows = [...productRows, ...pmRows];
-  
+
   if (!allRows.length) {
     console.log('All batches already registered. Skipping.');
     return;
   }
-  
+
   await knex('batch_registry').insert(allRows);
-  console.log(`Seeded ${productRows.length} product and ${pmRows.length} packaging material batches into batch_registry.`);
+  console.log(
+    `Seeded ${productRows.length} product and ${pmRows.length} packaging material batches into batch_registry.`
+  );
 };

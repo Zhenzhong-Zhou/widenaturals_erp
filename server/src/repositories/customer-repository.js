@@ -1,83 +1,31 @@
-const { bulkInsert, query, retry, paginateQuery } = require('../database/db');
+const { bulkInsert, query, paginateQuery, paginateQueryByOffset } = require('../database/db');
 const AppError = require('../utils/AppError');
-const { logError } = require('../utils/logger-helper');
+const {
+  logSystemException,
+  logSystemInfo
+} = require('../utils/system-logger');
+const { buildCustomerFilter } = require('../utils/sql/build-customer-filters');
+const { validateBulkInsertRows } = require('../database/db-utils');
 
 /**
- * Repository function to check if a customer exists by ID.
- * @param {string} customerId - The UUID of the customer.
- * @param {object} client - Optional database transaction client.
- * @returns {Promise<boolean>} - Returns true if the customer exists, otherwise false.
+ * Bulk inserts customer records with conflict handling.
+ *
+ * - Transforms and inserts validated customer data into the database.
+ * - On conflict (matching `email` + `phone_number`), updates defined fields
+ *   (e.g., status, note, metadata).
+ * - Primarily used for insert operations, with conflict resolution as fallback.
+ *
+ * @param {Array<Object>} customers - Array of validated customer objects.
+ * @param {Object} client - Optional DB client for transactional context.
+ * @returns {Promise<Array<Object>>} - Array of inserted or updated customer records.
+ * @throws {AppError} - Throws on validation or database error.
  */
-const checkCustomerExistsById = async (customerId, client = null) => {
-  try {
-    const queryText = `SELECT EXISTS (SELECT 1 FROM customers WHERE id = $1) AS exists;`;
-    const { rows } = await query(queryText, [customerId], client);
-    return rows[0]?.exists || false;
-  } catch (error) {
-    logError('Error checking customer existence by ID:', error);
-    throw AppError.databaseError('Failed to check customer existence by ID');
-  }
-};
-
-/**
- * Repository function to check if a customer exists by email or phone number.
- * @param {string} email - Customer email.
- * @param {string} phone_number - Customer phone number.
- * @param {object} client - Optional database transaction client.
- * @returns {Promise<boolean>} - True if the customer exists, otherwise false.
- */
-const checkCustomerExistsByEmailOrPhone = async (
-  email,
-  phone_number,
-  client = null
-) => {
-  if (!email && !phone_number) return false;
-
-  try {
-    const sql = `
-      SELECT EXISTS (
-        SELECT 1 FROM customers WHERE email = $1 OR phone_number = $2
-      ) AS exists;
-    `;
-    const { rows } = await query(
-      sql,
-      [email || null, phone_number || null],
-      client
-    );
-    return rows[0]?.exists || false;
-  } catch (error) {
-    logError('Error checking customer existence by email or phone:', error);
-    throw AppError.databaseError(
-      'Failed to check customer existence by email or phone'
-    );
-  }
-};
-
-/**
- * Inserts multiple customers into the database in a transaction.
- * @param {Array} customers - List of customer objects.
- * @param client
- * @returns {Promise<Array>} - The inserted customers.
- */
-const bulkCreateCustomers = async (customers, client) => {
-  if (!Array.isArray(customers) || customers.length === 0) {
-    throw AppError('Customer list is empty.', 400, {
-      code: 'VALIDATION_ERROR',
-    });
-  }
-
+const insertCustomerRecords = async (customers, client) => {
   const columns = [
     'firstname',
     'lastname',
     'email',
     'phone_number',
-    'address_line1',
-    'address_line2',
-    'city',
-    'state',
-    'postal_code',
-    'country',
-    'region',
     'status_id',
     'note',
     'status_date',
@@ -86,272 +34,302 @@ const bulkCreateCustomers = async (customers, client) => {
     'created_by',
     'updated_by',
   ];
-
+  
+  const updateColumns = [
+    'firstname',
+    'lastname',
+    'status_id',
+    'note',
+    'updated_at',
+    'updated_by',
+  ];
+  
+  const updateStrategies = Object.fromEntries(updateColumns.map((col) => [col, 'overwrite']));
+  
+  const now = new Date();
   const rows = customers.map((customer) => [
     customer.firstname,
     customer.lastname,
     customer.email || null,
     customer.phone_number || null,
-    customer.address_line1,
-    customer.address_line2 || null,
-    customer.city,
-    customer.state,
-    customer.postal_code,
-    customer.country,
-    customer.region || null,
     customer.status_id,
     customer.note || null,
-    new Date(), // status_date
-    new Date(), // created_at
-    null, // updated_at
-    customer.created_by,
-    null, // updated_by
+    now,               // status_date
+    now,               // created_at
+    null,              // updated_at (no update info at insert)
+    customer.created_by || null,
+    null,              // updated_by (no update info at insert)
   ]);
-
+  
   try {
+    validateBulkInsertRows(rows, columns.length);
+    
     return await bulkInsert(
       'customers',
       columns,
       rows,
-      ['email', 'phone_number'], // Conflict resolution based on email, phone
-      [
-        'firstname',
-        'lastname',
-        'address_line1',
-        'address_line2',
-        'city',
-        'state',
-        'postal_code',
-        'country',
-        'region',
-        'status_id',
-        'note',
-        'updated_at',
-        'updated_by',
-      ], // Update on conflict
+      ['email', 'phone_number'],
+      updateStrategies,
       client
     );
   } catch (error) {
-    logError('Bulk Insert Failed:', error);
+    logSystemException(error, 'Bulk Insert Failed', {
+      context: 'customer-repository/insertCustomerRecords',
+      table: 'customers',
+      columns,
+      conflictColumns: ['email', 'phone_number'],
+    });
     throw AppError.databaseError('Bulk insert operation failed', {
-      details: { tableName: 'customers', columns, error: error.message },
+      details: { tableName: 'customers', error: error.message },
     });
   }
 };
 
 /**
- * Fetch paginated customer data with sorting and joining related tables.
+ * Fetches enriched customer records by ID.
  *
- * This function retrieves customers from the database with pagination, sorting, and optional filters.
- * It joins the `status` table to get the status name and the `users` table to retrieve the created_by and updated_by names.
+ * - Retrieves customer details along with status and creator/updater metadata.
+ * - Performs LEFT JOINs with `status`, `users` (as created_by and updated_by).
+ * - Designed for use in audit views, admin panels, or enriched display.
  *
- * @param {number} [page=1] - The current page number for pagination.
- * @param {number} [limit=10] - The number of records to return per page.
- * @param {string} [sortBy='created_at'] - The field to sort the results by (allowed: firstname, lastname, email, created_at, updated_at).
- * @param {string} [sortOrder='DESC'] - Sorting order (ASC or DESC).
- * @returns {Promise<Object>} - Returns an object containing paginated customer data.
- * @throws {AppError} - Throws a database error if the query fails.
+ * @param {string[]} ids - Array of customer UUIDs to fetch.
+ * @param {object} [client] - Optional PostgreSQL client for transactional context.
+ * @returns {Promise<Array<Object>>} - Array of enriched customer records.
+ * @throws {AppError} If query fails or invalid parameters are passed.
  */
-const getAllCustomers = async (
-  page = 1,
-  limit = 10,
-  sortBy = 'created_at',
-  sortOrder = 'DESC'
-) => {
+const getEnrichedCustomersByIds = async(ids, client) => {
+  const sql = `
+    SELECT
+      c.id,
+      c.firstname,
+      c.lastname,
+      c.email,
+      c.phone_number,
+      c.note,
+      c.status_id,
+      s.name AS status_name,
+      c.created_at,
+      c.updated_at,
+      cu.firstname AS created_by_firstname,
+      cu.lastname AS created_by_lastname,
+      uu.firstname AS updated_by_firstname,
+      uu.lastname AS updated_by_lastname
+    FROM customers c
+    LEFT JOIN status s ON s.id = c.status_id
+    LEFT JOIN users cu ON cu.id = c.created_by
+    LEFT JOIN users uu ON uu.id = c.updated_by
+    WHERE c.id = ANY($1)
+  `;
+  
+  try {
+    const result = await query(sql, [ids], client);
+    return result.rows;
+  } catch (error) {
+    logSystemException(error,'Failed to fetch enriched customer records', {
+      context: 'customer-repository/getEnrichedCustomersByIds',
+      ids,
+    });
+    throw AppError.databaseError('Failed to retrieve customer records.');
+  }
+};
+
+/**
+ * Fetches paginated customer records with optional filtering and sorting.
+ *
+ * This function builds a dynamic SQL query using filters like status, region,
+ * keyword search, and date ranges. It applies pagination and sorting, and joins
+ * user and status metadata for enriched results.
+ *
+ * @param {Object} options - Query options
+ * @param {Object} [options.filters={}] - Optional filter object for customers
+ * @param {string} [options.statusId] - Optional default status filter (e.g. 'active')
+ * @param {boolean} [options.overrideDefaultStatus=false] - Whether to ignore status filter
+ * @param {number} [options.page=1] - Current page number for pagination
+ * @param {number} [options.limit=10] - Number of records per page
+ * @param {string} [options.sortBy='created_at'] - Column to sort by
+ * @param {string} [options.sortOrder='DESC'] - Sort direction
+ *
+ * @returns {Promise<Array>} - Paginated customer result
+ *
+ * @throws {AppError} - Throws databaseError on failure
+ */
+const getPaginatedCustomers = async ({
+                                       filters = {},
+                                       statusId,
+                                       overrideDefaultStatus = false,
+                                       page = 1,
+                                       limit = 10,
+                                       sortBy = 'created_at',
+                                       sortOrder = 'DESC',
+                                     }) => {
+  const { whereClause, params } = buildCustomerFilter(statusId, filters, {
+    overrideDefaultStatus,
+  });
+  
   const tableName = 'customers c';
   const joins = [
     'INNER JOIN status s ON c.status_id = s.id',
     'LEFT JOIN users u1 ON c.created_by = u1.id',
     'LEFT JOIN users u2 ON c.updated_by = u2.id',
   ];
-  const whereClause = '1=1';
-
-  const allowedSortFields = [
-    'firstname',
-    'lastname',
-    'email',
-    'created_at',
-    'updated_at',
-  ];
-
-  // Validate the sortBy field
-  const validatedSortBy = allowedSortFields.includes(sortBy)
-    ? `c.${sortBy}`
-    : 'c.created_at';
-
+  
   const baseQuery = `
-      SELECT
-        c.id,
-        COALESCE(c.firstname || ' ' || c.lastname, 'Unknown') AS customer_name,
-        c.email,
-        c.phone_number,
-        c.status_id,
-        s.name AS status_name,
-        c.created_at,
-        c.updated_at,
-        COALESCE(u1.firstname || ' ' || u1.lastname, 'Unknown') AS created_by,
-        COALESCE(u2.firstname || ' ' || u2.lastname, 'Unknown') AS updated_by
-      FROM ${tableName}
-      ${joins.join(' ')}
-    `;
-
+    SELECT
+      c.id,
+      c.firstname,
+      c.lastname,
+      c.email,
+      c.phone_number,
+      c.status_id,
+      s.name AS status_name,
+      EXISTS (
+        SELECT 1 FROM addresses a WHERE a.customer_id = c.id
+      ) AS has_address,
+      c.created_at,
+      c.updated_at,
+      u1.firstname AS created_by_firstname,
+      u1.lastname AS created_by_lastname,
+      u2.firstname AS updated_by_firstname,
+      u2.lastname AS updated_by_lastname
+    FROM ${tableName}
+    ${joins.join('\n')}
+    WHERE ${whereClause}
+  `;
+  
   try {
-    return await retry(
-      () =>
-        paginateQuery({
-          tableName,
-          joins,
-          whereClause,
-          queryText: baseQuery,
-          params: [],
-          page,
-          limit,
-          sortBy: validatedSortBy,
-          sortOrder,
-        }),
-      3 // Retry up to 3 times
-    );
+    const result = await paginateQuery({
+      tableName,
+      joins,
+      whereClause,
+      queryText: baseQuery,
+      params,
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+    });
+    
+    logSystemInfo('Fetched paginated customers', {
+      context: 'customer-repository/fetchPaginatedCustomers',
+      filters,
+      statusId,
+      overrideDefaultStatus,
+      pagination: { page, limit },
+      sorting: { sortBy, sortOrder },
+    });
+    
+    return result;
   } catch (error) {
-    logError('Error fetching customers:', error);
+    logSystemException(error, 'Failed to fetch paginated customers', {
+      context: 'customer-repository/fetchPaginatedCustomers',
+      filters,
+      statusId,
+      overrideDefaultStatus,
+      pagination: { page, limit },
+      sorting: { sortBy, sortOrder },
+    });
     throw AppError.databaseError('Failed to fetch customers.');
   }
 };
 
 /**
- * Fetches customer data for a dropdown selection, including optional shipping info.
+ * Fetches customer records for lookup dropdowns or autocomplete components.
  *
- * This function retrieves customers from the database with a limit on the number of results.
- * If a search term is provided, it filters customers by their firstname, lastname, email, or phone number.
- * Returns customer id, label (name + contact), and shipping address fields for auto-filling.
+ * This function retrieves a lightweight, paginated list of customers,
+ * applying optional keyword search and status filtering. Results are sorted
+ * by firstname, lastname, and creation date for consistent dropdown ordering.
  *
- * @param {string} [search=""] - The search term to filter customers (matches firstname, lastname, email, or phone_number).
- * @param {number} [limit=100] - The maximum number of customers to return.
- * @returns {Promise<Array<{
- *   id: string,
- *   fullname: string | null,
- *   label: string,
- *   phone: string | null,
- *   email: string | null,
- *   address: string | null,
- *   address_line2: string | null,
- *   city: string | null,
- *   state: string | null,
- *   postal_code: string | null,
- *   country: string | null,
- *   region: string | null
- * }>>} - A promise resolving to customer dropdown entries with shipping details.
+ * It is optimized for lookup use cases where small, fast result sets are required.
  *
- * @throws {Error} - Throws an error if the database query fails.
+ * @param {Object} options - Options for the lookup query.
+ * @param {string} [options.keyword=''] - Partial search term for firstname, lastname, email, or phone number.
+ * @param {string} [options.statusId] - Optional status ID to filter customers.
+ * @param {number} [options.limit=50] - Number of records to return (default: 50).
+ * @param {number} [options.offset=0] - Number of records to skip for pagination (default: 0).
+ * @param {boolean} [options.overrideDefaultStatus=false] - If true, disables automatic status filtering (e.g., show all statuses).
  *
- * @example
- * // Fetch default customer list
- * const customers = await getCustomersForDropdown();
+ * @returns {Promise<{
+ *   data: Array<{ id: string, firstname: string, lastname: string, email: string }>,
+ *   pagination: {
+ *     offset: number,
+ *     limit: number,
+ *     totalRecords: number,
+ *     hasMore: boolean
+ *   }
+ * }>} Paginated list of customers and pagination metadata.
  *
- * @example
- * // Fetch with search filter
- * const customers = await getCustomersForDropdown("Alice");
+ * @throws {AppError} Throws a database error if the query fails.
  */
-const getCustomersForDropdown = async (search = '', limit = 100) => {
+const getCustomerLookup = async ({
+                                   keyword = '',
+                                   statusId,
+                                   limit = 50,
+                                   offset = 0,
+                                   overrideDefaultStatus = false,
+                                 }) => {
+  const tableName = 'customers c';
+  
+  // Build dynamic WHERE clause + params
+  const { whereClause, params } = buildCustomerFilter(
+    statusId,
+    { keyword },
+    { overrideDefaultStatus }
+  );
+  
+  // Base query text
+  const queryText = `
+    SELECT
+      c.id,
+      c.firstname,
+      c.lastname,
+      c.email,
+      EXISTS (
+        SELECT 1
+        FROM addresses a
+        WHERE a.customer_id = c.id
+      ) AS has_address
+    FROM ${tableName}
+    WHERE ${whereClause}
+  `;
+  
   try {
-    let whereClause = '';
-    let params = [];
-
-    if (search) {
-      whereClause = `WHERE LOWER(c.firstname) ILIKE LOWER($1)
-                     OR LOWER(c.lastname) ILIKE LOWER($1)
-                     OR LOWER(c.email) ILIKE LOWER($1)
-                     OR c.phone_number ILIKE $1`;
-      params.push(`%${search}%`);
-    }
-
-    // Ensure proper query structure (avoid unnecessary WHERE when search is empty)
-    // Use `COALESCE` to prioritize email, fallback to phone if email is null
-    const sql = `
-      SELECT
-        c.id,
-        c.firstname || ' ' || c.lastname ||
-        CASE
-          WHEN c.email IS NOT NULL THEN ' - ' || c.email
-          WHEN c.phone_number IS NOT NULL THEN ' - ' || c.phone_number
-          ELSE ''
-        END AS label,
-        c.address_line1,
-        c.address_line2,
-        c.city,
-        c.state,
-        c.postal_code,
-        c.country,
-        c.region
-      FROM customers c
-      ${whereClause}
-      ORDER BY c.created_at DESC
-      LIMIT $${params.length + 1};
-    `;
-
-    params.push(limit); // Ensure proper parameter binding
-
-    const result = await query(sql, params);
-    return result.rows;
+    // Execute with pagination and sorting
+    const result = await paginateQueryByOffset({
+      tableName,
+      whereClause,
+      queryText,
+      params,
+      offset,
+      limit,
+      sortBy: 'c.firstname',  // primary sort field
+      sortOrder: 'ASC',
+      additionalSort: 'c.lastname ASC, c.created_at DESC', // optional extra sorts
+    });
+    
+    logSystemInfo('Fetched customer lookup data', {
+      context: 'customer-repository/getCustomerLookup',
+      keyword,
+      statusId,
+      offset,
+      limit,
+    });
+    
+    return result;
   } catch (error) {
-    logError('Error fetching customers for dropdown:', error);
-    throw AppError.databaseError('Failed to fetch customer dropdown data.');
-  }
-};
-
-/**
- * Fetch customer details by ID from the database.
- * @param {string} customerId - The UUID of the customer.
- * @returns {Promise<Object>} - Returns the customer details if found.
- * @throws {AppError} - Throws an error if the customer is not found or if a database error occurs.
- */
-const getCustomerDetailsById = async (customerId) => {
-  try {
-    const queryText = `
-      SELECT
-        c.id,
-        COALESCE(c.firstname || ' ' || c.lastname, 'Unknown') AS customer_name,
-        c.email,
-        c.phone_number,
-        c.address_line1,
-        c.address_line2,
-        c.city,
-        c.state,
-        c.postal_code,
-        c.country,
-        c.region,
-        c.note,
-        c.status_id,
-        s.name AS status_name,
-        c.status_date,
-        c.created_at,
-        c.updated_at,
-        COALESCE(u1.firstname || ' ' || u1.lastname, 'Unknown') AS created_by,
-        COALESCE(u2.firstname || ' ' || u2.lastname, 'Unknown') AS updated_by
-      FROM customers c
-      INNER JOIN status s ON c.status_id = s.id
-      LEFT JOIN users u1 ON c.created_by = u1.id
-      LEFT JOIN users u2 ON c.updated_by = u2.id
-      WHERE c.id = $1
-    `;
-
-    const { rows } = await retry(() => query(queryText, [customerId]));
-
-    if (rows.length === 0) {
-      throw AppError.notFoundError('Customer not found', 404);
-    }
-
-    return rows[0];
-  } catch (error) {
-    logError('Error fetching customer by ID:', error);
-    throw AppError.databaseError('Failed to fetch customer details.');
+    logSystemException(error, 'Failed to fetch customer lookup data', {
+      context: 'customer-repository/getCustomerLookup',
+      keyword,
+      statusId,
+      offset,
+      limit,
+    });
+    throw AppError.databaseError('Failed to fetch customer lookup data.');
   }
 };
 
 module.exports = {
-  checkCustomerExistsById,
-  checkCustomerExistsByEmailOrPhone,
-  bulkCreateCustomers,
-  getAllCustomers,
-  getCustomersForDropdown,
-  getCustomerDetailsById,
+  insertCustomerRecords,
+  getEnrichedCustomersByIds,
+  getPaginatedCustomers,
+  getCustomerLookup,
 };

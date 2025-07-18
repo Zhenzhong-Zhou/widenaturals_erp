@@ -14,20 +14,23 @@ import {
  */
 const usePricingTypeMetadata = () => {
   const dispatch = useAppDispatch();
-  
+
   const data = useAppSelector(selectPricingTypeMetadata);
   const isLoading = useAppSelector(selectPricingTypeMetadataLoading);
   const error = useAppSelector(selectPricingTypeMetadataError);
   const statusName = useAppSelector(selectPricingTypeStatusName);
-  
+
   /**
    * Manually trigger fetch for pricing type metadata by ID.
    * @param {string} id - UUID of the pricing type.
    */
-  const fetchData = useCallback((id: string) => {
-    if (id) dispatch(fetchPricingTypeMetadataThunk(id));
-  }, [dispatch]);
-  
+  const fetchData = useCallback(
+    (id: string) => {
+      if (id) dispatch(fetchPricingTypeMetadataThunk(id));
+    },
+    [dispatch]
+  );
+
   return { data, isLoading, error, statusName, fetchData };
 };
 

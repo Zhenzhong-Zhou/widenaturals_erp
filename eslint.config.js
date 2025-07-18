@@ -2,6 +2,9 @@ import tsEslint from '@typescript-eslint/eslint-plugin';
 import tsParser from '@typescript-eslint/parser';
 import eslintPluginReact from 'eslint-plugin-react';
 import eslintPluginPrettier from 'eslint-plugin-prettier';
+import eslintPluginImport from 'eslint-plugin-import';
+
+const isDev = process.env.NODE_ENV !== 'production'; // fallback workaround
 
 /** @type {import('eslint').Linter.FlatConfig[]} */
 const config = [
@@ -29,10 +32,16 @@ const config = [
     },
     rules: {
       'prettier/prettier': 'error',
-      'no-console': 'warn',
+      'no-console': isDev ? 'warn' : 'error',
       'no-debugger': 'error',
       'react/react-in-jsx-scope': 'off',
       'react/jsx-uses-vars': 'error',
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: ['*.ts', '*.tsx'],
+        },
+      ],
     },
     settings: {
       react: {
@@ -45,7 +54,7 @@ const config = [
     languageOptions: {
       parser: tsParser,
       parserOptions: {
-        project: ['./client/tsconfig.app.json'],
+        project: ['./client/tsconfig.eslint.json'],
         tsconfigRootDir: process.cwd(),
       },
       ecmaVersion: 2023,
@@ -54,6 +63,7 @@ const config = [
     plugins: {
       '@typescript-eslint': tsEslint,
       prettier: eslintPluginPrettier,
+      import: eslintPluginImport,
     },
     rules: {
       ...((tsEslint.configs.recommended || {}).rules || {}),
@@ -62,6 +72,17 @@ const config = [
       '@typescript-eslint/no-unused-vars': 'warn',
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
+      'import/extensions': [
+        'error',
+        'ignorePackages',
+        { ts: 'never', tsx: 'never' },
+      ],
+      'import/no-useless-path-segments': 'warn',
+    },
+    settings: {
+      'import/resolver': {
+        typescript: {},
+      },
     },
   },
   {
@@ -76,7 +97,6 @@ const config = [
     },
     rules: {
       'no-process-env': 'warn',
-      'no-console': 'off',
     },
   },
 ];

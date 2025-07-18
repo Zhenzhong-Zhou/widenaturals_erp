@@ -27,10 +27,10 @@ const locationTypeRoutes = require('./locations-types');
 const locationRoutes = require('./locations');
 const locationInventoryRoutes = require('./location-inventory');
 const warehouseInventoryRoutes = require('./warehouse-inventory');
-const warehouseLotAdjustmentRoutes = require('./lot-adjustment-type');
-const dropdownRoutes = require('./dropdown');
+const lookupRoutes = require('./lookups');
 const reportRoutes = require('./reports');
 const customerRoutes = require('./customers');
+const addressRoutes = require('./addresses');
 const discountRoutes = require('./discounts');
 const deliveryMethodRoutes = require('./delivery-methods');
 const orderTypeRoutes = require('./order-types');
@@ -99,7 +99,6 @@ router.use('/pricings', authenticate(), pricingRoutes);
  * Warehouse and inventory management
  */
 router.use('/warehouse-inventory', authenticate(), warehouseInventoryRoutes);
-router.use('/lot-adjustment-types', authenticate(), warehouseLotAdjustmentRoutes);
 
 /**
  * Location-related management
@@ -112,6 +111,7 @@ router.use('/location-inventory', authenticate(), locationInventoryRoutes);
  * Order processing and customer-related endpoints
  */
 router.use('/customers', authenticate(), customerRoutes);
+router.use('/addresses', authenticate(), addressRoutes);
 router.use('/orders', authenticate(), orderRoutes);
 router.use('/order-types', authenticate(), orderTypeRoutes);
 
@@ -133,12 +133,14 @@ router.use('/inventory-allocation', authenticate(), inventoryAllocationRoutes);
 router.use('/reports', authenticate(), reportRoutes);
 
 /**
- * Dropdown options and reference data routes
+ * Lookup routes for dropdown and reference data
  *
- * Routes under `/dropdown` provide datasets used to populate frontend dropdowns,
- * such as batch registries, locations, warehouses, pricing types, etc.
- * These routes support filters and pagination, and require authentication.
+ * Routes under `/lookups` provide reference datasets for populating frontend dropdowns.
+ * Examples include warehouses, locations, batch registries, pricing types, statuses, etc.
+ * These routes support optional filters, pagination (where applicable), and require authentication.
+ *
+ * Use these endpoints to fetch IDs and labels for filtering, selection, or display in the UI.
  */
-router.use('/dropdown', authenticate(), dropdownRoutes);
+router.use('/lookups', authenticate(), lookupRoutes);
 
 module.exports = router;

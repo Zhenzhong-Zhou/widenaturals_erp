@@ -1,21 +1,30 @@
-import { type FC, lazy, useCallback } from 'react';
+import { type FC, lazy, memo, useCallback } from 'react';
 import type {
   LocationInventorySummary,
-  LocationInventorySummaryItemDetail
+  LocationInventorySummaryItemDetail,
 } from '../state';
 import Box from '@mui/material/Box';
 import StockLevelChip from '@features/inventoryShared/components/StockLevelChip';
 import ExpirySeverityChip from '@features/inventoryShared/components/ExpirySeverityChip';
 import type { Column } from '@components/common/CustomTable';
 import CustomTable from '@components/common/CustomTable';
+import ExpandableDetailSection from '@components/common/ExpandableDetailSection';
+import RowActionMenu from '@components/common/RowActionMenu';
 import { formatLabel } from '@utils/textUtils';
 import { formatDate, formatDateTime } from '@utils/dateTimeUtils';
 import { createDrillDownColumn } from '@utils/table/createDrillDownColumn';
-import ExpandableDetailSection from '@components/common/ExpandableDetailSection';
 import { getDetailCacheKey } from '@features/inventoryShared/utils/cacheKeys';
+import { getDefaultRowActions } from '@utils/table/getDefaultRowActions';
+import type {
+  InventoryActivityLogQueryParams,
+  InventoryLogSource,
+} from '@features/report/state';
 
-const LocationInventorySummaryDetailTable = lazy(() =>
-  import('@features/locationInventory/components/LocationInventorySummaryDetailTable')
+const LocationInventorySummaryDetailTable = lazy(
+  () =>
+    import(
+      '@features/locationInventory/components/LocationInventorySummaryDetailTable'
+    )
 );
 
 interface LocationInventorySummaryTableProps {
@@ -39,47 +48,51 @@ interface LocationInventorySummaryTableProps {
   onDetailPageChange: (newPage: number) => void;
   onDetailRowsPerPageChange: (newLimit: number) => void;
   onRefreshDetail: (rowId: string) => void;
+  canViewInventoryLogs: boolean;
+  onViewLogs: (row: InventoryLogSource, extraFilters?: Partial<InventoryActivityLogQueryParams>) => void;
 }
 
 const LocationInventorySummaryTable: FC<LocationInventorySummaryTableProps> = ({
-                                                                                 data,
-                                                                                 page,
-                                                                                 rowsPerPage,
-                                                                                 totalRecords,
-                                                                                 totalPages,
-                                                                                 onPageChange,
-                                                                                 onRowsPerPageChange,
-                                                                                 expandedRowId,
-                                                                                 detailDataMap,
-                                                                                 detailLoadingMap,
-                                                                                 detailErrorMap,
-                                                                                 detailPage,
-                                                                                 detailLimit,
-                                                                                 detailTotalRecords,
-                                                                                 detailTotalPages,
-                                                                                 onDetailPageChange,
-                                                                                 onDetailRowsPerPageChange,
-                                                                                 onDrillDownToggle,
-                                                                                 onRowHover,
-                                                                                 onRefreshDetail,
-                                                               }) => {
+  data,
+  page,
+  rowsPerPage,
+  totalRecords,
+  totalPages,
+  onPageChange,
+  onRowsPerPageChange,
+  expandedRowId,
+  detailDataMap,
+  detailLoadingMap,
+  detailErrorMap,
+  detailPage,
+  detailLimit,
+  detailTotalRecords,
+  detailTotalPages,
+  onDetailPageChange,
+  onDetailRowsPerPageChange,
+  onDrillDownToggle,
+  onRowHover,
+  onRefreshDetail,
+  canViewInventoryLogs,
+  onViewLogs,
+}) => {
   const renderStockLevelCell = useCallback(
     (row: LocationInventorySummary) => (
       <StockLevelChip stockLevel={row.stockLevel} />
     ),
     []
   );
-  
+
   const renderExpirySeverityCell = useCallback(
     (row: LocationInventorySummary) => (
       <ExpirySeverityChip severity={row.expirySeverity} />
     ),
     []
   );
-  
+
   const columns: Column<LocationInventorySummary>[] = [
     {
-      id: 'typeLabel',
+      id: 'itemType',
       label: 'Type',
       sortable: true,
       format: (value) => formatLabel(value as string),
@@ -141,21 +154,21 @@ const LocationInventorySummaryTable: FC<LocationInventorySummaryTableProps> = ({
     },
     ...(onDrillDownToggle
       ? [
-        createDrillDownColumn<LocationInventorySummary>(
-          (row) => onDrillDownToggle?.(row.itemId),
-          (row) => expandedRowId === row.itemId,
-          {
-            onMouseEnter: (row) => onRowHover?.(row.itemId),
-          }
-        )
-      ]
+          createDrillDownColumn<LocationInventorySummary>(
+            (row) => onDrillDownToggle?.(row.itemId),
+            (row) => expandedRowId === row.itemId,
+            {
+              onMouseEnter: (row) => onRowHover?.(row.itemId),
+            }
+          ),
+        ]
       : []),
   ];
-  
+
   const expandedContent = useCallback(
     (row: LocationInventorySummary) => {
       const cacheKey = getDetailCacheKey(row.itemId, detailPage, detailLimit);
-      
+
       return (
         <ExpandableDetailSection
           row={row}
@@ -187,9 +200,13 @@ const LocationInventorySummaryTable: FC<LocationInventorySummaryTableProps> = ({
       detailTotalPages,
       onDetailPageChange,
       onDetailRowsPerPageChange,
-      onRefreshDetail
+      onRefreshDetail,
     ]
   );
+  
+  const MemoizedRowActionMenu = memo(({ row, onViewLogs }: { row: LocationInventorySummary, onViewLogs: any }) => (
+    <RowActionMenu row={row} actions={getDefaultRowActions(onViewLogs)} />
+  ));
   
   return (
     <Box>
@@ -207,6 +224,10 @@ const LocationInventorySummaryTable: FC<LocationInventorySummaryTableProps> = ({
         expandedRowId={expandedRowId}
         getRowId={(row) => row.itemId}
         expandedContent={expandedContent}
+        showActionsColumn={canViewInventoryLogs}
+        renderActions={(row) => (
+          <MemoizedRowActionMenu row={row} onViewLogs={onViewLogs} />
+        )}
       />
     </Box>
   );

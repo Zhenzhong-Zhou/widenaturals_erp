@@ -1,62 +1,90 @@
-import { type Dispatch, type FC, type SetStateAction, type SyntheticEvent, useState } from 'react';
+import {
+  type Dispatch,
+  type FC,
+  type SetStateAction,
+  type SyntheticEvent,
+  useState,
+} from 'react';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import Box from '@mui/material/Box';
 import CustomDialog from '@components/common/CustomDialog';
 import AddInventoryForm from '@features/warehouseInventory/components/AddInventoryForm';
 import Alert from '@mui/material/Alert';
-import type { GetBatchRegistryDropdownParams, GetWarehouseDropdownFilters } from '@features/dropdown/state';
+import type {
+  BatchLookupOption,
+  GetBatchRegistryLookupParams,
+  LookupPaginationMeta,
+} from '@features/lookup/state';
 import AddBulkInventoryForm from '@features/warehouseInventory/components/AddBulkInventoryForm';
+import InventorySuccessDialog from '@features/inventoryShared/components/InventorySuccessDialog';
+import type { InventoryRecordOutput } from '@features/inventoryShared/types/InventorySharedType';
 
 interface AddInventoryDialogWithModeToggleProps {
   open: boolean;
   onClose: () => void;
   onSubmit: (formData: any) => void;
   submitting: boolean;
+  successOpen: boolean;
+  successMessage?: string;
+  onSuccessClose: () => void;
+  warehouse?: InventoryRecordOutput | InventoryRecordOutput[];
+  location?: InventoryRecordOutput | InventoryRecordOutput[];
   createError?: string | null;
-  batchDropdownOptions: { value: string; label: string }[];
+  batchLookupOptions: BatchLookupOption[];
   selectedBatch: { id: string; type: string } | null;
   setSelectedBatch: (batch: { id: string; type: string } | null) => void;
-  batchDropdownParams: GetBatchRegistryDropdownParams;
-  setBatchDropdownParams: Dispatch<SetStateAction<GetBatchRegistryDropdownParams>>;
-  fetchBatchDropdown: (params: GetBatchRegistryDropdownParams) => void;
-  hasMore: boolean;
-  pagination: { limit: number; offset: number };
-  batchDropdownLoading?: boolean;
-  batchDropdownError?: string | null;
-  warehouseDropdownOptions: { value: string; label: string }[];
+  batchLookupParams: GetBatchRegistryLookupParams;
+  setBatchLookupParams: Dispatch<
+    SetStateAction<GetBatchRegistryLookupParams>
+  >;
+  fetchBatchLookup: (params: GetBatchRegistryLookupParams) => void;
+  resetBatchLookup: () => void;
+  lookupPaginationMeta: LookupPaginationMeta;
+  batchLookupLoading?: boolean;
+  batchLookupError?: string | null;
+  warehouseLookupOptions: { value: string; label: string }[];
   selectedWarehouse: { warehouseId: string; locationId: string } | null;
-  setSelectedWarehouse: (w: { warehouseId: string; locationId: string } | null) => void;
-  fetchWarehouseDropdown: (params: GetWarehouseDropdownFilters) => void;
-  warehouseDropdownLoading?: boolean;
-  warehouseDropdownError?: string | null;
+  setSelectedWarehouse: (
+    w: { warehouseId: string; locationId: string } | null
+  ) => void;
+  fetchWarehouseLookup: (filters?: { warehouseTypeId?: string }) => void;
+  warehouseLookupLoading?: boolean;
+  warehouseLookupError?: string | null;
 }
 
-const AddInventoryDialogWithModeToggle: FC<AddInventoryDialogWithModeToggleProps> = ({
-                                                                                       open,
-                                                                                       onClose,
-                                                                                       onSubmit,
-                                                                                       submitting,
-                                                                                       createError,
-                                                                                       batchDropdownOptions,
-                                                                                       selectedBatch,
-                                                                                       setSelectedBatch,
-                                                                                       batchDropdownParams,
-                                                                                       setBatchDropdownParams,
-                                                                                       fetchBatchDropdown,
-                                                                                       hasMore,
-                                                                                       pagination,
-                                                                                       batchDropdownLoading,
-                                                                                       batchDropdownError,
-                                                                                       warehouseDropdownOptions,
-                                                                                       selectedWarehouse,
-                                                                                       setSelectedWarehouse,
-                                                                                       fetchWarehouseDropdown,
-                                                                                       warehouseDropdownLoading,
-                                                                                       warehouseDropdownError,
-                                                                                     }) => {
+const AddInventoryDialogWithModeToggle: FC<
+  AddInventoryDialogWithModeToggleProps
+> = ({
+  open,
+  onClose,
+  onSubmit,
+  submitting,
+  successOpen,
+  onSuccessClose,
+  successMessage = 'Inventory submitted successfully.',
+  warehouse,
+  location,
+  createError,
+  batchLookupOptions,
+  selectedBatch,
+  setSelectedBatch,
+  batchLookupParams,
+  setBatchLookupParams,
+  fetchBatchLookup,
+  resetBatchLookup,
+  lookupPaginationMeta,
+  batchLookupLoading,
+  batchLookupError,
+  warehouseLookupOptions,
+  selectedWarehouse,
+  setSelectedWarehouse,
+  fetchWarehouseLookup,
+  warehouseLookupLoading,
+  warehouseLookupError,
+}) => {
   const [mode, setMode] = useState<'single' | 'bulk'>('single');
-  
+
   const handleModeChange = (_: SyntheticEvent, newValue: 'single' | 'bulk') => {
     if (submitting || newValue === null) return;
     setMode(newValue);
@@ -64,69 +92,81 @@ const AddInventoryDialogWithModeToggle: FC<AddInventoryDialogWithModeToggleProps
   };
   
   return (
-    <CustomDialog
-      open={open}
-      onClose={onClose}
-      title="Add Inventory"
-      showCancelButton={!submitting}
-      disableCloseOnBackdrop={submitting}
-      disableCloseOnEscape={submitting}
-    >
-      <Tabs value={mode} onChange={handleModeChange} sx={{ mb: 2 }}>
-        <Tab label="Single Entry" value="single" />
-        <Tab label="Bulk Entry" value="bulk" />
-      </Tabs>
-      
-      <Box sx={{ mt: 2 }}>
-        {createError && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {createError}
-          </Alert>
-        )}
-        
-        {mode === 'single' ? (
-          <AddInventoryForm
-            onSubmit={onSubmit}
-            loading={submitting}
-            batchDropdownOptions={batchDropdownOptions}
-            selectedBatch={selectedBatch}
-            setSelectedBatch={setSelectedBatch}
-            batchDropdownParams={batchDropdownParams}
-            setBatchDropdownParams={setBatchDropdownParams}
-            fetchBatchDropdown={fetchBatchDropdown}
-            hasMore={hasMore}
-            pagination={pagination}
-            batchDropdownLoading={batchDropdownLoading}
-            batchDropdownError={batchDropdownError}
-            warehouseDropdownOptions={warehouseDropdownOptions}
-            selectedWarehouse={selectedWarehouse}
-            setSelectedWarehouse={setSelectedWarehouse}
-            fetchWarehouseDropdown={fetchWarehouseDropdown}
-            warehouseDropdownLoading={warehouseDropdownLoading}
-            warehouseDropdownError={warehouseDropdownError}
-          />
-        ) : (
-          <AddBulkInventoryForm
-            onSubmit={onSubmit}
-            loading={submitting}
-            batchDropdownOptions={batchDropdownOptions}
-            batchDropdownParams={batchDropdownParams}
-            setBatchDropdownParams={setBatchDropdownParams}
-            fetchBatchDropdown={fetchBatchDropdown}
-            hasMore={hasMore}
-            pagination={pagination}
-            batchDropdownLoading={batchDropdownLoading}
-            batchDropdownError={batchDropdownError}
-            warehouseDropdownOptions={warehouseDropdownOptions}
-            selectedWarehouse={selectedWarehouse}
-            setSelectedWarehouse={setSelectedWarehouse}
-            fetchWarehouseDropdown={fetchWarehouseDropdown}
-            warehouseDropdownLoading={warehouseDropdownLoading}
-            warehouseDropdownError={warehouseDropdownError}
-          />
-        )}
-      </Box>
-    </CustomDialog>
+    <>
+      {successOpen ? (
+        <InventorySuccessDialog
+          open={successOpen}
+          onClose={onSuccessClose}
+          message={successMessage ?? 'Inventory created successfully.'}
+          warehouse={warehouse}
+          location={location}
+        />
+      ) : (
+        <CustomDialog
+          open={open}
+          onClose={onClose}
+          title="Add Inventory"
+          showCancelButton={!submitting}
+          disableCloseOnBackdrop={submitting}
+          disableCloseOnEscape={submitting}
+        >
+          <Tabs value={mode} onChange={handleModeChange} sx={{ mb: 2 }}>
+            <Tab label="Single Entry" value="single" />
+            <Tab label="Bulk Entry" value="bulk" />
+          </Tabs>
+          
+          <Box sx={{ mt: 2, px: 2 }}>
+          {createError && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {createError}
+              </Alert>
+            )}
+            
+            {mode === 'single' ? (
+              <AddInventoryForm
+                onSubmit={onSubmit}
+                loading={submitting}
+                batchLookupOptions={batchLookupOptions}
+                selectedBatch={selectedBatch}
+                setSelectedBatch={setSelectedBatch}
+                batchLookupParams={batchLookupParams}
+                setBatchLookupParams={setBatchLookupParams}
+                fetchBatchLookup={fetchBatchLookup}
+                resetBatchLookup={resetBatchLookup}
+                batchLookupPaginationMeta={lookupPaginationMeta}
+                batchLookupLoading={batchLookupLoading}
+                batchLookupError={batchLookupError}
+                warehouseLookupOptions={warehouseLookupOptions}
+                selectedWarehouse={selectedWarehouse}
+                setSelectedWarehouse={setSelectedWarehouse}
+                fetchWarehouseLookup={fetchWarehouseLookup}
+                warehouseLookupLoading={warehouseLookupLoading}
+                warehouseLookupError={warehouseLookupError}
+              />
+            ) : (
+              <AddBulkInventoryForm
+                onSubmit={onSubmit}
+                loading={submitting}
+                batchLookupOptions={batchLookupOptions}
+                batchLookupParams={batchLookupParams}
+                setBatchLookupParams={setBatchLookupParams}
+                fetchBatchLookup={fetchBatchLookup}
+                resetBatchLookup={resetBatchLookup}
+                batchLookupPaginationMeta={lookupPaginationMeta}
+                batchLookupLoading={batchLookupLoading}
+                batchLookupError={batchLookupError}
+                warehouseLookupOptions={warehouseLookupOptions}
+                selectedWarehouse={selectedWarehouse}
+                setSelectedWarehouse={setSelectedWarehouse}
+                fetchWarehouseLookup={fetchWarehouseLookup}
+                warehouseLookupLoading={warehouseLookupLoading}
+                warehouseLookupError={warehouseLookupError}
+              />
+            )}
+          </Box>
+        </CustomDialog>
+      )}
+    </>
   );
 };
 

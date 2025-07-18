@@ -10,12 +10,14 @@ export interface StockLevelChipProps {
 
 const StockLevelChip: FC<StockLevelChipProps> = ({ stockLevel }) => {
   const { theme } = useThemeContext();
-  
+
   const getPaletteColor = (chipColor: keyof Palette): string => {
-    const paletteEntry = theme.palette[chipColor as keyof Palette] as PaletteColor | undefined;
+    const paletteEntry = theme.palette[chipColor as keyof Palette] as
+      | PaletteColor
+      | undefined;
     return paletteEntry?.main || theme.palette.text.primary;
   };
-  
+
   const chipProps = useMemo(() => {
     const colorMap: Record<
       StockLevelChipProps['stockLevel'],
@@ -27,21 +29,21 @@ const StockLevelChip: FC<StockLevelChipProps> = ({ stockLevel }) => {
       normal: 'success',
       expired: 'error',
     };
-    
+
     const chipColor = colorMap[stockLevel];
     const label = formatLabel(stockLevel);
     const paletteColor =
       chipColor === 'default'
         ? theme.palette.text.primary
         : getPaletteColor(chipColor);
-    
+
     return {
       label,
       chipColor: chipColor === 'default' ? undefined : chipColor, // fallback to MUI default coloring
       paletteColor,
     };
   }, [stockLevel, theme]);
-  
+
   return (
     <Chip
       label={chipProps.label}

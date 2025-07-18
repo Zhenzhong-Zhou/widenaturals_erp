@@ -12,6 +12,7 @@ const { csrfProtection } = require('./csrf-protection');
 const requestLogger = require('./request-logger');
 const { createRateLimiter } = require('../utils/rate-limit-helper');
 const { logSystemInfo } = require('../utils/system-logger');
+const { sanitizeInput } = require('./sanitize');
 
 /**
  * Applies global middleware to the application.
@@ -23,28 +24,31 @@ const applyGlobalMiddleware = (app) => {
   logSystemInfo('Applying global middleware stack...', {
     context: 'applyGlobalMiddleware',
   });
-  
+
   // 1. Helmet Security Headers
   const isProduction = process.env.NODE_ENV === 'production';
   app.use(configureHelmet(isProduction));
 
   // 2. Global Rate Limiter
   app.use(createRateLimiter());
-  
+
   // 3. CORS Middleware
   app.use(corsMiddleware);
 
   // 4. Combined cookie + csrf middleware step
   app.use(cookieParser(), csrfProtection());
-  
+
   // 5. Body Parsing Middleware
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
   // 6. Request Logging
   app.use(requestLogger);
-
-  // 7. Development Tools
+  
+  // 7. Input Sanitization Middleware
+  app.use(sanitizeInput);
+  
+  // 8. Development Tools
   if (process.env.NODE_ENV === 'development') {
     app.use(morgan('dev')); // Use 'dev' logging format in development
     logSystemInfo('Development logging middleware (morgan) applied.', {
@@ -52,7 +56,7 @@ const applyGlobalMiddleware = (app) => {
       mode: 'development',
     });
   }
-  
+
   logSystemInfo('Global middleware stack applied successfully.', {
     context: 'applyGlobalMiddleware',
   });

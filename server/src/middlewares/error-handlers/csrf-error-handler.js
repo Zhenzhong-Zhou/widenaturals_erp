@@ -17,13 +17,13 @@ const { logError } = require('../../utils/logger-helper');
  */
 const csrfErrorHandler = (err, req, res, next) => {
   if (err.code !== 'EBADCSRFTOKEN') return next(err);
-  
+
   const enrichedDetails = {
     message: err.message,
     code: err.code,
     origin: req.headers.origin || 'Unknown',
   };
-  
+
   // Normalize the error
   const normalizedError = normalizeError(err, {
     type: 'CSRFError',
@@ -32,12 +32,12 @@ const csrfErrorHandler = (err, req, res, next) => {
     logLevel: 'warn',
     details: enrichedDetails,
   });
-  
+
   // Log the CSRF error with context and request metadata
   logError(normalizedError, req, {
     context: 'csrf-error-handler',
     referrer: req.headers?.referer || 'None',
-  })
+  });
 
   // Respond with a structured error response
   return res.status(normalizedError.status).json(normalizedError.toJSON());

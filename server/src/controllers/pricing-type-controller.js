@@ -1,6 +1,7 @@
 const {
   fetchAllPriceTypes,
-  fetchAvailablePricingTypesForDropdown, fetchPricingTypeByIdWithMetadataService,
+  fetchAvailablePricingTypesForDropdown,
+  fetchPricingTypeByIdWithMetadataService,
 } = require('../services/price-type-service');
 const { logInfo } = require('../utils/logger-helper');
 const wrapAsync = require('../utils/wrap-async');
@@ -22,14 +23,14 @@ const wrapAsync = require('../utils/wrap-async');
 const getAllPriceTypesController = wrapAsync(async (req, res, next) => {
   const { page = 1, limit = 10, name, startDate, endDate } = req.query;
   const user = req.user;
-  
+
   logInfo('Request received for fetching pricing types', req, {
     context: 'pricing-type-controller',
     page,
     limit,
     userId: user?.id,
   });
-  
+
   const { data, pagination } = await fetchAllPriceTypes({
     page: Number(page),
     limit: Number(limit),
@@ -38,7 +39,7 @@ const getAllPriceTypesController = wrapAsync(async (req, res, next) => {
     endDate,
     user,
   });
-  
+
   // Call the service layer to fetch price types
   res.status(200).json({
     success: true,
@@ -60,14 +61,14 @@ const getAllPriceTypesController = wrapAsync(async (req, res, next) => {
  */
 const getPricingTypeMetadataController = wrapAsync(async (req, res, next) => {
   const { id } = req.params;
-  
+
   logInfo('Handling request to fetch pricing type metadata', req, {
     context: 'pricing-types-controller/getPricingTypeMetadataController',
     pricingTypeId: id,
   });
-  
+
   const pricingType = await fetchPricingTypeByIdWithMetadataService(id);
-  
+
   res.status(200).json({
     success: true,
     message: 'Pricing type metadata fetched successfully.',

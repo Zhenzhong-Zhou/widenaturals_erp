@@ -63,7 +63,7 @@ const setupCronJobs = () => {
       });
       return;
     }
-    
+
     logSystemInfo('Cron jobs set up successfully.', {
       context: 'setup-cron',
       stdout: stdout.trim(),

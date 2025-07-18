@@ -1,5 +1,9 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import type { PaginatedSkuProductCardResponse, SkuDetails, SkuProductCardFilters } from './skuTypes';
+import type {
+  PaginatedSkuProductCardResponse,
+  SkuDetails,
+  SkuProductCardFilters,
+} from './skuTypes';
 import { skuService } from '@services/skuService';
 import { AxiosError } from 'axios';
 
@@ -21,13 +25,16 @@ export const fetchSkuProductCardsThunk = createAsyncThunk<
     limit?: number;
     filters?: SkuProductCardFilters;
   }
->('sku/fetchProductCards', async ({ page = 1, limit = 10, filters = {} }, thunkAPI) => {
-  try {
-    return await skuService.fetchActiveSkuProductCards(page, limit, filters);
-  } catch (error: any) {
-    return thunkAPI.rejectWithValue(error.message);
+>(
+  'sku/fetchProductCards',
+  async ({ page = 1, limit = 10, filters = {} }, thunkAPI) => {
+    try {
+      return await skuService.fetchActiveSkuProductCards(page, limit, filters);
+    } catch (error: any) {
+      return thunkAPI.rejectWithValue(error.message);
+    }
   }
-});
+);
 
 /**
  * Thunk to fetch detailed SKU information for the given SKU ID.
@@ -38,30 +45,27 @@ export const fetchSkuProductCardsThunk = createAsyncThunk<
  * @returns SkuDetails on success or a string error message on failure
  */
 export const fetchSkuDetailsThunk = createAsyncThunk<
-  SkuDetails,               // Return type
-  string,                   // Argument: skuId
+  SkuDetails, // Return type
+  string, // Argument: skuId
   {
-    rejectValue: string;    // Custom error message
+    rejectValue: string; // Custom error message
   }
->(
-  'sku/fetchSkuDetails',
-  async (skuId, { rejectWithValue }) => {
-    try {
-      const response = await skuService.getSkuDetails(skuId);
-      return response.data; // Extract just the SkuDetail
-    } catch (error) {
-      let message = 'Failed to fetch SKU details.';
-      
-      if (error instanceof AxiosError && error.response?.data?.message) {
-        message = error.response.data.message;
-      }
-      
-      console.error('[Thunk] fetchSkuDetailsThunk failed:', {
-        skuId,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      
-      return rejectWithValue(message);
+>('sku/fetchSkuDetails', async (skuId, { rejectWithValue }) => {
+  try {
+    const response = await skuService.getSkuDetails(skuId);
+    return response.data; // Extract just the SkuDetail
+  } catch (error) {
+    let message = 'Failed to fetch SKU details.';
+
+    if (error instanceof AxiosError && error.response?.data?.message) {
+      message = error.response.data.message;
     }
+
+    console.error('[Thunk] fetchSkuDetailsThunk failed:', {
+      skuId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+
+    return rejectWithValue(message);
   }
-);
+});

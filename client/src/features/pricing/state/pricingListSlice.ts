@@ -1,6 +1,9 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { fetchPricingListDataThunk } from './pricingThunks';
-import type { PaginatedPricingRecordsResponse, PricingListState } from './pricingTypes';
+import type {
+  PaginatedPricingRecordsResponse,
+  PricingListState,
+} from './pricingTypes';
 
 /**
  * Initial state and structure for managing paginated pricing records in the pricing list view.

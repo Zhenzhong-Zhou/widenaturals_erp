@@ -3,11 +3,21 @@ import { API_ENDPOINTS } from '@services/apiEndpoints';
 import type {
   FetchWarehouseInventoryItemSummaryParams,
   WarehouseInventoryFilters,
-  WarehouseInventoryItemSummary, WarehouseInventoryRecordsResponse,
+  WarehouseInventoryItemSummary,
+  WarehouseInventoryRecordsResponse,
   WarehouseInventorySummaryDetailsByItemIdResponse,
 } from '@features/warehouseInventory/state';
-import type { PaginatedResponse, PaginationParams, SortConfig } from '@shared-types/api';
-import type { CreateInventoryRecordsRequest, CreateInventoryRecordsResponse, InventorySummaryDetailByItemIdParams } from '@features/inventoryShared/types/InventorySharedType';
+import type {
+  PaginatedResponse,
+  PaginationParams,
+  SortConfig,
+} from '@shared-types/api';
+import type {
+  AdjustInventoryRequestBody,
+  CreateInventoryRecordsRequest,
+  InventoryRecordsResponse,
+  InventorySummaryDetailByItemIdParams,
+} from '@features/inventoryShared/types/InventorySharedType';
 import { buildWarehouseInventoryFilters } from '@utils/filters/buildWarehouseInventoryFilters';
 
 /**
@@ -21,11 +31,10 @@ const fetchWarehouseInventoryItemSummary = async (
   params: FetchWarehouseInventoryItemSummaryParams
 ): Promise<PaginatedResponse<WarehouseInventoryItemSummary>> => {
   try {
-    const response = await axiosInstance.get<PaginatedResponse<WarehouseInventoryItemSummary>>(
-      API_ENDPOINTS.WAREHOUSE_INVENTORY.SUMMARY,
-      { params }
-    );
-    
+    const response = await axiosInstance.get<
+      PaginatedResponse<WarehouseInventoryItemSummary>
+    >(API_ENDPOINTS.WAREHOUSE_INVENTORY.SUMMARY, { params });
+
     return response.data;
   } catch (error) {
     throw new Error('Failed to fetch warehouse inventory item summary.');
@@ -44,12 +53,12 @@ const fetchWarehouseInventorySummaryDetailsByItemId = async (
 ): Promise<WarehouseInventorySummaryDetailsByItemIdResponse> => {
   const { itemId, page = 1, limit = 10 } = params;
   const endpoint = API_ENDPOINTS.WAREHOUSE_INVENTORY.SUMMARY_DETAIL(itemId);
-  
+
   try {
     const response = await axiosInstance.get(endpoint, {
       params: { page, limit },
     });
-    
+
     return response.data;
   } catch (error) {
     throw new Error('Failed to fetch warehouse inventory summary details.');
@@ -75,7 +84,7 @@ const fetchWarehouseInventoryRecords = async (
   const { page = 1, limit = 10 } = pagination;
   const filters = buildWarehouseInventoryFilters(rawFilters);
   const { sortBy, sortOrder } = rawSortConfig;
-  
+
   try {
     const response = await axiosInstance.get<WarehouseInventoryRecordsResponse>(
       API_ENDPOINTS.WAREHOUSE_INVENTORY.ALL_RECORDS,
@@ -89,7 +98,7 @@ const fetchWarehouseInventoryRecords = async (
         },
       }
     );
-    
+
     return response.data;
   } catch (error: any) {
     console.error('Error fetching warehouse inventory records:', error);
@@ -101,15 +110,15 @@ const fetchWarehouseInventoryRecords = async (
  * Sends a request to create warehouse and/or location inventory records.
  *
  * @param {CreateInventoryRecordsRequest} payload - The request payload containing inventory records.
- * @returns {Promise<CreateInventoryRecordsResponse>} The API response containing created inventory records.
+ * @returns {Promise<InventoryRecordsResponse>} The API response containing created inventory records.
  * @throws Will throw an error if the request fails (to be caught by the caller).
  */
 const createWarehouseInventoryRecords = async (
   payload: CreateInventoryRecordsRequest
-): Promise<CreateInventoryRecordsResponse> => {
+): Promise<InventoryRecordsResponse> => {
   try {
-    const response = await axiosInstance.post<CreateInventoryRecordsResponse>(
-      '/warehouse-inventory',
+    const response = await axiosInstance.post<InventoryRecordsResponse>(
+      API_ENDPOINTS.WAREHOUSE_INVENTORY.ADD_RECORDS,
       payload
     );
     return response.data;
@@ -120,10 +129,36 @@ const createWarehouseInventoryRecords = async (
   }
 };
 
+/**
+ * Sends a request to adjust warehouse inventory quantities.
+ *
+ * This function is typically used for manual or system-initiated inventory adjustments,
+ * and expects an array of adjustment payloads for batch or individual records.
+ *
+ * @param data - The adjustment request body containing inventory update details.
+ * @returns A promise resolving to the updated inventory records (warehouse and location).
+ * @throws Error if the API request fails.
+ */
+const adjustWarehouseInventoryQuantities = async (
+  data: AdjustInventoryRequestBody
+): Promise<InventoryRecordsResponse> => {
+  try {
+    const response = await axiosInstance.patch<InventoryRecordsResponse>(
+      API_ENDPOINTS.WAREHOUSE_INVENTORY.ADJUST_QUANTITIES,
+      data
+    );
+    return response.data;
+  } catch (error) {
+    // Optionally log or normalize error
+    throw new Error('Failed to adjust warehouse inventory quantities');
+  }
+};
+
 // Export the service
 export const warehouseInventoryService = {
   fetchWarehouseInventoryItemSummary,
   fetchWarehouseInventorySummaryDetailsByItemId,
   fetchWarehouseInventoryRecords,
   createWarehouseInventoryRecords,
+  adjustWarehouseInventoryQuantities,
 };

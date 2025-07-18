@@ -4,7 +4,8 @@ import type { RootState } from '@store/store';
 /**
  * Base selector to access the pricingListByType slice from the root state.
  */
-const selectPricingListByTypeState = (state: RootState) => state.pricingListByType;
+const selectPricingListByTypeState = (state: RootState) =>
+  state.pricingListByType;
 
 /**
  * Selector to retrieve the list of pricing detail records.

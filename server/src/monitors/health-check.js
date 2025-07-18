@@ -3,7 +3,12 @@
  * @description Schedules and manages periodic health checks for the application.
  */
 
-const { logSystemWarn, logSystemError, logSystemInfo, logSystemException } = require('../utils/system-logger');
+const {
+  logSystemWarn,
+  logSystemError,
+  logSystemInfo,
+  logSystemException,
+} = require('../utils/system-logger');
 const { checkDatabaseHealth } = require('./db-health');
 const { monitorPool } = require('../database/db');
 const { ONE_MINUTE } = require('../utils/constants/general/time');
@@ -50,9 +55,10 @@ const startHealthCheck = (interval = ONE_MINUTE) => {
               context: 'health-monitor',
               check: healthCheck.name,
               errorMessage: error.message,
-              stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined,
+              stack:
+                process.env.NODE_ENV !== 'production' ? error.stack : undefined,
             });
-            
+
             return {
               name: healthCheck.name,
               status: 'unhealthy',
@@ -63,19 +69,23 @@ const startHealthCheck = (interval = ONE_MINUTE) => {
       );
 
       const duration = Date.now() - startTime;
-      
+
       logSystemInfo('Scheduled health check completed.', {
         context: 'health-monitor',
         durationMS: duration,
         results,
       });
     } catch (error) {
-      logSystemException(error, 'Unexpected failure during scheduled health check', {
-        context: 'health-monitor',
-      });
+      logSystemException(
+        error,
+        'Unexpected failure during scheduled health check',
+        {
+          context: 'health-monitor',
+        }
+      );
     }
   }, interval);
-  
+
   logSystemInfo('Health check interval initialized.', {
     context: 'health-monitor',
     intervalMs: interval,
@@ -89,7 +99,7 @@ const stopHealthCheck = () => {
   if (healthCheckInterval) {
     clearInterval(healthCheckInterval);
     healthCheckInterval = null;
-    
+
     logSystemInfo('Health check stopped', {
       context: 'health-monitor',
       action: 'stop',
@@ -106,5 +116,5 @@ const stopHealthCheck = () => {
 
 module.exports = {
   startHealthCheck,
-  stopHealthCheck
+  stopHealthCheck,
 };

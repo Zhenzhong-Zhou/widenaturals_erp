@@ -69,20 +69,20 @@ const exportFields: FieldConfig[] = [
   },
 ];
 
-const ExportPricingForm: FC<ExportPricingFormProps> = ({ onClose, }) => {
+const ExportPricingForm: FC<ExportPricingFormProps> = ({ onClose }) => {
   const handleExportSubmit = async (formData: Record<string, any>) => {
     try {
       const { exportFormat, ...rawFilters } = formData;
-      
+
       const filters = Object.fromEntries(
         Object.entries(rawFilters).filter(([_, value]) => value !== '')
       );
-      
+
       await pricingService.exportPricingRecords(
         { filters },
         exportFormat as 'csv' | 'xlsx' | 'txt'
       );
-      
+
       toast.success('Export successful!');
     } catch (err) {
       console.error('Export failed', err);
@@ -91,7 +91,7 @@ const ExportPricingForm: FC<ExportPricingFormProps> = ({ onClose, }) => {
       onClose();
     }
   };
-  
+
   return (
     <CustomForm
       fields={exportFields}

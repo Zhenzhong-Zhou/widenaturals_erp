@@ -27,13 +27,11 @@ const HealthStatus: FC<HealthStatusProps> = ({ getStatusColor, sx }) => {
     refreshHealthStatus,
     error,
   } = useHealthStatus();
-  
+
   const badgeColor = getStatusColor(
-    loading
-      ? 'loading'
-      : healthStatus?.server?.toLowerCase() ?? 'unknown'
+    loading ? 'loading' : (healthStatus?.server?.toLowerCase() ?? 'unknown')
   );
-  
+
   return (
     <Box
       sx={{
@@ -114,7 +112,7 @@ const HealthStatus: FC<HealthStatusProps> = ({ getStatusColor, sx }) => {
               justifyContent: 'center',
               boxShadow: 1,
               lineHeight: 1, // prevent line shift
-              height: 32,     // match badge height
+              height: 32, // match badge height
             }}
           >
             <CustomTypography
@@ -123,7 +121,7 @@ const HealthStatus: FC<HealthStatusProps> = ({ getStatusColor, sx }) => {
                 fontWeight: 600,
                 fontSize: '0.875rem',
                 fontFamily: "'Roboto', sans-serif",
-                color: isHealthy ? 'primary.main' : 'error.main'
+                color: isHealthy ? 'primary.main' : 'error.main',
               }}
             >
               {isHealthy ? 'Healthy' : 'Unhealthy'}

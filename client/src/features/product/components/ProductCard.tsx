@@ -35,7 +35,7 @@ const ProductCard: FC<ProductCardProps> = ({ isLoading, product }) => {
       </Box>
     );
   }
-  
+
   const {
     skuId,
     displayName,
@@ -48,7 +48,7 @@ const ProductCard: FC<ProductCardProps> = ({ isLoading, product }) => {
     imageUrl,
     imageAltText,
   } = product;
-  
+
   return (
     <Box
       sx={{
@@ -79,14 +79,24 @@ const ProductCard: FC<ProductCardProps> = ({ isLoading, product }) => {
           </>
         }
       >
-        <CustomTypography variant="body2">Brand: {brand || 'N/A'}</CustomTypography>
-        <CustomTypography variant="body2">Series: {series || 'N/A'}</CustomTypography>
-        <CustomTypography variant="body2">Barcode: {barcode || 'N/A'}</CustomTypography>
-        <CustomTypography variant="body2">NPN: {npnComplianceId || 'N/A'}</CustomTypography>
+        <CustomTypography variant="body2">
+          Brand: {brand || 'N/A'}
+        </CustomTypography>
+        <CustomTypography variant="body2">
+          Series: {series || 'N/A'}
+        </CustomTypography>
+        <CustomTypography variant="body2">
+          Barcode: {barcode || 'N/A'}
+        </CustomTypography>
+        <CustomTypography variant="body2">
+          NPN: {npnComplianceId || 'N/A'}
+        </CustomTypography>
         <CustomTypography variant="body2">
           MSRP: {msrpPrice != null ? `$${msrpPrice.toFixed(2)}` : 'N/A'}
         </CustomTypography>
-        <CustomTypography variant="body2">Status: {formatLabel(status)}</CustomTypography>
+        <CustomTypography variant="body2">
+          Status: {formatLabel(status)}
+        </CustomTypography>
       </CustomCard>
     </Box>
   );

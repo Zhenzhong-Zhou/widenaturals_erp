@@ -23,7 +23,7 @@ const LabelValuePair = ({ label, value }: { label: string; value: string }) => (
 
 const SkuDetailsSection: FC<SkuDetailsSectionProps> = ({ data, sx }) => {
   const grouped = mapSkuToDisplayMetadata(data);
-  
+
   return (
     <Box sx={{ width: '100%', ...sx }}>
       {Object.entries(grouped).map(([sectionTitle, fields], index) => (
@@ -35,13 +35,11 @@ const SkuDetailsSection: FC<SkuDetailsSectionProps> = ({ data, sx }) => {
             borderTop: index > 0 ? '1px solid #eee' : 'none',
           }}
         >
-          <CustomTypography variant="h5">
-            {sectionTitle}
-          </CustomTypography>
-          
+          <CustomTypography variant="h5">{sectionTitle}</CustomTypography>
+
           <Grid container spacing={2}>
             {Object.entries(fields).map(([label, value]) => (
-              <Grid size={{xs: 12, sm: 6}} key={label}>
+              <Grid size={{ xs: 12, sm: 6 }} key={label}>
                 <LabelValuePair label={label} value={value} />
               </Grid>
             ))}

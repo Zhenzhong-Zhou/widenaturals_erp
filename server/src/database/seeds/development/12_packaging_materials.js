@@ -7,12 +7,12 @@ const { generateStandardizedCode } = require('../../../utils/code-generators');
  */
 exports.seed = async function (knex) {
   console.log('Seeding packaging_materials...');
-  
+
   const [createdBy, activeStatusId] = await Promise.all([
     fetchDynamicValue(knex, 'users', 'email', 'system@internal.local', 'id'),
     fetchDynamicValue(knex, 'status', 'name', 'active', 'id'),
   ]);
-  
+
   const materials = [
     // Canaherb
     {
@@ -22,7 +22,8 @@ exports.seed = async function (knex) {
       material_composition: 'plastic',
       unit: 'pcs',
       weight_g: 2,
-      description: 'White food-grade plastic flip-top caps used for bottle sealing.',
+      description:
+        'White food-grade plastic flip-top caps used for bottle sealing.',
     },
     {
       name: 'Vegetable Capsule 0',
@@ -50,7 +51,8 @@ exports.seed = async function (knex) {
       material_composition: 'plastic',
       unit: 'pc',
       weight_g: 0.5,
-      description: 'Transparent food-grade plastic wrap filler for packaging cushioning.',
+      description:
+        'Transparent food-grade plastic wrap filler for packaging cushioning.',
     },
     {
       name: '250ml Plastic Bottle',
@@ -59,7 +61,8 @@ exports.seed = async function (knex) {
       material_composition: 'plastic',
       unit: 'pc',
       weight_g: 50,
-      description: 'White 250ml plastic bottle for containing liquid supplements.',
+      description:
+        'White 250ml plastic bottle for containing liquid supplements.',
     },
     {
       name: 'Pressure Seal Foam',
@@ -68,7 +71,8 @@ exports.seed = async function (knex) {
       material_composition: 'foam',
       unit: 'pc',
       weight_g: 1,
-      description: 'White pressure-sensitive foam seal for tamper-evident closure and moisture protection in food packaging.',
+      description:
+        'White pressure-sensitive foam seal for tamper-evident closure and moisture protection in food packaging.',
     },
     {
       name: 'Label for Focus - CA (Paper, 19.6×7.0cm)',
@@ -213,7 +217,8 @@ exports.seed = async function (knex) {
       length_cm: 6.4,
       width_cm: 6.4,
       height_cm: 11.3,
-      description: 'Cardboard retail box for Focus (CA version), size 6.4×6.4×11.3cm.',
+      description:
+        'Cardboard retail box for Focus (CA version), size 6.4×6.4×11.3cm.',
     },
     {
       name: 'Box for Focus - CN (Cardboard, 6.4*6.4*11.3cm)',
@@ -223,7 +228,8 @@ exports.seed = async function (knex) {
       length_cm: 6.4,
       width_cm: 6.4,
       height_cm: 11.3,
-      description: 'Cardboard retail box for Focus (CN version), size 6.4×6.4×11.3cm.',
+      description:
+        'Cardboard retail box for Focus (CN version), size 6.4×6.4×11.3cm.',
     },
     {
       name: 'Box for Gut Health - CA (Cardboard, 6.4*6.4*11.3cm)',
@@ -233,7 +239,8 @@ exports.seed = async function (knex) {
       length_cm: 6.4,
       width_cm: 6.4,
       height_cm: 11.3,
-      description: 'Cardboard retail box for Gut Health (CA version), size 6.4×6.4×11.3cm.',
+      description:
+        'Cardboard retail box for Gut Health (CA version), size 6.4×6.4×11.3cm.',
     },
     {
       name: 'Box for Gut Health - CN (Cardboard, 6.4*6.4*11.3cm)',
@@ -243,7 +250,8 @@ exports.seed = async function (knex) {
       length_cm: 6.4,
       width_cm: 6.4,
       height_cm: 11.3,
-      description: 'Cardboard retail box for Gut Health (CN version), size 6.4×6.4×11.3cm.',
+      description:
+        'Cardboard retail box for Gut Health (CN version), size 6.4×6.4×11.3cm.',
     },
     {
       name: 'Box for Immune - CA (Cardboard, 6.4*6.4*11.3cm)',
@@ -364,7 +372,8 @@ exports.seed = async function (knex) {
       unit: 'pc',
       length_cm: 1.5,
       width_cm: 1.5,
-      description: 'Small silver-colored food-grade metallic plastic lid, used for sealing bottles or containers.',
+      description:
+        'Small silver-colored food-grade metallic plastic lid, used for sealing bottles or containers.',
     },
     {
       name: 'Copper Metallica Plastic Lid - Small',
@@ -374,7 +383,8 @@ exports.seed = async function (knex) {
       unit: 'pc',
       length_cm: 1.5,
       width_cm: 1.5,
-      description: 'Small copper-colored food-grade metallic plastic lid, used for sealing bottles or containers.',
+      description:
+        'Small copper-colored food-grade metallic plastic lid, used for sealing bottles or containers.',
     },
     {
       name: 'Sliver Metallica Plastic Lid - Large',
@@ -384,7 +394,8 @@ exports.seed = async function (knex) {
       unit: 'pc',
       length_cm: 1.5,
       width_cm: 1.5,
-      description: 'Large silver-colored food-grade metallic plastic lid, used for sealing larger bottles or containers.',
+      description:
+        'Large silver-colored food-grade metallic plastic lid, used for sealing larger bottles or containers.',
     },
     {
       name: 'Gold Metallica Plastic Lid - Large',
@@ -612,7 +623,7 @@ exports.seed = async function (knex) {
       length_cm: 13.0,
       width_cm: 8.5,
       height_cm: 5.2,
-      description: 'Top lid for NMN 3000 - CA packaging'
+      description: 'Top lid for NMN 3000 - CA packaging',
     },
     {
       name: 'Bottom Base for NMN 3000 - CA (Cardboard, 12.5×7.9×5.0cm)',
@@ -623,7 +634,7 @@ exports.seed = async function (knex) {
       length_cm: 12.5,
       width_cm: 7.9,
       height_cm: 5.0,
-      description: 'Bottom base for NMN 3000 - CA packaging'
+      description: 'Bottom base for NMN 3000 - CA packaging',
     },
     {
       name: 'Box Lid for NMN 6000 - CA (Cardboard, 13.0×8.5×5.2cm)',
@@ -634,7 +645,7 @@ exports.seed = async function (knex) {
       length_cm: 13.0,
       width_cm: 8.5,
       height_cm: 5.2,
-      description: 'Top lid for NMN 6000 - CA packaging'
+      description: 'Top lid for NMN 6000 - CA packaging',
     },
     {
       name: 'Bottom Base for NMN 6000 - CA (Cardboard, 12.5×7.9×5.0cm)',
@@ -645,7 +656,7 @@ exports.seed = async function (knex) {
       length_cm: 12.5,
       width_cm: 7.9,
       height_cm: 5.0,
-      description: 'Bottom base for NMN 6000 - CA packaging'
+      description: 'Bottom base for NMN 6000 - CA packaging',
     },
     {
       name: 'Box Lid for NMN 10000 - CA (Cardboard, 13.0×8.5×5.2cm)',
@@ -656,7 +667,7 @@ exports.seed = async function (knex) {
       length_cm: 13.0,
       width_cm: 8.5,
       height_cm: 5.2,
-      description: 'Top lid for NMN 10000 - CA packaging'
+      description: 'Top lid for NMN 10000 - CA packaging',
     },
     {
       name: 'Bottom Base for NMN 10000 - CA (Cardboard, 12.5×7.9×5.0cm)',
@@ -667,7 +678,7 @@ exports.seed = async function (knex) {
       length_cm: 12.5,
       width_cm: 7.9,
       height_cm: 5.0,
-      description: 'Bottom base for NMN 10000 - CA packaging'
+      description: 'Bottom base for NMN 10000 - CA packaging',
     },
     {
       name: 'Tray Insert for NMN 3000, 6000 and 10000 - CA (Cardboard, 11.9×7.7×2.8cm)',
@@ -678,7 +689,7 @@ exports.seed = async function (knex) {
       length_cm: 11.9,
       width_cm: 7.7,
       height_cm: 2.8,
-      description: 'Tray insert for NMN 3000, 6000 and 10000 - CA packaging'
+      description: 'Tray insert for NMN 3000, 6000 and 10000 - CA packaging',
     },
     {
       name: 'Box Lid for NMN 15000 - CA (Cardboard, 13.0×8.5×5.2cm)',
@@ -689,7 +700,7 @@ exports.seed = async function (knex) {
       length_cm: 13.0,
       width_cm: 8.5,
       height_cm: 5.2,
-      description: 'Top lid for NMN 15000 - CA packaging'
+      description: 'Top lid for NMN 15000 - CA packaging',
     },
     {
       name: 'Tray Insert for NMN 15000 - CA (Cardboard, 11.9×7.7×2.8cm)',
@@ -700,7 +711,7 @@ exports.seed = async function (knex) {
       length_cm: 11.9,
       width_cm: 7.7,
       height_cm: 2.8,
-      description: 'Tray insert for NMN 15000 - CA packaging'
+      description: 'Tray insert for NMN 15000 - CA packaging',
     },
     {
       name: 'Bottom Base for NMN 15000 - CA (Cardboard, 12.5×7.9×5.0cm)',
@@ -711,7 +722,7 @@ exports.seed = async function (knex) {
       length_cm: 12.5,
       width_cm: 7.9,
       height_cm: 5.0,
-      description: 'Bottom base for NMN 15000 - CA packaging'
+      description: 'Bottom base for NMN 15000 - CA packaging',
     },
     {
       name: 'Box Lid for NMN 30000 - CA (Cardboard, 13.0×8.5×5.2cm)',
@@ -722,7 +733,7 @@ exports.seed = async function (knex) {
       length_cm: 13.0,
       width_cm: 8.5,
       height_cm: 5.2,
-      description: 'Top lid for NMN 30000 - CA packaging'
+      description: 'Top lid for NMN 30000 - CA packaging',
     },
     {
       name: 'Tray Insert for NMN 30000 - CA (Cardboard, 11.9×7.7×2.8cm)',
@@ -733,7 +744,7 @@ exports.seed = async function (knex) {
       length_cm: 11.9,
       width_cm: 7.7,
       height_cm: 2.8,
-      description: 'Tray insert for NMN 30000 - CA packaging'
+      description: 'Tray insert for NMN 30000 - CA packaging',
     },
     {
       name: 'Bottom Base for NMN 30000 - CA (Cardboard, 12.5×7.9×5.0cm)',
@@ -744,7 +755,7 @@ exports.seed = async function (knex) {
       length_cm: 12.5,
       width_cm: 7.9,
       height_cm: 5.0,
-      description: 'Bottom base for NMN 30000 - CA packaging'
+      description: 'Bottom base for NMN 30000 - CA packaging',
     },
     {
       name: 'Box Lid for Virility - CA (Cardboard, 13.0×8.5×5.2cm)',
@@ -755,7 +766,7 @@ exports.seed = async function (knex) {
       length_cm: 13.0,
       width_cm: 8.5,
       height_cm: 5.2,
-      description: 'Top lid for Virility - CA packaging'
+      description: 'Top lid for Virility - CA packaging',
     },
     {
       name: 'Tray Insert for Virility - CA (Cardboard, 11.9×7.7×2.8cm)',
@@ -766,7 +777,7 @@ exports.seed = async function (knex) {
       length_cm: 11.9,
       width_cm: 7.7,
       height_cm: 2.8,
-      description: 'Tray insert for Virility - CA packaging'
+      description: 'Tray insert for Virility - CA packaging',
     },
     {
       name: 'Bottom Base for Virility - CA (Cardboard, 12.5×7.9×5.0cm)',
@@ -777,7 +788,7 @@ exports.seed = async function (knex) {
       length_cm: 12.5,
       width_cm: 7.9,
       height_cm: 5.0,
-      description: 'Bottom base for Virility - CA packaging'
+      description: 'Bottom base for Virility - CA packaging',
     },
     {
       name: 'Telescoping Box for NMN 10000 - CN (Cardboard, 8.1×8.1×12.2cm)',
@@ -841,7 +852,8 @@ exports.seed = async function (knex) {
       unit: 'pc',
       length_cm: 3.0,
       width_cm: 3.0,
-      description: 'Food-grade plastic material with threading and sealing features, used for internal sealing of bottle caps.'
+      description:
+        'Food-grade plastic material with threading and sealing features, used for internal sealing of bottle caps.',
     },
     {
       name: 'Softgel Capsule 500mg',
@@ -862,7 +874,7 @@ exports.seed = async function (knex) {
       length_cm: 3.0,
       width_cm: 3.0,
       height_cm: 12.5,
-      description: '220ml white aluminum bottle for packaging'
+      description: '220ml white aluminum bottle for packaging',
     },
     {
       name: 'Aluminum Bottle - 440ml (White)',
@@ -873,7 +885,7 @@ exports.seed = async function (knex) {
       length_cm: 3.0,
       width_cm: 3.0,
       height_cm: 16.5,
-      description: '440ml white aluminum bottle for packaging'
+      description: '440ml white aluminum bottle for packaging',
     },
     {
       name: 'Label for Seal Oil - 120 Softgels (Plastic, 16.0*6.5cm)',
@@ -894,10 +906,12 @@ exports.seed = async function (knex) {
       description: '',
     },
   ];
-  
+
   const rows = materials.map((mat, idx) => ({
     id: knex.raw('uuid_generate_v4()'),
-    code: generateStandardizedCode('MAT', mat.name, { sequenceNumber: idx + 1 }),
+    code: generateStandardizedCode('MAT', mat.name, {
+      sequenceNumber: idx + 1,
+    }),
     ...mat,
     status_id: activeStatusId,
     status_date: knex.fn.now(),
@@ -907,8 +921,8 @@ exports.seed = async function (knex) {
     created_at: knex.fn.now(),
     updated_at: null,
   }));
-  
+
   await knex('packaging_materials').insert(rows).onConflict('code').ignore();
-  
+
   console.log(`Seeded ${rows.length} packaging materials records.`);
 };

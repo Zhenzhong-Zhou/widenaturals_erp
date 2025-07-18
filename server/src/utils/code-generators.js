@@ -18,7 +18,7 @@ const cleanName = (name) => (name || '').trim();
 const generateAbbreviation = (name, maxLength = 4) => {
   return name
     .split(/\s+/)
-    .map(word => word[0])
+    .map((word) => word[0])
     .join('')
     .toUpperCase()
     .slice(0, maxLength);
@@ -57,7 +57,7 @@ const generateStandardizedCode = (
   { regionCode = '', sequenceNumber = 1, padLength = 3 } = {}
 ) => {
   const context = 'generate-standardized-code';
-  
+
   try {
     const cleanAbbr = generateAbbreviation(cleanName(name), 3);
     const paddedNum = String(sequenceNumber).padStart(padLength, '0');
@@ -90,18 +90,13 @@ const generateStandardizedCode = (
  */
 const generateCodeOrSlug = (
   name,
-  {
-    slugOnly = false,
-    sequenceNumber = 1,
-    padLength = 3,
-    regionCode = '',
-  } = {}
+  { slugOnly = false, sequenceNumber = 1, padLength = 3, regionCode = '' } = {}
 ) => {
   const normalizedName = cleanName(name);
   if (!normalizedName) return '';
-  
+
   if (slugOnly) return generateSlugOnly(normalizedName);
-  
+
   const abbr = generateAbbreviation(normalizedName);
   const padded = String(sequenceNumber).padStart(padLength, '0');
   const regionPart = regionCode ? `-${regionCode.toUpperCase()}` : '';

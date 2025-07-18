@@ -64,9 +64,9 @@ export interface AuditInfo {
 export type StatusInfo =
   | string
   | {
-  sku: string;
-  product: string;
-};
+      sku: string;
+      product: string;
+    };
 
 export interface PricingInfo {
   price: number;

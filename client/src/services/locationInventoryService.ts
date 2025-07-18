@@ -27,13 +27,14 @@ const fetchLocationInventoryKpiSummary = async (
   itemType?: ItemType
 ): Promise<LocationInventoryKpiSummaryResponse> => {
   try {
-    const response = await axiosInstance.get<LocationInventoryKpiSummaryResponse>(
-      API_ENDPOINTS.LOCATION_INVENTORY.KPI_SUMMARY,
-      {
-        params: itemType ? { itemType } : {},
-      }
-    );
-    
+    const response =
+      await axiosInstance.get<LocationInventoryKpiSummaryResponse>(
+        API_ENDPOINTS.LOCATION_INVENTORY.KPI_SUMMARY,
+        {
+          params: itemType ? { itemType } : {},
+        }
+      );
+
     return response.data;
   } catch (error) {
     throw new Error('Failed to fetch location inventoryKpiSummary');
@@ -74,15 +75,16 @@ export const fetchLocationInventorySummaryByItemId = async (
 ): Promise<LocationInventorySummaryDetailResponse> => {
   const { itemId, page = 1, limit = 10 } = params;
   const endpoint = API_ENDPOINTS.LOCATION_INVENTORY.SUMMARY_DETAIL(itemId);
-  
+
   try {
-    const response = await axiosInstance.get<LocationInventorySummaryDetailResponse>(endpoint,
-      { params: { page, limit } }
-    );
-    
+    const response =
+      await axiosInstance.get<LocationInventorySummaryDetailResponse>(
+        endpoint,
+        { params: { page, limit } }
+      );
+
     return response.data;
   } catch (error) {
-    
     throw new Error('Failed to fetch location inventory summary detail.');
   }
 };
@@ -106,7 +108,7 @@ const fetchLocationInventoryRecords = async (
   const { page = 1, limit = 10 } = pagination;
   const filters = buildLocationInventoryFilters(rawFilters);
   const { sortBy, sortOrder } = rawSortConfig;
-  
+
   try {
     const response = await axiosInstance.get<LocationInventoryRecordsResponse>(
       API_ENDPOINTS.LOCATION_INVENTORY.ALL_RECORDS,
@@ -120,7 +122,7 @@ const fetchLocationInventoryRecords = async (
         },
       }
     );
-    
+
     return response.data;
   } catch (error: any) {
     console.error('Error fetching location inventory records:', error);

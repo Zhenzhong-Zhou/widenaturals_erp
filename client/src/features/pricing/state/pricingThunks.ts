@@ -1,5 +1,9 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import type { FetchPricingParams, PaginatedPricingDetailsResponse, PaginatedPricingRecordsResponse } from '@features/pricing/state/pricingTypes.ts';
+import type {
+  FetchPricingParams,
+  PaginatedPricingDetailsResponse,
+  PaginatedPricingRecordsResponse,
+} from '@features/pricing/state/pricingTypes.ts';
 import { pricingService } from '@services/pricingService';
 
 /**
@@ -9,9 +13,9 @@ import { pricingService } from '@services/pricingService';
  * @returns PaginatedPricingRecordsResponse
  */
 export const fetchPricingListDataThunk = createAsyncThunk<
-  PaginatedPricingRecordsResponse,        // Return type
-  FetchPricingParams,                     // Parameter type
-  { rejectValue: string }                 // Rejection error message type
+  PaginatedPricingRecordsResponse, // Return type
+  FetchPricingParams, // Parameter type
+  { rejectValue: string } // Rejection error message type
 >('pricing/fetchPricingData', async (params, { rejectWithValue }) => {
   try {
     return await pricingService.fetchPaginatedPricingRecords(params);
@@ -39,7 +43,11 @@ export const fetchPricingDetailsByTypeThunk = createAsyncThunk<
   'pricing/getPricingDetailsByType',
   async ({ pricingTypeId, page = 1, limit = 10 }, { rejectWithValue }) => {
     try {
-      return await pricingService.fetchPricingDetailsByType(pricingTypeId, page, limit);
+      return await pricingService.fetchPricingDetailsByType(
+        pricingTypeId,
+        page,
+        limit
+      );
     } catch (error: any) {
       return rejectWithValue(
         error?.response?.data?.message || 'Unable to fetch pricing details'

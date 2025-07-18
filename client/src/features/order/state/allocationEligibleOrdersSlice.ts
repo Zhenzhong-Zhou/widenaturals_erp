@@ -1,4 +1,10 @@
-import { createOrderSlice, fetchAllocationEligibleOrdersThunk } from '@features/order';
+import {
+  createOrderSlice,
+  fetchAllocationEligibleOrdersThunk,
+} from '@features/order';
 
-const allocationEligibleOrdersSlice = createOrderSlice('allocationEligibleOrders', fetchAllocationEligibleOrdersThunk);
+const allocationEligibleOrdersSlice = createOrderSlice(
+  'allocationEligibleOrders',
+  fetchAllocationEligibleOrdersThunk
+);
 export default allocationEligibleOrdersSlice.reducer;

@@ -81,7 +81,9 @@ export const routes = [
   },
   {
     path: '/pricings',
-    component: lazy(() => import('@features/pricing/pages/PricingListPage.tsx')),
+    component: lazy(
+      () => import('@features/pricing/pages/PricingListPage.tsx')
+    ),
     meta: {
       requiresAuth: true,
       title: 'Prices',
@@ -135,7 +137,9 @@ export const routes = [
   },
   {
     path: '/inventory-overview',
-    component: lazy(() => import('@features/inventoryOverview/pages/InventoryOverviewPage')),
+    component: lazy(
+      () => import('@features/inventoryOverview/pages/InventoryOverviewPage')
+    ),
     meta: {
       requiresAuth: true,
       title: 'Inventory Overview',
@@ -145,7 +149,9 @@ export const routes = [
   },
   {
     path: '/location-inventory',
-    component: lazy(() => import('@features/locationInventory/pages/LocationInventoryPage')),
+    component: lazy(
+      () => import('@features/locationInventory/pages/LocationInventoryPage')
+    ),
     meta: {
       requiresAuth: true,
       title: 'Location Inventory',
@@ -176,75 +182,15 @@ export const routes = [
     },
   },
   {
-    path: '/reports/adjustments',
+    path: '/reports/inventory-activity-logs',
     component: lazy(
-      () => import('@features/report/pages/AdjustmentReportPage')
-    ),
-    meta: {
-      requiresAuth: true,
-      title: 'Adjustment Report',
-      showInSidebar: false,
-      requiredPermission: 'view_adjustment_reports',
-    },
-  },
-  {
-    path: '/reports/adjustments/lot_adjustments/:warehouseId?/:inventoryId?/:warehouseInventoryLotId?',
-    component: lazy(
-      () => import('@features/report/pages/AdjustmentReportPage')
-    ),
-    meta: {
-      requiresAuth: true,
-      title: 'Adjustment Report',
-      showInSidebar: false,
-      requiredPermission: 'view_adjustment_reports',
-    },
-  },
-  {
-    path: '/reports/inventory_activities',
-    component: lazy(
-      () => import('@features/report/pages/InventoryActivityLogPage')
+      () => import('@features/report/pages/InventoryActivityLogsPage')
     ),
     meta: {
       requiresAuth: true,
       title: 'Inventory Activity Logs',
-      showInSidebar: false,
-      requiredPermission: 'view_inventory_activity_logs',
-    },
-  },
-  {
-    path: '/reports/inventory_activities/logs/:warehouseId?/:inventoryId?/:warehouseInventoryLotId?',
-    component: lazy(
-      () => import('@features/report/pages/InventoryActivityLogPage')
-    ),
-    meta: {
-      requiresAuth: true,
-      title: 'Inventory Activity Logs',
-      showInSidebar: false,
-      requiredPermission: 'view_inventory_activity_logs',
-    },
-  },
-  {
-    path: '/reports/inventory_histories',
-    component: lazy(
-      () => import('@features/report/pages/InventoryHistoryPage')
-    ),
-    meta: {
-      requiresAuth: true,
-      title: 'Inventory Activity Logs',
-      showInSidebar: false,
-      requiredPermission: 'view_inventory_activity_logs',
-    },
-  },
-  {
-    path: '/reports/inventory_histories/histories/:inventoryId?',
-    component: lazy(
-      () => import('@features/report/pages/InventoryHistoryPage')
-    ),
-    meta: {
-      requiresAuth: true,
-      title: 'Inventory Activity Logs',
-      showInSidebar: false,
-      requiredPermission: 'view_inventory_activity_logs',
+      showInSidebar: true,
+      requiredPermission: 'view_inventory_logs',
     },
   },
   {
@@ -263,6 +209,11 @@ export const routes = [
       showInSidebar: false,
       requiredPermission: 'view_customer',
     },
+  },
+  {
+    path: '/addresses',
+    component: lazy(() => import('@features/address/pages/AddressesPage')),
+    meta: { requiresAuth: true, title: 'Addresses', showInSidebar: true },
   },
   {
     path: '/order_types',
@@ -296,12 +247,23 @@ export const routes = [
   },
   {
     path: '/orders/allocation-eligible',
-    component: lazy(() => import('@features/order/pages/AllocationEligibleOrderPage')),
-    meta: { requiresAuth: true, title: 'Allocation-Eligible Orders', showInSidebar: true },
+    component: lazy(
+      () => import('@features/order/pages/AllocationEligibleOrderPage')
+    ),
+    meta: {
+      requiresAuth: true,
+      title: 'Allocation-Eligible Orders',
+      showInSidebar: true,
+    },
   },
   {
     path: '/orders/:orderType/:orderId/allocate',
-    component: lazy(() => import('@features/inventoryAllocation/pages/OrderInventoryAllocationPage')),
+    component: lazy(
+      () =>
+        import(
+          '@features/inventoryAllocation/pages/OrderInventoryAllocationPage'
+        )
+    ),
     meta: {
       requiresAuth: true,
       title: 'Inventory Allocation',

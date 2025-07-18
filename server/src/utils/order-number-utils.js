@@ -1,4 +1,7 @@
+const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
+const { getFieldsById } = require('../database/db');
+const AppError = require('./AppError');
 
 /**
  * Maps category names to short prefixes.
@@ -11,6 +14,40 @@ const categoryToPrefixMap = {
   manufacturing: 'MO',
   adjustment: 'AO',
   logistics: 'LO',
+};
+
+/**
+ * Generates a new order ID and order number based on order_type_id and category integrity.
+ *
+ * Fetches the order type name and category from the `order_types` table,
+ * verifies that the DB category matches the expected category,
+ * and generates a unique order number.
+ *
+ * @param {string} order_type_id - The order type ID (used to fetch name and category)
+ * @param {string} expectedCategory - The category expected for this order (e.g. 'sales', 'purchase')
+ * @param {PoolClient} client - DB client within transaction
+ * @returns {Promise<{ id: string, category: string, orderNumber: string }>} - Generated identifiers
+ *
+ * @throws {AppError} - Throws notFoundError if an order type not found,
+ *                     or validationError if category mismatch
+ */
+const generateOrderIdentifiers = async (order_type_id, expectedCategory, client) => {
+  const id = uuidv4();
+  
+  const orderTypeFields = await getFieldsById('order_types', order_type_id, ['name', 'category'], client);
+  if (!orderTypeFields) {
+    throw AppError.notFoundError(`Order type not found for ID: ${order_type_id}`);
+  }
+  
+  const { name, category } = orderTypeFields;
+  
+  if (category !== expectedCategory.toLowerCase()) {
+    throw AppError.validationError(`Order type ID does not belong to category ${expectedCategory}`);
+  }
+  
+  const orderNumber = generateOrderNumber(name, category, id);
+  
+  return { id, orderNumber };
 };
 
 /**
@@ -33,6 +70,10 @@ const generateOrderNamePrefix = (orderTypeName) => {
  * @returns {string} - Generated order number.
  */
 const generateOrderNumber = (category, orderTypeName, orderId) => {
+  if (!orderTypeName || typeof orderTypeName !== 'string') {
+    throw AppError.validationError('Invalid orderTypeName provided.');
+  }
+  
   const categoryPrefix = categoryToPrefixMap[category] || 'UN'; // 'UN' = Undefined if category not mapped
   const orderTypePrefix = generateOrderNamePrefix(orderTypeName);
 
@@ -42,7 +83,7 @@ const generateOrderNumber = (category, orderTypeName, orderId) => {
     .slice(0, 14);
   const baseOrderNumber = `${categoryPrefix}-${orderTypePrefix}-${timestamp}-${orderId.slice(0, 8)}`;
 
-  // Generate a SHA-256 hash and take the first 4 characters as the checksum
+  // Generate SHA-256 hash and take the first 4 characters as the checksum
   const hash = crypto
     .createHash('sha256')
     .update(baseOrderNumber)
@@ -81,6 +122,6 @@ const verifyOrderNumber = (orderNumber) => {
 };
 
 module.exports = {
-  generateOrderNumber,
+  generateOrderIdentifiers,
   verifyOrderNumber,
 };

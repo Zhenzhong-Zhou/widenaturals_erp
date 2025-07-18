@@ -5,10 +5,7 @@ const {
   getPaginatedLocationInventoryRecords,
 } = require('../repositories/location-inventory-repository');
 const AppError = require('../utils/AppError');
-const {
-  logSystemException,
-  logSystemInfo
-} = require('../utils/system-logger');
+const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 const {
   transformPaginatedLocationInventorySummaryResult,
   transformPaginatedLocationInventorySummaryDetails,
@@ -16,7 +13,9 @@ const {
   transformPaginatedLocationInventoryRecordResults,
 } = require('../transformers/location-inventory-transformer');
 const { sanitizeSortBy, sanitizeSortOrder } = require('../utils/sort-utils');
-const { normalizePaginationAndSortParams } = require('../utils/query/inventory-query-utils');
+const {
+  normalizePaginationAndSortParams,
+} = require('../utils/query/inventory-query-utils');
 
 /**
  * Service to fetch and transform KPI summary data for location inventory.
@@ -34,7 +33,7 @@ const fetchLocationInventoryKpiSummaryService = async ({ itemType } = {}) => {
       context: 'location-inventory-service/locationInventoryKpiService',
       itemType: itemType ?? 'all',
     });
-    
+
     const rawRows = await getLocationInventoryKpiSummary({ itemType });
     return transformLocationInventoryKpiSummary(rawRows);
   } catch (error) {
@@ -42,7 +41,9 @@ const fetchLocationInventoryKpiSummaryService = async ({ itemType } = {}) => {
       context: 'location-inventory-service/locationInventoryKpiService',
       itemType,
     });
-    throw AppError.serviceError('Failed to fetch location inventory KPI summary');
+    throw AppError.serviceError(
+      'Failed to fetch location inventory KPI summary'
+    );
   }
 };
 
@@ -73,20 +74,30 @@ const fetchLocationInventoryKpiSummaryService = async ({ itemType } = {}) => {
  *   }
  * }>} Transformed summary inventory result
  */
-const fetchPaginatedLocationInventorySummaryService = async ({ page, limit, filters, sortBy, sortOrder }) => {
+const fetchPaginatedLocationInventorySummaryService = async ({
+  page,
+  limit,
+  filters,
+  sortBy,
+  sortOrder,
+}) => {
   try {
     logSystemInfo('Fetching location inventory summary', {
-      context: 'location-inventory-service/fetchPaginatedLocationInventorySummaryService',
+      context:
+        'location-inventory-service/fetchPaginatedLocationInventorySummaryService',
       page,
       limit,
       filters,
       sortBy,
       sortOrder,
     });
-    
-    const sortByClause = sanitizeSortBy(sortBy || 'createdAt','locationInventorySummarySortMap');
+
+    const sortByClause = sanitizeSortBy(
+      sortBy || 'createdAt',
+      'locationInventorySummarySortMap'
+    );
     const sortOrderClause = sanitizeSortOrder(sortOrder);
-    
+
     const rawResult = await getHighLevelLocationInventorySummary({
       page,
       limit,
@@ -94,18 +105,19 @@ const fetchPaginatedLocationInventorySummaryService = async ({ page, limit, filt
       sortBy: sortByClause,
       sortOrder: sortOrderClause,
     });
-    
+
     return transformPaginatedLocationInventorySummaryResult(rawResult);
   } catch (error) {
     logSystemException(error, 'Error fetching location inventory summary', {
-      context: 'location-inventory-service/fetchPaginatedLocationInventorySummaryService',
+      context:
+        'location-inventory-service/fetchPaginatedLocationInventorySummaryService',
       page,
       limit,
       filters,
       sortBy,
       sortOrder,
     });
-    
+
     throw AppError.serviceError('Failed to fetch location inventory summary');
   }
 };
@@ -121,28 +133,44 @@ const fetchPaginatedLocationInventorySummaryService = async ({ page, limit, filt
  * @returns {Promise<Object>} Paginated and transformed location inventory summary response.
  * @throws {AppError} If the underlying query or transformation fails.
  */
-const fetchPaginatedLocationInventorySummaryByItemIdService = async ({ page, limit, itemId }) => {
+const fetchPaginatedLocationInventorySummaryByItemIdService = async ({
+  page,
+  limit,
+  itemId,
+}) => {
   try {
-    const rawResult = await getLocationInventorySummaryDetailsByItemId({ page, limit, itemId });
-    
+    const rawResult = await getLocationInventorySummaryDetailsByItemId({
+      page,
+      limit,
+      itemId,
+    });
+
     logSystemInfo('Successfully fetched location inventory summary', {
-      context: 'location-inventory-service/fetchPaginatedLocationInventorySummaryByItemIdService',
+      context:
+        'location-inventory-service/fetchPaginatedLocationInventorySummaryByItemIdService',
       itemId,
       page,
       limit,
       resultCount: rawResult?.data?.length ?? 0,
     });
-    
+
     return transformPaginatedLocationInventorySummaryDetails(rawResult);
   } catch (error) {
-    logSystemException(error, 'Failed to fetch and transform location inventory summary', {
-      context: 'location-inventory-service/fetchPaginatedLocationInventorySummaryByItemIdService',
-      itemId,
-      page,
-      limit,
-    });
-    
-    throw AppError.serviceError('Unable to retrieve location inventory summary for the given item.');
+    logSystemException(
+      error,
+      'Failed to fetch and transform location inventory summary',
+      {
+        context:
+          'location-inventory-service/fetchPaginatedLocationInventorySummaryByItemIdService',
+        itemId,
+        page,
+        limit,
+      }
+    );
+
+    throw AppError.serviceError(
+      'Unable to retrieve location inventory summary for the given item.'
+    );
   }
 };
 
@@ -170,7 +198,12 @@ const fetchPaginatedLocationInventorySummaryByItemIdService = async ({ page, lim
  *      }
  *    }
  */
-const fetchPaginatedLocationInventoryRecordService = async ({ page, limit, filters, safeSortClause }) => {
+const fetchPaginatedLocationInventoryRecordService = async ({
+  page,
+  limit,
+  filters,
+  safeSortClause,
+}) => {
   try {
     const rawResult = await getPaginatedLocationInventoryRecords({
       page,
@@ -178,16 +211,20 @@ const fetchPaginatedLocationInventoryRecordService = async ({ page, limit, filte
       filters,
       safeSortClause,
     });
-    
+
     return transformPaginatedLocationInventoryRecordResults(rawResult);
   } catch (error) {
-    logSystemException(error, 'Failed in locationInventoryService.getPaginatedLocationInventory', {
-      context: 'location-inventory-service/getPaginatedLocationInventory',
-      page,
-      limit,
-      filters,
-    });
-    
+    logSystemException(
+      error,
+      'Failed in locationInventoryService.getPaginatedLocationInventory',
+      {
+        context: 'location-inventory-service/getPaginatedLocationInventory',
+        page,
+        limit,
+        filters,
+      }
+    );
+
     throw AppError.serviceError('Failed to retrieve location inventory data.');
   }
 };

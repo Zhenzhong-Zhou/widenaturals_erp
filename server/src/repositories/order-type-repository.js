@@ -1,146 +1,154 @@
-const { query, retry, paginateQuery } = require('../database/db');
+const { buildOrderTypeFilter } = require('../utils/sql/build-order-type-filters');
+const { paginateQuery, query } = require('../database/db');
+const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
-const { logError } = require('../utils/logger-helper'); // Import the reusable query function
 
 /**
- * Fetches an order type by ID or Name.
- * @param {Object} params - The parameters (id or name).
- * @param {string} [params.id] - The UUID of the order type.
- * @param {string} [params.name] - The name of the order type.
- * @returns {Promise<Object|null>} - Returns the order type object or null if not found.
+ * Fetches paginated and optionally filtered list of order types from the database.
+ *
+ * Executes a raw SQL query with dynamic WHERE clause, sorting, and pagination support.
+ * Join `status`, `users` (created_by / updated_by) for enriched display data.
+ *
+ * @param {Object} options - Query options.
+ * @param {number} [options.page=1] - Page number (1-based).
+ * @param {number} [options.limit=10] - Number of records per page.
+ * @param {string} [options.sortBy='name'] - Column to sort by (e.g., 'name', 'created_at').
+ * @param {'ASC'|'DESC'} [options.sortOrder='ASC'] - Sorting direction.
+ * @param {Object} [options.filters={}] - Filtering criteria (category, keyword, status, etc.).
+ *
+ * @returns {Promise<{ data: Array, pagination: Object }>} A promise resolving to paginated order types with metadata.
+ *
+ * @throws {AppError} Throws if the query fails or pagination fails.
+ *
+ * @example
+ * const result = await getPaginatedOrderTypes({
+ *   page: 2,
+ *   limit: 20,
+ *   sortBy: 'created_at',
+ *   sortOrder: 'DESC',
+ *   filters: {
+ *     category: 'sales',
+ *     keyword: 'return',
+ *     requiresPayment: true,
+ *   }
+ * });
  */
-const getOrderTypeByIdOrName = async ({ id, name }) => {
-  let sql;
-  let values;
-
-  if (id) {
-    sql = `SELECT * FROM order_types WHERE id = $1 LIMIT 1;`;
-    values = [id];
-  } else if (name) {
-    sql = `SELECT * FROM order_types WHERE name = $1 LIMIT 1;`;
-    values = [name];
-  } else {
-    throw AppError.databaseError(
-      'Either "id" or "name" must be provided to fetch an order type.'
-    );
-  }
-
-  const result = await query(sql, values);
-  return result.rows[0] || null;
-};
-
-/**
- * Fetch all order types from the database using raw SQL.
- * @returns {Promise<Array>} List of order types.
- */
-const getAllOrderTypes = async (
-  page = 1,
-  limit = 10,
-  sortBy = 'name',
-  sortOrder = 'ASC'
-) => {
+const getPaginatedOrderTypes = async ({
+                                  filters = {},
+                                  page = 1,
+                                  limit = 10,
+                                  sortBy = 'name',
+                                  sortOrder = 'ASC',
+                                }) => {
+  const { whereClause, params } = buildOrderTypeFilter(filters);
+  
   const tableName = 'order_types ot';
+  
   const joins = [
     'INNER JOIN status s ON ot.status_id = s.id',
     'LEFT JOIN users u1 ON ot.created_by = u1.id',
     'LEFT JOIN users u2 ON ot.updated_by = u2.id',
   ];
-  const whereClause = '1=1';
-
-  const allowedSortFields = [
-    'name',
-    'category',
-    'status_name',
-    'created_at',
-    'updated_at',
-  ];
-
-  // Validate the sortBy field
-  const validatedSortBy = allowedSortFields.includes(sortBy)
-    ? `ot.${sortBy}`
-    : 'ot.name';
-
+  
   const baseQuery = `
-      SELECT
-        ot.id,
-        ot.name,
-        ot.category,
-        ot.description,
-        s.name AS status_name,
-        ot.status_date,
-        ot.created_at,
-        ot.updated_at,
-        COALESCE(u1.firstname || ' ' || u1.lastname, 'Unknown') AS created_by,
-        COALESCE(u2.firstname || ' ' || u2.lastname, 'Unknown') AS updated_by
-      FROM ${tableName}
-      ${joins.join(' ')}
-    `;
+    SELECT
+      ot.id,
+      ot.name,
+      ot.code,
+      ot.category,
+      ot.requires_payment,
+      ot.description,
+      ot.status_id,
+      s.name AS status_name,
+      ot.status_date,
+      ot.created_at,
+      ot.updated_at,
+      u1.firstname AS created_by_firstname,
+      u1.lastname AS created_by_lastname,
+      u2.firstname AS updated_by_firstname,
+      u2.lastname AS updated_by_lastname
+    FROM ${tableName}
+    ${joins.join('\n')}
+    WHERE ${whereClause}
+  `;
 
   try {
-    return await retry(
-      () =>
-        paginateQuery({
-          tableName,
-          joins,
-          whereClause,
-          queryText: baseQuery,
-          params: [],
-          page,
-          limit,
-          sortBy: validatedSortBy,
-          sortOrder,
-        }),
-      3 // Retry up to 3 times
-    );
+    const result = await paginateQuery({
+      tableName,
+      joins,
+      whereClause,
+      queryText: baseQuery,
+      params,
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+    });
+    
+    logSystemInfo('Fetched order types successfully', {
+      context: 'order-type-repository/getPaginatedOrderTypes',
+      resultCount: result?.data?.length,
+      filters,
+      pagination: { page, limit },
+      sorting: { sortBy, sortOrder },
+    });
+    
+    return result;
   } catch (error) {
-    logError('Error fetching order types:', error);
-    throw AppError.databaseError('Failed to fetch order types');
-  }
-};
-
-const getOrderTypes = async (type = 'lookup') => {
-  try {
-    const columns =
-      type === 'dropdown'
-        ? 'ot.id, ot.name, ot.category'
-        : 'ot.id, ot.name, ot.description, ot.category';
-
-    const queryText = `
-      SELECT ${columns}
-      FROM order_types ot
-      JOIN status s ON ot.status_id = s.id
-      WHERE s.name = 'active';
-    `;
-
-    const { rows } = await query(queryText);
-
-    return rows;
-  } catch (error) {
-    logError('Error fetching order types:', error);
-    throw AppError.databaseError('Failed to fetch order types');
+    logSystemException(error, 'Failed to fetch paginated order types from database', {
+      context: 'order-type-repository/getPaginatedOrderTypes',
+      filters,
+      pagination: { page, limit },
+      sorting: { sortBy, sortOrder },
+    });
+    
+    throw AppError.databaseError('Unable to retrieve order types. Please try again later.');
   }
 };
 
 /**
- * Repository function to check if an order type exists by ID.
- * @param {string} orderTypeId - The UUID of the order type.
- * @param {object} client - Database transaction client (optional for transactions).
- * @returns {Promise<boolean>} - Returns true if the order type exists, otherwise false.
+ * Fetches a list of order types for lookup purposes.
+ *
+ * This function is optimized for small datasets (<100 rows) and is typically used
+ * in dropdowns, filters, and selection UIs. It optionally applies filter conditions.
+ *
+ * @param {Object} [options] - Optional parameters
+ * @param {Object} [options.filters] - Optional filters to narrow results (e.g., statusId, category)
+ * @returns {Promise<Array>} Resolves to an array of order type objects (id, name, category, code, status_id)
+ * @throws {AppError} Throws if a database query fails
  */
-const checkOrderTypeExists = async (orderTypeId, client = null) => {
+const getOrderTypeLookup = async ({ filters = {} } = {}) => {
+  const { whereClause, params } = buildOrderTypeFilter(filters);
+  
+  const queryText = `
+    SELECT
+      id,
+      name,
+      category
+    FROM order_types ot
+    WHERE ${whereClause}
+    ORDER BY name ASC
+  `;
+  
   try {
-    const queryText = `SELECT EXISTS (SELECT 1 FROM order_types WHERE id = $1) AS exists;`;
-    const { rows } = await query(queryText, [orderTypeId], client);
-    return rows[0]?.exists || false;
+    const { rows } = await query(queryText, params);
+    
+    logSystemInfo('Fetched order type lookup', {
+      context: 'orderType-repository/getOrderTypeLookup',
+      filters,
+    });
+    
+    return rows;
   } catch (error) {
-    logError('Error checking order type existence:', error);
-    throw AppError.databaseError('Failed to check order type existence');
+    logSystemException(error, 'Failed to fetch order type lookup', {
+      context: 'orderType-repository/getOrderTypeLookup',
+      filters,
+    });
+    throw AppError.databaseError('Failed to fetch order type lookup');
   }
 };
 
 module.exports = {
-  getOrderTypeByIdOrName,
-  getAllOrderTypes,
-  getOrderTypes,
-  checkOrderTypeExists,
+  getPaginatedOrderTypes,
+  getOrderTypeLookup,
 };

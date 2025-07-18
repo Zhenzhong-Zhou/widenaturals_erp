@@ -31,7 +31,7 @@ const fileUploadErrorHandler = (err, req, res, next) => {
       },
     });
   }
-  
+
   // Custom file type validation error
   else if (err.name === 'FileTypeError') {
     errorResponse = normalizeError(err, {
@@ -42,7 +42,7 @@ const fileUploadErrorHandler = (err, req, res, next) => {
       message: 'The uploaded file type is not supported.',
     });
   }
-  
+
   // Custom file size validation error
   else if (err.name === 'FileSizeError') {
     errorResponse = normalizeError(err, {
@@ -59,7 +59,7 @@ const fileUploadErrorHandler = (err, req, res, next) => {
     logError(errorResponse, req, {
       context: 'file-upload-handler',
     });
-    
+
     // Send structured error response
     return res.status(errorResponse.status).json(errorResponse.toJSON());
   }

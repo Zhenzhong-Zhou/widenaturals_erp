@@ -1,7 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
-import type {
-  LocationInventoryKpiSummaryState,
-} from '@features/locationInventory/state/locationInventoryTypes';
+import type { LocationInventoryKpiSummaryState } from '@features/locationInventory/state/locationInventoryTypes';
 import { fetchLocationInventoryKpiSummaryThunk } from '@features/locationInventory/state/locationInventoryThunks';
 
 const initialState: LocationInventoryKpiSummaryState = {
@@ -26,14 +24,20 @@ const locationInventoryKpiSummarySlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchLocationInventoryKpiSummaryThunk.fulfilled, (state, action) => {
-        state.loading = false;
-        state.data = action.payload.data;
-      })
-      .addCase(fetchLocationInventoryKpiSummaryThunk.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
-      });
+      .addCase(
+        fetchLocationInventoryKpiSummaryThunk.fulfilled,
+        (state, action) => {
+          state.loading = false;
+          state.data = action.payload.data;
+        }
+      )
+      .addCase(
+        fetchLocationInventoryKpiSummaryThunk.rejected,
+        (state, action) => {
+          state.loading = false;
+          state.error = action.payload as string;
+        }
+      );
   },
 });
 

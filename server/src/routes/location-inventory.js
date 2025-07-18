@@ -6,7 +6,6 @@ const {
   getLocationInventoryRecordController,
 } = require('../controllers/location-inventory-controller');
 const authorize = require('../middlewares/authorize');
-const { sanitizeInput } = require('../middlewares/sanitize');
 
 const router = express.Router();
 
@@ -19,14 +18,15 @@ const router = express.Router();
  * @queryParam {string} [itemType] - Optional filter: 'product' or 'packaging_material'
  * @returns {200} JSON array containing grouped KPI metrics including total row
  */
-router.get('/kpi-summary',
+router.get(
+  '/kpi-summary',
   authorize([
     'view_inventory',
     'view_location_inventory',
-    'view_inventory_summary'
+    'view_inventory_summary',
   ]),
-  sanitizeInput,
-  getLocationInventoryKpiSummaryController);
+  getLocationInventoryKpiSummaryController
+);
 
 /**
  * @route GET /location-inventory/summary
@@ -42,14 +42,15 @@ router.get('/kpi-summary',
  * @returns {object} 200 - Paginated inventory summary
  * @returns {object} 403 - Forbidden if missing required permissions
  */
-router.get('/summary',
+router.get(
+  '/summary',
   authorize([
     'view_inventory',
     'view_location_inventory',
-    'view_inventory_summary'
+    'view_inventory_summary',
   ]),
-  sanitizeInput,
-  getLocationInventorySummaryController);
+  getLocationInventorySummaryController
+);
 
 /**
  * @route GET /location-inventory/summary/:itemId/details
@@ -64,15 +65,16 @@ router.get('/summary',
  * @returns {object} 500 - Internal server error
  * @permission view_location_inventory - Required to access location inventory summary
  */
-router.get('/summary/:itemId/details',
+router.get(
+  '/summary/:itemId/details',
   authorize([
     'view_inventory',
     'view_location_inventory',
     'view_product_inventory',
-    'view_material_inventory'
+    'view_material_inventory',
   ]),
-  sanitizeInput,
-  getLocationInventorySummaryDetailsController);
+  getLocationInventorySummaryDetailsController
+);
 
 /**
  * @route GET /location-inventory
@@ -102,11 +104,10 @@ router.get('/summary/:itemId/details',
  *
  * @returns {200} 200 - A paginated list of inventory records
  */
-router.get('/',
-  authorize([
-    'view_inventory', 'view_location_inventory'
-  ]),
-  sanitizeInput,
-  getLocationInventoryRecordController);
+router.get(
+  '/',
+  authorize(['view_inventory', 'view_location_inventory']),
+  getLocationInventoryRecordController
+);
 
 module.exports = router;

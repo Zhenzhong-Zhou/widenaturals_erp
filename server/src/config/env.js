@@ -71,7 +71,7 @@ const loadEnv = () => {
  */
 const validateEnv = (groups) => {
   const missingVars = [];
-  
+
   for (const vars of Object.values(groups)) {
     vars.forEach(({ envVar, secret, required, defaultValue }) => {
       const value = secret ? secret() : process.env[envVar] || defaultValue;
@@ -90,16 +90,16 @@ const validateEnv = (groups) => {
       }
     });
   }
-  
+
   if (missingVars.length > 0) {
     const errorMsg = `Missing required environment variables or secrets: ${missingVars.join(', ')}`;
-    
+
     logSystemError('Missing required environment variables or secrets', {
       missingVars,
       context: 'env-loader',
       severity: 'critical',
     });
-    
+
     throw AppError.validationError(errorMsg);
   }
 };

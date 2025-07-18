@@ -1,41 +1,32 @@
+const { query, getUniqueScalarValue } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logError } = require('../utils/logger-helper');
-const { query } = require('../database/db');
-
-const getActiveTaxRateById = async (taxRateId, client) => {
-  if (!taxRateId) return null; // Ensure `null` is handled properly
-
-  const taxRateQuery = `
-    SELECT rate
-    FROM tax_rates
-    WHERE id = $1
-      AND is_active = true
-      AND NOW() BETWEEN valid_from AND COALESCE(valid_to, NOW())
-    LIMIT 1;
-  `;
-
-  try {
-    const { rows } = await query(taxRateQuery, [taxRateId], client);
-    return rows.length ? rows[0].rate : null;
-  } catch (error) {
-    throw AppError.databaseError(`Failed to fetch tax rate: ${error.message}`);
-  }
-};
 
 /**
- * Repository function to check if a tax rate exists by ID.
- * @param {string} taxRateId - The UUID of the tax rate.
- * @param {object} client - Database transaction client (optional for transactions).
- * @returns {Promise<boolean>} - Returns true if the tax rate exists, otherwise false.
+ * Retrieves the tax rate value by its ID.
+ *
+ * @param {UUID} taxRateId - The ID of the tax rate to fetch.
+ * @param {object} [client=null] - Optional database client/transaction.
+ * @returns {Promise<number|null>} - The tax rate (e.g., 0.05) or null if not found.
+ * @throws {AppError} - If the database query fails.
  */
-const checkTaxRateExists = async (taxRateId, client = null) => {
+const getTaxRateById = async (taxRateId, client = null) => {
   try {
-    const queryText = `SELECT EXISTS (SELECT 1 FROM tax_rates WHERE id = $1) AS exists;`;
-    const { rows } = await query(queryText, [taxRateId], client);
-    return rows[0]?.exists || false;
+    return await getUniqueScalarValue(
+      {
+        table: 'tax_rates',
+        where: { id: taxRateId },
+        select: 'rate',
+      },
+      client,
+      {
+        context: 'tax-rate-repository/getTaxRateById',
+        taxRateId,
+      }
+    );
   } catch (error) {
-    logError('Error checking tax rate existence:', error);
-    throw AppError.databaseError('Failed to check tax rate existence');
+    // getUniqueScalarValue already throws with proper context and logs
+    throw error;
   }
 };
 
@@ -75,7 +66,6 @@ const getTaxRatesForDropdown = async (region = 'Canada', province = null) => {
 };
 
 module.exports = {
-  getActiveTaxRateById,
-  checkTaxRateExists,
+  getTaxRateById,
   getTaxRatesForDropdown,
 };

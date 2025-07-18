@@ -5,7 +5,8 @@ import type { LocationInventoryKpiSummaryItem } from '@features/locationInventor
 /**
  * Root selector to access the KPI summary state slice.
  */
-const selectKpiSummaryState = (state: RootState) => state.locationInventoryKpiSummary;
+const selectKpiSummaryState = (state: RootState) =>
+  state.locationInventoryKpiSummary;
 
 /**
  * Selector to retrieve all KPI summary rows.
@@ -36,7 +37,10 @@ export const selectKpiSummaryError = createSelector(
  */
 export const selectKpiSummaryTotalRow = createSelector(
   [selectKpiSummaryData],
-  (data) => data.find((item: LocationInventoryKpiSummaryItem) => item.batchType === 'total')
+  (data) =>
+    data.find(
+      (item: LocationInventoryKpiSummaryItem) => item.batchType === 'total'
+    )
 );
 
 /**
@@ -44,7 +48,10 @@ export const selectKpiSummaryTotalRow = createSelector(
  */
 export const selectKpiSummaryProductRow = createSelector(
   [selectKpiSummaryData],
-  (data) => data.find((item: LocationInventoryKpiSummaryItem) => item.batchType === 'product')
+  (data) =>
+    data.find(
+      (item: LocationInventoryKpiSummaryItem) => item.batchType === 'product'
+    )
 );
 
 /**
@@ -52,5 +59,9 @@ export const selectKpiSummaryProductRow = createSelector(
  */
 export const selectKpiSummaryMaterialRow = createSelector(
   [selectKpiSummaryData],
-  (data) => data.find((item: LocationInventoryKpiSummaryItem) => item.batchType === 'packaging_material')
+  (data) =>
+    data.find(
+      (item: LocationInventoryKpiSummaryItem) =>
+        item.batchType === 'packaging_material'
+    )
 );

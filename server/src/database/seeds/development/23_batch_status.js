@@ -6,11 +6,17 @@ const { fetchDynamicValue } = require('../03_utils');
  */
 exports.seed = async function (knex) {
   console.log('Seeding batch_status...');
-  
-  const systemUserId = await fetchDynamicValue(knex, 'users', 'email', 'system@internal.local', 'id');
-  
+
+  const systemUserId = await fetchDynamicValue(
+    knex,
+    'users',
+    'email',
+    'system@internal.local',
+    'id'
+  );
+
   const now = knex.fn.now();
-  
+
   const statusList = [
     {
       name: 'active',
@@ -38,7 +44,7 @@ exports.seed = async function (knex) {
       is_active: false,
     },
   ];
-  
+
   const records = statusList.map((status) => ({
     id: knex.raw('uuid_generate_v4()'),
     name: status.name,
@@ -49,11 +55,8 @@ exports.seed = async function (knex) {
     created_by: systemUserId,
     updated_by: null,
   }));
-  
-  await knex('batch_status')
-    .insert(records)
-    .onConflict('name')
-    .ignore();
-  
+
+  await knex('batch_status').insert(records).onConflict('name').ignore();
+
   console.log(`Seeded ${records.length} batch statuses.`);
 };

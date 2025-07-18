@@ -1,10 +1,21 @@
-import { useMemo, type FC, type UIEvent } from 'react';
-import Autocomplete, { type AutocompleteProps } from '@mui/material/Autocomplete';
+import {
+  useMemo,
+  type FC,
+  type SyntheticEvent,
+  type UIEvent,
+  type JSX,
+  isValidElement,
+} from 'react';
+import Autocomplete, {
+  type AutocompleteProps,
+} from '@mui/material/Autocomplete';
 import Box from '@mui/material/Box';
 import MenuItem from '@mui/material/MenuItem';
 import Divider from '@mui/material/Divider';
 import Stack from '@mui/material/Stack';
+import Tooltip from '@mui/material/Tooltip';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import type { IconProp } from '@fortawesome/fontawesome-svg-core';
 import { faPlus, faSyncAlt } from '@fortawesome/free-solid-svg-icons';
 import CustomTypography from '@components/common/CustomTypography';
 import BaseInput from '@components/common/BaseInput';
@@ -12,11 +23,13 @@ import Loading from '@components/common/Loading';
 import ErrorMessage from '@components/common/ErrorMessage';
 import { useThemeContext } from '@context/ThemeContext';
 
-interface OptionType {
+export interface OptionType {
   value: string | null;
   label: string;
-  icon?: typeof faSyncAlt;
   type?: string; // e.g., 'product' | 'material' | etc.
+  icon?: IconProp | JSX.Element;
+  iconColor?: string;
+  tooltip?: string;
   [key: string]: any;
 }
 
@@ -35,11 +48,15 @@ interface DropdownProps {
   hasMore?: boolean;
   pagination?: {
     limit: number;
-    offset: number;onFetchMore?: () => void;
+    offset: number;
+    onFetchMore?: () => void;
   };
   onFetchMore?: (params: { limit: number; offset: number }) => void;
   placeholder?: string;
   helperText?: string;
+  inputValue?: string;
+  onInputChange?: (event: SyntheticEvent, value: string) => void;
+  noOptionsMessage?: string;
 }
 
 const SPECIAL_OPTIONS: OptionType[] = [
@@ -48,32 +65,46 @@ const SPECIAL_OPTIONS: OptionType[] = [
 ];
 
 const Dropdown: FC<DropdownProps> = ({
-                                       label,
-                                       options = [],
-                                       value,
-                                       onChange,
-                                       searchable = false,
-                                       disabled = false,
-                                       sx,
-                                       onRefresh,
-                                       onAddNew = null,
-                                       loading = false,
-                                       error,
-                                       hasMore = false,
-                                       pagination,
-                                       onFetchMore,
-                                       placeholder,
-                                       helperText,
-                                     }) => {
+  label,
+  options = [],
+  value,
+  onChange,
+  searchable = false,
+  disabled = false,
+  sx,
+  onRefresh,
+  onAddNew = null,
+  loading = false,
+  error,
+  hasMore = false,
+  pagination,
+  onFetchMore,
+  placeholder,
+  helperText,
+  inputValue,
+  onInputChange,
+  noOptionsMessage,
+}) => {
   const { theme } = useThemeContext();
 
   // Modified options array with special items at the top
   const modifiedOptions = useMemo(() => {
-    const baseOptions = [...SPECIAL_OPTIONS, ...options];
+    const baseOptions = [...SPECIAL_OPTIONS];
+    
+    if (!loading && !error && options.length === 0) {
+      baseOptions.push({
+        value: '__no_options__',
+        label: noOptionsMessage ?? 'No options available',
+        type: 'meta',
+      });
+    }
+    
+    baseOptions.push(...options);
+    
     return hasMore
       ? [...baseOptions, { value: '__loading__', label: 'Loading more...', type: 'meta' }]
       : baseOptions;
-  }, [options, hasMore]);
+  }, [options, hasMore, loading, error, noOptionsMessage]);
   
   return (
     <Box sx={{ minWidth: '200px', width: '100%', ...sx }}>
@@ -81,6 +112,8 @@ const Dropdown: FC<DropdownProps> = ({
         options={modifiedOptions}
         getOptionLabel={(option) => option.label || ''}
         value={modifiedOptions.find((option) => option.value === value) || null}
+        inputValue={inputValue}
+        onInputChange={onInputChange}
         onChange={(_, newValue) => {
           if (newValue?.value === 'add' && onAddNew) onAddNew();
           else if (newValue?.value === 'refresh' && onRefresh) onRefresh();
@@ -124,8 +157,9 @@ const Dropdown: FC<DropdownProps> = ({
               onScroll: (event: UIEvent<HTMLUListElement>) => {
                 const target = event.currentTarget;
                 const reachedBottom =
-                  target.scrollTop + target.clientHeight >= target.scrollHeight - 10;
-                
+                  target.scrollTop + target.clientHeight >=
+                  target.scrollHeight - 10;
+
                 if (reachedBottom && hasMore && pagination) {
                   const { limit, offset } = pagination;
                   onFetchMore?.({ limit, offset: offset + limit });
@@ -137,7 +171,12 @@ const Dropdown: FC<DropdownProps> = ({
                 paddingBottom: hasMore ? 40 : 0,
               },
             },
-          } as unknown as AutocompleteProps<OptionType, false, boolean, false>['slotProps']
+          } as unknown as AutocompleteProps<
+            OptionType,
+            false,
+            boolean,
+            false
+          >['slotProps']
         }
         loading={loading}
         disableClearable={!searchable}
@@ -158,7 +197,7 @@ const Dropdown: FC<DropdownProps> = ({
                 <Loading size={16} variant="dotted" />
               </Box>
             )}
-            
+
             {/* Divider before the regular options */}
             {option.value === 'add' && (
               <Divider
@@ -166,7 +205,7 @@ const Dropdown: FC<DropdownProps> = ({
                 sx={{ marginY: 0.5, borderColor: theme.palette.divider }}
               />
             )}
-            
+
             {option.value === 'refresh' && (
               <Stack
                 key="top-options"
@@ -232,35 +271,45 @@ const Dropdown: FC<DropdownProps> = ({
                 key={`option-${option.value}`}
                 data-value={option.value}
                 sx={{
-                  backgroundColor:
-                    option.value === 'add' || option.value === 'refresh'
-                      ? theme.palette.backgroundCustom.customDark
-                      : 'inherit',
-                  color:
-                    option.value === 'add'
-                      ? theme.palette.actionCustom.addNew
-                      : option.value === 'refresh'
-                        ? theme.palette.actionCustom.refresh
-                        : 'inherit',
-                  '&:hover': {
-                    backgroundColor:
-                      option.value === 'add' || option.value === 'refresh'
-                        ? theme.palette.backgroundCustom.customHover
-                        : 'inherit',
-                    textDecoration:
-                      option.value === 'add' || option.value === 'refresh'
-                        ? 'underline'
-                        : 'none',
-                  },
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
                 }}
               >
+                {/* Support both FontAwesomeIcon and JSX */}
                 {option.icon && (
-                  <FontAwesomeIcon
-                    icon={option.icon}
-                    style={{ marginRight: 8 }}
-                  />
+                  <Box
+                    component="span"
+                    sx={{ display: 'flex', alignItems: 'center', marginRight: 1 }}
+                  >
+                    {option.tooltip ? (
+                      <Tooltip title={option.tooltip}>
+                        <span>
+                          {isValidElement(option.icon) ? (
+                            option.icon
+                          ) : (
+                            <FontAwesomeIcon
+                              icon={option.icon as IconProp}
+                              color={option.iconColor ?? 'inherit'}
+                              style={{ marginRight: 8 }}
+                            />
+                          )}
+                        </span>
+                      </Tooltip>
+                    ) : (
+                      isValidElement(option.icon) ? (
+                        option.icon
+                      ) : (
+                        <FontAwesomeIcon
+                          icon={option.icon as IconProp}
+                          color={option.iconColor ?? 'inherit'}
+                          style={{ marginRight: 8 }}
+                        />
+                      )
+                    )}
+                  </Box>
                 )}
-                {option.label}
+                <span>{option.label}</span>
               </MenuItem>
             )}
             {error && (

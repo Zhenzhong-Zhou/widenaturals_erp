@@ -18,11 +18,15 @@ const { logError } = require('../../utils/logger-helper');
 const dbErrorHandler = (err, req, res, next) => {
   // Skip if the error doesn't appear to be DB-related
   if (!err.code) return next(err);
-  
-  const { table = 'unknown', constraint = 'unknown', code = 'UNKNOWN_DB_ERROR' } = err;
-  
+
+  const {
+    table = 'unknown',
+    constraint = 'unknown',
+    code = 'UNKNOWN_DB_ERROR',
+  } = err;
+
   let errorResponse;
-  
+
   if (err.code === '23505') {
     // Unique constraint violation
     errorResponse = normalizeError(err, {
@@ -42,15 +46,15 @@ const dbErrorHandler = (err, req, res, next) => {
       details: { table, constraint, pgCode: code },
     });
   }
-  
+
   if (errorResponse) {
     logError(errorResponse, req, {
       context: 'db-error-handler',
     });
-    
+
     return res.status(errorResponse.status).json(errorResponse.toJSON());
   }
-  
+
   // Unknown DB error — pass through
   next(err);
 };

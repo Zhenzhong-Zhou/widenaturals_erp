@@ -13,23 +13,23 @@ interface ErrorMessageProps extends BoxProps {
 }
 
 const ErrorMessage: FC<ErrorMessageProps> = ({
-                                               message,
-                                               severity = 'error',
-                                               showNavigation = false,
-                                               onGoBack,
-                                               onHome,
-                                               sx,
-                                               ...props
-                                             }) => {
+  message,
+  severity = 'error',
+  showNavigation = false,
+  onGoBack,
+  onHome,
+  sx,
+  ...props
+}) => {
   const { theme } = useThemeContext();
   const navigate = useNavigate();
-  
+
   const colorMap = {
     error: theme?.palette?.error?.main || '#d32f2f',
     warning: theme?.palette?.warning?.main || '#ff9800',
     info: theme?.palette?.info?.main || '#0288d1',
   };
-  
+
   return (
     <Box
       sx={{
@@ -47,7 +47,7 @@ const ErrorMessage: FC<ErrorMessageProps> = ({
       {...props}
     >
       {message}
-      
+
       {showNavigation && (
         <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center', gap: 2 }}>
           <CustomButton
@@ -57,7 +57,7 @@ const ErrorMessage: FC<ErrorMessageProps> = ({
           >
             Go Back
           </CustomButton>
-          
+
           <CustomButton
             variant="contained"
             color="primary"
