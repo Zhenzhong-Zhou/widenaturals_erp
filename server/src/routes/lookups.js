@@ -48,7 +48,7 @@ const router = express.Router();
  */
 router.get(
   '/batch-registry',
-  authorize(['view_batch_registry_dropdown']),
+  authorize(['view_batch_registry_lookup']),
   createQueryNormalizationMiddleware(
     '',
     [],
@@ -174,7 +174,7 @@ router.get(
  */
 router.get(
   '/customers',
-  authorize(['view_customer']),
+  authorize(['view_customer_lookup']),
   createQueryNormalizationMiddleware(
     '',                         // moduleKey (optional for sorting)
     [],                           // arrayKeys (e.g., ['statusId'] if needed)
@@ -235,7 +235,7 @@ router.get(
  */
 router.get(
   '/address/by-customer',
-  authorize(['view_customer']),
+  authorize(['view_customer_address_lookup']),
   createQueryNormalizationMiddleware(
     '',
     ['customerId'],
@@ -275,7 +275,7 @@ router.get(
  */
 router.get(
   '/order-types',
-  authorize(['create_orders']),
+  authorize(['view_order_type_lookup']),
   createQueryNormalizationMiddleware(
     '',
     [],
