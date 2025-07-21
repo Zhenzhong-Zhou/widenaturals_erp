@@ -9,7 +9,7 @@ import type {
   LotAdjustmentLookupQueryParams,
   LotAdjustmentTypeLookupResponse,
   OrderTypeLookupQueryParams,
-  OrderTypeLookupResponse,
+  OrderTypeLookupResponse, PaymentMethodLookupQueryParams, PaymentMethodLookupResponse,
 } from '@features/lookup/state/lookupTypes';
 import { lookupService } from '@services/lookupService';
 
@@ -178,3 +178,33 @@ export const fetchOrderTypeLookupThunk = createAsyncThunk<
     return thunkAPI.rejectWithValue(error?.message ?? 'Unknown error');
   }
 });
+
+/**
+ * Thunk to fetch payment method lookup data for dropdowns or autocomplete components.
+ *
+ * This thunk dispatches loading, success, and error states automatically,
+ * and is designed for use in UI components that support paginated, keyword-based lookup.
+ *
+ * @function
+ * @param {PaymentMethodLookupQueryParams} [params] - Optional query parameters (e.g., `keyword`, `limit`, `offset`) to filter the results.
+ * @returns {Promise<PaymentMethodLookupResponse>} A promise resolving to a paginated list of payment method options.
+ *
+ * @example
+ * dispatch(fetchPaymentMethodLookup({ keyword: 'credit', limit: 10 }));
+ *
+ * @see PaymentMethodLookupQueryParams
+ * @see PaymentMethodLookupResponse
+ */
+export const fetchPaymentMethodLookup = createAsyncThunk<
+  PaymentMethodLookupResponse,                 // Return type on success
+  PaymentMethodLookupQueryParams | undefined  // Arg type
+>(
+  'lookup/fetchPaymentMethodLookup',
+  async (params, thunkAPI) => {
+    try {
+      return await lookupService.fetchPaymentMethodLookup(params);
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error);
+    }
+  }
+);

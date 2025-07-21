@@ -192,7 +192,7 @@ export interface BatchLookupOption extends LookupOption {
 /**
  * Query parameters for fetching customer lookup results.
  */
-export interface CustomerLookupQuery extends LookupQuery {}
+export type CustomerLookupQuery = LookupQuery;
 
 export interface CustomerLookupItem extends LookupItem {
   hasAddress: boolean;
@@ -274,3 +274,30 @@ export interface OrderTypeLookupItem {
 export type OrderTypeLookupResponse = ApiSuccessResponse<OrderTypeLookupItem[]>;
 
 export type OrderTypeLookupState = AsyncState<OrderTypeLookupItem[]>;
+
+/**
+ * Query parameters for fetching payment method lookup results.
+ * This is a direct alias of LookupQuery and cannot be extended further.
+ */
+export type PaymentMethodLookupQueryParams = LookupQuery;
+
+/**
+ * A single payment method item returned from the API lookup.
+ *
+ * Based on the standard lookup item structure of `{ id, label }`.
+ */
+export type PaymentMethodLookupItem = LookupItem;
+
+/**
+ * Response structure for the payment method lookup endpoint.
+ *
+ * Wraps a paginated array of `PaymentMethodLookupItem` and includes
+ * lookup-specific pagination metadata.
+ */
+export type PaymentMethodLookupResponse = LookupSuccessResponse<PaymentMethodLookupItem>;
+
+/**
+ * Redux state for payment method lookup results.
+ * Includes async and pagination metadata for infinite-scroll or paginated dropdowns.
+ */
+export type PaymentMethodLookupState = PaginatedLookupState<LookupOption>;

@@ -214,11 +214,11 @@ const transformOrderTypeLookupResult = (rows) => {
  * @param {Object} row - Raw DB row from payment_methods query
  * @param {string} row.id - UUID of the payment method
  * @param {string} row.name - Display name of the payment method
- * @returns {{ label: string, value: string }} - Transformed dropdown option
+ * @returns {{ id: string, label: string }} - Transformed dropdown option
  */
 const transformPaymentMethodLookup = (row) => {
   const result = {
-    value: row.id,
+    id: row.id,
     label: row.name,
   };
 

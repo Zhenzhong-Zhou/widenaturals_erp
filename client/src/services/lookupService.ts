@@ -10,7 +10,7 @@ import type {
   LotAdjustmentLookupQueryParams,
   LotAdjustmentTypeLookupResponse,
   OrderTypeLookupQueryParams,
-  OrderTypeLookupResponse,
+  OrderTypeLookupResponse, PaymentMethodLookupQueryParams, PaymentMethodLookupResponse,
 } from '@features/lookup/state/lookupTypes';
 import { buildQueryString } from '@utils/buildQueryString';
 
@@ -175,6 +175,29 @@ const fetchOrderTypeLookup = async (
   }
 };
 
+/**
+ * Fetches a list of payment methods from the server for use in lookup UIs.
+ *
+ * Supports optional keyword-based filtering via query parameters.
+ *
+ * @param params - Optional query parameters to filter the payment methods (e.g., { keyword: 'credit' }).
+ * @returns A promise resolving to a {@link PaymentMethodLookupResponse}, containing metadata and a list of matching payment methods.
+ * @throws Error if the network request fails or the response is invalid.
+ */
+const fetchPaymentMethodLookup = async (
+  params?: PaymentMethodLookupQueryParams
+): Promise<PaymentMethodLookupResponse> => {
+  const queryString = buildQueryString(params);
+  const url = `${API_ENDPOINTS.LOOKUPS.PAYMENT_METHODS}${queryString}`;
+  
+  try {
+    return await getRequest<PaymentMethodLookupResponse>(url);
+  } catch (error) {
+    console.error('Failed to fetch payment method lookup:', error);
+    throw error;
+  }
+};
+
 export const lookupService = {
   fetchBatchRegistryLookup,
   fetchWarehouseLookup,
@@ -182,4 +205,5 @@ export const lookupService = {
   fetchCustomerLookup,
   fetchAddressesByCustomerId,
   fetchOrderTypeLookup,
+  fetchPaymentMethodLookup,
 };
