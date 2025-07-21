@@ -222,11 +222,18 @@ export interface LookupSuccessResponse<T> extends PaginationLookupInfo {
 }
 
 /**
- * Redux-managed state for lookup data with load-more or infinite scroll.
+ * Redux-managed state for lookup data with load-more or infinite scroll behavior.
  *
- * @template T - Type of each lookup item.
+ * This type includes:
+ * – Async state flags: `loading` and `error`
+ * – Pagination metadata: `limit`, `offset`, and `hasMore`
+ * – An array of items returned from the lookup; each item has type `T`
+ *
+ * Commonly used in components such as dropdowns, autocomplete inputs, or paginated lists.
+ *
+ * @template T - The type of each item in the lookup result set.
  */
-export interface PaginatedLookupState<T> extends AsyncState<T[]>, PaginationLookupInfo {}
+export type PaginatedLookupState<T> = AsyncState<T[]> & PaginationLookupInfo;
 
 /**
  * Represents the state of a data-modifying API operation (e.g., POST, PUT, DELETE).
