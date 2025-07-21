@@ -4,7 +4,7 @@ import type { RootState } from '@store/store';
 /**
  * Base selector for the payment method lookup slice.
  */
-const selectPaymentMethodLookupState = (state: RootState) => state.paymentMethod;
+const selectPaymentMethodLookupState = (state: RootState) => state.paymentMethodLookup;
 
 /**
  * Selector for the list of lookup options to display in dropdowns.
