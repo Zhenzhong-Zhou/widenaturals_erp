@@ -45,7 +45,7 @@ const PaginatedDropdown = <TParams,>({
       error={error}
       hasMore={paginationMeta?.hasMore}
       pagination={
-        paginationMeta
+        paginationMeta?.limit !== undefined && paginationMeta?.offset !== undefined
           ? { limit: paginationMeta.limit, offset: paginationMeta.offset }
           : undefined
       }

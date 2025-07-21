@@ -16,6 +16,38 @@ export interface Pagination {
 }
 
 /**
+ * Query parameters for paginated lookup-style API requests.
+ *
+ * Intended for lightweight, infinite-scroll or autocomplete use cases
+ * where total record count is not required.
+ */
+export interface LookupPagination {
+  /**
+   * Maximum number of records to return.
+   * Used to limit the page size.
+   */
+  limit?: number;
+  
+  /**
+   * Number of records to skip before starting to return results.
+   * Used for pagination offset (typically: (page - 1) * limit).
+   */
+  offset?: number;
+}
+
+/**
+ * Pagination metadata returned with lookup-style API responses.
+ *
+ * Can also be used in frontend state to support infinite scroll or load-more patterns.
+ */
+export interface PaginationLookupInfo extends LookupPagination {
+  /**
+   * Indicates whether more items are available for fetching.
+   */
+  hasMore: boolean;
+}
+
+/**
  * Generic interface for a paginated API response.
  *
  * @template T - The type of the data items returned in the response.
@@ -172,36 +204,21 @@ export interface SortConfig {
  *
  * @template T - The type of each item in the `items` array.
  */
-export interface LookupSuccessResponse<T> {
+export interface LookupSuccessResponse<T> extends PaginationLookupInfo {
   /**
    * Indicates the API call was successful.
    */
   success: true;
-
+  
   /**
    * A human-readable message describing the result.
    */
   message: string;
-
+  
   /**
    * The array of lookup-compatible result items.
    */
   items: T[];
-
-  /**
-   * Pagination limit (number of items per request).
-   */
-  limit: number;
-
-  /**
-   * Pagination offset (starting index of returned items).
-   */
-  offset: number;
-
-  /**
-   * Flag indicating if more items are available for loading.
-   */
-  hasMore: boolean;
 }
 
 /**
@@ -209,16 +226,7 @@ export interface LookupSuccessResponse<T> {
  *
  * @template T - Type of each lookup item.
  */
-export interface PaginatedLookupState<T> extends AsyncState<T[]> {
-  /** Whether more items are available to load. */
-  hasMore: boolean;
-
-  /** Number of items per request. */
-  limit: number;
-
-  /** Current offset used for pagination. */
-  offset: number;
-}
+export interface PaginatedLookupState<T> extends AsyncState<T[]>, PaginationLookupInfo {}
 
 /**
  * Represents the state of a data-modifying API operation (e.g., POST, PUT, DELETE).

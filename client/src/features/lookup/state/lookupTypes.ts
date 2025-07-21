@@ -1,8 +1,8 @@
 import type {
   ApiSuccessResponse,
-  AsyncState,
+  AsyncState, LookupPagination,
   LookupSuccessResponse,
-  PaginatedLookupState,
+  PaginatedLookupState, PaginationLookupInfo,
 } from '@shared-types/api';
 
 /**
@@ -28,51 +28,47 @@ export interface LookupItem {
 }
 
 /**
+ * Common structure for lookup-style query inputs (e.g., dropdowns, autocomplete).
+ */
+export interface LookupQuery extends LookupPagination {
+  /**
+   * Optional keyword to filter or search items.
+   */
+  keyword?: string;
+}
+
+/**
  * Metadata used to control and manage paginated lookup queries.
  *
- * This interface is commonly used in components that support infinite scroll
- * or paginated dropdowns, where client-side pagination behavior is required
- * to load more options (e.g., customers, batches, etc.).
+ * Commonly used in components supporting infinite scroll or paginated dropdowns,
+ * where client-side pagination behavior is required to load more options.
  */
-export interface LookupPaginationMeta {
-  /** The maximum number of results to retrieve per request */
-  limit: number;
-
-  /** The number of records to skip (i.e., pagination offset) */
-  offset: number;
-
-  /** Indicates if more results are available beyond the current set */
-  hasMore?: boolean;
-
-  /** Optional handler to fetch the next set of results when needed */
+export interface LookupPaginationMeta extends PaginationLookupInfo {
+  /**
+   * Optional handler to fetch the next set of results when needed.
+   * Used in infinite scroll, load-more buttons, etc.
+   */
   onFetchMore?: () => void;
 }
 
-export interface GetBatchRegistryLookupParams {
+/**
+ * Query parameters for fetching batch registry lookup data.
+ */
+export interface GetBatchRegistryLookupParams extends LookupPagination {
   /**
-   * Filter by batch type (e.g., 'product', 'packaging_material')
+   * Filter by batch type (e.g., 'product', 'packaging_material').
    */
   batchType?: 'product' | 'packaging_material' | string;
-
+  
   /**
-   * Optional warehouse ID to exclude batches already present in this warehouse
+   * Optional warehouse ID to exclude batches already present in this warehouse.
    */
   warehouseId?: string;
-
+  
   /**
-   * Optional location ID to exclude batches already present in this location
+   * Optional location ID to exclude batches already present in this location.
    */
   locationId?: string;
-
-  /**
-   * Number of items to retrieve (pagination limit)
-   */
-  limit?: number;
-
-  /**
-   * Offset for pagination
-   */
-  offset?: number;
 }
 
 /**
@@ -128,11 +124,18 @@ export type GetBatchRegistryLookupResponse =
 export type BatchRegistryLookupState =
   PaginatedLookupState<BatchRegistryLookupItem>;
 
-export interface WarehouseLookupItem {
-  value: string;
-  label: string;
+/**
+ * Lookup option for selecting a warehouse, with additional metadata.
+ */
+export interface WarehouseLookupItem extends LookupOption {
+  /**
+   * Additional metadata associated with the selected warehouse.
+   */
   metadata: {
+    /** ID of the location the warehouse belongs to */
     locationId: string;
+    
+    /** Type ID of the location (e.g., warehouse, retail, fulfillment) */
     locationTypeId: string;
   };
 }
@@ -152,19 +155,7 @@ export type WarehouseOption = LookupOption;
 /**
  * Represents a single option in the lot adjustment lookup.
  */
-export interface LotAdjustmentTypeLookupItem {
-  /**
-   * The unique identifier of the lot adjustment type.
-   * Used as the `value` in lookup menus.
-   */
-  value: string;
-
-  /**
-   * The display label of the lot adjustment type.
-   * Typically shown as the visible text in the lookup option.
-   */
-  label: string;
-
+export interface LotAdjustmentTypeLookupItem extends LookupOption {
   /**
    * The unique identifier of the related inventory action type.
    * Used for internal mapping or further logic.
@@ -188,17 +179,20 @@ export type LotAdjustmentTypeLookupState = AsyncState<
  */
 export type AdjustmentTypeOption = LookupOption;
 
-export type BatchLookupOption = {
-  value: string;
-  label: string;
+/**
+ * Represents a batch option in a lookup menu, including its type (e.g., product, packaging).
+ */
+export interface BatchLookupOption extends LookupOption {
+  /**
+   * The type of the batch (e.g., 'product', 'packaging_material').
+   */
   type: string;
-};
-
-export interface CustomerLookupQuery {
-  keyword?: string;
-  limit?: number;
-  offset?: number;
 }
+
+/**
+ * Query parameters for fetching customer lookup results.
+ */
+export interface CustomerLookupQuery extends LookupQuery {}
 
 export interface CustomerLookupItem extends LookupItem {
   hasAddress: boolean;
