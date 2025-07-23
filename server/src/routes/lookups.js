@@ -7,6 +7,9 @@ const {
   getCustomerAddressLookupController,
   getOrderTypeLookupController,
   getPaymentMethodLookupController,
+  getDiscountLookupController,
+  getTaxRateLookupController,
+  getDeliveryMethodLookupController,
 } = require('../controllers/lookup-controller');
 const authorize = require('../middlewares/authorize');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
@@ -20,7 +23,10 @@ const {
   lotAdjustmentTypeLookupSchema,
   orderTypeLookupQuerySchema,
   paymentMethodLookupQuerySchema,
+  discountLookupQuerySchema,
+  taxRateLookupQuerySchema, deliveryMethodLookupQuerySchema,
 } = require('../validators/lookup-validators');
+const { PERMISSIONS } = require('../utils/constants/domain/lookup-constants');
 
 const router = express.Router();
 
@@ -338,6 +344,167 @@ router.get(
     'Invalid query parameters.'
   ),
   getPaymentMethodLookupController
+);
+
+/**
+ * @route GET /discounts
+ * @description
+ * Endpoint to fetch paginated discount lookup options for dropdowns or selectors.
+ * Applies permission checks, query normalization, field sanitization, validation, and filtering.
+ *
+ * Middleware chain includes:
+ * - `authorize`: Enforces user permission to view discount lookups
+ * - `createQueryNormalizationMiddleware`: Extracts and structures query parameters (e.g., filters, keyword, pagination)
+ * - `sanitizeFields`: Trims and sanitizes specific fields (e.g., `keyword`)
+ * - `validate`: Validates the normalized query against `discountLookupQuerySchema`
+ * - `getDiscountLookupController`: Handles the request and returns formatted discount options
+ *
+ * Query Parameters (after normalization):
+ * - `filters.keyword` — Optional search keyword to match discount name/description
+ * - `filters.statusId` — Optional status filter (maybe stripped based on access)
+ * - `limit` — Pagination size (default: 50)
+ * - `offset` — Pagination offset
+ *
+ * Response:
+ * - `200 OK` with JSON:
+ *   - `success` (boolean)
+ *   - `message` (string)
+ *   - `items` (array of `{ id, label, isActive, isValidToday }`)
+ *   - `limit` (number)
+ *   - `offset` (number)
+ *   - `hasMore` (boolean)
+ *
+ * @access Protected
+ * @permission Requires `view_discount_lookup` permission
+ */
+router.get(
+  '/discounts',
+  authorize([PERMISSIONS.VIEW_DISCOUNT]),
+  createQueryNormalizationMiddleware(
+    '', // moduleKey (optional for sorting)
+    [], // arrayKeys (e.g., ['statusId'] if needed)
+    [], // booleanKeys (e.g., ['includeArchived'])
+    ['keyword'], // filterKeys: what to extract into `filters`
+    { includePagination: true, includeSorting: false } // enable pagination normalization
+  ),
+  sanitizeFields(['keyword']),
+  validate(
+    discountLookupQuerySchema,
+    'query',
+    {
+      abortEarly: false,
+      convert: true,
+    },
+    'Invalid query parameters.'
+  ),
+  getDiscountLookupController
+);
+
+/**
+ * @route GET /tax-rates
+ * @description
+ * Endpoint to fetch paginated tax rate lookup options for dropdowns or selectors.
+ * Applies permission checks, query normalization, field sanitization, validation, and filtering.
+ *
+ * Middleware chain includes:
+ * - `authorize`: Enforces user permission to view tax rate lookups
+ * - `createQueryNormalizationMiddleware`: Extracts and structures query parameters (e.g., filters, keyword, pagination)
+ * - `sanitizeFields`: Trims and sanitizes specific fields (e.g., `keyword`)
+ * - `validate`: Validates the normalized query against `taxRateLookupQuerySchema`
+ * - `getTaxRateLookupController`: Handles the request and returns formatted tax rate options
+ *
+ * Query Parameters (after normalization):
+ * - `filters.keyword` — Optional search keyword to match tax rate name/province
+ * - `limit` — Pagination size (default: 50)
+ * - `offset` — Pagination offset
+ *
+ * Response:
+ * - `200 OK` with JSON:
+ *   - `success` (boolean)
+ *   - `message` (string)
+ *   - `items` (array of `{ id, label, isActive }`)
+ *   - `limit` (number)
+ *   - `offset` (number)
+ *   - `hasMore` (boolean)
+ *
+ * @access Protected
+ * @permission Requires `view_tax_rate_lookup` permission
+ */
+router.get(
+  '/tax-rates',
+  authorize([PERMISSIONS.VIEW_TAX_RATE]),
+  createQueryNormalizationMiddleware(
+    '',        // moduleKey (optional for sorting)
+    [],        // arrayKeys
+    [],        // booleanKeys
+    ['keyword'], // filterKeys
+    { includePagination: true, includeSorting: false }
+  ),
+  sanitizeFields(['keyword']),
+  validate(
+    taxRateLookupQuerySchema,
+    'query',
+    {
+      abortEarly: false,
+      convert: true,
+    },
+    'Invalid query parameters.'
+  ),
+  getTaxRateLookupController
+);
+
+/**
+ * @route GET /delivery-methods
+ * @description
+ * Endpoint to fetch paginated delivery method lookup options for dropdowns or selectors.
+ * Applies permission checks, query normalization, field sanitization, validation, and filtering.
+ *
+ * Middleware chain includes:
+ * - `authorize`: Enforces user permission to view delivery method lookups
+ * - `createQueryNormalizationMiddleware`: Extracts and structures query parameters (e.g., filters, keyword, pagination)
+ * - `sanitizeFields`: Trims and sanitizes specific fields (e.g., `keyword`)
+ * - `validate`: Validates the normalized query against `deliveryMethodLookupQuerySchema`
+ * - `getDeliveryMethodLookupController`: Handles the request and returns formatted delivery method options
+ *
+ * Query Parameters (after normalization):
+ * - `filters.keyword` — Optional search keyword to match method name or description
+ * - `filters.isPickupLocation` — Optional boolean to filter by pickup location flag
+ * - `limit` — Pagination size (default: 50)
+ * - `offset` — Pagination offset
+ *
+ * Response:
+ * - `200 OK` with JSON:
+ *   - `success` (boolean)
+ *   - `message` (string)
+ *   - `items` (array of `{ id, label, isPickupLocation, isActive }`)
+ *   - `limit` (number)
+ *   - `offset` (number)
+ *   - `hasMore` (boolean)
+ *
+ * @access Protected
+ * @permission Requires `view_delivery_method_lookup` permission
+ */
+router.get(
+  '/delivery-methods',
+  authorize([PERMISSIONS.VIEW_DELIVERY_METHOD]),
+  createQueryNormalizationMiddleware(
+    '',                   // moduleKey (not needed here)
+    [],                   // arrayKeys
+    ['isPickupLocation'], // booleanKeys
+    ['keyword', 'isPickupLocation'], // filterKeys
+    { includePagination: true, includeSorting: false }
+  ),
+  sanitizeFields(['keyword']),
+  validate(
+    deliveryMethodLookupQuerySchema,
+    'query',
+    {
+      abortEarly: false,
+      convert: true,
+    },
+    'Invalid query parameters.'
+  ),
+  getDeliveryMethodLookupController
 );
 
 module.exports = router;

@@ -7,6 +7,8 @@ const {
   fetchCustomerAddressLookupService,
   fetchOrderTypeLookupService,
   fetchPaginatedPaymentMethodLookupService,
+  fetchPaginatedDiscountLookupService,
+  fetchPaginatedTaxRateLookupService, fetchPaginatedDeliveryMethodLookupService,
 } = require('../services/lookup-service');
 const { logInfo } = require('../utils/logger-helper');
 
@@ -263,6 +265,180 @@ const getPaymentMethodLookupController = wrapAsync(async (req, res) => {
   });
 });
 
+/**
+ * Controller for retrieving paginated discount lookup options.
+ *
+ * This controller:
+ * - Enforces access control via service-layer permissions.
+ * - Applies visibility filters (e.g., restrict to active/valid records).
+ * - Handles pagination via `limit` and `offset` query parameters.
+ * - Returns results formatted for dropdown usage, including flags.
+ *
+ * Expected query structure (via `req.normalizedQuery`):
+ * - filters: Optional object (e.g., { keyword, statusId })
+ * - limit: Optional number (default 50)
+ * - offset: Optional number (default 0)
+ *
+ * @route GET /lookups/discounts
+ * @access Protected
+ * @permission `view_discount_lookup` (enforced in service layer)
+ *
+ * @param {Express.Request} req - Express a request object containing user and normalizedQuery
+ * @param {Express.Response} res - Express response object used to send JSON response
+ *
+ * @returns {void} Responds with JSON:
+ *  {
+ *    success: boolean,
+ *    message: string,
+ *    items: Array<{
+ *      id: string,
+ *      label: string,
+ *      isActive: boolean,
+ *      isValidToday: boolean
+ *    }>,
+ *    offset: number,
+ *    limit: number,
+ *    hasMore: boolean
+ *  }
+ */
+const getDiscountLookupController = wrapAsync(async (req, res) => {
+  const user = req.user;
+  const { filters = {}, limit = 50, offset = 0 } = req.normalizedQuery;
+  
+  const dropdownResult = await fetchPaginatedDiscountLookupService(user, {
+    filters,
+    limit,
+    offset,
+  });
+  
+  const { items, hasMore } = dropdownResult;
+  
+  return res.status(200).json({
+    success: true,
+    message: 'Successfully retrieved discount lookup',
+    items,
+    offset,
+    limit,
+    hasMore,
+  });
+});
+
+/**
+ * Controller for retrieving paginated tax rate lookup options.
+ *
+ * This controller:
+ * - Enforces access control via service-layer permissions.
+ * - Applies visibility filters (e.g., restrict to active/valid records).
+ * - Handles pagination via `limit` and `offset` query parameters.
+ * - Returns results formatted for dropdown usage, including flags.
+ *
+ * Expected query structure (via `req.normalizedQuery`):
+ * - filters: Optional object (e.g., { keyword, isActive })
+ * - limit: Optional number (default 50)
+ * - offset: Optional number (default 0)
+ *
+ * @route GET /lookups/tax-rates
+ * @access Protected
+ * @permission `view_tax_rate_lookup` (enforced in service layer)
+ *
+ * @param {Express.Request} req - Express a request object containing user and normalizedQuery
+ * @param {Express.Response} res - Express response object used to send JSON response
+ *
+ * @returns {void} Responds with JSON:
+ *  {
+ *    success: boolean,
+ *    message: string,
+ *    items: Array<{
+ *      id: string,
+ *      label: string,
+ *      isActive: boolean,
+ *      isValidToday: boolean
+ *    }>,
+ *    offset: number,
+ *    limit: number,
+ *    hasMore: boolean
+ *  }
+ */
+const getTaxRateLookupController = wrapAsync(async (req, res) => {
+  const user = req.user;
+  const { filters = {}, limit = 50, offset = 0 } = req.normalizedQuery;
+  
+  const dropdownResult = await fetchPaginatedTaxRateLookupService(user, {
+    filters,
+    limit,
+    offset,
+  });
+  
+  const { items, hasMore } = dropdownResult;
+  
+  return res.status(200).json({
+    success: true,
+    message: 'Successfully retrieved tax rate lookup',
+    items,
+    offset,
+    limit,
+    hasMore,
+  });
+});
+
+/**
+ * Controller for retrieving paginated delivery method lookup options.
+ *
+ * This controller:
+ * - Enforces access control via service-layer permissions.
+ * - Applies visibility filters (e.g., restrict to active records).
+ * - Handles pagination via `limit` and `offset` query parameters.
+ * - Returns results formatted for dropdown usage, including optional flags.
+ *
+ * Expected query structure (via `req.normalizedQuery`):
+ * - filters: Optional object (e.g., { keyword, isPickupLocation })
+ * - limit: Optional number (default 50)
+ * - offset: Optional number (default 0)
+ *
+ * @route GET /lookups/delivery-methods
+ * @access Protected
+ * @permission `view_delivery_method_lookup` (enforced in service layer)
+ *
+ * @param {Express.Request} req - Express request object containing user and normalizedQuery
+ * @param {Express.Response} res - Express response object used to send JSON response
+ *
+ * @returns {void} Responds with JSON:
+ *  {
+ *    success: boolean,
+ *    message: string,
+ *    items: Array<{
+ *      id: string,
+ *      label: string,
+ *      isPickupLocation?: boolean,
+ *      isActive?: boolean
+ *    }>,
+ *    offset: number,
+ *    limit: number,
+ *    hasMore: boolean
+ *  }
+ */
+const getDeliveryMethodLookupController = wrapAsync(async (req, res) => {
+  const user = req.user;
+  const { filters = {}, limit = 50, offset = 0 } = req.normalizedQuery;
+  
+  const dropdownResult = await fetchPaginatedDeliveryMethodLookupService(user, {
+    filters,
+    limit,
+    offset,
+  });
+  
+  const { items, hasMore } = dropdownResult;
+  
+  return res.status(200).json({
+    success: true,
+    message: 'Successfully retrieved delivery method lookup',
+    items,
+    offset,
+    limit,
+    hasMore,
+  });
+});
+
 module.exports = {
   getBatchRegistryLookupController,
   getWarehouseLookupController,
@@ -271,4 +447,7 @@ module.exports = {
   getCustomerAddressLookupController,
   getOrderTypeLookupController,
   getPaymentMethodLookupController,
+  getDiscountLookupController,
+  getTaxRateLookupController,
+  getDeliveryMethodLookupController,
 };

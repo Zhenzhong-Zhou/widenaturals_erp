@@ -1,34 +1,38 @@
+const { fetchDynamicValue, fetchDynamicValues } = require('../03_utils');
+
 /**
  * @param { import("knex").Knex } knex
  * @returns {Promise<void>}
  */
-const { fetchDynamicValue } = require('../03_utils');
-
 exports.seed = async function (knex) {
-  // Check if there is existing data
-  const existingData = await knex('delivery_methods').select('id').first();
-  if (existingData) {
+  // Skip if already seeded
+  const [{ count }] = await knex('delivery_methods').count('id');
+  const total = parseInt(count, 10) || 0;
+  
+  if (total > 0) {
     console.log(
-      '⚠️ Skipping seeding: `delivery_methods` table already has data.'
+      `[${new Date().toISOString()}] [SEED] Skipping delivery_methods seed: ${total} records already exist.`
     );
     return;
   }
-
-  // Fetch `status_id` for active and inactive statuses
-  const activeStatusId = await fetchDynamicValue(
+  
+  console.log(`[${new Date().toISOString()}] [SEED] Starting delivery_methods seeding...`);
+  
+  // Fetch status IDs
+  const statusIds = await fetchDynamicValues(
     knex,
     'status',
     'name',
-    'active',
+    ['active', 'inactive', 'discontinued', 'archived'],
     'id'
   );
-  const inactiveStatusId = await fetchDynamicValue(
-    knex,
-    'status',
-    'name',
-    'inactive',
-    'id'
-  );
+  
+  const getStatusId = (name) => {
+    const id = statusIds[name];
+    if (!id) throw new Error(`Status "${name}" not found in DB.`);
+    return id;
+  };
+  
   const systemActionId = await fetchDynamicValue(
     knex,
     'users',
@@ -36,103 +40,103 @@ exports.seed = async function (knex) {
     'system@internal.local',
     'id'
   );
-
-  if (!activeStatusId || !inactiveStatusId) {
-    throw new Error(
-      '❌ Required statuses ("active" and "inactive") not found in `status` table.'
-    );
-  }
-
-  // Define delivery methods seed data
+  
+  // Assign status IDs
+  const active = getStatusId('active');
+  const inactive = getStatusId('inactive');
+  const discontinued = getStatusId('discontinued');
+  const archived = getStatusId('archived');
+  
+  const now = knex.fn.now();
+  
+  // Delivery method definitions
   const deliveryMethods = [
+    // Active
     {
       method_name: 'In-Store Pickup',
       is_pickup_location: true,
-      description:
-        'Order will be prepared and ready for pickup at the store location.',
+      description: 'Pickup at store location.',
       estimated_time: '1 day',
-      status_id: activeStatusId,
-      created_by: systemActionId,
-      updated_by: null,
+      status_id: active,
     },
     {
       method_name: 'Standard Shipping',
       is_pickup_location: false,
-      description: 'Delivery within 5-7 business days.',
+      description: 'Delivery in 5–7 business days.',
       estimated_time: '5 days',
-      status_id: activeStatusId,
-      created_by: systemActionId,
-      updated_by: null,
+      status_id: active,
     },
     {
       method_name: 'Express Shipping',
       is_pickup_location: false,
-      description: 'Delivery within 2-3 business days.',
+      description: '2–3 day expedited delivery.',
       estimated_time: '2 days',
-      status_id: activeStatusId,
-      created_by: systemActionId,
-      updated_by: null,
-    },
-    {
-      method_name: 'Overnight Shipping',
-      is_pickup_location: false,
-      description: 'Next-day delivery service.',
-      estimated_time: '1 day',
-      status_id: activeStatusId,
-      created_by: systemActionId,
-      updated_by: null,
-    },
-    {
-      method_name: 'Personal Driver Delivery',
-      is_pickup_location: false, // It's not a pickup, so this should be false
-      description:
-        'Order will be delivered personally by a driver to the specified address.',
-      estimated_time: '2 hours', // Estimate as needed, e.g., 2 hours for same-day delivery
-      status_id: activeStatusId,
-      created_by: systemActionId,
-      updated_by: null,
+      status_id: active,
     },
     {
       method_name: 'Curbside Pickup',
       is_pickup_location: true,
-      description: 'Pickup at a designated curbside location.',
+      description: 'Curbside collection zone pickup.',
       estimated_time: null,
-      status_id: activeStatusId,
-      created_by: systemActionId,
-      updated_by: null,
+      status_id: active,
     },
     {
-      method_name: 'Freight Shipping',
+      method_name: 'Personal Driver Delivery',
       is_pickup_location: false,
-      description: 'Used for bulk or oversized orders.',
-      estimated_time: '7 days',
-      status_id: activeStatusId,
-      created_by: systemActionId,
-      updated_by: null,
+      description: 'Same-day local delivery by driver.',
+      estimated_time: '2 hours',
+      status_id: active,
+    },
+    
+    // Inactive
+    {
+      method_name: 'Locker Pickup',
+      is_pickup_location: true,
+      description: 'Self-serve locker retrieval.',
+      estimated_time: '1 day',
+      status_id: inactive,
+    },
+    
+    // Discontinued
+    {
+      method_name: 'Drone Delivery',
+      is_pickup_location: false,
+      description: 'Experimental aerial drone service.',
+      estimated_time: '30 mins',
+      status_id: discontinued,
+    },
+    
+    // Archived
+    {
+      method_name: 'Regional Truck Freight',
+      is_pickup_location: false,
+      description: 'Obsolete regional freight transport.',
+      estimated_time: '10 days',
+      status_id: archived,
     },
   ];
-
-  // Insert data into `delivery_methods` with conflict handling
-  const insertedRows = await knex('delivery_methods')
-    .insert(
-      deliveryMethods.map((method) => ({
-        id: knex.raw('uuid_generate_v4()'),
-        method_name: method.method_name,
-        is_pickup_location: method.is_pickup_location,
-        description: method.description,
-        estimated_time: method.estimated_time,
-        status_id: method.status_id,
-        status_date: knex.fn.now(),
-        created_at: knex.fn.now(),
-        updated_at: null,
-        created_by: method.created_by,
-        updated_by: null,
-      }))
-    )
-    .onConflict(['method_name']) // Avoid duplicate entries
+  
+  // Format insert payload
+  const rows = deliveryMethods.map((dm) => ({
+    id: knex.raw('uuid_generate_v4()'),
+    method_name: dm.method_name,
+    is_pickup_location: dm.is_pickup_location,
+    description: dm.description,
+    estimated_time: dm.estimated_time,
+    status_id: dm.status_id,
+    status_date: now,
+    created_at: now,
+    updated_at: null,
+    created_by: systemActionId,
+    updated_by: null,
+  }));
+  
+  const inserted = await knex('delivery_methods')
+    .insert(rows)
+    .onConflict(['method_name'])
     .ignore();
-
+  
   console.log(
-    `✅ Seeded ${insertedRows.rowCount || 0} records into 'delivery_methods' table.`
+    `Seeded ${inserted.rowCount || deliveryMethods.length} records into 'delivery_methods' table.`
   );
 };

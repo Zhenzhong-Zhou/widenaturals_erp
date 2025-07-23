@@ -11,6 +11,9 @@ const {
   transformCustomerAddressesLookupResult,
   transformOrderTypeLookupResult,
   transformPaymentMethodPaginatedLookupResult,
+  transformDiscountPaginatedLookupResult,
+  transformTaxRatePaginatedLookupResult,
+  transformDeliveryMethodPaginatedLookupResult,
 } = require('../transformers/lookup-transformer');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const {
@@ -42,6 +45,27 @@ const {
 const {
   getPaymentMethodLookup,
 } = require('../repositories/payment-method-repository');
+const { getDiscountsLookup } = require('../repositories/discount-repository');
+const {
+  evaluateDiscountLookupAccessControl,
+  filterDiscountLookupQuery,
+  enforceDiscountLookupVisibilityRules,
+  enrichDiscountRow
+} = require('../business/discount-business');
+const { getStatusId } = require('../config/status-cache');
+const {
+  evaluateTaxRateLookupAccessControl,
+  enforceTaxRateLookupVisibilityRules,
+  filterTaxRateLookupQuery,
+  enrichTaxRateRow,
+} = require('../business/tax-rate-business');
+const { getTaxRatesLookup } = require('../repositories/tax-rate-repository');
+const {
+  evaluateDeliveryMethodLookupAccessControl,
+  enforceDeliveryMethodLookupVisibilityRules,
+  enrichDeliveryMethodRow,
+} = require('../business/delivery-method-business');
+const { getDeliveryMethodsLookup } = require('../repositories/delivery-method-repository');
 
 /**
  * Service to fetch filtered and paginated batch registry records for lookup UI.
@@ -392,6 +416,220 @@ const fetchPaginatedPaymentMethodLookupService = async (
   }
 };
 
+/**
+ * Service function to fetch paginated discount lookup options.
+ *
+ * Applies the following processing steps:
+ * - Evaluates the user's access permissions (e.g., view all statuses or valid discounts)
+ * - Applies permission-based visibility rules to filters (e.g., restrict keyword search)
+ * - Applies business-layer filtering (e.g., exclude archived or inactive discounts)
+ * - Queries the repository for matching records with pagination
+ * - Enriches raw rows with `isActive` and `isValidToday` flags
+ * - Transforms enriched rows into UI-ready `{ label, value, isActive, isValidToday }` format
+ *
+ * @param {Object} user - Authenticated user object (must contain access context).
+ * @param {Object} options - Lookup query options.
+ * @param {Object} [options.filters={}] - Optional filter conditions (e.g., keyword, statusId).
+ * @param {number} [options.limit=50] - Max number of records to return.
+ * @param {number} [options.offset=0] - Number of records to skip for pagination.
+ *
+ * @returns {Promise<{ items: { label: string, value: string, isActive?: boolean, isValidToday?: boolean }[], hasMore: boolean }>}
+ * Returns a list of formatted discount options and pagination metadata.
+ *
+ * @throws {AppError} Throws a service-level error if lookup fails.
+ */
+const fetchPaginatedDiscountLookupService = async (
+  user,
+  { filters = {}, limit = 50, offset = 0 }
+) => {
+  try {
+    // Step 1: Evaluate user access rights
+    const userAccess = await evaluateDiscountLookupAccessControl(user);
+    const activeStatusId = getStatusId('discount_active');
+  
+    // Step 2: Apply permission-based visibility rules
+    const permissionAdjustedFilters = enforceDiscountLookupVisibilityRules(filters, userAccess, activeStatusId);
+    
+    // Step 3: Apply domain-level filtering rules
+    const fullyAdjustedFilters = filterDiscountLookupQuery(permissionAdjustedFilters, userAccess);
+    
+    // Step 4: Query the repository
+    const rawResult = await getDiscountsLookup({
+      filters: fullyAdjustedFilters,
+      limit,
+      offset,
+    });
+    
+    const { data = [], pagination = {} } = rawResult;
+    
+    // Step 5: Enrich each row with computed flags
+    const enrichedRows = data.map((row) =>
+      enrichDiscountRow(row, activeStatusId)
+    );
+    
+    // Step 6: Transform to client format
+    return transformDiscountPaginatedLookupResult({
+      data: enrichedRows,
+      pagination,
+    }, userAccess);
+  } catch (err) {
+    logSystemException(err, 'Failed to fetch discount lookup', {
+      context: 'lookup-service/fetchPaginatedDiscountLookupService',
+      userId: user?.id,
+      filters,
+      limit,
+      offset,
+    });
+    
+    throw AppError.serviceError('Unable to retrieve discount lookup options.', {
+      cause: err,
+    });
+  }
+};
+
+/**
+ * Service function to fetch paginated tax rate lookup options.
+ *
+ * Applies the following processing steps:
+ * - Evaluates user's access permissions (e.g., view all validity or active-only)
+ * - Applies permission-based visibility rules to filters (e.g., restrict keyword search)
+ * - Applies domain-level filtering (e.g., current validity, active status)
+ * - Queries the repository for matching records with pagination
+ * - Enriches raw rows with `isValidToday` flag
+ * - Transforms enriched rows into UI-ready `{ label, value, isActive, isValidToday }` format
+ *
+ * @param {Object} user - Authenticated user object (must contain access context).
+ * @param {Object} options - Lookup query options.
+ * @param {Object} [options.filters={}] - Optional filter conditions (e.g., keyword, isActive).
+ * @param {number} [options.limit=50] - Max number of records to return.
+ * @param {number} [options.offset=0] - Number of records to skip for pagination.
+ *
+ * @returns {Promise<{ items: { label: string, value: string, isActive?: boolean, isValidToday?: boolean }[], hasMore: boolean }>}
+ * Returns a list of formatted tax rate options and pagination metadata.
+ *
+ * @throws {AppError} Throws a service-level error if lookup fails.
+ */
+const fetchPaginatedTaxRateLookupService = async (
+  user,
+  { filters = {}, limit = 50, offset = 0 }
+) => {
+  try {
+    // Step 1: Evaluate user access rights
+    const userAccess = await evaluateTaxRateLookupAccessControl(user);
+    
+    // Step 2: Apply permission-based visibility rules
+    const permissionAdjustedFilters = enforceTaxRateLookupVisibilityRules(filters, userAccess);
+    
+    // Step 3: Apply business-layer filtering
+    const fullyAdjustedFilters = filterTaxRateLookupQuery(permissionAdjustedFilters, userAccess);
+    
+    // Step 4: Query the repository
+    const rawResult = await getTaxRatesLookup({
+      filters: fullyAdjustedFilters,
+      limit,
+      offset,
+    });
+    
+    const { data = [], pagination = {} } = rawResult;
+    
+    // Step 5: Enrich each row
+    const enrichedRows = data.map(enrichTaxRateRow);
+    
+    // Step 6: Transform to client format
+    return transformTaxRatePaginatedLookupResult({
+      data: enrichedRows,
+      pagination,
+    }, userAccess);
+  } catch (err) {
+    logSystemException(err, 'Failed to fetch tax rate lookup', {
+      context: 'lookup-service/fetchPaginatedTaxRateLookupService',
+      userId: user?.id,
+      filters,
+      limit,
+      offset,
+    });
+    
+    throw AppError.serviceError('Unable to retrieve tax rate lookup options.', {
+      cause: err,
+    });
+  }
+};
+
+/**
+ * Service function to fetch paginated delivery method lookup options.
+ *
+ * Applies the following processing steps:
+ * 1. Evaluate the user's access permissions (e.g., view all statuses)
+ * 2. Applies permission-based visibility rules to filters (e.g., inject `_activeStatusId`)
+ * 3. Queries the repository for matching records with pagination
+ * 4. Enriches raw rows with `isActive` and `isPickupLocation` flags
+ * 5. Transforms enriched rows into UI-ready format `{ label, value, isActive?, isPickupLocation? }`
+ *
+ * @param {Object} user - Authenticated user object (must contain access context).
+ * @param {Object} options - Lookup query options.
+ * @param {Object} [options.filters={}] - Optional filter conditions (e.g., keyword, statusId).
+ * @param {number} [options.limit=50] - Max number of records to return.
+ * @param {number} [options.offset=0] - Number of records to skip for pagination.
+ *
+ * @returns {Promise<{
+ *   items: {
+ *     label: string,
+ *     value: string,
+ *     isActive?: boolean,
+ *     isPickupLocation?: boolean
+ *   }[],
+ *   hasMore: boolean
+ * }>}
+ * Returns a list of formatted delivery method options and pagination metadata.
+ *
+ * @throws {AppError} Throws a service-level error if lookup fails.
+ */
+const fetchPaginatedDeliveryMethodLookupService = async (
+  user,
+  { filters = {}, limit = 50, offset = 0 }
+) => {
+  try {
+    // Step 1: Evaluate user access rights
+    const userAccess = await evaluateDeliveryMethodLookupAccessControl(user);
+    const activeStatusId = getStatusId('delivery_method_active');
+    
+    // Step 2: Apply permission-based visibility rules
+    const permissionAdjustedFilters = enforceDeliveryMethodLookupVisibilityRules(filters, userAccess, activeStatusId);
+    
+    // Step 3: Query the repository
+    const rawResult = await getDeliveryMethodsLookup({
+      filters: permissionAdjustedFilters,
+      limit,
+      offset,
+    });
+    
+    const { data = [], pagination = {} } = rawResult;
+    
+    // Step 4: Enrich rows with computed flags
+    const enrichedRows = data.map((row) =>
+      enrichDeliveryMethodRow(row, activeStatusId)
+    );
+    
+    // Step 5: Transform to client format
+    return transformDeliveryMethodPaginatedLookupResult({
+      data: enrichedRows,
+      pagination,
+    }, userAccess);
+  } catch (err) {
+    logSystemException(err, 'Failed to fetch delivery method lookup', {
+      context: 'lookup-service/fetchPaginatedDeliveryMethodLookupService',
+      userId: user?.id,
+      filters,
+      limit,
+      offset,
+    });
+    
+    throw AppError.serviceError('Unable to retrieve delivery method lookup options.', {
+      cause: err,
+    });
+  }
+};
+
 module.exports = {
   fetchBatchRegistryLookupService,
   fetchWarehouseLookupService,
@@ -400,4 +638,7 @@ module.exports = {
   fetchCustomerAddressLookupService,
   fetchOrderTypeLookupService,
   fetchPaginatedPaymentMethodLookupService,
+  fetchPaginatedDiscountLookupService,
+  fetchPaginatedTaxRateLookupService,
+  fetchPaginatedDeliveryMethodLookupService,
 };

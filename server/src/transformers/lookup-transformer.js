@@ -3,6 +3,8 @@ const { cleanObject } = require('../utils/object-utils');
 const {
   transformPaginatedResult,
   transformRows,
+  transformIdNameToIdLabel,
+  includeFlagsBasedOnAccess,
 } = require('../utils/transformer-utils');
 const { getFullName } = require('../utils/name-utils');
 const { formatAddress } = require('../utils/string-utils');
@@ -241,6 +243,147 @@ const transformPaymentMethodPaginatedLookupResult = (paginatedResult) =>
     includeLoadMore: true,
   });
 
+/**
+ * Transforms an enriched discount row into a UI-friendly structure for dropdowns.
+ *
+ * Includes visibility flags like `isActive` and `isValidToday` only if permitted by user access.
+ *
+ * @param {Object} row - Enriched discount row.
+ * @param {string} row.id - Unique identifier of the discount.
+ * @param {string} row.name - Name of the discount.
+ * @param {boolean} [row.isActive] - Indicates if the discount is currently active.
+ * @param {boolean} [row.isValidToday] - Indicates if the discount is valid today.
+ * @param {Object} userAccess - User access control context.
+ * @param {boolean} [userAccess.canViewAllStatuses] - Whether the user can see inactive discounts.
+ * @param {boolean} [userAccess.canViewAllValidLookups] - Whether the user can see expired/future discounts.
+ *
+ * @returns {{ id: string, label: string, isActive?: boolean, isValidToday?: boolean }}
+ * Returns a transformed object with required and conditional fields for UI rendering.
+ */
+const transformDiscountLookup = (row, userAccess) => {
+  const base = transformIdNameToIdLabel(row);
+  const flagSubset = includeFlagsBasedOnAccess(row, userAccess);
+  
+  return {
+    ...base,
+    ...flagSubset,
+  };
+};
+
+/**
+ * Transforms paginated discount records for lookup dropdowns.
+ *
+ * @param {Object} paginatedResult - Raw DB paginated result
+ * @param {Object} userAccess - Evaluated access control flags
+ * @returns {{ items: { id: string, label: string, isActive: boolean, isValidToday: boolean }[], hasMore: boolean }}
+ */
+const transformDiscountPaginatedLookupResult = (paginatedResult, userAccess) =>
+  transformPaginatedResult(
+    paginatedResult,
+    (row) => transformDiscountLookup(row, userAccess),
+    { includeLoadMore: true }
+  );
+
+/**
+ * Transforms a tax rate row into a UI-friendly dropdown format.
+ *
+ * Includes computed flags like `isActive` and `isValidToday` only if permitted by user access.
+ *
+ * @param {{
+ *   id: string,
+ *   name: string,
+ *   is_active?: boolean,
+ *   valid_from?: string | Date,
+ *   valid_to?: string | Date,
+ *   isActive?: boolean,
+ *   isValidToday?: boolean
+ * }} row - Enriched tax rate record with status and validity fields.
+ *
+ * @param {Object} userAccess - User access control context.
+ * @param {boolean} [userAccess.canViewAllStatuses] - Whether the user can see inactive tax rates.
+ * @param {boolean} [userAccess.canViewAllValidLookups] - Whether the user can see expired/future tax rates.
+ *
+ * @returns {{
+ *   id: string,
+ *   label: string,
+ *   isActive?: boolean,
+ *   isValidToday?: boolean
+ * }} Transformed object for dropdowns with conditional flags.
+ */
+const transformTaxRateLookup = (row, userAccess) => {
+  const base = transformIdNameToIdLabel(row);
+  const flagSubset = includeFlagsBasedOnAccess(row, userAccess);
+  
+  return {
+    ...base,
+    ...flagSubset,
+  };
+};
+
+/**
+ * Transforms paginated tax rate records for lookup dropdowns.
+ *
+ * @param {Object} paginatedResult - Raw DB paginated result
+ * @param {Object} userAccess - Evaluated access control flags
+ * @returns {{ items: { id: string, label: string }[], hasMore: boolean }}
+ */
+const transformTaxRatePaginatedLookupResult = (paginatedResult, userAccess) =>
+  transformPaginatedResult(
+    paginatedResult,
+    (row) => transformTaxRateLookup(row, userAccess),
+    { includeLoadMore: true }
+  );
+
+/**
+ * Transforms a delivery method row into a UI-friendly dropdown format.
+ *
+ * Includes `isPickupLocation` always, and conditionally includes `isActive` based on user access.
+ *
+ * @param {{
+ *   id: string,
+ *   method_name: string,
+ *   is_pickup_location?: boolean,
+ *   is_active?: boolean
+ * }} row - Raw delivery method record.
+ *
+ * @param {Object} userAccess - User access control context.
+ * @param {boolean} [userAccess.canViewAllStatuses] - Whether the user can view inactive records.
+ *
+ * @returns {{
+ *   id: string,
+ *   label: string,
+ *   isPickupLocation: boolean,
+ *   isActive?: boolean
+ * }} Transformed delivery method object.
+ */
+const transformDeliveryMethodLookup = (row, userAccess) => {
+  const base = transformIdNameToIdLabel(row);
+  const flagSubset = includeFlagsBasedOnAccess(row, userAccess);
+  
+  return cleanObject({
+    ...base,
+    isPickupLocation: row?.is_pickup_location ?? false,
+    ...flagSubset,
+  });
+};
+
+/**
+ * Transforms paginated delivery method records for lookup dropdowns.
+ *
+ * @param {Object} paginatedResult - Raw DB paginated result
+ * @param {Object} userAccess - Evaluated access control flags
+ * @returns {{ items: { id: string, label: string }[], hasMore: boolean }}
+ */
+const transformDeliveryMethodPaginatedLookupResult = (
+  paginatedResult,
+  userAccess
+) =>
+  transformPaginatedResult(
+    paginatedResult,
+    (row) => transformDeliveryMethodLookup(row, userAccess),
+    { includeLoadMore: true }
+  );
+
 module.exports = {
   transformBatchRegistryPaginatedLookupResult,
   transformWarehouseLookupRows,
@@ -249,4 +392,7 @@ module.exports = {
   transformCustomerAddressesLookupResult,
   transformOrderTypeLookupResult,
   transformPaymentMethodPaginatedLookupResult,
+  transformDiscountPaginatedLookupResult,
+  transformTaxRatePaginatedLookupResult,
+  transformDeliveryMethodPaginatedLookupResult,
 };

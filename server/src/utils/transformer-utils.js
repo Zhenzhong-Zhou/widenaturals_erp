@@ -1,3 +1,4 @@
+const { cleanObject } = require('./object-utils');
 /**
  * Applies a transformer function to an array of rows safely.
  *
@@ -128,8 +129,52 @@ const deriveInventoryStatusFlags = (
   };
 };
 
+/**
+ * Generic transformer for lookup records with `{ id, name }` shape.
+ * Converts to `{ id, label }` for dropdowns and cleans null/undefined values.
+ *
+ * @param {{ id: string, name: string }} row - The database row
+ * @returns {{ id: string, label: string }}
+ */
+const transformIdNameToIdLabel = (row) => {
+  return cleanObject({
+    id: row?.id,
+    label: row?.name,
+  });
+};
+
+/**
+ * Conditionally includes visibility flags (e.g., isActive, isValidToday)
+ * based on user access permissions.
+ *
+ * @param {Object} row - A transformed/enriched row (must contain the flags already).
+ * @param {Object} userAccess - User access context with relevant visibility permissions.
+ * @param {boolean} [userAccess.canViewAllStatuses] - Can view records of any status.
+ * @param {boolean} [userAccess.canViewAllValidLookups] - Can view expired or future-dated rows.
+ * @returns {Object} - Subset of flags to include in final payload.
+ */
+const includeFlagsBasedOnAccess = (row, userAccess = {}) => {
+  const { canViewAllStatuses = false, canViewAllValidLookups = false } = userAccess;
+  
+  if (!row) return {};
+  
+  const result = {};
+  
+  if (canViewAllStatuses) {
+    result.isActive = row.isActive ?? false;
+  }
+  
+  if (canViewAllValidLookups) {
+    result.isValidToday = row.isValidToday ?? false;
+  }
+  
+  return cleanObject(result);
+}
+
 module.exports = {
   transformRows,
   transformPaginatedResult,
   deriveInventoryStatusFlags,
+  transformIdNameToIdLabel,
+  includeFlagsBasedOnAccess,
 };

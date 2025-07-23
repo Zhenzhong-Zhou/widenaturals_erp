@@ -57,6 +57,16 @@ const STATUS_KEY_LOOKUP = [
     table: 'status',
     name: 'active',
   },
+  {
+    key: 'discount_active',
+    table: 'status',
+    name: 'active',
+  },
+  {
+    key: 'delivery_method_active',
+    table: 'status',
+    name: 'active',
+  },
 ];
 
 /**

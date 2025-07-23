@@ -140,6 +140,59 @@ const paymentMethodLookupQuerySchema = Joi.object({
   ...baseLookupQuerySchema,
 });
 
+/**
+ * Joi validation schema for discount lookup query parameters.
+ *
+ * Validates GET requests to the `/lookups/discounts` endpoint.
+ * Only supports:
+ * - `filters.keyword`: Optional string for name/description search
+ * - `limit`: Optional number for pagination (default 50)
+ * - `offset`: Optional number for pagination offset (default 0)
+ *
+ * All fields are inherited from `baseLookupQuerySchema`.
+ *
+ * @type {Joi.ObjectSchema}
+ */
+const discountLookupQuerySchema = Joi.object({
+  ...baseLookupQuerySchema,
+});
+
+/**
+ * Joi validation schema for tax rate lookup query parameters.
+ *
+ * Validates GET requests to the `/lookups/tax-rates` endpoint.
+ * Only supports:
+ * - `filters.keyword`: Optional string for name/province search
+ * - `limit`: Optional number for pagination (default 50)
+ * - `offset`: Optional number for pagination offset (default 0)
+ *
+ * All fields are inherited from `baseLookupQuerySchema`.
+ *
+ * @type {Joi.ObjectSchema}
+ */
+const taxRateLookupQuerySchema = Joi.object({
+  ...baseLookupQuerySchema,
+});
+
+/**
+ * Joi validation schema for delivery method lookup query parameters.
+ *
+ * Validates GET requests to the `/lookups/delivery-methods` endpoint.
+ * Inherits:
+ * - `filters.keyword`: Optional string for name/description search
+ * - `limit`: Optional number for pagination (default 50)
+ * - `offset`: Optional number for pagination offset (default 0)
+ *
+ * Additional supported filter:
+ * - `isPickupLocation`: Optional boolean to filter by pickup availability
+ *
+ * @type {Joi.ObjectSchema}
+ */
+const deliveryMethodLookupQuerySchema = Joi.object({
+  ...baseLookupQuerySchema,
+  isPickupLocation: Joi.boolean().optional(),
+});
+
 module.exports = {
   batchRegistryLookupQuerySchema,
   warehouseLookupQuerySchema,
@@ -148,4 +201,7 @@ module.exports = {
   customerAddressLookupQuerySchema,
   orderTypeLookupQuerySchema,
   paymentMethodLookupQuerySchema,
+  discountLookupQuerySchema,
+  taxRateLookupQuerySchema,
+  deliveryMethodLookupQuerySchema,
 };
