@@ -28,7 +28,7 @@ exports.seed = async function (knex) {
     knex,
     'status',
     'name',
-    ['active', 'inactive', 'discontinued', 'archived', 'deleted'],
+    ['active', 'inactive', 'discontinued', 'archived'],
     'id'
   );
 
