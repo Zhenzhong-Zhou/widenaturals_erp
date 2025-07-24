@@ -45,6 +45,9 @@ export const API_ENDPOINTS = {
     ADDRESSES_BY_CUSTOMER: 'addresses/by-customer',
     ORDER_TYPES: '/lookups/order-types',
     PAYMENT_METHODS: '/lookups/payment-methods',
+    DISCOUNTS: '/lookups/discounts',
+    TAX_RATES: '/lookups/tax-rates',
+    DELIVERY_METHODS: '/lookups/delivery-methods',
   },
   REPORTS: {
     INVENTORY_ACTIVITY_LOGS: 'reports/inventory-activity-logs',

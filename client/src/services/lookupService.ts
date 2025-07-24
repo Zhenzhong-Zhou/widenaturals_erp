@@ -4,13 +4,21 @@ import type {
   AddressByCustomerLookupResponse,
   CustomerLookupQuery,
   CustomerLookupResponse,
+  DeliveryMethodLookupQueryParams,
+  DeliveryMethodLookupResponse,
+  DiscountLookupQueryParams,
+  DiscountLookupResponse,
   GetBatchRegistryLookupParams,
   GetBatchRegistryLookupResponse,
   GetWarehouseLookupResponse,
   LotAdjustmentLookupQueryParams,
   LotAdjustmentTypeLookupResponse,
   OrderTypeLookupQueryParams,
-  OrderTypeLookupResponse, PaymentMethodLookupQueryParams, PaymentMethodLookupResponse,
+  OrderTypeLookupResponse,
+  PaymentMethodLookupQueryParams,
+  PaymentMethodLookupResponse,
+  TaxRateLookupQueryParams,
+  TaxRateLookupResponse,
 } from '@features/lookup/state/lookupTypes';
 import { buildQueryString } from '@utils/buildQueryString';
 
@@ -198,6 +206,75 @@ const fetchPaymentMethodLookup = async (
   }
 };
 
+/**
+ * Fetches a list of discounts from the server for use in lookup UIs.
+ *
+ * Supports optional keyword-based filtering via query parameters.
+ *
+ * @param params - Optional query parameters to filter discounts (e.g., { keyword: 'holiday' }).
+ * @returns A promise resolving to a {@link DiscountLookupResponse}, containing metadata and a list of matching discounts.
+ * @throws Error if the network request fails or the response is invalid.
+ */
+const fetchDiscountLookup = async (
+  params?: DiscountLookupQueryParams
+): Promise<DiscountLookupResponse> => {
+  const queryString = buildQueryString(params);
+  const url = `${API_ENDPOINTS.LOOKUPS.DISCOUNTS}${queryString}`;
+  
+  try {
+    return await getRequest<DiscountLookupResponse>(url);
+  } catch (error) {
+    console.error('Failed to fetch discount lookup:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetches a list of tax rates from the server for use in lookup UIs.
+ *
+ * Supports optional keyword-based filtering via query parameters.
+ *
+ * @param params - Optional query parameters to filter tax rates (e.g., { keyword: 'BC' }).
+ * @returns A promise resolving to a {@link TaxRateLookupResponse}, containing metadata and a list of matching tax rates.
+ * @throws Error if the network request fails or the response is invalid.
+ */
+const fetchTaxRateLookup = async (
+  params?: TaxRateLookupQueryParams
+): Promise<TaxRateLookupResponse> => {
+  const queryString = buildQueryString(params);
+  const url = `${API_ENDPOINTS.LOOKUPS.TAX_RATES}${queryString}`;
+  
+  try {
+    return await getRequest<TaxRateLookupResponse>(url);
+  } catch (error) {
+    console.error('Failed to fetch tax rate lookup:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetches a list of delivery methods from the server for use in lookup UIs.
+ *
+ * Supports optional filtering by keyword and pickup location.
+ *
+ * @param params - Optional query parameters to filter delivery methods (e.g., { keyword: 'pickup', isPickupLocation: true }).
+ * @returns A promise resolving to a {@link DeliveryMethodLookupResponse}, containing metadata and a list of matching delivery methods.
+ * @throws Error if the network request fails or the response is invalid.
+ */
+const fetchDeliveryMethodLookup = async (
+  params?: DeliveryMethodLookupQueryParams
+): Promise<DeliveryMethodLookupResponse> => {
+  const queryString = buildQueryString(params);
+  const url = `${API_ENDPOINTS.LOOKUPS.DELIVERY_METHODS}${queryString}`;
+  
+  try {
+    return await getRequest<DeliveryMethodLookupResponse>(url);
+  } catch (error) {
+    console.error('Failed to fetch delivery method lookup:', error);
+    throw error;
+  }
+};
+
 export const lookupService = {
   fetchBatchRegistryLookup,
   fetchWarehouseLookup,
@@ -206,4 +283,7 @@ export const lookupService = {
   fetchAddressesByCustomerId,
   fetchOrderTypeLookup,
   fetchPaymentMethodLookup,
+  fetchDiscountLookup,
+  fetchTaxRateLookup,
+  fetchDeliveryMethodLookup,
 };

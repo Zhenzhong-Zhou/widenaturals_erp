@@ -52,6 +52,44 @@ export interface LookupPaginationMeta extends PaginationLookupInfo {
 }
 
 /**
+ * Common flags for filtering active and currently valid records.
+ */
+export interface ActiveValidFilter {
+  /**
+   * Optional flag to include only active records.
+   */
+  isActive?: boolean;
+  
+  /**
+   * Optional flag to include only currently valid records (e.g., based on valid_from/valid_to).
+   */
+  isValidToday?: boolean;
+}
+
+/**
+ * Represents a lookup item with common status flags.
+ */
+export type LookupItemWithStatus = LookupItem & ActiveValidFilter;
+
+/**
+ * Creates the initial state structure for a paginated lookup slice.
+ *
+ * This utility is used to initialize Redux state for dropdowns, autocomplete,
+ * or infinite scroll components that fetch paginated data.
+ *
+ * @template T - The type of individual lookup items (e.g., DiscountLookupItem).
+ * @returns A default-initialized {@link PaginatedLookupState} with empty data, no error, and pagination metadata.
+ */
+export const createInitialPaginatedLookupState = <T>(): PaginatedLookupState<T> => ({
+  data: [],
+  loading: false,
+  error: null,
+  limit: 50,
+  offset: 0,
+  hasMore: false,
+});
+
+/**
  * Query parameters for fetching batch registry lookup data.
  */
 export interface GetBatchRegistryLookupParams extends LookupPagination {
@@ -301,3 +339,82 @@ export type PaymentMethodLookupResponse = LookupSuccessResponse<PaymentMethodLoo
  * Includes async and pagination metadata for infinite-scroll or paginated dropdowns.
  */
 export type PaymentMethodLookupState = PaginatedLookupState<LookupOption>;
+
+/**
+ * Query parameters for fetching discount lookup results.
+ * This is a direct alias of LookupQuery and cannot be extended further.
+ */
+export type DiscountLookupQueryParams = LookupQuery;
+
+/**
+ * Query parameters for fetching tax rate lookup results.
+ * This is a direct alias of LookupQuery and cannot be extended further.
+ */
+export type TaxRateLookupQueryParams = LookupQuery;
+
+/**
+ * Query parameters for delivery method lookup (e.g., dropdowns, filters).
+ */
+export interface DeliveryMethodLookupQueryParams extends LookupQuery {
+  /**
+   * Optional flag to filter by pickup location.
+   * Accepts true/false, 'true'/'false', or 1/0 depending on parsing.
+   */
+  isPickupLocation?: boolean;
+}
+
+/**
+ * Represents a discount option with active/valid status for dropdowns or autocomplete.
+ */
+export type DiscountLookupItem = LookupItemWithStatus;
+
+/**
+ * Represents a tax rate option with active/valid status for dropdowns or autocomplete.
+ */
+export type TaxRateLookupItem = LookupItemWithStatus;
+
+/**
+ * Represents a delivery method option with status flags and pickup location flag.
+ */
+export type DeliveryMethodLookupItem = LookupItemWithStatus & {
+  /**
+   * Indicates whether this method is a pickup location (e.g., in-store pickup).
+   */
+  isPickupLocation?: boolean;
+};
+
+/**
+ * API response format for discount lookup queries.
+ * Contains a list of discount options with status flags.
+ */
+export type DiscountLookupResponse = LookupSuccessResponse<DiscountLookupItem>;
+
+/**
+ * API response format for tax rate lookup queries.
+ * Contains a list of tax rate options with status flags.
+ */
+export type TaxRateLookupResponse = LookupSuccessResponse<TaxRateLookupItem>;
+
+/**
+ * API response format for delivery method lookup queries.
+ * Contains a list of delivery method options with status and pickup flags.
+ */
+export type DeliveryMethodLookupResponse = LookupSuccessResponse<DeliveryMethodLookupItem>;
+
+/**
+ * Redux state for discount lookup results.
+ * Includes async and pagination metadata for infinite-scroll or paginated dropdowns.
+ */
+export type DiscountLookupState = PaginatedLookupState<DiscountLookupItem>;
+
+/**
+ * Redux state for tax rate lookup results.
+ * Includes async and pagination metadata for infinite-scroll or paginated dropdowns.
+ */
+export type TaxRateLookupState = PaginatedLookupState<TaxRateLookupItem>;
+
+/**
+ * Redux state for delivery method lookup results.
+ * Includes async and pagination metadata for infinite-scroll or paginated dropdowns.
+ */
+export type DeliveryMethodLookupState = PaginatedLookupState<DeliveryMethodLookupItem>;

@@ -3,6 +3,7 @@ import type {
   AddressByCustomerLookupResponse,
   CustomerLookupQuery,
   CustomerLookupResponse,
+  DeliveryMethodLookupQueryParams, DeliveryMethodLookupResponse, DiscountLookupQueryParams, DiscountLookupResponse,
   GetBatchRegistryLookupParams,
   GetBatchRegistryLookupResponse,
   GetWarehouseLookupResponse,
@@ -10,6 +11,8 @@ import type {
   LotAdjustmentTypeLookupResponse,
   OrderTypeLookupQueryParams,
   OrderTypeLookupResponse, PaymentMethodLookupQueryParams, PaymentMethodLookupResponse,
+  TaxRateLookupQueryParams,
+  TaxRateLookupResponse,
 } from '@features/lookup/state/lookupTypes';
 import { lookupService } from '@services/lookupService';
 
@@ -208,3 +211,81 @@ export const fetchPaymentMethodLookup = createAsyncThunk<
     }
   }
 );
+
+/**
+ * Thunk to fetch a list of discounts for lookup UIs such as dropdowns or autocompletes.
+ *
+ * Supports keyword filtering and pagination through optional query parameters.
+ * Typically used to populate discount selectors in sales forms or configuration panels.
+ *
+ * Dispatch lifecycle:
+ * - `lookup/fetchDiscounts/pending`: when the request starts
+ * - `lookup/fetchDiscounts/fulfilled`: when data is successfully fetched
+ * - `lookup/fetchDiscounts/rejected`: when an error occurs
+ *
+ * @param params - Optional query parameters including `keyword`, `limit`, and `offset`.
+ * @returns A promise resolving to a {@link DiscountLookupResponse} containing lookup items and metadata.
+ */
+export const fetchDiscountLookupThunk = createAsyncThunk<
+  DiscountLookupResponse,
+  DiscountLookupQueryParams | undefined
+>('lookup/fetchDiscounts', async (params, thunkAPI) => {
+  try {
+    return await lookupService.fetchDiscountLookup(params);
+  } catch (error) {
+    console.error('Failed to fetch discounts:', error);
+    return thunkAPI.rejectWithValue(error);
+  }
+});
+
+/**
+ * Thunk to fetch a list of tax rates for use in lookup UIs such as dropdowns or configuration panels.
+ *
+ * Supports keyword filtering and pagination via query parameters.
+ * Useful in billing, checkout, or tax setup workflows.
+ *
+ * Dispatch lifecycle:
+ * - `lookup/fetchTaxRates/pending`: when the request is initiated
+ * - `lookup/fetchTaxRates/fulfilled`: when the response is successful
+ * - `lookup/fetchTaxRates/rejected`: if the request fails
+ *
+ * @param params - Optional query parameters like `keyword`, `limit`, and `offset`.
+ * @returns A promise resolving to a {@link TaxRateLookupResponse} containing tax rate records and paging info.
+ */
+export const fetchTaxRateLookupThunk = createAsyncThunk<
+  TaxRateLookupResponse,
+  TaxRateLookupQueryParams | undefined
+>('lookup/fetchTaxRates', async (params, thunkAPI) => {
+  try {
+    return await lookupService.fetchTaxRateLookup(params);
+  } catch (error) {
+    console.error('Failed to fetch tax rates:', error);
+    return thunkAPI.rejectWithValue(error);
+  }
+});
+
+/**
+ * Thunk to fetch a list of delivery methods for lookup UIs (e.g., order forms, shipping setup).
+ *
+ * Supports filtering by keyword and pickup flag (`isPickupLocation`) along with pagination.
+ * Typically used in logistics, shipping, or order configuration flows.
+ *
+ * Dispatch lifecycle:
+ * - `lookup/fetchDeliveryMethods/pending`: dispatched at the start of the request
+ * - `lookup/fetchDeliveryMethods/fulfilled`: dispatched on successful response
+ * - `lookup/fetchDeliveryMethods/rejected`: dispatched if an error occurs
+ *
+ * @param params - Optional filters including `keyword`, `isPickupLocation`, `limit`, and `offset`.
+ * @returns A promise resolving to a {@link DeliveryMethodLookupResponse} with delivery method data and metadata.
+ */
+export const fetchDeliveryMethodLookupThunk = createAsyncThunk<
+  DeliveryMethodLookupResponse,
+  DeliveryMethodLookupQueryParams | undefined
+>('lookup/fetchDeliveryMethods', async (params, thunkAPI) => {
+  try {
+    return await lookupService.fetchDeliveryMethodLookup(params);
+  } catch (error) {
+    console.error('Failed to fetch delivery methods:', error);
+    return thunkAPI.rejectWithValue(error);
+  }
+});
