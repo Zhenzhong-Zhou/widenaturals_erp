@@ -10,10 +10,26 @@ const { getFullName } = require('../utils/name-utils');
 const { formatAddress } = require('../utils/string-utils');
 
 /**
- * Transforms an array of raw batch registry rows into lookup-friendly shapes.
+ * Transforms a raw batch registry row into a lookup-friendly shape.
  *
  * @param {object} row - A single row from the DB result.
- * @returns {object} - Array of transformed lookup objects.
+ * @param {string} row.batch_registry_id - ID of the batch registry entry.
+ * @param {string} row.batch_type - Type of batch (e.g., product, packaging).
+ * @param {string} [row.product_batch_id] - ID of the associated product batch.
+ * @param {string} [row.product_lot_number] - Product batch lot number.
+ * @param {string} [row.product_expiry_date] - Product batch expiry date.
+ * @param {string} [row.product_name] - Name of the product (used by getProductDisplayName).
+ * @param {string} [row.brand] - Product brand (used by getProductDisplayName).
+ * @param {string} [row.sku] - SKU value (used by getProductDisplayName).
+ * @param {string} [row.country_code] - Country code for product (used by getProductDisplayName).
+ * @param {string} [row.size_label] - Size label for product (used by getProductDisplayName).
+ * @param {string} [row.packaging_material_batch_id] - ID of the packaging material batch.
+ * @param {string} [row.material_lot_number] - Packaging material lot number.
+ * @param {string} [row.material_expiry_date] - Packaging material expiry date.
+ * @param {string} [row.material_snapshot_name] - Snapshot name of material batch.
+ * @param {string} [row.received_label_name] - Received label name for packaging material.
+ *
+ * @returns {object} Transformed lookup object with optional product and packaging material details.
  */
 const transformBatchRegistryLookupItem = (row) => {
   return cleanObject({
@@ -52,14 +68,23 @@ const transformBatchRegistryPaginatedLookupResult = (paginatedResult) =>
   });
 
 /**
- * Transforms raw warehouse lookup rows into lookup-compatible format.
+ * Transforms raw warehouse lookup rows into a lookup-compatible format.
  *
- * @param {Array<Object>} rows - Raw rows from the warehouse lookup query
- * @returns {Array<Object>} Transformed lookup items
+ * @param {Array<Object>} rows - Raw rows from the warehouse lookup query.
+ * @param {string} rows[].warehouse_id - Unique identifier of the warehouse.
+ * @param {string} rows[].warehouse_name - Display name of the warehouse.
+ * @param {string} rows[].location_name - Name of the associated location.
+ * @param {string} [rows[].warehouse_type_name] - Optional warehouse type name to include in label.
+ * @param {string} rows[].location_id - ID of the associated location (used in metadata).
+ *
+ * @returns {Array<Object>} Transformed lookup items with shape:
+ *   - value: string (warehouse ID)
+ *   - label: string (formatted name + location + type)
+ *   - metadata: { locationId: string }
  */
 const transformWarehouseLookupRows = (rows) => {
   if (!Array.isArray(rows)) return [];
-
+  
   return rows.map((row) => ({
     value: row.warehouse_id,
     label: `${row.warehouse_name} (${row.location_name}${row.warehouse_type_name ? ' - ' + row.warehouse_type_name : ''})`,
@@ -71,11 +96,16 @@ const transformWarehouseLookupRows = (rows) => {
 
 /**
  * Transforms a result set of lot adjustment type records into lookup-friendly options,
- * applying formatting for value, label, and associated action type.
+ * formatting each item with value, label, and associated action type ID.
  *
- * @param {Array<Object>} rows - Raw query result rows from lot_adjustment_types join.
- * @returns {Array<{ value: string, label: string, actionTypeId: string }>}
- * Transformed options for use in dropdowns or autocomplete components.
+ * @param {Array<{
+ *   lot_adjustment_type_id: string,
+ *   name: string,
+ *   inventory_action_type_id: string
+ * }>} rows - Raw query result rows from lot_adjustment_types join.
+ *
+ * @returns {Array<{ value: string, label: string, actionTypeId: string }>} Transformed options
+ * suitable for use in dropdowns, autocomplete inputs, or select components.
  *
  * @example
  * const transformed = transformLotAdjustmentLookupOptions(rows);
@@ -86,7 +116,7 @@ const transformWarehouseLookupRows = (rows) => {
  */
 const transformLotAdjustmentLookupOptions = (rows) => {
   if (!Array.isArray(rows)) return [];
-
+  
   return rows.map((row) => ({
     value: row.lot_adjustment_type_id,
     label: row.name,
@@ -218,14 +248,7 @@ const transformOrderTypeLookupResult = (rows) => {
  * @param {string} row.name - Display name of the payment method
  * @returns {{ id: string, label: string }} - Transformed dropdown option
  */
-const transformPaymentMethodLookup = (row) => {
-  const result = {
-    id: row.id,
-    label: row.name,
-  };
-
-  return cleanObject(result);
-};
+const transformPaymentMethodLookup = (row) => transformIdNameToIdLabel(row);
 
 /**
  * Transforms a paginated raw payment method result into a dropdown-compatible format.

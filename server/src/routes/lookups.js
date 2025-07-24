@@ -54,7 +54,7 @@ const router = express.Router();
  */
 router.get(
   '/batch-registry',
-  authorize(['view_batch_registry_lookup']),
+  authorize([PERMISSIONS.VIEW_BATCH_REGISTRY]),
   createQueryNormalizationMiddleware(
     '',
     [],
@@ -103,7 +103,7 @@ router.get(
  */
 router.get(
   '/warehouses',
-  authorize(['view_warehouse_lookup']),
+  authorize([PERMISSIONS.VIEW_WAREHOUSE]),
   createQueryNormalizationMiddleware(
     '',
     [],
@@ -137,7 +137,7 @@ router.get(
  */
 router.get(
   '/lot-adjustment-types',
-  authorize(['view_lot_adjustment_type_lookup']),
+  authorize([PERMISSIONS.VIEW_LOT_ADJUSTMENT_TYPE]),
   createQueryNormalizationMiddleware(
     '',
     [],
@@ -180,7 +180,7 @@ router.get(
  */
 router.get(
   '/customers',
-  authorize(['view_customer_lookup']),
+  authorize([PERMISSIONS.VIEW_CUSTOMER]),
   createQueryNormalizationMiddleware(
     '', // moduleKey (optional for sorting)
     [], // arrayKeys (e.g., ['statusId'] if needed)
@@ -241,7 +241,7 @@ router.get(
  */
 router.get(
   '/address/by-customer',
-  authorize(['view_customer_address_lookup']),
+  authorize([PERMISSIONS.VIEW_CUSTOMER_ADDRESS]),
   createQueryNormalizationMiddleware(
     '',
     ['customerId'],
@@ -281,7 +281,7 @@ router.get(
  */
 router.get(
   '/order-types',
-  authorize(['view_order_type_lookup']),
+  authorize([PERMISSIONS.VIEW_ORDER_TYPE]),
   createQueryNormalizationMiddleware('', [], [], orderTypeLookupQuerySchema),
   sanitizeFields(['keyword']),
   validate(
@@ -325,7 +325,7 @@ router.get(
  */
 router.get(
   '/payment-methods',
-  authorize(['view_payment_method_lookup']),
+  authorize([PERMISSIONS.VIEW_PAYMENT_METHOD]),
   createQueryNormalizationMiddleware(
     '', // moduleKey (optional for sorting)
     [], // arrayKeys (e.g., ['statusId'] if needed)
