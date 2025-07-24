@@ -25,9 +25,16 @@ const fetchPermissions = async (roleId) => {
   try {
     const cachedData = await redisClient.get(cacheKey);
     if (cachedData) {
-      return JSON.parse(cachedData);
+      const parsed = JSON.parse(cachedData);
+      
+      // Normalize to match expected shape
+      return {
+        roleName: parsed.roleName ?? parsed.role_name,
+        permissions: parsed.permissions,
+      };
     }
-
+    
+    // Fetch from DB/service if cache misses
     const { role_name, permissions } = await getRolePermissionsByRoleId(roleId);
 
     const dataToCache = { roleName: role_name, permissions };

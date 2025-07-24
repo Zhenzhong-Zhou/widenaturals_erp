@@ -189,8 +189,8 @@ const taxRateLookupQuerySchema = Joi.object({
  * @type {Joi.ObjectSchema}
  */
 const deliveryMethodLookupQuerySchema = Joi.object({
+  isPickupLocation: createBooleanFlag('Is Pickup Location'),
   ...baseLookupQuerySchema,
-  isPickupLocation: Joi.boolean().optional(),
 });
 
 module.exports = {

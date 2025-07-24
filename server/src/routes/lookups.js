@@ -491,7 +491,7 @@ router.get(
     '',                   // moduleKey (not needed here)
     [],                   // arrayKeys
     ['isPickupLocation'], // booleanKeys
-    ['keyword', 'isPickupLocation'], // filterKeys
+    deliveryMethodLookupQuerySchema, // filterKeys
     { includePagination: true, includeSorting: false }
   ),
   sanitizeFields(['keyword']),
