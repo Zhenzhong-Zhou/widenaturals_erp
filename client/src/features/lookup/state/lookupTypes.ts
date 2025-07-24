@@ -338,7 +338,7 @@ export type PaymentMethodLookupResponse = LookupSuccessResponse<PaymentMethodLoo
  * Redux state for payment method lookup results.
  * Includes async and pagination metadata for infinite-scroll or paginated dropdowns.
  */
-export type PaymentMethodLookupState = PaginatedLookupState<LookupOption>;
+export type PaymentMethodLookupState = PaginatedLookupState<PaymentMethodLookupItem>;
 
 /**
  * Query parameters for fetching discount lookup results.

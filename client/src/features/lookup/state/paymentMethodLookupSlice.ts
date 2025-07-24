@@ -1,18 +1,12 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type {
-  PaymentMethodLookupResponse,
-  PaymentMethodLookupState
+import {
+  createInitialPaginatedLookupState, type PaymentMethodLookupItem,
+  type PaymentMethodLookupResponse,
+  type PaymentMethodLookupState,
 } from '@features/lookup/state/lookupTypes';
 import { fetchPaymentMethodLookup } from './lookupThunks';
 
-const initialState: PaymentMethodLookupState = {
-  data: [],
-  loading: false,
-  error: null,
-  offset: 0,
-  limit: 10,
-  hasMore: true,
-};
+const initialState: PaymentMethodLookupState = createInitialPaginatedLookupState<PaymentMethodLookupItem>();
 
 export const paymentMethodLookupSlice = createSlice({
   name: 'paymentMethodLookup',
@@ -34,13 +28,7 @@ export const paymentMethodLookupSlice = createSlice({
         (state, action: PayloadAction<PaymentMethodLookupResponse>) => {
           state.loading = false;
           state.error = null;
-          state.data = [
-            ...(state.data ?? []),
-            ...action.payload.items.map((item) => ({
-              value: item.id,
-              label: item.label,
-            })),
-          ];
+          state.data = action.payload.items;
           state.offset = (action.payload.offset ?? 0) + action.payload.items.length;
           state.limit = action.payload.limit;
           state.hasMore = action.payload.hasMore;

@@ -2,33 +2,28 @@ import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchPaymentMethodLookup,
+  selectPaymentMethodDropdownOptions,
+  selectPaymentMethodLookupLoading,
+  selectPaymentMethodLookupError,
+  selectPaymentMethodLookupMeta,
   type PaymentMethodLookupQueryParams,
-  selectPaymentMethodError,
-  selectPaymentMethodHasMore,
-  selectPaymentMethodLoading,
-  selectPaymentMethodOffset,
-  selectPaymentMethodOptions,
 } from '@features/lookup/state';
 import { resetPaymentMethodLookup } from '@features/lookup/state/paymentMethodLookupSlice';
 
 /**
- * Hook to access payment method lookup state from the Redux store.
+ * Custom hook to access payment method lookup state from Redux.
  *
- * Returns loading status, error, options, pagination info,
- * and dispatchable functions to fetch or reset lookup results.
+ * Provides dropdown options, loading/error states, pagination info,
+ * and memoized functions to fetch or reset lookup results.
  */
 const usePaymentMethodLookup = () => {
   const dispatch = useAppDispatch();
   
-  const options = useAppSelector(selectPaymentMethodOptions);
-  const loading = useAppSelector(selectPaymentMethodLoading);
-  const error = useAppSelector(selectPaymentMethodError);
-  const hasMore = useAppSelector(selectPaymentMethodHasMore);
-  const offset = useAppSelector(selectPaymentMethodOffset);
+  const options = useAppSelector(selectPaymentMethodDropdownOptions);
+  const loading = useAppSelector(selectPaymentMethodLookupLoading);
+  const error = useAppSelector(selectPaymentMethodLookupError);
+  const { hasMore, offset } = useAppSelector(selectPaymentMethodLookupMeta);
   
-  /**
-   * Memoized fetch thunk dispatcher.
-   */
   const fetch = useCallback(
     (params?: PaymentMethodLookupQueryParams) => {
       dispatch(fetchPaymentMethodLookup(params));
@@ -36,16 +31,10 @@ const usePaymentMethodLookup = () => {
     [dispatch]
   );
   
-  /**
-   * Memoized reset action dispatcher.
-   */
   const reset = useCallback(() => {
     dispatch(resetPaymentMethodLookup());
   }, [dispatch]);
   
-  /**
-   * Return memoized lookup object.
-   */
   return useMemo(
     () => ({
       options,
