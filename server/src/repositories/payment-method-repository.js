@@ -31,7 +31,8 @@ const getPaymentMethodLookup = async ({
   const queryText = `
     SELECT
       pm.id,
-      pm.name
+      pm.name,
+      pm.is_active
     FROM ${tableName}
     WHERE ${whereClause}
   `;

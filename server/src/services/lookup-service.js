@@ -40,7 +40,8 @@ const {
   filterOrderTypeLookupResultByPermission,
 } = require('../business/order-type-business');
 const {
-  enforcePaymentMethodAccessControl,
+  enforcePaymentMethodAccessControl, evaluatePaymentMethodLookupAccessControl,
+  enforcePaymentMethodLookupVisibilityRules, enrichPaymentMethodOption,
 } = require('../business/payment-method-business');
 const {
   getPaymentMethodLookup,
@@ -373,46 +374,60 @@ const fetchOrderTypeLookupService = async ({ filters = {} }, user) => {
 };
 
 /**
- * Service function to retrieve a paginated and filtered list of payment methods
- * for dropdown or lookup components, with permission-aware filtering and transformation.
+ * Fetches a paginated list of payment methods for use in dropdowns or lookup UIs.
  *
- * @param {Object} user - Authenticated user object
- * @param {Object} options
- * @param {Object} [options.filters={}] - Query filters (e.g., keyword)
- * @param {number} [options.limit=50] - Number of records per page
- * @param {number} [options.offset=0] - Pagination offset
- * @returns {Promise<{ items: { label: string, value: string }[], hasMore: boolean }>}
+ * This service:
+ * - Evaluates user permissions to determine visibility scope (e.g., active-only filtering)
+ * - Applies enforced filtering rules to restrict access where necessary
+ * - Enriches rows with flags like `isDisabled` for UI state handling
+ * - Transforms raw DB records into `{ label, value }` format for frontend components
+ *
+ * @param {import('@types/custom').User} user - Authenticated user object (must contain ID and permission context)
+ * @param {Object} options - Lookup query options
+ * @param {Object} [options.filters={}] - Optional filter parameters (e.g., keyword, isActive)
+ * @param {number} [options.limit=50] - Number of records to return
+ * @param {number} [options.offset=0] - Record offset for pagination
+ * @returns {Promise<{ items: { label: string, value: string, isDisabled?: boolean }[], hasMore: boolean }>}
+ *   Transformed paginated result suitable for lookup/autocomplete components.
+ *
+ * @throws {AppError} When lookup fails due to service error or permission issues.
  */
 const fetchPaginatedPaymentMethodLookupService = async (
   user,
   { filters = {}, limit = 50, offset = 0 }
 ) => {
   try {
-    // 1. Enforce business-layer rules on filters (e.g., isActive, keyword scope)
-    const adjustedFilters = await enforcePaymentMethodAccessControl(
-      user,
-      filters
-    );
-
-    // 2. Fetch raw-paginated records from repository
-    const paginatedResult = await getPaymentMethodLookup({
+    // Step 1: Evaluate user access control flags
+    const userAccess = await evaluatePaymentMethodLookupAccessControl(user);
+    
+    // Step 2: Enforce visibility restrictions based on access level
+    const adjustedFilters = enforcePaymentMethodLookupVisibilityRules(filters, userAccess);
+    
+    // Step 3: Fetch raw paginated payment method records
+    const { data = [], pagination = {} } = await getPaymentMethodLookup({
       filters: adjustedFilters,
       limit,
       offset,
     });
-
-    // 3. Transform raw rows to UI-friendly format
-    return transformPaymentMethodPaginatedLookupResult(paginatedResult);
+    
+    // Step 4: Enrich each row with status-related flags for UI logic
+    const enrichedRows = data.map(enrichPaymentMethodOption);
+    
+    // Step 5: Transform for dropdown-compatible output
+    return transformPaymentMethodPaginatedLookupResult(
+      { data: enrichedRows, pagination },
+      userAccess
+    );
   } catch (err) {
-    logSystemException(err, 'Failed to fetch payment method lookup', {
+    logSystemException(err, 'Failed to fetch paginated payment method lookup', {
       context: 'lookup-service/fetchPaginatedPaymentMethodLookupService',
       userId: user?.id,
       filters,
       limit,
       offset,
     });
-
-    throw AppError.serviceError('Unable to retrieve payment method lookup.');
+    
+    throw AppError.serviceError('Unable to fetch payment method options.');
   }
 };
 

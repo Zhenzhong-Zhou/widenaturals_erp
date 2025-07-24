@@ -1,34 +1,43 @@
 /**
  * @fileoverview
- * Utility to build dynamic SQL WHERE clause and parameter array
- * for filtering payment methods (e.g., dropdowns, paginated queries).
+ * Utility to build a dynamic SQL WHERE clause and parameter array
+ * for filtering payment methods (used in dropdowns, paginated tables, and search).
+ *
+ * Supports filtering by name, code, status, creation metadata, and keyword-based fuzzy search.
  */
 
 const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
 
 /**
- * Dynamically builds an SQL WHERE clause and parameter list for filtering payment methods.
+ * Dynamically constructs an SQL WHERE clause and parameter list for filtering payment methods.
  *
- * Supports filtering by name, code, status, and creation metadata.
- * Also allows flexible keyword-based filtering with internal control over scope.
+ * Supported filters include:
+ * - Exact matching on `name` or `code`
+ * - Keyword-based fuzzy search (`ILIKE`) against name, code, and description
+ * - Active/inactive status
+ * - Filtering by creator or updater
+ * - Date range filtering on `created_at`
  *
- * @param {Object} [filters={}] - Optional filters for payment methods.
- * @param {string} [filters.name] - Optional exact match on name.
- * @param {string} [filters.code] - Optional exact match on code.
- * @param {boolean} [filters.isActive] - Optional active/inactive flag.
+ * Internal flags allow the business layer to enforce additional constraints:
+ * - `_restrictKeywordToNameOnly`: restricts keyword search to name only
+ * - `_restrictToActiveOnly`: enforces `is_active = true` regardless of filters
+ *
+ * @param {Object} [filters={}] - Optional filter criteria.
+ * @param {string} [filters.name] - Exact match on name.
+ * @param {string} [filters.code] - Exact match on code.
+ * @param {boolean} [filters.isActive] - Filter by active/inactive status.
  * @param {string} [filters.createdBy] - Filter by creator user ID.
  * @param {string} [filters.updatedBy] - Filter by updater user ID.
- * @param {string} [filters.keyword] - Keyword search (ILIKE) against name, code, and description.
- * @param {string} [filters.createdAfter] - Filter by created_at >=.
- * @param {string} [filters.createdBefore] - Filter by created_at <=.
- * @param {boolean} [filters._restrictKeywordToNameOnly] - Internal use only:
- *   If true, restricts `keyword` search to `name ILIKE` only. This flag is set by the business layer
- *   based on permission checks and should not be passed by external clients.
+ * @param {string} [filters.keyword] - Fuzzy search keyword (ILIKE) on name/code/description.
+ * @param {string} [filters.createdAfter] - Filter by created_at >= (ISO timestamp).
+ * @param {string} [filters.createdBefore] - Filter by created_at <= (ISO timestamp).
+ * @param {boolean} [filters._restrictKeywordToNameOnly] - Internal use only: restricts keyword match to name.
+ * @param {boolean} [filters._restrictToActiveOnly] - Internal use only: forces `is_active = true` regardless of `filters.isActive`.
  *
- * @returns {{ whereClause: string, params: any[] }} - SQL-compatible WHERE clause and bound parameters.
+ * @returns {{ whereClause: string, params: any[] }} SQL WHERE clause and parameter array.
  *
- * @throws {AppError} - Throws if an error occurs during filter construction.
+ * @throws {AppError} If an error occurs while constructing the WHERE clause or parameter list.
  */
 const buildPaymentMethodFilter = (filters = {}) => {
   try {
@@ -48,12 +57,6 @@ const buildPaymentMethodFilter = (filters = {}) => {
       paramIndex++;
     }
 
-    if (filters.isActive !== undefined) {
-      conditions.push(`pm.is_active = $${paramIndex}`);
-      params.push(filters.isActive);
-      paramIndex++;
-    }
-
     if (filters.createdBy) {
       conditions.push(`pm.created_by = $${paramIndex}`);
       params.push(filters.createdBy);
@@ -65,21 +68,27 @@ const buildPaymentMethodFilter = (filters = {}) => {
       params.push(filters.updatedBy);
       paramIndex++;
     }
-
+    
     if (filters.keyword) {
-      if (filters._restrictKeywordToNameOnly) {
-        conditions.push(`pm.name ILIKE $${paramIndex}`);
-      } else {
-        conditions.push(`(
-          pm.name ILIKE $${paramIndex} OR
-          pm.code ILIKE $${paramIndex} OR
-          pm.description ILIKE $${paramIndex}
-        )`);
-      }
-      params.push(`%${filters.keyword}%`);
+      const keywordClause = filters._restrictKeywordToNameOnly
+        ? `pm.name ILIKE $${paramIndex}`
+        : `(pm.name ILIKE $${paramIndex} OR pm.code ILIKE $${paramIndex} OR pm.description ILIKE $${paramIndex})`;
+      conditions.push(keywordClause);
+      params.push(`${filters.keyword.trim().replace(/\s+/g, ' ')}%`);
       paramIndex++;
     }
 
+    // Enforce is_active filter
+    if (filters._restrictToActiveOnly) {
+      // Force active filter
+      conditions.push(`pm.is_active = true`);
+    } else if (filters.isActive !== undefined) {
+      // Allow dynamic filtering by isActive only when not restricted
+      conditions.push(`pm.is_active = $${paramIndex}`);
+      params.push(filters.isActive);
+      paramIndex++;
+    }
+    
     if (filters.createdAfter) {
       conditions.push(`pm.created_at >= $${paramIndex}`);
       params.push(filters.createdAfter);

@@ -243,28 +243,49 @@ const transformOrderTypeLookupResult = (rows) => {
 /**
  * Transforms a single raw payment method row into a dropdown option format.
  *
- * @param {Object} row - Raw DB row from payment_methods query
- * @param {string} row.id - UUID of the payment method
- * @param {string} row.name - Display name of the payment method
- * @returns {{ id: string, label: string }} - Transformed dropdown option
+ * Adds flags like `isActive` based on user permissions to support UI logic,
+ * such as disabling inactive options for users with elevated access.
+ *
+ * @param {Object} row - Raw DB row from the `payment_methods` query.
+ * @param {string} row.id - UUID of the payment method.
+ * @param {string} row.name - Display name of the payment method.
+ * @param {boolean} row.is_active - Whether the payment method is active.
+ * @param {Object} userAccess - Evaluated user permission result.
+ * @param {boolean} userAccess.canViewAllStatuses - Whether the user can see inactive options.
+ * @returns {{ value: string, label: string, isActive?: boolean }} Dropdown-compatible option.
  */
-const transformPaymentMethodLookup = (row) => transformIdNameToIdLabel(row);
+const transformPaymentMethodLookup = (row, userAccess) => {
+  const base = transformIdNameToIdLabel(row);
+  const flagSubset = includeFlagsBasedOnAccess(row, userAccess);
+  
+  return {
+    ...base,
+    ...flagSubset,
+  };
+};
 
 /**
- * Transforms a paginated raw payment method result into a dropdown-compatible format.
+ * Transforms a paginated payment method result into a dropdown-compatible format.
  *
- * Each row will be transformed using `transformPaymentMethodLookup`, returning a list
- * of `{ label, value }` items and a `hasMore` flag for pagination.
+ * Each row is transformed using `transformPaymentMethodLookup`, adding optional flags like
+ * `isActive` for elevated users. Used for paginated dropdown components.
  *
- * @param {Object} paginatedResult - Raw-paginated query result
- * @param {Object[]} paginatedResult.rows - Array of payment method rows
- * @param {boolean} paginatedResult.hasMore - Whether more results exist
- * @returns {{ items: { label: string, value: string }[], hasMore: boolean }} Transformed result
+ * @param {Object} paginatedResult - Raw paginated DB query result.
+ * @param {Object[]} paginatedResult.rows - Array of raw payment method rows.
+ * @param {boolean} paginatedResult.hasMore - Whether more results are available for pagination.
+ * @param {Object} userAccess - Evaluated user permission result.
+ * @param {boolean} userAccess.canViewAllStatuses - Whether the user can see inactive options.
+ * @returns {{
+ *   items: Array<{ value: string, label: string, isActive?: boolean }>,
+ *   hasMore: boolean
+ * }} Transformed dropdown-compatible result with pagination support.
  */
-const transformPaymentMethodPaginatedLookupResult = (paginatedResult) =>
-  transformPaginatedResult(paginatedResult, transformPaymentMethodLookup, {
-    includeLoadMore: true,
-  });
+const transformPaymentMethodPaginatedLookupResult = (paginatedResult, userAccess) =>
+  transformPaginatedResult(
+    paginatedResult,
+    (row) => transformPaymentMethodLookup(row, userAccess),
+    { includeLoadMore: true }
+  );
 
 /**
  * Transforms an enriched discount row into a UI-friendly structure for dropdowns.
