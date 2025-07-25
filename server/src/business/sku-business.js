@@ -4,6 +4,7 @@ const { checkPermissions, resolveUserPermissionContext } = require('../services/
 const { getStatusId } = require('../config/status-cache');
 const { logSystemException } = require('../utils/system-logger');
 const { PERMISSIONS } = require('../utils/constants/domain/sku-constants');
+const { getGenericIssueReason } = require('../utils/enrich-utils');
 
 /**
  * Resolves the allowed product/SKU status IDs for the given user.
@@ -194,6 +195,64 @@ const filterSkuLookupQuery = (query, userAccess, activeStatusId) => {
   }
 };
 
+/**
+ * Enriches a SKU row with flags for whether it and its related entities
+ * (product, inventory, batch) are in expected "normal" status.
+ *
+ * @param {Object} row - The raw SKU row with status fields:
+ *   {
+ *     sku_status_id,
+ *     product_status_id,
+ *     warehouse_status_id,
+ *     location_status_id,
+ *     batch_status_id,
+ *     ...
+ *   }
+ * @param {Object} expectedStatusIds - Object containing expected status IDs:
+ *   {
+ *     sku: string,
+ *     product: string,
+ *     warehouse: string,
+ *     location: string,
+ *     batch: string
+ *   }
+ * @returns {Object} Enriched row with flags like `isSkuActive`, `isInventoryNormal`, `isAbnormal`, etc.
+ */
+const enrichSkuRow = (row, expectedStatusIds) => {
+  const {
+    sku_status_id,
+    product_status_id,
+    warehouse_status_id,
+    location_status_id,
+    batch_status_id,
+  } = row;
+  
+  const statusChecks = {
+    skuStatusValid: sku_status_id === expectedStatusIds.sku,
+    productStatusValid: product_status_id === expectedStatusIds.product,
+    warehouseInventoryValid:
+      !warehouse_status_id || warehouse_status_id === expectedStatusIds.warehouse,
+    locationInventoryValid:
+      !location_status_id || location_status_id === expectedStatusIds.location,
+    batchStatusValid:
+      !batch_status_id || batch_status_id === expectedStatusIds.batch,
+  };
+  
+  const isNormal = Object.values(statusChecks).every(Boolean);
+  
+  return {
+    ...row,
+    isNormal,
+    ...(isNormal
+      ? {}
+      : {
+        issueReasons: Object.entries(statusChecks)
+          .filter(([_, valid]) => !valid)
+          .map(([key]) => getGenericIssueReason(key)),
+      }),
+  };
+};
+
 module.exports = {
   getAllowedStatusIdsForUser,
   getAllowedPricingTypesForUser,
@@ -201,4 +260,5 @@ module.exports = {
   evaluateSkuFilterAccessControl,
   enforceSkuLookupVisibilityRules,
   filterSkuLookupQuery,
+  enrichSkuRow,
 };

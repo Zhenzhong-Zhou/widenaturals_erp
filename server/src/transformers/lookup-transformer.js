@@ -435,37 +435,62 @@ const transformDeliveryMethodPaginatedLookupResult = (
  * The label is constructed using the product name and SKU, optionally including
  * the barcode for better identification in long lists.
  *
+ * If `userAccess` is provided, additional flags such as `isAbnormal`, `abnormalReasons`,
+ * `isActive`, and `isValidToday` may be conditionally included based on access level.
+ *
  * @param {Object} row - Raw row from the SKU lookup query.
- * @param {Object} [options] - Optional settings.
- * @param {boolean} [options.includeBarcode=false] - Whether to include barcode in the label.
- * @returns {Object|null} Transformed object with `id` and `label` fields, or null if row is invalid.
+ * @param {Object} [options] - Optional transformation settings.
+ * @param {boolean} [options.includeBarcode=false] - Whether to include the barcode in the label text.
+ * @param {Object} [userAccess] - User access context to conditionally include visibility or validation flags.
+ * @param {boolean} [userAccess.allowAllSkus] - Whether the user is allowed to view all SKUs regardless of status.
+ * @param {boolean} [userAccess.canViewAllStatuses] - Whether to expose isActive flag.
+ * @param {boolean} [userAccess.canViewAllValidLookups] - Whether to expose isValidToday flag.
+ *
+ * @returns {Object|null} - Transformed object with at least `id` and `label`, plus flags if permitted;
+ *                          or `null` if the input row is invalid.
  */
-const transformSkuLookupRow = (row, { includeBarcode = false } = {}) => {
-  if (!row) return null;
+const transformSkuLookupRow = (row, { includeBarcode = false} = {}, userAccess) => {
+  const base = transformIdNameToIdLabel({
+    id: row.id,
+    name: includeBarcode
+      ? `${row.product_name} (${row.sku}) • Barcode: ${row.barcode}`
+      : `${row.product_name} (${row.sku})`,
+  });
   
-  const productName = getProductDisplayName(row) || 'Unnamed';
+  const flagSubset = includeFlagsBasedOnAccess?.(row, userAccess);
   
-  // Format label: e.g., "NMN 3000 (PG-NM200-R-CN)" or "NMN 3000 (PG-NM200-R-CN) • Barcode: 8932948239823"
-  const label = includeBarcode
-    ? `${productName} (${row.sku}) • Barcode: ${row.barcode}`
-    : `${productName} (${row.sku})`;
-  
-  return transformIdNameToIdLabel({ id: row.id, name: label });
+  return cleanObject({
+    ...base,
+    ...flagSubset,
+  });
 };
 
 /**
  * Transforms a paginated SKU lookup result set into a frontend-friendly format
- * using `transformSkuLookupRow`, with support for `includeBarcode` in labels.
+ * using `transformSkuLookupRow`, with support for barcode inclusion and
+ * conditional flag visibility based on user access permissions.
  *
- * @param {Object} paginatedResult - Raw-paginated result from SKU lookup query.
- * @param {Object} [options] - Transformation options.
+ * Each row is transformed into an `{ id, label }` object, and optional flags
+ * such as `isAbnormal`, `abnormalReasons`, `isActive`, and `isValidToday` may be
+ * included depending on the `userAccess` context.
+ *
+ * @param {Object} paginatedResult - Raw paginated result from SKU lookup query,
+ *                                   expected to include `data` and `pagination` keys.
+ * @param {Object} [options={}] - Transformation options.
  * @param {boolean} [options.includeBarcode=false] - Whether to include barcode in each label.
- * @returns {Object} Transformed paginated result with `items` containing `{ id, label }`.
+ * @param {Object} [userAccess] - User access context to control visibility of additional flags.
+ * @param {boolean} [userAccess.allowAllSkus] - Whether the user can view SKUs regardless of validation state.
+ * @param {boolean} [userAccess.canViewAllStatuses] - Whether to expose `isActive`.
+ * @param {boolean} [userAccess.canViewAllValidLookups] - Whether to expose `isValidToday`.
+ *
+ * @returns {Object} Transformed paginated result with:
+ *   - `items`: array of `{ id, label, ...flags }`
+ *   - `hasMore`: boolean indicating whether more pages are available
  */
-const transformSkuPaginatedLookupResult = (paginatedResult, options = {}) =>
+const transformSkuPaginatedLookupResult = (paginatedResult, options = {}, userAccess) =>
   transformPaginatedResult(
     paginatedResult,
-    (row) => transformSkuLookupRow(row, options),
+    (row) => transformSkuLookupRow(row, options, userAccess),
     { includeLoadMore: true }
   );
 

@@ -72,7 +72,7 @@ const { getDeliveryMethodsLookup } = require('../repositories/delivery-method-re
 const {
   evaluateSkuFilterAccessControl,
   enforceSkuLookupVisibilityRules,
-  filterSkuLookupQuery
+  filterSkuLookupQuery, enrichSkuRow
 } = require('../business/sku-business');
 const { getSkuLookup } = require('../repositories/sku-repository');
 
@@ -654,32 +654,31 @@ const fetchPaginatedDeliveryMethodLookupService = async (
 };
 
 /**
- * Service function to fetch paginated SKU lookup options for use in sales, inventory, or internal order flows.
+ * Service function to fetch paginated SKU lookup options for use in sales, inventory,
+ * or internal order flows.
  *
  * This service performs the following steps:
- * 1. Evaluate the user's access control context (e.g., admin, internal order, backorder).
- * 2. Applies visibility rules based on permissions (e.g., allow inactive or out-of-stock SKUs).
- * 3. Applies stock/status-based filtering to the query if required.
- * 4. Queries the repository for matching SKU records with pagination support.
- * 5. Transforms raw result rows into simplified dropdown format: `{ id, label }`.
+ * 1. Loads expected status IDs used for filtering (SKU, product, inventory, batch).
+ * 2. Evaluate the user's access control context (e.g., admin, internal, backorder).
+ * 3. Applies visibility rules based on permissions (e.g., allow inactive/out-of-stock SKUs).
+ * 4. Builds stock/status-based query filters unless `allowAllSkus` is enabled.
+ * 5. Queries the repository for matching SKU records with pagination support.
+ * 6. Enriches rows with computed status flags (e.g., `isNormal`, `issueReasons`).
+ * 7. Transforms enriched rows into simplified dropdown format: `{ id, label, ...flags }`.
  *
  * @param {Object} user - Authenticated user object (must include permission context).
  * @param {Object} params - Query parameters and options.
- * @param {Object} [params.filters={}] - Optional filter conditions (e.g., keyword, brand, status).
- * @param {Object} [params.options={}] - Visibility and stock filtering options (e.g., requireAvailableStock).
- * @param {boolean} [options.includeBarcode=false] - Whether to include barcode in label text.
+ * @param {Object} [params.filters={}] - Optional filtering (e.g., keyword, brand, status).
+ * @param {Object} [params.options={}] - Visibility/permission flags (e.g., allowAllSkus).
  * @param {number} [params.limit=50] - Max number of records to return.
  * @param {number} [params.offset=0] - Number of records to skip for pagination.
  *
  * @returns {Promise<{
- *   items: {
- *     id: string,
- *     label: string
- *   }[],
+ *   items: { id: string, label: string, isAbnormal?: boolean, abnormalReasons?: string[] }[],
  *   hasMore: boolean
- * }>} - Returns formatted SKU options and pagination metadata.
+ * }>} - Transformed SKU options with pagination and conditional flags.
  *
- * @throws {AppError} - Throws a service-level error if the SKU lookup fails.
+ * @throws {AppError} - Throws if SKU lookup fails or required status IDs are missing.
  */
 const fetchPaginatedSkuLookupService = async (
   user,
@@ -687,27 +686,31 @@ const fetchPaginatedSkuLookupService = async (
 ) => {
   try {
     const { includeBarcode = false } = options || {};
-    const productStatusId = getStatusId('product_active');
     
-    // Step 1: Evaluate user access control
+    // Step 1: Load expected status IDs for validation logic
+    const activeStatusId = getStatusId('product_active'); // Used for both product & SKU
+    const inventoryStatusId = getStatusId('inventory_in_stock'); // Shared for warehouse and location inventory
+    const batchStatusId = getStatusId('batch_active');
+    
+    // Step 2: Evaluate user access control (permissions, overrides)
     const userAccess = await evaluateSkuFilterAccessControl(user);
     
-    // Step 2: Apply permission-based visibility rules to options
+    // Step 3: Apply permission-based visibility rules
     const enforcedOptions = enforceSkuLookupVisibilityRules(options, userAccess);
     
-    // Validation: Ensure productStatusId is present unless all SKUs are allowed
-    if (!enforcedOptions.allowAllSkus && !productStatusId) {
+    // Step 4: Validate required status IDs if not showing all SKUs
+    if (!enforcedOptions.allowAllSkus && !activeStatusId) {
       throw AppError.validationError(
-        'productStatusId is required when allowAllSkus is false'
+        'activeStatusId is required when allowAllSkus is false'
       );
     }
     
-    // Step 3: Apply access-based filtering to filters
+    // Step 5: Filter query input based on user role and visibility rules
     const queryFilters = filterSkuLookupQuery(filters, userAccess);
     
-    // Step 4: Execute the lookup query
+    // Step 6: Execute the query to fetch raw SKU records
     const rawResult = await getSkuLookup({
-      productStatusId,
+      productStatusId: activeStatusId,
       filters: queryFilters,
       options: enforcedOptions,
       limit,
@@ -716,10 +719,24 @@ const fetchPaginatedSkuLookupService = async (
     
     const { data = [], pagination = {} } = rawResult;
     
-    // Step 5: Transform into dropdown format
+    // Step 7: Add status flags (e.g., isNormal) to each row
+    const expectedStatusIds = {
+      sku: activeStatusId,
+      product: activeStatusId,
+      warehouse: inventoryStatusId,
+      location: inventoryStatusId,
+      batch: batchStatusId,
+    };
+    
+    const enrichedRows = data.map((row) =>
+      enrichSkuRow(row, expectedStatusIds)
+    );
+    
+    // Step 8: Transform into dropdown-compatible shape
     return transformSkuPaginatedLookupResult(
-      { data, pagination },
-      { includeBarcode }
+      { data: enrichedRows, pagination },
+      { includeBarcode },
+      userAccess
     );
   } catch (err) {
     logSystemException(err, 'Failed to fetch SKU lookup', {

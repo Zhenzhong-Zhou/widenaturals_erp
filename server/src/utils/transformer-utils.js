@@ -144,17 +144,32 @@ const transformIdNameToIdLabel = (row) => {
 };
 
 /**
- * Conditionally includes visibility flags (e.g., isActive, isValidToday)
- * based on user access permissions.
+ * Selectively includes diagnostic flags from an enriched lookup row
+ * based on the user's access control permissions.
  *
- * @param {Object} row - A transformed/enriched row (must contain the flags already).
- * @param {Object} userAccess - User access context with relevant visibility permissions.
- * @param {boolean} [userAccess.canViewAllStatuses] - Can view records of any status.
- * @param {boolean} [userAccess.canViewAllValidLookups] - Can view expired or future-dated rows.
- * @returns {Object} - Subset of flags to include in final payload.
+ * This function is typically used to expose additional metadata in
+ * lookup dropdown results, such as status flags and abnormal indicators,
+ * only when the user is authorized to view them.
+ *
+ * Flags may include:
+ * - `isActive`: Whether the record is currently active.
+ * - `isValidToday`: Whether the record is valid as of the current date.
+ * - `isNormal`: Whether the SKU passed all required status checks.
+ * - `issueReasons`: Human-readable reasons explaining abnormal state (if `isNormal` is false).
+ *
+ * @param {Object} row - An enriched row that may contain flags like `isActive`, `isValidToday`, `isNormal`, etc.
+ * @param {Object} userAccess - User access context determining which flags should be included.
+ * @param {boolean} [userAccess.canViewAllStatuses=false] - Whether to expose `isActive`.
+ * @param {boolean} [userAccess.canViewAllValidLookups=false] - Whether to expose `isValidToday`.
+ * @param {boolean} [userAccess.allowAllSkus=false] - Whether to expose `isNormal` and `issueReasons`.
+ * @returns {Object} A subset of diagnostic flags from the row, filtered by access permissions.
  */
 const includeFlagsBasedOnAccess = (row, userAccess = {}) => {
-  const { canViewAllStatuses = false, canViewAllValidLookups = false } = userAccess;
+  const {
+    canViewAllStatuses = false,
+    canViewAllValidLookups = false,
+    allowAllSkus = false,
+  } = userAccess;
   
   if (!row) return {};
   
@@ -168,8 +183,16 @@ const includeFlagsBasedOnAccess = (row, userAccess = {}) => {
     result.isValidToday = row.isValidToday ?? false;
   }
   
+  if (allowAllSkus && 'isNormal' in row) {
+    result.isNormal = row.isNormal;
+    
+    if (!row.isNormal && Array.isArray(row.issueReasons)) {
+      result.issueReasons = row.issueReasons;
+    }
+  }
+  
   return cleanObject(result);
-}
+};
 
 module.exports = {
   transformRows,

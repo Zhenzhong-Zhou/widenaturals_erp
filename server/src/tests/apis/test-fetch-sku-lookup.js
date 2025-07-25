@@ -45,7 +45,7 @@ const { fetchPaginatedSkuLookupService } = require('../../services/lookup-servic
     const serviceResult = await fetchPaginatedSkuLookupService(enrichedUser, {
       filters: {
         // keyword: 'nmn', // your test keyword
-        keyword: 'Algal Oil',
+        // keyword: 'Algal Oil',
       },
       options: {
         allowAllSkus: false,
