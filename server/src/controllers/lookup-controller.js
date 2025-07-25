@@ -8,7 +8,9 @@ const {
   fetchOrderTypeLookupService,
   fetchPaginatedPaymentMethodLookupService,
   fetchPaginatedDiscountLookupService,
-  fetchPaginatedTaxRateLookupService, fetchPaginatedDeliveryMethodLookupService,
+  fetchPaginatedTaxRateLookupService,
+  fetchPaginatedDeliveryMethodLookupService,
+  fetchPaginatedSkuLookupService,
 } = require('../services/lookup-service');
 const { logInfo } = require('../utils/logger-helper');
 
@@ -399,7 +401,7 @@ const getTaxRateLookupController = wrapAsync(async (req, res) => {
  * @access Protected
  * @permission `view_delivery_method_lookup` (enforced in service layer)
  *
- * @param {Express.Request} req - Express request object containing user and normalizedQuery
+ * @param {Express.Request} req - Express a request object containing user and normalizedQuery
  * @param {Express.Response} res - Express response object used to send JSON response
  *
  * @returns {void} Responds with JSON:
@@ -439,6 +441,70 @@ const getDeliveryMethodLookupController = wrapAsync(async (req, res) => {
   });
 });
 
+/**
+ * Controller for retrieving paginated SKU lookup options.
+ *
+ * This controller:
+ * - Enforces access control via service-layer permissions.
+ * - Applies visibility filters (e.g., restrict to in-stock/active SKUs based on user access).
+ * - Handles pagination via `limit` and `offset` query parameters.
+ * - Supports optional label formatting (e.g., include barcode).
+ * - Returns results formatted for dropdown usage.
+ *
+ * Expected query structure (via `req.normalizedQuery`):
+ * - filters: Optional object (e.g., { keyword, brand, category, statusId })
+ * - options: Optional object (e.g., { includeBarcode, requireAvailableStock })
+ * - limit: Optional number (default 50)
+ * - offset: Optional number (default 0)
+ *
+ * @route GET /lookups/skus
+ * @access Protected
+ * @permission `view_sku_lookup` (enforced in service layer)
+ *
+ * @param {Express.Request} req - Express a request object containing user and normalizedQuery
+ * @param {Express.Response} res - Express response object used to send JSON response
+ *
+ * @returns {void} Responds with JSON:
+ *  {
+ *    success: boolean,
+ *    message: string,
+ *    items: Array<{
+ *      id: string,
+ *      label: string
+ *    }>,
+ *    offset: number,
+ *    limit: number,
+ *    hasMore: boolean
+ *  }
+ */
+const getSkuLookupController = wrapAsync(async (req, res) => {
+  const user = req.user;
+  const {
+    filters = {},
+    options = {},
+    limit = 50,
+    offset = 0,
+  } = req.normalizedQuery;
+  
+  const dropdownResult = await fetchPaginatedSkuLookupService(user, {
+    filters,
+    options,
+    limit,
+    offset,
+  });
+  
+  const { items, hasMore } = dropdownResult;
+  
+  return res.status(200).json({
+    success: true,
+    message: 'Successfully retrieved SKU lookup',
+    items,
+    offset,
+    limit,
+    hasMore,
+  });
+});
+
 module.exports = {
   getBatchRegistryLookupController,
   getWarehouseLookupController,
@@ -450,4 +516,5 @@ module.exports = {
   getDiscountLookupController,
   getTaxRateLookupController,
   getDeliveryMethodLookupController,
+  getSkuLookupController,
 };

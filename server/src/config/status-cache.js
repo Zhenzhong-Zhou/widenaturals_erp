@@ -23,6 +23,11 @@ const STATUS_KEY_LOOKUP = [
   { key: 'warehouse_active', table: 'status', name: 'active' },
   { key: 'sku_active', table: 'status', name: 'active' },
   {
+    key: 'batch_active',
+    table: 'batch_status',
+    name: 'active',
+  },
+  {
     key: 'inventory_in_stock',
     table: 'inventory_status',
     name: 'in_stock',

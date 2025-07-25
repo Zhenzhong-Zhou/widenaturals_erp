@@ -193,6 +193,25 @@ const deliveryMethodLookupQuerySchema = Joi.object({
   ...baseLookupQuerySchema,
 });
 
+/**
+ * Joi validation schema for SKU lookup query parameters.
+ *
+ * Validates GET requests to the `/lookups/skus` endpoint.
+ * Inherits:
+ * - `filters.keyword`: Optional string for name/code/barcode search
+ * - `limit`: Optional number for pagination (default: 50)
+ * - `offset`: Optional number for pagination offset (default: 0)
+ *
+ * Additional supported option:
+ * - `includeBarcode`: Optional boolean to control label formatting (e.g., show barcode)
+ *
+ * @type {Joi.ObjectSchema}
+ */
+const skuLookupQuerySchema = Joi.object({
+  includeBarcode: createBooleanFlag('Include Barcode in Label'),
+  ...baseLookupQuerySchema,
+});
+
 module.exports = {
   batchRegistryLookupQuerySchema,
   warehouseLookupQuerySchema,
@@ -204,4 +223,5 @@ module.exports = {
   discountLookupQuerySchema,
   taxRateLookupQuerySchema,
   deliveryMethodLookupQuerySchema,
+  skuLookupQuerySchema,
 };

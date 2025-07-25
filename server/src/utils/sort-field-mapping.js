@@ -6,10 +6,10 @@ const SORTABLE_FIELDS = {
   skuProductCards: {
     brand: 'p.brand',
     category: 'p.category',
-    marketRegion: 'sku.market_region',
-    sizeLabel: 'sku.size_label',
+    marketRegion: 's.market_region',
+    sizeLabel: 's.size_label',
     keyword: 'p.name',
-    createdAt: 'sku.created_at',
+    createdAt: 's.created_at',
   },
   pricingRecords: {
     productName: 'pr.name',

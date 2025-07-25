@@ -18,26 +18,29 @@ const {
  * - Converts pagination fields (`page`, `limit`) to integers
  * - Sanitizes `sortBy` and `sortOrder` using module's sort map
  * - Normalizes specified keys into arrays (e.g., ['statusId', 'createdBy'])
- * - Converts specified keys to booleans (e.g., ['onlyWithAddress'])
- * - Injects only whitelisted filter keys into `filters` object
+ * - Converts specified keys to booleans in `filters` (e.g., ['onlyWithAddress'])
+ * - Converts specified option-level booleans into `options` (e.g., ['includeBarcode'])
+ * - Injects only whitelisted filter keys into the `filters` object
  * - Optionally includes pagination and sorting fields
  *
  * @param {string|null} moduleKey - Optional sort map key (e.g., 'orderTypeSortMap')
- * @param {string[]} arrayKeys - Query keys to normalize as arrays
- * @param {string[]} booleanKeys - Query keys to normalize as booleans
- * @param {string[]|object} filterKeysOrSchema - Explicit filter keys or Joi schema
+ * @param {string[]} arrayKeys - Query keys to normalize as arrays (added to `filters`)
+ * @param {string[]} booleanKeys - Query keys to normalize as booleans (added to `filters`)
+ * @param {string[]|object} filterKeysOrSchema - Explicit filter keys or Joi schema (used for `filters`)
  * @param {object} [options] - Optional config
- * @param {boolean} [options.includePagination=true] - Include pagination fields
- * @param {boolean} [options.includeSorting=true] - Include sorting fields
+ * @param {boolean} [options.includePagination=true] - Whether to include `limit`, `offset`, and `page`
+ * @param {boolean} [options.includeSorting=true] - Whether to include `sortBy` and `sortOrder`
+ * @param {string[]} [optionBooleanKeys=[]] - Query keys to normalize as booleans (added to `options`)
  *
- * @returns {function} Express middleware that sets `req.normalizedQuery`
+ * @returns {function} Express middleware that sets `req.normalizedQuery = { filters, options, ...pagination }`
  */
 const createQueryNormalizationMiddleware = (
   moduleKey = '',
   arrayKeys = [],
   booleanKeys = [],
   filterKeysOrSchema = [],
-  options = {}
+  options = {},
+  optionBooleanKeys = [],
 ) => {
   const finalOptions = {
     includePagination: true,
@@ -85,13 +88,23 @@ const createQueryNormalizationMiddleware = (
         if (result.length > 0) normalizedArrays[key] = result;
       }
     }
-
-    // 5. Normalize booleans
+    
+    // 5a. Filter-level booleans
     const normalizedBooleans = {};
     for (const key of booleanKeys) {
       if (trimmedQuery[key] != null) {
         const val = trimmedQuery[key];
         normalizedBooleans[key] =
+          val === true || val === 'true' || val === '1' || val === 1;
+      }
+    }
+    
+    // 5b. Option-level booleans
+    const normalizedOptionBooleans = {};
+    for (const key of optionBooleanKeys) {
+      if (trimmedQuery[key] != null) {
+        const val = trimmedQuery[key];
+        normalizedOptionBooleans[key] =
           val === true || val === 'true' || val === '1' || val === 1;
       }
     }
@@ -117,6 +130,9 @@ const createQueryNormalizationMiddleware = (
         ...filters,
         ...normalizedArrays,
         ...normalizedBooleans,
+      },
+      options: {
+        ...normalizedOptionBooleans,
       },
     };
 

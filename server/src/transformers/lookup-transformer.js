@@ -428,6 +428,47 @@ const transformDeliveryMethodPaginatedLookupResult = (
     { includeLoadMore: true }
   );
 
+/**
+ * Transforms a raw SKU lookup row from the database into a simplified object
+ * containing only `id` and `label`, for use in dropdowns or lookup UI components.
+ *
+ * The label is constructed using the product name and SKU, optionally including
+ * the barcode for better identification in long lists.
+ *
+ * @param {Object} row - Raw row from the SKU lookup query.
+ * @param {Object} [options] - Optional settings.
+ * @param {boolean} [options.includeBarcode=false] - Whether to include barcode in the label.
+ * @returns {Object|null} Transformed object with `id` and `label` fields, or null if row is invalid.
+ */
+const transformSkuLookupRow = (row, { includeBarcode = false } = {}) => {
+  if (!row) return null;
+  
+  const productName = getProductDisplayName(row) || 'Unnamed';
+  
+  // Format label: e.g., "NMN 3000 (PG-NM200-R-CN)" or "NMN 3000 (PG-NM200-R-CN) • Barcode: 8932948239823"
+  const label = includeBarcode
+    ? `${productName} (${row.sku}) • Barcode: ${row.barcode}`
+    : `${productName} (${row.sku})`;
+  
+  return transformIdNameToIdLabel({ id: row.id, name: label });
+};
+
+/**
+ * Transforms a paginated SKU lookup result set into a frontend-friendly format
+ * using `transformSkuLookupRow`, with support for `includeBarcode` in labels.
+ *
+ * @param {Object} paginatedResult - Raw-paginated result from SKU lookup query.
+ * @param {Object} [options] - Transformation options.
+ * @param {boolean} [options.includeBarcode=false] - Whether to include barcode in each label.
+ * @returns {Object} Transformed paginated result with `items` containing `{ id, label }`.
+ */
+const transformSkuPaginatedLookupResult = (paginatedResult, options = {}) =>
+  transformPaginatedResult(
+    paginatedResult,
+    (row) => transformSkuLookupRow(row, options),
+    { includeLoadMore: true }
+  );
+
 module.exports = {
   transformBatchRegistryPaginatedLookupResult,
   transformWarehouseLookupRows,
@@ -439,4 +480,5 @@ module.exports = {
   transformDiscountPaginatedLookupResult,
   transformTaxRatePaginatedLookupResult,
   transformDeliveryMethodPaginatedLookupResult,
+  transformSkuPaginatedLookupResult,
 };

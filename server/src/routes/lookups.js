@@ -10,6 +10,7 @@ const {
   getDiscountLookupController,
   getTaxRateLookupController,
   getDeliveryMethodLookupController,
+  getSkuLookupController,
 } = require('../controllers/lookup-controller');
 const authorize = require('../middlewares/authorize');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
@@ -24,7 +25,7 @@ const {
   orderTypeLookupQuerySchema,
   paymentMethodLookupQuerySchema,
   discountLookupQuerySchema,
-  taxRateLookupQuerySchema, deliveryMethodLookupQuerySchema,
+  taxRateLookupQuerySchema, deliveryMethodLookupQuerySchema, skuLookupQuerySchema,
 } = require('../validators/lookup-validators');
 const { PERMISSIONS } = require('../utils/constants/domain/lookup-constants');
 
@@ -505,6 +506,67 @@ router.get(
     'Invalid query parameters.'
   ),
   getDeliveryMethodLookupController
+);
+
+/**
+ * @route GET /skus
+ * @description
+ * Endpoint to fetch paginated SKU lookup options for dropdowns or selectors.
+ * Applies permission checks, query normalization, field sanitization, validation, and filtering.
+ *
+ * Middleware chain includes:
+ * - `authorize`: Enforces user permission to view SKU lookups
+ * - `createQueryNormalizationMiddleware`: Extracts and structures query parameters (e.g., filters, options, pagination)
+ * - `sanitizeFields`: Trims and sanitizes specific fields (e.g., `keyword`)
+ * - `validate`: Validates the normalized query against `skuLookupQuerySchema`
+ * - `getSkuLookupController`: Handles the request and returns formatted SKU options
+ *
+ * Query Parameters (after normalization):
+ * - `filters.keyword` — Optional search keyword to match product name, SKU, or barcode
+ * - `filters.brand` — Optional brand filter
+ * - `filters.category` — Optional category filter
+ * - `filters.countryCode` — Optional country code filter
+ * - `filters.statusId` — Optional SKU status ID filter
+ * - `options.includeBarcode` — Optional boolean to include barcode in dropdown labels
+ *
+ * Pagination:
+ * - `limit` — Page size (default: 50)
+ * - `offset` — Offset for pagination
+ *
+ * Response:
+ * - `200 OK` with JSON payload:
+ *   - `success` (boolean)
+ *   - `message` (string)
+ *   - `items` (array of `{ id, label }`)
+ *   - `limit` (number)
+ *   - `offset` (number)
+ *   - `hasMore` (boolean)
+ *
+ * @access Protected
+ * @permission Requires `view_sku_lookup` permission
+ */
+router.get(
+  '/skus',
+  authorize([PERMISSIONS.VIEW_SKU]),
+  createQueryNormalizationMiddleware(
+    '',                          // moduleKey
+    [],                           // arrayKeys
+    [],                         // booleanKeys for filters
+    ['keyword'],           // filterKeys
+    { includePagination: true, includeSorting: false },
+    ['includeBarcode']      // optionBooleanKeys (normalized into `options`)
+  ),
+  sanitizeFields(['keyword']),
+  validate(
+    skuLookupQuerySchema,
+    'query',
+    {
+      abortEarly: false,
+      convert: true,
+    },
+    'Invalid query parameters.'
+  ),
+  getSkuLookupController
 );
 
 module.exports = router;

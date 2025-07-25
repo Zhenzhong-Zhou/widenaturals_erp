@@ -14,6 +14,7 @@ const {
   transformDiscountPaginatedLookupResult,
   transformTaxRatePaginatedLookupResult,
   transformDeliveryMethodPaginatedLookupResult,
+  transformSkuPaginatedLookupResult,
 } = require('../transformers/lookup-transformer');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const {
@@ -40,8 +41,9 @@ const {
   filterOrderTypeLookupResultByPermission,
 } = require('../business/order-type-business');
 const {
-  enforcePaymentMethodAccessControl, evaluatePaymentMethodLookupAccessControl,
-  enforcePaymentMethodLookupVisibilityRules, enrichPaymentMethodOption,
+  evaluatePaymentMethodLookupAccessControl,
+  enforcePaymentMethodLookupVisibilityRules,
+  enrichPaymentMethodOption,
 } = require('../business/payment-method-business');
 const {
   getPaymentMethodLookup,
@@ -67,6 +69,12 @@ const {
   enrichDeliveryMethodRow,
 } = require('../business/delivery-method-business');
 const { getDeliveryMethodsLookup } = require('../repositories/delivery-method-repository');
+const {
+  evaluateSkuFilterAccessControl,
+  enforceSkuLookupVisibilityRules,
+  filterSkuLookupQuery
+} = require('../business/sku-business');
+const { getSkuLookup } = require('../repositories/sku-repository');
 
 /**
  * Service to fetch filtered and paginated batch registry records for lookup UI.
@@ -645,6 +653,90 @@ const fetchPaginatedDeliveryMethodLookupService = async (
   }
 };
 
+/**
+ * Service function to fetch paginated SKU lookup options for use in sales, inventory, or internal order flows.
+ *
+ * This service performs the following steps:
+ * 1. Evaluate the user's access control context (e.g., admin, internal order, backorder).
+ * 2. Applies visibility rules based on permissions (e.g., allow inactive or out-of-stock SKUs).
+ * 3. Applies stock/status-based filtering to the query if required.
+ * 4. Queries the repository for matching SKU records with pagination support.
+ * 5. Transforms raw result rows into simplified dropdown format: `{ id, label }`.
+ *
+ * @param {Object} user - Authenticated user object (must include permission context).
+ * @param {Object} params - Query parameters and options.
+ * @param {Object} [params.filters={}] - Optional filter conditions (e.g., keyword, brand, status).
+ * @param {Object} [params.options={}] - Visibility and stock filtering options (e.g., requireAvailableStock).
+ * @param {boolean} [options.includeBarcode=false] - Whether to include barcode in label text.
+ * @param {number} [params.limit=50] - Max number of records to return.
+ * @param {number} [params.offset=0] - Number of records to skip for pagination.
+ *
+ * @returns {Promise<{
+ *   items: {
+ *     id: string,
+ *     label: string
+ *   }[],
+ *   hasMore: boolean
+ * }>} - Returns formatted SKU options and pagination metadata.
+ *
+ * @throws {AppError} - Throws a service-level error if the SKU lookup fails.
+ */
+const fetchPaginatedSkuLookupService = async (
+  user,
+  { filters = {}, options = {}, limit = 50, offset = 0 }
+) => {
+  try {
+    const { includeBarcode = false } = options || {};
+    const productStatusId = getStatusId('product_active');
+    
+    // Step 1: Evaluate user access control
+    const userAccess = await evaluateSkuFilterAccessControl(user);
+    
+    // Step 2: Apply permission-based visibility rules to options
+    const enforcedOptions = enforceSkuLookupVisibilityRules(options, userAccess);
+    
+    // Validation: Ensure productStatusId is present unless all SKUs are allowed
+    if (!enforcedOptions.allowAllSkus && !productStatusId) {
+      throw AppError.validationError(
+        'productStatusId is required when allowAllSkus is false'
+      );
+    }
+    
+    // Step 3: Apply access-based filtering to filters
+    const queryFilters = filterSkuLookupQuery(filters, userAccess);
+    
+    // Step 4: Execute the lookup query
+    const rawResult = await getSkuLookup({
+      productStatusId,
+      filters: queryFilters,
+      options: enforcedOptions,
+      limit,
+      offset,
+    });
+    
+    const { data = [], pagination = {} } = rawResult;
+    
+    // Step 5: Transform into dropdown format
+    return transformSkuPaginatedLookupResult(
+      { data, pagination },
+      { includeBarcode }
+    );
+  } catch (err) {
+    logSystemException(err, 'Failed to fetch SKU lookup', {
+      context: 'lookup-service/fetchPaginatedSkuLookupService',
+      userId: user?.id,
+      filters,
+      options,
+      limit,
+      offset,
+    });
+    
+    throw AppError.serviceError('Unable to retrieve SKU lookup options.', {
+      cause: err,
+    });
+  }
+};
+
 module.exports = {
   fetchBatchRegistryLookupService,
   fetchWarehouseLookupService,
@@ -656,4 +748,5 @@ module.exports = {
   fetchPaginatedDiscountLookupService,
   fetchPaginatedTaxRateLookupService,
   fetchPaginatedDeliveryMethodLookupService,
+  fetchPaginatedSkuLookupService,
 };

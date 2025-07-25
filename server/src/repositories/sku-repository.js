@@ -1,7 +1,7 @@
-const { query, paginateResults } = require('../database/db');
+const { query, paginateResults, paginateQueryByOffset } = require('../database/db');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
-const { buildWhereClauseAndParams } = require('../utils/sql/build-sku-filters');
+const { buildWhereClauseAndParams, skuDropdownKeywordHandler } = require('../utils/sql/build-sku-filters');
 
 /**
  * Retrieves the most recent SKU string for a given brand and category combination.
@@ -102,39 +102,39 @@ const fetchPaginatedActiveSkusWithProductCards = async ({
         p.series,
         p.brand,
         p.category,
-        s.name AS status_name,
-        sku.id AS sku_id,
-        sku.sku,
-        sku.barcode,
-        sku.country_code,
-        sku.market_region,
-        sku.size_label,
+        st.name AS status_name,
+        s.id AS sku_id,
+        s.sku,
+        s.barcode,
+        s.country_code,
+        s.market_region,
+        s.size_label,
         sku_status.name AS sku_status_name,
         comp.compliance_id,
         pr.price AS msrp_price,
         img.image_url AS primary_image_url,
         img.alt_text AS image_alt_text
-      FROM skus sku
-      INNER JOIN products p ON sku.product_id = p.id
-      INNER JOIN status s ON p.status_id = s.id
-      LEFT JOIN status sku_status ON sku.status_id = sku_status.id AND sku_status.id = $1
-      LEFT JOIN compliances comp ON comp.sku_id = sku.id AND comp.type = 'NPN' AND comp.status_id = $1
+      FROM skus s
+      INNER JOIN products p ON s.product_id = p.id
+      INNER JOIN status st ON p.status_id = st.id
+      LEFT JOIN status sku_status ON s.status_id = sku_status.id AND sku_status.id = $1
+      LEFT JOIN compliances comp ON comp.sku_id = s.id AND comp.type = 'NPN' AND comp.status_id = $1
       LEFT JOIN LATERAL (
         SELECT pr.price, pr.status_id
         FROM pricing pr
         INNER JOIN pricing_types pt ON pr.price_type_id = pt.id AND pt.name = 'MSRP'
         INNER JOIN locations l ON pr.location_id = l.id
         INNER JOIN location_types lt ON l.location_type_id = lt.id AND lt.name = 'Office'
-        WHERE pr.sku_id = sku.id AND pr.status_id = $1
+        WHERE pr.sku_id = s.id AND pr.status_id = $1
         ORDER BY pr.valid_from DESC NULLS LAST
         LIMIT 1
       ) pr ON TRUE
-      LEFT JOIN sku_images img ON img.sku_id = sku.id AND img.is_primary = TRUE
+      LEFT JOIN sku_images img ON img.sku_id = s.id AND img.is_primary = TRUE
       LEFT JOIN status ps ON pr.status_id = ps.id AND ps.id = $1
       WHERE ${whereClause}
       GROUP BY
-        p.id, s.name,
-        sku.id, sku.sku, sku.barcode, sku.market_region, sku.size_label, sku_status.name,
+        p.id, st.name,
+        s.id, s.sku, s.barcode, s.market_region, s.size_label, sku_status.name,
         comp.compliance_id,
         pr.price,
         img.image_url, img.alt_text
@@ -367,9 +367,103 @@ const getSkuDetailsWithPricingAndMeta = async (
   }
 };
 
+/**
+ * Fetches SKU lookup options for dropdowns with optional filtering and pagination.
+ *
+ * Applies optional keyword and field-based filters (e.g., brand, category, region, size label),
+ * and can enforce inventory availability checks based on warehouse or location stock.
+ *
+ * Typically used in UI dropdowns or search components for selecting SKUs.
+ *
+ * @param {Object} params - Parameter object.
+ * @param {string} params.productStatusId - UUID of the 'active' product status to enforce (unless overridden by `allowAllSkus`).
+ * @param {Object} [params.filters={}] - Optional filters (e.g., { brand, category, keyword, marketRegion }).
+ * @param {Object} [params.options={}] - Advanced options for stock availability or warehouse/location filtering.
+ * @param {number} [params.limit=50] - Pagination limit.
+ * @param {number} [params.offset=0] - Pagination offset.
+ *
+ * @returns {Promise<{ items: Array<{ id: string, label: string }>, totalCount: number }>}
+ *          Resolves to a paginated list of SKU dropdown options with total count.
+ *
+ * @throws {AppError} When the query fails or parameters are invalid.
+ */
+const getSkuLookup = async ({
+                              productStatusId,
+                              filters = {},
+                              options = {},
+                              limit = 50,
+                              offset = 0,
+                            }) => {
+  const { whereClause, params } = buildWhereClauseAndParams(
+    productStatusId,
+    filters,
+    skuDropdownKeywordHandler,
+    options,
+  );
+  
+  const tableName = 'skus s';
+  const joins = ['LEFT JOIN products p ON s.product_id = p.id'];
+  
+  const queryText = `
+    SELECT
+      s.id,
+      s.sku,
+      s.barcode,
+      s.country_code,
+      p.name AS product_name,
+      p.brand,
+      s.size_label
+    FROM ${tableName}
+    ${joins.join('\n')}
+    WHERE ${whereClause}
+  `;
+  
+  try {
+    const result = await paginateQueryByOffset({
+      tableName,
+      joins,
+      whereClause,
+      queryText,
+      params,
+      offset,
+      limit,
+      sortBy: null, // Avoid duplication with additionalSort
+      sortOrder: null, // Not needed if sortBy is null
+      additionalSort: `
+        p.brand ASC,
+        CAST(NULLIF(REGEXP_REPLACE(p.name, '[^0-9]', '', 'g'), '') AS INTEGER) NULLS LAST,
+        p.name ASC
+      `,
+    });
+    
+    logSystemInfo('Fetched SKU dropdown lookup successfully', {
+      context: 'sku-repository/getSkuDropdownOptions',
+      totalFetched: result.items?.length ?? 0,
+      totalAvailable: result.totalCount ?? null,
+      offset,
+      limit,
+      filters,
+      options,
+    });
+    
+    return result;
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch SKU dropdown options', {
+      context: 'sku-repository/getSkuDropdownOptions',
+      offset,
+      limit,
+      filters,
+      options,
+    });
+    
+    throw AppError.databaseError('Failed to fetch SKU options for dropdown.');
+  }
+};
+
 module.exports = {
   getLastSku,
   fetchPaginatedActiveSkusWithProductCards,
   getSkuAndProductStatus,
   getSkuDetailsWithPricingAndMeta,
+  getSkuLookup
 };

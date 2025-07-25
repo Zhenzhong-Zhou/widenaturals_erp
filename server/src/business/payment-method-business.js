@@ -48,7 +48,7 @@ const evaluatePaymentMethodLookupAccessControl = async (user) => {
  *
  * - If the user cannot view all statuses, enforces filtering to active-only
  * - If the user cannot search by `code`, restricts keyword searches to the `name` field
- *   and throws an error if a code-like keyword is detected (e.g. uppercase or underscores)
+ *   and throws an error if a code-like keyword is detected (e.g., uppercase or underscores)
  *
  * @param {Object} filters - The original query filters from the client.
  * @param {{
@@ -72,7 +72,7 @@ const enforcePaymentMethodLookupVisibilityRules = (filters = {}, userAccess) => 
   if (!userAccess.canViewPaymentCode && adjusted.keyword) {
     const keyword = adjusted.keyword.trim();
     
-    // Defensive check: block attempts to match code format
+    // Defensive check: block attempts to match a code format
     if (/^[A-Z0-9_]+$/.test(keyword)) {
       logSystemException(
         new Error('Unauthorized code-based keyword search'),
