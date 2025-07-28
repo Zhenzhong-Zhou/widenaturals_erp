@@ -3,12 +3,10 @@ const { sanitizeSortBy } = require('../utils/sort-utils');
 const {
   getAllPricingRecords,
   getPricingDetailsByPricingTypeId,
-  getActiveProductPrice,
 } = require('../repositories/pricing-repository');
 const {
   transformPaginatedPricingResult,
   transformExportPricingData,
-  transformPricingDetailRow,
   transformPaginatedPricingDetailResult,
 } = require('../transformers/pricing-transformer');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
@@ -199,44 +197,8 @@ const fetchPricingDetailsByPricingTypeId = async (
   }
 };
 
-/**
- * Fetch the active price for a given product ID and price type ID.
- *
- * @param {string} productId - The ID of the product.
- * @param {string} priceTypeId - The ID of the price type.
- * @returns {Promise<{ price: number, productId: string, priceTypeId: string }>}
- * - Returns an object containing the price if found.
- * @throws {AppError} - Throws an error if the price could not be retrieved.
- */
-const fetchPriceByProductAndPriceType = async (productId, priceTypeId) => {
-  if (!productId || !priceTypeId) {
-    throw AppError.validationError(
-      'Product ID and Price Type ID are required.'
-    );
-  }
-
-  try {
-    const result = await getActiveProductPrice(productId, priceTypeId);
-
-    if (!result) {
-      throw AppError.notFoundError(
-        `No active price found for product ${productId} with price type ${priceTypeId}.`
-      );
-    }
-
-    return {
-      price: result.price,
-      productId,
-      priceTypeId,
-    };
-  } catch (error) {
-    throw AppError.serviceError(`Failed to fetch price: ${error.message}`);
-  }
-};
-
 module.exports = {
   fetchPaginatedPricingRecordsService,
   exportPricingRecordsService,
   fetchPricingDetailsByPricingTypeId,
-  fetchPriceByProductAndPriceType,
 };
