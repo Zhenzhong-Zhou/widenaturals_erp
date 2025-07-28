@@ -11,6 +11,7 @@ const {
   getTaxRateLookupController,
   getDeliveryMethodLookupController,
   getSkuLookupController,
+  getPricingLookupController,
 } = require('../controllers/lookup-controller');
 const authorize = require('../middlewares/authorize');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
@@ -25,7 +26,10 @@ const {
   orderTypeLookupQuerySchema,
   paymentMethodLookupQuerySchema,
   discountLookupQuerySchema,
-  taxRateLookupQuerySchema, deliveryMethodLookupQuerySchema, skuLookupQuerySchema,
+  taxRateLookupQuerySchema,
+  deliveryMethodLookupQuerySchema,
+  skuLookupQuerySchema,
+  pricingLookupQuerySchema,
 } = require('../validators/lookup-validators');
 const { PERMISSIONS } = require('../utils/constants/domain/lookup-constants');
 
@@ -567,6 +571,84 @@ router.get(
     'Invalid query parameters.'
   ),
   getSkuLookupController
+);
+
+/**
+ * @route GET /lookups/pricing
+ * @description
+ * Endpoint to fetch paginated pricing lookup options for dropdowns or selectors.
+ * Applies permission checks, query normalization, field sanitization, validation, and filtering.
+ *
+ * Middleware chain includes:
+ * - `authorize`: Enforces user permission to view pricing lookup
+ * - `createQueryNormalizationMiddleware`: Extracts and structures query parameters:
+ *     - `filters` (e.g., `skuId`, etc.)
+ *     - `keyword` (extracted to root level)
+ *     - `options` (e.g., `labelOnly` for minimal dropdown formatting)
+ *     - `pagination` (`limit`, `offset`)
+ * - `sanitizeFields`: Trims and sanitizes fields like `keyword`
+ * - `validate`: Validates the final `normalizedQuery` using `pricingLookupQuerySchema`
+ * - `getPricingLookupController`: Handles the request and returns formatted pricing options
+ *
+ * Query Parameters (after normalization):
+ * - `filters`: {
+ *     skuId: UUID (optional but commonly required),
+ *     locationId: UUID,
+ *     priceTypeId: UUID,
+ *     statusId: UUID,
+ *     validFrom / validTo / validOn: string (date)
+ *   }
+ * - `keyword`: string — Optional fuzzy search against product name, SKU, and pricing type
+ * - `options`: {
+ *     labelOnly: boolean — If true, returns `{ id, label }` only per item
+ *   }
+ * - `limit`: number — Optional pagination limit (default: 50)
+ * - `offset`: number — Optional pagination offset
+ *
+ * Response:
+ * - `200 OK` JSON response:
+ *   {
+ *     success: true,
+ *     message: 'Successfully retrieved pricing lookup',
+ *     items: Array<{
+ *       id: string,
+ *       label: string,
+ *       [price]?: string,
+ *       [pricingTypeName]?: string,
+ *       [locationName]?: string,
+ *       [isActive]?: boolean,
+ *       [isValidToday]?: boolean
+ *     }>,
+ *     limit: number,
+ *     offset: number,
+ *     hasMore: boolean
+ *   }
+ *
+ * @access Protected
+ * @permission Requires `view_pricing_lookup` permission
+ */
+router.get(
+  '/pricing',
+  authorize([PERMISSIONS.VIEW_PRICING]),
+  createQueryNormalizationMiddleware(
+    '',                           // moduleKey
+    [],                           // arrayKeys
+    [],                           // booleanKeys for filters
+    ['keyword'],                  // filterKeys to extract `keyword` to root
+    { includePagination: true, includeSorting: false },
+    ['labelOnly']                         // options.labelOnly is normalized here
+  ),
+  sanitizeFields(['keyword']),
+  validate(
+    pricingLookupQuerySchema,
+    'query',
+    {
+      abortEarly: false,
+      convert: true,
+    },
+    'Invalid query parameters.'
+  ),
+  getPricingLookupController
 );
 
 module.exports = router;

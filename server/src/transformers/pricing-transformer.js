@@ -1,6 +1,7 @@
 const { getProductDisplayName } = require('../utils/display-name-utils');
 const { getFullName } = require('../utils/name-utils');
-const { transformPaginatedResult } = require('../utils/transformer-utils');
+const { transformPaginatedResult, includeFlagsBasedOnAccess } = require('../utils/transformer-utils');
+const { cleanObject } = require('../utils/object-utils');
 
 /**
  * Transforms a raw SQL pricing row into a flattened pricing list item.
@@ -51,10 +52,9 @@ const transformPaginatedPricingResult = (paginatedResult) =>
  * Transforms raw pricing data rows into flat export-friendly format.
  *
  * @param {Array<Object>} rows - Raw DB query result
- * @param {string} format - Optional export format ('csv' | 'xlsx' | 'txt')
  * @returns {Array<Object>} - Flattened and human-readable rows
  */
-const transformExportPricingData = (rows = [], format = 'csv') => {
+const transformExportPricingData = (rows = []) => {
   return rows.map((row) => ({
     SKU: row.sku,
     Brand: row.brand,
@@ -132,8 +132,125 @@ const transformPricingDetailRow = (row) => {
 const transformPaginatedPricingDetailResult = (result) =>
   transformPaginatedResult(result, transformPricingDetailRow);
 
+/**
+ * Transforms a pricing row into a UI-friendly dropdown option.
+ *
+ * Constructs a human-readable `label` using SKU, pricing type name, and price,
+ * with configurable display granularity. Includes computed flags like `isActive`
+ * and `isValidToday` based on user access. Location name is only included if the user
+ * has permission to view all statuses or validity windows.
+ *
+ * @param {Object} row - Raw pricing row from the database.
+ * @param {string} row.id - Pricing ID.
+ * @param {string|number} row.price - Pricing amount.
+ * @param {string} row.sku - Associated SKU string.
+ * @param {string} [row.product_name] - Product display name.
+ * @param {string} [row.price_type] - Pricing type name (e.g., Retail, Wholesale).
+ * @param {string} [row.location_name] - Location name (if applicable).
+ * @param {boolean} [row.isActive] - Whether the pricing row is currently active.
+ * @param {boolean} [row.isValidToday] - Whether the pricing row is valid today.
+ *
+ * @param {Object} userAccess - Flags representing user permission context.
+ * @param {boolean} [userAccess.canViewAllStatuses] - If true, allows visibility of all pricing statuses.
+ * @param {boolean} [userAccess.canViewAllValidLookups] - If true, allows visibility of expired/future-dated prices.
+ *
+ * @param {Object} [options={}] - Display behavior options.
+ * @param {boolean} [options.showSku=true] - Whether to include product name and SKU in the label.
+ * @param {boolean} [options.showPriceType=true] - Whether to include pricing type name in the label.
+ * @param {boolean} [options.showPriceInLabel=true] - Whether to include the price in the label.
+ * @param {boolean} [options.labelOnly=false] - If true, omit all flags like `isActive` and `isValidToday`.
+ *
+ * @returns {{
+ *   id: string,
+ *   label: string,
+ *   price: string|number,
+ *   pricingTypeName: string,
+ *   locationName?: string,
+ *   isActive?: boolean,
+ *   isValidToday?: boolean
+ * }} Transformed object for dropdown usage.
+ */
+const transformPricingLookupRow = (
+  row,
+  userAccess,
+  {
+    showSku = true,
+    showPriceType = true,
+    showPriceInLabel = true,
+    labelOnly = false, // For minimal display (e.g., during sales order creation)
+  } = {}
+) => {
+  const productDisplayName = getProductDisplayName(row);
+  
+  const labelParts = [];
+  
+  if (showSku) {
+    labelParts.push(`${productDisplayName} (${row.sku})`);
+  }
+  
+  if (showPriceType) {
+    labelParts.push(row.price_type);
+  }
+  
+  if (showPriceInLabel) {
+    labelParts.push(`$${row.price}`);
+  }
+  
+  const showLocation =
+    userAccess?.canViewAllStatuses || userAccess?.canViewAllValidLookups;
+  
+  // Always include id and label
+  const base = {
+    id: row.id,
+    label: labelParts.join(' · '),
+  };
+  
+  // Optionally add more fields
+  if (!labelOnly) {
+    if (showLocation && row.location_name) {
+      base.locationName = row.location_name;
+    }
+    
+    base.price = row.price;
+    base.pricingTypeName = row.price_type;
+    
+    const flagSubset = includeFlagsBasedOnAccess(row, userAccess);
+    Object.assign(base, flagSubset);
+  }
+  
+  return cleanObject(base);
+};
+
+/**
+ * Transforms paginated pricing records into dropdown-compatible lookup format.
+ *
+ * Applies user access rules for conditional fields like `isActive`, `isValidToday`,
+ * and `locationName`, and returns transformed pricing options.
+ *
+ * @param {Object} paginatedResult - Raw paginated DB result (e.g., from paginateQueryByOffset)
+ * @param {Object} userAccess - Evaluated access control flags
+ * @param {Object} [options] - Optional display config for label formatting
+ * @param {boolean} [options.showSku=true] - Include SKU in label
+ * @param {boolean} [options.showPriceType=true] - Include pricing type name in label
+ * @param {boolean} [options.showPriceInLabel=true] - Include price in label
+ * @param {boolean} [options.labelOnly=false] - Return only base display fields
+ *
+ * @returns {{ items: { id: string, label: string }[], hasMore: boolean }}
+ */
+const transformPricingPaginatedLookupResult = (
+  paginatedResult,
+  userAccess,
+  options = {}
+) =>
+  transformPaginatedResult(
+    paginatedResult,
+    (row) => transformPricingLookupRow(row, userAccess, options),
+    { includeLoadMore: true }
+  );
+
 module.exports = {
   transformPaginatedPricingResult,
   transformExportPricingData,
   transformPaginatedPricingDetailResult,
+  transformPricingPaginatedLookupResult,
 };

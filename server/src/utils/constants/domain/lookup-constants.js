@@ -14,6 +14,7 @@ const LOOKUPS = {
     VIEW_TAX_RATE: 'view_tax_rate_lookup',
     VIEW_DELIVERY_METHOD: 'view_delivery_method_lookup',
     VIEW_SKU: 'view_sku_lookup',
+    VIEW_PRICING: 'view_pricing_lookup',
   }
 };
 

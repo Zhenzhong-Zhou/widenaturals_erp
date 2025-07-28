@@ -1,4 +1,4 @@
-const { query, paginateQuery } = require('../database/db');
+const { query, paginateQuery, paginateQueryByOffset } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const { buildPricingFilters } = require('../utils/sql/build-pricing-filters');
@@ -246,8 +246,95 @@ const getPriceByIdAndSku = async (price_id, sku_id, client = null) => {
   }
 };
 
+/**
+ * Retrieves a paginated list of pricing records for use in dropdown or autocomplete components.
+ *
+ * Supports filtering by SKU, brand, price type, location, country, size label, status, and validity period.
+ * Used in contexts such as sales order creation, SKU pricing selection, or administrative pricing lookup.
+ *
+ * @param {Object} options - Lookup options
+ * @param {number} [options.limit=50] - Max number of results to return
+ * @param {number} [options.offset=0] - Offset for pagination
+ * @param {Object} [options.filters={}] - Optional filter fields (e.g., brand, priceType, currentlyValid, keyword)
+ * @param {string} [options.keyword] - Optional keyword for fuzzy search (product name or SKU)
+ * @returns {Promise<{ items: any[], hasMore: boolean }>} - Paginated pricing lookup result
+ *
+ * @throws {AppError} - If a database error occurs
+ */
+const getPricingLookup = async ({
+                                  limit = 50,
+                                  offset = 0,
+                                  filters = {},
+                                  keyword = '',
+                                }) => {
+  const tableName = 'pricing p';
+  const joins = [
+    'JOIN skus s ON s.id = p.sku_id',
+    'JOIN pricing_types pt ON pt.id = p.price_type_id',
+    'JOIN products pr ON pr.id = s.product_id',
+    'LEFT JOIN locations l ON l.id = p.location_id',
+  ];
+  
+  const { whereClause, params } = buildPricingFilters(filters, keyword);
+  
+  const queryText = `
+    SELECT
+      p.id,
+      p.price,
+      pt.name AS price_type,
+      s.sku,
+      s.barcode,
+      s.size_label,
+      s.market_region,
+      s.country_code,
+      l.name AS location_name,
+      p.valid_from,
+      p.valid_to,
+      p.status_id
+    FROM ${tableName}
+    ${joins.join('\n')}
+    WHERE ${whereClause}
+  `;
+  
+  try {
+    const result = await paginateQueryByOffset({
+      tableName,
+      joins,
+      whereClause,
+      queryText,
+      params,
+      offset,
+      limit,
+      sortBy: '',
+      sortOrder: '',
+      additionalSort: 'pt.name ASC, p.valid_from DESC',
+    });
+    
+    logSystemInfo('Fetched pricing lookup successfully', {
+      context: 'pricing-repository/getPricingLookup',
+      totalFetched: result.items?.length ?? 0,
+      offset,
+      limit,
+      filters,
+      keyword,
+    });
+    
+    return result;
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch pricing lookup', {
+      context: 'pricing-repository/getPricingLookup',
+      offset,
+      limit,
+      filters,
+      keyword,
+    });
+    throw AppError.databaseError('Failed to fetch pricing options.');
+  }
+};
+
 module.exports = {
   getAllPricingRecords,
   getPricingDetailsByPricingTypeId,
   getPriceByIdAndSku,
+  getPricingLookup,
 };

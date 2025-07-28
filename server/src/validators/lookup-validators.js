@@ -212,6 +212,32 @@ const skuLookupQuerySchema = Joi.object({
   ...baseLookupQuerySchema,
 });
 
+/**
+ * Joi validation schema for pricing lookup query parameters.
+ *
+ * Validates GET requests to the `/lookups/pricing` endpoint.
+ *
+ * Supports:
+ * - `filters`: Optional object for filtering pricing results, includes:
+ *    - `skuId`: Optional UUID to filter prices for a specific SKU
+ * - `keyword`: Optional fuzzy search string (applies to product name, SKU, or price type)
+ * - `limit`: Optional number for pagination (default: 50)
+ * - `offset`: Optional number for pagination offset (default: 0)
+ *
+ * Options:
+ * - `options.labelOnly`: Optional boolean to return minimal `{ id, label }` only
+ *
+ * This schema is used for pricing lookups in sales order creation,
+ * admin panels, and dynamic dropdowns.
+ *
+ * @type {Joi.ObjectSchema}
+ */
+const pricingLookupQuerySchema = Joi.object({
+  ...baseLookupQuerySchema, // includes filters, keyword, limit, offset
+  skuId: validateOptionalUUID('SKU ID'),
+  labelOnly: createBooleanFlag('Minimal label-only mode'),
+});
+
 module.exports = {
   batchRegistryLookupQuerySchema,
   warehouseLookupQuerySchema,
@@ -224,4 +250,5 @@ module.exports = {
   taxRateLookupQuerySchema,
   deliveryMethodLookupQuerySchema,
   skuLookupQuerySchema,
+  pricingLookupQuerySchema,
 };

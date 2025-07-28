@@ -10,7 +10,7 @@ const {
   fetchPaginatedDiscountLookupService,
   fetchPaginatedTaxRateLookupService,
   fetchPaginatedDeliveryMethodLookupService,
-  fetchPaginatedSkuLookupService,
+  fetchPaginatedSkuLookupService, fetchPaginatedPricingLookupService,
 } = require('../services/lookup-service');
 const { logInfo } = require('../utils/logger-helper');
 
@@ -505,6 +505,88 @@ const getSkuLookupController = wrapAsync(async (req, res) => {
   });
 });
 
+/**
+ * Controller for retrieving paginated pricing lookup options.
+ *
+ * This controller:
+ * - Enforces access control via service-layer permissions.
+ * - Applies visibility rules (e.g., restrict to active or currently valid pricing).
+ * - Handles pagination via `limit` and `offset` query parameters.
+ * - Supports both direct SKU-based pricing (e.g., for order creation)
+ *   and broader search-based pricing (e.g., for admin or catalog use).
+ * - Accepts a `labelOnly` flag via `options` to return minimal dropdown rows (`{ id, label }` only).
+ * - Returns pricing options formatted for dropdown usage.
+ *
+ * Expected query structure (via `req.normalizedQuery`):
+ * - `filters`: Object containing filter criteria (e.g., `{ skuId, priceTypeId, brand, statusId }`)
+ * - `keyword`: Optional fuzzy search string (applies to product name, SKU, or pricing type)
+ * - `limit`: Optional number for pagination (default: 50)
+ * - `offset`: Optional pagination offset (default: 0)
+ * - `options`: Optional object to control display behavior
+ *    - `labelOnly`: Boolean flag to return only `{ id, label }` for dropdown use
+ *
+ * Behavior:
+ * - If `filters.skuId` is specified, the SKU label is omitted for brevity.
+ * - If `options.labelOnly` is true, only minimal fields are returned per item.
+ *
+ * @route GET /lookups/pricing
+ * @access Protected
+ * @permission `view_pricing_lookup` (enforced in service layer)
+ *
+ * @param {Express.Request} req - Express request object with `user` and `normalizedQuery`
+ * @param {Express.Response} res - Express response object
+ *
+ * @returns {void} Responds with JSON:
+ *  {
+ *    success: boolean,
+ *    message: string,
+ *    items: Array<{
+ *      id: string,
+ *      label: string,
+ *      [price]?: string | number,
+ *      [pricingTypeName]?: string,
+ *      [locationName]?: string,
+ *      [isActive]?: boolean,
+ *      [isValidToday]?: boolean
+ *    }>,
+ *    offset: number,
+ *    limit: number,
+ *    hasMore: boolean
+ *  }
+ */
+const getPricingLookupController = wrapAsync(async (req, res) => {
+  const user = req.user;
+  const {
+    filters = {},
+    options = {},
+    keyword = '',
+    limit = 50,
+    offset = 0,
+  } = req.normalizedQuery;
+  
+  const dropdownResult = await fetchPaginatedPricingLookupService(user, {
+    filters,
+    keyword,
+    limit,
+    offset,
+    displayOptions: {
+      showSku: !filters?.skuId, // Hide SKU in label if SKU is already specified
+      labelOnly: options.labelOnly,
+    },
+  });
+  
+  const { items, hasMore } = dropdownResult;
+  
+  return res.status(200).json({
+    success: true,
+    message: 'Successfully retrieved pricing lookup',
+    items,
+    offset,
+    limit,
+    hasMore,
+  });
+});
+
 module.exports = {
   getBatchRegistryLookupController,
   getWarehouseLookupController,
@@ -517,4 +599,5 @@ module.exports = {
   getTaxRateLookupController,
   getDeliveryMethodLookupController,
   getSkuLookupController,
+  getPricingLookupController,
 };

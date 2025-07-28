@@ -75,6 +75,14 @@ const {
   filterSkuLookupQuery, enrichSkuRow
 } = require('../business/sku-business');
 const { getSkuLookup } = require('../repositories/sku-repository');
+const {
+  evaluatePricingLookupAccessControl,
+  enforcePricingLookupVisibilityRules,
+  filterPricingLookupQuery,
+  enrichPricingRow
+} = require('../business/pricing-business');
+const { getPricingLookup } = require('../repositories/pricing-repository');
+const { transformPricingPaginatedLookupResult } = require('../transformers/pricing-transformer');
 
 /**
  * Service to fetch filtered and paginated batch registry records for lookup UI.
@@ -754,6 +762,96 @@ const fetchPaginatedSkuLookupService = async (
   }
 };
 
+/**
+ * Service function to fetch paginated pricing lookup options
+ * for use in sales order creation, inventory management, or admin pricing selectors.
+ *
+ * This service performs the following steps:
+ * 1. Loads the expected active pricing status ID.
+ * 2. Evaluate the user's access control context (e.g., admin or restricted access).
+ * 3. Applies permission-based visibility rules (e.g., restrict to active or currently valid pricing).
+ * 4. Constructs pricing filters, optionally using keyword-based search.
+ * 5. Queries the pricing repository with pagination support.
+ * 6. Enriches pricing rows with computed flags (e.g., `isActive`, `isValidToday`).
+ * 7. Transforms results into dropdown-compatible format using display configuration.
+ *
+ * This function supports two modes:
+ * - **Sales Order Context**: expects a `skuId` only; filters to valid prices for the SKU.
+ * - **Admin Search Context**: accepts broader filters (brand, pricingType, etc.) and a `keyword`.
+ *
+ * @param {Object} user - Authenticated user object (must include permission context)
+ * @param {Object} params - Request parameters
+ * @param {Object} [params.filters={}] - Filter options (e.g., skuId, priceTypeId, brand, etc.)
+ * @param {string} [params.keyword] - Optional keyword for fuzzy matching (product name, SKU, price type)
+ * @param {number} [params.limit=50] - Maximum number of records to return
+ * @param {number} [params.offset=0] - Number of records to skip (for pagination)
+ * @param {Object} [params.displayOptions={}] - Controls label formatting (e.g., hide SKU in label)
+ *
+ * @returns {Promise<{ items: any[], hasMore: boolean }>} Transformed pricing options with pagination
+ *
+ * @throws {AppError} If required filters are missing or lookup fails
+ */
+const fetchPaginatedPricingLookupService = async (
+  user,
+  { filters = {}, keyword= '', limit = 50, offset = 0, displayOptions = {} }
+) => {
+  try {
+    // Step 1: Load status cache
+    const activeStatusId = getStatusId('pricing_active');
+    
+    // Step 2: Evaluate access control
+    const userAccess = await evaluatePricingLookupAccessControl(user);
+    
+    // Step 3: Apply visibility rules
+    const adjustedFilters = enforcePricingLookupVisibilityRules(
+      filters,
+      keyword, // no keyword in sales order
+      userAccess,
+      activeStatusId
+    );
+    
+    // Step 4: Build final DB query filters
+    const queryFilters = filterPricingLookupQuery(adjustedFilters, userAccess, activeStatusId);
+    
+    // Step 5: Fetch from DB
+    const rawResult = await getPricingLookup({
+      filters: queryFilters,
+      limit,
+      offset,
+    });
+    
+    const { data = [], pagination = {} } = rawResult;
+    
+    // Step 6: Enrich rows with computed flags
+    const enrichedRows = data.map((row) =>
+      enrichPricingRow(row, activeStatusId)
+    );
+    
+    // Step 7: Transform for dropdown
+    return transformPricingPaginatedLookupResult(
+      { data: enrichedRows, pagination },
+      userAccess,
+      {
+        ...displayOptions,
+        showSku: false,
+        showLocation: false,
+      }
+    );
+  } catch (err) {
+    logSystemException(err, 'Failed to fetch pricing lookup', {
+      context: 'lookup-service/fetchPaginatedPricingLookupService',
+      userId: user?.id,
+      filters,
+      limit,
+      offset,
+    });
+    
+    throw AppError.serviceError('Unable to retrieve pricing lookup options.', {
+      cause: err,
+    });
+  }
+};
+
 module.exports = {
   fetchBatchRegistryLookupService,
   fetchWarehouseLookupService,
@@ -766,4 +864,5 @@ module.exports = {
   fetchPaginatedTaxRateLookupService,
   fetchPaginatedDeliveryMethodLookupService,
   fetchPaginatedSkuLookupService,
+  fetchPaginatedPricingLookupService,
 };
