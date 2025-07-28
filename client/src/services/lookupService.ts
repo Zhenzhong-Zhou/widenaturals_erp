@@ -17,6 +17,8 @@ import type {
   OrderTypeLookupResponse,
   PaymentMethodLookupQueryParams,
   PaymentMethodLookupResponse,
+  SkuLookupQueryParams,
+  SkuLookupResponse,
   TaxRateLookupQueryParams,
   TaxRateLookupResponse,
 } from '@features/lookup/state/lookupTypes';
@@ -275,6 +277,30 @@ const fetchDeliveryMethodLookup = async (
   }
 };
 
+/**
+ * Fetches a list of SKUs from the server for use in lookup UIs.
+ *
+ * Supports optional filtering by keyword and label formatting (e.g., includeBarcode).
+ * May also return enriched status flags (e.g., isNormal, issueReasons) for users with permission.
+ *
+ * @param params - Optional query parameters to filter SKU lookup results (e.g., { keyword: 'omega', includeBarcode: true }).
+ * @returns A promise resolving to a {@link SkuLookupResponse}, containing metadata and a list of matching SKUs.
+ * @throws Error if the network request fails or the response is invalid.
+ */
+const fetchSkuLookup = async (
+  params?: SkuLookupQueryParams
+): Promise<SkuLookupResponse> => {
+  const queryString = buildQueryString(params);
+  const url = `${API_ENDPOINTS.LOOKUPS.SKUS}${queryString}`;
+  
+  try {
+    return await getRequest<SkuLookupResponse>(url);
+  } catch (error) {
+    console.error('Failed to fetch SKU lookup:', error);
+    throw error;
+  }
+};
+
 export const lookupService = {
   fetchBatchRegistryLookup,
   fetchWarehouseLookup,
@@ -286,4 +312,5 @@ export const lookupService = {
   fetchDiscountLookup,
   fetchTaxRateLookup,
   fetchDeliveryMethodLookup,
+  fetchSkuLookup,
 };

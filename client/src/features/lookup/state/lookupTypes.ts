@@ -418,3 +418,53 @@ export type TaxRateLookupState = PaginatedLookupState<TaxRateLookupItem>;
  * Includes async and pagination metadata for infinite-scroll or paginated dropdowns.
  */
 export type DeliveryMethodLookupState = PaginatedLookupState<DeliveryMethodLookupItem>;
+
+/**
+ * Query input structure for SKU dropdown or autocomplete lookups.
+ *
+ * Used to filter SKU options based on keyword and display preferences.
+ * Typically passed into lookup endpoints that return { id, label } pairs.
+ */
+export interface SkuLookupQueryParams extends LookupQuery {
+  /**
+   * Whether to include barcode in the label output.
+   * If true, the label will include both product name, SKU, and barcode
+   * for clearer identification (e.g., in long lists or search results).
+   */
+  includeBarcode?: boolean;
+}
+
+/**
+ * Represents a single enriched SKU result for lookup dropdowns.
+ * Extends the generic LookupItem structure with SKU-specific flags.
+ */
+export interface SkuLookupItem extends LookupItem {
+  /**
+   * Indicates if the SKU passed all expected status checks (product, SKU, inventory, batch).
+   */
+  isNormal?: boolean;
+  
+  /**
+   * List of reasons why the SKU failed validation (if `isNormal` is false).
+   */
+  issueReasons?: string[];
+}
+
+/**
+ * API response format for SKU lookup queries.
+ * Contains a list of SKU options with optional status flags and enrichment details.
+ */
+export type SkuLookupResponse = LookupSuccessResponse<SkuLookupItem>;
+
+/**
+ * Redux slice state for SKU lookup dropdowns or autocomplete inputs.
+ *
+ * Extends a generic paginated async lookup state to track:
+ * - Matching SKU items (`SkuLookupItem[]`)
+ * - Loading and error states for async requests
+ * - Pagination info (`offset`, `limit`, `hasMore`)
+ *
+ * Typically used for rendering SKU search results with optional enrichment
+ * (e.g., barcode, status flags) in forms or filter panels.
+ */
+export type SkuLookupState = PaginatedLookupState<SkuLookupItem>;

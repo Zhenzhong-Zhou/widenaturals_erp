@@ -3,14 +3,21 @@ import type {
   AddressByCustomerLookupResponse,
   CustomerLookupQuery,
   CustomerLookupResponse,
-  DeliveryMethodLookupQueryParams, DeliveryMethodLookupResponse, DiscountLookupQueryParams, DiscountLookupResponse,
+  DeliveryMethodLookupQueryParams,
+  DeliveryMethodLookupResponse,
+  DiscountLookupQueryParams,
+  DiscountLookupResponse,
   GetBatchRegistryLookupParams,
   GetBatchRegistryLookupResponse,
   GetWarehouseLookupResponse,
   LotAdjustmentLookupQueryParams,
   LotAdjustmentTypeLookupResponse,
   OrderTypeLookupQueryParams,
-  OrderTypeLookupResponse, PaymentMethodLookupQueryParams, PaymentMethodLookupResponse,
+  OrderTypeLookupResponse,
+  PaymentMethodLookupQueryParams,
+  PaymentMethodLookupResponse,
+  SkuLookupQueryParams,
+  SkuLookupResponse,
   TaxRateLookupQueryParams,
   TaxRateLookupResponse,
 } from '@features/lookup/state/lookupTypes';
@@ -286,6 +293,32 @@ export const fetchDeliveryMethodLookupThunk = createAsyncThunk<
     return await lookupService.fetchDeliveryMethodLookup(params);
   } catch (error) {
     console.error('Failed to fetch delivery methods:', error);
+    return thunkAPI.rejectWithValue(error);
+  }
+});
+
+/**
+ * Thunk to fetch SKU lookup options for dropdowns or autocomplete fields.
+ *
+ * Supports optional filtering by keyword, barcode inclusion, and enriched flags (e.g., `isNormal`, `issueReasons`).
+ * Typically used in product selectors, order creation flows, or inventory management UI.
+ *
+ * Dispatch lifecycle:
+ * - `lookup/fetchSkuLookup/pending`: dispatched at the start of the request
+ * - `lookup/fetchSkuLookup/fulfilled`: dispatched on successful response
+ * - `lookup/fetchSkuLookup/rejected`: dispatched if an error occurs
+ *
+ * @param params - Optional filters such as `keyword`, `includeBarcode`, `limit`, and `offset`.
+ * @returns A {@link SkuLookupResponse} containing enriched SKU options and pagination metadata.
+ */
+export const fetchSkuLookupThunk = createAsyncThunk<
+  SkuLookupResponse,
+  SkuLookupQueryParams | undefined
+>('lookup/fetchSkuLookup', async (params, thunkAPI) => {
+  try {
+    return await lookupService.fetchSkuLookup(params);
+  } catch (error) {
+    console.error('Failed to fetch SKU lookup:', error);
     return thunkAPI.rejectWithValue(error);
   }
 });

@@ -48,6 +48,7 @@ export const API_ENDPOINTS = {
     DISCOUNTS: '/lookups/discounts',
     TAX_RATES: '/lookups/tax-rates',
     DELIVERY_METHODS: '/lookups/delivery-methods',
+    SKUS: '/lookups/skus',
   },
   REPORTS: {
     INVENTORY_ACTIVITY_LOGS: 'reports/inventory-activity-logs',
