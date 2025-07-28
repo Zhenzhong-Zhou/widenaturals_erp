@@ -91,12 +91,11 @@ const createOrderService = async (orderData, category, user) => {
         },
         client
       );
-
+      
       // 7. Return result
-      return {
-        baseOrderId,
-        typeOrderId,
-      };
+      // Returning orderId (same as baseOrderId); typeOrderId omitted for now since they're identical.
+      // Adjust later if typeOrderId diverges from baseOrderId.
+      return { orderId: baseOrderId };
     });
   } catch (error) {
     logSystemException(error, 'Failed to create order', {
