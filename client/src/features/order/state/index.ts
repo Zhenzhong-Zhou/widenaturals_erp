@@ -1,9 +1,10 @@
-// import createSalesOrderReducer from './createSalesOrderSlice';
+import salesOrderCreationReducer from './salesOrderCreationSlice';
 
 export const orderReducers = {
-  // createSalesOrder: createSalesOrderReducer,
+  salesOrderCreation: salesOrderCreationReducer,
 };
 
 // Optional exports for thunks, selectors, types
+export * from './salesOrderCreationSelectors';
 export * from './orderThunks';
 export * from './orderTypes';
