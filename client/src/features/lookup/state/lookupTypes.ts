@@ -296,17 +296,44 @@ export type AddressByCustomerLookupState = AsyncState<
   AddressByCustomerLookup[]
 >;
 
+/**
+ * Query parameters for fetching order type lookup results.
+ *
+ * These parameters are typically used in dropdowns, autocompletes,
+ * or filtering UIs where users can select or narrow down order types.
+ */
 export interface OrderTypeLookupQueryParams {
   /**
-   * Optional search keyword for filtering order types by name or category.
+   * Optional search keyword for filtering order types by name or code.
+   * Partial matches using ILIKE (case-insensitive) are supported.
    */
   keyword?: string;
+  
+  /**
+   * Optional category filter to restrict the lookup results to a specific order type category.
+   * If not provided, all accessible categories may be included based on user permissions.
+   */
+  category?: string;
 }
 
+/**
+ * Represents a single order type option for use in dropdown or autocomplete components.
+ *
+ * This structure is produced by transforming raw `order_types` records into a UI-friendly format.
+ * Fields are conditionally included based on user access permissions.
+ *
+ * @property {string} id - Unique identifier for the order type.
+ * @property {string} label - Display name shown in the UI (may include category prefix).
+ * @property {boolean} isRequiredPayment - Indicates whether this order type expects payment.
+ * @property {boolean} [isActive] - Optional flag indicating if the order type is currently active (included if permitted).
+ * @property {string} [category] - Optional category name for this order type (included if permitted).
+ */
 export interface OrderTypeLookupItem {
   id: string;
-  name: string;
-  category: string;
+  label: string;
+  isRequiredPayment: boolean;
+  isActive?: boolean;
+  category?: string;
 }
 
 export type OrderTypeLookupResponse = ApiSuccessResponse<OrderTypeLookupItem[]>;

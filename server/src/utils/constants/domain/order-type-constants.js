@@ -49,8 +49,16 @@ const CATEGORY_PERMISSION_MAP = {
   adjustment: PERMISSIONS.CREATE_ADJUSTMENT_ORDER,
 };
 
+const ORDER_TYPE_CONSTANTS = {
+  PERMISSIONS: {
+    VIEW_ORDER_TYPE_CODE: 'view_order_type_code',
+    VIEW_ALL_ORDER_TYPE_STATUSES: 'view_all_order_type_statuses',
+  },
+};
+
 module.exports = {
   ORDER_CATEGORIES,
   PERMISSIONS,
   CATEGORY_PERMISSION_MAP,
+  ORDER_TYPE_CONSTANTS,
 };

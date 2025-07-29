@@ -4,6 +4,7 @@ const {
   validateOptionalUUID,
   createBooleanFlag,
   validateKeyword,
+  validateOptionalString,
 } = require('./general-validators');
 
 /**
@@ -104,15 +105,24 @@ const customerAddressLookupQuerySchema = Joi.object({
 /**
  * Validation schema for order type lookup query parameters.
  *
- * This schema ensures the optional `keyword` is a trimmed string
- * and follows the constraints defined in `validateKeyword`.
- * Used to filter order types by name or code.
+ * This schema supports filtering order types for lookup dropdowns.
+ * It validates optional query parameters:
  *
- * Example:
- *   /api/lookups/order-types?keyword=sale
+ * - `keyword`: A trimmed string used to search by name or code.
+ * - `category`: An optional string to filter by order category.
+ *                Accepts null or empty string for no filtering.
+ *
+ * Applies standard constraints defined in `validateKeyword` and `validateOptionalString`.
+ *
+ * Example usage:
+ *   /api/lookups/order-types?keyword=sale&category=returns
+ *
+ * @see validateKeyword
+ * @see validateOptionalString
  */
 const orderTypeLookupQuerySchema = Joi.object({
   keyword: validateKeyword('Order Types Keyword'),
+  category: validateOptionalString('Category'),
 });
 
 /**

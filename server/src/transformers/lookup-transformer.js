@@ -213,31 +213,68 @@ const transformCustomerAddressesLookupResult = (rows) =>
   transformRows(rows, transformCustomerAddressLookupRow);
 
 /**
- * Transforms a raw order type row into a minimal lookup object.
+ * Transforms a raw order type row into a dropdown-compatible lookup object.
  *
- * @param {Object|null|undefined} row - Raw DB row
- * @returns {Object|null} Transformed object or null if invalid
+ * This function is used to format `order_types` records for use in UI components like dropdowns.
+ *
+ * Behavior:
+ * - Always includes `value` (order type ID) and `label` (order type name, optionally prefixed with category).
+ * - Uses `transformIdNameToIdLabel` for consistent transformation.
+ * - Includes `isRequiredPayment` to indicate whether the order type expects payment.
+ * - If the user can view all categories, the `label` is prefixed with the category (e.g., "sales - Return").
+ * - If the user can view inactive statuses, `isActive` is included to support disabled option rendering.
+ * - May include other flags from `includeFlagsBasedOnAccess()` (e.g., `category`) as needed by UI.
+ *
+ * Returns `null` if the input row is invalid.
+ *
+ * @param {Object|null|undefined} row - Raw DB row from the `order_types` table.
+ * @param {Object} userAccess - Evaluated access flags for the authenticated user.
+ * @param {boolean} userAccess.canViewAllCategories - Whether to include category prefix in the label.
+ * @param {boolean} userAccess.canViewAllStatuses - Whether to include the `isActive` flag.
+ *
+ * @returns {{
+ *   value: string,
+ *   label: string,
+ *   isRequiredPayment: boolean,
+ *   isActive?: boolean,
+ *   category?: string
+ * } | null} A dropdown-compatible option object, or `null` if input is invalid.
  */
-const transformOrderTypeLookup = (row) => {
+const transformOrderTypeLookup = (row, userAccess) => {
   if (!row || typeof row !== 'object') return null;
-
-  const result = {
-    id: row.id,
-    name: row.name,
-    category: row.category,
+  
+  const label = userAccess?.canViewAllCategories
+    ? `${row.category} - ${row.name}`
+    : row.name;
+  
+  const base = transformIdNameToIdLabel({ ...row, name: label });
+  
+  const flagSubset = includeFlagsBasedOnAccess(row, userAccess);
+  
+  return {
+    ...base,
+    isRequiredPayment: !!row?.requires_payment,
+    ...flagSubset,
   };
-
-  return cleanObject(result);
 };
 
 /**
- * Converts an array of raw DB rows into `{ value, label }` list.
+ * Transforms an array of raw order type rows into a dropdown-compatible list.
  *
- * @param {Array} rows - DB rows
- * @returns {Array} List of lookup options
+ * Each row is transformed using `transformOrderTypeLookup`, including conditional flags
+ * like `isActive` and category-prefixed labels based on user permissions.
+ *
+ * @param {Object[]} rows - Array of raw order type rows from the DB.
+ * @param {Object} userAccess - Evaluated user permission flags.
+ * @param {boolean} userAccess.canViewAllCategories - Whether to prefix category in label.
+ * @param {boolean} userAccess.canViewAllStatuses - Whether to include `isActive`.
+ *
+ * @returns {Array<{ value: string, label: string, isActive?: boolean }>} List of lookup options.
  */
-const transformOrderTypeLookupResult = (rows) => {
-  return transformRows(rows, (row) => transformOrderTypeLookup(row));
+const transformOrderTypeLookupResult = (rows, userAccess) => {
+  return transformRows(rows, (row) =>
+    transformOrderTypeLookup(row, userAccess)
+  );
 };
 
 /**

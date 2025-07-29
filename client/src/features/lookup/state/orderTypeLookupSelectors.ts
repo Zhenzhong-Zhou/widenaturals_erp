@@ -4,6 +4,7 @@ import type {
   LookupOption,
   OrderTypeLookupItem,
 } from '@features/lookup/state/lookupTypes';
+import { mapLookupItems } from '../utils/lookupSelectorUtils';
 
 /**
  * Base selector to access the order type lookup slice from the Redux store.
@@ -37,14 +38,9 @@ export const selectOrderTypeError = createSelector(
 /**
  * Selector to transform order type items into `LookupOption[]` for dropdown usage.
  *
- * Combines category and name if category exists, otherwise just shows name.
- * Example label: "manufacturing • Manufacturing Order"
+ * Includes `isRequiredPayment` to support conditional UI behavior.
  */
 export const selectOrderTypeOptions = createSelector(
   [selectOrderTypeItems],
-  (items: OrderTypeLookupItem[]): LookupOption[] =>
-    items.map((item) => ({
-      label: item.category ? `${item.category} • ${item.name}` : item.name,
-      value: item.id,
-    }))
+  (items: OrderTypeLookupItem[]): LookupOption[] => mapLookupItems(items, ['isRequiredPayment'])
 );

@@ -37,8 +37,10 @@ const {
 } = require('../business/lot-adjustment-type-business');
 const { getOrderTypeLookup } = require('../repositories/order-type-repository');
 const {
-  getFilteredOrderTypes,
-  filterOrderTypeLookupResultByPermission,
+  evaluateOrderTypeLookupAccessControl,
+  enforceOrderTypeLookupVisibilityRules,
+  filterOrderTypeLookupQuery,
+  enrichOrderTypeRow,
 } = require('../business/order-type-business');
 const {
   evaluatePaymentMethodLookupAccessControl,
@@ -349,43 +351,58 @@ const fetchCustomerAddressLookupService = async (customerId) => {
 };
 
 /**
- * Fetches order types for dropdowns based on a user role, permission, and filters.
+ * Fetches a paginated list of order types for use in dropdowns or lookup UIs.
  *
- * - Applies permission-based filtering (e.g., restricts category or status).
- * - Returns minimal `{ id, name }` for restricted users.
- * - Full data for users with `view_order_type` permission.
+ * This service:
+ * - Evaluates user permissions to determine visibility scope (category, status, keyword)
+ * - Applies enforced filtering rules to restrict access where necessary
+ * - Enriches rows with flags like `isActive` for UI state handling
+ * - Transforms raw DB records into `{ label, value }` format for frontend components
  *
- * @param {Object} params
- * @param {Object} params.filters - Optional filter object (e.g. { keyword })
- * @param {Object} user - Authenticated user object
- * @returns {Promise<Array>} Transformed lookup result
+ * @param {import('@types/custom').User} user - Authenticated user object (must contain ID and permission context)
+ * @param {Object} options - Lookup query options
+ * @param {Object} [options.filters={}] - Optional filter parameters (e.g., keyword, category, statusId)
+ * @returns {Promise<{ items: { label: string, value: string, isActive?: boolean }[], hasMore: boolean }>}
+ *
+ * @throws {AppError} When lookup fails due to service error or permission issues.
  */
-const fetchOrderTypeLookupService = async ({ filters = {} }, user) => {
+const fetchOrderTypeLookupService = async (
+  user,
+  { filters = {} }
+) => {
   try {
-    const { keyword } = filters;
-
-    // Step 1: Build filters based on user access
-    const filteredQuery = await getFilteredOrderTypes(user, keyword);
-
-    // Step 2: Fetch matching order types from DB
-    const rawResult = await getOrderTypeLookup({ filters: filteredQuery });
-
-    // Step 3: Restrict fields based on user permission
-    const filteredResult = await filterOrderTypeLookupResultByPermission(
-      user,
-      rawResult
+    // Step 1: Evaluate user access control flags
+    const userAccess = await evaluateOrderTypeLookupAccessControl(user);
+    const activeStatusId = getStatusId('order_type_active');
+    
+    // Step 2: Enforce filter visibility rules (e.g., restrict categories, status)
+    const enforcedFilters = enforceOrderTypeLookupVisibilityRules(filters, userAccess, {
+      activeStatusId,
+    });
+    
+    // Step 3: Build DB query filters (e.g., keyword ILIKE normalization)
+    const finalQuery = filterOrderTypeLookupQuery(enforcedFilters, userAccess, activeStatusId);
+    
+    // Step 4: Fetch paginated raw DB records
+    const rawResult = await getOrderTypeLookup({
+      filters: finalQuery,
+    });
+    
+    // Step 5: Enrich raw rows with UI flags (e.g., isActive)
+    const enrichedRows = rawResult.map((row) =>
+      enrichOrderTypeRow(row, activeStatusId)
     );
-
-    // Step 4: Transform result for lookup dropdown
-    return transformOrderTypeLookupResult(filteredResult);
-  } catch (error) {
-    logSystemException(error, 'Failed to fetch order type lookup', {
+    
+    // Step 6: Transform for dropdown-compatible output
+    return transformOrderTypeLookupResult(enrichedRows, userAccess);
+  } catch (err) {
+    logSystemException(err, 'Failed to fetch order type lookup', {
       context: 'lookup-service/fetchOrderTypeLookupService',
       userId: user?.id,
-      role: user?.role,
+      filters,
     });
-
-    throw AppError.serviceError('Unable to fetch order type lookup');
+    
+    throw AppError.serviceError('Unable to fetch order type options');
   }
 };
 

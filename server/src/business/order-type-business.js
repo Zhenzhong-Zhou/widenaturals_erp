@@ -1,10 +1,11 @@
 const {
   checkPermissions,
   resolveOrderAccessContext,
+  resolveUserPermissionContext,
 } = require('../services/role-permission-service');
-const { getStatusId } = require('../config/status-cache');
 const { logSystemException } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
+const { PERMISSIONS } = require('../utils/constants/domain/order-type-constants');
 
 /**
  * Determines if the user has permission to access the internal `code` field for order types.
@@ -78,77 +79,173 @@ const filterOrderTypeRowsByPermission = async (result, user) => {
 };
 
 /**
- * Builds dynamic filters for fetching order types based on user permissions and an optional keyword.
+ * Evaluates access control flags for order type lookup based on a user role and permissions.
  *
- * Behavior:
- * - Users with `root_access` bypass all restrictions (returning unrestricted filters).
- * - Users with category-specific permissions (e.g., `create_sales_order`) will be restricted
- *   to those categories and only include `active` order types.
- * - If a user has no access to any order categories (and is not a root user), an authorization error is thrown.
- * - If a `keyword` is provided, it is applied to filter order types by `name` or `code` (case-insensitive).
+ * This function determines whether the user has full or restricted access
+ * to order type records, including their visibility by category, status, and keyword filtering.
  *
- * @param {Object} user - Authenticated user object; must include a `role` field.
- * @param {string} [keyword] - Optional keyword to filter order types by name/code.
- * @returns {Promise<Object>} Returns a filter object containing `category`, `statusId`, and optionally `keyword`.
- * @throws {AppError} If the user does not have permission to view any order types.
+ * - Root users automatically receive full access to all categories, statuses, and fields.
+ * - Other users must have specific permissions to unlock full visibility for each aspect.
+ * - business logic scopes Category access via `resolveOrderAccessContext`.
+ *
+ * @param {Object} user - Authenticated user object (must include role and ID)
+ * @returns {Promise<{
+ *   canViewAllCategories: boolean,   // True if user can view order types across all categories (not limited by assigned ones)
+ *   canViewAllStatuses: boolean,     // True if user can view order types with any status (not just active)
+ *   canViewAllKeywords: boolean,     // True if user can search with unrestricted keyword access (e.g. matches on code/name/description)
+ *   accessibleCategories: string[]   // List of specific category codes the user has access to (empty if none)
+ * }>}
+ *
+ * @throws {AppError} If access context evaluation fails (e.g., user data is invalid or permission services fail)
  */
-const getFilteredOrderTypes = async (user, keyword) => {
+const evaluateOrderTypeLookupAccessControl = async (user) => {
   try {
-    const { isRoot, accessibleCategories } =
-      await resolveOrderAccessContext(user);
-
-    // Root access bypasses all restrictions
-    if (isRoot) {
-      return keyword ? { keyword } : {};
-    }
-
-    const filters = {
-      category: accessibleCategories,
-      statusId: getStatusId('order_type_active'),
+    const { isRoot, permissions } = await resolveUserPermissionContext(user);
+    const { accessibleCategories } = await resolveOrderAccessContext(user);
+    
+    const has = (perm) => isRoot || permissions.includes(perm);
+    
+    const canViewAllCategories = has(PERMISSIONS.VIEW_ORDER_TYPE_CODE);
+    const canViewAllStatuses   = has(PERMISSIONS.VIEW_ALL_ORDER_TYPE_STATUSES);
+    const canViewAllKeywords   = has(PERMISSIONS.VIEW_ORDER_TYPE);
+    
+    return {
+      canViewAllCategories,
+      canViewAllStatuses,
+      canViewAllKeywords,
+      accessibleCategories: accessibleCategories ?? [],
     };
-
-    if (keyword) {
-      filters.keyword = keyword;
-    }
-
-    return filters;
-  } catch (error) {
-    logSystemException(error, 'Failed to build filtered order type query', {
-      context: 'order-type-business/getFilteredOrderTypes',
+  } catch (err) {
+    logSystemException(err, 'Failed to evaluate order type lookup access control', {
+      context: 'order-type-business/evaluateOrderTypeLookupAccessControl',
       userId: user?.id,
-      role: user?.role,
-      keyword,
     });
-
-    throw AppError.businessError('Unable to generate order type filters');
+    
+    throw AppError.businessError('Unable to evaluate user access control for order type lookup', {
+      details: err.message,
+      stage: 'evaluate-order-type-lookup-access',
+    });
   }
 };
 
 /**
- * Filters and transforms a raw order type lookup result based on user permissions.
+ * Enforces visibility rules on order type lookup filters based on user access.
  *
- * - Users with `view_order_type` permission see full fields (e.g., `id`, `name`, `category`, etc.).
- * - Other users see only limited fields (e.g., `id`, `name`).
+ * Rules:
+ * - If the user lacks full category access, restrict to their assigned categories.
+ * - If the user lacks keyword visibility access, inject `_restrictKeywordToValidOnly`.
+ * - If the user lacks full status visibility, remove `statusId` and inject `_activeStatusId`.
+ * - Throws an authorization error if the user has no accessible categories.
  *
- * @param {Object} user - Authenticated user object
- * @param {Array<Object>} rawResult - Raw-transformed result (e.g., from DB or transformer)
- * @returns {Promise<Array<Object>>} Filtered result based on access level
+ * @param {Object} filters - Original filters from the request (e.g., `keyword`, `statusId`, `category`)
+ * @param {Object} access - User access context:
+ *   - `canViewAllCategories: boolean`
+ *   - `canViewAllKeywords: boolean`
+ *   - `canViewAllStatuses: boolean`
+ *   - `accessibleCategories: string[]`
+ * @param {Object} [options={}] - Optional settings:
+ *   - `activeStatusId: string` — The status ID to enforce if status visibility is restricted
+ * @returns {Object} Adjusted filters with access rules applied
+ * @throws {AppError} If user has no access to any order categories
  */
-const filterOrderTypeLookupResultByPermission = async (user, rawResult) => {
-  const canViewAll = await checkPermissions(user, ['view_order_type']);
-
-  if (canViewAll) {
-    return rawResult;
+const enforceOrderTypeLookupVisibilityRules = (filters, access, options = {}) => {
+  const adjusted = { ...filters };
+  
+  // Enforce category restriction
+  if (access.accessibleCategories && !access.canViewAllCategories) {
+    if (access.accessibleCategories.length === 0) {
+      throw AppError.authorizationError('User is not authorized to view any order categories');
+    }
+    adjusted.category = access.accessibleCategories;
   }
+  
+  // Enforce keyword visibility
+  if (filters.keyword && !access.canViewAllKeywords) {
+    adjusted._restrictKeywordToValidOnly = true;
+  }
+  
+  // Enforce active-only status filtering
+  if (!access.canViewAllStatuses) {
+    delete adjusted.statusId;
+    if (options.activeStatusId) {
+      adjusted._activeStatusId = options.activeStatusId;
+    }
+  }
+  
+  return adjusted;
+};
 
-  // Strip sensitive fields for limited-permission users
-  return rawResult.map(({ id, name }) => ({ id, name }));
+/**
+ * Applies access control filters to an order type lookup query based on user permissions.
+ *
+ * - If the user lacks permission to view all statuses, the `statusId` filter is removed,
+ *   and `_activeStatusId` must be injected.
+ *
+ * - If the user lacks permission to search keywords across all fields, the
+ *   `_restrictKeywordToValidOnly` flag is enabled.
+ *
+ * - If the user lacks access to all categories, the `category` filter must be enforced
+ *   (this is handled externally in `enforceOrderTypeLookupVisibilityRules`).
+ *
+ * @param {Object} query - Original query object from the client.
+ * @param {Object} access - User access context:
+ *   - `canViewAllStatuses`, `canViewAllKeywords`, `accessibleCategories`
+ * @param {string} activeStatusId - Status ID to inject if restricting to active order types
+ * @returns {Object} Modified query with enforced access filters
+ */
+const filterOrderTypeLookupQuery = (query, access, activeStatusId) => {
+  try {
+    const adjusted = { ...query };
+    
+    // Restrict status filtering if not allowed
+    if (!access.canViewAllStatuses) {
+      delete adjusted.statusId;
+      if (activeStatusId) {
+        adjusted._activeStatusId = activeStatusId;
+      }
+    }
+    
+    // Restrict keyword scope
+    if (query.keyword && !access.canViewAllKeywords) {
+      adjusted._restrictKeywordToValidOnly = true;
+    }
+    
+    return adjusted;
+  } catch (err) {
+    logSystemException(err, 'Failed to apply access filters in filterOrderTypeLookupQuery', {
+      context: 'order-type-business/filterOrderTypeLookupQuery',
+      originalQuery: query,
+      access,
+    });
+    
+    throw AppError.businessError('Failed to apply access control filters to order type query', {
+      details: err.message,
+      stage: 'filter-order-type-lookup-query',
+    });
+  }
+};
+
+/**
+ * Enriches an order type row with computed flags like `isActive` and optionally `isPaymentRequired`.
+ *
+ * @param {Object} row - Raw order type row with `status_id` and `requires_payment`
+ * @param {string|number} activeStatusId - The status ID representing "active"
+ * @returns {Object} Enriched row with `isActive` and `requiresPayment` booleans
+ */
+const enrichOrderTypeRow = (row, activeStatusId) => {
+  return {
+    ...row,
+    isActive: row.status_id === activeStatusId,
+    requiresPayment: Boolean(row.requires_payment), // pass-through for consistency
+  };
 };
 
 module.exports = {
   canViewOrderTypeCode,
   enforceOrderTypeCodeAccessControl,
   filterOrderTypeRowsByPermission,
-  getFilteredOrderTypes,
-  filterOrderTypeLookupResultByPermission,
+  evaluateOrderTypeLookupAccessControl,
+  enforceOrderTypeLookupVisibilityRules,
+  filterOrderTypeLookupQuery,
+  enrichOrderTypeRow,
 };

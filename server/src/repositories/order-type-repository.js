@@ -132,7 +132,9 @@ const getOrderTypeLookup = async ({ filters = {} } = {}) => {
     SELECT
       id,
       name,
-      category
+      category,
+      requires_payment,
+      status_id
     FROM order_types ot
     WHERE ${whereClause}
     ORDER BY name ASC

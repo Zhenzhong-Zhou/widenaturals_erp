@@ -210,8 +210,8 @@ const getCustomerAddressLookupController = wrapAsync(async (req, res) => {
 const getOrderTypeLookupController = wrapAsync(async (req, res) => {
   const user = req.user;
   const { filters = {} } = req.normalizedQuery;
-
-  const result = await fetchOrderTypeLookupService({ filters }, user);
+  
+  const result = await fetchOrderTypeLookupService(user, { filters });
 
   return res.status(200).json({
     success: true,
