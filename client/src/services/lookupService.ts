@@ -17,6 +17,8 @@ import type {
   OrderTypeLookupResponse,
   PaymentMethodLookupQueryParams,
   PaymentMethodLookupResponse,
+  PricingLookupQueryParams,
+  PricingLookupResponse,
   SkuLookupQueryParams,
   SkuLookupResponse,
   TaxRateLookupQueryParams,
@@ -301,6 +303,31 @@ const fetchSkuLookup = async (
   }
 };
 
+/**
+ * Fetches a list of pricing records from the server for use in lookup UIs.
+ *
+ * Supports filtering by SKU, keyword, and display configuration (e.g., showSku, labelOnly).
+ * Returns either full or label-only pricing entries, optionally enriched with flags
+ * such as `isActive` and `isValidToday` depending on user access.
+ *
+ * @param params - Optional query parameters to filter and format pricing lookup results.
+ * @returns A promise resolving to a {@link PricingLookupResponse}, including pagination metadata and pricing items.
+ * @throws Error if the network request fails or the response is invalid.
+ */
+const fetchPricingLookup = async (
+  params?: PricingLookupQueryParams
+): Promise<PricingLookupResponse> => {
+  const queryString = buildQueryString(params);
+  const url = `${API_ENDPOINTS.LOOKUPS.PRICING}${queryString}`;
+  
+  try {
+    return await getRequest<PricingLookupResponse>(url);
+  } catch (error) {
+    console.error('Failed to fetch pricing lookup:', error);
+    throw error;
+  }
+};
+
 export const lookupService = {
   fetchBatchRegistryLookup,
   fetchWarehouseLookup,
@@ -313,4 +340,5 @@ export const lookupService = {
   fetchTaxRateLookup,
   fetchDeliveryMethodLookup,
   fetchSkuLookup,
+  fetchPricingLookup,
 };

@@ -16,6 +16,8 @@ import type {
   OrderTypeLookupResponse,
   PaymentMethodLookupQueryParams,
   PaymentMethodLookupResponse,
+  PricingLookupQueryParams,
+  PricingLookupResponse,
   SkuLookupQueryParams,
   SkuLookupResponse,
   TaxRateLookupQueryParams,
@@ -319,6 +321,34 @@ export const fetchSkuLookupThunk = createAsyncThunk<
     return await lookupService.fetchSkuLookup(params);
   } catch (error) {
     console.error('Failed to fetch SKU lookup:', error);
+    return thunkAPI.rejectWithValue(error);
+  }
+});
+
+/**
+ * Thunk to fetch pricing lookup options for dropdowns or autocomplete fields.
+ *
+ * Supports optional filtering by SKU ID, keyword, and display options (e.g., `labelOnly`, `showSku`).
+ * Returns either full or label-only pricing items, depending on user access and query configuration.
+ *
+ * Commonly used in pricing selectors, sales order forms, or discount pricing modules.
+ *
+ * Dispatch lifecycle:
+ * - `lookup/fetchPricingLookup/pending`: dispatched at the start of the request
+ * - `lookup/fetchPricingLookup/fulfilled`: dispatched on successful response
+ * - `lookup/fetchPricingLookup/rejected`: dispatched if an error occurs
+ *
+ * @param params - Optional filters and display options including `keyword`, `filters.skuId`, `limit`, `offset`, and `displayOptions`.
+ * @returns A {@link PricingLookupResponse} containing pricing options and pagination metadata.
+ */
+export const fetchPricingLookupThunk = createAsyncThunk<
+  PricingLookupResponse,
+  PricingLookupQueryParams | undefined
+>('lookup/fetchPricingLookup', async (params, thunkAPI) => {
+  try {
+    return await lookupService.fetchPricingLookup(params);
+  } catch (error) {
+    console.error('Failed to fetch pricing lookup:', error);
     return thunkAPI.rejectWithValue(error);
   }
 });

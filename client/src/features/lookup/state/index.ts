@@ -9,6 +9,7 @@ import discountLookupReducer from './discountLookupSlice';
 import taxRateLookupReducer from './taxRateLookupSlice';
 import deliveryMethodLookupReducer from './deliveryMethodLookupSlice';
 import skuLookupReducer from './skuLookupSlice';
+import pricingLookupReducer from './pricingLookupSlice';
 
 export const lookupReducers = {
   batchRegistryLookup: batchRegistryLookupReducer,
@@ -22,6 +23,7 @@ export const lookupReducers = {
   taxRateLookup: taxRateLookupReducer,
   deliveryMethodLookup: deliveryMethodLookupReducer,
   skuLookup: skuLookupReducer,
+  pricingLookup: pricingLookupReducer,
 };
 
 // Optionally export selectors, thunks, types
@@ -36,5 +38,6 @@ export * from './discountLookupSelectors';
 export * from './taxRateLookupSelectors';
 export * from './deliveryMethodLookupSelectors';
 export * from './skuLookupSelectors';
+export * from './pricingLookupSelectors';
 export * from './lookupThunks';
 export * from './lookupTypes';

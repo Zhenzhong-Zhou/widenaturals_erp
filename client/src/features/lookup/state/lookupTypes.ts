@@ -34,7 +34,7 @@ export interface LookupQuery extends LookupPagination {
   /**
    * Optional keyword to filter or search items.
    */
-  keyword?: string;
+  keyword: string;
 }
 
 /**
@@ -495,3 +495,165 @@ export type SkuLookupResponse = LookupSuccessResponse<SkuLookupItem>;
  * (e.g., barcode, status flags) in forms or filter panels.
  */
 export type SkuLookupState = PaginatedLookupState<SkuLookupItem>;
+
+/**
+ * Query parameters for paginated pricing lookup results.
+ *
+ * Used to filter and control the structure of returned pricing records.
+ * Supports keyword search, pagination, SKU-based filtering, and simplified label-only formatting.
+ */
+export interface PricingLookupQueryParams extends LookupQuery {
+  /**
+   * Optional SKU ID to filter pricing results.
+   * If provided, only pricing records related to the specified SKU will be returned.
+   */
+  skuId?: string | null;
+  
+  /**
+   * If true, the response will include only minimal fields: `id`, `label`, and optional flags
+   * (e.g., `isActive`, `isValidToday`) based on user access.
+   *
+   * This is useful for performance-optimized lookups (e.g., dropdowns).
+   */
+  labelOnly?: boolean;
+}
+
+/**
+ * Represents a detailed pricing lookup result with full metadata.
+ *
+ * Returned when `labelOnly` is `false`. Includes location name, price, and pricing type name.
+ * Also inherits `id`, `label`, and optional `isActive`/`isValidToday` from `LookupItemWithStatus`.
+ */
+export interface PricingLookupFullItem extends LookupItemWithStatus {
+  /**
+   * Location where the price is applicable.
+   * Optional based on user access and response options.
+   */
+  locationName?: string;
+  
+  /**
+   * Price value for the SKU or product, as a string or number.
+   */
+  price: string | number;
+  
+  /**
+   * Pricing type name (e.g., "Wholesale", "Retail").
+   */
+  pricingTypeName: string;
+}
+
+/**
+ * Represents a minimal pricing lookup result, typically returned when `labelOnly` is `true`.
+ *
+ * Includes only `id`, `label`, and optionally `isActive`/`isValidToday`
+ * depending on user permission.
+ */
+export type PricingLookupLabelOnlyItem = LookupItemWithStatus;
+
+/**
+ * Union type representing a pricing lookup result.
+ *
+ * The result may be a minimal item (`PricingLookupLabelOnlyItem`) or
+ * a full item (`PricingLookupFullItem`) depending on display options and user access.
+ */
+export type PricingLookupItem =
+  | PricingLookupFullItem
+  | PricingLookupLabelOnlyItem;
+
+/**
+ * API response type for pricing lookup endpoints.
+ *
+ * This wraps the pricing lookup items in a standard paginated lookup response format.
+ * The `items` array may include either full or label-only pricing records,
+ * depending on the provided query options and user access level.
+ *
+ * @example Successful response (labelOnly = false):
+ * {
+ *   success: true,
+ *   message: "Successfully retrieved pricing lookup",
+ *   offset: 0,
+ *   limit: 50,
+ *   hasMore: true,
+ *   items: [
+ *     {
+ *       id: "uuid",
+ *       label: "Focus (SKU123) · Wholesale · $19.99",
+ *       locationName: "Main Warehouse",
+ *       price: "19.99",
+ *       pricingTypeName: "Wholesale",
+ *       isActive: true,
+ *       isValidToday: true
+ *     }
+ *   ]
+ * }
+ *
+ * @example Successful response (labelOnly = true):
+ * {
+ *   success: true,
+ *   message: "Successfully retrieved pricing lookup",
+ *   offset: 0,
+ *   limit: 50,
+ *   hasMore: false,
+ *   items: [
+ *     {
+ *       id: "uuid",
+ *       label: "Wholesale · $19.99",
+ *       isActive: true
+ *     }
+ *   ]
+ * }
+ */
+export type PricingLookupResponse = LookupSuccessResponse<PricingLookupItem>;
+
+/**
+ * Redux slice state for pricing lookup dropdowns or autocomplete inputs.
+ *
+ * Extends a generic paginated async lookup state to track:
+ * - Matching pricing items (`PricingLookupItem[]`)
+ * - Loading and error states for async requests
+ * - Pagination info (`offset`, `limit`, `hasMore`)
+ *
+ * Typically used for rendering pricing options in sales order forms,
+ * discount selectors, or inventory pricing filters. Supports both
+ * full and label-only pricing entries depending on access level and display mode.
+ */
+export type PricingLookupState = PaginatedLookupState<PricingLookupItem>;
+
+/**
+ * Represents a full lookup bundle with results, loading/error states, pagination metadata,
+ * and control functions (`fetch` and `reset`). Used for dropdowns and lookup components.
+ *
+ * @template TParams - The shape of the query parameters used for fetching lookup data.
+ *
+ * @property options - The available dropdown options returned from the lookup.
+ * @property loading - Indicates whether the lookup is currently fetching data.
+ * @property error - Holds an error message (if any) from the lookup request.
+ * @property meta - Optional pagination metadata (e.g. limit, offset, total count).
+ * @property fetch - Function to trigger the lookup with optional query parameters.
+ * @property reset - Function to reset the lookup state (e.g. clear results or errors).
+ */
+export type LookupBundle<TParams> = {
+  options: LookupOption[];
+  loading: boolean;
+  error: string | null;
+  meta?: PaginationLookupInfo;
+  fetch: (params?: TParams) => void;
+  reset: () => void;
+};
+
+/**
+ * Represents the state for a paginated dropdown component.
+ *
+ * Typically used to control and reflect:
+ * - the current text input (`inputValue`) from the user,
+ * - the current query parameters (`fetchParams`) being used for API requests.
+ *
+ * @template TParams - The shape of the query parameters (e.g., keyword, limit, offset).
+ *
+ * @property inputValue - The current value typed into the dropdown search input.
+ * @property fetchParams - The current query parameters used for fetching paginated results.
+ */
+export interface PaginatedDropdownState<TParams> {
+  inputValue: string;
+  fetchParams: TParams;
+}
