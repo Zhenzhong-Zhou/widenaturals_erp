@@ -68,9 +68,11 @@ const createAddressService = async (
 
       const rawResult = await getEnrichedAddressesByIds(insertedIds, client);
       const enrichedRecords = transformEnrichedAddresses(rawResult);
-
-      return enrichedRecords.map((address) =>
-        filterAddressForViewer(address, user, purpose)
+      
+      return await Promise.all(
+        enrichedRecords.map((address) =>
+          filterAddressForViewer(address, user, purpose)
+        )
       );
     } catch (error) {
       logSystemException(error, 'Failed to create address records', {

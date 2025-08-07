@@ -75,9 +75,11 @@ const createCustomersService = async (
 
       const rawResult = await getEnrichedCustomersByIds(insertedIds, client);
       const enrichedRecords = transformEnrichedCustomers(rawResult);
-
-      return enrichedRecords.map((customer) =>
-        filterCustomerForViewer(customer, user, purpose)
+      
+      return Promise.all(
+        enrichedRecords.map((customer) =>
+          filterCustomerForViewer(customer, user, purpose)
+        )
       );
     } catch (error) {
       logSystemException(error, 'Failed to create customers in transaction', {
