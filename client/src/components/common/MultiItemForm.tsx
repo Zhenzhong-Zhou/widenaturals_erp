@@ -1,4 +1,4 @@
-import type { FC, ReactNode } from 'react';
+import { forwardRef, type ReactNode, useImperativeHandle, useMemo } from 'react';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import Grid from '@mui/material/Grid';
@@ -9,16 +9,17 @@ import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
 import FormHelperText from '@mui/material/FormHelperText';
 import { v4 as uuidv4 } from 'uuid';
-import { useForm, Controller, useFieldArray } from 'react-hook-form';
+import { useForm, Controller, useFieldArray, type Control } from 'react-hook-form';
 import Dropdown from '@components/common/Dropdown';
 import BaseInput from '@components/common/BaseInput';
 import CustomButton from '@components/common/CustomButton';
 import CustomDatePicker from '@components/common/CustomDatePicker';
 import { CustomPhoneInput } from '@components/index.ts';
 
-export interface RowAwareComponentProps {
-  value: any;
-  onChange: (value: string) => void;
+export interface RowAwareComponentProps<T = any> {
+  value: T;
+  onChange: (value: T) => void;
+  control: Control<any>;
   disabled?: boolean;
   required?: boolean;
   placeholder?: string;
@@ -59,10 +60,14 @@ export interface MultiItemFieldConfig {
   };
 }
 
+export interface MultiItemFormRef {
+  getItems: () => Record<string, any>[];
+}
+
 interface MultiItemFormProps {
   getItemTitle?: (index: number, item: Record<string, any>) => string;
   fields: MultiItemFieldConfig[];
-  onSubmit: (formData: Record<string, any>[]) => void;
+  onSubmit?: (formData: Record<string, any>[]) => void;
   defaultValues?: Record<string, any>[];
   validation?: (
     watch: (name: string) => any
@@ -71,15 +76,17 @@ interface MultiItemFormProps {
   renderBeforeFields?: (item: Record<string, any>, index: number) => ReactNode;
 }
 
-const MultiItemForm: FC<MultiItemFormProps> = ({
-  getItemTitle,
-  fields,
-  onSubmit,
-  defaultValues = [{}],
-  validation,
-  loading,
-  renderBeforeFields,
-}) => {
+const MultiItemForm = forwardRef<MultiItemFormRef, MultiItemFormProps>((props, ref) => {
+  const {
+    getItemTitle,
+    fields,
+    onSubmit,
+    defaultValues = [{}],
+    validation,
+    loading,
+    renderBeforeFields,
+  } = props;
+  
   const { control, handleSubmit, watch, reset } = useForm<{
     items: Record<string, any>[];
   }>({
@@ -87,7 +94,11 @@ const MultiItemForm: FC<MultiItemFormProps> = ({
   });
 
   const allFields = watch('items');
-
+  
+  useImperativeHandle(ref, () => ({
+    getItems: () => allFields,
+  }));
+  
   const {
     fields: fieldArray,
     append,
@@ -135,7 +146,9 @@ const MultiItemForm: FC<MultiItemFormProps> = ({
     const cleanedItems = data.items.filter((item) =>
       Object.values(item).some((v) => v !== null && v !== undefined && v !== '')
     );
-    onSubmit(cleanedItems);
+    if (onSubmit) {
+      onSubmit(cleanedItems);
+    }
   };
 
   const validationRules = validation ? validation(watch) : {};
@@ -223,30 +236,46 @@ const MultiItemForm: FC<MultiItemFormProps> = ({
                             placeholder,
                             defaultHelperText,
                           } = field;
-
+                          
                           const validateFn = validationRules[field.id];
-                          const errorMessage = validateFn
-                            ? validateFn(value)
-                            : undefined;
-                          const helperText =
-                            errorMessage || defaultHelperText || '';
-
+                          const errorMessage = validateFn?.(value);
+                          const helperText = errorMessage || defaultHelperText || '';
+                          
                           if (field.type === 'custom' && field.component) {
                             const CustomComponent = field.component;
-                            return (
-                              <CustomComponent
-                                value={value}
-                                onChange={onChange}
-                                disabled={disabled}
-                                placeholder={placeholder}
-                                error={errorMessage}
-                                helperText={helperText}
-                                required={required}
-                                rowIndex={index}
-                              />
+                            
+                            // Important: store result, not the component itself
+                            const customField = useMemo(
+                              () =>
+                                CustomComponent({
+                                  value,
+                                  onChange,
+                                  control,
+                                  disabled,
+                                  placeholder,
+                                  error: errorMessage,
+                                  helperText,
+                                  required,
+                                  rowIndex: index,
+                                }),
+                              [
+                                CustomComponent,
+                                value,
+                                onChange,
+                                control,
+                                disabled,
+                                placeholder,
+                                errorMessage,
+                                helperText,
+                                required,
+                                index,
+                              ]
                             );
+                            
+                            // Ensure you always return a JSX.Element
+                            return <>{customField}</>;
                           }
-
+                          
                           if (field.type === 'select') {
                             return (
                               <Dropdown
@@ -262,7 +291,7 @@ const MultiItemForm: FC<MultiItemFormProps> = ({
                               />
                             );
                           }
-
+                          
                           if (field.type === 'date') {
                             return (
                               <CustomDatePicker
@@ -278,15 +307,11 @@ const MultiItemForm: FC<MultiItemFormProps> = ({
                               />
                             );
                           }
-
+                          
                           if (field.type === 'phone') {
-                            const validateFn = validationRules[field.id];
-                            const errorMessage = validateFn
-                              ? validateFn(value)
-                              : undefined;
-                            const helperText =
-                              errorMessage || field.defaultHelperText || '';
-
+                            const errorMessage = validateFn?.(value);
+                            const helperText = errorMessage || field.defaultHelperText || '';
+                            
                             return (
                               <FormControl fullWidth error={!!errorMessage}>
                                 {field.label && (
@@ -304,7 +329,7 @@ const MultiItemForm: FC<MultiItemFormProps> = ({
                               </FormControl>
                             );
                           }
-
+                          
                           if (field.type === 'email') {
                             return (
                               <BaseInput
@@ -321,7 +346,7 @@ const MultiItemForm: FC<MultiItemFormProps> = ({
                               />
                             );
                           }
-
+                          
                           if (field.type === 'textarea') {
                             return (
                               <BaseInput
@@ -340,12 +365,12 @@ const MultiItemForm: FC<MultiItemFormProps> = ({
                               />
                             );
                           }
-
+                          
                           if (field.type === 'text') {
                             return (
                               <BaseInput
                                 label={field.label}
-                                type={field.type}
+                                type="text"
                                 value={value || ''}
                                 onChange={onChange}
                                 fullWidth
@@ -357,7 +382,7 @@ const MultiItemForm: FC<MultiItemFormProps> = ({
                               />
                             );
                           }
-
+                          
                           return (
                             <BaseInput
                               label={field.label}
@@ -426,6 +451,6 @@ const MultiItemForm: FC<MultiItemFormProps> = ({
       </Box>
     </Box>
   );
-};
+});
 
 export default MultiItemForm;

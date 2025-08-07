@@ -52,9 +52,9 @@ const validateUUID = (fieldName = 'id') =>
  * });
  */
 const validateOptionalUUID = (fieldName = 'id') =>
-  Joi.string().uuid().optional().allow(null).label(fieldName).messages({
+  Joi.string().uuid().optional().allow(null).disallow('').label(fieldName).messages({
     'string.guid': '{{#label}} must be a valid UUID',
-    'string.empty': '{{#label}} cannot be empty',
+    'any.invalid': '{{#label}} cannot be an empty string',
   });
 
 /**

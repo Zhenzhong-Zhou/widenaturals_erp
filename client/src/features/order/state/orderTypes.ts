@@ -42,9 +42,6 @@ export interface CreateSalesOrderInput {
   /** The UUID of the billing address */
   billing_address_id: string;
   
-  /** The UUID of the payment status (e.g., pending, paid) */
-  payment_status_id: string;
-  
   /** The UUID of the selected payment method */
   payment_method_id: string;
   
@@ -69,6 +66,24 @@ export interface CreateSalesOrderInput {
   /** List of items included in the order */
   order_items: OrderItemInput[];
 }
+
+/**
+ * Extended form type used for sales order creation UI.
+ *
+ * Combines backend `CreateSalesOrderInput` with additional UI-only fields
+ * that are relevant only on the client side (e.g., toggle switches or labels).
+ *
+ * - `billing_same_as_shipping`: Determines if billing address should default to shipping address.
+ * - `address_section_label`: Optional label for the address section in the form UI.
+ * - `address_placeholder`: Optional placeholder text for address fields in the form UI.
+ *
+ * These extra fields should be stripped out before submitting to the backend.
+ */
+export type CreateSalesOrderForm = CreateSalesOrderInput & {
+  billing_same_as_shipping: boolean;
+  address_section_label?: string;
+  address_placeholder?: string;
+};
 
 /**
  * Payload returned when a sales order is successfully created.

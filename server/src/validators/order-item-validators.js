@@ -14,7 +14,7 @@ const Joi = require('joi');
 const baseOrderItemSchema = Joi.object({
   quantity_ordered: Joi.number().integer().positive().required(),
   price_id: Joi.string().uuid().allow(null),
-  price: Joi.number().precision(2).min(0).allow(null),
+  price: Joi.number().precision(2).min(0).optional().allow(null),
   metadata: Joi.object().optional(),
 });
 
