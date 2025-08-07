@@ -146,8 +146,6 @@ const getEnrichedCustomersByIds = async (ids, client) => {
  *
  * @param {Object} options - Query options
  * @param {Object} [options.filters={}] - Optional filter object for customers
- * @param {string} [options.statusId] - Optional default status filter (e.g. 'active')
- * @param {boolean} [options.overrideDefaultStatus=false] - Whether to ignore status filter
  * @param {number} [options.page=1] - Current page number for pagination
  * @param {number} [options.limit=10] - Number of records per page
  * @param {string} [options.sortBy='created_at'] - Column to sort by
@@ -159,16 +157,12 @@ const getEnrichedCustomersByIds = async (ids, client) => {
  */
 const getPaginatedCustomers = async ({
   filters = {},
-  statusId,
-  overrideDefaultStatus = false,
   page = 1,
   limit = 10,
   sortBy = 'created_at',
   sortOrder = 'DESC',
 }) => {
-  const { whereClause, params } = buildCustomerFilter(statusId, filters, {
-    overrideDefaultStatus,
-  });
+  const { whereClause, params } = buildCustomerFilter(filters);
 
   const tableName = 'customers c';
   const joins = [
@@ -216,8 +210,6 @@ const getPaginatedCustomers = async ({
     logSystemInfo('Fetched paginated customers', {
       context: 'customer-repository/fetchPaginatedCustomers',
       filters,
-      statusId,
-      overrideDefaultStatus,
       pagination: { page, limit },
       sorting: { sortBy, sortOrder },
     });
@@ -227,8 +219,6 @@ const getPaginatedCustomers = async ({
     logSystemException(error, 'Failed to fetch paginated customers', {
       context: 'customer-repository/fetchPaginatedCustomers',
       filters,
-      statusId,
-      overrideDefaultStatus,
       pagination: { page, limit },
       sorting: { sortBy, sortOrder },
     });
@@ -246,11 +236,8 @@ const getPaginatedCustomers = async ({
  * It is optimized for lookup use cases where small, fast result sets are required.
  *
  * @param {Object} options - Options for the lookup query.
- * @param {string} [options.keyword=''] - Partial search term for firstname, lastname, email, or phone number.
- * @param {string} [options.statusId] - Optional status ID to filter customers.
  * @param {number} [options.limit=50] - Number of records to return (default: 50).
  * @param {number} [options.offset=0] - Number of records to skip for pagination (default: 0).
- * @param {boolean} [options.overrideDefaultStatus=false] - If true, disables automatic status filtering (e.g., show all statuses).
  *
  * @returns {Promise<{
  *   data: Array<{ id: string, firstname: string, lastname: string, email: string }>,
@@ -265,20 +252,14 @@ const getPaginatedCustomers = async ({
  * @throws {AppError} Throws a database error if the query fails.
  */
 const getCustomerLookup = async ({
-  keyword = '',
-  statusId,
+  filters = {},
   limit = 50,
   offset = 0,
-  overrideDefaultStatus = false,
 }) => {
   const tableName = 'customers c';
 
   // Build dynamic WHERE clause + params
-  const { whereClause, params } = buildCustomerFilter(
-    statusId,
-    { keyword },
-    { overrideDefaultStatus }
-  );
+  const { whereClause, params } = buildCustomerFilter(filters);
 
   // Base query text
   const queryText = `
@@ -313,8 +294,6 @@ const getCustomerLookup = async ({
 
     logSystemInfo('Fetched customer lookup data', {
       context: 'customer-repository/getCustomerLookup',
-      keyword,
-      statusId,
       offset,
       limit,
     });
@@ -323,8 +302,6 @@ const getCustomerLookup = async ({
   } catch (error) {
     logSystemException(error, 'Failed to fetch customer lookup data', {
       context: 'customer-repository/getCustomerLookup',
-      keyword,
-      statusId,
       offset,
       limit,
     });

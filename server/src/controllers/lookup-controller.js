@@ -138,12 +138,12 @@ const fetchCustomerLookupController = wrapAsync(async (req, res) => {
   const { keyword = '' } = filters;
 
   const dropdownResult = await fetchCustomerLookupService(
+    user,
     {
       keyword,
       limit,
       offset,
     },
-    user
   );
 
   const { items, hasMore } = dropdownResult;

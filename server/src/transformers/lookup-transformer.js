@@ -125,24 +125,33 @@ const transformLotAdjustmentLookupOptions = (rows) => {
 };
 
 /**
- * Transforms a single raw customer record into a lookup-friendly format.
+ * Transforms a single raw customer record into a lookup-friendly object.
  *
- * Adds a `hasAddress` boolean flag indicating whether the customer
- * has at least one address assigned.
+ * Constructs a `label` using the customer's full name and email,
+ * adds `hasAddress` as a boolean flag, and conditionally appends
+ * UI flags (e.g. `isActive`) based on the current user's access level.
+ *
+ * Used in lookup dropdowns, autocomplete inputs, or anywhere customer
+ * lookup data is needed in compact UI format.
  *
  * @param {{
  *   id: string,
  *   firstname: string,
  *   lastname: string,
  *   email: string | null,
- *   has_address?: boolean
- * }} row - The raw customer record from the database query.
+ *   has_address?: boolean,
+ *   status_id?: string,
+ * }} row - Raw customer row from the database.
+ *
+ * @param {object} userAccess - Object containing access-level flags (e.g., from `evaluateCustomerLookupAccessControl()`).
  *
  * @returns {{
  *   id: string,
  *   label: string,
- *   hasAddress: boolean
- * }} The transformed lookup item with ID, label, and address status.
+ *   hasAddress: boolean,
+ *   isActive?: boolean,
+ *   [key: string]: any
+ * }} Transformed lookup object with `id`, `label`, `hasAddress`, and optional enriched flags.
  *
  * @example
  * const result = transformCustomerLookup({
@@ -151,36 +160,73 @@ const transformLotAdjustmentLookupOptions = (rows) => {
  *   lastname: 'Doe',
  *   email: 'john@example.com',
  *   has_address: true
- * });
- * // result: { id: 'abc123', label: 'John Doe (john@example.com)', hasAddress: true }
+ * }, userAccess);
+ *
+ * // result:
+ * // {
+ * // id: 'abc123',
+ * // label: 'John Doe (john@example.com)',
+ * // hasAddress: true,
+ * // isActive: true
+ * // }
  */
-const transformCustomerLookup = (row) => {
+const transformCustomerLookup = (row, userAccess) => {
   if (!row || typeof row !== 'object') return null;
   
   const fullName = getFullName(row.firstname, row.lastname);
-  
-  const label = `${fullName} (${row.email || 'no-email'})`;
+  const email = row.email || 'no-email';
+  const label = `${fullName} (${email})`;
   
   const base = transformIdNameToIdLabel({ ...row, name: label });
-  
+  const flagSubset = includeFlagsBasedOnAccess(row, userAccess);
   
   return {
     ...base,
     hasAddress: row?.has_address === true,
+    ...flagSubset,
   };
 };
-// todo: refactor: isActive
+
 /**
- * Transforms a paginated result of customer records for lookup usage,
- * applying a row-level transformer and formatting the response for load-more support.
+ * Transforms a paginated set of raw customer records into a UI-friendly
+ * format for dropdowns or infinite-scroll selectors.
  *
- * @param {Object} paginatedResult - The raw paginated query result.
- * @returns {Object} Transformed response including items, limit, offset, and hasMore flag.
+ * Applies row-level transformation (`transformCustomerLookup`) to each record,
+ * and standardizes the output for use with load-more patterns.
+ *
+ * @param {{
+ *   data: Array<object>,
+ *   pagination: {
+ *     offset: number,
+ *     limit: number,
+ *     totalRecords: number
+ *   }
+ * }} paginatedResult - Raw result from a repository-level paginated query.
+ *
+ * @param {object} userAccess - Access flags used to enrich each row with permission-aware fields.
+ *
+ * @returns {{
+ *   items: Array<{
+ *     id: string,
+ *     label: string,
+ *     hasAddress: boolean,
+ *     [key: string]: any
+ *   }>,
+ *   offset: number,
+ *   limit: number,
+ *   hasMore: boolean
+ * }} Final lookup result formatted for dropdown/infinite-scroll use.
+ *
+ * @example
+ * const result = transformCustomerPaginatedLookupResult(paginatedResult, userAccess);
+ * // result = { items: [...], offset: 0, limit: 20, hasMore: true }
  */
-const transformCustomerPaginatedLookupResult = (paginatedResult) =>
-  transformPaginatedResult(paginatedResult, transformCustomerLookup, {
-    includeLoadMore: true,
-  });
+const transformCustomerPaginatedLookupResult = (paginatedResult, userAccess) =>
+  transformPaginatedResult(
+    paginatedResult,
+    (row) => transformCustomerLookup(row, userAccess),
+    { includeLoadMore: true }
+  );
 
 /**
  * Transforms a single raw address row into a minimal client-friendly format

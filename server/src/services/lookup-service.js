@@ -23,7 +23,9 @@ const {
 } = require('../repositories/lot-adjustment-type-repository');
 const { getCustomerLookup } = require('../repositories/customer-repository');
 const {
-  resolveCustomerQueryOptions,
+  evaluateCustomerLookupAccessControl,
+  enforceCustomerLookupVisibilityRules,
+  enrichCustomerOption,
 } = require('../business/customer-business');
 const {
   getCustomerAddressLookupById,
@@ -231,69 +233,96 @@ const fetchLotAdjustmentLookupService = async (user, filters = {}) => {
 };
 
 /**
- * Service to fetch filtered and paginated customer records for lookup UI,
- * with keyword search and permission-based status filtering.
+ * Fetches filtered and paginated customer records for use in lookup UIs
+ * (e.g., dropdowns, autocomplete inputs, selection lists).
  *
- * This service provides customer lookup data for dropdowns, autocomplete,
- * or other selection components. It supports:
- * - Partial matching on customer fields (e.g., name, email, phone)
- * - Pagination with limit and offset
- * - Automatic application of user permission rules (e.g., all customers, active customers)
+ * This service supports:
+ * - Keyword-based partial matching on fields like name, email, or phone number
+ * - Limit-offset pagination
+ * - Permission-aware status filtering (e.g., show only active customers for restricted users)
+ * - UI enrichment (e.g., flags like `isActive`, `hasAddress`)
  *
- * @param {Object} options - Query options.
- * @param {string} [options.keyword=''] - Partial search term for lookup.
- * @param {number} [options.limit=50] - Number of records to fetch (default: 50).
- * @param {number} [options.offset=0] - Offset for pagination (default: 0).
- * @param {Object} user - Authenticated user object (for permission checks).
+ * Internally:
+ * - Resolves the current user's permissions
+ * - Enforces visibility rules based on permission context
+ * - Delegates to a repository-level paginated query
+ * - Enriches and transforms results into UI-friendly format
  *
- * @returns {Promise<Object>} Transformed lookup items with pagination metadata:
- *   {
- *     items: Array<{ id: string, label: string }>,
- *     offset: number,
- *     limit: number,
- *     hasMore: boolean
- *   }
+ * @param {object} user - Authenticated user object (used to determine access level).
+ * @param {object} options - Query options.
+ * @param {object} [options.filters={}] - Optional filters (e.g., `keyword`, `createdBy`, `onlyWithAddress`, `statusId`, etc.).
+ * @param {number} [options.limit=50] - Number of records to return (default is 50).
+ * @param {number} [options.offset=0] - Number of records to skip for pagination (default is 0).
  *
- * @throws {AppError} When permissions are not enough, or query fails.
+ * @returns {Promise<{
+ *   items: Array<{ id: string, label: string, isActive?: boolean, hasAddress?: boolean }>,
+ *   offset: number,
+ *   limit: number,
+ *   hasMore: boolean
+ * }>} - Transformed customer lookup data with pagination info.
+ *
+ * @throws {AppError} - If permissions are insufficient or query execution fails.
  *
  * @example
- * const result = await fetchCustomerLookupService({ keyword: 'john', limit: 20 }, user);
- * // result = { items: [...], offset: 0, limit: 20, hasMore: true }
+ * const result = await fetchCustomerLookupService(user, {
+ *   filters: { keyword: 'john', onlyWithAddress: true },
+ *   limit: 20,
+ *   offset: 0,
+ * });
+ *
+ * // result:
+ * // {
+ * //   items: [
+ * //     { id: '123', label: 'John Doe', isActive: true, hasAddress: true },
+ * //     ...
+ * //   ],
+ * //   offset: 0,
+ * //   limit: 20,
+ * //   hasMore: true
+ * // }
  */
 const fetchCustomerLookupService = async (
-  { keyword = '', limit = 50, offset = 0 },
-  user
+  user,
+  { filters = {}, limit = 50, offset = 0 },
 ) => {
   try {
-    if (limit < 1 || offset < 0) {
-      throw AppError.validationError('Invalid pagination parameters.');
-    }
-
+    // Step 1: Log the operation start
     logSystemInfo('Fetching customer lookup from service', {
       context: 'lookup-service/fetchCustomerLookupService',
-      metadata: { keyword, limit, offset },
+      metadata: { filters, limit, offset },
     });
-
-    const { statusId, overrideDefaultStatus } =
-      await resolveCustomerQueryOptions(user);
-// todo: refactor
-    const rawResult = await getCustomerLookup({
-      keyword,
-      statusId,
+    
+    // Step 2: Evaluate user access permissions
+    const userAccess = await evaluateCustomerLookupAccessControl(user);
+    const activeStatusId = getStatusId('customer_active');
+    
+    // Step 3: Apply visibility enforcement rules to filters
+    const adjustedFilters = enforceCustomerLookupVisibilityRules(filters, userAccess, activeStatusId);
+    
+    // Step 4: Fetch paginated customer data
+    const { data = [], pagination = {} } = await getCustomerLookup({
+      filters: adjustedFilters,
       limit,
       offset,
-      overrideDefaultStatus,
     });
-
-    return transformCustomerPaginatedLookupResult(rawResult);
+    
+    // Step 5: Enrich customer records for UI
+    const enrichedRows = data.map(enrichCustomerOption);
+    
+    // Step 6: Format for client consumption
+    return transformCustomerPaginatedLookupResult(
+      { data: enrichedRows, pagination },
+      userAccess
+    );
   } catch (err) {
     logSystemException(err, 'Failed to fetch customer lookup in service', {
       context: 'lookup-service/fetchCustomerLookupService',
-      keyword,
+      userId: user?.id,
+      filters,
       limit,
       offset,
     });
-
+    
     throw AppError.serviceError('Failed to fetch customer lookup list.', {
       details: err.message,
       stage: 'lookup-service/fetchCustomerLookupService',
