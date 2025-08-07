@@ -88,7 +88,7 @@ const evaluateTaxRateLookupAccessControl = async (user) => {
  * and an `isActive` filter is forced to `true`.
  *
  * @param {Object} filters - Original filter object (e.g., `keyword`, `isActive`)
- * @param {Object} userAccess - Access flags (e.g., `canViewAllValidLookups`, `canViewAllIsActive`)
+ * @param {Object} userAccess - Access flags (e.g., `canViewAllValidLookups`, `canViewAllStatuses`)
  * @returns {Object} Adjusted filters with enforced visibility rules
  */
 const enforceTaxRateLookupVisibilityRules = (filters, userAccess) => {
@@ -100,7 +100,7 @@ const enforceTaxRateLookupVisibilityRules = (filters, userAccess) => {
   }
   
   // Enforce isActive = true if user can't view all
-  if (!userAccess.canViewAllIsActive) {
+  if (!userAccess.canViewAllStatuses) {
     adjusted.isActive = true;
   }
   
@@ -115,7 +115,7 @@ const enforceTaxRateLookupVisibilityRules = (filters, userAccess) => {
  *   `valid_from <= now` AND (`valid_to >= now OR valid_to IS NULL`)
  *
  * @param {Object} query - Original query object with filters.
- * @param {Object} userAccess - Flags for user permissions (`canViewAllIsActive`, `canViewAllValidLookups`).
+ * @param {Object} userAccess - Flags for user permissions (`canViewAllStatuses`, `canViewAllValidLookups`).
  * @returns {Object} Modified query object with enforced access filters.
  */
 const filterTaxRateLookupQuery = (query, userAccess) => {
@@ -123,7 +123,7 @@ const filterTaxRateLookupQuery = (query, userAccess) => {
     const modifiedQuery = { ...query };
     const now = new Date().toISOString();
     
-    if (!userAccess.canViewAllIsActive) {
+    if (!userAccess.canViewAllStatuses) {
       modifiedQuery.is_active = true;
     }
     
