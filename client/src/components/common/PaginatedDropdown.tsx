@@ -1,4 +1,4 @@
-import type { Dispatch, SetStateAction } from 'react';
+import { type Dispatch, type SetStateAction } from 'react';
 import type { LookupPaginationMeta } from '@features/lookup/state';
 import Dropdown, { type OptionType } from '@components/common/Dropdown';
 
@@ -15,8 +15,9 @@ export interface PaginatedDropdownProps<TParams> {
   onRefresh: (params: TParams) => void;
   onAddNew?: () => void;
   inputValue?: string;
-  onInputChange?: (event: any, newValue: string) => void;
+  onInputChange?: (event: any, newValue: string, reason: string) => void;
   noOptionsMessage?: string;
+  helperText?: string;
 }
 
 const PaginatedDropdown = <TParams,>({
@@ -34,6 +35,7 @@ const PaginatedDropdown = <TParams,>({
   inputValue,
   onInputChange,
   noOptionsMessage,
+  helperText,
 }: PaginatedDropdownProps<TParams>) => {
   return (
     <Dropdown
@@ -66,7 +68,8 @@ const PaginatedDropdown = <TParams,>({
       }}
       inputValue={inputValue}
       onInputChange={onInputChange}
-      noOptionsMessage={noOptionsMessage}
+      noOptionsMessage={loading ? 'Loading...' : noOptionsMessage || 'No options available'}
+      helperText={helperText}
     />
   );
 };

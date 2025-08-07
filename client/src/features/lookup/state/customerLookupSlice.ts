@@ -5,6 +5,7 @@ import {
   type CustomerLookupState
 } from './lookupTypes';
 import { fetchCustomerLookupThunk } from './lookupThunks';
+import { applyPaginatedFulfilled } from '@features/lookup/utils/lookupReducers';
 
 const initialState: CustomerLookupState = createInitialPaginatedLookupState<CustomerLookupItem>();
 
@@ -21,13 +22,7 @@ const customerLookupSlice = createSlice({
         state.error = null;
       })
       .addCase(fetchCustomerLookupThunk.fulfilled, (state, action) => {
-        const { items, hasMore, limit, offset } = action.payload;
-
-        state.data = offset === 0 ? items : [...state.data, ...items];
-        state.hasMore = hasMore ?? false;
-        state.limit = limit ?? 50;
-        state.offset = offset ?? 0;
-        state.loading = false;
+        applyPaginatedFulfilled(state, action.payload);
       })
       .addCase(fetchCustomerLookupThunk.rejected, (state, action) => {
         state.loading = false;

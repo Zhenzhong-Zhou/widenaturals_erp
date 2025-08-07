@@ -5,6 +5,7 @@ import {
   type DeliveryMethodLookupState,
 } from '@features/lookup/state/lookupTypes';
 import { fetchDeliveryMethodLookupThunk } from './lookupThunks';
+import { applyPaginatedFulfilled } from '@features/lookup/utils/lookupReducers';
 
 const initialState: DeliveryMethodLookupState =
   createInitialPaginatedLookupState<DeliveryMethodLookupItem>();
@@ -29,8 +30,7 @@ const deliveryMethodLookupSlice = createSlice({
         state.error = null;
       })
       .addCase(fetchDeliveryMethodLookupThunk.fulfilled, (state, action) => {
-        state.loading = false;
-        state.data = action.payload.items;
+        applyPaginatedFulfilled(state, action.payload);
       })
       .addCase(fetchDeliveryMethodLookupThunk.rejected, (state, action) => {
         state.loading = false;

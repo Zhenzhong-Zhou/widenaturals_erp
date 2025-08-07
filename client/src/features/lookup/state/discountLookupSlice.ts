@@ -1,10 +1,11 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import {
   createInitialPaginatedLookupState,
-  type DiscountLookupItem,
+  type DiscountLookupItem, type DiscountLookupResponse,
   type DiscountLookupState,
 } from '@features/lookup/state/lookupTypes';
 import { fetchDiscountLookupThunk } from './lookupThunks';
+import { applyPaginatedFulfilled } from '@features/lookup/utils/lookupReducers';
 
 const initialState: DiscountLookupState = createInitialPaginatedLookupState<DiscountLookupItem>();
 
@@ -27,10 +28,12 @@ const discountLookupSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchDiscountLookupThunk.fulfilled, (state, action) => {
-        state.loading = false;
-        state.data = action.payload.items;
-      })
+      .addCase(
+        fetchDiscountLookupThunk.fulfilled,
+        (state, action: PayloadAction<DiscountLookupResponse>) => {
+          applyPaginatedFulfilled(state, action.payload);
+        }
+      )
       .addCase(fetchDiscountLookupThunk.rejected, (state, action) => {
         state.loading = false;
         state.error =

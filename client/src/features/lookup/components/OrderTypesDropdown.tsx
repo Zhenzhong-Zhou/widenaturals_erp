@@ -38,8 +38,10 @@ const OrderTypeDropdown: FC<OrderTypeDropdownProps> = ({
       label="Order Type"
       value={value}
       onChange={onChange}
-      onInputChange={(_, inputValue) => {
-        onKeywordSearch?.(inputValue);
+      onInputChange={(_, inputValue, reason) => {
+        if (reason === 'input') {
+          onKeywordSearch?.(inputValue);
+        }
       }}
       options={orderTypeOptions}
       loading={orderTypeLoading}

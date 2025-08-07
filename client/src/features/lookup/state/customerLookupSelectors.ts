@@ -60,5 +60,5 @@ export const selectCustomerLookupMeta = createLookupMetaSelector(selectCustomerL
  */
 export const selectCustomerLookupOptions = createSelector(
   [selectCustomerLookupItems],
-  (items) => mapLookupItems(items, ['hasAddress'])
+  (items) => mapLookupItems(items, ['hasAddress', 'isActive'])
 );

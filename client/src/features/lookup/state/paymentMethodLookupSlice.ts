@@ -5,6 +5,7 @@ import {
   type PaymentMethodLookupState,
 } from '@features/lookup/state/lookupTypes';
 import { fetchPaymentMethodLookup } from './lookupThunks';
+import { applyPaginatedFulfilled } from '@features/lookup/utils/lookupReducers';
 
 const initialState: PaymentMethodLookupState = createInitialPaginatedLookupState<PaymentMethodLookupItem>();
 
@@ -26,12 +27,7 @@ export const paymentMethodLookupSlice = createSlice({
       .addCase(
         fetchPaymentMethodLookup.fulfilled,
         (state, action: PayloadAction<PaymentMethodLookupResponse>) => {
-          state.loading = false;
-          state.error = null;
-          state.data = action.payload.items;
-          state.offset = (action.payload.offset ?? 0) + action.payload.items.length;
-          state.limit = action.payload.limit;
-          state.hasMore = action.payload.hasMore;
+          applyPaginatedFulfilled(state, action.payload);
         }
       )
       .addCase(fetchPaymentMethodLookup.rejected, (state, action) => {

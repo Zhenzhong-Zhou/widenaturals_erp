@@ -5,6 +5,7 @@ import {
   type TaxRateLookupState,
 } from '@features/lookup/state/lookupTypes';
 import { fetchTaxRateLookupThunk } from './lookupThunks';
+import { applyPaginatedFulfilled } from '@features/lookup/utils/lookupReducers';
 
 const initialState: TaxRateLookupState = createInitialPaginatedLookupState<TaxRateLookupItem>();
 
@@ -28,8 +29,7 @@ const taxRateLookupSlice = createSlice({
         state.error = null;
       })
       .addCase(fetchTaxRateLookupThunk.fulfilled, (state, action) => {
-        state.loading = false;
-        state.data = action.payload.items;
+        applyPaginatedFulfilled(state, action.payload);
       })
       .addCase(fetchTaxRateLookupThunk.rejected, (state, action) => {
         state.loading = false;

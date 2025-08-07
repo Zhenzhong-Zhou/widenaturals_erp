@@ -55,7 +55,7 @@ interface DropdownProps {
   placeholder?: string;
   helperText?: string;
   inputValue?: string;
-  onInputChange?: (event: SyntheticEvent, value: string) => void;
+  onInputChange?: (event: SyntheticEvent, value: string, reason: string) => void;
   noOptionsMessage?: string;
 }
 
