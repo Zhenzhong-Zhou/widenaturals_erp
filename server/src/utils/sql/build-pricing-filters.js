@@ -58,7 +58,7 @@ const AppError = require('../AppError');
  * @param {string} [filters.createdBy] - Match by creator user ID.
  * @param {string} [filters.updatedBy] - Match by updater user ID.
  * @param {boolean} [filters._restrictKeywordToValidOnly] - Internal flag to restrict keyword filtering to currently valid pricing.
- * @param {string} [keyword] - Optional keyword for fuzzy match on product name, SKU, or pricing type.
+ * @param {string} [filters.keyword] - Optional keyword for fuzzy match on product name, SKU, or pricing type.
  *
  * @returns {{ whereClause: string, params: any[] }} - SQL WHERE clause string and bound parameter values.
  *
@@ -76,13 +76,14 @@ const AppError = require('../AppError');
  *   WHERE ${whereClause}`;
  * db.query(query, params);
  */
-const buildPricingFilters = (filters = {}, keyword = '') => {
+const buildPricingFilters = (filters = {}) => {
   try {
     const conditions = ['1=1'];
     const params = [];
     let paramIndex = 1;
     
-    const keywordUsed = keyword && keyword.trim().length > 0;
+    const keywordStr = String(filters.keyword ?? '').trim();
+    const keywordUsed = keywordStr.length > 0;
     
     // === 1. Standard filters ===
     
@@ -141,7 +142,7 @@ const buildPricingFilters = (filters = {}, keyword = '') => {
     // === 2. Keyword filter ===
     
     if (keywordUsed) {
-      const keywordParam = `%${keyword.trim()}%`;
+      const keywordParam = `%${filters.keyword.trim()}%`;
       params.push(keywordParam);
       conditions.push(`(
         pr.name ILIKE $${params.length} OR

@@ -23,7 +23,7 @@ const { logSystemInfo, logSystemWarn } = require('../utils/system-logger');
  *
  * Logs warnings for validation failures and info on success.
  *
- * @param {import('express').Request} req - Express request object. Expects:
+ * @param {import('express').Request} req - Express a request object. Expects:
  *   - `params.category`: string (required)
  *   - `body.orderTypeCode`: string (required)
  *   - `body`: object containing order payload

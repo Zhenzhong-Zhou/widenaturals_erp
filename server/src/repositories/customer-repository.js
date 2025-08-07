@@ -291,7 +291,8 @@ const getCustomerLookup = async ({
         SELECT 1
         FROM addresses a
         WHERE a.customer_id = c.id
-      ) AS has_address
+      ) AS has_address,
+      c.status_id
     FROM ${tableName}
     WHERE ${whereClause}
   `;

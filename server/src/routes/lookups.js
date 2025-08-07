@@ -245,7 +245,7 @@ router.get(
  * - 500 Internal Server Error: Failed to fetch or transform address records
  */
 router.get(
-  '/address/by-customer',
+  '/addresses/by-customer',
   authorize([PERMISSIONS.VIEW_CUSTOMER_ADDRESS]),
   createQueryNormalizationMiddleware(
     '',
@@ -634,7 +634,7 @@ router.get(
     '',                           // moduleKey
     [],                           // arrayKeys
     [],                           // booleanKeys for filters
-    ['keyword'],                  // filterKeys to extract `keyword` to root
+    ['keyword', 'skuId'],                // filterKeys to extract `keyword` to root
     { includePagination: true, includeSorting: false },
     ['labelOnly']                         // options.labelOnly is normalized here
   ),

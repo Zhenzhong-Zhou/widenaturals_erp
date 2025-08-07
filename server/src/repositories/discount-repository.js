@@ -85,7 +85,7 @@ const getDiscountsLookup = async ({
     
     logSystemInfo('Fetched discounts lookup successfully', {
       context: 'discounts-repository/getDiscountsLookup',
-      totalFetched: result.items?.length ?? 0,
+      totalFetched: result.data?.length ?? 0,
       offset,
       limit,
       filters,

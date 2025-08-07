@@ -91,15 +91,14 @@ const evaluatePricingLookupAccessControl = async (user) => {
  *   any `statusId` filter is removed and the filter is forced to the active status.
  *
  * @param {Object} filters - Original filter object (e.g., statusId, priceTypeId, etc.)
- * @param {string} [keyword] - Optional keyword used for fuzzy search
  * @param {Object} userAccess - Access flags (e.g., `canViewAllValidLookups`, `canViewAllStatuses`)
  * @param {string} [activeStatusId] - The UUID of the active status to enforce if user lacks permission
  * @returns {Object} Adjusted filters with enforced visibility rules
  */
-const enforcePricingLookupVisibilityRules = (filters, keyword, userAccess, activeStatusId) => {
+const enforcePricingLookupVisibilityRules = (filters, userAccess, activeStatusId) => {
   const adjusted = { ...filters };
   
-  const keywordUsed = keyword && keyword.trim().length > 0;
+  const keywordUsed = filters.keyword && filters.keyword.trim().length > 0;
   
   // Restrict keyword visibility to currently valid pricing only
   if (keywordUsed && !userAccess.canViewAllValidLookups) {

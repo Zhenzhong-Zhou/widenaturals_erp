@@ -134,7 +134,8 @@ const getLotAdjustmentLookupController = wrapAsync(async (req, res) => {
  */
 const fetchCustomerLookupController = wrapAsync(async (req, res) => {
   const user = req.user;
-  const { keyword = '', limit, offset } = req.normalizedQuery.filters;
+  const { filters = {}, limit, offset } = req.normalizedQuery;
+  const { keyword = '' } = filters;
 
   const dropdownResult = await fetchCustomerLookupService(
     {
@@ -559,14 +560,12 @@ const getPricingLookupController = wrapAsync(async (req, res) => {
   const {
     filters = {},
     options = {},
-    keyword = '',
     limit = 50,
     offset = 0,
   } = req.normalizedQuery;
   
   const dropdownResult = await fetchPaginatedPricingLookupService(user, {
     filters,
-    keyword,
     limit,
     offset,
     displayOptions: {

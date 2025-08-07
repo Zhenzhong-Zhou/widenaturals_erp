@@ -376,10 +376,15 @@ const getSkuDetailsWithPricingAndMeta = async (
  * For users with `allowAllSkus`, the query will also join inventory, product, batch,
  * and status tables to allow downstream analysis of availability and abnormal flags.
  *
+ * - The query performs deduplication using GROUP BY `s.id` with MIN() aggregation.
+ * - If `allowAllSkus` is true, it counts `DISTINCT s.id` in pagination to avoid
+ *   overcounting rows due to inventory or batch joins.
+ *
  * Typically used in UI dropdowns or internal search flows where SKU selection is needed.
  *
  * @param {Object} params - Parameter object.
- * @param {string} params.productStatusId - UUID of the expected product status. Required unless `options.allowAllSkus` is true.
+ * @param {string} params.productStatusId - UUID of the expected product status.
+ *   Required unless `options.allowAllSkus` is true.
  * @param {Object} [params.filters={}] - Optional filtering fields, e.g., brand, category, region, sizeLabel, keyword.
  * @param {Object} [params.options={}] - Visibility and diagnostic options.
  * @param {number} [params.limit=50] - Pagination limit (default: 50).
@@ -452,7 +457,7 @@ const getSkuLookup = async ({
   
   const joins = options.allowAllSkus ? privilegedJoins : baseJoins;
   
-  const groupedSelectFields = [
+  const baseSelectFields = [
     's.id',
     'MIN(s.sku) AS sku',
     'MIN(s.barcode) AS barcode',
@@ -462,28 +467,33 @@ const getSkuLookup = async ({
     'MIN(s.size_label) AS size_label',
   ];
   
+  const diagnosticSelects = [
+    minUuid('p', 'status_id', 'product_status_id'),
+    minUuid('s', 'status_id', 'sku_status_id'),
+    minUuid('wi', 'status_id', 'warehouse_status_id'),
+    minUuid('li', 'status_id', 'location_status_id'),
+    minUuid('pb', 'status_id', 'batch_status_id'),
+  ];
+  
   // Select fields to group by and return in SELECT clause
-  const privilegedGroupedSelectFields = options.allowAllSkus
-    ? [
-      ...groupedSelectFields,
-      minUuid('p', 'status_id', 'product_status_id'),
-      minUuid('s', 'status_id', 'sku_status_id'),
-      minUuid('wi', 'status_id', 'warehouse_status_id'),
-      minUuid('li', 'status_id', 'location_status_id'),
-      minUuid('pb', 'status_id', 'batch_status_id'),
-    ]
-    : groupedSelectFields;
+  const groupedSelectFields = options.allowAllSkus
+    ? [...baseSelectFields, ...diagnosticSelects]
+    : baseSelectFields;
   
   // Note: GROUP BY s.id and MIN() aggregation are used to deduplicate rows per SKU,
   //       since one SKU may link to multiple inventory or batch entries.
   const queryText = `
     SELECT
-      ${privilegedGroupedSelectFields.join(',\n')}
+      ${groupedSelectFields.join(',\n')}
     FROM ${tableName}
     ${joins.join('\n')}
     WHERE ${whereClause}
     GROUP BY s.id
-    ORDER BY MIN(p.brand), MIN(p.name)
+    ORDER BY
+      MIN(p.brand) ASC,
+      CAST(NULLIF(REGEXP_REPLACE(MIN(p.name), '[^0-9]', '', 'g'), '') AS INTEGER) NULLS LAST,
+      MIN(p.name) ASC,
+      s.id
   `;
   
   try {
@@ -500,14 +510,17 @@ const getSkuLookup = async ({
       additionalSort: `
         p.brand ASC,
         CAST(NULLIF(REGEXP_REPLACE(p.name, '[^0-9]', '', 'g'), '') AS INTEGER) NULLS LAST,
-        p.name ASC
+        p.name ASC,
+        s.id
       `,
+      useDistinct: !!options.allowAllSkus,
+      distinctColumn: options.allowAllSkus ? 's.id' : undefined,
     });
     
     logSystemInfo('Fetched SKU dropdown lookup successfully', {
-      context: 'sku-repository/getSkuDropdownOptions',
-      totalFetched: result.items?.length ?? 0,
-      totalAvailable: result.totalCount ?? null,
+      context: 'sku-repository/getSkuLookup',
+      totalFetched: result.data?.length ?? 0,
+      totalAvailable: result.pagination.totalRecords ?? null,
       offset,
       limit,
       filters,
@@ -517,7 +530,7 @@ const getSkuLookup = async ({
     return result;
   } catch (error) {
     logSystemException(error, 'Failed to fetch SKU dropdown options', {
-      context: 'sku-repository/getSkuDropdownOptions',
+      context: 'sku-repository/getSkuLookup',
       offset,
       limit,
       filters,

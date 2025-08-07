@@ -51,7 +51,7 @@ const getDeliveryMethodsLookup = async ({
     
     logSystemInfo('Fetched delivery methods lookup successfully', {
       context: 'delivery_methods-repository/getDeliveryMethodsLookup',
-      totalFetched: result.items?.length ?? 0,
+      totalFetched: result.data?.length ?? 0,
       offset,
       limit,
       filters,

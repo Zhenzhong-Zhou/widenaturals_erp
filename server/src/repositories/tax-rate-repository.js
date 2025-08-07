@@ -57,6 +57,9 @@ const getTaxRatesLookup = async ({
     SELECT
       tr.id,
       tr.name,
+      tr.region,
+      tr.rate,
+      tr.province,
       tr.is_active,
       tr.valid_from,
       tr.valid_to
@@ -79,7 +82,7 @@ const getTaxRatesLookup = async ({
     
     logSystemInfo('Fetched tax rates lookup successfully', {
       context: 'tax_rates-repository/getTaxRatesLookup',
-      totalFetched: result.items?.length ?? 0,
+      totalFetched: result.data?.length ?? 0,
       offset,
       limit,
       filters,

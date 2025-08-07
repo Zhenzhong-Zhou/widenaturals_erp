@@ -256,7 +256,6 @@ const getPriceByIdAndSku = async (price_id, sku_id, client = null) => {
  * @param {number} [options.limit=50] - Max number of results to return
  * @param {number} [options.offset=0] - Offset for pagination
  * @param {Object} [options.filters={}] - Optional filter fields (e.g., brand, priceType, currentlyValid, keyword)
- * @param {string} [options.keyword] - Optional keyword for fuzzy search (product name or SKU)
  * @returns {Promise<{ items: any[], hasMore: boolean }>} - Paginated pricing lookup result
  *
  * @throws {AppError} - If a database error occurs
@@ -265,7 +264,6 @@ const getPricingLookup = async ({
                                   limit = 50,
                                   offset = 0,
                                   filters = {},
-                                  keyword = '',
                                 }) => {
   const tableName = 'pricing p';
   const joins = [
@@ -275,17 +273,18 @@ const getPricingLookup = async ({
     'LEFT JOIN locations l ON l.id = p.location_id',
   ];
   
-  const { whereClause, params } = buildPricingFilters(filters, keyword);
+  const { whereClause, params } = buildPricingFilters(filters);
   
   const queryText = `
     SELECT
       p.id,
       p.price,
       pt.name AS price_type,
+      pr.name AS product_name,
+      pr.brand,
       s.sku,
       s.barcode,
       s.size_label,
-      s.market_region,
       s.country_code,
       l.name AS location_name,
       p.valid_from,
@@ -312,11 +311,10 @@ const getPricingLookup = async ({
     
     logSystemInfo('Fetched pricing lookup successfully', {
       context: 'pricing-repository/getPricingLookup',
-      totalFetched: result.items?.length ?? 0,
+      totalFetched: result.data?.length ?? 0,
       offset,
       limit,
       filters,
-      keyword,
     });
     
     return result;
@@ -326,7 +324,6 @@ const getPricingLookup = async ({
       offset,
       limit,
       filters,
-      keyword,
     });
     throw AppError.databaseError('Failed to fetch pricing options.');
   }

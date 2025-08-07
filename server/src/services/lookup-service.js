@@ -15,6 +15,7 @@ const {
   transformTaxRatePaginatedLookupResult,
   transformDeliveryMethodPaginatedLookupResult,
   transformSkuPaginatedLookupResult,
+  transformPricingPaginatedLookupResult,
 } = require('../transformers/lookup-transformer');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const {
@@ -84,7 +85,6 @@ const {
   enrichPricingRow
 } = require('../business/pricing-business');
 const { getPricingLookup } = require('../repositories/pricing-repository');
-const { transformPricingPaginatedLookupResult } = require('../transformers/pricing-transformer');
 
 /**
  * Service to fetch filtered and paginated batch registry records for lookup UI.
@@ -276,7 +276,7 @@ const fetchCustomerLookupService = async (
 
     const { statusId, overrideDefaultStatus } =
       await resolveCustomerQueryOptions(user);
-
+// todo: refactor
     const rawResult = await getCustomerLookup({
       keyword,
       statusId,
@@ -799,7 +799,6 @@ const fetchPaginatedSkuLookupService = async (
  * @param {Object} user - Authenticated user object (must include permission context)
  * @param {Object} params - Request parameters
  * @param {Object} [params.filters={}] - Filter options (e.g., skuId, priceTypeId, brand, etc.)
- * @param {string} [params.keyword] - Optional keyword for fuzzy matching (product name, SKU, price type)
  * @param {number} [params.limit=50] - Maximum number of records to return
  * @param {number} [params.offset=0] - Number of records to skip (for pagination)
  * @param {Object} [params.displayOptions={}] - Controls label formatting (e.g., hide SKU in label)
@@ -810,7 +809,7 @@ const fetchPaginatedSkuLookupService = async (
  */
 const fetchPaginatedPricingLookupService = async (
   user,
-  { filters = {}, keyword= '', limit = 50, offset = 0, displayOptions = {} }
+  { filters = {}, limit = 50, offset = 0, displayOptions = {} }
 ) => {
   try {
     // Step 1: Load status cache
@@ -822,7 +821,6 @@ const fetchPaginatedPricingLookupService = async (
     // Step 3: Apply visibility rules
     const adjustedFilters = enforcePricingLookupVisibilityRules(
       filters,
-      keyword, // no keyword in sales order
       userAccess,
       activeStatusId
     );
@@ -848,11 +846,7 @@ const fetchPaginatedPricingLookupService = async (
     return transformPricingPaginatedLookupResult(
       { data: enrichedRows, pagination },
       userAccess,
-      {
-        ...displayOptions,
-        showSku: false,
-        showLocation: false,
-      }
+      displayOptions,
     );
   } catch (err) {
     logSystemException(err, 'Failed to fetch pricing lookup', {

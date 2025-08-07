@@ -7,7 +7,7 @@ const {
   includeFlagsBasedOnAccess,
 } = require('../utils/transformer-utils');
 const { getFullName } = require('../utils/name-utils');
-const { formatAddress } = require('../utils/string-utils');
+const { formatAddress, formatTaxRateLabel } = require('../utils/string-utils');
 
 /**
  * Transforms a raw batch registry row into a lookup-friendly shape.
@@ -154,12 +154,22 @@ const transformLotAdjustmentLookupOptions = (rows) => {
  * });
  * // result: { id: 'abc123', label: 'John Doe (john@example.com)', hasAddress: true }
  */
-const transformCustomerLookup = (row) => ({
-  id: row.id,
-  label: `${getFullName(row.firstname, row.lastname)} (${row.email || 'no-email'})`,
-  hasAddress: row.has_address === true, // Normalize to boolean
-});
-
+const transformCustomerLookup = (row) => {
+  if (!row || typeof row !== 'object') return null;
+  
+  const fullName = getFullName(row.firstname, row.lastname);
+  
+  const label = `${fullName} (${row.email || 'no-email'})`;
+  
+  const base = transformIdNameToIdLabel({ ...row, name: label });
+  
+  
+  return {
+    ...base,
+    hasAddress: row?.has_address === true,
+  };
+};
+// todo: refactor: isActive
 /**
  * Transforms a paginated result of customer records for lookup usage,
  * applying a row-level transformer and formatting the response for load-more support.
@@ -368,17 +378,22 @@ const transformDiscountPaginatedLookupResult = (paginatedResult, userAccess) =>
 /**
  * Transforms a tax rate row into a UI-friendly dropdown format.
  *
- * Includes computed flags like `isActive` and `isValidToday` only if permitted by user access.
+ * Constructs a formatted label using tax name, rate, and optional province or region,
+ * via `formatTaxRateLabel()`. Includes computed flags like `isActive` and `isValidToday`
+ * only if permitted by user access.
  *
  * @param {{
  *   id: string,
  *   name: string,
+ *   rate: number,
+ *   province?: string,
+ *   region?: string,
  *   is_active?: boolean,
  *   valid_from?: string | Date,
  *   valid_to?: string | Date,
  *   isActive?: boolean,
  *   isValidToday?: boolean
- * }} row - Enriched tax rate record with status and validity fields.
+ * }} row - Enriched tax rate record with status, rate, and location info.
  *
  * @param {Object} userAccess - User access control context.
  * @param {boolean} [userAccess.canViewAllStatuses] - Whether the user can see inactive tax rates.
@@ -389,10 +404,12 @@ const transformDiscountPaginatedLookupResult = (paginatedResult, userAccess) =>
  *   label: string,
  *   isActive?: boolean,
  *   isValidToday?: boolean
- * }} Transformed object for dropdowns with conditional flags.
+ * }} Transformed object for dropdowns with a descriptive label and optional status flags.
  */
 const transformTaxRateLookup = (row, userAccess) => {
-  const base = transformIdNameToIdLabel(row);
+  const label = formatTaxRateLabel(row);
+  
+  const base = transformIdNameToIdLabel({ ...row, name: label });
   const flagSubset = includeFlagsBasedOnAccess(row, userAccess);
   
   return {
@@ -487,11 +504,13 @@ const transformDeliveryMethodPaginatedLookupResult = (
  *                          or `null` if the input row is invalid.
  */
 const transformSkuLookupRow = (row, { includeBarcode = false} = {}, userAccess) => {
+  const product_name = getProductDisplayName(row);
+  
   const base = transformIdNameToIdLabel({
     id: row.id,
     name: includeBarcode
-      ? `${row.product_name} (${row.sku}) • Barcode: ${row.barcode}`
-      : `${row.product_name} (${row.sku})`,
+      ? `${product_name} (${row.sku}) • Barcode: ${row.barcode}`
+      : `${product_name} (${row.sku})`,
   });
   
   const flagSubset = includeFlagsBasedOnAccess?.(row, userAccess);
@@ -531,6 +550,136 @@ const transformSkuPaginatedLookupResult = (paginatedResult, options = {}, userAc
     { includeLoadMore: true }
   );
 
+/**
+ * Transforms a pricing row into a UI-friendly dropdown option.
+ *
+ * Constructs a human-readable `label` using product name, SKU, pricing type name, and price,
+ * with configurable display granularity.
+ *
+ * Always includes `id` and `label`. Additional fields like `price`, `pricingTypeName`,
+ * `locationName`, and flags (`isActive`, `isValidToday`) are conditionally included
+ * based on the `labelOnly` option and the user's access permissions.
+ *
+ * - `isActive` and `isValidToday` are included if the user has permission,
+ *   even when `labelOnly` is `true`.
+ * - `locationName` is included only if the user has permission and `labelOnly` is `false`.
+ *
+ * @param {Object} row - Raw pricing row from the database.
+ * @param {string} row.id - Pricing ID.
+ * @param {string|number} row.price - Pricing amount.
+ * @param {string} row.sku - Associated SKU string.
+ * @param {string} [row.product_name] - Product display name.
+ * @param {string} [row.price_type] - Pricing type name (e.g., Retail, Wholesale).
+ * @param {string} [row.location_name] - Location name (if applicable).
+ * @param {boolean} [row.isActive] - Whether the pricing row is currently active.
+ * @param {boolean} [row.isValidToday] - Whether the pricing row is valid today.
+ *
+ * @param {Object} userAccess - Flags representing user permission context.
+ * @param {boolean} [userAccess.canViewAllStatuses] - If true, allows visibility of all pricing statuses.
+ * @param {boolean} [userAccess.canViewAllValidLookups] - If true, allows visibility of expired/future-dated prices.
+ *
+ * @param {Object} [options={}] - Display behavior options.
+ * @param {boolean} [options.showSku=true] - Whether to include product name and SKU in the label.
+ * @param {boolean} [options.showPriceType=true] - Whether to include pricing type name in the label.
+ * @param {boolean} [options.showPriceInLabel=true] - Whether to include the price in the label.
+ * @param {boolean} [options.labelOnly=false] - If true, minimal display: includes only `id`, `label`,
+ *   and optionally `isActive`/`isValidToday` if the user has permission.
+ *
+ * @returns {{
+ *   id: string;
+ *   label: string;
+ *   price?: string | number;
+ *   pricingTypeName?: string;
+ *   locationName?: string;
+ *   isActive?: boolean;
+ *   isValidToday?: boolean;
+ * }} Transformed object for dropdown usage.
+ */
+const transformPricingLookupRow = (
+  row,
+  userAccess,
+  {
+    showSku = true,
+    showPriceType = true,
+    showPriceInLabel = true,
+    labelOnly = false, // For minimal display (e.g., during sales order creation)
+  } = {}
+) => {
+  const productDisplayName = getProductDisplayName(row);
+  
+  const labelParts = [];
+  
+  if (showSku) {
+    labelParts.push(`${productDisplayName} (${row.sku})`);
+  }
+  
+  if (showPriceType) {
+    labelParts.push(row.price_type);
+  }
+  
+  if (showPriceInLabel) {
+    labelParts.push(`$${row.price}`);
+  }
+  
+  const showLocation =
+    userAccess?.canViewAllStatuses || userAccess?.canViewAllValidLookups;
+  
+  const showFlags =
+    userAccess?.canViewAllStatuses || userAccess?.canViewAllValidLookups;
+  
+  // Always include id and label
+  const base = {
+    id: row.id,
+    label: labelParts.join(' · '),
+  };
+  
+  // Optionally add more fields
+  if (!labelOnly) {
+    if (showLocation && row.location_name) {
+      base.locationName = row.location_name;
+    }
+    
+    base.price = row.price;
+    base.pricingTypeName = row.price_type;
+    
+    const flagSubset = includeFlagsBasedOnAccess(row, userAccess);
+    Object.assign(base, flagSubset);
+  } else if (labelOnly && showFlags) {
+    // Still include flags if a user has permission, even in labelOnly mode
+    const flagSubset = includeFlagsBasedOnAccess(row, userAccess);
+    Object.assign(base, flagSubset);
+  }
+  
+  return cleanObject(base);
+};
+
+/**
+ * Transforms paginated pricing records into dropdown-compatible lookup format.
+ *
+ * Applies user access rules for conditional fields like `isActive`, `isValidToday`,
+ * and `locationName`, and returns transformed pricing options.
+ *
+ * @param {Object} paginatedResult - Raw paginated DB result (e.g., from paginateQueryByOffset)
+ * @param {Object} userAccess - Evaluated access control flags
+ * @param {Object} [options] - Optional display config for label formatting
+ * @param {boolean} [options.showSku=true] - Include SKU in label
+ * @param {boolean} [options.showPriceType=true] - Include pricing type name in label
+ * @param {boolean} [options.showPriceInLabel=true] - Include price in label
+ * @param {boolean} [options.labelOnly=false] - Return only base display fields
+ *
+ * @returns {{ items: { id: string, label: string }[], hasMore: boolean }}
+ */
+const transformPricingPaginatedLookupResult = (
+  paginatedResult,
+  userAccess,
+  options = {}
+) =>
+  transformPaginatedResult(
+    paginatedResult,
+    (row) => transformPricingLookupRow(row, userAccess, options),
+    { includeLoadMore: true }
+  );
+
 module.exports = {
   transformBatchRegistryPaginatedLookupResult,
   transformWarehouseLookupRows,
@@ -543,4 +692,5 @@ module.exports = {
   transformTaxRatePaginatedLookupResult,
   transformDeliveryMethodPaginatedLookupResult,
   transformSkuPaginatedLookupResult,
+  transformPricingPaginatedLookupResult,
 };

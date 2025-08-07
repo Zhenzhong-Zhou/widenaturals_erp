@@ -124,7 +124,7 @@ const createQueryNormalizationMiddleware = (
       }
     }
 
-    // 7. Assemble final object
+    // 7. Assemble a final object
     const normalized = {
       filters: {
         ...filters,
