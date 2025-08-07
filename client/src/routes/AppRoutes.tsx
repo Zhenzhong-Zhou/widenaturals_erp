@@ -1,5 +1,6 @@
 import { Suspense, lazy } from 'react';
 import { Route, Routes } from 'react-router-dom';
+import { Navigate } from 'react-router';
 import { routes } from '@routes/index';
 import ProtectedRoutes from '@routes/ProtectedRoutes';
 import GuestRoute from '@routes/GuestRoute';
@@ -14,6 +15,12 @@ import { hasPermission } from '@utils/permissionUtils';
 
 const LazyNotFoundPage = lazy(() =>
   import('@pages/NotFoundPage').then((module) => ({
+    default: module.default,
+  }))
+);
+
+const LazyAccessDeniedPage = lazy(() =>
+  import('@pages/AccessDeniedPage').then((module) => ({
     default: module.default,
   }))
 );
@@ -39,26 +46,40 @@ const AppRoutes = () => {
       <Suspense fallback={<Loading fullPage message="Loading page..." />}>
         <Routes>
           {routes.map(({ path, component: LazyComponent, meta }, index) => {
-            if (meta?.requiresAuth) {
-              if (
-                !hasPermission(meta.requiredPermission, permissions, roleName)
-              ) {
-                // Render "Access Denied" if the user lacks permission
+            const isProtected = meta?.requiresAuth;
+            const requiredPermission = meta?.requiredPermission;
+            const isAccessDeniedRoute = path === '/access-denied';
+            
+            // Block direct access to /access-denied for non-root_admin/admin
+            if (
+              roleName && isAccessDeniedRoute &&
+              roleName !== 'root_admin'
+            ) {
+              return (
+                <Route
+                  key={index}
+                  path={path}
+                  element={<Navigate to="/" replace />}
+                />
+              );
+            }
+            
+            // Protected route
+            if (isProtected) {
+              if (!hasPermission(requiredPermission, permissions, roleName)) {
                 return (
                   <Route
                     key={index}
                     path={path}
                     element={
                       <MainLayout>
-                        <ErrorDisplay>
-                          <ErrorMessage message="Access Denied" />
-                        </ErrorDisplay>
+                        <LazyAccessDeniedPage />
                       </MainLayout>
                     }
                   />
                 );
               }
-
+              
               return (
                 <Route
                   key={index}
@@ -73,7 +94,8 @@ const AppRoutes = () => {
                 />
               );
             }
-
+            
+            // Guest routes
             if (path === '/login' || path === '/') {
               // Wrap login and homepage with GuestRoute
               return (

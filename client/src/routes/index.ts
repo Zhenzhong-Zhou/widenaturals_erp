@@ -220,13 +220,23 @@ export const routes = [
     component: lazy(() => import('@features/orderType/pages/OrderTypesPage')),
     meta: { requiresAuth: true, title: 'Order Types', showInSidebar: true },
   },
+  // {
+  //   path: '/orders',
+  //   component: lazy(() => import('@features/order/pages/OrdersPage')),
+  //   meta: { requiresAuth: true, title: 'All Orders', showInSidebar: true },
+  // },
   {
     path: '/orders',
-    component: lazy(() => import('@features/order/pages/OrdersPage')),
-    meta: { requiresAuth: true, title: 'All Orders', showInSidebar: true },
+    component: lazy(() => import('@features/order/pages/OrderLandingPage')),
+    meta: { requiresAuth: true, title: 'Landing Page', showInSidebar: true },
   },
   {
-    path: '/orders/:orderType/:orderId',
+    path: '/orders/:category/new',
+    component: lazy(() => import('@features/order/pages/OrderBasePage')),
+    meta: { requiresAuth: true, title: 'Base Page', showInSidebar: false },
+  },
+  {
+    path: '/orders/:category/details/:orderId',
     component: lazy(() => import('@features/order/pages/OrderDetailsPage')),
     meta: {
       requiresAuth: true,
@@ -235,42 +245,42 @@ export const routes = [
       requiredPermission: 'view_sales_order_details',
     },
   },
-  {
-    path: '/orders/:orderType/:orderId/edit',
-    component: lazy(() => import('@features/order/pages/OrderDetailsPage')),
-    meta: {
-      requiresAuth: true,
-      title: 'Order Details',
-      showInSidebar: false,
-      requiredPermission: 'view_sales_order_details',
-    },
-  },
-  {
-    path: '/orders/allocation-eligible',
-    component: lazy(
-      () => import('@features/order/pages/AllocationEligibleOrderPage')
-    ),
-    meta: {
-      requiresAuth: true,
-      title: 'Allocation-Eligible Orders',
-      showInSidebar: true,
-    },
-  },
-  {
-    path: '/orders/:orderType/:orderId/allocate',
-    component: lazy(
-      () =>
-        import(
-          '@features/inventoryAllocation/pages/OrderInventoryAllocationPage'
-        )
-    ),
-    meta: {
-      requiresAuth: true,
-      title: 'Inventory Allocation',
-      showInSidebar: false,
-      requiredPermission: 'inventory_allocation',
-    },
-  },
+  // {
+  //   path: '/orders/:orderType/:orderId/edit',
+  //   component: lazy(() => import('@features/order/pages/OrderDetailsPage')),
+  //   meta: {
+  //     requiresAuth: true,
+  //     title: 'Order Details',
+  //     showInSidebar: false,
+  //     requiredPermission: 'view_sales_order_details',
+  //   },
+  // },
+  // {
+  //   path: '/orders/allocation-eligible',
+  //   component: lazy(
+  //     () => import('@features/order/pages/AllocationEligibleOrderPage')
+  //   ),
+  //   meta: {
+  //     requiresAuth: true,
+  //     title: 'Allocation-Eligible Orders',
+  //     showInSidebar: true,
+  //   },
+  // },
+  // {
+  //   path: '/orders/:orderType/:orderId/allocate',
+  //   component: lazy(
+  //     () =>
+  //       import(
+  //         '@features/inventoryAllocation/pages/OrderInventoryAllocationPage'
+  //       )
+  //   ),
+  //   meta: {
+  //     requiresAuth: true,
+  //     title: 'Inventory Allocation',
+  //     showInSidebar: false,
+  //     requiredPermission: 'inventory_allocation',
+  //   },
+  // },
   // {
   //   path: '/orders/:type/:id/allocation',
   //   component: lazy(() => import('@features/order/pages/OrderAllocationDetailsPage')),
@@ -286,6 +296,14 @@ export const routes = [
   //   component: lazy(() => import('@features/order/pages/OrderTransferPage')),
   //   meta: { requiresAuth: true, title: 'Transfers', showInSidebar: true },
   // },
+  {
+    path: '/access-denied',
+    component: lazy(() => import('@pages/AccessDeniedPage')),
+    meta: {
+      requiresAuth: true,
+      requiredPermission: 'view_access_denied_page', // you can define this custom
+    },
+  },
   {
     path: '*',
     component: lazy(() => import('@pages/NotFoundPage')),
