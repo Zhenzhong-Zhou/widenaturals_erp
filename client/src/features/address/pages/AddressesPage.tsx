@@ -85,7 +85,7 @@ const AddressesPage: FC = () => {
     error: customerLookupError,
     options: customerDropdownOptions,
     meta: customerLookupPaginationMeta,
-    fetchLookup: fetchCustomerDropdownOptions,
+    fetch: fetchCustomerDropdownOptions,
   } = useCustomerLookup(fetchParams);
 
   const deduplicatedOptions = useMemo(() => {

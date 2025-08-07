@@ -23,14 +23,14 @@ const useOrderTypeLookup = () => {
   const loading = useAppSelector(selectOrderTypeLoading);
   const error = useAppSelector(selectOrderTypeError);
 
-  const fetchData = useCallback(
+  const fetch = useCallback(
     (params?: OrderTypeLookupQueryParams) => {
       dispatch(fetchOrderTypeLookupThunk(params));
     },
     [dispatch]
   );
 
-  const resetData = useCallback(
+  const reset = useCallback(
     () => dispatch(clearOrderTypeLookup()),
     [dispatch]
   );
@@ -40,10 +40,10 @@ const useOrderTypeLookup = () => {
       options,
       loading,
       error,
-      fetchData,
-      resetData,
+      fetch,
+      reset,
     }),
-    [options, loading, error, fetchData, resetData]
+    [options, loading, error, fetch, reset]
   );
 };
 

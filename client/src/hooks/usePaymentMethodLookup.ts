@@ -22,7 +22,7 @@ const usePaymentMethodLookup = () => {
   const options = useAppSelector(selectPaymentMethodDropdownOptions);
   const loading = useAppSelector(selectPaymentMethodLookupLoading);
   const error = useAppSelector(selectPaymentMethodLookupError);
-  const { hasMore, offset } = useAppSelector(selectPaymentMethodLookupMeta);
+  const meta = useAppSelector(selectPaymentMethodLookupMeta);
   
   const fetch = useCallback(
     (params?: PaymentMethodLookupQueryParams) => {
@@ -40,12 +40,11 @@ const usePaymentMethodLookup = () => {
       options,
       loading,
       error,
-      hasMore,
-      offset,
+      meta,
       fetch,
       reset,
     }),
-    [options, loading, error, hasMore, offset, fetch, reset]
+    [options, loading, error, meta, fetch, reset]
   );
 };
 

@@ -19,7 +19,7 @@ import { clearDiscountLookup } from '@features/lookup/state/discountLookupSlice'
 const useDiscountLookup = () => {
   const dispatch = useAppDispatch();
   
-  const dropdownOptions = useAppSelector(selectDiscountDropdownOptions);
+  const options = useAppSelector(selectDiscountDropdownOptions);
   const loading = useAppSelector(selectDiscountLookupLoading);
   const error = useAppSelector(selectDiscountLookupError);
   const meta = useAppSelector(selectDiscountLookupMeta);
@@ -37,14 +37,14 @@ const useDiscountLookup = () => {
 
   return useMemo(
     () => ({
-      dropdownOptions,
+      options,
       loading,
       error,
       meta,
       fetch,
       reset,
     }),
-    [dropdownOptions, loading, error, meta, fetch, reset]
+    [options, loading, error, meta, fetch, reset]
   );
 };
 

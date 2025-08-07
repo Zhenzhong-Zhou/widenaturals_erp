@@ -19,7 +19,7 @@ import { clearTaxRateLookup } from '@features/lookup/state/taxRateLookupSlice';
 const useTaxRateLookup = () => {
   const dispatch = useAppDispatch();
   
-  const dropdownOptions = useAppSelector(selectTaxRateDropdownOptions);
+  const options = useAppSelector(selectTaxRateDropdownOptions);
   const loading = useAppSelector(selectTaxRateLookupLoading);
   const error = useAppSelector(selectTaxRateLookupError);
   const meta = useAppSelector(selectTaxRateLookupMeta);
@@ -37,14 +37,14 @@ const useTaxRateLookup = () => {
   
   return useMemo(
     () => ({
-      dropdownOptions,
+      options,
       loading,
       error,
       meta,
       fetch,
       reset,
     }),
-    [dropdownOptions, loading, error, meta, fetch, reset]
+    [options, loading, error, meta, fetch, reset]
   );
 };
 

@@ -19,7 +19,7 @@ import { clearDeliveryMethodLookup } from '@features/lookup/state/deliveryMethod
 const useDeliveryMethodLookup = () => {
   const dispatch = useAppDispatch();
   
-  const dropdownOptions = useAppSelector(selectDeliveryMethodLookupOptions);
+  const options = useAppSelector(selectDeliveryMethodLookupOptions);
   const loading = useAppSelector(selectDeliveryMethodLookupLoading);
   const error = useAppSelector(selectDeliveryMethodLookupError);
   const meta = useAppSelector(selectDeliveryMethodLookupMeta);
@@ -37,14 +37,14 @@ const useDeliveryMethodLookup = () => {
   
   return useMemo(
     () => ({
-      dropdownOptions,
+      options,
       loading,
       error,
       meta,
       fetch,
       reset,
     }),
-    [dropdownOptions, loading, error, meta, fetch, reset]
+    [options, loading, error, meta, fetch, reset]
   );
 };
 
