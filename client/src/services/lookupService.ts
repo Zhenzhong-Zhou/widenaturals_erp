@@ -15,6 +15,7 @@ import type {
   LotAdjustmentTypeLookupResponse,
   OrderTypeLookupQueryParams,
   OrderTypeLookupResponse,
+  PackagingMaterialLookupQueryParams, PackagingMaterialLookupResponse,
   PaymentMethodLookupQueryParams,
   PaymentMethodLookupResponse,
   PricingLookupQueryParams,
@@ -328,6 +329,42 @@ const fetchPricingLookup = async (
   }
 };
 
+/**
+ * Fetches paginated packaging-material lookup items for dropdowns/selectors.
+ *
+ * Supports whatever your `LookupQuery` allows (since
+ * `PackagingMaterialLookupQueryParams` is an alias), e.g.:
+ * - `keyword`
+ * - `filters` (statusId, createdBy, updatedBy, restrictToUnarchived, ...)
+ * - `options` (labelOnly, mode: 'generic' | 'salesDropdown')
+ * - `limit`, `offset`
+ *
+ * @param params Optional query parameters for server-side filtering/formatting.
+ * @returns A promise resolving to {@link PackagingMaterialLookupResponse}.
+ * @throws Error if the request fails or the response is invalid.
+ *
+ * @example
+ * await fetchPackagingMaterialLookup({
+ *   keyword: 'box',
+ *   filters: { restrictToUnarchived: true },
+ *   options: { labelOnly: true, mode: 'salesDropdown' },
+ *   limit: 50,
+ * });
+ */
+const fetchPackagingMaterialLookup = async (
+  params?: PackagingMaterialLookupQueryParams
+): Promise<PackagingMaterialLookupResponse> => {
+  const queryString = buildQueryString(params);
+  const url = `${API_ENDPOINTS.LOOKUPS.PACKAGING_MATERIALS}${queryString}`;
+  
+  try {
+    return await getRequest<PackagingMaterialLookupResponse>(url);
+  } catch (error) {
+    console.error('Failed to fetch packaging-material lookup:', error);
+    throw error;
+  }
+};
+
 export const lookupService = {
   fetchBatchRegistryLookup,
   fetchWarehouseLookup,
@@ -341,4 +378,5 @@ export const lookupService = {
   fetchDeliveryMethodLookup,
   fetchSkuLookup,
   fetchPricingLookup,
+  fetchPackagingMaterialLookup,
 };

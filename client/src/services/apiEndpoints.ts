@@ -50,6 +50,7 @@ export const API_ENDPOINTS = {
     DELIVERY_METHODS: '/lookups/delivery-methods',
     SKUS: '/lookups/skus',
     PRICING: '/lookups/pricing',
+    PACKAGING_MATERIALS: '/lookups/packaging-materials',
   },
   REPORTS: {
     INVENTORY_ACTIVITY_LOGS: 'reports/inventory-activity-logs',

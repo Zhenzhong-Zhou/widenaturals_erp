@@ -657,3 +657,46 @@ export interface PaginatedDropdownState<TParams> {
   inputValue: string;
   fetchParams: TParams;
 }
+
+/**
+ * Query parameters for fetching packaging-material lookup results.
+ * Direct alias of `LookupQuery` (no extra fields here).
+ */
+export type PackagingMaterialLookupQueryParams = LookupQuery;
+
+/**
+ * A packaging-material option for dropdowns/lookups.
+ *
+ * Shape matches your transformer:
+ * - Always includes `{ id, label }` where `label` is built via
+ *   `formatPackagingMaterialLabel(name — size • color • unit)`.
+ * - May include status flags when access allows.
+ *
+ * Notes:
+ * - `isArchived` is included **only** if the user can view all statuses; otherwise omitted.
+ */
+export type PackagingMaterialOnlyLookupItem = LookupItemWithStatus & {
+  isArchived?: boolean;
+};
+
+/**
+ * Response shape for packaging-material lookup.
+ * Reuses the app-wide paginated lookup response type.
+ */
+export type PackagingMaterialLookupResponse =
+  LookupSuccessResponse<PackagingMaterialOnlyLookupItem>;
+
+/**
+ * Redux slice state for packaging-material lookup dropdowns or autocomplete inputs.
+ *
+ * Extends the generic paginated async lookup state to track:
+ * - Matching items (`PackagingMaterialOnlyLookupItem[]`)
+ * - Loading and error states for async requests
+ * - Pagination info (`offset`, `limit`, `hasMore`)
+ *
+ * Commonly used in sales order packaging selectors (including salesDropdown mode)
+ * and internal inventory/procurement UIs. Items are label-only by default; optional
+ * flags such as `isActive` / `isArchived` may be included based on access level.
+ */
+export type PackagingMaterialLookupState =
+  PaginatedLookupState<PackagingMaterialOnlyLookupItem>;

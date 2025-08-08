@@ -13,7 +13,7 @@ import type {
   LotAdjustmentLookupQueryParams,
   LotAdjustmentTypeLookupResponse,
   OrderTypeLookupQueryParams,
-  OrderTypeLookupResponse,
+  OrderTypeLookupResponse, PackagingMaterialLookupQueryParams, PackagingMaterialLookupResponse,
   PaymentMethodLookupQueryParams,
   PaymentMethodLookupResponse,
   PricingLookupQueryParams,
@@ -349,6 +349,35 @@ export const fetchPricingLookupThunk = createAsyncThunk<
     return await lookupService.fetchPricingLookup(params);
   } catch (error) {
     console.error('Failed to fetch pricing lookup:', error);
+    return thunkAPI.rejectWithValue(error);
+  }
+});
+
+/**
+ * Thunk to fetch packaging-material lookup options for dropdowns/autocomplete.
+ *
+ * Uses server-side filtering per `PackagingMaterialLookupQueryParams`, including:
+ * - `keyword`
+ * - `filters` (e.g., statusId, createdBy, updatedBy, restrictToUnarchived)
+ * - `options` (e.g., labelOnly, mode: 'generic' | 'salesDropdown')
+ * - `limit`, `offset`
+ *
+ * Dispatch lifecycle:
+ * - `lookup/fetchPackagingMaterialLookup/pending`   — request started
+ * - `lookup/fetchPackagingMaterialLookup/fulfilled` — response received
+ * - `lookup/fetchPackagingMaterialLookup/rejected`  — request failed
+ *
+ * @param params Optional query params controlling filtering, options, and pagination.
+ * @returns A {@link PackagingMaterialLookupResponse} with items and pagination metadata.
+ */
+export const fetchPackagingMaterialLookupThunk = createAsyncThunk<
+  PackagingMaterialLookupResponse,
+  PackagingMaterialLookupQueryParams | undefined
+>('lookup/fetchPackagingMaterialLookup', async (params, thunkAPI) => {
+  try {
+    return await lookupService.fetchPackagingMaterialLookup(params);
+  } catch (error) {
+    console.error('Failed to fetch packaging-material lookup:', error);
     return thunkAPI.rejectWithValue(error);
   }
 });
