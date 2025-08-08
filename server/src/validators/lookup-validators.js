@@ -249,34 +249,42 @@ const pricingLookupQuerySchema = Joi.object({
 });
 
 /**
- * Joi validation schema for packaging-material lookup query parameters.
+ * Joi schema for **packaging-material lookup** query params.
  *
- * Route: GET /lookups/packaging-materials
+ * Route: `GET /lookups/packaging-materials`
  *
- * This schema delegates validation to `baseLookupQuerySchema` and does **not**
- * add any packaging-material–specific fields here. The exact fields validated
- * depend on your base schema, but typically include:
+ * Composition:
+ * - Extends `baseLookupQuerySchema` (inherit common lookup fields).
+ * - Adds a **top-level** `mode` switch for route behavior.
  *
- * Root:
- * - `keyword`?: string — optional fuzzy search term
- * - `limit`?: number  — pagination limit (default: 50)
- * - `offset`?: number — pagination offset (default: 0)
+ * Inherited (via base):
+ * - `keyword? : string`        // fuzzy search term
+ * - `limit?   : number`        // pagination size (default typically 50)
+ * - `offset?  : number`        // pagination offset (default 0)
+ * - `filters? : object`        // e.g. { statusId, createdBy, updatedBy, restrictToUnarchived }
+ * - `options? : object`        // e.g. { labelOnly: boolean }
  *
- * Nested (via base):
- * - `filters`?: object — e.g. `{ statusId, createdBy, updatedBy, restrictToUnarchived }`
- * - `options`?: object — e.g. `{ labelOnly: boolean, mode: 'generic' | 'salesDropdown' }`
+ * Added here:
+ * - `mode? : 'generic' | 'salesDropdown'`  // **top-level** selector (defaults to 'generic')
  *
- * Example (after normalization):
+ * Note:
+ * If your query-normalization middleware moves `mode` into `options.mode`,
+ * either (a) keep this top-level validator and map it before validation,
+ * or (b) validate `options.mode` inside the base schema instead.
+ *
+ * Example (post-normalization, top-level mode):
  * {
  *   keyword: "box",
  *   filters: { statusId: "uuid", restrictToUnarchived: true },
- *   options: { labelOnly: true, mode: "generic" },
+ *   options: { labelOnly: true },
+ *   mode: "salesDropdown",
  *   limit: 50,
  *   offset: 0
  * }
  */
 const packagingMaterialLookupQuerySchema = Joi.object({
   ...baseLookupQuerySchema,
+  mode: Joi.string().valid('generic', 'salesDropdown').default('generic').label('Mode'),
 });
 
 module.exports = {

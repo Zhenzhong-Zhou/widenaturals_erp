@@ -898,42 +898,40 @@ const fetchPaginatedPricingLookupService = async (
 
 /**
  * Fetch paginated packaging-material lookup options for UI components
- * (e.g., dropdowns/autocomplete), with permission-aware visibility.
+ * (dropdowns/autocomplete), with **permission-aware** and **mode-aware** behavior.
  *
- * Pipeline:
- *  1) Resolve user's access flags (archived, all statuses, hidden-for-sales).
- *  2) Enforce visibility rules (active-only + unarchived for restricted users).
- *  3) Apply route mode:
- *     - "generic": honor permission enforcement only.
- *     - "salesDropdown": force `visibleOnly` and (optionally) hard-enforce
- *       unarchived + active-only even for elevated users (see note below).
- *  4) Query repository with limit/offset.
- *  5) Enrich rows with UI flags (e.g., `isActive`, `isArchived`).
- *  6) Transform result to frontend format with `items` and `hasMore`.
+ * Processing pipeline:
+ *  1) Access control → resolve user permissions (archived, all statuses, hidden-for-sales).
+ *  2) Role enforcement → narrow filters for restricted users (active-only + unarchived).
+ *  3) Mode overlay:
+ *     - "generic"       → only role-based enforcement.
+ *     - "salesDropdown" → always force `visibleOnly`, `unarchived`, and `active` for EVERYONE
+ *                         (even admins), to keep the dropdown deterministic.
+ *  4) Repository query with limit/offset.
+ *  5) Enrichment → add UI flags (e.g., `isActive`, `isArchived`).
+ *  6) Transform → `{ items, hasMore, offset, limit }` for the client.
  *
- * By default, this function sets `visibleOnly: true` and relies on
- * `enforcePackagingMaterialVisibilityRules()` to apply active/unarchived
- * restrictions for *non-elevated* users. If you want sales dropdowns to
- * *always* exclude archived and always show *only active* materials even
- * for elevated users, set:
- *   - `restrictToUnarchived = true`
- *   - `statusId = activeStatusId` (or `_activeStatusId` fallback your builder honors)
- * here before calling the repository.
+ * Notes:
+ * - The SQL builder should treat visibility as **opt-in**:
+ *     if (filters.visibleOnly === true) { WHERE pm.is_visible_for_sales_order = true }
+ * - We do NOT trust the client to pass `visibleOnly`; it’s derived server-side from `mode`.
+ * - `mode` should be validated/defaulted at the request boundary (e.g., Joi default to "generic").
  *
- * @param {Object} user - Authenticated user (must contain enough context for permission evaluation).
- * @param {Object} [options] - Options bag.
- * @param {Object} [options.filters={}] - Arbitrary repository-level filters (e.g., keyword, statusId).
- * @param {number} [options.limit=50] - Page size (defaults to 50).
- * @param {number} [options.offset=0] - Offset for pagination.
+ * @param {Object} user - Authenticated user (context for permission evaluation).
+ * @param {Object} [options]
+ * @param {Object} [options.filters={}] - Repository-level filters (e.g., keyword, statusId).
+ * @param {number} [options.limit=50]   - Page size.
+ * @param {number} [options.offset=0]   - Pagination offset.
+ * @param {"generic"|"salesDropdown"} [options.mode="generic"] - Endpoint mode (validated upstream).
  *
  * @returns {Promise<{
  *   items: Array<{ id: string, label: string, isArchived?: boolean, isActive?: boolean }>,
  *   offset: number,
  *   limit: number,
  *   hasMore: boolean
- * }>} A lookup-ready payload with pagination metadata.
+ * }>}
  *
- * @throws {AppError} On permission evaluation failure, repository error, or transformation error.
+ * @throws {AppError} On permission evaluation failure, missing status id, repo or transform errors.
  *
  * @example
  * // Generic admin lookup (permission-aware)
@@ -955,41 +953,46 @@ const fetchPaginatedPricingLookupService = async (
  */
 const fetchPaginatedPackagingMaterialLookupService = async (
   user,
-  { filters = {}, limit = 50, offset = 0 } = {}
+  { filters = {}, limit = 50, offset = 0, mode = 'generic' } = {}
 ) => {
   try {
-    // 1) Access control: resolves canViewArchived, canViewAllStatuses, canViewHiddenSalesMaterials
+    const isSales = mode === 'salesDropdown';
+    
+    // 1) Access control (role capabilities)
     const userAccess = await evaluatePackagingMaterialLookupAccessControl(user);
     
-    // 2) Resolve the "active" status ID (used by enforcement and enrichment)
+    // 2) Resolve the "active" status id (used by enforcement + enrichment)
     const activeStatusId = getStatusId('packaging_material_active');
     
-    // 3) Start from caller filters and apply mode-specific flags
-    //    For sales dropdowns, we *always* require visible-only items.
-    //    Active/unarchived are enforced for restricted users in step 4;
-    let adjusted = { ...filters };
-    adjusted = { ...adjusted, visibleOnly: true };
+    // 3) Role-based enforcement first (keeps this function purely about permissions)
+    let adjusted = enforcePackagingMaterialVisibilityRules(filters, userAccess, activeStatusId);
     
-    // 4) Permission-based enforcement (active-only + unarchived for non-elevated users).
-    //    For elevated users, enforcement may remove forced flags depending on your implementation.
-    const permissionAdjustedFilters = enforcePackagingMaterialVisibilityRules(
-      adjusted,
-      userAccess,
-      activeStatusId
-    );
+    // Make visibility explicit for readability/logging (builder only acts on === true)
+    adjusted.visibleOnly = isSales;
     
-    // 5) Repository query (offset-based pagination)
+    // 3b) Mode overlay: sales dropdown must always be curated (even for admins)
+    if (isSales) {
+      adjusted = {
+        ...adjusted,
+        restrictToUnarchived: true,     // always exclude archived
+        _activeStatusId: activeStatusId // always active-only
+      };
+      delete adjusted.statusId;         // prevent widening via caller-provided status
+    }
+    
+    // 4) Repository query (offset-based pagination)
+    // If this repo is sales-only, rename to a generic function; otherwise this is fine.
     const raw = await getPackagingMaterialsForSalesOrderLookup({
-      filters: permissionAdjustedFilters,
+      filters: adjusted,
       limit,
       offset,
     });
     const { data = [], pagination = {} } = raw || {};
     
-    // 6) Enrich rows with UI flags (e.g., isActive/isArchived) before shaping for the client
-    const enriched = data.map((row) => enrichPackagingMaterialOption(row, activeStatusId));
+    // 5) Enrich rows with flags for the UI
+    const enriched = data.map(row => enrichPackagingMaterialOption(row, activeStatusId));
     
-    // 7) Transform to a standard lookup payload (items + hasMore + offset/limit)
+    // 6) Transform to client payload (items + hasMore + pagination)
     return transformPackagingMaterialPaginatedLookupResult(
       { data: enriched, pagination },
       userAccess

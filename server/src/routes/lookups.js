@@ -679,7 +679,6 @@ router.get(
  *   }
  * - `keyword`: string — Optional fuzzy search against name/color/size/material_composition
  * - `options`: {
- *     labelOnly?: boolean,              // If true, returns { id, label } only
  *     mode?: 'generic'|'salesDropdown'  // Sales mode hard-codes visibility/active-only constraints
  *   }
  * - `limit`: number — Optional pagination limit (default: 50)
@@ -707,7 +706,8 @@ router.get(
     [''],         // booleanKeys under filters
     ['keyword'],                      // keys to lift to root (keyword)
     { includePagination: true, includeSorting: false },
-    ['']             // options.* keys to normalize (mode passes through to service)
+    [''],             // options.* keys to normalize
+    ['mode']
   ),
   sanitizeFields(['keyword']),
   validate(

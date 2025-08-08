@@ -26,7 +26,7 @@ const AppError = require('../AppError');
  * @param {string} [filters.statusId] - Filter by status ID
  * @param {string} [filters.createdBy] - Filter by creator user ID
  * @param {string} [filters.updatedBy] - Filter by updater user ID
- * @param {boolean} [filters.visibleOnly=true] - If true, include only records marked visible for sales order dropdown
+ * @param {boolean} [filters.visibleOnly] - If true, include only records marked visible for sales order dropdown (default: false).
  * @param {boolean} [filters.restrictToUnarchived=true] - If true, exclude archived materials (is_archived = false)
  * @param {boolean} [filters.restrictToActiveStatus=true] - If true, apply active status filtering using statusId or _activeStatusId
  * @param {string} [filters._activeStatusId] - Optional fallback value used when no explicit statusId is passed
@@ -42,7 +42,7 @@ const buildPackagingMaterialsFilter = (filters = {}) => {
     let paramIndex = 1;
     
     // Visibility for sales
-    if (filters.visibleOnly !== false) {
+    if (filters.visibleOnly === true) {
       conditions.push(`pm.is_visible_for_sales_order = true`);
     }
     

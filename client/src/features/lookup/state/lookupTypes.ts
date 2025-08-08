@@ -660,9 +660,13 @@ export interface PaginatedDropdownState<TParams> {
 
 /**
  * Query parameters for fetching packaging-material lookup results.
- * Direct alias of `LookupQuery` (no extra fields here).
+ * Extends `LookupQuery` with a top-level `mode` that the server normalizer
+ * whitelists and places into `options.mode`.
  */
-export type PackagingMaterialLookupQueryParams = LookupQuery;
+export type PackagingMaterialLookupQueryParams = LookupQuery & {
+  /** Enables stricter server-side rules for the sales dropdown */
+  mode?: 'generic' | 'salesDropdown';
+};
 
 /**
  * A packaging-material option for dropdowns/lookups.

@@ -589,48 +589,66 @@ const getPricingLookupController = wrapAsync(async (req, res) => {
 /**
  * Controller for retrieving paginated packaging-material lookup options.
  *
- * This controller:
- * - Enforces access control via service-layer permissions.
- * - Applies visibility rules (e.g., force active + unarchived for restricted users).
- * - Supports a stricter Sales mode that hard-codes `visibleOnly`, active-only, and unarchived.
+ * Responsibilities:
+ * - Delegates access control & visibility enforcement to the service layer.
+ * - Supports a stricter "salesDropdown" mode that sets `visibleOnly` and may hard-enforce
+ *   active-only + unarchived depending on your service/builder rules.
  * - Handles pagination via `limit` and `offset`.
- * - Returns results formatted for dropdown usage.
+ * - Returns data formatted for dropdown/autocomplete usage.
  *
- * Expected query structure (via `req.normalizedQuery`):
- * - filters: Optional object (e.g., { keyword, statusId, createdBy, updatedBy })
- * - mode: Optional string, either "generic" (default) or "salesDropdown"
- * - limit: Optional number (default 50)
- * - offset: Optional number (default 0)
+ * Expected normalized query (via `req.normalizedQuery`):
+ * - filters?: object            // e.g., { keyword, statusId, createdBy, updatedBy, restrictToUnarchived }
+ * - options?: {
+ *     mode?: 'generic' | 'salesDropdown', // route behavior, default 'generic'
+ *     labelOnly?: boolean
+ *   }
+ * - limit?: number = 50
+ * - offset?: number = 0
  *
  * @route GET /lookups/packaging-materials
  * @access Protected
- * @permission `view_packaging_material_lookup` (enforced in service layer)
+ * @permission view_packaging_material_lookup (enforced in service layer)
  *
- * @param {Express.Request} req - Express request (expects `user` and `normalizedQuery`)
- * @param {Express.Response} res - Express response
- *
- * @returns {void} Responds with JSON:
+ * @param {import('express').Request} req  - Express request (expects `req.user` and `req.normalizedQuery`)
+ * @param {import('express').Response} res - Express response
+ * @returns {Promise<void>} Sends JSON:
  *  {
- *    success: boolean,
- *    message: string,
- *    items: Array<{ id: string, label: string }>,
+ *    success: true,
+ *    message: "Successfully retrieved packaging material lookup",
+ *    items: Array<{ id: string, label: string, isActive?: boolean, isArchived?: boolean }>,
  *    offset: number,
  *    limit: number,
  *    hasMore: boolean
  *  }
+ *
+ * @example
+ * // GET /lookups/packaging-materials?keyword=box&limit=20&offset=0&mode=salesDropdown
+ * // Response:
+ * // {
+ * //   "success": true,
+ * //   "message": "Successfully retrieved packaging material lookup",
+ * //   "items": [{ "id": "pm-123", "label": "Large Box (BOX-L)", "isActive": true, "isArchived": false }],
+ * //   "offset": 0,
+ * //   "limit": 20,
+ * //   "hasMore": true
+ * // }
  */
 const getPackagingMaterialLookupController = wrapAsync(async (req, res) => {
   const user = req.user;
   const {
     filters = {},
+    options = {},
     limit = 50,
     offset = 0,
   } = req.normalizedQuery;
+  
+  const { mode } = options;
   
   const { items, hasMore } = await fetchPaginatedPackagingMaterialLookupService(user, {
     filters,
     limit,
     offset,
+    mode
   });
   
   return res.status(200).json({
