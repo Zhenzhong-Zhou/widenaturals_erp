@@ -248,6 +248,37 @@ const pricingLookupQuerySchema = Joi.object({
   labelOnly: createBooleanFlag('Minimal label-only mode'),
 });
 
+/**
+ * Joi validation schema for packaging-material lookup query parameters.
+ *
+ * Route: GET /lookups/packaging-materials
+ *
+ * This schema delegates validation to `baseLookupQuerySchema` and does **not**
+ * add any packaging-material–specific fields here. The exact fields validated
+ * depend on your base schema, but typically include:
+ *
+ * Root:
+ * - `keyword`?: string — optional fuzzy search term
+ * - `limit`?: number  — pagination limit (default: 50)
+ * - `offset`?: number — pagination offset (default: 0)
+ *
+ * Nested (via base):
+ * - `filters`?: object — e.g. `{ statusId, createdBy, updatedBy, restrictToUnarchived }`
+ * - `options`?: object — e.g. `{ labelOnly: boolean, mode: 'generic' | 'salesDropdown' }`
+ *
+ * Example (after normalization):
+ * {
+ *   keyword: "box",
+ *   filters: { statusId: "uuid", restrictToUnarchived: true },
+ *   options: { labelOnly: true, mode: "generic" },
+ *   limit: 50,
+ *   offset: 0
+ * }
+ */
+const packagingMaterialLookupQuerySchema = Joi.object({
+  ...baseLookupQuerySchema,
+});
+
 module.exports = {
   batchRegistryLookupQuerySchema,
   warehouseLookupQuerySchema,
@@ -261,4 +292,5 @@ module.exports = {
   deliveryMethodLookupQuerySchema,
   skuLookupQuerySchema,
   pricingLookupQuerySchema,
+  packagingMaterialLookupQuerySchema,
 };

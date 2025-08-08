@@ -10,7 +10,7 @@ const {
   fetchPaginatedDiscountLookupService,
   fetchPaginatedTaxRateLookupService,
   fetchPaginatedDeliveryMethodLookupService,
-  fetchPaginatedSkuLookupService, fetchPaginatedPricingLookupService,
+  fetchPaginatedSkuLookupService, fetchPaginatedPricingLookupService, fetchPaginatedPackagingMaterialLookupService,
 } = require('../services/lookup-service');
 const { logInfo } = require('../utils/logger-helper');
 
@@ -586,6 +586,63 @@ const getPricingLookupController = wrapAsync(async (req, res) => {
   });
 });
 
+/**
+ * Controller for retrieving paginated packaging-material lookup options.
+ *
+ * This controller:
+ * - Enforces access control via service-layer permissions.
+ * - Applies visibility rules (e.g., force active + unarchived for restricted users).
+ * - Supports a stricter Sales mode that hard-codes `visibleOnly`, active-only, and unarchived.
+ * - Handles pagination via `limit` and `offset`.
+ * - Returns results formatted for dropdown usage.
+ *
+ * Expected query structure (via `req.normalizedQuery`):
+ * - filters: Optional object (e.g., { keyword, statusId, createdBy, updatedBy })
+ * - mode: Optional string, either "generic" (default) or "salesDropdown"
+ * - limit: Optional number (default 50)
+ * - offset: Optional number (default 0)
+ *
+ * @route GET /lookups/packaging-materials
+ * @access Protected
+ * @permission `view_packaging_material_lookup` (enforced in service layer)
+ *
+ * @param {Express.Request} req - Express request (expects `user` and `normalizedQuery`)
+ * @param {Express.Response} res - Express response
+ *
+ * @returns {void} Responds with JSON:
+ *  {
+ *    success: boolean,
+ *    message: string,
+ *    items: Array<{ id: string, label: string }>,
+ *    offset: number,
+ *    limit: number,
+ *    hasMore: boolean
+ *  }
+ */
+const getPackagingMaterialLookupController = wrapAsync(async (req, res) => {
+  const user = req.user;
+  const {
+    filters = {},
+    limit = 50,
+    offset = 0,
+  } = req.normalizedQuery;
+  
+  const { items, hasMore } = await fetchPaginatedPackagingMaterialLookupService(user, {
+    filters,
+    limit,
+    offset,
+  });
+  
+  return res.status(200).json({
+    success: true,
+    message: 'Successfully retrieved packaging material lookup',
+    items,
+    offset,
+    limit,
+    hasMore,
+  });
+});
+
 module.exports = {
   getBatchRegistryLookupController,
   getWarehouseLookupController,
@@ -599,4 +656,5 @@ module.exports = {
   getDeliveryMethodLookupController,
   getSkuLookupController,
   getPricingLookupController,
+  getPackagingMaterialLookupController,
 };

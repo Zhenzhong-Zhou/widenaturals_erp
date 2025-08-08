@@ -7,7 +7,7 @@ const {
   includeFlagsBasedOnAccess,
 } = require('../utils/transformer-utils');
 const { getFullName } = require('../utils/name-utils');
-const { formatAddress, formatTaxRateLabel } = require('../utils/string-utils');
+const { formatAddress, formatTaxRateLabel, formatPackagingMaterialLabel } = require('../utils/string-utils');
 
 /**
  * Transforms a raw batch registry row into a lookup-friendly shape.
@@ -726,6 +726,89 @@ const transformPricingPaginatedLookupResult = (
     { includeLoadMore: true }
   );
 
+/**
+ * Transforms a raw packaging-material row into a lookup-friendly object `{ id, label }`,
+ * conditionally enriched with flags for the UI.
+ *
+ * - Builds a human-readable label via `formatPackagingMaterialLabel(row)`.
+ * - Converts to `{ id, label }` using `transformIdNameToIdLabel`.
+ * - Optionally merges extra flags from `includeFlagsBasedOnAccess(row, userAccess)`.
+ * - **Includes `isArchived` ONLY if `userAccess.canViewAllStatuses` is true**; otherwise it is omitted.
+ *
+ * @param {object} row - Raw DB row for a packaging material.
+ * @param {string} row.id - Material ID (required).
+ * @param {boolean} [row.is_archived] - Whether the material is archived.
+ * @param {object} [userAccess] - Access flags used to decide which fields to expose it.
+ * @param {boolean} [userAccess.canViewAllStatuses] - If true, expose `isArchived`.
+ *
+ * @returns {{
+ *   id: string,
+ *   label: string,
+ *   isArchived?: boolean
+ * } | null} Lookup item, or `null` if invalid.
+ *
+ * @example
+ * // With canViewAllStatuses:
+ * // -> { id, label, isArchived: false }
+ * // Without:
+ * // -> { id, label }
+ */
+const transformPackagingMaterialLookupRow = (row, userAccess) => {
+  if (!row || typeof row !== 'object' || !row.id) return null;
+  
+  const label = formatPackagingMaterialLabel(row);
+  if (!label) return null;
+  
+  const base = transformIdNameToIdLabel({ id: row.id, name: label });
+  
+  const flagSubset =
+    (typeof includeFlagsBasedOnAccess === 'function'
+      ? includeFlagsBasedOnAccess(row, userAccess)
+      : {}) || {};
+  
+  const out = {
+    ...base,
+    ...flagSubset,
+  };
+  
+  // Only expose isArchived to users allowed to view all statuses
+  if (userAccess?.canViewAllStatuses) {
+    out.isArchived = row?.is_archived === true;
+  }
+  
+  return cleanObject(out);
+};
+
+/**
+ * Transforms a paginated repository result of packaging-material rows into a
+ * lookup-ready payload using `transformPackagingMaterialLookupRow`.
+ *
+ * Intended for dropdowns / autocomplete with load-more behavior.
+ *
+ * @param {{
+ *   data: Array<object>,
+ *   pagination: { offset: number, limit: number, totalRecords: number }
+ * }} paginatedResult - Raw-paginated result from the repository.
+ * @param {object} [userAccess] - Access flags forwarded to the row transformer.
+ *
+ * @returns {{
+ *   items: Array<{ id: string, label: string, isArchived: boolean }>,
+ *   offset: number,
+ *   limit: number,
+ *   hasMore: boolean
+ * }} Lookup payload with pagination metadata.
+ *
+ * @example
+ * const result = transformPackagingMaterialPaginatedLookupResult(repoResult, access);
+ * // { items: [...], offset: 0, limit: 20, hasMore: true }
+ */
+const transformPackagingMaterialPaginatedLookupResult = (paginatedResult, userAccess) =>
+  transformPaginatedResult(
+    paginatedResult,
+    (row) => transformPackagingMaterialLookupRow(row, userAccess),
+    { includeLoadMore: true }
+  );
+
 module.exports = {
   transformBatchRegistryPaginatedLookupResult,
   transformWarehouseLookupRows,
@@ -739,4 +822,5 @@ module.exports = {
   transformDeliveryMethodPaginatedLookupResult,
   transformSkuPaginatedLookupResult,
   transformPricingPaginatedLookupResult,
+  transformPackagingMaterialPaginatedLookupResult,
 };

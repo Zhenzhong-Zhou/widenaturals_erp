@@ -12,6 +12,7 @@ const {
   getDeliveryMethodLookupController,
   getSkuLookupController,
   getPricingLookupController,
+  getPackagingMaterialLookupController,
 } = require('../controllers/lookup-controller');
 const authorize = require('../middlewares/authorize');
 const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
@@ -30,6 +31,7 @@ const {
   deliveryMethodLookupQuerySchema,
   skuLookupQuerySchema,
   pricingLookupQuerySchema,
+  packagingMaterialLookupQuerySchema,
 } = require('../validators/lookup-validators');
 const { PERMISSIONS } = require('../utils/constants/domain/lookup-constants');
 
@@ -649,6 +651,72 @@ router.get(
     'Invalid query parameters.'
   ),
   getPricingLookupController
+);
+
+/**
+ * @route GET /lookups/packaging-materials
+ * @description
+ * Endpoint to fetch paginated packaging-material lookup options for dropdowns/selectors.
+ * Applies permission checks, query normalization, sanitization, validation, and filtering.
+ *
+ * Middleware chain includes:
+ * - `authorize`: Enforces user permission to view packaging-material lookup
+ * - `createQueryNormalizationMiddleware`: Extracts and structures query parameters:
+ *     - `filters` (e.g., `statusId`, `createdBy`, `updatedBy`, `restrictToUnarchived`)
+ *     - `keyword` (extracted to root)
+ *     - `options` (e.g., `labelOnly`, `mode` = 'generic' | 'salesDropdown')
+ *     - `pagination` (`limit`, `offset`)
+ * - `sanitizeFields`: Trims and sanitizes fields like `keyword`
+ * - `validate`: Validates `normalizedQuery` via `packagingMaterialLookupQuerySchema`
+ * - `getPackagingMaterialLookupController`: Handles the request and returns formatted options
+ *
+ * Query Parameters (after normalization):
+ * - `filters`: {
+ *     statusId?: UUID,
+ *     createdBy?: UUID,
+ *     updatedBy?: UUID,
+ *     restrictToUnarchived?: boolean
+ *   }
+ * - `keyword`: string — Optional fuzzy search against name/color/size/material_composition
+ * - `options`: {
+ *     labelOnly?: boolean,              // If true, returns { id, label } only
+ *     mode?: 'generic'|'salesDropdown'  // Sales mode hard-codes visibility/active-only constraints
+ *   }
+ * - `limit`: number — Optional pagination limit (default: 50)
+ * - `offset`: number — Optional pagination offset
+ *
+ * Response (200 OK):
+ * {
+ *   success: true,
+ *   message: 'Successfully retrieved packaging material lookup',
+ *   items: Array<{ id: string, label: string }>,
+ *   limit: number,
+ *   offset: number,
+ *   hasMore: boolean
+ * }
+ *
+ * @access Protected
+ * @permission Requires `view_packaging_material_lookup`
+ */
+router.get(
+  '/packaging-materials',
+  // authorize([PERMISSIONS.VIEW_PACKAGING_MATERIAL]),
+  createQueryNormalizationMiddleware(
+    '',                               // moduleKey
+    [],                               // arrayKeys
+    [''],         // booleanKeys under filters
+    ['keyword'],                      // keys to lift to root (keyword)
+    { includePagination: true, includeSorting: false },
+    ['']             // options.* keys to normalize (mode passes through to service)
+  ),
+  sanitizeFields(['keyword']),
+  validate(
+    packagingMaterialLookupQuerySchema,
+    'query',
+    { abortEarly: false, convert: true },
+    'Invalid query parameters.'
+  ),
+  getPackagingMaterialLookupController
 );
 
 module.exports = router;

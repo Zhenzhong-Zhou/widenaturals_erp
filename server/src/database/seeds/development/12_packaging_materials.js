@@ -1,5 +1,6 @@
-const { fetchDynamicValue } = require('../03_utils');
+const { fetchDynamicValue, fetchDynamicValues } = require('../03_utils');
 const { generateStandardizedCode } = require('../../../utils/code-generators');
+const AppError = require('../../../utils/AppError');
 
 /**
  * @param { import("knex").Knex } knex
@@ -7,11 +8,29 @@ const { generateStandardizedCode } = require('../../../utils/code-generators');
  */
 exports.seed = async function (knex) {
   console.log('Seeding packaging_materials...');
-
-  const [createdBy, activeStatusId] = await Promise.all([
+  
+  const [statusMap, createdBy] = await Promise.all([
+    fetchDynamicValues(
+      knex,
+      'status',
+      'name',
+      ['active', 'inactive', 'discontinued', 'archived'],
+      'id'
+    ),
     fetchDynamicValue(knex, 'users', 'email', 'system@internal.local', 'id'),
-    fetchDynamicValue(knex, 'status', 'name', 'active', 'id'),
   ]);
+
+  // Normalize keys just in case (Active vs. active)
+  const statusIds = Object.fromEntries(
+    Object.entries(statusMap).map(([k, v]) => [String(k).toLowerCase().trim(), v])
+  );
+
+  // Ensure required statuses exist
+  for (const key of ['active', 'inactive', 'discontinued']) {
+    if (!statusIds[key]) {
+      throw AppError.validationError(`Missing status "${key}"`, { table: 'status' });
+    }
+  }
 
   const materials = [
     // Canaherb
@@ -905,24 +924,121 @@ exports.seed = async function (knex) {
       width_cm: 10.0,
       description: '',
     },
+    {
+      name: 'Premium Gift Box - Gold Foil',
+      color: 'white/gold',
+      grade: 'none',
+      material_composition: 'rigid paperboard',
+      unit: 'pc',
+      length_cm: 13.0,
+      width_cm: 10.0,
+      height_cm: 5.0,
+      description: 'Luxury rigid paperboard gift box with gold foil stamping.',
+      category: 'sales',
+      is_visible_for_sales_order: true,
+    },
+    {
+      name: 'Matching Gift Bag - Medium',
+      color: 'white/gold',
+      grade: 'none',
+      material_composition: 'hard paper',
+      unit: 'pc',
+      length_cm: 15.0,
+      width_cm: 6.0,
+      height_cm: 20.0,
+      description: 'Hard paper gift bag matching Premium Gift Box design.',
+      category: 'sales',
+      is_visible_for_sales_order: true,
+    },
+    {
+      name: 'Brand A Paper Bag - Small (Red)',
+      color: 'red',
+      grade: 'none',
+      material_composition: 'hard paper',
+      unit: 'pc',
+      length_cm: 10.0,
+      width_cm: 4.0,
+      height_cm: 15.0,
+      description: 'Red branded hard paper bag - Small',
+      category: 'sales',
+      is_visible_for_sales_order: true,
+    },
+    {
+      name: 'Brand B Paper Bag - Medium (Blue)',
+      color: 'blue',
+      grade: 'none',
+      material_composition: 'hard paper',
+      unit: 'pc',
+      length_cm: 15.0,
+      width_cm: 6.0,
+      height_cm: 20.0,
+      description: 'Blue branded hard paper bag - Medium',
+      category: 'sales',
+      is_visible_for_sales_order: true,
+    },
+    {
+      name: 'Brand C Paper Bag - Large (Black)',
+      color: 'black',
+      grade: 'none',
+      material_composition: 'hard paper',
+      unit: 'pc',
+      length_cm: 20.0,
+      width_cm: 8.0,
+      height_cm: 25.0,
+      description: 'Black branded hard paper bag - Large',
+      category: 'sales',
+      is_visible_for_sales_order: true,
+    },
+    {
+      name: 'Brand D Paper Bag - XL (Green)',
+      color: 'green',
+      grade: 'none',
+      material_composition: 'hard paper',
+      unit: 'pc',
+      length_cm: 25.0,
+      width_cm: 10.0,
+      height_cm: 30.0,
+      description: 'Green branded hard paper bag - XL',
+      category: 'sales',
+      is_visible_for_sales_order: true,
+    }
   ];
-
-  const rows = materials.map((mat, idx) => ({
-    id: knex.raw('uuid_generate_v4()'),
-    code: generateStandardizedCode('MAT', mat.name, {
-      sequenceNumber: idx + 1,
-    }),
-    ...mat,
-    status_id: activeStatusId,
-    status_date: knex.fn.now(),
-    is_archived: false,
-    created_by: createdBy,
-    updated_by: null,
-    created_at: knex.fn.now(),
-    updated_at: null,
-  }));
-
+  
+  // Pick a few to be non-active by NAME (safer than index)
+  const statusByName = new Map([
+    ['Brand A Paper Bag - Small (Red)', 'inactive'],
+    ['Brand B Paper Bag - Medium (Blue)', 'discontinued'],
+    ['Label for Mood - CA (Paper, 19.6×7.0cm)', 'inactive'],
+    ['Label for Mood - CN (Paper, 19.6×7.0cm)', 'inactive'],
+    ['Gold Metallica Plastic Lid - Large', 'discontinued'],
+  ]);
+  
+  // Optional archive one (archive is orthogonal to status)
+  const archivedNames = new Set([
+    'Brand C Paper Bag - Large (Black)',
+  ]);
+  
+  const rows = materials.map((mat, idx) => {
+    const statusName = statusByName.get(mat.name) || 'active';
+    const isArchived = archivedNames.has(mat.name);
+    
+    return {
+      id: knex.raw('uuid_generate_v4()'),
+      code: generateStandardizedCode('MAT', mat.name, { sequenceNumber: idx + 1 }),
+      category: 'core',                // default fallback
+      is_visible_for_sales_order: false, // default fallback
+      ...mat,                          // overrides fallbacks where present
+      status_id: statusIds[statusName],
+      status_date: knex.fn.now(),
+      is_archived: isArchived,
+      created_by: createdBy,
+      updated_by: null,
+      created_at: knex.fn.now(),
+      updated_at: null,
+    };
+  });
+  
   await knex('packaging_materials').insert(rows).onConflict('code').ignore();
-
+  
   console.log(`Seeded ${rows.length} packaging materials records.`);
 };

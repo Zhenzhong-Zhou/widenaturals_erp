@@ -15,7 +15,7 @@ const {
   transformTaxRatePaginatedLookupResult,
   transformDeliveryMethodPaginatedLookupResult,
   transformSkuPaginatedLookupResult,
-  transformPricingPaginatedLookupResult,
+  transformPricingPaginatedLookupResult, transformPackagingMaterialPaginatedLookupResult,
 } = require('../transformers/lookup-transformer');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const {
@@ -87,6 +87,10 @@ const {
   enrichPricingRow
 } = require('../business/pricing-business');
 const { getPricingLookup } = require('../repositories/pricing-repository');
+const { evaluatePackagingMaterialLookupAccessControl, enforcePackagingMaterialVisibilityRules,
+  enrichPackagingMaterialOption
+} = require('../business/packaging-material-business');
+const { getPackagingMaterialsForSalesOrderLookup } = require('../repositories/packaging-material-repository');
 
 /**
  * Service to fetch filtered and paginated batch registry records for lookup UI.
@@ -892,6 +896,121 @@ const fetchPaginatedPricingLookupService = async (
   }
 };
 
+/**
+ * Fetch paginated packaging-material lookup options for UI components
+ * (e.g., dropdowns/autocomplete), with permission-aware visibility.
+ *
+ * Pipeline:
+ *  1) Resolve user's access flags (archived, all statuses, hidden-for-sales).
+ *  2) Enforce visibility rules (active-only + unarchived for restricted users).
+ *  3) Apply route mode:
+ *     - "generic": honor permission enforcement only.
+ *     - "salesDropdown": force `visibleOnly` and (optionally) hard-enforce
+ *       unarchived + active-only even for elevated users (see note below).
+ *  4) Query repository with limit/offset.
+ *  5) Enrich rows with UI flags (e.g., `isActive`, `isArchived`).
+ *  6) Transform result to frontend format with `items` and `hasMore`.
+ *
+ * By default, this function sets `visibleOnly: true` and relies on
+ * `enforcePackagingMaterialVisibilityRules()` to apply active/unarchived
+ * restrictions for *non-elevated* users. If you want sales dropdowns to
+ * *always* exclude archived and always show *only active* materials even
+ * for elevated users, set:
+ *   - `restrictToUnarchived = true`
+ *   - `statusId = activeStatusId` (or `_activeStatusId` fallback your builder honors)
+ * here before calling the repository.
+ *
+ * @param {Object} user - Authenticated user (must contain enough context for permission evaluation).
+ * @param {Object} [options] - Options bag.
+ * @param {Object} [options.filters={}] - Arbitrary repository-level filters (e.g., keyword, statusId).
+ * @param {number} [options.limit=50] - Page size (defaults to 50).
+ * @param {number} [options.offset=0] - Offset for pagination.
+ *
+ * @returns {Promise<{
+ *   items: Array<{ id: string, label: string, isArchived?: boolean, isActive?: boolean }>,
+ *   offset: number,
+ *   limit: number,
+ *   hasMore: boolean
+ * }>} A lookup-ready payload with pagination metadata.
+ *
+ * @throws {AppError} On permission evaluation failure, repository error, or transformation error.
+ *
+ * @example
+ * // Generic admin lookup (permission-aware)
+ * const res = await fetchPaginatedPackagingMaterialLookupService(currentUser, {
+ *   filters: { keyword: 'box' },
+ *   limit: 20,
+ *   offset: 0,
+ *   mode: 'generic',
+ * });
+ *
+ * @example
+ * // Sales dropdown: visible-only; to *hard*-enforce active + unarchived for all users,
+ * const res = await fetchPaginatedPackagingMaterialLookupService(currentUser, {
+ *   filters: { keyword: 'label' },
+ *   limit: 20,
+ *   offset: 0,
+ *   mode: 'salesDropdown',
+ * });
+ */
+const fetchPaginatedPackagingMaterialLookupService = async (
+  user,
+  { filters = {}, limit = 50, offset = 0 } = {}
+) => {
+  try {
+    // 1) Access control: resolves canViewArchived, canViewAllStatuses, canViewHiddenSalesMaterials
+    const userAccess = await evaluatePackagingMaterialLookupAccessControl(user);
+    
+    // 2) Resolve the "active" status ID (used by enforcement and enrichment)
+    const activeStatusId = getStatusId('packaging_material_active');
+    
+    // 3) Start from caller filters and apply mode-specific flags
+    //    For sales dropdowns, we *always* require visible-only items.
+    //    Active/unarchived are enforced for restricted users in step 4;
+    let adjusted = { ...filters };
+    adjusted = { ...adjusted, visibleOnly: true };
+    
+    // 4) Permission-based enforcement (active-only + unarchived for non-elevated users).
+    //    For elevated users, enforcement may remove forced flags depending on your implementation.
+    const permissionAdjustedFilters = enforcePackagingMaterialVisibilityRules(
+      adjusted,
+      userAccess,
+      activeStatusId
+    );
+    
+    // 5) Repository query (offset-based pagination)
+    const raw = await getPackagingMaterialsForSalesOrderLookup({
+      filters: permissionAdjustedFilters,
+      limit,
+      offset,
+    });
+    const { data = [], pagination = {} } = raw || {};
+    
+    // 6) Enrich rows with UI flags (e.g., isActive/isArchived) before shaping for the client
+    const enriched = data.map((row) => enrichPackagingMaterialOption(row, activeStatusId));
+    
+    // 7) Transform to a standard lookup payload (items + hasMore + offset/limit)
+    return transformPackagingMaterialPaginatedLookupResult(
+      { data: enriched, pagination },
+      userAccess
+    );
+  } catch (err) {
+    // Include enough context for observability while avoiding PII where needed
+    logSystemException(err, 'Failed to fetch packaging material lookup', {
+      context: 'lookup-service/fetchPaginatedPackagingMaterialLookupService',
+      userId: user?.id,
+      filters,
+      limit,
+      offset,
+      mode,
+    });
+    throw AppError.serviceError('Unable to retrieve packaging material lookup options.', {
+      cause: err,
+      stage: 'fetchPaginatedPackagingMaterialLookupService',
+    });
+  }
+};
+
 module.exports = {
   fetchBatchRegistryLookupService,
   fetchWarehouseLookupService,
@@ -905,4 +1024,5 @@ module.exports = {
   fetchPaginatedDeliveryMethodLookupService,
   fetchPaginatedSkuLookupService,
   fetchPaginatedPricingLookupService,
+  fetchPaginatedPackagingMaterialLookupService,
 };

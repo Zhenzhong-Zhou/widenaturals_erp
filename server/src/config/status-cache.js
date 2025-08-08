@@ -73,6 +73,11 @@ const STATUS_KEY_LOOKUP = [
     table: 'status',
     name: 'active',
   },
+  {
+    key: 'packaging_material_active',
+    table: 'status',
+    name: 'active',
+  },
 ];
 
 /**
