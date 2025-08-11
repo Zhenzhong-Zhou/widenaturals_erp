@@ -37,6 +37,8 @@ const {
   logSystemDebug,
 } = require('../utils/system-logger');
 const { generateTraceId } = require('../utils/id-utils');
+const { assertAllowed, qualify, q, isSafeIdent } = require('../utils/sql-ident');
+const { uniq } = require('../utils/array-utils');
 
 // Get environment-specific connection configuration
 loadEnv();
@@ -1389,6 +1391,55 @@ const checkRecordExists = async (table, condition, client = null) => {
 };
 
 /**
+ * Return IDs from `ids` that are NOT present in `${schema}.${table}.${idColumn}`.
+ *
+ * - One round-trip (UNNEST), parameterized values.
+ * - Uses allowlist + quoted identifiers to prevent SQL injection on identifiers.
+ *
+ * @param {import('pg').PoolClient} client
+ * @param {string} table
+ * @param {string[]} ids
+ * @param {{ schema?: string|null, idColumn?: string, logOnError?: boolean }} [opts]
+ * @returns {Promise<string[]>} missing IDs
+ */
+const findMissingIds = async (client, table, ids, opts = {}) => {
+  const { schema = 'public', idColumn = 'id', logOnError = true } = opts;
+  
+  // Guard dynamic identifiers
+  assertAllowed(schema, table);
+  
+  const list = uniq(ids);
+  if (list.length === 0) return [];
+  
+  const sql = `
+    WITH input(id) AS (SELECT DISTINCT UNNEST($1::uuid[]))
+    SELECT i.id
+    FROM input i
+    WHERE NOT EXISTS (
+      SELECT 1
+      FROM ${qualify(schema, table)} t
+      WHERE t.${q(idColumn)} = i.id
+    );
+  `;
+  
+  try {
+    // Prefer using the passed client directly
+    const { rows } = await query(sql, [list], client);
+    return rows.map((r) => r.id);
+  } catch (error) {
+    if (logOnError) {
+      logSystemException(error, 'Batch ID existence check failed', {
+        context: 'db/findMissingIds',
+        table: `${schema}.${table}`,
+        idColumn,
+        count: list.length,
+      });
+    }
+    throw AppError.databaseError('Failed to validate IDs');
+  }
+};
+
+/**
  * Fetches one or more specific columns (default: ['name']) from a table by its primary key (`id`).
  *
  * This utility is safe, generic, and transaction-aware. It supports fetching multiple fields
@@ -1473,5 +1524,6 @@ module.exports = {
   formatBulkUpdateQuery,
   getUniqueScalarValue,
   checkRecordExists,
+  findMissingIds,
   getFieldsById,
 };

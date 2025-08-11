@@ -118,6 +118,15 @@ const { createOrderService } = require('../../services/order-service');
       },
       client
     );
+    
+    const packaging_material_id_1 = await getUniqueScalarValue(
+      {
+        table: 'packaging_materials',
+        where: { name: 'Brand D Paper Bag - XL (Green)' },
+        select: 'id',
+      },
+      client
+    );
 
     const orderData = {
       order_type_id,
@@ -139,7 +148,21 @@ const { createOrderService } = require('../../services/order-service');
       order_items: [
         {
           sku_id: sku_id_1,
-          packaging_material_id: null,
+          price_id: await getUniqueScalarValue(
+            {
+              table: 'pricing',
+              where: { sku_id: sku_id_1 },
+              select: 'id',
+            },
+            client
+          ),
+          quantity_ordered: 2,
+          price: 20.0,
+          status_id: order_status_id,
+          created_by: userId,
+        },
+        {
+          sku_id: sku_id_1,
           price_id: await getUniqueScalarValue(
             {
               table: 'pricing',
@@ -155,7 +178,6 @@ const { createOrderService } = require('../../services/order-service');
         },
         {
           sku_id: sku_id_2,
-          packaging_material_id: null,
           price_id: await getUniqueScalarValue(
             {
               table: 'pricing',
@@ -166,6 +188,13 @@ const { createOrderService } = require('../../services/order-service');
           ),
           quantity_ordered: 20,
           price: 200.0,
+          status_id: order_status_id,
+          created_by: userId,
+        },
+        {
+          packaging_material_id: packaging_material_id_1,
+          quantity_ordered: 1,
+          price: 0,
           status_id: order_status_id,
           created_by: userId,
         },

@@ -212,35 +212,71 @@ const getPricingDetailsByPricingTypeId = async ({
 };
 
 /**
- * Fetches the price value for a given price ID and SKU ID.
+ * Fetch prices for multiple (price_id, sku_id) pairs in **one DB round-trip**.
  *
- * This function retrieves the price record where the provided price_id matches
- * the provided sku_id. It does not perform validation — it simply fetches the data.
+ * Behavior:
+ * - Treats the two input arrays as **pairwise**: i-th `price_id` is matched with i-th `sku_id`.
+ * - Returns **only** pairs that exist in `pricing` (`JOIN`), i.e. missing/invalid pairs are omitted.
+ * - Does **not** throw for missing pairs — callers should check which pairs didn’t come back.
+ * - Duplicate pairs are returned once per matching row from `pricing` (no explicit de-dup).
  *
- * @param {string} price_id - The price ID to query.
- * @param {string} sku_id - The SKU ID to verify association with the price ID.
- * @param {object|null} client - Optional database client for transaction context.
+ * Inputs:
+ * - `pairs`: Array of objects `{ price_id, sku_id }`. Both must be non-null UUIDs.
+ *   If your schema allows nullable `sku_id` in pricing, switch the JOIN to use `IS NOT DISTINCT FROM`.
  *
- * @returns {Promise<{ price: string } | null>} - The price record if found, or null.
+ * Performance:
+ * - One `UNNEST` query; O(n) over the number of pairs with index lookups on `pricing(id, sku_id)`.
+ *   Ensure an index exists on `pricing(id, sku_id)` (or at least on `id` and `sku_id` separately).
  *
- * @throws {AppError} - If the query fails.
+ * Notes:
+ * - This function **does not validate** that input UUIDs are well-formed; do that earlier if needed.
+ * - Ideal for order enrichment/validation — combine with a Map at the call site for O(1) lookups.
+ *
+ * @param {{ price_id: string, sku_id: string }[]} pairs
+ *   Pairwise arrays of IDs to check (length > 0). Example:
+ *   `[ { price_id: '...', sku_id: '...' }, ... ]`
+ * @param {import('pg').PoolClient|null} client
+ *   Optional PG client/transaction.
+ *
+ * @returns {Promise<Array<{ price_id: string, sku_id: string, price: string }>>}
+ *   Rows for matching pairs only. `price` is returned as stored (often TEXT/NUMERIC).
+ *
+ * @throws {AppError}
+ *   `databaseError` if the query itself fails (connection/SQL issue).
+ *
+ * @example
+ * const rows = await getPricesByIdAndSkuBatch(
+ *   [{ price_id: 'p1', sku_id: 's1' }, { price_id: 'p2', sku_id: 's2' }],
+ *   client
+ * );
+ * // Build a lookup map:
+ * const priceMap = new Map(rows.map(r => [`${r.price_id}|${r.sku_id}`, Number(r.price)]));
  */
-const getPriceByIdAndSku = async (price_id, sku_id, client = null) => {
+const getPricesByIdAndSkuBatch = async (pairs, client = null) => {
   try {
+    if (!pairs?.length) return [];
+    
+    const priceIds = pairs.map(p => p.price_id);
+    const skuIds   = pairs.map(p => p.sku_id);
+    
     const sql = `
-      SELECT price
-      FROM pricing
-      WHERE id = $1 AND sku_id = $2
+      WITH input(price_id, sku_id) AS (
+        SELECT * FROM UNNEST($1::uuid[], $2::uuid[])
+      )
+      SELECT i.price_id, i.sku_id, p.price
+      FROM input i
+      JOIN pricing p
+        ON p.id = i.price_id
+       AND p.sku_id = i.sku_id
     `;
-    const result = await query(sql, [price_id, sku_id], client);
-    return result.rows[0] || null;
+    const { rows } = await query(sql, [priceIds, skuIds], client);
+    return rows; // only the pairs that matched
   } catch (error) {
-    logSystemException(error, 'Failed to fetch price for SKU', {
-      context: 'pricing-repository/getPriceByIdAndSku',
-      price_id,
-      sku_id,
+    logSystemException(error, 'Failed to fetch prices for pairs', {
+      context: 'pricing-repository/getPricesByIdAndSkuBatch',
+      count: pairs?.length ?? 0,
     });
-    throw AppError.databaseError(`Failed to fetch price for SKU.`, {
+    throw AppError.databaseError('Failed to fetch prices for pairs.', {
       details: error.message,
     });
   }
@@ -332,6 +368,6 @@ const getPricingLookup = async ({
 module.exports = {
   getAllPricingRecords,
   getPricingDetailsByPricingTypeId,
-  getPriceByIdAndSku,
+  getPricesByIdAndSkuBatch,
   getPricingLookup,
 };

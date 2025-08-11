@@ -31,6 +31,37 @@ const deduplicateByCompositeKey = (records, keyFields = [], mergeFn = null) => {
   return Array.from(map.values());
 };
 
+/**
+ * Remove only null/undefined from an array.
+ */
+const compact = (arr) => (arr ?? []).filter((v) => v !== null && v !== undefined);
+
+/**
+ * Unique while preserving order.
+ */
+const uniq = (arr) => Array.from(new Set(arr ?? []));
+
+/**
+ * Compact + unique (common case).
+ */
+const uniqCompact = (arr) => Array.from(new Set(compact(arr)));
+
+/**
+ * UUID-friendly: trim, lowercase, drop null/undefined, then unique.
+ */
+const uniqUuids = (arr) =>
+  Array.from(
+    new Set(
+      (arr ?? [])
+        .filter((v) => v !== null && v !== undefined)
+        .map((s) => String(s).trim().toLowerCase())
+    )
+  );
+
 module.exports = {
   deduplicateByCompositeKey,
+  compact,
+  uniq,
+  uniqCompact,
+  uniqUuids
 };

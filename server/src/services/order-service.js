@@ -29,14 +29,13 @@ const { logSystemException } = require('../utils/system-logger');
  * @returns {Promise<object>} - Result containing created order IDs:
  *   {
  *     baseOrderId: string, // ID of the base order
- *     typeOrderId: string // ID of the subtype-specific record
  *   }
  *
  * @throws {AppError} - If validation fails, permission is denied, or DB operations fail.
  *
  * @example
  * const result = await createOrderService(orderData, 'sales', currentUser);
- * console.log(result); // { baseOrderId: '...', typeOrderId: '...' }
+ * console.log(result); // { baseOrderId: '...' }
  */
 const createOrderService = async (orderData, category, user) => {
   try {
@@ -81,7 +80,7 @@ const createOrderService = async (orderData, category, user) => {
       );
 
       // 6. Insert type-specific order (e.g., into sales_orders, transfer_orders)
-      const typeOrderId = await createOrderWithType(
+      await createOrderWithType(
         category,
         {
           ...orderData,

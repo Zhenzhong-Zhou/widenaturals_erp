@@ -9,29 +9,32 @@ const {
 const AppError = require('../utils/AppError');
 const wrapAsync = require('../utils/wrap-async');
 const { logSystemInfo, logSystemWarn } = require('../utils/system-logger');
+const { cleanObject } = require('../utils/object-utils');
 
 /**
  * Controller to handle creating a new order.
  *
- * This controller:
- * - Validates that `category` is provided in the route params.
- * - Validates that `orderTypeCode` is provided in the request body.
- * - Validates that the request body contains order data.
- * - Automatically injects creator info (`created_by`).
- * - Delegates creation logic to the service layer.
- * - Returns a 201 response with the created order details.
+ * Responsibilities:
+ * - Requires `category` path param; normalizes to lowercase.
+ * - Requires a valid JSON body; shallow-cleans null/undefined fields.
+ * - Injects `created_by` from the authenticated user.
+ * - Delegates order creation to the service layer.
+ * - Returns 201 with the created order data.
  *
- * Logs warnings for validation failures and info on success.
+ * Notes:
+ * - Request body is shallow-cleaned (top-level only). Nested fields (e.g., order_items[*]) are not deep-cleaned here.
+ * - Validation of detailed schema (e.g., orderTypeId, item shapes) is expected to be handled by schema middleware or the service layer.
  *
- * @param {import('express').Request} req - Express a request object. Expects:
- *   - `params.category`: string (required)
- *   - `body.orderTypeCode`: string (required)
- *   - `body`: object containing order payload
- *   - `user`: authenticated user object
- * @param {import('express').Response} res - Express response object
- * @param {import('express').NextFunction} next - Express next middleware function
+ * Logs:
+ * - Warns on validation failures.
+ * - Logs info on start and success.
  *
- * @returns {Promise<void>} - Sends a JSON response or passes error to next()
+ * @param {import('express').Request} req - Expects:
+ *   - params.category {string}
+ *   - body {object}
+ *   - user {object} (for created_by)
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
  */
 const createOrderController = wrapAsync(async (req, res, next) => {
   const { category } = req.params;
@@ -46,8 +49,9 @@ const createOrderController = wrapAsync(async (req, res, next) => {
     });
     return next(AppError.validationError('Order category is required.'));
   }
-
-  const cleanCategory = category.trim().toLowerCase();
+  
+  // Normalize category
+  const cleanCategory = String(category).trim().toLowerCase();
 
   if (!orderData || typeof orderData !== 'object') {
     logSystemWarn('Missing or invalid order data payload', {
@@ -58,22 +62,26 @@ const createOrderController = wrapAsync(async (req, res, next) => {
     return next(AppError.validationError('Order data payload is required.'));
   }
 
-  // Inject creator info
-  orderData.created_by = userId;
+  // Shallow-clean null/undefined fields (top-level only)
+  const cleanedBody = cleanObject(req.body);
+  
+  // Edge-responsibility: add auditing info, not done in business layer
+  const payload = { ...cleanedBody, created_by: userId };
 
   logSystemInfo('Starting order creation', {
     context: 'order-controller/createOrderController',
     userId,
     category: cleanCategory,
   });
-
-  const result = await createOrderService(orderData, cleanCategory, user);
+  
+  // Business entrypoint — transaction + domain rules live beneath
+  const result = await createOrderService(payload, cleanCategory, req.user);
 
   logSystemInfo('Order created successfully', {
     context: 'order-controller/createOrderController',
     userId,
     category: cleanCategory,
-    orderId: result.baseOrderId,
+    orderId: result.orderId,
   });
 
   res.status(201).json({
