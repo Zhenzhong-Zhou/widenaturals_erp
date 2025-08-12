@@ -1,4 +1,4 @@
-import { type Dispatch, type SetStateAction } from 'react';
+import { type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import type { LookupPaginationMeta } from '@features/lookup/state';
 import Dropdown, { type OptionType } from '@components/common/Dropdown';
 
@@ -18,7 +18,7 @@ export interface PaginatedDropdownProps<TParams> {
   inputValue?: string;
   onInputChange?: (event: any, newValue: string, reason: string) => void;
   noOptionsMessage?: string;
-  helperText?: string;
+  helperText?: ReactNode;
 }
 
 const PaginatedDropdown = <TParams,>({

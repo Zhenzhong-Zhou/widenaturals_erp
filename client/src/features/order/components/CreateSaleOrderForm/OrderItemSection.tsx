@@ -1,5 +1,12 @@
 import { type FC, type RefObject, useMemo } from 'react';
-import { Checkbox, FormControl, FormControlLabel, FormLabel, Radio, RadioGroup, Switch } from '@mui/material';
+import Box from '@mui/material/Box';
+import Checkbox from '@mui/material/Checkbox';
+import FormControl from '@mui/material/FormControl';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import FormLabel from '@mui/material/FormLabel';
+import Radio from '@mui/material/Radio';
+import RadioGroup from '@mui/material/RadioGroup';
+import Switch from '@mui/material/Switch';
 import MultiItemForm, {
   type MultiItemFieldConfig, type MultiItemFormRef,
   type RowAwareComponentProps,
@@ -15,6 +22,7 @@ import type {
 } from '@features/lookup/state';
 import { PriceField } from '@features/order/components/CreateSaleOrderForm/index';
 import type { UsePaginatedDropdownReturn } from '@utils/lookupHelpers';
+import FieldStatusHelper from '@components/common/FieldStatusHelper.tsx';
 
 type OrderItemSectionProps = {
   formRef: RefObject<MultiItemFormRef | null>;
@@ -87,6 +95,8 @@ const OrderItemSection: FC<OrderItemSectionProps> = ({
         label: 'Line Type',
         type: 'custom',
         required: true,
+        group: 'meta',
+        grid: { xs: 12 },
         component: ({ value, onChange, getRowValues, setRowValues }: RowAwareComponentProps) => {
           const current = (value as 'sku' | 'packaging_material') ?? 'sku';
           return (
@@ -121,6 +131,8 @@ const OrderItemSection: FC<OrderItemSectionProps> = ({
         id: 'show_barcode_toggle',
         label: 'Show Barcode',
         type: 'custom',
+        group: 'meta',
+        grid: { xs: 12},
         conditional: (row) => (row?.line_type ?? 'sku') === 'sku',
         component: ({ value, onChange }: RowAwareComponentProps) => (
           <FormControlLabel
@@ -146,6 +158,8 @@ const OrderItemSection: FC<OrderItemSectionProps> = ({
         label: 'SKU',
         type: 'custom',
         required: true,
+        group: 'itemQty',
+        grid: { xs: 12, md: 6 },
         conditional: (row) => (row?.line_type ?? 'sku') === 'sku',
         component: ({ value, onChange, required, getRowValues, setRowValues }: RowAwareComponentProps) =>
           onChange ? (
@@ -187,7 +201,15 @@ const OrderItemSection: FC<OrderItemSectionProps> = ({
               fetchParams={skuFetchParams}
               setFetchParams={setSkuFetchParams}
               onRefresh={(params) => sku.fetch(params)}
-              helperText={required ? 'Required' : ''}
+              helperText={
+                !value && required
+                  ? <FieldStatusHelper status="required" />
+                  : value && value.length < 3
+                    ? <FieldStatusHelper status="invalid" />
+                    : value
+                      ? <FieldStatusHelper status="valid" />
+                      : undefined
+              }
             />
           ) : null,
       },
@@ -198,6 +220,8 @@ const OrderItemSection: FC<OrderItemSectionProps> = ({
         label: 'Packaging',
         type: 'custom',
         required: true,
+        group: 'itemQty',
+        grid: { xs: 12, md: 6 },
         conditional: (row) => (row?.line_type ?? 'sku') === 'packaging_material',
         component: ({ value, onChange, required, getRowValues, setRowValues }: RowAwareComponentProps) =>
           onChange ? (
@@ -236,7 +260,15 @@ const OrderItemSection: FC<OrderItemSectionProps> = ({
               fetchParams={packagingFetchParams}
               setFetchParams={setPackagingFetchParams}
               onRefresh={(params) => packagingMaterial.fetch(params)}
-              helperText={required ? 'Required' : ''}
+              helperText={
+                !value && required
+                  ? <FieldStatusHelper status="required" />
+                  : value && value.length < 3
+                    ? <FieldStatusHelper status="invalid" />
+                    : value
+                      ? <FieldStatusHelper status="valid" />
+                      : undefined
+              }
             />
           ) : null,
       },
@@ -247,6 +279,8 @@ const OrderItemSection: FC<OrderItemSectionProps> = ({
         label: 'Quantity',
         type: 'number',
         required: true,
+        group: 'itemQty',
+        grid: { xs: 12, md: 6 },
         validation: (v): string | undefined => {
           if (v === '' || v == null) return 'Required';
           const n = Number(v);
@@ -255,6 +289,19 @@ const OrderItemSection: FC<OrderItemSectionProps> = ({
           if (n <= 0) return 'Must be greater than 0';
           return undefined;
         },
+       
+        helperText: (value: any, required?: boolean) => {
+          if (!value && required) {
+            return <FieldStatusHelper status="required" />;
+          }
+          if (value && String(value).length < 3) {
+            return <FieldStatusHelper status="invalid" />;
+          }
+          if (value) {
+            return <FieldStatusHelper status="valid" />;
+          }
+          return undefined;
+        }
       },
       
       // Pricing (SKU only; packaging has no price_id field)
@@ -263,6 +310,8 @@ const OrderItemSection: FC<OrderItemSectionProps> = ({
         label: 'Price ID',
         type: 'custom',
         required: true,
+        group: 'priceBlock',
+        grid: { xs: 12, md: 6 },
         conditional: (row) => (row?.line_type ?? 'sku') === 'sku' && !row?.override_price,
         component: ({ value, onChange, required, getRowValues, setRowValues }: RowAwareComponentProps) => {
           const row = getRowValues?.() ?? {};
@@ -305,7 +354,17 @@ const OrderItemSection: FC<OrderItemSectionProps> = ({
                 setPricingFetchParams(next);
                 handlePricingSearch(newValue);      // debounced keyword search
               }}
-              helperText={!rowSku ? 'Select a SKU first' : (required ? 'Required' : '')}
+              helperText={
+                !rowSku
+                  ? 'Select a SKU first'
+                  : !value && required
+                    ? <FieldStatusHelper status="required" />
+                    : value && value.length < 3
+                      ? <FieldStatusHelper status="invalid" />
+                      : value
+                        ? <FieldStatusHelper status="valid" />
+                        : ''
+              }
             />
           ) : null;
         },
@@ -316,6 +375,8 @@ const OrderItemSection: FC<OrderItemSectionProps> = ({
         id: 'override_price',
         type: 'custom',
         label: 'Override price',
+        group: 'priceBlock',
+        grid: { xs: 12, md: 6 },
         component: ({ value, onChange, getRowValues, setRowValues }: RowAwareComponentProps) => (
           <FormControlLabel
             control={
@@ -343,6 +404,7 @@ const OrderItemSection: FC<OrderItemSectionProps> = ({
         type: 'custom',
         label: 'Price',
         required: true,
+        grid: { xs: 12 },
         conditional: (row) => !!row?.override_price,
         component: ({ control, value, onChange, rowIndex }: RowAwareComponentProps) => (
           <PriceField
@@ -397,19 +459,31 @@ const OrderItemSection: FC<OrderItemSectionProps> = ({
   ];
   
   return (
-    <MultiItemForm
-      ref={formRef}
-      fields={orderItemFields}
-      onItemsChange={onItemsChange}
-      getItemTitle={getItemTitle}
-      defaultValues={defaultValues}
-      validation={() =>
-        Object.fromEntries(
-          orderItemFields.filter((f) => f.validation).map((f) => [f.id, f.validation!])
-        )
-      }
-      showSubmitButton={false}
-    />
+    <Box
+      sx={{
+        // global tokens
+        '--field-h': '56px',
+        '--label-y': 'calc(var(--field-h) / 2 - 12px)',
+        '--label-y-shrink': '-9px',
+        
+        maxWidth: 1400,
+        mx: 'auto',
+      }}
+    >
+      <MultiItemForm
+        ref={formRef}
+        fields={orderItemFields}
+        onItemsChange={onItemsChange}
+        getItemTitle={getItemTitle}
+        defaultValues={defaultValues}
+        validation={() =>
+          Object.fromEntries(
+            orderItemFields.filter((f) => f.validation).map((f) => [f.id, f.validation!])
+          )
+        }
+        showSubmitButton={false}
+      />
+    </Box>
   );
 };
 

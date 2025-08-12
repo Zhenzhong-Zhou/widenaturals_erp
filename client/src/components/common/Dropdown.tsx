@@ -5,6 +5,7 @@ import {
   type UIEvent,
   type JSX,
   isValidElement,
+  type ReactNode,
 } from 'react';
 import Autocomplete, {
   type AutocompleteProps,
@@ -53,7 +54,7 @@ interface DropdownProps {
   };
   onFetchMore?: (params: { limit: number; offset: number }) => void;
   placeholder?: string;
-  helperText?: string;
+  helperText?: ReactNode;
   inputValue?: string;
   onInputChange?: (event: SyntheticEvent, value: string, reason: string) => void;
   noOptionsMessage?: string;

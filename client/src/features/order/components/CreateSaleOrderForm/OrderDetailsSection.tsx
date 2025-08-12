@@ -2,21 +2,24 @@ import { type FC, type RefObject, useMemo } from 'react';
 import { useWatch } from 'react-hook-form';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Checkbox from '@mui/material/Checkbox';
-import CustomTypography from '@components/common/CustomTypography.tsx';
-import CustomDatePicker from '@components/common/CustomDatePicker.tsx';
-import CustomerDropdown from '@features/lookup/components/CustomerDropdown.tsx';
-import OrderTypeDropdown from '@features/lookup/components/OrderTypesDropdown.tsx';
-import PaymentMethodDropdown from '@features/lookup/components/PaymentMethodDropdown.tsx';
-import DiscountDropdown from '@features/lookup/components/DiscountDropdown.tsx';
-import TaxRateDropdown from '@features/lookup/components/TaxRateDropdown.tsx';
-import DeliveryMethodDropdown from '@features/lookup/components/DeliveryMethodDropdown.tsx';
-import Dropdown from '@components/common/Dropdown.tsx';
-import BaseInput from '@components/common/BaseInput.tsx';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import CustomTypography from '@components/common/CustomTypography';
+import CustomDatePicker from '@components/common/CustomDatePicker';
+import CustomerDropdown from '@features/lookup/components/CustomerDropdown';
+import OrderTypeDropdown from '@features/lookup/components/OrderTypesDropdown';
+import PaymentMethodDropdown from '@features/lookup/components/PaymentMethodDropdown';
+import DiscountDropdown from '@features/lookup/components/DiscountDropdown';
+import TaxRateDropdown from '@features/lookup/components/TaxRateDropdown';
+import DeliveryMethodDropdown from '@features/lookup/components/DeliveryMethodDropdown';
+import Dropdown from '@components/common/Dropdown';
+import BaseInput from '@components/common/BaseInput';
 import CustomForm, {
   type CustomFormRef,
   type CustomRenderParams,
   type FieldConfig,
-} from '@components/common/CustomForm.tsx';
+} from '@components/common/CustomForm';
+import FieldStatusHelper from '@components/common/FieldStatusHelper';
 import type {
   LookupOption,
   CustomerLookupQuery,
@@ -25,9 +28,9 @@ import type {
   TaxRateLookupQueryParams,
   DeliveryMethodLookupQueryParams, LookupBundle, OrderTypeLookupQueryParams,
 } from '@features/lookup/state';
-import { transformLookupOptions } from '@utils/lookupTransformers.ts';
+import { transformLookupOptions } from '@utils/lookupTransformers';
 import currencyCodes from 'currency-codes';
-import type { UsePaginatedDropdownReturn } from '@utils/lookupHelpers.ts';
+import type { UsePaginatedDropdownReturn } from '@utils/lookupHelpers';
 import type { CreateSalesOrderInput } from '@features/order/state';
 
 type Props = {
@@ -125,6 +128,7 @@ const OrderDetailsSection: FC<Props> = ({
         type: 'select',
         label: 'Shipping Address',
         required: true,
+        grid: { xs: 12, sm: 8 },
         options: addressOptions,
       },
       {
@@ -132,6 +136,7 @@ const OrderDetailsSection: FC<Props> = ({
         type: 'checkbox',
         label: 'Same as shipping address',
         defaultValue: true,
+        grid: { xs: 12, sm: 4 },
         customRender: ({ value, onChange }: CustomRenderParams) =>
           onChange ? (
             <FormControlLabel
@@ -153,6 +158,7 @@ const OrderDetailsSection: FC<Props> = ({
         type: 'select',
         label: 'Billing Address',
         required: true,
+        grid: { xs: 12 },
         options: addressOptions,
       });
     }
@@ -164,6 +170,7 @@ const OrderDetailsSection: FC<Props> = ({
       label: 'Order Type',
       type: 'custom',
       required: true,
+      grid: { xs: 12, sm: 6 },
       customRender: ({ value, onChange, required }: CustomRenderParams) =>
         onChange ? (
           <OrderTypeDropdown
@@ -175,7 +182,15 @@ const OrderDetailsSection: FC<Props> = ({
             onKeywordSearch={handleOrderTypeSearch}
             onRefresh={refreshOrderTypes}
             disabled={orderType.loading}
-            helperText={required ? 'Required' : ''}
+            helperText={
+              !value && required
+                ? <FieldStatusHelper status="required" />
+                : value && value.length < 3
+                  ? <FieldStatusHelper status="invalid" />
+                  : value
+                    ? <FieldStatusHelper status="valid" />
+                    : undefined
+            }
           />
         ) : null,
     },
@@ -184,6 +199,7 @@ const OrderDetailsSection: FC<Props> = ({
       label: 'Order Date',
       type: 'custom',
       required: true,
+      grid: { xs: 12, sm: 6 },
       customRender: ({ value, onChange }: CustomRenderParams) => {
         const d = value ? new Date(value) : new Date();
         // if no value yet, write the default into RHF so watch() sees it
@@ -204,6 +220,7 @@ const OrderDetailsSection: FC<Props> = ({
       label: 'Customer',
       type: 'custom',
       required: true,
+      grid: { xs: 12 },
       customRender: ({ value, onChange, required }: CustomRenderParams) =>
         onChange ? (
           <CustomerDropdown
@@ -240,16 +257,38 @@ const OrderDetailsSection: FC<Props> = ({
             fetchParams={customerDropdown.fetchParams}
             setFetchParams={customerDropdown.setFetchParams}
             onRefresh={(params) => customer.fetch(params)}
-            helperText={required ? 'Required' : ''}
+            helperText={
+              !value && required
+                ? <FieldStatusHelper status="required" />
+                : value && value.length < 3
+                  ? <FieldStatusHelper status="invalid" />
+                  : value
+                    ? <FieldStatusHelper status="valid" />
+                    : undefined
+            }
           />
         ) : null,
     },
     {
       id: 'address_section_label',
       type: 'custom',
+      grid: { xs: 12 },
       customRender: () => (
-        <CustomTypography variant="subtitle2" sx={{ mt: 2 }}>
+        <CustomTypography
+          variant="body1"
+          sx={{
+            mt: 2,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 0.5,
+          }}
+        >
           Shipping & Billing Address
+          {selectedCustomerId ? (
+            <ExpandLessIcon sx={{ fontSize: 20, opacity: 0.7 }} />
+          ) : (
+            <ExpandMoreIcon sx={{ fontSize: 20, opacity: 0.7 }} />
+          )}
         </CustomTypography>
       ),
     },
@@ -259,6 +298,7 @@ const OrderDetailsSection: FC<Props> = ({
       type: 'custom',
       label: 'Payment Method',
       required: true,
+      grid: { xs: 12, sm: 6 },
       customRender: ({ value, onChange, required }: CustomRenderParams) =>
         onChange ? (
           <PaymentMethodDropdown
@@ -284,7 +324,15 @@ const OrderDetailsSection: FC<Props> = ({
             error={paymentMethod.error}
             paginationMeta={paymentMethod.meta}
             onRefresh={(params) => paymentMethod.fetch(params)}
-            helperText={required ? 'Required' : ''}
+            helperText={
+              !value && required
+                ? <FieldStatusHelper status="required" />
+                : value && value.length < 3
+                  ? <FieldStatusHelper status="invalid" />
+                  : value
+                    ? <FieldStatusHelper status="valid" />
+                    : undefined
+            }
           />
         ) : null,
     },
@@ -292,6 +340,7 @@ const OrderDetailsSection: FC<Props> = ({
       id: 'discount_id',
       label: 'Discount (Optional)',
       type: 'custom',
+      grid: { xs: 12, sm: 6 },
       customRender: ({ value, onChange }: CustomRenderParams) =>
         onChange ? (
           <DiscountDropdown
@@ -325,6 +374,7 @@ const OrderDetailsSection: FC<Props> = ({
       label: 'Tax Rate',
       type: 'custom',
       required: true,
+      grid: { xs: 12, sm: 6 },
       customRender: ({ value, onChange, required }: CustomRenderParams) =>
         onChange ? (
           <TaxRateDropdown
@@ -360,7 +410,15 @@ const OrderDetailsSection: FC<Props> = ({
             error={taxRate.error}
             paginationMeta={taxRate.meta}
             onRefresh={(params) => taxRate.fetch(params)}
-            helperText={required ? 'Required' : ''}
+            helperText={
+              !value && required
+                ? <FieldStatusHelper status="required" />
+                : value && value.length < 3
+                  ? <FieldStatusHelper status="invalid" />
+                  : value
+                    ? <FieldStatusHelper status="valid" />
+                    : undefined
+            }
           />
         ) : null,
     },
@@ -369,6 +427,7 @@ const OrderDetailsSection: FC<Props> = ({
       label: 'Delivery Method',
       type: 'custom',
       required: true,
+      grid: { xs: 12, sm: 6 },
       customRender: ({ value, onChange, required }: CustomRenderParams) =>
         onChange ? (
           <DeliveryMethodDropdown
@@ -394,7 +453,15 @@ const OrderDetailsSection: FC<Props> = ({
             error={deliveryMethod.error}
             paginationMeta={deliveryMethod.meta}
             onRefresh={(params) => deliveryMethod.fetch(params)}
-            helperText={required ? 'Required' : ''}
+            helperText={
+              !value && required
+                ? <FieldStatusHelper status="required" />
+                : value && value.length < 3
+                  ? <FieldStatusHelper status="invalid" />
+                  : value
+                    ? <FieldStatusHelper status="valid" />
+                    : undefined
+            }
           />
         ) : null,
     },
@@ -404,13 +471,23 @@ const OrderDetailsSection: FC<Props> = ({
       type: 'custom',
       required: true,
       defaultValue: 'CAD',
-      customRender: ({ value, onChange }: CustomRenderParams) =>
+      grid: { xs: 12, sm: 6 },
+      customRender: ({ value, onChange, required }: CustomRenderParams) =>
         onChange ? (
           <Dropdown
             label="Currency"
             value={value ?? 'CAD'}
             onChange={onChange}
             options={currencyOptions}
+            helperText={
+              !value && required
+                ? <FieldStatusHelper status="required" />
+                : value && value.length < 3
+                  ? <FieldStatusHelper status="invalid" />
+                  : value
+                    ? <FieldStatusHelper status="valid" />
+                    : undefined
+            }
           />
         ) : null,
     },
@@ -419,6 +496,7 @@ const OrderDetailsSection: FC<Props> = ({
       label: 'Exchange Rate',
       type: 'custom',
       required: true,
+      grid: { xs: 12, sm: 6 },
       customRender: ({ value, onChange, watch }: CustomRenderParams) => {
         const selectedCurrency = watch?.('currency_code');
         if (selectedCurrency === 'CAD') return null;
@@ -439,12 +517,14 @@ const OrderDetailsSection: FC<Props> = ({
       label: 'Shipping Fee (Optional)',
       type: 'number',
       min: 0,
+      grid: { xs: 12, sm: 6 },
     },
     {
       id: 'note',
       label: 'Note (Optional)',
       type: 'textarea',
       rows: 3,
+      grid: { xs: 12 },
     },
   ];
   
@@ -454,6 +534,77 @@ const OrderDetailsSection: FC<Props> = ({
       formInstance={formInstance}
       fields={fields}
       showSubmitButton={false}
+      sx={{
+        '--field-h': '56px',
+        '--label-y': 'calc(var(--field-h) / 2 - 12px)', // ~center for 56px
+        '--label-y-shrink': '-9px',
+        
+        maxWidth: 1600,
+        width: '100%',
+        p: { xs: 2, sm: 3 },
+        borderRadius: 3,
+        boxShadow: 6,
+        bgcolor: 'background.paper',
+
+        // compact but consistent density
+        '& .MuiFormControl-root': { mt: 0.5 },
+
+        /* ---- Normalize single‑line controls only ---- */
+        '& .MuiOutlinedInput-root:not(.MuiInputBase-multiline)': {
+          height: 'var(--field-h)',
+          borderRadius: 2,
+        },
+        '& .MuiOutlinedInput-input:not(textarea)': {
+          py: 0,
+          height: '100%',
+        },
+        '& .MuiSelect-select': {
+          display: 'flex',
+          alignItems: 'center',
+          py: 0,
+          height: '100%',
+        },
+        '& .MuiAutocomplete-root .MuiOutlinedInput-root': {
+          height: 'var(--field-h)',
+        },
+        '& .MuiAutocomplete-inputRoot .MuiOutlinedInput-input': {
+          py: 0,
+          height: '100%',
+        },
+
+        /* ---- Keep Note (multiline) big and rounded ---- */
+        '& .MuiOutlinedInput-root.MuiInputBase-multiline': {
+          height: 'auto',
+          minHeight: 120,            // feels like ~3 rows; adjust if you want
+          borderRadius: 5,           // keep the pill-ish look
+          alignItems: 'flex-start',  // text starts at top
+        },
+        '& .MuiOutlinedInput-root.MuiInputBase-multiline .MuiOutlinedInput-input': {
+          height: 'auto',
+          py: 1.25,
+        },
+
+        /* ---- Label alignment (still good for singles) ---- */
+        '& .MuiInputLabel-formControl': {
+          transform: `translate(14px, var(--label-y)) scale(1)`,
+        },
+        '& .MuiInputLabel-shrink': {
+          transform: `translate(14px, var(--label-y-shrink)) scale(0.75)`,
+        },
+
+        /* Checkbox vertical alignment */
+        '& .MuiFormControlLabel-root': {
+          mt: 1.2,
+          alignItems: 'center',
+        },
+
+        '& .order-section-title': {
+          mt: 1,
+          mb: 0.5,
+          fontWeight: 600,
+          opacity: 0.9,
+        },
+      }}
     />
   );
 };

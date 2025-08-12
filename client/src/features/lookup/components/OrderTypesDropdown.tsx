@@ -1,4 +1,4 @@
-import { type FC } from 'react';
+import { type FC, type ReactNode } from 'react';
 import type { LookupOption, OrderTypeLookupQueryParams } from '../state';
 import Dropdown from '@components/common/Dropdown';
 
@@ -12,7 +12,7 @@ interface OrderTypeDropdownProps {
   disabled?: boolean;
   searchable?: boolean;
   sx?: object;
-  helperText?: string;
+  helperText?: ReactNode;
   placeholder?: string;
   onRefresh?: (filters?: OrderTypeLookupQueryParams) => void;
   onAddNew?: () => void;

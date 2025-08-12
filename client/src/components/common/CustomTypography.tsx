@@ -13,11 +13,15 @@ const CustomTypography: FC<CustomTypographyProps> = ({
   variant = 'body1',
   color = 'textPrimary',
   align = 'inherit',
+  component,
   ...props
 }) => {
+  const defaultComponent =
+    variant?.startsWith('h') ? (variant as any) : 'p';
+  
   return (
     <MuiTypography
-      component={variant?.startsWith('h') ? variant : 'p'}
+      component={component ?? defaultComponent}
       variant={variant}
       color={color}
       align={align}
