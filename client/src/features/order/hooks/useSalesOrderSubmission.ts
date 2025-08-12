@@ -9,14 +9,23 @@ interface UseSalesOrderSubmissionParams {
   handleSubmitSalesOrder: (orderType: string, payload: CreateSalesOrderInput) => Promise<void>;
 }
 
+// tiny helpers
+const toNumberOrUndefined = (v: any) => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : undefined;
+};
+
+const stripUndefined = <T extends Record<string, any>>(obj: T): T =>
+  Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined)) as T;
+
 /**
  * Returns a memoized `handleFullSubmit` function to process and submit the full sales order form.
  */
 const useSalesOrderSubmission = ({
-                                          form,
-                                          itemFormRef,
-                                          handleSubmitSalesOrder,
-                                        }: UseSalesOrderSubmissionParams) => {
+                                   form,
+                                   itemFormRef,
+                                   handleSubmitSalesOrder,
+                                 }: UseSalesOrderSubmissionParams) => {
   const handleFullSubmit = useCallback(async () => {
     const rawFormValues = form.getValues();
     const rawItems = itemFormRef.current?.getItems() || [];
@@ -28,23 +37,36 @@ const useSalesOrderSubmission = ({
       ...formValues
     } = rawFormValues;
     
-    const cleanedItems: OrderItemInput[] = rawItems.map((item): OrderItemInput => {
-      const {
-        sku_id,
-        packaging_material_id,
-        price_id,
-        quantity_ordered,
-        price,
-      } = item;
-      
-      return {
-        sku_id,
-        packaging_material_id: packaging_material_id || undefined,
-        price_id,
-        quantity_ordered: Number(quantity_ordered),
-        price: Number(price),
-      };
-    });
+    const cleanedItems: OrderItemInput[] = rawItems
+      // drop rows with neither sku nor packaging selected
+      .filter((it) => it?.sku_id || it?.packaging_material_id)
+      .map((it) => {
+        const lineType: 'sku' | 'packaging_material' =
+          it.line_type === 'packaging_material' || it.packaging_material_id ? 'packaging_material' : 'sku';
+
+        const quantity_ordered = toNumberOrUndefined(it.quantity_ordered) ?? 0;
+        const override = !!it.override_price;
+
+        if (lineType === 'packaging_material') {
+          // Packaging line: no price_id; price is 0 unless overridden
+          const item: Partial<OrderItemInput> = {
+            packaging_material_id: it.packaging_material_id || undefined,
+            quantity_ordered,
+            price: override ? (toNumberOrUndefined(it.price) ?? 0) : 0,
+          };
+          return stripUndefined(item as OrderItemInput);
+        } else {
+          // SKU line
+          const item: Partial<OrderItemInput> = {
+            sku_id: it.sku_id || undefined,
+            quantity_ordered,
+            price_id: it.price_id || undefined,
+            // If overridden, send price; else rely on price_id
+            price: override ? toNumberOrUndefined(it.price) : undefined,
+          };
+          return stripUndefined(item as OrderItemInput);
+        }
+      });
     
     const exchange_rate =
       formValues.currency_code === 'CAD' || !formValues.exchange_rate
@@ -58,7 +80,7 @@ const useSalesOrderSubmission = ({
     }
     
     const shipping_fee =
-      String(formValues.shipping_fee).trim() === '' ? 0 : Number(formValues.shipping_fee);
+      String(formValues.shipping_fee ?? '').trim() === '' ? 0 : Number(formValues.shipping_fee);
     
     const payload: CreateSalesOrderInput = {
       ...formValues,

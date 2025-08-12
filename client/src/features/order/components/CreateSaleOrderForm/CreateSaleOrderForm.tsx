@@ -1,5 +1,5 @@
 import { type FC, useEffect, useState, useMemo, useCallback, useRef } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { useNavigate, useParams } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import {
@@ -19,7 +19,7 @@ import type {
   AddressByCustomerLookup,
   CustomerLookupQuery,
   DeliveryMethodLookupQueryParams,
-  DiscountLookupQueryParams,
+  DiscountLookupQueryParams, PackagingMaterialLookupQueryParams,
   PaymentMethodLookupQueryParams,
   PricingLookupQueryParams,
   SkuLookupQueryParams,
@@ -55,7 +55,7 @@ const CreateSaleOrderForm: FC = () => {
     [hasPermission]
   );
   
-  // Lookup bundles for dropdowns (uses Redux or query hooks internally)
+  // Server-backed lookup bundles
   const {
     orderType,
     customer,
@@ -66,9 +66,10 @@ const CreateSaleOrderForm: FC = () => {
     deliveryMethod,
     sku,
     pricing,
+    packagingMaterial,
   } = useSalesOrderLookups();
   
-  // Sales Order Creates
+  // Sales Order create
   const {
     loading: submitting,
     error: orderError,
@@ -86,6 +87,7 @@ const CreateSaleOrderForm: FC = () => {
     handleDeliveryMethodSearch,
     handleSkuSearch,
     handlePricingSearch,
+    handlePackagingMaterialSearch,
   } = useAllSalesOrderSearchHandlers(
     {
       orderType,
@@ -96,24 +98,27 @@ const CreateSaleOrderForm: FC = () => {
       deliveryMethod,
       sku,
       pricing,
+      packagingMaterial,
     },
     category
   );
   
-  // Initialize main form instance for order-level fields
+  // Main form
   const form = useForm<CreateSalesOrderForm>({
+    mode: 'onChange',
     defaultValues: {
+      order_date: new Date().toISOString(),
       billing_same_as_shipping: false,
       currency_code: 'CAD',
     },
   });
   
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(
-    null
-  );
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const [showBarcode, setShowBarcode] = useState(false);
   const [selectedSkuId, setSelectedSkuId] = useState<string | null>(null);
+  const [items, setItems] = useState<Record<string, any>[]>([]);
   
+  // Dropdown state bundles
   const customerDropdown = createDropdownBundle<CustomerLookupQuery>();
   const paymentMethodDropdown = createDropdownBundle<PaymentMethodLookupQueryParams>();
   const discountDropdown = createDropdownBundle<DiscountLookupQueryParams>();
@@ -125,21 +130,26 @@ const CreateSaleOrderForm: FC = () => {
     skuId: selectedSkuId ?? null,
     labelOnly: false,
   });
+  // packaging dropdown state (default to salesDropdown mode so server enforces visible-only/active/unarchived)
+  const packagingMaterialDropdown = createDropdownBundle<PackagingMaterialLookupQueryParams>({
+    mode: 'salesDropdown',
+  });
   
-  // Initial fetch and cleanup
+  // Initial fetch + cleanup
   useEffect(() => {
     if (category) {
       orderType.fetch({ keyword: '', category });
     }
     
     fetchLookups([
-      { fetch: customer.fetch, dropdown: customerDropdown },
-      { fetch: paymentMethod.fetch, dropdown: paymentMethodDropdown },
-      { fetch: discount.fetch, dropdown: discountDropdown },
-      { fetch: taxRate.fetch, dropdown: taxRateDropdown },
-      { fetch: deliveryMethod.fetch, dropdown: deliveryMethodDropdown },
-      { fetch: sku.fetch, dropdown: skuDropdown },
-      { fetch: pricing.fetch, dropdown: pricingDropdown },
+      { fetch: customer.fetch,          dropdown: customerDropdown },
+      { fetch: paymentMethod.fetch,     dropdown: paymentMethodDropdown },
+      { fetch: discount.fetch,          dropdown: discountDropdown },
+      { fetch: taxRate.fetch,           dropdown: taxRateDropdown },
+      { fetch: deliveryMethod.fetch,    dropdown: deliveryMethodDropdown },
+      { fetch: sku.fetch,               dropdown: skuDropdown },
+      { fetch: pricing.fetch,           dropdown: pricingDropdown },
+      { fetch: packagingMaterial.fetch, dropdown: packagingMaterialDropdown },
     ]);
     
     return () => {
@@ -152,13 +162,13 @@ const CreateSaleOrderForm: FC = () => {
         { reset: deliveryMethod.reset },
         { reset: sku.reset },
         { reset: pricing.reset },
+        { reset: packagingMaterial.reset },
       ]);
       resetSalesOrderState();
     };
   }, [category]);
   
-  
-  // Watch for customer_id changes and fetch addresses accordingly
+  // Addresses on customer change
   useEffect(() => {
     if (selectedCustomerId) {
       customerAddresses.fetch(selectedCustomerId);
@@ -202,6 +212,57 @@ const CreateSaleOrderForm: FC = () => {
     value: address.id,
     label: formatFullAddress(address),
   }));
+  
+  const isRowBlank = (row: Record<string, any>) => {
+    const t = (row.line_type ?? 'sku') as 'sku' | 'packaging_material';
+    const hasId = t === 'sku' ? !!row.sku_id : !!row.packaging_material_id;
+    const hasQty = Number(row.quantity_ordered) > 0;
+    const hasManual = !!row.override_price && row.price !== '' && row.price != null && !Number.isNaN(Number(row.price));
+    const hasPriceId = !!row.price_id;
+    return !hasId && !hasQty && !hasManual && !hasPriceId;
+  };
+  
+  const effectiveItems = items.filter(r => !isRowBlank(r));
+  
+  const isValidItem = (row: Record<string, any>) => {
+    const type = (row.line_type ?? 'sku') as 'sku' | 'packaging_material';
+    const qtyOk = Number(row.quantity_ordered) > 0;
+
+    if (type === 'sku') {
+      const hasSku = !!row.sku_id;
+      const override = !!row.override_price;
+      const manualOk = override && row.price !== '' && row.price != null && !Number.isNaN(Number(row.price));
+      const priceIdOk = !override && !!row.price_id;
+      return hasSku && qtyOk && (manualOk || priceIdOk);
+    }
+
+    // packaging: require id + qty; manual price only if override=true
+    const hasPkg = !!row.packaging_material_id;
+    const override = !!row.override_price;
+    const manualOk = !override || (row.price !== '' && row.price != null && !Number.isNaN(Number(row.price)));
+    return hasPkg && qtyOk && manualOk;
+  };
+  
+  const itemsOk = effectiveItems.length > 0 && effectiveItems.every(isValidItem);
+  
+  const hasValidSkuLine = effectiveItems.some(
+    (r) => ((r.line_type ?? 'sku') === 'sku') && isValidItem(r)
+  );
+  
+  const w = useWatch({ control: form.control });
+  const headerFlags = {
+    order_type_id: !!w.order_type_id,
+    order_date: !!w.order_date,
+    customer_id: !!w.customer_id,
+    payment_method_id: !!w.payment_method_id,
+    tax_rate_id: !!w.tax_rate_id,
+    delivery_method_id: !!w.delivery_method_id,
+    shipping_address_id: !!w.shipping_address_id,
+    billing_ok: w.billing_same_as_shipping ? true : !!w.billing_address_id,
+    exchange_ok: w.currency_code === 'CAD' ? true : !!w.exchange_rate,
+  };
+  const headerOk = Object.values(headerFlags).every(Boolean);
+  const canSubmit = headerOk && itemsOk && hasValidSkuLine && !submitting;
   
   const formRef = useRef<CustomFormRef<CreateSalesOrderInput>>(null);
   const itemFormRef = useRef<MultiItemFormRef>(null);
@@ -260,24 +321,34 @@ const CreateSaleOrderForm: FC = () => {
       
       <OrderItemSection
         formRef={itemFormRef}
+        onItemsChange={setItems}
+        // Lookup bundles
         sku={sku}
         pricing={pricing}
-        
+        packagingMaterial={packagingMaterial}
+        // Dropdown states
         skuDropdown={skuDropdown}
         pricingDropdown={pricingDropdown}
-        
+        packagingMaterialDropdown={packagingMaterialDropdown}
+        // Search handlers
         handleSkuSearch={handleSkuSearch}
         handlePricingSearch={handlePricingSearch}
-        
+        handlePackagingMaterialSearch={handlePackagingMaterialSearch}
+        // Selected ids
         setSelectedSkuId={setSelectedSkuId}
-        
+        // UI flags
         showBarcode={showBarcode}
         setShowBarcode={setShowBarcode}
       />
       
-      <CustomButton onClick={handleFullSubmit} loading={submitting}>
+      <CustomButton onClick={handleFullSubmit} loading={submitting} disabled={!canSubmit}>
         Submit Order
       </CustomButton>
+      {!hasValidSkuLine && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          At least one SKU item is required; packaging-only orders aren’t allowed.
+        </Alert>
+      )}
     </Box>
   );
 };

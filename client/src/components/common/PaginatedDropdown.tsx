@@ -6,6 +6,7 @@ export interface PaginatedDropdownProps<TParams> {
   label?: string;
   value: string | null;
   options: OptionType[];
+  disabled?: boolean;
   loading?: boolean;
   error?: string | null;
   paginationMeta?: LookupPaginationMeta;
@@ -24,6 +25,7 @@ const PaginatedDropdown = <TParams,>({
   label = 'Select',
   value,
   options,
+  disabled = false,
   onChange,
   loading,
   error,
@@ -42,6 +44,7 @@ const PaginatedDropdown = <TParams,>({
       label={label}
       value={value}
       options={options}
+      disabled={disabled}
       onChange={onChange}
       loading={loading}
       error={error}

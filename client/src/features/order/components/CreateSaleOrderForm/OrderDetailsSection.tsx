@@ -184,15 +184,20 @@ const OrderDetailsSection: FC<Props> = ({
       label: 'Order Date',
       type: 'custom',
       required: true,
-      customRender: ({ value, onChange }: CustomRenderParams) =>
-        onChange ? (
+      customRender: ({ value, onChange }: CustomRenderParams) => {
+        const d = value ? new Date(value) : new Date();
+        // if no value yet, write the default into RHF so watch() sees it
+        if (!value) onChange?.(d.toISOString());
+        
+        return (
           <CustomDatePicker
             label="Order Date"
-            value={value || new Date()}
-            onChange={onChange}
+            value={d}
+            onChange={(date) => onChange?.(date ? date.toISOString() : '')}
             required
           />
-        ) : null,
+        );
+      },
     },
     {
       id: 'customer_id',
@@ -320,7 +325,7 @@ const OrderDetailsSection: FC<Props> = ({
       label: 'Tax Rate',
       type: 'custom',
       required: true,
-      customRender: ({ value, onChange }: CustomRenderParams) =>
+      customRender: ({ value, onChange, required }: CustomRenderParams) =>
         onChange ? (
           <TaxRateDropdown
             value={value ?? ''}
@@ -355,6 +360,7 @@ const OrderDetailsSection: FC<Props> = ({
             error={taxRate.error}
             paginationMeta={taxRate.meta}
             onRefresh={(params) => taxRate.fetch(params)}
+            helperText={required ? 'Required' : ''}
           />
         ) : null,
     },
@@ -363,7 +369,7 @@ const OrderDetailsSection: FC<Props> = ({
       label: 'Delivery Method',
       type: 'custom',
       required: true,
-      customRender: ({ value, onChange }: CustomRenderParams) =>
+      customRender: ({ value, onChange, required }: CustomRenderParams) =>
         onChange ? (
           <DeliveryMethodDropdown
             value={value ?? ''}
@@ -388,6 +394,7 @@ const OrderDetailsSection: FC<Props> = ({
             error={deliveryMethod.error}
             paginationMeta={deliveryMethod.meta}
             onRefresh={(params) => deliveryMethod.fetch(params)}
+            helperText={required ? 'Required' : ''}
           />
         ) : null,
     },

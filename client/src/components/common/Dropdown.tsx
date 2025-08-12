@@ -112,6 +112,7 @@ const Dropdown: FC<DropdownProps> = ({
   return (
     <Box sx={{ minWidth: '200px', width: '100%', ...sx }}>
       <Autocomplete
+        disabled={disabled}
         options={modifiedOptions}
         getOptionLabel={(option) => option.label || ''}
         value={modifiedOptions.find((option) => option.value === value) || null}

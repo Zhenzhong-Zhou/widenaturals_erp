@@ -8,6 +8,7 @@ import type {
   PricingLookupQueryParams,
   SkuLookupQueryParams,
   TaxRateLookupQueryParams,
+  PackagingMaterialLookupQueryParams,
 } from '@features/lookup/state';
 
 type LookupBundles = {
@@ -19,6 +20,7 @@ type LookupBundles = {
   deliveryMethod: { fetch: (params?: DeliveryMethodLookupQueryParams) => void };
   sku: { fetch: (params?: SkuLookupQueryParams) => void };
   pricing: { fetch: (params?: PricingLookupQueryParams) => void };
+  packagingMaterial: { fetch: (params?: PackagingMaterialLookupQueryParams) => void };
 };
 
 const useAllSalesOrderSearchHandlers = (
@@ -50,6 +52,10 @@ const useAllSalesOrderSearchHandlers = (
     ),
     handlePricingSearch: useDebouncedSearch<PricingLookupQueryParams>(
       bundles.pricing.fetch
+    ),
+    handlePackagingMaterialSearch: useDebouncedSearch<PackagingMaterialLookupQueryParams>(
+      bundles.packagingMaterial.fetch,
+      { mode: 'salesDropdown' } // remove or change if you want generic
     ),
   };
 };

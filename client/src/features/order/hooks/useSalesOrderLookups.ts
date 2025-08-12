@@ -7,6 +7,7 @@ import useTaxRateLookup from '@hooks/useTaxRateLookup';
 import useDeliveryMethodLookup from '@hooks/useDeliveryMethodLookup';
 import useSkuLookup from '@hooks/useSkuLookup';
 import usePricingLookup from '@hooks/usePricingLookup';
+import usePackagingMaterialLookup from '@hooks/usePackagingMaterialLookup';
 
 /**
  * Aggregates all lookups needed for the Sales Order form.
@@ -21,6 +22,7 @@ const useSalesOrderLookups = () => {
   const deliveryMethod = useDeliveryMethodLookup();
   const sku = useSkuLookup();
   const pricing = usePricingLookup();
+  const packagingMaterial = usePackagingMaterialLookup();
   
   return {
     orderType,
@@ -32,6 +34,7 @@ const useSalesOrderLookups = () => {
     deliveryMethod,
     sku,
     pricing,
+    packagingMaterial,
   };
 };
 
