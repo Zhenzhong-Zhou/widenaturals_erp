@@ -4,12 +4,12 @@ const {
   getOrderDetailsByIdController
 } = require('../controllers/order-controller');
 const authorize = require('../middlewares/authorize');
+const PERMISSIONS = require('../utils/constants/domain/permissions');
 const validate = require('../middlewares/validate');
 const salesOrderSchema = require('../validators/sales-order-validators');
 const { sanitizeFields } = require('../middlewares/sanitize');
 const AppError = require('../utils/AppError');
 const { getOrderDetailsParamsSchema } = require('../validators/order-validators');
-const PERMISSIONS = require('../utils/constants/domain/permissions');
 
 const router = express.Router();
 
@@ -81,7 +81,7 @@ const schemaMap = {
  */
 router.post(
   '/create/:category',
-  authorize(['create_orders']),
+  authorize([PERMISSIONS.ORDER.CREATE]),
   (req, res, next) => {
     const category = req.params.category.toLowerCase();
     const schema = schemaMap[category];

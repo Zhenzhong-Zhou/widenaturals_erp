@@ -28,6 +28,10 @@ exports.seed = async function (knex) {
     'system@internal.local',
     'id'
   );
+  
+  if (!systemUserId) {
+    throw new Error('[SEED][permissions] System user not found: system@internal.local');
+  }
 
   const activeStatusId = await knex('status')
     .select('id')
@@ -47,7 +51,20 @@ exports.seed = async function (knex) {
   const permissionMap = Object.fromEntries(
     permissions.map((p) => [p.key, p.id])
   );
-
+  
+  const salesOrderLookups = [
+    'view_customer_lookup',
+    'view_customer_address_lookup',
+    'view_order_type_lookup',
+    'view_payment_method_lookup',
+    'view_discount_lookup',
+    'view_tax_rate_lookup',
+    'view_delivery_method_lookup',
+    'view_sku_lookup',
+    'view_pricing_lookup',
+    'view_packaging_material_lookup',
+  ];
+  
   // Define role-permission mapping
   const rolePermissionsData = {
     root_admin: Object.keys(permissionMap), // All permissions
@@ -78,13 +95,16 @@ exports.seed = async function (knex) {
       'view_active_customers',
       'create_customer',
       'create_orders',
+      'create_sales_order',
+      ...salesOrderLookups,
     ],
     sales: [
       'view_prices',
       'view_customer',
       'create_customer',
       'create_orders',
-      'view_order_type',
+      'create_sales_order',
+      ...salesOrderLookups,
     ],
     marketing: [
       'view_prices',
@@ -102,7 +122,7 @@ exports.seed = async function (knex) {
       'view_prices',
       'manage_catalog',
       'view_inventory_summary',
-      'view_batch_registry_dropdown',
+      'view_batch_registry_lookup',
     ],
     account: [
       'view_prices',
@@ -119,7 +139,7 @@ exports.seed = async function (knex) {
       'view_locations',
       'manage_locations',
     ],
-    user: ['view_customer', 'create_orders'],
+    user: [],
   };
 
   let insertedCount = 0;

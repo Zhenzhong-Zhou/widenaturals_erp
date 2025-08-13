@@ -1,4 +1,6 @@
 const { fetchDynamicValue } = require('../03_utils');
+const { ORDER_CATEGORIES, GENERIC_ORDER_PERMISSIONS } = require('../../../utils/constants/domain/order-type-constants');
+
 exports.seed = async function (knex) {
   const [{ count }] = await knex('permissions').count('id');
 
@@ -10,8 +12,8 @@ exports.seed = async function (knex) {
   console.log(
     `[${new Date().toISOString()}] [SEED] Starting permission seeding...`
   );
-
-  // Fetch the active status ID dynamically
+  
+  // Resolve system user (fail loudly if missing)
   const systemUserId = await fetchDynamicValue(
     knex,
     'users',
@@ -19,13 +21,18 @@ exports.seed = async function (knex) {
     'system@internal.local',
     'id'
   );
-
-  const activeStatusId = await knex('status')
-    .select('id')
-    .where('name', 'active')
-    .first()
-    .then((row) => row.id);
-
+  
+  if (!systemUserId) {
+    throw new Error('[SEED][permissions] System user not found: system@internal.local');
+  }
+  
+  // Resolve active status (fail loudly if missing)
+  const statusRow = await knex('status').select('id').where('name', 'active').first();
+  if (!statusRow?.id) {
+    throw new Error('[SEED][permissions] Status "active" not found in status table');
+  }
+  const activeStatusId = statusRow.id;
+  
   const baseFields = {
     status_id: activeStatusId,
     created_at: knex.fn.now(),
@@ -111,6 +118,11 @@ exports.seed = async function (knex) {
       key: 'create_orders',
       description: 'Allows creating orders (generic permission)',
     },
+    {
+      name: 'View Orders',
+      key: 'view_orders',
+      description: 'Allows viewing orders (generic permission)',
+    },
 
     // Lookup Permissions (new/missing adjusted)
     {
@@ -148,7 +160,37 @@ exports.seed = async function (knex) {
       key: 'view_payment_method_lookup',
       description: 'Allows viewing payment method dropdown',
     },
-
+    {
+      name: 'View Discount Lookup',
+      key: 'view_discount_lookup',
+      description: 'Allows viewing discount options in dropdowns',
+    },
+    {
+      name: 'View Tax Rate Lookup',
+      key: 'view_tax_rate_lookup',
+      description: 'Allows viewing tax rate options in dropdowns',
+    },
+    {
+      name: 'View Delivery Method Lookup',
+      key: 'view_delivery_method_lookup',
+      description: 'Allows viewing delivery method options in dropdowns',
+    },
+    {
+      name: 'View SKU Lookup',
+      key: 'view_sku_lookup',
+      description: 'Allows accessing SKU/product lookup dropdowns',
+    },
+    {
+      name: 'View Pricing Lookup',
+      key: 'view_pricing_lookup',
+      description: 'Allows accessing pricing lookup dropdowns',
+    },
+    {
+      name: 'View Packaging Material Lookup',
+      key: 'view_packaging_material_lookup',
+      description: 'Allows accessing packaging material lookup dropdowns',
+    },
+    
     // Pricing
     {
       name: 'View Pricing Types',
@@ -274,7 +316,36 @@ exports.seed = async function (knex) {
       description: 'Allows viewing archived warehouses',
     },
   ];
-
+  
+  // Add category-specific order permissions
+  const ACTION_META = {
+    view:   { label: 'View',   gerund: 'viewing',   plural: true  },
+    create: { label: 'Create', gerund: 'creating',  plural: false },
+    update: { label: 'Update', gerund: 'updating',  plural: false },
+    delete: { label: 'Delete', gerund: 'deleting',  plural: false },
+  };
+  
+  for (const category of ORDER_CATEGORIES) {
+    const displayCategory = category.charAt(0).toUpperCase() + category.slice(1);
+    const lcCategory = category.toLowerCase();
+    
+    for (const action of Object.values(GENERIC_ORDER_PERMISSIONS)) {
+      const verb = action.split('_')[0]; // view/create/update/delete
+      const meta = ACTION_META[verb] || { label: verb, gerund: `${verb}ing`, plural: true };
+      
+      // Name: plural for view, singular for others
+      const nameNoun = meta.plural ? `${displayCategory} Orders` : `${displayCategory} Order`;
+      // Description: plural vs singular with article
+      const descNoun = meta.plural ? `${lcCategory} orders` : `a ${lcCategory} order`;
+      
+      permissions.push({
+        name: `${meta.label} ${nameNoun}`,                 // e.g., "Create Sales Order", "View Sales Orders"
+        key: `${verb}_${category}_order`,                      // e.g., "create_order_sales" (kept as-is)
+        description: `Allows ${meta.gerund} ${descNoun}`,  // e.g., "Allows creating a sales order"
+      });
+    }
+  }
+  
   // Warn for duplicate keys
   const seen = new Set();
   const duplicateKeys = permissions

@@ -17,6 +17,7 @@ const PERMISSIONS = {
     VIEW: 'view_reports',
   },
   ORDER: {
+    CREATE: 'create_orders',
     VIEW: 'view_order',
   },
 };
