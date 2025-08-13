@@ -29,7 +29,7 @@ const validateEmail = Joi.string().email().required().messages({
  * const { error } = schema.validate('abc123'); // returns validation error
  */
 const validateUUID = (fieldName = 'id') =>
-  Joi.string().uuid().required().label(fieldName).messages({
+  Joi.string().uuid().trim().required().label(fieldName).messages({
     'string.guid': '{{#label}} must be a valid UUID',
     'any.required': '{{#label}} is required',
     'string.empty': '{{#label}} cannot be empty',
@@ -52,7 +52,7 @@ const validateUUID = (fieldName = 'id') =>
  * });
  */
 const validateOptionalUUID = (fieldName = 'id') =>
-  Joi.string().uuid().optional().allow(null).disallow('').label(fieldName).messages({
+  Joi.string().uuid().trim().optional().allow(null).disallow('').label(fieldName).messages({
     'string.guid': '{{#label}} must be a valid UUID',
     'any.invalid': '{{#label}} cannot be an empty string',
   });

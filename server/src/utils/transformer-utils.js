@@ -1,4 +1,5 @@
 const { cleanObject } = require('./object-utils');
+
 /**
  * Applies a transformer function to an array of rows safely.
  *

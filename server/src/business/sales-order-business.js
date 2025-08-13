@@ -230,7 +230,7 @@ const createSalesOrder = async (orderData, client) => {
     // 9) Default payment status
     const paymentStatus = await getPaymentStatusIdByCode('UNPAID', client);
     if (!paymentStatus) throw AppError.validationError('Missing default payment status: UNPAID');
-    const payment_status_id = paymentStatus.id;
+    const payment_status_id = paymentStatus;
     
     // --- Persist header (type-specific) ---
     const salesOrder = await insertSalesOrder(

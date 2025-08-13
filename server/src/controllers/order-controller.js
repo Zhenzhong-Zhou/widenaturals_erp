@@ -1,6 +1,6 @@
 const {
   createOrderService,
-  fetchOrderDetails,
+  fetchOrderDetailsByIdService,
   fetchAllOrdersService,
   confirmOrderService,
   fetchAllocationEligibleOrdersService,
@@ -8,7 +8,7 @@ const {
 } = require('../services/order-service');
 const AppError = require('../utils/AppError');
 const wrapAsync = require('../utils/wrap-async');
-const { logSystemInfo, logSystemWarn } = require('../utils/system-logger');
+const { logInfo, logWarn } = require('../utils/logger-helper');
 const { cleanObject } = require('../utils/object-utils');
 
 /**
@@ -43,7 +43,7 @@ const createOrderController = wrapAsync(async (req, res, next) => {
   const userId = user?.id;
 
   if (!category) {
-    logSystemWarn('Missing category in request params', {
+    logWarn('Missing category in request params', req, {
       context: 'order-controller/createOrderController',
       userId,
     });
@@ -54,7 +54,7 @@ const createOrderController = wrapAsync(async (req, res, next) => {
   const cleanCategory = String(category).trim().toLowerCase();
 
   if (!orderData || typeof orderData !== 'object') {
-    logSystemWarn('Missing or invalid order data payload', {
+    logWarn('Missing or invalid order data payload', req, {
       context: 'order-controller/createOrderController',
       userId,
       category: cleanCategory,
@@ -68,7 +68,7 @@ const createOrderController = wrapAsync(async (req, res, next) => {
   // Edge-responsibility: add auditing info, not done in business layer
   const payload = { ...cleanedBody, created_by: userId };
 
-  logSystemInfo('Starting order creation', {
+  logInfo('Starting order creation', req, {
     context: 'order-controller/createOrderController',
     userId,
     category: cleanCategory,
@@ -76,8 +76,8 @@ const createOrderController = wrapAsync(async (req, res, next) => {
   
   // Business entrypoint — transaction + domain rules live beneath
   const result = await createOrderService(payload, cleanCategory, req.user);
-
-  logSystemInfo('Order created successfully', {
+  
+  logInfo('Order created successfully', req, {
     context: 'order-controller/createOrderController',
     userId,
     category: cleanCategory,
@@ -92,21 +92,63 @@ const createOrderController = wrapAsync(async (req, res, next) => {
 });
 
 /**
- * Controller to fetch order details by ID.
+ * Controller: getOrderDetailsByIdController
+ * Route: GET /orders/:orderId
+ *
+ * Retrieves full order details (order header and line items) for a given order ID.
+ *
+ * Permissions:
+ *   - Requires `ORDER.VIEW` permission (enforced by upstream middleware).
+ *
+ * Validations:
+ *   - `params.orderId`: Required, must be a valid UUID v4 (string), trimmed by middleware.
+ *
+ * Behavior:
+ *   - Delegates retrieval to `fetchOrderDetailsByIdService`, which applies business rules
+ *     and data visibility constraints based on the requesting user.
+ *   - Logs retrieval with context for audit purposes.
+ *   - Responds with a standardized JSON envelope containing:
+ *       {
+ *         success: true,
+ *         message: string,
+ *         data: {
+ *           id: string,
+ *           orderNumber: string,
+ *           status: string,
+ *           customer: object,
+ *           items: array,
+ *           audit: object
+ *         }
+ *       }
+ *   - Forwards all errors to the global error handler via `wrapAsync`.
+ *
+ * Success Response (200):
+ *   - JSON payload with `success=true`, `message`, and `data` containing the order details.
+ *
+ * Error Responses:
+ *   - 400 Bad Request: Invalid `orderId` format (caught by validation middleware).
+ *   - 403 Forbidden: Missing `ORDER.VIEW` permission.
+ *   - 404 Not Found: No order exists for the given `orderId`.
+ *   - 500 Internal Server Error: Unexpected errors (handled globally).
+ *
+ * @async
+ * @function getOrderDetailsByIdController
+ * @param {import('express').Request} req - Express request object (expects `params.orderId` and `user`).
+ * @param {import('express').Response} res - Express response object.
+ * @returns {Promise<void>} Sends JSON response to client.
  */
-const getOrderDetailsController = wrapAsync(async (req, res, next) => {
-  const { id: orderId } = req.params;
+const getOrderDetailsByIdController = wrapAsync(async (req, res) => {
+  const { orderId } = req.params;
   const user = req.user;
-
-  if (!orderId) {
-    throw AppError.validationError('Order ID is required.');
-  }
-
-  const orderDetails = await fetchOrderDetails(orderId, user);
-
-  if (!orderDetails) {
-    throw AppError.notFoundError(`Order with ID ${orderId} not found.`);
-  }
+  
+  const orderDetails = await fetchOrderDetailsByIdService(orderId, user);
+  
+  logInfo('Order details retrieved', req, {
+    context: 'order-controller/getOrderDetailsByIdController',
+    orderId,
+    userId: user?.id,
+    severity: 'INFO',
+  });
 
   res.status(200).json({
     success: true,
@@ -223,4 +265,5 @@ const getAllocationEligibleOrderDetailsController = wrapAsync(
 
 module.exports = {
   createOrderController,
+  getOrderDetailsByIdController,
 };

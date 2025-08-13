@@ -1,7 +1,6 @@
 const { query, paginateQuery } = require('../database/db');
 const AppError = require('../utils/AppError');
-const { logSystemException } = require('../utils/system-logger');
-const { logError } = require('../utils/logger-helper');
+const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 
 const allocationEligibleStatuses = [
   'ORDER_CONFIRMED',
@@ -103,105 +102,139 @@ const insertOrder = async (orderData, client) => {
 };
 
 /**
- * Fetches detailed order information including customer details, order items,
- * pricing, delivery method, shipping address, and tracking info.
+ * findOrderByIdWithDetails
+ * ---------------------------------------
+ * Repository: Fetch a single order header with human-readable details
+ * (customer, payment, tax, discount, delivery, flattened shipping/billing address,
+ * and created_by/updated_by names). Returns `null` if not found.
  *
- * This function performs a complex join across multiple tables:
- * - `orders`, `sales_orders`, `order_items`
- * - `products`, `pricing`, `pricing_types`, `order_status`
- * - `customers`, `discounts`, `tax_rates`, `delivery_methods`, `tracking_numbers`
+ * Notes:
+ * - This is a *header-only* query (no order_items). Pair it with a separate items query in the service layer.
+ * - Safe, parameterized SQL with LIMIT 1.
+ * - Repository returns raw DB row shape; service can transform/rename fields if needed.
  *
- * Shipping address fields are also included directly from the `orders` table.
- *
- * @param {string} orderId - The UUID of the order to retrieve.
- * @returns {Promise<Array<Object> | null>} An array of rows containing detailed order information,
- *          or null if no order is found.
- * @throws {AppError} - If a database error occurs.
+ * @param {string} orderId - UUID of the order (required)
+ * @returns {Promise<object|null>} Single row object when found; otherwise `null`
+ * @throws {AppError} AppError.databaseError on DB failure (connection, timeout, etc.)
  */
-const getOrderDetailsById = async (orderId) => {
+const findOrderByIdWithDetails = async (orderId) => {
   const sql = `
     SELECT
-      o.id AS order_id,
+      o.id                         AS order_id,
       o.order_number,
-      ot.category AS order_category,
-      ot.name AS order_type,
-      o.order_date AS order_date,
-      s.order_date AS sales_order_date,
-      o.order_status_id AS order_status_id,
-      o.note AS order_note,
-      o.metadata AS order_metadata,
-      os.name AS order_status,
-      s.id AS sales_order_id,
-      s.customer_id,
-      COALESCE(c.firstname, '') || ' ' || COALESCE(c.lastname, '') AS customer_name,
-      d.discount_value,
+      o.order_date,
+      o.status_date,
+      o.note,
+      o.order_type_id,
+      ot.name                      AS order_type_name,
+      o.order_status_id,
+      os.name                      AS order_status_name,
+      so.customer_id,
+      c.firstname                  AS customer_firstname,
+      c.lastname                   AS customer_lastname,
+      (c.firstname || ' ' || c.lastname) AS customer_full_name,
+      c.email                      AS customer_email,
+      c.phone_number               AS customer_phone,
+      so.payment_status_id,
+      ps.name                      AS payment_status_name,
+      so.payment_method_id,
+      pmeth.name                   AS payment_method_name,
+      so.currency_code,
+      so.exchange_rate,
+      so.base_currency_amount,
+      so.discount_id,
+      d.name                       AS discount_name,
       d.discount_type,
-      s.discount_amount,
-      s.subtotal,
-      t.rate AS tax_rate,
-      oi.id AS order_item_id,
-      s.tax_amount,
-      s.shipping_fee,
-      s.total_amount,
-      oi.inventory_id,
-      i.identifier AS inventory_identifier,
-      p.id AS product_id,
-      p.product_name,
-      p.barcode,
-      COALESCE(co.compliance_id, '') AS npn,
-      oi.quantity_ordered,
-      ps.price_type_id,
-      pt.name AS price_type,
-      oi.price_id,
-      ps.price AS system_price,
-      oi.price AS adjusted_price,
-      oi.subtotal AS order_item_subtotal,
-      oi.status_id AS order_item_status_id,
-      ist.name AS order_item_status_name,
-      oi.status_date AS order_item_status_date,
-      dm.id AS delivery_method_id,
-      dm.method_name AS delivery_method,
-      dm.is_pickup_location,
-      tn.id AS tracking_number_id,
-      tn.tracking_number,
-      tn.carrier,
-      tn.service_name,
-      tn.shipped_date,
-      o.has_shipping_address,
-      o.shipping_fullname,
-      o.shipping_phone,
-      o.shipping_email,
-      o.shipping_address_line1,
-      o.shipping_address_line2,
-      o.shipping_city,
-      o.shipping_state,
-      o.shipping_postal_code,
-      o.shipping_country,
-      o.shipping_region
+      d.discount_value,
+      so.discount_amount,
+      so.subtotal,
+      so.tax_rate_id,
+      tr.name                      AS tax_rate_name,
+      tr.region                    AS tax_rate_region,
+      tr.rate                      AS tax_rate_percent,
+      tr.province                  AS tax_rate_province,
+      so.tax_amount,
+      so.shipping_fee,
+      so.total_amount,
+      so.delivery_method_id,
+      dm.method_name               AS delivery_method_name,
+      so.metadata                  AS sales_order_metadata,
+      o.shipping_address_id,
+      ship.customer_id             AS shipping_customer_id,
+      ship.full_name               AS shipping_full_name,
+      ship.phone                   AS shipping_phone,
+      ship.email                   AS shipping_email,
+      ship.label                   AS shipping_label,
+      ship.address_line1           AS shipping_address_line1,
+      ship.address_line2           AS shipping_address_line2,
+      ship.city                    AS shipping_city,
+      ship.state                   AS shipping_state,
+      ship.postal_code             AS shipping_postal_code,
+      ship.country                 AS shipping_country,
+      ship.region                  AS shipping_region,
+      o.billing_address_id,
+      bill.customer_id             AS billing_customer_id,
+      bill.full_name               AS billing_full_name,
+      bill.phone                   AS billing_phone,
+      bill.email                   AS billing_email,
+      bill.label                   AS billing_label,
+      bill.address_line1           AS billing_address_line1,
+      bill.address_line2           AS billing_address_line2,
+      bill.city                    AS billing_city,
+      bill.state                   AS billing_state,
+      bill.postal_code             AS billing_postal_code,
+      bill.country                 AS billing_country,
+      bill.region                  AS billing_region,
+      o.created_at                 AS order_created_at,
+      o.updated_at                 AS order_updated_at,
+      o.created_by                 AS order_created_by,
+      ucb.firstname AS order_created_by_firstname,
+      ucb.lastname  AS order_created_by_lastname,
+      o.updated_by                 AS order_updated_by,
+      uub.firstname                AS order_updated_by_firstname,
+      uub.lastname                 AS order_updated_by_lastname
     FROM orders o
-    LEFT JOIN sales_orders s ON o.id = s.id
-    LEFT JOIN customers c ON s.customer_id = c.id
-    LEFT JOIN order_status os ON o.order_status_id = os.id
-    LEFT JOIN order_types ot ON o.order_type_id = ot.id
-    LEFT JOIN discounts d ON s.discount_id = d.id
-    LEFT JOIN tax_rates t ON s.tax_rate_id = t.id
-    LEFT JOIN order_items oi ON o.id = oi.order_id
-    LEFT JOIN inventory i ON oi.inventory_id = i.id
-    LEFT JOIN products p ON i.product_id = p.id
-    LEFT JOIN pricing ps ON oi.price_id = ps.id
-    LEFT JOIN pricing_types pt ON ps.price_type_id = pt.id
-    LEFT JOIN compliances co ON p.id = co.product_id
-    LEFT JOIN order_status ist ON oi.status_id = ist.id
-    LEFT JOIN tracking_numbers tn ON o.id = tn.order_id
-    LEFT JOIN delivery_methods dm ON s.delivery_method_id = dm.id
-    WHERE o.id = $1
+    LEFT JOIN sales_orders        so    ON so.id = o.id
+    LEFT JOIN order_types         ot    ON ot.id = o.order_type_id
+    LEFT JOIN order_status        os    ON os.id = o.order_status_id
+    LEFT JOIN customers           c     ON c.id = so.customer_id
+    LEFT JOIN payment_status      ps    ON ps.id = so.payment_status_id
+    LEFT JOIN payment_methods     pmeth ON pmeth.id = so.payment_method_id
+    LEFT JOIN discounts           d     ON d.id = so.discount_id
+    LEFT JOIN tax_rates           tr    ON tr.id = so.tax_rate_id
+    LEFT JOIN delivery_methods    dm    ON dm.id = so.delivery_method_id
+    LEFT JOIN addresses           ship  ON ship.id = o.shipping_address_id
+    LEFT JOIN addresses           bill  ON bill.id = o.billing_address_id
+    LEFT JOIN users               ucb   ON ucb.id = o.created_by
+    LEFT JOIN users               uub   ON uub.id = o.updated_by
+    WHERE o.id = $1;
   `;
-
+  
+  const logMeta = {
+    context: 'order-repository/findOrderByIdWithDetails',
+    severity: 'INFO',
+    orderId,
+    sqlTag: 'findOrderByIdWithDetails.v1',
+  };
+  
   try {
     const { rows } = await query(sql, [orderId]);
-    return rows.length > 0 ? rows : null;
+    
+    if (rows.length === 0) {
+      logSystemInfo('Order not found', { ...logMeta });
+      return null;
+    }
+    
+    logSystemInfo('Order fetched', { ...logMeta, rowCount: rows.length });
+    return rows[0]; // header-only query should return a single row
   } catch (error) {
-    logError(`Error fetching order details for ID: ${orderId}`, error);
+    // DB-level exception logging stays in repo; business decisions happen in service
+    logSystemException('DB error fetching order', error, {
+      ...logMeta,
+      severity: 'ERROR',
+    });
+    
+    // Hide DB internals from callers
     throw AppError.databaseError('Failed to fetch order details.');
   }
 };
@@ -637,7 +670,7 @@ const getOrderAllocationDetailsById = async (orderId) => {
 
 module.exports = {
   insertOrder,
-  getOrderDetailsById,
+  findOrderByIdWithDetails,
   updateOrderData,
   getAllOrders,
   getAllocationEligibleOrders,

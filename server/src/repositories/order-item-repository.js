@@ -1,6 +1,6 @@
-const { bulkInsert } = require('../database/db');
+const { bulkInsert, query } = require('../database/db');
 const AppError = require('../utils/AppError');
-const { logSystemException } = require('../utils/system-logger');
+const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 
 /**
  * Inserts multiple order items in bulk for a given order.
@@ -98,6 +98,101 @@ const insertOrderItemsBulk = async (orderId, orderItems, client) => {
   }
 };
 
+/**
+ * findOrderItemsByOrderId
+ * ---------------------------------------
+ * Repository: Fetch all order items for a given orderId with enriched details:
+ * - Item-level status name
+ * - SKU & product info (nullable if packaging_material line)
+ * - Packaging material info (nullable if SKU line)
+ * - Pricing info (price + price type)
+ * - Audit fields with created/updated usernames
+ *
+ * @param {string} orderId - UUID of the order (required)
+ * @returns {Promise<object[]>} Array of item rows (empty array if none found)
+ * @throws {AppError} AppError.databaseError on DB failure
+ */
+const findOrderItemsByOrderId = async (orderId) => {
+  const sql = `
+    SELECT
+      oi.id                     AS order_item_id,
+      oi.order_id,
+      oi.quantity_ordered,
+      oi.price_id,
+      pr.price                  AS listed_price,
+      pt.name                   AS price_type_name,
+      oi.price                  AS item_price,
+      oi.subtotal               AS item_subtotal,
+      oi.status_id              AS item_status_id,
+      ios.name                  AS item_status_name,
+      oi.status_date            AS item_status_date,
+      oi.metadata               AS item_metadata,
+      oi.sku_id,
+      s.sku,
+      s.barcode,
+      s.country_code,
+      s.size_label,
+      p.id                      AS product_id,
+      p.name                    AS product_name,
+      p.brand,
+      p.category,
+      oi.packaging_material_id,
+      pkg.code                  AS packaging_material_code,
+      pkg.name                  AS packaging_material_name,
+      pkg.color                 AS packaging_material_color,
+      pkg.size                  AS packaging_material_size,
+      pkg.unit                  AS packaging_material_unit,
+      pkg.length_cm             AS packaging_material_length_cm,
+      pkg.width_cm              AS packaging_material_width_cm,
+      pkg.height_cm             AS packaging_material_height_cm,
+      oi.created_at             AS item_created_at,
+      oi.updated_at             AS item_updated_at,
+      oi.created_by             AS item_created_by,
+      ucb.firstname             AS item_created_by_firstname,
+      ucb.lastname              AS item_created_by_lastname,
+      oi.updated_by             AS item_updated_by,
+      uub.firstname             AS item_updated_by_firstname,
+      uub.lastname              AS item_updated_by_lastname
+    FROM order_items oi
+    LEFT JOIN order_status        ios  ON ios.id = oi.status_id
+    LEFT JOIN skus                s    ON s.id = oi.sku_id
+    LEFT JOIN products            p    ON p.id = s.product_id
+    LEFT JOIN packaging_materials pkg  ON pkg.id = oi.packaging_material_id
+    LEFT JOIN pricing             pr   ON pr.id = oi.price_id
+    LEFT JOIN pricing_types       pt   ON pt.id = pr.price_type_id
+    LEFT JOIN users               ucb  ON ucb.id = oi.created_by
+    LEFT JOIN users               uub  ON uub.id = oi.updated_by
+    WHERE oi.order_id = $1
+    ORDER BY oi.created_at;
+  `;
+  
+  const logMeta = {
+    context: 'orderRepository.findOrderItemsByOrderId',
+    severity: 'INFO',
+    orderId,
+    sqlTag: 'findOrderItemsByOrderId.v1',
+  };
+  try {
+    const { rows } = await query(sql, [orderId]);
+    
+    if (rows.length === 0) {
+      logSystemInfo('No order items found', { ...logMeta });
+      return [];
+    }
+    
+    logSystemInfo('Order items fetched', { ...logMeta, rowCount: rows.length });
+    return rows;
+  } catch (error) {
+    logSystemException('DB error fetching order items', error, {
+      ...logMeta,
+      severity: 'ERROR',
+    });
+    
+    throw AppError.databaseError('Failed to fetch order items.');
+  }
+};
+
 module.exports = {
   insertOrderItemsBulk,
+  findOrderItemsByOrderId,
 };

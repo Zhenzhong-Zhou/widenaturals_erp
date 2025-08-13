@@ -4,13 +4,15 @@ const { generateOrderIdentifiers } = require('../utils/order-number-utils');
 const {
   getOrderStatusIdByCode,
 } = require('../repositories/order-status-repository');
-const { insertOrder } = require('../repositories/order-repository');
+const { insertOrder, findOrderByIdWithDetails } = require('../repositories/order-repository');
 const {
   createOrderWithType,
-  verifyOrderCreationPermission,
+  verifyOrderCreationPermission, evaluateOrderAccessControl,
 } = require('../business/order-business');
 const AppError = require('../utils/AppError');
-const { logSystemException } = require('../utils/system-logger');
+const { logSystemException, logSystemInfo } = require('../utils/system-logger');
+const { findOrderItemsByOrderId } = require('../repositories/order-item-repository');
+const { transformOrderWithItems } = require('../transformers/order-transformer');
 
 /**
  * Service function to create a new order within the specified category.
@@ -107,29 +109,98 @@ const createOrderService = async (orderData, category, user) => {
 };
 
 /**
- * Fetches and processes order details from the repository.
+ * Fetch a single order (header + items) by ID and shape it for API/consumer use.
  *
- * @param {string} orderId - The order ID to fetch.
- * @param {object} user - The user making the request (includes permissions).
- * @returns {object} - Processed order details.
+ * Behavior:
+ * - Loads header and items in parallel.
+ * - Returns 404 if the order header is missing.
+ * - Evaluates access control to decide whether to include order-level and line-level metadata.
+ * - Transforms flat rows into a structured object via `transformOrderWithItems`.
+ *
+ * Access control:
+ * - Uses `evaluateOrderAccessControl(user)` which provides:
+ *   - `canViewOrderMetadata`       -> controls `includeOrderMetadata`
+ *   - `canViewOrderItemMetadata`   -> controls `includeItemMetadata`
+ *
+ * @async
+ * @param {string} orderId - The order ID to fetch
+ * @param {Object} user - Authenticated user object with a permission set
+ * @returns {Promise<{
+ *   id: string,
+ *   orderNumber: string,
+ *   orderDate: string|Date|null,
+ *   statusDate: string|Date|null,
+ *   note: string|null,
+ *   type: { id: string, name: string },
+ *   status: { id: string, name: string },
+ *   customer: { id: string, fullName: string, email: string|null, phone: string|null },
+ *   payment: object,
+ *   discount: object|null,
+ *   tax: object|null,
+ *   shippingFee: number|null,
+ *   totalAmount: number|null,
+ *   deliveryMethod: { id: string, name: string },
+ *   metadata?: object,
+ *   shippingAddress: BuiltAddressUserFacing|null,
+ *   billingAddress: BuiltAddressUserFacing|null,
+ *   audit: {
+ *     createdAt: string|null,
+ *     createdBy: { id?: string|null, name?: string|null, firstName?: string|null, lastName?: string|null },
+ *     updatedAt?: string|null,
+ *     updatedBy?: { id?: string|null, name?: string|null, firstName?: string|null, lastName?: string|null }
+ *   },
+ *   items: Array<object>
+ * }>}
+ * @throws {AppError} NotFoundError when order is missing; DatabaseError for repository/transform errors
  */
-const fetchOrderDetails = async (orderId, user) => {
-  if (!orderId) {
-    throw AppError.validationError('Order ID is required.');
+const fetchOrderDetailsByIdService = async (orderId, user) => {
+  try {
+    const [header, items] = await Promise.all([
+      findOrderByIdWithDetails(orderId),
+      findOrderItemsByOrderId(orderId),
+    ]);
+    
+    if (!header) {
+      logSystemInfo('Order not found', {
+        context: 'order-service/fetchOrderDetailsByIdService',
+        orderId,
+        userId: user?.id,
+        severity: 'INFO',
+      });
+      throw AppError.notFoundError('Order not found');
+    }
+    
+    // Evaluate once; avoid multiple permission queries
+    const {
+      canViewOrderMetadata,
+      canViewOrderItemMetadata,
+    } = await evaluateOrderAccessControl(user);
+    
+    const transformed = transformOrderWithItems(header, items, {
+      includeOrderMetadata: canViewOrderMetadata,
+      includeItemMetadata: canViewOrderItemMetadata,
+      // keep your defaults for addresses/display name inside the transformer or pass explicitly here
+    });
+    
+    logSystemInfo('Fetched order details', {
+      context: 'order-service/fetchOrderDetailsByIdService',
+      orderId,
+      userId: user?.id,
+      includeOrderMetadata: canViewOrderMetadata,
+      includeItemMetadata: canViewOrderItemMetadata,
+      severity: 'INFO',
+    });
+    
+    return transformed;
+  } catch (err) {
+    logSystemException(err, 'Failed to fetch order details', {
+      context: 'order-service/fetchOrderDetailsByIdService',
+      orderId,
+      userId: user?.id,
+    });
+    // Wrap non-AppError errors into a domain error
+    throw AppError.databaseError('Unable to retrieve order details at this time');
   }
-
-  // Fetch order details from the repository
-  const orderRows = await getOrderDetailsById(orderId);
-
-  if (!orderRows || orderRows.length === 0) {
-    throw AppError.notFoundError(`Order with ID ${orderId} not found.`);
-  }
-
-  // Transform Data
-  const transformedOrder = transformOrderDetails(orderRows);
-
-  // Apply Business Logic with User Permissions
-  return applyOrderDetailsBusinessLogic(transformedOrder, user);
 };
 
 /**
@@ -282,7 +353,7 @@ const fetchAllocationEligibleOrderDetails = async (orderId, user) => {
 
 module.exports = {
   createOrderService,
-  fetchOrderDetails,
+  fetchOrderDetailsByIdService,
   fetchAllOrdersService,
   fetchAllocationEligibleOrdersService,
   confirmOrderService,

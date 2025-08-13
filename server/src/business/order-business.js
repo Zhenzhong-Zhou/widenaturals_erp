@@ -1,10 +1,11 @@
-const { checkPermissions } = require('../services/role-permission-service');
+const { checkPermissions, resolveUserPermissionContext } = require('../services/role-permission-service');
 const AppError = require('../utils/AppError');
-const { logSystemWarn } = require('../utils/system-logger');
+const { logSystemWarn, logSystemException } = require('../utils/system-logger');
 const { createSalesOrder } = require('./sales-order-business');
 const {
   resolveOrderAccessContext,
 } = require('../services/role-permission-service');
+const { PERMISSIONS } = require('../utils/constants/domain/order-constants');
 
 /**
  * Verifies if the user has permission to create an order of the specified category.
@@ -66,6 +67,45 @@ const createOrderWithType = async (category, orderData, client) => {
   }
 
   return await createFn(orderData, client);
+};
+
+/**
+ * Evaluate whether a user can view order-level and order-item metadata in lookups.
+ *
+ * Checks:
+ * - `VIEW_ORDER_METADATA` (header-level/order-level metadata)
+ * - `VIEW_ORDER_ITEM_METADATA` (line-level metadata)
+ * Root users automatically have access.
+ *
+ * @async
+ * @param {Object} user - Authenticated user object with a permission set
+ * @returns {Promise<{ canViewOrderMetadata: boolean, canViewOrderItemMetadata: boolean }>}
+ */
+const evaluateOrderAccessControl = async (user) => {
+  try {
+    const { permissions, isRoot } = await resolveUserPermissionContext(user);
+    
+    const canViewOrderMetadata =
+      isRoot || permissions.includes(PERMISSIONS.VIEW_SALES_ORDER_METADATA);
+    
+    const canViewOrderItemMetadata =
+      isRoot || permissions.includes(PERMISSIONS.VIEW_ORDER_ITEM_METADATA);
+    
+    return {
+      canViewOrderMetadata,
+      canViewOrderItemMetadata,
+    };
+  } catch (err) {
+    logSystemException(err, 'Failed to evaluate order lookup access control', {
+      context: 'order-business/evaluateOrderAccessControl',
+      userId: user?.id,
+    });
+    
+    throw AppError.businessError('Unable to evaluate user access control for order lookup', {
+      details: err.message,
+      stage: 'evaluate-order-access',
+    });
+  }
 };
 
 /**
@@ -228,6 +268,7 @@ const canConfirmOrder = async (orderId, client) => {
 module.exports = {
   verifyOrderCreationPermission,
   createOrderWithType,
+  evaluateOrderAccessControl,
   validateOrderNumbers,
   applyOrderDetailsBusinessLogic,
   confirmOrderWithItems,

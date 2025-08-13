@@ -1,10 +1,15 @@
 const express = require('express');
-const { createOrderController } = require('../controllers/order-controller');
+const {
+  createOrderController,
+  getOrderDetailsByIdController
+} = require('../controllers/order-controller');
 const authorize = require('../middlewares/authorize');
 const validate = require('../middlewares/validate');
 const salesOrderSchema = require('../validators/sales-order-validators');
-const { sanitizeInput } = require('../middlewares/sanitize');
+const { sanitizeFields } = require('../middlewares/sanitize');
 const AppError = require('../utils/AppError');
+const { getOrderDetailsParamsSchema } = require('../validators/order-validators');
+const PERMISSIONS = require('../utils/constants/domain/permissions');
 
 const router = express.Router();
 
@@ -87,8 +92,50 @@ router.post(
     }
     return validate(schema, 'body')(req, res, next);
   },
-  sanitizeInput,
+  sanitizeFields(['note']),
   createOrderController
+);
+
+/**
+ * GET /orders/:orderId
+ *
+ * Retrieves detailed information for a single order by its ID.
+ *
+ * Permissions:
+ *   - Requires `ORDER.VIEW` permission.
+ *
+ * Validations:
+ *   - `params.orderId`: must be a valid UUID v4 (string), trimmed of whitespace.
+ *
+ * Middleware chain:
+ *   1. `authorize([PERMISSIONS.ORDER.VIEW])` — verifies the user has view-order access.
+ *   2. `sanitizeFields(['orderId'])` — trims and sanitizes the orderId param.
+ *   3. `validate(getOrderDetailsParamsSchema, 'params')` — ensures the orderId format is valid.
+ *
+ * Success Response (200):
+ *   {
+ *     "id": "UUID",               // Order ID
+ *     "orderNumber": "string",    // Human-readable order number
+ *     "status": "string",         // Order status code
+ *     "customer": { ... },        // Customer details
+ *     "items": [ ... ],           // Ordered items list
+ *     "audit": { ... }            // Creation/update timestamps and user info
+ *   }
+ *
+ * Error Responses:
+ *   - 400 Bad Request: Invalid or missing orderId.
+ *   - 403 Forbidden: User lacks `ORDER.VIEW` permission.
+ *   - 404 Not Found: No order found for the provided ID.
+ *
+ * Example:
+ *   GET /orders/550e8400-e29b-41d4-a716-446655440000
+ */
+router.get(
+  '/:orderId',
+  authorize([PERMISSIONS.ORDER.VIEW]),
+  sanitizeFields(['orderId']),
+  validate(getOrderDetailsParamsSchema, 'params'),
+  getOrderDetailsByIdController
 );
 
 module.exports = router;

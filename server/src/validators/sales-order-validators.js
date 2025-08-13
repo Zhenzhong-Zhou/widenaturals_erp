@@ -1,5 +1,5 @@
 const Joi = require('joi');
-const baseOrderSchema = require('./order-validators');
+const { baseOrderSchema } = require('./order-validators');
 const { salesOrderItemSchema } = require('./order-item-validators');
 const { validateOptionalUUID, validateUUID } = require('./general-validators');
 

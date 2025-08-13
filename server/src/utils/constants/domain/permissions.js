@@ -16,6 +16,9 @@ const PERMISSIONS = {
   REPORTS: {
     VIEW: 'view_reports',
   },
+  ORDER: {
+    VIEW: 'view_order',
+  },
 };
 
 module.exports = PERMISSIONS;
