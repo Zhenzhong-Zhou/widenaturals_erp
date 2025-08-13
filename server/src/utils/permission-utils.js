@@ -22,6 +22,8 @@ const getAccessibleOrderCategoriesFromPermissions = (
   permissions = [],
   { action = 'VIEW' } = {}
 ) => {
+  if (!Array.isArray(permissions)) return [];
+  
   // Normalize and precompute lookups
   const permSet = new Set(permissions);
   const actionLower = action.toLowerCase();
@@ -32,7 +34,7 @@ const getAccessibleOrderCategoriesFromPermissions = (
     return [...ORDER_CATEGORIES];
   }
   
-  // Otherwise, include only categories with specific permission
+  // Match only specific action permission like 'create_sales_order'
   return ORDER_CATEGORIES.filter((category) =>
     permSet.has(toPermissionValue(action, category))
   );

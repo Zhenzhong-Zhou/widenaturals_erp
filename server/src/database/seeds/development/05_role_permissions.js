@@ -65,6 +65,12 @@ exports.seed = async function (knex) {
     'view_packaging_material_lookup',
   ];
   
+  const salesOrderRequiredPermissions = [
+    'view_orders',
+    'view_sales_order',
+    ...salesOrderLookups,
+  ];
+  
   // Define role-permission mapping
   const rolePermissionsData = {
     root_admin: Object.keys(permissionMap), // All permissions
@@ -96,7 +102,7 @@ exports.seed = async function (knex) {
       'create_customer',
       'create_orders',
       'create_sales_order',
-      ...salesOrderLookups,
+      ...salesOrderRequiredPermissions,
     ],
     sales: [
       'view_prices',
@@ -104,7 +110,7 @@ exports.seed = async function (knex) {
       'create_customer',
       'create_orders',
       'create_sales_order',
-      ...salesOrderLookups,
+      ...salesOrderRequiredPermissions,
     ],
     marketing: [
       'view_prices',
