@@ -7,7 +7,8 @@ const {
   includeFlagsBasedOnAccess,
 } = require('../utils/transformer-utils');
 const { getFullName } = require('../utils/name-utils');
-const { formatAddress, formatTaxRateLabel, formatPackagingMaterialLabel } = require('../utils/string-utils');
+const { formatTaxRateLabel, formatPackagingMaterialLabel } = require('../utils/string-utils');
+const { formatAddress } = require('../utils/address-utils');
 
 /**
  * Transforms a raw batch registry row into a lookup-friendly shape.

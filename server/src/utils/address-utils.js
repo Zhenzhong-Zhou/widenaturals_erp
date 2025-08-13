@@ -1,5 +1,3 @@
-const { formatAddress } = require('./string-utils');
-
 /**
  * @typedef {Object} BuiltAddressUserFacing
  * @property {string} id
@@ -17,6 +15,25 @@ const { formatAddress } = require('./string-utils');
  * @property {string|null}  [country]
  * @property {string|null}  [region]
  */
+
+/**
+ * Formats a full address from individual components.
+ *
+ * @param {Object} row - Raw DB row with address parts.
+ * @returns {string} - Formatted address string.
+ */
+const formatAddress = (row) => {
+  const parts = [
+    row.address_line1,
+    row.address_line2,
+    row.city,
+    row.state,
+    row.postal_code,
+    row.country,
+    row.region,
+  ].filter(Boolean); // remove null/undefined
+  return parts.join(', ');
+};
 
 /**
  * Build an address object from a row using a column-name prefix ("shipping_" | "billing_").
@@ -92,5 +109,6 @@ const buildAddress = (row, prefix, { includeFormatted = true, formattedOnly = fa
 };
 
 module.exports = {
+  formatAddress,
   buildAddress,
 };

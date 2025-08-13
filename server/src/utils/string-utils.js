@@ -73,25 +73,6 @@ const formatDiscount = (discountType, discountValue) => {
 };
 
 /**
- * Formats a full address from individual components.
- *
- * @param {Object} row - Raw DB row with address parts.
- * @returns {string} - Formatted address string.
- */
-const formatAddress = (row) => {
-  const parts = [
-    row.address_line1,
-    row.address_line2,
-    row.city,
-    row.state,
-    row.postal_code,
-    row.country,
-    row.region,
-  ].filter(Boolean); // remove null/undefined
-  return parts.join(', ');
-};
-
-/**
  * Formats a tax rate label for display in a dropdown.
  *
  * Combines the tax name, rate percentage, and optionally province or region into a user-friendly label.
@@ -173,7 +154,6 @@ module.exports = {
   processHeaders,
   convertToKey,
   formatDiscount,
-  formatAddress,
   formatTaxRateLabel,
   formatPackagingMaterialLabel,
 };
