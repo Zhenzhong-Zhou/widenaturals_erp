@@ -384,20 +384,41 @@ const fetchCustomerAddressLookupService = async (customerId) => {
 };
 
 /**
- * Fetches a paginated list of order types for use in dropdowns or lookup UIs.
+ * Service: fetchOrderTypeLookupService
  *
- * This service:
- * - Evaluates user permissions to determine visibility scope (category, status, keyword)
- * - Applies enforced filtering rules to restrict access where necessary
- * - Enriches rows with flags like `isActive` for UI state handling
- * - Transforms raw DB records into `{ label, value }` format for frontend components
+ * Retrieves a paginated list of order types for use in dropdowns or lookup UIs,
+ * applying both role-based and attribute-based access control.
  *
- * @param {import('@types/custom').User} user - Authenticated user object (must contain ID and permission context)
- * @param {Object} options - Lookup query options
- * @param {Object} [options.filters={}] - Optional filter parameters (e.g., keyword, category, statusId)
- * @returns {Promise<{ items: { label: string, value: string, isActive?: boolean }[], hasMore: boolean }>}
+ * Workflow:
+ *   1. Evaluate the user's access control flags via `evaluateOrderTypeLookupAccessControl`.
+ *   2. Apply enforced visibility rules (categories, statuses, keywords) using `enforceOrderTypeLookupVisibilityRules`.
+ *   3. Normalize and build DB query filters with `filterOrderTypeLookupQuery`.
+ *   4. Fetch matching order type records from the database (`getOrderTypeLookup`).
+ *   5. Enrich each row with UI flags (e.g., `isActive`).
+ *   6. Transform the enriched rows into `{ label, value, isActive? }` objects for frontend consumption.
  *
- * @throws {AppError} When lookup fails due to service error or permission issues.
+ * Access control:
+ *   - Category scope is determined by `accessibleCategories` from `evaluateOrderTypeLookupAccessControl`.
+ *   - Status and keyword scope are restricted unless `canViewAllStatuses` or `canViewAllKeywords` are true.
+ *   - Root users bypass all restrictions.
+ *
+ * @async
+ * @param {import('@types/custom').User} user - Authenticated user object (must include `id` and permission context).
+ * @param {object} options - Lookup query options.
+ * @param {object} [options.filters={}] - Optional filter parameters (e.g., `{ keyword, category, statusId }`).
+ * @returns {Promise<{
+ *   items: { label: string, value: string, isActive?: boolean }[],
+ *   hasMore: boolean
+ * }>} A paginated set of dropdown-compatible order type options and a `hasMore` flag.
+ *
+ * @throws {AppError}
+ *   - `serviceError` if the lookup fails due to DB errors, permission issues, or unexpected conditions.
+ *
+ * @example
+ * const { items, hasMore } = await fetchOrderTypeLookupService(currentUser, {
+ *   filters: { keyword: 'sales', category: 'sales' }
+ * });
+ * // items: [ { label: 'Sales Order', value: 'uuid', isActive: true }, ... ]
  */
 const fetchOrderTypeLookupService = async (
   user,
@@ -405,7 +426,7 @@ const fetchOrderTypeLookupService = async (
 ) => {
   try {
     // Step 1: Evaluate user access control flags
-    const userAccess = await evaluateOrderTypeLookupAccessControl(user);
+    const userAccess = await evaluateOrderTypeLookupAccessControl(user, { action: 'VIEW' });
     const activeStatusId = getStatusId('order_type_active');
     
     // Step 2: Enforce filter visibility rules (e.g., restrict categories, status)

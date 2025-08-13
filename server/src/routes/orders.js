@@ -97,20 +97,27 @@ router.post(
 );
 
 /**
- * GET /orders/:orderId
+ * GET /orders/:category/:orderId
  *
- * Retrieves detailed information for a single order by its ID.
+ * Retrieves detailed information for a single order by its category and ID.
  *
  * Permissions:
- *   - Requires `ORDER.VIEW` permission.
+ *   - Requires `ORDER.VIEW` permission (or category-specific variant, if enforced).
  *
  * Validations:
- *   - `params.orderId`: must be a valid UUID v4 (string), trimmed of whitespace.
+ *   - `params.category`:
+ *       • Required string between 5–20 characters.
+ *       • Must match one of the allowed `ORDER_CATEGORIES`.
+ *       • Leading/trailing whitespace is trimmed.
+ *   - `params.orderId`:
+ *       • Required string.
+ *       • Must be a valid UUID v4.
+ *       • Leading/trailing whitespace is trimmed.
  *
  * Middleware chain:
- *   1. `authorize([PERMISSIONS.ORDER.VIEW])` — verifies the user has view-order access.
- *   2. `sanitizeFields(['orderId'])` — trims and sanitizes the orderId param.
- *   3. `validate(getOrderDetailsParamsSchema, 'params')` — ensures the orderId format is valid.
+ *   1. `authorize([PERMISSIONS.ORDER.VIEW])` — verifies the user has permission to view orders.
+ *   2. `sanitizeFields(['orderId'])` — trims and sanitizes the `orderId` parameter.
+ *   3. `validate(getOrderDetailsParamsSchema, 'params')` — ensures `category` and `orderId` meet schema requirements.
  *
  * Success Response (200):
  *   {
@@ -123,15 +130,15 @@ router.post(
  *   }
  *
  * Error Responses:
- *   - 400 Bad Request: Invalid or missing orderId.
- *   - 403 Forbidden: User lacks `ORDER.VIEW` permission.
- *   - 404 Not Found: No order found for the provided ID.
+ *   - 400 Bad Request: Invalid or missing `category` or `orderId`.
+ *   - 403 Forbidden: User lacks required permission.
+ *   - 404 Not Found: No matching order found.
  *
  * Example:
- *   GET /orders/550e8400-e29b-41d4-a716-446655440000
+ *   GET /orders/sales/550e8400-e29b-41d4-a716-446655440000
  */
 router.get(
-  '/:orderId',
+  '/:category/:orderId',
   authorize([PERMISSIONS.ORDER.VIEW]),
   sanitizeFields(['orderId']),
   validate(getOrderDetailsParamsSchema, 'params'),

@@ -1,5 +1,6 @@
 const Joi = require('joi');
-const { validateUUID } = require('./general-validators');
+const { validateUUID, validateString } = require('./general-validators');
+const { ORDER_CATEGORIES } = require('../utils/constants/domain/order-type-constants');
 
 /**
  * Joi schema for validating base order payload.
@@ -30,21 +31,36 @@ const baseOrderSchema = Joi.object({
  *
  * Expected shape:
  *   {
- *     orderId: string (UUID v4, required, trimmed)
+ *     category: string (required, trimmed, one of ORDER_CATEGORIES)
+ *     orderId: string (required, UUID v4)
  *   }
  *
- * Validation:
- *   - Must be a valid UUID v4.
- *   - Leading/trailing whitespace is automatically trimmed.
- *   - Custom label used in error messages: "Order ID".
+ * Validation rules:
+ *   - `category`:
+ *       • Required string between 5 and 20 characters (inclusive).
+ *       • Must match one of the allowed `ORDER_CATEGORIES`.
+ *       • Leading/trailing whitespace is automatically trimmed.
+ *       • Custom label for error messages: "Category".
+ *   - `orderId`:
+ *       • Required string.
+ *       • Must be a valid UUID v4.
+ *       • Leading/trailing whitespace is automatically trimmed.
+ *       • Custom label for error messages: "Order ID".
  *
  * Example valid values:
- *   - "550e8400-e29b-41d4-a716-446655440000"
- *   - " 550e8400-e29b-41d4-a716-446655440000 "  // will be trimmed
+ *   {
+ *     category: "sales",
+ *     orderId: "550e8400-e29b-41d4-a716-446655440000"
+ *   }
+ *   {
+ *     category: "purchase",
+ *     orderId: " 550e8400-e29b-41d4-a716-446655440000 " // will be trimmed
+ *   }
  *
  * @type {import('joi').ObjectSchema}
  */
 const getOrderDetailsParamsSchema = Joi.object({
+  category: validateString('Category', 5, 20).valid(...ORDER_CATEGORIES),
   orderId: validateUUID('Order ID'),
 });
 

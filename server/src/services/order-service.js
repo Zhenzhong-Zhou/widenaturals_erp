@@ -7,7 +7,9 @@ const {
 const { insertOrder, findOrderByIdWithDetails } = require('../repositories/order-repository');
 const {
   createOrderWithType,
-  verifyOrderCreationPermission, evaluateOrderAccessControl,
+  verifyOrderCreationPermission,
+  verifyOrderViewPermission,
+  evaluateOrderAccessControl,
 } = require('../business/order-business');
 const AppError = require('../utils/AppError');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
@@ -60,7 +62,7 @@ const createOrderService = async (orderData, category, user) => {
       );
 
       // 3. Verify permission to create this category of order
-      await verifyOrderCreationPermission(user, category);
+      await verifyOrderCreationPermission(user, category, { action: 'CREATE' });
 
       // 4. Get default status ID
       const status_id = await getOrderStatusIdByCode('ORDER_PENDING', client);
@@ -109,22 +111,27 @@ const createOrderService = async (orderData, category, user) => {
 };
 
 /**
- * Fetch a single order (header + items) by ID and shape it for API/consumer use.
+ * Service: fetchOrderDetailsByIdService
  *
- * Behavior:
- * - Loads header and items in parallel.
- * - Returns 404 if the order header is missing.
- * - Evaluates access control to decide whether to include order-level and line-level metadata.
- * - Transforms flat rows into a structured object via `transformOrderWithItems`.
+ * Retrieves and transforms full order details (header + line items) for a given order category and ID.
+ *
+ * Workflow:
+ *   1. Verifies that the user has permission to view the order (`verifyOrderViewPermission`).
+ *   2. Loads the order header and items in parallel.
+ *   3. Throws a `NotFoundError` if no header is found.
+ *   4. Evaluates order-level and line-item-level access rules via `evaluateOrderAccessControl(user)`.
+ *   5. Transforms the raw DB rows into a structured `TransformedOrder` object using `transformOrderWithItems`.
+ *   6. Logs key events for auditing.
  *
  * Access control:
- * - Uses `evaluateOrderAccessControl(user)` which provides:
- *   - `canViewOrderMetadata`       -> controls `includeOrderMetadata`
- *   - `canViewOrderItemMetadata`   -> controls `includeItemMetadata`
+ *   - `canViewOrderMetadata` → controls inclusion of order-level metadata in the response.
+ *   - `canViewOrderItemMetadata` → controls inclusion of item-level metadata in the response.
  *
  * @async
- * @param {string} orderId - The order ID to fetch
- * @param {Object} user - Authenticated user object with a permission set
+ * @function fetchOrderDetailsByIdService
+ * @param {string} category - Order category key (e.g., "sales", "purchase", "transfer").
+ * @param {string} orderId - UUID v4 of the order to fetch.
+ * @param {object} user - Authenticated user object (must include ID and permission context).
  * @returns {Promise<{
  *   id: string,
  *   orderNumber: string,
@@ -151,10 +158,19 @@ const createOrderService = async (orderData, category, user) => {
  *   },
  *   items: Array<object>
  * }>}
- * @throws {AppError} NotFoundError when order is missing; DatabaseError for repository/transform errors
+ *
+ * @throws {AppError}
+ *   - `authorizationError` if the user lacks permission.
+ *   - `notFoundError` if the order does not exist.
+ *   - `databaseError` if an unexpected DB/repository error occurs.
+ *
+ * @example
+ * const order = await fetchOrderDetailsByIdService('sales', '550e8400-e29b-41d4-a716-446655440000', currentUser);
  */
-const fetchOrderDetailsByIdService = async (orderId, user) => {
+const fetchOrderDetailsByIdService = async (category, orderId, user) => {
   try {
+    await verifyOrderViewPermission(user, category, { action: 'VIEW', orderId});
+    
     const [header, items] = await Promise.all([
       findOrderByIdWithDetails(orderId),
       findOrderItemsByOrderId(orderId),

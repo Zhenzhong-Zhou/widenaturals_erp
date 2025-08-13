@@ -14,33 +14,67 @@ export const ORDER_CATEGORIES = [
   'adjustment',
 ] as const;
 
+/** Union type of all supported order categories. */
 export type OrderCategory = (typeof ORDER_CATEGORIES)[number];
 
 /**
- * Dynamically generates permission constants based on order categories.
+ * Defines all supported order actions for RBAC (Role-Based Access Control).
  *
- * Example:
- *   PERMISSIONS.CREATE_SALES_ORDER => 'create_sales_order'
- *   PERMISSIONS.CREATE_TRANSFER_ORDER => 'create_transfer_order'
+ * These actions, when combined with categories, form the basis of our
+ * permission keys and values.
  *
- * This avoids manual duplication and ensures consistency.
+ * Examples:
+ *  - 'VIEW'
+ *  - 'CREATE'
+ *  - 'UPDATE'
+ *  - 'DELETE'
  */
-export const PERMISSIONS = Object.fromEntries(
-  ORDER_CATEGORIES.map((cat) => [
-    `CREATE_${cat.toUpperCase()}_ORDER`,
-    `create_${cat}_order`,
-  ])
-) as Record<`CREATE_${Uppercase<OrderCategory>}_ORDER`, `create_${OrderCategory}_order`>;
+export const ORDER_ACTIONS = ['VIEW', 'CREATE', 'UPDATE', 'DELETE'] as const;
+
+/** Union type of all supported order actions. */
+export type OrderAction = (typeof ORDER_ACTIONS)[number];
 
 /**
- * Maps each order category to its corresponding permission value.
+ * Builds the stored permission value (snake_case) for a given
+ * order action + category combination.
  *
- * This map allows checking access by category.
- * Useful when determining whether a user has permission to create a specific type of order.
+ * Examples:
+ *   toPermissionValue('VIEW', 'sales')        // 'view_sales_order'
+ *   toPermissionValue('CREATE', 'purchase')   // 'create_purchase_order'
+ *   toPermissionValue('UPDATE', 'transfer')   // 'update_transfer_order'
+ *
+ * @param action   One of the supported order actions.
+ * @param category One of the supported order categories.
+ * @returns The permission value string in snake_case.
+ */
+export const toPermissionValue = (action: OrderAction, category: OrderCategory) =>
+  `${action.toLowerCase()}_${category}_order`;
+
+/**
+ * Dynamically generates a complete permission map for all
+ * combinations of actions and categories.
+ *
+ * The keys are constant-style uppercase (e.g., `CREATE_SALES_ORDER`),
+ * and the values are the stored permission strings in snake_case
+ * (e.g., `create_sales_order`).
+ *
+ * This structure ensures:
+ *  - No manual duplication
+ *  - Strong type safety via mapped types
+ *  - Automatic updates when actions or categories are added
  *
  * Example:
- *   CATEGORY_PERMISSION_MAP['sales'] => 'create_sales_order'
+ *   PERMISSIONS.CREATE_SALES_ORDER  // 'create_sales_order'
+ *   PERMISSIONS.VIEW_PURCHASE_ORDER // 'view_purchase_order'
  */
-export const CATEGORY_PERMISSION_MAP: Record<OrderCategory, string> = Object.fromEntries(
-  ORDER_CATEGORIES.map((cat) => [cat, `create_${cat}_order`])
-) as Record<OrderCategory, string>;
+export const PERMISSIONS = Object.fromEntries(
+  ORDER_ACTIONS.flatMap((action) =>
+    ORDER_CATEGORIES.map((cat) => [
+      `${action}_${cat.toUpperCase()}_ORDER`,
+      toPermissionValue(action, cat),
+    ])
+  )
+) as {
+  [K in `${OrderAction}_${Uppercase<OrderCategory>}_ORDER`]:
+  `${Lowercase<OrderAction>}_${OrderCategory}_order`;
+};

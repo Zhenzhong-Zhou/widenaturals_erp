@@ -93,55 +93,58 @@ const createOrderController = wrapAsync(async (req, res, next) => {
 
 /**
  * Controller: getOrderDetailsByIdController
- * Route: GET /orders/:orderId
+ * Route: GET /orders/:category/:orderId
  *
- * Retrieves full order details (order header and line items) for a given order ID.
+ * Retrieves full order details (header + line items) for a given order category and ID.
  *
  * Permissions:
- *   - Requires `ORDER.VIEW` permission (enforced by upstream middleware).
+ *   - Requires `ORDER.VIEW` (or category-specific variant) permission — enforced by upstream middleware.
  *
  * Validations:
- *   - `params.orderId`: Required, must be a valid UUID v4 (string), trimmed by middleware.
+ *   - `params.category`:
+ *       • Required string (validated against allowed ORDER_CATEGORIES in schema).
+ *       • Trimmed and normalized to lowercase.
+ *   - `params.orderId`:
+ *       • Required string.
+ *       • Must be a valid UUID v4.
+ *       • Trimmed by middleware.
  *
  * Behavior:
- *   - Delegates retrieval to `fetchOrderDetailsByIdService`, which applies business rules
- *     and data visibility constraints based on the requesting user.
- *   - Logs retrieval with context for audit purposes.
+ *   - Normalizes `category` to lowercase for consistent downstream use.
+ *   - Delegates retrieval to `fetchOrderDetailsByIdService`, which:
+ *       • Applies business rules and category-based access control.
+ *       • Filters or restricts data based on the requesting user's permissions.
+ *   - Logs the retrieval action with contextual metadata for auditing.
  *   - Responds with a standardized JSON envelope containing:
  *       {
  *         success: true,
  *         message: string,
- *         data: {
- *           id: string,
- *           orderNumber: string,
- *           status: string,
- *           customer: object,
- *           items: array,
- *           audit: object
- *         }
+ *         data: TransformedOrder
  *       }
- *   - Forwards all errors to the global error handler via `wrapAsync`.
+ *   - Forwards all thrown errors to the global error handler via `wrapAsync`.
  *
  * Success Response (200):
- *   - JSON payload with `success=true`, `message`, and `data` containing the order details.
+ *   - JSON payload with `success=true`, a message, and `data` containing the order details.
  *
  * Error Responses:
- *   - 400 Bad Request: Invalid `orderId` format (caught by validation middleware).
- *   - 403 Forbidden: Missing `ORDER.VIEW` permission.
- *   - 404 Not Found: No order exists for the given `orderId`.
+ *   - 400 Bad Request: Invalid `category` or `orderId` format (caught by validation middleware).
+ *   - 403 Forbidden: User lacks required permission to view the order.
+ *   - 404 Not Found: No order exists for the given category/ID combination.
  *   - 500 Internal Server Error: Unexpected errors (handled globally).
  *
  * @async
- * @function getOrderDetailsByIdController
- * @param {import('express').Request} req - Express request object (expects `params.orderId` and `user`).
+ * @param {import('express').Request} req - Express request object (expects `params.category`, `params.orderId`, and `user`).
  * @param {import('express').Response} res - Express response object.
- * @returns {Promise<void>} Sends JSON response to client.
+ * @returns {Promise<void>} Sends JSON response to the client.
  */
 const getOrderDetailsByIdController = wrapAsync(async (req, res) => {
-  const { orderId } = req.params;
+  const { category, orderId } = req.params;
   const user = req.user;
   
-  const orderDetails = await fetchOrderDetailsByIdService(orderId, user);
+  // Normalize category
+  const cleanCategory = category.toLowerCase();
+  
+  const orderDetails = await fetchOrderDetailsByIdService(cleanCategory, orderId, user);
   
   logInfo('Order details retrieved', req, {
     context: 'order-controller/getOrderDetailsByIdController',

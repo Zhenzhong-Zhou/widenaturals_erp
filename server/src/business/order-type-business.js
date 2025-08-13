@@ -79,29 +79,42 @@ const filterOrderTypeRowsByPermission = async (result, user) => {
 };
 
 /**
- * Evaluates access control flags for order type lookup based on a user role and permissions.
+ * Evaluates access control flags for the order type lookup feature based on the
+ * authenticated user's role, permissions, and assigned categories.
  *
- * This function determines whether the user has full or restricted access
- * to order type records, including their visibility by category, status, and keyword filtering.
+ * This function determines whether the user can view all categories, statuses,
+ * and keywords when searching or listing order types. It supports both role-based
+ * (RBAC) and category-based access control.
  *
- * - Root users automatically receive full access to all categories, statuses, and fields.
- * - Other users must have specific permissions to unlock full visibility for each aspect.
- * - business logic scopes Category access via `resolveOrderAccessContext`.
+ * Behavior:
+ *   - Root users automatically receive unrestricted access to all categories, statuses, and keywords.
+ *   - Non-root users must have explicit permissions to unlock each capability.
+ *   - Category access is further scoped by `resolveOrderAccessContext`, which may limit results.
  *
- * @param {Object} user - Authenticated user object (must include role and ID)
+ * @async
+ * @param {object} user - Authenticated user object (must include `id` and `role`).
+ * @param {object} [options] - Optional configuration.
+ * @param {'VIEW'|'CREATE'|'UPDATE'|'DELETE'} [options.action='VIEW'] - Permission action to evaluate.
  * @returns {Promise<{
- *   canViewAllCategories: boolean,   // True if user can view order types across all categories (not limited by assigned ones)
- *   canViewAllStatuses: boolean,     // True if user can view order types with any status (not just active)
- *   canViewAllKeywords: boolean,     // True if user can search with unrestricted keyword access (e.g. matches on code/name/description)
- *   accessibleCategories: string[]   // List of specific category codes the user has access to (empty if none)
+ *   canViewAllCategories: boolean, // True if user can view order types for all categories (not just assigned)
+ *   canViewAllStatuses: boolean,   // True if user can view all statuses (not only active)
+ *   canViewAllKeywords: boolean,   // True if user can search unrestricted keywords (code/name/description)
+ *   accessibleCategories: string[] // List of category codes the user has access to (empty if none)
  * }>}
  *
- * @throws {AppError} If access context evaluation fails (e.g., user data is invalid or permission services fail)
+ * @throws {AppError}
+ *   - `businessError` if evaluation fails due to invalid user data or downstream service failure.
+ *
+ * @example
+ * const access = await evaluateOrderTypeLookupAccessControl(currentUser, { action: 'VIEW' });
+ * if (access.canViewAllCategories) {
+ *   // show all categories in the dropdown
+ * }
  */
-const evaluateOrderTypeLookupAccessControl = async (user) => {
+const evaluateOrderTypeLookupAccessControl = async (user, { action = 'VIEW' } = {}) => {
   try {
     const { isRoot, permissions } = await resolveUserPermissionContext(user);
-    const { accessibleCategories } = await resolveOrderAccessContext(user);
+    const { accessibleCategories } = await resolveOrderAccessContext(user, { action });
     
     const has = (perm) => isRoot || permissions.includes(perm);
     

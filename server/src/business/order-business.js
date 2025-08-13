@@ -8,18 +8,26 @@ const {
 const { PERMISSIONS } = require('../utils/constants/domain/order-constants');
 
 /**
- * Verifies if the user has permission to create an order of the specified category.
- * Uses dynamic permission naming + checkPermissions for consistency.
+ * Checks whether the given user has permission to perform an order action
+ * (defaults to creating) for a specific order category.
  *
- * @param {object} user - Authenticated user object (must include `role`).
- * @param {string} category - Order category (e.g., 'sales', 'purchase', 'transfer').
- * @returns {Promise<void>}
+ * This function:
+ * - Resolves the user's accessible categories via `resolveOrderAccessContext`.
+ * - Grants unconditional access for root users.
+ * - Logs and throws an authorization error if the category is not accessible.
  *
- * @throws {AppError} - If user lacks permission.
+ * @async
+ * @param {object} user - The authenticated user object (must include `role` and related access context).
+ * @param {string} category - Order category key (e.g., "sales", "purchase", "transfer").
+ * @param {object} [options] - Optional settings.
+ * @param {'VIEW'|'CREATE'|'UPDATE'|'DELETE'} [options.action='CREATE'] - Action to check permission for.
+ * @returns {Promise<void>} Resolves if permission is granted; rejects with `AppError` if denied.
+ *
+ * @throws {AppError} Authorization error if the user lacks permission.
  */
-const verifyOrderCreationPermission = async (user, category) => {
+const verifyOrderCreationPermission = async (user, category, { action = 'CREATE' } = {}) => {
   const { isRoot, accessibleCategories } =
-    await resolveOrderAccessContext(user);
+    await resolveOrderAccessContext(user, { action });
 
   if (isRoot) return;
 
@@ -67,6 +75,46 @@ const createOrderWithType = async (category, orderData, client) => {
   }
 
   return await createFn(orderData, client);
+};
+
+/**
+ * Verifies if the user has permission to VIEW an order of the specified category.
+ * Uses dynamic permission naming + resolveOrderAccessContext for consistency.
+ *
+ * @param {object} user - Authenticated user object.
+ * @param {string} category - Order category (e.g., 'sales', 'purchase', 'transfer').
+ * @param {{ action?: 'VIEW'|'CREATE'|'UPDATE'|'DELETE', orderId?: string }} [opts]
+ *   - action: Defaults to 'VIEW'. Included for symmetry / future reuse.
+ *   - orderId: Optional — used only for logging context.
+ * @returns {Promise<void>}
+ *
+ * @throws {AppError} - If the user lacks permission to view the given category.
+ */
+const verifyOrderViewPermission = async (user, category, { action = 'VIEW', orderId } = {}) => {
+  // Normalize category defensively
+  const cat = String(category || '').trim().toLowerCase();
+  
+  const { isRoot, accessibleCategories } =
+    await resolveOrderAccessContext(user, { action });
+  
+  // Root users bypass checks
+  if (isRoot) return;
+  
+  if (!accessibleCategories.includes(cat)) {
+    logSystemWarn('Permission denied for viewing order details', {
+      context: 'verifyOrderViewPermission',
+      role: user?.role,
+      userId: user?.id,
+      orderId,
+      attemptedCategory: cat,
+      accessibleCategories,
+      action,
+    });
+    
+    throw AppError.authorizationError(
+      `You do not have permission to ${action.toLowerCase()} ${cat} orders.`
+    );
+  }
 };
 
 /**
@@ -268,6 +316,7 @@ const canConfirmOrder = async (orderId, client) => {
 module.exports = {
   verifyOrderCreationPermission,
   createOrderWithType,
+  verifyOrderViewPermission,
   evaluateOrderAccessControl,
   validateOrderNumbers,
   applyOrderDetailsBusinessLogic,
