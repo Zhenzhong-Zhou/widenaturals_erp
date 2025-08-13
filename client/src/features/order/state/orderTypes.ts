@@ -109,3 +109,268 @@ export type CreateSalesOrderResponse = ApiSuccessResponse<CreateSalesOrderData>;
  * Used in Redux slices and components that handle the creation of sales orders.
  */
 export type SalesOrderCreationState = AsyncState<CreateSalesOrderData | null>;
+
+/**
+ * Information about the user who created or last updated a record.
+ * Originates from `makeAudit` / `compactAudit` utilities.
+ */
+export interface AuditUser {
+  /** The unique identifier of the user, or null if unavailable */
+  id: string | null;
+  /** The display name of the user, or null if unavailable */
+  name: string | null;
+  /** Optional: user's first name (if provided in the API) */
+  firstName?: string | null;
+  /** Optional: user's last name (if provided in the API) */
+  lastName?: string | null;
+}
+
+/**
+ * Audit metadata for a resource, containing creation and last update info.
+ */
+export interface Audit {
+  /** ISO date string when the record was created, or null */
+  createdAt: string | null;
+  /** User information for the creator */
+  createdBy: AuditUser;
+  /** ISO date string when the record was last updated, or null */
+  updatedAt?: string | null;
+  /** User information for the last updater */
+  updatedBy?: AuditUser;
+}
+
+/**
+ * Public-facing address object for orders (BuiltAddressUserFacing).
+ */
+export interface Address {
+  /** Unique identifier for the address */
+  id: string;
+  /** Associated customer ID or null if not linked */
+  customerId: string | null;
+  /** Full name of the contact */
+  fullName: string | null;
+  /** Contact phone number */
+  phone: string | null;
+  /** Contact email address */
+  email: string | null;
+  /** Custom label for the address (e.g., "Home", "Warehouse") */
+  label: string | null;
+  /** Fully formatted address string, if provided by server */
+  formatted?: string;
+}
+
+/**
+ * Represents the payment status of an order (e.g., UNPAID, PAID).
+ */
+export interface PaymentStatus {
+  /** Unique identifier for the payment status */
+  id: string | null;
+  /** Human-readable name of the payment status */
+  name: string | null;
+}
+
+/**
+ * Represents the payment method used for an order.
+ */
+export interface PaymentMethod {
+  /** Unique identifier for the payment method */
+  id: string | null;
+  /** Human-readable name of the payment method */
+  name: string | null;
+}
+
+/**
+ * Payment details for an order.
+ */
+export interface Payment {
+  /** Payment status */
+  status: PaymentStatus;
+  /** Payment method */
+  method: PaymentMethod;
+  /** 3-letter currency code (e.g., "USD", "CAD") */
+  currencyCode: string | null;
+  /** Exchange rate as a string (e.g., "1.4100") */
+  exchangeRate: string | null;
+  /** Base currency amount as a string */
+  baseCurrencyAmount: string | null;
+}
+
+/**
+ * Discount applied to the order.
+ */
+export interface Discount {
+  /** Unique identifier of the discount */
+  id: string;
+  /** Name of the discount */
+  name: string;
+  /** Preformatted label (e.g., "$20.00") */
+  label: string;
+  /** Discount amount as a string */
+  amount: string;
+}
+
+/**
+ * Tax applied to the order.
+ */
+export interface Tax {
+  /** Unique identifier of the tax */
+  id: string;
+  /** Preformatted tax name (e.g., "PST (7.00%) - BC") */
+  name: string;
+  /** Tax amount as a string */
+  amount: string;
+}
+
+/**
+ * Delivery method for the order.
+ */
+export interface DeliveryMethod {
+  /** Unique identifier of the delivery method */
+  id: string | null;
+  /** Human-readable name of the delivery method */
+  name: string | null;
+}
+
+/**
+ * SKU reference for an order item.
+ */
+export interface SkuRef {
+  /** Unique SKU identifier */
+  id: string;
+  /** SKU code */
+  code: string;
+  /** Product barcode, if available */
+  barcode: string | null;
+}
+
+/**
+ * Packaging material reference for an order item.
+ */
+export interface PackagingMaterialRef {
+  /** Unique identifier for the packaging material */
+  id: string;
+  /** Packaging material code */
+  code: string;
+  /** Human-readable name for display */
+  name: string;
+}
+
+/**
+ * Status of an individual order item.
+ */
+export interface OrderItemStatus {
+  /** Unique identifier for the status */
+  id: string | null;
+  /** Human-readable name of the status */
+  name: string | null;
+  /** ISO date string when the status was set, or null */
+  date: string | null;
+}
+
+/**
+ * Represents an individual line item in an order.
+ * Each item is either a SKU line or a packaging material line.
+ */
+export interface OrderItem {
+  /** Unique identifier for the order item */
+  id: string;
+  /** The parent order ID */
+  orderId: string;
+  /** Quantity ordered */
+  quantityOrdered: number;
+  /** Linked price ID (if applicable) */
+  priceId: string | null;
+  /** Listed price as a string */
+  listedPrice: string | null;
+  /** Price type name (e.g., "Retail", "Wholesale") */
+  priceTypeName: string | null;
+  /** Final price applied as a string */
+  price: string | null;
+  /** Subtotal for this line item as a string */
+  subtotal: string | null;
+  /** Current status of the order item */
+  status: OrderItemStatus;
+  /** Optional metadata object */
+  metadata?: Record<string, unknown> | null;
+  /** SKU reference (null if this is a packaging material line) */
+  sku: SkuRef | null;
+  /** Packaging material reference (null if this is a SKU line) */
+  packagingMaterial: PackagingMaterialRef | null;
+  /** Audit metadata */
+  audit: Audit;
+  /** Optional display name for SKU lines */
+  displayName?: string;
+}
+
+/**
+ * Represents a transformed order with all details included.
+ */
+export interface TransformedOrder {
+  /** Unique identifier for the order */
+  id: string;
+  /** Order number string */
+  orderNumber: string;
+  /** ISO date string for when the order was placed */
+  orderDate: string | null;
+  /** ISO date string for last status change */
+  statusDate: string | null;
+  /** Optional order note */
+  note: string | null;
+  /** Order type reference */
+  type: { id: string; name: string };
+  /** Order status reference */
+  status: { id: string | null; name: string | null };
+  /** Customer details */
+  customer: {
+    id: string;
+    fullName: string;
+    email: string | null;
+    phone: string | null;
+  };
+  /** Payment details */
+  payment: Payment;
+  /** Discount applied to the order, if any */
+  discount: Discount | null;
+  /** Tax applied to the order, if any */
+  tax: Tax | null;
+  /** Shipping fee as a string */
+  shippingFee: string | null;
+  /** Total order amount as a string */
+  totalAmount: string | null;
+  /** Delivery method */
+  deliveryMethod: DeliveryMethod;
+  /** Optional metadata */
+  metadata?: Record<string, unknown>;
+  /** Shipping address */
+  shippingAddress: Address | null;
+  /** Billing address */
+  billingAddress: Address | null;
+  /** Audit metadata */
+  audit: Audit;
+  /** Array of order line items */
+  items: OrderItem[];
+}
+
+/**
+ * Successful API response wrapper for fetching order details.
+ */
+export type GetOrderDetailsResponse = ApiSuccessResponse<TransformedOrder>;
+
+/**
+ * Redux state shape for the order details feature.
+ *
+ * This type extends the generic `AsyncState<T>` to track:
+ * - `data`: The transformed order object for the currently viewed order, or `null` if none loaded.
+ * - `loading`: Boolean indicating whether a fetch is in progress.
+ * - `error`: Any error object/string from the last failed fetch, or `null` if none.
+ *
+ * @template T - The shape of the underlying data (here: `TransformedOrder | null`).
+ *
+ * Example usage:
+ * const initialState: OrderDetailsState = {
+ *   data: null,
+ *   loading: false,
+ *   error: null,
+ * };
+ */
+export type OrderDetailsState = AsyncState<TransformedOrder | null>;

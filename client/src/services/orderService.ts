@@ -1,9 +1,10 @@
 import type {
   CreateSalesOrderInput,
-  CreateSalesOrderResponse
+  CreateSalesOrderResponse,
+  GetOrderDetailsResponse
 } from '@features/order/state';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
-import { postRequest } from '@utils/apiRequest';
+import { getRequest, postRequest } from '@utils/apiRequest';
 
 /**
  * Sends a request to create a new order under a specific category (e.g., 'sales', 'purchase').
@@ -21,7 +22,7 @@ const createSalesOrder = async (
   category: string,
   data: CreateSalesOrderInput
 ): Promise<CreateSalesOrderResponse> => {
-  const url = API_ENDPOINTS.ORDERS.ADD_NEW_ORDER.replace(':category', category);
+  const url = API_ENDPOINTS.ORDERS.ADD_NEW_ORDER(category);
   
   try {
     return await postRequest<CreateSalesOrderInput, CreateSalesOrderResponse>(url, data);
@@ -31,6 +32,40 @@ const createSalesOrder = async (
   }
 };
 
+/**
+ * Fetch a single order's details (header + items) by ID.
+ *
+ * Issues `GET /orders/:orderId` and returns the API envelope
+ * `ApiSuccessResponse<TransformedOrder>`.
+ *
+ * Notes:
+ * - This call does not accept query flags (e.g., includeAddresses, formattedOnly).
+ * - Ensure `API_ENDPOINTS.ORDERS.ORDER_DETAILS` is a function:
+ *     ORDER_DETAILS: (orderId: string) => `/orders/${orderId}`
+ *
+ * @param orderId - Order UUID string (will be trimmed before use).
+ * @returns A promise resolving to the order details response.
+ * @throws Rethrows any error from the underlying request helper.
+ *
+ * @example
+ * const res = await fetchOrderDetailsById('0edac644-af24-4499-817e-cb593747dd1c');
+ * console.log(res.data.orderNumber);
+ */
+const fetchOrderDetailsById = async (
+  orderId: string
+): Promise<GetOrderDetailsResponse> => {
+  const cleanId = (orderId ?? '').trim(); // keep for safety
+  const url = API_ENDPOINTS.ORDERS.ORDER_DETAILS(cleanId);
+  
+  try {
+    return await getRequest<GetOrderDetailsResponse>(url);
+  } catch (error) {
+    console.error('Failed to fetch order details:', { orderId: cleanId, error });
+    throw error;
+  }
+};
+
 export const orderService = {
   createSalesOrder,
+  fetchOrderDetailsById,
 };

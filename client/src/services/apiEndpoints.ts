@@ -68,6 +68,7 @@ export const API_ENDPOINTS = {
     ALL_RECORDS: '/addresses',
   },
   ORDERS: {
-    ADD_NEW_ORDER: '/orders/create/:category',
+    ADD_NEW_ORDER: (category: string) => `/orders/create/${category}`,
+    ORDER_DETAILS: (orderId: string) => `/orders/${orderId}`,
   },
 };

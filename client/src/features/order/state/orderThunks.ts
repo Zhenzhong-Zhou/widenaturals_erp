@@ -1,7 +1,8 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import type {
   CreateSalesOrderInput,
-  CreateSalesOrderResponse
+  CreateSalesOrderResponse,
+  GetOrderDetailsResponse,
 } from '@features/order/state/orderTypes';
 import { orderService } from '@services/orderService';
 
@@ -31,6 +32,30 @@ export const createSalesOrderThunk = createAsyncThunk<
     } catch (error: any) {
       console.error('createSalesOrderThunk failed:', error);
       return thunkAPI.rejectWithValue(error?.response?.data || error.message);
+    }
+  }
+);
+
+/**
+ * Thunk to fetch a single order's details (header + items) by ID.
+ *
+ * Dispatches pending/fulfilled/rejected actions automatically.
+ *
+ * @param orderId - Order UUID string.
+ * @returns Fulfilled with the API response payload.
+ */
+export const getOrderDetailsByIdThunk = createAsyncThunk<
+  GetOrderDetailsResponse, // Return type
+  string,                  // Argument type
+  { rejectValue: string }  // Optional reject payload type
+>(
+  'orders/getOrderDetailsById',
+  async (orderId, { rejectWithValue }) => {
+    try {
+      return await orderService.fetchOrderDetailsById(orderId);
+    } catch (err: any) {
+      console.error('Failed to fetch order details:', err);
+      return rejectWithValue(err?.message || 'Failed to fetch order details');
     }
   }
 );
