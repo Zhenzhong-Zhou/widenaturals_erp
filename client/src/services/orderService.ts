@@ -1,7 +1,7 @@
 import type {
   CreateSalesOrderInput,
   CreateSalesOrderResponse,
-  GetOrderDetailsResponse
+  GetOrderDetailsResponse, OrderRouteParams,
 } from '@features/order/state';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 import { getRequest, postRequest } from '@utils/apiRequest';
@@ -43,6 +43,7 @@ const createSalesOrder = async (
  * - Ensure `API_ENDPOINTS.ORDERS.ORDER_DETAILS` is a function:
  *     ORDER_DETAILS: (orderId: string) => `/orders/${orderId}`
  *
+ * @param category
  * @param orderId - Order UUID string (will be trimmed before use).
  * @returns A promise resolving to the order details response.
  * @throws Rethrows any error from the underlying request helper.
@@ -52,11 +53,12 @@ const createSalesOrder = async (
  * console.log(res.data.orderNumber);
  */
 const fetchOrderDetailsById = async (
-  orderId: string
+  { category, orderId }: OrderRouteParams
 ): Promise<GetOrderDetailsResponse> => {
-  const cleanId = (orderId ?? '').trim(); // keep for safety
-  const url = API_ENDPOINTS.ORDERS.ORDER_DETAILS(cleanId);
-  
+  const cleanId = (orderId ?? '').trim();
+  const cleanCategory = (category ?? '').trim();
+  const url = API_ENDPOINTS.ORDERS.ORDER_DETAILS(cleanCategory, cleanId);
+ 
   try {
     return await getRequest<GetOrderDetailsResponse>(url);
   } catch (error) {

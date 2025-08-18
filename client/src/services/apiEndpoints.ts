@@ -69,6 +69,6 @@ export const API_ENDPOINTS = {
   },
   ORDERS: {
     ADD_NEW_ORDER: (category: string) => `/orders/create/${category}`,
-    ORDER_DETAILS: (orderId: string) => `/orders/${orderId}`,
+    ORDER_DETAILS: (category: string, orderId: string) => `/orders/${category}/${orderId}`,
   },
 };

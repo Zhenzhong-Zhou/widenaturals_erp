@@ -119,10 +119,6 @@ export interface AuditUser {
   id: string | null;
   /** The display name of the user, or null if unavailable */
   name: string | null;
-  /** Optional: user's first name (if provided in the API) */
-  firstName?: string | null;
-  /** Optional: user's last name (if provided in the API) */
-  lastName?: string | null;
 }
 
 /**
@@ -278,6 +274,8 @@ export interface OrderItem {
   orderId: string;
   /** Quantity ordered */
   quantityOrdered: number;
+  /** Product barcode */
+  barcode: string;
   /** Linked price ID (if applicable) */
   priceId: string | null;
   /** Listed price as a string */
@@ -374,3 +372,17 @@ export type GetOrderDetailsResponse = ApiSuccessResponse<TransformedOrder>;
  * };
  */
 export type OrderDetailsState = AsyncState<TransformedOrder | null>;
+
+/**
+ * Route parameters used in order-related routes.
+ *
+ * These parameters are typically extracted from dynamic route paths such as:
+ *   /orders/:category/details/:orderId
+ *
+ * @property category - The order category (e.g., 'sales', 'purchase').
+ * @property orderId  - (Optional) The unique identifier of the order.
+ */
+export type OrderRouteParams = {
+  category: string;
+  orderId?: string;
+};

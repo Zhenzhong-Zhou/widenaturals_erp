@@ -2,7 +2,7 @@ import { createAsyncThunk } from '@reduxjs/toolkit';
 import type {
   CreateSalesOrderInput,
   CreateSalesOrderResponse,
-  GetOrderDetailsResponse,
+  GetOrderDetailsResponse, OrderRouteParams,
 } from '@features/order/state/orderTypes';
 import { orderService } from '@services/orderService';
 
@@ -46,13 +46,13 @@ export const createSalesOrderThunk = createAsyncThunk<
  */
 export const getOrderDetailsByIdThunk = createAsyncThunk<
   GetOrderDetailsResponse, // Return type
-  string,                  // Argument type
+  OrderRouteParams,                  // Argument type
   { rejectValue: string }  // Optional reject payload type
 >(
   'orders/getOrderDetailsById',
-  async (orderId, { rejectWithValue }) => {
+  async ({ category, orderId }, { rejectWithValue }) => {
     try {
-      return await orderService.fetchOrderDetailsById(orderId);
+      return await orderService.fetchOrderDetailsById({ category, orderId });
     } catch (err: any) {
       console.error('Failed to fetch order details:', err);
       return rejectWithValue(err?.message || 'Failed to fetch order details');
