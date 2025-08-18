@@ -30,9 +30,10 @@ const validateEmail = Joi.string().email().required().messages({
  */
 const validateUUID = (fieldName = 'id') =>
   Joi.string().uuid().trim().required().label(fieldName).messages({
+    'string.base': '{{#label}} must be a string',
     'string.guid': '{{#label}} must be a valid UUID',
-    'any.required': '{{#label}} is required',
     'string.empty': '{{#label}} cannot be empty',
+    'any.required': '{{#label}} is required',
   });
 
 /**

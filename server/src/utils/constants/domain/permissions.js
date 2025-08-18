@@ -18,7 +18,7 @@ const PERMISSIONS = {
   },
   ORDER: {
     CREATE: 'create_orders',
-    VIEW: 'view_order',
+    VIEW: 'view_orders',
   },
 };
 

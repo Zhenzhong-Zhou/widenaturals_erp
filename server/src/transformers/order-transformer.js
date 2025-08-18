@@ -305,6 +305,21 @@ const transformOrderWithItems = (
     return base;
   });
   
+  // Enhance metadata.override_summary.overrides with SKU display data
+  if (includeOrderMetadata && orderRow.sales_order_metadata?.price_override_summary?.overrides) {
+    const overrides = orderRow.sales_order_metadata.price_override_summary.overrides;
+    
+    for (const o of overrides) {
+      if (!o.sku_id) continue;
+      
+      const match = items.find((it) => it?.sku?.id === o.sku_id);
+      if (match) {
+        o.sku = match.sku?.code ?? null;
+        o.productDisplayName = match.displayName ?? null;
+      }
+    }
+  }
+  
   const shippingAddress = buildAddress(orderRow, 'shipping_', {
     includeFormatted: includeFormattedAddresses,
     formattedOnly: formattedAddressesOnly,

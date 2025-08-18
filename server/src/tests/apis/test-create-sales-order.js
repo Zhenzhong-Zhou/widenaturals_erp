@@ -10,7 +10,8 @@ const { createOrderService } = require('../../services/order-service');
       `
       SELECT id, role_id FROM users WHERE email = $1
     `,
-      ['root@widenaturals.com']
+      // ['root@widenaturals.com']
+      ['jp@widenaturals.com']
     );
     const user = rows[0];
     const { id, role_id } = user;
