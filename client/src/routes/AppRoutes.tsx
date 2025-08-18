@@ -1,5 +1,5 @@
 import { Suspense, lazy } from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { matchPath, Route, Routes } from 'react-router-dom';
 import { Navigate } from 'react-router';
 import { routes } from '@routes/index';
 import ProtectedRoutes from '@routes/ProtectedRoutes';
@@ -12,6 +12,7 @@ import { PermissionsProvider } from '@context/PermissionsContext';
 import Loading from '@components/common/Loading';
 import MainLayout from '@layouts/MainLayout/MainLayout';
 import { hasPermission } from '@utils/permissionUtils';
+import { resolvePermission } from '@utils/routeUtils';
 
 const LazyNotFoundPage = lazy(() =>
   import('@pages/NotFoundPage').then((module) => ({
@@ -36,7 +37,7 @@ const AppRoutes = () => {
       </ErrorDisplay>
     );
   }
-
+  
   return (
     <PermissionsProvider
       roleName={roleName}
@@ -47,8 +48,11 @@ const AppRoutes = () => {
         <Routes>
           {routes.map(({ path, component: LazyComponent, meta }, index) => {
             const isProtected = meta?.requiresAuth;
-            const requiredPermission = meta?.requiredPermission;
             const isAccessDeniedRoute = path === '/access-denied';
+            
+            const match = matchPath(path, window.location.pathname); // Get params
+            const routeParams = match?.params ?? {};
+            const resolvedPermission = resolvePermission(meta?.requiredPermission, routeParams);
             
             // Block direct access to /access-denied for non-root_admin/admin
             if (
@@ -66,7 +70,7 @@ const AppRoutes = () => {
             
             // Protected route
             if (isProtected) {
-              if (!hasPermission(requiredPermission, permissions, roleName)) {
+              if (!hasPermission(resolvedPermission, permissions, roleName)) {
                 return (
                   <Route
                     key={index}

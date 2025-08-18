@@ -1,4 +1,7 @@
 import { lazy } from 'react';
+import { toPermissionValue } from '@utils/constants/orderPermissions';
+import type { OrderRouteParams } from '@features/order/state';
+import { isValidOrderCategory } from '@features/order/utils/orderCategoryUtils';
 
 export const routes = [
   {
@@ -242,7 +245,10 @@ export const routes = [
       requiresAuth: true,
       title: 'Order Details',
       showInSidebar: false,
-      requiredPermission: 'view_sales_order_details',
+      requiredPermission: (params: OrderRouteParams) =>
+        isValidOrderCategory(params.category)
+          ? toPermissionValue('VIEW', params.category)
+          : 'invalid_category',
     },
   },
   // {
