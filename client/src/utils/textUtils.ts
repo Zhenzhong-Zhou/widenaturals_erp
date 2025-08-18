@@ -146,3 +146,32 @@ export const formatPhoneNumber = (
     return normalized;
   }
 };
+
+/**
+ * Formats a number (or numeric string) to 3 decimal places.
+ *
+ * - Accepts string, number, null, or undefined.
+ * - If the input is not a valid number, returns a fallback (default: '—').
+ * - Ensures consistent precision for unit prices, exchange rates, etc.
+ *
+ * @param {string | number | null | undefined} value - The input value to format.
+ * @param {string} [fallback='—'] - The fallback string to return for invalid input.
+ * @returns {string} Formatted string with 3 decimal places, or fallback.
+ *
+ * @example
+ * formatToThreeDecimal(1.23456);        // "1.235"
+ * formatToThreeDecimal('0.1');          // "0.100"
+ * formatToThreeDecimal(null);           // "—"
+ * formatToThreeDecimal('invalid');      // "—"
+ */
+export const formatToThreeDecimal = (
+  value: string | number | null | undefined,
+  fallback: string = '—'
+): string => {
+  const num =
+    typeof value === 'string' ? parseFloat(value.trim()) : value;
+  
+  if (typeof num !== 'number' || !isFinite(num)) return fallback;
+  
+  return num.toFixed(3);
+};

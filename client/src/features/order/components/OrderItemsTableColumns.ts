@@ -1,86 +1,89 @@
-import type { Column } from '@components/common/CustomTable';
-import type { FetchedOrderItem } from '@features/order/state';
-import { formatCurrency } from '@utils/textUtils';
+import { type Column } from '@components/common/CustomTable';
+import type { OrderItem } from '@features/order/state';
+import { formatCurrency, formatLabel } from '@utils/textUtils';
 import { formatDate } from '@utils/dateTimeUtils';
+import { createDrillDownColumn } from '@utils/table/createDrillDownColumn';
+import { formatStatus } from '@utils/formatters';
 
-export const orderItemsColumns = (
-  items: FetchedOrderItem[]
-): Column<FetchedOrderItem>[] => {
-  // Check if any item has `adjusted_price` different from `system_price`
-  const hasAdjustedPrice = items.some(
-    (item) => item.adjusted_price && item.adjusted_price !== item.system_price
-  );
-
-  const columns: Column<FetchedOrderItem>[] = [
+export const getOrderItemColumns = (
+  expandedRowId: string | null,
+  handleDrillDownToggle?: (id: string) => void
+): Column<OrderItem>[] => {
+  return [
     {
-      id: 'item_name',
-      label: 'Item Name',
-      minWidth: 150,
-      sortable: true,
+      id: 'line_type',
+      label: 'Type',
+      renderCell: (row) =>
+        row.sku ? 'Product' : row.packagingMaterial ? 'Packaging Material' : '—',
     },
-    { id: 'barcode', label: 'Barcode', minWidth: 150, sortable: true },
-    { id: 'npn', label: 'NPN', minWidth: 150, sortable: true },
     {
-      id: 'quantity_ordered',
-      label: 'Quantity Ordered',
-      minWidth: 100,
-      sortable: true,
-    },
-    { id: 'price_type', label: 'Price Type', minWidth: 100, sortable: true },
-    {
-      id: 'system_price',
-      label: 'System Price',
-      minWidth: 100,
-      sortable: true,
-      format: (value) => {
-        if (!value) return 'N/A';
-        if (typeof value === 'string' && value.startsWith('$')) return value;
-        return formatCurrency(parseFloat(value as string));
+      id: 'product_or_material',
+      label: 'Item',
+      renderCell: (row) => {
+        if (row.sku) {
+          return `${row.displayName ?? '—'}`;
+        } else if (row.packagingMaterial) {
+          return row.packagingMaterial.name;
+        }
+        return '—';
       },
     },
     {
-      id: 'order_item_subtotal',
-      label: 'Order Item Subtotal',
-      minWidth: 100,
-      sortable: true,
-      format: (value) => {
-        if (!value) return 'N/A';
-        if (typeof value === 'string' && value.startsWith('$')) return value;
-        return formatCurrency(parseFloat(value as string));
-      },
+      id: 'sku_or_code',
+      label: 'Code',
+      renderCell: (row) =>
+        row.sku ? row.sku.code ?? '—' : row.packagingMaterial?.code ?? '—',
     },
     {
-      id: 'order_item_status_name',
+      id: 'barcode',
+      label: 'Barcode',
+      renderCell: (row) => row.sku?.barcode ?? '—',
+    },
+    {
+      id: 'quantityOrdered',
+      label: 'Qty',
+      renderCell: (row) => row.quantityOrdered ?? '—',
+    },
+    {
+      id: 'priceName',
+      label: 'Price Name',
+      renderCell: (row) => row.priceId ? formatLabel(row.priceTypeName) : '—',
+    },
+    {
+      id: 'listPrice',
+      label: 'List Price',
+      renderCell: (row) => formatCurrency(row.listedPrice) ?? '—',
+    },
+    {
+      id: 'price',
+      label: 'Unit Price',
+      renderCell: (row) =>
+        row.price != null ? formatCurrency(row.price) : '—',
+    },
+    {
+      id: 'subtotal',
+      label: 'Subtotal',
+      renderCell: (row) =>
+        row.subtotal != null ? formatCurrency(row.subtotal) : '—',
+    },
+    {
+      id: 'status',
       label: 'Status',
-      minWidth: 100,
-      sortable: true,
+      renderCell: (row) => formatStatus(row.status?.name, 'item'),
     },
     {
-      id: 'order_item_status_date',
-      label: 'Order Item Status Date',
-      minWidth: 100,
-      sortable: true,
-      format: (value: string | number | undefined) => {
-        if (typeof value === 'string') return formatDate(value);
-        if (typeof value === 'number') return value.toString(); // If it's a number, just convert to string
-        return 'N/A'; // Return 'N/A' if it's undefined or any other type
-      },
+      id: 'statusDate',
+      label: 'Status Date',
+      renderCell: (row) =>
+        row.status?.date ? formatDate(row.status.date) : '—',
     },
+    ...(handleDrillDownToggle
+      ? [
+        createDrillDownColumn<OrderItem>(
+          (row) => handleDrillDownToggle(row.id),
+          (row) => expandedRowId === row.id
+        ),
+      ]
+      : []),
   ];
-
-  if (hasAdjustedPrice) {
-    columns.push({
-      id: 'adjusted_price',
-      label: 'Adjusted Price',
-      minWidth: 100,
-      sortable: true,
-      format: (value) => {
-        if (!value) return 'N/A';
-        if (typeof value === 'string' && value.startsWith('$')) return value;
-        return formatCurrency(parseFloat(value as string));
-      },
-    });
-  }
-
-  return columns;
 };

@@ -134,15 +134,24 @@ const convertToLocalTime = (
  */
 export const formatDate = (
   timestamp: string | number | Date | null,
-  timezone: string = 'America/Vancouver'
+  timezone: string = 'America/Vancouver',
+  fallback: string = '-'
 ): string => {
-  if (!timestamp) return 'N/A';
-
+  if (
+    timestamp === null ||
+    timestamp === undefined ||
+    timestamp === '' ||
+    timestamp === '-' ||
+    timestamp === 'N/A'
+  ) {
+    return fallback;
+  }
+  
   const localTime = convertToLocalTime(timestamp, timezone);
   if (!localTime || !localTime.date || isNaN(localTime.date.getTime())) {
-    return 'N/A'; // Ensure valid date
+    return fallback; // invalid date → fallback
   }
-
+  
   return new Intl.DateTimeFormat('en-CA', {
     year: 'numeric',
     month: '2-digit',
