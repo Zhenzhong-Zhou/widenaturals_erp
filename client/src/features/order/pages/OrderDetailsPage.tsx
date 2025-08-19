@@ -13,17 +13,16 @@ import CustomTypography from '@components/common/CustomTypography';
 import ErrorDisplay from '@components/shared/ErrorDisplay';
 import GoBackButton from '@components/common/GoBackButton';
 import NoDataFound from '@components/common/NoDataFound';
-import OrderItemsTable from '@features/order/components/SalesOrderDetails/OrderItemsTable';
-import OrderHeaderSection from '@features/order/components/SalesOrderDetails/OrderHeaderSection';
-import CustomerInfoSection from '@features/order/components/SalesOrderDetails/CustomerInfoSection';
-import DiscountInfoSection from '@features/order/components/SalesOrderDetails/DiscountInfoSection';
-import PriceOverrideSection from '@features/order/components/SalesOrderDetails/PriceOverrideSection';
-import OrderNoteSection from '@features/order/components/SalesOrderDetails/OrderNoteSection';
-import ShippingInfoSection from '../components/SalesOrderDetails/ShippingInfoSection';
-import BillingInfoSection from '@features/order/components/SalesOrderDetails/BillingInfoSection';
-import CurrencyInfoSection from '@features/order/components/SalesOrderDetails/CurrencyInfoSection';
-import AuditInfoSection from '@features/order/components/SalesOrderDetails/AuditInfoSection';
-import OrderTotalsSection from '@features/order/components/SalesOrderDetails/OrderTotalsSection';
+import {
+  AuditInfoSection,
+  BillingInfoSection, CurrencyInfoSection,
+  CustomerInfoSection,
+  DiscountInfoSection,
+  OrderHeaderSection, OrderItemsTable,
+  OrderNoteSection, OrderTotalsSection,
+  PriceOverrideSection,
+  ShippingInfoSection,
+} from '@features/order/components/SalesOrderDetails';
 import { useOrderDetails } from '@hooks/useOrderDetails';
 import { flattenSalesOrderHeader } from '@features/order/utils/transformOrderHeader';
 

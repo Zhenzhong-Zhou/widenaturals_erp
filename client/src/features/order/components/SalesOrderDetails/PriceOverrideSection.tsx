@@ -3,7 +3,7 @@ import ConditionalSection from '@components/layout/ConditionalSection';
 import DetailsGrid, { DetailsGridItem } from '@components/layout/DetailsGrid';
 import MemoizedDetailsSection from '@components/common/DetailsSection';
 import type { FlattenedOrderHeader } from '@features/order/state';
-import { OverrideSummaryFormatter } from '@features/order/components/SalesOrderDetails/OverrideSummaryFormatter';
+import { OverrideSummaryFormatter } from '@features/order/components/SalesOrderDetails/index';
 
 interface PriceOverrideSectionProps {
   flattened: FlattenedOrderHeader;

@@ -3,13 +3,30 @@ import Box from '@mui/material/Box';
 import CustomTypography from '@components/common/CustomTypography';
 import { formatDateTime } from '@utils/dateTimeUtils';
 
+interface OverrideItem {
+  sku_id?: string;
+  sku?: string;
+  productDisplayName?: string;
+  db_price?: number;
+  submitted_price?: number;
+}
+
+interface OverrideSummary {
+  generated_at?: string | null;
+  has_override?: boolean;
+  override_count?: number;
+  overrides?: OverrideItem[];
+}
+
 /**
  * Formatter for order_metadata.price_override_summary used in MemoizedDetailsSection
  *
  * @param summary - The summary object to render
  * @returns JSX.Element | string
  */
-export const OverrideSummaryFormatter = (summary: any): JSX.Element | string => {
+const OverrideSummaryFormatter = (
+  summary: OverrideSummary | null | undefined
+): JSX.Element | string => {
   if (!summary) return '—';
   
   const {
@@ -55,3 +72,5 @@ export const OverrideSummaryFormatter = (summary: any): JSX.Element | string => 
     </Box>
   );
 };
+
+export default OverrideSummaryFormatter;

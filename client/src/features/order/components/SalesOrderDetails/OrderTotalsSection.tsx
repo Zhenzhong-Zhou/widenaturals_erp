@@ -1,6 +1,6 @@
 import type { FC } from 'react';
 import Section from '@components/layout/Section';
-import OrderSummarySection from '@features/order/components/SalesOrderDetails/OrderSummarySection';
+import { OrderSummarySection } from '@features/order/components/SalesOrderDetails/index';
 
 interface OrderTotalsSectionProps {
   subtotal: number;
