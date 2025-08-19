@@ -6,9 +6,10 @@ import { getOrderItemColumns } from '@features/order/components/OrderItemsTableC
 
 interface OrderItemsTableProps {
   items: OrderItem[];
+  itemCount: number;
 }
 
-const OrderItemsTable: FC<OrderItemsTableProps> = ({ items }) => {
+const OrderItemsTable: FC<OrderItemsTableProps> = ({ items, itemCount }) => {
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
   
   const handleDrillDownToggle = (rowId: string) => {
@@ -22,7 +23,7 @@ const OrderItemsTable: FC<OrderItemsTableProps> = ({ items }) => {
       columns={columns}
       data={items}
       page={0}
-      totalRecords={items.length}
+      totalRecords={itemCount}
       getRowId={(row) => row.id}
       expandable
       expandedRowId={expandedRowId}
@@ -31,8 +32,8 @@ const OrderItemsTable: FC<OrderItemsTableProps> = ({ items }) => {
       )}
       onPageChange={() => {}} // No pagination handling for now
       onRowsPerPageChange={() => {}} // No pagination handling for now
-      initialRowsPerPage={items.length} // Display all items by default
-      rowsPerPageOptions={[items.length]} // Disable pagination options
+      initialRowsPerPage={itemCount} // Display all items by default
+      rowsPerPageOptions={[itemCount]} // Disable pagination options
     />
   );
 };
