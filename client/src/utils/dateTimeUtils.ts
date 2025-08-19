@@ -133,7 +133,7 @@ const convertToLocalTime = (
  * Format date as YYYY-MM-DD.
  */
 export const formatDate = (
-  timestamp: string | number | Date | null,
+  timestamp: string | number | Date | null | undefined,
   timezone: string = 'America/Vancouver',
   fallback: string = '-'
 ): string => {
@@ -182,9 +182,18 @@ export const formatTime = (
  */
 export const formatDateTime = (
   timestamp: string | number | Date | null | undefined,
-  timezone: string = 'America/Vancouver'
+  timezone: string = 'America/Vancouver',
+  fallback: string = '-'
 ): string => {
-  if (!timestamp) return 'N/A'; // Handle null or undefined inputs gracefully
+  if (
+    timestamp === null ||
+    timestamp === undefined ||
+    timestamp === '' ||
+    timestamp === '-' ||
+    timestamp === 'N/A'
+  ) {
+    return fallback;
+  }
 
   const rawDate =
     typeof timestamp === 'string' ? parseISO(timestamp) : new Date(timestamp);

@@ -65,7 +65,7 @@ export const formatLabel = (
 ): string => {
   if (text === null || text === undefined || text === '') return 'Unknown';
   
-  let label = text;
+  let label = String(text); // ensures label is a string
   
   if (!options.preserveHyphen) {
     label = label.replace(/-/g, ' ');

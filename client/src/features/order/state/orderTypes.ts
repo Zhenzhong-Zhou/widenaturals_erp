@@ -118,7 +118,7 @@ export interface AuditUser {
   /** The unique identifier of the user, or null if unavailable */
   id: string | null;
   /** The display name of the user, or null if unavailable */
-  name: string | null;
+  name: string;
 }
 
 /**
@@ -391,3 +391,127 @@ export type OrderRouteParams = {
   category: string;
   orderId?: string;
 };
+
+/**
+ * A flattened view of a sales order header used for UI rendering.
+ * This structure simplifies nested fields from the backend `TransformedOrder` model
+ * into a flat and consistent shape for detail components.
+ */
+export interface FlattenedOrderHeader {
+  /** Unique order number (human-readable) */
+  orderNumber: string;
+  
+  /** Date the order was created or placed */
+  orderDate: string | null;
+  
+  /** Optional note or memo attached to the order */
+  orderNote: string;
+  
+  /** Current status of the order (e.g., Pending, Shipped) */
+  orderStatus: string | null;
+  
+  /** Date when the order status was last updated */
+  orderStatusDate: string | null;
+  
+  /** Order type name (e.g., Sale, Return, Transfer) */
+  orderType: string | null;
+  
+  /** Payment-related information */
+  paymentInfo: {
+    /** Payment method name (e.g., Credit Card, Bank Transfer) */
+    method: string | null;
+    
+    /** Payment status (e.g., Paid, Unpaid, Refunded) */
+    status: string | null;
+    
+    /** Currency code used for the transaction (e.g., USD, CAD) */
+    currencyCode: string | null;
+    
+    /** Exchange rate from base to target currency, if applicable */
+    exchangeRate: number | null;
+    
+    /** Order total in base currency */
+    baseCurrencyAmount: number | null;
+  };
+  
+  /** Discount name or code applied to the order */
+  discount: string | null;
+  
+  /** User-friendly discount label for display */
+  discountLabel: string | null;
+  
+  /** Total discount amount */
+  discountAmount: number | null;
+  
+  /** Order subtotal before tax, shipping, and discounts */
+  subtotal: number | null;
+  
+  /** Tax rate name or label (e.g., GST, VAT) */
+  taxRate: string | null;
+  
+  /** Total tax amount applied */
+  taxAmount: number | null;
+  
+  /** Delivery method info (e.g., Pickup, Courier) */
+  deliveryInfo: {
+    /** Name of the delivery method */
+    method: string | null;
+  };
+  
+  /** Shipping address and contact details */
+  shippingInfo: {
+    /** Full name of the shipping recipient */
+    shippingFullname: string;
+    
+    /** Phone number of the recipient */
+    shippingPhone: string;
+    
+    /** Email of the shipping contact */
+    shippingEmail: string;
+    
+    /** Formatted shipping address string */
+    address: string;
+  };
+  
+  /** Billing address and contact details */
+  billingInfo: {
+    /** Full name of the billing contact */
+    billingFullname: string;
+    
+    /** Phone number of the billing contact */
+    billingPhone: string;
+    
+    /** Email of the billing contact */
+    billingEmail: string;
+    
+    /** Formatted billing address string */
+    address: string;
+  };
+  
+  /** Full name of the customer placing the order */
+  customerName: string;
+  
+  /** Customer’s email address */
+  customerEmail: string;
+  
+  /** Customer’s phone number */
+  customerPhone: string;
+  
+  /** Metadata about who created/updated the order */
+  auditInfo: {
+    /** Order creation timestamp */
+    createdAt: string;
+    
+    /** Creator details (ID and name) */
+    createdBy: { id: string | null; name: string } | null;
+    
+    /** Last update timestamp */
+    updatedAt: string;
+    
+    /** Updater details (ID and name) */
+    updatedBy: { id: string | null; name: string } | null;
+  };
+  
+  /** Additional order-level metadata for custom logic or display */
+  orderMetadata: Record<string, any>;
+}
