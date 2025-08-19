@@ -371,6 +371,7 @@ const transformOrderWithItems = (
         amount: orderRow.discount_amount,
       }
       : null,
+    subtotal: orderRow.subtotal,
     tax: orderRow.tax_rate_id
       ? {
         id: orderRow.tax_rate_id,

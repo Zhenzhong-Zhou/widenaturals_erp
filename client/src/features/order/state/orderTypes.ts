@@ -329,6 +329,11 @@ export interface TransformedOrder {
   payment: Payment;
   /** Discount applied to the order, if any */
   discount: Discount | null;
+  /**
+   * The subtotal for all order items (before discount, tax, and shipping).
+   * May be `null` if not yet calculated.
+   */
+  subtotal: number | null;
   /** Tax applied to the order, if any */
   tax: Tax | null;
   /** Shipping fee as a string */
