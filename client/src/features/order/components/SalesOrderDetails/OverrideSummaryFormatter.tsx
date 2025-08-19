@@ -9,7 +9,7 @@ import { formatDateTime } from '@utils/dateTimeUtils';
  * @param summary - The summary object to render
  * @returns JSX.Element | string
  */
-export const overrideSummaryFormatter = (summary: any): JSX.Element | string => {
+export const OverrideSummaryFormatter = (summary: any): JSX.Element | string => {
   if (!summary) return '—';
   
   const {

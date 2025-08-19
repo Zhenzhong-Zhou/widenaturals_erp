@@ -1,8 +1,8 @@
 import { type FC, useState } from 'react';
 import CustomTable from '@components/common/CustomTable';
-import OrderItemDetailSection from '@features/order/components/OrderItemDetailSection';
+import OrderItemDetailSection from '@features/order/components/SalesOrderDetails/OrderItemDetailSection';
 import type { OrderItem } from '@features/order/state';
-import { getOrderItemColumns } from '@features/order/components/OrderItemsTableColumns';
+import { getOrderItemColumns } from '@features/order/utils/orderItemsTableColumns';
 
 interface OrderItemsTableProps {
   items: OrderItem[];

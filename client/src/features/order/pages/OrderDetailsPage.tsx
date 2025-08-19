@@ -17,10 +17,12 @@ import GoBackButton from '@components/common/GoBackButton';
 import DetailsGrid, { DetailsGridItem } from '@components/layout/DetailsGrid';
 import Section from '@components/layout/Section';
 import ConditionalSection from '@components/layout/ConditionalSection';
-import { overrideSummaryFormatter } from '@features/order/utils/overrideSummaryFormatter';
-import OrderSummarySection from '@features/order/components/OrderSummarySection';
+import {
+  OverrideSummaryFormatter,
+} from '@features/order/components/SalesOrderDetails/OverrideSummaryFormatter';
+import OrderSummarySection from '@features/order/components/SalesOrderDetails/OrderSummarySection';
 import NoDataFound from '@components/common/NoDataFound';
-import OrderItemsTable from '@features/order/components/OrderItemsTable';
+import OrderItemsTable from '@features/order/components/SalesOrderDetails/OrderItemsTable';
 import { useOrderDetails } from '@hooks/useOrderDetails';
 import { flattenSalesOrderHeader } from '../utils/transformOrderHeader';
 import { formatLabel, formatPhoneNumber, formatToThreeDecimal, toUpperCase } from '@utils/textUtils';
@@ -211,7 +213,7 @@ const OrderDetailsPage: FC = () => {
                     {
                       label: 'Price Override Summary',
                       value: flattened.order_metadata?.price_override_summary ?? null,
-                      format: overrideSummaryFormatter, // Extract formatter into reusable function if needed
+                      format: OverrideSummaryFormatter, // Extract formatter into reusable function if needed
                     },
                   ]}
                 />

@@ -48,7 +48,7 @@ const Row = ({
 }) => (
   <Box
     display="grid"
-    gridTemplateColumns="1500px auto"
+    gridTemplateColumns="90% auto"
     alignItems="center"
     width="100%"
   >

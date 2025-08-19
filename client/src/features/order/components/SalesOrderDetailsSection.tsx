@@ -10,7 +10,7 @@ import Loading from '@components/common/Loading';
 import ErrorMessage from '@components/common/ErrorMessage';
 import CustomButton from '@components/common/CustomButton';
 import MemoizedDetailsSection from '@components/common/DetailsSection';
-import OrderItemsTable from '@features/order/components/OrderItemsTable';
+import OrderItemsTable from '@features/order/components/SalesOrderDetails/OrderItemsTable.tsx';
 import useSalesOrderDetails from '@hooks/useSalesOrderDetails';
 import useConfirmSalesOrder from '@hooks/useConfirmSalesOrder';
 import type { OrderDetailsData } from '@features/order/state';
