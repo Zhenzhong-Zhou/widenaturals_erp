@@ -398,6 +398,47 @@ const transformOrderWithItems = (
   };
 };
 
+/**
+ * Converts status-related fields from snake_case to camelCase
+ * in enriched order and item objects.
+ *
+ * Specifically:
+ *   - `status_name` → `statusName`
+ *   - `status_code` → `statusCode`
+ *   - `status_category` → `statusCategory`
+ *
+ * @param {object} enrichedData - Object containing enriched order and items.
+ * @param {object} enrichedData.enrichedOrder - Order object with snake_case keys.
+ * @param {object[]} enrichedData.enrichedItems - Array of item objects with snake_case keys.
+ * @returns {{ enrichedOrder: object, enrichedItems: object[] }} - Transformed result.
+ */
+const transformOrderStatusWithMetadata = ({ enrichedOrder, enrichedItems }) => {
+  const transformKeys = (obj) => {
+    if (!obj || typeof obj !== 'object') return {};
+    
+    const {
+      status_name,
+      status_code,
+      status_category,
+      ...rest
+    } = obj;
+    
+    return {
+      ...rest,
+      statusName: status_name,
+      statusCode: status_code,
+      statusCategory: status_category,
+    };
+  };
+  
+  return {
+    enrichedOrder: transformKeys(enrichedOrder),
+    enrichedItems: (enrichedItems || []).map(transformKeys),
+  };
+};
+
+
 module.exports = {
   transformOrderWithItems,
+  transformOrderStatusWithMetadata,
 };

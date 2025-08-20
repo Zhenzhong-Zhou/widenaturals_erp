@@ -129,6 +129,7 @@ const verifyOrderViewPermission = async (user, category, { action = 'VIEW', orde
  * @param {Object} user - Authenticated user object with a permission set
  * @returns {Promise<{ canViewOrderMetadata: boolean, canViewOrderItemMetadata: boolean }>}
  */
+// todo: evaluateOrderDetailsViewAccessControl
 const evaluateOrderAccessControl = async (user) => {
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
@@ -154,6 +155,256 @@ const evaluateOrderAccessControl = async (user) => {
       stage: 'evaluate-order-access',
     });
   }
+};
+
+/**
+ * Maps each order category to its valid status progression structure.
+ *
+ * Used for validating status transitions via `validateStatusTransitionByCategory`.
+ */
+const STATUS_CODES_BY_CATEGORY = {
+  sales: {
+    draft: ['ORDER_PENDING', 'ORDER_EDITED'],
+    confirmation: ['ORDER_AWAITING_REVIEW', 'ORDER_CONFIRMED'],
+    processing: ['ORDER_ALLOCATING', 'ORDER_PARTIALLY_ALLOCATED', 'ORDER_ALLOCATED'],
+    return: ['RETURN_REQUESTED', 'RETURN_COMPLETED'],
+    completion: ['ORDER_COMPLETED', 'ORDER_CANCELED'],
+  },
+};
+
+/**
+ * Validates whether a status transition is allowed based on category-specific flow.
+ *
+ * Rules:
+ * - Allows forward transitions within the same category (based on defined sequence).
+ * - Allows transitions to a new category (as long as it's listed for that order type).
+ *
+ * @param {string} orderCategory - The high-level order category (e.g., 'sales').
+ * @param {string} currentCategory - Current status category (e.g., 'draft').
+ * @param {string} nextCategory - Next status category to transition to.
+ * @param {string} currentCode - Current status code (e.g., 'ORDER_PENDING').
+ * @param {string} nextCode - Next status code to transition to (e.g., 'ORDER_CONFIRMED').
+ *
+ * @throws {AppError} If the transition is invalid.
+ */
+const validateStatusTransitionByCategory = (
+  orderCategory,
+  currentCategory,
+  nextCategory,
+  currentCode,
+  nextCode
+) => {
+  const sequence = STATUS_CODES_BY_CATEGORY[orderCategory]?.[currentCategory] || [];
+  
+  const isSameCategory = currentCategory === nextCategory;
+  
+  const isForwardWithinSameCategory =
+    isSameCategory &&
+    sequence.includes(currentCode) &&
+    sequence.includes(nextCode) &&
+    sequence.indexOf(nextCode) > sequence.indexOf(currentCode);
+  
+  const allowedNextCategories = Object.keys(STATUS_CODES_BY_CATEGORY[orderCategory] || {});
+  
+  const isForwardToNextCategory =
+    allowedNextCategories.includes(nextCategory) &&
+    currentCategory !== nextCategory;
+  
+  if (!isForwardWithinSameCategory && !isForwardToNextCategory) {
+    throw AppError.validationError(
+      `Invalid transition for ${orderCategory}: ${currentCode} (${currentCategory}) → ${nextCode} (${nextCategory})`
+    );
+  }
+};
+
+/**
+ * Determines whether the given user is authorized to update the order's status.
+ *
+ * This function enforces:
+ *  - Role-based permission checks (RBAC)
+ *  - Category-based access (e.g., sales vs. purchase)
+ *  - Lock overrides for financially locked orders
+ *
+ * Throws:
+ *  - Business error if attempting restricted transitions (e.g., canceling a paid order without override)
+ *  - Validation error if next status is unknown
+ *
+ * @param {object} user - Authenticated user object (must include `id` and `role`)
+ * @param {string} category - Order category (e.g., 'sales')
+ * @param {object} order - Current order object with status, type, and ID
+ * @param {string} nextStatusCode - Status code to transition to
+ * @returns {Promise<boolean>} - True if the user is allowed to update the status
+ */
+const canUpdateOrderStatus = async (user, category, order, nextStatusCode) => {
+  try {
+    const { permissions, isRoot } = await resolveUserPermissionContext(user);
+    if (isRoot) return true;
+    
+    // 1. Map target status → required permission
+    const transitionToPermissionMap = {
+      ORDER_AWAITING_REVIEW: PERMISSIONS.CONFIRM_AWAITING_REVIEW_SALES_ORDER,
+      ORDER_CONFIRMED: PERMISSIONS.CONFIRM_SALES_ORDER,
+      ORDER_CANCELED: PERMISSIONS.CANCEL_SALES_ORDER,
+      ORDER_SHIPPED: PERMISSIONS.SHIP_SALES_ORDER,
+      ORDER_COMPLETED: PERMISSIONS.COMPLETE_SALES_ORDER,
+    };
+    
+    const requiredPermission = transitionToPermissionMap[nextStatusCode];
+    if (!requiredPermission) {
+      throw AppError.validationError(`Unknown status code: ${nextStatusCode}`);
+    }
+    
+    // 2. Check RBAC + category access (strict mode = require both)
+    const hasPermission = permissions.includes(requiredPermission);
+    const hasRoleAccess = canUserPerformActionOnOrderType(user, category);
+    const isStrictAuthorization = true; // Optional: make this configurable
+    
+    if (isStrictAuthorization ? !(hasPermission && hasRoleAccess) : !(hasPermission || hasRoleAccess)) {
+      return false;
+    }
+    
+    // 3. Handle financial lock override
+    if (isFinanciallyLocked(order) && nextStatusCode === 'ORDER_CANCELED') {
+      if (!permissions.includes(PERMISSIONS.OVERRIDE_LOCKED_STATUS)) {
+        throw AppError.businessError(
+          'Cannot cancel a shipped or paid order unless override permission is granted.'
+        );
+      }
+    }
+    
+    return true;
+  } catch (err) {
+    logSystemException(err, {
+      message: 'Failed to evaluate order status update permission',
+      context: 'order-business/canUpdateOrderStatus',
+      userId: user?.id,
+      orderId: order.order_id,
+      nextStatusCode,
+    });
+    throw AppError.businessError('Unable to evaluate order status update permission', {
+      details: err.message,
+    });
+  }
+};
+
+/**
+ * Defines role-based permissions for various order type categories and actions.
+ *
+ * This structure maps each order type category (e.g., 'sales', 'transfer') to allowed roles
+ * for specific actions (e.g., 'updateStatus').
+ *
+ * Example Usage:
+ *   ORDER_TYPE_PERMISSIONS['sales']['updateStatus'] → ['sales', 'manager', 'admin']
+ *
+ * Used by: `canUserPerformActionOnOrderType(user, orderTypeCategory, action)`
+ *
+ * Add or uncomment entries as needed for more order types and actions.
+ */
+const ORDER_TYPE_PERMISSIONS = {
+  sales: {
+    updateStatus: ['sales', 'manager', 'admin'],
+  },
+  // transfer: {
+  //   updateStatus: ['outbound_user', 'admin'],
+  // },
+  // logistics: {
+  //   updateStatus: ['outbound_user', 'admin'],
+  // },
+  // sample: {
+  //   updateStatus: ['admin'],
+  // },
+  // purchase: {
+  //   updateStatus: ['admin'],
+  // },
+};
+
+/**
+ * Determines whether a user can perform a specific action on a given order type category.
+ *
+ * This is a role-based access control (RBAC) check based on `roleName` and order category.
+ *
+ * @param {object} user - Authenticated user (must include `roleName`, `isRoot`)
+ * @param {string} orderTypeCategory - The category of the order type (e.g., 'sales', 'transfer')
+ * @param {string} [action='updateStatus'] - The specific action to evaluate permission for
+ * @returns {boolean} True if the user is allowed to perform the action
+ */
+const canUserPerformActionOnOrderType = (user, orderTypeCategory, action = 'updateStatus') => {
+  if (user.isRoot) return true;
+  
+  const roleName = user.roleName;
+  const allowedRoles = ORDER_TYPE_PERMISSIONS[orderTypeCategory]?.[action] || [];
+  
+  return allowedRoles.includes(roleName);
+};
+
+/**
+ * Checks whether an order is financially locked based on its status or payment state.
+ *
+ * Orders that are shipped, fulfilled, delivered, or already paid are considered locked.
+ *
+ * @param {object} orderMetadata - Order object with at least `order_status_code` and `payment_status`
+ * @returns {boolean} True if the order is financially locked
+ */
+const isFinanciallyLocked = (orderMetadata) => {
+  const lockedOrderStatuses = [
+    'ORDER_SHIPPED',
+    'ORDER_OUT_FOR_DELIVERY',
+    'ORDER_FULFILLED',
+    'ORDER_DELIVERED'
+  ];
+  
+  const lockedPaymentStatuses = [
+    'PAID',
+    'PARTIALLY_PAID',
+    'OVERPAID',
+    'REFUNDED',
+    'PARTIALLY_REFUNDED'
+  ];
+  
+  return (
+    lockedOrderStatuses.includes(orderMetadata.order_status_code) ||
+    lockedPaymentStatuses.includes(orderMetadata.payment_status)
+  );
+};
+
+/**
+ * Enriches the updated order and item records with status metadata.
+ *
+ * This function attaches human-readable status fields (name, code, category)
+ * to both the updated order object and its associated items using the
+ * resolved `orderStatusMetadata` fetched earlier from the database.
+ *
+ * @param {Object} params - Function input parameters.
+ * @param {Object} params.updatedOrder - The updated order object after status change.
+ * @param {Array<Object>} params.updatedItems - List of updated order items.
+ * @param {Object} params.orderStatusMetadata - Metadata about the new status.
+ *
+ * @returns {Promise<{
+ *   enrichedOrder: Object,
+ *   enrichedItems: Array<Object>
+ * }>} Enriched order and item records with status metadata fields.
+ */
+const enrichStatusMetadata = ({ updatedOrder, updatedItems, orderStatusMetadata }) => {
+  const { name, code, category } = orderStatusMetadata;
+  
+  const enrichedOrder = {
+    ...updatedOrder,
+    status_name: name,
+    status_code: code,
+    status_category: category,
+  };
+  
+  const enrichedItems = updatedItems.map((item) => ({
+    ...item,
+    status_name: name,
+    status_code: code,
+    status_category: category,
+  }));
+  
+  return {
+    enrichedOrder,
+    enrichedItems,
+  };
 };
 
 /**
@@ -318,6 +569,9 @@ module.exports = {
   createOrderWithType,
   verifyOrderViewPermission,
   evaluateOrderAccessControl,
+  validateStatusTransitionByCategory,
+  canUpdateOrderStatus,
+  enrichStatusMetadata,
   validateOrderNumbers,
   applyOrderDetailsBusinessLogic,
   confirmOrderWithItems,

@@ -2,19 +2,27 @@ const { withTransaction } = require('../database/db');
 const { validateIdExists } = require('../validators/entity-id-validators');
 const { generateOrderIdentifiers } = require('../utils/order-number-utils');
 const {
-  getOrderStatusIdByCode,
+  getOrderStatusIdByCode, getOrderStatusByCode, getOrderStatusMetadataById,
 } = require('../repositories/order-status-repository');
-const { insertOrder, findOrderByIdWithDetails } = require('../repositories/order-repository');
+const {
+  insertOrder,
+  findOrderByIdWithDetails,
+  updateOrderStatus,
+  fetchOrderMetadata
+} = require('../repositories/order-repository');
 const {
   createOrderWithType,
   verifyOrderCreationPermission,
   verifyOrderViewPermission,
   evaluateOrderAccessControl,
+  validateStatusTransitionByCategory,
+  canUpdateOrderStatus, enrichStatusMetadata, enrichStatusMetadataWithMultiple,
 } = require('../business/order-business');
 const AppError = require('../utils/AppError');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
-const { findOrderItemsByOrderId } = require('../repositories/order-item-repository');
-const { transformOrderWithItems } = require('../transformers/order-transformer');
+const { findOrderItemsByOrderId, updateOrderItemStatuses } = require('../repositories/order-item-repository');
+const { transformOrderWithItems, transformOrderStatusWithMetadata } = require('../transformers/order-transformer');
+const { getRoleNameById } = require('../repositories/role-repository');
 
 /**
  * Service function to create a new order within the specified category.
@@ -300,36 +308,136 @@ const fetchAllocationEligibleOrdersService = (options = {}) =>
   });
 
 /**
- * Service to confirm an order and its associated order items.
- * Validates the order's current status before proceeding.
+ * Updates the status of a sales order and all associated items within a single DB transaction.
  *
- * @param {string} orderId - The ID of the order to confirm.
- * @param {object} user - The user performing the confirmation.
- * @returns {Promise<object>} - Transformed result of the confirmed order.
- * @throws {AppError} - If order ID is missing, or order cannot be confirmed.
+ * Enforces FSM-based transitions, category-level permissions, and audit logging.
+ *
+ * Workflow:
+ * 1. Validate the existence of the target order.
+ * 2. Fetch current order status, category, and metadata.
+ * 3. Resolve the next status object (by code).
+ * 4. Validate the status transition using FSM rules.
+ * 5. Prevent cross-category spoofing from route param vs DB data.
+ * 6. Enforce role/permission-based access control.
+ * 7. Update the order's status and timestamp.
+ * 8. Cascade the status update to all related order items.
+ * 9. Log the structured system-level status change audit.
+ * 10. Enrich both order and items with human-readable status metadata.
+ *
+ * @async
+ * @param {object} user - Authenticated user performing the update. Mutated with `roleName` for downstream logic.
+ * @param {string} categoryParam - Order category from the route (e.g., "sales", "purchase").
+ * @param {string} orderId - UUID of the order to update.
+ * @param {string} nextStatusCode - Status code to transition to (e.g., "ORDER_CONFIRMED").
+ * @returns {Promise<{ enrichedOrder: object, enrichedItems: object[] }>} - Transformed order and items with camelCase status metadata.
+ *
+ * @throws {AppError} - On validation, authorization, or transition errors.
  */
-const confirmOrderService = async (orderId, user) => {
-  if (!orderId) {
-    throw AppError.validationError(
-      'Order ID is required to confirm the order.'
-    );
-  }
-
+const updateOrderStatusService = async (user, categoryParam, orderId, nextStatusCode) => {
   return await withTransaction(async (client) => {
-    // Step 1: Validate if the order and its items can be confirmed
-    const isConfirmable = await canConfirmOrder(orderId, client);
-
-    if (!isConfirmable) {
-      throw AppError.validationError(
-        `Order cannot be confirmed from its current status or item statuses.`
+    const userId = user.id;
+    
+    // Step 0: Attach roleName (e.g., "admin", "sales") to user for downstream permission checks
+    const { name: roleName } = await getRoleNameById(user.role, client);
+    user.roleName = roleName;
+    
+    // Step 1: Validate that the order exists
+    await validateIdExists('orders', orderId, client, 'Orders');
+    
+    // Step 2: Get current order status metadata
+    const orderWithMeta = await fetchOrderMetadata(orderId, client);
+    const {
+      order_status_category: currentStatusCategory,
+      order_status_code: currentStatusCode,
+      order_category: orderCategory,
+    } = orderWithMeta;
+    
+    // Step 3: Resolve full metadata for the target status code
+    const {
+      id: nextStatusId,
+      category: nextStatusCategory,
+      code: resolvedNextStatusCode,
+    } = await getOrderStatusByCode(nextStatusCode, client);
+    
+    // Step 4: Validate transition using FSM rules
+    validateStatusTransitionByCategory(
+      orderCategory,
+      currentStatusCategory,
+      nextStatusCategory,
+      currentStatusCode,
+      resolvedNextStatusCode
+    );
+    
+    // Step 5: Protect against route vs. DB category mismatch
+    if (orderCategory !== categoryParam) {
+      throw AppError.authorizationError(
+        `Category mismatch. Cannot update ${orderCategory} order via ${categoryParam} route.`
       );
     }
-
-    // Step 2: Confirm the order and items in the database
-    const rawResult = await confirmOrderWithItems(orderId, user, client);
-
-    // Step 3: Transform and return the final confirmed result
-    return transformUpdatedOrderStatusResult(rawResult);
+    
+    // Step 6: Check user permission to perform this transition
+    const canUpdate = await canUpdateOrderStatus(user, orderCategory, orderWithMeta, nextStatusCode);
+    
+    if (!canUpdate) {
+      throw AppError.authorizationError(
+        `User role '${user.roleName}' is not allowed to update ${orderCategory} order to ${nextStatusCode}.`
+      );
+    }
+    
+    // Step 7: Update the order status
+    const updatedOrder = await updateOrderStatus(client, {
+      orderId,
+      newStatusId: nextStatusId,
+      updatedBy: userId,
+    });
+    
+    if (!updatedOrder) {
+      throw AppError.notFoundError(
+        `Order ${orderId} not found or already in status ${resolvedNextStatusCode}.`
+      );
+    }
+    
+    // Step 8: Cascade update to all order items
+    const updatedItems = await updateOrderItemStatuses(client, {
+      orderId,
+      newStatusId: nextStatusId,
+      updatedBy: userId,
+    });
+    
+    // Step 9: Log the status update for audit purposes
+    logSystemInfo('Order status updated', {
+      context: 'order-service/updateOrderStatusService',
+      orderId,
+      previousStatus: currentStatusCode,
+      newStatus: resolvedNextStatusCode,
+      updatedBy: userId,
+      role: user.roleName,
+    });
+    
+    // Step 10: Validate consistency and enrich response
+    const inconsistentStatus = updatedItems.some(
+      (item) => item.status_id !== updatedOrder.order_status_id
+    );
+    
+    if (inconsistentStatus) {
+      throw AppError.validationError(
+        'Mismatch between order and item status after update.'
+      );
+    }
+    
+    const orderStatusMetadata = await getOrderStatusMetadataById(
+      updatedOrder.order_status_id,
+      client
+    );
+    
+    const { enrichedOrder, enrichedItems } = enrichStatusMetadata({
+      updatedOrder,
+      updatedItems,
+      orderStatusMetadata,
+    });
+    
+    // Return the transformed records with camelCase metadata fields
+    return transformOrderStatusWithMetadata({ enrichedOrder, enrichedItems });
   });
 };
 
@@ -372,6 +480,6 @@ module.exports = {
   fetchOrderDetailsByIdService,
   fetchAllOrdersService,
   fetchAllocationEligibleOrdersService,
-  confirmOrderService,
+  updateOrderStatusService,
   fetchAllocationEligibleOrderDetails,
 };

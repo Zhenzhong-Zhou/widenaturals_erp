@@ -349,6 +349,135 @@ const updateOrderData = async (orderId, updateData, client) => {
 };
 
 /**
+ * Fetches enriched order metadata, including status, type, and payment information.
+ *
+ * This function joins the `orders`, `sales_orders`, `order_types`, `order_status`,
+ * and `payment_status` tables to return detailed information about the specified order.
+ *
+ * @param {string} orderId - UUID of the order to retrieve.
+ * @param {object} client - Optional PostgreSQL client for transactional context.
+ * @returns {Promise<object>} - Resolved order object containing status, type, and payment metadata.
+ *
+ * @throws {AppError} - If the order is not found or if the query execution fails.
+ */
+const fetchOrderMetadata = async (orderId, client) => {
+  const sql = `
+    SELECT
+      o.id AS order_id,
+      o.order_status_id,
+      s.category AS order_status_category,
+      s.code AS order_status_code,
+      s.name AS order_status_name,
+      o.order_type_id,
+      ot.code AS order_type_code,
+      ot.name AS order_type_name,
+      ot.category AS order_category,
+      ps.code AS payment_code
+    FROM orders o
+    JOIN sales_orders so ON o.id = so.id
+    JOIN payment_status ps ON so.payment_status_id = ps.id
+    JOIN order_types ot ON o.order_type_id = ot.id
+    JOIN order_status s ON o.order_status_id = s.id
+    WHERE o.id = $1
+  `;
+  
+  try {
+    const { rows } = await query(sql, [orderId], client);
+    
+    if (rows.length === 0) {
+      throw AppError.notFoundError(`Order ${orderId} not found.`);
+    }
+    
+    return rows[0];
+  } catch (error) {
+    logSystemException('Failed to fetch order metadata', {
+      context: 'fetchOrderMetadata',
+      orderId,
+      error,
+    });
+    
+    throw AppError.databaseError('Failed to retrieve order metadata.');
+  }
+};
+
+/**
+ * Updates the status of an order by setting a new status ID and timestamps.
+ *
+ * This function performs the following:
+ * - Updates the `order_status_id`, `status_date`, `updated_at`, and `updated_by` fields
+ *   in the `orders` table for the given `orderId`.
+ * - Logs audit messages for success or failure.
+ * - Returns the updated order record or `null` if no matching order was found.
+ *
+ * Typically used in controlled transitions such as confirming, fulfilling, or cancelling an order.
+ *
+ * @async
+ * @param {object} client - An instance of a PostgreSQL client or transaction context (`pg.Client` or `pg.PoolClient`).
+ * @param {object} params - Update parameters.
+ * @param {string} params.orderId - UUID of the order to update.
+ * @param {string} params.newStatusId - UUID of the new status to assign to the order.
+ * @param {string} params.updatedBy - UUID of the user performing the update (used for audit).
+ * @returns {Promise<{
+ *   id: string,
+ *   statusId: string,
+ *   statusDate: string
+ * } | null>} The updated order info if successful, or `null` if no matching order was found.
+ *
+ * @throws {AppError} If a database error occurs.
+ */
+const updateOrderStatus = async (client, { orderId, newStatusId, updatedBy }) => {
+  const sql = `
+    UPDATE orders
+    SET
+      order_status_id = $1,
+      status_date = NOW(),
+      updated_at = NOW(),
+      updated_by = $2
+    WHERE id = $3 AND order_status_id IS DISTINCT FROM $1
+    RETURNING id, order_status_id, status_date
+  `;
+  
+  const values = [newStatusId, updatedBy, orderId];
+  
+  try {
+    const result = await query(sql, values, client);
+    
+    if (result.rowCount === 0) {
+      logSystemInfo('Order status update skipped: no matching order', {
+        context: 'order-repository/updateOrderStatus',
+        orderId,
+        newStatusId,
+        updatedBy,
+        severity: 'WARN',
+      });
+      return false;
+    }
+    
+    const updatedOrder = result.rows[0];
+    
+    logSystemInfo('Order status updated successfully', {
+      context: 'order-repository/updateOrderStatus',
+      orderId: updatedOrder.id,
+      newStatusId: updatedOrder.order_status_id,
+      updatedBy,
+      severity: 'INFO',
+    });
+    
+    return updatedOrder;
+  } catch (error) {
+    logSystemException(error, 'Failed to update order status', {
+      context: 'order-repository/updateOrderStatus',
+      orderId,
+      newStatusId,
+      updatedBy,
+      severity: 'ERROR',
+    });
+    
+    throw AppError.databaseError(`Failed to update order status: ${error.message}`);
+  }
+};
+
+/**
  * Shared logic for fetching orders with pagination, sorting, and optional filters.
  *
  * @param {Object} options - Query options for fetching orders.
@@ -553,76 +682,6 @@ const getOrderAndItemStatusCodes = async (orderId, client) => {
 };
 
 /**
- * Updates the status of an order and optionally its associated items.
- *
- * @param {Object} params
- * @param {string} params.orderId - UUID of the order.
- * @param {string} params.orderStatusCode - Status code to set on the order.
- * @param {string} [params.itemStatusCode] - Optional separate status code for items.
- * @param {string} params.userId - UUID of the user performing the update.
- * @param {*} client - PostgreSQL client (transactional).
- * @returns {Promise<object>} - Updated row counts or result info.
- */
-const updateOrderAndItemStatus = async (
-  { orderId, orderStatusCode, itemStatusCode, userId },
-  client
-) => {
-  if (!orderId || !orderStatusCode || !userId) {
-    throw AppError.validationError(
-      'orderId, orderStatusCode, and userId are required.'
-    );
-  }
-
-  const queries = [];
-
-  // Update order
-  const orderSql = `
-    UPDATE orders o
-    SET order_status_id = s.id,
-        status_date = NOW(),
-        updated_at = NOW(),
-        updated_by = $3
-    FROM order_status s
-    WHERE s.code = $2 AND o.id = $1
-    RETURNING o.id;
-  `;
-  queries.push(query(orderSql, [orderId, orderStatusCode, userId], client));
-
-  // Update items only if itemStatusCode is explicitly provided
-  if (itemStatusCode) {
-    const itemSql = `
-      UPDATE order_items oi
-      SET status_id = s.id,
-          status_date = NOW(),
-          updated_at = NOW(),
-          updated_by = $3
-      FROM order_status s
-      WHERE s.code = $2 AND oi.order_id = $1
-      RETURNING oi.id;
-    `;
-    queries.push(query(itemSql, [orderId, itemStatusCode, userId], client));
-  }
-
-  try {
-    const [orderResult, orderItemResult = { rowCount: 0 }] =
-      await Promise.all(queries);
-    return {
-      orderResult,
-      orderItemResult,
-    };
-  } catch (error) {
-    logError(
-      `Failed to update order & item statuses for order ${orderId}`,
-      error
-    );
-    throw AppError.databaseError(
-      `Unable to update statuses for order: ${orderId}`,
-      { cause: error }
-    );
-  }
-};
-
-/**
  * Fetch lightweight order and item details for inventory allocation.
  *
  * Includes order metadata, order item inventory links, and related product info.
@@ -672,10 +731,11 @@ module.exports = {
   insertOrder,
   findOrderByIdWithDetails,
   updateOrderData,
+  fetchOrderMetadata,
+  updateOrderStatus,
   getAllOrders,
   getAllocationEligibleOrders,
   getOrderStatusAndItems,
   getOrderAndItemStatusCodes,
-  updateOrderAndItemStatus,
   getOrderAllocationDetailsById,
 };

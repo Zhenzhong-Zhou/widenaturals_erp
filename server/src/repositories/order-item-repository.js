@@ -32,6 +32,7 @@ const { logSystemException, logSystemInfo } = require('../utils/system-logger');
  * @throws {AppError} Throws database error if insertion fails
  */
 const insertOrderItemsBulk = async (orderId, orderItems, client) => {
+  // todo: find all new Date(): then switch to NOW()
   const now = new Date();
 
   const rows = orderItems.map((item) => [
@@ -192,7 +193,86 @@ const findOrderItemsByOrderId = async (orderId) => {
   }
 };
 
+/**
+ * Updates the status of all items in a given order.
+ *
+ * This function performs the following:
+ * - Updates the `status_id`, `status_date`, `updated_at`, and `updated_by` fields
+ *   in the `order_items` table for all items belonging to the specified order.
+ * - Logs audit messages for success or failure.
+ * - Returns the list of updated item records (`id`, `status_id`, `status_date`), or `null` if no items were found.
+ *
+ * Typically used alongside `updateOrderStatus` to keep order-level and item-level statuses in sync.
+ *
+ * @async
+ * @param {object} client - An instance of a PostgreSQL client or transaction context (`pg.Client` or `pg.PoolClient`).
+ * @param {object} params - Update parameters.
+ * @param {string} params.orderId - UUID of the order whose items will be updated.
+ * @param {string} params.newStatusId - UUID of the new status to assign to all items.
+ * @param {string} params.updatedBy - UUID of the user performing the update (used for audit).
+ * @returns {Promise<Array<{
+ *   id: string,
+ *   status_id: string,
+ *   status_date: string
+ * }> | null>} A list of updated order item rows, or `null` if no items were updated.
+ *
+ * @throws {AppError} If a database error occurs.
+ */
+const updateOrderItemStatuses = async (client, { orderId, newStatusId, updatedBy }) => {
+  const sql = `
+    UPDATE order_items
+    SET
+      status_id = $1,
+      status_date = NOW(),
+      updated_at = NOW(),
+      updated_by = $2
+    WHERE order_id = $3 AND status_id IS DISTINCT FROM $1
+    RETURNING id, status_id, status_date
+  `;
+  
+  const values = [newStatusId, updatedBy, orderId];
+  
+  try {
+    const result = await query(sql, values, client);
+    
+    const updatedRows = result.rows || [];
+    
+    if (updatedRows.length === 0) {
+      logSystemInfo('No order items updated: no items found for order', {
+        context: 'order-item-repository/updateOrderItemStatuses',
+        orderId,
+        newStatusId,
+        updatedBy,
+        severity: 'WARN',
+      });
+      return null;
+    }
+    
+    logSystemInfo('Order item statuses updated successfully', {
+      context: 'order-item-repository/updateOrderItemStatuses',
+      orderId,
+      newStatusId,
+      updatedBy,
+      updatedCount: updatedRows.length,
+      severity: 'INFO',
+    });
+    
+    return updatedRows;
+  } catch (error) {
+    logSystemException(error, 'Failed to update order item statuses', {
+      context: 'order-item-repository/updateOrderItemStatuses',
+      orderId,
+      newStatusId,
+      updatedBy,
+      severity: 'ERROR',
+    });
+    
+    throw AppError.databaseError(`Failed to update order item statuses: ${error.message}`);
+  }
+};
+
 module.exports = {
   insertOrderItemsBulk,
   findOrderItemsByOrderId,
+  updateOrderItemStatuses,
 };
