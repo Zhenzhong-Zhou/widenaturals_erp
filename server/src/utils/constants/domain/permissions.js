@@ -19,7 +19,7 @@ const PERMISSIONS = {
   ORDER: {
     CREATE: 'create_orders',
     VIEW: 'view_orders',
-    UPDATE_SALES_ORDER_STATUS: 'update_sales_order_status',
+    UPDATE_STATUS: 'update_order_status',
   },
 };
 

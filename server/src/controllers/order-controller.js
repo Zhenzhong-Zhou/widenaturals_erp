@@ -1,10 +1,7 @@
 const {
   createOrderService,
   fetchOrderDetailsByIdService,
-  fetchAllOrdersService,
-  confirmOrderService,
-  fetchAllocationEligibleOrdersService,
-  fetchAllocationEligibleOrderDetails,
+  updateOrderStatusService,
 } = require('../services/order-service');
 const AppError = require('../utils/AppError');
 const wrapAsync = require('../utils/wrap-async');
@@ -161,112 +158,81 @@ const getOrderDetailsByIdController = wrapAsync(async (req, res) => {
 });
 
 /**
- * Generic controller for fetching orders using a specified service function.
+ * Controller: Update Order Status
  *
- * @param {Function} serviceFn - The service function to fetch orders.
- * @returns {Function} - Express route handler.
+ * Handles order status transitions for a given order category and ID.
+ *
+ * Route:
+ *   PATCH /api/:category/orders/:orderId/status
+ *
+ * Expected Request:
+ *   - Params:
+ *       - category: string (e.g., 'sales', 'transfer')
+ *       - orderId: UUID string
+ *   - Body:
+ *       - statusCode: string (e.g., 'ORDER_CONFIRMED', must be in ORDER_STATUS_CODES)
+ *   - Auth:
+ *       - User must be authenticated (injected by auth middleware)
+ *
+ * Response: 200 OK
+ *   {
+ *     success: true,
+ *     message: "Order status updated successfully",
+ *     data: {
+ *       order: { ...enrichedOrder },  // with camelCase fields
+ *       items: [ ...enrichedItems ]   // with camelCase fields
+ *     },
+ *     meta: {
+ *       orderUpdated: true,
+ *       itemsUpdated: <number>,       // number of affected order items
+ *       recordsUpdated: <number>      // total records modified (order + items)
+ *     }
+ *   }
+ *
+ * Notes:
+ *   - Business rules for valid status transitions are handled in the service layer.
+ *   - Logging includes contextual metadata for traceability.
  */
-const createOrderFetchController = (serviceFn) =>
-  wrapAsync(async (req, res, next) => {
-    try {
-      const {
-        page = 1,
-        limit = 10,
-        sortBy = 'created_at',
-        sortOrder = 'DESC',
-        verifyOrderNumbers = true,
-      } = req.query;
+const updateOrderStatusController = wrapAsync(async (req, res) => {
+  const user = req.user; // must be injected by auth middleware
+  const categoryParam = String(req.params.category || '').trim().toLowerCase();
+  const orderId = String(req.params.orderId || '').trim();
+  const nextStatusCode = String(req.body?.statusCode || '').trim();
 
-      const verifyOrderNumbersBool = verifyOrderNumbers !== 'false';
+  const { enrichedOrder, enrichedItems } = await updateOrderStatusService(
+    user,
+    categoryParam,
+    orderId,
+    nextStatusCode
+  );
 
-      const result = await serviceFn({
-        page: Number(page),
-        limit: Number(limit),
-        sortBy,
-        sortOrder,
-        verifyOrderNumbers: verifyOrderNumbersBool,
-      });
-
-      res.status(200).json({
-        success: true,
-        message: 'Orders fetched successfully',
-        data: result.data,
-        pagination: result.pagination,
-      });
-    } catch (error) {
-      logError('Error in order fetch controller:', error);
-      next(error);
-    }
+  logInfo('Order status updated (controller)', req, {
+    context: 'order-controller/updateOrderStatus',
+    orderId: enrichedOrder.id,
+    newStatus: enrichedOrder.statusCode,
+    category: categoryParam,
+    itemsUpdated: enrichedItems.length,
+    userId: user?.id,
+    role: user?.roleName || user?.role,
   });
 
-/**
- * Controller to handle fetching all orders.
- * Supports pagination, sorting, and optional order number validation.
- *
- * @type {Function}
- */
-const getAllOrdersController = createOrderFetchController(
-  fetchAllOrdersService
-);
-
-/**
- * Controller to handle fetching orders eligible for inventory allocation.
- * Supports pagination, sorting, and optional order number filtering.
- *
- * @type {Function}
- */
-const getAllocationEligibleOrdersController = createOrderFetchController(
-  fetchAllocationEligibleOrdersService
-);
-
-/**
- * Controller to confirm an order and its items.
- * @route POST /orders/:orderId/confirm
- */
-const confirmOrderController = wrapAsync(async (req, res, next) => {
-  try {
-    const { orderId } = req.params;
-    const user = req.user;
-
-    if (!orderId) {
-      throw AppError.validationError('Missing required parameter: orderId');
+  return res.status(200).json({
+    success: true,
+    message: 'Order status updated successfully',
+    data: {
+      order: enrichedOrder,
+      items: enrichedItems,
+    },
+    meta: {
+      orderUpdated: true,
+      itemsUpdated: enrichedItems.length,
+      recordsUpdated: 1 + enrichedItems.length,
     }
-
-    const result = await confirmOrderService(orderId, user);
-
-    res.status(200).json({
-      success: true,
-      message: 'Order successfully confirmed.',
-      data: result,
-    });
-  } catch (error) {
-    next(error);
-  }
+  });
 });
-
-/**
- * Controller to fetch an allocation-eligible order for inventory allocation.
- * Ensures the order exists, is in a valid status, and the user has proper permissions.
- *
- * @route GET /api/orders/:orderId/allocation
- * @access Protected
- */
-const getAllocationEligibleOrderDetailsController = wrapAsync(
-  async (req, res) => {
-    const { orderId } = req.params;
-    const user = req.user;
-
-    const order = await fetchAllocationEligibleOrderDetails(orderId, user);
-
-    res.status(200).json({
-      success: true,
-      message: 'Confirmed order allocation data fetched successfully',
-      data: order,
-    });
-  }
-);
 
 module.exports = {
   createOrderController,
   getOrderDetailsByIdController,
+  updateOrderStatusController,
 };

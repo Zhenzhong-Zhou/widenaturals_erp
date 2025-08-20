@@ -1,7 +1,8 @@
 const express = require('express');
 const {
   createOrderController,
-  getOrderDetailsByIdController
+  getOrderDetailsByIdController,
+  updateOrderStatusController
 } = require('../controllers/order-controller');
 const authorize = require('../middlewares/authorize');
 const PERMISSIONS = require('../utils/constants/domain/permissions');
@@ -9,7 +10,11 @@ const validate = require('../middlewares/validate');
 const salesOrderSchema = require('../validators/sales-order-validators');
 const { sanitizeFields } = require('../middlewares/sanitize');
 const AppError = require('../utils/AppError');
-const { getOrderDetailsParamsSchema } = require('../validators/order-validators');
+const {
+  getOrderDetailsParamsSchema,
+  orderIdentifierSchema,
+  updateOrderStatusSchema
+} = require('../validators/order-validators');
 
 const router = express.Router();
 
@@ -143,6 +148,52 @@ router.get(
   sanitizeFields(['orderId']),
   validate(getOrderDetailsParamsSchema, 'params'),
   getOrderDetailsByIdController
+);
+
+/**
+ * PATCH /:category/:orderId/status
+ *
+ * Updates the status of a specific order and all of its associated items.
+ *
+ * Middleware:
+ * - `authorize`: Requires `ORDER.UPDATE_STATUS` permission.
+ * - `sanitizeFields`: Trims and sanitizes `category`, `orderId`, and `statusCode`.
+ * - `validate`: Validates route parameters (`orderIdentifierSchema`) — `category` and `orderId`.
+ * - `validate`: Validates request body (`updateOrderStatusSchema`) — `statusCode`.
+ *
+ * Handler:
+ * - `updateOrderStatusController`: Executes the status transition workflow including:
+ *     - Status validation and transition logic
+ *     - Permission enforcement
+ *     - Audit logging
+ *     - Response enrichment (with updated order and items)
+ *
+ * Example Request:
+ *   PATCH /sales/123e4567-e89b-12d3-a456-426614174000/status
+ *   Body: { "statusCode": "ORDER_CONFIRMED" }
+ *
+ * Example Response: 200 OK
+ *   {
+ *     success: true,
+ *     message: "Order status updated successfully",
+ *     data: {
+ *       order: { ... },  // Enriched order object (camelCase)
+ *       items: [ ... ]   // Enriched order items (camelCase)
+ *     },
+ *     meta: {
+ *       orderUpdated: true,
+ *       itemsUpdated: 3,
+ *       recordsUpdated: 4
+ *     }
+ *   }
+ */
+router.patch(
+  '/:category/:orderId/status',
+  authorize([PERMISSIONS.ORDER.UPDATE_STATUS]),
+  sanitizeFields(['orderId', 'category', 'statusCode']),
+  validate(orderIdentifierSchema, 'params'),
+  validate(updateOrderStatusSchema, 'body'),
+  updateOrderStatusController,
 );
 
 module.exports = router;
