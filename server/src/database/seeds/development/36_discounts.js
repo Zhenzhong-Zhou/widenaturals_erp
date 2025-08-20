@@ -56,7 +56,6 @@ exports.seed = async function (knex) {
       valid_to: null,
       description:
         'Seasonal spring sale offering 15% off on selected products.',
-      status_date: new Date('2025-03-15T00:00:00Z'),
     },
     {
       name: 'New Customer Offer',
@@ -66,7 +65,6 @@ exports.seed = async function (knex) {
       valid_from: new Date('2025-03-01T00:00:00Z'),
       valid_to: null,
       description: 'A one-time $20 discount for new customers.',
-      status_date: new Date('2025-03-01T00:00:00Z'),
     },
     {
       name: 'Clearance',
@@ -76,7 +74,6 @@ exports.seed = async function (knex) {
       valid_from: new Date('2025-02-01T00:00:00Z'),
       valid_to: new Date('2025-02-28T23:59:59Z'),
       description: 'End-of-season clearance sale offering 10% discount.',
-      status_date: new Date('2025-02-01T00:00:00Z'),
     },
     {
       name: 'Black Friday Blowout',
@@ -86,7 +83,6 @@ exports.seed = async function (knex) {
       valid_from: new Date('2024-11-29T00:00:00Z'),
       valid_to: new Date('2024-11-30T23:59:59Z'),
       description: 'Archived discount from last year’s Black Friday.',
-      status_date: new Date('2024-11-29T00:00:00Z'),
     },
     {
       name: 'End of Year Sale',
@@ -96,7 +92,6 @@ exports.seed = async function (knex) {
       valid_from: new Date('2024-12-20T00:00:00Z'),
       valid_to: new Date('2024-12-31T23:59:59Z'),
       description: 'Discontinued promotion at year-end.',
-      status_date: new Date('2024-12-20T00:00:00Z'),
     },
     {
       name: 'Subscriber Reward',
@@ -106,7 +101,6 @@ exports.seed = async function (knex) {
       valid_from: new Date('2025-07-05T12:00:00Z'),
       valid_to: null,
       description: 'Ongoing reward for newsletter subscribers.',
-      status_date: new Date(),
     },
     {
       name: 'Flash Sale 1-Hour Only',
@@ -116,7 +110,6 @@ exports.seed = async function (knex) {
       valid_from: new Date('2025-07-01T12:00:00Z'),
       valid_to: new Date('2025-07-01T13:00:00Z'),
       description: 'Flash sale for one hour only.',
-      status_date: new Date('2025-07-01T12:00:00Z'),
     },
     {
       name: 'Archived Promo Test',
@@ -126,7 +119,6 @@ exports.seed = async function (knex) {
       valid_from: new Date('2023-01-01T00:00:00Z'),
       valid_to: new Date('2023-01-31T23:59:59Z'),
       description: 'Old archived promo for testing audit and inactive record handling.',
-      status_date: new Date('2023-01-31T23:59:59Z'),
     }
   ];
 
@@ -143,7 +135,6 @@ exports.seed = async function (knex) {
     status_date: d.status_date,
     created_by: systemActionId,
     updated_by: null,
-    created_at: new Date(),
     updated_at: null,
   }));
   

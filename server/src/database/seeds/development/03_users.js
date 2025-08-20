@@ -69,11 +69,9 @@ exports.seed = async function (knex) {
         job_title: 'System Process',
         status_id: activeStatusId,
         note: 'Reserved system user for automated actions.',
-        status_date: new Date(),
         created_by: null,
         updated_by: null,
-        created_at: knex.fn.now(),
-        updated_at: knex.fn.now(),
+        updated_at: null,
       })
       .returning('id'); // Fetch inserted ID
 
@@ -151,10 +149,8 @@ exports.seed = async function (knex) {
     job_title: user.job_title,
     status_id: activeStatusId,
     note: null,
-    status_date: new Date(),
     created_by: systemUserId, // Now correctly references the system user
     updated_by: null,
-    created_at: new Date(),
     updated_at: null,
   }));
 

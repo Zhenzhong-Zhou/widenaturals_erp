@@ -21,10 +21,10 @@ const insertUserAuth = async (
   { userId, passwordHash, passwordSalt }
 ) => {
   const sql = `
-    INSERT INTO user_auth (user_id, password_hash, password_salt, created_at)
+    INSERT INTO user_auth (user_id, password_hash, password_salt)
     VALUES ($1, $2, $3, $4);
   `;
-  const params = [userId, passwordHash, passwordSalt, new Date()];
+  const params = [userId, passwordHash, passwordSalt];
 
   try {
     // Retry logic for transient issues

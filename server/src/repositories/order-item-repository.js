@@ -32,9 +32,6 @@ const { logSystemException, logSystemInfo } = require('../utils/system-logger');
  * @throws {AppError} Throws database error if insertion fails
  */
 const insertOrderItemsBulk = async (orderId, orderItems, client) => {
-  // todo: find all new Date(): then switch to NOW()
-  const now = new Date();
-
   const rows = orderItems.map((item) => [
     orderId,
     item.sku_id ?? null,
@@ -44,9 +41,7 @@ const insertOrderItemsBulk = async (orderId, orderItems, client) => {
     item.price ?? null,
     item.subtotal,
     item.status_id,
-    item.status_date ?? now,
     item.metadata ?? null,
-    now,
     null,
     item.created_by ?? null,
     item.updated_by ?? null,
@@ -61,9 +56,7 @@ const insertOrderItemsBulk = async (orderId, orderItems, client) => {
     'price',
     'subtotal',
     'status_id',
-    'status_date',
     'metadata',
-    'created_at',
     'updated_at',
     'created_by',
     'updated_by',

@@ -23,8 +23,7 @@ exports.seed = async function (knex) {
     'active',
     'id'
   );
-
-  const now = new Date();
+  
   const authActions = [
     { name: 'Login Success', description: 'User successfully logged in.' },
     { name: 'Logout', description: 'User logged out.' },
@@ -59,8 +58,6 @@ exports.seed = async function (knex) {
       slug,
       description: action.description,
       status_id: activeStatusId,
-      status_date: now,
-      created_at: now,
       updated_at: null,
       created_by: systemUserId,
       updated_by: null,

@@ -14,7 +14,7 @@ const {
   createOrderWithType,
   verifyOrderCreationPermission,
   verifyOrderViewPermission,
-  evaluateOrderAccessControl,
+  evaluateOrderDetailsViewAccessControl,
   validateStatusTransitionByCategory,
   canUpdateOrderStatus, enrichStatusMetadata, enrichStatusMetadataWithMultiple,
 } = require('../business/order-business');
@@ -127,7 +127,7 @@ const createOrderService = async (orderData, category, user) => {
  *   1. Verifies that the user has permission to view the order (`verifyOrderViewPermission`).
  *   2. Loads the order header and items in parallel.
  *   3. Throws a `NotFoundError` if no header is found.
- *   4. Evaluates order-level and line-item-level access rules via `evaluateOrderAccessControl(user)`.
+ *   4. Evaluates order-level and line-item-level access rules via `evaluateOrderDetailsViewAccessControl(user)`.
  *   5. Transforms the raw DB rows into a structured `TransformedOrder` object using `transformOrderWithItems`.
  *   6. Logs key events for auditing.
  *
@@ -136,7 +136,6 @@ const createOrderService = async (orderData, category, user) => {
  *   - `canViewOrderItemMetadata` → controls inclusion of item-level metadata in the response.
  *
  * @async
- * @function fetchOrderDetailsByIdService
  * @param {string} category - Order category key (e.g., "sales", "purchase", "transfer").
  * @param {string} orderId - UUID v4 of the order to fetch.
  * @param {object} user - Authenticated user object (must include ID and permission context).
@@ -198,7 +197,7 @@ const fetchOrderDetailsByIdService = async (category, orderId, user) => {
     const {
       canViewOrderMetadata,
       canViewOrderItemMetadata,
-    } = await evaluateOrderAccessControl(user);
+    } = await evaluateOrderDetailsViewAccessControl(user);
     
     const transformed = transformOrderWithItems(header, items, {
       includeOrderMetadata: canViewOrderMetadata,

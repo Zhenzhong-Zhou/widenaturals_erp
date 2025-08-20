@@ -118,19 +118,19 @@ const verifyOrderViewPermission = async (user, category, { action = 'VIEW', orde
 };
 
 /**
- * Evaluate whether a user can view order-level and order-item metadata in lookups.
+ * Evaluate whether a user can view order details (header-level and item-level metadata).
  *
- * Checks:
- * - `VIEW_ORDER_METADATA` (header-level/order-level metadata)
- * - `VIEW_ORDER_ITEM_METADATA` (line-level metadata)
- * Root users automatically have access.
+ * This function checks whether the user has view access to:
+ * - `VIEW_SALES_ORDER_METADATA` (header-level metadata)
+ * - `VIEW_ORDER_ITEM_METADATA` (item-level metadata)
+ *
+ * Root users are automatically granted both permissions.
  *
  * @async
- * @param {Object} user - Authenticated user object with a permission set
+ * @param {Object} user - Authenticated user object with permissions context
  * @returns {Promise<{ canViewOrderMetadata: boolean, canViewOrderItemMetadata: boolean }>}
  */
-// todo: evaluateOrderDetailsViewAccessControl
-const evaluateOrderAccessControl = async (user) => {
+const evaluateOrderDetailsViewAccessControl = async (user) => {
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
     
@@ -146,7 +146,7 @@ const evaluateOrderAccessControl = async (user) => {
     };
   } catch (err) {
     logSystemException(err, 'Failed to evaluate order lookup access control', {
-      context: 'order-business/evaluateOrderAccessControl',
+      context: 'order-business/evaluateOrderDetailsViewAccessControl',
       userId: user?.id,
     });
     
@@ -568,7 +568,7 @@ module.exports = {
   verifyOrderCreationPermission,
   createOrderWithType,
   verifyOrderViewPermission,
-  evaluateOrderAccessControl,
+  evaluateOrderDetailsViewAccessControl,
   validateStatusTransitionByCategory,
   canUpdateOrderStatus,
   enrichStatusMetadata,

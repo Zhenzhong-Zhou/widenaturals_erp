@@ -30,8 +30,6 @@ const insertCustomerRecords = async (customers, client) => {
     'phone_number',
     'status_id',
     'note',
-    'status_date',
-    'created_at',
     'updated_at',
     'created_by',
     'updated_by',
@@ -49,8 +47,7 @@ const insertCustomerRecords = async (customers, client) => {
   const updateStrategies = Object.fromEntries(
     updateColumns.map((col) => [col, 'overwrite'])
   );
-
-  const now = new Date();
+  
   const rows = customers.map((customer) => [
     customer.firstname,
     customer.lastname,
@@ -58,8 +55,6 @@ const insertCustomerRecords = async (customers, client) => {
     customer.phone_number || null,
     customer.status_id,
     customer.note || null,
-    now, // status_date
-    now, // created_at
     null, // updated_at (no update info at insert)
     customer.created_by || null,
     null, // updated_by (no update info at insert)

@@ -54,43 +54,20 @@ const orderIdentifierSchema = Joi.object({
 });
 
 /**
- * Joi schema for validating route parameters when fetching order details.
+ * Joi schema for identifying an order by category and UUID.
  *
- * Expected shape:
- *   {
- *     category: string (required, trimmed, one of ORDER_CATEGORIES)
- *     orderId: string (required, UUID v4)
- *   }
+ * Used in:
+ *   - getOrderDetailsParamsSchema
+ *   - updateOrderStatusSchema (params)
+ *   - any route that uses :category and :orderId
  *
- * Validation rules:
- *   - `category`:
- *       • Required string between 5 and 20 characters (inclusive).
- *       • Must match one of the allowed `ORDER_CATEGORIES`.
- *       • Leading/trailing whitespace is automatically trimmed.
- *       • Custom label for error messages: "Category".
- *   - `orderId`:
- *       • Required string.
- *       • Must be a valid UUID v4.
- *       • Leading/trailing whitespace is automatically trimmed.
- *       • Custom label for error messages: "Order ID".
- *
- * Example valid values:
- *   {
- *     category: "sales",
- *     orderId: "550e8400-e29b-41d4-a716-446655440000"
- *   }
- *   {
- *     category: "purchase",
- *     orderId: " 550e8400-e29b-41d4-a716-446655440000 " // will be trimmed
- *   }
+ * Validation:
+ *   - category: required, 5–20 chars, must be in ORDER_CATEGORIES
+ *   - orderId: required, valid UUID v4
  *
  * @type {import('joi').ObjectSchema}
  */
-// todo: reuse orderIdentifierSchema
-const getOrderDetailsParamsSchema = Joi.object({
-  category: validateString('Category', 5, 20).valid(...ORDER_CATEGORIES),
-  orderId: validateUUID('Order ID'),
-});
+const getOrderDetailsParamsSchema = orderIdentifierSchema;
 
 /**
  * Joi schema for validating the body of an update-order-status request.

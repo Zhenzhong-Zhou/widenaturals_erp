@@ -185,13 +185,23 @@ const MultiItemForm = forwardRef<MultiItemFormRef, MultiItemFormProps>((props, r
       remove(index); // Remove the correct item using its index
     }
   };
-
+  
+  const prepareFormDataForSubmit = (formData: { items: Record<string, any>[] }) => {
+    return {
+      ...formData,
+      items: formData.items.map(({ line_type, show_barcode_toggle, ...rest }) => rest),
+    };
+  };
+  
   const handleFormSubmit = (data: { items: Record<string, any>[] }) => {
     const cleanedItems = data.items.filter((item) =>
       Object.values(item).some((v) => v !== null && v !== undefined && v !== '')
     );
+    
+    const preparedData = prepareFormDataForSubmit({ items: cleanedItems });
+    
     if (onSubmit) {
-      onSubmit(cleanedItems);
+      onSubmit(preparedData.items);
     }
   };
 

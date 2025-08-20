@@ -21,7 +21,7 @@ const OrderHeaderSection: FC<OrderHeaderSectionProps> = ({ flattened }) => {
               { label: 'Order Number', value: flattened.orderNumber },
               { label: 'Order Type', value: flattened.orderType, format: formatLabel },
               { label: 'Order Date', value: flattened.orderDate, format: formatDate },
-              { label: 'Delivery Method', value: flattened.deliveryInfo, format: formatLabel },
+              { label: 'Delivery Method', value: flattened.deliveryInfo.method, format: formatLabel },
             ]}
           />
         </DetailsGridItem>
