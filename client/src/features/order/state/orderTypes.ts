@@ -515,3 +515,91 @@ export interface FlattenedOrderHeader {
   /** Additional order-level metadata for custom logic or display */
   orderMetadata: Record<string, any>;
 }
+
+/**
+ * Represents the status information of an order.
+ */
+export interface OrderStatusInfo {
+  /** Unique identifier of the order */
+  id: string;
+  
+  /** Identifier of the order status (foreign key) */
+  order_status_id: string;
+  
+  /** Timestamp when the status was set (ISO 8601 format) */
+  status_date: string;
+  
+  /** Human-readable name of the order status */
+  statusName: string;
+  
+  /** Machine-readable code representing the order status */
+  statusCode: string;
+  
+  /** High-level category of the status (e.g., 'processing', 'completed') */
+  statusCategory: string;
+}
+
+/**
+ * Represents the status information of an individual order item.
+ */
+export interface OrderItemStatusInfo {
+  /** Unique identifier of the order item */
+  id: string;
+  
+  /** Identifier of the item's status (foreign key) */
+  status_id: string;
+  
+  /** Timestamp when the status was set (ISO 8601 format) */
+  status_date: string;
+  
+  /** Human-readable name of the item status */
+  statusName: string;
+  
+  /** Machine-readable code representing the item status */
+  statusCode: string;
+  
+  /** High-level category of the status (e.g., 'processing', 'completed') */
+  statusCategory: string;
+}
+
+/**
+ * Payload returned in the `data` field when updating an order's status.
+ */
+export interface UpdateOrderStatusData {
+  /** The updated status information of the order */
+  order: OrderStatusInfo;
+  
+  /** A list of updated status information for each order item */
+  items: OrderItemStatusInfo[];
+}
+
+/**
+ * Full API response when updating an order's status, extending the generic success response.
+ */
+export interface UpdateOrderStatusResponse extends ApiSuccessResponse<UpdateOrderStatusData> {
+  /**
+   * Additional metadata about the status update operation.
+   */
+  meta: {
+    /** Whether the main order status was updated */
+    orderUpdated: boolean;
+    
+    /** Number of order items whose statuses were updated */
+    itemsUpdated: number;
+    
+    /** Total number of records affected (order + items) */
+    recordsUpdated: number;
+  };
+}
+
+/**
+ * Represents the async state for updating an order's status.
+ *
+ * This state includes the loading flag, potential error message,
+ * and the response payload returned after successfully updating
+ * an order and its associated items.
+ *
+ * The `data` field is typed as `UpdateOrderStatusResponse | null`
+ * to account for the initial, loading, or error state.
+ */
+export type UpdateOrderStatusState = AsyncState<UpdateOrderStatusResponse | null>;

@@ -55,3 +55,20 @@ export const putRequest = async <T, R>(url: string, data: T): Promise<R> => {
   const response = await axiosInstance.put<R>(url, data);
   return response.data;
 };
+
+/**
+ * Generic wrapper for sending PATCH requests.
+ *
+ * Simplifies axios PATCH usage with typed payload and response handling.
+ *
+ * @template T - Request payload type
+ * @template R - Expected response type
+ * @param {string} url - The endpoint to send the partial update to
+ * @param {T} data - Payload to be sent in the PATCH request
+ * @returns {Promise<R>} - Parsed response data of type R
+ * @throws {Error} - If the request fails
+ */
+export const patchRequest = async <T, R>(url: string, data: T): Promise<R> => {
+  const response = await axiosInstance.patch<R>(url, data);
+  return response.data;
+};

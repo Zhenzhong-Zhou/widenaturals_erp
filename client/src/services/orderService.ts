@@ -1,10 +1,11 @@
 import type {
   CreateSalesOrderInput,
   CreateSalesOrderResponse,
-  GetOrderDetailsResponse, OrderRouteParams,
+  GetOrderDetailsResponse, OrderRouteParams, UpdateOrderStatusResponse,
 } from '@features/order/state';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
-import { getRequest, postRequest } from '@utils/apiRequest';
+import { getRequest, patchRequest, postRequest } from '@utils/apiRequest';
+import { sanitizeString } from '@utils/stringUtils';
 
 /**
  * Sends a request to create a new order under a specific category (e.g., 'sales', 'purchase').
@@ -55,6 +56,7 @@ const createSalesOrder = async (
 const fetchOrderDetailsById = async (
   { category, orderId }: OrderRouteParams
 ): Promise<GetOrderDetailsResponse> => {
+  // todo: replace with sanitizeString()
   const cleanId = (orderId ?? '').trim();
   const cleanCategory = (category ?? '').trim();
   const url = API_ENDPOINTS.ORDERS.ORDER_DETAILS(cleanCategory, cleanId);
@@ -67,7 +69,41 @@ const fetchOrderDetailsById = async (
   }
 };
 
+/**
+ * Sends a request to update the status of a specific order.
+ *
+ * The `category` and `orderId` are injected into the URL path
+ * (e.g., `/orders/sales/abc123/status`), and the `data` includes
+ * the next status code to apply.
+ *
+ * @param params - Object containing the order category and order ID.
+ * @param data - Payload containing the new status code.
+ * @returns A promise resolving to the updated order and item statuses.
+ * @throws Will log and rethrow any error encountered during the request.
+ */
+const updateOrderStatus = async (
+  params: OrderRouteParams,
+  data: { statusCode: string }
+): Promise<UpdateOrderStatusResponse> => {
+  const cleanCategory = sanitizeString(params.category);
+  const cleanOrderId = sanitizeString(params.orderId);
+  
+  if (!cleanCategory || !cleanOrderId) {
+    throw new Error('Missing or invalid category/orderId');
+  }
+  
+  const url = API_ENDPOINTS.ORDERS.ORDER_STATUS_UPDATE_PATH(cleanCategory, cleanOrderId);
+  
+  try {
+    return await patchRequest<typeof data, UpdateOrderStatusResponse>(url, data);
+  } catch (error) {
+    console.error('Failed to update order status:', error);
+    throw error;
+  }
+};
+
 export const orderService = {
   createSalesOrder,
   fetchOrderDetailsById,
+  updateOrderStatus,
 };

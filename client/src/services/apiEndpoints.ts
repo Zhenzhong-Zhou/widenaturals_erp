@@ -70,5 +70,6 @@ export const API_ENDPOINTS = {
   ORDERS: {
     ADD_NEW_ORDER: (category: string) => `/orders/create/${category}`,
     ORDER_DETAILS: (category: string, orderId: string) => `/orders/${category}/${orderId}`,
+    ORDER_STATUS_UPDATE_PATH: (category: string, orderId: string) => `/orders/${category}/${orderId}/status`,
   },
 };
