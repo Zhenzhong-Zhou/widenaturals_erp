@@ -98,19 +98,37 @@ const OrderDetailsPage: FC = () => {
     }
   }, [updateStatusError]);
   
+  const statusCode = header?.type?.code ?? '';
+  
   const confirmableStatusCodes = [
     'ORDER_PENDING',
     'ORDER_EDITED',
     'ORDER_AWAITING_CONFIRMATION',
   ];
   
+  const cancelableStatusCodes = [
+    'ORDER_PENDING',
+    'ORDER_EDITED',
+    'ORDER_CONFIRMED',
+  ];
+  
   const canConfirmStatusUpdate = useMemo(() => {
     if (loading) return false;
     
-    const statusCode = header?.type?.code;
-    const isConfirmable = confirmableStatusCodes.includes(statusCode ?? '');
-    return hasPermission(ORDER_CONSTANTS.PERMISSIONS.CONFIRM_SALES_ORDER) && isConfirmable;
-  }, [loading, hasPermission, header?.type?.code]);
+    return (
+      hasPermission(ORDER_CONSTANTS.PERMISSIONS.CONFIRM_SALES_ORDER) &&
+      confirmableStatusCodes.includes(statusCode)
+    );
+  }, [loading, hasPermission, statusCode]);
+  
+  const canCancelOrder = useMemo(() => {
+    if (loading) return false;
+    
+    return (
+      hasPermission(ORDER_CONSTANTS.PERMISSIONS.CANCEL_SALES_ORDER) &&
+      cancelableStatusCodes.includes(statusCode)
+    );
+  }, [loading, hasPermission, statusCode]);
   
   const handleStatusUpdate = async (statusCode: string) => {
     if (!orderId || !category) {
@@ -183,6 +201,12 @@ const OrderDetailsPage: FC = () => {
             </CustomTypography>
             
             <Stack direction="row" spacing={2} alignItems="center">
+              <CustomButton
+                onClick={refresh}
+                disabled={orderLoading || updateStatusLoading}
+              >
+                {orderLoading ? 'Refreshing' : 'Refresh Data'}
+              </CustomButton>
               {canConfirmStatusUpdate && (
                 <CustomButton
                   variant="contained"
@@ -193,7 +217,16 @@ const OrderDetailsPage: FC = () => {
                   {updateStatusLoading ? 'Confirming...' : 'Confirm Order'}
                 </CustomButton>
               )}
-              <CustomButton onClick={refresh}>Refresh Data</CustomButton>
+              {canCancelOrder && (
+                <CustomButton
+                  variant="contained"
+                  color="error"
+                  onClick={() => handleStatusUpdate('ORDER_CANCELED')}
+                  disabled={updateStatusLoading || loading}
+                >
+                  {updateStatusLoading ? 'Canceling...' : 'Cancel Order'}
+                </CustomButton>
+              )}
             </Stack>
           </Box>
           
