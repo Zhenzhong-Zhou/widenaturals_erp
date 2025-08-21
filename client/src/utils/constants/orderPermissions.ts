@@ -78,3 +78,14 @@ export const PERMISSIONS = Object.fromEntries(
   [K in `${OrderAction}_${Uppercase<OrderCategory>}_ORDER`]:
   `${Lowercase<OrderAction>}_${OrderCategory}_order`;
 };
+
+export const ORDER_CONSTANTS = {
+  PERMISSIONS: {
+    CONFIRM_AWAITING_REVIEW_SALES_ORDER: 'confirm_awaiting_review_sales_order',
+    CONFIRM_SALES_ORDER: 'confirm_sales_order',
+    CANCEL_SALES_ORDER: 'cancel_sales_order',
+    SHIP_SALES_ORDER: 'ship_sales_order',
+    COMPLETE_SALES_ORDER: 'complete_sales_order',
+    OVERRIDE_LOCKED_STATUS: 'override_locked_order_status',
+  },
+};

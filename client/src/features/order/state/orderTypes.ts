@@ -315,7 +315,7 @@ export interface TransformedOrder {
   /** Optional order note */
   note: string | null;
   /** Order type reference */
-  type: { id: string; name: string };
+  type: { id: string; name: string; code: string; };
   /** Order status reference */
   status: { id: string | null; name: string | null };
   /** Customer details */

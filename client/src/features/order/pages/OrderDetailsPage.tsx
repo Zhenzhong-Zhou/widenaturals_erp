@@ -23,8 +23,12 @@ import {
   PriceOverrideSection,
   ShippingInfoSection,
 } from '@features/order/components/SalesOrderDetails';
+import usePermissions from '@hooks/usePermissions';
+import useHasPermission from '@features/authorize/hooks/useHasPermission';
+import { ORDER_CONSTANTS } from '@utils/constants/orderPermissions';
 import { useOrderDetails } from '@hooks/useOrderDetails';
 import { flattenSalesOrderHeader } from '@features/order/utils/transformOrderHeader';
+import useUpdateOrderStatus from '@hooks/useUpdateOrderStatus';
 
 const OrderDetailsPage: FC = () => {
   // Get the `orderType` and `orderId` from the URL
@@ -43,18 +47,30 @@ const OrderDetailsPage: FC = () => {
     );
   }
   
+  const { loading, permissions } = usePermissions();
+  const hasPermission = useHasPermission(permissions);
+  
   const {
-    data,
+    data: orderData,
     header,
     items,
     itemCount,
-    loading,
-    error,
+    loading: orderLoading,
+    error: orderError,
     hasOrder,
     totals,
     fetchById,
-    reset,
+    reset: resetOrderDetails,
   } = useOrderDetails();
+  
+  const {
+    data: updateStatusData,
+    loading: updateStatusLoading,
+    error: updateStatusError,
+    isSuccess: isStatusUpdateSuccess,
+    update: updateOrderStatus,
+    reset: resetUpdateOrderStatus,
+  } = useUpdateOrderStatus();
   
   const refresh = useCallback(() => {
     if (category && orderId) {
@@ -63,18 +79,59 @@ const OrderDetailsPage: FC = () => {
   }, [category, orderId, fetchById]);
   
   useEffect(() => {
-    reset();
+    resetOrderDetails();
     const timeout = setTimeout(refresh, 50);
     return () => clearTimeout(timeout);
   }, [refresh]);
+  
+  useEffect(() => {
+    if (isStatusUpdateSuccess && updateStatusData) {
+      alert(updateStatusData.message ?? 'Order status updated');
+      resetUpdateOrderStatus(); // clean up local slice
+      refresh(); // re-fetch order details
+    }
+  }, [isStatusUpdateSuccess, updateStatusData, resetUpdateOrderStatus, refresh]);
+  
+  useEffect(() => {
+    if (updateStatusError) {
+      alert(updateStatusError);
+    }
+  }, [updateStatusError]);
+  
+  const confirmableStatusCodes = [
+    'ORDER_PENDING',
+    'ORDER_EDITED',
+    'ORDER_AWAITING_CONFIRMATION',
+  ];
+  
+  const canConfirmStatusUpdate = useMemo(() => {
+    if (loading) return false;
+    
+    const statusCode = header?.type?.code;
+    const isConfirmable = confirmableStatusCodes.includes(statusCode ?? '');
+    return hasPermission(ORDER_CONSTANTS.PERMISSIONS.CONFIRM_SALES_ORDER) && isConfirmable;
+  }, [loading, hasPermission, header?.type?.code]);
+  
+  const handleStatusUpdate = async (statusCode: string) => {
+    if (!orderId || !category) {
+      console.warn('Missing orderId or category');
+      return;
+    }
+    
+    try {
+      await updateOrderStatus({ category, orderId }, statusCode);
+    } catch (err: any) {
+      console.error('Unexpected error in handleStatusUpdate:', err);
+    }
+  };
   
   const titleOrderNumber = header?.orderNumber?.split('-').slice(0, 3).join('-');
   
   const noDataIcon = useMemo(() => <SearchOffIcon fontSize="large" color="disabled" />, []);
   const retryAction = useMemo(() => <CustomButton onClick={refresh}>Retry</CustomButton>, [refresh]);
   
-  if (loading) return <Loading variant={'dotted'} message="Loading order details..." />;
-  if (error) return <ErrorDisplay message="Failed to load order details." />;
+  if (orderLoading) return <Loading variant={'dotted'} message="Loading order details..." />;
+  if (orderError) return <ErrorDisplay message="Failed to load order details." />;
   if (!hasOrder) {
     return (
       <NoDataFound
@@ -85,7 +142,7 @@ const OrderDetailsPage: FC = () => {
     );
   }
   
-  const flattened = flattenSalesOrderHeader(data);
+  const flattened = flattenSalesOrderHeader(orderData);
   
   return (
     <Box sx={{ p: 3 }}>
@@ -126,16 +183,16 @@ const OrderDetailsPage: FC = () => {
             </CustomTypography>
             
             <Stack direction="row" spacing={2} alignItems="center">
-            {/*  {canConfirm && (*/}
-            {/*    <CustomButton*/}
-            {/*      variant="contained"*/}
-            {/*      color="primary"*/}
-            {/*      onClick={() => confirm(orderId)}*/}
-            {/*      disabled={confirmLoading}*/}
-            {/*    >*/}
-            {/*      {confirmLoading ? 'Confirming...' : 'Confirm Order'}*/}
-            {/*    </CustomButton>*/}
-            {/*  )}*/}
+              {canConfirmStatusUpdate && (
+                <CustomButton
+                  variant="contained"
+                  color="primary"
+                  onClick={() => handleStatusUpdate('ORDER_CONFIRMED')}
+                  disabled={updateStatusLoading || loading}
+                >
+                  {updateStatusLoading ? 'Confirming...' : 'Confirm Order'}
+                </CustomButton>
+              )}
               <CustomButton onClick={refresh}>Refresh Data</CustomButton>
             </Stack>
           </Box>

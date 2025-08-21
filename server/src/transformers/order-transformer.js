@@ -17,6 +17,7 @@ const { buildAddress } = require('../utils/address-utils');
  * @property {string}        order_type_name
  * @property {string}        order_status_id
  * @property {string}        order_status_name
+ * @property {string}        order_code
  * @property {string}        customer_id
  * @property {string|null}   customer_firstname
  * @property {string|null}   customer_lastname
@@ -339,6 +340,7 @@ const transformOrderWithItems = (
     type: {
       id: orderRow.order_type_id,
       name: orderRow.order_type_name,
+      code: orderRow.order_code,
     },
     status: {
       id: orderRow.order_status_id,

@@ -129,6 +129,7 @@ const findOrderByIdWithDetails = async (orderId) => {
       ot.name                      AS order_type_name,
       o.order_status_id,
       os.name                      AS order_status_name,
+      os.code                      AS order_code,
       so.customer_id,
       c.firstname                  AS customer_firstname,
       c.lastname                   AS customer_lastname,
