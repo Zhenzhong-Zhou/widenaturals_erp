@@ -37,14 +37,26 @@ export const createSalesOrderThunk = createAsyncThunk<
 );
 
 /**
- * Thunk to fetch a single order's details (header + items) by ID.
+ * Redux thunk to fetch detailed information for a single order by ID.
  *
- * Dispatches pending/fulfilled/rejected actions automatically.
+ * This thunk:
+ * - Sends a GET request to the backend using the given `orderId` and category.
+ * - Dispatches `pending`, `fulfilled`, and `rejected` actions automatically.
+ * - Handles both order header and associated order items in the response.
  *
- * @param orderId - Order UUID string.
- * @returns Fulfilled with the API response payload.
+ * Expected Behavior:
+ * - Trims and sanitizes the `orderId` and `category` internally before calling the API.
+ * - Returns a structured payload on success, matching `GetOrderDetailsResponse`.
+ * - Throws and logs errors to the console on failure.
+ *
+ * @param {Object} params - The route parameters.
+ * @param {string} params.category - Order category (e.g., 'sales', 'transfer').
+ * @param {string} params.orderId - Order UUID string.
+ * @returns {Promise<GetOrderDetailsResponse>} - The fetched order details payload.
+ *
+ * Example usage:
+ *   dispatch(getOrderDetailsByIdThunk({ category: 'sales', orderId: '550e8400-e29b-41d4-a716-446655440000' }));
  */
-// todo: enhance doc string
 export const getOrderDetailsByIdThunk = createAsyncThunk<
   GetOrderDetailsResponse, // Return type
   OrderRouteParams,                  // Argument type

@@ -56,11 +56,10 @@ const createSalesOrder = async (
 const fetchOrderDetailsById = async (
   { category, orderId }: OrderRouteParams
 ): Promise<GetOrderDetailsResponse> => {
-  // todo: replace with sanitizeString()
-  const cleanId = (orderId ?? '').trim();
-  const cleanCategory = (category ?? '').trim();
+  const cleanId = sanitizeString(orderId);
+  const cleanCategory = sanitizeString(category);
   const url = API_ENDPOINTS.ORDERS.ORDER_DETAILS(cleanCategory, cleanId);
- 
+  
   try {
     return await getRequest<GetOrderDetailsResponse>(url);
   } catch (error) {
