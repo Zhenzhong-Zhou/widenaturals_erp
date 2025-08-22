@@ -21,6 +21,9 @@ const PERMISSIONS = {
     VIEW: 'view_orders',
     UPDATE_STATUS: 'update_order_status',
   },
+  INVENTORY: {
+    ALLOCATE_INVENTORY: 'allocate_inventory',
+  }
 };
 
 module.exports = PERMISSIONS;

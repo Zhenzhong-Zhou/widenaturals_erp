@@ -1,46 +1,62 @@
-const {
-  allocateMultipleInventoryItems,
-} = require('../services/inventory-allocation-service');
-const AppError = require('../utils/AppError');
 const wrapAsync = require('../utils/wrap-async');
+const { allocateInventoryForOrder } = require('../services/inventory-allocation-service');
+const { logInfo } = require('../utils/logger-helper');
 
 /**
- * Controller to handle inventory allocation for an order.
- * @route POST /orders/:orderId/allocate
+ * Controller: allocateInventoryForOrderController
+ *
+ * Allocates inventory for a given sales order based on the selected warehouse and allocation strategy.
+ *
+ * This controller is responsible for:
+ * - Validating the `orderId` from route params (must be a UUID).
+ * - Extracting allocation parameters (`strategy`, `warehouseId`) from the request body.
+ * - Delegating to the `allocateInventoryForOrder` service function.
+ * - Logging the result of the allocation.
+ * - Returning a JSON response with allocation details.
+ *
+ * Allocation strategy can be:
+ * - `fefo`: First-Expire, First-Out (default)
+ * - `fifo`: First-In, First-Out
+ *
+ * Example Request:
+ * PATCH /inventory/allocate/:orderId
+ * Body: { "strategy": "fefo", "warehouseId": "..." }
+ *
+ * Example Success Response:
+ * {
+ *   "success": true,
+ *   "message": "Inventory allocation complete",
+ *   "data": {
+ *     "allocations": [...],
+ *     "summary": { fulfilled: true, partial: false, ... }
+ *   }
+ * }
+ *
+ * @param {import('express').Request} req - Express request object
+ * @param {import('express').Response} res - Express response object
+ * @returns {Promise<void>}
  */
-const allocateMultipleInventoryItemsController = wrapAsync(
-  async (req, res, next) => {
-    try {
-      const { order_id } = req.params;
-      const { strategy: defaultStrategy = 'FEFO', items } = req.body;
-
-      const userId = req.user.id;
-
-      if (!order_id || !items || !Array.isArray(items) || items.length === 0) {
-        throw AppError.validationError(
-          'Order ID and at least one allocation item are required.'
-        );
-      }
-
-      // Delegate allocation to service
-      const allocations = await allocateMultipleInventoryItems({
-        orderId: order_id,
-        items,
-        userId,
-        defaultStrategy,
-      });
-
-      res.status(201).json({
-        success: true,
-        message: 'Inventory allocation completed successfully.',
-        allocations,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-);
+const allocateInventoryForOrderController = wrapAsync(async (req, res) => {
+  const { orderId } = req.params;
+  const { strategy, warehouseId } = req.body;
+  const user = req.user;
+  
+  const result = await allocateInventoryForOrder(user, orderId, { strategy, warehouseId } );
+  
+  logInfo('Inventory allocated successfully', req, {
+    context: 'inventory-allocation-controller/allocateInventoryForOrderController',
+    orderId,
+    userId: user?.id,
+    severity: 'INFO',
+  });
+  
+  return res.status(200).json({
+    success: true,
+    message: 'Inventory allocation complete',
+    data: result,
+  });
+});
 
 module.exports = {
-  allocateMultipleInventoryItemsController,
+  allocateInventoryForOrderController,
 };
