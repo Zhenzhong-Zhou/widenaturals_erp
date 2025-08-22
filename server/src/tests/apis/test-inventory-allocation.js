@@ -41,8 +41,8 @@ const { allocateInventoryForOrder } = require('../../services/inventory-allocati
       client
     );
     
-    const result = await allocateInventoryForOrder(enrichedUser, '9e4fc39d-3507-4e6a-aa4a-d5c5454801ea', {
-      strategy: 'fifo',
+    const result = await allocateInventoryForOrder(enrichedUser, '896f87bd-a473-48c7-90fd-e5ad4de786fe', {
+      strategy: 'fefo',
       warehouseId
     });
     

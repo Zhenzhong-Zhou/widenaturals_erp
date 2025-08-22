@@ -681,13 +681,29 @@ const bulkUpdateWarehouseQuantities = async (updates, userId, client) => {
 };
 
 /**
- * Fetches multiple warehouse_inventory rows by composite keys.
+ * Fetches multiple `warehouse_inventory` rows using composite keys (`warehouse_id`, `batch_id`).
  *
- * @param {Array<{ warehouse_id: string, batch_id: string }>} keys - List of composite keys.
- * @param {import('pg').PoolClient} client - pg client instance.
- * @returns {Promise<Array<{ id: string, warehouse_id: string, batch_id: string, warehouse_quantity: number, reserved_quantity: number, status_id: string }>>}
+ * For each input pair, attempts to retrieve the corresponding inventory record from the database.
+ * If any expected records are missing, a system warning will be logged.
+ * This function is useful when verifying current stock and reservation state across multiple batches.
+ *
+ * Logs:
+ * - Warns when one or more requested rows are not found.
+ * - Logs structured exception info on query failure.
+ *
+ * @param {Array<{ warehouse_id: string, batch_id: string }>} keys - Composite keys to fetch.
+ * @param {import('pg').PoolClient} client - PostgreSQL client used for the transaction.
+ * @returns {Promise<Array<{
+ *   id: string,
+ *   warehouse_id: string,
+ *   batch_id: string,
+ *   warehouse_quantity: number,
+ *   reserved_quantity: number,
+ *   status_id: string
+ * }>>} - Matching inventory records.
+ *
+ * @throws {AppError} - If a database error occurs.
  */
-// todo: enhance docstring
 const getWarehouseInventoryQuantities = async (keys, client) => {
   const sql = `
     SELECT id, warehouse_id, batch_id, warehouse_quantity, reserved_quantity, status_id

@@ -120,6 +120,15 @@ const { createOrderService } = require('../../services/order-service');
       client
     );
     
+    const sku_id_3 = await getUniqueScalarValue(
+      {
+        table: 'skus',
+        where: { sku: 'CH-HN105-R-CA' },
+        select: 'id',
+      },
+      client
+    );
+    
     const packaging_material_id_1 = await getUniqueScalarValue(
       {
         table: 'packaging_materials',
@@ -163,17 +172,17 @@ const { createOrderService } = require('../../services/order-service');
           created_by: userId,
         },
         {
-          sku_id: sku_id_1,
+          sku_id: sku_id_3,
           price_id: await getUniqueScalarValue(
             {
               table: 'pricing',
-              where: { sku_id: sku_id_1 },
+              where: { sku_id: sku_id_3 },
               select: 'id',
             },
             client
           ),
-          quantity_ordered: 2,
-          price: 20.0,
+          quantity_ordered: 20,
+          price: null,
           status_id: order_status_id,
           created_by: userId,
         },

@@ -176,7 +176,13 @@ const allocateBatchesByStrategy = (
   const remaining = Math.max(0, requiredQuantity - allocatedTotal);
   const fulfilled = remaining === 0;
   
-  return { allocatedBatches, allocatedTotal, remaining, fulfilled };
+  return {
+    allocatedBatches,
+    allocatedTotal,
+    remaining,
+    fulfilled,
+    partial: !fulfilled && allocatedTotal > 0, // Optional field
+  };
 };
 
 module.exports = {
