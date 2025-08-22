@@ -1,311 +1,185 @@
-const {
-  getOrderStatusAndItems,
-  updateOrderAndItemStatus,
-} = require('../repositories/order-repository');
-const AppError = require('../utils/AppError');
-const {
-  insertInventoryAllocation,
-  getAllocationsByOrderId,
-  getTotalAllocatedForOrderItem,
-} = require('../repositories/inventory-allocations-repository');
-const { logError } = require('../utils/logger-helper');
-const {
-  transformOrderStatusAndItems,
-  transformUpdatedOrderStatusResult,
-} = require('../transformers/order-transformer');
-const { getStatusValue, lockRow, retry } = require('../database/db');
-const {
-  determineOrderStatusFromAllocations,
-} = require('../utils/allocation-utils');
-const {
-  updateWarehouseInventoryQuantity,
-  fetchWarehouseInventoryQuantities,
-} = require('../repositories/warehouse-inventory-repository');
+/**
+ * @typedef {Object} Batch
+ * @property {string} batch_id
+ * @property {number} warehouse_quantity
+ * @property {number} reserved_quantity
+ * @property {string|Date} expiry_date
+ * @property {any} [key] - Additional metadata like sku_id, warehouse_id, etc.
+ */
 
 /**
- * Allocates inventory for a confirmed order item using FIFO or FEFO or manually selected lots.
- * Supports automatic multi-lot allocation and manual lot selection with partial fill allowance.
- *
- * @param {Object} params - Allocation input values.
- * @param {string} params.inventoryId - Inventory ID for the item to allocate.
- * @param {number} params.quantity - Quantity to allocate.
- * @param {'FEFO' | 'FIFO'} [params.strategy='FEFO'] - Allocation strategy.
- * @param {string} params.orderId - ID of the order to allocate for.
- * @param {string} params.warehouseId - ID of the warehouse.
- * @param {Array<string>} [params.lotIds] - Optional list of lot IDs for manual override.
- * @param {boolean} [params.allowPartial=false] - Whether to allow partial allocation when lots are insufficient.
- * @param {string} params.userId - ID of the user performing the allocation.
- * @param {import('pg').PoolClient} [params.client] - Optional transaction client.
- * @returns {Promise<Object>} - Summary of allocation result.
- * @throws {AppError} - If the order is invalid or inventory is insufficient.
+ * @typedef {Batch & { allocated_quantity: number }} AllocatedBatch
  */
-const allocateInventoryForOrder = async ({
-  inventoryId,
-  quantity,
-  strategy = 'FEFO',
-  orderId,
-  warehouseId,
-  lotIds = [],
-  allowPartial = false,
-  userId,
-  client,
-}) => {
-  try {
-    // 0. Validate quantity
-    if (typeof quantity !== 'number' || quantity <= 0) {
-      throw AppError.validationError(
-        'Quantity must be a positive number greater than zero.'
-      );
+
+/**
+ * Allocates inventory batches for each order item using the specified strategy (FEFO or FIFO).
+ *
+ * This function applies pure domain logic only — it performs no database operations or logging.
+ * It maps each order item to a set of batches from the given input, choosing those that best fulfill
+ * the requested quantity using the chosen strategy (default: FEFO).
+ *
+ * @param {Array<{
+ *   order_item_id: string,
+ *   sku_id?: string | null,
+ *   packaging_material_id?: string | null,
+ *   quantity_ordered: number
+ * }>} orderItems - List of order items needing allocation.
+ *
+ * @param {Array<{
+ *   batch_id: string,
+ *   warehouse_id: string,
+ *   warehouse_quantity: number,
+ *   reserved_quantity?: number,
+ *   expiry_date?: string | Date,
+ *   inbound_date?: string | Date,
+ *   sku_id?: string | null,
+ *   packaging_material_id?: string | null
+ * }>} batches - All available batches with relevant metadata.
+ *
+ * @param {'fefo' | 'fifo'} [strategy='fefo'] - Allocation strategy:
+ *   - 'fefo': First Expiry, First Out
+ *   - 'fifo': First Inbound, First Out
+ *
+ * @returns {Array<{
+ *   order_item_id: string,
+ *   sku_id: string | null,
+ *   packaging_material_id: string | null,
+ *   quantity_ordered: number,
+ *   allocated: {
+ *     allocatedBatches: Array<Object>,
+ *     allocatedTotal: number,
+ *     remaining: number,
+ *     fulfilled: boolean
+ *   }
+ * }>} Allocation result for each order item.
+ */
+const allocateBatchesForOrderItems = (orderItems, batches, strategy = 'fefo') => {
+  // Build indexes to avoid N×M filtering
+  const bySku = new Map();
+  const byMat = new Map();
+  
+  for (const b of batches || []) {
+    if (b && b.sku_id) {
+      if (!bySku.has(b.sku_id)) bySku.set(b.sku_id, []);
+      bySku.get(b.sku_id).push(b);
     }
-
-    // 1. Fetch and transform order status and items
-    const rawOrderResult = await getOrderStatusAndItems(orderId, client);
-    if (!rawOrderResult || rawOrderResult.length === 0) {
-      throw AppError.notFoundError('Order not found or has no items.');
+    if (b && b.packaging_material_id) {
+      if (!byMat.has(b.packaging_material_id)) byMat.set(b.packaging_material_id, []);
+      byMat.get(b.packaging_material_id).push(b);
     }
-
-    const { order_status_code, orderItems } =
-      transformOrderStatusAndItems(rawOrderResult);
-
-    // 2. Validate order-level status
-    if (
-      !order_status_code ||
-      order_status_code.toUpperCase() !== 'ORDER_CONFIRMED'
-    ) {
-      throw AppError.validationError(
-        `Order must be in 'confirmed' status before allocation. Current: ${order_status_code}`
-      );
-    }
-
-    // 3. Match the inventory item in the order
-    const orderItem = orderItems.find(
-      (item) => item.inventory_id === inventoryId
-    );
-    if (!orderItem) {
-      throw AppError.validationError(
-        `Inventory item ${inventoryId} is not part of the order.`
-      );
-    }
-
-    // 4. Validate item-level status
-    if (
-      !orderItem.order_item_status_code ||
-      orderItem.order_item_status_code.toUpperCase() !== 'ORDER_CONFIRMED'
-    ) {
-      throw AppError.validationError(
-        `Order item for inventory ${inventoryId} is not confirmed. Current status: ${orderItem.order_item_status_code}`
-      );
-    }
-
-    // 5. Validate quantity
-    if (quantity > orderItem.quantity_ordered) {
-      throw AppError.validationError(
-        `Requested quantity (${quantity}) exceeds ordered quantity (${orderItem.quantity_ordered}) for inventory ${inventoryId}.`
-      );
-    }
-
-    // 6. Find inventory lots (manual or automatic)
-    const selectedLots =
-      lotIds.length > 0
-        ? await getSpecificLotsInOrder(lotIds, inventoryId, warehouseId, client)
-        : await getAvailableLotsForAllocation(
-            inventoryId,
-            warehouseId,
-            strategy,
-            client
-          );
-
-    if (!selectedLots?.length) {
-      throw AppError.notFoundError('No available lots found for allocation.');
-    }
-
-    let remaining = quantity;
-
-    for (const rawLot of selectedLots) {
-      const {
-        warehouse_inventory_lot_id,
-        inventory_id,
-        item_name,
-        lot_number,
-        expiry_date,
-      } = transformWarehouseLotResult(rawLot);
-      if (!warehouse_inventory_lot_id || !inventory_id) {
-        throw AppError.notFoundError(
-          `Unable to transform warehouse lot data for allocation.`
-        );
-      }
-
-      await lockRow(
-        client,
-        'warehouse_inventory_lots',
-        warehouse_inventory_lot_id
-      );
-
-      // 7. Check available quantity (lot-level and inventory-level)
-      const key = `${warehouseId}-${inventory_id}`;
-      const inventoryQtyMap = await fetchWarehouseInventoryQuantities(
-        [{ warehouseId, inventoryId: inventory_id }],
-        client
-      );
-
-      if (!inventoryQtyMap[key]) {
-        throw AppError.notFoundError(
-          `Warehouse inventory not found for ${key}`
-        );
-      }
-
-      const lotAvailable = rawLot.quantity - (rawLot.reserved_quantity || 0);
-      const invAvailable = inventoryQtyMap[key]?.available_quantity ?? 0;
-      const availableQty = Math.min(lotAvailable, invAvailable);
-
-      const toAllocate = Math.min(availableQty, remaining);
-      if (toAllocate <= 0) continue;
-
-      const alreadyAllocatedQty = await getTotalAllocatedForOrderItem(
-        { orderId, inventoryId },
-        client
-      );
-      const afterThisAllocation = alreadyAllocatedQty + toAllocate;
-
-      if (afterThisAllocation > orderItem.quantity_ordered) {
-        throw AppError.validationError(
-          `Allocating ${toAllocate} exceeds ordered quantity.`
-        );
-      }
-
-      const totalAllocated = Number(afterThisAllocation);
-      const orderedQty = Number(orderItem.quantity_ordered);
-      const allocationStatus =
-        totalAllocated >= orderedQty ? 'ALLOC_COMPLETED' : 'ALLOC_PARTIAL';
-      const statusId = await getStatusValue(
-        {
-          table: 'inventory_allocation_status',
-          where: { code: allocationStatus },
-          select: 'id',
-        },
-        client
-      );
-
-      if (!statusId) {
-        throw AppError.validationError(
-          `Invalid allocation status code: ${allocationStatus}`
-        );
-      }
-
-      // 8. Insert allocation and update inventory tracking
-      await retry(() =>
-        insertInventoryAllocation(
-          {
-            inventory_id,
-            warehouse_id: warehouseId,
-            lot_id: warehouse_inventory_lot_id,
-            allocated_quantity: toAllocate,
-            status_id: statusId,
-            order_id: orderId,
-            created_by: userId,
-          },
-          client
-        )
-      );
-
-      await updateWarehouseInventoryLotQuantity(
-        {
-          lotId: warehouse_inventory_lot_id,
-          reservedDelta: toAllocate, // only reserved is changed here
-          userId,
-        },
-        client
-      );
-
-      const prevQty = inventoryQtyMap[key]?.available_quantity ?? 0;
-      const newQty = prevQty - toAllocate;
-
-      await bulkInsertInventoryActivityLogs(
-        [
-          {
-            inventory_id,
-            warehouse_id: warehouseId,
-            lot_id: warehouse_inventory_lot_id,
-            inventory_action_type_id: await getStatusValue(
-              {
-                table: 'inventory_action_types',
-                where: { name: 'reserve' },
-                select: 'id',
-              },
-              client
-            ),
-            previous_quantity: prevQty,
-            quantity_change: -toAllocate, // reservation reduces available quantity
-            new_quantity: newQty,
-            status_id: await getStatusValue(
-              {
-                table: 'warehouse_lot_status',
-                where: { name: 'reserved' }, // optional, if status changed
-                select: 'id',
-              },
-              client
-            ),
-            adjustment_type_id: null, // optional for reservation
-            order_id: orderId,
-            user_id: userId,
-            comments: `System auto-reserved ${toAllocate} units from lot "${lot_number}" (Item: ${item_name}, Expiry: ${expiry_date || 'N/A'})`,
-          },
-        ],
-        client
-      );
-
-      const warehouseUpdates = {
-        [key]: {
-          reserved_quantity:
-            (inventoryQtyMap[key]?.reserved_quantity ?? 0) + toAllocate,
-          available_quantity: newQty,
-        },
-      };
-
-      await updateWarehouseInventoryQuantity(client, warehouseUpdates, userId);
-
-      remaining -= toAllocate;
-      if (remaining <= 0) break;
-    }
-
-    if (remaining > 0 && lotIds.length > 0 && !allowPartial) {
-      throw AppError.validationError(
-        `Manual lots do not have enough stock. Remaining: ${remaining}`
-      );
-    }
-
-    // 9. Final status update (order + item)
-    const allAllocations = await getAllocationsByOrderId(orderId, client); // includes each allocation's status
-    const newOrderStatus = determineOrderStatusFromAllocations(allAllocations);
-    const totalAllocated = await getTotalAllocatedForOrderItem(
-      { orderId, inventoryId },
-      client
-    );
-    const orderedQty = Number(orderItem.quantity_ordered);
-
-    const itemStatus =
-      totalAllocated >= orderedQty ? 'ALLOC_COMPLETED' : 'ALLOC_PARTIAL';
-
-    const rawResult = await updateOrderAndItemStatus(
-      {
-        orderId,
-        orderItemId: orderItem.order_item_id,
-        orderStatusCode: newOrderStatus,
-        itemStatusCode: itemStatus,
-        userId,
-      },
-      client
-    );
-
-    return transformUpdatedOrderStatusResult(rawResult);
-  } catch (error) {
-    logError('Error allocating inventory:', error);
-    throw AppError.businessError(
-      'Inventory allocation failed: ' + error.message
-    );
   }
+  
+  return (orderItems || []).map((item) => {
+    const { order_item_id, sku_id, packaging_material_id, quantity_ordered } = item;
+    
+    const candidates = sku_id
+      ? (bySku.get(sku_id) || [])
+      : packaging_material_id
+        ? (byMat.get(packaging_material_id) || [])
+        : [];
+    
+    const { allocatedBatches, allocatedTotal, remaining, fulfilled } =
+      allocateBatchesByStrategy(candidates, quantity_ordered, { strategy });
+    
+    return {
+      order_item_id,
+      sku_id: sku_id ?? null,
+      packaging_material_id: packaging_material_id ?? null,
+      quantity_ordered,
+      allocated: { allocatedBatches, allocatedTotal, remaining, fulfilled },
+    };
+  });
+};
+
+/**
+ * Allocate inventory from batches using a strategy (FEFO/FIFO), accumulating across batches.
+ *
+ * Strategy:
+ *  - 'fefo' => sort by expiry_date ASC
+ *  - 'fifo' => sort by inbound_date ASC
+ *
+ * Edge cases handled:
+ *  - Uses available = warehouse_quantity - reserved_quantity (clamped at 0)
+ *  - Skips batches with no availability
+ *  - Can optionally exclude expired batches
+ *  - Returns meta: total allocated, remaining, fulfilled flag
+ *
+ * @param {Array<Object>} batches - Each batch should include:
+ *   - warehouse_quantity: number
+ *   - reserved_quantity?: number
+ *   - expiry_date?: string|Date   (for FEFO)
+ *   - inbound_date?: string|Date  (for FIFO)
+ *   - other identifying fields (batch_id, warehouse_id, sku_id / packaging_material_id)
+ * @param {number} requiredQuantity - Quantity requested
+ * @param {Object} [options]
+ * @param {'fefo'|'fifo'} [options.strategy='fefo']
+ * @param {boolean} [options.excludeExpired=false] - If true, drop batches with expiry_date < now (FEFO only)
+ * @param {Date} [options.now=new Date()] - Reference time for expiry checks
+ * @returns {{
+ *   allocatedBatches: Array<Object>, // original batch fields + allocated_quantity
+ *   allocatedTotal: number,
+ *   remaining: number,
+ *   fulfilled: boolean
+ * }}
+ */
+const allocateBatchesByStrategy = (
+  batches,
+  requiredQuantity,
+  { strategy = 'fefo', excludeExpired = false, now = new Date() } = {}
+) => {
+  if (!Array.isArray(batches) || requiredQuantity <= 0) {
+    return { allocatedBatches: [], allocatedTotal: 0, remaining: Math.max(0, requiredQuantity || 0), fulfilled: false };
+  }
+  
+  const sortField = strategy === 'fifo' ? 'inbound_date' : 'expiry_date';
+  
+  // Normalize/prepare list
+  let candidates = batches
+    .map(b => {
+      const reserved = Math.max(0, Number(b.reserved_quantity || 0));
+      const qty = Math.max(0, Number(b.warehouse_quantity || 0) - reserved);
+      return { ...b, _available: qty };
+    })
+    .filter(b => b._available > 0);
+  
+  // Optional: exclude expired for FEFO
+  if (excludeExpired && sortField === 'expiry_date') {
+    candidates = candidates.filter(b => b.expiry_date && new Date(b.expiry_date) >= now);
+  }
+  
+  // Sort by strategy field; push records with missing sortField to the end
+  candidates.sort((a, b) => {
+    const da = a[sortField] ? new Date(a[sortField]).getTime() : Number.POSITIVE_INFINITY;
+    const db = b[sortField] ? new Date(b[sortField]).getTime() : Number.POSITIVE_INFINITY;
+    return da - db;
+  });
+  
+  const allocatedBatches = [];
+  let accumulated = 0;
+  
+  for (const batch of candidates) {
+    if (accumulated >= requiredQuantity) break;
+    const needed = requiredQuantity - accumulated;
+    const take = Math.min(batch._available, needed);
+    if (take <= 0) continue;
+    
+    // Emit allocation row
+    allocatedBatches.push({
+      ...batch,
+      allocated_quantity: take,
+    });
+    
+    accumulated += take;
+  }
+  
+  const allocatedTotal = accumulated;
+  const remaining = Math.max(0, requiredQuantity - allocatedTotal);
+  const fulfilled = remaining === 0;
+  
+  return { allocatedBatches, allocatedTotal, remaining, fulfilled };
 };
 
 module.exports = {
-  allocateInventoryForOrder,
+  allocateBatchesForOrderItems,
+  allocateBatchesByStrategy,
 };

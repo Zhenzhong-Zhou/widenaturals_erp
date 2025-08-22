@@ -73,7 +73,7 @@ const insertOrderItemsBulk = async (orderId, orderItems, client) => {
   };
 
   try {
-    await bulkInsert(
+    return await bulkInsert(
       'order_items',
       columns,
       rows,
@@ -264,8 +264,74 @@ const updateOrderItemStatuses = async (client, { orderId, newStatusId, updatedBy
   }
 };
 
+/**
+ * Retrieves all order items for a given order ID, including status metadata.
+ *
+ * This function queries the `order_items` table and joins related `orders` and `order_status`
+ * tables to provide status category and code for each item. It's used to fetch the list of items
+ * associated with a single sales order.
+ *
+ * Behavior:
+ * - Accepts an optional DB client for transactional consistency.
+ * - Logs success or failure using system-level structured logging.
+ * - Throws an AppError if the query fails.
+ *
+ * @async
+ * @function getOrderItemsByOrderId
+ * @param {string} orderId - The UUID of the order whose items are being fetched.
+ * @param {object} [client] - Optional PostgreSQL client for transaction context.
+ * @returns {Promise<Array<object>>} Array of order items, each with fields:
+ *   - order_item_id: UUID
+ *   - sku_id: UUID | null
+ *   - packaging_material_id: UUID | null
+ *   - quantity_ordered: number
+ *   - order_item_status_id: UUID
+ *   - order_items_category: string
+ *   - order_item_code: string
+ *
+ * @throws {AppError} If the query fails to execute.
+ */
+const getOrderItemsByOrderId = async (orderId, client) => {
+  const sql = `
+    SELECT
+      oi.id AS order_item_id,
+      oi.sku_id,
+      oi.packaging_material_id,
+      oi.quantity_ordered,
+      oi.status_id AS order_item_status_id,
+      os.category AS order_items_category,
+      os.code AS order_item_code
+    FROM order_items oi
+    JOIN orders o ON o.id = oi.order_id
+    JOIN order_status os ON oi.status_id = os.id
+    WHERE o.id = $1;
+  `;
+  
+  try {
+    const result = await query(sql, [orderId], client);
+    
+    logSystemInfo('Fetched order items by order ID', {
+      context: 'order-item-repository/getOrderItemsByOrderId',
+      orderId,
+      rowCount: result?.rows?.length ?? 0,
+      severity: 'INFO',
+    });
+    
+    return result.rows;
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch order items by order ID', {
+      context: 'order-item-repository/getOrderItemsByOrderId',
+      orderId,
+      severity: 'ERROR',
+    });
+    
+    throw AppError.databaseError('Unable to retrieve order items for the specified order.');
+  }
+};
+
 module.exports = {
   insertOrderItemsBulk,
   findOrderItemsByOrderId,
   updateOrderItemStatuses,
+  getOrderItemsByOrderId,
 };

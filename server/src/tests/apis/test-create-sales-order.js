@@ -105,7 +105,7 @@ const { createOrderService } = require('../../services/order-service');
     const sku_id_1 = await getUniqueScalarValue(
       {
         table: 'skus',
-        where: { sku: 'CH-HN111-R-CA' },
+        where: { sku: 'PG-NM203-R-CA' },
         select: 'id',
       },
       client
@@ -114,7 +114,7 @@ const { createOrderService } = require('../../services/order-service');
     const sku_id_2 = await getUniqueScalarValue(
       {
         table: 'skus',
-        where: { sku: 'PG-NM209-R-CA' },
+        where: { sku: 'PG-NM208-R-CN' },
         select: 'id',
       },
       client
@@ -123,7 +123,7 @@ const { createOrderService } = require('../../services/order-service');
     const packaging_material_id_1 = await getUniqueScalarValue(
       {
         table: 'packaging_materials',
-        where: { name: 'Brand D Paper Bag - XL (Green)' },
+        where: { name: 'Brand E Paper Bag - Medium (Brown)' },
         select: 'id',
       },
       client

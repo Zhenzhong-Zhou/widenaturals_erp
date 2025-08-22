@@ -78,6 +78,11 @@ const STATUS_KEY_LOOKUP = [
     table: 'status',
     name: 'active',
   },
+  {
+    key: 'inventory_allocation_init',
+    table: 'inventory_allocation_status',
+    name: 'pending',
+  },
 ];
 
 /**

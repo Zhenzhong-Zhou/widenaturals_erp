@@ -18,12 +18,12 @@ exports.up = async function (knex) {
       .references('id')
       .inTable('transfer_order_items');
 
-    // Location & Batch
+    // Warehouse & Batch
     table
-      .uuid('location_id')
+      .uuid('warehouse_id')
       .notNullable()
       .references('id')
-      .inTable('locations');
+      .inTable('warehouses');
     table
       .uuid('batch_id')
       .notNullable()
@@ -49,7 +49,7 @@ exports.up = async function (knex) {
     table.index(['order_item_id'], 'idx_alloc_order_item');
     table.index(['transfer_order_item_id'], 'idx_alloc_transfer_item');
     table.index(['batch_id'], 'idx_alloc_batch');
-    table.index(['location_id'], 'idx_alloc_location');
+    table.index(['warehouse_id'], 'idx_alloc_warehouse');
   });
 
   // Constraints
@@ -59,11 +59,20 @@ exports.up = async function (knex) {
       COALESCE(order_item_id, transfer_order_item_id)
     ) STORED;
   `);
+  
+  await knex.raw(`
+    ALTER TABLE inventory_allocations
+    ADD CONSTRAINT check_exactly_one_target_item
+    CHECK (
+      (order_item_id IS NOT NULL)::int +
+      (transfer_order_item_id IS NOT NULL)::int = 1
+    );
+  `);
 
   await knex.raw(`
     ALTER TABLE inventory_allocations
-    ADD CONSTRAINT uniq_alloc_batch_item_location
-    UNIQUE (target_item_id, batch_id, location_id);
+    ADD CONSTRAINT uniq_alloc_batch_item_warehouse
+    UNIQUE (target_item_id, batch_id, warehouse_id);
   `);
 };
 

@@ -1001,6 +1001,19 @@ exports.seed = async function (knex) {
       description: 'Green branded hard paper bag - XL',
       category: 'sales',
       is_visible_for_sales_order: true,
+    },
+    {
+      name: 'Brand E Paper Bag - Medium (Brown)',
+      color: 'brown',
+      grade: 'recycled',
+      material_composition: 'kraft paper',
+      unit: 'pc',
+      length_cm: 20.0,
+      width_cm: 8.0,
+      height_cm: 25.0,
+      description: 'Brown branded kraft paper bag - Medium',
+      category: 'sales',
+      is_visible_for_sales_order: true,
     }
   ];
   

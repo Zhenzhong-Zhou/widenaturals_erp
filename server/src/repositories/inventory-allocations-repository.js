@@ -1,90 +1,104 @@
-const { query } = require('../database/db');
-const { logError } = require('../utils/logger-helper');
+const { query, bulkInsert } = require('../database/db');
+const { logSystemException } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 
 /**
- * Inserts a new inventory allocation record into the database.
+ * Bulk inserts inventory allocation records into the `inventory_allocations` table.
  *
- * @param {Object} allocation - The allocation data to insert.
- * @param {string} allocation.inventory_id - The ID of the inventory record.
- * @param {string} allocation.warehouse_id - The ID of the warehouse.
- * @param {string} [allocation.lot_id] - Optional ID of the warehouse lot.
- * @param {number} allocation.allocated_quantity - The quantity being allocated.
- * @param {string} allocation.status_id - The current status ID of the allocation.
- * @param {string} [allocation.order_id] - Optional ID of the sales order linked to this allocation.
- * @param {string} [allocation.transfer_id] - Optional ID of the inventory transfer.
- * @param {string} [allocation.created_by] - ID of the user who created the allocation.
- * @param {string} [allocation.updated_by] - ID of the user who last updated the allocation.
- * @param {import('pg').PoolClient} [client] - Optional PostgreSQL client for transactional execution.
- * @returns {Promise<Object>} - The inserted inventory allocation record.
- * @throws {Error} - Throws if the query fails.
+ * This function transforms a list of allocation objects into a tabular row format
+ * and performs a batched insert using a shared `bulkInsert` utility. It supports
+ * conflict resolution based on specified unique keys and applies update strategies
+ * (e.g., overwriting or updating timestamps).
+ *
+ * @param {Array<Object>} allocations - List of allocation objects, where each item includes:
+ *   - {string} order_item_id
+ *   - {string|null} transfer_order_item_id
+ *   - {string} warehouse_id
+ *   - {string} batch_id
+ *   - {number} allocated_quantity
+ *   - {string} status_id
+ *   - {string|Date|null} allocated_at
+ *   - {string|null} created_by
+ *   - {string|null} updated_by
+ *   - {string|Date|null} updated_at
+ *
+ * @param {import('pg').PoolClient} client - PG client instance for transactional execution.
+ *
+ * @returns {Promise<Array>} - Result of the `bulkInsert` operation (inserted/updated rows).
+ *
+ * @throws {AppError} - Throws a database error if the insert fails.
+ *
+ * @example
+ * await insertInventoryAllocationsBulk([
+ *   {
+ *     order_item_id: 'abc-123',
+ *     transfer_order_item_id: null,
+ *     warehouse_id: 'wh-001',
+ *     batch_id: 'batch-456',
+ *     allocated_quantity: 10,
+ *     status_id: 'allocated',
+ *     allocated_at: new Date(),
+ *     created_by: 'user-001',
+ *     updated_by: 'user-001',
+ *     updated_at: new Date()
+ *   }
+ * ], dbClient);
  */
-const insertInventoryAllocation = async (
-  {
-    inventory_id,
-    warehouse_id,
-    lot_id = null,
-    allocated_quantity,
-    status_id,
-    order_id = null,
-    transfer_id = null,
-    created_by = null,
-    updated_by = null,
-  },
-  client
-) => {
-  if (!inventory_id || !warehouse_id || !allocated_quantity || !status_id) {
-    throw AppError.validationError(
-      'Missing required fields for inventory allocation.'
-    );
-  }
-
-  if (allocated_quantity <= 0) {
-    throw AppError.validationError(
-      'Allocated quantity must be a positive number.'
-    );
-  }
-
-  const sql = `
-    INSERT INTO inventory_allocations (
-      inventory_id,
-      warehouse_id,
-      lot_id,
-      allocated_quantity,
-      status_id,
-      allocated_at,
-      order_id,
-      transfer_id,
-      created_by,
-      updated_by,
-      created_at,
-      updated_at
-    )
-    VALUES (
-      $1, $2, $3, $4, $5, NOW(),
-      $6, $7, $8, NULL, NOW(), NULL
-    )
-    ON CONFLICT (order_id, lot_id, inventory_id, warehouse_id)
-    DO UPDATE SET
-      allocated_quantity = inventory_allocations.allocated_quantity + EXCLUDED.allocated_quantity,
-      updated_at = NOW(),
-      updated_by = EXCLUDED.created_by
-    RETURNING *;
-  `;
-
-  const values = [
-    inventory_id,
-    warehouse_id,
-    lot_id,
-    allocated_quantity,
-    status_id,
-    order_id,
-    transfer_id,
-    created_by,
+const insertInventoryAllocationsBulk = async (allocations, client) => {
+  const rows = allocations.map((item) => [
+    item.order_item_id ?? null,
+    item.transfer_order_item_id ?? null,
+    item.warehouse_id,
+    item.batch_id,
+    item.allocated_quantity,
+    item.status_id,
+    item.allocated_at ?? null,
+    item.created_by ?? null,
+    item.updated_by ?? null,
+    item.updated_at ?? null,
+  ]);
+  
+  const columns = [
+    'order_item_id',
+    'transfer_order_item_id',
+    'warehouse_id',
+    'batch_id',
+    'allocated_quantity',
+    'status_id',
+    'allocated_at',
+    'created_by',
+    'updated_by',
+    'updated_at',
   ];
-
-  const result = await query(sql, values, client);
-  return result.rows[0];
+  
+  const conflictColumns = ['target_item_id', 'batch_id', 'warehouse_id'];
+  
+  const updateStrategies = {
+    allocated_quantity: 'overwrite',
+    status_id: 'overwrite',
+    allocated_at: 'now',
+    updated_by: 'overwrite',
+    updated_at: 'now',
+  };
+  
+  try {
+   return await bulkInsert(
+      'inventory_allocations',
+      columns,
+      rows,
+      conflictColumns,
+      updateStrategies,
+      client,
+      { context: 'inventory-allocation-repository/insertInventoryAllocationsBulk' }
+    );
+  } catch (error) {
+    logSystemException(error, 'Failed to bulk insert inventory allocations', {
+      context: 'inventory-allocation-repository/insertInventoryAllocationsBulk',
+      data: allocations,
+    });
+    
+    throw AppError.databaseError('Unable to insert inventory allocations in bulk.');
+  }
 };
 
 /**
@@ -155,7 +169,7 @@ const getTotalAllocatedForOrderItem = async (
 };
 
 module.exports = {
-  insertInventoryAllocation,
+  insertInventoryAllocationsBulk,
   getAllocationsByOrderId,
   getTotalAllocatedForOrderItem,
 };

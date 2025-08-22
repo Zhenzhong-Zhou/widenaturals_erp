@@ -1,91 +1,122 @@
-const {
-  allocateInventoryForOrder,
-} = require('../business/inventory-allocation-business');
-const AppError = require('../utils/AppError');
 const { withTransaction } = require('../database/db');
-const { logError, logInfo } = require('../utils/logger-helper');
+const { fetchOrderMetadata } = require('../repositories/order-repository');
+const { validateStatusTransitionByCategory } = require('../business/order-business');
+const { getOrderItemsByOrderId } = require('../repositories/order-item-repository');
+const AppError = require('../utils/AppError');
+const { extractOrderItemIdsByType, transformAllocationResultToInsertRows, transformAllocationReviewData } = require('../transformers/inventory-allocation-transformer');
+const { getStatusId } = require('../config/status-cache');
+const { getAllocatableBatchesByWarehouse } = require('../repositories/warehouse-inventory-repository');
+const { allocateBatchesForOrderItems } = require('../business/inventory-allocation-business');
+const { insertInventoryAllocationsBulk } = require('../repositories/inventory-allocations-repository');
+const { logSystemException } = require('../utils/system-logger');
 
 /**
- * Service wrapper for inventory allocation.
+ * Allocates inventory batches to each order item using a batch allocation strategy (FEFO/FIFO).
  *
- * @param {Object} params - The allocation input.
- * @param {string} params.productId - Product ID to allocate.
- * @param {number} params.quantity - Quantity to allocate.
- * @param {'FIFO'|'FEFO'} [params.strategy] - Allocation strategy (defaults to FEFO).
- * @param {string} params.orderId - Order ID.
- * @param {string} params.warehouseId - Warehouse ID.
- * @param {string} params.userId - The user who initiated the allocation.
- * @param {Object} [params.client] - Optional database client for transaction.
- * @returns {Promise<Object>} - The created inventory allocation record.
- */
-const allocateInventory = async (params) => {
-  // You could add audit logging, permission checks, or pre-validation here if needed.
-  return await allocateInventoryForOrder(params);
-};
-
-/**
- * Service to handle multiple inventory allocations for a single order in a single transaction.
- * Supports a global allocation strategy (FIFO/FEFO), with optional per-item overrides.
+ * This function performs the allocation as a transactional operation:
+ * - Validates the current order status
+ * - Validates item-level status eligibility
+ * - Retrieves in-stock batches for the order's SKUs or packaging materials
+ * - Applies the allocation strategy (FEFO/FIFO)
+ * - Persists the allocation records in the `inventory_allocations` table
+ * - Returns allocation review data (orderId + allocation IDs)
  *
- * @param {Object} params
- * @param {string} params.orderId - Order ID.
- * @param {Array<Object>} params.items - List of items to allocate. Each item may override the global strategy.
- * @param {string} params.userId - ID of the user performing the allocation.
- * @param {'FIFO'|'FEFO'} [params.strategy='FEFO'] - Global default allocation strategy. Individual items can override with their own `strategy` value.
- * @returns {Promise<Array>} List of allocation results, one per item.
+ * @param {Object} user - Authenticated user object (must include `id`)
+ * @param {string} rawOrderId - Raw order UUID
+ * @param {Object} options - Allocation configuration
+ * @param {'fefo'|'fifo'} [options.strategy='fefo'] - Allocation strategy to use
+ * @param {string|null} [options.warehouseId=null] - Warehouse to allocate from
+ *
+ * @returns {Promise<{ orderId: string, allocationIds: string[] }>} Allocation review payload
+ *
+ * @throws {AppError} If the status transition is invalid or allocation fails
  */
-const allocateMultipleInventoryItems = async ({
-  orderId,
-  items,
-  userId,
-  strategy: defaultStrategy = 'FEFO',
+const allocateInventoryForOrder = async (user, rawOrderId, {
+  strategy = 'fefo',
+  warehouseId = null
 }) => {
   try {
     return await withTransaction(async (client) => {
-      const allocations = [];
-
-      for (const item of items) {
-        const { warehouseId, inventoryId, quantity, strategy } = item;
-
-        if (!warehouseId || !inventoryId || !quantity) {
-          throw AppError.validationError(
-            'Each item must include warehouseId, inventoryId, and quantity.'
-          );
-        }
-
-        // Log only when allowPartial is inferred due to lotIds
-        if (item.lotIds?.length && item.allowPartial === undefined) {
-          logInfo(
-            `Manual lotIds passed for inventory ${inventoryId}, but allowPartial flag is missing. This may cause allocation to fail if lots are insufficient.`
-          );
-        }
-
-        const allocation = await allocateInventory({
-          orderId,
-          warehouseId,
-          inventoryId,
-          quantity,
-          strategy: strategy || defaultStrategy,
-          userId,
-          lotIds: item.lotIds || [],
-          allowPartial: item.allowPartial ?? item.lotIds?.length > 0,
-          client, // Pass client if supported in business logic
-        });
-
-        allocations.push(allocation);
+      const userId = user.id;
+      
+      // Fetch current order metadata and validate status transition
+      const orderMetadata = await fetchOrderMetadata(rawOrderId, client);
+      const {
+        order_status_category: currentStatusCategory,
+        order_status_code: currentStatusCode,
+        order_category: orderCategory,
+        order_id: orderId,
+      } = orderMetadata;
+      
+      validateStatusTransitionByCategory(
+        orderCategory,
+        currentStatusCategory,
+        'processing',
+        currentStatusCode,
+        'ORDER_ALLOCATING'
+      );
+      
+      // Get order items and ensure only items in allocatable status are processed
+      const orderItemsMetadata = await getOrderItemsByOrderId(orderId, client);
+      const ALLOCATABLE_ITEM_STATUSES = ['ORDER_CONFIRMED'];
+      const invalidItems = orderItemsMetadata.filter(
+        (item) => !ALLOCATABLE_ITEM_STATUSES.includes(item.order_item_code)
+      );
+      
+      if (invalidItems.length > 0) {
+        throw AppError.validationError(
+          `Allocation blocked. Invalid item statuses: ${invalidItems.map(i => i.order_item_id).join(', ')}`
+        );
       }
-
-      return allocations;
+      
+      // Extract SKUs and packaging material IDs to fetch eligible batches
+      const { skuIds, packagingMaterialIds } = extractOrderItemIdsByType(orderItemsMetadata);
+      const inStockStatusId = getStatusId('inventory_in_stock');
+      
+      // Query batches eligible for allocation
+      const batches = await getAllocatableBatchesByWarehouse(
+        {
+          skuIds,
+          packagingMaterialIds,
+          warehouseId,
+          inventoryStatusId: inStockStatusId,
+        },
+        { strategy },
+        client
+      );
+      
+      // Apply allocation strategy and build result per item
+      const allocationResult = allocateBatchesForOrderItems(orderItemsMetadata, batches, strategy);
+      
+      // Transform to insert rows with audit metadata
+      const inventoryAllocationStatusPendingId = getStatusId('inventory_allocation_init');
+      const allocations = transformAllocationResultToInsertRows(allocationResult, {
+        status_id: inventoryAllocationStatusPendingId,
+        created_by: userId,
+      });
+      
+      // Insert allocation records in bulk
+      const rawAllocations = await insertInventoryAllocationsBulk(allocations, client);
+      
+      // Return simplified review object
+      return transformAllocationReviewData(rawAllocations, orderId);
     });
   } catch (error) {
-    logError('Error during multiple inventory allocations:', error);
-    throw AppError.serviceError(
-      'Failed to allocate all inventory items: ' + error.message
-    );
+    logSystemException(error, 'Inventory allocation failed', {
+      context: 'allocateInventoryForOrder',
+      orderId: rawOrderId,
+      userId: user?.id,
+      strategy,
+      warehouseId,
+    });
+    
+    throw AppError.serviceError('Failed to allocate inventory for order.');
   }
 };
 
+const reviewInventoryAllocation = async (orderId) => {};
+const confirmInventoryAllocation = async (orderId) => {};
+
 module.exports = {
-  allocateInventory,
-  allocateMultipleInventoryItems,
+  allocateInventoryForOrder,
 };

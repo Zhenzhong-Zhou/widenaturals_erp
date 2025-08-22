@@ -687,6 +687,7 @@ const bulkUpdateWarehouseQuantities = async (updates, userId, client) => {
  * @param {import('pg').PoolClient} client - pg client instance.
  * @returns {Promise<Array<{ id: string, warehouse_id: string, batch_id: string, warehouse_quantity: number, reserved_quantity: number, status_id: string }>>}
  */
+// todo: enhance docstring
 const getWarehouseInventoryQuantities = async (keys, client) => {
   const sql = `
     SELECT id, warehouse_id, batch_id, warehouse_quantity, reserved_quantity, status_id
@@ -743,6 +744,103 @@ const getWarehouseInventoryQuantities = async (keys, client) => {
       }
     );
     throw AppError.databaseError('Failed to fetch warehouse inventory records');
+  }
+};
+
+/**
+ * Fetches allocatable batches from warehouse inventory based on SKU or packaging material filters.
+ *
+ * Applies allocation strategies like FIFO (first-in, first-out) or FEFO (first-expired, first-out),
+ * and only returns batches with positive quantity and matching inventory status (e.g., "in_stock").
+ *
+ * @param {Object} allocationFilter - Filter criteria for the allocation query.
+ * @param {UUID[]} allocationFilter.skuIds - List of SKU IDs to include.
+ * @param {UUID[]} allocationFilter.packagingMaterialIds - List of packaging material IDs to include.
+ * @param {UUID} allocationFilter.warehouseId - Warehouse ID to fetch batches from.
+ * @param {UUID} allocationFilter.inventoryStatusId - Inventory status ID to filter by (e.g., "in_stock").
+ *
+ * @param {Object} [options={}] - Optional configuration for sorting and strategy.
+ * @param {'fifo'|'fefo'} [options.strategy] - Allocation strategy to apply (sorts by `inbound_date` or `expiry_date`).
+ *
+ * @param {Object} [client] - Optional database client for transactional context.
+ *
+ * @returns {Promise<Array>} Resolves to an array of allocatable batch records.
+ *
+ * @throws {AppError} If the database query fails.
+ */
+const getAllocatableBatchesByWarehouse = async (allocationFilter = {}, options = {}, client) => {
+  const {
+    skuIds = [],
+    packagingMaterialIds = [],
+    warehouseId,
+    inventoryStatusId,
+  } = allocationFilter;
+  
+  const orderByField =
+    options.strategy === 'fefo'
+      ? 'expiry_date'
+      : options.strategy === 'fifo'
+        ? 'inbound_date'
+        : null;
+  
+  const orderByClause = orderByField ? `ORDER BY ${orderByField} ASC` : '';
+  
+  const sql = `
+    SELECT
+      wi.batch_id,
+      wi.warehouse_id,
+      wi.warehouse_quantity,
+      wi.reserved_quantity,
+      COALESCE(pb.expiry_date, pmb.expiry_date) AS expiry_date,
+      br.batch_type,
+      pb.sku_id,
+      pm.id AS packaging_material_id
+    FROM warehouse_inventory wi
+    JOIN batch_registry br ON wi.batch_id = br.id
+    LEFT JOIN product_batches pb ON br.product_batch_id = pb.id
+    LEFT JOIN packaging_material_batches pmb ON br.packaging_material_batch_id = pmb.id
+    LEFT JOIN packaging_material_suppliers pms ON pmb.packaging_material_supplier_id = pms.id
+    LEFT JOIN packaging_materials pm ON pms.packaging_material_id = pm.id
+    WHERE wi.warehouse_id = $1
+      AND wi.warehouse_quantity > 0
+      AND wi.status_id = $2
+      AND (
+        (pb.sku_id = ANY($3::uuid[]) AND pb.sku_id IS NOT NULL)
+        OR
+        (pm.id = ANY($4::uuid[]) AND pm.id IS NOT NULL)
+      )
+    ${orderByClause}
+  `;
+  
+  try {
+    const result = await query(
+      sql,
+      [warehouseId, inventoryStatusId, skuIds, packagingMaterialIds],
+      client
+    );
+    
+    logSystemInfo('Fetched allocatable batches by warehouse', {
+      context: 'inventory-repository/getAllocatableBatchesByWarehouse',
+      warehouseId,
+      skuCount: skuIds.length,
+      packagingMaterialCount: packagingMaterialIds.length,
+      strategy: options.strategy ?? 'none',
+      rowCount: result?.rows?.length ?? 0,
+      severity: 'INFO',
+    });
+    
+    return result.rows;
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch allocatable batches', {
+      context: 'inventory-repository/getAllocatableBatchesByWarehouse',
+      warehouseId,
+      skuIds,
+      packagingMaterialIds,
+      strategy: options.strategy ?? 'none',
+      severity: 'ERROR',
+    });
+    
+    throw AppError.databaseError('Unable to retrieve allocatable warehouse inventory.');
   }
 };
 
@@ -1019,6 +1117,7 @@ module.exports = {
   getWarehouseInventoryResponseByIds,
   bulkUpdateWarehouseQuantities,
   getWarehouseInventoryQuantities,
+  getAllocatableBatchesByWarehouse,
   getWarehouseInventoryDetailsByWarehouseId,
   checkWarehouseInventoryBulk,
   getRecentInsertWarehouseInventoryRecords,
