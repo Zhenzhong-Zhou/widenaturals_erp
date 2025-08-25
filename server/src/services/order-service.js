@@ -8,21 +8,23 @@ const {
   insertOrder,
   findOrderByIdWithDetails,
   updateOrderStatus,
-  fetchOrderMetadata
+  fetchOrderMetadata, getPaginatedOrders
 } = require('../repositories/order-repository');
 const {
   createOrderWithType,
   verifyOrderCreationPermission,
   verifyOrderViewPermission,
+  evaluateOrdersViewAccessControl,
   evaluateOrderDetailsViewAccessControl,
   validateStatusTransitionByCategory,
-  canUpdateOrderStatus, enrichStatusMetadata,
+  canUpdateOrderStatus, enrichStatusMetadata, applyOrderAccessFilters,
 } = require('../business/order-business');
 const AppError = require('../utils/AppError');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 const { findOrderItemsByOrderId, updateOrderItemStatuses } = require('../repositories/order-item-repository');
-const { transformOrderWithItems, transformOrderStatusWithMetadata } = require('../transformers/order-transformer');
+const { transformOrderWithItems, transformOrderStatusWithMetadata, transformPaginatedOrderTypes } = require('../transformers/order-transformer');
 const { getRoleNameById } = require('../repositories/role-repository');
+const { getOrderTypeIdsByCategory } = require('../repositories/order-type-repository');
 
 /**
  * Service function to create a new order within the specified category.
@@ -115,6 +117,74 @@ const createOrderService = async (orderData, category, user) => {
       orderData,
     });
     throw AppError.businessError('Unable to create order');
+  }
+};
+
+/**
+ * Fetches a paginated and access-controlled list of orders for the given category.
+ *
+ * This service:
+ * - Verifies the user's permission to view orders in the given category.
+ * - Evaluates whether the user can view all orders or is restricted.
+ * - Scopes the order filter by `orderTypeId` if needed based on category and access level.
+ * - Delegates to the repository layer for paginated query execution.
+ * - Transforms raw SQL rows into structured API-ready objects.
+ *
+ * @async
+ * @param {Object} params
+ * @param {Object} params.filters - Raw filter input (order number, status, dates, etc.)
+ * @param {string} params.category - Order category code (e.g. `'sales'`, `'purchase'`)
+ * @param {Object} params.user - Authenticated user object
+ * @param {number} [params.page=1] - Page number for pagination
+ * @param {number} [params.limit=10] - Page size for pagination
+ * @param {string} [params.sortBy='created_at'] - Column to sort by
+ * @param {string} [params.sortOrder='DESC'] - Sort direction ('ASC' or 'DESC')
+ * @returns {Promise<Object>} - Transformed paginated result
+ *
+ * @throws {AppError} - If permission validation or data fetching fails
+ */
+const fetchPaginatedOrdersService = async ({
+                                             filters = {},
+                                             category,
+                                             user,
+                                             page = 1,
+                                             limit = 10,
+                                             sortBy = 'created_at',
+                                             sortOrder = 'DESC',
+                                           }) => {
+  try {
+    await verifyOrderViewPermission(user, category, { action: 'VIEW' });
+    
+    const userAccess = await evaluateOrdersViewAccessControl(user);
+    const orderTypeId = await getOrderTypeIdsByCategory(category);
+    const scopedFilters = await applyOrderAccessFilters(filters, userAccess, orderTypeId);
+    
+    const rawResult = await getPaginatedOrders({
+      filters: scopedFilters,
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+    });
+    
+    return transformPaginatedOrderTypes(rawResult);
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch paginated orders', {
+      context: 'order-service/fetchPaginatedOrdersService',
+      userId: user?.id,
+      category,
+      filters,
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+    });
+    
+    throw AppError.businessError('Unable to fetch paginated orders', {
+      details: error.message,
+      stage: 'fetch-paginated-orders',
+      cause: error,
+    });
   }
 };
 
@@ -225,86 +295,6 @@ const fetchOrderDetailsByIdService = async (category, orderId, user) => {
     throw AppError.databaseError('Unable to retrieve order details at this time');
   }
 };
-
-/**
- * Internal helper to fetch, transform, and validate orders from a given fetch function.
- *
- * @param {Function} fetchFn - The repository function to fetch raw order data.
- * @param {Object} options - The query and transformation options.
- * @param {object} [options.user] - The user object (must include `id` and `role`) for permission checks.
- * @param {string[]} [options.requiredPermissions] - Permissions required to access the order data.
- * @param {boolean} [options.requireAllPermissions=false] - Whether to require all permissions (vs. any).
- * @returns {Promise<Object>} - Transformed and optionally validated order data.
- */
-const handleOrderServiceFetch = async (
-  fetchFn,
-  {
-    page = 1,
-    limit = 10,
-    sortBy = 'created_at',
-    sortOrder = 'DESC',
-    verifyOrderNumbers = true,
-    user,
-    requiredPermissions = [],
-    requireAllPermissions = false,
-  } = {}
-) => {
-  try {
-    // Permission check if requiredPermissions are defined
-    if (user && requiredPermissions.length > 0) {
-      const hasAccess = await checkPermissions(user, requiredPermissions, {
-        requireAll: requireAllPermissions,
-      });
-
-      if (!hasAccess) {
-        throw AppError.authorizationError(
-          'You do not have permission to access these orders.'
-        );
-      }
-    }
-
-    // Fetch, transform, validate
-    const result = await fetchFn({ page, limit, sortBy, sortOrder });
-
-    const transformedOrders = transformOrders(result.data);
-
-    const validatedOrders = validateOrderNumbers(
-      transformedOrders,
-      verifyOrderNumbers
-    );
-
-    return { ...result, data: validatedOrders };
-  } catch (error) {
-    logError('Error in order service fetch:', error);
-    throw AppError.databaseError('Failed to fetch orders');
-  }
-};
-
-/**
- * Service function to fetch all orders with transformation and verification.
- */
-const fetchAllOrdersService = (options = {}) =>
-  handleOrderServiceFetch(getAllOrders, {
-    ...options,
-    requiredPermissions: ['view_all_order_details'],
-  });
-
-/**
- * Service function to fetch orders eligible for inventory allocation,
- * including confirmed, allocating, allocated, and partially fulfilled statuses.
- *
- * @param {Object} options - Query options for fetching orders.
- * @returns {Promise<Object>} - Paginated and filtered list of allocation-eligible orders.
- */
-const fetchAllocationEligibleOrdersService = (options = {}) =>
-  handleOrderServiceFetch(getAllocationEligibleOrders, {
-    ...options,
-    requiredPermissions: [
-      'view_allocation_details',
-      'view_full_sales_order_details',
-    ],
-    requireAllPermissions: false, // only one is needed
-  });
 
 /**
  * Updates the status of a sales order and all associated items within a single DB transaction.
@@ -440,45 +430,9 @@ const updateOrderStatusService = async (user, categoryParam, orderId, nextStatus
   });
 };
 
-/**
- * Fetch and transform an order eligible for inventory allocation,
- * ensuring the order exists, is in a valid status, and the user has access.
- *
- * @param {string} orderId - The order ID.
- * @param {object} user - The current user performing the request.
- * @returns {Promise<object>} - Transformed order with items.
- * @throws {AppError} - If the order is not allocation-eligible or permissions fail.
- */
-const fetchAllocationEligibleOrderDetails = async (orderId, user) => {
-  const rows = await getOrderAllocationDetailsById(orderId);
-  const order = transformOrderAllocationDetails(rows);
-
-  if (!order) {
-    throw AppError.notFoundError('Order not found or not confirmed.');
-  }
-
-  const isValid = verifyOrderNumber(order.order_number);
-
-  if (!isValid) {
-    const canViewInvalid = await checkPermissions(user, [
-      'root_access',
-      'view_all_order_details',
-      'view_order_allocation_details',
-    ]);
-
-    if (!canViewInvalid) {
-      throw AppError.validationError('Order number is invalid or not found.');
-    }
-  }
-
-  return order;
-};
-
 module.exports = {
   createOrderService,
+  fetchPaginatedOrdersService,
   fetchOrderDetailsByIdService,
-  fetchAllOrdersService,
-  fetchAllocationEligibleOrdersService,
   updateOrderStatusService,
-  fetchAllocationEligibleOrderDetails,
 };

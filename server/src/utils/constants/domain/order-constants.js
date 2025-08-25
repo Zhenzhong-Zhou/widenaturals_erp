@@ -8,6 +8,7 @@ const ORDER_CONSTANTS = {
     SHIP_SALES_ORDER: 'ship_sales_order',
     COMPLETE_SALES_ORDER: 'complete_sales_order',
     OVERRIDE_LOCKED_STATUS: 'override_locked_order_status',
+    VIEW_ALL_ORDERS: 'view_all_orders',
   },
 };
 

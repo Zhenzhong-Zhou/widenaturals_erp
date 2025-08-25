@@ -1499,6 +1499,77 @@ const getFieldsById = async (
   }
 };
 
+/**
+ * Retrieves an array of values from one column (`selectField`) in a table,
+ * filtered by a specific match condition on another column (`whereKey`).
+ *
+ * This utility is useful for simple lookups like:
+ * - Getting all `id`s where `category = 'sales'`
+ * - Fetching all `code`s where `status = 'active'`
+ *
+ * Internally:
+ * - Table and field names are sanitized to prevent SQL injection.
+ * - Query uses parameterized values (`$1`) for safe substitution.
+ * - Supports optional `pg.PoolClient` for transactional context.
+ *
+ * @async
+ * @param {string} table - Name of the table to query (e.g., `'order_types'`).
+ * @param {string} whereKey - Name of the column to filter by (e.g., `'category'`).
+ * @param {any} whereValue - Value to filter against (e.g., `'sales'`).
+ * @param {string} [selectField='id'] - Column to return values from (default is `'id'`).
+ * @param {import('pg').PoolClient} [client=null] - Optional database client for transactions.
+ * @returns {Promise<any[]>} Array of matching values from `selectField`.
+ *
+ * @throws {AppError} - If parameters are invalid or the query fails.
+ *
+ * @example
+ * const ids = await getFieldValuesByField('order_types', 'category', 'sales');
+ * // Result: ['type-1', 'type-2', 'type-3']
+ *
+ * @example
+ * const codes = await getFieldValuesByField('discounts', 'is_active', true, 'code');
+ * // Result: ['SUMMER10', 'FREESHIP']
+ */
+const getFieldValuesByField = async (
+  table,
+  whereKey,
+  whereValue,
+  selectField = 'id',
+  client = null
+) => {
+  try {
+    if (!table || !whereKey || !selectField) {
+      throw AppError.validationError('Invalid parameters for getFieldValuesByField');
+    }
+    
+    const cleanField = selectField.replace(/[^a-zA-Z0-9_]/g, '');
+    const cleanWhereKey = whereKey.replace(/[^a-zA-Z0-9_]/g, '');
+    const maskedTable = table.replace(/[^a-zA-Z0-9_]/g, '');
+    
+    const sql = `
+      SELECT ${cleanField}
+      FROM ${maskedTable}
+      WHERE ${cleanWhereKey} = $1
+    `;
+    
+    const result = await query(sql, [whereValue], client);
+    return result.rows.map((row) => row[cleanField]);
+  } catch (err) {
+    logSystemException(err, 'Failed to get field values by field', {
+      context: 'db/getFieldValuesByField',
+      table,
+      whereKey,
+      whereValue,
+      selectField,
+    });
+    throw AppError.databaseError('Failed to fetch field values', {
+      details: err.message,
+      table,
+      whereKey,
+    });
+  }
+};
+
 // Export the utilities
 module.exports = {
   pool,
@@ -1523,4 +1594,5 @@ module.exports = {
   checkRecordExists,
   findMissingIds,
   getFieldsById,
+  getFieldValuesByField,
 };

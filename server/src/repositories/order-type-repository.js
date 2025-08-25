@@ -1,7 +1,7 @@
 const {
   buildOrderTypeFilter,
 } = require('../utils/sql/build-order-type-filters');
-const { paginateQuery, query } = require('../database/db');
+const { paginateQuery, query, getFieldValuesByField } = require('../database/db');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 
@@ -158,7 +158,41 @@ const getOrderTypeLookup = async ({ filters = {} } = {}) => {
   }
 };
 
+/**
+ * Retrieves the IDs of all order types that belong to a specific category.
+ *
+ * This is typically used for access control and filtering orders by category.
+ * For example, in a sales dashboard, you may only want to fetch orders whose
+ * `order_type_id` matches a set of types within the "sales" category.
+ *
+ * Internally, this delegates to `getFieldValuesByField`, selecting all `id` values
+ * from the `order_types` table where `category` equals the provided value.
+ *
+ * @async
+ * @param {string} category - The category to filter order types by (e.g., `'sales'`, `'purchase'`, `'logistics'`).
+ * @param {import('pg').PoolClient} [client=null] - Optional PostgreSQL client to use within a transaction or query chain.
+ * @returns {Promise<string[]>} - A list of UUIDs representing the order type IDs in the given category.
+ *
+ * @throws {AppError} - Throws an AppError if:
+ *   - The `category` is invalid or not provided
+ *   - The database query fails (wrapped from `getFieldValuesByField`)
+ *
+ * @example
+ * const salesTypeIds = await getOrderTypeIdsByCategory('sales');
+ * const orders = await getOrders({ orderTypeId: salesTypeIds });
+ */
+const getOrderTypeIdsByCategory = async (category, client = null) => {
+  return await getFieldValuesByField(
+    'order_types',     // table name
+    'category',        // filter field
+    category,          // filter value
+    'id',              // field to return
+    client             // optional transaction context
+  );
+};
+
 module.exports = {
   getPaginatedOrderTypes,
   getOrderTypeLookup,
+  getOrderTypeIdsByCategory,
 };

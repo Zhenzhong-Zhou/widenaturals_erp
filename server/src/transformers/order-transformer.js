@@ -1,8 +1,10 @@
+const { cleanObject } = require('../utils/object-utils');
+const { getFullName } = require('../utils/name-utils');
 const { makeAudit, compactAudit } = require('../utils/audit-utils');
 const { formatDiscount, formatTaxRateLabel, formatPackagingMaterialLabel } = require('../utils/string-utils');
 const { getProductDisplayName } = require('../utils/display-name-utils');
-const { getFullName } = require('../utils/name-utils');
 const { buildAddress } = require('../utils/address-utils');
+const { transformPaginatedResult } = require('../utils/transformer-utils');
 
 /**
  * Header row as returned by your SQL (only fields you actually read here).
@@ -128,6 +130,83 @@ const { buildAddress } = require('../utils/address-utils');
  * @property {string|null} item_updated_by_firstname
  * @property {string|null} item_updated_by_lastname
  */
+
+/**
+ * Transforms a raw SQL result row from the `orders` query into a normalized order object.
+ *
+ * Fields like names and status codes are flattened and renamed for frontend/API use.
+ * Combines `created_by` and `updated_by` first/last names into readable full names.
+ * Nulls are used instead of undefined values. Uses `cleanObject` to remove nullish keys.
+ *
+ * @param {Object} row - A single raw row from a SQL query (with aliased fields).
+ * @param {string} row.id - Order UUID.
+ * @param {string} row.order_number - Order number string.
+ * @param {string} [row.order_type] - Order type name.
+ * @param {string} row.status_code - Status code of the order.
+ * @param {string} row.status_name - Human-readable status name.
+ * @param {string} row.status_date - ISO timestamp for status.
+ * @param {string} row.created_at - ISO timestamp for creation.
+ * @param {string} [row.created_by_firstname] - Creator's first name.
+ * @param {string} [row.created_by_lastname] - Creator's last name.
+ * @param {string} row.updated_at - ISO timestamp for last update.
+ * @param {string} [row.updated_by_firstname] - Updater's first name.
+ * @param {string} [row.updated_by_lastname] - Updater's last name.
+ * @param {string} [row.note] - Optional internal notes.
+ *
+ * @returns {Object|null} Transformed order object or `null` if `row` is falsy.
+ *
+ * @example
+ * const raw = await db.query(...);
+ * const orders = raw.rows.map(transformOrderRow);
+ */
+const transformOrderRow = (row) => {
+  if (!row) return null;
+  
+  const createdBy =
+    [row.created_by_firstname, row.created_by_lastname].filter(Boolean).join(' ') || null;
+  
+  const updatedBy =
+    [row.updated_by_firstname, row.updated_by_lastname].filter(Boolean).join(' ') || null;
+  
+  const transformed = {
+    id: row.id,
+    orderNumber: row.order_number,
+    orderType: row.order_type || null,
+    status: {
+      code: row.status_code,
+      name: row.status_name,
+    },
+    statusDate: row.status_date,
+    createdAt: row.created_at,
+    createdBy: createdBy || null,
+    updatedAt: row.updated_at,
+    updatedBy: updatedBy || null,
+    note: row.note ?? null,
+  };
+  
+  return cleanObject(transformed);
+};
+
+/**
+ * Applies `transformOrderRow` to each item in a paginated query result.
+ *
+ * Used to convert raw SQL rows into structured order objects within paginated responses.
+ * Relies on `transformPaginatedResult` utility to preserve pagination metadata.
+ *
+ * @param {Object} paginatedResult - Paginated query result from `paginateQuery`.
+ * @param {Array<Object>} paginatedResult.data - Array of raw rows to transform.
+ * @param {Object} paginatedResult.meta - Metadata including pagination info.
+ * @returns {Object} Transformed result with `data` mapped via `transformOrderRow`.
+ *
+ * @example
+ * const result = await getPaginatedOrders(...);
+ * const output = transformPaginatedOrderTypes(result);
+ */
+const transformPaginatedOrderTypes = (paginatedResult) => {
+  return transformPaginatedResult(paginatedResult, (row) =>
+    transformOrderRow(row)
+  );
+};
 
 /**
  * Transform a flat sales order header + items (from a joined SQL query) into a structured object.
@@ -439,8 +518,8 @@ const transformOrderStatusWithMetadata = ({ enrichedOrder, enrichedItems }) => {
   };
 };
 
-
 module.exports = {
+  transformPaginatedOrderTypes,
   transformOrderWithItems,
   transformOrderStatusWithMetadata,
 };

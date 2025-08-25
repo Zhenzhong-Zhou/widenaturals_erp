@@ -1,13 +1,7 @@
 const { query, paginateQuery } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
-
-const allocationEligibleStatuses = [
-  'ORDER_CONFIRMED',
-  'ORDER_ALLOCATING',
-  'ORDER_ALLOCATED',
-  'ORDER_PARTIAL',
-];
+const { buildOrderFilter } = require('../utils/sql/build-order-filters');
 
 /**
  * Inserts a new order record into the database.
@@ -98,6 +92,107 @@ const insertOrder = async (orderData, client) => {
     throw AppError.databaseError(
       'Database insert failed: could not create new order.'
     );
+  }
+};
+
+/**
+ * Fetches a paginated list of sales orders with optional filters, sorting, and joined metadata.
+ *
+ * - Applies dynamic filters using `buildOrderFilter` (e.g., by status, type, dates).
+ * - Joins related tables: `order_types`, `order_status`, and `users` for created/updated by.
+ * - Supports pagination and sorting.
+ *
+ * @async
+ * @param {Object} options - Query options.
+ * @param {Object} [options.filters={}] - Filtering conditions (e.g., status, type, date).
+ * @param {number} [options.page=1] - Page number for pagination.
+ * @param {number} [options.limit=10] - Page size for pagination.
+ * @param {string} [options.sortBy='created_at'] - Column to sort by.
+ * @param {string} [options.sortOrder='DESC'] - Sort direction ('ASC' or 'DESC').
+ * @returns {Promise<Object>} Paginated result with data, meta info, etc.
+ *
+ * @example
+ * const result = await getPaginatedOrders({
+ *   filters: { statusCode: 'ORDER_CONFIRMED' },
+ *   page: 2,
+ *   limit: 20,
+ *   sortBy: 'created_at',
+ *   sortOrder: 'ASC'
+ * });
+ */
+const getPaginatedOrders =  async ({
+                                     filters = {},
+                                     page = 1,
+                                     limit = 10,
+                                     sortBy = 'created_at',
+                                     sortOrder = 'DESC',
+                                   }) => {
+  const { whereClause, params } = buildOrderFilter(filters);
+  
+  const tableName = 'orders o';
+  
+  const joins = [
+    'LEFT JOIN order_types ot ON o.order_type_id = ot.id',
+    'LEFT JOIN order_status os ON o.order_status_id = os.id',
+    'LEFT JOIN users u_created ON o.created_by = u_created.id',
+    'LEFT JOIN users u_updated ON o.updated_by = u_updated.id',
+  ];
+  
+  const baseQuery = `
+    SELECT
+      o.id,
+      o.order_number,
+      ot.name AS order_type,
+      os.code AS status_code,
+      os.name AS status_name,
+      o.status_date,
+      o.created_at,
+      u_created.firstname AS created_by_firstname,
+      u_created.lastname AS created_by_lastname,
+      o.updated_at,
+      u_updated.firstname AS updated_by_firstname,
+      u_updated.lastname AS updated_by_lastname,
+      o.note
+    FROM ${tableName}
+    ${joins.join('\n')}
+    WHERE ${whereClause}
+  `;
+  
+  try {
+    const result = await paginateQuery({
+      tableName,
+      joins,
+      whereClause,
+      queryText: baseQuery,
+      params,
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+    });
+    
+    logSystemInfo('Fetched orders successfully', {
+      context: 'order-repository/getPaginatedOrders',
+      resultCount: result?.data?.length,
+      filters,
+      pagination: { page, limit },
+      sorting: { sortBy, sortOrder },
+    });
+    
+    return result;
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch paginated orders', {
+      context: 'order-repository/getPaginatedOrders',
+      filters,
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+    });
+    throw AppError.databaseError('Unable to fetch orders from the database', {
+      cause: error,
+      stage: 'get-paginated-orders',
+    });
   }
 };
 
@@ -479,210 +574,6 @@ const updateOrderStatus = async (client, { orderId, newStatusId, updatedBy }) =>
 };
 
 /**
- * Shared logic for fetching orders with pagination, sorting, and optional filters.
- *
- * @param {Object} options - Query options for fetching orders.
- * @param {number} [options.page=1] - Page number for pagination.
- * @param {number} [options.limit=10] - Number of records per page.
- * @param {string} [options.sortBy='created_at'] - Column to sort by.
- * @param {string} [options.sortOrder='DESC'] - Sort order ('ASC' or 'DESC').
- * @param {string} [options.extraWhereClause=''] - Optional extra WHERE condition to apply.
- * @returns {Promise<Object>} - Paginated result of orders.
- * @throws {AppError} - Throws a database error if query fails.
- */
-const getOrdersWithFilters = async ({
-  page = 1,
-  limit = 10,
-  sortBy = 'created_at',
-  sortOrder = 'DESC',
-  extraWhereClause = '',
-} = {}) => {
-  const tableName = 'orders o';
-  const joins = [
-    'JOIN order_types ot ON o.order_type_id = ot.id',
-    'JOIN order_status os ON o.order_status_id = os.id',
-    'LEFT JOIN users u1 ON o.created_by = u1.id',
-    'LEFT JOIN users u2 ON o.updated_by = u2.id',
-  ];
-
-  const allowedSortFields = [
-    'order_number',
-    'category',
-    'name',
-    'order_date',
-    'created_at',
-    'updated_at',
-  ];
-
-  const validatedSortBy = allowedSortFields.includes(sortBy)
-    ? `o.${sortBy}`
-    : 'o.created_at';
-
-  const whereClause = ['1=1'];
-  if (extraWhereClause) {
-    whereClause.push(extraWhereClause);
-  }
-
-  const baseQuery = `
-    SELECT
-      o.id,
-      o.order_number,
-      ot.name AS order_type,
-      o.order_date,
-      os.name AS status,
-      os.code AS status_code,
-      o.created_at,
-      o.updated_at,
-      o.note,
-      COALESCE(u1.firstname || ' ' || u1.lastname, 'Unknown') AS created_by,
-      COALESCE(u2.firstname || ' ' || u2.lastname, 'Unknown') AS updated_by
-    FROM ${tableName}
-    ${joins.join(' ')}
-    WHERE ${whereClause.join(' AND ')}
-  `;
-
-  try {
-    return await retry(
-      () =>
-        paginateQuery({
-          tableName,
-          joins,
-          whereClause: whereClause.join(' AND '),
-          queryText: baseQuery,
-          params: [],
-          page,
-          limit,
-          sortBy: validatedSortBy,
-          sortOrder,
-        }),
-      3
-    );
-  } catch (error) {
-    logError('Error fetching orders:', error);
-    throw AppError.databaseError('Failed to fetch orders');
-  }
-};
-
-/**
- * Fetches all orders with pagination, sorting, and order number verification.
- * Applies retry logic for robustness.
- *
- * @param {Object} options - Fetch options for the query.
- * @param {number} options.page - The current page number (default: 1).
- * @param {number} options.limit - The number of orders per page (default: 10).
- * @param {string} options.sortBy - The column to sort the results by (default: 'created_at').
- * @param {string} options.sortOrder - The order of sorting ('ASC' or 'DESC', default: 'DESC').
- * @returns {Promise<Object>} - The paginated orders result.
- * @throws {AppError} - If the query fails or verification fails.
- */
-const getAllOrders = (options = {}) => {
-  return getOrdersWithFilters(options);
-};
-
-/**
- * Fetches orders eligible for inventory allocation (based on status codes).
- *
- * @param {Object} options - Query options for fetching orders.
- * @param {number} [options.page=1] - Page number for pagination.
- * @param {number} [options.limit=10] - Number of records per page.
- * @param {string} [options.sortBy='created_at'] - Column to sort by.
- * @param {string} [options.sortOrder='DESC'] - Sort order ('ASC' or 'DESC').
- * @returns {Promise<Object>} - Paginated result of allocation-eligible orders.
- */
-const getAllocationEligibleOrders = (options = {}) => {
-  return getOrdersWithFilters({
-    ...options,
-    extraWhereClause: `os.code = ANY(ARRAY['${allocationEligibleStatuses.join("','")}'])`,
-  });
-};
-
-/**
- * Fetches the order status and all associated items by order ID.
- * Used for validation and inventory allocation preparation.
- *
- * @param {string} orderId - The UUID of the order.
- * @param {import('pg').PoolClient} [client] - Optional PostgreSQL client for transactional execution.
- * @returns {Promise<{order_id: string, order_status_id: string, order_status_name: string, items: {inventory_id: string, quantity_ordered: number}[]}>}
- * @throws {AppError} - If the order is not found or has no items.
- */
-const getOrderStatusAndItems = async (orderId, client) => {
-  const sql = `
-    SELECT
-      o.order_number,
-      o.order_status_id,
-      os.code AS order_status_code,
-      oi.id AS order_item_id,
-      oi.inventory_id,
-      oi.quantity_ordered,
-      oi.status_id AS order_item_status_id,
-      ios.code AS order_item_status_code
-    FROM orders o
-    JOIN order_status os ON o.order_status_id = os.id
-    JOIN order_items oi ON oi.order_id = o.id
-    JOIN inventory i ON oi.inventory_id = i.id
-    JOIN order_status ios ON oi.status_id = ios.id
-    WHERE o.id = $1
-  `;
-
-  try {
-    const result = await query(sql, [orderId], client);
-
-    if (!result.rows || result.rows.length === 0) {
-      return null;
-    }
-
-    return result.rows;
-  } catch (error) {
-    logError('Error fetching order and items:', error);
-    throw AppError.databaseError(
-      'Failed to fetch order and items: ' + error.message
-    );
-  }
-};
-
-/**
- * Retrieves the order status code and the status codes of all related order items
- * for a given order ID. Returns one row per order item.
- *
- * Useful for validation logic before confirming an order (e.g., ensuring all items
- * are in a confirmable status like `ITEM_PENDING`).
- *
- * @param {string} orderId - The UUID of the order to fetch status codes for.
- * @param {object} client - The PostgreSQL transaction client.
- * @returns {Promise<Array<{ order_status_code: string, order_item_status_code: string }> | null>}
- *          An array of status code objects for the order and each item,
- *          or `null` if no matching order is found.
- * @throws {AppError} - Throws a database error if the query fails.
- */
-const getOrderAndItemStatusCodes = async (orderId, client) => {
-  const sql = `
-    SELECT
-      os.code AS order_status_code,
-      ios.code AS order_item_status_code
-    FROM orders o
-    JOIN order_status os ON o.order_status_id = os.id
-    JOIN order_items oi ON oi.order_id = o.id
-    JOIN order_status ios ON oi.status_id = ios.id
-    WHERE o.id = $1
-  `;
-
-  try {
-    const result = await retry(() => query(sql, [orderId], client));
-
-    if (!result.rows || result.rows.length === 0) {
-      return null;
-    }
-
-    return result.rows; // array of status codes (for each order item)
-  } catch (error) {
-    logError('Error fetching order/item status codes:', error);
-    throw AppError.databaseError(
-      'Failed to fetch status codes: ' + error.message
-    );
-  }
-};
-
-/**
  * Fetches all inventory allocation records for a given order ID.
  *
  * Joins `orders`, `order_items`, and `inventory_allocations` to retrieve
@@ -743,13 +634,10 @@ const getInventoryAllocationsByOrderId = async (orderId, client) => {
 
 module.exports = {
   insertOrder,
+  getPaginatedOrders,
   findOrderByIdWithDetails,
   updateOrderData,
   fetchOrderMetadata,
   updateOrderStatus,
-  getAllOrders,
-  getAllocationEligibleOrders,
-  getOrderStatusAndItems,
-  getOrderAndItemStatusCodes,
   getInventoryAllocationsByOrderId,
 };

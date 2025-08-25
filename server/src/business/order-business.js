@@ -101,7 +101,7 @@ const verifyOrderViewPermission = async (user, category, { action = 'VIEW', orde
   if (isRoot) return;
   
   if (!accessibleCategories.includes(cat)) {
-    logSystemWarn('Permission denied for viewing order details', {
+    logSystemWarn('Permission denied for viewing orders in this category.', {
       context: 'verifyOrderViewPermission',
       role: user?.role,
       userId: user?.id,
@@ -114,6 +114,94 @@ const verifyOrderViewPermission = async (user, category, { action = 'VIEW', orde
     throw AppError.authorizationError(
       `You do not have permission to ${action.toLowerCase()} ${cat} orders.`
     );
+  }
+};
+
+/**
+ * Evaluates whether the authenticated user is allowed to view all orders.
+ *
+ * Behavior:
+ * - Root users are always granted full visibility.
+ * - Users with the `VIEW_ALL_ORDERS` permission are granted access to all orders.
+ * - All other users will be restricted to scoped access (e.g., by order type or ownership).
+ *
+ * This function does **not** return any order data. It simply resolves a boolean access flag.
+ *
+ * @async
+ * @param {Object} user - The authenticated user object (should contain at least an `id` and `role_id`)
+ * @returns {Promise<{ canViewAllOrders: boolean }>} - Permission result object
+ *
+ * @example
+ * const { canViewAllOrders } = await evaluateOrdersViewAccessControl(user);
+ * if (canViewAllOrders) {
+ *   // allow unrestricted access
+ * } else {
+ *   // apply scoped filters
+ * }
+ */
+const evaluateOrdersViewAccessControl = async (user) => {
+  try {
+    const { permissions, isRoot } = await resolveUserPermissionContext(user);
+    
+    const canViewAllOrders =
+      isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_ORDERS);
+    
+    return { canViewAllOrders };
+  } catch (err) {
+    logSystemException(err, 'Failed to evaluate order view access control', {
+      context: 'order-business/evaluateOrdersViewAccessControl',
+      userId: user?.id,
+    });
+    
+    throw AppError.businessError('Unable to evaluate order view access', {
+      details: err.message,
+      stage: 'evaluate-order-access',
+    });
+  }
+};
+
+/**
+ * Applies scoped access control filters to an order query based on the user's access rights.
+ *
+ * If the user lacks permission to view all orders, the function injects a restriction
+ * on the allowed `orderTypeId` values into the provided filter object.
+ *
+ * This function is typically used after evaluating user permissions via
+ * `evaluateOrdersViewAccessControl`.
+ *
+ * @async
+ * @param {Object} filters - Original query filter object (e.g., from request query or service layer).
+ * @param {Object} userAccess - Access control flags returned by `evaluateOrdersViewAccessControl`.
+ * @param {Array<string>} orderTypeIds - List of order type UUIDs the user is allowed to view.
+ * @returns {Promise<Object>} A modified filters object that includes access restrictions (if needed).
+ *
+ * @example
+ * const { canViewAllOrders } = await evaluateOrdersViewAccessControl(user);
+ * const orderTypeIds = await getOrderTypeIdsByCategory(category);
+ * const filters = await applyOrderAccessFilters(originalFilters, { canViewAllOrders }, orderTypeIds);
+ */
+const applyOrderAccessFilters = async (filters, userAccess, orderTypeIds) => {
+  try {
+    const modifiedFilters = { ...filters };
+    
+    if (!userAccess.canViewAllOrders) {
+      modifiedFilters.orderTypeId = orderTypeIds;
+    }
+    
+    return modifiedFilters;
+  } catch (err) {
+    logSystemException(err, 'Failed to apply access filters in applyOrderAccessFilters', {
+      context: 'order-business/applyOrderAccessFilters',
+      originalFilters: filters,
+      userAccess,
+      orderTypeIds,
+    });
+    
+    throw AppError.businessError('Unable to apply order access filters', {
+      details: err.message,
+      stage: 'filter-order-access',
+      cause: err,
+    });
   }
 };
 
@@ -407,173 +495,14 @@ const enrichStatusMetadata = ({ updatedOrder, updatedItems, orderStatusMetadata 
   };
 };
 
-/**
- * Validates a list of orders by their order numbers.
- *
- * @param {Array} orders - The list of transformed orders to validate.
- * @param {boolean} verifyOrderNumbers - Whether to verify order numbers.
- * @returns {Array} - Orders with `order_number_valid` property included.
- */
-const validateOrderNumbers = (orders, verifyOrderNumbers = true) => {
-  if (!Array.isArray(orders)) return [];
-
-  return orders.map((order) => {
-    let isOrderNumberValid = true;
-
-    if (verifyOrderNumbers) {
-      isOrderNumberValid = verifyOrderNumber(order.order_number);
-
-      if (!isOrderNumberValid) {
-        logError(`Invalid order number detected: ${order.order_number}`);
-      }
-    }
-
-    return {
-      ...order,
-      order_number_valid: isOrderNumberValid,
-    };
-  });
-};
-
-/**
- * Applies business logic to the transformed order data.
- * @param {object} order - The transformed order object.
- * @param {object} user - The user object containing permissions.
- * @returns {object} - Order object with applied business logic.
- */
-const applyOrderDetailsBusinessLogic = async (order, user) => {
-  // Check if the order number is valid
-  const isOrderNumberValid = verifyOrderNumber(order.order_number);
-
-  if (!isOrderNumberValid) {
-    // Check if the user has permission to view invalid orders
-    const canViewInvalidOrder = await checkPermissions(user, [
-      'view_full_sales_order_details',
-      'view_all_order_details',
-    ]);
-
-    if (!canViewInvalidOrder) {
-      throw AppError.validationError('Order number is invalid or not found.');
-    }
-  }
-
-  // Format the discount and remove the original discount_type and discount_value
-  order.discount = formatDiscount(order.discount_type, order.discount_value);
-  delete order.discount_type;
-  delete order.discount_value;
-
-  // Process each item
-  order.items = order.items.map((item) => {
-    // Prepare the transformed item
-    const transformedItem = {
-      ...item,
-      system_price: item.system_price,
-    };
-
-    // Remove adjusted_price if it's the same as system_price or null
-    if (
-      item.adjusted_price === null ||
-      item.adjusted_price === item.system_price
-    ) {
-      delete transformedItem.adjusted_price;
-    } else {
-      transformedItem.adjusted_price = item.adjusted_price;
-    }
-
-    return transformedItem;
-  });
-
-  // Check if the user has permission to view metadata and category
-  const canViewMetadata = checkPermissions(user, [
-    'view_all_order_details',
-    'view_full_sales_order_details',
-  ]);
-
-  // Remove sensitive data if the user lacks permission
-  if (!canViewMetadata) {
-    delete order.order_category;
-    delete order.order_metadata;
-  }
-
-  return order;
-};
-
-/**
- * Business logic to confirm an order and its items.
- *
- * @param {string} orderId - The UUID of the order to confirm.
- * @param {object} user - an Authenticated user object (must contain a role).
- * @param {object} client - Optional PostgreSQL client (for transaction support).
- * @returns {Promise<Object>} Raw confirmation result.
- */
-const confirmOrderWithItems = async (orderId, user, client) => {
-  const hasPermission = await checkPermissions(user, [
-    'confirm_order',
-    'confirm_sales_order',
-  ]);
-
-  if (!hasPermission) {
-    throw AppError.authorizationError(
-      'You do not have permission to confirm orders.'
-    );
-  }
-
-  return await updateOrderAndItemStatus(
-    {
-      orderId,
-      orderStatusCode: 'ORDER_CONFIRMED',
-      itemStatusCode: 'ORDER_CONFIRMED',
-      userId: user.id,
-    },
-    client
-  );
-};
-
-/**
- * Determines whether an order can be confirmed by validating both
- * the current order status and all associated order item statuses.
- *
- * Confirmation is allowed only if:
- * - The order's status code is in the allowed list (e.g., 'ORDER_PENDING')
- * - All order items also have a status that permits confirmation
- *
- * @param {string} orderId - UUID of the order to check
- * @param {object} client - Optional database client for transaction context
- * @returns {Promise<boolean>} - Whether the order is eligible for confirmation
- * @throws {AppError} - If the order status cannot be retrieved
- */
-const canConfirmOrder = async (orderId, client) => {
-  const allowedStatusCodes = ['ORDER_PENDING', 'ORDER_EDITED'];
-  const allowedItemStatuses = ['ORDER_PENDING', 'ORDER_EDITED'];
-
-  const rawStatusRows = await getOrderAndItemStatusCodes(orderId, client);
-  const { order_status_code, item_status_codes } =
-    transformOrderStatusCodes(rawStatusRows);
-
-  if (!order_status_code) {
-    throw AppError.databaseError(
-      `Order status not found for order ID: ${orderId}`
-    );
-  }
-
-  const isOrderConfirmable = allowedStatusCodes.includes(order_status_code);
-  const areAllItemsConfirmable = item_status_codes.every((status) =>
-    allowedItemStatuses.includes(status)
-  );
-
-  return isOrderConfirmable && areAllItemsConfirmable;
-};
-
 module.exports = {
   verifyOrderCreationPermission,
   createOrderWithType,
   verifyOrderViewPermission,
+  evaluateOrdersViewAccessControl,
+  applyOrderAccessFilters,
   evaluateOrderDetailsViewAccessControl,
   validateStatusTransitionByCategory,
   canUpdateOrderStatus,
   enrichStatusMetadata,
-  validateOrderNumbers,
-  applyOrderDetailsBusinessLogic,
-  confirmOrderWithItems,
-  canConfirmOrder,
 };
