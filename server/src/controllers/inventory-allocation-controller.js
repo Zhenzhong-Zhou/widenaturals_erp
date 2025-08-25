@@ -1,5 +1,5 @@
 const wrapAsync = require('../utils/wrap-async');
-const { allocateInventoryForOrder } = require('../services/inventory-allocation-service');
+const { allocateInventoryForOrder, confirmInventoryAllocation } = require('../services/inventory-allocation-service');
 const { logInfo } = require('../utils/logger-helper');
 
 /**
@@ -57,6 +57,58 @@ const allocateInventoryForOrderController = wrapAsync(async (req, res) => {
   });
 });
 
+/**
+ * Controller: Confirm inventory allocation for a specific order.
+ *
+ * Route: POST /inventory-allocation/confirm/:orderId
+ *
+ * This controller:
+ * - Assumes the user has already passed authorization middleware (`ALLOCATE_INVENTORY` permission).
+ * - Validates the `orderId` param (via middleware).
+ * - Calls the inventory allocation confirmation service within a transaction.
+ * - Transforms and returns the confirmed allocation result.
+ *
+ * Expected input:
+ * - `req.params.orderId`: UUID of the order to confirm allocation for.
+ * - `req.user`: Authenticated user object injected by auth middleware.
+ *
+ * Success Response (200 OK):
+ * {
+ *   success: true,
+ *   message: 'Inventory allocation confirmed successfully',
+ *   data: { ...transformedAllocationResult }
+ * }
+ *
+ * Errors:
+ * - 403 Forbidden: If route-level permission check fails
+ * - 404 Not Found: If order or items not found
+ * - 500 Internal Server Error: For unexpected service failures
+ *
+ * @async
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @returns {Promise<void>}
+ */
+const confirmInventoryAllocationController = wrapAsync(async (req, res) => {
+  const rawOrderId = req.params.orderId;
+  const user = req.user;
+  
+  logInfo('Received inventory allocation confirmation request', {
+    context: 'inventory-allocation-controller/confirmInventoryAllocationController',
+    orderId: rawOrderId,
+    userId: user?.id,
+  });
+  
+  const result = await confirmInventoryAllocation(user, rawOrderId);
+  
+  res.status(200).json({
+    success: true,
+    message: 'Inventory allocation confirmed successfully',
+    data: result,
+  });
+});
+
 module.exports = {
   allocateInventoryForOrderController,
+  confirmInventoryAllocationController,
 };
