@@ -2,8 +2,12 @@ const express = require('express');
 const authorize = require('../middlewares/authorize');
 const PERMISSIONS = require('../utils/constants/domain/permissions');
 const validate = require('../middlewares/validate');
-const { allocateOrderIdSchema, allocateInventorySchema } = require('../validators/inventory-allocation-validators');
-const { allocateInventoryForOrderController, confirmInventoryAllocationController } = require('../controllers/inventory-allocation-controller');
+const { orderIdParamSchema } = require('../validators/order-validators');
+const { allocateInventorySchema } = require('../validators/inventory-allocation-validators');
+const {
+  allocateInventoryForOrderController,
+  confirmInventoryAllocationController
+} = require('../controllers/inventory-allocation-controller');
 
 const router = express.Router();
 
@@ -27,7 +31,7 @@ const router = express.Router();
 router.post(
   '/allocate/:orderId',
   authorize([PERMISSIONS.INVENTORY.ALLOCATE_INVENTORY]),
-  validate(allocateOrderIdSchema, 'params'),
+  validate(orderIdParamSchema, 'params'),
   validate(allocateInventorySchema, 'body'),
   allocateInventoryForOrderController
 );
@@ -49,7 +53,7 @@ router.post(
  * - Only users with `PERMISSIONS.INVENTORY.ALLOCATE_INVENTORY` can invoke this action.
  *
  * Validation:
- * - `params.orderId` must be a valid UUID (validated via `allocateOrderIdSchema`).
+ * - `params.orderId` must be a valid UUID (validated via `orderIdParamSchema`).
  *
  * Response:
  * - `200 OK` with allocation result (transformed order allocation response)
@@ -61,7 +65,7 @@ router.post(
 router.post(
   '/confirm/:orderId',
   authorize([PERMISSIONS.INVENTORY.ALLOCATE_INVENTORY]),
-  validate(allocateOrderIdSchema, 'params'),
+  validate(orderIdParamSchema, 'params'),
   confirmInventoryAllocationController
 );
 

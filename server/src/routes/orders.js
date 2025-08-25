@@ -2,7 +2,8 @@ const express = require('express');
 const {
   createOrderController,
   getOrderDetailsByIdController,
-  updateOrderStatusController
+  updateOrderStatusController,
+  fetchPaginatedOrdersController
 } = require('../controllers/order-controller');
 const authorize = require('../middlewares/authorize');
 const PERMISSIONS = require('../utils/constants/domain/permissions');
@@ -11,10 +12,13 @@ const salesOrderSchema = require('../validators/sales-order-validators');
 const { sanitizeFields } = require('../middlewares/sanitize');
 const AppError = require('../utils/AppError');
 const {
-  getOrderDetailsParamsSchema,
+  orderCategorySchema,
+  orderIdParamSchema,
   orderIdentifierSchema,
-  updateOrderStatusSchema
+  orderQuerySchema,
+  updateOrderStatusSchema,
 } = require('../validators/order-validators');
+const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
 
 const router = express.Router();
 
@@ -102,6 +106,62 @@ router.post(
 );
 
 /**
+ * GET /orders/:category
+ *
+ * Fetches a paginated list of orders for a specific order category (e.g. SALES, TRANSFER).
+ *
+ * Middleware Stack:
+ * - `authorize`: Requires `ORDER.VIEW` permission to access orders.
+ * - `createQueryNormalizationMiddleware`: Applies sort field mapping using `orderSortMap`.
+ * - `sanitizeFields`: Trims and sanitizes the `category` and `keyword` fields.
+ * - `validate`:
+ *    - Validates route parameter `:category` against allowed order categories (`orderCategorySchema`).
+ *    - Validates query parameters using `orderQuerySchema`.
+ * - `fetchPaginatedOrdersController`:
+ *    - Delegates to service layer to fetch filtered orders.
+ *    - Applies access control filtering.
+ *    - Transforms the final result for consistent API response.
+ *
+ * Supported Query Parameters:
+ * - Pagination:
+ *    - `page` (number) – default: 1
+ *    - `limit` (number) – default: 10
+ * - Sorting:
+ *    - `sortBy` (string) – default: `created_at`
+ *    - `sortOrder` (string) – `ASC` or `DESC`, default: `DESC`
+ * - Filters:
+ *    - `keyword` (string) – search by keyword
+ *    - `orderNumber` (string)
+ *    - `orderTypeId` (UUID)
+ *    - `orderStatusId` (UUID)
+ *    - `createdAfter`, `createdBefore` (ISO date)
+ *    - `statusDateAfter`, `statusDateBefore` (ISO date)
+ *
+ * Example Request:
+ *   GET /orders/SALES?page=2&limit=20&sortBy=createdAt&sortOrder=DESC&keyword=Focus
+ *
+ * Success Response:
+ * - `200 OK` with JSON payload containing paginated list of filtered orders
+ *
+ * Error Handling:
+ * - All errors are handled via global error middleware
+ */
+router.get(
+  '/:category',
+  authorize([PERMISSIONS.ORDER.VIEW]),
+  createQueryNormalizationMiddleware(
+    'orderSortMap',
+    [],
+    [],
+    orderQuerySchema
+  ),
+  sanitizeFields(['category', 'keyword']),
+  validate(orderCategorySchema, 'params'),
+  validate(orderQuerySchema, 'query'),
+  fetchPaginatedOrdersController
+);
+
+/**
  * GET /orders/:category/:orderId
  *
  * Retrieves detailed information for a single order by its category and ID.
@@ -146,7 +206,7 @@ router.get(
   '/:category/:orderId',
   authorize([PERMISSIONS.ORDER.VIEW]),
   sanitizeFields(['orderId']),
-  validate(getOrderDetailsParamsSchema, 'params'),
+  validate(orderIdParamSchema, 'params'),
   getOrderDetailsByIdController
 );
 

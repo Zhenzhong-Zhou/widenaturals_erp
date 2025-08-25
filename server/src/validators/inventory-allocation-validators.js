@@ -11,19 +11,6 @@ const Joi = require('joi');
 const { validateString, validateUUID } = require('./general-validators');
 
 /**
- * Validates the order ID parameter in the route.
- *
- * Example:
- *   PATCH /inventory/allocate/:orderId
- *
- * Expected:
- *   { orderId: 'uuid-string' }
- */
-const allocateOrderIdSchema = Joi.object({
-  orderId: validateUUID('Order ID'),
-});
-
-/**
  * Validates the body of the inventory allocation request.
  *
  * Fields:
@@ -42,6 +29,5 @@ const allocateInventorySchema = Joi.object({
 });
 
 module.exports = {
-  allocateOrderIdSchema,
   allocateInventorySchema,
 };

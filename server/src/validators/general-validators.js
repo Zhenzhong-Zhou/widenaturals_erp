@@ -114,7 +114,7 @@ const validateString = (
  * Validates an optional trimmed string with max length and optional label.
  */
 const validateOptionalString = (label = '', max = 255) =>
-  Joi.string().trim().max(max).allow('', null).label(label);
+  Joi.string().trim().max(max).optional().allow('', null).label(label);
 
 /**
  * Joi schema to validate a phone number in E.164 international format.

@@ -1,7 +1,7 @@
 const {
   createOrderService,
   fetchOrderDetailsByIdService,
-  updateOrderStatusService,
+  updateOrderStatusService, fetchPaginatedOrdersService,
 } = require('../services/order-service');
 const AppError = require('../utils/AppError');
 const wrapAsync = require('../utils/wrap-async');
@@ -85,6 +85,86 @@ const createOrderController = wrapAsync(async (req, res, next) => {
     success: true,
     message: 'Order created successfully',
     data: result,
+  });
+});
+
+/**
+ * Controller: Fetch paginated list of orders with filters and access control.
+ *
+ * Route: GET /orders/:category
+ *
+ * Behavior:
+ * - Verifies the user has permission to view orders in the given category.
+ * - Evaluates access control (e.g. `canViewAllOrders` vs. scoped visibility).
+ * - Delegates to `fetchPaginatedOrdersService` to apply filters and transform results.
+ *
+ * Expected Inputs:
+ * - `req.params.category` (string): The order category (e.g., 'SALES', 'TRANSFER').
+ * - `req.query` (object): Optional filters and pagination parameters.
+ * - `req.normalizedQuery` (object): Normalized and parsed version of query params,
+ *     including `filters`, `page`, `limit`, `sortBy`, `sortOrder`.
+ * - `req.user` (object): Authenticated user with permissions context.
+ *
+ * Supported Query Parameters:
+ * - Pagination: `page`, `limit`
+ * - Sorting: `sortBy`, `sortOrder`
+ * - Filters:
+ *    - `keyword`
+ *    - `orderNumber`
+ *    - `orderTypeId`, `orderStatusId`
+ *    - `createdAfter`, `createdBefore`
+ *    - `statusDateAfter`, `statusDateBefore`
+ *
+ * Success Response:
+ * - Status: `200 OK`
+ * - Payload:
+ *   {
+ *     success: true,
+ *     message: 'Orders retrieved successfully',
+ *     data: [ ...filteredOrders ],
+ *     pagination: { page, limit, totalCount, totalPages }
+ *   }
+ *
+ * Error Handling:
+ * - All errors (validation, permission, business) are forwarded to global middleware.
+ *
+ * @async
+ * @param {import('express').Request} req - Express request object
+ * @param {import('express').Response} res - Express response object
+ * @returns {Promise<void>}
+ */
+const fetchPaginatedOrdersController = wrapAsync(async (req, res) => {
+  const category = req.params.category;
+  const user = req.user;
+  
+  const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
+  
+  logInfo('Received request to fetch paginated orders', {
+    context: 'order-controller/fetchPaginatedOrdersController',
+    category,
+    userId: user?.id,
+    filters,
+    page,
+    limit,
+    sortBy,
+    sortOrder,
+  });
+  
+  const { data, pagination } = await fetchPaginatedOrdersService({
+    filters,
+    category,
+    user,
+    page,
+    limit,
+    sortBy,
+    sortOrder,
+  });
+  
+  res.status(200).json({
+    success: true,
+    message: 'Orders retrieved successfully',
+    data,
+    pagination,
   });
 });
 
@@ -233,6 +313,7 @@ const updateOrderStatusController = wrapAsync(async (req, res) => {
 
 module.exports = {
   createOrderController,
+  fetchPaginatedOrdersController,
   getOrderDetailsByIdController,
   updateOrderStatusController,
 };

@@ -231,6 +231,26 @@ const SORTABLE_FIELDS = {
 
     defaultNaturalSort: 'a.created_at',
   },
+  orderSortMap: {
+    orderNumber: 'o.order_number',
+    orderDate: 'o.order_date',
+    
+    // Order Type
+    orderType: 'ot.name',
+    
+    // Status
+    statusName: 'os.name',
+    statusDate: 'o.status_date',
+    
+    // Audit fields
+    createdAt: 'o.created_at',
+    updatedAt: 'o.updated_at',
+    createdBy: 'u1.firstname',
+    updatedBy: 'u2.firstname',
+    
+    // Default fallback sort
+    defaultNaturalSort: 'o.created_at',
+  },
 };
 
 module.exports = {

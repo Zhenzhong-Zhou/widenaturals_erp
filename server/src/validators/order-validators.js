@@ -1,5 +1,14 @@
 const Joi = require('joi');
-const { validateUUID, validateString } = require('./general-validators');
+const {
+  validateUUID,
+  validateString,
+  paginationSchema,
+  createSortSchema,
+  validateOptionalString,
+  validateOptionalUUID,
+  createdDateRangeSchema,
+  statusDateRangeSchema
+} = require('./general-validators');
 const { ORDER_CATEGORIES } = require('../utils/constants/domain/order-type-constants');
 const { ORDER_STATUS_CODES } = require('../utils/constants/domain/order-status-constants');
 
@@ -28,30 +37,68 @@ const baseOrderSchema = Joi.object({
 });
 
 /**
- * Joi schema for validating route parameters that identify a specific order.
+ * Joi schema for validating the `orderId` route parameter.
  *
  * Fields:
- *   - category (string): The order category, such as 'SALES', 'TRANSFER', etc.
- *       - Must be one of the allowed ORDER_CATEGORIES.
- *       - Length must be between 5 and 20 characters.
- *   - orderId (UUID): The unique identifier of the order.
- *       - Must be a valid UUID (v4 format expected).
+ * - `orderId` (UUID)
+ *    - Required
+ *    - Must be a valid UUID (typically version 4)
  *
- * Common Usage:
- *   - Route parameters validation for endpoints like:
- *       PATCH /:category/:orderId/status
- *       GET   /:category/orders/:orderId
- *
- * Example:
- *   {
- *     category: 'SALES',
- *     orderId: '550e8400-e29b-41d4-a716-446655440000'
- *   }
+ * Common usage:
+ * - Route validation for endpoints like:
+ *     GET /orders/:orderId
+ *     PATCH /orders/:orderId/status
  */
-const orderIdentifierSchema = Joi.object({
-  category: validateString('Category', 5, 20).valid(...ORDER_CATEGORIES),
+const orderIdParamSchema = Joi.object({
   orderId: validateUUID('Order ID'),
 });
+
+/**
+ * Joi schema for validating the `category` route parameter.
+ *
+ * Fields:
+ * - `category` (string)
+ *    - Required
+ *    - Must be one of the allowed `ORDER_CATEGORIES` values
+ *    - Length must be between 5 and 20 characters
+ *
+ * Common usage:
+ * - Route validation for category-based lookups:
+ *     GET /orders/:category
+ *     GET /:category/orders/:orderId
+ */
+const orderCategorySchema = Joi.object({
+  category: validateString('Category', 5, 20).valid(...ORDER_CATEGORIES),
+});
+
+/**
+ * Joi schema for validating route parameters that uniquely identify an order.
+ *
+ * This schema is composed by combining:
+ * - `orderCategorySchema`: Validates the `category` field.
+ * - `orderIdParamSchema`: Validates the `orderId` field.
+ *
+ * Fields:
+ * - `category` (string)
+ *    - Required
+ *    - Must be one of the allowed `ORDER_CATEGORIES`
+ *    - Length must be between 5 and 20 characters
+ * - `orderId` (UUID)
+ *    - Required
+ *    - Must be a valid UUID (typically v4)
+ *
+ * Common usage:
+ *   Used in route validation for endpoints such as:
+ *     - PATCH /:category/:orderId/status
+ *     - GET   /:category/orders/:orderId
+ *
+ * Example:
+ * {
+ *   category: 'SALES',
+ *   orderId: '550e8400-e29b-41d4-a716-446655440000'
+ * }
+ */
+const orderIdentifierSchema = orderCategorySchema.concat(orderIdParamSchema);
 
 /**
  * Joi schema for identifying an order by category and UUID.
@@ -68,6 +115,48 @@ const orderIdentifierSchema = Joi.object({
  * @type {import('joi').ObjectSchema}
  */
 const getOrderDetailsParamsSchema = orderIdentifierSchema;
+
+/**
+ * Joi schema for validating query parameters when fetching paginated orders.
+ *
+ * This schema combines:
+ * - `paginationSchema`: Validates pagination controls (`page`, `limit`)
+ * - `createSortSchema`: Validates sorting (`sortBy`, `sortOrder`) with default `created_at`
+ * - `createdDateRangeSchema` and `statusDateRangeSchema`: ISO date ranges
+ * - Custom filters: `keyword`, `orderNumber`, `orderTypeId`, `orderStatusId`
+ *
+ * Valid query parameters:
+ * - `page` (number): Optional. Page number. Must be ≥ 1. Defaults to 1.
+ * - `limit` (number): Optional. Page size. Must be between 1 and 100. Defaults to 10.
+ * - `sortBy` (string): Optional. Sortable field name. Defaults to `'created_at'`.
+ * - `sortOrder` (string): Optional. Must be `'ASC'` or `'DESC'`. Defaults to `'DESC'`.
+ * - `keyword` (string): Optional. Keyword used for free-text search.
+ * - `orderNumber` (string): Optional. Filter by order number (partial or exact match).
+ * - `orderTypeId` (UUID): Optional. Filter by specific order type.
+ * - `orderStatusId` (UUID): Optional. Filter by specific order status.
+ * - `createdAfter` (ISO date): Optional. Filter for records created on/after this date.
+ * - `createdBefore` (ISO date): Optional. Filter for records created on/before this date.
+ * - `statusDateAfter` (ISO date): Optional. Filter for status date on/after this date.
+ * - `statusDateBefore` (ISO date): Optional. Filter for status date on/before this date.
+ *
+ * Note:
+ * - `category` is excluded from this schema — it should be validated via route param schema (`orderCategorySchema`)
+ *
+ * Example:
+ *   GET /orders/SALES?page=2&limit=20&sortBy=createdAt&orderStatusId=<uuid>&keyword=Focus
+ */
+const orderQuerySchema = paginationSchema
+  .concat(createSortSchema('created_at'))
+  .concat(createdDateRangeSchema)
+  .concat(statusDateRangeSchema)
+  .keys({
+    keyword: validateOptionalString('Keyword'),
+    orderNumber: validateOptionalString('Order number'),
+    orderTypeId: validateOptionalUUID('Order Type ID'),
+    orderStatusId: validateOptionalUUID('Order Status ID'),
+    createdBy: validateOptionalUUID('Created By'),
+    updatedBy: validateOptionalUUID('Updated By'),
+  });
 
 /**
  * Joi schema for validating the body of an update-order-status request.
@@ -94,7 +183,10 @@ const updateOrderStatusSchema = Joi.object({
 
 module.exports = {
   baseOrderSchema,
+  orderIdParamSchema,
+  orderCategorySchema,
   orderIdentifierSchema,
+  orderQuerySchema,
   getOrderDetailsParamsSchema,
   updateOrderStatusSchema,
 };
