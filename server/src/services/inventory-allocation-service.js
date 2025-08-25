@@ -38,8 +38,11 @@ const { insertInventoryActivityLogs } = require('../repositories/inventory-log-r
 /**
  * Allocates inventory batches to each order item using a batch allocation strategy (FEFO/FIFO).
  *
- * This function performs the allocation as a transactional operation:
- * - Validates the current order status and status transition
+ * This function performs the allocation as a transactional operation with row-level locks:
+ * - Locks the target order (`orders`) to prevent concurrent status changes
+ * - Locks the associated `order_items` to avoid conflicting allocation processes
+ * - Locks affected `warehouse_inventory` rows to guarantee consistency when allocating stock
+ * - Validates the current order status and checks status transition validity
  * - Ensures all order items are in an allocatable status (e.g. 'ORDER_CONFIRMED')
  * - Retrieves in-stock batches for the order's SKUs or packaging materials
  * - Applies the chosen allocation strategy (FEFO or FIFO)
@@ -64,6 +67,11 @@ const allocateInventoryForOrder = async (user, rawOrderId, {
   try {
     return await withTransaction(async (client) => {
       const userId = user.id;
+      
+      // Lock order row first
+      await lockRows(client, 'orders', [rawOrderId], 'FOR UPDATE', {
+        context: 'allocateInventoryForOrder/lockOrderRow',
+      });
       
       // Fetch current order metadata and validate status transition
       const orderMetadata = await fetchOrderMetadata(rawOrderId, client);
@@ -90,6 +98,12 @@ const allocateInventoryForOrder = async (user, rawOrderId, {
       
       // Get order items and ensure only items in allocatable status are processed
       const orderItemsMetadata = await getOrderItemsByOrderId(orderId, client);
+      const orderItemIds = orderItemsMetadata.map((item) => item.order_item_id);
+      
+      // Lock order_items rows for this order
+      await lockRows(client, 'order_items', orderItemIds, 'FOR UPDATE', {
+        context: 'allocateInventoryForOrder/lockOrderItems',
+      });
       
       if (!orderItemsMetadata.length) {
         throw AppError.notFoundError(`No order items found for order ID: ${orderId}`);
@@ -121,6 +135,16 @@ const allocateInventoryForOrder = async (user, rawOrderId, {
         { strategy },
         client
       );
+      
+      // Lock warehouse_inventory rows BEFORE reading batches
+      const warehouseInventoryLockConditions = batches.map((batch) => ({
+        warehouse_id: batch.warehouse_id,
+        batch_id: batch.batch_id,
+      }));
+      
+      await lockRows(client, 'warehouse_inventory', warehouseInventoryLockConditions, 'FOR UPDATE', {
+        context: 'allocateInventoryForOrder/lockWarehouseInventory',
+      });
       
       // Apply allocation strategy and build result per item
       const allocationResult = allocateBatchesForOrderItems(orderItemsMetadata, batches, strategy);
@@ -168,53 +192,67 @@ const reviewInventoryAllocation = async (orderId) => {};
 /**
  * Confirms inventory allocations for a given sales order.
  *
- * This function performs the following:
- * - Retrieves order items and their allocation details.
+ * This function performs the following operations atomically:
+ * - Locks the `orders` row to prevent conflicting status updates.
+ * - Locks the related `order_items` rows before evaluating and updating item statuses.
+ * - Retrieves order items and their inventory allocation details.
  * - Computes allocation status for each item (full, partial, or backordered).
- * - Updates order item statuses and the order status accordingly.
- * - Locks and updates `warehouse_inventory` reserved quantities.
- * - Creates corresponding inventory activity logs.
- * - Returns a structured allocation result for downstream use (e.g., API response).
+ * - Updates item statuses individually, and the order status if applicable.
+ * - Locks corresponding `warehouse_inventory` rows to ensure consistency when adjusting reserved quantities.
+ * - Applies reserved quantity and inventory status changes.
+ * - Creates inventory activity logs for traceability.
+ * - Returns a structured allocation result for downstream consumers (e.g., API response).
  *
- * All operations are executed within a single database transaction to ensure atomicity.
+ * All steps are executed within a single transaction to ensure consistency and isolation.
  *
  * @param {object} user - The authenticated user performing the allocation.
  * @param {string} rawOrderId - UUID of the sales order to confirm allocations for.
  * @returns {Promise<object>} Transformed order allocation result object.
- * @throws {AppError} If any step in the process fails (e.g., missing data, DB error).
+ * @throws {AppError} If any step in the process fails (e.g., missing data, status conflict, or DB error).
  */
 const confirmInventoryAllocation = async (user, rawOrderId) => {
   try {
     return await withTransaction(async (client) => {
       const userId = user.id;
-
-      // 1. Fetch order items and allocation details
+      
+      // Lock order row to prevent race conditions on status update
+      await lockRows(client, 'orders', [rawOrderId], 'FOR UPDATE', {
+        context: 'inventory-allocation-service/lockOrder',
+      });
+      
+      // Fetch and lock order items for the order
       const orderItemsMetadata = await getOrderItemsByOrderId(rawOrderId, client);
-
+      const orderItemIds = orderItemsMetadata.map(item => item.order_item_id);
+      await lockRows(client, 'order_items', orderItemIds, 'FOR UPDATE', {
+        context: 'inventory-allocation-service/lockOrderItems',
+        orderId: rawOrderId,
+      });
+      
       logSystemInfo('Fetched order items for allocation', {
         context: 'inventory-allocation-service/confirmInventoryAllocation',
         orderId: rawOrderId,
         itemCount: orderItemsMetadata.length,
       });
-
+      
       if (!orderItemsMetadata.length) {
         throw AppError.notFoundError(`No order items found for order ID: ${rawOrderId}`);
       }
-
+      
+      // Retrieve allocation records for the order
       const inventoryAllocationDetails = await getInventoryAllocationsByOrderId(rawOrderId, client);
-
-      // 2. Compute allocation status per item (full, partial, backordered)
+      
+      // Compute allocation result per item
       const allocationResults = computeAllocationStatusPerItem(orderItemsMetadata, inventoryAllocationDetails);
-
-      // 3. Fetch order status IDs for status updates
+      
+      // Lookup status IDs needed for updates
       const uniqueStatusCodes = [...new Set(allocationResults.map((res) => res.allocationStatus))];
       const statusCodeToIdMap = {};
       for (const code of uniqueStatusCodes) {
         const { id } = await getOrderStatusByCode(code, client);
         statusCodeToIdMap[code] = id;
       }
-
-      // 4. Update each order item's status
+      
+      // Update item statuses
       let hasStatusUpdates = false;
       for (const { orderItemId, allocationStatus } of allocationResults) {
         const newStatusId = statusCodeToIdMap[allocationStatus];
@@ -224,63 +262,59 @@ const confirmInventoryAllocation = async (user, rawOrderId) => {
           updatedBy: userId,
           orderItemId,
         });
-
+        
         if ((updated ?? []).length > 0) {
           hasStatusUpdates = true;
         }
       }
-
-      // 5. If all items are fully allocated, update the order's status
+      
+      // Conditionally update order status (only if all items matched)
       const hasUnallocatedItems = allocationResults.some((res) => !res.isMatched);
       if (!hasUnallocatedItems) {
         const orderStatusCode = allocationResults[0].allocationStatus;
         const orderStatusId = statusCodeToIdMap[orderStatusCode];
-
+        
         await updateOrderStatus(client, {
           orderId: rawOrderId,
           newStatusId: orderStatusId,
           updatedBy: userId,
         });
       }
-
-      // 6. Lock warehouse_inventory records based on allocation keys
+      
+      // Lock affected warehouse_inventory rows before update
       const keys = inventoryAllocationDetails.map(({ warehouse_id, batch_id }) => ({ warehouse_id, batch_id }));
       await lockRows(client, 'warehouse_inventory', keys, 'FOR UPDATE', {
         context: 'inventory-allocation-service/lockWarehouseInventory',
         orderId: rawOrderId,
       });
-
-      // 7. Fetch current warehouse inventory info
+      
+      // Get current quantities and compute new reserved + status values
       const warehouseBatchInfo = await getWarehouseInventoryQuantities(keys, client);
-
-      // 8. Recalculate reserved quantities based on confirmed allocations
       const inStockStatusId = getStatusId('inventory_in_stock');
       const outOfStockStatusId = getStatusId('inventory_out_of_stock');
+      
       const updates = updateReservedQuantitiesFromAllocations(
         inventoryAllocationDetails,
         warehouseBatchInfo,
         { inStockStatusId, outOfStockStatusId }
       );
-
-      // 9. Format updates into object structure for bulk update
+      
+      // Prepare bulk update object
       const updatesObject = Object.fromEntries(
         updates.map((row) => {
           const key = `${row.warehouse_id}-${row.batch_id}`;
-          return [
-            key,
-            {
-              warehouse_quantity: row.warehouse_quantity,
-              reserved_quantity: row.reserved_quantity,
-              status_id: row.status_id,
-            },
-          ];
+          return [key, {
+            warehouse_quantity: row.warehouse_quantity,
+            reserved_quantity: row.reserved_quantity,
+            status_id: row.status_id,
+          }];
         })
       );
-
-      // 10. Update warehouse inventory
+      
+      // Apply bulk update to warehouse inventory
       const updatedWarehouseRecords = await bulkUpdateWarehouseQuantities(updatesObject, userId, client);
-
-      // 11. Generate and insert inventory activity logs
+      
+      // Insert inventory activity logs for traceability
       const inventoryActionTypeId = await getInventoryActionTypeId('reserve', client);
       const inventoryActivityLogs = buildWarehouseInventoryActivityLogsForOrderAllocation(
         updates,
@@ -292,8 +326,8 @@ const confirmInventoryAllocation = async (user, rawOrderId) => {
         }
       );
       const insertedLogIds = await insertInventoryActivityLogs(inventoryActivityLogs, client);
-
-      // 12. Build and return final allocation result
+      
+      // Build and return the result
       const rawResult = buildOrderAllocationResult({
         orderId: rawOrderId,
         inventoryAllocations: inventoryAllocationDetails,
@@ -301,7 +335,7 @@ const confirmInventoryAllocation = async (user, rawOrderId) => {
         inventoryLogIds: insertedLogIds,
         allocationResults,
       });
-
+      
       return transformOrderAllocationResponse(rawResult);
     });
   } catch (error) {

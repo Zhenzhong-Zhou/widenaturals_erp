@@ -16,7 +16,7 @@ const {
   verifyOrderViewPermission,
   evaluateOrderDetailsViewAccessControl,
   validateStatusTransitionByCategory,
-  canUpdateOrderStatus, enrichStatusMetadata, enrichStatusMetadataWithMultiple,
+  canUpdateOrderStatus, enrichStatusMetadata,
 } = require('../business/order-business');
 const AppError = require('../utils/AppError');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');

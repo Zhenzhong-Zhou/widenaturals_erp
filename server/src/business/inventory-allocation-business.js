@@ -11,6 +11,8 @@
  * @typedef {Batch & { allocated_quantity: number }} AllocatedBatch
  */
 
+const { cleanObject } = require('../utils/object-utils');
+const { generateChecksum } = require('../utils/crypto-utils');
 
 /**
  * Allocates inventory batches for each order item using the specified strategy (FEFO or FIFO).
