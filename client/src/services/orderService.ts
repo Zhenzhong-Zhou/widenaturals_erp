@@ -1,7 +1,7 @@
 import type {
   CreateSalesOrderInput,
   CreateSalesOrderResponse,
-  GetOrderDetailsResponse, OrderRouteParams, UpdateOrderStatusResponse,
+  GetOrderDetailsResponse, OrderListResponse, OrderQueryParams, OrderRouteParams, UpdateOrderStatusResponse,
 } from '@features/order/state';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 import { getRequest, patchRequest, postRequest } from '@utils/apiRequest';
@@ -29,6 +29,42 @@ const createSalesOrder = async (
     return await postRequest<CreateSalesOrderInput, CreateSalesOrderResponse>(url, data);
   } catch (error) {
     console.error('Failed to create sales order:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch a paginated and filtered list of orders by category.
+ *
+ * Issues `GET /orders/:category` with optional query parameters.
+ *
+ * Notes:
+ * - `category` is trimmed and validated before constructing the URL.
+ * - `params` will be passed as query parameters (e.g., page, sortBy, filters).
+ * - Expects a standard paginated API response structure.
+ *
+ * @param category - Order category (e.g., 'sales', 'purchase') for route param.
+ * @param params - Optional query filters and pagination/sorting info.
+ * @returns A promise resolving to the list of orders with pagination metadata.
+ * @throws Rethrows any error from the underlying request helper.
+ *
+ * @example
+ * const res = await fetchOrdersByCategory('sales', { page: 1, keyword: 'NMN' });
+ * console.log(res.data[0].orderNumber);
+ */
+const fetchOrdersByCategory = async (
+  category: string,
+  params?: OrderQueryParams
+): Promise<OrderListResponse> => {
+  const cleanCategory = sanitizeString(category);
+  const url = API_ENDPOINTS.ORDERS.ALL_CATEGORY_ORDERS(cleanCategory);
+  
+  try {
+    return await getRequest<OrderListResponse>(url, {
+      params,
+    });
+  } catch (error) {
+    console.error('Failed to fetch orders by category:', { category: cleanCategory, params, error });
     throw error;
   }
 };
@@ -103,6 +139,7 @@ const updateOrderStatus = async (
 
 export const orderService = {
   createSalesOrder,
+  fetchOrdersByCategory,
   fetchOrderDetailsById,
   updateOrderStatus,
 };

@@ -2,7 +2,9 @@ import { createAsyncThunk } from '@reduxjs/toolkit';
 import type {
   CreateSalesOrderInput,
   CreateSalesOrderResponse,
-  GetOrderDetailsResponse, OrderRouteParams, UpdateOrderStatusResponse,
+  GetOrderDetailsResponse, OrderListResponse, OrderQueryParams,
+  OrderRouteParams,
+  UpdateOrderStatusResponse,
 } from '@features/order/state/orderTypes';
 import { orderService } from '@services/orderService';
 
@@ -32,6 +34,45 @@ export const createSalesOrderThunk = createAsyncThunk<
     } catch (error: any) {
       console.error('createSalesOrderThunk failed:', error);
       return thunkAPI.rejectWithValue(error?.response?.data || error.message);
+    }
+  }
+);
+
+/**
+ * Thunk to fetch a paginated list of orders for a specific category.
+ *
+ * This thunk:
+ * - Accepts a category (e.g., 'sales', 'purchase') and optional filter/sort query parameters
+ * - Dispatches Redux actions to update loading, data, and error states automatically
+ * - Calls the underlying `orderService.fetchOrdersByCategory` API method
+ * - Returns the API response payload on success (`OrderListResponse`)
+ * - Returns a rejected value on failure for error handling in reducers
+ *
+ * Useful for listing orders in paginated tables, filtered dashboards, or category-based views.
+ *
+ * Usage example:
+ * ```ts
+ * dispatch(fetchOrdersByCategoryThunk({ category: 'sales', params: { keyword: 'NMN' } }));
+ * ```
+ *
+ * @param args - Object containing:
+ *   - `category`: Order category (e.g., 'sales', 'purchase')
+ *   - `params`: Optional query parameters such as keyword, page, sort, filters
+ *
+ * @returns A Promise resolving to the fetched order list or a rejected value containing an error message
+ */
+export const fetchOrdersByCategoryThunk = createAsyncThunk<
+  OrderListResponse,                                      // Return type
+  { category: string; params?: OrderQueryParams },        // Argument type
+  { rejectValue: string }                                 // Optional reject payload
+>(
+  'orders/fetchByCategory',
+  async ({ category, params }, { rejectWithValue }) => {
+    try {
+      return await orderService.fetchOrdersByCategory(category, params);
+    } catch (error: any) {
+      console.error('fetchOrdersByCategoryThunk error:', error);
+      return rejectWithValue(error?.message ?? 'Failed to fetch orders');
     }
   }
 );

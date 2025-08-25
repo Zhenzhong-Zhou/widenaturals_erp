@@ -1,4 +1,4 @@
-import type { ApiSuccessResponse, AsyncState } from "@shared-types/api";
+import type { ApiSuccessResponse, AsyncState, PaginatedResponse, ReduxPaginatedState } from '@shared-types/api';
 
 /**
  * Represents a single item in a sales order.
@@ -109,6 +109,94 @@ export type CreateSalesOrderResponse = ApiSuccessResponse<CreateSalesOrderData>;
  * Used in Redux slices and components that handle the creation of sales orders.
  */
 export type SalesOrderCreationState = AsyncState<CreateSalesOrderData | null>;
+
+/**
+ * Query parameters used to fetch a paginated and filtered list of orders.
+ *
+ * Supported filters:
+ * - Pagination: `page`, `limit`
+ * - Sorting: `sortBy`, `sortOrder`
+ * - Text & exact match: `keyword`, `orderNumber`
+ * - Filter by metadata: `orderTypeId`, `orderStatusId`
+ * - Date range filters:
+ *    - `createdAfter`, `createdBefore`: filter by order creation date
+ *    - `statusDateAfter`, `statusDateBefore`: filter by status update date
+ * - Audit fields:
+ *    - `createdBy`, `updatedBy`: filter by user UUIDs
+ */
+export interface OrderQueryParams {
+  // todo: find reuse one
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: 'ASC' | 'DESC';
+  keyword?: string;
+  orderNumber?: string;
+  orderTypeId?: string;
+  orderStatusId?: string;
+  createdAfter?: string; // ISO date string
+  createdBefore?: string;
+  statusDateAfter?: string;
+  statusDateBefore?: string;
+  createdBy?: string;
+  updatedBy?: string;
+}
+
+/**
+ * Represents a single order in the paginated order list response.
+ */
+export interface OrderListItem {
+  /** Unique ID of the order (UUID) */
+  id: string;
+  
+  /** Human-readable order number (e.g., SO-20230821-XYZ) */
+  orderNumber: string;
+  
+  /** Name of the order type (e.g., Standard Sales Order) */
+  orderType: string;
+  
+  /** Current status of the order, with code and display name */
+  status: {
+    code: string;
+    name: string;
+  };
+  
+  /** Date when the current status was last updated (ISO string) */
+  statusDate: string;
+  
+  /** Timestamp when the order was created (ISO string) */
+  createdAt: string;
+  
+  /** Name of the user who created the order */
+  createdBy: string;
+  
+  /** Timestamp when the order was last updated (ISO string) */
+  updatedAt: string;
+  
+  /** Name of the user who last updated the order */
+  updatedBy: string;
+  
+  /** Optional note or comment attached to the order */
+  note?: string | null;
+}
+
+/**
+ * Paginated response containing a list of orders and pagination metadata.
+ */
+export type OrderListResponse = PaginatedResponse<OrderListItem>;
+
+/**
+ * Redux state shape for managing a paginated list of orders with applied filters.
+ *
+ * Extends the generic `ReduxPaginatedState` using `OrderListItem` as the item type
+ * and includes a `filters` field to track the currently applied query parameters.
+ *
+ * This interface is typically used for managing order list views with pagination,
+ * server-side filtering, loading indicators, and error handling.
+ */
+export interface PaginatedOrderStateWithFilters extends ReduxPaginatedState<OrderListItem> {
+  filters: OrderQueryParams;
+}
 
 /**
  * Information about the user who created or last updated a record.
