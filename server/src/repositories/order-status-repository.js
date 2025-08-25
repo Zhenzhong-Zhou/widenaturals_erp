@@ -1,4 +1,4 @@
-const { getUniqueScalarValue, getFieldsById } = require('../database/db');
+const { getUniqueScalarValue, getFieldsById, query } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logSystemException } = require('../utils/system-logger');
 
@@ -52,7 +52,7 @@ const getOrderStatusByCode = async (statusCode, client) => {
   const values = [statusCode];
   
   try {
-    const result = await client.query(sql, values);
+    const result = await query(sql, values, client);
     const row = result.rows?.[0];
 
     if (!row) {

@@ -3,7 +3,6 @@ const { deriveInventoryStatusFlags } = require('../utils/transformer-utils');
 const { cleanObject } = require('../utils/object-utils');
 
 /**
- * @function transformInventoryRecordBase
  * @description
  * Transforms a raw inventory database row (from either `location_inventory` or `warehouse_inventory`)
  * into a structured, display-ready object. This function abstracts common transformation logic

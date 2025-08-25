@@ -70,7 +70,7 @@ const insertInventoryActivityLogs = async (logs, client, meta) => {
       log.source_ref_id || null,
     ]);
 
-    await bulkInsert(
+    return await bulkInsert(
       'inventory_activity_log',
       activityColumns,
       activityRows,
@@ -145,7 +145,7 @@ const insertInventoryActivityLogs = async (logs, client, meta) => {
 
     // Insert location-scope logs
     if (locationAuditRows.length) {
-      await bulkInsert(
+      return await bulkInsert(
         'inventory_activity_audit_log',
         auditColumns,
         locationAuditRows,

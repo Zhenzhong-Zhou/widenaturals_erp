@@ -277,7 +277,6 @@ const updateOrderItemStatuses = async (client, { orderId, newStatusId, updatedBy
  * - Throws an AppError if the query fails.
  *
  * @async
- * @function getOrderItemsByOrderId
  * @param {string} orderId - The UUID of the order whose items are being fetched.
  * @param {object} [client] - Optional PostgreSQL client for transaction context.
  * @returns {Promise<Array<object>>} Array of order items, each with fields:

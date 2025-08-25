@@ -863,20 +863,18 @@ const lockRows = async (
   // Dynamically check if the table exists in PostgreSQL
   const maskedTable = maskTableName(table);
   const tableExistsQuery = `SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE schemaname = 'public' AND tablename = $1)`;
+  
+  const { rows } = await query(tableExistsQuery, [table], client);
+  if (!rows[0].exists) {
+    throw AppError.notFoundError(`Table "${maskedTable}" does not exist.`);
+  }
 
-  await retry(async () => {
-    const { rows } = await client.query(tableExistsQuery, [table]);
-    if (!rows[0].exists) {
-      throw AppError.notFoundError(`Table "${maskedTable}" does not exist.`);
-    }
-  });
-
-  let query, values;
+  let sql, values;
 
   if (typeof conditions[0] === 'string') {
     // Case 1: Simple ID Locking (e.g., `lockRows(client, 'inventory', [uuid1, uuid2])`)
     const placeholders = conditions.map((_, i) => `$${i + 1}`).join(', ');
-    query = `SELECT * FROM ${table} WHERE id IN (${placeholders}) ${lockMode}`;
+    sql = `SELECT * FROM ${table} WHERE id IN (${placeholders}) ${lockMode}`;
     values = conditions;
   } else {
     // Case 2: Composite Key Locking (e.g., `lockRows(client, 'warehouse_inventory', [{ warehouse_id, inventory_id }])`)
@@ -892,26 +890,25 @@ const lockRows = async (
       .join(' OR ');
 
     values = conditions.flatMap(Object.values);
-    query = `SELECT * FROM ${table} WHERE ${whereClauses} ${lockMode}`;
+    sql = `SELECT * FROM ${table} WHERE ${whereClauses} ${lockMode}`;
   }
 
   try {
-    return await retry(async () => {
-      const { rows } = await client.query(query, values);
-      // Log missing rows
-      if (rows.length !== conditions.length) {
-        logSystemWarn(`Some rows were not found in "${maskedTable}"`, {
-          context: 'db/lockRows/data-validation',
-          table: maskedTable,
-          expected: conditions.length,
-          found: rows.length,
-        });
-      }
+    const { rows } = await query(sql, values, client);
+    
+    // Log missing rows
+    if (rows.length !== conditions.length) {
+      logSystemWarn(`Some rows were not found in "${maskedTable}"`, {
+        context: 'db/lockRows/data-validation',
+        table: maskedTable,
+        expected: conditions.length,
+        found: rows.length,
+      });
+    }
 
-      return rows;
-    });
+    return rows;
   } catch (error) {
-    logLockRowsError(error, query, values, maskTableName(table), { ...meta });
+    logLockRowsError(error, sql, values, maskTableName(table), { ...meta });
 
     throw AppError.databaseError(
       `Database error while locking rows in "${maskedTable}".`,

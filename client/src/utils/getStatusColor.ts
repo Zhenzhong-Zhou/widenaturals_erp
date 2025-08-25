@@ -1,6 +1,7 @@
 type StatusColor = 'success' | 'error' | 'warning' | 'info' | 'default';
 
 const statusMaps = {
+  // todo: add more color
   order: {
     completed: 'success',
     pending: 'warning',

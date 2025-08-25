@@ -398,6 +398,8 @@ const transformPaymentMethodPaginatedLookupResult = (paginatedResult, userAccess
  * @returns {{ id: string, label: string, isActive?: boolean, isValidToday?: boolean }}
  * Returns a transformed object with required and conditional fields for UI rendering.
  */
+
+// todo: use discount format util function
 const transformDiscountLookup = (row, userAccess) => {
   const base = transformIdNameToIdLabel(row);
   const flagSubset = includeFlagsBasedOnAccess(row, userAccess);

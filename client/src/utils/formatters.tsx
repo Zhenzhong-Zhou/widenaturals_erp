@@ -17,6 +17,7 @@ export const formatStatus = (
   return <StatusChip label={label} color={color} />;
 };
 
+// todo: add more color
 export const formatOrderStatus = (status?: string | null) =>
   formatStatus(status, 'order');
 

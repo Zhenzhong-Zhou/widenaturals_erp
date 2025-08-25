@@ -58,7 +58,7 @@ const getDiscountsLookup = async ({
                                   }) => {
   const tableName = 'discounts d';
   const { whereClause, params } = buildDiscountFilter(filters);
-  
+  // todo include discount_type and discount_value
   const queryText = `
     SELECT
       d.id,

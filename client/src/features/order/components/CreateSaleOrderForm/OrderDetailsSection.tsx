@@ -164,6 +164,7 @@ const OrderDetailsSection: FC<Props> = ({
     }
   }
   
+  // todo: adjust all dropdown menu render with extra info chip or flag
   const fields: FieldConfig[] = [
     {
       id: 'order_type_id',
