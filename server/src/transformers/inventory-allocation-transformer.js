@@ -152,8 +152,61 @@ const transformAllocationReviewData = (rows, orderId) => {
   };
 };
 
+/**
+ * Transforms the raw order allocation result into a standardized response object.
+ *
+ * This function is typically used after performing allocation logic and updates,
+ * converting the internal result format into a consistent API response structure.
+ *
+ * Ensures camelCase key formatting and returns only the relevant fields needed by the client.
+ *
+ * @param {Object} raw - Raw allocation result object from the service or business layer.
+ * @param {string} raw.orderId - UUID of the order.
+ * @param {string[]} raw.allocationIds - Array of allocation record UUIDs.
+ * @param {string[]} raw.updatedWarehouseInventoryIds - IDs of updated warehouse_inventory rows.
+ * @param {string[]} raw.logIds - IDs of created inventory activity logs.
+ * @param {boolean} raw.fullyAllocated - Indicates whether all items were fully allocated.
+ * @param {Array<{
+ *   orderItemId: string,
+ *   newStatus: string,
+ *   isFullyAllocated: boolean
+ * }>} raw.updatedItemStatuses - Per-item allocation status updates.
+ *
+ * @returns {{
+ *   orderId: string,
+ *   allocationIds: string[],
+ *   updatedWarehouseInventoryIds: string[],
+ *   logIds: string[],
+ *   fullyAllocated: boolean,
+ *   updatedItemStatuses: Array<{
+ *     orderItemId: string,
+ *     newStatus: string,
+ *     isFullyAllocated: boolean
+ *   }>
+ * }} - Transformed allocation result ready for API response.
+ *
+ * @example
+ * const response = transformOrderAllocationResponse(rawResult);
+ * return res.status(200).json({ success: true, data: response });
+ */
+const transformOrderAllocationResponse = (raw) => {
+  return {
+    orderId: raw.orderId,
+    allocationIds: raw.allocationIds,
+    updatedWarehouseInventoryIds: raw.updatedWarehouseInventoryIds,
+    logIds: raw.logIds,
+    fullyAllocated: raw.fullyAllocated,
+    updatedItemStatuses: raw.updatedItemStatuses.map((item) => ({
+      orderItemId: item.orderItemId,
+      newStatus: item.newStatus,
+      isFullyAllocated: item.isFullyAllocated,
+    })),
+  };
+};
+
 module.exports = {
   extractOrderItemIdsByType,
   transformAllocationResultToInsertRows,
   transformAllocationReviewData,
+  transformOrderAllocationResponse,
 };

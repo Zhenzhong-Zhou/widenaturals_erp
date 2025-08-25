@@ -9,7 +9,7 @@ const {
   transformInventoryRecordBase,
   transformInventoryRecordSummaryBase,
 } = require('./transform-inventory-record-base');
-// const { generateChecksum } = require('../utils/crypto-utils');
+const { generateChecksum } = require('../utils/crypto-utils');
 
 /**
  * Transforms raw KPI summary query result rows into structured output.
@@ -218,96 +218,10 @@ const transformLocationInventoryResponseRecords = (rows) => {
   });
 };
 
-// /**
-//  * Builds a structured log entry object for an inventory allocation event.
-//  *
-//  * This function is used to record allocation-related changes to the `reserved_quantity`
-//  * field in the `warehouse_inventory` table. It computes the quantity change, builds a
-//  * metadata object with contextual details, and generates a checksum to ensure log integrity.
-//  *
-//  * The returned object is ready for insertion into the inventory activity log table.
-//  *
-//  * @param {Object} params - Allocation log parameters.
-//  * @param {string} params.inventoryId - The ID of the warehouse inventory record.
-//  * @param {number} params.previousReservedQty - The previous reserved quantity.
-//  * @param {number} params.newReservedQty - The updated reserved quantity after allocation.
-//  * @param {number} params.warehouseQty - The current warehouse quantity (for snapshot only).
-//  * @param {string} params.statusId - Inventory status ID after allocation.
-//  * @param {string} params.userId - The ID of the user performing the allocation.
-//  * @param {string} params.orderId - The ID of the related order (if applicable).
-//  * @param {string} params.inventoryActionTypeId - ID of the action type (e.g., "ALLOCATE").
-//  * @param {string} [params.sourceType='order'] - Source of the change (e.g., 'order', 'manual').
-//  * @param {string|null} [params.sourceRefId=null] - Reference ID from the source context.
-//  * @param {string} [params.recordScope='warehouse'] - Scope of the record ('warehouse' or 'location').
-//  * @param {string|null} [params.comments=null] - Optional comment describing the action.
-//  * @param {object} [params.metadata={}] - Additional metadata for traceability.
-//  *
-//  * @returns {object} Inventory activity log object with checksum and full context.
-//  */
-// const buildAllocationLogEntry = ({
-//                                    inventoryId,
-//                                    previousReservedQty,
-//                                    newReservedQty,
-//                                    warehouseQty, // unchanged but included for reference
-//                                    statusId,
-//                                    userId,
-//                                    orderId,
-//                                    inventoryActionTypeId, // e.g., 'ALLOCATE'
-//                                    sourceType = 'order',
-//                                    sourceRefId = null,
-//                                    recordScope = 'warehouse',
-//                                    comments = null,
-//                                    metadata = {},
-//                                  }) => {
-//   const quantityChange = newReservedQty - previousReservedQty;
-//
-//   const checksumPayload = cleanObject({
-//     warehouse_inventory_id: inventoryId,
-//     inventory_action_type_id: inventoryActionTypeId,
-//     adjustment_type_id: null, // not an adjustment
-//     order_id: orderId || null,
-//     quantity_change: quantityChange,
-//     new_quantity: newReservedQty,
-//     status_id: statusId,
-//     performed_by: userId,
-//     comments,
-//     recorded_by: userId,
-//     inventory_scope: recordScope,
-//     source_type: sourceType,
-//     source_ref_id: sourceRefId,
-//     metadata: {
-//       action: 'allocate',
-//       warehouse_quantity_snapshot: warehouseQty,
-//       record_scope: recordScope,
-//       ...metadata,
-//     },
-//   });
-//
-//   return {
-//     warehouse_inventory_id: inventoryId,
-//     inventory_action_type_id: inventoryActionTypeId,
-//     adjustment_type_id: null,
-//     order_id: orderId || null,
-//     previous_quantity: previousReservedQty,
-//     quantity_change: quantityChange,
-//     new_quantity: newReservedQty,
-//     status_id: statusId,
-//     performed_by: userId,
-//     recorded_by: userId,
-//     comments,
-//     metadata: checksumPayload.metadata,
-//     source_type: sourceType,
-//     source_ref_id: sourceRefId,
-//     inventory_scope: recordScope,
-//     checksum: generateChecksum(checksumPayload),
-//   };
-// };
-
 module.exports = {
   transformLocationInventoryKpiSummary,
   transformPaginatedLocationInventorySummaryResult,
   transformPaginatedLocationInventorySummaryDetails,
   transformPaginatedLocationInventoryRecordResults,
   transformLocationInventoryResponseRecords,
-  buildAllocationLogEntry,
 };

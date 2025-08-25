@@ -683,48 +683,61 @@ const getOrderAndItemStatusCodes = async (orderId, client) => {
 };
 
 /**
- * Fetch lightweight order and item details for inventory allocation.
+ * Fetches all inventory allocation records for a given order ID.
  *
- * Includes order metadata, order item inventory links, and related product info.
- * Only returns results for confirmed orders.
+ * Joins `orders`, `order_items`, and `inventory_allocations` to retrieve
+ * allocation metadata for each item in the order, including:
+ * - `allocation_id`: ID of the allocation record
+ * - `order_item_id`: ID of the item in the order
+ * - `warehouse_id`: Warehouse where the allocation is made
+ * - `batch_id`: Batch being allocated
+ * - `allocated_quantity`: Quantity allocated from the batch
  *
- * @param {string} orderId - The ID of the order to fetch.
- * @returns {Promise<Array>} - An array of allocation-ready order item details.
- * @throws {Error} - Throws an error if the query fails.
+ * This is used for verifying allocation status and preparing inventory adjustments.
+ *
+ * @async
+ * @function
+ * @param {string} orderId - UUID of the target order.
+ * @param {object} client - Database client or transaction context (e.g., from `withTransaction`).
+ * @returns {Promise<Array<{
+ *   allocation_id: string,
+ *   order_item_id: string,
+ *   warehouse_id: string,
+ *   batch_id: string,
+ *   allocated_quantity: number
+ * }>>} - Array of allocation records for the given order.
+ *
+ * @throws {AppError} - Throws if a database query fails.
  */
-const getOrderAllocationDetailsById = async (orderId) => {
+const getInventoryAllocationsByOrderId = async (orderId, client) => {
   const sql = `
     SELECT
-      o.id AS order_id,
-      o.order_number,
-      o.order_status_id,
-      os.name AS order_status,
-      os.code AS order_status_code,
-      o.created_by,
-      oi.id AS order_item_id,
-      oi.inventory_id,
-      oi.quantity_ordered,
-      i.product_id,
-      i.identifier AS inventory_identifier,
-      wi.available_quantity,
-      p.product_name,
-      p.barcode
+      ia.id AS allocation_id,
+      ia.order_item_id,
+      ia.warehouse_id,
+      ia.batch_id,
+      ia.allocated_quantity
     FROM orders o
-    JOIN order_status os ON o.order_status_id = os.id
-    JOIN order_items oi ON o.id = oi.order_id
-    JOIN warehouse_inventory wi ON oi.inventory_id = wi.inventory_id
-    JOIN inventory i ON oi.inventory_id = i.id
-    JOIN products p ON i.product_id = p.id
-    WHERE o.id = $1
-      AND os.code = ANY($2::text[]);
+    JOIN order_items oi ON oi.order_id = o.id
+    JOIN inventory_allocations ia ON ia.order_item_id = oi.id
+    WHERE o.id = $1;
   `;
-
+  
   try {
-    const result = await query(sql, [orderId, allocationEligibleStatuses]);
+    const result = await query(sql, [orderId], client);
+    logSystemInfo('Order allocation details fetched', {
+      context: 'order-repository/getInventoryAllocationsByOrderId',
+      orderId,
+      resultCount: result.rowCount,
+      severity: 'INFO',
+    });
     return result.rows;
   } catch (error) {
-    logError('Error fetching order allocation details:', error);
-    throw AppError.databaseError('Failed to fetch order allocation details');
+    logSystemException(error, 'Failed to fetch order allocation details', {
+      context: 'order-repository/getInventoryAllocationsByOrderId',
+      orderId,
+    });
+    throw AppError.databaseError('Error fetching order allocation details.');
   }
 };
 
@@ -738,5 +751,5 @@ module.exports = {
   getAllocationEligibleOrders,
   getOrderStatusAndItems,
   getOrderAndItemStatusCodes,
-  getOrderAllocationDetailsById,
+  getInventoryAllocationsByOrderId,
 };

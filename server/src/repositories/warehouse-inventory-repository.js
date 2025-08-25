@@ -641,14 +641,15 @@ const getWarehouseInventoryResponseByIds = async (ids, client) => {
  */
 const bulkUpdateWarehouseQuantities = async (updates, userId, client) => {
   const table = 'warehouse_inventory';
-  const columns = ['warehouse_quantity', 'status_id', 'last_update'];
+  const columns = ['warehouse_quantity', 'reserved_quantity', 'status_id', 'last_update'];
   const whereColumns = ['warehouse_id', 'batch_id'];
   const columnTypes = {
     warehouse_quantity: 'integer',
+    reserved_quantity: 'integer',
     status_id: 'uuid',
     last_update: 'timestamptz',
   };
-
+  
   try {
     const queryData = formatBulkUpdateQuery(
       table,
