@@ -1,8 +1,12 @@
 /**
  * Defines all supported order categories used across the application.
- * These categories determine the functional grouping of order types.
  *
- * Used to generate permissions and mappings dynamically.
+ * These categories determine the functional grouping of order types for routing,
+ * filtering, and access control.
+ *
+ * Includes a special category `'all'` used to fetch all orders across categories.
+ * This virtual category is only available to privileged users (e.g., root/admin)
+ * and must be handled explicitly in backend logic and permission checks.
  */
 const ORDER_CATEGORIES = [
   'sales',
@@ -12,6 +16,7 @@ const ORDER_CATEGORIES = [
   'manufacturing',
   'logistics',
   'adjustment',
+  'all' // Virtual category for high-level access
 ];
 
 /**

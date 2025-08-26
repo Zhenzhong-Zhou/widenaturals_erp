@@ -124,24 +124,30 @@ const createOrderService = async (orderData, category, user) => {
  * Fetches a paginated and access-controlled list of orders for the given category.
  *
  * This service:
- * - Verifies the user's permission to view orders in the given category.
- * - Evaluates whether the user can view all orders or is restricted.
- * - Scopes the order filter by `orderTypeId` if needed based on category and access level.
- * - Delegates to the repository layer for paginated query execution.
- * - Transforms raw SQL rows into structured API-ready objects.
+ * - Verifies the user's permission to view orders in the given category (including `'all'`).
+ * - Evaluates whether the user has full access to all order types or needs filtering.
+ * - Retrieves relevant `orderTypeId`s for the given category, unless it's `'all'`.
+ * - Applies access control by scoping filters using `orderTypeId` based on the user's access level.
+ * - Delegates the final filtered query to the repository for paginated SQL execution.
+ * - Transforms raw database rows into structured, client-facing API response format.
+ *
+ * Special behavior:
+ * - When `category` is `'all'`, skips narrowing by specific order types but still respects user access.
+ * - Ensures that unauthorized users cannot see restricted orders even when fetching all categories.
  *
  * @async
- * @param {Object} params
- * @param {Object} params.filters - Raw filter input (order number, status, dates, etc.)
- * @param {string} params.category - Order category code (e.g. `'sales'`, `'purchase'`)
+ * @param {Object} params - Parameters for fetching paginated orders
+ * @param {Object} params.filters - Raw filter input (order number, status, date range, etc.)
+ * @param {string} params.category - Order category code (e.g. `'sales'`, `'purchase'`, or `'all'`)
  * @param {Object} params.user - Authenticated user object
  * @param {number} [params.page=1] - Page number for pagination
  * @param {number} [params.limit=10] - Page size for pagination
  * @param {string} [params.sortBy='created_at'] - Column to sort by
  * @param {string} [params.sortOrder='DESC'] - Sort direction ('ASC' or 'DESC')
- * @returns {Promise<Object>} - Transformed paginated result
  *
- * @throws {AppError} - If permission validation or data fetching fails
+ * @returns {Promise<Object>} - Transformed paginated result containing `data` and `pagination` metadata
+ *
+ * @throws {AppError} - If permission verification, access control, or database query fails
  */
 const fetchPaginatedOrdersService = async ({
                                              filters = {},
@@ -153,12 +159,21 @@ const fetchPaginatedOrdersService = async ({
                                              sortOrder = 'DESC',
                                            }) => {
   try {
+    // Step 1: Verify permission for the requested category
     await verifyOrderViewPermission(user, category, { action: 'VIEW' });
     
+    // Step 2: Resolve access context (roles, restrictions)
     const userAccess = await evaluateOrdersViewAccessControl(user);
-    const orderTypeId = await getOrderTypeIdsByCategory(category);
-    const scopedFilters = await applyOrderAccessFilters(filters, userAccess, orderTypeId);
     
+    // Step 3: Resolve category-specific order type constraints
+    const orderTypeIds = category !== 'all'
+      ? await getOrderTypeIdsByCategory(category)
+      : undefined; // undefined is cleanly handled by applyOrderAccessFilters
+    
+    // Step 4: Apply filters scoped by access control and type restriction
+    const scopedFilters = await applyOrderAccessFilters(filters, userAccess, orderTypeIds);
+    
+    // Step 5: Execute paginated query
     const rawResult = await getPaginatedOrders({
       filters: scopedFilters,
       page,
@@ -167,8 +182,10 @@ const fetchPaginatedOrdersService = async ({
       sortOrder,
     });
     
+    // Step 6: Transform result
     return transformPaginatedOrderTypes(rawResult);
   } catch (error) {
+    // Step 7: Log + throw structured error
     logSystemException(error, 'Failed to fetch paginated orders', {
       context: 'order-service/fetchPaginatedOrdersService',
       userId: user?.id,

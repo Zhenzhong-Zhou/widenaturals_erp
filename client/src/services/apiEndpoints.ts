@@ -69,7 +69,6 @@ export const API_ENDPOINTS = {
   },
   ORDERS: {
     ADD_NEW_ORDER: (category: string) => `/orders/create/${category}`,
-    // todo: how to deal with all orders? backend same api then remove category in business layer? when call all order pass a default category to pass backend joi validate?
     ALL_CATEGORY_ORDERS: (category: string) => `/orders/${category}`,
     ORDER_DETAILS: (category: string, orderId: string) => `/orders/${category}/${orderId}`,
     ORDER_STATUS_UPDATE_PATH: (category: string, orderId: string) => `/orders/${category}/${orderId}/status`,

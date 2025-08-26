@@ -163,29 +163,44 @@ const evaluateOrdersViewAccessControl = async (user) => {
 /**
  * Applies scoped access control filters to an order query based on the user's access rights.
  *
- * If the user lacks permission to view all orders, the function injects a restriction
- * on the allowed `orderTypeId` values into the provided filter object.
+ * This function modifies the provided filters object by injecting or removing the
+ * `orderTypeId` field depending on the user's permissions.
  *
- * This function is typically used after evaluating user permissions via
- * `evaluateOrdersViewAccessControl`.
+ * Behavior:
+ * - If the user does **not** have permission to view all orders:
+ *    - If `orderTypeIds` is a non-empty array, it's applied as a filter.
+ *    - If `orderTypeIds` is empty or undefined, the filter is removed entirely.
+ * - If the user **can** view all orders, any existing `orderTypeId` filter is removed.
+ *
+ * This function is typically called after evaluating user permissions using
+ * `evaluateOrdersViewAccessControl` and resolving category-specific order types.
  *
  * @async
- * @param {Object} filters - Original query filter object (e.g., from request query or service layer).
- * @param {Object} userAccess - Access control flags returned by `evaluateOrdersViewAccessControl`.
- * @param {Array<string>} orderTypeIds - List of order type UUIDs the user is allowed to view.
- * @returns {Promise<Object>} A modified filters object that includes access restrictions (if needed).
+ * @param {Object} filters - The original query filter object (e.g., status, dates, keywords).
+ * @param {Object} userAccess - Access control flags from `evaluateOrdersViewAccessControl`.
+ * @param {Array<string>|undefined} orderTypeIds - List of allowed order type UUIDs, or undefined if unrestricted.
+ * @returns {Promise<Object>} A modified filters object respecting the user's access scope.
  *
  * @example
- * const { canViewAllOrders } = await evaluateOrdersViewAccessControl(user);
- * const orderTypeIds = await getOrderTypeIdsByCategory(category);
- * const filters = await applyOrderAccessFilters(originalFilters, { canViewAllOrders }, orderTypeIds);
+ * const userAccess = await evaluateOrdersViewAccessControl(user);
+ * const orderTypeIds = category !== 'all' ? await getOrderTypeIdsByCategory(category) : undefined;
+ * const filters = await applyOrderAccessFilters(originalFilters, userAccess, orderTypeIds);
  */
 const applyOrderAccessFilters = async (filters, userAccess, orderTypeIds) => {
   try {
     const modifiedFilters = { ...filters };
     
-    if (!userAccess.canViewAllOrders) {
-      modifiedFilters.orderTypeId = orderTypeIds;
+    if (!userAccess?.canViewAllOrders) {
+      // Apply restriction only if the user does NOT have full access
+      if (Array.isArray(orderTypeIds) && orderTypeIds.length > 0) {
+        modifiedFilters.orderTypeId = orderTypeIds;
+      } else {
+        // Optional: explicitly remove if empty or undefined
+        delete modifiedFilters.orderTypeId;
+      }
+    } else {
+      // User has full access → make sure the filter is clean
+      delete modifiedFilters.orderTypeId;
     }
     
     return modifiedFilters;
