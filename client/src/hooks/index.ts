@@ -37,18 +37,3 @@ export { default as useWarehouseDetails } from './useWarehouseDetails';
 // --- Compliance & Reporting ---
 export { default as useCompliances } from './useCompliances';
 
-// --- Orders & Process ---
-export { default as useAllOrders } from './useAllOrders';
-export { default as useAllocationEligibleOrders } from './useAllocationEligibleOrders';
-export { default as useSalesOrders } from './useSalesOrders';
-export { default as useConfirmSalesOrder } from './useConfirmSalesOrder';
-export { default as useSalesOrderDetails } from './useSalesOrderDetails';
-export { default as useOrderTypes } from './usePaginateOrderTypes.ts';
-export { default as useOrderTypesDropdown } from './useOrderTypesDropdown';
-export { default as useAvailableInventoryLots } from './useAvailableInventoryLots';
-export { default as useAllocationEligibleOrderDetails } from './useAllocationEligibleOrderDetails';
-
-// --- Customer & Dropdowns ---
-export { default as useDiscountDropdown } from './useDiscountDropdown';
-export { default as useTaxRateDropdown } from './useTaxRateDropdown';
-export { default as useDeliveryMethodDropdown } from './useDeliveryMethodDropdown';

@@ -127,12 +127,3 @@ export type OrderTypeListResponse = PaginatedResponse<OrderTypeListItem>;
  */
 export type PaginatedOrderTypeListState =
   ReduxPaginatedState<OrderTypeListItem>;
-
-export type OrderTypeCategory =
-  | 'purchase'
-  | 'sales'
-  | 'transfer'
-  | 'return'
-  | 'manufacturing'
-  | 'logistics'
-  | 'adjustment';

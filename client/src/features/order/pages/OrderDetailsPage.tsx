@@ -116,7 +116,7 @@ const OrderDetailsPage: FC = () => {
     if (loading) return false;
     
     return (
-      hasPermission(ORDER_CONSTANTS.PERMISSIONS.CONFIRM_SALES_ORDER) &&
+      hasPermission(ORDER_CONSTANTS.PERMISSIONS.ACTIONS.CONFIRM_SALES_ORDER) &&
       confirmableStatusCodes.includes(statusCode)
     );
   }, [loading, hasPermission, statusCode]);
@@ -125,7 +125,7 @@ const OrderDetailsPage: FC = () => {
     if (loading) return false;
     
     return (
-      hasPermission(ORDER_CONSTANTS.PERMISSIONS.CANCEL_SALES_ORDER) &&
+      hasPermission(ORDER_CONSTANTS.PERMISSIONS.ACTIONS.CANCEL_SALES_ORDER) &&
       cancelableStatusCodes.includes(statusCode)
     );
   }, [loading, hasPermission, statusCode]);

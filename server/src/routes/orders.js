@@ -13,7 +13,6 @@ const { sanitizeFields } = require('../middlewares/sanitize');
 const AppError = require('../utils/AppError');
 const {
   orderCategorySchema,
-  orderIdParamSchema,
   orderIdentifierSchema,
   orderQuerySchema,
   updateOrderStatusSchema,
@@ -206,7 +205,7 @@ router.get(
   '/:category/:orderId',
   authorize([PERMISSIONS.ORDER.VIEW]),
   sanitizeFields(['orderId']),
-  validate(orderIdParamSchema, 'params'),
+  validate(orderIdentifierSchema, 'params'),
   getOrderDetailsByIdController
 );
 
