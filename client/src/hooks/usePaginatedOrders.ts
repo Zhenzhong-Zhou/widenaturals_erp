@@ -37,7 +37,7 @@ const usePaginatedOrders = () => {
    * Dispatch the thunk to fetch orders for a given category and filters.
    */
   const fetchOrders = useCallback(
-    (category: string, params: OrderQueryParams) => {
+    (category: string, params?: OrderQueryParams) => {
       dispatch(fetchOrdersByCategoryThunk({ category, params }));
     },
     [dispatch]

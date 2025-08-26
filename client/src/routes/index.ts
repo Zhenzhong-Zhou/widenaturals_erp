@@ -28,6 +28,9 @@ export const routes = [
     path: '/profile',
     component: lazy(() => import('@features/user/pages/UserProfilePage')),
     meta: { requiresAuth: true, title: 'User Profile', showInSidebar: false },
+    // todo: not support nest route since i customize it.
+    //  it may need to refactor whole routes logic and testing it again.
+    //  leave it for now , it may refactor in the future.
     children: [
       {
         path: '',
@@ -223,15 +226,31 @@ export const routes = [
     component: lazy(() => import('@features/orderType/pages/OrderTypesPage')),
     meta: { requiresAuth: true, title: 'Order Types', showInSidebar: true },
   },
-  // {
-  //   path: '/orders',
-  //   component: lazy(() => import('@features/order/pages/OrdersPage')),
-  //   meta: { requiresAuth: true, title: 'All Orders', showInSidebar: true },
-  // },
   {
     path: '/orders',
-    component: lazy(() => import('@features/order/pages/OrderLandingPage')),
-    meta: { requiresAuth: true, title: 'Landing Page', showInSidebar: true },
+    component: lazy(() => import('@features/order/layouts/OrdersLayout')), // uses <Outlet />
+    meta: {
+      requiresAuth: true,
+      title: 'Orders',
+      showInSidebar: true,
+      requiredPermission: (params: OrderRouteParams) =>
+        isValidOrderCategory(params.category)
+          ? toPermissionValue('VIEW', params.category)
+          : 'invalid_category',
+    },
+  },
+  {
+    path: '/orders/:mode/all',
+    component: lazy(() => import('@features/order/pages/OrdersListPage')),
+    meta: {
+      requiresAuth: true,
+      title: 'Order List',
+      showInSidebar: false,
+      requiredPermission: (params: { mode?: string }) =>
+        params.mode && isValidOrderCategory(params.mode)
+          ? toPermissionValue('VIEW', params.mode)
+          : 'invalid_mode',
+    },
   },
   {
     path: '/orders/:category/new',
@@ -239,7 +258,7 @@ export const routes = [
     meta: { requiresAuth: true, title: 'Base Page', showInSidebar: false },
   },
   {
-    path: '/orders/:category/details/:orderId',
+    path: ':mode/:category/details/:orderId',
     component: lazy(() => import('@features/order/pages/OrderDetailsPage')),
     meta: {
       requiresAuth: true,

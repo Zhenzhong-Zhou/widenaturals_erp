@@ -1,4 +1,10 @@
-import type { ApiSuccessResponse, AsyncState, PaginatedResponse, ReduxPaginatedState } from '@shared-types/api';
+import type {
+  ApiSuccessResponse,
+  AsyncState,
+  PaginatedResponse,
+  PaginationParams,
+  ReduxPaginatedState, SortConfig,
+} from '@shared-types/api';
 
 /**
  * Represents a single item in a sales order.
@@ -111,36 +117,103 @@ export type CreateSalesOrderResponse = ApiSuccessResponse<CreateSalesOrderData>;
 export type SalesOrderCreationState = AsyncState<CreateSalesOrderData | null>;
 
 /**
- * Query parameters used to fetch a paginated and filtered list of orders.
- *
- * Supported filters:
- * - Pagination: `page`, `limit`
- * - Sorting: `sortBy`, `sortOrder`
- * - Text & exact match: `keyword`, `orderNumber`
- * - Filter by metadata: `orderTypeId`, `orderStatusId`
- * - Date range filters:
- *    - `createdAfter`, `createdBefore`: filter by order creation date
- *    - `statusDateAfter`, `statusDateBefore`: filter by status update date
- * - Audit fields:
- *    - `createdBy`, `updatedBy`: filter by user UUIDs
+ * Filters used to query and paginate order lists.
  */
-export interface OrderQueryParams {
-  // todo: find reuse one
-  page?: number;
-  limit?: number;
-  sortBy?: string;
-  sortOrder?: 'ASC' | 'DESC';
+export interface OrderListFilters {
+  /**
+   * Free-text search keyword (e.g., customer name, SKU, note).
+   */
   keyword?: string;
+  
+  /**
+   * Exact order number to filter by.
+   */
   orderNumber?: string;
+  
+  /**
+   * Filter by order type (foreign key UUID).
+   */
   orderTypeId?: string;
+  
+  /**
+   * Filter by order status (foreign key UUID).
+   */
   orderStatusId?: string;
-  createdAfter?: string; // ISO date string
+  
+  /**
+   * Filter orders created after this ISO date (inclusive).
+   * Example: '2025-01-01T00:00:00Z'
+   */
+  createdAfter?: string;
+  
+  /**
+   * Filter orders created before this ISO date (inclusive).
+   * Example: '2025-12-31T23:59:59Z'
+   */
   createdBefore?: string;
+  
+  /**
+   * Filter orders whose status changed after this ISO date (inclusive).
+   */
   statusDateAfter?: string;
+  
+  /**
+   * Filter orders whose status changed before this ISO date (inclusive).
+   */
   statusDateBefore?: string;
+  
+  /**
+   * Filter by creator (foreign key UUID to user).
+   */
   createdBy?: string;
+  
+  /**
+   * Filter by last updater (foreign key UUID to user).
+   */
   updatedBy?: string;
 }
+
+/**
+ * Query parameters used to fetch a paginated, sorted, and filtered list of orders.
+ *
+ * Includes:
+ * - Pagination:
+ *    - `page`: current page number
+ *    - `limit`: number of records per page
+ * - Sorting:
+ *    - `sortBy`: field to sort by (e.g., 'createdAt', 'orderNumber')
+ *    - `sortOrder`: sorting direction ('ASC' or 'DESC')
+ * - Filters (`filters` object):
+ *    - Text search:
+ *       - `keyword`: free-text search (e.g., customer name, SKU, notes)
+ *       - `orderNumber`: exact match for order number
+ *    - Metadata:
+ *       - `orderTypeId`: filter by order type (UUID)
+ *       - `orderStatusId`: filter by order status (UUID)
+ *    - Date ranges:
+ *       - `createdAfter` / `createdBefore`: filter by order creation date (ISO string)
+ *       - `statusDateAfter` / `statusDateBefore`: filter by status update date (ISO string)
+ *    - Audit fields:
+ *       - `createdBy` / `updatedBy`: filter by user UUIDs
+ */
+export interface OrderQueryParams extends PaginationParams, SortConfig {
+  filters?: OrderListFilters;
+}
+
+/**
+ * Allowed fields for sorting the order list.
+ */
+export type OrderListSortField =
+  | 'orderNumber'
+  | 'orderDate'
+  | 'orderType'
+  | 'statusName'
+  | 'statusDate'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'createdBy'
+  | 'updatedBy'
+  | 'defaultNaturalSort';
 
 /**
  * Represents a single order in the paginated order list response.
@@ -196,6 +269,12 @@ export type OrderListResponse = PaginatedResponse<OrderListItem>;
  */
 export interface PaginatedOrderStateWithFilters extends ReduxPaginatedState<OrderListItem> {
   filters: OrderQueryParams;
+}
+
+export interface PermissionContext {
+  isRoot: boolean;
+  has: (perm: string) => boolean;
+  hasAny: (perms: string[]) => boolean;
 }
 
 /**

@@ -12,6 +12,7 @@ export const ORDER_CATEGORIES = [
   'manufacturing',
   'logistics',
   'adjustment',
+  'all'
 ] as const;
 
 /** Union type of all supported order categories. */
@@ -81,11 +82,20 @@ export const PERMISSIONS = Object.fromEntries(
 
 export const ORDER_CONSTANTS = {
   PERMISSIONS: {
-    CONFIRM_AWAITING_REVIEW_SALES_ORDER: 'confirm_awaiting_review_sales_order',
-    CONFIRM_SALES_ORDER: 'confirm_sales_order',
-    CANCEL_SALES_ORDER: 'cancel_sales_order',
-    SHIP_SALES_ORDER: 'ship_sales_order',
-    COMPLETE_SALES_ORDER: 'complete_sales_order',
-    OVERRIDE_LOCKED_STATUS: 'override_locked_order_status',
+    ACTIONS: {
+      CONFIRM_AWAITING_REVIEW_SALES_ORDER: 'confirm_awaiting_review_sales_order',
+      CONFIRM_SALES_ORDER: 'confirm_sales_order',
+      CANCEL_SALES_ORDER: 'cancel_sales_order',
+      SHIP_SALES_ORDER: 'ship_sales_order',
+      COMPLETE_SALES_ORDER: 'complete_sales_order',
+      OVERRIDE_LOCKED_STATUS: 'override_locked_order_status',
+    },
+    ORDER: {
+      get: (action: 'VIEW' | 'CREATE' | 'UPDATE' | 'DELETE', category: string) =>
+        `${action.toLowerCase()}_${category}_order`,
+    },
+    ALLOCATION: {
+      VIEW: 'view_allocation_sales_order',
+    },
   },
 };
