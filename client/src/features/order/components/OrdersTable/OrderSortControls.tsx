@@ -1,5 +1,5 @@
 import { type FC } from 'react';
-import type { OrderListSortField } from '../state';
+import type { OrderListSortField } from '@features/order/state';
 import type { SortOrder } from '@shared-types/api';
 import SortControls from '@components/common/SortControls';
 

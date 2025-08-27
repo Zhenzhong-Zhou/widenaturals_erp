@@ -20,8 +20,8 @@ import Grid from '@mui/material/Grid';
 import Skeleton from '@mui/material/Skeleton';
 import CustomTypography from '@components/common/CustomTypography';
 import GoBackButton from '@components/common/GoBackButton';
-import OrderSortControls from '@features/order/components/OrderSortControls';
 import NoDataFound from '@components/common/NoDataFound';
+import { OrderSortControls } from '@features/order/components/OrdersTable/index';
 
 const OrdersTable = lazy(
   () => import('@features/order/components/OrdersTable')

@@ -5,8 +5,10 @@ import Box from '@mui/material/Box';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
 import SkeletonExpandedRow from '@components/common/SkeletonExpandedRow';
-import OrderExpandedContent from '@features/order/components/OrderExpandedContent';
-import { getOrdersTableColumns } from '@features/order/components/getOrdersTableColumns.tsx';
+import {
+  getOrdersTableColumns,
+  OrderExpandedContent
+} from '@features/order/components/OrdersTable/index';
 
 interface OrderTableProps {
   category: string;
