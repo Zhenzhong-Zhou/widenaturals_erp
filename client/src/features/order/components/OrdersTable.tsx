@@ -1,12 +1,12 @@
-import { formatDateTime } from '@utils/dateTimeUtils';
-import CustomTable, { type Column } from '@components/common/CustomTable';
-import StatusChip from '@components/common/StatusChip';
+import { Suspense, useCallback, useMemo } from 'react';
+import CustomTable from '@components/common/CustomTable';
 import type { OrderListItem } from '@features/order/state';
-import { Link } from 'react-router-dom';
-import { getShortOrderNumber } from '@features/order/utils/orderUtils';
 import Box from '@mui/material/Box';
-import CustomTypography from '@components/common/CustomTypography.tsx';
-import CustomButton from '@components/common/CustomButton.tsx';
+import CustomTypography from '@components/common/CustomTypography';
+import CustomButton from '@components/common/CustomButton';
+import SkeletonExpandedRow from '@components/common/SkeletonExpandedRow';
+import OrderExpandedContent from '@features/order/components/OrderExpandedContent';
+import { getOrdersTableColumns } from '@features/order/components/getOrdersTableColumns.tsx';
 
 interface OrderTableProps {
   category: string;
@@ -18,10 +18,13 @@ interface OrderTableProps {
   totalRecords: number;
   onPageChange: (page: number) => void;
   onRowsPerPageChange: (rowsPerPage: number) => void;
+  expandedRowId?: string | null;
+  onSelectionChange?: (ids: string[]) => void;
+  selectedRowIds?: string[];
+  onDrillDownToggle?: (rowId: string) => void;
   onRefresh: () => void;
 }
 
-// todo expanded row
 const OrderTable = ({
                       category,
                       data,
@@ -32,75 +35,36 @@ const OrderTable = ({
                       rowsPerPage,
                       onPageChange,
                       onRowsPerPageChange,
+                      expandedRowId,
+                      onDrillDownToggle,
+                      selectedRowIds,
+                      onSelectionChange,
                       onRefresh,
                     }: OrderTableProps) => {
-  const columns: Column<OrderListItem>[] = [
-    {
-      id: 'orderNumber',
-      label: 'Order #',
-      sortable: true,
-      renderCell: (row) => (
-        <Link
-          to={`/orders/${category}/details/${row.id}`}
-          style={{
-            textDecoration: 'none',
-            color: '#1976D2',
-            fontWeight: 'bold',
-          }}
-        >
-          {getShortOrderNumber(row.orderNumber)}
-        </Link>
-      ),
-    },
-    {
-      id: 'orderType',
-      label: 'Order Type',
-    },
-    {
-      id: 'status',
-      label: 'Status',
-      renderCell: (row) => (
-        <StatusChip label={row.status.name} />
-      ),
-    },
-    {
-      id: 'customerName',
-      label: 'Customer',
-    },
-    {
-      id: 'paymentMethod',
-      label: 'Payment Method',
-    },
-    {
-      id: 'paymentStatus',
-      label: 'Payment Status',
-      renderCell: (row) => (
-        <StatusChip label={row.paymentStatus ?? 'UNKNOWN'} />
-      ),
-    },
-    {
-      id: 'deliveryMethod',
-      label: 'Delivery Method',
-    },
-    {
-      id: 'numberOfItems',
-      label: '# Items',
-      align: 'right',
-    },
-    {
-      id: 'orderDate',
-      label: 'Order Date',
-      format: (value) => formatDateTime(value as string),
-    },
-    {
-      id: 'createdBy',
-      label: 'Created By',
-    },
-    {
-      id: 'action',
-      label: 'Action'
-    }
-  ];
+  const columns = useMemo(() => {
+    return getOrdersTableColumns(
+      category,
+      expandedRowId ?? undefined,
+      onDrillDownToggle
+    );
+  }, [category, expandedRowId, onDrillDownToggle]);
+  
+  const renderExpandedContent = useCallback(
+    (row: OrderListItem) => (
+      <Suspense
+        fallback={
+          <SkeletonExpandedRow
+            showSummary
+            fieldPairs={3}
+            summaryHeight={80}
+            spacing={1}
+          />
+        }
+      >
+        <OrderExpandedContent row={row} />
+      </Suspense>
+    ), []
+  );
   
   return (
     <Box>
@@ -134,7 +98,12 @@ const OrderTable = ({
         rowsPerPageOptions={[10, 25, 50, 75]}
         onPageChange={onPageChange}
         onRowsPerPageChange={onRowsPerPageChange}
+        expandable
+        expandedRowId={expandedRowId}
+        expandedContent={renderExpandedContent}
         getRowId={(row) => row.id}
+        selectedRowIds={selectedRowIds}
+        onSelectionChange={onSelectionChange}
         emptyMessage="No orders found"
       />
     </Box>

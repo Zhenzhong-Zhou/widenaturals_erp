@@ -211,8 +211,6 @@ export type OrderListSortField =
   | 'statusDate'
   | 'createdAt'
   | 'updatedAt'
-  | 'createdBy'
-  | 'updatedBy'
   | 'defaultNaturalSort';
 
 /**
