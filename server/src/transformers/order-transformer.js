@@ -132,28 +132,38 @@ const { transformPaginatedResult } = require('../utils/transformer-utils');
  */
 
 /**
- * Transforms a raw SQL result row from the `orders` query into a normalized order object.
+ * Transforms a raw SQL result row from the `orders` query into a normalized `OrderListItem` object.
  *
- * Fields like names and status codes are flattened and renamed for frontend/API use.
- * Combines `created_by` and `updated_by` first/last names into readable full names.
- * Nulls are used instead of undefined values. Uses `cleanObject` to remove nullish keys.
+ * - Flattens and normalizes aliased SQL columns into camelCase fields.
+ * - Combines `created_by` and `updated_by` username parts into full names.
+ * - Combines customer first and last names into a single `customerName` string.
+ * - Defaults `numberOfItems` to 0 if null.
+ * - Returns `null` if input row is falsy.
+ * - Uses `cleanObject` to remove `null` or `undefined` fields as needed.
  *
- * @param {Object} row - A single raw row from a SQL query (with aliased fields).
+ * @param {Object} row - A single raw row from the joined SQL result.
  * @param {string} row.id - Order UUID.
- * @param {string} row.order_number - Order number string.
- * @param {string} [row.order_type] - Order type name.
- * @param {string} row.status_code - Status code of the order.
+ * @param {string} row.order_number - Full order number (e.g., "SO-SSO-20250825-XYZ").
+ * @param {string} [row.order_type] - Name of the order type.
+ * @param {string} row.status_code - Machine-readable status code.
  * @param {string} row.status_name - Human-readable status name.
- * @param {string} row.status_date - ISO timestamp for status.
- * @param {string} row.created_at - ISO timestamp for creation.
- * @param {string} [row.created_by_firstname] - Creator's first name.
- * @param {string} [row.created_by_lastname] - Creator's last name.
- * @param {string} row.updated_at - ISO timestamp for last update.
- * @param {string} [row.updated_by_firstname] - Updater's first name.
- * @param {string} [row.updated_by_lastname] - Updater's last name.
- * @param {string} [row.note] - Optional internal notes.
+ * @param {string} row.order_date - ISO date string of the order.
+ * @param {string} row.status_date - ISO date string of the last status update.
+ * @param {string} row.created_at - ISO date string of creation timestamp.
+ * @param {string} [row.created_by_firstname] - First name of creator.
+ * @param {string} [row.created_by_lastname] - Last name of creator.
+ * @param {string} row.updated_at - ISO date string of last update timestamp.
+ * @param {string} [row.updated_by_firstname] - First name of updater.
+ * @param {string} [row.updated_by_lastname] - Last name of updater.
+ * @param {string} [row.note] - Internal note or comment.
+ * @param {string} [row.customer_firstname] - Customer first name.
+ * @param {string} [row.customer_lastname] - Customer last name.
+ * @param {string} [row.payment_method] - Payment method name.
+ * @param {string} [row.payment_status] - Payment status label.
+ * @param {string} [row.delivery_method] - Delivery method name.
+ * @param {number} [row.number_of_items] - Number of items in the order.
  *
- * @returns {Object|null} Transformed order object or `null` if `row` is falsy.
+ * @returns {OrderListItem | null} Normalized order object or `null` if input is falsy.
  *
  * @example
  * const raw = await db.query(...);
@@ -162,13 +172,19 @@ const { transformPaginatedResult } = require('../utils/transformer-utils');
 const transformOrderRow = (row) => {
   if (!row) return null;
   
-  const createdBy =
-    [row.created_by_firstname, row.created_by_lastname].filter(Boolean).join(' ') || null;
+  const createdBy = [row.created_by_firstname, row.created_by_lastname]
+    .filter(Boolean)
+    .join(' ') || null;
   
-  const updatedBy =
-    [row.updated_by_firstname, row.updated_by_lastname].filter(Boolean).join(' ') || null;
+  const updatedBy = [row.updated_by_firstname, row.updated_by_lastname]
+    .filter(Boolean)
+    .join(' ') || null;
   
-  const transformed = {
+  const customerName = [row.customer_firstname, row.customer_lastname]
+    .filter(Boolean)
+    .join(' ') || null;
+  
+  return cleanObject({
     id: row.id,
     orderNumber: row.order_number,
     orderType: row.order_type || null,
@@ -176,15 +192,19 @@ const transformOrderRow = (row) => {
       code: row.status_code,
       name: row.status_name,
     },
+    orderDate: row.order_date,
     statusDate: row.status_date,
     createdAt: row.created_at,
-    createdBy: createdBy || null,
+    createdBy,
     updatedAt: row.updated_at,
-    updatedBy: updatedBy || null,
+    updatedBy,
     note: row.note ?? null,
-  };
-  
-  return cleanObject(transformed);
+    customerName,
+    paymentMethod: row.payment_method || null,
+    paymentStatus: row.payment_status || null,
+    deliveryMethod: row.delivery_method || null,
+    numberOfItems: row.number_of_items ?? 0,
+  });
 };
 
 /**

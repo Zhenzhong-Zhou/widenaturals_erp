@@ -29,6 +29,7 @@ import { ORDER_CONSTANTS } from '@utils/constants/orderPermissions';
 import { useOrderDetails } from '@hooks/useOrderDetails';
 import { flattenSalesOrderHeader } from '@features/order/utils/transformOrderHeader';
 import useUpdateOrderStatus from '@hooks/useUpdateOrderStatus';
+import { getShortOrderNumber } from '@features/order/utils/orderUtils';
 
 const OrderDetailsPage: FC = () => {
   // Get the `orderType` and `orderId` from the URL
@@ -143,7 +144,7 @@ const OrderDetailsPage: FC = () => {
     }
   };
   
-  const titleOrderNumber = header?.orderNumber?.split('-').slice(0, 3).join('-');
+  const titleOrderNumber = getShortOrderNumber(header?.orderNumber);
   
   const noDataIcon = useMemo(() => <SearchOffIcon fontSize="large" color="disabled" />, []);
   const retryAction = useMemo(() => <CustomButton onClick={refresh}>Retry</CustomButton>, [refresh]);

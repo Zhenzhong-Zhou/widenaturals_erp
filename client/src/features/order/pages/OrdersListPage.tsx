@@ -118,18 +118,11 @@ const OrdersListPage = () => {
      <AccessDeniedPage/>
     );
   }
-  
+  console.log(orders);
   return (
     <>
       <CustomTypography variant="h5">Orders</CustomTypography>
       <GoBackButton sx={{ borderRadius: 20 }} />
-      <CustomButton
-        variant="contained"
-        sx={{ boxShadow: 2 }}
-        onClick={handleRefresh}
-      >
-        Refresh Table
-      </CustomButton>
       {mode === 'sales' && ctx.has(toPermissionValue('CREATE', 'sales')) && (
         <CustomButton
           variant="contained"

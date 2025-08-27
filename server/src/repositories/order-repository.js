@@ -96,28 +96,38 @@ const insertOrder = async (orderData, client) => {
 };
 
 /**
- * Fetches a paginated list of sales orders with optional filters, sorting, and joined metadata.
+ * Fetches a paginated list of orders (e.g., sales orders) with optional filters, sorting, and joined metadata.
  *
- * - Applies dynamic filters using `buildOrderFilter` (e.g., by status, type, dates).
- * - Joins related tables: `order_types`, `order_status`, and `users` for created/updated by.
- * - Supports pagination and sorting.
+ * Features:
+ * - Applies dynamic filtering via `buildOrderFilter` (e.g., by status code, type ID, date ranges, etc.)
+ * - Joins related tables for enriched metadata:
+ *   - `order_types` → order type name
+ *   - `order_status` → status code & name
+ *   - `users` → createdBy / updatedBy usernames
+ *   - `sales_orders` → sales-specific metadata
+ *   - `customers`, `payment_methods`, `delivery_methods`, `payment_status`
+ * - Adds `number_of_items` via subquery on `order_items`
+ * - Supports pagination, sorting, and query tracing
  *
  * @async
  * @param {Object} options - Query options.
- * @param {Object} [options.filters={}] - Filtering conditions (e.g., status, type, date).
+ * @param {OrderListFilters} [options.filters={}] - Filtering conditions (e.g., status code, type, created date).
  * @param {number} [options.page=1] - Page number for pagination.
  * @param {number} [options.limit=10] - Page size for pagination.
- * @param {string} [options.sortBy='created_at'] - Column to sort by.
- * @param {string} [options.sortOrder='DESC'] - Sort direction ('ASC' or 'DESC').
- * @returns {Promise<Object>} Paginated result with data, meta info, etc.
+ * @param {string} [options.sortBy='created_at'] - Column name to sort by (e.g., 'order_date', 'status_date').
+ * @param {'ASC' | 'DESC'} [options.sortOrder='DESC'] - Sort direction.
+ * @returns {Promise<Object>} Paginated result including data and meta info.
  *
  * @example
  * const result = await getPaginatedOrders({
- *   filters: { statusCode: 'ORDER_CONFIRMED' },
+ *   filters: {
+ *     orderStatusId: 'b6ef9f9f-23ab-4f13-a3e2-b8b62344c519',
+ *     createdAfter: '2025-08-01T00:00:00Z',
+ *   },
  *   page: 2,
  *   limit: 20,
- *   sortBy: 'created_at',
- *   sortOrder: 'ASC'
+ *   sortBy: 'order_date',
+ *   sortOrder: 'ASC',
  * });
  */
 const getPaginatedOrders =  async ({
@@ -136,6 +146,11 @@ const getPaginatedOrders =  async ({
     'LEFT JOIN order_status os ON o.order_status_id = os.id',
     'LEFT JOIN users u_created ON o.created_by = u_created.id',
     'LEFT JOIN users u_updated ON o.updated_by = u_updated.id',
+    'LEFT JOIN sales_orders so ON so.id = o.id', // <- correct join
+    'LEFT JOIN customers c ON so.customer_id = c.id', // <- moved here
+    'LEFT JOIN payment_methods pm ON so.payment_method_id = pm.id',
+    'LEFT JOIN delivery_methods dm ON so.delivery_method_id = dm.id',
+    'LEFT JOIN payment_status ps ON so.payment_status_id = ps.id',
   ];
   
   const baseQuery = `
@@ -145,6 +160,7 @@ const getPaginatedOrders =  async ({
       ot.name AS order_type,
       os.code AS status_code,
       os.name AS status_name,
+      o.order_date,
       o.status_date,
       o.created_at,
       u_created.firstname AS created_by_firstname,
@@ -152,7 +168,17 @@ const getPaginatedOrders =  async ({
       o.updated_at,
       u_updated.firstname AS updated_by_firstname,
       u_updated.lastname AS updated_by_lastname,
-      o.note
+      o.note,
+      c.firstname AS customer_firstname,
+      c.lastname AS customer_lastname,
+      pm.name AS payment_method,
+      ps.name AS payment_status,
+      dm.method_name AS delivery_method,
+      (
+        SELECT COUNT(*)
+        FROM order_items oi
+        WHERE oi.order_id = o.id
+      ) AS number_of_items
     FROM ${tableName}
     ${joins.join('\n')}
     WHERE ${whereClause}

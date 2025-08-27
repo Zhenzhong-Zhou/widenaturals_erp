@@ -234,6 +234,13 @@ export interface OrderListItem {
     name: string;
   };
   
+  /**
+   * Date when the order was placed (ISO 8601 string).
+   * Typically, represents the customer's intended order date.
+   * Example: '2025-08-25T00:00:00.000Z'
+   */
+  orderDate: string;
+  
   /** Date when the current status was last updated (ISO string) */
   statusDate: string;
   
@@ -251,6 +258,21 @@ export interface OrderListItem {
   
   /** Optional note or comment attached to the order */
   note?: string | null;
+  
+  /** Full name of the associated customer, if available */
+  customerName?: string | null;
+  
+  /** Name of the payment method used (e.g., Credit Card) */
+  paymentMethod?: string | null;
+  
+  /** Current payment status label (e.g., Paid, Unpaid) */
+  paymentStatus?: string | null;
+  
+  /** Name of the delivery method (e.g., Canada Post) */
+  deliveryMethod?: string | null;
+  
+  /** Number of items linked to this order */
+  numberOfItems: number;
 }
 
 /**
