@@ -225,7 +225,7 @@ const OrderDetailsPage: FC = () => {
               >
                 {orderLoading ? 'Refreshing' : 'Refresh Data'}
               </CustomButton>
-              {canConfirmStatusUpdate && (
+              {!isAllocatableCategory && canConfirmStatusUpdate && (
                 <CustomButton
                   variant="contained"
                   color="primary"
@@ -245,7 +245,7 @@ const OrderDetailsPage: FC = () => {
                   {updateStatusLoading ? 'Allocating...' : 'Allocate Order'}
                 </CustomButton>
               )}
-              {canCancelOrder && (
+              {!isAllocatableCategory && canCancelOrder && (
                 <CustomButton
                   variant="contained"
                   color="error"
