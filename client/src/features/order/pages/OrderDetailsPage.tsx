@@ -1,4 +1,4 @@
-import { type FC, useCallback, useEffect, useMemo } from 'react';
+import { type FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
@@ -23,6 +23,7 @@ import {
   PriceOverrideSection,
   ShippingInfoSection,
 } from '@features/order/components/SalesOrderDetails';
+import AllocateInventoryDialog from '@features/inventoryAllocation/components/AllocateInventoryDialog';
 import usePermissions from '@hooks/usePermissions';
 import useHasPermission from '@features/authorize/hooks/useHasPermission';
 import { ORDER_CONSTANTS } from '@utils/constants/orderPermissions';
@@ -30,6 +31,7 @@ import { useOrderDetails } from '@hooks/useOrderDetails';
 import { flattenSalesOrderHeader } from '@features/order/utils/transformOrderHeader';
 import useUpdateOrderStatus from '@hooks/useUpdateOrderStatus';
 import { getShortOrderNumber } from '@features/order/utils/orderUtils';
+import { useDialogFocusHandlers } from '@utils/hooks/useDialogFocusHandlers';
 
 const OrderDetailsPage: FC = () => {
   // Get the `orderType` and `orderId` from the URL
@@ -51,6 +53,15 @@ const OrderDetailsPage: FC = () => {
   const isAllocatableCategory = category === 'allocatable';
   const { loading, permissions } = usePermissions();
   const hasPermission = useHasPermission(permissions);
+  
+  const createButtonRef = useRef<HTMLButtonElement>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  
+  const { handleOpenDialog, handleCloseDialog } = useDialogFocusHandlers(
+    setDialogOpen,
+    createButtonRef,
+    () => dialogOpen
+  );
   
   const {
     data: orderData,
@@ -116,9 +127,6 @@ const OrderDetailsPage: FC = () => {
   
   const allocatableStatusCodes = [
     'ORDER_CONFIRMED',
-    'ORDER_ALLOCATING',
-    'ORDER_PARTIALLY_ALLOCATED',
-    'ORDER_ALLOCATED',
   ];
   
   const canConfirmStatusUpdate = useMemo(() => {
@@ -239,12 +247,18 @@ const OrderDetailsPage: FC = () => {
                 <CustomButton
                   variant="contained"
                   color="primary"
-                  // onClick={() => handleStatusUpdate('ORDER_CONFIRMED')}
-                  // disabled={updateStatusLoading || loading}
+                  onClick={handleOpenDialog}
+                  disabled={updateStatusLoading || loading}
                 >
                   {updateStatusLoading ? 'Allocating...' : 'Allocate Order'}
                 </CustomButton>
               )}
+              <AllocateInventoryDialog
+                open={dialogOpen}
+                onClose={handleCloseDialog}
+                orderId={orderId}
+                category={category}
+              />
               {!isAllocatableCategory && canCancelOrder && (
                 <CustomButton
                   variant="contained"

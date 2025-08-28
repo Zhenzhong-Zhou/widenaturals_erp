@@ -287,17 +287,17 @@ export const routes = [
   //     requiredPermission: 'view_sales_order_details',
   //   },
   // },
-  // {
-  //   path: '/orders/allocation-eligible',
-  //   component: lazy(
-  //     () => import('@features/order/pages/AllocationEligibleOrderPage')
-  //   ),
-  //   meta: {
-  //     requiresAuth: true,
-  //     title: 'Allocation-Eligible Orders',
-  //     showInSidebar: true,
-  //   },
-  // },
+  {
+    path: '/inventory-allocations/review/:orderId',
+    component: lazy(
+      () => import('@features/inventoryAllocation/pages/InventoryAllocationReviewPage')
+    ),
+    meta: {
+      requiresAuth: true,
+      title: 'Inventory Allocation Review',
+      showInSidebar: false,
+    },
+  },
   // {
   //   path: '/orders/:orderType/:orderId/allocate',
   //   component: lazy(
