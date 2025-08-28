@@ -73,4 +73,7 @@ export const API_ENDPOINTS = {
     ORDER_DETAILS: (category: string, orderId: string) => `/orders/${category}/${orderId}`,
     ORDER_STATUS_UPDATE_PATH: (category: string, orderId: string) => `/orders/${category}/${orderId}/status`,
   },
+  INVENTORY_ALLOCATIONS: {
+    ALLOCATE_ORDER: (orderId: string) => `/inventory-allocations/allocate/${orderId}`,
+  }
 };
