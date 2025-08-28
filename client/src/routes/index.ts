@@ -1,5 +1,5 @@
 import { lazy } from 'react';
-import { toPermissionValue } from '@utils/constants/orderPermissions';
+import { ORDER_CONSTANTS, toPermissionValue } from '@utils/constants/orderPermissions';
 import type { OrderRouteParams } from '@features/order/state';
 import { isValidOrderCategory } from '@features/order/utils/orderCategoryUtils';
 
@@ -271,7 +271,9 @@ export const routes = [
       showInSidebar: false,
       requiredPermission: (params: OrderRouteParams) =>
         isValidOrderCategory(params.category)
-          ? toPermissionValue('VIEW', params.category)
+          ? params.category === 'allocatable'
+            ? ORDER_CONSTANTS.PERMISSIONS.ALLOCATION.VIEW
+            : toPermissionValue('VIEW', params.category) // default
           : 'invalid_category',
     },
   },

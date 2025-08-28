@@ -128,34 +128,38 @@ const createOrderService = async (orderData, category, user) => {
 };
 
 /**
- * Fetches a paginated and access-controlled list of orders for the given category.
+ * Fetches a paginated and access-controlled list of orders for a given category.
  *
  * This service:
- * - Verifies the user's permission to view orders in the given category (including `'all'`).
- * - Evaluates whether the user has full access to all order types or needs filtering by type or stage.
- * - Retrieves `orderTypeId`s for the given category (unless it's `'all'`).
- * - Determines allowed status codes for the category and maps them to internal status IDs.
- * - Applies access control using `applyOrderAccessFilters`, which scopes by type, stage, and status.
- * - Delegates the final SQL query to the repository for paginated and parameterized execution.
- * - Transforms the raw result into structured, client-facing response with `data` and `pagination`.
+ * - Verifies the user's permission to view orders in the specified `category` (including `'all'`).
+ * - Evaluates whether the user has full/global access or restricted access by order type or stage.
+ * - Resolves `orderTypeId`s based on:
+ *   - The explicit `category` route param (if not `'all'`), or
+ *   - The `filters.orderCategory` (if category is `'all'` and user has global access).
+ * - Determines allowed status codes based on the category (via virtual stage maps) and resolves them to internal status IDs.
+ * - Applies access control filters using `applyOrderAccessFilters`, which combines type-level, stage-level, and global permissions.
+ * - Delegates the filtered query to the repository (`getPaginatedOrders`) for execution.
+ * - Transforms the raw database result into a client-facing format with `data` and `pagination` metadata.
  *
  * Special behavior:
- * - When `category` is `'all'`, skips narrowing by specific order types but still respects access.
- * - Status filtering is dynamically enforced using category-based status definitions.
+ * - If `category` is `'all'` and the user has global access, filters are not restricted by order type
+ *   unless `filters.orderCategory` is explicitly provided.
+ * - If no valid stage-based statuses are found, access filtering will fallback gracefully without blocking category-based results.
+ * - Route-level category validation should occur separately via middleware or route schema.
  *
  * @async
  * @param {Object} params - Parameters for fetching paginated orders
- * @param {Object} params.filters - Raw filter input (order number, type, status, date range, etc.)
- * @param {string} params.category - Order category code (e.g. `'sales'`, `'purchase'`, or `'all'`)
- * @param {Object} params.user - Authenticated user object
+ * @param {Object} params.filters - Query filters (e.g., order number, type, status, keyword, date range)
+ * @param {string} params.category - Order category from the route (e.g. `'sales'`, `'purchase'`, `'allocatable'`, or `'all'`)
+ * @param {Object} params.user - Authenticated user object (must include permissions context)
  * @param {number} [params.page=1] - Page number for pagination
  * @param {number} [params.limit=10] - Page size for pagination
  * @param {string} [params.sortBy='created_at'] - Column to sort by
- * @param {string} [params.sortOrder='DESC'] - Sort direction ('ASC' or 'DESC')
+ * @param {string} [params.sortOrder='DESC'] - Sort direction (`'ASC'` or `'DESC'`)
  *
- * @returns {Promise<Object>} - Transformed paginated result containing `data` and `pagination` metadata
+ * @returns {Promise<Object>} - Transformed paginated result including `data` and `pagination` metadata
  *
- * @throws {AppError} - If permission verification, access control, or database query fails
+ * @throws {AppError} - If permission verification, access filtering, or database query execution fails
  */
 const fetchPaginatedOrdersService = async ({
                                              filters = {},
@@ -173,18 +177,30 @@ const fetchPaginatedOrdersService = async ({
     // Step 2: Evaluate user's global and stage-based access flags
     const userAccess = await evaluateOrdersViewAccessControl(user);
     
-    // Step 3: Resolve applicable order type IDs for this category
-    const orderTypeIds = category !== 'all'
-      ? await getOrderTypeIdsByCategory(category)
-      : undefined;
+    // Step 3: Resolve applicable order type IDs:
+    // - If category !== 'all', fetch order types normally.
+    // - If category === 'all' and user has full access, but filters.orderCategory is provided,
+    //   treat it like a scoping hint and fetch order types accordingly.
+    let orderTypeIds;
+    
+    if (category !== 'all') {
+      orderTypeIds = await getOrderTypeIdsByCategory(category);
+    } else if (userAccess?.canViewAllOrders && filters?.orderCategory) {
+      orderTypeIds = await getOrderTypeIdsByCategory(filters.orderCategory);
+    }
     
     // Step 4: Get allowed status codes for this category (based on virtual stage map)
     const nextAllowedStatuses = getNextAllowedStatuses(category);
     
     // Step 5: Map those codes to internal status IDs
     const allowedStatusCodes = extractStatusCodesAndFetchIds(nextAllowedStatuses);
-    const allowedStatusRecords = await getOrderStatusesByCodes(allowedStatusCodes);
-    const allowedStatusIds = extractStatusIds(allowedStatusRecords);
+    
+    // Skip DB lookup if no status codes
+    let allowedStatusIds = [];
+    if (allowedStatusCodes.length > 0) {
+      const allowedStatusRecords = await getOrderStatusesByCodes(allowedStatusCodes);
+      allowedStatusIds = extractStatusIds(allowedStatusRecords);
+    }
     
     // Step 6: Apply access control to filters (type, stage, and status scoping)
     const scopedFilters = await applyOrderAccessFilters(

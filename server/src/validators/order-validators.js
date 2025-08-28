@@ -121,29 +121,34 @@ const getOrderDetailsParamsSchema = orderIdentifierSchema;
  *
  * This schema combines:
  * - `paginationSchema`: Validates pagination controls (`page`, `limit`)
- * - `createSortSchema`: Validates sorting (`sortBy`, `sortOrder`) with default `created_at`
- * - `createdDateRangeSchema` and `statusDateRangeSchema`: ISO date ranges
- * - Custom filters: `keyword`, `orderNumber`, `orderTypeId`, `orderStatusId`
+ * - `createSortSchema`: Validates sorting (`sortBy`, `sortOrder`) with default `'created_at'`
+ * - `createdDateRangeSchema` and `statusDateRangeSchema`: ISO date range filters
+ * - Custom filters: `keyword`, `orderNumber`, `orderCategory`, `orderTypeId`, `orderStatusId`, `createdBy`, `updatedBy`
  *
  * Valid query parameters:
  * - `page` (number): Optional. Page number. Must be ≥ 1. Defaults to 1.
  * - `limit` (number): Optional. Page size. Must be between 1 and 100. Defaults to 10.
  * - `sortBy` (string): Optional. Sortable field name. Defaults to `'created_at'`.
  * - `sortOrder` (string): Optional. Must be `'ASC'` or `'DESC'`. Defaults to `'DESC'`.
- * - `keyword` (string): Optional. Keyword used for free-text search.
- * - `orderNumber` (string): Optional. Filter by order number (partial or exact match).
+ * - `keyword` (string): Optional. Free-text search across order metadata (e.g., customer name, SKU, notes).
+ * - `orderNumber` (string): Optional. Filter by exact or partial order number.
+ * - `orderCategory` (string): Optional. Used to scope filters or resolve permission. Should be validated separately via `orderCategorySchema`.
  * - `orderTypeId` (UUID): Optional. Filter by specific order type.
  * - `orderStatusId` (UUID): Optional. Filter by specific order status.
- * - `createdAfter` (ISO date): Optional. Filter for records created on/after this date.
- * - `createdBefore` (ISO date): Optional. Filter for records created on/before this date.
- * - `statusDateAfter` (ISO date): Optional. Filter for status date on/after this date.
- * - `statusDateBefore` (ISO date): Optional. Filter for status date on/before this date.
+ * - `createdBy` (UUID): Optional. Filter by creator user ID.
+ * - `updatedBy` (UUID): Optional. Filter by last updater user ID.
+ * - `createdAfter` (ISO date): Optional. Include orders created on or after this timestamp.
+ * - `createdBefore` (ISO date): Optional. Include orders created on or before this timestamp.
+ * - `statusDateAfter` (ISO date): Optional. Include orders whose status changed on or after this timestamp.
+ * - `statusDateBefore` (ISO date): Optional. Include orders whose status changed on or before this timestamp.
  *
- * Note:
- * - `category` is excluded from this schema — it should be validated via route param schema (`orderCategorySchema`)
+ * Notes:
+ * - The `orderCategory` field is optional and used only when users have global access.
+ *   If provided, it helps scope filters (e.g., resolving `orderTypeId`).
+ * - This schema does **not** validate route path parameters like `:category` — use `orderCategorySchema` for that.
  *
  * Example:
- *   GET /orders/SALES?page=2&limit=20&sortBy=createdAt&orderStatusId=<uuid>&keyword=Focus
+ *   GET /orders/sales?page=2&limit=20&sortBy=createdAt&orderStatusId=<uuid>&keyword=Focus
  */
 const orderQuerySchema = paginationSchema
   .concat(createSortSchema('created_at'))
@@ -152,6 +157,7 @@ const orderQuerySchema = paginationSchema
   .keys({
     keyword: validateOptionalString('Keyword'),
     orderNumber: validateOptionalString('Order number'),
+    orderCategory: validateOptionalString('Order Category'),
     orderTypeId: validateOptionalUUID('Order Type ID'),
     orderStatusId: validateOptionalUUID('Order Status ID'),
     createdBy: validateOptionalUUID('Created By'),

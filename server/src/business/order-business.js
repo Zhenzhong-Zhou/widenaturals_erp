@@ -185,23 +185,30 @@ const evaluateOrdersViewAccessControl = async (user) => {
 /**
  * Applies scoped access control filters to an order query based on the user's access rights.
  *
- * This function injects or removes `orderTypeId` and `orderStatusIds` based on the user's
- * access level. It enforces access based on either global permissions, category-based permissions,
- * or stage-level permissions (allocation, fulfillment, shipping).
+ * This function injects or removes `orderTypeId` and `orderStatusIds` fields in the provided
+ * filter object, depending on whether the user has global view access, category-level access,
+ * or stage-level access (e.g., allocation, fulfillment, or shipping).
  *
  * Behavior:
- * - If the user **can view all orders**, all filters related to access control are removed.
- * - If the user has restricted **category-level access**, the `orderTypeId` filter is applied.
- * - If the user has **stage-level access only**, the `orderStatusIds` filter is applied based
- *   on the allowed stages. If no allowed statuses are found, access is denied (`['__NO_ACCESS__']`).
- * - If the user has neither category nor stage-level access, access is blocked completely.
+ * - If the user has **global access** (`canViewAllOrders`):
+ *   - If no `orderCategory` filter is provided, all scoped filters (`orderTypeId`, `orderStatusIds`) are removed.
+ *   - If `orderCategory` **is** provided, scoped filters are retained and respected.
+ *
+ * - If the user has **category-level access**, the `orderTypeId` filter is applied using resolved IDs.
+ * - If the user has **stage-level access**, the `orderStatusIds` filter is applied using resolved status IDs.
+ * - If the user has both category and stage access, both filters are applied together.
+ *
+ * - If the user has category access but **not** stage access, only `orderTypeId` is used and `orderStatusIds` is removed.
+ * - If the user has neither category nor stage access, the query is forcibly denied using `orderStatusIds: ['__NO_ACCESS__']`.
+ *
+ * This ensures the resulting query filters accurately reflect the user's access scope and prevent unauthorized visibility.
  *
  * @async
- * @param {Object} filters - Original query filter object (e.g., status, dates, keywords).
- * @param {Object} userAccess - Result from `evaluateOrdersViewAccessControl` (e.g., canViewAllOrders).
- * @param {Array<string>|undefined} orderTypeIds - Order type UUIDs user can access (based on category).
- * @param {Array<string>|undefined} allowedStatusIds - Status IDs the user can access (based on stage).
- * @returns {Promise<Object>} A modified filters object respecting the user's access scope.
+ * @param {Object} filters - Original query filter object (e.g., keyword, dates, orderTypeId, orderStatusId, etc.)
+ * @param {Object} userAccess - Result of `evaluateOrdersViewAccessControl`, including access flags like `canViewAllOrders`
+ * @param {Array<string>|undefined} orderTypeIds - List of allowed order type UUIDs (based on category)
+ * @param {Array<string>|undefined} allowedStatusIds - List of allowed order status UUIDs (based on stage access)
+ * @returns {Promise<Object>} A new filters object with scoped access restrictions applied
  *
  * @example
  * const userAccess = await evaluateOrdersViewAccessControl(user);
@@ -224,43 +231,53 @@ const applyOrderAccessFilters = async (
       userAccess?.canViewFulfillmentStage ||
       userAccess?.canViewShippingStage;
     
-    // Case 1: Full access to all orders – remove access control filters
+    // Case 1: User has full access to all orders
+    // - If no `orderCategory` is present → clear access filters (true global view)
+    // - If `orderCategory` is present → retain scoped filters from that category
     if (userAccess?.canViewAllOrders) {
-      delete modifiedFilters.orderTypeId;
-      delete modifiedFilters.orderStatusIds;
+      const hasOrderCategoryFilter = Boolean(filters?.orderCategory);
+      
+      if (!hasOrderCategoryFilter) {
+        // Pure global view → remove all access-based filters
+        delete modifiedFilters.orderTypeId;
+        delete modifiedFilters.orderStatusIds;
+      }
+      
+      // Otherwise: keep any filters applied due to orderCategory
       return modifiedFilters;
     }
     
     const hasOrderTypeAccess = Array.isArray(orderTypeIds) && orderTypeIds.length > 0;
     
-    // Case 2: Apply category-level filter if user has category-specific access
+    // Case 2: Category-level access — restrict by orderTypeId
     if (hasOrderTypeAccess) {
       modifiedFilters.orderTypeId = orderTypeIds;
     } else {
       delete modifiedFilters.orderTypeId;
     }
     
-    // Case 3: Apply status-level filter if user has stage-based access
+    // Case 3: Stage-level access — restrict by orderStatusIds (based on allowed statuses)
     if (hasStageAccess) {
       if (Array.isArray(allowedStatusIds) && allowedStatusIds.length > 0) {
         modifiedFilters.orderStatusIds = allowedStatusIds;
-      } else {
-        modifiedFilters.orderStatusIds = ['__NO_ACCESS__']; // fallback: no valid statuses
       }
-      return modifiedFilters;
     }
-    
-    // Case 4: Category-only access with no stage → allow category filter only
-    if (hasOrderTypeAccess) {
+
+    // Case 4: Has category access but not stage — restrict by orderTypeId only
+    if (!hasStageAccess && hasOrderTypeAccess) {
       delete modifiedFilters.orderStatusIds;
       return modifiedFilters;
     }
+
+    // Case 5: No access → deny all results
+    if (!hasStageAccess && !hasOrderTypeAccess) {
+      return {
+        ...modifiedFilters,
+        orderStatusIds: ['__NO_ACCESS__'],
+      };
+    }
     
-    // Case 5: No category, no stage, no full access → deny access
-    return {
-      ...modifiedFilters,
-      orderStatusIds: ['__NO_ACCESS__'],
-    };
+    return modifiedFilters;
   } catch (err) {
     logSystemException(err, 'Failed to apply access filters in applyOrderAccessFilters', {
       context: 'order-business/applyOrderAccessFilters',
@@ -362,28 +379,34 @@ const STATUS_CODES_BY_CATEGORY = {
 };
 
 /**
- * Returns all allowed status codes grouped by their logical status category (e.g., 'draft', 'processing'),
+ * Returns all allowed order status codes grouped by their logical phase (e.g., 'draft', 'processing'),
  * filtered by a specific order category if provided.
  *
- * This function is typically used for generating status dropdowns, validating transitions,
- * or constructing filters when users are interacting with orders of a specific category (e.g., 'sales').
+ * This function is typically used for building filters, validating status transitions,
+ * or generating dropdowns for order status selection within a category.
  *
  * Behavior:
- * - If a specific `orderCategory` is provided (e.g., `'sales'`, `'transfer'`), only status codes
- *   for that category are returned.
- * - If `orderCategory` is `'all'` or falsy, it returns status codes for all defined categories.
- * - Virtual categories (marked with `_virtual: true`) are excluded from the result.
+ * - If a specific `orderCategory` is provided (e.g., `'sales'`, `'transfer'`), only statuses
+ *   under that category will be evaluated — **but only if the category is marked as `_virtual: true`**.
+ * - If `orderCategory` is `'all'` or falsy, the function returns statuses from **all virtual categories only**.
+ * - Categories that are not marked as `_virtual: true` are excluded from the result entirely.
  *
- * @param {string} orderCategory - The order category to filter by (e.g., `'sales'`). Pass `'all'` or falsy to return all.
- * @returns {Array<{ code: string, category: string }>} - A flat list of status codes with their associated phase category.
+ * The returned format is a flat array of objects with each status code and its corresponding status phase
+ * (e.g., 'draft', 'processing', etc.).
+ *
+ * @param {string} [orderCategory] - The order category to filter by (e.g., `'sales'`). Pass `'all'` or falsy to include all virtual categories.
+ * @returns {Array<{ code: string, category: string }>} - A flat list of `{ code, category }` pairs.
  *
  * @example
- * getNextAllowedStatuses('sales')
+ * getNextAllowedStatuses('sales');
  * // → [
  * //     { code: 'ORDER_PENDING', category: 'draft' },
  * //     { code: 'ORDER_CONFIRMED', category: 'confirmation' },
  * //     ...
  * //   ]
+ *
+ * getNextAllowedStatuses();
+ * // → Returns statuses from all `_virtual: true` categories.
  */
 const getNextAllowedStatuses = (orderCategory) => {
   const relevantCategories =
@@ -395,7 +418,7 @@ const getNextAllowedStatuses = (orderCategory) => {
   
   for (const categoryKey of relevantCategories) {
     const categoryMap = STATUS_CODES_BY_CATEGORY[categoryKey];
-    if (!categoryMap) continue;
+    if (!categoryMap || categoryMap._virtual !== true) continue;
     
     for (const [statusCategory, codes] of Object.entries(categoryMap)) {
       if (statusCategory === '_virtual') continue;

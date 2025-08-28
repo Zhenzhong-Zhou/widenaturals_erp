@@ -21,7 +21,10 @@ import Skeleton from '@mui/material/Skeleton';
 import CustomTypography from '@components/common/CustomTypography';
 import GoBackButton from '@components/common/GoBackButton';
 import NoDataFound from '@components/common/NoDataFound';
-import { OrderSortControls } from '@features/order/components/OrdersTable/index';
+import {
+  OrderFiltersPanel,
+  OrderSortControls
+} from '@features/order/components/OrdersTable/index';
 
 const OrdersTable = lazy(
   () => import('@features/order/components/OrdersTable')
@@ -169,7 +172,14 @@ const OrdersListPage = () => {
         <Grid container spacing={2}>
           {/* Filter fields */}
           <Grid size={{ xs: 12, sm: 6, md: 9 }}>
-           // todo: add filter panel
+            <OrderFiltersPanel
+              filters={filters}
+              onChange={(newFilters) => setFilters(newFilters)}
+              onApply={() => {
+                setPage(1);
+              }}
+              onReset={handleResetFilters}
+            />
           </Grid>
           
           {/* Sort Controls */}

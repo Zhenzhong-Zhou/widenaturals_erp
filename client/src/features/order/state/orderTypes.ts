@@ -117,58 +117,73 @@ export type CreateSalesOrderResponse = ApiSuccessResponse<CreateSalesOrderData>;
 export type SalesOrderCreationState = AsyncState<CreateSalesOrderData | null>;
 
 /**
- * Filters used to query and paginate order lists.
+ * Filters used to query and paginate the list of orders.
+ *
+ * This interface supports both:
+ * - User-provided filters (from search UI, dropdowns, or query params).
+ * - System-applied filters (e.g., access control scoped by type or status).
+ *
+ * Fields like `orderTypeId` and `orderStatusId` may be added dynamically
+ * during access control evaluation (e.g., in `applyOrderAccessFilters`).
  */
 export interface OrderListFilters {
   /**
-   * Free-text search keyword (e.g., customer name, SKU, note).
+   * Free-text keyword for fuzzy search (e.g., customer name, SKU, order notes).
    */
   keyword?: string;
   
   /**
-   * Exact order number to filter by.
+   * Filter by exact order number (must match precisely).
    */
   orderNumber?: string;
   
   /**
-   * Filter by order type (foreign key UUID).
+   * Logical order category code (e.g., 'sales', 'purchase', 'transfer').
+   * Used to scope status filtering and type mapping.
    */
-  orderTypeId?: string;
+  orderCategory?: string;
   
   /**
-   * Filter by order status (foreign key UUID).
+   * Filter by one or more order type UUIDs.
+   * This may be user-provided or applied via access control.
    */
-  orderStatusId?: string;
+  orderTypeId?: string | string[];
   
   /**
-   * Filter orders created after this ISO date (inclusive).
+   * Filter by one or more order status UUIDs.
+   * This may be user-provided or injected from access stage control.
+   */
+  orderStatusId?: string | string[];
+  
+  /**
+   * Filter for orders created after this ISO date (inclusive).
    * Example: '2025-01-01T00:00:00Z'
    */
   createdAfter?: string;
   
   /**
-   * Filter orders created before this ISO date (inclusive).
+   * Filter for orders created before this ISO date (inclusive).
    * Example: '2025-12-31T23:59:59Z'
    */
   createdBefore?: string;
   
   /**
-   * Filter orders whose status changed after this ISO date (inclusive).
+   * Filter for orders whose status last changed after this ISO date (inclusive).
    */
   statusDateAfter?: string;
   
   /**
-   * Filter orders whose status changed before this ISO date (inclusive).
+   * Filter for orders whose status last changed before this ISO date (inclusive).
    */
   statusDateBefore?: string;
   
   /**
-   * Filter by creator (foreign key UUID to user).
+   * Filter for orders created by a specific user (UUID).
    */
   createdBy?: string;
   
   /**
-   * Filter by last updater (foreign key UUID to user).
+   * Filter for orders last updated by a specific user (UUID).
    */
   updatedBy?: string;
 }

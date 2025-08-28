@@ -48,6 +48,7 @@ const OrderDetailsPage: FC = () => {
     );
   }
   
+  const isAllocatableCategory = category === 'allocatable';
   const { loading, permissions } = usePermissions();
   const hasPermission = useHasPermission(permissions);
   
@@ -113,6 +114,13 @@ const OrderDetailsPage: FC = () => {
     'ORDER_CONFIRMED',
   ];
   
+  const allocatableStatusCodes = [
+    'ORDER_CONFIRMED',
+    'ORDER_ALLOCATING',
+    'ORDER_PARTIALLY_ALLOCATED',
+    'ORDER_ALLOCATED',
+  ];
+  
   const canConfirmStatusUpdate = useMemo(() => {
     if (loading) return false;
     
@@ -128,6 +136,15 @@ const OrderDetailsPage: FC = () => {
     return (
       hasPermission(ORDER_CONSTANTS.PERMISSIONS.ACTIONS.CANCEL_SALES_ORDER) &&
       cancelableStatusCodes.includes(statusCode)
+    );
+  }, [loading, hasPermission, statusCode]);
+  
+  const canAllocateOrder = useMemo(() => {
+    if (loading) return false;
+    
+    return (
+      hasPermission(ORDER_CONSTANTS.PERMISSIONS.ACTIONS.ALLOCATE_ORDER) &&
+      allocatableStatusCodes.includes(statusCode)
     );
   }, [loading, hasPermission, statusCode]);
   
@@ -216,6 +233,16 @@ const OrderDetailsPage: FC = () => {
                   disabled={updateStatusLoading || loading}
                 >
                   {updateStatusLoading ? 'Confirming...' : 'Confirm Order'}
+                </CustomButton>
+              )}
+              {isAllocatableCategory && canAllocateOrder && (
+                <CustomButton
+                  variant="contained"
+                  color="primary"
+                  // onClick={() => handleStatusUpdate('ORDER_CONFIRMED')}
+                  // disabled={updateStatusLoading || loading}
+                >
+                  {updateStatusLoading ? 'Allocating...' : 'Allocate Order'}
                 </CustomButton>
               )}
               {canCancelOrder && (
