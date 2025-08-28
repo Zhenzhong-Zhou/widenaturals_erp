@@ -1,4 +1,4 @@
-const { checkPermissions, resolveUserPermissionContext } = require('../services/role-permission-service');
+const { resolveUserPermissionContext } = require('../services/role-permission-service');
 const AppError = require('../utils/AppError');
 const { logSystemWarn, logSystemException } = require('../utils/system-logger');
 const { createSalesOrder } = require('./sales-order-business');
@@ -33,7 +33,7 @@ const verifyOrderCreationPermission = async (user, category, { action = 'CREATE'
 
   if (!accessibleCategories.includes(category)) {
     logSystemWarn('Permission denied for order creation', {
-      context: 'verifyOrderCreationPermission',
+      context: 'order-business/verifyOrderCreationPermission',
       role: user.role,
       attemptedCategory: category,
       accessibleCategories,
@@ -102,7 +102,7 @@ const verifyOrderViewPermission = async (user, category, { action = 'VIEW', orde
   
   if (!accessibleCategories.includes(cat)) {
     logSystemWarn('Permission denied for viewing orders in this category.', {
-      context: 'verifyOrderViewPermission',
+      context: 'order-business/verifyOrderViewPermission',
       role: user?.role,
       userId: user?.id,
       orderId,
@@ -118,35 +118,57 @@ const verifyOrderViewPermission = async (user, category, { action = 'VIEW', orde
 };
 
 /**
- * Evaluates whether the authenticated user is allowed to view all orders.
+ * Evaluates whether the authenticated user is allowed to view all orders
+ * or specific lifecycle stages (e.g., allocation, fulfillment, shipping).
  *
  * Behavior:
- * - Root users are always granted full visibility.
- * - Users with the `VIEW_ALL_ORDERS` permission are granted access to all orders.
- * - All other users will be restricted to scoped access (e.g., by order type or ownership).
+ * - Root users are always granted full access to all stages and categories.
+ * - Users with `VIEW_ALL_ORDERS` are granted unrestricted order access.
+ * - Users with stage-level permissions will be granted access to specific order stages
+ *   (e.g., allocation, fulfillment, shipping) — useful for virtual views like "allocatable".
+ * - All other users will be restricted by order type or category.
  *
- * This function does **not** return any order data. It simply resolves a boolean access flag.
+ * This function does **not** return any actual order data. It simply resolves access flags
+ * used to filter or scope data later in the business logic.
  *
  * @async
- * @param {Object} user - The authenticated user object (should contain at least an `id` and `role_id`)
- * @returns {Promise<{ canViewAllOrders: boolean }>} - Permission result object
+ * @param {Object} user - The authenticated user object (should include at least `id` and `role_id`)
+ * @returns {Promise<{
+ *   canViewAllOrders: boolean,
+ *   canViewAllocationStage: boolean,
+ *   canViewFulfillmentStage: boolean,
+ *   canViewShippingStage: boolean
+ * }>} - Object containing permission flags for view access
  *
  * @example
- * const { canViewAllOrders } = await evaluateOrdersViewAccessControl(user);
+ * const {
+ *   canViewAllOrders,
+ *   canViewAllocationStage,
+ *   canViewFulfillmentStage,
+ *   canViewShippingStage
+ * } = await evaluateOrdersViewAccessControl(user);
+ *
  * if (canViewAllOrders) {
- *   // allow unrestricted access
- * } else {
- *   // apply scoped filters
+ *   // show all orders
+ * } else if (canViewAllocationStage) {
+ *   // show only allocation-stage orders
  * }
  */
 const evaluateOrdersViewAccessControl = async (user) => {
   try {
     const { permissions, isRoot } = await resolveUserPermissionContext(user);
     
-    const canViewAllOrders =
-      isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_ORDERS);
+    const canViewAllOrders = isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_ORDERS);
+    const canViewAllocationStage = isRoot || permissions.includes(PERMISSIONS.VIEW_ALLOCATION_STAGE);
+    const canViewFulfillmentStage = isRoot || permissions.includes(PERMISSIONS.VIEW_FULFILLMENT_STAGE);
+    const canViewShippingStage = isRoot || permissions.includes(PERMISSIONS.VIEW_SHIPPING_STAGE);
     
-    return { canViewAllOrders };
+    return {
+      canViewAllOrders,
+      canViewAllocationStage,
+      canViewFulfillmentStage,
+      canViewShippingStage,
+    };
   } catch (err) {
     logSystemException(err, 'Failed to evaluate order view access control', {
       context: 'order-business/evaluateOrdersViewAccessControl',
@@ -163,47 +185,82 @@ const evaluateOrdersViewAccessControl = async (user) => {
 /**
  * Applies scoped access control filters to an order query based on the user's access rights.
  *
- * This function modifies the provided filters object by injecting or removing the
- * `orderTypeId` field depending on the user's permissions.
+ * This function injects or removes `orderTypeId` and `orderStatusIds` based on the user's
+ * access level. It enforces access based on either global permissions, category-based permissions,
+ * or stage-level permissions (allocation, fulfillment, shipping).
  *
  * Behavior:
- * - If the user does **not** have permission to view all orders:
- *    - If `orderTypeIds` is a non-empty array, it's applied as a filter.
- *    - If `orderTypeIds` is empty or undefined, the filter is removed entirely.
- * - If the user **can** view all orders, any existing `orderTypeId` filter is removed.
- *
- * This function is typically called after evaluating user permissions using
- * `evaluateOrdersViewAccessControl` and resolving category-specific order types.
+ * - If the user **can view all orders**, all filters related to access control are removed.
+ * - If the user has restricted **category-level access**, the `orderTypeId` filter is applied.
+ * - If the user has **stage-level access only**, the `orderStatusIds` filter is applied based
+ *   on the allowed stages. If no allowed statuses are found, access is denied (`['__NO_ACCESS__']`).
+ * - If the user has neither category nor stage-level access, access is blocked completely.
  *
  * @async
- * @param {Object} filters - The original query filter object (e.g., status, dates, keywords).
- * @param {Object} userAccess - Access control flags from `evaluateOrdersViewAccessControl`.
- * @param {Array<string>|undefined} orderTypeIds - List of allowed order type UUIDs, or undefined if unrestricted.
+ * @param {Object} filters - Original query filter object (e.g., status, dates, keywords).
+ * @param {Object} userAccess - Result from `evaluateOrdersViewAccessControl` (e.g., canViewAllOrders).
+ * @param {Array<string>|undefined} orderTypeIds - Order type UUIDs user can access (based on category).
+ * @param {Array<string>|undefined} allowedStatusIds - Status IDs the user can access (based on stage).
  * @returns {Promise<Object>} A modified filters object respecting the user's access scope.
  *
  * @example
  * const userAccess = await evaluateOrdersViewAccessControl(user);
- * const orderTypeIds = category !== 'all' ? await getOrderTypeIdsByCategory(category) : undefined;
- * const filters = await applyOrderAccessFilters(originalFilters, userAccess, orderTypeIds);
+ * const orderTypeIds = await getOrderTypeIdsByCategory('sales');
+ * const allowedStatusIds = await getAllowedStageStatusIds(userAccess);
+ * const filters = await applyOrderAccessFilters(originalFilters, userAccess, orderTypeIds, allowedStatusIds);
  */
-const applyOrderAccessFilters = async (filters, userAccess, orderTypeIds) => {
+const applyOrderAccessFilters = async (
+  filters,
+  userAccess,
+  orderTypeIds,
+  allowedStatusIds
+) => {
   try {
     const modifiedFilters = { ...filters };
     
-    if (!userAccess?.canViewAllOrders) {
-      // Apply restriction only if the user does NOT have full access
-      if (Array.isArray(orderTypeIds) && orderTypeIds.length > 0) {
-        modifiedFilters.orderTypeId = orderTypeIds;
-      } else {
-        // Optional: explicitly remove if empty or undefined
-        delete modifiedFilters.orderTypeId;
-      }
+    // Determine if user has any stage-based access (allocation, fulfillment, shipping)
+    const hasStageAccess =
+      userAccess?.canViewAllocationStage ||
+      userAccess?.canViewFulfillmentStage ||
+      userAccess?.canViewShippingStage;
+    
+    // Case 1: Full access to all orders – remove access control filters
+    if (userAccess?.canViewAllOrders) {
+      delete modifiedFilters.orderTypeId;
+      delete modifiedFilters.orderStatusIds;
+      return modifiedFilters;
+    }
+    
+    const hasOrderTypeAccess = Array.isArray(orderTypeIds) && orderTypeIds.length > 0;
+    
+    // Case 2: Apply category-level filter if user has category-specific access
+    if (hasOrderTypeAccess) {
+      modifiedFilters.orderTypeId = orderTypeIds;
     } else {
-      // User has full access → make sure the filter is clean
       delete modifiedFilters.orderTypeId;
     }
     
-    return modifiedFilters;
+    // Case 3: Apply status-level filter if user has stage-based access
+    if (hasStageAccess) {
+      if (Array.isArray(allowedStatusIds) && allowedStatusIds.length > 0) {
+        modifiedFilters.orderStatusIds = allowedStatusIds;
+      } else {
+        modifiedFilters.orderStatusIds = ['__NO_ACCESS__']; // fallback: no valid statuses
+      }
+      return modifiedFilters;
+    }
+    
+    // Case 4: Category-only access with no stage → allow category filter only
+    if (hasOrderTypeAccess) {
+      delete modifiedFilters.orderStatusIds;
+      return modifiedFilters;
+    }
+    
+    // Case 5: No category, no stage, no full access → deny access
+    return {
+      ...modifiedFilters,
+      orderStatusIds: ['__NO_ACCESS__'],
+    };
   } catch (err) {
     logSystemException(err, 'Failed to apply access filters in applyOrderAccessFilters', {
       context: 'order-business/applyOrderAccessFilters',
@@ -261,9 +318,29 @@ const evaluateOrderDetailsViewAccessControl = async (user) => {
 };
 
 /**
- * Maps each order category to its valid status progression structure.
+ * Maps each order category to its associated status progression structure.
  *
- * Used for validating status transitions via `validateStatusTransitionByCategory`.
+ * This object defines how orders progress through various lifecycle stages,
+ * grouped by category. It supports validation, filtering, and business logic
+ * that depends on category-specific status flows.
+ *
+ * Structure:
+ * - Keys are order categories (e.g., 'sales', 'allocatable')
+ * - Each category maps to an object grouping status codes by phase:
+ *   - `draft`, `confirmation`, `processing`, `return`, `completion`, etc.
+ * - Each phase maps to an array of status codes (as string identifiers)
+ * - Categories may optionally include `_virtual: true` to indicate that they are
+ *   synthetic or filtered (e.g., 'allocatable' is a virtual view, not a true type)
+ *
+ * Notes:
+ * - Used by validation functions such as `validateStatusTransitionByCategory`
+ * - Helps drive UI groupings, filtering, and access control based on lifecycle stage
+ * - The `allocatable` category is virtual and represents orders in the allocation stage,
+ *   regardless of their originating category
+ *
+ * Example:
+ *   STATUS_CODES_BY_CATEGORY.sales.processing
+ *   → ['ORDER_ALLOCATING', 'ORDER_PARTIALLY_ALLOCATED', 'ORDER_ALLOCATED']
  */
 const STATUS_CODES_BY_CATEGORY = {
   sales: {
@@ -273,6 +350,66 @@ const STATUS_CODES_BY_CATEGORY = {
     return: ['RETURN_REQUESTED', 'RETURN_COMPLETED'],
     completion: ['ORDER_COMPLETED', 'ORDER_CANCELED'],
   },
+  allocatable: {
+    _virtual: true,
+    confirmation: ['ORDER_CONFIRMED'],
+    processing: [
+      'ORDER_ALLOCATING',
+      'ORDER_PARTIALLY_ALLOCATED',
+      'ORDER_ALLOCATED',
+    ],
+  }
+};
+
+/**
+ * Returns all allowed status codes grouped by their logical status category (e.g., 'draft', 'processing'),
+ * filtered by a specific order category if provided.
+ *
+ * This function is typically used for generating status dropdowns, validating transitions,
+ * or constructing filters when users are interacting with orders of a specific category (e.g., 'sales').
+ *
+ * Behavior:
+ * - If a specific `orderCategory` is provided (e.g., `'sales'`, `'transfer'`), only status codes
+ *   for that category are returned.
+ * - If `orderCategory` is `'all'` or falsy, it returns status codes for all defined categories.
+ * - Virtual categories (marked with `_virtual: true`) are excluded from the result.
+ *
+ * @param {string} orderCategory - The order category to filter by (e.g., `'sales'`). Pass `'all'` or falsy to return all.
+ * @returns {Array<{ code: string, category: string }>} - A flat list of status codes with their associated phase category.
+ *
+ * @example
+ * getNextAllowedStatuses('sales')
+ * // → [
+ * //     { code: 'ORDER_PENDING', category: 'draft' },
+ * //     { code: 'ORDER_CONFIRMED', category: 'confirmation' },
+ * //     ...
+ * //   ]
+ */
+const getNextAllowedStatuses = (orderCategory) => {
+  const relevantCategories =
+    orderCategory && orderCategory !== 'all'
+      ? [orderCategory]
+      : Object.keys(STATUS_CODES_BY_CATEGORY);
+  
+  const allowedStatuses = [];
+  
+  for (const categoryKey of relevantCategories) {
+    const categoryMap = STATUS_CODES_BY_CATEGORY[categoryKey];
+    if (!categoryMap) continue;
+    
+    for (const [statusCategory, codes] of Object.entries(categoryMap)) {
+      if (statusCategory === '_virtual') continue;
+      
+      allowedStatuses.push(
+        ...codes.map((code) => ({
+          code,
+          category: statusCategory,
+        }))
+      );
+    }
+  }
+  
+  return allowedStatuses;
 };
 
 /**
@@ -517,6 +654,7 @@ module.exports = {
   evaluateOrdersViewAccessControl,
   applyOrderAccessFilters,
   evaluateOrderDetailsViewAccessControl,
+  getNextAllowedStatuses,
   validateStatusTransitionByCategory,
   canUpdateOrderStatus,
   enrichStatusMetadata,

@@ -9,6 +9,9 @@ const ORDER_CONSTANTS = {
     COMPLETE_SALES_ORDER: 'complete_sales_order',
     OVERRIDE_LOCKED_STATUS: 'override_locked_order_status',
     VIEW_ALL_ORDERS: 'view_all_orders',
+    VIEW_ALLOCATION_STAGE: 'view_allocation_stage',
+    VIEW_FULFILLMENT_STAGE: 'view_fulfillment_stage',
+    VIEW_SHIPPING_STAGE: 'view_shipping_stage',
   },
 };
 

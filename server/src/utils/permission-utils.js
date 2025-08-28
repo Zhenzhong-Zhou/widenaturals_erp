@@ -2,6 +2,7 @@ const {
   ORDER_CATEGORIES,
   toPermissionValue,
 } = require('./constants/domain/order-type-constants');
+const { PERMISSIONS } = require('./constants/domain/order-constants');
 
 /**
  * Derive the list of order categories a user can access for a given action.
@@ -28,16 +29,27 @@ const getAccessibleOrderCategoriesFromPermissions = (
   const permSet = new Set(permissions);
   const actionLower = action.toLowerCase();
   
-  // Generic allow (e.g., "view_order") grants all categories
+  // Generic access (e.g., 'view_order') → all standard categories
   const genericKey = `${actionLower}_order`;
-  if (permSet.has(genericKey)) {
-    return [...ORDER_CATEGORIES];
+  const accessible = permSet.has(genericKey)
+    ? [...ORDER_CATEGORIES]
+    : ORDER_CATEGORIES.filter((category) =>
+      permSet.has(toPermissionValue(action, category))
+    );
+  
+  // Add virtual categories manually if applicable
+  if (
+    actionLower === 'view' &&
+    (
+      permSet.has(PERMISSIONS.VIEW_ALLOCATION_STAGE) ||
+      permSet.has(PERMISSIONS.VIEW_FULFILLMENT_STAGE) ||
+      permSet.has(PERMISSIONS.VIEW_SHIPPING_STAGE)
+    )
+  ) {
+    accessible.push('allocatable');
   }
   
-  // Match only specific action permission like 'create_sales_order'
-  return ORDER_CATEGORIES.filter((category) =>
-    permSet.has(toPermissionValue(action, category))
-  );
+  return accessible;
 };
 
 module.exports = {

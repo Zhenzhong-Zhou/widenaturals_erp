@@ -1,12 +1,20 @@
 /**
- * Defines all supported order categories used across the application.
+ * Defines all supported order categories used throughout the application.
  *
- * These categories determine the functional grouping of order types for routing,
- * filtering, and access control.
+ * These categories group order types for use in:
+ * - Navigation and routing (e.g., `/orders/sales`)
+ * - Filtering in UI and queries
+ * - Access control and permission evaluation
  *
- * Includes a special category `'all'` used to fetch all orders across categories.
- * This virtual category is only available to privileged users (e.g., root/admin)
- * and must be handled explicitly in backend logic and permission checks.
+ * Special categories:
+ * - `'all'`: A virtual category used to query across all order types.
+ *   Requires elevated permissions (e.g., root or admin access).
+ * - `'allocatable'`: A virtual category representing any order
+ *   currently in an allocatable state (e.g., confirmed or allocating).
+ *   Often used for filtering or processing inventory allocation logic.
+ *
+ * Both virtual categories (`'all'`, `'allocatable'`) must be handled explicitly
+ *     in backend logic, as they do not directly map to physical order type records.
  */
 const ORDER_CATEGORIES = [
   'sales',
@@ -16,7 +24,8 @@ const ORDER_CATEGORIES = [
   'manufacturing',
   'logistics',
   'adjustment',
-  'all' // Virtual category for high-level access
+  'all',         // Virtual category for cross-category access
+  'allocatable', // Virtual category for allocation-stage filtering
 ];
 
 /**

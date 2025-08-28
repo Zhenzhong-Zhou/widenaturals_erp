@@ -315,6 +315,21 @@ exports.seed = async function (knex) {
       key: 'view_archived_warehouses',
       description: 'Allows viewing archived warehouses',
     },
+    {
+      name: 'View Allocation Stage',
+      key: 'view_allocation_stage',
+      description: 'Allows viewing orders in the allocation stage only',
+    },
+    {
+      name: 'View Fulfillment Stage',
+      key: 'view_fulfillment_stage',
+      description: 'Allows viewing orders in the fulfillment stage only',
+    },
+    {
+      name: 'View Shipping Stage',
+      key: 'view_shipping_stage',
+      description: 'Allows viewing orders in the shipping stage only',
+    },
   ];
   
   // Add category-specific order permissions

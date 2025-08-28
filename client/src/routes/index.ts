@@ -233,10 +233,7 @@ export const routes = [
       requiresAuth: true,
       title: 'Orders',
       showInSidebar: true,
-      requiredPermission: (params: OrderRouteParams) =>
-        isValidOrderCategory(params.category)
-          ? toPermissionValue('VIEW', params.category)
-          : 'invalid_category',
+      requiredPermission: 'view_orders',
     },
   },
   {
@@ -255,7 +252,15 @@ export const routes = [
   {
     path: '/orders/:category/new',
     component: lazy(() => import('@features/order/pages/OrderBasePage')),
-    meta: { requiresAuth: true, title: 'Base Page', showInSidebar: false },
+    meta: {
+      requiresAuth: true,
+      title: 'Base Page',
+      showInSidebar: false,
+      requiredPermission: (params: OrderRouteParams) =>
+        isValidOrderCategory(params.category)
+          ? toPermissionValue('VIEW', params.category)
+          : 'invalid_category',
+    },
   },
   {
     path: ':mode/:category/details/:orderId',

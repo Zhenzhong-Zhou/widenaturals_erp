@@ -12,7 +12,8 @@ export const ORDER_CATEGORIES = [
   'manufacturing',
   'logistics',
   'adjustment',
-  'all'
+  'all',
+  'allocatable',
 ] as const;
 
 /** Union type of all supported order categories. */
@@ -92,10 +93,10 @@ export const ORDER_CONSTANTS = {
     },
     ORDER: {
       get: (action: 'VIEW' | 'CREATE' | 'UPDATE' | 'DELETE', category: string) =>
-        `${action.toLowerCase()}_${category}_order`,
+        `${action.toLowerCase()}_${category.toLowerCase()}_order`,
     },
     ALLOCATION: {
-      VIEW: 'view_allocation_sales_order',
+      VIEW: 'view_allocation_stage',
     },
   },
 };

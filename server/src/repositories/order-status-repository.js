@@ -91,8 +91,40 @@ const getOrderStatusMetadataById = async (id, client) => {
   return await getFieldsById('order_status', id, ['name', 'category', 'code'], client);
 };
 
+/**
+ * Retrieves multiple order status records by their codes.
+ *
+ * @param {string[]} statusCodes - An array of status codes (e.g. ['ORDER_CONFIRMED', 'ORDER_ALLOCATED']).
+ * @param {object} client - PostgreSQL client instance.
+ * @returns {Promise<Array<{ id: string, code: string, category: string }>>}
+ */
+const getOrderStatusesByCodes = async (statusCodes, client) => {
+  if (!Array.isArray(statusCodes) || statusCodes.length === 0) return [];
+  
+  const placeholders = statusCodes.map((_, i) => `$${i + 1}`).join(', ');
+  
+  const sql = `
+    SELECT id, code, category
+    FROM order_status
+    WHERE code IN (${placeholders})
+  `;
+  
+  try {
+    const result = await query(sql, statusCodes, client);
+    return result.rows;
+  } catch (error) {
+    logSystemException(error, 'Failed to get order statuses by codes', {
+      context: 'order-repository/getOrderStatusesByCodes',
+      statusCodes,
+    });
+    
+    throw AppError.databaseError(`Failed to retrieve order statuses: ${error.message}`);
+  }
+};
+
 module.exports = {
   getOrderStatusIdByCode,
   getOrderStatusByCode,
-  getOrderStatusMetadataById
+  getOrderStatusMetadataById,
+  getOrderStatusesByCodes,
 };

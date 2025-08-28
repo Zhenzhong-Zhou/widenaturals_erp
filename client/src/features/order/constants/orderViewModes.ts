@@ -22,9 +22,7 @@ export const ORDER_VIEW_MODES: Record<OrderCategory, OrderViewModeConfig> = {
         ORDER_CONSTANTS.PERMISSIONS.ALLOCATION.VIEW,
         ORDER_CONSTANTS.PERMISSIONS.ORDER.get('VIEW', 'ALL'),
       ]),
-    buildBaseFilters: () => ({
-
-    }),
+    buildBaseFilters: () => ({}),
     applyAllocationVisibility: (ctx, filters) => {
       const canViewSales = ctx.has(ORDER_CONSTANTS.PERMISSIONS.ORDER.get('VIEW', 'SALES'));
       const canViewAlloc = ctx.has(ORDER_CONSTANTS.PERMISSIONS.ALLOCATION.VIEW);
@@ -34,7 +32,6 @@ export const ORDER_VIEW_MODES: Record<OrderCategory, OrderViewModeConfig> = {
       return filters;
     },
   },
-  
   purchase: {
     key: 'purchase',
     label: 'Purchase Orders',
@@ -45,11 +42,8 @@ export const ORDER_VIEW_MODES: Record<OrderCategory, OrderViewModeConfig> = {
         ORDER_CONSTANTS.PERMISSIONS.ORDER.get('VIEW', 'PURCHASE'),
         ORDER_CONSTANTS.PERMISSIONS.ORDER.get('VIEW', 'ALL'),
       ]),
-    buildBaseFilters: () => ({
-    
-    }),
+    buildBaseFilters: () => ({}),
   },
-  
   transfer: {
     key: 'transfer',
     label: 'Transfer Orders',
@@ -60,11 +54,8 @@ export const ORDER_VIEW_MODES: Record<OrderCategory, OrderViewModeConfig> = {
         ORDER_CONSTANTS.PERMISSIONS.ORDER.get('VIEW', 'TRANSFER'),
         ORDER_CONSTANTS.PERMISSIONS.ORDER.get('VIEW', 'ALL'),
       ]),
-    buildBaseFilters: () => ({
-
-    }),
+    buildBaseFilters: () => ({}),
   },
-  
   return: {
     key: 'return',
     label: 'Return Orders',
@@ -93,15 +84,20 @@ export const ORDER_VIEW_MODES: Record<OrderCategory, OrderViewModeConfig> = {
     canSee: () => false,
     buildBaseFilters: () => ({}),
   },
-  
   all: {
     key: 'all',
     label: 'All Orders',
     path: '/orders/all',
     canSee: (ctx) =>
       ctx.isRoot || ctx.has(ORDER_CONSTANTS.PERMISSIONS.ORDER.get('VIEW', 'ALL')),
+    buildBaseFilters: () => ({}),
+  },
+  allocatable: {
+    key: 'allocatable',
+    label: 'Allocatable Orders',
+    path: '/orders/allocatable',
+    canSee: (ctx) => ctx.has(ORDER_CONSTANTS.PERMISSIONS.ALLOCATION.VIEW),
     buildBaseFilters: () => ({
-
     }),
   },
 };

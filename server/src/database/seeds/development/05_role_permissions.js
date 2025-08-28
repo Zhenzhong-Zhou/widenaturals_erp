@@ -68,6 +68,7 @@ exports.seed = async function (knex) {
   const salesOrderRequiredPermissions = [
     'view_orders',
     'view_sales_order',
+    'create_sales_order',
     ...salesOrderLookups,
   ];
   
@@ -102,6 +103,7 @@ exports.seed = async function (knex) {
       'create_customer',
       'create_orders',
       'create_sales_order',
+      'view_allocation_stage',
       ...salesOrderRequiredPermissions,
     ],
     sales: [
@@ -144,6 +146,10 @@ exports.seed = async function (knex) {
       'manage_warehouse_inventory',
       'view_locations',
       'manage_locations',
+      'view_allocation_stage',
+      'view_fulfillment_stage',
+      'view_shipping_stage',
+      ...salesOrderRequiredPermissions
     ],
     user: [],
   };

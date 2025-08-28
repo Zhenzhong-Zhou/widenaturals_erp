@@ -1,65 +1,59 @@
 /**
  * @fileoverview
- * Utility to dynamically build an SQL `WHERE` clause and parameters array
- * for filtering and paginating records from the `orders` table.
+ * Utility to dynamically build a SQL `WHERE` clause and parameter array
+ * for safely querying the `orders` table using flexible filters.
  *
- * This builder is designed to be used with paginated order queries and supports:
- * - Filtering by order number, order type, order status
- * - Audit fields (created_by, updated_by)
- * - Date ranges (created_at, status_date)
- * - Keyword search (with optional restriction to order number)
- * - Internal overrides (e.g., `_activeStatusId`, `_restrictKeywordToOrderNumberOnly`)
+ * Supports filtering by:
+ * - Order number (partial match)
+ * - Order type ID (exact or multiple)
+ * - Order status ID(s) (single, array, or override via `_activeStatusId`)
+ * - Audit fields (`created_by`, `updated_by`)
+ * - Date ranges (`created_at`, `status_date`)
+ * - Keyword search (`order_number` and/or `note`)
+ * - Internal flags for advanced behavior
  *
- * Output can be used with `pg` parameterized queries, ensuring SQL safety and flexibility.
+ * Output is designed to be safely used with `pg` parameterized queries (e.g., `pg.query`).
  */
 
 const { logSystemException } = require('../system-logger');
 const AppError = require('../AppError');
 
 /**
- * Builds a SQL `WHERE` clause and parameter array for filtering the `orders` table.
+ * Builds a SQL `WHERE` clause and parameter array from a dynamic filters object
+ * to query the `orders` table (aliased as `o`) securely.
  *
- * This function converts a flexible filter object into a SQL-safe `WHERE` clause with
- * numbered placeholders and matching parameter values. Designed to work with the
- * `o.` alias for the `orders` table.
+ * Converts a flexible set of filters into a SQL-safe clause with numbered parameters,
+ * compatible with `pg` parameterized queries.
  *
- * Supported filters:
- * - `orderNumber` — partial match on `order_number` using `ILIKE`.
- * - `orderTypeId` — exact match (string) or `IN` clause (array).
- * - `orderStatusId` — exact match unless `_activeStatusId` is specified.
- * - `_activeStatusId` — internal override to force status filtering.
- * - `createdBy` / `updatedBy` — filter by creator or updater user ID.
- * - `createdAfter` / `createdBefore` — filter by creation timestamp range.
- * - `statusAfter` / `statusBefore` — filter by status timestamp range.
- * - `keyword` — searches `order_number` and optionally `note`.
- * - `_restrictKeywordToOrderNumberOnly` — if true, limits keyword search to `order_number` only.
+ * @param {Object} filters - Filtering criteria.
+ * @param {string} [filters.orderNumber] - Partial match using `ILIKE '%...%'`.
+ * @param {string|string[]} [filters.orderTypeId] - UUID(s); supports `=` or `IN (...)`.
+ * @param {string} [filters.orderStatusId] - Exact match, unless `_activeStatusId` is present.
+ * @param {string|string[]} [filters.orderStatusIds] - One or more allowed status IDs (`=` or `ANY(...)`).
+ * @param {string} [filters._activeStatusId] - Overrides `orderStatusId` for enforced filtering.
+ * @param {string} [filters.createdBy] - User ID of the creator.
+ * @param {string} [filters.updatedBy] - User ID of the updater.
+ * @param {string} [filters.createdAfter] - Filter by `created_at >=` date.
+ * @param {string} [filters.createdBefore] - Filter by `created_at <=` date.
+ * @param {string} [filters.statusAfter] - Filter by `status_date >=` date.
+ * @param {string} [filters.statusBefore] - Filter by `status_date <=` date.
+ * @param {string} [filters.keyword] - Keyword search for `order_number` and/or `note`.
+ * @param {boolean} [filters._restrictKeywordToOrderNumberOnly=false] - If true, restricts keyword match to `order_number` only.
  *
- * @param {Object} filters - An object containing filtering criteria.
- * @param {string} [filters.orderNumber] - Partial match on order number.
- * @param {string|string[]} [filters.orderTypeId] - One or many order_type_id values.
- * @param {string} [filters.orderStatusId] - Exact match, overridden by _activeStatusId.
- * @param {string} [filters._activeStatusId] - Internal override for filtering only active statuses.
- * @param {string} [filters.createdBy] - User ID filter (creator).
- * @param {string} [filters.updatedBy] - User ID filter (updater).
- * @param {string} [filters.createdAfter] - Records created after this date.
- * @param {string} [filters.createdBefore] - Records created before this date.
- * @param {string} [filters.statusAfter] - status_date >= this.
- * @param {string} [filters.statusBefore] - status_date <= this.
- * @param {string} [filters.keyword] - Keyword search (order_number, optionally note).
- * @param {boolean} [filters._restrictKeywordToOrderNumberOnly=false] - Limit keyword search to order_number only.
- * @returns {{ whereClause: string, params: any[] }} - SQL WHERE clause string and parameters array.
+ * @returns {{ whereClause: string, params: any[] }} SQL WHERE clause and parameter list.
  *
  * @example
  * const { whereClause, params } = buildOrderFilter({
  *   orderTypeId: ['a1', 'b2'],
  *   createdAfter: '2024-01-01',
- *   keyword: 'NMN',
+ *   keyword: 'gut health',
  * });
  *
- * // WHERE o.order_type_id IN ($1, $2) AND o.created_at >= $3 AND (o.order_number ILIKE $4 OR o.note ILIKE $4)
- * // params: ['a1', 'b2', '2024-01-01', '%NMN%']
+ * // Output:
+ * // whereClause → "... AND o.created_at >= $1 AND (o.order_number ILIKE $2 OR o.note ILIKE $2)"
+ * // params → ['2024-01-01', '%gut health%']
  *
- * @throws {AppError} If filter parsing or clause construction fails.
+ * @throws {AppError} If clause generation fails.
  */
 const buildOrderFilter = (filters = {}) => {
   try {
@@ -92,6 +86,16 @@ const buildOrderFilter = (filters = {}) => {
     } else if (filters.orderStatusId) {
       conditions.push(`o.order_status_id = $${paramIndex}`);
       params.push(filters.orderStatusId);
+      paramIndex++;
+    }
+    
+    if (filters.orderStatusIds !== undefined) {
+      if (Array.isArray(filters.orderStatusIds)) {
+        conditions.push(`o.order_status_id = ANY($${paramIndex})`);
+      } else {
+        conditions.push(`o.order_status_id = $${paramIndex}`);
+      }
+      params.push(filters.orderStatusIds);
       paramIndex++;
     }
     
