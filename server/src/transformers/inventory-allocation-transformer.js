@@ -269,14 +269,10 @@ const transformInventoryAllocationReviewRows = (rows) => {
       
       createdBy: {
         id: row.allocation_created_by,
-        firstname: row.allocation_created_by_firstname,
-        lastname: row.allocation_created_by_lastname,
         fullName: getFullName(row.allocation_created_by_firstname, row.allocation_created_by_lastname),
       },
       updatedBy: {
         id: row.allocation_updated_by,
-        firstname: row.allocation_updated_by_firstname,
-        lastname: row.allocation_updated_by_lastname,
         fullName: getFullName(row.allocation_updated_by_firstname, row.allocation_updated_by_lastname),
       },
       

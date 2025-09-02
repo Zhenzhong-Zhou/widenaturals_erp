@@ -2,7 +2,7 @@ import { createAsyncThunk } from '@reduxjs/toolkit';
 import type {
   AllocateInventoryBody,
   AllocateInventoryParams,
-  AllocateInventoryResponse,
+  AllocateInventoryResponse, AllocationReviewRequest, InventoryAllocationReviewResponse,
 } from '@features/inventoryAllocation/state/inventoryAllocationTypes.ts';
 import { inventoryAllocationService } from '@services/inventoryAllocationService.ts';
 
@@ -53,6 +53,41 @@ export const allocateInventoryThunk = createAsyncThunk<
     } catch (error: any) {
       console.error('Thunk failed to allocate inventory:', error);
       return rejectWithValue(error?.response?.data || error.message || 'Unknown error');
+    }
+  }
+);
+
+/**
+ * Thunk to fetch the inventory allocation review for a specific order.
+ *
+ * This thunk dispatches the `pending`, `fulfilled`, and `rejected` action types
+ * automatically using Redux Toolkit's `createAsyncThunk`. It invokes the
+ * `fetchInventoryAllocationReview` API function to retrieve detailed allocation
+ * data, including order header and allocation item rows.
+ *
+ * Can be consumed by React components or other logic to trigger data loading
+ * into the inventory allocation review slice.
+ *
+ * @param {Object} args - Argument object containing parameters for the API call.
+ * @param {string} args.orderId - UUID of the order to review.
+ * @param {AllocationReviewRequest} args.body - Request payload containing allocation IDs to fetch.
+ * @returns {Promise<InventoryAllocationReviewResponse>} - Resolves with a typed response containing review data.
+ * @throws {any} The thunk will reject with an error payload if the API call fails.
+ */
+export const fetchInventoryAllocationReviewThunk = createAsyncThunk<
+  InventoryAllocationReviewResponse, // Return type
+  { orderId: string; body: AllocationReviewRequest } // Argument type
+>(
+  'inventoryAllocations/fetchReview',
+  async ({ orderId, body }, { rejectWithValue }) => {
+    try {
+      return await inventoryAllocationService.fetchInventoryAllocationReview(orderId, body);
+    } catch (error: any) {
+      console.error('Thunk: Failed to fetch inventory allocation review', {
+        orderId,
+        error,
+      });
+      return rejectWithValue(error?.response?.data ?? error.message);
     }
   }
 );

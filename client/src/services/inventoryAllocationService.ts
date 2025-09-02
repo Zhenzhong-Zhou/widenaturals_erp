@@ -1,7 +1,7 @@
 import type {
   AllocateInventoryBody,
   AllocateInventoryParams,
-  AllocateInventoryResponse,
+  AllocateInventoryResponse, AllocationReviewRequest, InventoryAllocationReviewResponse,
 } from '@features/inventoryAllocation/state';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 import { postRequest } from '@utils/apiRequest';
@@ -48,6 +48,37 @@ const allocateInventoryForOrderService = async (
   }
 };
 
+/**
+ * Fetches the inventory allocation review details for a specific order.
+ *
+ * This function calls the backend API endpoint to retrieve a detailed
+ * summary of allocation records (header and item-level data) for the given
+ * order ID and allocation ID list.
+ *
+ * Intended for use in review workflows such as pre-confirmation validation
+ * or audit UI rendering.
+ *
+ * @async
+ * @param {string} orderId - The UUID of the order to review allocations for.
+ * @param {AllocationReviewRequest} body - Request payload containing an array of allocation IDs.
+ * @returns {Promise<InventoryAllocationReviewResponse>} A typed response containing review header and allocation items.
+ * @throws {Error} If the request fails due to network issues or server errors. Error should be handled upstream.
+ */
+const fetchInventoryAllocationReview = async (
+  orderId: string,
+  body: AllocationReviewRequest
+): Promise<InventoryAllocationReviewResponse> => {
+  const url = API_ENDPOINTS.INVENTORY_ALLOCATIONS.REVIEW_ALLOCATION(orderId);
+  
+  try {
+    return await postRequest<AllocationReviewRequest, InventoryAllocationReviewResponse>(url, body);
+  } catch (error) {
+    console.error('Failed to fetch inventory allocation review', { orderId, error, });
+    throw error;
+  }
+};
+
 export const inventoryAllocationService = {
   allocateInventoryForOrderService,
+  fetchInventoryAllocationReview,
 };

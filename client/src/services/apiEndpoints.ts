@@ -75,5 +75,6 @@ export const API_ENDPOINTS = {
   },
   INVENTORY_ALLOCATIONS: {
     ALLOCATE_ORDER: (orderId: string) => `/inventory-allocations/allocate/${orderId}`,
+    REVIEW_ALLOCATION: (orderId: string) => `/inventory-allocations/review/${orderId}`,
   }
 };
