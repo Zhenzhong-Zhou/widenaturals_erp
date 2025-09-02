@@ -1,7 +1,7 @@
 const wrapAsync = require('../utils/wrap-async');
 const {
   allocateInventoryForOrderService,
-  // reviewInventoryAllocationService,
+  reviewInventoryAllocationService,
   confirmInventoryAllocationService
 } = require('../services/inventory-allocation-service');
 const { logInfo } = require('../utils/logger-helper');
@@ -61,49 +61,64 @@ const allocateInventoryForOrderController = wrapAsync(async (req, res) => {
   });
 });
 
-// /**
-//  * Controller to handle inventory allocation review for a specific order.
-//  *
-//  * This controller:
-//  * - Expects `orderId` as a URL parameter.
-//  * - Optionally accepts `allocationIds` (array of UUIDs) in the request body to filter specific allocations.
-//  * - Calls the service to validate allocation ownership, fetch allocation data, and transform it.
-//  * - Returns a structured response containing header and allocation item data.
-//  *
-//  * Notes:
-//  * - Route-level authorization is assumed (PERMISSIONS.ALLOCATION.REVIEW).
-//  * - Returns 404 if no allocations exist for the given order or filters.
-//  *
-//  * @route GET /inventory-allocations/review/:orderId
-//  * @permission PERMISSIONS.ALLOCATION.REVIEW
-//  *
-//  * @async
-//  *
-//  * @param {import('express').Request} req - Express request object.
-//  * @param {import('express').Response} res - Express response object.
-//  * @param {import('express').NextFunction} next - Express next middleware function.
-//  *
-//  * @returns {Promise<void>} - Responds with JSON result or error.
-//  */
-// const reviewInventoryAllocationController = wrapAsync( async (req, res) => {
-//   const { orderId } = req.params;
-//   const { allocationIds = [] } = req.body;
-//
-//   const reviewData = await reviewInventoryAllocationService(orderId, allocationIds);
-//
-//   if (!reviewData) {
-//     return res.status(404).json({
-//       success: false,
-//       message: 'No inventory allocations found for review',
-//     });
-//   }
-//
-//   return res.status(200).json({
-//     success: true,
-//     message: 'Inventory allocation review retrieved successfully',
-//     data: reviewData,
-//   });
-// });
+/**
+ * Review Inventory Allocation Controller
+ *
+ * Handles reviewing inventory allocations for a specific order.
+ *
+ * Behavior:
+ * - Expects `orderId` as a route parameter.
+ * - Accepts an optional array of `allocationIds` (UUIDs) in the request body to filter specific allocations.
+ * - Invokes the service layer to validate ownership, fetch matching allocations, and transform results.
+ * - Returns a structured response with allocation header and item-level details.
+ *
+ * Notes:
+ * - Route-level authorization is enforced via `PERMISSIONS.INVENTORY.REVIEW_ALLOCATION`.
+ * - Responds with 404 if no allocations match the provided criteria.
+ * - Uses POST to support large payloads and complex filtering.
+ *
+ * @route POST /inventory-allocations/review/:orderId
+ * @permission PERMISSIONS.INVENTORY.REVIEW_ALLOCATION
+ *
+ * @async
+ * @function
+ * @param {import('express').Request} req - Express request object
+ * @param {import('express').Response} res - Express response object
+ *
+ * @returns {Promise<void>} JSON response with review data or error message
+ */
+const reviewInventoryAllocationController = wrapAsync( async (req, res) => {
+  const { orderId } = req.params;
+  const { allocationIds = [] } = req.body;
+  
+  const logMeta = {
+    context: 'inventory/reviewInventoryAllocationController',
+    orderId,
+    allocationIds,
+    user: req.user?.id,
+  };
+  
+  const reviewData = await reviewInventoryAllocationService(orderId, allocationIds);
+  
+  if (!reviewData) {
+    logInfo('No inventory allocations found', req, logMeta);
+    return res.status(404).json({
+      success: false,
+      message: 'No inventory allocations found for review',
+    });
+  }
+  
+  logInfo('Inventory allocation review retrieved successfully', req, {
+    ...logMeta,
+    allocationCount: reviewData?.length ?? 0,
+  });
+  
+  return res.status(200).json({
+    success: true,
+    message: 'Inventory allocation review retrieved successfully',
+    data: reviewData,
+  });
+});
 
 /**
  * Controller: Confirm inventory allocation for a specific order.
@@ -141,7 +156,7 @@ const confirmInventoryAllocationController = wrapAsync(async (req, res) => {
   const rawOrderId = req.params.orderId;
   const user = req.user;
   
-  logInfo('Received inventory allocation confirmation request', {
+  logInfo('Received inventory allocation confirmation request', req, {
     context: 'inventory-allocation-controller/confirmInventoryAllocationController',
     orderId: rawOrderId,
     userId: user?.id,
@@ -158,6 +173,6 @@ const confirmInventoryAllocationController = wrapAsync(async (req, res) => {
 
 module.exports = {
   allocateInventoryForOrderController,
-  // reviewInventoryAllocationController,
+  reviewInventoryAllocationController,
   confirmInventoryAllocationController,
 };

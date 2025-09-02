@@ -1,3 +1,7 @@
+const { getFullName } = require('../utils/name-utils');
+const { getProductDisplayName } = require('../utils/display-name-utils');
+const { formatPackagingMaterialLabel } = require('../utils/string-utils');
+const { cleanObject } = require('../utils/object-utils');
 /**
  * Extracts and deduplicates SKU and packaging material IDs from a list of order items.
  *
@@ -123,7 +127,6 @@ const transformAllocationResultToInsertRows = (allocationResult, options = {}) =
  * with the provided `orderId` to form a minimal payload used in review or
  * confirmation workflows (e.g., on the frontend or in API responses).
  *
- * @function transformAllocationReviewData
  * @param {Array<Object>} rows - Array of raw allocation rows, each containing an `id` field (allocation UUID).
  * @param {string} orderId - UUID of the associated sales order.
  *
@@ -149,6 +152,209 @@ const transformAllocationReviewData = (rows, orderId) => {
   return {
     orderId,
     allocationIds: rows.map((row) => row.id),
+  };
+};
+
+/**
+ * @typedef {object} InventoryAllocationReviewRow
+ * @property {string} allocation_id
+ * @property {string} order_item_id
+ * @property {string|null} transfer_order_item_id
+ * @property {string} batch_id
+ * @property {number} allocated_quantity
+ * @property {string} allocation_status_id
+ * @property {string} allocation_status_name
+ * @property {string} allocation_status_code
+ * @property {string} allocation_created_at
+ * @property {string} allocation_updated_at
+ * @property {string} allocation_created_by
+ * @property {string} allocation_created_by_firstname
+ * @property {string} allocation_created_by_lastname
+ * @property {string} allocation_updated_by
+ * @property {string} allocation_updated_by_firstname
+ * @property {string} allocation_updated_by_lastname
+ * @property {string} order_id
+ * @property {string} quantity_ordered
+ * @property {string} item_status_id
+ * @property {string} item_status_name
+ * @property {string} item_status_date
+ * @property {string} sku_id
+ * @property {string} sku
+ * @property {string} barcode
+ * @property {string} country_code
+ * @property {string} size_label
+ * @property {string} product_id
+ * @property {string} product_name
+ * @property {string} brand
+ * @property {string} category
+ * @property {string} packaging_material_id
+ * @property {string} packaging_material_code
+ * @property {string} packaging_material_name
+ * @property {string} packaging_material_color
+ * @property {string} packaging_material_size
+ * @property {string} packaging_material_unit
+ * @property {number} packaging_material_length_cm
+ * @property {number} packaging_material_width_cm
+ * @property {number} packaging_material_height_cm
+ * @property {string} order_number
+ * @property {string} order_note
+ * @property {string} salesperson_id
+ * @property {string} salesperson_firstname
+ * @property {string} salesperson_lastname
+ * @property {string} warehouse_inventory_id
+ * @property {number} warehouse_quantity
+ * @property {number} reserved_quantity
+ * @property {string} batch_type
+ * @property {string} product_lot_number
+ * @property {string} product_expiry_date
+ * @property {string} product_inbound_date
+ * @property {string} material_lot_number
+ * @property {string} material_expiry_date
+ * @property {string} material_name
+ */
+
+/**
+ * Transforms raw inventory allocation review rows from the database into a structured format
+ * with cleaned and nested fields for easy consumption by the frontend or API consumers.
+ *
+ * The transformation includes:
+ * - Order-level metadata (order number, note, salesperson info)
+ * - Detailed allocation items including:
+ *   - Allocation metadata (quantity, timestamps, status, created/updated users)
+ *   - Order item details
+ *   - SKU and product details
+ *   - Packaging material metadata (if any)
+ *   - Warehouse inventory quantities (if any)
+ *   - Batch info for both product and packaging material types
+ *
+ * @param {Array<InventoryAllocationReviewRow>} rows - Raw DB result rows from `getInventoryAllocationReview` query.
+ * Each row contains flat data about the order, allocation, item, SKU, batch, and packaging material.
+ *
+ * @returns {InventoryAllocationReviewRow|null} - Transformed object:
+ * {
+ *   header: {
+ *     orderNumber: string,
+ *     note: string,
+ *     createdBy: string,
+ *     salesperson: { id: string, fullName: string }
+ *   },
+ *   items: Array<object> - Cleaned and nested allocation records
+ * }
+ */
+const transformInventoryAllocationReviewRows = (rows) => {
+  if (rows.length === 0) return null;
+  
+  const [first] = rows;
+  
+  const header = {
+    orderNumber: first.order_number,
+    note: first.order_note,
+    createdBy: first.salesperson_id,
+    salesperson: {
+      id: first.salesperson_id,
+      fullName: getFullName(first.salesperson_firstname, first.salesperson_lastname),
+    },
+  };
+  
+  const items = rows.map((row) => {
+    const base = {
+      allocationId: row.allocation_id,
+      orderItemId: row.order_item_id,
+      transferOrderItemId: row.transfer_order_item_id,
+      batchId: row.batch_id,
+      allocatedQuantity: row.allocated_quantity,
+      statusId: row.allocation_status_id,
+      createdAt: row.allocation_created_at,
+      updatedAt: row.allocation_updated_at,
+      
+      createdBy: {
+        id: row.allocation_created_by,
+        firstname: row.allocation_created_by_firstname,
+        lastname: row.allocation_created_by_lastname,
+        fullName: getFullName(row.allocation_created_by_firstname, row.allocation_created_by_lastname),
+      },
+      updatedBy: {
+        id: row.allocation_updated_by,
+        firstname: row.allocation_updated_by_firstname,
+        lastname: row.allocation_updated_by_lastname,
+        fullName: getFullName(row.allocation_updated_by_firstname, row.allocation_updated_by_lastname),
+      },
+      
+      orderItem: {
+        id: row.order_item_id,
+        orderId: row.order_id,
+        quantityOrdered: row.quantity_ordered,
+        statusId: row.item_status_id,
+        statusName: row.item_status_name,
+        statusDate: row.item_status_date,
+      },
+      
+      product: {
+        product_id: row.product_id,
+        sku_id: row.sku_id,
+        skuCode: row.sku,
+        barcode: row.barcode,
+        displayName: row.sku_id
+          ? getProductDisplayName({
+            brand: row.brand,
+            sku: row.sku,
+            country_code: row.country_code,
+            product_name: row.product_name,
+            size_label: row.size_label,
+          })
+          : null,
+      },
+      
+      packagingMaterial: row.packaging_material_id
+        ? {
+          id: row.packaging_material_id,
+          code: row.packaging_material_code,
+          label: formatPackagingMaterialLabel({
+            name: row.packaging_material_name,
+            size: row.packaging_material_size,
+            color: row.packaging_material_color,
+            unit: row.packaging_material_unit,
+            length_cm: row.packaging_material_length_cm,
+            width_cm: row.packaging_material_width_cm,
+            height_cm: row.packaging_material_height_cm,
+          }),
+        }
+        : null,
+      
+      warehouseInventory: row.warehouse_inventory_id && {
+        id: row.warehouse_inventory_id,
+        warehouseQuantity: row.warehouse_quantity,
+        reservedQuantity: row.reserved_quantity,
+      },
+      
+      batch: (() => {
+        if (row.batch_type === 'product') {
+          return {
+            type: 'product',
+            productLotNumber: row.product_lot_number,
+            productExpiryDate: row.product_expiry_date,
+            productInboundDate: row.product_inbound_date,
+          };
+        } else if (row.batch_type === 'packaging_material') {
+          return {
+            type: 'packaging_material',
+            materialLotNumber: row.material_lot_number,
+            materialExpiryDate: row.material_expiry_date,
+            snapshotName: row.material_name,
+          };
+        }
+        return {
+          type: row.batch_type,
+        };
+      })(),
+    };
+    
+    return cleanObject(base);
+  });
+  
+  return {
+    header: cleanObject(header),
+    items,
   };
 };
 
@@ -208,5 +414,6 @@ module.exports = {
   extractOrderItemIdsByType,
   transformAllocationResultToInsertRows,
   transformAllocationReviewData,
+  transformInventoryAllocationReviewRows,
   transformOrderAllocationResponse,
 };

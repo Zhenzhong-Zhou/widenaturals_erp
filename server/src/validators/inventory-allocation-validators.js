@@ -8,7 +8,7 @@
  */
 
 const Joi = require('joi');
-const { validateString, validateUUID } = require('./general-validators');
+const { validateString, validateUUID, validateUUIDArray } = require('./general-validators');
 
 /**
  * Validates the body of the inventory allocation request.
@@ -28,6 +28,26 @@ const allocateInventorySchema = Joi.object({
   warehouseId: validateUUID('Warehouse ID'),
 });
 
+/**
+ * Joi schema to validate request body for inventory allocation review.
+ *
+ * Expected structure:
+ * {
+ *   allocationIds: string[] // Required, must contain at least one valid UUID
+ * }
+ *
+ * - `allocationIds` is a required field.
+ * - Must be an array of valid UUID strings.
+ * - Cannot be empty.
+ *
+ * @constant allocationReviewSchema
+ * @type {Joi.ObjectSchema}
+ */
+const allocationReviewSchema = Joi.object({
+  allocationIds: validateUUIDArray('Allocation IDs', { required: true }),
+});
+
 module.exports = {
   allocateInventorySchema,
+  allocationReviewSchema,
 };

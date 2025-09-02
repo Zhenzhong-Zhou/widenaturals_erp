@@ -3,11 +3,16 @@ const authorize = require('../middlewares/authorize');
 const PERMISSIONS = require('../utils/constants/domain/permissions');
 const validate = require('../middlewares/validate');
 const { orderIdParamSchema } = require('../validators/order-validators');
-const { allocateInventorySchema } = require('../validators/inventory-allocation-validators');
+const {
+  allocateInventorySchema,
+  allocationReviewSchema
+} = require('../validators/inventory-allocation-validators');
 const {
   allocateInventoryForOrderController,
-  confirmInventoryAllocationController
+  reviewInventoryAllocationController,
+  confirmInventoryAllocationController,
 } = require('../controllers/inventory-allocation-controller');
+const { sanitizeFields } = require('../middlewares/sanitize');
 
 const router = express.Router();
 
@@ -34,6 +39,38 @@ router.post(
   validate(orderIdParamSchema, 'params'),
   validate(allocateInventorySchema, 'body'),
   allocateInventoryForOrderController
+);
+
+/**
+ * @route POST /inventory-allocations/review/:orderId
+ * @description
+ * Retrieve and review inventory allocation details for a specific order.
+ *
+ * This endpoint:
+ * - Accepts an `orderId` as a URL parameter.
+ * - Optionally accepts `allocationIds` (array of UUIDs) in the request body to filter the review to specific allocations.
+ * - Performs permission checks, request validation, and input sanitization.
+ * - Returns detailed review data for allocations tied to the order.
+ *
+ * This route uses `POST` instead of `GET` to allow sending large arrays in the request body without exceeding URL length limits.
+ *
+ * @permission PERMISSIONS.INVENTORY.REVIEW_ALLOCATION
+ *
+ * @param {string} req.params.orderId - UUID of the order to review allocations for.
+ * @param {string[]} [req.body.allocationIds] - Optional list of allocation UUIDs to filter the review.
+ *
+ * @returns {200} Review data for the specified allocations.
+ * @returns {404} If no matching allocations are found.
+ * @returns {403} If user lacks permissions.
+ * @returns {400} If validation fails.
+ */
+router.post(
+  '/review/:orderId',
+  authorize([PERMISSIONS.INVENTORY.REVIEW_ALLOCATION]),
+  sanitizeFields(['allocationIds']),
+  validate(orderIdParamSchema, 'params'),
+  validate(allocationReviewSchema, 'body'),
+  reviewInventoryAllocationController
 );
 
 /**

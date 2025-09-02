@@ -14,7 +14,7 @@ const {
   extractOrderItemIdsByType,
   transformAllocationResultToInsertRows,
   transformAllocationReviewData,
-  // transformInventoryAllocationReviewRows,
+  transformInventoryAllocationReviewRows,
   transformOrderAllocationResponse,
 } = require('../transformers/inventory-allocation-transformer');
 const { getStatusId } = require('../config/status-cache');
@@ -32,13 +32,13 @@ const {
 } = require('../business/inventory-allocation-business');
 const {
   insertInventoryAllocationsBulk,
-  // getMismatchedAllocationIds,
-  // getInventoryAllocationReview
+  getMismatchedAllocationIds,
+  getInventoryAllocationReview
 } = require('../repositories/inventory-allocations-repository');
 const {
   logSystemException,
   logSystemInfo,
-  // logSystemWarn
+  logSystemWarn
 } = require('../utils/system-logger');
 const { getOrderStatusByCode } = require('../repositories/order-status-repository');
 const { getInventoryActionTypeId } = require('../repositories/inventory-action-type-repository');
@@ -196,56 +196,57 @@ const allocateInventoryForOrderService = async (user, rawOrderId, {
   }
 };
 
-// /**
-//  * Validates and returns detailed inventory allocation review data for a specific order.
-//  *
-//  * This function performs the following:
-//  * 1. Validates that each allocationId belongs to the given order.
-//  * 2. If mismatches are found, throws a validation error with the mismatched IDs.
-//  * 3. Fetches raw allocation review data from the database.
-//  * 4. Transforms the raw data into structured frontend-friendly format.
-//  * 5. Throws a service error if any step fails.
-//  *
-//  * @async
-//  *
-//  * @param {string} orderId - The UUID of the order being reviewed.
-//  * @param {string[]} allocationIds - List of allocation UUIDs to validate and review.
-//  *
-//  * @returns {Promise<InventoryAllocationReviewRow|null>} - Structured review result including order metadata and allocation items, or `null` if no data is found.
-//  *
-//  * @throws {AppError} - Throws validationError if mismatches are found,
-//  *                      or serviceError on internal failure.
-//  */
-// const reviewInventoryAllocationService = async (orderId, allocationIds) => {
-//   try {
-//     if (allocationIds.length > 0) {
-//       const mismatches = await getMismatchedAllocationIds(orderId, allocationIds);
-//       if (mismatches.length > 0) {
-//         logSystemWarn('Mismatched allocation IDs found during review', {
-//           context: 'inventory-allocation-service/reviewInventoryAllocationService',
-//           orderId,
-//           mismatches,
-//         });
-//         throw AppError.validationError('Some allocation IDs do not belong to the order', { mismatches });
-//       }
-//     }
-//
-//     const rawReviewData = await getInventoryAllocationReview(orderId, allocationIds);
-//
-//     if (!rawReviewData || rawReviewData.length === 0) {
-//       return null;
-//     }
-//
-//     return transformInventoryAllocationReviewRows(rawReviewData);
-//   } catch (error) {
-//     logSystemException(error, 'Failed to review inventory for order', {
-//       context: 'inventory-allocation-service/reviewInventoryAllocationService',
-//       orderId,
-//       allocationIds,
-//     });
-//     throw AppError.serviceError('Failed to review inventory for order.');
-//   }
-// };
+/**
+ * Validates and returns detailed inventory allocation review data for a specific order.
+ *
+ * This function performs the following:
+ * 1. Validates that each allocationId belongs to the given order.
+ * 2. If mismatches are found, throws a validation error with the mismatched IDs.
+ * 3. Fetches raw allocation review data from the database.
+ * 4. Transforms the raw data into structured frontend-friendly format.
+ * 5. Throws a service error if any step fails.
+ *
+ * @async
+ *
+ * @param {string} orderId - The UUID of the order being reviewed.
+ * @param {string[]} allocationIds - List of allocation UUIDs to validate and review.
+ *
+ * @returns {Promise<InventoryAllocationReviewRow|null>} - Structured review result including order metadata and allocation items, or `null` if no data is found.
+ *
+ * @throws {AppError} - Throws validationError if mismatches are found,
+ *                      or serviceError on internal failure.
+ */
+const reviewInventoryAllocationService = async (orderId, allocationIds) => {
+  try {
+    if (allocationIds.length > 0) {
+      const mismatches = await getMismatchedAllocationIds(orderId, allocationIds);
+      
+      if (mismatches.length > 0) {
+        logSystemWarn('Mismatched allocation IDs found during review', {
+          context: 'inventory-allocation-service/reviewInventoryAllocationService',
+          orderId,
+          mismatches,
+        });
+        throw AppError.validationError('Some allocation IDs do not belong to the order', { mismatches });
+      }
+    }
+
+    const rawReviewData = await getInventoryAllocationReview(orderId, allocationIds);
+
+    if (!rawReviewData || rawReviewData.length === 0) {
+      return null;
+    }
+
+    return transformInventoryAllocationReviewRows(rawReviewData);
+  } catch (error) {
+    logSystemException(error, 'Failed to review inventory for order', {
+      context: 'inventory-allocation-service/reviewInventoryAllocationService',
+      orderId,
+      allocationIds,
+    });
+    throw AppError.serviceError('Failed to review inventory for order.');
+  }
+};
 
 /**
  * Confirms inventory allocations for a given sales order.
@@ -408,6 +409,6 @@ const confirmInventoryAllocationService = async (user, rawOrderId) => {
 
 module.exports = {
   allocateInventoryForOrderService,
-  // reviewInventoryAllocationService,
+  reviewInventoryAllocationService,
   confirmInventoryAllocationService,
 };

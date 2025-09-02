@@ -72,6 +72,43 @@ const validateUUIDOrUUIDArrayOptional = (fieldName = 'IDs') =>
     .label(fieldName);
 
 /**
+ * Generates a Joi schema for validating an array of UUID strings.
+ *
+ * This helper supports flexible options for required fields and empty array allowance.
+ *
+ * @param {string} [fieldName='IDs'] - Label used in error messages for the field.
+ * @param {Object} [options={}] - Configuration options.
+ * @param {boolean} [options.required=false] - Whether the array is required (defaults to optional).
+ * @param {boolean} [options.allowEmpty=false] - Whether to allow empty arrays (default disallows empty arrays).
+ *
+ * @returns {Joi.ArraySchema} Joi validation schema for UUID array.
+ *
+ * @example
+ * const schema = Joi.object({
+ *   allocationIds: validateUUIDArray('Allocation IDs', { required: true }),
+ * });
+ */
+const validateUUIDArray = (fieldName = 'IDs', options = {}) => {
+  const { required = false, allowEmpty = false } = options;
+  
+  let schema = Joi.array().items(
+    Joi.string().uuid().trim().label('UUID')
+  ).label(fieldName);
+  
+  if (required) schema = schema.required();
+  else schema = schema.default([]);
+  
+  if (!allowEmpty) schema = schema.min(1);
+  
+  return schema.messages({
+    'array.base': '{{#label}} must be an array',
+    'any.required': '{{#label}} is required',
+    'array.includes': '{{#label}} must contain valid UUIDs',
+    'array.min': '{{#label}} must contain at least one UUID',
+  });
+};
+
+/**
  * Returns a Joi schema for pagination integers with optional default.
  */
 const validatePositiveInteger = (defaultValue = undefined) =>
@@ -339,6 +376,7 @@ module.exports = {
   validateUUID,
   validateOptionalUUID,
   validateUUIDOrUUIDArrayOptional,
+  validateUUIDArray,
   validatePositiveInteger,
   validateString,
   validatePhoneNumber,

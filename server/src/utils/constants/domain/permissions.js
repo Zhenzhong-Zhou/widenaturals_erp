@@ -23,6 +23,7 @@ const PERMISSIONS = {
   },
   INVENTORY: {
     ALLOCATE_INVENTORY: 'allocate_inventory',
+    REVIEW_ALLOCATION: 'review_allocation',
   }
 };
 
