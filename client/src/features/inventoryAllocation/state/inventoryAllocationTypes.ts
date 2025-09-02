@@ -79,16 +79,34 @@ export interface UserSummary {
   fullName: string;
 }
 
+/** Minimal order status summary. */
+export interface OrderStatusSummary {
+  /** Order status ID (UUID) */
+  id: string;
+  
+  /** Human-readable name (e.g., "Pending", "Confirmed") */
+  name: string;
+  
+  /** Internal status code (e.g., "ORDER_PENDING") */
+  code: string;
+}
+
 /** Header-level metadata for the order being reviewed. */
 export interface OrderHeaderReview {
   /** Human-readable order number/code */
   orderNumber: string;
+  
   /** Optional free-form note; may be null or empty string */
   note: string | null;
+  
   /** Creator user ID (UUID) */
   createdBy: string;
+  
   /** Salesperson responsible for the order */
   salesperson: SalespersonSummary;
+  
+  /** Current status of the order */
+  orderStatus: OrderStatusSummary;
 }
 
 /**
@@ -108,14 +126,20 @@ export interface OrderItemStatus {
 export interface OrderItemReview extends OrderItemStatus {
   /** Order item ID (UUID) */
   id: string;
+  
   /** Parent order ID (UUID) */
   orderId: string;
+  
   /** Ordered quantity for this item */
   quantityOrdered: number;
   
-  // Inline status fields (or extend OrderItemStatus above)
+  /** Current status ID (UUID) */
   statusId: string;
+  
+  /** Human-readable status name (e.g., "Fully Allocated") */
   statusName: string;
+  
+  /** ISO timestamp when the item status was last updated */
   statusDate: string;
 }
 
@@ -133,14 +157,34 @@ export interface ProductSummary {
   displayName: string;
 }
 
+/** Optional snapshot of packaging material used in the allocation (if applicable). */
+export interface PackagingMaterialSnapshot {
+  /** Packaging material ID (UUID) */
+  id: string;
+  
+  /** Internal code for the packaging material (e.g., "CAP-WHITE-90MM") */
+  code: string;
+  
+  /** Human-readable label (e.g., "White Cap - 90mm") */
+  label: string;
+}
+
 /** Current warehouse inventory snapshot at time of review. */
 export interface WarehouseInventorySummary {
   /** Warehouse inventory record ID (UUID) */
   id: string;
-  /** On-hand quantity in the warehouse */
+  
+  /** On-hand quantity currently available in the warehouse */
   warehouseQuantity: number;
-  /** Currently reserved quantity (all orders) */
+  
+  /** Quantity already reserved across all orders */
   reservedQuantity: number;
+  
+  /** Human-readable inventory status (e.g., "In Stock", "Damaged") */
+  statusName: string;
+  
+  /** ISO timestamp when the inventory status was last updated */
+  statusDate: string;
 }
 
 /** Batch summary for the allocation (product or packaging material). */
@@ -163,30 +207,56 @@ export interface BatchReview {
 export interface AllocationReviewItem {
   /** Allocation record ID (UUID) */
   allocationId: string;
+  
   /** Linked order item ID (UUID) */
   orderItemId: string;
+  
+  /** Linked transfer order item ID (if applicable; may be null) */
+  transferOrderItemId: string | null;
+  
   /** Batch ID (UUID) used for this allocation */
   batchId: string;
-  /** Quantity allocated from this batch to the item */
+  
+  /** Quantity allocated from this batch to the order item */
   allocatedQuantity: number;
   
   /** Allocation status ID (UUID) */
-  statusId: string;
-  /** Allocation creation timestamp (ISO) */
+  allocationStatusId: string;
+  
+  /** Human-readable status label, e.g., "Partially Allocated" */
+  allocationStatusName: string;
+  
+  /** Status code used internally (e.g., "ALLOCATED_PARTIAL") */
+  allocationStatusCode: string;
+  
+  /** ISO timestamp of when this allocation was created */
   createdAt: string;
   
-  /** Audit: who created the allocation */
+  /** ISO timestamp of last update to this allocation */
+  updatedAt: string;
+  
+  /** Audit: who created the allocation (may be system or user) */
   createdBy: UserSummary;
-  /** Audit: who last updated the allocation (maybe unknown) */
+  
+  /** Audit: who last updated the allocation (may be null/system) */
   updatedBy: UserSummary;
   
-  /** Snapshot of the order item */
+  /** Snapshot of the order item associated with this allocation */
   orderItem: OrderItemReview;
-  /** Snapshot of the product/SKU */
+  
+  /** Snapshot of the product or SKU associated with this allocation */
   product: ProductSummary;
-  /** Snapshot of warehouse inventory quantities */
+  
+  /**
+   * Optional snapshot of packaging material info (if this is a packaging allocation).
+   * Null if not applicable.
+   */
+  packagingMaterial?: PackagingMaterialSnapshot | null;
+  
+  /** Snapshot of current warehouse inventory levels at allocation time */
   warehouseInventory: WarehouseInventorySummary;
-  /** Snapshot of the batch used in the allocation */
+  
+  /** Batch metadata (product or packaging) used for this allocation */
   batch: BatchReview;
 }
 

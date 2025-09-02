@@ -245,13 +245,15 @@ const getInventoryAllocationReview = async (orderId, allocationIds, client) => {
       ot.name AS order_type_name,
       o.order_status_id,
       os.name AS order_status_name,
-      os.code AS order_code,
+      os.code AS order_status_code,
       o.created_by AS salesperson_id,
       u.firstname AS salesperson_firstname,
       u.lastname  AS salesperson_lastname,
       wi.id AS warehouse_inventory_id,
       wi.warehouse_quantity,
       wi.reserved_quantity,
+      invs.name AS inventory_status_name,
+      wi.status_date AS inventory_status_date,
       br.batch_type,
       pb.lot_number AS product_lot_number,
       pb.expiry_date AS product_expiry_date,
@@ -275,7 +277,8 @@ const getInventoryAllocationReview = async (orderId, allocationIds, client) => {
     JOIN batch_registry br ON ia.batch_id = br.id
     LEFT JOIN product_batches pb ON br.product_batch_id = pb.id
     LEFT JOIN packaging_material_batches pmb ON br.packaging_material_batch_id = pmb.id
-    LEFT JOIN warehouse_inventory wi ON wi.batch_id = br.id;
+    LEFT JOIN warehouse_inventory wi ON wi.batch_id = br.id
+    LEFT JOIN inventory_status invs ON wi.status_id = invs.id;
   `;
   
   try {

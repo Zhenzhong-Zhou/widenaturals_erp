@@ -197,6 +197,9 @@ const transformAllocationReviewData = (rows, orderId) => {
  * @property {number} packaging_material_width_cm
  * @property {number} packaging_material_height_cm
  * @property {string} order_number
+ * @property {string} order_status_id
+ * @property {string} order_status_name
+ * @property {string} order_status_code
  * @property {string} order_note
  * @property {string} salesperson_id
  * @property {string} salesperson_firstname
@@ -204,6 +207,8 @@ const transformAllocationReviewData = (rows, orderId) => {
  * @property {string} warehouse_inventory_id
  * @property {number} warehouse_quantity
  * @property {number} reserved_quantity
+ * @property {string} inventory_status_name
+ * @property {string} inventory_status_date
  * @property {string} batch_type
  * @property {string} product_lot_number
  * @property {string} product_expiry_date
@@ -215,31 +220,37 @@ const transformAllocationReviewData = (rows, orderId) => {
 
 /**
  * Transforms raw inventory allocation review rows from the database into a structured format
- * with cleaned and nested fields for easy consumption by the frontend or API consumers.
+ * with cleaned and nested fields for frontend/API consumption.
  *
  * The transformation includes:
- * - Order-level metadata (order number, note, salesperson info)
- * - Detailed allocation items including:
- *   - Allocation metadata (quantity, timestamps, status, created/updated users)
- *   - Order item details
- *   - SKU and product details
- *   - Packaging material metadata (if any)
- *   - Warehouse inventory quantities (if any)
- *   - Batch info for both product and packaging material types
+ * - `header`: shared order-level metadata, including order number, note, status, and salesperson
+ * - `items`: an array of cleaned allocation records, each including:
+ *   - allocation metadata (status, quantity, timestamps)
+ *   - order item details
+ *   - SKU and product info
+ *   - packaging material info (if applicable)
+ *   - warehouse inventory status (if applicable)
+ *   - batch details (for either product or packaging material)
  *
- * @param {Array<InventoryAllocationReviewRow>} rows - Raw DB result rows from `getInventoryAllocationReview` query.
- * Each row contains flat data about the order, allocation, item, SKU, batch, and packaging material.
+ * @param {Array<InventoryAllocationReviewRow>} rows - Raw DB rows from `getInventoryAllocationReview` query.
  *
- * @returns {InventoryAllocationReviewRow|null} - Transformed object:
- * {
+ * @returns {{
  *   header: {
- *     orderNumber: string,
- *     note: string,
- *     createdBy: string,
- *     salesperson: { id: string, fullName: string }
- *   },
- *   items: Array<object> - Cleaned and nested allocation records
- * }
+ *     orderNumber: string;
+ *     note: string;
+ *     createdBy: string;
+ *     orderStatus: {
+ *       id: string;
+ *       name: string;
+ *       code: string;
+ *     };
+ *     salesperson: {
+ *       id: string;
+ *       fullName: string;
+ *     };
+ *   };
+ *   items: Array<object>;
+ * } | null}
  */
 const transformInventoryAllocationReviewRows = (rows) => {
   if (rows.length === 0) return null;
@@ -250,6 +261,11 @@ const transformInventoryAllocationReviewRows = (rows) => {
     orderNumber: first.order_number,
     note: first.order_note,
     createdBy: first.salesperson_id,
+    orderStatus: {
+      id: first.order_status_id,
+      name: first.order_status_name,
+      code: first.order_status_code,
+    },
     salesperson: {
       id: first.salesperson_id,
       fullName: getFullName(first.salesperson_firstname, first.salesperson_lastname),
@@ -263,7 +279,9 @@ const transformInventoryAllocationReviewRows = (rows) => {
       transferOrderItemId: row.transfer_order_item_id,
       batchId: row.batch_id,
       allocatedQuantity: row.allocated_quantity,
-      statusId: row.allocation_status_id,
+      allocationStatusId: row.allocation_status_id,
+      allocationStatusName: row.allocation_status_name,
+      allocationStatusCode: row.allocation_status_code,
       createdAt: row.allocation_created_at,
       updatedAt: row.allocation_updated_at,
       
@@ -321,6 +339,8 @@ const transformInventoryAllocationReviewRows = (rows) => {
         id: row.warehouse_inventory_id,
         warehouseQuantity: row.warehouse_quantity,
         reservedQuantity: row.reserved_quantity,
+        statusName: row.inventory_status_name,
+        statusDate: row.inventory_status_date,
       },
       
       batch: (() => {
