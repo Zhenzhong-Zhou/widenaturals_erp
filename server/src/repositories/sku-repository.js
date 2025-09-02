@@ -491,7 +491,7 @@ const getSkuLookup = async ({
     GROUP BY s.id
     ORDER BY
       MIN(p.brand) ASC,
-      CAST(NULLIF(REGEXP_REPLACE(MIN(p.name), '[^0-9]', '', 'g'), '') AS INTEGER) NULLS LAST,
+      LPAD(REGEXP_REPLACE(MIN(p.name), '[^0-9]', '', 'g'), 10, '0') NULLS LAST,
       MIN(p.name) ASC,
       s.id
   `;
@@ -509,7 +509,7 @@ const getSkuLookup = async ({
       sortOrder: null, // Not needed if sortBy is null
       additionalSort: `
         p.brand ASC,
-        CAST(NULLIF(REGEXP_REPLACE(p.name, '[^0-9]', '', 'g'), '') AS INTEGER) NULLS LAST,
+        LPAD(REGEXP_REPLACE(p.name, '[^0-9]', '', 'g'), 10, '0') NULLS LAST,
         p.name ASC,
         s.id
       `,

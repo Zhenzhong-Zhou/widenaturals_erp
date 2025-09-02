@@ -77,15 +77,12 @@ const SORTABLE_FIELDS = {
       p.brand,
       br.batch_type,
       CASE
+        WHEN br.batch_type = 'product' AND p.name ILIKE 'NMN%' THEN
+          LPAD(REGEXP_REPLACE(p.name, '[^0-9]', '', 'g'), 10, '0')
         WHEN br.batch_type = 'product' THEN
-          CAST(NULLIF(REGEXP_REPLACE(p.name, '[^0-9]', '', 'g'), '') AS INTEGER)
+          p.name
         ELSE
-          CAST(NULLIF(REGEXP_REPLACE(COALESCE(pmb.material_snapshot_name, pt.name), '[^0-9]', '', 'g'), '') AS INTEGER)
-      END NULLS LAST,
-      CASE
-        WHEN br.batch_type = 'product' THEN
-          CAST(NULLIF(REGEXP_REPLACE(p.name, '[^0-9]', '', 'g'), '') AS INTEGER)
-        ELSE NULL
+          LPAD(REGEXP_REPLACE(COALESCE(pmb.material_snapshot_name, pt.name), '[^0-9]', '', 'g'), 20, '0')
       END NULLS LAST,
       li.last_update DESC
     `,
@@ -116,15 +113,12 @@ const SORTABLE_FIELDS = {
       p.brand,
       br.batch_type,
       CASE
+        WHEN br.batch_type = 'product' AND p.name ILIKE 'NMN%' THEN
+          LPAD(REGEXP_REPLACE(p.name, '[^0-9]', '', 'g'), 10, '0')
         WHEN br.batch_type = 'product' THEN
-          CAST(NULLIF(REGEXP_REPLACE(p.name, '[^0-9]', '', 'g'), '') AS INTEGER)
+          p.name
         ELSE
-          CAST(NULLIF(REGEXP_REPLACE(COALESCE(pmb.material_snapshot_name, pt.name), '[^0-9]', '', 'g'), '') AS INTEGER)
-      END NULLS LAST,
-      CASE
-        WHEN br.batch_type = 'product' THEN
-          CAST(NULLIF(REGEXP_REPLACE(p.name, '[^0-9]', '', 'g'), '') AS INTEGER)
-        ELSE NULL
+          LPAD(REGEXP_REPLACE(COALESCE(pmb.material_snapshot_name, pt.name), '[^0-9]', '', 'g'), 20, '0')
       END NULLS LAST,
       wi.last_update DESC
     `,
