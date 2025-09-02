@@ -14,7 +14,8 @@ const {
   extractOrderItemIdsByType,
   transformAllocationResultToInsertRows,
   transformAllocationReviewData,
-  transformOrderAllocationResponse
+  // transformInventoryAllocationReviewRows,
+  transformOrderAllocationResponse,
 } = require('../transformers/inventory-allocation-transformer');
 const { getStatusId } = require('../config/status-cache');
 const {
@@ -29,8 +30,16 @@ const {
   buildWarehouseInventoryActivityLogsForOrderAllocation,
   buildOrderAllocationResult
 } = require('../business/inventory-allocation-business');
-const { insertInventoryAllocationsBulk } = require('../repositories/inventory-allocations-repository');
-const { logSystemException, logSystemInfo } = require('../utils/system-logger');
+const {
+  insertInventoryAllocationsBulk,
+  // getMismatchedAllocationIds,
+  // getInventoryAllocationReview
+} = require('../repositories/inventory-allocations-repository');
+const {
+  logSystemException,
+  logSystemInfo,
+  // logSystemWarn
+} = require('../utils/system-logger');
 const { getOrderStatusByCode } = require('../repositories/order-status-repository');
 const { getInventoryActionTypeId } = require('../repositories/inventory-action-type-repository');
 const { insertInventoryActivityLogs } = require('../repositories/inventory-log-repository');
@@ -60,7 +69,7 @@ const { insertInventoryActivityLogs } = require('../repositories/inventory-log-r
  *
  * @throws {AppError} If the order is in an invalid status or allocation fails
  */
-const allocateInventoryForOrder = async (user, rawOrderId, {
+const allocateInventoryForOrderService = async (user, rawOrderId, {
   strategy = 'fefo',
   warehouseId = null
 }) => {
@@ -70,7 +79,7 @@ const allocateInventoryForOrder = async (user, rawOrderId, {
       
       // Lock order row first
       await lockRows(client, 'orders', [rawOrderId], 'FOR UPDATE', {
-        context: 'allocateInventoryForOrder/lockOrderRow',
+        context: 'allocateInventoryForOrderService/lockOrderRow',
       });
       
       // Fetch current order metadata and validate status transition
@@ -102,7 +111,7 @@ const allocateInventoryForOrder = async (user, rawOrderId, {
       
       // Lock order_items rows for this order
       await lockRows(client, 'order_items', orderItemIds, 'FOR UPDATE', {
-        context: 'allocateInventoryForOrder/lockOrderItems',
+        context: 'inventory-allocation-service/allocateInventoryForOrderService/lockOrderItems',
       });
       
       if (!orderItemsMetadata.length) {
@@ -143,7 +152,7 @@ const allocateInventoryForOrder = async (user, rawOrderId, {
       }));
       
       await lockRows(client, 'warehouse_inventory', warehouseInventoryLockConditions, 'FOR UPDATE', {
-        context: 'allocateInventoryForOrder/lockWarehouseInventory',
+        context: 'inventory-allocation-service/allocateInventoryForOrderService/lockWarehouseInventory',
       });
       
       // Apply allocation strategy and build result per item
@@ -176,7 +185,7 @@ const allocateInventoryForOrder = async (user, rawOrderId, {
     });
   } catch (error) {
     logSystemException(error, 'Inventory allocation failed', {
-      context: 'allocateInventoryForOrder',
+      context: 'inventory-allocation-service/allocateInventoryForOrderService',
       orderId: rawOrderId,
       userId: user?.id,
       strategy,
@@ -187,7 +196,56 @@ const allocateInventoryForOrder = async (user, rawOrderId, {
   }
 };
 
-const reviewInventoryAllocation = async (orderId) => {};
+// /**
+//  * Validates and returns detailed inventory allocation review data for a specific order.
+//  *
+//  * This function performs the following:
+//  * 1. Validates that each allocationId belongs to the given order.
+//  * 2. If mismatches are found, throws a validation error with the mismatched IDs.
+//  * 3. Fetches raw allocation review data from the database.
+//  * 4. Transforms the raw data into structured frontend-friendly format.
+//  * 5. Throws a service error if any step fails.
+//  *
+//  * @async
+//  *
+//  * @param {string} orderId - The UUID of the order being reviewed.
+//  * @param {string[]} allocationIds - List of allocation UUIDs to validate and review.
+//  *
+//  * @returns {Promise<InventoryAllocationReviewRow|null>} - Structured review result including order metadata and allocation items, or `null` if no data is found.
+//  *
+//  * @throws {AppError} - Throws validationError if mismatches are found,
+//  *                      or serviceError on internal failure.
+//  */
+// const reviewInventoryAllocationService = async (orderId, allocationIds) => {
+//   try {
+//     if (allocationIds.length > 0) {
+//       const mismatches = await getMismatchedAllocationIds(orderId, allocationIds);
+//       if (mismatches.length > 0) {
+//         logSystemWarn('Mismatched allocation IDs found during review', {
+//           context: 'inventory-allocation-service/reviewInventoryAllocationService',
+//           orderId,
+//           mismatches,
+//         });
+//         throw AppError.validationError('Some allocation IDs do not belong to the order', { mismatches });
+//       }
+//     }
+//
+//     const rawReviewData = await getInventoryAllocationReview(orderId, allocationIds);
+//
+//     if (!rawReviewData || rawReviewData.length === 0) {
+//       return null;
+//     }
+//
+//     return transformInventoryAllocationReviewRows(rawReviewData);
+//   } catch (error) {
+//     logSystemException(error, 'Failed to review inventory for order', {
+//       context: 'inventory-allocation-service/reviewInventoryAllocationService',
+//       orderId,
+//       allocationIds,
+//     });
+//     throw AppError.serviceError('Failed to review inventory for order.');
+//   }
+// };
 
 /**
  * Confirms inventory allocations for a given sales order.
@@ -210,26 +268,26 @@ const reviewInventoryAllocation = async (orderId) => {};
  * @returns {Promise<object>} Transformed order allocation result object.
  * @throws {AppError} If any step in the process fails (e.g., missing data, status conflict, or DB error).
  */
-const confirmInventoryAllocation = async (user, rawOrderId) => {
+const confirmInventoryAllocationService = async (user, rawOrderId) => {
   try {
     return await withTransaction(async (client) => {
       const userId = user.id;
       
       // Lock order row to prevent race conditions on status update
       await lockRows(client, 'orders', [rawOrderId], 'FOR UPDATE', {
-        context: 'inventory-allocation-service/lockOrder',
+        context: 'inventory-allocation-service/confirmInventoryAllocationService/lockOrder',
       });
       
       // Fetch and lock order items for the order
       const orderItemsMetadata = await getOrderItemsByOrderId(rawOrderId, client);
       const orderItemIds = orderItemsMetadata.map(item => item.order_item_id);
       await lockRows(client, 'order_items', orderItemIds, 'FOR UPDATE', {
-        context: 'inventory-allocation-service/lockOrderItems',
+        context: 'inventory-allocation-service/confirmInventoryAllocationService/lockOrderItems',
         orderId: rawOrderId,
       });
       
       logSystemInfo('Fetched order items for allocation', {
-        context: 'inventory-allocation-service/confirmInventoryAllocation',
+        context: 'inventory-allocation-service/confirmInventoryAllocationService',
         orderId: rawOrderId,
         itemCount: orderItemsMetadata.length,
       });
@@ -284,7 +342,7 @@ const confirmInventoryAllocation = async (user, rawOrderId) => {
       // Lock affected warehouse_inventory rows before update
       const keys = inventoryAllocationDetails.map(({ warehouse_id, batch_id }) => ({ warehouse_id, batch_id }));
       await lockRows(client, 'warehouse_inventory', keys, 'FOR UPDATE', {
-        context: 'inventory-allocation-service/lockWarehouseInventory',
+        context: 'inventory-allocation-service/confirmInventoryAllocationService/lockWarehouseInventory',
         orderId: rawOrderId,
       });
       
@@ -340,7 +398,7 @@ const confirmInventoryAllocation = async (user, rawOrderId) => {
     });
   } catch (error) {
     logSystemException(error, 'Failed to confirm inventory allocation', {
-      context: 'inventory-allocation-service/confirmInventoryAllocation',
+      context: 'inventory-allocation-service/confirmInventoryAllocationService',
       orderId: rawOrderId,
       userId: user?.id,
     });
@@ -349,6 +407,7 @@ const confirmInventoryAllocation = async (user, rawOrderId) => {
 };
 
 module.exports = {
-  allocateInventoryForOrder,
-  confirmInventoryAllocation,
+  allocateInventoryForOrderService,
+  // reviewInventoryAllocationService,
+  confirmInventoryAllocationService,
 };

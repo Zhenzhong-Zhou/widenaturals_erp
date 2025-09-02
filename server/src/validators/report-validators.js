@@ -1,6 +1,6 @@
 const Joi = require('joi');
 const {
-  validateUUIDArray,
+  validateUUIDOrUUIDArrayOptional,
   validateOptionalUUID,
   paginationSchema,
   createSortSchema,
@@ -45,13 +45,13 @@ const inventoryActivityLogQuerySchema = Joi.object({})
   .concat(paginationSchema)
   .concat(createSortSchema('created_at'))
   .keys({
-    warehouseIds: validateUUIDArray('Warehouse IDs'),
-    locationIds: validateUUIDArray('Location IDs'),
-    productIds: validateUUIDArray('Product IDs'),
-    skuIds: validateUUIDArray('SKU IDs'),
-    batchIds: validateUUIDArray('Batch IDs'),
-    packagingMaterialIds: validateUUIDArray('Packaging Material IDs'),
-    actionTypeIds: validateUUIDArray('Action Type IDs'),
+    warehouseIds: validateUUIDOrUUIDArrayOptional('Warehouse IDs'),
+    locationIds: validateUUIDOrUUIDArrayOptional('Location IDs'),
+    productIds: validateUUIDOrUUIDArrayOptional('Product IDs'),
+    skuIds: validateUUIDOrUUIDArrayOptional('SKU IDs'),
+    batchIds: validateUUIDOrUUIDArrayOptional('Batch IDs'),
+    packagingMaterialIds: validateUUIDOrUUIDArrayOptional('Packaging Material IDs'),
+    actionTypeIds: validateUUIDOrUUIDArrayOptional('Action Type IDs'),
 
     orderId: validateOptionalUUID('Order ID'),
     statusId: validateOptionalUUID('Status ID'),

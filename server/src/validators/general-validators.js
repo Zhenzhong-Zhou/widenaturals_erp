@@ -62,7 +62,7 @@ const validateOptionalUUID = (fieldName = 'id') =>
  * Returns a Joi schema for validating either a string or array of UUIDs (v4).
  * Useful for flexible query filters that accept comma-separated or array input.
  */
-const validateUUIDArray = (fieldName = 'IDs') =>
+const validateUUIDOrUUIDArrayOptional = (fieldName = 'IDs') =>
   Joi.alternatives()
     .try(
       Joi.string(),
@@ -338,7 +338,7 @@ module.exports = {
   validateEmail,
   validateUUID,
   validateOptionalUUID,
-  validateUUIDArray,
+  validateUUIDOrUUIDArrayOptional,
   validatePositiveInteger,
   validateString,
   validatePhoneNumber,
