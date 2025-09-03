@@ -211,8 +211,7 @@ const findOrderItemsByOrderId = async (orderId) => {
  *
  * @throws {AppError} If a database error occurs.
  */
-// todo: rename updateOrderItemStatusesByOrderId
-const updateOrderItemStatuses = async (client, { orderId, newStatusId, updatedBy }) => {
+const updateOrderItemStatusesByOrderId = async (client, { orderId, newStatusId, updatedBy }) => {
   const sql = `
     UPDATE order_items
     SET
@@ -232,8 +231,8 @@ const updateOrderItemStatuses = async (client, { orderId, newStatusId, updatedBy
     const updatedRows = result.rows || [];
     
     if (updatedRows.length === 0) {
-      logSystemInfo('No order items updated: no items found for order', {
-        context: 'order-item-repository/updateOrderItemStatuses',
+      logSystemInfo('No order items updated by orderId: all statuses already match', {
+        context: 'order-item-repository/updateOrderItemStatusesByOrderId',
         orderId,
         newStatusId,
         updatedBy,
@@ -242,8 +241,9 @@ const updateOrderItemStatuses = async (client, { orderId, newStatusId, updatedBy
       return null;
     }
     
-    logSystemInfo('Order item statuses updated successfully', {
-      context: 'order-item-repository/updateOrderItemStatuses',
+    logSystemInfo('Order item statuses updated successfully by orderId', {
+      context: 'order-item-repository/updateOrderItemStatusesByOrderId',
+      updateType: 'bulk_by_order_id',
       orderId,
       newStatusId,
       updatedBy,
@@ -254,7 +254,7 @@ const updateOrderItemStatuses = async (client, { orderId, newStatusId, updatedBy
     return updatedRows;
   } catch (error) {
     logSystemException(error, 'Failed to update order item statuses', {
-      context: 'order-item-repository/updateOrderItemStatuses',
+      context: 'order-item-repository/updateOrderItemStatusesByOrderId',
       orderId,
       newStatusId,
       updatedBy,
@@ -405,7 +405,7 @@ const getOrderItemsByOrderId = async (orderId, client) => {
 module.exports = {
   insertOrderItemsBulk,
   findOrderItemsByOrderId,
-  updateOrderItemStatuses,
+  updateOrderItemStatusesByOrderId,
   updateOrderItemStatus,
   getOrderItemsByOrderId,
 };

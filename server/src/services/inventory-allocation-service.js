@@ -7,7 +7,8 @@ const {
 const { validateStatusTransitionByCategory } = require('../business/order-business');
 const {
   getOrderItemsByOrderId,
-  updateOrderItemStatuses, updateOrderItemStatus
+  updateOrderItemStatusesByOrderId,
+  updateOrderItemStatus
 } = require('../repositories/order-item-repository');
 const AppError = require('../utils/AppError');
 const {
@@ -177,7 +178,7 @@ const allocateInventoryForOrderService = async (user, rawOrderId, {
         updatedBy: userId,
       });
       
-      await updateOrderItemStatuses(client, {
+      await updateOrderItemStatusesByOrderId(client, {
         orderId,
         newStatusId: nextStatusId,
         updatedBy: userId,

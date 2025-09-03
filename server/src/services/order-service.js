@@ -27,8 +27,15 @@ const {
 } = require('../business/order-business');
 const AppError = require('../utils/AppError');
 const { logSystemException, logSystemInfo } = require('../utils/system-logger');
-const { findOrderItemsByOrderId, updateOrderItemStatuses } = require('../repositories/order-item-repository');
-const { transformOrderWithItems, transformOrderStatusWithMetadata, transformPaginatedOrderTypes } = require('../transformers/order-transformer');
+const {
+  findOrderItemsByOrderId,
+  updateOrderItemStatusesByOrderId
+} = require('../repositories/order-item-repository');
+const {
+  transformOrderWithItems,
+  transformOrderStatusWithMetadata,
+  transformPaginatedOrderTypes
+} = require('../transformers/order-transformer');
 const { getRoleNameById } = require('../repositories/role-repository');
 const { getOrderTypeIdsByCategory } = require('../repositories/order-type-repository');
 const { extractStatusCodesAndFetchIds, extractStatusIds } = require('../utils/order-status-utils');
@@ -441,7 +448,7 @@ const updateOrderStatusService = async (user, categoryParam, orderId, nextStatus
     }
     
     // Step 8: Cascade update to all order items
-    const updatedItems = await updateOrderItemStatuses(client, {
+    const updatedItems = await updateOrderItemStatusesByOrderId(client, {
       orderId,
       newStatusId: nextStatusId,
       updatedBy: userId,
