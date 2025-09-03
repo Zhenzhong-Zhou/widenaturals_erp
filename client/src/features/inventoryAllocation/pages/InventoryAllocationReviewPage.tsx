@@ -76,24 +76,31 @@ const InventoryAllocationReviewPage = () => {
     return () => resetAllocationReview();  // optional cleanup
   }, [orderId, allocationIds, refresh]);
   
-  if (!allocationReviewHeader) return null;
-  if (!allocationReviewItems) return null;
-  
   const titleOrderNumber = useMemo(() => getShortOrderNumber(allocationReviewHeader?.orderNumber ?? ''), [allocationReviewHeader]);
   
-  const flattenedHeader = flattenAllocationOrderHeader(allocationReviewHeader);
-  const flattenedItems = flattenInventoryAllocationReviewItems(allocationReviewItems);
+  const flattenedHeader = useMemo(() => {
+    return allocationReviewHeader ? flattenAllocationOrderHeader(allocationReviewHeader) : null;
+  }, [allocationReviewHeader]);
+  
+  const flattenedItems = useMemo(() => {
+    return allocationReviewItems ? flattenInventoryAllocationReviewItems(allocationReviewItems) : [];
+  }, [allocationReviewItems]);
   
   if (!orderId) {
     return <ErrorMessage message="Missing order ID in URL." />;
   }
-  
   if (reviewError) {
     return <ErrorMessage message={reviewMessage ?? 'Failed to load allocation review.'} />;
   }
   
-  if (isReviewLoading || !allocationReviewHeader || !allocationReviewItems) {
-    return null; // Or add a loading spinner
+  if (
+    isReviewLoading ||
+    !allocationReviewHeader ||
+    !allocationReviewItems?.length ||
+    !flattenedHeader ||
+    !flattenedItems?.length
+  ) {
+    return null; // or <Loading /> or <ErrorMessage message="Loading allocation review..." />
   }
   
   return (
