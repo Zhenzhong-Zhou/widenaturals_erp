@@ -93,6 +93,7 @@ const AllocateInventoryDialog: FC<AllocateInventoryDialogProps> = ({
       alert('Inventory successfully allocated!');
       navigate(`/inventory-allocations/review/${allocationOrderId}`, {
         state: {
+          warehouseIds: [warehouseId],
           allocationIds,
           category,
         },
