@@ -5,20 +5,20 @@
 exports.seed = async function (knex) {
   console.log('Seeding packaging_material_batches...');
   
-  const [{ count }] = await knex('users').count('id');
+  const [{ count }] = await knex('packaging_material_batches').count('id');
   const total = Number(count) || 0;
-
+  
   if (total > 0) {
     console.log(
-      `[${new Date().toISOString()}] [SEED] Skipping seed for [users] table: ${total} records found.`
+      `[${new Date().toISOString()}] [SEED] Skipping seed for [packaging_material_batches] table: ${total} records found.`
     );
     return;
   }
-
-  console.log(
-    `[${new Date().toISOString()}] [SEED] Inserting users into [users] table...`
-  );
   
+  console.log(
+    `[${new Date().toISOString()}] [SEED] Inserting records into [packaging_material_batches] table...`
+  );
+
   // Get system user for audit
   const systemUserId = await knex('users')
     .select('id')

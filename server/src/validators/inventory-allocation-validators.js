@@ -33,17 +33,19 @@ const allocateInventorySchema = Joi.object({
  *
  * Expected structure:
  * {
- *   allocationIds: string[] // Required, must contain at least one valid UUID
+ *   warehouseIds: string[] // Required array of UUIDs (at least one)
+ *   allocationIds: string[] // Required array of UUIDs (at least one)
  * }
  *
- * - `allocationIds` is a required field.
- * - Must be an array of valid UUID strings.
- * - Cannot be empty.
+ * Validation Rules:
+ * - Both `warehouseIds` and `allocationIds` are required.
+ * - Each must be a non-empty array of valid UUID strings.
+ * - Validation uses `validateUUIDArray(label, { required: true })` to enforce structure.
  *
- * @constant allocationReviewSchema
  * @type {Joi.ObjectSchema}
  */
 const allocationReviewSchema = Joi.object({
+  warehouseIds: validateUUIDArray('Warehouse IDs', { required: true }),
   allocationIds: validateUUIDArray('Allocation IDs', { required: true }),
 });
 

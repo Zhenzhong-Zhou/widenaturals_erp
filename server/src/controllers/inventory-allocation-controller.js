@@ -68,14 +68,14 @@ const allocateInventoryForOrderController = wrapAsync(async (req, res) => {
  *
  * Behavior:
  * - Expects `orderId` as a route parameter.
- * - Accepts an optional array of `allocationIds` (UUIDs) in the request body to filter specific allocations.
- * - Invokes the service layer to validate ownership, fetch matching allocations, and transform results.
- * - Returns a structured response with allocation header and item-level details.
+ * - Accepts an optional array of `allocationIds` (UUIDs) and `warehouseIds` in the request body to filter allocations.
+ * - Delegates to the service layer to validate access, fetch relevant data, and transform the response.
+ * - Returns a structured payload including order metadata and item-level allocation details.
  *
  * Notes:
  * - Route-level authorization is enforced via `PERMISSIONS.INVENTORY.REVIEW_ALLOCATION`.
- * - Responds with 404 if no allocations match the provided criteria.
- * - Uses POST to support large payloads and complex filtering.
+ * - Responds with 404 if no allocations are found.
+ * - Uses POST to support large filter payloads.
  *
  * @route POST /inventory-allocations/review/:orderId
  * @permission PERMISSIONS.INVENTORY.REVIEW_ALLOCATION
@@ -85,11 +85,11 @@ const allocateInventoryForOrderController = wrapAsync(async (req, res) => {
  * @param {import('express').Request} req - Express request object
  * @param {import('express').Response} res - Express response object
  *
- * @returns {Promise<void>} JSON response with review data or error message
+ * @returns {Promise<void>} Sends JSON response with review data or error message
  */
 const reviewInventoryAllocationController = wrapAsync( async (req, res) => {
   const { orderId } = req.params;
-  const { allocationIds = [] } = req.body;
+  const { warehouseIds = [], allocationIds = [] } = req.body;
   
   const logMeta = {
     context: 'inventory/reviewInventoryAllocationController',
@@ -98,7 +98,7 @@ const reviewInventoryAllocationController = wrapAsync( async (req, res) => {
     user: req.user?.id,
   };
   
-  const reviewData = await reviewInventoryAllocationService(orderId, allocationIds);
+  const reviewData = await reviewInventoryAllocationService(orderId, warehouseIds, allocationIds);
   
   if (!reviewData) {
     logInfo('No inventory allocations found', req, logMeta);
@@ -108,15 +108,18 @@ const reviewInventoryAllocationController = wrapAsync( async (req, res) => {
     });
   }
   
+  const allocationCount = reviewData?.items?.length ?? 0;
+  
   logInfo('Inventory allocation review retrieved successfully', req, {
     ...logMeta,
-    allocationCount: reviewData?.length ?? 0,
+    allocationCount,
   });
   
   return res.status(200).json({
     success: true,
     message: 'Inventory allocation review retrieved successfully',
     data: reviewData,
+    allocationCount,
   });
 });
 

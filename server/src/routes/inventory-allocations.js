@@ -43,26 +43,36 @@ router.post(
 
 /**
  * @route POST /inventory-allocations/review/:orderId
+ * @summary Review inventory allocations for a specific order.
  * @description
- * Retrieve and review inventory allocation details for a specific order.
+ * Retrieves detailed review data for inventory allocations tied to a given order.
  *
- * This endpoint:
- * - Accepts an `orderId` as a URL parameter.
- * - Optionally accepts `allocationIds` (array of UUIDs) in the request body to filter the review to specific allocations.
- * - Performs permission checks, request validation, and input sanitization.
- * - Returns detailed review data for allocations tied to the order.
+ * Request behavior:
+ * - Expects `orderId` as a route parameter.
+ * - Requires a request body with:
+ *   - `warehouseIds`: Array of UUIDs (required).
+ *   - `allocationIds`: Array of UUIDs (required).
  *
- * This route uses `POST` instead of `GET` to allow sending large arrays in the request body without exceeding URL length limits.
+ * Notes:
+ * - POST is used instead of GET to support large request bodies and avoid URL length limits.
+ * - Authorization is enforced using `PERMISSIONS.INVENTORY.REVIEW_ALLOCATION`.
+ * - Input validation and sanitization are applied to all incoming data.
+ *
+ * Middleware:
+ * - `authorize` – verifies permission.
+ * - `sanitizeFields` – cleans known array fields like `allocationIds`.
+ * - `validate` – validates `orderId` param and body schema.
  *
  * @permission PERMISSIONS.INVENTORY.REVIEW_ALLOCATION
  *
  * @param {string} req.params.orderId - UUID of the order to review allocations for.
- * @param {string[]} [req.body.allocationIds] - Optional list of allocation UUIDs to filter the review.
+ * @param {string[]} req.body.warehouseIds - Required list of warehouse UUIDs to filter by.
+ * @param {string[]} req.body.allocationIds - Required list of allocation UUIDs to review.
  *
- * @returns {200} Review data for the specified allocations.
+ * @returns {200} { success: true, data: { header, items }, message, allocationCount }
+ * @returns {400} If input validation fails.
+ * @returns {403} If the user lacks permission.
  * @returns {404} If no matching allocations are found.
- * @returns {403} If user lacks permissions.
- * @returns {400} If validation fails.
  */
 router.post(
   '/review/:orderId',

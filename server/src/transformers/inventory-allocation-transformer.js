@@ -2,6 +2,8 @@ const { getFullName } = require('../utils/name-utils');
 const { getProductDisplayName } = require('../utils/display-name-utils');
 const { formatPackagingMaterialLabel } = require('../utils/string-utils');
 const { cleanObject } = require('../utils/object-utils');
+const { getBatchSummary, getWarehouseInventoryList } = require('../utils/inventory-utils');
+
 /**
  * Extracts and deduplicates SKU and packaging material IDs from a list of order items.
  *
@@ -156,6 +158,22 @@ const transformAllocationReviewData = (rows, orderId) => {
 };
 
 /**
+ * @typedef {Object} BatchData
+ * @property {string} [lot_number]
+ * @property {string} [expiry_date]
+ * @property {string} [manufacture_date]
+ * @property {Array} [warehouse_inventory]
+ * @property {string} [material_snapshot_name]
+ */
+
+/**
+ * @typedef {Object} AllocationReviewRow
+ * @property {string} batch_type
+ * @property {BatchData} [product_batch]
+ * @property {BatchData} [packaging_material_batch]
+ */
+
+/**
  * @typedef {object} InventoryAllocationReviewRow
  * @property {string} allocation_id
  * @property {string} order_item_id
@@ -253,11 +271,11 @@ const transformAllocationReviewData = (rows, orderId) => {
  * } | null}
  */
 const transformInventoryAllocationReviewRows = (rows) => {
-  if (rows.length === 0) return null;
+  if (!rows?.length) return null;
   
   const [first] = rows;
   
-  const header = {
+  const header = cleanObject({
     orderNumber: first.order_number,
     note: first.order_note,
     createdBy: first.salesperson_id,
@@ -270,10 +288,14 @@ const transformInventoryAllocationReviewRows = (rows) => {
       id: first.salesperson_id,
       fullName: getFullName(first.salesperson_firstname, first.salesperson_lastname),
     },
-  };
+  });
   
   const items = rows.map((row) => {
-    const base = {
+    const batch = getBatchSummary(row);
+    
+    const wiList = getWarehouseInventoryList(row);
+    
+    const item = cleanObject({
       allocationId: row.allocation_id,
       orderItemId: row.order_item_id,
       transferOrderItemId: row.transfer_order_item_id,
@@ -303,21 +325,23 @@ const transformInventoryAllocationReviewRows = (rows) => {
         statusDate: row.item_status_date,
       },
       
-      product: {
-        product_id: row.product_id,
-        sku_id: row.sku_id,
-        skuCode: row.sku,
-        barcode: row.barcode,
-        displayName: row.sku_id
-          ? getProductDisplayName({
-            brand: row.brand,
-            sku: row.sku,
-            country_code: row.country_code,
-            product_name: row.product_name,
-            size_label: row.size_label,
-          })
-          : null,
-      },
+      product: row.product_id
+        ? {
+          productId: row.product_id,
+          skuId: row.sku_id,
+          skuCode: row.sku,
+          barcode: row.barcode,
+          displayName: row.sku_id
+            ? getProductDisplayName({
+              brand: row.brand,
+              sku: row.sku,
+              country_code: row.country_code,
+              product_name: row.product_name,
+              size_label: row.size_label,
+            })
+            : null,
+        }
+        : null,
       
       packagingMaterial: row.packaging_material_id
         ? {
@@ -335,43 +359,25 @@ const transformInventoryAllocationReviewRows = (rows) => {
         }
         : null,
       
-      warehouseInventory: row.warehouse_inventory_id && {
-        id: row.warehouse_inventory_id,
-        warehouseQuantity: row.warehouse_quantity,
-        reservedQuantity: row.reserved_quantity,
-        statusName: row.inventory_status_name,
-        statusDate: row.inventory_status_date,
-      },
+      warehouseInventoryList: wiList.map((wi) =>
+        cleanObject({
+          id: wi.warehouse_inventory_id,
+          warehouseQuantity: wi.warehouse_quantity,
+          reservedQuantity: wi.reserved_quantity,
+          statusName: wi.inventory_status_name,
+          statusDate: wi.inventory_status_date,
+          warehouseName: wi.warehouse_name,
+          inboundDate: wi.inbound_date,
+        })
+      ),
       
-      batch: (() => {
-        if (row.batch_type === 'product') {
-          return {
-            type: 'product',
-            productLotNumber: row.product_lot_number,
-            productExpiryDate: row.product_expiry_date,
-            productInboundDate: row.product_inbound_date,
-          };
-        } else if (row.batch_type === 'packaging_material') {
-          return {
-            type: 'packaging_material',
-            materialLotNumber: row.material_lot_number,
-            materialExpiryDate: row.material_expiry_date,
-            snapshotName: row.material_name,
-          };
-        }
-        return {
-          type: row.batch_type,
-        };
-      })(),
-    };
+      batch,
+    });
     
-    return cleanObject(base);
+    return cleanObject(item);
   });
   
-  return {
-    header: cleanObject(header),
-    items,
-  };
+  return { header, items };
 };
 
 /**

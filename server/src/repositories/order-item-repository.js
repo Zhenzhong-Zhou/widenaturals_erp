@@ -211,6 +211,7 @@ const findOrderItemsByOrderId = async (orderId) => {
  *
  * @throws {AppError} If a database error occurs.
  */
+// todo: rename updateOrderItemStatusesByOrderId
 const updateOrderItemStatuses = async (client, { orderId, newStatusId, updatedBy }) => {
   const sql = `
     UPDATE order_items
@@ -261,6 +262,79 @@ const updateOrderItemStatuses = async (client, { orderId, newStatusId, updatedBy
     });
     
     throw AppError.databaseError(`Failed to update order item statuses: ${error.message}`);
+  }
+};
+
+/**
+ * Updates the status of a single order item, if the new status differs from the current one.
+ *
+ * This function updates the following fields on the `order_items` table:
+ * - `status_id`
+ * - `status_date` (set to current timestamp)
+ * - `updated_at` (set to current timestamp)
+ * - `updated_by` (the user who performed the update)
+ *
+ * If the item already has the specified status, no update is performed and `null` is returned.
+ *
+ * @param {object} client - The PostgreSQL client instance, typically from a transaction context.
+ * @param {object} params - Parameters for the status update.
+ * @param {string} params.orderItemId - UUID of the order item to update.
+ * @param {string} params.newStatusId - UUID of the new status to set.
+ * @param {string} params.updatedBy - UUID of the user performing the update.
+ * @returns {Promise<{ id: string, status_id: string, status_date: string } | null>} The updated row (if any), or null if unchanged.
+ * @throws {AppError} If the database update fails.
+ *
+ * @example
+ * await updateOrderItemStatus(client, {
+ *   orderItemId: 'abc123',
+ *   newStatusId: 'status_confirmed',
+ *   updatedBy: 'user_456',
+ * });
+ */
+const updateOrderItemStatus = async (client, { orderItemId, newStatusId, updatedBy }) => {
+  const sql = `
+    UPDATE order_items
+    SET
+      status_id = $1,
+      status_date = NOW(),
+      updated_at = NOW(),
+      updated_by = $2
+    WHERE id = $3 AND status_id IS DISTINCT FROM $1
+    RETURNING id, status_id, status_date
+  `;
+  
+  const values = [newStatusId, updatedBy, orderItemId];
+  
+  try {
+    const result = await query(sql, values, client);
+    const updatedRow = result.rows?.[0] ?? null;
+    
+    if (updatedRow) {
+      logSystemInfo('Order item status updated successfully', {
+        context: 'order-item-repository/updateOrderItemStatus',
+        orderItemId,
+        newStatusId,
+        updatedBy,
+      });
+    } else {
+      logSystemInfo('Order item status unchanged (already up-to-date)', {
+        context: 'order-item-repository/updateOrderItemStatus',
+        orderItemId,
+        newStatusId,
+        updatedBy,
+        severity: 'DEBUG',
+      });
+    }
+    
+    return updatedRow;
+  } catch (error) {
+    logSystemException(error, 'Failed to update order item status', {
+      context: 'order-item-repository/updateOrderItemStatus',
+      orderItemId,
+      newStatusId,
+      updatedBy,
+    });
+    throw AppError.databaseError('Failed to update order item status.');
   }
 };
 
@@ -332,5 +406,6 @@ module.exports = {
   insertOrderItemsBulk,
   findOrderItemsByOrderId,
   updateOrderItemStatuses,
+  updateOrderItemStatus,
   getOrderItemsByOrderId,
 };
