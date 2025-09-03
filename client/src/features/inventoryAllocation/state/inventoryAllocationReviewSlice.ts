@@ -42,13 +42,10 @@ const inventoryAllocationReviewSlice = createSlice({
         state.loading = false;
         
         const payload = action.payload as unknown;
-        let msg: string | null =
-          (typeof payload === 'string' && payload) ||
+        state.error = (typeof payload === 'string' && payload) ||
           (payload && typeof payload === 'object' && ((payload as any).message ?? (payload as any).error ?? (payload as any)?.data?.message)) ||
           action.error.message ||
           'Failed to fetch allocation review';
-        
-        state.error = msg;
       });
   },
 });

@@ -56,10 +56,14 @@ export type AllocateInventoryResponse = ApiSuccessResponse<AllocateInventoryData
 export type AllocateInventoryState = AsyncState<AllocateInventoryData | null>;
 
 /**
- * Request body to review specific allocation records for an order.
+ * Request body used to review inventory allocation records for a specific order.
+ * Includes optional warehouse filters and specific allocation IDs to target.
  */
 export interface AllocationReviewRequest {
-  /** Allocation UUIDs to review */
+  /** Filter allocations by these warehouse IDs (optional or empty for all) */
+  warehouseIds: string[];
+  
+  /** Specific allocation UUIDs to review (optional or empty to review all for the order) */
   allocationIds: string[];
 }
 
@@ -146,9 +150,9 @@ export interface OrderItemReview extends OrderItemStatus {
 /** Product/SKU summary used by allocation rows. */
 export interface ProductSummary {
   /** Product ID (UUID) */
-  product_id: string;
+  productId: string;
   /** SKU ID (UUID) */
-  sku_id: string;
+  skuId: string;
   /** SKU code displayed to users */
   skuCode: string;
   /** UPC/EAN or internal barcode */
@@ -169,39 +173,62 @@ export interface PackagingMaterialSnapshot {
   label: string;
 }
 
-/** Current warehouse inventory snapshot at time of review. */
+/**
+ * Snapshot of a specific warehouse's inventory state at the time of allocation review.
+ */
 export interface WarehouseInventorySummary {
-  /** Warehouse inventory record ID (UUID) */
+  /** Unique ID of the warehouse inventory record (UUID) */
   id: string;
   
-  /** On-hand quantity currently available in the warehouse */
+  /** Name of the warehouse (e.g., "WIDE Naturals Inc.") */
+  warehouseName: string;
+  
+  /** Quantity physically on hand in this warehouse */
   warehouseQuantity: number;
   
-  /** Quantity already reserved across all orders */
+  /** Quantity currently reserved across all orders */
   reservedQuantity: number;
   
-  /** Human-readable inventory status (e.g., "In Stock", "Damaged") */
+  /** Human-readable inventory status (e.g., "In Stock", "Damaged", "Reserved") */
   statusName: string;
   
-  /** ISO timestamp when the inventory status was last updated */
+  /** ISO 8601 timestamp when the inventory status was last updated */
   statusDate: string;
+  
+  /** ISO 8601 timestamp indicating when the inventory was received (inbound) */
+  inboundDate: string;
 }
 
-/** Batch summary for the allocation (product or packaging material). */
-export interface BatchReview {
-  /**
-   * Batch type. Server currently returns "product".
-   * Keep `| string` to future-proof if new types are introduced.
-   */
-  type: 'product' | 'packaging_material' | string;
+/** Shared base fields for all batch types */
+export interface BaseBatchReview {
+  /** Batch type (discriminator) */
+  type: string;
   
-  /** Lot number for product batch (if applicable) */
-  productLotNumber?: string;
-  /** Expiry date (ISO) for product batch (if applicable) */
-  productExpiryDate?: string;
-  /** Inbound date (ISO) for product batch (if applicable) */
-  productInboundDate?: string;
+  /** Shared lot number */
+  lotNumber: string;
+  
+  /** Shared expiry date */
+  expiryDate: string;
+  
+  /** Shared manufacture date */
+  manufactureDate: string;
 }
+
+/** Product batch structure */
+export interface ProductBatchReview extends BaseBatchReview {
+  type: 'product';
+}
+
+/** Packaging material batch structure */
+export interface PackagingMaterialBatchReview extends BaseBatchReview {
+  type: 'packaging_material';
+  
+  /** Label of the packaging material at the time of snapshot */
+  snapshotName: string;
+}
+
+/** Discriminated union */
+export type BatchReview = ProductBatchReview | PackagingMaterialBatchReview;
 
 /** One allocation row linking an order item to a batch with quantities. */
 export interface AllocationReviewItem {
@@ -235,10 +262,10 @@ export interface AllocationReviewItem {
   /** ISO timestamp of last update to this allocation */
   updatedAt: string;
   
-  /** Audit: who created the allocation (may be system or user) */
+  /** Audit: who created the allocation (maybe system or user) */
   createdBy: UserSummary;
   
-  /** Audit: who last updated the allocation (may be null/system) */
+  /** Audit: who last updated the allocation (maybe null/system) */
   updatedBy: UserSummary;
   
   /** Snapshot of the order item associated with this allocation */
@@ -253,8 +280,8 @@ export interface AllocationReviewItem {
    */
   packagingMaterial?: PackagingMaterialSnapshot | null;
   
-  /** Snapshot of current warehouse inventory levels at allocation time */
-  warehouseInventory: WarehouseInventorySummary;
+  /** List of relevant warehouse inventory records linked to this allocation (e.g., for showing status, quantity, reserved, etc.) */
+  warehouseInventoryList: WarehouseInventorySummary[];
   
   /** Batch metadata (product or packaging) used for this allocation */
   batch: BatchReview;

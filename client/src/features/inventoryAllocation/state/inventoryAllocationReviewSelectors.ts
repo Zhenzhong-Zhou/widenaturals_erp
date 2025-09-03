@@ -1,6 +1,9 @@
 import { createSelector } from '@reduxjs/toolkit';
 import type { RootState } from '@store/store';
-import type { AllocationReviewItem } from '@features/inventoryAllocation/state/inventoryAllocationTypes';
+import type {
+  AllocationReviewItem
+} from '@features/inventoryAllocation/state/inventoryAllocationTypes';
+import { isPackagingBatch, isProductBatch } from '@utils/batchTypeGuards.ts';
 
 /**
  * Root selector for the inventory allocation review slice.
@@ -72,6 +75,12 @@ export const selectReviewItems = createSelector(
   (data) => data?.items ?? []
 );
 
+/** Item count (stable number for badges, etc.) */
+export const selectReviewItemCount = createSelector(
+  [selectReviewItems],
+  (items) => items.length
+);
+
 /**
  * Selector for the name of the salesperson or creator.
  */
@@ -89,15 +98,48 @@ export const selectReviewAllocationIds = createSelector(
 );
 
 /**
- * Selector that transforms each review item into a product row for display.
+ * Selector that maps allocation review items into flattened display rows.
+ *
+ * This supports multiple batch types (product and packaging material),
+ * and returns relevant fields (e.g., SKU code, material label, lot number,
+ * expiry date, allocated quantity) depending on the batch type.
+ *
+ * @returns An array of normalized review rows for table rendering.
+ * - Product rows include: type, skuCode, displayName, lot, expiryDate, allocated.
+ * - Packaging material rows include: type, materialCode, materialLabel, lot, expiryDate, allocated.
+ * - Unknown types fallback to type: 'unknown'.
  */
-export const selectReviewProducts = createSelector(
+export const selectReviewAllocations = createSelector(
   selectReviewItems,
   (items) =>
-    items.map((item: AllocationReviewItem) => ({
-      skuCode: item.product.skuCode,
-      displayName: item.product.displayName,
-      lot: item.batch.productLotNumber,
-      allocated: item.allocatedQuantity,
-    }))
+    items.map((item: AllocationReviewItem) => {
+      const { batch, product, packagingMaterial, allocatedQuantity } = item;
+      
+      if (isProductBatch(batch)) {
+        return {
+          type: 'product' as const,
+          skuCode: product?.skuCode ?? '—',
+          displayName: product?.displayName ?? 'Unnamed Product',
+          lot: batch.lotNumber ?? '—',
+          expiryDate: batch.expiryDate ?? null,
+          allocated: allocatedQuantity,
+        };
+      }
+      
+      if (isPackagingBatch(batch)) {
+        return {
+          type: 'packaging_material' as const,
+          materialCode: packagingMaterial?.code ?? '—',
+          materialLabel: packagingMaterial?.label ?? 'Unnamed Material',
+          lot: batch.lotNumber ?? '—',
+          expiryDate: batch.expiryDate ?? null,
+          allocated: allocatedQuantity,
+        };
+      }
+      
+      return {
+        type: 'unknown' as const,
+        allocated: allocatedQuantity,
+      };
+    })
 );

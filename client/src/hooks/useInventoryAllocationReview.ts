@@ -1,17 +1,18 @@
-import { useMemo, useCallback } from 'react';
+import { useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   type AllocationReviewRequest,
   fetchInventoryAllocationReviewThunk,
   selectReviewAllocationIds,
+  selectReviewAllocations,
   selectReviewCreatedBy,
   selectReviewError,
   selectReviewHeader,
   selectReviewItems,
+  selectReviewItemCount,
   selectReviewLastFetchedAt,
   selectReviewLoading,
   selectReviewMessage,
-  selectReviewProducts,
 } from '@features/inventoryAllocation/state';
 import {
   resetReviewState,
@@ -28,8 +29,9 @@ const useInventoryAllocationReview = () => {
   
   const header = useAppSelector(selectReviewHeader);
   const items = useAppSelector(selectReviewItems);
-  const products = useAppSelector(selectReviewProducts);
+  const itemCount = useAppSelector(selectReviewItemCount);
   const createdBy = useAppSelector(selectReviewCreatedBy);
+  const allocations = useAppSelector(selectReviewAllocations);
   const allocationIds = useAppSelector(selectReviewAllocationIds);
   
   /**
@@ -54,13 +56,6 @@ const useInventoryAllocationReview = () => {
     dispatch(setReviewError(msg));
   }, [dispatch]);
   
-  const summary = useMemo(() => {
-    return {
-      productCount: products.length,
-      totalAllocated: products.reduce((sum: number, p: { allocated: number }) => sum + p.allocated, 0),
-    };
-  }, [products]);
-  
   return {
     // State
     loading,
@@ -71,10 +66,10 @@ const useInventoryAllocationReview = () => {
     // Data
     header,
     items,
-    products,
+    itemCount,
     createdBy,
     allocationIds,
-    summary,
+    allocations,
     
     // Actions
     fetchReview, // usage: fetchReview(orderId, requestBody)
