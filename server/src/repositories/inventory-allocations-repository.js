@@ -499,6 +499,7 @@ const getInventoryAllocationReview = async (orderId, warehouseIds, allocationIds
  *     allocation_status_codes: string[]; // distinct
  *     allocation_statuses: string; // CSV, alpha-sorted
  *     allocation_summary_status: 'Failed' | 'Fully Allocated' | 'Partially Allocated' | 'Pending Allocation' | 'Unknown';
+ *     allocation_ids: string[]; // all allocation UUIDs associated with this order
  *   }>,
  *   pagination: { page: number; limit: number; totalRecords: number; totalPages: number; }
  * }
@@ -527,6 +528,7 @@ const getPaginatedInventoryAllocations = async ({
     WITH raw_alloc AS (
       SELECT
         oi.order_id,
+        ARRAY_AGG(DISTINCT ia.id) AS allocation_ids,
         COUNT(DISTINCT ia.id)                         AS allocated_items,
         ARRAY_AGG(DISTINCT w.id)                      AS warehouse_ids,
         STRING_AGG(DISTINCT w.name, ', ' ORDER BY w.name) AS warehouse_names,
@@ -578,6 +580,7 @@ const getPaginatedInventoryAllocations = async ({
       u.firstname AS created_by_firstname,
       u.lastname  AS created_by_lastname,
       aa.warehouse_ids,
+      aa.allocation_ids,
       aa.warehouse_names,
       aa.allocation_status_codes,
       aa.allocation_statuses,

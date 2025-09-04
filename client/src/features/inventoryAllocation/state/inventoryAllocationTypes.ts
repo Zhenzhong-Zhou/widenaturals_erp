@@ -394,6 +394,9 @@ export interface InventoryAllocationSummary {
     names: string;   // e.g., 'confirmed, pending'
     summary: AllocationSummaryStatus;
   };
+  
+  /** All inventory allocation IDs linked to this order */
+  allocationIds: string[];
 }
 
 /**
