@@ -386,6 +386,7 @@ const transformInventoryAllocationReviewRows = (rows) => {
  * @property {string} order_id
  * @property {string} order_number
  * @property {string|null} order_type
+ * @property {string|null} order_category
  * @property {string|null} order_status_name
  * @property {string|null} order_status_code
  * @property {string|null} customer_firstname
@@ -411,6 +412,7 @@ const transformInventoryAllocationReviewRows = (rows) => {
  * @property {string} orderId - UUID of the order
  * @property {string} orderNumber - Human-readable order number
  * @property {string|null} orderType - Name of order type
+ * @property {string|null} orderCategory - Code of the order category (e.g., "sales", "transfer"). Nullable if not applicable.
  * @property {{ name: string, code: string }} orderStatus
  * @property {{ fullName: string }} customer
  * @property {string|null} paymentMethod
@@ -443,6 +445,7 @@ const transformInventoryAllocationRow = (row) => {
     orderId: row.order_id,
     orderNumber: row.order_number,
     orderType: row.order_type,
+    orderCategory: row.order_category,
     orderStatus: {
       name: row.order_status_name,
       code: row.order_status_code,

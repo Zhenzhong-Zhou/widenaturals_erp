@@ -350,6 +350,11 @@ export interface InventoryAllocationSummary {
   /** Name of the order type (e.g., "Standard Sales Order") */
   orderType: string | null;
   
+  /**
+   * Code of the order category (e.g., "sales", "transfer", "purchase"). Nullable if not categorized.
+   */
+  orderCategory: string | null;
+  
   /** Order status details */
   orderStatus: {
     name: string;

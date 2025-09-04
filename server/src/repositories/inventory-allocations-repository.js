@@ -567,6 +567,7 @@ const getPaginatedInventoryAllocations = async ({
       o.id AS order_id,
       o.order_number,
       ot.name AS order_type,
+      ot.category AS order_category,
       os.name AS order_status_name,
       os.code AS order_status_code,
       c.firstname AS customer_firstname,
