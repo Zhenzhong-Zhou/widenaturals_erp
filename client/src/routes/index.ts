@@ -298,21 +298,19 @@ export const routes = [
       showInSidebar: false,
     },
   },
-  // {
-  //   path: '/orders/:orderType/:orderId/allocate',
-  //   component: lazy(
-  //     () =>
-  //       import(
-  //         '@features/inventoryAllocation/pages/OrderInventoryAllocationPage'
-  //       )
-  //   ),
-  //   meta: {
-  //     requiresAuth: true,
-  //     title: 'Inventory Allocation',
-  //     showInSidebar: false,
-  //     requiredPermission: 'inventory_allocation',
-  //   },
-  // },
+  {
+    path: '/inventory-allocations',
+    component: lazy(
+      () =>
+        import('@features/inventoryAllocation/pages/InventoryAllocationsPage')
+    ),
+    meta: {
+      requiresAuth: true,
+      title: 'Inventory Allocation',
+      showInSidebar: true,
+      requiredPermission: 'view_inventory_allocations',
+    },
+  },
   // {
   //   path: '/orders/:type/:id/allocation',
   //   component: lazy(() => import('@features/order/pages/OrderAllocationDetailsPage')),
