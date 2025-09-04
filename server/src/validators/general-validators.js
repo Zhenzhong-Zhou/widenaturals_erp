@@ -318,6 +318,30 @@ const statusDateRangeSchema = Joi.object({
 });
 
 /**
+ * Joi schema for filtering by allocated date range.
+ *
+ * Includes:
+ * - `allocatedAfter`: ISO date to filter records allocated on or after this date
+ * - `allocatedBefore`: ISO date to filter records allocated on or before this date
+ *
+ * Accepts null or empty string values.
+ *
+ * @type {Joi.ObjectSchema}
+ */
+const allocatedDateRangeSchema = Joi.object({
+  allocatedAfter: Joi.date()
+    .iso()
+    .optional()
+    .allow(null, '')
+    .label('Allocated After'),
+  allocatedBefore: Joi.date()
+    .iso()
+    .optional()
+    .allow(null, '')
+    .label('Allocated Before'),
+});
+
+/**
  * Creates a Joi schema for a boolean query parameter that accepts flexible truthy/falsy values.
  *
  * - Accepts true/false, or strings like 'true'/'false'
@@ -388,6 +412,7 @@ module.exports = {
   createdDateRangeSchema,
   updatedDateRangeSchema,
   statusDateRangeSchema,
+  allocatedDateRangeSchema,
   createBooleanFlag,
   validateKeyword,
   validateOptionalString,

@@ -8,7 +8,16 @@
  */
 
 const Joi = require('joi');
-const { validateString, validateUUID, validateUUIDArray } = require('./general-validators');
+const {
+  validateString,
+  validateUUID,
+  validateUUIDArray,
+  paginationSchema,
+  createSortSchema,
+  validateOptionalUUID,
+  validateOptionalString,
+  allocatedDateRangeSchema
+} = require('./general-validators');
 
 /**
  * Validates the body of the inventory allocation request.
@@ -49,7 +58,71 @@ const allocationReviewSchema = Joi.object({
   allocationIds: validateUUIDArray('Allocation IDs', { required: true }),
 });
 
+/**
+ * Joi validation schema for querying paginated inventory allocations.
+ *
+ * This schema validates query parameters used in listing/filtering inventory allocation
+ * records via the API or UI dashboard. It supports pagination, sorting, and filtering
+ * based on allocation, order, sales, and keyword metadata.
+ *
+ * ### Composition:
+ * - Inherits from:
+ *   - `paginationSchema` → page, limit
+ *   - `createSortSchema('created_at')` → sortBy, sortOrder (default: 'created_at')
+ *   - `allocatedDateRangeSchema` → allocatedAfter, allocatedBefore (ISO strings)
+ *
+ * ### Supported Filters:
+ * - **Allocation-level**
+ *   - `statusId` → Allocation status UUID
+ *   - `warehouseId` → Warehouse UUID
+ *   - `batchId` → Batch UUID
+ *   - `allocationCreatedBy` → UUID of user who created the allocation
+ *
+ * - **Order-level**
+ *   - `orderNumber` → Partial match on order number
+ *   - `orderStatusId` → Order status UUID
+ *   - `orderTypeId` → Order type UUID
+ *   - `orderCreatedBy` → UUID of user who created the order
+ *
+ * - **Sales order-level**
+ *   - `paymentStatusId` → Payment status UUID
+ *
+ * - **Keyword search**
+ *   - `keyword` → Fuzzy match against order number, SKU, product name, or customer name
+ *
+ * ### Notes:
+ * - All UUIDs must be valid (or undefined/null if optional).
+ * - All string fields are trimmed and optional.
+ * - Pagination defaults: `page = 1`, `limit = 10`
+ * - Sort defaults: `sortBy = 'created_at'`, `sortOrder = 'DESC'`
+ *
+ * @type {import('joi').ObjectSchema}
+ */
+const inventoryAllocationsQuerySchema = paginationSchema
+  .concat(createSortSchema('created_at')) // default sort
+  .concat(allocatedDateRangeSchema)
+  .keys({
+    // --- Allocation-level filters ---
+    statusId: validateOptionalUUID('Allocation status ID'),
+    warehouseId: validateOptionalUUID('Warehouse ID'),
+    batchId: validateOptionalUUID('Batch ID'),
+    allocationCreatedBy: validateOptionalUUID('Allocation Created By User ID'),
+    
+    // --- Order-level filters ---
+    orderNumber: validateOptionalString('Order Number'),
+    orderStatusId: validateOptionalUUID('Order Status ID'),
+    orderTypeId: validateOptionalUUID('Order Type ID'),
+    orderCreatedBy: validateOptionalUUID('Order Created By User ID'),
+    
+    // --- Sales order-level filters ---
+    paymentStatusId: validateOptionalUUID('Payment Status ID'),
+    
+    // --- Keyword search ---
+    keyword: validateOptionalString('Keyword for fuzzy matching (order number, SKU, product name, or customer)'),
+  });
+
 module.exports = {
   allocateInventorySchema,
   allocationReviewSchema,
+  inventoryAllocationsQuerySchema,
 };

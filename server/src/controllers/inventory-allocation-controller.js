@@ -2,7 +2,7 @@ const wrapAsync = require('../utils/wrap-async');
 const {
   allocateInventoryForOrderService,
   reviewInventoryAllocationService,
-  confirmInventoryAllocationService
+  confirmInventoryAllocationService, fetchPaginatedInventoryAllocationsService
 } = require('../services/inventory-allocation-service');
 const { logInfo } = require('../utils/logger-helper');
 
@@ -124,6 +124,63 @@ const reviewInventoryAllocationController = wrapAsync( async (req, res) => {
 });
 
 /**
+ * Controller to fetch a paginated list of inventory allocation summaries.
+ *
+ * Accepts query parameters (already normalized via middleware) to control
+ * filtering, pagination, and sorting behavior.
+ *
+ * Delegates the core logic to `fetchPaginatedInventoryAllocationsService`, which:
+ * - Applies SQL-level filtering (allocation/order/payment-related)
+ * - Transforms raw rows into client-friendly format
+ * - Returns pagination metadata
+ *
+ * ### Query Parameters (via `req.normalizedQuery`):
+ * - `page` (number): Page number (1-based)
+ * - `limit` (number): Items per page
+ * - `sortBy` (string): Column key to sort by (e.g., `created_at`)
+ * - `sortOrder` (string): 'ASC' or 'DESC'
+ * - `filters` (object): Dynamic filters (e.g., warehouseId, orderStatusId, keyword, etc.)
+ *
+ * ### Response: 200 OK
+ * ```json
+ * {
+ *   "success": true,
+ *   "message": "Inventory allocations retrieved successfully.",
+ *   "data": InventoryAllocationSummary[],
+ *   "pagination": {
+ *     "page": number,
+ *     "limit": number,
+ *     "totalRecords": number,
+ *     "totalPages": number
+ *   }
+ * }
+ * ```
+ *
+ * @route GET /api/inventory-allocations
+ * @access Protected
+ */
+const getPaginatedInventoryAllocationsController = wrapAsync(async (req, res) => {
+  const { page, limit, sortBy, sortOrder, filters } = req.normalizedQuery;
+  
+  // Step 1: Fetch transformed paginated results from service
+  const { data, pagination } = await fetchPaginatedInventoryAllocationsService({
+    filters,
+    page,
+    limit,
+    sortBy,
+    sortOrder,
+  });
+  
+  // Step 2: Return 200 response
+  res.status(200).json({
+    success: true,
+    message: 'Inventory allocations retrieved successfully.',
+    data,
+    pagination,
+  });
+});
+
+/**
  * Controller: Confirm inventory allocation for a specific order.
  *
  * Route: POST /inventory-allocation/confirm/:orderId
@@ -177,5 +234,6 @@ const confirmInventoryAllocationController = wrapAsync(async (req, res) => {
 module.exports = {
   allocateInventoryForOrderController,
   reviewInventoryAllocationController,
+  getPaginatedInventoryAllocationsController,
   confirmInventoryAllocationController,
 };

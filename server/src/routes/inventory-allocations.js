@@ -5,14 +5,16 @@ const validate = require('../middlewares/validate');
 const { orderIdParamSchema } = require('../validators/order-validators');
 const {
   allocateInventorySchema,
-  allocationReviewSchema
+  allocationReviewSchema, inventoryAllocationsQuerySchema
 } = require('../validators/inventory-allocation-validators');
 const {
   allocateInventoryForOrderController,
   reviewInventoryAllocationController,
+  getPaginatedInventoryAllocationsController,
   confirmInventoryAllocationController,
 } = require('../controllers/inventory-allocation-controller');
 const { sanitizeFields } = require('../middlewares/sanitize');
+const createQueryNormalizationMiddleware = require('../middlewares/query-normalization');
 
 const router = express.Router();
 
@@ -81,6 +83,62 @@ router.post(
   validate(orderIdParamSchema, 'params'),
   validate(allocationReviewSchema, 'body'),
   reviewInventoryAllocationController
+);
+
+/**
+ * GET /api/inventory-allocations
+ *
+ * Fetch a paginated list of inventory allocation summaries with filtering, sorting, and pagination.
+ *
+ * ### Middleware Stack:
+ * 1. `authorize([PERMISSIONS.INVENTORY.VIEW])`
+ *    → Requires `INVENTORY.VIEW` permission to access this route.
+ *
+ * 2. `createQueryNormalizationMiddleware('inventoryAllocationSortMap', [], [], inventoryAllocationsQuerySchema)`
+ *    → Normalizes query parameters into `req.normalizedQuery`:
+ *      - `page`, `limit`, `sortBy`, `sortOrder`, `filters`
+ *      - Uses `inventoryAllocationSortMap` to validate sort keys (optional).
+ *
+ * 3. `sanitizeFields(['keyword'])`
+ *    → Trims and cleans the `keyword` field to remove excess whitespace.
+ *
+ * 4. `validate(inventoryAllocationsQuerySchema, 'query')`
+ *    → Validates query parameters against Joi schema, ensuring correct types and formats.
+ *
+ * 5. `getPaginatedInventoryAllocationsController`
+ *    → Handles request by calling service and returning structured result.
+ *
+ * ### Query Parameters (validated via `inventoryAllocationsQuerySchema`):
+ * - `page` (number, default: 1)
+ * - `limit` (number, default: 10)
+ * - `sortBy` (string, default: 'created_at')
+ * - `sortOrder` (string, 'ASC' | 'DESC', default: 'DESC')
+ * - `filters`:
+ *   - `statusId`, `warehouseId`, `batchId`, `orderStatusId`, `orderTypeId`, `paymentStatusId`, etc.
+ *   - `keyword`: Fuzzy search on order number, product name, customer name
+ *   - `allocatedAfter`, `allocatedBefore`: Date range filtering
+ *
+ * ### Example:
+ * ```http
+ * GET /api/inventory-allocations?page=1&limit=20&sortBy=created_at&sortOrder=DESC&warehouseId=abc-123&keyword=NMN
+ * Authorization: Bearer <token>
+ * ```
+ *
+ * @access Protected
+ * @returns {200} JSON with `data` and `pagination` fields
+ */
+router.get(
+  '/',
+  authorize([PERMISSIONS.INVENTORY.VIEW]),
+  createQueryNormalizationMiddleware(
+    'inventoryAllocationSortMap',
+    [],
+    [],
+    inventoryAllocationsQuerySchema
+  ),
+  sanitizeFields(['keyword']),
+  validate(inventoryAllocationsQuerySchema, 'query'),
+  getPaginatedInventoryAllocationsController
 );
 
 /**

@@ -1,6 +1,7 @@
-const { bulkInsert, query } = require('../database/db');
+const { bulkInsert, query, paginateResults } = require('../database/db');
 const { logSystemException, logSystemInfo, logSystemWarn } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
+const { buildInventoryAllocationFilter } = require('../utils/sql/build-inventory-allocation-filters');
 
 /**
  * Bulk inserts inventory allocation records into the `inventory_allocations` table.
@@ -454,9 +455,188 @@ const getInventoryAllocationReview = async (orderId, warehouseIds, allocationIds
   }
 };
 
+/**
+ * Fetch a paginated, order-grouped view of inventory allocations with order, customer,
+ * payment, delivery, and warehouse metadata. Filters are pushed down into the
+ * allocation CTE for better performance on large datasets.
+ *
+ * ## Sorting
+ * - `sortBy` is whitelisted to prevent SQL injection. Unsupported fields fall back to `created_at`.
+ * - `sortOrder` is `ASC`|`DESC`, default `DESC`.
+ *
+ * ## Filtering
+ * `filters` is compiled by `buildInventoryAllocationFilter(filters)` into:
+ *   - `whereClause`: SQL fragment safe to splice (contains only placeholders)
+ *   - `params`: parameter array for placeholders
+ * Typical filters might include:
+ *   - `orderTypeIds: uuid[]`
+ *   - `statusCodes: string[]` (allocation or order)
+ *   - `warehouseIds: uuid[]`
+ *   - `dateFrom` / `dateTo` (created_at range)
+ *   - `search` (ILIKE on order_number or customer name)
+ *
+ * ## Return shape
+ * Returns a standard pagination envelope (never `null`):
+ * {
+ *   data: Array<{
+ *     order_id: string;
+ *     order_number: string;
+ *     order_type: string | null;
+ *     order_status_name: string | null;
+ *     order_status_code: string | null;
+ *     customer_firstname: string | null;
+ *     customer_lastname: string | null;
+ *     payment_method: string | null;
+ *     payment_status: string | null;
+ *     delivery_method: string | null;
+ *     total_items: number;
+ *     allocated_items: number;
+ *     created_at: string; // UTC ISO
+ *     created_by_firstname: string | null;
+ *     created_by_lastname: string | null;
+ *     warehouse_ids: string[]; // distinct
+ *     warehouse_names: string; // CSV, alpha-sorted
+ *     allocation_status_codes: string[]; // distinct
+ *     allocation_statuses: string; // CSV, alpha-sorted
+ *     allocation_summary_status: 'Failed' | 'Fully Allocated' | 'Partially Allocated' | 'Pending Allocation' | 'Unknown';
+ *   }>,
+ *   pagination: { page: number; limit: number; totalRecords: number; totalPages: number; }
+ * }
+ *
+ * @param {Object} options
+ * @param {Object} [options.filters={}] - Filter criteria (compiled by buildInventoryAllocationFilter)
+ * @param {number} [options.page=1] - Page number (1-based)
+ * @param {number} [options.limit=10] - Page size
+ * @param {string} [options.sortBy='created_at'] - Whitelisted sort field
+ * @param {string} [options.sortOrder='DESC'] - 'ASC' | 'DESC'
+ * @returns {Promise<{
+ *   data: any[];
+ *   pagination: { page: number; limit: number; totalRecords: number; totalPages: number; }
+ * }>}
+ */
+const getPaginatedInventoryAllocations = async ({
+                                                  filters = {},
+                                                  page = 1,
+                                                  limit = 10,
+                                                  sortBy = 'created_at',
+                                                  sortOrder = 'DESC',
+                                                }) => {
+  const { whereClause, params } = buildInventoryAllocationFilter(filters);
+  
+  const baseQuery = `
+    WITH raw_alloc AS (
+      SELECT
+        oi.order_id,
+        COUNT(DISTINCT ia.id)                         AS allocated_items,
+        ARRAY_AGG(DISTINCT w.id)                      AS warehouse_ids,
+        STRING_AGG(DISTINCT w.name, ', ' ORDER BY w.name) AS warehouse_names,
+        ARRAY_AGG(DISTINCT s.code)                    AS allocation_status_codes,
+        STRING_AGG(DISTINCT s.name, ', ' ORDER BY s.name) AS allocation_statuses
+      FROM inventory_allocations ia
+      JOIN order_items oi ON oi.id = ia.order_item_id
+      LEFT JOIN warehouses w ON w.id = ia.warehouse_id
+      LEFT JOIN inventory_allocation_status s ON s.id = ia.status_id
+      WHERE w.id IS NOT NULL
+      GROUP BY oi.order_id
+    ),
+    alloc_agg AS (
+      SELECT *,
+        CASE
+          WHEN ARRAY['ALLOC_FAILED'] <@ allocation_status_codes::text[] THEN 'Failed'
+          WHEN ARRAY['ALLOC_CONFIRMED'] <@ allocation_status_codes::text[]
+               AND NOT ARRAY['ALLOC_PENDING'] <@ allocation_status_codes::text[]
+          THEN 'Fully Allocated'
+          WHEN ARRAY['ALLOC_CONFIRMED'] <@ allocation_status_codes::text[]
+               AND ARRAY['ALLOC_PENDING'] <@ allocation_status_codes::text[]
+          THEN 'Partially Allocated'
+          WHEN ARRAY['ALLOC_PENDING'] <@ allocation_status_codes::text[]
+               AND cardinality(allocation_status_codes) = 1
+          THEN 'Pending Allocation'
+          ELSE 'Unknown'
+        END AS allocation_summary_status
+      FROM raw_alloc
+    ),
+    item_counts AS (
+      SELECT oi.order_id, COUNT(*) AS total_items
+      FROM order_items oi
+      GROUP BY oi.order_id
+    )
+    SELECT
+      o.id AS order_id,
+      o.order_number,
+      ot.name AS order_type,
+      os.name AS order_status_name,
+      os.code AS order_status_code,
+      c.firstname AS customer_firstname,
+      c.lastname  AS customer_lastname,
+      pm.name AS payment_method,
+      ps.name AS payment_status,
+      dm.method_name AS delivery_method,
+      ic.total_items,
+      aa.allocated_items,
+      o.created_at,
+      u.firstname AS created_by_firstname,
+      u.lastname  AS created_by_lastname,
+      aa.warehouse_ids,
+      aa.warehouse_names,
+      aa.allocation_status_codes,
+      aa.allocation_statuses,
+      aa.allocation_summary_status
+    FROM alloc_agg aa
+    JOIN orders o             ON o.id = aa.order_id
+    LEFT JOIN item_counts ic  ON ic.order_id = o.id
+    LEFT JOIN sales_orders so ON so.id = o.id
+    LEFT JOIN customers c       ON c.id = so.customer_id
+    LEFT JOIN payment_methods pm ON pm.id = so.payment_method_id
+    LEFT JOIN payment_status ps  ON ps.id = so.payment_status_id
+    LEFT JOIN delivery_methods dm ON dm.id = so.delivery_method_id
+    LEFT JOIN order_types ot     ON ot.id = o.order_type_id
+    LEFT JOIN order_status os    ON os.id = o.order_status_id
+    LEFT JOIN users u            ON u.id = o.created_by
+    WHERE ${whereClause}
+    ORDER BY ${sortBy} ${sortOrder}
+  `;
+  
+  try {
+    const result = await paginateResults({
+      dataQuery: baseQuery,
+      params,
+      page,
+      limit,
+    });
+    
+    if (result.data.length === 0) {
+      logSystemInfo('No inventory allocations found', {
+        context: 'inventory-allocations-repository/getPaginatedInventoryAllocations',
+        pagination: { page, limit },
+        sorting: { sortBy, sortOrder },
+      });
+      return null;
+    }
+    
+    logSystemInfo('Fetched paginated inventory allocations', {
+      context: 'inventory-allocations-repository/getPaginatedInventoryAllocations',
+      filters,
+      pagination: { page, limit },
+      sorting: { sortBy, sortOrder },
+    });
+    
+    return result;
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch paginated inventory allocations', {
+      context: 'inventory-allocations-repository/getPaginatedInventoryAllocations',
+      filters,
+      pagination: { page, limit },
+      sorting: { sortBy, sortOrder },
+    });
+    throw AppError.databaseError('Error fetching inventory allocation list');
+  }
+};
+
 module.exports = {
   insertInventoryAllocationsBulk,
   updateInventoryAllocationStatus,
   getMismatchedAllocationIds,
   getInventoryAllocationReview,
+  getPaginatedInventoryAllocations,
 };

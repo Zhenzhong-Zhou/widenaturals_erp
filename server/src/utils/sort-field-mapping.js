@@ -245,6 +245,46 @@ const SORTABLE_FIELDS = {
     // Default fallback sort
     defaultNaturalSort: 'o.created_at',
   },
+  inventoryAllocationSortMap: {
+    // Allocation-level summary fields (FROM alloc_agg aa)
+    allocationStatus: 'aa.allocation_summary_status',     // derived field
+    allocationStatusCodes: 'aa.allocation_status_codes',  // raw code array
+    allocationStatuses: 'aa.allocation_statuses',         // raw label string
+    
+    // Warehouse display info (FROM alloc_agg aa)
+    warehouseNames: 'aa.warehouse_names',
+    warehouseIds: 'aa.warehouse_ids',
+    
+    // Order-level fields (FROM orders o)
+    orderNumber: 'o.order_number',
+    orderDate: 'o.created_at',
+    orderType: 'ot.name',
+    orderStatus: 'os.name',
+    orderStatusDate: 'o.status_date',
+    
+    // Customer
+    customerName: `c.firstname`, // or use a concat if you have a full name
+    customerFirstName: 'c.firstname',
+    customerLastName: 'c.lastname',
+    
+    // Payment-related
+    paymentMethod: 'pm.name',
+    paymentStatus: 'ps.name',
+    deliveryMethod: 'dm.method_name',
+    
+    // Audit fields
+    createdAt: 'o.created_at',
+    updatedAt: 'o.updated_at', // not selected, optional
+    createdBy: 'u.firstname',
+    createdByLast: 'u.lastname',
+    
+    // Item counts
+    totalItems: 'ic.total_items',
+    allocatedItems: 'aa.allocated_items',
+    
+    // Fallback default
+    defaultNaturalSort: 'o.created_at',
+  },
 };
 
 module.exports = {

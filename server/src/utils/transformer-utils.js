@@ -14,20 +14,50 @@ const transformRows = (rows, transformer) => {
 
 /**
  * Transforms a generic paginated result using a row-level transformer.
- * Supports both synchronous and asynchronous transform functions.
  *
- * @param {Object} paginatedResult - The paginated query result with `data` and `pagination`.
- * @param {Function} transformFn - Transformer function to apply to each data row.
- *   Can return either a plain object or a Promise that resolves to one.
+ * Supports both:
+ * - traditional `pagination` format: `{ data, pagination: { page, limit, totalRecords, totalPages } }`
+ * - infinite scroll `loadMore` format: `{ items, offset, limit, hasMore }`
+ *
+ * The transformer function can be either synchronous or asynchronous (i.e., return a Promise).
+ *
+ * If the input result is malformed or has no data, a default empty pagination structure is returned.
+ *
+ * @template TInput
+ * @template TOutput
+ *
+ * @param {{ data: TInput[], pagination?: { page?: number, limit?: number, totalRecords?: number, totalPages?: number, offset?: number } }} paginatedResult
+ *   The original paginated query result.
+ *
+ * @param {(row: TInput) => TOutput | Promise<TOutput>} transformFn
+ *   A row-level transformer function that maps each item in `data` to a new shape.
+ *
  * @param {Object} [options] - Optional behavior flags.
- * @param {boolean} [options.includeLoadMore=false] - Include load-more structure instead of pagination.
- * @returns {Promise<Object>} Transformed result with pagination or loadMore format.
+ * @param {boolean} [options.includeLoadMore=false] - Whether to return `items`, `offset`, `hasMore` instead of `data`, `pagination`.
+ *
+ * @returns {Promise<
+ *   | { data: TOutput[], pagination: { page: number, limit: number, totalRecords: number, totalPages: number } }
+ *   | { items: TOutput[], offset: number, limit: number, hasMore: boolean }
+ * >}
+ *   Transformed paginated or load-more-compatible result.
  */
 const transformPaginatedResult = async (
   paginatedResult,
   transformFn,
   options = {}
 ) => {
+  if (!paginatedResult || !Array.isArray(paginatedResult.data)) {
+    return {
+      data: [],
+      pagination: {
+        page: 1,
+        limit: 10,
+        totalRecords: 0,
+        totalPages: 0,
+      },
+    };
+  }
+  
   const { data = [], pagination = {} } = paginatedResult;
 
   const transformedItems = await Promise.all(data.map(transformFn));

@@ -3,6 +3,7 @@ const { getProductDisplayName } = require('../utils/display-name-utils');
 const { formatPackagingMaterialLabel } = require('../utils/string-utils');
 const { cleanObject } = require('../utils/object-utils');
 const { getBatchSummary, getWarehouseInventoryList } = require('../utils/inventory-utils');
+const { transformPaginatedResult } = require('../utils/transformer-utils');
 
 /**
  * Extracts and deduplicates SKU and packaging material IDs from a list of order items.
@@ -381,6 +382,115 @@ const transformInventoryAllocationReviewRows = (rows) => {
 };
 
 /**
+ * @typedef {object} InventoryAllocationRow
+ * @property {string} order_id
+ * @property {string} order_number
+ * @property {string|null} order_type
+ * @property {string|null} order_status_name
+ * @property {string|null} order_status_code
+ * @property {string|null} customer_firstname
+ * @property {string|null} customer_lastname
+ * @property {string|null} payment_method
+ * @property {string|null} payment_status
+ * @property {string|null} delivery_method
+ * @property {string} created_at - ISO timestamp
+ * @property {string|null} created_by_firstname
+ * @property {string|null} created_by_lastname
+ * @property {number|null} total_items
+ * @property {number|null} allocated_items
+ * @property {string[]|null} warehouse_ids
+ * @property {string|null} warehouse_names
+ * @property {string[]|null} allocation_status_codes
+ * @property {string|null} allocation_statuses
+ * @property {string|null} allocation_summary_status
+ */
+
+/**
+ * @typedef {object} InventoryAllocationSummary
+ * @property {string} orderId - UUID of the order
+ * @property {string} orderNumber - Human-readable order number
+ * @property {string|null} orderType - Name of order type
+ * @property {{ name: string, code: string }} orderStatus
+ * @property {{ fullName: string }} customer
+ * @property {string|null} paymentMethod
+ * @property {string|null} paymentStatus
+ * @property {string|null} deliveryMethod
+ * @property {string} orderCreatedAt - ISO UTC timestamp
+ * @property {string} createdBy - Full name of the user who created the order
+ * @property {{ total: number, allocated: number }} itemCount
+ * @property {{ ids: string[], names: string }} warehouses
+ * @property {{
+ *   codes: string[],
+ *   names: string,
+ *   summary: 'Failed' | 'Fully Allocated' | 'Partially Allocated' | 'Pending Allocation' | 'Unknown'
+ * }} allocationStatus
+ */
+
+/**
+ * Transforms a single raw SQL result row from the `getPaginatedInventoryAllocations` query
+ * into a clean, structured object suitable for client consumption (e.g., UI rendering).
+ *
+ * Converts a flat SQL row (`InventoryAllocationRow`) into a normalized, camelCase object
+ * (`InventoryAllocationSummary`) with nested metadata for order, customer, status, etc.
+ *
+ * @param {InventoryAllocationRow} row - Raw SQL row from allocation query
+ * @returns {InventoryAllocationSummary} Transformed structured object
+ */
+const transformInventoryAllocationRow = (row) => {
+  const base = {
+    orderId: row.order_id,
+    orderNumber: row.order_number,
+    orderType: row.order_type,
+    orderStatus: {
+      name: row.order_status_name,
+      code: row.order_status_code,
+    },
+    customer: {
+      fullName: getFullName(row.customer_firstname, row.customer_lastname),
+    },
+    paymentMethod: row.payment_method ?? null,
+    paymentStatus: row.payment_status ?? null,
+    deliveryMethod: row.delivery_method ?? null,
+    orderCreatedAt: row.created_at,
+    
+    createdBy: getFullName(row.created_by_firstname, row.created_by_lastname),
+    
+    itemCount: {
+      total: row.total_items ?? 0,
+      allocated: row.allocated_items ?? 0,
+    },
+    
+    warehouses: {
+      ids: row.warehouse_ids ?? [],
+      names: row.warehouse_names ?? '',
+    },
+    
+    allocationStatus: {
+      codes: row.allocation_status_codes ?? [],
+      names: row.allocation_statuses ?? '',
+      summary: row.allocation_summary_status ?? 'Unknown',
+    },
+  };
+  
+  return cleanObject(base);
+};
+
+/**
+ * Transforms a paginated result of raw SQL rows from `getPaginatedInventoryAllocations`
+ * into a structured client-ready response, including typed rows and pagination metadata.
+ *
+ * Applies `transformInventoryAllocationRow` to each row in the result.
+ *
+ * @param {{ data: InventoryAllocationRow[], pagination: { page: number, limit: number, totalRecords: number, totalPages: number } }} paginatedResult
+ * @returns {{ data: InventoryAllocationSummary[], pagination: { page: number, limit: number, totalRecords: number, totalPages: number } }}
+ */
+const transformPaginatedInventoryAllocationResults = (paginatedResult) => {
+  return transformPaginatedResult(paginatedResult, (row) =>
+    transformInventoryAllocationRow(row)
+  );
+};
+
+/**
  * Transforms the raw order allocation result into a standardized response object.
  *
  * This function is typically used after performing allocation logic and updates,
@@ -437,5 +547,6 @@ module.exports = {
   transformAllocationResultToInsertRows,
   transformAllocationReviewData,
   transformInventoryAllocationReviewRows,
+  transformPaginatedInventoryAllocationResults,
   transformOrderAllocationResponse,
 };

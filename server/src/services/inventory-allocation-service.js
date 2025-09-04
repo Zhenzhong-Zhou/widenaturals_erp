@@ -17,6 +17,7 @@ const {
   transformAllocationReviewData,
   transformInventoryAllocationReviewRows,
   transformOrderAllocationResponse,
+  transformPaginatedInventoryAllocationResults,
 } = require('../transformers/inventory-allocation-transformer');
 const { getStatusId } = require('../config/status-cache');
 const {
@@ -35,7 +36,8 @@ const {
   insertInventoryAllocationsBulk,
   getMismatchedAllocationIds,
   getInventoryAllocationReview,
-  updateInventoryAllocationStatus
+  updateInventoryAllocationStatus,
+  getPaginatedInventoryAllocations
 } = require('../repositories/inventory-allocations-repository');
 const {
   logSystemException,
@@ -258,6 +260,98 @@ const reviewInventoryAllocationService = async (orderId, warehouseIds, allocatio
       allocationIds,
     });
     throw AppError.serviceError('Failed to review inventory for order.');
+  }
+};
+
+/**
+ * Service function to fetch paginated inventory allocation summaries with support for
+ * dynamic filtering, pagination, and sorting. Wraps repository logic, applies transformations,
+ * handles errors, and logs system activity.
+ *
+ * Internally:
+ * 1. Retrieves paginated rows from the database via repository.
+ * 2. Transforms raw SQL rows into client-facing structure.
+ * 3. Logs info-level system events and exceptions.
+ * 4. Returns paginated result or fallback empty response if no data.
+ *
+ * @param {Object} params - Input parameters
+ * @param {Object} [params.filters={}] - Filtering criteria (e.g., warehouseId, statusId, orderTypeId, keyword)
+ * @param {number} [params.page=1] - Current page number (1-based)
+ * @param {number} [params.limit=10] - Number of records per page
+ * @param {string} [params.sortBy='created_at'] - Sortable field (must match allowed keys)
+ * @param {string} [params.sortOrder='DESC'] - Sort direction: 'ASC' or 'DESC'
+ *
+ * @returns {Promise<{
+ *   data: InventoryAllocationSummary[],
+ *   pagination: {
+ *     page: number,
+ *     limit: number,
+ *     totalRecords: number,
+ *     totalPages: number
+ *   }
+ * }>} Paginated and transformed result set
+ *
+ * @throws {AppError} When an internal service or database error occurs
+ */
+const fetchPaginatedInventoryAllocationsService = async ({
+                                                           filters = {},
+                                                           page = 1,
+                                                           limit = 10,
+                                                           sortBy = 'created_at',
+                                                           sortOrder = 'DESC',
+                                                         }) => {
+  try {
+    // Step 1: Query raw paginated allocation rows from repository layer
+    const rawResult = await getPaginatedInventoryAllocations({
+      filters,
+      page,
+      limit,
+      sortBy,
+      sortOrder,
+    });
+    
+    // Step 2: If no data, log and return empty result with pagination fallback
+    if (!rawResult || rawResult.length === 0) {
+      logSystemInfo('No inventory allocation records found', {
+        context: 'inventory-allocations-service/fetchPaginatedInventoryAllocationsService',
+        filters,
+        pagination: { page, limit },
+        sort: { sortBy, sortOrder },
+      });
+      
+      return {
+        data: [],
+        pagination: {
+          page,
+          limit,
+          totalRecords: 0,
+          totalPages: 0,
+        },
+      };
+    }
+    
+    // Step 3: Transform raw SQL rows into clean API-ready objects
+    const result = transformPaginatedInventoryAllocationResults(rawResult);
+    
+    // Step 4: Log successful response for auditing/metrics
+    logSystemInfo('Fetched paginated inventory allocations', {
+      context: 'inventory-allocations-service/fetchPaginatedInventoryAllocationsService',
+      filters,
+      pagination: { page, limit },
+      sort: { sortBy, sortOrder },
+    });
+    
+    return result;
+  } catch (error) {
+    // Step 5: Log exception and rethrow as service-level error
+    logSystemException(error, 'Failed to fetch paginated inventory allocations', {
+      context: 'inventory-allocations-service/fetchPaginatedInventoryAllocationsService',
+      filters,
+      pagination: { page, limit },
+      sort: { sortBy, sortOrder },
+    });
+    
+    throw AppError.serviceError('Could not fetch inventory allocations. Please try again.');
   }
 };
 
@@ -492,5 +586,6 @@ const confirmInventoryAllocationService = async (user, rawOrderId) => {
 module.exports = {
   allocateInventoryForOrderService,
   reviewInventoryAllocationService,
+  fetchPaginatedInventoryAllocationsService,
   confirmInventoryAllocationService,
 };
