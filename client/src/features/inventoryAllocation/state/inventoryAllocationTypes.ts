@@ -1,4 +1,10 @@
-import type { ApiSuccessResponse, AsyncState } from '@shared-types/api';
+import type {
+  ApiSuccessResponse,
+  AsyncState,
+  PaginatedResponse,
+  PaginationParams, ReduxPaginatedState,
+  SortConfig,
+} from '@shared-types/api';
 
 /**
  * Parameters extracted from the URL path for allocation requests.
@@ -319,3 +325,149 @@ export type InventoryAllocationReviewState =
    */
   lastFetchedAt: number | null;
 };
+
+/**
+ * High-level allocation summary status derived from raw allocation codes.
+ */
+export type AllocationSummaryStatus =
+  | 'Failed'
+  | 'Fully Allocated'
+  | 'Partially Allocated'
+  | 'Pending Allocation'
+  | 'Unknown';
+
+/**
+ * Transformed and structured inventory allocation summary record,
+ * typically used for paginated views or dashboards.
+ */
+export interface InventoryAllocationSummary {
+  /** UUID of the order */
+  orderId: string;
+  
+  /** Human-readable order number (e.g., SO-...) */
+  orderNumber: string;
+  
+  /** Name of the order type (e.g., "Standard Sales Order") */
+  orderType: string | null;
+  
+  /** Order status details */
+  orderStatus: {
+    name: string;
+    code: string;
+  };
+  
+  /** Customer info */
+  customer: {
+    fullName: string;
+  };
+  
+  /** Payment method used (e.g., "Credit Card") */
+  paymentMethod: string | null;
+  
+  /** Payment status (e.g., "Paid", "Unpaid") */
+  paymentStatus: string | null;
+  
+  /** Delivery method (e.g., "Express") */
+  deliveryMethod: string | null;
+  
+  /** ISO string of the order creation date */
+  orderCreatedAt: string;
+  
+  /** Full name of the user who created the order */
+  createdBy: string;
+  
+  /** Number of items in the order vs allocated */
+  itemCount: {
+    total: number;
+    allocated: number;
+  };
+  
+  /** Warehouses involved in this allocation */
+  warehouses: {
+    ids: string[];
+    names: string;
+  };
+  
+  /** Allocation status metadata */
+  allocationStatus: {
+    codes: string[]; // e.g., ['ALLOC_CONFIRMED']
+    names: string;   // e.g., 'confirmed, pending'
+    summary: AllocationSummaryStatus;
+  };
+}
+
+/**
+ * Standard paginated response for inventory allocation listings.
+ */
+export type InventoryAllocationResponse = PaginatedResponse<InventoryAllocationSummary>;
+
+/**
+ * Filters used when fetching paginated inventory allocations.
+ * Aligned with backend filtering schema.
+ */
+export interface InventoryAllocationFilters {
+  // Allocation-level
+  statusId?: string;
+  warehouseId?: string;
+  batchId?: string;
+  allocationCreatedBy?: string;
+  
+  // Order-level
+  orderNumber?: string;
+  orderStatusId?: string;
+  orderTypeId?: string;
+  orderCreatedBy?: string;
+  
+  // Sales order-level
+  paymentStatusId?: string;
+  
+  // Date range (allocatedAt)
+  allocatedAfter?: string;  // ISO string
+  allocatedBefore?: string; // ISO string
+  
+  // Global fuzzy keyword search
+  keyword?: string;
+}
+
+/**
+ * Params for fetching paginated inventory allocation results.
+ */
+export interface FetchPaginatedInventoryAllocationsParams
+  extends PaginationParams,
+    SortConfig {
+  filters?: InventoryAllocationFilters;
+}
+
+/**
+ * Sortable field keys for inventory allocations.
+ * Must match keys defined in backend sort map.
+ */
+export type InventoryAllocationSortField =
+  | 'allocationStatus'
+  | 'allocationStatusCodes'
+  | 'allocationStatuses'
+  | 'warehouseNames'
+  | 'warehouseIds'
+  | 'orderNumber'
+  | 'orderDate'
+  | 'orderType'
+  | 'orderStatus'
+  | 'orderStatusDate'
+  | 'customerName'
+  | 'customerFirstName'
+  | 'customerLastName'
+  | 'paymentMethod'
+  | 'paymentStatus'
+  | 'deliveryMethod'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'createdBy'
+  | 'createdByLast'
+  | 'totalItems'
+  | 'allocatedItems'
+  | 'defaultNaturalSort';
+
+/**
+ * Redux state slice for paginated inventory allocations.
+ */
+export type PaginatedInventoryAllocationState = ReduxPaginatedState<InventoryAllocationSummary>;

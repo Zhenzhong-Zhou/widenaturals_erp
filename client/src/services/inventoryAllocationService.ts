@@ -1,10 +1,11 @@
 import type {
   AllocateInventoryBody,
   AllocateInventoryParams,
-  AllocateInventoryResponse, AllocationReviewRequest, InventoryAllocationReviewResponse,
+  AllocateInventoryResponse, AllocationReviewRequest,
+  FetchPaginatedInventoryAllocationsParams, InventoryAllocationResponse, InventoryAllocationReviewResponse,
 } from '@features/inventoryAllocation/state';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
-import { postRequest } from '@utils/apiRequest';
+import { getRequest, postRequest } from '@utils/apiRequest';
 
 /**
  * Allocates inventory for a specific order using a selected strategy and optional warehouse ID.
@@ -78,7 +79,51 @@ const fetchInventoryAllocationReview = async (
   }
 };
 
+/**
+ * Fetches a paginated list of inventory allocations from the API.
+ *
+ * This function supports filtering, pagination, and sorting using
+ * a combination of top-level query parameters and flattened filters.
+ *
+ * Internally, it:
+ * - Flattens nested filter keys into a flat query param object
+ * - Sends a GET request with `params` using Axios
+ * - Returns a typed response containing inventory allocation summaries and pagination info
+ *
+ * @param {FetchPaginatedInventoryAllocationsParams} params
+ *   - `page`, `limit`, `sortBy`, `sortOrder` (pagination + sorting)
+ *   - `filters`: allocation-related filters (e.g., warehouseId, orderStatusId, keyword, etc.)
+ *
+ * @returns {Promise<InventoryAllocationResponse>}
+ *   A structured paginated response including allocation summaries.
+ *
+ * @throws {Error} If the request fails
+ */
+const fetchPaginatedInventoryAllocations = async (
+  params: FetchPaginatedInventoryAllocationsParams = {}
+): Promise<InventoryAllocationResponse> => {
+  try {
+    const { filters = {}, ...rest } = params;
+    
+    // Flatten nested filters into top-level query keys
+    const flatParams = {
+      ...rest,
+      ...filters,
+    };
+    
+    const url = API_ENDPOINTS.INVENTORY_ALLOCATIONS.ALL_ALLOCATIONS;
+    
+    return await getRequest<InventoryAllocationResponse>(url,  {
+      params: flatParams,
+    });
+  } catch (error) {
+    console.error('Failed to fetch inventory allocations:', error);
+    throw error;
+  }
+};
+
 export const inventoryAllocationService = {
   allocateInventoryForOrderService,
   fetchInventoryAllocationReview,
+  fetchPaginatedInventoryAllocations,
 };

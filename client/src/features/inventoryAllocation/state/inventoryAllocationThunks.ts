@@ -2,7 +2,11 @@ import { createAsyncThunk } from '@reduxjs/toolkit';
 import type {
   AllocateInventoryBody,
   AllocateInventoryParams,
-  AllocateInventoryResponse, AllocationReviewRequest, InventoryAllocationReviewResponse,
+  AllocateInventoryResponse,
+  AllocationReviewRequest,
+  FetchPaginatedInventoryAllocationsParams,
+  InventoryAllocationResponse,
+  InventoryAllocationReviewResponse,
 } from '@features/inventoryAllocation/state/inventoryAllocationTypes.ts';
 import { inventoryAllocationService } from '@services/inventoryAllocationService.ts';
 
@@ -88,6 +92,49 @@ export const fetchInventoryAllocationReviewThunk = createAsyncThunk<
         error,
       });
       return rejectWithValue(error?.response?.data ?? error.message);
+    }
+  }
+);
+
+/**
+ * Async thunk to fetch a paginated list of inventory allocation summaries.
+ *
+ * This thunk handles fetching inventory allocations from the backend API
+ * based on the provided pagination, sorting, and filtering parameters.
+ * It is typically used to power paginated list views in the UI.
+ *
+ * Usage example:
+ * ```ts
+ * dispatch(fetchPaginatedInventoryAllocationsThunk({
+ *   page: 1,
+ *   limit: 20,
+ *   filters: {
+ *     keyword: 'NMN',
+ *     warehouseId: '1234-uuid',
+ *     allocationCreatedBy: '5678-uuid',
+ *     allocatedAfter: '2025-09-01T00:00:00.000Z',
+ *   },
+ *   sortBy: 'orderDate',
+ *   sortOrder: 'DESC',
+ * }))
+ * ```
+ *
+ * @param params - Pagination, sorting, and filtering options for the request.
+ * @returns A promise that resolves with a paginated list of inventory allocations.
+ *
+ * @throws Returns a rejected thunk action with error payload if the API call fails.
+ */
+export const fetchPaginatedInventoryAllocationsThunk = createAsyncThunk<
+  InventoryAllocationResponse,                     // Returned response type
+  FetchPaginatedInventoryAllocationsParams         // Input params
+>(
+  'inventoryAllocations/fetch',
+  async (params, { rejectWithValue }) => {
+    try {
+      return await inventoryAllocationService.fetchPaginatedInventoryAllocations(params);
+    } catch (error) {
+      console.error('Thunk failed: fetchInventoryAllocationsThunk', error);
+      return rejectWithValue(error);
     }
   }
 );
