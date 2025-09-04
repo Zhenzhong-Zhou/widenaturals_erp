@@ -1,7 +1,7 @@
 const { pool, getUniqueScalarValue } = require('../../database/db');
 const { initStatusCache } = require('../../config/status-cache');
 const { createOrderService, updateOrderStatusService } = require('../../services/order-service');
-const { allocateInventoryForOrder, confirmInventoryAllocation } = require('../../services/inventory-allocation-service');
+const { allocateInventoryForOrderService, confirmInventoryAllocationService } = require('../../services/inventory-allocation-service');
 
 (async () => {
   const client = await pool.connect();
@@ -107,14 +107,14 @@ const { allocateInventoryForOrder, confirmInventoryAllocation } = require('../..
     console.log('✅ Order confirmed:', statusUpdate.enrichedItems.length, 'items updated');
     
     // Allocate inventory
-    const allocationResult = await allocateInventoryForOrder(enrichedUser, order.orderId, {
+    const allocationResult = await allocateInventoryForOrderService(enrichedUser, order.orderId, {
       strategy: 'fefo',
       warehouseId: warehouse_id,
     });
     console.log('✅ Inventory allocated:', allocationResult);
-    
+
     // Confirm allocation
-    const confirmResult = await confirmInventoryAllocation(enrichedUser, order.orderId);
+    const confirmResult = await confirmInventoryAllocationService(enrichedUser, order.orderId);
     console.log('✅ Allocation confirmed:', confirmResult);
     
   } catch (err) {

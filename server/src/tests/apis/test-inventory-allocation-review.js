@@ -1,5 +1,5 @@
 const { pool } = require('../../database/db');
-const { reviewInventoryAllocation } = require('../../services/inventory-allocation-service');
+const { reviewInventoryAllocationService } = require('../../services/inventory-allocation-service');
 
 (async () => {
   const client = await pool.connect();
@@ -22,16 +22,17 @@ const { reviewInventoryAllocation } = require('../../services/inventory-allocati
     const enrichedUser = { id: userId, role: roleId };
     
     // Step 2: Set test params
-    const orderId = '39f87f60-6605-449b-bc03-94660a18b096';
+    const orderId = '5e65fdbb-009b-4299-a374-3bdddd6ec608';
     const allocationIds = [
-      'cca00f30-265c-42e3-bcf4-5099d236d43a',
-      '7117e327-6a39-4d79-a027-cfffd5aec9ca',
-      '7326574d-f962-461a-9381-be86f5786da0',
-      '74dee76c-8130-4c8c-bbdd-0f174485c89a',
+      'b500748d-d3e5-4a82-b03e-a9801762326c',
+      'afc47952-5c90-4765-869b-2426a1322616',
+      '5adcc2d6-1ddf-417a-b4d3-1ef9c451aff5',
+      '2a7e778c-f2c5-44ec-a7cd-43ef74395da0',
+      'bb7c866c-409f-499c-86f1-e5ee8c7801ec'
     ];
     
     // Step 3: Execute service
-    const result = await reviewInventoryAllocation(orderId, allocationIds, enrichedUser);
+    const result = await reviewInventoryAllocationService(orderId, allocationIds, enrichedUser);
     
     console.log(`${logContext} Review Result:`);
     console.dir(result, { depth: null, colors: true });

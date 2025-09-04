@@ -21,10 +21,9 @@ const PERMISSIONS = {
     VIEW: 'view_orders',
     UPDATE_STATUS: 'update_order_status',
   },
-  // todo: rename to inventory_allocations
-  INVENTORY: {
-    ALLOCATE_INVENTORY: 'allocate_inventory',
-    REVIEW_ALLOCATION: 'review_allocation',
+  INVENTORY_ALLOCATION: {
+    ALLOCATE: 'allocate_inventory',
+    REVIEW: 'review_allocation',
     VIEW: 'view_inventory_allocations',
   }
 };

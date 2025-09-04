@@ -37,7 +37,7 @@ const router = express.Router();
  */
 router.post(
   '/allocate/:orderId',
-  authorize([PERMISSIONS.INVENTORY.ALLOCATE_INVENTORY]),
+  authorize([PERMISSIONS.INVENTORY_ALLOCATION.ALLOCATE]),
   validate(orderIdParamSchema, 'params'),
   validate(allocateInventorySchema, 'body'),
   allocateInventoryForOrderController
@@ -78,7 +78,7 @@ router.post(
  */
 router.post(
   '/review/:orderId',
-  authorize([PERMISSIONS.INVENTORY.REVIEW_ALLOCATION]),
+  authorize([PERMISSIONS.INVENTORY_ALLOCATION.REVIEW]),
   sanitizeFields(['allocationIds']),
   validate(orderIdParamSchema, 'params'),
   validate(allocationReviewSchema, 'body'),
@@ -129,7 +129,7 @@ router.post(
  */
 router.get(
   '/',
-  authorize([PERMISSIONS.INVENTORY.VIEW]),
+  authorize([PERMISSIONS.INVENTORY_ALLOCATION.VIEW]),
   createQueryNormalizationMiddleware(
     'inventoryAllocationSortMap',
     [],
@@ -169,7 +169,7 @@ router.get(
  */
 router.post(
   '/confirm/:orderId',
-  authorize([PERMISSIONS.INVENTORY.ALLOCATE_INVENTORY]),
+  authorize([PERMISSIONS.INVENTORY_ALLOCATION.ALLOCATE]),
   validate(orderIdParamSchema, 'params'),
   confirmInventoryAllocationController
 );
