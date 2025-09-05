@@ -158,12 +158,21 @@ const InventoryAllocationReviewPage = () => {
           {/* Allocation Items */}
           <AllocationReviewTable items={flattenedItems} itemCount={allocationItemCount} />
           
-          <Box mt={4}>
+          <Box mt={4} display="flex" justifyContent="flex-end" gap={2}>
             <CustomButton
               variant="outlined"
+              color="secondary"
+              href="/inventory-allocations"
+            >
+              Back to Inventory Allocations
+            </CustomButton>
+            
+            <CustomButton
+              variant="contained"
+              color="info"
               href={`/orders/${category ?? 'sales'}/details/${orderId}`}
             >
-              Back to Order
+              Back to Order Details
             </CustomButton>
           </Box>
         </CardContent>
