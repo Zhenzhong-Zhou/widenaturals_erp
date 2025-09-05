@@ -1,7 +1,6 @@
 import type { FC } from 'react';
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import Box from '@mui/material/Box';
 import FilterPanelLayout from '@components/common/FilterPanelLayout';
 import { adjustBeforeDateInclusive, toISO } from '@utils/dateTimeUtils';
 import type { OrderTypeFilters } from '@features/orderType/state';
@@ -39,7 +38,11 @@ const OrderTypeFiltersPanel: FC<Props> = ({
   onApply,
   onReset,
 }) => {
-  const textFields: { name: keyof OrderTypeFilters; label: string }[] = [
+  const textFields: {
+    name: keyof OrderTypeFilters;
+    label: string;
+    placeholder?: string;
+  }[] = [
     { name: 'name', label: 'Name' },
     { name: 'code', label: 'Code' },
     { name: 'category', label: 'Category' },
@@ -82,23 +85,21 @@ const OrderTypeFiltersPanel: FC<Props> = ({
   };
 
   return (
-    <Box mb={2} p={2} border="1px solid #ccc" borderRadius={2}>
-      <form onSubmit={handleSubmit(submitFilters)}>
-        <FilterPanelLayout onReset={resetFilters}>
-          {textFields.map(({ name, label }) =>
-            renderInputField(control, name, label)
-          )}
-          {dateFields.map(({ name, label }) =>
-            renderDateField(control, name, label)
-          )}
-          {renderBooleanSelectField(
-            control,
-            'requiresPayment',
-            'Requires Payment'
-          )}
-        </FilterPanelLayout>
-      </form>
-    </Box>
+    <form onSubmit={handleSubmit(submitFilters)}>
+      <FilterPanelLayout onReset={resetFilters}>
+        {textFields.map(({ name, label, placeholder }) =>
+          renderInputField(control, name, label, placeholder)
+        )}
+        {dateFields.map(({ name, label }) =>
+          renderDateField(control, name, label)
+        )}
+        {renderBooleanSelectField(
+          control,
+          'requiresPayment',
+          'Requires Payment'
+        )}
+      </FilterPanelLayout>
+    </form>
   );
 };
 

@@ -1,13 +1,20 @@
-import { type FC, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import Box from '@mui/material/Box';
-import Grid from '@mui/material/Grid';
-import CustomButton from '@components/common/CustomButton';
+import { type FC, useEffect, useMemo, useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import type { InventoryAllocationFilters } from '@features/inventoryAllocation/state';
-import {
-  renderInputField,
-  renderDateField,
-} from '@utils/filters/filterUtils';
+import Grid from '@mui/material/Grid';
+import useWarehouseLookup from '@hooks/useWarehouseLookup';
+import FilterPanelLayout from '@components/common/FilterPanelLayout';
+import type { MultiSelectOption } from '@components/common/MultiSelectDropdown';
+import WarehouseMultiSelectDropdown from '@features/lookup/components/WarehouseMultiSelectDropdown';
+import BatchRegistryMultiSelectDropdown from '@features/lookup/components/BatchRegistryMultiSelectDropdown';
+import { renderDateField, renderInputField } from '@utils/filters/filterUtils';
+import { adjustAfterDate, adjustBeforeDateInclusive } from '@utils/dateTimeUtils';
+import useBatchRegistryLookup from '@hooks/useBatchRegistryLookup.ts';
+import type { BatchLookupOption, GetBatchRegistryLookupParams } from '@features/lookup/state';
+import { mapBatchLookupToOptions } from '@features/lookup/utils/batchRegistryUtils';
+import useOrderTypeLookup from '@hooks/useOrderTypeLookup';
+import OrderTypeDropdown from '@features/lookup/components/OrderTypesDropdown';
+import { formatLabel } from '@utils/textUtils';
 
 interface Props {
   filters: InventoryAllocationFilters;
@@ -18,9 +25,9 @@ interface Props {
 
 const emptyFilters: InventoryAllocationFilters = {
   keyword: '',
-  statusId: '',
-  warehouseId: '',
-  batchId: '',
+  statusIds: [],
+  warehouseIds: [],
+  batchIds: [],
   allocationCreatedBy: '',
   orderNumber: '',
   orderStatusId: '',
@@ -39,15 +46,13 @@ const textFields: {
   placeholder?: string;
 }[] = [
   { name: 'orderNumber', label: 'Order Number' },
-  { name: 'keyword', label: 'Search Keyword', placeholder: 'Order number, SKU, etc.' },
-  { name: 'statusId', label: 'Allocation Status ID' },
-  { name: 'warehouseId', label: 'Warehouse ID' },
-  { name: 'batchId', label: 'Batch ID' },
-  { name: 'allocationCreatedBy', label: 'Allocation Created By' },
-  { name: 'orderStatusId', label: 'Order Status ID' },
-  { name: 'orderTypeId', label: 'Order Type ID' },
-  { name: 'orderCreatedBy', label: 'Order Created By' },
-  { name: 'paymentStatusId', label: 'Payment Status ID' },
+  { name: 'keyword', label: 'Search Keyword', placeholder: 'Order number, Customer Name, etc.' },
+  // todo: later need to finished
+  // { name: 'statusIds', label: 'Allocation Status IDs' },
+  // { name: 'allocationCreatedBy', label: 'Allocation Created By' },
+  // { name: 'orderStatusId', label: 'Order Status ID' },
+  // { name: 'orderCreatedBy', label: 'Order Created By' },
+  // { name: 'paymentStatusId', label: 'Payment Status ID' },
 ];
 
 const dateFields: { name: keyof InventoryAllocationFilters; label: string }[] = [
@@ -66,13 +71,101 @@ const InventoryAllocationFiltersPanel: FC<Props> = ({
   const { control, handleSubmit, reset } = useForm<InventoryAllocationFilters>({
     defaultValues: filters,
   });
+  const [batchLookupParams, setBatchLookupParams] =
+    useState<GetBatchRegistryLookupParams>({
+      batchType: '',
+      limit: 50,
+      offset: 0,
+    });
+  
+  const {
+    items: warehouseItems,
+    loading: isWarehouseLoading,
+    error: warehouseError,
+    fetchLookup: fetchWarehouseLookup,
+    resetLookup: resetWarehouseLookup
+  } = useWarehouseLookup();
+  
+  const {
+    items: batchRegistryOptions,
+    loading: isBatchRegistryLoading,
+    error: batchRegistryError,
+    meta: batchRegistryMeta,
+    fetchLookup: fetchBatchRegistryLookup,
+    resetLookup: resetBatchRegistryLookup,
+  } = useBatchRegistryLookup();
+  
+  const {
+    options: orderTypeOptions,
+    loading: isOrderTypeLoading,
+    error: orderTypeError,
+    fetch: fetchOrderTypeLookup,
+    reset: resetOrderTypeLookup,
+  } = useOrderTypeLookup();
+  
+  const warehouseOptions: MultiSelectOption[] = useMemo(() => {
+    return warehouseItems.map(w => ({
+      label: w.label,
+      value: w.value,
+    }));
+  }, [warehouseItems]);
+  
+  const batchLookupOptions = useMemo(() => {
+    return mapBatchLookupToOptions(batchRegistryOptions, false) as BatchLookupOption[];
+  }, [batchRegistryOptions]);
+  
+  const formattedOrderTypeOptions = useMemo(() => {
+    return orderTypeOptions.map(opt => ({
+      ...opt,
+      label: formatLabel(opt.label, { preserveHyphen: true }),
+    }));
+  }, [orderTypeOptions]);
+  
+  const sanitizeFilters = (f: InventoryAllocationFilters): InventoryAllocationFilters => ({
+    ...f,
+    warehouseIds: Array.isArray(f.warehouseIds) ? f.warehouseIds : [],
+    statusIds: Array.isArray(f.statusIds) ? f.statusIds : [],
+    batchIds: Array.isArray(f.batchIds) ? f.batchIds : [],
+  });
+  
+  // On mount: fetch and reset warehouse lookup
+  useEffect(() => {
+    resetWarehouseLookup();
+    fetchWarehouseLookup();
+    
+    return () => resetWarehouseLookup(); // if fetch could overlap unmount
+  }, []);
+
+  // On mount: fetch and reset order type lookup
+  useEffect(() => {
+    resetOrderTypeLookup();
+    fetchOrderTypeLookup();
+  }, []);
+
+  // On batch param change: reset and fetch batch registry
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      resetBatchRegistryLookup();
+      fetchBatchRegistryLookup(batchLookupParams);
+    }, 200); // 200ms debounce
+    
+    return () => clearTimeout(timeout);
+  }, [batchLookupParams]);
   
   useEffect(() => {
-    reset(filters);
+    reset(sanitizeFilters(filters));
   }, [filters, reset]);
   
   const submitFilters = (data: InventoryAllocationFilters) => {
-    onChange(data);
+    const adjusted: InventoryAllocationFilters = {
+      ...data,
+      aggregatedAllocatedBefore: adjustBeforeDateInclusive(data.aggregatedAllocatedBefore),
+      aggregatedAllocatedAfter: adjustAfterDate(data.aggregatedAllocatedAfter),
+      aggregatedCreatedBefore: adjustBeforeDateInclusive(data.aggregatedCreatedBefore),
+      aggregatedCreatedAfter: adjustAfterDate(data.aggregatedCreatedAfter),
+    };
+    
+    onChange(adjusted);
     onApply();
   };
   
@@ -82,27 +175,95 @@ const InventoryAllocationFiltersPanel: FC<Props> = ({
   };
   
   return (
-    <Box mb={2} p={2} border="1px solid #ccc" borderRadius={2}>
-      <form onSubmit={handleSubmit(submitFilters)}>
-        <Grid container spacing={2} sx={{ minHeight: 160 }}>
-          {textFields.map(({ name, label, placeholder }) =>
-            renderInputField(control, name, label, placeholder)
-          )}
-          {dateFields.map(({ name, label }) =>
-            renderDateField(control, name, label)
-          )}
-        </Grid>
-        
-        <Box display="flex" flexWrap="wrap" gap={2} mt={3}>
-          <CustomButton type="submit" variant="contained">
-            Apply
-          </CustomButton>
-          <CustomButton variant="outlined" onClick={resetFilters}>
-            Reset
-          </CustomButton>
-        </Box>
-      </form>
-    </Box>
+    <form onSubmit={handleSubmit(submitFilters)}>
+      <FilterPanelLayout onReset={resetFilters}>
+        <>
+          {/* -- Dropdowns -- */}
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+              {/* Warehouses */}
+              <Controller
+                name="warehouseIds"
+                control={control}
+                render={({ field }) => {
+                  const selectedOptions = warehouseOptions.filter(option =>
+                    field.value?.includes(option.value)
+                  );
+                  return (
+                    <WarehouseMultiSelectDropdown
+                      options={warehouseOptions}
+                      selectedOptions={selectedOptions}
+                      onChange={(selected) => {
+                        field.onChange(selected.map(opt => opt.value));
+                      }}
+                      loading={isWarehouseLoading}
+                      error={warehouseError}
+                      label="Warehouses"
+                      placeholder="Select warehouses"
+                    />
+                  );
+                }}
+              />
+            </Grid>
+            
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+              {/* Batches */}
+              <Controller
+                name="batchIds"
+                control={control}
+                render={({ field }) => {
+                  const selectedOptions = batchLookupOptions.filter(opt =>
+                    field.value?.includes(opt.value)
+                  );
+                  return (
+                    <BatchRegistryMultiSelectDropdown
+                      label="Batches"
+                      batchLookupOptions={batchLookupOptions}
+                      selectedOptions={selectedOptions}
+                      onChange={(selected) => {
+                        field.onChange(selected.map(opt => opt.value));
+                      }}
+                      setFetchParams={setBatchLookupParams}
+                      batchLookupMeta={batchRegistryMeta}
+                      batchLookupLoading={isBatchRegistryLoading}
+                      batchLookupError={batchRegistryError}
+                      placeholder="Select batches"
+                    />
+                  );
+                }}
+              />
+            </Grid>
+            
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+              {/* Order Type */}
+              <Controller
+                name="orderTypeId"
+                control={control}
+                render={({ field }) => (
+                  <OrderTypeDropdown
+                    value={field.value ?? null}
+                    onChange={field.onChange}
+                    orderTypeOptions={formattedOrderTypeOptions}
+                    orderTypeLoading={isOrderTypeLoading}
+                    orderTypeError={orderTypeError}
+                  />
+                )}
+              />
+            </Grid>
+            
+            {/* -- Text Fields (widened) -- */}
+            {textFields.map(({ name, label, placeholder }) =>
+              renderInputField(control, name, label, placeholder)
+            )}
+            
+            {/* -- Date Fields: group in one row (3 dates in 1 row on lg+) -- */}
+            {dateFields.map(({ name, label }) =>
+              renderDateField(control, name, label)
+            )}
+          </Grid>
+        </>
+      </FilterPanelLayout>
+    </form>
   );
 };
 

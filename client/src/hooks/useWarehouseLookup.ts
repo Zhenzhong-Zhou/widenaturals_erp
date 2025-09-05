@@ -1,11 +1,12 @@
 import { useCallback, useMemo } from 'react';
-import { useAppDispatch, useAppSelector } from '@store/storeHooks.ts';
+import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchWarehouseLookupThunk,
   selectWarehouseLookupError,
   selectWarehouseLookupItems,
   selectWarehouseLookupLoading,
 } from '@features/lookup/state';
+import { resetWarehouseLookup } from '@features/lookup/state/warehouseLookupSlice';
 
 /**
  * Hook to access warehouse lookup state with memoization and typed store access.
@@ -24,6 +25,10 @@ const useWarehouseLookup = () => {
     },
     [dispatch]
   );
+  
+  const resetLookup = useCallback(() => {
+    dispatch(resetWarehouseLookup());
+  }, [dispatch]);
 
   return useMemo(
     () => ({
@@ -31,8 +36,9 @@ const useWarehouseLookup = () => {
       loading,
       error,
       fetchLookup,
+      resetLookup,
     }),
-    [items, loading, error, fetchLookup]
+    [items, loading, error, fetchLookup, resetLookup]
   );
 };
 
