@@ -49,7 +49,7 @@ router.get(
       'actionTypeIds',
       'orderId',
       'statusId',
-      'adjustmentTypeId',
+      'adjustmentTypeIds',
       'performedBy',
     ],
     [],
