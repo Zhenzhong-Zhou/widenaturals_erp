@@ -251,10 +251,10 @@ const SORTABLE_FIELDS = {
     allocationStatusCodes: 'aa.allocation_status_codes',  // raw code array
     allocationStatuses: 'aa.allocation_statuses',         // raw label string
     allocatedAt: 'aa.allocated_at',
+    allocatedCreatedAt: 'aa.allocated_created_at',
     
     // Warehouse display info (FROM alloc_agg aa)
     warehouseNames: 'aa.warehouse_names',
-    warehouseIds: 'aa.warehouse_ids',
     
     // Order-level fields (FROM orders o)
     orderNumber: 'o.order_number',
@@ -274,10 +274,10 @@ const SORTABLE_FIELDS = {
     deliveryMethod: 'dm.method_name',
     
     // Audit fields
-    createdAt: 'o.created_at',
-    updatedAt: 'o.updated_at', // not selected, optional
-    createdBy: 'u.firstname',
-    createdByLast: 'u.lastname',
+    orderCreatedAt: 'o.created_at',
+    orderUpdatedAt: 'o.updated_at', // not selected, optional
+    orderCreatedByFirstName: 'u.firstname',
+    orderCreatedByLastName: 'u.lastname',
     
     // Item counts
     totalItems: 'ic.total_items',

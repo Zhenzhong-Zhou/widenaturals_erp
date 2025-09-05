@@ -104,8 +104,8 @@ export const getInventoryAllocationColumns = (
         typeof value === 'string' ? formatDate(value) : '—',
     },
     {
-      id: 'createdBy',
-      label: 'Created By',
+      id: 'orderCreatedBy',
+      label: 'Order Created By',
       sortable: true,
     },
     ...(handleDrillDownToggle

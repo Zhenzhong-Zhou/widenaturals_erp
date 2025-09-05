@@ -394,9 +394,12 @@ const transformInventoryAllocationReviewRows = (rows) => {
  * @property {string|null} payment_method
  * @property {string|null} payment_status
  * @property {string|null} delivery_method
- * @property {string} created_at - ISO timestamp
- * @property {string|null} created_by_firstname
- * @property {string|null} created_by_lastname
+ * @property {string} created_at - ISO timestamp of when the order was created
+ * @property {string|null} updated_at - ISO timestamp of when the order was last updated
+ * @property {string|null} created_by_firstname - First name of the user who created the order
+ * @property {string|null} created_by_lastname - Last name of the user who created the order
+ * @property {string|null} updated_by_firstname - First name of the user who last updated the order
+ * @property {string|null} updated_by_lastname - Last name of the user who last updated the order
  * @property {number|null} total_items
  * @property {number|null} allocated_items
  * @property {string[]|null} warehouse_ids
@@ -420,8 +423,10 @@ const transformInventoryAllocationReviewRows = (rows) => {
  * @property {string|null} paymentMethod
  * @property {string|null} paymentStatus
  * @property {string|null} deliveryMethod
- * @property {string} orderCreatedAt - ISO UTC timestamp
- * @property {string} createdBy - Full name of the user who created the order
+ * @property {string} orderCreatedAt - ISO timestamp of when the order was created
+ * @property {string} orderCreatedBy - Full name of the user who created the order
+ * @property {string} orderUpdatedAt - ISO timestamp of when the order was last updated
+ * @property {string} orderUpdatedBy - Full name of the user who last updated the order
  * @property {{ total: number, allocated: number }} itemCount
  * @property {{ ids: string[], names: string }} warehouses
  * @property {{
@@ -460,9 +465,11 @@ const transformInventoryAllocationRow = (row) => {
     paymentMethod: row.payment_method ?? null,
     paymentStatus: row.payment_status ?? null,
     deliveryMethod: row.delivery_method ?? null,
-    orderCreatedAt: row.created_at,
     
-    createdBy: getFullName(row.created_by_firstname, row.created_by_lastname),
+    orderCreatedAt: row.created_at,
+    orderCreatedBy: getFullName(row.created_by_firstname, row.created_by_lastname),
+    orderUpdatedAt: row.updated_at,
+    orderUpdatedBy: getFullName(row.updated_by_firstname, row.updated_by_lastname),
     
     itemCount: {
       total: row.total_items ?? 0,

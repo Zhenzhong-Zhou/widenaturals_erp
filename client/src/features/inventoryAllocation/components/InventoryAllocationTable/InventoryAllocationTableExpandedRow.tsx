@@ -4,6 +4,7 @@ import Grid from '@mui/material/Grid';
 import CustomTypography from '@components/common/CustomTypography';
 import DetailsSection from '@components/common/DetailsSection';
 import { formatLabel } from '@utils/textUtils';
+import { formatDate } from '@utils/dateTimeUtils';
 import type { InventoryAllocationSummary } from '@features/inventoryAllocation/state';
 
 interface Props {
@@ -15,7 +16,10 @@ const InventoryAllocationTableExpandedRow: FC<Props> = ({ row }) => {
     orderCategory,
     allocationStatus,
     allocatedAt,
-    allocatedCreatedAt
+    allocatedCreatedAt,
+    orderCreatedAt,
+    orderUpdatedAt,
+    orderUpdatedBy,
   } = row;
   
   const nameLabel = Array.isArray(allocationStatus?.names)
@@ -34,8 +38,11 @@ const InventoryAllocationTableExpandedRow: FC<Props> = ({ row }) => {
             fields={[
               { label: 'Order Category', value: orderCategory ?? '—', format: formatLabel },
               { label: 'Allocation Statuses', value: nameLabel, format: formatLabel },
-              { label: 'Allocated At', value: allocatedAt, format: formatLabel },
-              { label: 'Allocation Created At', value: allocatedCreatedAt, format: formatLabel },
+              { label: 'Allocated At', value: allocatedAt, format: formatDate },
+              { label: 'Allocation Created At', value: allocatedCreatedAt, format: formatDate },
+              { label: 'Order Created At', value: orderCreatedAt, format: formatDate },
+              { label: 'Order Updated At', value: orderUpdatedAt, format: formatDate },
+              { label: 'Order Updated By', value: orderUpdatedBy, format: formatLabel },
             ]}
           />
         </Grid>

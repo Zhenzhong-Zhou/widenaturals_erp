@@ -372,14 +372,20 @@ export interface InventoryAllocationSummary {
   /** Payment status (e.g., "Paid", "Unpaid") */
   paymentStatus: string | null;
   
-  /** Delivery method (e.g., "Express") */
+  /** Name of the delivery method (e.g., "Standard", "Express"). Nullable if not set. */
   deliveryMethod: string | null;
   
-  /** ISO string of the order creation date */
+  /** ISO timestamp of when the order was originally created. */
   orderCreatedAt: string;
   
-  /** Full name of the user who created the order */
-  createdBy: string;
+  /** Full name of the user who created the order. */
+  orderCreatedBy: string;
+  
+  /** ISO timestamp of the most recent update to the order. */
+  orderUpdatedAt: string;
+  
+  /** Full name of the user who last updated the order. */
+  orderUpdatedBy: string;
   
   /** Number of items in the order vs allocated */
   itemCount: {
@@ -461,28 +467,46 @@ export interface FetchPaginatedInventoryAllocationsParams
  * Must match keys defined in backend sort map.
  */
 export type InventoryAllocationSortField =
+  // Allocation-level summary fields (FROM alloc_agg aa)
   | 'allocationStatus'
   | 'allocationStatusCodes'
   | 'allocationStatuses'
+  | 'allocatedAt'
+  | 'allocatedCreatedAt'
+  
+  // Warehouse display info
   | 'warehouseNames'
-  | 'warehouseIds'
+  
+  // Order-level fields (FROM orders o)
   | 'orderNumber'
   | 'orderDate'
   | 'orderType'
   | 'orderStatus'
   | 'orderStatusDate'
+  
+  // Customer
   | 'customerName'
   | 'customerFirstName'
   | 'customerLastName'
+  
+  // Payment-related
   | 'paymentMethod'
   | 'paymentStatus'
   | 'deliveryMethod'
-  | 'createdAt'
-  | 'updatedAt'
-  | 'createdBy'
-  | 'createdByLast'
+  
+  // Audit fields
+  | 'orderCreatedAt'
+  | 'orderCreatedByFirstName'
+  | 'orderCreatedByLastName'
+  | 'orderUpdatedAt'
+  | 'orderUpdatedByFirstName'
+  | 'orderUpdatedByLastName'
+  
+  // Item counts
   | 'totalItems'
   | 'allocatedItems'
+  
+  // Fallback
   | 'defaultNaturalSort';
 
 /**

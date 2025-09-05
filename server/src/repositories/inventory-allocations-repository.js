@@ -457,31 +457,32 @@ const getInventoryAllocationReview = async (orderId, warehouseIds, allocationIds
 
 /**
  * Fetch a paginated, order-grouped view of inventory allocations with order, customer,
- * payment, delivery, and warehouse metadata. Filters are pushed down into the
- * allocation CTE for better performance on large datasets.
+ * payment, delivery, warehouse, and allocation summary metadata.
+ *
+ * Filters are pushed down into the allocation CTE for better performance on large datasets.
  *
  * ## Sorting
  * - `sortBy` is whitelisted to prevent SQL injection. Unsupported fields fall back to `created_at`.
- * - `sortOrder` is `ASC`|`DESC`, default `DESC`.
+ * - `sortOrder` must be `'ASC'` or `'DESC'` (default: `'DESC'`).
  *
  * ## Filtering
  * `filters` is compiled by `buildInventoryAllocationFilter(filters)` into:
- *   - `whereClause`: SQL fragment safe to splice (contains only placeholders)
- *   - `params`: parameter array for placeholders
- * Typical filters might include:
- *   - `orderTypeIds: uuid[]`
- *   - `statusCodes: string[]` (allocation or order)
- *   - `warehouseIds: uuid[]`
- *   - `dateFrom` / `dateTo` (created_at range)
- *   - `search` (ILIKE on order_number or customer name)
+ *   - `whereClause`: SQL fragment with placeholders (safe for injection)
+ *   - `params`: parameter array to be used in the query
+ * Typical filters include:
+ *   - `statusId`, `warehouseId`, `batchId`, `orderStatusId`, etc.
+ *   - `aggregatedAllocatedAfter`, `aggregatedAllocatedBefore`, etc.
+ *   - `orderNumber`, `keyword` (for fuzzy matching)
  *
  * ## Return shape
- * Returns a standard pagination envelope (never `null`):
+ * Returns a paginated result object. Never returns `null` unless `data.length === 0`.
+ *
  * {
  *   data: Array<{
  *     order_id: string;
  *     order_number: string;
  *     order_type: string | null;
+ *     order_category: string | null;
  *     order_status_name: string | null;
  *     order_status_code: string | null;
  *     customer_firstname: string | null;
@@ -491,29 +492,45 @@ const getInventoryAllocationReview = async (orderId, warehouseIds, allocationIds
  *     delivery_method: string | null;
  *     total_items: number;
  *     allocated_items: number;
- *     created_at: string; // UTC ISO
- *     created_by_firstname: string | null;
- *     created_by_lastname: string | null;
- *     warehouse_ids: string[]; // distinct
- *     warehouse_names: string; // CSV, alpha-sorted
- *     allocation_status_codes: string[]; // distinct
- *     allocation_statuses: string; // CSV, alpha-sorted
+ *     allocated_at: string | null;           // Most recent allocation timestamp
+ *     allocated_created_at: string | null;   // First allocation creation timestamp
+ *     created_at: string;                    // Order created_at timestamp (UTC ISO)
+ *     created_by_firstname: string | null;   // Order created_by (user.firstname)
+ *     created_by_lastname: string | null;    // Order created_by (user.lastname)
+ *     updated_at: string | null;             // Order updated_at timestamp (UTC ISO)
+ *     updated_by_firstname: string | null;   // Order updated_by (user.firstname)
+ *     updated_by_lastname: string | null;    // Order updated_by (user.lastname)
+ *     warehouse_ids: string[];               // Distinct warehouse UUIDs
+ *     warehouse_names: string;               // CSV string of warehouse names
+ *     allocation_status_codes: string[];     // Allocation status codes (raw)
+ *     allocation_statuses: string;           // CSV string of status labels
  *     allocation_summary_status: 'Failed' | 'Fully Allocated' | 'Partially Allocated' | 'Pending Allocation' | 'Unknown';
- *     allocation_ids: string[]; // all allocation UUIDs associated with this order
+ *     allocation_ids: string[];              // All allocation UUIDs associated with this order
  *   }>,
- *   pagination: { page: number; limit: number; totalRecords: number; totalPages: number; }
+ *   pagination: {
+ *     page: number;
+ *     limit: number;
+ *     totalRecords: number;
+ *     totalPages: number;
+ *   }
  * }
  *
  * @param {Object} options
- * @param {Object} [options.filters={}] - Filter criteria (compiled by buildInventoryAllocationFilter)
+ * @param {Object} [options.filters={}] - Filter criteria (compiled by `buildInventoryAllocationFilter`)
  * @param {number} [options.page=1] - Page number (1-based)
- * @param {number} [options.limit=10] - Page size
+ * @param {number} [options.limit=10] - Number of records per page
  * @param {string} [options.sortBy='created_at'] - Whitelisted sort field
- * @param {string} [options.sortOrder='DESC'] - 'ASC' | 'DESC'
+ * @param {string} [options.sortOrder='DESC'] - Sort order: `'ASC'` or `'DESC'`
+ *
  * @returns {Promise<{
  *   data: any[];
- *   pagination: { page: number; limit: number; totalRecords: number; totalPages: number; }
- * }>}
+ *   pagination: {
+ *     page: number;
+ *     limit: number;
+ *     totalRecords: number;
+ *     totalPages: number;
+ *   };
+ * } | null>}
  */
 const getPaginatedInventoryAllocations = async ({
                                                   filters = {},
@@ -582,8 +599,11 @@ const getPaginatedInventoryAllocations = async ({
       aa.allocated_at,
       aa.allocated_created_at,
       o.created_at,
-      u.firstname AS created_by_firstname,
-      u.lastname  AS created_by_lastname,
+      u1.firstname AS created_by_firstname,
+      u1.lastname  AS created_by_lastname,
+      o.updated_at,
+      u2.firstname AS updated_by_firstname,
+      u2.lastname  AS updated_by_lastname,
       aa.warehouse_ids,
       aa.allocation_ids,
       aa.warehouse_names,
@@ -600,7 +620,8 @@ const getPaginatedInventoryAllocations = async ({
     LEFT JOIN delivery_methods dm ON dm.id = so.delivery_method_id
     LEFT JOIN order_types ot     ON ot.id = o.order_type_id
     LEFT JOIN order_status os    ON os.id = o.order_status_id
-    LEFT JOIN users u            ON u.id = o.created_by
+    LEFT JOIN users u1            ON u1.id = o.created_by
+    LEFT JOIN users u2           ON u2.id = o.updated_by
     WHERE ${whereClause}
     ORDER BY ${sortBy} ${sortOrder}
   `;
