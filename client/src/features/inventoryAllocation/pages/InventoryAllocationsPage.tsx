@@ -7,18 +7,17 @@ import {
   useState,
 } from 'react';
 import Box from '@mui/material/Box';
-// import Grid from '@mui/material/Grid';
-// import Card from '@mui/material/Card';
+import Grid from '@mui/material/Grid';
+import Card from '@mui/material/Card';
 import Divider from '@mui/material/Divider';
 import CustomTypography from '@components/common/CustomTypography';
 import CustomButton from '@components/common/CustomButton';
 import NoDataFound from '@components/common/NoDataFound';
 import Loading from '@components/common/Loading';
-import InventoryAllocationTable from '@features/inventoryAllocation/components/InventoryAllocationTable';
-// import InventoryAllocationFiltersPanel from '@features/inventoryAllocation/components/InventoryAllocationFiltersPanel';
-// import InventoryAllocationSortControls from '@features/inventoryAllocation/components/InventoryAllocationSortControls';
+import InventoryAllocationTable, {
+  InventoryAllocationFiltersPanel, InventoryAllocationSortControls,
+} from '@features/inventoryAllocation/components/InventoryAllocationTable';
 import { usePaginatedInventoryAllocations } from '@hooks/usePaginatedInventoryAllocations';
-// import { useDialogFocusHandlers } from '@utils/hooks/useDialogFocusHandlers';
 import { usePaginationHandlers } from '@utils/hooks/usePaginationHandlers';
 import { applyFiltersAndSorting } from '@utils/queryUtils';
 import type {
@@ -30,7 +29,7 @@ const InventoryAllocationsPage: FC = () => {
   const createButtonRef = useRef<HTMLButtonElement>(null);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(25);
-  const [sortBy, setSortBy] = useState<InventoryAllocationSortField>('createdAt');
+  const [sortBy, setSortBy] = useState<InventoryAllocationSortField>('orderCreatedAt');
   const [sortOrder, setSortOrder] = useState<'' | 'ASC' | 'DESC'>('');
   const [filters, setFilters] = useState<InventoryAllocationFilters>({});
   
@@ -81,7 +80,7 @@ const InventoryAllocationsPage: FC = () => {
       {/* Header */}
       <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" mb={3} gap={2}>
         <CustomTypography variant="h5" fontWeight={700}>
-          Inventory Allocation Review
+          Inventory Allocation Management
         </CustomTypography>
         
         <CustomButton
@@ -97,26 +96,26 @@ const InventoryAllocationsPage: FC = () => {
       <Divider sx={{ mb: 3 }} />
       
       {/* Filter + Sort Controls */}
-      {/*<Card sx={{ p: 3, mb: 4, borderRadius: 2, minHeight: 200 }}>*/}
-      {/*  <Grid container spacing={2}>*/}
-      {/*    <Grid size={{ xs: 12, sm: 6, md: 9 }}>*/}
-      {/*      <InventoryAllocationFiltersPanel*/}
-      {/*        filters={filters}*/}
-      {/*        onChange={setFilters}*/}
-      {/*        onApply={() => setPage(1)}*/}
-      {/*        onReset={handleResetFilters}*/}
-      {/*      />*/}
-      {/*    </Grid>*/}
-      {/*    <Grid size={{ xs: 12, sm: 6, md: 3 }}>*/}
-      {/*      <InventoryAllocationSortControls*/}
-      {/*        sortBy={sortBy}*/}
-      {/*        sortOrder={sortOrder}*/}
-      {/*        onSortByChange={setSortBy}*/}
-      {/*        onSortOrderChange={setSortOrder}*/}
-      {/*      />*/}
-      {/*    </Grid>*/}
-      {/*  </Grid>*/}
-      {/*</Card>*/}
+      <Card sx={{ p: 3, mb: 4, borderRadius: 2, minHeight: 200 }}>
+        <Grid container spacing={2}>
+          <Grid size={{ xs: 12, sm: 6, md: 9 }}>
+            <InventoryAllocationFiltersPanel
+              filters={filters}
+              onChange={setFilters}
+              onApply={() => setPage(1)}
+              onReset={handleResetFilters}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <InventoryAllocationSortControls
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onSortByChange={setSortBy}
+              onSortOrderChange={setSortOrder}
+            />
+          </Grid>
+        </Grid>
+      </Card>
       
       {/* Allocation Table Section */}
       <Box>
