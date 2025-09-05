@@ -279,6 +279,27 @@ export const adjustBeforeDateInclusive = (input?: string): string => {
 };
 
 /**
+ * Adjusts a date string to the start of that day (00:00:00)
+ * and returns it as a full ISO 8601 timestamp.
+ *
+ * Typically used for `>=` filters in SQL queries to include
+ * all events on the selected "after" date.
+ *
+ * Example:
+ *   Input: '2025-09-04' → Output: '2025-09-04T00:00:00.000Z'
+ *
+ * @param input - A date string in 'YYYY-MM-DD' or ISO format
+ * @returns ISO 8601 timestamp string starting at 00:00:00 of the given day,
+ *          or an empty string if the input is invalid.
+ */
+export const adjustAfterDate = (input?: string): string => {
+  const date = input ? new Date(input) : null;
+  return date && isValid(date)
+    ? startOfDay(date).toISOString()
+    : '';
+};
+
+/**
  * Safely converts a date-like input to an ISO 8601 string (`YYYY-MM-DDTHH:mm:ss.sssZ`).
  *
  * Accepts a `Date` object or a valid date string and returns its ISO string representation.
