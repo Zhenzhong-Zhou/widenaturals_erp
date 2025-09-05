@@ -533,6 +533,8 @@ const getPaginatedInventoryAllocations = async ({
         ARRAY_AGG(DISTINCT w.id)                      AS warehouse_ids,
         STRING_AGG(DISTINCT w.name, ', ' ORDER BY w.name) AS warehouse_names,
         ARRAY_AGG(DISTINCT s.code)                    AS allocation_status_codes,
+        MIN(ia.allocated_at)                             AS allocated_at,
+        MIN(ia.created_at)                               AS allocated_created_at,
         STRING_AGG(DISTINCT s.name, ', ' ORDER BY s.name) AS allocation_statuses
       FROM inventory_allocations ia
       JOIN order_items oi ON oi.id = ia.order_item_id
@@ -577,6 +579,8 @@ const getPaginatedInventoryAllocations = async ({
       dm.method_name AS delivery_method,
       ic.total_items,
       aa.allocated_items,
+      aa.allocated_at,
+      aa.allocated_created_at,
       o.created_at,
       u.firstname AS created_by_firstname,
       u.lastname  AS created_by_lastname,

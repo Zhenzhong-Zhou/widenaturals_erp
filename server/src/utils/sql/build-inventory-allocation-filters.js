@@ -9,7 +9,7 @@
  *
  * Filters are safely parameterized (e.g., `$1`, `$2`) to prevent SQL injection.
  * Compatible with multi-CTE query structures, such as those using `inventory_allocations ia`,
- * `orders o`, and optionally `sales_orders so`, `customers c`, etc.
+ * `orders o`, and optionally `sales_orders so`, `customers c`, `aggregated_allocations aa`, etc.
  */
 
 const { logSystemException } = require('../system-logger');
@@ -19,7 +19,7 @@ const AppError = require('../AppError');
  * Builds a parameterized SQL WHERE clause for filtering inventory allocations.
  *
  * ### Supported Filters
- * - **Allocation-level:**
+ * - **Allocation-level (`ia`):**
  *   - `statusId` → `ia.status_id`
  *   - `warehouseId` → `ia.warehouse_id`
  *   - `batchId` → `ia.batch_id`
@@ -27,19 +27,25 @@ const AppError = require('../AppError');
  *   - `allocatedAfter` → `ia.allocated_at >=`
  *   - `allocatedBefore` → `ia.allocated_at <=`
  *
- * - **Order-level:**
+ * - **Aggregated allocation-level (`aa`):**
+ *   - `aggregatedAllocatedAfter` → `aa.allocated_at >=`
+ *   - `aggregatedAllocatedBefore` → `aa.allocated_at <=`
+ *   - `aggregatedCreatedAfter` → `aa.allocated_created_at >=`
+ *   - `aggregatedCreatedBefore` → `aa.allocated_created_at <=`
+ *
+ * - **Order-level (`o`):**
  *   - `orderNumber` (partial match, ILIKE) → `o.order_number`
  *   - `orderStatusId` → `o.order_status_id`
  *   - `orderTypeId` → `o.order_type_id`
  *   - `orderCreatedBy` → `o.created_by`
  *
- * - **Sales order-level:**
+ * - **Sales order-level (`so`):**
  *   - `paymentStatusId` → `so.payment_status_id`
  *
  * - **Keyword (partial match on multiple fields):**
  *   - `keyword` (ILIKE match on:
  *     - `o.order_number`
- *     - full customer name `c.firstname || ' ' || c.lastname`)
+ *     - full customer name: `c.firstname || ' ' || c.lastname`)
  *
  * ### Usage
  * Returns an object with:
@@ -52,31 +58,34 @@ const AppError = require('../AppError');
  * ```js
  * const { whereClause, params } = buildInventoryAllocationFilter({
  *   statusId: 'status-uuid',
- *   warehouseId: 'warehouse-uuid',
- *   allocatedAfter: '2024-01-01',
+ *   aggregatedAllocatedAfter: '2024-01-01',
  *   keyword: 'John',
  * });
  * // whereClause =>
- * //   "1=1 AND ia.status_id = $1 AND ia.warehouse_id = $2 AND ia.allocated_at >= $3 AND (
- * //     o.order_number ILIKE $4 OR
- * //     COALESCE(c.firstname || ' ' || c.lastname, '') ILIKE $4
+ * //   "1=1 AND ia.status_id = $1 AND aa.allocated_at >= $2 AND (
+ * //     o.order_number ILIKE $3 OR
+ * //     COALESCE(c.firstname || ' ' || c.lastname, '') ILIKE $3
  * //   )"
- * // params => ['status-uuid', 'warehouse-uuid', '2024-01-01', '%John%']
+ * // params => ['status-uuid', '2024-01-01', '%John%']
  * ```
  *
  * @param {Object} [filters={}] - Filtering criteria
- * @param {string} [filters.statusId] - Allocation status ID (UUID)
- * @param {string} [filters.warehouseId] - Warehouse ID (UUID)
- * @param {string} [filters.batchId] - Batch ID (UUID)
- * @param {string} [filters.allocationCreatedBy] - Allocation `created_by` user ID (UUID)
- * @param {string} [filters.allocatedAfter] - ISO date string (inclusive lower bound)
- * @param {string} [filters.allocatedBefore] - ISO date string (inclusive upper bound)
- * @param {string} [filters.orderNumber] - Order number (partial match, ILIKE)
- * @param {string} [filters.orderStatusId] - Order status ID (UUID)
- * @param {string} [filters.orderTypeId] - Order type ID (UUID)
- * @param {string} [filters.orderCreatedBy] - Order `created_by` user ID (UUID)
- * @param {string} [filters.paymentStatusId] - Payment status ID (UUID)
- * @param {string} [filters.keyword] - Free-text fuzzy search (order number + customer name)
+ * @param {string} [filters.statusId] - Allocation status ID (`ia.status_id`)
+ * @param {string} [filters.warehouseId] - Warehouse ID (`ia.warehouse_id`)
+ * @param {string} [filters.batchId] - Batch ID (`ia.batch_id`)
+ * @param {string} [filters.allocationCreatedBy] - Allocation creator user ID (`ia.created_by`)
+ * @param {string} [filters.allocatedAfter] - Allocation timestamp >= (ISO string, `ia.allocated_at`)
+ * @param {string} [filters.allocatedBefore] - Allocation timestamp <= (ISO string, `ia.allocated_at`)
+ * @param {string} [filters.aggregatedAllocatedAfter] - Aggregated allocation timestamp >= (`aa.allocated_at`)
+ * @param {string} [filters.aggregatedAllocatedBefore] - Aggregated allocation timestamp <= (`aa.allocated_at`)
+ * @param {string} [filters.aggregatedCreatedAfter] - Aggregated created_at >= (`aa.allocated_created_at`)
+ * @param {string} [filters.aggregatedCreatedBefore] - Aggregated created_at <= (`aa.allocated_created_at`)
+ * @param {string} [filters.orderNumber] - Order number (partial match, ILIKE, `o.order_number`)
+ * @param {string} [filters.orderStatusId] - Order status ID (`o.order_status_id`)
+ * @param {string} [filters.orderTypeId] - Order type ID (`o.order_type_id`)
+ * @param {string} [filters.orderCreatedBy] - Order creator user ID (`o.created_by`)
+ * @param {string} [filters.paymentStatusId] - Payment status ID (`so.payment_status_id`)
+ * @param {string} [filters.keyword] - Free-text fuzzy search across order number and customer name
  *
  * @returns {{ whereClause: string, params: any[] }} - Parameterized SQL clause & values
  *
@@ -122,6 +131,30 @@ const buildInventoryAllocationFilter = (filters = {}) => {
     if (filters.allocatedBefore) {
       conditions.push(`ia.allocated_at <= $${paramIndex}`);
       params.push(filters.allocatedBefore);
+      paramIndex++;
+    }
+    
+    if (filters.aggregatedAllocatedAfter) {
+      conditions.push(`aa.allocated_at >= $${paramIndex}`);
+      params.push(filters.aggregatedAllocatedAfter);
+      paramIndex++;
+    }
+    
+    if (filters.aggregatedAllocatedBefore) {
+      conditions.push(`aa.allocated_at <= $${paramIndex}`);
+      params.push(filters.aggregatedAllocatedBefore);
+      paramIndex++;
+    }
+    
+    if (filters.aggregatedCreatedAfter) {
+      conditions.push(`aa.allocated_created_at >= $${paramIndex}`);
+      params.push(filters.aggregatedCreatedAfter);
+      paramIndex++;
+    }
+    
+    if (filters.aggregatedCreatedBefore) {
+      conditions.push(`aa.allocated_created_at <= $${paramIndex}`);
+      params.push(filters.aggregatedCreatedBefore);
       paramIndex++;
     }
     

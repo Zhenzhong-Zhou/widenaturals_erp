@@ -342,6 +342,45 @@ const allocatedDateRangeSchema = Joi.object({
 });
 
 /**
+ * Joi schema for filtering by aggregated allocated and created date ranges.
+ *
+ * Includes:
+ * - `aggregatedAllocatedAfter`: filters `aa.allocated_at >=`
+ * - `aggregatedAllocatedBefore`: filters `aa.allocated_at <=`
+ * - `aggregatedCreatedAfter`: filters `aa.allocated_created_at >=`
+ * - `aggregatedCreatedBefore`: filters `aa.allocated_created_at <=`
+ *
+ * Accepts null or empty string values.
+ *
+ * @type {Joi.ObjectSchema}
+ */
+const aggregatedDateRangeSchema = Joi.object({
+  aggregatedAllocatedAfter: Joi.date()
+    .iso()
+    .optional()
+    .allow(null, '')
+    .label('Aggregated Allocated After'),
+  
+  aggregatedAllocatedBefore: Joi.date()
+    .iso()
+    .optional()
+    .allow(null, '')
+    .label('Aggregated Allocated Before'),
+  
+  aggregatedCreatedAfter: Joi.date()
+    .iso()
+    .optional()
+    .allow(null, '')
+    .label('Aggregated Created After'),
+  
+  aggregatedCreatedBefore: Joi.date()
+    .iso()
+    .optional()
+    .allow(null, '')
+    .label('Aggregated Created Before'),
+});
+
+/**
  * Creates a Joi schema for a boolean query parameter that accepts flexible truthy/falsy values.
  *
  * - Accepts true/false, or strings like 'true'/'false'
@@ -413,6 +452,7 @@ module.exports = {
   updatedDateRangeSchema,
   statusDateRangeSchema,
   allocatedDateRangeSchema,
+  aggregatedDateRangeSchema,
   createBooleanFlag,
   validateKeyword,
   validateOptionalString,

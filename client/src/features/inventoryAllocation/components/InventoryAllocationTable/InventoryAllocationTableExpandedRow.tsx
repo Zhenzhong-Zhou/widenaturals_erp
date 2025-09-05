@@ -14,6 +14,8 @@ const InventoryAllocationTableExpandedRow: FC<Props> = ({ row }) => {
   const {
     orderCategory,
     allocationStatus,
+    allocatedAt,
+    allocatedCreatedAt
   } = row;
   
   const nameLabel = Array.isArray(allocationStatus?.names)
@@ -32,6 +34,8 @@ const InventoryAllocationTableExpandedRow: FC<Props> = ({ row }) => {
             fields={[
               { label: 'Order Category', value: orderCategory ?? '—', format: formatLabel },
               { label: 'Allocation Statuses', value: nameLabel, format: formatLabel },
+              { label: 'Allocated At', value: allocatedAt, format: formatLabel },
+              { label: 'Allocation Created At', value: allocatedCreatedAt, format: formatLabel },
             ]}
           />
         </Grid>

@@ -405,6 +405,8 @@ const transformInventoryAllocationReviewRows = (rows) => {
  * @property {string|null} allocation_statuses
  * @property {string|null} allocation_summary_status
  * @property {string[]|null} allocation_ids - All allocation UUIDs for this order
+ * @property {string|null} allocated_at - Most recent allocation timestamp
+ * @property {string|null} allocated_created_at - Timestamp of the first allocation creation
  */
 
 /**
@@ -428,6 +430,8 @@ const transformInventoryAllocationReviewRows = (rows) => {
  *   summary: 'Failed' | 'Fully Allocated' | 'Partially Allocated' | 'Pending Allocation' | 'Unknown'
  * }} allocationStatus
  * @property {string[]} allocationIds - All allocation UUIDs for this order
+ * @property {string|null} allocatedAt - Most recent allocation timestamp (nullable)
+ * @property {string|null} allocatedCreatedAt - First allocation created_at timestamp (nullable)
  */
 
 /**
@@ -477,6 +481,9 @@ const transformInventoryAllocationRow = (row) => {
     },
     
     allocationIds: row.allocation_ids ?? [],
+    
+    allocatedAt: row.allocated_at,
+    allocatedCreatedAt: row.allocated_created_at,
   };
   
   return cleanObject(base);

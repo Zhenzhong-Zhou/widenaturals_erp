@@ -250,6 +250,7 @@ const SORTABLE_FIELDS = {
     allocationStatus: 'aa.allocation_summary_status',     // derived field
     allocationStatusCodes: 'aa.allocation_status_codes',  // raw code array
     allocationStatuses: 'aa.allocation_statuses',         // raw label string
+    allocatedAt: 'aa.allocated_at',
     
     // Warehouse display info (FROM alloc_agg aa)
     warehouseNames: 'aa.warehouse_names',

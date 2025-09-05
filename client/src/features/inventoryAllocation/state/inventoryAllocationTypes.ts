@@ -402,6 +402,12 @@ export interface InventoryAllocationSummary {
   
   /** All inventory allocation IDs linked to this order */
   allocationIds: string[];
+  
+  /** Timestamp of the most recent allocation (UTC ISO string). Nullable if no allocations exist. */
+  allocatedAt: string | null;
+  
+  /** Timestamp of the first allocation creation (UTC ISO string). Nullable if no allocations exist. */
+  allocatedCreatedAt: string | null;
 }
 
 /**
@@ -429,9 +435,13 @@ export interface InventoryAllocationFilters {
   // Sales order-level
   paymentStatusId?: string;
   
-  // Date range (allocatedAt)
-  allocatedAfter?: string;  // ISO string
-  allocatedBefore?: string; // ISO string
+  // --- Date range filters (aggregated MIN(ia.allocated_at)) ---
+  aggregatedAllocatedAfter?: string;  // filters `aa.allocated_at >=`
+  aggregatedAllocatedBefore?: string; // filters `aa.allocated_at <=`
+  
+  // --- Date range filters (aggregated MIN(ia.created_at)) ---
+  aggregatedCreatedAfter?: string;  // filters `aa.allocated_created_at >=`
+  aggregatedCreatedBefore?: string; // filters `aa.allocated_created_at <=`
   
   // Global fuzzy keyword search
   keyword?: string;

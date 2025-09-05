@@ -16,7 +16,7 @@ const {
   createSortSchema,
   validateOptionalUUID,
   validateOptionalString,
-  allocatedDateRangeSchema
+  aggregatedDateRangeSchema
 } = require('./general-validators');
 
 /**
@@ -63,13 +63,17 @@ const allocationReviewSchema = Joi.object({
  *
  * This schema validates query parameters used in listing/filtering inventory allocation
  * records via the API or UI dashboard. It supports pagination, sorting, and filtering
- * based on allocation, order, sales, and keyword metadata.
+ * based on allocation metadata, order metadata, sales order metadata, and keyword search.
  *
  * ### Composition:
  * - Inherits from:
- *   - `paginationSchema` → page, limit
- *   - `createSortSchema('created_at')` → sortBy, sortOrder (default: 'created_at')
- *   - `allocatedDateRangeSchema` → allocatedAfter, allocatedBefore (ISO strings)
+ *   - `paginationSchema` → `page`, `limit`
+ *   - `createSortSchema('created_at')` → `sortBy`, `sortOrder` (default: `'created_at'`)
+ *   - `aggregatedDateRangeSchema` → allocation-related date filters:
+ *     - `aggregatedAllocatedAfter`
+ *     - `aggregatedAllocatedBefore`
+ *     - `aggregatedCreatedAfter`
+ *     - `aggregatedCreatedBefore`
  *
  * ### Supported Filters:
  * - **Allocation-level**
@@ -77,6 +81,12 @@ const allocationReviewSchema = Joi.object({
  *   - `warehouseId` → Warehouse UUID
  *   - `batchId` → Batch UUID
  *   - `allocationCreatedBy` → UUID of user who created the allocation
+ *
+ * - **Aggregated allocation date filters (from `aggregatedDateRangeSchema`)**
+ *   - `aggregatedAllocatedAfter` → Filter allocations with `allocated_at >=` this ISO date
+ *   - `aggregatedAllocatedBefore` → Filter allocations with `allocated_at <=` this ISO date
+ *   - `aggregatedCreatedAfter` → Filter allocations with `created_at >=` this ISO date
+ *   - `aggregatedCreatedBefore` → Filter allocations with `created_at <=` this ISO date
  *
  * - **Order-level**
  *   - `orderNumber` → Partial match on order number
@@ -100,7 +110,7 @@ const allocationReviewSchema = Joi.object({
  */
 const inventoryAllocationsQuerySchema = paginationSchema
   .concat(createSortSchema('created_at')) // default sort
-  .concat(allocatedDateRangeSchema)
+  .concat(aggregatedDateRangeSchema)
   .keys({
     // --- Allocation-level filters ---
     statusId: validateOptionalUUID('Allocation status ID'),
