@@ -456,27 +456,26 @@ const getInventoryAllocationReview = async (orderId, warehouseIds, allocationIds
 };
 
 /**
- * Fetch a paginated, order-grouped view of inventory allocations with order, customer,
- * payment, delivery, warehouse, and allocation summary metadata.
+ * Fetches a paginated list of order-grouped inventory allocations with joined metadata.
  *
- * Filters are pushed down into the allocation CTE for better performance on large datasets.
+ * This query groups `inventory_allocations` by `order_id`, aggregates warehouse and
+ * allocation data, and joins with related tables (`orders`, `customers`, `payment methods`, etc.).
  *
- * ## Sorting
- * - `sortBy` is whitelisted to prevent SQL injection. Unsupported fields fall back to `created_at`.
- * - `sortOrder` must be `'ASC'` or `'DESC'` (default: `'DESC'`).
+ * ### Filtering
+ * - The `filters` object is parsed using `buildInventoryAllocationFilter`, which generates:
+ *   - `rawAllocWhereClause` and `rawAllocParams` (for CTE-level filtering on `ia`)
+ *   - `outerWhereClause` and `outerParams` (for outer-level filtering on `orders`, etc.)
  *
- * ## Filtering
- * `filters` is compiled by `buildInventoryAllocationFilter(filters)` into:
- *   - `whereClause`: SQL fragment with placeholders (safe for injection)
- *   - `params`: parameter array to be used in the query
- * Typical filters include:
- *   - `statusId`, `warehouseId`, `batchId`, `orderStatusId`, etc.
- *   - `aggregatedAllocatedAfter`, `aggregatedAllocatedBefore`, etc.
- *   - `orderNumber`, `keyword` (for fuzzy matching)
+ * ### Sorting
+ * - `sortBy` is **whitelisted only** (e.g., `created_at`, `order_number`). Unsafe fields will be rejected or fallback may apply.
+ * - `sortOrder` must be `'ASC'` or `'DESC'` (default: `'DESC'`)
  *
- * ## Return shape
- * Returns a paginated result object. Never returns `null` unless `data.length === 0`.
+ * ### Return Behavior
+ * - Returns `null` if no results were found (`data.length === 0`)
+ * - Returns a paginated result object if records exist
  *
+ * ### Return Shape
+ * ```ts
  * {
  *   data: Array<{
  *     order_id: string;
@@ -492,20 +491,25 @@ const getInventoryAllocationReview = async (orderId, warehouseIds, allocationIds
  *     delivery_method: string | null;
  *     total_items: number;
  *     allocated_items: number;
- *     allocated_at: string | null;           // Most recent allocation timestamp
- *     allocated_created_at: string | null;   // First allocation creation timestamp
- *     created_at: string;                    // Order created_at timestamp (UTC ISO)
- *     created_by_firstname: string | null;   // Order created_by (user.firstname)
- *     created_by_lastname: string | null;    // Order created_by (user.lastname)
- *     updated_at: string | null;             // Order updated_at timestamp (UTC ISO)
- *     updated_by_firstname: string | null;   // Order updated_by (user.firstname)
- *     updated_by_lastname: string | null;    // Order updated_by (user.lastname)
- *     warehouse_ids: string[];               // Distinct warehouse UUIDs
- *     warehouse_names: string;               // CSV string of warehouse names
- *     allocation_status_codes: string[];     // Allocation status codes (raw)
- *     allocation_statuses: string;           // CSV string of status labels
- *     allocation_summary_status: 'Failed' | 'Fully Allocated' | 'Partially Allocated' | 'Pending Allocation' | 'Unknown';
- *     allocation_ids: string[];              // All allocation UUIDs associated with this order
+ *     allocated_at: string | null;
+ *     allocated_created_at: string | null;
+ *     created_at: string;
+ *     created_by_firstname: string | null;
+ *     created_by_lastname: string | null;
+ *     updated_at: string | null;
+ *     updated_by_firstname: string | null;
+ *     updated_by_lastname: string | null;
+ *     warehouse_ids: string[];
+ *     warehouse_names: string;
+ *     allocation_status_codes: string[];
+ *     allocation_statuses: string;
+ *     allocation_summary_status:
+ *       | 'Failed'
+ *       | 'Fully Allocated'
+ *       | 'Partially Allocated'
+ *       | 'Pending Allocation'
+ *       | 'Unknown';
+ *     allocation_ids: string[];
  *   }>,
  *   pagination: {
  *     page: number;
@@ -514,13 +518,14 @@ const getInventoryAllocationReview = async (orderId, warehouseIds, allocationIds
  *     totalPages: number;
  *   }
  * }
+ * ```
  *
  * @param {Object} options
- * @param {Object} [options.filters={}] - Filter criteria (compiled by `buildInventoryAllocationFilter`)
- * @param {number} [options.page=1] - Page number (1-based)
+ * @param {Object} [options.filters={}] - Filter criteria (passed to `buildInventoryAllocationFilter`)
+ * @param {number} [options.page=1] - Current page number (1-based)
  * @param {number} [options.limit=10] - Number of records per page
- * @param {string} [options.sortBy='created_at'] - Whitelisted sort field
- * @param {string} [options.sortOrder='DESC'] - Sort order: `'ASC'` or `'DESC'`
+ * @param {string} [options.sortBy='created_at'] - Whitelisted field to sort by
+ * @param {string} [options.sortOrder='DESC'] - Sort direction ('ASC' | 'DESC')
  *
  * @returns {Promise<{
  *   data: any[];
@@ -530,7 +535,9 @@ const getInventoryAllocationReview = async (orderId, warehouseIds, allocationIds
  *     totalRecords: number;
  *     totalPages: number;
  *   };
- * } | null>}
+ * } | null>} Paginated result set or null if no matches found
+ *
+ * @throws {AppError} Throws `AppError.databaseError` on failure
  */
 const getPaginatedInventoryAllocations = async ({
                                                   filters = {},
@@ -539,7 +546,12 @@ const getPaginatedInventoryAllocations = async ({
                                                   sortBy = 'created_at',
                                                   sortOrder = 'DESC',
                                                 }) => {
-  const { whereClause, params } = buildInventoryAllocationFilter(filters);
+  const {
+    rawAllocWhereClause,
+    rawAllocParams,
+    outerWhereClause,
+    outerParams,
+  } = buildInventoryAllocationFilter(filters);
   
   const baseQuery = `
     WITH raw_alloc AS (
@@ -557,7 +569,7 @@ const getPaginatedInventoryAllocations = async ({
       JOIN order_items oi ON oi.id = ia.order_item_id
       LEFT JOIN warehouses w ON w.id = ia.warehouse_id
       LEFT JOIN inventory_allocation_status s ON s.id = ia.status_id
-      WHERE w.id IS NOT NULL
+      WHERE ${rawAllocWhereClause}
       GROUP BY oi.order_id
     ),
     alloc_agg AS (
@@ -622,14 +634,14 @@ const getPaginatedInventoryAllocations = async ({
     LEFT JOIN order_status os    ON os.id = o.order_status_id
     LEFT JOIN users u1            ON u1.id = o.created_by
     LEFT JOIN users u2           ON u2.id = o.updated_by
-    WHERE ${whereClause}
+    WHERE ${outerWhereClause}
     ORDER BY ${sortBy} ${sortOrder}
   `;
   
   try {
     const result = await paginateResults({
       dataQuery: baseQuery,
-      params,
+      params: [...rawAllocParams, ...outerParams],
       page,
       limit,
     });

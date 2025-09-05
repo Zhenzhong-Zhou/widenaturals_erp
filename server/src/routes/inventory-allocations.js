@@ -88,51 +88,66 @@ router.post(
 /**
  * GET /api/inventory-allocations
  *
- * Fetch a paginated list of inventory allocation summaries with filtering, sorting, and pagination.
+ * Fetch a paginated list of inventory allocation summaries with support for
+ * filtering, sorting, and pagination.
  *
  * ### Middleware Stack:
- * 1. `authorize([PERMISSIONS.INVENTORY.VIEW])`
- *    → Requires `INVENTORY.VIEW` permission to access this route.
+ * 1. `authorize([PERMISSIONS.INVENTORY_ALLOCATION.VIEW])`
+ *    → Ensures the user has permission to view inventory allocations.
  *
- * 2. `createQueryNormalizationMiddleware('inventoryAllocationSortMap', [], [], inventoryAllocationsQuerySchema)`
+ * 2. `createQueryNormalizationMiddleware('inventoryAllocationSortMap', ['statusIds', 'warehouseIds', 'batchIds'], [], inventoryAllocationsQuerySchema)`
  *    → Normalizes query parameters into `req.normalizedQuery`:
- *      - `page`, `limit`, `sortBy`, `sortOrder`, `filters`
- *      - Uses `inventoryAllocationSortMap` to validate sort keys (optional).
+ *       - Flattens and coerces query values to expected types
+ *       - Handles array fields like `statusIds`, `warehouseIds`, `batchIds`
+ *       - Validates sorting keys using `inventoryAllocationSortMap`
  *
  * 3. `sanitizeFields(['keyword'])`
- *    → Trims and cleans the `keyword` field to remove excess whitespace.
+ *    → Trims and cleans the `keyword` field for fuzzy search.
  *
  * 4. `validate(inventoryAllocationsQuerySchema, 'query')`
- *    → Validates query parameters against Joi schema, ensuring correct types and formats.
+ *    → Validates query parameters against the Joi schema to ensure correct shape and types.
  *
  * 5. `getPaginatedInventoryAllocationsController`
- *    → Handles request by calling service and returning structured result.
+ *    → Main controller to fetch data and respond with paginated allocation summaries.
  *
- * ### Query Parameters (validated via `inventoryAllocationsQuerySchema`):
- * - `page` (number, default: 1)
- * - `limit` (number, default: 10)
- * - `sortBy` (string, default: 'created_at')
- * - `sortOrder` (string, 'ASC' | 'DESC', default: 'DESC')
- * - `filters`:
- *   - `statusId`, `warehouseId`, `batchId`, `orderStatusId`, `orderTypeId`, `paymentStatusId`, etc.
- *   - `keyword`: Fuzzy search on order number, product name, customer name
- *   - `allocatedAfter`, `allocatedBefore`: Date range filtering
+ * ### Query Parameters (via `inventoryAllocationsQuerySchema`):
+ * - Pagination:
+ *   - `page` (number, default: 1)
+ *   - `limit` (number, default: 10)
+ * - Sorting:
+ *   - `sortBy` (string, default: `'created_at'`)
+ *   - `sortOrder` (`'ASC'` | `'DESC'`, default: `'DESC'`)
+ * - Filters (flattened top-level keys):
+ *   - `statusIds`, `warehouseIds`, `batchIds` — array of UUIDs
+ *   - `orderStatusId`, `orderTypeId`, `paymentStatusId`, `orderCreatedBy`, `allocationCreatedBy`
+ *   - `allocatedAfter`, `allocatedBefore`, `aggregatedAllocatedAfter`, `aggregatedAllocatedBefore`
+ *   - `aggregatedCreatedAfter`, `aggregatedCreatedBefore`
+ *   - `orderNumber`, `keyword` (for fuzzy search on order/customer fields)
  *
- * ### Example:
+ * ### Example Request:
  * ```http
- * GET /api/inventory-allocations?page=1&limit=20&sortBy=created_at&sortOrder=DESC&warehouseId=abc-123&keyword=NMN
- * Authorization: Bearer <token>
+ * GET /api/inventory-allocations?page=1&limit=20&sortBy=created_at&sortOrder=DESC&warehouseIds=abc-123&keyword=NMN
+ * Authorization: Bearer <access_token>
  * ```
  *
  * @access Protected
- * @returns {200} JSON with `data` and `pagination` fields
+ * @returns {200} JSON response with:
+ * {
+ *   data: InventoryAllocationSummary[],
+ *   pagination: {
+ *     page: number,
+ *     limit: number,
+ *     totalRecords: number,
+ *     totalPages: number
+ *   }
+ * }
  */
 router.get(
   '/',
   authorize([PERMISSIONS.INVENTORY_ALLOCATION.VIEW]),
   createQueryNormalizationMiddleware(
     'inventoryAllocationSortMap',
-    [],
+    ['statusIds', 'warehouseIds', 'batchIds'],
     [],
     inventoryAllocationsQuerySchema
   ),

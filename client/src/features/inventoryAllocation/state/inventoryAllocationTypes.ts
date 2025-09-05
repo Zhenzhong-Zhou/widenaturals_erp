@@ -427,9 +427,9 @@ export type InventoryAllocationResponse = PaginatedResponse<InventoryAllocationS
  */
 export interface InventoryAllocationFilters {
   // Allocation-level
-  statusId?: string;
-  warehouseId?: string;
-  batchId?: string;
+  statusIds?: string[];
+  warehouseIds?: string[];
+  batchIds?: string[];
   allocationCreatedBy?: string;
   
   // Order-level

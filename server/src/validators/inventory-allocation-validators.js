@@ -16,7 +16,8 @@ const {
   createSortSchema,
   validateOptionalUUID,
   validateOptionalString,
-  aggregatedDateRangeSchema
+  aggregatedDateRangeSchema,
+  validateUUIDOrUUIDArrayOptional
 } = require('./general-validators');
 
 /**
@@ -77,9 +78,9 @@ const allocationReviewSchema = Joi.object({
  *
  * ### Supported Filters:
  * - **Allocation-level**
- *   - `statusId` → Allocation status UUID
- *   - `warehouseId` → Warehouse UUID
- *   - `batchId` → Batch UUID
+ *   - `statusIds` → Array of allocation status UUIDs (`ia.status_id = ANY(...)`)
+ *   - `warehouseIds` → Array of warehouse UUIDs (`ia.warehouse_id = ANY(...)`)
+ *   - `batchIds` → Array of batch UUIDs (`ia.batch_id = ANY(...)`)
  *   - `allocationCreatedBy` → UUID of user who created the allocation
  *
  * - **Aggregated allocation date filters (from `aggregatedDateRangeSchema`)**
@@ -89,7 +90,7 @@ const allocationReviewSchema = Joi.object({
  *   - `aggregatedCreatedBefore` → Filter allocations with `created_at <=` this ISO date
  *
  * - **Order-level**
- *   - `orderNumber` → Partial match on order number
+ *   - `orderNumber` → Partial match on order number (ILIKE `%value%`)
  *   - `orderStatusId` → Order status UUID
  *   - `orderTypeId` → Order type UUID
  *   - `orderCreatedBy` → UUID of user who created the order
@@ -101,7 +102,8 @@ const allocationReviewSchema = Joi.object({
  *   - `keyword` → Fuzzy match against order number, SKU, product name, or customer name
  *
  * ### Notes:
- * - All UUIDs must be valid (or undefined/null if optional).
+ * - UUID arrays (e.g. `statusIds`, `warehouseIds`) must be valid if provided. Empty arrays are allowed.
+ * - Singular UUID fields (e.g. `allocationCreatedBy`, `orderStatusId`) must be valid if provided.
  * - All string fields are trimmed and optional.
  * - Pagination defaults: `page = 1`, `limit = 10`
  * - Sort defaults: `sortBy = 'created_at'`, `sortOrder = 'DESC'`
@@ -113,9 +115,9 @@ const inventoryAllocationsQuerySchema = paginationSchema
   .concat(aggregatedDateRangeSchema)
   .keys({
     // --- Allocation-level filters ---
-    statusId: validateOptionalUUID('Allocation status ID'),
-    warehouseId: validateOptionalUUID('Warehouse ID'),
-    batchId: validateOptionalUUID('Batch ID'),
+    statusIds: validateUUIDOrUUIDArrayOptional('Allocation status IDs'),
+    warehouseIds: validateUUIDOrUUIDArrayOptional('Warehouse IDs'),
+    batchIds: validateUUIDOrUUIDArrayOptional('Batch IDs'),
     allocationCreatedBy: validateOptionalUUID('Allocation Created By User ID'),
     
     // --- Order-level filters ---

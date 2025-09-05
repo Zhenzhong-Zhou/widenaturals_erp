@@ -6,6 +6,7 @@ import type {
 } from '@features/inventoryAllocation/state';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 import { getRequest, postRequest } from '@utils/apiRequest';
+import { buildQueryString } from '@utils/buildQueryString.ts';
 
 /**
  * Allocates inventory for a specific order using a selected strategy and optional warehouse ID.
@@ -82,22 +83,34 @@ const fetchInventoryAllocationReview = async (
 /**
  * Fetches a paginated list of inventory allocations from the API.
  *
- * This function supports filtering, pagination, and sorting using
- * a combination of top-level query parameters and flattened filters.
+ * This function supports:
+ * - Pagination: `page`, `limit`
+ * - Sorting: `sortBy`, `sortOrder`
+ * - Filtering: via `filters` object (flattened into query params)
  *
- * Internally, it:
- * - Flattens nested filter keys into a flat query param object
- * - Sends a GET request with `params` using Axios
- * - Returns a typed response containing inventory allocation summaries and pagination info
+ * ### How it Works
+ * - Extracts `filters` from the provided params
+ * - Flattens filters and other query parameters into a flat key-value object
+ * - Converts the flat object into a query string via `buildQueryString`
+ * - Sends a typed GET request to the `ALL_ALLOCATIONS` endpoint
+ * - Returns a structured, typed response
+ *
+ * ### Query Parameters
+ * - Pagination: `page`, `limit`
+ * - Sorting: `sortBy`, `sortOrder`
+ * - Filters (flattened): `warehouseId`, `statusId`, `orderNumber`, `keyword`, etc.
  *
  * @param {FetchPaginatedInventoryAllocationsParams} params
- *   - `page`, `limit`, `sortBy`, `sortOrder` (pagination + sorting)
- *   - `filters`: allocation-related filters (e.g., warehouseId, orderStatusId, keyword, etc.)
+ *   - Pagination: `page`, `limit`
+ *   - Sorting: `sortBy`, `sortOrder`
+ *   - Filtering: `filters` object with allocation/order-level filters
  *
  * @returns {Promise<InventoryAllocationResponse>}
- *   A structured paginated response including allocation summaries.
+ *   A typed paginated response containing:
+ *   - `data`: inventory allocation summaries
+ *   - `pagination`: page info (`page`, `limit`, `totalRecords`, `totalPages`)
  *
- * @throws {Error} If the request fails
+ * @throws {Error} If the request fails or the API returns an error
  */
 const fetchPaginatedInventoryAllocations = async (
   params: FetchPaginatedInventoryAllocationsParams = {}
@@ -111,11 +124,10 @@ const fetchPaginatedInventoryAllocations = async (
       ...filters,
     };
     
-    const url = API_ENDPOINTS.INVENTORY_ALLOCATIONS.ALL_ALLOCATIONS;
+    const queryString = buildQueryString(flatParams);
+    const url = `${API_ENDPOINTS.INVENTORY_ALLOCATIONS.ALL_ALLOCATIONS}${queryString}`;
     
-    return await getRequest<InventoryAllocationResponse>(url,  {
-      params: flatParams,
-    });
+    return await getRequest<InventoryAllocationResponse>(url);
   } catch (error) {
     console.error('Failed to fetch inventory allocations:', error);
     throw error;
