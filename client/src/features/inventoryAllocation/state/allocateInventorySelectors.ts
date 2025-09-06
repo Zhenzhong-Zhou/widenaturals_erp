@@ -1,47 +1,47 @@
 import { createSelector } from '@reduxjs/toolkit';
 import type { RootState } from '@store/store';
-import type { InventoryAllocationResponse } from '@features/inventoryAllocation';
 
-// Base selector for the allocateInventory slice
-const selectAllocateInventoryState = (state: RootState) =>
-  state.allocateInventory;
+/**
+ * Base selector to access the allocateInventory slice from the global state.
+ */
+const selectAllocateInventoryState = (state: RootState) => state.allocateInventory;
 
-// Memoized selector for loading state
-export const selectIsAllocatingInventory = createSelector(
-  [selectAllocateInventoryState],
-  (state) => state.loading
-);
-
-// Memoized selector for success flag
-export const selectInventoryAllocationSuccess = createSelector(
-  [selectAllocateInventoryState],
-  (state) => state.success
-);
-
-// Memoized selector for error message
-export const selectInventoryAllocationError = createSelector(
-  [selectAllocateInventoryState],
-  (state) => state.error
-);
-
-// Memoized selector for allocation response data
-export const selectInventoryAllocationData = createSelector(
+/**
+ * Selector to retrieve the full allocation data (orderId + allocationIds).
+ */
+export const selectAllocationData = createSelector(
   [selectAllocateInventoryState],
   (state) => state.data
 );
 
-// Memoized selector for total updated items
-export const selectTotalAllocatedItems = createSelector(
-  [selectInventoryAllocationData],
-  (data: InventoryAllocationResponse | null) =>
-    data?.allocations.reduce(
-      (sum, result) => sum + result.updatedItemCount,
-      0
-    ) ?? 0
+/**
+ * Selector to determine if the allocation request is currently loading.
+ */
+export const selectAllocationLoading = createSelector(
+  [selectAllocateInventoryState],
+  (state) => state.loading
 );
 
-// Memoized selector for total affected orders
-export const selectTotalAllocatedOrders = createSelector(
-  [selectInventoryAllocationData],
-  (data: InventoryAllocationResponse | null) => data?.allocations.length ?? 0
+/**
+ * Selector to retrieve the error message from a failed allocation request.
+ */
+export const selectAllocationError = createSelector(
+  [selectAllocateInventoryState],
+  (state) => state.error
+);
+
+/**
+ * Selector to extract the allocated order ID (if available).
+ */
+export const selectAllocationOrderId = createSelector(
+  [selectAllocateInventoryState],
+  (state) => state.data?.orderId || null
+);
+
+/**
+ * Selector to extract the list of allocated inventory IDs (if available).
+ */
+export const selectAllocatedIds = createSelector(
+  [selectAllocateInventoryState],
+  (state) => state.data?.allocationIds || []
 );

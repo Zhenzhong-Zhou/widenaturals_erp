@@ -1,10 +1,21 @@
-import { type ReactNode, type ForwardedRef, useMemo } from 'react';
+import {
+  type ReactNode,
+  type ForwardedRef,
+  useMemo,
+  type ReactElement,
+  type ForwardRefExoticComponent,
+  type RefAttributes,
+} from 'react';
 import { forwardRef, useImperativeHandle } from 'react';
 import {
   useForm,
   Controller,
   type FieldErrors,
   useWatch,
+  type FieldValues,
+  type UseFormReturn,
+  type DefaultValues,
+  type Path, type UseFormWatch,
 } from 'react-hook-form';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
@@ -21,6 +32,13 @@ import CustomButton from '@components/common/CustomButton';
 import CustomPhoneInput from '@components/common/CustomPhoneInput';
 import { useThemeContext } from '@context/ThemeContext';
 import type { SxProps, Theme } from '@mui/system';
+
+export type CustomRenderParams = {
+  value?: any;
+  onChange?: (val: any) => void;
+  required?: boolean;
+  watch?: UseFormWatch<any>;
+};
 
 export interface FieldConfig {
   id: string;
@@ -45,11 +63,7 @@ export interface FieldConfig {
   max?: number;
   rows?: number;
   country?: string;
-  customRender?: (params: {
-    value?: any;
-    onChange?: (val: any) => void;
-    required?: boolean;
-  }) => ReactNode;
+  customRender?: (params: CustomRenderParams) => ReactNode;
   grid?: {
     xs?: number;
     sm?: number;
@@ -58,43 +72,53 @@ export interface FieldConfig {
   };
 }
 
-export interface CustomFormRef {
-  resetForm: (values?: Record<string, any>) => void;
+export interface CustomFormRef<TFieldValues extends FieldValues = FieldValues> {
+  resetForm: (values?: DefaultValues<TFieldValues>) => void;
 }
 
-interface FormProps {
+interface FormProps<TFieldValues extends FieldValues = FieldValues> {
   children?: ReactNode;
   fields?: FieldConfig[];
-  initialValues?: Record<string, any>;
-  onSubmit: (formData: Record<string, any>) => void | Promise<void>;
+  initialValues?: DefaultValues<TFieldValues>;
+  onSubmit?: (formData: Record<string, any>) => void | Promise<void>;
   submitButtonLabel?: string;
   disabled?: boolean;
   showSubmitButton?: boolean;
   sx?: SxProps<Theme>;
+  formInstance?: UseFormReturn<TFieldValues>;
 }
 
-const CustomForm = forwardRef<CustomFormRef, FormProps>(
-  (
-    {
-      fields = [],
-      children,
-      onSubmit,
-      submitButtonLabel = 'Submit',
-      initialValues = {},
-      showSubmitButton = true,
-      sx,
-    },
-    ref: ForwardedRef<CustomFormRef>
-  ) => {
-    const { theme } = useThemeContext();
+const CustomFormInner = <TFieldValues extends FieldValues = FieldValues>(
+  props: FormProps<TFieldValues>,
+  ref: ForwardedRef<CustomFormRef<TFieldValues>>
+): ReactElement => {
+  const {
+    fields = [],
+    children,
+    onSubmit,
+    submitButtonLabel = 'Submit',
+    initialValues,
+    showSubmitButton = true,
+    sx,
+    formInstance,
+  } = props;
+  
+  const { theme } = useThemeContext();
+  
+  const defaultedInitialValues =
+    initialValues ?? ({} as DefaultValues<TFieldValues>);
 
     const {
       control,
       handleSubmit,
       formState: { errors },
       reset,
-    } = useForm({ mode: 'onChange', defaultValues: initialValues });
-
+      watch,
+    } = formInstance ?? useForm<TFieldValues>({
+      mode: 'onChange',
+      defaultValues: defaultedInitialValues,
+    });
+    
     const watchedValues = useWatch({ control });
 
     const canSubmit = useMemo(() => {
@@ -108,10 +132,11 @@ const CustomForm = forwardRef<CustomFormRef, FormProps>(
         })
       );
     }, [fields, watchedValues]);
-
+  
     useImperativeHandle(ref, () => ({
-      resetForm: (values?: Record<string, any>) =>
-        reset(values || initialValues),
+      resetForm: (values?: DefaultValues<TFieldValues>) => {
+        reset(values ?? initialValues);
+      },
     }));
 
     const getError = (
@@ -128,7 +153,7 @@ const CustomForm = forwardRef<CustomFormRef, FormProps>(
         container
         spacing={2}
         component="form"
-        onSubmit={handleSubmit(onSubmit)}
+        onSubmit={onSubmit ? handleSubmit(onSubmit) : undefined}
         sx={{
           gap: 2,
           maxWidth: 600,
@@ -153,7 +178,7 @@ const CustomForm = forwardRef<CustomFormRef, FormProps>(
           <Grid size={field.grid || { xs: 12, sm: 6 }} key={field.id}>
             {field.type === 'custom' && field.customRender ? (
               <Controller
-                name={field.id}
+                name={field.id as Path<TFieldValues>}
                 control={control}
                 defaultValue={field.defaultValue ?? ''}
                 rules={{
@@ -166,6 +191,7 @@ const CustomForm = forwardRef<CustomFormRef, FormProps>(
                     value: controllerField.value,
                     onChange: controllerField.onChange,
                     required: field.required,
+                    watch
                   });
 
                   if (!rendered || typeof rendered === 'boolean') {
@@ -181,7 +207,7 @@ const CustomForm = forwardRef<CustomFormRef, FormProps>(
                 {/** Text & Number Fields */}
                 {(field.type === 'text' || field.type === 'number') && (
                   <Controller
-                    name={field.id}
+                    name={field.id as Path<TFieldValues>}
                     control={control}
                     defaultValue={field.defaultValue ?? ''}
                     rules={{
@@ -237,7 +263,7 @@ const CustomForm = forwardRef<CustomFormRef, FormProps>(
                     )}
 
                     <Controller
-                      name={field.id}
+                      name={field.id as Path<TFieldValues>}
                       control={control}
                       defaultValue={field.defaultValue ?? ''}
                       rules={{
@@ -264,7 +290,7 @@ const CustomForm = forwardRef<CustomFormRef, FormProps>(
                 {/** Email Field */}
                 {field.type === 'email' && (
                   <Controller
-                    name={field.id}
+                    name={field.id as Path<TFieldValues>}
                     control={control}
                     defaultValue={field.defaultValue ?? ''}
                     rules={{
@@ -296,7 +322,7 @@ const CustomForm = forwardRef<CustomFormRef, FormProps>(
                 {/** Textarea Support */}
                 {field.type === 'textarea' && (
                   <Controller
-                    name={field.id}
+                    name={field.id as Path<TFieldValues>}
                     control={control}
                     defaultValue={field.defaultValue ?? ''}
                     rules={{
@@ -329,7 +355,7 @@ const CustomForm = forwardRef<CustomFormRef, FormProps>(
                 {/** Select Dropdown */}
                 {field.type === 'select' && (
                   <Controller
-                    name={field.id}
+                    name={field.id as Path<TFieldValues>}
                     control={control}
                     defaultValue={field.defaultValue ?? ''}
                     rules={{
@@ -368,7 +394,7 @@ const CustomForm = forwardRef<CustomFormRef, FormProps>(
                 {/** Checkbox */}
                 {field.type === 'checkbox' && (
                   <Controller
-                    name={field.id}
+                    name={field.id as Path<TFieldValues>}
                     control={control}
                     defaultValue={field.defaultValue ?? false}
                     render={({ field: controllerField }) => (
@@ -416,7 +442,9 @@ const CustomForm = forwardRef<CustomFormRef, FormProps>(
       </Grid>
     );
   }
-);
+  
+  const CustomForm = forwardRef(CustomFormInner) as ForwardRefExoticComponent<
+    FormProps<any> & RefAttributes<CustomFormRef<any>>>;
 
 CustomForm.displayName = 'CustomForm';
 export default CustomForm;

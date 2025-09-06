@@ -11,6 +11,11 @@ const {
   transformCustomerAddressesLookupResult,
   transformOrderTypeLookupResult,
   transformPaymentMethodPaginatedLookupResult,
+  transformDiscountPaginatedLookupResult,
+  transformTaxRatePaginatedLookupResult,
+  transformDeliveryMethodPaginatedLookupResult,
+  transformSkuPaginatedLookupResult,
+  transformPricingPaginatedLookupResult, transformPackagingMaterialPaginatedLookupResult,
 } = require('../transformers/lookup-transformer');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const {
@@ -18,7 +23,9 @@ const {
 } = require('../repositories/lot-adjustment-type-repository');
 const { getCustomerLookup } = require('../repositories/customer-repository');
 const {
-  resolveCustomerQueryOptions,
+  evaluateCustomerLookupAccessControl,
+  enforceCustomerLookupVisibilityRules,
+  enrichCustomerOption,
 } = require('../business/customer-business');
 const {
   getCustomerAddressLookupById,
@@ -33,15 +40,57 @@ const {
 } = require('../business/lot-adjustment-type-business');
 const { getOrderTypeLookup } = require('../repositories/order-type-repository');
 const {
-  getFilteredOrderTypes,
-  filterOrderTypeLookupResultByPermission,
+  evaluateOrderTypeLookupAccessControl,
+  enforceOrderTypeLookupVisibilityRules,
+  filterOrderTypeLookupQuery,
+  enrichOrderTypeRow,
 } = require('../business/order-type-business');
 const {
-  enforcePaymentMethodAccessControl,
+  evaluatePaymentMethodLookupAccessControl,
+  enforcePaymentMethodLookupVisibilityRules,
+  enrichPaymentMethodOption,
 } = require('../business/payment-method-business');
 const {
   getPaymentMethodLookup,
 } = require('../repositories/payment-method-repository');
+const { getDiscountsLookup } = require('../repositories/discount-repository');
+const {
+  evaluateDiscountLookupAccessControl,
+  filterDiscountLookupQuery,
+  enforceDiscountLookupVisibilityRules,
+  enrichDiscountRow
+} = require('../business/discount-business');
+const { getStatusId } = require('../config/status-cache');
+const {
+  evaluateTaxRateLookupAccessControl,
+  enforceTaxRateLookupVisibilityRules,
+  filterTaxRateLookupQuery,
+  enrichTaxRateRow,
+} = require('../business/tax-rate-business');
+const { getTaxRatesLookup } = require('../repositories/tax-rate-repository');
+const {
+  evaluateDeliveryMethodLookupAccessControl,
+  enforceDeliveryMethodLookupVisibilityRules,
+  enrichDeliveryMethodRow,
+} = require('../business/delivery-method-business');
+const { getDeliveryMethodsLookup } = require('../repositories/delivery-method-repository');
+const {
+  evaluateSkuFilterAccessControl,
+  enforceSkuLookupVisibilityRules,
+  filterSkuLookupQuery, enrichSkuRow
+} = require('../business/sku-business');
+const { getSkuLookup } = require('../repositories/sku-repository');
+const {
+  evaluatePricingLookupAccessControl,
+  enforcePricingLookupVisibilityRules,
+  filterPricingLookupQuery,
+  enrichPricingRow
+} = require('../business/pricing-business');
+const { getPricingLookup } = require('../repositories/pricing-repository');
+const { evaluatePackagingMaterialLookupAccessControl, enforcePackagingMaterialVisibilityRules,
+  enrichPackagingMaterialOption
+} = require('../business/packaging-material-business');
+const { getPackagingMaterialsForSalesOrderLookup } = require('../repositories/packaging-material-repository');
 
 /**
  * Service to fetch filtered and paginated batch registry records for lookup UI.
@@ -188,69 +237,96 @@ const fetchLotAdjustmentLookupService = async (user, filters = {}) => {
 };
 
 /**
- * Service to fetch filtered and paginated customer records for lookup UI,
- * with keyword search and permission-based status filtering.
+ * Fetches filtered and paginated customer records for use in lookup UIs
+ * (e.g., dropdowns, autocomplete inputs, selection lists).
  *
- * This service provides customer lookup data for dropdowns, autocomplete,
- * or other selection components. It supports:
- * - Partial matching on customer fields (e.g., name, email, phone)
- * - Pagination with limit and offset
- * - Automatic application of user permission rules (e.g., all customers, active customers)
+ * This service supports:
+ * - Keyword-based partial matching on fields like name, email, or phone number
+ * - Limit-offset pagination
+ * - Permission-aware status filtering (e.g., show only active customers for restricted users)
+ * - UI enrichment (e.g., flags like `isActive`, `hasAddress`)
  *
- * @param {Object} options - Query options.
- * @param {string} [options.keyword=''] - Partial search term for lookup.
- * @param {number} [options.limit=50] - Number of records to fetch (default: 50).
- * @param {number} [options.offset=0] - Offset for pagination (default: 0).
- * @param {Object} user - Authenticated user object (for permission checks).
+ * Internally:
+ * - Resolves the current user's permissions
+ * - Enforces visibility rules based on permission context
+ * - Delegates to a repository-level paginated query
+ * - Enriches and transforms results into UI-friendly format
  *
- * @returns {Promise<Object>} Transformed lookup items with pagination metadata:
- *   {
- *     items: Array<{ id: string, label: string }>,
- *     offset: number,
- *     limit: number,
- *     hasMore: boolean
- *   }
+ * @param {object} user - Authenticated user object (used to determine access level).
+ * @param {object} options - Query options.
+ * @param {object} [options.filters={}] - Optional filters (e.g., `keyword`, `createdBy`, `onlyWithAddress`, `statusId`, etc.).
+ * @param {number} [options.limit=50] - Number of records to return (default is 50).
+ * @param {number} [options.offset=0] - Number of records to skip for pagination (default is 0).
  *
- * @throws {AppError} When permissions are not enough, or query fails.
+ * @returns {Promise<{
+ *   items: Array<{ id: string, label: string, isActive?: boolean, hasAddress?: boolean }>,
+ *   offset: number,
+ *   limit: number,
+ *   hasMore: boolean
+ * }>} - Transformed customer lookup data with pagination info.
+ *
+ * @throws {AppError} - If permissions are insufficient or query execution fails.
  *
  * @example
- * const result = await fetchCustomerLookupService({ keyword: 'john', limit: 20 }, user);
- * // result = { items: [...], offset: 0, limit: 20, hasMore: true }
+ * const result = await fetchCustomerLookupService(user, {
+ *   filters: { keyword: 'john', onlyWithAddress: true },
+ *   limit: 20,
+ *   offset: 0,
+ * });
+ *
+ * // result:
+ * // {
+ * //   items: [
+ * //     { id: '123', label: 'John Doe', isActive: true, hasAddress: true },
+ * //     ...
+ * //   ],
+ * //   offset: 0,
+ * //   limit: 20,
+ * //   hasMore: true
+ * // }
  */
 const fetchCustomerLookupService = async (
-  { keyword = '', limit = 50, offset = 0 },
-  user
+  user,
+  { filters = {}, limit = 50, offset = 0 },
 ) => {
   try {
-    if (limit < 1 || offset < 0) {
-      throw AppError.validationError('Invalid pagination parameters.');
-    }
-
+    // Step 1: Log the operation start
     logSystemInfo('Fetching customer lookup from service', {
       context: 'lookup-service/fetchCustomerLookupService',
-      metadata: { keyword, limit, offset },
+      metadata: { filters, limit, offset },
     });
-
-    const { statusId, overrideDefaultStatus } =
-      await resolveCustomerQueryOptions(user);
-
-    const rawResult = await getCustomerLookup({
-      keyword,
-      statusId,
+    
+    // Step 2: Evaluate user access permissions
+    const userAccess = await evaluateCustomerLookupAccessControl(user);
+    const activeStatusId = getStatusId('customer_active');
+    
+    // Step 3: Apply visibility enforcement rules to filters
+    const adjustedFilters = enforceCustomerLookupVisibilityRules(filters, userAccess, activeStatusId);
+    
+    // Step 4: Fetch paginated customer data
+    const { data = [], pagination = {} } = await getCustomerLookup({
+      filters: adjustedFilters,
       limit,
       offset,
-      overrideDefaultStatus,
     });
-
-    return transformCustomerPaginatedLookupResult(rawResult);
+    
+    // Step 5: Enrich customer records for UI
+    const enrichedRows = data.map(enrichCustomerOption);
+    
+    // Step 6: Format for client consumption
+    return transformCustomerPaginatedLookupResult(
+      { data: enrichedRows, pagination },
+      userAccess
+    );
   } catch (err) {
     logSystemException(err, 'Failed to fetch customer lookup in service', {
       context: 'lookup-service/fetchCustomerLookupService',
-      keyword,
+      userId: user?.id,
+      filters,
       limit,
       offset,
     });
-
+    
     throw AppError.serviceError('Failed to fetch customer lookup list.', {
       details: err.message,
       stage: 'lookup-service/fetchCustomerLookupService',
@@ -308,87 +384,654 @@ const fetchCustomerAddressLookupService = async (customerId) => {
 };
 
 /**
- * Fetches order types for dropdowns based on a user role, permission, and filters.
+ * Service: fetchOrderTypeLookupService
  *
- * - Applies permission-based filtering (e.g., restricts category or status).
- * - Returns minimal `{ id, name }` for restricted users.
- * - Full data for users with `view_order_type` permission.
+ * Retrieves a paginated list of order types for use in dropdowns or lookup UIs,
+ * applying both role-based and attribute-based access control.
  *
- * @param {Object} params
- * @param {Object} params.filters - Optional filter object (e.g. { keyword })
- * @param {Object} user - Authenticated user object
- * @returns {Promise<Array>} Transformed lookup result
+ * Workflow:
+ *   1. Evaluate the user's access control flags via `evaluateOrderTypeLookupAccessControl`.
+ *   2. Apply enforced visibility rules (categories, statuses, keywords) using `enforceOrderTypeLookupVisibilityRules`.
+ *   3. Normalize and build DB query filters with `filterOrderTypeLookupQuery`.
+ *   4. Fetch matching order type records from the database (`getOrderTypeLookup`).
+ *   5. Enrich each row with UI flags (e.g., `isActive`).
+ *   6. Transform the enriched rows into `{ label, value, isActive? }` objects for frontend consumption.
+ *
+ * Access control:
+ *   - Category scope is determined by `accessibleCategories` from `evaluateOrderTypeLookupAccessControl`.
+ *   - Status and keyword scope are restricted unless `canViewAllStatuses` or `canViewAllKeywords` are true.
+ *   - Root users bypass all restrictions.
+ *
+ * @async
+ * @param {import('@types/custom').User} user - Authenticated user object (must include `id` and permission context).
+ * @param {object} options - Lookup query options.
+ * @param {object} [options.filters={}] - Optional filter parameters (e.g., `{ keyword, category, statusId }`).
+ * @returns {Promise<{
+ *   items: { label: string, value: string, isActive?: boolean }[],
+ *   hasMore: boolean
+ * }>} A paginated set of dropdown-compatible order type options and a `hasMore` flag.
+ *
+ * @throws {AppError}
+ *   - `serviceError` if the lookup fails due to DB errors, permission issues, or unexpected conditions.
+ *
+ * @example
+ * const { items, hasMore } = await fetchOrderTypeLookupService(currentUser, {
+ *   filters: { keyword: 'sales', category: 'sales' }
+ * });
+ * // items: [ { label: 'Sales Order', value: 'uuid', isActive: true }, ... ]
  */
-const fetchOrderTypeLookupService = async ({ filters = {} }, user) => {
+const fetchOrderTypeLookupService = async (
+  user,
+  { filters = {} }
+) => {
   try {
-    const { keyword } = filters;
-
-    // Step 1: Build filters based on user access
-    const filteredQuery = await getFilteredOrderTypes(user, keyword);
-
-    // Step 2: Fetch matching order types from DB
-    const rawResult = await getOrderTypeLookup({ filters: filteredQuery });
-
-    // Step 3: Restrict fields based on user permission
-    const filteredResult = await filterOrderTypeLookupResultByPermission(
-      user,
-      rawResult
+    // Step 1: Evaluate user access control flags
+    const userAccess = await evaluateOrderTypeLookupAccessControl(user, { action: 'VIEW' });
+    const activeStatusId = getStatusId('order_type_active');
+    
+    // Step 2: Enforce filter visibility rules (e.g., restrict categories, status)
+    const enforcedFilters = enforceOrderTypeLookupVisibilityRules(filters, userAccess, {
+      activeStatusId,
+    });
+    
+    // Step 3: Build DB query filters (e.g., keyword ILIKE normalization)
+    const finalQuery = filterOrderTypeLookupQuery(enforcedFilters, userAccess, activeStatusId);
+    
+    // Step 4: Fetch paginated raw DB records
+    const rawResult = await getOrderTypeLookup({
+      filters: finalQuery,
+    });
+    
+    // Step 5: Enrich raw rows with UI flags (e.g., isActive)
+    const enrichedRows = rawResult.map((row) =>
+      enrichOrderTypeRow(row, activeStatusId)
     );
-
-    // Step 4: Transform result for lookup dropdown
-    return transformOrderTypeLookupResult(filteredResult);
-  } catch (error) {
-    logSystemException(error, 'Failed to fetch order type lookup', {
+    
+    // Step 6: Transform for dropdown-compatible output
+    return transformOrderTypeLookupResult(enrichedRows, userAccess);
+  } catch (err) {
+    logSystemException(err, 'Failed to fetch order type lookup', {
       context: 'lookup-service/fetchOrderTypeLookupService',
       userId: user?.id,
-      role: user?.role,
+      filters,
     });
-
-    throw AppError.serviceError('Unable to fetch order type lookup');
+    
+    throw AppError.serviceError('Unable to fetch order type options');
   }
 };
 
 /**
- * Service function to retrieve a paginated and filtered list of payment methods
- * for dropdown or lookup components, with permission-aware filtering and transformation.
+ * Fetches a paginated list of payment methods for use in dropdowns or lookup UIs.
  *
- * @param {Object} user - Authenticated user object
- * @param {Object} options
- * @param {Object} [options.filters={}] - Query filters (e.g., keyword)
- * @param {number} [options.limit=50] - Number of records per page
- * @param {number} [options.offset=0] - Pagination offset
- * @returns {Promise<{ items: { label: string, value: string }[], hasMore: boolean }>}
+ * This service:
+ * - Evaluates user permissions to determine visibility scope (e.g., active-only filtering)
+ * - Applies enforced filtering rules to restrict access where necessary
+ * - Enriches rows with flags like `isDisabled` for UI state handling
+ * - Transforms raw DB records into `{ label, value }` format for frontend components
+ *
+ * @param {import('@types/custom').User} user - Authenticated user object (must contain ID and permission context)
+ * @param {Object} options - Lookup query options
+ * @param {Object} [options.filters={}] - Optional filter parameters (e.g., keyword, isActive)
+ * @param {number} [options.limit=50] - Number of records to return
+ * @param {number} [options.offset=0] - Record offset for pagination
+ * @returns {Promise<{ items: { label: string, value: string, isDisabled?: boolean }[], hasMore: boolean }>}
+ *   Transformed paginated result suitable for lookup/autocomplete components.
+ *
+ * @throws {AppError} When lookup fails due to service error or permission issues.
  */
 const fetchPaginatedPaymentMethodLookupService = async (
   user,
   { filters = {}, limit = 50, offset = 0 }
 ) => {
   try {
-    // 1. Enforce business-layer rules on filters (e.g., isActive, keyword scope)
-    const adjustedFilters = await enforcePaymentMethodAccessControl(
-      user,
-      filters
-    );
-
-    // 2. Fetch raw-paginated records from repository
-    const paginatedResult = await getPaymentMethodLookup({
+    // Step 1: Evaluate user access control flags
+    const userAccess = await evaluatePaymentMethodLookupAccessControl(user);
+    
+    // Step 2: Enforce visibility restrictions based on access level
+    const adjustedFilters = enforcePaymentMethodLookupVisibilityRules(filters, userAccess);
+    
+    // Step 3: Fetch raw paginated payment method records
+    const { data = [], pagination = {} } = await getPaymentMethodLookup({
       filters: adjustedFilters,
       limit,
       offset,
     });
-
-    // 3. Transform raw rows to UI-friendly format
-    return transformPaymentMethodPaginatedLookupResult(paginatedResult);
+    
+    // Step 4: Enrich each row with status-related flags for UI logic
+    const enrichedRows = data.map(enrichPaymentMethodOption);
+    
+    // Step 5: Transform for dropdown-compatible output
+    return transformPaymentMethodPaginatedLookupResult(
+      { data: enrichedRows, pagination },
+      userAccess
+    );
   } catch (err) {
-    logSystemException(err, 'Failed to fetch payment method lookup', {
+    logSystemException(err, 'Failed to fetch paginated payment method lookup', {
       context: 'lookup-service/fetchPaginatedPaymentMethodLookupService',
       userId: user?.id,
       filters,
       limit,
       offset,
     });
+    
+    throw AppError.serviceError('Unable to fetch payment method options.');
+  }
+};
 
-    throw AppError.serviceError('Unable to retrieve payment method lookup.');
+/**
+ * Service function to fetch paginated discount lookup options.
+ *
+ * Applies the following processing steps:
+ * - Evaluates the user's access permissions (e.g., view all statuses or valid discounts)
+ * - Applies permission-based visibility rules to filters (e.g., restrict keyword search)
+ * - Applies business-layer filtering (e.g., exclude archived or inactive discounts)
+ * - Queries the repository for matching records with pagination
+ * - Enriches raw rows with `isActive` and `isValidToday` flags
+ * - Transforms enriched rows into UI-ready `{ label, value, isActive, isValidToday }` format
+ *
+ * @param {Object} user - Authenticated user object (must contain access context).
+ * @param {Object} options - Lookup query options.
+ * @param {Object} [options.filters={}] - Optional filter conditions (e.g., keyword, statusId).
+ * @param {number} [options.limit=50] - Max number of records to return.
+ * @param {number} [options.offset=0] - Number of records to skip for pagination.
+ *
+ * @returns {Promise<{ items: { label: string, value: string, isActive?: boolean, isValidToday?: boolean }[], hasMore: boolean }>}
+ * Returns a list of formatted discount options and pagination metadata.
+ *
+ * @throws {AppError} Throws a service-level error if lookup fails.
+ */
+const fetchPaginatedDiscountLookupService = async (
+  user,
+  { filters = {}, limit = 50, offset = 0 }
+) => {
+  try {
+    // Step 1: Evaluate user access rights
+    const userAccess = await evaluateDiscountLookupAccessControl(user);
+    const activeStatusId = getStatusId('discount_active');
+  
+    // Step 2: Apply permission-based visibility rules
+    const permissionAdjustedFilters = enforceDiscountLookupVisibilityRules(filters, userAccess, activeStatusId);
+    
+    // Step 3: Apply domain-level filtering rules
+    const fullyAdjustedFilters = filterDiscountLookupQuery(permissionAdjustedFilters, userAccess);
+    
+    // Step 4: Query the repository
+    const rawResult = await getDiscountsLookup({
+      filters: fullyAdjustedFilters,
+      limit,
+      offset,
+    });
+    
+    const { data = [], pagination = {} } = rawResult;
+    
+    // Step 5: Enrich each row with computed flags
+    const enrichedRows = data.map((row) =>
+      enrichDiscountRow(row, activeStatusId)
+    );
+    
+    // Step 6: Transform to client format
+    return transformDiscountPaginatedLookupResult({
+      data: enrichedRows,
+      pagination,
+    }, userAccess);
+  } catch (err) {
+    logSystemException(err, 'Failed to fetch discount lookup', {
+      context: 'lookup-service/fetchPaginatedDiscountLookupService',
+      userId: user?.id,
+      filters,
+      limit,
+      offset,
+    });
+    
+    throw AppError.serviceError('Unable to retrieve discount lookup options.', {
+      cause: err,
+    });
+  }
+};
+
+/**
+ * Service function to fetch paginated tax rate lookup options.
+ *
+ * Applies the following processing steps:
+ * - Evaluates user's access permissions (e.g., view all validity or active-only)
+ * - Applies permission-based visibility rules to filters (e.g., restrict keyword search)
+ * - Applies domain-level filtering (e.g., current validity, active status)
+ * - Queries the repository for matching records with pagination
+ * - Enriches raw rows with `isValidToday` flag
+ * - Transforms enriched rows into UI-ready `{ label, value, isActive, isValidToday }` format
+ *
+ * @param {Object} user - Authenticated user object (must contain access context).
+ * @param {Object} options - Lookup query options.
+ * @param {Object} [options.filters={}] - Optional filter conditions (e.g., keyword, isActive).
+ * @param {number} [options.limit=50] - Max number of records to return.
+ * @param {number} [options.offset=0] - Number of records to skip for pagination.
+ *
+ * @returns {Promise<{ items: { label: string, value: string, isActive?: boolean, isValidToday?: boolean }[], hasMore: boolean }>}
+ * Returns a list of formatted tax rate options and pagination metadata.
+ *
+ * @throws {AppError} Throws a service-level error if lookup fails.
+ */
+const fetchPaginatedTaxRateLookupService = async (
+  user,
+  { filters = {}, limit = 50, offset = 0 }
+) => {
+  try {
+    // Step 1: Evaluate user access rights
+    const userAccess = await evaluateTaxRateLookupAccessControl(user);
+    
+    // Step 2: Apply permission-based visibility rules
+    const permissionAdjustedFilters = enforceTaxRateLookupVisibilityRules(filters, userAccess);
+    
+    // Step 3: Apply business-layer filtering
+    const fullyAdjustedFilters = filterTaxRateLookupQuery(permissionAdjustedFilters, userAccess);
+    
+    // Step 4: Query the repository
+    const rawResult = await getTaxRatesLookup({
+      filters: fullyAdjustedFilters,
+      limit,
+      offset,
+    });
+    
+    const { data = [], pagination = {} } = rawResult;
+    
+    // Step 5: Enrich each row
+    const enrichedRows = data.map(enrichTaxRateRow);
+    
+    // Step 6: Transform to client format
+    return transformTaxRatePaginatedLookupResult({
+      data: enrichedRows,
+      pagination,
+    }, userAccess);
+  } catch (err) {
+    logSystemException(err, 'Failed to fetch tax rate lookup', {
+      context: 'lookup-service/fetchPaginatedTaxRateLookupService',
+      userId: user?.id,
+      filters,
+      limit,
+      offset,
+    });
+    
+    throw AppError.serviceError('Unable to retrieve tax rate lookup options.', {
+      cause: err,
+    });
+  }
+};
+
+/**
+ * Service function to fetch paginated delivery method lookup options.
+ *
+ * Applies the following processing steps:
+ * 1. Evaluate the user's access permissions (e.g., view all statuses)
+ * 2. Applies permission-based visibility rules to filters (e.g., inject `_activeStatusId`)
+ * 3. Queries the repository for matching records with pagination
+ * 4. Enriches raw rows with `isActive` and `isPickupLocation` flags
+ * 5. Transforms enriched rows into UI-ready format `{ label, value, isActive?, isPickupLocation? }`
+ *
+ * @param {Object} user - Authenticated user object (must contain access context).
+ * @param {Object} options - Lookup query options.
+ * @param {Object} [options.filters={}] - Optional filter conditions (e.g., keyword, statusId).
+ * @param {number} [options.limit=50] - Max number of records to return.
+ * @param {number} [options.offset=0] - Number of records to skip for pagination.
+ *
+ * @returns {Promise<{
+ *   items: {
+ *     label: string,
+ *     value: string,
+ *     isActive?: boolean,
+ *     isPickupLocation?: boolean
+ *   }[],
+ *   hasMore: boolean
+ * }>}
+ * Returns a list of formatted delivery method options and pagination metadata.
+ *
+ * @throws {AppError} Throws a service-level error if lookup fails.
+ */
+const fetchPaginatedDeliveryMethodLookupService = async (
+  user,
+  { filters = {}, limit = 50, offset = 0 }
+) => {
+  try {
+    // Step 1: Evaluate user access rights
+    const userAccess = await evaluateDeliveryMethodLookupAccessControl(user);
+    const activeStatusId = getStatusId('delivery_method_active');
+    
+    // Step 2: Apply permission-based visibility rules
+    const permissionAdjustedFilters = enforceDeliveryMethodLookupVisibilityRules(filters, userAccess, activeStatusId);
+    
+    // Step 3: Query the repository
+    const rawResult = await getDeliveryMethodsLookup({
+      filters: permissionAdjustedFilters,
+      limit,
+      offset,
+    });
+    
+    const { data = [], pagination = {} } = rawResult;
+    
+    // Step 4: Enrich rows with computed flags
+    const enrichedRows = data.map((row) =>
+      enrichDeliveryMethodRow(row, activeStatusId)
+    );
+    
+    // Step 5: Transform to client format
+    return transformDeliveryMethodPaginatedLookupResult({
+      data: enrichedRows,
+      pagination,
+    }, userAccess);
+  } catch (err) {
+    logSystemException(err, 'Failed to fetch delivery method lookup', {
+      context: 'lookup-service/fetchPaginatedDeliveryMethodLookupService',
+      userId: user?.id,
+      filters,
+      limit,
+      offset,
+    });
+    
+    throw AppError.serviceError('Unable to retrieve delivery method lookup options.', {
+      cause: err,
+    });
+  }
+};
+
+/**
+ * Service function to fetch paginated SKU lookup options for use in sales, inventory,
+ * or internal order flows.
+ *
+ * This service performs the following steps:
+ * 1. Loads expected status IDs used for filtering (SKU, product, inventory, batch).
+ * 2. Evaluate the user's access control context (e.g., admin, internal, backorder).
+ * 3. Applies visibility rules based on permissions (e.g., allow inactive/out-of-stock SKUs).
+ * 4. Builds stock/status-based query filters unless `allowAllSkus` is enabled.
+ * 5. Queries the repository for matching SKU records with pagination support.
+ * 6. Enriches rows with computed status flags (e.g., `isNormal`, `issueReasons`).
+ * 7. Transforms enriched rows into simplified dropdown format: `{ id, label, ...flags }`.
+ *
+ * @param {Object} user - Authenticated user object (must include permission context).
+ * @param {Object} params - Query parameters and options.
+ * @param {Object} [params.filters={}] - Optional filtering (e.g., keyword, brand, status).
+ * @param {Object} [params.options={}] - Visibility/permission flags (e.g., allowAllSkus).
+ * @param {number} [params.limit=50] - Max number of records to return.
+ * @param {number} [params.offset=0] - Number of records to skip for pagination.
+ *
+ * @returns {Promise<{
+ *   items: { id: string, label: string, isAbnormal?: boolean, abnormalReasons?: string[] }[],
+ *   hasMore: boolean
+ * }>} - Transformed SKU options with pagination and conditional flags.
+ *
+ * @throws {AppError} - Throws if SKU lookup fails or required status IDs are missing.
+ */
+const fetchPaginatedSkuLookupService = async (
+  user,
+  { filters = {}, options = {}, limit = 50, offset = 0 }
+) => {
+  try {
+    const { includeBarcode = false } = options || {};
+    
+    // Step 1: Load expected status IDs for validation logic
+    const activeStatusId = getStatusId('product_active'); // Used for both product & SKU
+    const inventoryStatusId = getStatusId('inventory_in_stock'); // Shared for warehouse and location inventory
+    const batchStatusId = getStatusId('batch_active');
+    
+    // Step 2: Evaluate user access control (permissions, overrides)
+    const userAccess = await evaluateSkuFilterAccessControl(user);
+    
+    // Step 3: Apply permission-based visibility rules
+    const enforcedOptions = enforceSkuLookupVisibilityRules(options, userAccess);
+    
+    // Step 4: Validate required status IDs if not showing all SKUs
+    if (!enforcedOptions.allowAllSkus && !activeStatusId) {
+      throw AppError.validationError(
+        'activeStatusId is required when allowAllSkus is false'
+      );
+    }
+    
+    // Step 5: Filter query input based on user role and visibility rules
+    const queryFilters = filterSkuLookupQuery(filters, userAccess);
+    
+    // Step 6: Execute the query to fetch raw SKU records
+    const rawResult = await getSkuLookup({
+      productStatusId: activeStatusId,
+      filters: queryFilters,
+      options: enforcedOptions,
+      limit,
+      offset,
+    });
+    
+    const { data = [], pagination = {} } = rawResult;
+    
+    // Step 7: Add status flags (e.g., isNormal) to each row
+    const expectedStatusIds = {
+      sku: activeStatusId,
+      product: activeStatusId,
+      warehouse: inventoryStatusId,
+      location: inventoryStatusId,
+      batch: batchStatusId,
+    };
+    
+    const enrichedRows = data.map((row) =>
+      enrichSkuRow(row, expectedStatusIds)
+    );
+    
+    // Step 8: Transform into dropdown-compatible shape
+    return transformSkuPaginatedLookupResult(
+      { data: enrichedRows, pagination },
+      { includeBarcode },
+      userAccess
+    );
+  } catch (err) {
+    logSystemException(err, 'Failed to fetch SKU lookup', {
+      context: 'lookup-service/fetchPaginatedSkuLookupService',
+      userId: user?.id,
+      filters,
+      options,
+      limit,
+      offset,
+    });
+    
+    throw AppError.serviceError('Unable to retrieve SKU lookup options.', {
+      cause: err,
+    });
+  }
+};
+
+/**
+ * Service function to fetch paginated pricing lookup options
+ * for use in sales order creation, inventory management, or admin pricing selectors.
+ *
+ * This service performs the following steps:
+ * 1. Loads the expected active pricing status ID.
+ * 2. Evaluate the user's access control context (e.g., admin or restricted access).
+ * 3. Applies permission-based visibility rules (e.g., restrict to active or currently valid pricing).
+ * 4. Constructs pricing filters, optionally using keyword-based search.
+ * 5. Queries the pricing repository with pagination support.
+ * 6. Enriches pricing rows with computed flags (e.g., `isActive`, `isValidToday`).
+ * 7. Transforms results into dropdown-compatible format using display configuration.
+ *
+ * This function supports two modes:
+ * - **Sales Order Context**: expects a `skuId` only; filters to valid prices for the SKU.
+ * - **Admin Search Context**: accepts broader filters (brand, pricingType, etc.) and a `keyword`.
+ *
+ * @param {Object} user - Authenticated user object (must include permission context)
+ * @param {Object} params - Request parameters
+ * @param {Object} [params.filters={}] - Filter options (e.g., skuId, priceTypeId, brand, etc.)
+ * @param {number} [params.limit=50] - Maximum number of records to return
+ * @param {number} [params.offset=0] - Number of records to skip (for pagination)
+ * @param {Object} [params.displayOptions={}] - Controls label formatting (e.g., hide SKU in label)
+ *
+ * @returns {Promise<{ items: any[], hasMore: boolean }>} Transformed pricing options with pagination
+ *
+ * @throws {AppError} If required filters are missing or lookup fails
+ */
+const fetchPaginatedPricingLookupService = async (
+  user,
+  { filters = {}, limit = 50, offset = 0, displayOptions = {} }
+) => {
+  try {
+    // Step 1: Load status cache
+    const activeStatusId = getStatusId('pricing_active');
+    
+    // Step 2: Evaluate access control
+    const userAccess = await evaluatePricingLookupAccessControl(user);
+    
+    // Step 3: Apply visibility rules
+    const adjustedFilters = enforcePricingLookupVisibilityRules(
+      filters,
+      userAccess,
+      activeStatusId
+    );
+    
+    // Step 4: Build final DB query filters
+    const queryFilters = filterPricingLookupQuery(adjustedFilters, userAccess, activeStatusId);
+    
+    // Step 5: Fetch from DB
+    const rawResult = await getPricingLookup({
+      filters: queryFilters,
+      limit,
+      offset,
+    });
+    
+    const { data = [], pagination = {} } = rawResult;
+    
+    // Step 6: Enrich rows with computed flags
+    const enrichedRows = data.map((row) =>
+      enrichPricingRow(row, activeStatusId)
+    );
+    
+    // Step 7: Transform for dropdown
+    return transformPricingPaginatedLookupResult(
+      { data: enrichedRows, pagination },
+      userAccess,
+      displayOptions,
+    );
+  } catch (err) {
+    logSystemException(err, 'Failed to fetch pricing lookup', {
+      context: 'lookup-service/fetchPaginatedPricingLookupService',
+      userId: user?.id,
+      filters,
+      limit,
+      offset,
+    });
+    
+    throw AppError.serviceError('Unable to retrieve pricing lookup options.', {
+      cause: err,
+    });
+  }
+};
+
+/**
+ * Fetch paginated packaging-material lookup options for UI components
+ * (dropdowns/autocomplete), with **permission-aware** and **mode-aware** behavior.
+ *
+ * Processing pipeline:
+ *  1) Access control → resolve user permissions (archived, all statuses, hidden-for-sales).
+ *  2) Role enforcement → narrow filters for restricted users (active-only + unarchived).
+ *  3) Mode overlay:
+ *     - "generic"       → only role-based enforcement.
+ *     - "salesDropdown" → always force `visibleOnly`, `unarchived`, and `active` for EVERYONE
+ *                         (even admins), to keep the dropdown deterministic.
+ *  4) Repository query with limit/offset.
+ *  5) Enrichment → add UI flags (e.g., `isActive`, `isArchived`).
+ *  6) Transform → `{ items, hasMore, offset, limit }` for the client.
+ *
+ * Notes:
+ * - The SQL builder should treat visibility as **opt-in**:
+ *     if (filters.visibleOnly === true) { WHERE pm.is_visible_for_sales_order = true }
+ * - We do NOT trust the client to pass `visibleOnly`; it’s derived server-side from `mode`.
+ * - `mode` should be validated/defaulted at the request boundary (e.g., Joi default to "generic").
+ *
+ * @param {Object} user - Authenticated user (context for permission evaluation).
+ * @param {Object} [options]
+ * @param {Object} [options.filters={}] - Repository-level filters (e.g., keyword, statusId).
+ * @param {number} [options.limit=50]   - Page size.
+ * @param {number} [options.offset=0]   - Pagination offset.
+ * @param {"generic"|"salesDropdown"} [options.mode="generic"] - Endpoint mode (validated upstream).
+ *
+ * @returns {Promise<{
+ *   items: Array<{ id: string, label: string, isArchived?: boolean, isActive?: boolean }>,
+ *   offset: number,
+ *   limit: number,
+ *   hasMore: boolean
+ * }>}
+ *
+ * @throws {AppError} On permission evaluation failure, missing status id, repo or transform errors.
+ *
+ * @example
+ * // Generic admin lookup (permission-aware)
+ * const res = await fetchPaginatedPackagingMaterialLookupService(currentUser, {
+ *   filters: { keyword: 'box' },
+ *   limit: 20,
+ *   offset: 0,
+ *   mode: 'generic',
+ * });
+ *
+ * @example
+ * // Sales dropdown: visible-only; to *hard*-enforce active + unarchived for all users,
+ * const res = await fetchPaginatedPackagingMaterialLookupService(currentUser, {
+ *   filters: { keyword: 'label' },
+ *   limit: 20,
+ *   offset: 0,
+ *   mode: 'salesDropdown',
+ * });
+ */
+const fetchPaginatedPackagingMaterialLookupService = async (
+  user,
+  { filters = {}, limit = 50, offset = 0, mode = 'generic' } = {}
+) => {
+  try {
+    const isSales = mode === 'salesDropdown';
+    
+    // 1) Access control (role capabilities)
+    const userAccess = await evaluatePackagingMaterialLookupAccessControl(user);
+    
+    // 2) Resolve the "active" status id (used by enforcement + enrichment)
+    const activeStatusId = getStatusId('packaging_material_active');
+    
+    // 3) Role-based enforcement first (keeps this function purely about permissions)
+    let adjusted = enforcePackagingMaterialVisibilityRules(filters, userAccess, activeStatusId);
+    
+    // Make visibility explicit for readability/logging (builder only acts on === true)
+    adjusted.visibleOnly = isSales;
+    
+    // 3b) Mode overlay: sales dropdown must always be curated (even for admins)
+    if (isSales) {
+      adjusted = {
+        ...adjusted,
+        restrictToUnarchived: true,     // always exclude archived
+        _activeStatusId: activeStatusId // always active-only
+      };
+      delete adjusted.statusId;         // prevent widening via caller-provided status
+    }
+    
+    // 4) Repository query (offset-based pagination)
+    // If this repo is sales-only, rename to a generic function; otherwise this is fine.
+    const raw = await getPackagingMaterialsForSalesOrderLookup({
+      filters: adjusted,
+      limit,
+      offset,
+    });
+    const { data = [], pagination = {} } = raw || {};
+    
+    // 5) Enrich rows with flags for the UI
+    const enriched = data.map(row => enrichPackagingMaterialOption(row, activeStatusId));
+    
+    // 6) Transform to client payload (items + hasMore + pagination)
+    return transformPackagingMaterialPaginatedLookupResult(
+      { data: enriched, pagination },
+      userAccess
+    );
+  } catch (err) {
+    // Include enough context for observability while avoiding PII where needed
+    logSystemException(err, 'Failed to fetch packaging material lookup', {
+      context: 'lookup-service/fetchPaginatedPackagingMaterialLookupService',
+      userId: user?.id,
+      filters,
+      limit,
+      offset,
+      mode,
+    });
+    throw AppError.serviceError('Unable to retrieve packaging material lookup options.', {
+      cause: err,
+      stage: 'fetchPaginatedPackagingMaterialLookupService',
+    });
   }
 };
 
@@ -400,4 +1043,10 @@ module.exports = {
   fetchCustomerAddressLookupService,
   fetchOrderTypeLookupService,
   fetchPaginatedPaymentMethodLookupService,
+  fetchPaginatedDiscountLookupService,
+  fetchPaginatedTaxRateLookupService,
+  fetchPaginatedDeliveryMethodLookupService,
+  fetchPaginatedSkuLookupService,
+  fetchPaginatedPricingLookupService,
+  fetchPaginatedPackagingMaterialLookupService,
 };

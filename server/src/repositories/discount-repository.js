@@ -1,7 +1,9 @@
-const { query } = require('../database/db');
+const { query, paginateQueryByOffset } = require('../database/db');
+const {
+  buildDiscountFilter
+} = require('../utils/sql/build-discount-filters');
 const AppError = require('../utils/AppError');
-const { logSystemException } = require('../utils/system-logger');
-const { logError } = require('../utils/logger-helper');
+const { logSystemException, logSystemInfo } = require('../utils/system-logger');
 
 /**
  * Retrieves discount details by ID.
@@ -33,34 +35,75 @@ const getDiscountById = async (discountId, client = null) => {
 };
 
 /**
- * Fetches active and valid discounts with a timeout query.
- * @returns {Promise<Array>} - List of discounts (id, name, type, value).
+ * Retrieves a paginated list of discount records for use in dropdown or autocomplete components.
+ *
+ * Supports filtering by keyword, active status, creator, validity dates, and other metadata.
+ * Results are returned in ascending order by name to ensure predictable dropdown behavior.
+ *
+ * Typically used in client UI components where users select available discounts,
+ * such as in pricing or promotional forms.
+ *
+ * @param {Object} options - Lookup options
+ * @param {number} [options.limit=50] - Maximum number of results to return
+ * @param {number} [options.offset=0] - Offset for pagination
+ * @param {Object} [options.filters={}] - Optional filter fields (e.g., keyword, isActive, createdBy)
+ * @returns {Promise<{ items: { label: string, value: string }[], hasMore: boolean }>} - Paginated dropdown data
+ *
+ * @throws {AppError} If an error occurs while querying the database
  */
-const getActiveDiscounts = async () => {
+const getDiscountsLookup = async ({
+                                    limit = 50,
+                                    offset = 0,
+                                    filters = {},
+                                  }) => {
+  const tableName = 'discounts d';
+  const { whereClause, params } = buildDiscountFilter(filters);
+  // todo include discount_type and discount_value
+  const queryText = `
+    SELECT
+      d.id,
+      d.name,
+      d.status_id,
+      d.valid_from,
+      d.valid_to
+    FROM ${tableName}
+    WHERE ${whereClause}
+  `;
+  
   try {
-    const queryText = `
-      SELECT
-          d.id,
-          d.name,
-          d.discount_type,
-          d.discount_value
-      FROM discounts d
-      JOIN status s ON d.status_id = s.id
-      WHERE
-          s.name = 'active'
-          AND (d.valid_to IS NULL OR d.valid_to >= NOW())
-      ORDER BY d.name ASC;
-    `;
-
-    const { rows } = await query(queryText);
-    return rows;
+    const result = await paginateQueryByOffset({
+      tableName,
+      whereClause,
+      queryText,
+      params,
+      offset,
+      limit,
+      sortBy: 'd.name',
+      sortOrder: 'ASC',
+      additionalSort: 'd.name ASC',
+    });
+    
+    logSystemInfo('Fetched discounts lookup successfully', {
+      context: 'discounts-repository/getDiscountsLookup',
+      totalFetched: result.data?.length ?? 0,
+      offset,
+      limit,
+      filters,
+    });
+    
+    return result;
   } catch (error) {
-    logError('Error fetching active discounts:', error);
-    throw AppError.databaseError('Failed to fetch active discounts');
+    logSystemException(error, 'Failed to fetch discounts lookup', {
+      context: 'discounts-repository/getDiscountsLookup',
+      offset,
+      limit,
+      filters,
+    });
+    throw AppError.databaseError('Failed to fetch discounts options.');
   }
 };
 
 module.exports = {
   getDiscountById,
-  getActiveDiscounts,
+  getDiscountsLookup,
 };

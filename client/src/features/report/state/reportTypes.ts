@@ -67,10 +67,10 @@ export interface InventoryActivityLogQueryParams extends PaginationParams {
   batchIds?: string[]; // array of batch UUIDs
   packagingMaterialIds?: string[]; // array of packaging material UUIDs
   actionTypeIds?: string[]; // array of action type IDs or keys
+  adjustmentTypeIds?: string[]; // array of adjustment type IDs or keys
 
   orderId?: string | null; // single order UUID
   statusId?: string | null; // single status UUID
-  adjustmentTypeId?: string | null; // single adjustment type UUID
   performedBy?: string | null; // user ID or name
   sourceType?: string | null; // enum/string (e.g. 'manual_insert')
   batchType?: string | null; // 'product' | 'packaging_material'

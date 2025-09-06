@@ -3,13 +3,25 @@ import type {
   AddressByCustomerLookupResponse,
   CustomerLookupQuery,
   CustomerLookupResponse,
+  DeliveryMethodLookupQueryParams,
+  DeliveryMethodLookupResponse,
+  DiscountLookupQueryParams,
+  DiscountLookupResponse,
   GetBatchRegistryLookupParams,
   GetBatchRegistryLookupResponse,
   GetWarehouseLookupResponse,
   LotAdjustmentLookupQueryParams,
   LotAdjustmentTypeLookupResponse,
   OrderTypeLookupQueryParams,
-  OrderTypeLookupResponse,
+  OrderTypeLookupResponse, PackagingMaterialLookupQueryParams, PackagingMaterialLookupResponse,
+  PaymentMethodLookupQueryParams,
+  PaymentMethodLookupResponse,
+  PricingLookupQueryParams,
+  PricingLookupResponse,
+  SkuLookupQueryParams,
+  SkuLookupResponse,
+  TaxRateLookupQueryParams,
+  TaxRateLookupResponse,
 } from '@features/lookup/state/lookupTypes';
 import { lookupService } from '@services/lookupService';
 
@@ -176,5 +188,196 @@ export const fetchOrderTypeLookupThunk = createAsyncThunk<
   } catch (error: any) {
     console.error('Thunk failed to fetch order type lookup:', error);
     return thunkAPI.rejectWithValue(error?.message ?? 'Unknown error');
+  }
+});
+
+/**
+ * Thunk to fetch payment method lookup data for dropdowns or autocomplete components.
+ *
+ * This thunk dispatches loading, success, and error states automatically,
+ * and is designed for use in UI components that support paginated, keyword-based lookup.
+ *
+ * @function
+ * @param {PaymentMethodLookupQueryParams} [params] - Optional query parameters (e.g., `keyword`, `limit`, `offset`) to filter the results.
+ * @returns {Promise<PaymentMethodLookupResponse>} A promise resolving to a paginated list of payment method options.
+ *
+ * @example
+ * dispatch(fetchPaymentMethodLookup({ keyword: 'credit', limit: 10 }));
+ *
+ * @see PaymentMethodLookupQueryParams
+ * @see PaymentMethodLookupResponse
+ */
+export const fetchPaymentMethodLookup = createAsyncThunk<
+  PaymentMethodLookupResponse,                 // Return type on success
+  PaymentMethodLookupQueryParams | undefined  // Arg type
+>(
+  'lookup/fetchPaymentMethodLookup',
+  async (params, thunkAPI) => {
+    try {
+      return await lookupService.fetchPaymentMethodLookup(params);
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error);
+    }
+  }
+);
+
+/**
+ * Thunk to fetch a list of discounts for lookup UIs such as dropdowns or autocompletes.
+ *
+ * Supports keyword filtering and pagination through optional query parameters.
+ * Typically used to populate discount selectors in sales forms or configuration panels.
+ *
+ * Dispatch lifecycle:
+ * - `lookup/fetchDiscounts/pending`: when the request starts
+ * - `lookup/fetchDiscounts/fulfilled`: when data is successfully fetched
+ * - `lookup/fetchDiscounts/rejected`: when an error occurs
+ *
+ * @param params - Optional query parameters including `keyword`, `limit`, and `offset`.
+ * @returns A promise resolving to a {@link DiscountLookupResponse} containing lookup items and metadata.
+ */
+export const fetchDiscountLookupThunk = createAsyncThunk<
+  DiscountLookupResponse,
+  DiscountLookupQueryParams | undefined
+>('lookup/fetchDiscounts', async (params, thunkAPI) => {
+  try {
+    return await lookupService.fetchDiscountLookup(params);
+  } catch (error) {
+    console.error('Failed to fetch discounts:', error);
+    return thunkAPI.rejectWithValue(error);
+  }
+});
+
+/**
+ * Thunk to fetch a list of tax rates for use in lookup UIs such as dropdowns or configuration panels.
+ *
+ * Supports keyword filtering and pagination via query parameters.
+ * Useful in billing, checkout, or tax setup workflows.
+ *
+ * Dispatch lifecycle:
+ * - `lookup/fetchTaxRates/pending`: when the request is initiated
+ * - `lookup/fetchTaxRates/fulfilled`: when the response is successful
+ * - `lookup/fetchTaxRates/rejected`: if the request fails
+ *
+ * @param params - Optional query parameters like `keyword`, `limit`, and `offset`.
+ * @returns A promise resolving to a {@link TaxRateLookupResponse} containing tax rate records and paging info.
+ */
+export const fetchTaxRateLookupThunk = createAsyncThunk<
+  TaxRateLookupResponse,
+  TaxRateLookupQueryParams | undefined
+>('lookup/fetchTaxRates', async (params, thunkAPI) => {
+  try {
+    return await lookupService.fetchTaxRateLookup(params);
+  } catch (error) {
+    console.error('Failed to fetch tax rates:', error);
+    return thunkAPI.rejectWithValue(error);
+  }
+});
+
+/**
+ * Thunk to fetch a list of delivery methods for lookup UIs (e.g., order forms, shipping setup).
+ *
+ * Supports filtering by keyword and pickup flag (`isPickupLocation`) along with pagination.
+ * Typically used in logistics, shipping, or order configuration flows.
+ *
+ * Dispatch lifecycle:
+ * - `lookup/fetchDeliveryMethods/pending`: dispatched at the start of the request
+ * - `lookup/fetchDeliveryMethods/fulfilled`: dispatched on successful response
+ * - `lookup/fetchDeliveryMethods/rejected`: dispatched if an error occurs
+ *
+ * @param params - Optional filters including `keyword`, `isPickupLocation`, `limit`, and `offset`.
+ * @returns A promise resolving to a {@link DeliveryMethodLookupResponse} with delivery method data and metadata.
+ */
+export const fetchDeliveryMethodLookupThunk = createAsyncThunk<
+  DeliveryMethodLookupResponse,
+  DeliveryMethodLookupQueryParams | undefined
+>('lookup/fetchDeliveryMethods', async (params, thunkAPI) => {
+  try {
+    return await lookupService.fetchDeliveryMethodLookup(params);
+  } catch (error) {
+    console.error('Failed to fetch delivery methods:', error);
+    return thunkAPI.rejectWithValue(error);
+  }
+});
+
+/**
+ * Thunk to fetch SKU lookup options for dropdowns or autocomplete fields.
+ *
+ * Supports optional filtering by keyword, barcode inclusion, and enriched flags (e.g., `isNormal`, `issueReasons`).
+ * Typically used in product selectors, order creation flows, or inventory management UI.
+ *
+ * Dispatch lifecycle:
+ * - `lookup/fetchSkuLookup/pending`: dispatched at the start of the request
+ * - `lookup/fetchSkuLookup/fulfilled`: dispatched on successful response
+ * - `lookup/fetchSkuLookup/rejected`: dispatched if an error occurs
+ *
+ * @param params - Optional filters such as `keyword`, `includeBarcode`, `limit`, and `offset`.
+ * @returns A {@link SkuLookupResponse} containing enriched SKU options and pagination metadata.
+ */
+export const fetchSkuLookupThunk = createAsyncThunk<
+  SkuLookupResponse,
+  SkuLookupQueryParams | undefined
+>('lookup/fetchSkuLookup', async (params, thunkAPI) => {
+  try {
+    return await lookupService.fetchSkuLookup(params);
+  } catch (error) {
+    console.error('Failed to fetch SKU lookup:', error);
+    return thunkAPI.rejectWithValue(error);
+  }
+});
+
+/**
+ * Thunk to fetch pricing lookup options for dropdowns or autocomplete fields.
+ *
+ * Supports optional filtering by SKU ID, keyword, and display options (e.g., `labelOnly`, `showSku`).
+ * Returns either full or label-only pricing items, depending on user access and query configuration.
+ *
+ * Commonly used in pricing selectors, sales order forms, or discount pricing modules.
+ *
+ * Dispatch lifecycle:
+ * - `lookup/fetchPricingLookup/pending`: dispatched at the start of the request
+ * - `lookup/fetchPricingLookup/fulfilled`: dispatched on successful response
+ * - `lookup/fetchPricingLookup/rejected`: dispatched if an error occurs
+ *
+ * @param params - Optional filters and display options including `keyword`, `filters.skuId`, `limit`, `offset`, and `displayOptions`.
+ * @returns A {@link PricingLookupResponse} containing pricing options and pagination metadata.
+ */
+export const fetchPricingLookupThunk = createAsyncThunk<
+  PricingLookupResponse,
+  PricingLookupQueryParams | undefined
+>('lookup/fetchPricingLookup', async (params, thunkAPI) => {
+  try {
+    return await lookupService.fetchPricingLookup(params);
+  } catch (error) {
+    console.error('Failed to fetch pricing lookup:', error);
+    return thunkAPI.rejectWithValue(error);
+  }
+});
+
+/**
+ * Thunk to fetch packaging-material lookup options for dropdowns/autocomplete.
+ *
+ * Uses server-side filtering per `PackagingMaterialLookupQueryParams`, including:
+ * - `keyword`
+ * - `filters` (e.g., statusId, createdBy, updatedBy, restrictToUnarchived)
+ * - `options` (e.g., labelOnly, mode: 'generic' | 'salesDropdown')
+ * - `limit`, `offset`
+ *
+ * Dispatch lifecycle:
+ * - `lookup/fetchPackagingMaterialLookup/pending`   — request started
+ * - `lookup/fetchPackagingMaterialLookup/fulfilled` — response received
+ * - `lookup/fetchPackagingMaterialLookup/rejected`  — request failed
+ *
+ * @param params Optional query params controlling filtering, options, and pagination.
+ * @returns A {@link PackagingMaterialLookupResponse} with items and pagination metadata.
+ */
+export const fetchPackagingMaterialLookupThunk = createAsyncThunk<
+  PackagingMaterialLookupResponse,
+  PackagingMaterialLookupQueryParams | undefined
+>('lookup/fetchPackagingMaterialLookup', async (params, thunkAPI) => {
+  try {
+    return await lookupService.fetchPackagingMaterialLookup(params);
+  } catch (error) {
+    console.error('Failed to fetch packaging-material lookup:', error);
+    return thunkAPI.rejectWithValue(error);
   }
 });

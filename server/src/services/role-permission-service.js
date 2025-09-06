@@ -7,6 +7,7 @@ const { logSystemException } = require('../utils/system-logger');
 const {
   getAccessibleOrderCategoriesFromPermissions,
 } = require('../utils/permission-utils');
+const { ORDER_CATEGORIES } = require('../utils/constants/domain/order-type-constants');
 
 /**
  * Fetches the permissions and role name for a given role ID, with Redis caching.
@@ -25,9 +26,16 @@ const fetchPermissions = async (roleId) => {
   try {
     const cachedData = await redisClient.get(cacheKey);
     if (cachedData) {
-      return JSON.parse(cachedData);
+      const parsed = JSON.parse(cachedData);
+      
+      // Normalize to match expected shape
+      return {
+        roleName: parsed.roleName ?? parsed.role_name,
+        permissions: parsed.permissions,
+      };
     }
-
+    
+    // Fetch from DB/service if cache misses
     const { role_name, permissions } = await getRolePermissionsByRoleId(roleId);
 
     const dataToCache = { roleName: role_name, permissions };
@@ -114,29 +122,35 @@ const checkPermissions = async (
 };
 
 /**
- * Resolves access context for order-related features based on the user's permissions.
+ * Resolve which order categories the user may access for a given action.
  *
- * - Determines whether the user has root-level access (`isRoot`)
- * - Derives which order categories the user is allowed to access (`accessibleCategories`)
- * - Throws if the user lacks access to all order categories (unless they have root access)
+ * - Root users bypass checks and can access all categories.
+ * - Non-root users must have either the generic action permission
+ *   (e.g., "view_order") or category-specific ones
+ *   (e.g., "view_sales_order", "view_purchase_order", ...).
  *
- * @param {Object} user - The user object. Must include a valid `role` field.
- * @returns {Promise<{ isRoot: boolean, accessibleCategories: string[] }>}
- *          An object containing the root access flag and accessible order categories.
- * @throws {AppError} If the user has no permission to access any order types and is not a root user.
+ * @param {User} user
+ * @param {{ action?: 'VIEW'|'CREATE'|'UPDATE'|'DELETE' }} [opts]
+ * @returns {Promise<{ isRoot: boolean, accessibleCategories: string[], action: 'VIEW'|'CREATE'|'UPDATE'|'DELETE' }>}
+ * @throws {AppError} authorizationError if no access for the requested action
  */
-const resolveOrderAccessContext = async (user) => {
+const resolveOrderAccessContext = async (user, { action = 'VIEW' } = {}) => {
   const { permissions, isRoot } = await resolveUserPermissionContext(user);
-  const accessibleCategories =
-    getAccessibleOrderCategoriesFromPermissions(permissions);
-
-  if (!isRoot && accessibleCategories.length === 0) {
+  
+  // Root: full access
+  if (isRoot) {
+    return { isRoot, accessibleCategories: [...ORDER_CATEGORIES], action };
+  }
+  
+  const accessibleCategories = getAccessibleOrderCategoriesFromPermissions(permissions, { action });
+  
+  if (accessibleCategories.length === 0) {
     throw AppError.authorizationError(
-      'You do not have permission to view any order types'
+      `You do not have permission to ${action.toLowerCase()} any order types`
     );
   }
-
-  return { isRoot, accessibleCategories };
+  
+  return { isRoot, accessibleCategories, action };
 };
 
 module.exports = {

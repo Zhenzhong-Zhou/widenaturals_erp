@@ -10,7 +10,8 @@ const { createOrderService } = require('../../services/order-service');
       `
       SELECT id, role_id FROM users WHERE email = $1
     `,
-      ['root@widenaturals.com']
+      // ['root@widenaturals.com']
+      ['jp@widenaturals.com']
     );
     const user = rows[0];
     const { id, role_id } = user;
@@ -104,7 +105,7 @@ const { createOrderService } = require('../../services/order-service');
     const sku_id_1 = await getUniqueScalarValue(
       {
         table: 'skus',
-        where: { sku: 'CH-HN111-R-CA' },
+        where: { sku: 'PG-NM203-R-CA' },
         select: 'id',
       },
       client
@@ -113,7 +114,25 @@ const { createOrderService } = require('../../services/order-service');
     const sku_id_2 = await getUniqueScalarValue(
       {
         table: 'skus',
-        where: { sku: 'PG-NM209-R-CA' },
+        where: { sku: 'PG-NM208-R-CN' },
+        select: 'id',
+      },
+      client
+    );
+    
+    const sku_id_3 = await getUniqueScalarValue(
+      {
+        table: 'skus',
+        where: { sku: 'CH-HN105-R-CA' },
+        select: 'id',
+      },
+      client
+    );
+    
+    const packaging_material_id_1 = await getUniqueScalarValue(
+      {
+        table: 'packaging_materials',
+        where: { name: 'Brand E Paper Bag - Medium (Brown)' },
         select: 'id',
       },
       client
@@ -139,7 +158,6 @@ const { createOrderService } = require('../../services/order-service');
       order_items: [
         {
           sku_id: sku_id_1,
-          packaging_material_id: null,
           price_id: await getUniqueScalarValue(
             {
               table: 'pricing',
@@ -154,8 +172,22 @@ const { createOrderService } = require('../../services/order-service');
           created_by: userId,
         },
         {
+          sku_id: sku_id_3,
+          price_id: await getUniqueScalarValue(
+            {
+              table: 'pricing',
+              where: { sku_id: sku_id_3 },
+              select: 'id',
+            },
+            client
+          ),
+          quantity_ordered: 20,
+          price: null,
+          status_id: order_status_id,
+          created_by: userId,
+        },
+        {
           sku_id: sku_id_2,
-          packaging_material_id: null,
           price_id: await getUniqueScalarValue(
             {
               table: 'pricing',
@@ -166,6 +198,13 @@ const { createOrderService } = require('../../services/order-service');
           ),
           quantity_ordered: 20,
           price: 200.0,
+          status_id: order_status_id,
+          created_by: userId,
+        },
+        {
+          packaging_material_id: packaging_material_id_1,
+          quantity_ordered: 1,
+          price: 0,
           status_id: order_status_id,
           created_by: userId,
         },

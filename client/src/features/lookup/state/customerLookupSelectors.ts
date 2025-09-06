@@ -1,6 +1,9 @@
 import { createSelector } from '@reduxjs/toolkit';
 import type { RootState } from '@store/store';
-import type { CustomerLookupItem } from './lookupTypes';
+import {
+  createLookupMetaSelector,
+  mapLookupItems
+} from '@features/lookup/utils/lookupSelectorUtils';
 
 /**
  * Root selector to access the customer lookup slice from the Redux state.
@@ -43,16 +46,9 @@ export const selectCustomerLookupError = createSelector(
 /**
  * Selector to retrieve pagination metadata for the customer lookup.
  *
- * @returns An object containing `hasMore`, `limit`, and `offset`
+ * Returns an object containing `hasMore`, `limit`, and `offset`.
  */
-export const selectCustomerLookupMeta = createSelector(
-  [selectCustomerLookupState],
-  (state) => ({
-    hasMore: state.hasMore,
-    limit: state.limit,
-    offset: state.offset,
-  })
-);
+export const selectCustomerLookupMeta = createLookupMetaSelector(selectCustomerLookupState);
 
 /**
  * Selector to transform customer lookup items into `{ label, value, hasAddress }` format.
@@ -64,12 +60,5 @@ export const selectCustomerLookupMeta = createSelector(
  */
 export const selectCustomerLookupOptions = createSelector(
   [selectCustomerLookupItems],
-  (
-    items: CustomerLookupItem[]
-  ): { label: string; value: string; hasAddress: boolean }[] =>
-    items.map((item) => ({
-      label: item.label,
-      value: item.id,
-      hasAddress: item.hasAddress ?? false,
-    }))
+  (items) => mapLookupItems(items, ['hasAddress', 'isActive'])
 );

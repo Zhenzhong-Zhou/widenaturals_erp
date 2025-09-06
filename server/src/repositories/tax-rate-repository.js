@@ -1,6 +1,7 @@
-const { query, getUniqueScalarValue } = require('../database/db');
+const { getUniqueScalarValue, paginateQueryByOffset } = require('../database/db');
 const AppError = require('../utils/AppError');
-const { logError } = require('../utils/logger-helper');
+const { buildTaxRateFilter } = require('../utils/sql/build-tax-rate-filters');
+const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 
 /**
  * Retrieves the tax rate value by its ID.
@@ -31,41 +32,75 @@ const getTaxRateById = async (taxRateId, client = null) => {
 };
 
 /**
- * Fetches active tax rates for a dropdown.
- * Filters by:
- * - `is_active = true`
- * - `valid_from <= NOW()`
- * - `valid_to IS NULL OR valid_to > NOW()`
+ * Retrieves a paginated list of tax rate records for use in dropdown or autocomplete components.
  *
- * @param {string} region - Optional region filter (e.g., 'Canada')
- * @param {string|null} province - Optional province filter (e.g., 'Ontario')
- * @returns {Promise<Array<{ id: string, name: string, rate: string }>>}
+ * Supports filtering by region, province, validity period, active status, and keyword search.
+ * Primarily used in contexts such as order forms, invoice calculations, or product tax setup.
+ *
+ * @param {Object} options - Lookup options
+ * @param {number} [options.limit=50] - Maximum number of results to return
+ * @param {number} [options.offset=0] - Offset for pagination
+ * @param {Object} [options.filters={}] - Optional filter fields (e.g., province, region, keyword)
+ * @returns {Promise<{ items: { label: string, value: string }[], hasMore: boolean }>} - Paginated dropdown data
+ *
+ * @throws {AppError} If an error occurs while querying the database
  */
-const getTaxRatesForDropdown = async (region = 'Canada', province = null) => {
+const getTaxRatesLookup = async ({
+                                   limit = 50,
+                                   offset = 0,
+                                   filters = {},
+                                 }) => {
+  const tableName = 'tax_rates tr';
+  const { whereClause, params } = buildTaxRateFilter(filters);
+  
+  const queryText = `
+    SELECT
+      tr.id,
+      tr.name,
+      tr.region,
+      tr.rate,
+      tr.province,
+      tr.is_active,
+      tr.valid_from,
+      tr.valid_to
+    FROM ${tableName}
+    WHERE ${whereClause}
+  `;
+  
   try {
-    const baseQuery = `
-      SELECT id, name, rate
-      FROM tax_rates
-      WHERE is_active = true
-        AND valid_from <= NOW()
-        AND (valid_to IS NULL OR valid_to > NOW())
-        AND region = $1
-        ${province ? `AND province = $2` : ''}
-      ORDER BY name ASC;
-    `;
-
-    const values = province ? [region, province] : [region];
-
-    const { rows } = await query(baseQuery, values);
-
-    return rows;
+    const result = await paginateQueryByOffset({
+      tableName,
+      whereClause,
+      queryText,
+      params,
+      offset,
+      limit,
+      sortBy: 'tr.name',
+      sortOrder: 'ASC',
+      additionalSort: 'tr.name ASC',
+    });
+    
+    logSystemInfo('Fetched tax rates lookup successfully', {
+      context: 'tax_rates-repository/getTaxRatesLookup',
+      totalFetched: result.data?.length ?? 0,
+      offset,
+      limit,
+      filters,
+    });
+    
+    return result;
   } catch (error) {
-    logError('Error fetching tax rates for dropdown:', error);
-    throw AppError.databaseError('Failed to fetch tax rates for dropdown.');
+    logSystemException(error, 'Failed to fetch tax rates lookup', {
+      context: 'tax_rates-repository/getTaxRatesLookup',
+      offset,
+      limit,
+      filters,
+    });
+    throw AppError.databaseError('Failed to fetch tax rates options.');
   }
 };
 
 module.exports = {
   getTaxRateById,
-  getTaxRatesForDropdown,
+  getTaxRatesLookup,
 };

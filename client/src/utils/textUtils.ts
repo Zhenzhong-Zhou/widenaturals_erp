@@ -3,7 +3,6 @@ import {
   AsYouType,
   type CountryCode,
 } from 'libphonenumber-js';
-import type { ShippingInformation } from '@features/order';
 
 /**
  * Formats nullable or undefined values into fallback strings.
@@ -29,26 +28,59 @@ export const formatNullable = (
   return String(value);
 };
 
-/**
- * Formats a given string into human-readable Title Case.
- * - Handles snake_case, kebab-case, and camelCase formats.
- * - Replaces underscores and hyphens with spaces.
- * - Adds spaces between camelCase words.
- * - Capitalizes the first letter of each word.
- *
- * @param text - The input string to format.
- * @returns A formatted Title Case string, or 'Unknown' if input is null or undefined.
- * Examples:
- *  - "lot_number" → "Lot Number"
- *  - "lotNumber" → "Lot Number"
- *  - "LOT-number" → "Lot Number"
- */
-export const formatLabel = (text: string | null | undefined): string => {
-  if (text === null || text === undefined || text === '') return 'Unknown';
+interface FormatLabelOptions {
+  /** If true, hyphens (`-`) will be preserved instead of replaced with spaces */
+  preserveHyphen?: boolean;
+  
+  /** If true, middle dots (e.g. `·•‧⋅∙`) will be preserved instead of replaced with spaces */
+  preserveDot?: boolean;
+}
 
-  return text
-    .replace(/[_-]/g, ' ') // snake_case or kebab-case to space
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2') // camelCase to space
+/**
+ * Formats a given string into a human-readable Title Case label.
+ *
+ * ### Transformations:
+ * - Replaces underscores (`_`) with spaces.
+ * - Replaces hyphens (`-`) with spaces unless `preserveHyphen` is true.
+ * - Replaces middle dots (`·•‧⋅∙`) with spaces unless `preserveDot` is true.
+ * - Inserts spaces between camelCase words.
+ * - Convert the result to Title Case (first letter of each word capitalized).
+ *
+ * ### Examples:
+ * ```ts
+ * formatLabel("lot_number")                    // → "Lot Number"
+ * formatLabel("lotNumber")                    // → "Lot Number"
+ * formatLabel("LOT-number")                   // → "Lot Number"
+ * formatLabel("order·type", { preserveDot: true }) // → "Order·type"
+ * formatLabel("custom-label", { preserveHyphen: true }) // → "Custom-label"
+ * ```
+ *
+ * @param text - The raw input string to format.
+ * @param options - Optional flags to preserve specific characters.
+ * @returns A formatted string in Title Case, or `'Unknown'` if input is null, undefined, or empty.
+ */
+export const formatLabel = (
+  text: string | null | undefined,
+  options: FormatLabelOptions = {}
+): string => {
+  if (text === null || text === undefined || text === '') return 'Unknown';
+  
+  let label = String(text); // ensures label is a string
+  
+  if (!options.preserveHyphen) {
+    label = label.replace(/-/g, ' ');
+  }
+  
+  if (!options.preserveDot) {
+    label = label.replace(/[·•‧⋅∙]/g, ' ');
+  }
+  
+  // Always normalize underscores and camelCase spacing
+  label = label
+    .replace(/_/g, ' ')
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2');
+  
+  return label
     .toLowerCase()
     .split(' ')
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
@@ -116,51 +148,30 @@ export const formatPhoneNumber = (
 };
 
 /**
- * Formats a shipping address into a display-friendly structure.
- * - For North America, combines street address + city/state/postal into one 'Address' field.
- * - For other regions, keeps Address and Location separate.
+ * Formats a number (or numeric string) to 3 decimal places.
  *
- * @param {ShippingInformation | null} shippingInfo
- * @returns {Record<string, string>}
+ * - Accepts string, number, null, or undefined.
+ * - If the input is not a valid number, returns a fallback (default: '—').
+ * - Ensures consistent precision for unit prices, exchange rates, etc.
+ *
+ * @param {string | number | null | undefined} value - The input value to format.
+ * @param {string} [fallback='—'] - The fallback string to return for invalid input.
+ * @returns {string} Formatted string with 3 decimal places, or fallback.
+ *
+ * @example
+ * formatToThreeDecimal(1.23456);        // "1.235"
+ * formatToThreeDecimal('0.1');          // "0.100"
+ * formatToThreeDecimal(null);           // "—"
+ * formatToThreeDecimal('invalid');      // "—"
  */
-export const formatShippingAddress = (
-  shippingInfo?: ShippingInformation | null
-): Record<string, string> => {
-  if (!shippingInfo) {
-    return {
-      Address: 'N/A',
-      Country: 'N/A',
-      Region: 'N/A',
-    };
-  }
-
-  const {
-    shipping_address_line1,
-    shipping_address_line2,
-    shipping_city,
-    shipping_state,
-    shipping_postal_code,
-    shipping_country,
-    shipping_region,
-  } = shippingInfo;
-
-  const isNorthAmerica = ['Canada', 'United States', 'USA', 'US'].includes(
-    (shipping_country || '').trim()
-  );
-
-  const addressParts = [shipping_address_line1, shipping_address_line2].filter(
-    Boolean
-  );
-  const locationParts = isNorthAmerica
-    ? [shipping_city, shipping_state, shipping_postal_code]
-    : [shipping_city, shipping_region];
-
-  const fullAddress =
-    [...addressParts, ...locationParts].filter(Boolean).join(', ') || 'N/A';
-
-  return {
-    Address: fullAddress,
-    Country: shipping_country || 'N/A',
-    Region: shipping_region || 'N/A',
-  };
+export const formatToThreeDecimal = (
+  value: string | number | null | undefined,
+  fallback: string = '—'
+): string => {
+  const num =
+    typeof value === 'string' ? parseFloat(value.trim()) : value;
+  
+  if (typeof num !== 'number' || !isFinite(num)) return fallback;
+  
+  return num.toFixed(3);
 };

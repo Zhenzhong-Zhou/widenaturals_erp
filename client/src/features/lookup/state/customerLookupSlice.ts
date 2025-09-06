@@ -1,25 +1,19 @@
 import { createSlice } from '@reduxjs/toolkit';
-import type { CustomerLookupState } from './lookupTypes';
+import {
+  createInitialPaginatedLookupState,
+  type CustomerLookupItem,
+  type CustomerLookupState
+} from './lookupTypes';
 import { fetchCustomerLookupThunk } from './lookupThunks';
+import { applyPaginatedFulfilled } from '@features/lookup/utils/lookupReducers';
 
-const initialState: CustomerLookupState = {
-  data: [],
-  loading: false,
-  error: null,
-  hasMore: false,
-  limit: 10,
-  offset: 0,
-};
+const initialState: CustomerLookupState = createInitialPaginatedLookupState<CustomerLookupItem>();
 
 const customerLookupSlice = createSlice({
   name: 'customerLookup',
   initialState,
   reducers: {
-    resetCustomerLookup: (state) => {
-      state.data = [];
-      state.loading = false;
-      state.error = null;
-    },
+    resetCustomerLookup: () => initialState,
   },
   extraReducers: (builder) => {
     builder
@@ -28,13 +22,7 @@ const customerLookupSlice = createSlice({
         state.error = null;
       })
       .addCase(fetchCustomerLookupThunk.fulfilled, (state, action) => {
-        const { items, hasMore, limit, offset } = action.payload;
-
-        state.data = offset === 0 ? items : [...state.data, ...items];
-        state.hasMore = hasMore;
-        state.limit = limit;
-        state.offset = offset;
-        state.loading = false;
+        applyPaginatedFulfilled(state, action.payload);
       })
       .addCase(fetchCustomerLookupThunk.rejected, (state, action) => {
         state.loading = false;

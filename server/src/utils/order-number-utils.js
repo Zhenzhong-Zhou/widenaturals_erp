@@ -58,7 +58,7 @@ const generateOrderIdentifiers = async (
     );
   }
 
-  const orderNumber = generateOrderNumber(name, category, id);
+  const orderNumber = generateOrderNumber(category, name, id);
 
   return { id, orderNumber };
 };

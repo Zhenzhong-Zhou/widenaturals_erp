@@ -9,6 +9,7 @@ const {
   resolveUserPermissionContext,
 } = require('../services/role-permission-service');
 const { getStatusId } = require('../config/status-cache');
+const { PERMISSIONS } = require('../utils/constants/domain/customer-constants');
 
 /**
  * Prepares customer data by validating and enriching it with default fields.
@@ -94,43 +95,109 @@ const filterCustomerForViewer = async (
 };
 
 /**
- * Determines status and visibility flags for customer queries based on user permissions.
+ * Evaluates access control flags for customer lookup based on user permissions.
  *
- * This function checks whether the user has permissions to view all customers or only active customers,
- * and builds query options accordingly. If the user has no applicable permissions,
- * it will either fall back to active customers or throw a forbidden error (based on your implementation).
+ * Determines whether the current user is allowed to view:
+ * - All customer statuses (`canViewAllStatuses`)
+ * - Only active customers (`canViewActiveOnly`)
  *
- * @param {Object} user - Authenticated user object.
- * @returns {Promise<{ statusId?: string, overrideDefaultStatus: boolean }>}
- *   A promise resolving to query options:
- *   - `statusId`: Status UUID to filter customers by, if applicable.
- *   - `overrideDefaultStatus`: Whether to override the default status filter (for users with view_all permissions).
+ * This is typically used before building dropdown filters or customer queries.
  *
- * @throws {AppError} If the user lacks permission to view any customers (if strict mode is enforced).
+ * @param {object} user - The user object (must contain user ID or context for permission resolution).
+ * @returns {Promise<{ canViewAllStatuses: boolean, canViewActiveOnly: boolean }>}
+ *          An object representing the user's access level.
+ *
+ * @throws {AppError} - If permission resolution fails.
+ *
+ * @example
+ * const access = await evaluateCustomerLookupAccessControl(currentUser);
+ * if (access.canViewAllStatuses) { ... }
  */
-const resolveCustomerQueryOptions = async (user) => {
-  const { permissions, isRoot } = await resolveUserPermissionContext(user);
-
-  if (isRoot || permissions.includes('view_all_customers')) {
-    return { statusId: undefined, overrideDefaultStatus: true };
-  }
-
-  if (permissions.includes('view_active_customers')) {
+const evaluateCustomerLookupAccessControl = async (user) => {
+  try {
+    const { permissions, isRoot } = await resolveUserPermissionContext(user);
+    
     return {
-      statusId: getStatusId('customer_active'),
-      overrideDefaultStatus: false,
+      canViewAllStatuses: isRoot || permissions.includes(PERMISSIONS.VIEW_ALL_CUSTOMERS),
+      canViewActiveOnly: isRoot || permissions.includes(PERMISSIONS.VIEW_ACTIVE_CUSTOMERS),
     };
+  } catch (err) {
+    logSystemException(err, 'Failed to evaluate customer access control', {
+      context: 'customer-business/evaluateCustomerLookupAccessControl',
+      userId: user?.id,
+    });
+    
+    throw AppError.businessError('Unable to evaluate access control for customer lookup', {
+      details: err.message,
+      stage: 'evaluate-customer-access',
+    });
   }
+};
 
-  // Default to active if no permission (legacy behavior)
+/**
+ * Enforces access-based visibility rules for customer lookup filters.
+ *
+ * Modifies the incoming filters object to restrict the data a user can see
+ * based on their access level:
+ * - If user cannot view all statuses, applies `statusId` to restrict results to active only.
+ * - Adds `_activeStatusId` as fallback for internal filtering (e.g., in keyword search).
+ *
+ * This function mutates a shallow copy of the provided `filters` object and returns it.
+ *
+ * @param {object} [filters={}] - Initial filter object provided by the caller.
+ * @param {object} userAccess - Result of `evaluateCustomerLookupAccessControl`, includes boolean flags.
+ * @param {string} activeStatusId - The ID of the "active" status to enforce if restricted.
+ * @returns {object} - The modified filter object with enforced visibility rules.
+ *
+ * @example
+ * const userAccess = await evaluateCustomerLookupAccessControl(currentUser);
+ * const safeFilters = enforceCustomerLookupVisibilityRules(userFilters, userAccess, ACTIVE_STATUS_ID);
+ */
+const enforceCustomerLookupVisibilityRules = (filters = {}, userAccess, activeStatusId) => {
+  const adjusted = { ...filters };
+  
+  // Enforce active-only status filter for restricted users
+  if (!userAccess.canViewAllStatuses) {
+    adjusted.statusId ??= activeStatusId;
+    adjusted._activeStatusId = activeStatusId; // used by keyword clause as fallback
+  } else {
+    // Clean up if elevated
+    delete adjusted.statusId;
+    delete adjusted._activeStatusId;
+  }
+  
+  return adjusted;
+};
+
+/**
+ * Enriches a customer database row with UI-ready flags.
+ *
+ * Adds derived boolean fields:
+ * - `isActive`: True if customer has active status.
+ * - `hasAddress`: True if customer has any linked addresses.
+ *
+ * This is useful when transforming database records for use in dropdowns or select lists.
+ *
+ * @param {object} row - Raw customer row from the database (must include `status_id` and `has_address`).
+ * @param {string} activeStatusId - The ID that represents the "active" customer status.
+ * @returns {object} - The enriched customer object with additional UI flags.
+ *
+ * @example
+ * const enriched = enrichCustomerOption(row, ACTIVE_STATUS_ID);
+ * if (enriched.isActive && enriched.hasAddress) { ... }
+ */
+const enrichCustomerOption = (row, activeStatusId) => {
   return {
-    statusId: getStatusId('customer_active'),
-    overrideDefaultStatus: false,
+    ...row,
+    isActive: row.status_id === activeStatusId,
+    hasAddress: row.has_address === true,
   };
 };
 
 module.exports = {
   prepareCustomersForInsert,
   filterCustomerForViewer,
-  resolveCustomerQueryOptions,
+  evaluateCustomerLookupAccessControl,
+  enforceCustomerLookupVisibilityRules,
+  enrichCustomerOption,
 };

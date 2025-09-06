@@ -21,20 +21,17 @@ const insertUserAuth = async (
   { userId, passwordHash, passwordSalt }
 ) => {
   const sql = `
-    INSERT INTO user_auth (user_id, password_hash, password_salt, created_at)
-    VALUES ($1, $2, $3, $4);
+    INSERT INTO user_auth (user_id, password_hash, password_salt)
+    VALUES ($1, $2, $3);
   `;
-  const params = [userId, passwordHash, passwordSalt, new Date()];
+  const params = [userId, passwordHash, passwordSalt];
 
   try {
-    // Retry logic for transient issues
-    await retry(async () => {
-      // Lock the row in the `users` table to ensure consistency
-      await lockRow(client, 'users', userId, 'FOR UPDATE');
+    // Lock the row in the `users` table to ensure consistency
+    await lockRow(client, 'users', userId, 'FOR UPDATE');
 
-      // Perform the insertion
-      await client.query(sql, params);
-    });
+    // Perform the insertion
+    await query(sql, params, client);
   } catch (error) {
     logError(
       `Database error inserting user auth for user ID ${userId}:`,

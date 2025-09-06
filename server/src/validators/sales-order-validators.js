@@ -1,6 +1,7 @@
 const Joi = require('joi');
-const baseOrderSchema = require('./order-validators');
+const { baseOrderSchema } = require('./order-validators');
 const { salesOrderItemSchema } = require('./order-item-validators');
+const { validateOptionalUUID, validateUUID } = require('./general-validators');
 
 /**
  * Joi schema for validating a sales order payload.
@@ -22,15 +23,14 @@ const { salesOrderItemSchema } = require('./order-item-validators');
  */
 const salesOrderSchema = baseOrderSchema.keys({
   customer_id: Joi.string().uuid().required(),
-  payment_status_id: Joi.string().uuid().allow(null),
-  payment_method_id: Joi.string().uuid().allow(null),
+  payment_method_id: validateUUID('Payment Method ID'),
   currency_code: Joi.string().length(3).default('CAD'),
-  exchange_rate: Joi.number().precision(4).min(0).allow(null),
+  exchange_rate: Joi.number().precision(4).min(0).default(1),
   base_currency_amount: Joi.number().precision(2).min(0).allow(null),
-  discount_id: Joi.string().uuid().allow(null),
-  tax_rate_id: Joi.string().uuid().required(),
-  shipping_fee: Joi.number().precision(2).min(0).allow(null),
-  delivery_method_id: Joi.string().uuid().required(),
+  discount_id: validateOptionalUUID('Discount ID'),
+  tax_rate_id: validateUUID('Tax Rate ID'),
+  shipping_fee: Joi.number().precision(2).min(0).optional().allow(null),
+  delivery_method_id: validateUUID('Delivery Method ID'),
   order_items: Joi.array().items(salesOrderItemSchema).min(1).required(),
 });
 

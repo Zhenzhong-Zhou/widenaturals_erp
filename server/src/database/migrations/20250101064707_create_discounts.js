@@ -37,7 +37,7 @@ exports.up = async function (knex) {
 exports.down = async function (knex) {
   await knex.schema.dropTableIfExists('discounts');
 
-  // ✅ Drop ENUM only if no table uses it
+  // Drop ENUM only if no table uses it
   await knex.raw(`
     DO $$
     BEGIN

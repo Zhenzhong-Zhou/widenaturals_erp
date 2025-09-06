@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   fetchCustomerAddressesLookupThunk,
@@ -6,32 +6,43 @@ import {
   selectCustomerAddressLookupError,
   selectCustomerAddressLookupLoading,
 } from '@features/lookup/state';
+import { resetCustomerAddresses } from '@features/lookup/state/addressByCustomerLookupSlice';
 
 /**
  * Hook to access customer-address lookup data and related loading/error states.
- * Also provides a dispatcher to trigger fetching by customer ID.
+ * Also provides dispatchers to trigger fetching by customer ID and to reset state.
  */
 const useCustomerAddressesLookup = () => {
   const dispatch = useAppDispatch();
-
-  const addresses = useAppSelector(selectCustomerAddressLookupData);
+  
+  const options = useAppSelector(selectCustomerAddressLookupData);
   const loading = useAppSelector(selectCustomerAddressLookupLoading);
   const error = useAppSelector(selectCustomerAddressLookupError);
-
-  // Memoized fetch function using the lookup thunk
-  const fetchAddresses = useCallback(
+  
+  /**
+   * Triggers address lookup by customer ID.
+   */
+  const fetch = useCallback(
     (customerId: string) => {
       dispatch(fetchCustomerAddressesLookupThunk(customerId));
     },
     [dispatch]
   );
-
-  return {
-    addresses,
+  
+  /**
+   * Resets customer address lookup state (data, loading, error).
+   */
+  const reset = useCallback(() => {
+    dispatch(resetCustomerAddresses());
+  }, [dispatch]);
+  
+  return useMemo(() => ({
+    options,
     loading,
     error,
-    fetchAddresses,
-  };
+    fetch,
+    reset,
+  }), [options, loading, error, fetch, reset]);
 };
 
 export default useCustomerAddressesLookup;

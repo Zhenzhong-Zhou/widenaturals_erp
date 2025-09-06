@@ -1,6 +1,6 @@
 const AppError = require('../utils/AppError');
 const { logError } = require('../utils/logger-helper');
-const { query } = require('../database/db');
+const { query, getFieldsById } = require('../database/db');
 
 /**
  * Fetches the ID of a role by its name or ID.
@@ -48,4 +48,23 @@ const getRoleIdByField = async (field, value) => {
   }
 };
 
-module.exports = { getRoleIdByField };
+/**
+ * Retrieves the name of a role by its ID.
+ *
+ * This function fetches the `name` field from the `roles` table for the given role ID.
+ * Delegates to the generic `getFieldsById` helper.
+ *
+ * @param {string} id - UUID of the role to fetch.
+ * @param {object} client - PostgreSQL client for transactional context.
+ * @returns {Promise<{ name: string }>} - An object containing the role name.
+ *
+ * @throws {AppError} - If the role is not found or the query fails.
+ */
+const getRoleNameById = async (id, client) => {
+  return await getFieldsById('roles', id, ['name'], client);
+};
+
+module.exports = {
+  getRoleIdByField,
+  getRoleNameById,
+};

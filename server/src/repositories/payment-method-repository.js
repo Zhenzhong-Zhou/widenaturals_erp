@@ -31,7 +31,8 @@ const getPaymentMethodLookup = async ({
   const queryText = `
     SELECT
       pm.id,
-      pm.name
+      pm.name,
+      pm.is_active
     FROM ${tableName}
     WHERE ${whereClause}
   `;
@@ -51,7 +52,7 @@ const getPaymentMethodLookup = async ({
 
     logSystemInfo('Fetched payment method dropdown successfully', {
       context: 'payment-method-repository/getPaymentMethodLookup',
-      totalFetched: result.items?.length ?? 0,
+      totalFetched: result.data?.length ?? 0,
       offset,
       limit,
       filters,

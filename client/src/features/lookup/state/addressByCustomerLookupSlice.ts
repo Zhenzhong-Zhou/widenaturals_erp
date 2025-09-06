@@ -25,11 +25,7 @@ const addressByCustomerLookupSlice = createSlice({
     /**
      * Resets address state to its initial values.
      */
-    resetCustomerAddresses: (state) => {
-      state.data = [];
-      state.loading = false;
-      state.error = null;
-    },
+    resetCustomerAddresses: () => initialState,
   },
   extraReducers: (builder) => {
     builder

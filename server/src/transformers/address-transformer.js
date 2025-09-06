@@ -4,7 +4,7 @@ const {
 } = require('../utils/transformer-utils');
 const { cleanObject } = require('../utils/object-utils');
 const { getFullName } = require('../utils/name-utils');
-const { formatAddress } = require('../utils/string-utils');
+const { formatAddress } = require('../utils/address-utils');
 
 /**
  * Builds a structured address object from a DB row.

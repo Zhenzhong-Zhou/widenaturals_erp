@@ -29,10 +29,11 @@ const validateEmail = Joi.string().email().required().messages({
  * const { error } = schema.validate('abc123'); // returns validation error
  */
 const validateUUID = (fieldName = 'id') =>
-  Joi.string().uuid().required().label(fieldName).messages({
+  Joi.string().uuid().trim().required().label(fieldName).messages({
+    'string.base': '{{#label}} must be a string',
     'string.guid': '{{#label}} must be a valid UUID',
-    'any.required': '{{#label}} is required',
     'string.empty': '{{#label}} cannot be empty',
+    'any.required': '{{#label}} is required',
   });
 
 /**
@@ -52,16 +53,16 @@ const validateUUID = (fieldName = 'id') =>
  * });
  */
 const validateOptionalUUID = (fieldName = 'id') =>
-  Joi.string().uuid().optional().allow(null).label(fieldName).messages({
+  Joi.string().uuid().trim().optional().allow(null).disallow('').label(fieldName).messages({
     'string.guid': '{{#label}} must be a valid UUID',
-    'string.empty': '{{#label}} cannot be empty',
+    'any.invalid': '{{#label}} cannot be an empty string',
   });
 
 /**
  * Returns a Joi schema for validating either a string or array of UUIDs (v4).
  * Useful for flexible query filters that accept comma-separated or array input.
  */
-const validateUUIDArray = (fieldName = 'IDs') =>
+const validateUUIDOrUUIDArrayOptional = (fieldName = 'IDs') =>
   Joi.alternatives()
     .try(
       Joi.string(),
@@ -69,6 +70,43 @@ const validateUUIDArray = (fieldName = 'IDs') =>
     )
     .optional()
     .label(fieldName);
+
+/**
+ * Generates a Joi schema for validating an array of UUID strings.
+ *
+ * This helper supports flexible options for required fields and empty array allowance.
+ *
+ * @param {string} [fieldName='IDs'] - Label used in error messages for the field.
+ * @param {Object} [options={}] - Configuration options.
+ * @param {boolean} [options.required=false] - Whether the array is required (defaults to optional).
+ * @param {boolean} [options.allowEmpty=false] - Whether to allow empty arrays (default disallows empty arrays).
+ *
+ * @returns {Joi.ArraySchema} Joi validation schema for UUID array.
+ *
+ * @example
+ * const schema = Joi.object({
+ *   allocationIds: validateUUIDArray('Allocation IDs', { required: true }),
+ * });
+ */
+const validateUUIDArray = (fieldName = 'IDs', options = {}) => {
+  const { required = false, allowEmpty = false } = options;
+  
+  let schema = Joi.array().items(
+    Joi.string().uuid().trim().label('UUID')
+  ).label(fieldName);
+  
+  if (required) schema = schema.required();
+  else schema = schema.default([]);
+  
+  if (!allowEmpty) schema = schema.min(1);
+  
+  return schema.messages({
+    'array.base': '{{#label}} must be an array',
+    'any.required': '{{#label}} is required',
+    'array.includes': '{{#label}} must contain valid UUIDs',
+    'array.min': '{{#label}} must contain at least one UUID',
+  });
+};
 
 /**
  * Returns a Joi schema for pagination integers with optional default.
@@ -113,7 +151,7 @@ const validateString = (
  * Validates an optional trimmed string with max length and optional label.
  */
 const validateOptionalString = (label = '', max = 255) =>
-  Joi.string().trim().max(max).allow('', null).label(label);
+  Joi.string().trim().max(max).optional().allow('', null).label(label);
 
 /**
  * Joi schema to validate a phone number in E.164 international format.
@@ -280,6 +318,69 @@ const statusDateRangeSchema = Joi.object({
 });
 
 /**
+ * Joi schema for filtering by allocated date range.
+ *
+ * Includes:
+ * - `allocatedAfter`: ISO date to filter records allocated on or after this date
+ * - `allocatedBefore`: ISO date to filter records allocated on or before this date
+ *
+ * Accepts null or empty string values.
+ *
+ * @type {Joi.ObjectSchema}
+ */
+const allocatedDateRangeSchema = Joi.object({
+  allocatedAfter: Joi.date()
+    .iso()
+    .optional()
+    .allow(null, '')
+    .label('Allocated After'),
+  allocatedBefore: Joi.date()
+    .iso()
+    .optional()
+    .allow(null, '')
+    .label('Allocated Before'),
+});
+
+/**
+ * Joi schema for filtering by aggregated allocated and created date ranges.
+ *
+ * Includes:
+ * - `aggregatedAllocatedAfter`: filters `aa.allocated_at >=`
+ * - `aggregatedAllocatedBefore`: filters `aa.allocated_at <=`
+ * - `aggregatedCreatedAfter`: filters `aa.allocated_created_at >=`
+ * - `aggregatedCreatedBefore`: filters `aa.allocated_created_at <=`
+ *
+ * Accepts null or empty string values.
+ *
+ * @type {Joi.ObjectSchema}
+ */
+const aggregatedDateRangeSchema = Joi.object({
+  aggregatedAllocatedAfter: Joi.date()
+    .iso()
+    .optional()
+    .allow(null, '')
+    .label('Aggregated Allocated After'),
+  
+  aggregatedAllocatedBefore: Joi.date()
+    .iso()
+    .optional()
+    .allow(null, '')
+    .label('Aggregated Allocated Before'),
+  
+  aggregatedCreatedAfter: Joi.date()
+    .iso()
+    .optional()
+    .allow(null, '')
+    .label('Aggregated Created After'),
+  
+  aggregatedCreatedBefore: Joi.date()
+    .iso()
+    .optional()
+    .allow(null, '')
+    .label('Aggregated Created Before'),
+});
+
+/**
  * Creates a Joi schema for a boolean query parameter that accepts flexible truthy/falsy values.
  *
  * - Accepts true/false, or strings like 'true'/'false'
@@ -337,6 +438,7 @@ module.exports = {
   validateEmail,
   validateUUID,
   validateOptionalUUID,
+  validateUUIDOrUUIDArrayOptional,
   validateUUIDArray,
   validatePositiveInteger,
   validateString,
@@ -349,6 +451,8 @@ module.exports = {
   createdDateRangeSchema,
   updatedDateRangeSchema,
   statusDateRangeSchema,
+  allocatedDateRangeSchema,
+  aggregatedDateRangeSchema,
   createBooleanFlag,
   validateKeyword,
   validateOptionalString,

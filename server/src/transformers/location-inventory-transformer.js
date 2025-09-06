@@ -9,6 +9,7 @@ const {
   transformInventoryRecordBase,
   transformInventoryRecordSummaryBase,
 } = require('./transform-inventory-record-base');
+const { generateChecksum } = require('../utils/crypto-utils');
 
 /**
  * Transforms raw KPI summary query result rows into structured output.
@@ -194,6 +195,7 @@ const transformLocationInventoryRecord = (row) =>
  * @param {Object} paginatedResult - The raw paginated database result
  * @returns {Object} Transformed a paginated result with structured inventory data
  */
+// todo: fix bugs: miss location name and type
 const transformPaginatedLocationInventoryRecordResults = (paginatedResult) =>
   transformPaginatedResult(paginatedResult, transformLocationInventoryRecord);
 

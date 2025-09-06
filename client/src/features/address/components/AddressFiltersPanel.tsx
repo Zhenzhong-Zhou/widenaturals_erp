@@ -10,7 +10,7 @@ import type {
   CustomerOption,
   LookupPaginationMeta,
 } from '@features/lookup/state';
-import { adjustBeforeDateInclusive } from '@utils/dateTimeUtils';
+import { adjustAfterDate, adjustBeforeDateInclusive } from '@utils/dateTimeUtils';
 import { renderDateField, renderInputField } from '@utils/filters/filterUtils';
 
 interface Props {
@@ -85,7 +85,9 @@ const AddressFiltersPanel: FC<Props> = ({
     const adjusted: AddressFilterConditions = {
       ...data,
       createdBefore: adjustBeforeDateInclusive(data.createdBefore),
+      createdAfter: adjustAfterDate(data.createdAfter),
       updatedBefore: adjustBeforeDateInclusive(data.updatedBefore),
+      updatedAfter: adjustAfterDate(data.updatedAfter),
     };
     onChange(adjusted);
     onApply();

@@ -20,8 +20,14 @@ let statusMap = null;
 const STATUS_KEY_LOOKUP = [
   { key: 'product_active', table: 'status', name: 'active' },
   { key: 'pricing_type_active', table: 'status', name: 'active' },
+  { key: 'pricing_active', table: 'status', name: 'active' },
   { key: 'warehouse_active', table: 'status', name: 'active' },
   { key: 'sku_active', table: 'status', name: 'active' },
+  {
+    key: 'batch_active',
+    table: 'batch_status',
+    name: 'active',
+  },
   {
     key: 'inventory_in_stock',
     table: 'inventory_status',
@@ -56,6 +62,26 @@ const STATUS_KEY_LOOKUP = [
     key: 'order_type_active',
     table: 'status',
     name: 'active',
+  },
+  {
+    key: 'discount_active',
+    table: 'status',
+    name: 'active',
+  },
+  {
+    key: 'delivery_method_active',
+    table: 'status',
+    name: 'active',
+  },
+  {
+    key: 'packaging_material_active',
+    table: 'status',
+    name: 'active',
+  },
+  {
+    key: 'inventory_allocation_init',
+    table: 'inventory_allocation_status',
+    name: 'pending',
   },
 ];
 

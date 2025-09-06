@@ -1,20 +1,19 @@
-import createSalesOrderReducer from './createSalesOrderSlice';
-import confirmSalesOrderReducer from './confirmSalesOrderSlice';
-import allOrdersReducer from '@features/order/state/allOrderSlice';
-import salesOrderDetailReducer from './salesOrderDetailSlice';
-import allocationEligibleOrderReducer from '@features/order/state/allocationEligibleOrdersSlice.ts';
-import allocationEligibleOrderDetailsReducer from '@features/order/state/allocationEligibleOrderDetailsSlice.ts';
+import salesOrderCreationReducer from './salesOrderCreationSlice';
+import paginatedOrdersReducer from './paginatedOrdersSlice';
+import orderDetailsReducer from './orderDetailsSlice';
+import updateOrderStatusReducer from './updateOrderStatusSlice';
 
 export const orderReducers = {
-  createSalesOrder: createSalesOrderReducer,
-  confirmSalesOrder: confirmSalesOrderReducer,
-  allOrders: allOrdersReducer,
-  allocationEligibleOrders: allocationEligibleOrderReducer,
-  salesOrderDetail: salesOrderDetailReducer,
-  allocationEligibleOrderDetails: allocationEligibleOrderDetailsReducer,
+  salesOrderCreation: salesOrderCreationReducer,
+  paginatedOrders: paginatedOrdersReducer,
+  orderDetails: orderDetailsReducer,
+  updateOrderStatus: updateOrderStatusReducer,
 };
 
 // Optional exports for thunks, selectors, types
+export * from './salesOrderCreationSelectors';
+export * from './paginatedOrdersSelectors';
+export * from './orderDetailsSelectors';
+export * from './updateOrderStatusSelectors';
 export * from './orderThunks';
-export * from './allOrderSelectors';
 export * from './orderTypes';

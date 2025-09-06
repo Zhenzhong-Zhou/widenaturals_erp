@@ -1,168 +1,145 @@
-import axiosInstance from '@utils/axiosConfig';
-import { API_ENDPOINTS } from '@services/apiEndpoints';
 import type {
-  AllocationEligibleOrderDetailsResponse,
+  CreateSalesOrderInput,
   CreateSalesOrderResponse,
-  FetchOrdersParams,
-  OrderDetailsResponse,
-  OrdersResponse,
-  OrderStatusUpdateResponse,
-  SalesOrder,
-} from '@features/order';
+  GetOrderDetailsResponse, OrderListResponse, OrderQueryParams, OrderRouteParams, UpdateOrderStatusResponse,
+} from '@features/order/state';
+import { API_ENDPOINTS } from '@services/apiEndpoints';
+import { getRequest, patchRequest, postRequest } from '@utils/apiRequest';
+import { sanitizeString } from '@utils/stringUtils';
 
 /**
- * Creates a new sales order.
- * @param {string} orderTypeId - The order type ID to replace in the endpoint.
- * @param {SalesOrder} orderData - The sales order payload.
- * @returns {Promise<CreateSalesOrderResponse>} - The structured response from the API.
+ * Sends a request to create a new order under a specific category (e.g., 'sales', 'purchase').
+ *
+ * The `category` is injected into the URL path (e.g., `/orders/create/sales`),
+ * and the `data` contains the full order payload including customer info,
+ * addresses, line items, pricing, tax, and shipping details.
+ *
+ * @param category - Order category used to determine the order creation route (e.g., 'sales', 'transfer').
+ * @param data - Payload for the new order including metadata and order items.
+ * @returns A promise resolving to the success response with the new order ID.
+ * @throws Will throw and rethrow any error encountered during the request.
  */
-export const createSalesOrder = async (
-  orderTypeId: string,
-  orderData: SalesOrder
+const createSalesOrder = async (
+  category: string,
+  data: CreateSalesOrderInput
 ): Promise<CreateSalesOrderResponse> => {
+  const url = API_ENDPOINTS.ORDERS.ADD_NEW_ORDER(category);
+  
   try {
-    const endpoint = API_ENDPOINTS.CREATE_SALES_ORDERS.replace(
-      ':orderTypeId',
-      orderTypeId
-    );
-    const response = await axiosInstance.post<CreateSalesOrderResponse>(
-      endpoint,
-      orderData
-    );
-    return response.data;
+    return await postRequest<CreateSalesOrderInput, CreateSalesOrderResponse>(url, data);
   } catch (error) {
-    console.error('Error creating sales order:', error);
+    console.error('Failed to create sales order:', error);
     throw error;
   }
 };
 
 /**
- * Generic function to fetch orders from a given endpoint with optional parameters.
+ * Fetch a paginated and filtered list of orders by category.
  *
- * @param {string} endpoint - The API endpoint to fetch from.
- * @param {FetchOrdersParams} params - Query parameters for pagination, sorting, etc.
- * @returns {Promise<OrdersResponse>} - The fetched orders and pagination info.
- * @throws {Error} - If the request fails.
- */
-const fetchOrdersByEndpoint = async (
-  endpoint: string,
-  params: FetchOrdersParams
-): Promise<OrdersResponse> => {
-  try {
-    const response = await axiosInstance.get<OrdersResponse>(endpoint, {
-      params,
-    });
-    return response.data;
-  } catch (error) {
-    console.error(`Error fetching orders from ${endpoint}:`, error);
-    throw new Error('An error occurred while fetching orders.');
-  }
-};
-
-/**
- * Fetch all orders from the server.
- */
-const fetchAllOrders = (params: FetchOrdersParams): Promise<OrdersResponse> =>
-  fetchOrdersByEndpoint(API_ENDPOINTS.ALL_ORDERS, params);
-
-/**
- * Fetch allocation-eligible orders from the server.
+ * Issues `GET /orders/:category` with optional query parameters.
  *
- * Includes orders in statuses like CONFIRMED, ALLOCATING, ALLOCATED, and PARTIAL.
- */
-const fetchAllocationEligibleOrders = (
-  params: FetchOrdersParams
-): Promise<OrdersResponse> =>
-  fetchOrdersByEndpoint(API_ENDPOINTS.ALLOCATION_ELIGIBLE_ORDERS, params);
-
-/**
- * Fetch Sales Order Details
+ * Notes:
+ * - `category` is trimmed and validated before constructing the URL.
+ * - `params` will be passed as query parameters (e.g., page, sortBy, filters).
+ * - Expects a standard paginated API response structure.
  *
- * This function fetches the details of a specific sales order by its ID.
- * It retrieves all related order information including customer details,
- * order items, prices, and additional metadata.
- *
- * @param {string} orderId - The ID of the sales order to fetch.
- * @returns {Promise<OrderDetailsResponse>} - Returns a promise resolving to the order details.
- *
- * @throws {Error} - Throws an error if the request fails.
+ * @param category - Order category (e.g., 'sales', 'purchase') for route param.
+ * @param params - Optional query filters and pagination/sorting info.
+ * @returns A promise resolving to the list of orders with pagination metadata.
+ * @throws Rethrows any error from the underlying request helper.
  *
  * @example
- *  const orderDetails = await fetchSalesOrderDetails("b64ead02-0061-4713-bce6-33103018bc31");
- *  console.log(orderDetails.data.order_number); // Output: SO-SSO-20250325174708-b64ead02-b8ff650703
+ * const res = await fetchOrdersByCategory('sales', { page: 1, keyword: 'NMN' });
+ * console.log(res.data[0].orderNumber);
  */
-const fetchSalesOrderDetails = async (
-  orderId: string
-): Promise<OrderDetailsResponse> => {
+const fetchOrdersByCategory = async (
+  category: string,
+  params?: OrderQueryParams
+): Promise<OrderListResponse> => {
+  const cleanCategory = sanitizeString(category);
+  const url = API_ENDPOINTS.ORDERS.ALL_CATEGORY_ORDERS(cleanCategory);
+  
   try {
-    const endpoint = API_ENDPOINTS.SALES_ORDER_DETAILS.replace(':id', orderId);
-    const response = await axiosInstance.get<OrderDetailsResponse>(endpoint);
-    return response.data;
+    return await getRequest<OrderListResponse>(url, {
+      params,
+    });
   } catch (error) {
-    console.error('Error fetching sales order details:', error);
-    throw new Error(
-      'Failed to fetch sales order details. Please try again later.'
-    );
+    console.error('Failed to fetch orders by category:', { category: cleanCategory, params, error });
+    throw error;
   }
 };
 
 /**
- * Sends a request to confirm a sales order by ID.
+ * Fetch a single order's details (header + items) by ID.
  *
- * @param {string} orderId - The UUID of the sales order to be confirmed.
- * @returns {Promise<OrderStatusUpdateResponse>} - Confirmation result containing updated counts and order ID.
- * @throws {Error} - Throws an error if the request fails.
+ * Issues `GET /orders/:orderId` and returns the API envelope
+ * `ApiSuccessResponse<TransformedOrder>`.
+ *
+ * Notes:
+ * - This call does not accept query flags (e.g., includeAddresses, formattedOnly).
+ * - Ensure `API_ENDPOINTS.ORDERS.ORDER_DETAILS` is a function:
+ *     ORDER_DETAILS: (orderId: string) => `/orders/${orderId}`
+ *
+ * @param category
+ * @param orderId - Order UUID string (will be trimmed before use).
+ * @returns A promise resolving to the order details response.
+ * @throws Rethrows any error from the underlying request helper.
+ *
+ * @example
+ * const res = await fetchOrderDetailsById('0edac644-af24-4499-817e-cb593747dd1c');
+ * console.log(res.data.orderNumber);
  */
-const confirmSalesOrder = async (
-  orderId: string
-): Promise<OrderStatusUpdateResponse> => {
+const fetchOrderDetailsById = async (
+  { category, orderId }: OrderRouteParams
+): Promise<GetOrderDetailsResponse> => {
+  const cleanId = sanitizeString(orderId);
+  const cleanCategory = sanitizeString(category);
+  const url = API_ENDPOINTS.ORDERS.ORDER_DETAILS(cleanCategory, cleanId);
+  
   try {
-    const endpoint = API_ENDPOINTS.CONFIRM_SALES_ORDER.replace(
-      ':orderId',
-      orderId
-    );
-    const response =
-      await axiosInstance.post<OrderStatusUpdateResponse>(endpoint);
-    return response.data;
+    return await getRequest<GetOrderDetailsResponse>(url);
   } catch (error) {
-    console.error('Error confirming sales order:', error);
-    throw new Error(
-      'Failed to confirm the sales order. Please try again later.'
-    );
+    console.error('Failed to fetch order details:', { orderId: cleanId, error });
+    throw error;
   }
 };
 
 /**
- * Fetches allocation-eligible order details for inventory allocation.
+ * Sends a request to update the status of a specific order.
  *
- * @param {string} orderId - The ID of the order.
- * @returns {Promise<AllocationEligibleOrderDetailsResponse>} - Transformed allocation data.
- * @throws {Error} - If the request fails.
+ * The `category` and `orderId` are injected into the URL path
+ * (e.g., `/orders/sales/abc123/status`), and the `data` includes
+ * the next status code to apply.
+ *
+ * @param params - Object containing the order category and order ID.
+ * @param data - Payload containing the new status code.
+ * @returns A promise resolving to the updated order and item statuses.
+ * @throws Will log and rethrow any error encountered during the request.
  */
-export const fetchAllocationEligibleOrderDetails = async (
-  orderId: string
-): Promise<AllocationEligibleOrderDetailsResponse> => {
+const updateOrderStatus = async (
+  params: OrderRouteParams,
+  data: { statusCode: string }
+): Promise<UpdateOrderStatusResponse> => {
+  const cleanCategory = sanitizeString(params.category);
+  const cleanOrderId = sanitizeString(params.orderId);
+  
+  if (!cleanCategory || !cleanOrderId) {
+    throw new Error('Missing or invalid category/orderId');
+  }
+  
+  const url = API_ENDPOINTS.ORDERS.ORDER_STATUS_UPDATE_PATH(cleanCategory, cleanOrderId);
+  
   try {
-    const endpoint = API_ENDPOINTS.ALLOCATION_ELIGIBLE_ORDER_DETAILS.replace(
-      ':id',
-      orderId
-    );
-    const response =
-      await axiosInstance.get<AllocationEligibleOrderDetailsResponse>(endpoint);
-    return response.data;
+    return await patchRequest<typeof data, UpdateOrderStatusResponse>(url, data);
   } catch (error) {
-    console.error('Error fetching allocation-eligible order details:', error);
-    throw new Error(
-      'Failed to fetch allocation details. Please try again later.'
-    );
+    console.error('Failed to update order status:', error);
+    throw error;
   }
 };
 
 export const orderService = {
   createSalesOrder,
-  fetchAllOrders,
-  fetchAllocationEligibleOrders,
-  fetchSalesOrderDetails,
-  confirmSalesOrder,
-  fetchAllocationEligibleOrderDetails,
+  fetchOrdersByCategory,
+  fetchOrderDetailsById,
+  updateOrderStatus,
 };

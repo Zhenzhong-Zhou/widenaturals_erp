@@ -1,271 +1,545 @@
-const AppError = require('../utils/AppError');
+const { cleanObject } = require('../utils/object-utils');
+const { getFullName } = require('../utils/name-utils');
+const { makeAudit, compactAudit } = require('../utils/audit-utils');
+const { formatDiscount, formatTaxRateLabel, formatPackagingMaterialLabel } = require('../utils/string-utils');
+const { getProductDisplayName } = require('../utils/display-name-utils');
+const { buildAddress } = require('../utils/address-utils');
+const { transformPaginatedResult } = require('../utils/transformer-utils');
 
 /**
- * Transforms raw order data into a consistent format.
- *
- * @param {Array} rawData - Raw order data fetched from the repository.
- * @returns {Array} - Transformed order data.
+ * Header row as returned by your SQL (only fields you actually read here).
+ * Add more @property lines as needed.
+ * @typedef {Object} OrderRow
+ * @property {string}        order_id
+ * @property {string}        order_number
+ * @property {string|Date|null} order_date
+ * @property {string|Date|null} status_date
+ * @property {string|null}   note
+ * @property {string}        order_type_id
+ * @property {string}        order_type_name
+ * @property {string}        order_status_id
+ * @property {string}        order_status_name
+ * @property {string}        order_code
+ * @property {string}        customer_id
+ * @property {string|null}   customer_firstname
+ * @property {string|null}   customer_lastname
+ * @property {string|null}   customer_email
+ * @property {string|null}   customer_phone
+ * @property {string|null}   payment_status_id
+ * @property {string|null}   payment_status_name
+ * @property {string|null}   payment_method_id
+ * @property {string|null}   payment_method_name
+ * @property {string|null}   currency_code
+ * @property {number|null}   exchange_rate
+ * @property {number|null}   base_currency_amount
+ * @property {string|null}   discount_id
+ * @property {string|null}   discount_name
+ * @property {string|null}   discount_type
+ * @property {number|null}   discount_value
+ * @property {number|null}   discount_amount
+ * @property {string|null}   tax_rate_id
+ * @property {string|null}   tax_rate_name
+ * @property {number|null}   tax_rate_percent
+ * @property {string|null}   tax_rate_province
+ * @property {string|null}   tax_rate_region
+ * @property {number|null}   tax_amount
+ * @property {number|null}   shipping_fee
+ * @property {number|null}   total_amount
+ * @property {string|null}   delivery_method_id
+ * @property {string|null}   delivery_method_name
+ * @property {object|undefined} sales_order_metadata
+ * // order audit fields (consumed via prefix 'order_')
+ * @property {string|Date|null} order_created_at
+ * @property {string|null}   order_created_by
+ * @property {string|null}   order_created_by_firstname
+ * @property {string|null}   order_created_by_lastname
+ * @property {string|Date|null} order_updated_at
+ * @property {string|null}   order_updated_by
+ * @property {string|null}   order_updated_by_firstname
+ * @property {string|null}   order_updated_by_lastname
+ * // shipping_ and billing_ address fields (used by buildAddress):
+ * @property {string|null} shipping_address_id
+ * @property {string|null} shipping_customer_id
+ * @property {string|null} shipping_full_name
+ * @property {string|null} shipping_phone
+ * @property {string|null} shipping_email
+ * @property {string|null} shipping_label
+ * @property {string|null} shipping_address_line1
+ * @property {string|null} shipping_address_line2
+ * @property {string|null} shipping_city
+ * @property {string|null} shipping_state
+ * @property {string|null} shipping_postal_code
+ * @property {string|null} shipping_country
+ * @property {string|null} shipping_region
+ * @property {string|null} billing_address_id
+ * @property {string|null} billing_customer_id
+ * @property {string|null} billing_full_name
+ * @property {string|null} billing_phone
+ * @property {string|null} billing_email
+ * @property {string|null} billing_label
+ * @property {string|null} billing_address_line1
+ * @property {string|null} billing_address_line2
+ * @property {string|null} billing_city
+ * @property {string|null} billing_state
+ * @property {string|null} billing_postal_code
+ * @property {string|null} billing_country
+ * @property {string|null} billing_region
  */
-const transformOrders = (rawData) => {
-  if (!Array.isArray(rawData)) return [];
 
-  return rawData.map((order) => ({
-    id: order.id,
-    order_number: order.order_number,
-    order_type: order.order_type,
-    category: order.category,
-    order_date: order.order_date,
-    status: order.status,
-    status_code: order.status_code,
-    note: order.note || '',
-    created_at: order.created_at || null,
-    updated_at: order.updated_at || null,
-    created_by: order.created_by || null,
-    updated_by: order.updated_by || null,
-  }));
+/**
+ * Item row as returned by your SQL (only fields you read here).
+ * @typedef {Object} OrderItemRow
+ * @property {string}      order_item_id
+ * @property {string}      order_id
+ * @property {number}      quantity_ordered
+ * @property {string|null} price_id
+ * @property {number|null} listed_price
+ * @property {string|null} price_type_name
+ * @property {number|null} item_price
+ * @property {number|null} item_subtotal
+ * @property {string|null} item_status_id
+ * @property {string|null} item_status_name
+ * @property {string|Date|null} item_status_date
+ * @property {object|undefined} item_metadata
+ * // SKU fields (nullable for packaging-only lines)
+ * @property {string|null} sku_id
+ * @property {string|null} sku
+ * @property {string|null} barcode
+ * // Packaging material fields (nullable for SKU lines)
+ * @property {string|null} packaging_material_id
+ * @property {string|null} packaging_material_code
+ * @property {string|null} packaging_material_name
+ * @property {string|null} packaging_material_size
+ * @property {string|null} packaging_material_color
+ * @property {string|null} packaging_material_unit
+ * @property {number|null} packaging_material_length_cm
+ * @property {number|null} packaging_material_width_cm
+ * @property {number|null} packaging_material_height_cm
+ * // Optional product label fields for display name
+ * @property {string|null} brand
+ * @property {string|null} product_name
+ * @property {string|null} country_code
+ * @property {string|null} size_label
+ * // item audit fields (consumed via prefix 'item_')
+ * @property {string|Date|null} item_created_at
+ * @property {string|null} item_created_by
+ * @property {string|null} item_created_by_firstname
+ * @property {string|null} item_created_by_lastname
+ * @property {string|Date|null} item_updated_at
+ * @property {string|null} item_updated_by
+ * @property {string|null} item_updated_by_firstname
+ * @property {string|null} item_updated_by_lastname
+ */
+
+/**
+ * Transforms a raw SQL result row from the `orders` query into a normalized `OrderListItem` object.
+ *
+ * - Flattens and normalizes aliased SQL columns into camelCase fields.
+ * - Combines `created_by` and `updated_by` username parts into full names.
+ * - Combines customer first and last names into a single `customerName` string.
+ * - Defaults `numberOfItems` to 0 if null.
+ * - Returns `null` if input row is falsy.
+ * - Uses `cleanObject` to remove `null` or `undefined` fields as needed.
+ *
+ * @param {Object} row - A single raw row from the joined SQL result.
+ * @param {string} row.id - Order UUID.
+ * @param {string} row.order_number - Full order number (e.g., "SO-SSO-20250825-XYZ").
+ * @param {string} [row.order_type] - Name of the order type.
+ * @param {string} row.status_code - Machine-readable status code.
+ * @param {string} row.status_name - Human-readable status name.
+ * @param {string} row.order_date - ISO date string of the order.
+ * @param {string} row.status_date - ISO date string of the last status update.
+ * @param {string} row.created_at - ISO date string of creation timestamp.
+ * @param {string} [row.created_by_firstname] - First name of creator.
+ * @param {string} [row.created_by_lastname] - Last name of creator.
+ * @param {string} row.updated_at - ISO date string of last update timestamp.
+ * @param {string} [row.updated_by_firstname] - First name of updater.
+ * @param {string} [row.updated_by_lastname] - Last name of updater.
+ * @param {string} [row.note] - Internal note or comment.
+ * @param {string} [row.customer_firstname] - Customer first name.
+ * @param {string} [row.customer_lastname] - Customer last name.
+ * @param {string} [row.payment_method] - Payment method name.
+ * @param {string} [row.payment_status] - Payment status label.
+ * @param {string} [row.delivery_method] - Delivery method name.
+ * @param {number} [row.number_of_items] - Number of items in the order.
+ *
+ * @returns {OrderListItem | null} Normalized order object or `null` if input is falsy.
+ *
+ * @example
+ * const raw = await db.query(...);
+ * const orders = raw.rows.map(transformOrderRow);
+ */
+const transformOrderRow = (row) => {
+  if (!row) return null;
+  
+  const createdBy = [row.created_by_firstname, row.created_by_lastname]
+    .filter(Boolean)
+    .join(' ') || null;
+  
+  const updatedBy = [row.updated_by_firstname, row.updated_by_lastname]
+    .filter(Boolean)
+    .join(' ') || null;
+  
+  const customerName = [row.customer_firstname, row.customer_lastname]
+    .filter(Boolean)
+    .join(' ') || null;
+  
+  return cleanObject({
+    id: row.id,
+    orderNumber: row.order_number,
+    orderType: row.order_type || null,
+    status: {
+      code: row.status_code,
+      name: row.status_name,
+    },
+    orderDate: row.order_date,
+    statusDate: row.status_date,
+    createdAt: row.created_at,
+    createdBy,
+    updatedAt: row.updated_at,
+    updatedBy,
+    note: row.note ?? null,
+    customerName,
+    paymentMethod: row.payment_method || null,
+    paymentStatus: row.payment_status || null,
+    deliveryMethod: row.delivery_method || null,
+    numberOfItems: row.number_of_items ?? 0,
+  });
 };
 
 /**
- * Transforms raw order data fetched from the repository into a structured format.
- * @param {Array} orderDetails - The raw order data from the repository.
- * @returns {object} - Transformed order object.
+ * Applies `transformOrderRow` to each item in a paginated query result.
+ *
+ * Used to convert raw SQL rows into structured order objects within paginated responses.
+ * Relies on `transformPaginatedResult` utility to preserve pagination metadata.
+ *
+ * @param {Object} paginatedResult - Paginated query result from `paginateQuery`.
+ * @param {Array<Object>} paginatedResult.data - Array of raw rows to transform.
+ * @param {Object} paginatedResult.meta - Metadata including pagination info.
+ * @returns {Object} Transformed result with `data` mapped via `transformOrderRow`.
+ *
+ * @example
+ * const result = await getPaginatedOrders(...);
+ * const output = transformPaginatedOrderTypes(result);
  */
-const transformOrderDetails = (orderDetails) => {
-  if (!orderDetails || orderDetails.length === 0) return null;
+const transformPaginatedOrderTypes = (paginatedResult) => {
+  return transformPaginatedResult(paginatedResult, (row) =>
+    transformOrderRow(row)
+  );
+};
 
-  const baseOrder = orderDetails[0];
-
-  // Convert date strings to Date objects and compare their timestamps
-  const isSameOrderDate =
-    new Date(baseOrder.order_date).getTime() ===
-    new Date(baseOrder.sales_order_date).getTime();
-  const orderDate = isSameOrderDate
-    ? baseOrder.order_date
-    : {
-        order_date: baseOrder.order_date,
-        sales_order_date: baseOrder.sales_order_date,
-      };
-
-  // Determine if tracking info should be displayed (only if not In-Store Pickup)
-  const trackingInfo =
-    !baseOrder.is_pickup_location && baseOrder.tracking_number
-      ? {
-          tracking_number: baseOrder.tracking_number,
-          carrier: baseOrder.carrier,
-          service_name: baseOrder.service_name,
-          shipped_date: baseOrder.shipped_date,
-        }
-      : null;
-
-  // Build shipping info
-  const shippingInfo = baseOrder.has_shipping_address
-    ? {
-        shipping_fullname: baseOrder.shipping_fullname ?? '',
-        shipping_phone: baseOrder.shipping_phone ?? '',
-        shipping_email: baseOrder.shipping_email ?? '',
-        shipping_address_line1: baseOrder.shipping_address_line1 ?? '',
-        shipping_address_line2: baseOrder.shipping_address_line2 ?? '',
-        shipping_city: baseOrder.shipping_city ?? '',
-        shipping_state: baseOrder.shipping_state ?? '',
-        shipping_postal_code: baseOrder.shipping_postal_code ?? '',
-        shipping_country: baseOrder.shipping_country ?? '',
-        shipping_region: baseOrder.shipping_region ?? '',
-      }
-    : null;
-
-  // Process items
-  const items = orderDetails.map((order) => {
-    const hasValidSystemPrice =
-      typeof order.system_price === 'string' &&
-      order.system_price.trim() !== '';
-    const hasValidAdjustedPrice =
-      typeof order.adjusted_price === 'string' &&
-      order.adjusted_price.trim() !== '';
-
-    return {
-      order_item_id: order.order_item_id,
-      inventory_id: order.inventory_id,
-      item_name:
-        order.inventory_identifier?.trim() ||
-        order.product_name?.trim() ||
-        'N/A',
-      barcode: order.barcode ?? 'N/A',
-      npn: order.npn ?? 'N/A',
-      quantity_ordered: order.quantity_ordered ?? 0,
-      price_type: order.price_type ?? 'Unknown',
-      system_price: hasValidSystemPrice ? order.system_price : 'N/A',
-      adjusted_price:
-        hasValidAdjustedPrice && order.system_price !== order.adjusted_price
-          ? order.adjusted_price
-          : null,
-      order_item_subtotal: order.order_item_subtotal ?? 'N/A',
-      order_item_status_name: order.order_item_status_name ?? 'Unknown',
-      order_item_status_date: order.order_item_status_date ?? 'N/A',
-    };
-  });
-
-  return {
-    order_id: baseOrder.order_id,
-    order_number: baseOrder.order_number,
-    order_category: baseOrder.order_category ?? '',
-    order_type: baseOrder.order_type ?? '',
-    order_date: orderDate, // Processed order date
-    customer_name: baseOrder.customer_name ?? '',
-    order_status: baseOrder.order_status ?? 'Unknown',
-    discount_type: baseOrder.discount_type ?? null,
-    discount_value: baseOrder.discount_value ?? null,
-    discount_amount: baseOrder.discount_amount ?? null,
-    subtotal: baseOrder.subtotal ?? '0.00',
-    tax_rate: baseOrder.tax_rate ?? '0.00',
-    tax_amount: baseOrder.tax_amount ?? '0.00',
-    shipping_fee: baseOrder.shipping_fee ?? '0.00',
-    total_amount: baseOrder.total_amount ?? '0.00',
-    order_note: baseOrder.order_note || '',
-    order_metadata: baseOrder.order_metadata || {},
-    delivery_info: {
-      method: baseOrder.delivery_method ?? '', // Display the method name from the database
-      tracking_info: trackingInfo, // Show tracking info only if applicable
+/**
+ * Transform a flat sales order header + items (from a joined SQL query) into a structured object.
+ *
+ * Input:
+ * - `orderRow` is expected to contain all header-level columns, prefixed columns for addresses (`shipping_`, `billing_`),
+ *   and audit columns for the order (`order_*`).
+ * - `orderItemRows` is an array of item-level rows containing columns for each order item, including:
+ *   - Item audit fields (`item_*`)
+ *   - SKU or packaging material details
+ *   - Pricing, quantity, subtotal
+ *   - Optional brand, product_name, size_label (for displayName generation)
+ *
+ * Behavior:
+ * - Returns `null` if `orderRow` is falsy.
+ * - Uses `makeAudit` + `compactAudit` to build deduplicated audit info for order and items.
+ * - Includes optional `metadata` for order and/or items if the corresponding include*Metadata flags are true.
+ * - Formats addresses via `buildAddress` (with `includeFormatted` / `formattedOnly` flags).
+ * - Generates `displayName` for SKU lines using `getProductDisplayName` if `includeItemDisplayName=true`.
+ * - Formats discount and tax labels using provided formatters.
+ *
+ * @param {OrderRow|null} orderRow
+ * @param {OrderItemRow[]} orderItemRows
+ * @param {object} [options]
+ * @param {boolean} [options.includeOrderMetadata=false]
+ * @param {boolean} [options.includeItemMetadata=false]
+ * @param {boolean} [options.dedupeAudit=true]
+ * @param {boolean} [options.includeFormattedAddresses=true]
+ * @param {boolean} [options.formattedAddressesOnly=true]
+ * @param {boolean} [options.includeItemDisplayName=true]
+ *
+ * @returns {object|null} Structured sales order object:
+ * {
+ *   id: string,
+ *   orderNumber: string,
+ *   orderDate: string|Date|null,
+ *   statusDate: string|Date|null,
+ *   note: string|null,
+ *   type: { id: string, name: string },
+ *   status: { id: string, name: string },
+ *   customer: { id: string, fullName: string, email: string|null, phone: string|null },
+ *   payment: { ... },
+ *   discount: { id, name, label, amount }|null,
+ *   tax: { id, name, amount }|null,
+ *   shippingFee: number|null,
+ *   totalAmount: number|null,
+ *   deliveryMethod: { id: string, name: string },
+ *   metadata?: object,
+ *   shippingAddress: BuiltAddressUserFacing|null,
+ *   billingAddress: BuiltAddressUserFacing|null,
+ *   audit: Audit,
+ *   items: Array<{
+ *     id: string,
+ *     orderId: string,
+ *     quantityOrdered: number,
+ *     priceId: string|null,
+ *     listedPrice: number|null,
+ *     priceTypeName: string|null,
+ *     price: number|null,
+ *     subtotal: number|null,
+ *     status: { id: string, name: string, date: string|Date|null },
+ *     metadata?: object,
+ *     sku: { id: string, code: string, barcode: string|null }|null,
+ *     packagingMaterial: { id: string, code: string, name: string }|null,
+ *     audit: Audit,
+ *     displayName?: string
+ *   }>
+ * }
+ */
+const transformOrderWithItems = (
+  orderRow,
+  orderItemRows,
+  {
+    includeOrderMetadata = false,
+    includeItemMetadata = false,
+    dedupeAudit = true,
+    includeFormattedAddresses = true,
+    formattedAddressesOnly = true,
+    includeItemDisplayName = true,
+  } = {}
+) => {
+  if (!orderRow) return null;
+  
+  // Build header audit from normalized (order_) fields
+  const orderAuditFull = makeAudit(
+    {
+      order_created_at: orderRow.order_created_at,
+      order_created_by: orderRow.order_created_by,
+      order_created_by_firstname: orderRow.order_created_by_firstname,
+      order_created_by_lastname: orderRow.order_created_by_lastname,
+      order_updated_at: orderRow.order_updated_at,
+      order_updated_by: orderRow.order_updated_by,
+      order_updated_by_firstname: orderRow.order_updated_by_firstname,
+      order_updated_by_lastname: orderRow.order_updated_by_lastname,
     },
-    shipping_info: shippingInfo,
+    { dedupe: dedupeAudit, prefix: 'order_', includeIds: true, includeFullName: true }
+  );
+  
+  const orderAudit = compactAudit(orderAuditFull, { keepIds: true, nameOnly: true });
+  
+  const items = (orderItemRows || []).map((item) => {
+    const itemAudit = makeAudit(
+      {
+        item_created_at: item.item_created_at,
+        item_created_by: item.item_created_by,
+        item_created_by_firstname: item.item_created_by_firstname,
+        item_created_by_lastname: item.item_created_by_lastname,
+        item_updated_at: item.item_updated_at,
+        item_updated_by: item.item_updated_by,
+        item_updated_by_firstname: item.item_updated_by_firstname,
+        item_updated_by_lastname: item.item_updated_by_lastname,
+      },
+      { dedupe: dedupeAudit, prefix: 'item_' }
+    );
+    
+    const base = {
+      id: item.order_item_id,
+      orderId: item.order_id,
+      quantityOrdered: item.quantity_ordered,
+      priceId: item.price_id,
+      listedPrice: item.listed_price,
+      priceTypeName: item.price_type_name,
+      price: item.item_price,
+      subtotal: item.item_subtotal,
+      status: {
+        id: item.item_status_id,
+        name: item.item_status_name,
+        date: item.item_status_date,
+      },
+      metadata: includeItemMetadata ? item.item_metadata : undefined,
+      sku: item.sku_id
+        ? {
+          id: item.sku_id,
+          code: item.sku, // from SELECT s.sku
+          barcode: item.barcode || null,
+        }
+        : null,
+      packagingMaterial: item.packaging_material_id
+        ? {
+          id: item.packaging_material_id,
+          code: item.packaging_material_code,
+          name: formatPackagingMaterialLabel(
+            {
+              name:      item.packaging_material_name,
+              size:      item.packaging_material_size,
+              color:     item.packaging_material_color,
+              unit:      item.packaging_material_unit,
+              // only works if you selected these in SQL (see optional aliases above)
+              length_cm: item.packaging_material_length_cm,
+              width_cm:  item.packaging_material_width_cm,
+              height_cm: item.packaging_material_height_cm,
+            },
+            {
+              fallbackToDimensions: true,   // derive size like "10×20×30 cm" if size is missing
+              normalizeUnits: true,         // normalize "pcs/pieces/piece" -> "pc"
+            }
+          ),
+        }
+        : null,
+      audit: compactAudit(itemAudit, { keepIds: true, nameOnly: true }),
+    };
+    
+    // Only add displayName for SKU lines and only if it’s non-empty
+    if (includeItemDisplayName && item.sku_id) {
+      // getProductDisplayName expects a single row-like object
+      const dn = getProductDisplayName({
+        brand: item.brand,
+        sku: item.sku,
+        country_code: item.country_code,      // if available
+        product_name: item.product_name,
+        size_label: item.size_label,          // if available
+      });
+      if (dn) base.displayName = dn; // don't set if falsy -> property omitted
+    }
+    
+    return base;
+  });
+  
+  // Enhance metadata.override_summary.overrides with SKU display data
+  if (includeOrderMetadata && orderRow.sales_order_metadata?.price_override_summary?.overrides) {
+    const overrides = orderRow.sales_order_metadata.price_override_summary.overrides;
+    
+    for (const o of overrides) {
+      if (!o.sku_id) continue;
+      
+      const match = items.find((it) => it?.sku?.id === o.sku_id);
+      if (match) {
+        o.sku = match.sku?.code ?? null;
+        o.productDisplayName = match.displayName ?? null;
+      }
+    }
+  }
+  
+  const shippingAddress = buildAddress(orderRow, 'shipping_', {
+    includeFormatted: includeFormattedAddresses,
+    formattedOnly: formattedAddressesOnly,
+  });
+  
+  const billingAddress = buildAddress(orderRow, 'billing_', {
+    includeFormatted: includeFormattedAddresses,
+    formattedOnly: formattedAddressesOnly,
+  });
+  
+  return {
+    id: orderRow.order_id,
+    orderNumber: orderRow.order_number,
+    orderDate: orderRow.order_date,
+    statusDate: orderRow.status_date,
+    note: orderRow.note,
+    type: {
+      id: orderRow.order_type_id,
+      name: orderRow.order_type_name,
+      code: orderRow.order_code,
+    },
+    status: {
+      id: orderRow.order_status_id,
+      name: orderRow.order_status_name,
+    },
+    customer: {
+      id: orderRow.customer_id,
+      fullName: getFullName(orderRow.customer_firstname, orderRow.customer_lastname),
+      email: orderRow.customer_email,
+      phone: orderRow.customer_phone,
+    },
+    payment: {
+      status: {
+        id: orderRow.payment_status_id,
+        name: orderRow.payment_status_name,
+      },
+      method: {
+        id: orderRow.payment_method_id,
+        name: orderRow.payment_method_name,
+      },
+      currencyCode: orderRow.currency_code,
+      exchangeRate: orderRow.exchange_rate,
+      baseCurrencyAmount: orderRow.base_currency_amount,
+    },
+    discount: orderRow.discount_id
+      ? {
+        id: orderRow.discount_id,
+        name: orderRow.discount_name,
+        label: formatDiscount(orderRow.discount_type, orderRow.discount_value),
+        amount: orderRow.discount_amount,
+      }
+      : null,
+    subtotal: orderRow.subtotal,
+    tax: orderRow.tax_rate_id
+      ? {
+        id: orderRow.tax_rate_id,
+        name: formatTaxRateLabel({
+          name: orderRow.tax_rate_name,
+          rate: orderRow.tax_rate_percent,
+          province: orderRow.tax_rate_province,
+          region: orderRow.tax_rate_region,
+        }),
+        amount: orderRow.tax_amount,
+      }
+      : null,
+    shippingFee: orderRow.shipping_fee,
+    totalAmount: orderRow.total_amount,
+    deliveryMethod: {
+      id: orderRow.delivery_method_id,
+      name: orderRow.delivery_method_name,
+    },
+    metadata: includeOrderMetadata ? orderRow.sales_order_metadata : undefined,
+    shippingAddress,
+    billingAddress,
+    audit: orderAudit,
     items,
   };
 };
 
 /**
- * Transforms raw SQL rows into structured order + item format.
+ * Converts status-related fields from snake_case to camelCase
+ * in enriched order and item objects.
  *
- * @param {Array} rows - Raw rows returned from the SQL query.
- * @returns {{
- *   order_status_id: string,
- *   order_status_name: string,
- *   items: Array<{
- *     product_id: string,
- *     quantity_ordered: number,
- *     order_item_status_id: string,
- *     order_item_status_name: string
- *   }>
- * }} - Transformed order structure with item-level status details.
- */
-const transformOrderStatusAndItems = (rows) => {
-  if (!rows || rows.length === 0) {
-    throw AppError.transformerError('No data found to transform.');
-  }
-
-  const { order_status_id, order_status_code } = rows[0];
-
-  const orderItems = rows.map((row) => ({
-    order_item_id: row.order_item_id,
-    inventory_id: row.inventory_id,
-    quantity_ordered: Number(row.quantity_ordered),
-    order_item_status_id: row.order_item_status_id,
-    order_item_status_code: row.order_item_status_code,
-  }));
-
-  return {
-    order_status_id,
-    order_status_code,
-    orderItems,
-  };
-};
-
-/**
- * Transforms raw rows from the order and order item status code query
- * into a structured object for status validation logic.
+ * Specifically:
+ *   - `status_name` → `statusName`
+ *   - `status_code` → `statusCode`
+ *   - `status_category` → `statusCategory`
  *
- * @param {Array<object>} rows - Raw DB result containing status codes.
- * @returns {{ order_status_code: string, item_status_codes: string[] }}
- *          - Normalized object with order status and an array of item status codes.
+ * @param {object} enrichedData - Object containing enriched order and items.
+ * @param {object} enrichedData.enrichedOrder - Order object with snake_case keys.
+ * @param {object[]} enrichedData.enrichedItems - Array of item objects with snake_case keys.
+ * @returns {{ enrichedOrder: object, enrichedItems: object[] }} - Transformed result.
  */
-const transformOrderStatusCodes = (rows = []) => {
-  if (!Array.isArray(rows) || rows.length === 0) {
+const transformOrderStatusWithMetadata = ({ enrichedOrder, enrichedItems }) => {
+  const transformKeys = (obj) => {
+    if (!obj || typeof obj !== 'object') return {};
+    
+    const {
+      status_name,
+      status_code,
+      status_category,
+      ...rest
+    } = obj;
+    
     return {
-      order_status_code: null,
-      item_status_codes: [],
+      ...rest,
+      statusName: status_name,
+      statusCode: status_code,
+      statusCategory: status_category,
     };
-  }
-
-  const order_status_code = rows[0].order_status_code;
-  const item_status_codes = rows.map((row) => row.order_item_status_code);
-
-  return {
-    order_status_code,
-    item_status_codes,
   };
-};
-
-/**
- * Transforms the result returned from `updateOrderAndItemStatus`.
- *
- * Normalizes the DB update results into a consistent structure that tracks
- * how many records were updated for both the order and its items.
- *
- * @param {Object} result - Raw result returned from updateOrderAndItemStatus.
- * @param {Object} result.orderResult - Result from updating the order.
- * @param {Object} result.orderItemResult - Result from updating order items.
- * @returns {{
- *   updatedOrderCount: number,
- *   updatedItemCount: number
- * }}
- */
-const transformUpdatedOrderStatusResult = ({
-  orderResult,
-  orderItemResult,
-}) => {
-  const orderId = orderResult?.rows?.[0]?.id || null;
-
+  
   return {
-    ...(orderId && { orderId }), // only include if available
-    updatedOrderCount: orderResult?.rowCount || 0,
-    updatedItemCount: orderItemResult?.rowCount || 0,
-  };
-};
-
-/**
- * Transform flat DB rows into structured order allocation format.
- *
- * @param {Array} rows - Flat result from the order allocation SQL query.
- * @returns {object|null} - Structured order with nested items, or null if not found.
- */
-const transformOrderAllocationDetails = (rows) => {
-  if (!Array.isArray(rows) || rows.length === 0) return null;
-
-  const base = rows[0];
-
-  return {
-    order_id: base.order_id,
-    order_number: base.order_number,
-    order_status_id: base.order_status_id,
-    order_status: base.order_status,
-    order_status_code: base.order_status_code,
-    created_by: base.created_by,
-    items: rows.map((row) => {
-      const item_name =
-        row.product_name?.trim() ||
-        row.inventory_identifier?.trim() ||
-        'Unnamed Item';
-
-      return {
-        order_item_id: row.order_item_id,
-        inventory_id: row.inventory_id,
-        product_id: row.product_id ?? null,
-        barcode: row.barcode ?? null,
-        item_name,
-        quantity_ordered: Number(row.quantity_ordered) || 0,
-        available_quantity:
-          row.available_quantity !== null &&
-          row.available_quantity !== undefined
-            ? Number(row.available_quantity)
-            : null,
-      };
-    }),
+    enrichedOrder: transformKeys(enrichedOrder),
+    enrichedItems: (enrichedItems || []).map(transformKeys),
   };
 };
 
 module.exports = {
-  transformOrders,
-  transformOrderDetails,
-  transformOrderStatusAndItems,
-  transformOrderStatusCodes,
-  transformUpdatedOrderStatusResult,
-  transformOrderAllocationDetails,
+  transformPaginatedOrderTypes,
+  transformOrderWithItems,
+  transformOrderStatusWithMetadata,
 };

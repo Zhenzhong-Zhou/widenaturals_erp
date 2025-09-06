@@ -1,4 +1,7 @@
 import { lazy } from 'react';
+import { ORDER_CONSTANTS, toPermissionValue } from '@utils/constants/orderPermissions';
+import type { OrderRouteParams } from '@features/order/state';
+import { isValidOrderCategory } from '@features/order/utils/orderCategoryUtils';
 
 export const routes = [
   {
@@ -25,6 +28,9 @@ export const routes = [
     path: '/profile',
     component: lazy(() => import('@features/user/pages/UserProfilePage')),
     meta: { requiresAuth: true, title: 'User Profile', showInSidebar: false },
+    // todo: not support nest route since i customize it.
+    //  it may need to refactor whole routes logic and testing it again.
+    //  leave it for now , it may refactor in the future.
     children: [
       {
         path: '',
@@ -222,53 +228,87 @@ export const routes = [
   },
   {
     path: '/orders',
-    component: lazy(() => import('@features/order/pages/OrdersPage')),
-    meta: { requiresAuth: true, title: 'All Orders', showInSidebar: true },
+    component: lazy(() => import('@features/order/layouts/OrdersLayout')), // uses <Outlet />
+    meta: {
+      requiresAuth: true,
+      title: 'Orders',
+      showInSidebar: true,
+      requiredPermission: 'view_orders',
+    },
   },
   {
-    path: '/orders/:orderType/:orderId',
+    path: '/orders/:mode/all',
+    component: lazy(() => import('@features/order/pages/OrdersListPage')),
+    meta: {
+      requiresAuth: true,
+      title: 'Order List',
+      showInSidebar: false,
+      requiredPermission: (params: { mode?: string }) =>
+        params.mode && isValidOrderCategory(params.mode)
+          ? toPermissionValue('VIEW', params.mode)
+          : 'invalid_mode',
+    },
+  },
+  {
+    path: '/orders/:category/new',
+    component: lazy(() => import('@features/order/pages/OrderBasePage')),
+    meta: {
+      requiresAuth: true,
+      title: 'Base Page',
+      showInSidebar: false,
+      requiredPermission: (params: OrderRouteParams) =>
+        isValidOrderCategory(params.category)
+          ? toPermissionValue('VIEW', params.category)
+          : 'invalid_category',
+    },
+  },
+  {
+    path: ':mode/:category/details/:orderId',
     component: lazy(() => import('@features/order/pages/OrderDetailsPage')),
     meta: {
       requiresAuth: true,
       title: 'Order Details',
       showInSidebar: false,
-      requiredPermission: 'view_sales_order_details',
+      requiredPermission: (params: OrderRouteParams) =>
+        isValidOrderCategory(params.category)
+          ? params.category === 'allocatable'
+            ? ORDER_CONSTANTS.PERMISSIONS.ALLOCATION.VIEW
+            : toPermissionValue('VIEW', params.category) // default
+          : 'invalid_category',
     },
   },
+  // {
+  //   path: '/orders/:orderType/:orderId/edit',
+  //   component: lazy(() => import('@features/order/pages/OrderDetailsPage')),
+  //   meta: {
+  //     requiresAuth: true,
+  //     title: 'Order Details',
+  //     showInSidebar: false,
+  //     requiredPermission: 'view_sales_order_details',
+  //   },
+  // },
   {
-    path: '/orders/:orderType/:orderId/edit',
-    component: lazy(() => import('@features/order/pages/OrderDetailsPage')),
-    meta: {
-      requiresAuth: true,
-      title: 'Order Details',
-      showInSidebar: false,
-      requiredPermission: 'view_sales_order_details',
-    },
-  },
-  {
-    path: '/orders/allocation-eligible',
+    path: '/inventory-allocations/review/:orderId',
     component: lazy(
-      () => import('@features/order/pages/AllocationEligibleOrderPage')
+      () => import('@features/inventoryAllocation/pages/InventoryAllocationReviewPage')
     ),
     meta: {
       requiresAuth: true,
-      title: 'Allocation-Eligible Orders',
-      showInSidebar: true,
+      title: 'Inventory Allocation Review',
+      showInSidebar: false,
     },
   },
   {
-    path: '/orders/:orderType/:orderId/allocate',
+    path: '/inventory-allocations',
     component: lazy(
       () =>
-        import(
-          '@features/inventoryAllocation/pages/OrderInventoryAllocationPage'
-        )
+        import('@features/inventoryAllocation/pages/InventoryAllocationsPage')
     ),
     meta: {
       requiresAuth: true,
       title: 'Inventory Allocation',
-      showInSidebar: false,
-      requiredPermission: 'inventory_allocation',
+      showInSidebar: true,
+      requiredPermission: 'view_inventory_allocations',
     },
   },
   // {
@@ -286,6 +326,14 @@ export const routes = [
   //   component: lazy(() => import('@features/order/pages/OrderTransferPage')),
   //   meta: { requiresAuth: true, title: 'Transfers', showInSidebar: true },
   // },
+  {
+    path: '/access-denied',
+    component: lazy(() => import('@pages/AccessDeniedPage')),
+    meta: {
+      requiresAuth: true,
+      requiredPermission: 'view_access_denied_page', // you can define this custom
+    },
+  },
   {
     path: '*',
     component: lazy(() => import('@pages/NotFoundPage')),

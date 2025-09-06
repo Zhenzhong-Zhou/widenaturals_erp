@@ -248,14 +248,15 @@ const InventoryActivityLogsPage: FC = () => {
               setStagedFilters({});
               setFilters({});
               setSelectedBatches([]);
+              setSelectedWarehouses([]);
+              setSelectedLotAdjustments([]);
               setPage(1);
             }}
+            logLoading={logLoading}
             batchLookupOptions={batchLookupOptions}
             selectedBatches={selectedBatches}
             onSelectedBatchesChange={setSelectedBatches}
-            batchLookupParams={batchLookupParams}
             setBatchLookupParams={setBatchLookupParams}
-            fetchBatchLookup={fetchBatchRegistryLookup}
             batchLookupMeta={{
               ...batchLookupPaginationMeta,
               onFetchMore: handleFetchMoreBatches,

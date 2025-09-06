@@ -4,6 +4,10 @@ import type {
   AddressByCustomerLookupResponse,
   CustomerLookupQuery,
   CustomerLookupResponse,
+  DeliveryMethodLookupQueryParams,
+  DeliveryMethodLookupResponse,
+  DiscountLookupQueryParams,
+  DiscountLookupResponse,
   GetBatchRegistryLookupParams,
   GetBatchRegistryLookupResponse,
   GetWarehouseLookupResponse,
@@ -11,6 +15,15 @@ import type {
   LotAdjustmentTypeLookupResponse,
   OrderTypeLookupQueryParams,
   OrderTypeLookupResponse,
+  PackagingMaterialLookupQueryParams, PackagingMaterialLookupResponse,
+  PaymentMethodLookupQueryParams,
+  PaymentMethodLookupResponse,
+  PricingLookupQueryParams,
+  PricingLookupResponse,
+  SkuLookupQueryParams,
+  SkuLookupResponse,
+  TaxRateLookupQueryParams,
+  TaxRateLookupResponse,
 } from '@features/lookup/state/lookupTypes';
 import { buildQueryString } from '@utils/buildQueryString';
 
@@ -175,6 +188,183 @@ const fetchOrderTypeLookup = async (
   }
 };
 
+/**
+ * Fetches a list of payment methods from the server for use in lookup UIs.
+ *
+ * Supports optional keyword-based filtering via query parameters.
+ *
+ * @param params - Optional query parameters to filter the payment methods (e.g., { keyword: 'credit' }).
+ * @returns A promise resolving to a {@link PaymentMethodLookupResponse}, containing metadata and a list of matching payment methods.
+ * @throws Error if the network request fails or the response is invalid.
+ */
+const fetchPaymentMethodLookup = async (
+  params?: PaymentMethodLookupQueryParams
+): Promise<PaymentMethodLookupResponse> => {
+  const queryString = buildQueryString(params);
+  const url = `${API_ENDPOINTS.LOOKUPS.PAYMENT_METHODS}${queryString}`;
+  
+  try {
+    return await getRequest<PaymentMethodLookupResponse>(url);
+  } catch (error) {
+    console.error('Failed to fetch payment method lookup:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetches a list of discounts from the server for use in lookup UIs.
+ *
+ * Supports optional keyword-based filtering via query parameters.
+ *
+ * @param params - Optional query parameters to filter discounts (e.g., { keyword: 'holiday' }).
+ * @returns A promise resolving to a {@link DiscountLookupResponse}, containing metadata and a list of matching discounts.
+ * @throws Error if the network request fails or the response is invalid.
+ */
+const fetchDiscountLookup = async (
+  params?: DiscountLookupQueryParams
+): Promise<DiscountLookupResponse> => {
+  const queryString = buildQueryString(params);
+  const url = `${API_ENDPOINTS.LOOKUPS.DISCOUNTS}${queryString}`;
+  
+  try {
+    return await getRequest<DiscountLookupResponse>(url);
+  } catch (error) {
+    console.error('Failed to fetch discount lookup:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetches a list of tax rates from the server for use in lookup UIs.
+ *
+ * Supports optional keyword-based filtering via query parameters.
+ *
+ * @param params - Optional query parameters to filter tax rates (e.g., { keyword: 'BC' }).
+ * @returns A promise resolving to a {@link TaxRateLookupResponse}, containing metadata and a list of matching tax rates.
+ * @throws Error if the network request fails or the response is invalid.
+ */
+const fetchTaxRateLookup = async (
+  params?: TaxRateLookupQueryParams
+): Promise<TaxRateLookupResponse> => {
+  const queryString = buildQueryString(params);
+  const url = `${API_ENDPOINTS.LOOKUPS.TAX_RATES}${queryString}`;
+  
+  try {
+    return await getRequest<TaxRateLookupResponse>(url);
+  } catch (error) {
+    console.error('Failed to fetch tax rate lookup:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetches a list of delivery methods from the server for use in lookup UIs.
+ *
+ * Supports optional filtering by keyword and pickup location.
+ *
+ * @param params - Optional query parameters to filter delivery methods (e.g., { keyword: 'pickup', isPickupLocation: true }).
+ * @returns A promise resolving to a {@link DeliveryMethodLookupResponse}, containing metadata and a list of matching delivery methods.
+ * @throws Error if the network request fails or the response is invalid.
+ */
+const fetchDeliveryMethodLookup = async (
+  params?: DeliveryMethodLookupQueryParams
+): Promise<DeliveryMethodLookupResponse> => {
+  const queryString = buildQueryString(params);
+  const url = `${API_ENDPOINTS.LOOKUPS.DELIVERY_METHODS}${queryString}`;
+  
+  try {
+    return await getRequest<DeliveryMethodLookupResponse>(url);
+  } catch (error) {
+    console.error('Failed to fetch delivery method lookup:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetches a list of SKUs from the server for use in lookup UIs.
+ *
+ * Supports optional filtering by keyword and label formatting (e.g., includeBarcode).
+ * May also return enriched status flags (e.g., isNormal, issueReasons) for users with permission.
+ *
+ * @param params - Optional query parameters to filter SKU lookup results (e.g., { keyword: 'omega', includeBarcode: true }).
+ * @returns A promise resolving to a {@link SkuLookupResponse}, containing metadata and a list of matching SKUs.
+ * @throws Error if the network request fails or the response is invalid.
+ */
+const fetchSkuLookup = async (
+  params?: SkuLookupQueryParams
+): Promise<SkuLookupResponse> => {
+  const queryString = buildQueryString(params);
+  const url = `${API_ENDPOINTS.LOOKUPS.SKUS}${queryString}`;
+  
+  try {
+    return await getRequest<SkuLookupResponse>(url);
+  } catch (error) {
+    console.error('Failed to fetch SKU lookup:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetches a list of pricing records from the server for use in lookup UIs.
+ *
+ * Supports filtering by SKU, keyword, and display configuration (e.g., showSku, labelOnly).
+ * Returns either full or label-only pricing entries, optionally enriched with flags
+ * such as `isActive` and `isValidToday` depending on user access.
+ *
+ * @param params - Optional query parameters to filter and format pricing lookup results.
+ * @returns A promise resolving to a {@link PricingLookupResponse}, including pagination metadata and pricing items.
+ * @throws Error if the network request fails or the response is invalid.
+ */
+const fetchPricingLookup = async (
+  params?: PricingLookupQueryParams
+): Promise<PricingLookupResponse> => {
+  const queryString = buildQueryString(params);
+  const url = `${API_ENDPOINTS.LOOKUPS.PRICING}${queryString}`;
+  
+  try {
+    return await getRequest<PricingLookupResponse>(url);
+  } catch (error) {
+    console.error('Failed to fetch pricing lookup:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetches paginated packaging-material lookup items for dropdowns/selectors.
+ *
+ * Supports whatever your `LookupQuery` allows (since
+ * `PackagingMaterialLookupQueryParams` is an alias), e.g.:
+ * - `keyword`
+ * - `filters` (statusId, createdBy, updatedBy, restrictToUnarchived, ...)
+ * - `options` (labelOnly, mode: 'generic' | 'salesDropdown')
+ * - `limit`, `offset`
+ *
+ * @param params Optional query parameters for server-side filtering/formatting.
+ * @returns A promise resolving to {@link PackagingMaterialLookupResponse}.
+ * @throws Error if the request fails or the response is invalid.
+ *
+ * @example
+ * await fetchPackagingMaterialLookup({
+ *   keyword: 'box',
+ *   filters: { restrictToUnarchived: true },
+ *   options: { labelOnly: true, mode: 'salesDropdown' },
+ *   limit: 50,
+ * });
+ */
+const fetchPackagingMaterialLookup = async (
+  params?: PackagingMaterialLookupQueryParams
+): Promise<PackagingMaterialLookupResponse> => {
+  const queryString = buildQueryString(params);
+  const url = `${API_ENDPOINTS.LOOKUPS.PACKAGING_MATERIALS}${queryString}`;
+  
+  try {
+    return await getRequest<PackagingMaterialLookupResponse>(url);
+  } catch (error) {
+    console.error('Failed to fetch packaging-material lookup:', error);
+    throw error;
+  }
+};
+
 export const lookupService = {
   fetchBatchRegistryLookup,
   fetchWarehouseLookup,
@@ -182,4 +372,11 @@ export const lookupService = {
   fetchCustomerLookup,
   fetchAddressesByCustomerId,
   fetchOrderTypeLookup,
+  fetchPaymentMethodLookup,
+  fetchDiscountLookup,
+  fetchTaxRateLookup,
+  fetchDeliveryMethodLookup,
+  fetchSkuLookup,
+  fetchPricingLookup,
+  fetchPackagingMaterialLookup,
 };

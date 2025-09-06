@@ -4,6 +4,7 @@ const {
   validateOptionalUUID,
   createBooleanFlag,
   validateKeyword,
+  validateOptionalString,
 } = require('./general-validators');
 
 /**
@@ -104,15 +105,24 @@ const customerAddressLookupQuerySchema = Joi.object({
 /**
  * Validation schema for order type lookup query parameters.
  *
- * This schema ensures the optional `keyword` is a trimmed string
- * and follows the constraints defined in `validateKeyword`.
- * Used to filter order types by name or code.
+ * This schema supports filtering order types for lookup dropdowns.
+ * It validates optional query parameters:
  *
- * Example:
- *   /api/lookups/order-types?keyword=sale
+ * - `keyword`: A trimmed string used to search by name or code.
+ * - `category`: An optional string to filter by order category.
+ *                Accepts null or empty string for no filtering.
+ *
+ * Applies standard constraints defined in `validateKeyword` and `validateOptionalString`.
+ *
+ * Example usage:
+ *   /api/lookups/order-types?keyword=sale&category=returns
+ *
+ * @see validateKeyword
+ * @see validateOptionalString
  */
 const orderTypeLookupQuerySchema = Joi.object({
   keyword: validateKeyword('Order Types Keyword'),
+  category: validateOptionalString('Category'),
 });
 
 /**
@@ -140,6 +150,143 @@ const paymentMethodLookupQuerySchema = Joi.object({
   ...baseLookupQuerySchema,
 });
 
+/**
+ * Joi validation schema for discount lookup query parameters.
+ *
+ * Validates GET requests to the `/lookups/discounts` endpoint.
+ * Only supports:
+ * - `filters.keyword`: Optional string for name/description search
+ * - `limit`: Optional number for pagination (default 50)
+ * - `offset`: Optional number for pagination offset (default 0)
+ *
+ * All fields are inherited from `baseLookupQuerySchema`.
+ *
+ * @type {Joi.ObjectSchema}
+ */
+const discountLookupQuerySchema = Joi.object({
+  ...baseLookupQuerySchema,
+});
+
+/**
+ * Joi validation schema for tax rate lookup query parameters.
+ *
+ * Validates GET requests to the `/lookups/tax-rates` endpoint.
+ * Only supports:
+ * - `filters.keyword`: Optional string for name/province search
+ * - `limit`: Optional number for pagination (default 50)
+ * - `offset`: Optional number for pagination offset (default 0)
+ *
+ * All fields are inherited from `baseLookupQuerySchema`.
+ *
+ * @type {Joi.ObjectSchema}
+ */
+const taxRateLookupQuerySchema = Joi.object({
+  ...baseLookupQuerySchema,
+});
+
+/**
+ * Joi validation schema for delivery method lookup query parameters.
+ *
+ * Validates GET requests to the `/lookups/delivery-methods` endpoint.
+ * Inherits:
+ * - `filters.keyword`: Optional string for name/description search
+ * - `limit`: Optional number for pagination (default 50)
+ * - `offset`: Optional number for pagination offset (default 0)
+ *
+ * Additional supported filter:
+ * - `isPickupLocation`: Optional boolean to filter by pickup availability
+ *
+ * @type {Joi.ObjectSchema}
+ */
+const deliveryMethodLookupQuerySchema = Joi.object({
+  isPickupLocation: createBooleanFlag('Is Pickup Location'),
+  ...baseLookupQuerySchema,
+});
+
+/**
+ * Joi validation schema for SKU lookup query parameters.
+ *
+ * Validates GET requests to the `/lookups/skus` endpoint.
+ * Inherits:
+ * - `filters.keyword`: Optional string for name/code/barcode search
+ * - `limit`: Optional number for pagination (default: 50)
+ * - `offset`: Optional number for pagination offset (default: 0)
+ *
+ * Additional supported option:
+ * - `includeBarcode`: Optional boolean to control label formatting (e.g., show barcode)
+ *
+ * @type {Joi.ObjectSchema}
+ */
+const skuLookupQuerySchema = Joi.object({
+  includeBarcode: createBooleanFlag('Include Barcode in Label'),
+  ...baseLookupQuerySchema,
+});
+
+/**
+ * Joi validation schema for pricing lookup query parameters.
+ *
+ * Validates GET requests to the `/lookups/pricing` endpoint.
+ *
+ * Supports:
+ * - `filters`: Optional object for filtering pricing results, includes:
+ *    - `skuId`: Optional UUID to filter prices for a specific SKU
+ * - `keyword`: Optional fuzzy search string (applies to product name, SKU, or price type)
+ * - `limit`: Optional number for pagination (default: 50)
+ * - `offset`: Optional number for pagination offset (default: 0)
+ *
+ * Options:
+ * - `options.labelOnly`: Optional boolean to return minimal `{ id, label }` only
+ *
+ * This schema is used for pricing lookups in sales order creation,
+ * admin panels, and dynamic dropdowns.
+ *
+ * @type {Joi.ObjectSchema}
+ */
+const pricingLookupQuerySchema = Joi.object({
+  ...baseLookupQuerySchema, // includes filters, keyword, limit, offset
+  skuId: validateOptionalUUID('SKU ID'),
+  labelOnly: createBooleanFlag('Minimal label-only mode'),
+});
+
+/**
+ * Joi schema for **packaging-material lookup** query params.
+ *
+ * Route: `GET /lookups/packaging-materials`
+ *
+ * Composition:
+ * - Extends `baseLookupQuerySchema` (inherit common lookup fields).
+ * - Adds a **top-level** `mode` switch for route behavior.
+ *
+ * Inherited (via base):
+ * - `keyword? : string`        // fuzzy search term
+ * - `limit?   : number`        // pagination size (default typically 50)
+ * - `offset?  : number`        // pagination offset (default 0)
+ * - `filters? : object`        // e.g. { statusId, createdBy, updatedBy, restrictToUnarchived }
+ * - `options? : object`        // e.g. { labelOnly: boolean }
+ *
+ * Added here:
+ * - `mode? : 'generic' | 'salesDropdown'`  // **top-level** selector (defaults to 'generic')
+ *
+ * Note:
+ * If your query-normalization middleware moves `mode` into `options.mode`,
+ * either (a) keep this top-level validator and map it before validation,
+ * or (b) validate `options.mode` inside the base schema instead.
+ *
+ * Example (post-normalization, top-level mode):
+ * {
+ *   keyword: "box",
+ *   filters: { statusId: "uuid", restrictToUnarchived: true },
+ *   options: { labelOnly: true },
+ *   mode: "salesDropdown",
+ *   limit: 50,
+ *   offset: 0
+ * }
+ */
+const packagingMaterialLookupQuerySchema = Joi.object({
+  ...baseLookupQuerySchema,
+  mode: Joi.string().valid('generic', 'salesDropdown').default('generic').label('Mode'),
+});
+
 module.exports = {
   batchRegistryLookupQuerySchema,
   warehouseLookupQuerySchema,
@@ -148,4 +295,10 @@ module.exports = {
   customerAddressLookupQuerySchema,
   orderTypeLookupQuerySchema,
   paymentMethodLookupQuerySchema,
+  discountLookupQuerySchema,
+  taxRateLookupQuerySchema,
+  deliveryMethodLookupQuerySchema,
+  skuLookupQuerySchema,
+  pricingLookupQuerySchema,
+  packagingMaterialLookupQuerySchema,
 };

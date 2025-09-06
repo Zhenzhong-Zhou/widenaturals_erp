@@ -1,14 +1,13 @@
-const { query, paginateQuery, retry } = require('../database/db');
+const { query, paginateQuery, paginateQueryByOffset } = require('../database/db');
 const AppError = require('../utils/AppError');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
-const { logError } = require('../utils/logger-helper');
 const { buildPricingFilters } = require('../utils/sql/build-pricing-filters');
 
 // const sq = `
 // SELECT p.*
 // FROM pricing p
 // JOIN skus s ON s.id = p.sku_id
-// WHERE s.id = '7dbc9b37-43ea-426b-8fd2-44d4b0ef10ad';
+// WHERE s.id = '48fc7dcb-b44d-436b-8bbe-0c16f2d5f17b';
 // `;
 
 /**
@@ -213,162 +212,162 @@ const getPricingDetailsByPricingTypeId = async ({
 };
 
 /**
- * Fetches the price value for a given price ID and SKU ID.
+ * Fetch prices for multiple (price_id, sku_id) pairs in **one DB round-trip**.
  *
- * This function retrieves the price record where the provided price_id matches
- * the provided sku_id. It does not perform validation — it simply fetches the data.
+ * Behavior:
+ * - Treats the two input arrays as **pairwise**: i-th `price_id` is matched with i-th `sku_id`.
+ * - Returns **only** pairs that exist in `pricing` (`JOIN`), i.e. missing/invalid pairs are omitted.
+ * - Does **not** throw for missing pairs — callers should check which pairs didn’t come back.
+ * - Duplicate pairs are returned once per matching row from `pricing` (no explicit de-dup).
  *
- * @param {string} price_id - The price ID to query.
- * @param {string} sku_id - The SKU ID to verify association with the price ID.
- * @param {object|null} client - Optional database client for transaction context.
+ * Inputs:
+ * - `pairs`: Array of objects `{ price_id, sku_id }`. Both must be non-null UUIDs.
+ *   If your schema allows nullable `sku_id` in pricing, switch the JOIN to use `IS NOT DISTINCT FROM`.
  *
- * @returns {Promise<{ price: string } | null>} - The price record if found, or null.
+ * Performance:
+ * - One `UNNEST` query; O(n) over the number of pairs with index lookups on `pricing(id, sku_id)`.
+ *   Ensure an index exists on `pricing(id, sku_id)` (or at least on `id` and `sku_id` separately).
  *
- * @throws {AppError} - If the query fails.
+ * Notes:
+ * - This function **does not validate** that input UUIDs are well-formed; do that earlier if needed.
+ * - Ideal for order enrichment/validation — combine with a Map at the call site for O(1) lookups.
+ *
+ * @param {{ price_id: string, sku_id: string }[]} pairs
+ *   Pairwise arrays of IDs to check (length > 0). Example:
+ *   `[ { price_id: '...', sku_id: '...' }, ... ]`
+ * @param {import('pg').PoolClient|null} client
+ *   Optional PG client/transaction.
+ *
+ * @returns {Promise<Array<{ price_id: string, sku_id: string, price: string }>>}
+ *   Rows for matching pairs only. `price` is returned as stored (often TEXT/NUMERIC).
+ *
+ * @throws {AppError}
+ *   `databaseError` if the query itself fails (connection/SQL issue).
+ *
+ * @example
+ * const rows = await getPricesByIdAndSkuBatch(
+ *   [{ price_id: 'p1', sku_id: 's1' }, { price_id: 'p2', sku_id: 's2' }],
+ *   client
+ * );
+ * // Build a lookup map:
+ * const priceMap = new Map(rows.map(r => [`${r.price_id}|${r.sku_id}`, Number(r.price)]));
  */
-const getPriceByIdAndSku = async (price_id, sku_id, client = null) => {
+const getPricesByIdAndSkuBatch = async (pairs, client = null) => {
   try {
+    if (!pairs?.length) return [];
+    
+    const priceIds = pairs.map(p => p.price_id);
+    const skuIds   = pairs.map(p => p.sku_id);
+    
     const sql = `
-      SELECT price
-      FROM pricing
-      WHERE id = $1 AND sku_id = $2
+      WITH input(price_id, sku_id) AS (
+        SELECT * FROM UNNEST($1::uuid[], $2::uuid[])
+      )
+      SELECT i.price_id, i.sku_id, p.price
+      FROM input i
+      JOIN pricing p
+        ON p.id = i.price_id
+       AND p.sku_id = i.sku_id
     `;
-    const result = await query(sql, [price_id, sku_id], client);
-    return result.rows[0] || null;
+    const { rows } = await query(sql, [priceIds, skuIds], client);
+    return rows; // only the pairs that matched
   } catch (error) {
-    logSystemException(error, 'Failed to fetch price for SKU', {
-      context: 'pricing-repository/getPriceByIdAndSku',
-      price_id,
-      sku_id,
+    logSystemException(error, 'Failed to fetch prices for pairs', {
+      context: 'pricing-repository/getPricesByIdAndSkuBatch',
+      count: pairs?.length ?? 0,
     });
-    throw AppError.databaseError(`Failed to fetch price for SKU.`, {
+    throw AppError.databaseError('Failed to fetch prices for pairs.', {
       details: error.message,
     });
   }
 };
 
 /**
- * Fetch pricing details with product, location, and created/updated user full names.
- * @param {Object} params - The parameters.
- * @param {string} params.pricingId - The UUID of the pricing record.
- * @param {number} params.page - The current page number.
- * @param {number} params.limit - The number of records per page.
- * @returns {Promise<Object>} - Returns pricing details with related product and location.
+ * Retrieves a paginated list of pricing records for use in dropdown or autocomplete components.
+ *
+ * Supports filtering by SKU, brand, price type, location, country, size label, status, and validity period.
+ * Used in contexts such as sales order creation, SKU pricing selection, or administrative pricing lookup.
+ *
+ * @param {Object} options - Lookup options
+ * @param {number} [options.limit=50] - Max number of results to return
+ * @param {number} [options.offset=0] - Offset for pagination
+ * @param {Object} [options.filters={}] - Optional filter fields (e.g., brand, priceType, currentlyValid, keyword)
+ * @returns {Promise<{ items: any[], hasMore: boolean }>} - Paginated pricing lookup result
+ *
+ * @throws {AppError} - If a database error occurs
  */
-const getPricingDetailsByPricingId = async ({ pricingId, page, limit }) => {
+const getPricingLookup = async ({
+                                  limit = 50,
+                                  offset = 0,
+                                  filters = {},
+                                }) => {
   const tableName = 'pricing p';
-
   const joins = [
-    'LEFT JOIN products pr ON p.product_id = pr.id',
-    'LEFT JOIN pricing_types pt ON p.price_type_id = pt.id',
-    'LEFT JOIN locations l ON p.location_id = l.id',
-    'LEFT JOIN location_types lt ON l.location_type_id = lt.id',
-    'LEFT JOIN status s ON p.status_id = s.id',
-    'LEFT JOIN users u1 ON p.created_by = u1.id',
-    'LEFT JOIN users u2 ON p.updated_by = u2.id',
+    'JOIN skus s ON s.id = p.sku_id',
+    'JOIN pricing_types pt ON pt.id = p.price_type_id',
+    'JOIN products pr ON pr.id = s.product_id',
+    'LEFT JOIN locations l ON l.id = p.location_id',
   ];
-
-  const whereClause = 'p.id = $1';
-
-  const baseQuery = `
-    SELECT
-      p.id AS pricing_id,
-      pt.name AS price_type_name,
-      p.price,
-      p.valid_from,
-      p.valid_to,
-      s.name AS status_name,
-      p.status_date,
-      p.created_at,
-      p.updated_at,
-      COALESCE(u1.firstname || ' ' || u1.lastname, 'Unknown') AS created_by,
-      COALESCE(u2.firstname || ' ' || u2.lastname, 'Unknown') AS updated_by,
-      jsonb_agg(DISTINCT jsonb_build_object(
-        'product_id', pr.id,
-        'name', pr.product_name,
-        'brand', pr.brand,
-        'category', pr.category,
-        'barcode', pr.barcode,
-        'market_region', pr.market_region
-      )) AS products,
-      jsonb_agg(DISTINCT jsonb_build_object(
-        'location_id', l.id,
-        'location_name', l.name,
-        'location_type', jsonb_build_object(
-            'type_id', lt.id,
-            'type_name', lt.name
-        )
-      )) AS locations
-    FROM ${tableName}
-    ${joins.join(' ')}
-    WHERE ${whereClause}
-    GROUP BY p.id, pt.name, p.price, p.valid_from, p.valid_to,
-    s.name, p.status_date, p.created_at, p.updated_at,
-    u1.firstname, u1.lastname, u2.firstname, u2.lastname
-  `;
-
-  try {
-    return await retry(async () => {
-      return await paginateQuery({
-        tableName,
-        joins,
-        whereClause,
-        queryText: baseQuery, // Corrected variable name
-        params: [pricingId], // Corrected parameter name
-        page,
-        limit,
-        sortBy: 'pt.name',
-        sortOrder: 'ASC',
-      });
-    });
-  } catch (error) {
-    throw AppError.databaseError(
-      `Error fetching pricing details: ${error.message}`,
-      error
-    );
-  }
-};
-
-/**
- * Retrieves the active price ID and value for a given product and price type.
- *
- * This function queries the `pricing` table to fetch the most recent valid price
- * for the specified product and price type. It ensures that only active and valid
- * prices are considered, filtering by `status_id` and `valid_to` date.
- *
- * @param {string} productId - The unique identifier of the product.
- * @param {string} priceTypeId - The unique identifier of the price type.
- * @param {object} client - The database transaction client (optional).
- * @returns {Promise<{ price_id: string, price: number } | null>} - The active price details, or `null` if no valid price is found.
- */
-const getActiveProductPrice = async (productId, priceTypeId, client) => {
+  
+  const { whereClause, params } = buildPricingFilters(filters);
+  
   const queryText = `
     SELECT
       p.id,
-      p.price
-    FROM pricing p
-    INNER JOIN status s ON p.status_id = s.id
-    WHERE p.product_id = $1
-      AND p.price_type_id = $2
-      AND s.name = 'active'
-      AND now() >= p.valid_from
-      AND (p.valid_to IS NULL OR now() <= p.valid_to)
-    ORDER BY p.valid_from DESC
-    LIMIT 1;
+      p.price,
+      pt.name AS price_type,
+      pr.name AS product_name,
+      pr.brand,
+      s.sku,
+      s.barcode,
+      s.size_label,
+      s.country_code,
+      l.name AS location_name,
+      p.valid_from,
+      p.valid_to,
+      p.status_id
+    FROM ${tableName}
+    ${joins.join('\n')}
+    WHERE ${whereClause}
   `;
-
+  
   try {
-    const { rows } = await query(queryText, [productId, priceTypeId], client);
-    return rows.length > 0 ? rows[0] : null;
+    const result = await paginateQueryByOffset({
+      tableName,
+      joins,
+      whereClause,
+      queryText,
+      params,
+      offset,
+      limit,
+      sortBy: '',
+      sortOrder: '',
+      additionalSort: 'pt.name ASC, p.valid_from DESC',
+    });
+    
+    logSystemInfo('Fetched pricing lookup successfully', {
+      context: 'pricing-repository/getPricingLookup',
+      totalFetched: result.data?.length ?? 0,
+      offset,
+      limit,
+      filters,
+    });
+    
+    return result;
   } catch (error) {
-    logError('Error fetching price for order:', error);
-    throw AppError.databaseError('Failed to fetch price for order');
+    logSystemException(error, 'Failed to fetch pricing lookup', {
+      context: 'pricing-repository/getPricingLookup',
+      offset,
+      limit,
+      filters,
+    });
+    throw AppError.databaseError('Failed to fetch pricing options.');
   }
 };
 
 module.exports = {
   getAllPricingRecords,
   getPricingDetailsByPricingTypeId,
-  getPriceByIdAndSku,
-  getActiveProductPrice,
+  getPricesByIdAndSkuBatch,
+  getPricingLookup,
 };

@@ -1,3 +1,5 @@
+const { cleanObject } = require('./object-utils');
+
 /**
  * Applies a transformer function to an array of rows safely.
  *
@@ -12,20 +14,50 @@ const transformRows = (rows, transformer) => {
 
 /**
  * Transforms a generic paginated result using a row-level transformer.
- * Supports both synchronous and asynchronous transform functions.
  *
- * @param {Object} paginatedResult - The paginated query result with `data` and `pagination`.
- * @param {Function} transformFn - Transformer function to apply to each data row.
- *   Can return either a plain object or a Promise that resolves to one.
+ * Supports both:
+ * - traditional `pagination` format: `{ data, pagination: { page, limit, totalRecords, totalPages } }`
+ * - infinite scroll `loadMore` format: `{ items, offset, limit, hasMore }`
+ *
+ * The transformer function can be either synchronous or asynchronous (i.e., return a Promise).
+ *
+ * If the input result is malformed or has no data, a default empty pagination structure is returned.
+ *
+ * @template TInput
+ * @template TOutput
+ *
+ * @param {{ data: TInput[], pagination?: { page?: number, limit?: number, totalRecords?: number, totalPages?: number, offset?: number } }} paginatedResult
+ *   The original paginated query result.
+ *
+ * @param {(row: TInput) => TOutput | Promise<TOutput>} transformFn
+ *   A row-level transformer function that maps each item in `data` to a new shape.
+ *
  * @param {Object} [options] - Optional behavior flags.
- * @param {boolean} [options.includeLoadMore=false] - Include load-more structure instead of pagination.
- * @returns {Promise<Object>} Transformed result with pagination or loadMore format.
+ * @param {boolean} [options.includeLoadMore=false] - Whether to return `items`, `offset`, `hasMore` instead of `data`, `pagination`.
+ *
+ * @returns {Promise<
+ *   | { data: TOutput[], pagination: { page: number, limit: number, totalRecords: number, totalPages: number } }
+ *   | { items: TOutput[], offset: number, limit: number, hasMore: boolean }
+ * >}
+ *   Transformed paginated or load-more-compatible result.
  */
 const transformPaginatedResult = async (
   paginatedResult,
   transformFn,
   options = {}
 ) => {
+  if (!paginatedResult || !Array.isArray(paginatedResult.data)) {
+    return {
+      data: [],
+      pagination: {
+        page: 1,
+        limit: 10,
+        totalRecords: 0,
+        totalPages: 0,
+      },
+    };
+  }
+  
   const { data = [], pagination = {} } = paginatedResult;
 
   const transformedItems = await Promise.all(data.map(transformFn));
@@ -128,8 +160,75 @@ const deriveInventoryStatusFlags = (
   };
 };
 
+/**
+ * Generic transformer for lookup records with `{ id, name }` shape.
+ * Converts to `{ id, label }` for dropdowns and cleans null/undefined values.
+ *
+ * @param {{ id: string, name: string }} row - The database row
+ * @returns {{ id: string, label: string }}
+ */
+const transformIdNameToIdLabel = (row) => {
+  return cleanObject({
+    id: row?.id,
+    label: row?.name,
+  });
+};
+
+/**
+ * Selectively includes diagnostic flags from an enriched lookup row
+ * based on the user's access control permissions.
+ *
+ * This function is typically used to expose additional metadata in
+ * lookup dropdown results, such as status flags and abnormal indicators,
+ * only when the user is authorized to view them.
+ *
+ * Flags may include:
+ * - `isActive`: Whether the record is currently active.
+ * - `isValidToday`: Whether the record is valid as of the current date.
+ * - `isNormal`: Whether the SKU passed all required status checks.
+ * - `issueReasons`: Human-readable reasons explaining abnormal state (if `isNormal` is false).
+ *
+ * @param {Object} row - An enriched row that may contain flags like `isActive`, `isValidToday`, `isNormal`, etc.
+ * @param {Object} userAccess - User access context determining which flags should be included.
+ * @param {boolean} [userAccess.canViewAllStatuses=false] - Whether to expose `isActive`.
+ * @param {boolean} [userAccess.canViewAllValidLookups=false] - Whether to expose `isValidToday`.
+ * @param {boolean} [userAccess.allowAllSkus=false] - Whether to expose `isNormal` and `issueReasons`.
+ * @returns {Object} A subset of diagnostic flags from the row, filtered by access permissions.
+ */
+const includeFlagsBasedOnAccess = (row, userAccess = {}) => {
+  const {
+    canViewAllStatuses = false,
+    canViewAllValidLookups = false,
+    allowAllSkus = false,
+  } = userAccess;
+  
+  if (!row) return {};
+  
+  const result = {};
+  
+  if (canViewAllStatuses) {
+    result.isActive = row.isActive ?? false;
+  }
+  
+  if (canViewAllValidLookups) {
+    result.isValidToday = row.isValidToday ?? false;
+  }
+  
+  if (allowAllSkus && 'isNormal' in row) {
+    result.isNormal = row.isNormal;
+    
+    if (!row.isNormal && Array.isArray(row.issueReasons)) {
+      result.issueReasons = row.issueReasons;
+    }
+  }
+  
+  return cleanObject(result);
+};
+
 module.exports = {
   transformRows,
   transformPaginatedResult,
   deriveInventoryStatusFlags,
+  transformIdNameToIdLabel,
+  includeFlagsBasedOnAccess,
 };

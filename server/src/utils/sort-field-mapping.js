@@ -6,10 +6,10 @@ const SORTABLE_FIELDS = {
   skuProductCards: {
     brand: 'p.brand',
     category: 'p.category',
-    marketRegion: 'sku.market_region',
-    sizeLabel: 'sku.size_label',
+    marketRegion: 's.market_region',
+    sizeLabel: 's.size_label',
     keyword: 'p.name',
-    createdAt: 'sku.created_at',
+    createdAt: 's.created_at',
   },
   pricingRecords: {
     productName: 'pr.name',
@@ -77,15 +77,12 @@ const SORTABLE_FIELDS = {
       p.brand,
       br.batch_type,
       CASE
+        WHEN br.batch_type = 'product' AND p.name ILIKE 'NMN%' THEN
+          LPAD(REGEXP_REPLACE(p.name, '[^0-9]', '', 'g'), 10, '0')
         WHEN br.batch_type = 'product' THEN
-          CAST(NULLIF(REGEXP_REPLACE(p.name, '[^0-9]', '', 'g'), '') AS INTEGER)
+          p.name
         ELSE
-          CAST(NULLIF(REGEXP_REPLACE(COALESCE(pmb.material_snapshot_name, pt.name), '[^0-9]', '', 'g'), '') AS INTEGER)
-      END NULLS LAST,
-      CASE
-        WHEN br.batch_type = 'product' THEN
-          CAST(NULLIF(REGEXP_REPLACE(p.name, '[^0-9]', '', 'g'), '') AS INTEGER)
-        ELSE NULL
+          LPAD(REGEXP_REPLACE(COALESCE(pmb.material_snapshot_name, pt.name), '[^0-9]', '', 'g'), 20, '0')
       END NULLS LAST,
       li.last_update DESC
     `,
@@ -116,15 +113,12 @@ const SORTABLE_FIELDS = {
       p.brand,
       br.batch_type,
       CASE
+        WHEN br.batch_type = 'product' AND p.name ILIKE 'NMN%' THEN
+          LPAD(REGEXP_REPLACE(p.name, '[^0-9]', '', 'g'), 10, '0')
         WHEN br.batch_type = 'product' THEN
-          CAST(NULLIF(REGEXP_REPLACE(p.name, '[^0-9]', '', 'g'), '') AS INTEGER)
+          p.name
         ELSE
-          CAST(NULLIF(REGEXP_REPLACE(COALESCE(pmb.material_snapshot_name, pt.name), '[^0-9]', '', 'g'), '') AS INTEGER)
-      END NULLS LAST,
-      CASE
-        WHEN br.batch_type = 'product' THEN
-          CAST(NULLIF(REGEXP_REPLACE(p.name, '[^0-9]', '', 'g'), '') AS INTEGER)
-        ELSE NULL
+          LPAD(REGEXP_REPLACE(COALESCE(pmb.material_snapshot_name, pt.name), '[^0-9]', '', 'g'), 20, '0')
       END NULLS LAST,
       wi.last_update DESC
     `,
@@ -230,6 +224,67 @@ const SORTABLE_FIELDS = {
     updatedBy: 'u2.firstname',
 
     defaultNaturalSort: 'a.created_at',
+  },
+  orderSortMap: {
+    orderNumber: 'o.order_number',
+    orderDate: 'o.order_date',
+    
+    // Order Type
+    orderType: 'ot.name',
+    
+    // Status
+    statusName: 'os.name',
+    statusDate: 'o.status_date',
+    
+    // Audit fields
+    createdAt: 'o.created_at',
+    updatedAt: 'o.updated_at',
+    createdBy: 'u1.firstname',
+    updatedBy: 'u2.firstname',
+    
+    // Default fallback sort
+    defaultNaturalSort: 'o.created_at',
+  },
+  inventoryAllocationSortMap: {
+    // Allocation-level summary fields (FROM alloc_agg aa)
+    allocationStatus: 'aa.allocation_summary_status',     // derived field
+    allocationStatusCodes: 'aa.allocation_status_codes',  // raw code array
+    allocationStatuses: 'aa.allocation_statuses',         // raw label string
+    allocatedAt: 'aa.allocated_at',
+    allocatedCreatedAt: 'aa.allocated_created_at',
+    
+    // Warehouse display info (FROM alloc_agg aa)
+    warehouseNames: 'aa.warehouse_names',
+    
+    // Order-level fields (FROM orders o)
+    orderNumber: 'o.order_number',
+    orderDate: 'o.created_at',
+    orderType: 'ot.name',
+    orderStatus: 'os.name',
+    orderStatusDate: 'o.status_date',
+    
+    // Customer
+    customerName: `c.firstname`, // or use a concat if you have a full name
+    customerFirstName: 'c.firstname',
+    customerLastName: 'c.lastname',
+    
+    // Payment-related
+    paymentMethod: 'pm.name',
+    paymentStatus: 'ps.name',
+    deliveryMethod: 'dm.method_name',
+    
+    // Audit fields
+    orderCreatedAt: 'o.created_at',
+    orderUpdatedAt: 'o.updated_at', // not selected, optional
+    orderCreatedByFirstName: 'u.firstname',
+    orderCreatedByLastName: 'u.lastname',
+    
+    // Item counts
+    totalItems: 'ic.total_items',
+    allocatedItems: 'aa.allocated_items',
+    
+    // Fallback default
+    defaultNaturalSort: 'o.created_at',
   },
 };
 

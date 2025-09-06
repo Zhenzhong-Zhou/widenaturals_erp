@@ -26,9 +26,9 @@ const { toPgArray } = require('../query/query-utils');
  * @param {string[]} [filters.batchIds] - Array of batch registry UUIDs.
  * @param {string[]} [filters.packagingMaterialIds] - Array of packaging material UUIDs.
  * @param {string[]} [filters.actionTypeIds] - Array of inventory action type IDs.
+ * @param {string}   [filters.adjustmentTypeIds] - Array of inventory adjustment type IDs.
  * @param {string}   [filters.orderId] - Filter by associated order ID.
  * @param {string}   [filters.statusId] - Filter by inventory status ID.
- * @param {string}   [filters.adjustmentTypeId] - Filter by adjustment type ID.
  * @param {string}   [filters.performedBy] - Filter by user ID who performed the action.
  * @param {string}   [filters.sourceType] - Filter by source type (e.g., 'transfer', 'return').
  * @param {string}   [filters.batchType] - Filter by batch type (e.g., 'product', 'packaging_material').
@@ -79,6 +79,11 @@ const buildInventoryLogWhereClause = (filters = {}) => {
       conditions.push(`ial.inventory_action_type_id = ANY($${paramIndex++})`);
       params.push(toPgArray(filters.actionTypeIds));
     }
+    
+    if (filters.adjustmentTypeIds?.length) {
+      conditions.push(`ial.adjustment_type_id = ANY($${paramIndex++})`);
+      params.push(filters.adjustmentTypeIds);
+    }
 
     if (filters.orderId) {
       conditions.push(`o.id = $${paramIndex++}`);
@@ -88,11 +93,6 @@ const buildInventoryLogWhereClause = (filters = {}) => {
     if (filters.statusId) {
       conditions.push(`ial.status_id = $${paramIndex++}`);
       params.push(filters.statusId);
-    }
-
-    if (filters.adjustmentTypeId) {
-      conditions.push(`ial.adjustment_type_id = $${paramIndex++}`);
-      params.push(filters.adjustmentTypeId);
     }
 
     if (filters.performedBy) {

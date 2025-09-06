@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback, useRef, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   type CustomerLookupQuery,
@@ -8,6 +8,7 @@ import {
   selectCustomerLookupOptions,
   selectCustomerLookupMeta,
 } from '@features/lookup/state';
+import { resetCustomerLookup } from '@features/lookup/state/customerLookupSlice';
 
 /**
  * Hook to access customer lookup state and trigger customer fetching.
@@ -24,34 +25,40 @@ const useCustomerLookup = (
 
   // Capture initialParams in a ref to ensure stability in useCallback
   const initialParamsRef = useRef(initialParams);
-
+  
   const options = useAppSelector(selectCustomerLookupOptions);
   const loading = useAppSelector(selectCustomerLookupLoading);
   const error = useAppSelector(selectCustomerLookupError);
-  const meta = useAppSelector(selectCustomerLookupMeta); // { hasMore, limit, offset }
-
-  // Memoized trigger for refetching
-  const fetchLookup = useCallback(
+  const meta = useAppSelector(selectCustomerLookupMeta);
+  
+  // Memoized fetch trigger
+  const fetch = useCallback(
     (params?: CustomerLookupQuery) => {
       dispatch(fetchCustomerLookupThunk(params ?? initialParamsRef.current));
     },
     [dispatch]
   );
-
-  // Auto-fetch on mount if initialParams provided
+  
+  // Memoized reset trigger
+  const reset = useCallback(() => {
+    dispatch(resetCustomerLookup());
+  }, [dispatch]);
+  
+  // Auto-fetch on mount
   useEffect(() => {
     if (autoFetch && initialParamsRef.current) {
-      fetchLookup();
+      fetch();
     }
-  }, [autoFetch, fetchLookup]);
-
-  return {
+  }, [autoFetch, fetch]);
+  
+  return useMemo(() => ({
     options,
     loading,
     error,
-    meta, // Grouped pagination info
-    fetchLookup,
-  };
+    meta,
+    fetch,
+    reset,
+  }), [options, loading, error, meta, fetch, reset]);
 };
 
 export default useCustomerLookup;

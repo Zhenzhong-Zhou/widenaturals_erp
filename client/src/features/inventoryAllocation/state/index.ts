@@ -1,38 +1,16 @@
-import availableInventoryLotsReducer from '@features/inventoryAllocation/state/availableInventoryLotsSlice';
-import allocateInventoryReducer from '@features/inventoryAllocation/state/allocateInventorySlice.ts';
+import allocateInventoryReducer from './allocateInventorySlice';
+import inventoryAllocationReviewReducer from './inventoryAllocationReviewSlice';
+import paginatedInventoryAllocationsReducer from './paginatedInventoryAllocationsSlice';
 
 export const inventoryAllocationReducers = {
-  availableInventoryLots: availableInventoryLotsReducer,
   allocateInventory: allocateInventoryReducer,
+  inventoryAllocationReview: inventoryAllocationReviewReducer,
+  paginatedInventoryAllocations: paginatedInventoryAllocationsReducer,
 };
 
-export type {
-  InventoryLotParams,
-  InventoryLotQuery,
-  AvailableInventoryLot,
-  FetchAvailableInventoryRequest,
-  AvailableInventoryLotsResponse,
-  AllocationStrategy,
-  AllocationItem,
-  InventoryAllocationPayload,
-  AllocationResult,
-  InventoryAllocationResponse,
-} from './inventoryAllocationTypes';
-export {
-  fetchAvailableInventoryLotsThunk,
-  postInventoryAllocationThunk,
-} from './inventoryAllocationThunks';
-export {
-  selectAvailableInventoryLots,
-  selectAvailableInventoryLotsLoading,
-  selectAvailableInventoryLotsError,
-  selectTotalAvailableQuantity,
-} from './availableInventoryLotsSelectors';
-export {
-  selectIsAllocatingInventory,
-  selectInventoryAllocationSuccess,
-  selectInventoryAllocationError,
-  selectInventoryAllocationData,
-  selectTotalAllocatedItems,
-  selectTotalAllocatedOrders,
-} from './allocateInventorySelectors';
+// Optional exports for thunks, selectors, types
+export * from './allocateInventorySelectors';
+export * from './inventoryAllocationReviewSelectors';
+export * from './paginatedInventoryAllocationsSelectors';
+export * from './inventoryAllocationThunks';
+export * from './inventoryAllocationTypes';

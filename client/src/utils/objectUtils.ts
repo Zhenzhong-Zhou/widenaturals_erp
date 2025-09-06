@@ -23,3 +23,26 @@ export const cleanObject = <T extends object>(
     )
   ) as Partial<T>;
 };
+
+/**
+ * Returns the first non-null, non-undefined value from a list of fallback options.
+ *
+ * Useful for displaying fallback values in the UI when multiple sources
+ * might contain null or undefined values.
+ *
+ * @template T - The expected return type.
+ * @param {...(T | null | undefined)[]} values - List of values to evaluate.
+ * @returns {T | '—'} - The first valid value found, or `'—'` if all are null/undefined.
+ *
+ * @example
+ * getFallbackValue(user.name, user.username, 'Anonymous'); // returns first non-null value
+ *
+ * @example
+ * getFallbackValue(null, undefined); // returns '—'
+ */
+export const getFallbackValue = <T>(...values: (T | null | undefined)[]): T | '—' => {
+  for (const value of values) {
+    if (value !== null && value !== undefined) return value;
+  }
+  return '—';
+};

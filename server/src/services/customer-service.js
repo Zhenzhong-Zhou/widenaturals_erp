@@ -15,8 +15,10 @@ const {
 const {
   prepareCustomersForInsert,
   filterCustomerForViewer,
-  resolveCustomerQueryOptions,
+  evaluateCustomerLookupAccessControl,
+  enforceCustomerLookupVisibilityRules,
 } = require('../business/customer-business');
+const { getStatusId } = require('../config/status-cache');
 
 /**
  * Creates multiple customers in bulk with validation and conflict handling.
@@ -75,9 +77,11 @@ const createCustomersService = async (
 
       const rawResult = await getEnrichedCustomersByIds(insertedIds, client);
       const enrichedRecords = transformEnrichedCustomers(rawResult);
-
-      return enrichedRecords.map((customer) =>
-        filterCustomerForViewer(customer, user, purpose)
+      
+      return Promise.all(
+        enrichedRecords.map((customer) =>
+          filterCustomerForViewer(customer, user, purpose)
+        )
       );
     } catch (error) {
       logSystemException(error, 'Failed to create customers in transaction', {
@@ -95,75 +99,102 @@ const createCustomersService = async (
 };
 
 /**
- * Fetches paginated customer records with optional filters and permission-based visibility control.
+ * Fetches paginated and filtered customer records for admin or internal UIs,
+ * applying user-based permission rules and sorting safety.
  *
- * This service function:
- * - Applies permission-aware defaults (e.g., only fetch active customers unless the user has 'view_all_customers')
- * - Supports flexible filtering, pagination, and sorting
- * - Delegates database access to the repository layer and response formatting to the transformer layer
- * - Sanitizes `sortBy` using the customerSortMap to prevent invalid SQL expressions
+ * This service:
+ * - Enforces visibility constraints based on user access level (e.g., view active only vs all customers)
+ * - Applies dynamic filters like region, keyword, and date range
+ * - Sanitizes `sortBy` field via a `customerSortMap` to prevent unsafe SQL usage
+ * - Delegates database access to the repository and result transformation to the transformer layer
  *
- * @param {Object} user - Authenticated user object (used to determine permission scope)
- * @param {Object} [filters={}] - Optional filters to apply:
- * @param {string} [filters.region] - Filter by region
- * @param {string} [filters.country] - Filter by country
- * @param {string} [filters.createdBy] - Filter by creator user ID
- * @param {string} [filters.keyword] - Keyword search on name, email, or phone
- * @param {string} [filters.createdAfter] - Filter by creation date (after)
- * @param {string} [filters.createdBefore] - Filter by creation date (before)
- * @param {string} [filters.statusDateAfter] - Filter by status date (after)
- * @param {string} [filters.statusDateBefore] - Filter by status date (before)
- * @param {boolean} [filters.isArchived] - Explicitly filter archived vs non-archived
+ * @param {Object} params - Parameters object.
+ * @param {Object} params.user - Authenticated user object (used to resolve access scope and restrictions).
+ * @param {Object} [params.filters={}] - Optional filters to apply.
+ * @param {string} [filters.region] - Filter by region (if implemented).
+ * @param {string} [filters.country] - Filter by country (if implemented).
+ * @param {string} [filters.createdBy] - Filter customers created by specific user ID.
+ * @param {string} [filters.keyword] - Partial keyword search (matches firstname, lastname, email, phone).
+ * @param {string} [filters.createdAfter] - Filter by `created_at >=` date (ISO string).
+ * @param {string} [filters.createdBefore] - Filter by `created_at <=` date (ISO string).
+ * @param {string} [filters.statusDateAfter] - Filter by `status_date >=` (ISO string).
+ * @param {string} [filters.statusDateBefore] - Filter by `status_date <=` (ISO string).
+ * @param {boolean} [filters.isArchived] - Whether to include archived customers (if supported).
  *
- * @param {number} [page=1] - Page number for pagination (1-based)
- * @param {number} [limit=10] - Number of items per page
- * @param {string} [sortBy='createdAt'] - Logical field to sort by (must match keys in customerSortMap)
- * @param {string} [sortOrder='DESC'] - Sort direction ('ASC' or 'DESC')
+ * @param {number} [params.page=1] - Page number for pagination (1-based).
+ * @param {number} [params.limit=10] - Number of results per page.
+ * @param {string} [params.sortBy='created_at'] - Logical field to sort by (must be mapped via `customerSortMap`).
+ * @param {'ASC' | 'DESC'} [params.sortOrder='DESC'] - Sort direction.
  *
  * @returns {Promise<{
- *   data: CustomerResponse[],
+ *   data: Array<CustomerResponse>,
  *   pagination: {
  *     page: number,
  *     limit: number,
  *     totalRecords: number,
  *     totalPages: number
  *   }
- * }>} - Paginated, transformed customer result
+ * }>} - Paginated and transformed customer results with metadata.
  *
- * @throws {AppError} - Throws if the query or transformation fails
+ * @throws {AppError} - Throws if permissions cannot be evaluated, a query fails, or transformation fails.
+ *
+ * @example
+ * const result = await fetchPaginatedCustomersService({
+ *   user,
+ *   filters: { keyword: 'john', onlyWithAddress: true },
+ *   page: 2,
+ *   limit: 25,
+ *   sortBy: 'created_at',
+ *   sortOrder: 'ASC',
+ * });
+ *
+ * // result = {
+ * // data: [...],
+ * // pagination: {
+ * // page: 2,
+ * // limit: 25,
+ * // totalRecords: 120,
+ * // totalPages: 5
+ * // }
+ * // }
  */
 const fetchPaginatedCustomersService = async ({
-  filters = {},
-  user,
-  page = 1,
-  limit = 10,
-  sortBy = 'created_at',
-  sortOrder = 'DESC',
-}) => {
+                                                filters = {},
+                                                user,
+                                                page = 1,
+                                                limit = 10,
+                                                sortBy = 'created_at',
+                                                sortOrder = 'DESC',
+                                              }) => {
   try {
-    const { statusId, overrideDefaultStatus } =
-      await resolveCustomerQueryOptions(user);
-
+    // Step 1: Evaluate user access
+    const userAccess = await evaluateCustomerLookupAccessControl(user);
+    
+    // Step 2: Enforce visibility rules (e.g., restrict statusId)
+    const activeStatusId = getStatusId('customer_active'); // assumed utility
+    const adjustedFilters = enforceCustomerLookupVisibilityRules(filters, userAccess, activeStatusId);
+    
+    // Step 3: Fetch paginated customer records
     const rawResult = await getPaginatedCustomers({
-      filters,
-      statusId,
-      overrideDefaultStatus,
+      filters: adjustedFilters,
       page,
       limit,
       sortBy,
       sortOrder,
     });
-
-    const result = transformPaginatedCustomerResults(rawResult);
-
+    
+    // Step 4: Transform result for UI
+    const result = transformPaginatedCustomerResults(rawResult, userAccess);
+    
+    // Step 5: Log success
     logSystemInfo('Fetched paginated customers', {
       context: 'customer-service/fetchPaginatedCustomersService',
       userId: user?.id,
-      filters,
+      filters: adjustedFilters,
       pagination: { page, limit },
       sort: { sortBy, sortOrder },
     });
-
+    
     return result;
   } catch (error) {
     logSystemException(error, 'Failed to fetch paginated customers', {
@@ -173,8 +204,11 @@ const fetchPaginatedCustomersService = async ({
       pagination: { page, limit },
       sort: { sortBy, sortOrder },
     });
-
-    throw AppError.serviceError('Failed to fetch customer list.');
+    
+    throw AppError.serviceError('Failed to fetch customer list.', {
+      details: error.message,
+      stage: 'fetchPaginatedCustomersService',
+    });
   }
 };
 

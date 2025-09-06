@@ -1,8 +1,8 @@
 import type {
   ApiSuccessResponse,
-  AsyncState,
+  AsyncState, LookupPagination,
   LookupSuccessResponse,
-  PaginatedLookupState,
+  PaginatedLookupState, PaginationLookupInfo,
 } from '@shared-types/api';
 
 /**
@@ -28,51 +28,85 @@ export interface LookupItem {
 }
 
 /**
+ * Common structure for lookup-style query inputs (e.g., dropdowns, autocomplete).
+ */
+export interface LookupQuery extends LookupPagination {
+  /**
+   * Optional keyword to filter or search items.
+   */
+  keyword: string;
+}
+
+/**
  * Metadata used to control and manage paginated lookup queries.
  *
- * This interface is commonly used in components that support infinite scroll
- * or paginated dropdowns, where client-side pagination behavior is required
- * to load more options (e.g., customers, batches, etc.).
+ * Commonly used in components supporting infinite scroll or paginated dropdowns,
+ * where client-side pagination behavior is required to load more options.
  */
-export interface LookupPaginationMeta {
-  /** The maximum number of results to retrieve per request */
-  limit: number;
-
-  /** The number of records to skip (i.e., pagination offset) */
-  offset: number;
-
-  /** Indicates if more results are available beyond the current set */
-  hasMore?: boolean;
-
-  /** Optional handler to fetch the next set of results when needed */
+export interface LookupPaginationMeta extends PaginationLookupInfo {
+  /**
+   * Optional handler to fetch the next set of results when needed.
+   * Used in infinite scroll, load-more buttons, etc.
+   */
   onFetchMore?: () => void;
 }
 
-export interface GetBatchRegistryLookupParams {
+/**
+ * Common flags for filtering active and currently valid records.
+ */
+export interface ActiveValidFilter {
   /**
-   * Filter by batch type (e.g., 'product', 'packaging_material')
+   * Optional flag to include only active records.
+   */
+  isActive?: boolean;
+  
+  /**
+   * Optional flag to include only currently valid records (e.g., based on valid_from/valid_to).
+   */
+  isValidToday?: boolean;
+}
+
+/**
+ * Represents a lookup item with common status flags.
+ */
+export type LookupItemWithStatus = LookupItem & ActiveValidFilter;
+
+/**
+ * Creates the initial state structure for a paginated lookup slice.
+ *
+ * This utility is used to initialize Redux state for dropdowns, autocomplete,
+ * or infinite scroll components that fetch paginated data.
+ *
+ * @template T - The type of individual lookup items (e.g., DiscountLookupItem).
+ * @returns A default-initialized {@link PaginatedLookupState} with empty data, no error, and pagination metadata.
+ */
+export const createInitialPaginatedLookupState = <T>(): PaginatedLookupState<T> => ({
+  data: [],
+  loading: false,
+  error: null,
+  limit: 50,
+  offset: 0,
+  hasMore: false,
+});
+
+/**
+ * Query parameters for fetching batch registry lookup data.
+ */
+export interface GetBatchRegistryLookupParams extends LookupPagination {
+  /**
+   * Filter by batch type (e.g., 'product', 'packaging_material').
    */
   batchType?: 'product' | 'packaging_material' | string;
-
+  
   /**
-   * Optional warehouse ID to exclude batches already present in this warehouse
+   * Optional warehouse ID to exclude batches already present in this warehouse.
    */
   warehouseId?: string;
-
+  
   /**
-   * Optional location ID to exclude batches already present in this location
+   * Optional location ID to exclude batches already present in this location.
    */
   locationId?: string;
-
-  /**
-   * Number of items to retrieve (pagination limit)
-   */
-  limit?: number;
-
-  /**
-   * Offset for pagination
-   */
-  offset?: number;
 }
 
 /**
@@ -128,11 +162,18 @@ export type GetBatchRegistryLookupResponse =
 export type BatchRegistryLookupState =
   PaginatedLookupState<BatchRegistryLookupItem>;
 
-export interface WarehouseLookupItem {
-  value: string;
-  label: string;
+/**
+ * Lookup option for selecting a warehouse, with additional metadata.
+ */
+export interface WarehouseLookupItem extends LookupOption {
+  /**
+   * Additional metadata associated with the selected warehouse.
+   */
   metadata: {
+    /** ID of the location the warehouse belongs to */
     locationId: string;
+    
+    /** Type ID of the location (e.g., warehouse, retail, fulfillment) */
     locationTypeId: string;
   };
 }
@@ -152,19 +193,7 @@ export type WarehouseOption = LookupOption;
 /**
  * Represents a single option in the lot adjustment lookup.
  */
-export interface LotAdjustmentTypeLookupItem {
-  /**
-   * The unique identifier of the lot adjustment type.
-   * Used as the `value` in lookup menus.
-   */
-  value: string;
-
-  /**
-   * The display label of the lot adjustment type.
-   * Typically shown as the visible text in the lookup option.
-   */
-  label: string;
-
+export interface LotAdjustmentTypeLookupItem extends LookupOption {
   /**
    * The unique identifier of the related inventory action type.
    * Used for internal mapping or further logic.
@@ -188,17 +217,20 @@ export type LotAdjustmentTypeLookupState = AsyncState<
  */
 export type AdjustmentTypeOption = LookupOption;
 
-export type BatchLookupOption = {
-  value: string;
-  label: string;
+/**
+ * Represents a batch option in a lookup menu, including its type (e.g., product, packaging).
+ */
+export interface BatchLookupOption extends LookupOption {
+  /**
+   * The type of the batch (e.g., 'product', 'packaging_material').
+   */
   type: string;
-};
-
-export interface CustomerLookupQuery {
-  keyword?: string;
-  limit?: number;
-  offset?: number;
 }
+
+/**
+ * Query parameters for fetching customer lookup results.
+ */
+export type CustomerLookupQuery = LookupQuery;
 
 export interface CustomerLookupItem extends LookupItem {
   hasAddress: boolean;
@@ -264,19 +296,411 @@ export type AddressByCustomerLookupState = AsyncState<
   AddressByCustomerLookup[]
 >;
 
+/**
+ * Query parameters for fetching order type lookup results.
+ *
+ * These parameters are typically used in dropdowns, autocompletes,
+ * or filtering UIs where users can select or narrow down order types.
+ */
 export interface OrderTypeLookupQueryParams {
   /**
-   * Optional search keyword for filtering order types by name or category.
+   * Optional search keyword for filtering order types by name or code.
+   * Partial matches using ILIKE (case-insensitive) are supported.
    */
   keyword?: string;
+  
+  /**
+   * Optional category filter to restrict the lookup results to a specific order type category.
+   * If not provided, all accessible categories may be included based on user permissions.
+   */
+  category?: string;
 }
 
+/**
+ * Represents a single order type option for use in dropdown or autocomplete components.
+ *
+ * This structure is produced by transforming raw `order_types` records into a UI-friendly format.
+ * Fields are conditionally included based on user access permissions.
+ *
+ * @property {string} id - Unique identifier for the order type.
+ * @property {string} label - Display name shown in the UI (may include category prefix).
+ * @property {boolean} isRequiredPayment - Indicates whether this order type expects payment.
+ * @property {boolean} [isActive] - Optional flag indicating if the order type is currently active (included if permitted).
+ * @property {string} [category] - Optional category name for this order type (included if permitted).
+ */
 export interface OrderTypeLookupItem {
   id: string;
-  name: string;
-  category: string;
+  label: string;
+  isRequiredPayment: boolean;
+  isActive?: boolean;
+  category?: string;
 }
 
 export type OrderTypeLookupResponse = ApiSuccessResponse<OrderTypeLookupItem[]>;
 
 export type OrderTypeLookupState = AsyncState<OrderTypeLookupItem[]>;
+
+/**
+ * Query parameters for fetching payment method lookup results.
+ * This is a direct alias of LookupQuery and cannot be extended further.
+ */
+export type PaymentMethodLookupQueryParams = LookupQuery;
+
+/**
+ * A single payment method item returned from the API lookup.
+ *
+ * Based on the standard lookup item structure of `{ id, label }`.
+ */
+export type PaymentMethodLookupItem = LookupItem;
+
+/**
+ * Response structure for the payment method lookup endpoint.
+ *
+ * Wraps a paginated array of `PaymentMethodLookupItem` and includes
+ * lookup-specific pagination metadata.
+ */
+export type PaymentMethodLookupResponse = LookupSuccessResponse<PaymentMethodLookupItem>;
+
+/**
+ * Redux state for payment method lookup results.
+ * Includes async and pagination metadata for infinite-scroll or paginated dropdowns.
+ */
+export type PaymentMethodLookupState = PaginatedLookupState<PaymentMethodLookupItem>;
+
+/**
+ * Query parameters for fetching discount lookup results.
+ * This is a direct alias of LookupQuery and cannot be extended further.
+ */
+export type DiscountLookupQueryParams = LookupQuery;
+
+/**
+ * Query parameters for fetching tax rate lookup results.
+ * This is a direct alias of LookupQuery and cannot be extended further.
+ */
+export type TaxRateLookupQueryParams = LookupQuery;
+
+/**
+ * Query parameters for delivery method lookup (e.g., dropdowns, filters).
+ */
+export interface DeliveryMethodLookupQueryParams extends LookupQuery {
+  /**
+   * Optional flag to filter by pickup location.
+   * Accepts true/false, 'true'/'false', or 1/0 depending on parsing.
+   */
+  isPickupLocation?: boolean;
+}
+
+/**
+ * Represents a discount option with active/valid status for dropdowns or autocomplete.
+ */
+export type DiscountLookupItem = LookupItemWithStatus;
+
+/**
+ * Represents a tax rate option with active/valid status for dropdowns or autocomplete.
+ */
+export type TaxRateLookupItem = LookupItemWithStatus;
+
+/**
+ * Represents a delivery method option with status flags and pickup location flag.
+ */
+export type DeliveryMethodLookupItem = LookupItemWithStatus & {
+  /**
+   * Indicates whether this method is a pickup location (e.g., in-store pickup).
+   */
+  isPickupLocation?: boolean;
+};
+
+/**
+ * API response format for discount lookup queries.
+ * Contains a list of discount options with status flags.
+ */
+export type DiscountLookupResponse = LookupSuccessResponse<DiscountLookupItem>;
+
+/**
+ * API response format for tax rate lookup queries.
+ * Contains a list of tax rate options with status flags.
+ */
+export type TaxRateLookupResponse = LookupSuccessResponse<TaxRateLookupItem>;
+
+/**
+ * API response format for delivery method lookup queries.
+ * Contains a list of delivery method options with status and pickup flags.
+ */
+export type DeliveryMethodLookupResponse = LookupSuccessResponse<DeliveryMethodLookupItem>;
+
+/**
+ * Redux state for discount lookup results.
+ * Includes async and pagination metadata for infinite-scroll or paginated dropdowns.
+ */
+export type DiscountLookupState = PaginatedLookupState<DiscountLookupItem>;
+
+/**
+ * Redux state for tax rate lookup results.
+ * Includes async and pagination metadata for infinite-scroll or paginated dropdowns.
+ */
+export type TaxRateLookupState = PaginatedLookupState<TaxRateLookupItem>;
+
+/**
+ * Redux state for delivery method lookup results.
+ * Includes async and pagination metadata for infinite-scroll or paginated dropdowns.
+ */
+export type DeliveryMethodLookupState = PaginatedLookupState<DeliveryMethodLookupItem>;
+
+/**
+ * Query input structure for SKU dropdown or autocomplete lookups.
+ *
+ * Used to filter SKU options based on keyword and display preferences.
+ * Typically passed into lookup endpoints that return { id, label } pairs.
+ */
+export interface SkuLookupQueryParams extends LookupQuery {
+  /**
+   * Whether to include barcode in the label output.
+   * If true, the label will include both product name, SKU, and barcode
+   * for clearer identification (e.g., in long lists or search results).
+   */
+  includeBarcode?: boolean;
+}
+
+/**
+ * Represents a single enriched SKU result for lookup dropdowns.
+ * Extends the generic LookupItem structure with SKU-specific flags.
+ */
+export interface SkuLookupItem extends LookupItem {
+  /**
+   * Indicates if the SKU passed all expected status checks (product, SKU, inventory, batch).
+   */
+  isNormal?: boolean;
+  
+  /**
+   * List of reasons why the SKU failed validation (if `isNormal` is false).
+   */
+  issueReasons?: string[];
+}
+
+/**
+ * API response format for SKU lookup queries.
+ * Contains a list of SKU options with optional status flags and enrichment details.
+ */
+export type SkuLookupResponse = LookupSuccessResponse<SkuLookupItem>;
+
+/**
+ * Redux slice state for SKU lookup dropdowns or autocomplete inputs.
+ *
+ * Extends a generic paginated async lookup state to track:
+ * - Matching SKU items (`SkuLookupItem[]`)
+ * - Loading and error states for async requests
+ * - Pagination info (`offset`, `limit`, `hasMore`)
+ *
+ * Typically used for rendering SKU search results with optional enrichment
+ * (e.g., barcode, status flags) in forms or filter panels.
+ */
+export type SkuLookupState = PaginatedLookupState<SkuLookupItem>;
+
+/**
+ * Query parameters for paginated pricing lookup results.
+ *
+ * Used to filter and control the structure of returned pricing records.
+ * Supports keyword search, pagination, SKU-based filtering, and simplified label-only formatting.
+ */
+export interface PricingLookupQueryParams extends LookupQuery {
+  /**
+   * Optional SKU ID to filter pricing results.
+   * If provided, only pricing records related to the specified SKU will be returned.
+   */
+  skuId?: string | null;
+  
+  /**
+   * If true, the response will include only minimal fields: `id`, `label`, and optional flags
+   * (e.g., `isActive`, `isValidToday`) based on user access.
+   *
+   * This is useful for performance-optimized lookups (e.g., dropdowns).
+   */
+  labelOnly?: boolean;
+}
+
+/**
+ * Represents a detailed pricing lookup result with full metadata.
+ *
+ * Returned when `labelOnly` is `false`. Includes location name, price, and pricing type name.
+ * Also inherits `id`, `label`, and optional `isActive`/`isValidToday` from `LookupItemWithStatus`.
+ */
+export interface PricingLookupFullItem extends LookupItemWithStatus {
+  /**
+   * Location where the price is applicable.
+   * Optional based on user access and response options.
+   */
+  locationName?: string;
+  
+  /**
+   * Price value for the SKU or product, as a string or number.
+   */
+  price: string | number;
+  
+  /**
+   * Pricing type name (e.g., "Wholesale", "Retail").
+   */
+  pricingTypeName: string;
+}
+
+/**
+ * Represents a minimal pricing lookup result, typically returned when `labelOnly` is `true`.
+ *
+ * Includes only `id`, `label`, and optionally `isActive`/`isValidToday`
+ * depending on user permission.
+ */
+export type PricingLookupLabelOnlyItem = LookupItemWithStatus;
+
+/**
+ * Union type representing a pricing lookup result.
+ *
+ * The result may be a minimal item (`PricingLookupLabelOnlyItem`) or
+ * a full item (`PricingLookupFullItem`) depending on display options and user access.
+ */
+export type PricingLookupItem =
+  | PricingLookupFullItem
+  | PricingLookupLabelOnlyItem;
+
+/**
+ * API response type for pricing lookup endpoints.
+ *
+ * This wraps the pricing lookup items in a standard paginated lookup response format.
+ * The `items` array may include either full or label-only pricing records,
+ * depending on the provided query options and user access level.
+ *
+ * @example Successful response (labelOnly = false):
+ * {
+ *   success: true,
+ *   message: "Successfully retrieved pricing lookup",
+ *   offset: 0,
+ *   limit: 50,
+ *   hasMore: true,
+ *   items: [
+ *     {
+ *       id: "uuid",
+ *       label: "Focus (SKU123) · Wholesale · $19.99",
+ *       locationName: "Main Warehouse",
+ *       price: "19.99",
+ *       pricingTypeName: "Wholesale",
+ *       isActive: true,
+ *       isValidToday: true
+ *     }
+ *   ]
+ * }
+ *
+ * @example Successful response (labelOnly = true):
+ * {
+ *   success: true,
+ *   message: "Successfully retrieved pricing lookup",
+ *   offset: 0,
+ *   limit: 50,
+ *   hasMore: false,
+ *   items: [
+ *     {
+ *       id: "uuid",
+ *       label: "Wholesale · $19.99",
+ *       isActive: true
+ *     }
+ *   ]
+ * }
+ */
+export type PricingLookupResponse = LookupSuccessResponse<PricingLookupItem>;
+
+/**
+ * Redux slice state for pricing lookup dropdowns or autocomplete inputs.
+ *
+ * Extends a generic paginated async lookup state to track:
+ * - Matching pricing items (`PricingLookupItem[]`)
+ * - Loading and error states for async requests
+ * - Pagination info (`offset`, `limit`, `hasMore`)
+ *
+ * Typically used for rendering pricing options in sales order forms,
+ * discount selectors, or inventory pricing filters. Supports both
+ * full and label-only pricing entries depending on access level and display mode.
+ */
+export type PricingLookupState = PaginatedLookupState<PricingLookupItem>;
+
+/**
+ * Represents a full lookup bundle with results, loading/error states, pagination metadata,
+ * and control functions (`fetch` and `reset`). Used for dropdowns and lookup components.
+ *
+ * @template TParams - The shape of the query parameters used for fetching lookup data.
+ *
+ * @property options - The available dropdown options returned from the lookup.
+ * @property loading - Indicates whether the lookup is currently fetching data.
+ * @property error - Holds an error message (if any) from the lookup request.
+ * @property meta - Optional pagination metadata (e.g. limit, offset, total count).
+ * @property fetch - Function to trigger the lookup with optional query parameters.
+ * @property reset - Function to reset the lookup state (e.g. clear results or errors).
+ */
+export type LookupBundle<TParams> = {
+  options: LookupOption[];
+  loading: boolean;
+  error: string | null;
+  meta?: PaginationLookupInfo;
+  fetch: (params?: TParams) => void;
+  reset: () => void;
+};
+
+/**
+ * Represents the state for a paginated dropdown component.
+ *
+ * Typically used to control and reflect:
+ * - the current text input (`inputValue`) from the user,
+ * - the current query parameters (`fetchParams`) being used for API requests.
+ *
+ * @template TParams - The shape of the query parameters (e.g., keyword, limit, offset).
+ *
+ * @property inputValue - The current value typed into the dropdown search input.
+ * @property fetchParams - The current query parameters used for fetching paginated results.
+ */
+export interface PaginatedDropdownState<TParams> {
+  inputValue: string;
+  fetchParams: TParams;
+}
+
+/**
+ * Query parameters for fetching packaging-material lookup results.
+ * Extends `LookupQuery` with a top-level `mode` that the server normalizer
+ * whitelists and places into `options.mode`.
+ */
+export type PackagingMaterialLookupQueryParams = LookupQuery & {
+  /** Enables stricter server-side rules for the sales dropdown */
+  mode?: 'generic' | 'salesDropdown';
+};
+
+/**
+ * A packaging-material option for dropdowns/lookups.
+ *
+ * Shape matches your transformer:
+ * - Always includes `{ id, label }` where `label` is built via
+ *   `formatPackagingMaterialLabel(name — size • color • unit)`.
+ * - May include status flags when access allows.
+ *
+ * Notes:
+ * - `isArchived` is included **only** if the user can view all statuses; otherwise omitted.
+ */
+export type PackagingMaterialOnlyLookupItem = LookupItemWithStatus & {
+  isArchived?: boolean;
+};
+
+/**
+ * Response shape for packaging-material lookup.
+ * Reuses the app-wide paginated lookup response type.
+ */
+export type PackagingMaterialLookupResponse =
+  LookupSuccessResponse<PackagingMaterialOnlyLookupItem>;
+
+/**
+ * Redux slice state for packaging-material lookup dropdowns or autocomplete inputs.
+ *
+ * Extends the generic paginated async lookup state to track:
+ * - Matching items (`PackagingMaterialOnlyLookupItem[]`)
+ * - Loading and error states for async requests
+ * - Pagination info (`offset`, `limit`, `hasMore`)
+ *
+ * Commonly used in sales order packaging selectors (including salesDropdown mode)
+ * and internal inventory/procurement UIs. Items are label-only by default; optional
+ * flags such as `isActive` / `isArchived` may be included based on access level.
+ */
+export type PackagingMaterialLookupState =
+  PaginatedLookupState<PackagingMaterialOnlyLookupItem>;

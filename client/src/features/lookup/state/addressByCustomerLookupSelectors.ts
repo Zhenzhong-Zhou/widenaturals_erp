@@ -5,7 +5,7 @@ import type { RootState } from '@store/store.ts';
  * Base selector to access the addressByCustomerLookup slice from the root state.
  */
 const selectAddressByCustomerLookupState = (state: RootState) =>
-  state.addressByCustomerLookup;
+  state.addressByCustomer;
 
 /**
  * Selector to retrieve the list of addresses from the customer-address lookup.

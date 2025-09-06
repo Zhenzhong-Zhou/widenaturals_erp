@@ -1,6 +1,6 @@
 const Joi = require('joi');
 const {
-  validateUUIDArray,
+  validateUUIDOrUUIDArrayOptional,
   validateOptionalUUID,
   paginationSchema,
   createSortSchema,
@@ -28,11 +28,11 @@ const {
  *   - `batchIds`: UUIDs of batches
  *   - `packagingMaterialIds`: UUIDs of packaging materials
  *   - `actionTypeIds`: UUIDs of inventory action types
+ *   - `adjustmentTypeIds`: UUIDs of inventory adjustment types
  *
  * - Scalar Filters:
  *   - `orderId`: Optional UUID of related order
  *   - `statusId`: Optional UUID for log status
- *   - `adjustmentTypeId`: Optional UUID for adjustment type
  *   - `performedBy`: Optional UUID of user who performed the action
  *   - `sourceType`: Optional string representing the source system/module
  *   - `batchType`: Optional enum: 'product' or 'packaging_material'
@@ -45,17 +45,17 @@ const inventoryActivityLogQuerySchema = Joi.object({})
   .concat(paginationSchema)
   .concat(createSortSchema('created_at'))
   .keys({
-    warehouseIds: validateUUIDArray('Warehouse IDs'),
-    locationIds: validateUUIDArray('Location IDs'),
-    productIds: validateUUIDArray('Product IDs'),
-    skuIds: validateUUIDArray('SKU IDs'),
-    batchIds: validateUUIDArray('Batch IDs'),
-    packagingMaterialIds: validateUUIDArray('Packaging Material IDs'),
-    actionTypeIds: validateUUIDArray('Action Type IDs'),
+    warehouseIds: validateUUIDOrUUIDArrayOptional('Warehouse IDs'),
+    locationIds: validateUUIDOrUUIDArrayOptional('Location IDs'),
+    productIds: validateUUIDOrUUIDArrayOptional('Product IDs'),
+    skuIds: validateUUIDOrUUIDArrayOptional('SKU IDs'),
+    batchIds: validateUUIDOrUUIDArrayOptional('Batch IDs'),
+    packagingMaterialIds: validateUUIDOrUUIDArrayOptional('Packaging Material IDs'),
+    actionTypeIds: validateUUIDOrUUIDArrayOptional('Action Type IDs'),
+    adjustmentTypeIds: validateUUIDOrUUIDArrayOptional('Adjustment Type IDs'),
 
     orderId: validateOptionalUUID('Order ID'),
     statusId: validateOptionalUUID('Status ID'),
-    adjustmentTypeId: validateOptionalUUID('Adjustment Type ID'),
     performedBy: validateOptionalUUID('Performed By'),
 
     sourceType: Joi.string().max(50).allow('', null),

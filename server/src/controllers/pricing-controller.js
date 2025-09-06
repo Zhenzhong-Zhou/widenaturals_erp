@@ -2,7 +2,6 @@ const wrapAsync = require('../utils/wrap-async');
 const {
   fetchPaginatedPricingRecordsService,
   fetchPricingDetailsByPricingTypeId,
-  fetchPriceByProductAndPriceType,
   exportPricingRecordsService,
 } = require('../services/pricing-service');
 const { logInfo } = require('../utils/logger-helper');
@@ -135,26 +134,8 @@ const getPricingDetailsController = wrapAsync(async (req, res) => {
   });
 });
 
-const getPriceByProductAndPriceTypeController = wrapAsync(
-  async (req, res, next) => {
-    const { productId, priceTypeId } = req.query;
-
-    try {
-      const price = await fetchPriceByProductAndPriceType(
-        productId,
-        priceTypeId
-      );
-
-      res.status(200).json(price);
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
 module.exports = {
   getPaginatedPricingRecordsController,
   exportPricingRecordsController,
   getPricingDetailsController,
-  getPriceByProductAndPriceTypeController,
 };

@@ -13,7 +13,9 @@ exports.up = async function (knex) {
     table.string('grade', 50); // e.g., 'food', 'medical'
     table.string('material_composition', 100); // e.g., 'plastic', 'paper', 'glass'
     table.string('unit', 20); // e.g., 'pc', 'g', 'ml'
-
+    table.string('category', 50); // e.g. 'capsule', 'lid', 'bottle', 'gift_box', 'bag', etc.
+    table.boolean('is_visible_for_sales_order').defaultTo(false);
+    
     table.decimal('estimated_unit_cost', 12, 4);
     table.string('currency', 5); // 'USD', 'CAD', 'CNY'
 
@@ -36,6 +38,7 @@ exports.up = async function (knex) {
     // Indexes
     table.index(['name'], 'idx_packaging_materials_name');
     table.index(['code'], 'idx_packaging_materials_code');
+    table.index(['category'], 'idx_packaging_materials_category');
   });
 
   // Add generated columns and value constraints

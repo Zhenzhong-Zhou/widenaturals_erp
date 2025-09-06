@@ -16,6 +16,16 @@ const PERMISSIONS = {
   REPORTS: {
     VIEW: 'view_reports',
   },
+  ORDER: {
+    CREATE: 'create_orders',
+    VIEW: 'view_orders',
+    UPDATE_STATUS: 'update_order_status',
+  },
+  INVENTORY_ALLOCATION: {
+    ALLOCATE: 'allocate_inventory',
+    REVIEW: 'review_allocation',
+    VIEW: 'view_inventory_allocations',
+  }
 };
 
 module.exports = PERMISSIONS;

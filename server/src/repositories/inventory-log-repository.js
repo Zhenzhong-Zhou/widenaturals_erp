@@ -34,8 +34,6 @@ const AppError = require('../utils/AppError');
 const insertInventoryActivityLogs = async (logs, client, meta) => {
   if (!Array.isArray(logs) || logs.length === 0) return;
 
-  const now = new Date();
-
   try {
     // === Inventory Activity Log (Active Table) ===
     const activityColumns = [
@@ -53,7 +51,6 @@ const insertInventoryActivityLogs = async (logs, client, meta) => {
       'metadata',
       'source_type',
       'source_ref_id',
-      'action_timestamp',
     ];
 
     const activityRows = logs.map((log) => [
@@ -71,10 +68,9 @@ const insertInventoryActivityLogs = async (logs, client, meta) => {
       JSON.stringify(log.metadata || {}),
       log.source_type || null,
       log.source_ref_id || null,
-      log.recorded_at || now,
     ]);
 
-    await bulkInsert(
+    return await bulkInsert(
       'inventory_activity_log',
       activityColumns,
       activityRows,
@@ -98,7 +94,6 @@ const insertInventoryActivityLogs = async (logs, client, meta) => {
       'comments',
       'checksum',
       'metadata',
-      'recorded_at',
       'recorded_by',
       'inventory_scope',
     ];
@@ -116,7 +111,6 @@ const insertInventoryActivityLogs = async (logs, client, meta) => {
       log.comments || null,
       log.checksum,
       JSON.stringify(log.metadata || {}),
-      log.recorded_at || now,
       log.recorded_by || log.performed_by,
       log.inventory_scope ?? 'warehouse',
     ]);
@@ -151,7 +145,7 @@ const insertInventoryActivityLogs = async (logs, client, meta) => {
 
     // Insert location-scope logs
     if (locationAuditRows.length) {
-      await bulkInsert(
+      return await bulkInsert(
         'inventory_activity_audit_log',
         auditColumns,
         locationAuditRows,

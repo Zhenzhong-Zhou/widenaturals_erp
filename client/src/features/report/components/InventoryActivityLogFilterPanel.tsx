@@ -16,18 +16,18 @@ import type {
 import type { MultiSelectOption } from '@components/common/MultiSelectDropdown';
 import WarehouseMultiSelectDropdown from '@features/lookup/components/WarehouseMultiSelectDropdown';
 import LotAdjustmentTypeMultiSelectDropdown from '@features/lookup/components/LotAdjustmentTypeMultiSelectDropdown';
+import { useForm } from 'react-hook-form';
 
 interface InventoryActivityLogFilterPanelProps {
   filters: Partial<InventoryActivityLogQueryParams>;
   onChange: (filters: Partial<InventoryActivityLogQueryParams>) => void;
   onApply: () => void;
   onReset: () => void;
+  logLoading: boolean;
   batchLookupOptions: BatchLookupOption[];
   selectedBatches: BatchLookupOption[];
   onSelectedBatchesChange: (value: BatchLookupOption[]) => void;
-  batchLookupParams: GetBatchRegistryLookupParams;
   setBatchLookupParams: Dispatch<SetStateAction<GetBatchRegistryLookupParams>>;
-  fetchBatchLookup: (params: GetBatchRegistryLookupParams) => void;
   batchLookupMeta: LookupPaginationMeta;
   batchLookupLoading?: boolean;
   batchLookupError?: string | null;
@@ -50,12 +50,11 @@ const InventoryActivityLogFilterPanel: FC<
   onChange,
   onApply,
   onReset,
+  logLoading,
   batchLookupOptions,
   selectedBatches,
   onSelectedBatchesChange,
-  batchLookupParams,
   setBatchLookupParams,
-  fetchBatchLookup,
   batchLookupMeta,
   batchLookupLoading,
   batchLookupError,
@@ -70,6 +69,8 @@ const InventoryActivityLogFilterPanel: FC<
   lotAdjustmentLoading,
   lotAdjustmentError,
 }) => {
+  const { reset } = useForm({ defaultValues: filters });
+  
   const handleChange =
     <K extends keyof InventoryActivityLogQueryParams>(field: K) =>
     (value: InventoryActivityLogQueryParams[K]) => {
@@ -100,14 +101,19 @@ const InventoryActivityLogFilterPanel: FC<
   };
 
   const handleSelectedLotAdjustmentsChange = (selected: LookupOption[]) => {
-    const selectedValue = selected[0]?.value ?? '';
+    const selectedValues = selected.map(opt => opt.value);
     onSelectedLotAdjustmentsChange(selected);
     onChange({
       ...filters,
-      adjustmentTypeId: selectedValue,
+      adjustmentTypeIds: selectedValues,
     });
   };
-
+  
+  const handleReset = () => {
+    reset({});      // Clear form
+    onReset();      // Notify parent
+  };
+  
   return (
     <Box sx={{ mb: 2 }}>
       <Grid container spacing={2}>
@@ -118,9 +124,7 @@ const InventoryActivityLogFilterPanel: FC<
             batchLookupOptions={batchLookupOptions}
             selectedOptions={selectedBatches}
             onChange={handleBatchDropdownChange}
-            batchLookupParams={batchLookupParams}
             setFetchParams={setBatchLookupParams}
-            fetchBatchLookup={fetchBatchLookup}
             batchLookupMeta={batchLookupMeta}
             batchLookupLoading={batchLookupLoading}
             batchLookupError={batchLookupError}
@@ -204,11 +208,13 @@ const InventoryActivityLogFilterPanel: FC<
             <CustomButton variant="contained" onClick={onApply}>
               Apply
             </CustomButton>
-            {onReset && (
-              <CustomButton variant="outlined" onClick={onReset}>
-                Reset
-              </CustomButton>
-            )}
+            <CustomButton
+              variant="outlined"
+              onClick={handleReset}
+              disabled={logLoading}
+            >
+              {logLoading ? 'Resetting...' : 'Reset'}
+            </CustomButton>
           </Box>
         </Grid>
       </Grid>

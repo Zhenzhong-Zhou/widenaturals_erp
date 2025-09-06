@@ -39,7 +39,6 @@ const insertAddressRecords = async (addresses, client) => {
     'region',
     'note',
     'address_hash',
-    'created_at',
     'updated_at',
     'created_by',
     'updated_by',
@@ -67,8 +66,6 @@ const insertAddressRecords = async (addresses, client) => {
     updateColumns.map((col) => [col, 'overwrite'])
   );
 
-  const now = new Date();
-
   const rows = addresses.map((address) => [
     address.customer_id || null,
     address.full_name || null,
@@ -84,7 +81,6 @@ const insertAddressRecords = async (addresses, client) => {
     address.region || null,
     address.note || null,
     address.address_hash || null,
-    now, // created_at
     null, // updated_at at insert time
     address.created_by || null,
     null, // updated_by at insert time

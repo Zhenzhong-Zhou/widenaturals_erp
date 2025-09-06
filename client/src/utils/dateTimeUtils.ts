@@ -133,16 +133,25 @@ const convertToLocalTime = (
  * Format date as YYYY-MM-DD.
  */
 export const formatDate = (
-  timestamp: string | number | Date | null,
-  timezone: string = 'America/Vancouver'
+  timestamp: string | number | Date | null | undefined,
+  timezone: string = 'America/Vancouver',
+  fallback: string = '-'
 ): string => {
-  if (!timestamp) return 'N/A';
-
+  if (
+    timestamp === null ||
+    timestamp === undefined ||
+    timestamp === '' ||
+    timestamp === '-' ||
+    timestamp === 'N/A'
+  ) {
+    return fallback;
+  }
+  
   const localTime = convertToLocalTime(timestamp, timezone);
   if (!localTime || !localTime.date || isNaN(localTime.date.getTime())) {
-    return 'N/A'; // Ensure valid date
+    return fallback; // invalid date → fallback
   }
-
+  
   return new Intl.DateTimeFormat('en-CA', {
     year: 'numeric',
     month: '2-digit',
@@ -173,9 +182,18 @@ export const formatTime = (
  */
 export const formatDateTime = (
   timestamp: string | number | Date | null | undefined,
-  timezone: string = 'America/Vancouver'
+  timezone: string = 'America/Vancouver',
+  fallback: string = '-'
 ): string => {
-  if (!timestamp) return 'N/A'; // Handle null or undefined inputs gracefully
+  if (
+    timestamp === null ||
+    timestamp === undefined ||
+    timestamp === '' ||
+    timestamp === '-' ||
+    timestamp === 'N/A'
+  ) {
+    return fallback;
+  }
 
   const rawDate =
     typeof timestamp === 'string' ? parseISO(timestamp) : new Date(timestamp);
@@ -257,6 +275,27 @@ export const adjustBeforeDateInclusive = (input?: string): string => {
   const date = input ? new Date(input) : null;
   return date && isValid(date)
     ? startOfDay(addDays(date, 1)).toISOString()
+    : '';
+};
+
+/**
+ * Adjusts a date string to the start of that day (00:00:00)
+ * and returns it as a full ISO 8601 timestamp.
+ *
+ * Typically used for `>=` filters in SQL queries to include
+ * all events on the selected "after" date.
+ *
+ * Example:
+ *   Input: '2025-09-04' → Output: '2025-09-04T00:00:00.000Z'
+ *
+ * @param input - A date string in 'YYYY-MM-DD' or ISO format
+ * @returns ISO 8601 timestamp string starting at 00:00:00 of the given day,
+ *          or an empty string if the input is invalid.
+ */
+export const adjustAfterDate = (input?: string): string => {
+  const date = input ? new Date(input) : null;
+  return date && isValid(date)
+    ? startOfDay(date).toISOString()
     : '';
 };
 

@@ -1,7 +1,8 @@
-const { query, paginateResults } = require('../database/db');
+const { query, paginateResults, paginateQueryByOffset } = require('../database/db');
 const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
-const { buildWhereClauseAndParams } = require('../utils/sql/build-sku-filters');
+const { buildWhereClauseAndParams, skuDropdownKeywordHandler } = require('../utils/sql/build-sku-filters');
+const { minUuid } = require('../utils/sql/sql-helpers');
 
 /**
  * Retrieves the most recent SKU string for a given brand and category combination.
@@ -102,39 +103,39 @@ const fetchPaginatedActiveSkusWithProductCards = async ({
         p.series,
         p.brand,
         p.category,
-        s.name AS status_name,
-        sku.id AS sku_id,
-        sku.sku,
-        sku.barcode,
-        sku.country_code,
-        sku.market_region,
-        sku.size_label,
+        st.name AS status_name,
+        s.id AS sku_id,
+        s.sku,
+        s.barcode,
+        s.country_code,
+        s.market_region,
+        s.size_label,
         sku_status.name AS sku_status_name,
         comp.compliance_id,
         pr.price AS msrp_price,
         img.image_url AS primary_image_url,
         img.alt_text AS image_alt_text
-      FROM skus sku
-      INNER JOIN products p ON sku.product_id = p.id
-      INNER JOIN status s ON p.status_id = s.id
-      LEFT JOIN status sku_status ON sku.status_id = sku_status.id AND sku_status.id = $1
-      LEFT JOIN compliances comp ON comp.sku_id = sku.id AND comp.type = 'NPN' AND comp.status_id = $1
+      FROM skus s
+      INNER JOIN products p ON s.product_id = p.id
+      INNER JOIN status st ON p.status_id = st.id
+      LEFT JOIN status sku_status ON s.status_id = sku_status.id AND sku_status.id = $1
+      LEFT JOIN compliances comp ON comp.sku_id = s.id AND comp.type = 'NPN' AND comp.status_id = $1
       LEFT JOIN LATERAL (
         SELECT pr.price, pr.status_id
         FROM pricing pr
         INNER JOIN pricing_types pt ON pr.price_type_id = pt.id AND pt.name = 'MSRP'
         INNER JOIN locations l ON pr.location_id = l.id
         INNER JOIN location_types lt ON l.location_type_id = lt.id AND lt.name = 'Office'
-        WHERE pr.sku_id = sku.id AND pr.status_id = $1
+        WHERE pr.sku_id = s.id AND pr.status_id = $1
         ORDER BY pr.valid_from DESC NULLS LAST
         LIMIT 1
       ) pr ON TRUE
-      LEFT JOIN sku_images img ON img.sku_id = sku.id AND img.is_primary = TRUE
+      LEFT JOIN sku_images img ON img.sku_id = s.id AND img.is_primary = TRUE
       LEFT JOIN status ps ON pr.status_id = ps.id AND ps.id = $1
       WHERE ${whereClause}
       GROUP BY
-        p.id, s.name,
-        sku.id, sku.sku, sku.barcode, sku.market_region, sku.size_label, sku_status.name,
+        p.id, st.name,
+        s.id, s.sku, s.barcode, s.market_region, s.size_label, sku_status.name,
         comp.compliance_id,
         pr.price,
         img.image_url, img.alt_text
@@ -367,9 +368,183 @@ const getSkuDetailsWithPricingAndMeta = async (
   }
 };
 
+/**
+ * Fetches SKU lookup options for dropdowns, with support for filtering, pagination,
+ * and privileged access to additional diagnostic fields (status and inventory joins).
+ *
+ * This function builds a dynamic query with joins based on access options.
+ * For users with `allowAllSkus`, the query will also join inventory, product, batch,
+ * and status tables to allow downstream analysis of availability and abnormal flags.
+ *
+ * - The query performs deduplication using GROUP BY `s.id` with MIN() aggregation.
+ * - If `allowAllSkus` is true, it counts `DISTINCT s.id` in pagination to avoid
+ *   overcounting rows due to inventory or batch joins.
+ *
+ * Typically used in UI dropdowns or internal search flows where SKU selection is needed.
+ *
+ * @param {Object} params - Parameter object.
+ * @param {string} params.productStatusId - UUID of the expected product status.
+ *   Required unless `options.allowAllSkus` is true.
+ * @param {Object} [params.filters={}] - Optional filtering fields, e.g., brand, category, region, sizeLabel, keyword.
+ * @param {Object} [params.options={}] - Visibility and diagnostic options.
+ * @param {number} [params.limit=50] - Pagination limit (default: 50).
+ * @param {number} [params.offset=0] - Pagination offset for paged results (default: 0).
+ *
+ * @returns {Promise<{
+ *   items: Array<{
+ *     id: string,
+ *     sku: string,
+ *     product_name: string,
+ *     brand: string,
+ *     barcode: string,
+ *     country_code: string,
+ *     size_label: string,
+ *     // Additional diagnostic fields included only if allowAllSkus is true:
+ *     sku_status_id?: string,
+ *     product_status_id?: string,
+ *     warehouse_status_id?: string,
+ *     location_status_id?: string,
+ *     batch_status_id?: string
+ *   }>,
+ *   totalCount: number
+ * }>} Resolves to a paginated list of SKU rows for dropdown consumption.
+ *
+ * @throws {AppError} If a query fails due to invalid input or database errors.
+ */
+const getSkuLookup = async ({
+                              productStatusId,
+                              filters = {},
+                              options = {},
+                              limit = 50,
+                              offset = 0,
+                            }) => {
+  const { whereClause, params } = buildWhereClauseAndParams(
+    productStatusId,
+    filters,
+    skuDropdownKeywordHandler,
+    options,
+  );
+  
+  const tableName = 'skus s';
+  
+  const baseJoins = ['LEFT JOIN products p ON s.product_id = p.id'];
+  
+  // Determine whether to include joins for extended diagnostics
+  const privilegedJoins = options.allowAllSkus
+    ? [
+      ...baseJoins,
+      
+      // Join for SKU + product status
+      'LEFT JOIN status sku_status ON sku_status.id = s.status_id',
+      'LEFT JOIN status product_status ON product_status.id = p.status_id',
+      
+      // ----- Warehouse inventory join chain -----
+      'LEFT JOIN product_batches pb_wi ON pb_wi.sku_id = s.id',
+      'LEFT JOIN batch_registry br_wi ON br_wi.product_batch_id = pb_wi.id',
+      'LEFT JOIN warehouse_inventory wi ON wi.batch_id = br_wi.id',
+      'LEFT JOIN inventory_status warehouse_status ON warehouse_status.id = wi.status_id',
+      
+      // ----- Location inventory join chain -----
+      'LEFT JOIN product_batches pb_li ON pb_li.sku_id = s.id',
+      'LEFT JOIN batch_registry br_li ON br_li.product_batch_id = pb_li.id',
+      'LEFT JOIN location_inventory li ON li.batch_id = br_li.id',
+      'LEFT JOIN inventory_status location_status ON location_status.id = li.status_id',
+      'LEFT JOIN batch_registry br ON br.id = COALESCE(wi.batch_id, li.batch_id)',
+      'LEFT JOIN product_batches pb ON pb.id = br.product_batch_id',
+      'LEFT JOIN batch_status batch_status ON batch_status.id = pb.status_id',
+    ]
+    : baseJoins;
+  
+  const joins = options.allowAllSkus ? privilegedJoins : baseJoins;
+  
+  const baseSelectFields = [
+    's.id',
+    'MIN(s.sku) AS sku',
+    'MIN(s.barcode) AS barcode',
+    'MIN(s.country_code) AS country_code',
+    'MIN(p.name) AS product_name',
+    'MIN(p.brand) AS brand',
+    'MIN(s.size_label) AS size_label',
+  ];
+  
+  const diagnosticSelects = [
+    minUuid('p', 'status_id', 'product_status_id'),
+    minUuid('s', 'status_id', 'sku_status_id'),
+    minUuid('wi', 'status_id', 'warehouse_status_id'),
+    minUuid('li', 'status_id', 'location_status_id'),
+    minUuid('pb', 'status_id', 'batch_status_id'),
+  ];
+  
+  // Select fields to group by and return in SELECT clause
+  const groupedSelectFields = options.allowAllSkus
+    ? [...baseSelectFields, ...diagnosticSelects]
+    : baseSelectFields;
+  
+  // Note: GROUP BY s.id and MIN() aggregation are used to deduplicate rows per SKU,
+  //       since one SKU may link to multiple inventory or batch entries.
+  const queryText = `
+    SELECT
+      ${groupedSelectFields.join(',\n')}
+    FROM ${tableName}
+    ${joins.join('\n')}
+    WHERE ${whereClause}
+    GROUP BY s.id
+    ORDER BY
+      MIN(p.brand) ASC,
+      LPAD(REGEXP_REPLACE(MIN(p.name), '[^0-9]', '', 'g'), 10, '0') NULLS LAST,
+      MIN(p.name) ASC,
+      s.id
+  `;
+  
+  try {
+    const result = await paginateQueryByOffset({
+      tableName,
+      joins,
+      whereClause,
+      queryText,
+      params,
+      offset,
+      limit,
+      sortBy: null, // Avoid duplication with additionalSort
+      sortOrder: null, // Not needed if sortBy is null
+      additionalSort: `
+        p.brand ASC,
+        LPAD(REGEXP_REPLACE(p.name, '[^0-9]', '', 'g'), 10, '0') NULLS LAST,
+        p.name ASC,
+        s.id
+      `,
+      useDistinct: !!options.allowAllSkus,
+      distinctColumn: options.allowAllSkus ? 's.id' : undefined,
+    });
+    
+    logSystemInfo('Fetched SKU dropdown lookup successfully', {
+      context: 'sku-repository/getSkuLookup',
+      totalFetched: result.data?.length ?? 0,
+      totalAvailable: result.pagination.totalRecords ?? null,
+      offset,
+      limit,
+      filters,
+      options,
+    });
+    
+    return result;
+  } catch (error) {
+    logSystemException(error, 'Failed to fetch SKU dropdown options', {
+      context: 'sku-repository/getSkuLookup',
+      offset,
+      limit,
+      filters,
+      options,
+    });
+    
+    throw AppError.databaseError('Failed to fetch SKU options for dropdown.');
+  }
+};
+
 module.exports = {
   getLastSku,
   fetchPaginatedActiveSkusWithProductCards,
   getSkuAndProductStatus,
   getSkuDetailsWithPricingAndMeta,
+  getSkuLookup
 };

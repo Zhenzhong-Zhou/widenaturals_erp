@@ -5,6 +5,7 @@ import {
   type UIEvent,
   type JSX,
   isValidElement,
+  type ReactNode,
 } from 'react';
 import Autocomplete, {
   type AutocompleteProps,
@@ -53,9 +54,9 @@ interface DropdownProps {
   };
   onFetchMore?: (params: { limit: number; offset: number }) => void;
   placeholder?: string;
-  helperText?: string;
+  helperText?: ReactNode;
   inputValue?: string;
-  onInputChange?: (event: SyntheticEvent, value: string) => void;
+  onInputChange?: (event: SyntheticEvent, value: string, reason: string) => void;
   noOptionsMessage?: string;
 }
 
@@ -112,6 +113,7 @@ const Dropdown: FC<DropdownProps> = ({
   return (
     <Box sx={{ minWidth: '200px', width: '100%', ...sx }}>
       <Autocomplete
+        disabled={disabled}
         options={modifiedOptions}
         getOptionLabel={(option) => option.label || ''}
         value={modifiedOptions.find((option) => option.value === value) || null}

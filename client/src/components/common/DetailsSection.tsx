@@ -1,4 +1,4 @@
-import { type FC, memo } from 'react';
+import { type FC, isValidElement, memo } from 'react';
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import useMediaQuery from '@mui/material/useMediaQuery';
@@ -9,7 +9,7 @@ import type { ReactNode } from 'react';
 
 export interface DetailsSectionField {
   label: string;
-  value: string | number | null | undefined;
+  value: string | number | null | undefined | Record<string, any>;
   format?: (value: any) => string | ReactNode;
 }
 
@@ -43,7 +43,7 @@ const DetailsSection: FC<DetailsSectionProps> = ({
   );
 
   if (filteredFields.length === 0) return null;
-
+  
   return (
     <Box sx={{ mt: theme.spacing(2), ...sx }}>
       {sectionTitle && (
@@ -64,7 +64,15 @@ const DetailsSection: FC<DetailsSectionProps> = ({
           const isLongText =
             typeof value === 'string' && value.length > INLINE_DISPLAY_LENGTH;
           const shouldWrap = isLongText || isSmallScreen;
-
+          
+          const raw = format
+            ? format(value)
+            : value !== null && value !== undefined
+              ? value.toString()
+              : 'N/A';
+          
+          const isNode = isValidElement(raw);
+          
           return (
             <Grid size={{ xs: 12, md: 6 }} key={index}>
               <Box>
@@ -74,22 +82,23 @@ const DetailsSection: FC<DetailsSectionProps> = ({
                 >
                   {label}:
                 </CustomTypography>
-
-                <CustomTypography
-                  variant="body2"
-                  sx={{
-                    color: theme.palette.text.secondary,
-                    whiteSpace: shouldWrap ? 'normal' : 'nowrap',
-                    overflowWrap: 'break-word',
-                    wordBreak: 'break-word',
-                  }}
-                >
-                  {format
-                    ? format(value)
-                    : value !== null && value !== undefined
-                      ? value.toString()
-                      : 'N/A'}
-                </CustomTypography>
+                
+                {isNode ? (
+                  // IMPORTANT: do NOT wrap a React element (which may be a <div>) in Typography <p>
+                  <Box sx={{ mt: 0.5 }}>{raw}</Box>
+                ) : (
+                  <CustomTypography
+                    variant="body2"
+                    sx={{
+                      color: theme.palette.text.secondary,
+                      whiteSpace: shouldWrap ? 'normal' : 'nowrap',
+                      overflowWrap: 'break-word',
+                      wordBreak: 'break-word',
+                    }}
+                  >
+                    {raw as string}
+                  </CustomTypography>
+                )}
               </Box>
             </Grid>
           );

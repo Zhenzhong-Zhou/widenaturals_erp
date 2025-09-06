@@ -1,6 +1,7 @@
 const { getProductDisplayName } = require('../utils/display-name-utils');
 const { getFullName } = require('../utils/name-utils');
-const { transformPaginatedResult } = require('../utils/transformer-utils');
+const { transformPaginatedResult, includeFlagsBasedOnAccess } = require('../utils/transformer-utils');
+const { cleanObject } = require('../utils/object-utils');
 
 /**
  * Transforms a raw SQL pricing row into a flattened pricing list item.
@@ -51,10 +52,9 @@ const transformPaginatedPricingResult = (paginatedResult) =>
  * Transforms raw pricing data rows into flat export-friendly format.
  *
  * @param {Array<Object>} rows - Raw DB query result
- * @param {string} format - Optional export format ('csv' | 'xlsx' | 'txt')
  * @returns {Array<Object>} - Flattened and human-readable rows
  */
-const transformExportPricingData = (rows = [], format = 'csv') => {
+const transformExportPricingData = (rows = []) => {
   return rows.map((row) => ({
     SKU: row.sku,
     Brand: row.brand,

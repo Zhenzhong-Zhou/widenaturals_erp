@@ -1,5 +1,6 @@
 import { createSelector } from '@reduxjs/toolkit';
 import type { RootState } from '@store/store';
+import { createLookupMetaSelector } from '@features/lookup/utils/lookupSelectorUtils';
 
 /**
  * Base selector to access the batch registry lookup state slice.
@@ -32,15 +33,8 @@ export const selectBatchRegistryLookupItems = createSelector(
 );
 
 /**
- * Composite selector for lookup metadata (pagination + availability).
+ * Selector for batch registry lookup metadata (pagination and availability).
  *
- * @returns Object containing limit, offset, and hasMore
+ * Returns `{ hasMore, limit, offset }` from the lookup slice.
  */
-export const selectBatchRegistryLookupMeta = createSelector(
-  [selectBatchRegistryLookupSlice],
-  (slice) => ({
-    limit: slice.limit,
-    offset: slice.offset,
-    hasMore: slice.hasMore,
-  })
-);
+export const selectBatchRegistryLookupMeta = createLookupMetaSelector(selectBatchRegistryLookupSlice);

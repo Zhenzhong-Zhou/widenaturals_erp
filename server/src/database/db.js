@@ -37,6 +37,8 @@ const {
   logSystemDebug,
 } = require('../utils/system-logger');
 const { generateTraceId } = require('../utils/id-utils');
+const { assertAllowed, qualify, q, isSafeIdent } = require('../utils/sql-ident');
+const { uniq } = require('../utils/array-utils');
 
 // Get environment-specific connection configuration
 loadEnv();
@@ -425,15 +427,36 @@ const buildPaginatedQuery = ({
 /**
  * Generates a dynamic SQL COUNT query.
  *
- * @param {string} tableName - The name of the main table.
- * @param {Array<string>} joins - Array of JOIN clauses.
- * @param {string} whereClause - The WHERE clause for filtering.
+ * @param {string} tableName - The name of the main table (e.g., 'skus s').
+ * @param {Array<string>} joins - Array of JOIN clauses to include.
+ * @param {string} [whereClause='1=1'] - The WHERE clause for filtering.
+ * @param {boolean} [useDistinct=false] - Whether to count distinct values instead of all rows.
+ * @param {string} [distinctColumn] - The column to count distinct values on (e.g., 's.id'). Required if useDistinct is true.
  * @returns {string} - The dynamically generated COUNT SQL query.
+ *
+ * @example
+ * generateCountQuery('skus s', ['LEFT JOIN products p ON s.product_id = p.id'], 'p.brand IS NOT NULL', true, 's.id');
+ * // Returns: SELECT COUNT (DISTINCT s.id) AS total ...
  */
-const generateCountQuery = (tableName, joins = [], whereClause = '1=1') => {
-  const joinClause = joins.join(' '); // Combine all JOIN clauses
+const generateCountQuery = (
+  tableName,
+  joins = [],
+  whereClause = '1=1',
+  useDistinct = false,
+  distinctColumn
+) => {
+  const joinClause = joins.join(' ');
+  
+  if (useDistinct && !distinctColumn) {
+    throw new Error('Distinct column must be provided when useDistinct is true.');
+  }
+  
+  const countExpr = useDistinct
+    ? `COUNT(DISTINCT ${distinctColumn})`
+    : 'COUNT(*)';
+  
   return `
-    SELECT COUNT(*) AS total
+    SELECT ${countExpr} AS total
     FROM ${tableName}
     ${joinClause}
     WHERE ${whereClause}
@@ -527,22 +550,32 @@ const paginateQuery = async ({
  * This utility is ideal for "Load More" or infinite scroll interfaces,
  * where you fetch records using `offset` and `limit` rather than page numbers.
  *
- * It supports custom joins, dynamic filtering, sorting, additional sorting,
- * and total record counting.
- * The `queryText` should NOT include LIMIT or OFFSET clauses — they are added automatically.
+ * It supports:
+ * - Custom `JOIN`s
+ * - Dynamic filtering with `WHERE` clause
+ * - Sorting (primary and additional)
+ * - Total record counting
  *
- * @param {string} tableName - The base table name or alias used in the query.
- * @param {string[]} joins - Optional SQL join clauses to include in both count and data queries.
- * @param {string} whereClause - SQL WHERE clause (default: '1=1') for filtering data.
- * @param {string} queryText - The base SELECT SQL query (without LIMIT/OFFSET).
- * @param {any[]} params - Array of query parameter values used in `queryText` and count query.
+ * The `queryText` **should NOT** include `LIMIT` or `OFFSET` — those are added automatically.
+ *
+ * To prevent row overcounting from 1: N joins (e.g., SKUs joined with inventory or batches),
+ * you can set `useDistinct: true` and specify `distinctColumn` (e.g., `'s.id'`)
+ * to count only distinct values in the count query.
+ *
+ * @param {string} tableName - The base table name or alias used in the `FROM` clause (e.g., 'skus s').
+ * @param {string[]} joins - Array of SQL JOIN clauses (e.g., LEFT JOINs) to include in the query.
+ * @param {string} whereClause - SQL WHERE clause (default: '1=1') to filter data.
+ * @param {string} queryText - The base SELECT SQL query (without LIMIT or OFFSET).
+ * @param {any[]} params - Query parameter values to be applied to both SELECT and count queries.
  * @param {number} offset - Number of records to skip (default: 0).
  * @param {number} limit - Number of records to return (default: 10).
- * @param {string | null} sortBy - Primary column name to sort by (optional).
- * @param {'ASC' | 'DESC'} sortOrder - Sort direction for primary sort (default: 'ASC').
- * @param {string} [additionalSort] - Additional sort columns with directions (e.g., 'lastname ASC, created_at DESC').
- * @param {any} clientOrPool - pg client or pool instance (default: `pool`).
- * @param {object} meta - Optional metadata used for logging context.
+ * @param {string | null} sortBy - Column to sort the results by (optional).
+ * @param {'ASC' | 'DESC'} sortOrder - Sort direction (default: 'ASC').
+ * @param {string} [additionalSort] - Additional sort logic (e.g., 'created_at DESC, id ASC').
+ * @param {any} clientOrPool - Instance of pg client or pool used to run the query (default: `pool`).
+ * @param {object} [meta] - Optional metadata object for structured logging.
+ * @param {boolean} [useDistinct=false] - If true, applies `COUNT(DISTINCT ...)` to avoid row inflation.
+ * @param {string} [distinctColumn] - Required if `useDistinct` is true. The column to apply `DISTINCT` on (e.g., `'s.id'`).
  *
  * @returns {Promise<{
  *   data: Record<string, any>[],
@@ -552,32 +585,46 @@ const paginateQuery = async ({
  *     totalRecords: number,
  *     hasMore: boolean
  *   }
- * }>} - Returns the paginated result set and metadata.
+ * }>} - The result set and pagination metadata.
  *
- * @throws {AppError} - Throws validation or database error if the query fails.
+ * @throws {AppError} - Throws structured error on validation or query execution failure.
  */
 const paginateQueryByOffset = async ({
-  tableName,
-  joins = [],
-  whereClause = '1=1',
-  queryText,
-  params = [],
-  offset = 0,
-  limit = 10,
-  sortBy = null,
-  sortOrder = 'ASC',
-  additionalSort = null,
-  clientOrPool = pool,
-  meta = {},
-}) => {
+                                       tableName,
+                                       joins = [],
+                                       whereClause = '1=1',
+                                       queryText,
+                                       params = [],
+                                       offset = 0,
+                                       limit = 10,
+                                       sortBy = null,
+                                       sortOrder = 'ASC',
+                                       additionalSort = null,
+                                       clientOrPool = pool,
+                                       meta = {},
+                                       useDistinct = false,
+                                       distinctColumn,
+                                     }) => {
   if (offset < 0 || limit < 1) {
     throw AppError.validationError(
       'Offset must be >= 0 and limit must be a positive integer.'
     );
   }
-
-  const countQueryText = generateCountQuery(tableName, joins, whereClause);
-
+  
+  if (useDistinct && !distinctColumn) {
+    throw AppError.validationError(
+      'distinctColumn must be provided when useDistinct is true.'
+    );
+  }
+  
+  const countQueryText = generateCountQuery(
+    tableName,
+    joins,
+    whereClause,
+    useDistinct,
+    distinctColumn
+  );
+  
   const paginatedQuery = buildPaginatedQuery({
     baseQuery: queryText,
     sortBy,
@@ -585,17 +632,17 @@ const paginateQueryByOffset = async ({
     additionalSort,
     paramIndex: params.length,
   });
-
+  
   const queryParams = [...params, limit, offset];
-
+  
   try {
     const [dataResult, countResult] = await Promise.all([
       query(paginatedQuery, queryParams, clientOrPool),
       query(countQueryText, params, clientOrPool),
     ]);
-
+    
     const totalRecords = parseInt(countResult.rows[0]?.total || 0, 10);
-
+    
     return {
       data: dataResult.rows,
       pagination: {
@@ -609,9 +656,11 @@ const paginateQueryByOffset = async ({
     logPaginatedQueryError(error, paginatedQuery, countQueryText, queryParams, {
       offset,
       limit,
+      useDistinct,
+      distinctColumn,
       ...meta,
     });
-
+    
     throw AppError.databaseError(
       'Failed to execute offset-based paginated query.'
     );
@@ -814,20 +863,18 @@ const lockRows = async (
   // Dynamically check if the table exists in PostgreSQL
   const maskedTable = maskTableName(table);
   const tableExistsQuery = `SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_tables WHERE schemaname = 'public' AND tablename = $1)`;
+  
+  const { rows } = await query(tableExistsQuery, [table], client);
+  if (!rows[0].exists) {
+    throw AppError.notFoundError(`Table "${maskedTable}" does not exist.`);
+  }
 
-  await retry(async () => {
-    const { rows } = await client.query(tableExistsQuery, [table]);
-    if (!rows[0].exists) {
-      throw AppError.notFoundError(`Table "${maskedTable}" does not exist.`);
-    }
-  });
-
-  let query, values;
+  let sql, values;
 
   if (typeof conditions[0] === 'string') {
     // Case 1: Simple ID Locking (e.g., `lockRows(client, 'inventory', [uuid1, uuid2])`)
     const placeholders = conditions.map((_, i) => `$${i + 1}`).join(', ');
-    query = `SELECT * FROM ${table} WHERE id IN (${placeholders}) ${lockMode}`;
+    sql = `SELECT * FROM ${table} WHERE id IN (${placeholders}) ${lockMode}`;
     values = conditions;
   } else {
     // Case 2: Composite Key Locking (e.g., `lockRows(client, 'warehouse_inventory', [{ warehouse_id, inventory_id }])`)
@@ -843,26 +890,25 @@ const lockRows = async (
       .join(' OR ');
 
     values = conditions.flatMap(Object.values);
-    query = `SELECT * FROM ${table} WHERE ${whereClauses} ${lockMode}`;
+    sql = `SELECT * FROM ${table} WHERE ${whereClauses} ${lockMode}`;
   }
 
   try {
-    return await retry(async () => {
-      const { rows } = await client.query(query, values);
-      // Log missing rows
-      if (rows.length !== conditions.length) {
-        logSystemWarn(`Some rows were not found in "${maskedTable}"`, {
-          context: 'db/lockRows/data-validation',
-          table: maskedTable,
-          expected: conditions.length,
-          found: rows.length,
-        });
-      }
+    const { rows } = await query(sql, values, client);
+    
+    // Log missing rows
+    if (rows.length !== conditions.length) {
+      logSystemWarn(`Some rows were not found in "${maskedTable}"`, {
+        context: 'db/lockRows/data-validation',
+        table: maskedTable,
+        expected: conditions.length,
+        found: rows.length,
+      });
+    }
 
-      return rows;
-    });
+    return rows;
   } catch (error) {
-    logLockRowsError(error, query, values, maskTableName(table), { ...meta });
+    logLockRowsError(error, sql, values, maskTableName(table), { ...meta });
 
     throw AppError.databaseError(
       `Database error while locking rows in "${maskedTable}".`,
@@ -1342,6 +1388,55 @@ const checkRecordExists = async (table, condition, client = null) => {
 };
 
 /**
+ * Return IDs from `ids` that are NOT present in `${schema}.${table}.${idColumn}`.
+ *
+ * - One round-trip (UNNEST), parameterized values.
+ * - Uses allowlist + quoted identifiers to prevent SQL injection on identifiers.
+ *
+ * @param {import('pg').PoolClient} client
+ * @param {string} table
+ * @param {string[]} ids
+ * @param {{ schema?: string|null, idColumn?: string, logOnError?: boolean }} [opts]
+ * @returns {Promise<string[]>} missing IDs
+ */
+const findMissingIds = async (client, table, ids, opts = {}) => {
+  const { schema = 'public', idColumn = 'id', logOnError = true } = opts;
+  
+  // Guard dynamic identifiers
+  assertAllowed(schema, table);
+  
+  const list = uniq(ids);
+  if (list.length === 0) return [];
+  
+  const sql = `
+    WITH input(id) AS (SELECT DISTINCT UNNEST($1::uuid[]))
+    SELECT i.id
+    FROM input i
+    WHERE NOT EXISTS (
+      SELECT 1
+      FROM ${qualify(schema, table)} t
+      WHERE t.${q(idColumn)} = i.id
+    );
+  `;
+  
+  try {
+    // Prefer using the passed client directly
+    const { rows } = await query(sql, [list], client);
+    return rows.map((r) => r.id);
+  } catch (error) {
+    if (logOnError) {
+      logSystemException(error, 'Batch ID existence check failed', {
+        context: 'db/findMissingIds',
+        table: `${schema}.${table}`,
+        idColumn,
+        count: list.length,
+      });
+    }
+    throw AppError.databaseError('Failed to validate IDs');
+  }
+};
+
+/**
  * Fetches one or more specific columns (default: ['name']) from a table by its primary key (`id`).
  *
  * This utility is safe, generic, and transaction-aware. It supports fetching multiple fields
@@ -1404,6 +1499,77 @@ const getFieldsById = async (
   }
 };
 
+/**
+ * Retrieves an array of values from one column (`selectField`) in a table,
+ * filtered by a specific match condition on another column (`whereKey`).
+ *
+ * This utility is useful for simple lookups like:
+ * - Getting all `id`s where `category = 'sales'`
+ * - Fetching all `code`s where `status = 'active'`
+ *
+ * Internally:
+ * - Table and field names are sanitized to prevent SQL injection.
+ * - Query uses parameterized values (`$1`) for safe substitution.
+ * - Supports optional `pg.PoolClient` for transactional context.
+ *
+ * @async
+ * @param {string} table - Name of the table to query (e.g., `'order_types'`).
+ * @param {string} whereKey - Name of the column to filter by (e.g., `'category'`).
+ * @param {any} whereValue - Value to filter against (e.g., `'sales'`).
+ * @param {string} [selectField='id'] - Column to return values from (default is `'id'`).
+ * @param {import('pg').PoolClient} [client=null] - Optional database client for transactions.
+ * @returns {Promise<any[]>} Array of matching values from `selectField`.
+ *
+ * @throws {AppError} - If parameters are invalid or the query fails.
+ *
+ * @example
+ * const ids = await getFieldValuesByField('order_types', 'category', 'sales');
+ * // Result: ['type-1', 'type-2', 'type-3']
+ *
+ * @example
+ * const codes = await getFieldValuesByField('discounts', 'is_active', true, 'code');
+ * // Result: ['SUMMER10', 'FREESHIP']
+ */
+const getFieldValuesByField = async (
+  table,
+  whereKey,
+  whereValue,
+  selectField = 'id',
+  client = null
+) => {
+  try {
+    if (!table || !whereKey || !selectField) {
+      throw AppError.validationError('Invalid parameters for getFieldValuesByField');
+    }
+    
+    const cleanField = selectField.replace(/[^a-zA-Z0-9_]/g, '');
+    const cleanWhereKey = whereKey.replace(/[^a-zA-Z0-9_]/g, '');
+    const maskedTable = table.replace(/[^a-zA-Z0-9_]/g, '');
+    
+    const sql = `
+      SELECT ${cleanField}
+      FROM ${maskedTable}
+      WHERE ${cleanWhereKey} = $1
+    `;
+    
+    const result = await query(sql, [whereValue], client);
+    return result.rows.map((row) => row[cleanField]);
+  } catch (err) {
+    logSystemException(err, 'Failed to get field values by field', {
+      context: 'db/getFieldValuesByField',
+      table,
+      whereKey,
+      whereValue,
+      selectField,
+    });
+    throw AppError.databaseError('Failed to fetch field values', {
+      details: err.message,
+      table,
+      whereKey,
+    });
+  }
+};
+
 // Export the utilities
 module.exports = {
   pool,
@@ -1426,5 +1592,7 @@ module.exports = {
   formatBulkUpdateQuery,
   getUniqueScalarValue,
   checkRecordExists,
+  findMissingIds,
   getFieldsById,
+  getFieldValuesByField,
 };

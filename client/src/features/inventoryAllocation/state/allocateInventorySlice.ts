@@ -1,57 +1,42 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import {
-  type InventoryAllocationResponse,
-  postInventoryAllocationThunk,
-} from '@features/inventoryAllocation';
-
-interface AllocateInventoryState {
-  loading: boolean;
-  success: boolean;
-  error: string | null;
-  data: InventoryAllocationResponse | null;
-}
+import type { AllocateInventoryResponse, AllocateInventoryState } from './inventoryAllocationTypes';
+import { allocateInventoryThunk } from '@features/inventoryAllocation/state/inventoryAllocationThunks';
 
 const initialState: AllocateInventoryState = {
   loading: false,
-  success: false,
-  error: null,
   data: null,
+  error: null,
 };
 
 const allocateInventorySlice = createSlice({
   name: 'allocateInventory',
   initialState,
   reducers: {
-    resetAllocateInventoryState: (state) => {
+    resetAllocationState: (state) => {
       state.loading = false;
-      state.success = false;
-      state.error = null;
       state.data = null;
+      state.error = null;
     },
   },
   extraReducers: (builder) => {
     builder
-      .addCase(postInventoryAllocationThunk.pending, (state) => {
+      .addCase(allocateInventoryThunk.pending, (state) => {
         state.loading = true;
-        state.success = false;
         state.error = null;
       })
-      .addCase(
-        postInventoryAllocationThunk.fulfilled,
-        (state, action: PayloadAction<InventoryAllocationResponse>) => {
-          state.loading = false;
-          state.success = true;
-          state.data = action.payload;
-        }
-      )
-      .addCase(postInventoryAllocationThunk.rejected, (state, action) => {
+      .addCase(allocateInventoryThunk.fulfilled, (state, action: PayloadAction<AllocateInventoryResponse>) => {
         state.loading = false;
-        state.success = false;
+        state.data = action.payload.data; // response = { success, message, data }
+        state.error = null;
+      })
+      .addCase(allocateInventoryThunk.rejected, (state, action) => {
+        state.loading = false;
         state.error =
-          (action.payload as string) || 'Failed to allocate inventory.';
+          (action.payload as string) || action.error.message || 'Allocation failed';
       });
   },
 });
 
-export const { resetAllocateInventoryState } = allocateInventorySlice.actions;
+export const { resetAllocationState } = allocateInventorySlice.actions;
+
 export default allocateInventorySlice.reducer;

@@ -1,61 +1,74 @@
-const { query } = require('../database/db');
-const { logError } = require('../utils/logger-helper');
+const { buildDeliveryMethodFilter } = require('../utils/sql/build-delivery-method-filters');
+const { paginateQueryByOffset } = require('../database/db');
+const { logSystemInfo, logSystemException } = require('../utils/system-logger');
 const AppError = require('../utils/AppError');
 
 /**
- * Fetches available delivery methods for the dropdown menu.
- * @param {boolean} includePickup - Whether to include In-Store Pickup methods.
- * @returns {Promise<Array<{ id: string, name: string, estimatedTime: { days: number } }>>} - List of delivery methods.
+ * Retrieves a paginated list of delivery method records for use in dropdown or autocomplete components.
+ *
+ * Supports filtering by method name, pickup flag, status ID, and keyword search.
+ * Typically used in order fulfillment or shipping configuration forms to allow users
+ * to select from available delivery or pickup options.
+ *
+ * @param {Object} options - Lookup options
+ * @param {number} [options.limit=50] - Maximum number of results to return
+ * @param {number} [options.offset=0] - Offset for pagination
+ * @param {Object} [options.filters={}] - Optional filter fields (e.g., isPickupLocation, keyword)
+ * @returns {Promise<{ items: { label: string, value: string }[], hasMore: boolean }>} - Paginated dropdown data
+ *
+ * @throws {AppError} If an error occurs while querying the database
  */
-const getDeliveryMethodsForDropdown = async (includePickup = false) => {
+const getDeliveryMethodsLookup = async ({
+                                          limit = 50,
+                                          offset = 0,
+                                          filters = {},
+                                        }) => {
+  const tableName = 'delivery_methods dm';
+  const { whereClause, params } = buildDeliveryMethodFilter(filters);
+  
+  const queryText = `
+    SELECT
+      dm.id,
+      dm.method_name AS name,
+      dm.is_pickup_location,
+      dm.status_id
+    FROM ${tableName}
+    WHERE ${whereClause}
+  `;
+  
   try {
-    const queryText = `
-      SELECT
-          dm.id,
-          dm.method_name AS name,
-          dm.estimated_time AS estimatedTime
-      FROM delivery_methods dm
-      JOIN status s ON dm.status_id = s.id
-      WHERE
-          s.name = 'active'
-          ${!includePickup ? 'AND dm.is_pickup_location = false' : ''}
-      ORDER BY dm.method_name ASC;
-    `;
-
-    const { rows } = await query(queryText);
-    return rows;
+    const result = await paginateQueryByOffset({
+      tableName,
+      whereClause,
+      queryText,
+      params,
+      offset,
+      limit,
+      sortBy: 'dm.method_name',
+      sortOrder: 'ASC',
+      additionalSort: 'dm.method_name ASC',
+    });
+    
+    logSystemInfo('Fetched delivery methods lookup successfully', {
+      context: 'delivery_methods-repository/getDeliveryMethodsLookup',
+      totalFetched: result.data?.length ?? 0,
+      offset,
+      limit,
+      filters,
+    });
+    
+    return result;
   } catch (error) {
-    logError('Error fetching delivery methods:', error);
-    throw AppError.databaseError('Failed to fetch delivery methods');
-  }
-};
-
-/**
- * Repository function to check if a delivery method exists by ID.
- * @param {string} deliveryMethodId - The UUID of the delivery method.
- * @param {object} client - Database transaction client (optional for transactions).
- * @returns {Promise<boolean>} - Returns true if the delivery method exists, otherwise false.
- */
-const checkDeliveryMethodExists = async (deliveryMethodId, client = null) => {
-  try {
-    const queryText = `
-      SELECT EXISTS (
-        SELECT 1 FROM delivery_methods WHERE id = $1
-      ) AS exists;
-    `;
-
-    const { rows } = client
-      ? await client.query(queryText, [deliveryMethodId])
-      : await query(queryText, [deliveryMethodId]);
-
-    return rows[0]?.exists || false;
-  } catch (error) {
-    logError('Error checking delivery method existence:', error);
-    throw AppError.databaseError('Failed to check delivery method existence');
+    logSystemException(error, 'Failed to fetch delivery methods lookup', {
+      context: 'delivery_methods-repository/getDeliveryMethodsLookup',
+      offset,
+      limit,
+      filters,
+    });
+    throw AppError.databaseError('Failed to fetch delivery methods options.');
   }
 };
 
 module.exports = {
-  getDeliveryMethodsForDropdown,
-  checkDeliveryMethodExists,
+  getDeliveryMethodsLookup,
 };

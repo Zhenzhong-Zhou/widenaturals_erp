@@ -12,11 +12,7 @@ const lotAdjustmentTypeLookupSlice = createSlice({
   name: 'lotAdjustmentTypeLookup',
   initialState,
   reducers: {
-    resetLotAdjustmentTypeLookup(state) {
-      state.data = [];
-      state.loading = false;
-      state.error = null;
-    },
+    resetLotAdjustmentTypeLookup: () => initialState,
   },
   extraReducers: (builder) => {
     builder
