@@ -9,6 +9,7 @@ import CustomButton from '@components/common/CustomButton';
 import ErrorMessage from '@components/common/ErrorMessage';
 import CustomTypography from '@components/common/CustomTypography';
 import GoBackButton from '@components/common/GoBackButton';
+import Loading from '@components/common/Loading';
 import {
   AllocationOrderHeaderSection,
   AllocationReviewTable,
@@ -19,6 +20,8 @@ import {
   flattenInventoryAllocationReviewItems,
 } from '@features/inventoryAllocation/utils/flattenAllocationReviewData';
 import useInventoryAllocationReview from '@hooks/useInventoryAllocationReview';
+import useInventoryAllocationConfirmation from '@hooks/useInventoryAllocationConfirmation';
+import type { AllocationReviewItem } from '@features/inventoryAllocation/state';
 
 interface LocationState {
   warehouseIds?: string[];
@@ -32,6 +35,7 @@ const InventoryAllocationReviewPage = () => {
   const navigate = useNavigate();
   const { warehouseIds = [], allocationIds = [], category }: LocationState = location.state || {};
   
+  // === Hooks ===
   const {
     loading: isReviewLoading,
     error: reviewError,
@@ -44,13 +48,24 @@ const InventoryAllocationReviewPage = () => {
     setReviewError: setAllocationReviewError,
   } = useInventoryAllocationReview();
   
-  // Early exit if no orderId
-  useEffect(() => {
-    if (!orderId) {
-      setAllocationReviewError("Missing order ID in URL.");
-    }
-  }, [orderId]);
+  const {
+    loading: isConfirming,
+    error: confirmError,
+    success: confirmSuccess,
+    message: confirmMessage,
+    confirm: confirmedAllocation,
+    reset: resetConfirmation,
+  } = useInventoryAllocationConfirmation();
   
+  // === Early Bailouts ===
+  if (!orderId) {
+    return <ErrorMessage message="Missing order ID in URL." />;
+  }
+  if (reviewError) {
+    return <ErrorMessage message={reviewMessage ?? 'Failed to load allocation review.'} />;
+  }
+  
+  // === Fetch & Refresh Logic ===
   const refresh = useCallback(() => {
     if (orderId && category) {
       fetchAllocationReview(orderId, { warehouseIds, allocationIds });
@@ -76,6 +91,16 @@ const InventoryAllocationReviewPage = () => {
     return () => resetAllocationReview();  // optional cleanup
   }, [orderId, allocationIds, refresh]);
   
+  // === Success Handler ===
+  useEffect(() => {
+    if (confirmSuccess) {
+      alert(confirmMessage);
+      refresh();
+      resetConfirmation();
+    }
+  }, [confirmSuccess, confirmMessage, refresh]);
+  
+  // === Memoized Values ===
   const titleOrderNumber = useMemo(() => getShortOrderNumber(allocationReviewHeader?.orderNumber ?? ''), [allocationReviewHeader]);
   
   const flattenedHeader = useMemo(() => {
@@ -86,23 +111,43 @@ const InventoryAllocationReviewPage = () => {
     return allocationReviewItems ? flattenInventoryAllocationReviewItems(allocationReviewItems) : [];
   }, [allocationReviewItems]);
   
-  if (!orderId) {
-    return <ErrorMessage message="Missing order ID in URL." />;
-  }
-  if (reviewError) {
-    return <ErrorMessage message={reviewMessage ?? 'Failed to load allocation review.'} />;
-  }
+  const shouldHideConfirmButton = useMemo(() => {
+    if (!allocationReviewItems || allocationReviewItems.length === 0) return false;
+    
+    const allItemsFullyAllocated = allocationReviewItems.every(
+      (item: AllocationReviewItem) => item.orderItem?.statusCode === 'ORDER_ALLOCATED'
+    );
+    
+    const allAllocationsConfirmed = allocationReviewItems.every(
+      (item: AllocationReviewItem) => item.allocationStatusCode === 'ALLOC_CONFIRMED'
+    );
+    
+    return allItemsFullyAllocated && allAllocationsConfirmed;
+  }, [allocationReviewItems]);
   
+  // === Confirm Submit ===
+  const handleConfirmationSubmit = async () => {
+    try {
+      resetConfirmation();
+      await confirmedAllocation(orderId); // Safe now
+    } catch (error) {
+      console.error('Confirmation error:', error);
+    }
+  };
+  
+  // === Loading State ===
   if (
     isReviewLoading ||
+    isConfirming ||
     !allocationReviewHeader ||
     !allocationReviewItems?.length ||
     !flattenedHeader ||
     !flattenedItems?.length
   ) {
-    return null; // or <Loading /> or <ErrorMessage message="Loading allocation review..." />
+    return <Loading message="Loading allocation review..." />;
   }
   
+  // === Render actual content (omitted) ===
   return (
     <Box sx={{ p: 3 }}>
       <CustomTypography variant="h4" sx={{ mb: 2 }}>
@@ -141,8 +186,20 @@ const InventoryAllocationReviewPage = () => {
             </CustomTypography>
             
             <Stack direction="row" spacing={2} alignItems="center">
+              {confirmError && (
+                <ErrorMessage message={confirmMessage ?? 'Failed to confirm inventory allocation.'} />
+              )}
+              {!shouldHideConfirmButton && (
+                <CustomButton
+                  onClick={handleConfirmationSubmit}
+                  disabled={isReviewLoading || isConfirming}
+                >
+                  {isReviewLoading || isConfirming ? 'Confirming' : 'Confirm Allocation'}
+                </CustomButton>
+              )}
               <CustomButton
                 onClick={refresh}
+                variant="outlined"
                 disabled={isReviewLoading}
               >
                 {isReviewLoading ? 'Refreshing' : 'Refresh Data'}
