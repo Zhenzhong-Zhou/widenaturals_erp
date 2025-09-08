@@ -1,8 +1,12 @@
 import type {
   AllocateInventoryBody,
   AllocateInventoryParams,
-  AllocateInventoryResponse, AllocationReviewRequest,
-  FetchPaginatedInventoryAllocationsParams, InventoryAllocationResponse, InventoryAllocationReviewResponse,
+  AllocateInventoryResponse,
+  AllocationReviewRequest,
+  FetchPaginatedInventoryAllocationsParams,
+  InventoryAllocationConfirmationResponse,
+  InventoryAllocationResponse,
+  InventoryAllocationReviewResponse,
 } from '@features/inventoryAllocation/state';
 import { API_ENDPOINTS } from '@services/apiEndpoints';
 import { getRequest, postRequest } from '@utils/apiRequest';
@@ -134,8 +138,55 @@ const fetchPaginatedInventoryAllocations = async (
   }
 };
 
+/**
+ * Confirms all inventory allocations associated with a specific order.
+ *
+ * This service function calls the backend API to finalize allocations for the given
+ * `orderId`. It triggers updates to:
+ * - Allocation statuses (e.g., from PENDING → ALLOCATED)
+ * - Warehouse inventory quantities
+ * - Order item statuses
+ * - System-level audit and inventory activity logs
+ *
+ * The backend endpoint does not require a request body — only the `orderId` as a
+ * path parameter. The response includes the full API envelope, containing:
+ * - `success`: boolean indicating operation success
+ * - `message`: a status message from the backend
+ * - `data`: confirmed allocation details (allocation IDs, updated inventory IDs, log IDs, item-level status changes)
+ *
+ * Intended to be called within Redux thunks or directly in services that need
+ * to finalize the allocation lifecycle for an order.
+ *
+ * @async
+ * @function confirmInventoryAllocation
+ * @param {string} orderId - The UUID of the order for which inventory allocations should be confirmed.
+ * @returns {Promise<InventoryAllocationConfirmationResponse>} - Full API response containing confirmation result and payload.
+ *
+ * @throws {Error} If the request fails (e.g., network issue, server error).
+ *
+ * @example
+ * const response = await confirmInventoryAllocation(orderId);
+ * if (response.success) {
+ *   console.log('Confirmation message:', response.message);
+ *   console.log('Confirmed allocation IDs:', response.data.allocationIds);
+ * }
+ */
+const confirmInventoryAllocation = async (
+  orderId: string
+): Promise<InventoryAllocationConfirmationResponse> => {
+  const url = API_ENDPOINTS.INVENTORY_ALLOCATIONS.CONFIRM_ALLOCATION(orderId);
+  
+  try {
+    return await postRequest<void, InventoryAllocationConfirmationResponse>(url, undefined);
+  } catch (error) {
+    console.error('Failed to confirm inventory allocation', { orderId, error });
+    throw error;
+  }
+};
+
 export const inventoryAllocationService = {
   allocateInventoryForOrderService,
   fetchInventoryAllocationReview,
   fetchPaginatedInventoryAllocations,
+  confirmInventoryAllocation,
 };
