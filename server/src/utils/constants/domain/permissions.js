@@ -25,7 +25,8 @@ const PERMISSIONS = {
     ALLOCATE: 'allocate_inventory',
     REVIEW: 'review_allocation',
     VIEW: 'view_inventory_allocations',
-  }
+    CONFIRM: 'confirm_allocation',
+  },
 };
 
 module.exports = PERMISSIONS;
