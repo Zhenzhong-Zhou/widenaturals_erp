@@ -196,6 +196,7 @@ const transformAllocationReviewData = (rows, orderId) => {
  * @property {string} quantity_ordered
  * @property {string} item_status_id
  * @property {string} item_status_name
+ * @property {string} item_status_code
  * @property {string} item_status_date
  * @property {string} sku_id
  * @property {string} sku
@@ -323,6 +324,7 @@ const transformInventoryAllocationReviewRows = (rows) => {
         quantityOrdered: row.quantity_ordered,
         statusId: row.item_status_id,
         statusName: row.item_status_name,
+        statusCode: row.item_status_code,
         statusDate: row.item_status_date,
       },
       

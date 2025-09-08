@@ -33,6 +33,19 @@ export const selectAllocationConfirmResponse = createSelector(
 );
 
 /**
+ * Selects the `success` flag from the inventory allocation confirmation response.
+ *
+ * This indicates whether the inventory allocation confirmation API call
+ * was successful, based on the server's response payload.
+ *
+ * @returns {boolean} `true` if the confirmation succeeded, otherwise `false`.
+ */
+export const selectAllocationConfirmSuccess = createSelector(
+  [selectAllocationConfirmResponse],
+  (response) => response?.success ?? false
+);
+
+/**
  * Selects only the `message` from the inventory allocation confirmation response.
  */
 export const selectAllocationConfirmMessage = createSelector(

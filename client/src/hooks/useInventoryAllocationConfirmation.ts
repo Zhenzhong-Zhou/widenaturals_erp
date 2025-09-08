@@ -1,11 +1,11 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 import { useAppDispatch, useAppSelector } from '@store/storeHooks';
 import {
   confirmInventoryAllocationThunk,
   selectAllocationConfirmError,
   selectAllocationConfirmLoading,
   selectAllocationConfirmMessage,
-  selectAllocationConfirmPayload
+  selectAllocationConfirmPayload, selectAllocationConfirmSuccess,
 } from '@features/inventoryAllocation/state';
 import { resetConfirmationState } from '@features/inventoryAllocation/state/inventoryAllocationConfirmationSlice';
 
@@ -21,6 +21,7 @@ const useInventoryAllocationConfirmation = () => {
   // State selectors
   const loading = useAppSelector(selectAllocationConfirmLoading);
   const error = useAppSelector(selectAllocationConfirmError);
+  const success = useAppSelector(selectAllocationConfirmSuccess);
   const message = useAppSelector(selectAllocationConfirmMessage);
   const payload = useAppSelector(selectAllocationConfirmPayload);
   
@@ -41,24 +42,15 @@ const useInventoryAllocationConfirmation = () => {
     dispatch(resetConfirmationState());
   }, [dispatch]);
   
-  /**
-   * Memoized result object
-   */
-  const result = useMemo(
-    () => ({
+  return {
       loading,
       error,
+      success,
       message,
       payload,
-    }),
-    [loading, error, message, payload]
-  );
-  
-  return {
-    ...result,
-    confirm,
-    reset,
-  };
+      confirm,
+      reset,
+    };
 };
 
 export default useInventoryAllocationConfirmation;

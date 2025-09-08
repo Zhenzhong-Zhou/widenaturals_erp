@@ -149,6 +149,12 @@ export interface OrderItemReview extends OrderItemStatus {
   /** Human-readable status name (e.g., "Fully Allocated") */
   statusName: string;
   
+  /**
+   * Internal status code used for program logic (e.g., "ORDER_ALLOCATED", "ALLOC_CONFIRMED").
+   * Not intended for direct display in the UI.
+   */
+  statusCode: string;
+  
   /** ISO timestamp when the item status was last updated */
   statusDate: string;
 }

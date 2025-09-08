@@ -316,6 +316,7 @@ const getInventoryAllocationReview = async (orderId, warehouseIds, allocationIds
       oi.quantity_ordered,
       oi.status_id AS item_status_id,
       ios.name AS item_status_name,
+      ios.code AS item_status_code,
       oi.status_date AS item_status_date,
       oi.sku_id,
       s.sku,
