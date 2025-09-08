@@ -185,7 +185,7 @@ axiosInstance.interceptors.response.use(
       // Convert unknown errors to AppError
       throw AppError.create(
         ErrorType.UnknownError,
-        'An unknown error occurred',
+        error.response?.data.message  || 'An unknown error occurred',
         error.response?.status || 500,
         { details: error.response?.data || error.message }
       );

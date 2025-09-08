@@ -475,7 +475,6 @@ export interface FetchPaginatedInventoryAllocationsParams
 export type InventoryAllocationSortField =
   // Allocation-level summary fields (FROM alloc_agg aa)
   | 'allocationStatus'
-  | 'allocationStatusCodes'
   | 'allocationStatuses'
   | 'allocatedAt'
   | 'allocatedCreatedAt'

@@ -34,7 +34,6 @@ const inventoryAllocationSortOptions: { label: string; value: InventoryAllocatio
   { label: 'Allocated Items', value: 'allocatedItems' },
   { label: 'Warehouse Names', value: 'warehouseNames' },
   { label: 'Allocation Status', value: 'allocationStatus' },
-  { label: 'Allocation Status Codes', value: 'allocationStatusCodes' },
   { label: 'Allocation Statuses', value: 'allocationStatuses' },
   { label: 'Default (Natural Sort)', value: 'defaultNaturalSort' },
 ];

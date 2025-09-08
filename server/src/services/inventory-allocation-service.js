@@ -552,6 +552,12 @@ const confirmInventoryAllocationService = async (user, rawOrderId) => {
       orderId: rawOrderId,
       userId: user?.id,
     });
+    
+    // Pass through original conflict error if exists
+    if (error instanceof AppError && error.type === 'ConflictError') {
+      throw error; // pass it through so client gets detailed message
+    }
+    
     throw AppError.serviceError('Unable to confirm inventory allocation for this order.');
   }
 };

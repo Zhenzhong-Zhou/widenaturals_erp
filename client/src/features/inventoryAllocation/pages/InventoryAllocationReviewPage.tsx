@@ -187,7 +187,7 @@ const InventoryAllocationReviewPage = () => {
             
             <Stack direction="row" spacing={2} alignItems="center">
               {confirmError && (
-                <ErrorMessage message={confirmMessage ?? 'Failed to confirm inventory allocation.'} />
+                <ErrorMessage message={confirmError} />
               )}
               {!shouldHideConfirmButton && (
                 <CustomButton
