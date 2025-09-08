@@ -19,7 +19,7 @@ const createQueryNormalizationMiddleware = require('../middlewares/query-normali
 const router = express.Router();
 
 /**
- * @route POST /inventory-allocation/allocate/:orderId
+ * @route POST /inventory-allocations/allocate/:orderId
  * @permission INVENTORY_ALLOCATION.ALLOCATE
  * @description
  * Allocates available inventory to all items in a given sales order.
@@ -157,7 +157,7 @@ router.get(
 );
 
 /**
- * POST /inventory-allocation/confirm/:orderId
+ * POST /inventory-allocations/confirm/:orderId
  *
  * Confirms inventory allocation for a specific order.
  *
