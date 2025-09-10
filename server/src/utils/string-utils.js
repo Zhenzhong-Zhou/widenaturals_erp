@@ -54,26 +54,6 @@ const convertToKey = (formattedHeader) => {
 };
 
 /**
- * Formats discount value based on its type.
- *
- * @param {string|null} discountType - The type of discount (PERCENTAGE or FIXED_AMOUNT).
- * @param {number|null} discountValue - The value of the discount.
- * @returns {string} - Formatted discount value.
- */
-// todo: move to module file base: discount-utils.js
-const formatDiscount = (discountType, discountValue) => {
-  if (!discountType || discountValue === null || discountValue === undefined)
-    return 'N/A';
-
-  if (discountType === 'PERCENTAGE')
-    return `${Number(discountValue).toFixed(2)}%`;
-  if (discountType === 'FIXED_AMOUNT')
-    return `$${Number(discountValue).toFixed(2)}`;
-
-  return 'N/A';
-};
-
-/**
  * Formats a tax rate label for display in a dropdown.
  *
  * Combines the tax name, rate percentage, and optionally province or region into a user-friendly label.
@@ -154,7 +134,6 @@ module.exports = {
   formatHeader,
   processHeaders,
   convertToKey,
-  formatDiscount,
   formatTaxRateLabel,
   formatPackagingMaterialLabel,
 };
