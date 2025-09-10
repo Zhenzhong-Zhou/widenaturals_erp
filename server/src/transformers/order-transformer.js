@@ -1,7 +1,8 @@
 const { cleanObject } = require('../utils/object-utils');
 const { getFullName } = require('../utils/name-utils');
 const { makeAudit, compactAudit } = require('../utils/audit-utils');
-const { formatDiscount, formatTaxRateLabel, formatPackagingMaterialLabel } = require('../utils/string-utils');
+const { formatTaxRateLabel, formatPackagingMaterialLabel } = require('../utils/string-utils');
+const { formatDiscount } = require('../utils/discount-utils');
 const { getProductDisplayName } = require('../utils/display-name-utils');
 const { buildAddress } = require('../utils/address-utils');
 const { transformPaginatedResult } = require('../utils/transformer-utils');
