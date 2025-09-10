@@ -2,7 +2,7 @@ import { type Column } from '@components/common/CustomTable';
 import type { FlattenedAllocationReviewItem } from '@features/inventoryAllocation/utils/flattenAllocationReviewData';
 import { formatDate } from '@utils/dateTimeUtils';
 import { formatLabel } from '@utils/textUtils';
-import { formatStatus } from '@utils/formatters';
+import { formatAllocationStatus, formatInventoryStatus, formatItemStatus } from '@utils/formatters';
 import { createDrillDownColumn } from '@utils/table/createDrillDownColumn';
 import { getFallbackValue } from '@utils/objectUtils';
 
@@ -19,6 +19,11 @@ export const getAllocationReviewColumns = (
   expandedRowId: string | null,
   handleDrillDownToggle?: (id: string) => void
 ): Column<FlattenedAllocationReviewItem>[] => {
+  const getFormattedInventoryStatus = (row: any) => {
+    const status = getPrimaryWarehouseField(row, 'statusName') ?? 'unknown';
+    return formatInventoryStatus(status, formatLabel(status, { preserveHyphen: true }));
+  };
+  
   return [
     {
       id: 'batchType',
@@ -74,14 +79,12 @@ export const getAllocationReviewColumns = (
     {
       id: 'allocationStatus',
       label: 'Alloc. Status',
-      renderCell: (row) => formatStatus(row.allocationStatus),
+      renderCell: (row) => formatAllocationStatus(row.allocationStatusCode, row.allocationStatus),
     },
     {
       id: 'warehouseStatus',
       label: 'Stock Status',
-      renderCell: (row) => formatStatus(formatLabel(getPrimaryWarehouseField(row, 'statusName'), {
-        preserveHyphen: true,
-      }) ?? '—'),
+      renderCell: getFormattedInventoryStatus,
     },
     {
       id: 'orderItemQty',
@@ -91,7 +94,7 @@ export const getAllocationReviewColumns = (
     {
       id: 'orderItemStatus',
       label: 'Item Status',
-      renderCell: (row) => formatStatus(row.orderItemStatusName),
+      renderCell: (row) => formatItemStatus(row.orderItemStatusCode, row.orderItemStatusName),
     },
     {
       id: 'orderItemStatusDate',

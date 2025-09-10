@@ -488,7 +488,8 @@ const getInventoryAllocationReview = async (orderId, warehouseIds, allocationIds
  *     customer_firstname: string | null;
  *     customer_lastname: string | null;
  *     payment_method: string | null;
- *     payment_status: string | null;
+ *     payment_status_name: string | null;
+ *     payment_status_code: string | null;
  *     delivery_method: string | null;
  *     total_items: number;
  *     allocated_items: number;
@@ -605,7 +606,8 @@ const getPaginatedInventoryAllocations = async ({
       c.firstname AS customer_firstname,
       c.lastname  AS customer_lastname,
       pm.name AS payment_method,
-      ps.name AS payment_status,
+      ps.name AS payment_status_name,
+      ps.code AS payment_status_code,
       dm.method_name AS delivery_method,
       ic.total_items,
       aa.allocated_items,

@@ -1,11 +1,9 @@
 import Chip from '@mui/material/Chip';
-import type { ChipProps } from '@mui/material/Chip';
-
-type ChipColor = ChipProps['color'];
+import type { StatusColor } from '@utils/getStatusColor';
 
 interface StatusChipProps {
   label: string;
-  color?: ChipColor;
+  color?: StatusColor;
   variant?: 'filled' | 'outlined';
 }
 
@@ -20,7 +18,14 @@ const StatusChip = ({
       color={color}
       size="small"
       variant={variant}
-      sx={{ textTransform: 'uppercase', fontWeight: 600 }}
+      sx={(theme) => ({
+        textTransform: 'uppercase',
+        fontWeight: 600,
+        bgcolor:
+          color && color !== 'default'
+            ? theme.palette[color]?.light ?? undefined
+            : undefined,
+      })}
     />
   );
 };

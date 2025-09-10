@@ -33,8 +33,7 @@ const OrdersTable = lazy(
 const OrdersListPage = () => {
   const { mode } = useParams<{ mode?: string }>();
   const navigate = useNavigate();
-  // todo: copy customer table
-
+  
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [sortBy, setSortBy] = useState<OrderListSortField>('createdAt');

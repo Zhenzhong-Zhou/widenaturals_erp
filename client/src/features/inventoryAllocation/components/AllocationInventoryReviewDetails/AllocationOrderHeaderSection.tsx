@@ -27,7 +27,11 @@ const AllocationOrderHeaderSection: FC<AllocationOrderHeaderSectionProps> = ({ f
           <MemoizedDetailsSection
             fields={[
               { label: 'Order Number', value: flattened.orderNumber },
-              { label: 'Order Status', value: flattened.orderStatus, format: formatOrderStatus },
+              {
+                label: 'Order Status',
+                value: flattened.orderStatus,
+                format: () => formatOrderStatus(flattened.orderStatusCode, flattened.orderStatus),
+              },
             ]}
           />
         </DetailsGridItem>

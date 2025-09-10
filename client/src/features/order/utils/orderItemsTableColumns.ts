@@ -3,7 +3,7 @@ import type { OrderItem } from '@features/order/state';
 import { formatCurrency, formatLabel } from '@utils/textUtils';
 import { formatDate } from '@utils/dateTimeUtils';
 import { createDrillDownColumn } from '@utils/table/createDrillDownColumn';
-import { formatStatus } from '@utils/formatters';
+import { formatItemStatus } from '@utils/formatters';
 
 export const getOrderItemColumns = (
   expandedRowId: string | null,
@@ -69,7 +69,7 @@ export const getOrderItemColumns = (
     {
       id: 'status',
       label: 'Status',
-      renderCell: (row) => formatStatus(row.status?.name, 'item'),
+      renderCell: (row) => formatItemStatus(row.status?.code, row.status?.name),
     },
     {
       id: 'statusDate',

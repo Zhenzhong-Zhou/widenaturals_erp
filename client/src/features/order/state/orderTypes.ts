@@ -241,10 +241,14 @@ export interface OrderListItem {
   /** Name of the order type (e.g., Standard Sales Order) */
   orderType: string;
   
-  /** Current status of the order, with code and display name */
-  status: {
+  /**
+   * Current order status.
+   * - `code`: Machine-readable code (e.g., 'ORDER_PENDING')
+   * - `name`: Human-readable label (e.g., 'Pending')
+   */
+  orderStatus: {
     code: string;
-    name: string;
+    name: string
   };
   
   /**
@@ -277,9 +281,16 @@ export interface OrderListItem {
   
   /** Name of the payment method used (e.g., Credit Card) */
   paymentMethod?: string | null;
-  
-  /** Current payment status label (e.g., Paid, Unpaid) */
-  paymentStatus?: string | null;
+    
+    /**
+     * Current payment status.
+     * - `code`: Machine-readable code (e.g., 'PAID', 'UNPAID')
+     * - `name`: Human-readable label (e.g., 'Paid', 'Unpaid')
+     */
+    paymentStatus: {
+      code: string;
+      name: string;
+    };
   
   /** Name of the delivery method (e.g., Canada Post) */
   deliveryMethod?: string | null;
@@ -358,12 +369,19 @@ export interface Address {
 }
 
 /**
- * Represents the payment status of an order (e.g., UNPAID, PAID).
+ * Represents the payment status of an order.
+ *
+ * Includes metadata such as:
+ * - `id`: Unique identifier of the payment status
+ * - `code`: System code (e.g., "PAID", "UNPAID")
+ * - `name`: Human-readable label (e.g., "Paid", "Unpaid")
  */
 export interface PaymentStatus {
-  /** Unique identifier for the payment status */
+  /** Unique identifier of the payment status */
   id: string | null;
-  /** Human-readable name of the payment status */
+  /** System code (e.g., "PAID", "UNPAID") */
+  code: string | null;
+  /** Human-readable label (e.g., "Paid", "Unpaid") */
   name: string | null;
 }
 
@@ -454,14 +472,25 @@ export interface PackagingMaterialRef {
 }
 
 /**
- * Status of an individual order item.
+ * Represents the current status of an individual order item.
+ *
+ * Includes metadata such as:
+ * - `id`: Unique identifier for the status
+ * - `code`: System code (e.g., "ORDER_ALLOCATED", "ORDER_SHIPPED")
+ * - `name`: Human-readable label (e.g., "Allocated", "Shipped")
+ * - `date`: ISO timestamp indicating when this status was set
  */
 export interface OrderItemStatus {
   /** Unique identifier for the status */
   id: string | null;
-  /** Human-readable name of the status */
+  
+  /** System code of the status (e.g., "ORDER_ALLOCATED") */
+  code: string | null;
+  
+  /** Human-readable name of the status (e.g., "Allocated") */
   name: string | null;
-  /** ISO date string when the status was set, or null */
+  
+  /** ISO date string indicating when the status was applied */
   date: string | null;
 }
 
@@ -519,7 +548,7 @@ export interface TransformedOrder {
   /** Order type reference */
   type: { id: string; name: string; code: string; };
   /** Order status reference */
-  status: { id: string | null; name: string | null };
+  status: { id: string | null; name: string | null; code: string | null };
   /** Customer details */
   customer: {
     id: string;
@@ -609,8 +638,17 @@ export interface FlattenedOrderHeader {
   /** Optional note or memo attached to the order */
   orderNote: string;
   
-  /** Current status of the order (e.g., Pending, Shipped) */
-  orderStatus: string | null;
+  /**
+   * Current status of the order.
+   *
+   * Includes:
+   * - `code`: Status code (e.g., "ORDER_PENDING", "ORDER_SHIPPED")
+   * - `name`: Human-readable label (e.g., "Pending", "Shipped")
+   */
+  orderStatus: {
+    code: string;
+    name: string;
+  };
   
   /** Date when the order status was last updated */
   orderStatusDate: string | null;
@@ -623,8 +661,11 @@ export interface FlattenedOrderHeader {
     /** Payment method name (e.g., Credit Card, Bank Transfer) */
     method: string | null;
     
-    /** Payment status (e.g., Paid, Unpaid, Refunded) */
+    /** Human-readable payment status (e.g., "Paid") */
     status: string | null;
+    
+    /** System-defined status code (e.g., "PAID") */
+    code: string | null;
     
     /** Currency code used for the transaction (e.g., USD, CAD) */
     currencyCode: string | null;

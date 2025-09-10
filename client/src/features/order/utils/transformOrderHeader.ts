@@ -14,13 +14,17 @@ export const flattenSalesOrderHeader = (raw: TransformedOrder): FlattenedOrderHe
     orderNumber: raw.orderNumber,
     orderDate: raw.orderDate,
     orderNote: raw.note || '',
-    orderStatus: raw.status?.name || null,
+    orderStatus: {
+      name: raw.status?.name || '',
+      code: raw.status?.code || ''
+    },
     orderStatusDate: raw.statusDate || null,
     orderType: raw.type?.name || null,
     
     paymentInfo: {
       method: raw.payment?.method?.name || null,
       status: raw.payment?.status?.name || null,
+      code: raw.payment?.status?.code || null,
       currencyCode: raw.payment?.currencyCode || null,
       exchangeRate: raw.payment?.exchangeRate != null ? Number(raw.payment.exchangeRate) : null,
       baseCurrencyAmount: raw.payment?.baseCurrencyAmount != null ? Number(raw.payment.baseCurrencyAmount) : null,

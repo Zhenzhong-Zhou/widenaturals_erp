@@ -39,6 +39,7 @@ export interface FlattenedAllocationReviewItem {
   orderItemId: string;
   orderId: string;
   orderItemStatusName: string;
+  orderItemStatusCode: string;
   orderItemStatusDate: string;
   quantityOrdered: number;
   
@@ -149,6 +150,7 @@ export const flattenInventoryAllocationReviewItems = (
       orderItemId: orderItem?.id ?? '—',
       orderId: orderItem?.orderId ?? '—',
       orderItemStatusName: orderItem?.statusName ?? '—',
+      orderItemStatusCode: orderItem?.statusCode ?? '—',
       orderItemStatusDate: orderItem?.statusDate ?? '',
       quantityOrdered: orderItem?.quantityOrdered ?? 0,
       
